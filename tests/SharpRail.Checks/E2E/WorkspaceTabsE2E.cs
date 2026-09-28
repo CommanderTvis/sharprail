@@ -3,6 +3,7 @@ using Avalonia.Automation.Peers;
 using Avalonia.Automation.Provider;
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
+using SharpRail.UI.Docking;
 using static SharpRail.Checks.E2E.E2eWorkspace;
 
 namespace SharpRail.Checks.E2E;
@@ -19,6 +20,36 @@ internal static class WorkspaceTabsE2E
         }
         DocumentIsolation(Repository(root, "workspace-tabs-documents", source));
         SideTools(Repository(root, "workspace-tabs-tools", source));
+        MountedWorkbench(Repository(root, "workspace-tabs-mounted", source));
+    }
+
+    private static void MountedWorkbench(string root)
+    {
+        using var app = new E2eWorkspace(root);
+        var first = CreateWorkspace(app, "workspace-1");
+        app.Open("README.md", true);
+        var bottom = app.Window.Layout.State.Groups.Single(group => group.Region == "bottom");
+        var add = app.Find<Button>("AddToGroup_" + bottom.Id);
+        app.Click(add); Until(() => add.ContextMenu!.IsOpen);
+        app.Click(add.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "New terminal")), freshGesture: false);
+        Until(() => app.Window.Layout.Tabs(bottom.Id).Any(tab => tab.Kind == "terminal"));
+        var terminalCount = app.Window.Layout.Tabs(bottom.Id).Count(tab => tab.Kind == "terminal");
+        CreateWorkspace(app, "workspace-2");
+        var names = new[] { "WorkspaceWorkbench", "CenterRegion", "AuxiliaryRegion_left" };
+        var frames = names.Select(app.Find<Control>).ToArray();
+        var detached = 0;
+        foreach (var frame in frames) frame.DetachedFromVisualTree += (_, _) => detached++;
+        void Mounted()
+        {
+            Require(names.Select(app.Find<Control>).Zip(frames).All(pair => ReferenceEquals(pair.First, pair.Second)) && detached == 0,
+                "Workspace switches must retain the mounted workbench, center region and left navigation region.");
+        }
+        Switch(app, first, "workspace-1");
+        Require(app.Tab("README.md").IsVisible && app.Window.Layout.Tabs(bottom.Id).Count(tab => tab.Kind == "terminal") == terminalCount,
+            "Retargeting the workbench must restore the first workspace's document and terminal tabs.");
+        Mounted();
+        Switch(app, root); Mounted();
+        Console.WriteLine("PASS upstream workspace-tabs.spec.ts: switching workspaces re-targets the mounted workbench instead of remounting it");
     }
 
     internal static string Repository(string root, string name, string source)

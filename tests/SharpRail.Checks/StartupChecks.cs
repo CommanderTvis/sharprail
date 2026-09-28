@@ -7,6 +7,8 @@ using SharpRail.Host.Core;
 using SharpRail.UI;
 using SharpRail.UI.Rendering;
 using SharpRail.UI.State;
+using SharpRail.UI.Docking;
+using SharpRail.Checks.E2E;
 
 namespace SharpRail.Checks;
 
@@ -29,6 +31,7 @@ internal static class StartupChecks
 
     internal static void Run(string root)
     {
+        DeferredDocumentChrome(root);
         var profilePath = Path.Combine(root, ".startup-profile");
         var host = new DelayedGitHost(root);
         var window = new WorkbenchWindow(host, root, new ProfileStore(profilePath));
@@ -83,6 +86,35 @@ internal static class StartupChecks
             "Git failure made an accessible workspace unusable.");
         window.Close();
         Console.WriteLine("PASS usable fresh/restored startup with pending Git, cancellation, project switching, stale results and Git failure");
+    }
+
+    private static void DeferredDocumentChrome(string root)
+    {
+        var directory = Path.Combine(root, "deferred-document-chrome");
+        using (var app = new E2eWorkspace(directory)) app.Open("README.md", true);
+        var host = new E2eHost(new ProjectServices(directory));
+        var read = host.Hold("README.md");
+        var window = new WorkbenchWindow(host, directory, new ProfileStore(directory + "-profile"));
+        window.Show();
+        try
+        {
+            E2eWorkspace.Until(() => window.WorkspaceMounted && host.Reads.GetValueOrDefault("README.md") == 1);
+            T Find<T>(string name) where T : Control => window.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
+            Require(window.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "Loading document…"),
+                "The held restore read must expose a loading document before completion.");
+            var tab = Find<Button>("Tab_markdown_README.md");
+            var center = window.Layout.View.FocusedCenter;
+            var header = Find<Grid>("GroupHeader_" + center);
+            var separator = Find<ResizeHandle>("rightSeparator");
+            Require(tab.Focus(), "The restored tab must accept keyboard focus while its content is pending.");
+            read.SetResult();
+            E2eWorkspace.Until(() => window.GetLogicalDescendants().OfType<MarkdownPreview>().Any());
+            Require(ReferenceEquals(tab, Find<Button>(tab.Name!)) && tab.IsFocused &&
+                ReferenceEquals(header, Find<Grid>(header.Name!)) && ReferenceEquals(separator, Find<ResizeHandle>(separator.Name!)),
+                "Deferred document completion must replace only its body and preserve the tab, header, separator and focus.");
+        }
+        finally { window.Close(); }
+        Console.WriteLine("PASS deferred restored document preserves dock chrome and keyboard focus");
     }
 
     private sealed class GitRequest(CancellationToken token)

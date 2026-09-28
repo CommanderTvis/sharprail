@@ -54,12 +54,17 @@ internal static class LayoutSettingsE2E
         app.Click(add.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "New terminal")), freshGesture: false);
         Until(() => app.Window.Layout.Tabs(bottom.Id).Any(tab => tab.Kind == "terminal"));
         var settings = Open(app);
+        foreach (var region in new[] { "side", "bottom" })
+        {
+            settings.GetLogicalDescendants().OfType<NumericUpDown>().Single(input => input.Name == "GroupLimit_" + region).Value = region == "side" ? 3 : 2;
+            app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "SaveGroupLimit_" + region));
+        }
         var before = System.Text.Json.JsonSerializer.Serialize(app.Window.Layout.State);
         app.Click(PresetButton(settings, "review", "Apply now…")); Respond(app, settings, false);
         Require(System.Text.Json.JsonSerializer.Serialize(app.Window.Layout.State) == before, "Canceling a preset must retain the exact frame and resources.");
         app.Click(PresetButton(settings, "review", "Apply now…")); Respond(app, settings, true);
         var state = app.Window.Layout.State;
-        Require(state.Center.Leaves().Count() == 2 && state.Center.Axis == "vertical" &&
+        Require(state.SideLimit == 3 && state.BottomLimit == 2 && state.Center.Leaves().Count() == 2 && state.Center.Axis == "vertical" &&
             state.Center.Leaves().SelectMany(app.Window.Layout.Tabs).Select(tab => tab.Path).Order().SequenceEqual(new[] { "README.md", "notes.txt" }.Order()) &&
             state.Groups.Count(group => group.Region == "left") == 1 && state.Groups.Count(group => group.Region == "right") == 2 &&
             state.Groups.Where(group => group.Region == "bottom").SelectMany(group => app.Window.Layout.Tabs(group.Id)).Single().Title == "Terminal 1",

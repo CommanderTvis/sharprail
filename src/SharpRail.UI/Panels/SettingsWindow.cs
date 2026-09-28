@@ -164,7 +164,10 @@ public sealed partial class SettingsWindow : Window
     private async Task ApplyLayout(string name)
     {
         if (!await Dialogs.Confirm(this, "Apply this layout?", "Open files, documents, and terminals are preserved, but their groups and proportions will be rearranged across every workspace in this window. Other windows are unaffected.", "Apply layout")) return;
-        layout.ApplyPreset(profile.Data.Preferences.CustomPresets.GetValueOrDefault(name) ?? DockState.Preset(name));
+        var preset = (profile.Data.Preferences.CustomPresets.GetValueOrDefault(name) ?? DockState.Preset(name)).Copy();
+        preset.SideLimit = Math.Max(layout.State.SideLimit, Math.Max(preset.Groups.Count(group => group.Region == "left"), preset.Groups.Count(group => group.Region == "right")));
+        preset.BottomLimit = Math.Max(layout.State.BottomLimit, preset.Groups.Count(group => group.Region == "bottom"));
+        layout.ApplyPreset(preset);
         profile.Data.Layout = layout.State; Save();
     }
 

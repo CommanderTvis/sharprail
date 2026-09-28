@@ -29,6 +29,27 @@ Static UI layouts/styles/templates belong in compiled `.axaml`; dynamic docking
 and host/interaction wiring belong in C#. Keep the host independent of the UI and
 make remoteness an adapter choice rather than a mandatory local daemon.
 
+The application starts in `src/SharpRail.UI/Program.cs` and `App.cs`.
+`WorkbenchWindow` owns the workbench; `DockSurface` renders and handles docking,
+while `LayoutSession` applies transitions to `LayoutState`. `ProfileStore` owns
+on-disk state. Keep these responsibilities separate when adding interactions.
+
+The workbench is split into partial files rather than separate window classes:
+
+| File in `src/SharpRail.UI` | Responsibility |
+| --- | --- |
+| `WorkbenchWindow.axaml` / `WorkbenchWindow.cs` | Static window frame, startup, workspace switching and workbench composition. |
+| `DocumentNavigation.cs` / `DocumentCache.cs` | Opening/restoring documents, navigation and cached document-control lifetime. |
+| `ProjectPanels.cs` | Files, Specs and Projects panel construction and project actions. |
+| `GitPanels.cs` / `WorkspaceGit.cs` | Git panel controls and cancellable, workspace-scoped snapshot refreshes. |
+| `GestureNotification.cs` | Feedback when layout transitions cancel an active gesture. |
+
+Host dependencies flow toward abstractions: Core references Abstractions; Client
+references Abstractions and Protocol; Remote references Core and Protocol. The UI
+references Core and Client to compose either direct local calls or remote proxies.
+Checks reference the UI and Remote to exercise both paths. Do not introduce a UI
+dependency into the host projects.
+
 `SPEC.md` defines the product contract; `COMPLETION.md` records unfinished gates;
 `E2E.md` inventories upstream translations; `VALIDATION.md` records verified
 evidence. Read `gotchas.md` for lessons and `context-log.md` for continuation state.
@@ -38,6 +59,10 @@ Run checks with `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Re
 Set `SHARPRAIL_TEST_GIT_SOURCE` to an existing upstream clone to include Git fixtures.
 Verify formatting with `.tools/dotnet/dotnet format SharpRail.slnx --verify-no-changes --no-restore`.
 Generated packages live under `artifacts/`; keep one latest canonical app package.
+`artifacts/ui`, `artifacts/host` and `artifacts/checks` contain published executables;
+`artifacts/SharpRail.app` is the macOS bundle. `.tools`, `bin` and `obj` are local
+tooling/build output, not source. `licenses/` and `THIRD-PARTY-NOTICES.md` document
+redistributed dependencies and assets.
 
 ## Startup performance sanity
 

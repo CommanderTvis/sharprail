@@ -63,6 +63,7 @@ public sealed partial class WorkbenchWindow : Window
         Layout.Changed += () => { profile.Data.Layout = Layout.State; SaveProfile(); PruneDocuments(); };
         surface = new DockSurface(Layout, RenderContent);
         Ui.Place(root, surface, 1);
+        WireGestureNotification();
         ApplyAppearance();
         ActualThemeVariantChanged += (_, _) => Ui.SetLight(ActualThemeVariant == ThemeVariant.Light);
         Opened += async (_, _) => await OpenProjectAsync(initialRoot);

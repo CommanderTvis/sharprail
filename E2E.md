@@ -5,6 +5,8 @@ Authoritative source: [JetBrains/thinkrail:main — e2e](https://github.com/JetB
 Tests drive real Avalonia pointer/keyboard input and host calls in a headless window.
 Each case gets an isolated repository fixture and profile. Native macOS checks remain
 necessary for window moving, zooming, platform dialogs and final visual verification.
+Multiwindow gesture cases open the same project with independent window profiles
+and explicitly focus the shortcut recipient before sending keyboard input.
 Browser URL/page-count assertions become internal workspace navigation assertions.
 ARIA roles and relationships become Avalonia automation-peer assertions. Delayed
 WebSocket replies become held host-call responses; local mode uses direct C# calls.
@@ -61,17 +63,17 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `layout.spec.ts` | applying the Review preset preserves resources and installs its vertical center topology | Ported |
 | `layout.spec.ts` | the local default preset drives an explicit frame reset | Ported |
 | `layout.spec.ts` | custom presets synchronize while defaults and group limits remain window-local | Pending |
-| `layout.spec.ts` | Layout settings controls keep their container-preset max-widths | Pending |
-| `layout.spec.ts` | an accepted side-group overage is grandfathered without allowing further growth | Pending |
+| `layout.spec.ts` | Layout settings controls keep their container-preset max-widths | Ported |
+| `layout.spec.ts` | an accepted side-group overage is grandfathered without allowing further growth | Ported |
 | `layout.spec.ts` | a narrow viewport compresses locally without rewriting recursive topology | Ported |
 | `layout.spec.ts` | frontend windows keep chat and file placement independent | Pending |
 | `layout.spec.ts` | layout survives a transport reconnect and remains writable | Pending |
-| `layout.spec.ts` | another window cannot cancel or rearrange an active tab drag | Pending |
-| `layout.spec.ts` | another window cannot cancel or adopt an active side resize | Pending |
-| `layout.spec.ts` | local layout transitions with no gesture in progress never announce a canceled drag | Pending |
-| `layout.spec.ts` | a local transition during a side resize cancels the gesture and says so | Pending |
-| `layout.spec.ts` | a tab drag reveals every valid destination subtly, then emphasizes the one under the pointer | Pending |
-| `layout.spec.ts` | the hidden bottom drop zone wins overlapping terminal targets and reveals its frame group | Pending |
+| `layout.spec.ts` | another window cannot cancel or rearrange an active tab drag | Ported |
+| `layout.spec.ts` | another window cannot cancel or adopt an active side resize | Ported |
+| `layout.spec.ts` | local layout transitions with no gesture in progress never announce a canceled drag | Ported |
+| `layout.spec.ts` | a local transition during a side resize cancels the gesture and says so | Ported |
+| `layout.spec.ts` | a tab drag reveals every valid destination subtly, then emphasizes the one under the pointer | Ported |
+| `layout.spec.ts` | the hidden bottom drop zone wins overlapping terminal targets and reveals its frame group | Ported |
 | `projects.spec.ts` | opens a git repo as a project via the directory picker | Pending |
 | `projects.spec.ts` | opens a project from an explicit host path | Pending |
 | `projects.spec.ts` | picker failure falls back to host-path entry on every host platform | Pending |
@@ -82,9 +84,9 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `projects.spec.ts` | project context actions stay compact and close/reopen is lossless across clients | Pending |
 | `workspace-tabs.spec.ts` | editor tabs are scoped to the active workspace | Ported |
 | `workspace-tabs.spec.ts` | the selected side tool follows workspace switches | Ported |
-| `workspace-tabs.spec.ts` | switching workspaces re-targets the mounted workbench instead of remounting it | Pending |
+| `workspace-tabs.spec.ts` | switching workspaces re-targets the mounted workbench instead of remounting it | Ported |
 | `workspace-tabs.spec.ts` | a same-id terminal body remounts instead of carrying across workspaces | Excluded: functional editor/terminal or AI |
-| `theme.spec.ts` | appearance switches a discovered theme and persists it across reload | Pending |
+| `theme.spec.ts` | appearance switches a discovered theme and persists it across reload | Ported |
 | `theme.spec.ts` | system mode follows each client and retains its explicit pair | Pending |
 | `theme.spec.ts` | Monaco opens files and re-themes under every discovered manifest | Excluded: functional editor/terminal or AI |
 | `theme.spec.ts` | selected workspace tabs keep their surface and edge marker in high contrast | Pending |

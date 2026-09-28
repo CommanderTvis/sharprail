@@ -1,16 +1,16 @@
 # Prototype validation
 
-Status on 2026-09-28: twenty-seven translated upstream E2E cases pass in the full
+Status on 2026-09-28: thirty-seven translated upstream E2E cases pass in the full
 Release and published-runtime suites with Git/worktree integration enabled. Formatting and
 `git diff --check` pass. The canonical `artifacts/SharpRail.app` was republished
 with non-composite ReadyToRun and passes strict/deep signature verification.
 The full published-runtime suite also passes, including open-world loading and
-Git/worktree integration (`.bench/layout-settings-upstream-final-published-checks.log`).
+Git/worktree integration (`.bench/theme-reload-published-checks.log`).
 
 Native display availability recovered: CoreGraphics reports two active displays
 and CoreVideo display-link creation succeeds. The canonical package is running
-(PID 64599); its 1352x848 window was captured and inspected in
-`.bench/layout-settings-upstream-native.png`. Earlier launch failures with RenderTimer
+(PID 15312); its 1352x848 window was captured and inspected in
+`.bench/mounted-workbench-native.png`. Earlier launch failures with RenderTimer
 `-6661` occurred while no displays were active, matching
 [Avalonia issue 18895](https://github.com/AvaloniaUI/Avalonia/issues/18895).
 Earlier captures and running-app statements below are historical evidence.
@@ -18,6 +18,80 @@ The complete visual/docking fidelity objective and upstream suite translation
 remain active; the evidence below does not prove the full reference contract.
 
 ## Current evidence
+
+The upstream theme-switch/reload case discovers the available dark/light choices
+through Settings, clicks an alternate choice, verifies the immediate workbench
+and dialog theme, then opens a fresh window with the same isolated profile and
+verifies restoration before selecting the original theme. Full Git-enabled Release
+and published R2R suites pass37 cases and all additional checks
+(`.bench/theme-reload-complete-checks.log`, `.bench/theme-reload-published-checks.log`).
+Formatting passes (`.bench/theme-reload-final-format.log`). Only checks were
+republished; application code and the running bundle are unchanged. This case
+does not prove the full upstream manifest catalog, high contrast, explicit system
+theme pairs or cross-window theme synchronization.
+
+Workspace switches preserve the mounted workbench and its outer center/left
+regions, verified through actual worktree navigation and visual-tree detach counts.
+Deferred restored-document completion updates only visible bodies, preserving
+tab/header/separator identity and keyboard focus after a held read completes.
+Full Release and published R2R suites pass (`.bench/mounted-workbench-checks.log`,
+`.bench/mounted-workbench-published-checks.log`); formatting passes
+(`.bench/mounted-workbench-format.log`). The native capture verifies the running
+frame and Markdown preview, not a native workspace-switch sequence. Inner group
+chrome still rebuilds on layout/workspace transitions; broader identity and final
+pixel fidelity remain separate gates.
+
+Two upstream cases now exercise drag destination paint and hidden-bottom overlap
+priority. Actual pointer input checks the legal center-strip ring, absence of
+illegal side hints, subtle edge tint, active half-pane preview and complete Escape
+cleanup. A menu-created terminal moves into center, hides bottom, and drags onto
+the 24px bottom band at a point also inside a legal center split. Bottom wins,
+reveals its retained group and moves the same body without duplicating it or
+splitting center. Full Release and published R2R suites pass
+(`.bench/drop-hints-final-checks.log`, `.bench/drop-hints-published-checks.log`);
+formatting verification passes (`.bench/drop-hints-final-format.log`). These are
+checks of rendered control geometry and paint properties, not a native drag capture.
+Application behavior and the running canonical bundle were unchanged; only the
+published checks were refreshed.
+
+Local layout transitions explicitly abort active drag/resize drafts, release
+pointer capture and show the source's cancellation message. Idle transitions and
+completed gestures stay quiet. A stale mouse-up cannot commit a canceled width
+or reveal its hidden side. The two upstream cases exercise resize commit, fold,
+unfold, selection, interruption by shortcut, Dismiss and five-second expiry;
+multiwindow cases additionally assert that the protected window has no message.
+Full Release checks pass (`.bench/gesture-cancellation-final-checks.log`). The
+final published suite runs the final styling and additionally asserts responsive
+356px/476px notification geometry (`.bench/gesture-cancellation-published-checks.log`).
+Formatting passes (`.bench/gesture-cancellation-clean-format.log`). The canonical
+non-composite R2R app was republished, signed and inspected running. Its native
+capture shows the current workbench, not the notification. Native toast fidelity,
+including animations, hover/focus expiry pausing and swipe behavior, remains open.
+
+Two translated upstream cases verify independent windows over the same project.
+While the first window drags a tab or previews a side resize, a shortcut in the
+second hides its own side without changing the first window's frame or gesture.
+The original pointer release still splits the first center or commits its width;
+the second window retains its independent topology and width. The harness focuses
+the shortcut recipient explicitly because headless keyboard routing uses the
+globally focused control. Full Release and published R2R suites pass
+(`.bench/window-gestures-final-checks.log`,
+`.bench/window-gestures-published-checks.log`); formatting verification passes
+(`.bench/window-gestures-final-format.log`). The app code and running canonical
+bundle were unchanged by these two translations; only the published checks were
+refreshed. Native multiwindow gesture fidelity remains outside this evidence.
+
+Group limits now use an explicit Save action; edits remain drafts until saved.
+The translated overage case types the draft with real keyboard input, creates a
+third right group, lowers the limit in another worktree, and verifies that existing
+groups survive switching and reload while further creation is disabled. Preset
+application preserves saved limits, raising them only to fit its topology. Layout
+settings retain the reference 512px preset-save and 384px group-limit container caps.
+Release checks pass (`.bench/group-limit-platform-checks.log`); the final published
+suite also covers preset limit preservation
+(`.bench/group-limit-upstream-published-checks.log`). Formatting passes
+(`.bench/group-limit-upstream-final-format.log`). The native capture shows the
+workbench; exact native Settings geometry remains unverified.
 
 Applying a preset or resetting the frame now requires confirmation, matching the
 reference interaction. The Review and local-default reset cases drive Settings

@@ -38,5 +38,20 @@
     <TextBlock x:Name="WorkspaceError" Grid.Row="2" FontSize="12" Margin="12,4"
                Foreground="{x:Static rendering:Ui.Danger}" TextWrapping="Wrap" IsVisible="False"
                Classes="header-label" />
+    <Border x:Name="GestureToast" Grid.Row="1" ZIndex="30" IsVisible="False"
+            HorizontalAlignment="Right" VerticalAlignment="Bottom" Width="356" Margin="12"
+            Background="{x:Static rendering:Ui.Elevated}" BorderBrush="{x:Static rendering:Ui.BorderBrush}"
+            BorderThickness="0,1,1,1" CornerRadius="4" ClipToBounds="True">
+      <Grid ColumnDefinitions="4,*">
+        <Border Background="{x:Static rendering:Ui.Accent}" />
+        <Grid Grid.Column="1" ColumnDefinitions="*,24" Margin="12">
+          <TextBlock x:Name="GestureToastMessage" Text="The layout changed. Your drag was canceled."
+                     Foreground="{x:Static rendering:Ui.Muted}" FontSize="14" TextWrapping="Wrap" Margin="0,0,8,0" />
+          <Button x:Name="DismissGestureToast" Grid.Column="1" Width="24" Height="24" Margin="0,-4,-4,0"
+                  VerticalAlignment="Top" Background="Transparent" BorderThickness="0" Padding="5"
+                  AutomationProperties.Name="Dismiss" />
+        </Grid>
+      </Grid>
+    </Border>
   </Grid>
 </Window>

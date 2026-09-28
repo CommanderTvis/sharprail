@@ -1530,3 +1530,206 @@ Files/empty-center profile state. No native Settings/confirmation capture claime
 Inventory:27 ported,53 pending,5 excluded. Goal remains active. Initial terminal
 placement, mounted chrome identity, Mermaid, custom preset synchronization and
 remaining Git/settings/native fidelity still need work. No benches/agents/commits/pushes.
+
+### Group-limit persistence and layout settings widths
+
+Verified progress after the preset translation: group limits now use draft + Save,
+reference settings container caps are 512px/384px, and preset application preserves
+local limits (raising only to fit topology). The overage case types actual numeric
+input, creates a third right group, lowers the limit in a second worktree, switches
+back and reloads; existing groups remain while growth commands explain limit 2.
+Review now additionally checks retained local limits. Platform text Select All
+must use Avalonia PlatformSettings.HotkeyConfiguration; lesson in gotchas.md.
+
+Release .bench/group-limit-platform-checks.log passed 29 upstream cases, before
+final preset preservation addition. Final published R2R suite
+.bench/group-limit-upstream-published-checks.log passed 29 and all model/UI/host/
+Git/worktree/open-world checks including that addition (session51401 exit0).
+Publish .bench/group-limit-upstream-publish.log and format
+.bench/group-limit-upstream-final-format.log passed; strict/deep signature and
+diff checks passed. Current canonical app PID80636, window113213 (1352x848);
+.bench/group-limit-upstream-native.png captured/inspected. Native Settings fidelity
+not established. Inventory29 ported,51 pending,5 excluded. Full goal remains active.
+
+User's AGENTS.md request expanded verified project documentation with entry points,
+host dependency direction and generated/package/license paths. Documentation diff
+check passed. This continuation is translating the two upstream multiwindow active
+gesture isolation cases in WindowGesturesE2E.cs with independent profiles over the
+same project. No application change for these cases yet; Release verification is
+in progress, unique log .bench/window-gestures-checks.log (session97448). Format
+.bench/window-gestures-format.log passed (86560 exit0). Do not infer success from
+this intermediate entry; inspect the live handle/log.
+
+### Multiwindow active gesture translations complete
+
+Added WindowGesturesE2E.cs, invoked by LayoutE2E.Run. E2eWorkspace accepts an
+optional independent profile path so two real workbenches can share one project.
+Both upstream cases drive actual mouse down/move/up and a keyboard side toggle
+in the other window. Assert unchanged original epoch/draft, eventual successful
+split/resize commit, and independent second-window topology/width.
+
+Initial failure was harness focus, not application state sharing. Diagnostic
+confirmed second left=True while first left=False/epoch advanced. Avalonia12.1.3
+KeyboardDevice.ProcessRawEvent uses global FocusedElement before raw event Root.
+Toggle now focuses the recipient's Files tab before raw keyboard input. Source
+checked at github.com/AvaloniaUI/Avalonia tag12.1.3; reusable lesson in gotchas.md.
+Sessions97448 and74566 exited134 before correction; logs are not success evidence.
+
+Full final Release .bench/window-gestures-final-checks.log passes31 and entire
+suite (24139 exit0). Checks-only non-composite R2R publish
+.bench/window-gestures-publish-checks.log passed (12150 exit0). Full final published
+suite with SHARPRAIL_REQUIRE_R2R=1 and existing Git source passes31 plus every host,
+Git/worktree/model/UI/open-world check (94862 exit0), log
+.bench/window-gestures-published-checks.log. Format final log passed (91841 exit0).
+Inventory31 ported,49 pending,5 excluded. Diff and canonical signature verify pass.
+Canonical app still PID80636; no UI/app package changes for these two translations,
+so only artifacts/checks refreshed. Current native capture remains group-limit
+upstream-native.png; no native multiwindow/Settings fidelity claim. Goal active.
+
+Next substantive source gaps include local active gesture cancellation feedback,
+initial terminal chrome, mounted workbench/tab identity, Mermaid, custom preset
+synchronization, Git live refresh/diff controls and remaining native comparisons.
+Initial terminal reconciliation authority is upstream
+apps/web/src/shell/terminalReconciliation/terminalReconciliation.ts (recovers
+INITIAL_TERMINAL_TAB_KEY into focused/last bottom group, or center if none).
+No benchmarks, agents, commits or pushes. All test processes above are terminal.
+
+### Local gesture cancellation feedback and two upstream cases
+
+Previous turn was verified progress:31 translations plus multiwindow regressions.
+Source authorities: upstream e2e/layout.spec.ts1188–1230, WorkspaceWorkbench.tsx798
+and panels/Toaster.tsx/components/ui/toast.tsx. Local active drag/resize cancellation
+was silent and relied on rebuild/detachment. DockSurface now aborts active captures
+before local transitions, emits GestureCanceled only for active gestures, and
+rebuilds canonical geometry if a selection interrupts resize. ResizeHandle.AbortGesture
+clears origin before capture release and avoids invoking the old restore callback.
+Normal gesture commit clears origin/draft first, so it produces no cancellation.
+
+WorkbenchWindow.axaml contains the static cancellation notification; new partial
+GestureNotification.cs wires Dismiss and five-second expiry, responsive356px desktop/
+window-minus24px below640px, and theme shadow from source tokens. Shared brushes
+keep appearance live. Timer stops on window close. Native toast animation, hover/
+focus expiry pausing and swipe fidelity remain unimplemented/unverified; do not
+claim complete Toaster parity. This is the local gesture message, not a general
+notification framework.
+
+GestureCancellationE2E.cs ports idle transitions after completed resize/fold/unfold/
+select and active resize interruption via Mod+J. Checks draft retained canonical
+width, stale mouse-up cannot commit/reveal, Dismiss and expiry. Final published
+case additionally checks356px/476px responsive bounds. Multiwindow checks now
+assert GestureToast remains hidden. Initial suite55855 failed134 at a harness lookup
+of hidden Files; corrected it to click rightRestoreRail. Source corrections were
+not live in that compiled run. No application workaround or test-scope reduction.
+
+Full Release .bench/gesture-cancellation-final-checks.log passes33 plus all checks
+(47986 exit0), before later shadow/geometry edits. Full canonical published suite
+.bench/gesture-cancellation-published-checks.log covers all final semantics/geometry,
+33 upstream plus host/Git/worktree/model/UI/open-world (4987 exit0). Publish
+.bench/gesture-cancellation-publish.log passed74569=0. Final formatting
+.bench/gesture-cancellation-clean-format.log passed21173=0; earlier49963 exit2 was
+one initializer whitespace fix, no semantic change after package publication.
+Strict/deep signature and diff verify pass. Inventory33 ported,47 pending,5 excluded.
+
+Old own PID80636 terminated and absence confirmed before canonical package write.
+Updated app left runningPID1943, own window113863 (1352x848,x0,y30). Captured and
+inspected .bench/gesture-cancellation-native.png. Current user profile is empty
+center/Files and Review; do not force a different layout. No native notification
+capture claimed. Full goal active: initial terminal chrome, mounted workbench/tab
+identity, Mermaid, custom preset sync, Git live refresh/diff controls and remaining
+native fidelity/E2E cases still open. No benches, agents, commits or pushes.
+
+### Drop hints and hidden-bottom overlap upstream translations
+
+Previous turn was verified progress:33 cases and gesture cancellation feedback.
+Added DropHintsE2E.cs, called from LayoutE2E.Run. Source e2e/layout.spec.ts1230–end
+and shell/layout/Workbench.tsx DropZone/CenterSplitTarget/TabStrip/HiddenBottomDropZone
+with styles/generated/colors.css primary alpha10%/20%. App already implements
+these behaviors, so this turn changes checks/inventory/evidence only.
+
+First case drives actual drag to neutral pane center, checks center-strip legal
+hint/illegal side absence/no bottom zone, subtle right edge, active rounded half
+preview while center strip remains hinted, Escape/release clears all paint and
+keeps two tabs in one pane. Second creates placeholder terminal via actual menu
+(initial automatic terminal remains a gap), uses Move to pane submenu into center,
+hides bottom via Shift+Mod+J, inspects24px zone, proves drop point overlaps legal
+center-bottom split, checks active top border/tint, releases and verifies retained
+bottom ID/body, one placement and no center split. No shortcuts/direct model mutation
+were substituted for gestures. Geometry and brush assertions are native controls'
+rendered properties; no native drag screenshot or full pixel fidelity claim.
+
+Initial run7822 failed134 because Tint required mutable SolidColorBrush and rejected
+Brushes.Transparent (immutable). Corrected helper to ISolidColorBrush with unchanged
+alpha assertions. Reusable lesson recorded in gotchas.md. Full final Release
+.bench/drop-hints-final-checks.log passes35 plus every host/Git/worktree/model/UI/
+open-world check (32391 exit0). Final format .bench/drop-hints-final-format.log passes
+(39873 exit0). Checks-only non-composite R2R publish .bench/drop-hints-publish-checks.log
+passes75917=0. Full final canonical published suite .bench/drop-hints-published-checks.log
+with SHARPRAIL_REQUIRE_R2R=1 passes35/all (16660 exit0). Diff and canonical strict/deep
+signature verify pass. Inventory35 ported,45 pending,5 excluded. App unchanged and
+still runningPID1943; existing own-window113863 capture gesture-cancellation-native.png
+remains latest. Do not replace live app or alter user layout unasked. No test writer
+is left live. Full goal active; no benchmarks/agents/commits/pushes.
+
+Next source audit: workspace-tabs.spec.ts94–153 marks workspace-workbench, center-tabs
+and left-nav across switches. center-tabs is Workbench.tsx3136 outer main, not merely
+one tab strip. Inspect actual native counterparts before porting identity assertions.
+DockSurface.Rebuild currently clears shell/group headers and recreates center and
+auxiliary contents; outer surface alone persisting does not establish the contract.
+AGENTS startup requirements also require chrome/tab/focus preservation independently.
+Initial terminal, Mermaid, custom preset sync, Git live/diff controls and remaining
+native fidelity still open.
+
+### Mounted regions and deferred document completion
+
+DockSurface now retains outer center/left/right/bottom region Borders across
+workspace transitions. Ordinary RefreshContents updates visible bodies rather
+than rebuilding the frame. MountedWorkbench translates upstream workspace-tabs
+identity checks through actual worktree switching and detach counts. StartupChecks
+holds a restored README read and verifies tab/header/separator identity and focus
+after completion. Full Release and published R2R suites pass36 upstream cases and
+all additional checks: .bench/mounted-workbench-checks.log and
+.bench/mounted-workbench-published-checks.log (terminal PASS recorded). Formatting
+passes .bench/mounted-workbench-format.log. Canonical app republished and signed,
+running PID15312 with inspected own-window capture mounted-workbench-native.png.
+Inner group chrome still rebuilds on workspace/layout transitions; outer region
+identity and deferred-body identity are distinct evidence. Goal remains active.
+
+### Theme reload upstream translation in progress
+
+Added ThemeE2E from upstream theme.spec.ts appearance-switch/reload case. Uses
+actual Settings clicks, discovers the available fixed themes, checks workbench
+and Settings variants immediately, opens a fresh window with the same fixture
+profile and restores the original choice. UiChecks invokes it. First runtime
+attempt hit disposed SettingsWindow on Escape key-up: Escape closes synchronously
+on key-down, so follow existing settings checks and assert closure without sending
+input to the destroyed TopLevel. Current full Git-enabled Release suite runs via
+session16187 into .bench/theme-reload-complete-checks.log. Do not restart live run.
+Next: verify result, publish checks only (app code unchanged), run full published
+R2R suite, update inventory/count/evidence. No benches/agents/commits/pushes.
+
+Theme translation completed: session16187 exit0, full Git-enabled Release log
+.bench/theme-reload-complete-checks.log passes37/all. Checks-only non-composite R2R
+publish49987 exit0 (.bench/theme-reload-publish-checks.log); full published suite
+12790 exit0 (.bench/theme-reload-published-checks.log) passes37/all with
+SHARPRAIL_REQUIRE_R2R=1. Final format43625 exit0. Inventory37 ported,43 pending,
+5 excluded. Canonical strict/deep signature and git diff check pass; own app15312
+still running and unchanged. Docs updated with bounded evidence; no native theme
+capture claimed. Full theme catalog/high contrast/system pairs/multiwindow sync
+remain open, along with other completion gates. No live test writer remains.
+
+### Changes tree compact folders in progress
+
+Previous goal turn was verified progress:37 upstream cases and documented
+theme reload evidence. Source changes.spec.ts135–178 and ChangesTree.tsx plus
+changesModel.ts require compaction, aggregate counts and full folder-row toggle.
+Added UI/ChangesTree.cs partial with paths split once, sorted folder-first nodes,
+single-child chain compaction, folder +/- totals and clickable expanded headers.
+GitPanels now delegates tree construction. Added ChangesE2E and UiChecks wiring:
+isolated real worktree, docs/guides/notes.md with3lines, List→Tree, compact label,
+counts, collapse/expand, real diff and tool-navigation view retention. Full
+Git-enabled Release run92797 live into .bench/changes-tree-checks.log; do not
+restart while live. Formatting29115 exit0 (.bench/changes-tree-format.log).
+App15312 still old published package running; stop only verified own app before
+canonical publish after checks. Inventory not yet marked/count not incremented.
+Need verify test, publish canonical, full R2R checks, native own-window capture,
+docs and final scope audit. No benches/agents/commits/pushes.

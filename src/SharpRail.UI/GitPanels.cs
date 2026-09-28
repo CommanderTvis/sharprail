@@ -75,27 +75,7 @@ public sealed partial class WorkbenchWindow
         }
         if (changeTree)
         {
-            var tree = new TreeView { Background = Ui.Sidebar, Margin = new Thickness(6) };
-            var folders = new Dictionary<string, TreeViewItem>();
-            foreach (var change in changes)
-            {
-                var parts = change.Path.Split('/');
-                TreeViewItem? parent = null;
-                for (var i = 0; i < parts.Length - 1; i++)
-                {
-                    var path = string.Join('/', parts.Take(i + 1));
-                    if (!folders.TryGetValue(path, out var folder))
-                    {
-                        folder = new() { Header = Ui.Row("folder", parts[i]), IsExpanded = true };
-                        folders[path] = folder;
-                        if (parent is null) tree.Items.Add(folder); else parent.Items.Add(folder);
-                    }
-                    parent = folder;
-                }
-                var node = new TreeViewItem { Header = ChangeRow(change, parts[^1]) };
-                if (parent is null) tree.Items.Add(node); else parent.Items.Add(node);
-            }
-            Ui.Place(panel, tree, 1);
+            Ui.Place(panel, ChangesTree(changes), 1);
         }
         else
         {

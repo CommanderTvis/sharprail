@@ -10,9 +10,13 @@ namespace SharpRail.UI.Docking;
 public sealed partial class DockSurface : Grid
 {
     public LayoutSession Session { get; }
+    public event Action? GestureCanceled;
     private readonly Func<DockTab?, Control> renderContent;
     private readonly List<(Control Control, string Group, bool Header)> sites = [];
     private readonly Grid shell = new();
+    private readonly Border centerRegion = new() { Name = "CenterRegion" };
+    private readonly Dictionary<string, Border> auxiliaryRegions = new[] { "left", "right", "bottom" }
+        .ToDictionary(region => region, region => new Border { Name = "AuxiliaryRegion_" + region });
     private readonly Canvas overlay = new() { IsHitTestVisible = false };
     private bool refreshPending;
     private long previewGesture;
@@ -21,20 +25,33 @@ public sealed partial class DockSurface : Grid
     {
         Name = "WorkspaceWorkbench"; Session = session; this.renderContent = renderContent;
         Children.Add(shell); Children.Add(overlay);
+        Grid.SetColumn(centerRegion, 2); shell.Children.Add(centerRegion);
+        foreach (var region in auxiliaryRegions.Values) shell.Children.Add(region);
         InstallPointerGestures();
         SizeChanged += (_, _) =>
         {
             if (!shell.GetLogicalDescendants().OfType<ResizeHandle>().Any(handle => handle.IsActive))
                 PreviewSides(new SideGeometry(Session.State, Bounds.Width).Project());
         };
-        Session.Changed += Rebuild;
+        Session.Changed += () => { CancelForLayoutChange(); Rebuild(); };
         Session.SelectionChanged += group =>
         {
-            CancelDrag();
-            if (selectionUpdates.TryGetValue(group, out var update)) update();
+            var resizing = CancelForLayoutChange();
+            if (!resizing && selectionUpdates.TryGetValue(group, out var update)) update();
             else Rebuild();
         };
         Rebuild();
+    }
+
+    private bool CancelForLayoutChange()
+    {
+        var active = dragging;
+        var resizing = false;
+        CancelDrag();
+        foreach (var handle in shell.GetLogicalDescendants().OfType<ResizeHandle>())
+            resizing |= handle.AbortGesture();
+        if (active || resizing) GestureCanceled?.Invoke();
+        return resizing;
     }
 
     public void Rebuild()
@@ -43,7 +60,12 @@ public sealed partial class DockSurface : Grid
         CancelDrag();
         foreach (var host in contentHosts) host.Child = null;
         contentHosts.Clear(); tabSites.Clear(); groupHeaders.Clear(); selectionUpdates.Clear(); appendTargets.Clear();
-        sites.Clear(); shell.Children.Clear(); shell.RowDefinitions.Clear(); shell.ColumnDefinitions.Clear();
+        sites.Clear();
+        foreach (var control in shell.Children.Where(control => control != centerRegion && !auxiliaryRegions.Values.Contains(control)).ToArray())
+            shell.Children.Remove(control);
+        centerRegion.Child = null;
+        foreach (var region in auxiliaryRegions.Values) { region.Child = null; region.IsVisible = false; }
+        shell.RowDefinitions.Clear(); shell.ColumnDefinitions.Clear();
         var state = Session.State;
         var widths = new SideGeometry(state, Bounds.Width).Project();
         var left = state.LeftVisible && state.Groups.Any(group => group.Region == "left");
@@ -61,17 +83,19 @@ public sealed partial class DockSurface : Grid
         var includeRight = state.BottomAlignment is "full" or "center-right";
         var start = includeLeft && left ? 0 : 2;
         var end = includeRight && right ? 4 : 2;
-        var center = BuildCenter(state.Center); Ui.Place(shell, center, 0, 2);
-        if (left) PlaceSide(BuildAuxiliary("left"), 0, bottom && includeLeft ? 1 : 3);
+        centerRegion.Child = BuildCenter(state.Center);
+        if (left) PlaceAuxiliary(BuildAuxiliary("left"), "left", 0, bottom && includeLeft ? 1 : 3);
         else PlaceRail("left", 0);
-        if (right) PlaceSide(BuildAuxiliary("right"), 4, bottom && includeRight ? 1 : 3);
+        if (right) PlaceAuxiliary(BuildAuxiliary("right"), "right", 4, bottom && includeRight ? 1 : 3);
         else PlaceRail("right", 4);
         if (left) OuterSeparator("left", 1, bottom && includeLeft ? 1 : 3);
         if (right) OuterSeparator("right", 3, bottom && includeRight ? 1 : 3);
         if (bottom)
         {
             var contents = BuildAuxiliary("bottom");
-            Ui.Place(shell, contents, 2, start); Grid.SetColumnSpan(contents, end - start + 1);
+            var region = auxiliaryRegions["bottom"];
+            region.Child = contents; region.IsVisible = true;
+            Grid.SetRow(region, 2); Grid.SetColumn(region, start); Grid.SetColumnSpan(region, end - start + 1);
             var original = state.BottomHeight;
             double MinimumHeight() => Math.Min(.7, 147 / Math.Max(1, Bounds.Height));
             double Height(double delta)
@@ -101,6 +125,13 @@ public sealed partial class DockSurface : Grid
         Ui.Place(shell, control, 0, column); Grid.SetRowSpan(control, span);
     }
 
+    private void PlaceAuxiliary(Control control, string region, int column, int span)
+    {
+        var frame = auxiliaryRegions[region];
+        frame.Child = control; frame.IsVisible = true;
+        Grid.SetRow(frame, 0); Grid.SetColumn(frame, column); Grid.SetRowSpan(frame, span);
+    }
+
     private void PlaceRail(string region, int column)
     {
         var button = Ui.IconButton(region == "left" ? "layoutLeft" : "layoutRight", $"Show {region} side", () => Session.Visible(region, true));
@@ -121,7 +152,7 @@ public sealed partial class DockSurface : Grid
             Child = button
         };
         ToolTip.SetTip(button, button.IsEnabled ? $"Show {region} side" : $"No {region} groups to show");
-        PlaceSide(rail, column, 3);
+        PlaceAuxiliary(rail, region, column, 3);
         sites.Add((rail, "restore:" + region, false));
     }
 
@@ -234,7 +265,8 @@ public sealed partial class DockSurface : Grid
     {
         if (draft is not null || shell.GetLogicalDescendants().OfType<ResizeHandle>().Any(handle => handle.IsActive))
         { refreshPending = true; return; }
-        Rebuild();
+        refreshPending = false;
+        RefreshContents(Array.Empty<string>());
     }
 
     private void FlushRefresh()

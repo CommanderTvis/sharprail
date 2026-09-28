@@ -15,6 +15,9 @@ internal static class LayoutE2E
 {
     internal static void Run(string root)
     {
+        WindowGesturesE2E.Run(root);
+        GestureCancellationE2E.Run(root);
+        DropHintsE2E.Run(root);
         NarrowViewport(root);
         PointerSplit(root);
         SideSplitTargets(root);

@@ -17,6 +17,13 @@ public sealed class ResizeHandle : Border
     private IPointer? pointer;
     public bool IsActive => origin is not null;
     public event Action? GestureEnded;
+    internal bool AbortGesture()
+    {
+        if (origin is null) return false;
+        origin = null; var captured = pointer; pointer = null;
+        captured?.Capture(null); GestureEnded?.Invoke();
+        return true;
+    }
     private readonly bool horizontal;
     private readonly Action<double> preview;
     private readonly Action<double> commit;

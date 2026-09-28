@@ -22,7 +22,7 @@ internal sealed class E2eWorkspace : IDisposable
     internal IReadOnlyList<DockTab> Tabs => Window.Layout.Tabs(Center);
     internal string Root { get; }
 
-    internal E2eWorkspace(string root, bool openFiles = true)
+    internal E2eWorkspace(string root, bool openFiles = true, string? profileRoot = null)
     {
         Root = root;
         Directory.CreateDirectory(root);
@@ -39,7 +39,7 @@ internal sealed class E2eWorkspace : IDisposable
         File.WriteAllText(Path.Combine(root, "themes", "SPEC.md"), "# Theme spec target\n\nReached through a parent-relative Markdown link.\n");
         File.WriteAllBytes(Path.Combine(root, "logo.png"), Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGP4DwQACfsD/fteaysAAAAASUVORK5CYII="));
         Host = new(new ProjectServices(root));
-        Window = new(Host, root, new ProfileStore(root + "-profile")) { Width = 1352, Height = 848 };
+        Window = new(Host, root, new ProfileStore(profileRoot ?? root + "-profile")) { Width = 1352, Height = 848 };
         Window.Show(); Until(() => Window.WorkspaceMounted);
         if (openFiles) Click(Find<Button>("Tab_files"));
     }
