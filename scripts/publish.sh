@@ -1,0 +1,34 @@
+#!/bin/sh
+set -eu
+cd "$(dirname "$0")/.."
+dotnet_cmd="${DOTNET:-.tools/dotnet/dotnet}"
+rid="${1:-osx-arm64}"
+"$dotnet_cmd" publish src/SharpRail.UI -c Release -r "$rid" --self-contained true \
+  -p:PublishReadyToRun=true -p:PublishReadyToRunComposite=false -o artifacts/ui
+"$dotnet_cmd" publish src/SharpRail.Host.Remote -c Release -r "$rid" --self-contained true \
+  -p:PublishReadyToRun=true -p:PublishReadyToRunComposite=false -o artifacts/host
+"$dotnet_cmd" publish tests/SharpRail.Checks -c Release -r "$rid" --self-contained true \
+  -p:PublishReadyToRun=true -p:PublishReadyToRunComposite=false -o artifacts/checks
+if [ "$rid" = osx-arm64 ] || [ "$rid" = osx-x64 ]; then
+  bundle=artifacts/SharpRail.app
+  mkdir -p "$bundle/Contents/MacOS" "$bundle/Contents/Resources"
+  cp -R artifacts/ui/. "$bundle/Contents/MacOS/"
+  cp THIRD-PARTY-NOTICES.md "$bundle/Contents/Resources/"
+  cp -R licenses "$bundle/Contents/Resources/"
+  cp src/SharpRail.UI/Assets/Fonts/Geist-OFL.txt "$bundle/Contents/Resources/"
+  cp src/SharpRail.UI/Assets/Fonts/JetBrainsMono-OFL.txt "$bundle/Contents/Resources/"
+  cat > "$bundle/Contents/Info.plist" <<'PLIST'
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>CFBundleExecutable</key><string>SharpRail.UI</string>
+<key>CFBundleIdentifier</key><string>dev.thinkrail.sharprail</string>
+<key>CFBundleName</key><string>SharpRail</string>
+<key>CFBundleVersion</key><string>1</string>
+<key>CFBundleShortVersionString</key><string>0.2.0</string>
+<key>CFBundlePackageType</key><string>APPL</string>
+<key>NSHighResolutionCapable</key><true/>
+</dict></plist>
+PLIST
+  codesign --force --deep --sign - "$bundle"
+fi

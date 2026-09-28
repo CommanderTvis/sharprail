@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../SharpRail.Host.Abstractions/SharpRail.Host.Abstractions.csproj" />
+    <ProjectReference Include="../SharpRail.Host.Protocol/SharpRail.Host.Protocol.csproj" />
+    <PackageReference Include="Grpc.Net.Client" />
+  </ItemGroup>
+</Project>

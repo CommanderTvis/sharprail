@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <ProjectReference Include="../SharpRail.Host.Core/SharpRail.Host.Core.csproj" />
+    <ProjectReference Include="../SharpRail.Host.Protocol/SharpRail.Host.Protocol.csproj" />
+    <PackageReference Include="protobuf-net.Grpc.AspNetCore" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/SharpRail.Host.Abstractions/SharpRail.Host.Abstractions.csproj" />
+    <Project Path="src/SharpRail.Host.Client/SharpRail.Host.Client.csproj" />
+    <Project Path="src/SharpRail.Host.Core/SharpRail.Host.Core.csproj" />
+    <Project Path="src/SharpRail.Host.Protocol/SharpRail.Host.Protocol.csproj" />
+    <Project Path="src/SharpRail.Host.Remote/SharpRail.Host.Remote.csproj" />
+    <Project Path="src/SharpRail.UI/SharpRail.UI.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/SharpRail.Checks/SharpRail.Checks.csproj" />
+  </Folder>
+</Solution>

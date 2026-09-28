@@ -1,0 +1,3 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup><ProjectReference Include="../SharpRail.Host.Abstractions/SharpRail.Host.Abstractions.csproj" /></ItemGroup>
+</Project>

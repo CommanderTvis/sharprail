@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/SharpRail.UI/SharpRail.UI.csproj" />
+    <ProjectReference Include="../../src/SharpRail.Host.Remote/SharpRail.Host.Remote.csproj" />
+    <PackageReference Include="Avalonia.Headless" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+</Project>

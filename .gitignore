@@ -1,0 +1,7 @@
+.tools/
+**/bin/
+**/obj/
+artifacts/
+.bench/
+.sharprail/
+.DS_Store

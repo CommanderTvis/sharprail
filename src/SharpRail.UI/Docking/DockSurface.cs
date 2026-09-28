@@ -1,0 +1,251 @@
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Layout;
+using Avalonia.LogicalTree;
+using Avalonia.Threading;
+using SharpRail.UI.Rendering;
+
+namespace SharpRail.UI.Docking;
+
+public sealed partial class DockSurface : Grid
+{
+    public LayoutSession Session { get; }
+    private readonly Func<DockTab?, Control> renderContent;
+    private readonly List<(Control Control, string Group, bool Header)> sites = [];
+    private readonly Grid shell = new();
+    private readonly Canvas overlay = new() { IsHitTestVisible = false };
+    private bool refreshPending;
+    private long previewGesture;
+    internal void InvalidatePreviewKeep() => previewGesture++;
+    public DockSurface(LayoutSession session, Func<DockTab?, Control> renderContent)
+    {
+        Name = "WorkspaceWorkbench"; Session = session; this.renderContent = renderContent;
+        Children.Add(shell); Children.Add(overlay);
+        InstallPointerGestures();
+        SizeChanged += (_, _) =>
+        {
+            if (!shell.GetLogicalDescendants().OfType<ResizeHandle>().Any(handle => handle.IsActive))
+                PreviewSides(new SideGeometry(Session.State, Bounds.Width).Project());
+        };
+        Session.Changed += Rebuild;
+        Session.SelectionChanged += group =>
+        {
+            CancelDrag();
+            if (selectionUpdates.TryGetValue(group, out var update)) update();
+            else Rebuild();
+        };
+        Rebuild();
+    }
+
+    public void Rebuild()
+    {
+        refreshPending = false;
+        CancelDrag();
+        foreach (var host in contentHosts) host.Child = null;
+        contentHosts.Clear(); tabSites.Clear(); groupHeaders.Clear(); selectionUpdates.Clear(); appendTargets.Clear();
+        sites.Clear(); shell.Children.Clear(); shell.RowDefinitions.Clear(); shell.ColumnDefinitions.Clear();
+        var state = Session.State;
+        var widths = new SideGeometry(state, Bounds.Width).Project();
+        var left = state.LeftVisible && state.Groups.Any(group => group.Region == "left");
+        var right = state.RightVisible && state.Groups.Any(group => group.Region == "right");
+        var bottom = state.BottomVisible && state.Groups.Any(group => group.Region == "bottom");
+        shell.ColumnDefinitions.Add(new(left ? new GridLength(widths.Left, GridUnitType.Star) : new GridLength(28)));
+        shell.ColumnDefinitions.Add(new(new GridLength(left ? 1 : 0)));
+        shell.ColumnDefinitions.Add(new(new GridLength(Math.Max(double.Epsilon, widths.Center), GridUnitType.Star)));
+        shell.ColumnDefinitions.Add(new(new GridLength(right ? 1 : 0)));
+        shell.ColumnDefinitions.Add(new(right ? new GridLength(widths.Right, GridUnitType.Star) : new GridLength(28)));
+        shell.RowDefinitions.Add(new(new GridLength(bottom ? 1 - state.BottomHeight : 1, GridUnitType.Star)));
+        shell.RowDefinitions.Add(new(new GridLength(bottom ? 1 : 0)));
+        shell.RowDefinitions.Add(new(new GridLength(bottom ? state.BottomHeight : 0, GridUnitType.Star)));
+        var includeLeft = state.BottomAlignment is "full" or "center-left";
+        var includeRight = state.BottomAlignment is "full" or "center-right";
+        var start = includeLeft && left ? 0 : 2;
+        var end = includeRight && right ? 4 : 2;
+        var center = BuildCenter(state.Center); Ui.Place(shell, center, 0, 2);
+        if (left) PlaceSide(BuildAuxiliary("left"), 0, bottom && includeLeft ? 1 : 3);
+        else PlaceRail("left", 0);
+        if (right) PlaceSide(BuildAuxiliary("right"), 4, bottom && includeRight ? 1 : 3);
+        else PlaceRail("right", 4);
+        if (left) OuterSeparator("left", 1, bottom && includeLeft ? 1 : 3);
+        if (right) OuterSeparator("right", 3, bottom && includeRight ? 1 : 3);
+        if (bottom)
+        {
+            var contents = BuildAuxiliary("bottom");
+            Ui.Place(shell, contents, 2, start); Grid.SetColumnSpan(contents, end - start + 1);
+            var original = state.BottomHeight;
+            double MinimumHeight() => Math.Min(.7, 147 / Math.Max(1, Bounds.Height));
+            double Height(double delta)
+            {
+                var requested = Math.Round(original - delta / Math.Max(1, Bounds.Height), 12);
+                var minimum = MinimumHeight();
+                return requested < Math.Round(minimum / 2, 12) ? 0 : Math.Clamp(requested, minimum, .7);
+            }
+            var splitter = Separator(false,
+                delta => PreviewBottom(Height(delta)),
+                delta =>
+                {
+                    var height = Height(delta);
+                    if (height == 0) Session.Visible("bottom", false);
+                    else Session.Geometry(next => next.BottomHeight = height);
+                },
+                Rebuild);
+            splitter.ConfigureRange(() => (Session.State.BottomHeight, MinimumHeight(), .7),
+                value => Session.Geometry(next => next.BottomHeight = value));
+            splitter.Name = "bottomSeparator";
+            Ui.Place(shell, splitter, 1, start); Grid.SetColumnSpan(splitter, end - start + 1);
+        }
+    }
+
+    private void PlaceSide(Control control, int column, int span)
+    {
+        Ui.Place(shell, control, 0, column); Grid.SetRowSpan(control, span);
+    }
+
+    private void PlaceRail(string region, int column)
+    {
+        var button = Ui.IconButton(region == "left" ? "layoutLeft" : "layoutRight", $"Show {region} side", () => Session.Visible(region, true));
+        button.Name = region + "RestoreRail";
+        button.Width = 24; button.Height = 24; button.Padding = new(5); button.CornerRadius = new(4);
+        button.VerticalAlignment = VerticalAlignment.Top;
+        button.HorizontalAlignment = HorizontalAlignment.Center;
+        ((Border)button.Content!).Width = 14; ((Border)button.Content!).Height = 14;
+        button.IsEnabled = Session.State.Groups.Any(group => group.Region == region);
+        if (!button.IsEnabled) ((Border)button.Content!).Background = Ui.Hint;
+        var rail = new Border
+        {
+            Name = region + "HiddenSideRail",
+            Background = Ui.Sidebar,
+            Padding = new Thickness(0, 4),
+            BorderBrush = Ui.BorderBrush,
+            BorderThickness = region == "left" ? new Thickness(0, 0, 1, 0) : new Thickness(1, 0, 0, 0),
+            Child = button
+        };
+        ToolTip.SetTip(button, button.IsEnabled ? $"Show {region} side" : $"No {region} groups to show");
+        PlaceSide(rail, column, 3);
+        sites.Add((rail, "restore:" + region, false));
+    }
+
+    private void OuterSeparator(string region, int column, int span)
+    {
+        var direction = region == "left" ? 1 : -1;
+        SideGeometry Geometry() => new(Session.State, Bounds.Width);
+        double Width((double Left, double Center, double Right) geometry) => region == "left" ? geometry.Left : geometry.Right;
+        double Extent() => Math.Max(1, Bounds.Width -
+            (Session.State.LeftVisible && Session.State.Groups.Any(group => group.Region == "left") ? 0 : 28) -
+            (Session.State.RightVisible && Session.State.Groups.Any(group => group.Region == "right") ? 0 : 28));
+        var splitter = Separator(true,
+            delta => PreviewSides(Geometry().Resize(region, delta / Extent())),
+            delta => CommitSideWidth(region, Width(Geometry().Resize(region, delta / Extent()))), Rebuild);
+        splitter.Name = region + "Separator";
+        splitter.ConfigureRange(() =>
+        {
+            var value = Width(Geometry().Project());
+            var opposite = region == "left" ? Session.State.RightWidth : Session.State.LeftWidth;
+            var maximum = Math.Min(Math.Min(.7, 1 - opposite - 1e-6), Width(Geometry().Resize(region, direction)));
+            return maximum < .08 ? (value, value, value) : (value, .08, maximum);
+        }, value => CommitSideWidth(region, value));
+        PlaceSide(splitter, column, span);
+    }
+
+    private void CommitSideWidth(string region, double width)
+    {
+        if (width <= double.Epsilon) { Session.Visible(region, false); return; }
+        var opposite = region == "left" ? Session.State.RightWidth : Session.State.LeftWidth;
+        var available = Math.Max(double.Epsilon, 1 - opposite);
+        var maximum = Math.Max(double.Epsilon, Math.Min(.7, available - Math.Min(1e-6, available / 2)));
+        Session.Geometry(state =>
+        {
+            var value = Math.Clamp(width, Math.Min(.08, maximum), maximum);
+            if (region == "left") state.LeftWidth = value; else state.RightWidth = value;
+        });
+    }
+
+    private void PreviewSides((double Left, double Center, double Right) widths)
+    {
+        if (shell.ColumnDefinitions.Count != 5) return;
+        if (Session.State.LeftVisible && Session.State.Groups.Any(group => group.Region == "left"))
+            shell.ColumnDefinitions[0].Width = new(widths.Left, GridUnitType.Star);
+        shell.ColumnDefinitions[2].Width = new(Math.Max(double.Epsilon, widths.Center), GridUnitType.Star);
+        if (Session.State.RightVisible && Session.State.Groups.Any(group => group.Region == "right"))
+            shell.ColumnDefinitions[4].Width = new(widths.Right, GridUnitType.Star);
+    }
+
+    private void PreviewBottom(double ratio)
+    {
+        shell.RowDefinitions[0].Height = new(1 - ratio, GridUnitType.Star);
+        shell.RowDefinitions[2].Height = new(ratio, GridUnitType.Star);
+    }
+
+    private Control BuildCenter(CenterNode node)
+    {
+        if (node.IsLeaf) return BuildGroup(Session.Group(node.GroupId));
+        var horizontal = node.Axis == "horizontal";
+        var grid = new Grid();
+        if (horizontal)
+        {
+            grid.ColumnDefinitions.Add(new(new GridLength(node.Ratio, GridUnitType.Star)));
+            grid.ColumnDefinitions.Add(new(new GridLength(1)));
+            grid.ColumnDefinitions.Add(new(new GridLength(1 - node.Ratio, GridUnitType.Star)));
+        }
+        else
+        {
+            grid.RowDefinitions.Add(new(new GridLength(node.Ratio, GridUnitType.Star)));
+            grid.RowDefinitions.Add(new(new GridLength(1)));
+            grid.RowDefinitions.Add(new(new GridLength(1 - node.Ratio, GridUnitType.Star)));
+        }
+        var first = BuildCenter(node.First!); var second = BuildCenter(node.Second!);
+        Ui.Place(grid, first); Ui.Place(grid, second, horizontal ? 0 : 2, horizontal ? 2 : 0);
+        var signature = node.First!.Leaves().First();
+        var ratio = node.Ratio;
+        double Value(double delta)
+        {
+            var extent = horizontal ? grid.Bounds.Width : grid.Bounds.Height;
+            var minimum = horizontal ? 320 : 180;
+            return extent < minimum * 2 ? ratio : Math.Clamp(ratio + delta / extent, minimum / extent, 1 - minimum / extent);
+        }
+        void Preview(double value)
+        {
+            if (horizontal) { grid.ColumnDefinitions[0].Width = new(value, GridUnitType.Star); grid.ColumnDefinitions[2].Width = new(1 - value, GridUnitType.Star); }
+            else { grid.RowDefinitions[0].Height = new(value, GridUnitType.Star); grid.RowDefinitions[2].Height = new(1 - value, GridUnitType.Star); }
+        }
+        var splitter = Separator(horizontal, delta => Preview(Value(delta)),
+            delta => Session.Geometry(state => FindSplit(state.Center, signature, node.Axis)!.Ratio = Value(delta)), Rebuild);
+        splitter.Name = "CenterSeparator_" + signature + "_" + node.Second!.Leaves().First();
+        splitter.ConfigureRange(() =>
+        {
+            var extent = horizontal ? grid.Bounds.Width : grid.Bounds.Height;
+            var minimum = horizontal ? 320 : 180;
+            var current = FindSplit(Session.State.Center, signature, node.Axis)!.Ratio;
+            return extent < minimum * 2 ? (current, current, current) : (current, minimum / extent, 1 - minimum / extent);
+        }, value => Session.Geometry(state => FindSplit(state.Center, signature, node.Axis)!.Ratio = value));
+        grid.SizeChanged += (_, _) => splitter.IsEnabled = (horizontal ? grid.Bounds.Width : grid.Bounds.Height) >= (horizontal ? 640 : 360);
+        Ui.Place(grid, splitter, horizontal ? 0 : 1, horizontal ? 1 : 0);
+        return grid;
+    }
+
+    private static CenterNode? FindSplit(CenterNode node, string first, string axis)
+    {
+        if (node.IsLeaf) return null;
+        if (node.Axis == axis && node.First!.Leaves().First() == first) return node;
+        return FindSplit(node.First!, first, axis) ?? FindSplit(node.Second!, first, axis);
+    }
+
+    public void RefreshContents()
+    {
+        if (draft is not null || shell.GetLogicalDescendants().OfType<ResizeHandle>().Any(handle => handle.IsActive))
+        { refreshPending = true; return; }
+        Rebuild();
+    }
+
+    private void FlushRefresh()
+    {
+        if (refreshPending) Dispatcher.UIThread.Post(() => { if (refreshPending) RefreshContents(); });
+    }
+
+    private ResizeHandle Separator(bool horizontal, Action<double> preview, Action<double> commit, Action cancel)
+    {
+        var handle = new ResizeHandle(horizontal, preview, commit, cancel);
+        handle.GestureEnded += FlushRefresh;
+        return handle;
+    }
+}

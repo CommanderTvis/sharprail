@@ -1,0 +1,44 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:rendering="using:SharpRail.UI.Rendering"
+             x:Class="SharpRail.UI.Docking.TabSearch"
+             Width="288" FontFamily="{x:Static rendering:Ui.InterfaceFont}"
+             FontSize="14" FontWeight="370" Foreground="{x:Static rendering:Ui.TextBrush}">
+  <UserControl.Resources>
+    <x:Double x:Key="TextControlPlaceholderOpacity">1</x:Double>
+  </UserControl.Resources>
+  <UserControl.Styles>
+    <Style Selector="ListBoxItem">
+      <Setter Property="Padding" Value="8,4" />
+      <Setter Property="MinHeight" Value="28" />
+      <Setter Property="CornerRadius" Value="4" />
+    </Style>
+    <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter, ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter, ListBoxItem:selected:pressed /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{x:Static rendering:Ui.Hover}" />
+      <Setter Property="Foreground" Value="{x:Static rendering:Ui.TextBrush}" />
+    </Style>
+    <Style Selector="TextBox:focus /template/ Border#PART_BorderElement, TextBox:pointerover /template/ Border#PART_BorderElement">
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+  </UserControl.Styles>
+  <Border Background="{x:Static rendering:Ui.Elevated}" BorderBrush="{x:Static rendering:Ui.BorderBrush}"
+          BorderThickness="1" CornerRadius="6" ClipToBounds="True">
+    <StackPanel>
+      <Border BorderBrush="{x:Static rendering:Ui.BorderBrush}" BorderThickness="0,0,0,1" Padding="8,0">
+        <Grid ColumnDefinitions="14,4,*" Height="36">
+          <ContentControl x:Name="SearchIcon" VerticalAlignment="Center" />
+          <TextBox x:Name="TabOverflowSearch" Grid.Column="2" PlaceholderText="Find an open tab…"
+                   Background="Transparent" BorderThickness="0" Padding="0" MinHeight="0"
+                   PlaceholderForeground="{x:Static rendering:Ui.Muted}"
+                   VerticalContentAlignment="Center" Foreground="{x:Static rendering:Ui.TextBrush}" />
+        </Grid>
+      </Border>
+      <ListBox x:Name="TabOverflowResults" MaxHeight="280" Margin="4" Padding="0"
+               Background="Transparent" BorderThickness="0"
+               ScrollViewer.HorizontalScrollBarVisibility="Disabled" />
+      <TextBlock x:Name="EmptyResults" Text="No matching tabs." Margin="8,12"
+                 HorizontalAlignment="Center" Foreground="{x:Static rendering:Ui.Muted}" IsVisible="False" />
+    </StackPanel>
+  </Border>
+</UserControl>

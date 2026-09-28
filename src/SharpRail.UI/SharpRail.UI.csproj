@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>WinExe</OutputType><AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../SharpRail.Host.Core/SharpRail.Host.Core.csproj" />
+    <ProjectReference Include="../SharpRail.Host.Client/SharpRail.Host.Client.csproj" />
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="Markdig" />
+    <AvaloniaResource Include="Assets/**" />
+  </ItemGroup>
+</Project>

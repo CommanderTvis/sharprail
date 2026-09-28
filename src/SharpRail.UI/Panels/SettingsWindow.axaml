@@ -1,0 +1,112 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:rendering="using:SharpRail.UI.Rendering"
+        x:Class="SharpRail.UI.Panels.SettingsWindow"
+        Title="Settings"
+        Width="832" Height="680" MinWidth="640" MinHeight="440"
+        WindowStartupLocation="CenterOwner" WindowDecorations="None" CanResize="False"
+        Background="Transparent" TransparencyLevelHint="Transparent"
+        TransparencyBackgroundFallback="{x:Static rendering:Ui.Elevated}"
+        Foreground="{x:Static rendering:Ui.TextBrush}"
+        FontFamily="{x:Static rendering:Ui.InterfaceFont}" FontSize="14" FontWeight="370">
+  <Window.Resources>
+    <DataTemplate x:Key="AppearancePage">
+      <StackPanel Spacing="8">
+        <TextBlock Text="Theme" Classes="settings-heading" />
+        <TextBlock Text="Choose the app theme. Your choice is saved in this frontend profile." Classes="settings-description" />
+        <StackPanel x:Name="ThemeChoices" Spacing="4" />
+        <TextBlock Text="Interface font size" Classes="settings-label" />
+        <NumericUpDown x:Name="InterfaceSize" Minimum="10" Maximum="24" Increment="1" Width="150" HorizontalAlignment="Left" />
+        <TextBlock Text="Geist for the interface · JetBrains Mono for code" FontSize="12" Foreground="{x:Static rendering:Ui.Hint}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+      </StackPanel>
+    </DataTemplate>
+    <DataTemplate x:Key="LineWidthPage">
+      <StackPanel Spacing="8">
+        <TextBlock Text="Line width" Classes="settings-heading" />
+        <TextBlock Text="Control readable Markdown width without changing the pane arrangement." Classes="settings-description" />
+        <CheckBox x:Name="BoundPreviewWidth" Content="Limit preview line width" />
+        <TextBlock Text="Maximum width (logical pixels)" Classes="settings-label" />
+        <NumericUpDown x:Name="PreviewWidth" Minimum="320" Maximum="2400" Increment="40" Width="180" HorizontalAlignment="Left" />
+      </StackPanel>
+    </DataTemplate>
+    <DataTemplate x:Key="LayoutPage">
+      <StackPanel Spacing="8">
+        <TextBlock Text="Layout" Classes="settings-heading" />
+        <TextBlock Text="The frame is shared by this window. Each workspace retains its own open documents." Classes="settings-description" />
+        <StackPanel x:Name="PresetChoices" Spacing="8" />
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <TextBox x:Name="PresetName" PlaceholderText="Preset name" Width="260" MaxLength="200" />
+          <ContentControl x:Name="SavePreset" />
+        </StackPanel>
+        <TextBlock Text="Group limits" Classes="settings-label" />
+        <StackPanel x:Name="GroupLimits" Orientation="Horizontal" Spacing="12" />
+        <TextBlock Text="Bottom alignment" Classes="settings-label" />
+        <ComboBox x:Name="BottomAlignment" Width="220" />
+        <ContentControl x:Name="ResetFrame" />
+      </StackPanel>
+    </DataTemplate>
+    <DataTemplate x:Key="ProjectsPage">
+      <StackPanel Spacing="8">
+        <TextBlock Text="Projects" Classes="settings-heading" />
+        <TextBlock Text="Project preferences are saved in this frontend profile." Classes="settings-description" />
+        <CheckBox x:Name="ShowHiddenFiles" Content="Show hidden files" />
+        <TextBlock Text="Recent projects" Classes="settings-label" />
+        <StackPanel x:Name="RecentProjects" Spacing="8" />
+      </StackPanel>
+    </DataTemplate>
+  </Window.Resources>
+  <Window.Styles>
+    <Style Selector="TextBlock.settings-label, TextBlock.settings-heading">
+      <Setter Property="Foreground" Value="{x:Static rendering:Ui.TextBrush}" />
+      <Setter Property="FontSize" Value="14" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    </Style>
+    <Style Selector="TextBlock.settings-heading">
+      <Setter Property="FontWeight" Value="Medium" />
+    </Style>
+    <Style Selector="TextBlock.settings-description">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Foreground" Value="{x:Static rendering:Ui.Muted}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="Button.settings-navigation">
+      <Setter Property="Height" Value="36" />
+      <Setter Property="Padding" Value="12,8" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="Background" Value="{x:Static rendering:Ui.Elevated}" />
+      <Setter Property="HorizontalContentAlignment" Value="Left" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+    </Style>
+  </Window.Styles>
+  <Border x:Name="SettingsFrame" Background="{x:Static rendering:Ui.Elevated}"
+          BorderBrush="{x:Static rendering:Ui.BorderBrush}" BorderThickness="1" CornerRadius="8">
+    <Grid RowDefinitions="42.5,*">
+      <Border BorderBrush="{x:Static rendering:Ui.BorderBrush}" BorderThickness="0,0,0,1">
+        <Grid ColumnDefinitions="*,Auto" Margin="16,0,12,0">
+          <TextBlock Text="Settings" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <Button x:Name="SettingsClose" Grid.Column="1" Width="24" Height="24" Padding="4"
+                  CornerRadius="4" Background="Transparent" BorderThickness="0"
+                  ToolTip.Tip="Close settings (Escape)" AutomationProperties.Name="Close settings (Escape)" />
+        </Grid>
+      </Border>
+      <Grid Grid.Row="1" ColumnDefinitions="192,*">
+        <Border Background="{x:Static rendering:Ui.Elevated}" BorderBrush="{x:Static rendering:Ui.BorderBrush}"
+                BorderThickness="0,0,1,0">
+          <ScrollViewer>
+            <StackPanel Spacing="2" Margin="12">
+              <Button x:Name="Settings_Appearance" Classes="settings-navigation" />
+              <Button x:Name="Settings_Line_width" Classes="settings-navigation" />
+              <Button x:Name="Settings_Layout" Classes="settings-navigation" />
+              <Button x:Name="Settings_Projects" Classes="settings-navigation" />
+            </StackPanel>
+          </ScrollViewer>
+        </Border>
+        <ScrollViewer Grid.Column="1" Padding="16">
+          <ContentControl x:Name="SettingsBody" />
+        </ScrollViewer>
+      </Grid>
+    </Grid>
+  </Border>
+</Window>
