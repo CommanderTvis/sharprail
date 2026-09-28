@@ -3,7 +3,7 @@
 Reference: Thinkrail's apps/web/src/shell/layout/SPEC.md and its Balanced
 workspace, original-workspace.png, SettingsDialog, MarkdownPreview and project
 dialogs. The current Balanced layout is the visual target. AI controls are
-excluded. Editor functionality remains excluded; tab, toolbar and
+excluded. The macOS editor integration adds Scintilla with a custom Skia renderer; tab, toolbar and
 pane chrome needed for visual and docking fidelity remains in scope.
 Keep the same C# host architecture and optimized open-world CoreCLR/R2R package.
 
@@ -11,8 +11,8 @@ Keep the same C# host architecture and optimized open-world CoreCLR/R2R package.
 
 AI chat is currently a non-goal: no chat tabs, composer, history, message
 rendering, agent or provider integration, and no chat-specific settings such as
-the chat line measure. Editor functionality is likewise a non-goal. Upstream
-behavior that exists only for chat or the editor is not ported; where chat shares a
+the chat line measure. Upstream behavior that exists only for chat, or only for
+Monaco internals rather than editing itself, is not ported; where chat shares a
 layout with supported content, keep the layout contract and omit the chat surface.
 
 Explicit Git target comparisons measure the working tree from the merge base of
@@ -140,7 +140,7 @@ migration; C# as the implementation language does not require C#-only UI markup.
 Functional document and tool tabs: select, close/hide, preview/keep, reorder,
 overflow search, middle-click close, context actions, keyboard navigation and
 focus. A filesystem tree opens Markdown as a native selectable preview and
-other text as a read-only document, without an editor implementation.
+other text in the Scintilla editor on macOS, or as a read-only document elsewhere.
 
 Projects: native directory picker and explicit host-path dialog (remote);
 recent/open project navigation; per-project workspace/worktree selection;

@@ -36,8 +36,20 @@ internal static class Program
         File.WriteAllText(Path.Combine(root, "README.md"), "# Preview\n\nA **bold** paragraph with a [link](#preview).\n\n- [x] Done\n- [ ] Next\n\n| Name | Value |\n| --- | --- |\n| A | 1 |\n\n> [!NOTE]\n> A callout.\n\n\u0060\u0060\u0060cs\npublic class Example { }\n\u0060\u0060\u0060\n");
         File.WriteAllText(Path.Combine(root, "SPEC.md"), "---\nid: goal\ntitle: Project goal\ntype: product-goal\n---\n# Goal\n");
         File.WriteAllText(Path.Combine(root, "src", "SPEC.md"), "---\nid: architecture\ntitle: Architecture — components\nparent: goal\ntype: module-design\n---\n# Architecture\n");
+        if (args.SequenceEqual(["--editor"]))
+        {
+            CheckOpenWorld();
+            FileSavingChecks.Run(root).GetAwaiter().GetResult();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            EditorChecks.Run();
+            EditorWorkbenchChecks.Run(root);
+            Console.WriteLine("PASS editor integration checks");
+            return;
+        }
         CheckHosts(root).GetAwaiter().GetResult();
         ProjectChecks.Run(root).GetAwaiter().GetResult();
+        FileSavingChecks.Run(root).GetAwaiter().GetResult();
         LayoutChecks.Run();
         CheckOpenWorld();
         UiChecks.Run(root);

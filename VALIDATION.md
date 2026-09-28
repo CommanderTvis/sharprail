@@ -801,3 +801,41 @@ The published R2R/Git-backed full suite passes in
 `.bench/terminal-paste-theme-suite.log`; formatting passes in
 `.bench/terminal-paste-theme-final-format.log`. The clean signed app was rebuilt
 and reopened without diagnostic logging.
+
+## macOS Scintilla / Skia integration — 2026-09-28
+
+Scintilla 5.6.7 now supplies the editable document engine for macOS text tabs.
+A custom C++ Surface forwards drawing and measurement to SkiaSharp 3.119.4;
+Avalonia replays immutable pictures. No Cocoa/CoreGraphics editor view is embedded.
+
+- Native arm64 and x86_64 dylibs build; custom native sources pass
+  `clang++ -std=c++17 -Wall -Wextra -Werror -fsyntax-only`.
+- Focused Release checks pass in `.bench/scintilla-final-editor-checks.log`.
+  Typing, multibyte/emoji deletion, selection replacement, macOS undo/redo,
+  clipboard, read-only enforcement, viewport scrolling, rendered output and
+  independent buffers exercise the real native engine.
+- Local and authenticated gRPC save checks cover UTF-8/BOM/CRLF preservation,
+  executable permissions, conflicts, stale workspace, traversal, symlinks,
+  missing files, cancellation, authentication and temporary-file cleanup.
+- Workbench checks cover preview promotion with continued typing/focus, dirty
+  tab/window close protection, editor identity across reopening/tab switching,
+  Cmd+S and preserving edits on an external-file conflict.
+- Full suite with Git fixtures enabled stops at ChangesE2E.cs:29. An untouched
+  HEAD export reproduces the identical timeout: `.bench/scintilla-checks-4.log`
+  and `.bench/scintilla-baseline-checks.log`. No claim that the full Git-enabled
+  suite passes. Its earlier host/Git/worktree checks pass before this UI failure.
+- Full suite without `SHARPRAIL_TEST_GIT_SOURCE` passes, with Git-dependent
+  scenarios explicitly skipped: `.bench/scintilla-full-no-git.log`.
+- Canonical publication passes (`.bench/scintilla-final-publish.log`), as do
+  strict/deep codesign verification and published focused checks with
+  `SHARPRAIL_REQUIRE_R2R=1` (`.bench/scintilla-published-editor-checks.log`).
+- Native packaged window 115739 / process 76979 was captured and inspected in
+  `.bench/scintilla-native.png`, using only `.bench/scintilla-native-fixture`
+  and `.bench/scintilla-native-profile`. ASCII, accented/Greek/Japanese text and
+  emoji render in the editor; this is a rendering check, not proof of native IME
+  composition or accessibility. The isolated preview remains open for review.
+
+The port does not yet provide Lexilla syntax highlighting, completion UI, full
+IME preedit, an accessibility text provider, or complex-script/bidirectional
+shaping. Markdown source and Git diffs retain their read-only views. No benchmarks,
+commits, pushes, agents, or external posts were performed.

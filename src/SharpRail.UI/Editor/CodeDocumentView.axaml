@@ -1,0 +1,11 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="SharpRail.UI.Editor.CodeDocumentView">
+  <Grid>
+    <ContentControl x:Name="EditorBody" />
+    <ScrollBar x:Name="EditorVerticalScroll" Orientation="Vertical" HorizontalAlignment="Right"
+               AllowAutoHide="True" SmallChange="1" IsVisible="False" />
+    <ScrollBar x:Name="EditorHorizontalScroll" Orientation="Horizontal" VerticalAlignment="Bottom"
+               AllowAutoHide="True" SmallChange="40" IsVisible="False" />
+  </Grid>
+</UserControl>

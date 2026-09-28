@@ -3,7 +3,7 @@ using SharpRail.Host.Abstractions;
 
 namespace SharpRail.Host.Core;
 
-public sealed class ProjectServices(string initialRoot) : IProjectServices
+public sealed partial class ProjectServices(string initialRoot) : IProjectServices
 {
     private string root = Path.GetFullPath(initialRoot);
     private readonly SemaphoreSlim mutations = new(1, 1);
@@ -56,10 +56,14 @@ public sealed class ProjectServices(string initialRoot) : IProjectServices
     public async ValueTask<FileDocument> ReadFileAsync(string relativePath, CancellationToken cancellationToken = default)
     {
         var path = Resolve(root, relativePath);
-        if (new FileInfo(path).Length > 8 * 1024 * 1024) throw new IOException("Preview is limited to files under 8 MiB.");
+        var extension = Path.GetExtension(path).ToLowerInvariant();
+        var image = extension is ".png" or ".jpg" or ".jpeg" or ".gif" or ".webp" or ".bmp";
+        var length = new FileInfo(path).Length;
+        if ((image || extension is ".md" or ".markdown") && length > FileLimits.PreviewBytes)
+            throw new IOException($"Previews are limited to files under {FileLimits.PreviewBytes >> 20} MiB.");
+        if (length > FileLimits.EditableBytes) throw new IOException($"Files over {FileLimits.EditableBytes >> 20} MiB cannot be opened.");
         var bytes = await File.ReadAllBytesAsync(path, cancellationToken);
-        if (Path.GetExtension(path).ToLowerInvariant() is ".png" or ".jpg" or ".jpeg" or ".gif" or ".webp" or ".bmp")
-            return new(relativePath, "", bytes);
+        if (image) return new(relativePath, "", bytes);
         if (bytes.Contains((byte)0)) throw new IOException("Binary files cannot be previewed.");
         return new(relativePath, Encoding.UTF8.GetString(bytes));
     }

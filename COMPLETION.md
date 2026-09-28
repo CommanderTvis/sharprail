@@ -23,7 +23,7 @@ substituting an easier behavior.
 | Opening projects, workspace/window restoration, Git changes/diffs and worktree workflows | `ProjectChecks.cs`, `GitUiChecks.cs`, isolated Git fixtures, restoration/navigation checks; explicit-target merge-base/net-working-content and commit catalog local/remote regressions; commit picker, lightweight index-independent catalog parity, workspace selection and fresh-window persisted-query checks | Commit membership refresh/fallback, live refresh and complete read-error fidelity remain open; visual fidelity of the corresponding panels/dialogs still needs final review |
 | Exact frame geometry, docking grammar, panes, alignment, fold/show/restore and resize behavior | `LayoutChecks.cs`, pointer/menu/keyboard checks, source-verified side projection and collision regressions | Auxiliary stack projection with multiple folded/expanded groups and narrow viewports needs a source comparison; verify any resulting gaps |
 | Screenshot-perfect layout and details | Matched sampled geometry/palette, original screenshot and native own-window captures recorded in `VALIDATION.md` | Sampled matches are insufficient: native glyph/control/menu differences remain unresolved or unverified |
-| Publish and show the finished app; no Pi/AI, editor functionality or benchmarks | Canonical `artifacts/SharpRail.app`, published runtime checks, own-window native captures; implementation scope in `SPEC.md` | The current package is a working prototype, not yet proof that all preceding completion limits are resolved; macOS terminal execution is now separately in scope |
+| Publish and show the finished app; no Pi/AI or benchmarks | Canonical `artifacts/SharpRail.app`, published runtime checks, own-window native captures; implementation scope in `SPEC.md` | The current package is a working prototype, not yet proof that all preceding completion limits are resolved; macOS terminal execution and the Scintilla editor are separately in scope |
 
 Next work is bounded by these remaining gates:
 
@@ -37,3 +37,7 @@ Next work is bounded by these remaining gates:
 4. Re-run the applicable checks, publish the canonical package, verify its
    signature/runtime and inspect it running after the final changes. Only then
    evaluate the full goal for completion.
+
+MacOS Scintilla/Skia integration is now a separately authorized scope extension.
+Its architecture and remaining editor limits are recorded in
+`native/SharpRail.Scintilla/README.md`; this does not close the broader fidelity gates.

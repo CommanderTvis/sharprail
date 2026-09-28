@@ -68,6 +68,7 @@ public sealed partial class WorkbenchWindow : Window
         surface = new DockSurface(Layout, RenderContent);
         Ui.Place(root, surface, 1);
         WireGestureNotification();
+        WireEditorLifetime();
         ApplyAppearance();
         ActualThemeVariantChanged += (_, _) => Ui.SetLight(ActualThemeVariant == ThemeVariant.Light);
         Opened += async (_, _) => await OpenProjectAsync(initialRoot);
@@ -237,6 +238,8 @@ public sealed partial class WorkbenchWindow : Window
             else if (tab.Kind == "diff")
                 content = new DiffView(document.Text, tab.Path, !tab.Path.EndsWith(".md", StringComparison.OrdinalIgnoreCase),
                     Preferences.BoundPreviewWidth ? Preferences.PreviewWidth : double.PositiveInfinity);
+            else if (tab.Kind == "file" && OperatingSystem.IsMacOS())
+                content = CodeDocument(document, tab, key);
             else
                 content = new ScrollViewer
                 {
@@ -277,7 +280,9 @@ public sealed partial class WorkbenchWindow : Window
             if (destination is null) return;
             var kind = Path.GetExtension(path).ToLowerInvariant() is ".md" or ".markdown" ? "markdown" : "file";
             var tab = new DockTab(kind + ":" + path, Path.GetFileName(path), kind, path);
-            var key = workspace + ":" + tab.Id; documents[key] = document; DropDocumentContent(key);
+            var key = workspace + ":" + tab.Id;
+            if (documentContent.GetValueOrDefault(key) is not Editor.CodeDocumentView)
+            { documents[key] = document; DropDocumentContent(key); }
             Layout.Open(tab, keep, destination, activate: destination == Layout.View.FocusedCenter);
             if (anchor is not null && documentContent.GetValueOrDefault(key) is MarkdownDocumentView preview)
                 Dispatcher.UIThread.Post(() => preview.ScrollToAnchor(anchor), DispatcherPriority.Loaded);
@@ -345,7 +350,7 @@ public sealed partial class WorkbenchWindow : Window
         root.Children.Add(scrim);
         var settings = new SettingsWindow(profile, Layout, () =>
         {
-            ApplyAppearance(); ClearDocumentContent(preserveTerminals: true); toolContent.Clear(); surface.RefreshContents();
+            ApplyAppearance(); ClearDocumentContent(preserveDocuments: true); toolContent.Clear(); surface.RefreshContents();
             ReportProfileError();
         }, GitHubStatusProbe);
         settings.Closed += (_, _) => root.Children.Remove(scrim);

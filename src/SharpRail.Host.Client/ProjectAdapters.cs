@@ -9,6 +9,7 @@ namespace SharpRail.Host.Client;
 
 public sealed class LocalProjectAdapter(IProjectServices host) : IProjectServices
 {
+    public ValueTask SaveFileAsync(FileSaveRequest request, CancellationToken cancellationToken = default) => host.SaveFileAsync(request, cancellationToken);
     public ValueTask<WorkspaceInfo> OpenProjectAsync(string path, CancellationToken cancellationToken = default) => host.OpenProjectAsync(path, cancellationToken);
     public ValueTask<IReadOnlyList<ProjectFile>> ListFilesAsync(string relativePath, CancellationToken cancellationToken = default) => host.ListFilesAsync(relativePath, cancellationToken);
     public ValueTask<FileDocument> ReadFileAsync(string relativePath, CancellationToken cancellationToken = default) => host.ReadFileAsync(relativePath, cancellationToken);
@@ -29,7 +30,7 @@ public sealed class RemoteProjectAdapter : IProjectServices, IDisposable
     {
         if (string.IsNullOrWhiteSpace(token)) throw new ArgumentException("A host session token is required.");
         this.token = token;
-        channel = GrpcChannel.ForAddress(address, new GrpcChannelOptions { MaxReceiveMessageSize = 16 * 1024 * 1024 });
+        channel = GrpcChannel.ForAddress(address, new GrpcChannelOptions { MaxReceiveMessageSize = FileLimits.ReadMessageBytes });
         service = channel.CreateGrpcService<IProjectRpc>();
     }
 
@@ -75,6 +76,9 @@ public sealed class RemoteProjectAdapter : IProjectServices, IDisposable
 
     public async ValueTask<GitSnapshot> ApplyGitActionAsync(GitAction action, CancellationToken cancellationToken = default)
         => Map(await service.ApplyGitActionAsync(new() { Action = action.Kind, Path = action.Path, Branch = action.Branch, BaseBranch = action.BaseBranch }, Context(cancellationToken)));
+
+    public async ValueTask SaveFileAsync(FileSaveRequest request, CancellationToken cancellationToken = default)
+        => await service.SaveFileAsync(new() { WorkspaceRoot = request.WorkspaceRoot, Path = request.Path, OriginalText = request.OriginalText, Text = request.Text }, Context(cancellationToken));
 
     private static GitSnapshot Map(GitReply reply) => new(reply.IsRepository, reply.Branch,
         reply.Changes.Select(change => new GitChange(change.Path, change.IndexStatus, change.WorktreeStatus, change.OriginalPath, change.Added, change.Removed)).ToArray(),

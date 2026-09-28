@@ -4,6 +4,9 @@ public sealed class LayoutSession
 {
     public DockState State { get; private set; }
     public long Epoch { get; private set; }
+    public Func<string, string, bool>? CanRemoveDocument { get; set; }
+    // Raised with the documents that vetoed a transition and a callback that retries it.
+    public event Action<IReadOnlyList<(string Workspace, string TabId)>, Action>? RemovalBlocked;
     public event Action? Changed;
     public event Action<string>? SelectionChanged;
     public event Action<string>? Navigating;
@@ -47,6 +50,17 @@ public sealed class LayoutSession
         try { mutation(candidate); }
         catch (InvalidOperationException) { return false; }
         if (!IsValid(candidate)) return false;
+        if (CanRemoveDocument is not null)
+        {
+            var blocked = new List<(string Workspace, string TabId)>();
+            foreach (var (workspace, view) in State.Workspaces)
+            {
+                var remaining = candidate.Workspaces.GetValueOrDefault(workspace)?.Documents.Values.SelectMany(tabs => tabs).Select(tab => tab.Id).ToHashSet() ?? [];
+                foreach (var tab in view.Documents.Values.SelectMany(tabs => tabs))
+                    if (!remaining.Contains(tab.Id) && !CanRemoveDocument(workspace, tab.Id)) blocked.Add((workspace, tab.Id));
+            }
+            if (blocked.Count > 0) { RemovalBlocked?.Invoke(blocked, () => Change(mutation, selectionGroup)); return false; }
+        }
         State = candidate; Epoch++;
         if (selectionGroup is null) Changed?.Invoke();
         else { SelectionChanged?.Invoke(selectionGroup); Focused?.Invoke(); }

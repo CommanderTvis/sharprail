@@ -1,5 +1,17 @@
 namespace SharpRail.Host.Abstractions;
 
+public static class FileLimits
+{
+    // The editor keeps frame cost independent of size; open/save time and memory grow linearly.
+    public const int EditableBytes = 64 * 1024 * 1024;
+    // Markdown and image previews render the whole document at once.
+    public const int PreviewBytes = 8 * 1024 * 1024;
+    // gRPC carries a read as one message and a save as original plus new text.
+    public const int ReadMessageBytes = EditableBytes + 16 * 1024 * 1024;
+    public const int SaveMessageBytes = 2 * EditableBytes + 16 * 1024 * 1024;
+}
+
+public record FileSaveRequest(string WorkspaceRoot, string Path, string OriginalText, string Text);
 public record ProjectFile(string Path, string Name, bool IsDirectory);
 public record SpecDocument(string Id, string Title, string Path, string Parent, string Type);
 public record FileDocument(string Path, string Text, byte[]? ImageData = null);
@@ -17,6 +29,7 @@ public interface IProjectServices
 {
     ValueTask<WorkspaceInfo> OpenProjectAsync(string path, CancellationToken cancellationToken = default);
     ValueTask<IReadOnlyList<ProjectFile>> ListFilesAsync(string relativePath, CancellationToken cancellationToken = default);
+    ValueTask SaveFileAsync(FileSaveRequest request, CancellationToken cancellationToken = default);
     ValueTask<FileDocument> ReadFileAsync(string relativePath, CancellationToken cancellationToken = default);
     ValueTask<IReadOnlyList<SpecDocument>> ListSpecsAsync(CancellationToken cancellationToken = default);
     ValueTask<GitSnapshot> GetGitAsync(string comparisonBranch = "", CancellationToken cancellationToken = default, string scope = "all");

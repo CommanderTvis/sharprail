@@ -37,3 +37,11 @@ grpc-dotnet, and other NuGet dependencies retain their package licenses.
 Side resize projection adapts the constraint and delta-distribution rules from
 react-resizable-panels 2.1.9 (Copyright 2023 Brian Vaughn, MIT).
 See licenses/React-Resizable-Panels.txt; no JavaScript runtime is bundled.
+
+The macOS code editor embeds Scintilla 5.6.7 (Copyright Neil Hodgson and
+contributors), fetched from https://www.scintilla.org/scintilla567.tgz with its
+SHA-256 pinned in scripts/build-scintilla.sh. See licenses/Scintilla.txt.
+The custom platform port uses SkiaSharp 4.148.0, the version Avalonia’s Skia backend
+and Svg.Skia share in this app;
+SkiaSharp and Skia retain their NuGet package licenses. No Cocoa Scintilla view
+or Lexilla binary is bundled.

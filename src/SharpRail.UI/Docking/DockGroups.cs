@@ -20,6 +20,7 @@ public sealed partial class DockSurface
     private readonly Dictionary<string, List<(Control Control, string Tab)>> tabSites = [];
     private readonly Dictionary<string, Control> groupHeaders = [];
     private readonly Dictionary<string, Action> selectionUpdates = [];
+    private readonly List<Action> modifiedUpdates = [];
     private readonly Dictionary<string, Border> appendTargets = [];
 
     private Control BuildGroup(DockGroup group)
@@ -73,8 +74,20 @@ public sealed partial class DockSurface
             }
             Ui.Place(label, title, 0, 2);
             Button? close = null;
+            Border? modifiedDot = null;
             if (!tab.IsTool)
             {
+                modifiedDot = new Border
+                {
+                    Name = "ModifiedTab",
+                    Width = 8,
+                    Height = 8,
+                    CornerRadius = new CornerRadius(4),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center,
+                    IsHitTestVisible = false
+                };
+                Ui.Place(contents, modifiedDot, 0, 1);
                 close = Ui.IconButton("close", "Close", () => Session.Close(group.Id, tab.Id));
                 close.Name = "CloseTab";
                 close.Width = 18; close.Height = 18; close.MinWidth = close.MinHeight = 0; close.Padding = new Thickness(2);
@@ -134,10 +147,20 @@ public sealed partial class DockSurface
             });
             if (close is not null)
             {
-                chrome.PointerEntered += (_, _) => close.Opacity = 1;
-                chrome.PointerExited += (_, _) => { if (!button.IsKeyboardFocusWithin) close.Opacity = 0; };
-                button.GotFocus += (_, _) => close.Opacity = 1;
-                button.LostFocus += (_, _) => { if (!chrome.IsPointerOver) close.Opacity = 0; };
+                // Like VS Code, an unsaved tab shows a dot that turns into the close button on hover.
+                void ShowClose(bool shown)
+                {
+                    close.Opacity = shown ? 1 : 0;
+                    modifiedDot!.IsVisible = !shown && IsModified?.Invoke(tab) == true;
+                    modifiedDot.Background = title.Foreground;
+                }
+                chrome.PointerEntered += (_, _) => ShowClose(true);
+                chrome.PointerExited += (_, _) => ShowClose(button.IsKeyboardFocusWithin);
+                button.GotFocus += (_, _) => ShowClose(true);
+                button.LostFocus += (_, _) => ShowClose(chrome.IsPointerOver);
+                updates.Add(() => ShowClose(close.Opacity == 1));
+                modifiedUpdates.Add(() => ShowClose(close.Opacity == 1));
+                ShowClose(false);
             }
             ToolTip.SetTip(button, new ToolTip { Content = tab.Path.Length > 0 ? tab.Path : tab.Title });
             ToolTip.SetPlacement(button, PlacementMode.Bottom);

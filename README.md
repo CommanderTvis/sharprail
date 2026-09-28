@@ -5,6 +5,7 @@ previewing Markdown, and managing Git changes and worktrees.
 
 - Arrange tabs and split panes with drag-and-drop or context menus.
 - Preview Markdown with selectable text, tables, links, and images.
+- Edit text files on macOS with Scintilla and a custom Skia renderer; save with ⌘S.
 - Browse staged, working, and branch diffs; stage and unstage changes.
 - Create, switch, and remove Git worktrees.
 - Customize themes, fonts, and layouts. Your last project and open documents
@@ -12,12 +13,15 @@ previewing Markdown, and managing Git changes and worktrees.
 - Open local projects or connect to a remote host.
 - Run local shell sessions in macOS terminal tabs using embedded libghostty and Metal.
 
-This is a prototype: source files are read-only,
-and editing, commit/push commands, and AI integration are not available.
+This is a prototype: commit/push commands and AI integration are not available.
+Editing currently targets macOS only. Markdown source and Git diffs remain
+read-only. Syntax lexers, completion, full IME preedit, accessibility text
+providers and complex-script shaping are not yet implemented.
 
 ## Run
 
-From a source checkout:
+From a source checkout (macOS editor builds require Xcode command-line tools;
+the first build downloads the pinned Scintilla source archive):
 
 macOS terminal builds require Xcode, LLVM at `/opt/homebrew/opt/llvm`, and its
 Metal Toolchain (`xcodebuild -downloadComponent MetalToolchain`). The build downloads pinned Ghostty 1.2.3
@@ -41,7 +45,13 @@ open artifacts/SharpRail.app
 Open a project using **+** in Projects or ⌘O (Ctrl+O on other platforms).
 In Files, single-click to preview; double-click or press Enter to keep a tab.
 Use Changes to review diffs and Projects to manage worktrees. Press F5 to
-refresh files and Git, or ⌘, to open Settings.
+refresh files and Git, or ⌘, to open Settings. Editing keeps a preview tab open.
+Save or explicitly discard edits before closing a modified tab/window; failed
+saves retain the buffer. Files changed externally are not overwritten.
+
+Run the focused editor checks with
+`.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release -- --editor`.
+See `native/SharpRail.Scintilla/README.md` for the port architecture and limits.
 
 On macOS, choose New terminal from a pane's + menu or context menu. Each tab runs
 a shell in that local workspace. Sessions survive tab moves and workspace

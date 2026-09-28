@@ -60,6 +60,24 @@ public static class Dialogs
         return await window.ShowDialog<bool>(owner);
     }
 
+    public enum SaveChoice { Cancel, Save, DontSave }
+
+    public static async Task<SaveChoice> AskToSave(Window owner, string title, bool several)
+    {
+        var window = Create(title, 520, 240);
+        window.FindControl<StackPanel>("DialogBody")!.Spacing = 18;
+        window.FindControl<StackPanel>("DialogFields")!.IsVisible = false;
+        var text = window.FindControl<TextBlock>("DialogExplanation")!;
+        text.Text = "Your changes will be lost if you don't save them."; text.IsVisible = true;
+        var actions = window.FindControl<StackPanel>("DialogActions")!;
+        actions.Children.Add(Ui.Button("Don't Save", () => window.Close(SaveChoice.DontSave)));
+        actions.Children.Add(Ui.Button("Cancel", () => window.Close(SaveChoice.Cancel)));
+        var save = Ui.Button(several ? "Save All" : "Save", () => window.Close(SaveChoice.Save));
+        save.IsDefault = true; actions.Children.Add(save);
+        window.Opened += (_, _) => save.Focus();
+        return await window.ShowDialog<SaveChoice>(owner);
+    }
+
     public static Window Create(string title, double width, double height)
     {
         var window = new DialogWindow { Title = title, Width = width, Height = height };

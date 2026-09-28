@@ -28,9 +28,10 @@ public sealed partial class WorkbenchWindow
             (image.Source as Bitmap)?.Dispose();
     }
 
-    private void ClearDocumentContent(bool preserveTerminals = false)
+    private void ClearDocumentContent(bool preserveDocuments = false)
     {
         foreach (var key in documentContent.Keys.ToArray())
-            if (!preserveTerminals || documentContent[key] is not Terminal.GhosttyTerminal) DropDocumentContent(key);
+            if (!preserveDocuments || documentContent[key] is not (Terminal.GhosttyTerminal or Editor.CodeDocumentView)) DropDocumentContent(key);
+            else if (documentContent[key] is Editor.CodeDocumentView view) view.Editor.InvalidateVisual();
     }
 }

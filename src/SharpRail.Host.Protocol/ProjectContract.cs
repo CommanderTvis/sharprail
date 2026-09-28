@@ -5,6 +5,18 @@ using ProtoBuf.Grpc.Configuration;
 namespace SharpRail.Host.Protocol;
 
 [ProtoContract]
+public sealed class SaveFileRequest
+{
+    [ProtoMember(1)] public string WorkspaceRoot { get; set; } = "";
+    [ProtoMember(2)] public string Path { get; set; } = "";
+    [ProtoMember(3)] public string OriginalText { get; set; } = "";
+    [ProtoMember(4)] public string Text { get; set; } = "";
+}
+
+[ProtoContract]
+public sealed class SaveFileReply { }
+
+[ProtoContract]
 public sealed class ProjectRequest
 {
     [ProtoMember(1)] public string Path { get; set; } = "";
@@ -80,6 +92,7 @@ public sealed class GitReply
 [Service]
 public interface IProjectRpc
 {
+    ValueTask<SaveFileReply> SaveFileAsync(SaveFileRequest request, CallContext context = default);
     ValueTask<WorkspaceReply> OpenProjectAsync(ProjectRequest request, CallContext context = default);
     ValueTask<ProjectFilesReply> ListFilesAsync(ProjectRequest request, CallContext context = default);
     ValueTask<DocumentReply> ReadFileAsync(ProjectRequest request, CallContext context = default);

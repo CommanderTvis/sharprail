@@ -43,6 +43,12 @@ public sealed class ProjectRpc(IProjectServices host) : IProjectRpc
     public ValueTask<GitReply> ApplyGitActionAsync(ProjectRequest request, CallContext context = default)
         => Execute(async () => Map(await host.ApplyGitActionAsync(new(request.Action, request.Path, request.Branch, request.BaseBranch), context.CancellationToken)));
 
+    public ValueTask<SaveFileReply> SaveFileAsync(SaveFileRequest request, CallContext context = default) => Execute(async () =>
+    {
+        await host.SaveFileAsync(new(request.WorkspaceRoot, request.Path, request.OriginalText, request.Text), context.CancellationToken);
+        return new SaveFileReply();
+    });
+
     private static GitReply Map(GitSnapshot result) => new()
     {
         IsRepository = result.IsRepository,

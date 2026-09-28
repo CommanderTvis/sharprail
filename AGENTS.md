@@ -63,8 +63,9 @@ Local macOS terminal tabs embed Ghostty directly; remote and other-platform tabs
 show availability messages. `DocumentCache.cs` retains shells across appearance
 changes and disposes them when their tabs or window close. Clipboard images are
 stored under the active profile's `clipboard` directory. Terminal functionality
-is in scope following integration of the `ghostty` worktree; editor and AI
-functionality remain excluded.
+is in scope following integration of the `ghostty` worktree, and macOS text files
+open in the Scintilla editor from the `scintilla` branch; AI functionality remains
+excluded.
 
 The workbench is split into partial files rather than separate window classes:
 

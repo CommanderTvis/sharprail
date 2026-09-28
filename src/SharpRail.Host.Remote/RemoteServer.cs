@@ -14,11 +14,14 @@ public static class RemoteServer
     {
         if (string.IsNullOrWhiteSpace(token)) throw new ArgumentException("A host session token is required.", nameof(token));
         var builder = WebApplication.CreateSlimBuilder();
-        builder.WebHost.ConfigureKestrel(options => options.Listen(address, port,
-            endpoint => endpoint.Protocols = HttpProtocols.Http2));
+        builder.WebHost.ConfigureKestrel(options =>
+        {
+            options.Limits.MaxRequestBodySize = FileLimits.SaveMessageBytes;
+            options.Listen(address, port, endpoint => endpoint.Protocols = HttpProtocols.Http2);
+        });
         builder.Services.AddSingleton<IWorkspaceHost>(new WorkspaceHost(root));
         builder.Services.AddSingleton<IProjectServices>(new ProjectServices(root));
-        builder.Services.AddCodeFirstGrpc(options => options.MaxReceiveMessageSize = 16 * 1024 * 1024);
+        builder.Services.AddCodeFirstGrpc(options => options.MaxReceiveMessageSize = FileLimits.SaveMessageBytes);
         var app = builder.Build();
         var expected = SHA256.HashData(Encoding.UTF8.GetBytes($"Bearer {token}"));
         app.Use(async (context, next) =>

@@ -11,6 +11,8 @@ public sealed partial class DockSurface : Grid
 {
     public LayoutSession Session { get; }
     public event Action? GestureCanceled;
+    public Func<DockTab, bool>? IsModified { get; set; }
+    public void RefreshModified() { foreach (var update in modifiedUpdates) update(); }
     private readonly Func<DockTab?, Control> renderContent;
     private readonly List<(Control Control, string Group, bool Header)> sites = [];
     private readonly Grid shell = new();
@@ -60,7 +62,7 @@ public sealed partial class DockSurface : Grid
         CancelDrag();
         foreach (var host in contentHosts) host.Child = null;
         contentHosts.Clear(); tabSites.Clear(); groupHeaders.Clear(); selectionUpdates.Clear(); appendTargets.Clear();
-        sites.Clear();
+        modifiedUpdates.Clear(); sites.Clear();
         foreach (var control in shell.Children.Where(control => control != centerRegion && !auxiliaryRegions.Values.Contains(control)).ToArray())
             shell.Children.Remove(control);
         centerRegion.Child = null;

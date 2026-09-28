@@ -2226,3 +2226,29 @@ Previous goal turn classified progress: integrated all Ghostty files, docs and v
 IMPORTANT: canonical app PID30104 has live user terminal: login30566 -> zsh30568 -> Codex30643 (verified ps comm names, no private args). Do NOT terminate it merely to refresh package; obtain permission after verification and prepare reviewable result, or wait for user to close it. Canonical artifacts/SharpRail.app still previous hover-lifecycle package. artifacts/ui, host, checks now contain commit-catalog update, built without touching bundle. Preserve distinction in VALIDATION.md/final. Full goal remains active; live Git membership/rewrite fallback and remaining fidelity/tests unfinished. No benchmarks/agents/commits/pushes.
 
 Lightweight catalog final: Release45904 EXIT0, R2R published81986 EXIT0, each all39 translated upstream cases; no live check writers remain. Logs commit-catalog-release.log and commit-catalog-published-checks.log. Format, UI/host/checks publishes and git diff --check pass. Signed internal stage .bench/package-stage-k2zhrbdn/SharpRail.app verifies deep/strict; path also .bench/commit-catalog-staging-path.txt. Canonical bundle unchanged and app30104 + Codex30643 still live. Async user question asks Keep my session running vs Restart SharpRail; permission is required because restarting ends this actual user process, not a hypothetical risk. Do not install/stop while answer pending; continue independent goal work. VALIDATION.md distinguishes staged source from running older package; AGENTS.md and completion evidence updated. Full goal remains active; no benchmarks/commits/pushes.
+
+### macOS Scintilla / Skia editor integration — 2026-09-28
+
+New user request authorizes a functional Scintilla code editor with a hand-written
+Skia renderer, macOS only; it supersedes the earlier editor exclusion. Implemented
+native/SharpRail.Scintilla (Scintilla 5.6.7 Editor/Surface port and C ABI),
+src/SharpRail.UI/Editor (SkiaSharp renderer, Avalonia input/IME client and editable
+file view), checksum-pinned native build integrated into UI build/publish, and
+local/gRPC explicit saves with workspace/content checks. Editing keeps preview
+slots, dirty documents block removal/window close, and editor caches survive
+reopen/settings changes. Markdown/diffs remain read-only. Native resources are
+owned per control; render-thread work only replays immutable pictures.
+
+Focused Release and published R2R checks pass, including local/remote saving and
+workbench dirty/save/error behavior. Native arm64/x64 builds and strict native
+syntax checks pass. Full no-Git suite passes; full Git-enabled run fails at
+ChangesE2E.cs:29, reproduced on untouched HEAD in .bench/scintilla-baseline.
+Evidence is detailed in the latest VALIDATION.md section. Broader prototype goal
+is not declared complete. Syntax lexers, completion, full IME preedit,
+accessibility text providers and complex-script shaping remain first-port limits.
+
+Canonical app published and signed. Own isolated preview process76979,
+window115739, capture .bench/scintilla-native.png remains open. Other SharpRail
+processes in sibling checkouts were not touched. Commit was explicitly requested;
+no agents, benchmarks, pushes or external posts. User did not answer the optional
+save/component-only question; proceeded with the stated file-saving default.

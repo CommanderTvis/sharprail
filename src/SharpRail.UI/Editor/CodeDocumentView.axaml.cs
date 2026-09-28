@@ -1,0 +1,88 @@
+using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.Markup.Xaml;
+using SharpRail.Host.Abstractions;
+
+namespace SharpRail.UI.Editor;
+
+internal sealed partial class CodeDocumentView : UserControl, IDisposable
+{
+    private readonly IProjectServices host;
+    private readonly string workspace;
+    private readonly string path;
+    private readonly Action<Exception> report;
+    private readonly Action<string> saved;
+    private readonly Action modifiedChanged;
+    private readonly ScrollBar vertical;
+    private readonly ScrollBar horizontal;
+    private string original;
+    private bool saving, disposed, modified, syncingScroll;
+    internal ScintillaEditor Editor { get; }
+    internal string FileName => Path.GetFileName(path);
+    internal bool HasPendingChanges => saving || Editor.IsModified;
+
+    internal CodeDocumentView(FileDocument file, string workspace, IProjectServices host,
+        Action changed, Action<string> saved, Action modifiedChanged, Action<Exception> report)
+    {
+        AvaloniaXamlLoader.Load(this);
+        this.host = host; this.workspace = workspace; path = file.Path;
+        original = file.Text; this.saved = saved; this.modifiedChanged = modifiedChanged; this.report = report;
+        vertical = this.FindControl<ScrollBar>("EditorVerticalScroll")!;
+        horizontal = this.FindControl<ScrollBar>("EditorHorizontalScroll")!;
+        Editor = new(file.Text) { Name = "CodeEditor" };
+        this.FindControl<ContentControl>("EditorBody")!.Content = Editor;
+        Editor.TextChanged += (_, _) => { UpdateModified(); if (Editor.IsModified) changed(); };
+        Editor.OperationFailed += (_, error) => report(error);
+        Editor.ScrollChanged += (_, _) => SyncScrollBars();
+        vertical.ValueChanged += (_, e) => { if (!syncingScroll) Editor.ScrollToLine(e.NewValue); };
+        horizontal.ValueChanged += (_, e) => { if (!syncingScroll) Editor.ScrollToX(e.NewValue); };
+    }
+
+    private void SyncScrollBars()
+    {
+        syncingScroll = true;
+        try
+        {
+            Apply(vertical, Editor.VerticalScroll);
+            Apply(horizontal, Editor.HorizontalScroll);
+        }
+        finally { syncingScroll = false; }
+
+        static void Apply(ScrollBar bar, EditorScroll scroll)
+        {
+            bar.Maximum = scroll.Maximum; bar.ViewportSize = scroll.Viewport;
+            bar.LargeChange = Math.Max(1, scroll.Viewport); bar.Value = scroll.Value;
+            bar.IsVisible = scroll.Maximum > 0;
+        }
+    }
+
+    internal async Task SaveAsync()
+    {
+        if (saving || disposed || !Editor.IsModified) return;
+        saving = true;
+        var text = Editor.Text;
+        try
+        {
+            await host.SaveFileAsync(new(workspace, path, original, text));
+            original = text;
+            if (!disposed)
+            {
+                if (Editor.Text == text) Editor.MarkSaved();
+                saved(text);
+            }
+        }
+        catch (Exception error) { if (!disposed) report(error); }
+        finally { saving = false; if (!disposed) UpdateModified(); }
+    }
+
+    internal void Discard() { Editor.Text = original; UpdateModified(); }
+
+    private void UpdateModified()
+    {
+        if (modified == HasPendingChanges) return;
+        modified = HasPendingChanges;
+        modifiedChanged();
+    }
+
+    public void Dispose() { if (disposed) return; disposed = true; Editor.Dispose(); }
+}
