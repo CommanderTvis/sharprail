@@ -1442,3 +1442,91 @@ bottom group (or final bottom group), preserving visibility, with center fallbac
 Execution remains excluded; do not introduce a PTY. Full terminal side-group test,
 mounted workbench identity, Mermaid and remaining Git/settings fidelity are pending.
 No benchmarks, agents, commits or pushes.
+
+### Region-edge commands, terminal side case and tooltip correction
+
+Previous goal turn was verified progress (24 cases, native app running). Added
+MoveToNewRegionGroup and upstream menu commands for tools/terminal tabs at either
+end of left/right/bottom regions. Existing moves enforce canonical layout limits,
+weights, visibility and selection; empty-region creation also has an explicit path.
+Menu availability refreshes on opening and displays the configured limit suffix.
+Pointer/menu regression exercises all six commands, one retained terminal body and
+bottom group limit. No terminal execution or host API was added.
+
+Translated the complete upstream terminal side-group interaction case with a
+menu-created nonfunctional terminal fixture. Real pointer drag into a hidden left
+side, one terminal body, both region counts, resize +80 enlarging Projects >40,
+27px folding, Space restore, both folded and restored, and Files context move all
+pass. E2E.md explicitly documents fixture adaptation; initial terminal provisioning
+remains pending and is not established by this case. A failed Space check was a
+missing key-up in the harness: Headless KeyPress is only key-down. KeyRelease fixes
+that without changing application keyboard behavior.
+
+User reported hover label floating over text. Dock tab tooltips used default
+pointer placement. They now use an explicit ToolTip anchored Bottom with 4px gap.
+Actual hover regression verifies screen geometry and stable X while pointer moves.
+Lesson recorded in gotchas.md. Native targeted hover event was sent only to own
+PID/window, but no native popup capture was obtained; do not claim one.
+
+Full final Release .bench/terminal-side-tooltip-final-checks.log and published R2R
+.bench/terminal-side-tooltip-published-checks.log pass 25 upstream cases plus all
+host/Git/worktree/open-world/model/UI checks (sessions 87576 and 47125 exit 0).
+Format verification .bench/terminal-side-tooltip-final-format.log passes (96290=0).
+Publish .bench/terminal-side-tooltip-publish.log passes (60832=0), strict/deep
+signature verification and diff check pass. Earlier intermediate sessions 7812,
+63775, 37148 and 45038 exited 0; 71275 exited134 before key-up correction. No live
+check process is intentionally left behind; unique logs were used throughout.
+
+Old native PID30017 verified and terminated; absence checked before publishing.
+Updated canonical app left running PID37254, window112765 (1352x848). Own-window
+.bench/terminal-side-tooltip-native.png captured and inspected. Current window is
+on Files with no center document, reflecting current profile/user interaction;
+do not restore a different state without authorization. Keep app running; verify
+and stop its live process before the next canonical package write.
+Inventory: 25 ported, 55 pending, 5 excluded. Full goal remains active. Initial
+terminal placement, mounted workbench identity, Mermaid and remaining settings/Git/
+native fidelity still need work. No benchmarks, agents, commits or pushes.
+
+### Settings preset translation and project structure documentation
+
+Previous goal turn was verified progress: 25 cases, region commands and tooltip fix.
+User requested project structure in AGENTS.md during this continuation. Added a
+source-verified path/responsibility table, SDK/build settings, host transport boundary,
+XAML/C# ownership, state path, authoritative upstream, documents and check/publish
+commands. Read back and diff check pass. No unrelated tests required for that doc.
+
+Preset application/reset previously happened immediately, unlike upstream. Settings
+rows now show the preset title separately with Apply now…; both apply and reset
+await the shared confirmation dialog (Dialogs.Confirm accepts optional action label,
+existing worktree caller behavior retained). Cancel makes no layout mutation. Dialog
+text describes rearranging all workspaces while retaining resources; AI omitted.
+
+LayoutSettingsE2E.cs translates two complete upstream layout.spec.ts cases: applying
+Review preserves resources and vertical center topology; local default drives explicit
+reset and persists after reload. Uses actual pointer input to Settings and modal
+confirmation, cancellation regression, file and menu-created terminal retention,
+counts/right width >30%, Escape/close, reload default, and native automation separator
+label/type assertions. E2eWorkspace.Click now recognizes any attached TopLevel,
+so owned Settings/modal controls are not mistaken for detached workbench controls.
+The initial harness failure compared Button.Content to a string; Ui.Button uses a
+TextBlock, so tests now find rendered labels. No application behavior workaround.
+
+Release suite .bench/layout-settings-upstream-final-checks.log passes 27 cases.
+Final published suite .bench/layout-settings-upstream-final-published-checks.log
+passes 27 cases plus all host/Git/worktree/model/UI/open-world checks (85030 exit0),
+including later separator assertions and final dialog text. Formatting passes
+.bench/layout-settings-complete-format.log (33120=0); strict/deep signature and diff
+checks pass. Main publish .bench/layout-settings-upstream-final-publish.log passed
+(78069=0). Final checks initially published to artifacts/settings-checks while older
+checks were live, then copied into canonical artifacts/checks after older run67906
+exited0; final suite ran canonical artifacts/checks. This is scratch checks output,
+not another app review bundle. Other sessions:97223 failed134 (harness label lookup);
+88981,58895,56848,35480,72894 exited0. No live test writer remains.
+
+Old canonical PID37254 verified and terminated; absence checked before publish.
+Updated canonical app remains running PID64599, own window113023 (1352x848).
+Capture .bench/layout-settings-upstream-native.png inspected; it shows current
+Files/empty-center profile state. No native Settings/confirmation capture claimed.
+Inventory:27 ported,53 pending,5 excluded. Goal remains active. Initial terminal
+placement, mounted chrome identity, Mermaid, custom preset synchronization and
+remaining Git/settings/native fidelity still need work. No benches/agents/commits/pushes.

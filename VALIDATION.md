@@ -1,16 +1,16 @@
 # Prototype validation
 
-Status on 2026-09-28: twenty-four translated upstream E2E cases pass in the full
+Status on 2026-09-28: twenty-seven translated upstream E2E cases pass in the full
 Release and published-runtime suites with Git/worktree integration enabled. Formatting and
 `git diff --check` pass. The canonical `artifacts/SharpRail.app` was republished
 with non-composite ReadyToRun and passes strict/deep signature verification.
 The full published-runtime suite also passes, including open-world loading and
-Git/worktree integration (`.bench/split-upstream-published-checks.log`).
+Git/worktree integration (`.bench/layout-settings-upstream-final-published-checks.log`).
 
 Native display availability recovered: CoreGraphics reports two active displays
 and CoreVideo display-link creation succeeds. The canonical package is running
-(PID 30017); its 1440x920 window was captured and inspected in
-`.bench/split-upstream-native.png`. Earlier launch failures with RenderTimer
+(PID 64599); its 1352x848 window was captured and inspected in
+`.bench/layout-settings-upstream-native.png`. Earlier launch failures with RenderTimer
 `-6661` occurred while no displays were active, matching
 [Avalonia issue 18895](https://github.com/AvaloniaUI/Avalonia/issues/18895).
 Earlier captures and running-app statements below are historical evidence.
@@ -18,6 +18,32 @@ The complete visual/docking fidelity objective and upstream suite translation
 remain active; the evidence below does not prove the full reference contract.
 
 ## Current evidence
+
+Applying a preset or resetting the frame now requires confirmation, matching the
+reference interaction. The Review and local-default reset cases drive Settings
+and the confirmation dialog with actual pointer input. Cancellation preserves the
+exact layout; confirmation retains document/terminal tabs, installs the vertical
+center split and Review proportions, and persists the default/frame across reload.
+Native automation exposes the resulting horizontal resize separator. Full Release
+checks pass (`.bench/layout-settings-upstream-final-checks.log`); the final published
+suite includes the added separator automation assertions and final dialog text
+(`.bench/layout-settings-upstream-final-published-checks.log`). Formatting passes
+(`.bench/layout-settings-complete-format.log`). The native window capture does not
+establish exact Settings/dialog visual fidelity. `AGENTS.md` now maps the solution
+structure, ownership boundaries, state, verification and publishing paths.
+
+Tab tooltips anchor below their trigger with a 4px gap. Actual headless hover
+checks verify popup position and stability while the pointer moves across a tab.
+The native window capture verifies the updated app renders; it does not capture
+the tooltip popup. Tool and terminal menus now create groups at either end of
+left, right and bottom regions, with disabled commands explaining group limits.
+Pointer/menu checks retain the terminal surface across all six creation commands.
+The translated upstream terminal side-group case covers a hidden-side drag,
+stack resize, independent 27px folds, Space restoration and Files relocation.
+Full Release and published R2R suites pass
+(`.bench/terminal-side-tooltip-final-checks.log`,
+`.bench/terminal-side-tooltip-published-checks.log`); formatting verification passes
+(`.bench/terminal-side-tooltip-final-format.log`).
 
 Two additional upstream cases exercise pointer tab reordering and center splits,
 plus broad above/below side split targets around expanded and keyboard-folded

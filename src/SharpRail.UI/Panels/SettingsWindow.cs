@@ -127,22 +127,19 @@ public sealed partial class SettingsWindow : Window
         var presets = PageControl<StackPanel>(panel, "PresetChoices");
         foreach (var name in new[] { "balanced", "focus", "review" }.Concat(profile.Data.Preferences.CustomPresets.Keys))
         {
-            var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto") };
-            Ui.Place(row, Ui.Button(char.ToUpperInvariant(name[0]) + name[1..], () =>
-            {
-                layout.ApplyPreset(profile.Data.Preferences.CustomPresets.TryGetValue(name, out var custom) ? custom : DockState.Preset(name));
-                profile.Data.Layout = layout.State; Save();
-            }, "layout"));
+            var row = new Grid { Name = "Preset_" + name, ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto,Auto"), ColumnSpacing = 8 };
+            Ui.Place(row, Ui.Text(char.ToUpperInvariant(name[0]) + name[1..]));
             var makeDefault = Ui.Button(profile.Data.Preferences.DefaultPreset == name ? "Default" : "Set default", () =>
             { profile.Data.Preferences.DefaultPreset = name; Save(); ShowSection(section); });
             Ui.Place(row, makeDefault, 0, 1);
+            Ui.Place(row, Ui.Button("Apply now…", async () => await ApplyLayout(name)), 0, 2);
             if (profile.Data.Preferences.CustomPresets.ContainsKey(name))
                 Ui.Place(row, Ui.IconButton("trash", "Delete preset", () =>
                 {
                     profile.Data.Preferences.CustomPresets.Remove(name);
                     if (profile.Data.Preferences.DefaultPreset == name) profile.Data.Preferences.DefaultPreset = "balanced";
                     Save(); ShowSection(section);
-                }), 0, 2);
+                }), 0, 3);
             presets.Children.Add(row);
         }
         var input = PageControl<TextBox>(panel, "PresetName");
@@ -154,27 +151,40 @@ public sealed partial class SettingsWindow : Window
             profile.Data.Preferences.CustomPresets[name] = frame; Save(); ShowSection(section);
         });
         var limits = PageControl<StackPanel>(panel, "GroupLimits");
-        limits.Children.Add(Limit("Per side", layout.State.SideLimit, value => layout.Geometry(state => state.SideLimit = value)));
-        limits.Children.Add(Limit("Bottom", layout.State.BottomLimit, value => layout.Geometry(state => state.BottomLimit = value)));
+        limits.Children.Add(Limit("side", layout.State.SideLimit, value => layout.Geometry(state => state.SideLimit = value)));
+        limits.Children.Add(Limit("bottom", layout.State.BottomLimit, value => layout.Geometry(state => state.BottomLimit = value)));
         var alignment = PageControl<ComboBox>(panel, "BottomAlignment");
         alignment.ItemsSource = new[] { "center", "center-left", "center-right", "full" };
         alignment.SelectedItem = layout.State.BottomAlignment;
         alignment.SelectionChanged += (_, _) => { layout.Geometry(state => state.BottomAlignment = alignment.SelectedItem as string ?? "center"); Save(); };
-        PageControl<ContentControl>(panel, "ResetFrame").Content = Ui.Button("Reset frame", () =>
-        {
-            var name = profile.Data.Preferences.DefaultPreset;
-            layout.ApplyPreset(profile.Data.Preferences.CustomPresets.GetValueOrDefault(name) ?? DockState.Preset(name)); Save();
-        }, "refresh");
+        PageControl<ContentControl>(panel, "ResetFrame").Content = Ui.Button("Reset frame", async () => await ApplyLayout(profile.Data.Preferences.DefaultPreset), "refresh");
         return panel;
     }
 
-    private Control Limit(string label, int value, Action<int> change)
+    private async Task ApplyLayout(string name)
+    {
+        if (!await Dialogs.Confirm(this, "Apply this layout?", "Open files, documents, and terminals are preserved, but their groups and proportions will be rearranged across every workspace in this window. Other windows are unaffected.", "Apply layout")) return;
+        layout.ApplyPreset(profile.Data.Preferences.CustomPresets.GetValueOrDefault(name) ?? DockState.Preset(name));
+        profile.Data.Layout = layout.State; Save();
+    }
+
+    private Control Limit(string region, int value, Action<int> change)
     {
         var panel = new StackPanel { Spacing = 6 };
-        panel.Children.Add(Ui.Text(label, size: 12));
-        var input = new NumericUpDown { Minimum = 1, Maximum = 32, Value = value, Width = 150 };
-        input.ValueChanged += (_, _) => { if (input.Value is not null) { change((int)input.Value); Save(); } };
-        panel.Children.Add(input); return panel;
+        panel.Children.Add(Ui.Text(region == "side" ? "Side groups" : "Bottom groups", size: 12));
+        var input = new NumericUpDown { Name = "GroupLimit_" + region, Minimum = 1, Maximum = 32, Value = value, Width = 96 };
+        AutomationProperties.SetName(input, "Maximum " + region + " groups");
+        var save = Ui.Button("Save", () =>
+        {
+            if (input.Value is not decimal next || next != decimal.Truncate(next) || next is < 1 or > 32) return;
+            change((int)next); value = (int)next; Save(); ShowSection(section);
+        });
+        save.Name = "SaveGroupLimit_" + region;
+        AutomationProperties.SetName(save, "Save " + region + " group limit");
+        save.IsEnabled = false;
+        input.ValueChanged += (_, _) => save.IsEnabled = input.Value is decimal next && next == decimal.Truncate(next) && next is >= 1 and <= 32 && next != value;
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        row.Children.Add(input); row.Children.Add(save); panel.Children.Add(row); return panel;
     }
 
     private Control ProjectSettings()

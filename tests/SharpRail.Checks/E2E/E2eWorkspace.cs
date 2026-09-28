@@ -102,7 +102,7 @@ internal sealed class E2eWorkspace : IDisposable
             Window.MouseMove(new Point(Window.Bounds.Width - 2, Window.Bounds.Height - 2));
             Settle(550);
         }
-        if (!control.GetVisualAncestors().Contains(Window))
+        if (TopLevel.GetTopLevel(control) is null)
         {
             if (name is not null && owner is not null) control = Find<Control>(owner).GetLogicalDescendants().OfType<Control>().Single(item => item.Name == name);
             else if (name is not null) control = Find<Control>(name);

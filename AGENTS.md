@@ -1,16 +1,52 @@
 # SharpRail instructions
 
+## Project structure
+
+`SharpRail.slnx` contains the .NET 10 C# solution. `Directory.Build.props` enables
+nullable checking, warnings as errors, optimizations and tiered PGO while keeping
+NativeAOT and trimming disabled. `Directory.Packages.props` pins shared package
+versions; `global.json` selects the SDK. Use `.tools/dotnet/dotnet` for this checkout.
+
+| Path | Responsibility |
+| --- | --- |
+| `src/SharpRail.Host.Abstractions` | Transport-independent host interfaces and domain records consumed by the UI. |
+| `src/SharpRail.Host.Core` | Filesystem, project/spec discovery, Git and worktree implementations. No Avalonia, Pi or AI dependency. |
+| `src/SharpRail.Host.Protocol` | Code-first protobuf-net.Grpc service contracts and wire DTOs. |
+| `src/SharpRail.Host.Remote` | Kestrel HTTP/2 host, authentication and RPC adapters delegating to Core. |
+| `src/SharpRail.Host.Client` | Direct local adapters and gRPC remote proxies implementing the same host abstractions. Embedded mode uses no sockets or serialization. |
+| `src/SharpRail.UI` | Avalonia application entry point and workbench. `WorkbenchWindow` partial files coordinate navigation, projects and Git panels. |
+| `src/SharpRail.UI/Docking` | Persisted frame/workspace layout model, transitions, geometry, pointer/keyboard gestures, tab chrome and search popover. |
+| `src/SharpRail.UI/Panels` | Settings and shared dialogs, including compiled XAML frames and page templates. |
+| `src/SharpRail.UI/Rendering` | Native Markdown rendering, preview/source view and shared UI assets/styles/helpers. |
+| `src/SharpRail.UI/State` | Profile/preferences persistence and migration. Default user state belongs in `~/.sharprail`, not project directories. |
+| `src/SharpRail.UI/Assets` | Reference icons and bundled fonts, with their licenses. |
+| `tests/SharpRail.Checks` | Executable checks for host transports, runtime extensibility, layout, UI and Git/worktree integration. `E2E/` translates upstream scenarios using real headless Avalonia input. |
+| `scripts/bootstrap.sh` | Installs the checkout's local .NET SDK. |
+| `scripts/publish.sh` | Publishes non-composite R2R UI, remote host and checks; refreshes and signs the canonical `artifacts/SharpRail.app`. Check for a live app process before replacing it. |
+| `.bench` | Ignored disposable fixtures, verification logs and own-window captures. Its name does not authorize benchmarks. |
+
+Static UI layouts/styles/templates belong in compiled `.axaml`; dynamic docking
+and host/interaction wiring belong in C#. Keep the host independent of the UI and
+make remoteness an adapter choice rather than a mandatory local daemon.
+
+`SPEC.md` defines the product contract; `COMPLETION.md` records unfinished gates;
+`E2E.md` inventories upstream translations; `VALIDATION.md` records verified
+evidence. Read `gotchas.md` for lessons and `context-log.md` for continuation state.
+The authoritative upstream checkout is `/Users/commandertvis/IdeaProjects/thinkrail`.
+
+Run checks with `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release`.
+Set `SHARPRAIL_TEST_GIT_SOURCE` to an existing upstream clone to include Git fixtures.
+Verify formatting with `.tools/dotnet/dotnet format SharpRail.slnx --verify-no-changes --no-restore`.
+Generated packages live under `artifacts/`; keep one latest canonical app package.
+
 ## Startup performance sanity
 
-Keep the path from process launch to the first rendered, interactive workspace minimal. Establish the workspace identity before restoring its documents, then load independent panel data progressively.
+Minimize launch-to-interactive-workspace time. Resolve only the identity needed for routing before mounting and restoring documents; load independent panel data progressively.
 
-- Do not gate workspace mounting, document restoration, or basic input on a full Git snapshot: status, diffs, line counts, untracked-file reads, branch enumeration, and worktree enumeration belong in deferred refreshes. Fetch only the minimal identity information needed for correct workspace routing before mounting.
-- Keep recursive filesystem scans, spec indexing, network requests, nonessential profile writes, and eager construction of hidden panels or inactive documents off the startup critical path and UI thread. Bound initial file enumeration to what the visible UI needs.
-- An async method can still execute synchronous work on the UI thread. Move blocking I/O and substantial parsing to background execution; apply control and layout changes on the dispatcher. Awaiting background work before mounting still makes it a startup dependency.
-- Keep project-switch synchronization for correctness, but do not hold the project-switch gate across optional Git or indexing refreshes. Cancel superseded work and reject results for an outdated workspace before applying them.
-- Reuse the initial control tree where practical; avoid building, clearing, and rebuilding the same panels during startup. Restore visible documents first and defer inactive content.
-- Apply deferred data updates to the affected panel contents without rebuilding dock chrome or unrelated content. Preserve tab instances, keyboard focus, and pointer targets when Git or indexing results arrive.
-- Treat window creation, first presented frame, and usable workspace content as separate milestones. A layout callback or readiness log alone does not prove pixels were presented or restored content is ready.
-- Verify rendering backend and runtime publish settings before tuning Skia caches or changing JIT/GC options. Attribute delays to measured stages; do not claim an improvement from configuration alone. Run benchmarks only when explicitly requested.
+- Defer full Git snapshots (status, diffs, line counts, untracked reads, branches, worktrees), recursive scans, spec indexing, network requests, nonessential profile writes, hidden panels, and inactive documents. Enumerate only files needed by visible UI.
+- Run blocking I/O and substantial parsing in the background; update controls/layout on the dispatcher. Async alone does not move work off the UI thread, and awaiting it before mounting still blocks startup.
+- Keep project-switch synchronization, but release its gate before optional Git/indexing refreshes. Cancel superseded work and reject stale workspace results.
+- Reuse the initial control tree, restore visible documents first, and update only affected panel contents. Preserve dock chrome, tab instances, focus, and pointer targets during deferred refreshes.
+- Measure window creation, first presented frame, and usable content separately; layout callbacks/readiness logs do not prove presentation or restored-content readiness. Verify rendering backend and publish settings before tuning Skia/JIT/GC; tie improvements to measured stages. Benchmark only when requested.
 
-For startup changes, verify fresh-profile and restored-profile behavior, project-switch races, and usability while deferred data is still loading. Git or indexing failures must not prevent otherwise accessible workspace files from being opened.
+Verify fresh/restored profiles, project-switch races, and usability during deferred loading. Git/indexing failures must not block opening accessible workspace files.

@@ -58,8 +58,8 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `layout.spec.ts` | each center group owns an independent preview slot | Ported |
 | `layout.spec.ts` | deferred opens stay with their request-time group and reroute only when it disappears | Ported |
 | `layout.spec.ts` | pointer drag exposes deterministic split targets and moves one tab | Ported |
-| `layout.spec.ts` | applying the Review preset preserves resources and installs its vertical center topology | Pending |
-| `layout.spec.ts` | the local default preset drives an explicit frame reset | Pending |
+| `layout.spec.ts` | applying the Review preset preserves resources and installs its vertical center topology | Ported |
+| `layout.spec.ts` | the local default preset drives an explicit frame reset | Ported |
 | `layout.spec.ts` | custom presets synchronize while defaults and group limits remain window-local | Pending |
 | `layout.spec.ts` | Layout settings controls keep their container-preset max-widths | Pending |
 | `layout.spec.ts` | an accepted side-group overage is grandfathered without allowing further growth | Pending |

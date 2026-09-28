@@ -21,7 +21,7 @@ internal static class WorkspaceTabsE2E
         SideTools(Repository(root, "workspace-tabs-tools", source));
     }
 
-    private static string Repository(string root, string name, string source)
+    internal static string Repository(string root, string name, string source)
     {
         Directory.CreateDirectory(root);
         var path = Path.Combine(root, name);
@@ -44,7 +44,7 @@ internal static class WorkspaceTabsE2E
         Require(process.ExitCode == 0, error.GetAwaiter().GetResult());
     }
 
-    private static string CreateWorkspace(E2eWorkspace app, string name)
+    internal static string CreateWorkspace(E2eWorkspace app, string name)
     {
         var parent = app.Root + "-worktrees";
         Directory.CreateDirectory(parent);
@@ -61,7 +61,7 @@ internal static class WorkspaceTabsE2E
         return path;
     }
 
-    private static void Switch(E2eWorkspace app, string path, string? branch = null)
+    internal static void Switch(E2eWorkspace app, string path, string? branch = null)
     {
         Until(() => app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.ContextMenu is not null && Equals(ToolTip.GetTip(button), path)));
         app.Click(app.Window.GetLogicalDescendants().OfType<Button>().Single(button => button.ContextMenu is not null && Equals(ToolTip.GetTip(button), path)));
