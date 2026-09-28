@@ -171,17 +171,28 @@ public sealed class MarkdownPreview : ScrollViewer, IDisposable
                     VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled
                 };
             case AlertBlock alert:
-                var kind = alert.Kind.ToString();
-                var color = kind is "CAUTION" or "WARNING" ? Ui.Danger : kind == "TIP" ? Ui.Success : Ui.Accent;
+                var kind = alert.Kind.ToString().ToLowerInvariant();
+                var color = kind switch { "note" => Ui.Info, "tip" => Ui.Success, "warning" => Ui.Warning, "caution" => Ui.Danger, _ => Ui.Accent };
+                var iconName = kind switch { "note" => "alertInfo", "tip" => "alertTip", "warning" => "alertWarning", "caution" => "alertCaution", _ => "alertImportant" };
                 var callout = Container(alert);
-                callout.Children.Insert(0, Ui.Text(kind, color, preferences.FontSize));
+                foreach (var paragraph in callout.Children) paragraph.Margin = new Thickness(0, 4);
+                var alertTitle = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Margin = new Thickness(0, 0, 0, 4) };
+                alertTitle.Children.Add(Ui.Icon(iconName, color, 16));
+                var title = Ui.Text(char.ToUpperInvariant(kind[0]) + kind[1..], color, 14);
+                title.FontWeight = FontWeight.SemiBold;
+                alertTitle.Children.Add(title);
+                callout.Children.Insert(0, alertTitle);
+                callout.Children[^1].Margin = new Thickness(0, 4, 0, 0);
                 return new Border
                 {
                     Child = callout,
+                    Name = "MarkdownAlert",
+                    Tag = kind,
                     BorderBrush = color,
-                    BorderThickness = new Thickness(3, 0, 0, 0),
-                    Background = Ui.Sidebar,
-                    Padding = new Thickness(14, 10),
+                    BorderThickness = new Thickness(2, 0, 0, 0),
+                    Background = new SolidColorBrush(Color.FromArgb(kind == "important" ? (byte)26 : (byte)31, color.Color.R, color.Color.G, color.Color.B)),
+                    CornerRadius = new CornerRadius(0, 4, 4, 0),
+                    Padding = new Thickness(12, 8),
                     Margin = new Thickness(0, 12)
                 };
             case QuoteBlock quote:

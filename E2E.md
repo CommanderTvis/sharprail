@@ -1,7 +1,6 @@
 # Upstream E2E translation
 
-Authoritative source: `/Users/commandertvis/IdeaProjects/thinkrail/e2e` (main).
-The Riirn worktree is not the upstream.
+Authoritative source: [JetBrains/thinkrail:main — e2e](https://github.com/JetBrains/thinkrail/tree/main/e2e).
 
 Tests drive real Avalonia pointer/keyboard input and host calls in a headless window.
 Each case gets an isolated repository fixture and profile. Native macOS checks remain
@@ -12,10 +11,11 @@ The upstream one-pixel PNG has an invalid IDAT checksum and truncated compressed
 data. Its translated fixture uses a valid one-pixel PNG because Skia rejects the
 original; the image-loading assertion remains intact.
 
-Run with:
+Run with a local clone of `JetBrains/thinkrail:main`:
 
 ```sh
-SHARPRAIL_TEST_GIT_SOURCE=/Users/commandertvis/IdeaProjects/thinkrail .tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release
+git clone --branch main https://github.com/JetBrains/thinkrail.git .bench/thinkrail
+SHARPRAIL_TEST_GIT_SOURCE="$PWD/.bench/thinkrail" .tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release
 ```
 
 ## Case inventory

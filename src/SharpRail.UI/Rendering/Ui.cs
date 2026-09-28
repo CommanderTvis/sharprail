@@ -24,6 +24,8 @@ public static class Ui
     public static readonly SolidColorBrush PreviewSelection = new(Color.FromArgb(15, 106, 200, 255));
     public static readonly SolidColorBrush Success = new(Color.Parse("#41cb66"));
     public static readonly SolidColorBrush Danger = new(Color.Parse("#ff4b75"));
+    public static readonly SolidColorBrush Info = new(Color.Parse("#6ac8ff"));
+    public static readonly SolidColorBrush Warning = new(Color.Parse("#ffd54b"));
     public static readonly FontFamily InterfaceFont = new("avares://SharpRail.UI/Assets/Fonts#Geist");
     public const FontWeight InterfaceWeight = (FontWeight)370;
     public static readonly FontFamily CodeFont = new("avares://SharpRail.UI/Assets/Fonts#JetBrains Mono");
@@ -42,6 +44,10 @@ public static class Ui
         Hover.Color = Color.Parse(light ? "#d4d4d8" : "#27272a");
         TextSelection.Color = light ? Color.FromArgb(56, 107, 87, 255) : Color.FromArgb(38, 106, 200, 255);
         PreviewSelection.Color = light ? Color.FromArgb(22, 107, 87, 255) : Color.FromArgb(15, 106, 200, 255);
+        Info.Color = Color.Parse(light ? "#2265cf" : "#6ac8ff");
+        Warning.Color = Color.Parse(light ? "#946300" : "#ffd54b");
+        Success.Color = Color.Parse(light ? "#167230" : "#41cb66");
+        Danger.Color = Color.Parse(light ? "#d02533" : "#ff4b75");
     }
 
     public static Control Icon(string name, IBrush? color = null, double size = 16)

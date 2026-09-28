@@ -46,12 +46,12 @@ Screenshot helper .bench/window-info PID prints windowID/bounds; use native
 screencapture -x -o -l ID .bench/prototype-native.png. GUI uses require_escalated.
 The previous own app PID61451 was terminated before latest publish. New app
 showcase profile under .sharprail/showcase has README.md/SPEC.md kept tabs.
-Launch via open -n artifacts/SharpRail.app --env SHARPRAIL_ROOT=/Users/commandertvis/thinkrail/sharprail --env SHARPRAIL_PROFILE=/Users/commandertvis/thinkrail/sharprail/.sharprail/showcase --stdout /Users/commandertvis/thinkrail/sharprail/.bench/gui.log --stderr /Users/commandertvis/thinkrail/sharprail/.bench/gui-errors.log
+Launch from the repository root via open -n artifacts/SharpRail.app --env SHARPRAIL_ROOT="$PWD" --env SHARPRAIL_PROFILE="$PWD/.sharprail/showcase" --stdout "$PWD/.bench/gui.log" --stderr "$PWD/.bench/gui-errors.log"
 
 ## Remaining completion audit / concrete issues
 
 Read current source before editing. Primary reference:
-/Users/commandertvis/IdeaProjects/thinkrail/apps/web/src/shell/layout/SPEC.md
+[JetBrains/thinkrail:main — layout/SPEC.md](https://github.com/JetBrains/thinkrail/blob/main/apps/web/src/shell/layout/SPEC.md)
 and Workbench.tsx, model.ts, normalized.ts, components/ui/resizable.tsx.
 Original reference screenshot prototypes/ThinkRailNative/screenshots/original-workspace.png.
 Balanced proportions18%left/28%right/1.25:1rightstack/30%bottom match.
@@ -578,7 +578,7 @@ signature and fresh published R2R suite PASS .bench/branch-icon-published-checks
 Latest standard app65809/session8892/window1071541440x920 running using existing
 published-stable-tabs review profile. Screenshot
 .bench/prototype-branch-icon-native.png inspected: correct branched-circle icon
-beside riirn. Older StableTabs user process64952 preserved; old named bundles
+beside the branch name. Older StableTabs user process64952 preserved; old named bundles
 remain historical on disk, no new one created. Goal active; no benchmarks,
 commits/push/agents. Next: folded-bottom selection label and destination-menu
 freshness, then full fidelity audit.
@@ -1211,9 +1211,9 @@ assert no ownedwindow/width288, pathfilter, keyboardselection, empty/Escape.
 CtrlW remains focusedtab command as reference; test refocuses tab afterEscape.
 Default ProfileStore home .sharprail, legacyproject profile migration whenhome
 absent; SHARPRAIL_PROFILE explicitoverride retained. Physically moved repo
-.sharprail to /Users/commandertvis/.sharprail (destination absent), copied latest
+.sharprail to the home profile directory (destination absent), copied latest
 published-stable-tabs/profile.json to home/profile.json. Existing home profile
-lastproject /Users/commandertvis/IdeaProjects/thinkrail preserved, notreset.
+last project (a local clone of JetBrains/thinkrail:main) preserved, not reset.
 FullRelease/Git PASS review-fixes-checks, format PASS review-fixes-format,
 publishPASS review-fixes-publish, strict/deepcodesignPASS, publishedR2Rfullchecks
 PASS review-fixes-published-checks. Canonical PID63236/session28223 launched
@@ -1225,8 +1225,7 @@ Do not claim finalpopupnative perfection or broadgoalcomplete. GoalACTIVE.
 Remaining: nativepopup/Markdown visualcapture, combineddock/menu contract audit,
 other typography/control fidelity gates in COMPLETION. No benches/agents/commits.
 
-2026-09-28 correction: authoritative UPSTREAM=/Users/commandertvis/IdeaProjects/thinkrail
-(branch main), NOT riirn. User interrupted ongoing selection/dropdown fixes to
+2026-09-28 correction: authoritative upstream is [JetBrains/thinkrail:main](https://github.com/JetBrains/thinkrail/tree/main). User interrupted ongoing selection/dropdown fixes to
 correct reference and asked whether upstream E2E scenarios can be mirrored.
 Inspected upstream e2e/layout.spec.ts test names, preview-tabs.spec.ts cases,
 markdown-links.spec.ts actual scenarios, fixtures/app.ts imports (Playwright/
@@ -1235,7 +1234,7 @@ scenario equivalents possible via existing Headless checks plus native macOS
 E2E layer; no instruction yet to implement a complete port.
 Compared sources: SpecsPanel/specTree/generated colors/dark theme/command
 identical; Workbench.tsx and layout/model.ts DIFFER. Must re-audit docking
-against corrected upstream; previous riirn evidence not enough for that contract.
+against corrected upstream; previous evidence not enough for that contract.
 Current unpublised edits: TabSearch selected template ContentPresenter background
 fix; placeholder resource TextControlPlaceholderOpacity=1 (old style setter
 couldn't override template local opacity.5). New NavigationChecks verifies actual
@@ -1254,7 +1253,7 @@ published yet, no native selection capture/regression added yet. Canonical63236
 session28223 still previousreviewfixespkg, revalidate before overwrite. GoalACTIVE.
 
 2026-09-28 authorized upstream E2E translation is now IN SCOPE. Source remains
-/Users/commandertvis/IdeaProjects/thinkrail main. Added E2E.md with per-case
+[JetBrains/thinkrail:main](https://github.com/JetBrains/thinkrail/tree/main). Added E2E.md with per-case
 inventory for preview/Markdown/layout/projects/workspaces/theme/width/settings/
 changes/chrome, honest Pending statuses and explicit editor/terminal/AI exclusions.
 Added tests/SharpRail.Checks/E2E/{E2eWorkspace,PreviewTabsE2E,MarkdownLinksE2E,

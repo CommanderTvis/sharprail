@@ -76,6 +76,7 @@ internal static class UiChecks
         SelectionChecks.Run(host);
         E2E.PreviewTabsE2E.Run(Path.Combine(root, "upstream-e2e"));
         E2E.MarkdownLinksE2E.Run(Path.Combine(root, "upstream-e2e"));
+        E2E.MarkdownAlertsE2E.Run(Path.Combine(root, "upstream-e2e"));
         E2E.LayoutE2E.Run(Path.Combine(root, "upstream-e2e"));
         using (var frontmatterPreview = new MarkdownPreview("---\nid: private-metadata\ntitle: Internal title\n---\n\n# Visible heading\n\nVisible paragraph.",
             "metadata.md", host, store.Data.Preferences, (_, _) => { }))

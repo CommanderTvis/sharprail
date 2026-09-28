@@ -206,7 +206,7 @@ public sealed partial class WorkbenchWindow : Window
             if (document.ImageData is not null)
                 content = new ScrollViewer { Content = new Image { Source = new Bitmap(new MemoryStream(document.ImageData)), Stretch = Stretch.Uniform } };
             else if (tab.Kind == "markdown")
-                content = new MarkdownPreview(document.Text, document.Path, host, Preferences, (path, anchor) => _ = OpenDocumentAsync(path, false, anchor));
+                content = new MarkdownDocumentView(document, host, Preferences, (path, anchor) => _ = OpenDocumentAsync(path, false, anchor));
             else
                 content = new ScrollViewer
                 {
@@ -249,7 +249,7 @@ public sealed partial class WorkbenchWindow : Window
             var tab = new DockTab(kind + ":" + path, Path.GetFileName(path), kind, path);
             var key = workspace + ":" + tab.Id; documents[key] = document; DropDocumentContent(key);
             Layout.Open(tab, keep, destination);
-            if (anchor is not null && documentContent.GetValueOrDefault(key) is MarkdownPreview preview)
+            if (anchor is not null && documentContent.GetValueOrDefault(key) is MarkdownDocumentView preview)
                 Dispatcher.UIThread.Post(() => preview.ScrollToAnchor(anchor), DispatcherPriority.Loaded);
         }
         catch (Exception error) when (error is not OperationCanceledException) { Report(error); }

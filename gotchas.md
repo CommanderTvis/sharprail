@@ -1,6 +1,6 @@
 # Architecture lessons
 
-- For SharpRail, upstream is `/Users/commandertvis/IdeaProjects/thinkrail`. Do not treat the `riirn` worktree as upstream; use it only for explicitly requested historical research.
+- For SharpRail, upstream is [JetBrains/thinkrail:main](https://github.com/JetBrains/thinkrail/tree/main).
 
 - A host/client request for this maquette means a C# host as well as a C# client. Do not infer reuse of the reference's Bun host or Pi integration. Embedded calls are direct; gRPC is only the remote adapter.
 - A performance-research maquette request authorizes implementation and optimization checks, not benchmark runs. Run measurements only when explicitly requested; when asked to show the app, leave the packaged GUI running.

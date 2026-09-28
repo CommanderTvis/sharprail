@@ -4,8 +4,8 @@ The goal remains active. Passing functional checks does not prove the complete
 visual and docking contract. This ledger preserves the original scope and
 identifies the evidence still needed before declaring completion.
 
-The authoritative upstream checkout is `/Users/commandertvis/IdeaProjects/thinkrail`.
-The `riirn` worktree is not upstream. Reference authorities are `SPEC.md`, Thinkrail's
+The authoritative upstream is [JetBrains/thinkrail:main](https://github.com/JetBrains/thinkrail/tree/main).
+Reference authorities are `SPEC.md`, Thinkrail's
 `apps/web/src/shell/layout/SPEC.md`, its actual `Workbench.tsx`/`model.ts`,
 `SettingsDialog`, `MarkdownPreview`, project views, and
 `prototypes/ThinkRailNative/screenshots/original-workspace.png`. When prose and
