@@ -125,10 +125,12 @@ internal static class LayoutSettingsE2E
                 var original = app.Window.Layout.State.SideLimit;
                 var text = spin.GetVisualDescendants().OfType<TextBox>().Single();
                 app.Click(text);
-                var command = OperatingSystem.IsMacOS() ? RawInputModifiers.Meta : RawInputModifiers.Control;
+                var gesture = Application.Current!.PlatformSettings!.HotkeyConfiguration.SelectAll.First();
+                var command = gesture.KeyModifiers.HasFlag(KeyModifiers.Meta) ? RawInputModifiers.Meta : RawInputModifiers.Control;
                 settings.KeyPress(Key.A, command, PhysicalKey.A, null);
                 settings.KeyRelease(Key.A, command, PhysicalKey.A, null);
                 settings.KeyTextInput(value.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                Require(text.Text == value.ToString(System.Globalization.CultureInfo.InvariantCulture), "Select-all and typing must replace the displayed numeric draft.");
                 settings.KeyPress(Key.Tab, RawInputModifiers.None, PhysicalKey.Tab, null); Settle();
                 var save = settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "SaveGroupLimit_side");
                 Until(() => save.IsEnabled);
