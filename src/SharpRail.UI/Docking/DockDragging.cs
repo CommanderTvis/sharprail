@@ -125,7 +125,7 @@ public sealed partial class DockSurface
                 continue;
             }
             var group = Session.Group(site.Group);
-            if (tab.IsTool == (group.Region == "center")) continue;
+            if (tab.Kind != "terminal" && tab.IsTool == (group.Region == "center")) continue;
             if (site.Header)
             {
                 var members = tabSites.GetValueOrDefault(site.Group) ?? [];

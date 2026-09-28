@@ -50,8 +50,10 @@ internal static class DockInputChecks
         Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
         Require(!Find<Button>("RemoveGroup_" + window.Layout.State.Center.Leaves().Single()).IsEnabled,
             "The final empty center group's remove button must be disabled.");
-        Require(!window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name?.StartsWith("AddToGroup_", StringComparison.Ordinal) == true),
-            "A header must not offer Add when all singleton tools are placed.");
+        var addHeaders = window.GetLogicalDescendants().OfType<Button>().Where(button => button.Name?.StartsWith("AddToGroup_", StringComparison.Ordinal) == true).ToArray();
+        Require(addHeaders.Length == window.Layout.State.Groups.Count(group => !group.Folded) &&
+            addHeaders.All(button => button.ContextMenu!.Items.OfType<MenuItem>().All(item => Equals(item.Header, "New terminal"))),
+            "Add must offer terminal creation without duplicating already-placed singleton tools.");
         foreach (var (value, label) in new[]
         {
             ("center-left", "Below center and left"), ("center-right", "Below center and right"),
@@ -98,7 +100,7 @@ internal static class DockInputChecks
         var revealGroup = window.Layout.State.Groups.First(group => group.Region != "center");
         var reveal = Find<Button>("AddToGroup_" + revealGroup.Id);
         reveal.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        reveal.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Reveal Projects"))
+        reveal.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Show Projects"))
             .RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
         reveal.ContextMenu.Close(); Dispatcher.UIThread.RunJobs();
         Require(window.Layout.Group(revealGroup.Id).Tools.Any(tab => tab.Id == "projects"),

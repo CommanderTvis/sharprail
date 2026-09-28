@@ -31,6 +31,8 @@ public sealed class WorkspaceView
 {
     public Dictionary<string, List<DockTab>> Documents { get; set; } = [];
     public Dictionary<string, string> Selected { get; set; } = [];
+    public Dictionary<string, string> BeforeToolByTabId { get; set; } = [];
+    public int NextTerminalNumber { get; set; } = 1;
     public string FocusedCenter { get; set; } = "";
     public string FocusedGroup { get; set; } = "";
     public Dictionary<string, string> FocusedAuxiliary { get; set; } = [];
@@ -38,6 +40,8 @@ public sealed class WorkspaceView
     {
         Documents = Documents.ToDictionary(pair => pair.Key, pair => pair.Value.ToList()),
         Selected = new(Selected),
+        BeforeToolByTabId = new(BeforeToolByTabId),
+        NextTerminalNumber = NextTerminalNumber,
         FocusedCenter = FocusedCenter,
         FocusedGroup = FocusedGroup,
         FocusedAuxiliary = new(FocusedAuxiliary)
@@ -51,6 +55,7 @@ public sealed class DockState
     public List<DockGroup> Groups { get; set; } = [];
     public Dictionary<string, WorkspaceView> Workspaces { get; set; } = [];
     public Dictionary<string, string> ToolRestore { get; set; } = [];
+    public Dictionary<string, int> ToolRestorePositions { get; set; } = [];
     public string ActiveWorkspace { get; set; } = "";
     public bool LeftVisible { get; set; } = true;
     public bool RightVisible { get; set; } = true;
@@ -67,6 +72,7 @@ public sealed class DockState
         Groups = Groups.Select(group => group.Copy()).ToList(),
         Workspaces = Workspaces.ToDictionary(pair => pair.Key, pair => pair.Value.Copy()),
         ToolRestore = new(ToolRestore),
+        ToolRestorePositions = new(ToolRestorePositions),
         ActiveWorkspace = ActiveWorkspace,
         LeftVisible = LeftVisible,
         RightVisible = RightVisible,
@@ -81,6 +87,7 @@ public sealed class DockState
 
     public static readonly string[] ToolNames = ["projects", "specs", "files", "changes", "review"];
     public static DockTab Tool(string id) => new(id, char.ToUpperInvariant(id[0]) + id[1..], "tool");
+    public static string ToolRegion(string id) => id == "projects" ? "left" : "right";
 
     public static DockState Preset(string name)
     {

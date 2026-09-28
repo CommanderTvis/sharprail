@@ -65,6 +65,10 @@ public sealed partial class WorkbenchWindow
             "Uncommitted" => change.WorktreeStatus != " ",
             _ => true
         }).ToArray();
+        if (gitLoading || gitError is not null)
+        {
+            Ui.Place(panel, Ui.Text(gitError ?? "Loading Git…", Ui.Hint, 12), 1); return panel;
+        }
         if (!git.IsRepository)
         {
             Ui.Place(panel, Ui.Text("This project is not a git repository.", Ui.Hint, 12), 1); return panel;
@@ -209,13 +213,15 @@ public sealed partial class WorkbenchWindow
 
     private async Task GitActionAsync(GitAction action)
     {
+        gitRefresh?.Cancel();
         try
         {
             var request = projectRequest;
             var snapshot = await host.ApplyGitActionAsync(action, lifetime.Token);
             if (request != projectRequest) return;
-            git = snapshot; toolContent.Clear();
-            errorText.IsVisible = false; surface.RefreshContents();
+            gitRefresh?.Cancel();
+            git = snapshot; gitLoading = false; gitError = null;
+            errorText.IsVisible = false; RefreshGitPanels();
         }
         catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
     }
@@ -225,6 +231,7 @@ public sealed partial class WorkbenchWindow
         var values = await Dialogs.Prompt(this, "Create worktree",
             ("Directory path", projectRoot + "-worktree"), ("New branch", ""), ("Base branch", git.Branch.Length > 0 ? git.Branch : "HEAD"));
         if (values is null) return;
+        gitRefresh?.Cancel();
         try
         {
             git = await host.ApplyGitActionAsync(new("create-worktree", values[0], values[1], values[2]), lifetime.Token);

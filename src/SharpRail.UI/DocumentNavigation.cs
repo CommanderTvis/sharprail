@@ -33,13 +33,14 @@ public sealed partial class WorkbenchWindow
             var tab = new DockTab(kind + ":" + path, Path.GetFileName(path), kind, path);
             var key = identity.workspaceRoot + ":" + tab.Id;
             if (!documents.TryGetValue(key, out var document)) document = await host.ReadFileAsync(path, lifetime.Token);
-            await settle;
+            if (!flight.Keep) await settle;
             if (flight.Navigation.Project != projectRequest || flight.Navigation.Workspace != workspaceRoot) return;
             var destination = AcceptNavigation(flight.Navigation);
             if (destination is null && !flight.Keep) return;
             documents[key] = document;
             Layout.Open(tab, flight.Keep, destination ?? flight.Navigation.Group,
-                claimPreview: flight.Keep && flight.ClaimPreview && destination is not null, activate: destination is not null);
+                claimPreview: flight.Keep && flight.ClaimPreview && destination is not null,
+                activate: destination is not null && destination == Layout.View.FocusedCenter);
         }
         catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
         finally { browseFlights.Remove(identity); }
@@ -62,10 +63,10 @@ public sealed partial class WorkbenchWindow
 
     private string? AcceptNavigation(Navigation request)
     {
-        if (request.Project != projectRequest || request.Workspace != workspaceRoot ||
-            navigationClocks.GetValueOrDefault(request.Group) != request.Stamp) return null;
+        if (request.Project != projectRequest || request.Workspace != workspaceRoot) return null;
         var leaves = Layout.State.Center.Leaves().ToArray();
-        if (leaves.Contains(request.Group)) return request.Group;
+        if (leaves.Contains(request.Group))
+            return navigationClocks.GetValueOrDefault(request.Group) == request.Stamp ? request.Group : null;
         var destination = leaves.Contains(Layout.View.FocusedCenter) ? Layout.View.FocusedCenter : leaves[0];
         AdvanceNavigation(destination);
         return destination;

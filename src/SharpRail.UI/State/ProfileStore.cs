@@ -19,6 +19,7 @@ public sealed class Profile
     public Preferences Preferences { get; set; } = new();
     public DockState Layout { get; set; } = DockState.Preset("balanced");
     public List<string> Projects { get; set; } = [];
+    public HashSet<string> CollapsedProjects { get; set; } = [];
     public string LastProject { get; set; } = "";
 }
 
@@ -49,6 +50,7 @@ public sealed class ProfileStore
         {
             Data = File.Exists(path) ? JsonSerializer.Deserialize<Profile>(File.ReadAllText(path)) ?? new() : new();
             Data.Preferences ??= new(); Data.Projects ??= []; Data.LastProject ??= "";
+            Data.CollapsedProjects ??= [];
             Data.Projects.RemoveAll(project => string.IsNullOrWhiteSpace(project) || project.Contains('\0') || !Path.IsPathFullyQualified(project));
             if (Data.LastProject.Contains('\0') || Data.LastProject.Length > 0 && !Path.IsPathFullyQualified(Data.LastProject)) Data.LastProject = "";
             Data.Preferences.CustomPresets ??= [];

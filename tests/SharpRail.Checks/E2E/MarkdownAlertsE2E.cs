@@ -27,7 +27,8 @@ internal static class MarkdownAlertsE2E
             "The rendered note must preserve content and hide its source marker.");
         app.Click(app.Find<Button>("MarkdownSourceMode"));
         var source = app.Find<ScrollViewer>("MarkdownSource");
-        Require(source.GetLogicalDescendants().OfType<SelectableTextBlock>().Any(text => text.Text?.Contains("[!NOTE]", StringComparison.Ordinal) == true),
+        Require(source.GetLogicalDescendants().OfType<SelectableTextBlock>()
+            .Any(text => string.Concat(text.Inlines?.OfType<Run>().Select(run => run.Text) ?? []).Contains("[!NOTE]", StringComparison.Ordinal)),
             "Source mode must display the original alert marker.");
         app.Click(app.Find<Button>("MarkdownPreviewMode"));
         Require(ReferenceEquals(preview, app.Find<MarkdownPreview>("MarkdownPreview")), "Returning to preview must retain its mounted document.");

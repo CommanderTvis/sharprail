@@ -1,8 +1,18 @@
 using Avalonia.Automation.Peers;
 using Avalonia.Automation.Provider;
 using Avalonia.Controls;
+using Avalonia.LogicalTree;
 
 namespace SharpRail.UI.Docking;
+
+internal sealed class DockPanel : Border
+{
+    protected override AutomationPeer OnCreateAutomationPeer() => new PanelPeer(this);
+    private sealed class PanelPeer(DockPanel owner) : ControlAutomationPeer(owner)
+    {
+        protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Pane;
+    }
+}
 
 internal sealed class DockTabStrip(LayoutSession session, string group) : StackPanel
 {
@@ -13,8 +23,8 @@ internal sealed class DockTabStrip(LayoutSession session, string group) : StackP
     {
         protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Tab;
         public bool CanSelectMultiple => false;
-        public bool IsSelectionRequired => owner.Children.Count > 0;
-        public IReadOnlyList<AutomationPeer> GetSelection() => owner.Children.OfType<DockTabButton>()
+        public bool IsSelectionRequired => owner.GetLogicalDescendants().OfType<DockTabButton>().Any();
+        public IReadOnlyList<AutomationPeer> GetSelection() => owner.GetLogicalDescendants().OfType<DockTabButton>()
             .Where(button => button.IsSelected).Select(GetOrCreate).ToArray();
     }
 }

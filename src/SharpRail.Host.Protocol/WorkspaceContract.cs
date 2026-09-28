@@ -13,6 +13,7 @@ public sealed class WorkspaceReply
     [ProtoMember(1)] public string Name { get; set; } = "";
     [ProtoMember(2)] public string ProjectName { get; set; } = "";
     [ProtoMember(3)] public string RootPath { get; set; } = "";
+    [ProtoMember(4)] public string ProjectRoot { get; set; } = "";
 }
 
 [ProtoContract]

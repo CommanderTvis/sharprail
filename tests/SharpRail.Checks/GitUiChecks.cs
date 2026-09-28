@@ -48,7 +48,7 @@ internal static class GitUiChecks
     {
         if (!Directory.Exists(root + "/.git")) return;
         var window = new WorkbenchWindow(new ProjectServices(root), root, new ProfileStore(root + "-ui-profile"));
-        window.Show(); Pump(() => window.WorkspaceMounted);
+        window.Show(); Pump(() => window.WorkspaceMounted && Buttons(window).Any(button => button.Name == "ChangesBranch"));
         Button Change() => Buttons(window).Single(button => ToolTip.GetTip(button) is string tip &&
             tip.StartsWith("space ü\tfile.txt", StringComparison.Ordinal) &&
             button.ContextMenu?.Items.OfType<MenuItem>().Any(item => Equals(item.Header, "Stage file")) == true);
@@ -66,7 +66,8 @@ internal static class GitUiChecks
         Require(!Buttons(window).Any(button => ToolTip.GetTip(button) is string tip && tip.StartsWith("space ü\tfile.txt", StringComparison.Ordinal)),
             "Staged scope displayed an untracked file.");
         Invoke(Action(Named("ChangesScope"), "All changes"));
-        Pump(() => Action(Named("ChangesScope"), "All changes").IsChecked);
+        Pump(() => Action(Named("ChangesScope"), "All changes").IsChecked &&
+            Buttons(window).Any(button => ToolTip.GetTip(button) is string tip && tip.StartsWith("space ü\tfile.txt", StringComparison.Ordinal)));
         Invoke(Action(Change(), "Stage file"));
         Pump(() => Action(Change(), "Unstage file").IsEnabled);
         Click(window, Change());
@@ -83,10 +84,12 @@ internal static class GitUiChecks
         var worktree = root + "-ui-worktree";
         fields[0].Text = worktree; fields[1].Text = "sharprail-ui-" + Guid.NewGuid().ToString("N")[..8];
         Click(prompt, Buttons(prompt).Single(button => button.IsDefault));
-        Pump(() => window.WorkspaceRoot == worktree && window.WorkspaceMounted);
+        Pump(() => window.WorkspaceRoot == worktree && window.WorkspaceMounted &&
+            Buttons(window).Any(button => Equals(ToolTip.GetTip(button), root) && button.ContextMenu is not null));
         var main = Buttons(window).Single(button => Equals(ToolTip.GetTip(button), root) && button.ContextMenu is not null);
         Require(!Action(main, "Remove worktree…").IsEnabled, "Main worktree removal was enabled.");
-        Click(window, main); Pump(() => window.WorkspaceRoot == root && window.WorkspaceMounted);
+        Click(window, main); Pump(() => window.WorkspaceRoot == root && window.WorkspaceMounted &&
+            Buttons(window).Any(button => Equals(ToolTip.GetTip(button), worktree)));
         Button Linked() => Buttons(window).Single(button => Equals(ToolTip.GetTip(button), worktree));
         Invoke(Action(Linked(), "Remove worktree…"));
         var confirmation = window.OwnedWindows.Single(item => item.Title == "Remove worktree?");

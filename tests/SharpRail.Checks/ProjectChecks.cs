@@ -103,6 +103,18 @@ internal static class ProjectChecks
         var worktree = root + "-worktree";
         snapshot = await host.ApplyGitActionAsync(new("create-worktree", worktree, branch));
         Require(snapshot.Worktrees.Any(tree => tree.Path == worktree && tree.Branch == branch), "Worktree creation/listing failed.");
+        var linked = new ProjectServices(worktree);
+        var linkedInfo = await linked.OpenProjectAsync(worktree);
+        Require(linkedInfo.RootPath == worktree && linkedInfo.ProjectRoot == root,
+            "Linked workspace identity did not resolve its main project before loading Git status.");
+        await using (var linkedServer = RemoteServer.Create(worktree, IPAddress.Loopback, 0, "linked-test"))
+        {
+            await linkedServer.StartAsync();
+            var linkedAddress = linkedServer.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single();
+            using var linkedRemote = new RemoteProjectAdapter(new Uri(linkedAddress), "linked-test");
+            Require(await linkedRemote.OpenProjectAsync(worktree) == linkedInfo, "Remote linked workspace identity differs.");
+            await linkedServer.StopAsync();
+        }
         await File.WriteAllTextAsync(Path.Combine(worktree, "dirty.txt"), "dirty");
         try
         {

@@ -10,7 +10,7 @@ public sealed class ProjectRpc(IProjectServices host) : IProjectRpc
     public ValueTask<WorkspaceReply> OpenProjectAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>
     {
         var result = await host.OpenProjectAsync(request.Path, context.CancellationToken);
-        return new WorkspaceReply { Name = result.Name, ProjectName = result.ProjectName, RootPath = result.RootPath };
+        return new WorkspaceReply { Name = result.Name, ProjectName = result.ProjectName, RootPath = result.RootPath, ProjectRoot = result.ProjectRoot };
     });
 
     public ValueTask<ProjectFilesReply> ListFilesAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>

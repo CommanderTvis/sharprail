@@ -1,10 +1,43 @@
 # Prototype validation
 
-Status on 2026-09-28: current functional prototype published and running. The complete
-visual/docking fidelity objective remains active; the evidence below must not
-be presented as proof of every detail in the reference contract.
+Status on 2026-09-28: twenty-four translated upstream E2E cases pass in the full
+Release and published-runtime suites with Git/worktree integration enabled. Formatting and
+`git diff --check` pass. The canonical `artifacts/SharpRail.app` was republished
+with non-composite ReadyToRun and passes strict/deep signature verification.
+The full published-runtime suite also passes, including open-world loading and
+Git/worktree integration (`.bench/split-upstream-published-checks.log`).
+
+Native display availability recovered: CoreGraphics reports two active displays
+and CoreVideo display-link creation succeeds. The canonical package is running
+(PID 30017); its 1440x920 window was captured and inspected in
+`.bench/split-upstream-native.png`. Earlier launch failures with RenderTimer
+`-6661` occurred while no displays were active, matching
+[Avalonia issue 18895](https://github.com/AvaloniaUI/Avalonia/issues/18895).
+Earlier captures and running-app statements below are historical evidence.
+The complete visual/docking fidelity objective and upstream suite translation
+remain active; the evidence below does not prove the full reference contract.
 
 ## Current evidence
+
+Two additional upstream cases exercise pointer tab reordering and center splits,
+plus broad above/below side split targets around expanded and keyboard-folded
+panes. Empty source groups and folded destination state survive the moves.
+Auxiliary tab menus now use the reference's directional names and validate split
+availability when opened. Full Release and published R2R suites pass
+(`.bench/split-upstream-final-checks.log`,
+`.bench/split-upstream-published-checks.log`); formatting verification passes
+(`.bench/split-upstream-final-format.log`). These checks do not establish full
+native drag or menu fidelity.
+
+Pane menus now create nonfunctional terminal tabs in their own group. Terminal
+tabs can move between regions alongside tool tabs, retain their body when moved
+or folded, and close through the context menu. Mixed tab ordering and hidden-tool
+restoration persist through workspace switches and reloads. The translated
+upstream side-menu case verifies terminal placement and side-specific tool menus.
+Full Release and published R2R suites pass, including mixed-order regressions
+(`.bench/terminal-side-menu-final-checks.log`,
+`.bench/terminal-side-menu-published-checks.log`). Formatting verification passes
+(`.bench/terminal-side-menu-final-format.log`). Terminal execution remains excluded.
 
 `COMPLETION.md` tracks the full goal and remaining verification limits.
 Auxiliary stacks now follow the reference panel constraints, including folded

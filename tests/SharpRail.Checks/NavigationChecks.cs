@@ -54,7 +54,9 @@ internal static class NavigationChecks
         window.Layout.Focus(secondary); var secondGate = host.Hold("SPEC.md");
         var second = window.OpenDocumentAsync("SPEC.md", true);
         secondGate.SetResult(); Await(second); firstGate.SetResult(); Await(first);
-        Require(window.Layout.Selected(primary)?.Path == "hello.txt" && window.Layout.Selected(secondary)?.Path == "SPEC.md",
+        Require(window.Layout.Tabs(primary).Any(tab => tab.Path == "hello.txt") &&
+            window.Layout.Selected(primary)?.Path == "README.md" && window.Layout.Selected(secondary)?.Path == "SPEC.md" &&
+            window.Layout.View.FocusedCenter == secondary,
             "Independent pane navigation suppressed another pane's open.");
 
         window.Layout.Focus(primary); gate = host.Hold("hello.txt");
@@ -128,7 +130,8 @@ internal static class NavigationChecks
             "Keyboard reorder did not move the selected tab left.");
         var selectedButton = window.GetLogicalDescendants().OfType<Button>().Single(button =>
             button.Name == "Tab_" + selectedId.Replace(':', '_').Replace('/', '_'));
-        var close = selectedButton.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "CloseTab");
+        var close = selectedButton.GetLogicalAncestors().OfType<Grid>().First(grid => grid.Name?.StartsWith("DockTab_", StringComparison.Ordinal) == true)
+            .GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "CloseTab");
         point = close.TranslatePoint(new Point(close.Bounds.Width / 2, close.Bounds.Height / 2), window)!.Value;
         window.MouseMove(point); window.MouseDown(point, MouseButton.Left); window.MouseUp(point, MouseButton.Left);
         Dispatcher.UIThread.RunJobs();

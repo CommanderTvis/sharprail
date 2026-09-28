@@ -3,7 +3,7 @@
              xmlns:rendering="using:SharpRail.UI.Rendering"
              x:Class="SharpRail.UI.Rendering.MarkdownDocumentView">
   <Grid RowDefinitions="32,*">
-    <Border Background="{x:Static rendering:Ui.Surface}"
+    <Border Background="{x:Static rendering:Ui.Header}"
             BorderBrush="{x:Static rendering:Ui.BorderBrush}" BorderThickness="0,0,0,1"
             Padding="12,0">
       <StackPanel Orientation="Horizontal" Spacing="4" HorizontalAlignment="Right"

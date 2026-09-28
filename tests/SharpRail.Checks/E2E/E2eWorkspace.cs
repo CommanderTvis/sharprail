@@ -22,12 +22,14 @@ internal sealed class E2eWorkspace : IDisposable
     internal IReadOnlyList<DockTab> Tabs => Window.Layout.Tabs(Center);
     internal string Root { get; }
 
-    internal E2eWorkspace(string root)
+    internal E2eWorkspace(string root, bool openFiles = true)
     {
         Root = root;
         Directory.CreateDirectory(root);
         File.WriteAllText(Path.Combine(root, "README.md"), "# sample-project\n");
         File.WriteAllText(Path.Combine(root, "notes.txt"), "plain-text-fixture\n");
+        File.WriteAllText(Path.Combine(root, "DIAGRAM.md"), "# Diagram demo\n\n```mermaid\nflowchart TD; Start --> Finish\n```\n\n```mermaid\nflowchart TD; Start --> --> broken\n```\n\n```bash\necho plain-fence-stays-code\n```\n");
+        File.WriteAllText(Path.Combine(root, "LARGE.md"), "# Large document\n\n" + string.Join("\n\n", Enumerable.Repeat("A fixture paragraph.", 100)));
         File.WriteAllText(Path.Combine(root, "ALERTS.md"), "# Alert callouts\n\n> [!NOTE]\n> Useful information users should know.\n\n> [!TIP]\n> Helpful advice for doing things better.\n\n> [!IMPORTANT]\n> Key information to achieve a goal.\n\n> [!WARNING]\n> Urgent info needing immediate attention.\n\n> [!CAUTION]\n> Advises about risky outcomes.\n\n> A plain blockquote, no marker, so it stays a quote.\n");
         File.WriteAllText(Path.Combine(root, "LINKS.md"), "# Link demo\n\nJump to [Section two](#section-two), open [the spec](SPEC.md), and see the logo:\n\n![logo](logo.png)\n\n## Section two\n\nTarget of the in-document anchor.\n");
         File.WriteAllText(Path.Combine(root, "SPEC.md"), "---\nid: sample-root\ntype: goal-and-requirements\ntitle: Sample Project\n---\n\n## Goal\n\nA throwaway fixture project.\n");
@@ -39,7 +41,7 @@ internal sealed class E2eWorkspace : IDisposable
         Host = new(new ProjectServices(root));
         Window = new(Host, root, new ProfileStore(root + "-profile")) { Width = 1352, Height = 848 };
         Window.Show(); Until(() => Window.WorkspaceMounted);
-        Click(Find<Button>("Tab_files"));
+        if (openFiles) Click(Find<Button>("Tab_files"));
     }
 
     internal static void Require(bool value, string message)
@@ -93,6 +95,7 @@ internal sealed class E2eWorkspace : IDisposable
     internal void Click(Control control, bool twice = false, bool freshGesture = true, MouseButton mouseButton = MouseButton.Left)
     {
         var name = control.Name;
+        var owner = control.GetLogicalAncestors().OfType<Control>().FirstOrDefault(item => item.Name?.StartsWith("DockTab_", StringComparison.Ordinal) == true)?.Name;
         var filePath = control.GetLogicalAncestors().OfType<TreeViewItem>().Select(item => item.Tag).OfType<ProjectFile>().FirstOrDefault()?.Path;
         if (freshGesture)
         {
@@ -101,10 +104,14 @@ internal sealed class E2eWorkspace : IDisposable
         }
         if (!control.GetVisualAncestors().Contains(Window))
         {
-            if (name is not null) control = Find<Control>(name);
+            if (name is not null && owner is not null) control = Find<Control>(owner).GetLogicalDescendants().OfType<Control>().Single(item => item.Name == name);
+            else if (name is not null) control = Find<Control>(name);
             else if (filePath is not null) control = FileRow(filePath);
         }
         Window.UpdateLayout();
+        control.BringIntoView();
+        Dispatcher.UIThread.RunJobs();
+        TopLevel.GetTopLevel(control)!.UpdateLayout();
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         var input = TopLevel.GetTopLevel(control)!;
         var point = control.TranslatePoint(new Point(Math.Min(24, control.Bounds.Width / 2), control.Bounds.Height / 2), input)!.Value;

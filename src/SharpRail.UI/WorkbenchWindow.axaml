@@ -2,7 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:rendering="using:SharpRail.UI.Rendering"
         x:Class="SharpRail.UI.WorkbenchWindow"
-        Title="SharpRail" Width="1440" Height="920" MinWidth="800" MinHeight="540"
+        Title="SharpRail" Width="1440" Height="920" MinWidth="390" MinHeight="540"
         ExtendClientAreaToDecorationsHint="True" ExtendClientAreaTitleBarHeightHint="40"
         Background="{x:Static rendering:Ui.Surface}" Foreground="{x:Static rendering:Ui.Muted}"
         FontFamily="{x:Static rendering:Ui.InterfaceFont}" FontWeight="370">
@@ -13,14 +13,14 @@
     </Style>
   </Window.Styles>
   <Grid x:Name="WorkbenchRoot" RowDefinitions="40,*,Auto">
-    <Border x:Name="WindowTitleBar" Background="{x:Static rendering:Ui.Surface}"
+    <Border x:Name="WindowTitleBar" Background="{x:Static rendering:Ui.Header}"
             BorderBrush="{x:Static rendering:Ui.BorderBrush}" BorderThickness="0,0,1,1">
       <Grid x:Name="MainHeader" ColumnDefinitions="36,*,Auto">
         <ContentControl x:Name="BrandIcon" />
-        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-          <TextBlock x:Name="ProjectLabel" Text="…" Classes="header-label" Foreground="{x:Static rendering:Ui.TextBrush}" />
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" ClipToBounds="True">
+          <TextBlock x:Name="ProjectLabel" Text="…" Classes="header-label" MaxWidth="160" Foreground="{x:Static rendering:Ui.TextBrush}" />
           <TextBlock Text="›" Classes="header-label" />
-          <TextBlock Text="Default workspace" Classes="header-label" />
+          <TextBlock x:Name="WorkspaceLabel" Text="Default workspace" Classes="header-label" MaxWidth="220" Foreground="{x:Static rendering:Ui.TextBrush}" />
           <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
             <ContentControl x:Name="BranchIcon" />
             <TextBlock x:Name="BranchLabel" Classes="header-label" />

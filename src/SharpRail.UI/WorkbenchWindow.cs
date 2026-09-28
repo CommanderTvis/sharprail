@@ -78,6 +78,10 @@ public sealed partial class WorkbenchWindow : Window
             else if (command && e.Key == Key.OemComma) { ShowSettings(); e.Handled = true; }
             else if (command && e.Key == Key.J && e.KeyModifiers.HasFlag(KeyModifiers.Shift))
             { Layout.Visible("bottom", !Layout.State.BottomVisible); e.Handled = true; }
+            else if (command && e.Key == Key.B)
+            { Layout.Visible("left", !Layout.State.LeftVisible); e.Handled = true; }
+            else if (command && e.Key == Key.J)
+            { Layout.Visible("right", !Layout.State.RightVisible); e.Handled = true; }
             else if (e.Key == Key.F5) { _ = RefreshAsync(); e.Handled = true; }
         }, RoutingStrategies.Bubble);
     }
@@ -125,26 +129,29 @@ public sealed partial class WorkbenchWindow : Window
     private async Task OpenWorkspaceAsync(string path, bool project)
     {
         var request = ++projectRequest; WorkspaceMounted = false;
+        gitRefresh?.Cancel();
         try { await projectGate.WaitAsync(lifetime.Token); }
         catch (OperationCanceledException) { return; }
         try
         {
+            if (request != projectRequest) return;
             status.Text = "Loading";
             var workspace = await host.OpenProjectAsync(path, lifetime.Token);
-            var files = await host.ListFilesAsync("", lifetime.Token);
-            var snapshot = await host.GetGitAsync("", lifetime.Token);
+            if (request != projectRequest) return;
+            var files = await Task.Run(async () => await host.ListFilesAsync("", lifetime.Token), lifetime.Token);
             if (request != projectRequest) return;
             workspaceRoot = workspace.RootPath;
-            if (project) projectRoot = snapshot.Worktrees.FirstOrDefault(tree => tree.IsMain)?.Path ?? workspaceRoot;
+            if (project) projectRoot = workspace.ProjectRoot;
             projectLabel.Text = new DirectoryInfo(projectRoot).Name;
-            branchLabel.Text = snapshot.IsRepository ? snapshot.Branch : "";
-            branchIcon.IsVisible = snapshot.IsRepository;
-            git = snapshot; comparison = ""; changeScope = "All changes"; folderCache.Clear(); expandedFolders.Clear();
+            this.FindControl<TextBlock>("WorkspaceLabel")!.Text = workspaceRoot == projectRoot ? "Default workspace" : new DirectoryInfo(workspaceRoot).Name;
+            branchLabel.Text = "";
+            branchIcon.IsVisible = false;
+            git = new(false, "", [], [], []); gitLoading = true; gitError = null;
+            comparison = ""; changeScope = "All changes"; folderCache.Clear(); expandedFolders.Clear();
             folderCache[""] = files;
             toolContent.Clear();
             if (!profile.Data.Projects.Contains(projectRoot)) profile.Data.Projects.Insert(0, projectRoot);
             profile.Data.LastProject = workspaceRoot;
-            profile.Save();
             WorkspaceMounted = true;
             Layout.SwitchWorkspace(workspaceRoot);
             status.Text = remote ? "Remote" : "Connected";
@@ -160,6 +167,8 @@ public sealed partial class WorkbenchWindow : Window
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
         catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
         finally { projectGate.Release(); }
+        if (request == projectRequest && WorkspaceMounted)
+            Dispatcher.UIThread.Post(() => _ = RefreshGitAsync(request), DispatcherPriority.Background);
     }
 
     private Control RenderContent(DockTab? tab)
@@ -200,6 +209,12 @@ public sealed partial class WorkbenchWindow : Window
         }
         var key = workspaceRoot + ":" + tab.Id;
         if (documentContent.TryGetValue(key, out var existing)) return existing;
+        if (tab.Kind == "terminal")
+        {
+            var terminal = new Border { Name = "TerminalSurface_" + tab.Id.Replace(':', '_'), Background = Ui.Elevated, Focusable = true };
+            documentContent[key] = terminal;
+            return terminal;
+        }
         if (documents.TryGetValue(key, out var document))
         {
             Control content;
@@ -248,7 +263,7 @@ public sealed partial class WorkbenchWindow : Window
             var kind = Path.GetExtension(path).ToLowerInvariant() is ".md" or ".markdown" ? "markdown" : "file";
             var tab = new DockTab(kind + ":" + path, Path.GetFileName(path), kind, path);
             var key = workspace + ":" + tab.Id; documents[key] = document; DropDocumentContent(key);
-            Layout.Open(tab, keep, destination);
+            Layout.Open(tab, keep, destination, activate: destination == Layout.View.FocusedCenter);
             if (anchor is not null && documentContent.GetValueOrDefault(key) is MarkdownDocumentView preview)
                 Dispatcher.UIThread.Post(() => preview.ScrollToAnchor(anchor), DispatcherPriority.Loaded);
         }
@@ -258,17 +273,18 @@ public sealed partial class WorkbenchWindow : Window
     public async Task RefreshAsync()
     {
         if (!WorkspaceMounted) return;
+        var request = projectRequest;
         try
         {
-            var request = projectRequest;
-            var files = await host.ListFilesAsync("", lifetime.Token);
-            var snapshot = await host.GetGitAsync(comparison, lifetime.Token);
+            var files = await Task.Run(async () => await host.ListFilesAsync("", lifetime.Token), lifetime.Token);
             if (request != projectRequest) return;
-            git = snapshot; branchLabel.Text = snapshot.IsRepository ? snapshot.Branch : "";
-            branchIcon.IsVisible = snapshot.IsRepository;
-            folderCache.Clear(); folderCache[""] = files; toolContent.Clear(); surface.RefreshContents();
+            folderCache.Clear(); folderCache[""] = files;
+            toolContent.Remove("files"); toolContent.Remove("specs"); surface.RefreshContents("files", "specs");
+            await RefreshGitAsync(request);
         }
-        catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
+        catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
+        catch (Exception error) when (error is not OperationCanceledException)
+        { if (request == projectRequest) Report(error); }
     }
 
     private void Report(Exception error)

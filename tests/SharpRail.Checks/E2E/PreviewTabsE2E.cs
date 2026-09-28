@@ -43,13 +43,14 @@ internal static class PreviewTabsE2E
         {
             app.Open("README.md", true); var gate = app.Host.Hold("notes.txt");
             app.Click(app.FileRow("notes.txt")); Until(() => app.Host.Reads.GetValueOrDefault("notes.txt") == 1);
-            app.Click(app.Tab("README.md")); gate.SetResult(); Settle();
+            app.Click(app.Tab("README.md"), freshGesture: false); gate.SetResult(); Settle();
             Require(app.Tabs.Count == 1 && app.Window.Layout.Selected(app.Center)?.Path == "README.md", "An abandoned browse must not arrive later.");
         });
         Case("of two browse clicks in flight at once, the later one wins", app =>
         {
             var gate = app.Host.Hold("README.md"); app.Click(app.FileRow("README.md")); Until(() => app.Host.Reads.GetValueOrDefault("README.md") == 1);
-            app.Open("notes.txt"); gate.SetResult(); Settle();
+            app.Click(app.FileRow("notes.txt"), freshGesture: false);
+            Until(() => app.Window.Layout.Selected(app.Center)?.Path == "notes.txt"); gate.SetResult(); Settle();
             Require(app.Tabs.Count == 1 && app.Tabs[0].Path == "notes.txt" && app.Tabs[0].Preview, "The later browse must win.");
         });
         Case("a keep that lands first does not invalidate a browse requested after it", app =>
@@ -74,7 +75,8 @@ internal static class PreviewTabsE2E
             var node = tree.Items.OfType<TreeViewItem>().Single(item => Equals(item.Tag, "SPEC.md")); app.Click((Control)node.Header!);
             Until(() => app.Tabs.Any(tab => tab.Path == "SPEC.md"));
             Require(app.Tabs.Count == 2 && app.Tabs[0].Path == "README.md" && app.Tabs[1].Preview, "Specs must use the same preview slot.");
-            app.Click(app.Tab("SPEC.md").GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "CloseTab"));
+            app.Click(app.Tab("SPEC.md").GetLogicalAncestors().OfType<Grid>().First(grid => grid.Name?.StartsWith("DockTab_", StringComparison.Ordinal) == true)
+                .GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "CloseTab"));
             Require(app.Tabs.Count == 1, "Closing the preview must release its slot.");
             app.Click(app.Find<Button>("Tab_files")); app.Open("notes.txt");
             Require(app.Tabs.Count == 2 && app.Tabs[1].Path == "notes.txt" && app.Tabs[1].Preview, "Browsing must refill the released preview slot.");

@@ -19,7 +19,6 @@ public sealed partial class WorkbenchWindow
 {
     private readonly Dictionary<string, IReadOnlyList<ProjectFile>> folderCache = [];
     private readonly HashSet<string> expandedFolders = [];
-    private readonly HashSet<string> collapsedProjects = [];
 
     private async Task PickProjectAsync()
     {
@@ -54,10 +53,11 @@ public sealed partial class WorkbenchWindow
         foreach (var project in profile.Data.Projects)
         {
             var row = new Grid { Name = "ProjectRow", ColumnDefinitions = new ColumnDefinitions("16,4,*,Auto"), Height = 28, Margin = new Thickness(4, 0) };
-            var collapsed = collapsedProjects.Contains(project);
+            var collapsed = profile.Data.CollapsedProjects.Contains(project);
             var toggle = Ui.IconButton(collapsed ? "arrowRight" : "arrowDown", collapsed ? "Expand project" : "Collapse project", () =>
             {
-                if (!collapsedProjects.Add(project)) collapsedProjects.Remove(project);
+                if (!profile.Data.CollapsedProjects.Add(project)) profile.Data.CollapsedProjects.Remove(project);
+                SaveProfile();
                 toolContent.Remove("projects"); surface.RefreshContents();
                 Dispatcher.UIThread.Post(() => surface.GetLogicalDescendants().OfType<Button>()
                     .FirstOrDefault(button => button.Name == "ProjectExpand" && Equals(button.Tag, project))?.Focus());
@@ -186,7 +186,7 @@ public sealed partial class WorkbenchWindow
         }, RoutingStrategies.Bubble, handledEventsToo: true);
         node.KeyDown += (_, e) =>
         {
-            if (e.Key == Key.Enter && !file.IsDirectory) { _ = OpenDocumentAsync(file.Path, true); e.Handled = true; }
+            if (e.Key == Key.Enter && !file.IsDirectory) { _ = BrowseDocumentAsync(file.Path, true); e.Handled = true; }
         };
         return node;
     }
@@ -200,7 +200,7 @@ public sealed partial class WorkbenchWindow
     {
         var tree = new TreeView { Name = "SpecsTree", Background = Ui.Sidebar, Margin = new Thickness(12) };
         ScrollViewer.SetHorizontalScrollBarVisibility(tree, ScrollBarVisibility.Disabled);
-        _ = PopulateSpecsAsync(tree);
+        if (WorkspaceMounted) _ = PopulateSpecsAsync(tree);
         return tree;
     }
 
@@ -209,7 +209,7 @@ public sealed partial class WorkbenchWindow
         var request = projectRequest;
         try
         {
-            var specs = await host.ListSpecsAsync(lifetime.Token);
+            var specs = await Task.Run(async () => await host.ListSpecsAsync(lifetime.Token), lifetime.Token);
             if (request != projectRequest) return;
             var byParent = specs.GroupBy(spec => spec.Parent).ToDictionary(group => group.Key, group => group.ToArray());
             var ids = specs.Select(spec => spec.Id).ToHashSet();
@@ -256,7 +256,7 @@ public sealed partial class WorkbenchWindow
                         source.GetVisualAncestors().OfType<ToggleButton>().Any()) return;
                     _ = BrowseDocumentAsync(spec.Path, e.ClickCount == 2);
                 }, RoutingStrategies.Bubble, handledEventsToo: true);
-                node.KeyDown += (_, e) => { if (e.Key == Key.Enter) { _ = OpenDocumentAsync(spec.Path, true); e.Handled = true; } };
+                node.KeyDown += (_, e) => { if (e.Key == Key.Enter) { _ = BrowseDocumentAsync(spec.Path, true); e.Handled = true; } };
                 if (depth < 32 && byParent.TryGetValue(spec.Id, out var children))
                     foreach (var child in children.Where(child => !placed.Contains(child.Id))) node.Items.Add(Build(child, depth + 1));
                 return node;

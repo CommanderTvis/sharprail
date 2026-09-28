@@ -1283,3 +1283,162 @@ No benchmarks/agents/commits/pushes. GoalACTIVE, fullupstreamtranslationNOTcompl
 NEXT: finishpublishedchecks; continue pending E2E suites from actual upstream
 steps, fix concrete failures. Native finalpopup/selection visualcapture still
 pending; corrected source docking audit and full screenshot parity remain gates.
+
+### Current upstream E2E continuation
+
+Eighteen translated cases pass: eight preview-tab, two Markdown-link, one
+Markdown-callout/source, six layout cases and one project-rail persistence case.
+The complete remaining inventory
+is in E2E.md; it is not complete. Markdown source controls now use compiled XAML
+and create the read-only source view lazily. Tab geometry, overflow fades and
+accessible pane labels have regression coverage.
+
+The published suite exposed a legacy pointer driver's stale target/render tree;
+UiChecks now re-resolves detached named controls and renders before clicking.
+The latest full Release and published R2R suites pass with
+SHARPRAIL_TEST_GIT_SOURCE pointing at the authoritative upstream, including
+Git/worktree integration and open-world runtime checks. Logs:
+.bench/projects-upstream-checks.log and
+.bench/projects-upstream-published-checks.log. Format verification and diff check
+pass. Canonical package republished; strict/deep signature verification passes.
+Delayed reads now preserve a background pane's effective selection and focus;
+reads whose original pane was removed reroute before comparing stale clocks.
+The older NavigationChecks expectation was updated to preserve background
+selection while still requiring both independent reads to arrive.
+The project-rail test failed on collapsed state after recreation; Profile now
+stores CollapsedProjects, and toggling saves that one set directly. Defaults
+and old profiles retain expanded projects. All 18 cases pass in both suites.
+
+The earlier canonical PID 85220 has exited. Latest native review attempts failed:
+own-window CoreGraphics capture failed, then Avalonia.Native could not start its
+RenderTimer (native error -6661). No new native Markdown screenshot was produced.
+Do not claim a native capture or a currently running canonical app from those
+attempts. Check live processes before replacing the canonical package.
+Canonical launch was attempted via open and directly; direct startup log
+.bench/deferred-upstream-native.log confirms RenderTimer -6661 before any window.
+No canonical process remains running. Avalonia issue 18895 describes this error
+with unavailable displays; do not infer the machine's exact display condition.
+No benchmarks, agents, commits or pushes. The goal remains active. Next: continue
+remaining 62 real upstream cases in E2E.md, with workspace selection and project
+navigation good bounded candidates; native proof awaits GUI availability.
+
+### Workspace-switching E2E continuation
+
+Previous turn made verified progress (18 upstream cases, full Release/R2R pass).
+WorkspaceTabsE2E.cs adds two exact upstream cases using disposable shallow clones
+of existing commits, UI-created worktrees, actual pointer/context-menu input and
+automation selection assertions. No commits or signing bypass. Document isolation
+passed; side-tool selection failed, then passes after SwitchWorkspace carries
+valid auxiliary tool selections forward while preserving workspace-specific center
+selections/documents. The full Release suite passes all 20 cases.
+
+The title bar now updates WorkspaceLabel on switching (previously constant Default
+workspace), and compiled XAML follows Shell.tsx's 160/220 text caps and gap 4.
+E2eWorkspace.Click now BringIntoView before hit-testing, like Playwright's scrolling.
+Canonical package republished and signature verified. Published checks session
+7502 exited 0; all 20 upstream cases and the entire suite pass in
+.bench/workspace-upstream-published-checks.log. Format verification session 93682
+exited 0 (.bench/workspace-upstream-format.log). Published run includes
+the final nullable cleanup and XAML geometry changes after the earlier Release run.
+
+SPEC.md corrected a stale maquette narrowing: functional terminal/editor excluded,
+but their tab/toolbar/pane chrome required by visual/docking parity remains in scope.
+Next substantial gap is terminal chrome: LayoutState only supports file/markdown/diff
+resources in center groups; no terminal placeholder tabs/actions exist. This blocks
+many real upstream docking cases and mounted-workbench identity case. Do not mark
+those cases excluded simply because their terminal execution is a non-goal.
+E2E.md now has 20 ported, 60 pending, 5 functional/AI exclusions. Native launch last
+failed with RenderTimer -6661; no new GUI availability evidence. Goal remains active.
+Direct platform availability inspection now confirms CGGetActiveDisplayList count=0
+and CVDisplayLinkCreateWithActiveCGDisplays=-6661 (main display ID=3). Do not infer
+lock/lid state. Do not change the user's display configuration or keep restarting
+the app while that condition persists. Native proof still awaits an active display.
+
+### Narrow-viewport upstream continuation
+
+Previous goal turn was verified progress (20 cases and workspace fixes).
+Translated layout.spec.ts's 390x844 viewport case in LayoutE2E.NarrowViewport.
+It failed because the window minimum was 800px. WorkbenchWindow.axaml now allows
+390px. Real pointer input proves Split right disabled in the narrow center pane;
+both center leaves, the bottom group and the exact serialized recursive tree
+survive resize and recreation. No topology or saved ratios were rewritten.
+
+Both full Release and published non-composite R2R suites pass all 21 cases,
+including Git/worktrees and open-world runtime checks. Logs:
+.bench/narrow-upstream-checks.log and .bench/narrow-upstream-published-checks.log.
+Format verify and diff check pass. Canonical package republished; strict/deep
+signature verification passes. Sessions 40396, 41950, 41393 and 86013 exited 0.
+No canonical app process was running before publish. Direct display availability
+rechecked: zero active displays, CVDisplayLinkCreateWithActiveCGDisplays=-6661.
+No pointless native restart or display configuration change was attempted.
+
+Inventory: 21 ported, 59 pending, 5 excluded. Goal remains active. Terminal pane
+chrome and mixed-region resource placement remain the next substantial gap;
+see the preceding notes. No benchmarks, agents, commits or pushes.
+
+### Terminal chrome and upstream side-menu continuation
+
+22 upstream cases now pass in full Release and published R2R suites. Added the
+real layout.spec.ts side-group menu case: New terminal opens in that group;
+missing tool entries belong only to their own side. Added separate pointer checks
+for terminal cross-region movement, body identity, folding/restoration and close.
+Terminal execution remains nonfunctional; no host terminal API or PTY was added.
+
+LayoutSession projects mixed resources/tools using workspace before-tool anchors,
+matching upstream normalized.ts. Moves use projected indices; tool hide/reveal
+remembers strip positions; workspace copies and serialization preserve anchors.
+Presets route terminal resources to bottom. Every unfolded group has an Add menu.
+Model regressions cover mixed reorder, hidden-tool restoration and workspace/reload.
+
+Clean final evidence: .bench/terminal-side-menu-final-checks.log and
+.bench/terminal-side-menu-published-checks.log (22 cases, complete suite exit 0).
+Format log .bench/terminal-side-menu-final-format.log passes; publish and strict/deep
+signature verification pass. Do not cite terminal-chrome-final-checks.log: overlapping
+writers corrupted it; the clean final logs supersede it. git diff --check passes.
+
+Native displays recovered: two active displays, CVDisplayLink creation status 0.
+Canonical artifacts/SharpRail.app launched; PID 22270 owns window 112412 (1440x920).
+Own-window capture .bench/terminal-side-menu-native.png inspected; app left running.
+Do not overwrite this live package without checking/stopping its own process first.
+
+Inventory: 22 ported, 58 pending, 5 excluded; full goal remains active. Initial
+Terminal 1, further terminal docking/split/limits/preset cases, mounted chrome
+identity, Mermaid and remaining Git/settings/source fidelity still need work.
+No benchmarks, agents, commits or pushes.
+
+### Pointer and auxiliary split upstream continuation
+
+Previous turn made verified progress: 22 cases and terminal chrome, native app shown.
+This turn adds two complete upstream layout.spec.ts cases through real pointer input:
+- pointer drag exposes deterministic split targets and moves one tab;
+- side groups expose broad per-panel above and below split targets.
+Reorder marker and order, right split hint and unique document placement, expanded
+side above/below insertions, retained empty sources, Enter folding and folded split
+insertion all pass. Tab menus now use upstream New group above/below (left/right
+for bottom) labels and query CanMove when opened for current availability.
+
+Test-coordinate correction: the header's border is outside its Grid bounds;
+calculate the pane span from arranged bottom/top positions, not summed child sizes.
+Folded side panes retain their Grid header; the rotated FoldedDockGroup frame is
+bottom-only. Both corrections are in the final compiled/published checks.
+
+Full Release .bench/split-upstream-final-checks.log and full published R2R
+.bench/split-upstream-published-checks.log exit 0 with 24 upstream cases, Git/worktree
+integration and open-world loading. Format verification exits 0 in
+.bench/split-upstream-final-format.log; publish, strict/deep signature verification
+and git diff --check pass. Sessions 90295, 62303, 58263 and 94481 are terminal (0).
+Inventory now 24 ported, 56 pending, 5 excluded. Goal remains active.
+
+Previous canonical PID 22270 was verified and terminated before publish; no live
+canonical process remained when writing. Updated app left running as PID 30017,
+window 112579, 1440x920. Own-window .bench/split-upstream-native.png captured and
+inspected. Do not overwrite the running package without checking its live process.
+
+Next substantial terminal chrome gaps remain initial terminal placement and
+cross-region New [region] group at [edge] context actions. Source inspected:
+packages/server/src/host/initialTerminal.ts provisions Terminal 1; frontend
+shell/terminalReconciliation/terminalReconciliation.ts places it in the last focused
+bottom group (or final bottom group), preserving visibility, with center fallback.
+Execution remains excluded; do not introduce a PTY. Full terminal side-group test,
+mounted workbench identity, Mermaid and remaining Git/settings fidelity are pending.
+No benchmarks, agents, commits or pushes.

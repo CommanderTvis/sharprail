@@ -39,7 +39,10 @@ public sealed class RemoteProjectAdapter : IProjectServices, IDisposable
     public async ValueTask<WorkspaceInfo> OpenProjectAsync(string path, CancellationToken cancellationToken = default)
     {
         var reply = await service.OpenProjectAsync(new() { Path = path }, Context(cancellationToken));
-        return new(reply.Name, reply.ProjectName, reply.RootPath);
+        return new(reply.Name, reply.ProjectName, reply.RootPath)
+        {
+            ProjectRoot = reply.ProjectRoot.Length > 0 ? reply.ProjectRoot : reply.RootPath
+        };
     }
 
     public async ValueTask<IReadOnlyList<ProjectFile>> ListFilesAsync(string relativePath, CancellationToken cancellationToken = default)

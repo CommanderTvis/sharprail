@@ -2,8 +2,9 @@
 
 Reference: Thinkrail's apps/web/src/shell/layout/SPEC.md and its Balanced
 workspace, original-workspace.png, SettingsDialog, MarkdownPreview and project
-dialogs. The current Balanced layout is the visual target; excluded AI/editor/
-terminal controls are omitted while preserving their surrounding frame geometry.
+dialogs. The current Balanced layout is the visual target. AI controls are
+excluded. Editor and terminal execution remain nonfunctional; tab, toolbar and
+pane chrome needed for visual and docking fidelity remains in scope.
 Keep the same C# host architecture and optimized open-world CoreCLR/R2R package.
 
 ## Runtime and managed extensions

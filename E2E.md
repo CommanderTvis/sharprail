@@ -6,7 +6,12 @@ Tests drive real Avalonia pointer/keyboard input and host calls in a headless wi
 Each case gets an isolated repository fixture and profile. Native macOS checks remain
 necessary for window moving, zooming, platform dialogs and final visual verification.
 Browser URL/page-count assertions become internal workspace navigation assertions.
+ARIA roles and relationships become Avalonia automation-peer assertions. Delayed
+WebSocket replies become held host-call responses; local mode uses direct C# calls.
 The initial upstream AI chat tab is omitted from document counts.
+Terminal docking cases create a nonfunctional terminal tab through the pane menu
+before following upstream's gestures. This verifies pane chrome and body identity;
+it does not prove automatic initial terminal provisioning or terminal execution.
 The upstream one-pixel PNG has an invalid IDAT checksum and truncated compressed
 data. Its translated fixture uses a valid one-pixel PNG because Skia rejects the
 original; the image-loading assertion remains intact.
@@ -35,30 +40,30 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `preview-tabs.spec.ts` | the Specs panel shares the one slot, and closing the preview tab releases it | Ported |
 | `markdown-links.spec.ts` | a parent-relative file link cannot escape into browser navigation | Ported |
 | `markdown-links.spec.ts` | relative links, images, and heading anchors work in the rendered markdown view | Ported |
-| `markdown-alerts.spec.ts` | renders GitHub-style alert callouts in the rendered markdown view | Pending |
+| `markdown-alerts.spec.ts` | renders GitHub-style alert callouts in the rendered markdown view | Ported |
 | `markdown-mermaid.spec.ts` | renders mermaid fences as diagrams in the rendered markdown view | Pending |
 | `layout.spec.ts` | workbench strips and feature toolbars keep one-row geometry with ARIA tabs | Pending |
-| `layout.spec.ts` | overflow uses directional fades without changing tab-strip geometry | Pending |
+| `layout.spec.ts` | overflow uses directional fades without changing tab-strip geometry | Ported |
 | `layout.spec.ts` | auxiliary panel scrollbars stay quiet at rest and expose only clipped edges | Pending |
-| `layout.spec.ts` | ARIA tabs use roving keyboard focus, recover after close, and expose keyboard separators | Pending |
-| `layout.spec.ts` | outer side widths publish on pointer-up and restore after reload | Pending |
+| `layout.spec.ts` | ARIA tabs use roving keyboard focus, recover after close, and expose keyboard separators | Ported |
+| `layout.spec.ts` | outer side widths publish on pointer-up and restore after reload | Ported |
 | `layout.spec.ts` | one local frame survives workspace switches while resource tabs stay workspace-specific | Pending |
 | `layout.spec.ts` | a duplicated tab remints copied surface storage and preserves both layouts on reload | Pending |
 | `layout.spec.ts` | dragging outer separators hides both sides and preserves their restore state | Pending |
-| `layout.spec.ts` | the side group menu shows tools for its own side and opens terminals in that group | Pending |
-| `layout.spec.ts` | a terminal can move to its own side group; resize, fold, and visibility gate its one body | Pending |
-| `layout.spec.ts` | side groups expose broad per-panel above and below split targets | Pending |
-| `layout.spec.ts` | Mod+B and Mod+J hide and restore local sides without affecting bottom | Pending |
+| `layout.spec.ts` | the side group menu shows tools for its own side and opens terminals in that group | Ported |
+| `layout.spec.ts` | a terminal can move to its own side group; resize, fold, and visibility gate its one body | Ported |
+| `layout.spec.ts` | side groups expose broad per-panel above and below split targets | Ported |
+| `layout.spec.ts` | Mod+B and Mod+J hide and restore local sides without affecting bottom | Ported |
 | `layout.spec.ts` | keyboard and menu commands reorder, search, recursively split, and explicitly remove empty groups | Pending |
 | `layout.spec.ts` | each center group owns an independent preview slot | Ported |
-| `layout.spec.ts` | deferred opens stay with their request-time group and reroute only when it disappears | Pending |
-| `layout.spec.ts` | pointer drag exposes deterministic split targets and moves one tab | Pending |
+| `layout.spec.ts` | deferred opens stay with their request-time group and reroute only when it disappears | Ported |
+| `layout.spec.ts` | pointer drag exposes deterministic split targets and moves one tab | Ported |
 | `layout.spec.ts` | applying the Review preset preserves resources and installs its vertical center topology | Pending |
 | `layout.spec.ts` | the local default preset drives an explicit frame reset | Pending |
 | `layout.spec.ts` | custom presets synchronize while defaults and group limits remain window-local | Pending |
 | `layout.spec.ts` | Layout settings controls keep their container-preset max-widths | Pending |
 | `layout.spec.ts` | an accepted side-group overage is grandfathered without allowing further growth | Pending |
-| `layout.spec.ts` | a narrow viewport compresses locally without rewriting recursive topology | Pending |
+| `layout.spec.ts` | a narrow viewport compresses locally without rewriting recursive topology | Ported |
 | `layout.spec.ts` | frontend windows keep chat and file placement independent | Pending |
 | `layout.spec.ts` | layout survives a transport reconnect and remains writable | Pending |
 | `layout.spec.ts` | another window cannot cancel or rearrange an active tab drag | Pending |
@@ -72,11 +77,11 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `projects.spec.ts` | picker failure falls back to host-path entry on every host platform | Pending |
 | `projects.spec.ts` | manual path from the rail supersedes a picker started from Welcome | Pending |
 | `projects.spec.ts` | opening a non-git folder offers to initialise a repo, then opens it end-to-end | Pending |
-| `projects.spec.ts` | rail expansion is per-browser view state that survives a reload | Pending |
+| `projects.spec.ts` | rail expansion is per-browser view state that survives a reload | Ported |
 | `projects.spec.ts` | activating a workspace in one project keeps the other project's rail expansion | Pending |
 | `projects.spec.ts` | project context actions stay compact and close/reopen is lossless across clients | Pending |
-| `workspace-tabs.spec.ts` | editor tabs are scoped to the active workspace | Pending |
-| `workspace-tabs.spec.ts` | the selected side tool follows workspace switches | Pending |
+| `workspace-tabs.spec.ts` | editor tabs are scoped to the active workspace | Ported |
+| `workspace-tabs.spec.ts` | the selected side tool follows workspace switches | Ported |
 | `workspace-tabs.spec.ts` | switching workspaces re-targets the mounted workbench instead of remounting it | Pending |
 | `workspace-tabs.spec.ts` | a same-id terminal body remounts instead of carrying across workspaces | Excluded: functional editor/terminal or AI |
 | `theme.spec.ts` | appearance switches a discovered theme and persists it across reload | Pending |

@@ -56,9 +56,15 @@ internal static class UiChecks
     private static void Click(Window window, Control control)
     {
         Dispatcher.UIThread.RunJobs();
+        if (!control.GetVisualAncestors().Contains(window) && control.Name is not null)
+            control = Find<Control>(window, control.Name);
         window.UpdateLayout();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         Require(control.Bounds.Width > 0 && control.Bounds.Height > 0, "Click target has not been arranged.");
         var point = Center(window, control);
+        window.MouseMove(point);
+        Dispatcher.UIThread.RunJobs();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         window.MouseDown(point, MouseButton.Left);
         window.MouseUp(point, MouseButton.Left);
         Dispatcher.UIThread.RunJobs();
@@ -74,6 +80,9 @@ internal static class UiChecks
         var store = new ProfileStore(Path.Combine(root, ".profile"));
         var host = new LocalProjectAdapter(new ProjectServices(root));
         SelectionChecks.Run(host);
+        E2E.TerminalChromeChecks.Run(Path.Combine(root, "upstream-e2e"));
+        E2E.WorkspaceTabsE2E.Run(Path.Combine(root, "upstream-e2e"));
+        E2E.ProjectsE2E.Run(Path.Combine(root, "upstream-e2e"));
         E2E.PreviewTabsE2E.Run(Path.Combine(root, "upstream-e2e"));
         E2E.MarkdownLinksE2E.Run(Path.Combine(root, "upstream-e2e"));
         E2E.MarkdownAlertsE2E.Run(Path.Combine(root, "upstream-e2e"));
@@ -407,6 +416,7 @@ internal static class UiChecks
             "Profile save failure was silently hidden.");
         unsaved.Close();
         NavigationChecks.Run(root);
+        StartupChecks.Run(root);
         DockInputChecks.Run(root);
         AuxiliaryInputChecks.Run(root);
         GitUiChecks.Run(root + "-git");

@@ -17,8 +17,19 @@ public sealed class ProjectServices(string initialRoot) : IProjectServices
             if (!Directory.Exists(candidate)) throw new DirectoryNotFoundException(candidate);
             try { candidate = (await GitRepository.RunAsync(candidate, cancellationToken, "rev-parse", "--show-toplevel")).TrimEnd('\r', '\n'); }
             catch (IOException) { }
+            var projectRoot = candidate;
+            if (File.Exists(Path.Combine(candidate, ".git")))
+            {
+                try
+                {
+                    var worktrees = await GitRepository.RunAsync(candidate, cancellationToken, "worktree", "list", "--porcelain", "-z");
+                    var main = worktrees.Split('\0').FirstOrDefault(field => field.StartsWith("worktree ", StringComparison.Ordinal));
+                    if (main is not null) projectRoot = main[9..];
+                }
+                catch (IOException) { }
+            }
             root = candidate;
-            return new("Default workspace", new DirectoryInfo(root).Name, root);
+            return new("Default workspace", new DirectoryInfo(root).Name, root) { ProjectRoot = projectRoot };
         }
         finally { mutations.Release(); }
     }

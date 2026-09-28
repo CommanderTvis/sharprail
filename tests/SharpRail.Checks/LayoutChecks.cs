@@ -12,6 +12,7 @@ internal static class LayoutChecks
     public static void Run()
     {
         CheckAuxiliaryRegions();
+        CheckMixedResources();
         var session = new LayoutSession();
         session.SwitchWorkspace("one");
         var primary = session.State.Center.Leaves().Single();
@@ -91,6 +92,40 @@ internal static class LayoutChecks
             Require(LayoutSession.IsValid(session.State), "Generated transition broke invariants.");
         }
         Console.WriteLine("PASS docking transitions, workspace isolation, preview, restore, limits and invariant sequence");
+    }
+
+    private static void CheckMixedResources()
+    {
+        var session = new LayoutSession();
+        session.SwitchWorkspace("one");
+        var bottom = session.State.Groups.Single(group => group.Region == "bottom").Id;
+        var side = session.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "specs")).Id;
+        session.NewTerminal(bottom);
+        var terminal = session.Tabs(bottom).Single();
+        Require(session.Tabs(bottom).Single().Id == terminal.Id, "An auxiliary group must accept workspace terminal resources.");
+        Require(session.Move(terminal.Id, bottom, side, 0) && session.Tabs(side).Select(tab => tab.Id).SequenceEqual([terminal.Id, "specs", "files"]),
+            "Moving a terminal before a tool must preserve the mixed tab order.");
+        Require(session.Move(terminal.Id, side, side, 3) && session.Tabs(side).Select(tab => tab.Id).SequenceEqual(["specs", "files", terminal.Id]),
+            "Moving an anchored terminal to the end must remove its old tool anchor.");
+        Require(session.Move(terminal.Id, side, side, 0), "Moving a terminal back before the first tool failed.");
+        Require(session.Move("specs", side, side, 3) && session.Tabs(side).Select(tab => tab.Id).SequenceEqual([terminal.Id, "files", "specs"]),
+            "Moving a tool must preserve the terminal's displayed position and retarget its anchor.");
+        Require(session.Move("specs", side, side, 1), "Restoring tool order around a terminal failed.");
+        session.Close(side, "specs");
+        Require(session.Tabs(side).Select(tab => tab.Id).SequenceEqual([terminal.Id, "files"]), "Hiding a tool must preserve the terminal's displayed position.");
+        session.RestoreTool("specs");
+        Require(session.Tabs(side).Select(tab => tab.Id).SequenceEqual([terminal.Id, "specs", "files"]), "Revealing a tool must restore its mixed-strip position.");
+        session.SwitchWorkspace("two");
+        Require(session.Tabs(side).Select(tab => tab.Id).SequenceEqual(["specs", "files"]), "A terminal must not leak into another workspace's tool strip.");
+        session.SwitchWorkspace("one");
+        var restored = new LayoutSession(System.Text.Json.JsonSerializer.Deserialize<DockState>(System.Text.Json.JsonSerializer.Serialize(session.State)));
+        Require(restored.Tabs(side).Select(tab => tab.Id).SequenceEqual([terminal.Id, "specs", "files"]), "Persisted mixed tab order was lost.");
+        restored.Select(side, terminal.Id); restored.Close(side, terminal.Id);
+        Require(restored.Selected(side)?.Id == "specs", "Closing a terminal must select its neighbor in the displayed order.");
+        restored.NewTerminal(side); restored.ApplyPreset(DockState.Preset("review"));
+        Require(restored.State.Groups.Where(group => group.Region == "bottom").SelectMany(group => restored.Tabs(group.Id)).Any(tab => tab.Kind == "terminal") &&
+            !restored.State.Center.Leaves().SelectMany(restored.Tabs).Any(tab => tab.Kind == "terminal"),
+            "Applying a preset must preserve terminal resources in the bottom region.");
     }
 
     private static void CheckAuxiliaryRegions()

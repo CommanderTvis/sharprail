@@ -12,6 +12,7 @@ public static class Ui
 {
     public static readonly SolidColorBrush Sidebar = new(Color.Parse("#101013"));
     public static readonly SolidColorBrush Surface = new(Color.Parse("#18181b"));
+    public static readonly SolidColorBrush Header = new(Color.Parse("#18181b"));
     public static readonly SolidColorBrush Elevated = new(Color.Parse("#09090b"));
     public static readonly SolidColorBrush TextBrush = new(Color.Parse("#f4f4f5"));
     public static readonly SolidColorBrush Muted = new(Color.Parse("#babac1"));
@@ -34,6 +35,7 @@ public static class Ui
     {
         Sidebar.Color = Color.Parse(light ? "#fafafa" : "#101013");
         Surface.Color = Color.Parse(light ? "#e4e4e7" : "#18181b");
+        Header.Color = Color.Parse(light ? "#f4f4f5" : "#18181b");
         Elevated.Color = Color.Parse(light ? "#ffffff" : "#09090b");
         TextBrush.Color = Color.Parse(light ? "#27272a" : "#f4f4f5");
         Muted.Color = Color.Parse(light ? "#52525b" : "#babac1");

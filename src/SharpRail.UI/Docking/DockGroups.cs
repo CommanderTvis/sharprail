@@ -57,13 +57,14 @@ public sealed partial class DockSurface
             {
                 ColumnDefinitions = new ColumnDefinitions("*,Auto"),
                 Height = group.Folded ? 26 : 31,
-                Margin = new Thickness(8, 0, tab.IsTool ? 8 : 4, 0)
+                Margin = new Thickness(0, 0, tab.IsTool ? 0 : 4, 0)
             };
             var label = new Grid { ColumnDefinitions = new ColumnDefinitions("14,4,*") };
             var foreground = tab.Id == selected?.Id ? Ui.TextBrush : Ui.Muted;
             var icon = (Border)Ui.Icon(ToolIcon(tab), foreground, 14);
             Ui.Place(label, icon);
             var title = Ui.Text(tab.Title, foreground, 14);
+            title.LineHeight = 20;
             title.Classes.Add("dock-tab-title");
             if (tab.Preview)
             {
@@ -71,18 +72,25 @@ public sealed partial class DockSurface
                 title.Padding = new Thickness(0, 0, 3, 0);
             }
             Ui.Place(label, title, 0, 2);
-            Ui.Place(contents, label);
             Button? close = null;
             if (!tab.IsTool)
             {
                 close = Ui.IconButton("close", "Close", () => Session.Close(group.Id, tab.Id));
                 close.Name = "CloseTab";
-                close.Width = 24; close.Height = 28;
+                close.Width = 18; close.Height = 18; close.MinWidth = close.MinHeight = 0; close.Padding = new Thickness(2);
+                ((Border)close.Content!).Width = ((Border)close.Content).Height = 14;
                 close.Opacity = 0; close.IsTabStop = false;
                 Ui.Place(contents, close, 0, 1);
             }
-            var chrome = new Grid();
-            Ui.Place(chrome, new Border { BorderBrush = Ui.BorderBrush, BorderThickness = new Thickness(0, 0, 1, 0), Child = contents });
+            var chrome = new Grid { Name = "DockTab_" + tab.Id.Replace(':', '_').Replace('/', '_'), MinWidth = 96, MaxWidth = 192 };
+            var tabFrame = new Border
+            {
+                BorderBrush = Ui.BorderBrush,
+                BorderThickness = new Thickness(0, 0, 1, 0),
+                Child = contents,
+                Background = tab.Id == selected?.Id ? Ui.Hover : Ui.Elevated
+            };
+            Ui.Place(chrome, tabFrame);
             var underline = new Border
             {
                 Background = Ui.Accent,
@@ -97,34 +105,38 @@ public sealed partial class DockSurface
             var button = new DockTabButton(tabs, tab.Id, SelectTab)
             {
                 Name = "Tab_" + tab.Id.Replace(':', '_').Replace('/', '_'),
-                Content = chrome,
-                Padding = new Thickness(0),
+                Content = label,
+                Padding = new Thickness(8, group.Folded ? 2 : 4, tab.IsTool ? 8 : 0, group.Folded ? 2 : 4),
                 HorizontalContentAlignment = HorizontalAlignment.Stretch,
                 VerticalContentAlignment = VerticalAlignment.Stretch,
-                Height = 32,
-                MinWidth = 96,
-                MaxWidth = 192,
-                Background = tab.Id == selected?.Id ? Ui.Hover : Ui.Elevated,
+                Height = group.Folded ? 26 : 28,
+                MinWidth = 0,
+                MinHeight = 0,
+                VerticalAlignment = VerticalAlignment.Center,
+                Background = Brushes.Transparent,
                 BorderThickness = new(0),
                 CornerRadius = new(0)
             };
+            Ui.Place(contents, button);
             updates.Add(() =>
             {
                 var active = Session.Selected(group.Id)?.Id == tab.Id;
-                button.Background = active ? Ui.Hover : Ui.Elevated;
+                tabFrame.Background = active ? Ui.Hover : Ui.Elevated;
                 button.IsTabStop = active;
                 title.Foreground = icon.Background = active ? Ui.TextBrush : Ui.Muted;
                 underline.IsVisible = active;
-                if (active) button.BringIntoView();
+                if (active) chrome.BringIntoView();
             });
             if (close is not null)
             {
-                button.PointerEntered += (_, _) => close.Opacity = 1;
-                button.PointerExited += (_, _) => { if (!button.IsKeyboardFocusWithin) close.Opacity = 0; };
+                chrome.PointerEntered += (_, _) => close.Opacity = 1;
+                chrome.PointerExited += (_, _) => { if (!button.IsKeyboardFocusWithin) close.Opacity = 0; };
                 button.GotFocus += (_, _) => close.Opacity = 1;
-                button.LostFocus += (_, _) => { if (!button.IsPointerOver) close.Opacity = 0; };
+                button.LostFocus += (_, _) => { if (!chrome.IsPointerOver) close.Opacity = 0; };
             }
-            ToolTip.SetTip(button, tab.Path.Length > 0 ? tab.Path : tab.Title);
+            ToolTip.SetTip(button, new ToolTip { Content = tab.Path.Length > 0 ? tab.Path : tab.Title });
+            ToolTip.SetPlacement(button, PlacementMode.Bottom);
+            ToolTip.SetVerticalOffset(button, 4);
             AutomationProperties.SetName(button, tab.Title);
             button.IsTabStop = tab.Id == selected?.Id;
             button.Click += (_, _) =>
@@ -143,13 +155,15 @@ public sealed partial class DockSurface
             button.AddHandler(PointerPressedEvent, (_, e) =>
             {
                 var properties = e.GetCurrentPoint(button).Properties;
-                if (properties.IsMiddleButtonPressed) { Session.Close(group.Id, tab.Id); e.Handled = true; return; }
-                var closePressed = e.Source is Control control &&
-                    (control.Name == "CloseTab" || control.GetVisualAncestors().OfType<Control>().Any(item => item.Name == "CloseTab"));
-                if (properties.IsLeftButtonPressed && !closePressed && e.ClickCount == 2 && !tab.IsTool)
+                if (properties.IsLeftButtonPressed && e.ClickCount == 2 && !tab.IsTool && tab.Kind != "terminal")
                 { Session.Keep(group.Id, tab.Id); e.Handled = true; return; }
-                if (properties.IsLeftButtonPressed && !closePressed)
+                if (properties.IsLeftButtonPressed)
                     ArmDrag(e, tab.Id, group.Id);
+            }, RoutingStrategies.Tunnel);
+            chrome.AddHandler(PointerPressedEvent, (_, e) =>
+            {
+                if (e.GetCurrentPoint(chrome).Properties.IsMiddleButtonPressed)
+                { Session.Close(group.Id, tab.Id); e.Handled = true; }
             }, RoutingStrategies.Tunnel);
             button.KeyDown += (_, e) =>
             {
@@ -177,9 +191,9 @@ public sealed partial class DockSurface
                 { Session.Close(group.Id, tab.Id); FocusGroup(group.Id); e.Handled = true; }
             };
             button.ContextMenu = TabMenu(group, tab, panel);
-            if (group.Folded) button.Height = 27;
-            tabs.Children.Add(button); tabSites[group.Id].Add((button, tab.Id));
-            if (tab.Id == selected?.Id) Dispatcher.UIThread.Post(() => button.BringIntoView(), DispatcherPriority.Loaded);
+            chrome.ContextMenu = button.ContextMenu;
+            tabs.Children.Add(chrome); tabSites[group.Id].Add((chrome, tab.Id));
+            if (tab.Id == selected?.Id) Dispatcher.UIThread.Post(() => chrome.BringIntoView(), DispatcherPriority.Loaded);
         }
         if (!group.Folded)
         {
@@ -193,6 +207,7 @@ public sealed partial class DockSurface
             var color = Ui.Elevated.Color;
             return new Border
             {
+                Name = (left ? "TabOverflowBefore_" : "TabOverflowAfter_") + group.Id,
                 Width = 16,
                 IsHitTestVisible = false,
                 HorizontalAlignment = left ? HorizontalAlignment.Left : HorizontalAlignment.Right,
@@ -229,8 +244,7 @@ public sealed partial class DockSurface
         };
         actions.Children.Add(overflow);
         if (!group.Folded && OwnsBottomAlignmentMenu(group)) actions.Children.Add(BottomAlignmentButton());
-        if (group.Region != "center" && DockState.ToolNames.Any(id =>
-            !Session.State.Groups.Any(item => item.Tools.Any(tab => tab.Id == id))))
+        if (!group.Folded)
         {
             var add = Ui.IconButton("add", "Add to this group", () => { });
             add.Name = "AddToGroup_" + group.Id;
@@ -254,16 +268,24 @@ public sealed partial class DockSurface
         }
         Ui.Place(header, actions, 0, 1);
         var headerFrame = Ui.Frame(header, Ui.Elevated); headerFrame.BorderThickness = new Thickness(0, 0, 0, 1);
+        headerFrame.Name = "TabStrip_" + group.Id;
         Ui.Place(panel, headerFrame);
         if (!group.Folded) sites.Add((header, group.Id, true));
         if (!group.Folded)
         {
-            var body = new Border
+            var body = new DockPanel
             {
                 Name = "DockBody_" + group.Id,
                 Background = group.Region == "center" ? Ui.Surface : Ui.Sidebar,
                 Child = selected is null ? Empty(group) : renderContent(selected)
             };
+            void LabelBody()
+            {
+                var label = tabs.GetLogicalDescendants().OfType<DockTabButton>().FirstOrDefault(button => button.IsSelected);
+                if (label is null) body.ClearValue(AutomationProperties.LabeledByProperty);
+                else AutomationProperties.SetLabeledBy(body, label);
+            }
+            LabelBody();
             if (selected is null) body.ContextMenu = GroupMenu(group, panel);
             contentHosts.Add(body);
             updates.Add(() =>
@@ -271,6 +293,7 @@ public sealed partial class DockSurface
                 body.Child = null;
                 var active = Session.Selected(group.Id);
                 body.Child = active is null ? Empty(Session.Group(group.Id)) : renderContent(active);
+                LabelBody();
             });
             Ui.Place(panel, body, 1);
             sites.Add((body, group.Id, false));
@@ -320,7 +343,7 @@ public sealed partial class DockSurface
         return empty;
     }
 
-    private static string ToolIcon(DockTab tab) => tab.Kind == "diff" ? "fileDiff" : tab.IsTool ? tab.Id switch
+    private static string ToolIcon(DockTab tab) => tab.Kind == "terminal" ? "terminal" : tab.Kind == "diff" ? "fileDiff" : tab.IsTool ? tab.Id switch
     {
         "projects" => "folderTab",
         "specs" => "bookFill",
@@ -403,17 +426,17 @@ public sealed partial class DockSurface
     private ContextMenu AddMenu(DockGroup group)
     {
         var menu = new ContextMenu();
-        if (group.Region != "center")
-            foreach (var tool in DockState.ToolNames.Where(id => !Session.State.Groups.Any(item => item.Tools.Any(tab => tab.Id == id))))
-                menu.Items.Add(Ui.Menu("Reveal " + DockState.Tool(tool).Title, () => Session.RestoreTool(tool, group.Id)));
-        if (menu.Items.Count == 0) menu.Items.Add(Ui.Menu("No additional tools", () => { }, false));
+        menu.Items.Add(Ui.Menu("New terminal", () => { Session.NewTerminal(group.Id); FocusGroup(group.Id); }));
+        if (group.Region is "left" or "right")
+            foreach (var tool in DockState.ToolNames.Where(id => DockState.ToolRegion(id) == group.Region && !Session.State.Groups.Any(item => item.Tools.Any(tab => tab.Id == id))))
+                menu.Items.Add(Ui.Menu("Show " + DockState.Tool(tool).Title, () => Session.RestoreTool(tool, group.Id)));
         return menu;
     }
 
     private ContextMenu TabMenu(DockGroup group, DockTab tab, Control geometry)
     {
         var menu = new ContextMenu();
-        if (!tab.IsTool) menu.Items.Add(Ui.Menu("Keep open", () => Session.Keep(group.Id, tab.Id), tab.Preview));
+        if (!tab.IsTool && tab.Kind != "terminal") menu.Items.Add(Ui.Menu("Keep open", () => Session.Keep(group.Id, tab.Id), tab.Preview));
         menu.Items.Add(Ui.Menu("Close", () => Session.Close(group.Id, tab.Id)));
         menu.Items.Add(RemoveGroupMenuItem(group));
         var members = Session.Tabs(group.Id);
@@ -421,7 +444,7 @@ public sealed partial class DockSurface
         menu.Items.Add(Ui.Menu("Move left", () => Session.Move(tab.Id, group.Id, group.Id, position - 1), position > 0));
         menu.Items.Add(Ui.Menu("Move right", () => Session.Move(tab.Id, group.Id, group.Id, position + 2), position < members.Count - 1));
         var move = new MenuItem { Header = "Move to pane" };
-        foreach (var destination in Session.State.Groups.Where(item => (item.Region == "center") != tab.IsTool && item.Id != group.Id))
+        foreach (var destination in Session.State.Groups.Where(item => (tab.Kind == "terminal" || (item.Region == "center") != tab.IsTool) && item.Id != group.Id))
         {
             var target = Ui.Menu(GroupLabel(destination), () => Session.Move(tab.Id, group.Id, destination.Id, Session.Tabs(destination.Id).Count));
             menu.Opening += (_, _) => target.Header = GroupLabel(Session.Group(destination.Id));
@@ -438,9 +461,29 @@ public sealed partial class DockSurface
             }
         else
         {
-            menu.Items.Add(Ui.Menu("Move to new pane before", () => Session.Move(tab.Id, group.Id, group.Id, 0, "before"), CanCreate(group)));
-            menu.Items.Add(Ui.Menu("Move to new pane after", () => Session.Move(tab.Id, group.Id, group.Id, 0, "after"), CanCreate(group)));
+            foreach (var edge in new[] { "before", "after" })
+            {
+                var direction = group.Region == "bottom" ? edge == "before" ? "left" : "right" : edge == "before" ? "above" : "below";
+                var split = Ui.Menu("New group " + direction, () => Session.Move(tab.Id, group.Id, group.Id, 0, edge));
+                menu.Opening += (_, _) => split.IsEnabled = Session.CanMove(tab.Id, group.Id, group.Id, 0, edge);
+                menu.Items.Add(split);
+            }
         }
+        if (tab.IsTool || tab.Kind == "terminal")
+            foreach (var region in new[] { "left", "right", "bottom" })
+                foreach (var atStart in new[] { true, false })
+                {
+                    var direction = region == "bottom" ? atStart ? "left" : "right" : atStart ? "top" : "bottom";
+                    var title = $"New {region} group at {direction}";
+                    var create = Ui.Menu(title, () => Session.MoveToNewRegionGroup(tab.Id, group.Id, region, atStart));
+                    menu.Opening += (_, _) =>
+                    {
+                        var limit = region == "bottom" ? Session.State.BottomLimit : Session.State.SideLimit;
+                        create.IsEnabled = Session.State.Groups.Count(item => item.Region == region) < limit;
+                        create.Header = title + (create.IsEnabled ? "" : $" — limited to {limit}");
+                    };
+                    menu.Items.Add(create);
+                }
         return menu;
     }
 
@@ -490,7 +533,11 @@ public sealed partial class DockSurface
         if (Session.Group(id).Folded) { groupHeaders.GetValueOrDefault(id)?.Focus(); return; }
         var selected = Session.Selected(id);
         if (selected is not null && tabSites.TryGetValue(id, out var tabs))
-            tabs.FirstOrDefault(item => item.Tab == selected.Id).Control?.Focus();
+        {
+            var target = tabs.FirstOrDefault(item => item.Tab == selected.Id).Control;
+            target?.BringIntoView();
+            target?.GetLogicalDescendants().OfType<DockTabButton>().Single().Focus();
+        }
         else groupHeaders.GetValueOrDefault(id)?.Focus();
     }, DispatcherPriority.Loaded);
 
