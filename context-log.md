@@ -1252,3 +1252,35 @@ with null selectionforeground; MarkdownPreview assigns PreviewSelection to all
 selectable descendants. Fullselection-checks PASS (session27509), changes NOT
 published yet, no native selection capture/regression added yet. Canonical63236
 session28223 still previousreviewfixespkg, revalidate before overwrite. GoalACTIVE.
+
+2026-09-28 authorized upstream E2E translation is now IN SCOPE. Source remains
+/Users/commandertvis/IdeaProjects/thinkrail main. Added E2E.md with per-case
+inventory for preview/Markdown/layout/projects/workspaces/theme/width/settings/
+changes/chrome, honest Pending statuses and explicit editor/terminal/AI exclusions.
+Added tests/SharpRail.Checks/E2E/{E2eWorkspace,PreviewTabsE2E,MarkdownLinksE2E,
+LayoutE2E}.cs. Eleven translated cases PASS: all8 preview, both Markdown links,
+layout independent preview slots. Driver uses real pointer presses, dispatcher
+MainLoop bounded10ms, render ticks, hit-test guard, resolves rebuilt named/file
+controls, moves pointer off tooltips. Replaced invalid upstream1pxPNG fixture
+(IDAT badCRC/truncated zlib; Skia rejects) with valid1pxPNG; documented adaptation.
+New SelectionChecks verifies actual TextBox/Markdown selection brushes and null
+foreground in dark/light themes; PASS. UiChecks invokes translated cases.
+Fixed actual bugs: active preview click schedules250ms keep with nav/epochguard;
+DockTabButton uses Button style key; file/spec clicks share one in-flight read,
+double click upgrades pending preview tokeep and claims preview slot; stamped at
+click time, abandoned browse discarded, overtaken keep retained without stealing
+selection. LayoutSession.Open optional claimPreview/activate supports these;
+programmatic OpenDocumentAsync retained old stale-request discard contract.
+Markdown relativefilelink now openspreview notkepttab. Removed obsoletefileClick.
+Full Release checks PASS with Git source correctedupstream; format verify PASS.
+Published scripts/publish.sh PASS, codesignstrictdeepPASS; publishedR2Rfullchecks
+session69265 still running at record time (.bench/upstream-e2e-published-checks.log),
+all11 translated cases plus selection alreadyPASS. Finalrestofsuiteawaitcompletion.
+Canonical app PID85220/session53829 now running updatedpackage, noenvprofile
+override. Previous63236 andreviewdriverswereabsentpgrepbeforeoverwrite. Ownroot
+window111492 captured .bench/upstream-e2e-native-window.png and inspected. Empty
+restoredworkspace, Specs/Review panes, appvisuallymounted. Leave running.
+No benchmarks/agents/commits/pushes. GoalACTIVE, fullupstreamtranslationNOTcomplete.
+NEXT: finishpublishedchecks; continue pending E2E suites from actual upstream
+steps, fix concrete failures. Native finalpopup/selection visualcapture still
+pending; corrected source docking audit and full screenshot parity remain gates.
