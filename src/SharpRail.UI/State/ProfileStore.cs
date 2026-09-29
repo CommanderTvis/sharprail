@@ -1,18 +1,28 @@
 using System.Text.Json;
 using SharpRail.Host.Abstractions;
 using SharpRail.UI.Docking;
+using SharpRail.UI.Rendering;
 
 namespace SharpRail.UI.State;
 
 public sealed class Preferences
 {
-    public string Theme { get; set; } = "dark";
+    /// <summary>The fixed theme's manifest id, kept opaque so an unavailable theme survives until another is chosen.</summary>
+    public string Theme { get; set; } = Themes.DefaultId;
+    public string ThemeMode { get; set; } = "fixed";
+    public SystemThemePair? SystemThemePair { get; set; }
     public double PreviewWidth { get; set; } = 900;
     public bool BoundPreviewWidth { get; set; } = true;
     public double FontSize { get; set; } = 14;
     public bool ShowHiddenFiles { get; set; }
     public string DefaultPreset { get; set; } = "balanced";
     public Dictionary<string, DockState> CustomPresets { get; set; } = [];
+}
+
+public sealed class SystemThemePair
+{
+    public string Light { get; set; } = "";
+    public string Dark { get; set; } = "";
 }
 
 public record GitSelection(string Target, string Scope, GitCommit? Commit);
@@ -84,7 +94,7 @@ public sealed class ProfileStore
             if (!double.IsFinite(Data.Preferences.PreviewWidth) || Data.Preferences.PreviewWidth is < 320 or > 2400) Data.Preferences.PreviewWidth = 900;
             foreach (var name in Data.Preferences.CustomPresets.Keys.Where(name => string.IsNullOrWhiteSpace(name) ||
                 !LayoutSession.IsValid(Data.Preferences.CustomPresets[name])).ToArray()) Data.Preferences.CustomPresets.Remove(name);
-            if (Data.Preferences.Theme is not ("dark" or "light" or "system")) Data.Preferences.Theme = "dark";
+            NormalizeTheme(Data.Preferences);
             Data.Preferences.DefaultPreset ??= "balanced";
             if (Data.Preferences.DefaultPreset is not ("balanced" or "focus" or "review") &&
                 !Data.Preferences.CustomPresets.ContainsKey(Data.Preferences.DefaultPreset)) Data.Preferences.DefaultPreset = "balanced";
@@ -93,6 +103,21 @@ public sealed class ProfileStore
         {
             Data = new(); LastError = error.Message;
         }
+    }
+
+    private static void NormalizeTheme(Preferences preferences)
+    {
+        static bool Valid(string? id) => !string.IsNullOrWhiteSpace(id) && !id.Contains('\0');
+        // Profiles before the manifest catalogue stored "system" in place of a fixed theme id.
+        if (preferences.Theme == "system")
+        {
+            preferences.Theme = Themes.DefaultId;
+            preferences.ThemeMode = "system";
+            preferences.SystemThemePair ??= Themes.DerivePair(Themes.DefaultId);
+        }
+        if (!Valid(preferences.Theme)) preferences.Theme = Themes.DefaultId;
+        if (preferences.SystemThemePair is { } pair && (!Valid(pair.Light) || !Valid(pair.Dark))) preferences.SystemThemePair = null;
+        if (preferences.ThemeMode is not ("fixed" or "system") || preferences.SystemThemePair is null) preferences.ThemeMode = "fixed";
     }
 
     public void Save()

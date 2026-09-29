@@ -5,51 +5,109 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using Avalonia.Styling;
+using Avalonia.Themes.Fluent;
 
 namespace SharpRail.UI.Rendering;
 
 public static class Ui
 {
-    public static readonly SolidColorBrush Sidebar = new(Color.Parse("#101013"));
-    public static readonly SolidColorBrush Surface = new(Color.Parse("#18181b"));
-    public static readonly SolidColorBrush Header = new(Color.Parse("#18181b"));
-    public static readonly SolidColorBrush Elevated = new(Color.Parse("#09090b"));
-    public static readonly SolidColorBrush TextBrush = new(Color.Parse("#f4f4f5"));
-    public static readonly SolidColorBrush Muted = new(Color.Parse("#babac1"));
-    public static readonly SolidColorBrush Hint = new(Color.Parse("#71717a"));
-    public static readonly SolidColorBrush Accent = new(Color.Parse("#8dff4f"));
-    public static readonly SolidColorBrush PrimaryMuted = new(Color.FromArgb(102, 141, 255, 79));
-    public static readonly SolidColorBrush BorderBrush = new(Color.Parse("#3f3f46"));
-    public static readonly SolidColorBrush Hover = new(Color.Parse("#27272a"));
-    public static readonly SolidColorBrush TextSelection = new(Color.FromArgb(38, 106, 200, 255));
-    public static readonly SolidColorBrush PreviewSelection = new(Color.FromArgb(15, 106, 200, 255));
-    public static readonly SolidColorBrush Success = new(Color.Parse("#41cb66"));
-    public static readonly SolidColorBrush Danger = new(Color.Parse("#ff4b75"));
-    public static readonly SolidColorBrush Info = new(Color.Parse("#6ac8ff"));
-    public static readonly SolidColorBrush Warning = new(Color.Parse("#ffd54b"));
+    public static readonly SolidColorBrush Sidebar = new();
+    public static readonly SolidColorBrush Surface = new();
+    public static readonly SolidColorBrush Header = new();
+    public static readonly SolidColorBrush Elevated = new();
+    public static readonly SolidColorBrush TextBrush = new();
+    public static readonly SolidColorBrush Muted = new();
+    public static readonly SolidColorBrush Hint = new();
+    public static readonly SolidColorBrush Accent = new();
+    public static readonly SolidColorBrush PrimarySubtle = new();
+    public static readonly SolidColorBrush PrimaryMuted = new();
+    public static readonly SolidColorBrush BorderBrush = new();
+    public static readonly SolidColorBrush Hover = new();
+    public static readonly SolidColorBrush TextSelection = new();
+    public static readonly SolidColorBrush PreviewSelection = new();
+    public static readonly SolidColorBrush Success = new();
+    public static readonly SolidColorBrush Danger = new();
+    public static readonly SolidColorBrush Info = new();
+    public static readonly SolidColorBrush Warning = new();
+    public static readonly SolidColorBrush SuccessWash = new();
+    public static readonly SolidColorBrush DangerWash = new();
+    public static readonly SolidColorBrush InfoWash = new();
+    public static readonly SolidColorBrush WarningWash = new();
+    public static readonly LinearGradientBrush FadeFromElevated = Fade();
+    public static readonly LinearGradientBrush FadeToElevated = Fade();
+    /// <summary>Resource key for the selected-text foreground; null when the theme keeps the native foreground.</summary>
+    public const string SelectionForegroundKey = "ThemeSelectionForeground";
     public static readonly FontFamily InterfaceFont = new("avares://SharpRail.UI/Assets/Fonts#Geist");
     public const FontWeight InterfaceWeight = (FontWeight)370;
     public static readonly FontFamily CodeFont = new("avares://SharpRail.UI/Assets/Fonts#JetBrains Mono");
     private static readonly Dictionary<string, Bitmap> Icons = [];
-    public static void SetLight(bool light)
+
+    static Ui() => Apply(Themes.Resolve(Themes.DefaultId));
+
+    /// <summary>The applied manifest. Consumers that paint outside these brushes rebuild on <see cref="ThemeChanged"/>.</summary>
+    public static ThemeManifest Theme { get; private set; } = null!;
+
+    /// <summary>Raised after every brush of a new theme has been written, so no consumer observes half a palette.</summary>
+    public static event Action? ThemeChanged;
+
+    public static void Apply(ThemeManifest theme)
     {
-        Sidebar.Color = Color.Parse(light ? "#fafafa" : "#101013");
-        Surface.Color = Color.Parse(light ? "#e4e4e7" : "#18181b");
-        Header.Color = Color.Parse(light ? "#f4f4f5" : "#18181b");
-        Elevated.Color = Color.Parse(light ? "#ffffff" : "#09090b");
-        TextBrush.Color = Color.Parse(light ? "#27272a" : "#f4f4f5");
-        Muted.Color = Color.Parse(light ? "#52525b" : "#babac1");
-        Hint.Color = Color.Parse(light ? "#71717a" : "#71717a");
-        Accent.Color = Color.Parse(light ? "#2a7314" : "#8dff4f");
-        PrimaryMuted.Color = Color.FromArgb(102, Accent.Color.R, Accent.Color.G, Accent.Color.B);
-        BorderBrush.Color = Color.Parse(light ? "#d4d4d8" : "#3f3f46");
-        Hover.Color = Color.Parse(light ? "#d4d4d8" : "#27272a");
-        TextSelection.Color = light ? Color.FromArgb(56, 107, 87, 255) : Color.FromArgb(38, 106, 200, 255);
-        PreviewSelection.Color = light ? Color.FromArgb(22, 107, 87, 255) : Color.FromArgb(15, 106, 200, 255);
-        Info.Color = Color.Parse(light ? "#2265cf" : "#6ac8ff");
-        Warning.Color = Color.Parse(light ? "#946300" : "#ffd54b");
-        Success.Color = Color.Parse(light ? "#167230" : "#41cb66");
-        Danger.Color = Color.Parse(light ? "#d02533" : "#ff4b75");
+        if (ReferenceEquals(theme, Theme)) return;
+        Theme = theme;
+        Sidebar.Color = theme["sidebar"];
+        Surface.Color = theme["content"];
+        Header.Color = theme["header"];
+        Elevated.Color = theme["elevated"];
+        TextBrush.Color = theme["text"];
+        Muted.Color = theme["muted"];
+        Hint.Color = theme["hint"];
+        Accent.Color = theme["accent"];
+        PrimarySubtle.Color = Alpha(theme["accent"], 10);
+        PrimaryMuted.Color = Alpha(theme["accent"], 40);
+        BorderBrush.Color = theme["borderStrong"];
+        Hover.Color = theme["hover"];
+        TextSelection.Color = theme["selection"];
+        PreviewSelection.Color = Alpha(theme["selection"], 40);
+        Info.Color = theme["info"];
+        Warning.Color = theme["warning"];
+        Success.Color = theme["success"];
+        Danger.Color = theme["danger"];
+        InfoWash.Color = Alpha(theme["info"], 12);
+        WarningWash.Color = Alpha(theme["warning"], 12);
+        SuccessWash.Color = Alpha(theme["success"], 12);
+        DangerWash.Color = Alpha(theme["danger"], 12);
+        FadeFromElevated.GradientStops[0].Color = FadeToElevated.GradientStops[1].Color = theme["elevated"];
+        FadeFromElevated.GradientStops[1].Color = FadeToElevated.GradientStops[0].Color = Alpha(theme["elevated"], 0);
+        if (Application.Current is { } app) ApplyResources(app);
+        ThemeChanged?.Invoke();
+    }
+
+    /// <summary>Writes the theme values that application styles read as resources rather than through these brushes.</summary>
+    public static void ApplyResources(Application app)
+    {
+        app.Resources[SelectionForegroundKey] = Theme.Colors["selectionForeground"] is { } foreground ? new SolidColorBrush(foreground) : null;
+        foreach (var fluent in app.Styles.OfType<FluentTheme>())
+            if (fluent.Palettes.TryGetValue(Theme.IsLight ? ThemeVariant.Light : ThemeVariant.Dark, out var palette))
+                palette.Accent = Theme["accent"];
+    }
+
+    private static LinearGradientBrush Fade() => new()
+    {
+        StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
+        EndPoint = new RelativePoint(1, 0, RelativeUnit.Relative),
+        GradientStops = [new GradientStop { Offset = 0 }, new GradientStop { Offset = 1 }]
+    };
+
+    /// <summary>The reference's alpha scale: a percentage of the colour's own alpha.</summary>
+    public static Color Alpha(Color color, int percent) =>
+        Color.FromArgb((byte)Math.Round(color.A * percent / 100.0, MidpointRounding.AwayFromZero), color.R, color.G, color.B);
+
+    /// <summary>A translucent colour composited over an opaque background, for native surfaces without alpha.</summary>
+    public static Color Over(Color color, Color background)
+    {
+        byte Mix(byte top, byte bottom) => (byte)Math.Round((top * color.A + bottom * (255 - color.A)) / 255.0);
+        return Color.FromRgb(Mix(color.R, background.R), Mix(color.G, background.G), Mix(color.B, background.B));
     }
 
     public static Control Icon(string name, IBrush? color = null, double size = 16)

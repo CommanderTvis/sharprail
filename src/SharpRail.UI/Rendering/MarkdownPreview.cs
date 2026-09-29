@@ -36,6 +36,8 @@ public sealed class MarkdownPreview : ScrollViewer, IDisposable
     private readonly Preferences preferences;
     private readonly CancellationTokenSource lifetime = new();
     private readonly List<IDisposable> loadedImages = [];
+    private readonly List<(Border Holder, string Text)> diagrams = [];
+    private ThemeManifest? diagramTheme;
     public MarkdownDocument Document { get; }
 
     public MarkdownPreview(string text, string path, IProjectServices host, Preferences preferences, Action<string, string?> navigate)
@@ -175,7 +177,7 @@ public sealed class MarkdownPreview : ScrollViewer, IDisposable
                     Tag = kind,
                     BorderBrush = color,
                     BorderThickness = new Thickness(2, 0, 0, 0),
-                    Background = new SolidColorBrush(Color.FromArgb(kind == "important" ? (byte)26 : (byte)31, color.Color.R, color.Color.G, color.Color.B)),
+                    Background = kind switch { "note" => Ui.InfoWash, "tip" => Ui.SuccessWash, "warning" => Ui.WarningWash, "caution" => Ui.DangerWash, _ => Ui.PrimarySubtle },
                     CornerRadius = new CornerRadius(0, 4, 4, 0),
                     Padding = new Thickness(12, 8),
                     Margin = new Thickness(0, 12)
@@ -350,19 +352,20 @@ public sealed class MarkdownPreview : ScrollViewer, IDisposable
         foreach (var textBlock in root.GetLogicalDescendants().OfType<SelectableTextBlock>())
         {
             textBlock.SelectionBrush = Ui.PreviewSelection;
-            textBlock.SelectionForegroundBrush = null;
         }
     }
 
     private Control Mermaid(string text)
     {
         var holder = new Border { Margin = new Thickness(0, 12), Child = Ui.Text("Rendering diagram…", Ui.Muted, 12) };
+        diagrams.Add((holder, text));
         _ = LoadMermaidAsync(holder, text);
         return holder;
     }
 
     private async Task LoadMermaidAsync(Border holder, string text)
     {
+        var theme = diagramTheme = Ui.Theme;
         var options = MermaidRenderer.Options();
         MermaidRenderer.Result result;
         SvgSource? svg = null;
@@ -376,7 +379,7 @@ public sealed class MarkdownPreview : ScrollViewer, IDisposable
             }, lifetime.Token);
         }
         catch (OperationCanceledException) { return; }
-        if (lifetime.IsCancellationRequested) { svg?.Dispose(); return; }
+        if (lifetime.IsCancellationRequested || theme != diagramTheme) { svg?.Dispose(); return; }
         if (result.Error is { } error || svg?.Picture is not { } picture)
         {
             var failure = new StackPanel { Name = "MermaidError", Spacing = 4 };
@@ -469,8 +472,28 @@ public sealed class MarkdownPreview : ScrollViewer, IDisposable
         if (clipboard is not null) await clipboard.SetTextAsync(text);
     }
 
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        Ui.ThemeChanged += RethemeDiagrams;
+        if (diagramTheme is not null && diagramTheme != Ui.Theme) RethemeDiagrams();
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        Ui.ThemeChanged -= RethemeDiagrams;
+        base.OnDetachedFromVisualTree(e);
+    }
+
+    /// <summary>Mermaid bakes its colours into the SVG, so a theme swap renders each diagram again.</summary>
+    private void RethemeDiagrams()
+    {
+        foreach (var (holder, text) in diagrams) _ = LoadMermaidAsync(holder, text);
+    }
+
     public void Dispose()
     {
+        Ui.ThemeChanged -= RethemeDiagrams;
         lifetime.Cancel();
         foreach (var image in loadedImages) image.Dispose();
         loadedImages.Clear();

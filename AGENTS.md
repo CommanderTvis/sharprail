@@ -49,6 +49,10 @@ Domain records belong in
 Abstractions; serialized DTOs belong in Protocol. Keep both adapters consistent
 with the public API and verify local/remote parity in the checks.
 
+The bundled theme manifests live in `src/SharpRail.UI/Assets/Themes`; `Rendering/Themes.cs`
+owns the catalogue and resolution, and `Ui.Apply` writes the shared brushes then raises
+`Ui.ThemeChanged` for surfaces that bake colours (Mermaid, Scintilla, Ghostty).
+
 The application starts in `src/SharpRail.UI/Program.cs` and `App.cs`.
 `WorkbenchWindow` owns the workbench; `DockSurface` renders and handles docking,
 while `LayoutSession` applies transitions to `LayoutState`. `ProfileStore` owns

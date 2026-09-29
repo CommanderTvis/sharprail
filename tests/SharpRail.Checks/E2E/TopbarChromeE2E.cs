@@ -35,6 +35,12 @@ internal static class TopbarChromeE2E
         Until(() => HeaderColor(header) != initial);
         Require(HeaderColor(header) == Ui.Header.Color && header.Bounds.Height == 40,
             "A theme change must repaint the header with the new token at the same height.");
+        foreach (var theme in Themes.All)
+        {
+            app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "Theme_" + theme.Id));
+            Until(() => HeaderColor(header) == theme["header"]);
+            Require(header.Bounds.Height == 40, $"The {theme.Id} header must keep its fixed height.");
+        }
         app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "Theme_" + original));
         Until(() => HeaderColor(header) == initial);
         CloseSettings(settings);

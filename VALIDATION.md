@@ -180,6 +180,16 @@ republished; application code and the running bundle are unchanged. This case
 does not prove the full upstream manifest catalog, high contrast, explicit system
 theme pairs or cross-window theme synchronization.
 
+The theme catalogue now mirrors the reference's four bundled manifests. Full
+Release checks with Git fixtures pass 74 translated cases plus catalogue,
+legacy-profile migration, Mermaid/Markdown re-theme and every-theme selection
+checks (`.bench/run3.log`); the native terminal check verifies Ghostty backgrounds
+under all four themes (`.bench/native.log`). Headless captures:
+`.bench/theme-{dark,light,high-contrast-dark,high-contrast-light}.png`,
+`.bench/theme-contrast-tabs.png` and `.bench/theme-settings-system.png`. The
+system-mode case runs for one client, with the application theme variant standing
+in for the operating system appearance. No native app capture or republish was made.
+
 Workspace switches preserve the mounted workbench and its outer center/left
 regions, verified through actual worktree navigation and visual-tree detach counts.
 Deferred restored-document completion updates only visible bodies, preserving

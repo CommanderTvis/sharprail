@@ -141,10 +141,10 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `bottom-panel.spec.ts` | a narrow viewport locally compresses bottom groups without rewriting their topology | Ported |
 | `bottom-panel.spec.ts` | bottom visibility and alignment stay local to each window and survive its reload | Ported (the peer is a second window with its own profile) |
 | `bottom-panel.spec.ts` | an old host layout stays inert while a pristine surface starts Balanced | Excluded: SharpRail never stored layouts on the host, so there is no legacy host layout to ignore |
-| `theme.spec.ts` | appearance switches a discovered theme and persists it across reload | Ported |
-| `theme.spec.ts` | system mode follows each client and retains its explicit pair | Pending: Settings has only Dark/Light/System, with no explicit light/dark pair pickers, alternate light theme or cross-client sync |
-| `theme.spec.ts` | Monaco opens files and re-themes under every discovered manifest | Ported (macOS Scintilla; light and dark themes, no high-contrast theme) |
-| `theme.spec.ts` | selected workspace tabs keep their surface and edge marker in high contrast | Pending: no high-contrast theme exists in SharpRail |
+| `theme.spec.ts` | appearance switches a discovered theme and persists it across reload | Ported (Settings lists every bundled manifest) |
+| `theme.spec.ts` | system mode follows each client and retains its explicit pair | Ported for one client (the application theme variant stands in for the emulated media query; also checks the pair after reload). Pending: the peer client that shares the host-synced mode and pair needs multi-client settings sync |
+| `theme.spec.ts` | Monaco opens files and re-themes under every discovered manifest | Ported (macOS Scintilla; every bundled manifest, with the high-contrast selected-text overrides) |
+| `theme.spec.ts` | selected workspace tabs keep their surface and edge marker in high contrast | Ported (center, right and terminal strips; brush, 2px geometry and rendered pixels) |
 | `line-width-settings.spec.ts` | line-width controls validate drafts, converge on broadcasts, and persist | Pending: the app has one auto-saving preview-width control; draft validation with Save, chat measure and settings broadcasts between clients are absent |
 | `line-width-settings.spec.ts` | the file width wraps source and updates an already-mounted editor | Ported (macOS Scintilla; the shared line-width setting) |
 | `line-width-settings.spec.ts` | the default file width wraps both sides of a long-line diff | Ported |

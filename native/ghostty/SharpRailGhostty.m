@@ -4,7 +4,7 @@
 #import <Metal/Metal.h>
 #include "ghostty.h"
 #include "SharpRailGhostty.h"
-extern void sr_ghostty_config_colors(ghostty_config_t config, uint32_t background, uint32_t foreground);
+extern void sr_ghostty_config_colors(ghostty_config_t config, const uint32_t *colors, double minimum_contrast);
 
 @interface SRTerminalView : NSView <NSTextInputClient>
 @property(nonatomic, assign) ghostty_surface_t surface;
@@ -260,10 +260,10 @@ bool sr_terminal_busy(void *pointer) {
     return view.surface && !ghostty_surface_process_exited(view.surface) && ghostty_surface_needs_confirm_quit(view.surface);
 }
 void sr_terminal_focus(void *pointer) { SRTerminalView *view = (__bridge SRTerminalView *)pointer; [view.window makeFirstResponder:view]; }
-void sr_terminal_set_colors(void *pointer, uint32_t background, uint32_t foreground) {
+void sr_terminal_set_colors(void *pointer, const uint32_t *colors, double minimum_contrast) {
     SRTerminalView *view = (__bridge SRTerminalView *)pointer;
     ghostty_config_t config = ghostty_config_new();
-    sr_ghostty_config_colors(config, background, foreground);
+    sr_ghostty_config_colors(config, colors, minimum_contrast);
     ghostty_config_finalize(config);
     ghostty_surface_update_config(view.surface, config);
     ghostty_config_free(config);

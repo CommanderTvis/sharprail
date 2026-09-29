@@ -38,8 +38,7 @@ internal sealed unsafe class GhosttyTerminal : Border, ITerminalBackend
         Child = terminal;
         Focusable = true;
         terminal.UpdateColors();
-        Ui.Surface.PropertyChanged += ColorsChanged;
-        Ui.TextBrush.PropertyChanged += ColorsChanged;
+        Ui.ThemeChanged += terminal.UpdateColors;
     }
 
     internal static GhosttyTerminal Local(TerminalLaunch launch) => new(launch, null, null, null, null);
@@ -90,13 +89,10 @@ internal sealed unsafe class GhosttyTerminal : Border, ITerminalBackend
             RaiseEvent(new KeyEventArgs { RoutedEvent = KeyDownEvent, Key = Key.J, KeyModifiers = KeyModifiers.Meta | KeyModifiers.Shift, Source = this });
     }
 
-    private void ColorsChanged(object? sender, AvaloniaPropertyChangedEventArgs e) => terminal.UpdateColors();
-
     public void Dispose()
     {
         if (!self.IsAllocated) return;
-        Ui.Surface.PropertyChanged -= ColorsChanged;
-        Ui.TextBrush.PropertyChanged -= ColorsChanged;
+        Ui.ThemeChanged -= terminal.UpdateColors;
         terminal.Dispose();
         self.Free();
         DeleteRelayFiles();
@@ -143,9 +139,19 @@ internal sealed unsafe class GhosttyTerminal : Border, ITerminalBackend
             if (view != 0) Native.Focus(view);
         }
 
+        /// <summary>Mirrors the reference's xterm theme: selection composited over the surface, and its contrast floor.</summary>
         internal void UpdateColors()
         {
-            if (view != 0) Native.SetColors(view, Ui.Surface.Color.ToUInt32(), Ui.TextBrush.Color.ToUInt32());
+            if (view == 0) return;
+            var theme = Ui.Theme;
+            var background = Ui.Surface.Color;
+            uint[] colors =
+            [
+                background.ToUInt32(), Ui.TextBrush.Color.ToUInt32(), Ui.Accent.Color.ToUInt32(),
+                Ui.Over(theme["editorSelection"], background).ToUInt32(), theme.Colors["editorSelectionForeground"]?.ToUInt32() ?? 0,
+                .. theme.Ansi.Select(color => color.ToUInt32())
+            ];
+            Native.SetColors(view, colors, theme.IsHighContrast ? 7 : 4.5);
         }
 
         public void Dispose()
@@ -162,7 +168,7 @@ internal sealed unsafe class GhosttyTerminal : Border, ITerminalBackend
             [MarshalAs(UnmanagedType.LPUTF8Str)] string? command, [MarshalAs(UnmanagedType.LPUTF8Str)] string? environmentName,
             [MarshalAs(UnmanagedType.LPUTF8Str)] string? environmentValue, delegate* unmanaged<nint, int, int, void> callback, nint context);
         [DllImport(Library, EntryPoint = "sr_terminal_set_colors")]
-        internal static extern void SetColors(nint view, uint background, uint foreground);
+        internal static extern void SetColors(nint view, uint[] colors, double minimumContrast);
         [DllImport(Library, EntryPoint = "sr_terminal_destroy")]
         internal static extern void Destroy(nint view);
         [DllImport(Library, EntryPoint = "sr_terminal_focus")]

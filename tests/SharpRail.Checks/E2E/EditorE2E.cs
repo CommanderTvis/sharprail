@@ -9,6 +9,7 @@ using Avalonia.Media.Imaging;
 using SharpRail.UI.Editor;
 using SharpRail.UI.Panels;
 using SharpRail.UI.Rendering;
+using ThemeCatalog = SharpRail.UI.Rendering.Themes;
 using static SharpRail.Checks.E2E.E2eWorkspace;
 
 namespace SharpRail.Checks.E2E;
@@ -129,13 +130,14 @@ internal static class EditorE2E
     {
         using var app = Workspace(root, "editor-themes");
         var original = app.Window.Preferences.Theme;
-        var mount = original == "light" ? "dark" : "light";
+        var mount = ThemeCatalog.All.First(theme => theme.IsLight).Id;
+        Require(ThemeCatalog.All.Any(theme => theme.IsHighContrast), "The catalogue must include a high-contrast theme.");
         var settings = OpenSettings(app);
         app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "Theme_" + mount));
         CloseSettings(settings);
         var editor = OpenEditor(app, "notes.txt");
         Require(editor.Text.Contains("plain-text-fixture", StringComparison.Ordinal), "The editor must show the file contents.");
-        foreach (var theme in new[] { "dark", "light", original })
+        foreach (var theme in ThemeCatalog.All.Select(theme => theme.Id).Append(original))
         {
             settings = OpenSettings(app);
             app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "Theme_" + theme));
@@ -145,6 +147,9 @@ internal static class EditorE2E
             var background = Pixel(frame, editor, new Point(editor.Bounds.Width - 24, editor.Bounds.Height - 8), app.Window.RenderScaling);
             Require(background == Ui.Surface.Color, $"The mounted editor must re-theme to {theme} (painted {background}, expected {Ui.Surface.Color}).");
             Require(editor.Text.Contains("plain-text-fixture", StringComparison.Ordinal), "Re-theming must keep the editor contents.");
+            if (Ui.Theme.IsHighContrast)
+                Require(Ui.Theme.Colors["selectionForeground"] is not null && Ui.Theme.Colors["editorSelectionForeground"] is not null,
+                    $"{theme} must override the selected-text foreground for browser and editor selections.");
         }
         Console.WriteLine("PASS upstream theme.spec.ts: Monaco opens files and re-themes under every discovered manifest");
     }

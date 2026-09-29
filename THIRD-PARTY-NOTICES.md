@@ -2,7 +2,7 @@
 
 The macOS terminal embeds Ghostty 1.2.3 (MIT), pinned to commit
 6d2dd585a5d87fa745d48188dd096ca6e63014d0. See licenses/Ghostty-MIT.txt.
-The build appends a small configuration color setter from
+The build appends a small configuration color and palette setter from
 `native/ghostty/config-colors.zig` to match the host UI theme.
 Its native library is built from https://github.com/ghostty-org/ghostty with
 the Metal renderer; Ghostty's source dependency declarations retain their
@@ -18,6 +18,10 @@ MIT OR Apache-2.0): its released macOS merman-ffi static library is linked into
 libSharpRailMermaid and its SVG is drawn with Svg.Skia (MIT). Merman's Rust crate
 dependencies retain their licenses; licenses/Merman-Crates.txt lists each crate
 with its license.
+
+The four theme manifests in src/SharpRail.UI/Assets/Themes are copied unchanged
+from Thinkrail's apps/web/src/themes/bundled (Apache 2.0;
+licenses/Thinkrail-Apache-2.0.txt).
 
 PNG icons came from that prototype's @remixicon/react 4.9.0 assets.
 The collapse/expand vertical and horizontal ellipsis, fullscreen, subtract and

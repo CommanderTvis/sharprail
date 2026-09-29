@@ -17,7 +17,7 @@ public sealed partial class ScintillaEditor : Control, IDisposable
     private readonly DispatcherTimer idle;
     private readonly InputClient inputClient;
     private bool disposed;
-    private uint foreground, background;
+    private ThemeManifest? theme;
     private nint revision;
     private readonly nint defaultRightMargin;
     private double wrapWidth = double.PositiveInfinity;
@@ -32,7 +32,6 @@ public sealed partial class ScintillaEditor : Control, IDisposable
         defaultRightMargin = document.Send(ScintillaMessage.GetMarginRight);
         inputClient = new(this);
         TextInputMethodClientRequested += (_, e) => { e.Client = inputClient; e.Handled = true; };
-        ActualThemeVariantChanged += (_, _) => InvalidateVisual();
         timer = new DispatcherTimer(TimeSpan.FromMilliseconds(500), DispatcherPriority.Background, (_, _) =>
         { if (IsFocused && !disposed) { document.Tick(); InvalidateVisual(); } });
         timer.Stop();
@@ -115,27 +114,44 @@ public sealed partial class ScintillaEditor : Control, IDisposable
 
     private void ApplyColors()
     {
-        var nextForeground = Rgb(Ui.TextBrush); var nextBackground = Rgb(Ui.Surface);
-        if (foreground == nextForeground && background == nextBackground) return;
-        foreground = nextForeground; background = nextBackground;
+        if (theme == Ui.Theme) return;
+        theme = Ui.Theme;
+        var foreground = Rgb(Ui.TextBrush.Color); var background = Rgb(Ui.Surface.Color);
         document.Send(ScintillaMessage.StyleSetFore, 32, (nint)foreground);
         document.Send(ScintillaMessage.StyleSetBack, 32, (nint)background);
         document.Send(ScintillaMessage.StyleSetSize, 32, 13);
         document.Send(ScintillaMessage.StyleClearAll);
-        document.Send(ScintillaMessage.StyleSetFore, 33, (nint)Rgb(Ui.Muted));
+        document.Send(ScintillaMessage.StyleSetFore, 33, (nint)Rgb(Ui.Muted.Color));
         document.Send(ScintillaMessage.StyleSetBack, 33, (nint)background);
         document.Send(ScintillaMessage.SetCaretFore, (nint)foreground);
-        document.Send(ScintillaMessage.SetSelBack, 1, (nint)Rgb(Ui.Hover));
+        var selection = Rgb(Ui.Over(theme["editorSelection"], Ui.Surface.Color)) | 0xff000000;
+        document.Send(ScintillaMessage.SetElementColour, SelectionBack, (nint)selection);
+        document.Send(ScintillaMessage.SetElementColour, SelectionInactiveBack, (nint)selection);
+        if (theme.Colors["editorSelectionForeground"] is { } text)
+        {
+            document.Send(ScintillaMessage.SetElementColour, SelectionText, (nint)(Rgb(text) | 0xff000000));
+            document.Send(ScintillaMessage.SetElementColour, SelectionInactiveText, (nint)(Rgb(text) | 0xff000000));
+        }
+        else
+        {
+            document.Send(ScintillaMessage.ResetElementColour, SelectionText);
+            document.Send(ScintillaMessage.ResetElementColour, SelectionInactiveText);
+        }
         return;
-        static uint Rgb(IBrush brush) { var c = ((ISolidColorBrush)brush).Color; return (uint)(c.R | c.G << 8 | c.B << 16); }
+        static uint Rgb(Color c) => (uint)(c.R | c.G << 8 | c.B << 16);
     }
+
+    // Scintilla's SC_ELEMENT_SELECTION_* ids; element colours are 0xAABBGGRR.
+    private const int SelectionText = 10, SelectionBack = 11, SelectionInactiveText = 16, SelectionInactiveBack = 17;
 
     protected override void OnGotFocus(FocusChangedEventArgs e)
     { base.OnGotFocus(e); document.Focus(true); timer.Start(); InvalidateVisual(); }
     protected override void OnLostFocus(FocusChangedEventArgs e)
     { base.OnLostFocus(e); if (!disposed) document.Focus(false); timer.Stop(); InvalidateVisual(); }
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    { base.OnAttachedToVisualTree(e); Ui.ThemeChanged += InvalidateVisual; }
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
-    { timer.Stop(); base.OnDetachedFromVisualTree(e); }
+    { timer.Stop(); Ui.ThemeChanged -= InvalidateVisual; base.OnDetachedFromVisualTree(e); }
 
     public void Dispose()
     {

@@ -71,7 +71,7 @@ public sealed partial class WorkbenchWindow : Window
         WireGestureNotification();
         WireEditorLifetime();
         ApplyAppearance();
-        ActualThemeVariantChanged += (_, _) => Ui.SetLight(ActualThemeVariant == ThemeVariant.Light);
+        ActualThemeVariantChanged += (_, _) => ApplyTheme();
         Opened += async (_, _) => await OpenProjectAsync(initialRoot);
         Closed += (_, _) =>
         {
@@ -333,10 +333,19 @@ public sealed partial class WorkbenchWindow : Window
         else { Layout.Visible(group.Region, true); if (group.Folded) Layout.Fold(group.Id); Layout.Select(group.Id, "files"); }
     }
 
+    /// <summary>System mode inherits the application's variant, which follows the operating system; fixed mode pins the theme's own.</summary>
+    private void ApplyTheme()
+    {
+        var system = Preferences.ThemeMode == "system";
+        if (system) RequestedThemeVariant = ThemeVariant.Default;
+        var theme = Themes.Resolve(Preferences, ActualThemeVariant == ThemeVariant.Light ? "light" : "dark").Theme;
+        if (!system) RequestedThemeVariant = theme.IsLight ? ThemeVariant.Light : ThemeVariant.Dark;
+        Ui.Apply(theme);
+    }
+
     private void ApplyAppearance()
     {
-        RequestedThemeVariant = Preferences.Theme switch { "light" => ThemeVariant.Light, "system" => ThemeVariant.Default, _ => ThemeVariant.Dark };
-        Ui.SetLight(ActualThemeVariant == ThemeVariant.Light);
+        ApplyTheme();
         var previous = Ui.FontSize; Ui.FontSize = Preferences.FontSize;
         foreach (var label in root.GetLogicalDescendants().OfType<TextBlock>().Where(label => label.FontSize == previous && !label.Classes.Contains("dock-tab-title")))
             label.FontSize = Preferences.FontSize;
