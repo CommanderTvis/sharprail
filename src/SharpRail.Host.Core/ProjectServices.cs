@@ -129,6 +129,12 @@ public sealed class ProjectServices(string initialRoot) : IProjectServices
                     }
                     await GitRepository.RunAsync(currentRoot, cancellationToken, "restore", "--staged", "--", action.Path);
                     break;
+                case "init":
+                    if ((await GitRepository.SnapshotAsync(currentRoot, "", cancellationToken)).IsRepository)
+                        throw new InvalidOperationException("This folder is already a Git repository.");
+                    await GitRepository.RunAsync(currentRoot, cancellationToken, "init", "-b", "main");
+                    await GitRepository.RunAsync(currentRoot, cancellationToken, "commit", "--allow-empty", "-m", "Initial commit");
+                    break;
                 case "create-worktree":
                     if (string.IsNullOrWhiteSpace(action.Branch)) throw new ArgumentException("Enter a new branch name.");
                     await GitRepository.RunAsync(currentRoot, cancellationToken, "check-ref-format", "--branch", action.Branch);

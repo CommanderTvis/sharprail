@@ -20,23 +20,51 @@ public sealed partial class WorkbenchWindow
     private readonly Dictionary<string, IReadOnlyList<ProjectFile>> folderCache = [];
     private readonly HashSet<string> expandedFolders = [];
 
+    public Func<Task<string?>>? FolderPicker { get; set; }
+    private int projectPicker;
+
     private async Task PickProjectAsync()
+    {
+        var picker = ++projectPicker;
+        if (remote) { await EnterHostPathAsync(null); return; }
+        string? path;
+        try
+        {
+            path = FolderPicker is { } custom ? await custom() : (await StorageProvider.OpenFolderPickerAsync(
+                new FolderPickerOpenOptions { Title = "Open project", AllowMultiple = false })).FirstOrDefault()?.TryGetLocalPath();
+        }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            if (picker == projectPicker) await EnterHostPathAsync(error.Message);
+            return;
+        }
+        if (picker == projectPicker && path is not null) await OpenPickedProjectAsync(path);
+    }
+
+    private async Task EnterHostPathAsync(string? pickerError)
+    {
+        var picker = ++projectPicker;
+        var path = await Dialogs.HostPath(this, workspaceRoot, pickerError);
+        if (path is null || picker != projectPicker) return;
+        projectPicker++;
+        await OpenPickedProjectAsync(path);
+    }
+
+    private async Task OpenPickedProjectAsync(string path)
     {
         try
         {
-            if (remote)
-            {
-                var values = await Dialogs.Prompt(this, "Open project on remote host", ("Directory path", workspaceRoot));
-                if (values is not null && values[0].Length > 0) await OpenProjectAsync(values[0]);
-            }
-            else
-            {
-                var paths = await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = "Open project", AllowMultiple = false });
-                var path = paths.FirstOrDefault()?.TryGetLocalPath();
-                if (path is not null) await OpenProjectAsync(path);
-            }
+            await OpenProjectAsync(path);
+            if (!WorkspaceMounted) return;
+            var request = projectRequest;
+            var snapshot = await host.GetGitAsync("", lifetime.Token);
+            if (request != projectRequest || snapshot.IsRepository) return;
+            if (!await Dialogs.Confirm(this, "Initialise a Git repository?",
+                $"{path} is not a Git repository. SharpRail can run git init and record an empty first commit so worktrees work.", "Initialise repository")) return;
+            await host.ApplyGitActionAsync(new("init"), lifetime.Token);
+            if (request == projectRequest) await RefreshAsync();
         }
-        catch (Exception error) { Report(error); }
+        catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
     }
 
     private Control ProjectsPanel()
@@ -45,7 +73,13 @@ public sealed partial class WorkbenchWindow
         var toolbar = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(8, 0, 4, 0) };
         var title = Ui.Text("PROJECTS", size: 12); title.FontWeight = Avalonia.Media.FontWeight.Medium;
         Ui.Place(toolbar, title);
-        var open = Ui.IconButton("add", "Open project", () => _ = PickProjectAsync());
+        var open = Ui.IconButton("add", "Add project", () => { });
+        open.Name = "AddProjectMenu";
+        var addMenu = new ContextMenu();
+        addMenu.Items.Add(Ui.Menu("Open project", () => _ = PickProjectAsync()));
+        addMenu.Items.Add(Ui.Menu("Enter host path…", () => _ = EnterHostPathAsync(null)));
+        open.ContextMenu = addMenu;
+        open.Click += (_, _) => addMenu.Open(open);
         open.Width = open.Height = 28;
         Ui.Place(toolbar, open, 0, 1);
         Ui.Place(panel, toolbar);

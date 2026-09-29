@@ -24,6 +24,29 @@ public static class Dialogs
         return await window.ShowDialog<string[]?>(owner);
     }
 
+    public static async Task<string?> HostPath(Window owner, string initial, string? pickerError)
+    {
+        var window = Create("Open project by path", 520, pickerError is null ? 230 : 290);
+        window.FindControl<StackPanel>("DialogBody")!.Spacing = 12;
+        var text = window.FindControl<TextBlock>("DialogExplanation")!;
+        text.Text = "Enter the absolute path of a folder on the computer running SharpRail."; text.IsVisible = true;
+        var panel = window.FindControl<StackPanel>("DialogFields")!;
+        if (pickerError is not null)
+        {
+            var failure = Ui.Text("The folder picker failed: " + pickerError, Ui.Danger, 12);
+            failure.Name = "OpenProjectPickerError"; failure.TextWrapping = Avalonia.Media.TextWrapping.Wrap;
+            panel.Children.Add(failure);
+        }
+        var input = new TextBox { Name = "OpenProjectPathInput", Text = initial, PlaceholderText = "Directory path" };
+        panel.Children.Add(input);
+        var buttons = window.FindControl<StackPanel>("DialogActions")!;
+        buttons.Children.Add(Ui.Button("Cancel", () => window.Close(null)));
+        var accept = Ui.Button("Open project", () => window.Close(input.Text?.Trim() is { Length: > 0 } path ? path : null));
+        accept.Name = "OpenProjectPathSubmit"; accept.IsDefault = true; buttons.Children.Add(accept);
+        window.Opened += (_, _) => input.Focus();
+        return await window.ShowDialog<string?>(owner);
+    }
+
     public static async Task<bool> Confirm(Window owner, string title, string explanation, string confirmLabel = "Remove worktree")
     {
         var window = Create(title, 520, 240);

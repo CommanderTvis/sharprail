@@ -393,14 +393,16 @@ public sealed class MarkdownPreview : ScrollViewer, IDisposable
         loadedImages.Clear();
     }
 
-    public static SelectableTextBlock Code(string text, bool diff = false)
+    public static SelectableTextBlock Code(string text, bool diff = false, double wrapWidth = double.PositiveInfinity)
     {
         var block = new SelectableTextBlock
         {
             FontFamily = Ui.CodeFont,
             FontSize = 13,
             Foreground = Ui.TextBrush,
-            TextWrapping = TextWrapping.NoWrap,
+            TextWrapping = diff ? TextWrapping.Wrap : TextWrapping.NoWrap,
+            MaxWidth = wrapWidth,
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left,
             LineHeight = 21
         };
         foreach (var line in text.Split('\n'))

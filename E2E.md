@@ -14,6 +14,13 @@ The initial upstream AI chat tab is omitted from document counts.
 Terminal docking cases create a terminal tab through the pane menu in headless mode
 before following upstream's gestures. This verifies pane chrome and body identity;
 it does not prove automatic initial terminal provisioning or terminal execution.
+Project picker cases inject a fake folder picker (the platform dialog is native); the
+non-git case initialises through the host `init` action, which also records an empty
+first commit. Rail expansion is checked after activating the first project's default
+workspace, because only the active project lists its workspaces. Same-id terminal
+bodies are provoked by opening one terminal tab id in two workspaces through the
+layout API. The Local GitHub case empties `PATH` so the real `gh` probe degrades. The
+long-line diff case asserts wrapping of the unified diff's removed and added lines.
 Native shell execution and Metal presentation have separate checks in
 `scripts/check-terminal.sh` and `SharpRail.Checks --native-terminal`.
 The upstream one-pixel PNG has an invalid IDAT checksum and truncated compressed
@@ -76,27 +83,27 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `layout.spec.ts` | a local transition during a side resize cancels the gesture and says so | Ported |
 | `layout.spec.ts` | a tab drag reveals every valid destination subtly, then emphasizes the one under the pointer | Ported |
 | `layout.spec.ts` | the hidden bottom drop zone wins overlapping terminal targets and reveals its frame group | Ported |
-| `projects.spec.ts` | opens a git repo as a project via the directory picker | Pending |
-| `projects.spec.ts` | opens a project from an explicit host path | Pending |
-| `projects.spec.ts` | picker failure falls back to host-path entry on every host platform | Pending |
-| `projects.spec.ts` | manual path from the rail supersedes a picker started from Welcome | Pending |
-| `projects.spec.ts` | opening a non-git folder offers to initialise a repo, then opens it end-to-end | Pending |
+| `projects.spec.ts` | opens a git repo as a project via the directory picker | Ported |
+| `projects.spec.ts` | opens a project from an explicit host path | Ported |
+| `projects.spec.ts` | picker failure falls back to host-path entry on every host platform | Ported |
+| `projects.spec.ts` | manual path from the rail supersedes a picker started from Welcome | Ported |
+| `projects.spec.ts` | opening a non-git folder offers to initialise a repo, then opens it end-to-end | Ported |
 | `projects.spec.ts` | rail expansion is per-browser view state that survives a reload | Ported |
-| `projects.spec.ts` | activating a workspace in one project keeps the other project's rail expansion | Pending |
-| `projects.spec.ts` | project context actions stay compact and close/reopen is lossless across clients | Pending |
+| `projects.spec.ts` | activating a workspace in one project keeps the other project's rail expansion | Ported |
+| `projects.spec.ts` | project context actions stay compact and close/reopen is lossless across clients | Pending: needs a second synchronised client, the project context menu with keyboard and touch gestures, a close-project confirmation and a recents menu, none of which exist |
 | `workspace-tabs.spec.ts` | editor tabs are scoped to the active workspace | Ported |
 | `workspace-tabs.spec.ts` | the selected side tool follows workspace switches | Ported |
 | `workspace-tabs.spec.ts` | switching workspaces re-targets the mounted workbench instead of remounting it | Ported |
-| `workspace-tabs.spec.ts` | a same-id terminal body remounts instead of carrying across workspaces | Pending: macOS terminals are now in scope |
+| `workspace-tabs.spec.ts` | a same-id terminal body remounts instead of carrying across workspaces | Ported |
 | `theme.spec.ts` | appearance switches a discovered theme and persists it across reload | Ported |
 | `theme.spec.ts` | system mode follows each client and retains its explicit pair | Pending |
 | `theme.spec.ts` | Monaco opens files and re-themes under every discovered manifest | Excluded: functional editor/terminal or AI |
 | `theme.spec.ts` | selected workspace tabs keep their surface and edge marker in high contrast | Pending |
-| `line-width-settings.spec.ts` | line-width controls validate drafts, converge on broadcasts, and persist | Pending |
+| `line-width-settings.spec.ts` | line-width controls validate drafts, converge on broadcasts, and persist | Pending: the app has one auto-saving preview-width control; draft validation with Save, chat measure and settings broadcasts between clients are absent |
 | `line-width-settings.spec.ts` | the file width wraps source and updates an already-mounted editor | Excluded: functional editor/terminal or AI |
-| `line-width-settings.spec.ts` | the default file width wraps both sides of a long-line diff | Pending |
+| `line-width-settings.spec.ts` | the default file width wraps both sides of a long-line diff | Ported |
 | `line-width-settings.spec.ts` | chat uses the selected measure and optionally exceeds a narrow pane | Excluded: functional editor/terminal or AI |
-| `settings.spec.ts` | settings shows the Local GitHub status block and degrades gh gracefully | Pending |
+| `settings.spec.ts` | settings shows the Local GitHub status block and degrades gh gracefully | Ported |
 | `changes.spec.ts` | Changes tab shows the active worktree's diff and swaps per workspace | Pending |
 | `changes.spec.ts` | Rendered markdown diff of a large repetitive file never blocks the main thread | Pending |
 | `changes.spec.ts` | Rendered markdown diff shows an error placeholder when the merge worker fails | Pending |

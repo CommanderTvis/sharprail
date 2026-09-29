@@ -18,12 +18,17 @@ public sealed partial class SettingsWindow : Window
     private readonly ProfileStore profile;
     private readonly LayoutSession layout;
     private readonly Action apply;
+    private readonly Func<CancellationToken, Task<GitHubStatus>> gitHub;
+    private readonly CancellationTokenSource lifetime = new();
     private readonly ContentControl body;
     private readonly Dictionary<string, Button> navigation = [];
     private string section = "Appearance";
-    public SettingsWindow(ProfileStore profile, LayoutSession layout, Action apply)
+    public SettingsWindow(ProfileStore profile, LayoutSession layout, Action apply,
+        Func<CancellationToken, Task<GitHubStatus>>? gitHub = null)
     {
         this.profile = profile; this.layout = layout; this.apply = apply;
+        this.gitHub = gitHub ?? GitHubProbe.CheckAsync;
+        Closed += (_, _) => lifetime.Cancel();
         Name = "SettingsWindow";
         AvaloniaXamlLoader.Load(this);
         body = this.FindControl<ContentControl>("SettingsBody")!;
@@ -33,7 +38,7 @@ public sealed partial class SettingsWindow : Window
         close.Click += (_, _) => Close();
         close.Resources["ButtonBackgroundPointerOver"] = Ui.Hover;
         close.Resources["ButtonBackgroundPressed"] = Ui.Hover;
-        foreach (var item in new[] { ("Appearance", "palette"), ("Line width", "fileText"), ("Layout", "layout"), ("Projects", "folderTab") })
+        foreach (var item in new[] { ("Appearance", "palette"), ("Line width", "fileText"), ("Layout", "layout"), ("Projects", "folderTab"), ("GitHub", "gitBranch") })
         {
             var button = this.FindControl<Button>("Settings_" + item.Item1.Replace(' ', '_'))!;
             button.Content = Ui.Row(item.Item2, item.Item1);
@@ -59,7 +64,7 @@ public sealed partial class SettingsWindow : Window
             foreach (var text in ((StackPanel)entry.Value.Content!).Children.OfType<TextBlock>()) text.Foreground = active ? Ui.Accent : Ui.Muted;
             ((Border)((StackPanel)entry.Value.Content!).Children[0]).Background = active ? Ui.Accent : Ui.Muted;
         }
-        body.Content = name switch { "Line width" => LineWidth(), "Layout" => LayoutSettings(), "Projects" => ProjectSettings(), _ => Appearance() };
+        body.Content = name switch { "Line width" => LineWidth(), "Layout" => LayoutSettings(), "Projects" => ProjectSettings(), "GitHub" => GitHubSettings(), _ => Appearance() };
     }
 
     private void Save()
@@ -205,6 +210,32 @@ public sealed partial class SettingsWindow : Window
             { profile.Data.Projects.Remove(path); Save(); ShowSection(section); }), 0, 1);
             recent.Children.Add(row);
         }
+        return panel;
+    }
+
+    private Control GitHubSettings()
+    {
+        var panel = Page("GitHubPage");
+        var status = PageControl<StackPanel>(panel, "GitHubStatus");
+        var text = PageControl<TextBlock>(panel, "GitHubStatusText");
+        var detail = PageControl<TextBlock>(panel, "GitHubStatusDetail");
+        var refresh = Ui.Button("Refresh", () => { });
+        refresh.Name = "GitHubRefresh";
+        PageControl<ContentControl>(panel, "GitHubRefreshHost").Content = refresh;
+        async Task Check()
+        {
+            refresh.IsEnabled = false;
+            GitHubStatus result;
+            try { result = await gitHub(lifetime.Token); }
+            catch (OperationCanceledException) { return; }
+            catch (Exception error) { result = new(false, error.Message); }
+            status.Tag = result.Connected;
+            text.Text = result.Connected ? "Connected" : "Not connected";
+            detail.Text = result.Detail;
+            refresh.IsEnabled = true;
+        }
+        refresh.Click += async (_, _) => await Check();
+        _ = Check();
         return panel;
     }
 }

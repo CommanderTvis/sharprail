@@ -43,6 +43,7 @@ public sealed partial class WorkbenchWindow : Window
     public bool WorkspaceMounted { get; private set; }
     public string WorkspaceRoot => workspaceRoot;
     public Preferences Preferences => profile.Data.Preferences;
+    public Func<CancellationToken, Task<GitHubStatus>>? GitHubStatusProbe { get; set; }
 
     public WorkbenchWindow(IProjectServices host, string rootPath, ProfileStore profile, bool remote = false)
     {
@@ -233,9 +234,9 @@ public sealed partial class WorkbenchWindow : Window
             else
                 content = new ScrollViewer
                 {
-                    Content = MarkdownPreview.Code(document.Text, tab.Kind == "diff"),
+                    Content = MarkdownPreview.Code(document.Text, tab.Kind == "diff", Preferences.BoundPreviewWidth ? Preferences.PreviewWidth : double.PositiveInfinity),
                     Margin = new Thickness(20),
-                    HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto
+                    HorizontalScrollBarVisibility = tab.Kind == "diff" ? Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled : Avalonia.Controls.Primitives.ScrollBarVisibility.Auto
                 };
             documentContent[key] = content; return content;
         }
@@ -339,7 +340,7 @@ public sealed partial class WorkbenchWindow : Window
         {
             ApplyAppearance(); ClearDocumentContent(preserveTerminals: true); toolContent.Clear(); surface.RefreshContents();
             ReportProfileError();
-        });
+        }, GitHubStatusProbe);
         settings.Closed += (_, _) => root.Children.Remove(scrim);
         _ = settings.ShowDialog(this);
     }

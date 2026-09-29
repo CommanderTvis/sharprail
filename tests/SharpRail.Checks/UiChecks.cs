@@ -86,6 +86,10 @@ internal static class UiChecks
         E2E.ChangesE2E.Run(Path.Combine(root, "upstream-e2e"));
         E2E.WorkspaceTabsE2E.Run(Path.Combine(root, "upstream-e2e"));
         E2E.ProjectsE2E.Run(Path.Combine(root, "upstream-e2e"));
+        E2E.ProjectPickerE2E.Run(Path.Combine(root, "upstream-e2e"));
+        E2E.SettingsGitHubE2E.Run(Path.Combine(root, "upstream-e2e"));
+        E2E.LineWidthE2E.Run(Path.Combine(root, "upstream-e2e"));
+        E2E.TerminalRemountE2E.Run(Path.Combine(root, "upstream-e2e"));
         E2E.PreviewTabsE2E.Run(Path.Combine(root, "upstream-e2e"));
         E2E.MarkdownLinksE2E.Run(Path.Combine(root, "upstream-e2e"));
         E2E.MarkdownAlertsE2E.Run(Path.Combine(root, "upstream-e2e"));
