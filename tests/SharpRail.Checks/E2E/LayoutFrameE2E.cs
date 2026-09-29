@@ -243,7 +243,7 @@ internal static class LayoutFrameE2E
         var resized = Width(app, "right");
         app.Window.KeyPress(Key.J, Command | RawInputModifiers.Shift, PhysicalKey.J, null); Settle();
         Require(!app.Window.Layout.State.BottomVisible, "Mod+Shift+J must hide the bottom panel.");
-        WorkspaceTabsE2E.CreateWorkspace(app, "frame-second");
+        WorkspaceTabsE2E.CreateWorkspace(app, "workspace-1");
         Require(app.Tabs.Count == 0 && !app.Window.Layout.State.BottomVisible && Math.Abs(Width(app, "right") - resized) < 1,
             "A new workspace must inherit the local frame without the first workspace's document tabs.");
         WorkspaceTabsE2E.Switch(app, app.Root);

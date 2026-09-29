@@ -319,27 +319,6 @@ public sealed partial class WorkbenchWindow
         catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
     }
 
-    private async Task CreateWorktreeAsync()
-    {
-        var values = await Dialogs.Prompt(this, "Create worktree",
-            ("Directory path", projectRoot + "-worktree"), ("New branch", ""), ("Base branch", git.Branch.Length > 0 ? git.Branch : "HEAD"));
-        if (values is null) return;
-        gitRefresh?.Cancel();
-        try
-        {
-            git = await host.ApplyGitActionAsync(new("create-worktree", values[0], values[1], values[2]), lifetime.Token);
-            if (values[2].Length > 0 && values[2] != "HEAD") profile.Data.GitSelections[values[0]] = new(values[2], "All changes", null);
-            await OpenWorkspaceAsync(values[0], false);
-        }
-        catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
-    }
-
-    private async Task RemoveWorktreeAsync(WorktreeInfo worktree)
-    {
-        if (!await Dialogs.Confirm(this, "Remove worktree?", $"Remove {worktree.Path}? Git will refuse if it has uncommitted changes. The branch will be retained.")) return;
-        await GitActionAsync(new("remove-worktree", worktree.Path));
-    }
-
     private Control ReviewPanel()
     {
         var panel = new StackPanel { Margin = new Thickness(16), Spacing = 12, Name = "ReviewPanel" };

@@ -58,6 +58,14 @@ internal static class Program
             Console.WriteLine("PASS terminal checks");
             return;
         }
+        if (args.SequenceEqual(["--workspaces"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            UiChecks.RunWorkspaceSuites(Path.Combine(root, "upstream-e2e"));
+            Console.WriteLine("PASS workspace and project E2E checks");
+            return;
+        }
         CheckHosts(root).GetAwaiter().GetResult();
         TerminalHostChecks.Run(root).GetAwaiter().GetResult();
         ProjectChecks.Run(root).GetAwaiter().GetResult();

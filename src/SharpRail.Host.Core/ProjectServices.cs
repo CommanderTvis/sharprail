@@ -46,11 +46,29 @@ public sealed partial class ProjectServices(string initialRoot) : IProjectServic
             var info = new FileInfo(entry);
             if (info.LinkTarget is not null) continue;
             var name = Path.GetFileName(entry);
-            if (name is ".git" or ".sharprail" or ".tools") continue;
-            files.Add(new(Path.GetRelativePath(currentRoot, entry), name, Directory.Exists(entry)));
+            if (Hidden(name)) continue;
+            var path = entry;
+            var isDirectory = Directory.Exists(entry);
+            while (isDirectory && SingleChildDirectory(path) is { } child)
+            {
+                path = child; name += "/" + Path.GetFileName(child);
+            }
+            files.Add(new(Path.GetRelativePath(currentRoot, path), name, isDirectory));
         }
         return ValueTask.FromResult<IReadOnlyList<ProjectFile>>(files.OrderByDescending(file => file.IsDirectory)
             .ThenBy(file => file.Name, StringComparer.OrdinalIgnoreCase).ToArray());
+    }
+
+    private static bool Hidden(string name) => name is ".git" or ".sharprail" or ".tools";
+
+    private static string? SingleChildDirectory(string directory)
+    {
+        try
+        {
+            var children = Directory.EnumerateFileSystemEntries(directory).Where(child => !Hidden(Path.GetFileName(child))).Take(2).ToArray();
+            return children.Length == 1 && Directory.Exists(children[0]) && new FileInfo(children[0]).LinkTarget is null ? children[0] : null;
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { return null; }
     }
 
     public async ValueTask<FileDocument> ReadFileAsync(string relativePath, CancellationToken cancellationToken = default)
@@ -197,6 +215,7 @@ public sealed partial class ProjectServices(string initialRoot) : IProjectServic
                     }
                     break;
                 case "create-worktree":
+                    await FetchRemoteAsync(currentRoot, action.BaseBranch, cancellationToken);
                     if (string.IsNullOrWhiteSpace(action.Branch)) throw new ArgumentException("Enter a new branch name.");
                     await GitRepository.RunAsync(currentRoot, cancellationToken, "check-ref-format", "--branch", action.Branch);
                     await GitRepository.RunAsync(currentRoot, cancellationToken, "rev-parse", "--verify", "--end-of-options", action.BaseBranch + "^{commit}");

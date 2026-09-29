@@ -23,7 +23,7 @@ internal sealed class E2eWorkspace : IDisposable
     internal IReadOnlyList<DockTab> Tabs => Window.Layout.Tabs(Center);
     internal string Root { get; }
 
-    internal E2eWorkspace(string root, bool openFiles = true, string? profileRoot = null, E2eTerminals? terminals = null)
+    internal E2eWorkspace(string root, bool openFiles = true, string? profileRoot = null, E2eTerminals? terminals = null, string? startPath = null, Action<E2eHost>? prepare = null)
     {
         Root = root;
         Directory.CreateDirectory(root);
@@ -40,9 +40,12 @@ internal sealed class E2eWorkspace : IDisposable
         File.WriteAllText(Path.Combine(root, "themes", "SPEC.md"), "# Theme spec target\n\nReached through a parent-relative Markdown link.\n");
         File.WriteAllBytes(Path.Combine(root, "logo.png"), Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGP4DwQACfsD/fteaysAAAAASUVORK5CYII="));
         Host = new(new ProjectServices(root));
+        prepare?.Invoke(Host);
         Terminals = terminals ?? new();
-        Window = new(Host, root, new ProfileStore(profileRoot ?? root + "-profile"), Terminals.Factory) { Width = 1352, Height = 848 };
-        Window.Show(); Until(() => Window.WorkspaceMounted);
+        Window = new(Host, startPath ?? root, new ProfileStore(profileRoot ?? root + "-profile"), Terminals.Factory) { Width = 1352, Height = 848 };
+        Window.Show();
+        if (startPath is not null) return;
+        Until(() => Window.WorkspaceMounted);
         if (openFiles) Click(Find<Button>("Tab_files"));
     }
 
@@ -97,6 +100,7 @@ internal sealed class E2eWorkspace : IDisposable
     internal void Click(Control control, bool twice = false, bool freshGesture = true, MouseButton mouseButton = MouseButton.Left)
     {
         var name = control.Name;
+        var tag = control.Tag;
         var owner = control.GetLogicalAncestors().OfType<Control>().FirstOrDefault(item => item.Name?.StartsWith("DockTab_", StringComparison.Ordinal) == true)?.Name;
         var filePath = control.GetLogicalAncestors().OfType<TreeViewItem>().Select(item => item.Tag).OfType<ProjectFile>().FirstOrDefault()?.Path;
         if (freshGesture)
@@ -107,6 +111,11 @@ internal sealed class E2eWorkspace : IDisposable
         if (TopLevel.GetTopLevel(control) is null)
         {
             if (name is not null && owner is not null) control = Find<Control>(owner).GetLogicalDescendants().OfType<Control>().Single(item => item.Name == name);
+            else if (name is not null && tag is not null)
+            {
+                Dispatcher.UIThread.RunJobs(); Window.UpdateLayout();
+                control = Window.GetLogicalDescendants().OfType<Control>().Single(item => item.Name == name && Equals(item.Tag, tag));
+            }
             else if (name is not null) control = Find<Control>(name);
             else if (filePath is not null) control = FileRow(filePath);
         }
@@ -152,6 +161,8 @@ internal sealed class E2eWorkspace : IDisposable
 internal sealed class E2eHost(IProjectServices inner) : IProjectServices
 {
     private readonly Dictionary<string, TaskCompletionSource> gates = [];
+    private TaskCompletionSource? openGate;
+    internal TaskCompletionSource HoldOpen() => openGate = new(TaskCreationOptions.RunContinuationsAsynchronously);
     internal Dictionary<string, int> Reads { get; } = [];
     internal TaskCompletionSource Hold(string path)
     {
@@ -167,7 +178,13 @@ internal sealed class E2eHost(IProjectServices inner) : IProjectServices
         return document;
     }
     public ValueTask SaveFileAsync(FileSaveRequest request, CancellationToken ct = default) => inner.SaveFileAsync(request, ct);
-    public ValueTask<WorkspaceInfo> OpenProjectAsync(string path, CancellationToken ct = default) => inner.OpenProjectAsync(path, ct);
+    public async ValueTask<WorkspaceInfo> OpenProjectAsync(string path, CancellationToken ct = default)
+    {
+        var gate = openGate; openGate = null;
+        var workspace = await inner.OpenProjectAsync(path, ct);
+        if (gate is not null) await gate.Task.WaitAsync(ct);
+        return workspace;
+    }
     public ValueTask<IReadOnlyList<ProjectFile>> ListFilesAsync(string path, CancellationToken ct = default) => inner.ListFilesAsync(path, ct);
     public ValueTask<IReadOnlyList<SpecDocument>> ListSpecsAsync(CancellationToken ct = default) => inner.ListSpecsAsync(ct);
     public ValueTask<IReadOnlyList<GitCommit>> ListCommitsAsync(string comparison, CancellationToken ct = default) => inner.ListCommitsAsync(comparison, ct);
@@ -175,4 +192,7 @@ internal sealed class E2eHost(IProjectServices inner) : IProjectServices
     public ValueTask<string> GetDiffAsync(string path, string scope, string comparison = "", CancellationToken ct = default) => inner.GetDiffAsync(path, scope, comparison, ct);
     public ValueTask<DiffSides> GetDiffSidesAsync(string path, string scope, string comparison = "", CancellationToken ct = default) => inner.GetDiffSidesAsync(path, scope, comparison, ct);
     public ValueTask<GitSnapshot> ApplyGitActionAsync(GitAction action, CancellationToken ct = default) => inner.ApplyGitActionAsync(action, ct);
+    public ValueTask<BranchCatalog> ListBranchesAsync(bool fetchDefault, CancellationToken ct = default) => inner.ListBranchesAsync(fetchDefault, ct);
+    public ValueTask<IReadOnlyList<EditorInfo>> ListEditorsAsync(CancellationToken ct = default) => inner.ListEditorsAsync(ct);
+    public ValueTask OpenInEditorAsync(string editorId, string worktreePath, CancellationToken ct = default) => inner.OpenInEditorAsync(editorId, worktreePath, ct);
 }

@@ -70,6 +70,21 @@ internal static class UiChecks
         Dispatcher.UIThread.RunJobs();
     }
 
+    internal static void RunWorkspaceSuites(string root)
+    {
+        E2E.ProjectsE2E.Run(root);
+        E2E.ProjectPickerE2E.Run(root);
+        E2E.NewWorkspaceShortcutE2E.Run(root);
+        E2E.WorkspaceActionsE2E.Run(root);
+        E2E.WelcomeE2E.Run(root);
+        E2E.DefaultWorkspaceE2E.Run(root);
+        E2E.WorkspaceLifecycleE2E.Run(root);
+        E2E.NewWorkspaceE2E.Run(root);
+        E2E.ReloadNavigationE2E.Run(root);
+        E2E.FilesE2E.Run(root);
+        E2E.ProjectContextE2E.Run(root);
+    }
+
     public static void Run(string root)
     {
         AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
@@ -92,8 +107,7 @@ internal static class UiChecks
         E2E.RenderedDiffE2E.Run(Path.Combine(root, "upstream-e2e"));
         E2E.LiveRefreshE2E.Run(Path.Combine(root, "upstream-e2e"));
         E2E.WorkspaceTabsE2E.Run(Path.Combine(root, "upstream-e2e"));
-        E2E.ProjectsE2E.Run(Path.Combine(root, "upstream-e2e"));
-        E2E.ProjectPickerE2E.Run(Path.Combine(root, "upstream-e2e"));
+        RunWorkspaceSuites(Path.Combine(root, "upstream-e2e"));
         E2E.SettingsGitHubE2E.Run(Path.Combine(root, "upstream-e2e"));
         E2E.LineWidthE2E.Run(Path.Combine(root, "upstream-e2e"));
         E2E.TerminalRemountE2E.Run(Path.Combine(root, "upstream-e2e"));

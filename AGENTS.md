@@ -80,6 +80,7 @@ The workbench is split into partial files rather than separate window classes:
 | `WorkbenchWindow.axaml` / `WorkbenchWindow.cs` | Static window frame, startup, workspace switching and workbench composition. |
 | `DocumentNavigation.cs` / `DocumentCache.cs` | Opening/restoring documents, navigation and cached document-control lifetime. |
 | `ProjectPanels.cs` | Files, Specs and Projects panel construction and project actions. |
+| `ProjectHome.cs` | Startup routing, Welcome/Project Home, project context actions, the Create workspace flow and workspace row actions. |
 | `GitPanels.cs` / `ChangesTree.cs` / `WorkspaceGit.cs` | Git panel controls, compact change-tree projection and cancellable, workspace-scoped snapshot refreshes. |
 | `GestureNotification.cs` | Feedback when layout transitions cancel an active gesture. |
 | `TerminalTabs.cs` | Confirmation before closing terminals that run a foreground process. |

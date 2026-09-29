@@ -25,6 +25,9 @@ workspace, because only the active project lists its workspaces. Same-id termina
 bodies are provoked by opening one terminal tab id in two workspaces through the
 layout API, because generated terminal ids never repeat. The
 Local GitHub case empties `PATH` so the real `gh` probe degrades.
+Workspace suites commit the sample project and click its project row to reach Project
+Home, where upstream's `openFixtureProject` lands. A reload closes the window and opens
+a new one on the same profile; the profile's last location stands in for the URL route.
 Native shell execution, Metal presentation, Mod+Shift+J from a focused Ghostty view and
 remote Ghostty tabs relayed to a gRPC host PTY have separate checks in
 `scripts/check-terminal.sh` and `SharpRail.Checks --native-terminal`.
@@ -101,7 +104,56 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `projects.spec.ts` | opening a non-git folder offers to initialise a repo, then opens it end-to-end | Ported |
 | `projects.spec.ts` | rail expansion is per-browser view state that survives a reload | Ported |
 | `projects.spec.ts` | activating a workspace in one project keeps the other project's rail expansion | Ported |
-| `projects.spec.ts` | project context actions stay compact and close/reopen is lossless across clients | Pending: needs a second synchronised client, the project context menu with keyboard and touch gestures, a close-project confirmation and a recents menu, none of which exist |
+| `projects.spec.ts` | project context actions stay compact and close/reopen is lossless across clients | Ported (single window: the observer-window assertions wait for multi-client sync, touch long-press has no desktop input, and the menu has no Open existing worktree entry) |
+| `new-workspace-shortcut.spec.ts` | Mod+N opens the Create workspace dialog for the selected project from the Welcome screen, and Escape closes it | Ported |
+| `new-workspace-shortcut.spec.ts` | The Mod+Alt+N alias opens the same dialog and Mod+Shift+N does not | Ported |
+| `new-workspace-shortcut.spec.ts` | Mod+N works inside an active workspace | Ported |
+| `workspace-actions.spec.ts` | Open in launches the detected editor detached at the worktree path | Ported (a stub `code` on `PATH` records its argument) |
+| `workspace-actions.spec.ts` | Copy path copies the worktree's absolute path to the clipboard | Ported |
+| `workspace-actions.spec.ts` | a managed workspace can rename its display label inline without changing Git | Ported |
+| `workspace-actions.spec.ts` | an open inline rename survives reconnect | Pending: labels are client-profile state with no host round-trip, so a dropped transport cannot interrupt a rename; the case becomes observable with multi-client label sync |
+| `workspace-actions.spec.ts` | the Default workspace's kebab menu offers only non-mutating actions | Ported |
+| `workspace-actions.spec.ts` | right-click opens the workspace's kebab menu without activating it | Ported |
+| `workspace-actions.spec.ts` | the kebab is hover-only ONLY on devices that actually have hover — never invisible by default | Ported (Avalonia has no hover media query; asserts opacity 0 at rest and 1 on row hover) |
+| `welcome.spec.ts` | opens a clean ThinkRail with no projects imported | Ported (the title is SharpRail; the side tool frame stays, empty) |
+| `welcome.spec.ts` | the Welcome provider warning only shows when no provider is connected, and opens Settings | Excluded: AI providers |
+| `welcome.spec.ts` | Settings → Providers lists in-app auth options | Excluded: AI providers |
+| `welcome.spec.ts` | a real provider's API key round-trips through the login dialog (add in Settings, sign out) | Excluded: AI providers |
+| `welcome.spec.ts` | clicking Sign in (Settings) opens the in-app login dialog, and Cancel dismisses it | Excluded: AI providers |
+| `welcome.spec.ts` | Settings → Providers offers JetBrains AI with host-authoritative Central guidance | Excluded: AI providers |
+| `welcome.spec.ts` | a project with specs offers Start building over Set up, beside the project-folder fork | Ported (non-AI assertions: Project home context and the single Work in project folder fork; Start building opens an AI chat, so Create workspace is the call to action) |
+| `welcome.spec.ts` | a project without specs suggests setting it up | Excluded: Set up project pre-fills the setting-up-a-project AI skill prompt; the dialog's project-folder path is covered by the new-workspace folder-mode case |
+| `welcome.spec.ts` | opening a non-git folder from the Welcome screen offers to initialise a repo | Ported (the Set up project call to action is AI and omitted) |
+| `welcome.spec.ts` | clicking a project returns to its Welcome, deselecting the active workspace | Ported |
+| `default-workspace.spec.ts` | the Welcome fork's “Work in project folder” enters the Default workspace — the project folder itself | Ported (the terminal `pwd` step is omitted: headless checks do not execute shells) |
+| `default-workspace.spec.ts` | a terminal branch switch converges every Default branch label live | Ported (the fixture switches branch with Git directly instead of through an embedded terminal) |
+| `default-workspace.spec.ts` | the Default workspace is non-removable and unique; project home stays reachable | Ported |
+| `workspaces.spec.ts` | opens and safely forgets an existing user-owned worktree | Pending: SharpRail lists every Git worktree from `git worktree list`; there is no Open existing worktree dialog or adopt/forget registry for user-owned checkouts |
+| `workspaces.spec.ts` | an attached worktree cannot also be opened as a project | Pending: opening a linked worktree resolves to its owning project rather than reporting a conflict; needs the external-worktree registry above |
+| `workspaces.spec.ts` | creates, removes, and re-creates worktree workspaces (no branch collision) | Ported |
+| `new-workspace.spec.ts` | the dialog lists local branches (no stray origin) and creates a worktree | Ported (the model/effort selectors and initial chat tab are AI and omitted) |
+| `new-workspace.spec.ts` | folder-mode Start with an empty prompt lands in a fresh chat in the Default workspace | Ported (Start lands in the Default workspace; no chat is created) |
+| `new-workspace.spec.ts` | a project's committed skills are gated behind trust, then autocomplete | Excluded: AI skills |
+| `new-workspace.spec.ts` | the start prompt shares template completion and slot behavior without live-only commands | Excluded: AI start prompt |
+| `new-workspace.spec.ts` | Enter in the prompt creates; Shift+Enter inserts a newline | Ported (the start prompt is AI, so Enter in the dialog creates; there is no multiline field for Shift+Enter) |
+| `new-workspace.spec.ts` | a base whose fetch fails reports git's error, not a request timeout | Ported |
+| `new-workspace.spec.ts` | the branch picker groups by host-supplied remotes and creates from the selected ref | Ported |
+| `new-workspace.spec.ts` | opening New Workspace prefetches a stale default before create | Ported |
+| `new-workspace.spec.ts` | opening New Workspace prefetches a missing default tracking ref | Ported |
+| `new-workspace.spec.ts` | a pasted image in the workspace dialog rides along into the first chat turn | Excluded: AI chat |
+| `workspace-lifecycle.spec.ts` | workspace removal propagates — no zombie row in a second tab | Pending: multi-client sync |
+| `workspace-lifecycle.spec.ts` | workspace rename propagates live and rehydrates a tab that missed a later snapshot | Pending: multi-client sync |
+| `workspace-lifecycle.spec.ts` | removing the active workspace restores the previously selected workspace | Ported |
+| `workspace-lifecycle.spec.ts` | workspace creation propagates to a second tab's rail | Pending: multi-client sync |
+| `reload-navigation.spec.ts` | reloading from the older of two chats returns to that exact chat without rail clicks | Excluded: AI chat |
+| `reload-navigation.spec.ts` | a directly opened exact-chat fragment restores that chat; two tabs keep independent routes | Excluded: AI chat |
+| `reload-navigation.spec.ts` | missing chat, workspace, and project fall back to the nearest valid location | Ported (the chat step is omitted; the profile's last location stands in for the URL) |
+| `reload-navigation.spec.ts` | a transient workspace read failure preserves the URL and restores after reconnect | Pending: startup restore does not retry a failed host read after reconnecting |
+| `reload-navigation.spec.ts` | a failed exact-chat transcript waits for reconnect instead of duplicating its read | Excluded: AI chat |
+| `reload-navigation.spec.ts` | user navigation while the restore read is delayed wins over the late response | Ported (the held read is the startup project open) |
+| `reload-navigation.spec.ts` | reload from a file tab restores its shared placement under the workspace route | Ported |
+| `reload-navigation.spec.ts` | workspace rows still list after a reload restore (the light list is complete) | Ported |
+| `files.spec.ts` | shows files and compacts single-directory runs in the Files tree | Ported |
 | `editor.spec.ts` | opens a file in a center Monaco tab, focuses on re-open, and closes | Ported (Markdown source is SharpRail's read-only source view; the ready placeholder omits chats) |
 | `editor.spec.ts` | hides YAML frontmatter in the rendered view but shows it in source | Ported |
 | `editor.spec.ts` | opens a non-markdown file straight to Monaco with no rendered-view toggle | Ported (macOS Scintilla) |
@@ -115,7 +167,7 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `terminals.spec.ts` | terminals are workspace-scoped and survive workspace switches | Ported |
 | `terminals.spec.ts` | multiple terminals per workspace keep independent buffers and can be closed | Ported |
 | `terminals.spec.ts` | the terminal's shell counts characters, not bytes | Ported |
-| `terminals.spec.ts` | a shell survives a trip to Project Home and back | Ported (SharpRail has no Project Home page; the project's default workspace unmounts the worktree's terminal instead) |
+| `terminals.spec.ts` | a shell survives a trip to Project Home and back | Ported (the test leaves through the project's default workspace, which also unmounts the worktree's terminal; the Project Home route is not exercised yet) |
 | `terminals.spec.ts` | historical terminal queries do not become input on remount | Excluded: SharpRail keeps the live terminal surface across remounts instead of replaying output into a new emulator, so no replayed query can answer itself |
 | `terminals.spec.ts` | rapid re-entry never spawns a second shell | Ported |
 | `terminals.spec.ts` | a shell survives a page reload | Pending: a session lives as long as its window (local) or its gRPC stream (remote); reattaching after a restart needs host-owned sessions, which arrive with multi-client sync |

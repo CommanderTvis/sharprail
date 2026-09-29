@@ -25,6 +25,16 @@ public record GitSnapshot(bool IsRepository, string Branch, IReadOnlyList<GitCha
 }
 /// <summary>Whole-file contents on both sides of a diff scope; a missing side is empty.</summary>
 public record DiffSides(string Original, string Modified);
+public record RemoteBranch(string Remote, string Name)
+{
+    public string Ref => Remote + "/" + Name;
+}
+public record BranchCatalog(IReadOnlyList<string> Local, IReadOnlyList<RemoteBranch> Remote, string DefaultBase)
+{
+    public string SuggestedPath { get; init; } = "";
+    public string SuggestedBranch { get; init; } = "";
+}
+public record EditorInfo(string Id, string Label);
 public record GitAction(string Kind, string Path = "", string Branch = "", string BaseBranch = "HEAD");
 
 public interface IProjectServices
@@ -39,4 +49,7 @@ public interface IProjectServices
     ValueTask<string> GetDiffAsync(string path, string scope, string comparisonBranch = "", CancellationToken cancellationToken = default);
     ValueTask<DiffSides> GetDiffSidesAsync(string path, string scope, string comparisonBranch = "", CancellationToken cancellationToken = default);
     ValueTask<GitSnapshot> ApplyGitActionAsync(GitAction action, CancellationToken cancellationToken = default);
+    ValueTask<BranchCatalog> ListBranchesAsync(bool fetchDefault, CancellationToken cancellationToken = default);
+    ValueTask<IReadOnlyList<EditorInfo>> ListEditorsAsync(CancellationToken cancellationToken = default);
+    ValueTask OpenInEditorAsync(string editorId, string worktreePath, CancellationToken cancellationToken = default);
 }

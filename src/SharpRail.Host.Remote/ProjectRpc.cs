@@ -49,6 +49,28 @@ public sealed class ProjectRpc(IProjectServices host) : IProjectRpc
     public ValueTask<GitReply> ApplyGitActionAsync(ProjectRequest request, CallContext context = default)
         => Execute(async () => Map(await host.ApplyGitActionAsync(new(request.Action, request.Path, request.Branch, request.BaseBranch), context.CancellationToken)));
 
+    public ValueTask<BranchesReply> ListBranchesAsync(BranchesRequest request, CallContext context = default) => Execute(async () =>
+    {
+        var result = await host.ListBranchesAsync(request.FetchDefault, context.CancellationToken);
+        return new BranchesReply
+        {
+            Local = result.Local.ToList(),
+            Remote = result.Remote.Select(branch => new RemoteBranchReply { Remote = branch.Remote, Name = branch.Name }).ToList(),
+            DefaultBase = result.DefaultBase,
+            SuggestedPath = result.SuggestedPath,
+            SuggestedBranch = result.SuggestedBranch
+        };
+    });
+
+    public ValueTask<EditorsReply> ListEditorsAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>
+        new EditorsReply { Editors = (await host.ListEditorsAsync(context.CancellationToken)).Select(editor => new EditorReply { Id = editor.Id, Label = editor.Label }).ToList() });
+
+    public ValueTask<SaveFileReply> OpenInEditorAsync(OpenInEditorRequest request, CallContext context = default) => Execute(async () =>
+    {
+        await host.OpenInEditorAsync(request.EditorId, request.WorktreePath, context.CancellationToken);
+        return new SaveFileReply();
+    });
+
     public ValueTask<SaveFileReply> SaveFileAsync(SaveFileRequest request, CallContext context = default) => Execute(async () =>
     {
         await host.SaveFileAsync(new(request.WorkspaceRoot, request.Path, request.OriginalText, request.Text), context.CancellationToken);

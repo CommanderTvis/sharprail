@@ -17,6 +17,8 @@ public sealed partial class WorkbenchWindow
     private async Task BrowseDocumentAsync(string path, bool keep)
     {
         if (!WorkspaceMounted) return;
+        if (atHome) await OpenWorkspaceAsync(projectRoot, false);
+        if (!WorkspaceMounted || atHome) return;
         var navigation = BeginNavigation();
         var identity = (workspaceRoot, path);
         if (browseFlights.TryGetValue(identity, out var pending))

@@ -36,6 +36,10 @@ public sealed class Profile
     public List<string> Projects { get; set; } = [];
     public HashSet<string> CollapsedProjects { get; set; } = [];
     public string LastProject { get; set; } = "";
+    public string LastProjectRoot { get; set; } = "";
+    public bool LastAtHome { get; set; }
+    public List<string> RecentProjects { get; set; } = [];
+    public Dictionary<string, string> WorkspaceLabels { get; set; } = [];
     public Dictionary<string, GitSelection> GitSelections { get; set; } = [];
 }
 
@@ -68,6 +72,11 @@ public sealed class ProfileStore
             Data = File.Exists(path) ? JsonSerializer.Deserialize<Profile>(File.ReadAllText(path)) ?? new() : new();
             Data.Preferences ??= new(); Data.Projects ??= []; Data.LastProject ??= "";
             Data.CollapsedProjects ??= [];
+            Data.LastProjectRoot ??= ""; Data.RecentProjects ??= []; Data.WorkspaceLabels ??= [];
+            Data.RecentProjects.RemoveAll(project => string.IsNullOrWhiteSpace(project) || project.Contains('\0') || !Path.IsPathFullyQualified(project));
+            foreach (var entry in Data.WorkspaceLabels.ToArray())
+                if (!Path.IsPathFullyQualified(entry.Key) || string.IsNullOrWhiteSpace(entry.Value) || entry.Value.Contains('\0'))
+                    Data.WorkspaceLabels.Remove(entry.Key);
             Data.GitSelections ??= [];
             foreach (var entry in Data.GitSelections.ToArray())
             {
@@ -90,6 +99,7 @@ public sealed class ProfileStore
             }
             Data.Projects.RemoveAll(project => string.IsNullOrWhiteSpace(project) || project.Contains('\0') || !Path.IsPathFullyQualified(project));
             if (Data.LastProject.Contains('\0') || Data.LastProject.Length > 0 && !Path.IsPathFullyQualified(Data.LastProject)) Data.LastProject = "";
+            if (Data.LastProjectRoot.Contains('\0') || Data.LastProjectRoot.Length > 0 && !Path.IsPathFullyQualified(Data.LastProjectRoot)) Data.LastProjectRoot = "";
             Data.Preferences.CustomPresets ??= [];
             if (!LayoutSession.IsValid(Data.Layout)) Data.Layout = DockState.Preset("balanced");
             if (!double.IsFinite(Data.Preferences.FontSize) || Data.Preferences.FontSize is < 10 or > 24) Data.Preferences.FontSize = 14;
