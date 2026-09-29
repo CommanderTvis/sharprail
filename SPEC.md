@@ -167,12 +167,19 @@ Projects: native directory picker and explicit host-path dialog (remote);
 recent/open project navigation; per-project workspace/worktree selection;
 persist restored selection. Git: working/staged/untracked/renamed files,
 branch comparison, read-only diffs, refresh and worktree listing/switching.
+Markdown diffs offer the reference's Source|Rendered toggle: Rendered shows one merged
+document with insertions and deletions marked, merged off the UI thread, cancelled when
+the file changes again, and replaced by an error placeholder if the merge fails.
+Worktree changes on disk refresh Files, Specs, Changes, open diffs and open documents
+live; a write storm coalesces into a few refreshes. A clean editor tab reloads in place;
+one with unsaved edits keeps them and reports the conflict when saved.
 Stage/unstage and create/remove worktrees are supported. Removal requires an
 explicit confirmation and Git refuses dirty, active, main or locked worktrees.
 No commits, pushes, Pi or AI integration.
 
-Settings: Thinkrail dialog proportions and styling, live appearance,
-Markdown/document line width, layout presets and limits,
+Settings: Thinkrail dialog proportions and styling, live appearance, separate file
+and Markdown line widths (draft inputs validated to 40–240 symbols and applied with
+Save or Enter), layout presets and limits,
 custom layout capture/reset, bottom alignment, and project preferences.
 No inactive controls pretending to configure out-of-scope providers or chat.
 

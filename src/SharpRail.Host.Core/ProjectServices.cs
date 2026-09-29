@@ -111,6 +111,50 @@ public sealed partial class ProjectServices(string initialRoot) : IProjectServic
         return await GitRepository.RunAsync(currentRoot, cancellationToken, args.ToArray());
     }
 
+    public async ValueTask<DiffSides> GetDiffSidesAsync(string path, string scope, string comparisonBranch = "", CancellationToken cancellationToken = default)
+    {
+        var currentRoot = root;
+        Resolve(currentRoot, path);
+        if (scope is not ("untracked" or "staged" or "working" or "all" or "uncommitted" or "branch" or "commit")) throw new ArgumentException("Unknown diff scope.");
+        async Task<string> Blob(string? revision)
+        {
+            if (revision is null) return "";
+            try { return await GitRepository.RunAsync(currentRoot, cancellationToken, "cat-file", "-p", revision + ":./" + path); }
+            catch (IOException error) when (error.Message.Contains("does not exist", StringComparison.Ordinal) ||
+                error.Message.Contains("exists on disk, but not in", StringComparison.Ordinal))
+            { return ""; }
+        }
+        async Task<string> Working()
+        {
+            try { return (await ReadFileAsync(path, cancellationToken)).Text; }
+            catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException) { return ""; }
+        }
+        async Task<bool> Untracked() =>
+            (await GitRepository.RunAsync(currentRoot, cancellationToken, "ls-files", "--others", "--exclude-standard", "-z", "--", path)).Length > 0;
+        async Task<string?> Head()
+        {
+            try { return (await GitRepository.RunAsync(currentRoot, cancellationToken, "rev-parse", "--verify", "HEAD")).Trim(); }
+            catch (IOException) when (!cancellationToken.IsCancellationRequested) { return null; }
+        }
+        if (scope == "untracked" || (scope is "uncommitted" or "branch") && await Untracked()) return new("", await Working());
+        switch (scope)
+        {
+            case "commit":
+                var (parent, commit) = await GitRepository.CommitRangeAsync(currentRoot, comparisonBranch, cancellationToken);
+                return new(await Blob(parent), await Blob(commit));
+            case "staged":
+                return new(await Blob(await Head()), await Blob(""));
+            case "working":
+                return new(await Blob(""), await Working());
+            case "branch":
+                return new(await Blob(await GitRepository.ComparisonBaseAsync(currentRoot, comparisonBranch, cancellationToken)), await Working());
+            case "uncommitted":
+                return new(await Blob(await Head()), await Working());
+            default:
+                return new(await Blob(await Head() ?? ""), await Working());
+        }
+    }
+
     public async ValueTask<GitSnapshot> ApplyGitActionAsync(GitAction action, CancellationToken cancellationToken = default)
     {
         await mutations.WaitAsync(cancellationToken);

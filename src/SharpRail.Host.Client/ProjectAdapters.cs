@@ -17,6 +17,7 @@ public sealed class LocalProjectAdapter(IProjectServices host) : IProjectService
     public ValueTask<GitSnapshot> GetGitAsync(string comparisonBranch = "", CancellationToken cancellationToken = default, string scope = "all") => host.GetGitAsync(comparisonBranch, cancellationToken, scope);
     public ValueTask<IReadOnlyList<GitCommit>> ListCommitsAsync(string comparisonBranch, CancellationToken cancellationToken = default) => host.ListCommitsAsync(comparisonBranch, cancellationToken);
     public ValueTask<string> GetDiffAsync(string path, string scope, string comparisonBranch = "", CancellationToken cancellationToken = default) => host.GetDiffAsync(path, scope, comparisonBranch, cancellationToken);
+    public ValueTask<DiffSides> GetDiffSidesAsync(string path, string scope, string comparisonBranch = "", CancellationToken cancellationToken = default) => host.GetDiffSidesAsync(path, scope, comparisonBranch, cancellationToken);
     public ValueTask<GitSnapshot> ApplyGitActionAsync(GitAction action, CancellationToken cancellationToken = default) => host.ApplyGitActionAsync(action, cancellationToken);
 }
 
@@ -73,6 +74,12 @@ public sealed class RemoteProjectAdapter : IProjectServices, IDisposable
 
     public async ValueTask<string> GetDiffAsync(string path, string scope, string comparisonBranch = "", CancellationToken cancellationToken = default)
         => (await service.GetDiffAsync(new() { Path = path, Scope = scope, Branch = comparisonBranch }, Context(cancellationToken))).Text;
+
+    public async ValueTask<DiffSides> GetDiffSidesAsync(string path, string scope, string comparisonBranch = "", CancellationToken cancellationToken = default)
+    {
+        var reply = await service.GetDiffSidesAsync(new() { Path = path, Scope = scope, Branch = comparisonBranch }, Context(cancellationToken));
+        return new(reply.Original, reply.Modified);
+    }
 
     public async ValueTask<GitSnapshot> ApplyGitActionAsync(GitAction action, CancellationToken cancellationToken = default)
         => Map(await service.ApplyGitActionAsync(new() { Action = action.Kind, Path = action.Path, Branch = action.Branch, BaseBranch = action.BaseBranch }, Context(cancellationToken)));

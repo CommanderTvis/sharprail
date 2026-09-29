@@ -162,8 +162,8 @@ internal static class EditorE2E
         var wrapped = editor.WrapCount(0);
         var settings = OpenSettings(app);
         settings.ShowSection("Line width");
-        Until(() => settings.GetLogicalDescendants().OfType<NumericUpDown>().Any(input => input.Name == "PreviewWidth"));
-        settings.GetLogicalDescendants().OfType<NumericUpDown>().Single(input => input.Name == "PreviewWidth").Value = 320;
+        Until(() => settings.GetLogicalDescendants().OfType<TextBox>().Any(input => input.Name == "FileLineWidthInput"));
+        LineWidthE2E.SaveWidth(app, settings, "File", 40);
         CloseSettings(settings);
         Until(() => editor.WrapCount(0) > wrapped);
         Require(app.Window.GetLogicalDescendants().OfType<ScintillaEditor>().Contains(editor), "Changing the file width must update the already-mounted editor.");

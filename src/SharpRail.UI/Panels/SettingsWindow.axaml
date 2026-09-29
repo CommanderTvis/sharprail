@@ -34,12 +34,35 @@
       </StackPanel>
     </DataTemplate>
     <DataTemplate x:Key="LineWidthPage">
-      <StackPanel Spacing="8">
-        <TextBlock Text="Line width" Classes="settings-heading" />
-        <TextBlock Text="Control readable Markdown width without changing the pane arrangement." Classes="settings-description" />
-        <CheckBox x:Name="BoundPreviewWidth" Content="Limit preview line width" />
-        <TextBlock Text="Maximum width (logical pixels)" Classes="settings-label" />
-        <NumericUpDown x:Name="PreviewWidth" Minimum="320" Maximum="2400" Increment="40" Width="180" HorizontalAlignment="Left" />
+      <StackPanel Spacing="16">
+        <StackPanel Spacing="8">
+          <TextBlock Text="Line width" Classes="settings-heading" />
+          <TextBlock Text="Set the visual wrap column for source files and rendered Markdown. These preferences are saved in this frontend profile." Classes="settings-description" />
+        </StackPanel>
+        <ContentControl x:Name="FileLineWidthHost" />
+        <ContentControl x:Name="MarkdownLineWidthHost" />
+      </StackPanel>
+    </DataTemplate>
+    <DataTemplate x:Key="LineWidthControl">
+      <StackPanel Spacing="12">
+        <Border Height="1" Background="{x:Static rendering:Ui.BorderBrush}" />
+        <StackPanel Spacing="4">
+          <TextBlock x:Name="LineWidthTitle" Classes="settings-heading" />
+          <TextBlock x:Name="LineWidthDescription" Classes="settings-description" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <StackPanel Spacing="4">
+            <TextBlock Text="Line width" Classes="settings-description" />
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <TextBox x:Name="LineWidthInput" Width="96" />
+              <TextBlock Text="symbols" Classes="settings-description" VerticalAlignment="Center" />
+            </StackPanel>
+          </StackPanel>
+          <Button x:Name="LineWidthSave" Content="Save" VerticalAlignment="Bottom" />
+        </StackPanel>
+        <TextBlock x:Name="LineWidthError" Text="Enter a whole number from 40 to 240." FontSize="12"
+                   Foreground="{x:Static rendering:Ui.Danger}" IsVisible="False" />
+        <CheckBox x:Name="LineWidthBounded" Content="Limit lines to this width" />
       </StackPanel>
     </DataTemplate>
     <DataTemplate x:Key="LayoutPage">
@@ -109,6 +132,12 @@
       <Setter Property="FontSize" Value="12" />
       <Setter Property="Foreground" Value="{x:Static rendering:Ui.Warning}" />
       <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="TextBox.invalid">
+      <Setter Property="BorderBrush" Value="{x:Static rendering:Ui.Danger}" />
+    </Style>
+    <Style Selector="TextBox.invalid:focus /template/ Border#PART_BorderElement, TextBox.invalid:pointerover /template/ Border#PART_BorderElement">
+      <Setter Property="BorderBrush" Value="{x:Static rendering:Ui.Danger}" />
     </Style>
     <Style Selector="Button.settings-navigation">
       <Setter Property="Height" Value="36" />

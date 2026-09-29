@@ -115,7 +115,7 @@ internal static class EditorWorkbenchChecks
     private static void ScrollBars(string root)
     {
         File.WriteAllText(Path.Combine(root, "long.cs"), string.Join('\n', Enumerable.Range(0, 400).Select(line => $"// line {line}")));
-        var window = new WorkbenchWindow(new LocalProjectAdapter(new ProjectServices(root)), root, new ProfileStore(Path.Combine(root, ".scroll-profile")));
+        var window = new WorkbenchWindow(new LocalProjectAdapter(new ProjectServices(root)), root, new ProfileStore(Path.Combine(root, ".scroll-profile")), E2E.E2eTerminals.Plain);
         window.Show(); Pump(() => window.WorkspaceMounted);
         try
         {

@@ -1,3 +1,4 @@
+using System.Globalization;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -210,13 +211,61 @@ public sealed partial class SettingsWindow : Window
     private Control LineWidth()
     {
         var panel = Page("LineWidthPage");
-        var bounded = PageControl<CheckBox>(panel, "BoundPreviewWidth");
-        bounded.IsChecked = profile.Data.Preferences.BoundPreviewWidth;
-        bounded.IsCheckedChanged += (_, _) => { profile.Data.Preferences.BoundPreviewWidth = bounded.IsChecked == true; Save(); };
-        var width = PageControl<NumericUpDown>(panel, "PreviewWidth");
-        width.Value = (decimal)profile.Data.Preferences.PreviewWidth;
-        width.ValueChanged += (_, _) => { if (width.Value is not null) { profile.Data.Preferences.PreviewWidth = (double)width.Value; Save(); } };
+        var preferences = profile.Data.Preferences;
+        PageControl<ContentControl>(panel, "FileLineWidthHost").Content = LineWidthControl("File",
+            "Wraps source files and diffs in the editor font.",
+            () => preferences.FileLineWidth, value => preferences.FileLineWidth = value,
+            () => preferences.FileLineWidthBounded, value => preferences.FileLineWidthBounded = value);
+        PageControl<ContentControl>(panel, "MarkdownLineWidthHost").Content = LineWidthControl("Markdown",
+            "Wraps rendered Markdown and rendered diffs, measured in the reading font.",
+            () => preferences.MarkdownLineWidth, value => preferences.MarkdownLineWidth = value,
+            () => preferences.MarkdownLineWidthBounded, value => preferences.MarkdownLineWidthBounded = value);
         return panel;
+    }
+
+    // A draft input saved only by Save or Enter, as in the reference's line-width controls.
+    private Control LineWidthControl(string kind, string description,
+        Func<int> value, Action<int> setValue, Func<bool> bounded, Action<bool> setBounded)
+    {
+        var control = Page("LineWidthControl");
+        control.Name = kind + "LineWidthControl";
+        PageControl<TextBlock>(control, "LineWidthTitle").Text = kind;
+        PageControl<TextBlock>(control, "LineWidthDescription").Text = description;
+        var input = PageControl<TextBox>(control, "LineWidthInput");
+        var save = PageControl<Button>(control, "LineWidthSave");
+        var error = PageControl<TextBlock>(control, "LineWidthError");
+        var limit = PageControl<CheckBox>(control, "LineWidthBounded");
+        input.Name = kind + "LineWidthInput"; save.Name = kind + "LineWidthSave";
+        error.Name = kind + "LineWidthError"; limit.Name = kind + "LineWidthBounded";
+        AutomationProperties.SetName(input, kind + " line width");
+        AutomationProperties.SetName(limit, "Limit " + kind.ToLowerInvariant() + " lines to this width");
+        string Current() => value().ToString(CultureInfo.InvariantCulture);
+        int? Parsed() => input.Text is { Length: > 0 and <= 3 } text && text.All(char.IsAsciiDigit) &&
+            int.Parse(text, CultureInfo.InvariantCulture) is var number && LineWidths.IsValid(number) ? number : null;
+        void Validate()
+        {
+            var parsed = Parsed();
+            error.IsVisible = parsed is null;
+            input.Classes.Set("invalid", parsed is null);
+            save.IsEnabled = parsed is not null && parsed != value();
+        }
+        void Commit()
+        {
+            if (Parsed() is not { } parsed || parsed == value()) return;
+            setValue(parsed); Save(); Validate();
+        }
+        input.Text = Current();
+        input.TextChanged += (_, _) => Validate();
+        input.KeyDown += (_, e) =>
+        {
+            if (e.Key == Key.Escape) { input.Text = Current(); e.Handled = true; }
+            else if (e.Key == Key.Enter) { Commit(); e.Handled = true; }
+        };
+        save.Click += (_, _) => Commit();
+        limit.IsChecked = bounded();
+        limit.IsCheckedChanged += (_, _) => { setBounded(limit.IsChecked == true); Save(); };
+        Validate();
+        return control;
     }
 
     private Control LayoutSettings()

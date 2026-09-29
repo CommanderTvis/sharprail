@@ -40,6 +40,12 @@ public sealed class ProjectRpc(IProjectServices host) : IProjectRpc
     public ValueTask<DocumentReply> GetDiffAsync(ProjectRequest request, CallContext context = default)
         => Execute(async () => new DocumentReply { Path = request.Path, Text = await host.GetDiffAsync(request.Path, request.Scope, request.Branch, context.CancellationToken) });
 
+    public ValueTask<DiffSidesReply> GetDiffSidesAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>
+    {
+        var sides = await host.GetDiffSidesAsync(request.Path, request.Scope, request.Branch, context.CancellationToken);
+        return new DiffSidesReply { Original = sides.Original, Modified = sides.Modified };
+    });
+
     public ValueTask<GitReply> ApplyGitActionAsync(ProjectRequest request, CallContext context = default)
         => Execute(async () => Map(await host.ApplyGitActionAsync(new(request.Action, request.Path, request.Branch, request.BaseBranch), context.CancellationToken)));
 

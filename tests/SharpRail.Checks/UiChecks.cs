@@ -89,6 +89,8 @@ internal static class UiChecks
         E2E.ChangesE2E.Run(Path.Combine(root, "upstream-e2e"));
         E2E.ChangesScopeE2E.Run(Path.Combine(root, "upstream-e2e"));
         E2E.ChangesDiffE2E.Run(Path.Combine(root, "upstream-e2e"));
+        E2E.RenderedDiffE2E.Run(Path.Combine(root, "upstream-e2e"));
+        E2E.LiveRefreshE2E.Run(Path.Combine(root, "upstream-e2e"));
         E2E.WorkspaceTabsE2E.Run(Path.Combine(root, "upstream-e2e"));
         E2E.ProjectsE2E.Run(Path.Combine(root, "upstream-e2e"));
         E2E.ProjectPickerE2E.Run(Path.Combine(root, "upstream-e2e"));
@@ -404,17 +406,20 @@ internal static class UiChecks
             "Changing content font size enlarged labels beyond the fixed tab header.");
         fontSize.Value = 14;
         liveSettings.ShowSection("Line width");
-        liveSettings.GetLogicalDescendants().OfType<NumericUpDown>().Single().Value = 640;
+        var previewWidth = ((StackPanel)Find<MarkdownPreview>(restored, "MarkdownPreview").Content!).MaxWidth;
+        Find<TextBox>(liveSettings, "MarkdownLineWidthInput").Text = "60";
+        Find<Button>(liveSettings, "MarkdownLineWidthSave").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
         Dispatcher.UIThread.RunJobs();
-        Require(((StackPanel)Find<MarkdownPreview>(restored, "MarkdownPreview").Content!).MaxWidth == 640,
+        var narrowed = ((StackPanel)Find<MarkdownPreview>(restored, "MarkdownPreview").Content!).MaxWidth;
+        Require(Math.Abs(narrowed - previewWidth * 60 / 78) < 0.5,
             "Line-width settings did not update the mounted Markdown preview.");
-        var bounded = liveSettings.GetLogicalDescendants().OfType<CheckBox>().Single();
+        var bounded = Find<CheckBox>(liveSettings, "MarkdownLineWidthBounded");
         bounded.IsChecked = false;
         Dispatcher.UIThread.RunJobs();
         Require(double.IsPositiveInfinity(((StackPanel)Find<MarkdownPreview>(restored, "MarkdownPreview").Content!).MaxWidth),
             "Disabling bounded line width did not update the preview.");
         var savedAppearance = new ProfileStore(Path.Combine(root, ".profile")).Data.Preferences;
-        Require(savedAppearance.FontSize == 14 && savedAppearance.PreviewWidth == 640 && !savedAppearance.BoundPreviewWidth,
+        Require(savedAppearance.FontSize == 14 && savedAppearance.MarkdownLineWidth == 60 && !savedAppearance.MarkdownLineWidthBounded,
             "Live settings changes were not persisted.");
         liveSettings.Close();
         restored.Close();
