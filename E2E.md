@@ -10,7 +10,9 @@ and explicitly focus the shortcut recipient before sending keyboard input.
 Browser URL/page-count assertions become internal workspace navigation assertions.
 ARIA roles and relationships become Avalonia automation-peer assertions. Delayed
 WebSocket replies become held host-call responses; local mode uses direct C# calls.
-The initial upstream AI chat tab is omitted from document counts.
+AI chat is a non-goal (see `SPEC.md`): the initial upstream chat tab is omitted from
+document counts, chat-only cases are excluded, and mixed cases keep only their
+non-chat assertions.
 Terminal docking cases create a terminal tab through the pane menu in headless mode
 before following upstream's gestures. This verifies pane chrome and body identity;
 it does not prove automatic initial terminal provisioning or terminal execution.
@@ -75,7 +77,7 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `layout.spec.ts` | Layout settings controls keep their container-preset max-widths | Ported |
 | `layout.spec.ts` | an accepted side-group overage is grandfathered without allowing further growth | Ported |
 | `layout.spec.ts` | a narrow viewport compresses locally without rewriting recursive topology | Ported |
-| `layout.spec.ts` | frontend windows keep chat and file placement independent | Pending: needs AI chat tabs/history and multi-client shared workspace state, both out of scope |
+| `layout.spec.ts` | frontend windows keep chat and file placement independent | Pending: its chat-tab assertions are excluded (AI chat is a non-goal); its terminal/file window independence needs multi-client shared workspace state |
 | `layout.spec.ts` | layout survives a transport reconnect and remains writable | Ported |
 | `layout.spec.ts` | another window cannot cancel or rearrange an active tab drag | Ported |
 | `layout.spec.ts` | another window cannot cancel or adopt an active side resize | Ported |
@@ -97,12 +99,12 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `workspace-tabs.spec.ts` | a same-id terminal body remounts instead of carrying across workspaces | Ported |
 | `theme.spec.ts` | appearance switches a discovered theme and persists it across reload | Ported |
 | `theme.spec.ts` | system mode follows each client and retains its explicit pair | Pending: Settings has only Dark/Light/System, with no explicit light/dark pair pickers, alternate light theme or cross-client sync |
-| `theme.spec.ts` | Monaco opens files and re-themes under every discovered manifest | Excluded: functional editor/terminal or AI |
+| `theme.spec.ts` | Monaco opens files and re-themes under every discovered manifest | Excluded: editor functionality is a non-goal |
 | `theme.spec.ts` | selected workspace tabs keep their surface and edge marker in high contrast | Pending: no high-contrast theme exists in SharpRail |
 | `line-width-settings.spec.ts` | line-width controls validate drafts, converge on broadcasts, and persist | Pending: the app has one auto-saving preview-width control; draft validation with Save, chat measure and settings broadcasts between clients are absent |
-| `line-width-settings.spec.ts` | the file width wraps source and updates an already-mounted editor | Excluded: functional editor/terminal or AI |
+| `line-width-settings.spec.ts` | the file width wraps source and updates an already-mounted editor | Excluded: editor functionality is a non-goal |
 | `line-width-settings.spec.ts` | the default file width wraps both sides of a long-line diff | Ported |
-| `line-width-settings.spec.ts` | chat uses the selected measure and optionally exceeds a narrow pane | Excluded: functional editor/terminal or AI |
+| `line-width-settings.spec.ts` | chat uses the selected measure and optionally exceeds a narrow pane | Excluded: AI chat is a non-goal |
 | `settings.spec.ts` | settings shows the Local GitHub status block and degrades gh gracefully | Ported |
 | `changes.spec.ts` | Changes tab shows the active worktree's diff and swaps per workspace | Pending: needs the Source/Rendered markdown diff toggle; the app has only Split/Inline diffs and no rendered markdown diff (large feature) |
 | `changes.spec.ts` | Rendered markdown diff of a large repetitive file never blocks the main thread | Pending: needs the rendered markdown diff, which the app lacks; the browser long-task observer has no native equivalent |
@@ -122,7 +124,7 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `changes.spec.ts` | Re-pointing the target branch re-reads an open branch-scope diff tab — active or backgrounded | Ported |
 | `changes.spec.ts` | A commit scope whose commit is rewritten away falls back to All changes with a toast | Ported |
 | `changes.spec.ts` | A failed read says so — it never renders as an empty (clean) change set | Ported |
-| `changes.spec.ts` | Closing a diff tab disposes Monaco cleanly — no 'TextModel got disposed' assertion | Excluded: functional editor/terminal or AI |
+| `changes.spec.ts` | Closing a diff tab disposes Monaco cleanly — no 'TextModel got disposed' assertion | Excluded: editor functionality is a non-goal |
 | `topbar-chrome.spec.ts` | ordinary browsers have a fixed themed header with zero native insets | Ported (fixed 40px themed header, workbench below it, Settings inside at narrow width; native inset elements are unrepresentable) |
 | `topbar-chrome.spec.ts` | live safe areas on either edge preserve header and workbench geometry | Pending: safe-area insets cannot be injected; the title bar has a fixed OS-dependent margin |
 | `topbar-chrome.spec.ts` | the action cluster keeps Update, quota Retry and Settings out of the drag region | Pending: SharpRail has no Update or quota Retry actions |

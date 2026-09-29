@@ -7,6 +7,14 @@ excluded. Editor functionality remains excluded; tab, toolbar and
 pane chrome needed for visual and docking fidelity remains in scope.
 Keep the same C# host architecture and optimized open-world CoreCLR/R2R package.
 
+## Non-goals
+
+AI chat is currently a non-goal: no chat tabs, composer, history, message
+rendering, agent or provider integration, and no chat-specific settings such as
+the chat line measure. Editor functionality is likewise a non-goal. Upstream
+behavior that exists only for chat or the editor is not ported; where chat shares a
+layout with supported content, keep the layout contract and omit the chat surface.
+
 Explicit Git target comparisons measure the working tree from the merge base of
 the target and HEAD, including staged, unstaged and untracked files. Snapshot
 counts and opened diffs must use the same baseline; target-only commits must not
