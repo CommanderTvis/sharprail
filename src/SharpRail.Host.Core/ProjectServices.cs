@@ -133,7 +133,20 @@ public sealed class ProjectServices(string initialRoot) : IProjectServices
                     if ((await GitRepository.SnapshotAsync(currentRoot, "", cancellationToken)).IsRepository)
                         throw new InvalidOperationException("This folder is already a Git repository.");
                     await GitRepository.RunAsync(currentRoot, cancellationToken, "init", "-b", "main");
-                    await GitRepository.RunAsync(currentRoot, cancellationToken, "commit", "--allow-empty", "-m", "Initial commit");
+                    try
+                    {
+                        await GitRepository.RunAsync(currentRoot, cancellationToken, "add", "-A");
+                        var commit = new List<string>();
+                        if (!await HasConfigAsync(currentRoot, "user.name", cancellationToken)) commit.AddRange(["-c", "user.name=SharpRail"]);
+                        if (!await HasConfigAsync(currentRoot, "user.email", cancellationToken)) commit.AddRange(["-c", "user.email=sharprail@localhost"]);
+                        commit.AddRange(["commit", "--allow-empty", "-m", "Initial commit"]);
+                        await GitRepository.RunAsync(currentRoot, cancellationToken, commit.ToArray());
+                    }
+                    catch
+                    {
+                        Directory.Delete(Path.Combine(currentRoot, ".git"), recursive: true);
+                        throw;
+                    }
                     break;
                 case "create-worktree":
                     if (string.IsNullOrWhiteSpace(action.Branch)) throw new ArgumentException("Enter a new branch name.");
@@ -154,6 +167,12 @@ public sealed class ProjectServices(string initialRoot) : IProjectServices
             return await GitRepository.SnapshotAsync(currentRoot, "", cancellationToken);
         }
         finally { mutations.Release(); }
+    }
+
+    private static async Task<bool> HasConfigAsync(string currentRoot, string key, CancellationToken cancellationToken)
+    {
+        try { return (await GitRepository.RunAsync(currentRoot, cancellationToken, "config", key)).Trim().Length > 0; }
+        catch (IOException) { return false; }
     }
 
     private static string Resolve(string currentRoot, string path)

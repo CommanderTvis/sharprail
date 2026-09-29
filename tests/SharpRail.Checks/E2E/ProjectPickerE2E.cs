@@ -103,6 +103,7 @@ internal static class ProjectPickerE2E
         Until(() => !app.Window.OwnedWindows.OfType<DialogWindow>().Any());
         WaitForProject(app, "projects-init-plain");
         Until(() => app.Find<TextBlock>("BranchLabel").Text == "main");
+        Require(IsolatedGit.Run(plain, "ls-tree", "--name-only", "HEAD").Trim() == "notes.txt", "Initialising a folder must commit its existing files.");
         WorkspaceTabsE2E.CreateWorkspace(app, "workspace-1");
         Console.WriteLine("PASS upstream projects.spec.ts: opening a non-git folder offers to initialise a repo, then opens it end-to-end");
     }

@@ -37,7 +37,7 @@ internal sealed class IsolatedGit : IDisposable
         return path;
     }
 
-    internal static void Run(string directory, params string[] arguments)
+    internal static string Run(string directory, params string[] arguments)
     {
         var start = new ProcessStartInfo("git") { WorkingDirectory = directory, RedirectStandardOutput = true, RedirectStandardError = true };
         foreach (var argument in arguments) start.ArgumentList.Add(argument);
@@ -45,7 +45,7 @@ internal sealed class IsolatedGit : IDisposable
         var output = process.StandardOutput.ReadToEndAsync();
         var error = process.StandardError.ReadToEndAsync();
         process.WaitForExit();
-        output.GetAwaiter().GetResult();
         Require(process.ExitCode == 0, error.GetAwaiter().GetResult());
+        return output.GetAwaiter().GetResult();
     }
 }
