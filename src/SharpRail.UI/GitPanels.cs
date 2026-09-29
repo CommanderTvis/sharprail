@@ -18,9 +18,11 @@ public sealed partial class WorkbenchWindow
     private GitCommit? selectedCommit;
     private IReadOnlyList<GitCommit> gitCommits = [];
     private bool changeTree;
+    private readonly List<(Border Frame, GitChange Change)> changeFrames = [];
 
     private Control ChangesPanel()
     {
+        changeFrames.Clear();
         var panel = new Grid { Name = "ChangesPanel", RowDefinitions = new RowDefinitions("32,*") };
         var toolbar = new Grid
         {
@@ -45,7 +47,13 @@ public sealed partial class WorkbenchWindow
             item.IsChecked = changeScope == label;
             scope.ContextMenu!.Items.Add(item);
         }
-        if (gitCommits.Count > 0) scope.ContextMenu!.Items.Add(new Separator());
+        scope.ContextMenu!.Items.Add(new Separator());
+        if (gitCommits.Count == 0)
+        {
+            var none = Ui.Menu("No commits on this branch", () => { }, false);
+            none.Name = "ChangesNoCommits";
+            scope.ContextMenu.Items.Add(none);
+        }
         foreach (var commit in gitCommits)
         {
             var item = Ui.Menu(commit.Subject, () =>
@@ -72,7 +80,12 @@ public sealed partial class WorkbenchWindow
             branches.MaxWidth = 200;
             foreach (var branch in git.Branches)
             {
-                var item = Ui.Menu(branch, () => { changeScope = "All changes"; selectedCommit = null; comparison = branch; SaveGitSelection(); _ = RefreshAsync(); });
+                var item = Ui.Menu(branch, () =>
+                {
+                    changeScope = "All changes"; selectedCommit = null; comparison = branch;
+                    RetargetDiffTabs();
+                    SaveGitSelection(); _ = RefreshAsync();
+                });
                 item.ToggleType = MenuItemToggleType.Radio;
                 item.IsChecked = comparison == branch;
                 branches.ContextMenu!.Items.Add(item);
@@ -184,8 +197,11 @@ public sealed partial class WorkbenchWindow
             change.IndexStatus == "D" || change.WorktreeStatus == "D" ? Ui.Danger : Ui.Muted;
         var separator = label.LastIndexOf('/');
         var path = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), HorizontalAlignment = HorizontalAlignment.Left };
-        Ui.Place(path, Ui.Text(separator < 0 ? "" : label[..(separator + 1)], Ui.Muted));
+        var directory = Ui.Text(separator < 0 ? "" : label[..(separator + 1)], Ui.Muted);
+        directory.Classes.Add("change-path-dir");
+        Ui.Place(path, directory);
         var filename = Ui.Text(label[(separator + 1)..], color);
+        filename.Classes.Add("change-path-base");
         Ui.Place(path, filename, 0, 1);
         Ui.Place(row, path);
         var numbers = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
@@ -202,6 +218,7 @@ public sealed partial class WorkbenchWindow
             HorizontalAlignment = HorizontalAlignment.Stretch,
             HorizontalContentAlignment = HorizontalAlignment.Stretch
         };
+        foreach (var state in new[] { "PointerOver", "Pressed" }) button.Resources["ButtonBackground" + state] = Avalonia.Media.Brushes.Transparent;
         AutomationProperties.SetName(button, change.Path);
         ToolTip.SetTip(button, change.OriginalPath is null ? $"{change.Path}  [{change.IndexStatus}{change.WorktreeStatus}]" : $"{change.OriginalPath} → {change.Path}");
         button.Click += (_, _) => _ = OpenDiffAsync(change);
@@ -228,6 +245,8 @@ public sealed partial class WorkbenchWindow
         Ui.Place(wrapper, button); Ui.Place(wrapper, actions, 0, 1);
         var frame = new Border { Child = wrapper };
         frame.Classes.Add("change-row");
+        changeFrames.Add((frame, change));
+        frame.Classes.Set("active", IsActiveDiff(change));
         actions.Click += (_, _) => button.ContextMenu.Open(button);
         button.ContextMenu.Opened += (_, _) => frame.Classes.Add("menu-open");
         button.ContextMenu.Closed += (_, _) => frame.Classes.Remove("menu-open");
@@ -239,18 +258,40 @@ public sealed partial class WorkbenchWindow
         if (Clipboard is not null) await Clipboard.SetTextAsync(path);
     }
 
-    private async Task OpenDiffAsync(GitChange change)
+    private DockTab DiffTab(GitChange change)
     {
-        var request = BeginNavigation();
         var reference = selectedCommit?.Sha ?? comparison;
         var scope = selectedCommit is not null ? "commit" : changeScope == "Uncommitted" ? "uncommitted" : comparison.Length > 0 && changeScope != "Staged" ? "branch" :
             change.IndexStatus == "?" ? "untracked" : changeScope == "Staged" ? "staged" : "all";
+        var identity = scope == "branch" ? "" : reference;
+        return new($"diff:{scope}:{identity}:{change.Path}", Path.GetFileName(change.Path) + " · Diff", "diff", change.Path, Scope: scope, Comparison: reference);
+    }
+
+    private bool IsActiveDiff(GitChange change) =>
+        Layout.Selected(Layout.View.FocusedCenter) is { Kind: "diff" } selected && selected.Id == DiffTab(change).Id;
+
+    private void UpdateActiveChangeRows()
+    {
+        foreach (var (frame, change) in changeFrames) frame.Classes.Set("active", IsActiveDiff(change));
+    }
+
+    private void RetargetDiffTabs() => Layout.Geometry(state =>
+    {
+        if (!state.Workspaces.TryGetValue(workspaceRoot, out var view)) return;
+        foreach (var tabs in view.Documents.Values)
+            for (var index = 0; index < tabs.Count; index++)
+                if (tabs[index] is { Kind: "diff", Scope: "branch" } tab && tab.Comparison != comparison) tabs[index] = tab with { Comparison = comparison };
+    });
+
+    private async Task OpenDiffAsync(GitChange change)
+    {
+        var request = BeginNavigation();
+        var tab = DiffTab(change);
         try
         {
-            var diff = await host.GetDiffAsync(change.Path, scope, reference, lifetime.Token);
+            var diff = await host.GetDiffAsync(change.Path, tab.Scope, tab.Comparison, lifetime.Token);
             var destination = AcceptNavigation(request);
             if (destination is null) return;
-            var tab = new DockTab($"diff:{scope}:{reference}:{change.Path}", Path.GetFileName(change.Path) + " · Diff", "diff", change.Path, Scope: scope, Comparison: reference);
             var key = workspaceRoot + ":" + tab.Id;
             documents[key] = new(change.Path, diff); DropDocumentContent(key);
             Layout.Open(tab, true, destination);
@@ -287,6 +328,7 @@ public sealed partial class WorkbenchWindow
         try
         {
             git = await host.ApplyGitActionAsync(new("create-worktree", values[0], values[1], values[2]), lifetime.Token);
+            if (values[2].Length > 0 && values[2] != "HEAD") profile.Data.GitSelections[values[0]] = new(values[2], "All changes", null);
             await OpenWorkspaceAsync(values[0], false);
         }
         catch (Exception error) when (error is not OperationCanceledException) { Report(error); }

@@ -11,6 +11,9 @@
       <Setter Property="CornerRadius" Value="4" />
       <Setter Property="Background" Value="Transparent" />
     </Style>
+    <Style Selector="Border.change-row.active">
+      <Setter Property="Background" Value="{x:Static rendering:Ui.Hover}" />
+    </Style>
     <Style Selector="Border.change-row:pointerover, Border.change-row.menu-open">
       <Setter Property="Background" Value="{x:Static rendering:Ui.Hover}" />
     </Style>

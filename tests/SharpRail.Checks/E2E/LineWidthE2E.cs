@@ -25,17 +25,19 @@ internal static class LineWidthE2E
         app.Click(app.Find<Control>("ChangesPanel").GetLogicalDescendants().OfType<Button>()
             .Single(button => AutomationProperties.GetName(button) == "LONG_LINE.txt"));
         Until(() => app.Tabs.Count(tab => tab.Kind == "diff") == 1);
-        SelectableTextBlock? diff = null;
-        Until(() => (diff = app.Window.GetLogicalDescendants().OfType<SelectableTextBlock>().FirstOrDefault(block =>
-            TextOf(block).Contains("+changed segment-01", StringComparison.Ordinal))) is not null);
-        var block = diff!;
-        var scroll = block.GetLogicalAncestors().OfType<ScrollViewer>().First();
+        Until(() => app.Window.GetLogicalDescendants().OfType<SelectableTextBlock>()
+            .Any(block => block.Name == "DiffNewText" && TextOf(block).Contains("changed segment-01", StringComparison.Ordinal)));
         Settle(300);
-        var logicalLines = TextOf(block).TrimEnd('\n').Split('\n').Length;
-        var rendered = block.TextLayout.TextLines.Count;
-        Require(rendered >= logicalLines + 2, $"Both the removed and added long lines must wrap ({rendered} rendered vs {logicalLines} logical lines).");
-        Require(block.Bounds.Width <= app.Window.Preferences.PreviewWidth + 1 && scroll.Extent.Width <= scroll.Viewport.Width + 1,
-            "A wrapped diff must stay within the default file width without horizontal scrolling.");
+        foreach (var name in new[] { "DiffOldText", "DiffNewText" })
+        {
+            var block = app.Find<SelectableTextBlock>(name);
+            var scroll = block.GetLogicalAncestors().OfType<ScrollViewer>().First();
+            var logicalLines = TextOf(block).TrimEnd('\n').Split('\n').Length;
+            var rendered = block.TextLayout.TextLines.Count;
+            Require(rendered > logicalLines, $"The {name} long line must wrap ({rendered} rendered vs {logicalLines} logical lines).");
+            Require(block.Bounds.Width <= app.Window.Preferences.PreviewWidth + 1 && scroll.Extent.Width <= scroll.Viewport.Width + 1,
+                $"The {name} side must stay within the default file width without horizontal scrolling.");
+        }
         Console.WriteLine("PASS upstream line-width-settings.spec.ts: the default file width wraps both sides of a long-line diff");
     }
 }

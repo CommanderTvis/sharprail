@@ -393,37 +393,30 @@ public sealed class MarkdownPreview : ScrollViewer, IDisposable
         loadedImages.Clear();
     }
 
-    public static SelectableTextBlock Code(string text, bool diff = false, double wrapWidth = double.PositiveInfinity)
+    public static SelectableTextBlock Code(string text)
     {
         var block = new SelectableTextBlock
         {
             FontFamily = Ui.CodeFont,
             FontSize = 13,
             Foreground = Ui.TextBrush,
-            TextWrapping = diff ? TextWrapping.Wrap : TextWrapping.NoWrap,
-            MaxWidth = wrapWidth,
-            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left,
+            TextWrapping = TextWrapping.NoWrap,
             LineHeight = 21
         };
         foreach (var line in text.Split('\n'))
         {
-            if (diff)
-                block.Inlines!.Add(new Run(line + "\n") { Foreground = line.StartsWith('+') ? Ui.Success : line.StartsWith('-') ? Ui.Danger : line.StartsWith("@@") ? Ui.Accent : Ui.Muted });
-            else
+            var cursor = 0;
+            foreach (Match match in Regex.Matches(line, @"(""[^""]*""|'[^']*'|//.*$|\b(?:class|public|private|return|var|using|const|function|async|await|if|else|true|false|null)\b|\b\d+\b)"))
             {
-                var cursor = 0;
-                foreach (Match match in Regex.Matches(line, @"(""[^""]*""|'[^']*'|//.*$|\b(?:class|public|private|return|var|using|const|function|async|await|if|else|true|false|null)\b|\b\d+\b)"))
+                block.Inlines!.Add(new Run(line[cursor..match.Index]));
+                block.Inlines.Add(new Run(match.Value)
                 {
-                    block.Inlines!.Add(new Run(line[cursor..match.Index]));
-                    block.Inlines.Add(new Run(match.Value)
-                    {
-                        Foreground = match.Value.StartsWith("//", StringComparison.Ordinal) ? Ui.Hint :
-                        match.Value.StartsWith('"') || match.Value.StartsWith('\'') ? Ui.Success : Ui.Accent
-                    });
-                    cursor = match.Index + match.Length;
-                }
-                block.Inlines!.Add(new Run(line[cursor..] + "\n"));
+                    Foreground = match.Value.StartsWith("//", StringComparison.Ordinal) ? Ui.Hint :
+                    match.Value.StartsWith('"') || match.Value.StartsWith('\'') ? Ui.Success : Ui.Accent
+                });
+                cursor = match.Index + match.Length;
             }
+            block.Inlines!.Add(new Run(line[cursor..] + "\n"));
         }
         return block;
     }
