@@ -129,6 +129,14 @@ internal sealed class ScintillaDocument : IDisposable
         surface.CheckError();
     }
 
+    /// <summary>Runs one slice of Scintilla's idle work; returns whether more remains.</summary>
+    internal bool Idle()
+    {
+        var pending = ScintillaNative.sr_idle(Handle) != 0;
+        surface.CheckError();
+        return pending;
+    }
+
     internal void Resize(double width, double height)
     {
         ScintillaNative.sr_resize(Handle, width, height);

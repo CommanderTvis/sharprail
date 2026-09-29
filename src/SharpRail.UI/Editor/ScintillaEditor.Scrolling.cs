@@ -5,11 +5,38 @@ public readonly record struct EditorScroll(double Maximum, double Viewport, doub
 public sealed partial class ScintillaEditor
 {
     private (EditorScroll Vertical, EditorScroll Horizontal) scroll;
+    // Scintilla scrolls in whole lines; the wheel keeps a pixel remainder past the first visible
+    // line so trackpad and momentum scrolling move smoothly instead of in line-sized jumps.
+    private double subLine;
+    private int subLineTop = -1;
     public event EventHandler? ScrollChanged;
 
-    // Vertical units are lines; horizontal units are pixels.
+    // Vertical units are display lines, which differ from document lines when wrapping; horizontal units are pixels.
     public EditorScroll VerticalScroll => scroll.Vertical;
     public EditorScroll HorizontalScroll => scroll.Horizontal;
+    public double VerticalPixelOffset => FirstVisibleLine * LineHeight + SubLine;
+    private double LineHeight => document.Send(ScintillaMessage.TextHeight);
+    // Any other scroll (keyboard, scrollbar, caret) moves the first line and drops the remainder.
+    private double SubLine => subLineTop == FirstVisibleLine ? subLine : 0;
+
+    private long MaxFirstLine()
+    {
+        var last = document.Send(ScintillaMessage.GetLineCount) - 1;
+        var displayLines = document.Send(ScintillaMessage.VisibleFromDocLine, last) + document.Send(ScintillaMessage.WrapCount, last);
+        return Math.Max(0, displayLines - document.Send(ScintillaMessage.LinesOnScreen));
+    }
+
+    private void ScrollPixels(double pixels)
+    {
+        var height = LineHeight;
+        var total = SubLine + pixels;
+        var lines = (long)Math.Floor(total / height);
+        var before = FirstVisibleLine;
+        if (lines != 0) document.Send(ScintillaMessage.LineScroll, 0, (nint)lines);
+        subLineTop = FirstVisibleLine;
+        // An edge clamped the scroll, or the last line is fully shown: no partial line remains.
+        subLine = FirstVisibleLine - before != lines || FirstVisibleLine >= MaxFirstLine() ? 0 : total - lines * height;
+    }
 
     public void ScrollToLine(double line)
     {
@@ -29,7 +56,7 @@ public sealed partial class ScintillaEditor
     {
         if (disposed) return;
         var lines = document.Send(ScintillaMessage.LinesOnScreen);
-        var vertical = new EditorScroll(Math.Max(0, document.Send(ScintillaMessage.GetLineCount) - lines), lines, FirstVisibleLine);
+        var vertical = new EditorScroll(MaxFirstLine(), lines, FirstVisibleLine);
         double margins = document.Send(ScintillaMessage.GetMarginLeft) + document.Send(ScintillaMessage.GetMarginRight);
         for (var margin = 0; margin < document.Send(ScintillaMessage.GetMargins); margin++)
             margins += document.Send(ScintillaMessage.GetMarginWidthN, margin);

@@ -1,11 +1,21 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="SharpRail.UI.Editor.CodeDocumentView">
+  <!-- Dock separators take 3.5px of each neighbouring pane for their hit area; keep the
+       auto-hiding scrollbars clear of it so the pointer can reach them at the pane edge. -->
+  <UserControl.Styles>
+    <Style Selector="ScrollBar.editor[Orientation=Vertical]">
+      <Setter Property="Margin" Value="0,0,4,0" />
+    </Style>
+    <Style Selector="ScrollBar.editor[Orientation=Horizontal]">
+      <Setter Property="Margin" Value="0,0,0,4" />
+    </Style>
+  </UserControl.Styles>
   <Grid>
     <ContentControl x:Name="EditorBody" />
-    <ScrollBar x:Name="EditorVerticalScroll" Orientation="Vertical" HorizontalAlignment="Right"
+    <ScrollBar x:Name="EditorVerticalScroll" Classes="editor" Orientation="Vertical" HorizontalAlignment="Right"
                AllowAutoHide="True" SmallChange="1" IsVisible="False" />
-    <ScrollBar x:Name="EditorHorizontalScroll" Orientation="Horizontal" VerticalAlignment="Bottom"
+    <ScrollBar x:Name="EditorHorizontalScroll" Classes="editor" Orientation="Horizontal" VerticalAlignment="Bottom"
                AllowAutoHide="True" SmallChange="40" IsVisible="False" />
   </Grid>
 </UserControl>

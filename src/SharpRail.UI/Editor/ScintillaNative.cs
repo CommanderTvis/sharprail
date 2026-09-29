@@ -34,6 +34,8 @@ internal static unsafe class ScintillaNative
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
     internal static extern void sr_resize(nint editor, double width, double height);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern int sr_idle(nint editor);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
     internal static extern void sr_paint(nint editor);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
     internal static extern void sr_text(nint editor, byte[] text, int length);

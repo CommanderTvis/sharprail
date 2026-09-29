@@ -3,6 +3,9 @@ set -eu
 cd "$(dirname "$0")/.."
 dotnet_cmd="${DOTNET:-.tools/dotnet/dotnet}"
 rid="${1:-osx-arm64}"
+# Publish copies only newer files; stale outputs (for example a native library from a
+# downgraded timestamp) would otherwise survive into the package.
+rm -rf artifacts/ui artifacts/host artifacts/checks artifacts/SharpRail.app
 "$dotnet_cmd" publish src/SharpRail.UI -c Release -r "$rid" --self-contained true \
   -p:PublishReadyToRun=true -p:PublishReadyToRunComposite=false -o artifacts/ui
 "$dotnet_cmd" publish src/SharpRail.Host.Remote -c Release -r "$rid" --self-contained true \

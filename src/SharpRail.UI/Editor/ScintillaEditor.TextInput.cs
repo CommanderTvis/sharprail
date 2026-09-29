@@ -20,7 +20,7 @@ public sealed partial class ScintillaEditor
                 var position = owner.document.Send(ScintillaMessage.GetCurrentPos);
                 var x = owner.document.Send(ScintillaMessage.PointXFromPosition, 0, position);
                 var y = owner.document.Send(ScintillaMessage.PointYFromPosition, 0, position);
-                return new Rect(x, y, 1, owner.document.Send(ScintillaMessage.TextHeight));
+                return new Rect(x, y - owner.SubLine, 1, owner.document.Send(ScintillaMessage.TextHeight));
             }
         }
         // Like Avalonia's TextBox, expose only the caret line so IME queries stay cheap in large files.

@@ -4,6 +4,7 @@ using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using SharpRail.Host.Client;
 using SharpRail.Host.Core;
 using SharpRail.UI;
@@ -107,5 +108,30 @@ internal static class EditorWorkbenchChecks
             foreach (var editor in window.GetLogicalDescendants().OfType<ScintillaEditor>()) editor.MarkSaved();
             window.Close();
         }
+        ScrollBars(root);
+    }
+
+    // The dock separator's hit area overlaps the pane edge; the editor scrollbar must stay reachable there.
+    private static void ScrollBars(string root)
+    {
+        File.WriteAllText(Path.Combine(root, "long.cs"), string.Join('\n', Enumerable.Range(0, 400).Select(line => $"// line {line}")));
+        var window = new WorkbenchWindow(new LocalProjectAdapter(new ProjectServices(root)), root, new ProfileStore(Path.Combine(root, ".scroll-profile")));
+        window.Show(); Pump(() => window.WorkspaceMounted);
+        try
+        {
+            Await(window.OpenDocumentAsync("long.cs")); window.UpdateLayout();
+            var bar = window.GetLogicalDescendants().OfType<Avalonia.Controls.Primitives.ScrollBar>().Single(item => item.Name == "EditorVerticalScroll");
+            Pump(() => { AvaloniaHeadlessPlatform.ForceRenderTimerTick(); window.UpdateLayout(); return bar.IsVisible && bar.Bounds.Height > 0; });
+            // Probe the thin resting indicator at the bar's outer edge, where the separator's hit area competes.
+            var bottom = bar.TranslatePoint(new Point(bar.Bounds.Width - 2, bar.Bounds.Height - 24), window)!.Value;
+            window.MouseMove(bottom); Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
+            var hit = window.InputHitTest(bottom) as Visual;
+            Require(hit is not null && (hit == bar || hit.GetVisualAncestors().Contains(bar)), $"The editor scrollbar must receive the pointer at the pane edge (hit {hit?.GetType().Name}).");
+            var value = bar.Value;
+            window.MouseDown(bottom, MouseButton.Left); window.MouseUp(bottom, MouseButton.Left); Dispatcher.UIThread.RunJobs();
+            Require(bar.Value > value && Editor(window).FirstVisibleLine > 0, "Clicking the track below the thumb must page down.");
+            Console.WriteLine("PASS workbench editor scrollbars stay reachable beside the pane separator and page in the pressed direction");
+        }
+        finally { window.Close(); }
     }
 }

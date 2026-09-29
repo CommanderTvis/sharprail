@@ -102,7 +102,7 @@ public sealed partial class ScintillaEditor
     private void Mouse(PointerEventArgs e, int kind)
     {
         var point = e.GetPosition(this);
-        document.Mouse(kind, point.X, point.Y, (uint)e.Timestamp, Modifiers(e.KeyModifiers));
+        document.Mouse(kind, point.X, point.Y + SubLine, (uint)e.Timestamp, Modifiers(e.KeyModifiers));
         InvalidateVisual(); inputClient.Notify(); e.Handled = true;
     }
     protected override void OnPointerPressed(PointerPressedEventArgs e)
@@ -131,11 +131,11 @@ public sealed partial class ScintillaEditor
         // Trackpads report fractional deltas on both axes; carry remainders so slow
         // gestures still scroll and slight sideways drift does not swallow vertical motion.
         var delta = e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? new Vector(e.Delta.Y, 0) : e.Delta;
-        wheel += new Vector(delta.X * 40, delta.Y * 3);
-        var (pixels, lines) = (Math.Truncate(wheel.X), Math.Truncate(wheel.Y));
-        wheel -= new Vector(pixels, lines);
+        wheel += new Vector(delta.X * 40, 0);
+        var pixels = Math.Truncate(wheel.X);
+        wheel -= new Vector(pixels, 0);
         if (pixels != 0) document.Send(ScintillaMessage.SetXOffset, Math.Max(0, document.Send(ScintillaMessage.GetXOffset) - (nint)pixels));
-        if (lines != 0) document.Send(ScintillaMessage.LineScroll, 0, (nint)(-lines));
+        if (delta.Y != 0) ScrollPixels(-delta.Y * 50);
         InvalidateVisual(); inputClient.NotifyScrolled(); e.Handled = true;
     }
 }

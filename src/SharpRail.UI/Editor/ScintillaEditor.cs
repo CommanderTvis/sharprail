@@ -14,6 +14,7 @@ public sealed partial class ScintillaEditor : Control, IDisposable
 {
     private readonly ScintillaDocument document;
     private readonly DispatcherTimer timer;
+    private readonly DispatcherTimer idle;
     private readonly InputClient inputClient;
     private bool disposed;
     private uint foreground, background;
@@ -35,6 +36,11 @@ public sealed partial class ScintillaEditor : Control, IDisposable
         timer = new DispatcherTimer(TimeSpan.FromMilliseconds(500), DispatcherPriority.Background, (_, _) =>
         { if (IsFocused && !disposed) { document.Tick(); InvalidateVisual(); } });
         timer.Stop();
+        idle = new DispatcherTimer(TimeSpan.FromMilliseconds(1), DispatcherPriority.Background, (_, _) =>
+        {
+            if (disposed || !document.Idle()) idle!.Stop();
+            UpdateScroll(); InvalidateVisual();
+        });
     }
 
     public string Text
@@ -94,10 +100,17 @@ public sealed partial class ScintillaEditor : Control, IDisposable
     {
         if (disposed || Bounds.Width <= 0 || Bounds.Height <= 0) return;
         ApplyColors();
-        var picture = document.Record((float)Bounds.Width, (float)Bounds.Height);
-        context.Custom(new PictureOperation(new Rect(Bounds.Size), picture));
+        // A partial line scrolled past the top needs one more row painted below the viewport.
+        var offset = SubLine;
+        var extra = offset > 0 ? LineHeight : 0;
+        if (extra > 0) document.Resize(Bounds.Width, Bounds.Height + extra);
+        var picture = document.Record((float)Bounds.Width, (float)(Bounds.Height + extra));
+        if (extra > 0) document.Resize(Bounds.Width, Bounds.Height);
+        using (context.PushTransform(Matrix.CreateTranslation(0, -offset)))
+            context.Custom(new PictureOperation(new Rect(0, 0, Bounds.Width, Bounds.Height + extra), picture));
         // Scintilla settles scroll extents while painting; publish them after the render pass.
         Dispatcher.UIThread.Post(UpdateScroll, DispatcherPriority.Render);
+        if (!idle.IsEnabled) idle.Start();
     }
 
     private void ApplyColors()
@@ -127,7 +140,7 @@ public sealed partial class ScintillaEditor : Control, IDisposable
     public void Dispose()
     {
         if (disposed) return;
-        disposed = true; timer.Stop(); document.Dispose();
+        disposed = true; timer.Stop(); idle.Stop(); document.Dispose();
     }
 
     private sealed class PictureOperation(Rect bounds, SKPicture picture) : ICustomDrawOperation

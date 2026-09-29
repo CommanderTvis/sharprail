@@ -2,6 +2,7 @@
 
 class SkiaEditor final : public Editor {
     bool captured = false;
+    bool idle = false;
 public:
     BridgeWindow window;
     intptr_t revision = 0;
@@ -45,6 +46,9 @@ public:
     }
     void Focus(bool focus) { SetFocusState(focus); }
     void Tick() { TickFor(TickReason::caret);if(captured) TickFor(TickReason::scroll); }
+    // Scintilla queues idle wrapping and styling; the host runs it in slices from its dispatcher.
+    bool SetIdle(bool on) override { idle=on;return true; }
+    bool RunIdle() { if (idle) idle=Idle();return idle; }
 };
 // Native exceptions never cross the managed boundary. A separate error flag lets
 // callers distinguish a legitimate zero result from a failed operation.
@@ -65,5 +69,6 @@ API int sr_key(SkiaEditor *e,int key,int modifiers) noexcept { return static_cas
 API void sr_mouse(SkiaEditor *e,int kind,double x,double y,unsigned int time,int modifiers) noexcept { Guard(e,[&] { e->Mouse(kind,x,y,time,modifiers);return 0; }); }
 API void sr_focus(SkiaEditor *e,int focus) noexcept { Guard(e,[&] { e->Focus(focus);return 0; }); }
 API void sr_tick(SkiaEditor *e) noexcept { Guard(e,[&] { e->Tick();return 0; }); }
+API int sr_idle(SkiaEditor *e) noexcept { return static_cast<int>(Guard(e,[&] { return e->RunIdle(); })); }
 
 API intptr_t sr_revision(SkiaEditor *e) noexcept { return e->revision; }
