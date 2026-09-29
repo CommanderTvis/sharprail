@@ -21,7 +21,7 @@ internal static class AuxiliaryInputChecks
     internal static void Run(string root)
     {
         var profilePath = root + "-auxiliary-input";
-        var window = new WorkbenchWindow(new ProjectServices(root), root, new ProfileStore(profilePath));
+        var window = new WorkbenchWindow(new ProjectServices(root), root, new ProfileStore(profilePath), E2E.E2eTerminals.Plain);
         window.Show(); window.Width = 1600; window.Height = 1040;
         var deadline = DateTime.UtcNow.AddSeconds(15);
         while (!window.WorkspaceMounted && DateTime.UtcNow < deadline) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(1); }

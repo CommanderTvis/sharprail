@@ -1,3 +1,4 @@
+using System.Net;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using Avalonia;
@@ -7,7 +8,14 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+using Microsoft.AspNetCore.Hosting.Server;
+using Microsoft.AspNetCore.Hosting.Server.Features;
+using Microsoft.Extensions.DependencyInjection;
+using Avalonia.LogicalTree;
+using SharpRail.Host.Client;
+using SharpRail.Host.Remote;
 using SharpRail.UI;
+using SharpRail.UI.Terminal;
 using SharpRail.UI.Docking;
 using SharpRail.UI.State;
 
@@ -24,8 +32,8 @@ internal static class NativeTerminalChecks
         File.WriteAllText(Path.Combine(fixture, ".git"), "gitdir: " + Path.Combine(fixture, "absent"));
         var profile = new ProfileStore(Path.Combine(fixture, ProfileDirectory));
         var layout = new LayoutSession(profile.Data.Layout);
+        // Opening the workspace provisions its initial terminal in the bottom group.
         layout.SwitchWorkspace(fixture);
-        layout.NewTerminal(layout.State.Groups.Single(group => group.Region == "bottom").Id);
         profile.Data.Layout = layout.State;
         profile.Save();
         Environment.SetEnvironmentVariable("SHARPRAIL_ROOT", fixture);
@@ -37,7 +45,9 @@ internal static class NativeTerminalChecks
                 try
                 {
                     await Check((WorkbenchWindow)desktop.MainWindow!, fixture);
-                    Console.WriteLine("PASS native Avalonia embedded terminal: mutable input, keyboard routing, image/text paste, theme pixels, Metal rendering, shell, session retention, workspace isolation and close disposal");
+                    Console.WriteLine("PASS native Avalonia embedded terminal: mutable input, keyboard routing, Mod+Shift+J from the terminal, image/text paste, theme pixels, Metal rendering, shell, session retention, workspace isolation and close disposal");
+                    await CheckRemote(fixture);
+                    Console.WriteLine("PASS native remote terminal: Ghostty relay to an authenticated gRPC host PTY with I/O, worktree root, resize, busy foreground and exit status");
                     desktop.Shutdown(0);
                 }
                 catch (Exception error) { Console.Error.WriteLine(error); desktop.Shutdown(1); }
@@ -48,6 +58,16 @@ internal static class NativeTerminalChecks
     {
         var deadline = DateTime.UtcNow.AddSeconds(20);
         while (!condition())
+        {
+            if (DateTime.UtcNow > deadline) throw new InvalidOperationException("Native terminal condition timed out: " + description);
+            await Task.Delay(50);
+        }
+    }
+
+    private static async Task UntilAsync(Func<Task<bool>> condition, string description)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(20);
+        while (!await condition())
         {
             if (DateTime.UtcNow > deadline) throw new InvalidOperationException("Native terminal condition timed out: " + description);
             await Task.Delay(50);
@@ -75,6 +95,15 @@ internal static class NativeTerminalChecks
         var tab = window.Layout.Tabs(bottom).Single();
         var button = window.GetVisualDescendants().OfType<Button>().Single(item => item.Name == "Tab_" + tab.Id.Replace(':', '_'));
         ((ISelectionItemProvider)ControlAutomationPeer.CreatePeerForElement(button)!).Select();
+        await Until(() => Native.Focused(original));
+        Native.ToggleBottom(original);
+        await Until(() => !window.Layout.State.BottomVisible && !window.GetVisualDescendants().Contains(host));
+        window.Layout.Visible("bottom", true);
+        await Until(() => window.GetVisualDescendants().Contains(host));
+        if (Handle(host!) != original) throw new InvalidOperationException("Hiding the bottom panel replaced the shell.");
+        Button? shown = null;
+        await Until(() => (shown = window.GetVisualDescendants().OfType<Button>().SingleOrDefault(item => item.Name == "Tab_" + tab.Id.Replace(':', '_'))) is not null);
+        ((ISelectionItemProvider)ControlAutomationPeer.CreatePeerForElement(shown!)!).Select();
         await Until(() => Native.Focused(original));
         await Until(() => Native.Background(original) == 0x18181b);
         SharpRail.UI.Rendering.Ui.SetLight(true);
@@ -131,10 +160,13 @@ internal static class NativeTerminalChecks
         var other = Path.Combine(root, "other"); Directory.CreateDirectory(other);
         File.WriteAllText(Path.Combine(other, ".git"), "gitdir: " + Path.Combine(other, "absent"));
         await window.OpenProjectAsync(other);
+        NativeControlHost? initial = null;
+        await Until(() => (initial = window.GetVisualDescendants().OfType<NativeControlHost>().SingleOrDefault()) is not null && Handle(initial) != 0);
         var add = window.GetVisualDescendants().OfType<Button>().Single(item => item.Name == "AddToGroup_" + bottom);
         add.ContextMenu!.Items.OfType<MenuItem>().First().RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
         NativeControlHost? second = null;
-        await Until(() => (second = window.GetVisualDescendants().OfType<NativeControlHost>().SingleOrDefault()) is not null && Handle(second) != 0);
+        await Until(() => (second = window.GetVisualDescendants().OfType<NativeControlHost>().SingleOrDefault()) is not null &&
+            !ReferenceEquals(second, initial) && Handle(second) != 0);
         await Until(() => Native.Focused(Handle(second!)));
         await Type(Handle(second!), "printf 'NEW_%s_OK\\n' KEYBOARD\r");
         await Until(() => Read(Handle(second!)).Contains("NEW_KEYBOARD_OK", StringComparison.Ordinal));
@@ -149,6 +181,56 @@ internal static class NativeTerminalChecks
         window.Layout.Close(side, tab.Id);
         if (Handle(host!) != 0) throw new InvalidOperationException("Closing a terminal did not dispose its native session.");
         await Until(() => Native.Kill(processId, 0) == -1 && Marshal.GetLastPInvokeError() == 3);
+    }
+
+    // A remote workspace's Ghostty tab runs this executable's relay against a real gRPC host PTY.
+    private static async Task CheckRemote(string fixture)
+    {
+        const string token = "native-remote-token";
+        var root = Path.Combine(fixture, "remote workspace");
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, ".git"), "gitdir: " + Path.Combine(root, "absent"));
+        await using var server = RemoteServer.Create(root, IPAddress.Loopback, 0, token);
+        await server.StartAsync();
+        var address = new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single());
+        using var terminals = new RemoteTerminalAdapter(address, token);
+        using var projects = new RemoteProjectAdapter(address, token);
+        var window = new WorkbenchWindow(projects, root, new ProfileStore(Path.Combine(fixture, "remote-profile")),
+            TerminalBackends.Ghostty(new RemoteTerminalConnection(address, token, terminals)), remote: true)
+        { Width = 1000, Height = 700 };
+        window.Show();
+        try
+        {
+            await Until(() => window.WorkspaceMounted);
+            NativeControlHost? host = null;
+            await Until(() => (host = window.GetVisualDescendants().OfType<NativeControlHost>().SingleOrDefault()) is not null && Handle(host) != 0);
+            var view = Handle(host!);
+            var terminal = window.GetVisualDescendants().OfType<TerminalView>().Single();
+            Native.Activate(view);
+            await Until(() => Native.Ready(view));
+            await Task.Delay(1000);
+            Native.Input(view, "printf 'REMOTE_%s_\\n' \"$(pwd -P)\"\r");
+            await Until(() => Read(view).Contains("REMOTE_" + root + "_", StringComparison.Ordinal));
+            Native.Input(view, "printf 'SIZE_%s_\\n' \"$(stty size | tr ' ' x)\"\r");
+            await Until(() => System.Text.RegularExpressions.Regex.IsMatch(Read(view), @"SIZE_\d+x\d+_"));
+            var before = System.Text.RegularExpressions.Regex.Match(Read(view), @"SIZE_(\d+x\d+)_").Groups[1].Value;
+            window.Width -= 300;
+            await Task.Delay(500);
+            Native.Input(view, "printf 'RESIZED_%s_\\n' \"$(stty size | tr ' ' x)\"\r");
+            await Until(() => System.Text.RegularExpressions.Regex.Match(Read(view), @"RESIZED_(\d+x\d+)_") is { Success: true } match && match.Groups[1].Value != before);
+            if (await terminal.IsBusyAsync()) throw new InvalidOperationException("An idle remote shell reported a busy foreground.");
+            Native.Input(view, "sleep 30\r");
+            await UntilAsync(async () => await terminal.IsBusyAsync(), "remote busy foreground");
+            terminal.FocusTerminal();
+            await Until(() => Native.Focused(view));
+            Native.Key(view, "\x03", 8, true);
+            await UntilAsync(async () => !await terminal.IsBusyAsync(), "remote interrupted foreground");
+            Native.Input(view, "exit 3\r");
+            await Until(() => terminal.IsExited);
+            var notice = terminal.GetLogicalDescendants().OfType<TextBlock>().Single(text => text.Name == "TerminalExited").Text;
+            if (notice != "[process exited with code 3]") throw new InvalidOperationException("The remote exit status did not reach the tab: " + notice);
+        }
+        finally { window.Close(); await server.StopAsync(); }
     }
 
     private static async Task Type(nint view, string text)
@@ -173,6 +255,8 @@ internal static class NativeTerminalChecks
         [DllImport("TerminalEvents", EntryPoint = "sr_check_ready")]
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool Ready(nint view);
+        [DllImport("TerminalEvents", EntryPoint = "sr_check_toggle_bottom")]
+        internal static extern void ToggleBottom(nint view);
         [DllImport("TerminalEvents", EntryPoint = "sr_check_click")]
         internal static extern void Click(nint view, double x, double y);
         [DllImport("TerminalEvents", EntryPoint = "sr_check_focused")]

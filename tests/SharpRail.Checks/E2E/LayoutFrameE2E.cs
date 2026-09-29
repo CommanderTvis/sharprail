@@ -34,20 +34,12 @@ internal static class LayoutFrameE2E
 
     private static ISelectionItemProvider Item(Control tab) => (ISelectionItemProvider)ControlAutomationPeer.CreatePeerForElement(tab)!;
 
-    private static void NewTerminal(E2eWorkspace app, string group)
-    {
-        var add = app.Find<Button>("AddToGroup_" + group);
-        app.Click(add); Until(() => add.ContextMenu!.IsOpen);
-        app.Click(add.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "New terminal")), freshGesture: false);
-        Until(() => app.Window.Layout.Tabs(group).Any(tab => tab.Kind == "terminal"));
-    }
-
     private static void StripGeometry(string root)
     {
         using var app = new E2eWorkspace(Path.Combine(root, "layout-strips"));
         app.Open("README.md", true);
         var bottom = app.Window.Layout.State.Groups.Single(group => group.Region == "bottom").Id;
-        NewTerminal(app, bottom);
+        Require(app.Window.Layout.Tabs(bottom).Single().Kind == "terminal", "The workspace must start with its initial bottom terminal.");
         var right = app.Window.Layout.State.Groups.First(group => group.Tools.Any(tab => tab.Id == "files")).Id;
         foreach (var id in new[] { app.Center, right, bottom })
         {
@@ -274,7 +266,7 @@ internal static class LayoutFrameE2E
         }
         var first = Start();
         using var remote = new RemoteProjectAdapter(new Uri($"http://127.0.0.1:{port}"), "reconnect-test");
-        var window = new WorkbenchWindow(remote, directory, new ProfileStore(directory + "-profile"), remote: true) { Width = 1352, Height = 848 };
+        var window = new WorkbenchWindow(remote, directory, new ProfileStore(directory + "-profile"), E2E.E2eTerminals.Plain, remote: true) { Width = 1352, Height = 848 };
         try
         {
             window.Show(); Until(() => window.WorkspaceMounted);

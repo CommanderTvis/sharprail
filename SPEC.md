@@ -51,7 +51,7 @@ failures must not prevent listing otherwise accessible commits.
 Profiles without query state retain the default scope; malformed saved selections
 must not prevent opening the workspace.
 
-## Local terminals on macOS
+## Terminals
 
 Terminal tabs embed libghostty 1.2.3 in native AppKit views hosted by Avalonia.
 Ghostty owns the PTY, shell, terminal emulation, fonts and Metal renderer. Its
@@ -61,9 +61,27 @@ Each tab starts a local shell in its workspace directory when first displayed.
 Keyboard input, text composition, selection, scrolling, clipboard and Retina
 resizing pass through the native view. Moving, hiding, folding or switching away
 retains the session; closing a tab or window disposes it. Restored terminal tabs
-start new sessions after app restart. Remote terminals and other operating
-systems show an explicit availability message; no local shell impersonates a
-remote workspace.
+start new sessions after app restart. Other operating systems show an explicit
+availability message.
+
+A remote workspace's tab uses the same Ghostty view, but its child process is the
+SharpRail executable in `--terminal-relay` mode. The relay reads the endpoint, token
+and session from a private one-use file named by an environment variable (never
+argv), puts its terminal in raw mode, pipes it to a PTY session on the host over an
+authenticated code-first gRPC stream and forwards SIGWINCH resizes. The host PTY
+(`posix_openpt`, `posix_spawn` of the user's login shell as a new session leader in
+the worktree) reports output, exit status and whether a foreground process is
+running; the host's session token is removed from shell environments. A remote
+session lasts as long as its stream; no local shell impersonates a remote workspace.
+
+Each new workspace opens one terminal, "Terminal 1", in its bottom group (a 30%
+bottom panel by default); closing it never brings it back, and a hidden bottom panel
+reserves it without starting a shell until shown. A shell that cannot start shows
+its reason and a Retry that restarts the same tab; an exited shell's tab says so.
+Closing a tab whose shell runs a foreground process asks first; an idle tab closes
+immediately. Mod+Shift+J toggles the bottom panel, including from a focused terminal.
+Terminals are independent per tab and survive workspace switches without a second
+shell. Reattaching after restart, reconnects and multi-client sharing are future work.
 
 Terminal background and foreground follow the workbench's surface and text
 colors, including live dark/light changes without restarting the shell. Command-V

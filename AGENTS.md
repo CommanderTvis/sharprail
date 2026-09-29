@@ -10,7 +10,7 @@ versions; `global.json` selects the SDK. Use `.tools/dotnet/dotnet` for this che
 | Path | Responsibility |
 | --- | --- |
 | `src/SharpRail.Host.Abstractions` | Transport-independent host interfaces and domain records consumed by the UI. |
-| `src/SharpRail.Host.Core` | Filesystem, project/spec discovery, Git and worktree implementations. No Avalonia, Pi or AI dependency. |
+| `src/SharpRail.Host.Core` | Filesystem, project/spec discovery, Git, worktree and PTY terminal implementations (`Posix.cs` holds the libc interop). No Avalonia, Pi or AI dependency. |
 | `src/SharpRail.Host.Protocol` | Code-first protobuf-net.Grpc service contracts and wire DTOs. |
 | `src/SharpRail.Host.Remote` | Kestrel HTTP/2 host, authentication and RPC adapters delegating to Core. |
 | `src/SharpRail.Host.Client` | Direct local adapters and gRPC remote proxies implementing the same host abstractions. Embedded mode uses no sockets or serialization. |
@@ -19,7 +19,7 @@ versions; `global.json` selects the SDK. Use `.tools/dotnet/dotnet` for this che
 | `src/SharpRail.UI/Panels` | Settings and shared dialogs, including compiled XAML frames and page templates. |
 | `src/SharpRail.UI/Rendering` | Native Markdown rendering, preview/source view and shared UI assets/styles/helpers. |
 | `src/SharpRail.UI/State` | Profile/preferences persistence and migration. Default user state belongs in `~/.sharprail`, not project directories. |
-| `src/SharpRail.UI/Terminal` | Avalonia native-control bridge to embedded Ghostty terminals; owns focus, theme updates and session disposal. |
+| `src/SharpRail.UI/Terminal` | Terminal tab body (`TerminalView`: start failure/retry, exit notice), the Ghostty native-control bridge for local and relayed remote sessions, and the `--terminal-relay` mode. |
 | `src/SharpRail.UI/Assets` | Reference icons and bundled fonts, with their licenses. |
 | `native/ghostty` | Objective-C AppKit/Metal bridge, Ghostty configuration shim and native terminal probe. |
 | `tests/SharpRail.Checks` | Executable checks for host transports, runtime extensibility, layout, UI and Git/worktree integration. `E2E/` translates upstream scenarios using real headless Avalonia input. |
@@ -38,11 +38,11 @@ For host changes, follow the operation through these files:
 
 | Layer | Files |
 | --- | --- |
-| Public API | `Host.Abstractions/IWorkspaceHost.cs` and `ProjectServices.cs`. |
-| Implementation | `Host.Core/WorkspaceHost.cs`, `ProjectServices.cs`, `SpecCatalog.cs` and `GitRepository.cs`. |
-| Wire contracts | `Host.Protocol/WorkspaceContract.cs` and `ProjectContract.cs`. |
-| Client adapters | `Host.Client/HostAdapters.cs` and `ProjectAdapters.cs`. |
-| Server adapters | `Host.Remote/WorkspaceRpc.cs` and `ProjectRpc.cs`; `RemoteServer.cs` configures the server and `Program.cs` starts it. |
+| Public API | `Host.Abstractions/IWorkspaceHost.cs`, `ProjectServices.cs` and `TerminalServices.cs`. |
+| Implementation | `Host.Core/WorkspaceHost.cs`, `ProjectServices.cs`, `SpecCatalog.cs`, `GitRepository.cs` and `PtyTerminalService.cs`. |
+| Wire contracts | `Host.Protocol/WorkspaceContract.cs`, `ProjectContract.cs` and `TerminalContract.cs`. |
+| Client adapters | `Host.Client/HostAdapters.cs`, `ProjectAdapters.cs` and `TerminalAdapters.cs`. |
+| Server adapters | `Host.Remote/WorkspaceRpc.cs`, `ProjectRpc.cs` and `TerminalRpc.cs`; `RemoteServer.cs` configures the server and `Program.cs` starts it. |
 
 Each `Host.*` prefix in this table denotes its `src/SharpRail.Host.*` project.
 Domain records belong in
@@ -59,8 +59,10 @@ scope and selected commit; reload commit catalogs from Git rather than saving
 derived snapshots. Tests use isolated profile directories.
 Commit listing is a separate host operation; do not fetch a full working-tree
 snapshot merely to populate or restore the commit catalog.
-Local macOS terminal tabs embed Ghostty directly; remote and other-platform tabs
-show availability messages. `DocumentCache.cs` retains shells across appearance
+macOS terminal tabs embed Ghostty directly; remote tabs run the relay mode against
+the host PTY, and other platforms show an availability message. `WorkbenchWindow`
+takes its terminal factory from the composition root; headless checks pass one that
+runs host PTY sessions as plain text. `DocumentCache.cs` retains shells across appearance
 changes and disposes them when their tabs or window close. Clipboard images are
 stored under the active profile's `clipboard` directory. Terminal functionality
 is in scope following integration of the `ghostty` worktree, and macOS text files
@@ -76,6 +78,7 @@ The workbench is split into partial files rather than separate window classes:
 | `ProjectPanels.cs` | Files, Specs and Projects panel construction and project actions. |
 | `GitPanels.cs` / `ChangesTree.cs` / `WorkspaceGit.cs` | Git panel controls, compact change-tree projection and cancellable, workspace-scoped snapshot refreshes. |
 | `GestureNotification.cs` | Feedback when layout transitions cancel an active gesture. |
+| `TerminalTabs.cs` | Confirmation before closing terminals that run a foreground process. |
 
 Host dependencies flow toward abstractions: Core references Abstractions; Client
 references Abstractions and Protocol; Remote references Core and Protocol. The UI
@@ -88,7 +91,8 @@ dependency into the host projects.
 evidence. Read `gotchas.md` for lessons and `context-log.md` for continuation state.
 The authoritative upstream checkout is `/Users/commandertvis/IdeaProjects/thinkrail`.
 
-Run checks with `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release`.
+Run checks with `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release`;
+`-- --terminals` runs only the host terminal checks and the terminal/bottom-panel translations.
 Set `SHARPRAIL_TEST_GIT_SOURCE` to an existing upstream clone to include Git fixtures.
 `tests/SharpRail.Checks/Program.cs` is the check runner, not an xUnit test project.
 `ProjectChecks.cs` covers project/Git host parity; `LayoutChecks.cs` covers layout

@@ -82,13 +82,9 @@ internal static class DropHintsE2E
     {
         using var app = new E2eWorkspace(Path.Combine(root, "drop-hint-hidden-bottom"));
         var bottom = app.Window.Layout.State.Groups.Single(group => group.Region == "bottom");
-        var add = app.Find<Button>("AddToGroup_" + bottom.Id);
-        app.Click(add); Until(() => add.ContextMenu!.IsOpen);
-        app.Click(add.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "New terminal")), freshGesture: false);
-        Until(() => app.Window.Layout.Tabs(bottom.Id).Any(tab => tab.Kind == "terminal"));
-        var terminal = app.Window.Layout.Tabs(bottom.Id).Single();
+        var terminal = app.Window.Layout.Tabs(bottom.Id).Single(tab => tab.Kind == "terminal");
         var name = terminal.Id.Replace(':', '_');
-        var body = app.Find<Border>("TerminalSurface_" + name);
+        var body = app.Find<Control>("TerminalSurface_" + name);
         var tab = app.Find<Button>("Tab_" + name);
         app.ContextAction(tab, "Move to pane");
         var move = tab.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Move to pane"));
@@ -115,7 +111,7 @@ internal static class DropHintsE2E
         app.Window.MouseUp(surface.TranslatePoint(zoneBounds.Center, app.Window)!.Value, MouseButton.Left); Settle();
         Require(app.Window.Layout.State.BottomVisible && app.Window.Layout.State.Groups.Count(group => group.Region == "bottom") == 1 &&
             app.Window.Layout.State.Center.Leaves().Count() == 1 && app.Window.Layout.Tabs(bottom.Id).Single().Id == terminal.Id &&
-            !app.Tabs.Any(tab => tab.Id == terminal.Id) && ReferenceEquals(body, app.Find<Border>("TerminalSurface_" + name)) && Overlay(surface).Children.Count == 0,
+            !app.Tabs.Any(tab => tab.Id == terminal.Id) && ReferenceEquals(body, app.Find<Control>("TerminalSurface_" + name)) && Overlay(surface).Children.Count == 0,
             "The winning drop must reveal the retained bottom group and move the one terminal body without splitting the center.");
         Console.WriteLine("PASS upstream layout.spec.ts: the hidden bottom drop zone wins overlapping terminal targets and reveals its frame group");
     }

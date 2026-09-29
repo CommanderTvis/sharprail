@@ -95,6 +95,8 @@ internal static class UiChecks
         E2E.SettingsGitHubE2E.Run(Path.Combine(root, "upstream-e2e"));
         E2E.LineWidthE2E.Run(Path.Combine(root, "upstream-e2e"));
         E2E.TerminalRemountE2E.Run(Path.Combine(root, "upstream-e2e"));
+        E2E.TerminalsE2E.Run(Path.Combine(root, "upstream-e2e"));
+        E2E.BottomPanelE2E.Run(Path.Combine(root, "upstream-e2e"));
         E2E.PreviewTabsE2E.Run(Path.Combine(root, "upstream-e2e"));
         E2E.MarkdownLinksE2E.Run(Path.Combine(root, "upstream-e2e"));
         E2E.MarkdownAlertsE2E.Run(Path.Combine(root, "upstream-e2e"));
@@ -152,7 +154,7 @@ internal static class UiChecks
                 "Mouse-wheel input did not scroll the Markdown preview.");
             scrollingWindow.Close();
         }
-        var window = new WorkbenchWindow(host, root, store);
+        var window = new WorkbenchWindow(host, root, store, E2E.E2eTerminals.Plain);
         window.Width = 1352; window.Height = 848;
         window.Show();
         Pump(() => window.WorkspaceMounted, "Workspace did not mount.");
@@ -322,8 +324,10 @@ internal static class UiChecks
         Require(projectsGroup.Tools.Any(tab => tab.Id == "files"), "Pointer drop did not join the pane.");
         Require(window.Layout.State.Groups.SelectMany(group => group.Tools).Count(tab => tab.Id == "files") == 1, "Pointer drop copied a tool.");
 
-        Require(window.Layout.RemoveGroup(window.Layout.State.Groups.Single(group => group.Region == "bottom").Id),
-            "Empty bottom group removal failed.");
+        var bottomGroup = window.Layout.State.Groups.Single(group => group.Region == "bottom").Id;
+        foreach (var terminal in window.Layout.Tabs(bottomGroup).ToArray()) window.Layout.Close(bottomGroup, terminal.Id);
+        Pump(() => window.Layout.Tabs(bottomGroup).Count == 0, "Closing the idle initial terminal did not empty the bottom group.");
+        Require(window.Layout.RemoveGroup(bottomGroup), "Empty bottom group removal failed.");
         window.Layout.Visible("bottom", true);
         Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
         source = Find<Button>(window, "Tab_files"); from = Center(window, source);
@@ -386,7 +390,7 @@ internal static class UiChecks
         Require(window.Layout.State.Workspaces[root].Documents.Values.SelectMany(tabs => tabs).Any(tab => tab.Path == "README.md"), "Project switch lost tabs.");
         window.Close();
         var restored = new WorkbenchWindow(new LocalProjectAdapter(new ProjectServices(root)), root,
-            new ProfileStore(Path.Combine(root, ".profile")));
+            new ProfileStore(Path.Combine(root, ".profile")), E2E.E2eTerminals.Plain);
         restored.Show();
         Pump(() => restored.WorkspaceMounted && restored.GetLogicalDescendants().OfType<MarkdownPreview>().Any(),
             "Fresh process profile restoration left the document loading.");
@@ -434,7 +438,7 @@ internal static class UiChecks
         Require(normalized.Data.GitSelections.Count == 1 && normalized.Data.GitSelections[root] is { Target: "", Scope: "All changes", Commit: null },
             "Malformed Git query state survived profile restoration.");
         File.WriteAllText(blockedProfile, "A file cannot be used as a profile directory.");
-        var unsaved = new WorkbenchWindow(new ProjectServices(root), root, new ProfileStore(blockedProfile));
+        var unsaved = new WorkbenchWindow(new ProjectServices(root), root, new ProfileStore(blockedProfile), E2E.E2eTerminals.Plain);
         unsaved.Show(); Pump(() => unsaved.WorkspaceMounted, "Read-only profile prevented project opening.");
         var saveError = Find<TextBlock>(unsaved, "WorkspaceError");
         Require(saveError.IsVisible && saveError.Text?.Contains("could not be saved", StringComparison.Ordinal) == true,

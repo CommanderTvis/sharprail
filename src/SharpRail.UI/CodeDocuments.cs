@@ -33,11 +33,16 @@ public sealed partial class WorkbenchWindow
 
     private void WireEditorLifetime()
     {
-        Layout.CanRemoveDocument = (workspace, tabId) => PendingDocument(workspace, tabId) is null;
+        Layout.CanRemoveDocument = (workspace, tabId) => PendingDocument(workspace, tabId) is null && TerminalMayClose(workspace, tabId);
         Layout.RemovalBlocked += async (blocked, retry) =>
         {
-            if (await ResolvePendingAsync(blocked.Select(item => PendingDocument(item.Workspace, item.TabId)).OfType<CodeDocumentView>().ToArray()))
-                retry();
+            try
+            {
+                if (await ResolveTerminalsAsync(blocked) &&
+                    await ResolvePendingAsync(blocked.Select(item => PendingDocument(item.Workspace, item.TabId)).OfType<CodeDocumentView>().ToArray()))
+                    retry();
+            }
+            finally { approvedTerminalCloses.Clear(); }
         };
         surface.IsModified = tab => PendingDocument(workspaceRoot, tab.Id) is not null;
         Closing += async (_, e) =>

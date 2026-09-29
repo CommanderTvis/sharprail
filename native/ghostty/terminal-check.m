@@ -23,7 +23,7 @@ int main(int argc, char **argv) {
         NSWindow *window = [[NSWindow alloc] initWithContentRect:NSMakeRect(100, 100, 800, 500)
             styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable | NSWindowStyleMaskResizable backing:NSBackingStoreBuffered defer:NO];
         window.title = @"SharpRail Ghostty Metal verification";
-        void *pointer = sr_terminal_create(argv[1], [[NSString stringWithUTF8String:argv[1]] stringByAppendingPathComponent:@".bench/clipboard"].UTF8String);
+        void *pointer = sr_terminal_create(argv[1], [[NSString stringWithUTF8String:argv[1]] stringByAppendingPathComponent:@".bench/clipboard"].UTF8String, NULL, NULL, NULL, NULL, NULL);
         require(pointer != NULL, "embedded surface creation");
         NSView *view = (__bridge NSView *)pointer;
         window.contentView = view;

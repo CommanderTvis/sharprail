@@ -28,6 +28,7 @@ internal static class Program
     public static void Main(string[] args)
     {
         if (args.Contains("--native-terminal")) { NativeTerminalChecks.Run(args); return; }
+        if (args.Contains("--terminal-relay")) { Environment.Exit(SharpRail.UI.Terminal.TerminalRelay.Run()); return; }
         var root = Path.Combine(Directory.GetCurrentDirectory(), ".bench", "check-fixture-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         Directory.CreateDirectory(Path.Combine(root, "src"));
@@ -47,7 +48,18 @@ internal static class Program
             Console.WriteLine("PASS editor integration checks");
             return;
         }
+        if (args.SequenceEqual(["--terminals"]))
+        {
+            TerminalHostChecks.Run(root).GetAwaiter().GetResult();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            E2E.TerminalsE2E.Run(Path.Combine(root, "upstream-e2e"));
+            E2E.BottomPanelE2E.Run(Path.Combine(root, "upstream-e2e"));
+            Console.WriteLine("PASS terminal checks");
+            return;
+        }
         CheckHosts(root).GetAwaiter().GetResult();
+        TerminalHostChecks.Run(root).GetAwaiter().GetResult();
         ProjectChecks.Run(root).GetAwaiter().GetResult();
         FileSavingChecks.Run(root).GetAwaiter().GetResult();
         LayoutChecks.Run();

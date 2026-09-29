@@ -50,7 +50,7 @@ internal static class EditorWorkbenchChecks
         File.WriteAllText(Path.Combine(root, "first.cs"), "class First {}\n");
         File.WriteAllText(Path.Combine(root, "second.cs"), "class Second {}\n");
         var host = new LocalProjectAdapter(new ProjectServices(root));
-        var window = new WorkbenchWindow(host, root, new ProfileStore(Path.Combine(root, ".profile")));
+        var window = new WorkbenchWindow(host, root, new ProfileStore(Path.Combine(root, ".profile")), E2E.E2eTerminals.Plain);
         window.Show(); Pump(() => window.WorkspaceMounted);
         try
         {

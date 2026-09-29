@@ -25,10 +25,12 @@ internal static class TerminalChromeChecks
         Until(() => add.ContextMenu!.IsOpen);
         var create = add.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "New terminal"));
         app.Click(create, freshGesture: false);
-        Until(() => app.Window.Layout.Tabs(bottom.Id).Any(tab => tab.Kind == "terminal"));
-        var terminal = app.Window.Layout.Tabs(bottom.Id).Single();
+        Until(() => app.Window.Layout.Tabs(bottom.Id).Count(tab => tab.Kind == "terminal") == 2);
+        var terminal = app.Window.Layout.Tabs(bottom.Id).Last();
+        Require(app.Window.Layout.Selected(bottom.Id)?.Id == terminal.Id && terminal.Title == "Terminal 2",
+            "The pane menu must add and select a second terminal beside the workspace's initial one.");
         var name = terminal.Id.Replace(':', '_');
-        var body = app.Find<Border>("TerminalSurface_" + name);
+        var body = app.Find<Control>("TerminalSurface_" + name);
         var tab = app.Find<Button>("Tab_" + name);
         var side = app.Window.Layout.State.Groups.Single(group => group.Tools.Any(tool => tool.Id == "specs"));
         var menu = tab.ContextMenu!;
@@ -37,7 +39,7 @@ internal static class TerminalChromeChecks
         Until(() => move.IsSubMenuOpen);
         app.Click(move.Items.OfType<MenuItem>().Single(item => Equals(item.Header, side.Region + ": " + app.Window.Layout.Selected(side.Id)!.Title)), freshGesture: false);
         Until(() => app.Window.Layout.Tabs(side.Id).Any(item => item.Id == terminal.Id));
-        Require(ReferenceEquals(body, app.Find<Border>("TerminalSurface_" + name)), "Moving a terminal must retain its one surface.");
+        Require(ReferenceEquals(body, app.Find<Control>("TerminalSurface_" + name)), "Moving a terminal must retain its one surface.");
         app.Click(app.Find<Button>("FoldRestore_" + side.Id));
         Require(!body.GetVisualAncestors().Contains(app.Window), "A folded pane must not present its terminal surface.");
         app.Click(app.Find<Button>("FoldRestore_" + side.Id));
@@ -52,13 +54,9 @@ internal static class TerminalChromeChecks
     {
         using var app = new E2eWorkspace(Path.Combine(root, "terminal-side-group"));
         var bottom = app.Window.Layout.State.Groups.Single(group => group.Region == "bottom");
-        var add = app.Find<Button>("AddToGroup_" + bottom.Id);
-        app.Click(add); Until(() => add.ContextMenu!.IsOpen);
-        app.Click(add.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "New terminal")), freshGesture: false);
-        Until(() => app.Window.Layout.Tabs(bottom.Id).Any(tab => tab.Kind == "terminal"));
-        var id = app.Window.Layout.Tabs(bottom.Id).Single().Id;
+        var id = app.Window.Layout.Tabs(bottom.Id).Single(tab => tab.Kind == "terminal").Id;
         var name = id.Replace(':', '_');
-        var body = app.Find<Border>("TerminalSurface_" + name);
+        var body = app.Find<Control>("TerminalSurface_" + name);
         var command = OperatingSystem.IsMacOS() ? RawInputModifiers.Meta : RawInputModifiers.Control;
         app.Window.KeyPress(Key.B, command, PhysicalKey.B, null); Settle();
         var rail = app.Find<Border>("leftHiddenSideRail");
@@ -73,7 +71,7 @@ internal static class TerminalChromeChecks
         var left = app.Window.Layout.State.Groups.Where(group => group.Region == "left").ToArray();
         Require(left.Length == 2 && app.Window.Layout.State.Groups.Count(group => group.Region == "right") == 2 &&
             app.Window.Layout.State.Groups.SelectMany(group => app.Window.Layout.Tabs(group.Id)).Count(tab => tab.Id == id) == 1 &&
-            ReferenceEquals(body, app.Find<Border>("TerminalSurface_" + name)), "The hidden-side drop must create one group and retain one terminal body.");
+            ReferenceEquals(body, app.Find<Control>("TerminalSurface_" + name)), "The hidden-side drop must create one group and retain one terminal body.");
         terminal = app.Find<Button>("Tab_" + name);
         app.Click(terminal, mouseButton: MouseButton.Right); Until(() => terminal.ContextMenu!.IsOpen);
         foreach (var title in new[] { "New left group at bottom", "New left group at top" })
@@ -94,11 +92,11 @@ internal static class TerminalChromeChecks
         app.Find<Button>("FoldRestore_" + terminalGroup).Focus();
         app.Window.KeyPress(Key.Space, RawInputModifiers.None, PhysicalKey.Space, null);
         app.Window.KeyRelease(Key.Space, RawInputModifiers.None, PhysicalKey.Space, null); Settle();
-        Require(!app.Window.Layout.Group(terminalGroup).Folded && ReferenceEquals(body, app.Find<Border>("TerminalSurface_" + name)), "Space must restore the same terminal body.");
+        Require(!app.Window.Layout.Group(terminalGroup).Folded && ReferenceEquals(body, app.Find<Control>("TerminalSurface_" + name)), "Space must restore the same terminal body.");
         foreach (var group in new[] { projects, terminalGroup }) app.Click(app.Find<Button>("FoldRestore_" + group));
         Require(new[] { projects, terminalGroup }.All(group => app.Window.Layout.Group(group).Folded && Math.Abs(Height(group) - 27) < .5), "Both side groups must fold independently to 27 pixels.");
         foreach (var group in new[] { projects, terminalGroup }) app.Click(app.Find<Button>("FoldRestore_" + group));
-        Require(ReferenceEquals(body, app.Find<Border>("TerminalSurface_" + name)), "Restoring both groups must retain the terminal body.");
+        Require(ReferenceEquals(body, app.Find<Control>("TerminalSurface_" + name)), "Restoring both groups must retain the terminal body.");
         app.ContextAction(app.Find<Button>("Tab_files"), "New left group at bottom");
         Require(app.Window.Layout.State.Groups.Count(group => group.Region == "left") == 3 &&
             app.Window.Layout.State.Groups.SelectMany(group => app.Window.Layout.Tabs(group.Id)).Count(tab => tab.Id == "files") == 1,
@@ -113,10 +111,10 @@ internal static class TerminalChromeChecks
         var add = app.Find<Button>("AddToGroup_" + bottom.Id);
         app.Click(add); Until(() => add.ContextMenu!.IsOpen);
         app.Click(add.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "New terminal")), freshGesture: false);
-        Until(() => app.Window.Layout.Tabs(bottom.Id).Any(tab => tab.Kind == "terminal"));
-        var id = app.Window.Layout.Tabs(bottom.Id).Single().Id;
+        Until(() => app.Window.Layout.Tabs(bottom.Id).Count(tab => tab.Kind == "terminal") == 2);
+        var id = app.Window.Layout.Tabs(bottom.Id).Last().Id;
         var name = id.Replace(':', '_');
-        var body = app.Find<Border>("TerminalSurface_" + name);
+        var body = app.Find<Control>("TerminalSurface_" + name);
         foreach (var region in new[] { "left", "right", "bottom" })
             foreach (var atStart in new[] { true, false })
             {
@@ -127,7 +125,7 @@ internal static class TerminalChromeChecks
                 var groups = app.Window.Layout.State.Groups.Where(group => group.Region == region).ToArray();
                 Require(app.Window.Layout.Tabs(atStart ? groups[0].Id : groups[^1].Id).Single().Id == id &&
                     app.Window.Layout.State.Groups.SelectMany(group => app.Window.Layout.Tabs(group.Id)).Count(tab => tab.Id == id) == 1 &&
-                    ReferenceEquals(body, app.Find<Border>("TerminalSurface_" + name)),
+                    ReferenceEquals(body, app.Find<Control>("TerminalSurface_" + name)),
                     "Region creation must insert at the chosen end and move the one terminal surface without copying it.");
             }
         var tab = app.Find<Button>("Tab_" + name);
@@ -164,7 +162,6 @@ internal static class TerminalChromeChecks
     {
         using var app = new E2eWorkspace(Path.Combine(root, "tab-hover"));
         var bottom = app.Window.Layout.State.Groups.Single(group => group.Region == "bottom");
-        app.Window.Layout.NewTerminal(bottom.Id);
         var first = app.Window.Layout.Tabs(bottom.Id).Single();
         app.Window.Layout.NewTerminal(bottom.Id); Settle();
         var name = first.Id.Replace(':', '_');

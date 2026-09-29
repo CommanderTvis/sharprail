@@ -49,10 +49,7 @@ internal static class LayoutSettingsE2E
         using var app = new E2eWorkspace(Path.Combine(root, "layout-settings-review"));
         app.Open("README.md", true); app.Open("notes.txt", true);
         var bottom = app.Window.Layout.State.Groups.Single(group => group.Region == "bottom");
-        var add = app.Find<Button>("AddToGroup_" + bottom.Id);
-        app.Click(add); Until(() => add.ContextMenu!.IsOpen);
-        app.Click(add.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "New terminal")), freshGesture: false);
-        Until(() => app.Window.Layout.Tabs(bottom.Id).Any(tab => tab.Kind == "terminal"));
+        Require(app.Window.Layout.Tabs(bottom.Id).Single().Kind == "terminal", "The workspace must start with its initial bottom terminal.");
         var settings = Open(app);
         foreach (var region in new[] { "side", "bottom" })
         {
@@ -146,11 +143,7 @@ internal static class LayoutSettingsE2E
             }
             SaveLimit(3);
             var bottom = app.Window.Layout.State.Groups.Single(group => group.Region == "bottom");
-            var add = app.Find<Button>("AddToGroup_" + bottom.Id);
-            app.Click(add); Until(() => add.ContextMenu!.IsOpen);
-            app.Click(add.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "New terminal")), freshGesture: false);
-            Until(() => app.Window.Layout.Tabs(bottom.Id).Any(tab => tab.Kind == "terminal"));
-            var id = app.Window.Layout.Tabs(bottom.Id).Single().Id;
+            var id = app.Window.Layout.Tabs(bottom.Id).Single(tab => tab.Kind == "terminal").Id;
             app.ContextAction(app.Find<Button>("Tab_" + id.Replace(':', '_')), "New right group at bottom");
             Require(app.Window.Layout.State.Groups.Count(group => group.Region == "right") == 3, "The saved limit must permit the third right group.");
             WorkspaceTabsE2E.CreateWorkspace(app, "overage-workspace");

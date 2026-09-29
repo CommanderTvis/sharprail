@@ -11,6 +11,8 @@ extern void sr_ghostty_config_colors(ghostty_config_t config, uint32_t backgroun
 @property(nonatomic, strong) NSMutableAttributedString *marked;
 @property(nonatomic, strong) NSMutableArray<NSString *> *keyText;
 @property(nonatomic, copy) NSString *clipboardDirectory;
+@property(nonatomic, assign) sr_terminal_event_cb callback;
+@property(nonatomic, assign) void *context;
 - (void)resizeSurface;
 @end
 
@@ -26,6 +28,12 @@ static void wakeup(void *data) {
     dispatch_async(dispatch_get_main_queue(), ^{ if (app) ghostty_app_tick(app); });
 }
 static bool action(ghostty_app_t instance, ghostty_target_s target, ghostty_action_s value) {
+    if (value.tag == GHOSTTY_ACTION_SHOW_CHILD_EXITED && target.tag == GHOSTTY_TARGET_SURFACE) {
+        SRTerminalView *view = (__bridge SRTerminalView *)ghostty_surface_userdata(target.target.surface);
+        if (view.callback) view.callback(view.context, SR_TERMINAL_EXITED, (int32_t)value.action.child_exited.exit_code);
+        // Ghostty still prints its own exit notice in the terminal.
+        return false;
+    }
     if (value.tag == GHOSTTY_ACTION_OPEN_URL) {
         NSString *text = [[NSString alloc] initWithBytes:value.action.open_url.url length:value.action.open_url.len encoding:NSUTF8StringEncoding];
         NSURL *url = [NSURL URLWithString:text];
@@ -141,7 +149,16 @@ static bool initialize(void) {
         .unshifted_codepoint = unshifted.length ? [unshifted characterAtIndex:0] : 0, .composing = composing };
     ghostty_surface_key(self.surface, key);
 }
+// Mod+Shift+J belongs to the workbench even while the terminal has keyboard focus.
+- (BOOL)forwardWorkbenchShortcut:(NSEvent *)event {
+    NSEventModifierFlags flags = event.modifierFlags & NSEventModifierFlagDeviceIndependentFlagsMask;
+    if (event.keyCode != 38 || (flags & (NSEventModifierFlagCommand | NSEventModifierFlagShift | NSEventModifierFlagControl | NSEventModifierFlagOption))
+        != (NSEventModifierFlagCommand | NSEventModifierFlagShift) || !self.callback) return NO;
+    if (event.type == NSEventTypeKeyDown && !event.isARepeat) self.callback(self.context, SR_TERMINAL_TOGGLE_BOTTOM_PANEL, 0);
+    return YES;
+}
 - (void)keyDown:(NSEvent *)event {
+    if ([self forwardWorkbenchShortcut:event]) return;
     BOOL wasMarked = self.hasMarkedText;
     self.keyText = [NSMutableArray new];
     [self interpretKeyEvents:@[event]];
@@ -154,6 +171,7 @@ static bool initialize(void) {
 - (void)keyUp:(NSEvent *)event { [self sendKey:event action:GHOSTTY_ACTION_RELEASE text:nil composing:NO]; }
 - (BOOL)performKeyEquivalent:(NSEvent *)event {
     if (self.window.firstResponder != self) return NO;
+    if ([self forwardWorkbenchShortcut:event]) return YES;
     ghostty_input_key_s key = { .action = GHOSTTY_ACTION_PRESS, .mods = modifiers(event.modifierFlags), .keycode = event.keyCode, .text = event.characters.UTF8String };
     if (!ghostty_surface_key_is_binding(self.surface, key)) return NO;
     [self keyDown:event]; [self keyUp:event]; return YES;
@@ -202,11 +220,15 @@ static bool initialize(void) {
 }
 @end
 
-void *sr_terminal_create(const char *directory, const char *clipboard_directory) {
+void *sr_terminal_create(const char *directory, const char *clipboard_directory, const char *command,
+                         const char *environment_name, const char *environment_value,
+                         sr_terminal_event_cb callback, void *context) {
     NSCAssert(NSThread.isMainThread, @"Terminal views require the main thread");
     if (!initialize()) return NULL;
     SRTerminalView *view = [[SRTerminalView alloc] initWithFrame:NSMakeRect(0, 0, 640, 360)];
     view.clipboardDirectory = [NSString stringWithUTF8String:clipboard_directory];
+    view.callback = callback;
+    view.context = context;
     [view unmarkText];
     ghostty_surface_config_s config = ghostty_surface_config_new();
     config.platform_tag = GHOSTTY_PLATFORM_MACOS;
@@ -214,6 +236,9 @@ void *sr_terminal_create(const char *directory, const char *clipboard_directory)
     config.userdata = (__bridge void *)view;
     config.scale_factor = NSScreen.mainScreen.backingScaleFactor;
     config.working_directory = directory;
+    config.command = command;
+    ghostty_env_var_s variable = { .key = environment_name, .value = environment_value };
+    if (environment_name && environment_value) { config.env_vars = &variable; config.env_var_count = 1; }
     view.surface = ghostty_surface_new(app, &config);
     if (!view.surface) return NULL;
     // Ghostty 1.2.3 presents Metal-rendered textures through its IOSurfaceLayer.
@@ -226,8 +251,13 @@ void *sr_terminal_create(const char *directory, const char *clipboard_directory)
 }
 void sr_terminal_destroy(void *pointer) {
     SRTerminalView *view = (__bridge_transfer SRTerminalView *)pointer;
+    view.callback = NULL;
     [view removeFromSuperview];
     if (view.surface) { ghostty_surface_free(view.surface); view.surface = NULL; }
+}
+bool sr_terminal_busy(void *pointer) {
+    SRTerminalView *view = (__bridge SRTerminalView *)pointer;
+    return view.surface && !ghostty_surface_process_exited(view.surface) && ghostty_surface_needs_confirm_quit(view.surface);
 }
 void sr_terminal_focus(void *pointer) { SRTerminalView *view = (__bridge SRTerminalView *)pointer; [view.window makeFirstResponder:view]; }
 void sr_terminal_set_colors(void *pointer, uint32_t background, uint32_t foreground) {
