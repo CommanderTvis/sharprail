@@ -23,7 +23,7 @@ using SharpRail.UI.State;
 
 namespace SharpRail.UI.Rendering;
 
-public sealed class MarkdownPreview : ScrollViewer, IDisposable
+public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
 {
     protected override Type StyleKeyOverride => typeof(ScrollViewer);
 
@@ -36,19 +36,26 @@ public sealed class MarkdownPreview : ScrollViewer, IDisposable
     private readonly Preferences preferences;
     private readonly CancellationTokenSource lifetime = new();
     private readonly List<IDisposable> loadedImages = [];
+    private readonly bool renderDiagrams;
+    private string? diffMark;
     public MarkdownDocument Document { get; }
 
     public MarkdownPreview(string text, string path, IProjectServices host, Preferences preferences, Action<string, string?> navigate)
+        : this(Parse(text), path, host, preferences, navigate) { }
+
+    /// <summary>Renders an already parsed document, so callers can parse large sources off the UI thread.</summary>
+    public MarkdownPreview(MarkdownDocument document, string path, IProjectServices host, Preferences preferences, Action<string, string?> navigate,
+        bool renderDiagrams = true)
     {
-        this.host = host; this.path = path; this.preferences = preferences; this.navigate = navigate;
+        this.host = host; this.path = path; this.preferences = preferences; this.navigate = navigate; this.renderDiagrams = renderDiagrams;
         Name = "MarkdownPreview";
         HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled;
-        Document = Markdown.Parse(text, Pipeline);
+        Document = document;
         var body = new StackPanel
         {
             Spacing = 0,
             Margin = new Thickness(24, 16),
-            MaxWidth = preferences.BoundPreviewWidth ? preferences.PreviewWidth : double.PositiveInfinity,
+            MaxWidth = LineWidths.Markdown(preferences),
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
         foreach (var block in Document.Where(block => block is not YamlFrontMatterBlock)) body.Children.Add(Render(block));
@@ -56,6 +63,8 @@ public sealed class MarkdownPreview : ScrollViewer, IDisposable
         CollapseMargins(body);
         Content = body;
     }
+
+    public static MarkdownDocument Parse(string text) => Markdown.Parse(text, Pipeline);
 
     public void ScrollToAnchor(string? id)
     {
@@ -90,7 +99,7 @@ public sealed class MarkdownPreview : ScrollViewer, IDisposable
                 var content = Paragraph(paragraph.Inline, preferences.FontSize);
                 content.Margin = new Thickness(0, 12);
                 return content;
-            case FencedCodeBlock fence when string.Equals(fence.Info?.Trim(), "mermaid", StringComparison.OrdinalIgnoreCase):
+            case FencedCodeBlock fence when renderDiagrams && string.Equals(fence.Info?.Trim(), "mermaid", StringComparison.OrdinalIgnoreCase):
                 return Mermaid(fence.Lines.ToString());
             case CodeBlock code:
                 return CodeFrame(code.Lines.ToString());
@@ -236,6 +245,7 @@ public sealed class MarkdownPreview : ScrollViewer, IDisposable
             TextWrapping = TextWrapping.Wrap,
             LineHeight = size * 1.6
         };
+        diffMark = null;
         if (inline is not null) AddInline(text.Inlines!, inline, weight ?? Ui.InterfaceWeight, FontStyle.Normal, false);
         return text;
     }
@@ -247,12 +257,15 @@ public sealed class MarkdownPreview : ScrollViewer, IDisposable
             switch (inline)
             {
                 case LiteralInline literal:
-                    target.Add(new Run(literal.Content.ToString())
+                    target.Add(Mark(new Run(literal.Content.ToString())
                     {
                         FontWeight = weight,
                         FontStyle = style,
                         TextDecorations = strike ? TextDecorations.Strikethrough : null
-                    });
+                    }));
+                    break;
+                case HtmlInline html when DiffTag().Match(html.Tag) is { Success: true } tag:
+                    diffMark = tag.Groups[1].Success ? null : tag.Groups[2].Value;
                     break;
                 case EmphasisInline emphasis:
                     AddInline(target, emphasis,
@@ -260,7 +273,7 @@ public sealed class MarkdownPreview : ScrollViewer, IDisposable
                         emphasis.DelimiterCount == 1 ? FontStyle.Italic : style, emphasis.DelimiterChar == '~' || strike);
                     break;
                 case CodeInline code:
-                    target.Add(new Run(code.Content) { FontFamily = Ui.CodeFont, Foreground = Ui.TextBrush, FontSize = preferences.FontSize - 1 });
+                    target.Add(Mark(new Run(code.Content) { FontFamily = Ui.CodeFont, Foreground = Ui.TextBrush, FontSize = preferences.FontSize - 1 }));
                     break;
                 case LineBreakInline line:
                     target.Add(new Run(line.IsHard ? "\n" : " "));
@@ -299,6 +312,21 @@ public sealed class MarkdownPreview : ScrollViewer, IDisposable
             }
         }
     }
+
+    // Rendered diffs mark merged insertions and deletions the way the reference styles <ins> and <del>.
+    private Run Mark(Run run)
+    {
+        if (diffMark is null) return run;
+        var color = diffMark == "ins" ? Ui.Success : Ui.Danger;
+        run.Classes.Add(diffMark);
+        run.Foreground = color;
+        run.Background = new SolidColorBrush(Color.FromArgb(38, color.Color.R, color.Color.G, color.Color.B));
+        if (diffMark == "del") run.TextDecorations = TextDecorations.Strikethrough;
+        return run;
+    }
+
+    [GeneratedRegex(@"^<(/)?(ins|del)>$", RegexOptions.IgnoreCase)]
+    private static partial Regex DiffTag();
 
     private static string Plain(ContainerInline inline)
     {

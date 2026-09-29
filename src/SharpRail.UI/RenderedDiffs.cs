@@ -1,0 +1,36 @@
+using Avalonia.Controls;
+using SharpRail.Host.Abstractions;
+using SharpRail.UI.Docking;
+using SharpRail.UI.Rendering;
+
+namespace SharpRail.UI;
+
+public sealed partial class WorkbenchWindow
+{
+    private readonly HashSet<string> renderedDiffs = [];
+
+    /// <summary>Merges two Markdown sources for a rendered diff; runs on a thread-pool thread.</summary>
+    public Func<string, string, CancellationToken, string> RenderedDiffMerge { get; set; } = MarkdownDiff.Merge;
+
+    private DiffView DiffDocument(FileDocument document, DockTab tab, string key)
+    {
+        var markdown = Path.GetExtension(tab.Path).ToLowerInvariant() is ".md" or ".markdown";
+        return new DiffView(document.Text, tab.Path, LineWidths.File(Preferences),
+            markdown ? token => RenderMergedAsync(tab, token) : null, renderedDiffs.Contains(key),
+            show => { if (show) renderedDiffs.Add(key); else renderedDiffs.Remove(key); });
+    }
+
+    private async Task<Control> RenderMergedAsync(DockTab tab, CancellationToken token)
+    {
+        var merge = RenderedDiffMerge;
+        using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, lifetime.Token);
+        var parsed = await Task.Run(async () =>
+        {
+            var sides = await host.GetDiffSidesAsync(tab.Path, tab.Scope, tab.Comparison, linked.Token);
+            return MarkdownPreview.Parse(merge(sides.Original, sides.Modified, linked.Token));
+        }, linked.Token);
+        linked.Token.ThrowIfCancellationRequested();
+        return new MarkdownPreview(parsed, tab.Path, host, Preferences, (path, anchor) => _ = OpenDocumentAsync(path, false, anchor), renderDiagrams: false)
+        { Name = "RenderedDiff" };
+    }
+}

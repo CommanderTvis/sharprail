@@ -29,6 +29,12 @@ The upstream one-pixel PNG has an invalid IDAT checksum and truncated compressed
 data. Its translated fixture uses a valid one-pixel PNG because Skia rejects the
 original; the image-loading assertion remains intact.
 
+The rendered Markdown diff cases replace upstream's web worker and long-task observer
+with a merge seam on the window: it records the thread each merge runs on, can hold or
+fail a merge, and the test times every dispatcher turn while the merge lands. Git-backed
+rendered-diff and live-refresh fixtures commit the sample README and SPEC.md on the base
+branch before creating the worktree, matching upstream's sample project.
+
 Run with a local clone of `JetBrains/thinkrail:main`:
 
 ```sh
@@ -104,15 +110,15 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `theme.spec.ts` | system mode follows each client and retains its explicit pair | Pending: Settings has only Dark/Light/System, with no explicit light/dark pair pickers, alternate light theme or cross-client sync |
 | `theme.spec.ts` | Monaco opens files and re-themes under every discovered manifest | Ported (macOS Scintilla; light and dark themes, no high-contrast theme) |
 | `theme.spec.ts` | selected workspace tabs keep their surface and edge marker in high contrast | Pending: no high-contrast theme exists in SharpRail |
-| `line-width-settings.spec.ts` | line-width controls validate drafts, converge on broadcasts, and persist | Pending: the app has one auto-saving preview-width control; draft validation with Save, chat measure and settings broadcasts between clients are absent |
-| `line-width-settings.spec.ts` | the file width wraps source and updates an already-mounted editor | Ported (macOS Scintilla; the shared line-width setting) |
+| `line-width-settings.spec.ts` | line-width controls validate drafts, converge on broadcasts, and persist | Ported in part: draft Escape/validation/Enter/Save and persistence across a fresh window, with the Markdown width standing in for the excluded chat measure. SharpRail's "Limit lines to this width" toggle falls back to the pane width rather than exceeding it. Pending: the held-broadcast convergence between clients, which waits for settings sync |
+| `line-width-settings.spec.ts` | the file width wraps source and updates an already-mounted editor | Ported (macOS Scintilla) |
 | `line-width-settings.spec.ts` | the default file width wraps both sides of a long-line diff | Ported |
 | `line-width-settings.spec.ts` | chat uses the selected measure and optionally exceeds a narrow pane | Excluded: AI chat is a non-goal |
 | `settings.spec.ts` | settings shows the Local GitHub status block and degrades gh gracefully | Ported |
-| `changes.spec.ts` | Changes tab shows the active worktree's diff and swaps per workspace | Pending: needs the Source/Rendered markdown diff toggle; the app has only Split/Inline diffs and no rendered markdown diff (large feature) |
-| `changes.spec.ts` | Rendered markdown diff of a large repetitive file never blocks the main thread | Pending: needs the rendered markdown diff, which the app lacks; the browser long-task observer has no native equivalent |
-| `changes.spec.ts` | Rendered markdown diff shows an error placeholder when the merge worker fails | Pending: needs the rendered markdown diff; it depends on a browser web worker with no native counterpart |
-| `changes.spec.ts` | Rendered markdown diff follows live edits on disk (stale merge cancelled, fresh one lands) | Pending: needs the rendered markdown diff, which the app lacks (plain diff tabs already follow disk edits, but that is not this case) |
+| `changes.spec.ts` | Changes tab shows the active worktree's diff and swaps per workspace | Ported |
+| `changes.spec.ts` | Rendered markdown diff of a large repetitive file never blocks the main thread | Ported (the merge runs off the dispatcher thread; no dispatcher turn may exceed 250 ms instead of the browser's 1 s long task) |
+| `changes.spec.ts` | Rendered markdown diff shows an error placeholder when the merge worker fails | Ported (an injected failing merge replaces the aborted worker script) |
+| `changes.spec.ts` | Rendered markdown diff follows live edits on disk (stale merge cancelled, fresh one lands) | Ported (a merge held for an intermediate edit must be cancelled by the next one) |
 | `changes.spec.ts` | Changes has a List&#124;Tree toggle; Tree groups files into folders with +/- counts | Ported |
 | `changes.spec.ts` | Changes scope selector filters by commit / uncommitted; each scope is its own diff tab | Ported |
 | `changes.spec.ts` | Uncommitted scope converges when HEAD moves out-of-band (a commit in a terminal) | Ported |
@@ -128,6 +134,8 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `changes.spec.ts` | A commit scope whose commit is rewritten away falls back to All changes with a toast | Ported |
 | `changes.spec.ts` | A failed read says so — it never renders as an empty (clean) change set | Ported |
 | `changes.spec.ts` | Closing a diff tab disposes Monaco cleanly — no 'TextModel got disposed' assertion | Excluded: Monaco model lifetime; SharpRail diff tabs do not use an editor |
+| `live-refresh.spec.ts` | worktree changes on disk appear live in Specs, Files, Changes, and an open file tab | Ported |
+| `live-refresh.spec.ts` | churn canary: a write storm coalesces to a few frames and the host stays responsive | Ported (fsChanged frames become coalesced watcher refreshes; `/health` becomes a timed host listing) |
 | `topbar-chrome.spec.ts` | ordinary browsers have a fixed themed header with zero native insets | Ported (fixed 40px themed header, workbench below it, Settings inside at narrow width; native inset elements are unrepresentable) |
 | `topbar-chrome.spec.ts` | live safe areas on either edge preserve header and workbench geometry | Pending: safe-area insets cannot be injected; the title bar has a fixed OS-dependent margin |
 | `topbar-chrome.spec.ts` | the action cluster keeps Update, quota Retry and Settings out of the drag region | Pending: SharpRail has no Update or quota Retry actions |

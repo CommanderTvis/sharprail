@@ -25,6 +25,22 @@ internal static class ChangesFixture
         return (app, WorkspaceTabsE2E.CreateWorkspace(app, "workspace-1"));
     }
 
+    /// <summary>
+    /// Commits the workspace fixture's README and root SPEC.md, like upstream's sample project, on the base
+    /// branch before creating the worktree, so branch-scope changes start clean.
+    /// </summary>
+    internal static (E2eWorkspace App, string Worktree) OpenSample(string root, string name, string source, params (string Path, string Text)[] files)
+    {
+        var app = new E2eWorkspace(WorkspaceTabsE2E.Repository(root, name, source));
+        var refreshes = app.Window.WatchRefreshes;
+        foreach (var (path, text) in files) File.WriteAllText(Path.Combine(app.Root, path), text);
+        Git(app.Root, ["add", "README.md", "SPEC.md", .. files.Select(file => file.Path)]);
+        Commit(app.Root, "sample project");
+        Until(() => app.Window.WatchRefreshes > refreshes);
+        Settle(500);
+        return (app, WorkspaceTabsE2E.CreateWorkspace(app, "workspace-1"));
+    }
+
     internal static string Git(string directory, params string[] arguments)
     {
         var start = new ProcessStartInfo("git") { WorkingDirectory = directory, RedirectStandardOutput = true, RedirectStandardError = true };

@@ -49,6 +49,13 @@ public sealed class DocumentReply
 }
 
 [ProtoContract]
+public sealed class DiffSidesReply
+{
+    [ProtoMember(1)] public string Original { get; set; } = "";
+    [ProtoMember(2)] public string Modified { get; set; } = "";
+}
+
+[ProtoContract]
 public sealed class ChangeReply
 {
     [ProtoMember(1)] public string Path { get; set; } = "";
@@ -100,6 +107,7 @@ public interface IProjectRpc
     ValueTask<GitReply> GetGitAsync(ProjectRequest request, CallContext context = default);
     ValueTask<CommitsReply> ListCommitsAsync(ProjectRequest request, CallContext context = default);
     ValueTask<DocumentReply> GetDiffAsync(ProjectRequest request, CallContext context = default);
+    ValueTask<DiffSidesReply> GetDiffSidesAsync(ProjectRequest request, CallContext context = default);
     ValueTask<GitReply> ApplyGitActionAsync(ProjectRequest request, CallContext context = default);
 }
 

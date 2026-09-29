@@ -49,15 +49,18 @@ internal static class GitRepository
 
     internal static async Task<List<string>> CommitDiffArgumentsAsync(string root, string commit, CancellationToken ct)
     {
+        var (parent, sha) = await CommitRangeAsync(root, commit, ct);
+        return parent is null ? ["show", "--format=", "--no-renames", sha] : ["diff", "--no-renames", parent, sha];
+    }
+
+    /// <summary>Resolves a commit and its first parent, which is null for a root commit.</summary>
+    internal static async Task<(string? Parent, string Commit)> CommitRangeAsync(string root, string commit, CancellationToken ct)
+    {
         if (commit.Length is < 4 or > 64 || !commit.All(value => value is >= '0' and <= '9' or >= 'a' and <= 'f'))
             throw new ArgumentException("A commit scope requires a hexadecimal commit id.");
         var sha = (await RunAsync(root, ct, "rev-parse", "--verify", "--quiet", "--end-of-options", commit + "^{commit}")).Trim();
-        try
-        {
-            var parent = (await RunAsync(root, ct, "rev-parse", "--verify", "--quiet", "--end-of-options", sha + "^")).Trim();
-            return ["diff", "--no-renames", parent, sha];
-        }
-        catch (GitException error) when (error.ExitCode == 1) { return ["show", "--format=", "--no-renames", sha]; }
+        try { return ((await RunAsync(root, ct, "rev-parse", "--verify", "--quiet", "--end-of-options", sha + "^")).Trim(), sha); }
+        catch (GitException error) when (error.ExitCode == 1) { return (null, sha); }
     }
 
     internal static async Task<GitSnapshot> SnapshotAsync(string root, string comparison, CancellationToken ct, string scope = "all")

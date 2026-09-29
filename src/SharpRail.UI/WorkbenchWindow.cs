@@ -239,8 +239,7 @@ public sealed partial class WorkbenchWindow : Window
             else if (tab.Kind == "markdown")
                 content = new MarkdownDocumentView(document, host, Preferences, (path, anchor) => _ = OpenDocumentAsync(path, false, anchor));
             else if (tab.Kind == "diff")
-                content = new DiffView(document.Text, tab.Path, !tab.Path.EndsWith(".md", StringComparison.OrdinalIgnoreCase),
-                    Preferences.BoundPreviewWidth ? Preferences.PreviewWidth : double.PositiveInfinity);
+                content = DiffDocument(document, tab, key);
             else if (tab.Kind == "file" && OperatingSystem.IsMacOS())
                 content = CodeDocument(document, tab, key);
             else

@@ -9,7 +9,7 @@ public sealed partial class WorkbenchWindow
 {
     private bool askingToSave, closeConfirmed;
 
-    private double FileWrapWidth => Preferences.BoundPreviewWidth ? Preferences.PreviewWidth : double.PositiveInfinity;
+    private double FileWrapWidth => Rendering.LineWidths.File(Preferences);
 
     private CodeDocumentView CodeDocument(FileDocument document, DockTab tab, string key)
     {

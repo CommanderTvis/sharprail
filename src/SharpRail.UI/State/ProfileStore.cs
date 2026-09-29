@@ -7,8 +7,10 @@ namespace SharpRail.UI.State;
 public sealed class Preferences
 {
     public string Theme { get; set; } = "dark";
-    public double PreviewWidth { get; set; } = 900;
-    public bool BoundPreviewWidth { get; set; } = true;
+    public int FileLineWidth { get; set; } = Rendering.LineWidths.FileDefault;
+    public bool FileLineWidthBounded { get; set; } = true;
+    public int MarkdownLineWidth { get; set; } = Rendering.LineWidths.MarkdownDefault;
+    public bool MarkdownLineWidthBounded { get; set; } = true;
     public double FontSize { get; set; } = 14;
     public bool ShowHiddenFiles { get; set; }
     public string DefaultPreset { get; set; } = "balanced";
@@ -81,7 +83,8 @@ public sealed class ProfileStore
             Data.Preferences.CustomPresets ??= [];
             if (!LayoutSession.IsValid(Data.Layout)) Data.Layout = DockState.Preset("balanced");
             if (!double.IsFinite(Data.Preferences.FontSize) || Data.Preferences.FontSize is < 10 or > 24) Data.Preferences.FontSize = 14;
-            if (!double.IsFinite(Data.Preferences.PreviewWidth) || Data.Preferences.PreviewWidth is < 320 or > 2400) Data.Preferences.PreviewWidth = 900;
+            if (!Rendering.LineWidths.IsValid(Data.Preferences.FileLineWidth)) Data.Preferences.FileLineWidth = Rendering.LineWidths.FileDefault;
+            if (!Rendering.LineWidths.IsValid(Data.Preferences.MarkdownLineWidth)) Data.Preferences.MarkdownLineWidth = Rendering.LineWidths.MarkdownDefault;
             foreach (var name in Data.Preferences.CustomPresets.Keys.Where(name => string.IsNullOrWhiteSpace(name) ||
                 !LayoutSession.IsValid(Data.Preferences.CustomPresets[name])).ToArray()) Data.Preferences.CustomPresets.Remove(name);
             if (Data.Preferences.Theme is not ("dark" or "light" or "system")) Data.Preferences.Theme = "dark";
