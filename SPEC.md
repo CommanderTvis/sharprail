@@ -219,6 +219,11 @@ lists/tasks, blockquotes/callouts, tables, rules and images. Selectable text,
 relative document navigation, safe external link launch, local image loading,
 frontmatter removal and bounded configurable line width. No WebView or HTML
 application runtime. Read-only source/diff viewing is not an editor.
+` ```mermaid ` fences render natively on macOS through Merman as vector diagrams
+themed from the current appearance tokens, with a full-screen pan/zoom view; other
+platforms show the source with an unavailability message. Invalid diagrams show
+"Diagram failed to render" with Merman's message above the source as a code block;
+other fences stay code. The rendered diff keeps diagrams as source.
 
 ## Verification
 

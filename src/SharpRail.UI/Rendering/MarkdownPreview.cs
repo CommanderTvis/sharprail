@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Input.Platform;
@@ -8,6 +9,7 @@ using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Svg.Skia;
 using Markdig;
 using Markdig.Extensions.Alerts;
 using Markdig.Extensions.Tables;
@@ -33,7 +35,7 @@ public sealed class MarkdownPreview : ScrollViewer, IDisposable
     private readonly Action<string, string?> navigate;
     private readonly Preferences preferences;
     private readonly CancellationTokenSource lifetime = new();
-    private readonly List<Bitmap> loadedImages = [];
+    private readonly List<IDisposable> loadedImages = [];
     public MarkdownDocument Document { get; }
 
     public MarkdownPreview(string text, string path, IProjectServices host, Preferences preferences, Action<string, string?> navigate)
@@ -50,11 +52,7 @@ public sealed class MarkdownPreview : ScrollViewer, IDisposable
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
         foreach (var block in Document.Where(block => block is not YamlFrontMatterBlock)) body.Children.Add(Render(block));
-        foreach (var textBlock in body.GetLogicalDescendants().OfType<SelectableTextBlock>())
-        {
-            textBlock.SelectionBrush = Ui.PreviewSelection;
-            textBlock.SelectionForegroundBrush = null;
-        }
+        TintSelection(body);
         CollapseMargins(body);
         Content = body;
     }
@@ -92,24 +90,10 @@ public sealed class MarkdownPreview : ScrollViewer, IDisposable
                 var content = Paragraph(paragraph.Inline, preferences.FontSize);
                 content.Margin = new Thickness(0, 12);
                 return content;
+            case FencedCodeBlock fence when string.Equals(fence.Info?.Trim(), "mermaid", StringComparison.OrdinalIgnoreCase):
+                return Mermaid(fence.Lines.ToString());
             case CodeBlock code:
-                var text = code.Lines.ToString();
-                var source = Code(text);
-                var codeBody = new StackPanel { Spacing = 8 };
-                var copy = Ui.Button("Copy", () => _ = CopyAsync(text), "check");
-                copy.HorizontalAlignment = HorizontalAlignment.Right;
-                codeBody.Children.Add(copy);
-                codeBody.Children.Add(new ScrollViewer { Content = source, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto });
-                return new Border
-                {
-                    Child = codeBody,
-                    Background = Ui.Elevated,
-                    Padding = new Thickness(14),
-                    BorderBrush = Ui.BorderBrush,
-                    BorderThickness = new Thickness(1),
-                    CornerRadius = new(4),
-                    Margin = new Thickness(0, 12)
-                };
+                return CodeFrame(code.Lines.ToString());
             case ListBlock list:
                 var items = new StackPanel { Spacing = 4, Margin = new Thickness(0, 12) };
                 var number = int.TryParse(list.OrderedStart, out var start) ? start : 1;
@@ -339,6 +323,105 @@ public sealed class MarkdownPreview : ScrollViewer, IDisposable
         var parts = url.Split('#', 2);
         navigate(Path.GetFullPath(Path.Combine("/", Path.GetDirectoryName(path) ?? "", Uri.UnescapeDataString(parts[0]))).TrimStart('/'),
             parts.Length == 2 ? parts[1] : null);
+    }
+
+    private Border CodeFrame(string text)
+    {
+        var source = Code(text);
+        var codeBody = new StackPanel { Spacing = 8 };
+        var copy = Ui.Button("Copy", () => _ = CopyAsync(text), "check");
+        copy.HorizontalAlignment = HorizontalAlignment.Right;
+        codeBody.Children.Add(copy);
+        codeBody.Children.Add(new ScrollViewer { Content = source, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto });
+        return new Border
+        {
+            Child = codeBody,
+            Background = Ui.Elevated,
+            Padding = new Thickness(14),
+            BorderBrush = Ui.BorderBrush,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new(4),
+            Margin = new Thickness(0, 12)
+        };
+    }
+
+    private static void TintSelection(Control root)
+    {
+        foreach (var textBlock in root.GetLogicalDescendants().OfType<SelectableTextBlock>())
+        {
+            textBlock.SelectionBrush = Ui.PreviewSelection;
+            textBlock.SelectionForegroundBrush = null;
+        }
+    }
+
+    private Control Mermaid(string text)
+    {
+        var holder = new Border { Margin = new Thickness(0, 12), Child = Ui.Text("Rendering diagram…", Ui.Muted, 12) };
+        _ = LoadMermaidAsync(holder, text);
+        return holder;
+    }
+
+    private async Task LoadMermaidAsync(Border holder, string text)
+    {
+        var options = MermaidRenderer.Options();
+        MermaidRenderer.Result result;
+        SvgSource? svg = null;
+        try
+        {
+            result = await Task.Run(() =>
+            {
+                var rendered = MermaidRenderer.Render(text, options);
+                if (rendered.Svg is not null) svg = SvgSource.LoadFromSvg(rendered.Svg);
+                return rendered;
+            }, lifetime.Token);
+        }
+        catch (OperationCanceledException) { return; }
+        if (lifetime.IsCancellationRequested) { svg?.Dispose(); return; }
+        if (result.Error is { } error || svg?.Picture is not { } picture)
+        {
+            var failure = new StackPanel { Name = "MermaidError", Spacing = 4 };
+            svg?.Dispose();
+            var message = Ui.Text("Diagram failed to render: " + (result.Error ?? "the SVG could not be read."), Ui.Danger, 12);
+            message.TextWrapping = TextWrapping.Wrap;
+            var source = CodeFrame(text);
+            source.Margin = new Thickness(0);
+            failure.Children.Add(message); failure.Children.Add(source);
+            TintSelection(failure);
+            holder.Child = failure;
+            return;
+        }
+        loadedImages.Add(svg);
+        var fullscreen = new Button
+        {
+            Name = "MermaidFullscreen",
+            Content = Ui.Icon("fullscreen", size: 14),
+            Padding = new Thickness(4),
+            Margin = new Thickness(4),
+            Background = Ui.Elevated,
+            BorderBrush = Ui.BorderBrush,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(4),
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Top
+        };
+        AutomationProperties.SetName(fullscreen, "View diagram full screen");
+        ToolTip.SetTip(fullscreen, "Full screen");
+        fullscreen.Click += (_, _) =>
+        {
+            if (TopLevel.GetTopLevel(this) is Window owner) MermaidDialog.Show(owner, svg);
+        };
+        var diagram = new Grid();
+        diagram.Children.Add(new Image
+        {
+            Name = "MermaidDiagram",
+            Source = new SvgImage { Source = svg },
+            Stretch = Stretch.Uniform,
+            StretchDirection = StretchDirection.DownOnly,
+            MaxWidth = picture.CullRect.Width,
+            HorizontalAlignment = HorizontalAlignment.Left
+        });
+        diagram.Children.Add(fullscreen);
+        holder.Child = diagram;
     }
 
     private async Task LoadImageAsync(Border holder, string url)

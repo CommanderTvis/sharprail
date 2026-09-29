@@ -13,8 +13,15 @@ workspace specification. The logo, custom diff icon and unchanged
 scripts/window-probe.m came from prototypes/ThinkRailNative (Copyright 2026
 JetBrains s.r.o., Apache 2.0; licenses/Thinkrail-Apache-2.0.txt).
 
+Mermaid diagrams are laid out by Merman 0.7.0 (https://github.com/Latias94/merman,
+MIT OR Apache-2.0): its released macOS merman-ffi static library is linked into
+libSharpRailMermaid and its SVG is drawn with Svg.Skia (MIT). Merman's Rust crate
+dependencies retain their licenses; licenses/Merman-Crates.txt lists each crate
+with its license.
+
 PNG icons came from that prototype's @remixicon/react 4.9.0 assets.
-The collapse/expand vertical and horizontal ellipsis icons use the same package's original vector paths.
+The collapse/expand vertical and horizontal ellipsis, fullscreen, subtract and
+arrow-go-back icons use the same package's original vector paths.
 See licenses/RemixIcon.txt for Remix Icon License 1.0.
 
 Geist Regular, Medium, SemiBold and Bold came from the reference's bundled assets.

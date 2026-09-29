@@ -1,0 +1,147 @@
+Rust crates in Merman 0.7.0's prebuilt merman-ffi static library (Merman.xcframework,
+default render and ascii features), which scripts/build-merman.sh links into
+libSharpRailMermaid.dylib, with their declared licenses. Each crate retains its
+upstream license text in its published source on crates.io. MPL-2.0 crates are
+unmodified; their source is available from crates.io at the versions listed.
+
+aho-corasick v1.1.5 Unlicense OR MIT
+allocator-api2 v0.2.21 MIT OR Apache-2.0
+approx v0.5.1 Apache-2.0
+arrayvec v0.7.8 MIT OR Apache-2.0
+base64 v0.22.1 MIT OR Apache-2.0
+beef v0.5.2 MIT OR Apache-2.0
+bitflags v2.13.2 MIT OR Apache-2.0
+by_address v1.2.1 MIT OR Apache-2.0
+bytemuck v1.25.2 Zlib OR Apache-2.0 OR MIT
+cfg-if v1.0.5 MIT OR Apache-2.0
+chrono v0.4.45 MIT OR Apache-2.0
+core-foundation-sys v0.8.7 MIT OR Apache-2.0
+cssparser v0.36.0 MPL-2.0
+derive_more v2.1.1 MIT
+dtoa v1.0.11 MIT OR Apache-2.0
+dtoa-short v0.3.5 MPL-2.0
+dugong v0.7.0 MIT OR Apache-2.0
+dugong-graphlib v0.7.0 MIT OR Apache-2.0
+encoding_rs v0.8.42 (Apache-2.0 OR MIT) AND BSD-3-Clause
+equivalent v1.0.2 Apache-2.0 OR MIT
+euclid v0.22.14 MIT OR Apache-2.0
+fastrand v2.5.0 Apache-2.0 OR MIT
+fnv v1.0.7 Apache-2.0 / MIT
+foldhash v0.2.0 Zlib
+form_urlencoded v1.2.2 MIT OR Apache-2.0
+getopts v0.2.24 MIT OR Apache-2.0
+getrandom v0.2.17 MIT OR Apache-2.0
+getrandom v0.4.3 MIT OR Apache-2.0
+hashbrown v0.16.1 MIT OR Apache-2.0
+hashbrown v0.17.1 MIT OR Apache-2.0
+htmlize v1.1.0 MIT OR Apache-2.0
+iana-time-zone v0.1.65 MIT OR Apache-2.0
+icu_collections v2.3.0 Unicode-3.0
+icu_locale_core v2.3.0 Unicode-3.0
+icu_normalizer v2.3.0 Unicode-3.0
+icu_normalizer_data v2.3.0 Unicode-3.0
+icu_properties v2.3.0 Unicode-3.0
+icu_properties_data v2.3.0 Unicode-3.0
+icu_provider v2.3.1 Unicode-3.0
+idna v1.1.0 MIT OR Apache-2.0
+idna_adapter v1.2.2 Apache-2.0 OR MIT
+indexmap v2.14.2 Apache-2.0 OR MIT
+itoa v1.0.18 MIT OR Apache-2.0
+json5 v0.4.1 ISC
+kurbo v0.13.1 Apache-2.0 OR MIT
+kurbo v0.9.5 MIT/Apache-2.0
+lalrpop-util v0.20.2 Apache-2.0 OR MIT
+lazy_static v1.5.0 MIT OR Apache-2.0
+libc v0.2.189 MIT OR Apache-2.0
+litemap v0.8.3 Unicode-3.0
+log v0.4.34 MIT OR Apache-2.0
+logos v0.14.4 MIT OR Apache-2.0
+logos-codegen v0.14.4 MIT OR Apache-2.0
+lol_html v2.9.0 BSD-3-Clause
+manatee v0.7.0 MIT OR Apache-2.0
+matrixmultiply v0.3.11 MIT/Apache-2.0
+memchr v2.8.3 Unlicense OR MIT
+merman v0.7.0 MIT OR Apache-2.0
+merman-ascii v0.7.0 MIT OR Apache-2.0
+merman-bindings-core v0.7.0 MIT OR Apache-2.0
+merman-core v0.7.0 MIT OR Apache-2.0
+merman-ffi v0.7.0 MIT OR Apache-2.0
+merman-render v0.7.0 MIT OR Apache-2.0
+mime v0.3.17 MIT OR Apache-2.0
+nalgebra v0.34.2 Apache-2.0
+new_debug_unreachable v1.0.6 MIT
+num-complex v0.4.6 MIT OR Apache-2.0
+num-integer v0.1.47 MIT OR Apache-2.0
+num-rational v0.4.2 MIT OR Apache-2.0
+num-traits v0.2.19 MIT OR Apache-2.0
+once_cell v1.21.4 MIT OR Apache-2.0
+palette v0.7.7 MIT OR Apache-2.0
+palette_math v0.7.7 MIT OR Apache-2.0
+percent-encoding v2.3.2 MIT OR Apache-2.0
+pest v2.9.2 MIT OR Apache-2.0
+pest_generator v2.9.2 MIT OR Apache-2.0
+pest_meta v2.9.2 MIT OR Apache-2.0
+phf v0.13.1 MIT
+phf_generator v0.13.1 MIT
+phf_shared v0.13.1 MIT
+pin-project-lite v0.2.17 Apache-2.0 OR MIT
+polycool v0.4.0 MIT OR Apache-2.0
+potential_utf v0.1.6 Unicode-3.0
+ppv-lite86 v0.2.21 MIT OR Apache-2.0
+precomputed-hash v0.1.1 MIT
+proc-macro2 v1.0.107 MIT OR Apache-2.0
+pulldown-cmark v0.12.2 MIT
+pulldown-cmark-escape v0.11.0 MIT
+quote v1.0.47 MIT OR Apache-2.0
+rand v0.8.8 MIT OR Apache-2.0
+rand_chacha v0.3.1 MIT OR Apache-2.0
+rand_core v0.6.4 MIT OR Apache-2.0
+rawpointer v0.2.1 MIT/Apache-2.0
+regex v1.13.1 MIT OR Apache-2.0
+regex-automata v0.4.18 MIT OR Apache-2.0
+regex-syntax v0.8.11 MIT OR Apache-2.0
+roughr-merman v0.12.3 MIT
+rustc-hash v2.1.3 Apache-2.0 OR MIT
+ryu v1.0.23 Apache-2.0 OR BSL-1.0
+ryu-js v1.0.3 Apache-2.0 OR BSL-1.0
+safe_arch v0.7.4 Zlib OR Apache-2.0 OR MIT
+scopeguard v1.2.0 MIT OR Apache-2.0
+selectors v0.37.0 MPL-2.0
+serde v1.0.229 MIT OR Apache-2.0
+serde_core v1.0.229 MIT OR Apache-2.0
+serde_json v1.0.151 MIT OR Apache-2.0
+serde_yaml v0.9.34+deprecated MIT OR Apache-2.0
+servo_arc v0.4.3 MIT OR Apache-2.0
+simba v0.9.1 Apache-2.0
+simdutf8 v0.1.5 MIT OR Apache-2.0
+siphasher v0.3.11 MIT/Apache-2.0
+siphasher v1.0.4 MIT OR Apache-2.0
+smallvec v1.16.2 MIT OR Apache-2.0
+stable_deref_trait v1.2.1 MIT OR Apache-2.0
+svgtypes v0.11.0 MIT/Apache-2.0
+svgtypes v0.16.1 Apache-2.0 OR MIT
+syn v2.0.119 MIT OR Apache-2.0
+syn v3.0.6 MIT OR Apache-2.0
+synstructure v0.14.0 MIT
+thiserror v2.0.21 MIT OR Apache-2.0
+tinystr v0.8.4 Unicode-3.0
+tracing v0.1.44 MIT
+tracing-core v0.1.36 MIT
+typenum v1.20.1 MIT OR Apache-2.0
+ucd-trie v0.1.7 MIT OR Apache-2.0
+unicase v2.9.0 MIT OR Apache-2.0
+unicode-ident v1.0.26 (MIT OR Apache-2.0) AND Unicode-3.0
+unicode-width v0.2.2 MIT OR Apache-2.0
+unsafe-libyaml v0.2.11 MIT
+url v2.5.8 MIT OR Apache-2.0
+utf8_iter v1.0.4 Apache-2.0 OR MIT
+uuid v1.26.1 Apache-2.0 OR MIT
+web-time v1.1.0 MIT OR Apache-2.0
+wide v0.7.33 Zlib OR Apache-2.0 OR MIT
+writeable v0.6.4 Unicode-3.0
+yoke v0.8.3 Unicode-3.0
+zerocopy v0.8.59 BSD-2-Clause OR Apache-2.0 OR MIT
+zerofrom v0.1.8 Unicode-3.0
+zerotrie v0.2.5 Unicode-3.0
+zerovec v0.11.8 Unicode-3.0
+zmij v1.0.23 MIT

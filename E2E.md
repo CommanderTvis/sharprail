@@ -54,7 +54,7 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `markdown-links.spec.ts` | a parent-relative file link cannot escape into browser navigation | Ported |
 | `markdown-links.spec.ts` | relative links, images, and heading anchors work in the rendered markdown view | Ported |
 | `markdown-alerts.spec.ts` | renders GitHub-style alert callouts in the rendered markdown view | Ported |
-| `markdown-mermaid.spec.ts` | renders mermaid fences as diagrams in the rendered markdown view | Pending: the native Markdown renderer has no diagram support; a Mermaid layout engine plus fullscreen dialog is not a small change |
+| `markdown-mermaid.spec.ts` | renders mermaid fences as diagrams in the rendered markdown view | Ported |
 | `layout.spec.ts` | workbench strips and feature toolbars keep one-row geometry with ARIA tabs | Ported |
 | `layout.spec.ts` | overflow uses directional fades without changing tab-strip geometry | Ported |
 | `layout.spec.ts` | auxiliary panel scrollbars stay quiet at rest and expose only clipped edges | Pending: relies on browser WebKit scrollbar pseudo-elements, hover-intent attributes and forced-colors media; Avalonia has no quiet-scroll cue surface to assert |

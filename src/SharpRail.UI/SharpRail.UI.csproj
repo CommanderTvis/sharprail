@@ -7,8 +7,16 @@
     <PackageReference Include="Avalonia.Desktop" />
     <PackageReference Include="Avalonia.Themes.Fluent" />
     <PackageReference Include="Markdig" />
+    <PackageReference Include="Svg.Controls.Skia.Avalonia" />
     <AvaloniaResource Include="Assets/**" />
   </ItemGroup>
+  <Target Name="BuildMermaid" BeforeTargets="PrepareForBuild">
+    <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/build-merman.sh&quot;" />
+    <ItemGroup>
+      <MermaidLibrary Include="../../.tools/merman/*SharpRailMermaid.*" />
+      <Content Include="@(MermaidLibrary)" Link="%(MermaidLibrary.Filename)%(MermaidLibrary.Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
   <Target Name="BuildGhostty" BeforeTargets="PrepareForBuild" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
     <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/build-ghostty.sh&quot; &quot;$(RuntimeIdentifier)&quot;" />
     <ItemGroup>
