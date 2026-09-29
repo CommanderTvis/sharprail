@@ -77,8 +77,22 @@ public sealed class LayoutSession
     public void SwitchWorkspace(string path) => Change(state =>
     {
         var previous = Active(state);
+        var fresh = path.Length > 0 && !state.Workspaces.ContainsKey(path);
         state.ActiveWorkspace = path;
         var view = Active(state);
+        // A workspace opens one terminal once; closing it later never brings it back.
+        if (fresh)
+        {
+            var bottom = state.Groups.FirstOrDefault(group => group.Region == "bottom");
+            if (bottom is null)
+            {
+                bottom = new DockGroup { Region = "bottom" };
+                PrepareAuxiliaryCreation(state, bottom); state.Groups.Add(bottom);
+            }
+            var terminal = new DockTab("terminal:" + Guid.NewGuid().ToString("N"), "Terminal " + view.NextTerminalNumber++, "terminal");
+            view.Documents[bottom.Id] = [terminal];
+            view.Selected[bottom.Id] = terminal.Id;
+        }
         foreach (var group in state.Groups.Where(group => group.Region != "center"))
         {
             var selected = previous.Selected.GetValueOrDefault(group.Id) ?? group.Tools.FirstOrDefault()?.Id;
@@ -373,7 +387,7 @@ public sealed class LayoutSession
             }
             view.Documents.Remove(id); view.Selected.Remove(id);
             if (view.FocusedCenter == id) view.FocusedCenter = target?.Id ?? "";
-            if (view.FocusedGroup == id) view.FocusedGroup = target?.Id ?? "";
+            if (view.FocusedGroup == id) view.FocusedGroup = target?.Id ?? view.FocusedCenter;
             if (view.FocusedAuxiliary.GetValueOrDefault(group.Region) == id)
             {
                 if (target is null) view.FocusedAuxiliary.Remove(group.Region);

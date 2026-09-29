@@ -6,6 +6,7 @@ using SharpRail.Host.Client;
 using SharpRail.Host.Core;
 using SharpRail.UI.State;
 using SharpRail.UI.Rendering;
+using SharpRail.UI.Terminal;
 
 namespace SharpRail.UI;
 
@@ -27,12 +28,15 @@ public sealed partial class App : Application
             var profileDirectory = Environment.GetEnvironmentVariable("SHARPRAIL_PROFILE");
             var profile = profileDirectory is null ? ProfileStore.OpenDefault(initialRoot) : new ProfileStore(profileDirectory);
             var root = profile.Data.LastProject.Length > 0 ? profile.Data.LastProject : initialRoot;
+            var token = Environment.GetEnvironmentVariable("SHARPRAIL_TOKEN") ?? "";
             IProjectServices host = string.IsNullOrEmpty(endpoint)
                 ? new LocalProjectAdapter(new ProjectServices(root))
-                : new RemoteProjectAdapter(new Uri(endpoint), Environment.GetEnvironmentVariable("SHARPRAIL_TOKEN") ?? "");
-            var window = new WorkbenchWindow(host, root, profile, !string.IsNullOrEmpty(endpoint));
+                : new RemoteProjectAdapter(new Uri(endpoint), token);
+            var remoteTerminals = string.IsNullOrEmpty(endpoint) ? null : new RemoteTerminalAdapter(new Uri(endpoint), token);
+            var terminals = TerminalBackends.Ghostty(remoteTerminals is null ? null : new RemoteTerminalConnection(new Uri(endpoint!), token, remoteTerminals));
+            var window = new WorkbenchWindow(host, root, profile, terminals, !string.IsNullOrEmpty(endpoint));
             desktop.MainWindow = window;
-            desktop.Exit += (_, _) => (host as IDisposable)?.Dispose();
+            desktop.Exit += (_, _) => { (host as IDisposable)?.Dispose(); remoteTerminals?.Dispose(); };
         }
         base.OnFrameworkInitializationCompleted();
     }

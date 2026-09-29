@@ -47,7 +47,7 @@ public static class Dialogs
         return await window.ShowDialog<string?>(owner);
     }
 
-    public static async Task<bool> Confirm(Window owner, string title, string explanation, string confirmLabel = "Remove worktree")
+    public static async Task<bool> Confirm(Window owner, string title, string explanation, string confirmLabel = "Remove worktree", string? confirmName = null)
     {
         var window = Create(title, 520, 240);
         window.FindControl<StackPanel>("DialogBody")!.Spacing = 18;
@@ -56,7 +56,9 @@ public static class Dialogs
         text.Text = explanation; text.IsVisible = true;
         var actions = window.FindControl<StackPanel>("DialogActions")!;
         actions.Children.Add(Ui.Button("Cancel", () => window.Close(false)));
-        actions.Children.Add(Ui.Button(confirmLabel, () => window.Close(true)));
+        var confirm = Ui.Button(confirmLabel, () => window.Close(true));
+        confirm.Name = confirmName;
+        actions.Children.Add(confirm);
         return await window.ShowDialog<bool>(owner);
     }
 

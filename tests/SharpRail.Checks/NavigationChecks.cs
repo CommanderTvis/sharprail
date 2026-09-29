@@ -35,7 +35,7 @@ internal static class NavigationChecks
     {
         File.WriteAllText(Path.Combine(root, "navigation.txt"), "Deferred navigation");
         var host = new DelayedHost(new ProjectServices(root));
-        var window = new WorkbenchWindow(host, root, new ProfileStore(Path.Combine(root, ".navigation-profile")));
+        var window = new WorkbenchWindow(host, root, new ProfileStore(Path.Combine(root, ".navigation-profile")), E2E.E2eTerminals.Plain);
         window.Show(); Pump(() => window.WorkspaceMounted);
         var primary = window.Layout.State.Center.Leaves().Single();
         Await(window.OpenDocumentAsync("README.md", true));

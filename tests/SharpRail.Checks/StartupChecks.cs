@@ -34,7 +34,7 @@ internal static class StartupChecks
         DeferredDocumentChrome(root);
         var profilePath = Path.Combine(root, ".startup-profile");
         var host = new DelayedGitHost(root);
-        var window = new WorkbenchWindow(host, root, new ProfileStore(profilePath));
+        var window = new WorkbenchWindow(host, root, new ProfileStore(profilePath), E2E.E2eTerminals.Plain);
         window.Show();
         Pump(() => window.WorkspaceMounted && host.Requests.Count == 1);
         var first = host.Requests.Single();
@@ -47,7 +47,7 @@ internal static class StartupChecks
         first.Result.SetResult(new(false, "", [], [], []));
 
         host = new DelayedGitHost(root);
-        window = new WorkbenchWindow(host, root, new ProfileStore(profilePath));
+        window = new WorkbenchWindow(host, root, new ProfileStore(profilePath), E2E.E2eTerminals.Plain);
         window.Show();
         Pump(() => window.WorkspaceMounted && host.Requests.Count == 1 && window.GetLogicalDescendants().OfType<MarkdownPreview>().Any());
         first = host.Requests.Single();
@@ -94,7 +94,7 @@ internal static class StartupChecks
         using (var app = new E2eWorkspace(directory)) app.Open("README.md", true);
         var host = new E2eHost(new ProjectServices(directory));
         var read = host.Hold("README.md");
-        var window = new WorkbenchWindow(host, directory, new ProfileStore(directory + "-profile"));
+        var window = new WorkbenchWindow(host, directory, new ProfileStore(directory + "-profile"), E2E.E2eTerminals.Plain);
         window.Show();
         try
         {

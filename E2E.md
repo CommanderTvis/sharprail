@@ -13,17 +13,20 @@ WebSocket replies become held host-call responses; local mode uses direct C# cal
 AI chat is a non-goal (see `SPEC.md`): the initial upstream chat tab is omitted from
 document counts, chat-only cases are excluded, and mixed cases keep only their
 non-chat assertions.
-Terminal docking cases create a terminal tab through the pane menu in headless mode
-before following upstream's gestures. This verifies pane chrome and body identity;
-it does not prove automatic initial terminal provisioning or terminal execution.
+Every new workspace opens upstream's initial terminal, so terminal docking cases use it.
+Headless terminal tabs run real host PTY sessions (`/bin/sh`) and show their output as
+plain text; commands print split markers so an echoed command line never satisfies an
+output assertion. Delayed or failed `terminal.attach` replies become held or failing
+host starts. Ghostty itself cannot run headless.
 Project picker cases inject a fake folder picker (the platform dialog is native); the
 non-git case initialises through the host `init` action, which commits the folder's existing
 files as upstream does. Rail expansion is checked after activating the first project's default
 workspace, because only the active project lists its workspaces. Same-id terminal
 bodies are provoked by opening one terminal tab id in two workspaces through the
-layout API, because SharpRail does not provision upstream's initial terminal. The
+layout API, because generated terminal ids never repeat. The
 Local GitHub case empties `PATH` so the real `gh` probe degrades.
-Native shell execution and Metal presentation have separate checks in
+Native shell execution, Metal presentation, Mod+Shift+J from a focused Ghostty view and
+remote Ghostty tabs relayed to a gRPC host PTY have separate checks in
 `scripts/check-terminal.sh` and `SharpRail.Checks --native-terminal`.
 The upstream one-pixel PNG has an invalid IDAT checksum and truncated compressed
 data. Its translated fixture uses a valid one-pixel PNG because Skia rejects the
@@ -100,6 +103,44 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `workspace-tabs.spec.ts` | the selected side tool follows workspace switches | Ported |
 | `workspace-tabs.spec.ts` | switching workspaces re-targets the mounted workbench instead of remounting it | Ported |
 | `workspace-tabs.spec.ts` | a same-id terminal body remounts instead of carrying across workspaces | Ported |
+| `terminals.spec.ts` | a workspace opens a terminal automatically, rooted in the worktree, with working I/O | Ported |
+| `terminals.spec.ts` | a shell start failure explains recovery and retries the same tab | Ported (failure text, preserved focus, disabled then focused Retry, same-tab recovery; SharpRail has no terminal Settings page to link, and the detached take-back step needs multi-client sync) |
+| `terminals.spec.ts` | xterm uses the shared quiet rail and directional curtains | Excluded: xterm.js scrollbar and CSS curtain styling; Ghostty draws its own native scrollback |
+| `terminals.spec.ts` | terminals are workspace-scoped and survive workspace switches | Ported |
+| `terminals.spec.ts` | multiple terminals per workspace keep independent buffers and can be closed | Ported |
+| `terminals.spec.ts` | the terminal's shell counts characters, not bytes | Ported |
+| `terminals.spec.ts` | a shell survives a trip to Project Home and back | Ported (SharpRail has no Project Home page; the project's default workspace unmounts the worktree's terminal instead) |
+| `terminals.spec.ts` | historical terminal queries do not become input on remount | Excluded: SharpRail keeps the live terminal surface across remounts instead of replaying output into a new emulator, so no replayed query can answer itself |
+| `terminals.spec.ts` | rapid re-entry never spawns a second shell | Ported |
+| `terminals.spec.ts` | a shell survives a page reload | Pending: a session lives as long as its window (local) or its gRPC stream (remote); reattaching after a restart needs host-owned sessions, which arrive with multi-client sync |
+| `terminals.spec.ts` | a terminal's output never reaches another client | Pending: multi-client sync; one window owns each session today |
+| `terminals.spec.ts` | a tab says so when its shell exits | Ported |
+| `terminals.spec.ts` | Ctrl+C still interrupts while an input method is active | Excluded: Chromium keyCode 229 composition events; native Ctrl+C through the AppKit responder chain is covered by `--native-terminal` |
+| `terminals.spec.ts` | a shell that dies while detached is not re-attached as if alive | Pending: detaching and reattaching sessions arrive with host-owned sessions; a SharpRail tab stays attached and reports an exited shell in place |
+| `terminals.spec.ts` | a shell survives losing the connection and reconnecting | Pending: a remote session ends with its gRPC stream; surviving reconnects needs host-owned sessions |
+| `terminals.spec.ts` | a terminal attach response lost with its socket is replayed exactly once | Pending: no reconnect or attach replay protocol yet (host-owned sessions) |
+| `terminals.spec.ts` | final shell output is delivered before exit after reconnect | Pending: needs reconnects; output-before-exit ordering without a reconnect is checked by the host terminal checks |
+| `terminals.spec.ts` | a second client takes a terminal over and the first is told | Pending: multi-client sync |
+| `terminals.spec.ts` | closing a tab with a running process asks first | Ported |
+| `terminals.spec.ts` | a rejected forced close stays correlated and permits a clean retry | Excluded: closing disposes the tab's own session; SharpRail has no host close request that can be refused |
+| `terminals.spec.ts` | closing an idle tab does not ask | Ported |
+| `terminals.spec.ts` | a terminal opened in one browser never creates placement in another | Pending: multi-client sync |
+| `terminals.spec.ts` | a shell that dies during a reclaim is not presented as alive | Pending: multi-client sync (reclaiming another client's session) |
+| `bottom-panel.spec.ts` | full-height panel-header actions stay square | Ported (no chat or side-group menu buttons; SharpRail shows a group's fold button once its region has several groups) |
+| `bottom-panel.spec.ts` | a new workspace starts with one accessible terminal group in a 30% bottom panel | Ported |
+| `bottom-panel.spec.ts` | a hidden local frame keeps the host terminal reserved without attaching until shown | Ported (the peer-client attach needs multi-client sync) |
+| `bottom-panel.spec.ts` | a completed initial-terminal handshake never recreates a terminal after explicit close | Ported (the tab is closed through the UI rather than a host request) |
+| `bottom-panel.spec.ts` | Mod+Shift+J works from xterm, preserves its PTY through hide and reload, and is modal-aware | Ported (survival across hide; survival across reload is pending with "a shell survives a page reload"; native Ghostty focus is covered by `--native-terminal`) |
+| `bottom-panel.spec.ts` | bottom height, all alignments, and keyboard resizing persist across reload | Ported |
+| `bottom-panel.spec.ts` | bottom alignments give excluded lower corners to the actual side panels | Ported |
+| `bottom-panel.spec.ts` | bottom alignments follow locally compressed side geometry at narrow widths | Ported |
+| `bottom-panel.spec.ts` | narrow side resizing persists only the side whose separator moved | Ported (each scenario starts from the default side widths at a 560-pixel viewport, where the compressed center still leaves room to move) |
+| `bottom-panel.spec.ts` | closing a final bottom resource retains its frame groups until explicit removal | Ported |
+| `bottom-panel.spec.ts` | bottom alignments follow side geometry while a resize gesture is in progress | Ported |
+| `bottom-panel.spec.ts` | bottom groups arrange left-to-right, resize, fold to 27px, restore, and enforce their own limit | Ported (the tool moves through Move to pane → bottom group) |
+| `bottom-panel.spec.ts` | a narrow viewport locally compresses bottom groups without rewriting their topology | Ported |
+| `bottom-panel.spec.ts` | bottom visibility and alignment stay local to each window and survive its reload | Ported (the peer is a second window with its own profile) |
+| `bottom-panel.spec.ts` | an old host layout stays inert while a pristine surface starts Balanced | Excluded: SharpRail never stored layouts on the host, so there is no legacy host layout to ignore |
 | `theme.spec.ts` | appearance switches a discovered theme and persists it across reload | Ported |
 | `theme.spec.ts` | system mode follows each client and retains its explicit pair | Pending: Settings has only Dark/Light/System, with no explicit light/dark pair pickers, alternate light theme or cross-client sync |
 | `theme.spec.ts` | Monaco opens files and re-themes under every discovered manifest | Ported (macOS Scintilla; light and dark themes, no high-contrast theme) |

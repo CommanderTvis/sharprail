@@ -25,7 +25,7 @@ internal static class DockInputChecks
 
     internal static void Run(string root)
     {
-        var window = new WorkbenchWindow(new ProjectServices(root), root, new ProfileStore(root + "-dock-input"));
+        var window = new WorkbenchWindow(new ProjectServices(root), root, new ProfileStore(root + "-dock-input"), E2E.E2eTerminals.Plain);
         window.Show();
         var deadline = DateTime.UtcNow.AddSeconds(15);
         while (!window.WorkspaceMounted && DateTime.UtcNow < deadline) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(1); }

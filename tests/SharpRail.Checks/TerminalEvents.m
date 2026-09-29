@@ -120,3 +120,14 @@ void sr_check_key(void *pointer, const char *text, unsigned short keyCode, bool 
             charactersIgnoringModifiers:characters isARepeat:NO keyCode:keyCode]];
     }
 }
+
+// Sends Command+Shift+J through the application, as a keyboard would while the view has focus.
+void sr_check_toggle_bottom(void *pointer) {
+    NSView *view = (__bridge NSView *)pointer;
+    for (NSNumber *type in @[@(NSEventTypeKeyDown), @(NSEventTypeKeyUp)]) {
+        [NSApp sendEvent:[NSEvent keyEventWithType:type.integerValue location:NSZeroPoint
+            modifierFlags:NSEventModifierFlagCommand | NSEventModifierFlagShift
+            timestamp:NSProcessInfo.processInfo.systemUptime windowNumber:view.window.windowNumber context:nil
+            characters:@"J" charactersIgnoringModifiers:@"j" isARepeat:NO keyCode:38]];
+    }
+}

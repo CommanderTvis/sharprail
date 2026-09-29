@@ -100,9 +100,9 @@ internal static class LayoutChecks
         session.SwitchWorkspace("one");
         var bottom = session.State.Groups.Single(group => group.Region == "bottom").Id;
         var side = session.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "specs")).Id;
-        session.NewTerminal(bottom);
         var terminal = session.Tabs(bottom).Single();
-        Require(session.Tabs(bottom).Single().Id == terminal.Id, "An auxiliary group must accept workspace terminal resources.");
+        Require(terminal is { Kind: "terminal", Title: "Terminal 1" } && session.Selected(bottom)?.Id == terminal.Id,
+            "A new workspace must open one selected terminal in its bottom group.");
         Require(session.Move(terminal.Id, bottom, side, 0) && session.Tabs(side).Select(tab => tab.Id).SequenceEqual([terminal.Id, "specs", "files"]),
             "Moving a terminal before a tool must preserve the mixed tab order.");
         Require(session.Move(terminal.Id, side, side, 3) && session.Tabs(side).Select(tab => tab.Id).SequenceEqual(["specs", "files", terminal.Id]),

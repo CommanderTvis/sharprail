@@ -23,6 +23,7 @@ public sealed partial class WorkbenchWindow : Window
     private readonly ProfileStore profile;
     private readonly string initialRoot;
     private readonly bool remote;
+    private readonly Terminal.TerminalFactory terminals;
     private readonly CancellationTokenSource lifetime = new();
     private readonly SemaphoreSlim projectGate = new(1, 1);
     private readonly Dictionary<string, Control> toolContent = [];
@@ -45,9 +46,9 @@ public sealed partial class WorkbenchWindow : Window
     public Preferences Preferences => profile.Data.Preferences;
     public Func<CancellationToken, Task<GitHubStatus>>? GitHubStatusProbe { get; set; }
 
-    public WorkbenchWindow(IProjectServices host, string rootPath, ProfileStore profile, bool remote = false)
+    public WorkbenchWindow(IProjectServices host, string rootPath, ProfileStore profile, Terminal.TerminalFactory terminals, bool remote = false)
     {
-        this.host = host; this.profile = profile; initialRoot = rootPath; this.remote = remote;
+        this.host = host; this.profile = profile; initialRoot = rootPath; this.remote = remote; this.terminals = terminals;
         FontSize = Ui.FontSize;
         AvaloniaXamlLoader.Load(this);
         root = this.FindControl<Grid>("WorkbenchRoot")!;
@@ -222,12 +223,8 @@ public sealed partial class WorkbenchWindow : Window
         if (documentContent.TryGetValue(key, out var existing)) return existing;
         if (tab.Kind == "terminal")
         {
-            Control terminal = remote
-                ? Ui.Text("Terminal sessions require a local workspace.")
-                : !OperatingSystem.IsMacOS()
-                    ? Ui.Text("Embedded terminals currently require macOS.")
-                    : new Terminal.GhosttyTerminal(workspaceRoot, Path.Combine(profile.DirectoryPath, "clipboard")) { Focusable = true };
-            terminal.Name = "TerminalSurface_" + tab.Id.Replace(':', '_');
+            var terminal = new Terminal.TerminalView(terminals, new(workspaceRoot, "", Path.Combine(profile.DirectoryPath, "clipboard")))
+            { Name = "TerminalSurface_" + tab.Id.Replace(':', '_') };
             documentContent[key] = terminal;
             return terminal;
         }

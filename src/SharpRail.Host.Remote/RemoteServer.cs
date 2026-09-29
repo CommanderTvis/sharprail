@@ -21,6 +21,7 @@ public static class RemoteServer
         });
         builder.Services.AddSingleton<IWorkspaceHost>(new WorkspaceHost(root));
         builder.Services.AddSingleton<IProjectServices>(new ProjectServices(root));
+        builder.Services.AddSingleton<ITerminalService>(_ => new PtyTerminalService());
         builder.Services.AddCodeFirstGrpc(options => options.MaxReceiveMessageSize = FileLimits.SaveMessageBytes);
         var app = builder.Build();
         var expected = SHA256.HashData(Encoding.UTF8.GetBytes($"Bearer {token}"));
@@ -36,6 +37,7 @@ public static class RemoteServer
         });
         app.MapGrpcService<WorkspaceRpc>();
         app.MapGrpcService<ProjectRpc>();
+        app.MapGrpcService<TerminalRpc>();
         return app;
     }
 }

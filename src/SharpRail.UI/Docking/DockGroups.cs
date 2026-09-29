@@ -448,6 +448,9 @@ public sealed partial class DockSurface
         menu.Items.Add(Ui.Menu("Hide bottom panel", () => Session.Visible("bottom", false)));
         button.ContextMenu = menu;
         button.Click += (_, _) => menu.Open(button);
+        // Keyboard users land on the current alignment, as the reference's radio menu does.
+        menu.Opened += (_, _) => Dispatcher.UIThread.Post(() => menu.Items.OfType<MenuItem>().FirstOrDefault(item => item.IsChecked)?.Focus(),
+            DispatcherPriority.Loaded);
         return button;
     }
 
@@ -566,7 +569,7 @@ public sealed partial class DockSurface
         if (Session.Group(id).Folded) { groupHeaders.GetValueOrDefault(id)?.Focus(); return; }
         var selected = Session.Selected(id);
         if (focusContent && selected?.Kind == "terminal" &&
-            contentHosts.FirstOrDefault(body => body.Name == "DockBody_" + id)?.Child is Terminal.GhosttyTerminal terminal)
+            contentHosts.FirstOrDefault(body => body.Name == "DockBody_" + id)?.Child is Terminal.TerminalView terminal)
         {
             terminal.FocusTerminal();
             return;
