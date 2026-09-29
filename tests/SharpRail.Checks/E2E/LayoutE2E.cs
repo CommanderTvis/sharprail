@@ -27,6 +27,7 @@ internal static class LayoutE2E
         KeyboardTabsAndSeparators(root);
         OuterWidths(root);
         OverflowFades(root);
+        LayoutFrameE2E.Run(root);
     }
 
     private static void SideSplitTargets(string root)

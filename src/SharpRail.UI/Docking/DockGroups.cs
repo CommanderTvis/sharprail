@@ -266,7 +266,7 @@ public sealed partial class DockSurface
         }
         if (Session.Tabs(group.Id).Count == 0)
         {
-            var remove = Ui.IconButton("close", "Remove group", () => Session.RemoveGroup(group.Id));
+            var remove = Ui.IconButton("close", "Remove group", () => RemoveGroup(group.Id));
             remove.Name = "RemoveGroup_" + group.Id;
             remove.IsEnabled = RemoveGroupMenuItem(group).IsEnabled;
             actions.Children.Add(remove);
@@ -459,7 +459,7 @@ public sealed partial class DockSurface
         if (group.Region == "center")
             foreach (var edge in new[] { "left", "right", "top", "bottom" })
             {
-                var split = Ui.Menu("Split " + edge, () => Session.Move(tab.Id, group.Id, group.Id, 0, edge));
+                var split = Ui.Menu("Split " + (edge switch { "top" => "up", "bottom" => "down", _ => edge }), () => Session.Move(tab.Id, group.Id, group.Id, 0, edge));
                 menu.Opening += (_, _) => split.IsEnabled = CanCreate(group) &&
                     (edge is "left" or "right" ? geometry.Bounds.Width >= 640 : geometry.Bounds.Height >= 360);
                 menu.Items.Add(split);
@@ -521,9 +521,14 @@ public sealed partial class DockSurface
         return menu;
     }
 
-    private MenuItem RemoveGroupMenuItem(DockGroup group) => Ui.Menu("Remove group", () => Session.RemoveGroup(group.Id),
+    private MenuItem RemoveGroupMenuItem(DockGroup group) => Ui.Menu("Remove group", () => RemoveGroup(group.Id),
         group.Region == "center" ? Session.State.Center.Leaves().Count() > 1 :
             Session.State.Groups.Count(item => item.Region == group.Region) > 1 || group.Tools.Count == 0);
+
+    private void RemoveGroup(string id)
+    {
+        if (Session.RemoveGroup(id)) FocusGroup(Session.View.FocusedGroup);
+    }
 
     private void ToggleFold(string id)
     {
