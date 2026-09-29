@@ -46,30 +46,30 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `markdown-links.spec.ts` | relative links, images, and heading anchors work in the rendered markdown view | Ported |
 | `markdown-alerts.spec.ts` | renders GitHub-style alert callouts in the rendered markdown view | Ported |
 | `markdown-mermaid.spec.ts` | renders mermaid fences as diagrams in the rendered markdown view | Pending |
-| `layout.spec.ts` | workbench strips and feature toolbars keep one-row geometry with ARIA tabs | Pending |
+| `layout.spec.ts` | workbench strips and feature toolbars keep one-row geometry with ARIA tabs | Ported |
 | `layout.spec.ts` | overflow uses directional fades without changing tab-strip geometry | Ported |
-| `layout.spec.ts` | auxiliary panel scrollbars stay quiet at rest and expose only clipped edges | Pending |
+| `layout.spec.ts` | auxiliary panel scrollbars stay quiet at rest and expose only clipped edges | Pending: relies on browser WebKit scrollbar pseudo-elements, hover-intent attributes and forced-colors media; Avalonia has no quiet-scroll cue surface to assert |
 | `layout.spec.ts` | ARIA tabs use roving keyboard focus, recover after close, and expose keyboard separators | Ported |
 | `layout.spec.ts` | outer side widths publish on pointer-up and restore after reload | Ported |
-| `layout.spec.ts` | one local frame survives workspace switches while resource tabs stay workspace-specific | Pending |
-| `layout.spec.ts` | a duplicated tab remints copied surface storage and preserves both layouts on reload | Pending |
-| `layout.spec.ts` | dragging outer separators hides both sides and preserves their restore state | Pending |
+| `layout.spec.ts` | one local frame survives workspace switches while resource tabs stay workspace-specific | Ported |
+| `layout.spec.ts` | a duplicated tab remints copied surface storage and preserves both layouts on reload | Pending: browser sessionStorage surface ids and duplicated tabs have no desktop-window analogue |
+| `layout.spec.ts` | dragging outer separators hides both sides and preserves their restore state | Ported |
 | `layout.spec.ts` | the side group menu shows tools for its own side and opens terminals in that group | Ported |
 | `layout.spec.ts` | a terminal can move to its own side group; resize, fold, and visibility gate its one body | Ported |
 | `layout.spec.ts` | side groups expose broad per-panel above and below split targets | Ported |
 | `layout.spec.ts` | Mod+B and Mod+J hide and restore local sides without affecting bottom | Ported |
-| `layout.spec.ts` | keyboard and menu commands reorder, search, recursively split, and explicitly remove empty groups | Pending |
+| `layout.spec.ts` | keyboard and menu commands reorder, search, recursively split, and explicitly remove empty groups | Ported |
 | `layout.spec.ts` | each center group owns an independent preview slot | Ported |
 | `layout.spec.ts` | deferred opens stay with their request-time group and reroute only when it disappears | Ported |
 | `layout.spec.ts` | pointer drag exposes deterministic split targets and moves one tab | Ported |
 | `layout.spec.ts` | applying the Review preset preserves resources and installs its vertical center topology | Ported |
 | `layout.spec.ts` | the local default preset drives an explicit frame reset | Ported |
-| `layout.spec.ts` | custom presets synchronize while defaults and group limits remain window-local | Pending |
+| `layout.spec.ts` | custom presets synchronize while defaults and group limits remain window-local | Pending: needs cross-window custom-preset sync (each window owns its profile) and preset rename, which the app lacks |
 | `layout.spec.ts` | Layout settings controls keep their container-preset max-widths | Ported |
 | `layout.spec.ts` | an accepted side-group overage is grandfathered without allowing further growth | Ported |
 | `layout.spec.ts` | a narrow viewport compresses locally without rewriting recursive topology | Ported |
-| `layout.spec.ts` | frontend windows keep chat and file placement independent | Pending |
-| `layout.spec.ts` | layout survives a transport reconnect and remains writable | Pending |
+| `layout.spec.ts` | frontend windows keep chat and file placement independent | Pending: needs AI chat tabs/history and multi-client shared workspace state, both out of scope |
+| `layout.spec.ts` | layout survives a transport reconnect and remains writable | Ported |
 | `layout.spec.ts` | another window cannot cancel or rearrange an active tab drag | Ported |
 | `layout.spec.ts` | another window cannot cancel or adopt an active side resize | Ported |
 | `layout.spec.ts` | local layout transitions with no gesture in progress never announce a canceled drag | Ported |

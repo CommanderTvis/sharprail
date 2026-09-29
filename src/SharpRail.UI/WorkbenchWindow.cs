@@ -287,6 +287,7 @@ public sealed partial class WorkbenchWindow : Window
             var files = await Task.Run(async () => await host.ListFilesAsync("", lifetime.Token), lifetime.Token);
             if (request != projectRequest) return;
             folderCache.Clear(); folderCache[""] = files;
+            status.Text = remote ? "Remote" : "Connected"; errorText.IsVisible = false;
             toolContent.Remove("files"); toolContent.Remove("specs"); surface.RefreshContents("files", "specs");
             await RefreshGitAsync(request);
         }
