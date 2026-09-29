@@ -26,7 +26,10 @@ public sealed class ProjectRpc(IProjectServices host) : IProjectRpc
     });
 
     public ValueTask<GitReply> GetGitAsync(ProjectRequest request, CallContext context = default)
-        => Execute(async () => Map(await host.GetGitAsync(request.Branch, context.CancellationToken)));
+        => Execute(async () => Map(await host.GetGitAsync(request.Branch, context.CancellationToken, request.Scope.Length == 0 ? "all" : request.Scope)));
+
+    public ValueTask<CommitsReply> ListCommitsAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>
+        new CommitsReply { Commits = (await host.ListCommitsAsync(request.Branch, context.CancellationToken)).Select(Map).ToList() });
 
     public ValueTask<SpecsReply> ListSpecsAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>
     {
@@ -45,9 +48,13 @@ public sealed class ProjectRpc(IProjectServices host) : IProjectRpc
         IsRepository = result.IsRepository,
         Branch = result.Branch,
         Branches = result.Branches.ToList(),
+        Commits = result.Commits.Select(Map).ToList(),
         Changes = result.Changes.Select(change => new ChangeReply { Path = change.Path, IndexStatus = change.IndexStatus, WorktreeStatus = change.WorktreeStatus, OriginalPath = change.OriginalPath, Added = change.Added, Removed = change.Removed }).ToList(),
         Worktrees = result.Worktrees.Select(tree => new WorktreeReply { Path = tree.Path, Branch = tree.Branch, IsMain = tree.IsMain, IsLocked = tree.IsLocked }).ToList()
     };
+
+    private static CommitReply Map(GitCommit commit) => new()
+    { Sha = commit.Sha, ShortSha = commit.ShortSha, Subject = commit.Subject, Author = commit.Author, CommittedAt = commit.CommittedAt };
 
     private static async ValueTask<T> Execute<T>(Func<Task<T>> action)
     {

@@ -57,6 +57,16 @@ public sealed class WorktreeReply
 }
 
 [ProtoContract]
+public sealed class CommitReply
+{
+    [ProtoMember(1)] public string Sha { get; set; } = "";
+    [ProtoMember(2)] public string ShortSha { get; set; } = "";
+    [ProtoMember(3)] public string Subject { get; set; } = "";
+    [ProtoMember(4)] public string Author { get; set; } = "";
+    [ProtoMember(5)] public string CommittedAt { get; set; } = "";
+}
+
+[ProtoContract]
 public sealed class GitReply
 {
     [ProtoMember(1)] public bool IsRepository { get; set; }
@@ -64,6 +74,7 @@ public sealed class GitReply
     [ProtoMember(3)] public List<ChangeReply> Changes { get; set; } = [];
     [ProtoMember(4)] public List<WorktreeReply> Worktrees { get; set; } = [];
     [ProtoMember(5)] public List<string> Branches { get; set; } = [];
+    [ProtoMember(6)] public List<CommitReply> Commits { get; set; } = [];
 }
 
 [Service]
@@ -74,6 +85,7 @@ public interface IProjectRpc
     ValueTask<DocumentReply> ReadFileAsync(ProjectRequest request, CallContext context = default);
     ValueTask<SpecsReply> ListSpecsAsync(ProjectRequest request, CallContext context = default);
     ValueTask<GitReply> GetGitAsync(ProjectRequest request, CallContext context = default);
+    ValueTask<CommitsReply> ListCommitsAsync(ProjectRequest request, CallContext context = default);
     ValueTask<DocumentReply> GetDiffAsync(ProjectRequest request, CallContext context = default);
     ValueTask<GitReply> ApplyGitActionAsync(ProjectRequest request, CallContext context = default);
 }
@@ -92,4 +104,10 @@ public sealed class SpecReply
 public sealed class SpecsReply
 {
     [ProtoMember(1)] public List<SpecReply> Specs { get; set; } = [];
+}
+
+[ProtoContract]
+public sealed class CommitsReply
+{
+    [ProtoMember(1)] public List<CommitReply> Commits { get; set; } = [];
 }

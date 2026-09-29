@@ -39,6 +39,7 @@ public sealed partial class WorkbenchWindow
             {
                 Content = row,
                 Padding = new Thickness(4, 0),
+                Margin = new Thickness(0, 0, 24, 0),
                 Background = Brushes.Transparent,
                 BorderThickness = new(0),
                 HorizontalAlignment = HorizontalAlignment.Stretch,

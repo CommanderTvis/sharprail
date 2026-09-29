@@ -101,7 +101,7 @@ public sealed partial class DockSurface
                 IsVisible = tab.Id == selected?.Id
             };
             Ui.Place(chrome, underline);
-            void SelectTab() { Session.Select(group.Id, tab.Id); FocusGroup(group.Id); }
+            void SelectTab() { Session.Select(group.Id, tab.Id); FocusGroup(group.Id, focusContent: true); }
             var button = new DockTabButton(tabs, tab.Id, SelectTab)
             {
                 Name = "Tab_" + tab.Id.Replace(':', '_').Replace('/', '_'),
@@ -117,14 +117,19 @@ public sealed partial class DockSurface
                 BorderThickness = new(0),
                 CornerRadius = new(0)
             };
+            button.Classes.Add("dock-tab-button");
             Ui.Place(contents, button);
+            void UpdateBackground() => tabFrame.Background =
+                underline.IsVisible || chrome.IsPointerOver ? Ui.Hover : Ui.Elevated;
+            chrome.PointerEntered += (_, _) => UpdateBackground();
+            chrome.PointerExited += (_, _) => UpdateBackground();
             updates.Add(() =>
             {
                 var active = Session.Selected(group.Id)?.Id == tab.Id;
-                tabFrame.Background = active ? Ui.Hover : Ui.Elevated;
                 button.IsTabStop = active;
                 title.Foreground = icon.Background = active ? Ui.TextBrush : Ui.Muted;
                 underline.IsVisible = active;
+                UpdateBackground();
                 if (active) chrome.BringIntoView();
             });
             if (close is not null)
@@ -426,7 +431,7 @@ public sealed partial class DockSurface
     private ContextMenu AddMenu(DockGroup group)
     {
         var menu = new ContextMenu();
-        menu.Items.Add(Ui.Menu("New terminal", () => { Session.NewTerminal(group.Id); FocusGroup(group.Id); }));
+        menu.Items.Add(Ui.Menu("New terminal", () => { Session.NewTerminal(group.Id); FocusGroup(group.Id, focusContent: true); }));
         if (group.Region is "left" or "right")
             foreach (var tool in DockState.ToolNames.Where(id => DockState.ToolRegion(id) == group.Region && !Session.State.Groups.Any(item => item.Tools.Any(tab => tab.Id == id))))
                 menu.Items.Add(Ui.Menu("Show " + DockState.Tool(tool).Title, () => Session.RestoreTool(tool, group.Id)));
@@ -526,12 +531,18 @@ public sealed partial class DockSurface
         FocusGroup(id);
     }
 
-    private void FocusGroup(string id) => Dispatcher.UIThread.Post(() =>
+    private void FocusGroup(string id, bool focusContent = false) => Dispatcher.UIThread.Post(() =>
     {
         if (!Session.State.Groups.Any(group => group.Id == id)) return;
         if (Session.View.FocusedGroup != id) Session.Focus(id);
         if (Session.Group(id).Folded) { groupHeaders.GetValueOrDefault(id)?.Focus(); return; }
         var selected = Session.Selected(id);
+        if (focusContent && selected?.Kind == "terminal" &&
+            contentHosts.FirstOrDefault(body => body.Name == "DockBody_" + id)?.Child is Terminal.GhosttyTerminal terminal)
+        {
+            terminal.FocusTerminal();
+            return;
+        }
         if (selected is not null && tabSites.TryGetValue(id, out var tabs))
         {
             var target = tabs.FirstOrDefault(item => item.Tab == selected.Id).Control;
@@ -550,7 +561,7 @@ public sealed partial class DockSurface
         flyout.Content = new TabSearch(() => Session.Tabs(id), ToolIcon, tab =>
         {
             selected = true;
-            Session.Select(id, tab.Id); flyout.Hide(); FocusGroup(id);
+            Session.Select(id, tab.Id); flyout.Hide(); FocusGroup(id, focusContent: true);
         }, flyout.Hide);
         flyout.Closed += (_, _) => Dispatcher.UIThread.Post(() =>
         {

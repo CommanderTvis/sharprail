@@ -19,9 +19,13 @@ versions; `global.json` selects the SDK. Use `.tools/dotnet/dotnet` for this che
 | `src/SharpRail.UI/Panels` | Settings and shared dialogs, including compiled XAML frames and page templates. |
 | `src/SharpRail.UI/Rendering` | Native Markdown rendering, preview/source view and shared UI assets/styles/helpers. |
 | `src/SharpRail.UI/State` | Profile/preferences persistence and migration. Default user state belongs in `~/.sharprail`, not project directories. |
+| `src/SharpRail.UI/Terminal` | Avalonia native-control bridge to embedded Ghostty terminals; owns focus, theme updates and session disposal. |
 | `src/SharpRail.UI/Assets` | Reference icons and bundled fonts, with their licenses. |
+| `native/ghostty` | Objective-C AppKit/Metal bridge, Ghostty configuration shim and native terminal probe. |
 | `tests/SharpRail.Checks` | Executable checks for host transports, runtime extensibility, layout, UI and Git/worktree integration. `E2E/` translates upstream scenarios using real headless Avalonia input. |
 | `scripts/bootstrap.sh` | Installs the checkout's local .NET SDK. |
+| `scripts/build-ghostty.sh` | Builds pinned libghostty and the native bridge on the target macOS architecture, using checkout-local tools and caches. |
+| `scripts/check-terminal.sh` | Runs the native shell/Metal probe; the checks executable's `--native-terminal` mode exercises Avalonia integration. |
 | `scripts/publish.sh` | Publishes non-composite R2R UI, remote host and checks; refreshes and signs the canonical `artifacts/SharpRail.app`. Check for a live app process before replacing it. |
 | `.bench` | Ignored disposable fixtures, verification logs and own-window captures. Its name does not authorize benchmarks. |
 
@@ -29,10 +33,37 @@ Static UI layouts/styles/templates belong in compiled `.axaml`; dynamic docking
 and host/interaction wiring belong in C#. Keep the host independent of the UI and
 make remoteness an adapter choice rather than a mandatory local daemon.
 
+For host changes, follow the operation through these files:
+
+| Layer | Files |
+| --- | --- |
+| Public API | `Host.Abstractions/IWorkspaceHost.cs` and `ProjectServices.cs`. |
+| Implementation | `Host.Core/WorkspaceHost.cs`, `ProjectServices.cs`, `SpecCatalog.cs` and `GitRepository.cs`. |
+| Wire contracts | `Host.Protocol/WorkspaceContract.cs` and `ProjectContract.cs`. |
+| Client adapters | `Host.Client/HostAdapters.cs` and `ProjectAdapters.cs`. |
+| Server adapters | `Host.Remote/WorkspaceRpc.cs` and `ProjectRpc.cs`; `RemoteServer.cs` configures the server and `Program.cs` starts it. |
+
+Each `Host.*` prefix in this table denotes its `src/SharpRail.Host.*` project.
+Domain records belong in
+Abstractions; serialized DTOs belong in Protocol. Keep both adapters consistent
+with the public API and verify local/remote parity in the checks.
+
 The application starts in `src/SharpRail.UI/Program.cs` and `App.cs`.
 `WorkbenchWindow` owns the workbench; `DockSurface` renders and handles docking,
 while `LayoutSession` applies transitions to `LayoutState`. `ProfileStore` owns
 on-disk state. Keep these responsibilities separate when adding interactions.
+The default profile file is `~/.sharprail/profile.json`; it contains preferences,
+layout, remembered projects and per-workspace Git selections. Persist target,
+scope and selected commit; reload commit catalogs from Git rather than saving
+derived snapshots. Tests use isolated profile directories.
+Commit listing is a separate host operation; do not fetch a full working-tree
+snapshot merely to populate or restore the commit catalog.
+Local macOS terminal tabs embed Ghostty directly; remote and other-platform tabs
+show availability messages. `DocumentCache.cs` retains shells across appearance
+changes and disposes them when their tabs or window close. Clipboard images are
+stored under the active profile's `clipboard` directory. Terminal functionality
+is in scope following integration of the `ghostty` worktree; editor and AI
+functionality remain excluded.
 
 The workbench is split into partial files rather than separate window classes:
 
@@ -41,7 +72,7 @@ The workbench is split into partial files rather than separate window classes:
 | `WorkbenchWindow.axaml` / `WorkbenchWindow.cs` | Static window frame, startup, workspace switching and workbench composition. |
 | `DocumentNavigation.cs` / `DocumentCache.cs` | Opening/restoring documents, navigation and cached document-control lifetime. |
 | `ProjectPanels.cs` | Files, Specs and Projects panel construction and project actions. |
-| `GitPanels.cs` / `WorkspaceGit.cs` | Git panel controls and cancellable, workspace-scoped snapshot refreshes. |
+| `GitPanels.cs` / `ChangesTree.cs` / `WorkspaceGit.cs` | Git panel controls, compact change-tree projection and cancellable, workspace-scoped snapshot refreshes. |
 | `GestureNotification.cs` | Feedback when layout transitions cancel an active gesture. |
 
 Host dependencies flow toward abstractions: Core references Abstractions; Client
@@ -57,6 +88,13 @@ The authoritative upstream checkout is `/Users/commandertvis/IdeaProjects/thinkr
 
 Run checks with `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release`.
 Set `SHARPRAIL_TEST_GIT_SOURCE` to an existing upstream clone to include Git fixtures.
+`tests/SharpRail.Checks/Program.cs` is the check runner, not an xUnit test project.
+`ProjectChecks.cs` covers project/Git host parity; `LayoutChecks.cs` covers layout
+transitions; `UiChecks.cs` runs the headless UI checks and upstream translations.
+Use `E2E/E2eWorkspace.cs` for shared input/fixture helpers. Keep translated upstream
+coverage in `E2E.md` separate from additional SharpRail regression checks.
+For published checks, run `artifacts/checks/SharpRail.Checks` with
+`SHARPRAIL_REQUIRE_R2R=1` to require ReadyToRun output as well as open-world checks.
 Verify formatting with `.tools/dotnet/dotnet format SharpRail.slnx --verify-no-changes --no-restore`.
 Generated packages live under `artifacts/`; keep one latest canonical app package.
 `artifacts/ui`, `artifacts/host` and `artifacts/checks` contain published executables;

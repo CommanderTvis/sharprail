@@ -64,8 +64,11 @@ public sealed class ProjectServices(string initialRoot) : IProjectServices
         return new(relativePath, Encoding.UTF8.GetString(bytes));
     }
 
-    public async ValueTask<GitSnapshot> GetGitAsync(string comparisonBranch = "", CancellationToken cancellationToken = default)
-        => await GitRepository.SnapshotAsync(root, comparisonBranch, cancellationToken);
+    public async ValueTask<GitSnapshot> GetGitAsync(string comparisonBranch = "", CancellationToken cancellationToken = default, string scope = "all")
+        => await GitRepository.SnapshotAsync(root, comparisonBranch, cancellationToken, scope);
+
+    public async ValueTask<IReadOnlyList<GitCommit>> ListCommitsAsync(string comparisonBranch, CancellationToken cancellationToken = default)
+        => await GitRepository.ListCommitsAsync(root, comparisonBranch, cancellationToken);
 
     public async ValueTask<IReadOnlyList<SpecDocument>> ListSpecsAsync(CancellationToken cancellationToken = default)
         => await SpecCatalog.ReadAsync(root, cancellationToken);
@@ -74,10 +77,20 @@ public sealed class ProjectServices(string initialRoot) : IProjectServices
     {
         var currentRoot = root;
         Resolve(currentRoot, path);
-        if (scope is not ("untracked" or "staged" or "working" or "all" or "branch")) throw new ArgumentException("Unknown diff scope.");
+        if (scope is not ("untracked" or "staged" or "working" or "all" or "uncommitted" or "branch" or "commit")) throw new ArgumentException("Unknown diff scope.");
         if (scope == "untracked") return (await ReadFileAsync(path, cancellationToken)).Text;
+        if (scope == "uncommitted" &&
+            (await GitRepository.RunAsync(currentRoot, cancellationToken, "ls-files", "--others", "--exclude-standard", "-z", "--", path)).Length > 0)
+            return (await ReadFileAsync(path, cancellationToken)).Text;
+        if (scope == "commit")
+        {
+            var commit = await GitRepository.CommitDiffArgumentsAsync(currentRoot, comparisonBranch, cancellationToken);
+            commit.AddRange(["--no-ext-diff", "--no-color", "--unified=5", "--", path]);
+            return await GitRepository.RunAsync(currentRoot, cancellationToken, commit.ToArray());
+        }
         var args = new List<string> { "diff", "--no-ext-diff", "--no-color", "--unified=5" };
         if (scope == "staged") args.Add("--cached");
+        else if (scope == "uncommitted") args.Add("HEAD");
         else if (scope == "all")
         {
             try { await GitRepository.RunAsync(currentRoot, cancellationToken, "rev-parse", "--verify", "HEAD"); args.Add("HEAD"); }
@@ -85,8 +98,10 @@ public sealed class ProjectServices(string initialRoot) : IProjectServices
         }
         else if (scope == "branch")
         {
-            await GitRepository.RunAsync(currentRoot, cancellationToken, "rev-parse", "--verify", "--end-of-options", comparisonBranch + "^{commit}");
-            args.Add(comparisonBranch); args.Add("HEAD");
+            var baseline = await GitRepository.ComparisonBaseAsync(currentRoot, comparisonBranch, cancellationToken);
+            if ((await GitRepository.RunAsync(currentRoot, cancellationToken, "ls-files", "--others", "--exclude-standard", "-z", "--", path)).Length > 0)
+                return (await ReadFileAsync(path, cancellationToken)).Text;
+            args.Add(baseline);
         }
         args.Add("--"); args.Add(path);
         return await GitRepository.RunAsync(currentRoot, cancellationToken, args.ToArray());

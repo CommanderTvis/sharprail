@@ -1,16 +1,25 @@
 # Prototype validation
 
-Status on 2026-09-28: thirty-seven translated upstream E2E cases pass in the full
+Latest source verification includes lightweight commit catalogs: full Release and
+published R2R suites pass in `.bench/commit-catalog-release.log` and
+`.bench/commit-catalog-published-checks.log`, each with 39 translated upstream cases.
+Formatting and diff checks pass. UI, host and checks publish successfully, and
+the update is staged with strict/deep signing verification. The running canonical
+bundle remains the previously verified hover-lifecycle package below: its terminal
+contains an active Codex process. Restart approval is pending; no active user
+terminal was ended to install this update.
+
+Status on 2026-09-29: thirty-nine translated upstream E2E cases pass in the full
 Release and published-runtime suites with Git/worktree integration enabled. Formatting and
 `git diff --check` pass. The canonical `artifacts/SharpRail.app` was republished
 with non-composite ReadyToRun and passes strict/deep signature verification.
 The full published-runtime suite also passes, including open-world loading and
-Git/worktree integration (`.bench/theme-reload-published-checks.log`).
+Git/worktree integration (`.bench/ghostty-integration/hover-lifecycle-published.log`).
 
 Native display availability recovered: CoreGraphics reports two active displays
 and CoreVideo display-link creation succeeds. The canonical package is running
-(PID 15312); its 1352x848 window was captured and inspected in
-`.bench/mounted-workbench-native.png`. Earlier launch failures with RenderTimer
+(PID 30104); its 1352x848 window was captured and inspected in
+`.bench/ghostty-integration/hover-lifecycle-native.png`. Earlier launch failures with RenderTimer
 `-6661` occurred while no displays were active, matching
 [Avalonia issue 18895](https://github.com/AvaloniaUI/Avalonia/issues/18895).
 Earlier captures and running-app statements below are historical evidence.
@@ -18,6 +27,147 @@ The complete visual/docking fidelity objective and upstream suite translation
 remain active; the evidence below does not prove the full reference contract.
 
 ## Current evidence
+
+Commit listing now has a dedicated host operation with direct local and gRPC
+parity. Restoring a commit selection uses it rather than loading a full snapshot
+just to read history. The catalog and snapshots share the capped, sanitized log
+implementation. Tests verify matching metadata through both transports while a
+disposable repository's index is corrupted, prove a full snapshot fails in that
+fixture, and restore the index in `finally`. Missing ranges return empty catalogs;
+cancellation remains observable even for an empty comparison. Fresh-window Git
+selection restoration and all existing UI checks pass. Catalog membership live
+refresh and rewritten-away selection fallback remain incomplete.
+
+All changes from the clean `ghostty` worktree at `522d81e` were integrated using
+the common ancestor, preserving this checkout's newer docking, Git and test work.
+`AGENTS.md` documents the host layers, UI structure, native terminal bridge,
+state locations, build scripts and verification entry points.
+
+Whole-tab hover now paints the outer frame, including the close-button slot;
+the Fluent label-only hover background is suppressed in XAML. Dark/light pointer
+checks cover label, close button, exit and layout replacement while hovered.
+Pointer-exit rendering uses the existing selection indicator so removed panes
+cannot trigger stale layout lookups. The hidden-bottom shortcut test explicitly
+focuses its moved tab before keyboard input.
+
+Final Release and published R2R suites pass with all 39 translated cases:
+`.bench/ghostty-integration/hover-lifecycle-release.log` and
+`.bench/ghostty-integration/hover-lifecycle-published.log`. Formatting, publishing,
+strict/deep signing and diff checks pass. Native shell/Metal checks pass in
+`.bench/ghostty-integration/native-bridge.log`; the Avalonia native terminal suite
+passes in `.bench/ghostty-integration/native-avalonia-recheck.log` after an initial
+Ctrl-C timeout. That retry does not establish native input harness stability.
+The final package is running and its own-window capture was inspected; native
+pixel comparison of hovered tabs remains distinct from the headless checks.
+
+Workspace Git target, scope and selected commit now persist in the profile.
+Selection changes save immediately; switching/closing windows records the active
+selection. Catalogs remain derived and reload when restoring a commit scope.
+Fresh-window checks verify commit and pending-scope restoration with retained
+targets; malformed saved state normalizes without blocking project access. The
+initial full Release suite passes (`.bench/git-query-persistence-checks.log`),
+as does final formatting (`.bench/git-query-persistence-final-format.log`).
+The signed final package is running and inspected; full R2R verification passes
+(`.bench/git-query-persistence-published-checks.log`) with all thirty-nine
+translated cases and open-world checks. Automatic Git refresh and rewritten-away commit fallback
+remain unfinished.
+
+The Changes scope menu now uses real target-to-HEAD commit data, capped at 200,
+with subjects/authors sanitized as upstream and metadata carried through gRPC.
+Selecting a commit shows its short SHA and subject tooltip, opens a distinct
+commit diff tab and excludes working files. Scope switches retain the comparison
+target; per-window workspace state restores the target/commit and isolates other
+worktrees. Initial full Release checks pass (`.bench/commit-picker-checks.log`).
+The signed final package is running and was inspected; final R2R verification
+passes (`.bench/commit-picker-published-checks.log`) with all thirty-nine
+translated cases and open-world checks. Additional UI checks cover staging availability with a retained
+target and readonly commit rows. Menu pixel fidelity,
+automatic catalog refresh and rewritten-away commit fallback remain open.
+
+The host supports commit-scoped snapshots and diffs using the same first-parent
+range, or the entire tree when no parent is available. It validates commit IDs,
+retains unknown commits as errors, and excludes working edits and untracked files
+without scanning working status. Existing-commit fixtures verify both ranges and
+local/gRPC parity. The initial full Release suite passes
+(`.bench/commit-ranges-checks.log`), and final formatting passes
+(`.bench/commit-ranges-final-format.log`). The signed package is running and its
+own window was inspected; final published verification passes with required
+R2R/open-world checks (`.bench/commit-ranges-published-checks.log`). Commit
+catalog/picker wiring is recorded above; no new upstream translation is
+claimed by these host regressions.
+
+Changes snapshots now accept the selected scope through direct and gRPC adapters.
+Lists and line counts use one range: Staged reads the index; Uncommitted reads
+HEAD-to-working-tree; explicit targets retain merge-base-to-working-tree behavior.
+Status metadata remains available for row actions. Host regressions verify net
+counts, cancelled index/worktree changes and transport parity. The initial full
+Release suite passes (`.bench/scope-ranges-checks.log`); final formatting passes
+(`.bench/scope-ranges-final-format.log`). The final package is signed and inspected
+running; its complete published suite passes with required R2R/open-world checks
+(`.bench/scope-ranges-published-checks.log`). Its additional UI regression verifies
+selected-scope counts and removal after unstaging. Commit
+scopes, workspace-local query state and live refresh remain open.
+
+Uncommitted retains staged-only files and opens HEAD-to-working-tree diffs,
+including untracked bodies. Host checks verify that a staged addition followed
+by an unstaged replacement shows the net current content, with gRPC parity for
+untracked reads. Actual row input verifies staged-only visibility and distinct
+All changes/Uncommitted tabs. The full Release suite passes
+(`.bench/uncommitted-checks.log`), as does formatting
+(`.bench/uncommitted-format.log`). The updated package is signed and inspected
+running; its final full runtime check passes
+(`.bench/uncommitted-published-checks.log`) with all thirty-nine translated cases
+and required R2R/open-world checks. Commit-scope selection and live refresh
+remain open; the upstream scope case
+is not counted as translated by these additional regressions.
+
+Git repository probes now distinguish plain folders from corrupt Git metadata.
+Local and gRPC checks preserve failures and their details. An additional headless
+regression sees an error instead of a clean change set, opens an accessible
+document, repairs its disposable fixture and recovers through the Changes Retry
+button. The full Release suite passes (`.bench/git-probe-checks.log`); formatting
+passes (`.bench/git-probe-format.log`). This regression does not cover the complete
+upstream deleted-target/scope-switch case. The updated package passes strict/deep
+signature verification and has been inspected running; its full runtime suite
+passes in `.bench/git-probe-published-checks.log`, including all thirty-nine
+translated cases and required R2R/open-world checks.
+
+Explicit Git target comparisons now measure the working tree from the merge base,
+including untracked files. Snapshots and opened diffs share that baseline, so
+target-only commits add no phantom changes and staged/unstaged counts describe the
+net working content. Host regressions reuse existing commits in a depth-two clone
+and cover committed local changes, an advanced target, untracked bodies and local/
+gRPC snapshot-and-diff parity. Full final Release and published R2R suites pass39
+translated cases and all additional checks (`.bench/branch-baseline-final-checks.log`,
+`.bench/branch-baseline-published-checks.log`). Formatting passes
+(`.bench/branch-baseline-final-format.log`). The canonical app was republished,
+signed and inspected running. The native capture proves the restored frame, not
+a target-selection sequence. Commit scopes and live Git refresh remain open; this
+host regression does not mark the full upstream live-update UI case as translated.
+
+Change rows now reserve a sibling20px action trigger with a4px trailing gap.
+Compiled XAML controls hover/focus/menu-open appearance. Dropdown and right-click
+share the anchored menu; View opens the real diff and Copy path writes the relative
+path through Avalonia's clipboard. The translated case covers both List and Tree,
+proves trigger input opens no diff, and checks folders have no file action menu.
+Folder rows reserve the same trailing slot. Full Git-enabled Release and published
+R2R suites pass39 cases and all additional checks
+(`.bench/change-actions-verified-checks.log`, `.bench/change-actions-published-checks.log`).
+Formatting passes (`.bench/change-actions-verified-format.log`). The canonical app
+was republished, signed and inspected running with its restored layout. The capture
+is native frame evidence; menu typography and final pixel comparison remain open.
+
+Changes Tree compacts single-child directory chains, sorts folders before files,
+shows aggregate added/removed counts, and toggles expansion from the folder row.
+Paths are split once during projection. The translated upstream case creates a
+real untracked three-line file, checks List/Tree switching, the compact folder and
+counts, collapse/expand, opening the real diff and retaining Tree through tool
+navigation. Its disposable fixture overrides upstream's docs ignore rule.
+Full Release and published R2R suites pass38 cases and all additional checks
+(`.bench/changes-tree-final-checks.log`, `.bench/changes-tree-published-checks.log`).
+Formatting passes (`.bench/changes-tree-final-format.log`). The canonical app was
+republished, signed, relaunched and inspected. Its native capture shows the restored
+frame/Markdown/Files/Review layout; it does not prove native Changes Tree pixel parity.
 
 The upstream theme-switch/reload case discovers the available dark/light choices
 through Settings, clicks an alternate choice, verifies the immediate workbench
@@ -583,3 +733,71 @@ the working viewport. Older running bundles retain the previous behavior.
 iOS runtime/device validation and extension distribution policy are documented
 future architectural gates in SPEC.md; this desktop prototype does not claim
 to implement an iOS application or production extension loader.
+
+## Embedded Ghostty terminal — macOS
+
+Terminal execution is now in scope for local macOS workspaces. Ghostty 1.2.3 is
+pinned to 6d2dd585a5d87fa745d48188dd096ca6e63014d0 and built with
+`-Drenderer=metal`. Its [Metal implementation](https://github.com/ghostty-org/ghostty/blob/6d2dd585a5d87fa745d48188dd096ca6e63014d0/src/renderer/Metal.zig)
+presents IOSurface-backed Metal textures through IOSurfaceLayer; checking for
+CAMetalLayer would test the wrong presentation mechanism for this version.
+
+Native verification on Apple M4 Pro passes live shell/cwd, ANSI output, AppKit
+keyboard input, resize and retained-session checks. The presentation assertion
+checks IOSurface type and nonuniform pixel contents, alongside parsed shell
+output; it does not infer GPU rendering from Avalonia's backend. Evidence:
+`.bench/ghostty-native-key-final.log` and `.bench/ghostty-final-native-lifecycle.log`.
+The published Avalonia check also passes restored-profile startup, moving and
+folding, switching between isolated workspaces, independent shell environments,
+native view disposal and actual shell-process termination after tab closure.
+
+The signed bundle runs with a real shell prompt in its docked terminal. Own-window
+capture `.bench/ghostty-terminal-native.png` was inspected; only SharpRail window
+114933 was captured. `.bench/ghostty-final-app-errors.log` contains one successful
+Metal/IOSurface initialization and no errors. Bundle resources and terminfo live
+under Contents/Resources; the native bridge lives under Contents/MacOS.
+Strict/deep codesign verification and format verification pass. The native bridge
+declares macOS 13.0 minimum; only this machine's macOS arm64 runtime is verified.
+Remote sessions, other operating systems, Intel runtime and older macOS versions
+are not verified by these checks. Restarts create fresh shells.
+
+The final published regression suite passes with `SHARPRAIL_REQUIRE_R2R=1` and
+`SHARPRAIL_TEST_GIT_SOURCE=/Users/commandertvis/IdeaProjects/thinkrail`:
+`.bench/ghostty-final-regression.log`. This includes all 27 translated upstream
+cases and the host, Git/worktree, docking, startup/restoration, UI and open-world
+runtime checks. Final build/package log: `.bench/ghostty-final-package.log`.
+Final formatting evidence: `.bench/ghostty-complete-format.log` (exit0).
+
+Keyboard follow-up: terminal tab activation, overflow selection and creation now
+transfer focus to the native terminal. Focusing its Avalonia container also
+forwards focus. Previous direct `keyDown`/PTY injection checks did not establish
+working responder routing. The native Avalonia regression now clicks the tab and
+terminal through AppKit, verifies first-responder ownership, and executes commands
+using dispatched keys, including Backspace and Ctrl+C. New-terminal input is also
+verified without clicking the body. With `SHARPRAIL_CHECK_OS_INPUT=1`, key events
+go through `CGEventPostToPid` targeting only the test process. The published build
+passes this check and the existing Metal pixel/session lifecycle checks:
+`.bench/keyboard-published-native.log`. Publish and strict signature validation
+pass; formatting passes in `.bench/keyboard-final-format-2.log`.
+The full Git-backed regression suite also passes in `.bench/keyboard-suite.log`.
+
+The subsequent live typing failure was a mutable AppKit input buffer: retaining
+the callback string allowed it to be cleared before forwarding to Ghostty. The
+bridge now copies that text. The user confirmed typing works after this fix.
+The native regression supplies a mutable buffer, clears it after insertText,
+and requires the composed command to execute. Temporary keyboard diagnostics
+have been removed.
+
+Image paste now converts PNG/TIFF clipboard images to distinct PNG files under
+the active profile and pastes quoted paths. The native tests use an isolated
+pasteboard, verify readable saved images and text paste, and exercise a profile
+path with spaces and an apostrophe. Theme tests sample the actual Metal IOSurface
+pixels for dark and light UI background colors while retaining the same terminal.
+Final native evidence: `.bench/terminal-paste-theme-final-native.log` (pass).
+The tab activation test uses its accessibility selection action; body input and
+Command-V still pass through AppKit, and ordinary keys use targeted macOS events.
+Standalone native checks pass in `.bench/terminal-paste-theme-standalone.log`.
+The published R2R/Git-backed full suite passes in
+`.bench/terminal-paste-theme-suite.log`; formatting passes in
+`.bench/terminal-paste-theme-final-format.log`. The clean signed app was rebuilt
+and reopened without diagnostic logging.

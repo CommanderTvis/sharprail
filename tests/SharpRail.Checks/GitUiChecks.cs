@@ -70,13 +70,56 @@ internal static class GitUiChecks
             Buttons(window).Any(button => ToolTip.GetTip(button) is string tip && tip.StartsWith("space ü\tfile.txt", StringComparison.Ordinal)));
         Invoke(Action(Change(), "Stage file"));
         Pump(() => Action(Change(), "Unstage file").IsEnabled);
+        File.WriteAllText(Path.Combine(root, "space ü\tfile.txt"), "Untracked content\nPending second line\n");
+        Invoke(Action(Named("ChangesScope"), "Staged"));
+        Pump(() => Action(Named("ChangesScope"), "Staged").IsChecked &&
+            Change().GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "+1"));
+        Invoke(Action(Named("ChangesScope"), "Uncommitted"));
+        Pump(() => Action(Named("ChangesScope"), "Uncommitted").IsChecked &&
+            Change().GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "+2"));
         Click(window, Change());
-        Pump(() => window.Layout.State.Workspaces[root].Documents.Values.SelectMany(tabs => tabs).Any(tab => tab.Kind == "diff"));
+        Pump(() => window.Layout.State.Workspaces[root].Documents.Values.SelectMany(tabs => tabs).Any(tab => tab.Kind == "diff" && tab.Scope == "uncommitted"));
         Require(window.GetLogicalDescendants().OfType<SelectableTextBlock>().Any(text =>
             text.Inlines?.OfType<Run>().Any(run => run.Text?.Contains("Untracked content", StringComparison.Ordinal) == true) == true),
-            "Git UI did not display the real staged diff.");
+            "Uncommitted scope did not include the staged-only file and its diff.");
+        Invoke(Action(Named("ChangesScope"), "All changes"));
+        Pump(() => Action(Named("ChangesScope"), "All changes").IsChecked);
+        Click(window, Change());
+        Pump(() => window.Layout.State.Workspaces[root].Documents.Values.SelectMany(tabs => tabs).Any(tab => tab.Kind == "diff" && tab.Scope == "all"));
+        Require(window.Layout.State.Workspaces[root].Documents.Values.SelectMany(tabs => tabs).Count(tab => tab.Kind == "diff") == 2,
+            "All changes and Uncommitted reused the same diff tab.");
+        File.WriteAllText(Path.Combine(root, "space ü\tfile.txt"), "Untracked content\n");
+        Invoke(Action(Named("ChangesScope"), "Staged"));
+        Pump(() => Action(Named("ChangesScope"), "Staged").IsChecked);
         Invoke(Action(Change(), "Unstage file"));
+        Pump(() => !Buttons(window).Any(button => ToolTip.GetTip(button) is string tip && tip.StartsWith("space ü\tfile.txt", StringComparison.Ordinal)));
+        Require(Action(Named("ChangesScope"), "Staged").IsChecked, "Unstaging reset the selected scope.");
+        Invoke(Action(Named("ChangesScope"), "All changes"));
+        Pump(() => Buttons(window).Any(button => ToolTip.GetTip(button) is string tip && tip.StartsWith("space ü\tfile.txt", StringComparison.Ordinal)));
         Pump(() => !Action(Change(), "Unstage file").IsEnabled);
+
+        Invoke(Action(Named("ChangesBranch"), "sharprail-fork"));
+        Pump(() => Named("ChangesScope").ContextMenu!.Items.OfType<MenuItem>().Any(item => item.Name?.StartsWith("ChangesCommit_", StringComparison.Ordinal) == true));
+        MenuItem Commit() => Named("ChangesScope").ContextMenu!.Items.OfType<MenuItem>().Single(item => item.Name?.StartsWith("ChangesCommit_", StringComparison.Ordinal) == true);
+        var commitId = Commit().Name!["ChangesCommit_".Length..];
+        var subject = ToolTip.GetTip(Commit());
+        Invoke(Commit());
+        Pump(() => Commit().IsChecked && Equals(ToolTip.GetTip(Named("ChangesScope")), subject));
+        Require(Named("ChangesScope").GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text is { } label && commitId.StartsWith(label, StringComparison.Ordinal) && label.Length >= 7),
+            "Commit scope header must show a short SHA and retain its subject tooltip.");
+        Require(!Buttons(window).Any(button => ToolTip.GetTip(button) is string tip && tip.StartsWith("space ü\tfile.txt", StringComparison.Ordinal)),
+            "Commit selection displayed an untracked working file.");
+        var committedRow = Buttons(window).First(button => button.ContextMenu?.Items.OfType<MenuItem>().Any(item => Equals(item.Header, "Stage file")) == true);
+        Require(!Action(committedRow, "Stage file").IsEnabled && !Action(committedRow, "Unstage file").IsEnabled,
+            "A committed diff row must not mutate working files.");
+        Click(window, committedRow);
+        Pump(() => window.Layout.State.Workspaces[root].Documents.Values.SelectMany(tabs => tabs).Any(tab => tab.Scope == "commit" && tab.Comparison == commitId));
+        Invoke(Action(Named("ChangesScope"), "Uncommitted"));
+        Pump(() => Action(Named("ChangesScope"), "Uncommitted").IsChecked && Buttons(window).Any(button => ToolTip.GetTip(button) is string tip && tip.StartsWith("space ü\tfile.txt", StringComparison.Ordinal)));
+        Require(Action(Named("ChangesBranch"), "sharprail-fork").IsChecked, "Changing scope discarded the independent comparison target.");
+        Require(Action(Change(), "Stage file").IsEnabled, "A retained target disabled staging in Uncommitted scope.");
+        Invoke(Commit());
+        Pump(() => Commit().IsChecked);
 
         Click(window, Buttons(window).Single(button => Equals(ToolTip.GetTip(button), "Create worktree")));
         var prompt = window.OwnedWindows.Single(item => item.Title == "Create worktree");
@@ -87,10 +130,15 @@ internal static class GitUiChecks
         Pump(() => window.WorkspaceRoot == worktree && window.WorkspaceMounted &&
             Buttons(window).Any(button => Equals(ToolTip.GetTip(button), root) && button.ContextMenu is not null));
         var main = Buttons(window).Single(button => Equals(ToolTip.GetTip(button), root) && button.ContextMenu is not null);
+        Require(Action(Named("ChangesScope"), "All changes").IsChecked &&
+            !Named("ChangesScope").ContextMenu!.Items.OfType<MenuItem>().Any(item => item.Name?.StartsWith("ChangesCommit_", StringComparison.Ordinal) == true),
+            "A new workspace inherited the previous workspace's commit selection or catalog.");
         Require(!Action(main, "Remove worktree…").IsEnabled, "Main worktree removal was enabled.");
         Click(window, main); Pump(() => window.WorkspaceRoot == root && window.WorkspaceMounted &&
             Buttons(window).Any(button => Equals(ToolTip.GetTip(button), worktree)));
         Button Linked() => Buttons(window).Single(button => Equals(ToolTip.GetTip(button), worktree));
+        Pump(() => Commit().IsChecked);
+        Require(Action(Named("ChangesBranch"), "sharprail-fork").IsChecked, "Returning to a workspace lost its target and commit selection.");
         Invoke(Action(Linked(), "Remove worktree…"));
         var confirmation = window.OwnedWindows.Single(item => item.Title == "Remove worktree?");
         confirmation.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
@@ -100,6 +148,24 @@ internal static class GitUiChecks
         Click(confirmation, Buttons(confirmation).Single(button => button.Content is TextBlock { Text: "Remove worktree" }));
         Pump(() => !Directory.Exists(worktree) && !Buttons(window).Any(button => Equals(ToolTip.GetTip(button), worktree)));
         window.Close();
+        var saved = new ProfileStore(root + "-ui-profile");
+        Require(saved.Data.GitSelections[root].Target == "sharprail-fork" && saved.Data.GitSelections[root].Commit?.Sha == commitId,
+            "The profile did not persist the independent target and commit.");
+        window = new WorkbenchWindow(new ProjectServices(root), root, saved);
+        window.Show();
+        Pump(() => window.WorkspaceMounted && Buttons(window).Any(button => button.Name == "ChangesBranch") &&
+            Named("ChangesScope").ContextMenu!.Items.OfType<MenuItem>().Any(item => item.Name == "ChangesCommit_" + commitId));
+        Require(Commit().IsChecked && Equals(ToolTip.GetTip(Named("ChangesScope")), subject) &&
+            Action(Named("ChangesBranch"), "sharprail-fork").IsChecked,
+            "A reopened window lost the persisted target, commit catalog or selected commit.");
+        Invoke(Action(Named("ChangesScope"), "Uncommitted"));
+        Pump(() => Action(Named("ChangesScope"), "Uncommitted").IsChecked);
+        window.Close();
+        saved = new ProfileStore(root + "-ui-profile");
+        Require(saved.Data.GitSelections[root].Scope == "Uncommitted" && saved.Data.GitSelections[root].Commit is null &&
+            saved.Data.GitSelections[root].Target == "sharprail-fork",
+            "A changed pending scope did not persist independently of its target.");
+        Console.WriteLine("PASS Git query restoration across fresh windows with commit catalogs and independent pending scope");
         Console.WriteLine("PASS Git UI stage/unstage, diff, create/switch worktree, cancel/confirm removal and main-worktree protection");
     }
 }

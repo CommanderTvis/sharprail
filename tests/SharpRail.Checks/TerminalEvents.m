@@ -1,0 +1,122 @@
+#import <AppKit/AppKit.h>
+#import <ApplicationServices/ApplicationServices.h>
+#include <unistd.h>
+#import <objc/runtime.h>
+#import <IOSurface/IOSurface.h>
+#import <QuartzCore/QuartzCore.h>
+
+static NSPasteboard *testPasteboard;
+static NSPasteboard *isolatedPasteboard(id self, SEL selector) { (void)self; (void)selector; return testPasteboard; }
+
+void sr_check_paste(void *pointer, int format) {
+    NSView *view = (__bridge NSView *)pointer;
+    testPasteboard = [NSPasteboard pasteboardWithUniqueName];
+    if (format == 0) [testPasteboard setString:@"TEXT_PASTE_OK" forType:NSPasteboardTypeString];
+    else {
+        NSBitmapImageRep *bitmap = [[NSBitmapImageRep alloc] initWithBitmapDataPlanes:NULL pixelsWide:2 pixelsHigh:2
+            bitsPerSample:8 samplesPerPixel:4 hasAlpha:YES isPlanar:NO colorSpaceName:NSDeviceRGBColorSpace bytesPerRow:0 bitsPerPixel:0];
+        memset(bitmap.bitmapData, 255, bitmap.bytesPerRow * bitmap.pixelsHigh);
+        NSData *data = format == 1 ? [bitmap representationUsingType:NSBitmapImageFileTypePNG properties:@{}] : bitmap.TIFFRepresentation;
+        [testPasteboard setData:data forType:format == 1 ? NSPasteboardTypePNG : NSPasteboardTypeTIFF];
+    }
+    Method getter = class_getClassMethod(NSPasteboard.class, @selector(generalPasteboard));
+    IMP original = method_setImplementation(getter, (IMP)isolatedPasteboard);
+    @try {
+        [NSApp sendEvent:[NSEvent keyEventWithType:NSEventTypeKeyDown location:NSZeroPoint modifierFlags:NSEventModifierFlagCommand
+            timestamp:NSProcessInfo.processInfo.systemUptime windowNumber:view.window.windowNumber context:nil
+            characters:@"v" charactersIgnoringModifiers:@"v" isARepeat:NO keyCode:9]];
+    } @finally {
+        method_setImplementation(getter, original);
+        [testPasteboard releaseGlobally]; testPasteboard = nil;
+    }
+}
+
+uint32_t sr_check_background(void *pointer) {
+    NSView *view = (__bridge NSView *)pointer;
+    IOSurfaceRef surface = (__bridge IOSurfaceRef)view.layer.contents;
+    if (!surface || CFGetTypeID(surface) != IOSurfaceGetTypeID()) return 0;
+    if (IOSurfaceLock(surface, kIOSurfaceLockReadOnly, NULL) != kIOReturnSuccess) return 0;
+    size_t x = IOSurfaceGetWidth(surface) - 2, y = IOSurfaceGetHeight(surface) - 2;
+    const uint8_t *pixel = (const uint8_t *)IOSurfaceGetBaseAddress(surface) + y * IOSurfaceGetBytesPerRow(surface) + x * 4;
+    uint32_t color = ((uint32_t)pixel[2] << 16) | ((uint32_t)pixel[1] << 8) | pixel[0];
+    IOSurfaceUnlock(surface, kIOSurfaceLockReadOnly, NULL);
+    return color;
+}
+
+static void interpretMutableText(id view, SEL selector, NSArray<NSEvent *> *events) {
+    (void)selector;
+    for (NSEvent *event in events) {
+        NSMutableString *text = [event.characters mutableCopy];
+        [(id<NSTextInputClient>)view insertText:text replacementRange:NSMakeRange(NSNotFound, 0)];
+        // AppKit can reuse its mutable input buffer as soon as insertText returns.
+        [text setString:@""];
+    }
+}
+
+void sr_check_mutable_input(void *pointer) {
+    NSView *view = (__bridge NSView *)pointer;
+    Class original = object_getClass(view);
+    Class input = objc_allocateClassPair(original, "SRMutableInputCheck", 0);
+    class_addMethod(input, @selector(interpretKeyEvents:), (IMP)interpretMutableText, "v@:@");
+    objc_registerClassPair(input);
+    object_setClass(view, input);
+    NSString *command = @"printf 'MUTABLE_%s_OK\\n' INPUT";
+    for (NSUInteger i = 0; i < command.length; i++) {
+        NSString *text = [command substringWithRange:NSMakeRange(i, 1)];
+        [NSApp sendEvent:[NSEvent keyEventWithType:NSEventTypeKeyDown location:NSZeroPoint modifierFlags:0
+            timestamp:NSProcessInfo.processInfo.systemUptime windowNumber:view.window.windowNumber context:nil
+            characters:text charactersIgnoringModifiers:text isARepeat:NO keyCode:0]];
+    }
+    object_setClass(view, original);
+}
+
+void sr_check_activate(void *pointer) {
+    NSView *view = (__bridge NSView *)pointer;
+    [NSApp activateIgnoringOtherApps:YES];
+    [view.window makeKeyAndOrderFront:nil];
+}
+
+bool sr_check_ready(void *pointer) {
+    NSView *view = (__bridge NSView *)pointer;
+    return NSApp.active && view.window.keyWindow && view.bounds.size.width > 0;
+}
+
+void sr_check_click(void *pointer, double x, double y) {
+    NSView *view = (__bridge NSView *)pointer;
+    NSWindow *window = view.window;
+    NSPoint point = [view convertPoint:NSMakePoint(x, y) toView:nil];
+    for (NSNumber *type in @[@(NSEventTypeLeftMouseDown), @(NSEventTypeLeftMouseUp)]) {
+        [NSApp postEvent:[NSEvent mouseEventWithType:type.integerValue location:point modifierFlags:0
+            timestamp:NSProcessInfo.processInfo.systemUptime windowNumber:window.windowNumber context:nil
+            eventNumber:0 clickCount:1 pressure:1] atStart:NO];
+    }
+}
+
+bool sr_check_focused(void *pointer) {
+    NSView *view = (__bridge NSView *)pointer;
+    return view.window.firstResponder == view;
+}
+
+void sr_check_key(void *pointer, const char *text, unsigned short keyCode, bool control) {
+    NSView *view = (__bridge NSView *)pointer;
+    NSString *characters = [NSString stringWithUTF8String:text];
+    if (getenv("SHARPRAIL_CHECK_OS_INPUT")) {
+        for (int down = 1; down >= 0; down--) {
+            CGEventRef event = CGEventCreateKeyboardEvent(NULL, keyCode, down);
+            UniChar buffer[16];
+            NSUInteger length = MIN(characters.length, 16);
+            [characters getCharacters:buffer range:NSMakeRange(0, length)];
+            CGEventKeyboardSetUnicodeString(event, length, buffer);
+            CGEventSetFlags(event, control ? kCGEventFlagMaskControl : 0);
+            CGEventPostToPid(getpid(), event);
+            CFRelease(event);
+        }
+        return;
+    }
+    for (NSNumber *type in @[@(NSEventTypeKeyDown), @(NSEventTypeKeyUp)]) {
+        [NSApp sendEvent:[NSEvent keyEventWithType:type.integerValue location:NSZeroPoint
+            modifierFlags:control ? NSEventModifierFlagControl : 0 timestamp:NSProcessInfo.processInfo.systemUptime
+            windowNumber:view.window.windowNumber context:nil characters:characters
+            charactersIgnoringModifiers:characters isARepeat:NO keyCode:keyCode]];
+    }
+}

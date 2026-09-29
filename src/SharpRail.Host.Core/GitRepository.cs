@@ -15,6 +15,7 @@ internal static class GitRepository
             UseShellExecute = false,
             CreateNoWindow = true
         };
+        start.Environment["LC_ALL"] = "C";
         start.ArgumentList.Add("--literal-pathspecs");
         start.ArgumentList.Add("-c");
         start.ArgumentList.Add("core.quotepath=false");
@@ -30,40 +31,73 @@ internal static class GitRepository
         await process.WaitForExitAsync(ct);
         var text = await output;
         var detail = await error;
-        if (process.ExitCode != 0) throw new IOException(detail.Trim());
+        if (process.ExitCode != 0) throw new GitException(process.ExitCode, detail.Trim());
         return text;
     }
 
-    internal static async Task<GitSnapshot> SnapshotAsync(string root, string comparison, CancellationToken ct)
+    private sealed class GitException(int exitCode, string message) : IOException(message)
     {
+        internal int ExitCode { get; } = exitCode;
+    }
+
+    internal static async Task<string> ComparisonBaseAsync(string root, string comparison, CancellationToken ct)
+    {
+        var target = (await RunAsync(root, ct, "rev-parse", "--verify", "--end-of-options", comparison + "^{commit}")).Trim();
+        try { return (await RunAsync(root, ct, "merge-base", "--end-of-options", target, "HEAD")).Trim(); }
+        catch (GitException error) when (error.ExitCode == 1) { return target; }
+    }
+
+    internal static async Task<List<string>> CommitDiffArgumentsAsync(string root, string commit, CancellationToken ct)
+    {
+        if (commit.Length is < 4 or > 64 || !commit.All(value => value is >= '0' and <= '9' or >= 'a' and <= 'f'))
+            throw new ArgumentException("A commit scope requires a hexadecimal commit id.");
+        var sha = (await RunAsync(root, ct, "rev-parse", "--verify", "--quiet", "--end-of-options", commit + "^{commit}")).Trim();
+        try
+        {
+            var parent = (await RunAsync(root, ct, "rev-parse", "--verify", "--quiet", "--end-of-options", sha + "^")).Trim();
+            return ["diff", "--no-renames", parent, sha];
+        }
+        catch (GitException error) when (error.ExitCode == 1) { return ["show", "--format=", "--no-renames", sha]; }
+    }
+
+    internal static async Task<GitSnapshot> SnapshotAsync(string root, string comparison, CancellationToken ct, string scope = "all")
+    {
+        if (scope is not ("all" or "uncommitted" or "staged" or "commit")) throw new ArgumentException("Unknown change scope.");
         try { await RunAsync(root, ct, "rev-parse", "--git-dir"); }
-        catch (IOException) { return new(false, "", [], [], []); }
+        catch (GitException error) when (error.ExitCode == 128 && error.Message.StartsWith("fatal: not a git repository (or any", StringComparison.Ordinal))
+        { return new(false, "", [], [], []); }
         string branch;
         try { branch = (await RunAsync(root, ct, "symbolic-ref", "--short", "-q", "HEAD")).Trim(); }
-        catch (IOException) { branch = "detached HEAD"; }
+        catch (GitException error) when (error.ExitCode == 1) { branch = "detached HEAD"; }
         if (string.IsNullOrEmpty(branch)) branch = "detached HEAD";
-        var status = await RunAsync(root, ct, "status", "--porcelain=v1", "-z", "--untracked-files=all");
-        var changes = ParseStatus(status);
-        if (comparison.Length > 0)
+        var status = scope == "commit" ? "" : await RunAsync(root, ct, "status", "--porcelain=v1", "-z", "--untracked-files=all");
+        var workingChanges = ParseStatus(status);
+        var diff = scope == "commit" ? await CommitDiffArgumentsAsync(root, comparison, ct) : new List<string> { "diff", "--no-renames" };
+        if (scope == "staged") diff.Add("--cached");
+        else if (scope == "all" && comparison.Length > 0)
+            diff.Add(await ComparisonBaseAsync(root, comparison, ct));
+        else if (scope == "uncommitted") diff.Add("HEAD");
+        else if (scope == "all")
         {
-            await RunAsync(root, ct, "rev-parse", "--verify", "--end-of-options", comparison + "^{commit}");
-            var names = await RunAsync(root, ct, "diff", "--name-status", "-z", "--no-renames", comparison, "HEAD", "--");
-            changes = ParseNames(names);
-        }
-        var stats = new Dictionary<string, (int Added, int Removed)>(StringComparer.Ordinal);
-        foreach (var stat in comparison.Length > 0
-            ? new[] { await RunAsync(root, ct, "diff", "--numstat", "-z", "--no-renames", comparison, "HEAD", "--") }
-            : new[] { await RunAsync(root, ct, "diff", "--numstat", "-z", "--no-renames", "--"),
-                await RunAsync(root, ct, "diff", "--cached", "--numstat", "-z", "--no-renames", "--") })
-        {
-            foreach (var row in stat.Split('\0', StringSplitOptions.RemoveEmptyEntries))
+            try
             {
-                var fields = row.Split('\t', 3);
-                if (fields.Length != 3) continue;
-                var prior = stats.GetValueOrDefault(fields[2]);
-                stats[fields[2]] = (prior.Added + (int.TryParse(fields[0], out var add) ? add : 0),
-                    prior.Removed + (int.TryParse(fields[1], out var remove) ? remove : 0));
+                await RunAsync(root, ct, "rev-parse", "--verify", "--quiet", "HEAD");
+                diff.Add("HEAD");
             }
+            catch (GitException error) when (error.ExitCode == 1) { diff.Add("--cached"); }
+        }
+        var names = await RunAsync(root, ct, diff.Concat(new[] { "--name-status", "-z", "--" }).ToArray());
+        var statuses = workingChanges.ToDictionary(change => change.Path, StringComparer.Ordinal);
+        var changes = ParseNames(names).Select(change => statuses.GetValueOrDefault(change.Path, change)).ToList();
+        if (scope != "staged") changes.AddRange(workingChanges.Where(change => change.IndexStatus == "?"));
+        var stats = new Dictionary<string, (int Added, int Removed)>(StringComparer.Ordinal);
+        var stat = await RunAsync(root, ct, diff.Concat(new[] { "--numstat", "-z", "--" }).ToArray());
+        foreach (var row in stat.Split('\0', StringSplitOptions.RemoveEmptyEntries))
+        {
+            var fields = row.Split('\t', 3);
+            if (fields.Length != 3) continue;
+            stats[fields[2]] = (int.TryParse(fields[0], out var add) ? add : 0,
+                int.TryParse(fields[1], out var remove) ? remove : 0);
         }
         changes = changes.Select(change => stats.TryGetValue(change.Path, out var value)
             ? change with { Added = value.Added, Removed = value.Removed } : change).ToList();
@@ -88,8 +122,31 @@ internal static class GitRepository
         var worktrees = ParseWorktrees(await RunAsync(root, ct, "worktree", "list", "--porcelain", "-z"));
         var branches = (await RunAsync(root, ct, "for-each-ref", "--format=%(refname:short)", "refs/heads", "refs/remotes"))
             .Split('\n', StringSplitOptions.RemoveEmptyEntries);
-        return new(true, branch, changes, worktrees, branches);
+        var commits = scope != "commit" ? await ListCommitsAsync(root, comparison, ct) : [];
+        return new(true, branch, changes, worktrees, branches) { Commits = commits };
     }
+
+    internal static async Task<IReadOnlyList<GitCommit>> ListCommitsAsync(string root, string comparison, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        var commits = new List<GitCommit>();
+        if (comparison.Length > 0)
+        {
+            string log;
+            try { log = await RunAsync(root, ct, "log", "--max-count=200", "--format=%H%x00%h%x00%cI%x00%an%x00%s", "--end-of-options", comparison + "..HEAD", "--"); }
+            catch (GitException error) when (error.ExitCode == 128) { log = ""; }
+            foreach (var line in log.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var fields = line.Split('\0', 5);
+                if (fields.Length == 5) commits.Add(new(fields[0], fields[1], DisplayText(fields[4]), DisplayText(fields[3]), fields[2]));
+            }
+        }
+        return commits;
+    }
+
+    private static string DisplayText(string text) => new(text.Where(value =>
+        value is not (< '\u0020' or >= '\u007f' and <= '\u009f' or >= '\u200b' and <= '\u200f' or
+            >= '\u202a' and <= '\u202e' or >= '\u2066' and <= '\u2069' or '\u061c' or '\ufeff' or '\u00ad')).ToArray());
 
     private static List<GitChange> ParseStatus(string status)
     {

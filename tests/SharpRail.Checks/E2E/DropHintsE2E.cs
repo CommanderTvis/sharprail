@@ -95,6 +95,7 @@ internal static class DropHintsE2E
         Until(() => move.IsSubMenuOpen);
         app.Click(move.Items.OfType<MenuItem>().Single(item => ((string)item.Header!).StartsWith("center:", StringComparison.Ordinal)), freshGesture: false);
         Until(() => app.Tabs.Any(tab => tab.Id == terminal.Id));
+        app.Find<Button>("Tab_" + name).Focus(); Settle();
         var command = OperatingSystem.IsMacOS() ? RawInputModifiers.Meta : RawInputModifiers.Control;
         app.Window.KeyPress(Key.J, command | RawInputModifiers.Shift, PhysicalKey.J, null);
         app.Window.KeyRelease(Key.J, command | RawInputModifiers.Shift, PhysicalKey.J, null); Settle();

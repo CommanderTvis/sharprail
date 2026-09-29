@@ -3,9 +3,70 @@
 Reference: Thinkrail's apps/web/src/shell/layout/SPEC.md and its Balanced
 workspace, original-workspace.png, SettingsDialog, MarkdownPreview and project
 dialogs. The current Balanced layout is the visual target. AI controls are
-excluded. Editor and terminal execution remain nonfunctional; tab, toolbar and
+excluded. Editor functionality remains excluded; tab, toolbar and
 pane chrome needed for visual and docking fidelity remains in scope.
 Keep the same C# host architecture and optimized open-world CoreCLR/R2R package.
+
+Explicit Git target comparisons measure the working tree from the merge base of
+the target and HEAD, including staged, unstaged and untracked files. Snapshot
+counts and opened diffs must use the same baseline; target-only commits must not
+appear as local deletions. Unrelated histories fall back to the resolved target,
+while invalid refs and failures resolving the comparison remain errors. Verify local and
+gRPC parity using disposable clones of existing commits; no new commits or
+benchmark runs are needed for these regression fixtures.
+
+A genuine plain folder may report that it is not a Git repository. Corrupt Git
+metadata and probe/read failures must remain visible as errors, with Retry in
+Changes. Git failure must not prevent opening accessible workspace files.
+
+Uncommitted includes staged, unstaged and untracked files. Its diff measures the
+current working content against HEAD, rather than only the index-to-working-tree
+delta. All changes and Uncommitted keep separate diff tabs for the same path.
+Each scope's file list and counts use that same range. Edits that cancel between
+the index and working tree disappear from Uncommitted while remaining in Staged.
+Changing scope and staging actions must refresh the selected range, with stale
+responses rejected independently of the comparison target.
+Commit snapshots and diffs compare the selected commit to its first parent;
+without an available parent they show the commit's entire tree. Working edits
+and untracked files never enter a commit scope. Invalid or unknown commit ids
+remain errors. The commit picker must retain the independent comparison target.
+Catalogs contain at most 200 commits in target-to-HEAD order, with the reference's
+display-text sanitization. A selected commit uses a short SHA label and full
+subject tooltip. Scope, target and commit selection belong to their workspace;
+switching scopes preserves the target and switching worktrees restores selection.
+Workspace Git target, scope and selected commit persist in the global profile.
+Commit catalogs are reloaded from Git rather than persisted as stale derived data.
+The host exposes commit listing independently of working-tree snapshots. Restoring
+a commit selection must use that lightweight call, with direct local and gRPC
+parity, cancellation and the same capped range and sanitized metadata. Index
+failures must not prevent listing otherwise accessible commits.
+Profiles without query state retain the default scope; malformed saved selections
+must not prevent opening the workspace.
+
+## Local terminals on macOS
+
+Terminal tabs embed libghostty 1.2.3 in native AppKit views hosted by Avalonia.
+Ghostty owns the PTY, shell, terminal emulation, fonts and Metal renderer. Its
+Metal textures are presented through its IOSurfaceLayer, without a WebView or
+CPU text rendering fallback. Surface creation requires an available Metal device.
+Each tab starts a local shell in its workspace directory when first displayed.
+Keyboard input, text composition, selection, scrolling, clipboard and Retina
+resizing pass through the native view. Moving, hiding, folding or switching away
+retains the session; closing a tab or window disposes it. Restored terminal tabs
+start new sessions after app restart. Remote terminals and other operating
+systems show an explicit availability message; no local shell impersonates a
+remote workspace.
+
+Terminal background and foreground follow the workbench's surface and text
+colors, including live dark/light changes without restarting the shell. Command-V
+pastes clipboard text, or saves PNG/TIFF clipboard images as distinct PNG files in
+the active profile's `clipboard` directory and pastes a shell-quoted file path.
+Saved images remain available after the terminal closes.
+
+Acceptance requires live shell output and nonuniform pixels in Ghostty's
+Metal-backed IOSurface, plus native keyboard input, resizing, retained sessions,
+workspace isolation and disposal checks. Headless docking tests alone do not
+establish terminal execution or GPU rendering.
 
 ## Runtime and managed extensions
 
@@ -71,7 +132,7 @@ migration; C# as the implementation language does not require C#-only UI markup.
 Functional document and tool tabs: select, close/hide, preview/keep, reorder,
 overflow search, middle-click close, context actions, keyboard navigation and
 focus. A filesystem tree opens Markdown as a native selectable preview and
-other text as a read-only document, without an editor or terminal implementation.
+other text as a read-only document, without an editor implementation.
 
 Projects: native directory picker and explicit host-path dialog (remote);
 recent/open project navigation; per-project workspace/worktree selection;

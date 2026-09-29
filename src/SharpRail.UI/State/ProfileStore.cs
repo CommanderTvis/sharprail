@@ -1,4 +1,5 @@
 using System.Text.Json;
+using SharpRail.Host.Abstractions;
 using SharpRail.UI.Docking;
 
 namespace SharpRail.UI.State;
@@ -14,6 +15,8 @@ public sealed class Preferences
     public Dictionary<string, DockState> CustomPresets { get; set; } = [];
 }
 
+public record GitSelection(string Target, string Scope, GitCommit? Commit);
+
 public sealed class Profile
 {
     public Preferences Preferences { get; set; } = new();
@@ -21,6 +24,7 @@ public sealed class Profile
     public List<string> Projects { get; set; } = [];
     public HashSet<string> CollapsedProjects { get; set; } = [];
     public string LastProject { get; set; } = "";
+    public Dictionary<string, GitSelection> GitSelections { get; set; } = [];
 }
 
 public sealed class ProfileStore
@@ -41,6 +45,7 @@ public sealed class ProfileStore
     }
 
     private readonly string path;
+    public string DirectoryPath => Path.GetDirectoryName(path)!;
     public Profile Data { get; }
     public string? LastError { get; private set; }
     public ProfileStore(string directory)
@@ -51,6 +56,26 @@ public sealed class ProfileStore
             Data = File.Exists(path) ? JsonSerializer.Deserialize<Profile>(File.ReadAllText(path)) ?? new() : new();
             Data.Preferences ??= new(); Data.Projects ??= []; Data.LastProject ??= "";
             Data.CollapsedProjects ??= [];
+            Data.GitSelections ??= [];
+            foreach (var entry in Data.GitSelections.ToArray())
+            {
+                if (!Path.IsPathFullyQualified(entry.Key) || entry.Key.Contains('\0') || entry.Value is null)
+                { Data.GitSelections.Remove(entry.Key); continue; }
+                var selection = entry.Value;
+                var commit = selection.Commit;
+                if (commit is not null && (commit.Sha is null || commit.Sha.Length is < 4 or > 64 ||
+                    !commit.Sha.All(value => value is >= '0' and <= '9' or >= 'a' and <= 'f'))) commit = null;
+                if (commit is not null) commit = commit with
+                {
+                    ShortSha = string.IsNullOrEmpty(commit.ShortSha) ? commit.Sha[..Math.Min(7, commit.Sha.Length)] : commit.ShortSha,
+                    Subject = commit.Subject ?? "",
+                    Author = commit.Author ?? "",
+                    CommittedAt = commit.CommittedAt ?? ""
+                };
+                var scope = selection.Scope is "All changes" or "Uncommitted" or "Staged" or "Branch" or "Commit" ? selection.Scope : "All changes";
+                if (scope == "Commit" && commit is null) scope = "All changes";
+                Data.GitSelections[entry.Key] = new(selection.Target?.Contains('\0') == false ? selection.Target : "", scope, scope == "Commit" ? commit : null);
+            }
             Data.Projects.RemoveAll(project => string.IsNullOrWhiteSpace(project) || project.Contains('\0') || !Path.IsPathFullyQualified(project));
             if (Data.LastProject.Contains('\0') || Data.LastProject.Length > 0 && !Path.IsPathFullyQualified(Data.LastProject)) Data.LastProject = "";
             Data.Preferences.CustomPresets ??= [];

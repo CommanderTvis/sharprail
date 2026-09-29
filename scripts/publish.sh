@@ -12,7 +12,15 @@ rid="${1:-osx-arm64}"
 if [ "$rid" = osx-arm64 ] || [ "$rid" = osx-x64 ]; then
   bundle=artifacts/SharpRail.app
   mkdir -p "$bundle/Contents/MacOS" "$bundle/Contents/Resources"
-  cp -R artifacts/ui/. "$bundle/Contents/MacOS/"
+  for item in artifacts/ui/*; do
+    name="$(basename "$item")"
+    case "$name" in
+      ghostty|terminfo)
+        mkdir -p "$bundle/Contents/Resources/$name"
+        cp -R "$item/." "$bundle/Contents/Resources/$name/" ;;
+      *) cp -R "$item" "$bundle/Contents/MacOS/" ;;
+    esac
+  done
   cp THIRD-PARTY-NOTICES.md "$bundle/Contents/Resources/"
   cp -R licenses "$bundle/Contents/Resources/"
   cp src/SharpRail.UI/Assets/Fonts/Geist-OFL.txt "$bundle/Contents/Resources/"

@@ -7,6 +7,19 @@
     <x:Double x:Key="TreeViewItemIndent">12</x:Double>
   </Application.Resources>
   <Application.Styles>
+    <Style Selector="Border.change-row">
+      <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="Border.change-row:pointerover, Border.change-row.menu-open">
+      <Setter Property="Background" Value="{x:Static rendering:Ui.Hover}" />
+    </Style>
+    <Style Selector="Button.change-actions">
+      <Setter Property="Opacity" Value="0" />
+    </Style>
+    <Style Selector="Border.change-row:pointerover Button.change-actions, Border.change-row.menu-open Button.change-actions, Button.change-actions:focus">
+      <Setter Property="Opacity" Value="1" />
+    </Style>
     <Style Selector="SelectableTextBlock">
       <Setter Property="SelectionBrush" Value="{x:Static rendering:Ui.TextSelection}" />
       <Setter Property="SelectionForegroundBrush" Value="{x:Null}" />
@@ -27,6 +40,9 @@
         <ColorPaletteResources x:Key="Light" Accent="#2a7314" />
       </FluentTheme.Palettes>
     </FluentTheme>
+    <Style Selector="Button.dock-tab-button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
     <Style Selector="TreeViewItem">
       <Setter Property="MinHeight" Value="28" />
     </Style>

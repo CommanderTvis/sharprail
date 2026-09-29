@@ -13,7 +13,8 @@ public sealed class LocalProjectAdapter(IProjectServices host) : IProjectService
     public ValueTask<IReadOnlyList<ProjectFile>> ListFilesAsync(string relativePath, CancellationToken cancellationToken = default) => host.ListFilesAsync(relativePath, cancellationToken);
     public ValueTask<FileDocument> ReadFileAsync(string relativePath, CancellationToken cancellationToken = default) => host.ReadFileAsync(relativePath, cancellationToken);
     public ValueTask<IReadOnlyList<SpecDocument>> ListSpecsAsync(CancellationToken cancellationToken = default) => host.ListSpecsAsync(cancellationToken);
-    public ValueTask<GitSnapshot> GetGitAsync(string comparisonBranch = "", CancellationToken cancellationToken = default) => host.GetGitAsync(comparisonBranch, cancellationToken);
+    public ValueTask<GitSnapshot> GetGitAsync(string comparisonBranch = "", CancellationToken cancellationToken = default, string scope = "all") => host.GetGitAsync(comparisonBranch, cancellationToken, scope);
+    public ValueTask<IReadOnlyList<GitCommit>> ListCommitsAsync(string comparisonBranch, CancellationToken cancellationToken = default) => host.ListCommitsAsync(comparisonBranch, cancellationToken);
     public ValueTask<string> GetDiffAsync(string path, string scope, string comparisonBranch = "", CancellationToken cancellationToken = default) => host.GetDiffAsync(path, scope, comparisonBranch, cancellationToken);
     public ValueTask<GitSnapshot> ApplyGitActionAsync(GitAction action, CancellationToken cancellationToken = default) => host.ApplyGitActionAsync(action, cancellationToken);
 }
@@ -57,8 +58,11 @@ public sealed class RemoteProjectAdapter : IProjectServices, IDisposable
         return new(reply.Path, reply.Text, reply.ImageData);
     }
 
-    public async ValueTask<GitSnapshot> GetGitAsync(string comparisonBranch = "", CancellationToken cancellationToken = default)
-        => Map(await service.GetGitAsync(new() { Branch = comparisonBranch }, Context(cancellationToken)));
+    public async ValueTask<GitSnapshot> GetGitAsync(string comparisonBranch = "", CancellationToken cancellationToken = default, string scope = "all")
+        => Map(await service.GetGitAsync(new() { Branch = comparisonBranch, Scope = scope }, Context(cancellationToken)));
+
+    public async ValueTask<IReadOnlyList<GitCommit>> ListCommitsAsync(string comparisonBranch, CancellationToken cancellationToken = default)
+        => (await service.ListCommitsAsync(new() { Branch = comparisonBranch }, Context(cancellationToken))).Commits.Select(Map).ToArray();
 
     public async ValueTask<IReadOnlyList<SpecDocument>> ListSpecsAsync(CancellationToken cancellationToken = default)
     {
@@ -74,7 +78,12 @@ public sealed class RemoteProjectAdapter : IProjectServices, IDisposable
 
     private static GitSnapshot Map(GitReply reply) => new(reply.IsRepository, reply.Branch,
         reply.Changes.Select(change => new GitChange(change.Path, change.IndexStatus, change.WorktreeStatus, change.OriginalPath, change.Added, change.Removed)).ToArray(),
-        reply.Worktrees.Select(tree => new WorktreeInfo(tree.Path, tree.Branch, tree.IsMain, tree.IsLocked)).ToArray(), reply.Branches);
+        reply.Worktrees.Select(tree => new WorktreeInfo(tree.Path, tree.Branch, tree.IsMain, tree.IsLocked)).ToArray(), reply.Branches)
+    {
+        Commits = reply.Commits.Select(Map).ToArray()
+    };
+
+    private static GitCommit Map(CommitReply commit) => new(commit.Sha, commit.ShortSha, commit.Subject, commit.Author, commit.CommittedAt);
 
     public void Dispose() => channel.Dispose();
 }

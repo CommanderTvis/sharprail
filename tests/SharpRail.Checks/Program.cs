@@ -25,12 +25,13 @@ namespace SharpRail.Checks;
 internal static class Program
 {
     [STAThread]
-    public static void Main()
+    public static void Main(string[] args)
     {
+        if (args.Contains("--native-terminal")) { NativeTerminalChecks.Run(args); return; }
         var root = Path.Combine(Directory.GetCurrentDirectory(), ".bench", "check-fixture-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
         Directory.CreateDirectory(Path.Combine(root, "src"));
-        File.WriteAllText(Path.Combine(root, ".git"), "gitdir: " + Path.Combine(root, "nonexistent-git-directory"));
+        Environment.SetEnvironmentVariable("GIT_CEILING_DIRECTORIES", Directory.GetCurrentDirectory());
         File.WriteAllText(Path.Combine(root, "hello.txt"), "hello");
         File.WriteAllText(Path.Combine(root, "README.md"), "# Preview\n\nA **bold** paragraph with a [link](#preview).\n\n- [x] Done\n- [ ] Next\n\n| Name | Value |\n| --- | --- |\n| A | 1 |\n\n> [!NOTE]\n> A callout.\n\n\u0060\u0060\u0060cs\npublic class Example { }\n\u0060\u0060\u0060\n");
         File.WriteAllText(Path.Combine(root, "SPEC.md"), "---\nid: goal\ntitle: Project goal\ntype: product-goal\n---\n# Goal\n");

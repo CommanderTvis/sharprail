@@ -15,6 +15,7 @@ internal static class TerminalChromeChecks
     {
         SideMenu(root);
         TabTooltip(root);
+        TabHover(root);
         RegionCommands(root);
         SideTerminal(root);
         using var app = new E2eWorkspace(Path.Combine(root, "terminal-chrome"));
@@ -157,6 +158,42 @@ internal static class TerminalChromeChecks
         Require(tooltipRoot.PointToScreen(tip.TranslatePoint(default, tooltipRoot)!.Value).X == expectedX,
             "Moving across a tab must not move its tooltip horizontally with the pointer.");
         Console.WriteLine("PASS tab tooltip follows the tab bounds rather than the pointer");
+    }
+
+    private static void TabHover(string root)
+    {
+        using var app = new E2eWorkspace(Path.Combine(root, "tab-hover"));
+        var bottom = app.Window.Layout.State.Groups.Single(group => group.Region == "bottom");
+        app.Window.Layout.NewTerminal(bottom.Id);
+        var first = app.Window.Layout.Tabs(bottom.Id).Single();
+        app.Window.Layout.NewTerminal(bottom.Id); Settle();
+        var name = first.Id.Replace(':', '_');
+        var chrome = app.Find<Grid>("DockTab_" + name);
+        var frame = chrome.Children.OfType<Border>().First();
+        var button = app.Find<Button>("Tab_" + name);
+        var close = chrome.GetLogicalDescendants().OfType<Button>().Single(item => item.Name == "CloseTab");
+        var presenter = button.GetVisualDescendants().OfType<Avalonia.Controls.Presenters.ContentPresenter>()
+            .Single(item => item.Name == "PART_ContentPresenter");
+        foreach (var light in new[] { false, true })
+        {
+            SharpRail.UI.Rendering.Ui.SetLight(light);
+            app.Window.MouseMove(button.TranslatePoint(new Point(6, 6), app.Window)!.Value); Settle();
+            Require(ReferenceEquals(frame.Background, SharpRail.UI.Rendering.Ui.Hover) &&
+                presenter.Background is Avalonia.Media.ISolidColorBrush brush && brush.Color.A == 0,
+                "Hover must paint the whole tab frame without a second label-only background.");
+            app.Window.MouseMove(close.TranslatePoint(new Point(close.Bounds.Width / 2, close.Bounds.Height / 2), app.Window)!.Value); Settle();
+            Require(ReferenceEquals(frame.Background, SharpRail.UI.Rendering.Ui.Hover) && close.Opacity == 1,
+                "Moving onto the close button must retain the whole-tab hover.");
+            app.Window.MouseMove(new Point(2, 2)); Settle();
+            Require(ReferenceEquals(frame.Background, SharpRail.UI.Rendering.Ui.Elevated),
+                "Leaving an inactive tab must restore its normal background.");
+        }
+        SharpRail.UI.Rendering.Ui.SetLight(false);
+        app.Window.MouseMove(button.TranslatePoint(new Point(6, 6), app.Window)!.Value); Settle();
+        app.Window.Layout.ApplyPreset(DockState.Preset("review")); Settle();
+        Require(app.Window.Layout.State.Groups.SelectMany(group => app.Window.Layout.Tabs(group.Id)).Any(tab => tab.Id == first.Id),
+            "Changing layout under a hovered tab must retain the resource and process pointer exit safely.");
+        Console.WriteLine("PASS whole-tab hover over label and close button in dark/light themes and layout changes");
     }
 
     private static void SideMenu(string root)

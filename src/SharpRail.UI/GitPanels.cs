@@ -3,6 +3,7 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
+using Avalonia.Input.Platform;
 using SharpRail.Host.Abstractions;
 using SharpRail.UI.Docking;
 using SharpRail.UI.Panels;
@@ -14,6 +15,8 @@ public sealed partial class WorkbenchWindow
 {
     private string comparison = "";
     private string changeScope = "All changes";
+    private GitCommit? selectedCommit;
+    private IReadOnlyList<GitCommit> gitCommits = [];
     private bool changeTree;
 
     private Control ChangesPanel()
@@ -26,17 +29,40 @@ public sealed partial class WorkbenchWindow
             ClipToBounds = true
         };
         var selectors = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, ClipToBounds = true };
-        var scope = ChangesDropdown("ChangesScope", "Diff scope", changeScope, "fileDiff");
+        var scope = ChangesDropdown("ChangesScope", "Diff scope", selectedCommit?.ShortSha ?? changeScope, "fileDiff");
+        if (selectedCommit is not null) ToolTip.SetTip(scope, selectedCommit.Subject);
         foreach (var label in new[] { "All changes", "Uncommitted", "Staged", "Branch" })
         {
             var item = Ui.Menu(label, () =>
             {
                 changeScope = label;
-                comparison = label == "Branch" ? git.Branches.FirstOrDefault(branch => branch != git.Branch) ?? "HEAD" : "";
+                selectedCommit = null;
+                if (label == "Branch" && comparison.Length == 0) comparison = git.Branches.FirstOrDefault(branch => branch != git.Branch) ?? "HEAD";
+                SaveGitSelection();
                 _ = RefreshAsync();
             });
             item.ToggleType = MenuItemToggleType.Radio;
             item.IsChecked = changeScope == label;
+            scope.ContextMenu!.Items.Add(item);
+        }
+        if (gitCommits.Count > 0) scope.ContextMenu!.Items.Add(new Separator());
+        foreach (var commit in gitCommits)
+        {
+            var item = Ui.Menu(commit.Subject, () =>
+            {
+                selectedCommit = commit; changeScope = "Commit";
+                SaveGitSelection();
+                _ = RefreshAsync();
+            });
+            item.Name = "ChangesCommit_" + commit.Sha;
+            item.Header = new StackPanel
+            {
+                Children = { Ui.Text(commit.Subject.Length > 0 ? commit.Subject : commit.ShortSha),
+                    Ui.Text(commit.ShortSha + " · " + commit.Author, Ui.Muted, 12) }
+            };
+            ToolTip.SetTip(item, commit.Subject);
+            item.ToggleType = MenuItemToggleType.Radio;
+            item.IsChecked = selectedCommit?.Sha == commit.Sha;
             scope.ContextMenu!.Items.Add(item);
         }
         selectors.Children.Add(scope);
@@ -46,7 +72,7 @@ public sealed partial class WorkbenchWindow
             branches.MaxWidth = 200;
             foreach (var branch in git.Branches)
             {
-                var item = Ui.Menu(branch, () => { changeScope = "Branch"; comparison = branch; _ = RefreshAsync(); });
+                var item = Ui.Menu(branch, () => { changeScope = "All changes"; selectedCommit = null; comparison = branch; SaveGitSelection(); _ = RefreshAsync(); });
                 item.ToggleType = MenuItemToggleType.Radio;
                 item.IsChecked = comparison == branch;
                 branches.ContextMenu!.Items.Add(item);
@@ -62,12 +88,25 @@ public sealed partial class WorkbenchWindow
         var changes = git.Changes.Where(change => changeScope switch
         {
             "Staged" => change.IndexStatus is not (" " or "?"),
-            "Uncommitted" => change.WorktreeStatus != " ",
             _ => true
         }).ToArray();
         if (gitLoading || gitError is not null)
         {
-            Ui.Place(panel, Ui.Text(gitError ?? "Loading Git…", Ui.Hint, 12), 1); return panel;
+            var message = Ui.Text(gitError ?? "Loading Git…", Ui.Hint, 12);
+            message.Name = gitError is null ? "ChangesLoading" : "ChangesError";
+            var notice = new StackPanel { Spacing = 4, Margin = new Thickness(12, 4), Children = { message } };
+            if (gitError is not null)
+            {
+                var retry = Ui.Button("Retry", () =>
+                {
+                    gitError = null; gitLoading = true; RefreshGitPanels();
+                    _ = RefreshGitAsync(projectRequest);
+                });
+                retry.Name = "ChangesRetry";
+                retry.HorizontalAlignment = HorizontalAlignment.Left;
+                notice.Children.Add(retry);
+            }
+            Ui.Place(panel, notice, 1); return panel;
         }
         if (!git.IsRepository)
         {
@@ -166,24 +205,52 @@ public sealed partial class WorkbenchWindow
         AutomationProperties.SetName(button, change.Path);
         ToolTip.SetTip(button, change.OriginalPath is null ? $"{change.Path}  [{change.IndexStatus}{change.WorktreeStatus}]" : $"{change.OriginalPath} → {change.Path}");
         button.Click += (_, _) => _ = OpenDiffAsync(change);
-        button.ContextMenu = new ContextMenu();
-        button.ContextMenu.Items.Add(Ui.Menu("Open diff", () => _ = OpenDiffAsync(change)));
-        button.ContextMenu.Items.Add(Ui.Menu("Stage file", () => _ = GitActionAsync(new("stage", change.Path)), comparison.Length == 0 && change.WorktreeStatus != " "));
-        button.ContextMenu.Items.Add(Ui.Menu("Unstage file", () => _ = GitActionAsync(new("unstage", change.Path)), comparison.Length == 0 && change.IndexStatus is not (" " or "?")));
-        return button;
+        var actions = new Button
+        {
+            Content = Ui.Icon("arrowDown"),
+            Width = 20,
+            Height = 20,
+            Padding = new(0),
+            Margin = new(0, 0, 4, 0),
+            Background = Avalonia.Media.Brushes.Transparent,
+            BorderThickness = new(0),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        actions.Classes.Add("change-actions");
+        AutomationProperties.SetName(actions, "Actions for " + change.Path);
+        button.ContextMenu = new ContextMenu { Placement = PlacementMode.BottomEdgeAlignedRight, PlacementTarget = actions };
+        button.ContextMenu.Items.Add(Ui.Menu("View", () => _ = OpenDiffAsync(change)));
+        button.ContextMenu.Items.Add(Ui.Menu("Copy path", () => _ = CopyChangePathAsync(change.Path)));
+        var canStage = selectedCommit is null && (comparison.Length == 0 || changeScope is "Uncommitted" or "Staged");
+        button.ContextMenu.Items.Add(Ui.Menu("Stage file", () => _ = GitActionAsync(new("stage", change.Path)), canStage && change.WorktreeStatus != " "));
+        button.ContextMenu.Items.Add(Ui.Menu("Unstage file", () => _ = GitActionAsync(new("unstage", change.Path)), canStage && change.IndexStatus is not (" " or "?")));
+        var wrapper = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
+        Ui.Place(wrapper, button); Ui.Place(wrapper, actions, 0, 1);
+        var frame = new Border { Child = wrapper };
+        frame.Classes.Add("change-row");
+        actions.Click += (_, _) => button.ContextMenu.Open(button);
+        button.ContextMenu.Opened += (_, _) => frame.Classes.Add("menu-open");
+        button.ContextMenu.Closed += (_, _) => frame.Classes.Remove("menu-open");
+        return frame;
+    }
+
+    private async Task CopyChangePathAsync(string path)
+    {
+        if (Clipboard is not null) await Clipboard.SetTextAsync(path);
     }
 
     private async Task OpenDiffAsync(GitChange change)
     {
         var request = BeginNavigation();
-        var scope = comparison.Length > 0 ? "branch" : change.IndexStatus == "?" ? "untracked" :
-            changeScope == "Staged" || change.WorktreeStatus == " " ? "staged" : changeScope == "Uncommitted" ? "working" : "all";
+        var reference = selectedCommit?.Sha ?? comparison;
+        var scope = selectedCommit is not null ? "commit" : changeScope == "Uncommitted" ? "uncommitted" : comparison.Length > 0 && changeScope != "Staged" ? "branch" :
+            change.IndexStatus == "?" ? "untracked" : changeScope == "Staged" ? "staged" : "all";
         try
         {
-            var diff = await host.GetDiffAsync(change.Path, scope, comparison, lifetime.Token);
+            var diff = await host.GetDiffAsync(change.Path, scope, reference, lifetime.Token);
             var destination = AcceptNavigation(request);
             if (destination is null) return;
-            var tab = new DockTab($"diff:{scope}:{comparison}:{change.Path}", Path.GetFileName(change.Path) + " · Diff", "diff", change.Path, Scope: scope, Comparison: comparison);
+            var tab = new DockTab($"diff:{scope}:{reference}:{change.Path}", Path.GetFileName(change.Path) + " · Diff", "diff", change.Path, Scope: scope, Comparison: reference);
             var key = workspaceRoot + ":" + tab.Id;
             documents[key] = new(change.Path, diff); DropDocumentContent(key);
             Layout.Open(tab, true, destination);
@@ -200,8 +267,13 @@ public sealed partial class WorkbenchWindow
             var snapshot = await host.ApplyGitActionAsync(action, lifetime.Token);
             if (request != projectRequest) return;
             gitRefresh?.Cancel();
-            git = snapshot; gitLoading = false; gitError = null;
-            errorText.IsVisible = false; RefreshGitPanels();
+            errorText.IsVisible = false;
+            if (changeScope == "Staged" || selectedCommit is not null || comparison.Length > 0) await RefreshGitAsync(request);
+            else
+            {
+                git = snapshot; gitLoading = false; gitError = null;
+                RefreshGitPanels();
+            }
         }
         catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
     }

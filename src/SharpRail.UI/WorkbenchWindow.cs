@@ -69,7 +69,7 @@ public sealed partial class WorkbenchWindow : Window
         Opened += async (_, _) => await OpenProjectAsync(initialRoot);
         Closed += (_, _) =>
         {
-            lifetime.Cancel(); profile.Save();
+            RememberGitSelection(); lifetime.Cancel(); profile.Save();
             ClearDocumentContent();
         };
         AddHandler(KeyDownEvent, (_, e) =>
@@ -129,6 +129,7 @@ public sealed partial class WorkbenchWindow : Window
 
     private async Task OpenWorkspaceAsync(string path, bool project)
     {
+        RememberGitSelection();
         var request = ++projectRequest; WorkspaceMounted = false;
         gitRefresh?.Cancel();
         try { await projectGate.WaitAsync(lifetime.Token); }
@@ -148,7 +149,7 @@ public sealed partial class WorkbenchWindow : Window
             branchLabel.Text = "";
             branchIcon.IsVisible = false;
             git = new(false, "", [], [], []); gitLoading = true; gitError = null;
-            comparison = ""; changeScope = "All changes"; folderCache.Clear(); expandedFolders.Clear();
+            RestoreGitSelection(); folderCache.Clear(); expandedFolders.Clear();
             folderCache[""] = files;
             toolContent.Clear();
             if (!profile.Data.Projects.Contains(projectRoot)) profile.Data.Projects.Insert(0, projectRoot);
@@ -208,11 +209,17 @@ public sealed partial class WorkbenchWindow : Window
             }
             return content;
         }
+        if (tab.Kind == "terminal" && !WorkspaceMounted) return Ui.Text("Loading terminal…");
         var key = workspaceRoot + ":" + tab.Id;
         if (documentContent.TryGetValue(key, out var existing)) return existing;
         if (tab.Kind == "terminal")
         {
-            var terminal = new Border { Name = "TerminalSurface_" + tab.Id.Replace(':', '_'), Background = Ui.Elevated, Focusable = true };
+            Control terminal = remote
+                ? Ui.Text("Terminal sessions require a local workspace.")
+                : !OperatingSystem.IsMacOS()
+                    ? Ui.Text("Embedded terminals currently require macOS.")
+                    : new Terminal.GhosttyTerminal(workspaceRoot, Path.Combine(profile.DirectoryPath, "clipboard")) { Focusable = true };
+            terminal.Name = "TerminalSurface_" + tab.Id.Replace(':', '_');
             documentContent[key] = terminal;
             return terminal;
         }
@@ -330,7 +337,7 @@ public sealed partial class WorkbenchWindow : Window
         root.Children.Add(scrim);
         var settings = new SettingsWindow(profile, Layout, () =>
         {
-            ApplyAppearance(); ClearDocumentContent(); toolContent.Clear(); surface.RefreshContents();
+            ApplyAppearance(); ClearDocumentContent(preserveTerminals: true); toolContent.Clear(); surface.RefreshContents();
             ReportProfileError();
         });
         settings.Closed += (_, _) => root.Children.Remove(scrim);

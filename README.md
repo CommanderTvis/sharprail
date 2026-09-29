@@ -10,13 +10,19 @@ previewing Markdown, and managing Git changes and worktrees.
 - Customize themes, fonts, and layouts. Your last project and open documents
   are restored on launch; settings are stored in `~/.sharprail`.
 - Open local projects or connect to a remote host.
+- Run local shell sessions in macOS terminal tabs using embedded libghostty and Metal.
 
-This is a prototype: source files are read-only, the terminal is a placeholder,
+This is a prototype: source files are read-only,
 and editing, commit/push commands, and AI integration are not available.
 
 ## Run
 
 From a source checkout:
+
+macOS terminal builds require Xcode, LLVM at `/opt/homebrew/opt/llvm`, and its
+Metal Toolchain (`xcodebuild -downloadComponent MetalToolchain`). The build downloads pinned Ghostty 1.2.3
+and Zig 0.14.1 into `.tools`, then links libghostty into the native bridge.
+No installed Ghostty application is required.
 
 ```sh
 scripts/bootstrap.sh
@@ -36,6 +42,18 @@ Open a project using **+** in Projects or ⌘O (Ctrl+O on other platforms).
 In Files, single-click to preview; double-click or press Enter to keep a tab.
 Use Changes to review diffs and Projects to manage worktrees. Press F5 to
 refresh files and Git, or ⌘, to open Settings.
+
+On macOS, choose New terminal from a pane's + menu or context menu. Each tab runs
+a shell in that local workspace. Sessions survive tab moves and workspace
+switches; closing a terminal ends its session. App restart starts fresh shells.
+Remote terminals and terminals on other platforms are not available yet.
+The terminal follows the UI's dark/light colors. ⌘V pastes images as quoted file
+paths, saving PNG files under `~/.sharprail/clipboard` (or the active profile's
+`clipboard` directory). These files remain available after closing the terminal.
+
+Verify native terminal execution and Metal pixels with `sh scripts/check-terminal.sh`,
+then run `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release -- --native-terminal`
+to check the actual Avalonia embedding and session lifecycle. These open test windows.
 
 ## Remote projects
 

@@ -11,9 +11,11 @@ Browser URL/page-count assertions become internal workspace navigation assertion
 ARIA roles and relationships become Avalonia automation-peer assertions. Delayed
 WebSocket replies become held host-call responses; local mode uses direct C# calls.
 The initial upstream AI chat tab is omitted from document counts.
-Terminal docking cases create a nonfunctional terminal tab through the pane menu
+Terminal docking cases create a terminal tab through the pane menu in headless mode
 before following upstream's gestures. This verifies pane chrome and body identity;
 it does not prove automatic initial terminal provisioning or terminal execution.
+Native shell execution and Metal presentation have separate checks in
+`scripts/check-terminal.sh` and `SharpRail.Checks --native-terminal`.
 The upstream one-pixel PNG has an invalid IDAT checksum and truncated compressed
 data. Its translated fixture uses a valid one-pixel PNG because Skia rejects the
 original; the image-loading assertion remains intact.
@@ -85,7 +87,7 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `workspace-tabs.spec.ts` | editor tabs are scoped to the active workspace | Ported |
 | `workspace-tabs.spec.ts` | the selected side tool follows workspace switches | Ported |
 | `workspace-tabs.spec.ts` | switching workspaces re-targets the mounted workbench instead of remounting it | Ported |
-| `workspace-tabs.spec.ts` | a same-id terminal body remounts instead of carrying across workspaces | Excluded: functional editor/terminal or AI |
+| `workspace-tabs.spec.ts` | a same-id terminal body remounts instead of carrying across workspaces | Pending: macOS terminals are now in scope |
 | `theme.spec.ts` | appearance switches a discovered theme and persists it across reload | Ported |
 | `theme.spec.ts` | system mode follows each client and retains its explicit pair | Pending |
 | `theme.spec.ts` | Monaco opens files and re-themes under every discovered manifest | Excluded: functional editor/terminal or AI |
@@ -99,12 +101,12 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `changes.spec.ts` | Rendered markdown diff of a large repetitive file never blocks the main thread | Pending |
 | `changes.spec.ts` | Rendered markdown diff shows an error placeholder when the merge worker fails | Pending |
 | `changes.spec.ts` | Rendered markdown diff follows live edits on disk (stale merge cancelled, fresh one lands) | Pending |
-| `changes.spec.ts` | Changes has a List&#124;Tree toggle; Tree groups files into folders with +/- counts | Pending |
+| `changes.spec.ts` | Changes has a List&#124;Tree toggle; Tree groups files into folders with +/- counts | Ported |
 | `changes.spec.ts` | Changes scope selector filters by commit / uncommitted; each scope is its own diff tab | Pending |
 | `changes.spec.ts` | Uncommitted scope converges when HEAD moves out-of-band (a commit in a terminal) | Pending |
 | `changes.spec.ts` | The scope menu's target-branch picker re-points what the changes are measured against | Pending |
 | `changes.spec.ts` | A target that advanced past the fork point adds no phantom changes (merge-base semantics) | Pending |
-| `changes.spec.ts` | A change row's action menu opens from the ⌄ button and from right-click; Copy path writes the relative path | Pending |
+| `changes.spec.ts` | A change row's action menu opens from the ⌄ button and from right-click; Copy path writes the relative path | Ported |
 | `changes.spec.ts` | The diff viewer collapses unchanged context and has a per-tab hide-whitespace + copy header | Pending |
 | `changes.spec.ts` | Change rows stay one aligned, fully-highlighted row — menu slot included, long names truncated | Pending |
 | `changes.spec.ts` | The diff header keeps its controls on a narrow pane, however long the file's path | Pending |

@@ -407,10 +407,21 @@ internal static class UiChecks
         var invalidProfile = Path.Combine(root, "invalid-profile");
         Directory.CreateDirectory(invalidProfile);
         File.WriteAllText(Path.Combine(invalidProfile, "profile.json"),
-            System.Text.Json.JsonSerializer.Serialize(new { Projects = new string?[] { null, "relative", "\0", root }, LastProject = "\0" }));
+            System.Text.Json.JsonSerializer.Serialize(new
+            {
+                Projects = new string?[] { null, "relative", "\0", root },
+                LastProject = "\0",
+                GitSelections = new Dictionary<string, object?>
+                {
+                    ["relative"] = null,
+                    [root] = new { Target = "\0", Scope = "Commit", Commit = new { Sha = "invalid", ShortSha = "invalid", Subject = "", Author = "", CommittedAt = "" } }
+                }
+            }));
         var normalized = new ProfileStore(invalidProfile);
         Require(normalized.Data.Projects.SequenceEqual([root]) && normalized.Data.LastProject.Length == 0,
             "Invalid recent-project paths survived profile restoration.");
+        Require(normalized.Data.GitSelections.Count == 1 && normalized.Data.GitSelections[root] is { Target: "", Scope: "All changes", Commit: null },
+            "Malformed Git query state survived profile restoration.");
         File.WriteAllText(blockedProfile, "A file cannot be used as a profile directory.");
         var unsaved = new WorkbenchWindow(new ProjectServices(root), root, new ProfileStore(blockedProfile));
         unsaved.Show(); Pump(() => unsaved.WorkspaceMounted, "Read-only profile prevented project opening.");

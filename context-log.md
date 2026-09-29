@@ -1733,3 +1733,496 @@ App15312 still old published package running; stop only verified own app before
 canonical publish after checks. Inventory not yet marked/count not incremented.
 Need verify test, publish canonical, full R2R checks, native own-window capture,
 docs and final scope audit. No benches/agents/commits/pushes.
+
+First tree run92797 exited134: docs file never appeared because upstream's own
+repo ignores docs/*, unlike upstream's sample-project fixture. Fixture-only
+.gitignore override enables docs/guides/notes.md; select that file by exact path
+instead of assuming it is the only changed root file. Lesson recorded. Corrected
+run55175 .bench/changes-tree-final-checks.log passes the new upstream case and is
+still running remaining full checks. Final format48406 exit0. Canonical old own
+PID15312 verified, terminated, and absence confirmed before publish73304 started
+(.bench/changes-tree-publish.log). User independently committed prior work into
+160fd08 during this turn; preserve that commit and current fixture/docs changes.
+Inventory marked38 ported/42 pending after case passed. Need finish full Release,
+publish handle, full published R2R suite, launch/capture canonical and docs evidence.
+
+Full corrected Release55175 exit0:38 upstream cases and all Git/worktree/host/UI/
+open-world checks pass (.bench/changes-tree-final-checks.log). Canonical publish73304
+exit0; strict/deep signature passes. App relaunched PID32881, own window114344
+1352x848, inspected .bench/changes-tree-native.png. Restored user Markdown/Files/
+Review layout preserved; native capture is frame evidence, not tree interaction.
+Full published69379 currently live .bench/changes-tree-published-checks.log with
+SHARPRAIL_REQUIRE_R2R=1; new Changes case passed, remaining checks still running.
+Finish that handle before updating header to38 published/all or concluding.
+
+Published69379 exited0; final log ends PASS prototype checks and open-world runtime
+with38 upstream cases, full Git/worktree integration and no skipped suites. All
+writers terminal. VALIDATION/COMPLETION/E2E reflect38 ported,42 pending,5 excluded.
+Final diff/signature pass; canonical app32881 remains running. Full goal active:
+Git scopes/live refresh/diff controls, initial terminal chrome, Mermaid, theme
+catalog/system pairs, presets sync and final native fidelity still open.
+
+### Change-row dropdown and clipboard actions in progress
+
+Prior turn was verified progress: compact Changes Tree,38 cases, app32881 running.
+Source changes.spec.ts333–375 and ChangeRowActions.tsx require a sibling20px action
+trigger visible on hover/focus/open, shared anchored dropdown, View/Copy path,
+list/tree right-click and no file action menu on folders. Implemented sibling
+buttons in a Border row; compiled App.axaml owns hover/focus/menu-open styling.
+GitPanels menu gains View/Copy path, retains staging actions. Copy uses Avalonia
+clipboard extension. Tree case now resolves inner file button rather than casting
+the expanded header wrapper. ChangesE2E adds real worktree/clipboard/action case.
+Build37127 failed missing Clipboard extension namespace; fixed using
+Avalonia.Input.Platform. Full Git-enabled Release18648 live into
+.bench/change-actions-final-checks.log. Initial format57011 failed property-line
+whitespace; corrected the exact initializer, needs final format verification.
+No inventory increment yet. Need case/full suite, canonical publish after stopping
+verified app32881, full publishedR2R suite, own-window capture and docs. No benches,
+agents, commits or pushes.
+
+## Git probe package verification completed
+
+Release session94762 exited0; full published session23044 exited0 with39
+translated cases, Git fixtures and SHARPRAIL_REQUIRE_R2R=1. Unique logs:
+.bench/git-probe-checks.log, .bench/git-probe-published-checks.log.
+Publish19134 exited0 (.bench/git-probe-publish.log). Verified old canonical
+PID56356 before terminating it and verified absence before replacing the bundle.
+Strict/deep codesign passes. Canonical app now running PID63671; main window115316,
+1352x848, inspected own-window .bench/git-probe-native.png. Restored user layout
+now has an active Terminal1 placeholder and three right-side groups; no forced
+layout changes. VALIDATION updated. AGENTS project map also expanded on request.
+Goal remains active; next source-confirmed gap: Uncommitted filters only
+WorktreeStatus and loses staged-only files. Correct scope semantics and counts,
+with pointer regressions, before claiming full upstream commit/scope coverage.
+Full commit catalog, workspace-local scope/target, live refresh and visual audit
+remain open. No benchmarks, agents, commits or pushes.
+
+Action run18648 exited134 at real trigger click: ContextMenu.Open(actions) rejects
+a sibling because the menu is attached to the file button. Fixed Open(button)
+while retaining PlacementTarget=actions; ownership and anchor differ. Added lesson
+in gotchas. Folder buttons reserve24px to match the file action slot (20+right4).
+Corrected full Release62745 live .bench/change-actions-verified-checks.log.
+Final format19615 exit0 (.bench/change-actions-verified-format.log). App32881
+still old bundle running; no publish yet. Earlier format71261 exit0 predates last
+behavior/slot fix. Need final checks, publish, R2R and running-app evidence.
+
+Corrected menu case passed62745; inventory marked39 ported/41 pending. Verified
+old canonical app32881 path, terminated it, verified absence, then publish99284
+started .bench/change-actions-publish.log. Release remaining checks still live;
+do not restart. After publish exits, run full published checks with required R2R,
+relaunch canonical, inspect own window, update validation/completion and final log.
+
+Publish99284 exited0, strict/deep signature passes. Relaunched canonical PID39842;
+own mainwindow1145961352x848 captured/inspected change-actions-native.png. User's
+Markdown/Files/Review layout retained; capture proves native frame, not menus.
+Full published91597 live .bench/change-actions-published-checks.log with required
+R2R and upstream Git source; Release62745 also still live. Poll those handles
+instead of rerunning into their logs. Final sources formatted; no code change
+after published build. Header evidence awaits both terminal full-suite results.
+
+Release62745 exited0:39 upstream cases and all additional checks; published91597
+has also passed the new menu/clipboard case and continues remaining checks.
+Next substantive Git authority: changes.spec.ts199–241 requires commit scopes
+and Uncommitted versus All changes to create distinct scoped tabs. Current host
+SnapshotAsync uses status when comparison empty and comparison→HEAD when set;
+no commit catalog/scope query exists. UI comparison/changeScope are window fields,
+and Uncommitted filters out staged-only rows. These are concrete behavior gaps;
+audit source diff-base/merge-base semantics before extending host/protocol, not
+just the dropdown. Initial terminal, Mermaid, theme/preset sync and native fidelity
+also remain. Preserve full objective;39 cases do not establish completion.
+
+Published91597 exited0:39 upstream cases, all additional checks, no skipped suites,
+required R2R/open-world and Git/worktree parity passed. Final format19615 and
+canonical publish99284 exit0. Final strict/deep signature and diff checks pass.
+Inventory39 ported/41 pending/5 excluded; validation and completion updated.
+Canonical app39842 remains running. All test writers terminal; no benchmarks,
+agents, commits or pushes. Full goal remains active with the recorded concrete gaps.
+
+### Working-tree branch comparison baseline in progress
+
+Prior goal turn was verified progress:39 cases and row actions. Source authority
+packages/server/src/git/diffScope.ts branch range is merge-base(target,HEAD)→working
+tree with untracked files. Added bounded SPEC contract; GitRepository resolves a
+validated target/merge base, falls back only on merge-base exit1 and preserves
+execution error codes via IOException subclass. Explicit comparison snapshots
+now use that baseline for tracked names/net counts and retain untracked status;
+branch file diffs use the same baseline and read untracked bodies. No host API or
+wire changes; default non-comparison status path remains unchanged.
+ProjectChecks clone depth2 reuses existing commits without signing/creating any.
+Regression covers HEAD+untracked content, staged/unstaged net counts, a target
+advanced over the fork with no phantom files, local committed files since fork,
+and local/remote advanced-target parity. Initial full Release10961 live into
+.bench/branch-baseline-checks.log passed the initial host regression, but tests
+were subsequently strengthened while that suite runs; final-source Release and
+published checks still required. Initial format53028 pending. App39842 still old
+bundle running; do not replace until verified/stopped. E2E inventory remains39:
+this is host regression work, not a translated full live-update UI case.
+
+Strengthened tests compiled and their host regressions passed in final Release8781
+(.bench/branch-baseline-final-checks.log); full UI portion still running. Initial
+run10961 also still live with its own log. Initial format53028 and final format92401
+exit0. Verified own canonical app39842 path, terminated, verified absence before
+publish52243 started (.bench/branch-baseline-publish.log). No product source change
+after publishing began. Need both Release handles terminal, publish completion,
+full published R2R checks, native relaunch/capture and evidence docs.
+
+Initial10961 exited0; final-source Release8781 still live. Publish52243 exit0,
+strict/deep signature passes. Canonical relaunched PID56356; own mainwindow114908
+1352x848 captured/inspected branch-baseline-native.png, restored user layout kept.
+Full published75494 live .bench/branch-baseline-published-checks.log with required
+R2R and Git source; strengthened branch local/remote regressions already passed.
+Wait final-source Release8781 and published75494; no reruns needed. No source
+change after publish. E2E count remains39; live-update UI target case stays pending.
+
+Final-source Release8781 and published75494 both exited0:39 upstream cases plus
+all host/Git/worktree/UI/open-world checks. Published log includes strengthened
+branch merge-base/net-working-content and local/remote parity regression, no skips.
+Initial10961 also exited0. Final format92401/publish52243 exit0; final diff and
+strict/deep signature pass. Canonical app56356 running. Docs updated with bounded
+evidence; inventory39 ported/41 pending/5 excluded unchanged. No live writers.
+Next substantive Git work remains commit/scope query/catalog, workspace-local
+scope/target state and live refresh/open-diff invalidation. Also retain full other
+completion gates. No benchmarks, agents, commits or pushes; full goal active.
+
+### Git probe failure and Retry in progress
+
+Previous turn was verified progress: explicit-target merge-base comparisons and
+local/remote host regression. SnapshotAsync used to swallow every IOException from
+rev-parse as non-repository, and every symbolic-ref failure as detached HEAD.
+Git commands now use process-local LC_ALL=C; catch only explicit no-repository
+exit128/diagnostic and symbolic-ref exit1. Other failures reach Changes error state.
+Changes gets named error/loading controls and Retry that reloads only Git.
+Program fixtures use GIT_CEILING_DIRECTORIES=currentcwd instead of a fake broken
+.git marker, avoiding discovery of SharpRail's parent repo without conflating
+non-repos and corrupt metadata. ProjectChecks verifies local and gRPC error detail.
+ChangesE2E extra regression moves only an owned fixture's .git admin aside, creates
+a dangling marker, sees error/no-clean state, opens README, restores admin and
+clicks Retry to recover real rows. Passed in current Release94762, still live full
+suite .bench/git-probe-checks.log. Format72825 exit0 (.bench/git-probe-format.log).
+SPEC/gotchas updated. E2E count remains39: upstream deleted-target/scope error case
+is still pending. App56356 still old bundle running; verify/stop before publishing,
+then full R2R checks/native own-window inspection and evidence docs. No benches,
+agents, commits or pushes.
+
+Continuation checkpoint: those pending package steps are now complete. Release94762,
+publish19134 and full published23044 exited0;39 translated cases pass, no skipped
+cases or unhandled terminal failures. Canonical app PID63671 remains running;
+strict/deep signature passes and .bench/git-probe-native.png was inspected.
+See Git probe package verification completed above for logs and next scope gap.
+
+## Uncommitted content and tab identity verified
+
+Prior turn was progress: Git probe fix fully published and verified. This turn
+removes the Uncommitted WorktreeStatus-only filter, preserving staged-only rows.
+OpenDiffAsync uses a distinct uncommitted scope/tab identity and all for ordinary
+All changes tracked rows. Core GetDiff accepts uncommitted, measures HEAD to
+working content and reads untracked bodies. Unlike existing all compatibility
+handling, uncommitted preserves HEAD failures rather than silently using cached.
+Upstream authority: packages/server/src/git/diffScope.ts resolveDiffRange.
+ProjectChecks staged addition plus unstaged replacement proves net content;
+remote/local untracked parity checked. GitUiChecks opens staged-only file under
+Uncommitted via row pointer input, then All changes, proves two distinct tabs.
+SPEC and gotchas updated. Scope-specific list counts remain open; no claim of
+full upstream commit/scope translation. Inventory remains39/41/5.
+Release46562 exit0 (.bench/uncommitted-checks.log), format8234 exit0
+(.bench/uncommitted-format.log), publish80274 exit0
+(.bench/uncommitted-publish.log), final full published75594 exit0
+(.bench/uncommitted-published-checks.log),39 translated cases, Git integration,
+required R2R and open-world checks. The initial Release run compiled before the
+final strict-HEAD refinement; final published suite covers the final source.
+Verified own old PID63671, stopped and confirmed absence before package refresh.
+Strict/deep signature passes. Canonical app PID73276 mainwindow1156641352x848,
+own capture .bench/uncommitted-native.png inspected with restored user layout.
+No global input/layout forcing. No live check handles remain. Goal still active;
+next gates: scope-specific list query/counts, commit catalog, workspace-local
+scope/target, live refresh/open diff invalidation and full native fidelity audit.
+No benches, agents, commits or pushes.
+
+## Scope list ranges and counts verified — 2026-09-29
+
+Previous turn was progress (Uncommitted diff content and distinct tabs). GetGit
+now accepts optional scope (all/uncommitted/staged) through Abstractions, Core,
+local/remote adapters and existing Protocol request.Scope; Remote defaults empty
+scope to all. Test wrappers forward it. Snapshot uses one diff range for names
+and stats, preserves status metadata for actions, appends untracked only outside
+Staged. Default all without target uses HEAD (cached only for unborn HEAD via
+explicit rev-parse quiet exit1); explicit all target still merge-base. Uncommitted
+uses HEAD, Staged cached. Stops double-counting intermediate index/worktree edits
+and excludes net-cancelled paths. WorkspaceGit captures scope and rejects stale
+scope results. Mutations reuse returned all snapshot when suitable, otherwise
+refresh selected staged/target range. No new serialization in embedded mode.
+Host tests verify +2/-0 pending versus +1/-0 staged, cancelled index additions,
+and local/remote count parity for all scopes. UI tests switch counts, open distinct
+tabs, unstage under Staged and verify removal without scope reset.
+Initial Release72527 exit0 (.bench/scope-ranges-checks.log); compiled before final
+mutation optimization/additional UI mutation assertion. Final published62714 exit0
+(.bench/scope-ranges-published-checks.log) covers final source,39 translations,
+Git integration and required R2R/open-world checks. Format24040 and final55090
+exit0; final log .bench/scope-ranges-final-format.log. Publish13245 exit0
+(.bench/scope-ranges-publish.log). Previous app73276 was already absent; verified
+canonical process absence before refresh. Signature strict/deep passes.
+Canonical app79161 running, main1160461352x848; own capture
+.bench/scope-ranges-native.png inspected. User restored Terminal2 placeholder;
+no forced layout/global input. SPEC/gotchas/VALIDATION updated, inventory39/41/5
+unchanged: these additional regressions do not finish full upstream commit scope
+case. No live checks remain. Next: commit catalog/scope query, workspace-local
+scope/target, live updates/diff invalidation, native fidelity/docking audit.
+No benchmarks, delegation, commits or pushes. Goal remains active.
+
+## Commit range host support verified — 2026-09-29
+
+Previous turn was progress: selected-scope lists/counts. Core now accepts commit
+scope with selected hexadecimal SHA in the comparison argument. Shared
+CommitDiffArgumentsAsync resolves the commit and first parent; only explicit
+quiet rev-parse exit1 when finding its parent falls back to show --format=.
+Snapshots/diffs share this range; commit snapshots skip working status so dirty
+files/untracked content cannot enter their rows. IDs are lower-case hex4..64 as
+upstream, invalid and unknown remain errors. No new wire API needed: existing
+scope/reference fields carry it through direct and gRPC paths. UI commit picker
+and catalog remain pending; do not claim user-visible commit selection yet.
+ProjectChecks compares first-parent paths/diff to real Git, checks shallow
+parentless paths and direct tree diff, excludes dirty files, rejects invalid IDs,
+and verifies remote snapshots/diffs from a different dirty worktree. Fixtures
+reuse existing commits, no signing/new commits. Initial Release86635 exit0
+(.bench/commit-ranges-checks.log), compiled before the final parentless diff
+assertion. Final published81693 exit0 (.bench/commit-ranges-published-checks.log)
+covers final source,39 translations, required R2R/open-world and Git integration.
+Format82594 and final1765 exit0; .bench/commit-ranges-final-format.log.
+Publish7311 exit0 (.bench/commit-ranges-publish.log). Verified own old79161,
+terminated and confirmed absence before replacing canonical package. Strict/deep
+codesign passes. New canonical82173, main1162441352x848, inspected own capture
+.bench/commit-ranges-native.png; restored center contains Terminal2/3 placeholders.
+No forced layout/global input. SPEC/VALIDATION/gotchas updated. E2E stays39/41/5;
+no host regression counted as a completed upstream UI scope case. No live checks.
+Next catalog authority: packages/server/src/git/git.ts listCommits line432,
+COMMIT_LIST_MAX=200 at410; capped base..HEAD set also governs resolveListedCommit.
+Picker must retain independent target and scope per workspace, fallback/toast
+for a rewritten-away commit, and preserve subject tooltip/short SHA pill. Full
+live refresh/diff invalidation and visual/docking audit remain active.
+No benchmarks, agents, commits or pushes. Goal remains active.
+
+## Commit catalog and picker verified — 2026-09-29
+
+Prior turn was progress: host commit ranges. GitSnapshot now has Commits init
+property, GitCommit domain record and Proto CommitReply/member6 with explicit
+Core/client/server mappings. Core non-commit target snapshots use capped200
+target..HEAD log, upstream field order and display-text sanitization. A semantic
+log exit128 returns empty catalog as upstream; all-target range errors still fail
+earlier, and process/execution failures remain errors. Commit scope skips status.
+UI stores selectedCommit separately from comparison. Scope menu has subject and
+SHA/author lines; pill shortSHA and tooltip subject. All/Uncommitted switches retain
+target. Commit reads/diff tabs use selected SHA, capture it against stale results.
+Per-window workspace dictionary remembers/restores target/scope/commit/catalog
+on switching, isolating new worktrees. Not persisted across app restart yet.
+Row staging remains enabled in pending scopes with retained targets and disabled
+for commit content. Query invalidation/fallback/live refresh remain incomplete.
+Host tests verify catalog range, empty catalog behind target and populated gRPC
+metadata parity. GitUiChecks selects existing sharprail-fork target (created by
+host fixture), selects commit, shortSHA/subject, opens actual commit diff row,
+switches Uncommitted retaining target, restores commit on return from new workspace.
+Final test adds readonly commit actions and enabled pending staging under target.
+Initial Release86810 exit0 .bench/commit-picker-checks.log (compiled before final
+catalog parity/error refinement and staging guard/assertions). Final full published
+76032 exit0 .bench/commit-picker-published-checks.log covers final source:39
+translations, requiredR2R/open-world/Git checks. Format53071/final69139 exit0,
+.bench/commit-picker-final-format.log. Initial publish52976 and final24194 exit0,
+latest .bench/commit-picker-final-publish.log. Old82173 already absent; canonical
+process absence observed around publication. Strict/deep codesign passes.
+New88362 main1166951352x848 captured/inspected .bench/commit-picker-native.png;
+user's current central-integration Markdown restored, no forced layout or global
+input. Build fixed missing namespace import; final11017 succeeded (known Avalonia
+runtime-loader constructor warnings), no compiler errors. No live checks remain.
+SPEC/VALIDATION/gotchas updated. Inventory39/41/5 unchanged: menu callbacks still
+use existing GitUiChecks invocation, not a new translated full pointer-menu case.
+Next: live catalog/membership refresh and rewritten-away commit fallback/toast;
+persist target/scope state; branch diff invalidation; native commit-menu details
+(icon/date/empty/loading), full docking/visual audit. Native wide Markdown table
+also needs overflow/column inspection. No benchmarks, agents, commits or pushes.
+Goal remains active.
+
+## Workspace Git query persistence verified — 2026-09-29
+
+Previous turn was progress: commit picker and window-local workspace registry.
+Profile now owns Dictionary<string,GitSelection> (target/scope/selectedGitCommit).
+Window-only registry removed. Scope/target actions save immediately; switches
+and closing remember current selection. Restore clears derived catalogs, fetches
+target snapshot when restoring a commit with empty catalog, then reads commit
+scope in background. No catalog persisted. Profile normalization supports missing
+legacy state, removes invalid workspace keys, normalizes bad scopes/commit IDs
+and null metadata/empty short SHA. Persisted invalid refs otherwise remain visible
+Git errors. Old profile fields/preferences/layout remain preserved.
+GitUiChecks closes the actual window, constructs fresh ProfileStore and window,
+waits for reloaded catalog, verifies target/commit/header, switches Uncommitted,
+closes and reopens profile to verify independent scope/target saved. UiChecks
+malformed profile case covers invalid query with accessible project retention.
+Initial Release66206 exit0 .bench/git-query-persistence-checks.log,39 translated
+cases and additional restoration regression; compiled before short-empty fallback
+and orphan import cleanup. Final full published86624 exit0
+.bench/git-query-persistence-published-checks.log covers final source,39 cases,
+required R2R/open-world and Git integration, fresh-window query regression.
+Initial format95817 whitespace failure fixed; final56927 exit0
+.bench/git-query-persistence-final-format.log. Publish28791/final75834 exit0,
+latest .bench/git-query-persistence-final-publish.log. Verified old88362 before
+TERM/absence; no live canonical app during replacement. New97658 main117191
+1352x848, own .bench/git-query-persistence-native.png inspected. Strict/deep
+codesign and diff check pass. App left running, user layout unchanged by agent.
+SPEC/AGENTS/VALIDATION/COMPLETION/gotchas updated. Inventory stays39/41/5.
+No live checks remain. Next: lightweight independent catalog refresh/membership
+and rewritten-away commit fallback/toast; live Git signals and open branch diff
+invalidation; full native menu/docking/Markdown table overflow audit. Profile
+reload still performs full target snapshot solely to obtain commit catalog; replace
+with lighter catalog API while implementing live membership checks, keeping
+startup nonblocking. No benchmarks, agents, commits or pushes. Goal active.
+
+## macOS embedded libghostty terminal — 2026-09-28
+
+User explicitly expanded scope to functional terminals using embedded libghostty,
+with actual Metal rendering, starting on macOS. This supersedes the previous
+terminal-execution exclusion; no agents, benchmarks, Git commits or pushes were
+used. The remaining overall prototype fidelity gates are separate from this task.
+
+Implementation: pinned Ghostty 1.2.3/6d2dd585a5d87fa745d48188dd096ca6e63014d0,
+Zig 0.14.1, explicit renderer=metal, AppKit Objective-C bridge, Avalonia native
+host inside the existing terminal Border identity. Ghostty owns PTY/emulation/
+rendering. AppKit forwards keyboard/IME, mouse, scroll, clipboard, focus and
+Retina size. Native ownership outlives detached tabs; cache pruning disposes
+closed sessions, settings preserve sessions, window closure disposes all.
+Local workspaces only; remote/other OS availability is explicit. Restored tabs
+start fresh shells only after workspace identity is mounted. A restored-tab
+startup initially spawned twice with an empty cwd; readiness gating and native
+restored-profile coverage fix it.
+
+Build scripts handle current Apple SDK stubs in a disposable SDK copy and use
+LLVM's Darwin archive writer because Apple's libtool dropped Zig objects.
+MetalToolchain was downloaded through Xcode for shader compilation. Build deps,
+source, static libraries and resources are ignored under .tools. The bridge
+minimum is macOS13; runtime evidence covers only macOS arm64 on Apple M4 Pro.
+The library and resources copy into managed builds/publish outputs. Bundle
+resources/terminfo are placed in Contents/Resources to satisfy codesign.
+
+Verified native shell/cwd, ANSI, actual AppKit key events, nonuniform pixels in
+Ghostty's Metal IOSurfaceLayer, resize, retained sessions, workspace isolation,
+closed view disposal and OS-level shell termination. Standalone native evidence:
+.bench/ghostty-native-key-final.log. Latest published restored-profile lifecycle:
+.bench/ghostty-final-native-lifecycle.log. Source/headless full suite passed
+.bench/ghostty-checks.log; earlier published suite passed
+.bench/ghostty-published-checks.log. Latest published full regression still running
+in session10475, log .bench/ghostty-final-regression.log; wait for exit before
+claiming the last revision's full suite passed. Final format log
+.bench/ghostty-complete-format.log is empty, exit0. Final publish exit0:
+.bench/ghostty-final-package.log. Strict/deep codesign verification passes.
+
+Canonical app for this worktree is artifacts/SharpRail.app, running PID57328,
+window114933, isolated .bench/ghostty-demo-profile. Capture only this window;
+.bench/ghostty-terminal-native.png was captured and inspected, showing real shell
+prompt in the bottom pane. One successful Metal init, no errors, in
+.bench/ghostty-final-app-errors.log. An unrelated prior sibling-checkout app
+PID39842 was left untouched. Stop only this worktree's live app before replacing
+its bundle. Do not write the sibling checkout.
+
+Final update: latest R2R-required published regression session10475 exited0;
+.bench/ghostty-final-regression.log ends PASS prototype checks and open-world
+runtime. All required terminal, full regression, formatting, publish and signature
+checks are now complete. Functional macOS libghostty/Metal task is complete;
+changes are uncommitted and the canonical app remains running.
+
+Keyboard follow-up: fixed terminal activation leaving focus on tab chrome, and
+forwarded outer terminal-container focus to its NativeControlHost/NSView. Arrow
+navigation retains tab focus; clicking/activating a terminal tab, overflow result,
+or New terminal transfers focus to the terminal. Added test-only TerminalEvents.m
+and a macOS build target to exercise NSApplication event routing, real tab/body
+clicks, first responder, shell output, Backspace, Ctrl+C and new-terminal focus.
+SHARPRAIL_CHECK_OS_INPUT=1 additionally posts actual CGEvents only to the isolated
+test process. Published native check passes (.bench/keyboard-published-native.log),
+as do publish, strict deep signature verification and final formatting. Own old
+app PID61159 was stopped before republishing; updated canonical app reopened.
+Full Git-backed regression passed (exit0), .bench/keyboard-suite.log.
+Earlier direct keyDown/PTY injection tests were insufficient keyboard evidence;
+the lesson is recorded in gotchas.md. All changes remain uncommitted.
+Updated app is running as PID72343.
+
+Second keyboard report remains unresolved; do not claim fixed from the previous
+synthetic tests. Current diagnostic app is PID80376, launched from this worktree's
+bundle with SHARPRAIL_INPUT_DIAGNOSTICS=1; output .bench/keyboard-live-2.log,
+exec session30609. Temporary opt-in diagnostics in SharpRailGhostty.m log event
+type, native responder, keycode/modifier flags and interpreted text counts, never
+typed text. Native bridge compiled, copied into stopped own bundle and re-signed.
+Sibling apps PID76979 (scintilla) and PID79161 (main checkout) were not touched.
+Live first-responder routing reaches SRTerminalView. A physical keycode probe
+initially inherited Command (flags0x20100108), so its missing text was NOT a valid
+reproduction. With explicit flags0 and no Unicode injection, keycode0 generates
+the active Russian layout's ф and visibly renders in the actual bundle (capture
+.bench/keyboard-unmodified.png). This proves that case only. A few captured
+physical shortcuts had Command held; do not assume that explains the user's
+ordinary typing failure. Asked the user to click the diagnostic terminal, type
+ordinary letters, and reply so the failing attempt can be matched to this trace.
+Await that input before another speculative fix. Remove temporary diagnostics
+and restore canonical publish once diagnosed. Existing app terminal has one
+unsubmitted probe character; do not execute it.
+
+Resolved: AppKit reuses mutable insertText strings. Native keyText retained the
+same object, which was empty when keyDown forwarded it (accepted=0, bytes=0).
+Copying the string fixes it; user explicitly confirmed typing works. Removed all
+temporary input diagnostics. Mutable input regression added to TerminalEvents.m.
+
+User added image paste and UI-consistent terminal backgrounds. Implemented PNG/
+TIFF clipboard image conversion to PNG files in active ProfileStore.DirectoryPath
+/clipboard and shell-quoted path paste. Ordinary text paste remains supported.
+Ghostty colors follow Ui.Surface and Ui.TextBrush, including theme changes. Pinned
+libghostty lacks a color setter, so build appends native/ghostty/config-colors.zig
+to its CApi.zig, restored from the pinned commit each build; fingerprint includes
+this extension. Native create now also takes the clipboard directory.
+
+Publish and strict signature validation passed. Published native verification is
+session85145 (.bench/terminal-paste-theme-published-native.log); full Git/R2R suite
+session7359 (.bench/terminal-paste-theme-suite.log). Formatting session58413 writes
+.bench/terminal-paste-theme-format.log. Need await results, reopen canonical app,
+and update verification evidence. Previous diagnostic app85119 exited before
+publish. Changes remain uncommitted. No sibling checkouts edited.
+
+Final verification: native session67002 passes, including mutable text, image/
+text paste, quoted profile paths, dark/light Metal pixels and lifecycle:
+.bench/terminal-paste-theme-final-native.log. Replaced the flaky synthetic tab
+mouse click with the tab's accessibility selection action; body clicks and
+Command-V still go through AppKit. Standalone native, formatting, strict signing,
+and full published R2R/Git regression all pass. Suite evidence:
+.bench/terminal-paste-theme-suite.log; standalone:
+.bench/terminal-paste-theme-standalone.log; format:
+.bench/terminal-paste-theme-final-format.log. Published checks refreshed after
+the test-harness fix. Clean canonical app reopened as PID96497. All requested
+typing, image paste and theme fixes are implemented. Images persist under the
+active profile's clipboard directory (default ~/.sharprail/clipboard).
+
+
+### Ghostty worktree integration — 2026-09-29
+
+User requested all changes from /Users/commandertvis/.thinkrail/worktrees/sharprail/ghostty.
+Source clean at 522d81e; common ancestor 0c99d6a. Three-way integrated its 26 changed
+files into this dirty main checkout, retaining newer docking/Git/test changes.
+Pre-integration patch saved in .bench/ghostty-integration/before.patch. Four doc
+conflicts resolved by keeping both histories/contracts and newer Ported statuses;
+terminal workspace-body case is now pending/in scope. No commits, pushes or
+sibling edits. AGENTS.md project map includes native/ghostty, Terminal and checks.
+Formatting, native shell/Metal probe and signing pass. First native Avalonia
+run timed out on Ctrl-C; fresh run passes all native input/paste/theme/lifecycle
+checks (.bench/ghostty-integration/native-avalonia-recheck.log). This retry does
+not establish Ctrl-C harness stability. Canonical package republished; running
+PID17203, own window117554, capture .bench/ghostty-integration/native-window.png
+inspected with restored Terminal8 shell visible. Release handle49771 and published
+handle32747 still running as of this entry; record terminal results before final.
+Full prototype goal remains active. No benchmark runs.
+
+Integration follow-up: initial Release49771 and published32747 failed on hidden-bottom shortcut because focus was not established after closing Move-to-pane menu. Test now focuses moved tab before real keyboard input. Final integration Release67987 and published96566 both passed (.bench/ghostty-integration/release-final.log and published-final.log).
+
+User reported tab hover paints label only. Suppressed Fluent label hover in App.axaml and painted outer frame including close slot. First hover Release93970 exposed PointerExited arriving after removal of the old pane; removed session lookup from pointer events, deriving active appearance from existing underline. Added dark/light label/close/exit and layout-under-hover regression. Old published7186 terminated143 after lifecycle fix superseded it. Final lifecycle Release39258 and R2R published80812 remain running, each with unique .bench/ghostty-integration/hover-lifecycle-*.log. Format13458 and publish65746 pass; canonical app currently PID30104/window117726. Need inspect final own-window capture and record suite exit codes before final. Full goal active.
+
+Final integration + hover verification: Release39258 and published80812 both EXIT0, each passes all39 translated upstream cases plus host/Git/UI/restoration/open-world checks. Logs .bench/ghostty-integration/hover-lifecycle-release.log and hover-lifecycle-published.log. Format13458 EXIT0; publish65746 EXIT0; strict/deep codesign and git diff --check pass. No live check writers remain. Final canonical app remains PID30104/window117726; .bench/ghostty-integration/hover-lifecycle-native.png captured and inspected (user-created Terminal12 visible). Source ghostty worktree still clean at522d81e. All ten new files match source exactly. AGENTS.md updated with full structure and terminal paths; VALIDATION.md current evidence refreshed. Native Avalonia Ctrl-C first-run timeout/retry limitation retained. Changes uncommitted, no benchmarks/pushes/sibling edits. Full prototype goal remains active.
+
+
+### Lightweight commit catalogs — 2026-09-29 (verification in progress)
+
+Previous goal turn classified progress: integrated all Ghostty files, docs and verified hover. Next concrete gap: restoring commit selection fetched full working snapshot solely for catalog. Added mandatory IProjectServices.ListCommitsAsync across Core/Local/gRPC contracts+adapters, reused existing capped/sanitized git log helper in snapshots. UI restoration now uses lightweight call. All three test host decorators delegate new API. ProjectChecks compares local/remote catalogs to snapshot; temporarily corrupts disposable fixture index, proves catalog still works and full snapshot fails, restores index in finally. Also unresolved-range empty list and canceled empty-range semantics checked. SPEC.md acceptance added. New host tests pass. Format64560 EXIT0; checks publish13714, UI54712, host73603 EXIT0. Release45904 live (.bench/commit-catalog-release.log); R2R published81986 live (.bench/commit-catalog-published-checks.log). Re-poll these handles, do not restart or overwrite logs.
+
+IMPORTANT: canonical app PID30104 has live user terminal: login30566 -> zsh30568 -> Codex30643 (verified ps comm names, no private args). Do NOT terminate it merely to refresh package; obtain permission after verification and prepare reviewable result, or wait for user to close it. Canonical artifacts/SharpRail.app still previous hover-lifecycle package. artifacts/ui, host, checks now contain commit-catalog update, built without touching bundle. Preserve distinction in VALIDATION.md/final. Full goal remains active; live Git membership/rewrite fallback and remaining fidelity/tests unfinished. No benchmarks/agents/commits/pushes.
+
+Lightweight catalog final: Release45904 EXIT0, R2R published81986 EXIT0, each all39 translated upstream cases; no live check writers remain. Logs commit-catalog-release.log and commit-catalog-published-checks.log. Format, UI/host/checks publishes and git diff --check pass. Signed internal stage .bench/package-stage-k2zhrbdn/SharpRail.app verifies deep/strict; path also .bench/commit-catalog-staging-path.txt. Canonical bundle unchanged and app30104 + Codex30643 still live. Async user question asks Keep my session running vs Restart SharpRail; permission is required because restarting ends this actual user process, not a hypothetical risk. Do not install/stop while answer pending; continue independent goal work. VALIDATION.md distinguishes staged source from running older package; AGENTS.md and completion evidence updated. Full goal remains active; no benchmarks/commits/pushes.

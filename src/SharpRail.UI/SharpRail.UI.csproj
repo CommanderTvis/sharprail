@@ -9,4 +9,14 @@
     <PackageReference Include="Markdig" />
     <AvaloniaResource Include="Assets/**" />
   </ItemGroup>
+  <Target Name="BuildGhostty" BeforeTargets="PrepareForBuild" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+    <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/build-ghostty.sh&quot; &quot;$(RuntimeIdentifier)&quot;" />
+    <ItemGroup>
+      <GhosttyResources Include="../../.tools/ghostty/resources/**/*" />
+    </ItemGroup>
+    <ItemGroup>
+      <Content Include="../../.tools/ghostty/libSharpRailGhostty.dylib" Link="libSharpRailGhostty.dylib" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+      <Content Include="@(GhosttyResources)" Link="%(GhosttyResources.RecursiveDir)%(GhosttyResources.Filename)%(GhosttyResources.Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
 </Project>
