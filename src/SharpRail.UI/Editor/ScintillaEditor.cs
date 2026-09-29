@@ -18,6 +18,8 @@ public sealed partial class ScintillaEditor : Control, IDisposable
     private bool disposed;
     private uint foreground, background;
     private nint revision;
+    private readonly nint defaultRightMargin;
+    private double wrapWidth = double.PositiveInfinity;
     public event EventHandler? TextChanged;
     public event EventHandler<Exception>? OperationFailed;
 
@@ -26,6 +28,7 @@ public sealed partial class ScintillaEditor : Control, IDisposable
         Focusable = true; ClipToBounds = true; Cursor = new Cursor(StandardCursorType.Ibeam);
         document = new(text);
         revision = document.Revision;
+        defaultRightMargin = document.Send(ScintillaMessage.GetMarginRight);
         inputClient = new(this);
         TextInputMethodClientRequested += (_, e) => { e.Client = inputClient; e.Handled = true; };
         ActualThemeVariantChanged += (_, _) => InvalidateVisual();
@@ -46,6 +49,15 @@ public sealed partial class ScintillaEditor : Control, IDisposable
         get => document.Send(ScintillaMessage.GetReadOnly) != 0;
         set { document.Send(ScintillaMessage.SetReadOnly, value ? 1 : 0); InvalidateVisual(); }
     }
+    /// <summary>Text column width before lines wrap, like the reference's bounded file width; infinity disables wrapping.</summary>
+    public double WrapWidth
+    {
+        get => wrapWidth;
+        set { wrapWidth = value; ApplyWrap(Bounds.Width); InvalidateVisual(); }
+    }
+
+    /// <summary>Display lines that one document line occupies after wrapping.</summary>
+    public int WrapCount(int line) => checked((int)document.Send(ScintillaMessage.WrapCount, line));
     public void MarkSaved() { document.Send(ScintillaMessage.SetSavePoint); InvalidateVisual(); }
     public void Undo() { document.Send(ScintillaMessage.Undo); Changed(); }
     public void Redo() { document.Send(ScintillaMessage.Redo); Changed(); }
@@ -61,8 +73,21 @@ public sealed partial class ScintillaEditor : Control, IDisposable
 
     protected override Size ArrangeOverride(Size finalSize)
     {
-        if (!disposed) document.Resize(finalSize.Width, finalSize.Height);
+        if (!disposed) { ApplyWrap(finalSize.Width); document.Resize(finalSize.Width, finalSize.Height); }
         return finalSize;
+    }
+
+    // Scintilla wraps at its text area, so a right margin narrows that area to the wrap width
+    // while the editor still fills its pane.
+    private void ApplyWrap(double width)
+    {
+        if (disposed) return;
+        var wrap = double.IsFinite(wrapWidth);
+        document.Send(ScintillaMessage.SetWrapMode, wrap ? 1 : 0);
+        double gutter = document.Send(ScintillaMessage.GetMarginLeft);
+        for (var margin = 0; margin < document.Send(ScintillaMessage.GetMargins); margin++)
+            gutter += document.Send(ScintillaMessage.GetMarginWidthN, margin);
+        document.Send(ScintillaMessage.SetMarginRight, 0, wrap ? (nint)Math.Max(defaultRightMargin, width - gutter - wrapWidth) : defaultRightMargin);
     }
 
     public override void Render(DrawingContext context)

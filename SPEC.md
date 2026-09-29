@@ -141,6 +141,9 @@ Functional document and tool tabs: select, close/hide, preview/keep, reorder,
 overflow search, middle-click close, context actions, keyboard navigation and
 focus. A filesystem tree opens Markdown as a native selectable preview and
 other text in the Scintilla editor on macOS, or as a read-only document elsewhere.
+The editor wraps at the bounded line width and follows live width and theme changes.
+An empty center group shows the workspace placeholder: default workspace or created
+workspace, its branch, and what is scoped to it.
 
 Projects: native directory picker and explicit host-path dialog (remote);
 recent/open project navigation; per-project workspace/worktree selection;

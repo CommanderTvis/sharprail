@@ -34,7 +34,9 @@ public sealed partial class ScintillaEditor
         for (var margin = 0; margin < document.Send(ScintillaMessage.GetMargins); margin++)
             margins += document.Send(ScintillaMessage.GetMarginWidthN, margin);
         var text = Math.Max(0, Bounds.Width - margins);
-        var horizontal = new EditorScroll(Math.Max(0, document.Send(ScintillaMessage.GetScrollWidth) - text), text, document.Send(ScintillaMessage.GetXOffset));
+        // Scintilla's tracked scroll width keeps pre-wrap line widths; wrapped text never scrolls horizontally.
+        var horizontal = double.IsFinite(wrapWidth) ? new EditorScroll(0, text, 0)
+            : new EditorScroll(Math.Max(0, document.Send(ScintillaMessage.GetScrollWidth) - text), text, document.Send(ScintillaMessage.GetXOffset));
         if (scroll == (vertical, horizontal)) return;
         scroll = (vertical, horizontal);
         ScrollChanged?.Invoke(this, EventArgs.Empty);

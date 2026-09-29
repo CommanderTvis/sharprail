@@ -9,9 +9,11 @@ public sealed partial class WorkbenchWindow
 {
     private bool askingToSave, closeConfirmed;
 
+    private double FileWrapWidth => Preferences.BoundPreviewWidth ? Preferences.PreviewWidth : double.PositiveInfinity;
+
     private CodeDocumentView CodeDocument(FileDocument document, DockTab tab, string key)
     {
-        return new(document, workspaceRoot, host, () =>
+        var view = new CodeDocumentView(document, workspaceRoot, host, () =>
         {
             var group = Layout.State.Groups.FirstOrDefault(group => Layout.Tabs(group.Id).Any(item => item.Id == tab.Id && item.Preview));
             if (group is not null)
@@ -22,6 +24,8 @@ public sealed partial class WorkbenchWindow
                 if (focused) editor!.Focus();
             }
         }, text => documents[key] = document with { Text = text }, surface.RefreshModified, Report);
+        view.Editor.WrapWidth = FileWrapWidth;
+        return view;
     }
 
     private CodeDocumentView? PendingDocument(string workspace, string tabId) =>

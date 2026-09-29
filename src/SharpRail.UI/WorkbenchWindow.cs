@@ -189,10 +189,13 @@ public sealed partial class WorkbenchWindow : Window
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
             };
-            empty.Children.Add(Ui.Text("DEFAULT WORKSPACE", size: 12));
-            empty.Children.Add(Ui.Text(projectLabel.Text ?? "", Ui.TextBrush));
-            empty.Children.Add(Ui.Text(branchLabel.Text ?? ""));
-            empty.Children.Add(Ui.Text("Files, changes, and worktrees run directly in your project folder."));
+            var isDefault = workspaceRoot == projectRoot;
+            empty.Children.Add(Ui.Text(isDefault ? "DEFAULT WORKSPACE" : "WORKSPACE READY", size: 12));
+            empty.Children.Add(Ui.Text(isDefault ? projectLabel.Text ?? "" : new DirectoryInfo(workspaceRoot).Name, Ui.TextBrush));
+            empty.Children.Add(Ui.Text(isDefault ? "on " + branchLabel.Text : branchLabel.Text ?? ""));
+            empty.Children.Add(Ui.Text(isDefault
+                ? "Files, changes, and worktrees run directly in your project folder."
+                : "Files, changes, and terminals are scoped to this workspace."));
             foreach (var label in empty.Children.OfType<TextBlock>())
                 label.HorizontalAlignment = HorizontalAlignment.Center;
             var open = Ui.Button("Open file", () => RevealFiles(), "fileText"); open.HorizontalAlignment = HorizontalAlignment.Center;

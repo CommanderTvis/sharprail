@@ -93,16 +93,19 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `projects.spec.ts` | rail expansion is per-browser view state that survives a reload | Ported |
 | `projects.spec.ts` | activating a workspace in one project keeps the other project's rail expansion | Ported |
 | `projects.spec.ts` | project context actions stay compact and close/reopen is lossless across clients | Pending: needs a second synchronised client, the project context menu with keyboard and touch gestures, a close-project confirmation and a recents menu, none of which exist |
+| `editor.spec.ts` | opens a file in a center Monaco tab, focuses on re-open, and closes | Ported (Markdown source is SharpRail's read-only source view; the ready placeholder omits chats) |
+| `editor.spec.ts` | hides YAML frontmatter in the rendered view but shows it in source | Ported |
+| `editor.spec.ts` | opens a non-markdown file straight to Monaco with no rendered-view toggle | Ported (macOS Scintilla) |
 | `workspace-tabs.spec.ts` | editor tabs are scoped to the active workspace | Ported |
 | `workspace-tabs.spec.ts` | the selected side tool follows workspace switches | Ported |
 | `workspace-tabs.spec.ts` | switching workspaces re-targets the mounted workbench instead of remounting it | Ported |
 | `workspace-tabs.spec.ts` | a same-id terminal body remounts instead of carrying across workspaces | Ported |
 | `theme.spec.ts` | appearance switches a discovered theme and persists it across reload | Ported |
 | `theme.spec.ts` | system mode follows each client and retains its explicit pair | Pending: Settings has only Dark/Light/System, with no explicit light/dark pair pickers, alternate light theme or cross-client sync |
-| `theme.spec.ts` | Monaco opens files and re-themes under every discovered manifest | Pending: translatable to the macOS Scintilla editor; not yet ported |
+| `theme.spec.ts` | Monaco opens files and re-themes under every discovered manifest | Ported (macOS Scintilla; light and dark themes, no high-contrast theme) |
 | `theme.spec.ts` | selected workspace tabs keep their surface and edge marker in high contrast | Pending: no high-contrast theme exists in SharpRail |
 | `line-width-settings.spec.ts` | line-width controls validate drafts, converge on broadcasts, and persist | Pending: the app has one auto-saving preview-width control; draft validation with Save, chat measure and settings broadcasts between clients are absent |
-| `line-width-settings.spec.ts` | the file width wraps source and updates an already-mounted editor | Pending: translatable to the macOS Scintilla editor; not yet ported |
+| `line-width-settings.spec.ts` | the file width wraps source and updates an already-mounted editor | Ported (macOS Scintilla; the shared line-width setting) |
 | `line-width-settings.spec.ts` | the default file width wraps both sides of a long-line diff | Ported |
 | `line-width-settings.spec.ts` | chat uses the selected measure and optionally exceeds a narrow pane | Excluded: AI chat is a non-goal |
 | `settings.spec.ts` | settings shows the Local GitHub status block and degrades gh gracefully | Ported |

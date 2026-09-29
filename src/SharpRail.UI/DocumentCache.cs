@@ -32,6 +32,6 @@ public sealed partial class WorkbenchWindow
     {
         foreach (var key in documentContent.Keys.ToArray())
             if (!preserveDocuments || documentContent[key] is not (Terminal.GhosttyTerminal or Editor.CodeDocumentView)) DropDocumentContent(key);
-            else if (documentContent[key] is Editor.CodeDocumentView view) view.Editor.InvalidateVisual();
+            else if (documentContent[key] is Editor.CodeDocumentView view) view.Editor.WrapWidth = FileWrapWidth;
     }
 }

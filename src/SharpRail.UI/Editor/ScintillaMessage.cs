@@ -45,6 +45,8 @@ internal enum ScintillaMessage : uint
     LineFromPosition = 2166,
     PositionFromLine = 2167,
     SetLayoutCache = 2272,
+    SetWrapMode = 2268,
+    WrapCount = 2235,
     SetFirstVisibleLine = 2613,
     LinesOnScreen = 2370,
     GetScrollWidth = 2275,
