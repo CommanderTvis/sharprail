@@ -5,3 +5,4 @@ artifacts/
 .bench/
 .sharprail/
 .DS_Store
+.claude/worktrees/
