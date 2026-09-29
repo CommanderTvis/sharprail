@@ -153,7 +153,7 @@ internal static class LayoutSettingsE2E
             var id = app.Window.Layout.Tabs(bottom.Id).Single().Id;
             app.ContextAction(app.Find<Button>("Tab_" + id.Replace(':', '_')), "New right group at bottom");
             Require(app.Window.Layout.State.Groups.Count(group => group.Region == "right") == 3, "The saved limit must permit the third right group.");
-            WorkspaceTabsE2E.CreateWorkspace(app, "overage-workspace");
+            WorkspaceTabsE2E.CreateWorkspace(app, "workspace-1");
             SaveLimit(2);
             WorkspaceTabsE2E.Switch(app, directory);
             Require(app.Window.Layout.State.Groups.Count(group => group.Region == "right") == 3, "A lowered limit must retain existing groups across workspace switches.");

@@ -18,6 +18,9 @@ public sealed class LocalProjectAdapter(IProjectServices host) : IProjectService
     public ValueTask<IReadOnlyList<GitCommit>> ListCommitsAsync(string comparisonBranch, CancellationToken cancellationToken = default) => host.ListCommitsAsync(comparisonBranch, cancellationToken);
     public ValueTask<string> GetDiffAsync(string path, string scope, string comparisonBranch = "", CancellationToken cancellationToken = default) => host.GetDiffAsync(path, scope, comparisonBranch, cancellationToken);
     public ValueTask<GitSnapshot> ApplyGitActionAsync(GitAction action, CancellationToken cancellationToken = default) => host.ApplyGitActionAsync(action, cancellationToken);
+    public ValueTask<BranchCatalog> ListBranchesAsync(bool fetchDefault, CancellationToken cancellationToken = default) => host.ListBranchesAsync(fetchDefault, cancellationToken);
+    public ValueTask<IReadOnlyList<EditorInfo>> ListEditorsAsync(CancellationToken cancellationToken = default) => host.ListEditorsAsync(cancellationToken);
+    public ValueTask OpenInEditorAsync(string editorId, string worktreePath, CancellationToken cancellationToken = default) => host.OpenInEditorAsync(editorId, worktreePath, cancellationToken);
 }
 
 public sealed class RemoteProjectAdapter : IProjectServices, IDisposable
@@ -79,6 +82,19 @@ public sealed class RemoteProjectAdapter : IProjectServices, IDisposable
 
     public async ValueTask SaveFileAsync(FileSaveRequest request, CancellationToken cancellationToken = default)
         => await service.SaveFileAsync(new() { WorkspaceRoot = request.WorkspaceRoot, Path = request.Path, OriginalText = request.OriginalText, Text = request.Text }, Context(cancellationToken));
+
+    public async ValueTask<BranchCatalog> ListBranchesAsync(bool fetchDefault, CancellationToken cancellationToken = default)
+    {
+        var reply = await service.ListBranchesAsync(new() { FetchDefault = fetchDefault }, Context(cancellationToken));
+        return new(reply.Local, reply.Remote.Select(branch => new RemoteBranch(branch.Remote, branch.Name)).ToArray(), reply.DefaultBase)
+        { SuggestedPath = reply.SuggestedPath, SuggestedBranch = reply.SuggestedBranch };
+    }
+
+    public async ValueTask<IReadOnlyList<EditorInfo>> ListEditorsAsync(CancellationToken cancellationToken = default)
+        => (await service.ListEditorsAsync(new(), Context(cancellationToken))).Editors.Select(editor => new EditorInfo(editor.Id, editor.Label)).ToArray();
+
+    public async ValueTask OpenInEditorAsync(string editorId, string worktreePath, CancellationToken cancellationToken = default)
+        => await service.OpenInEditorAsync(new() { EditorId = editorId, WorktreePath = worktreePath }, Context(cancellationToken));
 
     private static GitSnapshot Map(GitReply reply) => new(reply.IsRepository, reply.Branch,
         reply.Changes.Select(change => new GitChange(change.Path, change.IndexStatus, change.WorktreeStatus, change.OriginalPath, change.Added, change.Removed)).ToArray(),

@@ -171,7 +171,7 @@ internal static class GitRepository
         return result;
     }
 
-    private static List<WorktreeInfo> ParseWorktrees(string text)
+    internal static List<WorktreeInfo> ParseWorktrees(string text)
     {
         var result = new List<WorktreeInfo>();
         string path = "", branch = "";

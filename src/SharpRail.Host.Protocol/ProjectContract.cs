@@ -101,6 +101,52 @@ public interface IProjectRpc
     ValueTask<CommitsReply> ListCommitsAsync(ProjectRequest request, CallContext context = default);
     ValueTask<DocumentReply> GetDiffAsync(ProjectRequest request, CallContext context = default);
     ValueTask<GitReply> ApplyGitActionAsync(ProjectRequest request, CallContext context = default);
+    ValueTask<BranchesReply> ListBranchesAsync(BranchesRequest request, CallContext context = default);
+    ValueTask<EditorsReply> ListEditorsAsync(ProjectRequest request, CallContext context = default);
+    ValueTask<SaveFileReply> OpenInEditorAsync(OpenInEditorRequest request, CallContext context = default);
+}
+
+[ProtoContract]
+public sealed class BranchesRequest
+{
+    [ProtoMember(1)] public bool FetchDefault { get; set; }
+}
+
+[ProtoContract]
+public sealed class RemoteBranchReply
+{
+    [ProtoMember(1)] public string Remote { get; set; } = "";
+    [ProtoMember(2)] public string Name { get; set; } = "";
+}
+
+[ProtoContract]
+public sealed class BranchesReply
+{
+    [ProtoMember(1)] public List<string> Local { get; set; } = [];
+    [ProtoMember(2)] public List<RemoteBranchReply> Remote { get; set; } = [];
+    [ProtoMember(3)] public string DefaultBase { get; set; } = "";
+    [ProtoMember(4)] public string SuggestedPath { get; set; } = "";
+    [ProtoMember(5)] public string SuggestedBranch { get; set; } = "";
+}
+
+[ProtoContract]
+public sealed class EditorReply
+{
+    [ProtoMember(1)] public string Id { get; set; } = "";
+    [ProtoMember(2)] public string Label { get; set; } = "";
+}
+
+[ProtoContract]
+public sealed class EditorsReply
+{
+    [ProtoMember(1)] public List<EditorReply> Editors { get; set; } = [];
+}
+
+[ProtoContract]
+public sealed class OpenInEditorRequest
+{
+    [ProtoMember(1)] public string EditorId { get; set; } = "";
+    [ProtoMember(2)] public string WorktreePath { get; set; } = "";
 }
 
 [ProtoContract]

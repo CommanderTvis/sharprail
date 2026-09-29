@@ -1,4 +1,5 @@
 using Avalonia.Threading;
+using SharpRail.Host.Abstractions;
 using SharpRail.UI.Rendering;
 
 namespace SharpRail.UI;
@@ -62,10 +63,27 @@ public sealed partial class WorkbenchWindow
             watchDebounce.Tick += (_, _) =>
             {
                 watchDebounce.Stop();
-                if (WorkspaceMounted && !lifetime.IsCancellationRequested) _ = RefreshGitAsync(projectRequest);
+                if (!WorkspaceMounted || lifetime.IsCancellationRequested) return;
+                _ = RefreshGitAsync(projectRequest);
+                _ = ReloadFilesAsync(projectRequest);
             };
         }
         watchDebounce.Stop(); watchDebounce.Start();
+    }
+
+    private async Task ReloadFilesAsync(long request)
+    {
+        var fresh = new Dictionary<string, IReadOnlyList<ProjectFile>>();
+        foreach (var path in expandedFolders.Prepend("").ToArray())
+        {
+            try { fresh[path] = await Task.Run(async () => await host.ListFilesAsync(path, lifetime.Token), lifetime.Token); }
+            catch (OperationCanceledException) { return; }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
+        }
+        if (request != projectRequest || fresh.All(pair => folderCache.TryGetValue(pair.Key, out var known) && known.SequenceEqual(pair.Value))) return;
+        folderCache.Clear();
+        foreach (var (path, files) in fresh) folderCache[path] = files;
+        toolContent.Remove("files"); surface.RefreshContents("files");
     }
 
     private static (string? GitDirectory, string? CommonDirectory) ResolveGitDirectories(string directory)

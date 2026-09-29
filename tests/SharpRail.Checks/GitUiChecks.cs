@@ -121,19 +121,20 @@ internal static class GitUiChecks
         Invoke(Commit());
         Pump(() => Commit().IsChecked);
 
-        Click(window, Buttons(window).Single(button => Equals(ToolTip.GetTip(button), "Create worktree")));
-        var prompt = window.OwnedWindows.Single(item => item.Title == "Create worktree");
-        var fields = prompt.GetLogicalDescendants().OfType<TextBox>().ToArray();
-        var worktree = root + "-ui-worktree";
-        fields[0].Text = worktree; fields[1].Text = "sharprail-ui-" + Guid.NewGuid().ToString("N")[..8];
+        Click(window, Named("AddWorkspace"));
+        Pump(() => window.OwnedWindows.Any(item => Equals(item.Tag, "NewWorkspaceDialog")));
+        var prompt = window.OwnedWindows.Single(item => Equals(item.Tag, "NewWorkspaceDialog"));
         Click(prompt, Buttons(prompt).Single(button => button.IsDefault));
+        Pump(() => window.WorkspaceRoot != root && window.WorkspaceMounted);
+        var worktree = window.WorkspaceRoot;
+        Require(Path.GetDirectoryName(worktree) == root + "-worktrees", "A new workspace must be created beside the project.");
         Pump(() => window.WorkspaceRoot == worktree && window.WorkspaceMounted &&
             Buttons(window).Any(button => Equals(ToolTip.GetTip(button), root) && button.ContextMenu is not null));
         var main = Buttons(window).Single(button => Equals(ToolTip.GetTip(button), root) && button.ContextMenu is not null);
         Require(Action(Named("ChangesScope"), "All changes").IsChecked &&
             !Named("ChangesScope").ContextMenu!.Items.OfType<MenuItem>().Any(item => item.Name?.StartsWith("ChangesCommit_", StringComparison.Ordinal) == true),
             "A new workspace inherited the previous workspace's commit selection or catalog.");
-        Require(!Action(main, "Remove worktree…").IsEnabled, "Main worktree removal was enabled.");
+        Require(!main.ContextMenu!.Items.OfType<MenuItem>().Any(item => Equals(item.Header, "Remove worktree…")), "Main worktree removal was offered.");
         Click(window, main); Pump(() => window.WorkspaceRoot == root && window.WorkspaceMounted &&
             Buttons(window).Any(button => Equals(ToolTip.GetTip(button), worktree)));
         Button Linked() => Buttons(window).Single(button => Equals(ToolTip.GetTip(button), worktree));

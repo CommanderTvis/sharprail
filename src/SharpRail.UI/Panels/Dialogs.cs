@@ -55,8 +55,10 @@ public static class Dialogs
         var text = window.FindControl<TextBlock>("DialogExplanation")!;
         text.Text = explanation; text.IsVisible = true;
         var actions = window.FindControl<StackPanel>("DialogActions")!;
-        actions.Children.Add(Ui.Button("Cancel", () => window.Close(false)));
+        var cancel = Ui.Button("Cancel", () => window.Close(false));
+        actions.Children.Add(cancel);
         actions.Children.Add(Ui.Button(confirmLabel, () => window.Close(true)));
+        window.Opened += (_, _) => cancel.Focus();
         return await window.ShowDialog<bool>(owner);
     }
 

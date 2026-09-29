@@ -147,10 +147,23 @@ workspace, its branch, and what is scoped to it.
 
 Projects: native directory picker and explicit host-path dialog (remote);
 recent/open project navigation; per-project workspace/worktree selection;
-persist restored selection. Git: working/staged/untracked/renamed files,
+persist restored selection. Opening or clicking a project shows its Project Home
+(no workspace selected) with Create workspace and Work in project folder; with no
+project the Welcome offers Open project. A missing restored workspace falls back to
+its Project Home, a missing project to the Welcome. Project rows have a context menu
+(right-click, Shift+F10, Menu key): Create workspace and Close project, which asks
+for confirmation and moves the project to Add project → Recents without touching
+the repository. Mod+N or Mod+Alt+N opens the Create workspace dialog: a new worktree
+at `<project>-worktrees/workspace-N` from a searchable base branch grouped by Local
+and each remote, or the project folder itself. Opening it prefetches a stale or
+missing remote default; a failed fetch reports Git's error. Workspace rows have a
+hover kebab and right-click menu anchored to it: Open in a detected editor, Copy
+path, and for worktrees an inline display rename persisted in the profile and
+removal. The Default workspace is never removable; removing the active workspace
+returns to the previously selected one. The Files tree compacts single-directory runs. Git: working/staged/untracked/renamed files,
 branch comparison, read-only diffs, refresh and worktree listing/switching.
 Stage/unstage and create/remove worktrees are supported. Removal requires an
-explicit confirmation and Git refuses dirty, active, main or locked worktrees.
+explicit confirmation and Git refuses dirty, main or locked worktrees.
 No commits, pushes, Pi or AI integration.
 
 Settings: Thinkrail dialog proportions and styling, live dark/light/system

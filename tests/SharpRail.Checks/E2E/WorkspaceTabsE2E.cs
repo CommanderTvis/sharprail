@@ -77,16 +77,13 @@ internal static class WorkspaceTabsE2E
 
     internal static string CreateWorkspace(E2eWorkspace app, string name)
     {
-        var parent = app.Root + "-worktrees";
-        Directory.CreateDirectory(parent);
-        var path = Path.Combine(parent, name);
-        Until(() => app.Window.GetLogicalDescendants().OfType<Button>().Any(button => Equals(ToolTip.GetTip(button), "Create worktree") && button.IsEnabled));
-        app.Click(app.Window.GetLogicalDescendants().OfType<Button>().Single(button => Equals(ToolTip.GetTip(button), "Create worktree")));
-        Until(() => app.Window.OwnedWindows.Any(window => window.Title == "Create worktree"));
-        var prompt = app.Window.OwnedWindows.Single(window => window.Title == "Create worktree");
-        var fields = prompt.GetLogicalDescendants().OfType<TextBox>().ToArray();
-        fields[0].Text = path; fields[1].Text = name;
-        app.Click(prompt.GetLogicalDescendants().OfType<Button>().Single(button => button.IsDefault));
+        var path = Path.Combine(app.Window.ProjectRoot + "-worktrees", name);
+        Until(() => app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "AddWorkspace" && button.IsEnabled));
+        app.Click(app.Find<Button>("AddWorkspace"));
+        Until(() => app.Window.OwnedWindows.Any(window => Equals(window.Tag, "NewWorkspaceDialog")));
+        var dialog = app.Window.OwnedWindows.Single(window => Equals(window.Tag, "NewWorkspaceDialog"));
+        Settle(100);
+        app.Click(dialog.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "WsCreate"));
         Until(() => app.Window.WorkspaceMounted && app.Window.WorkspaceRoot == path && app.Find<TextBlock>("BranchLabel").Text == name);
         Require(app.Find<TextBlock>("WorkspaceLabel").Text == name, "The title bar must show the active workspace name.");
         return path;
@@ -97,7 +94,7 @@ internal static class WorkspaceTabsE2E
         Until(() => app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.ContextMenu is not null && Equals(ToolTip.GetTip(button), path)));
         app.Click(app.Window.GetLogicalDescendants().OfType<Button>().Single(button => button.ContextMenu is not null && Equals(ToolTip.GetTip(button), path)));
         Until(() => app.Window.WorkspaceMounted && app.Window.WorkspaceRoot == path && (branch is null || app.Find<TextBlock>("BranchLabel").Text == branch));
-        Require(app.Find<TextBlock>("WorkspaceLabel").Text == (path == app.Root ? "Default workspace" : Path.GetFileName(path)),
+        Require(app.Find<TextBlock>("WorkspaceLabel").Text == (path == app.Root ? "Default" : Path.GetFileName(path)),
             "Switching workspaces must update the title bar scope.");
     }
 

@@ -71,7 +71,7 @@ public sealed partial class WorkbenchWindow : Window
         WireEditorLifetime();
         ApplyAppearance();
         ActualThemeVariantChanged += (_, _) => Ui.SetLight(ActualThemeVariant == ThemeVariant.Light);
-        Opened += async (_, _) => await OpenProjectAsync(initialRoot);
+        Opened += async (_, _) => await StartAsync();
         Closed += (_, _) =>
         {
             RememberGitSelection(); lifetime.Cancel(); StopWatching(); profile.Save();
@@ -81,6 +81,7 @@ public sealed partial class WorkbenchWindow : Window
         {
             var command = e.KeyModifiers.HasFlag(KeyModifiers.Meta) || e.KeyModifiers.HasFlag(KeyModifiers.Control);
             if (command && e.Key == Key.O) { _ = PickProjectAsync(); e.Handled = true; }
+            else if (command && e.Key == Key.N && !e.KeyModifiers.HasFlag(KeyModifiers.Shift)) { _ = CreateWorkspaceDialogAsync(); e.Handled = true; }
             else if (command && e.Key == Key.OemComma) { ShowSettings(); e.Handled = true; }
             else if (command && e.Key == Key.J && e.KeyModifiers.HasFlag(KeyModifiers.Shift))
             { Layout.Visible("bottom", !Layout.State.BottomVisible); e.Handled = true; }
@@ -132,9 +133,10 @@ public sealed partial class WorkbenchWindow : Window
 
     public async Task OpenProjectAsync(string path) => await OpenWorkspaceAsync(path, true);
 
-    private async Task OpenWorkspaceAsync(string path, bool project)
+    private async Task OpenWorkspaceAsync(string path, bool project, bool home = false)
     {
         RememberGitSelection();
+        var previous = WorkspaceMounted ? (atHome ? "" : workspaceRoot) : null;
         var request = ++projectRequest; WorkspaceMounted = false;
         gitRefresh?.Cancel(); StopWatching();
         try { await projectGate.WaitAsync(lifetime.Token); }
@@ -145,12 +147,19 @@ public sealed partial class WorkbenchWindow : Window
             status.Text = "Loading";
             var workspace = await host.OpenProjectAsync(path, lifetime.Token);
             if (request != projectRequest) return;
+            if (home && workspace.RootPath != workspace.ProjectRoot)
+            {
+                workspace = await host.OpenProjectAsync(workspace.ProjectRoot, lifetime.Token);
+                if (request != projectRequest) return;
+            }
             var files = await Task.Run(async () => await host.ListFilesAsync("", lifetime.Token), lifetime.Token);
             if (request != projectRequest) return;
             workspaceRoot = workspace.RootPath;
+            if (project && projectRoot != workspace.ProjectRoot) selectionHistory.Clear();
+            else if (previous is not null) { selectionHistory.Remove(previous); selectionHistory.Add(previous); }
             if (project) projectRoot = workspace.ProjectRoot;
-            projectLabel.Text = new DirectoryInfo(projectRoot).Name;
-            this.FindControl<TextBlock>("WorkspaceLabel")!.Text = workspaceRoot == projectRoot ? "Default workspace" : new DirectoryInfo(workspaceRoot).Name;
+            atHome = home; cleanWelcome = false;
+            UpdateScopeLabels();
             branchLabel.Text = "";
             branchIcon.IsVisible = false;
             git = new(false, "", [], [], []); gitLoading = true; gitError = null;
@@ -158,9 +167,12 @@ public sealed partial class WorkbenchWindow : Window
             folderCache[""] = files;
             toolContent.Clear();
             if (!profile.Data.Projects.Contains(projectRoot)) profile.Data.Projects.Insert(0, projectRoot);
+            profile.Data.RecentProjects.Remove(projectRoot);
             profile.Data.LastProject = workspaceRoot;
+            profile.Data.LastProjectRoot = projectRoot;
+            profile.Data.LastAtHome = home;
             WorkspaceMounted = true;
-            Layout.SwitchWorkspace(workspaceRoot);
+            Layout.SwitchWorkspace(home ? HomeKey(projectRoot) : workspaceRoot);
             status.Text = remote ? "Remote" : "Connected";
             errorText.IsVisible = false;
             ReportProfileError();
@@ -182,6 +194,7 @@ public sealed partial class WorkbenchWindow : Window
     {
         if (tab is null)
         {
+            if (atHome || cleanWelcome) return Welcome();
             var empty = new StackPanel
             {
                 Name = "WorkspacePlaceholder",
@@ -191,8 +204,10 @@ public sealed partial class WorkbenchWindow : Window
             };
             var isDefault = workspaceRoot == projectRoot;
             empty.Children.Add(Ui.Text(isDefault ? "DEFAULT WORKSPACE" : "WORKSPACE READY", size: 12));
-            empty.Children.Add(Ui.Text(isDefault ? projectLabel.Text ?? "" : new DirectoryInfo(workspaceRoot).Name, Ui.TextBrush));
-            empty.Children.Add(Ui.Text(isDefault ? "on " + branchLabel.Text : branchLabel.Text ?? ""));
+            empty.Children.Add(Ui.Text(isDefault ? projectLabel.Text ?? "" : WorkspaceName(workspaceRoot), Ui.TextBrush));
+            readyBranch = Ui.Text(ReadyBranchText());
+            readyBranch.Name = "WorkspaceReadyBranch";
+            empty.Children.Add(readyBranch);
             empty.Children.Add(Ui.Text(isDefault
                 ? "Files, changes, and worktrees run directly in your project folder."
                 : "Files, changes, and terminals are scoped to this workspace."));
@@ -275,6 +290,8 @@ public sealed partial class WorkbenchWindow : Window
     public async Task OpenDocumentAsync(string path, bool keep = false, string? anchor = null)
     {
         if (!WorkspaceMounted) return;
+        if (atHome) await OpenWorkspaceAsync(projectRoot, false);
+        if (!WorkspaceMounted || atHome) return;
         var request = BeginNavigation(); var workspace = workspaceRoot;
         try
         {

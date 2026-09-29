@@ -172,6 +172,24 @@ internal static class ProjectChecks
                 await remote.GetDiffAsync(unusual, "branch", "HEAD") == await host.GetDiffAsync(unusual, "branch", "HEAD"),
                 "Remote working-tree branch comparison differs.");
             Require(await remote.GetDiffAsync(unusual, "untracked") == await host.GetDiffAsync(unusual, "untracked"), "Remote diff differs.");
+            var localBranches = await host.ListBranchesAsync(false);
+            var remoteBranches = await remote.ListBranchesAsync(false);
+            Require(remoteBranches.Local.SequenceEqual(localBranches.Local) && remoteBranches.Remote.SequenceEqual(localBranches.Remote) &&
+                remoteBranches.DefaultBase == localBranches.DefaultBase &&
+                (localBranches.Local.Contains(localBranches.DefaultBase) || localBranches.Remote.Any(branch => branch.Ref == localBranches.DefaultBase)) &&
+                remoteBranches.SuggestedPath == localBranches.SuggestedPath && remoteBranches.SuggestedBranch == localBranches.SuggestedBranch &&
+                localBranches.SuggestedPath == Path.Combine(root + "-worktrees", localBranches.SuggestedBranch),
+                $"Remote branch catalog differs: {localBranches.DefaultBase} {localBranches.SuggestedPath} {root}.");
+            Require((await remote.ListEditorsAsync()).SequenceEqual(await host.ListEditorsAsync()), "Remote editor list differs.");
+            foreach (var service in new IProjectServices[] { host, remote })
+            {
+                try
+                {
+                    await service.OpenInEditorAsync("vscode", Path.GetTempPath());
+                    throw new InvalidOperationException("An editor opened a path outside the project's workspaces.");
+                }
+                catch (Exception error) when (error is UnauthorizedAccessException or Grpc.Core.RpcException) { }
+            }
             Require(await remote.GetDiffAsync(unusual, "uncommitted") == "Untracked content\n" &&
                 await remote.GetDiffAsync(unusual, "uncommitted") == await host.GetDiffAsync(unusual, "uncommitted"),
                 "Remote Uncommitted diff must retain untracked content.");

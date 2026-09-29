@@ -19,8 +19,8 @@
         <ContentControl x:Name="BrandIcon" />
         <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center" ClipToBounds="True">
           <TextBlock x:Name="ProjectLabel" Text="…" Classes="header-label" MaxWidth="160" Foreground="{x:Static rendering:Ui.TextBrush}" />
-          <TextBlock Text="›" Classes="header-label" />
-          <TextBlock x:Name="WorkspaceLabel" Text="Default workspace" Classes="header-label" MaxWidth="220" Foreground="{x:Static rendering:Ui.TextBrush}" />
+          <TextBlock x:Name="ScopeSeparator" Text="›" Classes="header-label" />
+          <TextBlock x:Name="WorkspaceLabel" Text="" Classes="header-label" MaxWidth="220" Foreground="{x:Static rendering:Ui.TextBrush}" />
           <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
             <ContentControl x:Name="BranchIcon" />
             <TextBlock x:Name="BranchLabel" Classes="header-label" />

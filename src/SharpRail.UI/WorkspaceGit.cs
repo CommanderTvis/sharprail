@@ -51,6 +51,7 @@ public sealed partial class WorkbenchWindow
             gitCommits = scope == "commit" ? catalog : snapshot.Commits;
             branchLabel.Text = snapshot.IsRepository ? snapshot.Branch : "";
             branchIcon.IsVisible = snapshot.IsRepository;
+            if (readyBranch is not null) readyBranch.Text = ReadyBranchText();
             gitLoading = false; gitError = null;
             RefreshGitPanels();
             _ = RefreshDiffTabsAsync(request);
@@ -67,9 +68,12 @@ public sealed partial class WorkbenchWindow
 
     private void RefreshGitPanels()
     {
-        toolContent.Remove("projects");
         toolContent.Remove("changes");
         toolContent.Remove("review");
+        if (RailSignature() == railSignature) { surface.RefreshContents("changes", "review"); return; }
+        toolContent.Remove("projects");
         surface.RefreshContents("projects", "changes", "review");
     }
+
+    private string RailSignature() => git.IsRepository + "\0" + string.Join("\0", git.Worktrees.Select(tree => $"{tree.Path}\t{tree.Branch}\t{tree.IsLocked}"));
 }

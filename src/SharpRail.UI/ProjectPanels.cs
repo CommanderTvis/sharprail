@@ -22,6 +22,7 @@ public sealed partial class WorkbenchWindow
 
     public Func<Task<string?>>? FolderPicker { get; set; }
     private int projectPicker;
+    private string? railSignature;
 
     private async Task PickProjectAsync()
     {
@@ -54,7 +55,7 @@ public sealed partial class WorkbenchWindow
     {
         try
         {
-            await OpenProjectAsync(path);
+            await OpenProjectHomeAsync(path);
             if (!WorkspaceMounted) return;
             var request = projectRequest;
             var snapshot = await host.GetGitAsync("", lifetime.Token);
@@ -69,15 +70,14 @@ public sealed partial class WorkbenchWindow
 
     private Control ProjectsPanel()
     {
+        railSignature = RailSignature();
         var panel = new Grid { Name = "ProjectsPanel", Margin = new Thickness(12), RowDefinitions = new RowDefinitions("28,8,*") };
         var toolbar = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(8, 0, 4, 0) };
         var title = Ui.Text("PROJECTS", size: 12); title.FontWeight = Avalonia.Media.FontWeight.Medium;
         Ui.Place(toolbar, title);
         var open = Ui.IconButton("add", "Add project", () => { });
         open.Name = "AddProjectMenu";
-        var addMenu = new ContextMenu();
-        addMenu.Items.Add(Ui.Menu("Open project", () => _ = PickProjectAsync()));
-        addMenu.Items.Add(Ui.Menu("Enter host path…", () => _ = EnterHostPathAsync(null)));
+        var addMenu = ProjectMenu();
         open.ContextMenu = addMenu;
         open.Click += (_, _) => addMenu.Open(open);
         open.Width = open.Height = 28;
@@ -86,7 +86,7 @@ public sealed partial class WorkbenchWindow
         var tree = new StackPanel { Spacing = 4 };
         foreach (var project in profile.Data.Projects)
         {
-            var row = new Grid { Name = "ProjectRow", ColumnDefinitions = new ColumnDefinitions("16,4,*,Auto"), Height = 28, Margin = new Thickness(4, 0) };
+            var row = new Grid { Name = "ProjectRow", ColumnDefinitions = new ColumnDefinitions("16,4,*,Auto"), Height = 28, Margin = new Thickness(4, 0), Background = Avalonia.Media.Brushes.Transparent, Tag = project };
             var collapsed = profile.Data.CollapsedProjects.Contains(project);
             var toggle = Ui.IconButton(collapsed ? "arrowRight" : "arrowDown", collapsed ? "Expand project" : "Collapse project", () =>
             {
@@ -99,66 +99,116 @@ public sealed partial class WorkbenchWindow
             toggle.Name = "ProjectExpand"; toggle.Tag = project;
             toggle.Width = toggle.Height = 16; toggle.Padding = new(0);
             Ui.Place(row, toggle);
-            var select = new Button();
-            select.Click += (_, _) => _ = OpenProjectAsync(project);
+            var select = new Button { Name = "ProjectName", Tag = project };
+            select.Click += (_, _) => _ = OpenProjectHomeAsync(project);
             AutomationProperties.SetName(select, new DirectoryInfo(project).Name);
             var projectLabel = new Grid { ColumnDefinitions = new ColumnDefinitions("14,4,*") };
             Ui.Place(projectLabel, Ui.Icon("folderFill", project == projectRoot ? Ui.Accent : Ui.Muted, 14));
             Ui.Place(projectLabel, Ui.Text(new DirectoryInfo(project).Name, project == projectRoot ? Ui.TextBrush : Ui.Muted), 0, 2);
             select.Content = projectLabel;
-            select.Background = Avalonia.Media.Brushes.Transparent; select.BorderThickness = new(0); select.Padding = new Thickness(0);
+            select.Background = atHome && project == projectRoot ? Ui.Hover : Avalonia.Media.Brushes.Transparent;
+            select.BorderThickness = new(0); select.Padding = new Thickness(0);
             select.HorizontalAlignment = HorizontalAlignment.Stretch; select.HorizontalContentAlignment = HorizontalAlignment.Stretch;
             ToolTip.SetTip(select, project); Ui.Place(row, select, 0, 2);
+            row.ContextMenu = ProjectActions(project);
+            select.KeyDown += (_, e) =>
+            {
+                if (e.Key == Key.Apps || e.Key == Key.F10 && e.KeyModifiers.HasFlag(KeyModifiers.Shift))
+                { row.ContextMenu.Open(row); e.Handled = true; }
+            };
             if (project == projectRoot)
             {
-                var add = Ui.IconButton("add", "Create worktree", () => _ = CreateWorktreeAsync());
+                var trailing = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2 };
+                var count = git.Worktrees.Count(tree => !tree.IsMain);
+                if (collapsed && count > 0)
+                {
+                    var badge = Ui.Text(count.ToString(System.Globalization.CultureInfo.InvariantCulture), Ui.Hint, 12);
+                    badge.Name = "ProjectWorkspaceCount";
+                    trailing.Children.Add(badge);
+                }
+                var tip = $"Create workspace ({Shortcut("N")})";
+                var add = Ui.IconButton("add", tip, () => _ = CreateWorkspaceDialogAsync());
+                add.Name = "AddWorkspace";
                 add.Width = add.Height = 28; add.Padding = new(7);
-                add.IsEnabled = git.IsRepository; Ui.Place(row, add, 0, 3);
+                add.IsEnabled = git.IsRepository;
+                trailing.Children.Add(add);
+                Ui.Place(row, trailing, 0, 3);
             }
             tree.Children.Add(row);
             if (project != projectRoot || collapsed) continue;
-            var worktrees = git.Worktrees.Count > 0 ? git.Worktrees : new[] { new WorktreeInfo(workspaceRoot, "", true, false) };
-            foreach (var worktree in worktrees)
-            {
-                var name = worktree.IsMain ? "Default workspace" : new DirectoryInfo(worktree.Path).Name;
-                var twoLines = worktree.Branch.Length > 0 && worktree.Branch != name;
-                var color = worktree.Path == workspaceRoot ? Ui.Accent : Ui.Muted;
-                var contents = new Grid { ColumnDefinitions = new ColumnDefinitions("14,4,*") };
-                var icon = Ui.Icon(worktree.IsMain ? "homeFill" : "gitBranch", color, 14);
-                if (twoLines) { icon.VerticalAlignment = VerticalAlignment.Top; icon.Margin = new(0, 2, 0, 0); }
-                Ui.Place(contents, icon);
-                var labels = new StackPanel();
-                var label = Ui.Text(name, color); label.LineHeight = 17.5;
-                labels.Children.Add(label);
-                if (twoLines)
-                {
-                    var branch = Ui.Text(worktree.Branch, Ui.Hint, 12); branch.LineHeight = 15;
-                    labels.Children.Add(branch);
-                }
-                Ui.Place(contents, labels, 0, 2);
-                var button = new Button
-                {
-                    Content = contents,
-                    Background = worktree.Path == workspaceRoot ? Ui.Hover : Avalonia.Media.Brushes.Transparent,
-                    Padding = new Thickness(24, 4, 4, 4),
-                    MinHeight = 28,
-                    CornerRadius = new(4),
-                    BorderThickness = new(0),
-                    HorizontalAlignment = HorizontalAlignment.Stretch,
-                    HorizontalContentAlignment = HorizontalAlignment.Stretch
-                };
-                AutomationProperties.SetName(button, name);
-                ToolTip.SetTip(button, worktree.Path);
-                button.Click += (_, _) => _ = OpenWorkspaceAsync(worktree.Path, false);
-                button.ContextMenu = new ContextMenu();
-                button.ContextMenu.Items.Add(Ui.Menu("Open workspace", () => _ = OpenWorkspaceAsync(worktree.Path, false)));
-                button.ContextMenu.Items.Add(Ui.Menu("Remove worktree…", () => _ = RemoveWorktreeAsync(worktree),
-                    !worktree.IsMain && !worktree.IsLocked && worktree.Path != workspaceRoot));
-                tree.Children.Add(button);
-            }
+            var worktrees = git.Worktrees.Count > 0 ? git.Worktrees : new[] { new WorktreeInfo(projectRoot, "", true, false) };
+            foreach (var worktree in worktrees) tree.Children.Add(WorkspaceItem(worktree));
         }
         Ui.Place(panel, new ScrollViewer { Content = tree, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled }, 2);
         return panel;
+    }
+
+    private Control WorkspaceItem(WorktreeInfo worktree)
+    {
+        var name = WorkspaceName(worktree.Path);
+        var active = !atHome && worktree.Path == workspaceRoot;
+        var twoLines = worktree.Branch.Length > 0;
+        var color = active ? Ui.Accent : Ui.Muted;
+        var contents = new Grid { ColumnDefinitions = new ColumnDefinitions("14,4,*") };
+        var icon = Ui.Icon(worktree.IsMain ? "homeFill" : "gitBranch", color, 14);
+        if (twoLines) { icon.VerticalAlignment = VerticalAlignment.Top; icon.Margin = new(0, 2, 0, 0); }
+        Ui.Place(contents, icon);
+        var labels = new StackPanel();
+        var label = Ui.Text(name, color); label.LineHeight = 17.5; label.Name = "WorkspaceName";
+        labels.Children.Add(label);
+        if (twoLines)
+        {
+            var branch = Ui.Text(worktree.Branch, Ui.Hint, 12); branch.LineHeight = 15; branch.Name = "WorkspaceBranch";
+            labels.Children.Add(branch);
+        }
+        Ui.Place(contents, labels, 0, 2);
+        var button = new Button
+        {
+            Name = "WorkspaceSelect",
+            Tag = worktree.Path,
+            Content = contents,
+            Background = active ? Ui.Hover : Avalonia.Media.Brushes.Transparent,
+            Padding = new Thickness(24, 4, 32, 4),
+            MinHeight = 28,
+            CornerRadius = new(4),
+            BorderThickness = new(0),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            HorizontalContentAlignment = HorizontalAlignment.Stretch
+        };
+        AutomationProperties.SetName(button, name);
+        ToolTip.SetTip(button, worktree.Path);
+        button.Click += (_, _) => _ = OpenWorkspaceAsync(worktree.Path, false);
+        var kebab = new Button
+        {
+            Name = "WorkspaceMenu",
+            Content = Ui.Icon("moreHorizontal", null, 14),
+            Width = 24,
+            Height = 24,
+            Padding = new(5),
+            Margin = new(0, 0, 4, 0),
+            Opacity = 0,
+            Background = Avalonia.Media.Brushes.Transparent,
+            BorderThickness = new(0),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        AutomationProperties.SetName(kebab, "Workspace actions");
+        ToolTip.SetTip(kebab, "Workspace actions");
+        var menu = WorkspaceActions(worktree, kebab);
+        button.ContextMenu = menu;
+        kebab.Click += (_, _) => menu.Open(button);
+        var item = new Grid { Name = "WorkspaceItem", Tag = worktree.Path, ColumnDefinitions = new ColumnDefinitions("*,Auto"), Background = Avalonia.Media.Brushes.Transparent };
+        void Reveal() => kebab.Opacity = item.IsPointerOver || item.IsKeyboardFocusWithin || menu.IsOpen ? 1 : 0;
+        item.PointerEntered += (_, _) => Reveal();
+        item.PointerExited += (_, _) => Reveal();
+        item.GotFocus += (_, _) => Reveal();
+        item.LostFocus += (_, _) => Reveal();
+        menu.Opened += (_, _) => Reveal();
+        menu.Closed += (_, _) => Reveal();
+        var main = renaming == worktree.Path ? RenameBox(worktree.Path) : button;
+        Ui.Place(item, main);
+        Grid.SetColumnSpan(main, 2);
+        Ui.Place(item, kebab, 0, 1);
+        return item;
     }
 
     private Control FilesPanel()
@@ -189,29 +239,30 @@ public sealed partial class WorkbenchWindow
             if (folderCache.TryGetValue(file.Path, out var children))
                 foreach (var child in children) node.Items.Add(FileNode(child));
             else node.Items.Add(new TreeViewItem { Header = Ui.Text("Loading…", Ui.Hint) });
-            node.IsExpanded = expandedFolders.Contains(file.Path);
-            node.PropertyChanged += async (_, e) =>
+            var prefix = file.Path + Path.DirectorySeparatorChar;
+            node.IsExpanded = expandedFolders.Contains(file.Path) || expandedFolders.Any(path => path.StartsWith(prefix, StringComparison.Ordinal));
+            async Task Expand()
+            {
+                expandedFolders.Add(file.Path);
+                if (folderCache.ContainsKey(file.Path)) return;
+                var workspace = workspaceRoot;
+                try
+                {
+                    var entries = await host.ListFilesAsync(file.Path, lifetime.Token);
+                    if (workspace != workspaceRoot) return;
+                    folderCache[file.Path] = entries;
+                    node.Items.Clear();
+                    foreach (var entry in entries) node.Items.Add(FileNode(entry));
+                }
+                catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
+            }
+            node.PropertyChanged += (_, e) =>
             {
                 if (e.Property != TreeViewItem.IsExpandedProperty) return;
-                if (node.IsExpanded)
-                {
-                    expandedFolders.Add(file.Path);
-                    if (!folderCache.ContainsKey(file.Path))
-                    {
-                        var workspace = workspaceRoot;
-                        try
-                        {
-                            var entries = await host.ListFilesAsync(file.Path, lifetime.Token);
-                            if (workspace != workspaceRoot) return;
-                            folderCache[file.Path] = entries;
-                            node.Items.Clear();
-                            foreach (var entry in entries) node.Items.Add(FileNode(entry));
-                        }
-                        catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
-                    }
-                }
+                if (node.IsExpanded) _ = Expand();
                 else expandedFolders.Remove(file.Path);
             };
+            if (node.IsExpanded) _ = Expand();
         }
         else node.AddHandler(PointerPressedEvent, (_, e) =>
         {
