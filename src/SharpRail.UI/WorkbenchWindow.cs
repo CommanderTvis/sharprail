@@ -61,6 +61,9 @@ public sealed partial class WorkbenchWindow : Window
         Layout.Navigating += group => AdvanceNavigation(group);
         Layout.Focused += () => { profile.Data.Layout = Layout.State; SaveProfile(); };
         Layout.Changed += () => { profile.Data.Layout = Layout.State; SaveProfile(); PruneDocuments(); };
+        Layout.Changed += UpdateActiveChangeRows;
+        Layout.SelectionChanged += _ => UpdateActiveChangeRows();
+        Layout.Focused += UpdateActiveChangeRows;
         surface = new DockSurface(Layout, RenderContent);
         Ui.Place(root, surface, 1);
         WireGestureNotification();
@@ -69,7 +72,7 @@ public sealed partial class WorkbenchWindow : Window
         Opened += async (_, _) => await OpenProjectAsync(initialRoot);
         Closed += (_, _) =>
         {
-            RememberGitSelection(); lifetime.Cancel(); profile.Save();
+            RememberGitSelection(); lifetime.Cancel(); StopWatching(); profile.Save();
             ClearDocumentContent();
         };
         AddHandler(KeyDownEvent, (_, e) =>
@@ -131,7 +134,7 @@ public sealed partial class WorkbenchWindow : Window
     {
         RememberGitSelection();
         var request = ++projectRequest; WorkspaceMounted = false;
-        gitRefresh?.Cancel();
+        gitRefresh?.Cancel(); StopWatching();
         try { await projectGate.WaitAsync(lifetime.Token); }
         catch (OperationCanceledException) { return; }
         try
@@ -170,7 +173,7 @@ public sealed partial class WorkbenchWindow : Window
         catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
         finally { projectGate.Release(); }
         if (request == projectRequest && WorkspaceMounted)
-            Dispatcher.UIThread.Post(() => _ = RefreshGitAsync(request), DispatcherPriority.Background);
+            Dispatcher.UIThread.Post(() => { _ = RefreshGitAsync(request); StartWatching(request); }, DispatcherPriority.Background);
     }
 
     private Control RenderContent(DockTab? tab)
@@ -230,10 +233,12 @@ public sealed partial class WorkbenchWindow : Window
                 content = new ScrollViewer { Content = new Image { Source = new Bitmap(new MemoryStream(document.ImageData)), Stretch = Stretch.Uniform } };
             else if (tab.Kind == "markdown")
                 content = new MarkdownDocumentView(document, host, Preferences, (path, anchor) => _ = OpenDocumentAsync(path, false, anchor));
+            else if (tab.Kind == "diff")
+                content = new DiffView(document.Text, tab.Path, !tab.Path.EndsWith(".md", StringComparison.OrdinalIgnoreCase));
             else
                 content = new ScrollViewer
                 {
-                    Content = MarkdownPreview.Code(document.Text, tab.Kind == "diff"),
+                    Content = MarkdownPreview.Code(document.Text),
                     Margin = new Thickness(20),
                     HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto
                 };

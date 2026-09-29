@@ -53,6 +53,7 @@ public sealed partial class WorkbenchWindow
             branchIcon.IsVisible = snapshot.IsRepository;
             gitLoading = false; gitError = null;
             RefreshGitPanels();
+            _ = RefreshDiffTabsAsync(request);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
         catch (Exception error)

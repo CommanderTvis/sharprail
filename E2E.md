@@ -97,24 +97,24 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `line-width-settings.spec.ts` | the default file width wraps both sides of a long-line diff | Pending |
 | `line-width-settings.spec.ts` | chat uses the selected measure and optionally exceeds a narrow pane | Excluded: functional editor/terminal or AI |
 | `settings.spec.ts` | settings shows the Local GitHub status block and degrades gh gracefully | Pending |
-| `changes.spec.ts` | Changes tab shows the active worktree's diff and swaps per workspace | Pending |
-| `changes.spec.ts` | Rendered markdown diff of a large repetitive file never blocks the main thread | Pending |
-| `changes.spec.ts` | Rendered markdown diff shows an error placeholder when the merge worker fails | Pending |
-| `changes.spec.ts` | Rendered markdown diff follows live edits on disk (stale merge cancelled, fresh one lands) | Pending |
+| `changes.spec.ts` | Changes tab shows the active worktree's diff and swaps per workspace | Pending: needs the Source/Rendered markdown diff toggle; the app has only Split/Inline diffs and no rendered markdown diff (large feature) |
+| `changes.spec.ts` | Rendered markdown diff of a large repetitive file never blocks the main thread | Pending: needs the rendered markdown diff, which the app lacks; the browser long-task observer has no native equivalent |
+| `changes.spec.ts` | Rendered markdown diff shows an error placeholder when the merge worker fails | Pending: needs the rendered markdown diff; it depends on a browser web worker with no native counterpart |
+| `changes.spec.ts` | Rendered markdown diff follows live edits on disk (stale merge cancelled, fresh one lands) | Pending: needs the rendered markdown diff, which the app lacks (plain diff tabs already follow disk edits, but that is not this case) |
 | `changes.spec.ts` | Changes has a List&#124;Tree toggle; Tree groups files into folders with +/- counts | Ported |
-| `changes.spec.ts` | Changes scope selector filters by commit / uncommitted; each scope is its own diff tab | Pending |
-| `changes.spec.ts` | Uncommitted scope converges when HEAD moves out-of-band (a commit in a terminal) | Pending |
-| `changes.spec.ts` | The scope menu's target-branch picker re-points what the changes are measured against | Pending |
-| `changes.spec.ts` | A target that advanced past the fork point adds no phantom changes (merge-base semantics) | Pending |
+| `changes.spec.ts` | Changes scope selector filters by commit / uncommitted; each scope is its own diff tab | Ported |
+| `changes.spec.ts` | Uncommitted scope converges when HEAD moves out-of-band (a commit in a terminal) | Ported |
+| `changes.spec.ts` | The scope menu's target-branch picker re-points what the changes are measured against | Ported |
+| `changes.spec.ts` | A target that advanced past the fork point adds no phantom changes (merge-base semantics) | Ported |
 | `changes.spec.ts` | A change row's action menu opens from the ⌄ button and from right-click; Copy path writes the relative path | Ported |
-| `changes.spec.ts` | The diff viewer collapses unchanged context and has a per-tab hide-whitespace + copy header | Pending |
-| `changes.spec.ts` | Change rows stay one aligned, fully-highlighted row — menu slot included, long names truncated | Pending |
-| `changes.spec.ts` | The diff header keeps its controls on a narrow pane, however long the file's path | Pending |
-| `changes.spec.ts` | A commit scope keeps the header readable: short sha on the pill, subject in its tooltip | Pending |
-| `changes.spec.ts` | The scope menu is per workspace: its commit rows never carry over to another worktree | Pending |
-| `changes.spec.ts` | Re-pointing the target branch re-reads an open branch-scope diff tab — active or backgrounded | Pending |
-| `changes.spec.ts` | A commit scope whose commit is rewritten away falls back to All changes with a toast | Pending |
-| `changes.spec.ts` | A failed read says so — it never renders as an empty (clean) change set | Pending |
+| `changes.spec.ts` | The diff viewer collapses unchanged context and has a per-tab hide-whitespace + copy header | Ported |
+| `changes.spec.ts` | Change rows stay one aligned, fully-highlighted row — menu slot included, long names truncated | Ported |
+| `changes.spec.ts` | The diff header keeps its controls on a narrow pane, however long the file's path | Ported |
+| `changes.spec.ts` | A commit scope keeps the header readable: short sha on the pill, subject in its tooltip | Ported |
+| `changes.spec.ts` | The scope menu is per workspace: its commit rows never carry over to another worktree | Ported |
+| `changes.spec.ts` | Re-pointing the target branch re-reads an open branch-scope diff tab — active or backgrounded | Ported |
+| `changes.spec.ts` | A commit scope whose commit is rewritten away falls back to All changes with a toast | Ported |
+| `changes.spec.ts` | A failed read says so — it never renders as an empty (clean) change set | Ported |
 | `changes.spec.ts` | Closing a diff tab disposes Monaco cleanly — no 'TextModel got disposed' assertion | Excluded: functional editor/terminal or AI |
 | `topbar-chrome.spec.ts` | ordinary browsers have a fixed themed header with zero native insets | Pending |
 | `topbar-chrome.spec.ts` | live safe areas on either edge preserve header and workbench geometry | Pending |

@@ -63,7 +63,7 @@ internal static class WorkspaceTabsE2E
         return path;
     }
 
-    private static void Git(string root, params string[] arguments)
+    internal static void Git(string root, params string[] arguments)
     {
         var start = new ProcessStartInfo("git") { WorkingDirectory = root, RedirectStandardOutput = true, RedirectStandardError = true };
         foreach (var argument in arguments) start.ArgumentList.Add(argument);
