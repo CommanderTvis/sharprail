@@ -153,10 +153,20 @@ Stage/unstage and create/remove worktrees are supported. Removal requires an
 explicit confirmation and Git refuses dirty, active, main or locked worktrees.
 No commits, pushes, Pi or AI integration.
 
-Settings: Thinkrail dialog proportions and styling, live dark/light/system
-appearance, Markdown/document line width, layout presets and limits,
+Settings: Thinkrail dialog proportions and styling, live appearance,
+Markdown/document line width, layout presets and limits,
 custom layout capture/reset, bottom alignment, and project preferences.
 No inactive controls pretending to configure out-of-scope providers or chat.
+
+Themes: the reference's bundled `*.theme.json` manifests (Dark, Light, High Contrast
+Dark, High Contrast Light) are copied unchanged into `Assets/Themes` and discovered
+at startup; adding a theme means adding one manifest. Fixed mode pins one theme;
+Match system follows the operating system's appearance through an explicit light
+and dark pair, chosen separately. The profile stores the opaque theme id, mode and
+pair; legacy dark/light/system values migrate. A theme swap updates the workbench,
+dialogs, Markdown, diffs, Mermaid diagrams, the Scintilla editor and Ghostty
+(ANSI palette, cursor, selection and contrast floor) without reopening documents.
+Multi-client theme sync is out of scope until settings sync exists.
 
 ## Layout contract
 

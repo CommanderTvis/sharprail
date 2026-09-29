@@ -13,8 +13,21 @@
     <DataTemplate x:Key="AppearancePage">
       <StackPanel Spacing="8">
         <TextBlock Text="Theme" Classes="settings-heading" />
-        <TextBlock Text="Choose the app theme. Your choice is saved in this frontend profile." Classes="settings-description" />
+        <TextBlock Text="Your mode and pair are saved in this frontend profile. Match system follows this device’s light or dark setting." Classes="settings-description" />
+        <StackPanel x:Name="ThemeModeChoices" Spacing="4" AutomationProperties.Name="Theme mode" />
         <StackPanel x:Name="ThemeChoices" Spacing="4" />
+        <StackPanel x:Name="SystemThemes" Spacing="8">
+          <Grid x:Name="SystemThemeCurrent" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <TextBlock Text="Current on this device" Classes="settings-description" VerticalAlignment="Center" />
+            <StackPanel x:Name="SystemThemeCurrentValue" Grid.Column="1" Orientation="Horizontal" Spacing="4" />
+          </Grid>
+          <TextBlock Text="Light theme" Classes="settings-label" />
+          <Button x:Name="SystemTheme_light_trigger" Classes="theme-trigger" />
+          <TextBlock x:Name="SystemTheme_light_fallback" Classes="theme-fallback" />
+          <TextBlock Text="Dark theme" Classes="settings-label" />
+          <Button x:Name="SystemTheme_dark_trigger" Classes="theme-trigger" />
+          <TextBlock x:Name="SystemTheme_dark_fallback" Classes="theme-fallback" />
+        </StackPanel>
         <TextBlock Text="Interface font size" Classes="settings-label" />
         <NumericUpDown x:Name="InterfaceSize" Minimum="10" Maximum="24" Increment="1" Width="150" HorizontalAlignment="Left" />
         <TextBlock Text="Geist for the interface · JetBrains Mono for code" FontSize="12" Foreground="{x:Static rendering:Ui.Hint}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
@@ -80,6 +93,21 @@
     <Style Selector="TextBlock.settings-description">
       <Setter Property="FontSize" Value="12" />
       <Setter Property="Foreground" Value="{x:Static rendering:Ui.Muted}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="Button.theme-trigger">
+      <Setter Property="Height" Value="36" />
+      <Setter Property="Padding" Value="12,8" />
+      <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Background" Value="{x:Static rendering:Ui.Elevated}" />
+      <Setter Property="BorderBrush" Value="{x:Static rendering:Ui.BorderBrush}" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    </Style>
+    <Style Selector="TextBlock.theme-fallback">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Foreground" Value="{x:Static rendering:Ui.Warning}" />
       <Setter Property="TextWrapping" Value="Wrap" />
     </Style>
     <Style Selector="Button.settings-navigation">

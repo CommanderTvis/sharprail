@@ -174,9 +174,10 @@ internal static class TerminalChromeChecks
         var close = chrome.GetLogicalDescendants().OfType<Button>().Single(item => item.Name == "CloseTab");
         var presenter = button.GetVisualDescendants().OfType<Avalonia.Controls.Presenters.ContentPresenter>()
             .Single(item => item.Name == "PART_ContentPresenter");
-        foreach (var light in new[] { false, true })
+        var original = SharpRail.UI.Rendering.Ui.Theme;
+        foreach (var theme in SharpRail.UI.Rendering.Themes.All)
         {
-            SharpRail.UI.Rendering.Ui.SetLight(light);
+            SharpRail.UI.Rendering.Ui.Apply(theme);
             app.Window.MouseMove(button.TranslatePoint(new Point(6, 6), app.Window)!.Value); Settle();
             Require(ReferenceEquals(frame.Background, SharpRail.UI.Rendering.Ui.Hover) &&
                 presenter.Background is Avalonia.Media.ISolidColorBrush brush && brush.Color.A == 0,
@@ -188,7 +189,7 @@ internal static class TerminalChromeChecks
             Require(ReferenceEquals(frame.Background, SharpRail.UI.Rendering.Ui.Elevated),
                 "Leaving an inactive tab must restore its normal background.");
         }
-        SharpRail.UI.Rendering.Ui.SetLight(false);
+        SharpRail.UI.Rendering.Ui.Apply(original);
         app.Window.MouseMove(button.TranslatePoint(new Point(6, 6), app.Window)!.Value); Settle();
         app.Window.Layout.ApplyPreset(DockState.Preset("review")); Settle();
         Require(app.Window.Layout.State.Groups.SelectMany(group => app.Window.Layout.Tabs(group.Id)).Any(tab => tab.Id == first.Id),

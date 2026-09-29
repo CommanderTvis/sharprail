@@ -136,7 +136,7 @@ public sealed partial class DockSurface
                         var hint = Hint(bounds, active);
                         hint.CornerRadius = new CornerRadius(0);
                         hint.BorderThickness = new Thickness(active ? 2 : 1);
-                        hint.Background = active ? new SolidColorBrush(Color.FromArgb(26, Ui.Accent.Color.R, Ui.Accent.Color.G, Ui.Accent.Color.B)) : Brushes.Transparent;
+                        hint.Background = active ? Ui.PrimarySubtle : Brushes.Transparent;
                     }));
                 for (var i = 0; i < members.Count; i++)
                 {

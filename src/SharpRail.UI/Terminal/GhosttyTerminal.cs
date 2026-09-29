@@ -1,5 +1,4 @@
 using System.Runtime.InteropServices;
-using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Platform;
 using SharpRail.UI.Rendering;
@@ -14,16 +13,12 @@ internal sealed class GhosttyTerminal : Border, IDisposable
     {
         terminal = new TerminalHost(directory, clipboardDirectory) { Focusable = true };
         Child = terminal;
-        Ui.Surface.PropertyChanged += ColorsChanged;
-        Ui.TextBrush.PropertyChanged += ColorsChanged;
+        Ui.ThemeChanged += terminal.UpdateColors;
     }
-
-    private void ColorsChanged(object? sender, AvaloniaPropertyChangedEventArgs e) => terminal.UpdateColors();
 
     public void Dispose()
     {
-        Ui.Surface.PropertyChanged -= ColorsChanged;
-        Ui.TextBrush.PropertyChanged -= ColorsChanged;
+        Ui.ThemeChanged -= terminal.UpdateColors;
         terminal.Dispose();
     }
 
@@ -67,9 +62,19 @@ internal sealed class GhosttyTerminal : Border, IDisposable
             if (view != 0) Native.Focus(view);
         }
 
+        /// <summary>Mirrors the reference's xterm theme: selection composited over the surface, and its contrast floor.</summary>
         internal void UpdateColors()
         {
-            if (view != 0) Native.SetColors(view, Ui.Surface.Color.ToUInt32(), Ui.TextBrush.Color.ToUInt32());
+            if (view == 0) return;
+            var theme = Ui.Theme;
+            var background = Ui.Surface.Color;
+            uint[] colors =
+            [
+                background.ToUInt32(), Ui.TextBrush.Color.ToUInt32(), Ui.Accent.Color.ToUInt32(),
+                Ui.Over(theme["editorSelection"], background).ToUInt32(), theme.Colors["editorSelectionForeground"]?.ToUInt32() ?? 0,
+                .. theme.Ansi.Select(color => color.ToUInt32())
+            ];
+            Native.SetColors(view, colors, theme.IsHighContrast ? 7 : 4.5);
         }
 
         public void Dispose()
@@ -86,7 +91,7 @@ internal sealed class GhosttyTerminal : Border, IDisposable
         [DllImport(Library, EntryPoint = "sr_terminal_create")]
         internal static extern nint Create([MarshalAs(UnmanagedType.LPUTF8Str)] string directory, [MarshalAs(UnmanagedType.LPUTF8Str)] string clipboardDirectory);
         [DllImport(Library, EntryPoint = "sr_terminal_set_colors")]
-        internal static extern void SetColors(nint view, uint background, uint foreground);
+        internal static extern void SetColors(nint view, uint[] colors, double minimumContrast);
         [DllImport(Library, EntryPoint = "sr_terminal_destroy")]
         internal static extern void Destroy(nint view);
         [DllImport(Library, EntryPoint = "sr_terminal_focus")]

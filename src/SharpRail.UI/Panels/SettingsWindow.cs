@@ -28,7 +28,8 @@ public sealed partial class SettingsWindow : Window
     {
         this.profile = profile; this.layout = layout; this.apply = apply;
         this.gitHub = gitHub ?? GitHubProbe.CheckAsync;
-        Closed += (_, _) => lifetime.Cancel();
+        Closed += (_, _) => { lifetime.Cancel(); Ui.ThemeChanged -= SystemThemeChanged; };
+        Ui.ThemeChanged += SystemThemeChanged;
         Name = "SettingsWindow";
         AvaloniaXamlLoader.Load(this);
         body = this.FindControl<ContentControl>("SettingsBody")!;
@@ -60,11 +61,17 @@ public sealed partial class SettingsWindow : Window
         foreach (var entry in navigation)
         {
             var active = entry.Key == name;
-            entry.Value.Background = active ? new SolidColorBrush(Color.FromArgb(26, Ui.Accent.Color.R, Ui.Accent.Color.G, Ui.Accent.Color.B)) : Ui.Elevated;
+            entry.Value.Background = active ? Ui.PrimarySubtle : Ui.Elevated;
             foreach (var text in ((StackPanel)entry.Value.Content!).Children.OfType<TextBlock>()) text.Foreground = active ? Ui.Accent : Ui.Muted;
             ((Border)((StackPanel)entry.Value.Content!).Children[0]).Background = active ? Ui.Accent : Ui.Muted;
         }
         body.Content = name switch { "Line width" => LineWidth(), "Layout" => LayoutSettings(), "Projects" => ProjectSettings(), "GitHub" => GitHubSettings(), _ => Appearance() };
+    }
+
+    /// <summary>The device's appearance can change while Settings is open; keep the current system resolution accurate.</summary>
+    private void SystemThemeChanged()
+    {
+        if (section == "Appearance" && profile.Data.Preferences.ThemeMode == "system") ShowSection(section);
     }
 
     private void Save()
@@ -87,31 +94,117 @@ public sealed partial class SettingsWindow : Window
     private Control Appearance()
     {
         var panel = Page("AppearancePage");
-        var themes = PageControl<StackPanel>(panel, "ThemeChoices");
-        foreach (var theme in new[] { "dark", "light", "system" })
+        var preferences = profile.Data.Preferences;
+        var system = preferences.ThemeMode == "system";
+        var pair = preferences.SystemThemePair ?? Themes.DerivePair(preferences.Theme);
+        var modes = PageControl<StackPanel>(panel, "ThemeModeChoices");
+        foreach (var (mode, label, description) in new[]
         {
-            var button = Ui.Button(char.ToUpperInvariant(theme[0]) + theme[1..], () =>
-            { profile.Data.Preferences.Theme = theme; Save(); ShowSection(section); });
-            button.Padding = new(12, 8); button.Height = 36;
-            button.HorizontalAlignment = HorizontalAlignment.Stretch;
-            button.HorizontalContentAlignment = HorizontalAlignment.Stretch;
-            var active = profile.Data.Preferences.Theme == theme;
-            var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
-            Ui.Place(row, Ui.Text(char.ToUpperInvariant(theme[0]) + theme[1..], active ? Ui.TextBrush : Ui.Muted));
-            if (active) Ui.Place(row, Ui.Icon("check", Ui.Accent), 0, 1);
-            button.Content = row;
-            button.Background = active ? new SolidColorBrush(Color.FromArgb(26, Ui.Accent.Color.R, Ui.Accent.Color.G, Ui.Accent.Color.B)) : Ui.Elevated;
-            button.BorderBrush = active ? Ui.PrimaryMuted : Ui.BorderBrush;
-            button.Resources["ButtonBackgroundPointerOver"] = Ui.Hover;
-            button.Resources["ButtonBackgroundPressed"] = Ui.Hover;
-            button.Name = "Theme_" + theme;
-            AutomationProperties.SetName(button, char.ToUpperInvariant(theme[0]) + theme[1..]);
-            themes.Children.Add(button);
+            ("fixed", "Fixed", "Use one theme everywhere."),
+            ("system", "Match system", "Follow this device’s light or dark setting.")
+        })
+            modes.Children.Add(Choice("ThemeMode_" + mode, label, description, preferences.ThemeMode == mode, () =>
+            {
+                if (preferences.ThemeMode == mode) return;
+                preferences.ThemeMode = mode;
+                if (mode == "system") preferences.SystemThemePair = pair;
+                Save(); ShowSection(section);
+            }));
+        var themes = PageControl<StackPanel>(panel, "ThemeChoices");
+        themes.IsVisible = !system;
+        var fixedTheme = Themes.Resolve(preferences.Theme);
+        foreach (var theme in Themes.All)
+        {
+            var choice = Choice("Theme_" + theme.Id, theme.Label, null, theme == fixedTheme, () =>
+            { preferences.Theme = theme.Id; preferences.ThemeMode = "fixed"; Save(); ShowSection(section); });
+            choice.Tag = theme;
+            themes.Children.Add(choice);
+        }
+        PageControl<StackPanel>(panel, "SystemThemes").IsVisible = system;
+        if (system)
+        {
+            var systemPreferences = new Preferences { Theme = preferences.Theme, ThemeMode = "system", SystemThemePair = pair };
+            var current = PageControl<StackPanel>(panel, "SystemThemeCurrentValue");
+            var appearance = Themes.SystemAppearance;
+            current.Children.Add(Ui.Text(appearance == "light" ? "Light" : "Dark", Ui.TextBrush));
+            current.Children.Add(Ui.Icon("arrowRight", Ui.Muted, 14));
+            current.Children.Add(Ui.Icon("palette", Ui.Muted, 14));
+            current.Children.Add(Ui.Text(Themes.Resolve(systemPreferences, appearance).Theme.Label, Ui.TextBrush));
+            foreach (var slot in new[] { "light", "dark" })
+            {
+                var resolution = Themes.Resolve(systemPreferences, slot);
+                SystemThemeSelector(panel, slot, resolution, id =>
+                {
+                    var next = new SystemThemePair { Light = slot == "light" ? id : pair.Light, Dark = slot == "dark" ? id : pair.Dark };
+                    if (next.Light == pair.Light && next.Dark == pair.Dark) return;
+                    preferences.SystemThemePair = next; Save(); ShowSection(section);
+                });
+            }
         }
         var size = PageControl<NumericUpDown>(panel, "InterfaceSize");
         size.Value = (decimal)profile.Data.Preferences.FontSize;
         size.ValueChanged += (_, _) => { if (size.Value is not null) { profile.Data.Preferences.FontSize = (double)size.Value; Save(); } };
         return panel;
+    }
+
+    private static Button Choice(string name, string label, string? description, bool active, Action select)
+    {
+        var button = Ui.Button(label, select);
+        button.Name = name;
+        button.Padding = new(12, 8); button.MinHeight = 36;
+        button.HorizontalAlignment = HorizontalAlignment.Stretch;
+        button.HorizontalContentAlignment = HorizontalAlignment.Stretch;
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), RowDefinitions = new RowDefinitions("Auto,Auto") };
+        Ui.Place(row, Ui.Text(label, active || description is not null ? Ui.TextBrush : Ui.Muted));
+        if (description is not null) Ui.Place(row, Ui.Text(description, Ui.Muted, 12), 1);
+        if (active) { var check = Ui.Icon("check", Ui.Accent); Grid.SetRowSpan(check, 2); Ui.Place(row, check, 0, 1); }
+        button.Content = row;
+        button.Background = active ? Ui.PrimarySubtle : Ui.Elevated;
+        button.BorderBrush = active ? Ui.PrimaryMuted : Ui.BorderBrush;
+        button.Resources["ButtonBackgroundPointerOver"] = Ui.Hover;
+        button.Resources["ButtonBackgroundPressed"] = Ui.Hover;
+        AutomationProperties.SetName(button, label);
+        return button;
+    }
+
+    private static void SystemThemeSelector(Control panel, string appearance, ThemeResolution resolution, Action<string> select)
+    {
+        var label = appearance == "light" ? "Light theme" : "Dark theme";
+        var trigger = PageControl<Button>(panel, $"SystemTheme_{appearance}_trigger");
+        var content = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
+        Ui.Place(content, Ui.Text(resolution.Theme.Label, Ui.TextBrush));
+        Ui.Place(content, Ui.Icon("arrowDown", Ui.Muted), 0, 1);
+        trigger.Content = content;
+        trigger.Resources["ButtonBackgroundPointerOver"] = Ui.Hover;
+        trigger.Resources["ButtonBackgroundPressed"] = Ui.Hover;
+        AutomationProperties.SetName(trigger, $"{label}: {resolution.Theme.Label}");
+        var menu = new ContextMenu
+        {
+            Background = Ui.Elevated,
+            BorderBrush = Ui.BorderBrush,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(6),
+            Padding = new Thickness(4),
+            Foreground = Ui.TextBrush,
+            FontFamily = Ui.InterfaceFont,
+            FontWeight = Ui.InterfaceWeight
+        };
+        menu.Resources["MenuFlyoutItemBackgroundPointerOver"] = Ui.Hover;
+        menu.Resources["MenuFlyoutItemBackgroundPressed"] = Ui.Hover;
+        menu.Resources["MenuFlyoutItemForegroundPointerOver"] = Ui.TextBrush;
+        foreach (var theme in Themes.All.Where(theme => theme.Appearance == appearance))
+        {
+            var item = Ui.Menu(theme.Label, () => select(theme.Id));
+            item.Name = $"SystemTheme_{appearance}_option_{theme.Id}";
+            item.Foreground = Ui.TextBrush;
+            item.Icon = theme == resolution.Theme ? Ui.Icon("check", Ui.Accent, 14) : null;
+            menu.Items.Add(item);
+        }
+        trigger.ContextMenu = menu;
+        trigger.Click += (_, _) => { menu.MinWidth = trigger.Bounds.Width; menu.Open(trigger); };
+        var fallback = PageControl<TextBlock>(panel, $"SystemTheme_{appearance}_fallback");
+        fallback.IsVisible = resolution.Fallback;
+        fallback.Text = $"Configured theme unavailable in this app version. Using {resolution.Theme.Label}.";
     }
 
     private Control LineWidth()

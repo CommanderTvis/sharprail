@@ -14,6 +14,7 @@ public sealed partial class App : Application
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
+        Ui.ApplyResources(this);
         foreach (var state in new[] { "Selected", "SelectedPointerOver", "SelectedPressed" })
             Resources["TreeViewItemBackground" + state] = Ui.Hover;
     }

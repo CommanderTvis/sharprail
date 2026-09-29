@@ -1,8 +1,7 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:rendering="using:SharpRail.UI.Rendering"
-             x:Class="SharpRail.UI.App"
-             RequestedThemeVariant="Dark">
+             x:Class="SharpRail.UI.App">
   <Application.Resources>
     <x:Double x:Key="TreeViewItemIndent">12</x:Double>
   </Application.Resources>
@@ -25,11 +24,11 @@
     </Style>
     <Style Selector="SelectableTextBlock">
       <Setter Property="SelectionBrush" Value="{x:Static rendering:Ui.TextSelection}" />
-      <Setter Property="SelectionForegroundBrush" Value="{x:Null}" />
+      <Setter Property="SelectionForegroundBrush" Value="{DynamicResource ThemeSelectionForeground}" />
     </Style>
     <Style Selector="TextBox">
       <Setter Property="SelectionBrush" Value="{x:Static rendering:Ui.TextSelection}" />
-      <Setter Property="SelectionForegroundBrush" Value="{x:Null}" />
+      <Setter Property="SelectionForegroundBrush" Value="{DynamicResource ThemeSelectionForeground}" />
     </Style>
     <Style Selector="FlyoutPresenter.tab-search">
       <Setter Property="Padding" Value="0" />

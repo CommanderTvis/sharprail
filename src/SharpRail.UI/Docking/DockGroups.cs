@@ -230,24 +230,14 @@ public sealed partial class DockSurface
             appendTargets[group.Id] = append;
         }
         var actions = new StackPanel { Orientation = Orientation.Horizontal };
-        Border Fade(bool left)
+        Border Fade(bool left) => new()
         {
-            var color = Ui.Elevated.Color;
-            return new Border
-            {
-                Name = (left ? "TabOverflowBefore_" : "TabOverflowAfter_") + group.Id,
-                Width = 16,
-                IsHitTestVisible = false,
-                HorizontalAlignment = left ? HorizontalAlignment.Left : HorizontalAlignment.Right,
-                Background = new LinearGradientBrush
-                {
-                    StartPoint = new RelativePoint(0, 0, RelativeUnit.Relative),
-                    EndPoint = new RelativePoint(1, 0, RelativeUnit.Relative),
-                    GradientStops = [new GradientStop { Color = left ? color : Colors.Transparent, Offset = 0 },
-                        new GradientStop { Color = left ? Colors.Transparent : color, Offset = 1 }]
-                }
-            };
-        }
+            Name = (left ? "TabOverflowBefore_" : "TabOverflowAfter_") + group.Id,
+            Width = 16,
+            IsHitTestVisible = false,
+            HorizontalAlignment = left ? HorizontalAlignment.Left : HorizontalAlignment.Right,
+            Background = left ? Ui.FadeFromElevated : Ui.FadeToElevated
+        };
         var leftFade = Fade(true); var rightFade = Fade(false);
         Ui.Place(header, leftFade); Ui.Place(header, rightFade);
         var overflow = Ui.IconButton("search", "Search open tabs", () => ShowOverflow(group.Id));
