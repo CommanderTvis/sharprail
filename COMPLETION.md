@@ -4,7 +4,7 @@ The goal remains active. Passing functional checks does not prove the complete
 visual and docking contract. This ledger preserves the original scope and
 identifies the evidence still needed before declaring completion.
 
-The authoritative upstream is [JetBrains/thinkrail:main](https://github.com/JetBrains/thinkrail/tree/main).
+On `main` the authoritative upstream is [CommanderTvis/thinkrail:claude-code-integration-plugin-api](https://github.com/CommanderTvis/thinkrail/tree/claude-code-integration-plugin-api), which is [JetBrains/thinkrail:main](https://github.com/JetBrains/thinkrail/tree/main) plus the fork; the `upstream` branch tracks JetBrains alone (see `UPSTREAM.md`).
 Reference authorities are `SPEC.md`, Thinkrail's
 `apps/web/src/shell/layout/SPEC.md`, its actual `Workbench.tsx`/`model.ts`,
 `SettingsDialog`, `MarkdownPreview`, project views, and
