@@ -263,6 +263,17 @@ public sealed partial class WorkbenchWindow
                 else expandedFolders.Remove(file.Path);
             };
             if (node.IsExpanded) _ = Expand();
+            // Like the reference tree, a single click on the folder's own row toggles it. The tree's built-in
+            // double-tap toggle is suppressed there so a double click does not undo the first click.
+            node.AddHandler(PointerPressedEvent, (_, e) =>
+            {
+                if (e.Source is not Control source || !IsOwnHeader(node, source) || !e.GetCurrentPoint(node).Properties.IsLeftButtonPressed) return;
+                // The chevron's own toggle already expands and collapses the folder.
+                if (source is ToggleButton || source.GetVisualAncestors().OfType<ToggleButton>().Any()) return;
+                if (e.ClickCount == 1) node.IsExpanded = !node.IsExpanded;
+            }, RoutingStrategies.Bubble, handledEventsToo: true);
+            // Double taps only bubble; handling them on the row content keeps them from the header's own toggle.
+            ((Control)node.Header!).DoubleTapped += (_, e) => e.Handled = true;
         }
         else node.AddHandler(PointerPressedEvent, (_, e) =>
         {

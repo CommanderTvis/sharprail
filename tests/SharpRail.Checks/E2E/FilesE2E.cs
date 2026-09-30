@@ -27,5 +27,18 @@ internal static class FilesE2E
         Require(Node("compact/only", true)!.IsExpanded && Node("here", true)!.IsExpanded,
             "Splitting a compacted run must keep the expanded folders open.");
         Console.WriteLine("PASS upstream files.spec.ts: shows files and compacts single-directory runs in the Files tree");
+
+        // A single click on a folder's name toggles it, like the reference tree; a double click must not undo that.
+        Directory.CreateDirectory(Path.Combine(workspace, "single"));
+        File.WriteAllText(Path.Combine(workspace, "single", "inside.txt"), "inside\n");
+        Until(() => Node("single", true) is not null);
+        app.Click(app.FileRow("single"));
+        Until(() => Node("single", true)!.IsExpanded && Node("inside.txt", false) is not null);
+        app.Click(app.FileRow("single"));
+        Until(() => !Node("single", true)!.IsExpanded);
+        app.Click(app.FileRow("single"), twice: true);
+        Settle();
+        Require(Node("single", true)!.IsExpanded, "A double click on a folder must leave it toggled once, not twice.");
+        Console.WriteLine("PASS files tree folders toggle on a single click of their name");
     }
 }
