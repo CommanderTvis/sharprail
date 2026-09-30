@@ -87,6 +87,15 @@ public sealed partial class WorkbenchWindow
         foreach (var project in state.Current.Projects)
         {
             var row = new Grid { Name = "ProjectRow", ColumnDefinitions = new ColumnDefinitions("16,4,*,Auto"), Height = 28, Margin = new Thickness(4, 0), Background = Avalonia.Media.Brushes.Transparent, Tag = project };
+            // Like the reference rail, the selected project is one rounded highlight across the whole row.
+            var highlight = new Border
+            {
+                Name = "ProjectHighlight",
+                Tag = project,
+                Child = row,
+                CornerRadius = new CornerRadius(4),
+                Background = atHome && project == projectRoot ? Ui.Hover : Avalonia.Media.Brushes.Transparent
+            };
             var collapsed = profile.Data.CollapsedProjects.Contains(project);
             var toggle = Ui.IconButton(collapsed ? "arrowRight" : "arrowDown", collapsed ? "Expand project" : "Collapse project", () =>
             {
@@ -106,7 +115,7 @@ public sealed partial class WorkbenchWindow
             Ui.Place(projectLabel, Ui.Icon("folderFill", project == projectRoot ? Ui.Accent : Ui.Muted, 14));
             Ui.Place(projectLabel, Ui.Text(new DirectoryInfo(project).Name, project == projectRoot ? Ui.TextBrush : Ui.Muted), 0, 2);
             select.Content = projectLabel;
-            select.Background = atHome && project == projectRoot ? Ui.Hover : Avalonia.Media.Brushes.Transparent;
+            select.Background = Avalonia.Media.Brushes.Transparent;
             select.BorderThickness = new(0); select.Padding = new Thickness(0);
             select.HorizontalAlignment = HorizontalAlignment.Stretch; select.HorizontalContentAlignment = HorizontalAlignment.Stretch;
             ToolTip.SetTip(select, project); Ui.Place(row, select, 0, 2);
@@ -134,7 +143,7 @@ public sealed partial class WorkbenchWindow
                 trailing.Children.Add(add);
                 Ui.Place(row, trailing, 0, 3);
             }
-            tree.Children.Add(row);
+            tree.Children.Add(highlight);
             if (project != projectRoot || collapsed) continue;
             var worktrees = git.Worktrees.Count > 0 ? git.Worktrees : new[] { new WorktreeInfo(projectRoot, "", true, false) };
             foreach (var worktree in worktrees) tree.Children.Add(WorkspaceItem(worktree));

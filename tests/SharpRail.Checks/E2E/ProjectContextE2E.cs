@@ -15,6 +15,12 @@ internal static class ProjectContextE2E
         using var git = new IsolatedGit(Path.Combine(root, "project-context-git"));
         var directory = Path.Combine(root, "project-context");
         using var app = OpenFixtureProject(directory);
+        // SharpRail regression: the selected project is highlighted as one rounded row, chevron and add button included.
+        var highlight = Controls(app).OfType<Border>().Single(border => border.Name == "ProjectHighlight" && Equals(border.Tag, app.Root));
+        Require(highlight.Child is Grid { Name: "ProjectRow" } && highlight.Background is Avalonia.Media.ISolidColorBrush { Color: var fill } &&
+            fill == SharpRail.UI.Rendering.Ui.Hover.Color && highlight.CornerRadius.TopLeft > 0 &&
+            ProjectName(app, app.Root).Background is Avalonia.Media.ISolidColorBrush { Color.A: 0 },
+            "The selected project must highlight its whole row, not only its name.");
         var workspace = CreateWorkspaceViaDialog(app);
         var fixture = app.Root;
 
