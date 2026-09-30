@@ -20,6 +20,11 @@ public static class Ui
     public static readonly SolidColorBrush Muted = new();
     public static readonly SolidColorBrush Hint = new();
     public static readonly SolidColorBrush Accent = new();
+    // The reference's control-primary tokens: the solid primary button fill, its hover step and its label.
+    public static readonly SolidColorBrush PrimaryFill = new();
+    public static readonly SolidColorBrush PrimaryFillHover = new();
+    public static readonly SolidColorBrush OnPrimary = new();
+    public static readonly SolidColorBrush DialogShadow = new();
     public static readonly SolidColorBrush PrimarySubtle = new();
     public static readonly SolidColorBrush PrimaryMuted = new();
     public static readonly SolidColorBrush BorderBrush = new();
@@ -63,6 +68,10 @@ public static class Ui
         Muted.Color = theme["muted"];
         Hint.Color = theme["hint"];
         Accent.Color = theme["accent"];
+        PrimaryFill.Color = theme["accentSolid"];
+        PrimaryFillHover.Color = theme["accentHover"];
+        OnPrimary.Color = theme["onAccent"];
+        DialogShadow.Color = Color.FromArgb(theme.IsLight ? (byte)36 : (byte)102, 0, 0, 0);
         PrimarySubtle.Color = Alpha(theme["accent"], 10);
         PrimaryMuted.Color = Alpha(theme["accent"], 40);
         BorderBrush.Color = theme["borderStrong"];

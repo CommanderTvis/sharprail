@@ -2,15 +2,40 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:rendering="using:SharpRail.UI.Rendering"
         x:Class="SharpRail.UI.Panels.DialogWindow"
-        CanResize="False" WindowStartupLocation="CenterOwner"
-        Background="{x:Static rendering:Ui.Surface}" Foreground="{x:Static rendering:Ui.TextBrush}"
+        CanResize="False" WindowStartupLocation="CenterOwner" SizeToContent="Height"
+        SystemDecorations="None" TransparencyLevelHint="Transparent" Background="Transparent"
+        ShowInTaskbar="False"
+        Foreground="{x:Static rendering:Ui.TextBrush}"
         FontFamily="{x:Static rendering:Ui.InterfaceFont}" FontSize="14">
-  <StackPanel x:Name="DialogBody" Margin="20" Spacing="10">
-    <TextBlock x:Name="DialogHeading" FontSize="18" FontWeight="370"
-               VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
-    <TextBlock x:Name="DialogExplanation" IsVisible="False" TextWrapping="Wrap"
-               Foreground="{x:Static rendering:Ui.Muted}" />
-    <StackPanel x:Name="DialogFields" Spacing="10" />
-    <StackPanel x:Name="DialogActions" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" />
-  </StackPanel>
+  <!-- The reference's dialog card: 8px radius, default border, elevated surface, 16px padding and
+       gaps, and its large shadow. The window is borderless and transparent; the margin leaves room
+       for the shadow, and the owner dims behind it (DialogWindow.cs). -->
+  <Window.Styles>
+    <Style Selector="Border#DialogCard Button">
+      <Setter Property="Height" Value="32" />
+      <Setter Property="Padding" Value="12,0" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border#DialogCard Button.primary">
+      <Setter Property="Background" Value="{x:Static rendering:Ui.PrimaryFill}" />
+      <Setter Property="Foreground" Value="{x:Static rendering:Ui.OnPrimary}" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="Border#DialogCard Button.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter, Border#DialogCard Button.primary:pressed /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{x:Static rendering:Ui.PrimaryFillHover}" />
+      <Setter Property="Foreground" Value="{x:Static rendering:Ui.OnPrimary}" />
+    </Style>
+  </Window.Styles>
+  <Border x:Name="DialogCard" Margin="24" Padding="16" CornerRadius="8" BorderThickness="1"
+          Background="{x:Static rendering:Ui.Elevated}" BorderBrush="{x:Static rendering:Ui.BorderBrush}">
+    <StackPanel x:Name="DialogBody" Spacing="16">
+      <StackPanel Spacing="4">
+        <TextBlock x:Name="DialogHeading" FontSize="14" FontWeight="SemiBold" TextWrapping="Wrap" />
+        <TextBlock x:Name="DialogExplanation" IsVisible="False" TextWrapping="Wrap" FontSize="14"
+                   Foreground="{x:Static rendering:Ui.Muted}" />
+      </StackPanel>
+      <StackPanel x:Name="DialogFields" Spacing="10" />
+      <StackPanel x:Name="DialogActions" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" />
+    </StackPanel>
+  </Border>
 </Window>

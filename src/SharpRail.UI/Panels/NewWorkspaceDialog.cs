@@ -34,7 +34,7 @@ public sealed class NewWorkspaceDialog
     {
         this.catalog = catalog;
         selected = catalog.DefaultBase;
-        Window = Dialogs.Create("Create workspace", 560, 360);
+        Window = Dialogs.Create("Create workspace", 560);
         Window.Tag = "NewWorkspaceDialog";
         heading = Window.FindControl<TextBlock>("DialogHeading")!;
         description = Window.FindControl<TextBlock>("DialogExplanation")!;
@@ -93,7 +93,7 @@ public sealed class NewWorkspaceDialog
         var actions = Window.FindControl<StackPanel>("DialogActions")!;
         actions.Children.Add(Ui.Button("Cancel", () => Window.Close(null)));
         create = Ui.Button("Create", () => Window.Close(new NewWorkspaceChoice(inFolder, selected, this.catalog.SuggestedPath, this.catalog.SuggestedBranch)));
-        create.Name = "WsCreate"; create.IsDefault = true;
+        create.Name = "WsCreate"; create.IsDefault = true; Dialogs.Primary(create);
         actions.Children.Add(create);
         Window.Opened += (_, _) => create.Focus();
         Render();

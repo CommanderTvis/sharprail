@@ -397,17 +397,24 @@ public sealed partial class WorkbenchWindow : Window
         FontSize = Preferences.FontSize;
     }
 
-    public void ShowSettings()
+    /// <summary>Dims the workbench behind a modal, like the reference's overlay; the returned action removes it.</summary>
+    internal Action Dim()
     {
         var scrim = new Border { Background = new SolidColorBrush(Colors.Black, .5) };
         Grid.SetRowSpan(scrim, 3);
         root.Children.Add(scrim);
+        return () => root.Children.Remove(scrim);
+    }
+
+    public void ShowSettings()
+    {
+        var undim = Dim();
         var settings = new SettingsWindow(this, () =>
         {
             ApplyAppearance(); ClearDocumentContent(preserveDocuments: true); toolContent.Clear(); surface.RefreshContents();
             ReportProfileError();
         }, GitHubStatusProbe);
-        settings.Closed += (_, _) => root.Children.Remove(scrim);
+        settings.Closed += (_, _) => undim();
         _ = settings.ShowDialog(this);
     }
 }

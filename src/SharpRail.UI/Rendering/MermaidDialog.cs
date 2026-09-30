@@ -16,7 +16,10 @@ internal static class MermaidDialog
 
     internal static void Show(Window owner, SvgSource diagram)
     {
-        var window = Dialogs.Create("Diagram", Math.Max(480, owner.Bounds.Width * 0.95), Math.Max(360, owner.Bounds.Height * 0.9));
+        var window = Dialogs.Create("Diagram", Math.Max(480, owner.Bounds.Width * 0.95));
+        // The viewer fills a fixed fraction of the owner rather than sizing the dialog to its content.
+        window.SizeToContent = SizeToContent.Manual;
+        window.Height = Math.Max(360, owner.Bounds.Height * 0.9);
         window.CanResize = true;
         var zoom = 1.0;
         var image = new Image { Source = new SvgImage { Source = diagram }, Stretch = Stretch.Uniform, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
