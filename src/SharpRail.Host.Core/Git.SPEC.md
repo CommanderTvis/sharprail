@@ -27,7 +27,8 @@ and worktree listing. Exposed through `IProjectServices` (`GetGitAsync`, `ListCo
 ## Runner
 
 `RunAsync(root, ct, args)` starts `git` asynchronously with `--literal-pathspecs` and
-`core.quotepath=false`, in the workspace root, with `LC_ALL=C`. It reads both streams to completion,
+`core.quotepath=false`, in the workspace root, with `LC_ALL=C` and `GIT_OPTIONAL_LOCKS=0` so background status refreshes never
+hold `index.lock` against the user's own Git commands. It reads both streams to completion,
 throws an `IOException` carrying Git's trimmed stderr and exit code on a nonzero exit, and kills the whole
 process tree on cancellation. Semantic probes distinguish an expected exit (for example exit 1 from
 `merge-base` or `symbolic-ref -q`) from any other failure by that exit code; nothing else is swallowed.

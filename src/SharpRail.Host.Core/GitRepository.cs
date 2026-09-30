@@ -16,6 +16,8 @@ internal static class GitRepository
             CreateNoWindow = true
         };
         start.Environment["LC_ALL"] = "C";
+        // Background status refreshes must not take index.lock away from the user's own Git commands.
+        start.Environment["GIT_OPTIONAL_LOCKS"] = "0";
         start.ArgumentList.Add("--literal-pathspecs");
         start.ArgumentList.Add("-c");
         start.ArgumentList.Add("core.quotepath=false");
