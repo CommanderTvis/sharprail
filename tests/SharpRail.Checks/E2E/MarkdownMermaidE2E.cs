@@ -16,6 +16,7 @@ internal static class MarkdownMermaidE2E
 
     internal static void Run(string root)
     {
+        if (!OperatingSystem.IsMacOS()) { Console.WriteLine("SKIP macOS Mermaid rendering"); return; }
         using var app = new E2eWorkspace(Path.Combine(root, "markdown-mermaid"));
         app.Open("DIAGRAM.md", true);
         var preview = app.Find<MarkdownPreview>("MarkdownPreview");
