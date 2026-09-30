@@ -64,7 +64,7 @@ internal static class ProjectChecks
             await local.OpenProjectAsync(broken);
             try { await local.GetGitAsync(); throw new InvalidOperationException("Broken Git metadata was hidden as a non-repository."); }
             // Git's wording differs by version; its detail always names the broken folder.
-            catch (IOException error) { Require(GitDetail(error.Message, broken), "Git probe failure detail was lost."); }
+            catch (IOException error) { Require(GitDetail(error.Message, broken), $"Git probe failure detail was lost: {error.Message}"); }
             await remote.OpenProjectAsync(broken);
             try { await remote.GetGitAsync(); throw new InvalidOperationException("Remote Git probe failure was hidden."); }
             catch (Grpc.Core.RpcException error)
