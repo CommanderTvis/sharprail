@@ -104,10 +104,10 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
         var currentRoot = root;
         Resolve(currentRoot, path);
         if (scope is not ("untracked" or "staged" or "working" or "all" or "uncommitted" or "branch" or "commit")) throw new ArgumentException("Unknown diff scope.");
-        if (scope == "untracked") return (await ReadFileAsync(path, cancellationToken)).Text;
+        if (scope == "untracked") return AddedDiff(path, (await ReadFileAsync(path, cancellationToken)).Text);
         if (scope == "uncommitted" &&
             (await GitRepository.RunAsync(currentRoot, cancellationToken, "ls-files", "--others", "--exclude-standard", "-z", "--", path)).Length > 0)
-            return (await ReadFileAsync(path, cancellationToken)).Text;
+            return AddedDiff(path, (await ReadFileAsync(path, cancellationToken)).Text);
         if (scope == "commit")
         {
             var commit = await GitRepository.CommitDiffArgumentsAsync(currentRoot, comparisonBranch, cancellationToken);
@@ -126,11 +126,24 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
         {
             var baseline = await GitRepository.ComparisonBaseAsync(currentRoot, comparisonBranch, cancellationToken);
             if ((await GitRepository.RunAsync(currentRoot, cancellationToken, "ls-files", "--others", "--exclude-standard", "-z", "--", path)).Length > 0)
-                return (await ReadFileAsync(path, cancellationToken)).Text;
+                return AddedDiff(path, (await ReadFileAsync(path, cancellationToken)).Text);
             args.Add(baseline);
         }
         args.Add("--"); args.Add(path);
         return await GitRepository.RunAsync(currentRoot, cancellationToken, args.ToArray());
+    }
+
+    /// <summary>Git's unified diff for a new file, which <c>git diff</c> cannot produce for untracked paths.</summary>
+    private static string AddedDiff(string path, string text)
+    {
+        var diff = new StringBuilder($"diff --git a/{path} b/{path}\nnew file mode 100644\n--- /dev/null\n+++ b/{path}\n");
+        if (text.Length == 0) return diff.ToString();
+        var lines = text.Split('\n');
+        var count = text.EndsWith('\n') ? lines.Length - 1 : lines.Length;
+        diff.Append(count == 1 ? "@@ -0,0 +1 @@\n" : $"@@ -0,0 +1,{count} @@\n");
+        for (var index = 0; index < count; index++) diff.Append('+').Append(lines[index]).Append('\n');
+        if (!text.EndsWith('\n')) diff.Append("\\ No newline at end of file\n");
+        return diff.ToString();
     }
 
     public async ValueTask<DiffSides> GetDiffSidesAsync(string path, string scope, string comparisonBranch = "", CancellationToken cancellationToken = default)

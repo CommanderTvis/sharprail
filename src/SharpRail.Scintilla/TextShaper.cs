@@ -20,10 +20,15 @@ internal sealed class TextShaper(SKTypeface typeface) : IDisposable
     internal sealed record GlyphRun(SKFont Font, ushort[] Glyphs, SKPoint[] Positions, int[] Clusters);
 
     private const int CachedTexts = 4096;
-    private readonly Dictionary<(SKFont Font, int Direction), Dictionary<byte[], Shaped>> cache = [];
+    // Two generations: a full current generation becomes the previous one, and a hit there moves back,
+    // so a pass over the whole document (idle wrapping) does not evict the lines on screen.
+    private readonly Dictionary<(SKFont Font, int Direction), (Dictionary<byte[], Shaped> Current, Dictionary<byte[], Shaped> Previous)> cache = [];
     private readonly Dictionary<SKTypeface, (Face Face, HarfBuzzFont Font)> harfBuzz = [];
     private readonly Dictionary<(SKFont Font, SKTypeface Face), SKFont> variants = [];
     private readonly SKFont coverage = new(typeface);
+    // Most graphemes are one code point, whose font never changes.
+    private readonly Dictionary<int, SKTypeface> runeFaces = [];
+    private readonly Buffer buffer = new();
     // System fonts are immutable and shared by every editor on the UI thread; they are never disposed.
     private static readonly SKTypeface? Emoji = SKFontManager.Default.MatchCharacter(0x1F600);
     private static readonly SKFont? EmojiCoverage = Emoji is null ? null : new(Emoji);
@@ -34,12 +39,22 @@ internal sealed class TextShaper(SKTypeface typeface) : IDisposable
     internal Shaped Shape(SKFont font, ReadOnlySpan<byte> text, int direction)
     {
         if (!cache.TryGetValue((font, direction), out var entries))
-            cache.Add((font, direction), entries = new(ByteComparer.Instance));
-        var lookup = entries.GetAlternateLookup<ReadOnlySpan<byte>>();
-        if (lookup.TryGetValue(text, out var shaped)) return shaped;
-        if (entries.Count >= CachedTexts) entries.Clear();
-        shaped = Build(font, text, direction);
-        lookup.TryAdd(text, shaped);
+            cache.Add((font, direction), entries = (new(ByteComparer.Instance), new(ByteComparer.Instance)));
+        var current = entries.Current.GetAlternateLookup<ReadOnlySpan<byte>>();
+        if (current.TryGetValue(text, out var shaped)) return shaped;
+        if (entries.Previous.GetAlternateLookup<ReadOnlySpan<byte>>().TryGetValue(text, out shaped)) { }
+        else
+        {
+            shaped = Build(font, text, direction);
+        }
+        if (entries.Current.Count >= CachedTexts)
+        {
+            entries = (entries.Previous, entries.Current);
+            entries.Current.Clear();
+            cache[(font, direction)] = entries;
+            current = entries.Current.GetAlternateLookup<ReadOnlySpan<byte>>();
+        }
+        current.TryAdd(text, shaped);
         return shaped;
     }
 
@@ -62,7 +77,9 @@ internal sealed class TextShaper(SKTypeface typeface) : IDisposable
         var graphemeFaces = new List<SKTypeface>();
         for (var i = 0; i < length;)
         {
-            var size = StringInfo.GetNextTextElementLength(chars.AsSpan(i, length - i));
+            // Below U+0300 nothing extends a cluster, so such a character before another is a grapheme of its own; CR LF is the exception.
+            var size = chars[i] < 0x300 && chars[i] != '\r' && (i + 1 == length || chars[i + 1] < 0x300) ? 1
+                : StringInfo.GetNextTextElementLength(chars.AsSpan(i, length - i));
             graphemeFaces.Add(FaceFor(chars.AsSpan(i, size)));
             ends.Add(byteAt[i + size]);
             i += size;
@@ -94,7 +111,7 @@ internal sealed class TextShaper(SKTypeface typeface) : IDisposable
         float[] advances, bool[] clusterStart)
     {
         var (harfBuzzFace, harfBuzzFont) = HarfBuzz(face);
-        using var buffer = new Buffer();
+        buffer.ClearContents();
         buffer.AddUtf8(utf8, start, length);
         buffer.GuessSegmentProperties();
         if (direction >= 0) buffer.Direction = direction == 1 ? Direction.RightToLeft : Direction.LeftToRight;
@@ -140,7 +157,15 @@ internal sealed class TextShaper(SKTypeface typeface) : IDisposable
 
     private SKTypeface FaceFor(ReadOnlySpan<char> grapheme)
     {
-        Rune.DecodeFromUtf16(grapheme, out var first, out _);
+        Rune.DecodeFromUtf16(grapheme, out var first, out var used);
+        if (used != grapheme.Length) return MatchFace(grapheme, first);
+        if (runeFaces.TryGetValue(first.Value, out var face)) return face;
+        runeFaces.Add(first.Value, face = MatchFace(grapheme, first));
+        return face;
+    }
+
+    private SKTypeface MatchFace(ReadOnlySpan<char> grapheme, Rune first)
+    {
         if (EmojiCoverage is not null && IsEmoji(grapheme) && EmojiCoverage.ContainsGlyph(first.Value)) return Emoji!;
         foreach (var rune in grapheme.EnumerateRunes())
             if (!IsIgnorable(rune.Value) && !coverage.ContainsGlyph(rune.Value))
@@ -209,8 +234,8 @@ internal sealed class TextShaper(SKTypeface typeface) : IDisposable
     {
         foreach (var (face, font) in harfBuzz.Values) { font.Dispose(); face.Dispose(); }
         foreach (var variant in variants.Values) variant.Dispose();
-        coverage.Dispose();
-        harfBuzz.Clear(); variants.Clear(); cache.Clear();
+        coverage.Dispose(); buffer.Dispose();
+        harfBuzz.Clear(); runeFaces.Clear(); variants.Clear(); cache.Clear();
     }
 
     private sealed class ByteComparer : IEqualityComparer<byte[]>, IAlternateEqualityComparer<ReadOnlySpan<byte>, byte[]>

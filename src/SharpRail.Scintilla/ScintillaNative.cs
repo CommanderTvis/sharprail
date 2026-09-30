@@ -30,6 +30,10 @@ internal static unsafe class ScintillaNative
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
     internal static extern nint sr_revision(nint editor);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern int sr_dirty(nint editor);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern void sr_set_dirty(nint editor, int dirty);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
     internal static extern void sr_destroy(nint editor);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
     internal static extern nint sr_send(nint editor, uint message, nuint w, nint l);

@@ -79,8 +79,8 @@ internal static class GitUiChecks
             Change().GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "+2"));
         Click(window, Change());
         Pump(() => window.Layout.State.Workspaces[root].Documents.Values.SelectMany(tabs => tabs).Any(tab => tab.Kind == "diff" && tab.Scope == "uncommitted"));
-        Require(window.GetLogicalDescendants().OfType<SelectableTextBlock>().Any(text =>
-            text.Inlines?.OfType<Run>().Any(run => run.Text?.Contains("Untracked content", StringComparison.Ordinal) == true) == true),
+        Require(window.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().Any(editor =>
+            editor.Text.Contains("Untracked content", StringComparison.Ordinal)),
             "Uncommitted scope did not include the staged-only file and its diff.");
         Invoke(Action(Named("ChangesScope"), "All changes"));
         Pump(() => Action(Named("ChangesScope"), "All changes").IsChecked);

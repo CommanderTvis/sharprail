@@ -1,18 +1,21 @@
+using System.Globalization;
+using System.Text;
 using System.Text.RegularExpressions;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
-using Avalonia.Controls.Documents;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input.Platform;
 using Avalonia.Layout;
 using Avalonia.Media;
+using SharpRail.Scintilla;
+using SharpRail.UI.Editor;
 
 namespace SharpRail.UI.Rendering;
 
 internal sealed partial class DiffView : Grid, IDisposable
 {
-    private sealed record Hunk(int OldStart, int OldCount, string Header, List<string> Lines);
+    private sealed record Hunk(int OldStart, int OldCount, int NewStart, string Header, List<string> Lines);
 
     private readonly Grid body = new();
     private readonly ToggleButton split = Toggle("DiffSplit", "layout", "Side-by-side diff");
@@ -21,19 +24,21 @@ internal sealed partial class DiffView : Grid, IDisposable
     private readonly ToggleButton source = Segment("DiffSource", "Source");
     private readonly ToggleButton rendered = Segment("DiffRendered", "Rendered");
     private readonly double wrapWidth;
-    private readonly Func<CancellationToken, Task<Control>>? renderMerged;
+    private readonly Func<CancellationToken, Task<Control?>>? renderMerged;
     private readonly Action<bool>? renderedChanged;
     private CancellationTokenSource? merge;
     private Control? merged;
+    private readonly List<EditorFrame> frames = [];
     private bool disposed;
     private string text;
 
     /// <summary>
     /// A unified diff viewer. Markdown diffs pass <paramref name="renderMerged"/> to offer the reference's
-    /// Source|Rendered toggle; their source view is always side by side.
+    /// Source|Rendered toggle; their source view is always side by side. A null rendering means the documents
+    /// exceed <see cref="ViewerLimits.RenderedMarkdown"/>, and the view falls back to source.
     /// </summary>
     internal DiffView(string text, string path, double wrapWidth,
-        Func<CancellationToken, Task<Control>>? renderMerged = null, bool showRendered = false, Action<bool>? renderedChanged = null)
+        Func<CancellationToken, Task<Control?>>? renderMerged = null, bool showRendered = false, Action<bool>? renderedChanged = null)
     {
         this.text = text;
         this.wrapWidth = wrapWidth;
@@ -70,7 +75,8 @@ internal sealed partial class DiffView : Grid, IDisposable
         };
         var controls = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Margin = new Thickness(8, 0, 12, 0), VerticalAlignment = VerticalAlignment.Center };
         controls.Children.Add(whitespace); controls.Children.Add(copy);
-        if (renderMerged is null) { controls.Children.Insert(0, inline); controls.Children.Insert(0, split); }
+        // Scintilla is macOS-only; elsewhere the raw diff is shown without view modes.
+        if (renderMerged is null && OperatingSystem.IsMacOS()) { controls.Children.Insert(0, inline); controls.Children.Insert(0, split); }
         else { controls.Children.Add(source); controls.Children.Add(rendered); }
         var header = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(12, 0, 0, 0) };
         Ui.Place(header, chip); Ui.Place(header, controls, 0, 1);
@@ -140,7 +146,7 @@ internal sealed partial class DiffView : Grid, IDisposable
 
         async Task Complete()
         {
-            Control result;
+            Control? result;
             try { result = await renderMerged!(cancellation.Token); }
             catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { return; }
             catch (Exception error)
@@ -150,10 +156,21 @@ internal sealed partial class DiffView : Grid, IDisposable
                 result = Placeholder("RenderedDiffError", "Rendered diff failed — use the Source view.", Ui.Danger);
             }
             if (cancellation.IsCancellationRequested || disposed) { (result as IDisposable)?.Dispose(); return; }
+            if (ReferenceEquals(merge, cancellation)) { merge = null; cancellation.Dispose(); }
+            if (result is null) { RenderedUnavailable(); return; }
             ShowBody(result);
             merged = result;
-            if (ReferenceEquals(merge, cancellation)) { merge = null; cancellation.Dispose(); }
         }
+    }
+
+    // Leaves the tab's Rendered preference alone, so reopening it after the document shrinks renders again.
+    private void RenderedUnavailable()
+    {
+        rendered.IsEnabled = false;
+        ToolTip.SetTip(rendered, "Too large to render — showing the source diff");
+        IsRendered = false;
+        source.IsChecked = true; rendered.IsChecked = false;
+        Render();
     }
 
     private void ShowBody(Control content)
@@ -165,6 +182,8 @@ internal sealed partial class DiffView : Grid, IDisposable
     private void DropMerged()
     {
         body.Children.Clear();
+        foreach (var frame in frames) frame.Editor.Dispose();
+        frames.Clear();
         (merged as IDisposable)?.Dispose();
         merged = null;
     }
@@ -183,7 +202,7 @@ internal sealed partial class DiffView : Grid, IDisposable
         if (disposed) return;
         disposed = true;
         merge?.Cancel(); merge?.Dispose(); merge = null;
-        (merged as IDisposable)?.Dispose(); merged = null;
+        DropMerged();
     }
 
     private static ToggleButton Toggle(string name, string icon, string tooltip)
@@ -208,10 +227,11 @@ internal sealed partial class DiffView : Grid, IDisposable
 
     private void Render()
     {
-        whitespace.IsVisible = !IsRendered;
+        whitespace.IsVisible = !IsRendered && OperatingSystem.IsMacOS();
         if (IsRendered) { StartMerge(keepCurrent: false); return; }
         merge?.Cancel(); merge?.Dispose(); merge = null;
         DropMerged();
+        if (text.Length > ViewerLimits.Scintilla) { Ui.Place(body, ViewerLimits.TooLarge("diff", text.Length)); return; }
         var (preamble, hunks) = Parse(text);
         if (whitespace.IsChecked == true) foreach (var hunk in hunks) IgnoreWhitespace(hunk);
         if (hunks.Count == 0 && string.IsNullOrWhiteSpace(text))
@@ -220,41 +240,95 @@ internal sealed partial class DiffView : Grid, IDisposable
             empty.Name = "DiffEmpty"; empty.Margin = new Thickness(20); empty.HorizontalAlignment = HorizontalAlignment.Left;
             Ui.Place(body, empty); return;
         }
+        if (!OperatingSystem.IsMacOS())
+        {
+            Ui.Place(body, new ScrollViewer { Content = MarkdownPreview.Code(text), Margin = new Thickness(20, 8), HorizontalScrollBarVisibility = ScrollBarVisibility.Auto });
+            return;
+        }
         if (hunks.Count == 0 || inline.IsChecked == true) RenderInline(preamble, hunks);
         else RenderSplit(hunks);
     }
 
+    private enum LineKind { Context, Added, Removed, Header, Meta, Gap, Filler }
+
+    private sealed class Side
+    {
+        internal readonly StringBuilder Text = new();
+        internal readonly List<int> Styles = [];
+        // The old and new file line numbers each row shows in its gutter.
+        internal readonly List<(int? Old, int? New)> Numbers = [];
+
+        internal void Add(string line, LineKind kind, int? old = null, int? @new = null)
+        {
+            if (Styles.Count > 0) Text.Append('\n');
+            Text.Append(line);
+            Styles.Add((int)kind);
+            Numbers.Add((old, @new));
+        }
+
+        internal void AddGap(int hidden) { if (hidden > 0) Add($"⋯ {hidden} hidden lines", LineKind.Gap); }
+
+        internal string?[] Labels(bool old, bool @new)
+        {
+            var width = Numbers.Max(pair => Math.Max(pair.Old ?? 0, pair.New ?? 0)).ToString(CultureInfo.InvariantCulture).Length;
+            string Column(int? number) => (number?.ToString(CultureInfo.InvariantCulture) ?? "").PadLeft(width);
+            return Numbers.Select(pair => pair is (null, null) ? null
+                : old && @new ? Column(pair.Old) + " " + Column(pair.New)
+                : Column(old ? pair.Old : pair.New)).ToArray();
+        }
+    }
+
+    // Indexed by LineKind; Scintilla needs opaque colours, so the washes are composited over the surface.
+    private static ScintillaLineStyle[] LineStyles() =>
+    [
+        new(Ui.Muted.Color),
+        new(Ui.Success.Color, Ui.Over(Ui.SuccessWash.Color, Ui.Surface.Color)),
+        new(Ui.Danger.Color, Ui.Over(Ui.DangerWash.Color, Ui.Surface.Color)),
+        new(Ui.Accent.Color),
+        new(Ui.Muted.Color),
+        new(Ui.Hint.Color),
+        new(Ui.Muted.Color)
+    ];
+
     private void RenderInline(List<string> preamble, List<Hunk> hunks)
     {
-        var block = CodeBlock("DiffInlineText");
-        foreach (var line in preamble) block.Inlines!.Add(new Run(line + "\n") { Foreground = Ui.Muted });
+        var side = new Side();
+        foreach (var line in preamble) side.Add(line, LineKind.Meta);
         var previous = (Hunk?)null;
         foreach (var hunk in hunks)
         {
-            AddGap(block, Gap(previous, hunk));
-            block.Inlines!.Add(new Run(hunk.Header + "\n") { Foreground = Ui.Accent });
-            foreach (var line in hunk.Lines) block.Inlines.Add(new Run(line + "\n") { Foreground = Tint(line) });
+            side.AddGap(Gap(previous, hunk));
+            side.Add(hunk.Header, LineKind.Header);
+            int old = hunk.OldStart, @new = hunk.NewStart;
+            foreach (var line in hunk.Lines)
+            {
+                if (line.StartsWith('+')) side.Add(line, LineKind.Added, null, @new++);
+                else if (line.StartsWith('-')) side.Add(line, LineKind.Removed, old++);
+                else if (line.StartsWith('\\')) side.Add(line, LineKind.Meta);
+                else side.Add(line, LineKind.Context, old++, @new++);
+            }
             previous = hunk;
         }
-        Ui.Place(body, new ScrollViewer { Content = block, Margin = new Thickness(20, 8), HorizontalScrollBarVisibility = Overflow });
+        Ui.Place(body, Code("DiffInlineText", side, side.Labels(true, true)));
     }
 
     private void RenderSplit(List<Hunk> hunks)
     {
-        var oldSide = CodeBlock("DiffOldText");
-        var newSide = CodeBlock("DiffNewText");
+        var oldSide = new Side();
+        var newSide = new Side();
         var previous = (Hunk?)null;
         foreach (var hunk in hunks)
         {
             var gap = Gap(previous, hunk);
-            AddGap(oldSide, gap); AddGap(newSide, gap);
+            oldSide.AddGap(gap); newSide.AddGap(gap);
+            int old = hunk.OldStart, @new = hunk.NewStart;
             var removed = new List<string>(); var added = new List<string>();
             void Flush()
             {
                 for (var index = 0; index < Math.Max(removed.Count, added.Count); index++)
                 {
-                    oldSide.Inlines!.Add(new Run((index < removed.Count ? removed[index] : "") + "\n") { Foreground = Ui.Danger });
-                    newSide.Inlines!.Add(new Run((index < added.Count ? added[index] : "") + "\n") { Foreground = Ui.Success });
+                    if (index < removed.Count) oldSide.Add(removed[index], LineKind.Removed, old++); else oldSide.Add("", LineKind.Filler);
+                    if (index < added.Count) newSide.Add(added[index], LineKind.Added, null, @new++); else newSide.Add("", LineKind.Filler);
                 }
                 removed.Clear(); added.Clear();
             }
@@ -267,42 +341,44 @@ internal sealed partial class DiffView : Grid, IDisposable
                 {
                     Flush();
                     var content = line.Length > 0 ? line[1..] : "";
-                    oldSide.Inlines!.Add(new Run(content + "\n") { Foreground = Ui.Muted });
-                    newSide.Inlines!.Add(new Run(content + "\n") { Foreground = Ui.Muted });
+                    oldSide.Add(content, LineKind.Context, old++);
+                    newSide.Add(content, LineKind.Context, null, @new++);
                 }
             }
             Flush();
             previous = hunk;
         }
-        var divider = new Border { Width = 1, Background = Ui.BorderBrush };
-        var scroll = new ScrollViewer { HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled, Margin = new Thickness(0, 8) };
+        var oldFrame = Code("DiffOldText", oldSide, oldSide.Labels(true, false));
+        var newFrame = Code("DiffNewText", newSide, newSide.Labels(false, true));
+        // Both sides hold the same number of document lines.
+        Follow(oldFrame.Editor, newFrame.Editor); Follow(newFrame.Editor, oldFrame.Editor);
         var columns = new Grid { ColumnDefinitions = new ColumnDefinitions("*,1,*") };
-        Ui.Place(columns, new ScrollViewer { Content = oldSide, Margin = new Thickness(12, 0), HorizontalScrollBarVisibility = Overflow, VerticalScrollBarVisibility = ScrollBarVisibility.Disabled });
-        Ui.Place(columns, divider, 0, 1);
-        Ui.Place(columns, new ScrollViewer { Content = newSide, Margin = new Thickness(12, 0), HorizontalScrollBarVisibility = Overflow, VerticalScrollBarVisibility = ScrollBarVisibility.Disabled }, 0, 2);
-        scroll.Content = columns;
-        Ui.Place(body, scroll);
+        Ui.Place(columns, oldFrame);
+        Ui.Place(columns, new Border { Width = 1, Background = Ui.BorderBrush }, 0, 1);
+        Ui.Place(columns, newFrame, 0, 2);
+        Ui.Place(body, columns);
+
+        // Rows wrap differently on each side, so the side being scrolled places the same document line at the other's
+        // top. Only the scrolled side drives: the follower's own clamping never pulls it back.
+        static void Follow(ScintillaEditor from, ScintillaEditor to) => from.VerticalOffsetChanged += (_, _) =>
+        {
+            var (line, offset) = from.DocumentPosition;
+            to.ScrollToDocumentPosition(line, offset);
+        };
     }
 
-    private ScrollBarVisibility Overflow => double.IsFinite(wrapWidth) ? ScrollBarVisibility.Disabled : ScrollBarVisibility.Auto;
-
-    private SelectableTextBlock CodeBlock(string name) => new()
+    private EditorFrame Code(string name, Side side, string?[] labels)
     {
-        Name = name,
-        FontFamily = Ui.CodeFont,
-        FontSize = 13,
-        Foreground = Ui.TextBrush,
-        TextWrapping = double.IsFinite(wrapWidth) ? TextWrapping.Wrap : TextWrapping.NoWrap,
-        MaxWidth = wrapWidth,
-        HorizontalAlignment = HorizontalAlignment.Left,
-        LineHeight = 21
-    };
-
-    private static IBrush Tint(string line) => line.StartsWith('+') ? Ui.Success : line.StartsWith('-') ? Ui.Danger : Ui.Muted;
-
-    private static void AddGap(SelectableTextBlock block, int hidden)
-    {
-        if (hidden > 0) block.Inlines!.Add(new Run($"⋯ {hidden} hidden lines\n") { Foreground = Ui.Hint });
+        var frame = new EditorFrame(side.Text.ToString(), name) { Margin = new Thickness(0, 8, 0, 0) };
+        var editor = frame.Editor;
+        editor.LabelLines(labels);
+        editor.IsReadOnly = true;
+        editor.WrapWidth = wrapWidth;
+        editor.LineStyles = LineStyles();
+        editor.StyleLines(side.Styles);
+        frame.ThemeApplied += () => editor.LineStyles = LineStyles();
+        frames.Add(frame);
+        return frame;
     }
 
     private static int Gap(Hunk? previous, Hunk next) =>
@@ -322,7 +398,7 @@ internal sealed partial class DiffView : Grid, IDisposable
             var match = HunkHeader().Match(line);
             if (match.Success)
             {
-                current = new(int.Parse(match.Groups[1].Value), match.Groups[2].Success ? int.Parse(match.Groups[2].Value) : 1, line, []);
+                current = new(int.Parse(match.Groups[1].Value), match.Groups[2].Success ? int.Parse(match.Groups[2].Value) : 1, int.Parse(match.Groups[3].Value), line, []);
                 hunks.Add(current);
             }
             else if (current is null) preamble.Add(line);
@@ -356,7 +432,7 @@ internal sealed partial class DiffView : Grid, IDisposable
 
     private static string Strip(string line) => WhitespaceRun().Replace(line[1..], "");
 
-    [GeneratedRegex(@"^@@ -(\d+)(?:,(\d+))? \+\d+(?:,\d+)? @@")]
+    [GeneratedRegex(@"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,\d+)? @@")]
     private static partial Regex HunkHeader();
 
     [GeneratedRegex(@"\s+")]

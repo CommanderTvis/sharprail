@@ -59,6 +59,13 @@ internal sealed class ScintillaDocument : IDisposable
         fixed (byte* pointer = bytes) Send(message, withLength ? bytes.Length - 1 : 0, (nint)pointer);
     }
 
+    /// <summary>Sends a message whose lParam is a NUL-terminated UTF-8 string and whose wParam is <paramref name="w"/>.</summary>
+    internal unsafe nint Send(ScintillaMessage message, nint w, string text)
+    {
+        var bytes = Encoding.UTF8.GetBytes(text + '\0');
+        fixed (byte* pointer = bytes) return Send(message, w, (nint)pointer);
+    }
+
     internal void SetText(string text)
     {
         Send(ScintillaMessage.ClearAll);
@@ -100,6 +107,13 @@ internal sealed class ScintillaDocument : IDisposable
     }
 
     internal nint Revision => ScintillaNative.sr_revision(Handle);
+
+    /// <summary>Whether Scintilla invalidated anything since the flag was last cleared.</summary>
+    internal bool Dirty
+    {
+        get => ScintillaNative.sr_dirty(Handle) != 0;
+        set => ScintillaNative.sr_set_dirty(Handle, value ? 1 : 0);
+    }
 
     internal void Input(string text)
     {

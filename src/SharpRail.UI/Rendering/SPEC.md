@@ -77,6 +77,15 @@ unavailability message. Rendered diffs pass `renderDiagrams: false` and keep the
 - `DiffView` shows a path chip, a hide-whitespace toggle, a copy button (copies the diff text; no clipboard
   is a silent no-op) and either `Split | Inline` (source diffs, split by default) or `Source | Rendered`
   (Markdown diffs, source by default). Source lines wrap at the file line width.
+- On macOS source diffs are read-only Scintilla editors (`Editor/EditorFrame`), so only visible lines are laid
+  out and large diffs stay responsive. Each line carries a whole-line style: added/removed lines get a tinted
+  foreground over a composited wash band, hunk headers the accent, collapsed context a `⋯ N hidden lines` row.
+  The gutter shows file line numbers (old and new columns inline, one per side when split). Split sides hold
+  the same line count (blank fillers pad unequal runs) and follow each other's pixel offset. Other platforms
+  show the raw diff text without view modes.
+- `ViewerLimits` bounds viewers by character count. A Rendered Markdown diff whose two sides together exceed
+  1 Mi characters falls back to the source diff and disables Rendered; Markdown files past it open in
+  Scintilla. Files and diffs past 32 Mi characters show a notice instead of an editor.
 - The rendered Markdown diff is a real rich diff: `MarkdownDiff.Merge` aligns lines (Myers after trimming the
   common prefix and suffix, with a bounded edit budget before falling back to replacing the changed region),
   diffs only paired changed lines word by word, and keeps whitespace outside the marks so emphasis and line

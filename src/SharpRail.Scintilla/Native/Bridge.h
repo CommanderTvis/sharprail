@@ -56,6 +56,7 @@ struct BridgeWindow {
     PRectangle bounds {0, 0, 800, 600};
     Direction direction = Direction::LeftToRight;
     std::list<std::shared_ptr<const LineShape>> shapes; // Most recently used first.
+    bool dirty = true; // Set by every Scintilla invalidation; the host reuses its last recording while clear.
 };
 extern thread_local BridgeWindow *activeWindow;
 

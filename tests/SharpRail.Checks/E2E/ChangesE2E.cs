@@ -48,8 +48,7 @@ internal static class ChangesE2E
             "The file row must retain its untracked status and line count.");
         app.Click(row);
         Until(() => app.Tabs.Count(tab => tab.Kind == "diff") == 1);
-        Until(() => app.Window.GetLogicalDescendants().OfType<SelectableTextBlock>().Any(text =>
-            text.Inlines?.OfType<Run>().Any(run => run.Text?.Contains("three", StringComparison.Ordinal) == true) == true));
+        ChangesFixture.UntilDiff(app, text => text.Contains("three", StringComparison.Ordinal));
         app.Click(app.Find<Button>("Tab_files")); app.Click(app.Find<Button>("Tab_changes"));
         Require(app.Find<ToggleButton>("ChangesTree").IsChecked == true, "The selected tree view must survive tool navigation.");
         Console.WriteLine("PASS upstream changes.spec.ts: Changes has a List|Tree toggle; Tree groups files into folders with +/- counts");
@@ -84,8 +83,7 @@ internal static class ChangesE2E
         app.Click(row, mouseButton: MouseButton.Right); Until(() => row.ContextMenu.IsOpen);
         app.Click(row.ContextMenu.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "View")), freshGesture: false);
         Until(() => app.Tabs.Count(tab => tab.Kind == "diff") == 1);
-        Until(() => app.Window.GetLogicalDescendants().OfType<SelectableTextBlock>().Any(text =>
-            text.Inlines?.OfType<Run>().Any(run => run.Text?.Contains("two", StringComparison.Ordinal) == true) == true));
+        ChangesFixture.UntilDiff(app, text => text.Contains("two", StringComparison.Ordinal));
         app.Click(app.Find<ToggleButton>("ChangesTree"));
         var file = Row();
         app.Click(file, mouseButton: MouseButton.Right); Until(() => file.ContextMenu!.IsOpen);

@@ -280,11 +280,13 @@ public sealed partial class WorkbenchWindow : Window
             Control content;
             if (document.ImageData is not null)
                 content = new ScrollViewer { Content = new Image { Source = new Bitmap(new MemoryStream(document.ImageData)), Stretch = Stretch.Uniform } };
-            else if (tab.Kind == "markdown")
+            else if (tab.Kind != "diff" && document.Text.Length > ViewerLimits.Scintilla)
+                content = ViewerLimits.TooLarge("file", document.Text.Length);
+            else if (tab.Kind == "markdown" && (document.Text.Length <= ViewerLimits.RenderedMarkdown || !OperatingSystem.IsMacOS()))
                 content = new MarkdownDocumentView(document, host, Preferences, (path, anchor) => _ = OpenDocumentAsync(path, false, anchor));
             else if (tab.Kind == "diff")
                 content = DiffDocument(document, tab, key);
-            else if (tab.Kind == "file" && OperatingSystem.IsMacOS())
+            else if (tab.Kind is "file" or "markdown" && OperatingSystem.IsMacOS())
                 content = CodeDocument(document, tab, key);
             else
                 content = new ScrollViewer

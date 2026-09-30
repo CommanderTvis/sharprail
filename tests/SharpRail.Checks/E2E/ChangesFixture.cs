@@ -11,6 +11,7 @@ using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 using SharpRail.UI.Docking;
+using SharpRail.Scintilla;
 using static SharpRail.Checks.E2E.E2eWorkspace;
 
 namespace SharpRail.Checks.E2E;
@@ -128,8 +129,7 @@ internal static class ChangesFixture
         app.Window.GetLogicalDescendants().OfType<Control>().SingleOrDefault(control => control.Name == "DiffPane" && control.IsEffectivelyVisible);
 
     internal static string DiffText(E2eWorkspace app) => Pane(app) is { } pane
-        ? string.Join("", pane.GetLogicalDescendants().OfType<SelectableTextBlock>()
-            .SelectMany(block => block.Inlines?.OfType<Run>() ?? []).Select(run => run.Text))
+        ? string.Join("\n", pane.GetLogicalDescendants().OfType<ScintillaEditor>().Select(editor => editor.Text))
         : "";
 
     internal static int Count(string text, string needle) => Regex.Matches(Regex.Replace(text, @"\s+", " "), Regex.Escape(needle)).Count;

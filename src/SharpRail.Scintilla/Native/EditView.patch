@@ -45,7 +45,7 @@ through the platform line layout so reordered runs appear at their visual positi
  
  	const bool selBackDrawn = vsDraw.SelectionBackgroundDrawn();
  	bool inIndentation = subLine == 0;	// Do not handle indentation except on first subline.
-@@ -1671,6 +1682,12 @@
+@@ -1671,6 +1682,19 @@
  	const XYPOSITION horizontalOffset = xStart - subLineStart;
  	// Does not take margin into account but not significant
  	const XYPOSITION xStartVisible = subLineStart - xStart;
@@ -54,6 +54,13 @@ through the platform line layout so reordered runs appear at their visual positi
 +	if (model.BidirectionalEnabled()) {
 +		const ScreenLine screenLine(ll, subLine, vsDraw, rcLine.right - xStart, tabWidthMinimumPixels);
 +		slLayout = surface->Layout(&screenLine);
++	}
++	if (slLayout) {
++		// Shaped spans leave the wrap break and parts of tab stops uncovered; paint the subline with its
++		// first character's background so those gaps do not keep the canvas colour.
++		const Sci::Position first = lineRange.First();
++		surface->FillRectangleAligned(rcLine, Fill(TextBackground(model, vsDraw, ll, background,
++			InSelection::inNone, false, ll->styles[first], first)));
 +	}
  
  	const BreakFinder::BreakFor breakFor = selBackDrawn ? BreakFinder::BreakFor::Selection : BreakFinder::BreakFor::Text;

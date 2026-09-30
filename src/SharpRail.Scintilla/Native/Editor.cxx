@@ -63,6 +63,9 @@ public:
     // Scintilla queues idle wrapping and styling; the host runs it in slices from its dispatcher.
     bool SetIdle(bool on) override { idle=on;return true; }
     bool RunIdle() { if (idle) idle=Idle();return idle; }
+    // Scintilla ignores redraw requests while it believes a full redraw is queued; once the host has what it
+    // needs, later changes must invalidate again.
+    void SetDirty(bool dirty) { window.dirty=dirty;if (!dirty) redrawPendingText=false; }
 };
 // Native exceptions never cross the managed boundary. A separate error flag lets
 // callers distinguish a legitimate zero result from a failed operation.
@@ -87,3 +90,5 @@ API int sr_idle(SkiaEditor *e) noexcept { return static_cast<int>(Guard(e,[&] { 
 API void sr_direction(SkiaEditor *e,int direction) noexcept { Guard(e,[&] { e->SetDirection(direction);return 0; }); }
 
 API intptr_t sr_revision(SkiaEditor *e) noexcept { return e->revision; }
+API int sr_dirty(SkiaEditor *e) noexcept { return e->window.dirty; }
+API void sr_set_dirty(SkiaEditor *e,int dirty) noexcept { e->SetDirty(dirty!=0); }

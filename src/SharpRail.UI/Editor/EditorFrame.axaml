@@ -1,6 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             x:Class="SharpRail.UI.Editor.CodeDocumentView">
+             x:Class="SharpRail.UI.Editor.EditorFrame">
   <!-- Dock separators take 3.5px of each neighbouring pane for their hit area; keep the
        auto-hiding scrollbars clear of it so the pointer can reach them at the pane edge. -->
   <UserControl.Styles>

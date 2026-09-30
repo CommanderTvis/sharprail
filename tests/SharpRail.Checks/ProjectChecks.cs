@@ -173,8 +173,8 @@ internal static class ProjectChecks
         var headComparison = await host.GetGitAsync("HEAD");
         Require(headComparison.Changes.Single().Path == unusual && headComparison.Changes.Single().Added == 1,
             "Comparison with HEAD must retain the untracked working file and its line count.");
-        Require(await host.GetDiffAsync(unusual, "branch", "HEAD") == "Untracked content\n",
-            "Branch comparisons must open untracked file content.");
+        Require(await host.GetDiffAsync(unusual, "branch", "HEAD") == UntrackedDiff(unusual),
+            "Branch comparisons must open untracked files as added lines.");
         await CheckAdvancedTarget(host, root, unusual);
         await using var server = RemoteServer.Create(root, IPAddress.Loopback, 0, "git-test");
         await server.StartAsync();
@@ -212,7 +212,7 @@ internal static class ProjectChecks
                 }
                 catch (Exception error) when (error is UnauthorizedAccessException or Grpc.Core.RpcException) { }
             }
-            Require(await remote.GetDiffAsync(unusual, "uncommitted") == "Untracked content\n" &&
+            Require(await remote.GetDiffAsync(unusual, "uncommitted") == UntrackedDiff(unusual) &&
                 await remote.GetDiffAsync(unusual, "uncommitted") == await host.GetDiffAsync(unusual, "uncommitted"),
                 "Remote Uncommitted diff must retain untracked content.");
             await host.ApplyGitActionAsync(new("stage", unusual));
@@ -335,4 +335,7 @@ internal static class ProjectChecks
         Console.WriteLine("PASS branch merge-base comparison excludes target-only commits and includes net working content");
         Console.WriteLine("PASS commit first-parent/root ranges, dirty-file exclusion, invalid ids and local/remote parity");
     }
+
+    private static string UntrackedDiff(string path) =>
+        $"diff --git a/{path} b/{path}\nnew file mode 100644\n--- /dev/null\n+++ b/{path}\n@@ -0,0 +1 @@\n+Untracked content\n";
 }

@@ -42,6 +42,8 @@ internal static class EditorTextChecks
             Bidirectional(window, editor);
             Rendering(window, editor);
             Wrapping(window, editor);
+            LineStyles(window, editor);
+            RecordingReuse(window, editor);
         }
         finally { window.Close(); }
         Sample();
@@ -198,6 +200,61 @@ internal static class EditorTextChecks
         Require(editor.Text.EndsWith("!", StringComparison.Ordinal), "Typing at the end of a wrapped bidirectional line failed.");
         editor.WrapWidth = double.PositiveInfinity;
         Console.WriteLine("PASS Scintilla wraps and edits bidirectional lines");
+    }
+
+    private static void LineStyles(Window window, ScintillaEditor editor)
+    {
+        editor.Text = "plain\nMMMMMMMM\nMMMMMMMM";
+        editor.LineStyles = [new(Colors.Red), new(Colors.Black, Color.FromRgb(0, 0, 255))];
+        editor.StyleLines([-1, 0, 1]);
+        Pump(); Pump();
+        using var pixels = Capture(window);
+        var row = Row(editor, window);
+        var height = (int)Send(editor, ScintillaMessage.TextHeight);
+        var red = Columns(pixels, row + height, color => color.Red > 200 && color.Green < 80 && color.Blue < 80).Count;
+        var band = pixels.GetPixel(pixels.Width - 40, row + 2 * height);
+        Require(red > 0, "A line style must colour its line's text.");
+        Require(band.Blue > 200 && band.Red < 60, $"A line style's background must fill its line to the right edge (saw {band}).");
+        editor.Text = string.Join(' ', Enumerable.Range(0, 40).Select(i => i % 3 == 0 ? "tab\tword" : "lorem")) + "\nnext";
+        editor.WrapWidth = 300;
+        editor.StyleLines([1, 1]);
+        Pump(); Pump();
+        editor.LabelLines(["12", null]); Pump(); Pump();
+        using (var wrapped = Capture(window))
+        {
+            var top = Row(editor, window) - height / 2;
+            var left = (int)(editor.TranslatePoint(new Point(0, 0), window)!.Value.X + Send(editor, ScintillaMessage.PointXFromPosition, 0, 0));
+            var gaps = 0;
+            for (var y = top + 1; y < top + editor.WrapCount(0) * height - 1; y++)
+                for (var x = left; x < left + 280; x++)
+                    if (wrapped.GetPixel(x, y) is { Red: > 200, Green: > 200 }) gaps++;
+            Require(editor.WrapCount(0) > 3 && gaps == 0, $"A wrapped line's background must cover wrap breaks and tab stops ({gaps} gap pixels).");
+        }
+        editor.ShowLineNumbers = true;
+        editor.WrapWidth = double.PositiveInfinity;
+        editor.LineStyles = []; editor.StyleLines([]);
+        Console.WriteLine("PASS Scintilla line styles colour text and fill line backgrounds");
+    }
+
+    // A wheel step inside the first visible line only shifts the last recording; an edit records again.
+    private static void RecordingReuse(Window window, ScintillaEditor editor)
+    {
+        editor.Text = string.Join('\n', Enumerable.Range(0, 200).Select(index => $"line {index}"));
+        Pump(); Pump();
+        var height = Send(editor, ScintillaMessage.TextHeight);
+        // The first partial line adds a row below the viewport, which is recorded once.
+        window.MouseWheel(new Point(200, 100), new Vector(0, -height / 4 / 50.0)); Pump();
+        var recordings = editor.Recordings;
+        window.MouseWheel(new Point(200, 100), new Vector(0, -height / 4 / 50.0)); Pump();
+        Require(editor.VerticalPixelOffset > 0 && editor.VerticalPixelOffset < height && editor.Recordings == recordings,
+            $"Scrolling within a line must reuse the recording ({editor.Recordings - recordings} new, offset {editor.VerticalPixelOffset}).");
+        // Leaving the line must record again, although the partial-row resize already asked Scintilla to redraw.
+        window.MouseWheel(new Point(200, 100), new Vector(0, -3 * height / 50.0)); Pump();
+        Require(editor.Recordings > recordings, $"Scrolling to another line must record again (top {editor.FirstVisibleLine}).");
+        recordings = editor.Recordings;
+        editor.Text = "changed"; Pump();
+        Require(editor.Recordings > recordings, "An edit must record the editor again.");
+        Console.WriteLine("PASS Scintilla reuses its recording while scrolling within a line");
     }
 
     private static SKBitmap Capture(Window window)

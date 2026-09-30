@@ -20,17 +20,18 @@ public sealed partial class WorkbenchWindow
             show => { if (show) renderedDiffs.Add(key); else renderedDiffs.Remove(key); });
     }
 
-    private async Task<Control> RenderMergedAsync(DockTab tab, CancellationToken token)
+    private async Task<Control?> RenderMergedAsync(DockTab tab, CancellationToken token)
     {
         var merge = RenderedDiffMerge;
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, lifetime.Token);
         var parsed = await Task.Run(async () =>
         {
             var sides = await host.GetDiffSidesAsync(tab.Path, tab.Scope, tab.Comparison, linked.Token);
-            return MarkdownPreview.Parse(merge(sides.Original, sides.Modified, linked.Token));
+            return sides.Original.Length + sides.Modified.Length > ViewerLimits.RenderedMarkdown
+                ? null : MarkdownPreview.Parse(merge(sides.Original, sides.Modified, linked.Token));
         }, linked.Token);
         linked.Token.ThrowIfCancellationRequested();
-        return new MarkdownPreview(parsed, tab.Path, host, Preferences, (path, anchor) => _ = OpenDocumentAsync(path, false, anchor), renderDiagrams: false)
+        return parsed is null ? null : new MarkdownPreview(parsed, tab.Path, host, Preferences, (path, anchor) => _ = OpenDocumentAsync(path, false, anchor), renderDiagrams: false)
         { Name = "RenderedDiff" };
     }
 }

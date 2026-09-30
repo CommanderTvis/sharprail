@@ -4,6 +4,7 @@ using Avalonia.Controls.Documents;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
+using SharpRail.Scintilla;
 using SharpRail.Host.Abstractions;
 using SharpRail.UI.Panels;
 using SharpRail.UI.Rendering;
@@ -14,7 +15,6 @@ namespace SharpRail.Checks.E2E;
 
 internal static class LineWidthE2E
 {
-    private static string TextOf(SelectableTextBlock block) => string.Concat(block.Inlines?.OfType<Run>().Select(run => run.Text) ?? []);
 
     internal static void Run(string root)
     {
@@ -33,17 +33,15 @@ internal static class LineWidthE2E
         app.Click(app.Find<Control>("ChangesPanel").GetLogicalDescendants().OfType<Button>()
             .Single(button => AutomationProperties.GetName(button) == "LONG_LINE.txt"));
         Until(() => app.Tabs.Count(tab => tab.Kind == "diff") == 1);
-        Until(() => app.Window.GetLogicalDescendants().OfType<SelectableTextBlock>()
-            .Any(block => block.Name == "DiffNewText" && TextOf(block).Contains("changed segment-01", StringComparison.Ordinal)));
+        Until(() => app.Window.GetLogicalDescendants().OfType<ScintillaEditor>()
+            .Any(editor => editor.Name == "DiffNewText" && editor.Text.Contains("changed segment-01", StringComparison.Ordinal)));
         Settle(300);
         foreach (var name in new[] { "DiffOldText", "DiffNewText" })
         {
-            var block = app.Find<SelectableTextBlock>(name);
-            var scroll = block.GetLogicalAncestors().OfType<ScrollViewer>().First();
-            var logicalLines = TextOf(block).TrimEnd('\n').Split('\n').Length;
-            var rendered = block.TextLayout.TextLines.Count;
-            Require(rendered > logicalLines, $"The {name} long line must wrap ({rendered} rendered vs {logicalLines} logical lines).");
-            Require(block.Bounds.Width <= LineWidths.File(app.Window.Preferences) + 1 && scroll.Extent.Width <= scroll.Viewport.Width + 1,
+            var editor = app.Find<ScintillaEditor>(name);
+            var line = editor.Text.Split('\n').Select((text, index) => (text, index)).Last(item => item.text.Contains("segment-80", StringComparison.Ordinal)).index;
+            Require(editor.WrapCount(line) > 1, $"The {name} long line must wrap ({editor.WrapCount(line)} display lines).");
+            Require(editor.WrapWidth == LineWidths.File(app.Window.Preferences) && editor.HorizontalScroll.Maximum == 0,
                 $"The {name} side must stay within the default file width without horizontal scrolling.");
         }
         Console.WriteLine("PASS upstream line-width-settings.spec.ts: the default file width wraps both sides of a long-line diff");

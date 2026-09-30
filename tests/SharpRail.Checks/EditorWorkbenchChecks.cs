@@ -46,6 +46,8 @@ internal static class EditorWorkbenchChecks
     internal static void Run(string fixture)
     {
         if (!OperatingSystem.IsMacOS()) return;
+        LargeDiff(fixture);
+        Limits(fixture);
         var root = Path.Combine(fixture, "editor-workbench"); Directory.CreateDirectory(root);
         File.WriteAllText(Path.Combine(root, ".git"), "gitdir: " + Path.Combine(root, "missing"));
         File.WriteAllText(Path.Combine(root, "first.cs"), "class First {}\n");
@@ -133,5 +135,77 @@ internal static class EditorWorkbenchChecks
             Console.WriteLine("PASS workbench editor scrollbars stay reachable beside the pane separator and page in the pressed direction");
         }
         finally { window.Close(); }
+    }
+
+    // Laying the whole diff out as text blocks froze the app on large diffs; the Scintilla sides lay out only what is visible.
+    private static readonly string Wide = string.Join(' ', Enumerable.Repeat("wrapping text", 40));
+
+    private static void LargeDiff(string fixture)
+    {
+        const int lines = 50_000;
+        var directory = E2E.IsolatedGit.Repository(Path.Combine(fixture, "large-diff"),
+            ("big.txt", string.Concat(Enumerable.Range(0, lines).Select(index => $"original line {index}\n"))));
+        using var app = new E2E.E2eWorkspace(directory, openFiles: false);
+        File.WriteAllText(Path.Combine(directory, "big.txt"), string.Concat(Enumerable.Range(0, lines).Select(index => $"changed line {index} {Wide}\n")));
+        Await(app.Window.RefreshAsync());
+        app.Click(app.Find<Button>("Tab_changes"));
+        Button Row() => app.Find<Control>("ChangesPanel").GetLogicalDescendants().OfType<Button>()
+            .Single(button => Avalonia.Automation.AutomationProperties.GetName(button) == "big.txt");
+        Pump(() => app.Find<Control>("ChangesPanel").GetLogicalDescendants().OfType<Button>()
+            .Any(button => Avalonia.Automation.AutomationProperties.GetName(button) == "big.txt"));
+        var clock = System.Diagnostics.Stopwatch.StartNew();
+        app.Click(Row());
+        ScintillaEditor Side(string name) => app.Window.GetLogicalDescendants().OfType<ScintillaEditor>().Single(editor => editor.Name == name);
+        Pump(() => app.Window.GetLogicalDescendants().OfType<ScintillaEditor>().Any(editor => editor.Name == "DiffNewText" && editor.IsEffectivelyVisible));
+        app.Window.UpdateLayout(); Dispatcher.UIThread.RunJobs();
+        Require(clock.Elapsed < TimeSpan.FromSeconds(5), $"A {lines}-line diff took {clock.Elapsed.TotalSeconds:0.0}s to show.");
+        Require(Side("DiffOldText").Text.Split('\n').Length == lines && Side("DiffNewText").Text.Contains($"changed line {lines - 1}", StringComparison.Ordinal),
+            "Both sides of a large diff must hold every changed line.");
+        var probe = Side("DiffNewText");
+        Require(probe.Document.Send(ScintillaMessage.GetStyleAt, 0) != 0 && Side("DiffOldText").Document.Send(ScintillaMessage.GetStyleAt, 0) != 0,
+            "Added and removed diff lines must carry their line style.");
+        var oldSide = Side("DiffOldText");
+        var center = probe.TranslatePoint(new Point(probe.Bounds.Width / 2, probe.Bounds.Height / 2), app.Window)!.Value;
+        // The new side's rows wrap and the old side's do not: it must follow the document line and never pull back.
+        var previous = probe.VerticalPixelOffset;
+        for (var step = 0; step < 12; step++)
+        {
+            app.Window.MouseWheel(center, new Vector(0, -1.3)); Dispatcher.UIThread.RunJobs();
+            Require(probe.VerticalPixelOffset > previous && oldSide.DocumentPosition.Line == probe.DocumentPosition.Line,
+                $"Split diff sides must follow the scrolled side ({previous} -> {probe.VerticalPixelOffset}; lines {probe.DocumentPosition.Line} vs {oldSide.DocumentPosition.Line}).");
+            previous = probe.VerticalPixelOffset;
+        }
+        Require(probe.WrapCount(probe.DocumentPosition.Line) > 1, "The large diff's new side must wrap for the scroll check.");
+        Console.WriteLine($"PASS large diff: {lines} changed lines shown in {clock.ElapsedMilliseconds} ms");
+    }
+
+    // Oversized documents degrade to a cheaper viewer instead of stalling the window.
+    private static void Limits(string fixture)
+    {
+        var markdown = "# Big\n\n" + string.Concat(Enumerable.Range(0, 40_000).Select(index => $"Paragraph {index} with some text.\n\n"));
+        var directory = E2E.IsolatedGit.Repository(Path.Combine(fixture, "viewer-limits"), ("BIG.md", markdown));
+        File.WriteAllText(Path.Combine(directory, "huge.txt"), new string('x', 33 * 1024 * 1024));
+        File.WriteAllText(Path.Combine(directory, "BIG.md"), markdown + "Appended paragraph.\n");
+        using var app = new E2E.E2eWorkspace(directory, openFiles: false);
+        T? Visible<T>(string name) where T : Control =>
+            app.Window.GetLogicalDescendants().OfType<T>().FirstOrDefault(control => control.Name == name && control.IsEffectivelyVisible);
+
+        Await(app.Window.OpenDocumentAsync("huge.txt"));
+        Pump(() => Visible<TextBlock>("TooLargeNotice") is not null);
+        Require(!app.Window.GetLogicalDescendants().OfType<ScintillaEditor>().Any(editor => editor.IsEffectivelyVisible),
+            "A file past the Scintilla limit must show a notice instead of an editor.");
+
+        Await(app.Window.OpenDocumentAsync("BIG.md"));
+        Pump(() => app.Window.GetLogicalDescendants().OfType<ScintillaEditor>().Any(editor => editor.IsEffectivelyVisible && editor.Text.StartsWith("# Big", StringComparison.Ordinal)));
+
+        E2E.ChangesFixture.ShowChanges(app);
+        E2E.ChangesFixture.ClickRow(app, "BIG.md");
+        Pump(() => Visible<Avalonia.Controls.Primitives.ToggleButton>("DiffRendered") is not null);
+        app.Click(Visible<Avalonia.Controls.Primitives.ToggleButton>("DiffRendered")!);
+        Pump(() => Visible<Avalonia.Controls.Primitives.ToggleButton>("DiffRendered") is { IsEnabled: false } &&
+            Visible<ScintillaEditor>("DiffNewText")?.Text.Contains("Appended paragraph.", StringComparison.Ordinal) == true);
+        // The headless mouse is shared; outlast the double-click interval so the next window's first click stays single.
+        E2E.E2eWorkspace.Settle(550);
+        Console.WriteLine("PASS viewer limits: oversized files show a notice, large Markdown opens as source and its rendered diff falls back to source");
     }
 }

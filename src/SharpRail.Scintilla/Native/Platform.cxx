@@ -102,8 +102,8 @@ void Window::SetPosition(PRectangle r) { static_cast<BridgeWindow *>(wid)->bound
 void Window::SetPositionRelative(PRectangle r,const Window *) { SetPosition(r); }
 PRectangle Window::GetClientPosition() const { return GetPosition(); }
 void Window::Show(bool) {}
-void Window::InvalidateAll() {}
-void Window::InvalidateRectangle(PRectangle) {}
+void Window::InvalidateAll() { if (wid) static_cast<BridgeWindow *>(wid)->dirty=true; }
+void Window::InvalidateRectangle(PRectangle) { InvalidateAll(); }
 void Window::SetCursor(Cursor c) { cursorLast=c; }
 PRectangle Window::GetMonitorRect(Point) { return GetPosition(); }
 ColourRGBA Platform::Chrome() { return ColourRGBA(40,40,40); }

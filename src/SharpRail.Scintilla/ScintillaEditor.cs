@@ -32,6 +32,10 @@ public sealed partial class ScintillaEditor : Control, IDisposable
     private ScintillaTextDirection direction;
     private nint revision;
     private readonly nint defaultRightMargin;
+    // Replaced recordings are left to the finalizer: the compositor may still be replaying them.
+    private SKPicture? picture;
+    private Size pictureSize;
+    internal int Recordings { get; private set; }
     private double wrapWidth = double.PositiveInfinity;
     public event EventHandler? TextChanged;
     public event EventHandler<Exception>? OperationFailed;
@@ -127,9 +131,20 @@ public sealed partial class ScintillaEditor : Control, IDisposable
         // A partial line scrolled past the top needs one more row painted below the viewport.
         var offset = SubLine;
         var extra = offset > 0 ? LineHeight : 0;
-        if (extra > 0) document.Resize(Bounds.Width, Bounds.Height + extra);
-        var picture = document.Record((float)Bounds.Width, (float)(Bounds.Height + extra));
-        if (extra > 0) document.Resize(Bounds.Width, Bounds.Height);
+        var size = new Size(Bounds.Width, Bounds.Height + extra);
+        // Scrolling within the first line only moves the transform, so the last recording stays valid until
+        // Scintilla invalidates; the temporary resize for the partial row is not a change.
+        if (picture is null || document.Dirty || pictureSize != size)
+        {
+            if (extra > 0) document.Resize(Bounds.Width, Bounds.Height + extra);
+            document.Dirty = false;
+            picture = document.Record((float)size.Width, (float)size.Height);
+            Recordings++;
+            pictureSize = size;
+            var dirty = document.Dirty;
+            if (extra > 0) document.Resize(Bounds.Width, Bounds.Height);
+            document.Dirty = dirty;
+        }
         using (context.PushTransform(Matrix.CreateTranslation(0, -offset)))
             context.Custom(new PictureOperation(new Rect(0, 0, Bounds.Width, Bounds.Height + extra), picture));
         // Scintilla settles scroll extents while painting; publish them after the render pass.
@@ -146,6 +161,7 @@ public sealed partial class ScintillaEditor : Control, IDisposable
         document.Send(ScintillaMessage.StyleSetBack, 32, (nint)background);
         document.Send(ScintillaMessage.StyleSetSize, 32, 13);
         document.Send(ScintillaMessage.StyleClearAll);
+        ApplyLineStyles(Rgb);
         document.Send(ScintillaMessage.StyleSetFore, 33, (nint)Rgb(colors.LineNumbers));
         document.Send(ScintillaMessage.StyleSetBack, 33, (nint)background);
         document.Send(ScintillaMessage.SetCaretFore, (nint)foreground);
@@ -187,7 +203,7 @@ public sealed partial class ScintillaEditor : Control, IDisposable
         public Rect Bounds => bounds;
         public bool HitTest(Point point) => bounds.Contains(point);
         public bool Equals(ICustomDrawOperation? other) => ReferenceEquals(this, other);
-        public void Dispose() => picture.Dispose();
+        public void Dispose() { }
         public void Render(ImmediateDrawingContext context)
         {
             var feature = context.TryGetFeature<ISkiaSharpApiLeaseFeature>();
@@ -197,3 +213,4 @@ public sealed partial class ScintillaEditor : Control, IDisposable
         }
     }
 }
+

@@ -230,7 +230,7 @@ internal static class UiChecks
         Click(window, ((Grid)readmeNode.Header!).Children.OfType<TextBlock>().Single());
         var selectedFileRow = readmeNode.GetVisualDescendants().OfType<Border>().Single(border => border.Name == "PART_LayoutRoot");
         Require(selectedFileRow.Bounds.Height == 24 && selectedFileRow.Background is SolidColorBrush selectedFill && selectedFill.Color == Ui.Hover.Color,
-            "Selected file row differs from the reference's 24px height and muted fill.");
+            $"Selected file row differs from the reference's 24px height and muted fill ({selectedFileRow.Bounds.Height}px, {(selectedFileRow.Background as SolidColorBrush)?.Color}).");
         Pump(() => window.Layout.State.Workspaces[root].Documents.Values.SelectMany(tabs => tabs)
             .Any(tab => tab.Path == "README.md" && tab.Preview), "File-tree click did not open its preview.");
         var primary = window.Layout.State.Center.Leaves().Single();

@@ -16,6 +16,12 @@ var editor = new ScintillaEditor(text, typeface)   // the caller keeps the SKTyp
 editor.TextChanged += (_, _) => { /* editor.Text, editor.IsModified */ };
 ```
 
+`LineStyles` is a palette of whole-line styles (a foreground and an optional
+background band); `StyleLines` assigns one per document line, which suits read-only
+views such as diffs. `ShowLineNumbers` toggles the line-number margin, and
+`LabelLines` replaces the numbers with a right-aligned label per line. Views that
+scroll in step listen to `VerticalOffsetChanged` and call `ScrollToPixel`.
+
 Colours are opaque; composite translucent theme colours before passing them. The
 control exposes scroll extents (`VerticalScroll`, `HorizontalScroll`, `ScrollChanged`)
 for external scrollbars, and `OperationFailed` for clipboard errors.
@@ -28,6 +34,12 @@ whose drawing and measuring calls cross a C ABI to `SkiaSurface`; Scintilla's
 Cocoa view is not used. Avalonia owns focus, pointer capture, text input, clipboard
 and scheduling. Native calls and text measurement run on the UI thread; rendering
 records an immutable `SKPicture` that Avalonia's renderer replays.
+
+Rendering reuses the last recorded `SKPicture` until Scintilla invalidates (the native
+window sets a dirty flag), so scrolling within a line only moves a transform. Wrapping
+of off-screen lines runs in idle slices of about 10 ms; `TextShaper` caches each code
+point's font and keeps two generations of shaped text, so a whole-document wrap pass
+does not evict what is on screen.
 
 Text layout runs in Scintilla's bidirectional mode for every line:
 
