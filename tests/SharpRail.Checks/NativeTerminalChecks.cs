@@ -190,8 +190,8 @@ internal static class NativeTerminalChecks
         await window.OpenProjectAsync(other);
         NativeControlHost? initial = null;
         await Until(() => (initial = window.GetVisualDescendants().OfType<NativeControlHost>().SingleOrDefault()) is not null && Handle(initial) != 0);
-        var add = window.GetVisualDescendants().OfType<Button>().Single(item => item.Name == "AddToGroup_" + bottom);
-        add.ContextMenu!.Items.OfType<MenuItem>().First().RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
+        window.GetVisualDescendants().OfType<Button>().Single(item => item.Name == "NewTerminal_" + bottom)
+            .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
         NativeControlHost? second = null;
         await Until(() => (second = window.GetVisualDescendants().OfType<NativeControlHost>().SingleOrDefault()) is not null &&
             !ReferenceEquals(second, initial) && Handle(second) != 0);

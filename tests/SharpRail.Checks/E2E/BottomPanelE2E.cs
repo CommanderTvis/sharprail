@@ -100,7 +100,7 @@ internal static class BottomPanelE2E
             $"Panel-header action {control.Name} must be a 32-pixel square.");
         var right = app.Window.Layout.State.Groups.First(group => group.Region == "right").Id;
         var bottom = Groups(app).Single().Id;
-        foreach (var name in new[] { "AddToGroup_" + app.Center, "AddToGroup_" + bottom, "AddToGroup_" + right, "FoldRestore_" + right, "BottomAlignment" })
+        foreach (var name in new[] { "NewTerminal_" + app.Center, "NewTerminal_" + bottom, "NewTerminal_" + right, "FoldRestore_" + right, "BottomAlignment" })
             Square(app.Find<Button>(name));
         var terminal = TerminalTabs(app).Single();
         app.ContextAction(app.Find<Button>("Tab_" + terminal.Id.Replace(':', '_')), "New bottom group at right");
@@ -182,7 +182,7 @@ internal static class BottomPanelE2E
         {
             WorkspaceTabsE2E.Switch(app, workspace, "workspace-1");
             Settle();
-            Require(Shown(app) && app.Find<Button>("AddToGroup_" + Groups(app).Single().Id).IsEffectivelyVisible &&
+            Require(Shown(app) && app.Find<Button>("NewTerminal_" + Groups(app).Single().Id).IsEffectivelyVisible &&
                 TerminalTabs(app).Length == 0 && app.Terminals.StartedIn(workspace) == 0,
                 "A workspace whose initial terminal was closed must not recreate it.");
         }
@@ -377,7 +377,7 @@ internal static class BottomPanelE2E
         Until(() => Groups(app).Length == 2);
         CloseTab(app, tab);
         Until(() => TerminalTabs(app).Length == 0);
-        Require(Groups(app).Length == 2 && Groups(app).All(group => app.Find<Button>("AddToGroup_" + group.Id).IsEffectivelyVisible),
+        Require(Groups(app).Length == 2 && Groups(app).All(group => app.Find<Button>("NewTerminal_" + group.Id).IsEffectivelyVisible),
             "Closing the final bottom resource must retain both groups with their New terminal actions.");
         app.Click(app.Find<Button>("RemoveGroup_" + Groups(app)[0].Id));
         Until(() => Groups(app).Length == 1);

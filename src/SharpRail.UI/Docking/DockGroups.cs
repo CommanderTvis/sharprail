@@ -82,6 +82,7 @@ public sealed partial class DockSurface
                     Name = "ModifiedTab",
                     Width = 8,
                     Height = 8,
+                    Margin = new Thickness(6, 0, 0, 0),
                     CornerRadius = new CornerRadius(4),
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center,
@@ -90,7 +91,7 @@ public sealed partial class DockSurface
                 Ui.Place(contents, modifiedDot, 0, 1);
                 close = Ui.IconButton("close", "Close", () => Session.Close(group.Id, tab.Id));
                 close.Name = "CloseTab";
-                close.Width = 18; close.Height = 18; close.MinWidth = close.MinHeight = 0; close.Padding = new Thickness(2);
+                close.Width = 18; close.Height = 18; close.MinWidth = close.MinHeight = 0; close.Padding = new Thickness(2); close.Margin = new Thickness(6, 0, 0, 0);
                 ((Border)close.Content!).Width = ((Border)close.Content).Height = 14;
                 close.Opacity = 0; close.IsTabStop = false;
                 Ui.Place(contents, close, 0, 1);
@@ -264,11 +265,17 @@ public sealed partial class DockSurface
         if (!group.Folded && OwnsBottomAlignmentMenu(group)) actions.Children.Add(BottomAlignmentButton());
         if (!group.Folded)
         {
-            var add = Ui.IconButton("add", "Add to this group", () => { });
-            add.Name = "AddToGroup_" + group.Id;
-            add.ContextMenu = AddMenu(group);
-            add.Click += (_, _) => add.ContextMenu.Open(add);
-            actions.Children.Add(add);
+            var terminal = Ui.IconButton("terminal", "New terminal in this group", () => { Session.NewTerminal(group.Id); FocusGroup(group.Id, focusContent: true); });
+            terminal.Name = "NewTerminal_" + group.Id;
+            actions.Children.Add(terminal);
+            if (AddMenu(group) is { } menu)
+            {
+                var add = Ui.IconButton("add", "Show a hidden tool in this group", () => { });
+                add.Name = "AddToGroup_" + group.Id;
+                add.ContextMenu = menu;
+                add.Click += (_, _) => menu.Open(add);
+                actions.Children.Add(add);
+            }
         }
         if (group.Region != "center" && (group.Folded || Session.State.Groups.Count(item => item.Region == group.Region) > 1))
         {
@@ -444,13 +451,14 @@ public sealed partial class DockSurface
         return button;
     }
 
-    private ContextMenu AddMenu(DockGroup group)
+    private ContextMenu? AddMenu(DockGroup group)
     {
+        if (group.Region is not ("left" or "right")) return null;
+        var hidden = DockState.ToolNames.Where(id => DockState.ToolRegion(id) == group.Region && !Session.State.Groups.Any(item => item.Tools.Any(tab => tab.Id == id))).ToArray();
+        if (hidden.Length == 0) return null;
         var menu = new ContextMenu();
-        menu.Items.Add(Ui.Menu("New terminal", () => { Session.NewTerminal(group.Id); FocusGroup(group.Id, focusContent: true); }));
-        if (group.Region is "left" or "right")
-            foreach (var tool in DockState.ToolNames.Where(id => DockState.ToolRegion(id) == group.Region && !Session.State.Groups.Any(item => item.Tools.Any(tab => tab.Id == id))))
-                menu.Items.Add(Ui.Menu("Show " + DockState.Tool(tool).Title, () => Session.RestoreTool(tool, group.Id)));
+        foreach (var tool in hidden)
+            menu.Items.Add(Ui.Menu("Show " + DockState.Tool(tool).Title, () => Session.RestoreTool(tool, group.Id)));
         return menu;
     }
 

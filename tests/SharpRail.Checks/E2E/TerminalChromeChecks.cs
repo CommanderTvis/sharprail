@@ -20,11 +20,7 @@ internal static class TerminalChromeChecks
         SideTerminal(root);
         using var app = new E2eWorkspace(Path.Combine(root, "terminal-chrome"));
         var bottom = app.Window.Layout.State.Groups.Single(group => group.Region == "bottom");
-        var add = app.Find<Button>("AddToGroup_" + bottom.Id);
-        app.Click(add);
-        Until(() => add.ContextMenu!.IsOpen);
-        var create = add.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "New terminal"));
-        app.Click(create, freshGesture: false);
+        app.Click(app.Find<Button>("NewTerminal_" + bottom.Id));
         Until(() => app.Window.Layout.Tabs(bottom.Id).Count(tab => tab.Kind == "terminal") == 2);
         var terminal = app.Window.Layout.Tabs(bottom.Id).Last();
         Require(app.Window.Layout.Selected(bottom.Id)?.Id == terminal.Id && terminal.Title == "Terminal 2",
@@ -108,9 +104,7 @@ internal static class TerminalChromeChecks
     {
         using var app = new E2eWorkspace(Path.Combine(root, "terminal-region-commands"));
         var bottom = app.Window.Layout.State.Groups.Single(group => group.Region == "bottom");
-        var add = app.Find<Button>("AddToGroup_" + bottom.Id);
-        app.Click(add); Until(() => add.ContextMenu!.IsOpen);
-        app.Click(add.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "New terminal")), freshGesture: false);
+        app.Click(app.Find<Button>("NewTerminal_" + bottom.Id));
         Until(() => app.Window.Layout.Tabs(bottom.Id).Count(tab => tab.Kind == "terminal") == 2);
         var id = app.Window.Layout.Tabs(bottom.Id).Last().Id;
         var name = id.Replace(':', '_');
@@ -199,15 +193,13 @@ internal static class TerminalChromeChecks
         using var app = new E2eWorkspace(Path.Combine(root, "terminal-side-menu"));
         var side = app.Window.Layout.State.Groups.First(group => group.Region == "right");
         Require(!app.Window.Layout.Tabs(side.Id).Any(tab => tab.Kind == "terminal"), "The Specs group must start without a terminal.");
-        var add = app.Find<Button>("AddToGroup_" + side.Id);
-        app.Click(add); Until(() => add.ContextMenu!.IsOpen);
-        app.Click(add.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "New terminal")), freshGesture: false);
+        app.Click(app.Find<Button>("NewTerminal_" + side.Id));
         Until(() => app.Window.Layout.Tabs(side.Id).Count(tab => tab.Kind == "terminal") == 1);
         Require(!app.Window.Layout.State.Center.Leaves().SelectMany(app.Window.Layout.Tabs).Any(tab => tab.Kind == "terminal"),
             "The side menu must create a terminal in its own group.");
         app.ContextAction(app.Find<Button>("Tab_projects"), "Close");
         app.ContextAction(app.Find<Button>("Tab_changes"), "Close");
-        add = app.Find<Button>("AddToGroup_" + side.Id);
+        var add = app.Find<Button>("AddToGroup_" + side.Id);
         app.Click(add); Until(() => add.ContextMenu!.IsOpen);
         var entries = add.ContextMenu!.Items.OfType<MenuItem>().ToArray();
         Require(entries.Any(item => Equals(item.Header, "Show Changes")) && !entries.Any(item => Equals(item.Header, "Show Projects")),

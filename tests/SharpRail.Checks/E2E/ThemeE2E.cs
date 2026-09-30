@@ -228,9 +228,7 @@ internal static class ThemeE2E
         var initial = app.Window.Layout.Tabs(bottom.Id).Count(tab => tab.Kind == "terminal");
         for (var count = 0; count < 2; count++)
         {
-            var add = app.Find<Button>("AddToGroup_" + bottom.Id);
-            app.Click(add); Until(() => add.ContextMenu!.IsOpen);
-            app.Click(add.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "New terminal")), freshGesture: false);
+            app.Click(app.Find<Button>("NewTerminal_" + bottom.Id));
             var expected = initial + count + 1;
             Until(() => app.Window.Layout.Tabs(bottom.Id).Count(tab => tab.Kind == "terminal") == expected);
         }

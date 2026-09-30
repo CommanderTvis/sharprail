@@ -29,9 +29,7 @@ internal static class WorkspaceTabsE2E
         var first = CreateWorkspace(app, "workspace-1");
         app.Open("README.md", true);
         var bottom = app.Window.Layout.State.Groups.Single(group => group.Region == "bottom");
-        var add = app.Find<Button>("AddToGroup_" + bottom.Id);
-        app.Click(add); Until(() => add.ContextMenu!.IsOpen);
-        app.Click(add.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "New terminal")), freshGesture: false);
+        app.Click(app.Find<Button>("NewTerminal_" + bottom.Id));
         Until(() => app.Window.Layout.Tabs(bottom.Id).Any(tab => tab.Kind == "terminal"));
         var terminalCount = app.Window.Layout.Tabs(bottom.Id).Count(tab => tab.Kind == "terminal");
         CreateWorkspace(app, "workspace-2");

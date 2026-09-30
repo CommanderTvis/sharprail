@@ -54,9 +54,7 @@ internal static class TerminalsE2E
 
     private static void NewTerminal(E2eWorkspace app, string group)
     {
-        var add = app.Find<Button>("AddToGroup_" + group);
-        app.Click(add); Until(() => add.ContextMenu!.IsOpen);
-        app.Click(add.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "New terminal")), freshGesture: false);
+        app.Click(app.Find<Button>("NewTerminal_" + group));
     }
 
     internal static void CloseTab(E2eWorkspace app, DockTab tab)

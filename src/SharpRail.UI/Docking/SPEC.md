@@ -103,7 +103,7 @@ closes, separators resize from the keyboard and Escape restores their origin. Ct
 groups. Tab strips are 32px with an accent underline on the active tab, bounded widths, hidden scrollbars
 active reveal and edge fades only where clipped; a folded group's restore control is its focus endpoint; overflow search appears only while the strip is clipped, as a 288px dropdown under its
 button with path-aware filtering and keyboard selection (`TabSearch.axaml`). Singleton tools have no inline
-close glyph. Each auxiliary strip has an add menu offering New terminal plus tools valid there.
+close glyph. Each strip has a terminal button (tooltip "New terminal in this group"); a side strip also shows an add menu of its hidden tools when any exist.
 
 ## Presets
 

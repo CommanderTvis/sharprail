@@ -108,9 +108,7 @@ internal static class TerminalSessionsE2E
                 // SharpRail keeps the exited tab; a new terminal is the way back to a live shell.
                 CloseTab(app, tab);
                 Until(() => TerminalTabs(app).Length == 0);
-                var add = app.Find<Button>("AddToGroup_" + app.Window.Layout.State.Groups.Single(group => group.Region == "bottom").Id);
-                app.Click(add); Until(() => add.ContextMenu!.IsOpen);
-                app.Click(add.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "New terminal")), freshGesture: false);
+                app.Click(app.Find<Button>("NewTerminal_" + app.Window.Layout.State.Groups.Single(group => group.Region == "bottom").Id));
                 Until(() => TerminalTabs(app).Length == 1);
                 var fresh = Ready(app, TerminalTabs(app).Single());
                 fresh.Run("echo TR_REATTACH_$((7 * 6))");
@@ -297,9 +295,7 @@ internal static class TerminalSessionsE2E
         Enter(b, workspace);
         Ready(b, TerminalTabs(b).Single());
         var bottom = b.Window.Layout.State.Groups.Single(group => b.Window.Layout.Tabs(group.Id).Any(item => item.Kind == "terminal")).Id;
-        var add = b.Find<Button>("AddToGroup_" + bottom);
-        b.Click(add); Until(() => add.ContextMenu!.IsOpen);
-        b.Click(add.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "New terminal")), freshGesture: false);
+        b.Click(b.Find<Button>("NewTerminal_" + bottom));
         Until(() => TerminalTabs(b).Length == 2);
         Settle(300);
         Require(TerminalTabs(a).Length == 1, "A terminal opened in one client must not add a tab to another.");

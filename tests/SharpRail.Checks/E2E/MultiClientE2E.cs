@@ -213,9 +213,7 @@ internal static class MultiClientE2E
         Until(() => peer.Window.WorkspaceMounted && !peer.Window.AtProjectHome && peer.Window.WorkspaceRoot == app.Root);
         Until(() => Terminals(peer) == 1);
         var bottom = peer.Window.Layout.State.Groups.First(group => group.Region == "bottom" && peer.Window.Layout.Tabs(group.Id).Any(tab => tab.Kind == "terminal"));
-        var add = peer.Find<Button>("AddToGroup_" + bottom.Id);
-        peer.Click(add); Until(() => add.ContextMenu!.IsOpen);
-        peer.Click(add.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "New terminal")), freshGesture: false);
+        peer.Click(peer.Find<Button>("NewTerminal_" + bottom.Id));
         Until(() => Terminals(peer) == 2);
         Settle(200);
         Require(Terminals(app) == 1, "A terminal opened in one window must not add a tab to another.");

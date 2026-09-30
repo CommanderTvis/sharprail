@@ -50,10 +50,10 @@ internal static class DockInputChecks
         Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
         Require(!Find<Button>("RemoveGroup_" + window.Layout.State.Center.Leaves().Single()).IsEnabled,
             "The final empty center group's remove button must be disabled.");
-        var addHeaders = window.GetLogicalDescendants().OfType<Button>().Where(button => button.Name?.StartsWith("AddToGroup_", StringComparison.Ordinal) == true).ToArray();
-        Require(addHeaders.Length == window.Layout.State.Groups.Count(group => !group.Folded) &&
-            addHeaders.All(button => button.ContextMenu!.Items.OfType<MenuItem>().All(item => Equals(item.Header, "New terminal"))),
-            "Add must offer terminal creation without duplicating already-placed singleton tools.");
+        var terminalButtons = window.GetLogicalDescendants().OfType<Button>().Count(button => button.Name?.StartsWith("NewTerminal_", StringComparison.Ordinal) == true);
+        Require(terminalButtons == window.Layout.State.Groups.Count(group => !group.Folded) &&
+            !window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name?.StartsWith("AddToGroup_", StringComparison.Ordinal) == true),
+            "Every group must offer terminal creation, and Add must not duplicate already-placed singleton tools.");
         foreach (var (value, label) in new[]
         {
             ("center-left", "Below center and left"), ("center-right", "Below center and right"),
