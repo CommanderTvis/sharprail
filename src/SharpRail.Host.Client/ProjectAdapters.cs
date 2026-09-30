@@ -34,17 +34,29 @@ public sealed class RemoteProjectAdapter : IProjectServices, IDisposable
     {
         if (string.IsNullOrWhiteSpace(token)) throw new ArgumentException("A host session token is required.");
         this.token = token;
-        channel = GrpcChannel.ForAddress(address, new GrpcChannelOptions { MaxReceiveMessageSize = FileLimits.ReadMessageBytes });
+        channel = GrpcChannel.ForAddress(address, new GrpcChannelOptions
+        {
+            MaxReceiveMessageSize = FileLimits.ReadMessageBytes,
+            InitialReconnectBackoff = StateAdapterDefaults.InitialReconnect,
+            MaxReconnectBackoff = StateAdapterDefaults.MaxReconnect
+        });
         service = channel.CreateGrpcService<IProjectRpc>();
     }
 
-    private CallContext Context(CancellationToken ct) => new(new CallOptions(
-        headers: new Metadata { { "authorization", $"Bearer {token}" } },
-        deadline: DateTime.UtcNow.AddSeconds(60), cancellationToken: ct));
+    // The host keeps no per-client session: each call names the workspace this adapter opened last.
+    private volatile string root = "";
+
+    private CallContext Context(CancellationToken ct)
+    {
+        var headers = new Metadata { { "authorization", $"Bearer {token}" } };
+        if (root.Length > 0) headers.Add(ProjectHeaders.Root, System.Text.Encoding.UTF8.GetBytes(root));
+        return new(new CallOptions(headers: headers, deadline: DateTime.UtcNow.AddSeconds(60), cancellationToken: ct));
+    }
 
     public async ValueTask<WorkspaceInfo> OpenProjectAsync(string path, CancellationToken cancellationToken = default)
     {
         var reply = await service.OpenProjectAsync(new() { Path = path }, Context(cancellationToken));
+        root = reply.RootPath;
         return new(reply.Name, reply.ProjectName, reply.RootPath)
         {
             ProjectRoot = reply.ProjectRoot.Length > 0 ? reply.ProjectRoot : reply.RootPath

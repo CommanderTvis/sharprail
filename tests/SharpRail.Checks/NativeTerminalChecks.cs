@@ -31,10 +31,10 @@ internal static class NativeTerminalChecks
         Directory.CreateDirectory(fixture);
         File.WriteAllText(Path.Combine(fixture, ".git"), "gitdir: " + Path.Combine(fixture, "absent"));
         var profile = new ProfileStore(Path.Combine(fixture, ProfileDirectory));
-        var layout = new LayoutSession(profile.Data.Layout);
+        var layout = new LayoutSession(profile.Data.Windows[0].Layout);
         // Opening the workspace provisions its initial terminal in the bottom group.
         layout.SwitchWorkspace(fixture);
-        profile.Data.Layout = layout.State;
+        profile.Data.Windows[0].Layout = layout.State;
         profile.Save();
         Environment.SetEnvironmentVariable("SHARPRAIL_ROOT", fixture);
         Environment.SetEnvironmentVariable("SHARPRAIL_PROFILE", Path.Combine(fixture, ProfileDirectory));

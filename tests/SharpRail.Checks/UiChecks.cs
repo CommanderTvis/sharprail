@@ -83,6 +83,7 @@ internal static class UiChecks
         E2E.ReloadNavigationE2E.Run(root);
         E2E.FilesE2E.Run(root);
         E2E.ProjectContextE2E.Run(root);
+        E2E.MultiClientE2E.Run(root);
     }
 
     public static void Run(string root)
@@ -383,7 +384,7 @@ internal static class UiChecks
         Require(window.Layout.State.LeftWidth > originalWidth && window.Layout.State.RightWidth == originalRightWidth,
             "Keyboard side resize failed after initial arrange.");
 
-        var settings = new SettingsWindow(store, window.Layout, () => { });
+        var settings = new SettingsWindow(window, () => { });
         _ = settings.ShowDialog(window);
         settings.ShowSection("Appearance");
         Capture(settings, ".bench/prototype-settings.png");
@@ -391,12 +392,12 @@ internal static class UiChecks
         Require(light.Bounds.Width > 500 && Find<Button>(settings, "Settings_Appearance").Bounds.Width == 167,
             "Settings rows did not fill their reference columns.");
         Click(settings, light);
-        Require(store.Data.Preferences.Theme == "light", "Settings theme did not save.");
+        Pump(() => store.Data.Preferences.Theme == "light", "Settings theme did not save.");
         settings.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
         Dispatcher.UIThread.RunJobs();
         Require(!settings.IsVisible, "Escape did not close settings.");
         var reloaded = new ProfileStore(Path.Combine(root, ".profile"));
-        Require(reloaded.Data.Preferences.Theme == "light" && LayoutSession.IsValid(reloaded.Data.Layout), "Profile restore failed.");
+        Require(reloaded.OpenState().Current.Settings.Theme == "light" && LayoutSession.IsValid(reloaded.Data.Windows[0].Layout), "Profile restore failed.");
         var other = root + "-other"; Directory.CreateDirectory(other); File.WriteAllText(Path.Combine(other, "note.md"), "# Other project");
         File.WriteAllText(Path.Combine(other, ".git"), "gitdir: " + Path.Combine(other, "nonexistent-git-directory"));
         var frameIds = window.Layout.State.Groups.Select(group => group.Id).ToArray();
@@ -423,17 +424,16 @@ internal static class UiChecks
         var previewWidth = ((StackPanel)Find<MarkdownPreview>(restored, "MarkdownPreview").Content!).MaxWidth;
         Find<TextBox>(liveSettings, "MarkdownLineWidthInput").Text = "60";
         Find<Button>(liveSettings, "MarkdownLineWidthSave").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
-        Dispatcher.UIThread.RunJobs();
-        var narrowed = ((StackPanel)Find<MarkdownPreview>(restored, "MarkdownPreview").Content!).MaxWidth;
-        Require(Math.Abs(narrowed - previewWidth * 60 / 78) < 0.5,
+        double PreviewWidth() { restored.UpdateLayout(); return ((StackPanel)Find<MarkdownPreview>(restored, "MarkdownPreview").Content!).MaxWidth; }
+        Pump(() => Math.Abs(PreviewWidth() - previewWidth * 60 / 78) < 0.5,
             "Line-width settings did not update the mounted Markdown preview.");
         var bounded = Find<CheckBox>(liveSettings, "MarkdownLineWidthBounded");
         bounded.IsChecked = false;
-        Dispatcher.UIThread.RunJobs();
-        Require(double.IsPositiveInfinity(((StackPanel)Find<MarkdownPreview>(restored, "MarkdownPreview").Content!).MaxWidth),
-            "Disabling bounded line width did not update the preview.");
-        var savedAppearance = new ProfileStore(Path.Combine(root, ".profile")).Data.Preferences;
-        Require(savedAppearance.FontSize == 14 && savedAppearance.MarkdownLineWidth == 60 && !savedAppearance.MarkdownLineWidthBounded,
+        Pump(() => double.IsPositiveInfinity(PreviewWidth()), "Disabling bounded line width did not update the preview.");
+        var savedProfile = new ProfileStore(Path.Combine(root, ".profile"));
+        var savedAppearance = savedProfile.Data.Preferences;
+        var savedShared = savedProfile.OpenState().Current.Settings;
+        Require(savedAppearance.FontSize == 14 && savedShared.MarkdownLineWidth == 60 && !savedShared.MarkdownLineWidthBounded,
             "Live settings changes were not persisted.");
         liveSettings.Close();
         restored.Close();
@@ -452,7 +452,7 @@ internal static class UiChecks
                 }
             }));
         var normalized = new ProfileStore(invalidProfile);
-        Require(normalized.Data.Projects.SequenceEqual([root]) && normalized.Data.LastProject.Length == 0,
+        Require(normalized.OpenState().Current.Projects.SequenceEqual([root]) && normalized.Data.Windows[0].LastProject.Length == 0,
             "Invalid recent-project paths survived profile restoration.");
         Require(normalized.Data.GitSelections.Count == 1 && normalized.Data.GitSelections[root] is { Target: "", Scope: "All changes", Commit: null },
             "Malformed Git query state survived profile restoration.");

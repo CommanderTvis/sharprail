@@ -94,6 +94,12 @@ internal static class ProjectContextE2E
         CloseChoice(second);
         Press(Dialog(app), Avalonia.Input.Key.Escape);
         Until(() => !app.Window.OwnedWindows.Any() && Name(second).IsFocused);
+        // A second window of the app observes the shared project list.
+        using var observer = app.NewWindow();
+        Until(() => observer.Window.AtProjectHome && HasWelcome(observer) && WelcomeTitle(observer) == "second-project");
+        bool Listed(E2eWorkspace client, string project) => Controls(client).OfType<Grid>().Any(row => row.Name == "ProjectRow" && Equals(row.Tag, project));
+        Require(Listed(observer, fixture) && Listed(observer, second), "The observer lists both open projects.");
+        app.Window.Activate();
         CloseChoice(second);
         confirm = Dialog(app);
         app.Click(confirm.GetLogicalDescendants().OfType<Button>().Single(button => Text(button) == "Close project"));
@@ -101,12 +107,15 @@ internal static class ProjectContextE2E
         Until(() => app.Window.AtProjectHome && app.Window.ProjectRoot == fixture && HasWelcome(app) && WelcomeTitle(app) == "sample-project");
         Require(app.Tabs.Count == 0, "Closing the active project shows the next project's home.");
         Until(() => Name(fixture).IsFocused);
+        Until(() => !Listed(observer, second) && observer.Window.AtProjectHome && observer.Window.ProjectRoot == fixture &&
+            HasWelcome(observer) && WelcomeTitle(observer) == "sample-project");
 
         CloseChoice(fixture);
         confirm = Dialog(app);
         app.Click(confirm.GetLogicalDescendants().OfType<Button>().Single(button => Text(button) == "Close project"));
         Until(() => !Controls(app).OfType<Grid>().Any(row => row.Name == "ProjectRow") && HasWelcome(app) && WelcomeTitle(app) == "SharpRail");
         Until(() => app.Find<Button>("AddProjectMenu").IsFocused);
+        Until(() => !Controls(observer).OfType<Grid>().Any(row => row.Name == "ProjectRow") && HasWelcome(observer) && WelcomeTitle(observer) == "SharpRail");
 
         var add = app.Find<Button>("AddProjectMenu");
         app.Click(add);
@@ -117,6 +126,7 @@ internal static class ProjectContextE2E
         Until(() => app.Window.AtProjectHome && app.Window.ProjectRoot == fixture && HasWelcome(app) && WelcomeTitle(app) == "sample-project");
         Require(app.Tabs.Count == 0, "Reopening lands on Project Home.");
         Until(() => WorktreePaths(app).Contains(workspace));
+        Until(() => Listed(observer, fixture) && !Listed(observer, second));
         Console.WriteLine("PASS upstream projects.spec.ts: project context actions stay compact and close/reopen is lossless across clients");
     }
 }

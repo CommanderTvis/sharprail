@@ -58,6 +58,20 @@ internal static class Program
             Console.WriteLine("PASS terminal checks");
             return;
         }
+        if (args.SequenceEqual(["--sync"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            StateChecks.Run(root).GetAwaiter().GetResult();
+            var e2e = Path.Combine(root, "upstream-e2e");
+            E2E.MultiClientE2E.Run(e2e);
+            E2E.ProjectContextE2E.Run(e2e);
+            E2E.LayoutSettingsE2E.Run(e2e);
+            E2E.LineWidthE2E.Run(e2e);
+            E2E.ThemeE2E.Run(e2e);
+            Console.WriteLine("PASS multi-window and multi-client checks");
+            return;
+        }
         if (args.SequenceEqual(["--workspaces"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
@@ -69,6 +83,7 @@ internal static class Program
         CheckHosts(root).GetAwaiter().GetResult();
         TerminalHostChecks.Run(root).GetAwaiter().GetResult();
         ProjectChecks.Run(root).GetAwaiter().GetResult();
+        StateChecks.Run(root).GetAwaiter().GetResult();
         FileSavingChecks.Run(root).GetAwaiter().GetResult();
         LayoutChecks.Run();
         CheckOpenWorld();

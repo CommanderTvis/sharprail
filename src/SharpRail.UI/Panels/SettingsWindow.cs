@@ -8,6 +8,7 @@ using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Markup.Xaml;
+using SharpRail.Host.Abstractions;
 using SharpRail.UI.Docking;
 using SharpRail.UI.Rendering;
 using SharpRail.UI.State;
@@ -16,7 +17,9 @@ namespace SharpRail.UI.Panels;
 
 public sealed partial class SettingsWindow : Window
 {
+    private readonly WorkbenchWindow window;
     private readonly ProfileStore profile;
+    private readonly SharedState state;
     private readonly LayoutSession layout;
     private readonly Action apply;
     private readonly Func<CancellationToken, Task<GitHubStatus>> gitHub;
@@ -24,13 +27,21 @@ public sealed partial class SettingsWindow : Window
     private readonly ContentControl body;
     private readonly Dictionary<string, Button> navigation = [];
     private string section = "Appearance";
-    public SettingsWindow(ProfileStore profile, LayoutSession layout, Action apply,
-        Func<CancellationToken, Task<GitHubStatus>>? gitHub = null)
+    private string? renamingPreset;
+    private readonly List<Action> refreshers = [];
+    private readonly TextBlock error = new() { Name = "SettingsError", IsVisible = false, TextWrapping = TextWrapping.Wrap, Foreground = Ui.Danger };
+
+    /// <summary>
+    /// Settings for <paramref name="window"/>. Shared settings round-trip through the host and every
+    /// open Settings view re-renders when the snapshot arrives; <paramref name="apply"/> follows local changes.
+    /// </summary>
+    public SettingsWindow(WorkbenchWindow window, Action apply, Func<CancellationToken, Task<GitHubStatus>>? gitHub = null)
     {
-        this.profile = profile; this.layout = layout; this.apply = apply;
+        this.window = window; profile = window.Workbench.Profile; state = window.Workbench.State; layout = window.Layout; this.apply = apply;
         this.gitHub = gitHub ?? GitHubProbe.CheckAsync;
-        Closed += (_, _) => { lifetime.Cancel(); Ui.ThemeChanged -= SystemThemeChanged; };
+        Closed += (_, _) => { lifetime.Cancel(); Ui.ThemeChanged -= SystemThemeChanged; state.Changed -= SharedChanged; };
         Ui.ThemeChanged += SystemThemeChanged;
+        state.Changed += SharedChanged;
         Name = "SettingsWindow";
         AvaloniaXamlLoader.Load(this);
         body = this.FindControl<ContentControl>("SettingsBody")!;
@@ -58,7 +69,7 @@ public sealed partial class SettingsWindow : Window
 
     public void ShowSection(string name)
     {
-        section = name;
+        section = name; refreshers.Clear();
         foreach (var entry in navigation)
         {
             var active = entry.Key == name;
@@ -66,20 +77,44 @@ public sealed partial class SettingsWindow : Window
             foreach (var text in ((StackPanel)entry.Value.Content!).Children.OfType<TextBlock>()) text.Foreground = active ? Ui.Accent : Ui.Muted;
             ((Border)((StackPanel)entry.Value.Content!).Children[0]).Background = active ? Ui.Accent : Ui.Muted;
         }
-        body.Content = name switch { "Line width" => LineWidth(), "Layout" => LayoutSettings(), "Projects" => ProjectSettings(), "GitHub" => GitHubSettings(), _ => Appearance() };
+        var page = name switch { "Line width" => LineWidth(), "Layout" => LayoutSettings(), "Projects" => ProjectSettings(), "GitHub" => GitHubSettings(), _ => Appearance() };
+        (error.Parent as Panel)?.Children.Remove(error);
+        if (page is Panel content) content.Children.Add(error);
+        body.Content = page;
     }
 
     /// <summary>The device's appearance can change while Settings is open; keep the current system resolution accurate.</summary>
     private void SystemThemeChanged()
     {
-        if (section == "Appearance" && profile.Data.Preferences.ThemeMode == "system") ShowSection(section);
+        if (section == "Appearance" && state.Preferences.ThemeMode == "system") ShowSection(section);
     }
 
+    private void SharedChanged(HostState previous, HostState next)
+    {
+        RequestedThemeVariant = (Owner as Window)?.RequestedThemeVariant;
+        if (section == "Line width") foreach (var refresh in refreshers) refresh();
+        else if (section is "Appearance" or "Layout" or "Projects") ShowSection(section);
+    }
+
+    /// <summary>Saves this app's own preferences and window-local layout choices.</summary>
     private void Save()
     {
         profile.Save(); apply();
         RequestedThemeVariant = (Owner as Window)?.RequestedThemeVariant;
     }
+
+    /// <summary>Sends shared changes to the host; the view updates when the resulting snapshot arrives.</summary>
+    private async void Share(params HostStateChange[] changes)
+    {
+        try { await state.ChangeAsync(changes); error.IsVisible = false; }
+        catch (Exception failure) when (failure is not OperationCanceledException)
+        {
+            error.Text = "The host could not save this change: " + failure.Message; error.IsVisible = true;
+            ShowSection(section);
+        }
+    }
+
+    private static string Setting(bool value) => value ? "true" : "false";
 
     private Control Page(string key)
     {
@@ -95,7 +130,7 @@ public sealed partial class SettingsWindow : Window
     private Control Appearance()
     {
         var panel = Page("AppearancePage");
-        var preferences = profile.Data.Preferences;
+        var preferences = state.Preferences;
         var system = preferences.ThemeMode == "system";
         var pair = preferences.SystemThemePair ?? Themes.DerivePair(preferences.Theme);
         var modes = PageControl<StackPanel>(panel, "ThemeModeChoices");
@@ -107,9 +142,9 @@ public sealed partial class SettingsWindow : Window
             modes.Children.Add(Choice("ThemeMode_" + mode, label, description, preferences.ThemeMode == mode, () =>
             {
                 if (preferences.ThemeMode == mode) return;
-                preferences.ThemeMode = mode;
-                if (mode == "system") preferences.SystemThemePair = pair;
-                Save(); ShowSection(section);
+                Share(mode == "system"
+                    ? [HostStateChange.Setting("theme-mode", mode), HostStateChange.Setting("system-light", pair.Light), HostStateChange.Setting("system-dark", pair.Dark)]
+                    : [HostStateChange.Setting("theme-mode", mode)]);
             }));
         var themes = PageControl<StackPanel>(panel, "ThemeChoices");
         themes.IsVisible = !system;
@@ -117,7 +152,7 @@ public sealed partial class SettingsWindow : Window
         foreach (var theme in Themes.All)
         {
             var choice = Choice("Theme_" + theme.Id, theme.Label, null, theme == fixedTheme, () =>
-            { preferences.Theme = theme.Id; preferences.ThemeMode = "fixed"; Save(); ShowSection(section); });
+                Share(HostStateChange.Setting("theme", theme.Id), HostStateChange.Setting("theme-mode", "fixed")));
             choice.Tag = theme;
             themes.Children.Add(choice);
         }
@@ -138,13 +173,13 @@ public sealed partial class SettingsWindow : Window
                 {
                     var next = new SystemThemePair { Light = slot == "light" ? id : pair.Light, Dark = slot == "dark" ? id : pair.Dark };
                     if (next.Light == pair.Light && next.Dark == pair.Dark) return;
-                    preferences.SystemThemePair = next; Save(); ShowSection(section);
+                    Share(HostStateChange.Setting("system-light", next.Light), HostStateChange.Setting("system-dark", next.Dark));
                 });
             }
         }
         var size = PageControl<NumericUpDown>(panel, "InterfaceSize");
-        size.Value = (decimal)profile.Data.Preferences.FontSize;
-        size.ValueChanged += (_, _) => { if (size.Value is not null) { profile.Data.Preferences.FontSize = (double)size.Value; Save(); } };
+        size.Value = (decimal)state.Preferences.FontSize;
+        size.ValueChanged += (_, _) => { if (size.Value is not null) { state.Preferences.FontSize = (double)size.Value; Save(); } };
         return panel;
     }
 
@@ -211,22 +246,22 @@ public sealed partial class SettingsWindow : Window
     private Control LineWidth()
     {
         var panel = Page("LineWidthPage");
-        var preferences = profile.Data.Preferences;
+        var preferences = state.Preferences;
         PageControl<ContentControl>(panel, "FileLineWidthHost").Content = LineWidthControl("File",
             "Wraps source files and diffs in the editor font.",
-            () => preferences.FileLineWidth, value => preferences.FileLineWidth = value,
-            () => preferences.FileLineWidthBounded, value => preferences.FileLineWidthBounded = value);
+            () => preferences.FileLineWidth, () => preferences.FileLineWidthBounded);
         PageControl<ContentControl>(panel, "MarkdownLineWidthHost").Content = LineWidthControl("Markdown",
             "Wraps rendered Markdown and rendered diffs, measured in the reading font.",
-            () => preferences.MarkdownLineWidth, value => preferences.MarkdownLineWidth = value,
-            () => preferences.MarkdownLineWidthBounded, value => preferences.MarkdownLineWidthBounded = value);
+            () => preferences.MarkdownLineWidth, () => preferences.MarkdownLineWidthBounded);
         return panel;
     }
 
-    // A draft input saved only by Save or Enter, as in the reference's line-width controls.
-    private Control LineWidthControl(string kind, string description,
-        Func<int> value, Action<int> setValue, Func<bool> bounded, Action<bool> setBounded)
+    // A draft input saved only by Save or Enter, as in the reference's line-width controls. Both the
+    // width and the toggle show the host's value until its broadcast confirms a change.
+    private Control LineWidthControl(string kind, string description, Func<int> value, Func<bool> bounded)
     {
+        var key = kind.ToLowerInvariant();
+        void setValue(int width) => Share(HostStateChange.Setting(key + "-width", width.ToString(CultureInfo.InvariantCulture)));
         var control = Page("LineWidthControl");
         control.Name = kind + "LineWidthControl";
         PageControl<TextBlock>(control, "LineWidthTitle").Text = kind;
@@ -252,7 +287,7 @@ public sealed partial class SettingsWindow : Window
         void Commit()
         {
             if (Parsed() is not { } parsed || parsed == value()) return;
-            setValue(parsed); Save(); Validate();
+            setValue(parsed); Validate();
         }
         input.Text = Current();
         input.TextChanged += (_, _) => Validate();
@@ -263,7 +298,22 @@ public sealed partial class SettingsWindow : Window
         };
         save.Click += (_, _) => Commit();
         limit.IsChecked = bounded();
-        limit.IsCheckedChanged += (_, _) => { setBounded(limit.IsChecked == true); Save(); };
+        limit.IsCheckedChanged += (_, _) =>
+        {
+            var requested = limit.IsChecked == true;
+            if (requested == bounded()) return;
+            Share(HostStateChange.Setting(key + "-bounded", Setting(requested)));
+            limit.IsChecked = bounded();
+        };
+        // A broadcast updates the controls in place: an untouched input follows the host, an edited draft is kept.
+        var shown = Current();
+        refreshers.Add(() =>
+        {
+            if (input.Text == shown) input.Text = Current();
+            shown = Current();
+            limit.IsChecked = bounded();
+            Validate();
+        });
         Validate();
         return control;
     }
@@ -272,31 +322,59 @@ public sealed partial class SettingsWindow : Window
     {
         var panel = Page("LayoutPage");
         var presets = PageControl<StackPanel>(panel, "PresetChoices");
-        foreach (var name in new[] { "balanced", "focus", "review" }.Concat(profile.Data.Preferences.CustomPresets.Keys))
+        var custom = state.Preferences.CustomPresets;
+        var defaultPreset = custom.ContainsKey(window.Slot.DefaultPreset) || Builtin.Contains(window.Slot.DefaultPreset) ? window.Slot.DefaultPreset : "balanced";
+        foreach (var name in Builtin.Concat(custom.Keys))
         {
-            var row = new Grid { Name = "Preset_" + name, ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto,Auto"), ColumnSpacing = 8 };
+            var row = new Grid { Name = "Preset_" + name, ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto,Auto,Auto"), ColumnSpacing = 8, Tag = name == defaultPreset };
+            if (renamingPreset == name && custom.ContainsKey(name))
+            {
+                var rename = new TextBox { Name = "PresetRenameInput", Text = name, MaxLength = 200, MinWidth = 180 };
+                AutomationProperties.SetName(rename, "Rename " + name);
+                var commit = Ui.Button("Save", () => RenamePreset(name, rename.Text));
+                commit.Name = "PresetRenameSave";
+                AutomationProperties.SetName(commit, $"Save {name} name");
+                rename.KeyDown += (_, e) =>
+                {
+                    if (e.Key == Key.Enter) { RenamePreset(name, rename.Text); e.Handled = true; }
+                    else if (e.Key == Key.Escape) { renamingPreset = null; ShowSection(section); e.Handled = true; }
+                };
+                Ui.Place(row, rename); Ui.Place(row, commit, 0, 1);
+                presets.Children.Add(row);
+                continue;
+            }
             Ui.Place(row, Ui.Text(char.ToUpperInvariant(name[0]) + name[1..]));
-            var makeDefault = Ui.Button(profile.Data.Preferences.DefaultPreset == name ? "Default" : "Set default", () =>
-            { profile.Data.Preferences.DefaultPreset = name; Save(); ShowSection(section); });
+            var makeDefault = Ui.Button(defaultPreset == name ? "Default" : "Set default", () =>
+            { window.Slot.DefaultPreset = name; Save(); ShowSection(section); });
             Ui.Place(row, makeDefault, 0, 1);
             Ui.Place(row, Ui.Button("Apply now…", async () => await ApplyLayout(name)), 0, 2);
-            if (profile.Data.Preferences.CustomPresets.ContainsKey(name))
-                Ui.Place(row, Ui.IconButton("trash", "Delete preset", () =>
+            if (custom.ContainsKey(name))
+            {
+                var rename = Ui.Button("Rename", () => { renamingPreset = name; ShowSection(section); });
+                AutomationProperties.SetName(rename, "Rename " + name);
+                rename.Name = "PresetRename";
+                Ui.Place(row, rename, 0, 3);
+                var delete = Ui.IconButton("trash", "Delete " + name, () =>
                 {
-                    profile.Data.Preferences.CustomPresets.Remove(name);
-                    if (profile.Data.Preferences.DefaultPreset == name) profile.Data.Preferences.DefaultPreset = "balanced";
-                    Save(); ShowSection(section);
-                }), 0, 3);
+                    if (window.Slot.DefaultPreset == name) { window.Slot.DefaultPreset = "balanced"; Save(); }
+                    Share(HostStateChange.DeletePreset(name));
+                });
+                delete.Name = "PresetDelete";
+                Ui.Place(row, delete, 0, 4);
+            }
             presets.Children.Add(row);
         }
         var input = PageControl<TextBox>(panel, "PresetName");
-        PageControl<ContentControl>(panel, "SavePreset").Content = Ui.Button("Save current", () =>
+        AutomationProperties.SetName(input, "Custom preset name");
+        var savePreset = Ui.Button("Save current", () =>
         {
             var name = input.Text?.Trim() ?? "";
-            if (name.Length == 0 || new[] { "balanced", "focus", "review" }.Contains(name)) return;
+            if (name.Length == 0 || Builtin.Contains(name)) return;
             var frame = layout.State.Copy(); frame.Workspaces.Clear(); frame.ActiveWorkspace = "";
-            profile.Data.Preferences.CustomPresets[name] = frame; Save(); ShowSection(section);
+            Share(HostStateChange.SavePreset(name, SharedState.Serialize(frame)));
         });
+        AutomationProperties.SetName(savePreset, "Save preset");
+        PageControl<ContentControl>(panel, "SavePreset").Content = savePreset;
         var limits = PageControl<StackPanel>(panel, "GroupLimits");
         limits.Children.Add(Limit("side", layout.State.SideLimit, value => layout.Geometry(state => state.SideLimit = value)));
         limits.Children.Add(Limit("bottom", layout.State.BottomLimit, value => layout.Geometry(state => state.BottomLimit = value)));
@@ -304,18 +382,35 @@ public sealed partial class SettingsWindow : Window
         alignment.ItemsSource = new[] { "center", "center-left", "center-right", "full" };
         alignment.SelectedItem = layout.State.BottomAlignment;
         alignment.SelectionChanged += (_, _) => { layout.Geometry(state => state.BottomAlignment = alignment.SelectedItem as string ?? "center"); Save(); };
-        PageControl<ContentControl>(panel, "ResetFrame").Content = Ui.Button("Reset frame", async () => await ApplyLayout(profile.Data.Preferences.DefaultPreset), "refresh");
+        PageControl<ContentControl>(panel, "ResetFrame").Content = Ui.Button("Reset frame", async () => await ApplyLayout(defaultPreset), "refresh");
         return panel;
+    }
+
+    private static readonly string[] Builtin = ["balanced", "focus", "review"];
+
+    private async void RenamePreset(string name, string? text)
+    {
+        var next = text?.Trim() ?? "";
+        if (next.Length == 0 || Builtin.Contains(next)) return;
+        renamingPreset = null;
+        if (next == name) { ShowSection(section); return; }
+        try { await state.ChangeAsync(HostStateChange.RenamePreset(name, next)); }
+        catch (Exception failure) when (failure is not OperationCanceledException)
+        {
+            error.Text = "The host could not save this change: " + failure.Message; error.IsVisible = true;
+            ShowSection(section); return;
+        }
+        if (window.Slot.DefaultPreset == name) { window.Slot.DefaultPreset = next; Save(); }
     }
 
     private async Task ApplyLayout(string name)
     {
         if (!await Dialogs.Confirm(this, "Apply this layout?", "Open files, documents, and terminals are preserved, but their groups and proportions will be rearranged across every workspace in this window. Other windows are unaffected.", "Apply layout")) return;
-        var preset = (profile.Data.Preferences.CustomPresets.GetValueOrDefault(name) ?? DockState.Preset(name)).Copy();
+        var preset = (state.Preferences.CustomPresets.GetValueOrDefault(name) ?? DockState.Preset(name)).Copy();
         preset.SideLimit = Math.Max(layout.State.SideLimit, Math.Max(preset.Groups.Count(group => group.Region == "left"), preset.Groups.Count(group => group.Region == "right")));
         preset.BottomLimit = Math.Max(layout.State.BottomLimit, preset.Groups.Count(group => group.Region == "bottom"));
         layout.ApplyPreset(preset);
-        profile.Data.Layout = layout.State; Save();
+        window.Slot.Layout = layout.State; Save();
     }
 
     private Control Limit(string region, int value, Action<int> change)
@@ -341,15 +436,14 @@ public sealed partial class SettingsWindow : Window
     {
         var panel = Page("ProjectsPage");
         var hidden = PageControl<CheckBox>(panel, "ShowHiddenFiles");
-        hidden.IsChecked = profile.Data.Preferences.ShowHiddenFiles;
-        hidden.IsCheckedChanged += (_, _) => { profile.Data.Preferences.ShowHiddenFiles = hidden.IsChecked == true; Save(); };
+        hidden.IsChecked = state.Preferences.ShowHiddenFiles;
+        hidden.IsCheckedChanged += (_, _) => { state.Preferences.ShowHiddenFiles = hidden.IsChecked == true; Save(); };
         var recent = PageControl<StackPanel>(panel, "RecentProjects");
-        foreach (var path in profile.Data.Projects)
+        foreach (var path in state.Current.Projects)
         {
             var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
             Ui.Place(row, Ui.Text(path, size: 12));
-            Ui.Place(row, Ui.IconButton("close", "Remove from recent projects", () =>
-            { profile.Data.Projects.Remove(path); Save(); ShowSection(section); }), 0, 1);
+            Ui.Place(row, Ui.IconButton("close", "Remove from recent projects", () => Share(HostStateChange.ForgetProject(path))), 0, 1);
             recent.Children.Add(row);
         }
         return panel;

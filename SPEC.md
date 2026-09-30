@@ -176,7 +176,7 @@ at `<project>-worktrees/workspace-N` from a searchable base branch grouped by Lo
 and each remote, or the project folder itself. Opening it prefetches a stale or
 missing remote default; a failed fetch reports Git's error. Workspace rows have a
 hover kebab and right-click menu anchored to it: Open in a detected editor, Copy
-path, and for worktrees an inline display rename persisted in the profile and
+path, and for worktrees an inline display rename shared through the host and
 removal. The Default workspace is never removable; removing the active workspace
 returns to the previously selected one. The Files tree compacts single-directory runs. Git: working/staged/untracked/renamed files,
 branch comparison, read-only diffs, refresh and worktree listing/switching.
@@ -200,11 +200,10 @@ Themes: the reference's bundled `*.theme.json` manifests (Dark, Light, High Cont
 Dark, High Contrast Light) are copied unchanged into `Assets/Themes` and discovered
 at startup; adding a theme means adding one manifest. Fixed mode pins one theme;
 Match system follows the operating system's appearance through an explicit light
-and dark pair, chosen separately. The profile stores the opaque theme id, mode and
+and dark pair, chosen separately. Host state stores the opaque theme id, mode and
 pair; legacy dark/light/system values migrate. A theme swap updates the workbench,
 dialogs, Markdown, diffs, Mermaid diagrams, the Scintilla editor and Ghostty
 (ANSI palette, cursor, selection and contrast floor) without reopening documents.
-Multi-client theme sync is out of scope until settings sync exists.
 
 ## Layout contract
 
@@ -260,8 +259,42 @@ dismissal. Singleton tools have no inline close glyph. Specs compact spaced
 em/en dashes to middle dots and reveal the spec type on hover or keyboard focus.
 
 Application state lives in `~/.sharprail`, independent of the opened project.
-The default profile preserves settings, projects and workspace layouts there;
 `SHARPRAIL_PROFILE` remains an explicit override for isolated checks.
+
+## Windows and shared host state
+
+Multi-client means the windows of one app process plus the clients of one remote
+host. There is no daemon; separately launched local processes stay independent.
+New window (header menu, Mod+Shift+N, unused upstream) opens another window at the
+current project's Home. Windows of one app share the app-owned host composition:
+one shared-state subscription, the terminal factory, and a project session per window.
+
+The host owns shared state: appearance mode, fixed theme and system pair, file and
+Markdown line widths, custom layout presets, workspace display labels, the open
+project list and recents, and workspace lifecycle. Every change goes to the host
+and applies when its broadcast arrives, so every window and client converges on
+the same snapshot; a control keeps showing the host's value until then. Snapshots
+are complete: a client receives the current one on subscribe and again after a
+reconnect, so it rehydrates whatever it missed. Local clients receive in-process
+events; remote clients use a code-first gRPC server stream and resubscribe after
+a dropped transport. Closing a project elsewhere moves a window on to the next
+project's Home or the Welcome; removing the workspace a window shows returns it to
+Project Home with a notice; creation and renames update every rail. An inline
+rename left open keeps its draft across broadcasts, commits nothing when unchanged,
+and commits after a reconnect when submitted offline. A startup restore that fails
+while the host is unreachable keeps the remembered location and retries on reconnect.
+
+Each window keeps its own frame, default preset, group limits, bottom alignment and
+last location, as upstream's per-tab frontend state. `profile.json` stores them as
+one `Windows` entry per open window, restored at launch; closing a window while
+others remain forgets its entry, quitting keeps every entry. Interface size, hidden
+files, rail expansion and Git selections remain app preferences in the profile.
+Local shared state persists in `~/.sharprail/state.json`; the first launch seeds it
+from the profile's pre-host fields and clears them only after the file is written.
+A remote host persists its own state in `SHARPRAIL_STATE_DIR`, default
+`~/.sharprail/host` on the host machine. Remote calls name the workspace root the
+client opened, so remote clients never share a current project and resume after
+reconnecting without server sessions.
 
 ## Markdown
 

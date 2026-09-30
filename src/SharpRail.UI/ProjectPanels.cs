@@ -84,7 +84,7 @@ public sealed partial class WorkbenchWindow
         Ui.Place(toolbar, open, 0, 1);
         Ui.Place(panel, toolbar);
         var tree = new StackPanel { Spacing = 4 };
-        foreach (var project in profile.Data.Projects)
+        foreach (var project in state.Current.Projects)
         {
             var row = new Grid { Name = "ProjectRow", ColumnDefinitions = new ColumnDefinitions("16,4,*,Auto"), Height = 28, Margin = new Thickness(4, 0), Background = Avalonia.Media.Brushes.Transparent, Tag = project };
             var collapsed = profile.Data.CollapsedProjects.Contains(project);

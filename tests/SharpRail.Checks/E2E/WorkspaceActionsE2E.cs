@@ -99,8 +99,8 @@ internal static class WorkspaceActionsE2E
         Require(ItemText(app, workspace, "WorkspaceBranch") == branch && Git(workspace, "symbolic-ref", "--short", "HEAD") == branch &&
             Directory.Exists(workspace), "Renaming the display label must not change Git.");
         app.Dispose();
-        Require(new ProfileStore(app.Root + "-profile").Data.WorkspaceLabels.GetValueOrDefault(workspace) == "Manual Workspace Name",
-            "The display label must persist in the profile.");
+        Require(new ProfileStore(app.Root + "-profile").OpenState().Current.WorkspaceLabels.GetValueOrDefault(workspace) == "Manual Workspace Name",
+            "The display label must persist in the local host state.");
         Console.WriteLine("PASS upstream workspace-actions.spec.ts: a managed workspace can rename its display label inline without changing Git");
     }
 

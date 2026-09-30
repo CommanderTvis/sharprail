@@ -21,7 +21,7 @@ internal static class ReloadNavigationE2E
         var project = app.Root;
         app.Dispose();
         var saved = new ProfileStore(project + "-profile").Data;
-        return new E2eWorkspace(project, openFiles: false, startPath: saved.LastProject, prepare: prepare);
+        return new E2eWorkspace(project, openFiles: false, startPath: saved.Windows[0].LastProject, prepare: prepare);
     }
 
     private static void MissingFallback(string directory)
@@ -32,18 +32,18 @@ internal static class ReloadNavigationE2E
         app.Dispose();
         Git(project, "worktree", "remove", "--force", workspace);
         var profile = new ProfileStore(project + "-profile");
-        Require(profile.Data.LastProject == workspace, "The profile must remember the active workspace.");
-        using (app = new E2eWorkspace(project, openFiles: false, startPath: profile.Data.LastProject))
+        Require(profile.Data.Windows[0].LastProject == workspace, "The profile must remember the active workspace.");
+        using (app = new E2eWorkspace(project, openFiles: false, startPath: profile.Data.Windows[0].LastProject))
         {
             Until(() => app.Window.AtProjectHome && app.Window.ProjectRoot == project && HasWelcome(app));
             Require(!WorktreePaths(app).Any(path => Active(app, path)), "A missing workspace falls back to its Project Home.");
         }
         profile = new ProfileStore(project + "-profile");
-        Require(profile.Data.LastAtHome && profile.Data.LastProjectRoot == project, "The fallback must be remembered as Project Home.");
-        profile.Data.LastProject = Path.Combine(directory, "gone", "workspace");
-        profile.Data.LastProjectRoot = Path.Combine(directory, "gone");
+        Require(profile.Data.Windows[0].LastAtHome && profile.Data.Windows[0].LastProjectRoot == project, "The fallback must be remembered as Project Home.");
+        profile.Data.Windows[0].LastProject = Path.Combine(directory, "gone", "workspace");
+        profile.Data.Windows[0].LastProjectRoot = Path.Combine(directory, "gone");
         profile.Save();
-        using (app = new E2eWorkspace(project, openFiles: false, startPath: profile.Data.LastProject))
+        using (app = new E2eWorkspace(project, openFiles: false, startPath: profile.Data.Windows[0].LastProject))
         {
             Until(() => HasWelcome(app));
             Require(!app.Window.WorkspaceMounted && WelcomeTitle(app) == "SharpRail", "A missing project falls back to the clean Welcome.");

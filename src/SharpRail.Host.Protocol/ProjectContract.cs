@@ -16,6 +16,12 @@ public sealed class SaveFileRequest
 [ProtoContract]
 public sealed class SaveFileReply { }
 
+public static class ProjectHeaders
+{
+    /// <summary>Binary metadata carrying the UTF-8 workspace root a client last opened; the host resolves each call against it.</summary>
+    public const string Root = "x-sharprail-root-bin";
+}
+
 [ProtoContract]
 public sealed class ProjectRequest
 {

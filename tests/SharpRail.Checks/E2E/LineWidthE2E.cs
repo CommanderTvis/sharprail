@@ -4,6 +4,7 @@ using Avalonia.Controls.Documents;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
+using SharpRail.Host.Abstractions;
 using SharpRail.UI.Panels;
 using SharpRail.UI.Rendering;
 using SharpRail.UI.State;
@@ -18,6 +19,7 @@ internal static class LineWidthE2E
     internal static void Run(string root)
     {
         Drafts(root);
+        Convergence(root);
         using var git = new IsolatedGit(Path.Combine(root, "line-width-git"));
         var longLine = string.Join(' ', Enumerable.Range(1, 80).Select(index => $"segment-{index:00}"));
         var directory = IsolatedGit.Repository(Path.Combine(root, "line-width-diff"), ("LONG_LINE.txt", longLine));
@@ -86,9 +88,9 @@ internal static class LineWidthE2E
             Require(app.Window.Preferences.FileLineWidthBounded, "Toggling one width's limit must leave the other bounded.");
             Close(settings);
         }
-        var saved = new ProfileStore(directory + "-profile").Data.Preferences;
+        var saved = new ProfileStore(directory + "-profile").OpenState().Current.Settings;
         Require(saved is { FileLineWidth: 80, MarkdownLineWidth: 60, FileLineWidthBounded: true, MarkdownLineWidthBounded: false },
-            "Saved line widths must persist in the profile.");
+            "Saved line widths must persist in the local host state.");
         using (var reopened = new E2eWorkspace(directory, openFiles: false))
         {
             var settings = OpenLineWidth(reopened);
@@ -97,7 +99,82 @@ internal static class LineWidthE2E
                 "A fresh window must restore the saved line widths.");
             Close(settings);
         }
-        Console.WriteLine("PASS upstream line-width-settings.spec.ts: line-width controls validate drafts and persist (broadcast part pending)");
+        Console.WriteLine("PASS upstream line-width-settings.spec.ts: line-width controls validate drafts and persist");
+    }
+
+    /// <summary>Holds the next shared-state broadcast until released, like the reference's channel hold.</summary>
+    private sealed class HeldState(IHostStateService inner) : IHostStateService
+    {
+        private TaskCompletionSource? held;
+        private TaskCompletionSource? release;
+        internal Task Held => held!.Task;
+        internal void Arm() { held = new(TaskCreationOptions.RunContinuationsAsynchronously); release = new(TaskCreationOptions.RunContinuationsAsynchronously); }
+        internal void Release() => release?.TrySetResult();
+        public ValueTask<HostState> GetStateAsync(CancellationToken cancellationToken = default) => inner.GetStateAsync(cancellationToken);
+        public ValueTask<HostState> ChangeAsync(IReadOnlyList<HostStateChange> changes, CancellationToken cancellationToken = default) => inner.ChangeAsync(changes, cancellationToken);
+        public async IAsyncEnumerable<HostState> WatchAsync([System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            await foreach (var state in inner.WatchAsync(cancellationToken))
+            {
+                if (held is { Task.IsCompleted: false } pending)
+                {
+                    pending.TrySetResult();
+                    await release!.Task.WaitAsync(cancellationToken);
+                }
+                yield return state;
+            }
+        }
+    }
+
+    // Upstream's chat measure is replaced by the Markdown width; the peer is a second window of the app.
+    private static void Convergence(string root)
+    {
+        var directory = Path.Combine(root, "line-width-broadcast");
+        HeldState? hold = null;
+        using (var app = new E2eWorkspace(directory, openFiles: false, state: service => hold = new HeldState(service)))
+        {
+            var settings = OpenLineWidth(app);
+            var markdownInput = Named<TextBox>(settings, "MarkdownLineWidthInput");
+            Type(app, settings, markdownInput, "80");
+            settings.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
+            settings.KeyRelease(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
+            Until(() => !Named<Button>(settings, "MarkdownLineWidthSave").IsEnabled && app.Window.Preferences.MarkdownLineWidth == 80);
+            SaveWidth(app, settings, "File", 160);
+
+            hold!.Arm();
+            var markdownBounded = Named<CheckBox>(settings, "MarkdownLineWidthBounded");
+            app.Click(markdownBounded);
+            Until(() => hold.Held.IsCompleted);
+            Settle(100);
+            Require(markdownBounded.IsChecked == true && app.Window.Preferences.MarkdownLineWidthBounded,
+                "The toggle must show the host's value until its broadcast arrives.");
+            hold.Release();
+            Until(() => markdownBounded.IsChecked == false);
+            Require(Named<CheckBox>(settings, "FileLineWidthBounded").IsChecked == true, "The other width stays bounded.");
+            Close(settings);
+
+            using var peer = app.NewWindow();
+            var peerSettings = OpenLineWidth(peer);
+            settings = OpenLineWidth(app);
+            Require(Named<TextBox>(peerSettings, "MarkdownLineWidthInput").Text == "80" && Named<TextBox>(peerSettings, "FileLineWidthInput").Text == "160" &&
+                Named<CheckBox>(peerSettings, "MarkdownLineWidthBounded").IsChecked == false && Named<CheckBox>(peerSettings, "FileLineWidthBounded").IsChecked == true,
+                "A second window shows the converged widths.");
+            app.Click(Named<CheckBox>(settings, "FileLineWidthBounded"));
+            Until(() => Named<CheckBox>(peerSettings, "FileLineWidthBounded").IsChecked == false);
+            app.Click(Named<CheckBox>(settings, "FileLineWidthBounded"));
+            Until(() => Named<CheckBox>(peerSettings, "FileLineWidthBounded").IsChecked == true);
+            Close(peerSettings);
+            Close(settings);
+        }
+        using (var reopened = new E2eWorkspace(directory, openFiles: false))
+        {
+            var settings = OpenLineWidth(reopened);
+            Require(Named<TextBox>(settings, "MarkdownLineWidthInput").Text == "80" && Named<TextBox>(settings, "FileLineWidthInput").Text == "160" &&
+                Named<CheckBox>(settings, "MarkdownLineWidthBounded").IsChecked == false && Named<CheckBox>(settings, "FileLineWidthBounded").IsChecked == true,
+                "A fresh window must restore the converged widths.");
+            Close(settings);
+        }
+        Console.WriteLine("PASS upstream line-width-settings.spec.ts: line-width controls validate drafts, converge on broadcasts, and persist");
     }
 
     internal static void SaveWidth(E2eWorkspace app, Window settings, string kind, int value)

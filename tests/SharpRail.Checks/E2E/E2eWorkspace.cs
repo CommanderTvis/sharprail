@@ -7,6 +7,7 @@ using Avalonia.LogicalTree;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using SharpRail.Host.Abstractions;
+using SharpRail.Host.Client;
 using SharpRail.Host.Core;
 using SharpRail.UI;
 using SharpRail.UI.Docking;
@@ -19,11 +20,54 @@ internal sealed class E2eWorkspace : IDisposable
     internal WorkbenchWindow Window { get; }
     internal E2eHost Host { get; }
     internal E2eTerminals Terminals { get; }
+    internal Workbench Workbench { get; }
+    /// <summary>The local host's shared state behind every window of this workbench.</summary>
+    internal HostStateStore? State { get; }
     internal string Center => Window.Layout.View.FocusedCenter;
     internal IReadOnlyList<DockTab> Tabs => Window.Layout.Tabs(Center);
     internal string Root { get; }
+    private readonly bool peer;
 
-    internal E2eWorkspace(string root, bool openFiles = true, string? profileRoot = null, E2eTerminals? terminals = null, string? startPath = null, Action<E2eHost>? prepare = null)
+    private E2eWorkspace(E2eWorkspace owner, WorkbenchWindow window)
+    {
+        Root = owner.Root; Host = owner.Host; Terminals = owner.Terminals; Workbench = owner.Workbench; State = owner.State;
+        Window = window; peer = true;
+    }
+
+    /// <summary>Opens another window of the same app with Mod+Shift+N and drives it like the first.</summary>
+    internal E2eWorkspace NewWindow()
+    {
+        var count = Workbench.Windows.Count;
+        Window.Focus();
+        Window.KeyPress(Key.N, (OperatingSystem.IsMacOS() ? RawInputModifiers.Meta : RawInputModifiers.Control) | RawInputModifiers.Shift, PhysicalKey.N, null);
+        Until(() => Workbench.Windows.Count == count + 1);
+        var window = Workbench.Windows[^1];
+        Until(() => window.WorkspaceMounted || window.ShowsWelcome);
+        return new(this, window);
+    }
+
+    private readonly IDisposable? remoteState;
+
+    /// <summary>A remote client of a real gRPC host at <paramref name="endpoint"/>, restoring <paramref name="startPath"/>.</summary>
+    internal E2eWorkspace(Uri endpoint, string token, string root, string profileRoot, string startPath)
+    {
+        Root = root;
+        var profile = new ProfileStore(profileRoot);
+        var service = new RemoteStateAdapter(endpoint, token);
+        remoteState = service;
+        State = null;
+        Host = new(new RemoteProjectAdapter(endpoint, token));
+        Terminals = new();
+        var first = true;
+        Workbench = new(profile, new SharedState(service, profile.Data.Preferences), Terminals.Factory, true,
+            () => { if (!first) return new E2eHost(new RemoteProjectAdapter(endpoint, token)); first = false; return Host; });
+        Window = Workbench.Open(profile.Data.Windows[0], startPath);
+        Window.Width = 1352; Window.Height = 848;
+        Window.Show();
+    }
+
+    internal E2eWorkspace(string root, bool openFiles = true, string? profileRoot = null, E2eTerminals? terminals = null, string? startPath = null,
+        Action<E2eHost>? prepare = null, Func<IHostStateService, IHostStateService>? state = null)
     {
         Root = root;
         Directory.CreateDirectory(root);
@@ -39,10 +83,17 @@ internal sealed class E2eWorkspace : IDisposable
         Directory.CreateDirectory(Path.Combine(root, "themes"));
         File.WriteAllText(Path.Combine(root, "themes", "SPEC.md"), "# Theme spec target\n\nReached through a parent-relative Markdown link.\n");
         File.WriteAllBytes(Path.Combine(root, "logo.png"), Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGP4DwQACfsD/fteaysAAAAASUVORK5CYII="));
-        Host = new(new ProjectServices(root));
+        var profile = new ProfileStore(profileRoot ?? root + "-profile");
+        State = profile.OpenState();
+        Host = new(new ProjectServices(root, State));
         prepare?.Invoke(Host);
         Terminals = terminals ?? new();
-        Window = new(Host, startPath ?? root, new ProfileStore(profileRoot ?? root + "-profile"), Terminals.Factory) { Width = 1352, Height = 848 };
+        IHostStateService service = new LocalStateAdapter(State);
+        var first = true;
+        Workbench = new(profile, new SharedState(state?.Invoke(service) ?? service, profile.Data.Preferences, State.Current), Terminals.Factory, false,
+            () => { if (!first) return new E2eHost(new ProjectServices(root, State)); first = false; return Host; });
+        Window = Workbench.Open(profile.Data.Windows[0], startPath ?? root);
+        Window.Width = 1352; Window.Height = 848;
         Window.Show();
         if (startPath is not null) return;
         Until(() => Window.WorkspaceMounted);
@@ -155,7 +206,13 @@ internal sealed class E2eWorkspace : IDisposable
         Until(() => Tabs.Any(tab => tab.Path == path && (!keep || !tab.Preview)) && Window.Layout.Selected(Center)?.Path == path);
     }
 
-    public void Dispose() => Window.Close();
+    public void Dispose()
+    {
+        if (!peer)
+            foreach (var other in Workbench.Windows.Where(window => window != Window).ToArray()) other.Close();
+        Window.Close();
+        remoteState?.Dispose();
+    }
 }
 
 internal sealed class E2eHost(IProjectServices inner) : IProjectServices

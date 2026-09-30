@@ -6,7 +6,8 @@ Tests drive real Avalonia pointer/keyboard input and host calls in a headless wi
 Each case gets an isolated repository fixture and profile. Native macOS checks remain
 necessary for window moving, zooming, platform dialogs and final visual verification.
 Multiwindow gesture cases open the same project with independent window profiles
-and explicitly focus the shortcut recipient before sending keyboard input.
+and explicitly focus the shortcut recipient before sending keyboard input; shared-state
+cases open the second window from the same app so both windows share one host.
 Browser URL/page-count assertions become internal workspace navigation assertions.
 ARIA roles and relationships become Avalonia automation-peer assertions. Delayed
 WebSocket replies become held host-call responses; local mode uses direct C# calls.
@@ -85,11 +86,11 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `layout.spec.ts` | pointer drag exposes deterministic split targets and moves one tab | Ported |
 | `layout.spec.ts` | applying the Review preset preserves resources and installs its vertical center topology | Ported |
 | `layout.spec.ts` | the local default preset drives an explicit frame reset | Ported |
-| `layout.spec.ts` | custom presets synchronize while defaults and group limits remain window-local | Pending: needs cross-window custom-preset sync (each window owns its profile) and preset rename, which the app lacks |
+| `layout.spec.ts` | custom presets synchronize while defaults and group limits remain window-local | Ported (the peer is a second window of the app; save, rename, set default, limits and delete) |
 | `layout.spec.ts` | Layout settings controls keep their container-preset max-widths | Ported |
 | `layout.spec.ts` | an accepted side-group overage is grandfathered without allowing further growth | Ported |
 | `layout.spec.ts` | a narrow viewport compresses locally without rewriting recursive topology | Ported |
-| `layout.spec.ts` | frontend windows keep chat and file placement independent | Pending: its chat-tab assertions are excluded (AI chat is a non-goal); its terminal/file window independence needs multi-client shared workspace state |
+| `layout.spec.ts` | frontend windows keep chat and file placement independent | Ported for terminal and file placement across two windows of the app; the chat-tab and closed-chat history assertions are excluded (AI chat is a non-goal) |
 | `layout.spec.ts` | layout survives a transport reconnect and remains writable | Ported |
 | `layout.spec.ts` | another window cannot cancel or rearrange an active tab drag | Ported |
 | `layout.spec.ts` | another window cannot cancel or adopt an active side resize | Ported |
@@ -104,14 +105,14 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `projects.spec.ts` | opening a non-git folder offers to initialise a repo, then opens it end-to-end | Ported |
 | `projects.spec.ts` | rail expansion is per-browser view state that survives a reload | Ported |
 | `projects.spec.ts` | activating a workspace in one project keeps the other project's rail expansion | Ported |
-| `projects.spec.ts` | project context actions stay compact and close/reopen is lossless across clients | Ported (single window: the observer-window assertions wait for multi-client sync, touch long-press has no desktop input, and the menu has no Open existing worktree entry) |
+| `projects.spec.ts` | project context actions stay compact and close/reopen is lossless across clients | Ported (the observer is a second window of the app, opened after the cancel/Escape focus steps; touch long-press has no desktop input, and the menu has no Open existing worktree entry) |
 | `new-workspace-shortcut.spec.ts` | Mod+N opens the Create workspace dialog for the selected project from the Welcome screen, and Escape closes it | Ported |
 | `new-workspace-shortcut.spec.ts` | The Mod+Alt+N alias opens the same dialog and Mod+Shift+N does not | Ported |
 | `new-workspace-shortcut.spec.ts` | Mod+N works inside an active workspace | Ported |
 | `workspace-actions.spec.ts` | Open in launches the detected editor detached at the worktree path | Ported (a stub `code` on `PATH` records its argument) |
 | `workspace-actions.spec.ts` | Copy path copies the worktree's absolute path to the clipboard | Ported |
 | `workspace-actions.spec.ts` | a managed workspace can rename its display label inline without changing Git | Ported |
-| `workspace-actions.spec.ts` | an open inline rename survives reconnect | Pending: labels are client-profile state with no host round-trip, so a dropped transport cannot interrupt a rename; the case becomes observable with multi-client label sync |
+| `workspace-actions.spec.ts` | an open inline rename survives reconnect | Ported (a real gRPC host behind a relay that drops and restores the client's connection) |
 | `workspace-actions.spec.ts` | the Default workspace's kebab menu offers only non-mutating actions | Ported |
 | `workspace-actions.spec.ts` | right-click opens the workspace's kebab menu without activating it | Ported |
 | `workspace-actions.spec.ts` | the kebab is hover-only ONLY on devices that actually have hover — never invisible by default | Ported (Avalonia has no hover media query; asserts opacity 0 at rest and 1 on row hover) |
@@ -141,14 +142,14 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `new-workspace.spec.ts` | opening New Workspace prefetches a stale default before create | Ported |
 | `new-workspace.spec.ts` | opening New Workspace prefetches a missing default tracking ref | Ported |
 | `new-workspace.spec.ts` | a pasted image in the workspace dialog rides along into the first chat turn | Excluded: AI chat |
-| `workspace-lifecycle.spec.ts` | workspace removal propagates — no zombie row in a second tab | Pending: multi-client sync |
-| `workspace-lifecycle.spec.ts` | workspace rename propagates live and rehydrates a tab that missed a later snapshot | Pending: multi-client sync |
+| `workspace-lifecycle.spec.ts` | workspace removal propagates — no zombie row in a second tab | Ported (second window of the app; the removed workspace's notice stands in for the toast) |
+| `workspace-lifecycle.spec.ts` | workspace rename propagates live and rehydrates a tab that missed a later snapshot | Ported (two gRPC clients; the peer's connection is dropped and restored by a relay) |
 | `workspace-lifecycle.spec.ts` | removing the active workspace restores the previously selected workspace | Ported |
-| `workspace-lifecycle.spec.ts` | workspace creation propagates to a second tab's rail | Pending: multi-client sync |
+| `workspace-lifecycle.spec.ts` | workspace creation propagates to a second tab's rail | Ported (second window of the app) |
 | `reload-navigation.spec.ts` | reloading from the older of two chats returns to that exact chat without rail clicks | Excluded: AI chat |
 | `reload-navigation.spec.ts` | a directly opened exact-chat fragment restores that chat; two tabs keep independent routes | Excluded: AI chat |
 | `reload-navigation.spec.ts` | missing chat, workspace, and project fall back to the nearest valid location | Ported (the chat step is omitted; the profile's last location stands in for the URL) |
-| `reload-navigation.spec.ts` | a transient workspace read failure preserves the URL and restores after reconnect | Pending: startup restore does not retry a failed host read after reconnecting |
+| `reload-navigation.spec.ts` | a transient workspace read failure preserves the URL and restores after reconnect | Ported (the relay refuses the restoring client's connection, then allows it; the remembered workspace stands in for the URL and the chat tab is omitted) |
 | `reload-navigation.spec.ts` | a failed exact-chat transcript waits for reconnect instead of duplicating its read | Excluded: AI chat |
 | `reload-navigation.spec.ts` | user navigation while the restore read is delayed wins over the late response | Ported (the held read is the startup project open) |
 | `reload-navigation.spec.ts` | reload from a file tab restores its shared placement under the workspace route | Ported |
@@ -200,10 +201,10 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `bottom-panel.spec.ts` | bottom visibility and alignment stay local to each window and survive its reload | Ported (the peer is a second window with its own profile) |
 | `bottom-panel.spec.ts` | an old host layout stays inert while a pristine surface starts Balanced | Excluded: SharpRail never stored layouts on the host, so there is no legacy host layout to ignore |
 | `theme.spec.ts` | appearance switches a discovered theme and persists it across reload | Ported (Settings lists every bundled manifest) |
-| `theme.spec.ts` | system mode follows each client and retains its explicit pair | Ported for one client (the application theme variant stands in for the emulated media query; also checks the pair after reload). Pending: the peer client that shares the host-synced mode and pair needs multi-client settings sync |
+| `theme.spec.ts` | system mode follows each client and retains its explicit pair | Ported (the application theme variant stands in for the emulated media query; also checks the pair after reload). The peer is a second gRPC client with its own settings copy; both share one process and so one device appearance, so the peer's light-device theme is checked by resolving its synced mode and pair |
 | `theme.spec.ts` | Monaco opens files and re-themes under every discovered manifest | Ported (macOS Scintilla; every bundled manifest, with the high-contrast selected-text overrides) |
 | `theme.spec.ts` | selected workspace tabs keep their surface and edge marker in high contrast | Ported (center, right and terminal strips; brush, 2px geometry and rendered pixels) |
-| `line-width-settings.spec.ts` | line-width controls validate drafts, converge on broadcasts, and persist | Ported in part: draft Escape/validation/Enter/Save and persistence across a fresh window, with the Markdown width standing in for the excluded chat measure. SharpRail's "Limit lines to this width" toggle falls back to the pane width rather than exceeding it. Pending: the held-broadcast convergence between clients, which waits for settings sync |
+| `line-width-settings.spec.ts` | line-width controls validate drafts, converge on broadcasts, and persist | Ported: draft Escape/validation/Enter/Save, a held host broadcast keeping the toggle at the host's value until released, a second window converging, and persistence across a fresh window, with the Markdown width standing in for the excluded chat measure. SharpRail's "Limit lines to this width" toggle falls back to the pane width rather than exceeding it |
 | `line-width-settings.spec.ts` | the file width wraps source and updates an already-mounted editor | Ported (macOS Scintilla) |
 | `line-width-settings.spec.ts` | the default file width wraps both sides of a long-line diff | Ported |
 | `line-width-settings.spec.ts` | chat uses the selected measure and optionally exceeds a narrow pane | Excluded: AI chat is a non-goal |
@@ -234,6 +235,10 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `topbar-chrome.spec.ts` | the action cluster keeps Update, quota Retry and Settings out of the drag region | Pending: SharpRail has no Update or quota Retry actions |
 
 Upstream cases combining supported docking with terminal/chat content need adapted
-fixtures while preserving the layout assertions. Multi-client synchronization is not
-implemented by the current single-frontend remote host; those cases remain pending
-rather than being weakened to local persistence. No benchmarks or Git commits are run.
+fixtures while preserving the layout assertions. Multi-client cases use a second window
+of the same app (`E2eWorkspace.NewWindow`, Mod+Shift+N) as the in-process peer, and
+separate clients of a real gRPC host for remote peers; `CutProxy` drops and restores one
+client's connection where upstream routes a WebSocket. Separately launched local
+processes are independent by design, so no case runs two app processes. Terminal
+session sharing across clients remains pending with host-owned sessions.
+No benchmarks or Git commits are run.

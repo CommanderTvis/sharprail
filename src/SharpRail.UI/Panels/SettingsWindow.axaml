@@ -13,7 +13,7 @@
     <DataTemplate x:Key="AppearancePage">
       <StackPanel Spacing="8">
         <TextBlock Text="Theme" Classes="settings-heading" />
-        <TextBlock Text="Your mode and pair are saved in this frontend profile. Match system follows this device’s light or dark setting." Classes="settings-description" />
+        <TextBlock Text="Your mode and pair are shared by every window and client of this host. Match system follows each device’s light or dark setting." Classes="settings-description" />
         <StackPanel x:Name="ThemeModeChoices" Spacing="4" AutomationProperties.Name="Theme mode" />
         <StackPanel x:Name="ThemeChoices" Spacing="4" />
         <StackPanel x:Name="SystemThemes" Spacing="8">
@@ -37,7 +37,7 @@
       <StackPanel Spacing="16">
         <StackPanel Spacing="8">
           <TextBlock Text="Line width" Classes="settings-heading" />
-          <TextBlock Text="Set the visual wrap column for source files and rendered Markdown. These preferences are saved in this frontend profile." Classes="settings-description" />
+          <TextBlock Text="Set the visual wrap column for source files and rendered Markdown. These preferences are shared by every window and client of this host." Classes="settings-description" />
         </StackPanel>
         <ContentControl x:Name="FileLineWidthHost" />
         <ContentControl x:Name="MarkdownLineWidthHost" />
@@ -68,7 +68,7 @@
     <DataTemplate x:Key="LayoutPage">
       <StackPanel Spacing="8">
         <TextBlock Text="Layout" Classes="settings-heading" />
-        <TextBlock Text="The frame is shared by this window. Each workspace retains its own open documents." Classes="settings-description" />
+        <TextBlock Text="The frame, default preset and group limits belong to this window; custom presets are shared by every window and client of this host. Each workspace retains its own open documents." Classes="settings-description" />
         <StackPanel x:Name="PresetChoices" Spacing="8" />
         <StackPanel x:Name="PresetSaveRow" Orientation="Horizontal" Spacing="8" MaxWidth="512" HorizontalAlignment="Left">
           <TextBox x:Name="PresetName" PlaceholderText="Preset name" Width="260" MaxLength="200" />
@@ -96,7 +96,7 @@
     <DataTemplate x:Key="ProjectsPage">
       <StackPanel Spacing="8">
         <TextBlock Text="Projects" Classes="settings-heading" />
-        <TextBlock Text="Project preferences are saved in this frontend profile." Classes="settings-description" />
+        <TextBlock Text="Hidden files are a preference of this app; the project list is shared by every window and client of this host." Classes="settings-description" />
         <CheckBox x:Name="ShowHiddenFiles" Content="Show hidden files" />
         <TextBlock Text="Recent projects" Classes="settings-label" />
         <StackPanel x:Name="RecentProjects" Spacing="8" />

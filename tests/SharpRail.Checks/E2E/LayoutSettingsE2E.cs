@@ -19,6 +19,7 @@ internal static class LayoutSettingsE2E
         DefaultReset(root);
         ContainerWidths(root);
         GrandfatheredLimit(root);
+        CustomPresetsSync(root);
     }
 
     private static SettingsWindow Open(E2eWorkspace app)
@@ -165,6 +166,54 @@ internal static class LayoutSettingsE2E
             Require(app.Window.Layout.State.SideLimit == 2 && app.Window.Layout.State.Groups.Count(group => group.Region == "right") == 3,
                 "Reload must preserve the saved limit and the grandfathered groups.");
         Console.WriteLine("PASS upstream layout.spec.ts: an accepted side-group overage is grandfathered without allowing further growth");
+    }
+
+    private static Grid? PresetRow(SettingsWindow settings, string name) =>
+        settings.GetLogicalDescendants().OfType<Grid>().SingleOrDefault(grid => grid.Name == "Preset_" + name);
+
+    private static void CustomPresetsSync(string root)
+    {
+        using var app = new E2eWorkspace(Path.Combine(root, "layout-settings-sync"));
+        var settings = Open(app);
+        var name = settings.GetLogicalDescendants().OfType<TextBox>().Single(box => box.Name == "PresetName");
+        Require(Avalonia.Automation.AutomationProperties.GetName(name) == "Custom preset name", "The preset name field must be labelled.");
+        name.Text = "My workbench";
+        app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => Avalonia.Automation.AutomationProperties.GetName(button) == "Save preset"));
+        Until(() => PresetRow(settings, "My workbench") is not null);
+        app.Click(PresetRow(settings, "My workbench")!.GetLogicalDescendants().OfType<Button>()
+            .Single(button => Avalonia.Automation.AutomationProperties.GetName(button) == "Rename My workbench"));
+        var rename = settings.GetLogicalDescendants().OfType<TextBox>().Single(box => Avalonia.Automation.AutomationProperties.GetName(box) == "Rename My workbench");
+        rename.Text = "My renamed workbench";
+        app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => Avalonia.Automation.AutomationProperties.GetName(button) == "Save My workbench name"));
+        Until(() => PresetRow(settings, "My renamed workbench") is not null && PresetRow(settings, "My workbench") is null);
+        app.Click(PresetButton(settings, "My renamed workbench", "Set default"));
+        Until(() => Equals(PresetRow(settings, "My renamed workbench")!.Tag, true));
+        foreach (var (region, value) in new[] { ("side", 7), ("bottom", 4) })
+        {
+            settings.GetLogicalDescendants().OfType<NumericUpDown>().Single(input => input.Name == "GroupLimit_" + region).Value = value;
+            var save = settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "SaveGroupLimit_" + region);
+            app.Click(save);
+            Until(() => settings.GetLogicalDescendants().OfType<NumericUpDown>().Single(input => input.Name == "GroupLimit_" + region).Value == value &&
+                !settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "SaveGroupLimit_" + region).IsEnabled);
+        }
+
+        settings.Close();
+        using var peer = app.NewWindow();
+        var peerSettings = Open(peer);
+        settings = Open(app);
+        Until(() => PresetRow(peerSettings, "My renamed workbench") is not null);
+        Require(!Equals(PresetRow(peerSettings, "My renamed workbench")!.Tag, true) && Equals(PresetRow(peerSettings, "balanced")!.Tag, true),
+            "The custom preset synchronizes, but the default preset stays window-local.");
+        Require(peerSettings.GetLogicalDescendants().OfType<NumericUpDown>().Single(input => input.Name == "GroupLimit_side").Value == 6 &&
+            peer.Window.Layout.State.BottomLimit == 3, "Group limits stay window-local.");
+
+        app.Click(PresetRow(settings, "My renamed workbench")!.GetLogicalDescendants().OfType<Button>()
+            .Single(button => Avalonia.Automation.AutomationProperties.GetName(button) == "Delete My renamed workbench"));
+        Until(() => PresetRow(settings, "My renamed workbench") is null && PresetRow(peerSettings, "My renamed workbench") is null);
+        peerSettings.Close();
+        Until(() => Equals(PresetRow(settings, "balanced")!.Tag, true));
+        settings.Close();
+        Console.WriteLine("PASS upstream layout.spec.ts: custom presets synchronize while defaults and group limits remain window-local");
     }
 
     private static void HorizontalSeparator(E2eWorkspace app)

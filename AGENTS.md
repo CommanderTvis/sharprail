@@ -18,7 +18,7 @@ versions; `global.json` selects the SDK. Use `.tools/dotnet/dotnet` for this che
 | `src/SharpRail.UI/Docking` | Persisted frame/workspace layout model, transitions, geometry, pointer/keyboard gestures, tab chrome and search popover. |
 | `src/SharpRail.UI/Panels` | Settings and shared dialogs, including compiled XAML frames and page templates. |
 | `src/SharpRail.UI/Rendering` | Native Markdown rendering, preview/source view and shared UI assets/styles/helpers. |
-| `src/SharpRail.UI/State` | Profile/preferences persistence and migration. Default user state belongs in `~/.sharprail`, not project directories. |
+| `src/SharpRail.UI/State` | Profile persistence and migration (`ProfileStore`: app preferences and one entry per window) and the app's shared-state subscription (`SharedState`). Default user state belongs in `~/.sharprail`, not project directories. |
 | `src/SharpRail.UI/Terminal` | Terminal tab body (`TerminalView`: start failure/retry, exit notice), the Ghostty native-control bridge for local and relayed remote sessions, and the `--terminal-relay` mode. |
 | `src/SharpRail.UI/Assets` | Reference icons and bundled fonts, with their licenses. |
 | `native/ghostty` | Objective-C AppKit/Metal bridge, Ghostty configuration shim and native terminal probe. |
@@ -38,11 +38,11 @@ For host changes, follow the operation through these files:
 
 | Layer | Files |
 | --- | --- |
-| Public API | `Host.Abstractions/IWorkspaceHost.cs`, `ProjectServices.cs` and `TerminalServices.cs`. |
-| Implementation | `Host.Core/WorkspaceHost.cs`, `ProjectServices.cs`, `SpecCatalog.cs`, `GitRepository.cs` and `PtyTerminalService.cs`. |
-| Wire contracts | `Host.Protocol/WorkspaceContract.cs`, `ProjectContract.cs` and `TerminalContract.cs`. |
-| Client adapters | `Host.Client/HostAdapters.cs`, `ProjectAdapters.cs` and `TerminalAdapters.cs`. |
-| Server adapters | `Host.Remote/WorkspaceRpc.cs`, `ProjectRpc.cs` and `TerminalRpc.cs`; `RemoteServer.cs` configures the server and `Program.cs` starts it. |
+| Public API | `Host.Abstractions/IWorkspaceHost.cs`, `ProjectServices.cs`, `HostState.cs` and `TerminalServices.cs`. |
+| Implementation | `Host.Core/WorkspaceHost.cs`, `ProjectServices.cs`, `HostStateStore.cs`, `SpecCatalog.cs`, `GitRepository.cs` and `PtyTerminalService.cs`. |
+| Wire contracts | `Host.Protocol/WorkspaceContract.cs`, `ProjectContract.cs`, `StateContract.cs` and `TerminalContract.cs`. |
+| Client adapters | `Host.Client/HostAdapters.cs`, `ProjectAdapters.cs`, `StateAdapters.cs` and `TerminalAdapters.cs`. |
+| Server adapters | `Host.Remote/WorkspaceRpc.cs`, `ProjectRpc.cs` (per-call workspace from `ProjectSessions.cs`), `StateRpc.cs` and `TerminalRpc.cs`; `RemoteServer.cs` configures the server and `Program.cs` starts it. |
 
 Each `Host.*` prefix in this table denotes its `src/SharpRail.Host.*` project.
 Domain records belong in
@@ -53,12 +53,21 @@ The bundled theme manifests live in `src/SharpRail.UI/Assets/Themes`; `Rendering
 owns the catalogue and resolution, and `Ui.Apply` writes the shared brushes then raises
 `Ui.ThemeChanged` for surfaces that bake colours (Mermaid, Scintilla, Ghostty).
 
-The application starts in `src/SharpRail.UI/Program.cs` and `App.cs`.
-`WorkbenchWindow` owns the workbench; `DockSurface` renders and handles docking,
+The application starts in `src/SharpRail.UI/Program.cs` and `App.cs`, which compose
+one app-owned `Workbench`: the profile, the host's shared-state subscription
+(`SharedState`), the terminal factory and a factory for per-window project sessions.
+Every window of the app comes from it (New window, Mod+Shift+N); there is no daemon.
+`WorkbenchWindow` owns one window's workbench; `DockSurface` renders and handles docking,
 while `LayoutSession` applies transitions to `LayoutState`. `ProfileStore` owns
-on-disk state. Keep these responsibilities separate when adding interactions.
-The default profile file is `~/.sharprail/profile.json`; it contains preferences,
-layout, remembered projects and per-workspace Git selections. Persist target,
+on-disk app state. Keep these responsibilities separate when adding interactions.
+Settings, custom presets, workspace labels, the project list/recents and workspace
+lifecycle are host state (`IHostStateService`): change them through the host and
+update UI when the broadcast arrives (`HostSync.cs`), never by writing a local copy.
+Local host state is `~/.sharprail/state.json`, migrated once from older profiles; a
+remote host keeps its own in `SHARPRAIL_STATE_DIR`. The default profile file is
+`~/.sharprail/profile.json`; it contains app preferences (interface size, hidden
+files), one `Windows` entry per window (frame, default preset, last location), rail
+expansion and per-workspace Git selections. Persist target,
 scope and selected commit; reload commit catalogs from Git rather than saving
 derived snapshots. Tests use isolated profile directories.
 Commit listing is a separate host operation; do not fetch a full working-tree
@@ -83,6 +92,8 @@ The workbench is split into partial files rather than separate window classes:
 | `ProjectHome.cs` | Startup routing, Welcome/Project Home, project context actions, the Create workspace flow and workspace row actions. |
 | `GitPanels.cs` / `ChangesTree.cs` / `WorkspaceGit.cs` | Git panel controls, compact change-tree projection and cancellable, workspace-scoped snapshot refreshes. |
 | `GestureNotification.cs` | Feedback when layout transitions cancel an active gesture. |
+| `HostSync.cs` | Applying shared-state broadcasts and reconnects to the window. |
+| `Workbench.cs` | App-owned composition shared by windows and the per-window profile entries. |
 | `TerminalTabs.cs` | Confirmation before closing terminals that run a foreground process. |
 
 Host dependencies flow toward abstractions: Core references Abstractions; Client
@@ -98,11 +109,13 @@ The authoritative upstream checkout is `/Users/commandertvis/IdeaProjects/thinkr
 
 Run checks with `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release`;
 `-- --terminals` runs only the host terminal checks and the terminal/bottom-panel translations.
+`-- --sync` runs the multi-window and multi-client translations.
 Set `SHARPRAIL_TEST_GIT_SOURCE` to an existing upstream clone to include Git fixtures.
 `tests/SharpRail.Checks/Program.cs` is the check runner, not an xUnit test project.
 `ProjectChecks.cs` covers project/Git host parity; `LayoutChecks.cs` covers layout
 transitions; `UiChecks.cs` runs the headless UI checks and upstream translations.
-Use `E2E/E2eWorkspace.cs` for shared input/fixture helpers. Keep translated upstream
+Use `E2E/E2eWorkspace.cs` for shared input/fixture helpers; its `NewWindow()` opens a second
+window of the same app, and `E2E/CutProxy.cs` drops and restores one remote client's connection. Keep translated upstream
 coverage in `E2E.md` separate from additional SharpRail regression checks.
 For published checks, run `artifacts/checks/SharpRail.Checks` with
 `SHARPRAIL_REQUIRE_R2R=1` to require ReadyToRun output as well as open-world checks.

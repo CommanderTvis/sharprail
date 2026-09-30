@@ -71,8 +71,11 @@ public sealed partial class WorkbenchWindow
         toolContent.Remove("changes");
         toolContent.Remove("review");
         if (RailSignature() == railSignature) { surface.RefreshContents("changes", "review"); return; }
-        toolContent.Remove("projects");
-        surface.RefreshContents("projects", "changes", "review");
+        KeepingFocus(() =>
+        {
+            toolContent.Remove("projects");
+            surface.RefreshContents("projects", "changes", "review");
+        });
     }
 
     private string RailSignature() => git.IsRepository + "\0" + string.Join("\0", git.Worktrees.Select(tree => $"{tree.Path}\t{tree.Branch}\t{tree.IsLocked}"));

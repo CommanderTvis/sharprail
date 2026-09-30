@@ -20,7 +20,10 @@ namespace SharpRail.UI;
 public sealed partial class WorkbenchWindow : Window
 {
     private readonly IProjectServices host;
+    private readonly Workbench workbench;
     private readonly ProfileStore profile;
+    private readonly WindowProfile slot;
+    private readonly SharedState state;
     private readonly string initialRoot;
     private readonly bool remote;
     private readonly Terminal.TerminalFactory terminals;
@@ -43,12 +46,26 @@ public sealed partial class WorkbenchWindow : Window
     public LayoutSession Layout { get; }
     public bool WorkspaceMounted { get; private set; }
     public string WorkspaceRoot => workspaceRoot;
-    public Preferences Preferences => profile.Data.Preferences;
+    public Preferences Preferences => state.Preferences;
     public Func<CancellationToken, Task<GitHubStatus>>? GitHubStatusProbe { get; set; }
+    public Workbench Workbench => workbench;
+    public WindowProfile Slot => slot;
+    internal IProjectServices Host => host;
 
+    /// <summary>A standalone window with its own workbench over the profile's local host state; it restores the profile's first window.</summary>
     public WorkbenchWindow(IProjectServices host, string rootPath, ProfileStore profile, Terminal.TerminalFactory terminals, bool remote = false)
+        : this(Standalone(profile, terminals, remote), host, profile.Data.Windows[0], rootPath) => workbench.Attach(this);
+
+    private static Workbench Standalone(ProfileStore profile, Terminal.TerminalFactory terminals, bool remote)
     {
-        this.host = host; this.profile = profile; initialRoot = rootPath; this.remote = remote; this.terminals = terminals;
+        var store = profile.OpenState();
+        return new(profile, new SharedState(new Host.Client.LocalStateAdapter(store), profile.Data.Preferences, store.Current), terminals, remote, null);
+    }
+
+    internal WorkbenchWindow(Workbench workbench, IProjectServices host, WindowProfile slot, string rootPath)
+    {
+        this.workbench = workbench; this.host = host; this.slot = slot; profile = workbench.Profile; state = workbench.State;
+        initialRoot = rootPath; remote = workbench.Remote; terminals = workbench.Terminals;
         FontSize = Ui.FontSize;
         AvaloniaXamlLoader.Load(this);
         root = this.FindControl<Grid>("WorkbenchRoot")!;
@@ -59,10 +76,10 @@ public sealed partial class WorkbenchWindow : Window
         branchIcon = Ui.Icon("gitBranch", Ui.Muted, 14);
         this.FindControl<ContentControl>("BranchIcon")!.Content = branchIcon;
         WireHeader();
-        Layout = new(profile.Data.Layout);
+        Layout = new(slot.Layout);
         Layout.Navigating += group => AdvanceNavigation(group);
-        Layout.Focused += () => { profile.Data.Layout = Layout.State; SaveProfile(); };
-        Layout.Changed += () => { profile.Data.Layout = Layout.State; SaveProfile(); PruneDocuments(); };
+        Layout.Focused += () => { slot.Layout = Layout.State; SaveProfile(); };
+        Layout.Changed += () => { slot.Layout = Layout.State; SaveProfile(); PruneDocuments(); };
         Layout.Changed += UpdateActiveChangeRows;
         Layout.SelectionChanged += _ => UpdateActiveChangeRows();
         Layout.Focused += UpdateActiveChangeRows;
@@ -70,6 +87,7 @@ public sealed partial class WorkbenchWindow : Window
         Ui.Place(root, surface, 1);
         WireGestureNotification();
         WireEditorLifetime();
+        WireHostSync();
         ApplyAppearance();
         ActualThemeVariantChanged += (_, _) => ApplyTheme();
         Opened += async (_, _) => await StartAsync();
@@ -82,7 +100,8 @@ public sealed partial class WorkbenchWindow : Window
         {
             var command = e.KeyModifiers.HasFlag(KeyModifiers.Meta) || e.KeyModifiers.HasFlag(KeyModifiers.Control);
             if (command && e.Key == Key.O) { _ = PickProjectAsync(); e.Handled = true; }
-            else if (command && e.Key == Key.N && !e.KeyModifiers.HasFlag(KeyModifiers.Shift)) { _ = CreateWorkspaceDialogAsync(); e.Handled = true; }
+            else if (command && e.Key == Key.N && e.KeyModifiers.HasFlag(KeyModifiers.Shift)) { NewWindow(); e.Handled = true; }
+            else if (command && e.Key == Key.N) { _ = CreateWorkspaceDialogAsync(); e.Handled = true; }
             else if (command && e.Key == Key.OemComma) { ShowSettings(); e.Handled = true; }
             else if (command && e.Key == Key.J && e.KeyModifiers.HasFlag(KeyModifiers.Shift))
             { Layout.Visible("bottom", !Layout.State.BottomVisible); e.Handled = true; }
@@ -127,10 +146,20 @@ public sealed partial class WorkbenchWindow : Window
         foreach (var region in new[] { "left", "right", "bottom" })
             menu.Items.Add(Ui.Menu("Toggle " + region, () => Layout.Visible(region, region switch
             { "left" => !Layout.State.LeftVisible, "right" => !Layout.State.RightVisible, _ => !Layout.State.BottomVisible })));
-        menu.Items.Add(Ui.Menu("Reset frame", () => Layout.ApplyPreset(
-            Preferences.CustomPresets.GetValueOrDefault(Preferences.DefaultPreset) ?? DockState.Preset(Preferences.DefaultPreset))));
+        menu.Items.Add(Ui.Menu("Reset frame", () => Layout.ApplyPreset(DefaultPreset())));
+        menu.Items.Add(new Separator());
+        var window = Ui.Menu("New window", () => NewWindow(), workbench.CanOpenWindows);
+        window.Name = "NewWindow";
+        window.InputGesture = new KeyGesture(Key.N, (OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control) | KeyModifiers.Shift);
+        menu.Items.Add(window);
         return menu;
     }
+
+    /// <summary>The window-local default preset; a custom one deleted or renamed elsewhere falls back to Balanced.</summary>
+    internal DockState DefaultPreset() =>
+        Preferences.CustomPresets.GetValueOrDefault(slot.DefaultPreset) ?? DockState.Preset(slot.DefaultPreset is "focus" or "review" ? slot.DefaultPreset : "balanced");
+
+    public WorkbenchWindow? NewWindow() => workbench.NewWindow(this);
 
     public async Task OpenProjectAsync(string path) => await OpenWorkspaceAsync(path, true);
 
@@ -167,12 +196,12 @@ public sealed partial class WorkbenchWindow : Window
             RestoreGitSelection(); folderCache.Clear(); expandedFolders.Clear();
             folderCache[""] = files;
             toolContent.Clear();
-            if (!profile.Data.Projects.Contains(projectRoot)) profile.Data.Projects.Insert(0, projectRoot);
-            profile.Data.RecentProjects.Remove(projectRoot);
-            profile.Data.LastProject = workspaceRoot;
-            profile.Data.LastProjectRoot = projectRoot;
-            profile.Data.LastAtHome = home;
-            WorkspaceMounted = true;
+            if (!state.Current.Projects.Contains(projectRoot) || state.Current.RecentProjects.Contains(projectRoot))
+                _ = ShareAsync(HostStateChange.OpenProject(projectRoot));
+            slot.LastProject = workspaceRoot;
+            slot.LastProjectRoot = projectRoot;
+            slot.LastAtHome = home;
+            WorkspaceMounted = true; restorePending = false;
             Layout.SwitchWorkspace(home ? HomeKey(projectRoot) : workspaceRoot);
             status.Text = remote ? "Remote" : "Connected";
             errorText.IsVisible = false;
@@ -373,7 +402,7 @@ public sealed partial class WorkbenchWindow : Window
         var scrim = new Border { Background = new SolidColorBrush(Colors.Black, .5) };
         Grid.SetRowSpan(scrim, 3);
         root.Children.Add(scrim);
-        var settings = new SettingsWindow(profile, Layout, () =>
+        var settings = new SettingsWindow(this, () =>
         {
             ApplyAppearance(); ClearDocumentContent(preserveDocuments: true); toolContent.Clear(); surface.RefreshContents();
             ReportProfileError();

@@ -74,7 +74,7 @@ internal static class DockInputChecks
                 .RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
             alignment.ContextMenu.Close();
             Require(window.Layout.State.BottomAlignment == value &&
-                new ProfileStore(root + "-dock-input").Data.Layout.BottomAlignment == value &&
+                new ProfileStore(root + "-dock-input").Data.Windows[0].Layout.BottomAlignment == value &&
                 Find<Button>("BottomAlignment").ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, label)).IsChecked,
                 "Bottom alignment did not update the layout, checked menu state and persisted profile.");
         }

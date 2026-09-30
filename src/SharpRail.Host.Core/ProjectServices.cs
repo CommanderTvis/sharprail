@@ -3,7 +3,8 @@ using SharpRail.Host.Abstractions;
 
 namespace SharpRail.Host.Core;
 
-public sealed partial class ProjectServices(string initialRoot) : IProjectServices
+/// <summary>One client's project session; <paramref name="state"/> receives workspace lifecycle changes.</summary>
+public sealed partial class ProjectServices(string initialRoot, HostStateStore? state = null) : IProjectServices
 {
     private string root = Path.GetFullPath(initialRoot);
     private readonly SemaphoreSlim mutations = new(1, 1);
@@ -231,7 +232,11 @@ public sealed partial class ProjectServices(string initialRoot) : IProjectServic
                     break;
                 default: throw new ArgumentException("Unknown git action.");
             }
-            return await GitRepository.SnapshotAsync(currentRoot, "", cancellationToken);
+            var result = await GitRepository.SnapshotAsync(currentRoot, "", cancellationToken);
+            if (action.Kind is "create-worktree" or "remove-worktree" && state is not null && result.Worktrees.FirstOrDefault(tree => tree.IsMain) is { } main)
+                state.PublishWorkspaces(main.Path, result.Worktrees.Select(tree => tree.Path).ToArray(),
+                    action.Kind == "remove-worktree" ? Path.GetFullPath(action.Path) : null);
+            return result;
         }
         finally { mutations.Release(); }
     }

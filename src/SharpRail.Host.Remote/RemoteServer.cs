@@ -10,7 +10,8 @@ namespace SharpRail.Host.Remote;
 
 public static class RemoteServer
 {
-    public static WebApplication Create(string root, IPAddress address, int port, string token)
+    /// <summary>Starts a host; shared state persists in <paramref name="stateDirectory"/>, or only in memory without one.</summary>
+    public static WebApplication Create(string root, IPAddress address, int port, string token, string? stateDirectory = null)
     {
         if (string.IsNullOrWhiteSpace(token)) throw new ArgumentException("A host session token is required.", nameof(token));
         var builder = WebApplication.CreateSlimBuilder();
@@ -20,7 +21,9 @@ public static class RemoteServer
             options.Listen(address, port, endpoint => endpoint.Protocols = HttpProtocols.Http2);
         });
         builder.Services.AddSingleton<IWorkspaceHost>(new WorkspaceHost(root));
-        builder.Services.AddSingleton<IProjectServices>(new ProjectServices(root));
+        var state = new HostStateStore(stateDirectory);
+        builder.Services.AddSingleton<IHostStateService>(state);
+        builder.Services.AddSingleton(new ProjectSessions(root, state));
         builder.Services.AddSingleton<ITerminalService>(_ => new PtyTerminalService());
         builder.Services.AddCodeFirstGrpc(options => options.MaxReceiveMessageSize = FileLimits.SaveMessageBytes);
         var app = builder.Build();
@@ -37,6 +40,7 @@ public static class RemoteServer
         });
         app.MapGrpcService<WorkspaceRpc>();
         app.MapGrpcService<ProjectRpc>();
+        app.MapGrpcService<StateRpc>();
         app.MapGrpcService<TerminalRpc>();
         return app;
     }

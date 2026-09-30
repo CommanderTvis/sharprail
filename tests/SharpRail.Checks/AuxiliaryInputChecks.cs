@@ -87,7 +87,7 @@ internal static class AuxiliaryInputChecks
                 Require(committed[foldedIndex].Weight == saved[foldedIndex] && Math.Abs(committed.Sum(group => group.Weight) - 1) < 1e-8 &&
                     committed[foldedIndex == 0 ? 1 : 0].Weight > saved[foldedIndex == 0 ? 1 : 0] && committed[2].Weight < saved[2],
                     "Auxiliary resize did not preserve folded weights while committing expanded proportions.");
-                var persisted = new ProfileStore(profilePath).Data.Layout.Groups.Where(group => group.Region == region).ToArray();
+                var persisted = new ProfileStore(profilePath).Data.Windows[0].Layout.Groups.Where(group => group.Region == region).ToArray();
                 Require(persisted.Select(group => group.Weight).SequenceEqual(committed.Select(group => group.Weight)),
                     "Auxiliary resized weights did not persist.");
             }

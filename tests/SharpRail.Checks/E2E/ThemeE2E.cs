@@ -20,6 +20,7 @@ internal static class ThemeE2E
         Catalogue();
         PersistsAcrossReload(root);
         SystemMode(root);
+        SystemModeAcrossClients(root);
         HighContrastTabs(root);
         LegacyProfiles(root);
         MarkdownSurfaces(root);
@@ -78,7 +79,7 @@ internal static class ThemeE2E
         Console.WriteLine("PASS upstream: appearance switches a discovered theme and persists it across reload");
     }
 
-    // The reference's second client and host-synced config are not ported; this covers one client and its persisted pair.
+    // One client and its persisted pair; SystemModeAcrossClients covers the peer.
     private static void SystemMode(string root)
     {
         var application = Application.Current!;
@@ -143,6 +144,70 @@ internal static class ThemeE2E
         }
         finally { application.RequestedThemeVariant = device; }
         Console.WriteLine("PASS upstream: system mode follows each client and retains its explicit pair (single client)");
+    }
+
+    /// <summary>
+    /// The peer is a second client of a real gRPC host with its own profile. Both clients share one
+    /// process and so one device appearance; each resolves the host-synced mode and pair for its own
+    /// appearance, which the check evaluates for both slots.
+    /// </summary>
+    private static void SystemModeAcrossClients(string root)
+    {
+        var application = Application.Current!;
+        var device = application.RequestedThemeVariant;
+        var directory = Path.Combine(root, "theme-system-clients");
+        Directory.CreateDirectory(directory);
+        File.WriteAllText(Path.Combine(directory, "README.md"), "# clients\n");
+        const string token = "theme-clients";
+        var server = SharpRail.Host.Remote.RemoteServer.Create(directory, System.Net.IPAddress.Loopback, 0, token);
+        Task.Run(() => server.StartAsync()).GetAwaiter().GetResult();
+        try
+        {
+            var endpoint = new Uri(Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions
+                .GetRequiredService<Microsoft.AspNetCore.Hosting.Server.IServer>(server.Services)
+                .Features.Get<Microsoft.AspNetCore.Hosting.Server.Features.IServerAddressesFeature>()!.Addresses.Single());
+            application.RequestedThemeVariant = ThemeVariant.Light;
+            using var app = new E2eWorkspace(endpoint, token, directory, directory + "-page-profile", directory);
+            Until(() => app.Window.WorkspaceMounted);
+            var settings = Open(app);
+            var fixedTheme = Active(settings);
+            var initialLight = Themes.All.First(theme => theme.IsLight && theme.Contrast == fixedTheme.Contrast);
+            var alternateLight = Themes.All.First(theme => theme.IsLight && theme != initialLight);
+            app.Click(Option(settings, "ThemeMode_system"));
+            Until(() => Ui.Theme == initialLight && CurrentText(settings).StartsWith("Light", StringComparison.Ordinal));
+            var trigger = Option(settings, "SystemTheme_light_trigger");
+            app.Click(trigger);
+            Until(() => trigger.ContextMenu!.IsOpen);
+            app.Click(trigger.ContextMenu!.Items.OfType<MenuItem>().Single(item => item.Name == "SystemTheme_light_option_" + alternateLight.Id), freshGesture: false);
+            Until(() => Ui.Theme == alternateLight);
+            application.RequestedThemeVariant = ThemeVariant.Dark;
+            Until(() => Ui.Theme == fixedTheme && CurrentText(settings).StartsWith("Dark", StringComparison.Ordinal));
+
+            using var peer = new E2eWorkspace(endpoint, token, directory, directory + "-peer-profile", directory);
+            Until(() => peer.Window.WorkspaceMounted);
+            var shared = peer.Window.Preferences;
+            Require(!ReferenceEquals(shared, app.Window.Preferences), "The peer must hold its own copy of the settings.");
+            Until(() => shared.ThemeMode == "system" && shared.SystemThemePair is { } pair && pair.Light == alternateLight.Id && pair.Dark == fixedTheme.Id);
+            Require(Themes.Resolve(shared, "light").Theme == alternateLight && Themes.Resolve(shared, "dark").Theme == fixedTheme,
+                "A light-appearance peer shows the explicit light theme while this dark client shows the fixed theme.");
+
+            app.Click(Option(settings, "ThemeMode_fixed"));
+            Until(() => Ui.Theme == fixedTheme && shared.ThemeMode == "fixed");
+            Require(Themes.Resolve(shared, "light").Theme == fixedTheme, "Fixed mode reaches the peer.");
+            app.Click(Option(settings, "ThemeMode_system"));
+            Until(() => shared.ThemeMode == "system");
+            Require(Ui.Theme == fixedTheme && Themes.Resolve(shared, "light").Theme == alternateLight,
+                "Returning to Match system retains the explicit pair for every client.");
+            app.Click(Option(settings, "ThemeMode_fixed"));
+            Until(() => shared.ThemeMode == "fixed");
+            Escape(settings);
+        }
+        finally
+        {
+            application.RequestedThemeVariant = device;
+            Task.Run(() => server.StopAsync()).GetAwaiter().GetResult();
+        }
+        Console.WriteLine("PASS upstream: system mode follows each client and retains its explicit pair (second gRPC client)");
     }
 
     private static void HighContrastTabs(string root)

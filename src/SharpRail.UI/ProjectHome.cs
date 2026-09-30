@@ -24,6 +24,9 @@ public sealed partial class WorkbenchWindow
     private TextBlock? readyBranch;
     private string? renaming;
     private string renameDraft = "";
+    private string renameOriginal = "";
+    private bool renameCommitting;
+    private bool renameCommitPending;
     private TextBox? renameBox;
     private IReadOnlyList<EditorInfo>? editors;
 
@@ -36,14 +39,16 @@ public sealed partial class WorkbenchWindow
     private static string DirectoryName(string path) => new DirectoryInfo(path).Name;
 
     private string WorkspaceName(string path) => path == projectRoot ? "Default" :
-        profile.Data.WorkspaceLabels.GetValueOrDefault(path) ?? DirectoryName(path);
+        state.Current.WorkspaceLabels.GetValueOrDefault(path) ?? DirectoryName(path);
 
     private string ReadyBranchText() => workspaceRoot == projectRoot ? "on " + branchLabel.Text :
         branchLabel.Text + (comparison.Length > 0 ? " · from " + comparison : "");
 
     private async Task StartAsync()
     {
-        var data = profile.Data;
+        var data = slot;
+        // A failed restore keeps the remembered location and retries when the host reconnects.
+        restorePending = false;
         if (initialRoot.Length > 0 && (remote || Directory.Exists(initialRoot)))
         {
             if (data.LastAtHome && initialRoot == data.LastProjectRoot) await OpenProjectHomeAsync(initialRoot);
@@ -51,6 +56,7 @@ public sealed partial class WorkbenchWindow
         }
         else if (data.LastProjectRoot.Length > 0 && (remote || Directory.Exists(data.LastProjectRoot))) await OpenProjectHomeAsync(data.LastProjectRoot);
         else ShowWelcome();
+        restorePending = !WorkspaceMounted && !cleanWelcome;
     }
 
     public Task OpenProjectHomeAsync(string project) => OpenWorkspaceAsync(project, true, home: true);
@@ -63,7 +69,7 @@ public sealed partial class WorkbenchWindow
         projectRoot = ""; workspaceRoot = "";
         git = new(false, "", [], [], []); gitLoading = false; gitError = null;
         folderCache.Clear(); expandedFolders.Clear(); toolContent.Clear(); selectionHistory.Clear();
-        profile.Data.LastProject = ""; profile.Data.LastProjectRoot = ""; profile.Data.LastAtHome = false;
+        slot.LastProject = ""; slot.LastProjectRoot = ""; slot.LastAtHome = false; restorePending = false;
         SaveProfile();
         UpdateScopeLabels();
         branchLabel.Text = ""; branchIcon.IsVisible = false;
@@ -134,7 +140,7 @@ public sealed partial class WorkbenchWindow
         var menu = new ContextMenu();
         menu.Items.Add(Ui.Menu("Open project", () => _ = PickProjectAsync()));
         menu.Items.Add(Ui.Menu("Enter host path…", () => _ = EnterHostPathAsync(null)));
-        var recents = profile.Data.RecentProjects.Where(path => !profile.Data.Projects.Contains(path)).ToArray();
+        var recents = state.Current.RecentProjects.Where(path => !state.Current.Projects.Contains(path)).ToArray();
         if (recents.Length == 0) return menu;
         menu.Items.Add(new Separator());
         menu.Items.Add(new MenuItem { Header = "Recent", IsEnabled = false });
@@ -185,19 +191,20 @@ public sealed partial class WorkbenchWindow
             FocusProject(project);
             return;
         }
-        profile.Data.Projects.Remove(project);
-        profile.Data.RecentProjects.Remove(project);
-        profile.Data.RecentProjects.Insert(0, project);
-        if (profile.Data.RecentProjects.Count > 10) profile.Data.RecentProjects.RemoveRange(10, profile.Data.RecentProjects.Count - 10);
-        SaveProfile();
-        var next = profile.Data.Projects.FirstOrDefault();
-        if (project == projectRoot)
+        closingProject = project;
+        try
         {
-            if (next is null) ShowWelcome();
-            else await OpenProjectHomeAsync(next);
+            if (!await ShareAsync(HostStateChange.CloseProject(project))) { FocusProject(project); return; }
+            var next = state.Current.Projects.Where(item => item != project).FirstOrDefault();
+            if (project == projectRoot)
+            {
+                if (next is null) ShowWelcome();
+                else await OpenProjectHomeAsync(next);
+            }
+            else { toolContent.Remove("projects"); surface.RefreshContents("projects"); }
+            FocusProject(next);
         }
-        else { toolContent.Remove("projects"); surface.RefreshContents("projects"); }
-        FocusProject(next);
+        finally { closingProject = null; }
     }
 
     private async Task CreateWorkspaceDialogAsync()
@@ -264,7 +271,6 @@ public sealed partial class WorkbenchWindow
             if (!atHome && workspaceRoot == worktree.Path) return;
         }
         selectionHistory.Remove(worktree.Path);
-        if (profile.Data.WorkspaceLabels.Remove(worktree.Path)) SaveProfile();
         await GitActionAsync(new("remove-worktree", worktree.Path));
     }
 
@@ -321,7 +327,7 @@ public sealed partial class WorkbenchWindow
 
     private void StartRename(string path)
     {
-        renaming = path; renameDraft = WorkspaceName(path);
+        renaming = path; renameDraft = renameOriginal = WorkspaceName(path); renameCommitPending = false;
         toolContent.Remove("projects"); surface.RefreshContents("projects");
     }
 
@@ -336,7 +342,14 @@ public sealed partial class WorkbenchWindow
             if (e.Key == Key.Enter) { CommitRename(); e.Handled = true; }
             else if (e.Key == Key.Escape) { EndRename(); e.Handled = true; }
         }, RoutingStrategies.Tunnel);
-        box.LostFocus += (_, _) => { if (ReferenceEquals(renameBox, box) && box.IsAttachedToVisualTree()) CommitRename(); };
+        // Leaving the box within this window commits. Focus moving to another window, or a rail rebuilt
+        // by a broadcast replacing this box, keeps the rename open; the check is deferred until focus settles.
+        box.LostFocus += (_, _) => Dispatcher.UIThread.Post(() =>
+        {
+            var focused = FocusManager?.GetFocusedElement() as Visual;
+            if (ReferenceEquals(renameBox, box) && box.IsAttachedToVisualTree() && !box.IsKeyboardFocusWithin &&
+                (focused is null || TopLevel.GetTopLevel(focused) == this)) CommitRename();
+        });
         box.AttachedToVisualTree += (_, _) => Dispatcher.UIThread.Post(() =>
         {
             if (!ReferenceEquals(renameBox, box)) return;
@@ -345,22 +358,30 @@ public sealed partial class WorkbenchWindow
         return box;
     }
 
-    private void CommitRename()
+    /// <summary>
+    /// Commits the draft through the host. An unchanged draft leaves a label another client set meanwhile;
+    /// while the host is unreachable the input stays open and commits after reconnecting.
+    /// </summary>
+    private async void CommitRename()
     {
-        if (renaming is not { } path) return;
+        if (renaming is not { } path || renameCommitting) return;
         var label = renameDraft.Trim();
-        if (label.Length > 0)
+        if (label.Length == 0 || label == renameOriginal) { EndRename(); return; }
+        renameCommitting = true;
+        try { await state.ChangeAsync(HostStateChange.Label(path, label)); }
+        catch (Exception error) when (error is not OperationCanceledException)
         {
-            if (label == DirectoryName(path)) profile.Data.WorkspaceLabels.Remove(path);
-            else profile.Data.WorkspaceLabels[path] = label;
-            SaveProfile();
+            if (!state.Connected) { renameCommitPending = true; return; }
+            Report(new IOException("The host could not save this change: " + error.Message));
+            EndRename(); return;
         }
-        EndRename();
+        finally { renameCommitting = false; }
+        if (renaming == path) EndRename();
     }
 
     private void EndRename()
     {
-        renaming = null; renameBox = null;
+        renaming = null; renameBox = null; renameCommitPending = false;
         UpdateScopeLabels();
         toolContent.Remove("projects"); surface.RefreshContents("projects");
     }
