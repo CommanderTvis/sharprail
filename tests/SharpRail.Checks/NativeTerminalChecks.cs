@@ -143,6 +143,27 @@ internal static class NativeTerminalChecks
         Native.Key(original, "\x7f", 51, false);
         await Type(original, "D\r");
         await Until(() => Read(original).Contains("EDIT_KEYBOARD_OK", StringComparison.Ordinal));
+        // Option acts as Alt on U.S. layouts, as in Ghostty's app: Option+Backspace deletes the previous word.
+        var previousLayout = Native.SelectLayout("com.apple.keylayout.US");
+        try
+        {
+            await Type(original, "printf 'WORD_%s_OK\\n' KEYBOARD extra");
+            Native.OptionBackspace(original);
+            await Type(original, "\r");
+            await Until(() => Read(original).Contains("WORD_KEYBOARD_OK", StringComparison.Ordinal));
+            if (Read(original).Contains("WORD_ext", StringComparison.Ordinal))
+                throw new InvalidOperationException("Option+Backspace did not delete the previous word.");
+            // Programs that enable the kitty keyboard protocol (for example Claude Code) must still see Alt on Option+Backspace.
+            await Type(original, "printf '\\033[>1u'; stty raw -echo; dd bs=1 count=8 2>/dev/null | od -An -tx1 | tr -d ' \\n' | sed 's/^/KITTY_/;s/$/_END/'; stty sane; printf '\\033[<u\\n'\r");
+            await Task.Delay(300);
+            Native.OptionBackspace(original);
+            await Type(original, "ZZZZZZZZ");
+            await Until(() => Read(original).Contains("_END", StringComparison.Ordinal) && Read(original).Contains("KITTY_", StringComparison.Ordinal));
+            if (!Read(original).Contains("KITTY_1b5b3132373b3375", StringComparison.Ordinal))
+                throw new InvalidOperationException("Option+Backspace lost Alt under the kitty keyboard protocol: " +
+                    Read(original)[Read(original).LastIndexOf("KITTY_", StringComparison.Ordinal)..]);
+        }
+        finally { Native.SelectLayout(previousLayout); }
         await Type(original, "discard_me");
         Native.Key(original, "\x03", 8, true);
         await Type(original, "printf 'CTRL_%s_OK\\n' KEYBOARD\r");
@@ -260,6 +281,11 @@ internal static class NativeTerminalChecks
         [DllImport("TerminalEvents", EntryPoint = "sr_check_ready")]
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool Ready(nint view);
+        [DllImport("TerminalEvents", EntryPoint = "sr_check_select_layout")]
+        [return: MarshalAs(UnmanagedType.LPUTF8Str)]
+        internal static extern string SelectLayout([MarshalAs(UnmanagedType.LPUTF8Str)] string identifier);
+        [DllImport("TerminalEvents", EntryPoint = "sr_check_option_backspace")]
+        internal static extern void OptionBackspace(nint view);
         [DllImport("TerminalEvents", EntryPoint = "sr_check_toggle_bottom")]
         internal static extern void ToggleBottom(nint view);
         [DllImport("TerminalEvents", EntryPoint = "sr_check_click")]

@@ -8,7 +8,7 @@
   </ItemGroup>
   <Target Name="BuildTerminalEvents" BeforeTargets="PrepareForBuild" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
     <MakeDir Directories="$(IntermediateOutputPath)" />
-    <Exec Command="clang -dynamiclib -fobjc-arc -Wall -Wextra -Werror -mmacosx-version-min=13.0 &quot;$(MSBuildProjectDirectory)/TerminalEvents.m&quot; -framework AppKit -framework ApplicationServices -framework IOSurface -framework QuartzCore -o &quot;$(IntermediateOutputPath)libTerminalEvents.dylib&quot;" />
+    <Exec Command="clang -dynamiclib -fobjc-arc -Wall -Wextra -Werror -mmacosx-version-min=13.0 &quot;$(MSBuildProjectDirectory)/TerminalEvents.m&quot; -framework AppKit -framework ApplicationServices -framework Carbon -framework IOSurface -framework QuartzCore -o &quot;$(IntermediateOutputPath)libTerminalEvents.dylib&quot;" />
     <ItemGroup>
       <Content Include="$(IntermediateOutputPath)libTerminalEvents.dylib" Link="libTerminalEvents.dylib" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     </ItemGroup>

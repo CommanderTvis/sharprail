@@ -106,7 +106,13 @@ static bool initialize(void) {
     };
     app = ghostty_app_new(&runtime, config);
     ghostty_config_free(config);
-    return app != NULL;
+    if (!app) return false;
+    // Ghostty keys macos-option-as-alt off the keyboard layout; reload it now and whenever the selection changes,
+    // as Ghostty's app does, so Option acts as Alt on U.S. layouts (Option+Backspace deletes a word).
+    ghostty_app_keyboard_changed(app);
+    [NSNotificationCenter.defaultCenter addObserverForName:NSTextInputContextKeyboardSelectionDidChangeNotification object:nil
+        queue:NSOperationQueue.mainQueue usingBlock:^(NSNotification *note) { if (app) ghostty_app_keyboard_changed(app); }];
+    return true;
 }
 
 @implementation SRTerminalView
@@ -139,12 +145,14 @@ static bool initialize(void) {
     [self addTrackingArea:[[NSTrackingArea alloc] initWithRect:NSZeroRect options:NSTrackingMouseMoved | NSTrackingActiveInKeyWindow | NSTrackingInVisibleRect owner:self userInfo:nil]];
     [super updateTrackingAreas];
 }
-- (void)sendKey:(NSEvent *)event action:(ghostty_input_action_e)kind text:(NSString *)text composing:(BOOL)composing {
+// Consumed modifiers come from the translation event, as in Ghostty's own app: when Option acts as Alt it
+// did not produce the text, so the encoder keeps Alt (for example ESC DEL or CSI 127;3u for Option+Backspace).
+- (void)sendKey:(NSEvent *)event translation:(NSEvent *)translation action:(ghostty_input_action_e)kind text:(NSString *)text composing:(BOOL)composing {
     if (!self.surface) return;
     if (text.length && ([text characterAtIndex:0] < 0x20 || ([text characterAtIndex:0] >= 0xF700 && [text characterAtIndex:0] <= 0xF8FF))) text = nil;
     NSString *unshifted = [event charactersByApplyingModifiers:0];
     ghostty_input_key_s key = { .action = kind, .mods = modifiers(event.modifierFlags),
-        .consumed_mods = modifiers(event.modifierFlags & ~(NSEventModifierFlagControl | NSEventModifierFlagCommand)),
+        .consumed_mods = modifiers(translation.modifierFlags & ~(NSEventModifierFlagControl | NSEventModifierFlagCommand)),
         .keycode = event.keyCode, .text = text.UTF8String,
         .unshifted_codepoint = unshifted.length ? [unshifted characterAtIndex:0] : 0, .composing = composing };
     ghostty_surface_key(self.surface, key);
@@ -157,18 +165,36 @@ static bool initialize(void) {
     if (event.type == NSEventTypeKeyDown && !event.isARepeat) self.callback(self.context, SR_TERMINAL_TOGGLE_BOTTOM_PANEL, 0);
     return YES;
 }
+// Ghostty decides which modifiers take part in text translation (macos-option-as-alt and the keyboard layout).
+- (NSEvent *)translationEvent:(NSEvent *)event {
+    ghostty_input_mods_e mods = ghostty_surface_key_translation_mods(self.surface, modifiers(event.modifierFlags));
+    NSEventModifierFlags flags = event.modifierFlags;
+    // Keep the event's hidden bits, which matter for dead keys; only toggle the four translatable modifiers.
+    const struct { NSEventModifierFlags flag; ghostty_input_mods_e mod; } pairs[] = {
+        { NSEventModifierFlagShift, GHOSTTY_MODS_SHIFT }, { NSEventModifierFlagControl, GHOSTTY_MODS_CTRL },
+        { NSEventModifierFlagOption, GHOSTTY_MODS_ALT }, { NSEventModifierFlagCommand, GHOSTTY_MODS_SUPER } };
+    for (size_t index = 0; index < sizeof pairs / sizeof *pairs; index++)
+        flags = (mods & pairs[index].mod) ? (flags | pairs[index].flag) : (flags & ~pairs[index].flag);
+    // Reuse the original event when nothing changes; AppKit input methods such as Korean rely on its identity.
+    if (flags == event.modifierFlags) return event;
+    return [NSEvent keyEventWithType:event.type location:event.locationInWindow modifierFlags:flags timestamp:event.timestamp
+        windowNumber:event.windowNumber context:nil characters:[event charactersByApplyingModifiers:flags] ?: @""
+        charactersIgnoringModifiers:event.charactersIgnoringModifiers ?: @"" isARepeat:event.isARepeat keyCode:event.keyCode] ?: event;
+}
 - (void)keyDown:(NSEvent *)event {
     if ([self forwardWorkbenchShortcut:event]) return;
+    if (!self.surface) return;
+    NSEvent *translation = [self translationEvent:event];
     BOOL wasMarked = self.hasMarkedText;
     self.keyText = [NSMutableArray new];
-    [self interpretKeyEvents:@[event]];
+    [self interpretKeyEvents:@[translation]];
     ghostty_surface_preedit(self.surface, self.marked.string.UTF8String, [self.marked.string lengthOfBytesUsingEncoding:NSUTF8StringEncoding]);
     ghostty_input_action_e kind = event.isARepeat ? GHOSTTY_ACTION_REPEAT : GHOSTTY_ACTION_PRESS;
-    if (self.keyText.count) for (NSString *text in self.keyText) [self sendKey:event action:kind text:text composing:NO];
-    else [self sendKey:event action:kind text:(self.hasMarkedText ? nil : event.characters) composing:self.hasMarkedText || wasMarked];
+    if (self.keyText.count) for (NSString *text in self.keyText) [self sendKey:event translation:translation action:kind text:text composing:NO];
+    else [self sendKey:event translation:translation action:kind text:(self.hasMarkedText ? nil : translation.characters) composing:self.hasMarkedText || wasMarked];
     self.keyText = nil;
 }
-- (void)keyUp:(NSEvent *)event { [self sendKey:event action:GHOSTTY_ACTION_RELEASE text:nil composing:NO]; }
+- (void)keyUp:(NSEvent *)event { [self sendKey:event translation:event action:GHOSTTY_ACTION_RELEASE text:nil composing:NO]; }
 - (BOOL)performKeyEquivalent:(NSEvent *)event {
     if (self.window.firstResponder != self) return NO;
     if ([self forwardWorkbenchShortcut:event]) return YES;

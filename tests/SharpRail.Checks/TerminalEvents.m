@@ -1,3 +1,4 @@
+#import <Carbon/Carbon.h>
 #import <AppKit/AppKit.h>
 #import <ApplicationServices/ApplicationServices.h>
 #include <unistd.h>
@@ -118,6 +119,39 @@ void sr_check_key(void *pointer, const char *text, unsigned short keyCode, bool 
             modifierFlags:control ? NSEventModifierFlagControl : 0 timestamp:NSProcessInfo.processInfo.systemUptime
             windowNumber:view.window.windowNumber context:nil characters:characters
             charactersIgnoringModifiers:characters isARepeat:NO keyCode:keyCode]];
+    }
+}
+
+// Selects a keyboard layout by input source id and returns the previous one (caller frees), so layout-dependent
+// checks such as Option-as-Alt run on a known layout and restore the user's afterwards.
+char *sr_check_select_layout(const char *identifier) {
+    TISInputSourceRef current = TISCopyCurrentKeyboardLayoutInputSource();
+    NSString *previous = [(__bridge NSString *)TISGetInputSourceProperty(current, kTISPropertyInputSourceID) copy];
+    CFRelease(current);
+    NSDictionary *filter = @{ (__bridge NSString *)kTISPropertyInputSourceID: [NSString stringWithUTF8String:identifier] };
+    CFArrayRef sources = TISCreateInputSourceList((__bridge CFDictionaryRef)filter, true);
+    if (sources && CFArrayGetCount(sources) > 0) TISSelectInputSource((TISInputSourceRef)CFArrayGetValueAtIndex(sources, 0));
+    if (sources) CFRelease(sources);
+    [NSRunLoop.currentRunLoop runUntilDate:[NSDate dateWithTimeIntervalSinceNow:0.2]];
+    return strdup(previous.UTF8String);
+}
+
+// Sends Option+Backspace through the application, as a keyboard would while the view has focus.
+void sr_check_option_backspace(void *pointer) {
+    NSView *view = (__bridge NSView *)pointer;
+    if (getenv("SHARPRAIL_CHECK_OS_INPUT")) {
+        for (int down = 1; down >= 0; down--) {
+            CGEventRef event = CGEventCreateKeyboardEvent(NULL, 51, down);
+            CGEventSetFlags(event, kCGEventFlagMaskAlternate);
+            CGEventPostToPid(getpid(), event);
+            CFRelease(event);
+        }
+        return;
+    }
+    for (NSNumber *type in @[@(NSEventTypeKeyDown), @(NSEventTypeKeyUp)]) {
+        [NSApp sendEvent:[NSEvent keyEventWithType:type.integerValue location:NSZeroPoint modifierFlags:NSEventModifierFlagOption
+            timestamp:NSProcessInfo.processInfo.systemUptime windowNumber:view.window.windowNumber context:nil
+            characters:@"\x7f" charactersIgnoringModifiers:@"\x7f" isARepeat:NO keyCode:51]];
     }
 }
 
