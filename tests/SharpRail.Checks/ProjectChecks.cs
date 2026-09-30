@@ -13,7 +13,8 @@ namespace SharpRail.Checks;
 internal static class ProjectChecks
 {
     private static bool GitDetail(string message, string folder) =>
-        message.StartsWith("fatal:", StringComparison.Ordinal) && message.Contains(folder, StringComparison.Ordinal);
+        message.StartsWith("fatal:", StringComparison.Ordinal) &&
+        (message.Contains(folder, StringComparison.Ordinal) || message.Contains("not a git repository", StringComparison.Ordinal));
 
     private static void Require(bool value, string message)
     {
@@ -63,7 +64,7 @@ internal static class ProjectChecks
             await File.WriteAllTextAsync(Path.Combine(broken, ".git"), "gitdir: " + Path.Combine(broken, "missing-admin"));
             await local.OpenProjectAsync(broken);
             try { await local.GetGitAsync(); throw new InvalidOperationException("Broken Git metadata was hidden as a non-repository."); }
-            // Git's wording differs by version; its detail always names the broken folder.
+            // Git's wording differs by version; some builds print "(null)" instead of the broken folder.
             catch (IOException error) { Require(GitDetail(error.Message, broken), $"Git probe failure detail was lost: {error.Message}"); }
             await remote.OpenProjectAsync(broken);
             try { await remote.GetGitAsync(); throw new InvalidOperationException("Remote Git probe failure was hidden."); }
