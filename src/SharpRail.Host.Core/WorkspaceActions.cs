@@ -85,7 +85,11 @@ public sealed partial class ProjectServices
         try
         {
             var head = (await GitRepository.RunAsync(currentRoot, cancellationToken, "symbolic-ref", "--quiet", "refs/remotes/origin/HEAD")).Trim();
-            if (head.StartsWith("refs/remotes/", StringComparison.Ordinal)) return head[13..];
+            // A missing tracking ref is still the base while origin exists (creation fetches it, as the reference
+            // does), but removing the remote leaves origin/HEAD dangling with nothing to fetch it from.
+            if (head.StartsWith("refs/remotes/", StringComparison.Ordinal) &&
+                (await RemotesAsync(currentRoot, cancellationToken)).Contains("origin"))
+                return head[13..];
         }
         catch (IOException) { }
         try

@@ -12,6 +12,9 @@ namespace SharpRail.Checks;
 
 internal static class ProjectChecks
 {
+    private static bool GitDetail(string message, string folder) =>
+        message.StartsWith("fatal:", StringComparison.Ordinal) && message.Contains(folder, StringComparison.Ordinal);
+
     private static void Require(bool value, string message)
     {
         if (!value) throw new InvalidOperationException(message);
@@ -53,12 +56,13 @@ internal static class ProjectChecks
             await File.WriteAllTextAsync(Path.Combine(broken, ".git"), "gitdir: " + Path.Combine(broken, "missing-admin"));
             await local.OpenProjectAsync(broken);
             try { await local.GetGitAsync(); throw new InvalidOperationException("Broken Git metadata was hidden as a non-repository."); }
-            catch (IOException error) { Require(error.Message.Contains("not a git repository:", StringComparison.Ordinal), "Git probe failure detail was lost."); }
+            // Git's wording differs by version; its detail always names the broken folder.
+            catch (IOException error) { Require(GitDetail(error.Message, broken), "Git probe failure detail was lost."); }
             await remote.OpenProjectAsync(broken);
             try { await remote.GetGitAsync(); throw new InvalidOperationException("Remote Git probe failure was hidden."); }
             catch (Grpc.Core.RpcException error)
             {
-                Require(error.StatusCode == Grpc.Core.StatusCode.FailedPrecondition && error.Status.Detail.Contains("not a git repository:", StringComparison.Ordinal),
+                Require(error.StatusCode == Grpc.Core.StatusCode.FailedPrecondition && GitDetail(error.Status.Detail, broken),
                     "Remote Git probe failure detail differs.");
             }
         }

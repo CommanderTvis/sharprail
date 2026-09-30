@@ -94,7 +94,9 @@ internal static class WorkspaceFixture
     internal static ContextMenu OpenWorkspaceMenu(E2eWorkspace app, string path)
     {
         Until(() => Item(app, path).GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "WorkspaceBranch"));
-        Settle(300);
+        // Park the pointer first so a tooltip left open by the previous step cannot cover the kebab.
+        app.Window.MouseMove(new Point(app.Window.Bounds.Width - 2, app.Window.Bounds.Height - 2));
+        Settle(550);
         var item = Item(app, path);
         var kebab = item.GetLogicalChildren().OfType<Button>().Single(button => button.Name == "WorkspaceMenu");
         app.Window.MouseMove(item.TranslatePoint(new Point(item.Bounds.Width / 2, item.Bounds.Height / 2), app.Window)!.Value);

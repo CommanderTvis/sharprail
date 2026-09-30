@@ -31,14 +31,16 @@ internal static class ChangesFixture
     /// </summary>
     internal static (E2eWorkspace App, string Worktree) OpenSample(string root, string name, string source, params (string Path, string Text)[] files)
     {
-        var app = new E2eWorkspace(WorkspaceTabsE2E.Repository(root, name, source));
+        // Upstream's sample project is a local repository without a remote; without origin the
+        // new workspace bases on the local branch that holds the committed sample. Remove it
+        // before the window opens so no branch catalog is read with the remote still present.
+        var repository = WorkspaceTabsE2E.Repository(root, name, source);
+        Git(repository, "remote", "remove", "origin");
+        var app = new E2eWorkspace(repository);
         var refreshes = app.Window.WatchRefreshes;
         foreach (var (path, text) in files) File.WriteAllText(Path.Combine(app.Root, path), text);
         Git(app.Root, ["add", "README.md", "SPEC.md", .. files.Select(file => file.Path)]);
         Commit(app.Root, "sample project");
-        // Upstream's sample project is a local repository without a remote; without origin the
-        // new workspace bases on the local branch that holds the committed sample.
-        Git(app.Root, "remote", "remove", "origin");
         Until(() => app.Window.WatchRefreshes > refreshes);
         Settle(500);
         return (app, WorkspaceTabsE2E.CreateWorkspace(app, "workspace-1"));

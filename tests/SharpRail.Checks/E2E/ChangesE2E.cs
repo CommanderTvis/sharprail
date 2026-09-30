@@ -108,7 +108,9 @@ internal static class ChangesE2E
         using var app = new E2eWorkspace(directory);
         app.Click(app.Find<Button>("Tab_changes"));
         Until(() => app.Window.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "ChangesError"));
-        Require(Text(app.Find<Control>("ChangesPanel")).Contains("not a git repository:", StringComparison.Ordinal) &&
+        // Git's wording differs by version; its detail always names the broken repository folder.
+        Require(Text(app.Find<Control>("ChangesPanel")).Contains("fatal:", StringComparison.Ordinal) &&
+            Text(app.Find<Control>("ChangesPanel")).Contains(directory, StringComparison.Ordinal) &&
             !Text(app.Find<Control>("ChangesPanel")).Contains("Working tree clean", StringComparison.Ordinal),
             "Corrupt Git metadata must show its read error rather than an empty change set.");
         app.Click(app.Find<Button>("Tab_files")); app.Open("README.md", true);
