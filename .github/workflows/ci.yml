@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - run: dotnet restore SharpRail.slnx
+      - run: dotnet format SharpRail.slnx --verify-no-changes --no-restore
+      - run: dotnet build SharpRail.slnx -c Release --no-restore
+
+  smoke:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [sync, workspaces, terminals]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - run: |
+          git config --global user.name CI
+          git config --global user.email ci@example.invalid
+          git config --global init.defaultBranch main
+      - run: dotnet run --project tests/SharpRail.Checks -c Release -- --${{ matrix.mode }}
