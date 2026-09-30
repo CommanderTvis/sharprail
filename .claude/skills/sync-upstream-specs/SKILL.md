@@ -1,24 +1,32 @@
 ---
 name: sync-upstream-specs
-description: Pull spec changes from the upstream ThinkRail checkout into SharpRail's adapted C# specs and advance the tracked upstream commit. Use when upstream has moved, or the user asks to sync, update or pull upstream specs/improvements.
+description: Pull spec changes from the ThinkRail line the current SharpRail branch tracks (the CommanderTvis fork on main, JetBrains on the upstream branch) into SharpRail's adapted C# specs and advance the synced commit. Use when upstream or the fork has moved, or the user asks to sync, update or pull upstream specs/improvements.
 ---
 
 # Sync upstream specs
 
-`UPSTREAM.md` is the single source of truth for the last synced upstream commit and maps upstream specs to SharpRail specs.
-Upstream is `/Users/commandertvis/IdeaProjects/thinkrail`.
+`UPSTREAM.md` records the last synced commit and maps upstream specs to SharpRail specs.
+The ThinkRail checkout is `/Users/commandertvis/IdeaProjects/thinkrail`; which ref to sync
+depends on the SharpRail branch (`git branch --show-current`):
 
-1. Read `UPSTREAM.md`. Let `OLD` be the synced commit. Refresh upstream only if the user asked
-   (`git -C <upstream> fetch`); then pick `NEW` (default: upstream `origin/main` if fetched,
-   else `main`). Stop if `OLD == NEW` and the spec sync was completed. If the pointer was
-   advanced without syncing, recover the previous baseline from Git before comparing.
+- `main`: the fork, remote `origin`, ref `origin/claude-code-integration-plugin-api`.
+- `upstream`: JetBrains, remote `upstream`, ref `upstream/main`.
+
+On any other branch, ask which line it follows.
+
+1. Read `UPSTREAM.md`. Let `OLD` be the synced commit. Refresh only if the user asked
+   (`git -C <checkout> fetch <remote>`); then pick `NEW` (default: the branch's ref above).
+   Stop if `OLD == NEW` and the spec sync was completed. If the pointer was advanced
+   without syncing, recover the previous baseline from Git before comparing. The fork is force-pushed: if `OLD` is not an ancestor of `NEW`, find
+   the rebased counterpart by the recorded commit title and use it as `OLD`.
 2. List what changed:
    `git -C <upstream> diff --stat OLD NEW -- '*SPEC.md' '*.SPEC.md' architecture.md goal-and-requirements.md apps/web/src/styles/`
    and `git -C <upstream> log --oneline OLD..NEW` for context.
 3. Triage every changed file:
    - Mapped: port it (step 4).
-   - Listed as not tracked, or out of scope (AI/agent/pi/chat, CLI, website, analytics, GitHub/PR,
-     mobile, web-only tooling): skip.
+   - Listed as not tracked, or out of scope (pi, AI chat, CLI, website, analytics, GitHub/PR,
+     mobile, web-only tooling): skip. On `main`, the fork's plugin specs (`packages/plugin-*`,
+     `packages/server/src/plugins`, `apps/web/src/plugins`) are in scope.
    - New upstream spec: decide mapped or not tracked, add it to `UPSTREAM.md` accordingly.
    - Deleted or moved upstream spec: update the mapping; do not delete SharpRail specs unasked.
 4. Port each mapped change from `git -C <upstream> diff OLD NEW -- <file>`, not the whole file:

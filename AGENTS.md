@@ -120,11 +120,20 @@ dependency into the host projects.
 `SPEC.md` defines the product contract; `COMPLETION.md` records unfinished gates;
 `E2E.md` inventories upstream translations; `VALIDATION.md` records verified
 evidence. Read `gotchas.md` for lessons and `context-log.md` for continuation state.
-The authoritative upstream checkout is `/Users/commandertvis/IdeaProjects/thinkrail`.
+SharpRail tracks two upstreams, one per branch, both in the checkout at
+`/Users/commandertvis/IdeaProjects/thinkrail`. `main` ports CommanderTvis's fork
+(remote `origin`, branch `claude-code-integration-plugin-api`): JetBrains plus the Plugin
+API, its builtin plugins and the fork's general improvements. The `upstream` branch ports
+JetBrains ThinkRail (remote `upstream`, branch `main`) and is maintained separately in its
+own worktree; do not carry changes between the two lines by hand. On `main`, port the
+fork's Plugin API and plugin UI almost verbatim, changing only what the transport (gRPC
+instead of WebSocket) and the framework (Avalonia/.NET instead of React/Bun) force; pi and
+AI chat stay out of scope. Mirror the fork's commit shape: general improvements, then the
+Plugin API, then one commit per builtin plugin.
 Module `SPEC.md`/`*.SPEC.md` files and `ARCHITECTURE.md` are adapted from upstream specs;
-`UPSTREAM.md` is the single source of truth for the synced upstream commit and mapping;
-the [sync-upstream-specs skill](.claude/skills/sync-upstream-specs/SKILL.md) pulls later
-upstream changes. Update the owning spec when changing its module.
+`UPSTREAM.md` records each branch's synced commit, the spec mapping and the fork port log,
+and the `sync-upstream-specs` skill pulls later changes for the current branch. Update the
+owning spec when changing its module.
 
 Run checks with `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release`;
 `-- --terminals` runs host terminals, terminal/bottom-panel translations and Skia renderer checks.
