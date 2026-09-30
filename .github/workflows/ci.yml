@@ -15,8 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
       - run: dotnet restore SharpRail.slnx
@@ -30,14 +30,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode: [sync, workspaces, terminals]
+        mode: [full, sync, workspaces, terminals]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
       - run: |
           git config --global user.name CI
           git config --global user.email ci@example.invalid
           git config --global init.defaultBranch main
-      - run: dotnet run --project tests/SharpRail.Checks -c Release -- --${{ matrix.mode }}
+      - run: dotnet run --project tests/SharpRail.Checks -c Release ${{ matrix.mode != 'full' && format('-- --{0}', matrix.mode) || '' }}

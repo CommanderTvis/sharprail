@@ -283,6 +283,7 @@ internal static class ThemeE2E
 
     private static void MarkdownSurfaces(string root)
     {
+        if (!OperatingSystem.IsMacOS()) { Console.WriteLine("SKIP macOS Mermaid theme surfaces"); return; }
         using var app = new E2eWorkspace(Path.Combine(root, "theme-markdown"));
         var original = Ui.Theme;
         app.Open("DIAGRAM.md", true);
