@@ -1,7 +1,8 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:rendering="using:SharpRail.UI.Rendering"
-             x:Class="SharpRail.UI.App">
+             x:Class="SharpRail.UI.App"
+             Name="SharpRail">
   <Application.Resources>
     <x:Double x:Key="TreeViewItemIndent">12</x:Double>
   </Application.Resources>
@@ -15,6 +16,16 @@
     </Style>
     <Style Selector="Border.change-row:pointerover, Border.change-row.menu-open">
       <Setter Property="Background" Value="{x:Static rendering:Ui.Hover}" />
+    </Style>
+    <Style Selector="Border.project-row">
+      <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="Border.project-row.active, Border.project-row:pointerover">
+      <Setter Property="Background" Value="{x:Static rendering:Ui.Hover}" />
+    </Style>
+    <Style Selector="Button.project-name:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.project-name:pressed /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="Transparent" />
     </Style>
     <Style Selector="Button.change-actions">
       <Setter Property="Opacity" Value="0" />

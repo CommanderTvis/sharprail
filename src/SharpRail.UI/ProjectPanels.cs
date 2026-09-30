@@ -92,10 +92,10 @@ public sealed partial class WorkbenchWindow
             {
                 Name = "ProjectHighlight",
                 Tag = project,
-                Child = row,
-                CornerRadius = new CornerRadius(4),
-                Background = atHome && project == projectRoot ? Ui.Hover : Avalonia.Media.Brushes.Transparent
+                Child = row
             };
+            highlight.Classes.Add("project-row");
+            highlight.Classes.Set("active", atHome && project == projectRoot);
             var collapsed = profile.Data.CollapsedProjects.Contains(project);
             var toggle = Ui.IconButton(collapsed ? "arrowRight" : "arrowDown", collapsed ? "Expand project" : "Collapse project", () =>
             {
@@ -109,6 +109,7 @@ public sealed partial class WorkbenchWindow
             toggle.Width = toggle.Height = 16; toggle.Padding = new(0);
             Ui.Place(row, toggle);
             var select = new Button { Name = "ProjectName", Tag = project };
+            select.Classes.Add("project-name");
             select.Click += (_, _) => _ = OpenProjectHomeAsync(project);
             AutomationProperties.SetName(select, new DirectoryInfo(project).Name);
             var projectLabel = new Grid { ColumnDefinitions = new ColumnDefinitions("14,4,*") };
