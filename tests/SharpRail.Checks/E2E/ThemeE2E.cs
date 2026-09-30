@@ -159,12 +159,14 @@ internal static class ThemeE2E
         app.Open("notes.txt");
         Require(app.Tabs.Count(tab => tab.Path is "README.md" or "notes.txt") == 2, "Two editor tabs must be open.");
         var bottom = app.Window.Layout.State.Groups.Single(group => group.Region == "bottom");
+        // A workspace may already hold its initial terminal; add two more alongside it.
+        var initial = app.Window.Layout.Tabs(bottom.Id).Count(tab => tab.Kind == "terminal");
         for (var count = 0; count < 2; count++)
         {
             var add = app.Find<Button>("AddToGroup_" + bottom.Id);
             app.Click(add); Until(() => add.ContextMenu!.IsOpen);
             app.Click(add.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "New terminal")), freshGesture: false);
-            var expected = count + 1;
+            var expected = initial + count + 1;
             Until(() => app.Window.Layout.Tabs(bottom.Id).Count(tab => tab.Kind == "terminal") == expected);
         }
         app.Window.MouseMove(new Point(app.Window.Bounds.Width - 2, app.Window.Bounds.Height - 2));

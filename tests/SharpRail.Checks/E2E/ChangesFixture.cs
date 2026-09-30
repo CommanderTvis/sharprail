@@ -36,6 +36,9 @@ internal static class ChangesFixture
         foreach (var (path, text) in files) File.WriteAllText(Path.Combine(app.Root, path), text);
         Git(app.Root, ["add", "README.md", "SPEC.md", .. files.Select(file => file.Path)]);
         Commit(app.Root, "sample project");
+        // Upstream's sample project is a local repository without a remote; without origin the
+        // new workspace bases on the local branch that holds the committed sample.
+        Git(app.Root, "remote", "remove", "origin");
         Until(() => app.Window.WatchRefreshes > refreshes);
         Settle(500);
         return (app, WorkspaceTabsE2E.CreateWorkspace(app, "workspace-1"));
