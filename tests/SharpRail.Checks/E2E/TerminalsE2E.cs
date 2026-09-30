@@ -27,6 +27,7 @@ internal static class TerminalsE2E
         ShellExit(root);
         BusyClose(root);
         IdleClose(root);
+        TerminalSessionsE2E.Run(root);
     }
 
     private static E2eWorkspace Open(string root, string name) =>

@@ -7,7 +7,7 @@ namespace SharpRail.Host.Remote;
 
 public sealed class TerminalRpc(ITerminalService terminals) : ITerminalRpc
 {
-    // A session lives exactly as long as its call; a dropped client ends the shell.
+    // A call is one attachment: a dropped client detaches, and the shell keeps running on the host.
     public async IAsyncEnumerable<TerminalOutput> RunAsync(IAsyncEnumerable<TerminalInput> input, CallContext context = default)
     {
         using var call = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
@@ -15,13 +15,15 @@ public sealed class TerminalRpc(ITerminalService terminals) : ITerminalRpc
         var pump = Task.CompletedTask;
         try
         {
-            if (!await inputs.MoveNextAsync() || inputs.Current.Kind != TerminalInputKind.Start)
-                throw new RpcException(new Status(StatusCode.InvalidArgument, "A terminal call must start with a start message."));
-            await using var session = await StartAsync(inputs.Current, call.Token);
-            yield return new TerminalOutput { Started = true };
+            if (!await inputs.MoveNextAsync() || inputs.Current.Kind != TerminalInputKind.Attach)
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "A terminal call must start with an attach message."));
+            await using var session = await AttachAsync(inputs.Current, call.Token);
+            yield return new TerminalOutput { Attached = true, Created = session.Created, Data = session.Replay.ToArray(), Position = session.Position };
             pump = Drive(inputs, session, call.Token);
-            await foreach (var chunk in session.ReadAsync(call.Token)) yield return new TerminalOutput { Data = chunk.ToArray() };
-            yield return new TerminalOutput { Exited = true, ExitCode = await session.Exit };
+            await foreach (var chunk in session.ReadAsync(call.Token)) yield return new TerminalOutput { Data = chunk.ToArray(), Position = session.Position };
+            await Task.WhenAny(session.Exit, session.Detached);
+            if (session.Detached.IsCompleted) yield return new TerminalOutput { Detached = true, Position = session.Position };
+            else if (session.Exit.IsCompletedSuccessfully) yield return new TerminalOutput { Exited = true, ExitCode = session.Exit.Result, Position = session.Position };
         }
         finally
         {
@@ -31,12 +33,21 @@ public sealed class TerminalRpc(ITerminalService terminals) : ITerminalRpc
         }
     }
 
-    public async ValueTask<TerminalBusyReply> IsBusyAsync(TerminalBusyRequest request, CallContext context = default)
+    public async ValueTask<TerminalBusyReply> IsBusyAsync(TerminalSessionRequest request, CallContext context = default)
         => new() { Busy = await terminals.IsBusyAsync(request.SessionId, context.CancellationToken) };
 
-    private async Task<ITerminalSession> StartAsync(TerminalInput start, CancellationToken cancellationToken)
+    public async ValueTask<TerminalClosed> CloseAsync(TerminalSessionRequest request, CallContext context = default)
     {
-        try { return await terminals.StartAsync(new(start.SessionId, start.WorkspaceRoot, start.Columns, start.Rows), cancellationToken); }
+        await terminals.CloseAsync(request.SessionId, context.CancellationToken);
+        return new();
+    }
+
+    private async Task<ITerminalSession> AttachAsync(TerminalInput attach, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await terminals.AttachAsync(new(attach.SessionId, attach.WorkspaceRoot, attach.ClientId, attach.Columns, attach.Rows, attach.Offset), cancellationToken);
+        }
         catch (Exception error) when (error is IOException or ArgumentException or InvalidOperationException or UnauthorizedAccessException or PlatformNotSupportedException)
         {
             throw new RpcException(new Status(StatusCode.FailedPrecondition, error.Message));

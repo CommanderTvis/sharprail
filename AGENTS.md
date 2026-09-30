@@ -73,8 +73,10 @@ scope and selected commit; reload commit catalogs from Git rather than saving
 derived snapshots. Tests use isolated profile directories.
 Commit listing is a separate host operation; do not fetch a full working-tree
 snapshot merely to populate or restore the commit catalog.
-macOS terminal tabs embed Ghostty directly; remote tabs run the relay mode against
-the host PTY, and other platforms show an availability message. `WorkbenchWindow`
+macOS terminal tabs embed Ghostty, whose child is the `--terminal-relay` mode attached to a
+host-owned PTY session: remote tabs reach the remote host, and local tabs reach the app's
+own host over a private Unix socket, so shells outlive their windows while the app runs.
+Other platforms show an availability message. `WorkbenchWindow`
 takes its terminal factory from the composition root; headless checks pass one that
 runs host PTY sessions as plain text. `DocumentCache.cs` retains shells across appearance
 changes and disposes them when their tabs or window close. Clipboard images are
@@ -100,7 +102,9 @@ The workbench is split into partial files rather than separate window classes:
 Host dependencies flow toward abstractions: Core references Abstractions; Client
 references Abstractions and Protocol; Remote references Core and Protocol. The UI
 references Core and Client to compose either direct local calls or remote proxies,
-and the Scintilla editor control, which it supplies with theme colours and fonts.
+the Scintilla editor control, which it supplies with theme colours and fonts, and
+Remote, only to serve the in-process terminal host socket that local relays attach to
+(no daemon: it starts with the first terminal and stops when the app quits).
 Checks reference the UI and Remote to exercise both paths. Do not introduce a UI
 dependency into the host projects.
 

@@ -26,6 +26,7 @@ internal sealed class E2eWorkspace : IDisposable
     internal string Center => Window.Layout.View.FocusedCenter;
     internal IReadOnlyList<DockTab> Tabs => Window.Layout.Tabs(Center);
     internal string Root { get; }
+    private readonly bool ownsTerminals;
     private readonly bool peer;
 
     private E2eWorkspace(E2eWorkspace owner, WorkbenchWindow window)
@@ -87,6 +88,7 @@ internal sealed class E2eWorkspace : IDisposable
         State = profile.OpenState();
         Host = new(new ProjectServices(root, State));
         prepare?.Invoke(Host);
+        ownsTerminals = terminals is null;
         Terminals = terminals ?? new();
         IHostStateService service = new LocalStateAdapter(State);
         var first = true;
@@ -206,12 +208,14 @@ internal sealed class E2eWorkspace : IDisposable
         Until(() => Tabs.Any(tab => tab.Path == path && (!keep || !tab.Preview)) && Window.Layout.Selected(Center)?.Path == path);
     }
 
+    // Closing detaches the windows' terminals; an app that shares its terminals with a later window keeps them.
     public void Dispose()
     {
         if (!peer)
             foreach (var other in Workbench.Windows.Where(window => window != Window).ToArray()) other.Close();
         Window.Close();
         remoteState?.Dispose();
+        if (ownsTerminals && !peer) Terminals.Quit();
     }
 }
 

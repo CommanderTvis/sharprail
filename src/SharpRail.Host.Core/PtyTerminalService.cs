@@ -8,10 +8,14 @@ using SharpRail.Host.Abstractions;
 
 namespace SharpRail.Host.Core;
 
+// Owns every terminal session for the lifetime of the host. Clients attach and detach; a shell ends only
+// when its tab is closed, it exits, or the host stops.
 public sealed class PtyTerminalService : ITerminalService, IAsyncDisposable
 {
-    private readonly ConcurrentDictionary<string, PtySession> sessions = new();
+    private readonly Dictionary<string, HostedTerminal> sessions = [];
+    private readonly Lock gate = new();
     private readonly string? shell;
+    private bool disposed;
 
     // A null shell runs the user's login shell.
     public PtyTerminalService(string? shell = null)
@@ -20,32 +24,44 @@ public sealed class PtyTerminalService : ITerminalService, IAsyncDisposable
         this.shell = shell;
     }
 
-    public ValueTask<ITerminalSession> StartAsync(TerminalStartRequest request, CancellationToken cancellationToken = default)
+    public ValueTask<ITerminalSession> AttachAsync(TerminalAttachRequest request, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(request.SessionId)) throw new ArgumentException("A terminal session id is required.", nameof(request));
-        var directory = Path.GetFullPath(request.WorkspaceRoot);
-        if (!Directory.Exists(directory)) throw new DirectoryNotFoundException($"The workspace folder {directory} does not exist.");
-        var program = shell ?? LoginShell();
-        if (sessions.ContainsKey(request.SessionId)) throw new InvalidOperationException("The terminal session already exists.");
-        var session = PtySession.Start(request.SessionId, program, directory, request.Columns, request.Rows, () => sessions.TryRemove(request.SessionId, out _));
-        if (!sessions.TryAdd(request.SessionId, session))
+        if (string.IsNullOrWhiteSpace(request.ClientId)) throw new ArgumentException("A terminal client id is required.", nameof(request));
+        // Lookup and start happen under one lock so concurrent attaches never start two shells for a session.
+        lock (gate)
         {
-            _ = session.DisposeAsync();
-            throw new InvalidOperationException("The terminal session already exists.");
+            ObjectDisposedException.ThrowIf(disposed, this);
+            if (sessions.TryGetValue(request.SessionId, out var existing)) return ValueTask.FromResult<ITerminalSession>(existing.Attach(request, created: false));
+            if (request.Resume) throw new IOException("The terminal session no longer exists.");
+            var directory = Path.GetFullPath(request.WorkspaceRoot);
+            if (!Directory.Exists(directory)) throw new DirectoryNotFoundException($"The workspace folder {directory} does not exist.");
+            var process = PtySession.Start(request.SessionId, shell ?? LoginShell(), directory, request.Columns, request.Rows);
+            var terminal = new HostedTerminal(process, request.Columns, request.Rows);
+            sessions.Add(request.SessionId, terminal);
+            return ValueTask.FromResult<ITerminalSession>(terminal.Attach(request, created: true));
         }
-        return ValueTask.FromResult<ITerminalSession>(session);
     }
 
     public ValueTask<bool> IsBusyAsync(string sessionId, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        return ValueTask.FromResult(sessions.TryGetValue(sessionId, out var session) && session.IsBusy);
+        lock (gate) return ValueTask.FromResult(sessions.TryGetValue(sessionId, out var terminal) && terminal.Process.IsBusy);
+    }
+
+    public async ValueTask CloseAsync(string sessionId, CancellationToken cancellationToken = default)
+    {
+        HostedTerminal? terminal;
+        lock (gate) sessions.Remove(sessionId, out terminal);
+        if (terminal is not null) await terminal.Process.DisposeAsync();
     }
 
     public async ValueTask DisposeAsync()
     {
-        foreach (var session in sessions.Values) await session.DisposeAsync();
+        HostedTerminal[] all;
+        lock (gate) { disposed = true; all = [.. sessions.Values]; sessions.Clear(); }
+        foreach (var terminal in all) await terminal.Process.DisposeAsync();
     }
 
     private static string LoginShell()
@@ -76,13 +92,13 @@ public sealed class PtyTerminalService : ITerminalService, IAsyncDisposable
     }
 }
 
-internal sealed class PtySession : ITerminalSession
+// The shell process behind a hosted terminal.
+internal sealed class PtySession : IAsyncDisposable
 {
     private readonly int master;
     // Held open so macOS keeps output the shell wrote just before exiting.
     private readonly int slave;
     private readonly int pid;
-    private readonly Action removed;
     private readonly Channel<ReadOnlyMemory<byte>> output = Channel.CreateUnbounded<ReadOnlyMemory<byte>>(new() { SingleReader = true, SingleWriter = true });
     private readonly TaskCompletionSource<int> exited = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TaskCompletionSource<int> exit = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -101,14 +117,14 @@ internal sealed class PtySession : ITerminalSession
         }
     }
 
-    private PtySession(string id, int master, int slave, int pid, Action removed)
+    private PtySession(string id, int master, int slave, int pid)
     {
-        Id = id; this.master = master; this.slave = slave; this.pid = pid; this.removed = removed;
+        Id = id; this.master = master; this.slave = slave; this.pid = pid;
         new Thread(Wait) { IsBackground = true, Name = "SharpRail PTY wait " + pid }.Start();
         new Thread(Pump) { IsBackground = true, Name = "SharpRail PTY read " + pid }.Start();
     }
 
-    internal static PtySession Start(string id, string shell, string directory, int columns, int rows, Action removed)
+    internal static PtySession Start(string id, string shell, string directory, int columns, int rows)
     {
         var master = Posix.OpenPt(Posix.ORdwr | Posix.ONoctty);
         if (master < 0) throw new IOException("Couldn't open a pseudo-terminal: " + Posix.LastError());
@@ -125,7 +141,7 @@ internal sealed class PtySession : ITerminalSession
             if (slave < 0) throw new IOException("Couldn't open the pseudo-terminal: " + Posix.LastError());
             Posix.SetWindowSize(master, columns, rows);
             var pid = Spawn(shell, directory, device);
-            return new PtySession(id, master, slave, pid, removed);
+            return new PtySession(id, master, slave, pid);
         }
         catch
         {
@@ -215,7 +231,7 @@ internal sealed class PtySession : ITerminalSession
         finally
         {
             output.Writer.TryComplete();
-            exited.Task.ContinueWith(task => { removed(); exit.TrySetResult(task.Result); }, TaskScheduler.Default);
+            exited.Task.ContinueWith(task => exit.TrySetResult(task.Result), TaskScheduler.Default);
         }
     }
 
@@ -274,7 +290,6 @@ internal sealed class PtySession : ITerminalSession
     public async ValueTask DisposeAsync()
     {
         if (Interlocked.Exchange(ref disposed, 1) != 0) return;
-        removed();
         await KillAsync();
         await exit.Task;
         Posix.Close(slave);

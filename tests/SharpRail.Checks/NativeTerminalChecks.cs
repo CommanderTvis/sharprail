@@ -46,6 +46,8 @@ internal static class NativeTerminalChecks
                 {
                     await Check((WorkbenchWindow)desktop.MainWindow!, fixture);
                     Console.WriteLine("PASS native Avalonia embedded terminal: mutable input, keyboard routing, Mod+Shift+J from the terminal, image/text paste, theme pixels, Metal rendering, shell, session retention, workspace isolation and close disposal");
+                    await CheckLocalSessions(fixture);
+                    Console.WriteLine("PASS native local terminal sessions: Ghostty relay to the app's host PTY with input latency, resize, reattach after its window closes, and the real exit status");
                     await CheckRemote(fixture);
                     Console.WriteLine("PASS native remote terminal: Ghostty relay to an authenticated gRPC host PTY with I/O, worktree root, resize, busy foreground and exit status");
                     desktop.Shutdown(0);
@@ -207,6 +209,74 @@ internal static class NativeTerminalChecks
         window.Layout.Close(side, tab.Id);
         if (Handle(host!) != 0) throw new InvalidOperationException("Closing a terminal did not dispose its native session.");
         await Until(() => Native.Kill(processId, 0) == -1 && Marshal.GetLastPInvokeError() == 3);
+    }
+
+    // Local tabs relay to the app's own host, so a shell outlives its window and reports its real exit code.
+    private static async Task CheckLocalSessions(string fixture)
+    {
+        var root = Path.Combine(fixture, "local sessions");
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, ".git"), "gitdir: " + Path.Combine(root, "absent"));
+        var profile = Path.Combine(fixture, "local-sessions-profile");
+        var terminals = ((App)Application.Current!).Terminals;
+        WorkbenchWindow Open() => new(new LocalProjectAdapter(new SharpRail.Host.Core.ProjectServices(root)), root, new ProfileStore(profile), terminals) { Width = 1000, Height = 700 };
+        async Task<nint> Surface(WorkbenchWindow window)
+        {
+            await Until(() => window.WorkspaceMounted);
+            NativeControlHost? host = null;
+            await Until(() => (host = window.GetVisualDescendants().OfType<NativeControlHost>().SingleOrDefault()) is not null && Handle(host) != 0);
+            var view = Handle(host!);
+            Native.Activate(view);
+            await Until(() => Native.Ready(view));
+            await Task.Delay(1000);
+            return view;
+        }
+        var first = Open();
+        first.Show();
+        var view = await Surface(first);
+        Native.Input(view, "export TR_RELOAD=survived; printf 'LOCAL_PID_%s_\\n' \"$$\"\r");
+        await Until(() => System.Text.RegularExpressions.Regex.IsMatch(Read(view), @"LOCAL_PID_\d+_"));
+        var pid = System.Text.RegularExpressions.Regex.Match(Read(view), @"LOCAL_PID_(\d+)_").Groups[1].Value;
+        first.GetVisualDescendants().OfType<TerminalView>().Single().FocusTerminal();
+        await Until(() => Native.Focused(view));
+        var delays = new List<double>();
+        for (var sample = 0; sample < 10; sample++)
+        {
+            var marker = "LAT" + sample + "X";
+            var clock = System.Diagnostics.Stopwatch.StartNew();
+            Native.Key(view, marker[..1], 0, false);
+            foreach (var character in marker[1..]) Native.Key(view, character.ToString(), 0, false);
+            await Until(() => Read(view).Contains(marker, StringComparison.Ordinal));
+            delays.Add(clock.Elapsed.TotalMilliseconds);
+            Native.Key(view, "\x15", 32, true);
+        }
+        delays.Sort();
+        Console.WriteLine($"SHARPRAIL_TERMINAL_ECHO median={delays[5]:F1}ms max={delays[^1]:F1}ms");
+        if (delays[5] > 100) throw new InvalidOperationException($"Local relay input echo is too slow: median {delays[5]:F1} ms.");
+        Native.Input(view, "printf 'SIZE_%s_\\n' \"$(stty size | tr ' ' x)\"\r");
+        await Until(() => System.Text.RegularExpressions.Regex.IsMatch(Read(view), @"SIZE_\d+x\d+_"));
+        var before = System.Text.RegularExpressions.Regex.Match(Read(view), @"SIZE_(\d+x\d+)_").Groups[1].Value;
+        first.Width -= 300;
+        await Task.Delay(500);
+        Native.Input(view, "printf 'RESIZED_%s_\\n' \"$(stty size | tr ' ' x)\"\r");
+        await Until(() => System.Text.RegularExpressions.Regex.Match(Read(view), @"RESIZED_(\d+x\d+)_") is { Success: true } match && match.Groups[1].Value != before);
+        first.Close();
+        await Task.Delay(500);
+        if (Native.Kill(int.Parse(pid), 0) != 0) throw new InvalidOperationException("Closing the window ended the local shell.");
+        var second = Open();
+        second.Show();
+        try
+        {
+            var reopened = await Surface(second);
+            Native.Input(reopened, "printf 'AGAIN_%s_%s_\\n' \"$$\" \"$TR_RELOAD\"\r");
+            await Until(() => Read(reopened).Contains($"AGAIN_{pid}_survived_", StringComparison.Ordinal));
+            var terminal = second.GetVisualDescendants().OfType<TerminalView>().Single();
+            Native.Input(reopened, "exit 3\r");
+            await Until(() => terminal.IsExited);
+            var notice = terminal.GetLogicalDescendants().OfType<TextBlock>().Single(text => text.Name == "TerminalExited").Text;
+            if (notice != "[process exited with code 3]") throw new InvalidOperationException("The local exit status did not reach the tab: " + notice);
+        }
+        finally { second.Close(); }
     }
 
     // A remote workspace's Ghostty tab runs this executable's relay against a real gRPC host PTY.

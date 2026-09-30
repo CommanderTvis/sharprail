@@ -13,6 +13,14 @@
                  Text="Check that the workspace folder still exists and that your login shell can start, then retry. The tab stays open." />
       <Button x:Name="TerminalStartRetry" Content="Retry" HorizontalAlignment="Left" />
     </StackPanel>
+    <!-- A native terminal surface draws above Avalonia content, so the view hides it while this shows. -->
+    <Border x:Name="TerminalDetached" IsVisible="False" Background="{x:Static rendering:Ui.Surface}">
+      <StackPanel Spacing="8" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <TextBlock Text="This terminal is open somewhere else." HorizontalAlignment="Center"
+                   Foreground="{x:Static rendering:Ui.Muted}" FontSize="12" />
+        <Button x:Name="TerminalTakeBack" Content="Take it back" HorizontalAlignment="Center" />
+      </StackPanel>
+    </Border>
     <TextBlock x:Name="TerminalExited" Grid.Row="1" IsVisible="False" Margin="12,4"
                Foreground="{x:Static rendering:Ui.Muted}" FontSize="12" />
   </Grid>

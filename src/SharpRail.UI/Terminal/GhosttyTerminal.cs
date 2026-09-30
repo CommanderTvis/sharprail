@@ -10,22 +10,46 @@ using SharpRail.UI.Rendering;
 namespace SharpRail.UI.Terminal;
 
 [SupportedOSPlatform("macos")]
-internal sealed unsafe class GhosttyTerminal : Border, ITerminalBackend
+internal sealed class GhosttyTerminal : Border, ITerminalBackend
 {
-    private readonly TerminalHost terminal;
     private readonly TaskCompletionSource<int> exited = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    private readonly Func<ValueTask<bool>>? remoteBusy;
-    private readonly string? statusPath, connectionPath;
+    private readonly TaskCompletionSource detached = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private readonly TerminalLaunch launch;
+    private RemoteTerminalConnection? connection;
+    private TerminalHost? terminal;
+    private string? statusPath, connectionPath;
     private GCHandle self;
+    private bool disposed;
 
-    private GhosttyTerminal(TerminalLaunch launch, string? command, string? connectionPath, string? statusPath, Func<ValueTask<bool>>? remoteBusy)
+    // The relay attaches to the host session; exit status and takeover come back through its status file,
+    // because Ghostty's login wrapper does not propagate the child's exit code.
+    internal GhosttyTerminal(TerminalLaunch launch, Task<RemoteTerminalConnection> connection)
     {
-        this.connectionPath = connectionPath; this.statusPath = statusPath; this.remoteBusy = remoteBusy;
+        this.launch = launch;
+        Focusable = true;
+        Started = StartAsync(connection);
+    }
+
+    public Control View => this;
+    public Task Started { get; }
+    public Task<int> Exited => exited.Task;
+    public Task Detached => detached.Task;
+
+    private async Task StartAsync(Task<RemoteTerminalConnection> pending)
+    {
+        var remote = await pending;
+        ObjectDisposedException.ThrowIf(disposed, this);
+        connection = remote;
+        // Each attachment gets its own relay files, so a take-back never races the files of the one it replaces.
+        var name = launch.SessionId + "-" + Guid.NewGuid().ToString("N");
+        statusPath = Path.Combine(TerminalRelay.Directory, name + ".status");
+        connectionPath = TerminalRelay.Write(name, new(remote.Endpoint.ToString(), remote.Token, launch.SessionId, launch.ClientId, launch.WorkspaceRoot, statusPath));
+        var executable = Environment.ProcessPath ?? throw new TerminalStartException("The SharpRail executable path is unknown.");
+        var command = "'" + executable.Replace("'", "'\\''") + "' " + TerminalRelay.Argument;
         self = GCHandle.Alloc(this);
         try
         {
-            var view = Native.Create(launch.WorkspaceRoot, launch.ClipboardDirectory, command,
-                connectionPath is null ? null : TerminalRelay.ConnectionVariable, connectionPath, &OnEvent, GCHandle.ToIntPtr(self));
+            var view = Create(command);
             if (view == 0) throw new TerminalStartException("Ghostty could not create a Metal terminal surface.");
             terminal = new TerminalHost(view) { Focusable = true };
         }
@@ -36,31 +60,20 @@ internal sealed unsafe class GhosttyTerminal : Border, ITerminalBackend
             throw;
         }
         Child = terminal;
-        Focusable = true;
         terminal.UpdateColors();
         Ui.ThemeChanged += terminal.UpdateColors;
     }
 
-    internal static GhosttyTerminal Local(TerminalLaunch launch) => new(launch, null, null, null, null);
-
-    internal static GhosttyTerminal Remote(TerminalLaunch launch, RemoteTerminalConnection remote)
-    {
-        var status = Path.Combine(Path.GetTempPath(), "sharprail-relay-" + Environment.UserName, launch.SessionId + ".status");
-        var connection = TerminalRelay.Write(new(remote.Endpoint.ToString(), remote.Token, launch.SessionId, launch.WorkspaceRoot, status));
-        var executable = Environment.ProcessPath ?? throw new TerminalStartException("The SharpRail executable path is unknown.");
-        var command = "'" + executable.Replace("'", "'\\''") + "' " + TerminalRelay.Argument;
-        return new(launch, command, connection, status, () => remote.Terminals.IsBusyAsync(launch.SessionId));
-    }
-
-    public Control View => this;
-    public Task Started => Task.CompletedTask;
-    public Task<int> Exited => exited.Task;
+    private unsafe nint Create(string command) => Native.Create(launch.WorkspaceRoot, launch.ClipboardDirectory, command,
+        TerminalRelay.ConnectionVariable, connectionPath, &OnEvent, GCHandle.ToIntPtr(self));
 
     public ValueTask<bool> IsBusyAsync()
     {
-        if (exited.Task.IsCompleted) return ValueTask.FromResult(false);
-        return remoteBusy?.Invoke() ?? ValueTask.FromResult(terminal.Busy);
+        if (exited.Task.IsCompleted || detached.Task.IsCompleted || connection is null) return ValueTask.FromResult(false);
+        return connection.Terminals.IsBusyAsync(launch.SessionId);
     }
+
+    public ValueTask CloseAsync() => connection?.Terminals.CloseAsync(launch.SessionId) ?? ValueTask.CompletedTask;
 
     [UnmanagedCallersOnly]
     private static void OnEvent(nint context, int kind, int value)
@@ -73,17 +86,13 @@ internal sealed unsafe class GhosttyTerminal : Border, ITerminalBackend
     {
         if (kind == 1)
         {
-            // The relay reports the remote shell's status beside its connection file, because
-            // Ghostty's login wrapper does not propagate the child's exit code.
-            if (statusPath is not null && File.Exists(statusPath))
-            {
-                var status = File.ReadAllText(statusPath);
-                File.Delete(statusPath);
-                if (status.StartsWith(TerminalRelay.ExitStatus, StringComparison.Ordinal) && int.TryParse(status[TerminalRelay.ExitStatus.Length..], out var code))
-                    exited.TrySetResult(code);
-                else exited.TrySetException(new TerminalStartException(status));
-            }
-            else exited.TrySetResult(value);
+            var status = statusPath is not null && File.Exists(statusPath) ? File.ReadAllText(statusPath) : null;
+            if (statusPath is not null) File.Delete(statusPath);
+            if (status == TerminalRelay.DetachedStatus) detached.TrySetResult();
+            else if (status is not null && status.StartsWith(TerminalRelay.ExitStatus, StringComparison.Ordinal) &&
+                int.TryParse(status[TerminalRelay.ExitStatus.Length..], out var code))
+                exited.TrySetResult(code);
+            else exited.TrySetException(new TerminalStartException(status ?? $"The terminal relay ended unexpectedly with code {value}."));
         }
         else if (kind == 2)
             RaiseEvent(new KeyEventArgs { RoutedEvent = KeyDownEvent, Key = Key.J, KeyModifiers = KeyModifiers.Meta | KeyModifiers.Shift, Source = this });
@@ -91,8 +100,10 @@ internal sealed unsafe class GhosttyTerminal : Border, ITerminalBackend
 
     public void Dispose()
     {
+        if (disposed) return;
+        disposed = true;
         if (!self.IsAllocated) return;
-        Ui.ThemeChanged -= terminal.UpdateColors;
+        Ui.ThemeChanged -= terminal!.UpdateColors;
         terminal.Dispose();
         self.Free();
         DeleteRelayFiles();
@@ -104,7 +115,7 @@ internal sealed unsafe class GhosttyTerminal : Border, ITerminalBackend
             if (path is not null) File.Delete(path);
     }
 
-    public void FocusTerminal() => terminal.FocusTerminal();
+    public void FocusTerminal() => terminal?.FocusTerminal();
 
     protected override void OnGotFocus(FocusChangedEventArgs e)
     {
@@ -115,8 +126,6 @@ internal sealed unsafe class GhosttyTerminal : Border, ITerminalBackend
     private sealed class TerminalHost(nint view) : NativeControlHost, IDisposable
     {
         private nint view = view;
-
-        internal bool Busy => view != 0 && Native.Busy(view);
 
         protected override IPlatformHandle CreateNativeControlCore(IPlatformHandle parent)
         {
@@ -160,7 +169,7 @@ internal sealed unsafe class GhosttyTerminal : Border, ITerminalBackend
         }
     }
 
-    private static class Native
+    private static unsafe class Native
     {
         private const string Library = "SharpRailGhostty";
         [DllImport(Library, EntryPoint = "sr_terminal_create")]
@@ -173,8 +182,5 @@ internal sealed unsafe class GhosttyTerminal : Border, ITerminalBackend
         internal static extern void Destroy(nint view);
         [DllImport(Library, EntryPoint = "sr_terminal_focus")]
         internal static extern void Focus(nint view);
-        [DllImport(Library, EntryPoint = "sr_terminal_busy")]
-        [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool Busy(nint view);
     }
 }

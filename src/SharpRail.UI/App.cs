@@ -20,6 +20,9 @@ public sealed partial class App : Application
             Resources["TreeViewItemBackground" + state] = Ui.Hover;
     }
 
+    // Creates terminal tabs for every window of this app, all attached to the app's one terminal host.
+    public TerminalFactory Terminals { get; private set; } = launch => TerminalBackends.Unavailable("The app has not started.");
+
     public override void OnFrameworkInitializationCompleted()
     {
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
@@ -38,8 +41,13 @@ public sealed partial class App : Application
                 ? () => new RemoteProjectAdapter(new Uri(endpoint!), token)
                 : () => new LocalProjectAdapter(new ProjectServices(initialRoot, local));
             var remoteTerminals = remote ? new RemoteTerminalAdapter(new Uri(endpoint!), token) : null;
-            var terminals = TerminalBackends.Ghostty(remoteTerminals is null ? null : new RemoteTerminalConnection(new Uri(endpoint!), token, remoteTerminals));
-            var workbench = new Workbench(profile, state, terminals, remote, sessions);
+            // Local sessions belong to the app's host: they survive their windows and end when the app quits.
+            var localTerminals = remoteTerminals is null && !OperatingSystem.IsWindows() ? new PtyTerminalService() : null;
+            var relay = localTerminals is null ? null : new LocalTerminalRelay(localTerminals);
+            Terminals = remoteTerminals is not null
+                ? TerminalBackends.Ghostty(new RemoteTerminalConnection(new Uri(endpoint!), token, remoteTerminals))
+                : relay is not null ? TerminalBackends.Ghostty(relay.ConnectAsync) : launch => TerminalBackends.Unavailable("Embedded terminals currently require macOS.");
+            var workbench = new Workbench(profile, state, Terminals, remote, sessions);
             foreach (var slot in profile.Data.Windows.ToArray())
             {
                 var root = slot.LastProject.Length > 0 ? slot.LastProject : slot == profile.Data.Windows[0] ? initialRoot : "";
@@ -48,7 +56,16 @@ public sealed partial class App : Application
                 if (window != desktop.MainWindow) window.Show();
             }
             desktop.ShutdownRequested += (_, _) => workbench.ShuttingDown = true;
-            desktop.Exit += (_, _) => { (stateService as IDisposable)?.Dispose(); remoteTerminals?.Dispose(); };
+            desktop.Exit += (_, _) =>
+            {
+                (stateService as IDisposable)?.Dispose(); remoteTerminals?.Dispose();
+                // Off the UI thread: ending shells awaits their exit, which a blocked dispatcher would never resume.
+                Task.Run(async () =>
+                {
+                    if (relay is not null) await relay.DisposeAsync();
+                    if (localTerminals is not null) await localTerminals.DisposeAsync();
+                }).GetAwaiter().GetResult();
+            };
         }
         base.OnFrameworkInitializationCompleted();
     }

@@ -189,31 +189,56 @@ internal static class BottomPanelE2E
         Console.WriteLine("PASS upstream bottom-panel.spec.ts: a completed initial-terminal handshake never recreates a terminal after explicit close");
     }
 
+    // A reload is a new window of the same app, over the same profile and terminal host.
     private static void ToggleFromTerminal(string root)
     {
-        using var app = Default(Repository(root, "bottom-toggle"));
-        var tab = TerminalTabs(app).Single();
-        var terminal = Ready(app, tab);
-        var view = View(app, tab);
-        terminal.Run("printf 'bottom-panel-%s\\n' running-marker");
-        Expect(terminal, "bottom-panel-running-marker");
-        terminal.FocusTerminal();
-        Until(() => terminal.View.IsKeyboardFocusWithin);
-        ToggleBottom(app.Window);
-        Require(!Shown(app) && !Presented(app, view), "Mod+Shift+J from the terminal must hide the bottom panel.");
-        ToggleBottom(app.Window);
-        Require(ReferenceEquals(Ready(app, tab), terminal) && terminal.Text.Contains("bottom-panel-running-marker", StringComparison.Ordinal),
-            "Showing the panel again must present the same shell.");
-        app.Window.ShowSettings();
-        Until(() => app.Window.OwnedWindows.OfType<SharpRail.UI.Panels.SettingsWindow>().Any());
-        var settings = app.Window.OwnedWindows.OfType<SharpRail.UI.Panels.SettingsWindow>().Single();
-        settings.Focus();
-        ToggleBottom(settings);
-        Require(Shown(app), "Mod+Shift+J must not act behind a modal dialog.");
-        settings.Close(); Settle();
-        app.Find<Button>("Tab_changes").Focus();
-        ToggleBottom(app.Window);
-        Require(!Shown(app), "Mod+Shift+J must work again after the dialog closes.");
+        var directory = Repository(root, "bottom-toggle");
+        var terminals = new E2eTerminals();
+        try
+        {
+            string tabId;
+            using (var app = new E2eWorkspace(directory, openFiles: false, terminals: terminals))
+            {
+                var tab = TerminalTabs(app).Single();
+                tabId = tab.Id;
+                var terminal = Ready(app, tab);
+                var view = View(app, tab);
+                terminal.Run("printf 'bottom-panel-%s\\n' running-marker");
+                Expect(terminal, "bottom-panel-running-marker");
+                terminal.FocusTerminal();
+                Until(() => terminal.View.IsKeyboardFocusWithin);
+                ToggleBottom(app.Window);
+                Require(!Shown(app) && !Presented(app, view), "Mod+Shift+J from the terminal must hide the bottom panel.");
+                ToggleBottom(app.Window);
+                Require(ReferenceEquals(Ready(app, tab), terminal) && terminal.Text.Contains("bottom-panel-running-marker", StringComparison.Ordinal),
+                    "Showing the panel again must present the same shell.");
+                terminal.FocusTerminal();
+                Until(() => terminal.View.IsKeyboardFocusWithin);
+                ToggleBottom(app.Window);
+                Require(!Shown(app), "Mod+Shift+J from the terminal must hide the bottom panel again.");
+            }
+            using (var app = new E2eWorkspace(directory, openFiles: false, terminals: terminals))
+            {
+                Settle();
+                Require(!Shown(app), "A reload must keep the bottom panel hidden.");
+                ToggleBottom(app.Window);
+                var tab = TerminalTabs(app).Single();
+                var terminal = Ready(app, tab);
+                Require(tab.Id == tabId && terminal.Text.Contains("bottom-panel-running-marker", StringComparison.Ordinal) &&
+                    terminals.StartedIn(app.Root) == 1, "A reload must reattach the same PTY and show its earlier output.");
+                app.Window.ShowSettings();
+                Until(() => app.Window.OwnedWindows.OfType<SharpRail.UI.Panels.SettingsWindow>().Any());
+                var settings = app.Window.OwnedWindows.OfType<SharpRail.UI.Panels.SettingsWindow>().Single();
+                settings.Focus();
+                ToggleBottom(settings);
+                Require(Shown(app), "Mod+Shift+J must not act behind a modal dialog.");
+                settings.Close(); Settle();
+                app.Find<Button>("Tab_changes").Focus();
+                ToggleBottom(app.Window);
+                Require(!Shown(app), "Mod+Shift+J must work again after the dialog closes.");
+            }
+        }
+        finally { terminals.Quit(); }
         Console.WriteLine("PASS upstream bottom-panel.spec.ts: Mod+Shift+J works from xterm, preserves its PTY through hide and reload, and is modal-aware");
     }
 

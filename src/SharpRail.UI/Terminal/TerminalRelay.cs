@@ -9,9 +9,10 @@ using SharpRail.Host.Core;
 
 namespace SharpRail.UI.Terminal;
 
+// Where a relay reaches the host's terminal sessions, and the same sessions for busy checks and closing.
 public sealed record RemoteTerminalConnection(Uri Endpoint, string Token, ITerminalService Terminals);
 
-// Runs inside an embedded terminal as the child process of a remote tab, piping it to a host PTY.
+// Runs inside an embedded terminal as the child process of every tab, attaching it to a host PTY session.
 public static class TerminalRelay
 {
     public const string Argument = "--terminal-relay";
@@ -19,16 +20,25 @@ public static class TerminalRelay
     public const string ConnectionVariable = "SHARPRAIL_TERMINAL_RELAY";
     // Prefixes the status file of a shell that exited; any other status is a start failure.
     internal const string ExitStatus = "exit:";
+    // The status of a relay whose session another window or client took over.
+    internal const string DetachedStatus = "detached";
 
-    internal sealed record Connection(string Endpoint, string Token, string SessionId, string WorkspaceRoot, string StatusPath);
+    internal sealed record Connection(string Endpoint, string Token, string SessionId, string ClientId, string WorkspaceRoot, string StatusPath);
+
+    internal static string Directory { get; } = Path.Combine(Path.GetTempPath(), "sharprail-relay-" + Environment.UserName);
 
     [UnsupportedOSPlatform("windows")]
-    internal static string Write(Connection connection)
+    internal static string PrivateDirectory()
     {
-        var directory = Path.Combine(Path.GetTempPath(), "sharprail-relay-" + Environment.UserName);
-        Directory.CreateDirectory(directory, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
-        File.SetUnixFileMode(directory, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
-        var path = Path.Combine(directory, connection.SessionId + ".json");
+        System.IO.Directory.CreateDirectory(Directory, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        File.SetUnixFileMode(Directory, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        return Directory;
+    }
+
+    [UnsupportedOSPlatform("windows")]
+    internal static string Write(string name, Connection connection)
+    {
+        var path = Path.Combine(PrivateDirectory(), name + ".json");
         using var stream = new FileStream(path, new FileStreamOptions
         {
             Mode = FileMode.CreateNew,
@@ -59,12 +69,12 @@ public static class TerminalRelay
         using var terminals = new RemoteTerminalAdapter(new Uri(connection.Endpoint), connection.Token);
         if (!TerminalDevice.TryGetSize(1, out var columns, out var rows)) (columns, rows) = (80, 24);
         ITerminalSession session;
-        try { session = await terminals.StartAsync(new(connection.SessionId, connection.WorkspaceRoot, columns, rows)); }
+        try { session = await terminals.AttachAsync(new(connection.SessionId, connection.WorkspaceRoot, connection.ClientId, columns, rows)); }
         catch (Exception error)
         {
             var message = error is Grpc.Core.RpcException rpc ? rpc.Status.Detail : error.Message;
             await File.WriteAllTextAsync(connection.StatusPath, message);
-            Report(output, "Couldn’t start the remote shell: " + message);
+            Report(output, "Couldn’t start the shell: " + message);
             return 1;
         }
         await using (session)
@@ -78,10 +88,17 @@ public static class TerminalRelay
             input.Start();
             try
             {
+                output.Write(session.Replay.Span);
+                output.Flush();
                 await foreach (var chunk in session.ReadAsync())
                 {
                     output.Write(chunk.Span);
                     output.Flush();
+                }
+                if (session.Detached.IsCompleted)
+                {
+                    await File.WriteAllTextAsync(connection.StatusPath, DetachedStatus);
+                    return 0;
                 }
                 var code = await session.Exit;
                 await File.WriteAllTextAsync(connection.StatusPath, ExitStatus + code);
@@ -90,7 +107,9 @@ public static class TerminalRelay
             catch (Exception error)
             {
                 raw?.Dispose();
-                Report(output, "The remote terminal connection was lost: " + (error is Grpc.Core.RpcException rpc ? rpc.Status.Detail : error.Message));
+                var message = error is Grpc.Core.RpcException rpc ? "The terminal connection was lost: " + rpc.Status.Detail : error.Message;
+                await File.WriteAllTextAsync(connection.StatusPath, message);
+                Report(output, message);
                 return 1;
             }
         }

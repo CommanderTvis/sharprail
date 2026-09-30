@@ -4,8 +4,8 @@ using Avalonia.Markup.Xaml;
 
 namespace SharpRail.UI.Terminal;
 
-// A terminal tab's body: starts its session, explains start failures with an in-place retry
-// and says when the shell has exited.
+// A terminal tab's body: attaches to its host session, explains start failures with an in-place retry,
+// offers to take the session back when another window took it over, and says when the shell has exited.
 public sealed partial class TerminalView : UserControl, IDisposable
 {
     private readonly TerminalFactory factory;
@@ -14,6 +14,8 @@ public sealed partial class TerminalView : UserControl, IDisposable
     private readonly Control failure;
     private readonly SelectableTextBlock failureText;
     private readonly Button retry;
+    private readonly Control detachedNotice;
+    private readonly Button takeBack;
     private readonly TextBlock exitNotice;
     private int generation;
     private bool disposed;
@@ -26,23 +28,29 @@ public sealed partial class TerminalView : UserControl, IDisposable
         failure = this.FindControl<Control>("TerminalStartFailure")!;
         failureText = this.FindControl<SelectableTextBlock>("TerminalStartFailureText")!;
         retry = this.FindControl<Button>("TerminalStartRetry")!;
+        detachedNotice = this.FindControl<Control>("TerminalDetached")!;
+        takeBack = this.FindControl<Button>("TerminalTakeBack")!;
         exitNotice = this.FindControl<TextBlock>("TerminalExited")!;
         retry.Click += (_, _) => Start(retrying: true);
+        takeBack.Click += (_, _) => Start(retrying: true);
         Focusable = true;
         Start(retrying: false);
     }
 
     public ITerminalBackend? Backend { get; private set; }
+    public string SessionId => launch.SessionId;
     public bool IsFailed => failure.IsVisible;
     public bool IsExited => exitNotice.IsVisible;
+    public bool IsDetached => detachedNotice.IsVisible;
 
     public async ValueTask<bool> IsBusyAsync() =>
-        Backend is { } backend && !IsExited && !IsFailed && backend.Started.IsCompletedSuccessfully && await backend.IsBusyAsync();
+        Backend is { } backend && !IsExited && !IsFailed && !IsDetached && backend.Started.IsCompletedSuccessfully && await backend.IsBusyAsync();
 
     public void FocusTerminal()
     {
-        if (Backend is not null && !IsFailed) Backend.FocusTerminal();
+        if (IsDetached) takeBack.Focus();
         else if (IsFailed) retry.Focus();
+        else Backend?.FocusTerminal();
     }
 
     protected override void OnGotFocus(FocusChangedEventArgs e)
@@ -51,25 +59,36 @@ public sealed partial class TerminalView : UserControl, IDisposable
         if (e.Source == this) FocusTerminal();
     }
 
+    // Starting again attaches afresh, which also takes the session back from another window.
     private async void Start(bool retrying)
     {
         if (disposed) return;
         var current = ++generation;
         Backend?.Dispose(); Backend = null; body.Content = null;
-        retry.IsEnabled = false;
+        retry.IsEnabled = false; takeBack.IsEnabled = false;
         exitNotice.IsVisible = false;
         ITerminalBackend? backend = null;
         try
         {
-            backend = factory(launch with { SessionId = Guid.NewGuid().ToString("N") });
+            backend = factory(launch);
             Backend = backend;
             body.Content = backend.View;
             await backend.Started;
             if (current != generation) return;
             failure.IsVisible = false;
+            detachedNotice.IsVisible = false; body.IsVisible = true;
             if (retrying) backend.FocusTerminal();
-            var code = await backend.Exited;
+            await Task.WhenAny(backend.Exited, backend.Detached);
             if (current != generation) return;
+            if (backend.Detached.IsCompleted)
+            {
+                // The surface no longer receives output; hide it rather than show a stale screen as live.
+                body.IsVisible = false;
+                detachedNotice.IsVisible = true;
+                takeBack.IsEnabled = true;
+                return;
+            }
+            var code = await backend.Exited;
             exitNotice.Text = $"[process exited with code {code}]";
             exitNotice.IsVisible = true;
         }
@@ -78,11 +97,21 @@ public sealed partial class TerminalView : UserControl, IDisposable
             if (current != generation) return;
             backend?.Dispose();
             Backend = null; body.Content = null;
+            body.IsVisible = true; detachedNotice.IsVisible = false;
             failureText.Text = error.Message;
             failure.IsVisible = true;
             retry.IsEnabled = true;
             if (retrying) retry.Focus();
         }
+    }
+
+    // Closing the tab ends the host session; disposing alone only detaches this view from it.
+    public void Close()
+    {
+        if (disposed) return;
+        var backend = Backend;
+        Dispose();
+        if (backend is not null) _ = backend.CloseAsync().AsTask();
     }
 
     public void Dispose()

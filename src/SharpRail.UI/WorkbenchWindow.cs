@@ -27,6 +27,8 @@ public sealed partial class WorkbenchWindow : Window
     private readonly string initialRoot;
     private readonly bool remote;
     private readonly Terminal.TerminalFactory terminals;
+    // Each window is one terminal client: attaching a tab here takes its session over from another window.
+    private readonly string terminalClient = Guid.NewGuid().ToString("N");
     private readonly CancellationTokenSource lifetime = new();
     private readonly SemaphoreSlim projectGate = new(1, 1);
     private readonly Dictionary<string, Control> toolContent = [];
@@ -267,7 +269,8 @@ public sealed partial class WorkbenchWindow : Window
         if (documentContent.TryGetValue(key, out var existing)) return existing;
         if (tab.Kind == "terminal")
         {
-            var terminal = new Terminal.TerminalView(terminals, new(workspaceRoot, "", Path.Combine(profile.DirectoryPath, "clipboard")))
+            var terminal = new Terminal.TerminalView(terminals, new(workspaceRoot, Terminal.TerminalLaunch.SessionFor(workspaceRoot, tab.Id),
+                Path.Combine(profile.DirectoryPath, "clipboard"), terminalClient))
             { Name = "TerminalSurface_" + tab.Id.Replace(':', '_') };
             documentContent[key] = terminal;
             return terminal;

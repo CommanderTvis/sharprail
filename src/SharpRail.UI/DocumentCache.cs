@@ -17,7 +17,11 @@ public sealed partial class WorkbenchWindow
         foreach (var key in documents.Keys.Where(key => !live.Contains(key)).ToArray())
         { documents.Remove(key); DropDocumentContent(key); }
         foreach (var key in documentContent.Keys.Where(key => !live.Contains(key)).ToArray())
+        {
+            // A closed terminal tab ends its host session; other drops only detach the window from it.
+            if (documentContent[key] is Terminal.TerminalView terminal) terminal.Close();
             DropDocumentContent(key);
+        }
     }
 
     private void DropDocumentContent(string key)

@@ -54,25 +54,39 @@ must not prevent opening the workspace.
 ## Terminals
 
 Terminal tabs embed libghostty 1.2.3 in native AppKit views hosted by Avalonia.
-Ghostty owns the PTY, shell, terminal emulation, fonts and Metal renderer. Its
-Metal textures are presented through its IOSurfaceLayer, without a WebView or
-CPU text rendering fallback. Surface creation requires an available Metal device.
-Each tab starts a local shell in its workspace directory when first displayed.
-Keyboard input, text composition, selection, scrolling, clipboard and Retina
-resizing pass through the native view. Moving, hiding, folding or switching away
-retains the session; closing a tab or window disposes it. Restored terminal tabs
-start new sessions after app restart. Other operating systems show an explicit
-availability message.
+Ghostty owns terminal emulation, fonts and the Metal renderer; its Metal textures
+are presented through its IOSurfaceLayer, without a WebView or CPU text rendering
+fallback. Surface creation requires an available Metal device. Keyboard input,
+text composition, selection, scrolling, clipboard and Retina resizing pass through
+the native view. Other operating systems show an explicit availability message.
 
-A remote workspace's tab uses the same Ghostty view, but its child process is the
-SharpRail executable in `--terminal-relay` mode. The relay reads the endpoint, token
-and session from a private one-use file named by an environment variable (never
-argv), puts its terminal in raw mode, pipes it to a PTY session on the host over an
-authenticated code-first gRPC stream and forwards SIGWINCH resizes. The host PTY
+Shells belong to the host, following upstream's terminal module. The host PTY
 (`posix_openpt`, `posix_spawn` of the user's login shell as a new session leader in
 the worktree) reports output, exit status and whether a foreground process is
-running; the host's session token is removed from shell environments. A remote
-session lasts as long as its stream; no local shell impersonates a remote workspace.
+running; the host's session token is removed from shell environments. A tab's
+session id derives from its workspace and tab id, and each window is a client. Every
+Ghostty tab, local or remote, runs the SharpRail executable in `--terminal-relay`
+mode as its child: the relay reads the endpoint, token, session and client from a
+private one-use file named by an environment variable (never argv), puts its
+terminal in raw mode, attaches over authenticated code-first gRPC streaming and
+forwards SIGWINCH resizes. Local tabs reach the app's own host through a private
+Unix socket started with the first terminal; remote tabs reach the remote host. The
+relay reports the real exit code through a status file.
+
+Attaching replays recent output: a fresh view gets a bounded snapshot of the main
+screen (never the alternate screen or a mode sequence, preceded by the observed
+private modes other than mouse tracking) and nudges the foreground program to
+redraw; a reconnecting client resumes from its last output position, so nothing is
+shown twice. Replay and the switch to live output happen atomically. A lost
+connection reconnects for up to 30 seconds; input typed before the loss is noticed
+can be lost, as with ssh. Output reaches only the attached client. Attaching from
+another window or client takes the session over and the previous one shows
+"This terminal is open somewhere else" with Take it back; a displaced client's input
+is ignored and its reconnects never take the session back. Closing a window or a
+connection detaches; closing a tab ends the shell. A shell that exits while
+detached keeps its final output and exit status for the next attach. Local shells
+end when the app quits and remote shells when their host stops; restored tabs
+start new shells after a restart.
 
 Each new workspace opens one terminal, "Terminal 1", in its bottom group (a 30%
 bottom panel by default); closing it never brings it back, and a hidden bottom panel
@@ -81,7 +95,7 @@ its reason and a Retry that restarts the same tab; an exited shell's tab says so
 Closing a tab whose shell runs a foreground process asks first; an idle tab closes
 immediately. Mod+Shift+J toggles the bottom panel, including from a focused terminal.
 Terminals are independent per tab and survive workspace switches without a second
-shell. Reattaching after restart, reconnects and multi-client sharing are future work.
+shell.
 
 Terminal background and foreground follow the workbench's surface and text
 colors, including live dark/light changes without restarting the shell. Command-V

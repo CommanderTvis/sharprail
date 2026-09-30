@@ -3,6 +3,8 @@
   <ItemGroup>
     <ProjectReference Include="../SharpRail.Host.Core/SharpRail.Host.Core.csproj" />
     <ProjectReference Include="../SharpRail.Host.Client/SharpRail.Host.Client.csproj" />
+    <ProjectReference Include="../SharpRail.Host.Remote/SharpRail.Host.Remote.csproj" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <ProjectReference Include="../SharpRail.Scintilla/SharpRail.Scintilla.csproj" />
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Desktop" />

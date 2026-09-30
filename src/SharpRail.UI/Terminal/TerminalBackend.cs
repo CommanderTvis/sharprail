@@ -1,18 +1,31 @@
+using System.Security.Cryptography;
+using System.Text;
 using Avalonia.Controls;
 
 namespace SharpRail.UI.Terminal;
 
-public sealed record TerminalLaunch(string WorkspaceRoot, string SessionId, string ClipboardDirectory);
+// SessionId names the host session a tab shows; ClientId names the window showing it.
+public sealed record TerminalLaunch(string WorkspaceRoot, string SessionId, string ClipboardDirectory, string ClientId)
+{
+    // A tab's session is stable across windows, so another window of the app reattaches to the same shell.
+    public static string SessionFor(string workspaceRoot, string tabId) =>
+        Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(workspaceRoot + "\n" + tabId)).AsSpan(0, 16));
+}
 
-// One running terminal session and the control that presents it.
+// One attachment to a host terminal session and the control that presents it. Disposing detaches
+// without ending the shell.
 public interface ITerminalBackend : IDisposable
 {
     Control View { get; }
     // Faults when the shell cannot start.
     Task Started { get; }
-    // The shell's exit code; faults with a start failure reported only after launch.
+    // The shell's exit code; faults with a start failure reported only after launch or a lost connection.
     Task<int> Exited { get; }
+    // Completes when another window or client took the session over.
+    Task Detached { get; }
     ValueTask<bool> IsBusyAsync();
+    // Ends the host session, as closing its tab does.
+    ValueTask CloseAsync();
     void FocusTerminal();
 }
 
@@ -24,10 +37,13 @@ public static class TerminalBackends
 {
     public static ITerminalBackend Unavailable(string reason) => throw new TerminalStartException(reason);
 
-    // Local sessions run in Ghostty's own PTY; remote sessions run a relay against the host.
-    public static TerminalFactory Ghostty(RemoteTerminalConnection? remote = null) => launch =>
+    // Ghostty renders every tab; its child process is the relay, attached to a host session over gRPC:
+    // the app's own host through a private socket, or a remote host.
+    public static TerminalFactory Ghostty(Func<Task<RemoteTerminalConnection>> connection) => launch =>
     {
         if (!OperatingSystem.IsMacOS()) return Unavailable("Embedded terminals currently require macOS.");
-        return remote is null ? GhosttyTerminal.Local(launch) : GhosttyTerminal.Remote(launch, remote);
+        return new GhosttyTerminal(launch, connection());
     };
+
+    public static TerminalFactory Ghostty(RemoteTerminalConnection connection) => Ghostty(() => Task.FromResult(connection));
 }
