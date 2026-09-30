@@ -1,8 +1,8 @@
 # Rendering: shared controls, document rendering and helpers
 
-Upstream: apps/web/src/components/SPEC.md @ 12830b08
-Upstream: apps/web/src/components/ui/SPEC.md @ 12830b08
-Upstream: apps/web/src/lib/SPEC.md @ 12830b08
+Upstream: apps/web/src/components/SPEC.md @ 4a65ed7f
+Upstream: apps/web/src/components/ui/SPEC.md @ 4a65ed7f
+Upstream: apps/web/src/lib/SPEC.md @ 4a65ed7f
 
 ## Responsibility
 
@@ -76,7 +76,7 @@ unavailability message. Rendered diffs pass `renderDiagrams: false` and keep the
 
 - `DiffView` shows a path chip, a hide-whitespace toggle, a copy button (copies the diff text; no clipboard
   is a silent no-op) and either `Split | Inline` (source diffs, split by default) or `Source | Rendered`
-  (Markdown diffs, source by default). Source lines wrap at the file line width.
+  (Markdown diffs, rendered by default like Markdown files; choosing Source is remembered per tab). Source lines wrap at the file line width.
 - On macOS source diffs are read-only Scintilla editors (`Editor/EditorFrame`), so only visible lines are laid
   out and large diffs stay responsive. Each line carries a whole-line style: added/removed lines get a tinted
   foreground over a composited wash band, hunk headers the accent, collapsed context a `⋯ N hidden lines` row.

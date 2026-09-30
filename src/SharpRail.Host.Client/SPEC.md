@@ -1,6 +1,6 @@
 # Host client adapters
 
-Upstream: apps/web/src/transport/SPEC.md @ 12830b08
+Upstream: apps/web/src/transport/SPEC.md @ 4a65ed7f
 
 ## Responsibility
 

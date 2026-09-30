@@ -134,7 +134,13 @@ internal static class ChangesFixture
 
     internal static int Count(string text, string needle) => Regex.Matches(Regex.Replace(text, @"\s+", " "), Regex.Escape(needle)).Count;
 
-    internal static void UntilDiff(E2eWorkspace app, Func<string, bool> condition) => Until(() => condition(DiffText(app)));
+    /// <summary>Waits on the source diff text; a Markdown diff opens rendered, so this switches it to Source first, as upstream's review.spec.ts does.</summary>
+    internal static void UntilDiff(E2eWorkspace app, Func<string, bool> condition) => Until(() =>
+    {
+        if (Pane(app)?.GetLogicalDescendants().OfType<ToggleButton>().FirstOrDefault(toggle => toggle.Name == "DiffSource" && toggle.IsEffectivelyVisible) is { IsChecked: false } source)
+            app.Click(source);
+        return condition(DiffText(app));
+    });
 
     internal static double Right(Control control, Visual to) => control.TranslatePoint(new Point(control.Bounds.Width, 0), to)!.Value.X;
 

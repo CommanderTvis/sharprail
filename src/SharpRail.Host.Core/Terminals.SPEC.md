@@ -8,8 +8,8 @@ parent: module-host-core
 
 # Terminals — host-owned PTY sessions
 
-Upstream: packages/server/src/terminal/SPEC.md @ 12830b08
-Upstream: packages/server/src/subprocess/SPEC.md @ 12830b08
+Upstream: packages/server/src/terminal/SPEC.md @ 4a65ed7f
+Upstream: packages/server/src/subprocess/SPEC.md @ 4a65ed7f
 
 ## Responsibility
 

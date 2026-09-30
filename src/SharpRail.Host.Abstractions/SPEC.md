@@ -8,8 +8,8 @@ parent: architecture
 
 # Host abstractions — the public host surface
 
-Upstream: packages/shared/SPEC.md @ 12830b08
-Upstream: packages/server/src/host/SPEC.md @ 12830b08
+Upstream: packages/shared/SPEC.md @ 4a65ed7f
+Upstream: packages/server/src/host/SPEC.md @ 4a65ed7f
 
 ## Responsibility
 

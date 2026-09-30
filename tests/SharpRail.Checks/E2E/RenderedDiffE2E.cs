@@ -63,19 +63,17 @@ internal static class RenderedDiffE2E
         Until(() => Modified(app, "README.md"));
         OpenDiff(app, "README.md");
         Require(DiffTabs(app).Count() == 1 && app.Window.Layout.Selected(app.Center)?.Kind == "diff", "The diff must open as the active tab.");
-        UntilDiff(app, text => text.Contains("edited by e2e", StringComparison.Ordinal));
         var pane = Pane(app)!;
-        Require(Named<ToggleButton>(pane, "DiffSource").IsChecked == true, "A Markdown diff must start on Source.");
+        Require(Named<ToggleButton>(pane, "DiffRendered").IsChecked == true, "A Markdown diff must start on Rendered.");
         Require(Find<ToggleButton>(pane, "DiffSplit") is null && Find<ToggleButton>(pane, "DiffInline") is null,
             "A Markdown diff must offer Source|Rendered instead of Split|Inline.");
-        app.Click(Named<ToggleButton>(pane, "DiffRendered"));
-        Require(Named<ToggleButton>(pane, "DiffRendered").IsChecked == true, "Rendered must become active.");
         Until(() => Marked(app, "ins").Contains("edited by e2e", StringComparison.Ordinal));
         var heading = Rendered(app)!.GetLogicalDescendants().OfType<SelectableTextBlock>().First(block => block.FontSize == 24);
         Require(string.Concat(heading.Inlines!.OfType<Run>().Select(run => run.Text)) == "sample-project", "The unchanged heading must render as an h1.");
 
         app.Click(Named<ToggleButton>(pane, "DiffSource"));
         Require(Named<ToggleButton>(pane, "DiffSource").IsChecked == true && Rendered(app) is null, "Source must replace the rendered diff.");
+        UntilDiff(app, text => text.Contains("edited by e2e", StringComparison.Ordinal));
         ClickRow(app, "README.md");
         Require(DiffTabs(app).Count() == 1, "Reopening the row must reuse its diff tab.");
 
@@ -119,8 +117,6 @@ internal static class RenderedDiffE2E
         var (app, worktree) = OpenSample(root, "rendered-large", source, ("LARGE.md", LargeMarkdown()));
         using var _ = app;
         File.WriteAllText(Path.Combine(worktree, "LARGE.md"), LargeMarkdownEdited());
-        OpenDiff(app, "LARGE.md");
-
         var uiThread = Environment.CurrentManagedThreadId;
         var mergeThreads = new List<(int Thread, bool UiAccess)>();
         using var release = new ManualResetEventSlim();
@@ -130,7 +126,7 @@ internal static class RenderedDiffE2E
             release.Wait(TimeSpan.FromSeconds(30), token);
             return MarkdownDiff.Merge(before, after, token);
         };
-        app.Click(Named<ToggleButton>(Pane(app)!, "DiffRendered"));
+        OpenDiff(app, "LARGE.md");
         Until(() => Find<TextBlock>(Pane(app)!, "RenderedDiffLoading") is not null);
         // The merge is held; the dispatcher keeps running, so the workbench stays interactive meanwhile.
         Until(() => { lock (mergeThreads) return mergeThreads.Count == 1; });
@@ -162,9 +158,8 @@ internal static class RenderedDiffE2E
         var (app, worktree) = OpenSample(root, "rendered-failure", source);
         using var _ = app;
         File.WriteAllText(Path.Combine(worktree, "README.md"), "# sample-project\n\nedited by e2e\n");
-        OpenDiff(app, "README.md");
         app.Window.RenderedDiffMerge = (_, _, _) => throw new InvalidOperationException("merge failed");
-        app.Click(Named<ToggleButton>(Pane(app)!, "DiffRendered"));
+        OpenDiff(app, "README.md");
         Until(() => Find<TextBlock>(Pane(app)!, "RenderedDiffError") is not null);
         Require(Find<TextBlock>(Pane(app)!, "RenderedDiffError")!.Text!.Contains("Source", StringComparison.Ordinal),
             "The error placeholder must point to the Source view.");
@@ -180,7 +175,6 @@ internal static class RenderedDiffE2E
         var readme = Path.Combine(worktree, "README.md");
         File.WriteAllText(readme, "# sample-project\n\nfirst edit by e2e\n");
         OpenDiff(app, "README.md");
-        app.Click(Named<ToggleButton>(Pane(app)!, "DiffRendered"));
         Until(() => Marked(app, "ins").Contains("first edit by e2e", StringComparison.Ordinal));
 
         // Hold a merge for an intermediate edit so the next edit must cancel it rather than race it.

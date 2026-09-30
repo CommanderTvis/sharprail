@@ -7,7 +7,7 @@ title: Themes
 
 # Themes: bundled manifest catalogue and application
 
-Upstream: apps/web/src/themes/SPEC.md @ 12830b08
+Upstream: apps/web/src/themes/SPEC.md @ 4a65ed7f
 
 ## Responsibility
 

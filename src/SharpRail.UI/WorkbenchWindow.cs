@@ -111,6 +111,9 @@ public sealed partial class WorkbenchWindow : Window
             { Layout.Visible("left", !Layout.State.LeftVisible); e.Handled = true; }
             else if (command && e.Key == Key.J)
             { Layout.Visible("right", !Layout.State.RightVisible); e.Handled = true; }
+            else if (command && e.Key is Key.OemPlus or Key.Add) { Zoom(1); e.Handled = true; }
+            else if (command && e.Key is Key.OemMinus or Key.Subtract) { Zoom(-1); e.Handled = true; }
+            else if (command && e.Key is Key.D0 or Key.NumPad0) { Zoom(0); e.Handled = true; }
             else if (e.Key == Key.F5) { _ = RefreshAsync(); e.Handled = true; }
         }, RoutingStrategies.Bubble);
     }
@@ -402,6 +405,20 @@ public sealed partial class WorkbenchWindow : Window
         FontSize = Preferences.FontSize;
     }
 
+    private void RefreshAppearance()
+    {
+        ApplyAppearance(); ClearDocumentContent(preserveDocuments: true); toolContent.Clear(); surface.RefreshContents();
+    }
+
+    /// <summary>Steps the interface size like browser zoom: Mod+= and Mod+- by one point within 10–24, Mod+0 resets to 14.</summary>
+    private void Zoom(int step)
+    {
+        var size = step == 0 ? 14 : Math.Clamp(Math.Round(Preferences.FontSize) + step, 10, 24);
+        if (size == Preferences.FontSize) return;
+        Preferences.FontSize = size;
+        RefreshAppearance(); SaveProfile();
+    }
+
     /// <summary>Dims the workbench behind a modal, like the reference's overlay; the returned action removes it.</summary>
     internal Action Dim()
     {
@@ -414,11 +431,7 @@ public sealed partial class WorkbenchWindow : Window
     public void ShowSettings()
     {
         var undim = Dim();
-        var settings = new SettingsWindow(this, () =>
-        {
-            ApplyAppearance(); ClearDocumentContent(preserveDocuments: true); toolContent.Clear(); surface.RefreshContents();
-            ReportProfileError();
-        }, GitHubStatusProbe);
+        var settings = new SettingsWindow(this, () => { RefreshAppearance(); ReportProfileError(); }, GitHubStatusProbe);
         settings.Closed += (_, _) => undim();
         _ = settings.ShowDialog(this);
     }

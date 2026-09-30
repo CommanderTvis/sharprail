@@ -200,8 +200,6 @@ internal static class EditorWorkbenchChecks
 
         E2E.ChangesFixture.ShowChanges(app);
         E2E.ChangesFixture.ClickRow(app, "BIG.md");
-        Pump(() => Visible<Avalonia.Controls.Primitives.ToggleButton>("DiffRendered") is not null);
-        app.Click(Visible<Avalonia.Controls.Primitives.ToggleButton>("DiffRendered")!);
         Pump(() => Visible<Avalonia.Controls.Primitives.ToggleButton>("DiffRendered") is { IsEnabled: false } &&
             Visible<ScintillaEditor>("DiffNewText")?.Text.Contains("Appended paragraph.", StringComparison.Ordinal) == true);
         // The headless mouse is shared; outlast the double-click interval so the next window's first click stays single.

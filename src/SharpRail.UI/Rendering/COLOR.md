@@ -1,6 +1,6 @@
 # Colour system
 
-Upstream: apps/web/src/styles/COLOR.md @ 12830b08
+Upstream: apps/web/src/styles/COLOR.md @ 4a65ed7f
 
 Colour arrives in two layers, and a control may only ever name the second one.
 

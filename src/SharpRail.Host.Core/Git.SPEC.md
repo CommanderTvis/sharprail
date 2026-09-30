@@ -8,7 +8,7 @@ parent: module-host-core
 
 # Git — runner, scopes, status and diffs
 
-Upstream: packages/server/src/git/SPEC.md @ 12830b08
+Upstream: packages/server/src/git/SPEC.md @ 4a65ed7f
 
 ## Responsibility
 

@@ -1,10 +1,10 @@
 # Terminal — terminal tabs in the UI
 
-Upstream: packages/server/src/terminal/SPEC.md @ 12830b08
-Upstream: apps/web/src/shell/SPEC.md @ 12830b08
-Upstream: apps/web/src/shell/layout/SPEC.md @ 12830b08
-Upstream: apps/web/src/shell/terminalReconciliation/SPEC.md @ 12830b08
-Upstream: apps/web/src/store/SPEC.md @ 12830b08
+Upstream: packages/server/src/terminal/SPEC.md @ 4a65ed7f
+Upstream: apps/web/src/shell/SPEC.md @ 4a65ed7f
+Upstream: apps/web/src/shell/layout/SPEC.md @ 4a65ed7f
+Upstream: apps/web/src/shell/terminalReconciliation/SPEC.md @ 4a65ed7f
+Upstream: apps/web/src/store/SPEC.md @ 4a65ed7f
 
 ## Responsibility
 

@@ -7,7 +7,7 @@ title: Workbench panels
 
 # Workbench panels: Projects, Files, Specs, Changes, Review and Welcome
 
-Upstream: apps/web/src/panels/SPEC.md @ 12830b08
+Upstream: apps/web/src/panels/SPEC.md @ 4a65ed7f
 
 ## Responsibility
 

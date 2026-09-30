@@ -1,7 +1,7 @@
 # SharpRail.UI — application and windows
 
-Upstream: apps/web/SPEC.md @ 12830b08
-Upstream: apps/desktop/SPEC.md @ 12830b08
+Upstream: apps/web/SPEC.md @ 4a65ed7f
+Upstream: apps/desktop/SPEC.md @ 4a65ed7f
 
 ## Responsibility
 
@@ -69,6 +69,10 @@ The window handles app-wide chords before panels: Mod+O opens a project, Mod+N (
 Create workspace, Mod+Shift+N opens a window, Mod+, opens Settings, Mod+B toggles left, Mod+J toggles
 right, Mod+Shift+J toggles bottom (including from a focused terminal), and F5 refreshes. Arrangement
 commands beyond these belong to the docking menus and keyboard handling in `Docking`.
+
+Mod+= (or Mod++), Mod+- and Mod+0 zoom like a browser's default action by stepping the persisted interface
+size one point within 10–24, and resetting it to 14. The chords bubble, so a focused control that claims
+them (an editor or terminal) keeps them; the Settings field and the shortcuts share one preference.
 
 ## Styling and theming
 

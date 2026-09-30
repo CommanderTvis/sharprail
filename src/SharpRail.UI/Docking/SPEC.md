@@ -1,11 +1,11 @@
 # Docking — window-local workbench frame
 
-Upstream: apps/web/src/shell/SPEC.md @ 12830b08
-Upstream: apps/web/src/shell/layout/SPEC.md @ 12830b08
-Upstream: apps/web/src/shell/layoutIntents/SPEC.md @ 12830b08
-Upstream: apps/web/src/shell/layoutState/SPEC.md @ 12830b08
-Upstream: apps/web/src/shell/terminalReconciliation/SPEC.md @ 12830b08
-Upstream: apps/web/src/navigation/SPEC.md @ 12830b08
+Upstream: apps/web/src/shell/SPEC.md @ 4a65ed7f
+Upstream: apps/web/src/shell/layout/SPEC.md @ 4a65ed7f
+Upstream: apps/web/src/shell/layoutIntents/SPEC.md @ 4a65ed7f
+Upstream: apps/web/src/shell/layoutState/SPEC.md @ 4a65ed7f
+Upstream: apps/web/src/shell/terminalReconciliation/SPEC.md @ 4a65ed7f
+Upstream: apps/web/src/navigation/SPEC.md @ 4a65ed7f
 
 ## Responsibility
 

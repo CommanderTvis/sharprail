@@ -8,9 +8,9 @@ parent: module-host-core
 
 # Specs — workspace spec catalog
 
-Upstream: packages/server/src/spec/SPEC.md @ 12830b08
-Upstream: packages/spec-graph/SPEC.md @ 12830b08
-Upstream: packages/spec-graph/core/SPEC.md @ 12830b08
+Upstream: packages/server/src/spec/SPEC.md @ 4a65ed7f
+Upstream: packages/spec-graph/SPEC.md @ 4a65ed7f
+Upstream: packages/spec-graph/core/SPEC.md @ 4a65ed7f
 
 ## Responsibility
 

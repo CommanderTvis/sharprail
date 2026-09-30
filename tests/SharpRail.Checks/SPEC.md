@@ -1,6 +1,6 @@
 # Headless checks and E2E translations
 
-Upstream: e2e/SPEC.md @ 12830b08
+Upstream: e2e/SPEC.md @ 4a65ed7f
 
 ## Responsibility
 

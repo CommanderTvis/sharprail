@@ -7,7 +7,7 @@ title: SharpRail — top-level architecture
 
 # SharpRail — top-level architecture
 
-Upstream: architecture.md @ 12830b08
+Upstream: architecture.md @ 4a65ed7f
 
 ## Drivers
 

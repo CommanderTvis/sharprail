@@ -32,10 +32,7 @@ public sealed partial class WorkbenchWindow
 
     private void SharedStateChanged(HostState previous, HostState next)
     {
-        if (next.Settings != previous.Settings)
-        {
-            ApplyAppearance(); ClearDocumentContent(preserveDocuments: true); toolContent.Clear(); surface.RefreshContents();
-        }
+        if (next.Settings != previous.Settings) RefreshAppearance();
         var rail = !next.Projects.SequenceEqual(previous.Projects) || !next.RecentProjects.SequenceEqual(previous.RecentProjects) ||
             next.WorkspaceLabels.Count != previous.WorkspaceLabels.Count ||
             next.WorkspaceLabels.Any(entry => previous.WorkspaceLabels.GetValueOrDefault(entry.Key) != entry.Value);

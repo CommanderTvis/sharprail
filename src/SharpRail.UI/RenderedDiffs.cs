@@ -7,7 +7,7 @@ namespace SharpRail.UI;
 
 public sealed partial class WorkbenchWindow
 {
-    private readonly HashSet<string> renderedDiffs = [];
+    private readonly HashSet<string> sourceDiffs = [];
 
     /// <summary>Merges two Markdown sources for a rendered diff; runs on a thread-pool thread.</summary>
     public Func<string, string, CancellationToken, string> RenderedDiffMerge { get; set; } = MarkdownDiff.Merge;
@@ -16,8 +16,8 @@ public sealed partial class WorkbenchWindow
     {
         var markdown = Path.GetExtension(tab.Path).ToLowerInvariant() is ".md" or ".markdown";
         return new DiffView(document.Text, tab.Path, LineWidths.File(Preferences),
-            markdown ? token => RenderMergedAsync(tab, token) : null, renderedDiffs.Contains(key),
-            show => { if (show) renderedDiffs.Add(key); else renderedDiffs.Remove(key); });
+            markdown ? token => RenderMergedAsync(tab, token) : null, !sourceDiffs.Contains(key),
+            show => { if (show) sourceDiffs.Remove(key); else sourceDiffs.Add(key); });
     }
 
     private async Task<Control?> RenderMergedAsync(DockTab tab, CancellationToken token)

@@ -8,8 +8,8 @@ parent: module-host-core
 
 # Files — workspace reads, saves and change notification
 
-Upstream: packages/server/src/fs/SPEC.md @ 12830b08
-Upstream: packages/server/src/watch/SPEC.md @ 12830b08
+Upstream: packages/server/src/fs/SPEC.md @ 4a65ed7f
+Upstream: packages/server/src/watch/SPEC.md @ 4a65ed7f
 
 ## Responsibility
 

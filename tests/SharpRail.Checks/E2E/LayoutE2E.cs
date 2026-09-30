@@ -24,6 +24,7 @@ internal static class LayoutE2E
         DeferredOpens(root);
         IndependentPreviews(root);
         SideShortcuts(root);
+        ZoomShortcuts(root);
         KeyboardTabsAndSeparators(root);
         OuterWidths(root);
         OverflowFades(root);
@@ -229,6 +230,29 @@ internal static class LayoutE2E
                 "The same shortcuts must restore both sides and preserve the bottom.");
         }
         Console.WriteLine("PASS upstream layout.spec.ts: Mod+B and Mod+J hide and restore local sides without affecting bottom");
+    }
+
+    private static void ZoomShortcuts(string root)
+    {
+        var directory = Path.Combine(root, "layout-zoom");
+        var command = OperatingSystem.IsMacOS() ? RawInputModifiers.Meta : RawInputModifiers.Control;
+        using (var app = new E2eWorkspace(directory))
+        {
+            app.Window.KeyPress(Key.OemPlus, command, PhysicalKey.Equal, null);
+            app.Window.KeyPress(Key.OemPlus, command, PhysicalKey.Equal, null); Settle();
+            Require(app.Window.Preferences.FontSize == 16 && app.Window.FontSize == 16, "Mod+= must step the interface size up.");
+            app.Window.KeyPress(Key.OemMinus, command, PhysicalKey.Minus, null); Settle();
+            Require(app.Window.Preferences.FontSize == 15, "Mod+- must step the interface size down.");
+        }
+        using (var app = new E2eWorkspace(directory, openFiles: false))
+        {
+            Require(app.Window.Preferences.FontSize == 15, "The zoomed interface size must persist.");
+            for (var i = 0; i < 20; i++) app.Window.KeyPress(Key.OemMinus, command, PhysicalKey.Minus, null);
+            Require(app.Window.Preferences.FontSize == 10, "Zooming out must stop at the minimum interface size.");
+            app.Window.KeyPress(Key.D0, command, PhysicalKey.Digit0, null); Settle();
+            Require(app.Window.Preferences.FontSize == 14 && app.Window.FontSize == 14, "Mod+0 must reset the interface size.");
+        }
+        Console.WriteLine("PASS page zoom: Mod+=, Mod+- and Mod+0 step, bound, persist and reset the interface size");
     }
 
     private static void KeyboardTabsAndSeparators(string root)

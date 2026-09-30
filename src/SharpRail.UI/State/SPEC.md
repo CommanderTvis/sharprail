@@ -1,7 +1,7 @@
 # State — profile and shared host state
 
-Upstream: apps/web/src/store/SPEC.md @ 12830b08
-Upstream: apps/web/src/navigation/SPEC.md @ 12830b08
+Upstream: apps/web/src/store/SPEC.md @ 4a65ed7f
+Upstream: apps/web/src/navigation/SPEC.md @ 4a65ed7f
 
 ## Responsibility
 
