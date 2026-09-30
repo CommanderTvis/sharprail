@@ -72,6 +72,8 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
         catch (Exception error) when (error is IOException or UnauthorizedAccessException) { return null; }
     }
 
+    private static readonly UTF8Encoding StrictUtf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+
     public async ValueTask<FileDocument> ReadFileAsync(string relativePath, CancellationToken cancellationToken = default)
     {
         var path = Resolve(root, relativePath);
@@ -83,8 +85,9 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
         if (length > FileLimits.EditableBytes) throw new IOException($"Files over {FileLimits.EditableBytes >> 20} MiB cannot be opened.");
         var bytes = await File.ReadAllBytesAsync(path, cancellationToken);
         if (image) return new(relativePath, "", bytes);
-        if (bytes.Contains((byte)0)) throw new IOException("Binary files cannot be previewed.");
-        return new(relativePath, Encoding.UTF8.GetString(bytes));
+        // Like the reference, text may contain NUL and other control characters; only invalid UTF-8 is binary.
+        try { return new(relativePath, StrictUtf8.GetString(bytes)); }
+        catch (DecoderFallbackException) { throw new IOException("Binary files cannot be previewed."); }
     }
 
     public async ValueTask<GitSnapshot> GetGitAsync(string comparisonBranch = "", CancellationToken cancellationToken = default, string scope = "all")

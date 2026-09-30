@@ -48,6 +48,13 @@ internal static class ProjectChecks
             Require(await remote.OpenProjectAsync(fixture) == info, "Remote project differs.");
             Require((await remote.ListFilesAsync("")).SequenceEqual(files), "Remote files differ.");
             Require(await remote.ReadFileAsync("README.md") == markdown, "Remote text differs.");
+            // Like the reference, valid UTF-8 opens as text even with NUL control characters; only invalid UTF-8 is binary.
+            await File.WriteAllTextAsync(Path.Combine(fixture, "controls.txt"), "before\0after\n");
+            Require((await local.ReadFileAsync("controls.txt")).Text == "before\0after\n" && (await remote.ReadFileAsync("controls.txt")).Text == "before\0after\n",
+                "A UTF-8 file with NUL characters must open as text.");
+            await File.WriteAllBytesAsync(Path.Combine(fixture, "blob.bin"), [0xFF, 0xFE, 0x00, 0x01]);
+            try { await local.ReadFileAsync("blob.bin"); throw new InvalidOperationException("Invalid UTF-8 opened as text."); }
+            catch (IOException error) { Require(error.Message == "Binary files cannot be previewed.", "Invalid UTF-8 must be reported as binary."); }
             Require((await remote.ListSpecsAsync()).SequenceEqual(await local.ListSpecsAsync()), "Remote specs differ.");
             var snapshot = await remote.GetGitAsync();
             Require(!snapshot.IsRepository, "Non-git directory detected as repository.");
