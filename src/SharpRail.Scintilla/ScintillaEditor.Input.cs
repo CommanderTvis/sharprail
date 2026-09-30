@@ -1,9 +1,11 @@
+using System.Globalization;
+using System.Text;
 using Avalonia;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Controls;
 
-namespace SharpRail.UI.Editor;
+namespace SharpRail.Scintilla;
 
 public sealed partial class ScintillaEditor
 {
@@ -41,6 +43,8 @@ public sealed partial class ScintillaEditor
         };
         if (message is { } action) { document.Send(action); Changed(); e.Handled = true; return; }
         if (command) return;
+        if (!option && !e.KeyModifiers.HasFlag(KeyModifiers.Control) && e.Key is Key.Left or Key.Right or Key.Back or Key.Delete && EditByGrapheme(e.Key, shift))
+        { Changed(); e.Handled = true; return; }
         int key = e.Key switch
         {
             Key.Down => 300,
@@ -63,6 +67,45 @@ public sealed partial class ScintillaEditor
         { Changed(); e.Handled = true; }
     }
 
+    // Scintilla steps by code point; the caret keys and deletion step over whole grapheme clusters
+    // instead. Selections, line ends and document edges keep Scintilla's behaviour.
+    private bool EditByGrapheme(Key key, bool extend)
+    {
+        var caret = document.Send(ScintillaMessage.GetCurrentPos);
+        var anchor = document.Send(ScintillaMessage.GetAnchor);
+        var deleting = key is Key.Back or Key.Delete;
+        if (deleting ? extend || caret != anchor : caret != anchor && !extend) return false;
+        var target = GraphemeBoundary(caret, key is Key.Right or Key.Delete);
+        if (target == caret) return false;
+        if (deleting) document.Send(ScintillaMessage.DeleteRange, Math.Min(caret, target), Math.Abs(target - caret));
+        else if (extend) document.Send(ScintillaMessage.SetSel, anchor, target);
+        else document.Send(ScintillaMessage.GotoPos, target);
+        return true;
+    }
+
+    // The nearest grapheme boundary after or before a position on its own line.
+    private nint GraphemeBoundary(nint position, bool forward)
+    {
+        var line = document.Send(ScintillaMessage.LineFromPosition, position);
+        var start = document.Send(ScintillaMessage.PositionFromLine, line);
+        var end = document.Send(ScintillaMessage.GetLineEndPosition, line);
+        if (forward ? position >= end : position <= start) return position;
+        var text = document.Text(start, end);
+        // Invalid UTF-8 decodes to replacement characters whose byte counts differ.
+        if (Encoding.UTF8.GetByteCount(text) != end - start) return position;
+        nint boundary = start, previous = start;
+        for (var i = 0; i < text.Length;)
+        {
+            var length = StringInfo.GetNextTextElementLength(text.AsSpan(i));
+            boundary += Encoding.UTF8.GetByteCount(text.AsSpan(i, length));
+            i += length;
+            if (forward && boundary > position) return boundary;
+            if (!forward && boundary >= position) return previous;
+            previous = boundary;
+        }
+        return forward ? end : previous;
+    }
+
     private async Task ClipboardAsync(Key key)
     {
         try
@@ -77,7 +120,7 @@ public sealed partial class ScintillaEditor
                 var text = await clipboard.TryGetTextAsync();
                 if (!disposed && IsFocused && text is not null && revision == previous &&
                     document.Send(ScintillaMessage.GetAnchor) == anchor && document.Send(ScintillaMessage.GetCurrentPos) == caret)
-                { document.Input(text); Changed(); }
+                { document.Replace(text); Changed(); }
             }
             else
             {

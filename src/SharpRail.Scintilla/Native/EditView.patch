@@ -1,0 +1,165 @@
+SharpRail patch for Scintilla 5.6.7: in bidirectional mode, draw text and backgrounds
+through the platform line layout so reordered runs appear at their visual positions.
+
+--- a/src/Platform.h
++++ b/src/Platform.h
+@@ -161,6 +161,8 @@
+ 	virtual XYPOSITION RepresentationWidth(size_t position) const = 0;
+ 	virtual XYPOSITION TabPositionAfter(XYPOSITION xPosition) const = 0;
+ };
++
++class Surface;
+ 
+ class IScreenLineLayout {
+ public:
+@@ -168,6 +170,8 @@
+ 	virtual size_t PositionFromX(XYPOSITION xDistance, bool charPosition) = 0;
+ 	virtual XYPOSITION XFromPosition(size_t caretPosition) = 0;
+ 	virtual std::vector<Interval> FindRangeIntervals(size_t start, size_t end) = 0;
++	// Draws the characters in [start, end) at their visual positions, xStart being the line origin.
++	virtual void DrawText(Surface *surface, size_t start, size_t end, XYPOSITION xStart, XYPOSITION ybase, ColourRGBA fore) = 0;
+ };
+ 
+ /**
+--- a/src/EditView.cxx
++++ b/src/EditView.cxx
+@@ -1661,9 +1661,20 @@
+ 	return (caretAtStart || caretAtEnd) ? InSelection::inNone : InSelection::inMain;
+ }
+ 
++// A logical range of a bidirectional line may occupy several visual intervals.
++std::vector<Interval> VisualSpans(IScreenLineLayout *slLayout, const LineLayout *ll, ForwardRange lineRange,
++	int start, int end, int xStart, XYPOSITION horizontalOffset) {
++	if (!slLayout)
++		return { ll->Span(start, end).Offset(horizontalOffset) };
++	std::vector<Interval> intervals = slLayout->FindRangeIntervals(start - lineRange.First(), end - lineRange.First());
++	for (Interval &interval : intervals)
++		interval = interval.Offset(xStart);
++	return intervals;
++}
++
+ void DrawBackground(Surface *surface, const EditModel &model, const ViewStyle &vsDraw, const LineLayout *ll,
+ 	int xStart, PRectangle rcLine, int subLine, ForwardRange lineRange, Sci::Position posLineStart,
+-	ColourOptional background) {
++	ColourOptional background, int tabWidthMinimumPixels) {
+ 
+ 	const bool selBackDrawn = vsDraw.SelectionBackgroundDrawn();
+ 	bool inIndentation = subLine == 0;	// Do not handle indentation except on first subline.
+@@ -1671,6 +1682,12 @@
+ 	const XYPOSITION horizontalOffset = xStart - subLineStart;
+ 	// Does not take margin into account but not significant
+ 	const XYPOSITION xStartVisible = subLineStart - xStart;
++
++	std::unique_ptr<IScreenLineLayout> slLayout;
++	if (model.BidirectionalEnabled()) {
++		const ScreenLine screenLine(ll, subLine, vsDraw, rcLine.right - xStart, tabWidthMinimumPixels);
++		slLayout = surface->Layout(&screenLine);
++	}
+ 
+ 	const BreakFinder::BreakFor breakFor = selBackDrawn ? BreakFinder::BreakFor::Selection : BreakFinder::BreakFor::Text;
+ 	BreakFinder bfBack(ll, &model.sel, lineRange, posLineStart, xStartVisible, breakFor, model.pdoc, model.reprs.get(), &vsDraw);
+@@ -1687,9 +1704,8 @@
+ 		const Interval horizontal = ll->Span(ts.start, ts.end()).Offset(horizontalOffset);
+ 		// Only try to draw if really visible - enhances performance by not calling environment to
+ 		// draw strings that are completely past the right side of the window.
+-		if (!horizontal.Empty() && rcLine.Intersects(horizontal)) {
+-			const PRectangle rcSegment = Intersection(rcLine, horizontal);
+-
++		// Reordered text can appear anywhere in a bidirectional line.
++		if (slLayout || (!horizontal.Empty() && rcLine.Intersects(horizontal))) {
+ 			InSelection inSelection = vsDraw.selection.visible ? model.sel.CharacterInSelection(iDoc) : InSelection::inNone;
+ 			if (FlagSet(vsDraw.caret.style, CaretStyle::Curses) && (inSelection == InSelection::inMain))
+ 				inSelection = CharacterInCursesSelection(iDoc, model, vsDraw);
+@@ -1707,7 +1723,10 @@
+ 					inIndentation = false;
+ 				}
+ 			}
+-			surface->FillRectangleAligned(rcSegment, Fill(textBack));
++			for (const Interval &span : VisualSpans(slLayout.get(), ll, lineRange, ts.start, ts.end(), xStart, horizontalOffset)) {
++				if (!span.Empty() && rcLine.Intersects(span))
++					surface->FillRectangleAligned(Intersection(rcLine, span), Fill(textBack));
++			}
+ 			if (!ts.representation) {
+ 				// Normal text display
+ 				if (vsDraw.viewWhitespace != WhiteSpace::Invisible) {
+@@ -1718,10 +1737,11 @@
+ 						}
+ 						if (countSpaces) {
+ 							if (drawWhitespaceBackground && vsDraw.WhiteSpaceVisible(inIndentation)) {
+-								const PRectangle rcSpace = Intersection(rcLine,
+-									ll->Span(cpos + ts.start, cpos + ts.start + countSpaces).Offset(horizontalOffset));
+-								surface->FillRectangleAligned(rcSpace,
+-									vsDraw.ElementColourForced(Element::WhiteSpaceBack).Opaque());
++								for (const Interval &span : VisualSpans(slLayout.get(), ll, lineRange,
++									cpos + ts.start, cpos + ts.start + countSpaces, xStart, horizontalOffset)) {
++									surface->FillRectangleAligned(Intersection(rcLine, span),
++										vsDraw.ElementColourForced(Element::WhiteSpaceBack).Opaque());
++								}
+ 							}
+ 							cpos += countSpaces;
+ 						} else {
+@@ -2151,6 +2171,17 @@
+ 	const BreakFinder::BreakFor breakFor = (((phasesDraw == PhasesDraw::One) && selBackDrawn) || vsDraw.SelectionTextDrawn())
+ 		? BreakFinder::BreakFor::ForegroundAndSelection : BreakFinder::BreakFor::Foreground;
+ 	BreakFinder bfFore(ll, &model.sel, lineRange, posLineStart, xStartVisible, breakFor, model.pdoc, model.reprs.get(), &vsDraw);
++
++	std::unique_ptr<IScreenLineLayout> slLayout;
++	if (model.BidirectionalEnabled()) {
++		const ScreenLine screenLine(ll, subLine, vsDraw, rcLine.right - xStart, tabWidthMinimumPixels);
++		slLayout = surface->Layout(&screenLine);
++	}
++	// Tabs, representations and spaces are single characters, so they have one visual interval.
++	auto visualSpan = [&](int start, int end) {
++		const std::vector<Interval> spans = VisualSpans(slLayout.get(), ll, lineRange, start, end, xStart, horizontalOffset);
++		return spans.empty() ? ll->Span(start, end).Offset(horizontalOffset) : spans.front();
++	};
+ 
+ 	while (bfFore.More()) {
+ 
+@@ -2161,8 +2192,9 @@
+ 		const Interval horizontal = ll->Span(ts.start, ts.end()).Offset(horizontalOffset);
+ 		// Only try to draw if really visible - enhances performance by not calling environment to
+ 		// draw strings that are completely past the right side of the window.
+-		if (rcLine.Intersects(horizontal)) {
+-			const PRectangle rcSegment = rcLine.WithHorizontalBounds(horizontal);
++		// Reordered text can appear anywhere in a bidirectional line.
++		if (slLayout || rcLine.Intersects(horizontal)) {
++			const PRectangle rcSegment = rcLine.WithHorizontalBounds(slLayout ? visualSpan(ts.start, ts.end()) : horizontal);
+ 			const int styleMain = ll->styles[i];
+ 			ColourRGBA textFore = vsDraw.styles[styleMain].fore;
+ 			const Font *textFont = vsDraw.styles[styleMain].font.get();
+@@ -2266,7 +2298,15 @@
+ 				// Normal text display
+ 				if (vsDraw.styles[styleMain].visible) {
+ 					const std::string_view text(&ll->chars[ts.start], i - ts.start + 1);
+-					if (phasesDraw != PhasesDraw::One) {
++					if (slLayout) {
++						// The layout shapes and orders the whole line; draw this segment's glyphs in place.
++						if (phasesDraw == PhasesDraw::One) {
++							for (const Interval &span : VisualSpans(slLayout.get(), ll, lineRange, ts.start, ts.end(), xStart, horizontalOffset))
++								surface->FillRectangleAligned(rcLine.WithHorizontalBounds(span), Fill(textBack));
++						}
++						slLayout->DrawText(surface, ts.start - lineRange.First(), ts.end() - lineRange.First(),
++							xStart, ybase, textFore);
++					} else if (phasesDraw != PhasesDraw::One) {
+ 						surface->DrawTextTransparent(rcSegment, textFont,
+ 							ybase, text, textFore);
+ 					} else {
+@@ -2289,7 +2329,7 @@
+ 						if (ll->chars[cpos + ts.start] == ' ') {
+ 							if (vsDraw.viewWhitespace != WhiteSpace::Invisible) {
+ 								if (vsDraw.WhiteSpaceVisible(inIndentation)) {
+-									const Interval intervalSpace = ll->SpanByte(cpos + ts.start).Offset(horizontalOffset);
++									const Interval intervalSpace = visualSpan(cpos + ts.start, cpos + ts.start + 1);
+ 									const XYPOSITION xmid = (intervalSpace.left + intervalSpace.right) / 2;
+ 									if ((phasesDraw == PhasesDraw::One) && drawWhitespaceBackground) {
+ 										textBack = vsDraw.ElementColourForced(Element::WhiteSpaceBack).Opaque();
+@@ -2429,7 +2469,7 @@
+ 		if (FlagSet(phase, DrawPhase::back)) {
+ 			DrawBackground(surface, model, vsDraw, ll,
+ 				xStart, rcLine, subLine, lineRange, posLineStart,
+-				background);
++				background, tabWidthMinimumPixels);
+ 			DrawFoldDisplayText(surface, model, vsDraw, ll, line, xStart, rcLine, subLine, subLineStart, DrawPhase::back);
+ 			DrawEOLAnnotationText(surface, model, vsDraw, ll, line, xStart, rcLine, subLine, subLineStart, DrawPhase::back);
+ 			// Remove drawBack to not draw again in DrawFoldDisplayText

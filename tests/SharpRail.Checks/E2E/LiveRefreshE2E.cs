@@ -7,7 +7,7 @@ using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
 using SharpRail.Host.Abstractions;
-using SharpRail.UI.Editor;
+using SharpRail.Scintilla;
 using SharpRail.UI.Rendering;
 using static SharpRail.Checks.E2E.ChangesFixture;
 using static SharpRail.Checks.E2E.E2eWorkspace;

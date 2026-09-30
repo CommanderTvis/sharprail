@@ -44,6 +44,7 @@ internal static class Program
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             EditorChecks.Run();
+            EditorTextChecks.Run();
             EditorWorkbenchChecks.Run(root);
             Console.WriteLine("PASS editor integration checks");
             return;

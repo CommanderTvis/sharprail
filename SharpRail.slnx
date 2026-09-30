@@ -5,6 +5,7 @@
     <Project Path="src/SharpRail.Host.Core/SharpRail.Host.Core.csproj" />
     <Project Path="src/SharpRail.Host.Protocol/SharpRail.Host.Protocol.csproj" />
     <Project Path="src/SharpRail.Host.Remote/SharpRail.Host.Remote.csproj" />
+    <Project Path="src/SharpRail.Scintilla/SharpRail.Scintilla.csproj" />
     <Project Path="src/SharpRail.UI/SharpRail.UI.csproj" />
   </Folder>
   <Folder Name="/tests/">

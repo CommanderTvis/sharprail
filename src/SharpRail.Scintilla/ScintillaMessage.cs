@@ -2,7 +2,7 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-namespace SharpRail.UI.Editor;
+namespace SharpRail.Scintilla;
 
 [SuppressMessage("ReSharper", "InconsistentNaming")]
 internal enum ScintillaMessage : uint
@@ -84,4 +84,11 @@ internal enum ScintillaMessage : uint
     SetEmptySelection = 2556,
     GetReadOnly = 2140,
     SetCaretPeriod = 2076,
+    PositionFromPoint = 2022,
+    GotoPos = 2025,
+    StartStyling = 2032,
+    SetStyling = 2033,
+    DeleteRange = 2645,
+    GetSelectionStart = 2143,
+    GetSelectionEnd = 2145,
 }

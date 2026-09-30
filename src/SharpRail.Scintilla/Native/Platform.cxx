@@ -5,19 +5,13 @@ thread_local BridgeWindow *activeWindow = nullptr;
 namespace {
 class SkiaFont final : public Font {
 public:
-    double size;
-    int weight;
-    bool italic;
-    explicit SkiaFont(const FontParameters &p) : size(p.size), weight(static_cast<int>(p.weight)), italic(p.italic) {}
+    FontSpec spec;
+    explicit SkiaFont(const FontParameters &p) : spec{p.size, static_cast<int>(p.weight), p.italic} {}
 };
 class SkiaSurface final : public Surface {
     BridgeWindow *window = activeWindow;
-    int id = 0;
     bool owns = false;
-    double Call(DrawCommand command) {
-        command.surface = id;
-        return window->draw(window->context, &command);
-    }
+    double Call(DrawCommand command) { return Dispatch(window, id, command); }
     DrawCommand Rect(int op, PRectangle r, ColourRGBA fore = ColourRGBA(), ColourRGBA back = ColourRGBA(), double width = 0) {
         DrawCommand c;
         c.operation = op; c.left = r.left; c.top = r.top; c.right = r.right; c.bottom = r.bottom;
@@ -25,9 +19,9 @@ class SkiaSurface final : public Surface {
         return c;
     }
     DrawCommand Text(int op, const Font *font, std::string_view text) {
-        const auto f = static_cast<const SkiaFont *>(font);
+        const auto f = SpecOf(font);
         DrawCommand c;
-        c.operation = op; c.size = f->size; c.weight = f->weight; c.italic = f->italic;
+        c.operation = op; c.size = f.size; c.weight = f.weight; c.italic = f.italic;
         c.data = text.data(); c.length = text.size();
         return c;
     }
@@ -36,6 +30,7 @@ class SkiaSurface final : public Surface {
         c.size = radius; Call(c);
     }
 public:
+    int id = 0;
     ~SkiaSurface() override { Release(); }
     void Init(WindowID wid) override { window = static_cast<BridgeWindow *>(wid); }
     void Init(SurfaceID, WindowID wid) override { Init(wid); }
@@ -70,7 +65,7 @@ public:
     void Ellipse(PRectangle r,FillStroke s) override { Shape(13,r,s); }
     void Stadium(PRectangle r,FillStroke s,Ends) override { Shape(10,r,s,r.Height()/2); }
     void Copy(PRectangle r,Point from,Surface &source) override { auto c=Rect(14,r);c.length=static_cast<SkiaSurface &>(source).id;c.width=from.x;c.size=from.y;Call(c); }
-    std::unique_ptr<IScreenLineLayout> Layout(const IScreenLine *) override { return {}; }
+    std::unique_ptr<IScreenLineLayout> Layout(const IScreenLine *line) override { return LayoutScreenLine(window, line); }
     void DrawTextNoClip(PRectangle r,const Font *f,XYPOSITION y,std::string_view t,ColourRGBA fore,ColourRGBA back) override { FillRectangle(r,back);DrawTextTransparent(r,f,y,t,fore); }
     void DrawTextClipped(PRectangle r,const Font *f,XYPOSITION y,std::string_view t,ColourRGBA fore,ColourRGBA back) override { SetClip(r);DrawTextNoClip(r,f,y,t,fore,back);PopClip(); }
     void DrawTextTransparent(PRectangle r,const Font *f,XYPOSITION y,std::string_view t,ColourRGBA fore) override { auto c=Text(15,f,t);c.left=r.left;c.baseline=y;c.fore=fore.AsInteger();Call(c); }
@@ -91,6 +86,12 @@ public:
     void FlushCachedState() override {}
     void FlushDrawing() override {}
 };
+}
+FontSpec SpecOf(const Font *font) noexcept { return static_cast<const SkiaFont *>(font)->spec; }
+int SurfaceId(Surface &surface) noexcept { return static_cast<SkiaSurface &>(surface).id; }
+double Dispatch(BridgeWindow *window, int surface, DrawCommand command) {
+    command.surface = surface;
+    return window->draw(window->context, &command);
 }
 std::shared_ptr<Font> Font::Allocate(const FontParameters &p) { return std::make_shared<SkiaFont>(p); }
 std::unique_ptr<Surface> Surface::Allocate(Technology) { return std::make_unique<SkiaSurface>(); }

@@ -41,4 +41,4 @@ Next work is bounded by these remaining gates:
 
 MacOS Scintilla/Skia integration is now a separately authorized scope extension.
 Its architecture and remaining editor limits are recorded in
-`native/SharpRail.Scintilla/README.md`; this does not close the broader fidelity gates.
+`src/SharpRail.Scintilla/README.md`; this does not close the broader fidelity gates.

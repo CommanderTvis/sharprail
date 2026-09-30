@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace SharpRail.UI.Editor;
+namespace SharpRail.Scintilla;
 
 internal static unsafe class ScintillaNative
 {
@@ -16,6 +16,8 @@ internal static unsafe class ScintillaNative
         internal nint Length;
         internal double* Positions;
         internal int Weight, Italic;
+        internal nint Start, End;
+        internal int Rtl;
     }
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -47,4 +49,6 @@ internal static unsafe class ScintillaNative
     internal static extern void sr_focus(nint editor, int focus);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
     internal static extern void sr_tick(nint editor);
+    [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
+    internal static extern void sr_direction(nint editor, int direction);
 }

@@ -1,12 +1,23 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Markup.Xaml;
+using Avalonia.Platform;
 using SharpRail.Host.Abstractions;
+using SharpRail.Scintilla;
+using SharpRail.UI.Rendering;
+using SkiaSharp;
 
 namespace SharpRail.UI.Editor;
 
 internal sealed partial class CodeDocumentView : UserControl, IDisposable
 {
+    // Shared by every editor for the application's lifetime.
+    private static readonly Lazy<SKTypeface> Typeface = new(() =>
+    {
+        using var stream = AssetLoader.Open(new Uri("avares://SharpRail.UI/Assets/Fonts/JetBrainsMono-Regular.ttf"));
+        return SKTypeface.FromStream(stream);
+    });
     private readonly IProjectServices host;
     private readonly string workspace;
     private readonly string path;
@@ -29,7 +40,7 @@ internal sealed partial class CodeDocumentView : UserControl, IDisposable
         original = file.Text; this.saved = saved; this.modifiedChanged = modifiedChanged; this.report = report;
         vertical = this.FindControl<ScrollBar>("EditorVerticalScroll")!;
         horizontal = this.FindControl<ScrollBar>("EditorHorizontalScroll")!;
-        Editor = new(file.Text) { Name = "CodeEditor" };
+        Editor = new(file.Text, Typeface.Value) { Name = "CodeEditor", Colors = ThemeColors() };
         this.FindControl<ContentControl>("EditorBody")!.Content = Editor;
         Editor.TextChanged += (_, _) => { UpdateModified(); if (Editor.IsModified && !reloading) changed(); };
         Editor.OperationFailed += (_, error) => report(error);
@@ -37,6 +48,15 @@ internal sealed partial class CodeDocumentView : UserControl, IDisposable
         vertical.ValueChanged += (_, e) => { if (!syncingScroll) Editor.ScrollToLine(e.NewValue); };
         horizontal.ValueChanged += (_, e) => { if (!syncingScroll) Editor.ScrollToX(e.NewValue); };
     }
+
+    private static ScintillaColors ThemeColors() => new(Ui.TextBrush.Color, Ui.Surface.Color, Ui.Muted.Color,
+        Ui.Over(Ui.Theme["editorSelection"], Ui.Surface.Color), Ui.Theme.Colors["editorSelectionForeground"]);
+
+    private void ApplyTheme() => Editor.Colors = ThemeColors();
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    { base.OnAttachedToVisualTree(e); ApplyTheme(); Ui.ThemeChanged += ApplyTheme; }
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    { Ui.ThemeChanged -= ApplyTheme; base.OnDetachedFromVisualTree(e); }
 
     private void SyncScrollBars()
     {

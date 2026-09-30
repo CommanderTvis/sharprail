@@ -44,8 +44,13 @@ See licenses/React-Resizable-Panels.txt; no JavaScript runtime is bundled.
 
 The macOS code editor embeds Scintilla 5.6.7 (Copyright Neil Hodgson and
 contributors), fetched from https://www.scintilla.org/scintilla567.tgz with its
-SHA-256 pinned in scripts/build-scintilla.sh. See licenses/Scintilla.txt.
+SHA-256 pinned in src/SharpRail.Scintilla/build-native.sh and patched by
+src/SharpRail.Scintilla/Native/EditView.patch. See
+src/SharpRail.Scintilla/licenses/Scintilla.txt. It also embeds SheenBidi 3.0.0
+(Copyright 2014-2026 Muhammad Tayyab Akram, Apache-2.0), fetched from
+https://github.com/Tehreer/SheenBidi with its SHA-256 pinned in the same script.
+See src/SharpRail.Scintilla/licenses/SheenBidi.txt.
 The custom platform port uses SkiaSharp 4.148.0, the version Avalonia’s Skia backend
 and Svg.Skia share in this app;
-SkiaSharp and Skia retain their NuGet package licenses. No Cocoa Scintilla view
+SkiaSharp, Skia, HarfBuzzSharp and HarfBuzz retain their NuGet package licenses. No Cocoa Scintilla view
 or Lexilla binary is bundled.

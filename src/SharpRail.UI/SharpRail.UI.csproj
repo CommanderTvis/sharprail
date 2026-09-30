@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="../SharpRail.Host.Core/SharpRail.Host.Core.csproj" />
     <ProjectReference Include="../SharpRail.Host.Client/SharpRail.Host.Client.csproj" />
+    <ProjectReference Include="../SharpRail.Scintilla/SharpRail.Scintilla.csproj" />
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Desktop" />
     <PackageReference Include="Avalonia.Themes.Fluent" />
@@ -27,16 +28,5 @@
       <Content Include="../../.tools/ghostty/libSharpRailGhostty.dylib" Link="libSharpRailGhostty.dylib" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
       <Content Include="@(GhosttyResources)" Link="%(GhosttyResources.RecursiveDir)%(GhosttyResources.Filename)%(GhosttyResources.Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     </ItemGroup>
-  </Target>
-  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
-    <ScintillaArch Condition="'$(NETCoreSdkRuntimeIdentifier)' == 'osx-x64'">x86_64</ScintillaArch>
-    <ScintillaArch Condition="'$(ScintillaArch)' == '' or '$(RuntimeIdentifier)' == 'osx-arm64'">arm64</ScintillaArch>
-    <ScintillaArch Condition="'$(RuntimeIdentifier)' == 'osx-x64'">x86_64</ScintillaArch>
-  </PropertyGroup>
-  <ItemGroup Condition="'$(ScintillaArch)' != ''">
-    <Content Include="../../.tools/scintilla-build/$(ScintillaArch)/libSharpRail.Scintilla.dylib" Link="libSharpRail.Scintilla.dylib" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-  </ItemGroup>
-  <Target Name="BuildScintilla" BeforeTargets="PrepareForBuild" Condition="'$(ScintillaArch)' != ''">
-    <Exec Command="&quot;$(MSBuildProjectDirectory)/../../scripts/build-scintilla.sh&quot; $(ScintillaArch)" />
   </Target>
 </Project>

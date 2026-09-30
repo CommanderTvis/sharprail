@@ -15,6 +15,13 @@ public:
         WndProc(Message::SetCodePage,65001,0);
         WndProc(Message::SetBufferedDraw,0,0);
         WndProc(Message::SetWrapMode,static_cast<uptr_t>(Wrap::None),0);
+        // Every line goes through the shaped layout, so clusters and reordering apply everywhere.
+        bidirectional=Bidirectional::L2R;
+    }
+    void SetDirection(int direction) {
+        window.direction=static_cast<Direction>(direction);
+        bidirectional=window.direction==Direction::RightToLeft ? Bidirectional::R2L : Bidirectional::L2R;
+        Redraw();
     }
     void SetHorizontalScrollPos() override {}
     bool ModifyScrollBars(Sci::Line,Sci::Line) override { return false; }
@@ -36,7 +43,14 @@ public:
         Paint(surface,window.bounds);
         paintState=PaintState::notPainting;
     }
-    void Input(std::string_view text) { InsertCharacter(text,CharacterSource::DirectInput); }
+    // InsertCharacter takes one character, so committed text is fed through it like Scintilla's Cocoa port does.
+    void Input(std::string_view text) {
+        while (!text.empty()) {
+            const size_t length=UTF8DrawBytes(text.data(),text.size());
+            InsertCharacter(text.substr(0,length),CharacterSource::DirectInput);
+            text.remove_prefix(length);
+        }
+    }
     bool Key(int key,int modifiers) { bool consumed=false;KeyDownWithModifiers(static_cast<Keys>(key),static_cast<KeyMod>(modifiers),&consumed);return consumed; }
     void Mouse(int kind,double x,double y,unsigned int time,int modifiers) {
         auto m=static_cast<KeyMod>(modifiers);
@@ -70,5 +84,6 @@ API void sr_mouse(SkiaEditor *e,int kind,double x,double y,unsigned int time,int
 API void sr_focus(SkiaEditor *e,int focus) noexcept { Guard(e,[&] { e->Focus(focus);return 0; }); }
 API void sr_tick(SkiaEditor *e) noexcept { Guard(e,[&] { e->Tick();return 0; }); }
 API int sr_idle(SkiaEditor *e) noexcept { return static_cast<int>(Guard(e,[&] { return e->RunIdle(); })); }
+API void sr_direction(SkiaEditor *e,int direction) noexcept { Guard(e,[&] { e->SetDirection(direction);return 0; }); }
 
 API intptr_t sr_revision(SkiaEditor *e) noexcept { return e->revision; }

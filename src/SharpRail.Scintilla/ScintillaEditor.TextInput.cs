@@ -3,7 +3,7 @@ using Avalonia;
 using Avalonia.Input;
 using Avalonia.Input.TextInput;
 
-namespace SharpRail.UI.Editor;
+namespace SharpRail.Scintilla;
 
 public sealed partial class ScintillaEditor
 {

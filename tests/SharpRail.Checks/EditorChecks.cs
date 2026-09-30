@@ -4,13 +4,23 @@ using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Input.TextInput;
+using Avalonia.Platform;
 using Avalonia.Threading;
-using SharpRail.UI.Editor;
+using SharpRail.Scintilla;
+using SkiaSharp;
 
 namespace SharpRail.Checks;
 
 internal static class EditorChecks
 {
+    // The application's editor font; these checks' pixel scrolling assumes its line height.
+    internal static SKTypeface Font => font.Value;
+    private static readonly Lazy<SKTypeface> font = new(() =>
+    {
+        using var stream = AssetLoader.Open(new Uri("avares://SharpRail.UI/Assets/Fonts/JetBrainsMono-Regular.ttf"));
+        return SKTypeface.FromStream(stream);
+    });
+
     private static void Require(bool value, string message)
     { if (!value) throw new InvalidOperationException(message); }
     private static void Pump()
@@ -21,7 +31,7 @@ internal static class EditorChecks
     internal static void Run()
     {
         if (!OperatingSystem.IsMacOS()) { Console.WriteLine("SKIP macOS Scintilla editor"); return; }
-        using var editor = new ScintillaEditor("alpha\nβeta\n😀 end");
+        using var editor = new ScintillaEditor("alpha\nβeta\n😀 end", Font);
         var window = new Window { Width = 640, Height = 320, Content = editor };
         window.Show(); Pump(); editor.Focus();
         try
@@ -97,7 +107,7 @@ internal static class EditorChecks
             var prior = editor.Text;
             window.KeyTextInput("selected"); Pump();
             Require(editor.Text != prior && editor.Text.Contains("selected", StringComparison.Ordinal), "Pointer selection did not accept typing.");
-            using var second = new ScintillaEditor("independent");
+            using var second = new ScintillaEditor("independent", Font);
             Require(second.Text == "independent" && editor.Text != second.Text, "Editor documents share mutable state.");
             editor.MarkSaved(); Require(!editor.IsModified, "Explicit save point did not clear modified state.");
             Console.WriteLine("PASS macOS Scintilla input, UTF-8, undo/redo, clipboard, scrolling, Skia drawing and independent documents");
@@ -113,7 +123,7 @@ internal static class EditorChecks
         if (!OperatingSystem.IsMacOS()) return;
         const int lines = 400;
         var line = string.Join(' ', Enumerable.Range(1, 60).Select(index => $"segment-{index:00}"));
-        using var editor = new ScintillaEditor(string.Join('\n', Enumerable.Repeat(line, lines))) { WrapWidth = 400 };
+        using var editor = new ScintillaEditor(string.Join('\n', Enumerable.Repeat(line, lines)), Font) { WrapWidth = 400 };
         var window = new Window { Width = 640, Height = 320, Content = editor };
         window.Show(); Pump();
         try

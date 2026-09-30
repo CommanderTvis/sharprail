@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ScintillaNativeCache>$(MSBuildProjectDirectory)/obj/native</ScintillaNativeCache>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Skia" />
+    <PackageReference Include="SkiaSharp" />
+    <PackageReference Include="HarfBuzzSharp" />
+    <InternalsVisibleTo Include="SharpRail.Checks" />
+  </ItemGroup>
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+    <ScintillaArch Condition="'$(NETCoreSdkRuntimeIdentifier)' == 'osx-x64'">x86_64</ScintillaArch>
+    <ScintillaArch Condition="'$(ScintillaArch)' == '' or '$(RuntimeIdentifier)' == 'osx-arm64'">arm64</ScintillaArch>
+    <ScintillaArch Condition="'$(RuntimeIdentifier)' == 'osx-x64'">x86_64</ScintillaArch>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(ScintillaArch)' != ''">
+    <Content Include="$(ScintillaNativeCache)/$(ScintillaArch)/libSharpRail.Scintilla.dylib" Link="libSharpRail.Scintilla.dylib" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <Target Name="BuildScintillaNative" BeforeTargets="PrepareForBuild" Condition="'$(ScintillaArch)' != ''">
+    <Exec Command="sh &quot;$(MSBuildProjectDirectory)/build-native.sh&quot; $(ScintillaArch) &quot;$(ScintillaNativeCache)&quot;" />
+  </Target>
+</Project>

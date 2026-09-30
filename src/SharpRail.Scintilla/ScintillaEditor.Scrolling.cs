@@ -1,4 +1,4 @@
-namespace SharpRail.UI.Editor;
+namespace SharpRail.Scintilla;
 
 public readonly record struct EditorScroll(double Maximum, double Viewport, double Value);
 

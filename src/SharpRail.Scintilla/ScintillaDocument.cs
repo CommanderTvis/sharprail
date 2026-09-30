@@ -2,15 +2,16 @@ using System.Text;
 using Avalonia.Threading;
 using SkiaSharp;
 
-namespace SharpRail.UI.Editor;
+namespace SharpRail.Scintilla;
 
 internal sealed class ScintillaDocument : IDisposable
 {
-    private readonly SkiaSurface surface = new();
+    private readonly SkiaSurface surface;
     private nint Handle { get; set; }
 
-    internal ScintillaDocument(string text)
+    internal ScintillaDocument(string text, SKTypeface typeface)
     {
+        surface = new(typeface);
         if (!OperatingSystem.IsMacOS())
             throw new PlatformNotSupportedException("The Scintilla editor currently supports macOS only.");
 
@@ -66,6 +67,9 @@ internal sealed class ScintillaDocument : IDisposable
         Send(ScintillaMessage.EmptyUndoBuffer);
         Send(ScintillaMessage.SetSavePoint);
     }
+
+    /// <summary>Replaces the selection as one edit, as a paste does.</summary>
+    internal void Replace(string text) => SendText(ScintillaMessage.ReplaceSel, text);
 
     internal unsafe string Text(bool selection = false)
     {
@@ -135,6 +139,12 @@ internal sealed class ScintillaDocument : IDisposable
         var pending = ScintillaNative.sr_idle(Handle) != 0;
         surface.CheckError();
         return pending;
+    }
+
+    internal void SetDirection(ScintillaTextDirection direction)
+    {
+        ScintillaNative.sr_direction(Handle, (int)direction);
+        surface.CheckError();
     }
 
     internal void Resize(double width, double height)

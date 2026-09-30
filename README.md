@@ -15,13 +15,14 @@ previewing Markdown, and managing Git changes and worktrees.
 
 This is a prototype: commit/push commands and AI integration are not available.
 Editing currently targets macOS only. Markdown source and Git diffs remain
-read-only. Syntax lexers, completion, full IME preedit, accessibility text
-providers and complex-script shaping are not yet implemented.
+read-only. The editor shapes text with HarfBuzz and lays out bidirectional text;
+syntax lexers, completion, full IME preedit and accessibility text providers are
+not yet implemented.
 
 ## Run
 
 From a source checkout (macOS editor builds require Xcode command-line tools;
-the first build downloads the pinned Scintilla source archive):
+the first build downloads the pinned Scintilla and SheenBidi source archives):
 
 macOS terminal builds require Xcode, LLVM at `/opt/homebrew/opt/llvm`, and its
 Metal Toolchain (`xcodebuild -downloadComponent MetalToolchain`). The build downloads pinned Ghostty 1.2.3
@@ -51,7 +52,7 @@ saves retain the buffer. Files changed externally are not overwritten.
 
 Run the focused editor checks with
 `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release -- --editor`.
-See `native/SharpRail.Scintilla/README.md` for the port architecture and limits.
+See `src/SharpRail.Scintilla/README.md` for the editor control's architecture and limits.
 
 On macOS, choose New terminal from a pane's + menu or context menu. Each tab runs
 a shell in that local workspace. Sessions survive tab moves and workspace

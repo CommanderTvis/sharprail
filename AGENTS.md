@@ -14,6 +14,7 @@ versions; `global.json` selects the SDK. Use `.tools/dotnet/dotnet` for this che
 | `src/SharpRail.Host.Protocol` | Code-first protobuf-net.Grpc service contracts and wire DTOs. |
 | `src/SharpRail.Host.Remote` | Kestrel HTTP/2 host, authentication and RPC adapters delegating to Core. |
 | `src/SharpRail.Host.Client` | Direct local adapters and gRPC remote proxies implementing the same host abstractions. Embedded mode uses no sockets or serialization. |
+| `src/SharpRail.Scintilla` | Self-contained Avalonia editor control: Scintilla with a Skia surface, HarfBuzz shaping and SheenBidi layout. Its `README.md` documents the API, native build and limits. It references no SharpRail project. |
 | `src/SharpRail.UI` | Avalonia application entry point and workbench. `WorkbenchWindow` partial files coordinate navigation, projects and Git panels. |
 | `src/SharpRail.UI/Docking` | Persisted frame/workspace layout model, transitions, geometry, pointer/keyboard gestures, tab chrome and search popover. |
 | `src/SharpRail.UI/Panels` | Settings and shared dialogs, including compiled XAML frames and page templates. |
@@ -98,7 +99,8 @@ The workbench is split into partial files rather than separate window classes:
 
 Host dependencies flow toward abstractions: Core references Abstractions; Client
 references Abstractions and Protocol; Remote references Core and Protocol. The UI
-references Core and Client to compose either direct local calls or remote proxies.
+references Core and Client to compose either direct local calls or remote proxies,
+and the Scintilla editor control, which it supplies with theme colours and fonts.
 Checks reference the UI and Remote to exercise both paths. Do not introduce a UI
 dependency into the host projects.
 

@@ -5,29 +5,42 @@ using Avalonia.Media;
 using Avalonia.Rendering.SceneGraph;
 using Avalonia.Skia;
 using Avalonia.Threading;
-using SharpRail.UI.Rendering;
 using SkiaSharp;
 
-namespace SharpRail.UI.Editor;
+namespace SharpRail.Scintilla;
+
+/// <summary>Base paragraph direction for bidirectional text; automatic uses each line's first strong character.</summary>
+public enum ScintillaTextDirection { LeftToRight, RightToLeft, Auto }
+
+/// <summary>Editor colours; the selection foreground keeps each style's colour when null.</summary>
+public sealed record ScintillaColors(Color Foreground, Color Background, Color LineNumbers, Color Selection, Color? SelectionForeground = null)
+{
+    public static ScintillaColors Light { get; } = new(Colors.Black, Colors.White, Colors.Gray, Color.FromRgb(0xb4, 0xd5, 0xfe));
+}
 
 public sealed partial class ScintillaEditor : Control, IDisposable
 {
+    // System fonts are shared process-wide and never disposed.
+    private static readonly SKTypeface DefaultTypeface = SKTypeface.FromFamilyName("Menlo");
     private readonly ScintillaDocument document;
     private readonly DispatcherTimer timer;
     private readonly DispatcherTimer idle;
     private readonly InputClient inputClient;
     private bool disposed;
-    private ThemeManifest? theme;
+    private ScintillaColors colors = ScintillaColors.Light;
+    private ScintillaColors? appliedColors;
+    private ScintillaTextDirection direction;
     private nint revision;
     private readonly nint defaultRightMargin;
     private double wrapWidth = double.PositiveInfinity;
     public event EventHandler? TextChanged;
     public event EventHandler<Exception>? OperationFailed;
 
-    public ScintillaEditor(string text = "")
+    /// <summary>Creates an editor; the caller keeps ownership of <paramref name="typeface"/>, which defaults to Menlo.</summary>
+    public ScintillaEditor(string text = "", SKTypeface? typeface = null)
     {
         Focusable = true; ClipToBounds = true; Cursor = new Cursor(StandardCursorType.Ibeam);
-        document = new(text);
+        document = new(text, typeface ?? DefaultTypeface);
         revision = document.Revision;
         defaultRightMargin = document.Send(ScintillaMessage.GetMarginRight);
         inputClient = new(this);
@@ -60,6 +73,18 @@ public sealed partial class ScintillaEditor : Control, IDisposable
         get => wrapWidth;
         set { wrapWidth = value; ApplyWrap(Bounds.Width); InvalidateVisual(); }
     }
+
+    public ScintillaColors Colors
+    {
+        get => colors;
+        set { colors = value; InvalidateVisual(); }
+    }
+    public ScintillaTextDirection Direction
+    {
+        get => direction;
+        set { direction = value; document.SetDirection(value); InvalidateVisual(); inputClient.NotifyScrolled(); }
+    }
+    internal ScintillaDocument Document => document;
 
     /// <summary>Display lines that one document line occupies after wrapping.</summary>
     public int WrapCount(int line) => checked((int)document.Send(ScintillaMessage.WrapCount, line));
@@ -114,20 +139,20 @@ public sealed partial class ScintillaEditor : Control, IDisposable
 
     private void ApplyColors()
     {
-        if (theme == Ui.Theme) return;
-        theme = Ui.Theme;
-        var foreground = Rgb(Ui.TextBrush.Color); var background = Rgb(Ui.Surface.Color);
+        if (appliedColors == colors) return;
+        appliedColors = colors;
+        var foreground = Rgb(colors.Foreground); var background = Rgb(colors.Background);
         document.Send(ScintillaMessage.StyleSetFore, 32, (nint)foreground);
         document.Send(ScintillaMessage.StyleSetBack, 32, (nint)background);
         document.Send(ScintillaMessage.StyleSetSize, 32, 13);
         document.Send(ScintillaMessage.StyleClearAll);
-        document.Send(ScintillaMessage.StyleSetFore, 33, (nint)Rgb(Ui.Muted.Color));
+        document.Send(ScintillaMessage.StyleSetFore, 33, (nint)Rgb(colors.LineNumbers));
         document.Send(ScintillaMessage.StyleSetBack, 33, (nint)background);
         document.Send(ScintillaMessage.SetCaretFore, (nint)foreground);
-        var selection = Rgb(Ui.Over(theme["editorSelection"], Ui.Surface.Color)) | 0xff000000;
+        var selection = Rgb(colors.Selection) | 0xff000000;
         document.Send(ScintillaMessage.SetElementColour, SelectionBack, (nint)selection);
         document.Send(ScintillaMessage.SetElementColour, SelectionInactiveBack, (nint)selection);
-        if (theme.Colors["editorSelectionForeground"] is { } text)
+        if (colors.SelectionForeground is { } text)
         {
             document.Send(ScintillaMessage.SetElementColour, SelectionText, (nint)(Rgb(text) | 0xff000000));
             document.Send(ScintillaMessage.SetElementColour, SelectionInactiveText, (nint)(Rgb(text) | 0xff000000));
@@ -148,10 +173,8 @@ public sealed partial class ScintillaEditor : Control, IDisposable
     { base.OnGotFocus(e); document.Focus(true); timer.Start(); InvalidateVisual(); }
     protected override void OnLostFocus(FocusChangedEventArgs e)
     { base.OnLostFocus(e); if (!disposed) document.Focus(false); timer.Stop(); InvalidateVisual(); }
-    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
-    { base.OnAttachedToVisualTree(e); Ui.ThemeChanged += InvalidateVisual; }
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
-    { timer.Stop(); Ui.ThemeChanged -= InvalidateVisual; base.OnDetachedFromVisualTree(e); }
+    { timer.Stop(); base.OnDetachedFromVisualTree(e); }
 
     public void Dispose()
     {

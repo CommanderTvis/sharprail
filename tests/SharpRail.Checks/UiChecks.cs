@@ -91,6 +91,7 @@ internal static class UiChecks
         AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
         SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
         EditorChecks.Run();
+        EditorTextChecks.Run();
         EditorWorkbenchChecks.Run(root);
         foreach (var weight in new[] { Ui.InterfaceWeight, FontWeight.Normal, FontWeight.Medium, FontWeight.SemiBold })
             Require(FontManager.Current.TryGetGlyphTypeface(new Typeface(Ui.InterfaceFont, weight: weight), out var face) && face.Weight == weight,

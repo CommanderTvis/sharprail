@@ -1,32 +1,28 @@
 using System.Runtime.ExceptionServices;
-using System.Text;
-using Avalonia.Platform;
 using SkiaSharp;
 
-namespace SharpRail.UI.Editor;
+namespace SharpRail.Scintilla;
 
 internal sealed unsafe class SkiaSurface : IDisposable
 {
     private readonly Dictionary<(float Size, int Weight, int Italic), SKFont> fonts = [];
     private readonly Dictionary<int, SKSurface> surfaces = [];
-    private readonly Dictionary<(SKFont Font, int Scalar), SKFont> fallbackFonts = [];
     private readonly SKTypeface typeface;
+    private readonly TextShaper shaper;
     private readonly SKTextBlobBuilder blobBuilder = new();
     private readonly SKPaint fill = new() { IsAntialias = true, Style = SKPaintStyle.Fill };
     private readonly SKPaint stroke = new() { IsAntialias = true, Style = SKPaintStyle.Stroke };
-    private int[] codepoints = [], ends = [];
     private ushort[] glyphs = [];
-    private float[] widths = [], offsets = [];
-    private SKFont[] glyphFonts = [];
+    private SKPoint[] points = [];
     private int nextSurface;
     private SKCanvas? canvas;
     private ExceptionDispatchInfo? error;
     internal ScintillaNative.DrawCallback Callback { get; }
 
-    internal SkiaSurface()
+    internal SkiaSurface(SKTypeface typeface)
     {
-        using var stream = AssetLoader.Open(new Uri("avares://SharpRail.UI/Assets/Fonts/JetBrainsMono-Regular.ttf"));
-        typeface = SKTypeface.FromStream(stream);
+        this.typeface = typeface;
+        shaper = new(typeface);
         Callback = Dispatch;
     }
 
@@ -61,87 +57,38 @@ internal sealed unsafe class SkiaSurface : IDisposable
         return font;
     }
 
-    private SKFont FallbackFont(SKFont font, int codepoint)
+    private TextShaper.Shaped Shape(in ScintillaNative.DrawCommand c, int direction) =>
+        shaper.Shape(Font(c), new ReadOnlySpan<byte>(c.Data, checked((int)c.Length)), direction);
+
+    // Scintilla indexes UTF-8 bytes: every byte of a grapheme reports the grapheme's right edge,
+    // or, for line layout, only its last byte does and the others report -1.
+    private double Measure(in ScintillaNative.DrawCommand c, int direction, bool graphemeEndsOnly)
     {
-        var key = (font, codepoint);
-        if (fallbackFonts.TryGetValue(key, out var fallback)) return fallback;
-
-        using var face = SKFontManager.Default.MatchCharacter(codepoint);
-        fallback = new SKFont(face ?? typeface, font.Size) { Subpixel = true, Edging = SKFontEdging.Antialias };
-        fallbackFonts.Add(key, fallback);
-        return fallback;
-    }
-
-    // Resolves one glyph per scalar in bulk; only scalars missing from the primary font
-    // take the per-character fallback lookup. Returns the scalar count.
-    private int Shape(in ScintillaNative.DrawCommand c)
-    {
-        var font = Font(c);
-        var bytes = new ReadOnlySpan<byte>(c.Data, checked((int)c.Length));
-        if (codepoints.Length < bytes.Length)
-        {
-            var size = Math.Max(bytes.Length, codepoints.Length * 2);
-            codepoints = new int[size]; ends = new int[size]; glyphs = new ushort[size];
-            widths = new float[size]; offsets = new float[size]; glyphFonts = new SKFont[size];
-        }
-
-        var count = 0;
-        for (var offset = 0; offset < bytes.Length; count++)
-        {
-            Rune.DecodeFromUtf8(bytes[offset..], out var rune, out var consumed);
-            offset += Math.Max(consumed, 1);
-            codepoints[count] = rune.Value; ends[count] = offset;
-        }
-
-        font.GetGlyphs(codepoints.AsSpan(0, count), glyphs.AsSpan(0, count));
-        for (var i = 0; i < count; i++)
-        {
-            glyphFonts[i] = font;
-            if (glyphs[i] != 0) continue;
-            glyphFonts[i] = FallbackFont(font, codepoints[i]);
-            glyphs[i] = glyphFonts[i].GetGlyph(codepoints[i]);
-        }
-
-        float x = 0;
-        for (int start = 0, end; start < count; start = end)
-        {
-            end = Segment(start, count);
-            glyphFonts[start].GetGlyphWidths(glyphs.AsSpan(start, end - start), widths.AsSpan(start, end - start), [], null);
-            for (var i = start; i < end; i++) { offsets[i] = x; x += widths[i]; }
-        }
-        return count;
-    }
-
-    private int Segment(int start, int count)
-    {
-        var end = start + 1;
-        while (end < count && glyphFonts[end] == glyphFonts[start]) end++;
-        return end;
-    }
-
-    private double Measure(in ScintillaNative.DrawCommand c)
-    {
-        var count = Shape(c);
-        if (count == 0) return 0;
+        var shaped = Shape(c, direction);
         if (c.Positions != null)
         {
-            // Scintilla indexes UTF-8 bytes; continuation bytes share the scalar's end.
-            for (int i = 0, b = 0; i < count; i++)
-                for (var right = offsets[i] + widths[i]; b < ends[i]; b++) c.Positions[b] = right;
+            for (int grapheme = 0, b = 0; grapheme < shaped.GraphemeEnds.Length; grapheme++)
+                for (var end = shaped.GraphemeEnds[grapheme]; b < end; b++)
+                    c.Positions[b] = !graphemeEndsOnly || b == end - 1 ? shaped.Advances[grapheme] : -1;
         }
-        return offsets[count - 1] + widths[count - 1];
+        return shaped.Width;
     }
 
-    private void DrawText(in ScintillaNative.DrawCommand c, SKCanvas target)
+    // Draws the glyphs whose clusters start inside [start, end) of the shaped text.
+    private void DrawText(in ScintillaNative.DrawCommand c, SKCanvas target, int direction, nint start, nint end)
     {
-        var count = Shape(c);
-        if (count == 0) return;
-        var left = (float)c.Left;
-        for (var i = 0; i < count; i++) offsets[i] += left;
-        for (int start = 0, end; start < count; start = end)
+        var shaped = Shape(c, direction);
+        var origin = new SKPoint((float)c.Left, (float)c.Baseline);
+        foreach (var run in shaped.Runs)
         {
-            end = Segment(start, count);
-            blobBuilder.AddHorizontalRun(glyphs.AsSpan(start, end - start), glyphFonts[start], offsets.AsSpan(start, end - start), (float)c.Baseline);
+            if (glyphs.Length < run.Glyphs.Length) { glyphs = new ushort[run.Glyphs.Length]; points = new SKPoint[run.Glyphs.Length]; }
+            var count = 0;
+            for (var i = 0; i < run.Glyphs.Length; i++)
+            {
+                if (run.Clusters[i] < start || run.Clusters[i] >= end) continue;
+                glyphs[count] = run.Glyphs[i]; points[count++] = run.Positions[i] + origin;
+            }
+            if (count > 0) blobBuilder.AddPositionedRun(glyphs.AsSpan(0, count), run.Font, points.AsSpan(0, count));
         }
         using var blob = blobBuilder.Build();
         if (blob is not null) target.DrawText(blob, 0, 0, Paint(fill, c.Fore));
@@ -165,20 +112,20 @@ internal sealed unsafe class SkiaSurface : IDisposable
 
     private double Execute(in ScintillaNative.DrawCommand c)
     {
-        if (c.Operation is >= 16 and <= 20)
+        switch (c.Operation)
         {
-            var font = Font(c);
-            switch (c.Operation)
-            {
-                case 18:
-                    return -font.Metrics.Ascent;
-                case 19:
-                    return font.Metrics.Descent;
-                case 20:
-                    return Math.Ceiling(font.Metrics.Descent - font.Metrics.Ascent + font.Metrics.Leading);
-            }
-
-            return Measure(c);
+            case 16:
+            case 17:
+                return Measure(c, -1, false);
+            case 18:
+                return -Font(c).Metrics.Ascent;
+            case 19:
+                return Font(c).Metrics.Descent;
+            case 20:
+                var metrics = Font(c).Metrics;
+                return Math.Ceiling(metrics.Descent - metrics.Ascent + metrics.Leading);
+            case 23:
+                return Measure(c, c.Rtl, true);
         }
         if (c.Operation == 1)
         {
@@ -239,7 +186,8 @@ internal sealed unsafe class SkiaSurface : IDisposable
                 using (var image = surfaces[(int)c.Length].Snapshot())
                     target.DrawImage(image, new SKRect((float)c.Width, (float)c.Size, (float)c.Width + rect.Width, (float)c.Size + rect.Height), rect, SKSamplingOptions.Default);
                 break;
-            case 15: DrawText(c, target); break;
+            case 15: DrawText(c, target, -1, 0, c.Length); break;
+            case 24: DrawText(c, target, c.Rtl, c.Start, c.End); break;
             case 21: target.Save(); target.ClipRect(rect); break;
             case 22: target.Restore(); break;
             default: throw new InvalidOperationException($"Unknown Scintilla drawing operation {c.Operation}.");
@@ -251,8 +199,7 @@ internal sealed unsafe class SkiaSurface : IDisposable
     {
         foreach (var surface in surfaces.Values) surface.Dispose();
         foreach (var font in fonts.Values) font.Dispose();
-        foreach (var font in fallbackFonts.Values) font.Dispose();
-        surfaces.Clear(); fonts.Clear(); fallbackFonts.Clear(); typeface.Dispose();
+        surfaces.Clear(); fonts.Clear(); shaper.Dispose();
         blobBuilder.Dispose(); fill.Dispose(); stroke.Dispose();
     }
 }

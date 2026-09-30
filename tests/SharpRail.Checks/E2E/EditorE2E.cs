@@ -6,7 +6,7 @@ using Avalonia.Headless;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
-using SharpRail.UI.Editor;
+using SharpRail.Scintilla;
 using SharpRail.UI.Panels;
 using SharpRail.UI.Rendering;
 using ThemeCatalog = SharpRail.UI.Rendering.Themes;
