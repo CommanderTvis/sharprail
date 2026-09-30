@@ -61,9 +61,10 @@ internal static class Program
         }
         if (args.SequenceEqual(["--sync"]))
         {
+            // Host checks block on async work, so they run before the UI synchronisation context, as in the full run.
+            StateChecks.Run(root).GetAwaiter().GetResult();
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
-            StateChecks.Run(root).GetAwaiter().GetResult();
             var e2e = Path.Combine(root, "upstream-e2e");
             E2E.MultiClientE2E.Run(e2e);
             E2E.ProjectContextE2E.Run(e2e);
