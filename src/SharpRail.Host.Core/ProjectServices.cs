@@ -15,7 +15,7 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
         try
         {
             var candidate = Path.GetFullPath(path);
-            if (!Directory.Exists(candidate)) throw new DirectoryNotFoundException(candidate);
+            if (!Directory.Exists(candidate)) throw new DirectoryNotFoundException($"Directory does not exist: {candidate}");
             try { candidate = (await GitRepository.RunAsync(candidate, cancellationToken, "rev-parse", "--show-toplevel")).TrimEnd('\r', '\n'); }
             catch (IOException) { }
             var projectRoot = candidate;

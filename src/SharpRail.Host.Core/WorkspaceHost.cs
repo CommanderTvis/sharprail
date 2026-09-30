@@ -9,7 +9,7 @@ public sealed class WorkspaceHost : IWorkspaceHost
     public WorkspaceHost(string rootPath)
     {
         root = Path.GetFullPath(rootPath);
-        if (!Directory.Exists(root)) throw new DirectoryNotFoundException(root);
+        if (!Directory.Exists(root)) throw new DirectoryNotFoundException($"Directory does not exist: {root}");
     }
 
     public ValueTask<WorkspaceInfo> GetWorkspaceAsync(CancellationToken cancellationToken = default)

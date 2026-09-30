@@ -133,6 +133,16 @@ internal static class ProjectContextE2E
         Require(app.Tabs.Count == 0, "Reopening lands on Project Home.");
         Until(() => WorktreePaths(app).Contains(workspace));
         Until(() => Listed(observer, fixture) && !Listed(observer, second));
+
+        // SharpRail regression: a project whose folder was deleted closes without the confirmation.
+        var deleted = IsolatedGit.Repository(Path.Combine(directory, "deleted-project"));
+        AddProject(app, "Open project", deleted);
+        Until(() => app.Window.ProjectRoot == deleted && Listed(app, deleted));
+        app.Window.Activate();
+        Directory.Delete(deleted, recursive: true);
+        CloseChoice(deleted);
+        Until(() => !Listed(app, deleted));
+        Require(!app.Window.OwnedWindows.Any(), "Closing a project whose folder is gone does not ask for confirmation.");
         Console.WriteLine("PASS upstream projects.spec.ts: project context actions stay compact and close/reopen is lossless across clients");
     }
 }

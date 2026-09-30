@@ -184,7 +184,9 @@ public sealed partial class WorkbenchWindow
     private async Task CloseProjectAsync(string project)
     {
         var name = DirectoryName(project);
-        if (!await Dialogs.Confirm(this, $"Close {name}?",
+        // A project whose folder is gone has nothing left to lose, so it closes without asking.
+        var missing = !remote && !Directory.Exists(project);
+        if (!missing && !await Dialogs.Confirm(this, $"Close {name}?",
             "Removes this project from the open projects list. Its repository and workspaces are kept. Reopen it from Add project → Recents.",
             "Close project"))
         {
