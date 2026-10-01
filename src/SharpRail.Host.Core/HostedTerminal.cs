@@ -54,7 +54,7 @@ internal sealed class HostedTerminal
         {
             // A resuming client that lost the session to another client must not take it back.
             if (request.Resume && client != request.ClientId) return Attachment.Displaced(this, Process.Id, recorder.Position);
-            var replay = request.Resume ? recorder.From(request.Offset) ?? recorder.Snapshot() : recorder.Snapshot();
+            var replay = request.Resume ? recorder.From(request.Offset) ?? Fresh() : Fresh();
             var attachment = new Attachment(this, Process.Id, created, replay, recorder.Position);
             var previous = current;
             current = attachment; client = request.ClientId;
@@ -65,6 +65,8 @@ internal sealed class HostedTerminal
             return attachment;
         }
     }
+
+    private byte[] Fresh() => exitCode is null ? [.. recorder.Snapshot(), .. recorder.LiveModes()] : recorder.Snapshot();
 
     // A fresh view needs the foreground program to repaint. Resizing to the same grid sends no SIGWINCH,
     // so it narrows the grid briefly and restores it later, as upstream does.

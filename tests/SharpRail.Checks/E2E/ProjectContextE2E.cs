@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.LogicalTree;
 
 using static SharpRail.Checks.E2E.E2eWorkspace;
@@ -63,12 +64,28 @@ internal static class ProjectContextE2E
         var menuOrigin = Menu(fixture).TranslatePoint(default, app.Window)!.Value;
         Require(Math.Abs(menuOrigin.X - pointer.X) < 8 && Math.Abs(menuOrigin.Y - pointer.Y) < 8, $"The project menu opens at the pointer ({menuOrigin} vs {pointer}).");
         var parts = Menu(fixture).Items.Cast<object>().ToArray();
-        Require(parts.Length == 3 && parts[0] is MenuItem { Header: "Create workspace", Icon: not null } && parts[1] is Separator &&
-            parts[2] is MenuItem { Header: "Close project", Icon: not null }, "Project actions stay compact: Create workspace, separator, Close project.");
+        Require(parts.Length == 4 && parts[0] is MenuItem { Header: "Create workspace", Icon: not null } && parts[1] is Separator &&
+            parts[2] is MenuItem { Header: "Copy absolute path" } && parts[3] is MenuItem { Header: "Close project", Icon: not null },
+            "Project actions stay compact: Create workspace, separator, Copy absolute path, Close project.");
         Press(Entry(fixture, "ProjectMenuCreateWorkspace"), Avalonia.Input.Key.Down);
         Until(() => Entry(fixture, "ProjectMenuCreateWorkspace").IsFocused);
         Press(Entry(fixture, "ProjectMenuCreateWorkspace"), Avalonia.Input.Key.Down);
+        Until(() => Entry(fixture, "ProjectMenuCopyPath").IsFocused);
+        Press(Entry(fixture, "ProjectMenuCopyPath"), Avalonia.Input.Key.Down);
         Until(() => Entry(fixture, "ProjectMenuClose").IsFocused);
+        CloseMenu(Menu(fixture));
+        Until(() => Name(fixture).IsFocused);
+
+        app.Click(Name(fixture), mouseButton: MouseButton.Right);
+        Until(() => Menu(fixture).IsOpen);
+        app.Click(Entry(fixture, "ProjectMenuCopyPath"), freshGesture: false);
+        var copied = app.Window.Clipboard!.TryGetTextAsync();
+        Until(() => copied.IsCompleted && !Menu(fixture).IsOpen);
+        Require(copied.Result == fixture && !app.Window.AtProjectHome && Active(app, workspace),
+            "Copy absolute path copies the project's path without changing the active workspace.");
+        Console.WriteLine("PASS fork projects.spec.ts: project context menu copies its absolute path without changing the active workspace");
+        app.Click(Name(fixture), mouseButton: MouseButton.Right);
+        Until(() => Menu(fixture).IsOpen);
         CloseMenu(Menu(fixture));
         Until(() => Name(fixture).IsFocused);
 

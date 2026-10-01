@@ -32,7 +32,14 @@ a tab where is frontend-local and never reaches this service.
 - Shell selection: an existing `SHELL` wins, else `/bin/zsh` on macOS, else `/bin/sh`. It starts as a
   login shell (`-l`) in the workspace root, matching Terminal.app; the PTY supplies interactivity. The
   environment is the host's minus `SHARPRAIL_TOKEN`, with 256-colour/truecolour `TERM` and a UTF-8 locale
-  when none is set. POSIX only; other platforms show an availability message.
+  when none is set. `USER` and `LOGNAME` are stamped from the uid: the PTY registers no utmpx record, so a
+  login shell without `LOGNAME` would ask `getlogin()`, which reads whatever stale record the reused device
+  carries and can name another user.
+- Once the host's MCP endpoint is listening (`McpEndpoint`), each session gets a random token, stable for
+  its session id, and its shell gets `THINKRAIL_MCP_URL=<endpoint>/mcp/<token>` — the name the ThinkRail
+  Claude Code plugin's `.mcp.json` expands, so an agent in the terminal reaches the spec tools of that
+  terminal's workspace. `McpWorkspace(token)` resolves it; closing the session forgets the token. A shell
+  started with no endpoint has the variable removed rather than inheriting one. POSIX only; other platforms show an availability message.
 - A shell is keyed by a stable session id the client derives from workspace and tab, never by a
   connection or a view. Attach is get-or-create under one lock, so concurrent attaches never start two
   shells. A resume (`Offset >= 0`) never starts a shell: a session that no longer exists is an error.
@@ -57,7 +64,11 @@ a tab where is frontend-local and never reaches this service.
 - A fresh view receives a bounded snapshot (64 KiB) of the main screen: raw bytes, never the alternate
   screen (tracked as a stream, since a switch can split across reads), never a mode sequence itself,
   preceded by a reset and the last observed private modes other than mouse tracking. Resize events are
-  never replayed.
+  never replayed. While the shell is live and a full-screen program is still on the alternate screen, the
+  snapshot is followed by that screen's mode and the program's mouse and alternate-scroll modes (1000,
+  1002, 1003, 1006, 1007), so a reattached view keeps wheel and pointer input. They never enter the
+  snapshot itself, and leaving the alternate screen forgets them: a later view must not inherit an exited
+  program's mouse tracking.
 - A resuming client receives exactly the bytes after its position while the 1 MiB resume window still
   holds them, else a fresh snapshot. Replay and the switch to live output happen under the output lock,
   so every byte reaches an attachment exactly once.
@@ -72,8 +83,8 @@ a tab where is frontend-local and never reaches this service.
 - A persisted per-workspace terminal catalog (at most 256 tabs, bounded keys and titles) shared by every
   client, with reservation separate from attachment so a hidden default terminal survives reload and
   other clients without a shell, and catalog membership broadcast on change.
-- Revival across a host restart: persisting recordings at stop and restoring tabs whose first attach
-  starts a fresh shell showing the old picture; a failed spawn keeps the pending recording.
+- Revival across a host restart: restoring the persisted tabs, whose first attach starts a fresh, blank
+  shell. Terminal output is deliberately not persisted: old output beside a new prompt reads as current.
 - Closing every terminal of a removed workspace.
 - Stable, non-native guidance when a shell cannot start, and Windows shells (PowerShell / cmd selection).
 - A bounded child-process runner: completion on the child's exit rather than pipe EOF (a grandchild

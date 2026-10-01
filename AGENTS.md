@@ -101,6 +101,7 @@ The workbench is split into partial files rather than separate window classes:
 | `HostSync.cs` | Applying shared-state broadcasts and reconnects to the window. |
 | `Workbench.cs` | App-owned composition shared by windows and the per-window profile entries. |
 | `TerminalTabs.cs` | Confirmation before closing terminals that run a foreground process. |
+| `BranchList.cs` | The title bar branch's popover: local branches with their worktrees, deletion and Fetch. |
 
 Host dependencies flow toward abstractions: Core references Abstractions; Client
 references Abstractions and Protocol; Remote references Core and Protocol. The UI

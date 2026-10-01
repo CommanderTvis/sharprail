@@ -40,7 +40,9 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
   highlighted.
 - Right-click opens the project context menu at the row without selecting or navigating; with the name
   focused, the Context Menu key or Shift+F10 opens the same menu. The menu is Create workspace, separator,
-  Close project. Create is exactly the `+` flow (opening the project's home first if needed).
+  Copy absolute path, Close project. Create is exactly the `+` flow (opening the project's home first if
+  needed). Copy writes the project's absolute host path to the clipboard without selecting the project or
+  activating a workspace, plain folders included.
 - Close asks “Close {name}?” with “Removes this project from the open projects list. Its repository and
   workspaces are kept. Reopen it from Add project → Recents.”, Cancel focused and a Close project action.
   Confirm sends the host change and waits for its result; a rejection keeps the row. Closing the shown project
@@ -54,7 +56,7 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
   belongs to Changes.
 - A hover- and focus-revealed kebab and right-click open the same workspace menu: “Open in” (editors from
   `ListEditorsAsync`, fetched lazily on first open, with explicit “Looking for editors…” and “No editors
-  found” rows), Copy path, and, for a non-Default worktree, Rename and Remove worktree…. The Default
+  found” rows), Copy absolute path, Copy name (the display name), and, for a non-Default worktree, Rename and Remove worktree…. The Default
   workspace gets neither mutation. A locked worktree's Remove is disabled.
 - Rename replaces the row with an in-place single-line input, prefilled, focused and selected. Enter or
   focus leaving to another control in the same window commits; Escape cancels; blank text or text unchanged
@@ -68,13 +70,14 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
   rebuilds. The chevron toggles it and keeps focus on the chevron.
 - Opening a project lands on its Project Home, never auto-entering a workspace. Selecting a project row goes
   to that project's home, deselecting the active workspace.
-- The Add project `+` and the Welcome “Open project” card share one menu: Open project, Enter host path…,
-  and Recent (closed recent projects). Open project uses the native folder picker locally; on a remote host,
-  or when the picker fails, it opens the host-path dialog (with the picker's error). Enter host path… is
-  always present because a remote client cannot tell where a native picker would open. Every open gesture
+- The Add project `+` and the Welcome “Open project” card share one menu: Open project, Enter host path…
+  (Enter path… locally, where the host is this computer), and Recent (closed recent projects). Open project
+  uses the native folder picker locally; on a remote host, or when the picker fails, it opens the path
+  dialog (with the picker's error). The path entry is always present because a remote client cannot tell
+  where a native picker would open. Every open gesture
   takes a new picker generation, so a later gesture supersedes an earlier one before it can open a project.
-- Opening a folder that is not a Git repository offers to initialise one (git init plus an empty first
-  commit so worktrees work); declining still opens the folder.
+- A folder that is not a Git repository opens directly, with no offer to initialise one. Workspace
+  creation stays disabled for it, since there is no repository for a worktree to attach to.
 
 ## Welcome and Project Home
 
@@ -105,6 +108,20 @@ snapshot lands.
 - Expansion lives above the rows and is keyed by directory path, so a rebuild or a watcher refresh re-reads
   the root and every loaded folder and restores what was expanded; vanished directories drop out through
   their parent.
+- Each row has its own context menu: New file…, New folder…, separator, Reveal in Finder (Show in Explorer
+  on Windows, Open containing folder elsewhere), Copy absolute path, Rename…, and Delete file / Delete
+  folder. New creates inside a folder row and beside a file row (a compact chain's row stands for its
+  deepest folder); a typed `a/b.md` is a path. Rename selects the stem, so typing keeps the extension.
+  One name dialog (`Dialogs.PathName`) takes the name: a name already listed in the destination shows an
+  inline collision as it is typed and cannot be confirmed; the dialog stays open while the host acts and
+  shows a later rejection beside the input. A created file opens as a kept tab and a created child expands
+  its folder. Delete asks first, then moves the entry to the OS trash. Every action is
+  `IProjectServices.ApplyFileActionAsync`; the tree re-lists after it, and the local watcher does too.
+- An open file whose file is deleted on disk keeps its buffer and says so: its tab shows a `deleted` mark
+  and a Scintilla editor a banner over the text. Only a missing file marks it (a local
+  `FileNotFoundException`, a remote `NotFound`); any other failed read leaves the tab as it was, and a later
+  read that finds the file clears the mark. A tab open on a renamed file is left on the old path, and so
+  marks itself deleted.
 
 ## Specs
 

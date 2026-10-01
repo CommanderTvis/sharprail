@@ -11,12 +11,14 @@ using SharpRail.UI.Rendering;
 
 namespace SharpRail.UI.Panels;
 
-public sealed record NewWorkspaceChoice(bool InProjectFolder, string Base, string Path, string Branch);
+/// <summary><paramref name="Name"/> is set only when the user typed one over the suggested name.</summary>
+public sealed record NewWorkspaceChoice(bool InProjectFolder, string Base, string Path, string Branch, string? Name = null);
 
 public sealed class NewWorkspaceDialog
 {
-    private readonly TextBlock heading;
     private readonly TextBlock description;
+    private readonly TextBlock currentBranch;
+    private readonly TextBox name;
     private readonly ToggleButton worktreeTarget;
     private readonly ToggleButton folderTarget;
     private readonly Button branchPicker;
@@ -24,6 +26,8 @@ public sealed class NewWorkspaceDialog
     private readonly TextBox search;
     private readonly StackPanel options;
     private readonly Button create;
+    private readonly HashSet<string> collapsedRemotes;
+    private readonly Action saveCollapsed;
     private BranchCatalog catalog;
     private string selected;
     private bool picked;
@@ -31,22 +35,26 @@ public sealed class NewWorkspaceDialog
 
     public Window Window { get; }
 
-    public NewWorkspaceDialog(string projectName, BranchCatalog catalog)
+    public NewWorkspaceDialog(string projectName, BranchCatalog catalog, HashSet<string> collapsedRemotes, Action saveCollapsed)
     {
         this.catalog = catalog;
+        this.collapsedRemotes = collapsedRemotes;
+        this.saveCollapsed = saveCollapsed;
         selected = catalog.DefaultBase;
-        Window = Dialogs.Create("Create workspace", 560);
+        Window = Dialogs.Create("Start work", 560);
         Window.Tag = "NewWorkspaceDialog";
-        heading = Window.FindControl<TextBlock>("DialogHeading")!;
         description = Window.FindControl<TextBlock>("DialogExplanation")!;
-        description.IsVisible = true;
         var fields = Window.FindControl<StackPanel>("DialogFields")!;
 
+        // The target sits directly under the constant title; only one line of prose follows the mode.
         var targets = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
         worktreeTarget = Target("WsTargetWorktree", "New worktree", "gitBranch", false);
         folderTarget = Target("WsTargetDefault", "Project folder", "homeFill", true);
         targets.Children.Add(worktreeTarget); targets.Children.Add(folderTarget);
         fields.Children.Add(targets);
+        ((Panel)description.Parent!).Children.Remove(description);
+        description.IsVisible = true;
+        fields.Children.Add(description);
 
         var project = Ui.Row("folderFill", projectName, Ui.TextBrush);
         project.Name = "WsProjectPicker";
@@ -76,7 +84,7 @@ public sealed class NewWorkspaceDialog
         {
             if (e.Key == Key.Escape) { branchPicker.Flyout?.Hide(); branchPicker.Focus(); e.Handled = true; return; }
             if (e.Key != Key.Enter) return;
-            if (options.Children.OfType<Button>().FirstOrDefault() is { } first) Pick((string)first.Tag!);
+            if (options.Children.OfType<Button>().FirstOrDefault(button => button.Name == "BranchOption") is { } first) Pick((string)first.Tag!);
             e.Handled = true;
         }, RoutingStrategies.Tunnel);
         var list = new StackPanel { Spacing = 8, Margin = new Thickness(4) };
@@ -86,6 +94,14 @@ public sealed class NewWorkspaceDialog
         branchPicker.Flyout = flyout;
         flyout.Opened += (_, _) => { search.Text = ""; RenderOptions(); search.Focus(); };
         fields.Children.Add(branchPicker);
+        currentBranch = Ui.Text("", Ui.TextBrush);
+        currentBranch.Name = "WsCurrentBranch";
+        fields.Children.Add(currentBranch);
+
+        // Prefilled with the host's next free name so it is visible before creation; only an edit is sent.
+        name = new TextBox { Name = "WsName", Text = SuggestedName, Width = 300, HorizontalAlignment = HorizontalAlignment.Left };
+        AutomationProperties.SetName(name, "Name");
+        fields.Children.Add(name);
 
         var hint = Ui.Text("Press Enter to create.", Ui.Hint, 12);
         hint.Name = "WsEnterHint";
@@ -93,20 +109,29 @@ public sealed class NewWorkspaceDialog
 
         var actions = Window.FindControl<StackPanel>("DialogActions")!;
         actions.Children.Add(Ui.Button("Cancel", () => Window.Close(null)));
-        create = Ui.Button("Create", () => Window.Close(new NewWorkspaceChoice(inFolder, selected, this.catalog.SuggestedPath, this.catalog.SuggestedBranch)));
+        create = Ui.Button("Create", () =>
+        {
+            var typed = name.Text?.Trim() ?? "";
+            Window.Close(new NewWorkspaceChoice(inFolder, selected, this.catalog.SuggestedPath, this.catalog.SuggestedBranch,
+                typed.Length > 0 && typed != SuggestedName ? typed : null));
+        });
         create.Name = "WsCreate"; create.IsDefault = true; Dialogs.Primary(create);
         actions.Children.Add(create);
         Window.Opened += (_, _) => create.Focus();
         Render();
     }
 
+    private string SuggestedName => Path.GetFileName(catalog.SuggestedPath);
+
     public Task<NewWorkspaceChoice?> ShowAsync(Window owner) => Window.ShowDialog<NewWorkspaceChoice?>(owner);
 
     public void Update(BranchCatalog fresh)
     {
         if (fresh.DefaultBase == catalog.DefaultBase && fresh.Local.SequenceEqual(catalog.Local) && fresh.Remote.SequenceEqual(catalog.Remote) &&
-            fresh.SuggestedPath == catalog.SuggestedPath) return;
+            fresh.SuggestedPath == catalog.SuggestedPath && fresh.Current == catalog.Current) return;
+        var untouched = name.Text == SuggestedName;
         catalog = fresh;
+        if (untouched) name.Text = SuggestedName;
         if (!picked) selected = fresh.DefaultBase;
         Render();
     }
@@ -135,11 +160,12 @@ public sealed class NewWorkspaceDialog
     {
         worktreeTarget.IsChecked = !inFolder;
         folderTarget.IsChecked = inFolder;
-        heading.Text = inFolder ? "Work in project folder" : "Create workspace";
         description.Text = inFolder
-            ? "Work directly in your project folder, with no isolation: changes land in your current checkout."
-            : "A separate checkout on its own new branch. Files, changes, and terminals stay scoped to it.";
-        branchPicker.IsVisible = !inFolder;
+            ? "No isolation: work lands in your project folder's current checkout."
+            : "A separate git worktree on its own new branch.";
+        branchPicker.IsVisible = name.IsVisible = !inFolder;
+        currentBranch.IsVisible = inFolder && catalog.Current.Length > 0;
+        currentBranch.Text = "On " + catalog.Current;
         branchLabel.Text = selected;
         ((TextBlock)create.Content!).Text = inFolder ? "Start" : "Create";
         RenderOptions();
@@ -162,9 +188,9 @@ public sealed class NewWorkspaceDialog
             options.Children.Add(Heading("Remote"));
             foreach (var group in remote.GroupBy(branch => branch.Remote))
             {
-                var name = Heading(group.Key); name.Margin = new Thickness(8, 4, 0, 0);
-                options.Children.Add(name);
-                foreach (var branch in group) options.Children.Add(Option(branch.Ref, branch.Name));
+                var collapsed = collapsedRemotes.Contains(group.Key);
+                options.Children.Add(RemoteToggle(group.Key, collapsed));
+                if (!collapsed) foreach (var branch in group) options.Children.Add(Option(branch.Ref, branch.Name));
             }
         }
         if (options.Children.Count == 0)
@@ -180,6 +206,31 @@ public sealed class NewWorkspaceDialog
         var heading = Ui.Text(text, Ui.Hint, 11);
         heading.Name = "BranchGroup"; heading.Margin = new Thickness(0, 4, 0, 0);
         return heading;
+    }
+
+    // A remote's rows can be collapsed; the choice is remembered per remote name across pickers.
+    private Button RemoteToggle(string remote, bool collapsed)
+    {
+        var toggle = new Button
+        {
+            Name = "RemoteGroupToggle",
+            Tag = remote,
+            Content = Ui.Row(collapsed ? "arrowRight" : "arrowDown", remote, Ui.Hint),
+            Background = Avalonia.Media.Brushes.Transparent,
+            BorderThickness = new(0),
+            Padding = new Thickness(8, 4, 0, 0),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            HorizontalContentAlignment = HorizontalAlignment.Left
+        };
+        AutomationProperties.SetName(toggle, (collapsed ? "Expand " : "Collapse ") + remote);
+        toggle.Click += (_, _) =>
+        {
+            if (!collapsedRemotes.Add(remote)) collapsedRemotes.Remove(remote);
+            saveCollapsed();
+            RenderOptions();
+            options.Children.OfType<Button>().FirstOrDefault(button => button.Name == "RemoteGroupToggle" && Equals(button.Tag, remote))?.Focus();
+        };
+        return toggle;
     }
 
     private Button Option(string reference, string label)

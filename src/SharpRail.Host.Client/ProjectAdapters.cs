@@ -16,11 +16,13 @@ public sealed class LocalProjectAdapter(IProjectServices host) : IProjectService
     public ValueTask<IReadOnlyList<ProjectFile>> ListFilesAsync(string relativePath, CancellationToken cancellationToken = default) => host.ListFilesAsync(relativePath, cancellationToken);
     public ValueTask<FileDocument> ReadFileAsync(string relativePath, CancellationToken cancellationToken = default) => host.ReadFileAsync(relativePath, cancellationToken);
     public ValueTask<IReadOnlyList<SpecDocument>> ListSpecsAsync(CancellationToken cancellationToken = default) => host.ListSpecsAsync(cancellationToken);
+    public ValueTask<SearchHits> SearchAsync(string query, CancellationToken cancellationToken = default) => host.SearchAsync(query, cancellationToken);
     public ValueTask<GitSnapshot> GetGitAsync(string comparisonBranch = "", CancellationToken cancellationToken = default, string scope = "all") => host.GetGitAsync(comparisonBranch, cancellationToken, scope);
     public ValueTask<IReadOnlyList<GitCommit>> ListCommitsAsync(string comparisonBranch, CancellationToken cancellationToken = default) => host.ListCommitsAsync(comparisonBranch, cancellationToken);
     public ValueTask<string> GetDiffAsync(string path, string scope, string comparisonBranch = "", CancellationToken cancellationToken = default) => host.GetDiffAsync(path, scope, comparisonBranch, cancellationToken);
     public ValueTask<DiffSides> GetDiffSidesAsync(string path, string scope, string comparisonBranch = "", CancellationToken cancellationToken = default) => host.GetDiffSidesAsync(path, scope, comparisonBranch, cancellationToken);
     public ValueTask<GitSnapshot> ApplyGitActionAsync(GitAction action, CancellationToken cancellationToken = default) => host.ApplyGitActionAsync(action, cancellationToken);
+    public ValueTask ApplyFileActionAsync(FileAction action, CancellationToken cancellationToken = default) => host.ApplyFileActionAsync(action, cancellationToken);
     public ValueTask<BranchCatalog> ListBranchesAsync(bool fetchDefault, CancellationToken cancellationToken = default) => host.ListBranchesAsync(fetchDefault, cancellationToken);
     public ValueTask<IReadOnlyList<EditorInfo>> ListEditorsAsync(CancellationToken cancellationToken = default) => host.ListEditorsAsync(cancellationToken);
     public ValueTask OpenInEditorAsync(string editorId, string worktreePath, CancellationToken cancellationToken = default) => host.OpenInEditorAsync(editorId, worktreePath, cancellationToken);
@@ -73,8 +75,12 @@ public sealed class RemoteProjectAdapter : IProjectServices, IDisposable
 
     public async ValueTask<FileDocument> ReadFileAsync(string relativePath, CancellationToken cancellationToken = default)
     {
-        var reply = await service.ReadFileAsync(new() { Path = relativePath }, Context(cancellationToken));
-        return new(reply.Path, reply.Text, reply.ImageData);
+        try
+        {
+            var reply = await service.ReadFileAsync(new() { Path = relativePath }, Context(cancellationToken));
+            return new(reply.Path, reply.Text, reply.ImageData);
+        }
+        catch (RpcException error) when (error.StatusCode == StatusCode.NotFound) { throw new FileNotFoundException(error.Status.Detail, relativePath); }
     }
 
     public async ValueTask<GitSnapshot> GetGitAsync(string comparisonBranch = "", CancellationToken cancellationToken = default, string scope = "all")
@@ -87,6 +93,12 @@ public sealed class RemoteProjectAdapter : IProjectServices, IDisposable
     {
         var reply = await service.ListSpecsAsync(new(), Context(cancellationToken));
         return reply.Specs.Select(spec => new SpecDocument(spec.Id, spec.Title, spec.Path, spec.Parent, spec.Type)).ToArray();
+    }
+
+    public async ValueTask<SearchHits> SearchAsync(string query, CancellationToken cancellationToken = default)
+    {
+        var reply = await service.SearchAsync(new() { Path = query }, Context(cancellationToken));
+        return new(reply.Hits.Select(hit => new SearchHit(hit.Path, hit.Line, hit.Text)).ToArray(), reply.Truncated);
     }
 
     public async ValueTask<string> GetDiffAsync(string path, string scope, string comparisonBranch = "", CancellationToken cancellationToken = default)
@@ -104,11 +116,14 @@ public sealed class RemoteProjectAdapter : IProjectServices, IDisposable
     public async ValueTask SaveFileAsync(FileSaveRequest request, CancellationToken cancellationToken = default)
         => await service.SaveFileAsync(new() { WorkspaceRoot = request.WorkspaceRoot, Path = request.Path, OriginalText = request.OriginalText, Text = request.Text }, Context(cancellationToken));
 
+    public async ValueTask ApplyFileActionAsync(FileAction action, CancellationToken cancellationToken = default)
+        => await service.ApplyFileActionAsync(new() { Kind = action.Kind, Path = action.Path, To = action.To }, Context(cancellationToken));
+
     public async ValueTask<BranchCatalog> ListBranchesAsync(bool fetchDefault, CancellationToken cancellationToken = default)
     {
         var reply = await service.ListBranchesAsync(new() { FetchDefault = fetchDefault }, Context(cancellationToken));
         return new(reply.Local, reply.Remote.Select(branch => new RemoteBranch(branch.Remote, branch.Name)).ToArray(), reply.DefaultBase)
-        { SuggestedPath = reply.SuggestedPath, SuggestedBranch = reply.SuggestedBranch };
+        { SuggestedPath = reply.SuggestedPath, SuggestedBranch = reply.SuggestedBranch, Current = reply.Current };
     }
 
     public async ValueTask<IReadOnlyList<EditorInfo>> ListEditorsAsync(CancellationToken cancellationToken = default)

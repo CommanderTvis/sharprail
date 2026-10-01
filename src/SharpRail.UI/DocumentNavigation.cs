@@ -19,6 +19,7 @@ public sealed partial class WorkbenchWindow
         if (!WorkspaceMounted) return;
         if (atHome) await OpenWorkspaceAsync(projectRoot, false);
         if (!WorkspaceMounted || atHome) return;
+        keep |= !Preferences.PreviewTabs;
         var navigation = BeginNavigation();
         var identity = (workspaceRoot, path);
         if (browseFlights.TryGetValue(identity, out var pending))
@@ -46,6 +47,24 @@ public sealed partial class WorkbenchWindow
         }
         catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
         finally { browseFlights.Remove(identity); }
+    }
+
+    /// <summary>Mod+Shift+F: one query over the active worktree; a hit opens its file at that line.</summary>
+    private async Task SearchWorkspaceAsync()
+    {
+        if (OwnedWindows.Any(window => Equals(window.Tag, "SearchDialog"))) return;
+        var request = projectRequest; var workspace = workspaceRoot;
+        var dialog = new Panels.SearchDialog(async (query, token) =>
+        {
+            using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, lifetime.Token);
+            return await Task.Run(async () => await host.SearchAsync(query, linked.Token), linked.Token);
+        });
+        var undim = Dim();
+        Host.Abstractions.SearchHit? hit;
+        try { hit = await dialog.ShowAsync(this); }
+        finally { undim(); }
+        if (hit is null || request != projectRequest || workspace != workspaceRoot) return;
+        await OpenDocumentAsync(hit.Path, true, line: hit.Line);
     }
 
     private long AdvanceNavigation(string group)

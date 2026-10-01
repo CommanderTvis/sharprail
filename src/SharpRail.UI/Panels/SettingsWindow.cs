@@ -37,8 +37,9 @@ public sealed partial class SettingsWindow : Window
     /// Settings for <paramref name="window"/>. Shared settings round-trip through the host and every
     /// open Settings view re-renders when the snapshot arrives; <paramref name="apply"/> follows local changes.
     /// </summary>
-    public SettingsWindow(WorkbenchWindow window, Action apply, Func<CancellationToken, Task<GitHubStatus>>? gitHub = null)
+    public SettingsWindow(WorkbenchWindow window, Action apply, Func<CancellationToken, Task<GitHubStatus>>? gitHub = null, string section = "Appearance")
     {
+        this.section = section;
         this.window = window; profile = window.Workbench.Profile; state = window.Workbench.State; layout = window.Layout; this.apply = apply;
         this.gitHub = gitHub ?? GitHubProbe.CheckAsync;
         Closed += (_, _) => { lifetime.Cancel(); Ui.ThemeChanged -= SystemThemeChanged; state.Changed -= SharedChanged; };
@@ -73,6 +74,8 @@ public sealed partial class SettingsWindow : Window
         KeyDown += (_, e) => { if (e.Key == Key.Escape) { Close(); e.Handled = true; } };
         ShowSection(section);
     }
+
+    public string Section => section;
 
     public void ShowSection(string name)
     {
@@ -389,6 +392,9 @@ public sealed partial class SettingsWindow : Window
         alignment.ItemsSource = new[] { "center", "center-left", "center-right", "full" };
         alignment.SelectedItem = layout.State.BottomAlignment;
         alignment.SelectionChanged += (_, _) => { layout.Geometry(state => state.BottomAlignment = alignment.SelectedItem as string ?? "center"); Save(); };
+        var preview = PageControl<CheckBox>(panel, "PreviewTabs");
+        preview.IsChecked = state.Preferences.PreviewTabs;
+        preview.IsCheckedChanged += (_, _) => { state.Preferences.PreviewTabs = preview.IsChecked == true; Save(); };
         PageControl<ContentControl>(panel, "ResetFrame").Content = Ui.Button("Reset frame", async () => await ApplyLayout(defaultPreset), "refresh");
         return panel;
     }

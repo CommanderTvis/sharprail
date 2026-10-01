@@ -37,10 +37,11 @@ internal static class ProjectPickerE2E
     {
         using var app = new E2eWorkspace(Path.Combine(root, "projects-path-welcome"), openFiles: false);
         var repo = IsolatedGit.Repository(Path.Combine(root, "projects-path-repo"));
-        AddProject(app, "Enter host path…");
+        AddProject(app, "Enter path…");
         var dialog = Dialog(app);
-        Require(Named<TextBlock>(dialog, "DialogExplanation").Text!.Contains("computer running SharpRail", StringComparison.Ordinal),
-            "The host-path dialog must explain that the path is on the computer running SharpRail.");
+        // On the desktop the host is this computer, so the copy does not call it the host.
+        Require(Named<TextBlock>(dialog, "DialogExplanation").Text == "Enter the absolute path of a folder.",
+            "The local path dialog must not speak of another computer.");
         Require(!dialog.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "OpenProjectPickerError"),
             "A deliberate host-path entry must not show a picker error.");
         var input = Named<TextBox>(dialog, "OpenProjectPathInput");
@@ -79,7 +80,7 @@ internal static class ProjectPickerE2E
         app.Window.FolderPicker = () => { asked = true; return reply.Task; };
         AddProject(app, "Open project");
         Until(() => asked);
-        AddProject(app, "Enter host path…");
+        AddProject(app, "Enter path…");
         var dialog = Dialog(app);
         Named<TextBox>(dialog, "OpenProjectPathInput").Text = manual;
         app.Click(Named<Button>(dialog, "OpenProjectPathSubmit"));
@@ -100,14 +101,13 @@ internal static class ProjectPickerE2E
         File.WriteAllText(Path.Combine(plain, "notes.txt"), "not a repository yet\n");
         app.Window.FolderPicker = () => Task.FromResult<string?>(plain);
         AddProject(app, "Open project");
-        var dialog = Dialog(app);
-        app.Click(dialog.GetLogicalDescendants().OfType<Button>().Single(button => Label(button, "Initialise repository")));
-        Until(() => !app.Window.OwnedWindows.OfType<DialogWindow>().Any());
         WaitForProject(app, "projects-init-plain");
-        Until(() => app.Find<TextBlock>("BranchLabel").Text == "main");
-        Require(IsolatedGit.Run(plain, "ls-tree", "--name-only", "HEAD").Trim() == "notes.txt", "Initialising a folder must commit its existing files.");
-        WorkspaceTabsE2E.CreateWorkspace(app, "workspace-1");
-        Console.WriteLine("PASS upstream projects.spec.ts: opening a non-git folder offers to initialise a repo, then opens it end-to-end");
+        Settle(500);
+        Require(!app.Window.OwnedWindows.Any() && !Directory.Exists(Path.Combine(plain, ".git")),
+            "A plain folder opens directly, without offering or running git init.");
+        Require(!app.Window.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "AddWorkspace").IsEnabled,
+            "A plain folder has no repository for a worktree to attach to.");
+        Console.WriteLine("PASS fork gitless.spec.ts: a plain folder opens as a project, with no git required");
     }
 
     private static void RailExpansion(string root)
@@ -148,7 +148,6 @@ internal static class ProjectPickerE2E
     private static T Named<T>(Control container, string name) where T : Control =>
         container.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
 
-    private static bool Label(Button button, string label) => button.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == label);
 
     private static IEnumerable<string> ProjectNames(E2eWorkspace app) => app.Window.GetLogicalDescendants().OfType<Button>()
         .Where(button => button.Name == "ProjectExpand").Select(button => Path.GetFileName((string)button.Tag!));

@@ -12,12 +12,14 @@ internal sealed class TerminalRecorder(int snapshotBytes = TerminalRecorder.Snap
     internal const int ResumeBytes = 1024 * 1024;
     private static readonly int[] Tracked = [1, 7, 25, 2004];
     private static readonly int[] AlternateScreens = [47, 1047, 1049];
+    private static readonly int[] InputModes = [1000, 1002, 1003, 1006, 1007];
 
     private readonly SortedDictionary<int, bool> modes = [];
     private byte[] recorded = [];
     private int recordedLength;
     private byte[] carry = [];
-    private bool alternate;
+    private int? alternate;
+    private readonly SortedSet<int> input = [];
     private readonly byte[] resume = new byte[resumeBytes];
 
     // Total bytes of output ever pushed.
@@ -61,6 +63,17 @@ internal sealed class TerminalRecorder(int snapshotBytes = TerminalRecorder.Snap
         return [.. Encoding.ASCII.GetBytes(prefix.ToString()), .. recorded.AsSpan(0, recordedLength)];
     }
 
+    // The alternate screen and mouse/alternate-scroll modes of a full-screen program that is still on it.
+    // A fresh view of a live shell needs them after the snapshot; they never enter the snapshot itself, so
+    // an exited program's mouse tracking cannot outlive it.
+    internal byte[] LiveModes()
+    {
+        if (alternate is not { } screen) return [];
+        var modes = new StringBuilder($"\x1b[?{screen}h");
+        foreach (var mode in input) modes.Append($"\x1b[?{mode}h");
+        return Encoding.ASCII.GetBytes(modes.ToString());
+    }
+
     private void Retain(ReadOnlySpan<byte> chunk)
     {
         var position = Position;
@@ -81,17 +94,22 @@ internal sealed class TerminalRecorder(int snapshotBytes = TerminalRecorder.Snap
             var end = index + 3;
             while (end < text.Length && (char.IsAsciiDigit((char)text[end]) || text[end] == ';')) end++;
             if (end >= text.Length || (text[end] != 'h' && text[end] != 'l')) { index += 3; continue; }
-            if (!alternate) Append(text.AsSpan(cursor, index - cursor));
+            if (alternate is null) Append(text.AsSpan(cursor, index - cursor));
             var enabled = text[end] == 'h';
             foreach (var part in Encoding.ASCII.GetString(text, index + 3, end - index - 3).Split(';'))
             {
                 if (!int.TryParse(part, out var mode)) continue;
-                if (AlternateScreens.Contains(mode)) alternate = enabled;
+                if (AlternateScreens.Contains(mode))
+                {
+                    alternate = enabled ? mode : null;
+                    if (!enabled) input.Clear();
+                }
+                else if (InputModes.Contains(mode)) { if (enabled) input.Add(mode); else input.Remove(mode); }
                 else if (Tracked.Contains(mode)) modes[mode] = enabled;
             }
             cursor = index = end + 1;
         }
-        if (!alternate) Append(text.AsSpan(cursor));
+        if (alternate is null) Append(text.AsSpan(cursor));
     }
 
     private void Append(ReadOnlySpan<byte> text)

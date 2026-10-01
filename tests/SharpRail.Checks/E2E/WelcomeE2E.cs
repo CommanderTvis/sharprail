@@ -69,16 +69,14 @@ internal static class WelcomeE2E
         app.Click(cta);
         Until(() => cta.ContextMenu!.IsOpen);
         app.Click(cta.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Open project")), freshGesture: false);
-        var confirm = Dialog(app);
-        app.Click(confirm.GetLogicalDescendants().OfType<Button>().Single(button => Text(button) == "Initialise repository"));
-        Until(() => !app.Window.OwnedWindows.Any() && app.Window.AtProjectHome && app.Window.ProjectRoot == plain && HasWelcome(app));
-        Until(() => app.Find<TextBlock>("BranchLabel").Text == "main");
-        Require(Buttons(app).Any(button => button.Name == "ProjectName" && Equals(button.Tag, plain)), "The initialised folder must join the rail.");
-        Require(app.Tabs.Count == 0 && WelcomeTitle(app) == "plain-folder", "An initialised folder must land on its Project Home.");
+        Until(() => app.Window.AtProjectHome && app.Window.ProjectRoot == plain && HasWelcome(app));
+        Settle(500);
+        Require(!app.Window.OwnedWindows.Any() && !Directory.Exists(Path.Combine(plain, ".git")), "A plain folder opens without git init.");
+        Require(Buttons(app).Any(button => button.Name == "ProjectName" && Equals(button.Tag, plain)), "The plain folder must join the rail.");
+        Require(app.Tabs.Count == 0 && WelcomeTitle(app) == "plain-folder", "A plain folder must land on its Project Home.");
         Require(Buttons(app).Any(button => button.Name == "WelcomeAction" && Text(button).Contains("Work in project folder", StringComparison.Ordinal)),
             "Project Home must offer the project-folder fork.");
-        Require(Git(plain, "ls-tree", "--name-only", "HEAD") == "notes.txt", "Initialising must commit the folder's files.");
-        Console.WriteLine("PASS upstream welcome.spec.ts: opening a non-git folder from the Welcome screen offers to initialise a repo");
+        Console.WriteLine("PASS fork gitless.spec.ts: a plain folder opened from the Welcome screen lands on its Project Home, with no git required");
     }
 
     private static void ProjectClick(string directory)

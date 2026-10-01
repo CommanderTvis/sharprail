@@ -45,6 +45,16 @@ public sealed partial class WorkbenchWindow
     private string ReadyBranchText() => workspaceRoot == projectRoot ? "on " + branchLabel.Text :
         branchLabel.Text + (comparison.Length > 0 ? " · from " + comparison : "");
 
+    /// <summary>"from main" is a word and a branch with nothing joining them; hovering says both things it means.</summary>
+    private void UpdateReadyBranch()
+    {
+        if (readyBranch is null) return;
+        readyBranch.Text = ReadyBranchText();
+        ToolTip.SetTip(readyBranch, workspaceRoot != projectRoot && comparison.Length > 0
+            ? $"This workspace was cut from {comparison}, and its changes are measured against it."
+            : null);
+    }
+
     private async Task StartAsync()
     {
         var data = slot;
@@ -138,7 +148,7 @@ public sealed partial class WorkbenchWindow
     {
         var menu = new ContextMenu();
         menu.Items.Add(Ui.Menu("Open project", () => _ = PickProjectAsync()));
-        menu.Items.Add(Ui.Menu("Enter host path…", () => _ = EnterHostPathAsync(null)));
+        menu.Items.Add(Ui.Menu(remote ? "Enter host path…" : "Enter path…", () => _ = EnterHostPathAsync(null)));
         var recents = state.Current.RecentProjects.Where(path => !state.Current.Projects.Contains(path)).ToArray();
         if (recents.Length == 0) return menu;
         menu.Items.Add(new Separator());
@@ -157,10 +167,14 @@ public sealed partial class WorkbenchWindow
         var menu = new ContextMenu { Name = "ProjectActions" };
         var create = Ui.Menu("Create workspace", () => _ = CreateWorkspaceForAsync(project));
         create.Name = "ProjectMenuCreateWorkspace"; create.Icon = Ui.Icon("add", null, 14);
+        // Copying neither selects the project nor activates a workspace.
+        var copy = Ui.Menu("Copy absolute path", () => _ = CopyTextAsync(project));
+        copy.Name = "ProjectMenuCopyPath";
         var close = Ui.Menu("Close project", () => _ = CloseProjectAsync(project));
         close.Name = "ProjectMenuClose"; close.Icon = Ui.Icon("close", null, 14);
         menu.Items.Add(create);
         menu.Items.Add(new Separator());
+        menu.Items.Add(copy);
         menu.Items.Add(close);
         menu.Closed += (_, _) => { if (!creatingWorkspace) FocusProject(project); };
         return menu;
@@ -224,7 +238,7 @@ public sealed partial class WorkbenchWindow
                 return;
             }
             if (request != projectRequest) return;
-            var dialog = new NewWorkspaceDialog(DirectoryName(project), catalog);
+            var dialog = new NewWorkspaceDialog(DirectoryName(project), catalog, profile.Data.CollapsedRemotes, SaveProfile);
             _ = PrefetchDefaultAsync(dialog);
             var choice = await dialog.ShowAsync(this);
             if (choice is null || request != projectRequest) return;
@@ -252,6 +266,7 @@ public sealed partial class WorkbenchWindow
         {
             git = await host.ApplyGitActionAsync(new("create-worktree", choice.Path, choice.Branch, choice.Base), lifetime.Token);
             if (choice.Base.Length > 0 && choice.Base != "HEAD") profile.Data.GitSelections[choice.Path] = new(choice.Base, "All changes", null);
+            if (choice.Name is { } name) await state.ChangeAsync(HostStateChange.Label(choice.Path, name));
             await OpenWorkspaceAsync(choice.Path, false);
         }
         catch (Exception error) when (error is not OperationCanceledException)
@@ -288,9 +303,12 @@ public sealed partial class WorkbenchWindow
             FillEditors(openIn, worktree.Path);
         };
         menu.Items.Add(openIn);
-        var copy = Ui.Menu("Copy path", () => _ = CopyWorkspacePathAsync(worktree.Path));
+        var copy = Ui.Menu("Copy absolute path", () => _ = CopyTextAsync(worktree.Path));
         copy.Name = "WorkspaceCopyPath";
         menu.Items.Add(copy);
+        var copyName = Ui.Menu("Copy name", () => _ = CopyTextAsync(WorkspaceName(worktree.Path)));
+        copyName.Name = "WorkspaceCopyName";
+        menu.Items.Add(copyName);
         if (worktree.IsMain) return menu;
         var rename = Ui.Menu("Rename", () => StartRename(worktree.Path));
         rename.Name = "WorkspaceRename";
@@ -321,9 +339,9 @@ public sealed partial class WorkbenchWindow
         catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
     }
 
-    private async Task CopyWorkspacePathAsync(string path)
+    private async Task CopyTextAsync(string text)
     {
-        if (Clipboard is not null) await Clipboard.SetTextAsync(path);
+        if (Clipboard is not null) await Clipboard.SetTextAsync(text);
     }
 
     private void StartRename(string path)

@@ -23,7 +23,13 @@ public sealed class ProjectRpc(ProjectSessions sessions) : IProjectRpc
 
     public ValueTask<DocumentReply> ReadFileAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>
     {
-        var result = await Host(context).ReadFileAsync(request.Path, context.CancellationToken);
+        FileDocument result;
+        try { result = await Host(context).ReadFileAsync(request.Path, context.CancellationToken); }
+        // A missing file is the one read failure a client acts on: an open tab marks its file deleted on disk.
+        catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException)
+        {
+            throw new RpcException(new Status(StatusCode.NotFound, error.Message));
+        }
         return new DocumentReply { Path = result.Path, Text = result.Text, ImageData = result.ImageData };
     });
 
@@ -39,6 +45,12 @@ public sealed class ProjectRpc(ProjectSessions sessions) : IProjectRpc
         return new SpecsReply { Specs = result.Select(spec => new SpecReply { Id = spec.Id, Title = spec.Title, Path = spec.Path, Parent = spec.Parent, Type = spec.Type }).ToList() };
     });
 
+    public ValueTask<SearchReply> SearchAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>
+    {
+        var result = await Host(context).SearchAsync(request.Path, context.CancellationToken);
+        return new SearchReply { Hits = result.Hits.Select(hit => new SearchHitReply { Path = hit.Path, Line = hit.Line, Text = hit.Text }).ToList(), Truncated = result.Truncated };
+    });
+
     public ValueTask<DocumentReply> GetDiffAsync(ProjectRequest request, CallContext context = default)
         => Execute(async () => new DocumentReply { Path = request.Path, Text = await Host(context).GetDiffAsync(request.Path, request.Scope, request.Branch, context.CancellationToken) });
 
@@ -51,6 +63,12 @@ public sealed class ProjectRpc(ProjectSessions sessions) : IProjectRpc
     public ValueTask<GitReply> ApplyGitActionAsync(ProjectRequest request, CallContext context = default)
         => Execute(async () => Map(await Host(context).ApplyGitActionAsync(new(request.Action, request.Path, request.Branch, request.BaseBranch), context.CancellationToken)));
 
+    public ValueTask<SaveFileReply> ApplyFileActionAsync(FileActionRequest request, CallContext context = default) => Execute(async () =>
+    {
+        await Host(context).ApplyFileActionAsync(new(request.Kind, request.Path, request.To), context.CancellationToken);
+        return new SaveFileReply();
+    });
+
     public ValueTask<BranchesReply> ListBranchesAsync(BranchesRequest request, CallContext context = default) => Execute(async () =>
     {
         var result = await Host(context).ListBranchesAsync(request.FetchDefault, context.CancellationToken);
@@ -60,7 +78,8 @@ public sealed class ProjectRpc(ProjectSessions sessions) : IProjectRpc
             Remote = result.Remote.Select(branch => new RemoteBranchReply { Remote = branch.Remote, Name = branch.Name }).ToList(),
             DefaultBase = result.DefaultBase,
             SuggestedPath = result.SuggestedPath,
-            SuggestedBranch = result.SuggestedBranch
+            SuggestedBranch = result.SuggestedBranch,
+            Current = result.Current
         };
     });
 

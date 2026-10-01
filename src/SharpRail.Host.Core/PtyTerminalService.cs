@@ -14,9 +14,15 @@ namespace SharpRail.Host.Core;
 public sealed class PtyTerminalService : ITerminalService, IAsyncDisposable
 {
     private readonly Dictionary<string, HostedTerminal> sessions = [];
+    // One MCP identity per session: its token names the workspace an agent in that shell works in.
+    private readonly Dictionary<string, string> tokens = [];
+    private readonly ConcurrentDictionary<string, string> workspaces = new(StringComparer.Ordinal);
     private readonly Lock gate = new();
     private readonly string? shell;
     private bool disposed;
+
+    /// <summary>The loopback base URL of the host's MCP route, stamped into shells started after it is set.</summary>
+    public string? McpEndpoint { get; set; }
 
     // A null shell runs the user's login shell.
     public PtyTerminalService(string? shell = null)
@@ -38,7 +44,15 @@ public sealed class PtyTerminalService : ITerminalService, IAsyncDisposable
             if (request.Resume) throw new IOException("The terminal session no longer exists.");
             var directory = Path.GetFullPath(request.WorkspaceRoot);
             if (!Directory.Exists(directory)) throw new DirectoryNotFoundException($"The workspace folder {directory} does not exist.");
-            var process = PtySession.Start(request.SessionId, shell ?? LoginShell(), directory, request.Columns, request.Rows);
+            string? mcp = null;
+            if (McpEndpoint is { } endpoint)
+            {
+                if (!tokens.TryGetValue(request.SessionId, out var token))
+                    tokens[request.SessionId] = token = Convert.ToHexStringLower(System.Security.Cryptography.RandomNumberGenerator.GetBytes(16));
+                workspaces[token] = directory;
+                mcp = $"{endpoint}/mcp/{token}";
+            }
+            var process = PtySession.Start(request.SessionId, shell ?? LoginShell(), directory, request.Columns, request.Rows, mcp);
             var terminal = new HostedTerminal(process, request.Columns, request.Rows);
             sessions.Add(request.SessionId, terminal);
             return ValueTask.FromResult<ITerminalSession>(terminal.Attach(request, created: true));
@@ -54,9 +68,16 @@ public sealed class PtyTerminalService : ITerminalService, IAsyncDisposable
     public async ValueTask CloseAsync(string sessionId, CancellationToken cancellationToken = default)
     {
         HostedTerminal? terminal;
-        lock (gate) sessions.Remove(sessionId, out terminal);
+        lock (gate)
+        {
+            sessions.Remove(sessionId, out terminal);
+            if (tokens.Remove(sessionId, out var token)) workspaces.TryRemove(token, out _);
+        }
         if (terminal is not null) await terminal.Process.DisposeAsync();
     }
+
+    /// <summary>The workspace root of the terminal a token was minted for, or null for an unknown token.</summary>
+    public string? McpWorkspace(string token) => workspaces.GetValueOrDefault(token);
 
     public async ValueTask DisposeAsync()
     {
@@ -72,7 +93,7 @@ public sealed class PtyTerminalService : ITerminalService, IAsyncDisposable
         return File.Exists("/bin/zsh") && Posix.Mac ? "/bin/zsh" : "/bin/sh";
     }
 
-    internal static string?[] ShellEnvironment()
+    internal static string?[] ShellEnvironment(string? mcpUrl = null)
     {
         var variables = new SortedDictionary<string, string>(StringComparer.Ordinal);
         foreach (DictionaryEntry entry in Environment.GetEnvironmentVariables())
@@ -81,6 +102,12 @@ public sealed class PtyTerminalService : ITerminalService, IAsyncDisposable
         variables.Remove("SHARPRAIL_TOKEN");
         variables["TERM"] = "xterm-256color";
         variables["COLORTERM"] = "truecolor";
+        // The PTY registers no utmpx record, so a login shell without LOGNAME asks getlogin(), which reads
+        // whatever stale record the reused device carries. The name comes from the uid instead.
+        variables["USER"] = variables["LOGNAME"] = Environment.UserName;
+        // The name the ThinkRail Claude Code plugin's .mcp.json expands, so it works unchanged here.
+        if (mcpUrl is null) variables.Remove("THINKRAIL_MCP_URL");
+        else variables["THINKRAIL_MCP_URL"] = mcpUrl;
         var locale = variables.GetValueOrDefault("LC_ALL") is { Length: > 0 } all ? all
             : variables.GetValueOrDefault("LC_CTYPE") is { Length: > 0 } ctype ? ctype : variables.GetValueOrDefault("LANG") ?? "";
         if (!locale.Contains("UTF-8", StringComparison.OrdinalIgnoreCase) && !locale.Contains("utf8", StringComparison.OrdinalIgnoreCase))
@@ -125,7 +152,7 @@ internal sealed class PtySession : IAsyncDisposable
         new Thread(Pump) { IsBackground = true, Name = "SharpRail PTY read " + pid }.Start();
     }
 
-    internal static PtySession Start(string id, string shell, string directory, int columns, int rows)
+    internal static PtySession Start(string id, string shell, string directory, int columns, int rows, string? mcpUrl = null)
     {
         var master = Posix.OpenPt(Posix.ORdwr | Posix.ONoctty);
         if (master < 0) throw new IOException("Couldn't open a pseudo-terminal: " + Posix.LastError());
@@ -141,7 +168,7 @@ internal sealed class PtySession : IAsyncDisposable
             slave = Posix.Open(device, Posix.ORdwr | Posix.ONoctty);
             if (slave < 0) throw new IOException("Couldn't open the pseudo-terminal: " + Posix.LastError());
             Posix.SetWindowSize(master, columns, rows);
-            var pid = Spawn(shell, directory, device);
+            var pid = Spawn(shell, directory, device, mcpUrl);
             return new PtySession(id, master, slave, pid);
         }
         catch
@@ -152,7 +179,7 @@ internal sealed class PtySession : IAsyncDisposable
         }
     }
 
-    private static int Spawn(string shell, string directory, string device)
+    private static int Spawn(string shell, string directory, string device, string? mcpUrl)
     {
         // posix_spawnattr_t and posix_spawn_file_actions_t are pointers on macOS and structs on Linux.
         var attributes = Marshal.AllocHGlobal(1024);
@@ -178,7 +205,7 @@ internal sealed class PtySession : IAsyncDisposable
             var (program, arguments) = Posix.Mac
                 ? ("/bin/sh", new[] { "sh", "-c", "exec 3<>\"$1\" 3>&-; shift; exec \"$@\"", "sh", device, shell, "-l", null })
                 : (shell, new[] { "-" + Path.GetFileName(shell), null });
-            var result = Posix.Spawn(out var pid, program, actions, attributes, arguments, PtyTerminalService.ShellEnvironment());
+            var result = Posix.Spawn(out var pid, program, actions, attributes, arguments, PtyTerminalService.ShellEnvironment(mcpUrl));
             if (result != 0) throw new IOException($"Couldn't start {shell}: {Posix.Error(result)}.");
             return pid;
         }

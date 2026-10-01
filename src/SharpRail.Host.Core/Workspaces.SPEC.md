@@ -38,7 +38,8 @@ removes it or writes into it on its own.
 - Create cuts a new branch with `worktree add -b <branch> -- <path> <base>` from a base chosen in a
   searchable list grouped by Local and each remote. The branch passes `check-ref-format --branch` and the
   base must resolve to a commit before Git mutates anything. A remote base is fetched first; a fetch that
-  fails fails the create with Git's own message.
+  fails fails the create with Git's own message. A repository whose `HEAD` is unborn is refused first, by
+  name ("This repository has no commits yet…"), instead of surfacing `invalid reference: HEAD`.
 - The suggested location is `<main worktree>-worktrees/workspace-N` with branch `workspace-N`, where N is
   the first number whose directory and local branch are both free — removal keeps the branch, so both
   must be checked.

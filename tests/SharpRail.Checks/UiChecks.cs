@@ -87,6 +87,8 @@ internal static class UiChecks
         E2E.DefaultWorkspaceE2E.Run(root);
         E2E.WorkspaceLifecycleE2E.Run(root);
         E2E.NewWorkspaceE2E.Run(root);
+        E2E.BranchListE2E.Run(root);
+        E2E.SearchE2E.Run(root);
         E2E.ReloadNavigationE2E.Run(root);
         E2E.FilesE2E.Run(root);
         E2E.ProjectContextE2E.Run(root);
@@ -127,20 +129,21 @@ internal static class UiChecks
         E2E.MarkdownLinksE2E.Run(Path.Combine(root, "upstream-e2e"));
         E2E.MarkdownAlertsE2E.Run(Path.Combine(root, "upstream-e2e"));
         E2E.MarkdownMermaidE2E.Run(Path.Combine(root, "upstream-e2e"));
+        E2E.MarkdownDocumentE2E.Run(Path.Combine(root, "upstream-e2e"));
         E2E.EditorE2E.Run(Path.Combine(root, "upstream-e2e"));
         E2E.LayoutE2E.Run(Path.Combine(root, "upstream-e2e"));
         using (var frontmatterPreview = new MarkdownPreview("---\nid: private-metadata\ntitle: Internal title\n---\n\n# Visible heading\n\nVisible paragraph.",
             "metadata.md", host, store.Data.Preferences, (_, _) => { }))
         {
-            var visibleText = frontmatterPreview.GetLogicalDescendants().OfType<SelectableTextBlock>().Select(text => text.Text ??
-                string.Concat(text.Inlines?.OfType<Run>().Select(run => run.Text) ?? []));
+            // Frontmatter is a properties block ahead of the prose, never a stray heading or paragraph in it.
+            var blocks = ((StackPanel)frontmatterPreview.Content!).Children;
+            var visibleText = blocks.Skip(1).SelectMany(block => block.GetLogicalDescendants().OfType<SelectableTextBlock>().Prepend(block as SelectableTextBlock))
+                .OfType<SelectableTextBlock>().Select(text => text.Text ?? string.Concat(text.Inlines?.OfType<Run>().Select(run => run.Text) ?? []));
             var renderedText = string.Join("\n", visibleText);
             Require(renderedText.Contains("Visible heading", StringComparison.Ordinal) && renderedText.Contains("Visible paragraph.", StringComparison.Ordinal) &&
-                ((StackPanel)frontmatterPreview.Content!).Children.Count == 3 &&
-                ((StackPanel)frontmatterPreview.Content!).Children[0] is Border { Name: "MarkdownFrontmatter" } metadata &&
-                string.Concat(metadata.GetLogicalDescendants().OfType<SelectableTextBlock>().Single().Inlines!.OfType<Run>().Select(run => run.Text)) ==
-                    "id: private-metadata\ntitle: Internal title",
-                "Markdown frontmatter must render first as a code block, not as headings or stray paragraphs.");
+                !renderedText.Contains("private-metadata", StringComparison.Ordinal) && !renderedText.Contains("Internal title", StringComparison.Ordinal) &&
+                blocks.Count == 3 && blocks[0].Name == "FrontmatterProperties" && frontmatterPreview.GetLogicalDescendants().OfType<Control>().All(control => control.Name != "SpecTitle"),
+                "Markdown frontmatter must render as a properties block, not leak into the prose.");
         }
         foreach (var size in new[] { 14d, 24d })
         {

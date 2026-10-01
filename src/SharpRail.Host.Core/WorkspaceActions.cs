@@ -42,7 +42,10 @@ public sealed partial class ProjectServices
             if (branch != "HEAD") remote.Add(new(owner, branch));
         }
         var (path, suggested) = await NextWorkspaceAsync(currentRoot, cancellationToken);
-        return new(local, remote, defaultBase) { SuggestedPath = path, SuggestedBranch = suggested };
+        string current;
+        try { current = (await GitRepository.RunAsync(currentRoot, cancellationToken, "symbolic-ref", "--quiet", "--short", "HEAD")).Trim(); }
+        catch (IOException) { current = ""; }
+        return new(local, remote, defaultBase) { SuggestedPath = path, SuggestedBranch = suggested, Current = current };
     }
 
     public ValueTask<IReadOnlyList<EditorInfo>> ListEditorsAsync(CancellationToken cancellationToken = default)

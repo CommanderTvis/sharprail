@@ -20,6 +20,7 @@ public sealed partial class WorkbenchWindow
 {
     private readonly Dictionary<string, IReadOnlyList<ProjectFile>> folderCache = [];
     private readonly HashSet<string> expandedFolders = [];
+    private readonly HashSet<string> specsReseated = [];
 
     public Func<Task<string?>>? FolderPicker { get; set; }
     private int projectPicker;
@@ -46,7 +47,7 @@ public sealed partial class WorkbenchWindow
     private async Task EnterHostPathAsync(string? pickerError)
     {
         var picker = ++projectPicker;
-        var path = await Dialogs.HostPath(this, workspaceRoot, pickerError);
+        var path = await Dialogs.HostPath(this, workspaceRoot, pickerError, remote);
         if (path is null || picker != projectPicker) return;
         projectPicker++;
         await OpenPickedProjectAsync(path);
@@ -57,14 +58,6 @@ public sealed partial class WorkbenchWindow
         try
         {
             await OpenProjectHomeAsync(path);
-            if (!WorkspaceMounted) return;
-            var request = projectRequest;
-            var snapshot = await host.GetGitAsync("", lifetime.Token);
-            if (request != projectRequest || snapshot.IsRepository) return;
-            if (!await Dialogs.Confirm(this, "Initialise a Git repository?",
-                $"{path} is not a Git repository. SharpRail can run git init and record an empty first commit so worktrees work.", "Initialise repository")) return;
-            await host.ApplyGitActionAsync(new("init"), lifetime.Token);
-            if (request == projectRequest) await RefreshAsync();
         }
         catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
     }
@@ -258,6 +251,7 @@ public sealed partial class WorkbenchWindow
         };
         AutomationProperties.SetName(node, file.Name);
         AutomationProperties.SetHelpText(node, file.Path);
+        node.ContextMenu = FileActions(file, node);
         if (file.IsDirectory)
         {
             if (folderCache.TryGetValue(file.Path, out var children))
@@ -311,6 +305,93 @@ public sealed partial class WorkbenchWindow
         return node;
     }
 
+    // Each platform's file manager has its own name, and the wrong one reads as a bug.
+    private static readonly string RevealLabel = OperatingSystem.IsMacOS() ? "Reveal in Finder"
+        : OperatingSystem.IsWindows() ? "Show in Explorer" : "Open containing folder";
+
+    private ContextMenu FileActions(ProjectFile file, TreeViewItem node)
+    {
+        // New creates inside a folder row and beside a file row; a compact chain's row stands for its deepest folder.
+        var parent = Path.GetDirectoryName(file.Path) ?? "";
+        var into = file.IsDirectory ? file.Path : parent;
+        var menu = new ContextMenu { Name = "FileNodeActions" };
+        void Add(string header, string name, Action action, string? icon = null)
+        {
+            var item = Ui.Menu(header, action);
+            item.Name = name;
+            if (icon is not null) item.Icon = Ui.Icon(icon, null, 14);
+            menu.Items.Add(item);
+        }
+        Add("New file…", "FileNodeNewFile", () => _ = CreatePathAsync(into, false, node), "fileText");
+        Add("New folder…", "FileNodeNewFolder", () => _ = CreatePathAsync(into, true, node), "folder");
+        menu.Items.Add(new Separator());
+        Add(RevealLabel, "FileNodeReveal", () => _ = FileActionAsync(new("reveal", file.Path)), "folderOpen");
+        Add("Copy absolute path", "FileNodeCopyPath", () => _ = CopyTextAsync(Path.Combine(workspaceRoot, file.Path)));
+        Add("Rename…", "FileNodeRename", () => _ = RenamePathAsync(file));
+        Add(file.IsDirectory ? "Delete folder" : "Delete file", "FileNodeDelete", () => _ = TrashPathAsync(file), "trash");
+        return menu;
+    }
+
+    private static bool PathListed(IReadOnlyList<ProjectFile> entries, string path) => entries.Any(entry =>
+        entry.Path == path || entry.Path.StartsWith(path + Path.DirectorySeparatorChar, StringComparison.Ordinal));
+
+    private async Task CreatePathAsync(string folder, bool directory, TreeViewItem node)
+    {
+        var workspace = workspaceRoot;
+        string Target(string name) => Path.Combine(folder, name.Replace('/', Path.DirectorySeparatorChar));
+        // A collapsed folder has not been listed yet; its names are needed to warn about a collision as it is typed.
+        if (!folderCache.TryGetValue(folder, out var entries))
+        {
+            try { entries = await host.ListFilesAsync(folder, lifetime.Token); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { entries = []; }
+            catch (Exception error) when (error is not OperationCanceledException) { Report(error); return; }
+            if (workspace != workspaceRoot) return;
+        }
+        await Dialogs.PathName(this, directory ? "New folder" : "New file", "", "Create",
+            name => PathListed(entries, Target(name)), async name =>
+            {
+                await host.ApplyFileActionAsync(new(directory ? "create-folder" : "create-file", Target(name)), lifetime.Token);
+                if (workspace != workspaceRoot) return;
+                if (node.Tag is ProjectFile { IsDirectory: true }) node.IsExpanded = true;
+                await RefreshFilesAsync(projectRequest);
+                if (!directory) await BrowseDocumentAsync(Target(name), true);
+            });
+    }
+
+    private async Task RenamePathAsync(ProjectFile file)
+    {
+        var parent = Path.GetDirectoryName(file.Path) ?? "";
+        string Target(string name) => Path.Combine(parent, name.Replace('/', Path.DirectorySeparatorChar));
+        await Dialogs.PathName(this, "Rename " + Path.GetFileName(file.Path), Path.GetFileName(file.Path), "Rename",
+            name => !string.Equals(Target(name), file.Path, StringComparison.OrdinalIgnoreCase) &&
+                PathListed(folderCache.GetValueOrDefault(parent) ?? [], Target(name)),
+            async name =>
+            {
+                await host.ApplyFileActionAsync(new("rename", file.Path, Target(name)), lifetime.Token);
+                await RefreshFilesAsync(projectRequest);
+            });
+    }
+
+    private async Task TrashPathAsync(ProjectFile file)
+    {
+        var name = Path.GetFileName(file.Path);
+        var kind = file.IsDirectory ? "Delete folder" : "Delete file";
+        if (!await Dialogs.Confirm(this, $"Delete {name}?",
+            $"{name} moves to the {(OperatingSystem.IsWindows() ? "Recycle Bin" : "Trash")}, where it can be restored.", kind, "FileNodeDeleteConfirm")) return;
+        await FileActionAsync(new("trash", file.Path));
+    }
+
+    private async Task FileActionAsync(FileAction action)
+    {
+        try
+        {
+            await host.ApplyFileActionAsync(action, lifetime.Token);
+            // The local watcher refreshes the tree too; a remote workspace has only this refresh.
+            if (action.Kind != "reveal") await RefreshFilesAsync(projectRequest);
+        }
+        catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
+    }
+
     private static bool IsOwnHeader(TreeViewItem node, Control source)
     {
         return ReferenceEquals(source is TreeViewItem ? source : source.GetVisualAncestors().OfType<TreeViewItem>().FirstOrDefault(), node);
@@ -326,11 +407,12 @@ public sealed partial class WorkbenchWindow
 
     private async Task PopulateSpecsAsync(TreeView tree)
     {
-        var request = projectRequest;
+        var request = projectRequest; var workspace = workspaceRoot;
         try
         {
             var specs = await Task.Run(async () => await host.ListSpecsAsync(lifetime.Token), lifetime.Token);
-            if (request != projectRequest) return;
+            if (request != projectRequest || workspace != workspaceRoot) return;
+            if (specs.Count == 0 && specsReseated.Add(workspace)) ReseatEmptySpecs();
             var byParent = specs.GroupBy(spec => spec.Parent).ToDictionary(group => group.Key, group => group.ToArray());
             var ids = specs.Select(spec => spec.Id).ToHashSet();
             var roots = specs.Where(spec => spec.Parent.Length == 0 || !ids.Contains(spec.Parent)).ToArray();
@@ -386,6 +468,16 @@ public sealed partial class WorkbenchWindow
             if (tree.Items.Count == 0) tree.Items.Add(new TreeViewItem { Header = Ui.Text("No specifications in this project", Ui.Hint, 12) });
         }
         catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
+    }
+
+    /// <summary>
+    /// A workspace without a spec graph opens its rail on the next tool rather than on the empty Specs panel.
+    /// Applied once per workspace, and only to a group still on the seeded first tool; Specs stays docked.
+    /// </summary>
+    private void ReseatEmptySpecs()
+    {
+        foreach (var group in Layout.State.Groups.Where(group => group.Region != "center" && group.Tools.Count > 1 && group.Tools[0].Id == "specs"))
+            if (Layout.Selected(group.Id)?.Id == "specs") Layout.Reseat(group.Id, group.Tools[1].Id);
     }
 
     private static Control TreeRow(string icon, string title, bool primary = false)

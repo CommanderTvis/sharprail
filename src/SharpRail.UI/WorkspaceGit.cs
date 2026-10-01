@@ -51,7 +51,7 @@ public sealed partial class WorkbenchWindow
             gitCommits = scope == "commit" ? catalog : snapshot.Commits;
             branchLabel.Text = snapshot.IsRepository ? snapshot.Branch : "";
             branchIcon.IsVisible = snapshot.IsRepository;
-            if (readyBranch is not null) readyBranch.Text = ReadyBranchText();
+            UpdateReadyBranch();
             gitLoading = false; gitError = null;
             RefreshGitPanels();
             _ = RefreshDiffTabsAsync(request);

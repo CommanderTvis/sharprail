@@ -59,6 +59,39 @@ internal static class ProjectChecks
             try { await local.ReadFileAsync("blob.bin"); throw new InvalidOperationException("Invalid UTF-8 opened as text."); }
             catch (IOException error) { Require(error.Message == "Binary files cannot be previewed.", "Invalid UTF-8 must be reported as binary."); }
             Require((await remote.ListSpecsAsync()).SequenceEqual(await local.ListSpecsAsync()), "Remote specs differ.");
+            await File.WriteAllTextAsync(Path.Combine(fixture, "haystack.txt"), "alpha\nbeta NEEDLE beta\n");
+            var found = await local.SearchAsync("needle");
+            Require(found.Hits.Any(hit => hit is { Path: "haystack.txt", Line: 2, Text: "beta NEEDLE beta" }) && !found.Truncated,
+                "Search must find a case-insensitive substring by path and line.");
+            Require(!(await local.SearchAsync("after")).Hits.Any(hit => hit.Path == "controls.txt"), "Search must skip files carrying a NUL byte.");
+            var remoteFound = await remote.SearchAsync("needle");
+            Require(remoteFound.Hits.SequenceEqual(found.Hits) && remoteFound.Truncated == found.Truncated, "Remote search differs.");
+            Require((await remote.SearchAsync("")).Hits.Count == 0, "An empty query must find nothing.");
+            foreach (var (service, label) in new[] { (local, "local"), ((IProjectServices)remote, "remote") })
+            {
+                var folder = Path.Combine("created-" + label, "inner");
+                await service.ApplyFileActionAsync(new("create-folder", folder));
+                await service.ApplyFileActionAsync(new("create-file", Path.Combine(folder, "a.txt")));
+                Require(File.Exists(Path.Combine(fixture, folder, "a.txt")), label + " create-file must make an empty file inside its folder.");
+                try { await service.ApplyFileActionAsync(new("create-file", Path.Combine(folder, "a.txt"))); throw new InvalidOperationException(label + " create overwrote a file."); }
+                catch (Exception error) when (error is IOException or Grpc.Core.RpcException) { }
+                await File.WriteAllTextAsync(Path.Combine(fixture, folder, "b.txt"), "kept\n");
+                try { await service.ApplyFileActionAsync(new("rename", Path.Combine(folder, "a.txt"), Path.Combine(folder, "b.txt"))); throw new InvalidOperationException(label + " rename replaced a file."); }
+                catch (Exception error) when (error is IOException or Grpc.Core.RpcException) { }
+                await service.ApplyFileActionAsync(new("rename", Path.Combine(folder, "a.txt"), Path.Combine(folder, "c.txt")));
+                Require(File.Exists(Path.Combine(fixture, folder, "c.txt")) && !File.Exists(Path.Combine(fixture, folder, "a.txt")) &&
+                    await File.ReadAllTextAsync(Path.Combine(fixture, folder, "b.txt")) == "kept\n", label + " rename must move only its own file.");
+                foreach (var escape in new FileAction[] { new("create-file", "../escaped.txt"), new("trash", ""), new("rename", "", "renamed") })
+                {
+                    var refused = false;
+                    try { await service.ApplyFileActionAsync(escape); }
+                    catch (Exception error) when (error is UnauthorizedAccessException or InvalidOperationException or Grpc.Core.RpcException) { refused = true; }
+                    Require(refused, $"{label} {escape.Kind} accepted \"{escape.Path}\".");
+                }
+                try { await service.ReadFileAsync(Path.Combine(folder, "gone.txt")); throw new InvalidOperationException(label + " read a missing file."); }
+                catch (FileNotFoundException) { }
+                Directory.Delete(Path.Combine(fixture, "created-" + label), recursive: true);
+            }
             var snapshot = await remote.GetGitAsync();
             Require(!snapshot.IsRepository, "Non-git directory detected as repository.");
             var broken = Path.Combine(fixture, "broken-git");
@@ -74,6 +107,22 @@ internal static class ProjectChecks
             {
                 Require(error.StatusCode == Grpc.Core.StatusCode.FailedPrecondition && GitDetail(error.Status.Detail, broken),
                     "Remote Git probe failure detail differs.");
+            }
+            var unborn = Path.Combine(fixture, "unborn-git");
+            Directory.CreateDirectory(unborn);
+            await Git(unborn, "init", "-b", "main");
+            foreach (var host in new[] { local, remote })
+            {
+                await host.OpenProjectAsync(unborn);
+                try
+                {
+                    await host.ApplyGitActionAsync(new("create-worktree", unborn + "-worktree", "first", "HEAD"));
+                    throw new InvalidOperationException("A worktree was cut from a repository with no commits.");
+                }
+                catch (Exception error) when (error is InvalidOperationException or Grpc.Core.RpcException &&
+                    error.Message.Contains("no commits yet", StringComparison.Ordinal))
+                { }
+                Require(!Directory.Exists(unborn + "-worktree"), "An unborn repository must be refused before Git mutates anything.");
             }
         }
         finally { await server.StopAsync(); }

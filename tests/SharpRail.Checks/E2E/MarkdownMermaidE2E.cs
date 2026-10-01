@@ -49,6 +49,24 @@ internal static class MarkdownMermaidE2E
         Require(preview.GetLogicalDescendants().OfType<SelectableTextBlock>().Any(text => TextOf(text).Contains("plain-fence-stays-code", StringComparison.Ordinal)),
             "A non-Mermaid fence must stay a code block.");
 
+        // Inline, a tall diagram stops at the cap; zoom scales the drawing inside the clipped box, never the box.
+        Control Inline(string name) => preview.GetLogicalDescendants().OfType<Control>().Single(control => control.Name == name);
+        var box = Inline("MermaidInline");
+        var drawn = diagrams[0].Bounds.Size;
+        Require(box.Bounds.Height <= 480 && drawn.Height > box.Bounds.Height && box.ClipToBounds,
+            "A tall inline diagram must stop at the height cap and clip the rest.");
+        for (var i = 0; i < 6; i++) app.Click((Button)Inline("MermaidZoomIn"));
+        Until(() => ((TextBlock)Inline("MermaidZoomLevel")).Text != "100%" && diagrams[0].Bounds.Width > drawn.Width * 1.5);
+        Require(box.Bounds.Height <= 480, "Zooming must enlarge the drawing, not the box.");
+        var before = Canvas.GetTop(diagrams[0]);
+        var centre = box.TranslatePoint(new Point(box.Bounds.Width / 2, box.Bounds.Height / 2), app.Window)!.Value;
+        app.Window.MouseDown(centre, MouseButton.Left);
+        app.Window.MouseMove(centre - new Point(80, 40));
+        app.Window.MouseUp(centre - new Point(80, 40), MouseButton.Left);
+        Until(() => Canvas.GetTop(diagrams[0]) < before);
+        app.Click((Button)Inline("MermaidZoomReset"));
+        Until(() => ((TextBlock)Inline("MermaidZoomLevel")).Text == "100%" && Math.Abs(diagrams[0].Bounds.Width - drawn.Width) < 1);
+
         app.Click(preview.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "MermaidFullscreen"));
         static bool IsFullscreen(DialogWindow window) => window.GetLogicalDescendants().OfType<ScrollViewer>().Any(viewer => viewer.Name == "MermaidFullscreenViewer");
         Until(() => app.Window.OwnedWindows.OfType<DialogWindow>().Any(IsFullscreen));
@@ -69,6 +87,6 @@ internal static class MarkdownMermaidE2E
         var source = app.Find<ScrollViewer>("MarkdownSource");
         Require(source.GetLogicalDescendants().OfType<SelectableTextBlock>().Any(text => TextOf(text).Contains("flowchart TD; Start --> Finish", StringComparison.Ordinal)),
             "Source mode must show the Mermaid source.");
-        Console.WriteLine("PASS upstream markdown-mermaid.spec.ts: renders mermaid fences as diagrams in the rendered markdown view");
+        Console.WriteLine("PASS upstream markdown-mermaid.spec.ts: renders mermaid fences as diagrams in the rendered markdown view (inline diagram capped, zoomed and panned in its box)");
     }
 }

@@ -79,6 +79,8 @@
         <StackPanel x:Name="GroupLimits" MaxWidth="384" HorizontalAlignment="Left" Spacing="8" />
         <TextBlock Text="Bottom alignment" Classes="settings-label" />
         <ComboBox x:Name="BottomAlignment" Width="220" />
+        <CheckBox x:Name="PreviewTabs" Content="Preview files before keeping them" />
+        <TextBlock Text="A single click opens a file in the group's reusable preview tab and a double click keeps it. Off, every open keeps its own tab. This preference belongs to this app." Classes="settings-description" />
         <ContentControl x:Name="ResetFrame" />
       </StackPanel>
     </DataTemplate>

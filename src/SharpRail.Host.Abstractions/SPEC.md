@@ -31,8 +31,9 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
 ## Surfaces
 
 - `IProjectServices` is one client's project session: open a project root, list and read files, save
-  with a conflict check, list specs, Git snapshot/commits/diffs/diff sides, Git actions (stage, unstage,
-  init, create and remove worktree), branch catalog, and editor detection/launch. Every call is
+  with a conflict check, list specs, search the workspace, Git snapshot/commits/diffs/diff sides, Git actions
+  (stage, unstage, init, create and remove worktree, delete branch, fetch), branch catalog, and editor
+  detection/launch. Every call is
   cancellable. Paths are workspace-relative.
 - `IHostStateService` is the shared state of one host. `GetStateAsync` reads, `ChangeAsync` applies a
   batch atomically and returns the published snapshot, and `WatchAsync` yields the current snapshot and

@@ -32,7 +32,7 @@ without rebuilding the tree.
 | Family | Brushes | Notes |
 | --- | --- | --- |
 | Text | `TextBrush` · `Muted` · `Hint` | `Hint` (the `hint` key) is the quiet metadata tier: branch lines, spec roles, counts, empty states |
-| Container | `Sidebar` · `Surface` · `Header` · `Elevated` | `Surface` is the `content` canvas behind documents and diffs; `Elevated` is every raised surface: menus, dialogs, inactive tab chrome, resting buttons |
+| Container | `Sidebar` · `Surface` · `Header` · `Elevated` | `Surface` is the `content` canvas behind documents and diffs, a step below the document canvas rather than a slab under it (a mid-grey `content` makes a whole diff read as disabled); `Elevated` is every raised surface: menus, dialogs, inactive tab chrome, resting buttons |
 | Control | `Hover` · `PrimaryFill` · `PrimaryFillHover` · `OnPrimary` | `Hover` is both pointer hover and the persistent selected/active fill (active project row, active change row, selected tab, active toggle segment); the primary trio is the solid primary button, its hover step and its label |
 | Border | `BorderBrush` | from `borderStrong` |
 | Primary | `Accent` · `PrimarySubtle` · `PrimaryMuted` | accent @ 10% and 40%: the selected Settings choice's fill and border |

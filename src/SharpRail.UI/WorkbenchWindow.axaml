@@ -22,10 +22,15 @@
           <TextBlock x:Name="ProjectLabel" Text="…" Classes="header-label" MaxWidth="160" Foreground="{x:Static rendering:Ui.TextBrush}" />
           <TextBlock x:Name="ScopeSeparator" Text="›" Classes="header-label" />
           <TextBlock x:Name="WorkspaceLabel" Text="" Classes="header-label" MaxWidth="220" Foreground="{x:Static rendering:Ui.TextBrush}" />
-          <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-            <ContentControl x:Name="BranchIcon" />
-            <TextBlock x:Name="BranchLabel" Classes="header-label" />
-          </StackPanel>
+          <Button x:Name="BranchButton" Padding="6,2" Margin="4,0,0,0" VerticalAlignment="Center" IsVisible="False"
+                  Background="Transparent" BorderThickness="0" CornerRadius="4"
+                  ToolTip.Tip="Branches" AutomationProperties.Name="Branches">
+            <StackPanel Orientation="Horizontal" Spacing="4">
+              <ContentControl x:Name="BranchIcon" />
+              <TextBlock x:Name="BranchLabel" Classes="header-label" />
+              <ContentControl x:Name="BranchChevron" />
+            </StackPanel>
+          </Button>
         </StackPanel>
         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
           <TextBlock Text="●" Classes="header-label" FontSize="10" Foreground="{x:Static rendering:Ui.Success}" />

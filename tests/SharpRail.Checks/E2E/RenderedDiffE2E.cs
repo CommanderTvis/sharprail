@@ -31,6 +31,7 @@ internal static class RenderedDiffE2E
         Large(root, source);
         Failure(root, source);
         LiveEdits(root, source);
+        OutlineAndProperties(root, source);
     }
 
     private static void OpenDiff(E2eWorkspace app, string path)
@@ -80,6 +81,8 @@ internal static class RenderedDiffE2E
         ClickRow(app, "README.md");
         Require(DiffTabs(app).Count() == 1, "Reopening the row must reuse its diff tab.");
 
+        // Wide enough that the source diff opens split rather than inline.
+        app.Window.Width = 1800; Settle();
         File.WriteAllText(Path.Combine(worktree, "script.ts"), "export const edited = true;\n");
         OpenDiffNamed(app, "script.ts");
         UntilDiff(app, text => text.Contains("edited = true", StringComparison.Ordinal));
@@ -202,5 +205,28 @@ internal static class RenderedDiffE2E
         Require(!RenderedText(app).Contains("first edit by e2e", StringComparison.Ordinal) && !RenderedText(app).Contains("held edit", StringComparison.Ordinal),
             "The rendered diff must drop stale merges once the fresh one lands.");
         Console.WriteLine("PASS upstream changes.spec.ts: Rendered markdown diff follows live edits on disk (stale merge cancelled, fresh one lands)");
+    }
+
+    private static void OutlineAndProperties(string root, string source)
+    {
+        var (app, worktree) = OpenSample(root, "rendered-properties", source);
+        using var _ = app;
+        File.WriteAllText(Path.Combine(worktree, "SPEC.md"), "---\nid: sample-root\nstatus: active\n---\n\n## Goal\n\nshipped\n");
+        OpenDiff(app, "SPEC.md");
+        Until(() => Rendered(app) is { } rendered && Find<Border>(rendered, "FrontmatterProperties") is not null);
+        var properties = Find<Border>(Rendered(app)!, "FrontmatterProperties")!;
+        Require(Runs(properties).Any(run => run.Text == "sample-root" && !run.Classes.Contains("ins") && !run.Classes.Contains("del")),
+            "An unchanged property must render unmarked.");
+        Require(Runs(properties).Count(run => run.Text == "active" && run.Classes.Contains("ins")) == 1,
+            "A changed property must carry the same ins mark as the prose.");
+        Require(Runs(properties).Any(run => run.Text == "goal-and-requirements" && run.Classes.Contains("del")), "A removed property must be marked deleted.");
+
+        var outline = Named<ToggleButton>(Pane(app)!, "DiffOutline");
+        app.Click(outline);
+        Until(() => Find<Border>(Pane(app)!, "DiffOutlineColumn") is { } column &&
+            column.GetLogicalDescendants().OfType<Button>().Any(entry => entry.Name == "OutlineEntry" && entry.Content is TextBlock { Text: "Goal" }));
+        app.Click(Named<ToggleButton>(Pane(app)!, "DiffSource"));
+        Require(Find<ToggleButton>(Pane(app)!, "DiffOutline") is null, "The outline toggle must render only in the rendered view.");
+        Console.WriteLine("PASS fork changes.spec.ts: The rendered markdown diff carries the outline and the properties block");
     }
 }

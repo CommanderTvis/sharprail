@@ -2,6 +2,7 @@
 
 Upstream: packages/server/SPEC.md @ c44534ea
 Upstream: packages/server/src/auth/SPEC.md @ 4a65ed7f
+Upstream: packages/server/src/mcp/SPEC.md @ b047c8f2 (CommanderTvis fork)
 
 ## Responsibility
 
@@ -13,7 +14,8 @@ which the UI uses only to serve its in-process terminal relay socket.
 
 ## Boundary
 
-- Owns `RemoteServer.cs` (server composition and authentication), the RPC
+- Owns `RemoteServer.cs` (server composition and authentication), `McpRoute.cs`
+  (the terminals' MCP endpoint), the RPC
   adapters `WorkspaceRpc.cs`, `ProjectRpc.cs`, `StateRpc.cs` and
   `TerminalRpc.cs`, `ProjectSessions.cs` (per-call workspace resolution) and
   `Program.cs` (environment-driven startup).
@@ -74,6 +76,18 @@ loopback is an explicit opt-in via `SHARPRAIL_BIND`.
   and the previous call ends with a detached frame.
 - Request bodies and gRPC messages are capped from `FileLimits`, sized for the
   largest save.
+
+## MCP endpoint for terminal agents
+
+- Both servers start, once listening, a second loopback-only HTTP/1.1 server (agents' MCP clients do not
+  speak prior-knowledge HTTP/2) that stops with them. It serves `POST /mcp/<token>`; `GET` and `DELETE`
+  answer 405, since every tool is request/response and there is no SSE stream or session.
+- The route token is the per-terminal identity `PtyTerminalService` mints and stamps into the shell as
+  `THINKRAIL_MCP_URL`; it resolves to that terminal's workspace root and nothing else. An unknown or closed
+  terminal's token is 404 before any protocol handling. The host bearer token is never involved and never
+  reaches a shell.
+- The protocol and tools are Core's `McpServer` (see
+  [Specs.SPEC.md](../SharpRail.Host.Core/Specs.SPEC.md)); the route only resolves the token and relays JSON.
 
 ## Decisions and trade-offs
 

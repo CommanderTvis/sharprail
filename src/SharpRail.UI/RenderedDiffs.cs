@@ -25,14 +25,17 @@ public sealed partial class WorkbenchWindow
     {
         var merge = RenderedDiffMerge;
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(token, lifetime.Token);
-        var parsed = await Task.Run(async () =>
+        var parsed = await Task.Run<(Markdig.Syntax.MarkdownDocument Document, FrontmatterBlock? Before, FrontmatterBlock? After)?>(async () =>
         {
             var sides = await host.GetDiffSidesAsync(tab.Path, tab.Scope, tab.Comparison, linked.Token);
             return sides.Original.Length + sides.Modified.Length > ViewerLimits.RenderedMarkdown
-                ? null : MarkdownPreview.Parse(merge(sides.Original, sides.Modified, linked.Token));
+                ? null : (Document: MarkdownPreview.Parse(merge(sides.Original, sides.Modified, linked.Token)),
+                    Before: Frontmatter.Parse(sides.Original), After: Frontmatter.Parse(sides.Modified));
         }, linked.Token);
         linked.Token.ThrowIfCancellationRequested();
-        return parsed is null ? null : new MarkdownPreview(parsed, tab.Path, host, Preferences, (path, anchor) => _ = OpenDocumentAsync(path, false, anchor), renderDiagrams: false)
-        { Name = "RenderedDiff" };
+        return parsed is not { } rendered ? null
+            : new MarkdownPreview(rendered.Document, tab.Path, host, Preferences, (path, anchor) => _ = OpenDocumentAsync(path, false, anchor), renderDiagrams: false,
+                frontmatter: rendered.After, previousFrontmatter: rendered.Before)
+            { Name = "RenderedDiff" };
     }
 }

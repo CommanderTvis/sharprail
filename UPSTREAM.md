@@ -69,3 +69,87 @@ the fork chain as fetched on the date given and will not match after a force-pus
 Out of scope for every pass: pi, AI chat, CLI, website/analytics, desktop update flow, Electron-
 and browser-only mechanics with no Avalonia counterpart.
 
+### General improvements, one commit (2026-10-01)
+
+Range: the synced commit above to the fork's "Plugin API: the contract, the host loader, the web
+registry, and the UI kit" (`4737df6d3`), exclusive; fork chain fetched 2026-09-30, tip `0304a543e`.
+Commits are in chain order; the first ten are JetBrains commits the fork carries.
+
+- `2f99a3939` Plan page: live Session block, cumulative Summary, and in-plan interaction (#555): skipped (pi/chat)
+- `15c66331e` feat(delegation): add resource ownership and captured history (#540): skipped (pi)
+- `be8a5e433` feat(dag): add validated contracts and durable storage (#541): skipped (pi)
+- `f8f0b725c` feat(dag): add durable execution and portable pi adapter (#542): skipped (pi)
+- `15a92a264` fix(e2e): preserve hidden consoles for Windows descendants (#559): skipped (Playwright harness on Windows)
+- `5383b8506` feat(updates): add consent-driven update flows (#558): skipped (desktop updates)
+- `fdbbc1d2f` docs(specs): make the goal doc a living product document (#573): skipped (goal doc is not tracked)
+- `f90ea4c0b` fix(web): default markdown diffs to the rendered view (#569): ported
+- `32ce2cad9` Text insertion issue and padding adjustment (#560): skipped (the non-chat part is the create-workspace dialog's prompt image chips and caret restoration; SharpRail's create-workspace flow has no prompt or image attachments, the AI prompt being excluded)
+- `d49d91bef` feat(website): add consented journey analytics foundation (#524): skipped (website/analytics)
+- `fba9d8853` Reveal a file in the file manager, from our own menu: ported (Files row menu "Reveal in Finder" via host `ApplyFileActionAsync("reveal")`: `open -R` / `explorer /select,` / containing folder; the pi-runtime diagnostics hunk skipped as pi)
+- `4fdb372e1` Open a plain folder as a project, with no git required: partial (plain folders open directly and the git-init prompt and host "init" action are removed; Changes/Review withholding for a plain or unborn repo, the `tool-needs-git` notice and the gitless Start-work dialog copy are not ported)
+- `008c972b0` web: our own tab tooltips, and they stop blocking what they cover: skipped (SharpRail's tab tooltips are already its own Avalonia tooltips anchored below the tab; the pointer-transparent popup has no verifiable Avalonia counterpart, and the rest of this commit is a web-only merge of unrelated fork work)
+- `1f6aa7dfb` The desktop window stops handing its own host to the browser: skipped (Electron navigation)
+- `1829e0736` Send an editor selection into a pi chat: skipped (pi chat)
+- `10183e913` Where a tab can go, drawn instead of listed: skipped (a new drawn placement picker in the tab menu is a large docking-menu redesign; not attempted in this pass)
+- `20a3450be` The light theme's diff canvas stops reading as disabled: ported
+- `f4408d2a3` Previewing a file before you keep it is a setting: ported
+- `0d59b4878` The desktop window comes back to the port it had, and with it your tabs: skipped (desktop host port; SharpRail embeds its host)
+- `ec1ec6823` tests: a fixture open survives a neighbour's pick and a loaded machine: skipped (Playwright fixture timing and picker-pointer state; SharpRail checks use isolated fixtures)
+- `32f07e106` Frontmatter edits like Obsidian properties, above the rendered view: partial (read-only properties table with chips, folding and raw fallback; editing into a draft is missing because SharpRail Markdown tabs have no editable source)
+- `b047c8f29` The spec tools reach any agent in a ThinkRail terminal, over MCP: partial (MCP protocol, per-terminal token, THINKRAIL_MCP_URL stamping and a loopback HTTP/1.1 route on both the remote host and the local terminal relay are ported; only spec_get and spec_grep are served, because SharpRail has no spec authoring or full graph yet, so spec_create/update/delete/graph/validate and grep's tag/dependsOn filters are missing; the carried mouse-mode guard, process tree and title changes have no SharpRail counterpart)
+- `25133aa27` Panes a resource carries: embedded, never a tab of their own: partial (Markdown Split view; visualization/blueprint companions are AI surfaces and skipped)
+- `76c3ec2f3` A terminal whose pty inherited a stale utmpx record no longer runs as the wrong user: ported
+- `b9548ea25` The outline moves to the pane's edge and drives both preview and source: ported
+- `0d61c37c8` A terminal frozen by a drain event the OS never delivered thaws on its own: partial (the drain latch is skipped: gRPC/HTTP-2 flow control has no drain event to lose; of the carried server changes only the unborn-HEAD workspace refusal was ported; published-branch rename, branchDetails/deleteBranch/fetch, suggestWorkspaceName and vcs gap belong to features SharpRail lacks; GIT_OPTIONAL_LOCKS was already present)
+- `f8730d329` On the desktop, the host is this computer, and the copy stops calling it "the host": ported for the strings SharpRail has (Enter path… and the path dialog's explanation locally; GitHub/JetBrains AI card strings do not exist here)
+- `308b0eef4` A file in the tree can be dragged to where it is wanted: skipped (the diff is xterm drag-and-drop of a tree path into the web terminal; SharpRail's Files rows are not drag sources and its terminal is native Ghostty, so this needs native-bridge drop work)
+- `c4eebc5f1` feat(web): put the target choice above the Start work header: ported (the model/effort labels are AI and omitted; an edited name becomes the workspace's host label)
+- `87325ac26` An issue number in a comment stops being painted as a colour: already present (Scintilla has no colour decorators)
+- `1e4449a2a` A repository URL becomes a project, cloned into a folder you choose: skipped (not yet ported: no Clone repository… dialog and no host clone operation yet; the remaining diff deletes web-only unit tests)
+- `7a7685057` The desktop's right-click menu stops offering Look Up, Fonts, and Services: skipped (Electron context menu)
+- `3f01f8942` A file in the tree can be deleted, into the trash, after asking: ported (Delete file/folder asks, then moves to the OS trash via NSFileManager on macOS or gio on Linux; also the row menu itself and Copy absolute path; the git-ignored dimming and composer drag tests in the same diff are not ported)
+- `1d30e44be` A diff too narrow for two columns opens inline until you say otherwise: ported
+- `82419d3ad` Cmd+F finds text in every preview, not only inside the editor: partial (find bar over Markdown previews and rendered diffs with count and stepping; only the current match is selected, other matches are not painted; no find over terminals)
+- `be216ba71` Typechecking the desktop stops waiting on a dev host that is running: skipped (Bun tooling)
+- `b71bb30a9` A diagram inline in a document stops at a height you can see past: ported
+- `99d36b658` Search the whole workspace from one popup: partial (Markdown hits open the rendered document without the fork's block flash)
+- `99ed15307` The rendered markdown diff gets the outline and the properties block: ported (properties diffed per key rather than through the text merge)
+- `2a2739307` A workbench frame belongs to the project it was arranged in: skipped (needs a per-project frame stash in the persisted DockState, touching presets, validation and document pruning; deferred as too risky for this merge)
+- `bf7881065` A selection you can see in the dark theme: ported
+- `4496970ed` The projects rail's plus says what it does: already present (the Add project button already has its tooltip)
+- `155735756` A spec's own frontmatter is a properties table, not a raw block: ported (multi-line flow sequences and one-level mappings read as properties; read-only as above)
+- `783b0b04e` An inline diagram zooms like the fullscreen one, and pans inside its box: ported
+- `d55683607` chore: bump TypeScript to 7.0.2 and migrate off the legacy compiler API: skipped (TS tooling)
+- `e597593d7` A spec is titled by its frontmatter, and its [[links]] go somewhere: ported
+- `f6371aa62` Folding a rail stops rebuilding the whole workbench: already present (a regression check was added)
+- `fb6c0147d` The branch in the topbar opens the project's branches: partial (SharpRail lists every worktree as a workspace, so the fork's "foreign worktree" branch deletion is refused instead)
+- `cf91102e9` A project with no specs opens its rail on Files: ported
+- `356366850` A terminal nobody is looking at stops rendering: skipped (xterm/CSS content-visibility; Ghostty renders natively)
+- `f9afe4049` The bottom row's controls clear the window's rounded corner: skipped (SharpRail's bottom group header sits at the top of the bottom region, never against the window's rounded corner)
+- `c4c236097` A code font you choose, with its ligatures: skipped (needs a new host setting through all five host layers plus font plumbing into Scintilla's bundled SKTypeface, Ghostty's config shim and Markdown code blocks; recorded under Not yet ported in Rendering/SPEC.md)
+- `ebedcf702` Settings answer to Command+, on macOS: ported
+- `0d40a484b` The topbar says what "from main" means: ported (SharpRail's topbar has no "from main" line, so the tooltip is on the workspace placeholder's "· from main", the only place it appears)
+- `4171b16c2` A large markdown preview stops re-doing its own work: already present (document controls are cached across tab switches, so a revisited preview is not rebuilt; there is no tokenizer to cache)
+- `2d8fce7b1` A selection reaches the document, not the chrome around it: already present (only content surfaces use SelectableTextBlock; chrome is plain TextBlock)
+- `9e5e727a2` Tests, fixtures and spec text the fork's changes left behind: skipped (nothing in scope: web unit tests, Playwright fixtures and the New project spec, a feature SharpRail lacks)
+- `7f94b1832` The CLI waits a beat for a tab that is already open before opening another: skipped (CLI)
+- `8e05d76c0` A default model and thinking level you can choose in Settings: skipped (AI)
+- `5bdc70e39` Vertical tabs can live under their workspace in Projects: skipped (a new tab-placement mode inside the Projects rail with a large layout-model change; not attempted in this pass)
+- `ba90884c6` A dirty worktree can be force-removed before its branch: skipped (needs the topbar branch list with branch deletion, which SharpRail does not have)
+- `ba3d301c4` Branch pickers show every remote, collapsibly, and a click can switch or start a workspace: partial (collapsible, profile-remembered remote groups in the New Workspace picker are ported; the topbar branch list and its click-to-switch/start actions do not exist in SharpRail)
+- `a86e95aaf` The Welcome provider warning recognizes connected JetBrains AI: skipped (AI)
+- `2c44d749d` JetBrains AI access source switching, for accounts with more than one org: skipped (AI)
+- `a204860fb` Hidden models you can filter out in Settings and the model picker: skipped (AI)
+- `3123ee248` A tooltip when a model name truncates in the model selector: skipped (AI chat)
+- `063b43f55` Questionnaires superseded by later assistant activity clear the waiting status: skipped (AI chat)
+- `557f0f3d6` Attached images in chat draft persist across tab switches: skipped (AI chat)
+- `26e511629` An open file says when its file is deleted on disk: ported (tab "deleted" mark and a Scintilla banner; a remote read maps a missing file to gRPC NotFound so the coded miss survives the wire; the banner is only on Scintilla editors, so Markdown/image tabs get the tab mark alone)
+- `8f6b555d8` A file or folder can be created, or renamed, from the Files tree: ported (New file…/New folder…/Rename… with one name dialog: inline collision, stem selection, host error shown in place; no per-file-type icon since the tree has none)
+- `be1bf412e` Remove the CLAUDE.md alias of AGENTS.md: skipped (ThinkRail repo housekeeping)
+- `df19980af` Terminals start clean after a host restart: already present (SharpRail never persisted terminal output; the not-yet-ported revival note now says revived shells start blank)
+- `524db465d` OpenAI models carry their provider mark: skipped (AI chat)
+- `4d2e6b2d2` Chat tabs carry the Pi mark: skipped (AI chat)
+- `915b6d978` A live terminal reattach restores full-screen input modes: ported (host replay appends the live alternate screen and mouse/alternate-scroll modes)
+- `4c774f45e` Chats survive a provider switch when their saved model is unavailable: skipped (AI chat)
+- `626031274` A project's absolute path can be copied from its context menu: ported (plus the workspace menu's Copy path -> Copy absolute path and new Copy name)
+- `d4d03db1b` A worktree made in ThinkRail's folder shows up as a workspace: already present (SharpRail's workspace rows come straight from `git worktree list`, so any worktree made from a terminal already shows; there is no workspace registry to adopt into or dismissal list to keep)

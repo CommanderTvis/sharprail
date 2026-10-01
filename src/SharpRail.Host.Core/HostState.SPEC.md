@@ -48,9 +48,8 @@ presets belong to the UI.
 - A project is identified by its absolute root path. `project-open` puts an unknown project first and
   removes it from recents; `project-close` moves it to the front of recents (at most 10) without touching
   the repository, its worktrees or their terminals; `project-forget` drops it from the open list.
-- Opening a plain folder offers Initialize: `git init -b main`, `git add -A` and an allow-empty initial
-  commit, supplying a fallback identity only for a field Git has none configured for. A failed commit
-  removes the new `.git` again, and a folder that is already a repository is refused.
+- A plain folder opens as a project directly, with no Git required: it is its own root and its Default
+  workspace is the only one it has. A folder that later gains a `.git` is a repository on its next open.
 
 ## Settings and presets
 

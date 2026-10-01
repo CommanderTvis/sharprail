@@ -26,6 +26,8 @@ public sealed class Preferences
     public bool ShowHiddenFiles { get; set; }
     /// <summary>The local terminal renderer: composited Metal texture or Skia cells.</summary>
     public string TerminalRenderer { get; set; } = Terminal.TerminalRenderers.Texture;
+    /// <summary>A single click previews into the group's reusable slot; off, every open keeps its tab.</summary>
+    public bool PreviewTabs { get; set; } = true;
     /// <summary>Read from profiles that predate window-local defaults.</summary>
     [JsonPropertyName("DefaultPreset"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? LegacyDefaultPreset { get; set; }
@@ -62,6 +64,8 @@ public sealed class Profile
     /// <summary>One entry per open window, restored in order at launch.</summary>
     public List<WindowProfile> Windows { get; set; } = [];
     public HashSet<string> CollapsedProjects { get; set; } = [];
+    /// <summary>Remotes whose branches every branch picker shows collapsed.</summary>
+    public HashSet<string> CollapsedRemotes { get; set; } = [];
     public Dictionary<string, GitSelection> GitSelections { get; set; } = [];
     /// <summary>Set once shared fields have moved to the local host's <c>state.json</c>.</summary>
     public bool StateMigrated { get; set; }
@@ -109,7 +113,7 @@ public sealed class ProfileStore
         try
         {
             Data = File.Exists(path) ? JsonSerializer.Deserialize<Profile>(File.ReadAllText(path)) ?? new() : new();
-            Data.Preferences ??= new(); Data.CollapsedProjects ??= []; Data.Windows ??= [];
+            Data.Preferences ??= new(); Data.CollapsedProjects ??= []; Data.CollapsedRemotes ??= []; Data.Windows ??= [];
             Data.Windows.RemoveAll(window => window is null);
             if (Data.Windows.Count == 0)
                 Data.Windows.Add(new()

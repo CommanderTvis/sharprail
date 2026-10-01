@@ -65,6 +65,11 @@ internal static class WorkspaceActionsE2E
         Require(copied.Result == workspace && Path.IsPathFullyQualified(copied.Result) && copied.Result.Contains("/sample-project-worktrees/", StringComparison.Ordinal),
             "Copy path must copy the worktree's absolute path.");
         Console.WriteLine("PASS upstream workspace-actions.spec.ts: Copy path copies the worktree's absolute path to the clipboard");
+        Choose(app, OpenWorkspaceMenu(app, workspace), "WorkspaceCopyName");
+        var name = app.Window.Clipboard!.TryGetTextAsync();
+        Until(() => name.IsCompleted);
+        Require(name.Result == Path.GetFileName(workspace), "Copy name must copy the workspace's display name.");
+        Console.WriteLine("PASS fork workspace menu: Copy name copies the workspace's display name");
     }
 
     private static TextBox StartRename(E2eWorkspace app, string workspace)

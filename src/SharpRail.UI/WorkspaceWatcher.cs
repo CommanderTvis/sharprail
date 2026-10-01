@@ -9,6 +9,8 @@ public sealed partial class WorkbenchWindow
 {
     private readonly List<FileSystemWatcher> watchers = [];
     private readonly HashSet<string> changedPaths = [];
+    // Document keys whose file is gone from disk; the tab keeps its last content and says so.
+    private readonly HashSet<string> deletedDocuments = [];
     private DispatcherTimer? watchDebounce;
     private DateTime watchPendingSince;
 
@@ -127,12 +129,20 @@ public sealed partial class WorkbenchWindow
         {
             var key = workspaceRoot + ":" + tab.Id;
             if (!documents.TryGetValue(key, out var current)) continue;
-            if (documentContent.GetValueOrDefault(key) is Editor.CodeDocumentView { HasPendingChanges: true }) continue;
             FileDocument file;
             try { file = await Task.Run(async () => await host.ReadFileAsync(tab.Path, lifetime.Token), lifetime.Token); }
             catch (OperationCanceledException) { return; }
+            // Only a file that is really gone marks its tab; any other failed read leaves the tab as it was.
+            catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException)
+            {
+                if (request == projectRequest) MarkDeletedOnDisk(key, true);
+                continue;
+            }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException) { continue; }
-            if (request != projectRequest || !LiveDocuments().Contains(key) || file.Text == current.Text && file.ImageData is null) continue;
+            if (request != projectRequest) continue;
+            MarkDeletedOnDisk(key, false);
+            if (documentContent.GetValueOrDefault(key) is Editor.CodeDocumentView { HasPendingChanges: true }) continue;
+            if (!LiveDocuments().Contains(key) || file.Text == current.Text && file.ImageData is null) continue;
             if (documentContent.GetValueOrDefault(key) is Editor.CodeDocumentView view)
             {
                 if (view.Reload(file.Text)) documents[key] = file;
@@ -141,6 +151,12 @@ public sealed partial class WorkbenchWindow
             documents[key] = file; DropDocumentContent(key); refreshed = true;
         }
         if (refreshed) surface.RefreshContents();
+    }
+
+    private void MarkDeletedOnDisk(string key, bool deleted)
+    {
+        if (documentContent.GetValueOrDefault(key) is Editor.CodeDocumentView view) view.DeletedOnDisk = deleted;
+        if (deleted ? deletedDocuments.Add(key) : deletedDocuments.Remove(key)) surface.RefreshModified();
     }
 
     private static (string? GitDirectory, string? CommonDirectory) ResolveGitDirectories(string directory)

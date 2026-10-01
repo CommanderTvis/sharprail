@@ -25,6 +25,7 @@ internal sealed partial class DiffView : Grid, IDisposable
     private readonly ToggleButton whitespace = Toggle("DiffWhitespace", "collapseVertical", "Hide whitespace changes");
     private readonly ToggleButton source = Segment("DiffSource", "Source");
     private readonly ToggleButton rendered = Segment("DiffRendered", "Rendered");
+    private readonly ToggleButton outline = Segment("DiffOutline", "Outline");
     private readonly double wrapWidth;
     private readonly Func<CancellationToken, Task<Control?>>? renderMerged;
     private readonly Action<bool>? renderedChanged;
@@ -32,12 +33,18 @@ internal sealed partial class DiffView : Grid, IDisposable
     private Control? merged;
     private readonly List<EditorFrame> frames = [];
     private bool disposed;
+    private bool layoutPinned;
     private string text;
+
+    // Below this many code columns per half, a side-by-side diff is unreadable and the view opens inline.
+    private const int MinimumSplitColumns = 40;
+    private const double SideChrome = 70;
 
     /// <summary>
     /// A unified diff viewer. Markdown diffs pass <paramref name="renderMerged"/> to offer the reference's
-    /// Source|Rendered toggle; their source view is always side by side. A null rendering means the documents
-    /// exceed <see cref="ViewerLimits.RenderedMarkdown"/>, and the view falls back to source.
+    /// Source|Rendered toggle; their source view has no Split|Inline segment and always follows the pane width.
+    /// A null rendering means the documents exceed <see cref="ViewerLimits.RenderedMarkdown"/>, and the view
+    /// falls back to source.
     /// </summary>
     internal DiffView(string text, string path, double wrapWidth,
         Func<CancellationToken, Task<Control?>>? renderMerged = null, bool showRendered = false, Action<bool>? renderedChanged = null)
@@ -80,13 +87,30 @@ internal sealed partial class DiffView : Grid, IDisposable
         // Scintilla is macOS-only; elsewhere the raw diff is shown without view modes.
         if (renderMerged is null && OperatingSystem.IsMacOS()) { controls.Children.Insert(0, inline); controls.Children.Insert(0, split); }
         else { controls.Children.Add(source); controls.Children.Add(rendered); }
+        if (renderMerged is not null) controls.Children.Insert(0, outline);
         var header = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(12, 0, 0, 0) };
         Ui.Place(header, chip); Ui.Place(header, controls, 0, 1);
         Ui.Place(this, header);
         Ui.Place(this, body, 1);
+        if (renderMerged is not null)
+        {
+            var find = new FindBar(() => IsRendered ? merged : null);
+            Ui.Place(this, find, 1);
+            find.Attach(this);
+        }
         split.IsChecked = true; inline.IsChecked = false;
-        split.Click += (_, _) => { split.IsChecked = true; inline.IsChecked = false; Render(); };
-        inline.Click += (_, _) => { inline.IsChecked = true; split.IsChecked = false; Render(); };
+        split.Click += (_, _) => { layoutPinned = true; split.IsChecked = true; inline.IsChecked = false; Render(); };
+        inline.Click += (_, _) => { layoutPinned = true; inline.IsChecked = true; split.IsChecked = false; Render(); };
+        // Until the user picks Split or Inline, the layout follows the pane width, and the toggle shows the effective view.
+        // A Markdown source diff has no segment to pick with, so it always follows.
+        SizeChanged += (_, args) =>
+        {
+            if (layoutPinned || !OperatingSystem.IsMacOS() || args.NewSize.Width <= 0) return;
+            var narrow = (args.NewSize.Width / 2 - SideChrome) < LineWidths.Code(MinimumSplitColumns);
+            if (narrow == (inline.IsChecked == true)) return;
+            inline.IsChecked = narrow; split.IsChecked = !narrow;
+            if (!IsRendered) Render();
+        };
         whitespace.Click += (_, _) => Render();
         IsRendered = showRendered && renderMerged is not null;
         source.IsChecked = !IsRendered; rendered.IsChecked = IsRendered;
@@ -160,7 +184,7 @@ internal sealed partial class DiffView : Grid, IDisposable
             if (cancellation.IsCancellationRequested || disposed) { (result as IDisposable)?.Dispose(); return; }
             if (ReferenceEquals(merge, cancellation)) { merge = null; cancellation.Dispose(); }
             if (result is null) { RenderedUnavailable(); return; }
-            ShowBody(result);
+            ShowBody(result is MarkdownPreview document ? WithOutline(document) : result);
             merged = result;
         }
     }
@@ -173,6 +197,26 @@ internal sealed partial class DiffView : Grid, IDisposable
         IsRendered = false;
         source.IsChecked = true; rendered.IsChecked = false;
         Render();
+    }
+
+    // The rendered diff carries the Markdown outline; it scrolls by heading anchor.
+    private Grid WithOutline(MarkdownPreview document)
+    {
+        var entries = new StackPanel { Margin = new Thickness(8), Spacing = 2 };
+        MarkdownDocumentView.FillOutline(entries, document, "", null);
+        var column = new Border
+        {
+            Name = "DiffOutlineColumn",
+            Width = 220,
+            BorderBrush = Ui.BorderBrush,
+            BorderThickness = new Thickness(0, 0, 1, 0),
+            Child = new ScrollViewer { Content = entries, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled },
+            [!IsVisibleProperty] = outline[!ToggleButton.IsCheckedProperty]
+        };
+        var split = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") };
+        Ui.Place(split, column);
+        Ui.Place(split, document, 0, 1);
+        return split;
     }
 
     private void ShowBody(Control content)
@@ -230,6 +274,7 @@ internal sealed partial class DiffView : Grid, IDisposable
     private void Render()
     {
         whitespace.IsVisible = !IsRendered && OperatingSystem.IsMacOS();
+        outline.IsVisible = IsRendered;
         if (IsRendered) { StartMerge(keepCurrent: false); return; }
         merge?.Cancel(); merge?.Dispose(); merge = null;
         DropMerged();

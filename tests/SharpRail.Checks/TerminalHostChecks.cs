@@ -1,6 +1,7 @@
 using System.Net;
+using System.Net.Http.Json;
 using System.Text;
-
+using System.Text.Json.Nodes;
 using Grpc.Core;
 
 using Microsoft.AspNetCore.Hosting.Server;
@@ -30,9 +31,16 @@ internal static class TerminalHostChecks
         var startup = Path.Combine(root, "terminal-startup");
         Directory.CreateDirectory(startup);
         var previous = Environment.GetEnvironmentVariable("ZDOTDIR");
+        var logname = Environment.GetEnvironmentVariable("LOGNAME");
         Environment.SetEnvironmentVariable("ZDOTDIR", startup);
+        // Without LOGNAME a login shell would ask getlogin(), which can read a stale utmpx record.
+        Environment.SetEnvironmentVariable("LOGNAME", null);
         try { await RunIsolated(root, workspace); }
-        finally { Environment.SetEnvironmentVariable("ZDOTDIR", previous); }
+        finally
+        {
+            Environment.SetEnvironmentVariable("ZDOTDIR", previous);
+            Environment.SetEnvironmentVariable("LOGNAME", logname);
+        }
     }
 
     private static async Task RunIsolated(string root, string workspace)
@@ -41,6 +49,7 @@ internal static class TerminalHostChecks
         {
             await Exercise(new LocalTerminalAdapter(local), workspace, "local");
             await Sessions(new LocalTerminalAdapter(local), workspace, "local");
+            await LiveInputModes(new LocalTerminalAdapter(local), workspace, "local");
         }
 
         await using var app = RemoteServer.Create(root, IPAddress.Loopback, 0, "terminal-token");
@@ -52,8 +61,10 @@ internal static class TerminalHostChecks
             {
                 await Exercise(remote, workspace, "remote");
                 await Sessions(remote, workspace, "remote");
+                await LiveInputModes(remote, workspace, "remote");
             }
             await Reconnects(address, workspace);
+            await Mcp(address, workspace);
             using var rejected = new RemoteTerminalAdapter(address, "wrong-token");
             try
             {
@@ -69,7 +80,7 @@ internal static class TerminalHostChecks
             catch (RpcException error) when (error.StatusCode == StatusCode.Unauthenticated) { }
         }
         finally { await app.StopAsync(); }
-        Console.WriteLine("PASS host terminals: local/remote PTY echo, worktree root, controlling tty, UTF-8, resize, busy foreground, exit status, detach and close, start failure and auth rejection");
+        Console.WriteLine("PASS host terminals: local/remote PTY echo, worktree root, controlling tty, UTF-8, resize, user identity from the uid, busy foreground, exit status, detach and close, start failure and auth rejection");
     }
 
     private static async Task Exercise(ITerminalService terminals, string workspace, string mode)
@@ -101,6 +112,8 @@ internal static class TerminalHostChecks
             await screen.WaitFor("RESIZED_40x120", mode);
             await screen.Run("printf 'TOKEN_%s\\n' \"${SHARPRAIL_TOKEN-unset}\"");
             await screen.WaitFor("TOKEN_unset", mode);
+            await screen.Run("printf 'USER_%s_%s\\n' \"$LOGNAME\" \"$USER\"");
+            await screen.WaitFor($"USER_{Environment.UserName}_{Environment.UserName}", mode);
             Require(!await terminals.IsBusyAsync(id), $"{mode}: an idle shell reported a busy foreground.");
             await screen.Run("sleep 30");
             await Until(async () => await terminals.IsBusyAsync(id), mode + " busy foreground");
@@ -259,6 +272,75 @@ internal static class TerminalHostChecks
             if (DateTime.UtcNow > deadline) throw new InvalidOperationException("Terminal condition timed out: " + description);
             await Task.Delay(50);
         }
+    }
+    // An agent in a host terminal reaches the spec tools over MCP at the URL stamped into its shell.
+    private static async Task Mcp(Uri address, string workspace)
+    {
+        await File.WriteAllTextAsync(Path.Combine(workspace, "SPEC.md"), "---\nid: mcp-root\ntype: module-design\ntitle: The root\n---\n\nNeedle line\n");
+        using var terminals = new RemoteTerminalAdapter(address, "terminal-token");
+        var id = "mcp-" + Guid.NewGuid().ToString("N");
+        var session = await terminals.AttachAsync(new(id, workspace, "client", 100, 30));
+        var screen = new Screen(session);
+        string url;
+        try
+        {
+            await screen.Run("printf 'MCP_%s_\\n' \"$THINKRAIL_MCP_URL\"");
+            url = await screen.WaitForMatch(@"MCP_(http://127\.0\.0\.1:\d+/mcp/[0-9a-f]+)_", "remote");
+        }
+        finally { await session.DisposeAsync(); }
+        using var http = new HttpClient();
+        async Task<JsonNode?> Call(string method, object? parameters = null)
+        {
+            using var reply = await http.PostAsync(url, JsonContent.Create(new { jsonrpc = "2.0", id = 1, method, @params = parameters }));
+            Require(reply.IsSuccessStatusCode, $"MCP {method} failed with {reply.StatusCode}.");
+            return JsonNode.Parse(await reply.Content.ReadAsStringAsync());
+        }
+        var initialized = await Call("initialize", new { protocolVersion = "2025-03-26" });
+        Require(initialized?["result"]?["protocolVersion"]?.GetValue<string>() == "2025-03-26", "MCP initialize must echo a known protocol version.");
+        var tools = (await Call("tools/list"))!["result"]!["tools"]!.AsArray().Select(tool => tool!["name"]!.GetValue<string>()).ToArray();
+        Require(tools.Contains("spec_get") && tools.Contains("spec_grep"), "MCP must list the spec tools.");
+        var got = await Call("tools/call", new { name = "spec_get", arguments = new { id = "mcp-root" } });
+        Require(got!["result"]!["content"]![0]!["text"]!.GetValue<string>().StartsWith("mcp-root [module-design]", StringComparison.Ordinal), "spec_get must read the terminal's workspace.");
+        var grep = await Call("tools/call", new { name = "spec_grep", arguments = new { pattern = "needle" } });
+        Require(grep!["result"]!["content"]![0]!["text"]!.GetValue<string>().Contains("SPEC.md:7: Needle line", StringComparison.Ordinal), "spec_grep must find the line.");
+        var invalid = await Call("tools/call", new { name = "spec_get", arguments = new { wrong = true } });
+        Require(invalid!["result"]!["isError"]?.GetValue<bool>() == true, "A schema mismatch must be an isError result.");
+        var unknown = await Call("resources/list");
+        Require(unknown!["error"]!["code"]!.GetValue<int>() == -32601, "An unknown method must be a JSON-RPC error.");
+        using (var notification = await http.PostAsync(url, JsonContent.Create(new { jsonrpc = "2.0", method = "notifications/initialized" })))
+            Require((int)notification.StatusCode == 202, "A notification must be acknowledged with 202.");
+        using (var stranger = await http.PostAsync(url[..(url.LastIndexOf('/') + 1)] + "0000", JsonContent.Create(new { jsonrpc = "2.0", id = 1, method = "ping" })))
+            Require(stranger.StatusCode == HttpStatusCode.NotFound, "An unminted token must be refused at the route.");
+        await terminals.CloseAsync(id);
+        using (var closed = await http.PostAsync(url, JsonContent.Create(new { jsonrpc = "2.0", id = 1, method = "ping" })))
+            Require(closed.StatusCode == HttpStatusCode.NotFound, "A closed terminal's token must stop working.");
+        File.Delete(Path.Combine(workspace, "SPEC.md"));
+        Console.WriteLine("PASS host terminal MCP: the per-terminal URL is stamped into the shell and serves spec_get/spec_grep for its workspace; unknown and closed tokens are 404");
+    }
+
+    // A fresh view of a live full-screen program gets its alternate screen and mouse modes back after the
+    // snapshot; once the program leaves the alternate screen they are not replayed.
+    private static async Task LiveInputModes(ITerminalService terminals, string workspace, string mode)
+    {
+        const string modes = "\x1b[?1049h\x1b[?1000h\x1b[?1006h\x1b[?1007h";
+        var id = mode + "-modes-" + Guid.NewGuid().ToString("N");
+        var first = await terminals.AttachAsync(new(id, workspace, "window-a", 100, 30));
+        var a = new Screen(first);
+        await a.Run("printf '\\033[?1049h\\033[?1000;1006h\\033[?1007hFULL_%s\\n' SCREEN; read -r _; printf '\\033[?1049lBACK_%s\\n' NORMAL");
+        await a.WaitFor("FULL_SCREEN", mode);
+        var second = await terminals.AttachAsync(new(id, workspace, "window-b", 100, 30));
+        var replay = Encoding.UTF8.GetString(second.Replay.Span);
+        Require(replay.EndsWith(modes, StringComparison.Ordinal), $"{mode}: a live reattach lost the full-screen input modes. Replay: {replay}");
+        var b = new Screen(second);
+        await b.Run("");
+        await b.WaitFor("BACK_NORMAL", mode);
+        await second.DisposeAsync();
+        await using var third = await terminals.AttachAsync(new(id, workspace, "window-a", 100, 30));
+        var after = Encoding.UTF8.GetString(third.Replay.Span);
+        Require(!after.Contains("\x1b[?1000h", StringComparison.Ordinal), $"{mode}: an exited program's mouse tracking was replayed. Replay: {after}");
+        await first.DisposeAsync();
+        await terminals.CloseAsync(id);
+        Console.WriteLine($"PASS host terminal input modes ({mode}): a live full-screen program's modes are restored on reattach and dropped after it leaves");
     }
 
     private sealed class Screen

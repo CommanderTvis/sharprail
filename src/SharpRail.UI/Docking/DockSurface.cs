@@ -13,6 +13,8 @@ public sealed partial class DockSurface : Grid
     public LayoutSession Session { get; }
     public event Action? GestureCanceled;
     public Func<DockTab, bool>? IsModified { get; set; }
+    /// <summary>Whether a document tab's file was deleted on disk; refreshed with <see cref="RefreshModified"/>.</summary>
+    public Func<DockTab, bool>? IsDeleted { get; set; }
     public void RefreshModified() { foreach (var update in modifiedUpdates) update(); }
     private readonly Func<DockTab?, Control> renderContent;
     private readonly List<(Control Control, string Group, bool Header)> sites = [];

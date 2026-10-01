@@ -34,6 +34,7 @@ public static class RemoteServer
         builder.Services.AddCodeFirstGrpc(options => options.MaxReceiveMessageSize = FileLimits.SaveMessageBytes);
         var app = builder.Build();
         RequireToken(app, token);
+        McpRoute.Attach(app);
         app.MapGrpcService<WorkspaceRpc>();
         app.MapGrpcService<ProjectRpc>();
         app.MapGrpcService<StateRpc>();
@@ -52,6 +53,7 @@ public static class RemoteServer
         builder.Services.AddCodeFirstGrpc();
         var app = builder.Build();
         RequireToken(app, token);
+        McpRoute.Attach(app);
         app.MapGrpcService<TerminalRpc>();
         return app;
     }
