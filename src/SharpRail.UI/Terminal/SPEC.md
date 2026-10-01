@@ -61,7 +61,8 @@ first through the docking removal veto (`TerminalTabs.cs`); an idle or exited ta
 Removing a group or applying a preset moves terminal tabs but preserves their session identity.
 Appearance changes keep live terminal views (`DocumentCache.cs`); Ghostty receives the new background,
 foreground, ANSI palette, cursor and selection colours and its contrast floor without restarting the
-shell.
+shell. Ordinary themes preserve terminal foreground colours without minimum-contrast adjustment
+(Ghostty's default of 1); high-contrast themes use a minimum ratio of 7.
 
 ## Platform
 

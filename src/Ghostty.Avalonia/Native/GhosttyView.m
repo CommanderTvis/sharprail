@@ -367,7 +367,9 @@ bool gav_texture_key(void *pointer, int32_t action, uint32_t keycode, int32_t mo
 void gav_texture_text(void *pointer, const char *text) {
     GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;
     ghostty_surface_preedit(view.surface, NULL, 0);
-    ghostty_surface_text(view.surface, text, strlen(text));
+    // Committed IME text is input; ghostty_surface_text uses bracketed paste.
+    ghostty_input_key_s key = { .action = GHOSTTY_ACTION_PRESS, .keycode = UINT32_MAX, .text = text };
+    ghostty_surface_key(view.surface, key);
 }
 void gav_texture_preedit(void *pointer, const char *text) {
     GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;

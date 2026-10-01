@@ -2549,3 +2549,28 @@ Broader --native-terminal workbench rerun still stops at explicit active/focus
 gate; don't claim it passed. Other checkout GUI process was observed and left
 untouched. Detailed logs and limitations in VALIDATION.md. Ready for authorized
 signed commit and push to origin/upstream; never bypass 1Password presence.
+
+### Live terminal reports — 2026-10-01
+
+Previous work committed/pushed as 0963b3b. Editor launched from checkout as PID
+55982. Both renderers showed monochrome Claude/fastfetch: confirmed NO_COLOR=1
+in both tool environment and the live app environment. This was inherited from
+our launch, not a renderer color conversion fault. User can unset NO_COLOR in
+existing shells; future automation launches must omit it. Do not restart the
+live app without accounting for its hosted shells.
+
+Fixed texture committed-text fallback: ghostty_surface_text treats text as paste,
+so use ghostty_surface_key with UINT32_MAX (unidentified physical key). This
+resolved zsh's reverse-highlighted last typed character, confirmed by the user
+after relaunch. UI Release build succeeds with four existing XAML warnings.
+Latest screenshot also shows terminal query replies at the
+prompt; replay currently resends queries on renderer attachment in both paths,
+which may explain it. That separate issue has not been fixed or proven.
+
+Fixed the remaining white fastfetch bands by using Ghostty's default minimum
+contrast of 1 for ordinary themes in both renderers; high-contrast themes retain
+7. UI Release build passes with four existing XAML warnings. App relaunched with
+both fixes and without NO_COLOR (PID 65809). User reports terminfo.dev passes
+11/14 extensions; Sixel and Kitty graphics remain unsupported in their check.
+Discussed deferring Sixel and investigating Kitty graphics, without implementing
+either. User authorized committing and pushing the current fixes.

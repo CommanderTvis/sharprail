@@ -8,7 +8,7 @@ namespace SharpRail.UI.Terminal;
 /// <summary>The workbench's terminal colours and font.</summary>
 internal static class TerminalTheme
 {
-    /// <summary>Mirrors the reference's xterm theme: selection composited over the surface, and its contrast floor.</summary>
+    /// <summary>Uses the workbench palette, preserving terminal colours outside high-contrast themes.</summary>
     internal static TerminalColors Colors()
     {
         var theme = Ui.Theme;
@@ -18,7 +18,7 @@ internal static class TerminalTheme
             Cursor = Ui.Accent.Color,
             SelectionBackground = Ui.Over(theme["editorSelection"], background),
             SelectionForeground = theme.Colors["editorSelectionForeground"],
-            MinimumContrast = theme.IsHighContrast ? 7 : 4.5
+            MinimumContrast = theme.IsHighContrast ? 7 : 1
         };
     }
 
