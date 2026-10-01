@@ -23,7 +23,9 @@ internal static class StateChecks
         state.Settings.ToString(),
         string.Join(",", state.Presets.Select(preset => preset.Name + "=" + preset.Layout)),
         string.Join(",", state.Projects), string.Join(",", state.RecentProjects),
-        string.Join(",", state.WorkspaceLabels.OrderBy(entry => entry.Key).Select(entry => entry.Key + "=" + entry.Value)));
+        string.Join(",", state.WorkspaceLabels.OrderBy(entry => entry.Key).Select(entry => entry.Key + "=" + entry.Value)),
+        string.Join(",", state.PluginSettings.OrderBy(entry => entry.Key).Select(entry => entry.Key + "=" + entry.Value.GetRawText())),
+        string.Join(",", state.PluginPaths), state.Platform.ToString());
 
     internal static async Task Run(string root)
     {
@@ -36,7 +38,9 @@ internal static class StateChecks
             HostStateChange.Setting("markdown-width", "80"), HostStateChange.Setting("file-bounded", "false"),
             HostStateChange.SavePreset("Mine", "{}"), HostStateChange.RenamePreset("Mine", "Renamed"),
             HostStateChange.OpenProject(project), HostStateChange.OpenProject(other), HostStateChange.CloseProject(other),
-            HostStateChange.Label(Path.Combine(project + "-worktrees", "workspace-1"), "Shared name")
+            HostStateChange.Label(Path.Combine(project + "-worktrees", "workspace-1"), "Shared name"),
+            HostStateChange.PluginSettings("probe", """{"size":1}"""), HostStateChange.PluginSettings("other", """{"kept":true}"""),
+            HostStateChange.PluginSettings("probe", """{"enabled":false}"""), HostStateChange.PluginPaths([Path.Combine(root, "state-plugins")])
         ];
 
         var localDirectory = Path.Combine(root, "state-local");
@@ -69,6 +73,9 @@ internal static class StateChecks
         Require(state.Settings is { Theme: "light", ThemeMode: "system", SystemDark: "high-contrast-dark", MarkdownLineWidth: 80, FileLineWidthBounded: false } &&
             state.Presets.Single().Name == "Renamed" && state.Projects.SequenceEqual([project]) && state.RecentProjects.SequenceEqual([other]),
             "Changes apply in order: presets rename, closing moves a project to the recents.");
+        Require(state.PluginSettings["probe"].GetRawText() == """{"size":1,"enabled":false}""" && state.PluginSettings["other"].GetRawText() == """{"kept":true}""" &&
+            state.PluginPaths.Single().EndsWith("state-plugins", StringComparison.Ordinal) && state.Platform is not null,
+            "Plugin namespaces merge member by member, roots replace, and the host names its platform.");
         Require(Describe(new HostStateStore(localDirectory).Current) == expected && Describe(new HostStateStore(remoteDirectory).Current) == expected,
             "Both hosts persist their state beside themselves.");
         Console.WriteLine("PASS host state changes, broadcasts, validation and persistence match locally and over gRPC");

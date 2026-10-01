@@ -16,9 +16,10 @@ public sealed partial class WorkbenchWindow
     private DiffView DiffDocument(FileDocument document, DockTab tab, string key)
     {
         var markdown = Path.GetExtension(tab.Path).ToLowerInvariant() is ".md" or ".markdown";
-        return new DiffView(document.Text, tab.Path, LineWidths.File(Preferences),
+        return new DiffView(document.Text, tab.Path, LineWidths.File(Preferences.FileLineWidth, Preferences.FileLineWidthBounded),
             markdown ? token => RenderMergedAsync(tab, token) : null, !sourceDiffs.Contains(key),
-            show => { if (show) sourceDiffs.Remove(key); else sourceDiffs.Add(key); });
+            show => { if (show) sourceDiffs.Remove(key); else sourceDiffs.Add(key); },
+            Plugins.FileIcon(tab.Path, SharpRail.Plugins.Api.UI.FileIconKind.File) is null ? null : FileIcon(tab.Path, false, "fileText"));
     }
 
     private async Task<Control?> RenderMergedAsync(DockTab tab, CancellationToken token)
@@ -34,7 +35,7 @@ public sealed partial class WorkbenchWindow
         }, linked.Token);
         linked.Token.ThrowIfCancellationRequested();
         return parsed is not { } rendered ? null
-            : new MarkdownPreview(rendered.Document, tab.Path, host, Preferences, (path, anchor) => _ = OpenDocumentAsync(path, false, anchor), renderDiagrams: false,
+            : new MarkdownPreview(rendered.Document, tab.Path, MarkdownContexts.For(host, Preferences, FollowLink), renderDiagrams: false,
                 frontmatter: rendered.After, previousFrontmatter: rendered.Before)
             { Name = "RenderedDiff" };
     }

@@ -1,4 +1,5 @@
 using SharpRail.Host.Abstractions;
+using SharpRail.UI.Plugins;
 using SharpRail.UI.State;
 
 namespace SharpRail.UI;
@@ -12,17 +13,37 @@ public sealed class Workbench : IDisposable
 {
     private readonly Func<IProjectServices>? sessions;
     private readonly List<WorkbenchWindow> windows = [];
+    private readonly Dictionary<string, int> workspaceRevisions = [];
+    private readonly Dictionary<(string Workspace, string Path), int> fileRevisions = [];
+    private WorkbenchWindow? activeWindow;
 
-    public Workbench(ProfileStore profile, SharedState state, Terminal.TerminalFactory terminals, bool remote, Func<IProjectServices>? sessions)
+    public Workbench(ProfileStore profile, SharedState state, Terminal.TerminalFactory terminals, bool remote, Func<IProjectServices>? sessions, IPluginService? plugins = null)
     {
-        Profile = profile; State = state; Terminals = terminals; Remote = remote; this.sessions = sessions;
+        Profile = profile; State = state; Terminals = terminals; Remote = remote; this.sessions = sessions; Plugins = plugins;
+        PluginLoader = new(this);
+        state.Changed += (_, _) => ProjectionChanged?.Invoke();
         state.Start();
+        PluginLoader.Start();
     }
 
     public ProfileStore Profile { get; }
     public SharedState State { get; }
     public Terminal.TerminalFactory Terminals { get; }
     public bool Remote { get; }
+    /// <summary>The host's plugin runtime; null for a workbench composed without one.</summary>
+    public IPluginService? Plugins { get; }
+    /// <summary>The app's plugin runtime and the registry its windows render contributions from.</summary>
+    public PluginLoader PluginLoader { get; }
+    public PluginRegistry PluginRegistry => PluginLoader.Registry;
+    /// <summary>Qualifies client-local plugin preferences, so two hosts' plugins never share one.</summary>
+    public string Endpoint { get; init; } = "local";
+    /// <summary>The window plugins act on: the last one activated, else the first open.</summary>
+    public WorkbenchWindow? ActiveWindow => activeWindow is { } window && windows.Contains(window) ? window : windows.FirstOrDefault();
+    /// <summary>Raised on the UI thread when anything a plugin's host projection reads may have changed.</summary>
+    public event Action? ProjectionChanged;
+    /// <summary>Raised when a watched file's revision advances.</summary>
+    public event Action? RevisionsChanged;
+    public IReadOnlyDictionary<string, int> WorkspaceRevisions => new Dictionary<string, int>(workspaceRevisions);
     public IReadOnlyList<WorkbenchWindow> Windows => windows;
     public bool CanOpenWindows => sessions is not null;
     /// <summary>Set while the app quits, so closing windows keep their profile entries for the next launch.</summary>
@@ -36,9 +57,12 @@ public sealed class Workbench : IDisposable
     internal WorkbenchWindow Attach(WorkbenchWindow window)
     {
         windows.Add(window);
+        activeWindow ??= window;
+        window.Activated += (_, _) => { activeWindow = window; ProjectionChanged?.Invoke(); };
         window.Closed += (_, _) =>
         {
             windows.Remove(window);
+            ProjectionChanged?.Invoke();
             if (!ShuttingDown && windows.Count > 0) Profile.Data.Windows.Remove(window.Slot);
             Profile.Save();
             if (window.Host is IDisposable session && sessions is not null) session.Dispose();
@@ -62,5 +86,38 @@ public sealed class Workbench : IDisposable
         return window;
     }
 
-    public void Dispose() => State.Dispose();
+    internal void RaiseProjectionChanged() => ProjectionChanged?.Invoke();
+
+    public int FileRevision(string workspace, string path) => fileRevisions.GetValueOrDefault((workspace, path));
+
+    /// <summary>Advances the revisions of changed files in a watched workspace.</summary>
+    internal void BumpRevisions(string workspace, IEnumerable<string> paths)
+    {
+        workspaceRevisions[workspace] = workspaceRevisions.GetValueOrDefault(workspace) + 1;
+        foreach (var path in paths) fileRevisions[(workspace, path)] = fileRevisions.GetValueOrDefault((workspace, path)) + 1;
+        RevisionsChanged?.Invoke();
+        ProjectionChanged?.Invoke();
+    }
+
+    /// <summary>Reads a workspace file through a window already on it, else through a session opened for the read.</summary>
+    internal async Task<byte[]> ReadWorkspaceFileAsync(string workspace, string path, CancellationToken cancellationToken)
+    {
+        if (windows.FirstOrDefault(window => window.WorkspaceMounted && window.WorkspaceRoot == workspace) is { } window)
+            return Bytes(await window.Host.ReadFileAsync(path, cancellationToken));
+        var session = sessions?.Invoke() ?? throw new InvalidOperationException("This workbench cannot open workspaces.");
+        try
+        {
+            await session.OpenProjectAsync(workspace, cancellationToken);
+            return Bytes(await session.ReadFileAsync(path, cancellationToken));
+        }
+        finally { (session as IDisposable)?.Dispose(); }
+
+        static byte[] Bytes(FileDocument document) => document.ImageData ?? System.Text.Encoding.UTF8.GetBytes(document.Text);
+    }
+
+    public void Dispose()
+    {
+        PluginLoader.Stop();
+        State.Dispose();
+    }
 }

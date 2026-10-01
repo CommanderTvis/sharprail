@@ -16,7 +16,8 @@ Upstream: packages/server/src/persistence/SPEC.md @ c44534ea
 
 The state every client of one host shares: the open project list and recents, shared settings
 (appearance mode, fixed theme and system light/dark pair, file and Markdown line widths with their bound
-switches), the custom layout-preset catalog, workspace display labels and the published workspace lists.
+switches), the custom layout-preset catalog, workspace display labels, the published workspace lists,
+plugin settings namespaces and roots, the plugin roster, terminal agent records and the host platform.
 `HostStateStore` implements `IHostStateService`: it reads, validates, persists and broadcasts complete
 snapshots.
 
@@ -66,6 +67,20 @@ presets belong to the UI.
   window's instantiated frame.
 - Watchers receive the current snapshot on subscribe and only the latest one when they fall behind,
   because every snapshot is complete.
+
+## Plugins
+
+- `plugin-settings` (key: a plugin id; value: a JSON object merged member by member into that namespace,
+  a `null` member removing one, or empty to reset it) and `plugin-paths` (value: a JSON array of absolute
+  directories, replacing the list) persist with the rest of `state.json`. `enabled` must be a boolean.
+- Before persisting, a touched namespace goes through the validator the plugin runtime registers
+  (`PluginNamespaceValidator`); a refusal throws and the whole batch is rejected. Without one, or before
+  the plugin's contract loads, a namespace merges unvalidated. Turning a plugin off also writes
+  `enabled: false` into each transitive dependent's namespace (`PluginDependents`), touching no other.
+- `TerminalAgents` persist (`SetTerminalAgent`, `RemoveTerminalAgents`); the roster (`PublishPlugins`) and
+  `Platform` ride every snapshot and are never persisted. Publishing an unchanged roster publishes nothing.
+- Namespaces are kept as compact JSON objects, so a reloaded file and a fresh change compare equal; a
+  stored namespace that is not an object, or whose `enabled` is not a boolean, is dropped on load.
 
 ## Get right
 

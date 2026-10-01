@@ -13,6 +13,12 @@ public static class McpServer
     private const string Instructions =
         "SharpRail's project tools for the workspace this session runs in. The spec_* tools read the project's spec-graph — its living design docs; reach for spec_grep/spec_get before exploring code.";
 
+    /// <summary>A tool another owner (an active plugin) adds to the table; it validates its own arguments.</summary>
+    public sealed record McpTool(string Name, string Title, string Description, JsonObject InputSchema, Func<JsonObject, CancellationToken, Task<(string Text, bool Error)>> Call);
+
+    /// <summary>Core's own tool names, which no plugin tool may take.</summary>
+    public static IReadOnlySet<string> CoreToolNames { get; } = new HashSet<string>(["spec_grep", "spec_get"]);
+
     private sealed record Tool(string Name, string Description, JsonObject Schema, Func<JsonObject, string, CancellationToken, Task<(string Text, bool Error)>> Call);
 
     private static readonly Tool[] Tools =
@@ -33,7 +39,7 @@ public static class McpServer
             GetAsync),
     ];
 
-    public static async Task<(int Status, JsonNode? Body)> HandleAsync(JsonNode? message, string cwd, CancellationToken cancellationToken = default)
+    public static async Task<(int Status, JsonNode? Body)> HandleAsync(JsonNode? message, string cwd, IReadOnlyList<McpTool> extra, CancellationToken cancellationToken = default)
     {
         if (message is not JsonObject frame) return Error(null, -32600, "Expected a single JSON-RPC request object.");
         var id = frame["id"]?.DeepClone();
@@ -61,18 +67,26 @@ public static class McpServer
                         ["name"] = tool.Name,
                         ["description"] = tool.Description,
                         ["inputSchema"] = tool.Schema.DeepClone()
+                    }), .. extra.Select(tool => (JsonNode)new JsonObject
+                    {
+                        ["name"] = tool.Name,
+                        ["title"] = tool.Title,
+                        ["description"] = tool.Description,
+                        ["inputSchema"] = tool.InputSchema.DeepClone()
                     })])
                 });
             case "tools/call":
                 var name = Text(parameters["name"]);
-                if (Tools.FirstOrDefault(tool => tool.Name == name) is not { } called) return Error(id, -32602, $"Unknown tool: {name}");
+                var core = Tools.FirstOrDefault(tool => tool.Name == name);
+                var added = core is null ? extra.FirstOrDefault(tool => tool.Name == name) : null;
+                if (core is null && added is null) return Error(id, -32602, $"Unknown tool: {name}");
                 var arguments = parameters["arguments"] as JsonObject ?? [];
                 (string Text, bool Error) reply;
                 try
                 {
-                    reply = Invalid(called, arguments) is { } problem
-                        ? ($"Invalid arguments for {called.Name} — {problem}", true)
-                        : await called.Call(arguments, cwd, cancellationToken);
+                    reply = added is not null ? await added.Call(arguments, cancellationToken)
+                        : Invalid(core!, arguments) is { } problem ? ($"Invalid arguments for {core!.Name} — {problem}", true)
+                        : await core!.Call(arguments, cwd, cancellationToken);
                 }
                 catch (Exception error) when (error is not OperationCanceledException) { reply = ("Tool failed: " + error.Message, true); }
                 var result = new JsonObject { ["content"] = new JsonArray(new JsonObject { ["type"] = "text", ["text"] = reply.Text }) };

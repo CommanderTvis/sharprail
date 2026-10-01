@@ -65,6 +65,32 @@ public sealed class StateReply
     [ProtoMember(5)] public List<string> RecentProjects { get; set; } = [];
     [ProtoMember(6)] public List<LabelMessage> Labels { get; set; } = [];
     [ProtoMember(7)] public List<WorkspaceListMessage> Workspaces { get; set; } = [];
+    [ProtoMember(8)] public List<PluginSettingsMessage> PluginSettings { get; set; } = [];
+    [ProtoMember(9)] public List<string> PluginPaths { get; set; } = [];
+    [ProtoMember(10)] public List<PluginRosterMessage> Plugins { get; set; } = [];
+    [ProtoMember(11)] public List<TerminalAgentMessage> TerminalAgents { get; set; } = [];
+    // Empty when the host does not report its platform.
+    [ProtoMember(12)] public string Platform { get; set; } = "";
+}
+
+[ProtoContract]
+public sealed class PluginSettingsMessage
+{
+    [ProtoMember(1)] public string Id { get; set; } = "";
+    // The namespace as a JSON object.
+    [ProtoMember(2)] public string Json { get; set; } = "";
+}
+
+[ProtoContract]
+public sealed class TerminalAgentMessage
+{
+    [ProtoMember(1)] public string WorkspaceId { get; set; } = "";
+    [ProtoMember(2)] public string TabKey { get; set; } = "";
+    [ProtoMember(3)] public string Kind { get; set; } = "";
+    [ProtoMember(4)] public string Command { get; set; } = "";
+    [ProtoMember(5)] public string SessionId { get; set; } = "";
+    [ProtoMember(6)] public string Cwd { get; set; } = "";
+    [ProtoMember(7)] public string Model { get; set; } = "";
 }
 
 [Service]

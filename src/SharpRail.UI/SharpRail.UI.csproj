@@ -7,6 +7,8 @@
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <ProjectReference Include="../SharpRail.Scintilla/SharpRail.Scintilla.csproj" />
     <ProjectReference Include="../Ghostty.Avalonia/Ghostty.Avalonia.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Api.UI/SharpRail.Plugins.Api.UI.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.UI.Kit/SharpRail.Plugins.UI.Kit.csproj" />
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Desktop" />
     <PackageReference Include="Avalonia.Themes.Fluent" />

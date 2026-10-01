@@ -70,6 +70,14 @@ the session's other mutations:
   containing folder where no select verb exists). Both run on the host's computer.
 - None of them touches the workspace folder itself.
 
+## External configuration files
+
+`ProjectServices` takes an `allowsExternalFile(workspaceRoot, path)` delegate from its composer (the plugin
+runtime's `AllowsExternalFile`). An absolute path it admits bypasses workspace containment and goes through
+the ordinary text read and compare-and-swap save; the delegate is asked again just before the save's move, so a
+plugin disabled mid-save withdraws the file. Any other absolute path is still refused as outside the workspace.
+Core knows no plugin id.
+
 A read of a file that is gone throws `FileNotFoundException` (a remote client gets it back from gRPC's
 `NotFound`), the one read failure a client acts on: an open tab marks its file deleted on disk.
 

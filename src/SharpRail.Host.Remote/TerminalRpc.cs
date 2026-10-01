@@ -20,7 +20,15 @@ public sealed class TerminalRpc(ITerminalService terminals) : ITerminalRpc
             if (!await inputs.MoveNextAsync() || inputs.Current.Kind != TerminalInputKind.Attach)
                 throw new RpcException(new Status(StatusCode.InvalidArgument, "A terminal call must start with an attach message."));
             await using var session = await AttachAsync(inputs.Current, call.Token);
-            yield return new TerminalOutput { Attached = true, Created = session.Created, Data = session.Replay.ToArray(), Position = session.Position };
+            yield return new TerminalOutput
+            {
+                Attached = true,
+                Created = session.Created,
+                Data = session.Replay.ToArray(),
+                Position = session.Position,
+                PrefillText = session.Prefill?.Text ?? "",
+                PrefillSubmit = session.Prefill?.Submit ?? false
+            };
             pump = Drive(inputs, session, call.Token);
             await foreach (var chunk in session.ReadAsync(call.Token)) yield return new TerminalOutput { Data = chunk.ToArray(), Position = session.Position };
             await Task.WhenAny(session.Exit, session.Detached);
@@ -48,7 +56,10 @@ public sealed class TerminalRpc(ITerminalService terminals) : ITerminalRpc
     {
         try
         {
-            return await terminals.AttachAsync(new(attach.SessionId, attach.WorkspaceRoot, attach.ClientId, attach.Columns, attach.Rows, attach.Offset), cancellationToken);
+            return await terminals.AttachAsync(new(attach.SessionId, attach.WorkspaceRoot, attach.ClientId, attach.Columns, attach.Rows, attach.Offset)
+            {
+                TabKey = attach.TabKey
+            }, cancellationToken);
         }
         catch (Exception error) when (error is IOException or ArgumentException or InvalidOperationException or UnauthorizedAccessException or PlatformNotSupportedException)
         {

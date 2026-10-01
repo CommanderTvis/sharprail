@@ -1,6 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:rendering="using:SharpRail.UI.Rendering"
+        xmlns:rendering="using:SharpRail.Plugins.UI.Kit"
         x:Class="SharpRail.UI.WorkbenchWindow"
         Title="SharpRail" Width="1440" Height="920" MinWidth="390" MinHeight="540"
         ExtendClientAreaToDecorationsHint="True" ExtendClientAreaTitleBarHeightHint="40"

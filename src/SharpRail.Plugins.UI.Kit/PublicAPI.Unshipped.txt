@@ -1,0 +1,246 @@
+#nullable enable
+const SharpRail.Plugins.UI.Kit.LineWidths.FileDefault = 120 -> int
+const SharpRail.Plugins.UI.Kit.LineWidths.MarkdownDefault = 78 -> int
+const SharpRail.Plugins.UI.Kit.LineWidths.Maximum = 240 -> int
+const SharpRail.Plugins.UI.Kit.LineWidths.Minimum = 40 -> int
+const SharpRail.Plugins.UI.Kit.Markdown.Frontmatter.SpecScheme = "spec:" -> string!
+const SharpRail.Plugins.UI.Kit.Ui.InterfaceWeight = (Avalonia.Media.FontWeight)370 -> Avalonia.Media.FontWeight
+const SharpRail.Plugins.UI.Kit.Ui.SelectionForegroundKey = "ThemeSelectionForeground" -> string!
+const SharpRail.Plugins.UI.Kit.ViewerLimits.RenderedMarkdown = 1048576 -> int
+const SharpRail.Plugins.UI.Kit.ViewerLimits.Scintilla = 33554432 -> int
+const SharpRail.Plugins.UI.Kit.Visualization.MermaidDialog.InlineCap = 480 -> double
+override SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock.Equals(object? obj) -> bool
+override SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock.GetHashCode() -> int
+override SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock.ToString() -> string!
+override SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.Equals(object? obj) -> bool
+override SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.GetHashCode() -> int
+override SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.ToString() -> string!
+override SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.Equals(object? obj) -> bool
+override SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.GetHashCode() -> int
+override SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.ToString() -> string!
+override SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity.Equals(object? obj) -> bool
+override SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity.GetHashCode() -> int
+override SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity.ToString() -> string!
+override SharpRail.Plugins.UI.Kit.ThemeManifest.Equals(object? obj) -> bool
+override SharpRail.Plugins.UI.Kit.ThemeManifest.GetHashCode() -> int
+override SharpRail.Plugins.UI.Kit.ThemeManifest.ToString() -> string!
+override SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.Equals(object? obj) -> bool
+override SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.GetHashCode() -> int
+override SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.ToString() -> string!
+SharpRail.Plugins.UI.Kit.DialogWindow
+SharpRail.Plugins.UI.Kit.DialogWindow.DialogWindow() -> void
+SharpRail.Plugins.UI.Kit.Editor.EditorFrame
+SharpRail.Plugins.UI.Kit.Editor.EditorFrame.Editor.get -> SharpRail.Scintilla.ScintillaEditor!
+SharpRail.Plugins.UI.Kit.Editor.EditorFrame.EditorFrame(string! text, string! name) -> void
+SharpRail.Plugins.UI.Kit.Editor.EditorFrame.ThemeApplied -> System.Action?
+SharpRail.Plugins.UI.Kit.FindBar
+SharpRail.Plugins.UI.Kit.FindBar.Attach(Avalonia.Controls.Control! host) -> void
+SharpRail.Plugins.UI.Kit.FindBar.Close() -> void
+SharpRail.Plugins.UI.Kit.FindBar.FindBar(System.Func<Avalonia.Controls.Control?>! root) -> void
+SharpRail.Plugins.UI.Kit.FindBar.Missed.get -> bool
+SharpRail.Plugins.UI.Kit.FindBar.Open() -> void
+SharpRail.Plugins.UI.Kit.IDialogOwner
+SharpRail.Plugins.UI.Kit.IDialogOwner.Dim() -> System.Action!
+SharpRail.Plugins.UI.Kit.LineWidths
+SharpRail.Plugins.UI.Kit.Markdown.Frontmatter
+SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock
+SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock.<Clone>$() -> SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock!
+SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock.Deconstruct(out System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty!>! Properties, out string! Raw, out bool Readable, out int Lines) -> void
+SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock.Equals(SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock? other) -> bool
+SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock.FrontmatterBlock(System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty!>! Properties, string! Raw, bool Readable, int Lines) -> void
+SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock.Lines.get -> int
+SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock.Lines.init -> void
+SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock.Properties.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty!>!
+SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock.Properties.init -> void
+SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock.Raw.get -> string!
+SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock.Raw.init -> void
+SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock.Readable.get -> bool
+SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock.Readable.init -> void
+SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty
+SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.<Clone>$() -> SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty!
+SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.Deconstruct(out string! Key, out string? Text, out System.Collections.Generic.IReadOnlyList<string!>? Items, out System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, string!>>? Entries) -> void
+SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.Entries.get -> System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, string!>>?
+SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.Entries.init -> void
+SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.Equals(SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty? other) -> bool
+SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.FrontmatterProperty(string! Key, string? Text = null, System.Collections.Generic.IReadOnlyList<string!>? Items = null, System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, string!>>? Entries = null) -> void
+SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.Items.get -> System.Collections.Generic.IReadOnlyList<string!>?
+SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.Items.init -> void
+SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.Key.get -> string!
+SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.Key.init -> void
+SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.Text.get -> string?
+SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.Text.init -> void
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.<Clone>$() -> SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext!
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.Deconstruct(out System.Func<string!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<byte[]?>>! ReadImage, out System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyDictionary<string!, string!>!>>! ResolveSpecLinks, out System.Action<string!, string?>! Navigate, out double FontSize, out int LineWidth, out bool LineWidthBounded) -> void
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.Equals(SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext? other) -> bool
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.FontSize.get -> double
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.FontSize.init -> void
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.LineWidth.get -> int
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.LineWidth.init -> void
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.LineWidthBounded.get -> bool
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.LineWidthBounded.init -> void
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.MarkdownContext(System.Func<string!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<byte[]?>>! ReadImage, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyDictionary<string!, string!>!>>! ResolveSpecLinks, System.Action<string!, string?>! Navigate, double FontSize, int LineWidth, bool LineWidthBounded) -> void
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.Navigate.get -> System.Action<string!, string?>!
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.Navigate.init -> void
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.ReadImage.get -> System.Func<string!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<byte[]?>>!
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.ReadImage.init -> void
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.ResolveSpecLinks.get -> System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyDictionary<string!, string!>!>>!
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.ResolveSpecLinks.init -> void
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Dispose() -> void
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.MarkdownDocumentView(string! text, string! path, SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext! context) -> void
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode.Preview = 0 -> SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode.Source = 1 -> SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode.Split = 2 -> SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Preview.get -> SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview!
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ScrollToAnchor(string! id) -> void
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Show(SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode next) -> void
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.View.get -> SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownLink
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownLink.MarkdownLink(Avalonia.Controls.TextBlock! label) -> void
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.Dispose() -> void
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.Document.get -> Markdig.Syntax.MarkdownDocument!
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.Headings.get -> System.Collections.Generic.IEnumerable<(int Level, string! Text, string! Id, int Line)>!
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.MarkdownPreview(Markdig.Syntax.MarkdownDocument! document, string! path, SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext! context, bool renderDiagrams = true, SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock? frontmatter = null, SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock? previousFrontmatter = null) -> void
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.MarkdownPreview(string! text, string! path, SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext! context) -> void
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.ScrollToAnchor(string? id) -> void
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.ScrollToTitle() -> void
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.SelectionChanged -> System.Action<string!>?
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.Spec.get -> SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity?
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.SpecTitle.get -> Avalonia.Controls.TextBlock?
+SharpRail.Plugins.UI.Kit.Markdown.Outline
+SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity
+SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity.<Clone>$() -> SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity!
+SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity.Deconstruct(out string! Id, out string! Type, out string? Title) -> void
+SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity.Equals(SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity? other) -> bool
+SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity.Id.get -> string!
+SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity.Id.init -> void
+SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity.SpecIdentity(string! Id, string! Type, string? Title) -> void
+SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity.Title.get -> string?
+SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity.Title.init -> void
+SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity.Type.get -> string!
+SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity.Type.init -> void
+SharpRail.Plugins.UI.Kit.SvgAsset
+SharpRail.Plugins.UI.Kit.SvgAsset.SvgAsset(byte[]! svg, double size = 16) -> void
+SharpRail.Plugins.UI.Kit.ThemeManifest
+SharpRail.Plugins.UI.Kit.ThemeManifest.<Clone>$() -> SharpRail.Plugins.UI.Kit.ThemeManifest!
+SharpRail.Plugins.UI.Kit.ThemeManifest.Ansi.get -> System.Collections.Generic.IReadOnlyList<Avalonia.Media.Color>!
+SharpRail.Plugins.UI.Kit.ThemeManifest.Ansi.init -> void
+SharpRail.Plugins.UI.Kit.ThemeManifest.Appearance.get -> string!
+SharpRail.Plugins.UI.Kit.ThemeManifest.Appearance.init -> void
+SharpRail.Plugins.UI.Kit.ThemeManifest.Colors.get -> System.Collections.Generic.IReadOnlyDictionary<string!, Avalonia.Media.Color?>!
+SharpRail.Plugins.UI.Kit.ThemeManifest.Colors.init -> void
+SharpRail.Plugins.UI.Kit.ThemeManifest.Contrast.get -> string!
+SharpRail.Plugins.UI.Kit.ThemeManifest.Contrast.init -> void
+SharpRail.Plugins.UI.Kit.ThemeManifest.Deconstruct(out string! Id, out string! Label, out int Order, out string! Appearance, out string! Contrast, out System.Collections.Generic.IReadOnlyDictionary<string!, Avalonia.Media.Color?>! Colors, out System.Collections.Generic.IReadOnlyList<Avalonia.Media.Color>! Ansi) -> void
+SharpRail.Plugins.UI.Kit.ThemeManifest.Equals(SharpRail.Plugins.UI.Kit.ThemeManifest? other) -> bool
+SharpRail.Plugins.UI.Kit.ThemeManifest.Id.get -> string!
+SharpRail.Plugins.UI.Kit.ThemeManifest.Id.init -> void
+SharpRail.Plugins.UI.Kit.ThemeManifest.IsHighContrast.get -> bool
+SharpRail.Plugins.UI.Kit.ThemeManifest.IsLight.get -> bool
+SharpRail.Plugins.UI.Kit.ThemeManifest.Label.get -> string!
+SharpRail.Plugins.UI.Kit.ThemeManifest.Label.init -> void
+SharpRail.Plugins.UI.Kit.ThemeManifest.Order.get -> int
+SharpRail.Plugins.UI.Kit.ThemeManifest.Order.init -> void
+SharpRail.Plugins.UI.Kit.ThemeManifest.ThemeManifest(string! Id, string! Label, int Order, string! Appearance, string! Contrast, System.Collections.Generic.IReadOnlyDictionary<string!, Avalonia.Media.Color?>! Colors, System.Collections.Generic.IReadOnlyList<Avalonia.Media.Color>! Ansi) -> void
+SharpRail.Plugins.UI.Kit.ThemeManifest.this[string! key].get -> Avalonia.Media.Color
+SharpRail.Plugins.UI.Kit.Ui
+SharpRail.Plugins.UI.Kit.ViewerLimits
+SharpRail.Plugins.UI.Kit.Visualization.MermaidDialog
+SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer
+SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result
+SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.<Clone>$() -> SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result!
+SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.Deconstruct(out string? Svg, out string? Error) -> void
+SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.Equals(SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result? other) -> bool
+SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.Error.get -> string?
+SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.Error.init -> void
+SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.Result(string? Svg, string? Error) -> void
+SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.Svg.get -> string?
+SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.Svg.init -> void
+static readonly SharpRail.Plugins.UI.Kit.Markdown.Frontmatter.SpecTypes -> string![]!
+static readonly SharpRail.Plugins.UI.Kit.Ui.Accent -> Avalonia.Media.SolidColorBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.BorderBrush -> Avalonia.Media.SolidColorBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.CodeFont -> Avalonia.Media.FontFamily!
+static readonly SharpRail.Plugins.UI.Kit.Ui.Danger -> Avalonia.Media.SolidColorBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.DangerWash -> Avalonia.Media.SolidColorBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.DialogShadow -> Avalonia.Media.SolidColorBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.Elevated -> Avalonia.Media.SolidColorBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.FadeFromElevated -> Avalonia.Media.LinearGradientBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.FadeToElevated -> Avalonia.Media.LinearGradientBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.Header -> Avalonia.Media.SolidColorBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.Hint -> Avalonia.Media.SolidColorBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.Hover -> Avalonia.Media.SolidColorBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.Info -> Avalonia.Media.SolidColorBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.InfoWash -> Avalonia.Media.SolidColorBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.InterfaceFont -> Avalonia.Media.FontFamily!
+static readonly SharpRail.Plugins.UI.Kit.Ui.Muted -> Avalonia.Media.SolidColorBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.OnPrimary -> Avalonia.Media.SolidColorBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.PrimaryFill -> Avalonia.Media.SolidColorBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.PrimaryFillHover -> Avalonia.Media.SolidColorBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.PrimaryMuted -> Avalonia.Media.SolidColorBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.PrimarySubtle -> Avalonia.Media.SolidColorBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.Sidebar -> Avalonia.Media.SolidColorBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.Success -> Avalonia.Media.SolidColorBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.SuccessWash -> Avalonia.Media.SolidColorBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.Surface -> Avalonia.Media.SolidColorBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.TextBrush -> Avalonia.Media.SolidColorBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.TextSelection -> Avalonia.Media.SolidColorBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.Warning -> Avalonia.Media.SolidColorBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.WarningWash -> Avalonia.Media.SolidColorBrush!
+static SharpRail.Plugins.UI.Kit.DialogWindow.Create(string! title, double width) -> SharpRail.Plugins.UI.Kit.DialogWindow!
+static SharpRail.Plugins.UI.Kit.LineWidths.Code(int columns) -> double
+static SharpRail.Plugins.UI.Kit.LineWidths.File(int width, bool bounded) -> double
+static SharpRail.Plugins.UI.Kit.LineWidths.IsValid(int columns) -> bool
+static SharpRail.Plugins.UI.Kit.LineWidths.Markdown(int width, bool bounded, double fontSize) -> double
+static SharpRail.Plugins.UI.Kit.Markdown.Frontmatter.LinkifyWikiLinks(string! text) -> string!
+static SharpRail.Plugins.UI.Kit.Markdown.Frontmatter.Parse(string! content) -> SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock?
+static SharpRail.Plugins.UI.Kit.Markdown.Frontmatter.Spec(SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock? block) -> SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity?
+static SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock.operator !=(SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock? left, SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock? right) -> bool
+static SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock.operator ==(SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock? left, SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock? right) -> bool
+static SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.operator !=(SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty? left, SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty? right) -> bool
+static SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.operator ==(SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty? left, SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty? right) -> bool
+static SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.operator !=(SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext? left, SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext? right) -> bool
+static SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.operator ==(SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext? left, SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext? right) -> bool
+static SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.Code(string! text) -> Avalonia.Controls.SelectableTextBlock!
+static SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.Parse(string! text) -> Markdig.Syntax.MarkdownDocument!
+static SharpRail.Plugins.UI.Kit.Markdown.Outline.Fill(Avalonia.Controls.StackPanel! entries, SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview! preview, string! sourceText, System.Action<int>? revealSource) -> void
+static SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity.operator !=(SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity? left, SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity? right) -> bool
+static SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity.operator ==(SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity? left, SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity? right) -> bool
+static SharpRail.Plugins.UI.Kit.ThemeManifest.operator !=(SharpRail.Plugins.UI.Kit.ThemeManifest? left, SharpRail.Plugins.UI.Kit.ThemeManifest? right) -> bool
+static SharpRail.Plugins.UI.Kit.ThemeManifest.operator ==(SharpRail.Plugins.UI.Kit.ThemeManifest? left, SharpRail.Plugins.UI.Kit.ThemeManifest? right) -> bool
+static SharpRail.Plugins.UI.Kit.Ui.Alpha(Avalonia.Media.Color color, int percent) -> Avalonia.Media.Color
+static SharpRail.Plugins.UI.Kit.Ui.Apply(SharpRail.Plugins.UI.Kit.ThemeManifest! theme) -> void
+static SharpRail.Plugins.UI.Kit.Ui.ApplyResources(Avalonia.Application! app) -> void
+static SharpRail.Plugins.UI.Kit.Ui.Button(string! label, System.Action! action, string? icon = null) -> Avalonia.Controls.Button!
+static SharpRail.Plugins.UI.Kit.Ui.Chip(Avalonia.Controls.Control! child, Avalonia.Thickness? padding = null) -> Avalonia.Controls.Border!
+static SharpRail.Plugins.UI.Kit.Ui.FontSize.get -> double
+static SharpRail.Plugins.UI.Kit.Ui.FontSize.set -> void
+static SharpRail.Plugins.UI.Kit.Ui.Frame(Avalonia.Controls.Control! child, Avalonia.Media.IBrush? background = null) -> Avalonia.Controls.Border!
+static SharpRail.Plugins.UI.Kit.Ui.Icon(string! name, Avalonia.Media.IBrush? color = null, double size = 16) -> Avalonia.Controls.Control!
+static SharpRail.Plugins.UI.Kit.Ui.IconButton(string! icon, string! tooltip, System.Action! action) -> Avalonia.Controls.Button!
+static SharpRail.Plugins.UI.Kit.Ui.Menu(string! label, System.Action! action, bool enabled = true) -> Avalonia.Controls.MenuItem!
+static SharpRail.Plugins.UI.Kit.Ui.Over(Avalonia.Media.Color color, Avalonia.Media.Color background) -> Avalonia.Media.Color
+static SharpRail.Plugins.UI.Kit.Ui.Place(Avalonia.Controls.Grid! grid, Avalonia.Controls.Control! child, int row = 0, int column = 0) -> void
+static SharpRail.Plugins.UI.Kit.Ui.Row(string! icon, string! text, Avalonia.Media.IBrush? color = null) -> Avalonia.Controls.StackPanel!
+static SharpRail.Plugins.UI.Kit.Ui.Segment(string! name, string! label) -> Avalonia.Controls.Primitives.ToggleButton!
+static SharpRail.Plugins.UI.Kit.Ui.Text(string! text, Avalonia.Media.IBrush? color = null, double? size = null) -> Avalonia.Controls.TextBlock!
+static SharpRail.Plugins.UI.Kit.Ui.Theme.get -> SharpRail.Plugins.UI.Kit.ThemeManifest!
+static SharpRail.Plugins.UI.Kit.Ui.ThemeChanged -> System.Action?
+static SharpRail.Plugins.UI.Kit.ViewerLimits.TooLarge(string! what, int length) -> Avalonia.Controls.Control!
+static SharpRail.Plugins.UI.Kit.Visualization.MermaidDialog.Inline(Avalonia.Svg.Skia.SvgSource! diagram, Avalonia.Size natural, Avalonia.Controls.Control! fullscreen) -> Avalonia.Controls.Control!
+static SharpRail.Plugins.UI.Kit.Visualization.MermaidDialog.Show(Avalonia.Controls.Window! owner, Avalonia.Svg.Skia.SvgSource! diagram) -> void
+static SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Options() -> string!
+static SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Render(string! source, string! options) -> SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result!
+static SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.operator !=(SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result? left, SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result? right) -> bool
+static SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.operator ==(SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result? left, SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result? right) -> bool
+SharpRail.Plugins.UI.Kit.InterfaceZoom
+const SharpRail.Plugins.UI.Kit.InterfaceZoom.ResourceKey = "InterfaceZoom" -> string!
+static readonly SharpRail.Plugins.UI.Kit.InterfaceZoom.Factors -> double[]!
+static SharpRail.Plugins.UI.Kit.InterfaceZoom.Current.get -> double
+static SharpRail.Plugins.UI.Kit.InterfaceZoom.Changed -> System.Action?
+static SharpRail.Plugins.UI.Kit.InterfaceZoom.Next(double current, int step) -> double
+static SharpRail.Plugins.UI.Kit.InterfaceZoom.Normalize(double factor) -> double
+static SharpRail.Plugins.UI.Kit.InterfaceZoom.Apply(Avalonia.Application! app, double factor) -> void
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.SelectedText.get -> string!

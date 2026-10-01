@@ -11,8 +11,9 @@ namespace SharpRail.UI.Terminal;
 
 // Serves the app's own terminal sessions to the relays that its Ghostty tabs run, over a private Unix
 // socket with a per-run token. It starts with the first terminal, off the UI thread, and stops with the app;
-// the sessions themselves belong to the app's host, so they outlive any window.
-public sealed class LocalTerminalRelay(ITerminalService terminals) : IAsyncDisposable
+// the sessions themselves belong to the app's host, so they outlive any window. The host's loopback server
+// starts with it, so shells get the MCP route from the first one.
+public sealed class LocalTerminalRelay(ITerminalService terminals, LoopbackServer? loopback = null) : IAsyncDisposable
 {
     // macOS limits a socket path to 104 bytes.
     private const int SocketPathLimit = 103;
@@ -29,6 +30,7 @@ public sealed class LocalTerminalRelay(ITerminalService terminals) : IAsyncDispo
     private async Task<RemoteTerminalConnection> StartAsync()
     {
         if (OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("The terminal relay requires Unix domain socket permissions.");
+        _ = loopback?.BaseUrl;
         var token = Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(32));
         var name = Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(6)) + ".sock";
         socket = Path.Combine(TerminalRelay.PrivateDirectory(), name);

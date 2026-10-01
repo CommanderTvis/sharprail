@@ -15,15 +15,17 @@ which the UI uses only to serve its in-process terminal relay socket.
 ## Boundary
 
 - Owns `RemoteServer.cs` (server composition and authentication), `McpRoute.cs`
-  (the terminals' MCP endpoint), the RPC
-  adapters `WorkspaceRpc.cs`, `ProjectRpc.cs`, `StateRpc.cs` and
-  `TerminalRpc.cs`, `ProjectSessions.cs` (per-call workspace resolution) and
+  (`LoopbackServer`: the host's loopback HTTP/1.1 server for MCP and plugin routes), the RPC
+  adapters `WorkspaceRpc.cs`, `ProjectRpc.cs`, `StateRpc.cs`, `TerminalRpc.cs` and
+  `PluginRpc.cs`, `ProjectSessions.cs` (per-call workspace resolution) and
   `Program.cs` (environment-driven startup).
 - Public surface: `RemoteServer.Create(root, address, port, token,
-  stateDirectory?, terminals?)` for a full host and
+  stateDirectory?, terminals?, plugins?)` for a full host (`plugins` adjusts the
+  plugin runtime's seams, as the checks do) and
   `RemoteServer.CreateTerminalRelay(terminals, socketPath, token)` for a
   terminal-only server on a private Unix socket. Both return an unstarted
-  `WebApplication`; the embedder starts and stops it.
+  `WebApplication`; the embedder starts and stops it. `LoopbackServer` is public so
+  the app's own host composes the same server.
 - Allowed deps: Core, Protocol, Abstractions, ASP.NET Core/Kestrel,
   protobuf-net.Grpc.AspNetCore.
 - Forbidden: the UI or Avalonia; product behavior in the adapters. An RPC
@@ -77,17 +79,32 @@ loopback is an explicit opt-in via `SHARPRAIL_BIND`.
 - Request bodies and gRPC messages are capped from `FileLimits`, sized for the
   largest save.
 
-## MCP endpoint for terminal agents
+## Plugins
 
-- Both servers start, once listening, a second loopback-only HTTP/1.1 server (agents' MCP clients do not
-  speak prior-knowledge HTTP/2) that stops with them. It serves `POST /mcp/<token>`; `GET` and `DELETE`
-  answer 405, since every tool is request/response and there is no SSE stream or session.
+- `RemoteServer.Create` composes a `PluginRuntime` from the state directory (external plugins under
+  `<stateDir>/plugins`), the state store, the host's `PtyTerminalService` and the loopback server, starts it
+  before the first client can call, and disposes it first when the host stops, before the loopback server and
+  the terminals. `PluginRpc` maps `IPluginRpc` onto it; a `PluginCallException` becomes the status code the
+  contract names, and subscription streams end on application stopping.
+- The host serves every plugin file a client asks for through `ReadFileAsync`, contained in the plugin's
+  directory, so a remote host's external UI halves and assets reach the local app.
+
+## Loopback server: MCP and plugin routes
+
+- `LoopbackServer` is a loopback-only HTTP/1.1 server (agents' MCP clients do not speak prior-knowledge
+  HTTP/2) that starts on first use of its `BaseUrl` and stops with its host: a remote host starts it once
+  listening, the app's own host when its terminal relay starts or a plugin asks for its URL. It serves
+  `POST /mcp/<token>`, where `GET` and `DELETE` answer 405, since every tool is request/response and there
+  is no SSE stream or session, and `/plugin/<id>/<subpath>` for any method, which reaches the plugin
+  runtime's route dispatch and answers 404 for an unknown, disabled or routeless plugin.
+- The terminal relay no longer starts MCP itself; the app's relay starts the loopback server it is given.
 - The route token is the per-terminal identity `PtyTerminalService` mints and stamps into the shell as
   `THINKRAIL_MCP_URL`; it resolves to that terminal's workspace root and nothing else. An unknown or closed
   terminal's token is 404 before any protocol handling. The host bearer token is never involved and never
   reaches a shell.
 - The protocol and tools are Core's `McpServer` (see
-  [Specs.SPEC.md](../SharpRail.Host.Core/Specs.SPEC.md)); the route only resolves the token and relays JSON.
+  [Specs.SPEC.md](../SharpRail.Host.Core/Specs.SPEC.md)) plus the active plugins' tools for that terminal;
+  the route only resolves the token and relays JSON.
 
 ## Decisions and trade-offs
 

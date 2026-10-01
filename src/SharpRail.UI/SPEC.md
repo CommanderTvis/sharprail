@@ -33,6 +33,12 @@ panel or feature flow.
 | `Panels` | Settings and shared dialogs | — |
 | `Rendering` | Markdown, diffs, Mermaid, themes and shared brushes | — |
 | `Editor` | The Scintilla-backed code document view | — |
+| `Plugins` | The app-side plugin runtime: registry, loader, `IPluginUIContext`, editor events | [Plugins/SPEC.md](Plugins/SPEC.md) |
+
+The shared controls (`Ui`, dialogs' card, Markdown, the editor frame, Mermaid) live in
+[`SharpRail.Plugins.UI.Kit`](../SharpRail.Plugins.UI.Kit/SPEC.md); `GlobalUsings.cs` imports its namespaces.
+`PluginSurfaces.cs` is the `WorkbenchWindow` partial where plugin contributions render and the window operations
+the plugin context binds to.
 
 Dependency rules: `Docking` never references panels, host services or persistence; the window injects
 content through a render callback. `State` references `Docking` only for the `DockState` type it persists.

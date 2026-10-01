@@ -38,7 +38,8 @@ a tab where is frontend-local and never reaches this service.
 - Once the host's MCP endpoint is listening (`McpEndpoint`), each session gets a random token, stable for
   its session id, and its shell gets `THINKRAIL_MCP_URL=<endpoint>/mcp/<token>` — the name the ThinkRail
   Claude Code plugin's `.mcp.json` expands, so an agent in the terminal reaches the spec tools of that
-  terminal's workspace. `McpWorkspace(token)` resolves it; closing the session forgets the token. A shell
+  terminal's workspace. `McpOwner(token)` resolves it to the workspace and tab; closing the session forgets
+  the token. A shell
   started with no endpoint has the variable removed rather than inheriting one. POSIX only; other platforms show an availability message.
 - A shell is keyed by a stable session id the client derives from workspace and tab, never by a
   connection or a view. Attach is get-or-create under one lock, so concurrent attaches never start two
@@ -58,6 +59,24 @@ a tab where is frontend-local and never reaches this service.
   immediately.
 - Killing sends SIGHUP to the shell's process group, then SIGKILL if it does not exit.
 - Not tmux: no extra dependency, no competing tab model.
+
+## Plugin seams
+
+`PtyTerminalService` implements `IPluginTerminalSeams` for the plugin runtime
+([Plugins.SPEC.md](Plugins.SPEC.md)):
+
+- An attach may name its tab key (`TerminalAttachRequest.TabKey`); the session then knows its `TerminalRef`
+  (the full workspace root and the tab key). `SessionFor(TerminalRef)` is the same hash the app derives a
+  session id from, so a tab nobody attached this run still maps to its session.
+- Tokens are per session id and stable: `Token(TerminalRef)` mints or returns one, also for a tab with no
+  shell yet, and `ForToken` and `McpOwner` resolve it. Closing the session forgets it.
+- When a shell starts for a known tab, `EnvironmentContributor` adds variables after core's own (never
+  `SHARPRAIL_TOKEN`), `RevivePrefill` may hand the creating attachment a `TerminalPrefill`, and `Lifecycle`
+  hears `TerminalSpawned` with the shell's pid and later `TerminalExited`. Closing a session calls
+  `SessionClosed` with its id and, when known, its tab.
+- `Write` types into a tab's shell host-side, ignoring attachment; `List` is the process table of known tabs
+  (pid null once exited) and `WorkspaceForProcess` walks a pid's ancestors (`/proc` on Linux, one `ps` on
+  macOS) to a live shell's workspace.
 
 ## Replay
 

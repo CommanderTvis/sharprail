@@ -1160,3 +1160,38 @@ The native texture run fails the previously observed changed-theme-background
 pixel assertion, before completing the suite (`.bench/url-native-texture.log`).
 Actual system-browser opening and Metal link pixels have not been verified.
 No live app restart, publication, commit or push was performed.
+## Plugin API — 2026-10-01
+
+Host and UI halves merged, uncommitted.
+
+- Release build of `SharpRail.slnx` is clean (warnings are errors; the only warnings are the existing Avalonia XAML
+  notices), and `dotnet format SharpRail.slnx --verify-no-changes --no-restore` passes.
+- `-- --plugins` passes (`.bench/plugins-merged.log`, 24 PASS lines). Host: the generation pin; manifest intake
+  (strict shape naming the path, id against directory, generation naming both numbers); discovery (valid,
+  unreadable and missing manifests, a missing root, a symlinked directory refused); registry (dependency order,
+  cycle, contract-intake refusals); activation (lifecycle, throwing activation, retry, both staleness cases, drain
+  before dispose, bounded drain and disposer); reconciler (default enable, settings disable, cascade into
+  dependents' namespaces only, missing and wrong-wire dependencies, a dependent not activating in the pass its
+  dependency fails, coalesced scheduling); dispatch; settings (two namespaces, batch rejection naming the path,
+  defaults beside `enabled`, invalid-on-load fallback); tools; shutdown order; external files locally and over gRPC.
+- The external fixture plugin's host half installs from disk and runs through the direct adapter and a real gRPC
+  host: arrives disabled, enables, answers, publishes on a keyed state channel matching its snapshot, refuses bad
+  params naming `$.text`, keeps a subscription across disable and enable, ends a cancelled subscription as
+  cancelled on both paths, serves its files contained to its directory, serves its route on the loopback server,
+  reloads on a changed manifest, and refuses a bad generation and a missing dependency until a rescan sees the fix.
+- Terminals: a plugin's environment reaches a new shell, the revive prefill rides the attachment locally and over
+  gRPC, host-side writes, tokens, MCP plugin tools, the process table, lifecycle events and agent records
+  (persisted, broadcast, dropped on close) check out against real PTYs.
+- UI: registry tables, catalog order and dormancy, viewer order and predicates, write stability and one-write
+  removal; the two dependency walks; icon fallbacks; the loader on a stand-in host (mount, activation guard, builtin
+  wire-version mismatch, throwing activation, `WatchHost`, state-channel snapshot with scope and dropped off-scope
+  pushes, unmount).
+- The fork's `external-plugin.spec.ts` runs end to end through the real host twice, with the app's in-process
+  runtime and with a remote host over gRPC: the fixture installed from disk beside a refused copy (row names 999 and
+  1) and a removable copy; the dormant tool tab turning live with its tab instance kept; the Settings section and a
+  settings update reaching the host half; the channel round-trip; a start action's call; the file viewer and its
+  gone placeholder; the file-icon slot; a terminal accessory; a single copy of the shared API assembly; disable
+  removing every contribution and the call reporting `Disabled`; Rescan dropping the copy deleted from disk.
+- The full suite passes without `SHARPRAIL_TEST_GIT_SOURCE` (`.bench/checks-plugins-merged-full.log`, 217 PASS
+  lines, exit 0; Git scenarios skipped), run once with nothing else running.
+- Not yet evidence: native capture of the plugin surfaces; the published checks with the copied fixture.

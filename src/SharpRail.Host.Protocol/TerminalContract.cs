@@ -19,6 +19,7 @@ public sealed class TerminalInput
     [ProtoMember(6)] public byte[] Data { get; set; } = [];
     [ProtoMember(7)] public string ClientId { get; set; } = "";
     [ProtoMember(8)] public long Offset { get; set; } = -1;
+    [ProtoMember(9)] public string TabKey { get; set; } = "";
 }
 
 // One Attached message, then output chunks with the host position after each, then Exited with the exit
@@ -33,6 +34,9 @@ public sealed class TerminalOutput
     [ProtoMember(5)] public bool Detached { get; set; }
     [ProtoMember(6)] public bool Created { get; set; }
     [ProtoMember(7)] public long Position { get; set; }
+    // On the Attached message of a shell started for a tab a plugin offered to revive.
+    [ProtoMember(8)] public string PrefillText { get; set; } = "";
+    [ProtoMember(9)] public bool PrefillSubmit { get; set; }
 }
 
 [ProtoContract]

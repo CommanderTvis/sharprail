@@ -1,9 +1,11 @@
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading.Channels;
 
 using SharpRail.Host.Abstractions;
+using SharpRail.Plugins.Api;
 
 namespace SharpRail.Host.Core;
 
@@ -22,6 +24,9 @@ public sealed class HostStateStore : IHostStateService
         public List<string> Projects { get; set; } = [];
         public List<string> RecentProjects { get; set; } = [];
         public Dictionary<string, string> WorkspaceLabels { get; set; } = [];
+        public Dictionary<string, JsonElement> PluginSettings { get; set; } = [];
+        public List<string> PluginPaths { get; set; } = [];
+        public List<TerminalAgent> TerminalAgents { get; set; } = [];
     }
 
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true };
@@ -31,6 +36,15 @@ public sealed class HostStateStore : IHostStateService
     private HostState state;
 
     public string? LastError { get; private set; }
+
+    /// <summary>
+    /// Normalizes a merged plugin settings namespace before it is persisted, or throws to reject the whole batch.
+    /// The plugin runtime registers it; without one, namespaces merge unvalidated.
+    /// </summary>
+    public Func<string, JsonElement, JsonElement>? PluginNamespaceValidator { get; set; }
+
+    /// <summary>Every transitive dependent of a plugin, so turning it off turns them off in the same batch.</summary>
+    public Func<string, IReadOnlyList<string>>? PluginDependents { get; set; }
 
     /// <summary>Opens the store; when the directory has no state file yet, <paramref name="seed"/> supplies migrated state.</summary>
     public HostStateStore(string? directory, Func<HostState>? seed = null)
@@ -48,7 +62,10 @@ public sealed class HostStateStore : IHostStateService
                     Presets = stored.Presets ?? [],
                     Projects = stored.Projects ?? [],
                     RecentProjects = stored.RecentProjects ?? [],
-                    WorkspaceLabels = stored.WorkspaceLabels ?? []
+                    WorkspaceLabels = stored.WorkspaceLabels ?? [],
+                    PluginSettings = stored.PluginSettings ?? [],
+                    PluginPaths = stored.PluginPaths ?? [],
+                    TerminalAgents = stored.TerminalAgents ?? []
                 };
             }
             else initial = seed?.Invoke() ?? new();
@@ -86,6 +103,50 @@ public sealed class HostStateStore : IHostStateService
             var labels = state.WorkspaceLabels;
             if (removed is not null && labels.ContainsKey(removed)) labels = labels.Where(entry => entry.Key != removed).ToDictionary();
             Publish(state with { Workspaces = lists, WorkspaceLabels = labels }, persist: !ReferenceEquals(labels, state.WorkspaceLabels));
+        }
+    }
+
+    /// <summary>Publishes the plugin roster the runtime reconciled; it rides every later snapshot and is never persisted.</summary>
+    public void PublishPlugins(IReadOnlyList<PluginRosterEntry> roster)
+    {
+        lock (gate)
+        {
+            if (JsonSerializer.Serialize(roster, PluginJson.Options) == JsonSerializer.Serialize(state.Plugins, PluginJson.Options)) return;
+            Publish(state with { Plugins = roster.ToArray() }, persist: false);
+        }
+    }
+
+    /// <summary>Sets or clears one terminal's agent record.</summary>
+    public void SetTerminalAgent(TerminalRef terminal, TerminalAgentRecord? record)
+    {
+        lock (gate)
+        {
+            var agents = state.TerminalAgents.Where(agent => agent.Terminal != terminal).ToList();
+            if (record is not null) agents.Add(new(terminal, record));
+            if (agents.SequenceEqual(state.TerminalAgents)) return;
+            Publish(state with { TerminalAgents = agents }, persist: true);
+        }
+    }
+
+    /// <summary>Drops the agent records of terminals that closed and returns them.</summary>
+    public IReadOnlyList<TerminalRef> RemoveTerminalAgents(Func<TerminalRef, bool> closed)
+    {
+        lock (gate)
+        {
+            var removed = state.TerminalAgents.Where(agent => closed(agent.Terminal)).Select(agent => agent.Terminal).ToArray();
+            if (removed.Length > 0) Publish(state with { TerminalAgents = state.TerminalAgents.Where(agent => !closed(agent.Terminal)).ToArray() }, persist: true);
+            return removed;
+        }
+    }
+
+    /// <summary>Replaces one plugin settings namespace as is, for a namespace found invalid once its plugin's contract loads.</summary>
+    public void ReplacePluginSettings(string id, JsonElement value)
+    {
+        lock (gate)
+        {
+            var namespaces = state.PluginSettings.ToDictionary();
+            namespaces[id] = JsonSerializer.SerializeToElement(value);
+            Publish(state with { PluginSettings = namespaces }, persist: true);
         }
     }
 
@@ -127,7 +188,10 @@ public sealed class HostStateStore : IHostStateService
                 Presets = snapshot.Presets.ToList(),
                 Projects = snapshot.Projects.ToList(),
                 RecentProjects = snapshot.RecentProjects.ToList(),
-                WorkspaceLabels = snapshot.WorkspaceLabels.ToDictionary()
+                WorkspaceLabels = snapshot.WorkspaceLabels.ToDictionary(),
+                PluginSettings = snapshot.PluginSettings.ToDictionary(),
+                PluginPaths = snapshot.PluginPaths.ToList(),
+                TerminalAgents = snapshot.TerminalAgents.ToList()
             };
             var temporary = path + ".tmp";
             File.WriteAllText(temporary, JsonSerializer.Serialize(stored, Json));
@@ -158,14 +222,22 @@ public sealed class HostStateStore : IHostStateService
         Projects = value.Projects.Where(item => item is not null && ValidPath(item)).Distinct().ToArray(),
         RecentProjects = value.RecentProjects.Where(item => item is not null && ValidPath(item)).Distinct().Take(HostStateChange.RecentLimit).ToArray(),
         WorkspaceLabels = value.WorkspaceLabels.Where(entry => ValidPath(entry.Key) && entry.Value is not null && ValidText(entry.Value)).ToDictionary(),
-        Workspaces = new Dictionary<string, IReadOnlyList<string>>()
+        Workspaces = new Dictionary<string, IReadOnlyList<string>>(),
+        PluginSettings = value.PluginSettings.Where(entry => PluginIdentity.IsPluginId(entry.Key) && entry.Value.ValueKind == JsonValueKind.Object &&
+            (!entry.Value.TryGetProperty("enabled", out var enabled) || enabled.ValueKind is JsonValueKind.True or JsonValueKind.False))
+            .ToDictionary(entry => entry.Key, entry => JsonSerializer.SerializeToElement(entry.Value)),
+        PluginPaths = value.PluginPaths.Where(item => item is not null && ValidPath(item)).Distinct().ToArray(),
+        Plugins = [],
+        TerminalAgents = value.TerminalAgents.Where(agent => agent?.Terminal is { WorkspaceId: { } workspace, TabKey: { Length: > 0 } } && ValidPath(workspace) &&
+            agent.Record is { Kind: not null, Command: not null }).DistinctBy(agent => agent.Terminal).ToArray(),
+        Platform = OperatingSystem.IsMacOS() ? HostPlatform.MacOS : OperatingSystem.IsWindows() ? HostPlatform.Windows : HostPlatform.Linux
     };
 
     private static string Clean(string? value) => value is null || value.Contains('\0') ? "" : value.Trim();
 
     private static int Width(int value) => value is >= 40 and <= 240 ? value : 0;
 
-    private static HostState Apply(HostState current, HostStateChange change)
+    private HostState Apply(HostState current, HostStateChange change)
     {
         var key = change.Key ?? ""; var value = change.Value ?? "";
         switch (change.Kind)
@@ -227,8 +299,55 @@ public sealed class HostStateStore : IHostStateService
                 };
             case "project-forget":
                 return current.Projects.Contains(key) ? current with { Projects = current.Projects.Where(item => item != key).ToArray() } : current;
+            case "plugin-settings":
+                return ApplyPluginSettings(current, key, value);
+            case "plugin-paths":
+                string[] paths;
+                try { paths = JsonSerializer.Deserialize<string[]>(value) ?? throw new JsonException(); }
+                catch (JsonException) { throw new ArgumentException("Plugin paths must be a JSON array of directories."); }
+                if (!paths.All(item => item is not null && ValidPath(item))) throw new ArgumentException("Plugin paths must be absolute directories.");
+                paths = paths.Distinct().ToArray();
+                return paths.SequenceEqual(current.PluginPaths) ? current : current with { PluginPaths = paths };
             default: throw new ArgumentException($"Unknown state change {change.Kind}.");
         }
+    }
+
+    // A namespace merges member by member and an empty value resets it; turning a plugin off turns off every
+    // transitive dependent too, touching nothing else.
+    private HostState ApplyPluginSettings(HostState current, string id, string value)
+    {
+        if (!PluginIdentity.IsPluginId(id)) throw new ArgumentException($"Invalid plugin id {id}.");
+        JsonObject? patch = null;
+        if (value.Length > 0)
+        {
+            try { patch = JsonNode.Parse(value) as JsonObject; }
+            catch (JsonException) { }
+            if (patch is null) throw new ArgumentException($"Plugin {id} settings must be a JSON object.");
+            if (patch["enabled"] is { } flag && flag.GetValueKind() is not (JsonValueKind.True or JsonValueKind.False))
+                throw new ArgumentException($"Plugin {id} settings: enabled must be true or false.");
+        }
+        var namespaces = current.PluginSettings.ToDictionary();
+        var merged = patch is null ? new JsonObject() : Merge(namespaces.GetValueOrDefault(id), patch);
+        var element = JsonSerializer.SerializeToElement(merged);
+        if (patch is not null && PluginNamespaceValidator is { } validate) element = validate(id, element);
+        namespaces[id] = element;
+        if (patch?["enabled"]?.GetValue<bool>() == false && PluginDependents is { } dependents)
+            foreach (var dependent in dependents(id))
+                namespaces[dependent] = JsonSerializer.SerializeToElement(Merge(namespaces.GetValueOrDefault(dependent), new JsonObject { ["enabled"] = false }));
+        var changed = namespaces.Count != current.PluginSettings.Count || namespaces.Any(entry =>
+            !current.PluginSettings.TryGetValue(entry.Key, out var previous) || !JsonElement.DeepEquals(previous, entry.Value));
+        return changed ? current with { PluginSettings = namespaces } : current;
+    }
+
+    private static JsonObject Merge(JsonElement existing, JsonObject patch)
+    {
+        var merged = existing.ValueKind == JsonValueKind.Object ? JsonSerializer.SerializeToNode(existing)!.AsObject() : new JsonObject();
+        foreach (var (name, member) in patch)
+        {
+            if (member is null) merged.Remove(name);
+            else merged[name] = member.DeepClone();
+        }
+        return merged;
     }
 
     private static int? Number(string value) =>

@@ -4,11 +4,18 @@ using SharpRail.Host.Abstractions;
 
 namespace SharpRail.Host.Core;
 
-/// <summary>One client's project session; <paramref name="state"/> receives workspace lifecycle changes.</summary>
-public sealed partial class ProjectServices(string initialRoot, HostStateStore? state = null) : IProjectServices
+/// <summary>
+/// One client's project session; <paramref name="state"/> receives workspace lifecycle changes, and
+/// <paramref name="allowsExternalFile"/> admits exact absolute files outside the workspace for reading and saving.
+/// </summary>
+public sealed partial class ProjectServices(string initialRoot, HostStateStore? state = null, Func<string, string, bool>? allowsExternalFile = null) : IProjectServices
 {
     private string root = Path.GetFullPath(initialRoot);
     private readonly SemaphoreSlim mutations = new(1, 1);
+
+    // An absolute path some active plugin exposes for this workspace, or null for an ordinary workspace path.
+    private string? External(string currentRoot, string path) =>
+        Path.IsPathFullyQualified(path) && allowsExternalFile?.Invoke(currentRoot, path) == true ? path : null;
 
     public async ValueTask<WorkspaceInfo> OpenProjectAsync(string path, CancellationToken cancellationToken = default)
     {
@@ -77,7 +84,8 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
 
     public async ValueTask<FileDocument> ReadFileAsync(string relativePath, CancellationToken cancellationToken = default)
     {
-        var path = Resolve(root, relativePath);
+        var currentRoot = root;
+        var path = External(currentRoot, relativePath) ?? Resolve(currentRoot, relativePath);
         var extension = Path.GetExtension(path).ToLowerInvariant();
         var image = extension is ".png" or ".jpg" or ".jpeg" or ".gif" or ".webp" or ".bmp";
         var length = new FileInfo(path).Length;

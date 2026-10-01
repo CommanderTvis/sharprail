@@ -10,7 +10,6 @@ using SharpRail.Host.Client;
 using SharpRail.Host.Core;
 using SharpRail.Scintilla;
 using SharpRail.UI;
-using SharpRail.UI.Panels;
 using SharpRail.UI.State;
 
 namespace SharpRail.Checks;

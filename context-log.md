@@ -2685,3 +2685,29 @@ theme-background assertion; browser launching and Metal link pixels are unverifi
 Logs: .bench/url-skia-final.log, .bench/url-native-texture.log,
 .bench/url-format-verify.log. Existing dirty work preserved; no restart, publish,
 commit or push. HTTP(S) detection only in Skia; OSC 8 remains outside this change.
+### Plugin API — 2026-10-01
+
+Plugin API on the contract commit (e5af295), host and UI halves merged; uncommitted. Host:
+`src/SharpRail.Host.Core/Plugins/` holds the runtime (`PluginRuntime` implements `IPluginService`; files listed in
+`Plugins.SPEC.md`), composed from `PluginHostSeams` in `App.cs` (local, in process) and `RemoteServer.Create`
+(remote). `HostStateStore` accepts `plugin-settings`/`plugin-paths`, persists namespaces, roots and agent records,
+and stamps `Platform`. `PtyTerminalService` implements `IPluginTerminalSeams`; `McpRoute.cs` is now
+`LoopbackServer` (MCP and `/plugin/<id>/…`). Wire: `PluginsContract.cs`, new `StateReply`/`TerminalInput`/
+`TerminalOutput` members, `PluginRpc`, `Local/RemotePluginAdapter`.
+
+UI: the kit (`Ui`, `ThemeManifest`, `DialogWindow`, `FindBar`, `LineWidths`, `ViewerLimits`, `SvgAsset`, Markdown,
+`EditorFrame`, Mermaid, `Assets/{Icons,Fonts}`) lives in `src/SharpRail.Plugins.UI.Kit`, imported through
+`GlobalUsings.cs` and the checks' `<Using>` items. The app runtime is `src/SharpRail.UI/Plugins` (registry, icons,
+builtin array, external ALC loading through `IPluginService.ReadFileAsync`, loader/reconciler, `IPluginUIContext`,
+projection, editor events) and `PluginSurfaces.cs`. `App.cs` passes the host's plugin service and sets
+`Workbench.Endpoint`; `scripts/publish.sh` copies `plugin-fixture` into `artifacts/checks`.
+
+Checks: the fixture plugin (`tests/SharpRail.PluginFixture` host half, `tests/SharpRail.PluginFixture.UI` UI half,
+both built into `<checks bin>/plugin-fixture/fixture/`). `PluginHostChecks.cs` covers the host runtime locally and
+over gRPC. `PluginUiChecks.cs` covers the registry and dependency walks, the loader on `E2E/FakePluginHost.cs` (now
+only what the real host cannot produce: builtin UI halves with a wire mismatch or throwing activation, off-scope
+pushes), and the fork's `external-plugin.spec.ts` end to end through the real host twice, via `E2eWorkspace`'s
+`plugins: true` (in-process runtime from the profile directory, as in `App.cs`) and a `RemoteServer` reached through
+`RemotePluginAdapter`. Merging exposed one bug: the remote adapter surfaced a caller-cancelled call or subscription as
+`RpcException(Cancelled)`, which the UI logged as a dropped channel; it now throws `OperationCanceledException` as
+the local path does. `-- --plugins` runs the plugin checks alone. Open items are in `COMPLETION.md` (Plugin API).

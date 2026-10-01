@@ -18,6 +18,8 @@ public sealed partial class App : Application
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
+        // The kit has no theme of its own; the catalogue's default applies until a window resolves the host's.
+        Ui.Apply(Themes.Resolve(Themes.DefaultId));
         Ui.ApplyResources(this);
         foreach (var state in new[] { "Selected", "SelectedPointerOver", "SelectedPressed" })
             Resources["TreeViewItemBackground" + state] = Ui.Hover;
@@ -45,19 +47,32 @@ public sealed partial class App : Application
             var remote = !string.IsNullOrEmpty(endpoint);
             IHostStateService stateService = remote ? new RemoteStateAdapter(new Uri(endpoint!), token) : new LocalStateAdapter(local);
             var state = new SharedState(stateService, profile.Data.Preferences, remote ? null : local.Current);
-            Func<IProjectServices> sessions = remote
-                ? () => new RemoteProjectAdapter(new Uri(endpoint!), token)
-                : () => new LocalProjectAdapter(new ProjectServices(initialRoot, local));
             var remoteTerminals = remote ? new RemoteTerminalAdapter(new Uri(endpoint!), token) : null;
             // Local sessions belong to the app's host: they survive their windows and end when the app quits.
             var localTerminals = remoteTerminals is null && !OperatingSystem.IsWindows() ? new PtyTerminalService() : null;
-            var relay = localTerminals is null ? null : new LocalTerminalRelay(localTerminals);
+            // The app's own host runs its plugins in process; a remote host runs them where it runs.
+            var loopback = remote ? null : new SharpRail.Host.Remote.LoopbackServer(localTerminals);
+            var runtime = loopback is null ? null : new SharpRail.Host.Core.Plugins.PluginRuntime(new()
+            {
+                StateDirectory = profile.DirectoryPath,
+                State = local,
+                PublicBaseUrl = () => loopback.BaseUrl,
+                Terminals = localTerminals
+            });
+            if (loopback is not null) loopback.Plugins = runtime;
+            runtime?.Start();
+            var remotePlugins = remote ? new RemotePluginAdapter(new Uri(endpoint!), token) : null;
+            IPluginService plugins = remotePlugins ?? (IPluginService)new LocalPluginAdapter(runtime!);
+            Func<IProjectServices> sessions = remote
+                ? () => new RemoteProjectAdapter(new Uri(endpoint!), token)
+                : () => new LocalProjectAdapter(new ProjectServices(initialRoot, local, runtime!.AllowsExternalFile));
+            var relay = localTerminals is null ? null : new LocalTerminalRelay(localTerminals, loopback);
             string Renderer() => profile.Data.Preferences.TerminalRenderer;
             Terminals = remoteTerminals is not null
                 ? TerminalBackends.Ghostty(new RemoteTerminalConnection(new Uri(endpoint!), token, remoteTerminals), Renderer)
                 : relay is not null ? TerminalBackends.Ghostty(new LocalTerminalAdapter(localTerminals!), relay.ConnectAsync, Renderer)
                 : launch => TerminalBackends.Unavailable("Embedded terminals currently require macOS.");
-            var workbench = new Workbench(profile, state, Terminals, remote, sessions);
+            var workbench = new Workbench(profile, state, Terminals, remote, sessions, plugins) { Endpoint = remote ? endpoint! : "local" };
             foreach (var slot in profile.Data.Windows.ToArray())
             {
                 var root = slot.LastProject.Length > 0 ? slot.LastProject : slot == profile.Data.Windows[0] ? initialRoot : "";
@@ -68,10 +83,13 @@ public sealed partial class App : Application
             desktop.ShutdownRequested += (_, _) => workbench.ShuttingDown = true;
             desktop.Exit += (_, _) =>
             {
-                (stateService as IDisposable)?.Dispose(); remoteTerminals?.Dispose();
+                (stateService as IDisposable)?.Dispose(); remoteTerminals?.Dispose(); remotePlugins?.Dispose();
                 // Off the UI thread: ending shells awaits their exit, which a blocked dispatcher would never resume.
+                // Plugins stop first, before the terminals and the loopback server they reach.
                 Task.Run(async () =>
                 {
+                    if (runtime is not null) await runtime.DisposeAsync();
+                    if (loopback is not null) await loopback.DisposeAsync();
                     if (relay is not null) await relay.DisposeAsync();
                     if (localTerminals is not null) await localTerminals.DisposeAsync();
                 }).GetAwaiter().GetResult();

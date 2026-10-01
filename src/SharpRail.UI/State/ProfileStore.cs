@@ -15,9 +15,9 @@ public sealed class Preferences
     public string Theme { get; set; } = Themes.DefaultId;
     public string ThemeMode { get; set; } = "fixed";
     public SystemThemePair? SystemThemePair { get; set; }
-    public int FileLineWidth { get; set; } = Rendering.LineWidths.FileDefault;
+    public int FileLineWidth { get; set; } = LineWidths.FileDefault;
     public bool FileLineWidthBounded { get; set; } = true;
-    public int MarkdownLineWidth { get; set; } = Rendering.LineWidths.MarkdownDefault;
+    public int MarkdownLineWidth { get; set; } = LineWidths.MarkdownDefault;
     public bool MarkdownLineWidthBounded { get; set; } = true;
     public Dictionary<string, DockState> CustomPresets { get; set; } = [];
     public double FontSize { get; set; } = 14;
@@ -56,6 +56,8 @@ public sealed class WindowProfile
     public string LastProject { get; set; } = "";
     public string LastProjectRoot { get; set; } = "";
     public bool LastAtHome { get; set; }
+    /// <summary>The companion open beside each terminal, by <c>workspace\ntab key</c>: <c>plugin id:kind</c>. View state of this window.</summary>
+    public Dictionary<string, string> Companions { get; set; } = [];
 }
 
 public sealed class Profile
@@ -67,6 +69,8 @@ public sealed class Profile
     /// <summary>Remotes whose branches every branch picker shows collapsed.</summary>
     public HashSet<string> CollapsedRemotes { get; set; } = [];
     public Dictionary<string, GitSelection> GitSelections { get; set; } = [];
+    /// <summary>Plugins' client-local preferences, keyed <c>endpoint|plugin:id:key</c>, so two hosts' plugins never share a value.</summary>
+    public Dictionary<string, string> PluginPreferences { get; set; } = [];
     /// <summary>Set once shared fields have moved to the local host's <c>state.json</c>.</summary>
     public bool StateMigrated { get; set; }
 
@@ -155,9 +159,9 @@ public sealed class ProfileStore
             }
             Data.Preferences.CustomPresets ??= [];
             if (!double.IsFinite(Data.Preferences.FontSize) || Data.Preferences.FontSize is < 10 or > 24) Data.Preferences.FontSize = 14;
-            Data.Preferences.Zoom = Rendering.InterfaceZoom.Normalize(Data.Preferences.Zoom);
-            if (!Rendering.LineWidths.IsValid(Data.Preferences.FileLineWidth)) Data.Preferences.FileLineWidth = Rendering.LineWidths.FileDefault;
-            if (!Rendering.LineWidths.IsValid(Data.Preferences.MarkdownLineWidth)) Data.Preferences.MarkdownLineWidth = Rendering.LineWidths.MarkdownDefault;
+            Data.Preferences.Zoom = InterfaceZoom.Normalize(Data.Preferences.Zoom);
+            if (!LineWidths.IsValid(Data.Preferences.FileLineWidth)) Data.Preferences.FileLineWidth = LineWidths.FileDefault;
+            if (!LineWidths.IsValid(Data.Preferences.MarkdownLineWidth)) Data.Preferences.MarkdownLineWidth = LineWidths.MarkdownDefault;
             if (Data.Preferences.TerminalRenderer is not (Terminal.TerminalRenderers.Texture or Terminal.TerminalRenderers.Skia))
                 Data.Preferences.TerminalRenderer = Terminal.TerminalRenderers.Texture;
             foreach (var name in Data.Preferences.CustomPresets.Keys.Where(name => string.IsNullOrWhiteSpace(name) ||

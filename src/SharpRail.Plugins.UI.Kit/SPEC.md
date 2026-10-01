@@ -1,0 +1,115 @@
+---
+id: module-plugin-ui-kit
+type: module-design
+status: active
+title: Plugin UI kit — the shared controls
+parent: module-plugin-api
+tags: [ui, plugins, public-surface-checked]
+---
+
+# Plugin UI kit — the shared controls
+
+Upstream: packages/plugin-ui/SPEC.md @ 4737df6d (CommanderTvis fork)
+
+## Responsibility
+
+The primitives, Markdown renderer, code editor frame and diagram view every plugin's UI half needs, moved out
+of `SharpRail.UI/Rendering` so a plugin can render UI without reaching into the app's state, host, themes
+catalogue, workbench or panels. The app uses the same controls from here; there is one copy. In this commit
+the project is created empty with this spec, and the controls move into it as listed below.
+
+## Boundary
+
+- Owns, in `SharpRail.Plugins.UI.Kit`:
+  - `Ui`: the brush tokens (`Sidebar`, `Surface`, `Header`, `Elevated`, `TextBrush`, `Muted`, `Hint`, `Accent`,
+    `PrimaryFill`, `PrimaryFillHover`, `OnPrimary`, `DialogShadow`, `PrimarySubtle`, `PrimaryMuted`,
+    `BorderBrush`, `Hover`, `TextSelection`, the status brushes and washes, the fades),
+    the interface and code fonts, `FontSize`, the applied `Theme` and `ThemeChanged`, `Apply(ThemeManifest)`
+    and `ApplyResources`, `Alpha`/`Over`, and the primitive factories `Icon`, `Text`, `Row`, `Button`,
+    `IconButton`, `Frame`, `Place`, `Menu`, plus `Segment` and `Chip` (below).
+  - `ThemeManifest`, the palette record a theme applies.
+  - `DialogWindow` (compiled XAML card shared by every dialog), owned by a `Window` rather than a
+    `WorkbenchWindow`.
+  - `FindBar`, `LineWidths`, `ViewerLimits`, `SvgAsset`.
+  - `Assets/Icons` and `Assets/Fonts`, with their license files, as `avares://SharpRail.Plugins.UI.Kit/Assets/…`.
+- Owns, in `SharpRail.Plugins.UI.Kit.Markdown`: `MarkdownPreview`, `MarkdownDocumentView` (with its compiled
+  header), `MarkdownProperties`, `Frontmatter`, `MarkdownLink`, and `Outline` (the heading column, extracted
+  from `MarkdownDocumentView.FillOutline`, which `DiffView` also uses).
+- Owns, in `SharpRail.Plugins.UI.Kit.Editor`: `EditorFrame` (the Scintilla host with theme colours, fonts and
+  line styles).
+- Owns, in `SharpRail.Plugins.UI.Kit.Visualization`: `MermaidRenderer` and `MermaidDialog` (inline and
+  full-screen diagram rendering, pan and zoom).
+- Public surface: exactly the symbols in `PublicAPI.Unshipped.txt`, checked by
+  `Microsoft.CodeAnalysis.PublicApiAnalyzers` like the API assemblies.
+- Allowed deps: Avalonia and Avalonia.Themes.Fluent, SkiaSharp, Markdig, Svg.Controls.Skia.Avalonia, and
+  `SharpRail.Scintilla`. The Merman native library stays copied by the app's project; the kit binds it by name.
+- Forbidden: any `SharpRail.Host.*` project, `SharpRail.UI`, and the plugin API assemblies. A parameter or
+  callback replaces every reach the moved code had: `MarkdownPreview` takes an image reader
+  (`Func<string, CancellationToken, ValueTask<byte[]?>>`) instead of `IProjectServices`, a spec-link resolver
+  instead of the workspace spec catalog, and its line width and bound instead of `Preferences`; `LineWidths`
+  takes the width and bound it converts; `DialogWindow` takes its owner window.
+
+## Reaches replaced by parameters
+
+- `MarkdownContext` carries what a rendered document reaches outside the kit for: the image reader, the spec-link
+  resolver (spec id to workspace path; an id it omits renders disabled), navigation, and the font size, reading
+  measure and bound. The app builds it with `Rendering/MarkdownContexts.For(host, preferences, navigate)`.
+- `IDialogOwner.Dim` is how `DialogWindow` dims the window that owns it; `DialogWindow.Create(title, width)` is the
+  standard card the app's `Dialogs` and `MermaidDialog` build on.
+- `MarkdownDocumentView.Preview` exposes the rendered document, and `MarkdownPreview.SelectionChanged` reports the
+  selected text, which the app feeds into the plugin editor-event stream.
+- `LineWidths.File(width, bounded)` and `Markdown(width, bounded, fontSize)` take the values a preference holds.
+- The kit's XAML uses `FindControl` rather than the Avalonia name generator, whose generated members would join
+  the public listing.
+
+## What moved, mapped from the fork
+
+| fork `@thinkrail/plugin-ui` | SharpRail |
+| --- | --- |
+| shadcn primitives: `button`, `dialog`, `dropdown-menu`, `context-menu`, `tooltip`/`IconTooltip` | `Ui.Button`/`Ui.IconButton` (tooltip and automation name from one string), `DialogWindow`, `Ui.Menu` items in Avalonia `ContextMenu`s |
+| `popover`, `resizable`, `command`, `textarea` | absent: Avalonia's own `Popup`, `GridSplitter`, `TextBox`; the command palette is the app's `SearchDialog` |
+| `toast` | absent: the app reports through the window's notification line (`IPluginUIContext.Notify`) |
+| `cn`, `menu-styles`, `tokens.css` | the brush tokens on `Ui`; there are no class names to merge |
+| `useThemeSwap` | `Ui.ThemeChanged` |
+| `Outline`, `OutlineColumn`, `OutlineToggle`, `outlineTree` | `Markdown.Outline`, extracted from `MarkdownDocumentView` |
+| `ToggleSegment` | `Ui.Segment`, extracted from `DiffView`'s private segment factory; `MarkdownDocumentView`'s Preview \| Source \| Split uses the same selected-state rule |
+| `chips` (`CHIP*`) | `Ui.Chip`, the chip border `MarkdownProperties` and `DiffView`'s path chip share |
+| `SvgAsset` | `SvgAsset`, a control drawing SVG bytes through Svg.Skia, used for `asset:` icons |
+| `./markdown`: `Markdown`, `FrontmatterProperties`, frontmatter parsing, alerts, heading ids | `Markdown.MarkdownPreview`, `MarkdownDocumentView`, `MarkdownProperties`, `Frontmatter`, `MarkdownLink` |
+| `./markdown`: `CodeBlock`, `highlightCode`, Shiki theme | absent as separate pieces: code blocks are part of `MarkdownPreview`'s minimal tinting |
+| `./editor`: `MonacoEditor`, `monacoSetup`, `editorFont`, `editorWrapping` | `Editor.EditorFrame` over `SharpRail.Scintilla`; `CodeDocumentView`, which binds host saving, stays in the app |
+| `./editor`: review gutter and widgets | absent: SharpRail has no review commenting |
+| `./visualization`: `MermaidView`, `PanZoomView`, `renderMermaid`, `zoomGesture` | `Visualization.MermaidRenderer`, `MermaidDialog` |
+| `./visualization`: `VisualizationCard`, `DiagramCard`, `ComparisonCard` | absent: the visualize tool is an AI chat surface |
+| `ToolFileLink` | absent: a chat tool card's file link |
+| `ScopedSetting`, `SettingValueDialog`, `SettingsToolbar`, `TerminalFacts` | not yet ported: they arrive with the first builtin plugin that renders them |
+
+Stays in the app: the theme catalogue and resolution (`Rendering/Themes.cs`, `Themes.SPEC.md`, `Assets/Themes`),
+`DiffView`, `MarkdownDiff`, `RenderedDiffs.cs`, `CodeDocumentView`, `Panels/Dialogs.cs` (built on
+`DialogWindow`), and the colour and spacing documents `Rendering/COLOR.md` and `Rendering/SPACING.md`, which
+document the token contract below.
+
+## The token contract
+
+Nothing in this assembly declares a colour. Every visual property is one of `Ui`'s brushes, a font from `Ui`,
+or a spacing value from `Rendering/SPACING.md`. The brushes are mutable `SolidColorBrush` instances shared by
+every control, and `Ui.Apply(ThemeManifest)` rewrites all of them and then raises `ThemeChanged`, so no consumer
+observes half a palette. That makes the brush names, and the manifest colour keys `Apply` reads (`accent`,
+`accentHover`, `accentSolid`, `onAccent`, `content`, `sidebar`, `header`, `elevated`, `hover`, `borderStrong`,
+`text`, `muted`, `hint`, `selection`, `selectionForeground`, `editorSelection`, `editorSelectionForeground`,
+`info`, `success`, `danger`, `warning`), a contract this kit depends on, wherever it is mounted.
+
+- Surfaces that bake colour (Mermaid SVG, the Scintilla editor) read `Ui.Theme` when they render and render again
+  on `ThemeChanged`, subscribing on attach and unsubscribing on detach.
+- The app applies a theme before anything reads the kit: the catalogue's default from `App.Initialize`, then the
+  host's settings. The kit has no default of its own, because it cannot see the catalogue.
+- A plugin that paints a literal colour stops following theme changes, and nothing reports it.
+
+## Get right
+
+- `Ui.Icon` caches one bitmap per name and draws it as an opacity mask over a brush, so a glyph sizes with its
+  box and colours with a brush exactly like text; the icon set includes `puzzle`, the plugin fallback glyph.
+- Moving a type keeps its behaviour: the Markdown, editor and diagram rules in `Rendering/SPEC.md` apply
+  unchanged, and that spec points here for where the code lives.
+- The kit's checks are the app's existing Markdown, editor, diagram and theme checks, which keep passing
+  against the moved controls.

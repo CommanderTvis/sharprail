@@ -12,10 +12,10 @@ project: local adapters call Core directly, with no serialization.
 
 ## Boundary
 
-- Owns the wire: the four services `IWorkspaceRpc` (`WorkspaceContract.cs`),
-  `IProjectRpc` (`ProjectContract.cs`), `IStateRpc` (`StateContract.cs`) and
-  `ITerminalRpc` (`TerminalContract.cs`), their `[ProtoContract]` request/reply
-  classes, and the metadata keys a call carries.
+- Owns the wire: the five services `IWorkspaceRpc` (`WorkspaceContract.cs`),
+  `IProjectRpc` (`ProjectContract.cs`), `IStateRpc` (`StateContract.cs`),
+  `ITerminalRpc` (`TerminalContract.cs`) and `IPluginRpc` (`PluginsContract.cs`),
+  their `[ProtoContract]` request/reply classes, and the metadata keys a call carries.
 - Domain records belong in `SharpRail.Host.Abstractions`; DTOs here are their
   serialized projection. Client and Remote adapters map between the two, and both
   directions must stay consistent with the public abstraction. A DTO is never
@@ -37,17 +37,29 @@ project: local adapters call Core directly, with no serialization.
   branch is the review target. Commit listing is its own operation so the commit
   catalog never requires a full working-tree snapshot.
 - State: one complete `StateReply` snapshot (revision, settings, custom layout
-  presets, open and recent projects, workspace labels, workspaces per project),
+  presets, open and recent projects, workspace labels, workspaces per project,
+  plugin settings namespaces as JSON objects, plugin roots, the plugin roster,
+  terminal agent records and the host platform, empty when unknown),
   `ChangeAsync` taking an ordered batch of `(Kind, Key, Value)` changes and
   returning the resulting snapshot, and a server-streamed `WatchAsync` of full
   snapshots. Custom presets are the only layout value on the wire; current and
   default presets, frames and geometry stay client-local.
 - Terminal: one bidirectional `RunAsync` stream per attachment. The first input
-  is an attach (session id, workspace root, client id, size, resume offset); the
-  first output acknowledges it with `Created`, the replay bytes and the stream
-  position. Later inputs carry data, resize or kill; later outputs carry data with
+  is an attach (session id, workspace root, client id, size, resume offset, tab
+  key); the first output acknowledges it with `Created`, the replay bytes, the
+  stream position and, for a shell a plugin revives, the prefill text and whether
+  to submit it. Later inputs carry data, resize or kill; later outputs carry data with
   positions and end with exactly one of exited (with code) or detached.
   `IsBusyAsync` and `CloseAsync` are unary.
+- Plugins: the roster (`ListAsync`, `RescanAsync`, `RetryAsync`), one generic
+  `CallAsync` (plugin id, method name, params JSON → result JSON, `null` for a null
+  result), one generic server-streamed `SubscribeAsync` (plugin id, channel, optional
+  key JSON → payload JSON, never a replay) and `ReadFileAsync` (a file of the
+  plugin's directory, `Found` false when missing). JSON is always `PluginJson.Options`;
+  roster enums travel as its camelCase names and absent strings as empty. A failed
+  call maps one to one: `Unknown` is `NotFound`, `Disabled` is `FailedPrecondition`,
+  `InvalidParams` is `InvalidArgument` and `Failed` is `Unknown`, the message riding
+  the status detail.
 
 ## Decisions
 

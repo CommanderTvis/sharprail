@@ -71,6 +71,11 @@ Shared fields migrate once: `OpenState` seeds the local host's `state.json` from
 fields and clears them only after the state file is written, so a failed migration never loses data. A
 remote host keeps its own state in `SHARPRAIL_STATE_DIR`.
 
+Plugins add two profile fields. `PluginPreferences` holds a UI half's client-local preferences under
+`<endpoint>|plugin:<id>:<key>`, so two hosts' plugins never share a value; the endpoint is `Workbench.Endpoint`
+(`local` unless the composition names the remote endpoint). `WindowProfile.Companions` records, per terminal
+(`<workspace>\n<tab key>`), the plugin companion open beside it in that window.
+
 ## Location
 
 A window's location (Welcome, Project Home or a workspace) is window-local intent, persisted in its

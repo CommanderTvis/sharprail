@@ -68,6 +68,7 @@ public sealed partial class WorkbenchWindow
 
     private void RefreshGitPanels()
     {
+        SyncPluginTools();
         toolContent.Remove("changes");
         toolContent.Remove("review");
         if (RailSignature() == railSignature) { surface.RefreshContents("changes", "review"); return; }

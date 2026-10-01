@@ -1,0 +1,640 @@
+#nullable enable
+abstract SharpRail.Plugins.Api.UI.EditorEvent.<Clone>$() -> SharpRail.Plugins.Api.UI.EditorEvent!
+abstract SharpRail.Plugins.Api.UI.GitDiffScope.<Clone>$() -> SharpRail.Plugins.Api.UI.GitDiffScope!
+abstract SharpRail.Plugins.Api.UI.PluginUIModule.Activate(SharpRail.Plugins.Api.UI.IPluginUIContext! context) -> SharpRail.Plugins.Api.UI.PluginDisposer?
+abstract SharpRail.Plugins.Api.UI.TabRef.<Clone>$() -> SharpRail.Plugins.Api.UI.TabRef!
+abstract SharpRail.Plugins.Api.UI.WorkspaceActionRegistration.<Clone>$() -> SharpRail.Plugins.Api.UI.WorkspaceActionRegistration!
+override sealed SharpRail.Plugins.Api.UI.BranchDiffScope.Equals(SharpRail.Plugins.Api.UI.GitDiffScope? other) -> bool
+override sealed SharpRail.Plugins.Api.UI.CommitDiffScope.Equals(SharpRail.Plugins.Api.UI.GitDiffScope? other) -> bool
+override sealed SharpRail.Plugins.Api.UI.EditorLifecycleEvent.Equals(SharpRail.Plugins.Api.UI.EditorEvent? other) -> bool
+override sealed SharpRail.Plugins.Api.UI.EditorSelectionEvent.Equals(SharpRail.Plugins.Api.UI.EditorEvent? other) -> bool
+override sealed SharpRail.Plugins.Api.UI.FileTabRef.Equals(SharpRail.Plugins.Api.UI.TabRef? other) -> bool
+override sealed SharpRail.Plugins.Api.UI.PinnedDiffScope.Equals(SharpRail.Plugins.Api.UI.GitDiffScope? other) -> bool
+override sealed SharpRail.Plugins.Api.UI.ProjectScopedActionRegistration.Equals(SharpRail.Plugins.Api.UI.WorkspaceActionRegistration? other) -> bool
+override sealed SharpRail.Plugins.Api.UI.TerminalTabRef.Equals(SharpRail.Plugins.Api.UI.TabRef? other) -> bool
+override sealed SharpRail.Plugins.Api.UI.ToolTabRef.Equals(SharpRail.Plugins.Api.UI.TabRef? other) -> bool
+override sealed SharpRail.Plugins.Api.UI.UncommittedDiffScope.Equals(SharpRail.Plugins.Api.UI.GitDiffScope? other) -> bool
+override sealed SharpRail.Plugins.Api.UI.WorkspaceScopedActionRegistration.Equals(SharpRail.Plugins.Api.UI.WorkspaceActionRegistration? other) -> bool
+override SharpRail.Plugins.Api.UI.AgentLauncher.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.AgentLauncher.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.AgentLauncher.ToString() -> string!
+override SharpRail.Plugins.Api.UI.BranchDiffScope.<Clone>$() -> SharpRail.Plugins.Api.UI.BranchDiffScope!
+override SharpRail.Plugins.Api.UI.BranchDiffScope.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.BranchDiffScope.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.BranchDiffScope.ToString() -> string!
+override SharpRail.Plugins.Api.UI.CommitDiffScope.<Clone>$() -> SharpRail.Plugins.Api.UI.CommitDiffScope!
+override SharpRail.Plugins.Api.UI.CommitDiffScope.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.CommitDiffScope.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.CommitDiffScope.ToString() -> string!
+override SharpRail.Plugins.Api.UI.CompanionHost.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.CompanionHost.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.CompanionHost.ToString() -> string!
+override SharpRail.Plugins.Api.UI.CompanionRegistration.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.CompanionRegistration.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.CompanionRegistration.ToString() -> string!
+override SharpRail.Plugins.Api.UI.EditorEvent.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.EditorEvent.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.EditorEvent.ToString() -> string!
+override SharpRail.Plugins.Api.UI.EditorLifecycleEvent.<Clone>$() -> SharpRail.Plugins.Api.UI.EditorLifecycleEvent!
+override SharpRail.Plugins.Api.UI.EditorLifecycleEvent.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.EditorLifecycleEvent.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.EditorLifecycleEvent.ToString() -> string!
+override SharpRail.Plugins.Api.UI.EditorOpenOptions.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.EditorOpenOptions.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.EditorOpenOptions.ToString() -> string!
+override SharpRail.Plugins.Api.UI.EditorRef.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.EditorRef.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.EditorRef.ToString() -> string!
+override SharpRail.Plugins.Api.UI.EditorSelection.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.EditorSelection.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.EditorSelection.ToString() -> string!
+override SharpRail.Plugins.Api.UI.EditorSelectionEvent.<Clone>$() -> SharpRail.Plugins.Api.UI.EditorSelectionEvent!
+override SharpRail.Plugins.Api.UI.EditorSelectionEvent.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.EditorSelectionEvent.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.EditorSelectionEvent.ToString() -> string!
+override SharpRail.Plugins.Api.UI.FilePickOptions.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.FilePickOptions.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.FilePickOptions.ToString() -> string!
+override SharpRail.Plugins.Api.UI.FileTabRef.<Clone>$() -> SharpRail.Plugins.Api.UI.FileTabRef!
+override SharpRail.Plugins.Api.UI.FileTabRef.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.FileTabRef.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.FileTabRef.ToString() -> string!
+override SharpRail.Plugins.Api.UI.FileViewerProps.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.FileViewerProps.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.FileViewerProps.ToString() -> string!
+override SharpRail.Plugins.Api.UI.FileViewerRegistration.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.FileViewerRegistration.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.FileViewerRegistration.ToString() -> string!
+override SharpRail.Plugins.Api.UI.GitDiffScope.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.GitDiffScope.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.GitDiffScope.ToString() -> string!
+override SharpRail.Plugins.Api.UI.LauncherAvailability.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.LauncherAvailability.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.LauncherAvailability.ToString() -> string!
+override SharpRail.Plugins.Api.UI.LauncherCommandOptions.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.LauncherCommandOptions.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.LauncherCommandOptions.ToString() -> string!
+override SharpRail.Plugins.Api.UI.LauncherModel.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.LauncherModel.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.LauncherModel.ToString() -> string!
+override SharpRail.Plugins.Api.UI.PinnedDiffScope.<Clone>$() -> SharpRail.Plugins.Api.UI.PinnedDiffScope!
+override SharpRail.Plugins.Api.UI.PinnedDiffScope.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.PinnedDiffScope.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.PinnedDiffScope.ToString() -> string!
+override SharpRail.Plugins.Api.UI.PluginAppSettings.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.PluginAppSettings.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.PluginAppSettings.ToString() -> string!
+override SharpRail.Plugins.Api.UI.PluginHostProjection.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.PluginHostProjection.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.PluginHostProjection.ToString() -> string!
+override SharpRail.Plugins.Api.UI.ProjectScopedActionRegistration.<Clone>$() -> SharpRail.Plugins.Api.UI.ProjectScopedActionRegistration!
+override SharpRail.Plugins.Api.UI.ProjectScopedActionRegistration.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.ProjectScopedActionRegistration.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.ProjectScopedActionRegistration.ToString() -> string!
+override SharpRail.Plugins.Api.UI.SettingsSectionRegistration.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.SettingsSectionRegistration.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.SettingsSectionRegistration.ToString() -> string!
+override SharpRail.Plugins.Api.UI.SideToolRegistration.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.SideToolRegistration.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.SideToolRegistration.ToString() -> string!
+override SharpRail.Plugins.Api.UI.TabDecoration.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.TabDecoration.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.TabDecoration.ToString() -> string!
+override SharpRail.Plugins.Api.UI.TabRef.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.TabRef.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.TabRef.ToString() -> string!
+override SharpRail.Plugins.Api.UI.TerminalAccessoryRegistration.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.TerminalAccessoryRegistration.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.TerminalAccessoryRegistration.ToString() -> string!
+override SharpRail.Plugins.Api.UI.TerminalOpenOptions.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.TerminalOpenOptions.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.TerminalOpenOptions.ToString() -> string!
+override SharpRail.Plugins.Api.UI.TerminalTabInfo.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.TerminalTabInfo.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.TerminalTabInfo.ToString() -> string!
+override SharpRail.Plugins.Api.UI.TerminalTabRef.<Clone>$() -> SharpRail.Plugins.Api.UI.TerminalTabRef!
+override SharpRail.Plugins.Api.UI.TerminalTabRef.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.TerminalTabRef.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.TerminalTabRef.ToString() -> string!
+override SharpRail.Plugins.Api.UI.ToolTabRef.<Clone>$() -> SharpRail.Plugins.Api.UI.ToolTabRef!
+override SharpRail.Plugins.Api.UI.ToolTabRef.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.ToolTabRef.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.ToolTabRef.ToString() -> string!
+override SharpRail.Plugins.Api.UI.UncommittedDiffScope.<Clone>$() -> SharpRail.Plugins.Api.UI.UncommittedDiffScope!
+override SharpRail.Plugins.Api.UI.UncommittedDiffScope.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.UncommittedDiffScope.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.UncommittedDiffScope.ToString() -> string!
+override SharpRail.Plugins.Api.UI.WorkspaceActionRegistration.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.WorkspaceActionRegistration.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.WorkspaceActionRegistration.ToString() -> string!
+override SharpRail.Plugins.Api.UI.WorkspaceScopedActionRegistration.<Clone>$() -> SharpRail.Plugins.Api.UI.WorkspaceScopedActionRegistration!
+override SharpRail.Plugins.Api.UI.WorkspaceScopedActionRegistration.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.WorkspaceScopedActionRegistration.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.WorkspaceScopedActionRegistration.ToString() -> string!
+SharpRail.Plugins.Api.UI.AgentLauncher
+SharpRail.Plugins.Api.UI.AgentLauncher.<Clone>$() -> SharpRail.Plugins.Api.UI.AgentLauncher!
+SharpRail.Plugins.Api.UI.AgentLauncher.AgentLauncher(string! Id, string! Label, string! Icon, System.Func<SharpRail.Plugins.Api.UI.LauncherCommandOptions!, string!>! TerminalCommand, System.Func<SharpRail.Plugins.Api.UI.LauncherAvailability!>! Availability) -> void
+SharpRail.Plugins.Api.UI.AgentLauncher.Availability.get -> System.Func<SharpRail.Plugins.Api.UI.LauncherAvailability!>!
+SharpRail.Plugins.Api.UI.AgentLauncher.Availability.init -> void
+SharpRail.Plugins.Api.UI.AgentLauncher.Deconstruct(out string! Id, out string! Label, out string! Icon, out System.Func<SharpRail.Plugins.Api.UI.LauncherCommandOptions!, string!>! TerminalCommand, out System.Func<SharpRail.Plugins.Api.UI.LauncherAvailability!>! Availability) -> void
+SharpRail.Plugins.Api.UI.AgentLauncher.Equals(SharpRail.Plugins.Api.UI.AgentLauncher? other) -> bool
+SharpRail.Plugins.Api.UI.AgentLauncher.Icon.get -> string!
+SharpRail.Plugins.Api.UI.AgentLauncher.Icon.init -> void
+SharpRail.Plugins.Api.UI.AgentLauncher.Id.get -> string!
+SharpRail.Plugins.Api.UI.AgentLauncher.Id.init -> void
+SharpRail.Plugins.Api.UI.AgentLauncher.Label.get -> string!
+SharpRail.Plugins.Api.UI.AgentLauncher.Label.init -> void
+SharpRail.Plugins.Api.UI.AgentLauncher.Models.get -> System.Func<System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.UI.LauncherModel!>!>?
+SharpRail.Plugins.Api.UI.AgentLauncher.Models.init -> void
+SharpRail.Plugins.Api.UI.AgentLauncher.TerminalCommand.get -> System.Func<SharpRail.Plugins.Api.UI.LauncherCommandOptions!, string!>!
+SharpRail.Plugins.Api.UI.AgentLauncher.TerminalCommand.init -> void
+SharpRail.Plugins.Api.UI.BranchDiffScope
+SharpRail.Plugins.Api.UI.BranchDiffScope.BranchDiffScope() -> void
+SharpRail.Plugins.Api.UI.BranchDiffScope.Equals(SharpRail.Plugins.Api.UI.BranchDiffScope? other) -> bool
+SharpRail.Plugins.Api.UI.CommitDiffScope
+SharpRail.Plugins.Api.UI.CommitDiffScope.CommitDiffScope(string! Sha) -> void
+SharpRail.Plugins.Api.UI.CommitDiffScope.Deconstruct(out string! Sha) -> void
+SharpRail.Plugins.Api.UI.CommitDiffScope.Equals(SharpRail.Plugins.Api.UI.CommitDiffScope? other) -> bool
+SharpRail.Plugins.Api.UI.CommitDiffScope.Sha.get -> string!
+SharpRail.Plugins.Api.UI.CommitDiffScope.Sha.init -> void
+SharpRail.Plugins.Api.UI.CompanionHost
+SharpRail.Plugins.Api.UI.CompanionHost.<Clone>$() -> SharpRail.Plugins.Api.UI.CompanionHost!
+SharpRail.Plugins.Api.UI.CompanionHost.CompanionHost(string! WorkspaceId, string! TabKey) -> void
+SharpRail.Plugins.Api.UI.CompanionHost.Deconstruct(out string! WorkspaceId, out string! TabKey) -> void
+SharpRail.Plugins.Api.UI.CompanionHost.Equals(SharpRail.Plugins.Api.UI.CompanionHost? other) -> bool
+SharpRail.Plugins.Api.UI.CompanionHost.TabKey.get -> string!
+SharpRail.Plugins.Api.UI.CompanionHost.TabKey.init -> void
+SharpRail.Plugins.Api.UI.CompanionHost.WorkspaceId.get -> string!
+SharpRail.Plugins.Api.UI.CompanionHost.WorkspaceId.init -> void
+SharpRail.Plugins.Api.UI.CompanionRegistration
+SharpRail.Plugins.Api.UI.CompanionRegistration.<Clone>$() -> SharpRail.Plugins.Api.UI.CompanionRegistration!
+SharpRail.Plugins.Api.UI.CompanionRegistration.CompanionRegistration(string! Kind, string! Title, string! Icon, System.Func<SharpRail.Plugins.Api.UI.CompanionHost!, bool>! IsAvailable, System.Func<SharpRail.Plugins.Api.UI.CompanionHost!, Avalonia.Controls.Control!>! Create) -> void
+SharpRail.Plugins.Api.UI.CompanionRegistration.Create.get -> System.Func<SharpRail.Plugins.Api.UI.CompanionHost!, Avalonia.Controls.Control!>!
+SharpRail.Plugins.Api.UI.CompanionRegistration.Create.init -> void
+SharpRail.Plugins.Api.UI.CompanionRegistration.Deconstruct(out string! Kind, out string! Title, out string! Icon, out System.Func<SharpRail.Plugins.Api.UI.CompanionHost!, bool>! IsAvailable, out System.Func<SharpRail.Plugins.Api.UI.CompanionHost!, Avalonia.Controls.Control!>! Create) -> void
+SharpRail.Plugins.Api.UI.CompanionRegistration.Equals(SharpRail.Plugins.Api.UI.CompanionRegistration? other) -> bool
+SharpRail.Plugins.Api.UI.CompanionRegistration.Icon.get -> string!
+SharpRail.Plugins.Api.UI.CompanionRegistration.Icon.init -> void
+SharpRail.Plugins.Api.UI.CompanionRegistration.InstanceTitle.get -> System.Func<SharpRail.Plugins.Api.UI.CompanionHost!, string?>?
+SharpRail.Plugins.Api.UI.CompanionRegistration.InstanceTitle.init -> void
+SharpRail.Plugins.Api.UI.CompanionRegistration.IsAvailable.get -> System.Func<SharpRail.Plugins.Api.UI.CompanionHost!, bool>!
+SharpRail.Plugins.Api.UI.CompanionRegistration.IsAvailable.init -> void
+SharpRail.Plugins.Api.UI.CompanionRegistration.Kind.get -> string!
+SharpRail.Plugins.Api.UI.CompanionRegistration.Kind.init -> void
+SharpRail.Plugins.Api.UI.CompanionRegistration.Title.get -> string!
+SharpRail.Plugins.Api.UI.CompanionRegistration.Title.init -> void
+SharpRail.Plugins.Api.UI.EditorEvent
+SharpRail.Plugins.Api.UI.EditorEvent.Deconstruct(out SharpRail.Plugins.Api.UI.EditorRef! Editor) -> void
+SharpRail.Plugins.Api.UI.EditorEvent.Editor.get -> SharpRail.Plugins.Api.UI.EditorRef!
+SharpRail.Plugins.Api.UI.EditorEvent.Editor.init -> void
+SharpRail.Plugins.Api.UI.EditorEvent.EditorEvent(SharpRail.Plugins.Api.UI.EditorEvent! original) -> void
+SharpRail.Plugins.Api.UI.EditorEvent.EditorEvent(SharpRail.Plugins.Api.UI.EditorRef! Editor) -> void
+SharpRail.Plugins.Api.UI.EditorKind
+SharpRail.Plugins.Api.UI.EditorKind.Diff = 2 -> SharpRail.Plugins.Api.UI.EditorKind
+SharpRail.Plugins.Api.UI.EditorKind.ExternalFile = 1 -> SharpRail.Plugins.Api.UI.EditorKind
+SharpRail.Plugins.Api.UI.EditorKind.File = 0 -> SharpRail.Plugins.Api.UI.EditorKind
+SharpRail.Plugins.Api.UI.EditorLifecycle
+SharpRail.Plugins.Api.UI.EditorLifecycle.Activated = 2 -> SharpRail.Plugins.Api.UI.EditorLifecycle
+SharpRail.Plugins.Api.UI.EditorLifecycle.Closed = 1 -> SharpRail.Plugins.Api.UI.EditorLifecycle
+SharpRail.Plugins.Api.UI.EditorLifecycle.Opened = 0 -> SharpRail.Plugins.Api.UI.EditorLifecycle
+SharpRail.Plugins.Api.UI.EditorLifecycle.Saved = 3 -> SharpRail.Plugins.Api.UI.EditorLifecycle
+SharpRail.Plugins.Api.UI.EditorLifecycleEvent
+SharpRail.Plugins.Api.UI.EditorLifecycleEvent.Deconstruct(out SharpRail.Plugins.Api.UI.EditorRef! Editor, out SharpRail.Plugins.Api.UI.EditorLifecycle Lifecycle) -> void
+SharpRail.Plugins.Api.UI.EditorLifecycleEvent.EditorLifecycleEvent(SharpRail.Plugins.Api.UI.EditorRef! Editor, SharpRail.Plugins.Api.UI.EditorLifecycle Lifecycle) -> void
+SharpRail.Plugins.Api.UI.EditorLifecycleEvent.Equals(SharpRail.Plugins.Api.UI.EditorLifecycleEvent? other) -> bool
+SharpRail.Plugins.Api.UI.EditorLifecycleEvent.Lifecycle.get -> SharpRail.Plugins.Api.UI.EditorLifecycle
+SharpRail.Plugins.Api.UI.EditorLifecycleEvent.Lifecycle.init -> void
+SharpRail.Plugins.Api.UI.EditorOpenOptions
+SharpRail.Plugins.Api.UI.EditorOpenOptions.<Clone>$() -> SharpRail.Plugins.Api.UI.EditorOpenOptions!
+SharpRail.Plugins.Api.UI.EditorOpenOptions.EditorOpenOptions() -> void
+SharpRail.Plugins.Api.UI.EditorOpenOptions.Equals(SharpRail.Plugins.Api.UI.EditorOpenOptions? other) -> bool
+SharpRail.Plugins.Api.UI.EditorOpenOptions.KeyPath.get -> System.Collections.Generic.IReadOnlyList<string!>?
+SharpRail.Plugins.Api.UI.EditorOpenOptions.KeyPath.init -> void
+SharpRail.Plugins.Api.UI.EditorOpenOptions.Line.get -> int?
+SharpRail.Plugins.Api.UI.EditorOpenOptions.Line.init -> void
+SharpRail.Plugins.Api.UI.EditorOpenOptions.Preview.get -> bool
+SharpRail.Plugins.Api.UI.EditorOpenOptions.Preview.init -> void
+SharpRail.Plugins.Api.UI.EditorOpenOptions.Raw.get -> bool
+SharpRail.Plugins.Api.UI.EditorOpenOptions.Raw.init -> void
+SharpRail.Plugins.Api.UI.EditorRef
+SharpRail.Plugins.Api.UI.EditorRef.<Clone>$() -> SharpRail.Plugins.Api.UI.EditorRef!
+SharpRail.Plugins.Api.UI.EditorRef.Deconstruct(out string! Id, out string! WorkspaceId, out string! Path, out SharpRail.Plugins.Api.UI.EditorKind Kind, out bool Dirty) -> void
+SharpRail.Plugins.Api.UI.EditorRef.Dirty.get -> bool
+SharpRail.Plugins.Api.UI.EditorRef.Dirty.init -> void
+SharpRail.Plugins.Api.UI.EditorRef.EditorRef(string! Id, string! WorkspaceId, string! Path, SharpRail.Plugins.Api.UI.EditorKind Kind, bool Dirty) -> void
+SharpRail.Plugins.Api.UI.EditorRef.Equals(SharpRail.Plugins.Api.UI.EditorRef? other) -> bool
+SharpRail.Plugins.Api.UI.EditorRef.Id.get -> string!
+SharpRail.Plugins.Api.UI.EditorRef.Id.init -> void
+SharpRail.Plugins.Api.UI.EditorRef.Kind.get -> SharpRail.Plugins.Api.UI.EditorKind
+SharpRail.Plugins.Api.UI.EditorRef.Kind.init -> void
+SharpRail.Plugins.Api.UI.EditorRef.Path.get -> string!
+SharpRail.Plugins.Api.UI.EditorRef.Path.init -> void
+SharpRail.Plugins.Api.UI.EditorRef.WorkspaceId.get -> string!
+SharpRail.Plugins.Api.UI.EditorRef.WorkspaceId.init -> void
+SharpRail.Plugins.Api.UI.EditorSelection
+SharpRail.Plugins.Api.UI.EditorSelection.<Clone>$() -> SharpRail.Plugins.Api.UI.EditorSelection!
+SharpRail.Plugins.Api.UI.EditorSelection.Deconstruct(out int StartLine, out int StartColumn, out int EndLine, out int EndColumn, out string! Text) -> void
+SharpRail.Plugins.Api.UI.EditorSelection.EditorSelection(int StartLine, int StartColumn, int EndLine, int EndColumn, string! Text) -> void
+SharpRail.Plugins.Api.UI.EditorSelection.EndColumn.get -> int
+SharpRail.Plugins.Api.UI.EditorSelection.EndColumn.init -> void
+SharpRail.Plugins.Api.UI.EditorSelection.EndLine.get -> int
+SharpRail.Plugins.Api.UI.EditorSelection.EndLine.init -> void
+SharpRail.Plugins.Api.UI.EditorSelection.Equals(SharpRail.Plugins.Api.UI.EditorSelection? other) -> bool
+SharpRail.Plugins.Api.UI.EditorSelection.StartColumn.get -> int
+SharpRail.Plugins.Api.UI.EditorSelection.StartColumn.init -> void
+SharpRail.Plugins.Api.UI.EditorSelection.StartLine.get -> int
+SharpRail.Plugins.Api.UI.EditorSelection.StartLine.init -> void
+SharpRail.Plugins.Api.UI.EditorSelection.Text.get -> string!
+SharpRail.Plugins.Api.UI.EditorSelection.Text.init -> void
+SharpRail.Plugins.Api.UI.EditorSelectionEvent
+SharpRail.Plugins.Api.UI.EditorSelectionEvent.Deconstruct(out SharpRail.Plugins.Api.UI.EditorRef! Editor, out SharpRail.Plugins.Api.UI.EditorSelection? Selection) -> void
+SharpRail.Plugins.Api.UI.EditorSelectionEvent.EditorSelectionEvent(SharpRail.Plugins.Api.UI.EditorRef! Editor, SharpRail.Plugins.Api.UI.EditorSelection? Selection) -> void
+SharpRail.Plugins.Api.UI.EditorSelectionEvent.Equals(SharpRail.Plugins.Api.UI.EditorSelectionEvent? other) -> bool
+SharpRail.Plugins.Api.UI.EditorSelectionEvent.Selection.get -> SharpRail.Plugins.Api.UI.EditorSelection?
+SharpRail.Plugins.Api.UI.EditorSelectionEvent.Selection.init -> void
+SharpRail.Plugins.Api.UI.FileIconKind
+SharpRail.Plugins.Api.UI.FileIconKind.Directory = 1 -> SharpRail.Plugins.Api.UI.FileIconKind
+SharpRail.Plugins.Api.UI.FileIconKind.File = 0 -> SharpRail.Plugins.Api.UI.FileIconKind
+SharpRail.Plugins.Api.UI.FilePickOptions
+SharpRail.Plugins.Api.UI.FilePickOptions.<Clone>$() -> SharpRail.Plugins.Api.UI.FilePickOptions!
+SharpRail.Plugins.Api.UI.FilePickOptions.Deconstruct(out string? WorkspaceId, out bool Directory) -> void
+SharpRail.Plugins.Api.UI.FilePickOptions.Directory.get -> bool
+SharpRail.Plugins.Api.UI.FilePickOptions.Directory.init -> void
+SharpRail.Plugins.Api.UI.FilePickOptions.Equals(SharpRail.Plugins.Api.UI.FilePickOptions? other) -> bool
+SharpRail.Plugins.Api.UI.FilePickOptions.FilePickOptions(string? WorkspaceId = null, bool Directory = false) -> void
+SharpRail.Plugins.Api.UI.FilePickOptions.WorkspaceId.get -> string?
+SharpRail.Plugins.Api.UI.FilePickOptions.WorkspaceId.init -> void
+SharpRail.Plugins.Api.UI.FileTabRef
+SharpRail.Plugins.Api.UI.FileTabRef.Deconstruct(out string! WorkspaceId, out SharpRail.Plugins.Api.UI.EditorKind Kind, out string! Path) -> void
+SharpRail.Plugins.Api.UI.FileTabRef.Equals(SharpRail.Plugins.Api.UI.FileTabRef? other) -> bool
+SharpRail.Plugins.Api.UI.FileTabRef.FileTabRef(string! WorkspaceId, SharpRail.Plugins.Api.UI.EditorKind Kind, string! Path) -> void
+SharpRail.Plugins.Api.UI.FileTabRef.Kind.get -> SharpRail.Plugins.Api.UI.EditorKind
+SharpRail.Plugins.Api.UI.FileTabRef.Kind.init -> void
+SharpRail.Plugins.Api.UI.FileTabRef.Path.get -> string!
+SharpRail.Plugins.Api.UI.FileTabRef.Path.init -> void
+SharpRail.Plugins.Api.UI.FileViewerProps
+SharpRail.Plugins.Api.UI.FileViewerProps.<Clone>$() -> SharpRail.Plugins.Api.UI.FileViewerProps!
+SharpRail.Plugins.Api.UI.FileViewerProps.Deconstruct(out string! WorkspaceId, out string! Path, out int Revision, out string? Text) -> void
+SharpRail.Plugins.Api.UI.FileViewerProps.Equals(SharpRail.Plugins.Api.UI.FileViewerProps? other) -> bool
+SharpRail.Plugins.Api.UI.FileViewerProps.FileViewerProps(string! WorkspaceId, string! Path, int Revision, string? Text) -> void
+SharpRail.Plugins.Api.UI.FileViewerProps.Path.get -> string!
+SharpRail.Plugins.Api.UI.FileViewerProps.Path.init -> void
+SharpRail.Plugins.Api.UI.FileViewerProps.Revision.get -> int
+SharpRail.Plugins.Api.UI.FileViewerProps.Revision.init -> void
+SharpRail.Plugins.Api.UI.FileViewerProps.Text.get -> string?
+SharpRail.Plugins.Api.UI.FileViewerProps.Text.init -> void
+SharpRail.Plugins.Api.UI.FileViewerProps.WorkspaceId.get -> string!
+SharpRail.Plugins.Api.UI.FileViewerProps.WorkspaceId.init -> void
+SharpRail.Plugins.Api.UI.FileViewerRegistration
+SharpRail.Plugins.Api.UI.FileViewerRegistration.<Clone>$() -> SharpRail.Plugins.Api.UI.FileViewerRegistration!
+SharpRail.Plugins.Api.UI.FileViewerRegistration.Create.get -> System.Func<SharpRail.Plugins.Api.UI.FileViewerProps!, Avalonia.Controls.Control!>!
+SharpRail.Plugins.Api.UI.FileViewerRegistration.Create.init -> void
+SharpRail.Plugins.Api.UI.FileViewerRegistration.Deconstruct(out System.Func<SharpRail.Plugins.Api.UI.FileViewerProps!, Avalonia.Controls.Control!>! Create) -> void
+SharpRail.Plugins.Api.UI.FileViewerRegistration.Equals(SharpRail.Plugins.Api.UI.FileViewerRegistration? other) -> bool
+SharpRail.Plugins.Api.UI.FileViewerRegistration.FileViewerRegistration(System.Func<SharpRail.Plugins.Api.UI.FileViewerProps!, Avalonia.Controls.Control!>! Create) -> void
+SharpRail.Plugins.Api.UI.FileViewerRegistration.Matches.get -> System.Func<string!, bool>?
+SharpRail.Plugins.Api.UI.FileViewerRegistration.Matches.init -> void
+SharpRail.Plugins.Api.UI.FileViewerRegistration.Open.get -> System.Func<string!, string!, bool>?
+SharpRail.Plugins.Api.UI.FileViewerRegistration.Open.init -> void
+SharpRail.Plugins.Api.UI.GitDiffScope
+SharpRail.Plugins.Api.UI.GitDiffScope.GitDiffScope() -> void
+SharpRail.Plugins.Api.UI.GitDiffScope.GitDiffScope(SharpRail.Plugins.Api.UI.GitDiffScope! original) -> void
+SharpRail.Plugins.Api.UI.IPluginEditors
+SharpRail.Plugins.Api.UI.IPluginEditors.Active.get -> SharpRail.Plugins.Api.UI.EditorRef?
+SharpRail.Plugins.Api.UI.IPluginEditors.Close(string! id) -> void
+SharpRail.Plugins.Api.UI.IPluginEditors.IsDirty(string! id) -> bool
+SharpRail.Plugins.Api.UI.IPluginEditors.List(string? workspaceId = null) -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.UI.EditorRef!>!
+SharpRail.Plugins.Api.UI.IPluginEditors.OnEvent(System.Action<SharpRail.Plugins.Api.UI.EditorEvent!>! handler) -> System.IDisposable!
+SharpRail.Plugins.Api.UI.IPluginEditors.OpenAsync(string! workspaceId, string! path, SharpRail.Plugins.Api.UI.EditorOpenOptions? options = null) -> System.Threading.Tasks.ValueTask<SharpRail.Plugins.Api.UI.EditorRef?>
+SharpRail.Plugins.Api.UI.IPluginEditors.ReportSelection(SharpRail.Plugins.Api.UI.EditorRef! editor, SharpRail.Plugins.Api.UI.EditorSelection? selection) -> void
+SharpRail.Plugins.Api.UI.IPluginEditors.SaveAsync(string! id) -> System.Threading.Tasks.ValueTask
+SharpRail.Plugins.Api.UI.IPluginPreference
+SharpRail.Plugins.Api.UI.IPluginPreference.Get() -> string?
+SharpRail.Plugins.Api.UI.IPluginPreference.Remove() -> void
+SharpRail.Plugins.Api.UI.IPluginPreference.Set(string! value) -> void
+SharpRail.Plugins.Api.UI.IPluginUIContext
+SharpRail.Plugins.Api.UI.IPluginUIContext.Companion(SharpRail.Plugins.Api.UI.CompanionRegistration! registration) -> void
+SharpRail.Plugins.Api.UI.IPluginUIContext.Dependency(SharpRail.Plugins.Api.PluginContract! contract) -> SharpRail.Plugins.Api.IPluginDependencyHandle!
+SharpRail.Plugins.Api.UI.IPluginUIContext.DocumentLinkSlot(System.Func<string!, string!, string?>! resolver) -> void
+SharpRail.Plugins.Api.UI.IPluginUIContext.Editors.get -> SharpRail.Plugins.Api.UI.IPluginEditors!
+SharpRail.Plugins.Api.UI.IPluginUIContext.EnterDefaultWorkspaceAsync(string! projectId) -> System.Threading.Tasks.ValueTask<SharpRail.Plugins.Api.HostWorkspace?>
+SharpRail.Plugins.Api.UI.IPluginUIContext.FileIconSlot(System.Func<string!, SharpRail.Plugins.Api.UI.FileIconKind, string?>! resolver) -> void
+SharpRail.Plugins.Api.UI.IPluginUIContext.FileRevision(string! workspaceId, string! path) -> int
+SharpRail.Plugins.Api.UI.IPluginUIContext.FileViewer(SharpRail.Plugins.Api.UI.FileViewerRegistration! registration) -> void
+SharpRail.Plugins.Api.UI.IPluginUIContext.FocusCompanion(SharpRail.Plugins.Api.UI.CompanionHost! host, string! kind) -> void
+SharpRail.Plugins.Api.UI.IPluginUIContext.Host() -> SharpRail.Plugins.Api.UI.PluginHostProjection!
+SharpRail.Plugins.Api.UI.IPluginUIContext.Id.get -> string!
+SharpRail.Plugins.Api.UI.IPluginUIContext.Invalidate() -> void
+SharpRail.Plugins.Api.UI.IPluginUIContext.Launcher(SharpRail.Plugins.Api.UI.AgentLauncher! launcher) -> void
+SharpRail.Plugins.Api.UI.IPluginUIContext.Launchers() -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.UI.AgentLauncher!>!
+SharpRail.Plugins.Api.UI.IPluginUIContext.Log.get -> SharpRail.Plugins.Api.UI.IPluginUILogger!
+SharpRail.Plugins.Api.UI.IPluginUIContext.Notify(SharpRail.Plugins.Api.UI.PluginNotificationKind kind, string! title, string? description = null) -> void
+SharpRail.Plugins.Api.UI.IPluginUIContext.ObserveFileRevision(string! workspaceId, string! path, System.Action<int>! handler) -> System.IDisposable!
+SharpRail.Plugins.Api.UI.IPluginUIContext.OnLaunchersChanged(System.Action<System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.UI.AgentLauncher!>!>! handler) -> System.IDisposable!
+SharpRail.Plugins.Api.UI.IPluginUIContext.OnReconnect(System.Action! handler) -> System.IDisposable!
+SharpRail.Plugins.Api.UI.IPluginUIContext.OnSettings<T>(System.Action<T!>! handler) -> System.IDisposable!
+SharpRail.Plugins.Api.UI.IPluginUIContext.OnWorkspaceRemoved(System.Action<string!>! handler) -> System.IDisposable!
+SharpRail.Plugins.Api.UI.IPluginUIContext.OpenTerminalAsync(string! workspaceId, SharpRail.Plugins.Api.UI.TerminalOpenOptions? options = null) -> System.Threading.Tasks.ValueTask<string!>
+SharpRail.Plugins.Api.UI.IPluginUIContext.PickFileAsync(SharpRail.Plugins.Api.UI.FilePickOptions? options = null) -> System.Threading.Tasks.ValueTask<string?>
+SharpRail.Plugins.Api.UI.IPluginUIContext.Preference(string! key) -> SharpRail.Plugins.Api.UI.IPluginPreference!
+SharpRail.Plugins.Api.UI.IPluginUIContext.ReadAssetAsync(string! path, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<byte[]!>
+SharpRail.Plugins.Api.UI.IPluginUIContext.ReadFileAsync(string! workspaceId, string! path, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<byte[]!>
+SharpRail.Plugins.Api.UI.IPluginUIContext.RequestAsync<TParams, TResult>(SharpRail.Plugins.Api.PluginMethod<TParams, TResult>! method, TParams parameters, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<TResult>
+SharpRail.Plugins.Api.UI.IPluginUIContext.RevealTool(string! workspaceId, string! tool) -> void
+SharpRail.Plugins.Api.UI.IPluginUIContext.SetDiffScope(string! workspaceId, SharpRail.Plugins.Api.UI.GitDiffScope! scope) -> void
+SharpRail.Plugins.Api.UI.IPluginUIContext.Settings<T>() -> T!
+SharpRail.Plugins.Api.UI.IPluginUIContext.SettingsSection(SharpRail.Plugins.Api.UI.SettingsSectionRegistration! section) -> void
+SharpRail.Plugins.Api.UI.IPluginUIContext.SideTool(SharpRail.Plugins.Api.UI.SideToolRegistration! registration) -> void
+SharpRail.Plugins.Api.UI.IPluginUIContext.Subscribe<TPayload>(SharpRail.Plugins.Api.PluginChannel<TPayload>! channel, System.Action<TPayload>! handler, object? scope = null) -> System.IDisposable!
+SharpRail.Plugins.Api.UI.IPluginUIContext.TabDecoration(System.Func<SharpRail.Plugins.Api.UI.TabRef!, SharpRail.Plugins.Api.UI.TabDecoration?>! decorate) -> void
+SharpRail.Plugins.Api.UI.IPluginUIContext.TerminalAccessory(SharpRail.Plugins.Api.UI.TerminalAccessoryRegistration! registration) -> void
+SharpRail.Plugins.Api.UI.IPluginUIContext.UpdateSettingsAsync<T>(T! settings) -> System.Threading.Tasks.ValueTask
+SharpRail.Plugins.Api.UI.IPluginUIContext.WatchHost<T>(System.Func<SharpRail.Plugins.Api.UI.PluginHostProjection!, T>! selector, System.Action<T, T>! listener) -> System.IDisposable!
+SharpRail.Plugins.Api.UI.IPluginUIContext.WatchWorkspaceAsync(string! workspaceId) -> System.Threading.Tasks.ValueTask
+SharpRail.Plugins.Api.UI.IPluginUIContext.WorkspaceAction(SharpRail.Plugins.Api.UI.WorkspaceActionRegistration! action) -> void
+SharpRail.Plugins.Api.UI.IPluginUILogger
+SharpRail.Plugins.Api.UI.IPluginUILogger.Debug(string! message, object? fields = null) -> void
+SharpRail.Plugins.Api.UI.IPluginUILogger.Error(string! message, object? fields = null) -> void
+SharpRail.Plugins.Api.UI.IPluginUILogger.Info(string! message, object? fields = null) -> void
+SharpRail.Plugins.Api.UI.IPluginUILogger.Warn(string! message, object? fields = null) -> void
+SharpRail.Plugins.Api.UI.ITerminalAccessoryApi
+SharpRail.Plugins.Api.UI.ITerminalAccessoryApi.BufferTail(int lines, bool omitFaint = false) -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Plugins.Api.UI.ITerminalAccessoryApi.SetKeyEncoding(SharpRail.Plugins.Api.UI.TerminalKeyEncoding encoding) -> void
+SharpRail.Plugins.Api.UI.ITerminalAccessoryApi.TabKey.get -> string!
+SharpRail.Plugins.Api.UI.ITerminalAccessoryApi.WorkspaceId.get -> string!
+SharpRail.Plugins.Api.UI.ITerminalAccessoryApi.Write(string! data) -> void
+SharpRail.Plugins.Api.UI.LauncherAvailability
+SharpRail.Plugins.Api.UI.LauncherAvailability.<Clone>$() -> SharpRail.Plugins.Api.UI.LauncherAvailability!
+SharpRail.Plugins.Api.UI.LauncherAvailability.Available.get -> bool
+SharpRail.Plugins.Api.UI.LauncherAvailability.Available.init -> void
+SharpRail.Plugins.Api.UI.LauncherAvailability.Deconstruct(out bool Available, out string? Reason) -> void
+SharpRail.Plugins.Api.UI.LauncherAvailability.Equals(SharpRail.Plugins.Api.UI.LauncherAvailability? other) -> bool
+SharpRail.Plugins.Api.UI.LauncherAvailability.LauncherAvailability(bool Available, string? Reason = null) -> void
+SharpRail.Plugins.Api.UI.LauncherAvailability.Reason.get -> string?
+SharpRail.Plugins.Api.UI.LauncherAvailability.Reason.init -> void
+SharpRail.Plugins.Api.UI.LauncherCommandOptions
+SharpRail.Plugins.Api.UI.LauncherCommandOptions.<Clone>$() -> SharpRail.Plugins.Api.UI.LauncherCommandOptions!
+SharpRail.Plugins.Api.UI.LauncherCommandOptions.Equals(SharpRail.Plugins.Api.UI.LauncherCommandOptions? other) -> bool
+SharpRail.Plugins.Api.UI.LauncherCommandOptions.InitialPrompt.get -> string?
+SharpRail.Plugins.Api.UI.LauncherCommandOptions.InitialPrompt.init -> void
+SharpRail.Plugins.Api.UI.LauncherCommandOptions.LauncherCommandOptions() -> void
+SharpRail.Plugins.Api.UI.LauncherCommandOptions.Model.get -> string?
+SharpRail.Plugins.Api.UI.LauncherCommandOptions.Model.init -> void
+SharpRail.Plugins.Api.UI.LauncherCommandOptions.ResumeSessionId.get -> string?
+SharpRail.Plugins.Api.UI.LauncherCommandOptions.ResumeSessionId.init -> void
+SharpRail.Plugins.Api.UI.LauncherCommandOptions.SystemPrompt.get -> string?
+SharpRail.Plugins.Api.UI.LauncherCommandOptions.SystemPrompt.init -> void
+SharpRail.Plugins.Api.UI.LauncherModel
+SharpRail.Plugins.Api.UI.LauncherModel.<Clone>$() -> SharpRail.Plugins.Api.UI.LauncherModel!
+SharpRail.Plugins.Api.UI.LauncherModel.Deconstruct(out string! Id, out string! Label, out string? Icon) -> void
+SharpRail.Plugins.Api.UI.LauncherModel.Equals(SharpRail.Plugins.Api.UI.LauncherModel? other) -> bool
+SharpRail.Plugins.Api.UI.LauncherModel.Icon.get -> string?
+SharpRail.Plugins.Api.UI.LauncherModel.Icon.init -> void
+SharpRail.Plugins.Api.UI.LauncherModel.Id.get -> string!
+SharpRail.Plugins.Api.UI.LauncherModel.Id.init -> void
+SharpRail.Plugins.Api.UI.LauncherModel.Label.get -> string!
+SharpRail.Plugins.Api.UI.LauncherModel.Label.init -> void
+SharpRail.Plugins.Api.UI.LauncherModel.LauncherModel(string! Id, string! Label, string? Icon = null) -> void
+SharpRail.Plugins.Api.UI.PinnedDiffScope
+SharpRail.Plugins.Api.UI.PinnedDiffScope.BaseRef.get -> string!
+SharpRail.Plugins.Api.UI.PinnedDiffScope.BaseRef.init -> void
+SharpRail.Plugins.Api.UI.PinnedDiffScope.Deconstruct(out string! BaseRef) -> void
+SharpRail.Plugins.Api.UI.PinnedDiffScope.Equals(SharpRail.Plugins.Api.UI.PinnedDiffScope? other) -> bool
+SharpRail.Plugins.Api.UI.PinnedDiffScope.PinnedDiffScope(string! BaseRef) -> void
+SharpRail.Plugins.Api.UI.PluginAppSettings
+SharpRail.Plugins.Api.UI.PluginAppSettings.<Clone>$() -> SharpRail.Plugins.Api.UI.PluginAppSettings!
+SharpRail.Plugins.Api.UI.PluginAppSettings.Deconstruct(out string! ThemeId, out bool IsLightTheme, out int FileLineWidth, out bool FileLineWidthBounded, out int MarkdownLineWidth, out bool MarkdownLineWidthBounded, out System.Collections.Generic.IReadOnlyList<string!>! PluginPaths) -> void
+SharpRail.Plugins.Api.UI.PluginAppSettings.Equals(SharpRail.Plugins.Api.UI.PluginAppSettings? other) -> bool
+SharpRail.Plugins.Api.UI.PluginAppSettings.FileLineWidth.get -> int
+SharpRail.Plugins.Api.UI.PluginAppSettings.FileLineWidth.init -> void
+SharpRail.Plugins.Api.UI.PluginAppSettings.FileLineWidthBounded.get -> bool
+SharpRail.Plugins.Api.UI.PluginAppSettings.FileLineWidthBounded.init -> void
+SharpRail.Plugins.Api.UI.PluginAppSettings.IsLightTheme.get -> bool
+SharpRail.Plugins.Api.UI.PluginAppSettings.IsLightTheme.init -> void
+SharpRail.Plugins.Api.UI.PluginAppSettings.MarkdownLineWidth.get -> int
+SharpRail.Plugins.Api.UI.PluginAppSettings.MarkdownLineWidth.init -> void
+SharpRail.Plugins.Api.UI.PluginAppSettings.MarkdownLineWidthBounded.get -> bool
+SharpRail.Plugins.Api.UI.PluginAppSettings.MarkdownLineWidthBounded.init -> void
+SharpRail.Plugins.Api.UI.PluginAppSettings.PluginAppSettings(string! ThemeId, bool IsLightTheme, int FileLineWidth, bool FileLineWidthBounded, int MarkdownLineWidth, bool MarkdownLineWidthBounded, System.Collections.Generic.IReadOnlyList<string!>! PluginPaths) -> void
+SharpRail.Plugins.Api.UI.PluginAppSettings.PluginPaths.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Plugins.Api.UI.PluginAppSettings.PluginPaths.init -> void
+SharpRail.Plugins.Api.UI.PluginAppSettings.ThemeId.get -> string!
+SharpRail.Plugins.Api.UI.PluginAppSettings.ThemeId.init -> void
+SharpRail.Plugins.Api.UI.PluginDisposer
+SharpRail.Plugins.Api.UI.PluginHostProjection
+SharpRail.Plugins.Api.UI.PluginHostProjection.<Clone>$() -> SharpRail.Plugins.Api.UI.PluginHostProjection!
+SharpRail.Plugins.Api.UI.PluginHostProjection.ActiveEditor.get -> SharpRail.Plugins.Api.UI.EditorRef?
+SharpRail.Plugins.Api.UI.PluginHostProjection.ActiveEditor.init -> void
+SharpRail.Plugins.Api.UI.PluginHostProjection.ActiveWorkspaceId.get -> string?
+SharpRail.Plugins.Api.UI.PluginHostProjection.ActiveWorkspaceId.init -> void
+SharpRail.Plugins.Api.UI.PluginHostProjection.AppSettings.get -> SharpRail.Plugins.Api.UI.PluginAppSettings!
+SharpRail.Plugins.Api.UI.PluginHostProjection.AppSettings.init -> void
+SharpRail.Plugins.Api.UI.PluginHostProjection.ContextProjectId.get -> string?
+SharpRail.Plugins.Api.UI.PluginHostProjection.ContextProjectId.init -> void
+SharpRail.Plugins.Api.UI.PluginHostProjection.Deconstruct(out System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.HostProject!>! Projects, out System.Collections.Generic.IReadOnlyDictionary<string!, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.HostWorkspace!>!>! Workspaces, out string? ActiveWorkspaceId, out string? ContextProjectId, out SharpRail.Plugins.Api.UI.EditorRef? ActiveEditor, out SharpRail.Plugins.Api.UI.PluginAppSettings! AppSettings, out System.Collections.Generic.IReadOnlyDictionary<string!, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.UI.TerminalTabInfo!>!>! Terminals, out System.Collections.Generic.IReadOnlyDictionary<string!, System.Collections.Generic.IReadOnlyList<string!>!>! ShownTerminalTabKeys, out System.Collections.Generic.IReadOnlyDictionary<string!, int>! WorkspaceRevisions, out System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginRosterEntry!>! Roster, out SharpRail.Plugins.Api.HostPlatform? HostPlatform) -> void
+SharpRail.Plugins.Api.UI.PluginHostProjection.Equals(SharpRail.Plugins.Api.UI.PluginHostProjection? other) -> bool
+SharpRail.Plugins.Api.UI.PluginHostProjection.HostPlatform.get -> SharpRail.Plugins.Api.HostPlatform?
+SharpRail.Plugins.Api.UI.PluginHostProjection.HostPlatform.init -> void
+SharpRail.Plugins.Api.UI.PluginHostProjection.PluginHostProjection(System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.HostProject!>! Projects, System.Collections.Generic.IReadOnlyDictionary<string!, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.HostWorkspace!>!>! Workspaces, string? ActiveWorkspaceId, string? ContextProjectId, SharpRail.Plugins.Api.UI.EditorRef? ActiveEditor, SharpRail.Plugins.Api.UI.PluginAppSettings! AppSettings, System.Collections.Generic.IReadOnlyDictionary<string!, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.UI.TerminalTabInfo!>!>! Terminals, System.Collections.Generic.IReadOnlyDictionary<string!, System.Collections.Generic.IReadOnlyList<string!>!>! ShownTerminalTabKeys, System.Collections.Generic.IReadOnlyDictionary<string!, int>! WorkspaceRevisions, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginRosterEntry!>! Roster, SharpRail.Plugins.Api.HostPlatform? HostPlatform) -> void
+SharpRail.Plugins.Api.UI.PluginHostProjection.Projects.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.HostProject!>!
+SharpRail.Plugins.Api.UI.PluginHostProjection.Projects.init -> void
+SharpRail.Plugins.Api.UI.PluginHostProjection.Roster.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginRosterEntry!>!
+SharpRail.Plugins.Api.UI.PluginHostProjection.Roster.init -> void
+SharpRail.Plugins.Api.UI.PluginHostProjection.ShownTerminalTabKeys.get -> System.Collections.Generic.IReadOnlyDictionary<string!, System.Collections.Generic.IReadOnlyList<string!>!>!
+SharpRail.Plugins.Api.UI.PluginHostProjection.ShownTerminalTabKeys.init -> void
+SharpRail.Plugins.Api.UI.PluginHostProjection.Terminals.get -> System.Collections.Generic.IReadOnlyDictionary<string!, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.UI.TerminalTabInfo!>!>!
+SharpRail.Plugins.Api.UI.PluginHostProjection.Terminals.init -> void
+SharpRail.Plugins.Api.UI.PluginHostProjection.WorkspaceRevisions.get -> System.Collections.Generic.IReadOnlyDictionary<string!, int>!
+SharpRail.Plugins.Api.UI.PluginHostProjection.WorkspaceRevisions.init -> void
+SharpRail.Plugins.Api.UI.PluginHostProjection.Workspaces.get -> System.Collections.Generic.IReadOnlyDictionary<string!, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.HostWorkspace!>!>!
+SharpRail.Plugins.Api.UI.PluginHostProjection.Workspaces.init -> void
+SharpRail.Plugins.Api.UI.PluginNotificationKind
+SharpRail.Plugins.Api.UI.PluginNotificationKind.Error = 1 -> SharpRail.Plugins.Api.UI.PluginNotificationKind
+SharpRail.Plugins.Api.UI.PluginNotificationKind.Info = 0 -> SharpRail.Plugins.Api.UI.PluginNotificationKind
+SharpRail.Plugins.Api.UI.PluginUIModule
+SharpRail.Plugins.Api.UI.PluginUIModule.PluginUIModule() -> void
+SharpRail.Plugins.Api.UI.ProjectScopedActionRegistration
+SharpRail.Plugins.Api.UI.ProjectScopedActionRegistration.Create.get -> System.Func<string!, Avalonia.Controls.Control!>!
+SharpRail.Plugins.Api.UI.ProjectScopedActionRegistration.Create.init -> void
+SharpRail.Plugins.Api.UI.ProjectScopedActionRegistration.Deconstruct(out string! Id, out System.Func<string!, Avalonia.Controls.Control!>! Create) -> void
+SharpRail.Plugins.Api.UI.ProjectScopedActionRegistration.Equals(SharpRail.Plugins.Api.UI.ProjectScopedActionRegistration? other) -> bool
+SharpRail.Plugins.Api.UI.ProjectScopedActionRegistration.ProjectScopedActionRegistration(string! Id, System.Func<string!, Avalonia.Controls.Control!>! Create) -> void
+SharpRail.Plugins.Api.UI.SettingsSectionRegistration
+SharpRail.Plugins.Api.UI.SettingsSectionRegistration.<Clone>$() -> SharpRail.Plugins.Api.UI.SettingsSectionRegistration!
+SharpRail.Plugins.Api.UI.SettingsSectionRegistration.Create.get -> System.Func<Avalonia.Controls.Control!>!
+SharpRail.Plugins.Api.UI.SettingsSectionRegistration.Create.init -> void
+SharpRail.Plugins.Api.UI.SettingsSectionRegistration.Deconstruct(out string! Label, out string! Icon, out System.Func<Avalonia.Controls.Control!>! Create) -> void
+SharpRail.Plugins.Api.UI.SettingsSectionRegistration.Equals(SharpRail.Plugins.Api.UI.SettingsSectionRegistration? other) -> bool
+SharpRail.Plugins.Api.UI.SettingsSectionRegistration.Icon.get -> string!
+SharpRail.Plugins.Api.UI.SettingsSectionRegistration.Icon.init -> void
+SharpRail.Plugins.Api.UI.SettingsSectionRegistration.Id.get -> string?
+SharpRail.Plugins.Api.UI.SettingsSectionRegistration.Id.init -> void
+SharpRail.Plugins.Api.UI.SettingsSectionRegistration.Label.get -> string!
+SharpRail.Plugins.Api.UI.SettingsSectionRegistration.Label.init -> void
+SharpRail.Plugins.Api.UI.SettingsSectionRegistration.SettingsSectionRegistration(string! Label, string! Icon, System.Func<Avalonia.Controls.Control!>! Create) -> void
+SharpRail.Plugins.Api.UI.SideToolRegistration
+SharpRail.Plugins.Api.UI.SideToolRegistration.<Clone>$() -> SharpRail.Plugins.Api.UI.SideToolRegistration!
+SharpRail.Plugins.Api.UI.SideToolRegistration.Create.get -> System.Func<string!, Avalonia.Controls.Control!>!
+SharpRail.Plugins.Api.UI.SideToolRegistration.Create.init -> void
+SharpRail.Plugins.Api.UI.SideToolRegistration.Deconstruct(out string! Tool, out System.Func<string!, Avalonia.Controls.Control!>! Create) -> void
+SharpRail.Plugins.Api.UI.SideToolRegistration.Equals(SharpRail.Plugins.Api.UI.SideToolRegistration? other) -> bool
+SharpRail.Plugins.Api.UI.SideToolRegistration.RailDefault.get -> System.Func<string!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<bool>>?
+SharpRail.Plugins.Api.UI.SideToolRegistration.RailDefault.init -> void
+SharpRail.Plugins.Api.UI.SideToolRegistration.SideToolRegistration(string! Tool, System.Func<string!, Avalonia.Controls.Control!>! Create) -> void
+SharpRail.Plugins.Api.UI.SideToolRegistration.Tool.get -> string!
+SharpRail.Plugins.Api.UI.SideToolRegistration.Tool.init -> void
+SharpRail.Plugins.Api.UI.TabDecoration
+SharpRail.Plugins.Api.UI.TabDecoration.<Clone>$() -> SharpRail.Plugins.Api.UI.TabDecoration!
+SharpRail.Plugins.Api.UI.TabDecoration.Adornment.get -> System.Func<Avalonia.Controls.Control!>?
+SharpRail.Plugins.Api.UI.TabDecoration.Adornment.init -> void
+SharpRail.Plugins.Api.UI.TabDecoration.Equals(SharpRail.Plugins.Api.UI.TabDecoration? other) -> bool
+SharpRail.Plugins.Api.UI.TabDecoration.Icon.get -> string?
+SharpRail.Plugins.Api.UI.TabDecoration.Icon.init -> void
+SharpRail.Plugins.Api.UI.TabDecoration.TabDecoration() -> void
+SharpRail.Plugins.Api.UI.TabRef
+SharpRail.Plugins.Api.UI.TabRef.Deconstruct(out string! WorkspaceId) -> void
+SharpRail.Plugins.Api.UI.TabRef.TabRef(SharpRail.Plugins.Api.UI.TabRef! original) -> void
+SharpRail.Plugins.Api.UI.TabRef.TabRef(string! WorkspaceId) -> void
+SharpRail.Plugins.Api.UI.TabRef.WorkspaceId.get -> string!
+SharpRail.Plugins.Api.UI.TabRef.WorkspaceId.init -> void
+SharpRail.Plugins.Api.UI.TerminalAccessoryRegistration
+SharpRail.Plugins.Api.UI.TerminalAccessoryRegistration.<Clone>$() -> SharpRail.Plugins.Api.UI.TerminalAccessoryRegistration!
+SharpRail.Plugins.Api.UI.TerminalAccessoryRegistration.Create.get -> System.Func<SharpRail.Plugins.Api.UI.ITerminalAccessoryApi!, Avalonia.Controls.Control!>!
+SharpRail.Plugins.Api.UI.TerminalAccessoryRegistration.Create.init -> void
+SharpRail.Plugins.Api.UI.TerminalAccessoryRegistration.Deconstruct(out System.Func<SharpRail.Plugins.Api.UI.ITerminalAccessoryApi!, Avalonia.Controls.Control!>! Create) -> void
+SharpRail.Plugins.Api.UI.TerminalAccessoryRegistration.Equals(SharpRail.Plugins.Api.UI.TerminalAccessoryRegistration? other) -> bool
+SharpRail.Plugins.Api.UI.TerminalAccessoryRegistration.TerminalAccessoryRegistration(System.Func<SharpRail.Plugins.Api.UI.ITerminalAccessoryApi!, Avalonia.Controls.Control!>! Create) -> void
+SharpRail.Plugins.Api.UI.TerminalKeyEncoding
+SharpRail.Plugins.Api.UI.TerminalKeyEncoding.AgentNewline = 1 -> SharpRail.Plugins.Api.UI.TerminalKeyEncoding
+SharpRail.Plugins.Api.UI.TerminalKeyEncoding.Default = 0 -> SharpRail.Plugins.Api.UI.TerminalKeyEncoding
+SharpRail.Plugins.Api.UI.TerminalOpenOptions
+SharpRail.Plugins.Api.UI.TerminalOpenOptions.<Clone>$() -> SharpRail.Plugins.Api.UI.TerminalOpenOptions!
+SharpRail.Plugins.Api.UI.TerminalOpenOptions.Command.get -> string?
+SharpRail.Plugins.Api.UI.TerminalOpenOptions.Command.init -> void
+SharpRail.Plugins.Api.UI.TerminalOpenOptions.Equals(SharpRail.Plugins.Api.UI.TerminalOpenOptions? other) -> bool
+SharpRail.Plugins.Api.UI.TerminalOpenOptions.GroupId.get -> string?
+SharpRail.Plugins.Api.UI.TerminalOpenOptions.GroupId.init -> void
+SharpRail.Plugins.Api.UI.TerminalOpenOptions.TabKey.get -> string?
+SharpRail.Plugins.Api.UI.TerminalOpenOptions.TabKey.init -> void
+SharpRail.Plugins.Api.UI.TerminalOpenOptions.TerminalOpenOptions() -> void
+SharpRail.Plugins.Api.UI.TerminalTabInfo
+SharpRail.Plugins.Api.UI.TerminalTabInfo.<Clone>$() -> SharpRail.Plugins.Api.UI.TerminalTabInfo!
+SharpRail.Plugins.Api.UI.TerminalTabInfo.Agent.get -> SharpRail.Plugins.Api.TerminalAgentRecord?
+SharpRail.Plugins.Api.UI.TerminalTabInfo.Agent.init -> void
+SharpRail.Plugins.Api.UI.TerminalTabInfo.Deconstruct(out string! TabKey, out string! Title, out SharpRail.Plugins.Api.TerminalAgentRecord? Agent) -> void
+SharpRail.Plugins.Api.UI.TerminalTabInfo.Equals(SharpRail.Plugins.Api.UI.TerminalTabInfo? other) -> bool
+SharpRail.Plugins.Api.UI.TerminalTabInfo.TabKey.get -> string!
+SharpRail.Plugins.Api.UI.TerminalTabInfo.TabKey.init -> void
+SharpRail.Plugins.Api.UI.TerminalTabInfo.TerminalTabInfo(string! TabKey, string! Title, SharpRail.Plugins.Api.TerminalAgentRecord? Agent) -> void
+SharpRail.Plugins.Api.UI.TerminalTabInfo.Title.get -> string!
+SharpRail.Plugins.Api.UI.TerminalTabInfo.Title.init -> void
+SharpRail.Plugins.Api.UI.TerminalTabRef
+SharpRail.Plugins.Api.UI.TerminalTabRef.Deconstruct(out string! WorkspaceId, out string! TabKey) -> void
+SharpRail.Plugins.Api.UI.TerminalTabRef.Equals(SharpRail.Plugins.Api.UI.TerminalTabRef? other) -> bool
+SharpRail.Plugins.Api.UI.TerminalTabRef.TabKey.get -> string!
+SharpRail.Plugins.Api.UI.TerminalTabRef.TabKey.init -> void
+SharpRail.Plugins.Api.UI.TerminalTabRef.TerminalTabRef(string! WorkspaceId, string! TabKey) -> void
+SharpRail.Plugins.Api.UI.ToolTabRef
+SharpRail.Plugins.Api.UI.ToolTabRef.Deconstruct(out string! WorkspaceId, out string! Tool) -> void
+SharpRail.Plugins.Api.UI.ToolTabRef.Equals(SharpRail.Plugins.Api.UI.ToolTabRef? other) -> bool
+SharpRail.Plugins.Api.UI.ToolTabRef.Tool.get -> string!
+SharpRail.Plugins.Api.UI.ToolTabRef.Tool.init -> void
+SharpRail.Plugins.Api.UI.ToolTabRef.ToolTabRef(string! WorkspaceId, string! Tool) -> void
+SharpRail.Plugins.Api.UI.UncommittedDiffScope
+SharpRail.Plugins.Api.UI.UncommittedDiffScope.Equals(SharpRail.Plugins.Api.UI.UncommittedDiffScope? other) -> bool
+SharpRail.Plugins.Api.UI.UncommittedDiffScope.UncommittedDiffScope() -> void
+SharpRail.Plugins.Api.UI.WorkspaceActionRegistration
+SharpRail.Plugins.Api.UI.WorkspaceActionRegistration.Deconstruct(out string! Id) -> void
+SharpRail.Plugins.Api.UI.WorkspaceActionRegistration.Id.get -> string!
+SharpRail.Plugins.Api.UI.WorkspaceActionRegistration.Id.init -> void
+SharpRail.Plugins.Api.UI.WorkspaceActionRegistration.WorkspaceActionRegistration(SharpRail.Plugins.Api.UI.WorkspaceActionRegistration! original) -> void
+SharpRail.Plugins.Api.UI.WorkspaceActionRegistration.WorkspaceActionRegistration(string! Id) -> void
+SharpRail.Plugins.Api.UI.WorkspaceScopedActionRegistration
+SharpRail.Plugins.Api.UI.WorkspaceScopedActionRegistration.Create.get -> System.Func<string!, string!, Avalonia.Controls.Control!>!
+SharpRail.Plugins.Api.UI.WorkspaceScopedActionRegistration.Create.init -> void
+SharpRail.Plugins.Api.UI.WorkspaceScopedActionRegistration.Deconstruct(out string! Id, out System.Func<string!, string!, Avalonia.Controls.Control!>! Create) -> void
+SharpRail.Plugins.Api.UI.WorkspaceScopedActionRegistration.Equals(SharpRail.Plugins.Api.UI.WorkspaceScopedActionRegistration? other) -> bool
+SharpRail.Plugins.Api.UI.WorkspaceScopedActionRegistration.WorkspaceScopedActionRegistration(string! Id, System.Func<string!, string!, Avalonia.Controls.Control!>! Create) -> void
+static SharpRail.Plugins.Api.UI.AgentLauncher.operator !=(SharpRail.Plugins.Api.UI.AgentLauncher? left, SharpRail.Plugins.Api.UI.AgentLauncher? right) -> bool
+static SharpRail.Plugins.Api.UI.AgentLauncher.operator ==(SharpRail.Plugins.Api.UI.AgentLauncher? left, SharpRail.Plugins.Api.UI.AgentLauncher? right) -> bool
+static SharpRail.Plugins.Api.UI.BranchDiffScope.operator !=(SharpRail.Plugins.Api.UI.BranchDiffScope? left, SharpRail.Plugins.Api.UI.BranchDiffScope? right) -> bool
+static SharpRail.Plugins.Api.UI.BranchDiffScope.operator ==(SharpRail.Plugins.Api.UI.BranchDiffScope? left, SharpRail.Plugins.Api.UI.BranchDiffScope? right) -> bool
+static SharpRail.Plugins.Api.UI.CommitDiffScope.operator !=(SharpRail.Plugins.Api.UI.CommitDiffScope? left, SharpRail.Plugins.Api.UI.CommitDiffScope? right) -> bool
+static SharpRail.Plugins.Api.UI.CommitDiffScope.operator ==(SharpRail.Plugins.Api.UI.CommitDiffScope? left, SharpRail.Plugins.Api.UI.CommitDiffScope? right) -> bool
+static SharpRail.Plugins.Api.UI.CompanionHost.operator !=(SharpRail.Plugins.Api.UI.CompanionHost? left, SharpRail.Plugins.Api.UI.CompanionHost? right) -> bool
+static SharpRail.Plugins.Api.UI.CompanionHost.operator ==(SharpRail.Plugins.Api.UI.CompanionHost? left, SharpRail.Plugins.Api.UI.CompanionHost? right) -> bool
+static SharpRail.Plugins.Api.UI.CompanionRegistration.operator !=(SharpRail.Plugins.Api.UI.CompanionRegistration? left, SharpRail.Plugins.Api.UI.CompanionRegistration? right) -> bool
+static SharpRail.Plugins.Api.UI.CompanionRegistration.operator ==(SharpRail.Plugins.Api.UI.CompanionRegistration? left, SharpRail.Plugins.Api.UI.CompanionRegistration? right) -> bool
+static SharpRail.Plugins.Api.UI.EditorEvent.operator !=(SharpRail.Plugins.Api.UI.EditorEvent? left, SharpRail.Plugins.Api.UI.EditorEvent? right) -> bool
+static SharpRail.Plugins.Api.UI.EditorEvent.operator ==(SharpRail.Plugins.Api.UI.EditorEvent? left, SharpRail.Plugins.Api.UI.EditorEvent? right) -> bool
+static SharpRail.Plugins.Api.UI.EditorLifecycleEvent.operator !=(SharpRail.Plugins.Api.UI.EditorLifecycleEvent? left, SharpRail.Plugins.Api.UI.EditorLifecycleEvent? right) -> bool
+static SharpRail.Plugins.Api.UI.EditorLifecycleEvent.operator ==(SharpRail.Plugins.Api.UI.EditorLifecycleEvent? left, SharpRail.Plugins.Api.UI.EditorLifecycleEvent? right) -> bool
+static SharpRail.Plugins.Api.UI.EditorOpenOptions.operator !=(SharpRail.Plugins.Api.UI.EditorOpenOptions? left, SharpRail.Plugins.Api.UI.EditorOpenOptions? right) -> bool
+static SharpRail.Plugins.Api.UI.EditorOpenOptions.operator ==(SharpRail.Plugins.Api.UI.EditorOpenOptions? left, SharpRail.Plugins.Api.UI.EditorOpenOptions? right) -> bool
+static SharpRail.Plugins.Api.UI.EditorRef.operator !=(SharpRail.Plugins.Api.UI.EditorRef? left, SharpRail.Plugins.Api.UI.EditorRef? right) -> bool
+static SharpRail.Plugins.Api.UI.EditorRef.operator ==(SharpRail.Plugins.Api.UI.EditorRef? left, SharpRail.Plugins.Api.UI.EditorRef? right) -> bool
+static SharpRail.Plugins.Api.UI.EditorSelection.operator !=(SharpRail.Plugins.Api.UI.EditorSelection? left, SharpRail.Plugins.Api.UI.EditorSelection? right) -> bool
+static SharpRail.Plugins.Api.UI.EditorSelection.operator ==(SharpRail.Plugins.Api.UI.EditorSelection? left, SharpRail.Plugins.Api.UI.EditorSelection? right) -> bool
+static SharpRail.Plugins.Api.UI.EditorSelectionEvent.operator !=(SharpRail.Plugins.Api.UI.EditorSelectionEvent? left, SharpRail.Plugins.Api.UI.EditorSelectionEvent? right) -> bool
+static SharpRail.Plugins.Api.UI.EditorSelectionEvent.operator ==(SharpRail.Plugins.Api.UI.EditorSelectionEvent? left, SharpRail.Plugins.Api.UI.EditorSelectionEvent? right) -> bool
+static SharpRail.Plugins.Api.UI.FilePickOptions.operator !=(SharpRail.Plugins.Api.UI.FilePickOptions? left, SharpRail.Plugins.Api.UI.FilePickOptions? right) -> bool
+static SharpRail.Plugins.Api.UI.FilePickOptions.operator ==(SharpRail.Plugins.Api.UI.FilePickOptions? left, SharpRail.Plugins.Api.UI.FilePickOptions? right) -> bool
+static SharpRail.Plugins.Api.UI.FileTabRef.operator !=(SharpRail.Plugins.Api.UI.FileTabRef? left, SharpRail.Plugins.Api.UI.FileTabRef? right) -> bool
+static SharpRail.Plugins.Api.UI.FileTabRef.operator ==(SharpRail.Plugins.Api.UI.FileTabRef? left, SharpRail.Plugins.Api.UI.FileTabRef? right) -> bool
+static SharpRail.Plugins.Api.UI.FileViewerProps.operator !=(SharpRail.Plugins.Api.UI.FileViewerProps? left, SharpRail.Plugins.Api.UI.FileViewerProps? right) -> bool
+static SharpRail.Plugins.Api.UI.FileViewerProps.operator ==(SharpRail.Plugins.Api.UI.FileViewerProps? left, SharpRail.Plugins.Api.UI.FileViewerProps? right) -> bool
+static SharpRail.Plugins.Api.UI.FileViewerRegistration.operator !=(SharpRail.Plugins.Api.UI.FileViewerRegistration? left, SharpRail.Plugins.Api.UI.FileViewerRegistration? right) -> bool
+static SharpRail.Plugins.Api.UI.FileViewerRegistration.operator ==(SharpRail.Plugins.Api.UI.FileViewerRegistration? left, SharpRail.Plugins.Api.UI.FileViewerRegistration? right) -> bool
+static SharpRail.Plugins.Api.UI.GitDiffScope.operator !=(SharpRail.Plugins.Api.UI.GitDiffScope? left, SharpRail.Plugins.Api.UI.GitDiffScope? right) -> bool
+static SharpRail.Plugins.Api.UI.GitDiffScope.operator ==(SharpRail.Plugins.Api.UI.GitDiffScope? left, SharpRail.Plugins.Api.UI.GitDiffScope? right) -> bool
+static SharpRail.Plugins.Api.UI.LauncherAvailability.operator !=(SharpRail.Plugins.Api.UI.LauncherAvailability? left, SharpRail.Plugins.Api.UI.LauncherAvailability? right) -> bool
+static SharpRail.Plugins.Api.UI.LauncherAvailability.operator ==(SharpRail.Plugins.Api.UI.LauncherAvailability? left, SharpRail.Plugins.Api.UI.LauncherAvailability? right) -> bool
+static SharpRail.Plugins.Api.UI.LauncherCommandOptions.operator !=(SharpRail.Plugins.Api.UI.LauncherCommandOptions? left, SharpRail.Plugins.Api.UI.LauncherCommandOptions? right) -> bool
+static SharpRail.Plugins.Api.UI.LauncherCommandOptions.operator ==(SharpRail.Plugins.Api.UI.LauncherCommandOptions? left, SharpRail.Plugins.Api.UI.LauncherCommandOptions? right) -> bool
+static SharpRail.Plugins.Api.UI.LauncherModel.operator !=(SharpRail.Plugins.Api.UI.LauncherModel? left, SharpRail.Plugins.Api.UI.LauncherModel? right) -> bool
+static SharpRail.Plugins.Api.UI.LauncherModel.operator ==(SharpRail.Plugins.Api.UI.LauncherModel? left, SharpRail.Plugins.Api.UI.LauncherModel? right) -> bool
+static SharpRail.Plugins.Api.UI.PinnedDiffScope.operator !=(SharpRail.Plugins.Api.UI.PinnedDiffScope? left, SharpRail.Plugins.Api.UI.PinnedDiffScope? right) -> bool
+static SharpRail.Plugins.Api.UI.PinnedDiffScope.operator ==(SharpRail.Plugins.Api.UI.PinnedDiffScope? left, SharpRail.Plugins.Api.UI.PinnedDiffScope? right) -> bool
+static SharpRail.Plugins.Api.UI.PluginAppSettings.operator !=(SharpRail.Plugins.Api.UI.PluginAppSettings? left, SharpRail.Plugins.Api.UI.PluginAppSettings? right) -> bool
+static SharpRail.Plugins.Api.UI.PluginAppSettings.operator ==(SharpRail.Plugins.Api.UI.PluginAppSettings? left, SharpRail.Plugins.Api.UI.PluginAppSettings? right) -> bool
+static SharpRail.Plugins.Api.UI.PluginHostProjection.operator !=(SharpRail.Plugins.Api.UI.PluginHostProjection? left, SharpRail.Plugins.Api.UI.PluginHostProjection? right) -> bool
+static SharpRail.Plugins.Api.UI.PluginHostProjection.operator ==(SharpRail.Plugins.Api.UI.PluginHostProjection? left, SharpRail.Plugins.Api.UI.PluginHostProjection? right) -> bool
+static SharpRail.Plugins.Api.UI.ProjectScopedActionRegistration.operator !=(SharpRail.Plugins.Api.UI.ProjectScopedActionRegistration? left, SharpRail.Plugins.Api.UI.ProjectScopedActionRegistration? right) -> bool
+static SharpRail.Plugins.Api.UI.ProjectScopedActionRegistration.operator ==(SharpRail.Plugins.Api.UI.ProjectScopedActionRegistration? left, SharpRail.Plugins.Api.UI.ProjectScopedActionRegistration? right) -> bool
+static SharpRail.Plugins.Api.UI.SettingsSectionRegistration.operator !=(SharpRail.Plugins.Api.UI.SettingsSectionRegistration? left, SharpRail.Plugins.Api.UI.SettingsSectionRegistration? right) -> bool
+static SharpRail.Plugins.Api.UI.SettingsSectionRegistration.operator ==(SharpRail.Plugins.Api.UI.SettingsSectionRegistration? left, SharpRail.Plugins.Api.UI.SettingsSectionRegistration? right) -> bool
+static SharpRail.Plugins.Api.UI.SideToolRegistration.operator !=(SharpRail.Plugins.Api.UI.SideToolRegistration? left, SharpRail.Plugins.Api.UI.SideToolRegistration? right) -> bool
+static SharpRail.Plugins.Api.UI.SideToolRegistration.operator ==(SharpRail.Plugins.Api.UI.SideToolRegistration? left, SharpRail.Plugins.Api.UI.SideToolRegistration? right) -> bool
+static SharpRail.Plugins.Api.UI.TabDecoration.operator !=(SharpRail.Plugins.Api.UI.TabDecoration? left, SharpRail.Plugins.Api.UI.TabDecoration? right) -> bool
+static SharpRail.Plugins.Api.UI.TabDecoration.operator ==(SharpRail.Plugins.Api.UI.TabDecoration? left, SharpRail.Plugins.Api.UI.TabDecoration? right) -> bool
+static SharpRail.Plugins.Api.UI.TabRef.operator !=(SharpRail.Plugins.Api.UI.TabRef? left, SharpRail.Plugins.Api.UI.TabRef? right) -> bool
+static SharpRail.Plugins.Api.UI.TabRef.operator ==(SharpRail.Plugins.Api.UI.TabRef? left, SharpRail.Plugins.Api.UI.TabRef? right) -> bool
+static SharpRail.Plugins.Api.UI.TerminalAccessoryRegistration.operator !=(SharpRail.Plugins.Api.UI.TerminalAccessoryRegistration? left, SharpRail.Plugins.Api.UI.TerminalAccessoryRegistration? right) -> bool
+static SharpRail.Plugins.Api.UI.TerminalAccessoryRegistration.operator ==(SharpRail.Plugins.Api.UI.TerminalAccessoryRegistration? left, SharpRail.Plugins.Api.UI.TerminalAccessoryRegistration? right) -> bool
+static SharpRail.Plugins.Api.UI.TerminalOpenOptions.operator !=(SharpRail.Plugins.Api.UI.TerminalOpenOptions? left, SharpRail.Plugins.Api.UI.TerminalOpenOptions? right) -> bool
+static SharpRail.Plugins.Api.UI.TerminalOpenOptions.operator ==(SharpRail.Plugins.Api.UI.TerminalOpenOptions? left, SharpRail.Plugins.Api.UI.TerminalOpenOptions? right) -> bool
+static SharpRail.Plugins.Api.UI.TerminalTabInfo.operator !=(SharpRail.Plugins.Api.UI.TerminalTabInfo? left, SharpRail.Plugins.Api.UI.TerminalTabInfo? right) -> bool
+static SharpRail.Plugins.Api.UI.TerminalTabInfo.operator ==(SharpRail.Plugins.Api.UI.TerminalTabInfo? left, SharpRail.Plugins.Api.UI.TerminalTabInfo? right) -> bool
+static SharpRail.Plugins.Api.UI.TerminalTabRef.operator !=(SharpRail.Plugins.Api.UI.TerminalTabRef? left, SharpRail.Plugins.Api.UI.TerminalTabRef? right) -> bool
+static SharpRail.Plugins.Api.UI.TerminalTabRef.operator ==(SharpRail.Plugins.Api.UI.TerminalTabRef? left, SharpRail.Plugins.Api.UI.TerminalTabRef? right) -> bool
+static SharpRail.Plugins.Api.UI.ToolTabRef.operator !=(SharpRail.Plugins.Api.UI.ToolTabRef? left, SharpRail.Plugins.Api.UI.ToolTabRef? right) -> bool
+static SharpRail.Plugins.Api.UI.ToolTabRef.operator ==(SharpRail.Plugins.Api.UI.ToolTabRef? left, SharpRail.Plugins.Api.UI.ToolTabRef? right) -> bool
+static SharpRail.Plugins.Api.UI.UncommittedDiffScope.operator !=(SharpRail.Plugins.Api.UI.UncommittedDiffScope? left, SharpRail.Plugins.Api.UI.UncommittedDiffScope? right) -> bool
+static SharpRail.Plugins.Api.UI.UncommittedDiffScope.operator ==(SharpRail.Plugins.Api.UI.UncommittedDiffScope? left, SharpRail.Plugins.Api.UI.UncommittedDiffScope? right) -> bool
+static SharpRail.Plugins.Api.UI.WorkspaceActionRegistration.operator !=(SharpRail.Plugins.Api.UI.WorkspaceActionRegistration? left, SharpRail.Plugins.Api.UI.WorkspaceActionRegistration? right) -> bool
+static SharpRail.Plugins.Api.UI.WorkspaceActionRegistration.operator ==(SharpRail.Plugins.Api.UI.WorkspaceActionRegistration? left, SharpRail.Plugins.Api.UI.WorkspaceActionRegistration? right) -> bool
+static SharpRail.Plugins.Api.UI.WorkspaceScopedActionRegistration.operator !=(SharpRail.Plugins.Api.UI.WorkspaceScopedActionRegistration? left, SharpRail.Plugins.Api.UI.WorkspaceScopedActionRegistration? right) -> bool
+static SharpRail.Plugins.Api.UI.WorkspaceScopedActionRegistration.operator ==(SharpRail.Plugins.Api.UI.WorkspaceScopedActionRegistration? left, SharpRail.Plugins.Api.UI.WorkspaceScopedActionRegistration? right) -> bool
+virtual SharpRail.Plugins.Api.UI.EditorEvent.EqualityContract.get -> System.Type!
+virtual SharpRail.Plugins.Api.UI.EditorEvent.Equals(SharpRail.Plugins.Api.UI.EditorEvent? other) -> bool
+virtual SharpRail.Plugins.Api.UI.EditorEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual SharpRail.Plugins.Api.UI.GitDiffScope.EqualityContract.get -> System.Type!
+virtual SharpRail.Plugins.Api.UI.GitDiffScope.Equals(SharpRail.Plugins.Api.UI.GitDiffScope? other) -> bool
+virtual SharpRail.Plugins.Api.UI.GitDiffScope.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual SharpRail.Plugins.Api.UI.PluginDisposer.Invoke() -> void
+virtual SharpRail.Plugins.Api.UI.TabRef.EqualityContract.get -> System.Type!
+virtual SharpRail.Plugins.Api.UI.TabRef.Equals(SharpRail.Plugins.Api.UI.TabRef? other) -> bool
+virtual SharpRail.Plugins.Api.UI.TabRef.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual SharpRail.Plugins.Api.UI.WorkspaceActionRegistration.EqualityContract.get -> System.Type!
+virtual SharpRail.Plugins.Api.UI.WorkspaceActionRegistration.Equals(SharpRail.Plugins.Api.UI.WorkspaceActionRegistration? other) -> bool
+virtual SharpRail.Plugins.Api.UI.WorkspaceActionRegistration.PrintMembers(System.Text.StringBuilder! builder) -> bool

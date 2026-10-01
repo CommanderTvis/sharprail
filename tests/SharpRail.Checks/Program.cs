@@ -91,6 +91,15 @@ internal static class Program
             Console.WriteLine("PASS multi-window and multi-client checks");
             return;
         }
+        if (args.SequenceEqual(["--plugins"]))
+        {
+            PluginHostChecks.Run(root).GetAwaiter().GetResult();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            PluginUiChecks.Run(root);
+            Console.WriteLine("PASS plugin checks");
+            return;
+        }
         if (args.SequenceEqual(["--workspaces"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
@@ -103,10 +112,12 @@ internal static class Program
         TerminalHostChecks.Run(root).GetAwaiter().GetResult();
         ProjectChecks.Run(root).GetAwaiter().GetResult();
         StateChecks.Run(root).GetAwaiter().GetResult();
+        PluginHostChecks.Run(root).GetAwaiter().GetResult();
         FileSavingChecks.Run(root).GetAwaiter().GetResult();
         LayoutChecks.Run();
         CheckOpenWorld();
         UiChecks.Run(root);
+        PluginUiChecks.Run(root);
         Console.WriteLine("PASS prototype checks and open-world runtime");
     }
 

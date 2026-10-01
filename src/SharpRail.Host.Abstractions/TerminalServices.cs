@@ -7,6 +7,8 @@ namespace SharpRail.Host.Abstractions;
 public record TerminalAttachRequest(string SessionId, string WorkspaceRoot, string ClientId, int Columns = 80, int Rows = 24, long Offset = -1)
 {
     public bool Resume => Offset >= 0;
+    // The tab's layout id, so the host knows the session's TerminalRef; empty from a client that does not send it.
+    public string TabKey { get; init; } = "";
 }
 
 public interface ITerminalService
@@ -40,4 +42,9 @@ public interface ITerminalSession : IAsyncDisposable
     Task<int> Exit { get; }
     // Completes when another client attached to the session; this attachment then receives nothing more.
     Task Detached { get; }
+    // Set on the attachment that started a shell for a tab whose agent record a plugin offered to revive: the
+    // client types it once the shell's first output has arrived, pressing Return after it when Submit is set.
+    TerminalPrefill? Prefill { get; }
 }
+
+public sealed record TerminalPrefill(string Text, bool Submit);

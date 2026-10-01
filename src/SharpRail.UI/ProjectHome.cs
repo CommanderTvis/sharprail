@@ -12,7 +12,6 @@ using Avalonia.VisualTree;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.UI.Panels;
-using SharpRail.UI.Rendering;
 
 namespace SharpRail.UI;
 
@@ -136,6 +135,7 @@ public sealed partial class WorkbenchWindow
             { Name = "WelcomeAction" };
             folder.Click += (_, _) => _ = OpenWorkspaceAsync(projectRoot, false);
             buttons.Children.Add(create); buttons.Children.Add(folder);
+            AddProjectActions(buttons);
         }
         panel.Children.Add(buttons);
         foreach (var child in panel.Children) child.HorizontalAlignment = HorizontalAlignment.Center;
@@ -238,12 +238,14 @@ public sealed partial class WorkbenchWindow
                 return;
             }
             if (request != projectRequest) return;
-            var dialog = new NewWorkspaceDialog(DirectoryName(project), catalog, profile.Data.CollapsedRemotes, SaveProfile);
+            var dialog = new NewWorkspaceDialog(DirectoryName(project), catalog, profile.Data.CollapsedRemotes, SaveProfile, Plugins.LauncherList);
             _ = PrefetchDefaultAsync(dialog);
             var choice = await dialog.ShowAsync(this);
             if (choice is null || request != projectRequest) return;
             if (choice.InProjectFolder) await OpenWorkspaceAsync(project, false);
             else await CreateWorktreeAsync(choice);
+            if (choice.Launcher is { } launcher && WorkspaceMounted && !atHome)
+                await OpenPluginTerminalAsync(workspaceRoot, new() { Command = launcher.TerminalCommand(new()) });
         }
         catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
         finally { creatingWorkspace = false; }

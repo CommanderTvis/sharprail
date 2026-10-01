@@ -1,6 +1,7 @@
 using System.Diagnostics;
 
 using SharpRail.Host.Abstractions;
+using SharpRail.Plugins.Api.Host;
 
 namespace SharpRail.Host.Core;
 
@@ -36,6 +37,52 @@ internal static class GitRepository
         var detail = await error;
         if (process.ExitCode != 0) throw new GitException(process.ExitCode, detail.Trim());
         return text;
+    }
+
+    /// <summary>
+    /// The runner plugins reach (H17): the same environment as the host's own reads, a bounded run, and network
+    /// transports refused unless asked for. A non-zero exit is a result, not an exception.
+    /// </summary>
+    internal static async Task<GitRunResult> RunBoundedAsync(string cwd, IReadOnlyList<string> args, GitRunOptions? options, CancellationToken ct)
+    {
+        var start = new ProcessStartInfo("git")
+        {
+            WorkingDirectory = cwd,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            RedirectStandardInput = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+        start.Environment["LC_ALL"] = "C";
+        start.Environment["GIT_OPTIONAL_LOCKS"] = "0";
+        start.Environment["GIT_TERMINAL_PROMPT"] = "0";
+        if (options?.Network != true) start.Environment["GIT_ALLOW_PROTOCOL"] = "file";
+        foreach (var arg in args) start.ArgumentList.Add(arg);
+        using var bounded = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        bounded.CancelAfter(options?.Timeout ?? TimeSpan.FromSeconds(30));
+        Process process;
+        try { process = Process.Start(start) ?? throw new IOException("Could not start git."); }
+        catch (Exception error) when (error is IOException or System.ComponentModel.Win32Exception)
+        {
+            return new(false, "", error.Message, GitRunFailure.Launch);
+        }
+        using (process)
+        {
+            process.StandardInput.Close();
+            using var registration = bounded.Token.Register(() =>
+            {
+                try { if (!process.HasExited) process.Kill(entireProcessTree: true); }
+                catch (InvalidOperationException) { }
+            });
+            var output = process.StandardOutput.ReadToEndAsync(CancellationToken.None);
+            var error = process.StandardError.ReadToEndAsync(CancellationToken.None);
+            await process.WaitForExitAsync(CancellationToken.None);
+            var (text, detail) = (await output, await error);
+            ct.ThrowIfCancellationRequested();
+            if (bounded.IsCancellationRequested) return new(false, text, detail, GitRunFailure.Timeout);
+            return new(process.ExitCode == 0, text, detail);
+        }
     }
 
     private sealed class GitException(int exitCode, string message) : IOException(message)

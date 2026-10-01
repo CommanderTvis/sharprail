@@ -12,7 +12,6 @@ using Avalonia.VisualTree;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.UI.Panels;
-using SharpRail.UI.Rendering;
 
 namespace SharpRail.UI;
 
@@ -242,7 +241,7 @@ public sealed partial class WorkbenchWindow
     {
         var node = new TreeViewItem
         {
-            Header = TreeRow(file.IsDirectory ? "folder" : "fileText", file.Name),
+            Header = FileRow(file),
             MinHeight = 24,
             CornerRadius = new CornerRadius(4),
             HorizontalAlignment = HorizontalAlignment.Stretch,
@@ -478,6 +477,14 @@ public sealed partial class WorkbenchWindow
     {
         foreach (var group in Layout.State.Groups.Where(group => group.Region != "center" && group.Tools.Count > 1 && group.Tools[0].Id == "specs"))
             if (Layout.Selected(group.Id)?.Id == "specs") Layout.Reseat(group.Id, group.Tools[1].Id);
+    }
+
+    private Control FileRow(ProjectFile file)
+    {
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("14,4,*") };
+        Ui.Place(row, FileIcon(file.Path, file.IsDirectory, file.IsDirectory ? "folder" : "fileText"));
+        Ui.Place(row, Ui.Text(file.Name), 0, 2);
+        return row;
     }
 
     private static Control TreeRow(string icon, string title, bool primary = false)

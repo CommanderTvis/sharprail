@@ -1,0 +1,15 @@
+{
+  "id": "fixture",
+  "label": "Fixture",
+  "icon": "puzzle-2-line",
+  "version": "1.0.0",
+  "apiGeneration": 1,
+  "wireVersion": 1,
+  "host": "SharpRail.PluginFixture.Host.dll",
+  "ui": "SharpRail.PluginFixture.UI.dll",
+  "assets": "assets",
+  "contributes": {
+    "sideTools": [{ "tool": "board", "label": "Fixture board", "icon": "puzzle-2-line", "defaultSide": "right" }],
+    "fileViewers": [{ "extensions": ["fixture"], "names": [], "read": "text" }]
+  }
+}

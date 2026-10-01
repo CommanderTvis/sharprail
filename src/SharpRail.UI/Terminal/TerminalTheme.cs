@@ -28,7 +28,7 @@ internal static class TerminalTheme
     // JetBrains Mono, Ghostty's own default, from the app's bundled fonts; shared for the app's lifetime.
     internal static readonly Lazy<SKTypeface> Typeface = new(() =>
     {
-        using var stream = AssetLoader.Open(new Uri("avares://SharpRail.UI/Assets/Fonts/JetBrainsMono-Regular.ttf"));
+        using var stream = AssetLoader.Open(new Uri("avares://SharpRail.Plugins.UI.Kit/Assets/Fonts/JetBrainsMono-Regular.ttf"));
         return SKTypeface.FromStream(stream);
     });
 }

@@ -12,6 +12,17 @@ helpers. It references no workbench, docking or host-state code, so any panel, d
 can use it without a cycle. Theme catalogue and colour roles have their own documents:
 [Themes.SPEC.md](Themes.SPEC.md), [COLOR.md](COLOR.md) and [SPACING.md](SPACING.md).
 
+## Where the code lives
+
+The shared controls this spec describes moved into [the plugin UI kit](../../SharpRail.Plugins.UI.Kit/SPEC.md)
+(`SharpRail.Plugins.UI.Kit`), so a plugin's UI half renders with the same copy the app uses: `Ui`, `ThemeManifest`,
+`DialogWindow`, `FindBar`, `LineWidths`, `ViewerLimits`, the Markdown controls, `EditorFrame` and the Mermaid
+controls, with `Assets/Icons` and `Assets/Fonts`. Their rules below apply unchanged wherever they live. This folder
+keeps the theme catalogue (`Themes.cs`), `DiffView`, `MarkdownDiff` and `MarkdownContexts`, which binds the kit's
+Markdown views to a workspace's host (image reads, the spec catalog behind `[[id]]` links) and the window's
+preferences (font size and reading measure). The app applies the catalogue's default theme in `App.Initialize`,
+since the kit has no theme of its own.
+
 ## Boundary
 
 - `Ui.cs` owns the semantic brushes, the interface and code fonts (Geist at weight 370, JetBrains Mono),

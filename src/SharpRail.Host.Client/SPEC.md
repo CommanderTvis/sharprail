@@ -13,8 +13,9 @@ what makes remoteness an adapter choice rather than a mandatory daemon.
 ## Boundary
 
 - Owns `HostAdapters.cs` (`IWorkspaceHost`), `ProjectAdapters.cs`
-  (`IProjectServices`), `StateAdapters.cs` (`IHostStateService`) and
-  `TerminalAdapters.cs` (`ITerminalService` and the remote terminal session).
+  (`IProjectServices`), `StateAdapters.cs` (`IHostStateService`),
+  `TerminalAdapters.cs` (`ITerminalService` and the remote terminal session) and
+  `PluginAdapters.cs` (`IPluginService`).
 - Local adapters are pure delegation: no sockets, serialization or copying.
 - Remote adapters own channel setup, the bearer token on every call, per-call
   deadlines, mapping DTOs to Abstractions records, and reconnection.
@@ -47,6 +48,19 @@ what makes remoteness an adapter choice rather than a mandatory daemon.
   outcomes, never replayed; a session has a single reader.
 - A `unix:` address dials a Unix domain socket, which is how local Ghostty tabs
   reach the app's in-process terminal relay.
+- A terminal attach carries the tab key, and the first attached reply's prefill
+  becomes the session's `Prefill`; a reconnect's attach never sets it again.
+- The local plugin adapter passes params, results and payloads through as objects.
+  The remote one writes them as JSON with `PluginJson.Options` and returns
+  `JsonElement`s (null for JSON `null`), so callers read every value with
+  `PluginJson.Convert`. It maps `NotFound`, `FailedPrecondition`, `InvalidArgument`
+  and `Unknown` back to the same `PluginCallException` a local call throws; other
+  status codes stay transport failures, except that a call or subscription the caller
+  cancels ends with `OperationCanceledException`, as locally. A subscription ends with
+  an exception when the transport drops, and the caller resubscribes and re-reads its snapshot. Plugin
+  file reads accept messages up to 256 MiB, since a UI half's assemblies arrive whole.
+- Remote host-state snapshots map plugin namespaces back to `JsonElement` objects,
+  the roster, agent records and the platform (null when the host sent none).
 
 ## Decisions
 

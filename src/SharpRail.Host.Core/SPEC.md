@@ -29,7 +29,8 @@ gRPC.
   relay).
 - Public surface: the Abstractions interfaces as implemented by those public classes; everything else is
   `internal`.
-- Allowed deps: `SharpRail.Host.Abstractions`, the .NET base library, the `git` executable and libc.
+- Allowed deps: `SharpRail.Host.Abstractions`, `SharpRail.Plugins.Api.Host`, the .NET base library, the
+  `git` executable and libc.
 - Forbidden: any UI, Avalonia, Protocol, Remote or Client reference; any AI/agent dependency.
 
 ## Internal areas
@@ -42,22 +43,29 @@ gRPC.
 | Files | `ProjectServices.cs`, `ProjectFileSaving.cs`, `WorkspaceHost.cs` | [Files.SPEC.md](Files.SPEC.md) |
 | Specs | `SpecCatalog.cs` | [Specs.SPEC.md](Specs.SPEC.md) |
 | Terminals | `PtyTerminalService.cs`, `HostedTerminal.cs`, `TerminalRecorder.cs`, `TerminalDevice.cs`, `Posix.cs` | [Terminals.SPEC.md](Terminals.SPEC.md) |
+| Plugins | `Plugins/*.cs` | [Plugins.SPEC.md](Plugins.SPEC.md) |
 
 Edges between areas: `ProjectServices` publishes workspace membership into `HostStateStore` after it
 creates or removes a worktree (the only cross-area write), and every Git read goes through
-`GitRepository.RunAsync`. Terminals, specs and state depend on nothing else in Core.
+`GitRepository.RunAsync`. Terminals, specs and state depend on nothing else in Core. The plugin runtime
+reaches the others only through `PluginHostSeams`, built by the composer: it registers the namespace
+validator and dependents lookup on `HostStateStore`, the environment, lifecycle, revive and close hooks on
+`PtyTerminalService` (`IPluginTerminalSeams`), and hands `ProjectServices` its external-file delegate.
 
 ## Composition
 
 There is no composition root inside Core. Two composers wire it:
 
 - `SharpRail.UI` composes one app-owned `Workbench`: a `HostStateStore` over `~/.sharprail`, a
-  `PtyTerminalService` shared by every window, and one `ProjectServices` per window, all behind local
-  adapters. Local terminal tabs reach that terminal service through a private Unix socket
-  (`RemoteServer.CreateTerminalRelay`) started with the first terminal and stopped when the app quits.
+  `PtyTerminalService` shared by every window, a `PluginRuntime` over the same state directory, and one
+  `ProjectServices` per window, all behind local adapters. Local terminal tabs reach that terminal service
+  through a private Unix socket (`RemoteServer.CreateTerminalRelay`) started with the first terminal and
+  stopped when the app quits; the host's loopback HTTP/1.1 server (`LoopbackServer`, MCP and plugin routes)
+  starts with that relay or when a plugin first asks for its URL.
 - `RemoteServer.Create` registers `WorkspaceHost`, a `HostStateStore` over `SHARPRAIL_STATE_DIR`, a
-  `ProjectSessions` cache that resolves each call's `ProjectServices` from the client's root header, and a
-  `PtyTerminalService` the host owns, then maps the four RPC services behind bearer-token authentication.
+  `ProjectSessions` cache that resolves each call's `ProjectServices` from the client's root header, a
+  `PtyTerminalService` the host owns and a `PluginRuntime` (plugins under `<stateDir>/plugins`), then maps
+  the five RPC services behind bearer-token authentication. Stopping it disposes the plugin runtime first.
 
 Features never reach back into their composer: pushes flow through `IHostStateService.WatchAsync` and
 terminal attachments, never through a UI callback.

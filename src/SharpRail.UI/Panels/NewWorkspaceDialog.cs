@@ -7,12 +7,15 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 
 using SharpRail.Host.Abstractions;
-using SharpRail.UI.Rendering;
+using SharpRail.Plugins.Api.UI;
 
 namespace SharpRail.UI.Panels;
 
-/// <summary><paramref name="Name"/> is set only when the user typed one over the suggested name.</summary>
-public sealed record NewWorkspaceChoice(bool InProjectFolder, string Base, string Path, string Branch, string? Name = null);
+/// <summary>
+/// <paramref name="Name"/> is set only when the user typed one over the suggested name; <paramref name="Launcher"/> is the
+/// plugin agent launcher to start in a terminal once the workspace opens.
+/// </summary>
+public sealed record NewWorkspaceChoice(bool InProjectFolder, string Base, string Path, string Branch, string? Name = null, AgentLauncher? Launcher = null);
 
 public sealed class NewWorkspaceDialog
 {
@@ -32,12 +35,16 @@ public sealed class NewWorkspaceDialog
     private string selected;
     private bool picked;
     private bool inFolder;
+    private readonly IReadOnlyList<AgentLauncher> launchers;
+    private AgentLauncher? launcher;
 
     public Window Window { get; }
 
-    public NewWorkspaceDialog(string projectName, BranchCatalog catalog, HashSet<string> collapsedRemotes, Action saveCollapsed)
+    public NewWorkspaceDialog(string projectName, BranchCatalog catalog, HashSet<string> collapsedRemotes, Action saveCollapsed,
+        IReadOnlyList<AgentLauncher>? launchers = null)
     {
         this.catalog = catalog;
+        this.launchers = launchers ?? [];
         this.collapsedRemotes = collapsedRemotes;
         this.saveCollapsed = saveCollapsed;
         selected = catalog.DefaultBase;
@@ -103,6 +110,8 @@ public sealed class NewWorkspaceDialog
         AutomationProperties.SetName(name, "Name");
         fields.Children.Add(name);
 
+        if (this.launchers.Count > 0) fields.Children.Add(Launchers());
+
         var hint = Ui.Text("Press Enter to create.", Ui.Hint, 12);
         hint.Name = "WsEnterHint";
         fields.Children.Add(hint);
@@ -113,7 +122,7 @@ public sealed class NewWorkspaceDialog
         {
             var typed = name.Text?.Trim() ?? "";
             Window.Close(new NewWorkspaceChoice(inFolder, selected, this.catalog.SuggestedPath, this.catalog.SuggestedBranch,
-                typed.Length > 0 && typed != SuggestedName ? typed : null));
+                typed.Length > 0 && typed != SuggestedName ? typed : null, launcher));
         });
         create.Name = "WsCreate"; create.IsDefault = true; Dialogs.Primary(create);
         actions.Children.Add(create);
@@ -122,6 +131,42 @@ public sealed class NewWorkspaceDialog
     }
 
     private string SuggestedName => Path.GetFileName(catalog.SuggestedPath);
+
+    // "Start in a terminal with …": plugin launchers, each with its availability; an unavailable one shows why.
+    private Control Launchers()
+    {
+        var panel = new StackPanel { Name = "WsLaunchers", Spacing = 4 };
+        panel.Children.Add(Ui.Text("Start in a terminal with", Ui.Muted, 12));
+        var choices = new WrapPanel { Orientation = Orientation.Horizontal };
+        var buttons = new List<(ToggleButton Button, AgentLauncher? Launcher)>();
+        void Select(AgentLauncher? choice)
+        {
+            launcher = choice;
+            foreach (var (button, candidate) in buttons) button.IsChecked = candidate == choice;
+        }
+        foreach (var candidate in new AgentLauncher?[] { null }.Concat(this.launchers))
+        {
+            LauncherAvailability availability;
+            try { availability = candidate?.Availability() ?? new(true); }
+            catch (Exception error) { availability = new(false, error.Message); }
+            var button = new ToggleButton
+            {
+                Name = candidate is null ? "WsLauncherNone" : "WsLauncher_" + candidate.Id,
+                Content = candidate is null ? Ui.Text("Nothing") : Ui.Row(Plugins.PluginIcons.Glyph(candidate.Icon), candidate.Label),
+                Padding = new Thickness(10, 5),
+                Margin = new Thickness(0, 0, 6, 6),
+                CornerRadius = new(4),
+                IsEnabled = availability.Available
+            };
+            if (!availability.Available && availability.Reason is { } reason) { ToolTip.SetTip(button, reason); ToolTip.SetShowOnDisabled(button, true); }
+            button.Click += (_, _) => Select(candidate);
+            buttons.Add((button, candidate));
+            choices.Children.Add(button);
+        }
+        panel.Children.Add(choices);
+        Select(null);
+        return panel;
+    }
 
     public Task<NewWorkspaceChoice?> ShowAsync(Window owner) => Window.ShowDialog<NewWorkspaceChoice?>(owner);
 

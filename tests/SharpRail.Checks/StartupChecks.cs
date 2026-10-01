@@ -9,7 +9,6 @@ using SharpRail.Host.Abstractions;
 using SharpRail.Host.Core;
 using SharpRail.UI;
 using SharpRail.UI.Docking;
-using SharpRail.UI.Rendering;
 using SharpRail.UI.State;
 
 namespace SharpRail.Checks;

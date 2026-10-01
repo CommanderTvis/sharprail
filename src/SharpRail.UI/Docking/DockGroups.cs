@@ -11,7 +11,6 @@ using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
-using SharpRail.UI.Rendering;
 
 namespace SharpRail.UI.Docking;
 
@@ -60,11 +59,17 @@ public sealed partial class DockSurface
                 Height = group.Folded ? 26 : 31,
                 Margin = new Thickness(0, 0, tab.IsTool ? 0 : 4, 0)
             };
-            var label = new Grid { ColumnDefinitions = new ColumnDefinitions("14,4,*,Auto") };
+            var label = new Grid { ColumnDefinitions = new ColumnDefinitions("14,4,*,Auto,Auto") };
             var foreground = tab.Id == selected?.Id ? Ui.TextBrush : Ui.Muted;
-            var icon = (Border)Ui.Icon(ToolIcon(tab), foreground, 14);
+            var icon = TabIcon?.Invoke(tab, foreground) ?? Ui.Icon(ToolIcon(tab), foreground, 14);
             Ui.Place(label, icon);
-            var title = Ui.Text(tab.Title, foreground, 14);
+            if (TabAdornment?.Invoke(tab) is { } adornment)
+            {
+                adornment.Margin = new Thickness(4, 0, 0, 0);
+                adornment.VerticalAlignment = VerticalAlignment.Center;
+                Ui.Place(label, adornment, 0, 4);
+            }
+            var title = Ui.Text(Session.ToolTitle(tab), foreground, 14);
             title.LineHeight = 20;
             title.Classes.Add("dock-tab-title");
             if (tab.Preview)
@@ -149,7 +154,8 @@ public sealed partial class DockSurface
             {
                 var active = Session.Selected(group.Id)?.Id == tab.Id;
                 button.IsTabStop = active;
-                title.Foreground = icon.Background = active ? Ui.TextBrush : Ui.Muted;
+                title.Foreground = active ? Ui.TextBrush : Ui.Muted;
+                if (icon is Border glyph) glyph.Background = title.Foreground;
                 underline.IsVisible = active;
                 UpdateBackground();
                 if (active) chrome.BringIntoView();
@@ -171,10 +177,10 @@ public sealed partial class DockSurface
                 modifiedUpdates.Add(() => ShowClose(close.Opacity == 1));
                 ShowClose(false);
             }
-            ToolTip.SetTip(button, new ToolTip { Content = tab.Path.Length > 0 ? tab.Path : tab.Title });
+            ToolTip.SetTip(button, new ToolTip { Content = tab.Path.Length > 0 ? tab.Path : Session.ToolTitle(tab) });
             ToolTip.SetPlacement(button, PlacementMode.Bottom);
             ToolTip.SetVerticalOffset(button, 4);
-            AutomationProperties.SetName(button, tab.Title);
+            AutomationProperties.SetName(button, Session.ToolTitle(tab));
             button.IsTabStop = tab.Id == selected?.Id;
             button.Click += (_, _) =>
             {
@@ -329,7 +335,7 @@ public sealed partial class DockSurface
         }
         else if (group.Region == "bottom")
         {
-            var rail = Ui.Button(selected?.Title ?? "Empty group", () => ToggleFold(group.Id));
+            var rail = Ui.Button(TitleOf(selected) ?? "Empty group", () => ToggleFold(group.Id));
             rail.Name = "FoldRestore_" + group.Id;
             rail.Height = 27; rail.ContextMenu = GroupMenu(group, panel);
             rail.HorizontalAlignment = HorizontalAlignment.Stretch;
@@ -341,7 +347,7 @@ public sealed partial class DockSurface
             groupHeaders[group.Id] = rail;
             selectionUpdates[group.Id] = () =>
             {
-                var title = Session.Selected(group.Id)?.Title ?? "Empty group";
+                var title = TitleOf(Session.Selected(group.Id)) ?? "Empty group";
                 ((TextBlock)rail.Content!).Text = title;
                 AutomationProperties.SetName(rail, title);
             };
@@ -372,14 +378,8 @@ public sealed partial class DockSurface
         return empty;
     }
 
-    private static string ToolIcon(DockTab tab) => tab.Kind == "terminal" ? "terminal" : tab.Kind == "diff" ? "fileDiff" : tab.IsTool ? tab.Id switch
-    {
-        "projects" => "folderTab",
-        "specs" => "bookFill",
-        "files" => "file",
-        "changes" => "fileDiff",
-        _ => "discuss"
-    } : "fileText";
+    private string ToolIcon(DockTab tab) => tab.Kind == "terminal" ? "terminal" : tab.Kind == "diff" ? "fileDiff" :
+        tab.IsTool ? Session.Tool(tab.Id)?.Icon ?? "puzzle" : "fileText";
 
     private bool OwnsBottomAlignmentMenu(DockGroup group)
     {
@@ -458,11 +458,15 @@ public sealed partial class DockSurface
     private ContextMenu? AddMenu(DockGroup group)
     {
         if (group.Region is not ("left" or "right")) return null;
-        var hidden = DockState.ToolNames.Where(id => DockState.ToolRegion(id) == group.Region && !Session.State.Groups.Any(item => item.Tools.Any(tab => tab.Id == id))).ToArray();
+        var hidden = Session.Tools.Where(tool => tool.Region == group.Region && !Session.State.Groups.Any(item => item.Tools.Any(tab => tab.Id == tool.Id))).ToArray();
         if (hidden.Length == 0) return null;
         var menu = new ContextMenu();
         foreach (var tool in hidden)
-            menu.Items.Add(Ui.Menu("Show " + DockState.Tool(tool).Title, () => Session.RestoreTool(tool, group.Id)));
+        {
+            var item = Ui.Menu("Show " + tool.Title, () => Session.RestoreTool(tool.Id, group.Id));
+            item.Name = "ShowTool_" + tool.Id.Replace(':', '_');
+            menu.Items.Add(item);
+        }
         return menu;
     }
 
@@ -520,7 +524,8 @@ public sealed partial class DockSurface
         return menu;
     }
 
-    private string GroupLabel(DockGroup group) => $"{group.Region}: {Session.Selected(group.Id)?.Title ?? "Empty"}";
+    private string GroupLabel(DockGroup group) => $"{group.Region}: {TitleOf(Session.Selected(group.Id)) ?? "Empty"}";
+    private string? TitleOf(DockTab? tab) => tab is null ? null : Session.ToolTitle(tab);
     private bool CanCreate(DockGroup group) => Session.State.Groups.Count(item => item.Region == group.Region) <
         (group.Region == "center" ? 4 : group.Region == "bottom" ? Session.State.BottomLimit : Session.State.SideLimit);
 

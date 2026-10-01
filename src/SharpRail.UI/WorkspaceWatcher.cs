@@ -89,6 +89,7 @@ public sealed partial class WorkbenchWindow
         WatchRefreshes++;
         var paths = changedPaths.ToArray();
         changedPaths.Clear();
+        if (paths.Length > 0) workbench.BumpRevisions(workspaceRoot, paths);
         // Listing is cheap and leaves the tree untouched when nothing moved; FSEvents may report a creation as a change.
         if (paths.Length > 0) await RefreshFilesAsync(request);
         if (paths.Any(path => path.EndsWith(".md", StringComparison.OrdinalIgnoreCase)))

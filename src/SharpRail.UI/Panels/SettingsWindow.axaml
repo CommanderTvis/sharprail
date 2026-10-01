@@ -1,6 +1,6 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:rendering="using:SharpRail.UI.Rendering"
+        xmlns:rendering="using:SharpRail.Plugins.UI.Kit"
         x:Class="SharpRail.UI.Panels.SettingsWindow"
         Title="Settings"
         Width="832" Height="680" MinWidth="640" MinHeight="440"
@@ -174,13 +174,14 @@
         <Border Background="{x:Static rendering:Ui.Elevated}" BorderBrush="{x:Static rendering:Ui.BorderBrush}"
                 BorderThickness="0,0,1,0">
           <ScrollViewer>
-            <StackPanel Spacing="2" Margin="12">
+            <StackPanel x:Name="SettingsNavigation" Spacing="2" Margin="12">
               <Button x:Name="Settings_Appearance" Classes="settings-navigation" />
               <Button x:Name="Settings_Line_width" Classes="settings-navigation" />
               <Button x:Name="Settings_Layout" Classes="settings-navigation" />
               <Button x:Name="Settings_Projects" Classes="settings-navigation" />
               <Button x:Name="Settings_Terminal" Classes="settings-navigation" />
               <Button x:Name="Settings_GitHub" Classes="settings-navigation" />
+              <Button x:Name="Settings_Plugins" Classes="settings-navigation" />
             </StackPanel>
           </ScrollViewer>
         </Border>

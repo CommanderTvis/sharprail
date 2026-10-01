@@ -17,6 +17,8 @@ public sealed partial class TerminalView : UserControl, IDisposable
     private readonly Control detachedNotice;
     private readonly Button takeBack;
     private readonly TextBlock exitNotice;
+    private readonly ContentControl companion;
+    private readonly GridSplitter companionSplitter;
     private int generation;
     private bool disposed;
 
@@ -31,6 +33,9 @@ public sealed partial class TerminalView : UserControl, IDisposable
         detachedNotice = this.FindControl<Control>("TerminalDetached")!;
         takeBack = this.FindControl<Button>("TerminalTakeBack")!;
         exitNotice = this.FindControl<TextBlock>("TerminalExited")!;
+        Accessories = this.FindControl<StackPanel>("TerminalAccessories")!;
+        companion = this.FindControl<ContentControl>("TerminalCompanion")!;
+        companionSplitter = this.FindControl<GridSplitter>("TerminalCompanionSplitter")!;
         retry.Click += (_, _) => Start(retrying: true);
         takeBack.Click += (_, _) => Start(retrying: true);
         Focusable = true;
@@ -39,6 +44,25 @@ public sealed partial class TerminalView : UserControl, IDisposable
 
     public ITerminalBackend? Backend { get; private set; }
     public string SessionId => launch.SessionId;
+    public TerminalLaunch Launch => launch;
+    /// <summary>Plugin accessory rows shown above the surface.</summary>
+    public StackPanel Accessories { get; }
+
+    /// <summary>The embedded companion pane beside the surface; null closes it.</summary>
+    public Control? Companion
+    {
+        get => companion.Content as Control;
+        set { companion.Content = value; companion.IsVisible = companionSplitter.IsVisible = value is not null; }
+    }
+
+    /// <summary>Types into the shell as if typed; ignored until the shell has started.</summary>
+    public void Write(string data)
+    {
+        if (Backend is { } backend && backend.Started.IsCompletedSuccessfully && !IsExited && !IsDetached) backend.Write(data);
+    }
+
+    /// <summary>The surface's screen and scrollback as text, oldest line first.</summary>
+    public string ReadScreen() => Backend is { } backend && backend.Started.IsCompletedSuccessfully ? backend.ReadScreen() : "";
     public bool IsFailed => failure.IsVisible;
     public bool IsExited => exitNotice.IsVisible;
     public bool IsDetached => detachedNotice.IsVisible;

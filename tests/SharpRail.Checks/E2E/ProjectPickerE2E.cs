@@ -4,7 +4,6 @@ using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
 
-using SharpRail.UI.Panels;
 
 using static SharpRail.Checks.E2E.E2eWorkspace;
 
@@ -120,7 +119,7 @@ internal static class ProjectPickerE2E
         Require(Expanded(app, "projects-activation-first") && Expanded(app, "projects-activation-second"),
             "Both projects must start expanded.");
         Until(() => app.Find<TextBlock>("BranchLabel").Text == "main"); Settle();
-        var first = app.Window.GetLogicalDescendants().OfType<Button>().Single(button => Equals(ToolTip.GetTip(button), app.Root));
+        var first = app.Window.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "ProjectName" && Equals(ToolTip.GetTip(button), app.Root));
         app.Click(first);
         Until(() => app.Window.WorkspaceMounted && app.Window.WorkspaceRoot == app.Root);
         Settle(800);

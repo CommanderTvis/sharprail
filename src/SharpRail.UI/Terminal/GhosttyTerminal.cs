@@ -5,7 +5,6 @@ using Avalonia.Input;
 
 using Ghostty.Avalonia;
 
-using SharpRail.UI.Rendering;
 
 namespace SharpRail.UI.Terminal;
 
@@ -46,7 +45,7 @@ internal sealed class GhosttyTerminal : Border, ITerminalBackend
         // Each attachment gets its own relay files, so a take-back never races the files of the one it replaces.
         var name = launch.SessionId + "-" + Guid.NewGuid().ToString("N");
         statusPath = Path.Combine(TerminalRelay.Directory, name + ".status");
-        connectionPath = TerminalRelay.Write(name, new(remote.Endpoint.ToString(), remote.Token, launch.SessionId, launch.ClientId, launch.WorkspaceRoot, statusPath));
+        connectionPath = TerminalRelay.Write(name, new(remote.Endpoint.ToString(), remote.Token, launch.SessionId, launch.ClientId, launch.WorkspaceRoot, statusPath, launch.TabKey));
         var executable = Environment.ProcessPath ?? throw new TerminalStartException("The SharpRail executable path is unknown.");
         var command = "'" + executable.Replace("'", "'\\''") + "' " + TerminalRelay.Argument;
         try
@@ -151,6 +150,14 @@ internal sealed class GhosttyTerminal : Border, ITerminalBackend
         texture?.FocusTerminal();
         fallback?.FocusTerminal();
     }
+
+    public void Write(string data)
+    {
+        if (texture is not null) texture.Type(data);
+        else fallback?.Write(data);
+    }
+
+    public string ReadScreen() => texture?.ReadScreen() ?? fallback?.ReadScreen() ?? "";
 
     protected override void OnGotFocus(FocusChangedEventArgs e)
     {

@@ -11,7 +11,6 @@ using Avalonia.Layout;
 using Avalonia.Media;
 
 using SharpRail.Scintilla;
-using SharpRail.UI.Editor;
 
 namespace SharpRail.UI.Rendering;
 
@@ -23,9 +22,9 @@ internal sealed partial class DiffView : Grid, IDisposable
     private readonly ToggleButton split = Toggle("DiffSplit", "layout", "Side-by-side diff");
     private readonly ToggleButton inline = Toggle("DiffInline", "list", "Inline diff");
     private readonly ToggleButton whitespace = Toggle("DiffWhitespace", "collapseVertical", "Hide whitespace changes");
-    private readonly ToggleButton source = Segment("DiffSource", "Source");
-    private readonly ToggleButton rendered = Segment("DiffRendered", "Rendered");
-    private readonly ToggleButton outline = Segment("DiffOutline", "Outline");
+    private readonly ToggleButton source = Ui.Segment("DiffSource", "Source");
+    private readonly ToggleButton rendered = Ui.Segment("DiffRendered", "Rendered");
+    private readonly ToggleButton outline = Ui.Segment("DiffOutline", "Outline");
     private readonly double wrapWidth;
     private readonly Func<CancellationToken, Task<Control?>>? renderMerged;
     private readonly Action<bool>? renderedChanged;
@@ -47,7 +46,7 @@ internal sealed partial class DiffView : Grid, IDisposable
     /// falls back to source.
     /// </summary>
     internal DiffView(string text, string path, double wrapWidth,
-        Func<CancellationToken, Task<Control?>>? renderMerged = null, bool showRendered = false, Action<bool>? renderedChanged = null)
+        Func<CancellationToken, Task<Control?>>? renderMerged = null, bool showRendered = false, Action<bool>? renderedChanged = null, Control? pathIcon = null)
     {
         this.text = text;
         this.wrapWidth = wrapWidth;
@@ -55,16 +54,17 @@ internal sealed partial class DiffView : Grid, IDisposable
         this.renderedChanged = renderedChanged;
         Name = "DiffPane";
         RowDefinitions = new RowDefinitions("32,*");
-        var chip = new Border
+        Control chipContent = Ui.Text(path, Ui.TextBrush, 12);
+        if (pathIcon is not null)
         {
-            Name = "DiffPath",
-            Background = Ui.Elevated,
-            CornerRadius = new CornerRadius(4),
-            Padding = new Thickness(8, 2),
-            HorizontalAlignment = HorizontalAlignment.Left,
-            VerticalAlignment = VerticalAlignment.Center,
-            Child = Ui.Text(path, Ui.TextBrush, 12)
-        };
+            var labelled = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
+            labelled.Children.Add(pathIcon); labelled.Children.Add(chipContent);
+            chipContent = labelled;
+        }
+        var chip = Ui.Chip(chipContent);
+        chip.Name = "DiffPath";
+        chip.HorizontalAlignment = HorizontalAlignment.Left;
+        chip.VerticalAlignment = VerticalAlignment.Center;
         var copy = new Button
         {
             Name = "DiffCopy",
@@ -138,30 +138,6 @@ internal sealed partial class DiffView : Grid, IDisposable
         Render();
     }
 
-    private static ToggleButton Segment(string name, string label)
-    {
-        var button = new ToggleButton
-        {
-            Name = name,
-            Content = label,
-            Height = 20,
-            Padding = new Thickness(8, 0),
-            FontSize = 12,
-            VerticalContentAlignment = VerticalAlignment.Center,
-            BorderThickness = new Thickness(0),
-            CornerRadius = new CornerRadius(4),
-            Background = Brushes.Transparent,
-            Foreground = Ui.Muted
-        };
-        foreach (var state in new[] { "Checked", "CheckedPointerOver", "CheckedPressed", "PointerOver", "Pressed" })
-        {
-            button.Resources["ToggleButtonBackground" + state] = Ui.Hover;
-            button.Resources["ToggleButtonForeground" + state] = Ui.TextBrush;
-        }
-        AutomationProperties.SetName(button, label);
-        return button;
-    }
-
     // Merges run off the UI thread; a newer merge or leaving the rendered view cancels the stale one.
     private void StartMerge(bool keepCurrent)
     {
@@ -203,7 +179,7 @@ internal sealed partial class DiffView : Grid, IDisposable
     private Grid WithOutline(MarkdownPreview document)
     {
         var entries = new StackPanel { Margin = new Thickness(8), Spacing = 2 };
-        MarkdownDocumentView.FillOutline(entries, document, "", null);
+        Outline.Fill(entries, document, "", null);
         var column = new Border
         {
             Name = "DiffOutlineColumn",

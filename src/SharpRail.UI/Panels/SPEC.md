@@ -65,13 +65,17 @@ expressions, a case toggle, a glob filter and replace.
 - Folder mode hides the base picker and the name, and says where the work lands with an “On {branch}” line
   read from the catalogue's checked-out branch (absent when HEAD is detached); submitting enters the
   project's Default workspace, creating nothing.
+- When plugins register agent launchers (W9), a “Start in a terminal with” row offers Nothing and each launcher; an
+  unavailable launcher is disabled with its reason as the tooltip. The chosen launcher's command is typed into a new
+  terminal of the workspace once it opens.
 - Worktree submit returns the choice, and the workbench creates the worktree with the host-suggested path and
   branch, persists the base as the workspace's comparison target, and opens it. A failed create reports the
   error and keeps the rail consistent.
 
 ## Settings
 
-A modal two-pane window: a section rail (Appearance, Line width, Layout, Projects, GitHub) and a scrolling
+A modal two-pane window: a section rail (Appearance, Line width, Layout, Projects, GitHub, Plugins, then each
+active plugin's own sections in registration order) and a scrolling
 content pane. Escape and the close button dismiss. It first opens on Appearance and afterwards on the section it was last left on in that window, the way a
 Preferences window returns where it was left; it is sized to 80% of the owner's height.
 Shared-setting writes go to the host and the view converges on the broadcast; a rejection shows “The host
@@ -103,6 +107,16 @@ could not save this change: …” inline and re-renders from host state.
 - GitHub (“Local GitHub”) runs `gh auth status` with prompts disabled and a 10-second timeout and reports
   Connected with the account line, or Not connected with the reason (not installed, not signed in, no
   response), with Refresh. SharpRail stores no credentials.
+
+- Plugins (`PluginsSettings.cs`) lists every roster row of the host this window is connected to: icon, label, the
+  version of an external plugin, origin, status, description, a contribution summary, the reason of a failed or
+  refused row, and the enabled plugins that depend on it. The switch disables at once (the host cascades
+  dependents off) and enables after a “Also turn on …?” confirmation when disabled dependencies must come too,
+  sent as one batch. Failed rows offer Retry; Rescan re-reads the plugin roots; the External plugin directories
+  editor adds and removes roots as one `plugin-paths` change each. Rows are keyed by plugin id and replaced only
+  when their roster entry changes. A remote host's plugins' UI halves run in this app.
+- A plugin section shows the plugin's own control under its label; when the plugin leaves, an open section falls
+  back to Plugins.
 
 ## Not yet ported
 

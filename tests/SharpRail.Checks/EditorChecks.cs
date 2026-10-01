@@ -19,7 +19,7 @@ internal static class EditorChecks
     internal static SKTypeface Font => font.Value;
     private static readonly Lazy<SKTypeface> font = new(() =>
     {
-        using var stream = AssetLoader.Open(new Uri("avares://SharpRail.UI/Assets/Fonts/JetBrainsMono-Regular.ttf"));
+        using var stream = AssetLoader.Open(new Uri("avares://SharpRail.Plugins.UI.Kit/Assets/Fonts/JetBrainsMono-Regular.ttf"));
         return SKTypeface.FromStream(stream);
     });
 

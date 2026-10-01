@@ -19,7 +19,7 @@ using SharpRail.UI.State;
 
 namespace SharpRail.UI;
 
-public sealed partial class WorkbenchWindow : Window
+public sealed partial class WorkbenchWindow : Window, IDialogOwner
 {
     private readonly IProjectServices host;
     private readonly Workbench workbench;
@@ -82,6 +82,7 @@ public sealed partial class WorkbenchWindow : Window
         WireBranchList();
         WireHeader();
         Layout = new(slot.Layout);
+        FillViewMenu(this.FindControl<Grid>("MainHeader")!.ContextMenu!);
         Layout.Navigating += group => AdvanceNavigation(group);
         Layout.Focused += () => { slot.Layout = Layout.State; SaveProfile(); };
         Layout.Changed += () => { slot.Layout = Layout.State; SaveProfile(); PruneDocuments(); };
@@ -93,6 +94,7 @@ public sealed partial class WorkbenchWindow : Window
         WireGestureNotification();
         WireEditorLifetime();
         WireHostSync();
+        WirePlugins();
         ApplyAppearance();
         ActualThemeVariantChanged += (_, _) => ApplyTheme();
         Opened += async (_, _) => await StartAsync();
@@ -130,7 +132,10 @@ public sealed partial class WorkbenchWindow : Window
         ApplyChromeZoom();
         InterfaceZoom.Changed += ApplyChromeZoom;
         Closed += (_, _) => InterfaceZoom.Changed -= ApplyChromeZoom;
-        header.ContextMenu = ViewMenu();
+        var view = new ContextMenu();
+        // Filled as it opens, so it names the tools plugins have contributed since.
+        view.Opening += (_, _) => FillViewMenu(view);
+        header.ContextMenu = view;
         this.FindControl<ContentControl>("BrandIcon")!.Content = Ui.Icon("brand", Ui.Accent, 28);
         var settings = this.FindControl<Button>("SettingsButton")!;
         settings.Content = Ui.Icon("settings");
@@ -147,11 +152,11 @@ public sealed partial class WorkbenchWindow : Window
         };
     }
 
-    private ContextMenu ViewMenu()
+    private void FillViewMenu(ContextMenu menu)
     {
-        var menu = new ContextMenu();
-        foreach (var tool in DockState.ToolNames)
-            menu.Items.Add(Ui.Menu("Show " + DockState.Tool(tool).Title, () =>
+        menu.Items.Clear();
+        foreach (var tool in Layout.Tools.Select(tool => tool.Id))
+            menu.Items.Add(Ui.Menu("Show " + Layout.Tool(tool)!.Title, () =>
             {
                 var group = Layout.State.Groups.FirstOrDefault(item => item.Tools.Any(tab => tab.Id == tool));
                 if (group is null) Layout.RestoreTool(tool);
@@ -166,7 +171,6 @@ public sealed partial class WorkbenchWindow : Window
         window.Name = "NewWindow";
         window.InputGesture = new KeyGesture(Key.N, (OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control) | KeyModifiers.Shift);
         menu.Items.Add(window);
-        return menu;
     }
 
     /// <summary>The window-local default preset; a custom one deleted or renamed elsewhere falls back to Balanced.</summary>
@@ -264,7 +268,7 @@ public sealed partial class WorkbenchWindow : Window
             foreach (var label in empty.Children.OfType<TextBlock>())
                 label.HorizontalAlignment = HorizontalAlignment.Center;
             var open = Ui.Button("Open file", () => RevealFiles(), "fileText"); open.HorizontalAlignment = HorizontalAlignment.Center;
-            empty.Children.Add(open); return empty;
+            empty.Children.Add(StartActions(open)); return empty;
         }
         if (tab.IsTool)
         {
@@ -276,7 +280,8 @@ public sealed partial class WorkbenchWindow : Window
                     "files" => FilesPanel(),
                     "specs" => SpecsPanel(),
                     "changes" => ChangesPanel(),
-                    _ => ReviewPanel()
+                    "review" => ReviewPanel(),
+                    _ => PluginTool(tab.Id)
                 };
                 toolContent[tab.Id] = content;
             }
@@ -288,20 +293,28 @@ public sealed partial class WorkbenchWindow : Window
         if (tab.Kind == "terminal")
         {
             var terminal = new Terminal.TerminalView(terminals, new(workspaceRoot, Terminal.TerminalLaunch.SessionFor(workspaceRoot, tab.Id),
-                Path.Combine(profile.DirectoryPath, "clipboard"), terminalClient))
+                Path.Combine(profile.DirectoryPath, "clipboard"), terminalClient)
+            { TabKey = tab.Id })
             { Name = "TerminalSurface_" + tab.Id.Replace(':', '_') };
             documentContent[key] = terminal;
+            AttachPluginTerminal(terminal, key);
             return terminal;
         }
         if (documents.TryGetValue(key, out var document))
         {
             Control content;
-            if (document.ImageData is not null)
+            if (tab.Kind == "viewer")
+                content = ViewerContent(tab, key, document);
+            else if (document.ImageData is not null)
                 content = new ScrollViewer { Content = new Image { Source = new Bitmap(new MemoryStream(document.ImageData)), Stretch = Stretch.Uniform } };
             else if (tab.Kind != "diff" && document.Text.Length > ViewerLimits.Scintilla)
                 content = ViewerLimits.TooLarge("file", document.Text.Length);
             else if (tab.Kind == "markdown" && (document.Text.Length <= ViewerLimits.RenderedMarkdown || !OperatingSystem.IsMacOS()))
-                content = new MarkdownDocumentView(document, host, Preferences, (path, anchor) => _ = OpenDocumentAsync(path, false, anchor));
+            {
+                var markdown = new MarkdownDocumentView(document.Text, document.Path, MarkdownContexts.For(host, Preferences, FollowLink));
+                ReportSelections(markdown.Preview, tab);
+                content = markdown;
+            }
             else if (tab.Kind == "diff")
                 content = DiffDocument(document, tab, key);
             else if (tab.Kind is "file" or "markdown" && OperatingSystem.IsMacOS())
@@ -327,7 +340,7 @@ public sealed partial class WorkbenchWindow : Window
             var request = projectRequest;
             var file = tab.Kind == "diff"
                 ? new FileDocument(tab.Path, await host.GetDiffAsync(tab.Path, tab.Scope, tab.Comparison, lifetime.Token))
-                : await host.ReadFileAsync(tab.Path, lifetime.Token);
+                : await ReadForKindAsync(tab.Path, tab.Kind, lifetime.Token);
             if (request != projectRequest || !LiveDocuments().Contains(key)) return;
             documents[key] = file; surface.RefreshContents();
         }
@@ -335,19 +348,20 @@ public sealed partial class WorkbenchWindow : Window
         finally { restoringDocuments.Remove(key); }
     }
 
-    public async Task OpenDocumentAsync(string path, bool keep = false, string? anchor = null, int line = 0)
+    public async Task OpenDocumentAsync(string path, bool keep = false, string? anchor = null, int line = 0, bool raw = false)
     {
         if (!WorkspaceMounted) return;
         if (atHome) await OpenWorkspaceAsync(projectRoot, false);
         if (!WorkspaceMounted || atHome) return;
+        if (!raw && Plugins.FileViewer(path)?.Registration.Open is { } takeOver && takeOver(workspaceRoot, path)) return;
         keep |= !Preferences.PreviewTabs;
         var request = BeginNavigation(); var workspace = workspaceRoot;
         try
         {
-            var document = await host.ReadFileAsync(path, lifetime.Token);
+            var kind = DocumentKind(path, raw);
+            var document = await ReadForKindAsync(path, kind, lifetime.Token);
             var destination = AcceptNavigation(request);
             if (destination is null) return;
-            var kind = Path.GetExtension(path).ToLowerInvariant() is ".md" or ".markdown" ? "markdown" : "file";
             var tab = new DockTab(kind + ":" + path, Path.GetFileName(path), kind, path);
             var key = workspace + ":" + tab.Id;
             if (documentContent.GetValueOrDefault(key) is not Editor.CodeDocumentView)
@@ -451,7 +465,7 @@ public sealed partial class WorkbenchWindow : Window
     }
 
     /// <summary>Dims the workbench behind a modal, like the reference's overlay; the returned action removes it.</summary>
-    internal Action Dim()
+    public Action Dim()
     {
         var scrim = new Border { Background = new SolidColorBrush(Colors.Black, .5) };
         Grid.SetRowSpan(scrim, 3);
@@ -462,6 +476,12 @@ public sealed partial class WorkbenchWindow : Window
     private string settingsSection = "Appearance";
 
     /// <summary>Opens Settings on the section it was last left on, as a Preferences window returns.</summary>
+    public void ShowSettings(string section)
+    {
+        settingsSection = section;
+        ShowSettings();
+    }
+
     public void ShowSettings()
     {
         var undim = Dim();

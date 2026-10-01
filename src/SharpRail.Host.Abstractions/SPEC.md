@@ -10,6 +10,7 @@ parent: architecture
 
 Upstream: packages/shared/SPEC.md @ c44534ea
 Upstream: packages/server/src/host/SPEC.md @ c44534ea
+Upstream: packages/contracts/SPEC.md @ 4737df6d (CommanderTvis fork), the plugin roster and agent record
 
 ## Responsibility
 
@@ -23,10 +24,12 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
 - Owns: `IWorkspaceHost` (`IWorkspaceHost.cs`), `IProjectServices`
   (`ProjectServices.cs`), `IHostStateService` with `HostState`, `HostSettings`, `LayoutPreset` and
   `HostStateChange` (`HostState.cs`), `ITerminalService` / `ITerminalSession` with
-  `TerminalAttachRequest` (`TerminalServices.cs`), and `FileLimits`.
-- Allowed deps: the .NET base library only.
+  `TerminalAttachRequest` (`TerminalServices.cs`), `IPluginService` with `PluginCallRequest` and
+  `PluginSubscription` (`PluginServices.cs`), and `FileLimits`.
+- Allowed deps: the .NET base library and `SharpRail.Plugins.Api`, whose roster, agent-record and project
+  records `HostState` and `IPluginService` share with plugins rather than mirror.
 - Forbidden: serialization attributes, gRPC, Avalonia, filesystem or process access, and any AI or agent
-  concept.
+  behaviour. A terminal's agent record is data a plugin writes; the host only stores and broadcasts it.
 
 ## Surfaces
 
@@ -43,6 +46,11 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
   session and identifies itself; `Offset = -1` asks for a fresh replay, a non-negative offset resumes.
   Disposing an attachment detaches without ending the shell; `CloseAsync` is the only way a client ends
   one.
+- `IPluginService` is the host's plugin runtime: the roster (also on every `HostState` snapshot), rescan and
+  retry, the generic plugin call and channel subscription, and reads of a plugin directory's files. Payloads
+  are typed objects in process and JSON elements after the wire; plugin settings namespaces and extra plugin
+  roots are host state, changed through `HostStateChange.PluginSettings`/`PluginEnabled`/`PluginPaths`. See
+  `src/SharpRail.Plugins.Api/SPEC.md`.
 - `IWorkspaceHost` is the minimal probe of the host's root workspace: its identity and top-level entries.
 
 ## Invariants
