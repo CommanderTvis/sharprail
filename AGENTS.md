@@ -22,10 +22,10 @@ versions; `global.json` selects the SDK. Use `.tools/dotnet/dotnet` for this che
 | `src/SharpRail.UI/State` | Profile persistence and migration (`ProfileStore`: app preferences and one entry per window) and the app's shared-state subscription (`SharedState`). Default user state belongs in `~/.sharprail`, not project directories. |
 | `src/SharpRail.UI/Terminal` | Terminal tab body (`TerminalView`: start failure/retry, exit notice), the Ghostty native-control bridge for local and relayed remote sessions, and the `--terminal-relay` mode. |
 | `src/SharpRail.UI/Assets` | Reference icons and bundled fonts, with their licenses. |
-| `native/ghostty` | Objective-C AppKit/Metal bridge, Ghostty configuration shim and native terminal probe. |
+| `src/Ghostty.Avalonia` | Independent Ghostty controls: hosted AppKit/Metal, Metal textures composed by Avalonia, and libghostty-vt drawn by Skia; native bridges, build script and licenses. Its README documents reuse and limits. |
 | `tests/SharpRail.Checks` | Executable checks for host transports, runtime extensibility, layout, UI and Git/worktree integration. `E2E/` translates upstream scenarios using real headless Avalonia input. |
 | `scripts/bootstrap.sh` | Installs the checkout's local .NET SDK. |
-| `scripts/build-ghostty.sh` | Builds pinned libghostty and the native bridge on the target macOS architecture, using checkout-local tools and caches. |
+| `src/Ghostty.Avalonia/build-native.sh` | Builds pinned libghostty and libghostty-vt bridges on the target macOS architecture, using checkout-local tools and caches. |
 | `scripts/build-merman.sh` | Downloads Merman's pinned, checksummed macOS xcframework and links its C ABI into `.tools/merman/libSharpRailMermaid.dylib`. `Rendering/MermaidRenderer.cs` renders SVG through it off the UI thread; Svg.Skia displays it. Other platforms show the source with an unavailability message. |
 | `scripts/check-terminal.sh` | Runs the native shell/Metal probe; the checks executable's `--native-terminal` mode exercises Avalonia integration. |
 | `scripts/publish.sh` | Publishes non-composite R2R UI, remote host and checks; refreshes and signs the canonical `artifacts/SharpRail.app`. Check for a live app process before replacing it. |
@@ -73,10 +73,12 @@ scope and selected commit; reload commit catalogs from Git rather than saving
 derived snapshots. Tests use isolated profile directories.
 Commit listing is a separate host operation; do not fetch a full working-tree
 snapshot merely to populate or restore the commit catalog.
-macOS terminal tabs embed Ghostty, whose child is the `--terminal-relay` mode attached to a
+Settings selects Metal texture (default) or Skia (fallback) terminal rendering. Metal texture tabs
+embed Ghostty, whose child is the `--terminal-relay` mode attached to a
 host-owned PTY session: remote tabs reach the remote host, and local tabs reach the app's
 own host over a private Unix socket, so shells outlive their windows while the app runs.
-Other platforms show an availability message. `WorkbenchWindow`
+Skia tabs attach directly to the same host service and draw through `GhosttySkiaView`.
+Both native builds currently require macOS; other platforms show an availability message. `WorkbenchWindow`
 takes its terminal factory from the composition root; headless checks pass one that
 runs host PTY sessions as plain text. `DocumentCache.cs` retains shells across appearance
 changes and disposes them when their tabs or window close. Clipboard images are
@@ -117,7 +119,9 @@ Module `SPEC.md`/`*.SPEC.md` files and `ARCHITECTURE.md` are adapted from upstre
 pulls later upstream changes. Update the owning spec when changing its module.
 
 Run checks with `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release`;
-`-- --terminals` runs only the host terminal checks and the terminal/bottom-panel translations.
+`-- --terminals` runs host terminals, terminal/bottom-panel translations and Skia renderer checks.
+`-- --ghostty-skia` runs focused Skia input, pixel, PTY and renderer Settings checks.
+`-- --native-texture` checks GPU texture composition, input and local/remote renderer switching in a real macOS window.
 `-- --sync` runs the multi-window and multi-client translations.
 Set `SHARPRAIL_TEST_GIT_SOURCE` to an existing upstream clone to include Git fixtures.
 `tests/SharpRail.Checks/Program.cs` is the check runner, not an xUnit test project.

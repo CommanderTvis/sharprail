@@ -27,7 +27,12 @@ internal static class Program
     [STAThread]
     public static void Main(string[] args)
     {
-        if (args.Contains("--native-terminal")) { NativeTerminalChecks.Run(args); return; }
+        if (args.Contains("--native-terminal"))
+        {
+            if (!OperatingSystem.IsMacOS()) throw new PlatformNotSupportedException();
+            NativeTerminalChecks.Run(args); return;
+        }
+        if (args.Contains("--native-texture") || args.Contains("--texture-fallback")) { NativeTextureChecks.Run(args); return; }
         if (args.Contains("--terminal-relay")) { Environment.Exit(SharpRail.UI.Terminal.TerminalRelay.Run()); return; }
         var root = Path.Combine(Directory.GetCurrentDirectory(), ".bench", "check-fixture-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
@@ -49,6 +54,13 @@ internal static class Program
             Console.WriteLine("PASS editor integration checks");
             return;
         }
+        if (args.SequenceEqual(["--ghostty-skia"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            GhosttySkiaChecks.Run(root);
+            return;
+        }
         if (args.SequenceEqual(["--terminals"]))
         {
             TerminalHostChecks.Run(root).GetAwaiter().GetResult();
@@ -56,6 +68,7 @@ internal static class Program
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             E2E.TerminalsE2E.Run(Path.Combine(root, "upstream-e2e"));
             E2E.BottomPanelE2E.Run(Path.Combine(root, "upstream-e2e"));
+            GhosttySkiaChecks.Run(root);
             Console.WriteLine("PASS terminal checks");
             return;
         }

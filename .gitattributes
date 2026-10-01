@@ -1,0 +1,2 @@
+# Unified patches represent blank context lines with one required space.
+src/Ghostty.Avalonia/Native/*.patch whitespace=-blank-at-eol

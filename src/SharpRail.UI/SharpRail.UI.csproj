@@ -6,6 +6,7 @@
     <ProjectReference Include="../SharpRail.Host.Remote/SharpRail.Host.Remote.csproj" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <ProjectReference Include="../SharpRail.Scintilla/SharpRail.Scintilla.csproj" />
+    <ProjectReference Include="../Ghostty.Avalonia/Ghostty.Avalonia.csproj" />
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Desktop" />
     <PackageReference Include="Avalonia.Themes.Fluent" />
@@ -19,16 +20,6 @@
     <ItemGroup>
       <MermaidLibrary Include="../../.tools/merman/*SharpRailMermaid.*" />
       <Content Include="@(MermaidLibrary)" Link="%(MermaidLibrary.Filename)%(MermaidLibrary.Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    </ItemGroup>
-  </Target>
-  <Target Name="BuildGhostty" BeforeTargets="PrepareForBuild" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
-    <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/build-ghostty.sh&quot; &quot;$(RuntimeIdentifier)&quot;" />
-    <ItemGroup>
-      <GhosttyResources Include="../../.tools/ghostty/resources/**/*" />
-    </ItemGroup>
-    <ItemGroup>
-      <Content Include="../../.tools/ghostty/libSharpRailGhostty.dylib" Link="libSharpRailGhostty.dylib" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-      <Content Include="@(GhosttyResources)" Link="%(GhosttyResources.RecursiveDir)%(GhosttyResources.Filename)%(GhosttyResources.Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     </ItemGroup>
   </Target>
 </Project>

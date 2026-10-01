@@ -21,6 +21,8 @@ public sealed class Preferences
     public Dictionary<string, DockState> CustomPresets { get; set; } = [];
     public double FontSize { get; set; } = 14;
     public bool ShowHiddenFiles { get; set; }
+    /// <summary>The local terminal renderer: composited Metal texture or Skia cells.</summary>
+    public string TerminalRenderer { get; set; } = Terminal.TerminalRenderers.Texture;
     /// <summary>Read from profiles that predate window-local defaults.</summary>
     [JsonPropertyName("DefaultPreset"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? LegacyDefaultPreset { get; set; }
@@ -148,6 +150,8 @@ public sealed class ProfileStore
             if (!double.IsFinite(Data.Preferences.FontSize) || Data.Preferences.FontSize is < 10 or > 24) Data.Preferences.FontSize = 14;
             if (!Rendering.LineWidths.IsValid(Data.Preferences.FileLineWidth)) Data.Preferences.FileLineWidth = Rendering.LineWidths.FileDefault;
             if (!Rendering.LineWidths.IsValid(Data.Preferences.MarkdownLineWidth)) Data.Preferences.MarkdownLineWidth = Rendering.LineWidths.MarkdownDefault;
+            if (Data.Preferences.TerminalRenderer is not (Terminal.TerminalRenderers.Texture or Terminal.TerminalRenderers.Skia))
+                Data.Preferences.TerminalRenderer = Terminal.TerminalRenderers.Texture;
             foreach (var name in Data.Preferences.CustomPresets.Keys.Where(name => string.IsNullOrWhiteSpace(name) ||
                 !LayoutSession.IsValid(Data.Preferences.CustomPresets[name])).ToArray()) Data.Preferences.CustomPresets.Remove(name);
             NormalizeTheme(Data.Preferences);

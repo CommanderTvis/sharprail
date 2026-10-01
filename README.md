@@ -7,7 +7,8 @@ worktrees. There is no browser, Electron shell or WebView anywhere in the stack.
 ## Built for speed
 
 - **Native rendering end to end.** Avalonia draws the workbench with Skia on the GPU.
-  Terminals embed libghostty with Metal. The editor is Scintilla on a custom Skia
+  Terminals use Ghostty with Metal texture (default) or Skia (fallback) rendering, selected in
+  Settings → Terminal. The editor is Scintilla on a custom Skia
   surface that records each frame once and lets the renderer replay it.
 - **Compiled ahead, tuned at runtime.** Published builds are .NET 10 ReadyToRun
   (non-composite) with tiered PGO, so code starts precompiled and hot paths are
@@ -94,6 +95,13 @@ menu. ⌘⇧J shows and hides the bottom panel, even from inside a terminal. Opt
 as Alt on U.S. layouts, as in Ghostty, so Option+Backspace deletes a word. ⌘V pastes
 images as quoted file paths, saving PNG files under `~/.sharprail/clipboard`.
 Quitting the app ends local shells.
+Changing the renderer in Settings reattaches the terminal views to the same
+shells. The reusable controls live in `src/Ghostty.Avalonia`; its README documents
+the API, build requirements and limits of the Skia path.
+Metal texture is the default; creation or rendering failure automatically falls
+back to Skia without ending the host shell. NSView remains a library API only.
+Renderer benchmark sources and reproduction commands are in
+[`benchmarks/ghostty`](benchmarks/ghostty/README.md).
 
 ## Checks
 
@@ -101,8 +109,8 @@ Quitting the app ends local shells.
 .tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release
 ```
 
-`-- --editor`, `-- --terminals`, `-- --sync` and `-- --workspaces` run focused
-subsets. `sh scripts/check-terminal.sh` and `-- --native-terminal` exercise real
+`-- --editor`, `-- --terminals`, `-- --ghostty-skia`, `-- --sync` and `-- --workspaces` run focused
+subsets. `sh scripts/check-terminal.sh`, `-- --native-terminal` and `-- --native-texture` exercise real
 Ghostty windows and open test windows. Set `SHARPRAIL_TEST_GIT_SOURCE` to a Thinkrail
 clone to include the Git fixtures. See `src/SharpRail.Scintilla/README.md` for the
 editor control's architecture and limits.

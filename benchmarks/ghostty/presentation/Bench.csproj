@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><AssemblyName>GhosttyRendererBench</AssemblyName></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../../src/Ghostty.Avalonia/Ghostty.Avalonia.csproj" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <Content Include="../native/libBenchCapture.dylib" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  <Content Include="../native/workload" Link="workload" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+</Project>

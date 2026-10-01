@@ -51,7 +51,7 @@ public sealed partial class SettingsWindow : Window
         close.Click += (_, _) => Close();
         close.Resources["ButtonBackgroundPointerOver"] = Ui.Hover;
         close.Resources["ButtonBackgroundPressed"] = Ui.Hover;
-        foreach (var item in new[] { ("Appearance", "palette"), ("Line width", "fileText"), ("Layout", "layout"), ("Projects", "folderTab"), ("GitHub", "gitBranch") })
+        foreach (var item in new[] { ("Appearance", "palette"), ("Line width", "fileText"), ("Layout", "layout"), ("Projects", "folderTab"), ("Terminal", "terminal"), ("GitHub", "gitBranch") })
         {
             var button = this.FindControl<Button>("Settings_" + item.Item1.Replace(' ', '_'))!;
             button.Content = Ui.Row(item.Item2, item.Item1);
@@ -77,7 +77,7 @@ public sealed partial class SettingsWindow : Window
             foreach (var text in ((StackPanel)entry.Value.Content!).Children.OfType<TextBlock>()) text.Foreground = active ? Ui.Accent : Ui.Muted;
             ((Border)((StackPanel)entry.Value.Content!).Children[0]).Background = active ? Ui.Accent : Ui.Muted;
         }
-        var page = name switch { "Line width" => LineWidth(), "Layout" => LayoutSettings(), "Projects" => ProjectSettings(), "GitHub" => GitHubSettings(), _ => Appearance() };
+        var page = name switch { "Line width" => LineWidth(), "Layout" => LayoutSettings(), "Projects" => ProjectSettings(), "Terminal" => TerminalSettings(), "GitHub" => GitHubSettings(), _ => Appearance() };
         (error.Parent as Panel)?.Children.Remove(error);
         if (page is Panel content) content.Children.Add(error);
         body.Content = page;
@@ -446,6 +446,26 @@ public sealed partial class SettingsWindow : Window
             Ui.Place(row, Ui.IconButton("close", "Remove from recent projects", () => Share(HostStateChange.ForgetProject(path))), 0, 1);
             recent.Children.Add(row);
         }
+        return panel;
+    }
+
+    private Control TerminalSettings()
+    {
+        var panel = Page("TerminalPage");
+        var choices = PageControl<StackPanel>(panel, "TerminalRendererChoices");
+        foreach (var (renderer, label, description) in new[]
+        {
+            (Terminal.TerminalRenderers.Texture, "Metal texture", "Ghostty’s Metal output composed with the workbench, supporting its overlays and clipping."),
+            (Terminal.TerminalRenderers.Skia, "Skia", "Draw terminal text with the workbench. Use when Metal textures are unavailable.")
+        })
+            choices.Children.Add(Choice("TerminalRenderer_" + renderer, label, description, state.Preferences.TerminalRenderer == renderer, () =>
+            {
+                if (state.Preferences.TerminalRenderer == renderer) return;
+                state.Preferences.TerminalRenderer = renderer;
+                Save();
+                foreach (var open in window.Workbench.Windows) open.RestartTerminals();
+                ShowSection(section);
+            }));
         return panel;
     }
 

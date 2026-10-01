@@ -1,5 +1,7 @@
 # Architecture lessons
 
+- Track each requested rendering path separately through implementation and visible-output checks. A working fallback and the existing native view do not fulfill a separate request to composite Ghostty's GPU texture through Avalonia.
+
 - For SharpRail, upstream is [JetBrains/thinkrail:main](https://github.com/JetBrains/thinkrail/tree/main).
 
 - A host/client request for this maquette means a C# host as well as a C# client. Do not infer reuse of the reference's Bun host or Pi integration. Embedded calls are direct; gRPC is only the remote adapter.
@@ -53,3 +55,6 @@
 - A right-clicked Avalonia ContextMenu places against its owning control even when PlacementTarget names a sibling trigger. To anchor a row menu under its kebab, let the owning control span the kebab's column and measure the opened popup against the kebab.
 - Avalonia rejects `Name` changes once a control is styled; a DialogWindow built from XAML cannot be renamed after construction. Identify such windows by `Tag`.
 - Rebuild rail rows only when their Git projection changes. Watcher-driven refreshes that recreate unchanged rows close open menus, drop focus and make headless clicks land on detached controls.
+- Reuse saved benchmark data when the user asks for a comparison. New allocation profiling can answer a new attribution question, but its instrumented timings and footprint must not replace the original benchmark results.
+- A GPU allocation's first submission identifies where it becomes resident, not its exclusive owner. In the Ghostty texture path, suppressing the exporter copy moved 68 MiB of driver storage activation to Avalonia's snapshot; only suppressing all blits removed it. Deduplicate IOSurface IDs when counting imported Metal texture wrappers.
+- A completed GPU draw does not prove WindowServer's next screenshot contains it. Poll the expected own-window pixels with a deadline rather than treating a fixed delay as presentation readiness. Require active window and keyboard focus before synthetic typing; concurrent GUI checks can steal them mid-command.

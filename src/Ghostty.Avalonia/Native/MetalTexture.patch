@@ -1,0 +1,40 @@
+--- a/src/renderer/Metal.zig
++++ b/src/renderer/Metal.zig
+@@ -227,6 +227,11 @@
+ 
+ /// Present the provided target.
+ pub inline fn present(self: *Metal, target: Target, sync: bool) !void {
++    const layer = self.layer.layer;
++    if (layer.msgSend(bool, "respondsToSelector:", .{objc.sel("gavPresentTexture:")})) {
++        if (layer.msgSend(bool, "gavPresentTexture:", .{target.texture})) return;
++    }
++
+     if (sync) {
+         self.layer.setSurfaceSync(target.surface);
+     } else {
+--- a/src/renderer/metal/Frame.zig
++++ b/src/renderer/metal/Frame.zig
+@@ -39,6 +39,12 @@
+     /// The target is presented via the provided renderer's API when completed.
+     target: *Target,
+ ) !Self {
++    // Finish external reads before encoding a write to this swap-chain target.
++    const layer = renderer.api.layer.layer;
++    if (layer.msgSend(bool, "respondsToSelector:", .{objc.sel("gavWillRenderTexture:")})) {
++        layer.msgSend(void, "gavWillRenderTexture:", .{target.texture});
++    }
++
+     const buffer = opts.queue.msgSend(
+         objc.Object,
+         objc.sel("commandBuffer"),
+--- a/src/renderer/metal/Target.zig
++++ b/src/renderer/metal/Target.zig
+@@ -74,7 +74,7 @@
+     desc.setProperty("width", @as(c_ulong, @intCast(opts.width)));
+     desc.setProperty("height", @as(c_ulong, @intCast(opts.height)));
+     desc.setProperty("pixelFormat", @intFromEnum(opts.pixel_format));
+-    desc.setProperty("usage", mtl.MTLTextureUsage{ .render_target = true });
++    desc.setProperty("usage", mtl.MTLTextureUsage{ .render_target = true, .shader_read = true });
+     desc.setProperty(
+         "resourceOptions",
+         mtl.MTLResourceOptions{

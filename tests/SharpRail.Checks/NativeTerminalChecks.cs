@@ -1,5 +1,5 @@
+using System.Runtime.Versioning;
 using System.Net;
-using System.Reflection;
 using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Automation.Peers;
@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 using Avalonia.LogicalTree;
+using Ghostty.Avalonia;
 using SharpRail.Host.Client;
 using SharpRail.Host.Remote;
 using SharpRail.UI;
@@ -21,6 +22,7 @@ using SharpRail.UI.State;
 
 namespace SharpRail.Checks;
 
+[SupportedOSPlatform("macos")]
 internal static class NativeTerminalChecks
 {
     private const string ProfileDirectory = "profile 'images";
@@ -38,7 +40,8 @@ internal static class NativeTerminalChecks
         profile.Save();
         Environment.SetEnvironmentVariable("SHARPRAIL_ROOT", fixture);
         Environment.SetEnvironmentVariable("SHARPRAIL_PROFILE", Path.Combine(fixture, ProfileDirectory));
-        AppBuilder.Configure<App>().UsePlatformDetect().AfterSetup(_ =>
+        AppBuilder.Configure<App>().UsePlatformDetect()
+            .With(new AvaloniaNativePlatformOptions { RenderingMode = [AvaloniaNativeRenderingMode.Metal] }).AfterSetup(_ =>
             Dispatcher.UIThread.Post(async () =>
             {
                 var desktop = (IClassicDesktopStyleApplicationLifetime)Application.Current!.ApplicationLifetime!;
@@ -48,14 +51,20 @@ internal static class NativeTerminalChecks
                 try
                 {
                     await Check((WorkbenchWindow)desktop.MainWindow!, fixture);
-                    Console.WriteLine("PASS native Avalonia embedded terminal: mutable input, keyboard routing, Mod+Shift+J from the terminal, image/text paste, theme pixels, Metal rendering, shell, session retention, workspace isolation and close disposal");
+                    Console.WriteLine("PASS native Avalonia embedded terminal: keyboard routing, Mod+Shift+J from the terminal, image/text paste, theme propagation, Metal rendering, shell, session retention, workspace isolation and close disposal");
                     await CheckLocalSessions(fixture);
                     Console.WriteLine("PASS native local terminal sessions: Ghostty relay to the app's host PTY with input latency, resize, reattach after its window closes, and the real exit status");
                     await CheckRemote(fixture);
                     Console.WriteLine("PASS native remote terminal: Ghostty relay to an authenticated gRPC host PTY with I/O, worktree root, resize, busy foreground and exit status");
                     desktop.Shutdown(0);
                 }
-                catch (Exception error) { Console.Error.WriteLine(error); desktop.Shutdown(1); }
+                catch (Exception error)
+                {
+                    Console.Error.WriteLine(error);
+                    foreach (var view in desktop.Windows.SelectMany(window => window.GetVisualDescendants().OfType<GhosttyTextureView>()))
+                        Console.Error.WriteLine(view.ReadScreen());
+                    desktop.Shutdown(1);
+                }
                 finally { Native.SelectLayout(previousLayout); }
             })).StartWithClassicDesktopLifetime(args);
     }
@@ -80,21 +89,15 @@ internal static class NativeTerminalChecks
         }
     }
 
-    private static nint Handle(NativeControlHost host) => (nint)host.GetType().GetField("view", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(host)!;
-    private static string Read(nint view)
-    {
-        var buffer = new byte[65536];
-        var count = Native.Read(view, buffer, (nuint)buffer.Length);
-        return System.Text.Encoding.UTF8.GetString(buffer, 0, (int)count);
-    }
+    private static string Read(GhosttyTextureView view) => view.ReadScreen();
 
     private static async Task Check(WorkbenchWindow window, string root)
     {
         await Until(() => window.WorkspaceMounted);
         var bottom = window.Layout.State.Groups.Single(group => group.Region == "bottom").Id;
-        NativeControlHost? host = null;
-        await Until(() => (host = window.GetVisualDescendants().OfType<NativeControlHost>().SingleOrDefault()) is not null && Handle(host) != 0);
-        var original = Handle(host!);
+        GhosttyTextureView? host = null;
+        await Until(() => (host = window.GetVisualDescendants().OfType<GhosttyTextureView>().SingleOrDefault()) is not null && host.RetainedTextureCount != 0);
+        var original = host!;
         Native.Activate(original);
         await Until(() => Native.Ready(original));
         await Task.Delay(1000);
@@ -106,7 +109,7 @@ internal static class NativeTerminalChecks
         await Until(() => !window.Layout.State.BottomVisible && !window.GetVisualDescendants().Contains(host));
         window.Layout.Visible("bottom", true);
         await Until(() => window.GetVisualDescendants().Contains(host));
-        if (Handle(host!) != original) throw new InvalidOperationException("Hiding the bottom panel replaced the shell.");
+        if (host! != original) throw new InvalidOperationException("Hiding the bottom panel replaced the shell.");
         Button? shown = null;
         await Until(() => (shown = window.GetVisualDescendants().OfType<Button>().SingleOrDefault(item => item.Name == "Tab_" + tab.Id.Replace(':', '_'))) is not null);
         ((ISelectionItemProvider)ControlAutomationPeer.CreatePeerForElement(shown!)!).Select();
@@ -123,15 +126,13 @@ internal static class NativeTerminalChecks
         await Until(() => Native.Background(original) == 0x18181b);
         await Type(original, "printf 'TAB_%s_OK\\n' KEYBOARD\r");
         await Until(() => Read(original).Contains("TAB_KEYBOARD_OK", StringComparison.Ordinal));
-        Native.MutableInput(original);
-        await Type(original, "\r");
-        await Until(() => Read(original).Contains("MUTABLE_INPUT_OK", StringComparison.Ordinal));
         for (var format = 1; format <= 2; format++)
         {
             Native.Input(original, "image=");
             Native.Paste(original, format);
             Native.Input(original, $"; test -s \"$image\" && printf 'IMAGE_%s_OK\\n' {format}\r");
-            await Until(() => Read(original).Contains($"IMAGE_{format}_OK", StringComparison.Ordinal));
+            try { await Until(() => Read(original).Contains($"IMAGE_{format}_OK", StringComparison.Ordinal)); }
+            catch (InvalidOperationException error) { throw new InvalidOperationException(Read(original), error); }
         }
         var images = Directory.GetFiles(Path.Combine(root, ProfileDirectory, "clipboard"), "*.png");
         if (images.Length != 2 || images.Any(path => !File.ReadAllBytes(path).Take(8).SequenceEqual(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 })))
@@ -178,7 +179,7 @@ internal static class NativeTerminalChecks
         var side = window.Layout.State.Groups.First(group => group.Region == "left").Id;
         if (!window.Layout.Move(tab.Id, bottom, side, 0)) throw new InvalidOperationException("Terminal move refused.");
         await Until(() => window.GetVisualDescendants().Contains(host));
-        if (Handle(host!) != original) throw new InvalidOperationException("Moving a tab replaced the shell.");
+        if (host! != original) throw new InvalidOperationException("Moving a tab replaced the shell.");
         window.Layout.Fold(side);
         await Task.Delay(150);
         window.Layout.Fold(side);
@@ -188,26 +189,26 @@ internal static class NativeTerminalChecks
         var other = Path.Combine(root, "other"); Directory.CreateDirectory(other);
         File.WriteAllText(Path.Combine(other, ".git"), "gitdir: " + Path.Combine(other, "absent"));
         await window.OpenProjectAsync(other);
-        NativeControlHost? initial = null;
-        await Until(() => (initial = window.GetVisualDescendants().OfType<NativeControlHost>().SingleOrDefault()) is not null && Handle(initial) != 0);
+        GhosttyTextureView? initial = null;
+        await Until(() => (initial = window.GetVisualDescendants().OfType<GhosttyTextureView>().SingleOrDefault()) is not null && initial.RetainedTextureCount != 0);
         window.GetVisualDescendants().OfType<Button>().Single(item => item.Name == "NewTerminal_" + bottom)
             .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
-        NativeControlHost? second = null;
-        await Until(() => (second = window.GetVisualDescendants().OfType<NativeControlHost>().SingleOrDefault()) is not null &&
-            !ReferenceEquals(second, initial) && Handle(second) != 0);
-        await Until(() => Native.Focused(Handle(second!)));
-        await Type(Handle(second!), "printf 'NEW_%s_OK\\n' KEYBOARD\r");
-        await Until(() => Read(Handle(second!)).Contains("NEW_KEYBOARD_OK", StringComparison.Ordinal));
-        Native.Input(Handle(second!), $"test \"$PWD\" = '{other.Replace("'", "'\\''")}' && printf '\\nISOLATED_%s\\n' \"${{SHARPRAIL_SESSION-unset}}\"\r");
-        await Until(() => Read(Handle(second!)).Contains("ISOLATED_unset", StringComparison.Ordinal));
+        GhosttyTextureView? second = null;
+        await Until(() => (second = window.GetVisualDescendants().OfType<GhosttyTextureView>().SingleOrDefault()) is not null &&
+            !ReferenceEquals(second, initial) && second.RetainedTextureCount != 0);
+        await Until(() => Native.Focused(second!));
+        await Type(second!, "printf 'NEW_%s_OK\\n' KEYBOARD\r");
+        await Until(() => Read(second!).Contains("NEW_KEYBOARD_OK", StringComparison.Ordinal));
+        Native.Input(second!, $"test \"$PWD\" = '{other.Replace("'", "'\\''")}' && printf '\\nISOLATED_%s\\n' \"${{SHARPRAIL_SESSION-unset}}\"\r");
+        await Until(() => Read(second!).Contains("ISOLATED_unset", StringComparison.Ordinal));
         await window.OpenProjectAsync(root);
         window.Layout.Select(side, tab.Id);
         await Until(() => window.GetVisualDescendants().Contains(host));
-        if (Handle(host!) != original) throw new InvalidOperationException("Workspace switching replaced the shell.");
+        if (host! != original) throw new InvalidOperationException("Workspace switching replaced the shell.");
         window.Width -= 100;
         await Until(() => Native.Rendered(original));
         window.Layout.Close(side, tab.Id);
-        if (Handle(host!) != 0) throw new InvalidOperationException("Closing a terminal did not dispose its native session.");
+        if (host!.RetainedTextureCount != 0) throw new InvalidOperationException("Closing a terminal did not dispose its native session.");
         await Until(() => Native.Kill(processId, 0) == -1 && Marshal.GetLastPInvokeError() == 3);
     }
 
@@ -220,12 +221,12 @@ internal static class NativeTerminalChecks
         var profile = Path.Combine(fixture, "local-sessions-profile");
         var terminals = ((App)Application.Current!).Terminals;
         WorkbenchWindow Open() => new(new LocalProjectAdapter(new SharpRail.Host.Core.ProjectServices(root)), root, new ProfileStore(profile), terminals) { Width = 1000, Height = 700 };
-        async Task<nint> Surface(WorkbenchWindow window)
+        async Task<GhosttyTextureView> Surface(WorkbenchWindow window)
         {
             await Until(() => window.WorkspaceMounted);
-            NativeControlHost? host = null;
-            await Until(() => (host = window.GetVisualDescendants().OfType<NativeControlHost>().SingleOrDefault()) is not null && Handle(host) != 0);
-            var view = Handle(host!);
+            GhosttyTextureView? host = null;
+            await Until(() => (host = window.GetVisualDescendants().OfType<GhosttyTextureView>().SingleOrDefault()) is not null && host.RetainedTextureCount != 0);
+            var view = host!;
             Native.Activate(view);
             await Until(() => Native.Ready(view));
             await Task.Delay(1000);
@@ -298,9 +299,9 @@ internal static class NativeTerminalChecks
         try
         {
             await Until(() => window.WorkspaceMounted);
-            NativeControlHost? host = null;
-            await Until(() => (host = window.GetVisualDescendants().OfType<NativeControlHost>().SingleOrDefault()) is not null && Handle(host) != 0);
-            var view = Handle(host!);
+            GhosttyTextureView? host = null;
+            await Until(() => (host = window.GetVisualDescendants().OfType<GhosttyTextureView>().SingleOrDefault()) is not null && host.RetainedTextureCount != 0);
+            var view = host!;
             var terminal = window.GetVisualDescendants().OfType<TerminalView>().Single();
             Native.Activate(view);
             await Until(() => Native.Ready(view));
@@ -329,10 +330,12 @@ internal static class NativeTerminalChecks
         finally { window.Close(); await server.StopAsync(); }
     }
 
-    private static async Task Type(nint view, string text)
+    private static async Task Type(GhosttyTextureView view, string text)
     {
+        Native.Activate(view);
         foreach (var character in text)
         {
+            await Until(() => Native.Ready(view) && Native.Focused(view));
             Native.Key(view, character.ToString(), character == '\r' ? (ushort)36 : (ushort)0, false);
             await Task.Delay(5);
         }
@@ -340,39 +343,46 @@ internal static class NativeTerminalChecks
 
     private static class Native
     {
+        private static nint Content(GhosttyTextureView view) => WindowContent(((Window)TopLevel.GetTopLevel(view)!).Title!);
+        internal static void Paste(GhosttyTextureView view, int format) => PasteNative(Content(view), format);
+        internal static uint Background(GhosttyTextureView view) => view.Colors.Background.ToUInt32() & 0xffffff;
+        internal static void Activate(GhosttyTextureView view) => ActivateNative(Content(view));
+        internal static bool Ready(GhosttyTextureView view) => ReadyNative(Content(view));
+        internal static void OptionBackspace(GhosttyTextureView view) => OptionBackspaceNative(Content(view));
+        internal static void ToggleBottom(GhosttyTextureView view) => ToggleBottomNative(Content(view));
+        internal static void Click(GhosttyTextureView view, double x, double y)
+        {
+            var point = view.TranslatePoint(new Point(x, y), TopLevel.GetTopLevel(view)!)!.Value;
+            ClickNative(Content(view), point.X, point.Y);
+        }
+        internal static bool Focused(GhosttyTextureView view) => view.IsKeyboardFocusWithin;
+        internal static void Key(GhosttyTextureView view, string text, ushort keyCode, bool control) => KeyNative(Content(view), text, keyCode, control);
+        internal static void Input(GhosttyTextureView view, string text)
+        {
+            foreach (var character in text) Key(view, character.ToString(), character == '\r' ? (ushort)36 : (ushort)0, false);
+        }
+        internal static bool Rendered(GhosttyTextureView view) => view.Frames > 0;
+        [DllImport("TerminalEvents", EntryPoint = "sr_texture_content")]
+        private static extern nint WindowContent([MarshalAs(UnmanagedType.LPUTF8Str)] string title);
         [DllImport("TerminalEvents", EntryPoint = "sr_check_paste")]
-        internal static extern void Paste(nint view, int format);
-        [DllImport("TerminalEvents", EntryPoint = "sr_check_background")]
-        internal static extern uint Background(nint view);
-        [DllImport("TerminalEvents", EntryPoint = "sr_check_mutable_input")]
-        internal static extern void MutableInput(nint view);
+        private static extern void PasteNative(nint view, int format);
         [DllImport("TerminalEvents", EntryPoint = "sr_check_activate")]
-        internal static extern void Activate(nint view);
+        private static extern void ActivateNative(nint view);
         [DllImport("TerminalEvents", EntryPoint = "sr_check_ready")]
         [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool Ready(nint view);
+        private static extern bool ReadyNative(nint view);
         [DllImport("TerminalEvents", EntryPoint = "sr_check_select_layout")]
         [return: MarshalAs(UnmanagedType.LPUTF8Str)]
         internal static extern string SelectLayout([MarshalAs(UnmanagedType.LPUTF8Str)] string identifier);
         [DllImport("TerminalEvents", EntryPoint = "sr_check_option_backspace")]
-        internal static extern void OptionBackspace(nint view);
+        private static extern void OptionBackspaceNative(nint view);
         [DllImport("TerminalEvents", EntryPoint = "sr_check_toggle_bottom")]
-        internal static extern void ToggleBottom(nint view);
+        private static extern void ToggleBottomNative(nint view);
         [DllImport("TerminalEvents", EntryPoint = "sr_check_click")]
-        internal static extern void Click(nint view, double x, double y);
-        [DllImport("TerminalEvents", EntryPoint = "sr_check_focused")]
-        [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool Focused(nint view);
+        private static extern void ClickNative(nint view, double x, double y);
         [DllImport("TerminalEvents", EntryPoint = "sr_check_key")]
-        internal static extern void Key(nint view, [MarshalAs(UnmanagedType.LPUTF8Str)] string text, ushort keyCode, [MarshalAs(UnmanagedType.I1)] bool control);
+        private static extern void KeyNative(nint view, [MarshalAs(UnmanagedType.LPUTF8Str)] string text, ushort keyCode, [MarshalAs(UnmanagedType.I1)] bool control);
         [DllImport("/usr/lib/libSystem.B.dylib", EntryPoint = "kill", SetLastError = true)]
         internal static extern int Kill(int processId, int signal);
-        [DllImport("SharpRailGhostty", EntryPoint = "sr_terminal_input")]
-        internal static extern void Input(nint view, [MarshalAs(UnmanagedType.LPUTF8Str)] string text);
-        [DllImport("SharpRailGhostty", EntryPoint = "sr_terminal_read")]
-        internal static extern nuint Read(nint view, byte[] buffer, nuint capacity);
-        [DllImport("SharpRailGhostty", EntryPoint = "sr_terminal_rendered")]
-        [return: MarshalAs(UnmanagedType.I1)]
-        internal static extern bool Rendered(nint view);
     }
 }

@@ -118,6 +118,7 @@ internal static class UiChecks
         E2E.TerminalRemountE2E.Run(Path.Combine(root, "upstream-e2e"));
         E2E.TerminalsE2E.Run(Path.Combine(root, "upstream-e2e"));
         E2E.BottomPanelE2E.Run(Path.Combine(root, "upstream-e2e"));
+        GhosttySkiaChecks.Run(root);
         E2E.PreviewTabsE2E.Run(Path.Combine(root, "upstream-e2e"));
         E2E.MarkdownLinksE2E.Run(Path.Combine(root, "upstream-e2e"));
         E2E.MarkdownAlertsE2E.Run(Path.Combine(root, "upstream-e2e"));

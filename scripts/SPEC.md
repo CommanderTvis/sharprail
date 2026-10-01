@@ -12,15 +12,18 @@ implement product behavior.
 ## Boundary
 
 The scripts own `bootstrap.sh` (installs the `global.json` SDK into `.tools/dotnet`),
-`build-ghostty.sh` and `build-merman.sh` (pinned native libraries under `.tools`),
+`build-merman.sh` (pinned native library under `.tools`),
 `check-terminal.sh` (the native Ghostty shell/Metal probe), `publish.sh` (R2R
 publish into `artifacts/` and the canonical signed `artifacts/SharpRail.app`), and
 `benchmark.mjs` with its `window-probe.m` helper (launch timing, only when a
 benchmark is requested).
 
 Their public surface is the script invocations named in `AGENTS.md` and
-`README.md`, plus the two MSBuild `Exec` hooks in `SharpRail.UI.csproj` that run the
-native builds. They may depend on POSIX `sh`, Git, curl, `shasum`, clang/Xcode
+`README.md`, plus the Mermaid MSBuild hook in `SharpRail.UI.csproj`.
+Ghostty's native build belongs to `src/Ghostty.Avalonia/build-native.sh` and runs
+through that independent library's project. It applies the checked-in texture
+export and scrollback memory patches to the pinned Ghostty source; native sources and patches are included
+in the build fingerprint. They may depend on POSIX `sh`, Git, curl, `shasum`, clang/Xcode
 tools and, for the benchmark only, Node. They read source trees and write only to
 `.tools`, `.bench` and `artifacts`. Product logic, a second source of package
 versions, and editing sources are forbidden.

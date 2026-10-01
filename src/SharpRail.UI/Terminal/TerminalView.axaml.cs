@@ -59,6 +59,8 @@ public sealed partial class TerminalView : UserControl, IDisposable
         if (e.Source == this) FocusTerminal();
     }
 
+    public void Restart() => Start(retrying: IsKeyboardFocusWithin);
+
     // Starting again attaches afresh, which also takes the session back from another window.
     private async void Start(bool retrying)
     {

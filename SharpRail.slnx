@@ -1,5 +1,6 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Ghostty.Avalonia/Ghostty.Avalonia.csproj" />
     <Project Path="src/SharpRail.Host.Abstractions/SharpRail.Host.Abstractions.csproj" />
     <Project Path="src/SharpRail.Host.Client/SharpRail.Host.Client.csproj" />
     <Project Path="src/SharpRail.Host.Core/SharpRail.Host.Core.csproj" />

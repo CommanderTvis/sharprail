@@ -32,6 +32,12 @@ public sealed partial class WorkbenchWindow
             (image.Source as Bitmap)?.Dispose();
     }
 
+    /// <summary>Reattaches every open terminal tab, for example with another renderer; shells keep running.</summary>
+    internal void RestartTerminals()
+    {
+        foreach (var terminal in documentContent.Values.OfType<Terminal.TerminalView>().Where(terminal => !terminal.IsDetached)) terminal.Restart();
+    }
+
     private void ClearDocumentContent(bool preserveDocuments = false)
     {
         foreach (var key in documentContent.Keys.ToArray())

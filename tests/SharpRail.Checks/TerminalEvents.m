@@ -7,6 +7,19 @@
 #import <QuartzCore/QuartzCore.h>
 
 static NSPasteboard *testPasteboard;
+void *sr_texture_content(const char *title) {
+    NSString *name = [NSString stringWithUTF8String:title];
+    for (NSWindow *window in NSApp.windows)
+        if ([window.title isEqualToString:name]) return (__bridge void *)window.contentView;
+    return NULL;
+}
+int32_t sr_texture_window_number(void *pointer) { return (int32_t)((__bridge NSView *)pointer).window.windowNumber; }
+bool sr_texture_has_native_terminal(void *pointer) {
+    NSView *view = (__bridge NSView *)pointer;
+    if ([NSStringFromClass(view.class) isEqualToString:@"GAVTerminalView"]) return true;
+    for (NSView *child in view.subviews) if (sr_texture_has_native_terminal((__bridge void *)child)) return true;
+    return false;
+}
 static NSPasteboard *isolatedPasteboard(id self, SEL selector) { (void)self; (void)selector; return testPasteboard; }
 
 void sr_check_paste(void *pointer, int format) {
@@ -85,6 +98,8 @@ bool sr_check_ready(void *pointer) {
 void sr_check_click(void *pointer, double x, double y) {
     NSView *view = (__bridge NSView *)pointer;
     NSWindow *window = view.window;
+    // Checks use Avalonia's top-left coordinates, including unflipped content views.
+    if (!view.isFlipped) y = view.bounds.size.height - y;
     NSPoint point = [view convertPoint:NSMakePoint(x, y) toView:nil];
     for (NSNumber *type in @[@(NSEventTypeLeftMouseDown), @(NSEventTypeLeftMouseUp)]) {
         [NSApp postEvent:[NSEvent mouseEventWithType:type.integerValue location:point modifierFlags:0

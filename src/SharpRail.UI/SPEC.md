@@ -18,7 +18,7 @@ panel or feature flow.
   integration of the docking engine with profile persistence, host state and panels.
 - Allowed dependencies: `SharpRail.Host.Abstractions`; `SharpRail.Host.Core` and `SharpRail.Host.Client`
   to compose direct local calls or remote proxies; `SharpRail.Host.Remote` only to serve the in-process
-  terminal socket local relays attach to; `SharpRail.Scintilla`; Avalonia.
+  terminal socket local relays attach to; `SharpRail.Scintilla`; `Ghostty.Avalonia`; Avalonia.
 - Forbidden: host projects depending on the UI; panels reading the frame or knowing where they are placed;
   a UI-private copy of host-owned state; a background daemon.
 

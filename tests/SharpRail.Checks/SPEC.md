@@ -17,11 +17,17 @@ contract, not that list.
 run is the complete gate: host transport parity, host terminals, project/Git parity,
 host state, file saving, layout transitions, the open-world runtime probe, and then
 the headless UI checks with every upstream translation. Named modes
-(`--editor`, `--terminals`, `--sync`, `--workspaces`) are focused iteration subsets
+(`--editor`, `--terminals`, `--ghostty-skia`, `--sync`, `--workspaces`) are focused iteration subsets
 of that same code, never separate coverage; anything they run is also in the full
-run. `--native-terminal` and `--terminal-relay` are not check subsets: the first
-drives the real Ghostty bridge on macOS, the second lets the checks binary act as
-the relay child that terminal tabs launch.
+run. `--native-terminal` and `--native-texture` drive real macOS windows; the latter
+verifies GPU texture composition, overlays/clipping, theme, clipboard/input,
+resize/remounting and local/remote texture–Skia switches retaining their shells.
+It also checks bounded source texture retention through repeated resizing and repainting,
+the final displayed pixels after buffer reuse, control opacity, and disposal with a repaint queued.
+The library-only NSView fixture preserves mutable AppKit input coverage. The app
+integration check uses texture controls. `--texture-fallback` forces software
+rendering and verifies automatic Skia fallback with retained local/remote sessions.
+`--terminal-relay` lets the checks binary act as the relay child that tabs launch.
 
 Host checks that block on async work run before the Avalonia synchronization
 context is installed; UI checks run after it, on the dispatcher. The runner is
@@ -90,7 +96,9 @@ assertions are not synchronization. Before handoff, every app-affecting change r
 the full argument-free gate, with `SHARPRAIL_TEST_GIT_SOURCE` set when Git or
 layout history is affected, and formatting verification. Translated upstream
 coverage stays recorded in `E2E.md`, separate from SharpRail-only regression checks.
-Window moving, zooming, platform dialogs, Ghostty rendering and final visual
+Skia terminal checks render real pixels and encode real headless input, verify
+a host PTY surviving a view restart, and exercise Settings choice persistence.
+Window moving, zooming, platform dialogs, native Metal Ghostty rendering and final visual
 verification remain native checks (`scripts/check-terminal.sh`,
 `--native-terminal`, own-window captures) because the headless platform cannot
 prove them. Screenshots are evidence, never the assertion.

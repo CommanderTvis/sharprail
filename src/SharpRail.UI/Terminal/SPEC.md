@@ -22,8 +22,7 @@ recording and replay belong to the host (`Host.Core/PtyTerminalService.cs` behin
   exit notice, busy query for close confirmation, clipboard paste handling, theme propagation to Ghostty,
   and the relay's connection handoff.
 - Forbidden: starting or ending shells except through `ITerminalService`; deciding placement or which tab
-  is selected; putting the host token in argv or in a shell's environment; a CPU or WebView rendering
-  fallback.
+  is selected; putting the host token in argv or in a shell's environment; a WebView rendering fallback.
 
 ## Decisions
 
@@ -42,7 +41,7 @@ recording and replay belong to the host (`Host.Core/PtyTerminalService.cs` behin
   screen or a mode sequence, then the foreground program is nudged to redraw. A reconnecting client
   resumes from its last output position. Replay and the switch to live output are atomic, so nothing is
   shown twice.
-- Every Ghostty tab runs the SharpRail executable in relay mode as its child. The relay reads endpoint,
+- Metal texture tabs run the SharpRail executable in relay mode as their child. The relay reads endpoint,
   token, session and client from a private one-use file named by `SHARPRAIL_TERMINAL_RELAY`, puts its
   terminal in raw mode, attaches over authenticated gRPC streaming, forwards window-size changes and reports
   the real exit code or a takeover through a status file, because Ghostty's login wrapper does not
@@ -66,11 +65,36 @@ shell.
 
 ## Platform
 
-Ghostty (libghostty in native AppKit views hosted by Avalonia) owns emulation, fonts and Metal rendering
-and requires an available Metal device. Keyboard input, composition, selection, scrolling, clipboard and
-Retina resizing pass through the native view. Command-V pastes text, or saves PNG/TIFF clipboard images
-as distinct PNG files in the profile's `clipboard` directory and pastes a shell-quoted path; saved images
-outlive the terminal. Other operating systems show an explicit availability message instead of a body.
+Settings chooses Metal texture (default) or Skia (fallback) and persists the choice in app preferences.
+Changing it reattaches existing views to their same host session; it must not end
+the shell. Appearance changes update each renderer without reattaching.
+The integration lives in the independent `Ghostty.Avalonia` project.
+
+The library retains `GhosttyView` for NSView consumers and benchmarks; SharpRail does not instantiate or offer it.
+Texture creation or drawing failure automatically switches that view to Skia on
+the same host session, without changing the saved preference. Clipboard image
+paste saves PNG files under the profile's `clipboard` directory.
+
+In Metal texture mode, Ghostty renders to IOSurface textures that Avalonia imports
+directly into its Skia compositor. Completed targets are leased while Skia samples
+them, with GPU completion before Ghostty can reuse them. No export copy,
+snapshot copy or CPU readback is required. Avalonia handles input, clipping and overlays, and the
+Ghostty platform view stays unparented. There is no hosted native terminal view.
+The application prefers Avalonia's Metal backend; unsupported texture import is
+handled by Skia fallback. Failure of that fallback uses the start-failure/retry flow.
+Frame-ready notifications invalidate the control without polling. The compositor
+wraps a leased source texture for each draw and waits for its GPU read to finish;
+this favors bounded memory and explicit ownership over maximum GPU overlap.
+The latest completed target and in-flight readers remain bounded by Ghostty's
+three render targets. Resize, remount and disposal must release old targets. The native Ghostty build preserves enlarged scrollback
+page allocations when recycling them, without reducing retained history limits.
+
+In Skia mode, libghostty-vt owns terminal state and input encoding; Avalonia draws
+Skia pictures and owns focus, clipboard, selection and composition input. The
+adapter attaches directly to `ITerminalService`, queues input in order, uses the
+arranged grid size and propagates exit/takeover to `TerminalView`. No relay child
+is needed. All paths currently require macOS native libraries; other platforms
+show an availability message.
 
 ## Validation
 
@@ -79,7 +103,14 @@ alternate screen or mouse modes, resume without duplication, busy detection and 
 them with the terminal and bottom-panel translations over local and remote hosts. Native acceptance
 additionally requires live shell output with nonuniform pixels in Ghostty's IOSurface, keyboard input,
 resizing and disposal (`scripts/check-terminal.sh`, `--native-terminal`); headless docking checks alone do
-not establish terminal execution.
+not establish terminal execution. `--ghostty-skia` verifies real rendered colours,
+wide/combining text, keyboard and SGR mouse press/release, paste, selection,
+scrollback, resize and a real host shell surviving a renderer restart.
+`--native-texture` requires real imported pixels with theme changes, Avalonia
+overlays and parent clipping, native keyboard/clipboard input, Retina resize,
+remounting and texture/Skia switches retaining local and remote shells.
+`--texture-fallback` forces software composition and requires automatic Skia
+fallback while preserving the local/remote shell and its exit status.
 
 ## Not yet ported
 

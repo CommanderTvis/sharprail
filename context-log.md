@@ -2252,3 +2252,300 @@ window115739, capture .bench/scintilla-native.png remains open. Other SharpRail
 processes in sibling checkouts were not touched. Commit was explicitly requested;
 no agents, benchmarks, pushes or external posts. User did not answer the optional
 save/component-only question; proceeded with the stated file-saving default.
+
+## Ghostty rendering continuation — 2026-10-01
+
+Resumed Claude session 361b5879-88f9-49d4-aefe-aab2932d6e95 from this checkout.
+User's task is a Settings-selectable Avalonia Skia Ghostty rendering path and
+extraction of the integration into a shareable project. Existing draft and staged
+renames were preserved. `src/Ghostty.Avalonia` now contains native AppKit/Metal
+and Skia/libghostty-vt controls, native sources, pinned build script, README and
+license, without SharpRail project references. It builds with root build/package
+props disabled. Settings persists native/skia, rebuilds attached views on the same
+host shells, and leaves displaced clients detached. The Skia adapter attaches to
+the host directly and reports input/resize failures.
+
+Fixed reversed mouse press/release enums and initialized grapheme-cluster mode
+like Ghostty's native runtime. Regression checks assert exact SGR press/release,
+combining/emoji cell width across reset, rendered colours, selection, scrolling,
+input, PTY restart survival, Settings persistence and displaced-client ownership.
+Inspected `.bench/ghostty-skia.png`: skin-tone modifier now renders with its base.
+Skia limitations and macOS build prerequisites are documented in the library README.
+
+Passing evidence: `.bench/skia-clusters-verified.log` (latest focused tests),
+`.bench/skia-terminals-final.log` (host/terminal/bottom translations plus Skia
+checks before final grapheme correction), `.bench/ghostty-extracted-native.log`,
+`.bench/ghostty-extracted-avalonia-native.log` (native local/remote, keyboard,
+clipboard, theme and lifecycle), `.bench/ghostty-standalone-build.log`.
+Full regression `.bench/ghostty-renderers-full.log` is blocked in an existing
+editor fixture's Git commit: `1Password: Could not connect to socket` / `failed
+to write commit object`. Signing was not bypassed and fixture code was not changed.
+Final formatting log: `.bench/ghostty-renderers-final-format.log`.
+Changes remain uncommitted, with Claude's staged renames retained; no publication,
+commits, pushes, agents or benchmarks. Canonical app artifacts represent older code.
+
+### Ghostty texture path — continuation of the full scope
+
+The explicit goal includes BOTH new paths: Ghostty GPU textures composed by
+Avalonia without hosting a raw NSView, and the Skia cell fallback. The earlier
+native/Skia-only result did not fulfill that scope. Settings now accepts
+`native`, `texture`, `skia`; the reusable project exposes all three controls.
+`GhosttyTextureView` keeps libghostty's platform view unparented, exports completed
+Metal render targets via `Native/MetalTexture.patch`, GPU-blits immutable
+IOSurfaces before target reuse, then imports them through Avalonia composition
+with Metal shared-event synchronization. No CPU pixel readback or hosted
+NativeControlHost. Avalonia handles focus, keyboard, IME preedit, mouse and
+composition; the existing native callbacks handle clipboard text/images.
+The application now prefers Avalonia's Metal backend. Native and texture tabs
+use relays; Skia attaches directly to the same host sessions.
+
+Native texture checks passed: `.bench/ghostty-three-renderers-texture-final.log`,
+including imported ANSI/theme pixels, native input, clipboard, application
+shortcuts, overlays/clipping, Retina resize, remounting and local/remote
+texture–Skia switches preserving PID/environment, Control-C and exit status.
+The test click helper now converts top-left coordinates for unflipped AppKit
+content views; screenshot pixel checks convert the display ICC profile to sRGB.
+Passing regression evidence: `.bench/ghostty-metal-regression.log`,
+`.bench/ghostty-texture-native-probe.log`, `.bench/ghostty-three-renderers-skia.log`,
+`.bench/ghostty-three-renderers-terminals-final.log` and standalone build
+`.bench/ghostty-three-renderers-standalone.log`. The terminal suite's first run
+timed out in an existing document-open step of BottomPanelE2E.SquareActions;
+it passed in a separate rerun without changing that test. Full regression remains
+blocked by the existing editor fixture's 1Password signing request; no bypass.
+
+Final full-size keyboard/numeric-keypad mappings and real AppKit keypad check
+pass with the other texture checks in `.bench/ghostty-texture-complete.log`.
+Final Skia/three-choice Settings checks pass in `.bench/ghostty-skia-complete.log`.
+Solution build `.bench/ghostty-three-renderers-build-complete.log` succeeds with
+four existing Avalonia XAML warnings. Formatting verification
+`.bench/ghostty-three-renderers-format-complete.log` and `git diff --check` pass.
+Implementation and relevant rendering/terminal checks are complete; the full
+suite's signing blocker above remains explicitly unverified.
+No commits, pushes, publication, agents or benchmarks. The app bundle is unchanged.
+
+### Requested renderer benchmark — 2026-10-01
+
+User explicitly requested Metal texture versus hosted NSView benchmarking.
+Created a disposable, reproducible standalone Avalonia harness under
+`.bench/ghostty-renderer-bench` referencing the current Ghostty.Avalonia project.
+Product source is unchanged. The initial synthetic-keyboard harness was
+susceptible to desktop focus changes; final measurements use a FIFO to trigger
+the identical native PTY producer and timestamp output before write. Only the
+benchmark window is observed through ScreenCaptureKit, using its WindowServer
+display timestamp. CPU/memory phases run without capture.
+
+Main batch `measured` has five alternating fresh-process runs per mode (excluded
+warm-ups), 480 frames at 60 Hz, three ~64 MiB ANSI bursts and 40 retained latency
+samples per process. Apple M4 Pro/24 GiB, AC, 960×540 logical at 2×, maximum 120 Hz.
+Means NSView/texture: redraw CPU 8.8/19.7% of one core; physical footprint 235.8/353.0
+MiB; parsed throughput 58.2/56.0 MiB/s. Pooled median presentation 14.3/34.7 ms,
+p95 21.5/46.3 ms. Texture run 2 had three ~1 s stalls, retained and unexplained.
+Both paths had large post-flood footprint (~3.2–3.3 GiB); no allocation diagnosis.
+Full report `measured/report.html`, raw summary `measured/summary.json`,
+metadata/power logs and binary/source hashes retained. Reproduce with
+`sh .bench/ghostty-renderer-bench/reproduce.sh`. Additional confirmatory runs
+`confirm-native` and `confirm-texture` are separate from the five-run summary;
+both passed with no >100 ms stalls. Median 12.9/33.6 ms and maximum 20.8/48.7 ms,
+so the long stalls did not repeat in this pair; cause remains unproven. Summary
+`measured/confirmation.json` and the HTML report retain this distinction.
+Benchmark build, workload/viewport validation and `git diff --check` pass.
+No product changes, commits, pushes or publication in this benchmark task.
+
+### Texture optimization and RAM investigation — 2026-10-01 (in progress)
+
+User requested implementing texture optimizations, with particular attention to
+RAM. `GhosttyTextureView` now uses coalesced frame-ready notifications instead
+of 16 ms polling, persistent imported images, and a two-IOSurface native pool.
+A pending frame can be superseded before copying; only one consumer lease is
+active. A monotonically increasing Metal shared-event signal and asynchronous
+completion callback prevent reuse until Avalonia's GPU snapshot completes.
+Resize generations retire imports; disposal removes notifications and drains the
+outstanding update. The producer copy and its completion wait remain to protect
+Ghostty's render target. `NativeTextureChecks` now checks bounded imports across
+16 resizes, repeated repaint pixels and queued disposal.
+
+RAM profiling found the common ~3 GiB flood growth came from pinned Ghostty's
+PageList.grow: recycling an enlarged page with the standard layout truncated its
+recorded allocation and capacity. `Native/ScrollbackMemory.patch` uses reinit and
+restores current logical columns, preserving the actual allocation and enlarged
+capacity. Both native renderers benefit without reducing scrollback limits.
+The build restores/patches the pinned PageList and fingerprints the patch.
+A pilot dropped flood footprint from ~3379 MiB to ~372 MiB, and after disposal
+from ~3134 MiB to ~125 MiB. Final repeated measurements are still running.
+
+All 183 selected Zig checks pass, including the new enlarged-page/column-resize
+regression (`.bench/ghostty-texture-optimization/page-tests-system-cpp-3.log`).
+The pinned Zig test driver's libc++ build fails on an INFINITY header; the saved
+`run-page-tests.mjs`/`page-test-command.json` runs the same tests with SDK C++
+headers/runtime. Product builds use the usual build script, unchanged toolchain.
+Native texture, native Metal probe and Skia checks pass. Final two-buffer texture
+checks: `two-slot-verified.log`. Earlier benchmark interruptions were recorded:
+one was macOS idle sleep (233 s in pmset log), another a power-source change.
+Do not include these or the three-buffer exploratory results in final numbers.
+
+Artifacts, original binaries, source snapshots and profiling evidence live in
+`.bench/ghostty-texture-optimization`. The final AC-powered comparison uses
+`compare.mjs` with caffeinate: five alternating old/new texture pairs plus two
+patched NSView trials in `matched-two-slot`; then three old/new texture RAM
+pairs plus two NSView trials in `ram-two-slot`. RAM harness waits 15 s after
+flooding and 10 s after disposal, followed by a diagnostic forced GC (not added
+to the product). The same harness executable is used with old/new libraries.
+`analyze.mjs` writes summary.json; `report.mjs` writes report.html after both
+batches finish. Final source/binary hashes are in fingerprints.json.
+Pending: finish both batches, generate/report measured results, final solution
+build/format/diff checks and append final evidence to VALIDATION.md and here.
+No commits, pushes, publication or agents. Preserve all existing unrelated work.
+
+Completed final measurements and verification. AC-powered `matched-two-slot`
+contains five alternating before/after texture pairs and two patched NSView runs.
+Texture before/after: median 37.18/29.71 ms; p95 50.06/35.77 ms; redraw CPU
+18.19/15.20% of one core; redraw footprint 351.41/353.24 MiB (essentially unchanged);
+peak flood footprint 3358.22/363.11 MiB; parsed throughput 50.85/91.00 MiB/s.
+No >100 ms latency outliers in these completed final trials.
+`ram-two-slot` contains three before/after texture pairs plus two patched NSView
+runs: settled footprint 3358.12/367.19 MiB; 10 s after disposal 3131.81/130.41 MiB;
+after diagnostic GC 3129.88/128.59 MiB. Thus ~89% lower flood RAM and ~96% lower
+retained RAM after disposal. Patched NSView settled/disposed: 251.10/100.52 MiB.
+Normal texture RAM is not substantially reduced. Full report and summary are
+`.bench/ghostty-texture-optimization/report.html` and `summary.json`; VALIDATION.md
+records the method, limits and checks. Both final batches stayed on AC without
+new swap-outs or thermal warnings. The earlier interrupted/provisional batches
+are excluded. Native texture (final two slots), native probe, Skia, 183 selected
+Zig checks, solution build (0 warnings/errors), format and diff checks pass.
+Implementation and requested RAM verification are complete; no commits/pushes or
+publication. No pending task beyond reporting results to the user.
+
+### Remaining texture RAM attribution — 2026-10-01 (complete)
+
+User asked why baseline redraw RAM did not improve, then requested tracing the
+~121 MiB gap. Investigation and HTML report are under
+`.bench/ghostty-memory-attribution`; no product changes or latency reruns.
+Existing post-flood maps explain ~120 MiB: driver graphics84.4, IOSurfaces23.9,
+other mapped GPU3.7, CPU heap/runtime~8 MiB. Fresh ordinary steady traces resolve
+15.84 MiB export pool,16.19 MiB extra Skia snapshots,8.09 MiB extra drawable.
+Avalonia importer calls surface.Snapshot(), causing the second GPU copy.
+The largest component is68 MiB copy-related driver working storage:41 versus24
+4 MiB graphics blocks. Suppressing exporter blit alone moves allocation to
+Avalonia snapshot and keeps41 blocks; suppressing all blits drops to24. These are
+intentionally non-rendering diagnostics, not fixes. Two-command-buffer exporter
+and shared active Avalonia queue keep41 blocks. Sharing Ghostty queue stalls
+completion (sample saved), rejected. Thus avoiding exporter copy alone won't
+necessarily recover68 MiB; source ownership and snapshot path both need redesign.
+Original latency/CPU/RAM benchmark remains authoritative; instrumented memory
+varies and includes profiling overhead. Detailed method/limits in VALIDATION.md
+and report.html. Final ordinary texture profile948 composition updates; harness
+build0 warnings/errors. No pending processes, commits, pushes or publication.
+
+### Direct sampling for significant further savings — 2026-10-01
+
+User requested implementation of significant RAM savings. Implemented direct
+Skia custom draw operation using SKImage.FromTexture on Ghostty's original
+MTLTexture. Removed pooled exports, blit queue, CompositionDrawingSurface,
+import cache and shared-event plumbing. Native GAVTextureFrames retains latest
+source and counts active readers; leases retain both state and source. New
+MetalTexture.patch hook in metal/Frame.zig before encoding waits for reads of
+that target; Target.zig enables shader_read. Managed drawing holds native lease
+until GRContext.Flush(submit:true,synchronous:true). Native Stop prevents future
+acquisition, clears latest/callback; outstanding leases survive view disposal.
+Canvas clipping/transform inherited; current opacity applied to SKPaint.
+
+Acceptance target >=80 MiB savings: first foreground pilot achieves ~100 MiB
+(356.9→257.2 MiB same RAM-harness stages; prior main benchmark353.2→257.2 is96 MiB).
+After output settles271.2,10s after disposal115.5 MiB. CPU17.7% versus previous15.2%
+mean: tradeoff not yet characterized by repeats. Native focused texture/session
+checks pass on initial direct-sampling implementation. Final ABI cleanup removes
+unused sequence argument. Added opacity check compiles, but desktop locked before
+final foreground test. Initial Metal-debug attempt fails Avalonia RenderTimer
+-6661; normal retry reaches Ready then times out on NSApp active/keyWindow.
+Confirmed IORegistry CGSSessionScreenIsLocked=Yes. Asked user asynchronously to
+unlock for5min or accept existing measurements; no reply yet.
+
+Continued independent verification: final resource census (behind lock, skipped
+only activation) completed498 GPU draws, shows24 rather than41 driver4MiB blocks,
+zero export IOSurfaces and zero Skia snapshot textures. Thus68+15.84+16.19≈100 MiB
+GPU allocations removed. Its CPU/RAM timings are excluded due locked desktop and
+tracing. Solution build passes with4 existing XAML warnings; format check passes.
+Spec, README, notices and check spec updated. No product fallback/hacks or blit
+suppression. Source/binary hashes and evidence in
+`.bench/ghostty-direct-texture/report.html` and summary.json.
+
+Pending after unlock: final --native-texture with opacity (and optional Metal API
+validation), repeat memory (3fresh trials) and presentation (3fresh trials) using
+`caffeinate -di node .bench/ghostty-direct-texture/run.mjs memory` then presentation.
+Both runners built, directories not yet created; don't rerun historical baselines.
+Current pilot under ram-1; initial pre-ABI-cleanup snapshots and optimized old
+memory executable under before/. Native probe passes in native-probe-awake.log (explicit display-awake assertion);
+its first attempt while the display was asleep failed surface creation. No check
+or profiling processes remain running. Foreground checks still await unlock.
+No commits, pushes, publication or agents; all existing unrelated work preserved.
+
+### Explicit RAM-gap goal audit — 2026-10-01
+
+Active goal: texture minus NSView RAM must be below 60 MiB. Previous goal turn
+classified as progress (implementation, pilot and resource census). Revalidated
+current source/native/managed SHA256 fingerprints: all match the final inventory.
+Saved foreground pilot versus existing NSView RAM-batch means: redraw gap20.95 MiB,
+peak flood gap26.28 MiB, settled gap20.10 MiB, disposed gap15.01 MiB. All clear60 MiB,
+but pilot evidence does not close the pending final foreground verification.
+Machine-readable completion audit: .bench/ghostty-direct-texture/goal-audit.json.
+Desktop is still authoritatively locked; no verification/benchmark process is
+running. This is the first consecutive blocked goal turn following implementation
+progress. Goal remains active; do not label this a verified wait or restart GUI
+trials until unlocked. The existing asynchronous unlock request is still pending.
+
+RAM-gap continuation audit: previous turn was no progress due to the locked
+desktop. Rechecked IORegistry: still locked. No live renderer benchmark or
+texture-verification process exists. An unrelated --file-icons check was
+observed and left untouched. Renderer source/binary hashes still match the saved
+inventory. This is consecutive blocked goal turn 2; leave the goal active until
+the three-turn blocked threshold or an unlock. Do not count audit bookkeeping
+as implementation progress or a verified wait.
+
+RAM-gap blocked audit: third consecutive goal turn confirms the same locked
+macOS desktop and no live renderer verification process. Previous turn was no
+progress, not a verified wait. Independent implementation/resource verification
+is finished; the remaining foreground checks cannot proceed without unlocking.
+Mark the goal blocked rather than continuing automatic status-only turns.
+Pilot redraw gap remains 20.95 MiB against the below-60 MiB target; completion
+is not claimed. Resume the listed foreground checks after the user unlocks.
+
+### RAM-gap goal verified after unlock — 2026-10-01
+
+User returned; desktop unlocked. Source/native/managed hashes still match final
+inventory, including both benchmark executable directories. Final native texture
+checks pass normally and with MTL_DEBUG_LAYER=1 (confirmed enabled), including
+opacity and local/remote retained sessions. First unlocked attempt failed focus;
+both subsequent full runs passed without changes; cause unconfirmed.
+
+Three fresh memory and three presentation trials finished on AC power with
+identical workload/scale; saved baselines reused. Redraw mean262.0 MiB, range258.4–265.8,
+versus pooled356.9 and NSView236.2. Savings94.9 MiB; gap25.8, worst29.6. Peak flood
+mean275.2 versus247.1; worst gap31.7. All comfortably under60 MiB. Disposed10s118.0.
+CPU18.8% versus pooled15.2%; latency median24.5/p9530.5ms versus pooled29.7/35.8
+and NSView13.3/20.5. Idle settled166.6mean is variable, not used for active claim.
+Final evidence final-report.html/final-summary.json under .bench/ghostty-direct-texture;
+final-report.mjs validates workloads/power and regenerates them. Earlier report.mjs
+is pilot-only; do not replace final results with it. VALIDATION.md updated.
+No remaining foreground gate; goal complete. No source changes this resumption,
+no commit/push/publication, no benchmark processes left running.
+
+### Store benches and default the app to texture — 2026-10-01
+
+User authorized storing benchmark code, leaving NSView only in the library,
+defaulting the app to texture with Skia fallback, and commit/push. Implemented
+automatic fallback on texture creation/drawing errors; same host session retained,
+preference unchanged. Settings has two choices; new/legacy-native profiles use
+texture. All NSView app construction and shortcut plumbing removed; library API
+and native probe preserved. Bench sources/build/run/summary scripts plus saved
+aggregate results now live in benchmarks/ghostty. Generated files remain ignored.
+
+All benchmark projects build; solution/checks builds and format pass. Headless
+--terminals passes incl Settings migration and both choices. --texture-fallback
+passes on software rendering with local/remote retained shells. Final
+--native-texture passes including library NSView mutable-input fixture. Opacity
+capture now waits for GPU draw and polls presentation; temporary GPU pixel
+diagnostics confirmed correct blend and were removed. Source hash matches original.
+Broader --native-terminal workbench rerun still stops at explicit active/focus
+gate; don't claim it passed. Other checkout GUI process was observed and left
+untouched. Detailed logs and limitations in VALIDATION.md. Ready for authorized
+signed commit and push to origin/upstream; never bypass 1Password presence.

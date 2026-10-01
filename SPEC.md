@@ -53,19 +53,35 @@ must not prevent opening the workspace.
 
 ## Terminals
 
-Terminal tabs embed libghostty 1.2.3 in native AppKit views hosted by Avalonia.
-Ghostty owns terminal emulation, fonts and the Metal renderer; its Metal textures
-are presented through its IOSurfaceLayer, without a WebView or CPU text rendering
-fallback. Surface creation requires an available Metal device. Keyboard input,
-text composition, selection, scrolling, clipboard and Retina resizing pass through
-the native view. Other operating systems show an explicit availability message.
+Settings → Terminal chooses Metal texture (default) or Skia (fallback) rendering. All
+integrations live in the reusable `Ghostty.Avalonia` project, with no SharpRail
+dependency. Changing the renderer rebuilds attached views on their existing host
+sessions and leaves displaced clients waiting for explicit Take it back.
+
+The reusable library retains its NSView control for consumers and benchmarks.
+SharpRail does not instantiate or offer NSView rendering.
+
+Metal texture tabs keep Ghostty's Metal renderer and import its completed
+IOSurface textures into Avalonia's Skia compositor. Avalonia owns input, clipping
+and overlays; no raw native terminal view is hosted in the window. The internal
+platform view required by libghostty remains unparented. A native read lease preserves each
+frame until GPU sampling finishes, with no export copy, snapshot copy or CPU readback. The app
+prefers Avalonia's Metal backend; texture creation or drawing failure falls back to Skia on the same host session.
+Fallback does not change the saved renderer preference.
+
+Skia tabs use pinned libghostty-vt for emulation and input encoding and draw its
+cells, cursor and selection through Avalonia's Skia compositor. They attach to
+the host terminal service in-process; Avalonia handles input and clipboard.
+The native build currently supports macOS only. Image protocols, hyperlink
+activation, cross-cell ligatures and terminal accessibility text are not provided
+by the Skia path.
 
 Shells belong to the host, following upstream's terminal module. The host PTY
 (`posix_openpt`, `posix_spawn` of the user's login shell as a new session leader in
 the worktree) reports output, exit status and whether a foreground process is
 running; the host's session token is removed from shell environments. A tab's
 session id derives from its workspace and tab id, and each window is a client. Every
-Ghostty tab, local or remote, runs the SharpRail executable in `--terminal-relay`
+Metal texture tab, local or remote, runs the SharpRail executable in `--terminal-relay`
 mode as its child: the relay reads the endpoint, token, session and client from a
 private one-use file named by an environment variable (never argv), puts its
 terminal in raw mode, attaches over authenticated code-first gRPC streaming and

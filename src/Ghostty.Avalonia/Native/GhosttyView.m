@@ -3,15 +3,16 @@
 #import <IOSurface/IOSurface.h>
 #import <Metal/Metal.h>
 #include "ghostty.h"
-#include "SharpRailGhostty.h"
-extern void sr_ghostty_config_colors(ghostty_config_t config, const uint32_t *colors, double minimum_contrast);
+#include "GhosttyView.h"
+extern void gav_ghostty_config_colors(ghostty_config_t config, const uint32_t *colors, double minimum_contrast);
 
-@interface SRTerminalView : NSView <NSTextInputClient>
+@interface GAVTerminalView : NSView <NSTextInputClient>
 @property(nonatomic, assign) ghostty_surface_t surface;
 @property(nonatomic, strong) NSMutableAttributedString *marked;
 @property(nonatomic, strong) NSMutableArray<NSString *> *keyText;
 @property(nonatomic, copy) NSString *clipboardDirectory;
-@property(nonatomic, assign) sr_terminal_event_cb callback;
+@property(nonatomic, assign) gav_view_event_cb callback;
+@property(nonatomic, assign) gav_view_shortcut_cb shortcut;
 @property(nonatomic, assign) void *context;
 - (void)resizeSurface;
 @end
@@ -29,8 +30,8 @@ static void wakeup(void *data) {
 }
 static bool action(ghostty_app_t instance, ghostty_target_s target, ghostty_action_s value) {
     if (value.tag == GHOSTTY_ACTION_SHOW_CHILD_EXITED && target.tag == GHOSTTY_TARGET_SURFACE) {
-        SRTerminalView *view = (__bridge SRTerminalView *)ghostty_surface_userdata(target.target.surface);
-        if (view.callback) view.callback(view.context, SR_TERMINAL_EXITED, (int32_t)value.action.child_exited.exit_code);
+        GAVTerminalView *view = (__bridge GAVTerminalView *)ghostty_surface_userdata(target.target.surface);
+        if (view.callback) view.callback(view.context, GAV_VIEW_EXITED, (int32_t)value.action.child_exited.exit_code);
         // Ghostty still prints its own exit notice in the terminal.
         return false;
     }
@@ -42,10 +43,10 @@ static bool action(ghostty_app_t instance, ghostty_target_s target, ghostty_acti
     return false;
 }
 static void readClipboard(void *data, ghostty_clipboard_e clipboard, void *state) {
-    SRTerminalView *view = (__bridge SRTerminalView *)data;
+    GAVTerminalView *view = (__bridge GAVTerminalView *)data;
     NSPasteboard *pasteboard = NSPasteboard.generalPasteboard;
     NSString *text = [pasteboard stringForType:NSPasteboardTypeString] ?: @"";
-    NSData *image = [pasteboard dataForType:NSPasteboardTypePNG] ?: [pasteboard dataForType:NSPasteboardTypeTIFF];
+    NSData *image = !view.clipboardDirectory ? nil : [pasteboard dataForType:NSPasteboardTypePNG] ?: [pasteboard dataForType:NSPasteboardTypeTIFF];
     if (image) {
         NSBitmapImageRep *bitmap = [NSBitmapImageRep imageRepWithData:image];
         NSData *png = [bitmap representationUsingType:NSBitmapImageFileTypePNG properties:@{}];
@@ -65,7 +66,7 @@ static void readClipboard(void *data, ghostty_clipboard_e clipboard, void *state
     ghostty_surface_complete_clipboard_request(view.surface, text.UTF8String, state, false);
 }
 static void confirmClipboard(void *data, const char *text, void *state, ghostty_clipboard_request_e request) {
-    SRTerminalView *view = (__bridge SRTerminalView *)data;
+    GAVTerminalView *view = (__bridge GAVTerminalView *)data;
     NSAlert *alert = [NSAlert new];
     alert.messageText = @"Allow terminal clipboard access?";
     alert.informativeText = @"The terminal requested clipboard data that requires confirmation.";
@@ -95,7 +96,7 @@ static bool initialize(void) {
     NSString *bundled = [[NSBundle mainBundle].resourcePath stringByAppendingPathComponent:@"ghostty"];
     if ([[NSFileManager defaultManager] fileExistsAtPath:bundled]) resources = bundled;
     if ([[NSFileManager defaultManager] fileExistsAtPath:resources]) setenv("GHOSTTY_RESOURCES_DIR", resources.UTF8String, 1);
-    char *args[] = {"SharpRail", NULL};
+    char *args[] = {(char *)NSProcessInfo.processInfo.processName.UTF8String, NULL};
     if (ghostty_init(1, args) != GHOSTTY_SUCCESS) return false;
     ghostty_config_t config = ghostty_config_new();
     ghostty_config_finalize(config);
@@ -115,7 +116,7 @@ static bool initialize(void) {
     return true;
 }
 
-@implementation SRTerminalView
+@implementation GAVTerminalView
 - (BOOL)isFlipped { return YES; }
 - (BOOL)acceptsFirstResponder { return YES; }
 - (BOOL)becomeFirstResponder {
@@ -157,13 +158,11 @@ static bool initialize(void) {
         .unshifted_codepoint = unshifted.length ? [unshifted characterAtIndex:0] : 0, .composing = composing };
     ghostty_surface_key(self.surface, key);
 }
-// Mod+Shift+J belongs to the workbench even while the terminal has keyboard focus.
-- (BOOL)forwardWorkbenchShortcut:(NSEvent *)event {
-    NSEventModifierFlags flags = event.modifierFlags & NSEventModifierFlagDeviceIndependentFlagsMask;
-    if (event.keyCode != 38 || (flags & (NSEventModifierFlagCommand | NSEventModifierFlagShift | NSEventModifierFlagControl | NSEventModifierFlagOption))
-        != (NSEventModifierFlagCommand | NSEventModifierFlagShift) || !self.callback) return NO;
-    if (event.type == NSEventTypeKeyDown && !event.isARepeat) self.callback(self.context, SR_TERMINAL_TOGGLE_BOTTOM_PANEL, 0);
-    return YES;
+// The owner sees Command key equivalents first, so its own shortcuts work while the terminal has focus.
+- (BOOL)forwardShortcut:(NSEvent *)event {
+    if (!(event.modifierFlags & NSEventModifierFlagCommand) || !self.shortcut) return NO;
+    NSString *key = event.charactersIgnoringModifiers.lowercaseString ?: @"";
+    return self.shortcut(self.context, key.UTF8String, modifiers(event.modifierFlags), event.isARepeat);
 }
 // Ghostty decides which modifiers take part in text translation (macos-option-as-alt and the keyboard layout).
 - (NSEvent *)translationEvent:(NSEvent *)event {
@@ -182,7 +181,7 @@ static bool initialize(void) {
         charactersIgnoringModifiers:event.charactersIgnoringModifiers ?: @"" isARepeat:event.isARepeat keyCode:event.keyCode] ?: event;
 }
 - (void)keyDown:(NSEvent *)event {
-    if ([self forwardWorkbenchShortcut:event]) return;
+    if ([self forwardShortcut:event]) return;
     if (!self.surface) return;
     NSEvent *translation = [self translationEvent:event];
     BOOL wasMarked = self.hasMarkedText;
@@ -197,7 +196,7 @@ static bool initialize(void) {
 - (void)keyUp:(NSEvent *)event { [self sendKey:event translation:event action:GHOSTTY_ACTION_RELEASE text:nil composing:NO]; }
 - (BOOL)performKeyEquivalent:(NSEvent *)event {
     if (self.window.firstResponder != self) return NO;
-    if ([self forwardWorkbenchShortcut:event]) return YES;
+    if ([self forwardShortcut:event]) return YES;
     ghostty_input_key_s key = { .action = GHOSTTY_ACTION_PRESS, .mods = modifiers(event.modifierFlags), .keycode = event.keyCode, .text = event.characters.UTF8String };
     if (!ghostty_surface_key_is_binding(self.surface, key)) return NO;
     [self keyDown:event]; [self keyUp:event]; return YES;
@@ -246,14 +245,15 @@ static bool initialize(void) {
 }
 @end
 
-void *sr_terminal_create(const char *directory, const char *clipboard_directory, const char *command,
-                         const char *environment_name, const char *environment_value,
-                         sr_terminal_event_cb callback, void *context) {
+void *gav_view_create(const char *directory, const char *clipboard_directory, const char *command,
+                      const char *environment_name, const char *environment_value,
+                      gav_view_event_cb event, gav_view_shortcut_cb shortcut, void *context) {
     NSCAssert(NSThread.isMainThread, @"Terminal views require the main thread");
     if (!initialize()) return NULL;
-    SRTerminalView *view = [[SRTerminalView alloc] initWithFrame:NSMakeRect(0, 0, 640, 360)];
-    view.clipboardDirectory = [NSString stringWithUTF8String:clipboard_directory];
-    view.callback = callback;
+    GAVTerminalView *view = [[GAVTerminalView alloc] initWithFrame:NSMakeRect(0, 0, 640, 360)];
+    view.clipboardDirectory = clipboard_directory ? [NSString stringWithUTF8String:clipboard_directory] : nil;
+    view.callback = event;
+    view.shortcut = shortcut;
     view.context = context;
     [view unmarkText];
     ghostty_surface_config_s config = ghostty_surface_config_new();
@@ -272,30 +272,31 @@ void *sr_terminal_create(const char *directory, const char *clipboard_directory,
         ghostty_surface_free(view.surface); return NULL;
     }
     [view resizeSurface];
-    NSLog(@"SHARPRAIL_TERMINAL renderer=Metal presentation=IOSurfaceLayer device=%@", MTLCreateSystemDefaultDevice().name);
+    NSLog(@"GHOSTTY_AVALONIA renderer=Metal presentation=IOSurfaceLayer device=%@", MTLCreateSystemDefaultDevice().name);
     return (__bridge_retained void *)view;
 }
-void sr_terminal_destroy(void *pointer) {
-    SRTerminalView *view = (__bridge_transfer SRTerminalView *)pointer;
+void gav_view_destroy(void *pointer) {
+    GAVTerminalView *view = (__bridge_transfer GAVTerminalView *)pointer;
     view.callback = NULL;
+    view.shortcut = NULL;
     [view removeFromSuperview];
     if (view.surface) { ghostty_surface_free(view.surface); view.surface = NULL; }
 }
-bool sr_terminal_busy(void *pointer) {
-    SRTerminalView *view = (__bridge SRTerminalView *)pointer;
+bool gav_view_busy(void *pointer) {
+    GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;
     return view.surface && !ghostty_surface_process_exited(view.surface) && ghostty_surface_needs_confirm_quit(view.surface);
 }
-void sr_terminal_focus(void *pointer) { SRTerminalView *view = (__bridge SRTerminalView *)pointer; [view.window makeFirstResponder:view]; }
-void sr_terminal_set_colors(void *pointer, const uint32_t *colors, double minimum_contrast) {
-    SRTerminalView *view = (__bridge SRTerminalView *)pointer;
+void gav_view_focus(void *pointer) { GAVTerminalView *view = (__bridge GAVTerminalView *)pointer; [view.window makeFirstResponder:view]; }
+void gav_view_set_colors(void *pointer, const uint32_t *colors, double minimum_contrast) {
+    GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;
     ghostty_config_t config = ghostty_config_new();
-    sr_ghostty_config_colors(config, colors, minimum_contrast);
+    gav_ghostty_config_colors(config, colors, minimum_contrast);
     ghostty_config_finalize(config);
     ghostty_surface_update_config(view.surface, config);
     ghostty_config_free(config);
 }
-void sr_terminal_input(void *pointer, const char *text) {
-    SRTerminalView *view = (__bridge SRTerminalView *)pointer;
+void gav_view_input(void *pointer, const char *text) {
+    GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;
     const char *start = text;
     for (const char *cursor = text; ; cursor++) {
         if (*cursor != '\r' && *cursor != '\n' && *cursor != 0) continue;
@@ -308,8 +309,8 @@ void sr_terminal_input(void *pointer, const char *text) {
         start = cursor + 1;
     }
 }
-bool sr_terminal_rendered(void *pointer) {
-    SRTerminalView *view = (__bridge SRTerminalView *)pointer;
+bool gav_view_rendered(void *pointer) {
+    GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;
     if (![NSStringFromClass(view.layer.class) isEqualToString:@"IOSurfaceLayer"] || !view.layer.contents) return false;
     CFTypeRef contents = (__bridge CFTypeRef)view.layer.contents;
     if (CFGetTypeID(contents) != IOSurfaceGetTypeID()) return false;
@@ -322,10 +323,10 @@ bool sr_terminal_rendered(void *pointer) {
     IOSurfaceUnlock(surface, kIOSurfaceLockReadOnly, NULL);
     return varied;
 }
-size_t sr_terminal_read(void *pointer, char *buffer, size_t capacity) {
+size_t gav_view_read(void *pointer, char *buffer, size_t capacity) {
     if (!capacity) return 0;
     buffer[0] = 0;
-    SRTerminalView *view = (__bridge SRTerminalView *)pointer;
+    GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;
     ghostty_selection_s selection = {
         .top_left = { .tag = GHOSTTY_POINT_SCREEN, .coord = GHOSTTY_POINT_COORD_TOP_LEFT },
         .bottom_right = { .tag = GHOSTTY_POINT_SCREEN, .coord = GHOSTTY_POINT_COORD_BOTTOM_RIGHT }
@@ -336,4 +337,56 @@ size_t sr_terminal_read(void *pointer, char *buffer, size_t capacity) {
     memcpy(buffer, text.text, count); buffer[count] = 0;
     ghostty_surface_free_text(view.surface, &text);
     return count;
+}
+
+void gav_texture_resize(void *pointer, double width, double height, double scale) {
+    GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;
+    [view setFrameSize:NSMakeSize(width, height)];
+    view.layer.contentsScale = scale;
+    ghostty_surface_set_content_scale(view.surface, scale, scale);
+    ghostty_surface_set_size(view.surface, MAX(1, width * scale), MAX(1, height * scale));
+    ghostty_surface_refresh(view.surface);
+}
+void gav_texture_focus(void *pointer, bool focused) {
+    GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;
+    ghostty_app_set_focus(app, true);
+    ghostty_surface_set_focus(view.surface, focused);
+}
+void gav_texture_visible(void *pointer, bool visible) {
+    GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;
+    ghostty_surface_set_occlusion(view.surface, visible);
+    if (visible) ghostty_surface_refresh(view.surface);
+}
+bool gav_texture_key(void *pointer, int32_t action, uint32_t keycode, int32_t mods,
+                     int32_t consumed, const char *text, uint32_t unshifted) {
+    GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;
+    ghostty_input_key_s key = { .action = action, .keycode = keycode, .mods = mods,
+        .consumed_mods = consumed, .text = text, .unshifted_codepoint = unshifted };
+    return ghostty_surface_key(view.surface, key);
+}
+void gav_texture_text(void *pointer, const char *text) {
+    GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;
+    ghostty_surface_preedit(view.surface, NULL, 0);
+    ghostty_surface_text(view.surface, text, strlen(text));
+}
+void gav_texture_preedit(void *pointer, const char *text) {
+    GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;
+    ghostty_surface_preedit(view.surface, text, text ? strlen(text) : 0);
+}
+void gav_texture_ime_point(void *pointer, double *x, double *y, double *width, double *height) {
+    GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;
+    ghostty_surface_ime_point(view.surface, x, y, width, height);
+}
+void gav_texture_mouse(void *pointer, double x, double y, int32_t mods, int32_t action, int32_t button) {
+    GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;
+    ghostty_surface_mouse_pos(view.surface, x, y, mods);
+    if (action >= 0) ghostty_surface_mouse_button(view.surface, action, button, mods);
+}
+void gav_texture_scroll(void *pointer, double x, double y) {
+    GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;
+    ghostty_surface_mouse_scroll(view.surface, x * 10, y * 10, 0);
+}
+void gav_texture_action(void *pointer, const char *action) {
+    GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;
+    ghostty_surface_binding_action(view.surface, action, strlen(action));
 }

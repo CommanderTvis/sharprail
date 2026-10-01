@@ -1,0 +1,60 @@
+--- a/src/terminal/PageList.zig
++++ b/src/terminal/PageList.zig
+@@ -1903,17 +1903,14 @@
+         // If we need to add more memory to ensure our active area is
+         // satisfied then we do not prune.
+         if (self.growRequiredForActive()) break :prune;
+-
+-        const layout = Page.layout(try std_capacity.adjust(.{ .cols = self.cols }));
+ 
+         // Get our first page and reset it to prepare for reuse.
+         const first = self.pages.popFirst().?;
+         assert(first != last);
+-        const buf = first.data.memory;
+-        @memset(buf, 0);
+-
+-        // Initialize our new page and reinsert it as the last
+-        first.data = .initBuf(.init(buf), layout);
++        // Preserve enlarged allocations and their capacity when recycling.
++        // Resetting to the standard layout loses the allocation size.
++        first.data.reinit();
++        first.data.size.cols = self.cols;
+         first.data.size.rows = 1;
+         self.pages.insertAfter(last, first);
+ 
+@@ -9096,4 +9093,35 @@
+         .y = 0,
+         .x = 0,
+     }, s.getTopLeft(.active));
++}
++
++test "PageList recycled enlarged page preserves allocation" {
++    const testing = std.testing;
++    var s = try init(testing.allocator, 80, 24, std_size * 2);
++    defer s.deinit();
++
++    const enlarged = try s.adjustCapacity(s.pages.first.?, .{
++        .grapheme_bytes = std_capacity.grapheme_bytes * 8,
++    });
++    try s.resize(.{ .cols = 40, .reflow = false });
++    const memory = enlarged.data.memory;
++    const capacity = enlarged.data.capacity;
++    try testing.expect(memory.len > std_size);
++    var recycled = false;
++    for (0..10_000) |_| {
++        _ = try s.grow();
++        if (s.pages.last == enlarged and s.pages.first != enlarged) {
++            recycled = true;
++            break;
++        }
++    }
++    try testing.expect(recycled);
++    try testing.expectEqual(memory.ptr, enlarged.data.memory.ptr);
++    try testing.expectEqual(memory.len, enlarged.data.memory.len);
++    try testing.expectEqualDeep(capacity, enlarged.data.capacity);
++    try testing.expectEqual(@as(size.CellCountInt, 40), enlarged.data.size.cols);
++    var total: usize = 0;
++    var node = s.pages.first;
++    while (node) |current| : (node = current.next) total += current.data.memory.len;
++    try testing.expectEqual(total, s.page_size);
+ }

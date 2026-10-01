@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using Avalonia.Controls;
+using SharpRail.Host.Abstractions;
 
 namespace SharpRail.UI.Terminal;
 
@@ -33,17 +34,27 @@ public delegate ITerminalBackend TerminalFactory(TerminalLaunch launch);
 
 public sealed class TerminalStartException(string message) : IOException(message);
 
+// Ghostty's texture composed by Avalonia, or libghostty-vt cells drawn with Skia.
+public static class TerminalRenderers
+{
+    public const string Texture = "texture";
+    public const string Skia = "skia";
+}
+
 public static class TerminalBackends
 {
     public static ITerminalBackend Unavailable(string reason) => throw new TerminalStartException(reason);
 
-    // Ghostty renders every tab; its child process is the relay, attached to a host session over gRPC:
-    // the app's own host through a private socket, or a remote host.
-    public static TerminalFactory Ghostty(Func<Task<RemoteTerminalConnection>> connection) => launch =>
+    // Ghostty draws every tab, chosen per tab when it starts. The texture renderer's child process is the relay,
+    // attached to a host session over gRPC: the app's own host through a private socket, or a remote host.
+    // The Skia renderer attaches to the same sessions in-process.
+    public static TerminalFactory Ghostty(ITerminalService terminals, Func<Task<RemoteTerminalConnection>> relay, Func<string> renderer) => launch =>
     {
+        if (renderer() == TerminalRenderers.Skia) return new SkiaTerminal(launch, terminals);
         if (!OperatingSystem.IsMacOS()) return Unavailable("Embedded terminals currently require macOS.");
-        return new GhosttyTerminal(launch, connection());
+        return new GhosttyTerminal(launch, relay());
     };
 
-    public static TerminalFactory Ghostty(RemoteTerminalConnection connection) => Ghostty(() => Task.FromResult(connection));
+    public static TerminalFactory Ghostty(RemoteTerminalConnection connection, Func<string>? renderer = null) =>
+        Ghostty(connection.Terminals, () => Task.FromResult(connection), renderer ?? (() => TerminalRenderers.Texture));
 }

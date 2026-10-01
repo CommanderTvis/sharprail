@@ -13,7 +13,6 @@
                  Text="Check that the workspace folder still exists and that your login shell can start, then retry. The tab stays open." />
       <Button x:Name="TerminalStartRetry" Content="Retry" HorizontalAlignment="Left" />
     </StackPanel>
-    <!-- A native terminal surface draws above Avalonia content, so the view hides it while this shows. -->
     <Border x:Name="TerminalDetached" IsVisible="False" Background="{x:Static rendering:Ui.Surface}">
       <StackPanel Spacing="8" HorizontalAlignment="Center" VerticalAlignment="Center">
         <TextBlock Text="This terminal is open somewhere else." HorizontalAlignment="Center"

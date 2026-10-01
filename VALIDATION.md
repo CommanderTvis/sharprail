@@ -849,3 +849,280 @@ The port does not yet provide Lexilla syntax highlighting, completion UI, full
 IME preedit, an accessibility text provider, or complex-script/bidirectional
 shaping. Markdown source and Git diffs retain their read-only views. No benchmarks,
 commits, pushes, agents, or external posts were performed.
+
+## Ghostty renderer selection and library extraction — 2026-10-01
+
+Settings → Terminal now selects Native Metal, Metal texture or Skia. The integration
+lives in `src/Ghostty.Avalonia` without SharpRail project dependencies. Building
+with root build and package props disabled passes with zero warnings/errors:
+`.bench/ghostty-standalone-complete.log`. Its README documents reuse, native build
+prerequisites and features not implemented by the Skia path.
+
+Focused checks pass in `.bench/ghostty-skia-complete.log`: real Skia
+colour pixels, wide/combining text, mouse press/release encoding, keyboard,
+selection, clipboard, scrollback, grid resize and a real host PTY retaining its
+PID across a view restart. Pointer selection of all three Settings choices persists
+and reattaches without replacing shells; displaced clients remain detached.
+Cursor-position reports verify combining and emoji clusters occupy the correct
+cells after initialization and reset. `.bench/ghostty-skia.png` was inspected.
+Physical macOS IME behavior and complete native/Skia visual parity are unverified.
+
+The terminal subset passes in `.bench/ghostty-three-renderers-terminals-final.log`,
+including host local/remote PTY checks, terminal/bottom-panel translations and
+Skia/Settings regressions. An earlier run timed out opening a document in
+`BottomPanelE2E.SquareActions`; the separate rerun passed without a test change.
+The native shell/Metal probe passes in `.bench/ghostty-texture-native-probe.log`.
+Native Avalonia local/remote checks pass with the Metal compositor in
+`.bench/ghostty-metal-regression.log`, including keyboard routing,
+image/text paste, theme pixels, resize, session retention and disposal.
+
+The texture control imports immutable, GPU-copied IOSurfaces into Avalonia's
+Skia compositor; no Ghostty NSView is attached to the window. Native checks pass
+in `.bench/ghostty-texture-complete.log`: real AppKit keyboard and numeric-keypad input,
+text/image paste, application shortcuts, ANSI/theme pixels, parent clipping and
+an Avalonia overlay above the texture, Retina resize and detach/reattach. The
+same run switches texture → Skia → texture on local and authenticated remote
+sessions, preserving the shell PID and environment, interrupting a foreground
+process with Control-C, and retaining its real exit status. The own-window capture
+`.bench/ghostty-texture-composited.png` was inspected; its display profile is
+converted to sRGB before pixel assertions. Physical IME and accessibility remain
+unverified for the texture input bridge.
+
+The full Git-backed regression run is blocked in the existing editor large-diff
+fixture by `1Password: Could not connect to socket` and `failed to write commit
+object`: `.bench/ghostty-renderers-full.log`. Signing was not bypassed. Full-suite
+success is not claimed. Formatting verification is recorded in
+`.bench/ghostty-three-renderers-format-complete.log`. The solution build succeeds
+in `.bench/ghostty-three-renderers-build-complete.log`; four existing Avalonia XAML
+warnings remain. Source changes have not been published
+to the canonical app bundle or committed.
+
+## Ghostty NSView versus Metal texture benchmark — 2026-10-01
+
+Explicitly requested by the user. Reproducible harness and raw data are in
+`.bench/ghostty-renderer-bench`; run `sh .bench/ghostty-renderer-bench/reproduce.sh`.
+The HTML report is `measured/report.html`, with `measured/summary.json`, per-run
+JSON, power/thermal metadata and source/binary fingerprints alongside it.
+
+Five alternating fresh-process runs per mode, excluding warm-ups, on an Apple
+M4 Pro with 24 GiB RAM and AC power. Both use Avalonia Metal, Ghostty 1.2.3 and a
+960×540 point / 1920×1080 pixel window. The display reports a 120 Hz maximum.
+The shared PTY producer draws 480 ANSI/Unicode frames at 60 Hz, then emits three
+~64 MiB bursts. Capture is disabled during CPU/memory measurements. Latency uses
+the producer's timestamp before its PTY write and the first matching own-window
+pixel frame's ScreenCaptureKit WindowServer presentation timestamp.
+
+| Metric | Hosted NSView | Metal texture |
+| --- | ---: | ---: |
+| Median presentation latency, 200 samples each | 14.3 ms | 34.7 ms |
+| Presentation latency p95 | 21.5 ms | 46.3 ms |
+| CPU during 60 Hz redraw, mean; 100% = one core | 8.8% | 19.7% |
+| Process physical footprint during redraw, mean | 235.8 MiB | 353.0 MiB |
+| Parsed output throughput, mean | 58.2 MiB/s | 56.0 MiB/s |
+| CPU cost during output bursts, mean | 22.0 ms/MiB | 35.8 ms/MiB |
+
+All initial samples are retained. One texture run had three 0.93–1.09 second
+presentation stalls; their cause is unproven. An additional matched pair did
+not repeat those stalls (median 12.9/33.6 ms, maximum 20.8/48.7 ms for NSView/texture);
+its results are separate in `measured/confirmation.json`. Both modes reached roughly
+3.2–3.3 GiB physical footprint after 192 MiB of output, which merits separate
+memory investigation. Idle CPU ranges overlap. No new swap-outs or thermal/
+performance warnings were recorded. This isolates one renderer control, not
+the full workbench, relay or network. Latency is not keyboard-to-photon latency,
+and throughput waits for terminal parsing, not every intermediate frame's
+presentation. No product rendering code was changed for the benchmark.
+
+### Texture optimization and scrollback RAM fix — 2026-10-01
+
+Replaced the texture control's 16 ms polling with coalesced frame-ready
+notifications, and per-frame export/import allocation with a two-IOSurface pool
+and persistent imports. Superseded pending frames can be overwritten before
+copying. Monotonic Metal shared-event completion values prevent reuse until
+Avalonia's GPU snapshot finishes. Resize retires imports; disposal removes
+notifications and drains the current update. The producer GPU copy and its
+completion wait remain to protect Ghostty's render target.
+
+The large memory growth in the preceding benchmark was traced with `vmmap` and
+`malloc_history` to Ghostty's page allocator (5,197 allocations totaling roughly
+3.15 GB in the diagnostic run). Pinned Ghostty 1.2.3 recycled enlarged scrollback
+pages using a smaller standard layout, losing their allocation size and capacity.
+`Native/ScrollbackMemory.patch` preserves both and restores the current logical
+column width. This fixes the leak in both native Metal renderers, without reducing
+the configured scrollback limit. Buffer pooling alone did not fix this growth.
+
+Final evidence: `.bench/ghostty-texture-optimization/report.html`, `summary.json`,
+`fingerprints.json`, and raw trials under `matched-two-slot` / `ram-two-slot`.
+The same M4 Pro/24 GiB, 960×540 at 2×, direct-PTY harness and workload were used.
+Five alternating original/updated texture pairs ran on AC power, with two
+supplemental patched NSView trials. No capture runs during CPU/RAM phases.
+All 200 latency samples per texture version are retained; presentation is measured
+at WindowServer, not physical pixels. Means unless otherwise stated:
+
+| Metric | Original texture | Updated texture | Patched NSView (2 trials) |
+| --- | ---: | ---: | ---: |
+| Median presentation latency | 37.2 ms | 29.7 ms | 13.3 ms |
+| Presentation p95 | 50.1 ms | 35.8 ms | 20.5 ms |
+| Redraw CPU; 100% = one core | 18.2% | 15.2% | 9.0% |
+| Redraw physical footprint | 351.4 MiB | 353.2 MiB | 232.1 MiB |
+| Peak footprint across 192 MiB of output | 3358.2 MiB | 363.1 MiB | 243.0 MiB |
+| Parsed output throughput | 50.9 MiB/s | 91.0 MiB/s | 69.1 MiB/s |
+
+A separate RAM harness uses identical executable code with preserved original or
+updated libraries. Three alternating texture pairs keep the process alive after
+the same workload, wait approximately 15 seconds, dispose the terminal, and wait
+10 more seconds. Two supplemental patched NSView runs use the same harness:
+
+| Physical footprint, mean | Original texture | Updated texture | Patched NSView |
+| --- | ---: | ---: | ---: |
+| After output settles | 3358.1 MiB | 367.2 MiB | 251.1 MiB |
+| 10 seconds after terminal disposal | 3131.8 MiB | 130.4 MiB | 100.5 MiB |
+| After diagnostic forced GC | 3129.9 MiB | 128.6 MiB | 98.9 MiB |
+
+The product does not force GC. RAM after scrolling is about 89% lower, and RAM
+retained after disposal about 96% lower. Normal redraw RAM is essentially
+unchanged. Median texture latency improves about 20% and redraw CPU about 16% in
+the matched batch; NSView still has lower latency and redraw cost. The benchmark
+isolates one control, excluding workbench/relay/network overhead. Background
+activity was not exclusively isolated. Neither final batch recorded new swap-outs
+or thermal/performance warnings (four swap-ins each). Power is monitored once per
+second and a temporary caffeinate assertion prevents idle sleep. Earlier
+exploratory batches interrupted by a logged 233-second system sleep or a
+power-source change are excluded, as are the preliminary three-buffer results.
+These exclusions do not diagnose the separate one-second stalls in the older
+benchmark above.
+
+Verification passes:
+
+- Final `--native-texture`: imported pixels, overlays/clipping, input/clipboard,
+  16 repeated resizes with at most two imports, repeated repaint final pixels,
+  remounting, queued disposal and retained local/remote shells
+  (`two-slot-verified.log`).
+- Native shell/Metal probe (`native-probe.log`) and Skia/Settings regression
+  (`skia-check.log`).
+- All 183 selected Zig checks, including enlarged-page recycling after a column
+  resize (`page-tests-system-cpp-3.log`). The saved `run-page-tests.mjs` and
+  `page-test-command.json` use SDK C++ headers/runtime for this test invocation,
+  avoiding the pinned Zig test driver's libc++ INFINITY header build failure;
+  no installed toolchain or SDK was edited.
+- Release solution build with zero warnings/errors (`solution-build.log`),
+  formatting verification (`format-final.log`) and `git diff --check`.
+
+The earlier full-suite 1Password signing blocker remains outside these focused
+checks; no signing bypass was used. No commits, pushes or app publication.
+
+### Texture steady-memory attribution — 2026-10-01
+
+User requested attribution of the remaining ~121 MiB texture/NSView redraw gap.
+Allocation evidence is in `.bench/ghostty-memory-attribution/report.html` and
+`summary.json`; the earlier latency/throughput benchmark remains unchanged.
+Existing uninstrumented maps one second after the flood give a 120.0 MiB mean
+gap: 84.4 MiB driver-owned graphics, 23.9 MiB IOSurfaces, 3.7 MiB other mapped
+GPU memory, and approximately 8 MiB native heap/runtime/other CPU memory.
+There was no saved map at the exact earlier redraw sample; these totals explain
+the comparable gap, rather than reconstructing that old reading byte for byte.
+
+Fresh steady-redraw resource traces at the same 1920×1080 physical size identify
+two export surfaces (15.84 MiB), two additional Skia snapshot textures
+(16.19 MiB), and typically one additional window drawable (8.09 MiB).
+Imported wrappers share the export IOSurface IDs and do not add another copy.
+Ghostty's original three targets and six atlas textures are common to both modes.
+
+The largest component is 68 MiB of copy-related GPU driver working storage:
+texture has 41 driver-owned 4 MiB allocations versus NSView's 24. Command
+submission traces show first activation during the exporter copy. Suppressing
+only that blit in a diagnostic leaves 41 blocks, moving activation to Avalonia's
+snapshot. Suppressing all blit encoders leaves 24 blocks, exactly 68 MiB fewer.
+These suppression runs intentionally invalidate displayed content; they are
+attribution experiments, not usable optimizations. The private driver's exact
+internal names/purposes for those blocks are not exposed.
+
+A two-command-buffer export queue and sharing the active Avalonia queue both
+retain the 41 blocks. Sharing Ghostty's own queue stalls completion and was
+rejected. Removing only the exporter copy therefore does not guarantee recovering
+the 68 MiB: Avalonia's current snapshot also requires copying. Pooling reduces
+allocation churn while preserving backing storage and these GPU copy operations.
+
+The final ordinary trace completes 948 composition updates. Profiling builds
+pass with zero warnings/errors. Live-resource traces preserve retained-return
+ownership and hold only weak resource references; snapshots deduplicate shared
+IOSurface backing. Tracing/inspection perturb CPU/RAM, so their totals do not
+replace the original benchmark. No product changes, commits, pushes or publication.
+
+### Direct texture sampling and further RAM savings — 2026-10-01
+
+Implemented direct Skia sampling of Ghostty's completed Metal target. Removed the
+export queue, two export surfaces, snapshot imports and shared events. Native
+leases retain source textures; a renderer hook waits for external readers before
+encoding a new write. The compositor wraps the Metal texture without copying and
+flushes/submits synchronously before returning its read lease. This preserves
+GPU ownership while trading some overlap and per-draw CPU work for smaller RAM.
+
+After unlocking, three fresh RAM lifecycle trials measured mean redraw footprint
+262.0 MiB (258.4–265.8), versus saved pooled texture 356.9 MiB and NSView 236.2 MiB.
+This saves 94.9 MiB / 26.6%; the NSView gap is 25.8 MiB, with a worst trial gap
+29.6 MiB. Mean peak flood footprint is 275.2 MiB versus NSView 247.1 MiB; even
+the highest trial gap is only 31.7 MiB. The below-60 MiB goal is met. Ten seconds
+after disposal averages 118.0 MiB versus NSView 100.5 MiB. Idle settled footprint
+is lower and variable (161.9–170.9 MiB); it is not the basis for active RAM claims.
+The initial single pilot remains separately recorded in ram-1.
+
+Redraw CPU averages 18.8% of one core (16.9–22.0), versus previous texture 15.2%
+and NSView 9.3%. Three separate presentation trials provide 120 samples: median
+24.5 ms and p95 30.5 ms, versus saved texture 29.7/35.8 ms and NSView 13.3/20.5 ms.
+This measures PTY output to WindowServer timestamp, not physical pixel latency.
+Existing baselines were reused, not rerun. All six trials use AC power, scale 2,
+119×30 cells, 480 redraws at 60 Hz and three 67,113,264-byte output bursts.
+Background machine activity was not exclusively isolated.
+
+Final implementation resource inventory confirms 24 driver-owned 4 MiB allocations instead
+of 41 (68 MiB removed), no two-surface export pool (15.84 MiB removed), and no two
+Skia snapshot textures (16.19 MiB removed). It completed 498 GPU draws. This
+inventory ran behind a locked desktop with foreground activation skipped; its
+CPU/RAM totals are not used as comparative performance results. Rendering remains
+enabled, unlike the preceding blit-suppression attribution diagnostics.
+
+Final visible texture checks pass normally and with Metal API validation enabled:
+pixels, opacity, overlays/clipping, theme, keyboard, clipboard, repeated
+resize/repaint, remount/disposal and retained local/remote shells. The first
+post-unlock check failed click-to-focus; both subsequent full runs passed without
+code changes. Its cause is unconfirmed. Source/native/managed hashes match the
+final allocation inventory, including the binaries used by both harnesses.
+Solution compilation passes with four existing Avalonia XAML warnings; format
+verification and diff whitespace checks pass.
+The standalone native Metal probe passes with the display kept awake
+(`native-probe-awake.log`): shell/cwd, ANSI, input, presentation, resize and session retention.
+
+Evidence: `.bench/ghostty-direct-texture/final-report.html`, `final-summary.json`,
+`memory/metadata.json`, `presentation/metadata.json`, `inventory/metal.json`,
+`inventory/vmmap.txt`, `texture-check-unlocked-2.log`, `texture-metal-validation.log`,
+`solution-build.log`, `format.log`. No commits, pushes or publication.
+
+### Texture default, Skia fallback and stored benchmarks — 2026-10-01
+
+SharpRail now offers texture (default) and Skia. Legacy `native` preferences
+normalize to texture. The reusable NSView control remains in Ghostty.Avalonia
+and its benchmark/native probe, with no NSView construction or choice in app code.
+Texture creation/drawing failures switch the view to Skia on its existing host
+session without changing the preference. Both local and remote fallback sessions
+retain PID/variables, support Ctrl-C and report real exit status when Avalonia is
+forced to software rendering (`fallback-check.log`).
+
+Benchmark sources are stored under `benchmarks/ghostty`: presentation, memory
+lifecycle, Metal/IOKit attribution, C workload, build/run/summary scripts and
+the saved final measurement aggregates. All three projects compile with zero
+warnings/errors; no new benchmark measurements were needed for these app changes.
+
+Release solution/checks builds, formatting, diff whitespace, Settings/migration,
+and all headless terminal checks pass. The final texture suite passes native
+input/clipboard, GPU pixels, opacity, clipping, resizing, local/remote switching,
+and a library-only NSView mutable-input fixture (`final-texture-presented.log`).
+GPU completion alone did not ensure a current window screenshot: the opacity
+check now waits for a draw and polls the expected captured pixel with a deadline.
+A temporary GPU sample confirmed the expected blend; diagnostic readback/logging
+was removed and renderer source still matches the measured implementation.
+
+The broader workbench GUI rerun remains incomplete: it stops at the explicit
+active-window/keyboard-focus gate (`final-workbench-texture.log`). Earlier attempts
+lost portions of synthetic typing while another checkout's GUI checks were
+running. Do not report that suite as passed. Headless terminal evidence is in
+`final-headless-terminals.log`; all logs above are under `.bench/ghostty-direct-texture`.

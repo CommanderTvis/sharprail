@@ -79,13 +79,15 @@ could not save this change: …” inline and re-renders from host state.
   open documents and terminals across every workspace in the window; other windows are unaffected. Reset frame
   reapplies the default preset.
 - Projects holds the app-local Show hidden files switch and the shared project list with per-row removal.
+- Terminal chooses Metal texture (default) or Skia (fallback) as an app-local preference and reattaches
+  attached terminal views in every window without ending their host shells.
 - GitHub (“Local GitHub”) runs `gh auth status` with prompts disabled and a 10-second timeout and reports
   Connected with the account line, or Not connected with the reason (not installed, not signed in, no
   response), with Refresh. SharpRail stores no credentials.
 
 ## Not yet ported
 
-- A Terminal section (replayed-output size; a Windows shell picker).
+- Terminal replayed-output size and a Windows shell picker.
 - A project picker in the Create workspace dialog; it shows only the current project.
 - A notice dialog distinct from confirmation for failures with no recovery.
 - Toast-based error reporting for rejected dialog actions.

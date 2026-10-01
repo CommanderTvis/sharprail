@@ -29,11 +29,15 @@ window and client converges on the same values and a control keeps showing the h
 There is no optimistic write, pending queue or rollback. A rejected change is reported in the window that
 made it.
 
-Profile state (`profile.json`) holds interface size, hidden-files visibility, rail expansion, per-workspace
+Profile state (`profile.json`) holds interface size, hidden-files visibility, the terminal renderer,
+rail expansion, per-workspace
 Git target/scope/selected commit, and one `WindowProfile` per open window: its frame (`DockState`, which
 includes its workspace views), its default preset and its last location. Frame, default preset and group
 limits are window-local and never shared through the host; the host carries only the shared custom preset
 definitions.
+
+The terminal renderer accepts `texture` and `skia` and defaults to Metal texture; legacy `native` and unknown values normalize to that
+default. It is app-local because rendering is a client capability, not host state.
 
 ## Shared-state subscription
 
