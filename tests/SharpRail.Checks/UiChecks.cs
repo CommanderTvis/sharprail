@@ -61,6 +61,9 @@ internal static class UiChecks
         window.UpdateLayout();
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         Require(control.Bounds.Width > 0 && control.Bounds.Height > 0, "Click target has not been arranged.");
+        // Fixtures created under the project root earlier can push a row below the visible tree.
+        control.BringIntoView();
+        window.UpdateLayout();
         var point = Center(window, control);
         window.MouseMove(point);
         Dispatcher.UIThread.RunJobs();
