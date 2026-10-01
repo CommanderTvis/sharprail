@@ -1126,3 +1126,37 @@ active-window/keyboard-focus gate (`final-workbench-texture.log`). Earlier attem
 lost portions of synthetic typing while another checkout's GUI checks were
 running. Do not report that suite as passed. Headless terminal evidence is in
 `final-headless-terminals.log`; all logs above are under `.bench/ghostty-direct-texture`.
+
+### OSC 52 terminal clipboard (2026-10-02)
+
+The Skia bridge now registers libghostty-vt's clipboard callbacks. Both renderers
+allow text writes and ask before reads; invalid UTF-8 leaves the clipboard intact.
+`--native-osc52` passes fragmented ST/BEL, Unicode, selectors, malformed/cancelled
+data, NUL, 32 KiB and empty payloads, approved/denied reads, repeated consent and
+reset checks, plus real local/remote PTY writes and read replies in both renderers
+and writes after renderer switches. Tests isolate the AppKit pasteboard and script
+the confirmation decisions. Cancelled Metal reads complete with empty data so
+Ghostty releases their pending requests. Full libghostty's NUL-string and reply
+terminator differences are documented in the control README.
+
+Release solution build, formatting verification and the full checks runner with
+`SHARPRAIL_TEST_GIT_SOURCE=/Users/commandertvis/IdeaProjects/thinkrail` pass.
+The native protocol probes run saved shell scripts through atomic text input,
+avoiding lost characters from long synthetic keyboard sequences. Evidence is in
+`.bench/osc52-build-final.log`, `.bench/osc52-format-final.log`,
+`.bench/osc52-skia.log`, `.bench/osc52-metal-final.log` and `.bench/osc52-checks.log`.
+
+### Terminal web links (2026-10-02)
+
+Both renderers use Command-hover/click on macOS (Ctrl elsewhere) for web URLs.
+Skia detects soft-wrapped HTTP(S) URLs from native row metadata; Metal retains
+Ghostty's built-in matching/open action and now propagates hover cursor state and
+modifier changes through Avalonia. Skia regression checks pass for wrapped and
+reflowed URLs, hard newline boundaries, punctuation, the hand cursor and visible
+underline pixels on stationary modifier changes. Existing selection/input checks
+also pass. Evidence: `.bench/url-skia-final.log`.
+
+The native texture run fails the previously observed changed-theme-background
+pixel assertion, before completing the suite (`.bench/url-native-texture.log`).
+Actual system-browser opening and Metal link pixels have not been verified.
+No live app restart, publication, commit or push was performed.

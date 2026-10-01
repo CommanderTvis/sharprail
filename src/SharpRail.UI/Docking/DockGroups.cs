@@ -267,6 +267,8 @@ public sealed partial class DockSurface
         {
             var terminal = Ui.IconButton("terminal", "New terminal in this group", () => { Session.NewTerminal(group.Id); FocusGroup(group.Id, focusContent: true); });
             terminal.Name = "NewTerminal_" + group.Id;
+            terminal.IsVisible = selected?.IsTool != true;
+            updates.Add(() => terminal.IsVisible = Session.Selected(group.Id)?.IsTool != true);
             actions.Children.Add(terminal);
             if (AddMenu(group) is { } menu)
             {

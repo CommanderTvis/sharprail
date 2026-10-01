@@ -26,12 +26,16 @@ namespace SharpRail.Checks;
 internal static class NativeTextureChecks
 {
     private static bool fallbackCheck;
+    private static bool skiaCheck;
+    private static bool clipboardCheck;
     private const string Title = "SharpRail Ghostty texture check";
 
     public static void Run(string[] args)
     {
         if (!OperatingSystem.IsMacOS()) throw new PlatformNotSupportedException();
         fallbackCheck = args.Contains("--texture-fallback");
+        skiaCheck = args.Contains("--native-skia");
+        clipboardCheck = args.Contains("--native-osc52");
         AppBuilder.Configure<TextureApplication>().UsePlatformDetect()
             .With(new AvaloniaNativePlatformOptions { RenderingMode = [fallbackCheck ? AvaloniaNativeRenderingMode.Software : AvaloniaNativeRenderingMode.Metal] })
             .StartWithClassicDesktopLifetime(args);
@@ -50,9 +54,15 @@ internal static class NativeTextureChecks
                 try
                 {
                     if (!OperatingSystem.IsMacOS()) throw new PlatformNotSupportedException();
-                    if (!fallbackCheck) await Check(window);
-                    await CheckSessions(window);
-                    if (!fallbackCheck) await CheckNativeLibrary(window);
+                    if (clipboardCheck) { Osc52Checks.RunSkia(); await CheckOsc52(window); await CheckSessions(window); }
+                    else if (skiaCheck) await CheckSkia(window);
+                    else
+                    {
+                        await CheckOsc52(window);
+                        if (!fallbackCheck) await Check(window);
+                        await CheckSessions(window);
+                        if (!fallbackCheck) await CheckNativeLibrary(window);
+                    }
                     desktop.Shutdown(0);
                 }
                 catch (Exception error) { Console.Error.WriteLine(error); desktop.Shutdown(1); }
@@ -68,6 +78,120 @@ internal static class NativeTextureChecks
         {
             if (DateTime.UtcNow > deadline) throw new InvalidOperationException(message);
             await Task.Delay(20);
+        }
+    }
+
+    [SupportedOSPlatform("macos")]
+    private static async Task CheckOsc52(Window window)
+    {
+        using var terminal = new GhosttyTextureView(new GhosttyLaunch(Directory.GetCurrentDirectory(), "/bin/sh"));
+        window.Content = terminal;
+        window.Show();
+        var native = Native.Content(Title);
+        Native.Activate(native);
+        await terminal.Ready.WaitAsync(TimeSpan.FromSeconds(20));
+        terminal.FocusTerminal();
+        await Until(() => Native.Ready(native) && terminal.IsKeyboardFocusWithin, "OSC 52 terminal did not receive keyboard focus.");
+        Osc52Checks.Begin(false);
+        try
+        {
+            var index = 0;
+            async Task Output(string sequence)
+            {
+                var marker = "OSC_DONE_" + ++index;
+                // POSIX printf interprets octal escapes; the shell never sees the
+                // actual control bytes until it writes them into Ghostty's PTY.
+                var octal = string.Concat(System.Text.Encoding.UTF8.GetBytes(sequence).Select(b => "\\" + Convert.ToString(b, 8).PadLeft(3, '0')));
+                await Command(native, terminal, "printf '" + octal + "'; printf '\\n" + marker + "\\n'");
+                await Until(() => terminal.ReadScreen().Split('\n').Any(line => line.Trim() == marker), "OSC 52 shell output did not complete.");
+            }
+            foreach (var (text, selector, end) in new[] { ("Grüße\n世界 🐈", "c", "\e\\"), ("BEL", "c", "\a"), ("selection", "s", "\a"), ("primary", "p", "\e\\"), ("empty selector", "", "\a"), ("", "c", "\a") })
+            {
+                Osc52Checks.Set("sentinel");
+                await Output(Osc52Checks.Sequence(text, selector, end));
+                await Until(() => Osc52Checks.Get() == text, "Metal OSC 52 clipboard write: " + selector);
+            }
+            Osc52Checks.Set("sentinel");
+            await Output("\e]52;c;!!!\a");
+            Require(Osc52Checks.Get() == "sentinel" && Osc52Checks.Prompts() == 0, "Metal malformed OSC 52 changed the clipboard or writes prompted.");
+            await Output("\e]52;c;/w==\a");
+            Require(Osc52Checks.Get() == "sentinel", "Metal invalid UTF-8 changed the clipboard.");
+
+            foreach (var (allow, text) in new[] { (false, "private clipboard"), (true, "Grüße\n世界"), (true, "") })
+            {
+                Osc52Checks.Allow(allow);
+                Osc52Checks.Set(text);
+                var marker = "OSC_READ_" + ++index;
+                var response = System.Text.Encoding.UTF8.GetBytes(Osc52Checks.Sequence(allow ? text : ""));
+                await Command(native, terminal, "stty -echo -icanon min 0 time 20; printf '\\n" + marker + "_BEGIN\\n\\033]52;c;?\\007'; dd bs=1 count=" + response.Length + " 2>/dev/null | od -An -tx1; stty sane; printf '\\n" + marker + "\\n'");
+                try { await Until(() => terminal.ReadScreen().Split('\n').Any(line => line.Trim() == marker), "Metal clipboard query did not finish."); }
+                catch { File.WriteAllText(".bench/osc52-query-screen.txt", terminal.ReadScreen()); throw; }
+                var hex = Osc52Checks.ReadHex(terminal.ReadScreen(), marker);
+                var expected = Convert.ToHexString(response).ToLowerInvariant();
+                if (hex != expected) File.WriteAllText(".bench/osc52-reply-screen.txt", terminal.ReadScreen());
+                Require(hex == expected, "Metal clipboard read permission or encoded response: " + hex);
+            }
+            Require(Osc52Checks.Prompts() == 3, "Metal clipboard reads did not each request permission.");
+            Console.WriteLine("PASS OSC 52 Metal: shell-to-clipboard ST/BEL, Unicode, selectors, empty/malformed writes and denied/approved read replies");
+        }
+        finally { Osc52Checks.End(); window.Content = null; }
+    }
+
+    private static async Task CheckSkia(Window window)
+    {
+        using var terminal = new GhosttySkiaView();
+        var theme = Color.FromRgb(18, 52, 86);
+        var swatch = new Border
+        {
+            Width = 20,
+            Height = 20,
+            Background = new SolidColorBrush(theme),
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Bottom
+        };
+        window.Content = new Grid { Children = { terminal, swatch } };
+        window.Show();
+        var native = Native.Content(Title);
+        Native.Activate(native);
+        await Until(() => Native.Ready(native) && terminal.IsGpuBacked, "The Skia framebuffer did not use the GPU.");
+        terminal.Write("\e[?25l\e[H\e[48;2;255;0;0mRED\e[K\e[0m\r\nunchanged"u8);
+        await Capture(pixel => pixel.Red > 150 && pixel.Green < 70 && pixel.Blue < 70);
+        var rows = terminal.RowsRecorded;
+        terminal.Write("\e[H\e[48;2;0;0;255mBLUE\e[K\e[0m"u8);
+        await Capture(pixel => pixel.Blue > 150 && pixel.Red < 70 && pixel.Green < 100);
+        Require(terminal.RowsRecorded == rows + 1, "Native Skia update rebuilt unrelated rows.");
+        terminal.Colors = terminal.Colors with { Background = theme };
+        window.Width = 500;
+        await Capture(_ => true, 200, 150, compareTheme: true);
+        window.Content = null;
+        terminal.Dispose();
+        Console.WriteLine("PASS native Skia: GPU framebuffer, incremental ANSI pixels, theme, Retina resize and disposal");
+
+        async Task Capture(Func<SKColor, bool> matches, int x = 200, int y = 10, bool compareTheme = false)
+        {
+            Directory.CreateDirectory(".bench");
+            var path = Path.GetFullPath(".bench/ghostty-skia-native.png");
+            var deadline = DateTime.UtcNow.AddSeconds(10);
+            do
+            {
+                await Task.Delay(100);
+                var capture = new ProcessStartInfo("/usr/sbin/screencapture") { UseShellExecute = false };
+                foreach (var argument in new[] { "-x", "-o", "-l", Native.WindowNumber(native).ToString(), path }) capture.ArgumentList.Add(argument);
+                using var process = Process.Start(capture)!;
+                await process.WaitForExitAsync();
+                Require(process.ExitCode == 0, "Own-window Skia capture failed.");
+                using var codec = SKCodec.Create(path);
+                using var colorSpace = SKColorSpace.CreateSrgb();
+                using var bitmap = SKBitmap.Decode(codec, new SKImageInfo(codec.Info.Width, codec.Info.Height,
+                    SKColorType.Rgba8888, SKAlphaType.Premul, colorSpace));
+                var scale = bitmap.Width / window.Bounds.Width;
+                var pixel = bitmap.GetPixel((int)(x * scale), (int)(y * scale));
+                var reference = bitmap.GetPixel(bitmap.Width - (int)(10 * scale), bitmap.Height - (int)(10 * scale));
+                if (matches(pixel) && (!compareTheme || Math.Abs(pixel.Red - reference.Red) < 3 &&
+                    Math.Abs(pixel.Green - reference.Green) < 3 && Math.Abs(pixel.Blue - reference.Blue) < 3)) return;
+            }
+            while (DateTime.UtcNow < deadline);
+            throw new InvalidOperationException("Native Skia framebuffer pixels were not presented.");
         }
     }
 
@@ -236,6 +360,17 @@ internal static class NativeTextureChecks
         foreach (var c in text) Native.Key(view, c.ToString(), c == '\r' ? (ushort)36 : (ushort)0, false);
     }
 
+    private static async Task Command(nint native, Control target, string command)
+    {
+        var path = Path.GetFullPath(Path.Combine(".bench", "osc52-" + Guid.NewGuid().ToString("N") + ".sh"));
+        File.WriteAllText(path, command + "\n");
+        Native.Activate(native);
+        target.Focus();
+        await Until(() => Native.Ready(native) && target.IsKeyboardFocusWithin, "OSC 52 command target did not receive focus.");
+        target.RaiseEvent(new TextInputEventArgs { RoutedEvent = InputElement.TextInputEvent, Text = "/bin/sh " + path });
+        Native.Key(native, "\r", 36, false);
+    }
+
     [SupportedOSPlatform("macos")]
     private static async Task CheckSessions(Window window)
     {
@@ -250,12 +385,14 @@ internal static class NativeTextureChecks
         var address = new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single());
         using var remote = new RemoteTerminalAdapter(address, token);
         await Switching(new RemoteTerminalConnection(address, token, remote), "remote");
+        Console.WriteLine("PASS OSC 52 transport: local and authenticated remote clipboard writes and read replies in Metal and Skia, including writes after renderer switches");
         Console.WriteLine("PASS texture/Skia switching: local and authenticated remote host shells keep their PID and variables; Ctrl-C and real exit status work");
 
         async Task Switching(RemoteTerminalConnection connection, string name)
         {
             var renderer = TerminalRenderers.Texture;
             var launch = new TerminalLaunch(root, name + Guid.NewGuid().ToString("N"), Path.Combine(root, "clipboard"), "texture-client");
+            using var clipboardScope = new Osc52Checks.ClipboardScope();
             using var tab = new TerminalView(TerminalBackends.Ghostty(connection, () => renderer), launch);
             window.Content = tab;
             window.Show();
@@ -267,6 +404,8 @@ internal static class NativeTextureChecks
             Type(native, "RENDER_CHECK=stable; printf 'RENDER_%s_%s_\\n' $$ $RENDER_CHECK\r");
             await Until(() => Regex.IsMatch(Screen(), @"RENDER_(\d+)_stable_"), "The initial texture session did not answer.");
             var pid = Regex.Match(Screen(), @"RENDER_(\d+)_stable_").Groups[1].Value;
+            var clipboardRound = 0;
+            await Clipboard(false);
             foreach (var next in new[] { TerminalRenderers.Skia, TerminalRenderers.Texture })
             {
                 renderer = next;
@@ -276,6 +415,7 @@ internal static class NativeTextureChecks
                 Type(native, "printf 'AGAIN_%s_%s_\\n' $$ $RENDER_CHECK\r");
                 await Until(() => Screen().Contains($"AGAIN_{pid}_stable_", StringComparison.Ordinal), "Switching renderer lost the host shell.");
                 Require(!Native.HasNativeTerminal(native), "A renderer switch attached a raw terminal NSView.");
+                await Clipboard(next == TerminalRenderers.Texture);
             }
             Type(native, "sleep 30\r");
             var deadline = DateTime.UtcNow.AddSeconds(20);
@@ -294,6 +434,42 @@ internal static class NativeTextureChecks
             await Until(() => tab.IsExited, "The shell exit was not shown.");
             Require(await tab.Backend!.Exited == 7, "The renderer lost the exit status.");
             window.Content = null;
+
+            using var freshSkia = new TerminalView(TerminalBackends.Ghostty(connection, () => TerminalRenderers.Skia),
+                launch with { SessionId = launch.SessionId + "-clipboard" });
+            window.Content = freshSkia;
+            await Until(() => freshSkia.Backend is not null, "No fresh Skia backend was created.");
+            await freshSkia.Backend!.Started.WaitAsync(TimeSpan.FromSeconds(20));
+            freshSkia.FocusTerminal();
+            var skiaView = freshSkia.GetVisualDescendants().OfType<GhosttySkiaView>().Single();
+            await Clipboard(true, skiaView.ReadScreen, TerminalRenderers.Skia, skiaView);
+            await freshSkia.Backend.CloseAsync();
+            window.Content = null;
+
+            async Task Clipboard(bool read, Func<string>? readScreen = null, string? mode = null, Control? target = null)
+            {
+                var screen = readScreen ?? Screen;
+                var selected = mode ?? renderer;
+                target ??= tab.GetVisualDescendants().OfType<Control>().Single(control => control is GhosttyTextureView or GhosttySkiaView);
+                Osc52Checks.Set("sentinel");
+                var text = name + "-" + selected;
+                var encoded = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(text));
+                await Command(native, target, "printf '\\033]52;c;" + encoded + "\\007'");
+                await Until(() => Osc52Checks.Get() == text, "OSC 52 did not reach the client clipboard over " + text);
+                var prompts = Osc52Checks.Prompts();
+                if (!read) return;
+                Osc52Checks.Allow(true);
+                Osc52Checks.Set("host read");
+                var marker = "HOST_READ_" + name + ++clipboardRound;
+                var end = selected == TerminalRenderers.Skia || fallbackCheck ? "\a" : "\e\\";
+                var response = System.Text.Encoding.UTF8.GetBytes(Osc52Checks.Sequence("host read", terminator: end));
+                await Command(native, target, "stty -echo -icanon min 0 time 20; printf '\\n" + marker + "_BEGIN\\n\\033]52;c;?\\007'; dd bs=1 count=" + response.Length + " 2>/dev/null | od -An -tx1; stty sane; printf '\\n" + marker + "\\n'");
+                try { await Until(() => screen().Split('\n').Any(line => line.Trim() == marker), "OSC 52 read did not return to " + text); }
+                catch { File.WriteAllText(".bench/osc52-host-read-screen.txt", screen()); throw; }
+                var hex = Osc52Checks.ReadHex(screen(), marker);
+                var expected = Convert.ToHexString(response).ToLowerInvariant();
+                Require(hex == expected && Osc52Checks.Prompts() == prompts + 1, "Host OSC 52 read response or permission: " + text);
+            }
 
             async Task Started()
             {

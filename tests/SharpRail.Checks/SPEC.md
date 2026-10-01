@@ -24,6 +24,15 @@ verifies GPU texture composition, overlays/clipping, theme, clipboard/input,
 resize/remounting and local/remote texture–Skia switches retaining their shells.
 It also checks bounded source texture retention through repeated resizing and repainting,
 the final displayed pixels after buffer reuse, control opacity, and disposal with a repaint queued.
+URL regressions cover soft wraps, resize reflow, hard newline boundaries,
+balanced punctuation and Skia cursor/underline pixels when modifiers change.
+OSC 52 checks use a private AppKit pasteboard and scripted read confirmation,
+restoring both after each case. `--ghostty-skia` covers fragmented ST/BEL writes,
+Unicode, selection destinations, malformed/cancelled data, embedded NULs, large
+and empty payloads, approved/denied reads, repeated permission and terminal reset.
+`--native-osc52` runs those checks plus real Metal shell output and encoded read
+replies, plus local and remote clipboard round trips in both renderers and writes
+after renderer switches. This native coverage also runs in `--native-texture`.
 The library-only NSView fixture preserves mutable AppKit input coverage. The app
 integration check uses texture controls. `--texture-fallback` forces software
 rendering and verifies automatic Skia fallback with retained local/remote sessions.
@@ -98,6 +107,12 @@ layout history is affected, and formatting verification. Translated upstream
 coverage stays recorded in `E2E.md`, separate from SharpRail-only regression checks.
 Skia terminal checks render real pixels and encode real headless input, verify
 a host PTY surviving a view restart, and exercise Settings choice persistence.
+Incremental rendering must match a full repaint after erasure, cursor movement
+and wide/combining text updates, while leaving unrelated rows cached.
+Output checks require replay to yield to input, disposal to cancel queued work,
+and final output (including split UTF-8) to precede exit. `--native-skia` verifies
+the GPU framebuffer, incremental pixels, theme parity, Retina resize and disposal
+in a real macOS window, capturing only that window.
 Window moving, zooming, platform dialogs, native Metal Ghostty rendering and final visual
 verification remain native checks (`scripts/check-terminal.sh`,
 `--native-terminal`, own-window captures) because the headless platform cannot

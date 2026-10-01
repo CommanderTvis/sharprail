@@ -50,10 +50,20 @@ internal static class DockInputChecks
         Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
         Require(!Find<Button>("RemoveGroup_" + window.Layout.State.Center.Leaves().Single()).IsEnabled,
             "The final empty center group's remove button must be disabled.");
-        var terminalButtons = window.GetLogicalDescendants().OfType<Button>().Count(button => button.Name?.StartsWith("NewTerminal_", StringComparison.Ordinal) == true);
-        Require(terminalButtons == window.Layout.State.Groups.Count(group => !group.Folded) &&
+        var terminalButtons = window.GetLogicalDescendants().OfType<Button>().Count(button => button.IsVisible && button.Name?.StartsWith("NewTerminal_", StringComparison.Ordinal) == true);
+        Require(terminalButtons == window.Layout.State.Groups.Count(group => !group.Folded && window.Layout.Selected(group.Id)?.IsTool != true) &&
             !window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name?.StartsWith("AddToGroup_", StringComparison.Ordinal) == true),
-            "Every group must offer terminal creation, and Add must not duplicate already-placed singleton tools.");
+            "Only resource and empty views must offer terminal creation, and Add must not duplicate already-placed singleton tools.");
+        var projectsGroup = window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "projects")).Id;
+        Require(!Find<Button>("NewTerminal_" + projectsGroup).IsVisible, "Projects must not show a terminal opener.");
+        window.Layout.NewTerminal(projectsGroup);
+        var terminalTab = window.Layout.Selected(projectsGroup)!;
+        Require(Find<Button>("NewTerminal_" + projectsGroup).IsVisible, "A terminal in a side group must offer terminal creation.");
+        window.Layout.Select(projectsGroup, "projects");
+        Require(!Find<Button>("NewTerminal_" + projectsGroup).IsVisible, "Selecting Projects in a mixed group must hide terminal creation.");
+        window.Layout.Select(projectsGroup, terminalTab.Id);
+        Require(Find<Button>("NewTerminal_" + projectsGroup).IsVisible, "Selecting a terminal in a mixed group must restore terminal creation.");
+        window.Layout.Close(projectsGroup, terminalTab.Id);
         foreach (var (value, label) in new[]
         {
             ("center-left", "Below center and left"), ("center-right", "Below center and right"),

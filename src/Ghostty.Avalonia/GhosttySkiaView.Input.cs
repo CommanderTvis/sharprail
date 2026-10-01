@@ -24,6 +24,8 @@ public sealed partial class GhosttySkiaView
         base.OnKeyDown(e);
         if (disposed || e.Handled) return;
         var mods = e.KeyModifiers;
+        linkModifiers = mods;
+        Redraw(false);
         var copyPaste = OperatingSystem.IsMacOS() ? mods == KeyModifiers.Meta : mods == (KeyModifiers.Control | KeyModifiers.Shift);
         if (copyPaste && e.Key is Key.C or Key.V)
         {
@@ -39,6 +41,8 @@ public sealed partial class GhosttySkiaView
     protected override void OnKeyUp(KeyEventArgs e)
     {
         base.OnKeyUp(e);
+        linkModifiers = e.KeyModifiers;
+        Redraw(false);
         if (disposed || e.Handled || OperatingSystem.IsMacOS() && e.KeyModifiers.HasFlag(KeyModifiers.Meta)) return;
         // Only the Kitty keyboard protocol reports releases; the encoder returns nothing otherwise.
         Encode(e, Release);
@@ -156,6 +160,13 @@ public sealed partial class GhosttySkiaView
         var button = Button(properties.PointerUpdateKind);
         e.Pointer.Capture(this);
         e.Handled = true;
+        RefreshLink(e);
+        if (button == 1 && hoveredUrl is { } url)
+        {
+            pressedUrl = url;
+            linkPressPointer = e.GetPosition(this);
+            return;
+        }
         if (Track(Press, button, e) || button != 1) return;
         var point = Grid(e);
         selecting = 0;
@@ -167,6 +178,7 @@ public sealed partial class GhosttySkiaView
     {
         base.OnPointerMoved(e);
         if (disposed) return;
+        RefreshLink(e);
         if (selecting >= 0)
         {
             var point = Grid(e);
@@ -184,7 +196,17 @@ public sealed partial class GhosttySkiaView
     {
         base.OnPointerReleased(e);
         if (disposed) return;
+        var link = pressedUrl;
+        pressedUrl = null;
+        RefreshLink(e);
         e.Pointer.Capture(null);
+        if (link is not null)
+        {
+            var delta = e.GetPosition(this) - linkPressPointer;
+            if (hoveredUrl == link && delta.X * delta.X + delta.Y * delta.Y <= 16) _ = OpenLinkAsync(link);
+            e.Handled = true;
+            return;
+        }
         if (selecting >= 0)
         {
             var point = Grid(e);
@@ -200,6 +222,7 @@ public sealed partial class GhosttySkiaView
     {
         base.OnPointerCaptureLost(e);
         selecting = -1;
+        pressedUrl = null;
     }
 
     protected override void OnPointerWheelChanged(PointerWheelEventArgs e)

@@ -2,8 +2,8 @@
 
 The macOS terminal embeds Ghostty 1.2.3 (MIT), pinned to commit
 6d2dd585a5d87fa745d48188dd096ca6e63014d0. See licenses/Ghostty-MIT.txt.
-The build appends a small configuration color and palette setter from
-`src/Ghostty.Avalonia/Native/config-colors.zig` to match the host UI theme.
+The build backports upstream's configuration-file loader via
+`src/Ghostty.Avalonia/Native/ConfigFile.patch` to load the host UI theme.
 It also applies `src/Ghostty.Avalonia/Native/MetalTexture.patch` to expose completed
 IOSurface-backed Metal render targets to Avalonia and wait for external GPU readers
 before Ghostty reuses them. The targets also enable shader sampling.
@@ -16,6 +16,16 @@ upstream licenses.
 The alternative Skia terminal uses libghostty-vt from the same repository, pinned
 to commit 59c2dc032aba42aa5064bf206cc27286add3e9d8 (MIT). Its C shim and Avalonia
 controls live in src/Ghostty.Avalonia; the Ghostty license is included there.
+
+The Skia terminal adapts rendering and output-scheduling designs from
+[RoyalTerminal](https://github.com/royalapplications/RoyalTerminal/tree/b740171f3d0ff6e97a1fcc1f58cc311f5dd4507f),
+Copyright (c) 2026 Royal Apps, MIT. The retained framebuffer, dirty-row updates,
+ASCII batching, text-blob caches and bounded UI output slices are implemented
+for SharpRail's existing Ghostty/host boundary. Pinned source links are in
+[src/Ghostty.Avalonia/README.md](src/Ghostty.Avalonia/README.md#skia-rendering-design);
+the original notice is in
+[src/Ghostty.Avalonia/licenses/RoyalTerminal-MIT.txt](src/Ghostty.Avalonia/licenses/RoyalTerminal-MIT.txt)
+and accompanies build/publish outputs.
 
 The visual layout follows Thinkrail's original-workspace.png and current
 workspace specification. The logo, custom diff icon and unchanged

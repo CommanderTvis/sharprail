@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Threading.Channels;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -72,7 +73,7 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend
         catch (Grpc.Core.RpcException error) { throw new TerminalStartException(error.Status.Detail); }
         if (disposed) { await attached.DisposeAsync(); throw new ObjectDisposedException(nameof(SkiaTerminal)); }
         session = attached;
-        terminal.Write(attached.Replay.Span);
+        await WriteOutput(attached.Replay);
         if (terminal.Size != size) _ = Resize(attached, terminal.Size);
         _ = Task.Run(() => Pump(attached));
         _ = Task.Run(() => Send(attached));
@@ -84,8 +85,7 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend
         {
             await foreach (var chunk in attached.ReadAsync(lifetime.Token))
             {
-                var bytes = chunk.ToArray();
-                Dispatcher.UIThread.Post(() => { if (!disposed) terminal.Write(bytes); });
+                await WriteOutput(chunk);
             }
             if (attached.Detached.IsCompleted) { detached.TrySetResult(); return; }
             exited.TrySetResult(await attached.Exit);
@@ -95,6 +95,30 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend
         {
             var message = error is Grpc.Core.RpcException rpc ? "The terminal connection was lost: " + rpc.Status.Detail : error.Message;
             exited.TrySetException(new TerminalStartException(message));
+        }
+    }
+
+    // RoyalTerminal's bounded output slices inspired this drain. See Ghostty.Avalonia/README.md.
+    // Await each dispatch so a flood cannot create an unbounded queue of UI callbacks.
+    private async Task WriteOutput(ReadOnlyMemory<byte> bytes)
+    {
+        var offset = 0;
+        while (offset < bytes.Length)
+        {
+            lifetime.Token.ThrowIfCancellationRequested();
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                lifetime.Token.ThrowIfCancellationRequested();
+                var started = Stopwatch.GetTimestamp();
+                var end = Math.Min(bytes.Length, offset + 8 * 1024);
+                do
+                {
+                    var length = Math.Min(1024, end - offset);
+                    terminal.Write(bytes.Span.Slice(offset, length));
+                    offset += length;
+                }
+                while (offset < end && Stopwatch.GetElapsedTime(started).TotalMilliseconds < 2);
+            }, DispatcherPriority.Background);
         }
     }
 

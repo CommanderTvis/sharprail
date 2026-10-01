@@ -32,7 +32,7 @@ internal static class Program
             if (!OperatingSystem.IsMacOS()) throw new PlatformNotSupportedException();
             NativeTerminalChecks.Run(args); return;
         }
-        if (args.Contains("--native-texture") || args.Contains("--texture-fallback")) { NativeTextureChecks.Run(args); return; }
+        if (args.Contains("--native-texture") || args.Contains("--texture-fallback") || args.Contains("--native-skia") || args.Contains("--native-osc52")) { NativeTextureChecks.Run(args); return; }
         if (args.Contains("--terminal-relay")) { Environment.Exit(SharpRail.UI.Terminal.TerminalRelay.Run()); return; }
         var root = Path.Combine(Directory.GetCurrentDirectory(), ".bench", "check-fixture-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);

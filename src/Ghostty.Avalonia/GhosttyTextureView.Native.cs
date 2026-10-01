@@ -26,6 +26,7 @@ public sealed partial class GhosttyTextureView
         [DllImport(Library, EntryPoint = "gav_texture_preedit")] internal static extern void Preedit(nint view, [MarshalAs(UnmanagedType.LPUTF8Str)] string? text);
         [DllImport(Library, EntryPoint = "gav_texture_ime_point")] internal static extern void ImePoint(nint view, out double x, out double y, out double width, out double height);
         [DllImport(Library, EntryPoint = "gav_texture_mouse")] internal static extern void Mouse(nint view, double x, double y, int mods, int action, int button);
+        [DllImport(Library, EntryPoint = "gav_texture_over_link")][return: MarshalAs(UnmanagedType.I1)] internal static extern bool OverLink(nint view);
         [DllImport(Library, EntryPoint = "gav_texture_scroll")] internal static extern void Scroll(nint view, double x, double y);
         [DllImport(Library, EntryPoint = "gav_texture_action")] internal static extern void Action(nint view, [MarshalAs(UnmanagedType.LPUTF8Str)] string action);
     }

@@ -1,0 +1,19 @@
+--- a/include/ghostty.h
++++ b/include/ghostty.h
+@@ -900,2 +900,3 @@
+ void ghostty_config_load_cli_args(ghostty_config_t);
++void ghostty_config_load_file(ghostty_config_t, const char*);
+ void ghostty_config_load_default_files(ghostty_config_t);
+--- a/src/config/CApi.zig
++++ b/src/config/CApi.zig
+@@ -57,2 +57,10 @@
+ 
++/// Backported from upstream: load configuration from a null-terminated file path.
++export fn ghostty_config_load_file(self: *Config, path: [*:0]const u8) void {
++    const path_slice = std.mem.span(path);
++    self.loadFile(state.alloc, path_slice) catch |err| {
++        log.err("error loading config from file path={s} err={}", .{ path_slice, err });
++    };
++}
++
+ /// Load the configuration from the default file locations. This

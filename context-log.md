@@ -2615,3 +2615,73 @@ User authorized committing and pushing all current changes. No changes made
 for the observed Metal/Skia font-weight difference; exact raster parity remains
 unverified. Binary-output reproduction passed; visual reverse-video confirmation
 has not been reported.
+
+### File-based Ghostty theme configuration — 2026-10-01
+
+User requested the file approach after checking latest upstream. Removed custom
+config-colors.zig and its exported field setter. Native theme updates now write
+a unique temporary Ghostty config with foreground/background, optional cursor
+and selection colors, 16 palette entries and locale-independent minimum contrast,
+load/finalize/apply it, then remove the file. User configuration is untouched.
+Pinned 1.2.3 lacks ghostty_config_load_file, so ConfigFile.patch backports that
+upstream export and declaration, avoiding a full engine upgrade. Build resets
+the header and CApi.zig from the pin before patching. Updated notices and spec.
+UI Release build passed with four existing XAML warnings; live theme switching
+has not been verified. Changes uncommitted; running app has not been relaunched.
+
+### RoyalTerminal Skia design adaptation — 2026-10-01
+
+User requested applying RoyalTerminal's Skia design decisions with attribution.
+Implemented retained row pictures and a GPU/raster framebuffer, content-based
+row invalidation including cursor/preedit, ASCII text batching, a bounded native
+text-blob cache, and awaited UI output slices (8 KiB / cooperative 2 ms budget,
+checked every 1 KiB). Cursor blink/focus reuse the last VT snapshot. Row pictures
+have explicit references across queued draws. VT ownership remains on the UI
+thread; non-cursor native snapshots still traverse the viewport and host queues
+remain outside this UI dispatch bound.
+
+Pinned Royal Apps sources at b740171f3d0ff6e97a1fcc1f58cc311f5dd4507f are linked
+from Ghostty.Avalonia/README.md and THIRD-PARTY-NOTICES.md. Original MIT license
+is included and copied into build/publish outputs. Specs updated. Added sparse
+pixel/full-repaint comparisons, replay fairness/cancellation/UTF-8/exit tests,
+and --native-skia for real GPU pixels, theme parity with an Avalonia swatch,
+Retina resize and disposal. Release solution build, --terminals,
+--ghostty-skia, --native-skia and formatting verified. The broader
+--native-texture run failed its theme-background pixel assertion before reaching
+Skia; its own-window screenshot/color-space assertion was not changed. No new
+performance benchmarks, app publication, commits or pushes.
+
+Concurrent native clipboard changes appeared during final checks (GhosttyVt.c,
+GhosttyClipboard.m, build-native.sh); they are outside this task and were not
+edited here. A transient native pointer-sign build error in that work was fixed
+concurrently; the subsequent solution build passed. Existing configuration-file
+changes and context entries were preserved.
+
+### OSC 52 support and regression coverage
+
+Added native Skia clipboard callbacks in GhosttyClipboard.m, registered by
+GhosttyVt.c and compiled/fingerprinted by build-native.sh. Writes allow text;
+reads ask using AppKit because the VT callback/reply lifetime is synchronous.
+Metal validates UTF-8 before clearing the clipboard and completes cancelled
+reads with empty data so Ghostty frees their requests. Osc52Checks and isolated
+TerminalEvents helpers cover the parser/callback/control path; --native-osc52
+also checks Metal and local/remote host round trips in both renderers, plus
+clipboard writes after switches. Native checks, Release build, formatting and
+the full checks runner with upstream Git fixtures pass; logs are in .bench/osc52-*.
+Native clipboard probes use saved shell scripts and atomic text input, avoiding
+the dropped characters seen in long synthetic keyboard command sequences.
+Preserved pre-existing configuration/framebuffer work. No commits or publication.
+
+### Terminal URLs — 2026-10-02
+
+Added Skia web URL detection using native soft-wrap metadata in the existing cell
+ABI, modifier-hover underlines/hand cursor and modifier-click system launcher.
+Metal already supports Ghostty links/open actions; Avalonia now forwards modifier
+changes and pointer exit and consumes native over-link state for its cursor.
+Command on macOS, Ctrl elsewhere; plain terminal selection remains intact.
+Skia tests pass including resize reflow, hard-break/punctuation targets and pixels
+for stationary modifier changes. Native texture checks again stop at the existing
+theme-background assertion; browser launching and Metal link pixels are unverified.
+Logs: .bench/url-skia-final.log, .bench/url-native-texture.log,
+.bench/url-format-verify.log. Existing dirty work preserved; no restart, publish,
+commit or push. HTTP(S) detection only in Skia; OSC 8 remains outside this change.

@@ -54,6 +54,16 @@ cursor styles, scrollback, mouse reporting, bracketed paste and IME preedit.
 Command shortcuts bubble to the application; Option acts as Alt by default.
 Set `ClipboardImageDirectory` to save pasted images and send their quoted paths.
 
+All three controls support OSC 52 text clipboard writes and reads on macOS,
+including terminal output received from remote hosts. Writes are allowed; reads
+require an AppKit confirmation each time. Skia uses synchronous native clipboard
+callbacks because libghostty-vt requests cannot outlive their callback. Clipboard
+selectors map to the system pasteboard on macOS. Invalid UTF-8 writes are ignored.
+The Skia library preserves embedded NULs; the full libghostty callback uses a
+NUL-terminated string. Both return an empty clipboard on denied reads, completing
+the pending request without disclosing data. Skia preserves the query's BEL/ST
+terminator; full libghostty uses ST. Ordinary Skia copy/paste still uses Avalonia.
+
 ## Native control
 
 ```csharp
@@ -110,10 +120,16 @@ use this patch; it does not reduce the scrollback limit.
 ## Limits and verification
 
 The Skia path does not reproduce every feature of Ghostty's native renderer:
-image protocols, cross-cell ligatures, hyperlink activation and an accessibility
+image protocols, cross-cell ligatures, OSC 8 hyperlink activation and an accessibility
 text provider are not implemented. Physical macOS IME behavior and font raster
 parity require native validation; headless input does not establish those.
 Other operating systems do not yet have native build targets.
+
+Both texture and Skia controls support Command-hover underlining and
+Command-click to open HTTP(S) URLs in the system browser (Ctrl on other platforms).
+Soft-wrapped URLs remain clickable across rows; dragging still selects text.
+The texture control uses Ghostty's built-in link detection; Skia detects web URLs
+from VT cells and soft-wrap metadata.
 
 In SharpRail, `--ghostty-skia` runs focused real-pixel/input and host PTY checks;
 `--terminals` additionally checks local/remote host behavior and terminal docking.
@@ -121,3 +137,44 @@ In SharpRail, `--ghostty-skia` runs focused real-pixel/input and host PTY checks
 `--native-texture` checks a real Metal-backed Avalonia window: imported pixels,
 theme, overlays, clipping, input, clipboard, resize, remounting and local/remote
 shell retention when switching between texture and Skia rendering.
+
+## Skia rendering design
+
+The retained framebuffer, dirty-row redraw, cached text blobs, ASCII batching and
+bounded output-slice designs are adapted from Royal Apps' **RoyalTerminal**,
+Copyright (c) 2026 Royal Apps, MIT licensed, at commit
+`b740171f3d0ff6e97a1fcc1f58cc311f5dd4507f`. This is an implementation for our
+Ghostty/Avalonia boundary, not a RoyalTerminal runtime dependency.
+
+- [Retained framebuffer and cursor-row invalidation](https://github.com/royalapplications/RoyalTerminal/blob/b740171f3d0ff6e97a1fcc1f58cc311f5dd4507f/src/RoyalTerminal.Avalonia/Rendering/TerminalDrawHandler.cs).
+- [Text batching and blob caches](https://github.com/royalapplications/RoyalTerminal/blob/b740171f3d0ff6e97a1fcc1f58cc311f5dd4507f/src/RoyalTerminal.Rendering.Skia/Rendering/SkiaTerminalRenderer.cs).
+- [Bounded shaped-run cache](https://github.com/royalapplications/RoyalTerminal/blob/b740171f3d0ff6e97a1fcc1f58cc311f5dd4507f/src/RoyalTerminal.Rendering.Text/TextShaping/ShapedRunCache.cs).
+- [Output backlog and processing budgets](https://github.com/royalapplications/RoyalTerminal/blob/b740171f3d0ff6e97a1fcc1f58cc311f5dd4507f/src/RoyalTerminal.Avalonia/Controls/TerminalControl.cs).
+
+The original [MIT notice](licenses/RoyalTerminal-MIT.txt) accompanies this library
+and is copied to consuming build/publish outputs.
+
+`GhosttySkiaView` compares viewport row content and cursor/preedit state on the UI
+thread, then records only changed rows. Immutable row pictures are reference
+counted across queued draw operations. `TerminalFramebuffer` retains pixels on a
+Skia surface (GPU when available, raster otherwise); the render thread draws only
+replaced rows before compositing the image. Font, scale, size, padding and theme
+changes invalidate the relevant cache. ASCII runs use fixed grid positions;
+complex graphemes retain cell-local shaping. Cross-cell ligatures are not added.
+Cursor blink and focus changes reuse the last VT snapshot; other VT snapshot
+extraction still traverses the viewport.
+
+Text blobs are cached up to 4096 entries and explicitly disposed on eviction or
+font disposal. A recorded picture retains its native drawing resources, so cache
+eviction cannot invalidate a queued frame.
+
+SharpRail's Skia adapter awaits one output dispatch at a time, processes at most
+8 KiB per dispatch in 1 KiB pieces, and yields after approximately 2 ms. A single
+piece can exceed that budget. Replay uses the same drain and exit follows the
+last processed byte. This bounds UI dispatch, not the separate host queues;
+VT processing remains on the UI thread to preserve its ownership contract.
+
+`--native-skia` verifies the GPU framebuffer in a real macOS window with
+own-window pixels, incremental redraw, theme parity with an Avalonia swatch,
+Retina resize and disposal. `--ghostty-skia` also checks sparse redraw against a
+full repaint, replay yielding to input, cancellation, split UTF-8 and exit ordering.

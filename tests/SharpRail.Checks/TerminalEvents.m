@@ -22,6 +22,41 @@ bool sr_texture_has_native_terminal(void *pointer) {
 }
 static NSPasteboard *isolatedPasteboard(id self, SEL selector) { (void)self; (void)selector; return testPasteboard; }
 
+static IMP originalPasteboardGetter, originalAlertModal;
+static bool allowClipboardRead;
+static int clipboardPrompts;
+static NSModalResponse clipboardAlert(id self, SEL selector) {
+    (void)selector;
+    NSAlert *alert = self;
+    if (![alert.messageText isEqualToString:@"Allow terminal clipboard access?"])
+        [NSException raise:@"Unexpected clipboard prompt" format:@"%@", alert.messageText];
+    clipboardPrompts++;
+    return allowClipboardRead ? NSAlertFirstButtonReturn : NSAlertSecondButtonReturn;
+}
+void sr_check_clipboard_begin(bool allow) {
+    testPasteboard = [NSPasteboard pasteboardWithUniqueName];
+    allowClipboardRead = allow;
+    clipboardPrompts = 0;
+    originalPasteboardGetter = method_setImplementation(class_getClassMethod(NSPasteboard.class, @selector(generalPasteboard)), (IMP)isolatedPasteboard);
+    originalAlertModal = method_setImplementation(class_getInstanceMethod(NSAlert.class, @selector(runModal)), (IMP)clipboardAlert);
+}
+void sr_check_clipboard_end(void) {
+    method_setImplementation(class_getClassMethod(NSPasteboard.class, @selector(generalPasteboard)), originalPasteboardGetter);
+    method_setImplementation(class_getInstanceMethod(NSAlert.class, @selector(runModal)), originalAlertModal);
+    [testPasteboard releaseGlobally]; testPasteboard = nil;
+}
+int sr_check_clipboard_prompts(void) { return clipboardPrompts; }
+void sr_check_clipboard_allow(bool allow) { allowClipboardRead = allow; }
+void sr_check_clipboard_set(const char *text) {
+    [testPasteboard clearContents];
+    [testPasteboard setString:[NSString stringWithUTF8String:text] forType:NSPasteboardTypeString];
+}
+size_t sr_check_clipboard_get(uint8_t *buffer, size_t capacity) {
+    NSData *text = [([testPasteboard stringForType:NSPasteboardTypeString] ?: @"") dataUsingEncoding:NSUTF8StringEncoding];
+    if (buffer) memcpy(buffer, text.bytes, MIN(capacity, text.length));
+    return text.length;
+}
+
 void sr_check_paste(void *pointer, int format) {
     NSView *view = (__bridge NSView *)pointer;
     testPasteboard = [NSPasteboard pasteboardWithUniqueName];

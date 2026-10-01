@@ -100,7 +100,7 @@ internal static class BottomPanelE2E
             $"Panel-header action {control.Name} must be a 32-pixel square.");
         var right = app.Window.Layout.State.Groups.First(group => group.Region == "right").Id;
         var bottom = Groups(app).Single().Id;
-        foreach (var name in new[] { "NewTerminal_" + app.Center, "NewTerminal_" + bottom, "NewTerminal_" + right, "FoldRestore_" + right, "BottomAlignment" })
+        foreach (var name in new[] { "NewTerminal_" + app.Center, "NewTerminal_" + bottom, "FoldRestore_" + right, "BottomAlignment" })
             Square(app.Find<Button>(name));
         var terminal = TerminalTabs(app).Single();
         app.ContextAction(app.Find<Button>("Tab_" + terminal.Id.Replace(':', '_')), "New bottom group at right");

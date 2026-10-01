@@ -4,10 +4,10 @@
 #import <Metal/Metal.h>
 #include "ghostty.h"
 #include "GhosttyView.h"
-extern void gav_ghostty_config_colors(ghostty_config_t config, const uint32_t *colors, double minimum_contrast);
 
 @interface GAVTerminalView : NSView <NSTextInputClient>
 @property(nonatomic, assign) ghostty_surface_t surface;
+@property(nonatomic, assign) BOOL overLink;
 @property(nonatomic, strong) NSMutableAttributedString *marked;
 @property(nonatomic, strong) NSMutableArray<NSString *> *keyText;
 @property(nonatomic, copy) NSString *clipboardDirectory;
@@ -29,6 +29,11 @@ static void wakeup(void *data) {
     dispatch_async(dispatch_get_main_queue(), ^{ if (app) ghostty_app_tick(app); });
 }
 static bool action(ghostty_app_t instance, ghostty_target_s target, ghostty_action_s value) {
+    if (value.tag == GHOSTTY_ACTION_MOUSE_OVER_LINK && target.tag == GHOSTTY_TARGET_SURFACE) {
+        GAVTerminalView *view = (__bridge GAVTerminalView *)ghostty_surface_userdata(target.target.surface);
+        view.overLink = value.action.mouse_over_link.len > 0;
+        return true;
+    }
     if (value.tag == GHOSTTY_ACTION_SHOW_CHILD_EXITED && target.tag == GHOSTTY_TARGET_SURFACE) {
         GAVTerminalView *view = (__bridge GAVTerminalView *)ghostty_surface_userdata(target.target.surface);
         if (view.callback) view.callback(view.context, GAV_VIEW_EXITED, (int32_t)value.action.child_exited.exit_code);
@@ -72,10 +77,13 @@ static void confirmClipboard(void *data, const char *text, void *state, ghostty_
     alert.informativeText = @"The terminal requested clipboard data that requires confirmation.";
     [alert addButtonWithTitle:@"Allow"];
     [alert addButtonWithTitle:@"Cancel"];
-    if ([alert runModal] == NSAlertFirstButtonReturn)
-        ghostty_surface_complete_clipboard_request(view.surface, text, state, true);
+    bool allowed = [alert runModal] == NSAlertFirstButtonReturn;
+    // Completing even a cancelled read releases Ghostty's pending request.
+    ghostty_surface_complete_clipboard_request(view.surface, allowed ? text : "", state, true);
 }
 static void writeClipboard(void *data, const char *text, ghostty_clipboard_e clipboard, bool confirm) {
+    NSString *value = [NSString stringWithUTF8String:text];
+    if (!value) return;
     if (confirm) {
         NSAlert *alert = [NSAlert new];
         alert.messageText = @"Allow terminal to replace the clipboard?";
@@ -84,7 +92,7 @@ static void writeClipboard(void *data, const char *text, ghostty_clipboard_e cli
     }
     NSPasteboard *pasteboard = [NSPasteboard generalPasteboard];
     [pasteboard clearContents];
-    [pasteboard setString:[NSString stringWithUTF8String:text] forType:NSPasteboardTypeString];
+    [pasteboard setString:value forType:NSPasteboardTypeString];
 }
 static void closeSurface(void *data, bool alive) {
     // The tab owns the session; an exited shell stays visible until its tab closes.
@@ -289,11 +297,24 @@ bool gav_view_busy(void *pointer) {
 void gav_view_focus(void *pointer) { GAVTerminalView *view = (__bridge GAVTerminalView *)pointer; [view.window makeFirstResponder:view]; }
 void gav_view_set_colors(void *pointer, const uint32_t *colors, double minimum_contrast) {
     GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;
+    NSMutableString *text = [NSMutableString stringWithFormat:@"background = #%06x\nforeground = #%06x\n", colors[0] & 0xffffff, colors[1] & 0xffffff];
+    NSArray<NSString *> *optional = @[@"cursor-color", @"selection-background", @"selection-foreground"];
+    for (NSUInteger i = 0; i < optional.count; i++)
+        if (colors[i + 2] >> 24) [text appendFormat:@"%@ = #%06x\n", optional[i], colors[i + 2] & 0xffffff];
+    for (NSUInteger i = 0; i < 16; i++) [text appendFormat:@"palette = %lu=#%06x\n", (unsigned long)i, colors[i + 5] & 0xffffff];
+    [text appendFormat:@"minimum-contrast = %@\n", @(minimum_contrast).stringValue];
+    NSString *path = [NSTemporaryDirectory() stringByAppendingPathComponent:[@"ghostty-theme-" stringByAppendingString:NSUUID.UUID.UUIDString]];
+    NSError *error = nil;
+    if (![text writeToFile:path atomically:YES encoding:NSUTF8StringEncoding error:&error]) {
+        NSLog(@"Could not write Ghostty theme: %@", error);
+        return;
+    }
     ghostty_config_t config = ghostty_config_new();
-    gav_ghostty_config_colors(config, colors, minimum_contrast);
+    ghostty_config_load_file(config, path.fileSystemRepresentation);
     ghostty_config_finalize(config);
     ghostty_surface_update_config(view.surface, config);
     ghostty_config_free(config);
+    [NSFileManager.defaultManager removeItemAtPath:path error:nil];
 }
 void gav_view_input(void *pointer, const char *text) {
     GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;
@@ -378,6 +399,9 @@ void gav_texture_preedit(void *pointer, const char *text) {
 void gav_texture_ime_point(void *pointer, double *x, double *y, double *width, double *height) {
     GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;
     ghostty_surface_ime_point(view.surface, x, y, width, height);
+}
+bool gav_texture_over_link(void *pointer) {
+    return ((__bridge GAVTerminalView *)pointer).overLink;
 }
 void gav_texture_mouse(void *pointer, double x, double y, int32_t mods, int32_t action, int32_t button) {
     GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;

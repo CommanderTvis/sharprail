@@ -10,6 +10,13 @@ public sealed partial class GhosttyTextureView
     private TextureInputClient InputMethod => inputMethod ??= new(this);
     private uint? pendingTextKey;
     private KeyModifiers pendingTextModifiers;
+    private Point linkPointer = new(-1, -1);
+
+    private void RefreshLinkModifiers(KeyModifiers modifiers)
+    {
+        if (!disposed) Native.Mouse(terminal.Handle, linkPointer.X, linkPointer.Y, Vt.Mods(modifiers), -1, 0);
+        if (!disposed) Cursor = new Cursor(Native.OverLink(terminal.Handle) ? StandardCursorType.Hand : StandardCursorType.Ibeam);
+    }
 
     protected override void OnGotFocus(FocusChangedEventArgs e)
     {
@@ -28,6 +35,7 @@ public sealed partial class GhosttyTextureView
     {
         base.OnKeyDown(e);
         if (disposed || e.Handled) return;
+        RefreshLinkModifiers(e.KeyModifiers);
         pendingTextKey = null;
         if (e.KeyModifiers == KeyModifiers.Meta && e.Key is Key.C or Key.V)
         {
@@ -53,6 +61,7 @@ public sealed partial class GhosttyTextureView
     protected override void OnKeyUp(KeyEventArgs e)
     {
         base.OnKeyUp(e);
+        RefreshLinkModifiers(e.KeyModifiers);
         pendingTextKey = null;
         if (disposed || e.KeyModifiers.HasFlag(KeyModifiers.Meta) || !KeyCodes.TryGetValue(e.PhysicalKey, out var code)) return;
         Native.Key(terminal.Handle, 0, code, Vt.Mods(e.KeyModifiers), 0, null, Unshifted(e.PhysicalKey));
@@ -75,7 +84,9 @@ public sealed partial class GhosttyTextureView
     {
         if (disposed) return;
         var point = e.GetPosition(this);
+        linkPointer = point;
         Native.Mouse(terminal.Handle, point.X, point.Y, Vt.Mods(e.KeyModifiers), action, button);
+        Cursor = new Cursor(Native.OverLink(terminal.Handle) ? StandardCursorType.Hand : StandardCursorType.Ibeam);
     }
 
     private static int Button(PointerUpdateKind kind) => kind switch
@@ -97,6 +108,13 @@ public sealed partial class GhosttyTextureView
     }
 
     protected override void OnPointerMoved(PointerEventArgs e) { base.OnPointerMoved(e); Mouse(e, -1, 0); }
+
+    protected override void OnPointerExited(PointerEventArgs e)
+    {
+        base.OnPointerExited(e);
+        linkPointer = new(-1, -1);
+        RefreshLinkModifiers(KeyModifiers.None);
+    }
 
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
     {

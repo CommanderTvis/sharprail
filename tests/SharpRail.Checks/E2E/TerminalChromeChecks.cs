@@ -193,8 +193,10 @@ internal static class TerminalChromeChecks
         using var app = new E2eWorkspace(Path.Combine(root, "terminal-side-menu"));
         var side = app.Window.Layout.State.Groups.First(group => group.Region == "right");
         Require(!app.Window.Layout.Tabs(side.Id).Any(tab => tab.Kind == "terminal"), "The Specs group must start without a terminal.");
+        Require(!app.Find<Button>("NewTerminal_" + side.Id).IsVisible, "The Specs view must not show a terminal opener.");
+        app.Window.Layout.NewTerminal(side.Id);
         app.Click(app.Find<Button>("NewTerminal_" + side.Id));
-        Until(() => app.Window.Layout.Tabs(side.Id).Count(tab => tab.Kind == "terminal") == 1);
+        Until(() => app.Window.Layout.Tabs(side.Id).Count(tab => tab.Kind == "terminal") == 2);
         Require(!app.Window.Layout.State.Center.Leaves().SelectMany(app.Window.Layout.Tabs).Any(tab => tab.Kind == "terminal"),
             "The side menu must create a terminal in its own group.");
         app.ContextAction(app.Find<Button>("Tab_projects"), "Close");

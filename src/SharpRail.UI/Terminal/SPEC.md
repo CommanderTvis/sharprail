@@ -65,6 +65,8 @@ shell. Ordinary themes preserve terminal foreground colours without minimum-cont
 (Ghostty's default of 1); high-contrast themes use a minimum ratio of 7.
 Reverse-screen mode (DECSCNM) swaps the default text and background colours together,
 and resetting the mode restores both.
+The Metal bridge loads theme values through a temporary Ghostty configuration file,
+then deletes it after applying the configuration; it does not modify user config files.
 
 ## Platform
 
@@ -77,6 +79,10 @@ The library retains `GhosttyView` for NSView consumers and benchmarks; SharpRail
 Texture creation or drawing failure automatically switches that view to Skia on
 the same host session, without changing the saved preference. Clipboard image
 paste saves PNG files under the profile's `clipboard` directory.
+Both renderers handle OSC 52 text clipboard writes from local and remote shells.
+Writes are allowed and reads require confirmation on the client; clipboard data
+is never taken from the host machine. The macOS system pasteboard serves all
+selection destinations. Invalid UTF-8 writes leave it unchanged.
 
 In Metal texture mode, Ghostty renders to IOSurface textures that Avalonia imports
 directly into its Skia compositor. Completed targets are leased while Skia samples
@@ -93,14 +99,31 @@ three render targets. Resize, remount and disposal must release old targets. The
 page allocations when recycling them, without reducing retained history limits.
 
 In Skia mode, libghostty-vt owns terminal state and input encoding; Avalonia draws
-Skia pictures and owns focus, clipboard, selection and composition input. On macOS,
+changed rows into retained Skia pixels and owns focus, clipboard, selection and composition input. On macOS,
 Option–Left/Right send ESC b/f for word navigation, matching Ghostty's bindings. The
 adapter attaches directly to `ITerminalService`, queues input in order, uses the
 arranged grid size and propagates exit/takeover to `TerminalView`. No relay child
 is needed. All paths currently require macOS native libraries; other platforms
 show an availability message.
 
+The Skia renderer reuses unchanged row pictures and framebuffer pixels, including
+when only the cursor moves. Theme, font, geometry, selection and preedit changes
+must invalidate affected rows. Cached native text blobs batch compatible ASCII
+cells while preserving the grid and existing complex-grapheme behavior. Queued
+draw operations retain row resources until released.
+The Skia adapter awaits bounded output dispatches (up to 8 KiB, with a 2 ms
+cooperative budget checked every 1 KiB); replay follows the same path. Exit is
+reported only after output drains, and disposal cancels pending dispatches.
+This bounds UI work, not host-side output queues. VT state stays UI-thread-owned.
+Design provenance and Royal Apps MIT attribution are in
+[Ghostty.Avalonia/README.md](../../Ghostty.Avalonia/README.md#skia-rendering-design).
+
 ## Validation
+
+Both renderers underline HTTP(S) URLs under the pointer while Command is held
+on macOS (Ctrl elsewhere), and modifier-click opens the URL using the system
+browser. Soft-wrapped URLs remain one link across rows; explicit newlines remain
+boundaries. Ordinary clicks and drags retain terminal selection behavior.
 
 Host checks cover attach idempotency, takeover and displaced-client rejection, replay without the
 alternate screen or mouse modes, resume without duplication, busy detection and close. `--terminals` runs

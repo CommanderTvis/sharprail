@@ -28,8 +28,12 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
     private CellFonts? fonts;
     private (SKTypeface? Typeface, string Family, double Size, double Scale) fontKey;
     private TerminalColors colors = TerminalColors.Default;
-    private SKPicture? picture;
-    private bool stale = true, cursorOn = true, disposed;
+    private readonly TerminalFramebuffer framebuffer = new();
+    private TerminalRowPicture[] rows = [];
+    private (CellFonts? Fonts, TerminalColors Colors, Size Size, Thickness Padding) rowLayout;
+    internal int RowsRecorded { get; private set; }
+    internal bool IsGpuBacked => framebuffer.IsGpuBacked;
+    private bool stale = true, snapshotNeeded = true, cursorOn = true, disposed;
     private Frame last;
 
     public GhosttySkiaView(int scrollbackLines = 10_000)
@@ -40,7 +44,7 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
         vt = new Vt(Size.Columns, Size.Rows, scrollbackLines, Reply);
         vt.SetColors(colors);
         vt.OptionAsAlt = OperatingSystem.IsMacOS();
-        blink.Tick += (_, _) => { cursorOn = !cursorOn; Redraw(); };
+        blink.Tick += (_, _) => { cursorOn = !cursorOn; Redraw(snapshot: false); };
         AddHandler(TextInputMethodClientRequestedEvent, (_, e) => e.Client = InputMethod, RoutingStrategies.Bubble);
     }
 
@@ -114,9 +118,10 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
     private void Reply(ReadOnlySpan<byte> data) => Input?.Invoke(this, data.ToArray());
     private void Send(ReadOnlySpan<byte> data) { if (!data.IsEmpty) Input?.Invoke(this, data.ToArray()); }
 
-    private void Redraw()
+    private void Redraw(bool snapshot = true)
     {
         stale = true;
+        snapshotNeeded |= snapshot;
         InvalidateVisual();
     }
 
@@ -169,17 +174,40 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
     {
         if (disposed || Bounds.Width <= 0 || Bounds.Height <= 0) return;
         var cells = Fonts();
-        if (picture is null || stale)
+        if (stale || rowLayout != (cells, colors, Bounds.Size, Padding))
         {
-            stale = false;
-            if (!vt.Snapshot(out var frame)) return;
-            last = frame;
+            var frame = last;
+            if (snapshotNeeded && !vt.Snapshot(out frame)) return;
             UpdateBlink(frame);
-            // The render thread may still replay the previous picture; the collector releases it.
-            picture = Record(frame, cells, (float)Bounds.Width, (float)Bounds.Height);
+            UpdateLinks(frame);
+            var invalidate = rowLayout != (cells, colors, Bounds.Size, Padding);
+            rowLayout = (cells, colors, Bounds.Size, Padding);
+            if (rows.Length != frame.Rows)
+            {
+                foreach (var row in rows) row.Release();
+                rows = new TerminalRowPicture[frame.Rows];
+                invalidate = true;
+            }
+            for (var y = 0; y < rows.Length; y++)
+            {
+                var cursor = frame.CursorVisible != 0 && frame.CursorY == y;
+                var appearance = new RowAppearance(frame.Background, frame.Foreground,
+                    cursor ? frame.CursorX : -1, cursor ? frame.CursorColor : 0,
+                    cursor ? frame.CursorStyle : (byte)0, cursor && cursorOn, cursor && IsKeyboardFocusWithin,
+                    cursor ? preedit : "");
+                if (!invalidate && rows[y].Matches(frame, y, appearance)) continue;
+                var next = new TerminalRowPicture(frame, y, appearance, Record(frame, cells,
+                    (float)Bounds.Width, (float)Bounds.Height, y));
+                rows[y]?.Release();
+                rows[y] = next;
+                RowsRecorded++;
+            }
+            last = frame;
+            snapshotNeeded = false;
+            stale = false;
             Frames++;
         }
-        context.Custom(new PictureOperation(new Rect(Bounds.Size), picture));
+        context.Custom(new RowOperation(new Rect(Bounds.Size), rows, framebuffer, fontKey.Scale));
     }
 
     private void UpdateBlink(Frame frame)
@@ -189,12 +217,12 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
         if (blinking) blink.Start(); else { blink.Stop(); cursorOn = true; }
     }
 
-    private unsafe SKPicture Record(Frame frame, CellFonts cells, float width, float height)
+    private unsafe SKPicture Record(Frame frame, CellFonts cells, float width, float height, int row)
     {
         using var recorder = new SKPictureRecorder();
         var canvas = recorder.BeginRecording(new SKRect(0, 0, width, height));
         var background = Background(frame);
-        canvas.Clear(background);
+
         float left = (float)Padding.Left, top = (float)Padding.Top, cw = cells.CellWidth, ch = cells.CellHeight;
         using var fill = new SKPaint { Style = SKPaintStyle.Fill };
         using var text = new SKPaint { IsAntialias = true };
@@ -203,61 +231,79 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
         var focused = IsKeyboardFocusWithin;
         var blockCursor = cursorCell >= 0 && focused && frame.CursorStyle == 1;
         var cursorColor = frame.CursorColor >> 24 != 0 ? new SKColor(frame.CursorColor) : colors.Cursor is { } c ? c.ToSKColor() : new SKColor(frame.Foreground);
-        for (var y = 0; y < frame.Rows; y++)
+        var clip = new SKRect(0, row == 0 ? 0 : top + row * ch, width,
+            row == frame.Rows - 1 ? height : top + (row + 1) * ch);
+        canvas.ClipRect(clip);
+        fill.Color = background;
+        fill.BlendMode = SKBlendMode.Src;
+        canvas.DrawRect(clip, fill);
+        fill.BlendMode = SKBlendMode.SrcOver;
+        var y = row;
+        var rowTop = top + y * ch;
+        // Backgrounds first, merged into runs, so wide glyphs and overhangs are not clipped by later cells.
+        for (var x = 0; x < frame.Columns;)
         {
-            var rowTop = top + y * ch;
-            // Backgrounds first, merged into runs, so wide glyphs and overhangs are not clipped by later cells.
-            for (var x = 0; x < frame.Columns;)
+            var (_, bg) = Resolve(frame, frame.Cells[y * frame.Columns + x]);
+            var end = x + 1;
+            while (end < frame.Columns && Resolve(frame, frame.Cells[y * frame.Columns + end]).Background == bg) end++;
+            if (bg != background)
             {
-                var (_, bg) = Resolve(frame, frame.Cells[y * frame.Columns + x]);
-                var end = x + 1;
-                while (end < frame.Columns && Resolve(frame, frame.Cells[y * frame.Columns + end]).Background == bg) end++;
-                if (bg != background)
-                {
-                    fill.Color = bg;
-                    // Cells on the grid's edges extend their background into the padding, as Ghostty does.
-                    canvas.DrawRect(new SKRect(x == 0 ? 0 : left + x * cw, y == 0 ? 0 : rowTop,
-                        end == frame.Columns ? width : left + end * cw, y == frame.Rows - 1 ? height : rowTop + ch), fill);
-                }
-                x = end;
+                fill.Color = bg;
+                // Cells on the grid's edges extend their background into the padding, as Ghostty does.
+                canvas.DrawRect(new SKRect(x == 0 ? 0 : left + x * cw, y == 0 ? 0 : rowTop,
+                    end == frame.Columns ? width : left + end * cw, y == frame.Rows - 1 ? height : rowTop + ch), fill);
             }
-            for (var x = 0; x < frame.Columns; x++)
-            {
-                var index = y * frame.Columns + x;
-                var cell = frame.Cells[index];
-                if (cell.Wide == 2 || cell.Wide == 3) continue;
-                var span = cell.Wide == 1 ? 2 : 1;
-                var (fg, bg) = Resolve(frame, cell);
-                var bounds = new SKRect(left + x * cw, rowTop, left + (x + span) * cw, rowTop + ch);
-                if (index == cursorCell && blockCursor)
-                {
-                    fill.Color = cursorColor;
-                    canvas.DrawRect(bounds, fill);
-                    fg = colors.Cursor is null && frame.CursorColor >> 24 == 0 ? bg : Contrast(background, cursorColor);
-                }
-                if (cell.Length > 0 && !cell.Flags.HasFlag(CellFlags.Invisible))
-                {
-                    var grapheme = new ReadOnlySpan<uint>(frame.Text + cell.Text, cell.Length);
-                    if (cell.Length != 1 || !BoxDrawing.Draw(canvas, (int)grapheme[0], bounds, fg, cells.LineThickness))
-                    {
-                        var glyphs = cells.Glyphs(CellFonts.Grapheme(grapheme), cell.Flags.HasFlag(CellFlags.Bold), cell.Flags.HasFlag(CellFlags.Italic), span);
-                        if (glyphs is not null)
-                        {
-                            text.Color = fg;
-                            using var builder = new SKTextBlobBuilder();
-                            var run = builder.AllocatePositionedRun(glyphs.Font, glyphs.Glyphs.Length);
-                            glyphs.Glyphs.CopyTo(run.Glyphs);
-                            glyphs.Positions.CopyTo(run.Positions);
-                            using var blob = builder.Build();
-                            if (blob is not null) canvas.DrawText(blob, bounds.Left, rowTop + cells.Baseline, text);
-                        }
-                    }
-                }
-                Decorate(canvas, cell, fg, bounds, cells);
-                if (index == cursorCell && !blockCursor) DrawCursor(canvas, frame.CursorStyle, focused, bounds, cursorColor, cells);
-            }
+            x = end;
         }
-        if (preedit.Length > 0 && frame.CursorVisible != 0) DrawPreedit(canvas, frame, cells, background);
+        var drawnThrough = -1;
+        for (var x = 0; x < frame.Columns; x++)
+        {
+            var index = y * frame.Columns + x;
+            var cell = frame.Cells[index];
+            if (cell.Wide == 2 || cell.Wide == 3) continue;
+            var span = cell.Wide == 1 ? 2 : 1;
+            var (fg, bg) = Resolve(frame, cell);
+            var bounds = new SKRect(left + x * cw, rowTop, left + (x + span) * cw, rowTop + ch);
+            if (index == cursorCell && blockCursor)
+            {
+                fill.Color = cursorColor;
+                canvas.DrawRect(bounds, fill);
+                fg = colors.Cursor is null && frame.CursorColor >> 24 == 0 ? bg : Contrast(background, cursorColor);
+            }
+            if (x > drawnThrough && cell.Length > 0 && !cell.Flags.HasFlag(CellFlags.Invisible))
+            {
+                var grapheme = new ReadOnlySpan<uint>(frame.Text + cell.Text, cell.Length);
+                if (cell.Length != 1 || !BoxDrawing.Draw(canvas, (int)grapheme[0], bounds, fg, cells.LineThickness))
+                {
+                    var bold = cell.Flags.HasFlag(CellFlags.Bold);
+                    var italic = cell.Flags.HasFlag(CellFlags.Italic);
+                    SKTextBlob? blob;
+                    if (span == 1 && cell.Length == 1 && grapheme[0] is >= 32 and <= 126 && index != cursorCell)
+                    {
+                        var end = x + 1;
+                        while (end < frame.Columns)
+                        {
+                            var next = frame.Cells[y * frame.Columns + end];
+                            if (next.Length != 1 || next.Wide != 0 || next.Flags != cell.Flags ||
+                                frame.Text[next.Text] is < 32 or > 126 || Resolve(frame, next).Foreground != fg ||
+                                y * frame.Columns + end == cursorCell) break;
+                            end++;
+                        }
+                        var chars = new char[end - x];
+                        for (var i = x; i < end; i++) chars[i - x] = (char)frame.Text[frame.Cells[y * frame.Columns + i].Text];
+                        blob = cells.Blob(new string(chars), bold, italic, 1, asciiRun: true);
+                        drawnThrough = end - 1;
+                    }
+                    else blob = cells.Blob(CellFonts.Grapheme(grapheme), bold, italic, span);
+                    text.Color = fg;
+                    if (blob is not null) canvas.DrawText(blob, bounds.Left, rowTop + cells.Baseline, text);
+                }
+            }
+            if (linkCells.Contains(index) && cell.Underline == 0) cell.Underline = 1;
+            Decorate(canvas, cell, fg, bounds, cells);
+            if (index == cursorCell && !blockCursor) DrawCursor(canvas, frame.CursorStyle, focused, bounds, cursorColor, cells);
+        }
+        if (preedit.Length > 0 && frame.CursorVisible != 0 && frame.CursorY == row) DrawPreedit(canvas, frame, cells, background);
         return recorder.EndRecording();
     }
 
@@ -277,6 +323,7 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
 
     private static void Decorate(SKCanvas canvas, Cell cell, SKColor foreground, SKRect bounds, CellFonts cells)
     {
+        if (cell.Underline == 0 && (cell.Flags & (CellFlags.Strikethrough | CellFlags.Overline)) == 0) return;
         var thickness = cells.LineThickness;
         using var paint = new SKPaint { Color = cell.UnderlineColor >> 24 != 0 ? new SKColor(cell.UnderlineColor) : foreground, StrokeWidth = thickness, IsAntialias = true, Style = SKPaintStyle.Stroke };
         var y = bounds.Top + cells.UnderlinePosition;
@@ -361,7 +408,7 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
         base.OnPropertyChanged(change);
-        if (change.Property == IsKeyboardFocusWithinProperty) Redraw();
+        if (change.Property == IsKeyboardFocusWithinProperty) Redraw(snapshot: false);
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
@@ -377,19 +424,34 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
         blink.Stop();
         vt.Dispose();
         fonts?.Dispose();
+        foreach (var row in rows) row.Release();
+        rows = [];
+        framebuffer.Dispose();
     }
 
-    private sealed class PictureOperation(Rect bounds, SKPicture picture) : ICustomDrawOperation
+    private sealed class RowOperation : ICustomDrawOperation
     {
-        public Rect Bounds => bounds;
-        public bool HitTest(Point point) => bounds.Contains(point);
+        private TerminalRowPicture[] rows;
+        private readonly TerminalFramebuffer framebuffer;
+        private readonly double scale;
+        internal RowOperation(Rect bounds, TerminalRowPicture[] rows, TerminalFramebuffer framebuffer, double scale)
+        {
+            Bounds = bounds; this.rows = [.. rows]; this.framebuffer = framebuffer; this.scale = scale;
+            foreach (var row in this.rows) row.Retain();
+        }
+        public Rect Bounds { get; }
+        public bool HitTest(Point point) => Bounds.Contains(point);
         public bool Equals(ICustomDrawOperation? other) => ReferenceEquals(this, other);
-        public void Dispose() { }
+        public void Dispose()
+        {
+            foreach (var row in rows) row.Release();
+            rows = [];
+        }
         public void Render(ImmediateDrawingContext context)
         {
             if (context.TryGetFeature<ISkiaSharpApiLeaseFeature>() is not { } feature) return;
             using var lease = feature.Lease();
-            lease.SkCanvas.DrawPicture(picture);
+            framebuffer.Draw(lease.SkCanvas, lease.GrContext, Bounds, scale, rows);
         }
     }
 }

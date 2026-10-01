@@ -14,6 +14,7 @@
     <PackageReference Include="SkiaSharp" />
     <PackageReference Include="HarfBuzzSharp" />
     <InternalsVisibleTo Include="SharpRail.Checks" />
+    <Content Include="licenses/RoyalTerminal-MIT.txt" Link="licenses/RoyalTerminal-MIT.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
   <ItemGroup Condition="'$(ManagePackageVersionsCentrally)' != 'true'">
     <PackageReference Update="Avalonia" Version="12.1.3" />

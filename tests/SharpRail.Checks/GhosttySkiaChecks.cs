@@ -50,10 +50,67 @@ internal static class GhosttySkiaChecks
     {
         if (!OperatingSystem.IsMacOS()) { Console.WriteLine("SKIP Skia terminal renderer (libghostty-vt is built on macOS)"); return; }
         CheckClusters();
+        CheckUrls();
+        CheckUrlHover();
+        Osc52Checks.RunSkia();
         CheckView();
+        CheckIncrementalRendering();
+        SkiaOutputChecks.Run(root);
         CheckSession(root);
         CheckRendererSetting(root);
         Console.WriteLine("PASS Skia terminal renderer: libghostty-vt cells, colours, wide/combining text, box drawing, cursor, keyboard and mouse encoding, paste, selection, scrollback, resize and a host PTY session that survives a renderer restart");
+    }
+
+    private static void CheckUrls()
+    {
+        using var vt = new Vt(16, 8, 100, _ => { });
+        const string url = "https://example.com/long/path?q=1";
+        vt.Write(Encoding.UTF8.GetBytes(url));
+        Require(vt.Snapshot(out var frame), "URL snapshot failed.");
+        var links = GhosttySkiaView.FindUrls(frame);
+        Require(links.Count == url.Length && links.Values.All(value => value == url), "wrapped URL lost cells or changed its target.");
+        vt.Resize(10, 8, 8, 16);
+        Require(vt.Snapshot(out frame), "reflow snapshot failed.");
+        links = GhosttySkiaView.FindUrls(frame);
+        Require(links.Count == url.Length && links.Values.All(value => value == url), "resizing broke the wrapped URL.");
+        vt.Resize(16, 8, 8, 16);
+        vt.Write("\ec"u8);
+        vt.Write("https://one.test\r\n/other"u8);
+        Require(vt.Snapshot(out frame), "hard-break snapshot failed.");
+        links = GhosttySkiaView.FindUrls(frame);
+        Require(links.Count == "https://one.test".Length && links.Values.All(value => value == "https://one.test") && !links.ContainsKey(16), "hard line break joined unrelated text into a URL.");
+        vt.Resize(80, 8, 8, 16);
+        vt.Write("\ec(https://example.com/a_(b))."u8);
+        Require(vt.Snapshot(out frame), "punctuation snapshot failed.");
+        links = GhosttySkiaView.FindUrls(frame);
+        Require(links.Values.All(value => value == "https://example.com/a_(b)") && links.Count == 25, "URL punctuation or balanced parentheses were not preserved.");
+    }
+
+    private static void CheckUrlHover()
+    {
+        using var view = new GhosttySkiaView { Typeface = EditorChecks.Font, FontSize = 14 };
+        var window = new Window { Width = 240, Height = 160, Content = view };
+        window.Show(); Pump();
+        try
+        {
+            view.Focus();
+            view.Write("\e[?25lhttps://example.com/a/very/long/wrapped/path"u8); Pump();
+            var cw = (view.Bounds.Width - view.Padding.Left - view.Padding.Right) / view.Size.Columns;
+            var ch = (view.Bounds.Height - view.Padding.Top - view.Padding.Bottom) / view.Size.Rows;
+            var point = new Point(view.Padding.Left + cw * 1.5, view.Padding.Top + ch * 1.5);
+            window.MouseMove(point); Pump();
+            using var plain = window.CaptureRenderedFrame()!;
+            var before = view.RowsRecorded;
+            window.KeyPress(Key.LWin, RawInputModifiers.Meta, PhysicalKey.MetaLeft, null); Pump();
+            Require(view.Cursor?.ToString() == "Hand", "wrapped continuation did not show the link cursor.");
+            Require(view.RowsRecorded >= before + 2, "hover did not repaint all wrapped URL rows.");
+            using var underlined = window.CaptureRenderedFrame()!;
+            Require(!Pixels(plain).SequenceEqual(Pixels(underlined)), "hover did not visibly underline the URL.");
+            window.KeyRelease(Key.LWin, RawInputModifiers.None, PhysicalKey.MetaLeft, null); Pump();
+            using var cleared = window.CaptureRenderedFrame()!;
+            Require(Pixels(plain).SequenceEqual(Pixels(cleared)), "removing the modifier left stale underlines.");
+        }
+        finally { window.Close(); Pump(); }
     }
 
     private static void CheckClusters()
@@ -67,6 +124,43 @@ internal static class GhosttySkiaChecks
             Require(Encoding.UTF8.GetString([.. replies]) == "\e[1;4R",
                 "combining marks and emoji modifiers must stay with their base cell, including after terminal reset.");
         }
+    }
+
+    private static void CheckIncrementalRendering()
+    {
+        using var view = new GhosttySkiaView { Typeface = EditorChecks.Font, FontSize = 14 };
+        var window = new Window { Width = 640, Height = 320, Content = view };
+        window.Show(); Pump();
+        try
+        {
+            view.Write("\e[?25l\e[Hfirst unchanged\r\nsecond row\r\nthird unchanged"u8); Pump();
+            var recorded = view.RowsRecorded;
+            view.Write("\e[2;1Hshort\e[K"u8); Pump();
+            Require(view.RowsRecorded == recorded + 1, "a one-row edit rebuilt unchanged rows.");
+            using var incremental = window.CaptureRenderedFrame()!;
+            view.Typeface = view.Typeface; Pump();
+            using var rebuilt = window.CaptureRenderedFrame()!;
+            Require(Pixels(incremental).SequenceEqual(Pixels(rebuilt)), "incremental erasure differs from a complete repaint.");
+
+            view.Write("\e[1;1H\e[?25h\e[2 q"u8); Pump();
+            recorded = view.RowsRecorded;
+            view.Write("\e[3;2H"u8); Pump();
+            Require(view.RowsRecorded == recorded + 2, "moving the cursor must redraw only its old and new rows.");
+            using var moved = window.CaptureRenderedFrame()!;
+            view.Typeface = view.Typeface; Pump();
+            using var cursorRebuilt = window.CaptureRenderedFrame()!;
+            Require(Pixels(moved).SequenceEqual(Pixels(cursorRebuilt)), "cursor movement left stale pixels.");
+
+            view.Write("\e[?25l\e[2;1H漢é\e[K"u8); Pump();
+            recorded = view.RowsRecorded;
+            view.Write("\e[2;1H\e[2K"u8); Pump();
+            Require(view.RowsRecorded == recorded + 1, "erasing wide/combining text rebuilt unrelated rows.");
+            using var erased = window.CaptureRenderedFrame()!;
+            view.Typeface = view.Typeface; Pump();
+            using var erasedRebuilt = window.CaptureRenderedFrame()!;
+            Require(Pixels(erased).SequenceEqual(Pixels(erasedRebuilt)), "wide/combining text left stale pixels.");
+        }
+        finally { window.Close(); }
     }
 
     private static void CheckView()

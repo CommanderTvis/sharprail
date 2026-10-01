@@ -17,6 +17,7 @@ internal sealed class CellFonts : IDisposable
     private const int ShapeScale = 1 << 12;
     private readonly SKFont[] fonts = new SKFont[4];
     private readonly Dictionary<(string Text, int Style, int Span), CellGlyphs?> glyphs = [];
+    private readonly Dictionary<(string Text, bool Bold, bool Italic, int Span, bool Run), SKTextBlob?> blobs = [];
     private readonly Dictionary<(string Family, int Style), SKFont> fallbacks = [];
     private readonly List<SKFont> shrunk = [];
     private readonly Dictionary<SKTypeface, HarfBuzzSharp.Font?> shapers = [];
@@ -59,6 +60,42 @@ internal sealed class CellFonts : IDisposable
     internal float UnderlinePosition { get; }
     internal float LineThickness { get; }
     internal float StrikePosition { get; }
+
+    // Cache native draw objects as well as glyph positions, following RoyalTerminal's text caches.
+    // See README.md for pinned Royal Apps source links and MIT attribution.
+    internal SKTextBlob? Blob(string text, bool bold, bool italic, int span, bool asciiRun = false)
+    {
+        var key = (text, bold, italic, span, asciiRun);
+        if (blobs.TryGetValue(key, out var cached)) return cached;
+        if (blobs.Count >= 4096)
+        {
+            foreach (var blob in blobs.Values) blob?.Dispose();
+            blobs.Clear();
+        }
+        var parts = asciiRun
+            ? text.Select(character => Glyphs(character.ToString(), bold, italic, 1)).ToArray()
+            : [Glyphs(text, bold, italic, span)];
+        using var builder = new SKTextBlobBuilder();
+        for (var i = 0; i < parts.Length;)
+        {
+            if (parts[i] is not { } first) { i++; continue; }
+            var end = i + 1;
+            var count = first.Glyphs.Length;
+            while (end < parts.Length && parts[end] is { } next && next.Font == first.Font)
+            { count += next.Glyphs.Length; end++; }
+            var run = builder.AllocatePositionedRun(first.Font, count);
+            var offset = 0;
+            for (; i < end; i++)
+            {
+                var part = parts[i]!;
+                part.Glyphs.CopyTo(run.Glyphs[offset..]);
+                for (var g = 0; g < part.Positions.Length; g++)
+                    run.Positions[offset + g] = new SKPoint(part.Positions[g].X + i * CellWidth, part.Positions[g].Y);
+                offset += part.Glyphs.Length;
+            }
+        }
+        return blobs[key] = builder.Build();
+    }
 
     /// <summary>The glyphs that draw a grapheme across <paramref name="span"/> cells, or null when no font has it.</summary>
     internal CellGlyphs? Glyphs(string text, bool bold, bool italic, int span)
@@ -157,6 +194,7 @@ internal sealed class CellFonts : IDisposable
 
     public void Dispose()
     {
+        foreach (var blob in blobs.Values) blob?.Dispose();
         foreach (var shaper in shapers.Values) shaper?.Dispose();
         foreach (var font in shrunk) font.Dispose();
         foreach (var font in fallbacks.Values.Concat(fonts))

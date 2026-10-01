@@ -8,7 +8,8 @@ namespace Ghostty.Avalonia;
 internal enum CellFlags : ushort
 {
     Bold = 1 << 0, Italic = 1 << 1, Faint = 1 << 2, Blink = 1 << 3, Inverse = 1 << 4,
-    Invisible = 1 << 5, Strikethrough = 1 << 6, Overline = 1 << 7, Selected = 1 << 8
+    Invisible = 1 << 5, Strikethrough = 1 << 6, Overline = 1 << 7, Selected = 1 << 8,
+    LinkHover = 1 << 9
 }
 
 // Mirrors gav_vt_cell and gav_vt_frame in Native/GhosttyVt.c.
@@ -21,7 +22,7 @@ internal struct Cell
     public byte Underline;
     public uint Foreground, Background, UnderlineColor;
     public CellFlags Flags;
-    public ushort Reserved;
+    public ushort RowWrapped;
 }
 
 [StructLayout(LayoutKind.Sequential)]

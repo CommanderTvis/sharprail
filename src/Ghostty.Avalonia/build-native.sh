@@ -52,11 +52,12 @@ checkout() {
 }
 fresh() { [ -f "$cache/$1.fingerprint" ] && [ -f "$cache/$2" ] && [ "$(cat "$cache/$1.fingerprint")" = "$3" ]; }
 
-view_fingerprint="$arch $(cat Native/GhosttyView.h Native/GhosttyView.m Native/GhosttyTexture.m Native/MetalTexture.patch Native/ScrollbackMemory.patch Native/ReverseColors.patch Native/config-colors.zig build-native.sh | shasum -a 256)"
+view_fingerprint="$arch $(cat Native/GhosttyView.h Native/GhosttyView.m Native/GhosttyTexture.m Native/MetalTexture.patch Native/ScrollbackMemory.patch Native/ReverseColors.patch Native/ConfigFile.patch build-native.sh | shasum -a 256)"
 if ! fresh view libGhosttyAvaloniaView.dylib "$view_fingerprint"; then
   checkout view-source "$view_commit"
   git -C "$cache/view-source" show "$view_commit:src/config/CApi.zig" > "$cache/view-source/src/config/CApi.zig"
-  cat Native/config-colors.zig >> "$cache/view-source/src/config/CApi.zig"
+  git -C "$cache/view-source" show "$view_commit:include/ghostty.h" > "$cache/view-source/include/ghostty.h"
+  patch -s -d "$cache/view-source" -p1 < Native/ConfigFile.patch
   git -C "$cache/view-source" show "$view_commit:src/renderer/Metal.zig" > "$cache/view-source/src/renderer/Metal.zig"
   git -C "$cache/view-source" show "$view_commit:src/renderer/metal/Frame.zig" > "$cache/view-source/src/renderer/metal/Frame.zig"
   git -C "$cache/view-source" show "$view_commit:src/renderer/metal/Target.zig" > "$cache/view-source/src/renderer/metal/Target.zig"
@@ -123,13 +124,13 @@ ARCHIVER
   printf '%s\n' "$view_fingerprint" > "$cache/view.fingerprint"
 fi
 
-vt_fingerprint="$arch $(cat Native/GhosttyVt.c build-native.sh | shasum -a 256)"
+vt_fingerprint="$arch $(cat Native/GhosttyVt.c Native/GhosttyClipboard.m build-native.sh | shasum -a 256)"
 if ! fresh vt libGhosttyAvaloniaVt.dylib "$vt_fingerprint"; then
   checkout vt-source "$vt_commit"
   vt_zig_path="$(zig_path "$vt_zig")"
   (cd "$cache/vt-source" && "$vt_zig_path" build --cache-dir "$cache/vt-cache" --prefix "$cache/vt-out" -Demit-lib-vt -Doptimize=ReleaseFast)
-  clang -dynamiclib -mmacosx-version-min=13.0 -O2 -Wall -Wextra -Werror -DGHOSTTY_STATIC \
-    -I "$cache/vt-out/include" Native/GhosttyVt.c "$cache/vt-out/lib/libghostty-vt.a" \
+  clang -dynamiclib -fobjc-arc -mmacosx-version-min=13.0 -O2 -Wall -Wextra -Werror -DGHOSTTY_STATIC \
+    -I "$cache/vt-out/include" Native/GhosttyVt.c Native/GhosttyClipboard.m "$cache/vt-out/lib/libghostty-vt.a" -framework AppKit \
     -install_name @rpath/libGhosttyAvaloniaVt.dylib -o "$cache/libGhosttyAvaloniaVt.dylib"
   printf '%s\n' "$vt_fingerprint" > "$cache/vt.fingerprint"
 fi

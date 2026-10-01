@@ -12,6 +12,7 @@
 #endif
 
 typedef void (*gav_vt_write_cb)(void *context, const uint8_t *data, size_t len);
+void gav_vt_install_clipboard(GhosttyTerminal terminal);
 
 enum {
     GAV_CELL_BOLD = 1 << 0, GAV_CELL_ITALIC = 1 << 1, GAV_CELL_FAINT = 1 << 2, GAV_CELL_BLINK = 1 << 3,
@@ -29,7 +30,7 @@ typedef struct {
     uint32_t background;
     uint32_t underline_color;
     uint16_t flags;
-    uint16_t reserved;
+    uint16_t row_wrapped; // only populated on the first cell of each row
 } gav_vt_cell;
 
 typedef struct {
@@ -118,6 +119,7 @@ GAV_API gav_vt *gav_vt_new(uint16_t columns, uint16_t rows, size_t scrollback_li
     if (!ok) { gav_vt_free(vt); return NULL; }
     ghostty_terminal_set(vt->terminal, GHOSTTY_TERMINAL_OPT_USERDATA, vt);
     ghostty_terminal_set(vt->terminal, GHOSTTY_TERMINAL_OPT_WRITE_PTY, (const void *)write_pty);
+    gav_vt_install_clipboard(vt->terminal);
     GhosttyTerminalModeConfig graphemes = { .mode = GHOSTTY_MODE_GRAPHEME_CLUSTER, .value = true };
     ghostty_terminal_set(vt->terminal, GHOSTTY_TERMINAL_OPT_MODE_DEFAULT, &graphemes);
     size_t lines = scrollback_lines;
@@ -212,6 +214,11 @@ GAV_API bool gav_vt_snapshot(gav_vt *vt, gav_vt_frame *frame) {
     size_t used = 0;
     if (ghostty_render_state_get(vt->render, GHOSTTY_RENDER_STATE_DATA_ROW_ITERATOR, &vt->rows) != GHOSTTY_SUCCESS) return false;
     for (uint16_t y = 0; y < frame->rows && ghostty_render_state_row_iterator_next(vt->rows); y++) {
+        GhosttyRow raw_row = 0;
+        bool wrapped = false;
+        ghostty_render_state_row_get(vt->rows, GHOSTTY_RENDER_STATE_ROW_DATA_RAW, &raw_row);
+        ghostty_row_get(raw_row, GHOSTTY_ROW_DATA_WRAP, &wrapped);
+        vt->cells[(size_t)y * frame->columns].row_wrapped = wrapped ? 1 : 0;
         GhosttyRenderStateRowSelection selection = GHOSTTY_INIT_SIZED(GhosttyRenderStateRowSelection);
         bool selected = ghostty_render_state_row_get(vt->rows, GHOSTTY_RENDER_STATE_ROW_DATA_SELECTION, &selection) == GHOSTTY_SUCCESS;
         if (ghostty_render_state_row_get(vt->rows, GHOSTTY_RENDER_STATE_ROW_DATA_CELLS, &vt->row_cells) != GHOSTTY_SUCCESS) continue;

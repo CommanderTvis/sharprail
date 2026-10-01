@@ -62,3 +62,4 @@
 - Ghostty's embedded ghostty_surface_text API sends pasted text, including bracketed-paste markers. Forward committed IME text through ghostty_surface_key with an unidentified key instead.
 - Compare protocol probe failures with standalone Ghostty before attributing them to the embedding. Matching acknowledgment failures do not establish that actual image rendering is broken.
 - HarfBuzz must own or retain pinned font bytes for the entire shaping lifetime. Avoid Blob.FromStream's temporary managed pointer; create a blob with MemoryMode.Duplicate while the source array is pinned. Sustained binary output exposed a native shaping crash after GC.
+- Group actions must follow the selected content: Projects and other tool views should not show a terminal opener. Update visibility on tab selection as well as group rebuilds so mixed tool/resource groups stay consistent.
