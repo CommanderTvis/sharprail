@@ -101,8 +101,18 @@ internal static class TerminalHostChecks
             Require(!await terminals.IsBusyAsync(id), $"{mode}: an idle shell reported a busy foreground.");
             await screen.Run("sleep 30");
             await Until(async () => await terminals.IsBusyAsync(id), mode + " busy foreground");
-            await session.WriteAsync("\u0003"u8.ToArray());
-            await Until(async () => !await terminals.IsBusyAsync(id), mode + " interrupted foreground");
+            // An interrupt sent while the shell is still handing the terminal to its child can be lost; resend it.
+            var interrupted = DateTime.MinValue;
+            await Until(async () =>
+            {
+                if (!await terminals.IsBusyAsync(id)) return true;
+                if (DateTime.UtcNow - interrupted > TimeSpan.FromMilliseconds(500))
+                {
+                    await session.WriteAsync("\u0003"u8.ToArray());
+                    interrupted = DateTime.UtcNow;
+                }
+                return false;
+            }, mode + " interrupted foreground");
             await screen.Run("printf 'PID_%s_\\n' \"$$\"");
             var pid = int.Parse(await screen.WaitForMatch(@"PID_(\d+)_", mode));
             await screen.Run("printf 'FINAL_%s\\n' OUTPUT; exit 7");
