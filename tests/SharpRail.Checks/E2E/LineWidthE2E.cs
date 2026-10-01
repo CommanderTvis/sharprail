@@ -20,6 +20,11 @@ internal static class LineWidthE2E
     {
         Drafts(root);
         Convergence(root);
+        if (!OperatingSystem.IsMacOS())
+        {
+            Console.WriteLine("SKIP upstream line-width diff wrapping: the Scintilla diff is macOS-only.");
+            return;
+        }
         using var git = new IsolatedGit(Path.Combine(root, "line-width-git"));
         var longLine = string.Join(' ', Enumerable.Range(1, 80).Select(index => $"segment-{index:00}"));
         var directory = IsolatedGit.Repository(Path.Combine(root, "line-width-diff"), ("LONG_LINE.txt", longLine));

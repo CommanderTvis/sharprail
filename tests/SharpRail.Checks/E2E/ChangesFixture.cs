@@ -129,7 +129,9 @@ internal static class ChangesFixture
         app.Window.GetLogicalDescendants().OfType<Control>().SingleOrDefault(control => control.Name == "DiffPane" && control.IsEffectivelyVisible);
 
     internal static string DiffText(E2eWorkspace app) => Pane(app) is { } pane
-        ? string.Join("\n", pane.GetLogicalDescendants().OfType<ScintillaEditor>().Select(editor => editor.Text))
+        // Off macOS the diff is one plain code block instead of Scintilla sides.
+        ? string.Join("\n", pane.GetLogicalDescendants().OfType<ScintillaEditor>().Select(editor => editor.Text)
+            .Concat(OperatingSystem.IsMacOS() ? [] : pane.GetLogicalDescendants().OfType<SelectableTextBlock>().Where(block => block.Text is not null).Select(block => block.Text!)))
         : "";
 
     internal static int Count(string text, string needle) => Regex.Matches(Regex.Replace(text, @"\s+", " "), Regex.Escape(needle)).Count;
