@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault><AvaloniaNameGeneratorIsEnabled>false</AvaloniaNameGeneratorIsEnabled></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../SharpRail.Scintilla/SharpRail.Scintilla.csproj" />
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="SkiaSharp" />
+    <PackageReference Include="Markdig" />
+    <PackageReference Include="Svg.Controls.Skia.Avalonia" />
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
+    <AvaloniaResource Include="Assets/**" />
+  </ItemGroup>
+</Project>

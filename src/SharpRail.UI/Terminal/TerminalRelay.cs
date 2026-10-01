@@ -25,7 +25,7 @@ public static class TerminalRelay
     // The status of a relay whose session another window or client took over.
     internal const string DetachedStatus = "detached";
 
-    internal sealed record Connection(string Endpoint, string Token, string SessionId, string ClientId, string WorkspaceRoot, string StatusPath);
+    internal sealed record Connection(string Endpoint, string Token, string SessionId, string ClientId, string WorkspaceRoot, string StatusPath, string TabKey = "");
 
     internal static string Directory { get; } = Path.Combine(Path.GetTempPath(), "sharprail-relay-" + Environment.UserName);
 
@@ -71,7 +71,10 @@ public static class TerminalRelay
         using var terminals = new RemoteTerminalAdapter(new Uri(connection.Endpoint), connection.Token);
         if (!TerminalDevice.TryGetSize(1, out var columns, out var rows)) (columns, rows) = (80, 24);
         ITerminalSession session;
-        try { session = await terminals.AttachAsync(new(connection.SessionId, connection.WorkspaceRoot, connection.ClientId, columns, rows)); }
+        try
+        {
+            session = await terminals.AttachAsync(new(connection.SessionId, connection.WorkspaceRoot, connection.ClientId, columns, rows) { TabKey = connection.TabKey });
+        }
         catch (Exception error)
         {
             var message = error is Grpc.Core.RpcException rpc ? rpc.Status.Detail : error.Message;
@@ -92,10 +95,17 @@ public static class TerminalRelay
             {
                 output.Write(session.Replay.Span);
                 output.Flush();
+                // A revived agent's command is typed once the shell has printed something, so it never lands before the prompt.
+                var prefill = session.Prefill;
                 await foreach (var chunk in session.ReadAsync())
                 {
                     output.Write(chunk.Span);
                     output.Flush();
+                    if (prefill is not null && chunk.Length > 0)
+                    {
+                        await session.WriteAsync(Encoding.UTF8.GetBytes(prefill.Text + (prefill.Submit ? "\r" : "")));
+                        prefill = null;
+                    }
                 }
                 if (session.Detached.IsCompleted)
                 {

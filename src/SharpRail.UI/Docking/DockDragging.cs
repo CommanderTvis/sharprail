@@ -4,7 +4,6 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 
-using SharpRail.UI.Rendering;
 
 namespace SharpRail.UI.Docking;
 
@@ -99,7 +98,7 @@ public sealed partial class DockSurface
                     BorderThickness = new Thickness(1),
                     CornerRadius = new CornerRadius(4),
                     Padding = new Thickness(12, 4),
-                    Child = Ui.Text(tab.Title, Ui.TextBrush)
+                    Child = Ui.Text(Session.ToolTitle(tab), Ui.TextBrush)
                 }
             }
         };

@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><GenerateDocumentationFile>true</GenerateDocumentationFile></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../SharpRail.Plugins.Api/SharpRail.Plugins.Api.csproj" />
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

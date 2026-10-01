@@ -79,7 +79,7 @@ internal static class DockInputChecks
             var checkedItem = alignment.ContextMenu!.Items.OfType<MenuItem>().Single(item => item.IsChecked);
             var check = checkedItem.GetVisualDescendants().OfType<ContentControl>().Single(control => control.Name == "PART_ToggleIconPresenter");
             Require(checkedItem.Bounds.Height == 28 && Grid.GetColumn(check) == 4 && check.Width == 14 &&
-                check.Content is Border { Background: var color } && ReferenceEquals(color, SharpRail.UI.Rendering.Ui.Accent),
+                check.Content is Border { Background: var color } && ReferenceEquals(color, Ui.Accent),
                 "Alignment menu must retain its radio state with a 14px primary check on the right of a 28px row.");
             alignment.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, label))
                 .RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
@@ -145,7 +145,7 @@ internal static class DockInputChecks
         window.MouseDown(insertionFrom, MouseButton.Left); window.MouseMove(insertionTo);
         var insertionHints = Find<DockSurface>("WorkspaceWorkbench").Children.OfType<Canvas>().Single().Children.OfType<Border>().ToArray();
         Require(insertionHints.Any(item => item.Width == 2 && item.BorderThickness == new Thickness(0) &&
-            item.CornerRadius == new CornerRadius(0) && ReferenceEquals(item.Background, SharpRail.UI.Rendering.Ui.Accent)),
+            item.CornerRadius == new CornerRadius(0) && ReferenceEquals(item.Background, Ui.Accent)),
             "Tab insertion must show a solid square 2px primary line, not a pane drop rectangle.");
         window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
         window.MouseUp(insertionTo, MouseButton.Left);
@@ -158,7 +158,7 @@ internal static class DockInputChecks
         var headerInSurface = new Rect(window.TranslatePoint(projectsHeader.TopLeft, dockSurface)!.Value, projectsHeader.Size).Inflate(1);
         var appendHints = dockSurface.Children.OfType<Canvas>().Single().Children.OfType<Border>()
             .Where(item => headerInSurface.Contains(new Rect(Canvas.GetLeft(item), Canvas.GetTop(item), item.Width, item.Height))).ToArray();
-        Require(appendHints.Length == 1 && appendHints[0].Width == 2 && ReferenceEquals(appendHints[0].Background, SharpRail.UI.Rendering.Ui.Accent) &&
+        Require(appendHints.Length == 1 && appendHints[0].Width == 2 && ReferenceEquals(appendHints[0].Background, Ui.Accent) &&
             !appendHints.Any(item => item.Width >= projectsHeader.Width || item.Width == 20),
             $"Empty strip space must show only the insertion line after the last tab, with no strip frame or append block: {string.Join("; ", appendHints.Select(item => $"{Canvas.GetLeft(item)},{Canvas.GetTop(item)} {item.Width}x{item.Height} bg={item.Background}"))} header={projectsHeader}.");
         window.MouseUp(appendPoint, MouseButton.Left); Dispatcher.UIThread.RunJobs();
@@ -596,7 +596,7 @@ internal static class DockInputChecks
         Require(Math.Abs(stripScroll.Extent.Width - baseExtent) < .01,
             "Dragging must not add an append block to the strip's scrollable extent.");
         Require(!surface.Children.OfType<Canvas>().Single().Children.OfType<Border>().Any(item =>
-            ReferenceEquals(item.Background, SharpRail.UI.Rendering.Ui.Accent)),
+            ReferenceEquals(item.Background, Ui.Accent)),
             "An insertion boundary outside the scrolled viewport must be clipped, not moved to its edge.");
         window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
         window.MouseUp(clippedTo, MouseButton.Left);

@@ -7,11 +7,11 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 
 using SharpRail.Host.Abstractions;
-using SharpRail.UI.Rendering;
+using SharpRail.Plugins.Api.UI;
 
 namespace SharpRail.UI.Panels;
 
-public sealed record NewWorkspaceChoice(bool InProjectFolder, string Base, string Path, string Branch, string Project, string? Name = null);
+public sealed record NewWorkspaceChoice(bool InProjectFolder, string Base, string Path, string Branch, string Project, string? Name = null, AgentLauncher? Launcher = null);
 
 public sealed class NewWorkspaceDialog
 {
@@ -34,6 +34,8 @@ public sealed class NewWorkspaceDialog
     private bool inFolder;
     private TextBlock? projectLabel;
     private readonly bool hasGit;
+    private readonly IReadOnlyList<AgentLauncher> launchers;
+    private AgentLauncher? launcher;
 
     public Window Window { get; }
     /// <summary>The project the workspace will be created in; picking another one loads its branches through <see cref="LoadProject"/>.</summary>
@@ -41,12 +43,13 @@ public sealed class NewWorkspaceDialog
     /// <summary>Returns a project's branch catalogue, or null when it cannot be used; the dialog then keeps its project.</summary>
     public Func<string, Task<BranchCatalog?>>? LoadProject { get; set; }
 
-    public NewWorkspaceDialog(IReadOnlyList<string> projects, string project, BranchCatalog catalog, HashSet<string> collapsedRemotes, Action saveCollapsed, bool hasGit = true)
+    public NewWorkspaceDialog(IReadOnlyList<string> projects, string project, BranchCatalog catalog, HashSet<string> collapsedRemotes, Action saveCollapsed, IReadOnlyList<AgentLauncher>? launchers = null, bool hasGit = true)
     {
         this.catalog = catalog;
         Project = project;
         this.hasGit = hasGit; inFolder = !hasGit;
         this.collapsedRemotes = collapsedRemotes; this.saveCollapsed = saveCollapsed;
+        this.launchers = launchers ?? [];
         selected = catalog.DefaultBase;
         Window = Dialogs.Create("Start work", 560);
         Window.Tag = "NewWorkspaceDialog";
@@ -110,6 +113,8 @@ public sealed class NewWorkspaceDialog
         AutomationProperties.SetName(name, "Name");
         fields.Children.Add(name);
 
+        if (this.launchers.Count > 0) fields.Children.Add(Launchers());
+
         hint = Ui.Text("Press Enter to create.", Ui.Hint, 12);
         hint.Name = "WsEnterHint";
         fields.Children.Add(hint);
@@ -121,7 +126,7 @@ public sealed class NewWorkspaceDialog
             var typed = name.Text?.Trim() ?? "";
             var edited = typed.Length > 0 && typed != SuggestedName ? typed : null;
             Window.Close(new NewWorkspaceChoice(inFolder, selected, this.catalog.SuggestedPath,
-                edited is null ? this.catalog.SuggestedBranch : BranchForName(edited), Project, edited));
+                edited is null ? this.catalog.SuggestedBranch : BranchForName(edited), Project, edited, launcher));
         });
         create.Name = "WsCreate"; create.IsDefault = true; Dialogs.Primary(create);
         actions.Children.Add(create);
@@ -140,6 +145,49 @@ public sealed class NewWorkspaceDialog
         for (var suffix = 2; catalog.Local.Any(existing => existing == branch || existing.StartsWith(branch + "/", StringComparison.Ordinal)); suffix++)
             branch = slug + "-" + suffix;
         return branch;
+    }
+
+    // "Start in a terminal with …": plugin launchers, each with its availability; an unavailable one shows why.
+    private Control Launchers()
+    {
+        var panel = new StackPanel { Name = "WsLaunchers", Spacing = 4 };
+        panel.Children.Add(Ui.Text("Start in a terminal with", Ui.Muted, 12));
+        var choices = new WrapPanel { Orientation = Orientation.Horizontal };
+        var buttons = new List<(ToggleButton Button, AgentLauncher? Launcher)>();
+        void Select(AgentLauncher? choice)
+        {
+            launcher = choice;
+            foreach (var (button, candidate) in buttons) button.IsChecked = candidate == choice;
+        }
+        foreach (var candidate in new AgentLauncher?[] { null }.Concat(this.launchers))
+        {
+            LauncherAvailability availability;
+            try { availability = candidate?.Availability() ?? new(true); }
+            catch (Exception error) { availability = new(false, error.Message); }
+            var button = new ToggleButton
+            {
+                Name = candidate is null ? "WsLauncherNone" : "WsLauncher_" + candidate.Id,
+                Content = candidate is null ? Ui.Text("Nothing") : LauncherLabel(candidate),
+                Padding = new Thickness(10, 5),
+                Margin = new Thickness(0, 0, 6, 6),
+                CornerRadius = new(4),
+                IsEnabled = availability.Available
+            };
+            button.Classes.Add("choice");
+            if (!availability.Available && availability.Reason is { } reason) { ToolTip.SetTip(button, reason); ToolTip.SetShowOnDisabled(button, true); }
+            button.Click += (_, _) => Select(candidate);
+            buttons.Add((button, candidate));
+            choices.Children.Add(button);
+        }
+        panel.Children.Add(choices);
+        Select(null);
+        return panel;
+    }
+
+    private static Control LauncherLabel(AgentLauncher launcher)
+    {
+        var row = Ui.Row(Plugins.PluginIcons.Glyph(launcher.Icon), launcher.Label);
+        return row;
     }
 
     public Task<NewWorkspaceChoice?> ShowAsync(Window owner) => Window.ShowDialog<NewWorkspaceChoice?>(owner);
@@ -219,6 +267,7 @@ public sealed class NewWorkspaceDialog
         // Fluent fills a checked toggle with the accent, which the muted row cannot be read on; segments' hover does.
         foreach (var state in new[] { "Checked", "CheckedPointerOver", "CheckedPressed" })
             target.Resources["ToggleButtonBackground" + state] = Ui.Hover;
+        target.Classes.Add("choice");
         target.Click += (_, _) => { inFolder = folder; Render(); };
         return target;
     }

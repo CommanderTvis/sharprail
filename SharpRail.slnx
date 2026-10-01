@@ -6,10 +6,16 @@
     <Project Path="src/SharpRail.Host.Core/SharpRail.Host.Core.csproj" />
     <Project Path="src/SharpRail.Host.Protocol/SharpRail.Host.Protocol.csproj" />
     <Project Path="src/SharpRail.Host.Remote/SharpRail.Host.Remote.csproj" />
+    <Project Path="src/SharpRail.Plugins.Api/SharpRail.Plugins.Api.csproj" />
+    <Project Path="src/SharpRail.Plugins.Api.Host/SharpRail.Plugins.Api.Host.csproj" />
+    <Project Path="src/SharpRail.Plugins.Api.UI/SharpRail.Plugins.Api.UI.csproj" />
+    <Project Path="src/SharpRail.Plugins.UI.Kit/SharpRail.Plugins.UI.Kit.csproj" />
     <Project Path="src/SharpRail.Scintilla/SharpRail.Scintilla.csproj" />
     <Project Path="src/SharpRail.UI/SharpRail.UI.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/SharpRail.Checks/SharpRail.Checks.csproj" />
+    <Project Path="tests/SharpRail.PluginFixture/SharpRail.PluginFixture.Host.csproj" />
+    <Project Path="tests/SharpRail.PluginFixture.UI/SharpRail.PluginFixture.UI.csproj" />
   </Folder>
 </Solution>

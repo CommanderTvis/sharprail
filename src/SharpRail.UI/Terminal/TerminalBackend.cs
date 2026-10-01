@@ -10,6 +10,9 @@ namespace SharpRail.UI.Terminal;
 // SessionId names the host session a tab shows; ClientId names the window showing it.
 public sealed record TerminalLaunch(string WorkspaceRoot, string SessionId, string ClipboardDirectory, string ClientId)
 {
+    // The tab's layout id; with the workspace root it is the TerminalRef plugins see.
+    public string TabKey { get; init; } = "";
+
     // A tab's session is stable across windows, so another window of the app reattaches to the same shell.
     public static string SessionFor(string workspaceRoot, string tabId) =>
         Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(workspaceRoot + "\n" + tabId)).AsSpan(0, 16));
@@ -30,6 +33,10 @@ public interface ITerminalBackend : IDisposable
     // Ends the host session, as closing its tab does.
     ValueTask CloseAsync();
     void FocusTerminal();
+    // Types into the shell as a user would; plugin accessories write through it.
+    void Write(string data);
+    // The screen and scrollback as plain text.
+    string ReadScreen();
 }
 
 public delegate ITerminalBackend TerminalFactory(TerminalLaunch launch);

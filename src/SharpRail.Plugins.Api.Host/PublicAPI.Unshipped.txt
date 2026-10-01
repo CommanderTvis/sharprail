@@ -1,0 +1,291 @@
+#nullable enable
+abstract SharpRail.Plugins.Api.Host.PluginHostModule.ActivateAsync(SharpRail.Plugins.Api.Host.IPluginHostContext! context) -> System.Threading.Tasks.ValueTask<SharpRail.Plugins.Api.Host.PluginDisposer?>
+abstract SharpRail.Plugins.Api.Host.PluginHostModule.Contract.get -> SharpRail.Plugins.Api.PluginContract!
+abstract SharpRail.Plugins.Api.Host.TerminalEvent.<Clone>$() -> SharpRail.Plugins.Api.Host.TerminalEvent!
+abstract SharpRail.Plugins.Api.Host.WorkspaceEvent.<Clone>$() -> SharpRail.Plugins.Api.Host.WorkspaceEvent!
+override sealed SharpRail.Plugins.Api.Host.TerminalAgentChanged.Equals(SharpRail.Plugins.Api.Host.TerminalEvent? other) -> bool
+override sealed SharpRail.Plugins.Api.Host.TerminalClosed.Equals(SharpRail.Plugins.Api.Host.TerminalEvent? other) -> bool
+override sealed SharpRail.Plugins.Api.Host.TerminalExited.Equals(SharpRail.Plugins.Api.Host.TerminalEvent? other) -> bool
+override sealed SharpRail.Plugins.Api.Host.TerminalSpawned.Equals(SharpRail.Plugins.Api.Host.TerminalEvent? other) -> bool
+override sealed SharpRail.Plugins.Api.Host.WorkspaceCreated.Equals(SharpRail.Plugins.Api.Host.WorkspaceEvent? other) -> bool
+override sealed SharpRail.Plugins.Api.Host.WorkspaceRemoved.Equals(SharpRail.Plugins.Api.Host.WorkspaceEvent? other) -> bool
+override sealed SharpRail.Plugins.Api.Host.WorkspaceUpdated.Equals(SharpRail.Plugins.Api.Host.WorkspaceEvent? other) -> bool
+override SharpRail.Plugins.Api.Host.GitRunOptions.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.Host.GitRunOptions.GetHashCode() -> int
+override SharpRail.Plugins.Api.Host.GitRunOptions.ToString() -> string!
+override SharpRail.Plugins.Api.Host.GitRunResult.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.Host.GitRunResult.GetHashCode() -> int
+override SharpRail.Plugins.Api.Host.GitRunResult.ToString() -> string!
+override SharpRail.Plugins.Api.Host.PluginCall.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.Host.PluginCall.GetHashCode() -> int
+override SharpRail.Plugins.Api.Host.PluginCall.ToString() -> string!
+override SharpRail.Plugins.Api.Host.PluginHttpRequest.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.Host.PluginHttpRequest.GetHashCode() -> int
+override SharpRail.Plugins.Api.Host.PluginHttpRequest.ToString() -> string!
+override SharpRail.Plugins.Api.Host.PluginHttpResponse.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.Host.PluginHttpResponse.GetHashCode() -> int
+override SharpRail.Plugins.Api.Host.PluginHttpResponse.ToString() -> string!
+override SharpRail.Plugins.Api.Host.RevivePrefill.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.Host.RevivePrefill.GetHashCode() -> int
+override SharpRail.Plugins.Api.Host.RevivePrefill.ToString() -> string!
+override SharpRail.Plugins.Api.Host.TerminalAgentChanged.<Clone>$() -> SharpRail.Plugins.Api.Host.TerminalAgentChanged!
+override SharpRail.Plugins.Api.Host.TerminalAgentChanged.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.Host.TerminalAgentChanged.GetHashCode() -> int
+override SharpRail.Plugins.Api.Host.TerminalAgentChanged.ToString() -> string!
+override SharpRail.Plugins.Api.Host.TerminalClosed.<Clone>$() -> SharpRail.Plugins.Api.Host.TerminalClosed!
+override SharpRail.Plugins.Api.Host.TerminalClosed.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.Host.TerminalClosed.GetHashCode() -> int
+override SharpRail.Plugins.Api.Host.TerminalClosed.ToString() -> string!
+override SharpRail.Plugins.Api.Host.TerminalEvent.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.Host.TerminalEvent.GetHashCode() -> int
+override SharpRail.Plugins.Api.Host.TerminalEvent.ToString() -> string!
+override SharpRail.Plugins.Api.Host.TerminalExited.<Clone>$() -> SharpRail.Plugins.Api.Host.TerminalExited!
+override SharpRail.Plugins.Api.Host.TerminalExited.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.Host.TerminalExited.GetHashCode() -> int
+override SharpRail.Plugins.Api.Host.TerminalExited.ToString() -> string!
+override SharpRail.Plugins.Api.Host.TerminalProcess.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.Host.TerminalProcess.GetHashCode() -> int
+override SharpRail.Plugins.Api.Host.TerminalProcess.ToString() -> string!
+override SharpRail.Plugins.Api.Host.TerminalSpawned.<Clone>$() -> SharpRail.Plugins.Api.Host.TerminalSpawned!
+override SharpRail.Plugins.Api.Host.TerminalSpawned.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.Host.TerminalSpawned.GetHashCode() -> int
+override SharpRail.Plugins.Api.Host.TerminalSpawned.ToString() -> string!
+override SharpRail.Plugins.Api.Host.WorkspaceCreated.<Clone>$() -> SharpRail.Plugins.Api.Host.WorkspaceCreated!
+override SharpRail.Plugins.Api.Host.WorkspaceCreated.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.Host.WorkspaceCreated.GetHashCode() -> int
+override SharpRail.Plugins.Api.Host.WorkspaceCreated.ToString() -> string!
+override SharpRail.Plugins.Api.Host.WorkspaceEvent.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.Host.WorkspaceEvent.GetHashCode() -> int
+override SharpRail.Plugins.Api.Host.WorkspaceEvent.ToString() -> string!
+override SharpRail.Plugins.Api.Host.WorkspaceFilesChanged.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.Host.WorkspaceFilesChanged.GetHashCode() -> int
+override SharpRail.Plugins.Api.Host.WorkspaceFilesChanged.ToString() -> string!
+override SharpRail.Plugins.Api.Host.WorkspaceRemoved.<Clone>$() -> SharpRail.Plugins.Api.Host.WorkspaceRemoved!
+override SharpRail.Plugins.Api.Host.WorkspaceRemoved.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.Host.WorkspaceRemoved.GetHashCode() -> int
+override SharpRail.Plugins.Api.Host.WorkspaceRemoved.ToString() -> string!
+override SharpRail.Plugins.Api.Host.WorkspaceUpdated.<Clone>$() -> SharpRail.Plugins.Api.Host.WorkspaceUpdated!
+override SharpRail.Plugins.Api.Host.WorkspaceUpdated.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.Host.WorkspaceUpdated.GetHashCode() -> int
+override SharpRail.Plugins.Api.Host.WorkspaceUpdated.ToString() -> string!
+SharpRail.Plugins.Api.Host.GitRunFailure
+SharpRail.Plugins.Api.Host.GitRunFailure.Launch = 1 -> SharpRail.Plugins.Api.Host.GitRunFailure
+SharpRail.Plugins.Api.Host.GitRunFailure.Timeout = 0 -> SharpRail.Plugins.Api.Host.GitRunFailure
+SharpRail.Plugins.Api.Host.GitRunOptions
+SharpRail.Plugins.Api.Host.GitRunOptions.<Clone>$() -> SharpRail.Plugins.Api.Host.GitRunOptions!
+SharpRail.Plugins.Api.Host.GitRunOptions.Deconstruct(out System.TimeSpan? Timeout, out bool Network) -> void
+SharpRail.Plugins.Api.Host.GitRunOptions.Equals(SharpRail.Plugins.Api.Host.GitRunOptions? other) -> bool
+SharpRail.Plugins.Api.Host.GitRunOptions.GitRunOptions(System.TimeSpan? Timeout = null, bool Network = false) -> void
+SharpRail.Plugins.Api.Host.GitRunOptions.Network.get -> bool
+SharpRail.Plugins.Api.Host.GitRunOptions.Network.init -> void
+SharpRail.Plugins.Api.Host.GitRunOptions.Timeout.get -> System.TimeSpan?
+SharpRail.Plugins.Api.Host.GitRunOptions.Timeout.init -> void
+SharpRail.Plugins.Api.Host.GitRunResult
+SharpRail.Plugins.Api.Host.GitRunResult.<Clone>$() -> SharpRail.Plugins.Api.Host.GitRunResult!
+SharpRail.Plugins.Api.Host.GitRunResult.Deconstruct(out bool Ok, out string! Out, out string! Err, out SharpRail.Plugins.Api.Host.GitRunFailure? Failure) -> void
+SharpRail.Plugins.Api.Host.GitRunResult.Equals(SharpRail.Plugins.Api.Host.GitRunResult? other) -> bool
+SharpRail.Plugins.Api.Host.GitRunResult.Err.get -> string!
+SharpRail.Plugins.Api.Host.GitRunResult.Err.init -> void
+SharpRail.Plugins.Api.Host.GitRunResult.Failure.get -> SharpRail.Plugins.Api.Host.GitRunFailure?
+SharpRail.Plugins.Api.Host.GitRunResult.Failure.init -> void
+SharpRail.Plugins.Api.Host.GitRunResult.GitRunResult(bool Ok, string! Out, string! Err, SharpRail.Plugins.Api.Host.GitRunFailure? Failure = null) -> void
+SharpRail.Plugins.Api.Host.GitRunResult.Ok.get -> bool
+SharpRail.Plugins.Api.Host.GitRunResult.Ok.init -> void
+SharpRail.Plugins.Api.Host.GitRunResult.Out.get -> string!
+SharpRail.Plugins.Api.Host.GitRunResult.Out.init -> void
+SharpRail.Plugins.Api.Host.IPluginHostContext
+SharpRail.Plugins.Api.Host.IPluginHostContext.AgentRecord(SharpRail.Plugins.Api.TerminalRef! terminal) -> SharpRail.Plugins.Api.TerminalAgentRecord?
+SharpRail.Plugins.Api.Host.IPluginHostContext.AssetsDirectory.get -> string?
+SharpRail.Plugins.Api.Host.IPluginHostContext.Dependency(SharpRail.Plugins.Api.PluginContract! contract) -> SharpRail.Plugins.Api.IPluginDependencyHandle!
+SharpRail.Plugins.Api.Host.IPluginHostContext.ExternalFiles(System.Func<string!, System.Collections.Generic.IReadOnlyList<string!>!>! provider) -> void
+SharpRail.Plugins.Api.Host.IPluginHostContext.GitAsync(string! cwd, System.Collections.Generic.IReadOnlyList<string!>! args, SharpRail.Plugins.Api.Host.GitRunOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Plugins.Api.Host.GitRunResult!>
+SharpRail.Plugins.Api.Host.IPluginHostContext.Id.get -> string!
+SharpRail.Plugins.Api.Host.IPluginHostContext.Log.get -> SharpRail.Plugins.Api.Host.IPluginLogger!
+SharpRail.Plugins.Api.Host.IPluginHostContext.Method<TParams, TResult>(SharpRail.Plugins.Api.PluginMethod<TParams, TResult>! method, System.Func<TParams, SharpRail.Plugins.Api.Host.PluginCall!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<TResult>>! handler) -> void
+SharpRail.Plugins.Api.Host.IPluginHostContext.OnFilesChanged(System.Action<SharpRail.Plugins.Api.Host.WorkspaceFilesChanged!>! handler) -> void
+SharpRail.Plugins.Api.Host.IPluginHostContext.OnSettings<T>(System.Action<T!>! handler) -> void
+SharpRail.Plugins.Api.Host.IPluginHostContext.OnTerminal(System.Action<SharpRail.Plugins.Api.Host.TerminalEvent!>! handler) -> void
+SharpRail.Plugins.Api.Host.IPluginHostContext.OnWorkspace(System.Action<SharpRail.Plugins.Api.Host.WorkspaceEvent!>! handler) -> void
+SharpRail.Plugins.Api.Host.IPluginHostContext.Projects() -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.HostProject!>!
+SharpRail.Plugins.Api.Host.IPluginHostContext.PublicBaseUrl() -> string!
+SharpRail.Plugins.Api.Host.IPluginHostContext.Publish<TPayload>(SharpRail.Plugins.Api.PluginChannel<TPayload>! channel, TPayload payload, SharpRail.Plugins.Api.Host.PluginCall? target = null) -> void
+SharpRail.Plugins.Api.Host.IPluginHostContext.ReadState<T>(string! name, T fallback) -> T
+SharpRail.Plugins.Api.Host.IPluginHostContext.RevivePrefill(System.Func<SharpRail.Plugins.Api.TerminalRef!, SharpRail.Plugins.Api.TerminalAgentRecord!, SharpRail.Plugins.Api.Host.RevivePrefill?>! hook) -> void
+SharpRail.Plugins.Api.Host.IPluginHostContext.Route(System.Func<SharpRail.Plugins.Api.Host.PluginHttpRequest!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<SharpRail.Plugins.Api.Host.PluginHttpResponse!>>! handler) -> void
+SharpRail.Plugins.Api.Host.IPluginHostContext.SetAgentRecord(SharpRail.Plugins.Api.TerminalRef! terminal, SharpRail.Plugins.Api.TerminalAgentRecord? record) -> void
+SharpRail.Plugins.Api.Host.IPluginHostContext.Settings<T>() -> T!
+SharpRail.Plugins.Api.Host.IPluginHostContext.TerminalEnvironment(System.Func<SharpRail.Plugins.Api.TerminalRef!, System.Collections.Generic.IReadOnlyDictionary<string!, string!>!>! contributor) -> void
+SharpRail.Plugins.Api.Host.IPluginHostContext.TerminalForToken(string! token) -> SharpRail.Plugins.Api.TerminalRef?
+SharpRail.Plugins.Api.Host.IPluginHostContext.Terminals() -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.Host.TerminalProcess!>!
+SharpRail.Plugins.Api.Host.IPluginHostContext.TerminalToken(SharpRail.Plugins.Api.TerminalRef! terminal) -> string!
+SharpRail.Plugins.Api.Host.IPluginHostContext.Tool(SharpRail.Plugins.Api.PluginToolDefinition! definition) -> void
+SharpRail.Plugins.Api.Host.IPluginHostContext.WatchWorkspaceAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+SharpRail.Plugins.Api.Host.IPluginHostContext.WorkspaceAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Plugins.Api.HostWorkspace?>
+SharpRail.Plugins.Api.Host.IPluginHostContext.WorkspaceForProcess(int pid) -> string?
+SharpRail.Plugins.Api.Host.IPluginHostContext.WorkspacesAsync(string? projectId = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.HostWorkspace!>!>
+SharpRail.Plugins.Api.Host.IPluginHostContext.WriteState<T>(string! name, T value) -> void
+SharpRail.Plugins.Api.Host.IPluginHostContext.WriteTerminal(SharpRail.Plugins.Api.TerminalRef! terminal, string! data) -> void
+SharpRail.Plugins.Api.Host.IPluginLogger
+SharpRail.Plugins.Api.Host.IPluginLogger.Debug(string! message, object? fields = null) -> void
+SharpRail.Plugins.Api.Host.IPluginLogger.Error(string! message, object? fields = null) -> void
+SharpRail.Plugins.Api.Host.IPluginLogger.Info(string! message, object? fields = null) -> void
+SharpRail.Plugins.Api.Host.IPluginLogger.Warn(string! message, object? fields = null) -> void
+SharpRail.Plugins.Api.Host.PluginCall
+SharpRail.Plugins.Api.Host.PluginCall.<Clone>$() -> SharpRail.Plugins.Api.Host.PluginCall!
+SharpRail.Plugins.Api.Host.PluginCall.ClientKey.get -> string!
+SharpRail.Plugins.Api.Host.PluginCall.ClientKey.init -> void
+SharpRail.Plugins.Api.Host.PluginCall.Deconstruct(out string! ClientKey) -> void
+SharpRail.Plugins.Api.Host.PluginCall.Equals(SharpRail.Plugins.Api.Host.PluginCall? other) -> bool
+SharpRail.Plugins.Api.Host.PluginCall.PluginCall(string! ClientKey) -> void
+SharpRail.Plugins.Api.Host.PluginDisposer
+SharpRail.Plugins.Api.Host.PluginHostModule
+SharpRail.Plugins.Api.Host.PluginHostModule.PluginHostModule() -> void
+SharpRail.Plugins.Api.Host.PluginHttpRequest
+SharpRail.Plugins.Api.Host.PluginHttpRequest.<Clone>$() -> SharpRail.Plugins.Api.Host.PluginHttpRequest!
+SharpRail.Plugins.Api.Host.PluginHttpRequest.Body.get -> System.ReadOnlyMemory<byte>
+SharpRail.Plugins.Api.Host.PluginHttpRequest.Body.init -> void
+SharpRail.Plugins.Api.Host.PluginHttpRequest.Deconstruct(out string! Method, out string! Subpath, out string! Query, out System.Collections.Generic.IReadOnlyDictionary<string!, string!>! Headers, out System.ReadOnlyMemory<byte> Body) -> void
+SharpRail.Plugins.Api.Host.PluginHttpRequest.Equals(SharpRail.Plugins.Api.Host.PluginHttpRequest? other) -> bool
+SharpRail.Plugins.Api.Host.PluginHttpRequest.Headers.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+SharpRail.Plugins.Api.Host.PluginHttpRequest.Headers.init -> void
+SharpRail.Plugins.Api.Host.PluginHttpRequest.Method.get -> string!
+SharpRail.Plugins.Api.Host.PluginHttpRequest.Method.init -> void
+SharpRail.Plugins.Api.Host.PluginHttpRequest.PluginHttpRequest(string! Method, string! Subpath, string! Query, System.Collections.Generic.IReadOnlyDictionary<string!, string!>! Headers, System.ReadOnlyMemory<byte> Body) -> void
+SharpRail.Plugins.Api.Host.PluginHttpRequest.Query.get -> string!
+SharpRail.Plugins.Api.Host.PluginHttpRequest.Query.init -> void
+SharpRail.Plugins.Api.Host.PluginHttpRequest.Subpath.get -> string!
+SharpRail.Plugins.Api.Host.PluginHttpRequest.Subpath.init -> void
+SharpRail.Plugins.Api.Host.PluginHttpResponse
+SharpRail.Plugins.Api.Host.PluginHttpResponse.<Clone>$() -> SharpRail.Plugins.Api.Host.PluginHttpResponse!
+SharpRail.Plugins.Api.Host.PluginHttpResponse.Body.get -> System.ReadOnlyMemory<byte>
+SharpRail.Plugins.Api.Host.PluginHttpResponse.Body.init -> void
+SharpRail.Plugins.Api.Host.PluginHttpResponse.ContentType.get -> string!
+SharpRail.Plugins.Api.Host.PluginHttpResponse.ContentType.init -> void
+SharpRail.Plugins.Api.Host.PluginHttpResponse.Deconstruct(out int Status) -> void
+SharpRail.Plugins.Api.Host.PluginHttpResponse.Equals(SharpRail.Plugins.Api.Host.PluginHttpResponse? other) -> bool
+SharpRail.Plugins.Api.Host.PluginHttpResponse.Headers.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+SharpRail.Plugins.Api.Host.PluginHttpResponse.Headers.init -> void
+SharpRail.Plugins.Api.Host.PluginHttpResponse.PluginHttpResponse(int Status) -> void
+SharpRail.Plugins.Api.Host.PluginHttpResponse.Status.get -> int
+SharpRail.Plugins.Api.Host.PluginHttpResponse.Status.init -> void
+SharpRail.Plugins.Api.Host.RevivePrefill
+SharpRail.Plugins.Api.Host.RevivePrefill.<Clone>$() -> SharpRail.Plugins.Api.Host.RevivePrefill!
+SharpRail.Plugins.Api.Host.RevivePrefill.Deconstruct(out string! Text, out bool Submit) -> void
+SharpRail.Plugins.Api.Host.RevivePrefill.Equals(SharpRail.Plugins.Api.Host.RevivePrefill? other) -> bool
+SharpRail.Plugins.Api.Host.RevivePrefill.RevivePrefill(string! Text, bool Submit = false) -> void
+SharpRail.Plugins.Api.Host.RevivePrefill.Submit.get -> bool
+SharpRail.Plugins.Api.Host.RevivePrefill.Submit.init -> void
+SharpRail.Plugins.Api.Host.RevivePrefill.Text.get -> string!
+SharpRail.Plugins.Api.Host.RevivePrefill.Text.init -> void
+SharpRail.Plugins.Api.Host.TerminalAgentChanged
+SharpRail.Plugins.Api.Host.TerminalAgentChanged.Deconstruct(out SharpRail.Plugins.Api.TerminalRef! Terminal, out SharpRail.Plugins.Api.TerminalAgentRecord? Record) -> void
+SharpRail.Plugins.Api.Host.TerminalAgentChanged.Equals(SharpRail.Plugins.Api.Host.TerminalAgentChanged? other) -> bool
+SharpRail.Plugins.Api.Host.TerminalAgentChanged.Record.get -> SharpRail.Plugins.Api.TerminalAgentRecord?
+SharpRail.Plugins.Api.Host.TerminalAgentChanged.Record.init -> void
+SharpRail.Plugins.Api.Host.TerminalAgentChanged.TerminalAgentChanged(SharpRail.Plugins.Api.TerminalRef! Terminal, SharpRail.Plugins.Api.TerminalAgentRecord? Record) -> void
+SharpRail.Plugins.Api.Host.TerminalClosed
+SharpRail.Plugins.Api.Host.TerminalClosed.Deconstruct(out SharpRail.Plugins.Api.TerminalRef! Terminal) -> void
+SharpRail.Plugins.Api.Host.TerminalClosed.Equals(SharpRail.Plugins.Api.Host.TerminalClosed? other) -> bool
+SharpRail.Plugins.Api.Host.TerminalClosed.TerminalClosed(SharpRail.Plugins.Api.TerminalRef! Terminal) -> void
+SharpRail.Plugins.Api.Host.TerminalEvent
+SharpRail.Plugins.Api.Host.TerminalEvent.Deconstruct(out SharpRail.Plugins.Api.TerminalRef! Terminal) -> void
+SharpRail.Plugins.Api.Host.TerminalEvent.Terminal.get -> SharpRail.Plugins.Api.TerminalRef!
+SharpRail.Plugins.Api.Host.TerminalEvent.Terminal.init -> void
+SharpRail.Plugins.Api.Host.TerminalEvent.TerminalEvent(SharpRail.Plugins.Api.Host.TerminalEvent! original) -> void
+SharpRail.Plugins.Api.Host.TerminalEvent.TerminalEvent(SharpRail.Plugins.Api.TerminalRef! Terminal) -> void
+SharpRail.Plugins.Api.Host.TerminalExited
+SharpRail.Plugins.Api.Host.TerminalExited.Deconstruct(out SharpRail.Plugins.Api.TerminalRef! Terminal, out int ExitCode) -> void
+SharpRail.Plugins.Api.Host.TerminalExited.Equals(SharpRail.Plugins.Api.Host.TerminalExited? other) -> bool
+SharpRail.Plugins.Api.Host.TerminalExited.ExitCode.get -> int
+SharpRail.Plugins.Api.Host.TerminalExited.ExitCode.init -> void
+SharpRail.Plugins.Api.Host.TerminalExited.TerminalExited(SharpRail.Plugins.Api.TerminalRef! Terminal, int ExitCode) -> void
+SharpRail.Plugins.Api.Host.TerminalProcess
+SharpRail.Plugins.Api.Host.TerminalProcess.<Clone>$() -> SharpRail.Plugins.Api.Host.TerminalProcess!
+SharpRail.Plugins.Api.Host.TerminalProcess.Deconstruct(out SharpRail.Plugins.Api.TerminalRef! Terminal, out int? Pid) -> void
+SharpRail.Plugins.Api.Host.TerminalProcess.Equals(SharpRail.Plugins.Api.Host.TerminalProcess? other) -> bool
+SharpRail.Plugins.Api.Host.TerminalProcess.Pid.get -> int?
+SharpRail.Plugins.Api.Host.TerminalProcess.Pid.init -> void
+SharpRail.Plugins.Api.Host.TerminalProcess.Terminal.get -> SharpRail.Plugins.Api.TerminalRef!
+SharpRail.Plugins.Api.Host.TerminalProcess.Terminal.init -> void
+SharpRail.Plugins.Api.Host.TerminalProcess.TerminalProcess(SharpRail.Plugins.Api.TerminalRef! Terminal, int? Pid) -> void
+SharpRail.Plugins.Api.Host.TerminalSpawned
+SharpRail.Plugins.Api.Host.TerminalSpawned.Deconstruct(out SharpRail.Plugins.Api.TerminalRef! Terminal, out int Pid) -> void
+SharpRail.Plugins.Api.Host.TerminalSpawned.Equals(SharpRail.Plugins.Api.Host.TerminalSpawned? other) -> bool
+SharpRail.Plugins.Api.Host.TerminalSpawned.Pid.get -> int
+SharpRail.Plugins.Api.Host.TerminalSpawned.Pid.init -> void
+SharpRail.Plugins.Api.Host.TerminalSpawned.TerminalSpawned(SharpRail.Plugins.Api.TerminalRef! Terminal, int Pid) -> void
+SharpRail.Plugins.Api.Host.WorkspaceCreated
+SharpRail.Plugins.Api.Host.WorkspaceCreated.Deconstruct(out SharpRail.Plugins.Api.HostWorkspace! Workspace) -> void
+SharpRail.Plugins.Api.Host.WorkspaceCreated.Equals(SharpRail.Plugins.Api.Host.WorkspaceCreated? other) -> bool
+SharpRail.Plugins.Api.Host.WorkspaceCreated.Workspace.get -> SharpRail.Plugins.Api.HostWorkspace!
+SharpRail.Plugins.Api.Host.WorkspaceCreated.Workspace.init -> void
+SharpRail.Plugins.Api.Host.WorkspaceCreated.WorkspaceCreated(SharpRail.Plugins.Api.HostWorkspace! Workspace) -> void
+SharpRail.Plugins.Api.Host.WorkspaceEvent
+SharpRail.Plugins.Api.Host.WorkspaceEvent.WorkspaceEvent() -> void
+SharpRail.Plugins.Api.Host.WorkspaceEvent.WorkspaceEvent(SharpRail.Plugins.Api.Host.WorkspaceEvent! original) -> void
+SharpRail.Plugins.Api.Host.WorkspaceFilesChanged
+SharpRail.Plugins.Api.Host.WorkspaceFilesChanged.<Clone>$() -> SharpRail.Plugins.Api.Host.WorkspaceFilesChanged!
+SharpRail.Plugins.Api.Host.WorkspaceFilesChanged.Deconstruct(out string! WorkspaceId, out System.Collections.Generic.IReadOnlyList<string!>! Paths, out bool Truncated) -> void
+SharpRail.Plugins.Api.Host.WorkspaceFilesChanged.Equals(SharpRail.Plugins.Api.Host.WorkspaceFilesChanged? other) -> bool
+SharpRail.Plugins.Api.Host.WorkspaceFilesChanged.Paths.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Plugins.Api.Host.WorkspaceFilesChanged.Paths.init -> void
+SharpRail.Plugins.Api.Host.WorkspaceFilesChanged.Truncated.get -> bool
+SharpRail.Plugins.Api.Host.WorkspaceFilesChanged.Truncated.init -> void
+SharpRail.Plugins.Api.Host.WorkspaceFilesChanged.WorkspaceFilesChanged(string! WorkspaceId, System.Collections.Generic.IReadOnlyList<string!>! Paths, bool Truncated) -> void
+SharpRail.Plugins.Api.Host.WorkspaceFilesChanged.WorkspaceId.get -> string!
+SharpRail.Plugins.Api.Host.WorkspaceFilesChanged.WorkspaceId.init -> void
+SharpRail.Plugins.Api.Host.WorkspaceRemoved
+SharpRail.Plugins.Api.Host.WorkspaceRemoved.Deconstruct(out string! ProjectId, out string! Id) -> void
+SharpRail.Plugins.Api.Host.WorkspaceRemoved.Equals(SharpRail.Plugins.Api.Host.WorkspaceRemoved? other) -> bool
+SharpRail.Plugins.Api.Host.WorkspaceRemoved.Id.get -> string!
+SharpRail.Plugins.Api.Host.WorkspaceRemoved.Id.init -> void
+SharpRail.Plugins.Api.Host.WorkspaceRemoved.ProjectId.get -> string!
+SharpRail.Plugins.Api.Host.WorkspaceRemoved.ProjectId.init -> void
+SharpRail.Plugins.Api.Host.WorkspaceRemoved.WorkspaceRemoved(string! ProjectId, string! Id) -> void
+SharpRail.Plugins.Api.Host.WorkspaceUpdated
+SharpRail.Plugins.Api.Host.WorkspaceUpdated.Deconstruct(out SharpRail.Plugins.Api.HostWorkspace! Workspace) -> void
+SharpRail.Plugins.Api.Host.WorkspaceUpdated.Equals(SharpRail.Plugins.Api.Host.WorkspaceUpdated? other) -> bool
+SharpRail.Plugins.Api.Host.WorkspaceUpdated.Workspace.get -> SharpRail.Plugins.Api.HostWorkspace!
+SharpRail.Plugins.Api.Host.WorkspaceUpdated.Workspace.init -> void
+SharpRail.Plugins.Api.Host.WorkspaceUpdated.WorkspaceUpdated(SharpRail.Plugins.Api.HostWorkspace! Workspace) -> void
+static SharpRail.Plugins.Api.Host.GitRunOptions.operator !=(SharpRail.Plugins.Api.Host.GitRunOptions? left, SharpRail.Plugins.Api.Host.GitRunOptions? right) -> bool
+static SharpRail.Plugins.Api.Host.GitRunOptions.operator ==(SharpRail.Plugins.Api.Host.GitRunOptions? left, SharpRail.Plugins.Api.Host.GitRunOptions? right) -> bool
+static SharpRail.Plugins.Api.Host.GitRunResult.operator !=(SharpRail.Plugins.Api.Host.GitRunResult? left, SharpRail.Plugins.Api.Host.GitRunResult? right) -> bool
+static SharpRail.Plugins.Api.Host.GitRunResult.operator ==(SharpRail.Plugins.Api.Host.GitRunResult? left, SharpRail.Plugins.Api.Host.GitRunResult? right) -> bool
+static SharpRail.Plugins.Api.Host.PluginCall.operator !=(SharpRail.Plugins.Api.Host.PluginCall? left, SharpRail.Plugins.Api.Host.PluginCall? right) -> bool
+static SharpRail.Plugins.Api.Host.PluginCall.operator ==(SharpRail.Plugins.Api.Host.PluginCall? left, SharpRail.Plugins.Api.Host.PluginCall? right) -> bool
+static SharpRail.Plugins.Api.Host.PluginHttpRequest.operator !=(SharpRail.Plugins.Api.Host.PluginHttpRequest? left, SharpRail.Plugins.Api.Host.PluginHttpRequest? right) -> bool
+static SharpRail.Plugins.Api.Host.PluginHttpRequest.operator ==(SharpRail.Plugins.Api.Host.PluginHttpRequest? left, SharpRail.Plugins.Api.Host.PluginHttpRequest? right) -> bool
+static SharpRail.Plugins.Api.Host.PluginHttpResponse.operator !=(SharpRail.Plugins.Api.Host.PluginHttpResponse? left, SharpRail.Plugins.Api.Host.PluginHttpResponse? right) -> bool
+static SharpRail.Plugins.Api.Host.PluginHttpResponse.operator ==(SharpRail.Plugins.Api.Host.PluginHttpResponse? left, SharpRail.Plugins.Api.Host.PluginHttpResponse? right) -> bool
+static SharpRail.Plugins.Api.Host.RevivePrefill.operator !=(SharpRail.Plugins.Api.Host.RevivePrefill? left, SharpRail.Plugins.Api.Host.RevivePrefill? right) -> bool
+static SharpRail.Plugins.Api.Host.RevivePrefill.operator ==(SharpRail.Plugins.Api.Host.RevivePrefill? left, SharpRail.Plugins.Api.Host.RevivePrefill? right) -> bool
+static SharpRail.Plugins.Api.Host.TerminalAgentChanged.operator !=(SharpRail.Plugins.Api.Host.TerminalAgentChanged? left, SharpRail.Plugins.Api.Host.TerminalAgentChanged? right) -> bool
+static SharpRail.Plugins.Api.Host.TerminalAgentChanged.operator ==(SharpRail.Plugins.Api.Host.TerminalAgentChanged? left, SharpRail.Plugins.Api.Host.TerminalAgentChanged? right) -> bool
+static SharpRail.Plugins.Api.Host.TerminalClosed.operator !=(SharpRail.Plugins.Api.Host.TerminalClosed? left, SharpRail.Plugins.Api.Host.TerminalClosed? right) -> bool
+static SharpRail.Plugins.Api.Host.TerminalClosed.operator ==(SharpRail.Plugins.Api.Host.TerminalClosed? left, SharpRail.Plugins.Api.Host.TerminalClosed? right) -> bool
+static SharpRail.Plugins.Api.Host.TerminalEvent.operator !=(SharpRail.Plugins.Api.Host.TerminalEvent? left, SharpRail.Plugins.Api.Host.TerminalEvent? right) -> bool
+static SharpRail.Plugins.Api.Host.TerminalEvent.operator ==(SharpRail.Plugins.Api.Host.TerminalEvent? left, SharpRail.Plugins.Api.Host.TerminalEvent? right) -> bool
+static SharpRail.Plugins.Api.Host.TerminalExited.operator !=(SharpRail.Plugins.Api.Host.TerminalExited? left, SharpRail.Plugins.Api.Host.TerminalExited? right) -> bool
+static SharpRail.Plugins.Api.Host.TerminalExited.operator ==(SharpRail.Plugins.Api.Host.TerminalExited? left, SharpRail.Plugins.Api.Host.TerminalExited? right) -> bool
+static SharpRail.Plugins.Api.Host.TerminalProcess.operator !=(SharpRail.Plugins.Api.Host.TerminalProcess? left, SharpRail.Plugins.Api.Host.TerminalProcess? right) -> bool
+static SharpRail.Plugins.Api.Host.TerminalProcess.operator ==(SharpRail.Plugins.Api.Host.TerminalProcess? left, SharpRail.Plugins.Api.Host.TerminalProcess? right) -> bool
+static SharpRail.Plugins.Api.Host.TerminalSpawned.operator !=(SharpRail.Plugins.Api.Host.TerminalSpawned? left, SharpRail.Plugins.Api.Host.TerminalSpawned? right) -> bool
+static SharpRail.Plugins.Api.Host.TerminalSpawned.operator ==(SharpRail.Plugins.Api.Host.TerminalSpawned? left, SharpRail.Plugins.Api.Host.TerminalSpawned? right) -> bool
+static SharpRail.Plugins.Api.Host.WorkspaceCreated.operator !=(SharpRail.Plugins.Api.Host.WorkspaceCreated? left, SharpRail.Plugins.Api.Host.WorkspaceCreated? right) -> bool
+static SharpRail.Plugins.Api.Host.WorkspaceCreated.operator ==(SharpRail.Plugins.Api.Host.WorkspaceCreated? left, SharpRail.Plugins.Api.Host.WorkspaceCreated? right) -> bool
+static SharpRail.Plugins.Api.Host.WorkspaceEvent.operator !=(SharpRail.Plugins.Api.Host.WorkspaceEvent? left, SharpRail.Plugins.Api.Host.WorkspaceEvent? right) -> bool
+static SharpRail.Plugins.Api.Host.WorkspaceEvent.operator ==(SharpRail.Plugins.Api.Host.WorkspaceEvent? left, SharpRail.Plugins.Api.Host.WorkspaceEvent? right) -> bool
+static SharpRail.Plugins.Api.Host.WorkspaceFilesChanged.operator !=(SharpRail.Plugins.Api.Host.WorkspaceFilesChanged? left, SharpRail.Plugins.Api.Host.WorkspaceFilesChanged? right) -> bool
+static SharpRail.Plugins.Api.Host.WorkspaceFilesChanged.operator ==(SharpRail.Plugins.Api.Host.WorkspaceFilesChanged? left, SharpRail.Plugins.Api.Host.WorkspaceFilesChanged? right) -> bool
+static SharpRail.Plugins.Api.Host.WorkspaceRemoved.operator !=(SharpRail.Plugins.Api.Host.WorkspaceRemoved? left, SharpRail.Plugins.Api.Host.WorkspaceRemoved? right) -> bool
+static SharpRail.Plugins.Api.Host.WorkspaceRemoved.operator ==(SharpRail.Plugins.Api.Host.WorkspaceRemoved? left, SharpRail.Plugins.Api.Host.WorkspaceRemoved? right) -> bool
+static SharpRail.Plugins.Api.Host.WorkspaceUpdated.operator !=(SharpRail.Plugins.Api.Host.WorkspaceUpdated? left, SharpRail.Plugins.Api.Host.WorkspaceUpdated? right) -> bool
+static SharpRail.Plugins.Api.Host.WorkspaceUpdated.operator ==(SharpRail.Plugins.Api.Host.WorkspaceUpdated? left, SharpRail.Plugins.Api.Host.WorkspaceUpdated? right) -> bool
+virtual SharpRail.Plugins.Api.Host.PluginDisposer.Invoke() -> System.Threading.Tasks.ValueTask
+virtual SharpRail.Plugins.Api.Host.TerminalEvent.EqualityContract.get -> System.Type!
+virtual SharpRail.Plugins.Api.Host.TerminalEvent.Equals(SharpRail.Plugins.Api.Host.TerminalEvent? other) -> bool
+virtual SharpRail.Plugins.Api.Host.TerminalEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool
+virtual SharpRail.Plugins.Api.Host.WorkspaceEvent.EqualityContract.get -> System.Type!
+virtual SharpRail.Plugins.Api.Host.WorkspaceEvent.Equals(SharpRail.Plugins.Api.Host.WorkspaceEvent? other) -> bool
+virtual SharpRail.Plugins.Api.Host.WorkspaceEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool

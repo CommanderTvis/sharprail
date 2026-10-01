@@ -11,15 +11,6 @@ using SharpRail.UI.State;
 
 namespace SharpRail.UI.Rendering;
 
-/// <summary>One bundled <c>*.theme.json</c> manifest: the reference's schema-version-2 palette.</summary>
-public sealed record ThemeManifest(string Id, string Label, int Order, string Appearance, string Contrast,
-    IReadOnlyDictionary<string, Color?> Colors, IReadOnlyList<Color> Ansi, IReadOnlyDictionary<string, Color> Syntax)
-{
-    public bool IsLight => Appearance == "light";
-    public bool IsHighContrast => Contrast == "high";
-    public Color this[string key] => Colors[key] ?? throw new KeyNotFoundException(key);
-}
-
 /// <summary>The theme a preference resolves to; <paramref name="Fallback"/> marks an unavailable or wrong-appearance request.</summary>
 public sealed record ThemeResolution(string RequestedId, ThemeManifest Theme, bool Fallback, string? SystemAppearance);
 

@@ -11,24 +11,28 @@ versions; `global.json` selects the SDK. Use `.tools/dotnet/dotnet` for this che
 | --- | --- |
 | `src/SharpRail.Host.Abstractions` | Transport-independent host interfaces and domain records consumed by the UI. |
 | `src/SharpRail.Host.Core` | Filesystem, project/spec discovery, Git, worktree and PTY terminal implementations (`Posix.cs` holds the libc interop). No Avalonia, Pi or AI dependency. |
+| `src/SharpRail.Host.Core/Plugins` | The host's plugin runtime (`PluginRuntime` implements `IPluginService`): discovery of `<stateDir>/plugins` and `PluginPaths`, manifest intake, load contexts, registry, reconciler, dispatch, settings namespaces and MCP tools, composed from `PluginHostSeams`. |
 | `src/SharpRail.Host.Protocol` | Code-first protobuf-net.Grpc service contracts and wire DTOs. |
 | `src/SharpRail.Host.Remote` | Kestrel HTTP/2 host, authentication and RPC adapters delegating to Core. |
 | `src/SharpRail.Host.Client` | Direct local adapters and gRPC remote proxies implementing the same host abstractions. Embedded mode uses no sockets or serialization. |
+| `src/SharpRail.Plugins.Api` | The plugin contract, types and identity helpers only: manifest, contract vocabulary, roster, `PluginJson`. `SharpRail.Plugins.Api.Host` and `SharpRail.Plugins.Api.UI` carry the host and UI contexts and never reference each other. Every public symbol is documented and listed in `PublicAPI.Unshipped.txt`; `PluginApi.Generation` is pinned by the checks. |
+| `src/SharpRail.Plugins.UI.Kit` | Controls shared by the app and plugin UI halves: `Ui` brushes, fonts and primitives, `DialogWindow`, Markdown, the Scintilla editor frame and Mermaid diagrams. References no `SharpRail.Host.*` project, `SharpRail.UI` or plugin API. |
 | `src/SharpRail.Scintilla` | Self-contained Avalonia editor control: Scintilla with a Skia surface, HarfBuzz shaping and SheenBidi layout. Its `README.md` documents the API, native build and limits. It references no SharpRail project. |
 | `src/SharpRail.UI` | Avalonia application entry point and workbench. `WorkbenchWindow` partial files coordinate navigation, projects and Git panels. |
 | `src/SharpRail.UI/Docking` | Persisted frame/workspace layout model, transitions, geometry, pointer/keyboard gestures, tab chrome and search popover. |
 | `src/SharpRail.UI/Panels` | Settings and shared dialogs, including compiled XAML frames and page templates. |
-| `src/SharpRail.UI/Rendering` | Native Markdown rendering, the diff pane and shared UI assets/styles/helpers. |
+| `src/SharpRail.UI/Rendering` | The theme catalogue, diffs and the bindings of the kit's Markdown views to a workspace's host (`MarkdownContexts`). |
 | `src/SharpRail.UI/Resources` | Resource-renderer registry, the file pane with its view toggle, and the format views (image, SVG, table, JSON, notebook, LFS and byte cards). |
 | `src/SharpRail.UI/State` | Profile persistence and migration (`ProfileStore`: app preferences and one entry per window) and the app's shared-state subscription (`SharedState`). Default user state belongs in `~/.sharprail`, not project directories. |
+| `src/SharpRail.UI/Plugins` | The app's plugin runtime: the contribution registry the workbench reads, the builtin UI array, external UI assembly loading through the host, `IPluginUIContext` and the roster reconciler. Settings › Plugins is `Panels/PluginsSettings.cs`. |
 | `src/SharpRail.UI/Terminal` | Terminal tab body (`TerminalView`: start failure/retry, exit notice), the Ghostty native-control bridge for local and relayed remote sessions, and the `--terminal-relay` mode. |
-| `src/SharpRail.UI/Assets` | Reference icons and bundled fonts, with their licenses. |
+| `src/SharpRail.UI/Assets` | The bundled theme manifests; the icons and fonts, with their licenses, live in the kit's `Assets`. |
 | `src/Ghostty.Avalonia` | Independent Ghostty controls: hosted AppKit/Metal, Metal textures composed by Avalonia, and libghostty-vt drawn by Skia; native bridges, build script and licenses. Its README documents reuse and limits. |
 | `tests/SharpRail.Checks` | Executable checks for host transports, runtime extensibility, layout, UI and Git/worktree integration. `E2E/` translates upstream scenarios using real headless Avalonia input. |
 | `scripts/dev.sh` | Builds and runs the app from source in one step (`SHARPRAIL_PROFILE` keeps a separate profile). |
 | `scripts/bootstrap.sh` | Installs the checkout's local .NET SDK. |
 | `src/Ghostty.Avalonia/build-native.sh` | Builds pinned libghostty and libghostty-vt bridges on the target macOS architecture, using checkout-local tools and caches. |
-| `scripts/build-merman.sh` | Downloads Merman's pinned, checksummed macOS xcframework and links its C ABI into `.tools/merman/libSharpRailMermaid.dylib`. `Rendering/MermaidRenderer.cs` renders SVG through it off the UI thread; Svg.Skia displays it. Other platforms show the source with an unavailability message. |
+| `scripts/build-merman.sh` | Downloads Merman's pinned, checksummed macOS xcframework and links its C ABI into `.tools/merman/libSharpRailMermaid.dylib`. The kit's `Visualization/MermaidRenderer.cs` renders SVG through it off the UI thread; Svg.Skia displays it. Other platforms show the source with an unavailability message. |
 | `scripts/check-terminal.sh` | Runs the native shell/Metal probe; the checks executable's `--native-terminal` mode exercises Avalonia integration. |
 | `scripts/check-packaged.sh` | Runs the check gate from a staged copy of `artifacts/SharpRail.app`, so the files under test are the packaged ones. |
 | `scripts/publish.sh` | Publishes non-composite R2R UI, remote host and checks; refreshes and signs the canonical `artifacts/SharpRail.app`. Check for a live app process before replacing it. |
@@ -42,7 +46,7 @@ For host changes, follow the operation through these files:
 
 | Layer | Files |
 | --- | --- |
-| Public API | `Host.Abstractions/IWorkspaceHost.cs`, `ProjectServices.cs`, `HostState.cs` and `TerminalServices.cs`. |
+| Public API | `Host.Abstractions/IWorkspaceHost.cs`, `ProjectServices.cs`, `HostState.cs`, `TerminalServices.cs` and `PluginServices.cs`. |
 | Implementation | `Host.Core/WorkspaceHost.cs`, `ProjectServices.cs`, `HostStateStore.cs`, `SpecCatalog.cs`, `GitRepository.cs` and `PtyTerminalService.cs`. |
 | Wire contracts | `Host.Protocol/WorkspaceContract.cs`, `ProjectContract.cs`, `StateContract.cs` and `TerminalContract.cs`. |
 | Client adapters | `Host.Client/HostAdapters.cs`, `ProjectAdapters.cs`, `StateAdapters.cs` and `TerminalAdapters.cs`. |
@@ -110,13 +114,16 @@ The workbench is split into partial files rather than separate window classes:
 | `TerminalTabs.cs` | Confirmation before closing terminals that run a foreground process. |
 | `BranchList.cs` | The title bar branch's popover: local branches with their worktrees, deletion and Fetch. |
 
-Host dependencies flow toward abstractions: Core references Abstractions; Client
+Host dependencies flow toward abstractions: Abstractions references only the plugin API's root;
+Core references Abstractions and the plugin API's host entry; Client
 references Abstractions and Protocol; Remote references Core and Protocol. The UI
 references Core and Client to compose either direct local calls or remote proxies,
 the Scintilla editor control, which it supplies with theme colours and fonts, and
 Ghostty.Avalonia. The UI does not reference Remote or start a local RPC server.
 Checks reference the UI and Remote to exercise both paths. Do not introduce a UI
-dependency into the host projects.
+dependency into the host projects. Plugins (`src/SharpRail.Plugins.Api/SPEC.md`) reference only the API assemblies, the
+kit and their dependencies' contracts; external plugins install under `<stateDir>/plugins/<id>/` with a
+`sharprail-plugin.json` manifest.
 
 `SPEC.md` defines the product contract; `COMPLETION.md` records unfinished gates;
 `E2E.md` inventories upstream translations; `VALIDATION.md` records verified

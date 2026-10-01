@@ -58,6 +58,7 @@ public sealed partial class WorkbenchWindow
     private async Task RefreshWatchedAsync(long request, FileChange change, bool refreshGit)
     {
         WatchRefreshes++;
+        if (change.Paths.Count > 0) workbench.BumpRevisions(workspaceRoot, change.Paths);
         if (change.Rescan || change.Paths.Any(path => path.EndsWith(".md", StringComparison.OrdinalIgnoreCase)))
         { RefreshSpecs(); _ = ProbeSpecsAsync(); }
         await Task.WhenAll(

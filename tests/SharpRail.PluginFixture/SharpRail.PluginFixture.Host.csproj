@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- An external plugin's host half, built into the directory the checks install from disk. -->
+  <PropertyGroup>
+    <OutDir>$(MSBuildThisFileDirectory)../SharpRail.Checks/bin/$(Configuration)/$(TargetFramework)/plugin-fixture/fixture/</OutDir>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/SharpRail.Plugins.Api.Host/SharpRail.Plugins.Api.Host.csproj" Private="false" />
+    <None Include="sharprail-plugin.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="assets/icon.svg" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <!-- A deliberate copy of a shared assembly, which the plugin load context must ignore in favour of the host's. -->
+  <Target Name="CopySharedApi" AfterTargets="Build">
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)../../src/SharpRail.Plugins.Api/bin/$(Configuration)/$(TargetFramework)/SharpRail.Plugins.Api.dll" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
+</Project>

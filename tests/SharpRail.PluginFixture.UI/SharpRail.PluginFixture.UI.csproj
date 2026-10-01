@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The fixture plugin's UI half, built straight into the plugin directory the checks install from disk. Shared
+       assemblies are referenced, never copied: the app's own copies are the ones a plugin's types bind to. -->
+  <PropertyGroup>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <OutputPath>$(MSBuildThisFileDirectory)../SharpRail.Checks/bin/$(Configuration)/$(TargetFramework)/plugin-fixture/fixture/</OutputPath>
+    <GenerateDependencyFile>false</GenerateDependencyFile>
+    <DisableTransitiveProjectReferences>true</DisableTransitiveProjectReferences>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/SharpRail.Plugins.Api/SharpRail.Plugins.Api.csproj" Private="false" />
+    <ProjectReference Include="../../src/SharpRail.Plugins.Api.UI/SharpRail.Plugins.Api.UI.csproj" Private="false" />
+    <ProjectReference Include="../../src/SharpRail.Plugins.UI.Kit/SharpRail.Plugins.UI.Kit.csproj" Private="false" />
+    <PackageReference Include="Avalonia" ExcludeAssets="runtime" />
+  </ItemGroup>
+  <!-- A copy of a shared assembly shipped anyway, which the app must ignore rather than load a second time. -->
+  <Target Name="ShipSharedCopy" AfterTargets="Build">
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)../../src/SharpRail.Plugins.Api/bin/$(Configuration)/$(TargetFramework)/SharpRail.Plugins.Api.dll"
+          DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+  </Target>
+</Project>

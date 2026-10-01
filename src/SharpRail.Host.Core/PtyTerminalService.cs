@@ -2,25 +2,32 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Channels;
 
 using SharpRail.Host.Abstractions;
+using SharpRail.Host.Core.Plugins;
+using SharpRail.Plugins.Api;
+using SharpRail.Plugins.Api.Host;
 
 namespace SharpRail.Host.Core;
 
 // Owns every terminal session for the lifetime of the host, and the catalog of terminal tabs its clients
 // share. Clients attach and detach; a shell ends only when its tab is closed, its workspace is removed, it
 // exits, or the host stops.
-public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogService, IAsyncDisposable
+public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogService, IAsyncDisposable, IPluginTerminalSeams
 {
     private readonly Dictionary<string, HostedTerminal> sessions = [];
     // The workspace folder each running session was started in.
     private readonly Dictionary<string, string> roots = [];
     private readonly TerminalCatalogStore catalog;
+    // The tab each session shows, known once a client attaches with its tab key.
+    private readonly Dictionary<string, TerminalRef> terminals = [];
+    private readonly Dictionary<string, string> directories = [];
     // One MCP identity per session: its token names the workspace an agent in that shell works in.
     private readonly Dictionary<string, string> tokens = [];
-    private readonly ConcurrentDictionary<string, string> workspaces = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, (string Workspace, TerminalRef? Terminal)> owners = new(StringComparer.Ordinal);
     private readonly Lock gate = new();
     private readonly Dictionary<string, byte[]> pending = [];
     private readonly string? shell;
@@ -30,6 +37,11 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
 
     /// <summary>The loopback base URL of the host MCP route.</summary>
     public string? McpEndpoint { get; set; }
+
+    public Func<TerminalRef, IReadOnlyDictionary<string, string>>? EnvironmentContributor { get; set; }
+    public Action<TerminalEvent>? Lifecycle { get; set; }
+    public Func<TerminalRef, TerminalPrefill?>? RevivePrefill { get; set; }
+    public Action<string, TerminalRef?>? SessionClosed { get; set; }
 
     // A null shell runs the user's login shell. With a recordings directory, the catalog is kept there, the last
     // screen of every session is saved when the service is disposed, and a tab attached again after a restart
@@ -82,6 +94,9 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
     }
 
     public IAsyncEnumerable<TerminalCatalog> WatchAsync(CancellationToken cancellationToken = default) => catalog.WatchAsync(cancellationToken);
+    /// <summary>The session id a client derives for a tab: the hash of workspace root and tab key the app uses.</summary>
+    public static string SessionFor(TerminalRef terminal) =>
+        Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(terminal.WorkspaceId + "\n" + terminal.TabKey)).AsSpan(0, 16));
 
     public ValueTask<ITerminalSession> AttachAsync(TerminalAttachRequest request, CancellationToken cancellationToken = default)
     {
@@ -89,31 +104,38 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         if (string.IsNullOrWhiteSpace(request.SessionId)) throw new ArgumentException("A terminal session id is required.", nameof(request));
         if (string.IsNullOrWhiteSpace(request.ClientId)) throw new ArgumentException("A terminal client id is required.", nameof(request));
         TerminalGrid.Require(request.Columns, request.Rows);
+        var directory = Path.GetFullPath(request.WorkspaceRoot);
+        PtySession process;
+        Attachment attachment;
+        TerminalRef? terminal;
         // Lookup and start happen under one lock so concurrent attaches never start two shells for a session.
         lock (gate)
         {
             ObjectDisposedException.ThrowIf(disposed, this);
+            if (!string.IsNullOrEmpty(request.TabKey)) terminals.TryAdd(request.SessionId, new(directory, request.TabKey));
             if (sessions.TryGetValue(request.SessionId, out var existing)) return ValueTask.FromResult<ITerminalSession>(existing.Attach(request, created: false));
             if (request.Resume) throw new IOException("The terminal session no longer exists.");
-            var directory = Path.GetFullPath(request.WorkspaceRoot);
             if (!Directory.Exists(directory)) throw new DirectoryNotFoundException($"The workspace folder {directory} does not exist.");
-            string? mcp = null;
-            if (McpEndpoint is { } endpoint)
-            {
-                if (!tokens.TryGetValue(request.SessionId, out var token))
-                    tokens[request.SessionId] = token = Convert.ToHexStringLower(System.Security.Cryptography.RandomNumberGenerator.GetBytes(16));
-                workspaces[token] = directory;
-                mcp = $"{endpoint}/mcp/{token}";
-            }
-            var process = Start(request, directory, mcp);
-            // A recording is consumed only once the shell runs, so a failed start keeps it for the retry.
+            terminal = terminals.GetValueOrDefault(request.SessionId);
+            var mcp = McpEndpoint is { } endpoint ? $"{endpoint}/mcp/{Mint(request.SessionId, directory, terminal)}" : null;
+            var contributed = terminal is not null ? EnvironmentContributor?.Invoke(terminal) : null;
+            process = Start(request, directory, mcp, contributed);
+            var prefill = terminal is not null ? RevivePrefill?.Invoke(terminal) : null;
             pending.Remove(request.SessionId, out var restored);
             var replay = Math.Clamp(replayBytes?.Invoke() ?? TerminalRecorder.SnapshotBytes, 0, TerminalRecorder.MaxSnapshotBytes);
-            var terminal = new HostedTerminal(process, request.Columns, request.Rows, restored, replay);
-            sessions.Add(request.SessionId, terminal);
+            var hosted = new HostedTerminal(process, request.Columns, request.Rows, restored, replay);
+            sessions.Add(request.SessionId, hosted);
+            directories[request.SessionId] = directory;
             roots[request.SessionId] = directory;
-            return ValueTask.FromResult<ITerminalSession>(terminal.Attach(request, created: true));
+            attachment = hosted.Attach(request, created: true, prefill);
         }
+        if (terminal is not null && Lifecycle is { } lifecycle)
+        {
+            lifecycle(new TerminalSpawned(terminal, process.Pid));
+            process.Exit.ContinueWith(exit => lifecycle(new TerminalExited(terminal, exit.Result)),
+                CancellationToken.None, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Default);
+        }
+        return ValueTask.FromResult<ITerminalSession>(attachment);
     }
 
     public ValueTask<bool> IsBusyAsync(string sessionId, CancellationToken cancellationToken = default)
@@ -131,19 +153,109 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
     private async ValueTask EndAsync(string sessionId)
     {
         HostedTerminal? terminal;
+        TerminalRef? closed;
         lock (gate)
         {
             sessions.Remove(sessionId, out terminal);
             roots.Remove(sessionId);
             pending.Remove(sessionId);
-            if (tokens.Remove(sessionId, out var token)) workspaces.TryRemove(token, out _);
+            terminals.Remove(sessionId, out closed);
+            directories.Remove(sessionId);
+            if (tokens.Remove(sessionId, out var token)) owners.TryRemove(token, out _);
         }
         store?.Delete(sessionId);
         if (terminal is not null) await terminal.Process.DisposeAsync();
+        SessionClosed?.Invoke(sessionId, closed);
     }
 
-    /// <summary>The workspace root of the terminal a token was minted for, or null for an unknown token.</summary>
-    public string? McpWorkspace(string token) => workspaces.GetValueOrDefault(token);
+    /// <summary>The workspace root and tab of the terminal a token was minted for, or null for an unknown token.</summary>
+    public (string Workspace, TerminalRef? Terminal)? McpOwner(string token) => owners.TryGetValue(token, out var owner) ? owner : null;
+
+    public string Token(TerminalRef terminal)
+    {
+        lock (gate) return Mint(SessionOf(terminal), Path.GetFullPath(terminal.WorkspaceId), terminal);
+    }
+
+    public TerminalRef? ForToken(string token) => owners.TryGetValue(token, out var owner) ? owner.Terminal : null;
+
+    public void Write(TerminalRef terminal, string data)
+    {
+        HostedTerminal? target;
+        lock (gate) target = sessions.GetValueOrDefault(SessionOf(terminal));
+        if (target is null) return;
+        try { target.Process.WriteAsync(Encoding.UTF8.GetBytes(data)).AsTask().GetAwaiter().GetResult(); }
+        catch (Exception error) when (error is IOException or ObjectDisposedException) { }
+    }
+
+    public IReadOnlyList<TerminalProcess> List()
+    {
+        lock (gate)
+            return [.. terminals.Where(entry => sessions.ContainsKey(entry.Key)).Select(entry =>
+                new TerminalProcess(entry.Value, sessions[entry.Key].Process.Exit.IsCompleted ? null : sessions[entry.Key].Process.Pid))];
+    }
+
+    public string? WorkspaceForProcess(int pid)
+    {
+        Dictionary<int, string> shells;
+        lock (gate) shells = sessions.Where(entry => !entry.Value.Process.Exit.IsCompleted)
+            .ToDictionary(entry => entry.Value.Process.Pid, entry => directories[entry.Key]);
+        if (shells.Count == 0) return null;
+        var parents = ProcessParents();
+        var seen = new HashSet<int>();
+        for (var current = pid; current > 1 && seen.Add(current); current = parents.GetValueOrDefault(current))
+            if (shells.TryGetValue(current, out var workspace)) return workspace;
+        return null;
+    }
+
+    // Linux reads /proc; macOS asks ps once rather than once per ancestor.
+    private static Dictionary<int, int> ProcessParents()
+    {
+        var parents = new Dictionary<int, int>();
+        try
+        {
+            if (Directory.Exists("/proc/self"))
+            {
+                foreach (var directory in Directory.EnumerateDirectories("/proc"))
+                {
+                    if (!int.TryParse(Path.GetFileName(directory), out var id)) continue;
+                    try
+                    {
+                        var stat = File.ReadAllText(Path.Combine(directory, "stat"));
+                        var fields = stat[(stat.LastIndexOf(')') + 2)..].Split(' ');
+                        if (fields.Length > 1 && int.TryParse(fields[1], out var parent)) parents[id] = parent;
+                    }
+                    catch (IOException) { }
+                }
+                return parents;
+            }
+            var start = new System.Diagnostics.ProcessStartInfo("/bin/ps", "-A -o pid= -o ppid=") { RedirectStandardOutput = true, UseShellExecute = false };
+            using var ps = System.Diagnostics.Process.Start(start);
+            if (ps is null) return parents;
+            foreach (var line in ps.StandardOutput.ReadToEnd().Split('\n', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var fields = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                if (fields.Length == 2 && int.TryParse(fields[0], out var id) && int.TryParse(fields[1], out var parent)) parents[id] = parent;
+            }
+            ps.WaitForExit(2000);
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or System.ComponentModel.Win32Exception) { }
+        return parents;
+    }
+
+    private string SessionOf(TerminalRef terminal)
+    {
+        foreach (var (session, known) in terminals)
+            if (known == terminal) return session;
+        return SessionFor(terminal);
+    }
+
+    private string Mint(string sessionId, string workspace, TerminalRef? terminal)
+    {
+        if (!tokens.TryGetValue(sessionId, out var token))
+            tokens[sessionId] = token = Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(16));
+        owners[token] = (workspace, terminal ?? (owners.TryGetValue(token, out var known) ? known.Terminal : null));
+        return token;
+    }
 
     public async ValueTask DisposeAsync()
     {
@@ -162,7 +274,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
 
     // The native reason, the executable path and the value of SHELL stay on the host: a client is told only
     // which choice failed and what to do about it.
-    private PtySession Start(TerminalAttachRequest request, string directory, string? mcpUrl)
+    private PtySession Start(TerminalAttachRequest request, string directory, string? mcpUrl, IReadOnlyDictionary<string, string>? contributed)
     {
         var fromEnvironment = shell is null && ConfiguredShell() is not null;
         var program = shell ?? LoginShell();
@@ -170,7 +282,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         {
             // macOS execs the shell from a trampoline, so a shell that cannot run would otherwise look like one that exited.
             if (!Runnable(program)) throw new IOException("The shell is not an executable file.");
-            return PtySession.Start(request.SessionId, program, directory, request.Columns, request.Rows, mcpUrl);
+            return PtySession.Start(request.SessionId, program, directory, request.Columns, request.Rows, mcpUrl, contributed);
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {
@@ -188,13 +300,23 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
 
     private static string LoginShell() => ConfiguredShell() ?? (File.Exists("/bin/zsh") && Posix.Mac ? "/bin/zsh" : "/bin/sh");
 
-    internal static string?[] ShellEnvironment(string? mcpUrl = null)
+    private static readonly string[] ClaudeSessionMarkers =
+    [
+        "CLAUDECODE", "CLAUDE_CODE_CHILD_SESSION", "CLAUDE_CODE_ENTRYPOINT", "CLAUDE_CODE_EXECPATH", "CLAUDE_CODE_SESSION_ID",
+        "CLAUDE_CODE_BRIDGE_SESSION_ID", "CLAUDE_CODE_MESSAGING_SOCKET", "CLAUDE_CODE_MESSAGING_TOKEN", "CLAUDE_CODE_SESSION_ATTENDED",
+        "CLAUDE_CODE_SSE_PORT", "CLAUDE_PID", "CLAUDE_EFFORT"
+    ];
+
+    internal static string?[] ShellEnvironment(string? mcpUrl = null, IReadOnlyDictionary<string, string>? contributed = null)
     {
         var variables = new SortedDictionary<string, string>(StringComparer.Ordinal);
         foreach (DictionaryEntry entry in Environment.GetEnvironmentVariables())
             variables[(string)entry.Key] = (string?)entry.Value ?? "";
         // The host's session token authorizes this process; it must not reach user shells.
         variables.Remove("SHARPRAIL_TOKEN");
+        // An app launched from inside a Claude Code session inherits that session's identity; a Claude started in a
+        // new terminal would take itself for its child and stop saving transcripts. Configuration variables stay.
+        foreach (var marker in ClaudeSessionMarkers) variables.Remove(marker);
         variables["TERM"] = "xterm-256color";
         variables["COLORTERM"] = "truecolor";
         // The PTY registers no utmpx record, so a login shell without LOGNAME asks getlogin(), which reads
@@ -211,6 +333,9 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
             variables["LANG"] = "en_US.UTF-8";
             variables["LC_CTYPE"] = "en_US.UTF-8";
         }
+        // Plugin contributions come after core's own variables, and never re-expose the host's token.
+        foreach (var (key, value) in contributed ?? new Dictionary<string, string>())
+            if (key.Length > 0 && key != "SHARPRAIL_TOKEN" && !key.Contains('=') && !key.Contains('\0') && !value.Contains('\0')) variables[key] = value;
         return [.. variables.Select(pair => pair.Key + "=" + pair.Value), null];
     }
 }
@@ -230,6 +355,7 @@ internal sealed class PtySession : IAsyncDisposable
     private int reading, disposed;
 
     public string Id { get; }
+    public int Pid => pid;
     public Task<int> Exit => exit.Task;
     public bool IsBusy
     {
@@ -248,7 +374,8 @@ internal sealed class PtySession : IAsyncDisposable
         new Thread(Pump) { IsBackground = true, Name = "SharpRail PTY read " + pid }.Start();
     }
 
-    internal static PtySession Start(string id, string shell, string directory, int columns, int rows, string? mcpUrl = null)
+    internal static PtySession Start(string id, string shell, string directory, int columns, int rows, string? mcpUrl = null,
+        IReadOnlyDictionary<string, string>? contributed = null)
     {
         var master = Posix.OpenPt(Posix.ORdwr | Posix.ONoctty);
         if (master < 0) throw new IOException("Couldn't open a pseudo-terminal: " + Posix.LastError());
@@ -264,7 +391,7 @@ internal sealed class PtySession : IAsyncDisposable
             slave = Posix.Open(device, Posix.ORdwr | Posix.ONoctty);
             if (slave < 0) throw new IOException("Couldn't open the pseudo-terminal: " + Posix.LastError());
             Posix.SetWindowSize(master, columns, rows);
-            var pid = Spawn(shell, directory, device, mcpUrl);
+            var pid = Spawn(shell, directory, device, PtyTerminalService.ShellEnvironment(mcpUrl, contributed));
             return new PtySession(id, master, slave, pid);
         }
         catch
@@ -275,7 +402,7 @@ internal sealed class PtySession : IAsyncDisposable
         }
     }
 
-    private static int Spawn(string shell, string directory, string device, string? mcpUrl)
+    private static int Spawn(string shell, string directory, string device, string?[] environment)
     {
         // posix_spawnattr_t and posix_spawn_file_actions_t are pointers on macOS and structs on Linux.
         var attributes = Marshal.AllocHGlobal(1024);
@@ -301,7 +428,7 @@ internal sealed class PtySession : IAsyncDisposable
             var (program, arguments) = Posix.Mac
                 ? ("/bin/sh", new[] { "sh", "-c", "exec 3<>\"$1\" 3>&-; shift; exec \"$@\"", "sh", device, shell, "-l", null })
                 : (shell, new[] { "-" + Path.GetFileName(shell), null });
-            var result = Posix.Spawn(out var pid, program, actions, attributes, arguments, PtyTerminalService.ShellEnvironment(mcpUrl));
+            var result = Posix.Spawn(out var pid, program, actions, attributes, arguments, environment);
             if (result != 0) throw new IOException($"Couldn't start {shell}: {Posix.Error(result)}.");
             return pid;
         }

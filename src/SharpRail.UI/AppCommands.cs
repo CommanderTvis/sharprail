@@ -37,8 +37,6 @@ public sealed class AppCommands
         foreach (var window in workbench.Windows) window.ShowQuitHint(window.IsActive ? hint : QuitHint.Hidden);
     }
 
-    private static readonly KeyModifiers Command = OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control;
-
     /// <summary>The quit chord applies on macOS and Linux; Windows keeps Alt+F4 as an ordinary close.</summary>
     public static bool QuitChordAvailable => OperatingSystem.IsMacOS() || OperatingSystem.IsLinux();
 
@@ -46,18 +44,10 @@ public sealed class AppCommands
     /// Whether a destructive letter chord matches: the typed Latin letter wins, and layouts that type no
     /// Latin letter fall back to the key's physical position.
     /// </summary>
-    public static bool Matches(KeyEventArgs e, char letter)
-    {
-        if (e.KeyModifiers != Command) return false;
-        if (e.KeySymbol is { Length: 1 } symbol && symbol[0] is >= 'A' and <= 'Z' or >= 'a' and <= 'z')
-            return char.ToUpperInvariant(symbol[0]) == letter;
-        if (e.Key is >= Key.A and <= Key.Z) return e.Key - Key.A + 'A' == letter;
-        return e.PhysicalKey == (letter == 'Q' ? PhysicalKey.Q : PhysicalKey.W);
-    }
+    public static bool Matches(KeyEventArgs e, char letter) => CommandKeys.Matches(e, letter);
 
     /// <summary>The close chord: Command-W, or Ctrl+W and Ctrl+F4 off macOS.</summary>
-    public static bool IsClose(KeyEventArgs e) =>
-        Matches(e, 'W') || (!OperatingSystem.IsMacOS() && e.Key == Key.F4 && e.KeyModifiers == KeyModifiers.Control);
+    public static bool IsClose(KeyEventArgs e) => CommandKeys.IsClose(e);
 
     /// <summary>Tunnel key-down from a window. Returns whether the key was a command and is consumed.</summary>
     public bool KeyDown(WorkbenchWindow window, KeyEventArgs e)

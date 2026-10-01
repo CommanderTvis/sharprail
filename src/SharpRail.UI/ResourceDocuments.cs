@@ -25,7 +25,7 @@ public sealed partial class WorkbenchWindow
         registry.Register(new(ResourceRegistry.Code, "Source", new(Text: true), 100) { View = CodeBody, DiffsInPane = true });
         registry.Register(new(ResourceRegistry.Markdown, "Preview", new(Glob: ["*.md", "*.markdown"], Text: true), 110)
         {
-            View = view => new MarkdownPreviewBody(view, text => new(text, view.Resource.Path, host, Preferences, (path, anchor) => _ = OpenDocumentAsync(path, false, anchor))),
+            View = view => new MarkdownPreviewBody(view, text => new(text, view.Resource.Path, MarkdownContexts.For(host, Preferences, FollowLink))),
             Diff = RenderMergedAsync
         });
         return registry;

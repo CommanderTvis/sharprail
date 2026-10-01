@@ -31,10 +31,10 @@ public sealed partial class LocalProjectAdapter(IProjectServices host) : IProjec
     public ValueTask<GitSnapshot> ApplyGitActionAsync(GitAction action, CancellationToken cancellationToken = default) => host.ApplyGitActionAsync(action, cancellationToken);
     public ValueTask ApplyFileActionAsync(FileAction action, CancellationToken cancellationToken = default) => host.ApplyFileActionAsync(action, cancellationToken);
     public ValueTask<BranchCatalog> ListBranchesAsync(bool fetchDefault, CancellationToken cancellationToken = default) => host.ListBranchesAsync(fetchDefault, cancellationToken);
-    public ValueTask<DiffStats?> GetDiffStatsAsync(string workspacePath, CancellationToken cancellationToken = default) => host.GetDiffStatsAsync(workspacePath, cancellationToken);
     public ValueTask<OpenReview?> GetOpenReviewAsync(bool fresh, CancellationToken cancellationToken = default) => host.GetOpenReviewAsync(fresh, cancellationToken);
     public ValueTask<PrDraft> PreviewPrAsync(CancellationToken cancellationToken = default) => host.PreviewPrAsync(cancellationToken);
     public ValueTask<PrResult> OpenPrAsync(PrRequest request, CancellationToken cancellationToken = default) => host.OpenPrAsync(request, cancellationToken);
+    public ValueTask<DiffStats?> GetDiffStatsAsync(string workspacePath, CancellationToken cancellationToken = default) => host.GetDiffStatsAsync(workspacePath, cancellationToken);
     public ValueTask<IReadOnlyList<EditorInfo>> ListEditorsAsync(CancellationToken cancellationToken = default) => host.ListEditorsAsync(cancellationToken);
     public ValueTask OpenInEditorAsync(string editorId, string worktreePath, CancellationToken cancellationToken = default) => host.OpenInEditorAsync(editorId, worktreePath, cancellationToken);
     public ValueTask<WorkspaceCatalog> ListWorkspacesAsync(string projectRoot, CancellationToken cancellationToken = default) => host.ListWorkspacesAsync(projectRoot, cancellationToken);

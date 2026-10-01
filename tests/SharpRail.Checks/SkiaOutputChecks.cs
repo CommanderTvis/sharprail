@@ -76,6 +76,7 @@ internal static class SkiaOutputChecks
         public string Id => "output-check";
         public bool Created => true;
         public long Position => 0;
+        public TerminalPrefill? Prefill => null;
         public bool Disposed { get; private set; }
         public ReadOnlyMemory<byte> Replay { get; } = Encoding.UTF8.GetBytes("\e[6n" + new string('r', 32 * 1024) + "\r\nREPLAY_END\r\n");
         public Task<int> Exit => Task.FromResult(7);

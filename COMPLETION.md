@@ -42,3 +42,20 @@ Next work is bounded by these remaining gates:
 MacOS Scintilla/Skia integration is now a separately authorized scope extension.
 Its architecture and remaining editor limits are recorded in
 `src/SharpRail.Scintilla/README.md`; this does not close the broader fidelity gates.
+
+## Plugin API
+
+The Plugin API is merged: the host runtime, its seams and the wire (`src/SharpRail.Host.Core/Plugins`, the
+local and remote plugin adapters), the app side (the UI kit, the registry and loader in `src/SharpRail.UI/Plugins`,
+the shell's contribution points and Settings › Plugins) and the composition in `App.cs`. `--plugins` checks
+both halves, and the fork's `e2e/plugins/fixture/external-plugin.spec.ts` runs with the fixture plugin installed
+from disk, once through the in-process runtime and once through a remote host over gRPC. Open:
+
+- `WorkspaceUpdated` fires on relabelling only, not on a branch switch, and plugin routes serve no static
+  assets (see `Plugins.SPEC.md`, Not yet ported).
+- Not ported on the UI side: Scintilla selection events (the control exposes none), `AgentNewline` key encoding
+  and faint-cell blanking in terminal accessories, `WatchWorkspaceAsync` beyond the workspaces a window has open,
+  and file revisions for a remote host.
+- Companions, tab decorations, launchers and `SetDiffScope` are wired but have no fixture contribution exercising
+  them yet; the first builtin plugin that uses each should add its check.
+- No builtin plugins exist yet; the Specs panel stays in core until the spec-dialect plugin moves it out.

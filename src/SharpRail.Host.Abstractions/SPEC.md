@@ -11,6 +11,7 @@ tags: [public-surface-checked]
 
 Upstream: packages/shared/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
 Upstream: packages/server/src/host/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
+Upstream: packages/contracts/SPEC.md @ 4737df6d (CommanderTvis fork), the plugin roster and agent record
 
 ## Responsibility
 
@@ -27,9 +28,10 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
   `WorkspaceCatalog` and `LifecycleEvent` (`WorkspaceRegistry.cs`), `ITerminalService` / `ITerminalSession` with
   `TerminalAttachRequest` and `TerminalGrid` (`TerminalServices.cs`), `ITerminalCatalogService` with
   `TerminalTab` and `TerminalCatalog` (`TerminalCatalog.cs`), and `FileLimits`.
-- Allowed deps: the .NET base library only.
+- Allowed deps: the .NET base library and `SharpRail.Plugins.Api`, whose roster, agent-record and project
+  records `HostState` and `IPluginService` share with plugins rather than mirror.
 - Forbidden: serialization attributes, gRPC, Avalonia, filesystem or process access, and any AI or agent
-  concept.
+  behaviour. A terminal's agent record is data a plugin writes; the host only stores and broadcasts it.
 
 ## Surfaces
 
@@ -85,6 +87,11 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
   `HostProtocol.Current` rises when a host operation or message changes in a way an older client must
   know about; features record the version that introduced them beside it (`ChangeWritePath` 2,
   `RequestReplay` 3). Version 0 means a host that predates the handshake.
+- `IPluginService` is the host's plugin runtime: the roster (also on every `HostState` snapshot), rescan and
+  retry, the generic plugin call and channel subscription, and reads of a plugin directory's files. Payloads
+  are typed objects in process and JSON elements after the wire; plugin settings namespaces and extra plugin
+  roots are host state, changed through `HostStateChange.PluginSettings`/`PluginEnabled`/`PluginPaths`. See
+  `src/SharpRail.Plugins.Api/SPEC.md`.
 - `IWorkspaceHost` is the minimal probe of the host's root workspace: its identity and top-level entries.
 
 - `IProjectServices.GetDiffStatsAsync` has a default body answering null, so a test double or an older
@@ -97,10 +104,11 @@ The public top-level types of the assembly, held to it in both directions by the
 
 `BranchCatalog`, `ChangeException`, `ChangeExpectation`, `ChangeFailure`, `ChangeIdentity`,
 `ChangeReceipt`, `ContentBytes`, `ContentMetadata`, `DiffSides`, `DiffStats`, `EditorInfo`,
-`ExistingWorktree`, `FileChange`, `FileDocument`, `FileEntry`, `FileLimits`, `FileSaveRequest`,
+`ExistingWorktree`, `WorkspaceFileChanges`, `FileAction`, `FileDocument`, `FileEntry`, `FileLimits`, `FileSaveRequest`,
 `GitAction`, `GitChange`, `GitCommit`, `GitSnapshot`, `HostErrorCode`, `HostException`,
 `HostHandshake`, `HostProtocol`, `HostSettings`, `HostState`, `HostStateChange`,
-`IHostStateService`, `IProjectServices`, `ITerminalCatalogService`, `ITerminalService`,
+`IPluginService`, `PluginCallRequest`, `PluginSubscription`, `SearchHit`, `SearchHits`,
+`TerminalAgent`, `TerminalPrefill`, `IHostStateService`, `IProjectServices`, `ITerminalCatalogService`, `ITerminalService`,
 `ITerminalSession`, `IWorkspaceHost`, `LayoutPreset`, `LifecycleEvent`, `LineSpan`, `OpenReview`,
 `PrDraft`, `PrRequest`, `PrResult`, `ProjectFile`, `ProjectPathKind`, `ProjectRecord`,
 `RemoteBranch`, `RevertTarget`, `SpecDocument`, `SpecDuplicate`, `SpecEdge`, `SpecGraph`,

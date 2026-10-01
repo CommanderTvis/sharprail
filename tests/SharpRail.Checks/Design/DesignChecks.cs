@@ -49,13 +49,19 @@ internal static partial class DesignChecks
     private static List<SourceFile> Sources(string root)
     {
         var ui = DesignSources.Ui(root);
-        return [.. Directory.EnumerateFiles(ui, "*", SearchOption.AllDirectories)
+        var kit = Path.Combine(root, "src", "SharpRail.Plugins.UI.Kit");
+        var files = new[] { ui, kit }.SelectMany(directory => Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories)
             .Where(path => path.EndsWith(".cs", StringComparison.Ordinal) || path.EndsWith(".axaml", StringComparison.Ordinal))
-            .Select(path => Path.GetRelativePath(ui, path).Replace('\\', '/'))
-            .Where(path => !path.StartsWith("bin/", StringComparison.Ordinal) && !path.StartsWith("obj/", StringComparison.Ordinal) &&
-                !path.StartsWith("Rendering/Generated/", StringComparison.Ordinal))
-            .Order(StringComparer.Ordinal)
-            .Select(path => new SourceFile(path, Uncomment(File.ReadAllText(Path.Combine(ui, path)), path.EndsWith(".axaml", StringComparison.Ordinal))))];
+            .Select(path => (Physical: path, Relative: Path.GetRelativePath(directory, path).Replace('\\', '/'), Kit: directory == kit)))
+            .Where(file => !file.Relative.StartsWith("bin/", StringComparison.Ordinal) && !file.Relative.StartsWith("obj/", StringComparison.Ordinal) &&
+                !file.Relative.StartsWith("Generated/", StringComparison.Ordinal) && !file.Relative.StartsWith("Rendering/Generated/", StringComparison.Ordinal));
+        return [.. files.Select(file => new SourceFile(file.Kit ? KitPath(file.Relative) : file.Relative,
+            Uncomment(File.ReadAllText(file.Physical), file.Physical.EndsWith(".axaml", StringComparison.Ordinal)))).OrderBy(file => file.Path, StringComparer.Ordinal)];
+
+        static string KitPath(string path) => path.StartsWith("Editor/", StringComparison.Ordinal) ? path
+            : path.StartsWith("Markdown/", StringComparison.Ordinal) ? "Rendering/" + path[9..]
+            : path.StartsWith("Visualization/", StringComparison.Ordinal) ? "Rendering/" + path[14..]
+            : "Rendering/" + path;
     }
 
     private static string[] Uncomment(string text, bool xaml)

@@ -2,7 +2,6 @@ using Avalonia.Controls;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.Scintilla;
-using SharpRail.UI.Rendering;
 
 namespace SharpRail.UI.Editor;
 

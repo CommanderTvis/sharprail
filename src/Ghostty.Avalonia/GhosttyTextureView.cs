@@ -54,6 +54,7 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
     public void WriteOutput(ReadOnlySpan<byte> data) => terminal.WriteOutput(data);
     public TerminalColors Colors { get => terminal.Colors; set => terminal.Colors = value; }
     public string ReadScreen() => terminal.ReadScreen();
+    public void Type(string text) => terminal.Type(text);
     public void FocusTerminal() => Focus();
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)

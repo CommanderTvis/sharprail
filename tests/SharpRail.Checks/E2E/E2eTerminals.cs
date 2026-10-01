@@ -146,6 +146,10 @@ internal sealed partial class HostTerminal : ITerminalBackend
 
     public void FocusTerminal() => View.Focus();
 
+    public void Write(string data) => Send(data);
+
+    public string ReadScreen() => Text;
+
     public void Dispose()
     {
         lifetime.Cancel();

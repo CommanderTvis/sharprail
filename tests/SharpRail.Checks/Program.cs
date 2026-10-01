@@ -248,6 +248,15 @@ internal static class Program
             RunnerChecks.Run(root);
             return;
         }
+        if (args.SequenceEqual(["--plugins"]))
+        {
+            PluginHostChecks.Run(root).GetAwaiter().GetResult();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            PluginUiChecks.Run(root);
+            Console.WriteLine("PASS plugin checks");
+            return;
+        }
         if (args.SequenceEqual(["--branches"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
@@ -290,6 +299,8 @@ internal static class Program
         Gate.Case("resources", () => ResourceChecks.Run(root));
         Gate.Case("design", () => Design.DesignChecks.Run(write: false));
         Gate.Case("design-roles", Design.RoleChecks.Run);
+        Gate.Case("plugin-host", () => PluginHostChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("plugin-ui", () => PluginUiChecks.Run(root));
         Console.WriteLine("PASS prototype checks and open-world runtime");
     }
 

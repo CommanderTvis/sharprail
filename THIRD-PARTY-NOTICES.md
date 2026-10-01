@@ -44,16 +44,17 @@ The four theme manifests in src/SharpRail.UI/Assets/Themes are copied unchanged
 from Thinkrail's apps/web/src/themes/bundled (Apache 2.0;
 licenses/Thinkrail-Apache-2.0.txt).
 
-PNG icons came from that prototype's @remixicon/react 4.9.0 assets.
-The collapse/expand vertical and horizontal ellipsis, fullscreen, subtract and
-arrow-go-back icons use the same package's original vector paths.
+PNG icons in src/SharpRail.Plugins.UI.Kit/Assets/Icons came from that prototype's @remixicon/react 4.9.0 assets.
+The collapse/expand vertical and horizontal ellipsis, fullscreen, subtract,
+arrow-go-back and puzzle-2-line (the plugin fallback) icons use the same package's original
+vector paths.
 See licenses/RemixIcon.txt for Remix Icon License 1.0.
 
 Geist Regular, Medium, SemiBold and Bold came from the reference's bundled assets.
 Geist Book uses the reference native prototype's weight-370 NativeText face;
 its family metadata was renamed to register alongside the other Geist faces.
 JetBrains Mono Regular came from the reference's bundled font assets.
-Their SIL Open Font Licenses are in src/SharpRail.UI/Assets/Fonts and are
+Their SIL Open Font Licenses are in src/SharpRail.Plugins.UI.Kit/Assets/Fonts and are
 included in the published app's Resources directory.
 
 Markdown parsing uses Markdig (BSD-2-Clause). Avalonia, protobuf-net.Grpc,

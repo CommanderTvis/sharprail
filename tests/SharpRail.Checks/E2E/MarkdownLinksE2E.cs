@@ -3,7 +3,6 @@ using Avalonia.Controls.Documents;
 using Avalonia.LogicalTree;
 using Avalonia.Media.Imaging;
 
-using SharpRail.UI.Rendering;
 
 using static SharpRail.Checks.E2E.E2eWorkspace;
 

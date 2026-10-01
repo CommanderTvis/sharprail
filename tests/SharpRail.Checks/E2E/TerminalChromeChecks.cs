@@ -167,22 +167,22 @@ internal static class TerminalChromeChecks
         var close = chrome.GetLogicalDescendants().OfType<Button>().Single(item => item.Name == "CloseTab");
         var presenter = button.GetVisualDescendants().OfType<Avalonia.Controls.Presenters.ContentPresenter>()
             .Single(item => item.Name == "PART_ContentPresenter");
-        var original = SharpRail.UI.Rendering.Ui.Theme;
+        var original = Ui.Theme;
         foreach (var theme in SharpRail.UI.Rendering.Themes.All)
         {
-            SharpRail.UI.Rendering.Ui.Apply(theme);
+            Ui.Apply(theme);
             app.Window.MouseMove(button.TranslatePoint(new Point(6, 6), app.Window)!.Value); Settle();
-            Require(ReferenceEquals(frame.Background, SharpRail.UI.Rendering.Ui.Hover) &&
+            Require(ReferenceEquals(frame.Background, Ui.Hover) &&
                 presenter.Background is Avalonia.Media.ISolidColorBrush brush && brush.Color.A == 0,
                 "Hover must paint the whole tab frame without a second label-only background.");
             app.Window.MouseMove(close.TranslatePoint(new Point(close.Bounds.Width / 2, close.Bounds.Height / 2), app.Window)!.Value); Settle();
-            Require(ReferenceEquals(frame.Background, SharpRail.UI.Rendering.Ui.Hover) && close.Opacity == 1,
+            Require(ReferenceEquals(frame.Background, Ui.Hover) && close.Opacity == 1,
                 "Moving onto the close button must retain the whole-tab hover.");
             app.Window.MouseMove(new Point(2, 2)); Settle();
-            Require(ReferenceEquals(frame.Background, SharpRail.UI.Rendering.Ui.Elevated),
+            Require(ReferenceEquals(frame.Background, Ui.Elevated),
                 "Leaving an inactive tab must restore its normal background.");
         }
-        SharpRail.UI.Rendering.Ui.Apply(original);
+        Ui.Apply(original);
         app.Window.MouseMove(button.TranslatePoint(new Point(6, 6), app.Window)!.Value); Settle();
         app.Window.Layout.ApplyPreset(DockState.Preset("review")); Settle();
         Require(app.Window.Layout.State.Groups.SelectMany(group => app.Window.Layout.Tabs(group.Id)).Any(tab => tab.Id == first.Id),

@@ -5,8 +5,6 @@ using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
 
-using SharpRail.UI.Panels;
-using SharpRail.UI.Rendering;
 
 using static SharpRail.Checks.E2E.E2eWorkspace;
 

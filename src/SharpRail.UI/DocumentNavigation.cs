@@ -19,6 +19,7 @@ public sealed partial class WorkbenchWindow
         if (!WorkspaceMounted) return;
         if (atHome) await OpenWorkspaceAsync(projectRoot, false);
         if (!WorkspaceMounted || atHome) return;
+        if (Plugins.FileViewer(path)?.Registration.Open is { } takeOver && takeOver(workspaceRoot, path)) return;
         keep |= !Preferences.PreviewTabs;
         var navigation = BeginNavigation();
         var identity = (workspaceRoot, path);
@@ -32,10 +33,10 @@ public sealed partial class WorkbenchWindow
         var settle = Task.Delay(250, lifetime.Token);
         try
         {
-            var kind = Path.GetExtension(path).ToLowerInvariant() is ".md" or ".markdown" ? "markdown" : "file";
+            var kind = DocumentKind(path, false);
             var tab = new DockTab(kind + ":" + path, Path.GetFileName(path), kind, path);
             var key = identity.workspaceRoot + ":" + tab.Id;
-            if (!documents.TryGetValue(key, out var document)) document = await host.ReadFileAsync(path, lifetime.Token);
+            if (!documents.TryGetValue(key, out var document)) document = await ReadForKindAsync(path, kind, lifetime.Token);
             if (!flight.Keep) await settle;
             if (flight.Navigation.Project != projectRequest || flight.Navigation.Workspace != workspaceRoot) return;
             var destination = AcceptNavigation(flight.Navigation);

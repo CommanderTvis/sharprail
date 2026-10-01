@@ -2,9 +2,9 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.LogicalTree;
+using Avalonia.Media;
 using Avalonia.Threading;
 
-using SharpRail.UI.Rendering;
 
 namespace SharpRail.UI.Docking;
 
@@ -15,6 +15,10 @@ public sealed partial class DockSurface : Grid
     public Func<DockTab, bool>? IsModified { get; set; }
     /// <summary>Whether a document tab's file was deleted on disk; refreshed with <see cref="RefreshModified"/>.</summary>
     public Func<DockTab, bool>? IsDeleted { get; set; }
+    /// <summary>Replaces a tab's icon, given the brush it is drawn in; null keeps the tab kind's own glyph.</summary>
+    public Func<DockTab, IBrush, Control?>? TabIcon { get; set; }
+    /// <summary>Extra content after a tab's title, such as a badge.</summary>
+    public Func<DockTab, Control?>? TabAdornment { get; set; }
     public void RefreshModified() { foreach (var update in modifiedUpdates) update(); }
     private readonly Func<DockTab?, Control> renderContent;
     private readonly List<(Control Control, string Group, bool Header)> sites = [];
@@ -39,6 +43,7 @@ public sealed partial class DockSurface : Grid
                 PreviewSides(new SideGeometry(Session.State, Bounds.Width).Project());
         };
         Session.Changed += () => { CancelForLayoutChange(); Rebuild(); };
+        Session.ToolsChanged += Rebuild;
         Session.SelectionChanged += group =>
         {
             var resizing = CancelForLayoutChange();

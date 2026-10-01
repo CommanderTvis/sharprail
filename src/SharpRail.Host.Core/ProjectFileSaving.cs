@@ -14,7 +14,8 @@ public sealed partial class ProjectServices
         {
             if (Path.GetFullPath(request.WorkspaceRoot) != root)
                 throw new IOException("The workspace changed. Return to the file's workspace before saving.");
-            var path = Resolve(root, request.Path);
+            var external = External(root, request.Path);
+            var path = external ?? Resolve(root, request.Path);
             var utf8 = new UTF8Encoding(false, true);
             if (utf8.GetByteCount(request.Text) > FileLimits.EditableBytes)
                 throw new IOException($"Editing is limited to files under {FileLimits.EditableBytes >> 20} MiB.");
@@ -27,7 +28,8 @@ public sealed partial class ProjectServices
             cancellationToken.ThrowIfCancellationRequested();
             // Recheck after asynchronous I/O so a workspace/file replacement does
             // not accidentally redirect the write through a newly created symlink.
-            Resolve(root, request.Path);
+            if (external is null) Resolve(root, request.Path);
+            else if (External(root, request.Path) is null) throw new UnauthorizedAccessException("The file is no longer exposed for editing.");
             if (!(await File.ReadAllBytesAsync(path, cancellationToken)).AsSpan().SequenceEqual(bytes))
                 throw new IOException("The file changed while saving. Your edits have been kept.");
             File.Move(temporary, path, true);

@@ -8,7 +8,6 @@ using Avalonia.LogicalTree;
 using SharpRail.Host.Abstractions;
 using SharpRail.Scintilla;
 using SharpRail.UI.Panels;
-using SharpRail.UI.Rendering;
 using SharpRail.UI.State;
 
 using static SharpRail.Checks.E2E.E2eWorkspace;
@@ -50,7 +49,7 @@ internal static class LineWidthE2E
             var editor = app.Find<ScintillaEditor>(name);
             var line = editor.Text.Split('\n').Select((text, index) => (text, index)).Last(item => item.text.Contains("segment-80", StringComparison.Ordinal)).index;
             Require(editor.WrapCount(line) > 1, $"The {name} long line must wrap ({editor.WrapCount(line)} display lines).");
-            Require(editor.WrapWidth == LineWidths.File(app.Window.Preferences) && editor.HorizontalScroll.Maximum == 0,
+            Require(editor.WrapWidth == LineWidths.File(app.Window.Preferences.FileLineWidth, app.Window.Preferences.FileLineWidthBounded) && editor.HorizontalScroll.Maximum == 0,
                 $"The {name} side must stay within the default file width without horizontal scrolling.");
         }
         Console.WriteLine("PASS upstream line-width-settings.spec.ts: the default file width wraps both sides of a long-line diff");

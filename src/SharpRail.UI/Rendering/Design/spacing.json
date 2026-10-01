@@ -3,6 +3,8 @@
   "steps": [0, 2, 4, 8, 12, 16, 24, 32, 40, 64],
   "exceptions": [
     { "file": "Docking/DockGroups.cs", "value": "0, 0, 3, 0", "reason": "room for an italic preview title's glyph overhang inside the measured label box" },
-    { "file": "Docking/DockGroups.cs", "value": "6, 0, 0, 0", "reason": "the close-button and modified-dot reserve in fixed-height tab chrome" }
+    { "file": "Docking/DockGroups.cs", "value": "6, 0, 0, 0", "reason": "the close-button and modified-dot reserve in fixed-height tab chrome" },
+    { "file": "ProjectRail.cs", "value": "7", "reason": "centres the 14-pixel Start work glyph in its 28-pixel button" },
+    { "file": "Rendering/Switch.axaml", "value": "18,2,2,2", "reason": "checked thumb position inside the fixed-width switch track" }
   ]
 }

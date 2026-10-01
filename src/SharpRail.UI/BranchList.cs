@@ -3,9 +3,9 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
+
 using SharpRail.Host.Abstractions;
 using SharpRail.UI.Panels;
-using SharpRail.UI.Rendering;
 
 namespace SharpRail.UI;
 

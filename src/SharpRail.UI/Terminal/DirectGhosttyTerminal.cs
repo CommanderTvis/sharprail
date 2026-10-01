@@ -44,6 +44,14 @@ internal sealed class DirectGhosttyTerminal : Border, ITerminalBackend
     public Task<int> Exited => exited.Task;
     public Task Detached => detached.Task;
 
+    public void Write(string data)
+    {
+        if (fallback is not null) fallback.Write(data);
+        else input.Writer.TryWrite((System.Text.Encoding.UTF8.GetBytes(data), null));
+    }
+
+    public string ReadScreen() => fallback?.ReadScreen() ?? texture?.ReadScreen() ?? "";
+
     private async Task StartAsync()
     {
         try { await StartTexture(); }
@@ -65,8 +73,8 @@ internal sealed class DirectGhosttyTerminal : Border, ITerminalBackend
         await texture.Ready.WaitAsync(lifetime.Token);
         if (fallbackStart is not null) { await fallbackStart; return; }
         var size = texture.Size;
-        attaching = Task.Run(async () => await terminals.AttachAsync(new(launch.SessionId, launch.WorkspaceRoot, launch.ClientId,
-            size.Columns, size.Rows), lifetime.Token));
+        var request = new TerminalAttachRequest(launch.SessionId, launch.WorkspaceRoot, launch.ClientId, size.Columns, size.Rows) { TabKey = launch.TabKey };
+        attaching = Task.Run(async () => await terminals.AttachAsync(request, lifetime.Token));
         var attached = await attaching;
         if (disposed || fallbackStart is not null)
         {
@@ -94,7 +102,17 @@ internal sealed class DirectGhosttyTerminal : Border, ITerminalBackend
         try
         {
             view.WriteOutput(attached.Replay.Span);
-            await foreach (var data in attached.ReadAsync(lifetime.Token)) view.WriteOutput(data.Span);
+            // A revived agent's command is typed once the shell has printed something, so it never lands before the prompt.
+            var prefill = attached.Prefill;
+            await foreach (var data in attached.ReadAsync(lifetime.Token))
+            {
+                view.WriteOutput(data.Span);
+                if (prefill is not null && data.Length > 0)
+                {
+                    input.Writer.TryWrite((System.Text.Encoding.UTF8.GetBytes(prefill.Text + (prefill.Submit ? "\r" : "")), null));
+                    prefill = null;
+                }
+            }
             lifetime.Token.ThrowIfCancellationRequested();
             if (attached.Detached.IsCompleted) detached.TrySetResult();
             else exited.TrySetResult(await attached.Exit);

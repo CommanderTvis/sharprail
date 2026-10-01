@@ -23,13 +23,22 @@ public sealed partial class ProjectServices
     public async ValueTask<BranchCatalog> ListBranchesAsync(bool fetchDefault, CancellationToken cancellationToken = default)
     {
         var currentRoot = root;
-        var defaultBase = await DefaultBaseAsync(currentRoot, cancellationToken);
-        if (fetchDefault)
+        var remotes = await RemotesAsync(currentRoot, cancellationToken);
+        var preferred = "";
+        if (remotes.Contains("origin"))
         {
-            try { await FetchRemoteAsync(currentRoot, defaultBase, cancellationToken); }
+            try
+            {
+                var head = (await GitRepository.RunAsync(currentRoot, cancellationToken, "symbolic-ref", "--quiet", "refs/remotes/origin/HEAD")).Trim();
+                if (head.StartsWith("refs/remotes/origin/", StringComparison.Ordinal)) preferred = head[13..];
+            }
+            catch (IOException) { }
+        }
+        if (fetchDefault && preferred.Length > 0)
+        {
+            try { await FetchRemoteAsync(currentRoot, preferred, cancellationToken); }
             catch (IOException error) { Console.Error.WriteLine(error.Message); }
         }
-        var remotes = await RemotesAsync(currentRoot, cancellationToken);
         var refs = (await GitRepository.RunAsync(currentRoot, cancellationToken, "for-each-ref", "--format=%(refname)", "refs/heads", "refs/remotes"))
             .Split('\n', StringSplitOptions.RemoveEmptyEntries);
         var local = refs.Where(name => name.StartsWith("refs/heads/", StringComparison.Ordinal)).Select(name => name[11..]).ToArray();
@@ -41,6 +50,8 @@ public sealed partial class ProjectServices
             var branch = name[(owner.Length + 1)..];
             if (branch != "HEAD") remote.Add(new(owner, branch));
         }
+        var defaultBase = remote.Any(branch => branch.Ref == preferred) ? preferred
+            : await DefaultBaseAsync(currentRoot, cancellationToken);
         if (!remote.Any(branch => branch.Ref == defaultBase) && !local.Contains(defaultBase))
         {
             var main = await MainWorktreeAsync(currentRoot, cancellationToken);
@@ -152,9 +163,10 @@ public sealed partial class ProjectServices
         catch (IOException) when (!cancellationToken.IsCancellationRequested) { return null; }
     }
 
-    private static async Task<(string Path, string Branch)> NextWorkspaceAsync(string currentRoot, CancellationToken cancellationToken)
+    private async Task<(string Path, string Branch)> NextWorkspaceAsync(string currentRoot, CancellationToken cancellationToken)
     {
-        var parent = await MainWorktreeAsync(currentRoot, cancellationToken) + "-worktrees";
+        var main = await MainWorktreeAsync(currentRoot, cancellationToken);
+        var parent = WorktreePaths.ProjectDirectory(main, state?.DirectoryPath);
         for (var number = 1; ; number++)
         {
             var name = "workspace-" + number;

@@ -1,6 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:rendering="using:SharpRail.UI.Rendering"
+             xmlns:rendering="using:SharpRail.Plugins.UI.Kit"
              x:Class="SharpRail.UI.Docking.TabSearch"
              Width="288" FontFamily="{x:Static rendering:Ui.InterfaceFont}"
              FontSize="14" FontWeight="370" Foreground="{x:Static rendering:Ui.TextBrush}">

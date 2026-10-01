@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 
 using Grpc.Core;
 using Grpc.Core.Interceptors;
@@ -9,6 +10,7 @@ using ProtoBuf.Grpc.Client;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Protocol;
+using SharpRail.Plugins.Api;
 
 namespace SharpRail.Host.Client;
 
@@ -116,7 +118,17 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
         WorkspaceLabels = reply.Labels.ToDictionary(label => label.Path, label => label.Label),
         WorkspaceBases = reply.Bases.ToDictionary(entry => entry.Path, entry => entry.Reference),
         WorkspaceDiffBases = reply.DiffBases.ToDictionary(entry => entry.Path, entry => entry.Reference),
-        Workspaces = reply.Workspaces.Select(WorkspaceMessages.Map).ToArray()
+        Workspaces = reply.Workspaces.Select(WorkspaceMessages.Map).ToArray(),
+        PluginSettings = reply.PluginSettings.ToDictionary(space => space.Id, space => JsonSerializer.Deserialize<JsonElement>(space.Json)),
+        PluginPaths = reply.PluginPaths.ToArray(),
+        Plugins = PluginWire.Map(reply.Plugins),
+        TerminalAgents = reply.TerminalAgents.Select(agent => new TerminalAgent(new(agent.WorkspaceId, agent.TabKey), new(agent.Kind, agent.Command)
+        {
+            SessionId = agent.SessionId.Length == 0 ? null : agent.SessionId,
+            Cwd = agent.Cwd.Length == 0 ? null : agent.Cwd,
+            Model = agent.Model.Length == 0 ? null : agent.Model
+        })).ToArray(),
+        Platform = Enum.TryParse<HostPlatform>(reply.Platform, ignoreCase: true, out var platform) ? platform : null
     };
 
     public void Dispose() => channel.Dispose();

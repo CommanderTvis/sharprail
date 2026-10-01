@@ -54,7 +54,8 @@ internal static partial class SurfaceChecks
                 violations.Add($"{name}: assembly {Path.GetFileNameWithoutExtension(project)} cannot be loaded");
                 continue;
             }
-            var exported = assembly.GetExportedTypes().Where(type => !type.IsNested).Select(type => type.Name.Split('`')[0]).ToHashSet(StringComparer.Ordinal);
+            var exported = assembly.GetExportedTypes().Where(type => !type.IsNested).Select(type => type.Name.Split('`')[0])
+                .Where(name => Identifier().IsMatch(name)).ToHashSet(StringComparer.Ordinal);
             foreach (var missing in exported.Except(declared).Order(StringComparer.Ordinal)) violations.Add($"{name}: public `{missing}` is not declared");
             foreach (var stale in declared.Where(token => Identifier().IsMatch(token)).Except(exported).Order(StringComparer.Ordinal)) violations.Add($"{name}: declared `{stale}` is not public in {assembly.GetName().Name}");
             foreach (var repeated in declared.GroupBy(token => token).Where(group => group.Count() > 1)) violations.Add($"{name}: `{repeated.Key}` is declared twice");

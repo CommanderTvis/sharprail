@@ -110,7 +110,8 @@ clients re-read Git although no file in the workspace changed.
 - `ListBranchesAsync` returns local heads, remote-tracking branches grouped by their configured remote
   (longest matching remote name wins, because remote names may contain `/`; symbolic `HEAD` aliases are
   omitted), the default base and the suggested next workspace path and branch. The default base is
-  `origin/HEAD` while `origin` exists, else the main worktree's current branch, else `HEAD`. With
+  the target of `origin/HEAD` only when that tracking branch exists and `origin` is configured, else the
+  main worktree's existing local branch, else `HEAD`. With
   `fetchDefault` it first fetches a stale or missing remote default in the background of the dialog,
   logging rather than failing when the fetch does. It also reports the checked-out branch
   (`symbolic-ref --quiet --short HEAD`, empty when detached) so the Start work dialog's folder mode can say
