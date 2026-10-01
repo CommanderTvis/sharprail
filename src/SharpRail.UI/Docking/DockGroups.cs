@@ -60,7 +60,7 @@ public sealed partial class DockSurface
                 Height = group.Folded ? 26 : 31,
                 Margin = new Thickness(0, 0, tab.IsTool ? 0 : 4, 0)
             };
-            var label = new Grid { ColumnDefinitions = new ColumnDefinitions("14,4,*") };
+            var label = new Grid { ColumnDefinitions = new ColumnDefinitions("14,4,*,Auto") };
             var foreground = tab.Id == selected?.Id ? Ui.TextBrush : Ui.Muted;
             var icon = (Border)Ui.Icon(ToolIcon(tab), foreground, 14);
             Ui.Place(label, icon);
@@ -77,6 +77,14 @@ public sealed partial class DockSurface
             Border? modifiedDot = null;
             if (!tab.IsTool)
             {
+                var deleted = Ui.Text("deleted", Ui.Danger, 11);
+                deleted.Name = "DeletedTab"; deleted.Margin = new Thickness(4, 0, 0, 0);
+                deleted.VerticalAlignment = VerticalAlignment.Center;
+                ToolTip.SetTip(deleted, "Deleted on disk");
+                void ShowDeleted() => deleted.IsVisible = IsDeleted?.Invoke(tab) == true;
+                ShowDeleted();
+                modifiedUpdates.Add(ShowDeleted);
+                Ui.Place(label, deleted, 0, 3);
                 modifiedDot = new Border
                 {
                     Name = "ModifiedTab",

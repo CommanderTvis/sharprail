@@ -145,12 +145,24 @@ its editing and navigation wiring (`ResourceDocuments.cs`, `RenderedDiffs.cs`). 
 listed in [Panels.SPEC.md](Panels.SPEC.md). A text diff is described by its path; a diff Git reports as
 binary, or one that may hold an LFS pointer, waits for the host's side metadata before choosing.
 
+The branch is a control, not a caption: it carries the branch glyph and a chevron and opens the project's
+local branches (`BranchList.cs`), each with the worktree path occupying it, re-read on every open. A branch
+can be deleted from there after a confirmation, since a branch may be the only copy of what it points at,
+except the one currently checked out and a workspace's branch; both say why on the disabled control, and
+the host refuses them again. Disabled delete icons stay dimmed on transparent backgrounds, matching idle
+enabled icons. The list's Fetch brings every remote up to date without moving a local branch.
+
 ## Global shortcuts
 
 The window handles app-wide chords before panels: Mod+O opens a project, Mod+N (and Mod+Alt+N) opens
-Create workspace, Mod+Shift+N opens a window, Mod+, opens Settings, Mod+B toggles left, Mod+J toggles
-right, Mod+Shift+J toggles bottom (including from a focused terminal), and F5 refreshes. Arrangement
-commands beyond these belong to the docking menus and keyboard handling in `Docking`.
+Start work, Mod+Shift+N opens a window, Mod+B toggles left, Mod+J toggles right, Mod+Shift+J
+toggles bottom (including from a focused terminal), Mod+Shift+F searches the workspace, and F5 refreshes.
+The search is a dialog (`Panels/SearchDialog.cs`) rather than a panel, because it is a question asked and
+dismissed: one query over the active worktree, results grouped by file with one row per matching line, and
+a hit keeps its file open scrolled to that line. With no active workspace the chord does nothing. On macOS alone, Cmd+, (no other
+modifier) opens Settings, the Preferences chord every Mac app has; Windows and Linux have no such convention,
+so Ctrl+, stays free for whatever else wants it. A modal dialog already open receives the chord instead.
+Arrangement commands beyond these belong to the docking menus and keyboard handling in `Docking`.
 
 Mod+= (or Mod++), Mod+- and Mod+0 zoom the whole interface like a browser's page zoom: they step one
 app-wide, persisted factor to the adjacent of 50, 67, 80, 90, 100, 110, 125, 150, 175 and 200%, stopping at

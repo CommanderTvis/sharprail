@@ -82,7 +82,7 @@ public sealed partial class WorkbenchWindow
             return (document, DiffFocus.Create(original, merged, document, expanded, () => diff.SaveViewState(expanded), token));
         }, token);
         token.ThrowIfCancellationRequested();
-        return new MarkdownPreview(parsed, diff.Resource.Path, host, Preferences, (path, anchor) => _ = OpenDocumentAsync(path, false, anchor), renderDiagrams: false, focus)
+        return new MarkdownPreview(parsed, diff.Resource.Path, host, Preferences, (path, anchor) => _ = OpenDocumentAsync(path, false, anchor), renderDiagrams: false, focus, Frontmatter.Parse(modified), Frontmatter.Parse(original))
         { Name = "RenderedDiff" };
     }
 }

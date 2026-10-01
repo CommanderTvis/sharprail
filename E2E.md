@@ -64,10 +64,11 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `preview-tabs.spec.ts` | a keep that lands first does not invalidate a browse requested after it | Ported |
 | `preview-tabs.spec.ts` | a newer tab click cancels an older preview-tab settle timer | Ported |
 | `preview-tabs.spec.ts` | the Specs panel shares the one slot, and closing the preview tab releases it | Ported |
+| `preview-tabs.spec.ts` | with previewing off, every click keeps a tab of its own | Ported (fork) |
 | `markdown-links.spec.ts` | a parent-relative file link cannot escape into browser navigation | Ported |
 | `markdown-links.spec.ts` | relative links, images, and heading anchors work in the rendered markdown view | Ported |
 | `markdown-alerts.spec.ts` | renders GitHub-style alert callouts in the rendered markdown view | Ported |
-| `markdown-mermaid.spec.ts` | renders mermaid fences as diagrams in the rendered markdown view | Ported |
+| `markdown-mermaid.spec.ts` | renders mermaid fences as diagrams in the rendered markdown view | Ported (with the fork's capped inline diagram: the box stays under 480 px, zoom enlarges the drawing, a drag pans it) |
 | `layout.spec.ts` | workbench strips and feature toolbars keep one-row geometry with ARIA tabs | Ported |
 | `layout.spec.ts` | overflow uses directional fades without changing tab-strip geometry | Ported |
 | `layout.spec.ts` | auxiliary panel scrollbars stay quiet at rest and expose only clipped edges | Pending: relies on browser WebKit scrollbar pseudo-elements, hover-intent attributes and forced-colors media; Avalonia has no quiet-scroll cue surface to assert |
@@ -78,6 +79,7 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `layout.spec.ts` | dragging outer separators hides both sides and preserves their restore state | Ported |
 | `layout.spec.ts` | the side group menu shows tools for its own side and opens terminals in that group | Ported |
 | `layout.spec.ts` | a terminal can move to its own side group; resize, fold, and visibility gate its one body | Ported |
+| `layout.spec.ts` | a project with no specs opens its rail on Files, not on the empty Specs panel | Ported (fork; the fixture's specs are removed rather than opening a plain folder) |
 | `layout.spec.ts` | side groups expose broad per-panel above and below split targets | Ported |
 | `layout.spec.ts` | Mod+B and Mod+J hide and restore local sides without affecting bottom | Ported |
 | `layout.spec.ts` | keyboard and menu commands reorder, search, recursively split, and explicitly remove empty groups | Ported |
@@ -102,7 +104,8 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `projects.spec.ts` | opens a project from an explicit host path | Ported |
 | `projects.spec.ts` | picker failure falls back to host-path entry on every host platform | Ported |
 | `projects.spec.ts` | manual path from the rail supersedes a picker started from Welcome | Ported |
-| `projects.spec.ts` | opening a non-git folder offers to initialise a repo, then opens it end-to-end | Ported |
+| `projects.spec.ts` | opening a non-git folder offers to initialise a repo, then opens it end-to-end | Superseded by the fork's `gitless.spec.ts`: a plain folder opens directly, with no git required (the check asserts no dialog, no `.git`, and Create workspace disabled) |
+| `projects.spec.ts` (fork) | project context menu copies its absolute path without changing the active workspace | Ported |
 | `projects.spec.ts` | rail expansion is per-browser view state that survives a reload | Ported |
 | `projects.spec.ts` | activating a workspace in one project keeps the other project's rail expansion | Ported |
 | `projects.spec.ts` | project context actions stay compact and close/reopen is lossless across clients | Ported (the observer is a second window of the app, opened after the cancel/Escape focus steps; touch long-press has no desktop input, and the menu has no Open existing worktree entry) |
@@ -124,7 +127,7 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `welcome.spec.ts` | Settings → Providers offers JetBrains AI with host-authoritative Central guidance | Excluded: AI providers |
 | `welcome.spec.ts` | a project with specs offers Start building over Set up, beside the project-folder fork | Ported (non-AI assertions: Project home context and the single Work in project folder fork; Start building opens an AI chat, so Create workspace is the call to action) |
 | `welcome.spec.ts` | a project without specs suggests setting it up | Excluded: Set up project pre-fills the setting-up-a-project AI skill prompt; the dialog's project-folder path is covered by the new-workspace folder-mode case |
-| `welcome.spec.ts` | opening a non-git folder from the Welcome screen offers to initialise a repo | Ported (the Set up project call to action is AI and omitted) |
+| `welcome.spec.ts` | opening a non-git folder from the Welcome screen offers to initialise a repo | Superseded by the fork's `gitless.spec.ts`: the folder lands on its Project Home without git init (the Set up project call to action is AI and omitted) |
 | `welcome.spec.ts` | clicking a project returns to its Welcome, deselecting the active workspace | Ported |
 | `default-workspace.spec.ts` | the Welcome fork's “Work in project folder” enters the Default workspace — the project folder itself | Ported (the terminal `pwd` step is omitted: headless checks do not execute shells) |
 | `default-workspace.spec.ts` | a terminal branch switch converges every Default branch label live | Ported (the fixture switches branch with Git directly instead of through an embedded terminal) |
@@ -133,6 +136,14 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `workspaces.spec.ts` | an attached worktree cannot also be opened as a project | Pending: opening a linked worktree resolves to its owning project rather than reporting a conflict; needs the external-worktree registry above |
 | `workspaces.spec.ts` | creates, removes, and re-creates worktree workspaces (no branch collision) | Ported |
 | `new-workspace.spec.ts` | the dialog lists local branches (no stray origin) and creates a worktree | Ported (the model/effort selectors and initial chat tab are AI and omitted) |
+| `new-workspace.spec.ts` | an edited name names the worktree, and the placeholder leaves naming to the host | Ported (fork; the edited name becomes the workspace's host label, and the AI naming hint is omitted) |
+| `branch-list.spec.ts` | the branch chip lists branches with their worktrees, and guards deletion | Ported (fork; the checked-out branch is refused too, and the host's refusal is checked directly) |
+| `branch-list.spec.ts` | a branch held by a worktree ThinkRail did not make is still the user's to delete | Excluded: SharpRail lists every worktree of a project as a workspace, so a worktree-held branch is always refused |
+| `branch-list.spec.ts` | Fetch brings the remotes up to date from the branch list | Ported (fork) |
+| `search.spec.ts` | Mod+Shift+F searches the worktree and a hit opens its file at that line | Ported (fork; also checks that Git-ignored files are skipped; the line is scrolled to on macOS, where Scintilla opens text files) |
+| `search.spec.ts` | a hit in a markdown file flashes the block it landed in | Pending: the rendered Markdown view has no source-line landing |
+| `search.spec.ts` | a query with no matches says so, and Escape closes the popup | Ported (fork) |
+| `fold-perf.spec.ts` | folding a side group does not remount the centre | Ported (fork; already held, since folding re-projects cached document and terminal controls) |
 | `new-workspace.spec.ts` | folder-mode Start with an empty prompt lands in a fresh chat in the Default workspace | Ported (Start lands in the Default workspace; no chat is created) |
 | `new-workspace.spec.ts` | a project's committed skills are gated behind trust, then autocomplete | Excluded: AI skills |
 | `new-workspace.spec.ts` | the start prompt shares template completion and slot behavior without live-only commands | Excluded: AI start prompt |
@@ -141,6 +152,11 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `new-workspace.spec.ts` | the branch picker groups by host-supplied remotes and creates from the selected ref | Ported |
 | `new-workspace.spec.ts` | opening New Workspace prefetches a stale default before create | Ported |
 | `new-workspace.spec.ts` | opening New Workspace prefetches a missing default tracking ref | Ported |
+| `branch-list.spec.ts` | a remote group can be collapsed and expanded, and stays that way in every branch picker | Ported (the New Workspace picker; remembered per remote in the profile) |
+| `branch-list.spec.ts` | left-clicking a branch checked out by a ThinkRail workspace switches to it | Excluded: SharpRail has no topbar branch list |
+| `branch-list.spec.ts` | the branch list groups branches from every configured remote, and a remote-only branch opens New Workspace prefilled | Excluded: SharpRail has no topbar branch list |
+| `branch-list.spec.ts` | the topbar branch list marks its Local branches, mirroring the Changes picker | Excluded: SharpRail has no topbar branch list |
+| `branch-list.spec.ts` | a dirty external worktree requires a second force-delete confirmation | Excluded: SharpRail has no branch list with branch deletion |
 | `new-workspace.spec.ts` | a pasted image in the workspace dialog rides along into the first chat turn | Excluded: AI chat |
 | `workspace-lifecycle.spec.ts` | workspace removal propagates — no zombie row in a second tab | Ported (second window of the app; the removed workspace's notice stands in for the toast) |
 | `workspace-lifecycle.spec.ts` | workspace rename propagates live and rehydrates a tab that missed a later snapshot | Ported (two gRPC clients; the peer's connection is dropped and restored by a relay) |
@@ -155,8 +171,19 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `reload-navigation.spec.ts` | reload from a file tab restores its shared placement under the workspace route | Ported |
 | `reload-navigation.spec.ts` | workspace rows still list after a reload restore (the light list is complete) | Ported |
 | `files.spec.ts` | shows files and compacts single-directory runs in the Files tree | Ported |
+| `files.spec.ts` (fork) | a file row has our own context menu, not the webview's | Ported |
+| `files.spec.ts` (fork) | file and compacted folder menus copy their host absolute paths | Ported for a file row |
+| `files.spec.ts` (fork) | deleting a previewed file leaves the workbench interactive | Ported (macOS only: it moves a real file to the Trash) |
+| `files.spec.ts` (fork) | a folder row creates a file inside it, whose icon follows the name as it is typed | Ported without the icon step: the tree has no per-file-type icons |
+| `files.spec.ts` (fork) | a new file warns as soon as its name already exists | Ported (within the folder-row case) |
+| `files.spec.ts` (fork) | a file row creates a folder beside it, and renames itself | Ported (the stem selection is asserted; the rename text is set rather than typed) |
+| `files.spec.ts` (fork) | an open tab says when its file is deleted on disk, and recovers when it returns | Ported (the banner is asserted on macOS, where text files open in Scintilla) |
+| `files.spec.ts` (fork) | an entry git ignores is dimmed, whichever rule ignores it | Not ported: the tree does not mark ignored entries |
+| `files.spec.ts` (fork) | a file row drags into the composer as a mention and into a terminal as a path | Not ported: AI composer excluded; tree rows are not drag sources |
+| `clone-project.spec.ts` (fork) | clone repository | Not ported yet |
+| `gitless.spec.ts` (fork) | Changes and Review withheld for a plain folder or an unborn repository | Not ported yet |
 | `editor.spec.ts` | opens a file in a center Monaco tab, focuses on re-open, and closes | Ported (Markdown source is SharpRail's read-only source view; the ready placeholder omits chats) |
-| `editor.spec.ts` | hides YAML frontmatter in the rendered view but shows it in source | Diverges: SharpRail renders frontmatter as a leading code block |
+| `editor.spec.ts` | hides YAML frontmatter in the rendered view but shows it in source | Ported (the prose is checked apart from the fork's properties block, whose values are text here rather than form fields) |
 | `editor.spec.ts` | opens a non-markdown file straight to Monaco with no rendered-view toggle | Ported (macOS Scintilla) |
 | `workspace-tabs.spec.ts` | editor tabs are scoped to the active workspace | Ported |
 | `workspace-tabs.spec.ts` | the selected side tool follows workspace switches | Ported |
@@ -185,6 +212,9 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `terminals.spec.ts` | closing an idle tab does not ask | Ported |
 | `terminals.spec.ts` | a terminal opened in one browser never creates placement in another | Ported (second window, real gRPC host) |
 | `terminals.spec.ts` | a shell that dies during a reclaim is not presented as alive | Ported (the take-back attach reply is delayed while the shell is killed; the tab ends exited) |
+| `terminals.spec.ts` | a terminal that was hidden while it printed keeps its width | Excluded: xterm DOM rendering; Ghostty renders natively and keeps its grid while hidden |
+| `terminals.spec.ts` | terminal forwards pointer capture and Ctrl+T to a raw PTY | Ported as a host check (a live reattach replays the alternate screen and mouse modes); pointer forwarding is Ghostty's |
+| `terminals.spec.ts` | terminal sends alternate-scroll wheel gestures to the PTY | Ported as a host check (alternate scroll, mode 1007, is replayed with the mouse modes) |
 | `bottom-panel.spec.ts` | full-height panel-header actions stay square | Ported (no chat or side-group menu buttons; SharpRail shows a group's fold button once its region has several groups) |
 | `bottom-panel.spec.ts` | a new workspace starts with one accessible terminal group in a 30% bottom panel | Ported |
 | `bottom-panel.spec.ts` | a hidden local frame keeps the host terminal reserved without attaching until shown | Ported (the peer-client attach needs multi-client sync) |
@@ -209,6 +239,7 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `line-width-settings.spec.ts` | the default file width wraps both sides of a long-line diff | Ported |
 | `line-width-settings.spec.ts` | chat uses the selected measure and optionally exceeds a narrow pane | Excluded: AI chat is a non-goal |
 | `settings.spec.ts` | settings shows the Local GitHub status block and degrades gh gracefully | Ported |
+| `settings.spec.ts` | macOS opens settings with its own Preferences chord, and other platforms do not | Ported (fork) |
 | `changes.spec.ts` | Changes tab shows the active worktree's diff and swaps per workspace | Ported |
 | `changes.spec.ts` | Rendered markdown diff of a large repetitive file never blocks the main thread | Ported (the merge runs off the dispatcher thread; no dispatcher turn may exceed 250 ms instead of the browser's 1 s long task) |
 | `changes.spec.ts` | Rendered markdown diff shows an error placeholder when the merge worker fails | Ported (an injected failing merge replaces the aborted worker script) |
@@ -228,6 +259,20 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `changes.spec.ts` | A commit scope whose commit is rewritten away falls back to All changes with a toast | Ported |
 | `changes.spec.ts` | A failed read says so — it never renders as an empty (clean) change set | Ported |
 | `changes.spec.ts` | Closing a diff tab disposes Monaco cleanly — no 'TextModel got disposed' assertion | Excluded: Monaco model lifetime; SharpRail diff tabs do not use an editor |
+| `changes.spec.ts` (fork) | The diff header keeps its controls on a narrow pane: an unpinned diff opens inline there, a click pins Split | Ported (the pane widths are SharpRail's own, so the wide step uses a wider window) |
+| `changes.spec.ts` (fork) | The rendered markdown diff carries the outline and the properties block | Ported (properties are diffed per key rather than through the text merge; the marks are the same ins/del runs) |
+| `changes.spec.ts` (fork) | A markdown diff drops to one column on a narrow pane like every other file | Covered by the width rule shared with source diffs; no separate case |
+| `frontmatter.spec.ts` (fork) | frontmatter renders as editable properties, and an edit lands in the draft | Partial: the properties render and fold; SharpRail Markdown tabs have no editable source, so there is no draft to edit |
+| `frontmatter.spec.ts` (fork) | list chips add and remove, and the block folds away | Partial: chips render and the block folds; add/remove is editing |
+| `frontmatter.spec.ts` (fork) | the type menu converts between text, sequence, and mapping | Excluded: editing |
+| `frontmatter.spec.ts` (fork) | a type property offers the spec vocabulary as suggestions | Excluded: editing |
+| `frontmatter.spec.ts` (fork) | a block the editor cannot speak renders read-only instead of guessing | Ported |
+| `spec-documents.spec.ts` (fork) | a spec is titled by its frontmatter and its [[links]] reach the spec they name | Ported |
+| `spec-documents.spec.ts` (fork) | ordinary markdown keeps its own first heading and leaves [[text]] alone | Ported |
+| `find.spec.ts` (fork) | Mod+F over a preview opens the find bar and highlights the matches | Partial: the current match is selected and counted; other matches are not painted |
+| `find.spec.ts` (fork) | Mod+F inside the editor is left to Monaco's own find widget | Excluded: Markdown source is a read-only text view, not an editor with its own find |
+| `outlineTree.test.ts` (fork) | the outline reads headings from the source, skips fences and jumps preview and source | Ported as an interaction check (`MarkdownDocumentE2E`) |
+| `mcp-tools.spec.ts` (fork) | a companion pane embeds beside its host; Markdown gets a Split view | Partial: the Markdown Split view only; visualization and blueprint companions are AI surfaces |
 | `live-refresh.spec.ts` | worktree changes on disk appear live in Specs, Files, Changes, and an open file tab | Ported |
 | `live-refresh.spec.ts` | churn canary: a write storm coalesces to a few frames and the host stays responsive | Ported (fsChanged frames become coalesced watcher refreshes; `/health` becomes a timed host listing) |
 | `topbar-chrome.spec.ts` | ordinary browsers have a fixed themed header with zero native insets | Ported (fixed 40px themed header, workbench below it, Settings inside at narrow width; native inset elements are unrepresentable) |

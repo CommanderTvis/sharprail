@@ -82,7 +82,8 @@ Ordinary opens target the active view's last-focused surviving center group. Reo
 its existing placement and refreshes its metadata instead of duplicating it. Each center group has one
 preview slot: a preview replaces it in place, Keep promotes one way. A single click waits the 250ms
 double-click window, and the upgraded gesture emits only the final keep while still claiming the preview
-slot.
+slot. With the app's preview preference off, the window reads every open as a keep where the intent enters
+(`BrowseDocumentAsync`, `OpenDocumentAsync`), so no slot is claimed and nothing waits.
 
 Each center group has a navigation clock kept by the window (`DocumentNavigation.cs`). A user open advances
 it at request time and carries the stamp to completion; a completion whose stamp was overtaken places its
@@ -126,7 +127,10 @@ close glyph. An unfolded strip shows a terminal button (tooltip "New terminal in
 ## Presets
 
 Balanced, Focus and Review are built-in frame definitions (`DockState.Preset`). Balanced: left 18%,
-right 28% with Specs/Files over Changes/Review at 1.25:1, bottom 30% with one empty group. Focus hides
+right 28% with Specs/Files over Changes/Review at 1.25:1, bottom 30% with one empty group. A workspace
+whose spec graph comes back empty opens that rail on Files instead: once per workspace, when the graph
+arrives, a group still on its seeded first tool Specs moves its selection to the next tool without taking
+focus. Specs stays docked, and anything the user selects afterwards is theirs. Focus hides
 every auxiliary region; Review splits the center vertically and swaps the right stacks. Custom presets use
 the same grammar, capture geometry, topology, tools, folds and empty slots but never workspace resources,
 and are shared through host state. Applying a preset replaces the frame and redistributes each view's

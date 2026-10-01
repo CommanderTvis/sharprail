@@ -41,8 +41,21 @@ public sealed partial class ProjectServices
             var branch = name[(owner.Length + 1)..];
             if (branch != "HEAD") remote.Add(new(owner, branch));
         }
+        if (!remote.Any(branch => branch.Ref == defaultBase) && !local.Contains(defaultBase))
+        {
+            var main = await MainWorktreeAsync(currentRoot, cancellationToken);
+            try
+            {
+                var branch = (await GitRepository.RunAsync(main, cancellationToken, "symbolic-ref", "--short", "--quiet", "HEAD")).Trim();
+                defaultBase = local.Contains(branch) ? branch : "HEAD";
+            }
+            catch (IOException) { defaultBase = "HEAD"; }
+        }
         var (path, suggested) = await NextWorkspaceAsync(currentRoot, cancellationToken);
-        return new(local, remote, defaultBase) { SuggestedPath = path, SuggestedBranch = suggested };
+        string current;
+        try { current = (await GitRepository.RunAsync(currentRoot, cancellationToken, "symbolic-ref", "--quiet", "--short", "HEAD")).Trim(); }
+        catch (IOException) { current = ""; }
+        return new(local, remote, defaultBase) { SuggestedPath = path, SuggestedBranch = suggested, Current = current };
     }
 
     public ValueTask<IReadOnlyList<EditorInfo>> ListEditorsAsync(CancellationToken cancellationToken = default)

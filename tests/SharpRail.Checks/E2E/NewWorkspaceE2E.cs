@@ -15,6 +15,7 @@ internal static class NewWorkspaceE2E
     {
         using var git = new IsolatedGit(Path.Combine(root, "new-workspace-git"));
         ListsAndCreates(Path.Combine(root, "new-workspace-dialog"));
+        EditedName(Path.Combine(root, "new-workspace-name"));
         FolderMode(Path.Combine(root, "new-workspace-folder"));
         EnterCreates(Path.Combine(root, "new-workspace-enter"));
         FetchFailure(Path.Combine(root, "new-workspace-fetch-failure"));
@@ -84,18 +85,21 @@ internal static class NewWorkspaceE2E
     {
         using var app = OpenFixtureProject(directory);
         var dialog = OpenNewWorkspaceDialog(app);
-        Require(Heading(dialog) == "Create workspace" && Description(dialog).Contains("A separate checkout on its own new branch", StringComparison.Ordinal) &&
-            Description(dialog).Contains("Files, changes, and terminals stay scoped to it", StringComparison.Ordinal),
-            "The dialog must explain a worktree workspace.");
+        Require(Heading(dialog) == "Start work" && Description(dialog).Contains("A separate git worktree on its own new branch", StringComparison.Ordinal),
+            "The dialog must explain a worktree workspace under its constant title.");
         Require(Named<ToggleButton>(dialog, "WsTargetWorktree").IsChecked == true, "The worktree target is the default.");
         app.Click(Named<ToggleButton>(dialog, "WsTargetDefault"), freshGesture: false);
-        Require(Heading(dialog) == "Work in project folder" && Description(dialog).Contains("no isolation", StringComparison.Ordinal) &&
+        Require(Heading(dialog) == "Start work" && Description(dialog).Contains("No isolation", StringComparison.Ordinal) &&
             !Picker(dialog).IsVisible && Text(Create(dialog)).Contains("Start", StringComparison.Ordinal),
             "The project-folder target has no branch picker and starts in place.");
+        var current = Named<TextBlock>(dialog, "WsCurrentBranch");
+        Require(current.IsVisible && current.Text == "On main", "Folder mode must say which branch the work lands on.");
         app.Click(Named<ToggleButton>(dialog, "WsTargetWorktree"), freshGesture: false);
-        Require(Heading(dialog) == "Create workspace" && Picker(dialog).IsVisible && Text(Create(dialog)).Contains("Create", StringComparison.Ordinal),
+        Require(Heading(dialog) == "Start work" && Description(dialog).Contains("A separate git worktree on its own new branch", StringComparison.Ordinal) &&
+            Picker(dialog).IsVisible && !current.IsVisible && Text(Create(dialog)).Contains("Create", StringComparison.Ordinal),
             "Returning to the worktree target restores the branch picker.");
         Require(Text(Named<StackPanel>(dialog, "WsProjectPicker")).Contains("sample-project", StringComparison.Ordinal), "The dialog names its project.");
+        Require(Named<TextBox>(dialog, "WsName").Text == "workspace-1", "The name field shows the host's next free name.");
         Require(Text(Picker(dialog)).Contains("From", StringComparison.Ordinal) && Text(Picker(dialog)).Contains("main", StringComparison.Ordinal),
             "The branch picker starts from main.");
 
@@ -124,7 +128,33 @@ internal static class NewWorkspaceE2E
         Require(app.Find<TextBlock>("ProjectLabel").Text == "sample-project" && app.Find<TextBlock>("WorkspaceLabel").Text == "workspace-1",
             "The scope context names the project and the new workspace.");
         Until(() => Text(app.Find<StackPanel>("WorkspacePlaceholder")).Contains("from main", StringComparison.Ordinal));
+        var tip = ToolTip.GetTip(app.Find<TextBlock>("WorkspaceReadyBranch")) as string ?? "";
+        Require(tip.Contains("cut from main", StringComparison.Ordinal) && tip.Contains("measured against it", StringComparison.Ordinal),
+            "Hovering \"from main\" must say what it means.");
         Console.WriteLine("PASS upstream new-workspace.spec.ts: the dialog lists local branches (no stray origin) and creates a worktree");
+    }
+
+    private static void EditedName(string directory)
+    {
+        using var app = OpenFixtureProject(directory);
+        var dialog = OpenNewWorkspaceDialog(app);
+        var name = Named<TextBox>(dialog, "WsName");
+        Require(name.Text == "workspace-1", "The name field starts on the suggestion.");
+        name.Text = "Login Rework";
+        app.Click(Create(dialog), freshGesture: false);
+        Until(() => !app.Window.OwnedWindows.Any() && WorktreePaths(app).Count() == 1);
+        Until(() => app.Find<TextBlock>("WorkspaceLabel").Text == "Login Rework");
+        Require(Git(WorktreePaths(app).Single(), "branch", "--show-current") == "login-rework",
+            "The entered workspace name must also name its Git branch.");
+        dialog = OpenNewWorkspaceDialog(app);
+        Require(Named<TextBox>(dialog, "WsName").Text == "workspace-2", "The next dialog suggests the next free name.");
+        Named<TextBox>(dialog, "WsName").Text = "Login Rework!";
+        app.Click(Create(dialog), freshGesture: false);
+        Until(() => !app.Window.OwnedWindows.Any() && WorktreePaths(app).Count() == 2);
+        Until(() => app.Find<TextBlock>("WorkspaceLabel").Text == "Login Rework!");
+        Require(Git(app.Window.WorkspaceRoot, "branch", "--show-current") == "login-rework-2",
+            "Names that normalize to an existing branch must receive a unique suffix.");
+        Console.WriteLine("PASS upstream new-workspace.spec.ts: an edited name names the worktree, and the placeholder leaves naming to the host");
     }
 
     private static void FolderMode(string directory)
@@ -164,13 +194,14 @@ internal static class NewWorkspaceE2E
         using var app = OpenFresh(directory);
         var dialog = OpenPickedProjectWorkspaceDialog(app, repo);
         Require(Text(Picker(dialog)).Contains("origin/main", StringComparison.Ordinal), "The default base is the remote default branch.");
+        var cached = Git(repo, "rev-parse", "refs/remotes/origin/main");
         app.Click(Create(dialog));
-        Until(() => !app.Window.OwnedWindows.Any() && app.Window.Toasts.Items.Any(toast => toast.Title == "Couldn't create workspace"));
-        var error = app.Window.Toasts.Items.Single(toast => toast.Title == "Couldn't create workspace").Message;
-        Require(!app.Find<TextBlock>("WorkspaceError").IsVisible && error.Contains("Could not fetch origin/main", StringComparison.Ordinal) &&
-            error.Contains("fatal:", StringComparison.Ordinal), "A failed fetch must report git's own error: " + error);
-        Require(!WorktreePaths(app).Any() && app.Window.AtProjectHome, "A failed fetch must not create a workspace.");
-        Console.WriteLine("PASS upstream new-workspace.spec.ts: a base whose fetch fails reports git's error, not a request timeout");
+        Until(() => !app.Window.OwnedWindows.Any() && WorktreePaths(app).Count() == 1);
+        var workspace = WorktreePaths(app).Single();
+        Until(() => Active(app, workspace));
+        Require(Git(workspace, "rev-parse", "HEAD") == cached,
+            "A failed fetch must still create from a tracking ref already present locally.");
+        Console.WriteLine("PASS workspace creation uses the cached remote base after a failed fetch");
     }
 
     private static void RemoteGroups(string directory)
@@ -180,8 +211,22 @@ internal static class NewWorkspaceE2E
         var dialog = OpenPickedProjectWorkspaceDialog(app, repo);
         var options = OpenBranchPicker(app, dialog);
         var headings = options.Children.OfType<TextBlock>().Where(text => text.Name == "BranchGroup").Select(text => text.Text).ToArray();
-        Require(headings.Contains("Remote") && headings.Contains("origin") && headings.Contains("upstream") && headings.Contains("Local"),
+        Button RemoteToggle(string remote) => options.Children.OfType<Button>().Single(button => button.Name == "RemoteGroupToggle" && Equals(button.Tag, remote));
+        Require(headings.Contains("Remote") && headings.Contains("Local") && RemoteToggle("origin") is not null && RemoteToggle("upstream") is not null,
             "The picker groups branches under Local, Remote and each host-supplied remote: " + string.Join(",", headings));
+        app.Click(RemoteToggle("upstream"), freshGesture: false);
+        Until(() => !Options(options).Any(option => Equals(option.Tag, "upstream/trunk")));
+        Picker(dialog).Flyout!.Hide();
+        options = OpenBranchPicker(app, dialog);
+        Require(!Options(options).Any(option => Equals(option.Tag, "upstream/trunk")) && Options(options).Any(option => Equals(option.Tag, "origin/main")),
+            "A collapsed remote stays collapsed when the picker reopens, and only that remote collapses.");
+        app.Click(RemoteToggle("upstream"), freshGesture: false);
+        Until(() => Options(options).Any(option => Equals(option.Tag, "upstream/trunk")));
+        app.Click(RemoteToggle("origin"), freshGesture: false);
+        Until(() => !Options(options).Any(option => Equals(option.Tag, "origin/main")));
+        Require(app.Workbench.Profile.Data.CollapsedRemotes.SetEquals(["origin"]), "The collapsed remotes are remembered in the profile.");
+        app.Click(RemoteToggle("origin"), freshGesture: false);
+        Until(() => Options(options).Any(option => Equals(option.Tag, "origin/main")));
         var origin = Options(options).Single(option => Equals(option.Tag, "origin/main"));
         Require(Text(origin).Contains("main", StringComparison.Ordinal) && !Text(origin).Contains("origin/", StringComparison.Ordinal),
             "Remote options show the branch name under their remote.");
@@ -198,7 +243,7 @@ internal static class NewWorkspaceE2E
         app.Dispose();
         Require(new ProfileStore(Path.Combine(directory, "scratch") + "-profile").Data.GitSelections[workspace].Target == "upstream/trunk",
             "The workspace must record its base.");
-        Console.WriteLine("PASS upstream new-workspace.spec.ts: the branch picker groups by host-supplied remotes and creates from the selected ref");
+        Console.WriteLine("PASS upstream new-workspace.spec.ts: the branch picker groups by host-supplied remotes and creates from the selected ref; branch-list.spec.ts: a remote group collapses and stays collapsed");
     }
 
     private static void StalePrefetch(string directory)

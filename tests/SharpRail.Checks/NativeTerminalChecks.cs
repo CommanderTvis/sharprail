@@ -120,7 +120,7 @@ internal static class NativeTerminalChecks
         await Until(() => Native.Focused(original));
         await Until(() => Native.Background(original) == 0x18181b);
         SharpRail.UI.Rendering.Ui.Apply(SharpRail.UI.Rendering.Themes.Resolve("light"));
-        await Until(() => Native.Background(original) == 0xe4e4e7);
+        await Until(() => Native.Background(original) == 0xf4f4f5);
         foreach (var theme in SharpRail.UI.Rendering.Themes.All)
         {
             SharpRail.UI.Rendering.Ui.Apply(theme);

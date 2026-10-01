@@ -6,6 +6,8 @@ namespace SharpRail.UI;
 public sealed partial class WorkbenchWindow
 {
     private CancellationTokenSource? workspaceWatch;
+    // Document keys whose file is gone from disk; the tab keeps its last content and says so.
+    private readonly HashSet<string> deletedDocuments = [];
 
     public int WatchRefreshes { get; private set; }
 
@@ -104,15 +106,28 @@ public sealed partial class WorkbenchWindow
             FileDocument file;
             try { file = await Task.Run(async () => await host.ReadFileAsync(tab.Path, lifetime.Token), lifetime.Token); }
             catch (OperationCanceledException) { return; }
+            // Only a file that is really gone marks its tab; any other failed read leaves the tab as it was.
+            catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException)
+            {
+                if (request == projectRequest) MarkDeletedOnDisk(key, true);
+                continue;
+            }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException) { continue; }
             catch (Grpc.Core.RpcException error) when (error.StatusCode == Grpc.Core.StatusCode.FailedPrecondition) { continue; }
             if (request != projectRequest || !LiveDocuments().Contains(key)) continue;
+            MarkDeletedOnDisk(key, false);
             // Byte-only files read as empty text, so the hash decides whether anything changed.
             if (file.Info?.Sha256 is { } hash ? hash == current.Info?.Sha256 : file.Text == current.Text && file.ImageData is null) continue;
             if (ReloadFileBody(key, tab, file)) continue;
             documents[key] = file; DropDocumentContent(key); refreshed = true;
         }
         if (refreshed) surface.RefreshContents();
+    }
+
+    private void MarkDeletedOnDisk(string key, bool deleted)
+    {
+        if (documentContent.GetValueOrDefault(key) is Editor.CodeDocumentView view) view.DeletedOnDisk = deleted;
+        if (deleted ? deletedDocuments.Add(key) : deletedDocuments.Remove(key)) surface.RefreshModified();
     }
 
     private async Task RefreshDiffTabsAsync(long request)

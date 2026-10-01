@@ -25,6 +25,7 @@ public sealed partial class WorkbenchWindow
             }
         }, text => documents[key] = document with { Text = text }, surface.RefreshModified, Report);
         view.Editor.WrapWidth = FileWrapWidth;
+        view.DeletedOnDisk = deletedDocuments.Contains(key);
         return view;
     }
 
@@ -45,6 +46,7 @@ public sealed partial class WorkbenchWindow
             finally { approvedTerminalCloses.Clear(); }
         };
         surface.IsModified = tab => PendingDocument(workspaceRoot, tab.Id) is not null;
+        surface.IsDeleted = tab => deletedDocuments.Contains(workspaceRoot + ":" + tab.Id);
         Closing += async (_, e) =>
         {
             if (closeConfirmed) return;

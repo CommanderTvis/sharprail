@@ -5,7 +5,7 @@
              FontFamily="{x:Static rendering:Ui.InterfaceFont}" Foreground="{x:Static rendering:Ui.TextBrush}">
   <Grid RowDefinitions="*,Auto">
     <ContentControl x:Name="TerminalBody" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
-    <StackPanel x:Name="TerminalStartFailure" IsVisible="False" Spacing="8" MaxWidth="520" Margin="24"
+    <StackPanel x:Name="TerminalStartFailure" IsVisible="False" Spacing="12" MaxWidth="520" Margin="24"
                 HorizontalAlignment="Center" VerticalAlignment="Center">
       <TextBlock Text="The terminal couldn’t start" FontSize="15" FontWeight="SemiBold" />
       <SelectableTextBlock x:Name="TerminalStartFailureText" TextWrapping="Wrap" />

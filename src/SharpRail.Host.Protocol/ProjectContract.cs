@@ -186,6 +186,21 @@ public sealed class FileChangeReply
     [ProtoMember(2)] public bool Rescan { get; set; }
 }
 
+[ProtoContract]
+public sealed class SearchHitReply
+{
+    [ProtoMember(1)] public string Path { get; set; } = "";
+    [ProtoMember(2)] public int Line { get; set; }
+    [ProtoMember(3)] public string Text { get; set; } = "";
+}
+
+[ProtoContract]
+public sealed class SearchReply
+{
+    [ProtoMember(1)] public List<SearchHitReply> Hits { get; set; } = [];
+    [ProtoMember(2)] public bool Truncated { get; set; }
+}
+
 [Service]
 public partial interface IProjectRpc
 {
@@ -195,6 +210,8 @@ public partial interface IProjectRpc
     ValueTask<ProjectFilesReply> ListFilesAsync(ProjectRequest request, CallContext context = default);
     ValueTask<DocumentReply> ReadFileAsync(ProjectRequest request, CallContext context = default);
     ValueTask<SpecsReply> ListSpecsAsync(ProjectRequest request, CallContext context = default);
+    /// <summary>Searches the workspace for <see cref="ProjectRequest.Path"/> as a plain substring.</summary>
+    ValueTask<SearchReply> SearchAsync(ProjectRequest request, CallContext context = default);
     ValueTask<GitReply> GetGitAsync(ProjectRequest request, CallContext context = default);
     ValueTask<CommitsReply> ListCommitsAsync(ProjectRequest request, CallContext context = default);
     ValueTask<DocumentReply> GetDiffAsync(ProjectRequest request, CallContext context = default);
@@ -203,6 +220,7 @@ public partial interface IProjectRpc
     ValueTask<ChangeReceiptReply> RevertChangeAsync(RevertChangeRequest request, CallContext context = default);
     ValueTask<ChangeReceiptReply> UndoChangeAsync(UndoChangeRequest request, CallContext context = default);
     ValueTask<GitReply> ApplyGitActionAsync(ProjectRequest request, CallContext context = default);
+    ValueTask<SaveFileReply> ApplyFileActionAsync(FileActionRequest request, CallContext context = default);
     ValueTask<BranchesReply> ListBranchesAsync(BranchesRequest request, CallContext context = default);
     ValueTask<OpenReviewReply> GetOpenReviewAsync(OpenReviewRequest request, CallContext context = default);
     ValueTask<PrDraftReply> PreviewPrAsync(ProjectRequest request, CallContext context = default);
@@ -228,6 +246,14 @@ public sealed class DiffStatsReply
 }
 
 [ProtoContract]
+public sealed class FileActionRequest
+{
+    [ProtoMember(1)] public string Kind { get; set; } = "";
+    [ProtoMember(2)] public string Path { get; set; } = "";
+    [ProtoMember(3)] public string To { get; set; } = "";
+}
+
+[ProtoContract]
 public sealed class BranchesRequest
 {
     [ProtoMember(1)] public bool FetchDefault { get; set; }
@@ -248,6 +274,7 @@ public sealed class BranchesReply
     [ProtoMember(3)] public string DefaultBase { get; set; } = "";
     [ProtoMember(4)] public string SuggestedPath { get; set; } = "";
     [ProtoMember(5)] public string SuggestedBranch { get; set; } = "";
+    [ProtoMember(6)] public string Current { get; set; } = "";
 }
 
 [ProtoContract]

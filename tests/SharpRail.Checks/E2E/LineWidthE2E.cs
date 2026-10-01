@@ -31,6 +31,8 @@ internal static class LineWidthE2E
         var longLine = string.Join(' ', Enumerable.Range(1, 80).Select(index => $"segment-{index:00}"));
         var directory = IsolatedGit.Repository(Path.Combine(root, "line-width-diff"), ("LONG_LINE.txt", longLine));
         using var app = new E2eWorkspace(directory, openFiles: false);
+        // Wide enough that the diff opens split rather than inline.
+        app.Window.Width = 1800;
         File.WriteAllText(Path.Combine(directory, "LONG_LINE.txt"), "changed " + longLine);
         var refresh = app.Window.RefreshAsync();
         Until(() => refresh.IsCompleted); refresh.GetAwaiter().GetResult();

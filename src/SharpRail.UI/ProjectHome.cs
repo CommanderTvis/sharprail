@@ -45,6 +45,16 @@ public sealed partial class WorkbenchWindow
     private string ReadyBranchText() => workspaceRoot == projectRoot ? "on " + branchLabel.Text :
         branchLabel.Text + (comparison.Length > 0 ? " · from " + comparison : "");
 
+    /// <summary>"from main" is a word and a branch with nothing joining them; hovering says both things it means.</summary>
+    private void UpdateReadyBranch()
+    {
+        if (readyBranch is null) return;
+        readyBranch.Text = ReadyBranchText();
+        ToolTip.SetTip(readyBranch, workspaceRoot != projectRoot && comparison.Length > 0
+            ? $"This workspace was cut from {comparison}, and its changes are measured against it."
+            : null);
+    }
+
     private async Task StartAsync()
     {
         var data = slot;
@@ -149,7 +159,7 @@ public sealed partial class WorkbenchWindow
         }
         else
         {
-            if (!hasSpecs)
+            if (!hasSpecs && !gitLoading && gitError is null && git.IsRepository)
             {
                 var setUp = new Panels.WelcomeCard("bookFill", "Set up project", "Draft the project's specs, starting from its goal, in an isolated workspace.", primary: true)
                 { Name = "WelcomeCta" };
@@ -157,7 +167,7 @@ public sealed partial class WorkbenchWindow
                 buttons.Children.Add(setUp);
             }
             var create = new Panels.WelcomeCard("add", "Create workspace", $"An isolated worktree on its own branch ({Shortcut("N")}).", primary: hasSpecs)
-            { Name = hasSpecs ? "WelcomeCta" : "WelcomeAction" };
+            { Name = hasSpecs ? "WelcomeCta" : "WelcomeAction", IsVisible = !gitLoading && gitError is null && git.IsRepository };
             create.Click += (_, _) => _ = CreateWorkspaceDialogAsync();
             var folder = new Panels.WelcomeCard("homeFill", "Work in project folder", "Changes and terminals run directly in your project folder — no isolation.",
                 primary: false)
@@ -192,11 +202,18 @@ public sealed partial class WorkbenchWindow
 
     private static string Shortcut(string key) => (OperatingSystem.IsMacOS() ? "⌘" : "Ctrl+") + key;
 
+    private void UpdateProjectHomeActions()
+    {
+        if (!atHome) return;
+        foreach (var card in surface.GetLogicalDescendants().OfType<Panels.WelcomeCard>().Where(card => card.Name == "WelcomeCta"))
+            card.IsVisible = !gitLoading && gitError is null && git.IsRepository;
+    }
+
     private ContextMenu ProjectMenu()
     {
         var menu = new ContextMenu();
         menu.Items.Add(Ui.Menu("Open project", () => _ = PickProjectAsync()));
-        menu.Items.Add(Ui.Menu("Enter host path…", () => _ = EnterHostPathAsync(null)));
+        menu.Items.Add(Ui.Menu(remote ? "Enter host path…" : "Enter path…", () => _ = EnterHostPathAsync(null)));
         var recents = state.Current.RecentProjects.Where(path => !state.Current.Projects.Contains(path)).ToArray();
         if (recents.Length == 0) return menu;
         menu.Items.Add(new Separator());
@@ -213,8 +230,11 @@ public sealed partial class WorkbenchWindow
     private ContextMenu ProjectActions(string project)
     {
         var menu = new ContextMenu { Name = "ProjectActions" };
-        var create = Ui.Menu("Create workspace", () => _ = CreateWorkspaceForAsync(project));
+        var create = Ui.Menu("Start work", () => _ = CreateWorkspaceForAsync(project));
         create.Name = "ProjectMenuCreateWorkspace"; create.Icon = Ui.Icon("add", null, 14);
+        // Copying neither selects the project nor activates a workspace.
+        var copy = Ui.Menu("Copy absolute path", () => _ = CopyTextAsync(project));
+        copy.Name = "ProjectMenuCopyPath";
         var close = Ui.Menu("Close project", () => _ = CloseProjectAsync(project));
         close.Name = "ProjectMenuClose"; close.Icon = Ui.Icon("close", null, 14);
         var existing = Ui.Menu("Open existing worktree…", () => _ = OpenExistingWorktreeAsync(project));
@@ -222,6 +242,7 @@ public sealed partial class WorkbenchWindow
         menu.Items.Add(create);
         menu.Items.Add(existing);
         menu.Items.Add(new Separator());
+        menu.Items.Add(copy);
         menu.Items.Add(close);
         menu.Closed += (_, _) => { if (!creatingWorkspace) FocusProject(project); };
         return menu;
@@ -298,7 +319,16 @@ public sealed partial class WorkbenchWindow
             var request = projectRequest;
             var project = projectRoot;
             BranchCatalog catalog;
-            try { catalog = await host.ListBranchesAsync(false, lifetime.Token); }
+            bool hasGit;
+            try
+            {
+                hasGit = !gitLoading && gitError is null ? git.IsRepository
+                    : (await Task.Run(async () => await host.GetGitAsync("", lifetime.Token), lifetime.Token)).IsRepository;
+                if (request != projectRequest) return;
+                catalog = hasGit
+                    ? await Task.Run(async () => await host.ListBranchesAsync(false, lifetime.Token), lifetime.Token)
+                    : new([], [], "");
+            }
             catch (Exception error) when (error is not OperationCanceledException)
             {
                 ReportDialogFailure("Couldn't create workspace", error);
@@ -306,7 +336,7 @@ public sealed partial class WorkbenchWindow
             }
             if (request != projectRequest) return;
             var projects = workbench.CanOpenWindows ? state.Current.Projects : [project];
-            var dialog = new NewWorkspaceDialog(projects.Contains(project) ? projects : [project], project, catalog);
+            var dialog = new NewWorkspaceDialog(projects.Contains(project) ? projects : [project], project, catalog, profile.Data.CollapsedRemotes, SaveProfile, hasGit);
             dialog.LoadProject = async picked =>
             {
                 try
@@ -323,7 +353,7 @@ public sealed partial class WorkbenchWindow
                     return null;
                 }
             };
-            _ = PrefetchDefaultAsync(dialog, project);
+            if (hasGit) _ = PrefetchDefaultAsync(dialog, project);
             var choice = await dialog.ShowAsync(this);
             if (choice is null || request != projectRequest) return;
             if (choice.Project != project)
@@ -363,6 +393,7 @@ public sealed partial class WorkbenchWindow
             git = await host.ApplyGitActionAsync(new("create-worktree", choice.Path, choice.Branch, choice.Base), lifetime.Token);
             removedWorkspaces.Remove(choice.Path);
             if (choice.Base.Length > 0 && choice.Base != "HEAD") profile.Data.GitSelections[choice.Path] = new(choice.Base, "All changes", null);
+            if (choice.Name is { } name) await state.ChangeAsync(HostStateChange.Label(choice.Path, name));
             await OpenWorkspaceAsync(choice.Path, false);
         }
         catch (Exception error) when (error is not OperationCanceledException)
@@ -424,9 +455,12 @@ public sealed partial class WorkbenchWindow
         var openIn = new MenuItem { Header = "Open in", Name = "WorkspaceOpenIn" };
         FillEditors(openIn, worktree.Path);
         menu.Items.Add(openIn);
-        var copy = Ui.Menu("Copy path", () => _ = CopyWorkspacePathAsync(worktree.Path));
+        var copy = Ui.Menu("Copy absolute path", () => _ = CopyTextAsync(worktree.Path));
         copy.Name = "WorkspaceCopyPath";
         menu.Items.Add(copy);
+        var copyName = Ui.Menu("Copy name", () => _ = CopyTextAsync(WorkspaceName(worktree.Path)));
+        copyName.Name = "WorkspaceCopyName";
+        menu.Items.Add(copyName);
         var reveal = Ui.Menu("Reveal in file manager", () => _ = RevealWorkspaceAsync(worktree.Path));
         reveal.Name = "WorkspaceReveal";
         menu.Items.Add(reveal);
@@ -473,9 +507,9 @@ public sealed partial class WorkbenchWindow
         catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
     }
 
-    private async Task CopyWorkspacePathAsync(string path)
+    private async Task CopyTextAsync(string text)
     {
-        if (Clipboard is not null) await Clipboard.SetTextAsync(path);
+        if (Clipboard is not null) await Clipboard.SetTextAsync(text);
     }
 
     private void StartRename(string path, bool header = false)

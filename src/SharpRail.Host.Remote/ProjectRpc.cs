@@ -37,7 +37,13 @@ public sealed partial class ProjectRpc(ProjectSessions sessions, IHostApplicatio
 
     public ValueTask<DocumentReply> ReadFileAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>
     {
-        var result = await Host(context).ReadFileAsync(request.Path, context.CancellationToken);
+        FileDocument result;
+        try { result = await Host(context).ReadFileAsync(request.Path, context.CancellationToken); }
+        // A missing file is the one read failure a client acts on: an open tab marks its file deleted on disk.
+        catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException)
+        {
+            throw new RpcException(new Status(StatusCode.NotFound, error.Message));
+        }
         return new DocumentReply { Path = result.Path, Text = result.Text, ImageData = result.ImageData, Info = Info(result.Info) };
     });
 
@@ -51,6 +57,12 @@ public sealed partial class ProjectRpc(ProjectSessions sessions, IHostApplicatio
     {
         var result = await Host(context).ListSpecsAsync(context.CancellationToken);
         return new SpecsReply { Specs = result.Select(Map).ToList() };
+    });
+
+    public ValueTask<SearchReply> SearchAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>
+    {
+        var result = await Host(context).SearchAsync(request.Path, context.CancellationToken);
+        return new SearchReply { Hits = result.Hits.Select(hit => new SearchHitReply { Path = hit.Path, Line = hit.Line, Text = hit.Text }).ToList(), Truncated = result.Truncated };
     });
 
     public ValueTask<DocumentReply> GetDiffAsync(ProjectRequest request, CallContext context = default)
@@ -97,6 +109,12 @@ public sealed partial class ProjectRpc(ProjectSessions sessions, IHostApplicatio
     public ValueTask<GitReply> ApplyGitActionAsync(ProjectRequest request, CallContext context = default)
         => Replayed(context, request, async (host, token) => Map(await host.ApplyGitActionAsync(new(request.Action, request.Path, request.Branch, request.BaseBranch), token)));
 
+    public ValueTask<SaveFileReply> ApplyFileActionAsync(FileActionRequest request, CallContext context = default) => Execute(async () =>
+    {
+        await Host(context).ApplyFileActionAsync(new(request.Kind, request.Path, request.To), context.CancellationToken);
+        return new SaveFileReply();
+    });
+
     public ValueTask<BranchesReply> ListBranchesAsync(BranchesRequest request, CallContext context = default) => Execute(async () =>
     {
         var result = await Host(context).ListBranchesAsync(request.FetchDefault, context.CancellationToken);
@@ -106,7 +124,8 @@ public sealed partial class ProjectRpc(ProjectSessions sessions, IHostApplicatio
             Remote = result.Remote.Select(branch => new RemoteBranchReply { Remote = branch.Remote, Name = branch.Name }).ToList(),
             DefaultBase = result.DefaultBase,
             SuggestedPath = result.SuggestedPath,
-            SuggestedBranch = result.SuggestedBranch
+            SuggestedBranch = result.SuggestedBranch,
+            Current = result.Current
         };
     });
 

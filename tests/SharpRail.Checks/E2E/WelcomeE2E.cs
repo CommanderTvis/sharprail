@@ -69,16 +69,38 @@ internal static class WelcomeE2E
         app.Click(cta);
         Until(() => cta.ContextMenu!.IsOpen);
         app.Click(cta.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Open project")), freshGesture: false);
-        var confirm = Dialog(app);
-        app.Click(confirm.GetLogicalDescendants().OfType<Button>().Single(button => Text(button) == "Initialise repository"));
-        Until(() => !app.Window.OwnedWindows.Any() && app.Window.AtProjectHome && app.Window.ProjectRoot == plain && HasWelcome(app));
-        Until(() => app.Find<TextBlock>("BranchLabel").Text == "main");
-        Require(Buttons(app).Any(button => button.Name == "ProjectName" && Equals(button.Tag, plain)), "The initialised folder must join the rail.");
-        Require(app.Tabs.Count == 0 && WelcomeTitle(app) == "plain-folder", "An initialised folder must land on its Project Home.");
+        Until(() => app.Window.AtProjectHome && app.Window.ProjectRoot == plain && HasWelcome(app));
+        Settle(500);
+        Require(!app.Window.OwnedWindows.Any() && !Directory.Exists(Path.Combine(plain, ".git")), "A plain folder opens without git init.");
+        Require(Buttons(app).Any(button => button.Name == "ProjectName" && Equals(button.Tag, plain)), "The plain folder must join the rail.");
+        Require(app.Tabs.Count == 0 && WelcomeTitle(app) == "plain-folder", "A plain folder must land on its Project Home.");
+        Require(!app.Find<Button>("WelcomeCta").IsVisible, "A plain folder's Project Home must hide Create workspace.");
         Require(Buttons(app).Any(button => button.Name == "WelcomeAction" && Text(button).Contains("Work in project folder", StringComparison.Ordinal)),
             "Project Home must offer the project-folder fork.");
-        Require(Git(plain, "ls-tree", "--name-only", "HEAD") == "notes.txt", "Initialising must commit the folder's files.");
-        Console.WriteLine("PASS upstream welcome.spec.ts: opening a non-git folder from the Welcome screen offers to initialise a repo");
+        var row = Controls(app).OfType<Grid>().Single(control => control.Name == "ProjectRow" && Equals(control.Tag, plain));
+        Require(!row.ContextMenu!.Items.OfType<MenuItem>().Any(item => Equals(item.Header, "Create workspace")),
+            "A plain folder's project menu must not advertise Git workspace creation.");
+        app.ContextAction(row, "Start work");
+        var menuDialog = Dialog(app, "NewWorkspaceDialog");
+        Require(Named<Avalonia.Controls.Primitives.ToggleButton>(menuDialog, "WsTargetDefault").IsChecked == true,
+            "The project context menu must open the same folder-mode Start work dialog.");
+        Press(menuDialog, Avalonia.Input.Key.Escape);
+        Until(() => !app.Window.OwnedWindows.Any());
+        app.Click(app.Find<Button>("AddWorkspace"));
+        var dialog = Dialog(app, "NewWorkspaceDialog");
+        Require(!Named<Avalonia.Controls.Primitives.ToggleButton>(dialog, "WsTargetWorktree").IsVisible &&
+            Named<Avalonia.Controls.Primitives.ToggleButton>(dialog, "WsTargetDefault").IsChecked == true,
+            "A plain folder must offer Start work in Project folder mode with New worktree hidden.");
+        Require(!Named<Button>(dialog, "WsBranchPicker").IsVisible && !Named<TextBox>(dialog, "WsName").IsVisible &&
+            Text(Named<Button>(dialog, "WsCreate")) == "Start", "Folder mode must offer Start without branch or name fields.");
+        app.Click(Named<Button>(dialog, "WsCreate"));
+        Until(() => !app.Window.AtProjectHome && app.Window.WorkspaceRoot == plain && !app.Window.OwnedWindows.Any());
+        var terminal = app.Find<Button>("NewTerminal_" + app.Center);
+        app.Click(terminal);
+        Until(() => app.Tabs.Any(tab => tab.Kind == "terminal"));
+        app.Open("notes.txt", keep: true);
+        Require(!Directory.Exists(Path.Combine(plain, ".git")), "Starting work and opening tabs must not initialize Git.");
+        Console.WriteLine("PASS fork gitless.spec.ts: a plain folder opened from the Welcome screen lands on its Project Home, with no git required");
     }
 
     private static void ProjectClick(string directory)

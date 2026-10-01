@@ -1,7 +1,7 @@
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
-
+using SharpRail.UI.Panels;
 using static SharpRail.Checks.E2E.E2eWorkspace;
 
 namespace SharpRail.Checks.E2E;
@@ -28,6 +28,21 @@ internal static class PreviewTabsE2E
             app.Open("README.md"); Require(app.Tabs.Count == 2 && app.Tabs[1].Preview, "A kept tab must survive browsing.");
             app.Click(app.Tab("README.md")); Until(() => !app.Tabs[1].Preview);
             app.Open("notes.txt"); Require(app.Tabs.Count == 2 && !app.Tabs[0].Preview && app.Window.Layout.Selected(app.Center)?.Path == "notes.txt", "Reopening a kept tab must retain and activate it.");
+        });
+        Case("with previewing off, every click keeps a tab of its own", app =>
+        {
+            app.Click(app.Find<Button>("SettingsButton"));
+            Until(() => app.Window.OwnedWindows.OfType<SettingsWindow>().Any(window => window.IsVisible));
+            var settings = app.Window.OwnedWindows.OfType<SettingsWindow>().Single(window => window.IsVisible);
+            app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "Settings_Layout"));
+            var toggle = settings.GetLogicalDescendants().OfType<CheckBox>().Single(box => box.Name == "PreviewTabs");
+            Require(toggle.IsChecked == true, "Previewing must be on by default.");
+            toggle.IsChecked = false;
+            settings.Close(); Until(() => !settings.IsVisible);
+            Require(!app.Window.Preferences.PreviewTabs, "The switch must change the app preference.");
+            app.Open("README.md"); Require(app.Tabs.Count == 1 && !app.Tabs[0].Preview, "A single click must keep the tab.");
+            app.Open("notes.txt");
+            Require(app.Tabs.Count == 2 && !app.Tabs[1].Preview, "A second click must open beside the first rather than replace it.");
         });
         Case("a double click claims the slot on its way to keeping the tab, at any latency", app =>
         {

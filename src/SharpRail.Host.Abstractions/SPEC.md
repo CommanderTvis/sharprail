@@ -34,9 +34,10 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
 ## Surfaces
 
 - `IProjectServices` is one client's project session: open a project root, list and read files, save
-  with a conflict check, list specs, Git snapshot/commits/diffs/diff sides, Git actions (stage, unstage,
-  init, create and remove worktree), branch catalog, open pull request lookup, pull request draft and opening (`PrResult.Action` is `created`,
-  `updated`, `pushed`, `compare` or `authFailed`), and editor detection/launch. Every call is
+  with a conflict check, list specs, search the workspace, Git snapshot/commits/diffs/diff sides, Git actions
+  (stage, unstage, init, create and remove worktree, delete branch, fetch), branch catalog, open pull request lookup, pull request draft and opening
+  (`PrResult.Action` is `created`, `updated`, `pushed`, `compare` or `authFailed`), and editor
+  detection/launch. Every call is
   cancellable. Paths are workspace-relative.
 - `ListWorkspacesAsync` and `ApplyWorkspaceActionAsync` name their project or workspace explicitly rather
   than using the session's root, so a client can list and change any open project's workspaces. Kinds are

@@ -96,10 +96,12 @@ internal static class EditorE2E
         app.Open("SPEC.md", keep: true);
         var preview = app.Find<MarkdownPreview>("MarkdownPreview");
         Until(() => Text(preview).Contains("Goal", StringComparison.Ordinal));
-        var metadata = app.Find<Border>("MarkdownFrontmatter");
-        Require(((StackPanel)preview.Content!).Children[0] == metadata && Text(metadata).Contains("id: sample-root", StringComparison.Ordinal) &&
-            !Text(metadata).Contains("---", StringComparison.Ordinal),
-            "The rendered view must show YAML frontmatter as a leading code block without its fences.");
+        // The fork shows frontmatter as a properties block whose values are form fields, outside the page's text;
+        // here the read-only values are text, so the prose is checked without that block.
+        var properties = preview.GetLogicalDescendants().OfType<Control>().Single(control => control.Name == "FrontmatterProperties");
+        var prose = string.Join('\n', ((StackPanel)preview.Content!).Children.Where(block => block != properties).Select(Text));
+        Require(!prose.Contains("goal-and-requirements", StringComparison.Ordinal) && !Text(preview).Contains("id: sample-root", StringComparison.Ordinal),
+            "The rendered view must hide YAML frontmatter.");
         app.Click(app.Find<Button>("ViewToggle_code"));
         Until(() => !PreviewShown(app));
         Require(MarkdownSourceText(app.Find<Control>("MarkdownSource")).Contains("id: sample-root", StringComparison.Ordinal), "Source mode must show the frontmatter.");

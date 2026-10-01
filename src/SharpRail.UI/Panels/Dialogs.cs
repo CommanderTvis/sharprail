@@ -25,11 +25,13 @@ public static class Dialogs
         return await window.ShowDialog<string[]?>(owner);
     }
 
-    public static async Task<string?> HostPath(Window owner, string initial, string? pickerError)
+    public static async Task<string?> HostPath(Window owner, string initial, string? pickerError, bool remote)
     {
         var window = Create("Open project by path", 520);
         var text = window.FindControl<TextBlock>("DialogExplanation")!;
-        text.Text = "Enter the absolute path of a folder on the computer running SharpRail."; text.IsVisible = true;
+        // On the desktop the host is this computer, so the copy does not call it the host.
+        text.Text = remote ? "Enter the absolute path of a folder on the computer running SharpRail." : "Enter the absolute path of a folder.";
+        text.IsVisible = true;
         var panel = window.FindControl<StackPanel>("DialogFields")!;
         if (pickerError is not null)
         {
@@ -45,6 +47,67 @@ public static class Dialogs
         accept.Name = "OpenProjectPathSubmit"; accept.IsDefault = true; buttons.Children.Add(Primary(accept));
         window.Opened += (_, _) => input.Focus();
         return await window.ShowDialog<string?>(owner);
+    }
+
+    /// <summary>
+    /// Takes a file or folder name. A name listed in the destination shows its collision as it is typed and
+    /// cannot be confirmed; the dialog stays open while <paramref name="submit"/> runs and shows its failure.
+    /// </summary>
+    public static async Task PathName(Window owner, string title, string initial, string confirmLabel,
+        Func<string, bool> exists, Func<string, Task> submit)
+    {
+        var window = Create(title, 520);
+        var panel = window.FindControl<StackPanel>("DialogFields")!;
+        var input = new TextBox { Name = "PathNameInput", Text = initial, PlaceholderText = "Name" };
+        var error = Ui.Text("", Ui.Danger, 12);
+        error.Name = "PathNameError"; error.IsVisible = false; error.TextWrapping = Avalonia.Media.TextWrapping.Wrap;
+        panel.Children.Add(input); panel.Children.Add(error);
+        var buttons = window.FindControl<StackPanel>("DialogActions")!;
+        buttons.Children.Add(Ui.Button("Cancel", () => window.Close()));
+        var busy = false;
+        var confirm = Primary(Ui.Button(confirmLabel, () => { }));
+        confirm.Name = "PathNameConfirm"; confirm.IsDefault = true;
+        confirm.Click += (_, _) => _ = Submit();
+        buttons.Children.Add(confirm);
+        void Validate()
+        {
+            var name = input.Text ?? "";
+            var problem = name.Trim().Length == 0 || name == initial ? "" : PathNameProblem(name) ?? (exists(name) ? $"{name} already exists" : null);
+            error.Text = problem ?? ""; error.IsVisible = !string.IsNullOrEmpty(problem);
+            confirm.IsEnabled = problem is null && !busy;
+        }
+        async Task Submit()
+        {
+            Validate();
+            if (!confirm.IsEnabled) return;
+            busy = true; confirm.IsEnabled = false;
+            try { await submit(input.Text!); window.Close(); }
+            catch (Exception failure) when (failure is not OperationCanceledException)
+            {
+                busy = false; Validate();
+                error.Text = failure.Message; error.IsVisible = true;
+            }
+        }
+        input.TextChanged += (_, _) => Validate();
+        Validate();
+        window.Opened += (_, _) =>
+        {
+            input.Focus();
+            // A rename selects the stem, so typing replaces the name and keeps the extension.
+            var dot = initial.LastIndexOf('.');
+            input.SelectionStart = 0;
+            input.SelectionEnd = dot > 0 ? dot : initial.Length;
+        };
+        await window.ShowDialog(owner);
+    }
+
+    // The host's containment is the real gate; this only refuses what can never be a name in this folder.
+    private static string? PathNameProblem(string name)
+    {
+        if (name != name.Trim()) return "A name cannot start or end with a space.";
+        if (Path.IsPathRooted(name) || name.Split('/', '\\').Any(segment => segment is "" or "." or ".."))
+            return "Enter a name inside this folder.";
+        return null;
     }
 
     public static async Task<bool> Confirm(Window owner, string title, string explanation, string confirmLabel = "Remove worktree", string? confirmName = null,

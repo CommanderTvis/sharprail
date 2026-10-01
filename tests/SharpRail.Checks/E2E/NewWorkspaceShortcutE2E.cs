@@ -24,8 +24,8 @@ internal static class NewWorkspaceShortcutE2E
     private static void ExpectDialog(E2eWorkspace app)
     {
         var dialog = Dialog(app, "NewWorkspaceDialog");
-        Require(Dialogs(app) == 1 && Named<TextBlock>(dialog, "DialogHeading").Text == "Create workspace",
-            "The shortcut must open one Create workspace dialog.");
+        Require(Dialogs(app) == 1 && Named<TextBlock>(dialog, "DialogHeading").Text == "Start work",
+            "The shortcut must open one Start work dialog.");
     }
 
     private static void Escape(E2eWorkspace app)

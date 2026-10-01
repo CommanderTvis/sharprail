@@ -112,7 +112,14 @@ clients re-read Git although no file in the workspace changed.
   omitted), the default base and the suggested next workspace path and branch. The default base is
   `origin/HEAD` while `origin` exists, else the main worktree's current branch, else `HEAD`. With
   `fetchDefault` it first fetches a stale or missing remote default in the background of the dialog,
-  logging rather than failing when the fetch does.
+  logging rather than failing when the fetch does. It also reports the checked-out branch
+  (`symbolic-ref --quiet --short HEAD`, empty when detached) so the Start work dialog's folder mode can say
+  where the work lands.
+- The `delete-branch` action force-deletes a local branch after the client has asked the user, and is
+  refused by the host for a branch that any worktree has checked out: the main worktree's branch is the
+  one currently checked out, and every other worktree is a workspace. The refusal does not depend on which
+  client asked. The `fetch` action brings every remote up to date (`fetch --all --no-prune`) and moves no
+  local branch.
 - `GetOpenReviewAsync` answers the open GitHub pull request of the workspace branch (number, https URL, unpushed
   and behind counts; -1 when unknown) from `gh pr list --head`, run with prompts disabled and an 8 s budget whose
   expiry kills the child's process group. Only a github.com `origin` is looked up; a missing or unauthenticated

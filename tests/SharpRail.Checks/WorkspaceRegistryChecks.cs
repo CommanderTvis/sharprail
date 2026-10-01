@@ -65,6 +65,7 @@ internal static class WorkspaceRegistryChecks
     {
         var log = new List<string>();
         var repo = IsolatedGit.Repository(Path.Combine(root, "project"));
+        await state.ChangeAsync([HostStateChange.OpenProject(repo)]);
 
         // The lifecycle channel replays nothing, so the scenario starts once a first event proves the subscription is live.
         using var lifetime = new CancellationTokenSource(TimeSpan.FromMinutes(5));

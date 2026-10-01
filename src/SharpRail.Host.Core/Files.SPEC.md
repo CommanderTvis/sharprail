@@ -56,6 +56,15 @@ with direct local and streaming gRPC adapters. The UI consumes the same stream f
   is text everywhere or nowhere.
 - Relative Markdown images resolve through the same contained read.
 
+## Search
+
+`SearchAsync` is a plain case-insensitive substring sweep of the workspace, with no index, query language
+or external tool. In a Git worktree it reads the files `ls-files --cached --others --exclude-standard`
+names, so ignored files are skipped; a folder without Git has nothing ignored and skips only the hidden
+`.git`, `.sharprail` and `.tools` directories. Links, files over 512 KB and files carrying a NUL byte are
+skipped. Each hit is a path, a 1-based line and that line's text cut at 400 characters; the sweep stops at
+200 hits and says it was truncated.
+
 ## Saves
 
 A save names the workspace root it was edited in and the text it started from. It is refused when the
@@ -64,6 +73,23 @@ the user's edits and reports the conflict), and when the text exceeds the editab
 written to a sibling temporary file with the original's Unix mode, the path and content are checked again,
 and the temporary file is moved over the original. Saves are serialized with the session's other
 mutations.
+
+## Path actions
+
+`ApplyFileActionAsync(FileAction)` changes one workspace path through the same containment, serialized with
+the session's other mutations:
+
+- `create-file` / `create-folder` make an empty file or folder, plus any folders on the way, and refuse an
+  existing path.
+- `rename` moves within the workspace and refuses an existing target unless it differs only in case (a
+  case-only rename on a case-insensitive disk).
+- `trash` moves the entry to the OS trash (`NSFileManager` on macOS, `gio trash` on Linux), so a mis-click
+  is recoverable; `reveal` selects the entry in the file manager (`open -R`, `explorer /select,`, or the
+  containing folder where no select verb exists). Both run on the host's computer.
+- None of them touches the workspace folder itself.
+
+A read of a file that is gone throws `FileNotFoundException` (a remote client gets it back from gRPC's
+`NotFound`), the one read failure a client acts on: an open tab marks its file deleted on disk.
 
 ## Change notification
 

@@ -18,6 +18,9 @@ public static class LineWidths
     public static double Markdown(Preferences preferences) =>
         preferences.MarkdownLineWidthBounded ? preferences.MarkdownLineWidth * Advance(Ui.InterfaceFont, preferences.FontSize) : double.PositiveInfinity;
 
+    /// <summary>The width of <paramref name="columns"/> symbols in the code font, as a diff or editor lays them out.</summary>
+    public static double Code(int columns) => columns * Advance(Ui.CodeFont, 13);
+
     private static double Advance(FontFamily family, double size)
     {
         using var layout = new TextLayout("0", new Typeface(family), size, null);
