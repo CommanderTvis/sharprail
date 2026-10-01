@@ -12,6 +12,8 @@ rm -rf artifacts/ui artifacts/host artifacts/checks artifacts/SharpRail.app
   -p:PublishReadyToRun=true -p:PublishReadyToRunComposite=false -o artifacts/host
 "$dotnet_cmd" publish tests/SharpRail.Checks -c Release -r "$rid" --self-contained true \
   -p:PublishReadyToRun=true -p:PublishReadyToRunComposite=false -o artifacts/checks
+# The fixture plugin builds straight into the checks' build output; the plugin checks install it from beside the executable.
+cp -R tests/SharpRail.Checks/bin/Release/net10.0/plugin-fixture artifacts/checks/
 if [ "$rid" = osx-arm64 ] || [ "$rid" = osx-x64 ]; then
   bundle=artifacts/SharpRail.app
   mkdir -p "$bundle/Contents/MacOS" "$bundle/Contents/Resources"
@@ -26,8 +28,8 @@ if [ "$rid" = osx-arm64 ] || [ "$rid" = osx-x64 ]; then
   done
   cp THIRD-PARTY-NOTICES.md "$bundle/Contents/Resources/"
   cp -R licenses "$bundle/Contents/Resources/"
-  cp src/SharpRail.UI/Assets/Fonts/Geist-OFL.txt "$bundle/Contents/Resources/"
-  cp src/SharpRail.UI/Assets/Fonts/JetBrainsMono-OFL.txt "$bundle/Contents/Resources/"
+  cp src/SharpRail.Plugins.UI.Kit/Assets/Fonts/Geist-OFL.txt "$bundle/Contents/Resources/"
+  cp src/SharpRail.Plugins.UI.Kit/Assets/Fonts/JetBrainsMono-OFL.txt "$bundle/Contents/Resources/"
   cat > "$bundle/Contents/Info.plist" <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

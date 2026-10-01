@@ -207,13 +207,13 @@ internal static partial class ResourceChecks
 
     private static string Flags(IEnumerable<bool> flags) => string.Concat(flags.Select(flag => flag ? '1' : '0'));
 
-    private static string Runs(string changed) => string.Join(" ", SharpRail.UI.Rendering.DiffFocus.Segments([.. changed.Select(flag => flag == '1')])
+    private static string Runs(string changed) => string.Join(" ", SharpRail.Plugins.UI.Kit.Markdown.DiffFocus.Segments([.. changed.Select(flag => flag == '1')])
         .Select(segment => (segment.Hidden ? "h" : "v") + segment.Start + "+" + segment.Count));
 
-    private static SharpRail.UI.Rendering.DiffFocus Focused(string before, string after)
+    private static SharpRail.Plugins.UI.Kit.Markdown.DiffFocus Focused(string before, string after)
     {
-        var merged = SharpRail.UI.Rendering.MarkdownDiff.Merge(before, after);
-        return SharpRail.UI.Rendering.DiffFocus.Create(before, merged, SharpRail.UI.Rendering.MarkdownPreview.Parse(merged), new HashSet<string>());
+        var merged = SharpRail.Plugins.UI.Kit.Markdown.MarkdownDiff.Merge(before, after);
+        return SharpRail.Plugins.UI.Kit.Markdown.DiffFocus.Create(before, merged, SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.Parse(merged), new HashSet<string>());
     }
 
     private static void Focus()
@@ -333,7 +333,7 @@ internal static partial class ResourceChecks
             "A notebook opens as its cells.");
 
         app.Open("README.md");
-        Until(() => Shown<SharpRail.UI.Rendering.MarkdownPreview>(app, "MarkdownPreview") is not null);
+        Until(() => Shown<SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview>(app, "MarkdownPreview") is not null);
         var preview = Shown<ToggleButton>(app, "ViewToggle_markdown")!;
         app.Click(Shown<ToggleButton>(app, "ViewToggle_code")!);
         var source = Await<Control>(app, "MarkdownSource");
@@ -341,13 +341,13 @@ internal static partial class ResourceChecks
         Watched(() => MarkdownSourceText(source).Contains("An edited paragraph.", StringComparison.Ordinal));
         Require(ReferenceEquals(source, Shown<Control>(app, "MarkdownSource")) && ReferenceEquals(preview, Shown<ToggleButton>(app, "ViewToggle_markdown")), "A reload keeps the pane, its toggle and the source view.");
         app.Click(preview);
-        Until(() => Shown<SharpRail.UI.Rendering.MarkdownPreview>(app, "MarkdownPreview") is { } rendered && Text(rendered).Length >= 0 &&
+        Until(() => Shown<SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview>(app, "MarkdownPreview") is { } rendered && Text(rendered).Length >= 0 &&
             rendered.GetLogicalDescendants().OfType<SelectableTextBlock>().Any(block => block.Inlines?.Text?.Contains("An edited paragraph.", StringComparison.Ordinal) == true));
         Quiet(app);
 
         app.Open("HTML.md");
-        Until(() => Shown<SharpRail.UI.Rendering.MarkdownPreview>(app, "MarkdownPreview") is { } html && html.GetLogicalDescendants().OfType<Border>().Count(border => border.Classes.Contains("html-image") && border.Child is Image) == 3);
-        var page = Shown<SharpRail.UI.Rendering.MarkdownPreview>(app, "MarkdownPreview")!;
+        Until(() => Shown<SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview>(app, "MarkdownPreview") is { } html && html.GetLogicalDescendants().OfType<Border>().Count(border => border.Classes.Contains("html-image") && border.Child is Image) == 3);
+        var page = Shown<SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview>(app, "MarkdownPreview")!;
         var pictures = page.GetLogicalDescendants().OfType<Border>().Where(border => border.Classes.Contains("html-image")).ToArray();
         Require(pictures[0] is { HorizontalAlignment: Avalonia.Layout.HorizontalAlignment.Center, MaxWidth: 2 } && pictures[1].HorizontalAlignment == Avalonia.Layout.HorizontalAlignment.Right && pictures[2].MaxWidth == 1,
             "Raw HTML pictures load from the worktree, centred or sent to a side, at their stated width.");
@@ -409,10 +409,10 @@ internal static partial class ResourceChecks
             "A notebook diff shows the edited cell and counts the rest: " + Text(notebookDiff));
 
         ClickRow(app, "README.md");
-        Until(() => Pane(app) is { } pane && pane.GetLogicalDescendants().OfType<SharpRail.UI.Rendering.MarkdownPreview>().Any(preview => preview.Name == "RenderedDiff" && preview.IsEffectivelyVisible));
+        Until(() => Pane(app) is { } pane && pane.GetLogicalDescendants().OfType<SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview>().Any(preview => preview.Name == "RenderedDiff" && preview.IsEffectivelyVisible));
         Require(Shown<ToggleButton>(app, "DiffView_markdown")!.IsChecked == true && Shown<ToggleButton>(app, "DiffSplit") is null, "A Markdown diff opens on its rendered view, chosen from the registry.");
         app.Click(Shown<ToggleButton>(app, "DiffView_code")!);
-        Until(() => Shown<ToggleButton>(app, "DiffView_code")!.IsChecked == true && !Pane(app)!.GetLogicalDescendants().OfType<SharpRail.UI.Rendering.MarkdownPreview>().Any());
+        Until(() => Shown<ToggleButton>(app, "DiffView_code")!.IsChecked == true && !Pane(app)!.GetLogicalDescendants().OfType<SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview>().Any());
         if (OperatingSystem.IsMacOS()) Require(Pane(app)!.GetLogicalDescendants().OfType<ScintillaEditor>().Count(editor => editor.IsEffectivelyVisible) == 2, "Source replaces the rendered diff with both sides.");
         File.AppendAllText(Path.Combine(root, "README.md"), "\nA third paragraph.\n");
         Watched(() => DiffText(app).Contains("A third paragraph.", StringComparison.Ordinal));

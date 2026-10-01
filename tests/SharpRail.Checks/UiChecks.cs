@@ -151,7 +151,7 @@ internal static class UiChecks
     private static void Workbench(string root, ProfileStore store, LocalProjectAdapter host)
     {
         using (var frontmatterPreview = new MarkdownPreview("---\nid: private-metadata\ntitle: Internal title\n---\n\n# Visible heading\n\nVisible paragraph.",
-            "metadata.md", host, store.Data.Preferences, (_, _) => { }))
+            "metadata.md", MarkdownContexts.For(host, store.Data.Preferences, (_, _) => { })))
         {
             // Frontmatter is a properties block ahead of the prose, never a stray heading or paragraph in it.
             var blocks = ((StackPanel)frontmatterPreview.Content!).Children;
@@ -165,8 +165,8 @@ internal static class UiChecks
         }
         foreach (var size in new[] { 14d, 24d })
         {
-            using var linkPreview = new MarkdownPreview("Before [linked text](#anchor) after.", "link.md", host,
-                new Preferences { FontSize = size }, (_, _) => { });
+            using var linkPreview = new MarkdownPreview("Before [linked text](#anchor) after.", "link.md", MarkdownContexts.For(host,
+                new Preferences { FontSize = size }, (_, _) => { }));
             var linkWindow = new Window { Width = 800, Height = 200, FontFamily = Ui.InterfaceFont, Content = linkPreview };
             linkWindow.Show(); Dispatcher.UIThread.RunJobs(); linkWindow.UpdateLayout();
             var paragraph = linkPreview.GetLogicalDescendants().OfType<SelectableTextBlock>().Single();
@@ -180,7 +180,7 @@ internal static class UiChecks
         foreach (var (size, prefix) in new[] { (14d, "- "), (24d, "- "), (14d, "1. "), (24d, "1. ") })
         {
             using var listPreview = new MarkdownPreview(prefix + string.Join(' ', Enumerable.Repeat("wrapped list content", 12)),
-                "list.md", host, new Preferences { FontSize = size }, (_, _) => { });
+                "list.md", MarkdownContexts.For(host, new Preferences { FontSize = size }, (_, _) => { }));
             var listWindow = new Window { Width = 360, Height = 250, Content = listPreview };
             listWindow.Show(); Dispatcher.UIThread.RunJobs(); listWindow.UpdateLayout();
             var item = (Grid)((StackPanel)((StackPanel)listPreview.Content!).Children.Single()).Children.Single();
@@ -193,7 +193,7 @@ internal static class UiChecks
             listWindow.Close();
         }
         using (var scrollingPreview = new MarkdownPreview(string.Join("\n\n", Enumerable.Range(0, 40).Select(index => $"Paragraph {index}: scrollable Markdown content.")),
-            "README.md", host, store.Data.Preferences, (_, _) => { }))
+            "README.md", MarkdownContexts.For(host, store.Data.Preferences, (_, _) => { })))
         {
             var scrollingWindow = new Window { Width = 500, Height = 250, Content = scrollingPreview };
             scrollingWindow.Show(); Dispatcher.UIThread.RunJobs(); scrollingWindow.UpdateLayout();
@@ -480,7 +480,7 @@ internal static class UiChecks
         Pump(() => Math.Abs(PreviewWidth() - previewWidth * 60 / 78) < 0.5,
             "Line-width settings did not update the mounted Markdown preview.");
         var bounded = Find<Switch>(liveSettings, "MarkdownLineWidthBounded");
-        bounded.IsChecked = false;
+        Click(liveSettings, bounded);
         Pump(() => double.IsPositiveInfinity(PreviewWidth()), "Disabling bounded line width did not update the preview.");
         var savedProfile = new ProfileStore(Path.Combine(root, ".profile"));
         var savedAppearance = savedProfile.Data.Preferences;

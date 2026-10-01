@@ -118,6 +118,7 @@ internal sealed class RemoteTerminalSession(RemoteTerminalAdapter adapter, Termi
     public ReadOnlyMemory<byte> Replay { get; private set; }
     public Task<int> Exit => exit.Task;
     public Task Detached => detached.Task;
+    public TerminalPrefill? Prefill { get; private set; }
 
     // Attaches, retrying a connection that fails before the host's reply arrives. The retry repeats the
     // same fresh attach, so a reply lost with its connection still yields one shell and one replay.
@@ -131,7 +132,11 @@ internal sealed class RemoteTerminalSession(RemoteTerminalAdapter adapter, Termi
             try
             {
                 var attached = await OpenCallAsync(linked.Token);
-                if (!connected) { Created = attached.Created; Replay = attached.Data; connected = true; }
+                if (!connected)
+                {
+                    Created = attached.Created; Replay = attached.Data; connected = true;
+                    if (attached.PrefillText.Length > 0) Prefill = new(attached.PrefillText, attached.PrefillSubmit);
+                }
                 else pendingReplay = attached.Data;
                 Interlocked.Exchange(ref position, attached.Position);
                 return;
@@ -164,7 +169,8 @@ internal sealed class RemoteTerminalSession(RemoteTerminalAdapter adapter, Termi
             ClientId = request.ClientId,
             Columns = size.Columns,
             Rows = size.Rows,
-            Offset = Position
+            Offset = Position,
+            TabKey = request.TabKey
         };
         var stream = adapter.Service.RunAsync(Inputs(attach, current.Token), new CallContext(new CallOptions(adapter.Headers, cancellationToken: current.Token)))
             .GetAsyncEnumerator(current.Token);

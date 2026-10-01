@@ -14,4 +14,15 @@ public sealed partial class DockSurface
             body.Mount(() => renderContent(selected), keep: true);
         }
     }
+
+    /// <summary>Renders the empty-group content again, for groups that show no tab, leaving every tab and its chrome in place.</summary>
+    public void RefreshEmptyContents()
+    {
+        foreach (var site in sites)
+        {
+            if (site.Header || site.Control is not Border body || !contentHosts.Contains(body) || Session.Selected(site.Group) is not null) continue;
+            body.Child = null;
+            body.Child = renderContent(null);
+        }
+    }
 }

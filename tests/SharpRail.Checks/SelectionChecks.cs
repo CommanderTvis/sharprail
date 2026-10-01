@@ -21,7 +21,7 @@ internal static class SelectionChecks
         foreach (var theme in Themes.All)
         {
             Ui.Apply(theme);
-            using var preview = new MarkdownPreview("A selectable paragraph.", "selection.md", host, new Preferences(), (_, _) => { });
+            using var preview = new MarkdownPreview("A selectable paragraph.", "selection.md", MarkdownContexts.For(host, new Preferences(), (_, _) => { }));
             var input = new TextBox { Text = "Selectable input" };
             var window = new Window { Width = 400, Height = 250, Content = new StackPanel { Children = { input, preview } } };
             window.Show(); Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
@@ -54,8 +54,8 @@ internal static class SelectionChecks
 
     private static void AcrossBlocks(IProjectServices host)
     {
-        using var preview = new MarkdownPreview("First paragraph here.\n\nSecond paragraph here.\n\nThird paragraph here.", "across.md", host,
-            new Preferences(), (_, _) => { });
+        using var preview = new MarkdownPreview("First paragraph here.\n\nSecond paragraph here.\n\nThird paragraph here.", "across.md",
+            MarkdownContexts.For(host, new Preferences(), (_, _) => { }));
         var window = new Window { Width = 500, Height = 300, Content = preview };
         window.Show(); Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
         var blocks = preview.GetLogicalDescendants().OfType<SelectableTextBlock>().ToArray();

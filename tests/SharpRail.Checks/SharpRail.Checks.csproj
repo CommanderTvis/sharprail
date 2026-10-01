@@ -3,8 +3,14 @@
   <ItemGroup>
     <ProjectReference Include="../../src/SharpRail.UI/SharpRail.UI.csproj" />
     <ProjectReference Include="../../src/SharpRail.Host.Remote/SharpRail.Host.Remote.csproj" />
+    <ProjectReference Include="../SharpRail.PluginFixture/SharpRail.PluginFixture.Host.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="../SharpRail.PluginFixture.UI/SharpRail.PluginFixture.UI.csproj" ReferenceOutputAssembly="false" />
     <PackageReference Include="Avalonia.Headless" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <Using Include="SharpRail.Plugins.UI.Kit" />
+    <Using Include="SharpRail.Plugins.UI.Kit.Editor" />
+    <Using Include="SharpRail.Plugins.UI.Kit.Markdown" />
+    <Using Include="SharpRail.Plugins.UI.Kit.Visualization" />
   </ItemGroup>
   <Target Name="BuildTerminalEvents" BeforeTargets="PrepareForBuild" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
     <MakeDir Directories="$(IntermediateOutputPath)" />

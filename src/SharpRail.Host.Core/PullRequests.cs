@@ -118,7 +118,7 @@ public sealed partial class ProjectServices
         var body = "";
         try
         {
-            var baseRef = await DefaultBaseAsync(currentRoot, cancellationToken);
+            var baseRef = (await ListBranchesAsync(false, cancellationToken)).DefaultBase;
             var subjects = (await GitRepository.RunAsync(currentRoot, cancellationToken, "log", "--format=- %s", "--max-count=20", "--end-of-options", $"{baseRef}..HEAD")).Trim();
             body = subjects;
         }
@@ -134,7 +134,7 @@ public sealed partial class ProjectServices
         if (!GitRefs.IsSafe(branch)) throw new ArgumentException("The current branch name is not a valid ref.");
         if (!(await RemotesAsync(currentRoot, cancellationToken)).Contains("origin"))
             throw new InvalidOperationException("Pull requests are opened against the origin remote.");
-        var baseRef = await DefaultBaseAsync(currentRoot, cancellationToken);
+        var baseRef = (await ListBranchesAsync(false, cancellationToken)).DefaultBase;
         if (!baseRef.StartsWith("origin/", StringComparison.Ordinal))
             throw new InvalidOperationException("The comparison base is not on origin; refusing to push for a pull request.");
         var baseName = baseRef[7..];

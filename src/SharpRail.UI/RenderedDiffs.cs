@@ -17,7 +17,7 @@ public sealed partial class WorkbenchWindow
         // Bytes, and text that may be a Git LFS pointer, are described by their sides' metadata, which only the host
         // knows; any other text diff is described by its path.
         var described = DiffView.IsBinaryDiff(document.Text) || document.Text.Contains("version https://git-lfs.github.com/spec/v1\n", StringComparison.Ordinal);
-        var view = new DiffView(document.Text, tab.Path, LineWidths.File(Preferences),
+        var view = new DiffView(document.Text, tab.Path, LineWidths.File(Preferences.FileLineWidth, Preferences.FileLineWidthBounded),
             described ? null : DiffChoices(tab, key, new(workspaceRoot, tab.Path, ResourceRegistry.InferredMime(tab.Path), true, null), null),
             tabViews.GetValueOrDefault(key)?.RendererId, id => WriteTabView(key, new(id)), pending: described,
             revert: DiffRevert(tab, key), canRevert: state.Supports(HostProtocol.ChangeWritePath));
@@ -82,7 +82,7 @@ public sealed partial class WorkbenchWindow
             return (document, DiffFocus.Create(original, merged, document, expanded, () => diff.SaveViewState(expanded), token));
         }, token);
         token.ThrowIfCancellationRequested();
-        return new MarkdownPreview(parsed, diff.Resource.Path, host, Preferences, (path, anchor) => _ = OpenDocumentAsync(path, false, anchor), renderDiagrams: false, focus, Frontmatter.Parse(modified), Frontmatter.Parse(original))
+        return new MarkdownPreview(parsed, diff.Resource.Path, MarkdownContexts.For(host, Preferences, FollowLink), renderDiagrams: false, focus, Frontmatter.Parse(modified), Frontmatter.Parse(original))
         { Name = "RenderedDiff" };
     }
 }

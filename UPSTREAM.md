@@ -54,6 +54,10 @@ porting is recorded by fork commit title in "Fork port log" below.
 | `apps/web/src/styles/SPACING.md` | `src/SharpRail.UI/Rendering/SPACING.md` |
 | `e2e/SPEC.md` | `tests/SharpRail.Checks/SPEC.md` |
 | `scripts/SPEC.md` | `scripts/SPEC.md` |
+| `packages/plugin-api/SPEC.md`, `plugin-adoption.md` (fork) | `src/SharpRail.Plugins.Api/SPEC.md` |
+| `packages/server/src/plugins/SPEC.md` (fork) | `src/SharpRail.Host.Core/Plugins.SPEC.md` |
+| `apps/web/src/plugins/SPEC.md`, `apps/web/src/plugins/{loader,registry}/SPEC.md` (fork) | `src/SharpRail.UI/Plugins/SPEC.md` |
+| `packages/plugin-ui/SPEC.md` (fork) | `src/SharpRail.Plugins.UI.Kit/SPEC.md` |
 
 ## Not tracked
 
@@ -217,3 +221,13 @@ Commits are in chain order; the first ten are JetBrains commits the fork carries
 - `4c774f45e` Chats survive a provider switch when their saved model is unavailable: skipped (AI chat)
 - `626031274` A project's absolute path can be copied from its context menu: ported (plus the workspace menu's Copy path -> Copy absolute path and new Copy name)
 - `d4d03db1b` A worktree made in ThinkRail's folder shows up as a workspace: already present (SharpRail's workspace rows come straight from `git worktree list`, so any worktree made from a terminal already shows; there is no workspace registry to adopt into or dismissal list to keep)
+
+### Plugin API, one commit (2026-10-01)
+
+- `4737df6d3` Plugin API: the contract, the host loader, the web registry, and the UI kit: ported as the three
+  `SharpRail.Plugins.Api*` assemblies, the host runtime (`Host.Core/Plugins`), the app runtime (`UI/Plugins`)
+  and `SharpRail.Plugins.UI.Kit`, with the wire as one generic gRPC call and stream. Not ported: pi (H11, H16,
+  the agent tool surface and the `pi` block, which is parsed and ignored), chat (chat companion hosts,
+  `openChat`, tool renderers, the `writtenPathGroup` slot), workspace auto-naming hints, the `styles` manifest
+  field, and the kit's settings-row and terminal-fact components, which arrive with their first plugin. The
+  file-icons plugin's assets and the Specs panel's move are later commits.

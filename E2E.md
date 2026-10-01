@@ -278,6 +278,11 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `topbar-chrome.spec.ts` | ordinary browsers have a fixed themed header with zero native insets | Ported (fixed 40px themed header, workbench below it, Settings inside at narrow width; native inset elements are unrepresentable) |
 | `topbar-chrome.spec.ts` | live safe areas on either edge preserve header and workbench geometry | Pending: safe-area insets cannot be injected; the title bar has a fixed OS-dependent margin |
 | `topbar-chrome.spec.ts` | the action cluster keeps Update, quota Retry and Settings out of the drag region | Pending: SharpRail has no Update or quota Retry actions |
+| `plugins/fixture/external-plugin.spec.ts` (fork) | the roster lists a discovered external plugin as disabled | Ported (`PluginUiChecks`: the fixture is installed from disk into the host's state directory and run twice, through the app's in-process runtime and through a remote host over gRPC; the row shows external, `v1.0.0` and disabled) |
+| `plugins/fixture/external-plugin.spec.ts` (fork) | enabling mounts its settings section and its side tool, and its method answers over the wire | Ported (the switch in Settings › Plugins; the UI half is read from the plugin directory through `IPluginService.ReadFileAsync`; the section's settings update reaches the host half, and a start action's call and the board's state channel round-trip) |
+| `plugins/fixture/external-plugin.spec.ts` (fork) | disabling unmounts the side tool and the method reports disabled | Ported (the tool tab keeps its slot with "Fixture board is off"; every contribution leaves; the call reports `Disabled`) |
+| `plugins/fixture/external-plugin.spec.ts` (fork) | a manifest with a mismatched API generation is refused, naming both generations | Ported (a copy installed with `apiGeneration` 999 is refused by the host and its row names 999 and 1) |
+| `plugins/fixture/external-plugin.spec.ts` (fork) | a plugin directory removed from disk disappears after a rescan | Ported (a second installed copy is deleted from disk; Rescan in Settings › Plugins drops its row) |
 
 Upstream cases combining supported docking with terminal/chat content need adapted
 fixtures while preserving the layout assertions. Multi-client cases use a second window

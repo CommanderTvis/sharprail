@@ -8,6 +8,7 @@ title: SharpRail — top-level architecture
 # SharpRail — top-level architecture
 
 Upstream: architecture.md (revision: [UPSTREAM.md](UPSTREAM.md))
+Upstream: architecture.md @ 4737df6d (CommanderTvis fork), Decision 17 and the plugin rings
 
 ## Drivers
 
@@ -25,14 +26,23 @@ library; remoteness is an adapter choice, never a mandatory local daemon.
   the only coupling between a remote client and host.
 - Client: `SharpRail.UI` (Avalonia workbench) consumes the abstractions through `SharpRail.Host.Client`,
   whose `Local*Adapter`s call Core directly and whose `Remote*Adapter`s proxy over gRPC.
+- Plugins: `SharpRail.Plugins.Api` (root, `.Host` and `.UI` entries) is the contract a plugin is written
+  against, so its methods, channels and UI contributions can live outside either ring. The host runtime
+  (`SharpRail.Host.Core/Plugins`) loads plugin host halves wherever the host runs; the app runtime
+  (`SharpRail.UI/Plugins`) loads UI halves. `SharpRail.Plugins.UI.Kit` is the control kit both the app and a
+  plugin's UI half build on, never a wire concern of its own.
 
 ```
-SharpRail.UI              Avalonia app + workbench   ── depends on ─▶ Host.Core, Host.Client, Scintilla, Ghostty.Avalonia
+SharpRail.UI              Avalonia app + workbench   ── depends on ─▶ Host.Core, Host.Client, Host.Remote (loopback server only), Plugins.Api.UI, Plugins.UI.Kit, Scintilla, Ghostty.Avalonia
 SharpRail.Host.Client     local adapters + gRPC proxies ─ depends on ─▶ Host.Abstractions, Host.Protocol
 SharpRail.Host.Remote     Kestrel host + RPC adapters ── depends on ─▶ Host.Core, Host.Protocol
-SharpRail.Host.Core       host implementation        ── depends on ─▶ Host.Abstractions
+SharpRail.Host.Core       host implementation        ── depends on ─▶ Host.Abstractions, Plugins.Api.Host
 SharpRail.Host.Protocol   wire contracts + DTOs
-SharpRail.Host.Abstractions  transport-independent interfaces + domain records
+SharpRail.Host.Abstractions  transport-independent interfaces + domain records ─ depends on ─▶ Plugins.Api
+SharpRail.Plugins.Api     plugin contract: manifest, contract vocabulary, roster, identity helpers
+SharpRail.Plugins.Api.Host  plugin host context ─ depends on ─▶ Plugins.Api
+SharpRail.Plugins.Api.UI  plugin UI context and contributions ─ depends on ─▶ Plugins.Api, Avalonia
+SharpRail.Plugins.UI.Kit  shared controls, Markdown, editor frame, diagrams ─ depends on ─▶ Scintilla, Avalonia
 SharpRail.Scintilla       self-contained editor control (references no SharpRail project)
 tests/SharpRail.Checks    executable checks; references UI and Remote to exercise both paths
 ```
@@ -88,6 +98,21 @@ tests/SharpRail.Checks    executable checks; references UI and Remote to exercis
 13. Host drift is detectable. The state service's handshake carries a protocol version (`HostProtocol.Current`,
     SharpRail's own counter) so an independently shipped client can tell that its host is newer, older or
     predates the handshake. A client treats a missing answer as unsupported and never guesses.
+14. Plugins are the extension boundary, builtin and external at parity. A feature that would otherwise reach
+    through every layer (a host method, its wire contract and adapters, a state slice, a panel switch arm)
+    instead lives behind `SharpRail.Plugins.Api`: a manifest plus a host half, a UI half, or both, each a .NET
+    assembly, loaded by `Host.Core/Plugins` and `UI/Plugins`. A builtin plugin is a project referenced by the
+    host and the app and listed in their builtin arrays; an external plugin is a directory a user installs
+    under `<stateDir>/plugins`, loaded into its own `AssemblyLoadContext` that shares the framework, Avalonia,
+    the API and the kit with the default context. Both declare the same manifest, get the same capabilities
+    and appear in the same roster. Every plugin can be turned on and off while the app runs, with no restart,
+    through one serialised reconciler per host and the same reconcile in the app. A host half runs wherever
+    the host runs, in process for the app's own host and inside a remote host otherwise; a UI half always
+    runs in the app, an external one read through the host. Plugin methods and channels are one generic call
+    and one generic stream, direct in process and JSON over gRPC. The API carries no compatibility promise; a
+    single generation integer, declared in the manifest and checked before load, is the whole contract, and a
+    mismatch is refused with a reason naming both generations. There is no sandbox: plugin code runs with the
+    privileges of the host or the app. Full contract: `src/SharpRail.Plugins.Api/SPEC.md`.
 
 ## Invariants
 
@@ -104,6 +129,8 @@ tests/SharpRail.Checks    executable checks; references UI and Remote to exercis
 - Separate app processes do not coordinate: each composes its own host. Multi-client means the windows of
   one process plus the clients of one remote host.
 - The host's session token never reaches user shells.
+- Plugins reference only the API assemblies, the kit and their declared dependencies' contracts, never a
+  `SharpRail.Host.*` project or `SharpRail.UI`; the host and UI API entries do not reference each other.
 
 ## Not yet ported
 

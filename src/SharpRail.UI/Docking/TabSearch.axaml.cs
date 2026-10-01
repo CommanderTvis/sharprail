@@ -4,7 +4,6 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 
-using SharpRail.UI.Rendering;
 
 namespace SharpRail.UI.Docking;
 

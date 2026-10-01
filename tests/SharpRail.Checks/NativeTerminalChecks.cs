@@ -119,14 +119,14 @@ internal static class NativeTerminalChecks
         ((ISelectionItemProvider)ControlAutomationPeer.CreatePeerForElement(shown!)!).Select();
         await Until(() => Native.Focused(original));
         await Until(() => Native.Background(original) == 0x18181b);
-        SharpRail.UI.Rendering.Ui.Apply(SharpRail.UI.Rendering.Themes.Resolve("light"));
+        Ui.Apply(SharpRail.UI.Rendering.Themes.Resolve("light"));
         await Until(() => Native.Background(original) == 0xf4f4f5);
         foreach (var theme in SharpRail.UI.Rendering.Themes.All)
         {
-            SharpRail.UI.Rendering.Ui.Apply(theme);
+            Ui.Apply(theme);
             await Until(() => Native.Background(original) == (theme["content"].ToUInt32() & 0xffffff));
         }
-        SharpRail.UI.Rendering.Ui.Apply(SharpRail.UI.Rendering.Themes.Resolve("dark"));
+        Ui.Apply(SharpRail.UI.Rendering.Themes.Resolve("dark"));
         await Until(() => Native.Background(original) == 0x18181b);
         await Type(original, "printf 'TAB_%s_OK\\n' KEYBOARD\r");
         await Until(() => Read(original).Contains("TAB_KEYBOARD_OK", StringComparison.Ordinal));

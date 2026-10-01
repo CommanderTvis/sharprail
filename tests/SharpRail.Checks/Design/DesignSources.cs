@@ -25,7 +25,7 @@ internal static class DesignSources
 
     internal static string Ui(string root) => Path.Combine(root, "src", "SharpRail.UI");
     internal static string Source(string root, string name) => Path.Combine(Ui(root), "Rendering", "Design", name);
-    internal static string Generated(string root, string name) => Path.Combine(Ui(root), "Rendering", "Generated", name);
+    internal static string Generated(string root, string name) => Path.Combine(root, "src", "SharpRail.Plugins.UI.Kit", "Generated", name);
 
     internal static Colors LoadColors(string root)
     {
@@ -62,7 +62,7 @@ internal static class DesignSources
     private static string GenerateColors(Colors colors)
     {
         var text = new StringBuilder(string.Format(CultureInfo.InvariantCulture, Header, "colors.json"));
-        text.Append("using Avalonia.Media;\n\nnamespace SharpRail.UI.Rendering;\n\npublic static partial class Ui\n{\n");
+        text.Append("#nullable enable\nusing Avalonia.Media;\n\nnamespace SharpRail.Plugins.UI.Kit;\n\npublic static partial class Ui\n{\n");
         foreach (var role in colors.Roles)
             text.Append(role.IsColor
                 ? $"    public static Color{(Nullable(role) ? "?" : "")} {role.Name} {{ get; private set; }}\n"

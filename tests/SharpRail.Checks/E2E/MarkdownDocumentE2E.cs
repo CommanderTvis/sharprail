@@ -4,7 +4,6 @@ using Avalonia.Controls.Documents;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
-using SharpRail.UI.Rendering;
 using static SharpRail.Checks.E2E.E2eWorkspace;
 
 namespace SharpRail.Checks.E2E;
@@ -33,6 +32,7 @@ internal static class MarkdownDocumentE2E
         Unreadable(root);
         SpecDocuments(root);
         OrdinaryMarkdown(root);
+        DiffLinks(root);
         Outline(root);
         Split(root);
         Find(root);
@@ -46,6 +46,23 @@ internal static class MarkdownDocumentE2E
         var app = new E2eWorkspace(directory);
         app.Open(file, true);
         return app;
+    }
+
+    private static void DiffLinks(string root)
+    {
+        using var app = OpenDocument(root, "markdown-diff-links", "diff.md",
+            "---\nid: diff-links\ntype: module-design\n---\n\n<del>Deleted [contribution](target.md) and [[missing-spec]]</del>\n\n<ins>Added [license](target.md)</ins>\n\n~~[Struck link](target.md)~~\n\n[Plain link](target.md)\n");
+        var labels = app.Find<MarkdownPreview>("MarkdownPreview").GetLogicalDescendants().OfType<MarkdownLink>()
+            .Select(link => (TextBlock)link.Content!).ToArray();
+        foreach (var label in labels.Where(label => label.Text is "contribution" or "missing-spec"))
+            Require(label.TextDecorations == Avalonia.Media.TextDecorations.Strikethrough && label.Foreground == Ui.Danger && label.Background is not null,
+                "Deleted ordinary and spec links must retain the surrounding diff's strike, color and background.");
+        Require(labels.Length == 5 && labels.Single(label => label.Text == "license").Foreground == Ui.Success &&
+            labels.Single(label => label.Text == "license").TextDecorations is null &&
+            labels.Single(label => label.Text == "Struck link").TextDecorations == Avalonia.Media.TextDecorations.Strikethrough &&
+            labels.Single(label => label.Text == "Plain link").TextDecorations is null,
+            "Inserted, struck and ordinary links must retain their respective decorations.");
+        Console.WriteLine("PASS Markdown diff links inherit deletion and insertion styling, including spec links");
     }
 
     private static void Properties(string root)

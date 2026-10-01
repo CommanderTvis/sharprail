@@ -1,0 +1,358 @@
+#nullable enable
+abstract SharpRail.Plugins.Api.PluginToolDefinition.RunAsync(object! parameters, SharpRail.Plugins.Api.PluginToolContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<SharpRail.Plugins.Api.PluginToolResult!>
+const SharpRail.Plugins.Api.PluginApi.Generation = 1 -> int
+const SharpRail.Plugins.Api.PluginIdentity.IdPattern = "^[a-z0-9]+(?:-[a-z0-9]+)*$" -> string!
+const SharpRail.Plugins.Api.PluginManifest.FileName = "sharprail-plugin.json" -> string!
+override SharpRail.Plugins.Api.HostProject.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.HostProject.GetHashCode() -> int
+override SharpRail.Plugins.Api.HostProject.ToString() -> string!
+override SharpRail.Plugins.Api.HostWorkspace.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.HostWorkspace.GetHashCode() -> int
+override SharpRail.Plugins.Api.HostWorkspace.ToString() -> string!
+override SharpRail.Plugins.Api.PluginContributions.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.PluginContributions.GetHashCode() -> int
+override SharpRail.Plugins.Api.PluginContributions.ToString() -> string!
+override SharpRail.Plugins.Api.PluginDependency.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.PluginDependency.GetHashCode() -> int
+override SharpRail.Plugins.Api.PluginDependency.ToString() -> string!
+override SharpRail.Plugins.Api.PluginFileViewerContribution.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.PluginFileViewerContribution.GetHashCode() -> int
+override SharpRail.Plugins.Api.PluginFileViewerContribution.ToString() -> string!
+override SharpRail.Plugins.Api.PluginManifest.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.PluginManifest.GetHashCode() -> int
+override SharpRail.Plugins.Api.PluginManifest.ToString() -> string!
+override SharpRail.Plugins.Api.PluginPiBlock.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.PluginPiBlock.GetHashCode() -> int
+override SharpRail.Plugins.Api.PluginPiBlock.ToString() -> string!
+override SharpRail.Plugins.Api.PluginRosterChannel.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.PluginRosterChannel.GetHashCode() -> int
+override SharpRail.Plugins.Api.PluginRosterChannel.ToString() -> string!
+override SharpRail.Plugins.Api.PluginRosterEntry.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.PluginRosterEntry.GetHashCode() -> int
+override SharpRail.Plugins.Api.PluginRosterEntry.ToString() -> string!
+override SharpRail.Plugins.Api.PluginSideToolContribution.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.PluginSideToolContribution.GetHashCode() -> int
+override SharpRail.Plugins.Api.PluginSideToolContribution.ToString() -> string!
+override SharpRail.Plugins.Api.PluginTool<TParams>.RunAsync(object! parameters, SharpRail.Plugins.Api.PluginToolContext! context, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<SharpRail.Plugins.Api.PluginToolResult!>
+override SharpRail.Plugins.Api.PluginToolContext.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.PluginToolContext.GetHashCode() -> int
+override SharpRail.Plugins.Api.PluginToolContext.ToString() -> string!
+override SharpRail.Plugins.Api.PluginToolResult.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.PluginToolResult.GetHashCode() -> int
+override SharpRail.Plugins.Api.PluginToolResult.ToString() -> string!
+override SharpRail.Plugins.Api.TerminalAgentRecord.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.TerminalAgentRecord.GetHashCode() -> int
+override SharpRail.Plugins.Api.TerminalAgentRecord.ToString() -> string!
+override SharpRail.Plugins.Api.TerminalRef.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.TerminalRef.GetHashCode() -> int
+override SharpRail.Plugins.Api.TerminalRef.ToString() -> string!
+SharpRail.Plugins.Api.HostPlatform
+SharpRail.Plugins.Api.HostPlatform.Linux = 1 -> SharpRail.Plugins.Api.HostPlatform
+SharpRail.Plugins.Api.HostPlatform.MacOS = 0 -> SharpRail.Plugins.Api.HostPlatform
+SharpRail.Plugins.Api.HostPlatform.Windows = 2 -> SharpRail.Plugins.Api.HostPlatform
+SharpRail.Plugins.Api.HostProject
+SharpRail.Plugins.Api.HostProject.<Clone>$() -> SharpRail.Plugins.Api.HostProject!
+SharpRail.Plugins.Api.HostProject.Deconstruct(out string! Id, out string! Name, out string! Path) -> void
+SharpRail.Plugins.Api.HostProject.Equals(SharpRail.Plugins.Api.HostProject? other) -> bool
+SharpRail.Plugins.Api.HostProject.HostProject(string! Id, string! Name, string! Path) -> void
+SharpRail.Plugins.Api.HostProject.Id.get -> string!
+SharpRail.Plugins.Api.HostProject.Id.init -> void
+SharpRail.Plugins.Api.HostProject.Name.get -> string!
+SharpRail.Plugins.Api.HostProject.Name.init -> void
+SharpRail.Plugins.Api.HostProject.Path.get -> string!
+SharpRail.Plugins.Api.HostProject.Path.init -> void
+SharpRail.Plugins.Api.HostProject.WorktreesDirectory.get -> string!
+SharpRail.Plugins.Api.HostProject.WorktreesDirectory.init -> void
+SharpRail.Plugins.Api.HostWorkspace
+SharpRail.Plugins.Api.HostWorkspace.<Clone>$() -> SharpRail.Plugins.Api.HostWorkspace!
+SharpRail.Plugins.Api.HostWorkspace.Branch.get -> string!
+SharpRail.Plugins.Api.HostWorkspace.Branch.init -> void
+SharpRail.Plugins.Api.HostWorkspace.Deconstruct(out string! Id, out string! ProjectId, out string! Name, out string! Branch, out string! Path, out bool IsDefault) -> void
+SharpRail.Plugins.Api.HostWorkspace.Equals(SharpRail.Plugins.Api.HostWorkspace? other) -> bool
+SharpRail.Plugins.Api.HostWorkspace.HostWorkspace(string! Id, string! ProjectId, string! Name, string! Branch, string! Path, bool IsDefault) -> void
+SharpRail.Plugins.Api.HostWorkspace.Id.get -> string!
+SharpRail.Plugins.Api.HostWorkspace.Id.init -> void
+SharpRail.Plugins.Api.HostWorkspace.IsDefault.get -> bool
+SharpRail.Plugins.Api.HostWorkspace.IsDefault.init -> void
+SharpRail.Plugins.Api.HostWorkspace.Name.get -> string!
+SharpRail.Plugins.Api.HostWorkspace.Name.init -> void
+SharpRail.Plugins.Api.HostWorkspace.Path.get -> string!
+SharpRail.Plugins.Api.HostWorkspace.Path.init -> void
+SharpRail.Plugins.Api.HostWorkspace.ProjectId.get -> string!
+SharpRail.Plugins.Api.HostWorkspace.ProjectId.init -> void
+SharpRail.Plugins.Api.IPluginDependencyHandle
+SharpRail.Plugins.Api.IPluginDependencyHandle.RequestAsync<TParams, TResult>(SharpRail.Plugins.Api.PluginMethod<TParams, TResult>! method, TParams parameters, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<TResult>
+SharpRail.Plugins.Api.IPluginDependencyHandle.Subscribe<TPayload>(SharpRail.Plugins.Api.PluginChannel<TPayload>! channel, System.Action<TPayload>! handler) -> System.IDisposable!
+SharpRail.Plugins.Api.PluginApi
+SharpRail.Plugins.Api.PluginCallError
+SharpRail.Plugins.Api.PluginCallError.Disabled = 1 -> SharpRail.Plugins.Api.PluginCallError
+SharpRail.Plugins.Api.PluginCallError.Failed = 3 -> SharpRail.Plugins.Api.PluginCallError
+SharpRail.Plugins.Api.PluginCallError.InvalidParams = 2 -> SharpRail.Plugins.Api.PluginCallError
+SharpRail.Plugins.Api.PluginCallError.Unknown = 0 -> SharpRail.Plugins.Api.PluginCallError
+SharpRail.Plugins.Api.PluginCallException
+SharpRail.Plugins.Api.PluginCallException.Error.get -> SharpRail.Plugins.Api.PluginCallError
+SharpRail.Plugins.Api.PluginCallException.PluginCallException(SharpRail.Plugins.Api.PluginCallError error, string! message) -> void
+SharpRail.Plugins.Api.PluginChannel<TPayload>
+SharpRail.Plugins.Api.PluginChannelKind
+SharpRail.Plugins.Api.PluginChannelKind.Event = 1 -> SharpRail.Plugins.Api.PluginChannelKind
+SharpRail.Plugins.Api.PluginChannelKind.State = 0 -> SharpRail.Plugins.Api.PluginChannelKind
+SharpRail.Plugins.Api.PluginChannelSpec
+SharpRail.Plugins.Api.PluginChannelSpec.Key.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Plugins.Api.PluginChannelSpec.Kind.get -> SharpRail.Plugins.Api.PluginChannelKind
+SharpRail.Plugins.Api.PluginChannelSpec.Name.get -> string!
+SharpRail.Plugins.Api.PluginChannelSpec.PayloadType.get -> System.Type!
+SharpRail.Plugins.Api.PluginChannelSpec.Snapshot.get -> string?
+SharpRail.Plugins.Api.PluginContract
+SharpRail.Plugins.Api.PluginContract.Channels.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginChannelSpec!>!
+SharpRail.Plugins.Api.PluginContract.Id.get -> string!
+SharpRail.Plugins.Api.PluginContract.Methods.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginMethodSpec!>!
+SharpRail.Plugins.Api.PluginContract.SettingsType.get -> System.Type?
+SharpRail.Plugins.Api.PluginContract.WireVersion.get -> int
+SharpRail.Plugins.Api.PluginContributions
+SharpRail.Plugins.Api.PluginContributions.<Clone>$() -> SharpRail.Plugins.Api.PluginContributions!
+SharpRail.Plugins.Api.PluginContributions.Equals(SharpRail.Plugins.Api.PluginContributions? other) -> bool
+SharpRail.Plugins.Api.PluginContributions.FileViewers.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginFileViewerContribution!>!
+SharpRail.Plugins.Api.PluginContributions.FileViewers.init -> void
+SharpRail.Plugins.Api.PluginContributions.PluginContributions() -> void
+SharpRail.Plugins.Api.PluginContributions.SideTools.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginSideToolContribution!>!
+SharpRail.Plugins.Api.PluginContributions.SideTools.init -> void
+SharpRail.Plugins.Api.PluginDependency
+SharpRail.Plugins.Api.PluginDependency.<Clone>$() -> SharpRail.Plugins.Api.PluginDependency!
+SharpRail.Plugins.Api.PluginDependency.Deconstruct(out string! Id, out int WireVersion) -> void
+SharpRail.Plugins.Api.PluginDependency.Equals(SharpRail.Plugins.Api.PluginDependency? other) -> bool
+SharpRail.Plugins.Api.PluginDependency.Id.get -> string!
+SharpRail.Plugins.Api.PluginDependency.Id.init -> void
+SharpRail.Plugins.Api.PluginDependency.PluginDependency(string! Id, int WireVersion) -> void
+SharpRail.Plugins.Api.PluginDependency.WireVersion.get -> int
+SharpRail.Plugins.Api.PluginDependency.WireVersion.init -> void
+SharpRail.Plugins.Api.PluginFileRead
+SharpRail.Plugins.Api.PluginFileRead.None = 1 -> SharpRail.Plugins.Api.PluginFileRead
+SharpRail.Plugins.Api.PluginFileRead.Text = 0 -> SharpRail.Plugins.Api.PluginFileRead
+SharpRail.Plugins.Api.PluginFileViewerContribution
+SharpRail.Plugins.Api.PluginFileViewerContribution.<Clone>$() -> SharpRail.Plugins.Api.PluginFileViewerContribution!
+SharpRail.Plugins.Api.PluginFileViewerContribution.Equals(SharpRail.Plugins.Api.PluginFileViewerContribution? other) -> bool
+SharpRail.Plugins.Api.PluginFileViewerContribution.Extensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Plugins.Api.PluginFileViewerContribution.Extensions.init -> void
+SharpRail.Plugins.Api.PluginFileViewerContribution.Names.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Plugins.Api.PluginFileViewerContribution.Names.init -> void
+SharpRail.Plugins.Api.PluginFileViewerContribution.PluginFileViewerContribution() -> void
+SharpRail.Plugins.Api.PluginFileViewerContribution.Read.get -> SharpRail.Plugins.Api.PluginFileRead
+SharpRail.Plugins.Api.PluginFileViewerContribution.Read.init -> void
+SharpRail.Plugins.Api.PluginIdentity
+SharpRail.Plugins.Api.PluginJson
+SharpRail.Plugins.Api.PluginManifest
+SharpRail.Plugins.Api.PluginManifest.<Clone>$() -> SharpRail.Plugins.Api.PluginManifest!
+SharpRail.Plugins.Api.PluginManifest.ApiGeneration.get -> int
+SharpRail.Plugins.Api.PluginManifest.ApiGeneration.init -> void
+SharpRail.Plugins.Api.PluginManifest.Assets.get -> string?
+SharpRail.Plugins.Api.PluginManifest.Assets.init -> void
+SharpRail.Plugins.Api.PluginManifest.Contributes.get -> SharpRail.Plugins.Api.PluginContributions!
+SharpRail.Plugins.Api.PluginManifest.Contributes.init -> void
+SharpRail.Plugins.Api.PluginManifest.Deconstruct(out string! Id, out string! Label, out string! Icon, out string! Version, out int ApiGeneration, out int WireVersion) -> void
+SharpRail.Plugins.Api.PluginManifest.DependsOn.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginDependency!>!
+SharpRail.Plugins.Api.PluginManifest.DependsOn.init -> void
+SharpRail.Plugins.Api.PluginManifest.Description.get -> string?
+SharpRail.Plugins.Api.PluginManifest.Description.init -> void
+SharpRail.Plugins.Api.PluginManifest.EnabledByDefault.get -> bool
+SharpRail.Plugins.Api.PluginManifest.EnabledByDefault.init -> void
+SharpRail.Plugins.Api.PluginManifest.Equals(SharpRail.Plugins.Api.PluginManifest? other) -> bool
+SharpRail.Plugins.Api.PluginManifest.Host.get -> string?
+SharpRail.Plugins.Api.PluginManifest.Host.init -> void
+SharpRail.Plugins.Api.PluginManifest.Icon.get -> string!
+SharpRail.Plugins.Api.PluginManifest.Icon.init -> void
+SharpRail.Plugins.Api.PluginManifest.Id.get -> string!
+SharpRail.Plugins.Api.PluginManifest.Id.init -> void
+SharpRail.Plugins.Api.PluginManifest.Label.get -> string!
+SharpRail.Plugins.Api.PluginManifest.Label.init -> void
+SharpRail.Plugins.Api.PluginManifest.Pi.get -> SharpRail.Plugins.Api.PluginPiBlock?
+SharpRail.Plugins.Api.PluginManifest.Pi.init -> void
+SharpRail.Plugins.Api.PluginManifest.PluginManifest(string! Id, string! Label, string! Icon, string! Version, int ApiGeneration, int WireVersion) -> void
+SharpRail.Plugins.Api.PluginManifest.Ui.get -> string?
+SharpRail.Plugins.Api.PluginManifest.Ui.init -> void
+SharpRail.Plugins.Api.PluginManifest.Version.get -> string!
+SharpRail.Plugins.Api.PluginManifest.Version.init -> void
+SharpRail.Plugins.Api.PluginManifest.WireVersion.get -> int
+SharpRail.Plugins.Api.PluginManifest.WireVersion.init -> void
+SharpRail.Plugins.Api.PluginMethod<TParams, TResult>
+SharpRail.Plugins.Api.PluginMethod<TParams, TResult>.PluginMethod(string! name) -> void
+SharpRail.Plugins.Api.PluginMethodSpec
+SharpRail.Plugins.Api.PluginMethodSpec.Name.get -> string!
+SharpRail.Plugins.Api.PluginMethodSpec.ParamsType.get -> System.Type!
+SharpRail.Plugins.Api.PluginMethodSpec.ResultType.get -> System.Type!
+SharpRail.Plugins.Api.PluginOrigin
+SharpRail.Plugins.Api.PluginOrigin.Builtin = 0 -> SharpRail.Plugins.Api.PluginOrigin
+SharpRail.Plugins.Api.PluginOrigin.External = 1 -> SharpRail.Plugins.Api.PluginOrigin
+SharpRail.Plugins.Api.PluginPiBlock
+SharpRail.Plugins.Api.PluginPiBlock.<Clone>$() -> SharpRail.Plugins.Api.PluginPiBlock!
+SharpRail.Plugins.Api.PluginPiBlock.Equals(SharpRail.Plugins.Api.PluginPiBlock? other) -> bool
+SharpRail.Plugins.Api.PluginPiBlock.Extensions.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Plugins.Api.PluginPiBlock.Extensions.init -> void
+SharpRail.Plugins.Api.PluginPiBlock.ModifiesSystemPrompt.get -> bool
+SharpRail.Plugins.Api.PluginPiBlock.ModifiesSystemPrompt.init -> void
+SharpRail.Plugins.Api.PluginPiBlock.PluginPiBlock() -> void
+SharpRail.Plugins.Api.PluginPiBlock.ReachesSubagents.get -> bool
+SharpRail.Plugins.Api.PluginPiBlock.ReachesSubagents.init -> void
+SharpRail.Plugins.Api.PluginPiBlock.Skills.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Plugins.Api.PluginPiBlock.Skills.init -> void
+SharpRail.Plugins.Api.PluginRosterChannel
+SharpRail.Plugins.Api.PluginRosterChannel.<Clone>$() -> SharpRail.Plugins.Api.PluginRosterChannel!
+SharpRail.Plugins.Api.PluginRosterChannel.Deconstruct(out SharpRail.Plugins.Api.PluginChannelKind Kind, out string? Snapshot, out System.Collections.Generic.IReadOnlyList<string!>! Key) -> void
+SharpRail.Plugins.Api.PluginRosterChannel.Equals(SharpRail.Plugins.Api.PluginRosterChannel? other) -> bool
+SharpRail.Plugins.Api.PluginRosterChannel.Key.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Plugins.Api.PluginRosterChannel.Key.init -> void
+SharpRail.Plugins.Api.PluginRosterChannel.Kind.get -> SharpRail.Plugins.Api.PluginChannelKind
+SharpRail.Plugins.Api.PluginRosterChannel.Kind.init -> void
+SharpRail.Plugins.Api.PluginRosterChannel.PluginRosterChannel(SharpRail.Plugins.Api.PluginChannelKind Kind, string? Snapshot, System.Collections.Generic.IReadOnlyList<string!>! Key) -> void
+SharpRail.Plugins.Api.PluginRosterChannel.Snapshot.get -> string?
+SharpRail.Plugins.Api.PluginRosterChannel.Snapshot.init -> void
+SharpRail.Plugins.Api.PluginRosterEntry
+SharpRail.Plugins.Api.PluginRosterEntry.<Clone>$() -> SharpRail.Plugins.Api.PluginRosterEntry!
+SharpRail.Plugins.Api.PluginRosterEntry.Assets.get -> string?
+SharpRail.Plugins.Api.PluginRosterEntry.Assets.init -> void
+SharpRail.Plugins.Api.PluginRosterEntry.Channels.get -> System.Collections.Generic.IReadOnlyDictionary<string!, SharpRail.Plugins.Api.PluginRosterChannel!>!
+SharpRail.Plugins.Api.PluginRosterEntry.Channels.init -> void
+SharpRail.Plugins.Api.PluginRosterEntry.Contributes.get -> SharpRail.Plugins.Api.PluginContributions!
+SharpRail.Plugins.Api.PluginRosterEntry.Contributes.init -> void
+SharpRail.Plugins.Api.PluginRosterEntry.Deconstruct(out string! Id, out string! Label, out string! Icon, out string! Version, out int WireVersion, out SharpRail.Plugins.Api.PluginOrigin Origin, out SharpRail.Plugins.Api.PluginStatus Status) -> void
+SharpRail.Plugins.Api.PluginRosterEntry.DependsOn.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Plugins.Api.PluginRosterEntry.DependsOn.init -> void
+SharpRail.Plugins.Api.PluginRosterEntry.Description.get -> string?
+SharpRail.Plugins.Api.PluginRosterEntry.Description.init -> void
+SharpRail.Plugins.Api.PluginRosterEntry.Equals(SharpRail.Plugins.Api.PluginRosterEntry? other) -> bool
+SharpRail.Plugins.Api.PluginRosterEntry.Icon.get -> string!
+SharpRail.Plugins.Api.PluginRosterEntry.Icon.init -> void
+SharpRail.Plugins.Api.PluginRosterEntry.Id.get -> string!
+SharpRail.Plugins.Api.PluginRosterEntry.Id.init -> void
+SharpRail.Plugins.Api.PluginRosterEntry.Label.get -> string!
+SharpRail.Plugins.Api.PluginRosterEntry.Label.init -> void
+SharpRail.Plugins.Api.PluginRosterEntry.Origin.get -> SharpRail.Plugins.Api.PluginOrigin
+SharpRail.Plugins.Api.PluginRosterEntry.Origin.init -> void
+SharpRail.Plugins.Api.PluginRosterEntry.PluginRosterEntry(string! Id, string! Label, string! Icon, string! Version, int WireVersion, SharpRail.Plugins.Api.PluginOrigin Origin, SharpRail.Plugins.Api.PluginStatus Status) -> void
+SharpRail.Plugins.Api.PluginRosterEntry.Reason.get -> string?
+SharpRail.Plugins.Api.PluginRosterEntry.Reason.init -> void
+SharpRail.Plugins.Api.PluginRosterEntry.Status.get -> SharpRail.Plugins.Api.PluginStatus
+SharpRail.Plugins.Api.PluginRosterEntry.Status.init -> void
+SharpRail.Plugins.Api.PluginRosterEntry.Ui.get -> string?
+SharpRail.Plugins.Api.PluginRosterEntry.Ui.init -> void
+SharpRail.Plugins.Api.PluginRosterEntry.Version.get -> string!
+SharpRail.Plugins.Api.PluginRosterEntry.Version.init -> void
+SharpRail.Plugins.Api.PluginRosterEntry.WireVersion.get -> int
+SharpRail.Plugins.Api.PluginRosterEntry.WireVersion.init -> void
+SharpRail.Plugins.Api.PluginSideToolContribution
+SharpRail.Plugins.Api.PluginSideToolContribution.<Clone>$() -> SharpRail.Plugins.Api.PluginSideToolContribution!
+SharpRail.Plugins.Api.PluginSideToolContribution.Deconstruct(out string! Tool, out string! Label, out string! Icon, out SharpRail.Plugins.Api.PluginToolSide DefaultSide) -> void
+SharpRail.Plugins.Api.PluginSideToolContribution.DefaultSide.get -> SharpRail.Plugins.Api.PluginToolSide
+SharpRail.Plugins.Api.PluginSideToolContribution.DefaultSide.init -> void
+SharpRail.Plugins.Api.PluginSideToolContribution.Equals(SharpRail.Plugins.Api.PluginSideToolContribution? other) -> bool
+SharpRail.Plugins.Api.PluginSideToolContribution.Icon.get -> string!
+SharpRail.Plugins.Api.PluginSideToolContribution.Icon.init -> void
+SharpRail.Plugins.Api.PluginSideToolContribution.Label.get -> string!
+SharpRail.Plugins.Api.PluginSideToolContribution.Label.init -> void
+SharpRail.Plugins.Api.PluginSideToolContribution.PluginSideToolContribution(string! Tool, string! Label, string! Icon, SharpRail.Plugins.Api.PluginToolSide DefaultSide) -> void
+SharpRail.Plugins.Api.PluginSideToolContribution.RequiresGit.get -> bool
+SharpRail.Plugins.Api.PluginSideToolContribution.RequiresGit.init -> void
+SharpRail.Plugins.Api.PluginSideToolContribution.Tool.get -> string!
+SharpRail.Plugins.Api.PluginSideToolContribution.Tool.init -> void
+SharpRail.Plugins.Api.PluginStatus
+SharpRail.Plugins.Api.PluginStatus.Active = 0 -> SharpRail.Plugins.Api.PluginStatus
+SharpRail.Plugins.Api.PluginStatus.Disabled = 1 -> SharpRail.Plugins.Api.PluginStatus
+SharpRail.Plugins.Api.PluginStatus.Failed = 2 -> SharpRail.Plugins.Api.PluginStatus
+SharpRail.Plugins.Api.PluginStatus.Refused = 3 -> SharpRail.Plugins.Api.PluginStatus
+SharpRail.Plugins.Api.PluginTool<TParams>
+SharpRail.Plugins.Api.PluginTool<TParams>.PluginTool(string! name, string! label, string! description, System.Func<TParams, SharpRail.Plugins.Api.PluginToolContext!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<SharpRail.Plugins.Api.PluginToolResult!>>! run) -> void
+SharpRail.Plugins.Api.PluginToolContext
+SharpRail.Plugins.Api.PluginToolContext.<Clone>$() -> SharpRail.Plugins.Api.PluginToolContext!
+SharpRail.Plugins.Api.PluginToolContext.Cwd.get -> string!
+SharpRail.Plugins.Api.PluginToolContext.Cwd.init -> void
+SharpRail.Plugins.Api.PluginToolContext.Deconstruct(out string! Cwd, out string? WorkspaceId, out SharpRail.Plugins.Api.TerminalRef? Terminal) -> void
+SharpRail.Plugins.Api.PluginToolContext.Equals(SharpRail.Plugins.Api.PluginToolContext? other) -> bool
+SharpRail.Plugins.Api.PluginToolContext.PluginToolContext(string! Cwd, string? WorkspaceId, SharpRail.Plugins.Api.TerminalRef? Terminal) -> void
+SharpRail.Plugins.Api.PluginToolContext.Terminal.get -> SharpRail.Plugins.Api.TerminalRef?
+SharpRail.Plugins.Api.PluginToolContext.Terminal.init -> void
+SharpRail.Plugins.Api.PluginToolContext.WorkspaceId.get -> string?
+SharpRail.Plugins.Api.PluginToolContext.WorkspaceId.init -> void
+SharpRail.Plugins.Api.PluginToolDefinition
+SharpRail.Plugins.Api.PluginToolDefinition.Description.get -> string!
+SharpRail.Plugins.Api.PluginToolDefinition.Label.get -> string!
+SharpRail.Plugins.Api.PluginToolDefinition.Name.get -> string!
+SharpRail.Plugins.Api.PluginToolDefinition.ParametersType.get -> System.Type!
+SharpRail.Plugins.Api.PluginToolResult
+SharpRail.Plugins.Api.PluginToolResult.<Clone>$() -> SharpRail.Plugins.Api.PluginToolResult!
+SharpRail.Plugins.Api.PluginToolResult.Deconstruct(out string! Text) -> void
+SharpRail.Plugins.Api.PluginToolResult.Details.get -> object?
+SharpRail.Plugins.Api.PluginToolResult.Details.init -> void
+SharpRail.Plugins.Api.PluginToolResult.Equals(SharpRail.Plugins.Api.PluginToolResult? other) -> bool
+SharpRail.Plugins.Api.PluginToolResult.IsError.get -> bool
+SharpRail.Plugins.Api.PluginToolResult.IsError.init -> void
+SharpRail.Plugins.Api.PluginToolResult.PluginToolResult(string! Text) -> void
+SharpRail.Plugins.Api.PluginToolResult.Text.get -> string!
+SharpRail.Plugins.Api.PluginToolResult.Text.init -> void
+SharpRail.Plugins.Api.PluginToolSide
+SharpRail.Plugins.Api.PluginToolSide.Left = 0 -> SharpRail.Plugins.Api.PluginToolSide
+SharpRail.Plugins.Api.PluginToolSide.Right = 1 -> SharpRail.Plugins.Api.PluginToolSide
+SharpRail.Plugins.Api.TerminalAgentRecord
+SharpRail.Plugins.Api.TerminalAgentRecord.<Clone>$() -> SharpRail.Plugins.Api.TerminalAgentRecord!
+SharpRail.Plugins.Api.TerminalAgentRecord.Command.get -> string!
+SharpRail.Plugins.Api.TerminalAgentRecord.Command.init -> void
+SharpRail.Plugins.Api.TerminalAgentRecord.Cwd.get -> string?
+SharpRail.Plugins.Api.TerminalAgentRecord.Cwd.init -> void
+SharpRail.Plugins.Api.TerminalAgentRecord.Deconstruct(out string! Kind, out string! Command) -> void
+SharpRail.Plugins.Api.TerminalAgentRecord.Equals(SharpRail.Plugins.Api.TerminalAgentRecord? other) -> bool
+SharpRail.Plugins.Api.TerminalAgentRecord.Kind.get -> string!
+SharpRail.Plugins.Api.TerminalAgentRecord.Kind.init -> void
+SharpRail.Plugins.Api.TerminalAgentRecord.Model.get -> string?
+SharpRail.Plugins.Api.TerminalAgentRecord.Model.init -> void
+SharpRail.Plugins.Api.TerminalAgentRecord.SessionId.get -> string?
+SharpRail.Plugins.Api.TerminalAgentRecord.SessionId.init -> void
+SharpRail.Plugins.Api.TerminalAgentRecord.TerminalAgentRecord(string! Kind, string! Command) -> void
+SharpRail.Plugins.Api.TerminalRef
+SharpRail.Plugins.Api.TerminalRef.<Clone>$() -> SharpRail.Plugins.Api.TerminalRef!
+SharpRail.Plugins.Api.TerminalRef.Deconstruct(out string! WorkspaceId, out string! TabKey) -> void
+SharpRail.Plugins.Api.TerminalRef.Equals(SharpRail.Plugins.Api.TerminalRef? other) -> bool
+SharpRail.Plugins.Api.TerminalRef.TabKey.get -> string!
+SharpRail.Plugins.Api.TerminalRef.TabKey.init -> void
+SharpRail.Plugins.Api.TerminalRef.TerminalRef(string! WorkspaceId, string! TabKey) -> void
+SharpRail.Plugins.Api.TerminalRef.WorkspaceId.get -> string!
+SharpRail.Plugins.Api.TerminalRef.WorkspaceId.init -> void
+static SharpRail.Plugins.Api.HostProject.operator !=(SharpRail.Plugins.Api.HostProject? left, SharpRail.Plugins.Api.HostProject? right) -> bool
+static SharpRail.Plugins.Api.HostProject.operator ==(SharpRail.Plugins.Api.HostProject? left, SharpRail.Plugins.Api.HostProject? right) -> bool
+static SharpRail.Plugins.Api.HostWorkspace.operator !=(SharpRail.Plugins.Api.HostWorkspace? left, SharpRail.Plugins.Api.HostWorkspace? right) -> bool
+static SharpRail.Plugins.Api.HostWorkspace.operator ==(SharpRail.Plugins.Api.HostWorkspace? left, SharpRail.Plugins.Api.HostWorkspace? right) -> bool
+static SharpRail.Plugins.Api.PluginChannel<TPayload>.Event(string! name) -> SharpRail.Plugins.Api.PluginChannel<TPayload>!
+static SharpRail.Plugins.Api.PluginChannel<TPayload>.State<TParams>(string! name, SharpRail.Plugins.Api.PluginMethod<TParams, TPayload>! snapshot, params System.Collections.Generic.IReadOnlyList<string!>! key) -> SharpRail.Plugins.Api.PluginChannel<TPayload>!
+static SharpRail.Plugins.Api.PluginContract.Create(string! id, int wireVersion, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginMethodSpec!>! methods, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginChannelSpec!>! channels) -> SharpRail.Plugins.Api.PluginContract!
+static SharpRail.Plugins.Api.PluginContract.Create<TSettings>(string! id, int wireVersion, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginMethodSpec!>! methods, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.PluginChannelSpec!>! channels) -> SharpRail.Plugins.Api.PluginContract!
+static SharpRail.Plugins.Api.PluginContributions.operator !=(SharpRail.Plugins.Api.PluginContributions? left, SharpRail.Plugins.Api.PluginContributions? right) -> bool
+static SharpRail.Plugins.Api.PluginContributions.operator ==(SharpRail.Plugins.Api.PluginContributions? left, SharpRail.Plugins.Api.PluginContributions? right) -> bool
+static SharpRail.Plugins.Api.PluginDependency.operator !=(SharpRail.Plugins.Api.PluginDependency? left, SharpRail.Plugins.Api.PluginDependency? right) -> bool
+static SharpRail.Plugins.Api.PluginDependency.operator ==(SharpRail.Plugins.Api.PluginDependency? left, SharpRail.Plugins.Api.PluginDependency? right) -> bool
+static SharpRail.Plugins.Api.PluginFileViewerContribution.operator !=(SharpRail.Plugins.Api.PluginFileViewerContribution? left, SharpRail.Plugins.Api.PluginFileViewerContribution? right) -> bool
+static SharpRail.Plugins.Api.PluginFileViewerContribution.operator ==(SharpRail.Plugins.Api.PluginFileViewerContribution? left, SharpRail.Plugins.Api.PluginFileViewerContribution? right) -> bool
+static SharpRail.Plugins.Api.PluginIdentity.ChannelName(string! id, string! name) -> string!
+static SharpRail.Plugins.Api.PluginIdentity.IsPluginId(string! value) -> bool
+static SharpRail.Plugins.Api.PluginIdentity.MethodName(string! id, string! name) -> string!
+static SharpRail.Plugins.Api.PluginIdentity.ParseToolId(string! value) -> (string! PluginId, string! Tool)?
+static SharpRail.Plugins.Api.PluginIdentity.PreferenceKey(string! id, string! key) -> string!
+static SharpRail.Plugins.Api.PluginIdentity.Route(string! id, string! subpath = "") -> string!
+static SharpRail.Plugins.Api.PluginIdentity.StateFile(string! id, string! name) -> string!
+static SharpRail.Plugins.Api.PluginIdentity.ToolId(string! id, string! tool) -> string!
+static SharpRail.Plugins.Api.PluginJson.Convert<T>(object? value) -> T
+static SharpRail.Plugins.Api.PluginJson.Options.get -> System.Text.Json.JsonSerializerOptions!
+static SharpRail.Plugins.Api.PluginManifest.operator !=(SharpRail.Plugins.Api.PluginManifest? left, SharpRail.Plugins.Api.PluginManifest? right) -> bool
+static SharpRail.Plugins.Api.PluginManifest.operator ==(SharpRail.Plugins.Api.PluginManifest? left, SharpRail.Plugins.Api.PluginManifest? right) -> bool
+static SharpRail.Plugins.Api.PluginPiBlock.operator !=(SharpRail.Plugins.Api.PluginPiBlock? left, SharpRail.Plugins.Api.PluginPiBlock? right) -> bool
+static SharpRail.Plugins.Api.PluginPiBlock.operator ==(SharpRail.Plugins.Api.PluginPiBlock? left, SharpRail.Plugins.Api.PluginPiBlock? right) -> bool
+static SharpRail.Plugins.Api.PluginRosterChannel.operator !=(SharpRail.Plugins.Api.PluginRosterChannel? left, SharpRail.Plugins.Api.PluginRosterChannel? right) -> bool
+static SharpRail.Plugins.Api.PluginRosterChannel.operator ==(SharpRail.Plugins.Api.PluginRosterChannel? left, SharpRail.Plugins.Api.PluginRosterChannel? right) -> bool
+static SharpRail.Plugins.Api.PluginRosterEntry.operator !=(SharpRail.Plugins.Api.PluginRosterEntry? left, SharpRail.Plugins.Api.PluginRosterEntry? right) -> bool
+static SharpRail.Plugins.Api.PluginRosterEntry.operator ==(SharpRail.Plugins.Api.PluginRosterEntry? left, SharpRail.Plugins.Api.PluginRosterEntry? right) -> bool
+static SharpRail.Plugins.Api.PluginSideToolContribution.operator !=(SharpRail.Plugins.Api.PluginSideToolContribution? left, SharpRail.Plugins.Api.PluginSideToolContribution? right) -> bool
+static SharpRail.Plugins.Api.PluginSideToolContribution.operator ==(SharpRail.Plugins.Api.PluginSideToolContribution? left, SharpRail.Plugins.Api.PluginSideToolContribution? right) -> bool
+static SharpRail.Plugins.Api.PluginToolContext.operator !=(SharpRail.Plugins.Api.PluginToolContext? left, SharpRail.Plugins.Api.PluginToolContext? right) -> bool
+static SharpRail.Plugins.Api.PluginToolContext.operator ==(SharpRail.Plugins.Api.PluginToolContext? left, SharpRail.Plugins.Api.PluginToolContext? right) -> bool
+static SharpRail.Plugins.Api.PluginToolResult.operator !=(SharpRail.Plugins.Api.PluginToolResult? left, SharpRail.Plugins.Api.PluginToolResult? right) -> bool
+static SharpRail.Plugins.Api.PluginToolResult.operator ==(SharpRail.Plugins.Api.PluginToolResult? left, SharpRail.Plugins.Api.PluginToolResult? right) -> bool
+static SharpRail.Plugins.Api.TerminalAgentRecord.operator !=(SharpRail.Plugins.Api.TerminalAgentRecord? left, SharpRail.Plugins.Api.TerminalAgentRecord? right) -> bool
+static SharpRail.Plugins.Api.TerminalAgentRecord.operator ==(SharpRail.Plugins.Api.TerminalAgentRecord? left, SharpRail.Plugins.Api.TerminalAgentRecord? right) -> bool
+static SharpRail.Plugins.Api.TerminalRef.operator !=(SharpRail.Plugins.Api.TerminalRef? left, SharpRail.Plugins.Api.TerminalRef? right) -> bool
+static SharpRail.Plugins.Api.TerminalRef.operator ==(SharpRail.Plugins.Api.TerminalRef? left, SharpRail.Plugins.Api.TerminalRef? right) -> bool

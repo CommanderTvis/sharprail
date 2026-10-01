@@ -1,7 +1,8 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:rendering="using:SharpRail.UI.Rendering"
+        xmlns:rendering="using:SharpRail.Plugins.UI.Kit"
         xmlns:local="using:SharpRail.UI"
+        xmlns:notifications="using:SharpRail.UI.Rendering"
         x:Class="SharpRail.UI.WorkbenchWindow"
         Title="SharpRail" Width="1440" Height="920" MinWidth="390" MinHeight="540"
         ExtendClientAreaToDecorationsHint="True" ExtendClientAreaTitleBarHeightHint="40"
@@ -99,7 +100,7 @@
       <TextBlock x:Name="QuitHintMessage" Foreground="{x:Static rendering:Ui.TextBrush}" FontSize="14" TextWrapping="Wrap" />
     </Border>
     <StackPanel Grid.Row="1" ZIndex="30" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="12" Spacing="8">
-    <rendering:ToastStack x:Name="ToastStack" Width="356" />
+    <notifications:ToastStack x:Name="ToastStack" Width="356" />
     <Border x:Name="GestureToast" IsVisible="False" Width="356"
             Background="{x:Static rendering:Ui.Elevated}" BorderBrush="{x:Static rendering:Ui.BorderBrush}"
             BorderThickness="0,1,1,1" CornerRadius="4" ClipToBounds="True">

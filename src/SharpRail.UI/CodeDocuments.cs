@@ -9,7 +9,7 @@ public sealed partial class WorkbenchWindow
 {
     private bool askingToSave, closeConfirmed;
 
-    private double FileWrapWidth => Rendering.LineWidths.File(Preferences);
+    private double FileWrapWidth => LineWidths.File(Preferences.FileLineWidth, Preferences.FileLineWidthBounded);
 
     private CodeDocumentView CodeDocument(FileDocument document, string tabId, string key)
     {
@@ -23,7 +23,7 @@ public sealed partial class WorkbenchWindow
                 Layout.Keep(group.Id, tabId);
                 if (focused) editor!.Focus();
             }
-        }, text => documents[key] = document with { Text = text }, surface.RefreshModified, Report);
+        }, text => { documents[key] = document with { Text = text }; EmitSaved(key); }, surface.RefreshModified, Report);
         view.Editor.WrapWidth = FileWrapWidth;
         view.DeletedOnDisk = deletedDocuments.Contains(key);
         return view;

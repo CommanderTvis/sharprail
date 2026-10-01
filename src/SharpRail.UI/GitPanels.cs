@@ -7,8 +7,6 @@ using Avalonia.Layout;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.UI.Docking;
-using SharpRail.UI.Panels;
-using SharpRail.UI.Rendering;
 
 namespace SharpRail.UI;
 
@@ -293,6 +291,14 @@ public sealed partial class WorkbenchWindow
         var filename = Ui.Text(label[(separator + 1)..], color);
         filename.Classes.Add("change-path-base");
         Ui.Place(path, filename, 0, 1);
+        if (Plugins.FileIcon(change.Path, SharpRail.Plugins.Api.UI.FileIconKind.File) is not null)
+        {
+            path.ColumnDefinitions.Insert(0, new ColumnDefinition(GridLength.Auto));
+            Grid.SetColumn(directory, 1); Grid.SetColumn(filename, 2);
+            var icon = FileIcon(change.Path, false, "fileText", color);
+            icon.Margin = new Thickness(0, 0, 4, 0);
+            Ui.Place(path, icon);
+        }
         Ui.Place(row, path);
         var numbers = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
         numbers.Children.Add(Ui.Text("+" + change.Added, Ui.Success, 12));

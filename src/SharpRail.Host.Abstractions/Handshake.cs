@@ -9,7 +9,7 @@ namespace SharpRail.Host.Abstractions;
 /// </summary>
 public static class HostProtocol
 {
-    public const int Current = 2;
+    public const int Current = 4;
 
     /// <summary>Revert and undo of a change, and the SHA-256 on both diff sides they depend on.</summary>
     public const int ChangeWritePath = 2;

@@ -16,6 +16,35 @@ public sealed class LayoutSession
         State = state is not null && IsValid(state) ? state : DockState.Preset("balanced");
     }
 
+    public static readonly IReadOnlyList<DockToolInfo> CoreTools =
+    [
+        .. DockState.ToolNames.Select(id => new DockToolInfo(id, DockState.Tool(id).Title, id switch
+        {
+            "projects" => "folderTab",
+            "specs" => "bookFill",
+            "files" => "file",
+            "changes" => "fileDiff",
+            _ => "discuss"
+        }, DockState.ToolRegion(id)))
+    ];
+    private IReadOnlyList<DockToolInfo> tools = CoreTools;
+
+    /// <summary>Every tool this layout can name and restore: core's, then the extra ones the workbench composes in.</summary>
+    public IReadOnlyList<DockToolInfo> Tools => tools;
+    public event Action? ToolsChanged;
+
+    /// <summary>Replaces the composed tools after core's; a tab naming a tool absent from the list keeps its slot.</summary>
+    public void SetExtraTools(IReadOnlyList<DockToolInfo> extra)
+    {
+        if (tools.Skip(CoreTools.Count).SequenceEqual(extra)) return;
+        tools = [.. CoreTools, .. extra];
+        ToolsChanged?.Invoke();
+    }
+
+    public DockToolInfo? Tool(string id) => tools.FirstOrDefault(tool => tool.Id == id);
+    public string ToolTitle(DockTab tab) => tab.IsTool ? Tool(tab.Id)?.Title ?? tab.Title : tab.Title;
+    private string ToolRegion(string id) => Tool(id)?.Region ?? DockState.ToolRegion(id);
+
     public WorkspaceView View => State.Workspaces.GetValueOrDefault(State.ActiveWorkspace) ?? new();
     public DockGroup Group(string id) => State.Groups.Single(group => group.Id == id);
     public IReadOnlyList<DockTab> Tabs(string groupId) => ProjectTabs(State, groupId);
@@ -164,12 +193,12 @@ public sealed class LayoutSession
         if (index >= 0) docs![index] = docs[index] with { Preview = false };
     });
 
-    public void NewTerminal(string groupId) => Change(state =>
+    public void NewTerminal(string groupId, string? id = null) => Change(state =>
     {
         var group = state.Groups.Single(item => item.Id == groupId);
         var view = Active(state);
         if (!view.Documents.TryGetValue(groupId, out var tabs)) view.Documents[groupId] = tabs = [];
-        var tab = new DockTab("terminal:" + Guid.NewGuid().ToString("N"), "Terminal " + view.NextTerminalNumber++, "terminal");
+        var tab = new DockTab(id ?? "terminal:" + Guid.NewGuid().ToString("N"), "Terminal " + view.NextTerminalNumber++, "terminal");
         tabs.Add(tab); group.Folded = false;
         view.Selected[groupId] = tab.Id; view.FocusedGroup = groupId;
         if (group.Region == "center") view.FocusedCenter = groupId;
@@ -475,11 +504,12 @@ public sealed class LayoutSession
         var group = state.Groups.FirstOrDefault(item => item.Id == target && item.Region != "center");
         if (group is null)
         {
-            group = state.Groups.FirstOrDefault(item => item.Region == DockState.ToolRegion(id));
-            if (group is null) { group = new() { Region = DockState.ToolRegion(id) }; state.Groups.Add(group); }
+            group = state.Groups.FirstOrDefault(item => item.Region == ToolRegion(id));
+            if (group is null) { group = new() { Region = ToolRegion(id) }; state.Groups.Add(group); }
         }
         var order = ProjectTabs(state, group.Id).ToList();
-        order.Insert(Math.Clamp(state.ToolRestorePositions.GetValueOrDefault(id, order.Count), 0, order.Count), DockState.Tool(id));
+        order.Insert(Math.Clamp(state.ToolRestorePositions.GetValueOrDefault(id, order.Count), 0, order.Count),
+            new DockTab(id, Tool(id)?.Title ?? DockState.Tool(id).Title, "tool"));
         group.Tools = order.Where(tab => tab.IsTool).ToList();
         AnchorResources(Active(state), order);
         group.Folded = false; state.ToolRestore.Remove(id); state.ToolRestorePositions.Remove(id);
@@ -510,7 +540,7 @@ public sealed class LayoutSession
             }
             view.FocusedCenter = leaves[0]; view.FocusedGroup = leaves[0];
         }
-        foreach (var tool in DockState.ToolNames)
+        foreach (var tool in tools.Select(tool => tool.Id))
             if (!next.Groups.Any(group => group.Tools.Any(tab => tab.Id == tool))) next.ToolRestore[tool] = "";
         if (!IsValid(next)) return;
         State = next; Epoch++; Changed?.Invoke();
@@ -531,7 +561,7 @@ public sealed class LayoutSession
                     group.Region is not ("center" or "left" or "right" or "bottom") ||
                     !double.IsFinite(group.Weight) || group.Weight <= 0 || group.Region == "center" && group.Folded) ||
                 state.Groups.GroupBy(group => group.Region).Any(region => region.Count() > 32) ||
-                tools.Any(tab => !tab.IsTool || !DockState.ToolNames.Contains(tab.Id)) ||
+                tools.Any(tab => !tab.IsTool || !DockState.IsToolId(tab.Id)) ||
                 tools.Select(tab => tab.Id).Distinct().Count() != tools.Length ||
                 state.Groups.Any(group => group.Region == "center" && group.Tools.Count > 0) ||
                 state.SideLimit is < 1 or > 32 || state.BottomLimit is < 1 or > 32 ||

@@ -16,6 +16,16 @@ recording and replay belong to the host (`Host.Core/PtyTerminalService.cs` behin
 `ITerminalService`); tab placement belongs to the window's workspace view (see
 [Docking/SPEC.md](../Docking/SPEC.md)).
 
+## Plugin accessories and companions
+
+`TerminalView` hosts what plugins contribute to a terminal (W6, W11 in the plugin API). Accessory rows sit below
+the surface; a companion pane opens in an embedded split beside it, never as a tab of its own, and which companion
+is open per terminal is the window's view state (`WindowProfile.Companions`). Available companions are offered as a
+row of buttons above the accessories. `ITerminalBackend.Write` types into the shell as a user would and
+`ReadScreen` returns the screen and scrollback as text: the Ghostty backend uses the bridge's existing
+`sr_terminal_input` and `sr_terminal_read`, and the checks' headless backend writes to its PTY session and reads its
+plain-text view. An accessory's `BufferTail` is the last lines of that text.
+
 ## Boundary
 
 - Owns: attach/detach of one tab to one session, start-failure and retry, takeover notice and take-back,
@@ -165,3 +175,7 @@ fallback while preserving the local/remote shell and its exit status.
   exist, but no window reserves its tabs or reconciles against it yet: terminal membership is still each
   window's own, the initial terminal has a random id per window, and a tab closed elsewhere stays until
   this window closes it. See [Docking/SPEC.md](../Docking/SPEC.md).
+- `TerminalKeyEncoding.AgentNewline`: the bridge has no key-encoding switch, so `SetKeyEncoding` is a no-op and
+  Shift+Return keeps Ghostty's own encoding.
+- Faint-cell blanking in `BufferTail(omitFaint: true)`: libghostty's text read carries no cell attributes, so faint
+  placeholders are returned as text.

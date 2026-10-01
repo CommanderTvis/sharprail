@@ -11,7 +11,9 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 
 using SharpRail.Host.Abstractions;
+using SharpRail.Plugins.Api.UI;
 using SharpRail.UI.Docking;
+using SharpRail.UI.Plugins;
 using SharpRail.UI.Rendering;
 using SharpRail.UI.State;
 
@@ -28,6 +30,8 @@ public sealed partial class SettingsWindow : Window
     private readonly CancellationTokenSource lifetime = new();
     private readonly ContentControl body;
     private readonly Dictionary<string, Button> navigation = [];
+    private readonly StackPanel navigationList;
+    private string pluginSectionsSignature = "";
     private string section = "Appearance";
     private string? renamingPreset;
     private readonly List<Action> refreshers = [];
@@ -42,7 +46,11 @@ public sealed partial class SettingsWindow : Window
         this.section = section;
         this.window = window; profile = window.Workbench.Profile; state = window.Workbench.State; layout = window.Layout; this.apply = apply;
         this.gitHub = gitHub ?? GitHubProbe.CheckAsync;
-        Closed += (_, _) => { lifetime.Cancel(); Ui.ThemeChanged -= SystemThemeChanged; state.Changed -= SharedChanged; };
+        Closed += (_, _) =>
+        {
+            lifetime.Cancel(); Ui.ThemeChanged -= SystemThemeChanged; state.Changed -= SharedChanged;
+            window.Workbench.PluginRegistry.Changed -= PluginsChanged;
+        };
         Ui.ThemeChanged += SystemThemeChanged;
         state.Changed += SharedChanged;
         Name = "SettingsWindow";
@@ -59,16 +67,11 @@ public sealed partial class SettingsWindow : Window
         close.Click += (_, _) => Close();
         close.Resources["ButtonBackgroundPointerOver"] = Ui.Hover;
         close.Resources["ButtonBackgroundPressed"] = Ui.Hover;
-        foreach (var item in new[] { ("Appearance", "palette"), ("Line width", "fileText"), ("Layout", "layout"), ("Projects", "folderTab"), ("Terminal", "terminal"), ("GitHub", "gitBranch") })
-        {
-            var button = this.FindControl<Button>("Settings_" + item.Item1.Replace(' ', '_'))!;
-            button.Content = Ui.Row(item.Item2, item.Item1);
-            ((StackPanel)button.Content!).Spacing = 8;
-            button.Click += (_, _) => ShowSection(item.Item1);
-            navigation[item.Item1] = button;
-            button.Resources["ButtonBackgroundPointerOver"] = Ui.Hover;
-            button.Resources["ButtonBackgroundPressed"] = Ui.Hover;
-        }
+        navigationList = this.FindControl<StackPanel>("SettingsNavigation")!;
+        foreach (var item in new[] { ("Appearance", "palette"), ("Line width", "fileText"), ("Layout", "layout"), ("Projects", "folderTab"), ("Terminal", "terminal"), ("GitHub", "gitBranch"), ("Plugins", "puzzle") })
+            Navigation(this.FindControl<Button>("Settings_" + item.Item1.Replace(' ', '_'))!, item.Item1, Ui.Row(item.Item2, item.Item1));
+        SyncPluginSections();
+        window.Workbench.PluginRegistry.Changed += PluginsChanged;
         var frame = this.FindControl<Border>("SettingsFrame")!;
         frame.SizeChanged += (_, args) => frame.Clip = new RectangleGeometry(new Rect(args.NewSize), 8, 8);
         KeyDown += (_, e) => { if (e.Key == Key.Escape || AppCommands.IsClose(e)) { Close(); e.Handled = true; } };
@@ -77,20 +80,90 @@ public sealed partial class SettingsWindow : Window
 
     public string Section => section;
 
+    private void Navigation(Button button, string key, StackPanel content)
+    {
+        button.Content = content;
+        content.Spacing = 8;
+        button.Click += (_, _) => ShowSection(key);
+        navigation[key] = button;
+        button.Resources["ButtonBackgroundPointerOver"] = Ui.Hover;
+        button.Resources["ButtonBackgroundPressed"] = Ui.Hover;
+    }
+
+    private void PluginsChanged(PluginTables tables)
+    {
+        if (tables.HasFlag(PluginTables.SettingsSections) || tables.HasFlag(PluginTables.Roster)) SyncPluginSections();
+    }
+
+    private static string SectionKey(PluginRow<SettingsSectionRegistration> row) => "plugin:" + row.PluginId + ":" + (row.Value.Id ?? row.PluginId);
+
+    // Plugin sections follow core's; a section whose plugin leaves takes its page with it.
+    private void SyncPluginSections()
+    {
+        var registry = window.Workbench.PluginRegistry;
+        var sections = registry.SettingsSections;
+        var signature = string.Join("\n", sections.Select(row => SectionKey(row) + "\t" + row.Value.Label + "\t" + row.Value.Icon));
+        if (signature == pluginSectionsSignature) return;
+        pluginSectionsSignature = signature;
+        foreach (var key in navigation.Keys.Where(key => key.StartsWith("plugin:", StringComparison.Ordinal)).ToArray())
+        {
+            navigationList.Children.Remove(navigation[key]);
+            navigation.Remove(key);
+        }
+        foreach (var row in sections)
+        {
+            var key = SectionKey(row);
+            var button = new Button { Name = "Settings_" + key.Replace(':', '_'), Classes = { "settings-navigation" } };
+            var content = new StackPanel { Orientation = Orientation.Horizontal };
+            content.Children.Add(PluginIcons.Resolve(row.Value.Icon, registry.Entry(row.PluginId), Ui.Muted));
+            content.Children.Add(Ui.Text(row.Value.Label));
+            Navigation(button, key, content);
+            navigationList.Children.Add(button);
+        }
+        if (section.StartsWith("plugin:", StringComparison.Ordinal) && !navigation.ContainsKey(section)) ShowSection("Plugins");
+        else PaintNavigation();
+    }
+
+    private Control PluginSection(string key)
+    {
+        var row = window.Workbench.PluginRegistry.SettingsSections.FirstOrDefault(candidate => SectionKey(candidate) == key);
+        if (row is null) return new StackPanel();
+        var page = new StackPanel { Spacing = 8 };
+        page.Children.Add(new TextBlock { Text = row.Value.Label, Classes = { "settings-heading" } });
+        page.Children.Add(WorkbenchWindow.Mount(row.PluginId, row.Value.Create));
+        return page;
+    }
+
     public void ShowSection(string name)
     {
+        if (name.StartsWith("plugin:", StringComparison.Ordinal) && !navigation.ContainsKey(name)) name = "Plugins";
         section = name; refreshers.Clear();
-        foreach (var entry in navigation)
+        PaintNavigation();
+        var page = name switch
         {
-            var active = entry.Key == name;
-            entry.Value.Background = active ? Ui.PrimarySubtle : Ui.Elevated;
-            foreach (var text in ((StackPanel)entry.Value.Content!).Children.OfType<TextBlock>()) text.Foreground = active ? Ui.Accent : Ui.Muted;
-            ((Border)((StackPanel)entry.Value.Content!).Children[0]).Background = active ? Ui.Accent : Ui.Muted;
-        }
-        var page = name switch { "Line width" => LineWidth(), "Layout" => LayoutSettings(), "Projects" => ProjectSettings(), "Terminal" => TerminalSettings(), "GitHub" => GitHubSettings(), _ => Appearance() };
+            "Line width" => LineWidth(),
+            "Layout" => LayoutSettings(),
+            "Projects" => ProjectSettings(),
+            "Terminal" => TerminalSettings(),
+            "GitHub" => GitHubSettings(),
+            "Plugins" => new PluginsSettings(state, window.Workbench.Plugins, this),
+            _ when name.StartsWith("plugin:", StringComparison.Ordinal) => PluginSection(name),
+            _ => Appearance()
+        };
         (error.Parent as Panel)?.Children.Remove(error);
         if (page is Panel content) content.Children.Add(error);
         body.Content = page;
+    }
+
+    private void PaintNavigation()
+    {
+        foreach (var entry in navigation)
+        {
+            var active = entry.Key == section;
+            entry.Value.Background = active ? Ui.PrimarySubtle : Ui.Elevated;
+            foreach (var text in ((StackPanel)entry.Value.Content!).Children.OfType<TextBlock>()) text.Foreground = active ? Ui.Accent : Ui.Muted;
+            if (((StackPanel)entry.Value.Content!).Children[0] is Border glyph) glyph.Background = active ? Ui.Accent : Ui.Muted;
+        }
     }
 
     /// <summary>The device's appearance can change while Settings is open; keep the current system resolution accurate.</summary>

@@ -1,11 +1,17 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:rendering="using:SharpRail.UI.Rendering"
+             xmlns:rendering="using:SharpRail.Plugins.UI.Kit"
              x:Class="SharpRail.UI.Terminal.TerminalView"
              FontFamily="{x:Static rendering:Ui.InterfaceFont}" Foreground="{x:Static rendering:Ui.TextBrush}">
-  <Grid RowDefinitions="*,Auto">
-    <ContentControl x:Name="TerminalBody" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
-    <StackPanel x:Name="TerminalStartFailure" IsVisible="False" Spacing="12" MaxWidth="520" Margin="24"
+  <!-- Plugin accessory rows sit below the surface; a plugin companion pane opens in an embedded split beside it. -->
+  <Grid RowDefinitions="*,Auto,Auto" ColumnDefinitions="*,Auto,Auto">
+    <StackPanel x:Name="TerminalAccessories" Grid.Row="2" Grid.ColumnSpan="3" />
+    <ContentControl x:Name="TerminalBody" Grid.Row="0" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
+    <GridSplitter x:Name="TerminalCompanionSplitter" Grid.Row="0" Grid.Column="1" Width="1" IsVisible="False"
+                  Background="{x:Static rendering:Ui.BorderBrush}" ResizeDirection="Columns" />
+    <ContentControl x:Name="TerminalCompanion" Grid.Row="0" Grid.Column="2" Width="360" IsVisible="False"
+                    HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
+    <StackPanel x:Name="TerminalStartFailure" Grid.Row="0" IsVisible="False" Spacing="12" MaxWidth="520" Margin="24"
                 HorizontalAlignment="Center" VerticalAlignment="Center">
       <TextBlock Text="The terminal couldn’t start" FontSize="15" FontWeight="SemiBold" />
       <SelectableTextBlock x:Name="TerminalStartFailureText" TextWrapping="Wrap" />
@@ -13,14 +19,15 @@
                  Text="Check that the workspace folder still exists and that your login shell can start, then retry. The tab stays open." />
       <Button x:Name="TerminalStartRetry" Content="Retry" HorizontalAlignment="Left" />
     </StackPanel>
-    <Border x:Name="TerminalDetached" IsVisible="False" Background="{x:Static rendering:Ui.Terminal}">
+    <!-- A native terminal surface draws above Avalonia content, so the view hides it while this shows. -->
+    <Border x:Name="TerminalDetached" Grid.Row="0" IsVisible="False" Background="{x:Static rendering:Ui.Terminal}">
       <StackPanel Spacing="8" HorizontalAlignment="Center" VerticalAlignment="Center">
         <TextBlock Text="This terminal is open somewhere else." HorizontalAlignment="Center"
                    Foreground="{x:Static rendering:Ui.Muted}" FontSize="12" />
         <Button x:Name="TerminalTakeBack" Content="Take it back" HorizontalAlignment="Center" />
       </StackPanel>
     </Border>
-    <TextBlock x:Name="TerminalExited" Grid.Row="1" IsVisible="False" Margin="12,4"
+    <TextBlock x:Name="TerminalExited" Grid.Row="1" Grid.ColumnSpan="3" IsVisible="False" Margin="12,4"
                Foreground="{x:Static rendering:Ui.Muted}" FontSize="12" />
   </Grid>
 </UserControl>

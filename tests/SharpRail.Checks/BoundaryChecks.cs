@@ -13,20 +13,29 @@ internal static class BoundaryChecks
 {
     private const string Abstractions = "SharpRail.Host.Abstractions", Protocol = "SharpRail.Host.Protocol", Core = "SharpRail.Host.Core",
         Client = "SharpRail.Host.Client", Remote = "SharpRail.Host.Remote", Scintilla = "SharpRail.Scintilla", Ghostty = "Ghostty.Avalonia",
-        UI = "SharpRail.UI", Checks = "SharpRail.Checks";
+        UI = "SharpRail.UI", Checks = "SharpRail.Checks", Api = "SharpRail.Plugins.Api",
+        ApiHost = "SharpRail.Plugins.Api.Host", ApiUi = "SharpRail.Plugins.Api.UI", Kit = "SharpRail.Plugins.UI.Kit";
 
     /// <summary>Every project and what it may reach, directly or through a reference. A new project needs its own entry.</summary>
     private static readonly Dictionary<string, string[]> Allowed = new()
     {
-        [Abstractions] = [],
+        [Abstractions] = [Api],
         [Protocol] = [],
-        [Core] = [Abstractions],
-        [Client] = [Abstractions, Protocol],
-        [Remote] = [Abstractions, Protocol, Core],
+        [Core] = [Abstractions, Api, ApiHost, "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex"],
+        [Client] = [Abstractions, Protocol, Api],
+        [Remote] = [Abstractions, Protocol, Core, Api, ApiHost],
         [Scintilla] = [],
         [Ghostty] = [],
-        [UI] = [Abstractions, Core, Client, Scintilla, Ghostty],
-        [Checks] = [Abstractions, Protocol, Core, Client, Remote, Scintilla, Ghostty, UI]
+        [UI] = [Abstractions, Core, Client, Remote, Scintilla, Ghostty, Api, ApiUi, Kit, "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex"],
+        [Checks] = [Abstractions, Protocol, Core, Client, Remote, Scintilla, Ghostty, UI, Api, ApiHost, ApiUi, Kit,
+            "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex", "SharpRail.PluginFixture.Host", "SharpRail.PluginFixture.UI"],
+        [Api] = [],
+        [ApiHost] = [Api],
+        [ApiUi] = [Api],
+        [Kit] = [Scintilla],
+        ["SharpRail.Plugins.Agent.UI"] = [Kit],
+        ["SharpRail.PluginFixture.Host"] = [Api, ApiHost],
+        ["SharpRail.PluginFixture.UI"] = [Api, ApiUi, Kit]
     };
 
     private static readonly string[] Generated = ["bin", "obj", "artifacts", "node_modules"];
@@ -56,7 +65,18 @@ internal static class BoundaryChecks
     internal static List<string> Scan(string root)
     {
         var projects = new[] { "src", "tests" }.Select(area => Path.Combine(root, area)).Where(Directory.Exists)
-            .SelectMany(Directory.EnumerateDirectories).SelectMany(directory => Directory.EnumerateFiles(directory, "*.csproj")).Order(StringComparer.Ordinal).ToArray();
+            .SelectMany(Directory.EnumerateDirectories).SelectMany(directory => Directory.EnumerateFiles(directory, "*.csproj", SearchOption.AllDirectories).Where(project => !Path.GetRelativePath(directory, project).Split(Path.DirectorySeparatorChar).Any(Generated.Contains))).Order(StringComparer.Ordinal).ToArray();
+        var rules = Allowed.ToDictionary();
+        foreach (var plugin in new[] { "SpecDialect", "Blueprint", "ClaudeCode", "Discord", "PdfPreview", "BranchGraph", "Visualize", "FileIcons", "Codex" })
+        {
+            var contract = "SharpRail.Plugins." + plugin;
+            rules[contract] = [Api];
+            rules[contract + ".Host"] = [Api, ApiHost, contract, "SharpRail.Plugins.SpecDialect"];
+            rules[contract + ".UI"] = [Api, ApiUi, Kit, Scintilla, contract, "SharpRail.Plugins.SpecDialect", "SharpRail.Plugins.Agent.UI"];
+            rules[Core] = [.. rules[Core], contract, contract + ".Host"];
+            rules[UI] = [.. rules[UI], contract, contract + ".UI"];
+            rules[Checks] = [.. rules[Checks], contract, contract + ".Host", contract + ".UI"];
+        }
         var names = projects.Select(project => Path.GetFileNameWithoutExtension(project)).ToArray();
         var mention = new Regex(@"(?<![\w.])(" + string.Join('|', names.OrderByDescending(name => name.Length).Select(Regex.Escape)) + @")(?!\w)", RegexOptions.CultureInvariant);
         var shared = Directory.EnumerateFiles(root, "Directory.Build.*").Where(file => Path.GetExtension(file) is ".props" or ".targets").ToArray();
@@ -64,7 +84,7 @@ internal static class BoundaryChecks
         foreach (var project in projects)
         {
             var name = Path.GetFileNameWithoutExtension(project);
-            if (!Allowed.TryGetValue(name, out var allowed))
+            if (!rules.TryGetValue(name, out var allowed))
             {
                 violations.Add($"{name}: no boundary rule; add the project and what it may depend on");
                 continue;
@@ -88,7 +108,7 @@ internal static class BoundaryChecks
         foreach (var file in Directory.EnumerateFiles(directory))
             if (Path.GetExtension(file) is ".cs" or ".axaml") yield return file;
         foreach (var child in Directory.EnumerateDirectories(directory))
-            if (!Generated.Contains(Path.GetFileName(child)) && !Path.GetFileName(child).StartsWith('.'))
+            if (!Generated.Contains(Path.GetFileName(child)) && !Path.GetFileName(child).StartsWith('.') && !Directory.EnumerateFiles(child, "*.csproj").Any())
                 foreach (var file in Sources(child)) yield return file;
     }
 

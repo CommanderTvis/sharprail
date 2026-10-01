@@ -74,6 +74,20 @@ public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime li
         Labels = state.WorkspaceLabels.Select(entry => new LabelMessage { Path = entry.Key, Label = entry.Value }).ToList(),
         Bases = state.WorkspaceBases.Select(entry => new WorkspaceRefMessage { Path = entry.Key, Reference = entry.Value }).ToList(),
         DiffBases = state.WorkspaceDiffBases.Select(entry => new WorkspaceRefMessage { Path = entry.Key, Reference = entry.Value }).ToList(),
-        Workspaces = state.Workspaces.Select(WorkspaceMessages.Map).ToList()
+        Workspaces = state.Workspaces.Select(WorkspaceMessages.Map).ToList(),
+        PluginSettings = state.PluginSettings.Select(entry => new PluginSettingsMessage { Id = entry.Key, Json = entry.Value.GetRawText() }).ToList(),
+        PluginPaths = state.PluginPaths.ToList(),
+        Plugins = PluginWire.Map(state.Plugins),
+        TerminalAgents = state.TerminalAgents.Select(agent => new TerminalAgentMessage
+        {
+            WorkspaceId = agent.Terminal.WorkspaceId,
+            TabKey = agent.Terminal.TabKey,
+            Kind = agent.Record.Kind,
+            Command = agent.Record.Command,
+            SessionId = agent.Record.SessionId ?? "",
+            Cwd = agent.Record.Cwd ?? "",
+            Model = agent.Record.Model ?? ""
+        }).ToList(),
+        Platform = state.Platform is { } platform ? System.Text.Json.JsonNamingPolicy.CamelCase.ConvertName(platform.ToString()) : ""
     };
 }

@@ -86,6 +86,7 @@ public sealed partial class WorkbenchWindow
     private void RefreshGitPanels()
     {
         UpdateProjectHomeActions();
+        SyncPluginTools();
         // A refresh that changes nothing a panel shows keeps its controls, so an open menu or a pointer target survives.
         if (ChangesSignature() != changesSignature) toolContent.Remove("changes");
         if (ReviewSignature() != reviewSignature) toolContent.Remove("review");

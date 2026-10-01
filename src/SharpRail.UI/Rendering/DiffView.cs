@@ -12,7 +12,6 @@ using Avalonia.Media;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.Scintilla;
-using SharpRail.UI.Editor;
 using SharpRail.UI.Resources;
 
 namespace SharpRail.UI.Rendering;
@@ -34,7 +33,7 @@ internal sealed partial class DiffView : Grid, IDisposable
     private readonly StackPanel segments = new() { Orientation = Orientation.Horizontal, Spacing = 4 };
     private readonly Dictionary<string, ToggleButton> toggles = [];
     private readonly Button copy;
-    private readonly ToggleButton outline = Toggle("DiffOutline", "list", "Outline");
+    private readonly ToggleButton outline = Ui.Segment("DiffOutline", "Outline");
     private readonly double wrapWidth;
     private readonly Action<string>? selectedChanged;
     private IReadOnlyList<DiffChoice> choices;
@@ -68,7 +67,7 @@ internal sealed partial class DiffView : Grid, IDisposable
     /// </summary>
     internal DiffView(string text, string path, double wrapWidth,
         IReadOnlyList<DiffChoice>? choices = null, string? selected = null, Action<string>? selectedChanged = null, bool pending = false,
-        Func<RevertTarget, Task>? revert = null, bool canRevert = true)
+        Func<RevertTarget, Task>? revert = null, bool canRevert = true, Control? pathIcon = null)
     {
         this.revert = revert;
         this.canRevert = canRevert;
@@ -80,16 +79,17 @@ internal sealed partial class DiffView : Grid, IDisposable
         current = this.choices.FirstOrDefault(choice => choice.Id == selected) ?? this.choices[0];
         Name = "DiffPane";
         RowDefinitions = new RowDefinitions("32,*");
-        var chip = new Border
+        Control chipContent = Ui.Text(path, Ui.TextBrush, 12);
+        if (pathIcon is not null)
         {
-            Name = "DiffPath",
-            Background = Ui.Elevated,
-            CornerRadius = new CornerRadius(4),
-            Padding = new Thickness(8, 2),
-            HorizontalAlignment = HorizontalAlignment.Left,
-            VerticalAlignment = VerticalAlignment.Center,
-            Child = Ui.Text(path, Ui.TextBrush, 12)
-        };
+            var labelled = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
+            labelled.Children.Add(pathIcon); labelled.Children.Add(chipContent);
+            chipContent = labelled;
+        }
+        var chip = Ui.Chip(chipContent);
+        chip.Name = "DiffPath";
+        chip.HorizontalAlignment = HorizontalAlignment.Left;
+        chip.VerticalAlignment = VerticalAlignment.Center;
         copy = new Button
         {
             Name = "DiffCopy",
@@ -339,7 +339,7 @@ internal sealed partial class DiffView : Grid, IDisposable
     private Grid WithOutline(MarkdownPreview document)
     {
         var entries = new StackPanel { Margin = new Thickness(8), Spacing = 2 };
-        MarkdownDocumentView.FillOutline(entries, document, "", null);
+        Outline.Fill(entries, document, "", null);
         var column = new Border
         {
             Name = "DiffOutlineColumn",

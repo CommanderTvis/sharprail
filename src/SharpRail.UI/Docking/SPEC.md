@@ -24,6 +24,17 @@ supplied by the window through a content callback and never learn where they are
   the state belongs to the window's `WindowProfile` (see [State/SPEC.md](../State/SPEC.md)); ending a
   terminal's shell belongs to the window when a terminal tab leaves every view.
 
+## Tool catalog
+
+The tools a layout can name are an input, not a closed list: `LayoutSession.Tools` is core's five
+(`LayoutSession.CoreTools`) followed by whatever the workbench composes in with `SetExtraTools`, today the plugin
+tools the roster declares. Names, icons, default side, the reveal menus (`ShowTool_<id>`), preset restore and
+`RestoreTool` read it; a change re-renders the surface only when the composed list differs. `IsValid` accepts
+core's ids and any `plugin:<id>:<tool>`, so a persisted tab from a plugin that is off, or since removed, keeps its
+slot and renders whatever the window supplies for it (a dormant placeholder). `DockSurface.TabIcon` and
+`TabAdornment` let the window decorate a tab without the docking layer knowing why, and `RefreshEmptyContents`
+re-renders only empty groups' content, keeping every tab's chrome.
+
 ## State contract
 
 One frame belongs to a window, not to a workspace. `DockState` carries stable group ids, the center binary

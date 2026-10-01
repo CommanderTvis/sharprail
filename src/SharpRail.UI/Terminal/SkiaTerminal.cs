@@ -72,7 +72,7 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend
         await arranged.Task.WaitAsync(lifetime.Token);
         var size = terminal.Size;
         ITerminalSession attached;
-        try { attached = await terminals.AttachAsync(new(launch.SessionId, launch.WorkspaceRoot, launch.ClientId, size.Columns, size.Rows), lifetime.Token); }
+        try { attached = await terminals.AttachAsync(new(launch.SessionId, launch.WorkspaceRoot, launch.ClientId, size.Columns, size.Rows) { TabKey = launch.TabKey }, lifetime.Token); }
         catch (Grpc.Core.RpcException error) { throw new TerminalStartException(error.Status.Detail); }
         if (disposed) { await attached.DisposeAsync(); throw new ObjectDisposedException(nameof(SkiaTerminal)); }
         session = attached;
@@ -86,9 +86,16 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend
     {
         try
         {
+            // A revived agent's command is typed once the shell has printed something, so it never lands before the prompt.
+            var prefill = attached.Prefill;
             await foreach (var chunk in attached.ReadAsync(lifetime.Token))
             {
                 await WriteOutput(chunk);
+                if (prefill is not null && chunk.Length > 0)
+                {
+                    await attached.WriteAsync(System.Text.Encoding.UTF8.GetBytes(prefill.Text + (prefill.Submit ? "\r" : "")), lifetime.Token);
+                    prefill = null;
+                }
             }
             if (attached.Detached.IsCompleted) { detached.TrySetResult(); return; }
             exited.TrySetResult(await attached.Exit);
@@ -150,6 +157,10 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend
     public ValueTask CloseAsync() => terminals.CloseAsync(launch.SessionId);
 
     public void FocusTerminal() => terminal.FocusTerminal();
+
+    public void Write(string data) => input.Writer.TryWrite(System.Text.Encoding.UTF8.GetBytes(data));
+
+    public string ReadScreen() => terminal.ReadScreen();
 
     protected override void OnGotFocus(FocusChangedEventArgs e)
     {

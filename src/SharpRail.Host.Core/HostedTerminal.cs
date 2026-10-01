@@ -55,14 +55,14 @@ internal sealed class HostedTerminal
 
     // Replay and the switch to live delivery happen under the output lock, so every byte reaches the
     // attachment exactly once: either in its replay or as a live chunk.
-    internal Attachment Attach(TerminalAttachRequest request, bool created)
+    internal Attachment Attach(TerminalAttachRequest request, bool created, TerminalPrefill? prefill = null)
     {
         lock (gate)
         {
             // A resuming client that lost the session to another client must not take it back.
             if (request.Resume && client != request.ClientId) return Attachment.Displaced(this, Process.Id, recorder.Position);
             var replay = request.Resume ? recorder.From(request.Offset) ?? Fresh() : Fresh();
-            var attachment = new Attachment(this, Process.Id, created, replay, recorder.Position);
+            var attachment = new Attachment(this, Process.Id, created, replay, recorder.Position) { Prefill = prefill };
             var previous = current;
             current = attachment; client = request.ClientId;
             previous?.Displace();
@@ -163,6 +163,7 @@ internal sealed class Attachment : ITerminalSession
     public long Position => Interlocked.Read(ref position);
     public Task<int> Exit => exit.Task;
     public Task Detached => detached.Task;
+    public TerminalPrefill? Prefill { get; init; }
 
     // Called under the terminal's output lock. A reader that cannot keep up loses the oldest output, never the
     // newest, and the host never holds more than the backlog for it; positions still advance past the gap.

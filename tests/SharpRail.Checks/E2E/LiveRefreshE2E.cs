@@ -10,7 +10,6 @@ using Avalonia.Threading;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.Scintilla;
-using SharpRail.UI.Rendering;
 
 using static SharpRail.Checks.E2E.ChangesFixture;
 using static SharpRail.Checks.E2E.E2eWorkspace;
@@ -190,8 +189,8 @@ internal static class LiveRefreshE2E
     private static void Discard(E2eWorkspace app, string tab)
     {
         app.Window.Layout.Close(app.Center, tab);
-        Until(() => app.Window.OwnedWindows.OfType<SharpRail.UI.Panels.DialogWindow>().Any());
-        var dialog = app.Window.OwnedWindows.OfType<SharpRail.UI.Panels.DialogWindow>().Single();
+        Until(() => app.Window.OwnedWindows.OfType<DialogWindow>().Any());
+        var dialog = app.Window.OwnedWindows.OfType<DialogWindow>().Single();
         dialog.GetLogicalDescendants().OfType<Button>().Single(button => button.Content is TextBlock { Text: "Don't Save" })
             .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
         Until(() => app.Tabs.All(item => item.Id != tab));

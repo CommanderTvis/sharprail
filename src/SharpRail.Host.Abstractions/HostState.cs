@@ -1,3 +1,7 @@
+using System.Text.Json;
+
+using SharpRail.Plugins.Api;
+
 namespace SharpRail.Host.Abstractions;
 
 /// <summary>Settings every client of one host shares. Empty or zero values mean the client's default.</summary>
@@ -53,7 +57,19 @@ public sealed record HostState
     public IReadOnlyList<WorkspaceRecord> Workspaces { get; init; } = [];
 
     public IEnumerable<WorkspaceRecord> WorkspacesOf(string projectRoot) => Workspaces.Where(workspace => workspace.ProjectRoot == projectRoot);
+    /// <summary>Plugin settings namespaces by plugin id, each a JSON object; its <c>enabled</c> member belongs to core.</summary>
+    public IReadOnlyDictionary<string, JsonElement> PluginSettings { get; init; } = new Dictionary<string, JsonElement>();
+    /// <summary>Extra directories scanned for external plugins, besides the state directory's <c>plugins</c>.</summary>
+    public IReadOnlyList<string> PluginPaths { get; init; } = [];
+    /// <summary>The plugin roster as the host's runtime last reconciled it. Not persisted.</summary>
+    public IReadOnlyList<PluginRosterEntry> Plugins { get; init; } = [];
+    /// <summary>The agent record of each terminal that has one; persisted, and dropped when its terminal closes.</summary>
+    public IReadOnlyList<TerminalAgent> TerminalAgents { get; init; } = [];
+    /// <summary>The host's operating system; null from a host that does not report it.</summary>
+    public HostPlatform? Platform { get; init; }
 }
+
+public sealed record TerminalAgent(TerminalRef Terminal, TerminalAgentRecord Record);
 
 public sealed record HostStateChange(string Kind, string Key = "", string Value = "")
 {
@@ -71,6 +87,10 @@ public sealed record HostStateChange(string Kind, string Key = "", string Value 
     /// <summary>Moves an open project to the front of the recents.</summary>
     public static HostStateChange CloseProject(string path) => new("project-close", path);
     public static HostStateChange ForgetProject(string path) => new("project-forget", path);
+    /// <summary>Merges a JSON object into one plugin's settings namespace; null resets the namespace.</summary>
+    public static HostStateChange PluginSettings(string id, string? json) => new("plugin-settings", id, json ?? "");
+    public static HostStateChange PluginEnabled(string id, bool enabled) => PluginSettings(id, enabled ? """{"enabled":true}""" : """{"enabled":false}""");
+    public static HostStateChange PluginPaths(IReadOnlyList<string> paths) => new("plugin-paths", Value: JsonSerializer.Serialize(paths));
 }
 
 public interface IHostStateService
