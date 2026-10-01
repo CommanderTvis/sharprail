@@ -136,5 +136,20 @@ internal static class ChangesDiffE2E
         Require(Right(chip, pane) <= Named<Control>(pane, "DiffSplit").TranslatePoint(new Point(0, 0), pane)!.Value.X + 1,
             "The path chip must give way to the controls, however long the path.");
         Console.WriteLine("PASS upstream changes.spec.ts: The diff header keeps its controls on a narrow pane, however long the file's path");
+
+        // Until the user picks a layout, it follows the pane width; a click pins it.
+        if (OperatingSystem.IsMacOS())
+        {
+            Until(() => Named<ToggleButton>(Pane(app)!, "DiffInline").IsChecked == true && Named<ToggleButton>(Pane(app)!, "DiffSplit").IsChecked == false);
+            app.Window.Width = 1800; Settle();
+            Until(() => Named<ToggleButton>(Pane(app)!, "DiffSplit").IsChecked == true);
+            app.Window.Width = 620; Settle();
+            Until(() => Named<ToggleButton>(Pane(app)!, "DiffInline").IsChecked == true);
+            app.Click(Named<ToggleButton>(Pane(app)!, "DiffSplit"));
+            app.Window.Width = 600; Settle();
+            app.Window.Width = 640; Settle();
+            Require(Named<ToggleButton>(Pane(app)!, "DiffSplit").IsChecked == true, "A clicked Split must stay split on a narrow pane.");
+            Console.WriteLine("PASS fork diffLayout: A diff too narrow for two columns opens inline until you say otherwise");
+        }
     }
 }

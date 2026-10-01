@@ -5,8 +5,9 @@ Upstream: apps/web/src/panels/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM
 ## Responsibility
 
 The modal surfaces the workbench opens: the Settings window (`SettingsWindow.axaml` / `.cs`), the shared
-dialog card (`DialogWindow.axaml` / `.cs`) with its factory `Dialogs`, the Create workspace dialog
-(`NewWorkspaceDialog`), and the local GitHub CLI probe (`GitHubStatus.cs`). Static layout, page templates and
+dialog card (`DialogWindow.axaml` / `.cs`) with its factory `Dialogs`, the Start work dialog
+(`NewWorkspaceDialog`), the workspace search dialog (`SearchDialog`), and the local GitHub CLI probe
+(`GitHubStatus.cs`). Static layout, page templates and
 styles live in compiled `.axaml`; C# fills content and wires host interaction. The workbench panels that open
 these surfaces are specified in [../Panels.SPEC.md](../Panels.SPEC.md).
 
@@ -30,7 +31,7 @@ these surfaces are specified in [../Panels.SPEC.md](../Panels.SPEC.md).
   `PrimaryFillHover` on hover, `OnPrimary` label), others are outlined in the text colour.
 - Escape closes as a dismissal. `Dialogs.Confirm` focuses Cancel initially; `Dialogs.Prompt` and
   `Dialogs.HostPath` focus their first field; `Dialogs.AskToSave` focuses Save.
-- `Dialogs.HostPath` is the Open project from host path dialog: it says the path belongs to the computer
+- `Dialogs.HostPath` is the Open project by path dialog: it says the path belongs to the computer
   running SharpRail, shows the native picker's failure when there was one, and returns the trimmed path.
 - `Dialogs.Notice` is the single-button surface for a failure with no recovery inside it: a 384px card
   with an alert glyph beside the heading, the reason, and one focused default action (OK). Opening a project
@@ -42,14 +43,27 @@ these surfaces are specified in [../Panels.SPEC.md](../Panels.SPEC.md).
 - `PrDialogs` holds the pull request compose and setup dialogs; their behaviour is specified with the
   Review panel in [Panels.SPEC.md](../Panels.SPEC.md).
 
-## Create workspace
+## Search
 
-- A two-option target segment chooses where the work runs, both options always visible: New worktree or
-  Project folder. The header is mode-aware so it names the operation truthfully: worktree mode is
-  “Create workspace” / “A separate checkout on its own new branch. Files, changes, and terminals stay scoped
-  to it.”; folder mode is “Work in project folder” / “Work directly in your project folder, with no
-  isolation: changes land in your current checkout.” The submit reads Create or Start accordingly.
-- The dialog always opens on the worktree side; there is no opener-chosen target.
+A query field over a results list. Typing searches after 150ms of quiet and cancels a superseded query;
+results are grouped under their file, one row per matching line with its number and text. An empty result
+says “No matches”, a truncated one says how many it shows, and a failed search shows the host's error.
+Clicking a row closes the dialog with that hit; Escape closes it with none. Deliberately absent: regular
+expressions, a case toggle, a glob filter and replace.
+
+## Start work
+
+- The title is the constant “Start work”; the dialog never renames itself under the user. A two-option
+  target segment sits directly under it: New worktree or Project folder for Git projects. The
+  only mode-aware prose is one line below it: “A separate git worktree on its own new branch.” or “No
+  isolation: work lands in your project folder's current checkout.” The submit reads Create or Start.
+- Git projects open on the worktree side. Plain folders open in Project folder mode with New worktree
+  hidden and an explanation that there is no Git repository to isolate. All Start work entry points,
+  including the rail's plus and project menu, remain available. Submitting enters Default without
+  creating a repository; file and terminal tabs are available there. Branch discovery is skipped for
+  plain folders. The worktree name and base picker are hidden in folder mode.
+  Project Home hides its Create workspace card until Git discovery confirms a repository;
+  Work in project folder and plugin project actions remain available for plain folders.
 - The dialog names its project. When the host lists several open projects that row is a picker over them,
   checked on the dialog's own. Picking another project loads its branch catalogue through a separate
   project session, so the window does not move and the base returns to that project's default; a project
@@ -59,18 +73,30 @@ these surfaces are specified in [../Panels.SPEC.md](../Panels.SPEC.md).
   list grouped Local, then Remote with one subgroup per remote whose rows show the branch name without the
   remote; the full ref stays each row's identity and automation name. The host's default base is marked
   `default`. Enter in the search picks the first match, Escape returns to the trigger.
+- Each remote subgroup's heading collapses and expands it; a collapsed remote's rows are not built, so search
+  skips them. The choice is remembered per remote name in the profile (`CollapsedRemotes`), one preference
+  for every branch picker rather than one per surface.
 - The dialog opens from a cached branch catalogue and a fresh catalogue is prefetched in the background;
   when it lands it replaces the list and, unless the user already picked, the default base. The default base
   is whatever the host reports, never a literal `HEAD` sentinel that would be believed and persisted.
-- Folder mode hides the base picker; submitting enters the project's Default workspace, creating nothing.
+- Worktree mode has a Name field prefilled with the host's next free `workspace-N`, so the name is visible
+  before creation and follows a prefetched catalogue while untouched. Only an edited name is sent: the
+  workbench stores it as the new workspace's host label. An edited name also supplies the new branch:
+  lowercase ASCII letters and digits, other runs replaced by hyphens, trimmed to 60 characters,
+  with `workspace` as the empty-slug fallback. Existing local branches (including branch directories)
+  receive a numeric suffix starting at `-2`. Later label renames do not rename branches.
+- Folder mode hides the base picker and the name, and says where the work lands with an “On {branch}” line
+  read from the catalogue's checked-out branch (absent when HEAD is detached); submitting enters the
+  project's Default workspace, creating nothing.
 - Worktree submit returns the choice, and the workbench creates the worktree with the host-suggested path and
-  branch, persists the base as the workspace's comparison target, and opens it. A failed create reports the
-  error and keeps the rail consistent.
+  the name-derived branch (or the suggested branch for an untouched name), persists the base as the
+  workspace's comparison target, and opens it. A failed create reports the error and keeps the rail consistent.
 
 ## Settings
 
 A modal two-pane window: a section rail (Appearance, Line width, Layout, Projects, GitHub) and a scrolling
-content pane. Escape and the close button dismiss. It opens on Appearance, sized to 80% of the owner's height.
+content pane. Escape and the close button dismiss. It first opens on Appearance and afterwards on the section it was last left on in that window, the way a
+Preferences window returns where it was left; it is sized to 80% of the owner's height.
 Shared-setting writes go to the host and the view converges on the broadcast; a rejection shows “The host
 could not save this change: …” inline and re-renders from host state.
 
@@ -94,7 +120,9 @@ could not save this change: …” inline and re-renders from host state.
   host state; the default preset and side/bottom group limits and bottom alignment are window-local. Each
   preset offers Set default and a confirmable “Apply now…”, which replaces this window's frame and preserves
   open documents and terminals across every workspace in the window; other windows are unaffected. Reset frame
-  reapplies the default preset.
+  reapplies the default preset. The app-local “Preview files before keeping them” switch, on by default,
+  controls the preview slot: off, every file or spec open keeps its own tab and no open waits out the
+  double-click window.
 - Projects holds the app-local Show hidden files switch and the shared project list with per-row removal.
 - Terminal chooses Metal texture (default) or Skia (fallback) as an app-local preference and reattaches
   attached terminal views in every window without ending their host shells. Below it, the host's replay

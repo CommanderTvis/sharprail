@@ -17,7 +17,11 @@ public sealed partial class ProjectServices
 
     public async ValueTask<WorkspaceCatalog> ListWorkspacesAsync(string projectRoot, CancellationToken cancellationToken = default)
     {
-        var project = ProjectPath(projectRoot);
+        var project = Path.TrimEndingDirectorySeparator(ProjectPath(projectRoot));
+        var current = state?.Current;
+        if (current is not null && !current.Projects.Concat(current.RecentProjects).Concat(current.Workspaces.Select(workspace => workspace.ProjectRoot))
+            .Any(known => Path.TrimEndingDirectorySeparator(known) == project))
+            throw new UnauthorizedAccessException("That folder is not a project of this host.");
         if (!Directory.Exists(project)) throw new DirectoryNotFoundException($"Directory does not exist: {project}");
         // Behind this session's own Git actions too, so folder truth read before an init is not written after it.
         await mutations.WaitAsync(cancellationToken);
@@ -74,6 +78,11 @@ public sealed partial class ProjectServices
     {
         var label = DisplayName(name);
         if (branch is not null && string.IsNullOrWhiteSpace(branch)) throw new ArgumentException("Enter a new branch name.");
+        try { await GitRepository.RunAsync(project, cancellationToken, "rev-parse", "--verify", "HEAD"); }
+        catch (IOException)
+        {
+            throw new InvalidOperationException("This repository has no commits yet, so there is nothing to branch a workspace from. Make the first commit, then try again.");
+        }
         var chosen = string.IsNullOrWhiteSpace(baseBranch) ? "HEAD" : baseBranch.Trim();
         // The record names where the branch came from, so an unpicked base is the project's current branch.
         if (chosen == "HEAD" && await CheckoutBranchAsync(project, cancellationToken) is { } head && head != Detached) chosen = head;

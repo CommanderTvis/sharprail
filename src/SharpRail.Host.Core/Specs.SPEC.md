@@ -11,6 +11,7 @@ parent: module-host-core
 Upstream: packages/server/src/spec/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
 Upstream: packages/spec-graph/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
 Upstream: packages/spec-graph/core/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
+Upstream: packages/server/src/mcp/SPEC.md @ b047c8f2 (CommanderTvis fork)
 
 ## Responsibility
 
@@ -28,6 +29,7 @@ terminal or by Git are current on the next read. The workbench re-reads after a 
   update, delete and the path rule).
 - Forbidden: depending on an agent or tool package; writing a spec anywhere the traversal cannot see.
   Authoring is a Core API only: no host operation or panel edits specs.
+- `McpServer` serves read-only spec tools to terminal agents.
 
 ## Rules
 
@@ -69,7 +71,23 @@ terminal or by Git are current on the next read. The workbench re-reads after a 
   line ending and a byte order mark survive byte for byte. `id` cannot be set, `id` and `type` cannot be
   removed, and a list field is never set as a scalar.
 
+## Agent tools over MCP
+
+- `McpServer.HandleAsync(message, cwd)` is a minimal, stateless MCP server over single JSON-RPC request
+  objects: `initialize` (echoes `2024-11-05`, `2025-03-26` or `2025-06-18`, else answers the latest, and
+  advertises only tools), `ping`, `tools/list` and `tools/call`. A notification is acknowledged with 202
+  and no body; a batch or a non-JSON-RPC frame is `-32600`, an unknown method `-32601`, an unknown tool
+  `-32602`.
+- Tools: `spec_grep` (substring or regex, case-insensitive by default, narrowed by `type` or `parent`,
+  `path:line: snippet` results capped at 200 by default) and `spec_get` (type, title, path, and parent links
+  in both directions; no body). Each tool's published input schema is the enforced contract: arguments
+  that do not match it, and any tool failure, come back as an `isError` result the agent can read, never
+  as a protocol error.
+- The host decides the `cwd` from the calling terminal's token (see the Remote SPEC); the tools read that
+  workspace only.
+
 ## Not yet ported
+
 
 - A full YAML parser for frontmatter (anchors, nested maps, multi-line scalars); the dialect above covers
   what specs use.

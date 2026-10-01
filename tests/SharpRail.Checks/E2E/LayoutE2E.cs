@@ -32,6 +32,45 @@ internal static class LayoutE2E
         OuterWidths(root);
         OverflowFades(root);
         LayoutFrameE2E.Run(root);
+        NoSpecsOpensFiles(root);
+        FoldKeepsCenter(root);
+    }
+
+    private static void FoldKeepsCenter(string root)
+    {
+        using var app = new E2eWorkspace(Path.Combine(root, "layout-fold-keeps-center"));
+        app.Open("README.md", true);
+        var center = app.Center;
+        var body = app.Find<Border>("DockBody_" + center).Child;
+        var side = app.Window.Layout.State.Groups.First(group => group.Region == "right");
+        var terminalGroup = app.Window.Layout.State.Groups.First(group => group.Region == "bottom");
+        Control? Terminal() => app.Window.GetLogicalDescendants().OfType<Border>().SingleOrDefault(panel => panel.Name == "DockBody_" + terminalGroup.Id)?.Child;
+        var terminal = Terminal();
+        Require(body is not null && terminal is not null, "The fixture must mount a centre document and a terminal.");
+        foreach (var folded in new[] { true, false })
+        {
+            app.Window.Layout.Fold(side.Id); Settle();
+            Require(app.Window.Layout.Group(side.Id).Folded == folded, "The side group must fold and unfold.");
+            Require(ReferenceEquals(app.Find<Border>("DockBody_" + center).Child, body) && ReferenceEquals(Terminal(), terminal),
+                "Folding a side group must keep the centre editor and the terminal instead of rebuilding them.");
+        }
+        Console.WriteLine("PASS upstream fold-perf.spec.ts: folding a side group does not remount the centre");
+    }
+
+    private static void NoSpecsOpensFiles(string root)
+    {
+        var project = Path.Combine(root, "layout-no-specs");
+        using var app = new E2eWorkspace(project, openFiles: false, prepare: _ =>
+        {
+            File.Delete(Path.Combine(project, "SPEC.md"));
+            File.Delete(Path.Combine(project, "themes", "SPEC.md"));
+        });
+        var group = app.Window.Layout.State.Groups.Single(item => item.Tools.Any(tool => tool.Id == "specs"));
+        Until(() => app.Window.Layout.Selected(group.Id)?.Id == "files");
+        Require(app.Window.Layout.Tabs(group.Id).Any(tab => tab.Id == "specs"), "Specs must stay docked and one click away.");
+        app.Click(app.Find<Button>("Tab_specs")); Settle();
+        Require(app.Window.Layout.Selected(group.Id)?.Id == "specs", "A later choice of Specs must be the user's to keep.");
+        Console.WriteLine("PASS upstream layout.spec.ts: a project with no specs opens its rail on Files, not on the empty Specs panel");
     }
 
     private static void SideSplitTargets(string root)

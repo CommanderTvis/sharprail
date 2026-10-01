@@ -41,6 +41,8 @@ SharpRail created, may be removed by it.
   main worktree from `git worktree list`. A plain folder opens as itself. `WorkspaceInfo.ProjectRoot`
   carries the project identity so every window groups the workspace under the same project.
 - Listing a project ensures its Default workspace (find or create, collapsing duplicates) and returns the
+  project's records only for a project the host already knows through its project list, recents or registry.
+  Standalone sessions without a shared host store may list any project folder. Listing returns the
   project's records with the Default first. It is a deliberate query-with-write: any caller heals a
   registry that predates the project. The first time a project is listed, the branch-backed worktrees Git
   already has are adopted so an upgraded rail keeps its rows: those under `<main worktree>-worktrees` as

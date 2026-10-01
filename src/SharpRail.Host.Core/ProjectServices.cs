@@ -253,25 +253,6 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
                     }
                     await GitRepository.RunAsync(currentRoot, cancellationToken, "restore", "--staged", "--", action.Path);
                     break;
-                case "init":
-                    if ((await GitRepository.SnapshotAsync(currentRoot, "", cancellationToken)).IsRepository)
-                        throw new InvalidOperationException("This folder is already a Git repository.");
-                    await GitRepository.RunAsync(currentRoot, cancellationToken, "init", "-b", "main");
-                    try
-                    {
-                        await GitRepository.RunAsync(currentRoot, cancellationToken, "add", "-A");
-                        var commit = new List<string>();
-                        if (!await HasConfigAsync(currentRoot, "user.name", cancellationToken)) commit.AddRange(["-c", "user.name=SharpRail"]);
-                        if (!await HasConfigAsync(currentRoot, "user.email", cancellationToken)) commit.AddRange(["-c", "user.email=sharprail@localhost"]);
-                        commit.AddRange(["commit", "--allow-empty", "-m", "Initial commit"]);
-                        await GitRepository.RunAsync(currentRoot, cancellationToken, commit.ToArray());
-                    }
-                    catch
-                    {
-                        Directory.Delete(Path.Combine(currentRoot, ".git"), recursive: true);
-                        throw;
-                    }
-                    break;
                 case "create-worktree":
                     await CreateWorkspaceAsync(await MainWorktreeAsync(currentRoot, cancellationToken), "", action.BaseBranch, action.Path, action.Branch, cancellationToken);
                     break;
@@ -288,6 +269,21 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
                         registry.ChangeWorkspaces(current => current.Where(workspace => workspace.Path != target.Path));
                     }
                     DropIndexes(target.Path);
+                    break;
+                case "delete-branch":
+                    var local = (await GitRepository.RunAsync(currentRoot, cancellationToken, "for-each-ref", "--format=%(refname:short)", "refs/heads"))
+                        .Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                    if (!local.Contains(action.Branch)) throw new InvalidOperationException($"There is no local branch {action.Branch}.");
+                    // The host refuses whatever any client offers: a checked-out branch is a live workspace or the project's own checkout.
+                    var holders = GitRepository.ParseWorktrees(await GitRepository.RunAsync(currentRoot, cancellationToken, "worktree", "list", "--porcelain", "-z"));
+                    if (holders.FirstOrDefault(tree => tree.Branch == action.Branch) is { } holder)
+                        throw new InvalidOperationException(holder.IsMain
+                            ? $"{action.Branch} is the branch currently checked out."
+                            : $"{action.Branch} is checked out by the workspace at {holder.Path}.");
+                    await GitRepository.RunAsync(currentRoot, cancellationToken, "branch", "-D", action.Branch);
+                    break;
+                case "fetch":
+                    await GitRepository.RunAsync(currentRoot, cancellationToken, "fetch", "--all", "--quiet", "--no-prune");
                     break;
                 default: throw new ArgumentException("Unknown git action.");
             }

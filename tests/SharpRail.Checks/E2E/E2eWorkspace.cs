@@ -80,7 +80,7 @@ internal sealed class E2eWorkspace : IDisposable
         Directory.CreateDirectory(root);
         File.WriteAllText(Path.Combine(root, "README.md"), "# sample-project\n");
         File.WriteAllText(Path.Combine(root, "notes.txt"), "plain-text-fixture\n");
-        File.WriteAllText(Path.Combine(root, "DIAGRAM.md"), "# Diagram demo\n\n```mermaid\nflowchart TD; Start --> Finish\n```\n\n```mermaid\nflowchart TD; Start --> --> broken\n```\n\n```bash\necho plain-fence-stays-code\n```\n");
+        File.WriteAllText(Path.Combine(root, "DIAGRAM.md"), "# Diagram demo\n\n```mermaid\nflowchart TD; Start --> Finish; Finish --> Step0; " + string.Join("; ", Enumerable.Range(0, 12).Select(i => $"Step{i} --> Step{i + 1}")) + "\n```\n\n```mermaid\nflowchart TD; Start --> --> broken\n```\n\n```bash\necho plain-fence-stays-code\n```\n");
         File.WriteAllText(Path.Combine(root, "LARGE.md"), "# Large document\n\n" + string.Join("\n\n", Enumerable.Repeat("A fixture paragraph.", 100)));
         File.WriteAllText(Path.Combine(root, "ALERTS.md"), "# Alert callouts\n\n> [!NOTE]\n> Useful information users should know.\n\n> [!TIP]\n> Helpful advice for doing things better.\n\n> [!IMPORTANT]\n> Key information to achieve a goal.\n\n> [!WARNING]\n> Urgent info needing immediate attention.\n\n> [!CAUTION]\n> Advises about risky outcomes.\n\n> A plain blockquote, no marker, so it stays a quote.\n");
         File.WriteAllText(Path.Combine(root, "LINKS.md"), "# Link demo\n\nJump to [Section two](#section-two), open [the spec](SPEC.md), and see the logo:\n\n![logo](logo.png)\n\n## Section two\n\nTarget of the in-document anchor.\n");
@@ -263,6 +263,7 @@ internal sealed class E2eHost(IProjectServices inner) : IProjectServices
     public ValueTask<bool> HasDurableSpecsAsync(CancellationToken ct = default) => inner.HasDurableSpecsAsync(ct);
     public ValueTask<ProjectPathKind> InspectProjectPathAsync(string path, CancellationToken ct = default) => inner.InspectProjectPathAsync(path, ct);
     public ValueTask PrewarmWorkspaceAsync(string path, CancellationToken ct = default) => inner.PrewarmWorkspaceAsync(path, ct);
+    public ValueTask<SearchHits> SearchAsync(string query, CancellationToken ct = default) => inner.SearchAsync(query, ct);
     public ValueTask<IReadOnlyList<GitCommit>> ListCommitsAsync(string comparison, CancellationToken ct = default) => inner.ListCommitsAsync(comparison, ct);
     public ValueTask<GitSnapshot> GetGitAsync(string comparison = "", CancellationToken ct = default, string scope = "all") => inner.GetGitAsync(comparison, ct, scope);
     public ValueTask<string> GetDiffAsync(string path, string scope, string comparison = "", CancellationToken ct = default) => inner.GetDiffAsync(path, scope, comparison, ct);
@@ -289,6 +290,7 @@ internal sealed class E2eHost(IProjectServices inner) : IProjectServices
     public ValueTask<PrDraft> PreviewPrAsync(CancellationToken ct = default) => inner.PreviewPrAsync(ct);
     public ValueTask<PrResult> OpenPrAsync(PrRequest request, CancellationToken ct = default) => inner.OpenPrAsync(request, ct);
     public ValueTask<IReadOnlyList<EditorInfo>> ListEditorsAsync(CancellationToken ct = default) => inner.ListEditorsAsync(ct);
+    public ValueTask ApplyFileActionAsync(FileAction action, CancellationToken ct = default) => inner.ApplyFileActionAsync(action, ct);
     public ValueTask OpenInEditorAsync(string editorId, string worktreePath, CancellationToken ct = default) => inner.OpenInEditorAsync(editorId, worktreePath, ct);
     public ValueTask<WorkspaceCatalog> ListWorkspacesAsync(string projectRoot, CancellationToken ct = default) => inner.ListWorkspacesAsync(projectRoot, ct);
     public ValueTask<WorkspaceRecord?> ApplyWorkspaceActionAsync(WorkspaceAction action, CancellationToken ct = default) => inner.ApplyWorkspaceActionAsync(action, ct);

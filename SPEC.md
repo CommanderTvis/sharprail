@@ -198,7 +198,9 @@ focus. A filesystem tree opens Markdown as a native selectable preview and
 other text in the Scintilla editor on macOS, or as a read-only document elsewhere.
 The editor wraps at the bounded line width and follows live width and theme changes.
 An empty center group shows the workspace placeholder: default workspace or created
-workspace, its branch, and what is scoped to it.
+workspace, its branch, and what is scoped to it. A created workspace's “· from {base}”
+explains itself on hover: the ref the worktree was cut from is also the one its changes
+are measured against.
 
 Projects: native directory picker and explicit host-path dialog (remote);
 recent/open project navigation; per-project workspace/worktree selection;
@@ -208,7 +210,7 @@ project the Welcome offers Open project. A missing restored workspace falls back
 its Project Home, a missing project to the Welcome. Project rows have a context menu
 (right-click, Shift+F10, Menu key): Create workspace and Close project, which asks
 for confirmation and moves the project to Add project → Recents without touching
-the repository. Mod+N or Mod+Alt+N opens the Create workspace dialog: a new worktree
+the repository. Mod+N or Mod+Alt+N opens the Start work dialog: a new worktree
 at `<project>-worktrees/workspace-N` from a searchable base branch grouped by Local
 and each remote, or the project folder itself. Opening it prefetches a stale or
 missing remote default; a failed fetch reports Git's error. Workspace rows have a
@@ -342,7 +344,7 @@ reconnecting without server sessions.
 CommonMark/GFM headings/anchors, paragraphs, emphasis, links, inline/fenced code,
 lists/tasks, blockquotes/callouts, tables, rules and images. Text selectable across blocks,
 relative document navigation, safe external link launch, local image loading,
-frontmatter shown as a leading code block and bounded configurable line width. No WebView or HTML
+frontmatter shown as a properties block and bounded configurable line width. No WebView or HTML
 application runtime.
 
 Markdown file tabs render, don't read. A `.md`/`.markdown` file tab (from the file tree

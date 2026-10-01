@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.LogicalTree;
 
 using static SharpRail.Checks.E2E.E2eWorkspace;
@@ -73,6 +74,19 @@ internal static class ProjectContextE2E
         Until(() => Entry(fixture, "ProjectMenuOpenExisting").IsFocused);
         Press(Entry(fixture, "ProjectMenuOpenExisting"), Avalonia.Input.Key.Down);
         Until(() => Entry(fixture, "ProjectMenuClose").IsFocused);
+        CloseMenu(Menu(fixture));
+        Until(() => Name(fixture).IsFocused);
+
+        app.Click(Name(fixture), mouseButton: MouseButton.Right);
+        Until(() => Menu(fixture).IsOpen);
+        app.Click(Entry(fixture, "ProjectMenuCopyPath"), freshGesture: false);
+        var copied = app.Window.Clipboard!.TryGetTextAsync();
+        Until(() => copied.IsCompleted && !Menu(fixture).IsOpen);
+        Require(copied.Result == fixture && !app.Window.AtProjectHome && Active(app, workspace),
+            "Copy absolute path copies the project's path without changing the active workspace.");
+        Console.WriteLine("PASS fork projects.spec.ts: project context menu copies its absolute path without changing the active workspace");
+        app.Click(Name(fixture), mouseButton: MouseButton.Right);
+        Until(() => Menu(fixture).IsOpen);
         CloseMenu(Menu(fixture));
         Until(() => Name(fixture).IsFocused);
 

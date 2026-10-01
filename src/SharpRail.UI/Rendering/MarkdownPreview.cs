@@ -46,11 +46,11 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
     public MarkdownDocument Document { get; }
 
     public MarkdownPreview(string text, string path, IProjectServices host, Preferences preferences, Action<string, string?> navigate)
-        : this(Parse(text), path, host, preferences, navigate) { }
+        : this(Parse(text), path, host, preferences, navigate, frontmatter: Frontmatter.Parse(text)) { }
 
     /// <summary>Renders an already parsed document, so callers can parse large sources off the UI thread.</summary>
-    public MarkdownPreview(MarkdownDocument document, string path, IProjectServices host, Preferences preferences, Action<string, string?> navigate,
-        bool renderDiagrams = true, DiffFocus? focus = null)
+    internal MarkdownPreview(MarkdownDocument document, string path, IProjectServices host, Preferences preferences, Action<string, string?> navigate,
+        bool renderDiagrams = true, DiffFocus? focus = null, FrontmatterBlock? frontmatter = null, FrontmatterBlock? previousFrontmatter = null)
     {
         this.host = host; this.path = path; this.preferences = preferences; this.navigate = navigate; this.renderDiagrams = renderDiagrams;
         Name = "MarkdownPreview";
@@ -63,14 +63,39 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
             MaxWidth = LineWidths.Markdown(preferences),
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
+        Spec = Frontmatter.Spec(frontmatter);
+        if (Spec?.Title is { } specTitle)
+        {
+            SpecTitle = Ui.Text(specTitle, Ui.TextBrush, 24);
+            SpecTitle.Name = "SpecTitle";
+            SpecTitle.FontWeight = FontWeight.SemiBold;
+            SpecTitle.TextWrapping = TextWrapping.Wrap;
+            SpecTitle.Margin = new Thickness(0, 0, 0, 12);
+            body.Children.Add(SpecTitle);
+        }
+        if (frontmatter is not null || previousFrontmatter is not null) body.Children.Add(Properties(frontmatter, previousFrontmatter));
         if (focus is null) body.Children.AddRange(RenderBlocks(Document));
         else RenderFocused(body, focus);
+        if (specLinks.Count > 0) _ = ResolveSpecLinksAsync();
         CollapseMargins(body);
         Content = body;
         WireSelection();
     }
 
-    public static MarkdownDocument Parse(string text) => Markdown.Parse(text, Pipeline);
+    /// <summary>Parses Markdown; inside a spec, <c>[[id]]</c> links become spec links. Ordinary Markdown keeps them as text.</summary>
+    public static MarkdownDocument Parse(string text) =>
+        Markdown.Parse(Frontmatter.Spec(Frontmatter.Parse(text)) is null ? text : Frontmatter.LinkifyWikiLinks(text), Pipeline);
+
+    internal SpecIdentity? Spec { get; }
+
+    /// <summary>A spec's frontmatter title, drawn above its properties; an element, not a heading in the source.</summary>
+    internal TextBlock? SpecTitle { get; }
+
+    /// <summary>The document's headings in order, with the anchor each renders under and its zero-based source line.</summary>
+    internal IEnumerable<(int Level, string Text, string Id, int Line)> Headings =>
+        Document.Descendants<HeadingBlock>().Select(heading => (heading.Level, Plain(heading.Inline ?? new ContainerInline()), heading.GetAttributes().Id ?? "", heading.Line));
+
+    internal void ScrollToTitle() => SpecTitle?.BringIntoView();
 
     public void ScrollToAnchor(string? id)
     {
@@ -107,10 +132,6 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
                 return content;
             case FencedCodeBlock fence when renderDiagrams && string.Equals(fence.Info?.Trim(), "mermaid", StringComparison.OrdinalIgnoreCase):
                 return Mermaid(fence.Lines.ToString());
-            case YamlFrontMatterBlock frontmatter:
-                var metadata = CodeFrame(frontmatter.Lines.ToString().Trim('\r', '\n'));
-                metadata.Name = "MarkdownFrontmatter";
-                return metadata;
             case CodeBlock code:
                 return CodeFrame(code.Lines.ToString());
             case ListBlock list:
@@ -313,23 +334,16 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
                     target.Add(new InlineUIContainer(holder));
                     _ = LoadImageAsync(holder, link.Url ?? "");
                     break;
+                case LinkInline link when link.Url?.StartsWith(Frontmatter.SpecScheme, StringComparison.Ordinal) == true:
+                    target.Add(new InlineUIContainer(SpecLink(Uri.UnescapeDataString(link.Url[Frontmatter.SpecScheme.Length..]), Plain(link), weight, style)));
+                    break;
                 case LinkInline link when ResolveLink(path, link.Url ?? "") is null:
                     // A target outside the worktree, or one that does not decode, is shown as the text it is.
                     AddInline(target, link, weight, style, strike);
                     break;
                 case LinkInline link:
                     var url = link.Url ?? "";
-                    var linkText = Ui.Text(Plain(link), Ui.Accent, preferences.FontSize);
-                    linkText.FontWeight = weight; linkText.FontStyle = style;
-                    var button = new MarkdownLink(linkText)
-                    {
-                        Content = linkText,
-                        MinHeight = 0,
-                        MinWidth = 0,
-                        Padding = new Thickness(0),
-                        Background = Brushes.Transparent,
-                        BorderThickness = new Thickness(0)
-                    };
+                    var button = LinkButton(Plain(link), weight, style);
                     ToolTip.SetTip(button, url);
                     button.Click += (_, _) => Follow(url);
                     target.Add(new InlineUIContainer(button));
@@ -489,17 +503,7 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
         {
             if (TopLevel.GetTopLevel(this) is Window owner) MermaidDialog.Show(owner, svg);
         };
-        var diagram = new Grid();
-        diagram.Children.Add(new Image
-        {
-            Name = "MermaidDiagram",
-            Source = new SvgImage { Source = svg },
-            Stretch = Stretch.Uniform,
-            StretchDirection = StretchDirection.DownOnly,
-            MaxWidth = picture.CullRect.Width,
-            HorizontalAlignment = HorizontalAlignment.Left
-        });
-        diagram.Children.Add(fullscreen);
+        var diagram = MermaidDialog.Inline(svg, new Size(picture.CullRect.Width, picture.CullRect.Height), fullscreen);
         holder.Child = diagram;
     }
 

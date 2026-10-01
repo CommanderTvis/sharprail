@@ -87,6 +87,7 @@ public sealed partial class WorkbenchWindow : Window
         errorText = this.FindControl<TextBlock>("WorkspaceError")!;
         branchIcon = Ui.Icon("gitBranch", Ui.Muted, 14);
         this.FindControl<ContentControl>("BranchIcon")!.Content = branchIcon;
+        WireBranchList();
         WireHeader();
         Layout = new(slot.Layout);
         Layout.Navigating += group => AdvanceNavigation(group);
@@ -118,8 +119,11 @@ public sealed partial class WorkbenchWindow : Window
             var command = e.KeyModifiers.HasFlag(KeyModifiers.Meta) || e.KeyModifiers.HasFlag(KeyModifiers.Control);
             if (command && e.Key == Key.O) { _ = PickProjectAsync(); e.Handled = true; }
             else if (command && e.Key == Key.N && e.KeyModifiers.HasFlag(KeyModifiers.Shift)) { NewWindow(); e.Handled = true; }
+            else if (command && e.Key == Key.F && e.KeyModifiers.HasFlag(KeyModifiers.Shift) && WorkspaceMounted && !atHome)
+            { _ = SearchWorkspaceAsync(); e.Handled = true; }
             else if (command && e.Key == Key.N) { _ = CreateWorkspaceDialogAsync(); e.Handled = true; }
-            else if (command && e.Key == Key.OemComma) { ShowSettings(); e.Handled = true; }
+            // Preferences' own chord on macOS; other platforms have no such convention to honour.
+            else if (OperatingSystem.IsMacOS() && e.KeyModifiers == KeyModifiers.Meta && e.Key == Key.OemComma) { ShowSettings(); e.Handled = true; }
             else if (command && e.Key == Key.J && e.KeyModifiers.HasFlag(KeyModifiers.Shift))
             { Layout.Visible("bottom", !Layout.State.BottomVisible); e.Handled = true; }
             else if (command && e.Key == Key.B)
@@ -164,6 +168,7 @@ public sealed partial class WorkbenchWindow : Window
         var settings = this.FindControl<Button>("SettingsButton")!;
         settings.Content = Ui.Icon("settings");
         settings.Click += (_, _) => ShowSettings();
+        if (!OperatingSystem.IsMacOS()) { ToolTip.SetTip(settings, "Settings"); AutomationProperties.SetName(settings, "Settings"); }
         var frame = this.FindControl<Border>("WindowTitleBar")!;
         frame.PointerPressed += (_, e) =>
         {
@@ -291,8 +296,9 @@ public sealed partial class WorkbenchWindow : Window
             var isDefault = workspaceRoot == projectRoot;
             empty.Children.Add(Ui.Text(isDefault ? "DEFAULT WORKSPACE" : "WORKSPACE READY", size: 12));
             empty.Children.Add(Ui.Text(isDefault ? projectLabel.Text ?? "" : WorkspaceName(workspaceRoot), Ui.TextBrush));
-            readyBranch = Ui.Text(ReadyBranchText());
+            readyBranch = Ui.Text("");
             readyBranch.Name = "WorkspaceReadyBranch";
+            UpdateReadyBranch();
             empty.Children.Add(readyBranch);
             empty.Children.Add(Ui.Text(isDefault
                 ? "Files, changes, and worktrees run directly in your project folder."
@@ -354,11 +360,12 @@ public sealed partial class WorkbenchWindow : Window
         finally { restoringDocuments.Remove(key); }
     }
 
-    public async Task OpenDocumentAsync(string path, bool keep = false, string? anchor = null)
+    public async Task OpenDocumentAsync(string path, bool keep = false, string? anchor = null, int line = 0)
     {
         if (!WorkspaceMounted) return;
         if (atHome) await OpenWorkspaceAsync(projectRoot, false);
         if (!WorkspaceMounted || atHome) return;
+        keep |= !Preferences.PreviewTabs;
         var request = BeginNavigation(); var workspace = workspaceRoot;
         try
         {
@@ -372,6 +379,11 @@ public sealed partial class WorkbenchWindow : Window
             { documents[key] = document; DropDocumentContent(key); }
             Layout.Open(tab, keep, destination, activate: destination == Layout.View.FocusedCenter);
             if (anchor is not null) ScrollToAnchor(key, anchor);
+            if (line > 0)
+                Dispatcher.UIThread.Post(() =>
+                {
+                    if (documentContent.GetValueOrDefault(key) is Editor.CodeDocumentView code) code.Editor.ScrollToLine(Math.Max(0, line - 4));
+                }, DispatcherPriority.Loaded);
         }
         catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
     }
@@ -476,11 +488,14 @@ public sealed partial class WorkbenchWindow : Window
         return () => root.Children.Remove(scrim);
     }
 
+    private string settingsSection = "Appearance";
+
+    /// <summary>Opens Settings on the section it was last left on, as a Preferences window returns.</summary>
     public void ShowSettings()
     {
         var undim = Dim();
-        var settings = new SettingsWindow(this, () => { RefreshAppearance(); ReportProfileError(); }, GitHubStatusProbe);
-        settings.Closed += (_, _) => undim();
+        var settings = new SettingsWindow(this, () => { RefreshAppearance(); ReportProfileError(); }, GitHubStatusProbe, settingsSection);
+        settings.Closed += (_, _) => { settingsSection = settings.Section; undim(); };
         _ = settings.ShowDialog(this);
     }
 }

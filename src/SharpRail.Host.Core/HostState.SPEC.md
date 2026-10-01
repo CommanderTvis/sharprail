@@ -79,6 +79,8 @@ presets belong to the UI.
 - Opening a plain folder offers Initialize: `git init -b main`, `git add -A` and an allow-empty initial
   commit, supplying a fallback identity only for a field Git has none configured for. A failed commit
   removes the new `.git` again, and a folder that is already a repository is refused.
+- A plain folder opens as a project directly, with no Git required: it is its own root and its Default
+  workspace is the only one it has. A folder that later gains a `.git` is a repository on its next open.
 
 ## Workspace review targets
 

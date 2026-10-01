@@ -180,7 +180,12 @@ public sealed partial class WorkbenchWindow
         copy.Name = "ScopeBranchCopy"; copy.Padding = new(8, 2);
         ToolTip.SetTip(copy, "Copy branch name"); AutomationProperties.SetName(copy, "Copy branch name");
         var rows = new StackPanel { Children = { CardRow("Branch", name, copy), CardRow("Compare to", ComparisonPicker("ScopeDiffBase", "")) } };
-        var card = new Border { Name = "ScopeBranchCard", Width = 356, Child = rows, Focusable = true };
+        if (branchList is not null)
+        {
+            (branchList.Parent as Panel)?.Children.Remove(branchList);
+            rows.Children.Add(branchList);
+        }
+        var card = new Border { Name = "ScopeBranchCard", Width = 400, Child = rows, Focusable = true };
         AutomationProperties.SetName(card, "Branch " + branch);
         return card;
     }

@@ -202,7 +202,7 @@ public sealed partial class ProjectServices
     {
         var claimed = Path.Combine(Path.GetDirectoryName(full)!, ".sharprail-revert-" + ReceiptId());
         File.Move(full, claimed);
-        try { Trash.Move(claimed, Path.GetFileName(full)); }
+        try { global::SharpRail.Host.Core.Trash.Move(claimed, Path.GetFileName(full)); }
         catch
         {
             try { File.Move(claimed, full); }

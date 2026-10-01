@@ -18,12 +18,18 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
     // The workspace folder each running session was started in.
     private readonly Dictionary<string, string> roots = [];
     private readonly TerminalCatalogStore catalog;
+    // One MCP identity per session: its token names the workspace an agent in that shell works in.
+    private readonly Dictionary<string, string> tokens = [];
+    private readonly ConcurrentDictionary<string, string> workspaces = new(StringComparer.Ordinal);
     private readonly Lock gate = new();
     private readonly Dictionary<string, byte[]> pending = [];
     private readonly string? shell;
     private readonly TerminalRecordingStore? store;
     private readonly Func<int>? replayBytes;
     private bool disposed;
+
+    /// <summary>The loopback base URL of the host MCP route.</summary>
+    public string? McpEndpoint { get; set; }
 
     // A null shell runs the user's login shell. With a recordings directory, the catalog is kept there, the last
     // screen of every session is saved when the service is disposed, and a tab attached again after a restart
@@ -91,7 +97,15 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
             if (request.Resume) throw new IOException("The terminal session no longer exists.");
             var directory = Path.GetFullPath(request.WorkspaceRoot);
             if (!Directory.Exists(directory)) throw new DirectoryNotFoundException($"The workspace folder {directory} does not exist.");
-            var process = Start(request, directory);
+            string? mcp = null;
+            if (McpEndpoint is { } endpoint)
+            {
+                if (!tokens.TryGetValue(request.SessionId, out var token))
+                    tokens[request.SessionId] = token = Convert.ToHexStringLower(System.Security.Cryptography.RandomNumberGenerator.GetBytes(16));
+                workspaces[token] = directory;
+                mcp = $"{endpoint}/mcp/{token}";
+            }
+            var process = Start(request, directory, mcp);
             // A recording is consumed only once the shell runs, so a failed start keeps it for the retry.
             pending.Remove(request.SessionId, out var restored);
             var replay = Math.Clamp(replayBytes?.Invoke() ?? TerminalRecorder.SnapshotBytes, 0, TerminalRecorder.MaxSnapshotBytes);
@@ -122,10 +136,14 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
             sessions.Remove(sessionId, out terminal);
             roots.Remove(sessionId);
             pending.Remove(sessionId);
+            if (tokens.Remove(sessionId, out var token)) workspaces.TryRemove(token, out _);
         }
         store?.Delete(sessionId);
         if (terminal is not null) await terminal.Process.DisposeAsync();
     }
+
+    /// <summary>The workspace root of the terminal a token was minted for, or null for an unknown token.</summary>
+    public string? McpWorkspace(string token) => workspaces.GetValueOrDefault(token);
 
     public async ValueTask DisposeAsync()
     {
@@ -144,7 +162,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
 
     // The native reason, the executable path and the value of SHELL stay on the host: a client is told only
     // which choice failed and what to do about it.
-    private PtySession Start(TerminalAttachRequest request, string directory)
+    private PtySession Start(TerminalAttachRequest request, string directory, string? mcpUrl)
     {
         var fromEnvironment = shell is null && ConfiguredShell() is not null;
         var program = shell ?? LoginShell();
@@ -152,7 +170,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         {
             // macOS execs the shell from a trampoline, so a shell that cannot run would otherwise look like one that exited.
             if (!Runnable(program)) throw new IOException("The shell is not an executable file.");
-            return PtySession.Start(request.SessionId, program, directory, request.Columns, request.Rows);
+            return PtySession.Start(request.SessionId, program, directory, request.Columns, request.Rows, mcpUrl);
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {
@@ -170,7 +188,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
 
     private static string LoginShell() => ConfiguredShell() ?? (File.Exists("/bin/zsh") && Posix.Mac ? "/bin/zsh" : "/bin/sh");
 
-    internal static string?[] ShellEnvironment()
+    internal static string?[] ShellEnvironment(string? mcpUrl = null)
     {
         var variables = new SortedDictionary<string, string>(StringComparer.Ordinal);
         foreach (DictionaryEntry entry in Environment.GetEnvironmentVariables())
@@ -179,6 +197,12 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         variables.Remove("SHARPRAIL_TOKEN");
         variables["TERM"] = "xterm-256color";
         variables["COLORTERM"] = "truecolor";
+        // The PTY registers no utmpx record, so a login shell without LOGNAME asks getlogin(), which reads
+        // whatever stale record the reused device carries. The name comes from the uid instead.
+        variables["USER"] = variables["LOGNAME"] = Environment.UserName;
+        // The name the ThinkRail Claude Code plugin's .mcp.json expands, so it works unchanged here.
+        if (mcpUrl is null) variables.Remove("THINKRAIL_MCP_URL");
+        else variables["THINKRAIL_MCP_URL"] = mcpUrl;
         var locale = variables.GetValueOrDefault("LC_ALL") is { Length: > 0 } all ? all
             : variables.GetValueOrDefault("LC_CTYPE") is { Length: > 0 } ctype ? ctype : variables.GetValueOrDefault("LANG") ?? "";
         if (!locale.Contains("UTF-8", StringComparison.OrdinalIgnoreCase) && !locale.Contains("utf8", StringComparison.OrdinalIgnoreCase))
@@ -224,7 +248,7 @@ internal sealed class PtySession : IAsyncDisposable
         new Thread(Pump) { IsBackground = true, Name = "SharpRail PTY read " + pid }.Start();
     }
 
-    internal static PtySession Start(string id, string shell, string directory, int columns, int rows)
+    internal static PtySession Start(string id, string shell, string directory, int columns, int rows, string? mcpUrl = null)
     {
         var master = Posix.OpenPt(Posix.ORdwr | Posix.ONoctty);
         if (master < 0) throw new IOException("Couldn't open a pseudo-terminal: " + Posix.LastError());
@@ -240,7 +264,7 @@ internal sealed class PtySession : IAsyncDisposable
             slave = Posix.Open(device, Posix.ORdwr | Posix.ONoctty);
             if (slave < 0) throw new IOException("Couldn't open the pseudo-terminal: " + Posix.LastError());
             Posix.SetWindowSize(master, columns, rows);
-            var pid = Spawn(shell, directory, device);
+            var pid = Spawn(shell, directory, device, mcpUrl);
             return new PtySession(id, master, slave, pid);
         }
         catch
@@ -251,7 +275,7 @@ internal sealed class PtySession : IAsyncDisposable
         }
     }
 
-    private static int Spawn(string shell, string directory, string device)
+    private static int Spawn(string shell, string directory, string device, string? mcpUrl)
     {
         // posix_spawnattr_t and posix_spawn_file_actions_t are pointers on macOS and structs on Linux.
         var attributes = Marshal.AllocHGlobal(1024);
@@ -277,7 +301,7 @@ internal sealed class PtySession : IAsyncDisposable
             var (program, arguments) = Posix.Mac
                 ? ("/bin/sh", new[] { "sh", "-c", "exec 3<>\"$1\" 3>&-; shift; exec \"$@\"", "sh", device, shell, "-l", null })
                 : (shell, new[] { "-" + Path.GetFileName(shell), null });
-            var result = Posix.Spawn(out var pid, program, actions, attributes, arguments, PtyTerminalService.ShellEnvironment());
+            var result = Posix.Spawn(out var pid, program, actions, attributes, arguments, PtyTerminalService.ShellEnvironment(mcpUrl));
             if (result != 0) throw new IOException($"Couldn't start {shell}: {Posix.Error(result)}.");
             return pid;
         }

@@ -23,7 +23,7 @@ can use it without a cycle. Theme catalogue and colour roles have their own docu
 - `Icon` renders a bundled PNG from `Assets/Icons` as an opacity mask over a brush, so a glyph sizes with
   its box and colours with a brush exactly like text. This is the counterpart of upstream's `CustomIcon`
   mask and Remix icon set; the bitmaps are cached per name.
-- `MarkdownPreview` renders Markdown natively through Markdig into Avalonia controls. The `Preview | Source`
+- `MarkdownPreview` renders Markdown natively through Markdig into Avalonia controls. `Frontmatter` reads properties and spec identity; `FindBar` searches rendered documents. The `Preview | Source`
   header of a Markdown file is the resource pane's view toggle ([../SPEC.md](../SPEC.md)).
 - `DiffView` is a diff tab's pane: its slim header, the source diff it draws itself, and the other views
   the resource registry offers for the file. `MarkdownDiff` merges two Markdown sources into one
@@ -73,12 +73,28 @@ can use it without a cycle. Theme catalogue and colour roles have their own docu
   viewer limits below rather than eagerly creating a rendered preview.
 - External edits reload the document without replacing its mode controls or switching the selected
   Source/Preview mode; both views show the new disk content.
-- A leading YAML front-matter block renders first as a code block of its fields (without the fences), so
-  spec metadata is visible without reading as stray headings. Upstream hides it; SharpRail shows it on
-  request.
+- A leading YAML frontmatter block renders as an Obsidian-style properties block at the top of the scrolling
+  document, never as a stray heading: key/value rows, list values as chips, collapsible. It is read-only,
+  because a Markdown tab has no editable source here. Top-level scalars, inline and multi-line flow
+  sequences, block lists of scalars and one-level mappings are readable; any other shape shows the raw block
+  rather than a guess. The source view shows the YAML as written.
+- A document is a spec when its frontmatter carries an `id` and one of the spec graph's `type`s
+  (`goal-and-requirements`, `architecture-design`, `module-design`, `submodule-design`, `task-spec`), never
+  because of its file name. A spec's `title:` is drawn as an element above the properties, not spliced into
+  the source, and its `[[id]]` / `[[id|label]]` links resolve against the workspace spec catalog; a link
+  naming a spec the workspace does not have is disabled with the id in its tooltip. In ordinary Markdown
+  `[[text]]` stays text.
 - Selection spans the document: each paragraph, cell and code body is its own text block, and a drag
   that leaves its block selects through every block up to the pointer. Mod+C copies the combined
   selection with blank lines between blocks and Mod+A selects the whole document.
+- `Preview | Source | Split` switches the body; Split shows the source beside its preview with a draggable
+  divider. The Outline toggle opens a heading column at the pane's left edge in every view. Its entries come
+  from the parsed source (so fenced `#` lines are not headings), open with a spec's title, and a click jumps
+  whichever sides are showing: the preview to the heading's anchor, the source to its line.
+- Mod+F over a rendered document or rendered diff opens a find bar: case-insensitive, Enter / Shift+Enter
+  step with wrap, a count shows `i/n`, the input border turns red on no match, Escape closes it. The current
+  match is selected and scrolled into view; other matches are not painted, and a match spanning two text
+  blocks is not found.
 - The document skin owns typography and the reading measure: headings at 24/20/18/16 against the interface
   body size, section spacing, bordered tables, blockquotes, task lists and GitHub-style alert callouts with
   their own icons. The column is capped at the Markdown line width (default 78 symbols, measured in the
@@ -101,17 +117,24 @@ can use it without a cycle. Theme catalogue and colour roles have their own docu
 Fenced `mermaid` blocks render as themed diagrams. Rendering blocks on native parsing and layout, so it
 runs off the UI thread; Svg.Skia displays the SVG. The base theme variables are captured from the current
 brushes at render time, and because Mermaid bakes colour into the SVG, every diagram renders again on
-`Ui.ThemeChanged`. A diagram opens in the full-screen viewer, which fits the viewer width at 100% and offers
+`Ui.ThemeChanged`. Inline, a diagram draws at its natural size up to the document width, in a box capped at
+480 px that clips rather than scrolls, so a tall diagram never pushes the prose out of reach. The box carries
+the same zoom controls as the full-screen viewer, and ⌘/Ctrl+wheel zooms: zoom scales the drawing, never the
+box, a drag pans inside it, and a plain wheel keeps scrolling the document. A diagram opens in the full-screen viewer, which fits the viewer width at 100% and offers
 drag panning, trackpad pinch and 25–500% zoom. Where Merman is unavailable (non-macOS builds) the source is shown with an
 unavailability message. Rendered diffs pass `renderDiagrams: false` and keep the source-code degradation.
 
 ## Diffs
 
 - `DiffView` shows a path chip, a hide-whitespace toggle, a copy button (copies the diff text; no clipboard
-  is a silent no-op) and either `Split | Inline` (source diffs, split by default) or `Source | Rendered`
-  (Markdown diffs, rendered by default like Markdown files; choosing Source is remembered per tab). Source lines wrap at the file line width.
-  Upstream's diffs stopped honouring that width when they moved off the editor component to a diff library
-  that scrolls horizontally; SharpRail's source diffs are still editors, so they keep wrapping.
+  is a silent no-op) and either `Split | Inline` (source diffs) or `Source | Rendered` (Markdown diffs,
+  rendered by default like Markdown files; choosing Source is remembered per tab). Until the user clicks
+  Split or Inline, a pane whose halves would each hold fewer than 40 code columns opens inline and a wider
+  one splits, re-derived live on resize; the toggle always shows the effective view, and a click pins it
+  for that tab. A Markdown diff's Source view has no segment and always follows the width rule. Source
+  lines wrap at the file line width. Upstream's diffs stopped honouring that width when they moved off the
+  editor component to a diff library that scrolls horizontally; SharpRail's source diffs are still editors,
+  so they keep wrapping.
 - On macOS source diffs are read-only Scintilla editors (`Editor/EditorFrame`), so only visible lines are laid
   out and large diffs stay responsive. Each line carries a whole-line style: added/removed lines get a tinted
   foreground over a composited wash band, hunk headers the accent, collapsed context a `⋯ N hidden lines` row.
@@ -127,6 +150,9 @@ unavailability message. Rendered diffs pass `renderDiagrams: false` and keep the
   structure survive. The merged document renders through the same `MarkdownPreview` pipeline. The merge runs
   on a thread-pool thread; a newer merge or leaving the rendered view cancels the stale one, and a content
   update keeps the current rendering visible until the fresh merge lands.
+- The rendered diff carries the modified side's outline (the `Outline` toggle shows only in the rendered view)
+  and the properties block, diffed per key so an added, removed or changed value wears the same ins/del marks
+  as the prose.
 
 ## Loading vocabulary
 
@@ -173,6 +199,9 @@ commit rows in the scope menu append it to the short SHA and author.
 - A tooltip provider with tuned delay and a `wrapTrigger` for disabled controls.
 - A shared non-modal dialog panel with dialog/title semantics, Escape dismissal and focus return while
   surrounding controls remain interactive; `DialogWindow` supplies modal cards instead.
+- Editing frontmatter properties (add, rename, remove, value-type conversion) as a draft of the tab.
+- Painting every find match rather than selecting the current one.
+- A user-chosen code font and its ligatures across the editor, terminals, diagrams and code blocks.
 - Syntax highlighting for Markdown code blocks beyond the minimal keyword/string/comment tinting, and a
   manifest-driven syntax palette. Upstream now highlights chat fences off the main thread with lazy
   grammars, bounded caching and ordered replies; its worker/fallback machinery is web-specific. Any native

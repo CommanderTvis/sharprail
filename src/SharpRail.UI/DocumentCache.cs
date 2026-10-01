@@ -14,6 +14,7 @@ public sealed partial class WorkbenchWindow
     private void PruneDocuments()
     {
         var live = LiveDocuments();
+        deletedDocuments.RemoveWhere(key => !live.Contains(key));
         foreach (var key in documents.Keys.Where(key => !live.Contains(key)).ToArray())
         { documents.Remove(key); DropDocumentContent(key); }
         foreach (var key in documentContent.Keys.Where(key => !live.Contains(key)).ToArray())

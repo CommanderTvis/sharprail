@@ -89,6 +89,8 @@ public record BranchCatalog(IReadOnlyList<string> Local, IReadOnlyList<RemoteBra
 {
     public string SuggestedPath { get; init; } = "";
     public string SuggestedBranch { get; init; } = "";
+    /// <summary>The project checkout's branch, empty when HEAD is detached.</summary>
+    public string Current { get; init; } = "";
 }
 public record EditorInfo(string Id, string Label);
 /// <summary>Line totals of a workspace's changes against its review target.</summary>
@@ -99,7 +101,12 @@ public record PrDraft(string Title, string Body);
 public record PrRequest(string Title, bool TitleEdited, string Body, bool Draft);
 /// <summary>Action is created, updated, pushed, compare or authFailed; GhProblem is missing or unauthenticated when gh could not be used.</summary>
 public record PrResult(string Action, string Url, int Number, int DirtyFiles, string GhProblem);
+public record SearchHit(string Path, int Line, string Text);
+/// <summary>Hits in path then line order; <paramref name="Truncated"/> when the host stopped at its limit.</summary>
+public record SearchHits(IReadOnlyList<SearchHit> Hits, bool Truncated);
 public record GitAction(string Kind, string Path = "", string Branch = "", string BaseBranch = "HEAD");
+/// <summary>A change to one workspace path: create-file, create-folder, rename (to <see cref="To"/>), trash or reveal.</summary>
+public record FileAction(string Kind, string Path, string To = "");
 
 public partial interface IProjectServices
 {
@@ -109,6 +116,7 @@ public partial interface IProjectServices
     ValueTask SaveFileAsync(FileSaveRequest request, CancellationToken cancellationToken = default);
     ValueTask<FileDocument> ReadFileAsync(string relativePath, CancellationToken cancellationToken = default);
     ValueTask<IReadOnlyList<SpecDocument>> ListSpecsAsync(CancellationToken cancellationToken = default);
+    ValueTask<SearchHits> SearchAsync(string query, CancellationToken cancellationToken = default);
     ValueTask<GitSnapshot> GetGitAsync(string comparisonBranch = "", CancellationToken cancellationToken = default, string scope = "all");
     ValueTask<IReadOnlyList<GitCommit>> ListCommitsAsync(string comparisonBranch, CancellationToken cancellationToken = default);
     ValueTask<string> GetDiffAsync(string path, string scope, string comparisonBranch = "", CancellationToken cancellationToken = default);
@@ -117,6 +125,7 @@ public partial interface IProjectServices
     ValueTask<ChangeReceipt> RevertChangeAsync(string path, string scope, string comparisonBranch, RevertTarget target, ChangeExpectation expect, CancellationToken cancellationToken = default);
     ValueTask<ChangeReceipt> UndoChangeAsync(string receiptId, string? expectModifiedHash, CancellationToken cancellationToken = default);
     ValueTask<GitSnapshot> ApplyGitActionAsync(GitAction action, CancellationToken cancellationToken = default);
+    ValueTask ApplyFileActionAsync(FileAction action, CancellationToken cancellationToken = default);
     ValueTask<BranchCatalog> ListBranchesAsync(bool fetchDefault, CancellationToken cancellationToken = default);
     /// <summary>The change totals of one of this project's workspaces, or null from a host that cannot tell.</summary>
     ValueTask<DiffStats?> GetDiffStatsAsync(string workspacePath, CancellationToken cancellationToken = default) => ValueTask.FromResult<DiffStats?>(null);

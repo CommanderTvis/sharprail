@@ -111,6 +111,9 @@ public sealed class LayoutSession
         if (!state.Center.Leaves().Contains(view.FocusedCenter)) view.FocusedCenter = state.Center.Leaves().First();
     });
 
+    /// <summary>Moves what a group opens on without navigating or taking focus.</summary>
+    public void Reseat(string groupId, string tabId) => Change(state => Active(state).Selected[groupId] = tabId, groupId);
+
     public void Select(string groupId, string tabId)
     {
         Navigating?.Invoke(groupId);

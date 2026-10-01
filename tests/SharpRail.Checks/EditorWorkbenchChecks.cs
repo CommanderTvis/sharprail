@@ -147,6 +147,8 @@ internal static class EditorWorkbenchChecks
         var directory = E2E.IsolatedGit.Repository(Path.Combine(fixture, "large-diff"),
             ("big.txt", string.Concat(Enumerable.Range(0, lines).Select(index => $"original line {index}\n"))));
         using var app = new E2E.E2eWorkspace(directory, openFiles: false);
+        // Wide enough that the diff opens split rather than inline.
+        app.Window.Width = 1800;
         File.WriteAllText(Path.Combine(directory, "big.txt"), string.Concat(Enumerable.Range(0, lines).Select(index => $"changed line {index} {Wide}\n")));
         Await(app.Window.RefreshAsync());
         app.Click(app.Find<Button>("Tab_changes"));
@@ -188,6 +190,8 @@ internal static class EditorWorkbenchChecks
         File.WriteAllText(Path.Combine(directory, "huge.txt"), new string('x', 33 * 1024 * 1024));
         File.WriteAllText(Path.Combine(directory, "BIG.md"), markdown + "Appended paragraph.\n");
         using var app = new E2E.E2eWorkspace(directory, openFiles: false);
+        // Wide enough that the fallback source diff opens split rather than inline.
+        app.Window.Width = 1800;
         T? Visible<T>(string name) where T : Control =>
             app.Window.GetLogicalDescendants().OfType<T>().FirstOrDefault(control => control.Name == name && control.IsEffectivelyVisible);
 

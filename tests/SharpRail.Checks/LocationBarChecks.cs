@@ -188,6 +188,7 @@ internal static class LocationBarChecks
         Require(app.Window.WindowState == WindowState.Normal, "A pill must not act as title-bar chrome.");
         ((Flyout)pill.Flyout!).Hide();
 
+        app.Find<TextBlock>("WorkspaceLabel").Text = "A workspace name long enough to fill the location bar segment";
         var widths = new List<(bool Project, bool Workspace, bool Branch)>();
         for (var width = 900; width >= 390; width -= 30)
         {
