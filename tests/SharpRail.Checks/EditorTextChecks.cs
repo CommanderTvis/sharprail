@@ -1,4 +1,5 @@
 using System.Text;
+
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
@@ -6,7 +7,9 @@ using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Media;
 using Avalonia.Threading;
+
 using SharpRail.Scintilla;
+
 using SkiaSharp;
 
 namespace SharpRail.Checks;

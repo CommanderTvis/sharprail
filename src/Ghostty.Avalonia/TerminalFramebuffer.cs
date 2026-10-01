@@ -1,4 +1,5 @@
 using Avalonia;
+
 using SkiaSharp;
 
 namespace Ghostty.Avalonia;

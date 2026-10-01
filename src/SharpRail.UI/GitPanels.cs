@@ -2,8 +2,9 @@ using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
-using Avalonia.Layout;
 using Avalonia.Input.Platform;
+using Avalonia.Layout;
+
 using SharpRail.Host.Abstractions;
 using SharpRail.UI.Docking;
 using SharpRail.UI.Panels;

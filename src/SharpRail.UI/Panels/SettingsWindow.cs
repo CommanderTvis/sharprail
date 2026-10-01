@@ -1,4 +1,5 @@
 using System.Globalization;
+
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -6,8 +7,9 @@ using Avalonia.Controls.Templates;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.LogicalTree;
-using Avalonia.Media;
 using Avalonia.Markup.Xaml;
+using Avalonia.Media;
+
 using SharpRail.Host.Abstractions;
 using SharpRail.UI.Docking;
 using SharpRail.UI.Rendering;

@@ -6,9 +6,11 @@ using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Styling;
+
 using SharpRail.UI.Panels;
 using SharpRail.UI.Rendering;
 using SharpRail.UI.State;
+
 using static SharpRail.Checks.E2E.E2eWorkspace;
 
 namespace SharpRail.Checks.E2E;

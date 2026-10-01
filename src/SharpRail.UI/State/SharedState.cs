@@ -1,5 +1,7 @@
 using System.Text.Json;
+
 using Avalonia.Threading;
+
 using SharpRail.Host.Abstractions;
 using SharpRail.UI.Docking;
 using SharpRail.UI.Rendering;

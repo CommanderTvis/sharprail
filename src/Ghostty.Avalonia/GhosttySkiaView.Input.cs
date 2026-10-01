@@ -1,10 +1,11 @@
 using System.Diagnostics;
 using System.Text;
+
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Input.TextInput;
-using Avalonia.Controls;
 using Avalonia.Media.Imaging;
 
 namespace Ghostty.Avalonia;

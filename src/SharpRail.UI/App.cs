@@ -1,11 +1,12 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
 using SharpRail.Host.Core;
-using SharpRail.UI.State;
 using SharpRail.UI.Rendering;
+using SharpRail.UI.State;
 using SharpRail.UI.Terminal;
 
 namespace SharpRail.UI;

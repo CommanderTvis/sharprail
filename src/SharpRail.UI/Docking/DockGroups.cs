@@ -6,10 +6,11 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.LogicalTree;
-using Avalonia.VisualTree;
 using Avalonia.Media;
-using Avalonia.Threading;
 using Avalonia.Styling;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
+
 using SharpRail.UI.Rendering;
 
 namespace SharpRail.UI.Docking;

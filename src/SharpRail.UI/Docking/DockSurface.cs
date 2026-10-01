@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
+
 using SharpRail.UI.Rendering;
 
 namespace SharpRail.UI.Docking;

@@ -6,7 +6,9 @@ using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.VisualTree;
+
 using SharpRail.UI.Docking;
+
 using static SharpRail.Checks.E2E.E2eWorkspace;
 using static SharpRail.Checks.E2E.TerminalsE2E;
 
@@ -96,7 +98,7 @@ internal static class BottomPanelE2E
     private static void SquareActions(string root)
     {
         using var app = Default(Repository(root, "bottom-square"));
-        void Square(Control control) => Require(Math.Abs(control.Bounds.Width - 32) < .5 && Math.Abs(control.Bounds.Width - control.Bounds.Height) <= 1,
+        static void Square(Control control) => Require(Math.Abs(control.Bounds.Width - 32) < .5 && Math.Abs(control.Bounds.Width - control.Bounds.Height) <= 1,
             $"Panel-header action {control.Name} must be a 32-pixel square.");
         var right = app.Window.Layout.State.Groups.First(group => group.Region == "right").Id;
         var bottom = Groups(app).Single().Id;

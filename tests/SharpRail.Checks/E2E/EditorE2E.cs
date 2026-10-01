@@ -1,16 +1,19 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
-using Avalonia.Input;
 using Avalonia.Headless;
+using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+
 using SharpRail.Scintilla;
 using SharpRail.UI.Panels;
 using SharpRail.UI.Rendering;
-using ThemeCatalog = SharpRail.UI.Rendering.Themes;
+
 using static SharpRail.Checks.E2E.E2eWorkspace;
+
+using ThemeCatalog = SharpRail.UI.Rendering.Themes;
 
 namespace SharpRail.Checks.E2E;
 

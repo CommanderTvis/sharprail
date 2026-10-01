@@ -1,4 +1,5 @@
 using System.Runtime.ExceptionServices;
+
 using SkiaSharp;
 
 namespace SharpRail.Scintilla;

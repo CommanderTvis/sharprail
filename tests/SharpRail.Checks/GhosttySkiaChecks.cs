@@ -1,4 +1,5 @@
 using System.Text;
+
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
@@ -9,13 +10,15 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+
 using Ghostty.Avalonia;
+
 using SharpRail.Host.Client;
 using SharpRail.Host.Core;
-using SharpRail.UI.Terminal;
 using SharpRail.UI.Docking;
 using SharpRail.UI.Panels;
 using SharpRail.UI.State;
+using SharpRail.UI.Terminal;
 
 namespace SharpRail.Checks;
 

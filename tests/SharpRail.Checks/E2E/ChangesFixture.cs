@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -10,8 +11,10 @@ using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.VisualTree;
-using SharpRail.UI.Docking;
+
 using SharpRail.Scintilla;
+using SharpRail.UI.Docking;
+
 using static SharpRail.Checks.E2E.E2eWorkspace;
 
 namespace SharpRail.Checks.E2E;

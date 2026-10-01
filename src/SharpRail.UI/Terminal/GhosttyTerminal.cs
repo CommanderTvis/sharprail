@@ -1,7 +1,10 @@
 using System.Runtime.Versioning;
+
 using Avalonia.Controls;
 using Avalonia.Input;
+
 using Ghostty.Avalonia;
+
 using SharpRail.UI.Rendering;
 
 namespace SharpRail.UI.Terminal;

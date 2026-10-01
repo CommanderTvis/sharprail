@@ -1,10 +1,12 @@
 using System.Runtime.Versioning;
+
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Rendering.SceneGraph;
 using Avalonia.Skia;
 using Avalonia.Threading;
+
 using SkiaSharp;
 
 namespace Ghostty.Avalonia;

@@ -1,9 +1,12 @@
 using System.Diagnostics;
 using System.Threading.Channels;
+
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Threading;
+
 using Ghostty.Avalonia;
+
 using SharpRail.Host.Abstractions;
 using SharpRail.UI.Rendering;
 

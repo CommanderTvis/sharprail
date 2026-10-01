@@ -1,11 +1,14 @@
 using System.Text.RegularExpressions;
+
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.VisualTree;
+
 using SharpRail.UI.Docking;
 using SharpRail.UI.Panels;
 using SharpRail.UI.Terminal;
+
 using static SharpRail.Checks.E2E.E2eWorkspace;
 
 namespace SharpRail.Checks.E2E;

@@ -3,8 +3,10 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Markup.Xaml;
 using Avalonia.Platform;
+
 using SharpRail.Scintilla;
 using SharpRail.UI.Rendering;
+
 using SkiaSharp;
 
 namespace SharpRail.UI.Editor;

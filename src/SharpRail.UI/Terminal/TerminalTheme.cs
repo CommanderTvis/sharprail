@@ -1,7 +1,10 @@
-using Ghostty.Avalonia;
-using SharpRail.UI.Rendering;
-using SkiaSharp;
 using Avalonia.Platform;
+
+using Ghostty.Avalonia;
+
+using SharpRail.UI.Rendering;
+
+using SkiaSharp;
 
 namespace SharpRail.UI.Terminal;
 

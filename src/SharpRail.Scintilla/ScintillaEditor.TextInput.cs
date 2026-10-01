@@ -1,4 +1,5 @@
 using System.Text;
+
 using Avalonia;
 using Avalonia.Input;
 using Avalonia.Input.TextInput;

@@ -1,5 +1,7 @@
 using System.Text;
+
 using HarfBuzzSharp;
+
 using SkiaSharp;
 
 namespace Ghostty.Avalonia;

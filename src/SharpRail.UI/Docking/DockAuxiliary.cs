@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
+
 using SharpRail.UI.Rendering;
 
 namespace SharpRail.UI.Docking;

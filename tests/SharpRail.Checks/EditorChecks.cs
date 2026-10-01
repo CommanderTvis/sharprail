@@ -6,7 +6,9 @@ using Avalonia.Input.Platform;
 using Avalonia.Input.TextInput;
 using Avalonia.Platform;
 using Avalonia.Threading;
+
 using SharpRail.Scintilla;
+
 using SkiaSharp;
 
 namespace SharpRail.Checks;

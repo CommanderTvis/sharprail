@@ -7,6 +7,7 @@ using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
+
 using SharpRail.UI.Rendering;
 
 namespace SharpRail.UI.Docking;

@@ -1,24 +1,28 @@
-using System.Runtime.Versioning;
 using System.Net;
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
+
 using Avalonia;
 using Avalonia.Automation.Peers;
 using Avalonia.Automation.Provider;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.LogicalTree;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+
+using Ghostty.Avalonia;
+
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
-using Avalonia.LogicalTree;
-using Ghostty.Avalonia;
+
 using SharpRail.Host.Client;
 using SharpRail.Host.Remote;
 using SharpRail.UI;
-using SharpRail.UI.Terminal;
 using SharpRail.UI.Docking;
 using SharpRail.UI.State;
+using SharpRail.UI.Terminal;
 
 namespace SharpRail.Checks;
 

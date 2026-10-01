@@ -1,9 +1,12 @@
 using System.Runtime.CompilerServices;
 using System.Text;
+
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Threading;
+
 using Ghostty.Avalonia;
+
 using SharpRail.Host.Abstractions;
 using SharpRail.UI.Terminal;
 

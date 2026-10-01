@@ -1,14 +1,16 @@
 using System.Collections.Concurrent;
+
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
+
+using SharpRail.Checks.E2E;
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Core;
 using SharpRail.UI;
+using SharpRail.UI.Docking;
 using SharpRail.UI.Rendering;
 using SharpRail.UI.State;
-using SharpRail.UI.Docking;
-using SharpRail.Checks.E2E;
 
 namespace SharpRail.Checks;
 

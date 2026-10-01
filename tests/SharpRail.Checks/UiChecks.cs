@@ -10,8 +10,10 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+
 using Markdig.Extensions.Tables;
 using Markdig.Syntax;
+
 using SharpRail.Host.Client;
 using SharpRail.Host.Core;
 using SharpRail.UI;

@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text.RegularExpressions;
+
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -10,6 +11,7 @@ using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Svg.Skia;
+
 using Markdig;
 using Markdig.Extensions.Alerts;
 using Markdig.Extensions.Tables;
@@ -18,6 +20,7 @@ using Markdig.Extensions.Yaml;
 using Markdig.Renderers.Html;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
+
 using SharpRail.Host.Abstractions;
 using SharpRail.UI.State;
 

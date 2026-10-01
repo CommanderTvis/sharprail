@@ -1,8 +1,10 @@
 using System.Text;
 using System.Text.RegularExpressions;
+
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Threading;
+
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Core;
 using SharpRail.UI.Terminal;

@@ -7,6 +7,7 @@ using Avalonia.Platform;
 using Avalonia.Rendering.SceneGraph;
 using Avalonia.Skia;
 using Avalonia.Threading;
+
 using SkiaSharp;
 
 namespace Ghostty.Avalonia;

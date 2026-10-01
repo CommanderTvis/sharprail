@@ -1,5 +1,6 @@
 using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
+
 using SharpRail.UI.State;
 
 namespace SharpRail.UI.Rendering;

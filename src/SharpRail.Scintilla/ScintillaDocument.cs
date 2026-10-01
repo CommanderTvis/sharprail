@@ -1,5 +1,7 @@
 using System.Text;
+
 using Avalonia.Threading;
+
 using SkiaSharp;
 
 namespace SharpRail.Scintilla;

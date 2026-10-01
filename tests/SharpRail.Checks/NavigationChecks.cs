@@ -1,16 +1,17 @@
-using Avalonia.Threading;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Presenters;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
-using Avalonia.VisualTree;
-using Avalonia.Controls.Presenters;
 using Avalonia.Media;
-using SharpRail.UI.Rendering;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
+
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Core;
 using SharpRail.UI;
+using SharpRail.UI.Rendering;
 using SharpRail.UI.State;
 
 namespace SharpRail.Checks;

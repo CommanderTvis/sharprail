@@ -1,25 +1,30 @@
 using System.Diagnostics;
+using System.Net;
 using System.Runtime.InteropServices;
 using System.Runtime.Versioning;
-using System.Net;
 using System.Text.RegularExpressions;
+
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Layout;
 using Avalonia.Input;
+using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+
 using Ghostty.Avalonia;
-using SkiaSharp;
+
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
+
 using SharpRail.Host.Client;
 using SharpRail.Host.Core;
 using SharpRail.Host.Remote;
 using SharpRail.UI.Terminal;
+
+using SkiaSharp;
 
 namespace SharpRail.Checks;
 

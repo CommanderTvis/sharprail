@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+
 using SharpRail.Host.Abstractions;
 using SharpRail.Scintilla;
 

@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
+
 using SharpRail.UI.Rendering;
 
 namespace SharpRail.UI.Panels;

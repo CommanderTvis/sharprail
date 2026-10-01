@@ -1,4 +1,5 @@
 using System.Net;
+
 using SharpRail.Host.Remote;
 
 var root = Environment.GetEnvironmentVariable("SHARPRAIL_ROOT") ?? Directory.GetCurrentDirectory();

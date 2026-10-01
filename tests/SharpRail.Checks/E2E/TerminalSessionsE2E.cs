@@ -1,13 +1,17 @@
 using System.Net;
+
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
+
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
+
 using SharpRail.Host.Client;
 using SharpRail.Host.Core;
 using SharpRail.Host.Remote;
+
 using static SharpRail.Checks.E2E.E2eWorkspace;
 using static SharpRail.Checks.E2E.TerminalsE2E;
 

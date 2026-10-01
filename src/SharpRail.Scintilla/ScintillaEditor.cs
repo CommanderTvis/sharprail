@@ -5,6 +5,7 @@ using Avalonia.Media;
 using Avalonia.Rendering.SceneGraph;
 using Avalonia.Skia;
 using Avalonia.Threading;
+
 using SkiaSharp;
 
 namespace SharpRail.Scintilla;
@@ -213,4 +214,3 @@ public sealed partial class ScintillaEditor : Control, IDisposable
         }
     }
 }
-

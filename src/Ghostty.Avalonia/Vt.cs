@@ -1,5 +1,6 @@
 using System.Runtime.InteropServices;
 using System.Text;
+
 using Avalonia.Input;
 
 namespace Ghostty.Avalonia;

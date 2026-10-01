@@ -1,8 +1,11 @@
 using System.Runtime.CompilerServices;
+
 using Grpc.Core;
 using Grpc.Net.Client;
+
 using ProtoBuf.Grpc;
 using ProtoBuf.Grpc.Client;
+
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Protocol;
 

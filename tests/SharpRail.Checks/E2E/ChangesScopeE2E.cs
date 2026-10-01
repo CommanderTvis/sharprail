@@ -1,6 +1,8 @@
 using System.Text.RegularExpressions;
+
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
+
 using static SharpRail.Checks.E2E.ChangesFixture;
 using static SharpRail.Checks.E2E.E2eWorkspace;
 

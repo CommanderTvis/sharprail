@@ -1,11 +1,14 @@
 using System.Diagnostics;
+
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
+
 using SharpRail.UI.Rendering;
+
 using static SharpRail.Checks.E2E.ChangesFixture;
 using static SharpRail.Checks.E2E.E2eWorkspace;
 

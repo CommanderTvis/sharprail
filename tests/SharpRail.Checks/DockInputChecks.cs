@@ -9,6 +9,7 @@ using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
+
 using SharpRail.Host.Core;
 using SharpRail.UI;
 using SharpRail.UI.Docking;

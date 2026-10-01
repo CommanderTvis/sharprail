@@ -1,6 +1,8 @@
 using System.Security.Cryptography;
 using System.Text;
+
 using Avalonia.Controls;
+
 using SharpRail.Host.Abstractions;
 
 namespace SharpRail.UI.Terminal;
