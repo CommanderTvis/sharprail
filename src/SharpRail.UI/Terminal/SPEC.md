@@ -63,6 +63,8 @@ Appearance changes keep live terminal views (`DocumentCache.cs`); Ghostty receiv
 foreground, ANSI palette, cursor and selection colours and its contrast floor without restarting the
 shell. Ordinary themes preserve terminal foreground colours without minimum-contrast adjustment
 (Ghostty's default of 1); high-contrast themes use a minimum ratio of 7.
+Reverse-screen mode (DECSCNM) swaps the default text and background colours together,
+and resetting the mode restores both.
 
 ## Platform
 
@@ -91,7 +93,8 @@ three render targets. Resize, remount and disposal must release old targets. The
 page allocations when recycling them, without reducing retained history limits.
 
 In Skia mode, libghostty-vt owns terminal state and input encoding; Avalonia draws
-Skia pictures and owns focus, clipboard, selection and composition input. The
+Skia pictures and owns focus, clipboard, selection and composition input. On macOS,
+Option–Left/Right send ESC b/f for word navigation, matching Ghostty's bindings. The
 adapter attaches directly to `ITerminalService`, queues input in order, uses the
 arranged grid size and propagates exit/takeover to `TerminalView`. No relay child
 is needed. All paths currently require macOS native libraries; other platforms

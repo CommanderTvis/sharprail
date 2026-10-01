@@ -1,0 +1,50 @@
+--- a/src/renderer/generic.zig
++++ b/src/renderer/generic.zig
+@@ -1096,6 +1096,23 @@
+                 /// If true, rebuild the full screen.
+                 full_rebuild: bool,
+             };
++
++            // Keep reversed colors through cell rebuilding, then restore them.
++            const bg = self.background_color orelse self.default_background_color;
++            const fg = self.foreground_color orelse self.default_foreground_color;
++            defer {
++                if (self.background_color) |*c| {
++                    c.* = bg;
++                } else {
++                    self.default_background_color = bg;
++                }
++
++                if (self.foreground_color) |*c| {
++                    c.* = fg;
++                } else {
++                    self.default_foreground_color = fg;
++                }
++            }
+ 
+             // Update all our data as tightly as possible within the mutex.
+             var critical: Critical = critical: {
+@@ -1116,23 +1133,6 @@
+                     return;
+                 }
+ 
+-                // Swap bg/fg if the terminal is reversed
+-                const bg = self.background_color orelse self.default_background_color;
+-                const fg = self.foreground_color orelse self.default_foreground_color;
+-                defer {
+-                    if (self.background_color) |*c| {
+-                        c.* = bg;
+-                    } else {
+-                        self.default_background_color = bg;
+-                    }
+-
+-                    if (self.foreground_color) |*c| {
+-                        c.* = fg;
+-                    } else {
+-                        self.default_foreground_color = fg;
+-                    }
+-                }
+-
+                 if (state.terminal.modes.get(.reverse_colors)) {
+                     if (self.background_color) |*c| {
+                         c.* = fg;

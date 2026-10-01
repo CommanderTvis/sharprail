@@ -47,6 +47,12 @@ public sealed partial class GhosttySkiaView
     private bool Encode(KeyEventArgs e, int action)
     {
         var mods = e.KeyModifiers;
+        // Match Ghostty's macOS word-navigation bindings before protocol encoding.
+        if (OperatingSystem.IsMacOS() && mods == KeyModifiers.Alt && e.PhysicalKey is PhysicalKey.ArrowLeft or PhysicalKey.ArrowRight)
+        {
+            if (action == Press) Typed(e.PhysicalKey == PhysicalKey.ArrowLeft ? "\u001bb"u8 : "\u001bf"u8);
+            return true;
+        }
         var symbol = e.KeySymbol;
         var printable = !string.IsNullOrEmpty(symbol) && !char.IsControl(symbol[0]);
         var alt = mods.HasFlag(KeyModifiers.Alt) && (OptionAsAlt || !OperatingSystem.IsMacOS());

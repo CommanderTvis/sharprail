@@ -121,7 +121,7 @@ internal sealed class CellFonts : IDisposable
         return (ids, points, x);
     }
 
-    private HarfBuzzSharp.Font? Shaper(SKTypeface typeface)
+    private unsafe HarfBuzzSharp.Font? Shaper(SKTypeface typeface)
     {
         if (shapers.TryGetValue(typeface, out var shaper)) return shaper;
         using var stream = typeface.OpenStream(out var index);
@@ -129,13 +129,20 @@ internal sealed class CellFonts : IDisposable
         {
             var data = new byte[stream.Length];
             stream.Read(data, data.Length);
-            using var blob = Blob.FromStream(new MemoryStream(data));
+            // HarfBuzz retains the font bytes after this managed buffer is unpinned.
+            using var blob = CopyFont(data);
             using var face = new Face(blob, index);
             shaper = new HarfBuzzSharp.Font(face);
             shaper.SetScale(ShapeScale, ShapeScale);
             shaper.SetFunctionsOpenType();
         }
         return shapers[typeface] = shaper;
+
+        static Blob CopyFont(byte[] data)
+        {
+            fixed (byte* bytes = data)
+                return new Blob((nint)bytes, data.Length, MemoryMode.Duplicate);
+        }
     }
 
     private static SKFont Font(SKTypeface typeface, float size, bool embolden, bool slant) => new(typeface, size)

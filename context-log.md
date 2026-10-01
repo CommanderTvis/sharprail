@@ -2574,3 +2574,44 @@ both fixes and without NO_COLOR (PID 65809). User reports terminfo.dev passes
 11/14 extensions; Sixel and Kitty graphics remain unsupported in their check.
 Discussed deferring Sixel and investigating Kitty graphics, without implementing
 either. User authorized committing and pushing the current fixes.
+
+### Reverse-screen vttest failure — 2026-10-01
+
+Input and contrast fixes were committed/pushed as b085ec9. User subsequently
+reported standalone Ghostty gets the same 108/111 protocol probe results, so
+Kitty acknowledgment failure alone is not evidence of an integration regression.
+
+User reported blank light-background vttest output specifically in Metal.
+Pinned Ghostty 1.2.3 swaps default colors inside updateFrame's critical block,
+but restores them on leaving that block before rebuildCells. Background uniforms
+use the saved reversed color while text uses the restored foreground. Added
+Native/ReverseColors.patch to retain the swapped colors through cell rebuilding
+and restore them on function exit. Build script resets the patched source from
+the pin and includes the patch in its fingerprint. UI Release build passed;
+visual vttest verification after relaunch remains pending. Changes uncommitted.
+
+### Binary-output Skia crash — 2026-10-01
+
+User reported cat of sdkman Java 25.0.2-graal/lib/modules kills the app, probably
+in Skia. Isolated native VT parser/snapshot processed all 169941481 bytes. An
+isolated headless Skia drawing reproducer crashed with exit 139 after 16 MiB;
+macOS report Reproduce-2026-10-01-224415.ips points to HarfBuzz hb_shape_full.
+CellFonts used Blob.FromStream, whose helper returns a readonly native blob
+pointing at an array after the fixed scope ends. Changed to MemoryMode.Duplicate
+while pinned so HarfBuzz owns its bytes. The identical drawing reproduction now
+completes all 169941481 bytes; UI Release build passes with four existing XAML
+warnings. Repro sources/logs are in .bench/binary-output. Live app relaunch/user
+confirmation pending; no commit or push yet. Output queues are also unbounded,
+but were not changed: the reproduced crash was a native font-data lifetime bug.
+
+### Skia word navigation and commit — 2026-10-01
+
+Relaunched with reverse-video and font-lifetime fixes as PID 7608. User later
+reported Option–Left emitted ;3D and confirmed this was Skia-only. Added macOS
+Option–Left/Right bindings sending ESC b/f, matching pinned Ghostty's defaults,
+and suppressing their key releases. UI Release build passes with four existing
+XAML warnings. Live verification of this last input fix remains pending.
+User authorized committing and pushing all current changes. No changes made
+for the observed Metal/Skia font-weight difference; exact raster parity remains
+unverified. Binary-output reproduction passed; visual reverse-video confirmation
+has not been reported.

@@ -52,7 +52,7 @@ checkout() {
 }
 fresh() { [ -f "$cache/$1.fingerprint" ] && [ -f "$cache/$2" ] && [ "$(cat "$cache/$1.fingerprint")" = "$3" ]; }
 
-view_fingerprint="$arch $(cat Native/GhosttyView.h Native/GhosttyView.m Native/GhosttyTexture.m Native/MetalTexture.patch Native/ScrollbackMemory.patch Native/config-colors.zig build-native.sh | shasum -a 256)"
+view_fingerprint="$arch $(cat Native/GhosttyView.h Native/GhosttyView.m Native/GhosttyTexture.m Native/MetalTexture.patch Native/ScrollbackMemory.patch Native/ReverseColors.patch Native/config-colors.zig build-native.sh | shasum -a 256)"
 if ! fresh view libGhosttyAvaloniaView.dylib "$view_fingerprint"; then
   checkout view-source "$view_commit"
   git -C "$cache/view-source" show "$view_commit:src/config/CApi.zig" > "$cache/view-source/src/config/CApi.zig"
@@ -63,6 +63,8 @@ if ! fresh view libGhosttyAvaloniaView.dylib "$view_fingerprint"; then
   patch -s -d "$cache/view-source" -p1 < Native/MetalTexture.patch
   git -C "$cache/view-source" show "$view_commit:src/terminal/PageList.zig" > "$cache/view-source/src/terminal/PageList.zig"
   patch -s -d "$cache/view-source" -p1 < Native/ScrollbackMemory.patch
+  git -C "$cache/view-source" show "$view_commit:src/renderer/generic.zig" > "$cache/view-source/src/renderer/generic.zig"
+  patch -s -d "$cache/view-source" -p1 < Native/ReverseColors.patch
   view_zig_path="$(zig_path "$view_zig")"
   (
     # Zig 0.14 cannot resolve the arm64e-only stubs in newer Apple SDKs.
