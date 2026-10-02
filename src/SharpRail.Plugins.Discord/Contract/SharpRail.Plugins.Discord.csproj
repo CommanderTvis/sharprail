@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The Discord plugin's manifest and contract, shared by its host and UI halves. -->
+  <ItemGroup>
+    <ProjectReference Include="../../SharpRail.Plugins.Api/SharpRail.Plugins.Api.csproj" />
+  </ItemGroup>
+</Project>
