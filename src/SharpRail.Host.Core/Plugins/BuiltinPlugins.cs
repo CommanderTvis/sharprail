@@ -5,6 +5,8 @@ using SharpRail.Plugins.Blueprint;
 using SharpRail.Plugins.Blueprint.Host;
 using SharpRail.Plugins.ClaudeCode;
 using SharpRail.Plugins.ClaudeCode.Host;
+using SharpRail.Plugins.Discord;
+using SharpRail.Plugins.Discord.Host;
 
 
 namespace SharpRail.Host.Core.Plugins;
@@ -17,5 +19,6 @@ public static class BuiltinPlugins
         (SpecDialectManifest.Manifest, new SpecDialectHost()),
         (BlueprintContract.Manifest, new BlueprintHost()),
         (ClaudeCodeManifest.Manifest, new ClaudeCodeHost()),
+        (DiscordPlugin.Manifest, new DiscordHost()),
     ];
 }
