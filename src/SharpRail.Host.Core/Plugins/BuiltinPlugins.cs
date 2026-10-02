@@ -7,6 +7,7 @@ using SharpRail.Plugins.ClaudeCode;
 using SharpRail.Plugins.ClaudeCode.Host;
 using SharpRail.Plugins.Discord;
 using SharpRail.Plugins.Discord.Host;
+using SharpRail.Plugins.PdfPreview;
 
 
 namespace SharpRail.Host.Core.Plugins;
@@ -20,5 +21,6 @@ public static class BuiltinPlugins
         (BlueprintContract.Manifest, new BlueprintHost()),
         (ClaudeCodeManifest.Manifest, new ClaudeCodeHost()),
         (DiscordPlugin.Manifest, new DiscordHost()),
+        (PdfPreviewPlugin.Manifest, null),
     ];
 }

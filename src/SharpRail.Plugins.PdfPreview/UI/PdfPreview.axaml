@@ -1,0 +1,48 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:kit="using:SharpRail.Plugins.UI.Kit"
+             x:Class="SharpRail.Plugins.PdfPreview.UI.PdfPreview"
+             x:ClassModifier="internal"
+             Name="PdfPreviewView">
+  <UserControl.Styles>
+    <Style Selector="Button.pdf-action">
+      <Setter Property="Width" Value="32" />
+      <Setter Property="Height" Value="32" />
+      <Setter Property="Padding" Value="7" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="0" />
+    </Style>
+  </UserControl.Styles>
+  <Grid RowDefinitions="32,*">
+    <Border x:Name="PdfToolbar" Background="{x:Static kit:Ui.Header}" BorderBrush="{x:Static kit:Ui.BorderBrush}"
+            BorderThickness="0,0,0,1" Padding="8,0">
+      <Grid ColumnDefinitions="*,Auto,Auto">
+        <TextBlock x:Name="PdfPageCount" VerticalAlignment="Center" FontSize="11" Foreground="{x:Static kit:Ui.Hint}" />
+        <TextBlock x:Name="PdfZoomLevel" Grid.Column="1" VerticalAlignment="Center" FontSize="11" Margin="0,0,4,0"
+                   Foreground="{x:Static kit:Ui.Muted}" Text="100%" />
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+          <Button x:Name="PdfReload" Classes="pdf-action" ToolTip.Tip="Reload from disk" AutomationProperties.Name="Reload from disk" />
+          <Button x:Name="PdfZoomOut" Classes="pdf-action" ToolTip.Tip="Zoom out" AutomationProperties.Name="Zoom out" />
+          <Button x:Name="PdfZoomIn" Classes="pdf-action" ToolTip.Tip="Zoom in" AutomationProperties.Name="Zoom in" />
+          <Button x:Name="PdfZoomReset" Classes="pdf-action" ToolTip.Tip="Reset zoom" AutomationProperties.Name="Reset zoom" />
+        </StackPanel>
+      </Grid>
+    </Border>
+    <ScrollViewer x:Name="PdfPreviewScroll" Grid.Row="1" Background="{x:Static kit:Ui.Surface}"
+                  HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+      <StackPanel x:Name="PdfPages" Spacing="12" Margin="12" HorizontalAlignment="Center" />
+    </ScrollViewer>
+    <TextBlock x:Name="PdfLoading" Grid.Row="1" Text="Loading PDF…" HorizontalAlignment="Center" VerticalAlignment="Center"
+               Foreground="{x:Static kit:Ui.Muted}" />
+    <StackPanel x:Name="PdfPreviewError" Grid.Row="0" Grid.RowSpan="2" IsVisible="False" Spacing="8" Margin="16"
+                HorizontalAlignment="Center" VerticalAlignment="Center">
+      <TextBlock x:Name="PdfErrorText" TextWrapping="Wrap" TextAlignment="Center" Foreground="{x:Static kit:Ui.Danger}" />
+      <Button x:Name="PdfRetry" HorizontalAlignment="Center" Padding="10,5" Background="{x:Static kit:Ui.Elevated}"
+              BorderBrush="{x:Static kit:Ui.BorderBrush}" BorderThickness="1" CornerRadius="4">
+        <TextBlock Text="Try again" Foreground="{x:Static kit:Ui.Muted}" FontSize="{x:Static kit:Ui.FontSize}"
+                   FontWeight="{x:Static kit:Ui.InterfaceWeight}" VerticalAlignment="Center" />
+      </Button>
+    </StackPanel>
+  </Grid>
+</UserControl>
