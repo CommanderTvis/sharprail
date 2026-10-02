@@ -93,7 +93,7 @@ public sealed partial class WorkbenchWindow
         {
             Name = "Welcome",
             Spacing = 12,
-            MaxWidth = 440,
+            MaxWidth = 720,
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center
         };
@@ -107,26 +107,24 @@ public sealed partial class WorkbenchWindow
         var title = Ui.Text(clean ? "SharpRail" : DirectoryName(projectRoot), Ui.TextBrush, 24);
         title.Name = "WelcomeTitle";
         panel.Children.Add(title);
-        var hint = Ui.Text(clean
-            ? "Open a folder on the computer running SharpRail to start."
-            : $"Create a workspace for an isolated checkout on its own branch ({Shortcut("N")}), or work directly in the project folder.");
-        hint.TextWrapping = Avalonia.Media.TextWrapping.Wrap; hint.TextTrimming = Avalonia.Media.TextTrimming.None;
-        panel.Children.Add(hint);
-        var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        // The reference's screen is heading, then one to three cards; no pitch prose.
+        var buttons = new WrapPanel { Name = "WelcomeCards", Orientation = Orientation.Horizontal, ItemSpacing = 12, LineSpacing = 12 };
         if (clean)
         {
-            var open = Ui.Button("Open project", () => { }, "folderFill");
-            open.Name = "WelcomeCta";
+            var open = new Panels.WelcomeCard("folderFill", "Open project", "Choose a local folder to work in.", primary: true) { Name = "WelcomeCta" };
             open.ContextMenu = ProjectMenu();
             open.Click += (_, _) => open.ContextMenu.Open(open);
             buttons.Children.Add(open);
         }
         else
         {
-            var create = Ui.Button("Create workspace", () => _ = CreateWorkspaceDialogAsync(), "add");
-            create.Name = "WelcomeCta";
-            var folder = Ui.Button("Work in project folder", () => _ = OpenWorkspaceAsync(projectRoot, false), "homeFill");
-            folder.Name = "WelcomeAction";
+            var create = new Panels.WelcomeCard("add", "Create workspace", $"An isolated worktree on its own branch ({Shortcut("N")}).", primary: true)
+            { Name = "WelcomeCta" };
+            create.Click += (_, _) => _ = CreateWorkspaceDialogAsync();
+            var folder = new Panels.WelcomeCard("homeFill", "Work in project folder", "Changes and terminals run directly in your project folder — no isolation.",
+                primary: false)
+            { Name = "WelcomeAction" };
+            folder.Click += (_, _) => _ = OpenWorkspaceAsync(projectRoot, false);
             buttons.Children.Add(create); buttons.Children.Add(folder);
         }
         panel.Children.Add(buttons);

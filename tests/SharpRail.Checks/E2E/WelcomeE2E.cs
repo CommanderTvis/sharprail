@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.LogicalTree;
 
 using SharpRail.UI.Panels;
+using SharpRail.UI.Rendering;
 
 using static SharpRail.Checks.E2E.E2eWorkspace;
 using static SharpRail.Checks.E2E.WorkspaceFixture;
@@ -46,6 +47,10 @@ internal static class WelcomeE2E
         var actions = Buttons(app).Where(button => button.Name == "WelcomeAction").ToArray();
         Require(actions.Length == 1 && Text(actions[0]).Contains("Work in project folder", StringComparison.Ordinal),
             "Project Home offers exactly one fork: Work in project folder.");
+        // The reference's cards: one size, the primary filled, the rest quiet.
+        var cta = app.Find<Button>("WelcomeCta");
+        Require(new[] { cta, actions[0] }.All(card => card.Bounds.Width == 220 && card.Bounds.Height == 150) &&
+            cta.Background == Ui.PrimarySubtle && actions[0].Background == Ui.Sidebar, "Welcome actions are the reference's 220×150 cards.");
         var welcome = app.Find<StackPanel>("Welcome");
         Require(!Text(welcome).Contains("Set up project", StringComparison.Ordinal) && !Text(welcome).Contains("Open project", StringComparison.Ordinal),
             "Project Home must not offer set-up or Open project.");
