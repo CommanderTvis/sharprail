@@ -84,6 +84,9 @@ public sealed record TerminalAgentRecord(string Kind, string Command)
 
     /// <summary>The model the agent runs.</summary>
     public string? Model { get; init; }
+
+    /// <summary>Whether the detected process came from a SharpRail UI launch; null when its origin is unknown.</summary>
+    public bool? LaunchedByUi { get; init; }
 }
 
 /// <summary>A known project, as a plugin sees it.</summary>

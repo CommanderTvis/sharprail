@@ -813,7 +813,7 @@ internal static class PluginHostChecks
         Directory.CreateDirectory(workspace);
         var events = new List<TerminalEvent>();
         var tab = new TerminalRef(Path.GetFullPath(workspace), "tab-1");
-        var agent = new TerminalAgentRecord("probe-agent", "probe --resume") { SessionId = "s-1" };
+        var agent = new TerminalAgentRecord("probe-agent", "probe --resume") { SessionId = "s-1", LaunchedByUi = false };
         IPluginHostContext? context = null;
         Module Reviver() => new(Contract("reviver", Say), activation =>
         {
@@ -837,7 +837,7 @@ internal static class PluginHostChecks
         _ = loopback.BaseUrl;
         context!.SetAgentRecord(tab, agent);
         Require(composed.State.Current.TerminalAgents.Single() == new TerminalAgent(tab, agent) && context.AgentRecord(tab) == agent, "An agent record is stored on host state.");
-        Require(new HostStateStore(Path.Combine(directory, "local")).Current.TerminalAgents.Count == 1, "Agent records persist.");
+        Require(new HostStateStore(Path.Combine(directory, "local")).Current.TerminalAgents.Single().Record == agent, "Agent records persist, including a false UI launch origin.");
 
         var session = PtyTerminalService.SessionFor(tab);
         var attached = await pty.AttachAsync(new(session, workspace, "client", 100, 30) { TabKey = tab.TabKey });
@@ -900,6 +900,12 @@ internal static class PluginHostChecks
             context!.SetAgentRecord(tab, agent);
             using var remoteState = new RemoteStateAdapter(address, "terminal-plugins");
             Require((await remoteState.GetStateAsync()).TerminalAgents.Single() == new TerminalAgent(tab, agent), "Agent records travel on the remote snapshot.");
+            foreach (var origin in new bool?[] { true, null, false })
+            {
+                context.SetAgentRecord(tab, agent with { LaunchedByUi = origin });
+                Require((await remoteState.GetStateAsync()).TerminalAgents.Single().Record.LaunchedByUi == origin,
+                    "Remote state distinguishes UI, manual and unknown launch origins.");
+            }
             using var terminals = new RemoteTerminalAdapter(address, "terminal-plugins");
             var remote = await terminals.AttachAsync(new(session, workspace, "client") { TabKey = tab.TabKey });
             Require(remote.Prefill == new TerminalPrefill("probe --resume", true), "The prefill rides the remote attachment.");

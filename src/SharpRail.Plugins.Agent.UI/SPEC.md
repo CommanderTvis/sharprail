@@ -24,6 +24,9 @@ the module owns no session, account or terminal state.
   reset times and reading timestamps. Account rows and usage windows use compiled XAML.
 - `TerminalFacts` presents directory and model facts, token usage, plan progress,
   pickers, file attachment and the session IDE-context toggle.
+- `ManualLaunchNotice` is a compiled terminal notice explaining intentionally absent launcher
+  additions and the workspace launcher alternative. Providers show it only for a known manual origin;
+  independently configured hooks and MCP/IDE connections remain available.
 - `TokenUsage`, `TerminalTodo` and `TerminalTodoStatus` are presentation values,
   adapted from each provider's contract by its UI half.
 - `AgentAttention` words an away notification for an `AgentAttentionReason` (blocked,
@@ -45,4 +48,4 @@ surface; `--codex` and `--claude-code` exercise the provider UI integrations.
 
 ## Public surface
 
-`Account`, `AccountSeverity`, `AgentAttention`, `AgentAttentionReason`, `TerminalFacts`, `TerminalTodo`, `TerminalTodoStatus`, `TokenUsage`.
+`Account`, `AccountSeverity`, `AgentAttention`, `AgentAttentionReason`, `ManualLaunchNotice`, `TerminalFacts`, `TerminalTodo`, `TerminalTodoStatus`, `TokenUsage`.

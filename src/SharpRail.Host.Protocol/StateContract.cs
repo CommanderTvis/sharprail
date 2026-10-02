@@ -116,6 +116,7 @@ public sealed class TerminalAgentMessage
     [ProtoMember(5)] public string SessionId { get; set; } = "";
     [ProtoMember(6)] public string Cwd { get; set; } = "";
     [ProtoMember(7)] public string Model { get; set; } = "";
+    [ProtoMember(8)] public bool? LaunchedByUi { get; set; }
 }
 
 [ProtoContract]
