@@ -56,6 +56,10 @@
     <Style Selector="Button.dock-tab-button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="Transparent" />
     </Style>
+    <!-- Menus, flyouts and tooltips scale with the page zoom of the window that opened them. -->
+    <Style Selector="Popup">
+      <Setter Property="InheritsTransform" Value="True" />
+    </Style>
     <Style Selector="TreeViewItem">
       <Setter Property="MinHeight" Value="28" />
     </Style>

@@ -21,6 +21,8 @@ public sealed class Preferences
     public bool MarkdownLineWidthBounded { get; set; } = true;
     public Dictionary<string, DockState> CustomPresets { get; set; } = [];
     public double FontSize { get; set; } = 14;
+    /// <summary>Browser-style page zoom shared by every window; Mod+=, Mod+- and Mod+0 step it.</summary>
+    public double Zoom { get; set; } = 1;
     public bool ShowHiddenFiles { get; set; }
     /// <summary>The local terminal renderer: composited Metal texture or Skia cells.</summary>
     public string TerminalRenderer { get; set; } = Terminal.TerminalRenderers.Texture;
@@ -149,6 +151,7 @@ public sealed class ProfileStore
             }
             Data.Preferences.CustomPresets ??= [];
             if (!double.IsFinite(Data.Preferences.FontSize) || Data.Preferences.FontSize is < 10 or > 24) Data.Preferences.FontSize = 14;
+            Data.Preferences.Zoom = Rendering.InterfaceZoom.Normalize(Data.Preferences.Zoom);
             if (!Rendering.LineWidths.IsValid(Data.Preferences.FileLineWidth)) Data.Preferences.FileLineWidth = Rendering.LineWidths.FileDefault;
             if (!Rendering.LineWidths.IsValid(Data.Preferences.MarkdownLineWidth)) Data.Preferences.MarkdownLineWidth = Rendering.LineWidths.MarkdownDefault;
             if (Data.Preferences.TerminalRenderer is not (Terminal.TerminalRenderers.Texture or Terminal.TerminalRenderers.Skia))

@@ -1,6 +1,6 @@
 # State — profile and shared host state
 
-Upstream: apps/web/src/store/SPEC.md @ 4a65ed7f
+Upstream: apps/web/src/store/SPEC.md @ be804a56
 Upstream: apps/web/src/navigation/SPEC.md @ 4a65ed7f
 
 ## Responsibility
@@ -29,7 +29,7 @@ window and client converges on the same values and a control keeps showing the h
 There is no optimistic write, pending queue or rollback. A rejected change is reported in the window that
 made it.
 
-Profile state (`profile.json`) holds interface size, hidden-files visibility, the terminal renderer,
+Profile state (`profile.json`) holds interface size, page zoom, hidden-files visibility, the terminal renderer,
 rail expansion, per-workspace
 Git target/scope/selected commit, and one `WindowProfile` per open window: its frame (`DockState`, which
 includes its workspace views), its default preset and its last location. Frame, default preset and group

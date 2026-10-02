@@ -125,6 +125,10 @@ text provider are not implemented. Physical macOS IME behavior and font raster
 parity require native validation; headless input does not establish those.
 Other operating systems do not yet have native build targets.
 
+The texture and Skia controls rasterize at the window's render scaling times any ancestor scale, so a
+zoomed `LayoutTransformControl` shows sharp cells rather than a resampled frame. The hosted native control
+follows only the window's backing scale.
+
 Both texture and Skia controls support Command-hover underlining and
 Command-click to open HTTP(S) URLs in the system browser (Ctrl on other platforms).
 Soft-wrapped URLs remain clickable across rows; dragging still selects text.

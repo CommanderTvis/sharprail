@@ -122,7 +122,9 @@ public sealed partial class WorkbenchWindow : Window
     private void WireHeader()
     {
         var header = this.FindControl<Grid>("MainHeader")!;
-        header.Margin = new Thickness(OperatingSystem.IsMacOS() ? 80 : 12, 0, 12, 0);
+        ApplyChromeZoom();
+        InterfaceZoom.Changed += ApplyChromeZoom;
+        Closed += (_, _) => InterfaceZoom.Changed -= ApplyChromeZoom;
         header.ContextMenu = ViewMenu();
         this.FindControl<ContentControl>("BrandIcon")!.Content = Ui.Icon("brand", Ui.Accent, 28);
         var settings = this.FindControl<Button>("SettingsButton")!;
@@ -399,6 +401,7 @@ public sealed partial class WorkbenchWindow : Window
 
     private void ApplyAppearance()
     {
+        if (Application.Current is { } app) InterfaceZoom.Apply(app, Preferences.Zoom);
         ApplyTheme();
         var previous = Ui.FontSize; Ui.FontSize = Preferences.FontSize;
         foreach (var label in root.GetLogicalDescendants().OfType<TextBlock>().Where(label => label.FontSize == previous && !label.Classes.Contains("dock-tab-title")))
@@ -411,13 +414,22 @@ public sealed partial class WorkbenchWindow : Window
         ApplyAppearance(); ClearDocumentContent(preserveDocuments: true); toolContent.Clear(); surface.RefreshContents();
     }
 
-    /// <summary>Steps the interface size like browser zoom: Mod+= and Mod+- by one point within 10–24, Mod+0 resets to 14.</summary>
+    /// <summary>Steps the app's page zoom like a browser: Mod+= and Mod+- to the adjacent factor, Mod+0 back to 100%.</summary>
     private void Zoom(int step)
     {
-        var size = step == 0 ? 14 : Math.Clamp(Math.Round(Preferences.FontSize) + step, 10, 24);
-        if (size == Preferences.FontSize) return;
-        Preferences.FontSize = size;
-        RefreshAppearance(); SaveProfile();
+        var factor = InterfaceZoom.Next(Preferences.Zoom, step);
+        if (factor == Preferences.Zoom) return;
+        Preferences.Zoom = factor;
+        if (Application.Current is { } app) InterfaceZoom.Apply(app, factor);
+        SaveProfile();
+    }
+
+    /// <summary>The native title bar and traffic lights do not zoom: the strip grows with the header while its inset stays physical.</summary>
+    private void ApplyChromeZoom()
+    {
+        var zoom = InterfaceZoom.Current;
+        ExtendClientAreaTitleBarHeightHint = 40 * zoom;
+        this.FindControl<Grid>("MainHeader")!.Margin = new Thickness((OperatingSystem.IsMacOS() ? 80 : 12) / zoom, 0, 12, 0);
     }
 
     /// <summary>Dims the workbench behind a modal, like the reference's overlay; the returned action removes it.</summary>

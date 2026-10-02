@@ -1,7 +1,7 @@
 # Rendering: shared controls, document rendering and helpers
 
-Upstream: apps/web/src/components/SPEC.md @ 4a65ed7f
-Upstream: apps/web/src/components/ui/SPEC.md @ 4a65ed7f
+Upstream: apps/web/src/components/SPEC.md @ be804a56
+Upstream: apps/web/src/components/ui/SPEC.md @ be804a56
 Upstream: apps/web/src/lib/SPEC.md @ 4a65ed7f
 
 ## Responsibility
@@ -127,6 +127,8 @@ Every asynchronous gap renders something shaped for the wait, never nothing:
 - Content-shaped skeleton rows and the fade-in reveal of resolved content; SharpRail's placeholders are text.
 - The quiet-scroll frame: intent-revealed 6px scrollbars and directional edge curtains on clipped scroll
   viewers; SharpRail uses Fluent's scrollbars.
+- A shared switch control (track and thumb, state exposed accessibly, never visible On/Off text);
+  settings toggles are check boxes.
 - A tooltip provider with tuned delay and a `wrapTrigger` for disabled controls.
 - Height-bounded, scrollable menus with horizontal overflow hidden for long commit lists.
 - Syntax highlighting for Markdown code blocks beyond the minimal keyword/string/comment tinting, and a

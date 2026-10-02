@@ -92,7 +92,7 @@ public static class Dialogs
         // Standard dialogs use the reference's 28rem card; the window adds room for the card's shadow.
         var card = width <= 520 ? Math.Min(width, 448) : width;
         // The height fits the content; callers that need a fixed size (the Mermaid viewer) set it themselves.
-        var window = new DialogWindow { Title = title, Width = card + 48 };
+        var window = new DialogWindow { Title = title, Width = (card + 48) * InterfaceZoom.Current };
         window.FindControl<TextBlock>("DialogHeading")!.Text = title;
         return window;
     }

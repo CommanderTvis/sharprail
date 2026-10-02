@@ -9,7 +9,7 @@ depends-on: [submodule-host-git, submodule-host-state]
 
 # Workspaces — Git worktrees
 
-Upstream: packages/server/src/workspaces/SPEC.md @ 4a65ed7f
+Upstream: packages/server/src/workspaces/SPEC.md @ be804a56
 
 ## Responsibility
 
@@ -67,8 +67,8 @@ removes it or writes into it on its own.
   lifecycle events (`created` / `updated` / `removed`) independent of Git's worktree list.
 - Attaching an existing worktree in place as a user-owned external workspace, which may be forgotten but
   is never mutated.
-- Human-readable names that derive a kebab branch, with uniqueness against refs and worktree directories,
-  and branch renames that re-point sibling bases.
+- Human-readable names given at creation that derive a kebab branch, with uniqueness against refs and
+  worktree directories. A later rename changes only the display label and never moves the branch.
 - Worktree creation with `--no-track`, a fully qualified `refs/remotes/<base>` handed to `worktree add`,
   and a re-check of that ref before failing when a concurrent prefetch may have landed it.
 - A durable pending marker that reserves the first terminal on the host at creation, instead of in the

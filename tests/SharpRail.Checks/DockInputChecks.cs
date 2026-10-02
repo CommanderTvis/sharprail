@@ -265,7 +265,7 @@ internal static class DockInputChecks
         var labelCenter = foldedLabel.TranslatePoint(new Point(foldedLabel.Bounds.Width / 2, foldedLabel.Bounds.Height / 2), window)!.Value;
         Require(Math.Abs(labelCenter.Y - Bounds(Find<Border>("FoldedDockGroup_" + folded.Id)).Center.Y) < 1 &&
             rail.BorderThickness == new Thickness(0) &&
-            rail.GetLogicalAncestors().OfType<LayoutTransformControl>().Single().LayoutTransform is Avalonia.Media.RotateTransform { Angle: 90 },
+            rail.GetLogicalAncestors().OfType<LayoutTransformControl>().First().LayoutTransform is Avalonia.Media.RotateTransform { Angle: 90 },
             $"Folded labels must read downward, be centered in the rail, and omit standalone button borders: label={labelCenter.Y}, rail={Bounds(Find<Border>("FoldedDockGroup_" + folded.Id)).Center.Y}, border={rail.BorderThickness}.");
         var changesSource = window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "changes"));
         window.Layout.Move("changes", changesSource.Id, folded.Id, window.Layout.Tabs(folded.Id).Count);

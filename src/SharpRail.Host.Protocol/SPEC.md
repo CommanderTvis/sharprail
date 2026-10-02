@@ -1,6 +1,6 @@
 # Host wire contracts
 
-Upstream: packages/contracts/SPEC.md @ 4a65ed7f
+Upstream: packages/contracts/SPEC.md @ be804a56
 
 ## Responsibility
 

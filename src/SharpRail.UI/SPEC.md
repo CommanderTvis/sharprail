@@ -1,7 +1,7 @@
 # SharpRail.UI — application and windows
 
-Upstream: apps/web/SPEC.md @ 4a65ed7f
-Upstream: apps/desktop/SPEC.md @ 4a65ed7f
+Upstream: apps/web/SPEC.md @ be804a56
+Upstream: apps/desktop/SPEC.md @ be804a56
 
 ## Responsibility
 
@@ -70,9 +70,15 @@ Create workspace, Mod+Shift+N opens a window, Mod+, opens Settings, Mod+B toggle
 right, Mod+Shift+J toggles bottom (including from a focused terminal), and F5 refreshes. Arrangement
 commands beyond these belong to the docking menus and keyboard handling in `Docking`.
 
-Mod+= (or Mod++), Mod+- and Mod+0 zoom like a browser's default action by stepping the persisted interface
-size one point within 10–24, and resetting it to 14. The chords bubble, so a focused control that claims
-them (an editor or terminal) keeps them; the Settings field and the shortcuts share one preference.
+Mod+= (or Mod++), Mod+- and Mod+0 zoom the whole interface like a browser's page zoom: they step one
+app-wide, persisted factor to the adjacent of 50, 67, 80, 90, 100, 110, 125, 150, 175 and 200%, stopping at
+either bound, and reset it to 100%. Every window root (workbench, Settings, dialogs) sits in a layout
+transform bound to that factor and popups inherit their owner's transform, so layout, icons and text scale
+together and windows reflow rather than resample. Surfaces that rasterize themselves (the Ghostty terminals)
+derive their pixel density from the ancestor transform as well as the render scaling, so zoomed terminals
+stay sharp. The native title bar does not zoom: the title-bar height hint follows the zoomed header while
+the traffic-light inset stays physical. Zoom is independent of the Settings interface font size. The chords
+bubble, so a focused control that claims them (an editor or terminal) keeps them.
 
 ## Styling and theming
 
@@ -108,5 +114,7 @@ closes. Abrupt death relies on operating-system process cleanup; remote shells b
 - A native application menu (application, Edit, Window roles on macOS) so standard editing commands route
   through the platform responder chain.
 - Removing the traffic-light inset in macOS full screen.
+- Honouring the macOS title-bar double-click preference (`AppleActionOnDoubleClick`: zoom, fill,
+  minimize or nothing) on the custom header; SharpRail always zooms the window.
 - Per-region error isolation: a failing panel or document body shows an error in its own region rather
   than affecting sibling groups or the window.

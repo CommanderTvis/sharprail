@@ -135,7 +135,7 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
 
     private CellFonts Fonts()
     {
-        var scale = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
+        var scale = PixelScale.Of(this);
         if (fonts is not null && fontKey == (Typeface, FontFamily, FontSize, scale)) return fonts;
         fonts?.Dispose();
         fontKey = (Typeface, FontFamily, FontSize, scale);

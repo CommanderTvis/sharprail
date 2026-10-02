@@ -1,6 +1,6 @@
 # Repository scripts
 
-Upstream: scripts/SPEC.md @ 4a65ed7f
+Upstream: scripts/SPEC.md @ be804a56
 
 ## Responsibility
 

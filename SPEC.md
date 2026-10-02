@@ -321,7 +321,7 @@ while the host is unreachable keeps the remembered location and retries on recon
 Each window keeps its own frame, default preset, group limits, bottom alignment and
 last location, as upstream's per-tab frontend state. `profile.json` stores them as
 one `Windows` entry per open window, restored at launch; closing a window while
-others remain forgets its entry, quitting keeps every entry. Interface size, hidden
+others remain forgets its entry, quitting keeps every entry. Interface size, page zoom, hidden
 files, rail expansion and Git selections remain app preferences in the profile.
 Local shared state persists in `~/.sharprail/state.json`; the first launch seeds it
 from the profile's pre-host fields and clears them only after the file is written.

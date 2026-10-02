@@ -135,7 +135,7 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
     private void Resize()
     {
         if (disposed || Bounds.Width <= 0 || Bounds.Height <= 0) return;
-        Native.Resize(terminal.Handle, Bounds.Width, Bounds.Height, TopLevel.GetTopLevel(this)?.RenderScaling ?? 1);
+        Native.Resize(terminal.Handle, Bounds.Width, Bounds.Height, PixelScale.Of(this));
     }
 
     private void ScalingChanged(object? sender, EventArgs e) => Resize();

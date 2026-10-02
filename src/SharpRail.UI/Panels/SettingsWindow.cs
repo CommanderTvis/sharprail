@@ -47,7 +47,12 @@ public sealed partial class SettingsWindow : Window
         Name = "SettingsWindow";
         AvaloniaXamlLoader.Load(this);
         body = this.FindControl<ContentControl>("SettingsBody")!;
-        Opened += (_, _) => { if (Owner is Window owner) Height = Math.Max(MinHeight, owner.Bounds.Height * .8); };
+        Opened += (_, _) =>
+        {
+            var zoom = InterfaceZoom.Current;
+            MinWidth *= zoom; MinHeight *= zoom; Width *= zoom;
+            if (Owner is Window owner) Height = Math.Max(MinHeight, owner.Bounds.Height * .8);
+        };
         var close = this.FindControl<Button>("SettingsClose")!;
         close.Content = Ui.Icon("close");
         close.Click += (_, _) => Close();

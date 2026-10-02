@@ -55,6 +55,7 @@ internal static class GhosttySkiaChecks
         CheckClusters();
         CheckUrls();
         CheckUrlHover();
+        CheckZoomedDensity();
         Osc52Checks.RunSkia();
         CheckView();
         CheckIncrementalRendering();
@@ -114,6 +115,33 @@ internal static class GhosttySkiaChecks
             Require(Pixels(plain).SequenceEqual(Pixels(cleared)), "removing the modifier left stale underlines.");
         }
         finally { window.Close(); Pump(); }
+    }
+
+    private static void CheckZoomedDensity()
+    {
+        static List<Color> Render(double fontSize, double zoom)
+        {
+            using var view = new GhosttySkiaView { Typeface = EditorChecks.Font, FontSize = fontSize, Padding = default };
+            var window = new Window
+            {
+                Width = 320,
+                Height = 160,
+                Content = new LayoutTransformControl { LayoutTransform = new ScaleTransform(zoom, zoom), Child = view },
+            };
+            window.Show(); Pump();
+            try
+            {
+                view.Write("\e[?25lZoom ┼ é"u8); Pump();
+                using var frame = window.CaptureRenderedFrame()!;
+                return Pixels(frame);
+            }
+            finally { window.Close(); Pump(); }
+        }
+        // Hinting at 14pt×2 and 28pt moves a few glyph-edge pixels; resampling a 1× framebuffer changes most of the ink.
+        var (zoomed, plain) = (Render(14, 2), Render(28, 1));
+        var ink = plain.Count(color => color != plain[0]);
+        Require(zoomed.Count == plain.Count && zoomed.Zip(plain).Count(pair => pair.First != pair.Second) < ink / 10,
+            "a terminal under a zoomed ancestor must rasterize cells at the displayed density instead of resampling them.");
     }
 
     private static void CheckClusters()

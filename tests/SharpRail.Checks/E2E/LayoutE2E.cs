@@ -8,6 +8,7 @@ using Avalonia.Input;
 using Avalonia.LogicalTree;
 
 using SharpRail.UI.Docking;
+using SharpRail.UI.Rendering;
 
 using static SharpRail.Checks.E2E.E2eWorkspace;
 
@@ -240,21 +241,26 @@ internal static class LayoutE2E
         var command = OperatingSystem.IsMacOS() ? RawInputModifiers.Meta : RawInputModifiers.Control;
         using (var app = new E2eWorkspace(directory))
         {
+            var content = app.Find<Grid>("WorkbenchRoot");
+            var width = content.Bounds.Width;
             app.Window.KeyPress(Key.OemPlus, command, PhysicalKey.Equal, null);
             app.Window.KeyPress(Key.OemPlus, command, PhysicalKey.Equal, null); Settle();
-            Require(app.Window.Preferences.FontSize == 16 && app.Window.FontSize == 16, "Mod+= must step the interface size up.");
+            Require(app.Window.Preferences.Zoom == 1.25, "Mod+= must step through the browser zoom factors.");
+            Until(() => Math.Abs(content.Bounds.Width - width / 1.25) < 1);
+            Require(app.Window.Preferences.FontSize == 14 && app.Window.FontSize == 14,
+                "Zoom must scale the whole interface rather than the interface font size.");
             app.Window.KeyPress(Key.OemMinus, command, PhysicalKey.Minus, null); Settle();
-            Require(app.Window.Preferences.FontSize == 15, "Mod+- must step the interface size down.");
+            Require(app.Window.Preferences.Zoom == 1.1, "Mod+- must step the zoom down.");
         }
         using (var app = new E2eWorkspace(directory, openFiles: false))
         {
-            Require(app.Window.Preferences.FontSize == 15, "The zoomed interface size must persist.");
+            Require(app.Window.Preferences.Zoom == 1.1 && InterfaceZoom.Current == 1.1, "The zoom must persist and apply on restore.");
             for (var i = 0; i < 20; i++) app.Window.KeyPress(Key.OemMinus, command, PhysicalKey.Minus, null);
-            Require(app.Window.Preferences.FontSize == 10, "Zooming out must stop at the minimum interface size.");
+            Require(app.Window.Preferences.Zoom == 0.5, "Zooming out must stop at 50%.");
             app.Window.KeyPress(Key.D0, command, PhysicalKey.Digit0, null); Settle();
-            Require(app.Window.Preferences.FontSize == 14 && app.Window.FontSize == 14, "Mod+0 must reset the interface size.");
+            Require(app.Window.Preferences.Zoom == 1 && InterfaceZoom.Current == 1, "Mod+0 must reset the zoom.");
         }
-        Console.WriteLine("PASS page zoom: Mod+=, Mod+- and Mod+0 step, bound, persist and reset the interface size");
+        Console.WriteLine("PASS page zoom: Mod+=, Mod+- and Mod+0 scale the whole interface by bounded browser factors and persist");
     }
 
     private static void KeyboardTabsAndSeparators(string root)

@@ -26,6 +26,7 @@
       <Setter Property="Foreground" Value="{x:Static rendering:Ui.OnPrimary}" />
     </Style>
   </Window.Styles>
+  <LayoutTransformControl LayoutTransform="{DynamicResource InterfaceZoom}">
   <Border x:Name="DialogCard" Margin="24" Padding="16" CornerRadius="8" BorderThickness="1"
           Background="{x:Static rendering:Ui.Elevated}" BorderBrush="{x:Static rendering:Ui.BorderBrush}">
     <StackPanel x:Name="DialogBody" Spacing="16">
@@ -38,4 +39,5 @@
       <StackPanel x:Name="DialogActions" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right" />
     </StackPanel>
   </Border>
+  </LayoutTransformControl>
 </Window>

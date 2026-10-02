@@ -12,6 +12,7 @@
       <Setter Property="TextTrimming" Value="CharacterEllipsis" />
     </Style>
   </Window.Styles>
+  <LayoutTransformControl x:Name="ZoomRoot" LayoutTransform="{DynamicResource InterfaceZoom}">
   <Grid x:Name="WorkbenchRoot" RowDefinitions="40,*,Auto">
     <Border x:Name="WindowTitleBar" Background="{x:Static rendering:Ui.Header}"
             BorderBrush="{x:Static rendering:Ui.BorderBrush}" BorderThickness="0,0,1,1">
@@ -54,4 +55,5 @@
       </Grid>
     </Border>
   </Grid>
+  </LayoutTransformControl>
 </Window>

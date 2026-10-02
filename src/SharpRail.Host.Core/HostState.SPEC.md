@@ -9,8 +9,8 @@ parent: module-host-core
 # Host state — projects, settings and persistence
 
 Upstream: packages/server/src/projects/SPEC.md @ 4a65ed7f
-Upstream: packages/server/src/settings/SPEC.md @ 4a65ed7f
-Upstream: packages/server/src/persistence/SPEC.md @ 4a65ed7f
+Upstream: packages/server/src/settings/SPEC.md @ be804a56
+Upstream: packages/server/src/persistence/SPEC.md @ be804a56
 
 ## Responsibility
 
