@@ -120,11 +120,13 @@ internal static class Program
         if (args.SequenceEqual(["--plugins"]))
         {
             PluginHostChecks.Run(root).GetAwaiter().GetResult();
+            SpecDialectChecks.Run(root).GetAwaiter().GetResult();
             WorkspaceWatchChecks.Run(root).GetAwaiter().GetResult();
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             PluginUiChecks.Run(root);
             PluginWatchChecks.Run(root);
+            SpecDialectChecks.RunUi(Path.Combine(root, "upstream-e2e"));
             Console.WriteLine("PASS plugin checks");
             return;
         }
@@ -148,6 +150,20 @@ internal static class Program
             StartupChecks.Run(root);
             DockInputChecks.Run(root);
             Console.WriteLine("PASS scratch");
+            return;
+        }
+        if (args.SequenceEqual(["--specs"]))
+        {
+            SpecDialectChecks.Run(root).GetAwaiter().GetResult();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            var e2e = Path.Combine(root, "upstream-e2e");
+            SpecDialectChecks.RunUi(e2e);
+            E2E.PreviewTabsE2E.Run(e2e);
+            E2E.LayoutE2E.NoSpecsOpensFiles(e2e);
+            E2E.MarkdownDocumentE2E.SpecDocuments(e2e);
+            E2E.LiveRefreshE2E.Run(e2e);
+            Console.WriteLine("PASS spec dialect checks");
             return;
         }
         if (args.SequenceEqual(["--welcome"]))
@@ -193,6 +209,7 @@ internal static class Program
         ProjectChecks.Run(root).GetAwaiter().GetResult();
         StateChecks.Run(root).GetAwaiter().GetResult();
         PluginHostChecks.Run(root).GetAwaiter().GetResult();
+        SpecDialectChecks.Run(root).GetAwaiter().GetResult();
         WorkspaceWatchChecks.Run(root).GetAwaiter().GetResult();
         FileSavingChecks.Run(root).GetAwaiter().GetResult();
         LayoutChecks.Run();
@@ -200,6 +217,7 @@ internal static class Program
         UiChecks.Run(root);
         PluginUiChecks.Run(root);
         PluginWatchChecks.Run(root);
+        SpecDialectChecks.RunUi(Path.Combine(root, "upstream-e2e"));
         Console.WriteLine("PASS prototype checks and open-world runtime");
     }
 

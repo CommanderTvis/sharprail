@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The spec dialect's manifest and wire contract: what its two halves, the builtin arrays and a dependent plugin share. -->
+  <ItemGroup>
+    <ProjectReference Include="../../SharpRail.Plugins.Api/SharpRail.Plugins.Api.csproj" />
+  </ItemGroup>
+</Project>
