@@ -154,8 +154,10 @@ internal static class DockInputChecks
         var appendPoint = new Point(projectsHeader.Right - 8, projectsHeader.Center.Y);
         insertionFrom = Bounds(Find<Button>("Tab_files")).Center;
         window.MouseDown(insertionFrom, MouseButton.Left); window.MouseMove(appendPoint);
-        var appendHints = Find<DockSurface>("WorkspaceWorkbench").Children.OfType<Canvas>().Single().Children.OfType<Border>()
-            .Where(item => projectsHeader.Intersects(new Rect(Canvas.GetLeft(item), Canvas.GetTop(item), item.Width, item.Height))).ToArray();
+        var dockSurface = Find<DockSurface>("WorkspaceWorkbench");
+        var headerInSurface = new Rect(window.TranslatePoint(projectsHeader.TopLeft, dockSurface)!.Value, projectsHeader.Size).Inflate(1);
+        var appendHints = dockSurface.Children.OfType<Canvas>().Single().Children.OfType<Border>()
+            .Where(item => headerInSurface.Contains(new Rect(Canvas.GetLeft(item), Canvas.GetTop(item), item.Width, item.Height))).ToArray();
         Require(appendHints.Length == 1 && appendHints[0].Width == 2 && ReferenceEquals(appendHints[0].Background, SharpRail.UI.Rendering.Ui.Accent) &&
             !appendHints.Any(item => item.Width >= projectsHeader.Width || item.Width == 20),
             $"Empty strip space must show only the insertion line after the last tab, with no strip frame or append block: {string.Join("; ", appendHints.Select(item => $"{Canvas.GetLeft(item)},{Canvas.GetTop(item)} {item.Width}x{item.Height} bg={item.Background}"))} header={projectsHeader}.");
@@ -587,8 +589,8 @@ internal static class DockInputChecks
         var baseExtent = stripScroll.Extent.Width;
         var clippedTo = Bounds(stripHeader).TopLeft + new Vector(2, 16);
         window.MouseDown(clippedFrom, MouseButton.Left); window.MouseMove(clippedTo);
-        Require(Math.Abs(stripScroll.Extent.Width - baseExtent - 20) < .01,
-            "The temporary append target must add 20px to the scrollable extent.");
+        Require(Math.Abs(stripScroll.Extent.Width - baseExtent) < .01,
+            "Dragging must not add an append block to the strip's scrollable extent.");
         Require(!surface.Children.OfType<Canvas>().Single().Children.OfType<Border>().Any(item =>
             ReferenceEquals(item.Background, SharpRail.UI.Rendering.Ui.Accent)),
             "An insertion boundary outside the scrolled viewport must be clipped, not moved to its edge.");

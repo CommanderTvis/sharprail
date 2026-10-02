@@ -136,10 +136,10 @@ internal static class UiChecks
                 string.Concat(text.Inlines?.OfType<Run>().Select(run => run.Text) ?? []));
             var renderedText = string.Join("\n", visibleText);
             Require(renderedText.Contains("Visible heading", StringComparison.Ordinal) && renderedText.Contains("Visible paragraph.", StringComparison.Ordinal) &&
-                renderedText.Contains("id: private-metadata\ntitle: Internal title", StringComparison.Ordinal) &&
                 ((StackPanel)frontmatterPreview.Content!).Children.Count == 3 &&
                 ((StackPanel)frontmatterPreview.Content!).Children[0] is Border { Name: "MarkdownFrontmatter" } metadata &&
-                metadata.GetLogicalDescendants().OfType<SelectableTextBlock>().Single().Text == "id: private-metadata\ntitle: Internal title",
+                string.Concat(metadata.GetLogicalDescendants().OfType<SelectableTextBlock>().Single().Inlines!.OfType<Run>().Select(run => run.Text)) ==
+                    "id: private-metadata\ntitle: Internal title",
                 "Markdown frontmatter must render first as a code block, not as headings or stray paragraphs.");
         }
         foreach (var size in new[] { 14d, 24d })

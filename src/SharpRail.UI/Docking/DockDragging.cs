@@ -126,15 +126,29 @@ public sealed partial class DockSurface
             {
                 var members = tabSites.GetValueOrDefault(site.Group) ?? [];
                 var tabArea = new Rect(bounds.TopLeft, new Size(((Grid)site.Control).ColumnDefinitions[0].ActualWidth, bounds.Height));
-                // Tabs are the only strip targets; only a strip without tabs is a target as a whole.
-                if (members.Count == 0 && Legal(site.Group, 0))
+                // Tabs are the only visible strip targets. The rest of the strip still appends, but it shows the
+                // same insertion line after the last tab instead of a strip-wide frame; only an empty strip is framed.
+                if (Legal(site.Group, members.Count))
+                {
+                    var lastTab = members.Count > 0 ? RectOf(members[^1].Control) : default;
+                    var endMarker = new Rect(lastTab.Right - 2, bounds.Top, 2, bounds.Height).Intersect(tabArea);
                     candidates.Add(new(new(site.Group, members.Count, "", bounds), active =>
                     {
+                        if (members.Count > 0)
+                        {
+                            if (!active || endMarker.Width <= 0) return;
+                            var marker = Hint(endMarker, true);
+                            marker.Background = Ui.Accent;
+                            marker.BorderThickness = new Thickness(0);
+                            marker.CornerRadius = new CornerRadius(0);
+                            return;
+                        }
                         var hint = Hint(bounds, active);
                         hint.CornerRadius = new CornerRadius(0);
                         hint.BorderThickness = new Thickness(active ? 2 : 1);
                         hint.Background = active ? Ui.PrimarySubtle : Brushes.Transparent;
                     }));
+                }
                 for (var i = 0; i < members.Count; i++)
                 {
                     var member = RectOf(members[i].Control);
@@ -142,10 +156,7 @@ public sealed partial class DockSurface
                     {
                         var index = i + (after ? 1 : 0);
                         if (!Legal(site.Group, index)) continue;
-                        // The last tab's trailing half reaches across the empty strip, so dropping there appends.
-                        var right = after && i == members.Count - 1 ? tabArea.Right : after ? member.Right : member.Center.X;
-                        var left = after ? member.Center.X : member.Left;
-                        var half = new Rect(left, member.Top, right - left, member.Height).Intersect(tabArea);
+                        var half = new Rect(after ? member.Center.X : member.Left, member.Top, member.Width / 2, member.Height).Intersect(tabArea);
                         if (half.Width <= 0 || half.Height <= 0) continue;
                         var markerBounds = new Rect(after ? member.Right - 2 : member.Left, bounds.Top, 2, bounds.Height).Intersect(tabArea);
                         candidates.Add(new(new(site.Group, index, "", half), active =>

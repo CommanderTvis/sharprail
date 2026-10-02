@@ -535,8 +535,10 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
             TextWrapping = TextWrapping.NoWrap,
             LineHeight = 21
         };
-        foreach (var line in text.Split('\n'))
+        var lines = text.Split('\n');
+        for (var index = 0; index < lines.Length; index++)
         {
+            var line = lines[index];
             var cursor = 0;
             foreach (Match match in Regex.Matches(line, @"(""[^""]*""|'[^']*'|//.*$|\b(?:class|public|private|return|var|using|const|function|async|await|if|else|true|false|null)\b|\b\d+\b)"))
             {
@@ -548,7 +550,7 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
                 });
                 cursor = match.Index + match.Length;
             }
-            block.Inlines!.Add(new Run(line[cursor..] + "\n"));
+            block.Inlines!.Add(new Run(index < lines.Length - 1 ? line[cursor..] + "\n" : line[cursor..]));
         }
         return block;
     }

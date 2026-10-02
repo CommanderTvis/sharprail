@@ -88,10 +88,10 @@ restoration does not advance clocks.
 ## Arrangement and accessibility
 
 A tab drag paints exactly one result: strip insertion, center half split, side before/after
-group, bottom before/after group, or restoring a hidden region. Within a strip the tabs are the only
-targets: each half inserts before or after its tab with a 2px line, and the last tab's trailing half
-extends across the empty strip so dropping there appends. Only a strip without tabs is a target as a
-whole. Unlike upstream there is no separate append block or strip-wide frame, which read as three
+group, bottom before/after group, or restoring a hidden region. Within a strip the tabs are the only visible
+targets: each half inserts before or after its tab with a 2px line. The rest of the strip still appends
+(and catches a disabled self-insertion), showing the same line after the last tab; only a strip without
+tabs is framed. Unlike upstream there is no separate append block or strip-wide frame, which read as three
 overlapping regions. Overlapping targets are ranked by the mean distance from the pointer to their four
 corners. Illegal domains, limits and no-op positions paint nothing and commit nothing. Every valid
 target shows a subtle accent hint and the hovered one the real destination; decoration never alters
