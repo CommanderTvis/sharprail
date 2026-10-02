@@ -1,0 +1,26 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="SharpRail.Plugins.Blueprint.UI.BlueprintStartFields">
+  <StackPanel Spacing="12">
+    <StackPanel Orientation="Horizontal" Spacing="8">
+      <RadioButton x:Name="Idea" Content="An idea" IsChecked="True" GroupName="BlueprintSource" />
+      <RadioButton x:Name="Product" Content="This project" GroupName="BlueprintSource" />
+      <RadioButton x:Name="Spec" Content="A document" GroupName="BlueprintSource" />
+    </StackPanel>
+    <TextBox x:Name="Brief" AcceptsReturn="True" MinHeight="76" TextWrapping="Wrap"
+             PlaceholderText="I want an app to control my lightbulbs." />
+    <TextBlock x:Name="ProductNote" IsVisible="False" TextWrapping="Wrap"
+               Text="The agent reads this project — its build files, entrypoints and configuration — and writes down the decisions it is already living by, each one a control you can change." />
+    <Grid x:Name="SpecPick" ColumnDefinitions="Auto,*" IsVisible="False">
+      <Button x:Name="Pick" Content="Choose a document…" />
+      <TextBlock x:Name="Path" Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+    </Grid>
+    <Button x:Name="Agent" HorizontalAlignment="Left" Padding="8,4" CornerRadius="4" IsVisible="False">
+      <StackPanel Orientation="Horizontal" Spacing="6">
+        <ContentControl x:Name="AgentIcon" Width="14" Height="14" VerticalAlignment="Center" />
+        <TextBlock x:Name="AgentLabel" VerticalAlignment="Center" />
+      </StackPanel>
+    </Button>
+    <TextBlock x:Name="Error" IsVisible="False" TextWrapping="Wrap" />
+  </StackPanel>
+</UserControl>

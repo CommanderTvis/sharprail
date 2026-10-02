@@ -309,6 +309,7 @@ internal static class Program
         {
             PluginHostChecks.Run(root).GetAwaiter().GetResult();
             SpecDialectChecks.Run(root).GetAwaiter().GetResult();
+            BlueprintChecks.Run(root).GetAwaiter().GetResult();
             WorkspaceWatchChecks.Run(root).GetAwaiter().GetResult();
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
@@ -316,12 +317,22 @@ internal static class Program
             FileActionChecks.Run(root);
             PluginWatchChecks.Run(root);
             SpecDialectChecks.RunUi(Path.Combine(root, "upstream-e2e"));
+            BlueprintChecks.RunUi(root);
             Console.WriteLine("PASS plugin checks");
             return;
         }
         if (args.SequenceEqual(["--file-watch"]))
         {
             WorkspaceWatchChecks.Run(root).GetAwaiter().GetResult();
+            return;
+        }
+        if (args.SequenceEqual(["--blueprint"]))
+        {
+            BlueprintChecks.Run(root).GetAwaiter().GetResult();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            BlueprintChecks.RunUi(root);
+            Console.WriteLine("PASS Blueprint checks");
             return;
         }
         if (args.SequenceEqual(["--shared-controls"]))
@@ -518,6 +529,8 @@ internal static class Program
         Gate.Case("plugin-ui", () => PluginUiChecks.Run(root));
         Gate.Case("spec-dialect", () => SpecDialectChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("spec-dialect-ui", () => SpecDialectChecks.RunUi(Path.Combine(root, "upstream-e2e")));
+        Gate.Case("blueprint", () => BlueprintChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("blueprint-ui", () => BlueprintChecks.RunUi(root));
         Console.WriteLine("PASS prototype checks and open-world runtime");
     }
 

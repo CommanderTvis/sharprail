@@ -1,0 +1,7 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="SharpRail.Plugins.Blueprint.UI.BlueprintProperties">
+  <Expander Header="Properties" IsExpanded="True">
+    <StackPanel x:Name="Rows" Spacing="4" />
+  </Expander>
+</UserControl>
