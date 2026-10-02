@@ -7,5 +7,6 @@
     <ProjectReference Include="../SharpRail.Plugins.ClaudeCode/Host/SharpRail.Plugins.ClaudeCode.Host.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.Discord/Host/SharpRail.Plugins.Discord.Host.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.PdfPreview/Contract/SharpRail.Plugins.PdfPreview.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.BranchGraph/Host/SharpRail.Plugins.BranchGraph.Host.csproj" />
   </ItemGroup>
 </Project>
