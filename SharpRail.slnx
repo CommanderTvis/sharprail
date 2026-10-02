@@ -27,6 +27,9 @@
     <Project Path="src/SharpRail.Plugins.SpecDialect/Host/SharpRail.Plugins.SpecDialect.Host.csproj" />
     <Project Path="src/SharpRail.Plugins.SpecDialect/UI/SharpRail.Plugins.SpecDialect.UI.csproj" />
     <Project Path="src/SharpRail.Plugins.UI.Kit/SharpRail.Plugins.UI.Kit.csproj" />
+    <Project Path="src/SharpRail.Plugins.Visualize/Contract/SharpRail.Plugins.Visualize.csproj" />
+    <Project Path="src/SharpRail.Plugins.Visualize/Host/SharpRail.Plugins.Visualize.Host.csproj" />
+    <Project Path="src/SharpRail.Plugins.Visualize/UI/SharpRail.Plugins.Visualize.UI.csproj" />
     <Project Path="src/SharpRail.Scintilla/SharpRail.Scintilla.csproj" />
     <Project Path="src/SharpRail.UI/SharpRail.UI.csproj" />
   </Folder>
