@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../SharpRail.Plugins.Api/SharpRail.Plugins.Api.csproj" />
+  </ItemGroup>
+  <Target Name="GenerateFileIcons" BeforeTargets="AssignTargetPaths">
+    <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../scripts/build-file-icons.sh&quot;" />
+    <ItemGroup>
+      <FileIconsSvg Include="../../../.tools/file-icons/assets/file-icons/*.svg" />
+      <Content Include="@(FileIconsSvg)" Link="plugins/file-icons/assets/file-icons/%(FileIconsSvg.Filename)%(FileIconsSvg.Extension)"
+               CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
+</Project>
