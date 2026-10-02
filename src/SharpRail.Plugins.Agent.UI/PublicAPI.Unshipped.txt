@@ -4,6 +4,8 @@ SharpRail.Plugins.Agent.UI.AgentAttentionReason
 SharpRail.Plugins.Agent.UI.AgentAttentionReason.Blocked = 0 -> SharpRail.Plugins.Agent.UI.AgentAttentionReason
 SharpRail.Plugins.Agent.UI.AgentAttentionReason.Done = 1 -> SharpRail.Plugins.Agent.UI.AgentAttentionReason
 SharpRail.Plugins.Agent.UI.AgentAttentionReason.Failed = 2 -> SharpRail.Plugins.Agent.UI.AgentAttentionReason
+SharpRail.Plugins.Agent.UI.ManualLaunchNotice
+SharpRail.Plugins.Agent.UI.ManualLaunchNotice.ManualLaunchNotice() -> void
 SharpRail.Plugins.Agent.UI.TerminalFacts
 SharpRail.Plugins.Agent.UI.TerminalTodo
 SharpRail.Plugins.Agent.UI.TerminalTodo.<Clone>$() -> SharpRail.Plugins.Agent.UI.TerminalTodo!

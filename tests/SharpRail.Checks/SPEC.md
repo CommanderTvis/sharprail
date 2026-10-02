@@ -43,7 +43,10 @@ host state, file saving, layout transitions, the open-world runtime probe, and t
 the headless UI checks with every upstream translation. Named modes
 (`--editor`, `--files`, `--host-state`, `--specs`, `--terminals`, `--ghostty-skia`, `--sync`, `--workspaces`, `--registry`, `--change-actions`, `--review`, `--design`, `--ui`, `--runner`, `--conformance`) are focused iteration subsets
 of that same code, never separate coverage; anything they run is also in the full
-run. `--native-terminal` and `--native-texture` drive real macOS windows; the latter
+run. Claude Code and Codex launch checks cover separate SharpRail model/effort defaults, per-launch
+precedence and settings persistence. Host checks cover latest session choices, sparse status reports,
+new-session resets and revival with those choices; plugin host parity includes persisted effort.
+`--native-terminal` and `--native-texture` drive real macOS windows; the latter
 verifies GPU texture composition, overlays/clipping, theme, clipboard/input,
 resize/remounting and local/remote texture–Skia switches retaining their shells.
 It also checks bounded source texture retention through repeated resizing and repainting,

@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The Claude Code plugin's contract and manifest, shared by its host and UI halves. -->
+  <ItemGroup>
+    <Compile Remove="Host/**;UI/**" />
+    <None Remove="Host/**;UI/**" />
+    <ProjectReference Include="../SharpRail.Plugins.Api/SharpRail.Plugins.Api.csproj" />
+  </ItemGroup>
+</Project>

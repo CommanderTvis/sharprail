@@ -1281,3 +1281,10 @@ Spec validation reports four existing dangling Branch Graph links, unrelated to 
 No live Codex CLI session or Android build was exercised. The user authorized committing
 and pushing to main; implementation and validation use separate signed commits. No
 publication or running-app restart was requested.
+## Compact Claude surface selector (2026-10-10)
+
+The Claude pane's surface selector keeps horizontal scrolling without displaying
+a scrollbar. The narrow-pane check verifies the hidden bar and scrolling to the
+Account button. Release build, --claude-code, touched-file format verification
+and git diff --check pass. The full gate and packaged app were not checked.
+

@@ -51,6 +51,8 @@ project: local adapters call Core directly, with no serialization.
   returning the resulting snapshot, and a server-streamed `WatchAsync` of full
   snapshots. Custom presets are the only layout value on the wire; current and
   default presets, frames and geometry stay client-local.
+- Agent records carry the session's latest model and effort through snapshots and broadcasts.
+  Empty strings on the wire represent unknown values and map back to null in the client.
 - Terminal catalog: `OpenWorkspace`, `Reserve`, `CloseTab` and `CloseWorkspace` each return the complete
   catalog snapshot they produced, and a server-streamed `WatchAsync` yields full snapshots. A host that
   predates the service answers `Unimplemented`, which the client adapter reports as unsupported; the

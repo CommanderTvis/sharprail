@@ -3,6 +3,8 @@ using SharpRail.Plugins.Api.Host;
 using SharpRail.Plugins.SpecDialect;
 using SharpRail.Plugins.Blueprint;
 using SharpRail.Plugins.Blueprint.Host;
+using SharpRail.Plugins.ClaudeCode;
+using SharpRail.Plugins.ClaudeCode.Host;
 
 
 namespace SharpRail.Host.Core.Plugins;
@@ -14,5 +16,6 @@ public static class BuiltinPlugins
     [
         (SpecDialectManifest.Manifest, new SpecDialectHost()),
         (BlueprintContract.Manifest, new BlueprintHost()),
+        (ClaudeCodeManifest.Manifest, new ClaudeCodeHost()),
     ];
 }

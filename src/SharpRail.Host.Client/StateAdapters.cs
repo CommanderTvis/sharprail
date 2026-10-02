@@ -127,7 +127,9 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
         {
             SessionId = agent.SessionId.Length == 0 ? null : agent.SessionId,
             Cwd = agent.Cwd.Length == 0 ? null : agent.Cwd,
-            Model = agent.Model.Length == 0 ? null : agent.Model
+            Model = agent.Model.Length == 0 ? null : agent.Model,
+            Effort = agent.Effort.Length == 0 ? null : agent.Effort,
+            LaunchedByUi = agent.LaunchedByUi
         })).ToArray(),
         TerminalTitles = reply.TerminalTitles.Select(title => new TerminalTitle(new(title.WorkspaceId, title.TabKey), title.Title)).ToArray(),
         Platform = Enum.TryParse<HostPlatform>(reply.Platform, ignoreCase: true, out var platform) ? platform : null

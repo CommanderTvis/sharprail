@@ -1,0 +1,8 @@
+<Border xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:kit="using:SharpRail.Plugins.UI.Kit"
+        x:Class="SharpRail.Plugins.Agent.UI.ManualLaunchNotice"
+        Name="TerminalManualLaunchNotice" IsVisible="False">
+  <TextBlock FontSize="11" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap"
+             Text="Manual launch: SharpRail does not add the launcher's settings, tools or prompt appendix. Use the workspace's agent launcher to apply them."
+             ToolTip.Tip="Typing claude or codex directly does not apply SharpRail's launcher configuration or prompt appendix. Already installed hooks and separately configured MCP or IDE connections may still work. Launcher settings control what UI launches receive." />
+</Border>

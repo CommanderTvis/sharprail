@@ -4,6 +4,7 @@
     <ProjectReference Include="../SharpRail.Plugins.Api.Host/SharpRail.Plugins.Api.Host.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.SpecDialect/Host/SharpRail.Plugins.SpecDialect.Host.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.Blueprint/Host/SharpRail.Plugins.Blueprint.Host.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.ClaudeCode/Host/SharpRail.Plugins.ClaudeCode.Host.csproj" />
   </ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="SharpRail.Checks" /></ItemGroup>
 </Project>
