@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 using Grpc.Core;
 using Grpc.Net.Client;
 
@@ -9,23 +11,36 @@ using SharpRail.Host.Protocol;
 
 namespace SharpRail.Host.Client;
 
+/// <summary>
+/// Embedded calls run Core on the thread pool. Core awaits without leaving the caller's context, so a call made from the
+/// UI thread would otherwise start processes and parse their output on the dispatcher.
+/// </summary>
+internal static class OffDispatcher
+{
+    public static ValueTask<T> Run<T>(Func<ValueTask<T>> call) => new(Task.Run(async () => await call().ConfigureAwait(false)));
+    public static ValueTask Run(Func<ValueTask> call) => new(Task.Run(async () => await call().ConfigureAwait(false)));
+}
+
 public sealed class LocalProjectAdapter(IProjectServices host) : IProjectServices
 {
-    public ValueTask SaveFileAsync(FileSaveRequest request, CancellationToken cancellationToken = default) => host.SaveFileAsync(request, cancellationToken);
-    public ValueTask<WorkspaceInfo> OpenProjectAsync(string path, CancellationToken cancellationToken = default) => host.OpenProjectAsync(path, cancellationToken);
-    public ValueTask<IReadOnlyList<ProjectFile>> ListFilesAsync(string relativePath, CancellationToken cancellationToken = default) => host.ListFilesAsync(relativePath, cancellationToken);
-    public ValueTask<FileDocument> ReadFileAsync(string relativePath, CancellationToken cancellationToken = default) => host.ReadFileAsync(relativePath, cancellationToken);
-    public ValueTask<IReadOnlyList<SpecDocument>> ListSpecsAsync(CancellationToken cancellationToken = default) => host.ListSpecsAsync(cancellationToken);
-    public ValueTask<SearchHits> SearchAsync(string query, CancellationToken cancellationToken = default) => host.SearchAsync(query, cancellationToken);
-    public ValueTask<GitSnapshot> GetGitAsync(string comparisonBranch = "", CancellationToken cancellationToken = default, string scope = "all") => host.GetGitAsync(comparisonBranch, cancellationToken, scope);
-    public ValueTask<IReadOnlyList<GitCommit>> ListCommitsAsync(string comparisonBranch, CancellationToken cancellationToken = default) => host.ListCommitsAsync(comparisonBranch, cancellationToken);
-    public ValueTask<string> GetDiffAsync(string path, string scope, string comparisonBranch = "", CancellationToken cancellationToken = default) => host.GetDiffAsync(path, scope, comparisonBranch, cancellationToken);
-    public ValueTask<DiffSides> GetDiffSidesAsync(string path, string scope, string comparisonBranch = "", CancellationToken cancellationToken = default) => host.GetDiffSidesAsync(path, scope, comparisonBranch, cancellationToken);
-    public ValueTask<GitSnapshot> ApplyGitActionAsync(GitAction action, CancellationToken cancellationToken = default) => host.ApplyGitActionAsync(action, cancellationToken);
-    public ValueTask ApplyFileActionAsync(FileAction action, CancellationToken cancellationToken = default) => host.ApplyFileActionAsync(action, cancellationToken);
-    public ValueTask<BranchCatalog> ListBranchesAsync(bool fetchDefault, CancellationToken cancellationToken = default) => host.ListBranchesAsync(fetchDefault, cancellationToken);
-    public ValueTask<IReadOnlyList<EditorInfo>> ListEditorsAsync(CancellationToken cancellationToken = default) => host.ListEditorsAsync(cancellationToken);
-    public ValueTask OpenInEditorAsync(string editorId, string worktreePath, CancellationToken cancellationToken = default) => host.OpenInEditorAsync(editorId, worktreePath, cancellationToken);
+    public IAsyncEnumerable<WorkspaceFileChanges> WatchFilesAsync(CancellationToken cancellationToken = default) => host.WatchFilesAsync(cancellationToken);
+    public ValueTask SaveFileAsync(FileSaveRequest request, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.SaveFileAsync(request, cancellationToken));
+    public ValueTask<WorkspaceInfo> OpenProjectAsync(string path, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.OpenProjectAsync(path, cancellationToken));
+    public ValueTask<IReadOnlyList<ProjectFile>> ListFilesAsync(string relativePath, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.ListFilesAsync(relativePath, cancellationToken));
+    public ValueTask<FileDocument> ReadFileAsync(string relativePath, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.ReadFileAsync(relativePath, cancellationToken));
+    public ValueTask<SearchHits> SearchAsync(string query, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.SearchAsync(query, cancellationToken));
+    public ValueTask<GitSnapshot> GetGitAsync(string comparisonBranch = "", CancellationToken cancellationToken = default, string scope = "all") => OffDispatcher.Run(() => host.GetGitAsync(comparisonBranch, cancellationToken, scope));
+    public ValueTask<IReadOnlyList<GitCommit>> ListCommitsAsync(string comparisonBranch, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.ListCommitsAsync(comparisonBranch, cancellationToken));
+    public ValueTask<GitCommit?> GetCommitAsync(string sha, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.GetCommitAsync(sha, cancellationToken));
+    public ValueTask<IReadOnlyList<WorktreeInfo>> ListWorkspacesAsync(string projectRoot, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.ListWorkspacesAsync(projectRoot, cancellationToken));
+    public ValueTask<string> CloneProjectAsync(string url, string parentPath, string name, int? depth = null, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.CloneProjectAsync(url, parentPath, name, depth, cancellationToken));
+    public ValueTask<string> GetDiffAsync(string path, string scope, string comparisonBranch = "", CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.GetDiffAsync(path, scope, comparisonBranch, cancellationToken));
+    public ValueTask<DiffSides> GetDiffSidesAsync(string path, string scope, string comparisonBranch = "", CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.GetDiffSidesAsync(path, scope, comparisonBranch, cancellationToken));
+    public ValueTask<GitSnapshot> ApplyGitActionAsync(GitAction action, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.ApplyGitActionAsync(action, cancellationToken));
+    public ValueTask ApplyFileActionAsync(FileAction action, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.ApplyFileActionAsync(action, cancellationToken));
+    public ValueTask<BranchCatalog> ListBranchesAsync(bool fetchDefault, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.ListBranchesAsync(fetchDefault, cancellationToken));
+    public ValueTask<IReadOnlyList<EditorInfo>> ListEditorsAsync(CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.ListEditorsAsync(cancellationToken));
+    public ValueTask OpenInEditorAsync(string editorId, string worktreePath, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.OpenInEditorAsync(editorId, worktreePath, cancellationToken));
 }
 
 public sealed class RemoteProjectAdapter : IProjectServices, IDisposable
@@ -50,11 +65,11 @@ public sealed class RemoteProjectAdapter : IProjectServices, IDisposable
     // The host keeps no per-client session: each call names the workspace this adapter opened last.
     private volatile string root = "";
 
-    private CallContext Context(CancellationToken ct)
+    private CallContext Context(CancellationToken ct, bool stream = false)
     {
         var headers = new Metadata { { "authorization", $"Bearer {token}" } };
         if (root.Length > 0) headers.Add(ProjectHeaders.Root, System.Text.Encoding.UTF8.GetBytes(root));
-        return new(new CallOptions(headers: headers, deadline: DateTime.UtcNow.AddSeconds(60), cancellationToken: ct));
+        return new(new CallOptions(headers: headers, deadline: stream ? null : DateTime.UtcNow.AddSeconds(60), cancellationToken: ct));
     }
 
     public async ValueTask<WorkspaceInfo> OpenProjectAsync(string path, CancellationToken cancellationToken = default)
@@ -73,6 +88,13 @@ public sealed class RemoteProjectAdapter : IProjectServices, IDisposable
         return reply.Files.Select(file => new ProjectFile(file.Path, file.Name, file.IsDirectory)).ToArray();
     }
 
+    public async IAsyncEnumerable<WorkspaceFileChanges> WatchFilesAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        await foreach (var changes in service.WatchFilesAsync(new(), Context(cancellationToken, stream: true)).WithCancellation(cancellationToken))
+            yield return new(changes.Paths, changes.GitChanged, changes.Rescan);
+    }
+
     public async ValueTask<FileDocument> ReadFileAsync(string relativePath, CancellationToken cancellationToken = default)
     {
         try
@@ -89,11 +111,15 @@ public sealed class RemoteProjectAdapter : IProjectServices, IDisposable
     public async ValueTask<IReadOnlyList<GitCommit>> ListCommitsAsync(string comparisonBranch, CancellationToken cancellationToken = default)
         => (await service.ListCommitsAsync(new() { Branch = comparisonBranch }, Context(cancellationToken))).Commits.Select(Map).ToArray();
 
-    public async ValueTask<IReadOnlyList<SpecDocument>> ListSpecsAsync(CancellationToken cancellationToken = default)
-    {
-        var reply = await service.ListSpecsAsync(new(), Context(cancellationToken));
-        return reply.Specs.Select(spec => new SpecDocument(spec.Id, spec.Title, spec.Path, spec.Parent, spec.Type)).ToArray();
-    }
+    public async ValueTask<GitCommit?> GetCommitAsync(string sha, CancellationToken cancellationToken = default)
+        => (await service.GetCommitAsync(new() { Branch = sha }, Context(cancellationToken))).Commit is { } commit ? Map(commit) : null;
+
+    public async ValueTask<IReadOnlyList<WorktreeInfo>> ListWorkspacesAsync(string projectRoot, CancellationToken cancellationToken = default)
+        => [.. (await service.ListWorkspacesAsync(new() { Path = projectRoot }, Context(cancellationToken))).Worktrees
+            .Select(tree => new WorktreeInfo(tree.Path, tree.Branch, tree.IsMain, tree.IsLocked))];
+
+    public async ValueTask<string> CloneProjectAsync(string url, string parentPath, string name, int? depth = null, CancellationToken cancellationToken = default)
+        => (await service.CloneProjectAsync(new() { Url = url, Path = parentPath, Branch = name, Depth = depth ?? 0 }, Context(cancellationToken))).Text;
 
     public async ValueTask<SearchHits> SearchAsync(string query, CancellationToken cancellationToken = default)
     {

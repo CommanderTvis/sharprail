@@ -79,6 +79,18 @@
         <StackPanel x:Name="GroupLimits" MaxWidth="384" HorizontalAlignment="Left" Spacing="8" />
         <TextBlock Text="Bottom alignment" Classes="settings-label" />
         <ComboBox x:Name="BottomAlignment" Width="220" />
+        <TextBlock Text="Editor tabs" Classes="settings-label" />
+        <TextBlock Text="A column beside the editor instead of a strip above it. Drag its edge to resize. A split centre keeps the strip, since two columns leave too little room for the editors." Classes="settings-description" />
+        <CheckBox x:Name="VerticalCenterTabs" Content="Show editor tabs vertically" />
+        <CheckBox x:Name="VerticalTabsInProjects">
+          <StackPanel Spacing="2">
+            <TextBlock Text="Keep them in Projects, under their workspace" />
+            <TextBlock Text="One column instead of two: each workspace lists its open tabs and its start buttons in the Projects view, and the editor takes the whole centre. Tabs of another workspace switch to it when clicked." Classes="settings-description" />
+          </StackPanel>
+        </CheckBox>
+        <TextBlock x:Name="PaneDirectionLabel" Text="Tabs shown together open as" />
+        <StackPanel x:Name="PaneDirections" Orientation="Horizontal" Spacing="4" />
+        <TextBlock x:Name="PaneDirectionDetail" Classes="settings-description" />
         <CheckBox x:Name="PreviewTabs" Content="Preview files before keeping them" />
         <TextBlock Text="A single click opens a file in the group's reusable preview tab and a double click keeps it. Off, every open keeps its own tab. This preference belongs to this app." Classes="settings-description" />
         <ContentControl x:Name="ResetFrame" />

@@ -66,7 +66,7 @@ internal static class MarkdownMermaidE2E
         Until(() => ((TextBlock)Inline("MermaidZoomLevel")).Text == "100%" && Math.Abs(diagrams[0].Bounds.Width - drawn.Width) < 1);
 
         app.Click(preview.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "MermaidFullscreen"));
-        static bool IsFullscreen(DialogWindow window) => window.GetLogicalDescendants().OfType<ScrollViewer>().Any(viewer => viewer.Name == "MermaidFullscreenViewer");
+        static bool IsFullscreen(DialogWindow window) => window.GetLogicalDescendants().OfType<ScrollViewer>().Any(viewer => viewer.Name == "MermaidPanZoom");
         Until(() => app.Window.OwnedWindows.OfType<DialogWindow>().Any(IsFullscreen));
         var dialog = app.Window.OwnedWindows.OfType<DialogWindow>().Single(IsFullscreen);
         Until(() => dialog.GetLogicalDescendants().OfType<Image>().Any(image => image.Source is not null && image.Bounds.Width > 0));
@@ -75,7 +75,7 @@ internal static class MarkdownMermaidE2E
         var fitted = detail.Bounds.Width;
         Require(((TextBlock)Part("MermaidZoomLevel")).Text == "100%", "The full-screen diagram must open fitted to the viewer width.");
         app.Click((Button)Part("MermaidZoomIn"));
-        Until(() => ((TextBlock)Part("MermaidZoomLevel")).Text == "125%" && detail.Bounds.Width > fitted * 1.2);
+        Until(() => ((TextBlock)Part("MermaidZoomLevel")).Text == "115%" && detail.Bounds.Width > fitted * 1.1);
         app.Click((Button)Part("MermaidZoomReset"));
         Until(() => ((TextBlock)Part("MermaidZoomLevel")).Text == "100%" && Math.Abs(detail.Bounds.Width - fitted) < 1);
         dialog.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);

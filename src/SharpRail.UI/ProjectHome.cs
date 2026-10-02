@@ -83,8 +83,9 @@ public sealed partial class WorkbenchWindow
         SaveProfile();
         UpdateScopeLabels();
         branchLabel.Text = ""; branchIcon.IsVisible = false;
-        status.Text = remote ? "Remote" : "Connected";
+        ShowReady();
         Layout.SwitchWorkspace("");
+        surface.RefreshCenterActions();
         surface.RefreshContents();
     }
 
@@ -149,6 +150,9 @@ public sealed partial class WorkbenchWindow
         var menu = new ContextMenu();
         menu.Items.Add(Ui.Menu("Open project", () => _ = PickProjectAsync()));
         menu.Items.Add(Ui.Menu(remote ? "Enter host path…" : "Enter path…", () => _ = EnterHostPathAsync(null)));
+        var clone = Ui.Menu("Clone repository…", () => _ = CloneProjectAsync());
+        clone.Name = "CloneProjectMenu";
+        menu.Items.Add(clone);
         var recents = state.Current.RecentProjects.Where(path => !state.Current.Projects.Contains(path)).ToArray();
         if (recents.Length == 0) return menu;
         menu.Items.Add(new Separator());
@@ -280,7 +284,7 @@ public sealed partial class WorkbenchWindow
 
     private async Task RemoveWorktreeAsync(WorktreeInfo worktree)
     {
-        if (!await Dialogs.Confirm(this, "Remove worktree?", $"Remove {worktree.Path}? Git will refuse if it has uncommitted changes. The branch will be retained.")) return;
+        if (!await Dialogs.Confirm(this, "Remove worktree?", $"Remove {worktree.Path}? If it has uncommitted changes you will be asked again. The branch will be retained.")) return;
         if (!atHome && worktree.Path == workspaceRoot)
         {
             var previous = selectionHistory.LastOrDefault(path => path != worktree.Path && (path.Length == 0 || git.Worktrees.Any(tree => tree.Path == path)));
@@ -289,7 +293,23 @@ public sealed partial class WorkbenchWindow
             if (!atHome && workspaceRoot == worktree.Path) return;
         }
         selectionHistory.Remove(worktree.Path);
-        await GitActionAsync(new("remove-worktree", worktree.Path));
+        try
+        {
+            var request = projectRequest;
+            var snapshot = await host.ApplyGitActionAsync(new("remove-worktree", worktree.Path), lifetime.Token);
+            if (request != projectRequest) return;
+            git = snapshot; gitLoading = false; gitError = null; errorText.IsVisible = false;
+            RefreshGitPanels();
+        }
+        catch (Exception error) when (error is not OperationCanceledException && error.Message.Contains("modified or untracked files", StringComparison.Ordinal))
+        {
+            // Git keeps a worktree with changes; deleting it anyway is the user's call, made knowingly.
+            if (await Dialogs.Confirm(this, "Delete workspace with changes?",
+                    $"{WorkspaceName(worktree.Path)} has modified or untracked files. Deleting it discards them; the branch is kept.",
+                    "Delete anyway", "WorktreeForceRemove"))
+                await GitActionAsync(new("force-remove-worktree", worktree.Path));
+        }
+        catch (Exception error) when (error is not OperationCanceledException) { Report(error); RefreshGitPanels(); }
     }
 
     private ContextMenu WorkspaceActions(WorktreeInfo worktree, Button kebab)

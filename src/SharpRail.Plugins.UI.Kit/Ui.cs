@@ -28,6 +28,11 @@ public static class Ui
     public static readonly SolidColorBrush DialogShadow = new();
     public static readonly SolidColorBrush PrimarySubtle = new();
     public static readonly SolidColorBrush PrimaryMuted = new();
+    public static readonly SolidColorBrush WorkspaceSurface = new();
+    public static readonly SolidColorBrush ControlHover = new();
+    public static readonly SolidColorBrush ControlDisabledText = new();
+    public static readonly SolidColorBrush ControlDisabledBorder = new();
+    public static readonly SolidColorBrush PrimaryDisabled = new();
     public static readonly SolidColorBrush BorderBrush = new();
     public static readonly SolidColorBrush Hover = new();
     public static readonly SolidColorBrush TextSelection = new();
@@ -73,6 +78,11 @@ public static class Ui
         DialogShadow.Color = Color.FromArgb(theme.IsLight ? (byte)36 : (byte)102, 0, 0, 0);
         PrimarySubtle.Color = Alpha(theme["accent"], 10);
         PrimaryMuted.Color = Alpha(theme["accent"], 40);
+        WorkspaceSurface.Color = theme["background"];
+        ControlHover.Color = Alpha(theme["hover"], 60);
+        ControlDisabledText.Color = Alpha(theme["text"], 60);
+        ControlDisabledBorder.Color = Alpha(theme["border"], 60);
+        PrimaryDisabled.Color = Alpha(theme["accent"], 60);
         BorderBrush.Color = theme["borderStrong"];
         Hover.Color = theme["hover"];
         TextSelection.Color = theme["selection"];

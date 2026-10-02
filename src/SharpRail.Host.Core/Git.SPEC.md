@@ -60,11 +60,17 @@ binary content). Line counts come from `--numstat`; binary rows keep zero counts
 
 ## Commit and branch catalogs
 
+- `GetCommitAsync` looks up one hexadecimal commit id, independently of the comparison range or its
+  200-entry menu. It returns sanitized commit metadata, or null if the object no longer exists.
+  Graph-selected commits can therefore show Changes from any branch or older history.
 - `ListCommitsAsync` lists at most 200 commits of `<target>..HEAD` (none without a target), newest first, one NUL-separated
   record per commit read at fixed arity, so no author or subject text can shift a field. Free text is
   sanitized for display the way the reference does. A range Git rejects with exit 128 (deleted target,
   unborn `HEAD`) degrades to an empty list so the other scopes stay available. Listing is independent of
   the working-tree snapshot and survives index failures.
+- `CloneProjectAsync` runs `git clone [--depth N] -- <url> <target>` with network transports allowed and a
+  ten-minute ceiling. The target is one plain folder name inside an existing parent and must not exist; a
+  failed or timed-out clone removes the partial target and reports git's own stderr.
 - `ListBranchesAsync` returns local heads, remote-tracking branches grouped by their configured remote
   (longest matching remote name wins, because remote names may contain `/`; symbolic `HEAD` aliases are
   omitted), the default base and the suggested next workspace path and branch. The default base is

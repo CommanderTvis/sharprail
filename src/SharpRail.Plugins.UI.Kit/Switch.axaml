@@ -1,0 +1,52 @@
+<kit:Switch xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+            xmlns:kit="using:SharpRail.Plugins.UI.Kit" x:Class="SharpRail.Plugins.UI.Kit.Switch"
+            Width="40" Height="24" MinWidth="0" MinHeight="0" Padding="0" Background="Transparent">
+  <kit:Switch.Styles>
+    <Style Selector="kit|Switch /template/ Border#Target">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="kit|Switch /template/ Border#Track">
+      <Setter Property="Background" Value="{x:Static kit:Ui.BorderBrush}" />
+    </Style>
+    <Style Selector="kit|Switch /template/ Border#Thumb">
+      <Setter Property="Background" Value="{x:Static kit:Ui.WorkspaceSurface}" />
+      <Setter Property="Margin" Value="2" />
+    </Style>
+    <Style Selector="kit|Switch:pointerover /template/ Border#Target">
+      <Setter Property="Background" Value="{x:Static kit:Ui.ControlHover}" />
+    </Style>
+    <Style Selector="kit|Switch:focus-visible /template/ Border#Target">
+      <Setter Property="BorderBrush" Value="{x:Static kit:Ui.Accent}" />
+      <Setter Property="BorderThickness" Value="2" />
+    </Style>
+    <Style Selector="kit|Switch:checked /template/ Border#Track">
+      <Setter Property="Background" Value="{x:Static kit:Ui.Accent}" />
+    </Style>
+    <Style Selector="kit|Switch:checked /template/ Border#Thumb">
+      <Setter Property="Background" Value="{x:Static kit:Ui.OnPrimary}" />
+      <Setter Property="Margin" Value="18,2,2,2" />
+    </Style>
+    <Style Selector="kit|Switch:disabled /template/ Border#Target">
+      <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="kit|Switch:disabled /template/ Border#Track">
+      <Setter Property="Background" Value="{x:Static kit:Ui.ControlDisabledBorder}" />
+    </Style>
+    <Style Selector="kit|Switch:checked:disabled /template/ Border#Track">
+      <Setter Property="Background" Value="{x:Static kit:Ui.PrimaryDisabled}" />
+    </Style>
+    <Style Selector="kit|Switch:disabled /template/ Border#Thumb">
+      <Setter Property="Background" Value="{x:Static kit:Ui.ControlDisabledText}" />
+    </Style>
+  </kit:Switch.Styles>
+  <kit:Switch.Template>
+    <ControlTemplate>
+      <Border Name="Target" CornerRadius="12">
+        <Border Name="Track" Width="36" Height="20"
+                CornerRadius="10" HorizontalAlignment="Center" VerticalAlignment="Center">
+          <Border Name="Thumb" Width="16" Height="16" CornerRadius="8" HorizontalAlignment="Left" />
+        </Border>
+      </Border>
+    </ControlTemplate>
+  </kit:Switch.Template>
+</kit:Switch>

@@ -1,6 +1,9 @@
+using System.Reflection;
+
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 
+using SharpRail.UI.Docking;
 using SharpRail.UI.Panels;
 
 using static SharpRail.Checks.E2E.E2eWorkspace;
@@ -23,6 +26,7 @@ internal static class WelcomeE2E
     {
         using var app = OpenFresh(directory);
         Until(() => HasWelcome(app));
+        app.Window.GetLogicalDescendants().OfType<DockSurface>().Single().RefreshEmptyContents();
         Require(!app.Window.WorkspaceMounted && app.Tabs.Count == 0, "A fresh start must not mount a workspace or open center tabs.");
         Require(WelcomeTitle(app) == "SharpRail", "The clean Welcome must show the product title.");
         var cta = app.Find<Button>("WelcomeCta");
@@ -40,6 +44,10 @@ internal static class WelcomeE2E
     private static void ProjectHome(string directory)
     {
         using var app = OpenFixtureProject(directory);
+        var terminals = (IEnumerable<(string Workspace, IReadOnlyList<DockTab> Tabs, IReadOnlyList<string> Shown)>)
+            app.Window.GetType().GetMethod("TerminalTabs", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(app.Window, null)!;
+        Require(!terminals.Any(entry => entry.Workspace.StartsWith("home:", StringComparison.Ordinal)),
+            "Project Home must not expose synthetic terminal workspaces to plugins.");
         Require(WelcomeTitle(app) == "sample-project", "Project Home must be titled with the project name.");
         Require(app.Find<TextBlock>("ProjectLabel").Text == "sample-project" && app.Find<TextBlock>("WorkspaceLabel").Text == "Project home" &&
             app.Find<TextBlock>("WelcomeScope").Text == "PROJECT HOME", "The scope context must say Project home.");

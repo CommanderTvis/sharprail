@@ -1,6 +1,7 @@
 using System.Text;
 
 using SharpRail.Host.Abstractions;
+using SharpRail.Plugins.Api.Host;
 
 namespace SharpRail.Host.Core;
 
@@ -105,8 +106,55 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
     public async ValueTask<IReadOnlyList<GitCommit>> ListCommitsAsync(string comparisonBranch, CancellationToken cancellationToken = default)
         => await GitRepository.ListCommitsAsync(root, comparisonBranch, cancellationToken);
 
-    public async ValueTask<IReadOnlyList<SpecDocument>> ListSpecsAsync(CancellationToken cancellationToken = default)
-        => await SpecCatalog.ReadAsync(root, cancellationToken);
+    public async ValueTask<GitCommit?> GetCommitAsync(string sha, CancellationToken cancellationToken = default)
+        => await GitRepository.GetCommitAsync(root, sha, cancellationToken);
+
+    public async ValueTask<IReadOnlyList<WorktreeInfo>> ListWorkspacesAsync(string projectRoot, CancellationToken cancellationToken = default)
+    {
+        var project = Path.TrimEndingDirectorySeparator(Path.GetFullPath(projectRoot));
+        // Only a project this host already knows: a remote client must not probe arbitrary paths through it.
+        if (state is not null && !state.Current.Projects.Contains(project) && !state.Current.RecentProjects.Contains(project))
+            throw new UnauthorizedAccessException("That folder is not a project of this host.");
+        if (!Directory.Exists(project)) return [];
+        try
+        {
+            var trees = GitRepository.ParseWorktrees(await GitRepository.RunAsync(project, cancellationToken, "worktree", "list", "--porcelain", "-z"));
+            if (trees.Count > 0) return [.. trees.OrderByDescending(tree => tree.IsMain)];
+        }
+        catch (IOException) { }
+        return [new(project, "", true, false)];
+    }
+
+    private static readonly TimeSpan CloneTimeout = TimeSpan.FromMinutes(10);
+
+    public async ValueTask<string> CloneProjectAsync(string url, string parentPath, string name, int? depth = null, CancellationToken cancellationToken = default)
+    {
+        var source = url.Trim();
+        if (source.Length == 0 || source.StartsWith('-')) throw new ArgumentException($"Not a repository URL: {url}");
+        if (depth is < 1) throw new ArgumentException($"Clone depth must be a whole number of commits, at least 1: {depth}");
+        var target = NewFolderTarget(parentPath, name);
+        string[] shallow = depth is { } commits ? ["--depth", commits.ToString(System.Globalization.CultureInfo.InvariantCulture)] : [];
+        var clone = await GitRepository.RunBoundedAsync(parentPath, ["clone", .. shallow, "--", source, target],
+            new(CloneTimeout, Network: true), cancellationToken).ConfigureAwait(false);
+        if (clone.Ok) return target;
+        try { if (Directory.Exists(target)) Directory.Delete(target, true); }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
+        throw new IOException(clone.Failure == GitRunFailure.Timeout ? "git clone did not finish within ten minutes."
+            : clone.Err.Trim() is { Length: > 0 } reason ? reason : $"git clone failed: {source}");
+    }
+
+    // A new project folder: one plain name inside an existing parent, not already taken.
+    private static string NewFolderTarget(string parentPath, string name)
+    {
+        var parent = Path.GetFullPath(parentPath);
+        if (!Directory.Exists(parent)) throw new DirectoryNotFoundException($"The parent folder does not exist: {parentPath}");
+        var folder = name.Trim();
+        if (folder.Length == 0 || folder is "." or ".." || folder.IndexOfAny(['/', '\\', '\0']) >= 0)
+            throw new ArgumentException($"Not a folder name: {name}");
+        var target = Path.Combine(parent, folder);
+        if (Path.Exists(target)) throw new IOException($"{target} already exists.");
+        return target;
+    }
 
     public async ValueTask<string> GetDiffAsync(string path, string scope, string comparisonBranch = "", CancellationToken cancellationToken = default)
     {
@@ -235,12 +283,14 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
                     await GitRepository.RunAsync(currentRoot, cancellationToken, "worktree", "add", "-b", action.Branch,
                         "--", Path.GetFullPath(action.Path), action.BaseBranch);
                     break;
-                case "remove-worktree":
+                case "remove-worktree" or "force-remove-worktree":
                     var snapshot = await GitRepository.SnapshotAsync(currentRoot, "", cancellationToken);
                     var target = snapshot.Worktrees.SingleOrDefault(tree => tree.Path == Path.GetFullPath(action.Path));
                     if (target is null || target.IsMain || target.IsLocked || target.Path == currentRoot)
                         throw new InvalidOperationException("The main, active, or locked worktree cannot be removed.");
-                    await GitRepository.RunAsync(currentRoot, cancellationToken, "worktree", "remove", "--", target.Path);
+                    // Forcing discards the workspace's uncommitted and untracked files; the branch is kept either way.
+                    if (action.Kind == "force-remove-worktree") await GitRepository.RunAsync(currentRoot, cancellationToken, "worktree", "remove", "--force", "--", target.Path);
+                    else await GitRepository.RunAsync(currentRoot, cancellationToken, "worktree", "remove", "--", target.Path);
                     break;
                 case "delete-branch":
                     var local = (await GitRepository.RunAsync(currentRoot, cancellationToken, "for-each-ref", "--format=%(refname:short)", "refs/heads"))
@@ -260,9 +310,9 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
                 default: throw new ArgumentException("Unknown git action.");
             }
             var result = await GitRepository.SnapshotAsync(currentRoot, "", cancellationToken);
-            if (action.Kind is "create-worktree" or "remove-worktree" && state is not null && result.Worktrees.FirstOrDefault(tree => tree.IsMain) is { } main)
+            if (action.Kind is "create-worktree" or "remove-worktree" or "force-remove-worktree" && state is not null && result.Worktrees.FirstOrDefault(tree => tree.IsMain) is { } main)
                 state.PublishWorkspaces(main.Path, result.Worktrees.Select(tree => tree.Path).ToArray(),
-                    action.Kind == "remove-worktree" ? Path.GetFullPath(action.Path) : null);
+                    action.Kind is "remove-worktree" or "force-remove-worktree" ? Path.GetFullPath(action.Path) : null);
             return result;
         }
         finally { mutations.Release(); }

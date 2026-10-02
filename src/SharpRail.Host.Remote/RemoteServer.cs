@@ -57,8 +57,11 @@ public static class RemoteServer
         // Plugins stop first, before the terminals and the loopback server they reach.
         app.Lifetime.ApplicationStopping.Register(() =>
         {
-            runtime.DisposeAsync().AsTask().GetAwaiter().GetResult();
-            loopback.DisposeAsync().AsTask().GetAwaiter().GetResult();
+            Task.Run(async () =>
+            {
+                await runtime.DisposeAsync();
+                await loopback.DisposeAsync();
+            }).GetAwaiter().GetResult();
         });
         return app;
     }

@@ -19,7 +19,6 @@ public sealed partial class WorkbenchWindow
 {
     private readonly Dictionary<string, IReadOnlyList<ProjectFile>> folderCache = [];
     private readonly HashSet<string> expandedFolders = [];
-    private readonly HashSet<string> specsReseated = [];
 
     public Func<Task<string?>>? FolderPicker { get; set; }
     private int projectPicker;
@@ -52,6 +51,18 @@ public sealed partial class WorkbenchWindow
         await OpenPickedProjectAsync(path);
     }
 
+    private async Task CloneProjectAsync()
+    {
+        var parent = Path.GetDirectoryName(projectRoot.Length > 0 ? projectRoot : workspaceRoot) ?? "";
+        Func<Task<string?>>? pick = remote ? null : async () => FolderPicker is { } custom ? await custom()
+            : (await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = "Clone into", AllowMultiple = false }))
+                .FirstOrDefault()?.TryGetLocalPath();
+        // The clone runs git for up to ten minutes; it never runs on the dispatcher.
+        var path = await Dialogs.CloneProject(this, parent, pick,
+            (url, into, name, depth) => Task.Run(async () => await host.CloneProjectAsync(url, into, name, depth, lifetime.Token), lifetime.Token));
+        if (path is not null) await OpenPickedProjectAsync(path);
+    }
+
     private async Task OpenPickedProjectAsync(string path)
     {
         try
@@ -70,6 +81,7 @@ public sealed partial class WorkbenchWindow
     {
         railSignature = RailSignature();
         railSelection.Clear();
+        workspaceTabHosts.Clear();
         var panel = new Grid { Name = "ProjectsPanel", Margin = new Thickness(12), RowDefinitions = new RowDefinitions("28,8,*") };
         var toolbar = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(8, 0, 4, 0) };
         var title = Ui.Text("PROJECTS", size: 12); title.FontWeight = Avalonia.Media.FontWeight.Medium;
@@ -145,16 +157,44 @@ public sealed partial class WorkbenchWindow
                 Ui.Place(row, trailing, 0, 3);
             }
             tree.Children.Add(highlight);
-            if (project != projectRoot || collapsed) continue;
-            var worktrees = git.Worktrees.Count > 0 ? git.Worktrees : new[] { new WorktreeInfo(projectRoot, "", true, false) };
-            foreach (var worktree in worktrees) tree.Children.Add(WorkspaceItem(worktree));
+            if (collapsed) continue;
+            // Every expanded project lists its workspaces, so any workspace of any project is one click away. The open
+            // project's come from its Git snapshot; another's are read from the host once and cached.
+            IReadOnlyList<WorktreeInfo>? worktrees = project == projectRoot
+                ? git.Worktrees.Count > 0 ? git.Worktrees : [new WorktreeInfo(projectRoot, "", true, false)]
+                : projectWorkspaces.GetValueOrDefault(project);
+            if (worktrees is null) { _ = LoadProjectWorkspacesAsync(project); continue; }
+            foreach (var worktree in worktrees)
+            {
+                tree.Children.Add(WorkspaceItem(worktree, project));
+                tree.Children.Add(WorkspaceTabsHost(worktree.Path));
+            }
         }
         Ui.Place(panel, new ScrollViewer { Content = tree, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled }, 2);
         return panel;
     }
 
-    private Control WorkspaceItem(WorktreeInfo worktree)
+    // Workspaces of projects other than the open one, by project root, read once from the host.
+    private readonly Dictionary<string, IReadOnlyList<WorktreeInfo>> projectWorkspaces = [];
+    private readonly HashSet<string> loadingWorkspaces = [];
+
+    private async Task LoadProjectWorkspacesAsync(string project)
     {
+        if (!loadingWorkspaces.Add(project)) return;
+        try
+        {
+            var trees = await Task.Run(async () => await host.ListWorkspacesAsync(project, lifetime.Token), lifetime.Token);
+            projectWorkspaces[project] = trees;
+            toolContent.Remove("projects"); surface.RefreshContents("projects");
+        }
+        catch (Exception error) when (error is not OperationCanceledException) { projectWorkspaces[project] = []; }
+        finally { loadingWorkspaces.Remove(project); }
+    }
+
+    private Control WorkspaceItem(WorktreeInfo worktree, string project)
+    {
+        // Another project's workspace opens that project; its management verbs stay with the project that is open.
+        var foreign = project != projectRoot;
         var name = WorkspaceName(worktree.Path);
         var active = !atHome && worktree.Path == workspaceRoot;
         var twoLines = worktree.Branch.Length > 0;
@@ -193,7 +233,7 @@ public sealed partial class WorkbenchWindow
         });
         AutomationProperties.SetName(button, name);
         ToolTip.SetTip(button, worktree.Path);
-        button.Click += (_, _) => _ = OpenWorkspaceAsync(worktree.Path, false);
+        button.Click += (_, _) => _ = OpenWorkspaceAsync(worktree.Path, foreign);
         var kebab = new Button
         {
             Name = "WorkspaceMenu",
@@ -209,10 +249,16 @@ public sealed partial class WorkbenchWindow
         };
         AutomationProperties.SetName(kebab, "Workspace actions");
         ToolTip.SetTip(kebab, "Workspace actions");
+        var item = new Grid { Name = "WorkspaceItem", Tag = worktree.Path, ColumnDefinitions = new ColumnDefinitions("*,Auto"), Background = Avalonia.Media.Brushes.Transparent };
+        if (foreign)
+        {
+            Ui.Place(item, button);
+            Grid.SetColumnSpan(button, 2);
+            return item;
+        }
         var menu = WorkspaceActions(worktree, kebab);
         button.ContextMenu = menu;
         kebab.Click += (_, _) => menu.Open(button);
-        var item = new Grid { Name = "WorkspaceItem", Tag = worktree.Path, ColumnDefinitions = new ColumnDefinitions("*,Auto"), Background = Avalonia.Media.Brushes.Transparent };
         void Reveal() => kebab.Opacity = item.IsPointerOver || item.IsKeyboardFocusWithin || menu.IsOpen ? 1 : 0;
         item.PointerEntered += (_, _) => Reveal();
         item.PointerExited += (_, _) => Reveal();
@@ -396,102 +442,11 @@ public sealed partial class WorkbenchWindow
         return ReferenceEquals(source is TreeViewItem ? source : source.GetVisualAncestors().OfType<TreeViewItem>().FirstOrDefault(), node);
     }
 
-    private Control SpecsPanel()
-    {
-        var tree = new TreeView { Name = "SpecsTree", Background = Ui.Sidebar, Margin = new Thickness(4, 12, 12, 12) };
-        ScrollViewer.SetHorizontalScrollBarVisibility(tree, ScrollBarVisibility.Disabled);
-        if (WorkspaceMounted) _ = PopulateSpecsAsync(tree);
-        return tree;
-    }
-
-    private async Task PopulateSpecsAsync(TreeView tree)
-    {
-        var request = projectRequest; var workspace = workspaceRoot;
-        try
-        {
-            var specs = await Task.Run(async () => await host.ListSpecsAsync(lifetime.Token), lifetime.Token);
-            if (request != projectRequest || workspace != workspaceRoot) return;
-            if (specs.Count == 0 && specsReseated.Add(workspace)) ReseatEmptySpecs();
-            var byParent = specs.GroupBy(spec => spec.Parent).ToDictionary(group => group.Key, group => group.ToArray());
-            var ids = specs.Select(spec => spec.Id).ToHashSet();
-            var roots = specs.Where(spec => spec.Parent.Length == 0 || !ids.Contains(spec.Parent)).ToArray();
-            var placed = new HashSet<string>();
-            TreeViewItem Build(SpecDocument spec, int depth)
-            {
-                placed.Add(spec.Id);
-                var main = depth == 0 && spec.Type == "goal-and-requirements";
-                var row = (Grid)TreeRow(spec.Type.Contains("goal", StringComparison.Ordinal) ? "bookFill" :
-                    spec.Type.Contains("module", StringComparison.Ordinal) ? "box" : "stack",
-                    System.Text.RegularExpressions.Regex.Replace(spec.Title, @"\s+[—–]\s+", " · "), main);
-                row.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
-                var role = Ui.Text(main ? "Main spec" : spec.Type switch
-                {
-                    "goal-and-requirements" => "GOAL",
-                    "architecture-design" => "ARCH",
-                    "module-design" => "MODULE",
-                    "submodule-design" => "SUBMODULE",
-                    "task-spec" => "TASK",
-                    _ => System.Text.RegularExpressions.Regex.Replace(spec.Type, @"[-_\s]+", " ").Trim().ToUpperInvariant() is { Length: > 0 } tag ? tag : "SPEC"
-                }, main ? Ui.Accent : Ui.Hint, 12);
-                role.Name = "SpecRole"; role.IsVisible = false; role.Margin = new Thickness(8, 0, 0, 0);
-                Ui.Place(row, role, 0, 3);
-                var node = new TreeViewItem
-                {
-                    Header = row,
-                    HorizontalAlignment = HorizontalAlignment.Stretch,
-                    IsExpanded = depth < 3,
-                    Tag = spec.Path
-                };
-                void UpdateRole() => role.IsVisible = row.IsPointerOver || node.IsKeyboardFocusWithin;
-                row.Background = Avalonia.Media.Brushes.Transparent;
-                row.PointerEntered += (_, _) => role.IsVisible = true;
-                row.PointerExited += (_, _) => role.IsVisible = node.IsKeyboardFocusWithin;
-                node.GotFocus += (_, _) => UpdateRole();
-                node.LostFocus += (_, _) => UpdateRole();
-                AutomationProperties.SetName(node, spec.Title);
-                AutomationProperties.SetHelpText(node, spec.Path + " · " + role.Text);
-                node.AddHandler(PointerPressedEvent, (_, e) =>
-                {
-                    if (e.Source is not Control source || !IsOwnHeader(node, source) ||
-                        !e.GetCurrentPoint(node).Properties.IsLeftButtonPressed || source is ToggleButton ||
-                        source.GetVisualAncestors().OfType<ToggleButton>().Any()) return;
-                    _ = BrowseDocumentAsync(spec.Path, e.ClickCount == 2);
-                }, RoutingStrategies.Bubble, handledEventsToo: true);
-                node.KeyDown += (_, e) => { if (e.Key == Key.Enter) { _ = BrowseDocumentAsync(spec.Path, true); e.Handled = true; } };
-                if (depth < 32 && byParent.TryGetValue(spec.Id, out var children))
-                    foreach (var child in children.Where(child => !placed.Contains(child.Id))) node.Items.Add(Build(child, depth + 1));
-                return node;
-            }
-            foreach (var spec in roots) tree.Items.Add(Build(spec, 0));
-            foreach (var spec in specs.Where(spec => !placed.Contains(spec.Id))) tree.Items.Add(Build(spec, 0));
-            if (tree.Items.Count == 0) tree.Items.Add(new TreeViewItem { Header = Ui.Text("No specifications in this project", Ui.Hint, 12) });
-        }
-        catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
-    }
-
-    /// <summary>
-    /// A workspace without a spec graph opens its rail on the next tool rather than on the empty Specs panel.
-    /// Applied once per workspace, and only to a group still on the seeded first tool; Specs stays docked.
-    /// </summary>
-    private void ReseatEmptySpecs()
-    {
-        foreach (var group in Layout.State.Groups.Where(group => group.Region != "center" && group.Tools.Count > 1 && group.Tools[0].Id == "specs"))
-            if (Layout.Selected(group.Id)?.Id == "specs") Layout.Reseat(group.Id, group.Tools[1].Id);
-    }
-
     private Control FileRow(ProjectFile file)
     {
         var row = new Grid { ColumnDefinitions = new ColumnDefinitions("14,4,*") };
         Ui.Place(row, FileIcon(file.Path, file.IsDirectory, file.IsDirectory ? "folder" : "fileText"));
         Ui.Place(row, Ui.Text(file.Name), 0, 2);
-        return row;
-    }
-
-    private static Control TreeRow(string icon, string title, bool primary = false)
-    {
-        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("14,4,*") };
-        Ui.Place(row, Ui.Icon(icon, primary ? Ui.Accent : null, 14));
-        Ui.Place(row, Ui.Text(title), 0, 2);
         return row;
     }
 }

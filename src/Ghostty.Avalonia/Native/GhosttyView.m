@@ -4,6 +4,8 @@
 #import <Metal/Metal.h>
 #include "ghostty.h"
 #include "GhosttyView.h"
+// keyboard-mode.zig, appended to libghostty: the embedding API does not expose the negotiated keyboard protocol.
+extern bool gav_ghostty_agent_newline(ghostty_surface_t surface);
 
 @interface GAVTerminalView : NSView <NSTextInputClient>
 @property(nonatomic, assign) ghostty_surface_t surface;
@@ -14,6 +16,7 @@
 @property(nonatomic, assign) gav_view_event_cb callback;
 @property(nonatomic, assign) gav_view_shortcut_cb shortcut;
 @property(nonatomic, assign) void *context;
+@property(nonatomic, assign) BOOL agentNewline;
 - (void)resizeSurface;
 @end
 
@@ -191,6 +194,8 @@ static bool initialize(void) {
 - (void)keyDown:(NSEvent *)event {
     if ([self forwardShortcut:event]) return;
     if (!self.surface) return;
+    NSEventModifierFlags keyMods = event.modifierFlags & (NSEventModifierFlagShift | NSEventModifierFlagControl | NSEventModifierFlagOption | NSEventModifierFlagCommand);
+    if (self.agentNewline && event.keyCode == 36 && keyMods == NSEventModifierFlagShift && !self.hasMarkedText && gav_ghostty_agent_newline(self.surface)) return;
     NSEvent *translation = [self translationEvent:event];
     BOOL wasMarked = self.hasMarkedText;
     self.keyText = [NSMutableArray new];
@@ -293,6 +298,11 @@ void gav_view_destroy(void *pointer) {
 bool gav_view_busy(void *pointer) {
     GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;
     return view.surface && !ghostty_surface_process_exited(view.surface) && ghostty_surface_needs_confirm_quit(view.surface);
+}
+void gav_view_set_agent_newline(void *pointer, bool enabled) { ((__bridge GAVTerminalView *)pointer).agentNewline = enabled; }
+bool gav_view_agent_newline(void *pointer) {
+    GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;
+    return view.surface && gav_ghostty_agent_newline(view.surface);
 }
 void gav_view_focus(void *pointer) { GAVTerminalView *view = (__bridge GAVTerminalView *)pointer; [view.window makeFirstResponder:view]; }
 void gav_view_set_colors(void *pointer, const uint32_t *colors, double minimum_contrast) {
@@ -410,7 +420,9 @@ void gav_texture_mouse(void *pointer, double x, double y, int32_t mods, int32_t 
 }
 void gav_texture_scroll(void *pointer, double x, double y) {
     GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;
-    ghostty_surface_mouse_scroll(view.surface, x * 10, y * 10, 0);
+    // Avalonia reports a wheel notch as 1 and a trackpad in fractions of one; Ghostty scales line deltas itself, as
+    // the Skia view's three lines per notch does. A tenfold factor here made every gesture race through the history.
+    ghostty_surface_mouse_scroll(view.surface, x, y, 0);
 }
 void gav_texture_action(void *pointer, const char *action) {
     GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;

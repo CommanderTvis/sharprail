@@ -26,6 +26,13 @@ row of buttons above the accessories. `ITerminalBackend.Write` types into the sh
 `sr_terminal_input` and `sr_terminal_read`, and the checks' headless backend writes to its PTY session and reads its
 plain-text view. An accessory's `BufferTail` is the last lines of that text.
 
+Accessories select the terminal's agent newline encoding through `SetKeyEncoding`. The view retains
+that selection across asynchronous startup and retry. In agent mode, an uncomposed Shift+Enter with
+no other modifiers sends ESC+CR when neither kitty nor modifyOtherKeys is negotiated. Negotiated
+protocols keep Ghostty's own encoding; default mode also restores Ghostty's own encoding. The pinned
+embedding shim reads protocol state under the renderer lock and queues raw input, avoiding clipboard
+paste transformation. Native checks capture actual AppKit key bytes for all four cases.
+
 ## Boundary
 
 - Owns: attach/detach of one tab to one session, start-failure and retry, takeover notice and take-back,
@@ -156,7 +163,5 @@ fallback while preserving the local/remote shell and its exit status.
 - Reviving tabs across a host restart with their last recorded screen.
 - Ending a workspace's shells when its worktree is removed.
 - A host-configurable replay size.
-- `TerminalKeyEncoding.AgentNewline`: the bridge has no key-encoding switch, so `SetKeyEncoding` is a no-op and
-  Shift+Return keeps Ghostty's own encoding.
 - Faint-cell blanking in `BufferTail(omitFaint: true)`: libghostty's text read carries no cell attributes, so faint
   placeholders are returned as text.

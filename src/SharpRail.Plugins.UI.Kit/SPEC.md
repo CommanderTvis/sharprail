@@ -20,17 +20,37 @@ the project is created empty with this spec, and the controls move into it as li
 
 ## Boundary
 
+The fork's shared `Switch` exposes a label and controlled checked state without visible On/Off text.
+Its compiled template keeps a 40×24 target, 36×20 track and 16×16 thumb. Mouse, keyboard and
+automation activation request the next value exactly once; the caller updates the checked value.
+Disabled switches and handled click events make no request. Automation reports the label and toggle
+state. Checked, unchecked, hover, focus and disabled colors follow the shared theme brushes.
+The parameterless constructor, bindable label/state and change-request event support compiled plugin
+layouts; the convenience constructor supplies the same contract from code. Programmatic state updates
+publish toggle automation changes without requesting another update.
+
 - Owns, in `SharpRail.Plugins.UI.Kit`:
   - `Ui`: the brush tokens (`Sidebar`, `Surface`, `Header`, `Elevated`, `TextBrush`, `Muted`, `Hint`, `Accent`,
     `PrimaryFill`, `PrimaryFillHover`, `OnPrimary`, `DialogShadow`, `PrimarySubtle`, `PrimaryMuted`,
-    `BorderBrush`, `Hover`, `TextSelection`, the status brushes and washes, the fades),
+    `BorderBrush`, `Hover`, `WorkspaceSurface`, `ControlHover`, `ControlDisabledText`,
+    `ControlDisabledBorder`, `PrimaryDisabled`, `TextSelection`, the status brushes and washes, the fades),
     the interface and code fonts, `FontSize`, the applied `Theme` and `ThemeChanged`, `Apply(ThemeManifest)`
     and `ApplyResources`, `Alpha`/`Over`, and the primitive factories `Icon`, `Text`, `Row`, `Button`,
     `IconButton`, `Frame`, `Place`, `Menu`, plus `Segment` and `Chip` (below).
   - `ThemeManifest`, the palette record a theme applies.
+  - `Switch`, the controlled boolean primitive with a compiled target/track/thumb template and
+    native toggle automation. Browser transition/reduced-motion behavior and native appearance
+    remain to be audited against the fork.
   - `DialogWindow` (compiled XAML card shared by every dialog), owned by a `Window` rather than a
     `WorkbenchWindow`.
   - `FindBar`, `LineWidths`, `ViewerLimits`, `SvgAsset`.
+  - `Visualization.ZoomGesture` shares the fork's zoom bounds, toolbar step, Control/Command detection
+    and bounded wheel delta math; Avalonia's upward-positive line delta is converted to pixels.
+  - `ScopedSetting` provides configuration scope/source rows and their filter toolbar;
+    `SettingValueDialog` composes typed setting values. `TerminalFacts` provides agent facts, token
+    counts, plans, file attachment and the session IDE-context toggle without holding plugin state.
+  - `SvgAsset` can tint `currentColor` from a shared solid brush and reloads on theme changes while
+    attached. Its original two-argument constructor remains available to compiled plugins.
   - `Assets/Icons` and `Assets/Fonts`, with their license files, as `avares://SharpRail.Plugins.UI.Kit/Assets/…`.
 - Owns, in `SharpRail.Plugins.UI.Kit.Markdown`: `MarkdownPreview`, `MarkdownDocumentView` (with its compiled
   header), `MarkdownProperties`, `Frontmatter`, `MarkdownLink`, and `Outline` (the heading column, extracted
@@ -82,7 +102,7 @@ the project is created empty with this spec, and the controls move into it as li
 | `./visualization`: `MermaidView`, `PanZoomView`, `renderMermaid`, `zoomGesture` | `Visualization.MermaidRenderer`, `MermaidDialog` |
 | `./visualization`: `VisualizationCard`, `DiagramCard`, `ComparisonCard` | absent: the visualize tool is an AI chat surface |
 | `ToolFileLink` | absent: a chat tool card's file link |
-| `ScopedSetting`, `SettingValueDialog`, `SettingsToolbar`, `TerminalFacts` | not yet ported: they arrive with the first builtin plugin that renders them |
+| `ScopedSetting`, `SettingValueDialog`, `SettingsToolbar`, `TerminalFacts` | shared configuration rows, typed value composer, `ScopedSetting.SettingsToolbar`, terminal agent controls |
 
 Stays in the app: the theme catalogue and resolution (`Rendering/Themes.cs`, `Themes.SPEC.md`, `Assets/Themes`),
 `DiffView`, `MarkdownDiff`, `RenderedDiffs.cs`, `CodeDocumentView`, `Panels/Dialogs.cs` (built on
@@ -113,3 +133,18 @@ observes half a palette. That makes the brush names, and the manifest colour key
   unchanged, and that spec points here for where the code lives.
 - The kit's checks are the app's existing Markdown, editor, diagram and theme checks, which keep passing
   against the moved controls.
+
+## Agent visualizations
+
+`VisualizationCard` renders raw JSON diagram or comparison arguments, with tolerant comparison reads.
+Its frames, options, bullet rows, loading/error states and pan/zoom chrome are compiled XAML. Interactive
+diagrams fill a companion; inline diagrams are capped and offer a fullscreen button. The kit owns no
+terminal or plugin state. A consumer supplies a render-verdict callback. Comparisons settle immediately;
+Mermaid renders through Merman off the UI thread and reports its native parser error. Theme rerenders
+retain the mounted navigation control and its zoom/scroll. Toolbar and wheel use `ZoomGesture`, shared
+with PDF Preview, with 25–600% bounds. Native trackpad magnify and further lifecycle/appearance cases
+remain verification gates in the Visualize plugin spec.
+
+The account presentation exposes labelled rows, provider-supplied severity and percentage usage,
+relative reset times and reading timestamps. Row and usage-window layouts are compiled XAML.
+The Codex builtin uses these controls without referencing app or host implementations.

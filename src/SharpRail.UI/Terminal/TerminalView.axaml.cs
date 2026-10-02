@@ -21,6 +21,7 @@ public sealed partial class TerminalView : UserControl, IDisposable
     private readonly GridSplitter companionSplitter;
     private int generation;
     private bool disposed;
+    private bool agentNewline;
 
     public TerminalView(TerminalFactory factory, TerminalLaunch launch)
     {
@@ -63,6 +64,11 @@ public sealed partial class TerminalView : UserControl, IDisposable
 
     /// <summary>The surface's screen and scrollback as text, oldest line first.</summary>
     public string ReadScreen() => Backend is { } backend && backend.Started.IsCompletedSuccessfully ? backend.ReadScreen() : "";
+    public void SetAgentNewline(bool enabled)
+    {
+        agentNewline = enabled;
+        Backend?.SetAgentNewline(enabled);
+    }
     public bool IsFailed => failure.IsVisible;
     public bool IsExited => exitNotice.IsVisible;
     public bool IsDetached => detachedNotice.IsVisible;
@@ -101,6 +107,7 @@ public sealed partial class TerminalView : UserControl, IDisposable
             body.Content = backend.View;
             await backend.Started;
             if (current != generation) return;
+            backend.SetAgentNewline(agentNewline);
             failure.IsVisible = false;
             detachedNotice.IsVisible = false; body.IsVisible = true;
             if (retrying) backend.FocusTerminal();

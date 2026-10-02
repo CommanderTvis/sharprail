@@ -31,7 +31,6 @@ internal static class ProjectChecks
         var files = await local.ListFilesAsync("");
         var markdown = await local.ReadFileAsync("README.md");
         Require(markdown.Text.Contains("# Preview", StringComparison.Ordinal), "Document read failed.");
-        Require((await local.ListSpecsAsync()).Count >= 2, "Spec catalog failed.");
         try
         {
             await local.ReadFileAsync("../outside.txt");
@@ -58,7 +57,6 @@ internal static class ProjectChecks
             await File.WriteAllBytesAsync(Path.Combine(fixture, "blob.bin"), [0xFF, 0xFE, 0x00, 0x01]);
             try { await local.ReadFileAsync("blob.bin"); throw new InvalidOperationException("Invalid UTF-8 opened as text."); }
             catch (IOException error) { Require(error.Message == "Binary files cannot be previewed.", "Invalid UTF-8 must be reported as binary."); }
-            Require((await remote.ListSpecsAsync()).SequenceEqual(await local.ListSpecsAsync()), "Remote specs differ.");
             await File.WriteAllTextAsync(Path.Combine(fixture, "haystack.txt"), "alpha\nbeta NEEDLE beta\n");
             var found = await local.SearchAsync("needle");
             Require(found.Hits.Any(hit => hit is { Path: "haystack.txt", Line: 2, Text: "beta NEEDLE beta" }) && !found.Truncated,
@@ -126,7 +124,7 @@ internal static class ProjectChecks
             }
         }
         finally { await server.StopAsync(); }
-        Console.WriteLine("PASS project/files/specs local and gRPC parity, traversal and cancellation");
+        Console.WriteLine("PASS project/files local and gRPC parity, traversal and cancellation");
 
         var source = Environment.GetEnvironmentVariable("SHARPRAIL_TEST_GIT_SOURCE");
         if (string.IsNullOrEmpty(source))

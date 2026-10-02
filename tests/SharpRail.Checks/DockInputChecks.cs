@@ -49,12 +49,11 @@ internal static class DockInputChecks
             "Double-clicking blank title-bar space did not zoom the window.");
         window.WindowState = WindowState.Normal;
         Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
-        Require(!Find<Button>("RemoveGroup_" + window.Layout.State.Center.Leaves().Single()).IsEnabled,
-            "The final empty center group's remove button must be disabled.");
+        Require(!window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "RemoveGroup_" + window.Layout.State.Center.Leaves().Single()),
+            "The final empty center group offers no remove button; only its menu explains why.");
         var terminalButtons = window.GetLogicalDescendants().OfType<Button>().Count(button => button.IsVisible && button.Name?.StartsWith("NewTerminal_", StringComparison.Ordinal) == true);
-        Require(terminalButtons == window.Layout.State.Groups.Count(group => !group.Folded && window.Layout.Selected(group.Id)?.IsTool != true) &&
-            !window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name?.StartsWith("AddToGroup_", StringComparison.Ordinal) == true),
-            "Only resource and empty views must offer terminal creation, and Add must not duplicate already-placed singleton tools.");
+        Require(terminalButtons == window.Layout.State.Groups.Count(group => !group.Folded && window.Layout.Selected(group.Id)?.IsTool != true),
+            "Only resource and empty views must offer terminal creation.");
         var projectsGroup = window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "projects")).Id;
         Require(!Find<Button>("NewTerminal_" + projectsGroup).IsVisible, "Projects must not show a terminal opener.");
         window.Layout.NewTerminal(projectsGroup);
@@ -65,6 +64,20 @@ internal static class DockInputChecks
         window.Layout.Select(projectsGroup, terminalTab.Id);
         Require(Find<Button>("NewTerminal_" + projectsGroup).IsVisible, "Selecting a terminal in a mixed group must restore terminal creation.");
         window.Layout.Close(projectsGroup, terminalTab.Id);
+        foreach (var group in window.Layout.State.Groups.Where(group => !group.Folded && group.Region is "left" or "right"))
+        {
+            var add = Find<Button>("AddToGroup_" + group.Id);
+            IEnumerable<DockToolInfo> Hidden() => window.Layout.Tools.Where(tool => tool.Region == group.Region &&
+                !window.Layout.State.Groups.Any(pane => pane.Tools.Any(tab => tab.Id == tool.Id)));
+            Require(add.IsVisible == Hidden().Any(), "Add is visible exactly when this side has an unplaced tool.");
+            if (!add.IsVisible) continue;
+            add.ContextMenu!.Open(add);
+            Dispatcher.UIThread.RunJobs();
+            Require(add.ContextMenu.Items.OfType<MenuItem>().Select(item => item.Name)
+                .SequenceEqual(Hidden().Select(tool => "ShowTool_" + tool.Id.Replace(':', '_'))),
+                "Add offers the current catalogue without duplicating already-placed singleton tools.");
+            add.ContextMenu.Close();
+        }
         foreach (var (value, label) in new[]
         {
             ("center-left", "Below center and left"), ("center-right", "Below center and right"),
@@ -130,7 +143,7 @@ internal static class DockInputChecks
             centerHeader.ContextMenu.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "New split below")).IsEnabled,
             "Split actions must use the measured pane size when the context menu opens.");
         centerHeader.ContextMenu!.Close();
-        var rightGroup = window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "specs"));
+        var rightGroup = window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == DockState.SpecsTool));
         window.Layout.Select(rightGroup.Id, "files");
         projects = Find<Button>("Tab_projects");
         projectsPoint = Bounds(projects).Center;
@@ -166,7 +179,7 @@ internal static class DockInputChecks
         var dragCount = 0;
         void Drag(string tab, Point to)
         {
-            var source = Bounds(Find<Button>("Tab_" + tab));
+            var source = Bounds(Find<Button>("Tab_" + tab.Replace(':', '_')));
             var from = new Point(source.Left + (dragCount++ % 2 == 0 ? 16 : 36), source.Center.Y);
             window.MouseDown(from, MouseButton.Left); window.MouseMove(from + new Vector(10, 10));
             Require(Find<DockSurface>("WorkspaceWorkbench").IsDragging, "Pointer input did not start a drag draft.");
@@ -174,10 +187,10 @@ internal static class DockInputChecks
             Require(LayoutSession.IsValid(window.Layout.State), "Pointer placement broke layout invariants.");
         }
         window.Layout.ApplyPreset(DockState.Preset("balanced"));
-        var fallbackGroup = window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "specs"));
-        var fallbackTab = Bounds(Find<Button>("Tab_specs"));
-        Drag("specs", new Point(fallbackTab.Left + 16, fallbackTab.Center.Y));
-        Require(window.Layout.Group(fallbackGroup.Id).Tools.Select(tab => tab.Id).SequenceEqual(new[] { "files", "specs" }) &&
+        var fallbackGroup = window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == DockState.SpecsTool));
+        var fallbackTab = Bounds(Find<Button>("Tab_plugin_spec-dialect_specs"));
+        Drag(DockState.SpecsTool, new Point(fallbackTab.Left + 16, fallbackTab.Center.Y));
+        Require(window.Layout.Group(fallbackGroup.Id).Tools.Select(tab => tab.Id).SequenceEqual(new[] { "files", DockState.SpecsTool }) &&
             window.Layout.State.Groups.Count(group => group.Region == "right") == 2,
             "A disabled self-insertion target must fall back to the legal enclosing header append rather than creating a neighboring group.");
         window.Width = 2200; window.Height = 920;
@@ -200,7 +213,7 @@ internal static class DockInputChecks
         window.MouseUp(compactHeader.Center, MouseButton.Left); Dispatcher.UIThread.RunJobs();
         Require(window.Layout.State.Groups.Where(group => group.Region == "right").First().Tools.Single().Id == "projects" &&
             window.Layout.State.Groups.Count(group => group.Region == "right") == 3 &&
-            window.Layout.Group(compactGroup.Id).Tools.Select(tab => tab.Id).SequenceEqual(new[] { "specs", "files" }),
+            window.Layout.Group(compactGroup.Id).Tools.Select(tab => tab.Id).SequenceEqual(new[] { DockState.SpecsTool, "files" }),
             "Corner-distance collision must create a compact pane's nearer neighboring group instead of always preferring its header.");
         window.Width = 1440;
         foreach (var region in new[] { "left", "bottom" })

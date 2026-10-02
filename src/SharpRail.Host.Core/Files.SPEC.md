@@ -83,8 +83,14 @@ A read of a file that is gone throws `FileNotFoundException` (a remote client ge
 
 ## Change notification
 
+- `IProjectServices.WatchFilesAsync` owns watchers for the workspace captured when enumeration starts.
+  Its first empty batch confirms registration. Each subscriber disposes its watchers on cancellation.
+  Local and remote windows consume the same stream; no initial scan or Git snapshot is required.
+- Host batches settle for 50 ms, cap pending paths at 4096 and request a rescan on overflow or watcher error.
+  Reconnection invalidates open documents to recover changes missed while disconnected.
 - The notification is an invalidation nudge, not data: the workbench re-reads through the same host
   reads, so a duplicate or coalesced event costs one extra read and never produces wrong state.
+  Git-only changes advance the workspace revision without advancing individual file revisions.
 - One recursive watcher covers the workspace root with `.git` paths excluded. Git metadata changes
   (commit, checkout, branch switch) that leave the working tree unchanged are seen through a second,
   non-recursive watcher on the worktree's Git directory (`HEAD`) and a recursive one on the common
@@ -94,14 +100,12 @@ A read of a file that is gone throws `FileNotFoundException` (a remote client ge
   second. A refresh re-lists loaded folders (leaving the tree untouched when nothing moved), refreshes
   Specs when a Markdown file changed, reloads clean open documents in place, keeps unsaved editor text,
   and refreshes Changes and open diffs.
-- A watcher that cannot start degrades to read-on-demand with a logged reason; Git failure never blocks
+- A watcher that cannot start is retried after one second with a logged reason; Git failure never blocks
   opening files.
 
 ## Not yet ported
 
-- Host-owned watching, so remote workspaces receive live refresh: a per-workspace watcher started lazily
-  by the first read, pushing a pathless or path-capped (100 paths, `truncated`) change frame through the
-  host to every client looking at that workspace.
+- Sharing a watcher between subscribers to the same workspace rather than owning one per stream.
 - Self-healing watchers that re-create themselves when the root's inode changes and reap watchers for
   forgotten workspaces.
 - A startup nudge covering the platform stream's registration window, and a bounded pre-warm pool for

@@ -82,7 +82,7 @@ public sealed partial class WorkbenchWindow
         if (!connected)
         {
             hostLost = true;
-            if (remote && status.Text is "Remote" or "Connected") status.Text = "Reconnecting";
+            if (remote && status.Text == "Remote") SetStatus("Reconnecting");
             return;
         }
         if (restorePending) _ = StartAsync();

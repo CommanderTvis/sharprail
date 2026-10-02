@@ -49,6 +49,9 @@ presets belong to the UI.
 - A project is identified by its absolute root path. `project-open` puts an unknown project first and
   removes it from recents; `project-close` moves it to the front of recents (at most 10) without touching
   the repository, its worktrees or their terminals; `project-forget` drops it from the open list.
+- Recents is filtered against the host filesystem whenever a snapshot is read: a path that no longer
+  names a directory (missing, or replaced by a file) disappears, while permission or other filesystem
+  errors keep the entry. The projection never changes the stored list, so a restored folder returns.
 - A plain folder opens as a project directly, with no Git required: it is its own root and its Default
   workspace is the only one it has. A folder that later gains a `.git` is a repository on its next open.
 

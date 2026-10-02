@@ -142,7 +142,14 @@ internal static class NewWorkspaceE2E
         Require(name.Text == "workspace-1", "The name field starts on the suggestion.");
         name.Text = "Login Rework";
         app.Click(Create(dialog), freshGesture: false);
-        Until(() => !app.Window.OwnedWindows.Any() && WorktreePaths(app).Count() == 1);
+        try { Until(() => !app.Window.OwnedWindows.Any() && WorktreePaths(app).Count() == 1); }
+        catch (InvalidOperationException error)
+        {
+            var windows = string.Join(", ", app.Window.OwnedWindows.Select(window => window.Title));
+            var paths = string.Join(", ", WorktreePaths(app));
+            var toast = app.Window.GetLogicalDescendants().OfType<TextBlock>().FirstOrDefault(control => control.Name == "GestureToastMessage")?.Text;
+            throw new InvalidOperationException($"Edited workspace did not settle: owned windows [{windows}], rail worktrees [{paths}], active workspace {app.Window.WorkspaceRoot}, notice {toast}.", error);
+        }
         Until(() => app.Find<TextBlock>("WorkspaceLabel").Text == "Login Rework");
         dialog = OpenNewWorkspaceDialog(app);
         Require(Named<TextBox>(dialog, "WsName").Text == "workspace-2", "The next dialog suggests the next free name.");

@@ -1,3 +1,6 @@
+using Avalonia.Controls;
+using Avalonia.LogicalTree;
+
 namespace SharpRail.UI;
 
 public sealed partial class WorkbenchWindow
@@ -5,6 +8,7 @@ public sealed partial class WorkbenchWindow
     private CancellationTokenSource? gitRefresh;
     private bool gitLoading;
     private string? gitError;
+    private ContextMenu? gitPanelMenu;
 
     private void RememberGitSelection()
     {
@@ -35,8 +39,9 @@ public sealed partial class WorkbenchWindow
         {
             var catalog = commit is not null
                 ? await Task.Run(async () => await host.ListCommitsAsync(selectedComparison, token), token) : gitCommits;
+            var resolved = commit is not null ? await Task.Run(async () => await host.GetCommitAsync(commit.Sha, token), token) : null;
             if (token.IsCancellationRequested || request != projectRequest || selectedComparison != comparison || selectedScope != changeScope || commit?.Sha != selectedCommit?.Sha) return;
-            if (commit is not null && !catalog.Any(item => item.Sha == commit.Sha))
+            if (commit is not null && resolved is null)
             {
                 selectedCommit = null; changeScope = "All changes";
                 SaveGitSelection();
@@ -45,6 +50,7 @@ public sealed partial class WorkbenchWindow
                 await RefreshGitAsync(request);
                 return;
             }
+            if (resolved is not null) selectedCommit = resolved;
             var snapshot = await Task.Run(async () => await host.GetGitAsync(commit?.Sha ?? selectedComparison, token, scope), token);
             if (token.IsCancellationRequested || request != projectRequest || selectedComparison != comparison || selectedScope != changeScope || commit?.Sha != selectedCommit?.Sha) return;
             git = snapshot;
@@ -69,6 +75,23 @@ public sealed partial class WorkbenchWindow
     private void RefreshGitPanels()
     {
         SyncPluginTools();
+        var openMenu = toolContent.GetValueOrDefault("changes")?.GetLogicalDescendants().OfType<Button>()
+            .Select(button => button.ContextMenu).FirstOrDefault(menu => menu?.IsOpen == true);
+        if (openMenu is not null)
+        {
+            if (gitPanelMenu is null)
+            {
+                gitPanelMenu = openMenu;
+                openMenu.Closed += Closed;
+                void Closed(object? sender, EventArgs args)
+                {
+                    openMenu.Closed -= Closed;
+                    gitPanelMenu = null;
+                    if (!lifetime.IsCancellationRequested) RefreshGitPanels();
+                }
+            }
+            return;
+        }
         toolContent.Remove("changes");
         toolContent.Remove("review");
         if (RailSignature() == railSignature) { surface.RefreshContents("changes", "review"); return; }

@@ -21,6 +21,7 @@ public sealed class Workbench : IDisposable
     {
         Profile = profile; State = state; Terminals = terminals; Remote = remote; this.sessions = sessions; Plugins = plugins;
         PluginLoader = new(this);
+        WorkspaceWatches = new(this, sessions);
         state.Changed += (_, _) => ProjectionChanged?.Invoke();
         state.Start();
         PluginLoader.Start();
@@ -35,6 +36,10 @@ public sealed class Workbench : IDisposable
     /// <summary>The app's plugin runtime and the registry its windows render contributions from.</summary>
     public PluginLoader PluginLoader { get; }
     public PluginRegistry PluginRegistry => PluginLoader.Registry;
+    /// <summary>Workspaces plugins asked to keep watched, beside those windows have mounted.</summary>
+    internal PluginWorkspaceWatches WorkspaceWatches { get; }
+    /// <summary>A host this workbench composed for itself and stops when it is disposed.</summary>
+    internal IAsyncDisposable? OwnedHost { get; init; }
     /// <summary>Qualifies client-local plugin preferences, so two hosts' plugins never share one.</summary>
     public string Endpoint { get; init; } = "local";
     /// <summary>The window plugins act on: the last one activated, else the first open.</summary>
@@ -99,6 +104,13 @@ public sealed class Workbench : IDisposable
         ProjectionChanged?.Invoke();
     }
 
+    /// <summary>Records an observed path, so a broad invalidation of its workspace reaches it before it first changes.</summary>
+    internal void TrackRevision(string workspace, string path) => fileRevisions.TryAdd((workspace, path), 0);
+
+    /// <summary>Advances a workspace's revision and every file revision recorded for it, for changes that may have gone unseen.</summary>
+    internal void InvalidateRevisions(string workspace) =>
+        BumpRevisions(workspace, [.. fileRevisions.Keys.Where(key => key.Workspace == workspace).Select(key => key.Path)]);
+
     /// <summary>Reads a workspace file through a window already on it, else through a session opened for the read.</summary>
     internal async Task<byte[]> ReadWorkspaceFileAsync(string workspace, string path, CancellationToken cancellationToken)
     {
@@ -119,5 +131,6 @@ public sealed class Workbench : IDisposable
     {
         PluginLoader.Stop();
         State.Dispose();
+        if (OwnedHost is { } host) _ = Task.Run(async () => await host.DisposeAsync());
     }
 }

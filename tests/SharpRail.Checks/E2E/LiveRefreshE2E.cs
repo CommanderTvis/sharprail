@@ -50,7 +50,7 @@ internal static class LiveRefreshE2E
     {
         var (app, worktree) = OpenSample(root, "live-panels", source);
         using var _ = app;
-        app.Click(app.Find<Button>("Tab_specs"));
+        app.Click(app.Find<Button>("Tab_plugin_spec-dialect_specs"));
         Until(() => HasSpec(app, "Sample Project"));
         Directory.CreateDirectory(Path.Combine(worktree, "module-live"));
         File.WriteAllText(Path.Combine(worktree, "module-live", "SPEC.md"),

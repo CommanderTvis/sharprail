@@ -121,7 +121,7 @@ internal static class WorkspaceTabsE2E
         var first = CreateWorkspace(app, "workspace-1");
         var second = CreateWorkspace(app, "workspace-2");
         Switch(app, first, "workspace-1");
-        var specs = app.Window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "specs"));
+        var specs = app.Window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == DockState.SpecsTool));
         var projects = app.Find<Button>("Tab_projects");
         var menu = projects.ContextMenu!;
         app.ContextAction(projects, "Move to pane");

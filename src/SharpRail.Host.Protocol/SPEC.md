@@ -28,9 +28,10 @@ project: local adapters call Core directly, with no serialization.
 ## Contents
 
 - Workspace: the host's startup workspace identity and its root entries.
-- Project: open a project (resolving the workspace/project roots), list and
-  read files, save a file with its original text for conflict detection, list
-  specs, Git snapshot, commit list, per-file diff and diff sides, Git actions,
+- Project: open a project (resolving the workspace/project roots),
+  stream workspace file changes (relative paths, Git metadata and rescan flags),
+  list and read files, save a file with its original text for conflict detection,
+  Git snapshot, commit list, independent nullable commit lookup, per-file diff and diff sides, Git actions,
   branch catalog (optional default-base fetch; local, per-remote rows, the
   default base and suggested new worktree path/branch), editor listing and
   open-in-editor. Git scope travels as a string (`all` when empty); the comparison

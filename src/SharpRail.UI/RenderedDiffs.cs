@@ -35,7 +35,7 @@ public sealed partial class WorkbenchWindow
         }, linked.Token);
         linked.Token.ThrowIfCancellationRequested();
         return parsed is not { } rendered ? null
-            : new MarkdownPreview(rendered.Document, tab.Path, MarkdownContexts.For(host, Preferences, FollowLink), renderDiagrams: false,
+            : new MarkdownPreview(rendered.Document, tab.Path, MarkdownContexts.For(host, Preferences, FollowLink, SpecLink()), renderDiagrams: false,
                 frontmatter: rendered.After, previousFrontmatter: rendered.Before)
             { Name = "RenderedDiff" };
     }

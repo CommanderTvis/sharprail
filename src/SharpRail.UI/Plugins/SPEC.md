@@ -33,6 +33,11 @@ active workspace and editor, opening, revealing, notifying) act on the app's act
 
 ## Boundary
 
+State subscriptions hydrate a scoped snapshot before consuming pushes. A snapshot may return a single
+payload or a list of payloads; list rows are individually filtered by the subscription's key fields.
+An unscoped subscription to a keyed channel consumes pushes without requesting a snapshot whose
+required scope is absent. Payloads that are themselves collections retain their collection shape.
+
 - Owns: the registry (manifests and roster, the active set, one append-only, plugin-tagged list per
   contribution kind, and the read selectors the workbench consumes) and the loader (the builtin array, the
   external assembly load and refusal path, the `IPluginUIContext` binding, the editor-event emitter, and the
@@ -82,7 +87,7 @@ it changes, never for the initial value.
 ## The loader
 
 - Builtin UI halves are a literal array in `BuiltinPlugins.cs`: a manifest and a factory for its
-  `PluginUIModule` per plugin, empty in this commit. The manifests are registered before any roster arrives,
+  `PluginUIModule` per plugin, including Spec Dialect, Blueprint, Claude Code, Discord and PDF Preview. The manifests are registered before any roster arrives,
   so a persisted `plugin:<id>:<tool>` tab renders its placeholder with the right label and icon.
 - An external UI half loads through the host: `IPluginService.ReadFileAsync(id, entry.Ui)` returns the entry
   assembly's bytes, which load into a `PluginLoadContext` keyed by plugin id and content hash. The context
@@ -109,10 +114,16 @@ it changes, never for the initial value.
 - `Settings<T>()` and `Host().AppSettings` read from the latest `HostState` snapshot through one projection;
   `UpdateSettingsAsync` sends a `plugin-settings` change and completes when a snapshot carrying the new value
   arrives.
+- The workspace projection includes host-published catalogs and each mounted window's host-resolved
+  project/workspace identity. A directly opened worktree is routable by plugin actions before a catalog
+  refresh; this requires no Git scan or extra persisted workspace list.
 - `OpenTerminalAsync` with a tab key already open in the target workspace selects that tab without changing it;
   an unknown key places a new terminal tab with that key in the requested or last-focused centre group and
   types the command once the shell starts. Plugin-opened terminals are centre resources unless the caller names
   another group.
+- Terminal accessory mounts survive shared-state updates while their registration remains the same;
+  removing or replacing a registration unmounts only its control. This preserves an active picker,
+  draft and session-only UI state while agent records and other projections change.
 - `Subscribe` on a state channel is snapshot-then-stream: it calls the snapshot method the roster names with
   the scope as params on subscribe and after every reconnect, delivers the result, then delivers pushes; a push
   whose key fields disagree with the scope is dropped even if the host sent it.
@@ -129,10 +140,16 @@ it changes, never for the initial value.
   the registered control inside a per-plugin host control, or a dormant placeholder ("*label* is off", with
   the manifest icon and a button to open Settings › Plugins). `LayoutSession.IsValid` accepts `plugin:` ids;
   name, icon, default side and the reveal menus read the composed catalog. A `RequiresGit` tool is withheld in a
-  workspace without Git history, like Changes and Review.
-- Settings sections (W4) follow core's sections in `SettingsWindow`; Settings › Plugins is core's own section.
+  workspace without Git history, like Changes and Review. When deferred Git discovery changes the
+  catalog, rebuilding the dock retains keyboard focus on the equivalent named control. An open dock
+  menu defers that catalog refresh until it closes, then the window applies the latest catalog.
+- Settings sections (W4) are grouped under Settings › Plugins in `SettingsWindow`, indented behind a rule
+  directly below it, as the fork's navigation nests them; Settings › Plugins is core's own section.
 - Companions (W6) open beside a terminal tab in an embedded split inside the terminal's body, never as a tab of
-  their own; the open companion per terminal is window view state.
+  their own; the open companion per terminal is window view state. A plugin's focus request selects
+  that companion in every window holding the named terminal, including when another window is active.
+  Selecting a companion changes the embedded pane, preserving keyboard focus in the terminal or
+  active window, as the fork's embedded-pane state action does.
 - File viewers (W7) are consulted by the document open path and by tab restoration; a viewer with read
   strategy `None` gets no text read, and a tab whose viewer has gone shows a placeholder offering to open the
   file as text.
@@ -189,16 +206,40 @@ a plugin deleted from disk, and a shared assembly in the plugin directory not lo
   than registering under `core`, which keeps the existing behaviour for every file no plugin claims.
 - File icons (W17) replace core's glyph in tabs and Files rows; Changes rows and the diff path chip gain an icon only
   when a plugin answers, so their layout is unchanged otherwise.
-- Workspace actions render beside Open file in the empty workspace view (the start-actions row), project actions
-  beside Create workspace on Project Home.
+- Workspace actions follow New terminal in every center group's tab strip, as the fork's `renderCenterActions`
+  does; project actions render beside Create workspace on Project Home.
+- Terminal projections include filesystem workspaces only. Synthetic Project Home layout keys do not
+  describe host workspaces and must not trigger plugin state or spec subscriptions.
 - `Workbench.ActiveWindow` is the last activated window; `ProjectionChanged` is raised on shared-state snapshots,
   window activation, layout and selection changes and revision bumps, and `WatchHost` filters it.
+- Local and remote file revisions advance from the host's workspace change stream. Reconnecting or a
+  rescan invalidates open document paths; workspace switches cancel the old stream and reject stale events.
+  Git-only batches advance workspace revisions while leaving file revisions unchanged, so Graph follows
+  branch/ref changes without making a PDF reread identical bytes.
+- `WatchWorkspaceAsync` keeps a workspace watched for the calling plugin's activation, like the fork's
+  `watchWorkspaceForLiveContent`. The app owns one watch per workspace on its own project session from the
+  workbench's session factory, never a mounted window's host; concurrent and repeated calls share it, and it
+  stops when every activation holding it has ended. The call completes once the host's first, ready batch
+  has arrived; changes that happened before that cannot be told apart, so readiness, like a restored stream
+  after a dropped connection, advances the workspace revision and every file revision known for it. The
+  Workbench revision dictionaries stay the only record: while a window has the workspace mounted, that
+  window's watcher delivers its revisions and the plugin watch delivers nothing. A failure before readiness
+  faults the call and a later call retries. A workbench composed without project sessions (headless
+  fixtures) watches only mounted workspaces and completes at once.
+- Branch Graph exercises `SetDiffScope` with explicit commit ids. Changes uses the host's independent
+  commit lookup rather than requiring the id to occur in its current comparison menu.
+
+Visualize registers a terminal companion through the same contribution slot as Blueprint. It subscribes
+to keyed workspace snapshots, derives availability and title from the terminal's drawing, focuses new
+revisions and reports the exact rendered revision through the plugin adapter. Its frames and shared
+drawing controls are compiled XAML; no app dependency is introduced into the plugin.
 
 ## Not yet ported
 
 - Chat companion hosts, chat tool renderers, `openChat` and the `writtenPathGroup` slot: chat is excluded.
-- Revision bumps for a remote host's files: core's own watcher is local-only, so `FileRevision` advances only
-  for a local host until the host streams file changes. `WatchWorkspaceAsync` completes at once: revisions follow
-  the workspaces a window has open.
 - Editor selections from the Scintilla editor: the control exposes no selection event yet. The Markdown preview and
   `ReportSelection` report selections; a preview selection's lines are counted within the selected text.
+
+File Icons occupies the file icon slot only for files. Its cached asset bytes feed a compiled icon frame
+that retains a plain file glyph until a valid SVG is available. Missing and malformed assets preserve
+that fallback. Theme changes recolour existing controls; resizing retains tab icon controls.

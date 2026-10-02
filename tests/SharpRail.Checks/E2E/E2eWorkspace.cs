@@ -26,6 +26,7 @@ internal sealed class E2eWorkspace : IDisposable
     internal Workbench Workbench { get; }
     /// <summary>The local host's shared state behind every window of this workbench.</summary>
     internal HostStateStore? State { get; }
+    internal PluginRuntime? PluginRuntime => pluginRuntime;
     internal string Center => Window.Layout.View.FocusedCenter;
     internal IReadOnlyList<DockTab> Tabs => Window.Layout.Tabs(Center);
     internal string Root { get; }
@@ -59,7 +60,7 @@ internal sealed class E2eWorkspace : IDisposable
     /// A remote client of a real gRPC host at <paramref name="endpoint"/>, restoring <paramref name="startPath"/>;
     /// with <paramref name="plugins"/> it reaches the host's plugin runtime as the app does.
     /// </summary>
-    internal E2eWorkspace(Uri endpoint, string token, string root, string profileRoot, string startPath, bool plugins = false)
+    internal E2eWorkspace(Uri endpoint, string token, string root, string profileRoot, string startPath, bool plugins = true, E2eTerminals? terminals = null)
     {
         Root = root;
         var profile = new ProfileStore(profileRoot);
@@ -68,7 +69,7 @@ internal sealed class E2eWorkspace : IDisposable
         remotePlugins = plugins ? new RemotePluginAdapter(endpoint, token) : null;
         State = null;
         Host = new(new RemoteProjectAdapter(endpoint, token));
-        Terminals = new();
+        Terminals = terminals ?? new();
         var first = true;
         Workbench = new(profile, new SharedState(service, profile.Data.Preferences), Terminals.Factory, true,
             () => { if (!first) return new E2eHost(new RemoteProjectAdapter(endpoint, token)); first = false; return Host; }, remotePlugins)
@@ -79,7 +80,8 @@ internal sealed class E2eWorkspace : IDisposable
     }
 
     internal E2eWorkspace(string root, bool openFiles = true, string? profileRoot = null, E2eTerminals? terminals = null, string? startPath = null,
-        Action<E2eHost>? prepare = null, Func<IHostStateService, IHostStateService>? state = null, bool plugins = false)
+        Action<E2eHost>? prepare = null, Func<IHostStateService, IHostStateService>? state = null,
+        Func<IPluginService, IPluginService>? plugins = null)
     {
         Root = root;
         Directory.CreateDirectory(root);
@@ -98,14 +100,11 @@ internal sealed class E2eWorkspace : IDisposable
         var profile = new ProfileStore(profileRoot ?? root + "-profile");
         State = profile.OpenState();
         // As in App.cs: the app's own host runs its plugins in process, from the profile directory's plugins/.
-        if (plugins)
-        {
-            var server = loopback = new LoopbackServer(null);
-            pluginRuntime = new PluginRuntime(new() { StateDirectory = profile.DirectoryPath, State = State, PublicBaseUrl = () => server.BaseUrl });
-            loopback.Plugins = pluginRuntime;
-            pluginRuntime.Start();
-        }
-        var allowsExternalFile = pluginRuntime is null ? null : (Func<string, string, bool>)pluginRuntime.AllowsExternalFile;
+        var server = loopback = new LoopbackServer(null);
+        pluginRuntime = new PluginRuntime(new() { StateDirectory = profile.DirectoryPath, State = State, PublicBaseUrl = () => server.BaseUrl });
+        loopback.Plugins = pluginRuntime;
+        pluginRuntime.Start();
+        var allowsExternalFile = (Func<string, string, bool>)pluginRuntime.AllowsExternalFile;
         Host = new(new ProjectServices(root, State, allowsExternalFile));
         prepare?.Invoke(Host);
         ownsTerminals = terminals is null;
@@ -114,7 +113,7 @@ internal sealed class E2eWorkspace : IDisposable
         var first = true;
         Workbench = new(profile, new SharedState(state?.Invoke(service) ?? service, profile.Data.Preferences, State.Current), Terminals.Factory, false,
             () => { if (!first) return new E2eHost(new ProjectServices(root, State, allowsExternalFile)); first = false; return Host; },
-            pluginRuntime is null ? null : new LocalPluginAdapter(pluginRuntime));
+            plugins?.Invoke(new LocalPluginAdapter(pluginRuntime)) ?? new LocalPluginAdapter(pluginRuntime));
         Window = Workbench.Open(profile.Data.Windows[0], startPath ?? root);
         Window.Width = 1352; Window.Height = 848;
         Window.Show();
@@ -157,6 +156,7 @@ internal sealed class E2eWorkspace : IDisposable
 
     internal Control FileRow(string path)
     {
+        Until(() => Window.GetLogicalDescendants().OfType<TreeView>().Any(item => item.Name == "FilesTree"));
         var tree = Find<TreeView>("FilesTree");
         Until(() => tree.Items.Count > 0);
         var node = tree.GetLogicalDescendants().OfType<TreeViewItem>().Single(item => item.Tag is ProjectFile file && file.Path == path);
@@ -171,10 +171,13 @@ internal sealed class E2eWorkspace : IDisposable
         Until(() => node.IsExpanded && node.Items.OfType<TreeViewItem>().All(item => item.Tag is ProjectFile));
     }
 
-    internal void Click(Control control, bool twice = false, bool freshGesture = true, MouseButton mouseButton = MouseButton.Left)
+    internal Control Click(Control control, bool twice = false, bool freshGesture = true, MouseButton mouseButton = MouseButton.Left)
     {
         var name = control.Name;
         var tag = control.Tag;
+        var row = control.GetLogicalAncestors().OfType<Control>().FirstOrDefault(item => item.Name is not null && item.Tag is string);
+        var rowName = row?.Name;
+        var rowTag = row?.Tag;
         var owner = control.GetLogicalAncestors().OfType<Control>().FirstOrDefault(item => item.Name?.StartsWith("DockTab_", StringComparison.Ordinal) == true)?.Name;
         var filePath = control.GetLogicalAncestors().OfType<TreeViewItem>().Select(item => item.Tag).OfType<ProjectFile>().FirstOrDefault()?.Path;
         if (freshGesture)
@@ -184,7 +187,12 @@ internal sealed class E2eWorkspace : IDisposable
         }
         if (TopLevel.GetTopLevel(control) is null)
         {
-            if (name is not null && owner is not null) control = Find<Control>(owner).GetLogicalDescendants().OfType<Control>().Single(item => item.Name == name);
+            if (name is not null && rowName is not null)
+            {
+                var currentRow = Window.GetLogicalDescendants().OfType<Control>().Single(item => item.Name == rowName && Equals(item.Tag, rowTag));
+                control = currentRow.GetLogicalDescendants().OfType<Control>().Single(item => item.Name == name);
+            }
+            else if (name is not null && owner is not null) control = Find<Control>(owner).GetLogicalDescendants().OfType<Control>().Single(item => item.Name == name);
             else if (name is not null && tag is not null)
             {
                 Dispatcher.UIThread.RunJobs(); Window.UpdateLayout();
@@ -210,11 +218,12 @@ internal sealed class E2eWorkspace : IDisposable
         input.MouseDown(point, mouseButton); input.MouseUp(point, mouseButton);
         if (twice) { input.MouseDown(point, mouseButton); input.MouseUp(point, mouseButton); }
         Dispatcher.UIThread.RunJobs();
+        return control;
     }
 
     internal void ContextAction(Control control, string title)
     {
-        Click(control, mouseButton: MouseButton.Right);
+        control = Click(control, mouseButton: MouseButton.Right);
         var menu = control.ContextMenu!;
         Until(() => menu.IsOpen);
         var item = menu.Items.OfType<MenuItem>().Single(item => Equals(item.Header, title));
@@ -250,9 +259,19 @@ internal sealed class E2eWorkspace : IDisposable
 
 internal sealed class E2eHost(IProjectServices inner) : IProjectServices
 {
+    private TaskCompletionSource? watchGate;
+    internal TaskCompletionSource HoldWatch() => watchGate = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    public async IAsyncEnumerable<WorkspaceFileChanges> WatchFilesAsync([System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        var gate = watchGate; watchGate = null;
+        if (gate is not null) await gate.Task.WaitAsync(cancellationToken);
+        await foreach (var changes in inner.WatchFilesAsync(cancellationToken)) yield return changes;
+    }
     private readonly Dictionary<string, TaskCompletionSource> gates = [];
     private TaskCompletionSource? openGate;
     internal TaskCompletionSource HoldOpen() => openGate = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private TaskCompletionSource? gitGate;
+    internal TaskCompletionSource HoldGit() => gitGate = new(TaskCreationOptions.RunContinuationsAsynchronously);
     internal Dictionary<string, int> Reads { get; } = [];
     internal TaskCompletionSource Hold(string path)
     {
@@ -276,10 +295,18 @@ internal sealed class E2eHost(IProjectServices inner) : IProjectServices
         return workspace;
     }
     public ValueTask<IReadOnlyList<ProjectFile>> ListFilesAsync(string path, CancellationToken ct = default) => inner.ListFilesAsync(path, ct);
-    public ValueTask<IReadOnlyList<SpecDocument>> ListSpecsAsync(CancellationToken ct = default) => inner.ListSpecsAsync(ct);
     public ValueTask<SearchHits> SearchAsync(string query, CancellationToken ct = default) => inner.SearchAsync(query, ct);
     public ValueTask<IReadOnlyList<GitCommit>> ListCommitsAsync(string comparison, CancellationToken ct = default) => inner.ListCommitsAsync(comparison, ct);
-    public ValueTask<GitSnapshot> GetGitAsync(string comparison = "", CancellationToken ct = default, string scope = "all") => inner.GetGitAsync(comparison, ct, scope);
+    public ValueTask<GitCommit?> GetCommitAsync(string sha, CancellationToken ct = default) => inner.GetCommitAsync(sha, ct);
+    public ValueTask<IReadOnlyList<WorktreeInfo>> ListWorkspacesAsync(string projectRoot, CancellationToken ct = default) => inner.ListWorkspacesAsync(projectRoot, ct);
+    public ValueTask<string> CloneProjectAsync(string url, string parentPath, string name, int? depth = null, CancellationToken ct = default) => inner.CloneProjectAsync(url, parentPath, name, depth, ct);
+    public async ValueTask<GitSnapshot> GetGitAsync(string comparison = "", CancellationToken ct = default, string scope = "all")
+    {
+        var gate = gitGate; gitGate = null;
+        var snapshot = await inner.GetGitAsync(comparison, ct, scope);
+        if (gate is not null) await gate.Task.WaitAsync(ct);
+        return snapshot;
+    }
     public ValueTask<string> GetDiffAsync(string path, string scope, string comparison = "", CancellationToken ct = default) => inner.GetDiffAsync(path, scope, comparison, ct);
     public ValueTask<DiffSides> GetDiffSidesAsync(string path, string scope, string comparison = "", CancellationToken ct = default) => inner.GetDiffSidesAsync(path, scope, comparison, ct);
     public ValueTask<GitSnapshot> ApplyGitActionAsync(GitAction action, CancellationToken ct = default) => inner.ApplyGitActionAsync(action, ct);

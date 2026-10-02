@@ -72,6 +72,8 @@ loopback is an explicit opt-in via `SHARPRAIL_BIND`.
   therefore never share a current project, and reconnects need no session.
 - State watch streams end on application stopping, so graceful shutdown never
   waits for watchers. Changes are broadcast to every subscriber as full snapshots.
+- Plugin and loopback cleanup run without the caller's synchronization context before the host
+  releases its terminals. Stopping an embedded server from a UI thread must not deadlock its cleanup.
 - A terminal call is one attachment: dropping the call detaches, and the shell
   keeps running on the host until it exits, its tab closes or the host stops.
   Output goes only to the attached client; another attach takes the session over
@@ -102,16 +104,24 @@ loopback is an explicit opt-in via `SHARPRAIL_BIND`.
   `THINKRAIL_MCP_URL`; it resolves to that terminal's workspace root and nothing else. An unknown or closed
   terminal's token is 404 before any protocol handling. The host bearer token is never involved and never
   reaches a shell.
-- The protocol and tools are Core's `McpServer` (see
-  [Specs.SPEC.md](../SharpRail.Host.Core/Specs.SPEC.md)) plus the active plugins' tools for that terminal;
+- The protocol is Core's `McpServer` (see
+  [Specs.SPEC.md](../SharpRail.Host.Core/Specs.SPEC.md)); all tools come from active plugins for that terminal;
   the route only resolves the token and relays JSON.
+
+## Workspace file changes
+
+Project RPC also exposes an independent nullable commit lookup for explicit commit scopes, preserving
+the same metadata and missing-object behavior as the local adapter.
+
+Project file-change streams capture the request's workspace root and deliver relative paths,
+Git metadata invalidation and rescan requests. They end on client cancellation or host shutdown.
 
 ## Decisions and trade-offs
 
 - No process isolation: a fatal fault in a Core operation takes the host down.
 - No cross-process coordination: two hosts pointed at one state directory are
   last-writer-wins.
-- Commands return values directly; only host-state snapshots and terminal output
+- Commands return values directly; host-state snapshots, workspace file changes and terminal output
   stream.
 - Expected failures (I/O, argument, invalid operation, access) become
   `FailedPrecondition` or `InvalidArgument` with the message as detail; other
@@ -128,5 +138,4 @@ loopback is an explicit opt-in via `SHARPRAIL_BIND`.
 - Structured leveled diagnostics with rotating on-disk logs.
 - A per-client request-result cache keyed by client identity and request id for
   reconnect deduplication.
-- Worktree file watching on the host with pushed invalidations, and pushed
-  project/workspace lifecycle events.
+- Pushed project/workspace lifecycle events.

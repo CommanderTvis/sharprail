@@ -78,7 +78,30 @@ public sealed class HostStateStore : IHostStateService
         if (path is not null && !File.Exists(path) && LastError is null) Save(state);
     }
 
-    public HostState Current { get { lock (gate) return state; } }
+    public HostState Current
+    {
+        get
+        {
+            HostState current;
+            lock (gate) current = state;
+            return Visible(current);
+        }
+    }
+
+    // Recents is a projection checked against the filesystem on every read: a folder that no longer exists, or became a
+    // file, drops out, while other filesystem errors keep it. The stored list is untouched, so a restored folder returns.
+    private static HostState Visible(HostState current)
+    {
+        var recents = current.RecentProjects.Where(Exists).ToArray();
+        return recents.Length == current.RecentProjects.Count ? current : current with { RecentProjects = recents };
+
+        static bool Exists(string path)
+        {
+            try { return File.GetAttributes(path).HasFlag(FileAttributes.Directory); }
+            catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException) { return false; }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { return true; }
+        }
+    }
 
     public ValueTask<HostState> GetStateAsync(CancellationToken cancellationToken = default) => ValueTask.FromResult(Current);
 
@@ -89,7 +112,7 @@ public sealed class HostStateStore : IHostStateService
         {
             var next = state;
             foreach (var change in changes) next = Apply(next, change);
-            return ValueTask.FromResult(Publish(next, persist: true));
+            return ValueTask.FromResult(Visible(Publish(next, persist: true)));
         }
     }
 
@@ -161,7 +184,7 @@ public sealed class HostStateStore : IHostStateService
                 // Snapshots are complete; a slow watcher only needs the latest.
                 var latest = default(HostState);
                 while (channel.Reader.TryRead(out var item)) latest = item;
-                if (latest is not null) yield return latest;
+                if (latest is not null) yield return Visible(latest);
             }
         }
         finally { lock (gate) watchers.Remove(channel); }

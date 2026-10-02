@@ -24,12 +24,13 @@ public static class Dialogs
         return await window.ShowDialog<string[]?>(owner);
     }
 
-    public static async Task<string?> HostPath(Window owner, string initial, string? pickerError, bool remote)
+    public static async Task<string?> HostPath(Window owner, string initial, string? pickerError, bool remote, bool directory = true)
     {
-        var window = Create("Open project by path", 520);
+        var window = Create(directory ? "Open project by path" : "Choose a document by path", 520);
         var text = window.FindControl<TextBlock>("DialogExplanation")!;
         // On the desktop the host is this computer, so the copy does not call it the host.
-        text.Text = remote ? "Enter the absolute path of a folder on the computer running SharpRail." : "Enter the absolute path of a folder.";
+        var kind = directory ? "folder" : "file";
+        text.Text = remote ? $"Enter the absolute path of a {kind} on the computer running SharpRail." : $"Enter the absolute path of a {kind}.";
         text.IsVisible = true;
         var panel = window.FindControl<StackPanel>("DialogFields")!;
         if (pickerError is not null)
@@ -38,11 +39,11 @@ public static class Dialogs
             failure.Name = "OpenProjectPickerError"; failure.TextWrapping = Avalonia.Media.TextWrapping.Wrap;
             panel.Children.Add(failure);
         }
-        var input = new TextBox { Name = "OpenProjectPathInput", Text = initial, PlaceholderText = "Directory path" };
+        var input = new TextBox { Name = "OpenProjectPathInput", Text = initial, PlaceholderText = directory ? "Directory path" : "File path" };
         panel.Children.Add(input);
         var buttons = window.FindControl<StackPanel>("DialogActions")!;
         buttons.Children.Add(Ui.Button("Cancel", () => window.Close(null)));
-        var accept = Ui.Button("Open project", () => window.Close(input.Text?.Trim() is { Length: > 0 } path ? path : null));
+        var accept = Ui.Button(directory ? "Open project" : "Choose document", () => window.Close(input.Text?.Trim() is { Length: > 0 } path ? path : null));
         accept.Name = "OpenProjectPathSubmit"; accept.IsDefault = true; buttons.Children.Add(Primary(accept));
         window.Opened += (_, _) => input.Focus();
         return await window.ShowDialog<string?>(owner);
@@ -143,6 +144,115 @@ public static class Dialogs
     }
 
     /// <summary>Marks the dialog's confirming action, which takes the reference's solid primary button style.</summary>
+    /// <summary>The folder a clone of <paramref name="url"/> is named after: its last path segment without <c>.git</c>.</summary>
+    public static string RepositoryName(string url)
+    {
+        var tail = url.Trim().TrimEnd('/', '\\').Split('/', '\\', ':')[^1];
+        return tail.EndsWith(".git", StringComparison.Ordinal) ? tail[..^4] : tail;
+    }
+
+    /// <summary>
+    /// Clone repository: a URL, the parent folder (picked, or typed on a remote host), an optional folder name defaulting
+    /// to the repository's and an optional depth, with the target shown before anything runs. The dialog stays open,
+    /// showing git's reason, while a clone fails; it returns the clone's path once one succeeds.
+    /// </summary>
+    public static async Task<string?> CloneProject(Window owner, string initialParent, Func<Task<string?>>? pickFolder,
+        Func<string, string, string, int?, Task<string>> clone)
+    {
+        var window = Create("Clone repository", 560);
+        window.Tag = "CloneProjectDialog";
+        var explanation = window.FindControl<TextBlock>("DialogExplanation")!;
+        explanation.Text = "Runs git clone into a folder you choose, then opens the clone as a project.";
+        explanation.IsVisible = true;
+        var panel = window.FindControl<StackPanel>("DialogFields")!;
+        var url = new TextBox { Name = "CloneProjectUrl", PlaceholderText = "Repository URL" };
+        var parent = new TextBox { Name = "CloneProjectParent", Text = initialParent, PlaceholderText = "Folder to clone into" };
+        var name = new TextBox { Name = "CloneProjectName", PlaceholderText = "from the URL" };
+        var depth = new TextBox { Name = "CloneProjectDepth", PlaceholderText = "full history" };
+        var target = Ui.Text("", Ui.Muted, 12);
+        target.Name = "CloneProjectTarget"; target.TextWrapping = Avalonia.Media.TextWrapping.Wrap;
+        var error = Ui.Text("", Ui.Danger, 12);
+        error.Name = "CloneProjectError"; error.TextWrapping = Avalonia.Media.TextWrapping.Wrap; error.IsVisible = false;
+        panel.Children.Add(url);
+        if (pickFolder is null) panel.Children.Add(parent);
+        else
+        {
+            var row = new DockPanel();
+            var browse = Ui.Button("Choose…", () => { });
+            browse.Name = "CloneProjectBrowse"; browse.Margin = new Avalonia.Thickness(8, 0, 0, 0);
+            browse.Click += async (_, _) =>
+            {
+                try { if (await pickFolder() is { } picked) parent.Text = picked; }
+                catch (Exception failure) when (failure is not OperationCanceledException) { error.Text = failure.Message; error.IsVisible = true; }
+            };
+            DockPanel.SetDock(browse, Dock.Right);
+            row.Children.Add(browse); row.Children.Add(parent);
+            panel.Children.Add(row);
+        }
+        panel.Children.Add(Labelled("Folder name", name, "optional"));
+        panel.Children.Add(Labelled("Depth", depth, "optional · 1 for a shallow clone"));
+        panel.Children.Add(target);
+        panel.Children.Add(error);
+        var buttons = window.FindControl<StackPanel>("DialogActions")!;
+        buttons.Children.Add(Ui.Button("Cancel", () => window.Close(null)));
+        var create = Primary(Ui.Button("Clone", () => { }));
+        create.Name = "CloneProjectCreate"; create.IsDefault = true;
+        buttons.Children.Add(create);
+        var busy = false;
+        (string Url, string Parent, string Folder, int? Depth, bool Ready) Read()
+        {
+            var source = url.Text?.Trim() ?? "";
+            var folder = name.Text?.Trim() is { Length: > 0 } typed ? typed : RepositoryName(source);
+            var into = parent.Text?.Trim() ?? "";
+            var text = depth.Text?.Trim() ?? "";
+            int? commits = int.TryParse(text, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var value) ? value : null;
+            var depthValid = text.Length == 0 || commits >= 1;
+            return (source, into, folder, depthValid ? commits : null, source.Length > 0 && into.Length > 0 && folder.Length > 0 && depthValid);
+        }
+        void Refresh()
+        {
+            var input = Read();
+            name.PlaceholderText = RepositoryName(input.Url) is { Length: > 0 } derived ? derived : "from the URL";
+            target.Text = input.Parent.Length > 0 && input.Folder.Length > 0 ? System.IO.Path.Combine(input.Parent, input.Folder) : "";
+            target.IsVisible = target.Text.Length > 0;
+            create.IsEnabled = input.Ready && !busy;
+            if (create.Content is TextBlock label) label.Text = busy ? "Cloning…" : "Clone";
+            else create.Content = busy ? "Cloning…" : "Clone";
+        }
+        foreach (var box in new[] { url, parent, name, depth }) box.TextChanged += (_, _) => Refresh();
+        create.Click += async (_, _) =>
+        {
+            var input = Read();
+            if (!input.Ready || busy) return;
+            busy = true; error.IsVisible = false; Refresh();
+            try { window.Close(await clone(input.Url, input.Parent, input.Folder, input.Depth)); }
+            catch (Exception failure) when (failure is not OperationCanceledException)
+            {
+                error.Text = failure is Grpc.Core.RpcException rpc ? rpc.Status.Detail : failure.Message;
+                error.IsVisible = true;
+                busy = false; Refresh();
+            }
+        };
+        Refresh();
+        window.Opened += (_, _) => url.Focus();
+        return await window.ShowDialog<string?>(owner);
+    }
+
+    private static Control Labelled(string label, TextBox input, string hint)
+    {
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("96,*") };
+        var caption = Ui.Text(label, Ui.Muted, 12);
+        caption.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center;
+        Ui.Place(row, caption);
+        Ui.Place(row, input, 0, 1);
+        var stack = new StackPanel { Spacing = 2 };
+        stack.Children.Add(row);
+        var note = Ui.Text(hint, Ui.Muted, 11);
+        note.Margin = new Avalonia.Thickness(96, 0, 0, 0);
+        stack.Children.Add(note);
+        return stack;
+    }
+
     public static Button Primary(Button button)
     {
         button.Classes.Add("primary");

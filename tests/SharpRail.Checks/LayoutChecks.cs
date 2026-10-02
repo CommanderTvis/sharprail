@@ -13,6 +13,7 @@ internal static class LayoutChecks
     {
         CheckAuxiliaryRegions();
         CheckMixedResources();
+        CheckPanes();
         var session = new LayoutSession();
         session.SwitchWorkspace("one");
         var primary = session.State.Center.Leaves().Single();
@@ -94,34 +95,113 @@ internal static class LayoutChecks
         Console.WriteLine("PASS docking transitions, workspace isolation, preview, restore, limits and invariant sequence");
     }
 
+    // Fork model.test.ts "tab panes", translated.
+    private static void CheckPanes()
+    {
+        (LayoutSession Session, string Group) Fresh(params string[] ids)
+        {
+            var created = new LayoutSession();
+            created.SwitchWorkspace("panes");
+            foreach (var id in ids) created.Open(new(id, id.ToUpperInvariant(), "file", id + ".txt"), true);
+            return (created, created.State.Center.Leaves().Single());
+        }
+        string[] Strip(LayoutSession s, string g) => [.. s.Tabs(g).Select(tab => tab.Id)];
+
+        var (session, group) = Fresh("a", "b", "c");
+        Require(session.GroupTabs(group, "a", "b", "horizontal") && session.PaneFor(group, "a") is { } created &&
+            created.TabIds.SequenceEqual(["b", "a"]) && created.Weights.SequenceEqual([0.5, 0.5]) && session.PaneFor(group, "c") is null,
+            "Grouping a tab with a lone tab creates a pane holding both.");
+
+        (session, group) = Fresh("a", "b", "c");
+        Require(session.GroupTabs(group, "c", "a", "horizontal") && Strip(session, group).SequenceEqual(["a", "c", "b"]) &&
+            session.PaneFor(group, "c")!.TabIds.SequenceEqual(["a", "c"]), "Grouping pulls the members together into one run.");
+        Require(!session.Move("b", group, group, 1), "A drop between a pane's members is refused rather than splitting the block.");
+        var copy = new LayoutSession(session.State.Copy());
+        Require(copy.Move("b", group, group, 0) && Strip(copy, group).SequenceEqual(["b", "a", "c"]), "A drop beside the block still moves the tab.");
+        copy = new LayoutSession(session.State.Copy());
+        Require(copy.Move("c", group, group, 0) && copy.PaneFor(group, "c")!.TabIds.SequenceEqual(["c", "a"]) && Strip(copy, group).SequenceEqual(["c", "a", "b"]),
+            "A member dropped inside its own run reorders the pane.");
+        copy = new LayoutSession(session.State.Copy());
+        Require(copy.Move("c", group, group, 3) && copy.PaneFor(group, "a") is null && Strip(copy, group).SequenceEqual(["a", "b", "c"]),
+            "A member dropped past its run leaves, and the pane dissolves below two members.");
+        Require(session.SetPaneWeights(group, session.PaneFor(group, "a")!.Id, [0.7, 0.3]) && session.ReorderPaneMember(group, "c", -1) &&
+            Strip(session, group).SequenceEqual(["c", "a", "b"]) && session.PaneFor(group, "c")!.Weights.SequenceEqual([0.3, 0.7]),
+            "A member reordered from its menu keeps its weight.");
+
+        (session, group) = Fresh("a", "b", "c");
+        session.GroupTabs(group, "a", "b", "horizontal");
+        session.GroupTabs(group, "c", "a", "horizontal");
+        Require(session.View.Panes[group].Count == 1 && session.PaneFor(group, "c")!.TabIds.SequenceEqual(["b", "a", "c"]), "Grouping onto a member joins its pane.");
+
+        (session, group) = Fresh("a", "b", "c");
+        session.GroupTabs(group, "a", "b", "horizontal");
+        session.SetPaneWeights(group, session.PaneFor(group, "a")!.Id, [0.7, 0.3]);
+        session.GroupTabs(group, "c", "a", "vertical");
+        var joined = session.PaneFor(group, "c")!;
+        Require(joined.Direction == "horizontal" && joined.TabIds.SequenceEqual(["b", "a", "c"]) &&
+            joined.Weights.Select(weight => Math.Round(weight, 4)).SequenceEqual([0.4667, 0.2, 0.3333]), "A newcomer joins the arrangement rather than redrawing it.");
+
+        (session, group) = Fresh("a");
+        session.Open(new("d", "D", "file", "d.txt"), false);
+        session.GroupTabs(group, "d", "a", "horizontal");
+        session.Open(new("e", "E", "file", "e.txt"), false);
+        Require(Strip(session, group).SequenceEqual(["a", "e"]) && session.PaneFor(group, "e") is { Direction: "horizontal" } preview &&
+            preview.TabIds.SequenceEqual(["a", "e"]) && preview.Weights.SequenceEqual([0.5, 0.5]), "A preview over a pane member takes its place.");
+
+        (session, group) = Fresh("a", "b", "c", "d");
+        session.GroupTabs(group, "a", "b", "horizontal");
+        session.GroupTabs(group, "c", "d", "horizontal");
+        session.GroupTabs(group, "a", "c", "horizontal");
+        Require(session.View.Panes[group].Count == 1 && session.PaneFor(group, "a")!.TabIds.SequenceEqual(["d", "c", "a"]) && session.PaneFor(group, "b") is null,
+            "Membership is exclusive: joining a second pane leaves the first.");
+        Require(!session.GroupTabs(group, "a", "a", "horizontal") && !session.GroupTabs(group, "a", "missing", "horizontal"), "Refuses itself and a missing tab.");
+
+        (session, group) = Fresh("a", "b", "c");
+        session.GroupTabs(group, "a", "b", "horizontal");
+        Require(session.Ungroup(group, "a") && !session.View.Panes.ContainsKey(group), "Ungrouping dissolves a pane below two members.");
+        session.GroupTabs(group, "a", "b", "horizontal");
+        session.GroupTabs(group, "c", "a", "horizontal");
+        session.Close(group, "c");
+        Require(session.PaneFor(group, "c") is null && session.PaneFor(group, "a")!.TabIds.SequenceEqual(["b", "a"]), "Closing a tab takes its membership with it.");
+        var restored = new LayoutSession(System.Text.Json.JsonSerializer.Deserialize<DockState>(System.Text.Json.JsonSerializer.Serialize(session.State)));
+        Require(restored.PaneFor(group, "a")!.TabIds.SequenceEqual(["b", "a"]), "Panes persist with the workspace view.");
+
+        var tools = new LayoutSession();
+        tools.SwitchWorkspace("tools");
+        Require(tools.IsToolShowing("projects") && tools.IsToolShowing("changes") && !tools.IsToolShowing("review"), "A tool shows only as its group's shown tab.");
+        tools.Visible("left", false);
+        Require(!tools.IsToolShowing("projects"), "A hidden side shows no tool.");
+        Console.WriteLine("PASS fork model.test.ts tab panes: grouping, contiguity, member drops, joining, preview, exclusivity, closing, persistence; isToolShowing");
+    }
+
     private static void CheckMixedResources()
     {
         var session = new LayoutSession();
         session.SwitchWorkspace("one");
         var bottom = session.State.Groups.Single(group => group.Region == "bottom").Id;
-        var side = session.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "specs")).Id;
+        var side = session.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == DockState.SpecsTool)).Id;
         var terminal = session.Tabs(bottom).Single();
         Require(terminal is { Kind: "terminal", Title: "Terminal 1" } && session.Selected(bottom)?.Id == terminal.Id,
             "A new workspace must open one selected terminal in its bottom group.");
-        Require(session.Move(terminal.Id, bottom, side, 0) && session.Tabs(side).Select(tab => tab.Id).SequenceEqual([terminal.Id, "specs", "files"]),
+        Require(session.Move(terminal.Id, bottom, side, 0) && session.Tabs(side).Select(tab => tab.Id).SequenceEqual([terminal.Id, DockState.SpecsTool, "files"]),
             "Moving a terminal before a tool must preserve the mixed tab order.");
-        Require(session.Move(terminal.Id, side, side, 3) && session.Tabs(side).Select(tab => tab.Id).SequenceEqual(["specs", "files", terminal.Id]),
+        Require(session.Move(terminal.Id, side, side, 3) && session.Tabs(side).Select(tab => tab.Id).SequenceEqual([DockState.SpecsTool, "files", terminal.Id]),
             "Moving an anchored terminal to the end must remove its old tool anchor.");
         Require(session.Move(terminal.Id, side, side, 0), "Moving a terminal back before the first tool failed.");
-        Require(session.Move("specs", side, side, 3) && session.Tabs(side).Select(tab => tab.Id).SequenceEqual([terminal.Id, "files", "specs"]),
+        Require(session.Move(DockState.SpecsTool, side, side, 3) && session.Tabs(side).Select(tab => tab.Id).SequenceEqual([terminal.Id, "files", DockState.SpecsTool]),
             "Moving a tool must preserve the terminal's displayed position and retarget its anchor.");
-        Require(session.Move("specs", side, side, 1), "Restoring tool order around a terminal failed.");
-        session.Close(side, "specs");
+        Require(session.Move(DockState.SpecsTool, side, side, 1), "Restoring tool order around a terminal failed.");
+        session.Close(side, DockState.SpecsTool);
         Require(session.Tabs(side).Select(tab => tab.Id).SequenceEqual([terminal.Id, "files"]), "Hiding a tool must preserve the terminal's displayed position.");
-        session.RestoreTool("specs");
-        Require(session.Tabs(side).Select(tab => tab.Id).SequenceEqual([terminal.Id, "specs", "files"]), "Revealing a tool must restore its mixed-strip position.");
+        session.RestoreTool(DockState.SpecsTool);
+        Require(session.Tabs(side).Select(tab => tab.Id).SequenceEqual([terminal.Id, DockState.SpecsTool, "files"]), "Revealing a tool must restore its mixed-strip position.");
         session.SwitchWorkspace("two");
-        Require(session.Tabs(side).Select(tab => tab.Id).SequenceEqual(["specs", "files"]), "A terminal must not leak into another workspace's tool strip.");
+        Require(session.Tabs(side).Select(tab => tab.Id).SequenceEqual([DockState.SpecsTool, "files"]), "A terminal must not leak into another workspace's tool strip.");
         session.SwitchWorkspace("one");
         var restored = new LayoutSession(System.Text.Json.JsonSerializer.Deserialize<DockState>(System.Text.Json.JsonSerializer.Serialize(session.State)));
-        Require(restored.Tabs(side).Select(tab => tab.Id).SequenceEqual([terminal.Id, "specs", "files"]), "Persisted mixed tab order was lost.");
+        Require(restored.Tabs(side).Select(tab => tab.Id).SequenceEqual([terminal.Id, DockState.SpecsTool, "files"]), "Persisted mixed tab order was lost.");
         restored.Select(side, terminal.Id); restored.Close(side, terminal.Id);
-        Require(restored.Selected(side)?.Id == "specs", "Closing a terminal must select its neighbor in the displayed order.");
+        Require(restored.Selected(side)?.Id == DockState.SpecsTool, "Closing a terminal must select its neighbor in the displayed order.");
         restored.NewTerminal(side); restored.ApplyPreset(DockState.Preset("review"));
         Require(restored.State.Groups.Where(group => group.Region == "bottom").SelectMany(group => restored.Tabs(group.Id)).Any(tab => tab.Kind == "terminal") &&
             !restored.State.Center.Leaves().SelectMany(restored.Tabs).Any(tab => tab.Kind == "terminal"),

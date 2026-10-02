@@ -8,6 +8,16 @@ using Avalonia.Threading;
 
 namespace SharpRail.UI.Docking;
 
+/// <summary>Where centre tabs render: <see cref="Vertical"/> as a column, in Projects when <see cref="Home"/> is <c>projects</c>.</summary>
+public sealed record CenterTabsMode(bool Vertical, double Width, string Home, string DefaultPaneDirection);
+
+internal enum StripStyle
+{
+    Horizontal,
+    Vertical,
+    Nested
+}
+
 public sealed partial class DockSurface : Grid
 {
     public LayoutSession Session { get; }
@@ -19,6 +29,17 @@ public sealed partial class DockSurface : Grid
     public Func<DockTab, IBrush, Control?>? TabIcon { get; set; }
     /// <summary>Extra content after a tab's title, such as a badge.</summary>
     public Func<DockTab, Control?>? TabAdornment { get; set; }
+    /// <summary>How centre tabs render: as the ordinary strip, a column beside the editor, or nested in Projects.</summary>
+    public Func<CenterTabsMode>? CenterTabs { get; set; }
+    /// <summary>The vertical column's width after a resize, in pixels.</summary>
+    public Action<double>? CenterTabsWidthChanged { get; set; }
+    /// <summary>Raised after a rebuild with the centre strips that belong in Projects, by centre group; empty otherwise.</summary>
+    public event Action<IReadOnlyDictionary<string, Control>>? NestedStripsChanged;
+    private readonly Dictionary<string, Control> nestedStrips = [];
+    /// <summary>Extra strip actions after New terminal in a center group, given the group's id.</summary>
+    public Func<string, IEnumerable<Control>>? CenterActions { get; set; }
+    /// <summary>Recreates every center group's <see cref="CenterActions"/>, leaving tabs and the rest of the strip in place.</summary>
+    public void RefreshCenterActions() { foreach (var update in centerActionUpdates) update(); }
     public void RefreshModified() { foreach (var update in modifiedUpdates) update(); }
     private readonly Func<DockTab?, Control> renderContent;
     private readonly List<(Control Control, string Group, bool Header)> sites = [];
@@ -28,6 +49,9 @@ public sealed partial class DockSurface : Grid
         .ToDictionary(region => region, region => new Border { Name = "AuxiliaryRegion_" + region });
     private readonly Canvas overlay = new() { IsHitTestVisible = false };
     private bool refreshPending;
+    private bool rebuildPending;
+    private CenterTabsMode? renderedMode;
+    private IReadOnlyList<DockToolInfo> renderedTools = [];
     private long previewGesture;
     internal void InvalidatePreviewKeep() => previewGesture++;
     public DockSurface(LayoutSession session, Func<DockTab?, Control> renderContent)
@@ -43,11 +67,12 @@ public sealed partial class DockSurface : Grid
                 PreviewSides(new SideGeometry(Session.State, Bounds.Width).Project());
         };
         Session.Changed += () => { CancelForLayoutChange(); Rebuild(); };
-        Session.ToolsChanged += Rebuild;
+        Session.ToolsChanged += RefreshTools;
         Session.SelectionChanged += group =>
         {
             var resizing = CancelForLayoutChange();
-            if (!resizing && selectionUpdates.TryGetValue(group, out var update)) update();
+            // Selecting another tool can hide Projects, which moves nested centre strips back to the column.
+            if (!resizing && selectionUpdates.TryGetValue(group, out var update) && CenterTabs?.Invoke() == renderedMode) update();
             else Rebuild();
         };
         Rebuild();
@@ -64,13 +89,27 @@ public sealed partial class DockSurface : Grid
         return resizing;
     }
 
+    private void RefreshTools()
+    {
+        var previous = renderedTools;
+        renderedTools = Session.Tools;
+        if (Session.State.Groups.SelectMany(group => Session.Tabs(group.Id)).Where(tab => tab.IsTool)
+            .Any(tab => !Equals(previous.FirstOrDefault(tool => tool.Id == tab.Id), Session.Tool(tab.Id)))) Rebuild();
+        else foreach (var update in catalogUpdates) update();
+    }
+
     public void Rebuild()
     {
+        if (draft is not null || shell.GetLogicalDescendants().OfType<ResizeHandle>().Any(handle => handle.IsActive))
+        { rebuildPending = true; return; }
+        rebuildPending = false;
+        renderedTools = Session.Tools;
         refreshPending = false;
         CancelDrag();
         foreach (var host in contentHosts) host.Child = null;
         contentHosts.Clear(); tabSites.Clear(); groupHeaders.Clear(); selectionUpdates.Clear();
-        modifiedUpdates.Clear(); sites.Clear();
+        modifiedUpdates.Clear(); catalogUpdates.Clear(); centerActionUpdates.Clear(); sites.Clear(); nestedStrips.Clear(); stripLayouts.Clear();
+        renderedMode = CenterTabs?.Invoke();
         foreach (var control in shell.Children.Where(control => control != centerRegion && !auxiliaryRegions.Values.Contains(control)).ToArray())
             shell.Children.Remove(control);
         centerRegion.Child = null;
@@ -128,6 +167,7 @@ public sealed partial class DockSurface : Grid
             splitter.Name = "bottomSeparator";
             Ui.Place(shell, splitter, 1, start); Grid.SetColumnSpan(splitter, end - start + 1);
         }
+        NestedStripsChanged?.Invoke(nestedStrips);
     }
 
     private void PlaceSide(Control control, int column, int span)
@@ -281,7 +321,22 @@ public sealed partial class DockSurface : Grid
 
     private void FlushRefresh()
     {
-        if (refreshPending) Dispatcher.UIThread.Post(() => { if (refreshPending) RefreshContents(); });
+        if (rebuildPending) Dispatcher.UIThread.Post(() =>
+        {
+            if (!rebuildPending) return;
+            var top = TopLevel.GetTopLevel(this);
+            var focused = top?.FocusManager?.GetFocusedElement() as Control;
+            if (focused is not null && TopLevel.GetTopLevel(focused) != top) focused = null;
+            Rebuild();
+            if (focused is null) return;
+            Dispatcher.UIThread.Post(() =>
+            {
+                var target = TopLevel.GetTopLevel(focused) == top ? focused : focused.Name is { } name
+                    ? this.GetLogicalDescendants().OfType<Control>().FirstOrDefault(control => control.Name == name && Equals(control.Tag, focused.Tag)) : null;
+                target?.Focus();
+            }, DispatcherPriority.Loaded);
+        });
+        else if (refreshPending) Dispatcher.UIThread.Post(() => { if (refreshPending) RefreshContents(); });
     }
 
     private ResizeHandle Separator(bool horizontal, Action<double> preview, Action<double> commit, Action cancel)

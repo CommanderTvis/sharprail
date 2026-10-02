@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Channels;
+
 using SharpRail.Host.Abstractions;
 using SharpRail.Plugins.Api;
 
@@ -18,7 +19,7 @@ internal sealed class FakePluginHost : IHostStateService, IPluginService
     private readonly List<Channel<HostState>> watchers = [];
     private readonly List<(PluginSubscription Subscription, Channel<object?> Pushes)> subscriptions = [];
     private readonly Dictionary<string, PluginRosterEntry> entries;
-    private Dictionary<string, JsonElement> settings = [];
+    private readonly Dictionary<string, JsonElement> settings = [];
     private IReadOnlyList<string> paths = [];
     private HostState latest;
     private long revision;
@@ -31,6 +32,7 @@ internal sealed class FakePluginHost : IHostStateService, IPluginService
     }
 
     internal List<PluginCallRequest> Calls { get; } = [];
+    internal Dictionary<string, object?> Replies { get; } = [];
     internal int Subscriptions { get { lock (subscriptions) return subscriptions.Count; } }
 
     internal IReadOnlyList<PluginRosterEntry> Roster() => [.. entries.Values.Select(entry =>
@@ -108,13 +110,14 @@ internal sealed class FakePluginHost : IHostStateService, IPluginService
 
     public ValueTask<IReadOnlyList<PluginRosterEntry>> RetryAsync(string id, CancellationToken cancellationToken = default) => ValueTask.FromResult(Roster());
 
-    // Records the request; the stand-in answers no methods, so a channel's snapshot read fails and only pushes arrive.
+    // Records the request and answers only methods explicitly configured by the check.
     public ValueTask<object?> CallAsync(PluginCallRequest request, CancellationToken cancellationToken = default)
     {
         Calls.Add(request);
         if (Roster().FirstOrDefault(entry => entry.Id == request.PluginId) is not { } entry)
             throw new PluginCallException(PluginCallError.Unknown, $"No plugin {request.PluginId}.");
         if (entry.Status != PluginStatus.Active) throw new PluginCallException(PluginCallError.Disabled, $"Plugin {request.PluginId} is disabled.");
+        if (Replies.TryGetValue(request.Method, out var reply)) return ValueTask.FromResult(reply);
         throw new PluginCallException(PluginCallError.Unknown, $"Plugin {request.PluginId} has no method {request.Method}.");
     }
 

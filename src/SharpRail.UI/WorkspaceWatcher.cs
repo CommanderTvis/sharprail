@@ -7,7 +7,7 @@ namespace SharpRail.UI;
 
 public sealed partial class WorkbenchWindow
 {
-    private readonly List<FileSystemWatcher> watchers = [];
+    private CancellationTokenSource? workspaceWatch;
     private readonly HashSet<string> changedPaths = [];
     // Document keys whose file is gone from disk; the tab keeps its last content and says so.
     private readonly HashSet<string> deletedDocuments = [];
@@ -24,52 +24,58 @@ public sealed partial class WorkbenchWindow
     {
         watchDebounce?.Stop();
         changedPaths.Clear();
-        foreach (var watcher in watchers) watcher.Dispose();
-        watchers.Clear();
+        workspaceWatch?.Cancel();
+        workspaceWatch?.Dispose();
+        workspaceWatch = null;
     }
 
     private void StartWatching(long request)
     {
-        if (remote || request != projectRequest || !WorkspaceMounted || lifetime.IsCancellationRequested) return;
+        if (request != projectRequest || !WorkspaceMounted || lifetime.IsCancellationRequested) return;
         StopWatching();
         var directory = workspaceRoot;
-        var (gitDirectory, commonDirectory) = ResolveGitDirectories(directory);
-        try
+        var cancellation = workspaceWatch = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
+        var token = cancellation.Token;
+        _ = Task.Run(() => WatchWorkspaceFilesAsync(directory, request, token), token);
+    }
+
+    private async Task WatchWorkspaceFilesAsync(string directory, long request, CancellationToken cancellationToken)
+    {
+        var reconnect = false;
+        while (!cancellationToken.IsCancellationRequested)
         {
-            Watch(directory, true, path => !IsGitPath(directory, path));
-            if (gitDirectory is not null)
+            try
             {
-                Watch(gitDirectory, false, path => Path.GetFileName(path) == "HEAD");
-                Watch(Path.Combine(commonDirectory!, "refs"), true, _ => true);
+                var firstBatch = true;
+                await foreach (var changes in host.WatchFilesAsync(cancellationToken))
+                {
+                    var ready = firstBatch;
+                    firstBatch = false;
+                    var restored = reconnect;
+                    reconnect = false;
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        if (request != projectRequest || directory != workspaceRoot || !WorkspaceMounted || cancellationToken.IsCancellationRequested) return;
+                        var paths = changes.Paths;
+                        if (ready || restored || changes.Rescan)
+                            paths = paths.Concat(Layout.State.Workspaces.GetValueOrDefault(directory)?.Documents.Values
+                                .SelectMany(items => items).Where(tab => tab.Kind is "file" or "markdown" or "viewer").Select(tab => tab.Path) ?? []).Distinct().ToArray();
+                        if (paths.Count > 0 || changes.GitChanged || changes.Rescan || restored) ScheduleWatchRefresh(paths);
+                    });
+                }
             }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { return; }
+            catch (Exception error) { Console.Error.WriteLine("Workspace watching interrupted: " + error.Message); }
+            reconnect = true;
+            try { await Task.Delay(1000, cancellationToken); }
+            catch (OperationCanceledException) { return; }
         }
-        catch (Exception error) when (error is IOException or ArgumentException or UnauthorizedAccessException or PlatformNotSupportedException)
-        { Console.Error.WriteLine("Workspace watching is unavailable: " + error.Message); }
     }
 
-    private static bool IsGitPath(string root, string path)
-    {
-        var relative = Path.GetRelativePath(root, path).Replace('\\', '/');
-        return relative == ".git" || relative.StartsWith(".git/", StringComparison.Ordinal);
-    }
-
-    private void Watch(string directory, bool recursive, Func<string, bool> relevant)
-    {
-        if (!Directory.Exists(directory)) return;
-        var watcher = new FileSystemWatcher(directory) { IncludeSubdirectories = recursive, InternalBufferSize = 64 * 1024 };
-        void Changed(string? path) { if (path is not null && relevant(path)) Dispatcher.UIThread.Post(() => ScheduleWatchRefresh(directory, path)); }
-        watcher.Created += (_, e) => Changed(e.FullPath);
-        watcher.Changed += (_, e) => Changed(e.FullPath);
-        watcher.Deleted += (_, e) => Changed(e.FullPath);
-        watcher.Renamed += (_, e) => { Changed(e.OldFullPath); Changed(e.FullPath); };
-        watcher.EnableRaisingEvents = true;
-        watchers.Add(watcher);
-    }
-
-    private void ScheduleWatchRefresh(string watched, string path)
+    private void ScheduleWatchRefresh(IReadOnlyList<string> paths)
     {
         if (!WorkspaceMounted || lifetime.IsCancellationRequested) return;
-        if (watched == workspaceRoot) changedPaths.Add(Path.GetRelativePath(workspaceRoot, path).Replace('\\', '/'));
+        foreach (var path in paths) changedPaths.Add(path);
         if (watchDebounce is null)
         {
             watchDebounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
@@ -89,11 +95,9 @@ public sealed partial class WorkbenchWindow
         WatchRefreshes++;
         var paths = changedPaths.ToArray();
         changedPaths.Clear();
-        if (paths.Length > 0) workbench.BumpRevisions(workspaceRoot, paths);
+        workbench.BumpRevisions(workspaceRoot, paths);
         // Listing is cheap and leaves the tree untouched when nothing moved; FSEvents may report a creation as a change.
         if (paths.Length > 0) await RefreshFilesAsync(request);
-        if (paths.Any(path => path.EndsWith(".md", StringComparison.OrdinalIgnoreCase)))
-        { toolContent.Remove("specs"); surface.RefreshContents("specs"); }
         await ReloadOpenDocumentsAsync(request, paths);
         await RefreshGitAsync(request);
     }
@@ -158,24 +162,6 @@ public sealed partial class WorkbenchWindow
     {
         if (documentContent.GetValueOrDefault(key) is Editor.CodeDocumentView view) view.DeletedOnDisk = deleted;
         if (deleted ? deletedDocuments.Add(key) : deletedDocuments.Remove(key)) surface.RefreshModified();
-    }
-
-    private static (string? GitDirectory, string? CommonDirectory) ResolveGitDirectories(string directory)
-    {
-        try
-        {
-            var marker = Path.Combine(directory, ".git");
-            if (Directory.Exists(marker)) return (marker, marker);
-            if (!File.Exists(marker)) return (null, null);
-            var text = File.ReadAllText(marker).Trim();
-            if (!text.StartsWith("gitdir:", StringComparison.Ordinal)) return (null, null);
-            var gitDirectory = Path.GetFullPath(text["gitdir:".Length..].Trim(), directory);
-            var common = Path.Combine(gitDirectory, "commondir");
-            var commonDirectory = File.Exists(common) ? Path.GetFullPath(File.ReadAllText(common).Trim(), gitDirectory) : gitDirectory;
-            return (gitDirectory, commonDirectory);
-        }
-        catch (IOException) { return (null, null); }
-        catch (UnauthorizedAccessException) { return (null, null); }
     }
 
     private async Task RefreshDiffTabsAsync(long request)

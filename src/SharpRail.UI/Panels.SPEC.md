@@ -71,11 +71,17 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
 - Opening a project lands on its Project Home, never auto-entering a workspace. Selecting a project row goes
   to that project's home, deselecting the active workspace.
 - The Add project `+` and the Welcome “Open project” card share one menu: Open project, Enter host path…
-  (Enter path… locally, where the host is this computer), and Recent (closed recent projects). Open project
+  (Enter path… locally, where the host is this computer), Clone repository…, and Recent (closed recent
+  projects). Clone repository… asks for a URL, the parent folder (Choose… locally, typed on a remote host),
+  an optional folder name whose placeholder is the repository's name and an optional depth (at least 1);
+  the target path shows before anything runs, the clone runs off the UI thread, the dialog stays open with
+  git's reason when it fails, and a successful clone opens as a project. Open project
   uses the native folder picker locally; on a remote host, or when the picker fails, it opens the path
   dialog (with the picker's error). The path entry is always present because a remote client cannot tell
   where a native picker would open. Every open gesture
   takes a new picker generation, so a later gesture supersedes an earlier one before it can open a project.
+- Plugin file selection uses the same remote path dialog with file-specific wording
+  and a Choose document action; project and directory selection retain folder wording.
 - A folder that is not a Git repository opens directly, with no offer to initialise one. Workspace
   creation stays disabled for it, since there is no repository for a worktree to attach to.
 
@@ -133,20 +139,23 @@ can be set by a plugin (W18): uncommitted, one commit, the comparison target, or
 
 ## Specs
 
-- A read-only spec tree built from `ListSpecsAsync`, loaded off the UI thread and discarded if the project
-  changed meanwhile. Roots are specs with no or a dangling parent; the walk is visited-guarded and
-  depth-capped, so a malformed graph can never hang the UI, and specs unreachable from any root (cycles) are
-  still listed at the top level. Depths below three start expanded.
+- The builtin spec dialect owns this panel, built from its `graph` plugin method, loaded off the UI thread and discarded if the project
+  changed meanwhile. Roots are specs with no, a dangling or a self parent; roots and siblings sort by title.
+  A visited guard avoids repeated descendants. Parent cycles have no root and are reported by `spec_validate`.
+  Rows start expanded and mark the active file without rebuilding the panel.
 - Rows stay on one line: role icon, title (a ` — ` or ` – ` separator collapses to ` · `), then the role
   (`ARCH`, `MODULE`, `SUBMODULE`, `TASK`, `GOAL`, or the normalised type) revealed on hover or keyboard
   focus. The top-level `goal-and-requirements` spec reads `Main spec` in the accent. The automation help text
   carries path and role unconditionally.
 - Row click previews the spec's document and double click or Enter keeps it, through the same flow as
-  Files. The chevron alone expands. There is no toolbar or Refresh control, no lifecycle status, no graph
+  Files. The chevron alone expands. An inline failed-read notice provides Retry. There is no toolbar, lifecycle status or graph
   canvas, no editing.
-- An empty graph shows “No specifications in this project”.
+- An empty graph shows “No specs”; an unresolved graph shows six loading rows.
 
 ## Changes
+
+Git refreshes retain an open scope or comparison menu and its trigger. The latest snapshot or error
+renders when the menu closes, so filesystem and ref events do not interrupt a choice already in progress.
 
 - A fixed 32px toolbar says what is being diffed: the scope pill (All changes, Uncommitted, Staged, Branch,
   or one commit from the branch), the comparison-branch pill (`vs <branch>`, with Refresh git), and the
@@ -154,6 +163,8 @@ can be set by a plugin (W18): uncommitted, one commit, the comparison target, or
   branch pill is not squeezed. The scope, comparison and selected commit belong to the workspace and persist
   in the profile; the commit catalogue is reloaded from Git, capped at 200.
 - A selected commit that no longer exists (rebase, reset) resets the scope to All changes with a notice.
+  Existence is checked through the host's single-commit lookup, independently of the comparison menu;
+  a plugin's graph can select a commit on another branch or beyond that menu's 200 rows.
   Other failures leave the chosen scope alone.
 - “Never answered”, “failed” and “answered empty” are three states. Before a snapshot the panel shows
   `Loading Git…`; a failure shows the error with Retry; only a landed snapshot with no changes says the

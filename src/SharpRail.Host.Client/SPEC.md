@@ -16,7 +16,9 @@ what makes remoteness an adapter choice rather than a mandatory daemon.
   (`IProjectServices`), `StateAdapters.cs` (`IHostStateService`),
   `TerminalAdapters.cs` (`ITerminalService` and the remote terminal session) and
   `PluginAdapters.cs` (`IPluginService`).
-- Local adapters are pure delegation: no sockets, serialization or copying.
+- Local adapters are pure delegation: no sockets, serialization or copying. The project and plugin adapters
+  run each call on the thread pool, because Core resumes on its caller's context and the caller is usually the
+  UI thread; their streams are delegated as they are.
 - Remote adapters own channel setup, the bearer token on every call, per-call
   deadlines, mapping DTOs to Abstractions records, and reconnection.
 - Allowed deps: Abstractions, Protocol, Grpc.Net.Client, protobuf-net.Grpc.
@@ -25,12 +27,14 @@ what makes remoteness an adapter choice rather than a mandatory daemon.
 
 ## Behavior
 
+- The project adapter maps independent nullable commit lookup through the same local or gRPC API;
+  selecting a graph commit does not require it to occur in a comparison catalog.
 - Every remote call carries `authorization: Bearer <token>`; constructing a
   remote adapter without a token fails immediately.
 - Deadlines: short (15 s) for cheap workspace and terminal control calls, 60 s
   for project, Git and state calls. The host's own network Git budget must stay
   under that ceiling so its error, naming the ref, wins the race against a bare
-  deadline. Long-lived streams (state watch, terminal) carry no deadline.
+  deadline. Long-lived streams (state watch, workspace file changes, terminal) carry no deadline.
 - Channels reconnect quickly (250 ms initial, 3 s maximum backoff) instead of
   gRPC's two-minute ceiling, because an interactive client is waiting.
 - The project adapter remembers the root it opened last and sends it with each

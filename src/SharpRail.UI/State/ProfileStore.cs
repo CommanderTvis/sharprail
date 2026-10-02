@@ -28,6 +28,14 @@ public sealed class Preferences
     public string TerminalRenderer { get; set; } = Terminal.TerminalRenderers.Texture;
     /// <summary>A single click previews into the group's reusable slot; off, every open keeps its tab.</summary>
     public bool PreviewTabs { get; set; } = true;
+    /// <summary>Centre tabs as a column beside the editor instead of a strip above it; only while the centre is one group.</summary>
+    public bool VerticalCenterTabs { get; set; }
+    /// <summary>The vertical column's width in pixels, so it keeps its size when the window resizes.</summary>
+    public double VerticalCenterTabsWidth { get; set; } = VerticalTabs.DefaultWidth;
+    /// <summary>With vertical tabs on, the column lives under its workspace's row in Projects.</summary>
+    public bool VerticalTabsInProjects { get; set; }
+    /// <summary>How two tabs first shown together are arranged: <c>horizontal</c> columns or <c>vertical</c> rows.</summary>
+    public string DefaultPaneDirection { get; set; } = "horizontal";
     /// <summary>Read from profiles that predate window-local defaults.</summary>
     [JsonPropertyName("DefaultPreset"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? LegacyDefaultPreset { get; set; }
@@ -160,10 +168,13 @@ public sealed class ProfileStore
             Data.Preferences.CustomPresets ??= [];
             if (!double.IsFinite(Data.Preferences.FontSize) || Data.Preferences.FontSize is < 10 or > 24) Data.Preferences.FontSize = 14;
             Data.Preferences.Zoom = InterfaceZoom.Normalize(Data.Preferences.Zoom);
+            Data.Preferences.VerticalCenterTabsWidth = VerticalTabs.ClampWidth(Data.Preferences.VerticalCenterTabsWidth);
+            if (Data.Preferences.DefaultPaneDirection is not ("horizontal" or "vertical")) Data.Preferences.DefaultPaneDirection = "horizontal";
             if (!LineWidths.IsValid(Data.Preferences.FileLineWidth)) Data.Preferences.FileLineWidth = LineWidths.FileDefault;
             if (!LineWidths.IsValid(Data.Preferences.MarkdownLineWidth)) Data.Preferences.MarkdownLineWidth = LineWidths.MarkdownDefault;
             if (Data.Preferences.TerminalRenderer is not (Terminal.TerminalRenderers.Texture or Terminal.TerminalRenderers.Skia))
                 Data.Preferences.TerminalRenderer = Terminal.TerminalRenderers.Texture;
+            foreach (var preset in Data.Preferences.CustomPresets.Values) preset?.MigrateLegacyTools();
             foreach (var name in Data.Preferences.CustomPresets.Keys.Where(name => string.IsNullOrWhiteSpace(name) ||
                 !LayoutSession.IsValid(Data.Preferences.CustomPresets[name])).ToArray()) Data.Preferences.CustomPresets.Remove(name);
             NormalizeTheme(Data.Preferences);
@@ -178,7 +189,8 @@ public sealed class ProfileStore
 
     private static void NormalizeWindow(WindowProfile window)
     {
-        if (!LayoutSession.IsValid(window.Layout)) window.Layout = DockState.Preset("balanced");
+        window.Layout?.MigrateLegacyTools();
+        if (!LayoutSession.IsValid(window.Layout!)) window.Layout = DockState.Preset("balanced");
         if (string.IsNullOrWhiteSpace(window.DefaultPreset)) window.DefaultPreset = "balanced";
         if (window.LastProject is null || window.LastProject.Length > 0 && !ValidPath(window.LastProject)) window.LastProject = "";
         if (window.LastProjectRoot is null || window.LastProjectRoot.Length > 0 && !ValidPath(window.LastProjectRoot)) window.LastProjectRoot = "";

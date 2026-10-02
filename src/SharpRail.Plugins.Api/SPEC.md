@@ -28,8 +28,8 @@ Every plugin can be turned on and off while the app runs, with no restart, which
 an optimisation and is why the runtimes are built around it from the start.
 
 The API is unstable, gated on a single generation integer, with no compatibility promise. What follows fixes
-the boundary and the capability set. This commit adds the contract, both runtimes and the UI kit, and no
-plugin: the builtin arrays are empty, the Specs panel stays in core, and a fixture plugin in the checks
+the boundary and the capability set. The builtin arrays start with the spec dialect; its Specs panel,
+graph and MCP tools exercise the same API as external plugins. A fixture plugin in the checks
 exercises the external path.
 
 ## Responsibility
@@ -379,7 +379,7 @@ UI context alone, which is what allows it to live outside this repository.
 
 Builtin plugins are composed statically in both runtimes: a literal array of host halves in
 `SharpRail.Host.Core/Plugins/BuiltinPlugins.cs`, and a literal array of manifest plus UI half in
-`SharpRail.UI/Plugins/BuiltinPlugins.cs`. Both are empty in this commit.
+`SharpRail.UI/Plugins/BuiltinPlugins.cs`. Both begin with the spec dialect plugin.
 
 External plugins are discovered and then loaded from disk. When the host starts, it lists `<stateDir>/plugins`
 and every root in `HostState.PluginPaths`, reads each manifest, and refuses an id that does not match its
@@ -583,8 +583,9 @@ from another load context) through JSON.
 
 A state channel names a snapshot method and its key fields, mapping the channel's scope onto that method's
 params. This is architecture Decision 8 expressed in types: a channel keyed per workspace or per terminal needs
-a keyed snapshot, which a param-less rule would not cover. The snapshot method's result type is the channel's
-payload type, which `PluginChannel<TPayload>.State` enforces.
+a keyed snapshot, which a param-less rule would not cover. The snapshot method returns either one payload or
+a list of payloads (for example, all terminal states in a workspace), enforced by the two
+`PluginChannel<TPayload>.State` overloads. List snapshots hydrate subscribers one payload at a time.
 
 ```mermaid
 sequenceDiagram
@@ -644,12 +645,12 @@ set is closed.
 | H1 | register a request method, with validated params and the calling client's key (`Method`) | every host operation is a hand-written method through Abstractions, Core, Protocol and both adapters |
 | H2 | publish on a declared channel, optionally addressed to one client (`Publish`) | `IHostStateService.WatchAsync` is the only push the host has |
 | H3 | mount an HTTP route under `/plugin/<id>/` on the loopback server, read its base URL (`Route`, `PublicBaseUrl`) | `McpRoute`'s loopback server serves only `/mcp/{token}` |
-| H4 | register a tool on the per-terminal MCP surface (`Tool`) | `McpServer` serves a fixed `spec_get`/`spec_grep` pair |
+| H4 | register a tool on the per-terminal MCP surface (`Tool`) | The spec dialect registers all seven `spec_*` tools; core owns only MCP routing |
 | H5 | contribute shell environment, computed per terminal (`TerminalEnvironment`) | `PtyTerminalService.ShellEnvironment` sets a fixed set of variables |
 | H6 | mint and resolve a per-terminal identity token (`TerminalToken`, `TerminalForToken`) | the MCP token is private to `PtyTerminalService` |
 | H7 | read and write a typed agent record per terminal, persisted, broadcast, dropped on close (`AgentRecord`, `SetAgentRecord`) | a terminal session carries no agent field |
 | H8 | observe terminal lifecycle: spawned with pid, exited, closed, agent changed; list terminals; map a process to its workspace (`OnTerminal`, `Terminals`, `WorkspaceForProcess`) | none |
-| H9 | offer a prefill when a shell starts again for a tab with an agent record, delivered with the attachment (`RevivePrefill`) | none; restored tabs start fresh shells |
+| H9 | offer optional text and a submit flag when a shell starts again for a tab with an agent record; compose the first text and all submit flags, delivered with the attachment (`RevivePrefill`) | none; restored tabs start fresh shells |
 | H10 | write into a terminal host-side, bypassing client attachment (`WriteTerminal`) | `ITerminalSession.WriteAsync` ignores a detached client |
 | H12 | read projects and workspaces, watch a workspace, observe lifecycle and filesystem-change batches (`Projects`, `WorkspacesAsync`, `WorkspaceAsync`, `WatchWorkspaceAsync`, `OnWorkspace`, `OnFilesChanged`) | `HostState.Projects`/`Workspaces`; the only watcher is a window's local `WorkspaceWatcher` |
 | H13 | read its own settings namespace and observe changes (`Settings<T>`, `OnSettings<T>`) | `HostSettings` is closed |
@@ -746,9 +747,12 @@ The fork's web context was shaped by React; these are the reshapes that framewor
   control has one parent. The runtime places it in a host control it owns per plugin and per mount.
 - An icon component becomes an icon name (a Remix name or `asset:<path>`), resolved like the manifest's, because
   a single control instance cannot appear in several places.
+  Launchers additionally offer `CreateIcon(size, color)` for consumers in another plugin: its factory
+  retains the owning plugin's asset reader and returns a fresh control at the requested size and tint.
 - Hooks (`useHost`, `useSettings`, `useLaunchers`, `editors.useActive`, `useFileRevision`, a companion's or
   launcher's `useAvailable`/`useTitle`/`useModels`) become a synchronous read plus an observer returning
   `IDisposable`, or a predicate the runtime re-evaluates on `Invalidate()`.
+  Launcher observers also fire on invalidation so availability and model reads remain current.
 - `fileUrl` and `assetUrl` become byte reads (`ReadFileAsync`, `ReadAssetAsync`), since there is no browser to
   fetch a URL.
 - `patchSettings(partial)` becomes `UpdateSettingsAsync<T>(settings)`, merged field by field into the

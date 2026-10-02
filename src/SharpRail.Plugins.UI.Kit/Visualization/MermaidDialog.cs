@@ -7,10 +7,9 @@ using Avalonia.Media;
 using Avalonia.Svg.Skia;
 namespace SharpRail.Plugins.UI.Kit.Visualization;
 
-/// <summary>Full-screen Mermaid view: 100% fits the viewer width, with drag panning and 25–500% zoom as in the reference.</summary>
+/// <summary>Full-screen Mermaid view: 100% fits the viewer width, with drag panning and 25–600% zoom and the shared gesture vocabulary.</summary>
 public static class MermaidDialog
 {
-    private const double MinZoom = 0.25, MaxZoom = 5;
     public const double InlineCap = 480;
 
     public static void Show(Window owner, SvgSource diagram)
@@ -20,53 +19,9 @@ public static class MermaidDialog
         window.SizeToContent = SizeToContent.Manual;
         window.Height = Math.Max(360, owner.Bounds.Height * 0.9);
         window.CanResize = true;
-        var zoom = 1.0;
-        var image = new Image { Source = new SvgImage { Source = diagram }, Stretch = Stretch.Uniform, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
-        var viewer = new ScrollViewer
-        {
-            Name = "MermaidFullscreenViewer",
-            HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
-            Content = image,
-            Cursor = new Cursor(StandardCursorType.SizeAll)
-        };
-        var level = ZoomLevel();
-        var controls = ZoomControls(level, factor => Zoom(factor), () => { zoom = 1; Apply(); viewer.Offset = default; });
-
-        void Apply()
-        {
-            image.Width = Math.Max(1, viewer.Viewport.Width * zoom);
-            level.Text = $"{Math.Round(zoom * 100)}%";
-        }
-        void Zoom(double factor) { zoom = Math.Clamp(zoom * factor, MinZoom, MaxZoom); Apply(); }
-        var stage = new Grid { Height = window.Height - 110 };
-        stage.Children.Add(viewer);
-        stage.Children.Add(controls);
+        var stage = new PanZoomView(diagram, capped: false) { Height = window.Height - 110 };
         window.FindControl<StackPanel>("DialogFields")!.Children.Add(stage);
         window.SizeChanged += (_, _) => stage.Height = Math.Max(120, window.Bounds.Height - 110);
-        viewer.SizeChanged += (_, _) => Apply();
-
-        viewer.AddHandler(InputElement.PointerWheelChangedEvent, (_, e) =>
-        {
-            if (!e.KeyModifiers.HasFlag(KeyModifiers.Control) && !e.KeyModifiers.HasFlag(KeyModifiers.Meta)) return;
-            Zoom(e.Delta.Y > 0 ? 1.1 : 1 / 1.1);
-            e.Handled = true;
-        }, handledEventsToo: true);
-        Point? drag = null;
-        viewer.PointerPressed += (_, e) =>
-        {
-            if (!e.GetCurrentPoint(viewer).Properties.IsLeftButtonPressed) return;
-            drag = e.GetPosition(viewer); e.Pointer.Capture(viewer);
-        };
-        viewer.PointerMoved += (_, e) =>
-        {
-            if (drag is not { } start) return;
-            var position = e.GetPosition(viewer);
-            viewer.Offset = new Vector(viewer.Offset.X - (position.X - start.X), viewer.Offset.Y - (position.Y - start.Y));
-            drag = position;
-        };
-        viewer.PointerReleased += (_, e) => { drag = null; e.Pointer.Capture(null); };
-
-        window.Opened += (_, _) => Apply();
         _ = window.ShowDialog(owner);
     }
 
@@ -104,12 +59,12 @@ public static class MermaidDialog
             Canvas.SetLeft(image, -pan.X); Canvas.SetTop(image, -pan.Y);
             level.Text = $"{Math.Round(zoom * 100)}%";
         }
-        void Zoom(double factor) { zoom = Math.Clamp(zoom * factor, MinZoom, MaxZoom); Apply(); }
+        void Zoom(double factor) { zoom = ZoomGesture.Clamp(zoom * factor); Apply(); }
         box.SizeChanged += (_, e) => { if (e.WidthChanged) Apply(); };
         box.PointerWheelChanged += (_, e) =>
         {
             if (!e.KeyModifiers.HasFlag(KeyModifiers.Control) && !e.KeyModifiers.HasFlag(KeyModifiers.Meta)) return;
-            Zoom(e.Delta.Y > 0 ? 1.1 : 1 / 1.1);
+            zoom = ZoomGesture.ForWheel(zoom, e.Delta.Y); Apply();
             e.Handled = true;
         };
         Point? drag = null;
@@ -161,9 +116,9 @@ public static class MermaidDialog
             return button;
         }
         var controls = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
-        controls.Children.Add(Control("MermaidZoomOut", "Zoom out", "subtract", () => zoom(1 / 1.25)));
+        controls.Children.Add(Control("MermaidZoomOut", "Zoom out", "subtract", () => zoom(1 / ZoomGesture.ScaleStep)));
         controls.Children.Add(label);
-        controls.Children.Add(Control("MermaidZoomIn", "Zoom in", "add", () => zoom(1.25)));
+        controls.Children.Add(Control("MermaidZoomIn", "Zoom in", "add", () => zoom(ZoomGesture.ScaleStep)));
         controls.Children.Add(Control("MermaidZoomReset", "Reset zoom", "arrowGoBack", reset));
         return new Border
         {

@@ -33,7 +33,7 @@
           </Button>
         </StackPanel>
         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-          <TextBlock Text="●" Classes="header-label" FontSize="10" Foreground="{x:Static rendering:Ui.Success}" />
+          <TextBlock x:Name="ConnectionDot" Text="●" Classes="header-label" FontSize="10" Foreground="{x:Static rendering:Ui.Success}" />
           <TextBlock x:Name="ConnectionStatus" Text="Connecting" Classes="header-label" />
           <Button x:Name="SettingsButton" Width="32" Height="32" Padding="7"
                   Background="Transparent" BorderThickness="0" CornerRadius="0"

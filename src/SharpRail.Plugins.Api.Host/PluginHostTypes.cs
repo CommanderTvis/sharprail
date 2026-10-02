@@ -69,9 +69,9 @@ public sealed record TerminalProcess(TerminalRef Terminal, int? Pid);
 /// again for a tab that carries an agent record. The attaching client types it once the shell is up, so it
 /// never lands before the prompt.
 /// </summary>
-/// <param name="Text">Text to type into the revived shell.</param>
+/// <param name="Text">Text to type into the revived shell, or null to leave another plugin's text unchanged.</param>
 /// <param name="Submit">Whether to press Return after it rather than leave it staged.</param>
-public sealed record RevivePrefill(string Text, bool Submit = false);
+public sealed record RevivePrefill(string? Text = null, bool Submit = false);
 
 /// <summary>A workspace lifecycle event, delivered to <see cref="IPluginHostContext.OnWorkspace"/> observers.</summary>
 public abstract record WorkspaceEvent;

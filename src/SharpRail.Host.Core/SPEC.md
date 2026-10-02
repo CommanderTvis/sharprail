@@ -25,7 +25,7 @@ gRPC.
 
 - Owns: `WorkspaceHost`, `ProjectServices` (one client's project session), `HostStateStore`,
   `PtyTerminalService` and its internals (`HostedTerminal`, `TerminalRecorder`, `PtySession`,
-  `Posix.cs`), `GitRepository`, `SpecCatalog` and `TerminalDevice` (raw mode and window size for the
+  `Posix.cs`), `GitRepository` and `TerminalDevice` (raw mode and window size for the
   relay).
 - Public surface: the Abstractions interfaces as implemented by those public classes; everything else is
   `internal`.
@@ -41,7 +41,7 @@ gRPC.
 | Workspaces and worktrees | `ProjectServices.cs`, `WorkspaceActions.cs` | [Workspaces.SPEC.md](Workspaces.SPEC.md) |
 | Git runner, status and diffs | `GitRepository.cs`, `ProjectServices.cs` | [Git.SPEC.md](Git.SPEC.md) |
 | Files | `ProjectServices.cs`, `ProjectFileSaving.cs`, `WorkspaceHost.cs` | [Files.SPEC.md](Files.SPEC.md) |
-| Specs | `SpecCatalog.cs` | [Specs.SPEC.md](Specs.SPEC.md) |
+| Specs | Builtin spec dialect plugin | [Specs.SPEC.md](Specs.SPEC.md) |
 | Terminals | `PtyTerminalService.cs`, `HostedTerminal.cs`, `TerminalRecorder.cs`, `TerminalDevice.cs`, `Posix.cs` | [Terminals.SPEC.md](Terminals.SPEC.md) |
 | Plugins | `Plugins/*.cs` | [Plugins.SPEC.md](Plugins.SPEC.md) |
 

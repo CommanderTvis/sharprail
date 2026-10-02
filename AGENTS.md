@@ -45,7 +45,7 @@ For host changes, follow the operation through these files:
 | Layer | Files |
 | --- | --- |
 | Public API | `Host.Abstractions/IWorkspaceHost.cs`, `ProjectServices.cs`, `HostState.cs`, `TerminalServices.cs` and `PluginServices.cs`. |
-| Implementation | `Host.Core/WorkspaceHost.cs`, `ProjectServices.cs`, `HostStateStore.cs`, `SpecCatalog.cs`, `GitRepository.cs` and `PtyTerminalService.cs`. |
+| Implementation | `Host.Core/WorkspaceHost.cs`, `ProjectServices.cs`, `HostStateStore.cs`, `GitRepository.cs` and `PtyTerminalService.cs`; spec graph reads belong to the spec dialect plugin. |
 | Wire contracts | `Host.Protocol/WorkspaceContract.cs`, `ProjectContract.cs`, `StateContract.cs` and `TerminalContract.cs`. |
 | Client adapters | `Host.Client/HostAdapters.cs`, `ProjectAdapters.cs`, `StateAdapters.cs` and `TerminalAdapters.cs`. |
 | Server adapters | `Host.Remote/WorkspaceRpc.cs`, `ProjectRpc.cs` (per-call workspace from `ProjectSessions.cs`), `StateRpc.cs` and `TerminalRpc.cs`; `RemoteServer.cs` configures the server and `Program.cs` starts it. |
@@ -130,12 +130,63 @@ JetBrains ThinkRail (remote `upstream`, branch `main`) and is maintained separat
 own worktree; do not carry changes between the two lines by hand. On `main`, port the
 fork's Plugin API and plugin UI almost verbatim, changing only what the transport (gRPC
 instead of WebSocket) and the framework (Avalonia/.NET instead of React/Bun) force; pi and
-AI chat stay out of scope. Mirror the fork's commit shape: general improvements, then the
-Plugin API, then one commit per builtin plugin.
+AI chat stay out of scope. Commits follow the fork's shape; see "Commit organization".
 Module `SPEC.md`/`*.SPEC.md` files and `ARCHITECTURE.md` are adapted from upstream specs;
 `UPSTREAM.md` records each branch's synced commit, the spec mapping and the fork port log,
 and the `sync-upstream-specs` skill pulls later changes for the current branch. Update the
 owning spec when changing its module.
+
+## Commit organization
+
+`main` is a chain on top of the shared history, in the fork's order, so each part can be
+reviewed, ported or extracted on its own:
+
+1. General improvements: changes that do not need the plugin API.
+2. The Plugin API: the contract assemblies, the host plugin runtime, the UI registry and the kit,
+   with no plugins. Where general and API changes reference each other too closely to build
+   apart, they share one commit and its message says so.
+3. One commit per builtin plugin, in the fork's order: spec dialect, Blueprint, Claude Code,
+   Discord, PDF Preview, Branch Graph, Visualize, File Icons, Codex. A plugin's commit carries
+   its project folder, its checks, its license and package entries, and its own lines in shared
+   registration files (`SharpRail.slnx`, project references, both `BuiltinPlugins.cs`, the
+   check runner).
+
+Status records (`COMPLETION.md`, `VALIDATION.md`, `E2E.md`, `UPSTREAM.md`, `context-log.md`,
+notices) sit in one commit at the tip.
+
+- Amend, don't append. A fix to something that already exists goes into the commit that owns
+  it: `git commit --fixup=<sha>`, then
+  `GIT_SEQUENCE_EDITOR=true git rebase -i --autosquash <base>`. A change touching two parts is
+  two fixups. Rewrite only commits not yet on `origin/main` unless the user asks for a
+  force-push.
+- New commits only for new things: a new general improvement (inserted into part 1, never
+  appended at the tip), a new plugin (part 3), or a core API capability the API commit would be
+  incomplete without. A capability a plugin introduced stays in that plugin's commit until it
+  is generalised. A feature and its follow-up fixes end as one commit.
+- Every commit is green on its own: the solution builds in Release with warnings as errors, and
+  tests land with the code they test, never ahead of it. Build each step in a separate
+  worktree so the working tree is never disturbed, and compare the final tree with the
+  pre-rebase tree before replacing the branch.
+
+## Verification budget
+
+The full suite takes about 30 minutes (≈330 checks, measured 2026-10-02) and blocks building while it runs,
+because it executes from the build output. Spend it deliberately:
+
+- While iterating, run only the focused mode for what changed (`--plugins`, `--codex`, `--specs`,
+  `--branch-graph`, `--vertical-tabs`, `--terminals`, `--sync`, `--welcome`, `--workspaces`, `--scratch` for
+  layout and startup, `--ui-smoke`); add a mode when a change has none. Format-check the touched files.
+- Run the full suite once per batch of related changes, after the focused modes pass — never after each
+  small fix, and never to "see what breaks".
+- Never build, format, check out or rebase in a tree whose suite is running. Run long suites from a
+  separate worktree (or wait for them), so the working tree stays free; check `pgrep -f SharpRail.Checks`
+  before building.
+- A failure ends a run early: fix the cause, rerun the focused mode that covers it, then resume with one
+  full run — not a full run per attempt.
+- Rewriting commits needs a build of each rewritten commit, not a full suite per commit; the full suite runs
+  on the final tip only.
+- Fixture git repositories run unsigned under a private configuration (`IsolatedGit.ForProcess`); a
+  signing prompt during checks is a harness bug, not a reason to wait for the developer.
 
 Run checks with `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release`;
 `-- --terminals` runs host terminals, terminal/bottom-panel translations and Skia renderer checks.
@@ -160,6 +211,23 @@ Generated packages live under `artifacts/`; keep one latest canonical app packag
 `artifacts/SharpRail.app` is the macOS bundle. `.tools`, `bin` and `obj` are local
 tooling/build output, not source. `licenses/` and `THIRD-PARTY-NOTICES.md` document
 redistributed dependencies and assets.
+
+## UI thread hygiene
+
+The dispatcher thread only builds controls, applies results and handles input. It never waits.
+
+- No Git, process, network or filesystem work on the UI thread, at startup or after: status, diffs,
+  branches, worktrees, fetch, clone, spec indexing, plugin requests and profile reads all run off it.
+  The embedded host is in-process, so an `await` on a local adapter runs Core on the caller's thread
+  until its first real asynchronous step; wrap such calls in `Task.Run` (or make the adapter hop) rather
+  than awaiting Core directly from a handler.
+- Never block on asynchronous work from the UI thread: no `.Result`, `.Wait()`, `GetAwaiter().GetResult()`,
+  `Thread.Sleep`, `WaitForExit`, or a `lock` held across I/O.
+- Return to the dispatcher only to apply results; check the result still belongs to the current
+  workspace and was not superseded or cancelled before applying it.
+- Long operations show progress and stay cancellable; the window stays responsive throughout (typing,
+  resizing, switching tabs).
+- Event handlers, constructors and `Build*`/render methods may read in-memory state only.
 
 ## Startup performance sanity
 

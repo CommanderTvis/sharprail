@@ -65,6 +65,32 @@ internal static class Program
             GhosttySkiaChecks.Run(root);
             return;
         }
+        if (args.SequenceEqual(["--switch"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            SwitchChecks.Run();
+            return;
+        }
+        if (args.SequenceEqual(["--vertical-tabs"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            E2E.VerticalTabsE2E.Run(Path.Combine(root, "upstream-e2e"));
+            return;
+        }
+        if (args.SequenceEqual(["--ui-smoke"]))
+        {
+            UiChecks.Run(root, translations: false);
+            return;
+        }
+        if (args.SequenceEqual(["--bottom-panel"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            E2E.BottomPanelE2E.Run(Path.Combine(root, "upstream-e2e"));
+            return;
+        }
         if (args.SequenceEqual(["--terminals"]))
         {
             TerminalHostChecks.Run(root).GetAwaiter().GetResult();
@@ -94,10 +120,50 @@ internal static class Program
         if (args.SequenceEqual(["--plugins"]))
         {
             PluginHostChecks.Run(root).GetAwaiter().GetResult();
+            WorkspaceWatchChecks.Run(root).GetAwaiter().GetResult();
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             PluginUiChecks.Run(root);
+            PluginWatchChecks.Run(root);
             Console.WriteLine("PASS plugin checks");
+            return;
+        }
+        if (args.SequenceEqual(["--file-watch"]))
+        {
+            WorkspaceWatchChecks.Run(root).GetAwaiter().GetResult();
+            return;
+        }
+        if (args.SequenceEqual(["--scratch"]))
+        {
+            LayoutChecks.Run();
+            ProjectChecks.Run(root).GetAwaiter().GetResult();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            var e2e = Path.Combine(root, "upstream-e2e");
+            E2E.TerminalChromeChecks.Run(e2e);
+            E2E.WorkspaceTabsE2E.Run(e2e);
+            E2E.MarkdownDocumentE2E.Run(e2e);
+            E2E.LayoutE2E.Run(e2e);
+            NavigationChecks.Run(root);
+            StartupChecks.Run(root);
+            DockInputChecks.Run(root);
+            Console.WriteLine("PASS scratch");
+            return;
+        }
+        if (args.SequenceEqual(["--welcome"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            E2E.WelcomeE2E.Run(root);
+            Console.WriteLine("PASS Welcome checks");
+            return;
+        }
+        if (args.SequenceEqual(["--new-workspace"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            E2E.NewWorkspaceE2E.Run(Path.Combine(root, "upstream-e2e"));
+            Console.WriteLine("PASS new-workspace E2E checks");
             return;
         }
         if (args.SequenceEqual(["--workspaces"]))
@@ -108,16 +174,32 @@ internal static class Program
             Console.WriteLine("PASS workspace and project E2E checks");
             return;
         }
+        if (args.SequenceEqual(["--changes"]) || args.SequenceEqual(["--changes-menu"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            if (args[0] == "--changes-menu")
+                E2E.ChangesScopeE2E.FailedRead(root, E2E.ChangesFixture.Source ?? throw new InvalidOperationException("Set SHARPRAIL_TEST_GIT_SOURCE."));
+            else
+            {
+                E2E.ChangesE2E.Run(root);
+                E2E.ChangesScopeE2E.Run(root);
+            }
+            Console.WriteLine("PASS Changes checks");
+            return;
+        }
         CheckHosts(root).GetAwaiter().GetResult();
         TerminalHostChecks.Run(root).GetAwaiter().GetResult();
         ProjectChecks.Run(root).GetAwaiter().GetResult();
         StateChecks.Run(root).GetAwaiter().GetResult();
         PluginHostChecks.Run(root).GetAwaiter().GetResult();
+        WorkspaceWatchChecks.Run(root).GetAwaiter().GetResult();
         FileSavingChecks.Run(root).GetAwaiter().GetResult();
         LayoutChecks.Run();
         CheckOpenWorld();
         UiChecks.Run(root);
         PluginUiChecks.Run(root);
+        PluginWatchChecks.Run(root);
         Console.WriteLine("PASS prototype checks and open-world runtime");
     }
 

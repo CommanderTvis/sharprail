@@ -126,6 +126,8 @@ closes. Abrupt death relies on operating-system process cleanup; remote shells b
 - Host-owned values change through the host and apply when the broadcast arrives, never by writing a
   local copy first.
 - Panels stay arrangement-agnostic so another shell can project them differently without a rewrite.
+- The first file-watch ready batch refreshes already open document paths, closing the gap between
+  their initial reads and watch registration. Refresh remains deferred and rejects stale workspaces.
 
 ## Not yet ported
 

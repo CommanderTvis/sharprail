@@ -1,0 +1,14 @@
+<ContentControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                xmlns:kit="using:SharpRail.Plugins.UI.Kit" x:Class="SharpRail.Plugins.UI.Kit.Visualization.MermaidView">
+  <Grid>
+    <TextBlock x:Name="Loading" Text="Rendering diagram…" Foreground="{x:Static kit:Ui.Muted}" FontSize="12" />
+    <ContentControl x:Name="Drawing" />
+    <StackPanel x:Name="MermaidError" Spacing="4" IsVisible="False">
+      <TextBlock x:Name="FailureText" Foreground="{x:Static kit:Ui.Danger}" FontSize="12" TextWrapping="Wrap" />
+      <Border Background="{x:Static kit:Ui.Elevated}" BorderBrush="{x:Static kit:Ui.BorderBrush}" BorderThickness="1" CornerRadius="4" Padding="14">
+        <SelectableTextBlock x:Name="SourceText" FontFamily="{x:Static kit:Ui.CodeFont}" FontSize="12" Foreground="{x:Static kit:Ui.TextBrush}"
+                             TextWrapping="Wrap" SelectionBrush="{x:Static kit:Ui.TextSelection}" />
+      </Border>
+    </StackPanel>
+  </Grid>
+</ContentControl>

@@ -7,7 +7,7 @@ using SharpRail.Host.Protocol;
 
 namespace SharpRail.Host.Remote;
 
-public sealed class ProjectRpc(ProjectSessions sessions) : IProjectRpc
+public sealed class ProjectRpc(ProjectSessions sessions, IHostApplicationLifetime lifetime) : IProjectRpc
 {
     public ValueTask<WorkspaceReply> OpenProjectAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>
     {
@@ -20,6 +20,13 @@ public sealed class ProjectRpc(ProjectSessions sessions) : IProjectRpc
         var result = await Host(context).ListFilesAsync(request.Path, context.CancellationToken);
         return new ProjectFilesReply { Files = result.Select(file => new ProjectFileReply { Path = file.Path, Name = file.Name, IsDirectory = file.IsDirectory }).ToList() };
     });
+
+    public async IAsyncEnumerable<WorkspaceFileChangesReply> WatchFilesAsync(ProjectRequest request, CallContext context = default)
+    {
+        using var watch = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken, lifetime.ApplicationStopping);
+        await foreach (var changes in Host(context).WatchFilesAsync(watch.Token))
+            yield return new() { Paths = changes.Paths.ToList(), GitChanged = changes.GitChanged, Rescan = changes.Rescan };
+    }
 
     public ValueTask<DocumentReply> ReadFileAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>
     {
@@ -39,11 +46,18 @@ public sealed class ProjectRpc(ProjectSessions sessions) : IProjectRpc
     public ValueTask<CommitsReply> ListCommitsAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>
         new CommitsReply { Commits = (await Host(context).ListCommitsAsync(request.Branch, context.CancellationToken)).Select(Map).ToList() });
 
-    public ValueTask<SpecsReply> ListSpecsAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>
-    {
-        var result = await Host(context).ListSpecsAsync(context.CancellationToken);
-        return new SpecsReply { Specs = result.Select(spec => new SpecReply { Id = spec.Id, Title = spec.Title, Path = spec.Path, Parent = spec.Parent, Type = spec.Type }).ToList() };
-    });
+    public ValueTask<WorktreesReply> ListWorkspacesAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>
+        new WorktreesReply
+        {
+            Worktrees = [.. (await Host(context).ListWorkspacesAsync(request.Path, context.CancellationToken))
+                .Select(tree => new WorktreeReply { Path = tree.Path, Branch = tree.Branch, IsMain = tree.IsMain, IsLocked = tree.IsLocked })]
+        });
+
+    public ValueTask<DocumentReply> CloneProjectAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>
+        new DocumentReply { Text = await Host(context).CloneProjectAsync(request.Url, request.Path, request.Branch, request.Depth > 0 ? request.Depth : null, context.CancellationToken) });
+
+    public ValueTask<CommitLookupReply> GetCommitAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>
+        new CommitLookupReply { Commit = await Host(context).GetCommitAsync(request.Branch, context.CancellationToken) is { } commit ? Map(commit) : null });
 
     public ValueTask<SearchReply> SearchAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>
     {

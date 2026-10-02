@@ -1,0 +1,6 @@
+<DockPanel xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+           xmlns:kit="using:SharpRail.Plugins.UI.Kit" x:Class="SharpRail.Plugins.UI.Kit.Visualization.DiagramView"
+           x:ClassModifier="internal" Name="VisualizationDiagram">
+  <TextBlock x:Name="Heading" DockPanel.Dock="Top" Margin="0,0,0,4" FontSize="14" Foreground="{x:Static kit:Ui.TextBrush}" TextWrapping="Wrap" />
+  <ContentControl x:Name="Drawing" />
+</DockPanel>

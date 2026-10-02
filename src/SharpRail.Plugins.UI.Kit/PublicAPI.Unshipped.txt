@@ -71,7 +71,7 @@ SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.Text.get -> string?
 SharpRail.Plugins.UI.Kit.Markdown.FrontmatterProperty.Text.init -> void
 SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext
 SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.<Clone>$() -> SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext!
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.Deconstruct(out System.Func<string!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<byte[]?>>! ReadImage, out System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyDictionary<string!, string!>!>>! ResolveSpecLinks, out System.Action<string!, string?>! Navigate, out double FontSize, out int LineWidth, out bool LineWidthBounded) -> void
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.Deconstruct(out System.Func<string!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<byte[]?>>! ReadImage, out System.Func<string!, string?>! ResolveSpecLink, out System.Action<string!, string?>! Navigate, out double FontSize, out int LineWidth, out bool LineWidthBounded) -> void
 SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.Equals(SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext? other) -> bool
 SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.FontSize.get -> double
 SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.FontSize.init -> void
@@ -79,13 +79,13 @@ SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.LineWidth.get -> int
 SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.LineWidth.init -> void
 SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.LineWidthBounded.get -> bool
 SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.LineWidthBounded.init -> void
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.MarkdownContext(System.Func<string!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<byte[]?>>! ReadImage, System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyDictionary<string!, string!>!>>! ResolveSpecLinks, System.Action<string!, string?>! Navigate, double FontSize, int LineWidth, bool LineWidthBounded) -> void
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.MarkdownContext(System.Func<string!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<byte[]?>>! ReadImage, System.Func<string!, string?>! ResolveSpecLink, System.Action<string!, string?>! Navigate, double FontSize, int LineWidth, bool LineWidthBounded) -> void
 SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.Navigate.get -> System.Action<string!, string?>!
 SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.Navigate.init -> void
 SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.ReadImage.get -> System.Func<string!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<byte[]?>>!
 SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.ReadImage.init -> void
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.ResolveSpecLinks.get -> System.Func<System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyDictionary<string!, string!>!>>!
-SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.ResolveSpecLinks.init -> void
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.ResolveSpecLink.get -> System.Func<string!, string?>!
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext.ResolveSpecLink.init -> void
 SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView
 SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Dispose() -> void
 SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.MarkdownDocumentView(string! text, string! path, SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext! context) -> void
@@ -105,6 +105,7 @@ SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.Document.get -> Markdig.Syntax
 SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.Headings.get -> System.Collections.Generic.IEnumerable<(int Level, string! Text, string! Id, int Line)>!
 SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.MarkdownPreview(Markdig.Syntax.MarkdownDocument! document, string! path, SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext! context, bool renderDiagrams = true, SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock? frontmatter = null, SharpRail.Plugins.UI.Kit.Markdown.FrontmatterBlock? previousFrontmatter = null) -> void
 SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.MarkdownPreview(string! text, string! path, SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext! context) -> void
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.RefreshSpecLinks() -> void
 SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.ScrollToAnchor(string? id) -> void
 SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.ScrollToTitle() -> void
 SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.SelectionChanged -> System.Action<string!>?
@@ -123,7 +124,7 @@ SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity.Title.init -> void
 SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity.Type.get -> string!
 SharpRail.Plugins.UI.Kit.Markdown.SpecIdentity.Type.init -> void
 SharpRail.Plugins.UI.Kit.SvgAsset
-SharpRail.Plugins.UI.Kit.SvgAsset.SvgAsset(byte[]! svg, double size = 16) -> void
+SharpRail.Plugins.UI.Kit.SvgAsset.SvgAsset(byte[]! svg, double size) -> void
 SharpRail.Plugins.UI.Kit.ThemeManifest
 SharpRail.Plugins.UI.Kit.ThemeManifest.<Clone>$() -> SharpRail.Plugins.UI.Kit.ThemeManifest!
 SharpRail.Plugins.UI.Kit.ThemeManifest.Ansi.get -> System.Collections.Generic.IReadOnlyList<Avalonia.Media.Color>!
@@ -162,6 +163,21 @@ SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result.Svg.init -> void
 static readonly SharpRail.Plugins.UI.Kit.Markdown.Frontmatter.SpecTypes -> string![]!
 static readonly SharpRail.Plugins.UI.Kit.Ui.Accent -> Avalonia.Media.SolidColorBrush!
 static readonly SharpRail.Plugins.UI.Kit.Ui.BorderBrush -> Avalonia.Media.SolidColorBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.WorkspaceSurface -> Avalonia.Media.SolidColorBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.ControlHover -> Avalonia.Media.SolidColorBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.ControlDisabledText -> Avalonia.Media.SolidColorBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.ControlDisabledBorder -> Avalonia.Media.SolidColorBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.PrimaryDisabled -> Avalonia.Media.SolidColorBrush!
+SharpRail.Plugins.UI.Kit.Switch
+SharpRail.Plugins.UI.Kit.Switch.Switch() -> void
+SharpRail.Plugins.UI.Kit.Switch.Switch(string! label, bool isChecked, System.Action<bool>! onCheckedChange) -> void
+SharpRail.Plugins.UI.Kit.Switch.Label.get -> string!
+SharpRail.Plugins.UI.Kit.Switch.Label.set -> void
+SharpRail.Plugins.UI.Kit.Switch.CheckedChange -> System.Action<bool>?
+static readonly SharpRail.Plugins.UI.Kit.Switch.LabelProperty -> Avalonia.StyledProperty<string!>!
+SharpRail.Plugins.UI.Kit.Switch.IsChecked.get -> bool
+SharpRail.Plugins.UI.Kit.Switch.IsChecked.set -> void
+static readonly SharpRail.Plugins.UI.Kit.Switch.IsCheckedProperty -> Avalonia.StyledProperty<bool>!
 static readonly SharpRail.Plugins.UI.Kit.Ui.CodeFont -> Avalonia.Media.FontFamily!
 static readonly SharpRail.Plugins.UI.Kit.Ui.Danger -> Avalonia.Media.SolidColorBrush!
 static readonly SharpRail.Plugins.UI.Kit.Ui.DangerWash -> Avalonia.Media.SolidColorBrush!
@@ -244,3 +260,175 @@ static SharpRail.Plugins.UI.Kit.InterfaceZoom.Next(double current, int step) -> 
 static SharpRail.Plugins.UI.Kit.InterfaceZoom.Normalize(double factor) -> double
 static SharpRail.Plugins.UI.Kit.InterfaceZoom.Apply(Avalonia.Application! app, double factor) -> void
 SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.SelectedText.get -> string!
+SharpRail.Plugins.UI.Kit.ScopedSetting
+SharpRail.Plugins.UI.Kit.ScopedSettingShadow
+SharpRail.Plugins.UI.Kit.ScopedSettingShadow.<Clone>$() -> SharpRail.Plugins.UI.Kit.ScopedSettingShadow!
+SharpRail.Plugins.UI.Kit.ScopedSettingShadow.Deconstruct(out string! Scope, out string? Path, out string! ValueText) -> void
+SharpRail.Plugins.UI.Kit.ScopedSettingShadow.Equals(SharpRail.Plugins.UI.Kit.ScopedSettingShadow? other) -> bool
+SharpRail.Plugins.UI.Kit.ScopedSettingShadow.Path.get -> string?
+SharpRail.Plugins.UI.Kit.ScopedSettingShadow.Path.init -> void
+SharpRail.Plugins.UI.Kit.ScopedSettingShadow.Scope.get -> string!
+SharpRail.Plugins.UI.Kit.ScopedSettingShadow.Scope.init -> void
+SharpRail.Plugins.UI.Kit.ScopedSettingShadow.ScopedSettingShadow(string! Scope, string? Path, string! ValueText) -> void
+SharpRail.Plugins.UI.Kit.ScopedSettingShadow.ValueText.get -> string!
+SharpRail.Plugins.UI.Kit.ScopedSettingShadow.ValueText.init -> void
+SharpRail.Plugins.UI.Kit.ScopedSettingSource
+SharpRail.Plugins.UI.Kit.ScopedSettingSource.<Clone>$() -> SharpRail.Plugins.UI.Kit.ScopedSettingSource!
+SharpRail.Plugins.UI.Kit.ScopedSettingSource.Deconstruct(out string! Scope, out string? Path) -> void
+SharpRail.Plugins.UI.Kit.ScopedSettingSource.Equals(SharpRail.Plugins.UI.Kit.ScopedSettingSource? other) -> bool
+SharpRail.Plugins.UI.Kit.ScopedSettingSource.Path.get -> string?
+SharpRail.Plugins.UI.Kit.ScopedSettingSource.Path.init -> void
+SharpRail.Plugins.UI.Kit.ScopedSettingSource.Scope.get -> string!
+SharpRail.Plugins.UI.Kit.ScopedSettingSource.Scope.init -> void
+SharpRail.Plugins.UI.Kit.ScopedSettingSource.ScopedSettingSource(string! Scope, string? Path) -> void
+SharpRail.Plugins.UI.Kit.SettingValueDialog
+SharpRail.Plugins.UI.Kit.SettingValueDialogOptions
+SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.<Clone>$() -> SharpRail.Plugins.UI.Kit.SettingValueDialogOptions!
+SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.Choices.get -> System.Func<string!, System.Collections.Generic.IReadOnlyList<string!>?>?
+SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.Choices.init -> void
+SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.CurrentValue.get -> System.Text.Json.JsonElement?
+SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.CurrentValue.init -> void
+SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.Deconstruct(out string! NamePrefix, out string! SettingKey, out System.Text.Json.JsonElement? CurrentValue, out System.Collections.Generic.IReadOnlyList<string!>! KnownKeys, out string! SubmitLabel) -> void
+SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.Equals(SharpRail.Plugins.UI.Kit.SettingValueDialogOptions? other) -> bool
+SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.KeyPlaceholder.get -> string?
+SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.KeyPlaceholder.init -> void
+SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.KnownKeys.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.KnownKeys.init -> void
+SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.KnownKeysOnly.get -> bool
+SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.KnownKeysOnly.init -> void
+SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.NamePrefix.get -> string!
+SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.NamePrefix.init -> void
+SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.SettingKey.get -> string!
+SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.SettingKey.init -> void
+SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.SettingValueDialogOptions(string! NamePrefix, string! SettingKey, System.Text.Json.JsonElement? CurrentValue, System.Collections.Generic.IReadOnlyList<string!>! KnownKeys, string! SubmitLabel) -> void
+SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.ShapeFor.get -> System.Func<string!, SharpRail.Plugins.UI.Kit.ValueShape?>?
+SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.ShapeFor.init -> void
+SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.SubmitLabel.get -> string!
+SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.SubmitLabel.init -> void
+SharpRail.Plugins.UI.Kit.TerminalFacts
+SharpRail.Plugins.UI.Kit.TerminalTodo
+SharpRail.Plugins.UI.Kit.TerminalTodo.<Clone>$() -> SharpRail.Plugins.UI.Kit.TerminalTodo!
+SharpRail.Plugins.UI.Kit.TerminalTodo.ActiveForm.get -> string?
+SharpRail.Plugins.UI.Kit.TerminalTodo.ActiveForm.init -> void
+SharpRail.Plugins.UI.Kit.TerminalTodo.Content.get -> string!
+SharpRail.Plugins.UI.Kit.TerminalTodo.Content.init -> void
+SharpRail.Plugins.UI.Kit.TerminalTodo.Deconstruct(out string! Content, out SharpRail.Plugins.UI.Kit.TerminalTodoStatus Status, out string? ActiveForm) -> void
+SharpRail.Plugins.UI.Kit.TerminalTodo.Equals(SharpRail.Plugins.UI.Kit.TerminalTodo? other) -> bool
+SharpRail.Plugins.UI.Kit.TerminalTodo.Status.get -> SharpRail.Plugins.UI.Kit.TerminalTodoStatus
+SharpRail.Plugins.UI.Kit.TerminalTodo.Status.init -> void
+SharpRail.Plugins.UI.Kit.TerminalTodo.TerminalTodo(string! Content, SharpRail.Plugins.UI.Kit.TerminalTodoStatus Status, string? ActiveForm = null) -> void
+SharpRail.Plugins.UI.Kit.TerminalTodoStatus
+SharpRail.Plugins.UI.Kit.TerminalTodoStatus.Completed = 2 -> SharpRail.Plugins.UI.Kit.TerminalTodoStatus
+SharpRail.Plugins.UI.Kit.TerminalTodoStatus.InProgress = 1 -> SharpRail.Plugins.UI.Kit.TerminalTodoStatus
+SharpRail.Plugins.UI.Kit.TerminalTodoStatus.Pending = 0 -> SharpRail.Plugins.UI.Kit.TerminalTodoStatus
+SharpRail.Plugins.UI.Kit.TokenUsage
+SharpRail.Plugins.UI.Kit.TokenUsage.<Clone>$() -> SharpRail.Plugins.UI.Kit.TokenUsage!
+SharpRail.Plugins.UI.Kit.TokenUsage.CacheRead.get -> long
+SharpRail.Plugins.UI.Kit.TokenUsage.CacheRead.init -> void
+SharpRail.Plugins.UI.Kit.TokenUsage.CacheWrite.get -> long
+SharpRail.Plugins.UI.Kit.TokenUsage.CacheWrite.init -> void
+SharpRail.Plugins.UI.Kit.TokenUsage.Deconstruct(out long Input, out long Output, out long CacheRead, out long CacheWrite) -> void
+SharpRail.Plugins.UI.Kit.TokenUsage.Equals(SharpRail.Plugins.UI.Kit.TokenUsage? other) -> bool
+SharpRail.Plugins.UI.Kit.TokenUsage.Input.get -> long
+SharpRail.Plugins.UI.Kit.TokenUsage.Input.init -> void
+SharpRail.Plugins.UI.Kit.TokenUsage.Output.get -> long
+SharpRail.Plugins.UI.Kit.TokenUsage.Output.init -> void
+SharpRail.Plugins.UI.Kit.TokenUsage.TokenUsage(long Input, long Output, long CacheRead, long CacheWrite) -> void
+SharpRail.Plugins.UI.Kit.ValueShape
+SharpRail.Plugins.UI.Kit.ValueShape.List = 3 -> SharpRail.Plugins.UI.Kit.ValueShape
+SharpRail.Plugins.UI.Kit.ValueShape.Number = 1 -> SharpRail.Plugins.UI.Kit.ValueShape
+SharpRail.Plugins.UI.Kit.ValueShape.Switch = 2 -> SharpRail.Plugins.UI.Kit.ValueShape
+SharpRail.Plugins.UI.Kit.ValueShape.Text = 0 -> SharpRail.Plugins.UI.Kit.ValueShape
+override SharpRail.Plugins.UI.Kit.ScopedSettingShadow.Equals(object? obj) -> bool
+override SharpRail.Plugins.UI.Kit.ScopedSettingShadow.GetHashCode() -> int
+override SharpRail.Plugins.UI.Kit.ScopedSettingShadow.ToString() -> string!
+override SharpRail.Plugins.UI.Kit.ScopedSettingSource.Equals(object? obj) -> bool
+override SharpRail.Plugins.UI.Kit.ScopedSettingSource.GetHashCode() -> int
+override SharpRail.Plugins.UI.Kit.ScopedSettingSource.ToString() -> string!
+override SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.Equals(object? obj) -> bool
+override SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.GetHashCode() -> int
+override SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.ToString() -> string!
+override SharpRail.Plugins.UI.Kit.TerminalTodo.Equals(object? obj) -> bool
+override SharpRail.Plugins.UI.Kit.TerminalTodo.GetHashCode() -> int
+override SharpRail.Plugins.UI.Kit.TerminalTodo.ToString() -> string!
+override SharpRail.Plugins.UI.Kit.TokenUsage.Equals(object? obj) -> bool
+override SharpRail.Plugins.UI.Kit.TokenUsage.GetHashCode() -> int
+override SharpRail.Plugins.UI.Kit.TokenUsage.ToString() -> string!
+static SharpRail.Plugins.UI.Kit.ScopedSetting.AbbreviateHomePath(string! path) -> string!
+static SharpRail.Plugins.UI.Kit.ScopedSetting.RowAction(string! name, string! label, System.Action! onClick, bool danger = false) -> Avalonia.Controls.Button!
+static SharpRail.Plugins.UI.Kit.ScopedSetting.ScopeChip(string! scope, string! name = "ScopeChip") -> Avalonia.Controls.Border!
+static SharpRail.Plugins.UI.Kit.ScopedSetting.SettingRow(string! namePrefix, string! settingKey, Avalonia.Controls.Control! value, SharpRail.Plugins.UI.Kit.ScopedSettingSource! source, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.UI.Kit.ScopedSettingShadow!>! shadowed, System.Action<string!>! onOpen, System.Collections.Generic.IEnumerable<Avalonia.Controls.Control!>? actions = null, string? docsUrl = null, string? docsTitle = null) -> Avalonia.Controls.Control!
+static SharpRail.Plugins.UI.Kit.ScopedSetting.SettingsToolbar(string! namePrefix, string! query, System.Action<string!>! onQuery, System.Action? onAdd) -> Avalonia.Controls.Control!
+static SharpRail.Plugins.UI.Kit.ScopedSetting.SourcePath(string! path, System.Action<string!>! onOpen, string! name = "SourcePath") -> Avalonia.Controls.Button!
+static SharpRail.Plugins.UI.Kit.ScopedSettingShadow.operator !=(SharpRail.Plugins.UI.Kit.ScopedSettingShadow? left, SharpRail.Plugins.UI.Kit.ScopedSettingShadow? right) -> bool
+static SharpRail.Plugins.UI.Kit.ScopedSettingShadow.operator ==(SharpRail.Plugins.UI.Kit.ScopedSettingShadow? left, SharpRail.Plugins.UI.Kit.ScopedSettingShadow? right) -> bool
+static SharpRail.Plugins.UI.Kit.ScopedSettingSource.operator !=(SharpRail.Plugins.UI.Kit.ScopedSettingSource? left, SharpRail.Plugins.UI.Kit.ScopedSettingSource? right) -> bool
+static SharpRail.Plugins.UI.Kit.ScopedSettingSource.operator ==(SharpRail.Plugins.UI.Kit.ScopedSettingSource? left, SharpRail.Plugins.UI.Kit.ScopedSettingSource? right) -> bool
+static SharpRail.Plugins.UI.Kit.SettingValueDialog.ShapeOf(System.Text.Json.JsonElement? value) -> SharpRail.Plugins.UI.Kit.ValueShape?
+static SharpRail.Plugins.UI.Kit.SettingValueDialog.ShowAsync(Avalonia.Controls.Window! owner, SharpRail.Plugins.UI.Kit.SettingValueDialogOptions! options) -> System.Threading.Tasks.Task<(string! Key, System.Text.Json.JsonElement Value)?>!
+static SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.operator !=(SharpRail.Plugins.UI.Kit.SettingValueDialogOptions? left, SharpRail.Plugins.UI.Kit.SettingValueDialogOptions? right) -> bool
+static SharpRail.Plugins.UI.Kit.SettingValueDialogOptions.operator ==(SharpRail.Plugins.UI.Kit.SettingValueDialogOptions? left, SharpRail.Plugins.UI.Kit.SettingValueDialogOptions? right) -> bool
+static SharpRail.Plugins.UI.Kit.TerminalFacts.AttachButton(string! title, System.Func<System.Threading.Tasks.Task<string?>!>! pickFile, System.Action<string!>! onAttach, System.Action<System.Exception!>! onError) -> Avalonia.Controls.Button!
+static SharpRail.Plugins.UI.Kit.TerminalFacts.AttachPath(string! path, string? worktreePath, string? cwd) -> string!
+static SharpRail.Plugins.UI.Kit.TerminalFacts.ChipButton(string! name, Avalonia.Controls.Control! content, string! tooltip, System.Action! onClick) -> Avalonia.Controls.Button!
+static SharpRail.Plugins.UI.Kit.TerminalFacts.CwdLabel(string? cwd) -> string?
+static SharpRail.Plugins.UI.Kit.TerminalFacts.FactChip(string! kind, string! label, string! title) -> Avalonia.Controls.Control!
+static SharpRail.Plugins.UI.Kit.TerminalFacts.FormatTokens(long count) -> string!
+static SharpRail.Plugins.UI.Kit.TerminalFacts.IdeContextChip(bool enabled, System.Action! onToggle) -> Avalonia.Controls.Button!
+static SharpRail.Plugins.UI.Kit.TerminalFacts.PickerChip(string! kind, string! label, string! title, System.Func<System.Collections.Generic.IReadOnlyList<Avalonia.Controls.Control!>!>! items) -> Avalonia.Controls.Button!
+static SharpRail.Plugins.UI.Kit.TerminalFacts.Plan(string! agent, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.UI.Kit.TerminalTodo!>! todos) -> Avalonia.Controls.Control!
+static SharpRail.Plugins.UI.Kit.TerminalFacts.TokenUsageParts(SharpRail.Plugins.UI.Kit.TokenUsage! usage) -> System.Collections.Generic.IReadOnlyList<string!>!
+static SharpRail.Plugins.UI.Kit.TerminalFacts.UsageChip(string! agent, SharpRail.Plugins.UI.Kit.TokenUsage! usage) -> Avalonia.Controls.Control?
+static SharpRail.Plugins.UI.Kit.TerminalTodo.operator !=(SharpRail.Plugins.UI.Kit.TerminalTodo? left, SharpRail.Plugins.UI.Kit.TerminalTodo? right) -> bool
+static SharpRail.Plugins.UI.Kit.TerminalTodo.operator ==(SharpRail.Plugins.UI.Kit.TerminalTodo? left, SharpRail.Plugins.UI.Kit.TerminalTodo? right) -> bool
+static SharpRail.Plugins.UI.Kit.TokenUsage.operator !=(SharpRail.Plugins.UI.Kit.TokenUsage? left, SharpRail.Plugins.UI.Kit.TokenUsage? right) -> bool
+static SharpRail.Plugins.UI.Kit.TokenUsage.operator ==(SharpRail.Plugins.UI.Kit.TokenUsage? left, SharpRail.Plugins.UI.Kit.TokenUsage? right) -> bool
+SharpRail.Plugins.UI.Kit.SvgAsset.SvgAsset(byte[]! svg, double size = 16, Avalonia.Media.IBrush? color = null) -> void
+const SharpRail.Plugins.UI.Kit.Visualization.ZoomGesture.MaxScale = 6 -> double
+const SharpRail.Plugins.UI.Kit.Visualization.ZoomGesture.MinScale = 0.25 -> double
+const SharpRail.Plugins.UI.Kit.Visualization.ZoomGesture.ScaleStep = 1.15 -> double
+SharpRail.Plugins.UI.Kit.Visualization.ZoomGesture
+static SharpRail.Plugins.UI.Kit.Visualization.ZoomGesture.Clamp(double scale) -> double
+static SharpRail.Plugins.UI.Kit.Visualization.ZoomGesture.ForWheel(double scale, double deltaLines) -> double
+static SharpRail.Plugins.UI.Kit.Visualization.ZoomGesture.IsZoom(Avalonia.Input.KeyModifiers modifiers) -> bool
+
+override SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Equals(object? obj) -> bool
+override SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.GetHashCode() -> int
+override SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.ToString() -> string!
+SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView
+SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.<Clone>$() -> SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView!
+SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.ComparisonOptionView(string! Name, string? Description, System.Collections.Generic.IReadOnlyList<string!>! Pros, System.Collections.Generic.IReadOnlyList<string!>! Cons, bool Recommended, string? Mermaid) -> void
+SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Cons.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Cons.init -> void
+SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Deconstruct(out string! Name, out string? Description, out System.Collections.Generic.IReadOnlyList<string!>! Pros, out System.Collections.Generic.IReadOnlyList<string!>! Cons, out bool Recommended, out string? Mermaid) -> void
+SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Description.get -> string?
+SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Description.init -> void
+SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Equals(SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView? other) -> bool
+SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Mermaid.get -> string?
+SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Mermaid.init -> void
+SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Name.get -> string!
+SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Name.init -> void
+SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Pros.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Pros.init -> void
+SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Recommended.get -> bool
+SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Recommended.init -> void
+SharpRail.Plugins.UI.Kit.Visualization.MermaidView
+SharpRail.Plugins.UI.Kit.Visualization.MermaidView.MermaidView(string! source, bool interactive = false, System.Action<string?>? onRender = null) -> void
+SharpRail.Plugins.UI.Kit.Visualization.VisualizationArgs
+SharpRail.Plugins.UI.Kit.Visualization.VisualizationCard
+static SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.operator !=(SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView? left, SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView? right) -> bool
+static SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.operator ==(SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView? left, SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView? right) -> bool
+static SharpRail.Plugins.UI.Kit.Visualization.VisualizationArgs.ComparisonOptions(System.Text.Json.JsonElement value) -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView!>!
+static SharpRail.Plugins.UI.Kit.Visualization.VisualizationArgs.String(System.Text.Json.JsonElement args, string! key) -> string!
+static SharpRail.Plugins.UI.Kit.Visualization.VisualizationCard.Create(System.Text.Json.JsonElement args, bool interactive = false, System.Action<string?>? onRender = null) -> Avalonia.Controls.Control!
+
+SharpRail.Plugins.UI.Kit.Account
+SharpRail.Plugins.UI.Kit.AccountSeverity
+SharpRail.Plugins.UI.Kit.AccountSeverity.Critical = 2 -> SharpRail.Plugins.UI.Kit.AccountSeverity
+SharpRail.Plugins.UI.Kit.AccountSeverity.Normal = 0 -> SharpRail.Plugins.UI.Kit.AccountSeverity
+SharpRail.Plugins.UI.Kit.AccountSeverity.Warning = 1 -> SharpRail.Plugins.UI.Kit.AccountSeverity
+static SharpRail.Plugins.UI.Kit.Account.Heading(string! text) -> Avalonia.Controls.TextBlock!
+static SharpRail.Plugins.UI.Kit.Account.ReadingLabel(string! provider, System.DateTimeOffset fetchedAt) -> string!
+static SharpRail.Plugins.UI.Kit.Account.ResetLabel(System.DateTimeOffset at) -> string?
+static SharpRail.Plugins.UI.Kit.Account.Row(string! label, string! value) -> Avalonia.Controls.Control!
+static SharpRail.Plugins.UI.Kit.Account.UsageWindow(string! id, string! label, double percent, System.DateTimeOffset? resetsAt, string! namePrefix, SharpRail.Plugins.UI.Kit.AccountSeverity severity = SharpRail.Plugins.UI.Kit.AccountSeverity.Normal) -> Avalonia.Controls.Control!

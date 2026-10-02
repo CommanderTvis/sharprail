@@ -31,6 +31,8 @@ internal static class StateChecks
     {
         var project = Path.Combine(root, "state-project");
         var other = Path.Combine(root, "state-other");
+        Directory.CreateDirectory(project);
+        Directory.CreateDirectory(other);
         HostStateChange[] changes =
         [
             HostStateChange.Setting("theme", "light"), HostStateChange.Setting("theme-mode", "system"),
@@ -78,6 +80,54 @@ internal static class StateChecks
             "Plugin namespaces merge member by member, roots replace, and the host names its platform.");
         Require(Describe(new HostStateStore(localDirectory).Current) == expected && Describe(new HostStateStore(remoteDirectory).Current) == expected,
             "Both hosts persist their state beside themselves.");
+
+        await WorkspaceListing(root);
+
+        // Recents hide folders that no longer exist or became files, without forgetting them.
+        var recents = new HostStateStore(Path.Combine(root, "state-recents"));
+        var gone = Path.Combine(root, "state-gone");
+        var replaced = Path.Combine(root, "state-replaced");
+        Directory.CreateDirectory(gone);
+        Directory.CreateDirectory(replaced);
+        await recents.ChangeAsync([.. new[] { gone, replaced, other }.SelectMany(path => new[] { HostStateChange.OpenProject(path), HostStateChange.CloseProject(path) })]);
+        Require(recents.Current.RecentProjects.SequenceEqual([other, replaced, gone]), "Closed projects are recent, newest first.");
+        Directory.Delete(gone);
+        Directory.Delete(replaced);
+        File.WriteAllText(replaced, "");
+        Require(recents.Current.RecentProjects.SequenceEqual([other]), "Recents stop listing a folder that is gone or became a file.");
+        Directory.CreateDirectory(gone);
+        Require(recents.Current.RecentProjects.SequenceEqual([other, gone]), "A restored folder returns to recents in its place.");
         Console.WriteLine("PASS host state changes, broadcasts, validation and persistence match locally and over gRPC");
+    }
+
+    // Any known project's workspaces, from any session, identically over gRPC; never an arbitrary folder.
+    private static async Task WorkspaceListing(string root)
+    {
+        var repository = E2E.IsolatedGit.Repository(Path.Combine(root, "listing-repo"));
+        var linked = Path.Combine(root, "listing-repo-worktrees", "feature");
+        E2E.IsolatedGit.Run(repository, "worktree", "add", "-b", "feature", linked);
+        var plain = Path.Combine(root, "listing-plain");
+        Directory.CreateDirectory(plain);
+        var stranger = Path.Combine(root, "listing-stranger");
+        Directory.CreateDirectory(stranger);
+        var directory = Path.Combine(root, "listing-state");
+        await using var server = RemoteServer.Create(plain, IPAddress.Loopback, 0, "listing-test", directory);
+        await server.StartAsync();
+        var address = server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single();
+        using var state = new RemoteStateAdapter(new Uri(address), "listing-test");
+        await state.ChangeAsync([HostStateChange.OpenProject(repository), HostStateChange.OpenProject(plain)]);
+        var store = new HostStateStore(directory);
+        IProjectServices local = new LocalProjectAdapter(new ProjectServices(plain, store));
+        using var remote = new RemoteProjectAdapter(new Uri(address), "listing-test");
+        await remote.OpenProjectAsync(plain);
+        foreach (var (service, label) in new[] { (local, "local"), ((IProjectServices)remote, "remote") })
+        {
+            var trees = await service.ListWorkspacesAsync(repository);
+            Require(trees.Count == 2 && trees[0] is { IsMain: true, Branch: "main" } && trees[0].Path == repository && trees[1].Path == linked && trees[1].Branch == "feature",
+                $"A {label} session lists another project's worktrees, main first.");
+            Require((await service.ListWorkspacesAsync(plain)).SequenceEqual([new WorktreeInfo(plain, "", true, false)]), $"A {label} plain folder is its own workspace.");
+            try { await service.ListWorkspacesAsync(stranger); throw new InvalidOperationException($"A {label} host listed a folder that is not its project."); }
+            catch (Exception error) when (error is UnauthorizedAccessException or Grpc.Core.RpcException) { }
+        }
     }
 }
