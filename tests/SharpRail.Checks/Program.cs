@@ -127,6 +127,7 @@ internal static class Program
             WorkspaceWatchChecks.Run(root).GetAwaiter().GetResult();
             BranchGraphChecks.RunHostAsync(root).GetAwaiter().GetResult();
             VisualizeChecks.Host(root).GetAwaiter().GetResult();
+            FileIconsChecks.Host(root).GetAwaiter().GetResult();
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             PluginUiChecks.Run(root);
@@ -139,6 +140,7 @@ internal static class Program
             PdfPreviewChecks.Run(root);
             BranchGraphChecks.RunUi(root);
             E2E.VisualizeE2E.Run(root);
+            FileIconsChecks.UiChecks(root);
             Console.WriteLine("PASS plugin checks");
             return;
         }
@@ -163,6 +165,14 @@ internal static class Program
         if (args.SequenceEqual(["--visualize-host"]))
         {
             VisualizeChecks.Host(root).GetAwaiter().GetResult();
+            return;
+        }
+        if (args.SequenceEqual(["--file-icons"]))
+        {
+            FileIconsChecks.Host(root).GetAwaiter().GetResult();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            FileIconsChecks.UiChecks(root);
             return;
         }
         if (args.SequenceEqual(["--file-watch"]))
@@ -287,6 +297,7 @@ internal static class Program
         WorkspaceWatchChecks.Run(root).GetAwaiter().GetResult();
         BranchGraphChecks.RunHostAsync(root).GetAwaiter().GetResult();
         VisualizeChecks.Host(root).GetAwaiter().GetResult();
+        FileIconsChecks.Host(root).GetAwaiter().GetResult();
         FileSavingChecks.Run(root).GetAwaiter().GetResult();
         LayoutChecks.Run();
         CheckOpenWorld();
@@ -300,6 +311,7 @@ internal static class Program
         PdfPreviewChecks.Run(root);
         BranchGraphChecks.RunUi(root);
         E2E.VisualizeE2E.Run(root);
+        FileIconsChecks.UiChecks(root);
         Console.WriteLine("PASS prototype checks and open-world runtime");
     }
 
