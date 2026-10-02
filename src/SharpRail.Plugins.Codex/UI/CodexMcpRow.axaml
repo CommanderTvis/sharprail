@@ -1,0 +1,13 @@
+<Border xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:kit="using:SharpRail.Plugins.UI.Kit"
+        x:Class="SharpRail.Plugins.Codex.UI.CodexMcpRow" x:ClassModifier="internal"
+        Name="CodexCapability" Tag="mcp" Padding="8,4" BorderBrush="{x:Static kit:Ui.BorderBrush}" BorderThickness="0,0,0,1">
+  <StackPanel Spacing="2">
+    <DockPanel>
+      <ContentControl x:Name="Scope" DockPanel.Dock="Right" />
+      <TextBlock x:Name="ServerName" FontFamily="{x:Static kit:Ui.CodeFont}" FontSize="12" Foreground="{x:Static kit:Ui.TextBrush}" />
+    </DockPanel>
+    <TextBlock x:Name="Target" FontFamily="{x:Static kit:Ui.CodeFont}" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextTrimming="CharacterEllipsis" />
+    <ContentControl x:Name="Source" HorizontalAlignment="Left" />
+  </StackPanel>
+</Border>

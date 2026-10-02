@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../SharpRail.Plugins.Codex.csproj" />
+    <ProjectReference Include="../../SharpRail.Plugins.Api.UI/SharpRail.Plugins.Api.UI.csproj" />
+    <ProjectReference Include="../../SharpRail.Plugins.UI.Kit/SharpRail.Plugins.UI.Kit.csproj" />
+    <ProjectReference Include="../../SharpRail.Plugins.Agent.UI/SharpRail.Plugins.Agent.UI.csproj" />
+    <PackageReference Include="Avalonia" />
+  </ItemGroup>
+</Project>

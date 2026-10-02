@@ -30,12 +30,10 @@ internal static class Program
 {
     internal static void Checks(string[] args)
     {
-        // Fixture repositories are never pushed; their commits must not wait on the developer's signing agent.
-        Environment.SetEnvironmentVariable("GIT_CONFIG_COUNT", "2");
-        Environment.SetEnvironmentVariable("GIT_CONFIG_KEY_0", "commit.gpgsign");
-        Environment.SetEnvironmentVariable("GIT_CONFIG_VALUE_0", "false");
-        Environment.SetEnvironmentVariable("GIT_CONFIG_KEY_1", "tag.gpgsign");
-        Environment.SetEnvironmentVariable("GIT_CONFIG_VALUE_1", "false");
+        if (args.SequenceEqual(["--fake-agent-launch"])) { Thread.Sleep(30_000); return; }
+        E2E.IsolatedGit.ForProcess();
+        if (args.Length > 0 && E2E.CodexE2E.Fake(args[0], args[1..]) is { } fixtureExit) { Environment.Exit(fixtureExit); return; }
+        if (!args.Contains("--terminal-relay")) E2E.IsolatedGit.CheckIsolation();
         if (args.Contains("--native-terminal"))
         {
             if (!OperatingSystem.IsMacOS()) throw new PlatformNotSupportedException();
@@ -45,6 +43,8 @@ internal static class Program
         if (args.Contains("--terminal-relay")) { Environment.Exit(SharpRail.UI.Terminal.TerminalRelay.Run()); return; }
         var root = Path.Combine(Directory.GetCurrentDirectory(), ".bench", "check-fixture-" + Guid.NewGuid().ToString("N"));
         Environment.SetEnvironmentVariable("SHARPRAIL_STATE_DIR", Path.Combine(root, "host-state"));
+        // Enabling Codex installs its skills under CODEX_HOME; no check may reach the developer's own.
+        Environment.SetEnvironmentVariable("CODEX_HOME", Path.Combine(root, "codex-home"));
         Directory.CreateDirectory(root);
         Directory.CreateDirectory(Path.Combine(root, "src"));
         Environment.SetEnvironmentVariable("GIT_CEILING_DIRECTORIES", Directory.GetCurrentDirectory());
@@ -92,11 +92,32 @@ internal static class Program
             SwitchChecks.Run();
             return;
         }
+        if (args.SequenceEqual(["--state"]))
+        {
+            StateChecks.Run(root).GetAwaiter().GetResult();
+            Console.WriteLine("PASS host state checks");
+            return;
+        }
         if (args.SequenceEqual(["--vertical-tabs"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             E2E.VerticalTabsE2E.Run(Path.Combine(root, "upstream-e2e"));
+            return;
+        }
+        if (args.SequenceEqual(["--agent-marks"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            E2E.AgentTabMarksE2E.Run(root);
+            return;
+        }
+        if (args.SequenceEqual(["--agent-launches"]))
+        {
+            AgentLaunchChecks.RunHost();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            AgentLaunchChecks.RunUi(root);
             return;
         }
         if (args.SequenceEqual(["--ui-smoke"]))
@@ -316,6 +337,7 @@ internal static class Program
             BranchGraphChecks.RunHostAsync(root).GetAwaiter().GetResult();
             VisualizeChecks.Host(root).GetAwaiter().GetResult();
             FileIconsChecks.Host(root).GetAwaiter().GetResult();
+            CodexChecks.RunHost(root).GetAwaiter().GetResult();
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             PluginUiChecks.Run(root);
@@ -330,6 +352,8 @@ internal static class Program
             BranchGraphChecks.RunUi(root);
             E2E.VisualizeE2E.Run(root);
             FileIconsChecks.UiChecks(root);
+            E2E.CodexE2E.Run(root);
+            AwayNotificationChecks.Run(root);
             Console.WriteLine("PASS plugin checks");
             return;
         }
@@ -354,6 +378,21 @@ internal static class Program
         if (args.SequenceEqual(["--visualize-host"]))
         {
             VisualizeChecks.Host(root).GetAwaiter().GetResult();
+            return;
+        }
+        if (args.SequenceEqual(["--codex-terminals"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            E2E.CodexE2E.RunTerminals(root);
+            return;
+        }
+        if (args.SequenceEqual(["--codex"]))
+        {
+            CodexChecks.RunHost(root).GetAwaiter().GetResult();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            E2E.CodexE2E.Run(root);
             return;
         }
         if (args.SequenceEqual(["--file-icons"]))
@@ -394,6 +433,13 @@ internal static class Program
             ClaudeCodeChecks.RunUi(root);
             ClaudeCodeChecks.Launcher(root);
             Console.WriteLine("PASS Claude Code checks");
+            return;
+        }
+        if (args.SequenceEqual(["--notifications"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            AwayNotificationChecks.Run(root);
             return;
         }
         if (args.SequenceEqual(["--blueprint"]))
@@ -566,12 +612,16 @@ internal static class Program
             return;
         }
         Gate.Case("packaged-app", PackagedApp.Run);
-        Gate.Case("hosts", () => CheckHosts(root).GetAwaiter().GetResult());
         Gate.Case("boundaries", () => BoundaryChecks.Run(root));
         Gate.Case("public-surface", () => SurfaceChecks.Run(root));
         Gate.Case("runner", () => RunnerChecks.Run(root));
+        Gate.Case("layout", LayoutChecks.Run);
+        Gate.Case("quit-confirmation", QuitConfirmationChecks.Run);
+        Gate.Case("open-world", CheckOpenWorld);
+        Gate.Case("hosts", () => CheckHosts(root).GetAwaiter().GetResult());
         Gate.Case("terminal-hosts", () => TerminalHostChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("workspace-tools", () => WorkspaceToolChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("agent-launch-origins", AgentLaunchChecks.RunHost);
         Gate.Case("projects", () => ProjectChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("pull-requests", () => PullRequestChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("changes", () => ChangeChecks.Run(root).GetAwaiter().GetResult());
@@ -586,31 +636,34 @@ internal static class Program
         Gate.Case("host-state", () => StateStoreChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("project-paths", () => ProjectPathChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("specs", () => SpecChecks.Run(root).GetAwaiter().GetResult());
-        Gate.Case("layout", LayoutChecks.Run);
-        Gate.Case("quit-confirmation", QuitConfirmationChecks.Run);
-        Gate.Case("open-world", CheckOpenWorld);
         Gate.Case("host-listener", () => HostListenerChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("plugin-host", () => PluginHostChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("spec-dialect", () => SpecDialectChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("blueprint", () => BlueprintChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("claude-code", () => ClaudeCodeChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("DiscordChecks-RunHostAsync", () => DiscordChecks.RunHostAsync(root).GetAwaiter().GetResult());
+        Gate.Case("BranchGraphChecks-RunHostAsync", () => BranchGraphChecks.RunHostAsync(root).GetAwaiter().GetResult());
+        Gate.Case("VisualizeChecks-Host", () => VisualizeChecks.Host(root).GetAwaiter().GetResult());
+        Gate.Case("FileIconsChecks-Host", () => FileIconsChecks.Host(root).GetAwaiter().GetResult());
+        Gate.Case("codex-host", () => CodexChecks.RunHost(root).GetAwaiter().GetResult());
+        Gate.Case("workspace-watch", () => WorkspaceWatchChecks.Run(root).GetAwaiter().GetResult());
         UiChecks.Run(root);
         Gate.Case("resources", () => ResourceChecks.Run(root));
         Gate.Case("design", () => Design.DesignChecks.Run(write: false));
         Gate.Case("design-roles", Design.RoleChecks.Run);
-        Gate.Case("plugin-host", () => PluginHostChecks.Run(root).GetAwaiter().GetResult());
-        Gate.Case("file-actions", () => FileActionChecks.Run(root));
         Gate.Case("plugin-ui", () => PluginUiChecks.Run(root));
-        Gate.Case("spec-dialect", () => SpecDialectChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("file-actions", () => FileActionChecks.Run(root));
         Gate.Case("spec-dialect-ui", () => SpecDialectChecks.RunUi(Path.Combine(root, "upstream-e2e")));
-        Gate.Case("blueprint", () => BlueprintChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("blueprint-ui", () => BlueprintChecks.RunUi(root));
-        Gate.Case("claude-code", () => ClaudeCodeChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("claude-code-ui", () => ClaudeCodeChecks.RunUi(root));
-        Gate.Case("DiscordChecks-RunHostAsync", () => DiscordChecks.RunHostAsync(root).GetAwaiter().GetResult());
         Gate.Case("DiscordChecks-RunUi", () => DiscordChecks.RunUi(root));
         Gate.Case("PdfPreviewChecks-Run", () => PdfPreviewChecks.Run(root));
-        Gate.Case("BranchGraphChecks-RunHostAsync", () => BranchGraphChecks.RunHostAsync(root).GetAwaiter().GetResult());
         Gate.Case("BranchGraphChecks-RunUi", () => BranchGraphChecks.RunUi(root));
-        Gate.Case("VisualizeChecks-Host", () => VisualizeChecks.Host(root).GetAwaiter().GetResult());
-        Gate.Case("FileIconsChecks-Host", () => FileIconsChecks.Host(root).GetAwaiter().GetResult());
         Gate.Case("FileIconsChecks-UiChecks", () => FileIconsChecks.UiChecks(root));
+        Gate.Case("codex-ui", () => E2E.CodexE2E.Run(root));
+        Gate.Case("away-notifications", () => AwayNotificationChecks.Run(root));
+        Gate.Case("plugin-watch", () => PluginWatchChecks.Run(root));
+        Gate.Case("visualize-ui", () => E2E.VisualizeE2E.Run(root));
         Console.WriteLine("PASS prototype checks and open-world runtime");
     }
 
