@@ -31,6 +31,9 @@ internal static class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        E2E.IsolatedGit.ForProcess();
+        if (args.Length > 0 && E2E.CodexE2E.Fake(args[0], args[1..]) is { } fixtureExit) { Environment.Exit(fixtureExit); return; }
+        if (!args.Contains("--terminal-relay")) E2E.IsolatedGit.CheckIsolation();
         if (args.Contains("--native-terminal"))
         {
             if (!OperatingSystem.IsMacOS()) throw new PlatformNotSupportedException();
@@ -70,6 +73,12 @@ internal static class Program
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             SwitchChecks.Run();
+            return;
+        }
+        if (args.SequenceEqual(["--state"]))
+        {
+            StateChecks.Run(root).GetAwaiter().GetResult();
+            Console.WriteLine("PASS host state checks");
             return;
         }
         if (args.SequenceEqual(["--vertical-tabs"]))
@@ -128,6 +137,7 @@ internal static class Program
             BranchGraphChecks.RunHostAsync(root).GetAwaiter().GetResult();
             VisualizeChecks.Host(root).GetAwaiter().GetResult();
             FileIconsChecks.Host(root).GetAwaiter().GetResult();
+            CodexChecks.RunHost(root).GetAwaiter().GetResult();
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             PluginUiChecks.Run(root);
@@ -141,6 +151,7 @@ internal static class Program
             BranchGraphChecks.RunUi(root);
             E2E.VisualizeE2E.Run(root);
             FileIconsChecks.UiChecks(root);
+            E2E.CodexE2E.Run(root);
             Console.WriteLine("PASS plugin checks");
             return;
         }
@@ -165,6 +176,21 @@ internal static class Program
         if (args.SequenceEqual(["--visualize-host"]))
         {
             VisualizeChecks.Host(root).GetAwaiter().GetResult();
+            return;
+        }
+        if (args.SequenceEqual(["--codex-terminals"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            E2E.CodexE2E.RunTerminals(root);
+            return;
+        }
+        if (args.SequenceEqual(["--codex"]))
+        {
+            CodexChecks.RunHost(root).GetAwaiter().GetResult();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            E2E.CodexE2E.Run(root);
             return;
         }
         if (args.SequenceEqual(["--file-icons"]))
@@ -298,6 +324,7 @@ internal static class Program
         BranchGraphChecks.RunHostAsync(root).GetAwaiter().GetResult();
         VisualizeChecks.Host(root).GetAwaiter().GetResult();
         FileIconsChecks.Host(root).GetAwaiter().GetResult();
+        CodexChecks.RunHost(root).GetAwaiter().GetResult();
         FileSavingChecks.Run(root).GetAwaiter().GetResult();
         LayoutChecks.Run();
         CheckOpenWorld();
@@ -312,6 +339,7 @@ internal static class Program
         BranchGraphChecks.RunUi(root);
         E2E.VisualizeE2E.Run(root);
         FileIconsChecks.UiChecks(root);
+        E2E.CodexE2E.Run(root);
         Console.WriteLine("PASS prototype checks and open-world runtime");
     }
 

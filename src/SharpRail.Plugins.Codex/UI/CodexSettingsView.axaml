@@ -1,0 +1,82 @@
+<StackPanel xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+            xmlns:kit="using:SharpRail.Plugins.UI.Kit"
+            x:Class="SharpRail.Plugins.Codex.UI.CodexSettingsView" x:ClassModifier="internal"
+            Name="SettingsCodex" Spacing="16">
+  <StackPanel.Resources>
+    <!-- As in the fork, a row looks the same on or off; only its check mark shows the state. -->
+    <SolidColorBrush x:Key="ToggleButtonBackgroundChecked" x:CompileBindings="False" Color="{Binding Color, Source={x:Static kit:Ui.Elevated}}" />
+    <SolidColorBrush x:Key="ToggleButtonForegroundChecked" x:CompileBindings="False" Color="{Binding Color, Source={x:Static kit:Ui.TextBrush}}" />
+    <SolidColorBrush x:Key="ToggleButtonBorderBrushChecked" x:CompileBindings="False" Color="{Binding Color, Source={x:Static kit:Ui.BorderBrush}}" />
+    <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPointerOver" x:CompileBindings="False" Color="{Binding Color, Source={x:Static kit:Ui.ControlHover}}" />
+    <SolidColorBrush x:Key="ToggleButtonForegroundCheckedPointerOver" x:CompileBindings="False" Color="{Binding Color, Source={x:Static kit:Ui.TextBrush}}" />
+    <SolidColorBrush x:Key="ToggleButtonBorderBrushCheckedPointerOver" x:CompileBindings="False" Color="{Binding Color, Source={x:Static kit:Ui.BorderBrush}}" />
+    <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPressed" x:CompileBindings="False" Color="{Binding Color, Source={x:Static kit:Ui.ControlHover}}" />
+    <SolidColorBrush x:Key="ToggleButtonForegroundCheckedPressed" x:CompileBindings="False" Color="{Binding Color, Source={x:Static kit:Ui.TextBrush}}" />
+    <SolidColorBrush x:Key="ToggleButtonBorderBrushCheckedPressed" x:CompileBindings="False" Color="{Binding Color, Source={x:Static kit:Ui.BorderBrush}}" />
+    <SolidColorBrush x:Key="ToggleButtonBackgroundPointerOver" x:CompileBindings="False" Color="{Binding Color, Source={x:Static kit:Ui.ControlHover}}" />
+    <SolidColorBrush x:Key="ToggleButtonForegroundPointerOver" x:CompileBindings="False" Color="{Binding Color, Source={x:Static kit:Ui.TextBrush}}" />
+    <SolidColorBrush x:Key="ToggleButtonBorderBrushPointerOver" x:CompileBindings="False" Color="{Binding Color, Source={x:Static kit:Ui.BorderBrush}}" />
+    <SolidColorBrush x:Key="ToggleButtonBackgroundPressed" x:CompileBindings="False" Color="{Binding Color, Source={x:Static kit:Ui.ControlHover}}" />
+    <SolidColorBrush x:Key="ToggleButtonForegroundPressed" x:CompileBindings="False" Color="{Binding Color, Source={x:Static kit:Ui.TextBrush}}" />
+    <SolidColorBrush x:Key="ToggleButtonBorderBrushPressed" x:CompileBindings="False" Color="{Binding Color, Source={x:Static kit:Ui.BorderBrush}}" />
+  </StackPanel.Resources>
+  <StackPanel.Styles>
+    <Style Selector="TextBlock">
+      <Setter Property="Foreground" Value="{x:Static kit:Ui.TextBrush}" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="TextTrimming" Value="None" />
+    </Style>
+    <Style Selector="TextBlock.detail">
+      <Setter Property="Foreground" Value="{x:Static kit:Ui.Muted}" />
+      <Setter Property="FontSize" Value="12" />
+    </Style>
+    <Style Selector="ToggleButton">
+      <Setter Property="Padding" Value="12,8" />
+      <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="BorderBrush" Value="{x:Static kit:Ui.BorderBrush}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Background" Value="{x:Static kit:Ui.Elevated}" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+    </Style>
+  </StackPanel.Styles>
+  <StackPanel Spacing="4">
+    <TextBlock Text="Codex" FontSize="15" FontWeight="SemiBold" />
+    <TextBlock Classes="detail" Text="The Codex pane, launcher and terminal status — turn the plugin itself on or off from Settings › Plugins." />
+  </StackPanel>
+  <StackPanel Spacing="4">
+    <TextBlock Text="Launch command" />
+    <TextBox x:Name="CodexCommandInput" PlaceholderText="codex" FontFamily="{x:Static kit:Ui.CodeFont}" FontSize="12"
+             AutomationProperties.Name="Codex launch command" />
+  </StackPanel>
+  <StackPanel Spacing="4">
+    <TextBlock Text="Default permissions mode" />
+    <ComboBox x:Name="CodexPermissionMode" HorizontalAlignment="Stretch" AutomationProperties.Name="Codex default permissions mode" />
+    <TextBlock Classes="detail" Text="Applies to new sessions. Right-click the launcher to choose a different mode for one launch." />
+  </StackPanel>
+  <CheckBox x:Name="CodexAppendSystemPrompt" AutomationProperties.Name="Tell Codex it is running in SharpRail">
+    <StackPanel Spacing="2">
+      <TextBlock Text="Tell Codex it is running in SharpRail" />
+      <TextBlock Classes="detail" Text="Sessions SharpRail starts add instructions about the workspace, SharpRail's tools, and how to create worktrees the app lists. The Context pane shows the added file. Applies to new launches and resume commands in POSIX shells." />
+    </StackPanel>
+  </CheckBox>
+  <ToggleButton x:Name="CodexIdeContextToggle" AutomationProperties.Name="Start with IDE context">
+    <DockPanel>
+      <ContentControl x:Name="IdeCheck" DockPanel.Dock="Right" />
+      <StackPanel Spacing="2">
+        <TextBlock Text="Start with IDE context" />
+        <TextBlock Classes="detail" Text="Runs /ide on when the Codex Launcher starts a session." />
+      </StackPanel>
+    </DockPanel>
+  </ToggleButton>
+  <ToggleButton x:Name="CodexMcpToggle" AutomationProperties.Name="Give sessions SharpRail's tools">
+    <DockPanel>
+      <ContentControl x:Name="McpCheck" DockPanel.Dock="Right" />
+      <StackPanel Spacing="2">
+        <TextBlock Text="Give sessions SharpRail's tools" />
+        <TextBlock Classes="detail" Text="Adds SharpRail's MCP server to every Codex session the launcher starts." />
+      </StackPanel>
+    </DockPanel>
+  </ToggleButton>
+</StackPanel>

@@ -1,0 +1,48 @@
+<DockPanel xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+           xmlns:kit="using:SharpRail.Plugins.UI.Kit"
+           x:Class="SharpRail.Plugins.Codex.UI.CodexPanelFrame" x:ClassModifier="internal"
+           Name="CodexConfig" Background="{x:Static kit:Ui.Sidebar}">
+  <DockPanel.Resources>
+    <SolidColorBrush x:Key="ToggleButtonBackgroundChecked" x:CompileBindings="False" Color="{Binding Color, Source={x:Static kit:Ui.Hover}}" />
+    <SolidColorBrush x:Key="ToggleButtonForegroundChecked" x:CompileBindings="False" Color="{Binding Color, Source={x:Static kit:Ui.TextBrush}}" />
+    <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPointerOver" x:CompileBindings="False" Color="{Binding Color, Source={x:Static kit:Ui.Hover}}" />
+    <SolidColorBrush x:Key="ToggleButtonForegroundCheckedPointerOver" x:CompileBindings="False" Color="{Binding Color, Source={x:Static kit:Ui.TextBrush}}" />
+    <SolidColorBrush x:Key="ToggleButtonBackgroundCheckedPressed" x:CompileBindings="False" Color="{Binding Color, Source={x:Static kit:Ui.Hover}}" />
+    <SolidColorBrush x:Key="ToggleButtonForegroundCheckedPressed" x:CompileBindings="False" Color="{Binding Color, Source={x:Static kit:Ui.TextBrush}}" />
+    <SolidColorBrush x:Key="ToggleButtonBackgroundPointerOver" x:CompileBindings="False" Color="{Binding Color, Source={x:Static kit:Ui.Hover}}" />
+    <SolidColorBrush x:Key="ToggleButtonForegroundPointerOver" x:CompileBindings="False" Color="{Binding Color, Source={x:Static kit:Ui.TextBrush}}" />
+    <SolidColorBrush x:Key="ToggleButtonBackgroundPressed" x:CompileBindings="False" Color="{Binding Color, Source={x:Static kit:Ui.Hover}}" />
+    <SolidColorBrush x:Key="ToggleButtonForegroundPressed" x:CompileBindings="False" Color="{Binding Color, Source={x:Static kit:Ui.TextBrush}}" />
+  </DockPanel.Resources>
+  <DockPanel.Styles>
+    <Style Selector="ToggleButton">
+      <Setter Property="Height" Value="20" />
+      <Setter Property="Padding" Value="8,0" />
+      <Setter Property="Margin" Value="0,0,8,4" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{x:Static kit:Ui.Muted}" />
+    </Style>
+  </DockPanel.Styles>
+  <DockPanel DockPanel.Dock="Top" Margin="8,4">
+    <Button x:Name="CodexConfigRefresh" DockPanel.Dock="Right" Width="24" Height="24" Padding="5"
+            Background="Transparent" BorderThickness="0" CornerRadius="0"
+            ToolTip.Tip="Re-read configuration" AutomationProperties.Name="Re-read configuration" />
+    <WrapPanel Orientation="Horizontal" VerticalAlignment="Center">
+      <ToggleButton x:Name="CodexSurface_context" Content="Context" AutomationProperties.Name="Context" />
+      <ToggleButton x:Name="CodexSurface_settings" Content="Settings" AutomationProperties.Name="Settings" />
+      <ToggleButton x:Name="CodexSurface_capabilities" Content="Capabilities" AutomationProperties.Name="Capabilities" />
+      <ToggleButton x:Name="CodexSurface_account" Content="Account" AutomationProperties.Name="Account" />
+    </WrapPanel>
+  </DockPanel>
+  <StackPanel x:Name="CodexConfigScope" DockPanel.Dock="Top" Margin="8,0,8,4" IsVisible="False">
+    <TextBlock x:Name="CodexConfigScopeHeading" FontSize="13" Foreground="{x:Static kit:Ui.Muted}" TextTrimming="CharacterEllipsis" />
+    <TextBlock x:Name="CodexConfigScopeDetail" FontSize="12" Foreground="{x:Static kit:Ui.Hint}" TextTrimming="CharacterEllipsis" />
+  </StackPanel>
+  <TextBlock x:Name="CodexConfigError" DockPanel.Dock="Top" IsVisible="False" FontSize="13" Foreground="{x:Static kit:Ui.Danger}" TextWrapping="Wrap" />
+  <StackPanel x:Name="Notices" DockPanel.Dock="Top" />
+  <ScrollViewer x:Name="Body" HorizontalScrollBarVisibility="Disabled" />
+</DockPanel>

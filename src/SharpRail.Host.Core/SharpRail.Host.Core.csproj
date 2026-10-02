@@ -9,6 +9,7 @@
     <ProjectReference Include="../SharpRail.Plugins.PdfPreview/Contract/SharpRail.Plugins.PdfPreview.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.BranchGraph/Host/SharpRail.Plugins.BranchGraph.Host.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.Visualize/Host/SharpRail.Plugins.Visualize.Host.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Codex/Host/SharpRail.Plugins.Codex.Host.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.FileIcons/Contract/SharpRail.Plugins.FileIcons.csproj" />
   </ItemGroup>
 </Project>

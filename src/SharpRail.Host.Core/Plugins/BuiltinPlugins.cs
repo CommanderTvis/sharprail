@@ -1,19 +1,20 @@
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.Host;
-using SharpRail.Plugins.SpecDialect;
 using SharpRail.Plugins.Blueprint;
 using SharpRail.Plugins.Blueprint.Host;
-using SharpRail.Plugins.ClaudeCode;
-using SharpRail.Plugins.ClaudeCode.Host;
-using SharpRail.Plugins.Discord;
-using SharpRail.Plugins.Discord.Host;
-using SharpRail.Plugins.PdfPreview;
 using SharpRail.Plugins.BranchGraph;
 using SharpRail.Plugins.BranchGraph.Host;
+using SharpRail.Plugins.ClaudeCode;
+using SharpRail.Plugins.ClaudeCode.Host;
+using SharpRail.Plugins.Codex;
+using SharpRail.Plugins.Codex.Host;
+using SharpRail.Plugins.Discord;
+using SharpRail.Plugins.Discord.Host;
+using SharpRail.Plugins.FileIcons;
+using SharpRail.Plugins.PdfPreview;
+using SharpRail.Plugins.SpecDialect;
 using SharpRail.Plugins.Visualize;
 using SharpRail.Plugins.Visualize.Host;
-using SharpRail.Plugins.FileIcons;
-
 
 namespace SharpRail.Host.Core.Plugins;
 
@@ -30,5 +31,6 @@ public static class BuiltinPlugins
         (BranchGraphPlugin.Manifest, new BranchGraphHost()),
         (VisualizeContract.Manifest, new VisualizeHost()),
         (FileIconsManifest.Manifest, null),
+        (CodexManifest.Manifest, new CodexHost())
     ];
 }

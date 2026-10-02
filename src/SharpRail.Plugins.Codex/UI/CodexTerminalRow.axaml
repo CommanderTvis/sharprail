@@ -1,0 +1,27 @@
+<WrapPanel xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+       xmlns:kit="using:SharpRail.Plugins.UI.Kit"
+           x:Class="SharpRail.Plugins.Codex.UI.CodexTerminalRow" x:ClassModifier="internal"
+           Name="TerminalAgentFacts" Orientation="Horizontal" Margin="8,2" VerticalAlignment="Center">
+  <WrapPanel.Styles>
+    <Style Selector="WrapPanel#TerminalAgentFacts > :is(Control)">
+      <Setter Property="Margin" Value="0,0,4,0" />
+    </Style>
+  </WrapPanel.Styles>
+  <Button x:Name="TerminalAgentFact" Tag="model" Background="{x:Static kit:Ui.Elevated}" CornerRadius="3" Padding="4,0"
+          MinHeight="0" BorderThickness="0" MaxWidth="256">
+    <StackPanel Orientation="Horizontal" Spacing="2">
+      <TextBlock x:Name="ModelLabel" FontSize="11" Foreground="{x:Static kit:Ui.Muted}" FontWeight="{x:Static kit:Ui.InterfaceWeight}"
+                 VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+      <ContentControl x:Name="ModelArrow" />
+    </StackPanel>
+    <Button.ContextMenu>
+      <ContextMenu x:Name="ModelMenu" Placement="TopEdgeAlignedLeft" />
+    </Button.ContextMenu>
+  </Button>
+  <ContentControl x:Name="Usage" />
+  <ContentControl x:Name="Plan" />
+  <ContentControl x:Name="Ide" />
+  <ContentControl x:Name="Attach" />
+  <TextBlock x:Name="TerminalDrivingOverlay" Text="Driving Codex's model picker…" FontSize="11" Foreground="{x:Static kit:Ui.Muted}"
+             FontWeight="{x:Static kit:Ui.InterfaceWeight}" VerticalAlignment="Center" Focusable="True" />
+</WrapPanel>
