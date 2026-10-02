@@ -1,0 +1,35 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:kit="using:SharpRail.Plugins.UI.Kit"
+             x:Class="SharpRail.Plugins.Discord.UI.DiscordSettingsView"
+             x:ClassModifier="internal"
+             Name="DiscordSettings">
+  <StackPanel Spacing="16">
+    <TextBlock Text="Discord Rich Presence" FontSize="14" FontWeight="SemiBold" Foreground="{x:Static kit:Ui.TextBrush}" />
+    <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.Muted}"
+               Text="Shows the project and file you have open on your Discord profile. Turn the Discord plugin on in Settings › Plugins to start; your choice here is saved on the host and follows you across devices." />
+    <TextBlock x:Name="DiscordStatus" TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" Text="Checking…" />
+    <StackPanel Spacing="4">
+      <TextBlock Text="Application id" Foreground="{x:Static kit:Ui.TextBrush}" />
+      <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.Muted}"
+                 Text="Discord always shows the name of the application publishing the presence. ThinkRail's own is filled in; replace it with one you registered at discord.com/developers/applications to publish under your own name and artwork." />
+      <TextBox x:Name="DiscordApplicationId" FontFamily="{x:Static kit:Ui.CodeFont}" PlaceholderText="1234567890123456789" />
+    </StackPanel>
+    <Grid ColumnDefinitions="*,Auto">
+      <StackPanel Spacing="2">
+        <TextBlock Text="Share the open file name" Foreground="{x:Static kit:Ui.TextBrush}" />
+        <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.Muted}"
+                   Text="Off shows the project only, never the path that leads to it." />
+      </StackPanel>
+      <ToggleSwitch x:Name="DiscordShareFileName" Grid.Column="1" OnContent="" OffContent="" VerticalAlignment="Center" />
+    </Grid>
+    <StackPanel x:Name="DiscordBlocked" Spacing="4" IsVisible="False">
+      <TextBlock Text="Blocked projects" Foreground="{x:Static kit:Ui.TextBrush}" />
+      <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.Muted}"
+                 Text="A blocked project never reaches Discord, not even as an anonymous &quot;working on something&quot;." />
+      <Border BorderBrush="{x:Static kit:Ui.BorderBrush}" BorderThickness="1" CornerRadius="4" Padding="4">
+        <StackPanel x:Name="DiscordBlockedProjects" Spacing="2" />
+      </Border>
+    </StackPanel>
+  </StackPanel>
+</UserControl>

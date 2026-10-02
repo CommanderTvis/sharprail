@@ -311,6 +311,7 @@ internal static class Program
             SpecDialectChecks.Run(root).GetAwaiter().GetResult();
             BlueprintChecks.Run(root).GetAwaiter().GetResult();
             ClaudeCodeChecks.Run(root).GetAwaiter().GetResult();
+            DiscordChecks.RunHostAsync(root).GetAwaiter().GetResult();
             WorkspaceWatchChecks.Run(root).GetAwaiter().GetResult();
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
@@ -321,12 +322,22 @@ internal static class Program
             BlueprintChecks.RunUi(root);
             ClaudeCodeChecks.RunUi(root);
             ClaudeCodeChecks.Launcher(root);
+            DiscordChecks.RunUi(root);
             Console.WriteLine("PASS plugin checks");
             return;
         }
         if (args.SequenceEqual(["--file-watch"]))
         {
             WorkspaceWatchChecks.Run(root).GetAwaiter().GetResult();
+            return;
+        }
+        if (args.SequenceEqual(["--discord"]))
+        {
+            DiscordChecks.RunHostAsync(root).GetAwaiter().GetResult();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            DiscordChecks.RunUi(root);
+            Console.WriteLine("PASS Discord checks");
             return;
         }
         if (args.SequenceEqual(["--claude-code"]))
@@ -546,6 +557,8 @@ internal static class Program
         Gate.Case("blueprint-ui", () => BlueprintChecks.RunUi(root));
         Gate.Case("claude-code", () => ClaudeCodeChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("claude-code-ui", () => ClaudeCodeChecks.RunUi(root));
+        Gate.Case("DiscordChecks-RunHostAsync", () => DiscordChecks.RunHostAsync(root).GetAwaiter().GetResult());
+        Gate.Case("DiscordChecks-RunUi", () => DiscordChecks.RunUi(root));
         Console.WriteLine("PASS prototype checks and open-world runtime");
     }
 
