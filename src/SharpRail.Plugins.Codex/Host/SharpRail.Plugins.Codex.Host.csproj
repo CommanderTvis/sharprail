@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><AllowUnsafeBlocks>true</AllowUnsafeBlocks></PropertyGroup>
+  <PropertyGroup Condition="'$(OS)' != 'Windows_NT'">
+    <CodexProcessGroup>$(MSBuildProjectDirectory)/obj/$(Configuration)/native/$(NETCoreSdkRuntimeIdentifier)/$(RuntimeIdentifier)/sharprail-codex-process-group</CodexProcessGroup>
+  </PropertyGroup>
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+    <CodexProcessGroupArch Condition="'$(NETCoreSdkRuntimeIdentifier)' == 'osx-x64'">x86_64</CodexProcessGroupArch>
+    <CodexProcessGroupArch Condition="'$(CodexProcessGroupArch)' == '' or '$(RuntimeIdentifier)' == 'osx-arm64'">arm64</CodexProcessGroupArch>
+    <CodexProcessGroupArch Condition="'$(RuntimeIdentifier)' == 'osx-x64'">x86_64</CodexProcessGroupArch>
+    <CodexProcessGroupFlags>-arch $(CodexProcessGroupArch)</CodexProcessGroupFlags>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="SharpRail.Checks" />
+    <ProjectReference Include="../SharpRail.Plugins.Codex.csproj" />
+    <ProjectReference Include="../../SharpRail.Plugins.Api.Host/SharpRail.Plugins.Api.Host.csproj" />
+    <PackageReference Include="Tomlyn" />
+    <!-- Builtin plugin assets are staged at plugins/<id>/<assets> beside the host, which serves them to the UI half. -->
+    <None Include="../assets/**" Link="plugins/codex/assets/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <!-- The workflow skills have one source shared with Claude Code; here they are staged as this plugin's own assets. -->
+    <None Include="../../SharpRail.Plugins.Agent.Skills/**" Link="plugins/codex/assets/skills/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(OS)' != 'Windows_NT'">
+    <None Include="$(CodexProcessGroup)" Link="sharprail-codex-process-group" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <Target Name="BuildCodexProcessGroup" BeforeTargets="AssignTargetPaths" Condition="'$(OS)' != 'Windows_NT'"
+          Inputs="$(MSBuildProjectDirectory)/native/process-group.c" Outputs="$(CodexProcessGroup)">
+    <MakeDir Directories="$([System.IO.Path]::GetDirectoryName('$(CodexProcessGroup)'))" />
+    <Exec Command="cc $(CodexProcessGroupFlags) -O2 -Wall -Wextra -Werror &quot;$(MSBuildProjectDirectory)/native/process-group.c&quot; -o &quot;$(CodexProcessGroup)&quot;" />
+  </Target>
+</Project>

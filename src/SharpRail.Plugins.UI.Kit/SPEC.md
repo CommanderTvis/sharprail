@@ -171,3 +171,7 @@ remain verification gates in the Visualize plugin spec.
 The account presentation exposes labelled rows, provider-supplied severity and percentage usage,
 relative reset times and reading timestamps. Row and usage-window layouts are compiled XAML.
 The Codex builtin uses these controls without referencing app or host implementations.
+
+## Public surface
+
+`CommandKeys`, `DialogWindow`, `EditorFrame`, `FindBar`, `IDialogOwner`, `InterfaceZoom`, `LineWidths`, `DiffFocus`, `Frontmatter`, `FrontmatterBlock`, `FrontmatterProperty`, `MarkdownContext`, `MarkdownDiff`, `MarkdownDocumentView`, `MarkdownLink`, `MarkdownPreview`, `Outline`, `SpecIdentity`, `ScopedSetting`, `ScopedSettingShadow`, `ScopedSettingSource`, `SettingValueDialog`, `SettingValueDialogOptions`, `SvgAsset`, `Switch`, `ThemeManifest`, `Ui`, `ValueShape`, `ViewerLimits`, `ComparisonOptionView`, `MermaidDialog`, `MermaidRenderer`, `MermaidView`, `VisualizationArgs`, `VisualizationCard`, `ZoomGesture`.

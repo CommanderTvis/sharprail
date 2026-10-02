@@ -1,0 +1,12 @@
+<Border xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+       xmlns:kit="using:SharpRail.Plugins.UI.Kit"
+        x:Class="SharpRail.Plugins.Codex.UI.CodexProblemNotice" x:ClassModifier="internal"
+        Name="CodexConfigProblem" Padding="8,4" BorderBrush="{x:Static kit:Ui.BorderBrush}" BorderThickness="0,0,0,1">
+  <StackPanel Orientation="Horizontal" Spacing="4">
+    <ContentControl x:Name="WarningIcon" Width="14" Height="14" VerticalAlignment="Top" />
+    <StackPanel>
+      <TextBlock x:Name="Detail" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
+      <ContentControl x:Name="Source" HorizontalAlignment="Left" />
+    </StackPanel>
+  </StackPanel>
+</Border>
