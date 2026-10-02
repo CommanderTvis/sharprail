@@ -323,12 +323,21 @@ internal static class Program
             ClaudeCodeChecks.RunUi(root);
             ClaudeCodeChecks.Launcher(root);
             DiscordChecks.RunUi(root);
+            PdfPreviewChecks.Run(root);
             Console.WriteLine("PASS plugin checks");
             return;
         }
         if (args.SequenceEqual(["--file-watch"]))
         {
             WorkspaceWatchChecks.Run(root).GetAwaiter().GetResult();
+            return;
+        }
+        if (args.SequenceEqual(["--pdf-preview"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            PdfPreviewChecks.Run(root);
+            Console.WriteLine("PASS PDF Preview checks");
             return;
         }
         if (args.SequenceEqual(["--discord"]))
@@ -559,6 +568,7 @@ internal static class Program
         Gate.Case("claude-code-ui", () => ClaudeCodeChecks.RunUi(root));
         Gate.Case("DiscordChecks-RunHostAsync", () => DiscordChecks.RunHostAsync(root).GetAwaiter().GetResult());
         Gate.Case("DiscordChecks-RunUi", () => DiscordChecks.RunUi(root));
+        Gate.Case("PdfPreviewChecks-Run", () => PdfPreviewChecks.Run(root));
         Console.WriteLine("PASS prototype checks and open-world runtime");
     }
 
