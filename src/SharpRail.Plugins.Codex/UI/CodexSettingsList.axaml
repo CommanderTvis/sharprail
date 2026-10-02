@@ -1,0 +1,10 @@
+<StackPanel xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+       xmlns:kit="using:SharpRail.Plugins.UI.Kit"
+            x:Class="SharpRail.Plugins.Codex.UI.CodexSettingsList" x:ClassModifier="internal">
+  <Border Name="CodexProjectTrust" Padding="8,4" BorderBrush="{x:Static kit:Ui.BorderBrush}" BorderThickness="0,0,0,1">
+    <TextBlock x:Name="TrustText" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
+  </Border>
+  <ContentControl x:Name="Toolbar" />
+  <StackPanel x:Name="Rows" />
+  <TextBlock x:Name="NoKeys" Text="No keys match." Margin="8" FontSize="13" Foreground="{x:Static kit:Ui.Muted}" IsVisible="False" />
+</StackPanel>

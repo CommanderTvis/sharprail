@@ -1,0 +1,15 @@
+<Grid xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:kit="using:SharpRail.Plugins.UI.Kit"
+      x:Class="SharpRail.Plugins.Codex.UI.CodexInstructionsRow" x:ClassModifier="internal"
+      Name="CodexInstructions" ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8" Margin="8,4">
+  <ContentControl x:Name="FileIcon" Width="14" Height="14" />
+  <StackPanel Grid.Column="1" Spacing="2">
+    <StackPanel Orientation="Horizontal" Spacing="4">
+      <TextBlock x:Name="FileName" FontSize="13" Foreground="{x:Static kit:Ui.TextBrush}" TextTrimming="CharacterEllipsis" />
+      <ContentControl x:Name="Scope" />
+    </StackPanel>
+    <ContentControl x:Name="Source" HorizontalAlignment="Left" />
+  </StackPanel>
+  <TextBlock x:Name="CodexInstructionsSize" Grid.Column="2" FontFamily="{x:Static kit:Ui.CodeFont}"
+             FontSize="12" Foreground="{x:Static kit:Ui.Muted}" />
+</Grid>

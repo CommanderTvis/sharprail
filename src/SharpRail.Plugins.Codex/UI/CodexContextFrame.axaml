@@ -1,0 +1,53 @@
+<StackPanel xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+            xmlns:kit="using:SharpRail.Plugins.UI.Kit"
+            x:Class="SharpRail.Plugins.Codex.UI.CodexContextFrame" x:ClassModifier="internal">
+  <StackPanel.Styles>
+    <Style Selector="Button.offer">
+      <Setter Property="Padding" Value="8,4" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="{x:Static kit:Ui.BorderBrush}" />
+      <Setter Property="BorderThickness" Value="0,0,0,1" />
+      <Setter Property="CornerRadius" Value="0" />
+      <Setter Property="HorizontalAlignment" Value="Stretch" />
+      <Setter Property="HorizontalContentAlignment" Value="Left" />
+    </Style>
+    <Style Selector="Button.offer TextBlock">
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="Foreground" Value="{x:Static kit:Ui.TextBrush}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="TextTrimming" Value="None" />
+    </Style>
+    <Style Selector="Button.offer TextBlock.detail">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Foreground" Value="{x:Static kit:Ui.Muted}" />
+    </Style>
+  </StackPanel.Styles>
+  <StackPanel x:Name="Offers">
+    <Button x:Name="CodexOffer_project" Classes="offer">
+      <StackPanel Spacing="2">
+        <TextBlock Text="Add AGENTS.md" />
+        <TextBlock Classes="detail" Text="Shared instructions for everyone on this project. Commit it and it stays with the repo." />
+      </StackPanel>
+    </Button>
+    <Button x:Name="CodexOffer_project_override" Classes="offer">
+      <StackPanel Spacing="2">
+        <TextBlock Text="Add AGENTS.override.md" />
+        <TextBlock Classes="detail" Text="Replaces AGENTS.md here without touching it, can be added to .gitignore for machine-local instructions." />
+      </StackPanel>
+    </Button>
+    <Button x:Name="CodexOffer_global" Classes="offer">
+      <StackPanel Spacing="2">
+        <TextBlock Text="Add ~/.codex/AGENTS.md" />
+        <TextBlock Classes="detail" Text="Your own instructions for every project Codex runs in." />
+      </StackPanel>
+    </Button>
+  </StackPanel>
+  <Border Padding="8,4" BorderBrush="{x:Static kit:Ui.BorderBrush}" BorderThickness="0,0,0,1">
+    <DockPanel x:Name="CodexContextTotal">
+      <TextBlock x:Name="ContextSize" DockPanel.Dock="Right" FontFamily="{x:Static kit:Ui.CodeFont}"
+                 FontSize="12" Foreground="{x:Static kit:Ui.TextBrush}" />
+      <TextBlock Text="PERSISTENT CONTEXT" FontSize="11" FontWeight="SemiBold" Foreground="{x:Static kit:Ui.Muted}" />
+    </DockPanel>
+  </Border>
+  <StackPanel x:Name="Instructions" />
+</StackPanel>

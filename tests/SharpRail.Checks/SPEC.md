@@ -43,7 +43,12 @@ host state, file saving, layout transitions, the open-world runtime probe, and t
 the headless UI checks with every upstream translation. Named modes
 (`--editor`, `--files`, `--host-state`, `--specs`, `--terminals`, `--ghostty-skia`, `--sync`, `--workspaces`, `--registry`, `--change-actions`, `--review`, `--design`, `--ui`, `--runner`, `--conformance`) are focused iteration subsets
 of that same code, never separate coverage; anything they run is also in the full
-run. Claude Code and Codex launch checks cover separate SharpRail model/effort defaults, per-launch
+run. `--agent-marks` covers Codex and Claude terminal icons in inactive Projects
+previews, identity arrival/removal, retained rows and switching into and out of the workspace.
+`--agent-launches` covers POSIX process origin, command-scoped UI markers with additions disabled,
+replacement processes between polls, and persistent manual-launch notices in both provider UIs.
+UI launches and unknown origins show no manual notice; hook updates and local/remote state retain origin.
+Claude Code and Codex launch checks cover separate SharpRail model/effort defaults, per-launch
 precedence and settings persistence. Host checks cover latest session choices, sparse status reports,
 new-session resets and revival with those choices; plugin host parity includes persisted effort.
 `--native-terminal` and `--native-texture` drive real macOS windows; the latter
@@ -62,6 +67,11 @@ refused grids and start guidance (`TerminalLimitChecks.cs`); a stalled reader an
 (`TerminalBackpressureChecks.cs`); and the terminal catalog, its storage, catalog-keyed revival and a
 removed worktree's shells (`TerminalCatalogChecks.cs`); and the host replay size with its Settings control
 (`TerminalReplayChecks.cs`).
+`--notifications` (`AwayNotificationChecks.cs`) enables the real Claude Code and Codex UI halves, injects
+status pushes on their channels and records what would reach the system: which transitions notify, the
+focused-app, continuation-Stop, interrupted-run, answered-attention, closed-tab and setting-off silences,
+per-terminal replacement and coalescing, click routing to another project's workspace and tab, and the
+Settings switch. It never posts a real notification; on macOS it also loads the native bridge unbundled.
 `--terminal-replay` checks historical query filtering while retaining live terminal replies
 (`TerminalQueryReplayChecks.cs`).
 `--registry` runs one workspace-registry scenario through the direct and the gRPC adapter and requires the same

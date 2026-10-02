@@ -1,0 +1,12 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:kit="using:SharpRail.Plugins.UI.Kit"
+             x:Class="SharpRail.Plugins.Codex.UI.CodexLaunchArguments" x:ClassModifier="internal">
+  <StackPanel Spacing="16">
+    <TextBox x:Name="CodexCustomArguments" PlaceholderText="--flag value …" FontFamily="{x:Static kit:Ui.CodeFont}" />
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+      <Button x:Name="CodexCustomCancel" Content="Cancel" />
+      <Button x:Name="CodexCustomStart" Content="Start" Classes="primary" IsDefault="True" />
+    </StackPanel>
+  </StackPanel>
+</UserControl>
