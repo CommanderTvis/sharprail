@@ -1,0 +1,52 @@
+<Button xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:kit="using:SharpRail.Plugins.UI.Kit"
+        x:Class="SharpRail.Plugins.BranchGraph.UI.GraphCommitRow"
+        x:ClassModifier="internal" Name="GraphCommit"
+        Height="40" Padding="8,0" CornerRadius="0" BorderThickness="0" Background="Transparent"
+        HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+  <Button.ContextMenu>
+    <ContextMenu Name="GraphCommitMenu" Background="{x:Static kit:Ui.Elevated}" BorderBrush="{x:Static kit:Ui.BorderBrush}"
+                 BorderThickness="1" CornerRadius="6" Padding="4" Foreground="{x:Static kit:Ui.TextBrush}" FontFamily="{x:Static kit:Ui.InterfaceFont}">
+      <ContextMenu.Resources>
+        <SolidColorBrush x:Key="MenuFlyoutItemBackgroundPointerOver" x:CompileBindings="False" Color="{Binding Color, Source={x:Static kit:Ui.Hover}}" />
+        <SolidColorBrush x:Key="MenuFlyoutItemBackgroundPressed" x:CompileBindings="False" Color="{Binding Color, Source={x:Static kit:Ui.Hover}}" />
+        <SolidColorBrush x:Key="MenuFlyoutItemForegroundPointerOver" x:CompileBindings="False" Color="{Binding Color, Source={x:Static kit:Ui.TextBrush}}" />
+      </ContextMenu.Resources>
+      <MenuItem x:Name="GraphCopyHash" Header="Copy commit hash" />
+      <MenuItem x:Name="GraphCopyPatch" Header="Copy patch to clipboard" />
+    </ContextMenu>
+  </Button.ContextMenu>
+  <Grid ColumnDefinitions="Auto,*">
+    <ContentControl x:Name="GraphLaneHost" />
+    <StackPanel Grid.Column="1" VerticalAlignment="Center" ClipToBounds="True" Margin="8,0,0,0">
+      <TextBlock x:Name="GraphSubject" TextTrimming="CharacterEllipsis" Foreground="{x:Static kit:Ui.TextBrush}"
+                 FontSize="{x:Static kit:Ui.FontSize}" FontWeight="{x:Static kit:Ui.InterfaceWeight}" />
+      <StackPanel Orientation="Horizontal" Spacing="4" ClipToBounds="True">
+        <TextBlock x:Name="GraphShortSha" Foreground="{x:Static kit:Ui.Hint}" FontSize="11" FontWeight="{x:Static kit:Ui.InterfaceWeight}" VerticalAlignment="Center" />
+        <TextBlock x:Name="GraphAuthor" MaxWidth="120" TextTrimming="CharacterEllipsis" Foreground="{x:Static kit:Ui.Hint}"
+                   FontSize="11" FontWeight="{x:Static kit:Ui.InterfaceWeight}" VerticalAlignment="Center" />
+        <ItemsControl x:Name="GraphRefs">
+          <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="4" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:CompileBindings="False">
+              <Border Name="GraphRef" Background="{x:Static kit:Ui.PrimarySubtle}" CornerRadius="3" Padding="4,0">
+                <TextBlock Text="{Binding}" MaxWidth="160" TextTrimming="CharacterEllipsis" Foreground="{x:Static kit:Ui.Accent}"
+                           FontSize="11" FontWeight="{x:Static kit:Ui.InterfaceWeight}" VerticalAlignment="Center" />
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <ItemsControl x:Name="GraphWorktrees">
+          <ItemsControl.ItemsPanel><ItemsPanelTemplate><StackPanel Orientation="Horizontal" Spacing="4" /></ItemsPanelTemplate></ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:CompileBindings="False">
+              <TextBlock Name="GraphWorktree" Text="{Binding StringFormat='⌂ {0}'}" MaxWidth="140" TextTrimming="CharacterEllipsis"
+                         Foreground="{x:Static kit:Ui.Muted}" FontSize="11" FontWeight="{x:Static kit:Ui.InterfaceWeight}" VerticalAlignment="Center" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </StackPanel>
+  </Grid>
+</Button>
