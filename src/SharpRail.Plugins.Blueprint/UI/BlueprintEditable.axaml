@@ -1,0 +1,23 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="SharpRail.Plugins.Blueprint.UI.BlueprintEditable">
+  <UserControl.Styles>
+    <Style Selector="Button#Edit">
+      <Setter Property="Opacity" Value="0" />
+    </Style>
+    <Style Selector="UserControl:pointerover Button#Edit">
+      <Setter Property="Opacity" Value="1" />
+    </Style>
+    <Style Selector="Button#Edit:focus-visible">
+      <Setter Property="Opacity" Value="1" />
+    </Style>
+  </UserControl.Styles>
+  <Grid>
+    <Border x:Name="Reading" Padding="4,2,24,2" CornerRadius="4">
+      <ContentControl x:Name="Value" />
+    </Border>
+    <Button x:Name="Edit" HorizontalAlignment="Right" VerticalAlignment="Top"
+            Padding="2" MinWidth="20" MinHeight="20" ToolTip.Tip="Edit" />
+    <TextBox x:Name="Input" IsVisible="False" />
+  </Grid>
+</UserControl>

@@ -1,0 +1,38 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="SharpRail.Plugins.Blueprint.UI.BlueprintPane">
+  <Grid RowDefinitions="Auto,Auto,Auto,*">
+    <Border x:Name="Header" Padding="16,8" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="*,Auto,Auto,Auto">
+        <TextBlock x:Name="Brief" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+        <Button x:Name="Raw" Grid.Column="1" Content="Open raw source" Margin="8,0" />
+        <Button x:Name="OutlineToggle" Grid.Column="2" Content="Outline" />
+        <TextBlock x:Name="Phase" Grid.Column="3" Margin="8,0,0,0" VerticalAlignment="Center" Text="Waiting for the agent…" />
+      </Grid>
+    </Border>
+    <Border x:Name="Edits" Grid.Row="1" Padding="16,8" IsVisible="False">
+      <Grid ColumnDefinitions="*,Auto,Auto">
+        <TextBlock x:Name="EditCount" VerticalAlignment="Center" />
+        <Button x:Name="Confirm" Grid.Column="1" Content="Confirm edits" />
+        <Button x:Name="Discard" Grid.Column="2" Content="Revert" Margin="8,0,0,0" />
+      </Grid>
+    </Border>
+    <Border x:Name="Changes" Grid.Row="2" Padding="16,8" IsVisible="False">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Spacing="4">
+          <TextBlock x:Name="ChangeCount" />
+          <WrapPanel x:Name="ChangeList" />
+        </StackPanel>
+        <Button x:Name="Dismiss" Grid.Column="1" Content="×" VerticalAlignment="Top" ToolTip.Tip="Dismiss" />
+      </Grid>
+    </Border>
+    <Grid Grid.Row="3" ColumnDefinitions="Auto,*">
+      <ScrollViewer x:Name="Outline" IsVisible="False" Width="180">
+        <StackPanel x:Name="HeadingList" Spacing="4" Margin="8" />
+      </ScrollViewer>
+      <ScrollViewer Grid.Column="1" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel x:Name="Document" Margin="16,12" MaxWidth="760" />
+      </ScrollViewer>
+    </Grid>
+  </Grid>
+</UserControl>

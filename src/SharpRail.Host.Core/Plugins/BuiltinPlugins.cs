@@ -1,6 +1,8 @@
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.Host;
 using SharpRail.Plugins.SpecDialect;
+using SharpRail.Plugins.Blueprint;
+using SharpRail.Plugins.Blueprint.Host;
 
 
 namespace SharpRail.Host.Core.Plugins;
@@ -11,5 +13,6 @@ public static class BuiltinPlugins
     public static IReadOnlyList<(PluginManifest Manifest, PluginHostModule? Host)> All =>
     [
         (SpecDialectManifest.Manifest, new SpecDialectHost()),
+        (BlueprintContract.Manifest, new BlueprintHost()),
     ];
 }
