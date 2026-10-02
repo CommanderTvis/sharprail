@@ -18,6 +18,8 @@
     <Project Path="src/SharpRail.Plugins.Discord/Contract/SharpRail.Plugins.Discord.csproj" />
     <Project Path="src/SharpRail.Plugins.Discord/Host/SharpRail.Plugins.Discord.Host.csproj" />
     <Project Path="src/SharpRail.Plugins.Discord/UI/SharpRail.Plugins.Discord.UI.csproj" />
+    <Project Path="src/SharpRail.Plugins.PdfPreview/Contract/SharpRail.Plugins.PdfPreview.csproj" />
+    <Project Path="src/SharpRail.Plugins.PdfPreview/UI/SharpRail.Plugins.PdfPreview.UI.csproj" />
     <Project Path="src/SharpRail.Plugins.SpecDialect/Contract/SharpRail.Plugins.SpecDialect.csproj" />
     <Project Path="src/SharpRail.Plugins.SpecDialect/Host/SharpRail.Plugins.SpecDialect.Host.csproj" />
     <Project Path="src/SharpRail.Plugins.SpecDialect/UI/SharpRail.Plugins.SpecDialect.UI.csproj" />

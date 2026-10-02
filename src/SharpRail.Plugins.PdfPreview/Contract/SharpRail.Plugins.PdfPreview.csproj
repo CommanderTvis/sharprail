@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The PDF preview's manifest: the host lists it as a manifest-only builtin, the app pairs it with the UI half. -->
+  <ItemGroup>
+    <ProjectReference Include="../../SharpRail.Plugins.Api/SharpRail.Plugins.Api.csproj" />
+  </ItemGroup>
+</Project>
