@@ -27,6 +27,8 @@ what makes remoteness an adapter choice rather than a mandatory daemon.
 
 ## Behavior
 
+- The project adapter maps independent nullable commit lookup through the same local or gRPC API;
+  selecting a graph commit does not require it to occur in a comparison catalog.
 - Every remote call carries `authorization: Bearer <token>`; constructing a
   remote adapter without a token fails immediately.
 - Deadlines: short (15 s) for cheap workspace and terminal control calls, 60 s

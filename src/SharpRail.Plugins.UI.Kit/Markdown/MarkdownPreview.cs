@@ -20,6 +20,7 @@ using Markdig.Extensions.Yaml;
 using Markdig.Renderers.Html;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
+
 using SharpRail.Plugins.UI.Kit.Visualization;
 
 namespace SharpRail.Plugins.UI.Kit.Markdown;
@@ -76,7 +77,7 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
         if (frontmatter is not null || previousFrontmatter is not null) body.Children.Add(Properties(frontmatter, previousFrontmatter));
         if (focus is null) body.Children.AddRange(RenderBlocks(Document));
         else RenderFocused(body, focus);
-        if (specLinks.Count > 0) _ = ResolveSpecLinksAsync();
+        RefreshSpecLinks();
         CollapseMargins(body);
         Content = body;
         WireSelection();

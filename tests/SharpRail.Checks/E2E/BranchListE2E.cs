@@ -24,7 +24,7 @@ internal static class BranchListE2E
         var button = app.Find<Button>("ScopeBranch");
         app.Click(button);
         Until(() => button.Flyout is Flyout { IsOpen: true });
-        var list = (StackPanel)((Flyout)button.Flyout!).Content!;
+        var list = ((Control)((Flyout)button.Flyout!).Content!).GetLogicalDescendants().OfType<StackPanel>().Single(panel => panel.Name == "BranchList");
         Until(() => Rows(list).Length > 0);
         return list;
     }
@@ -66,7 +66,8 @@ internal static class BranchListE2E
                 var presenter = delete.GetVisualDescendants().OfType<ContentPresenter>().Single(item => item.Name == "PART_ContentPresenter");
                 Require(presenter.Background is ISolidColorBrush { Color.A: 0 },
                     "Idle and disabled branch delete buttons must have transparent backgrounds in both themes.");
-                Require(delete.IsEnabled || presenter.Opacity < 1, "A disabled branch delete icon must remain visibly dimmed.");
+                Require(delete.IsEnabled || delete.Content is Border { Background: ISolidColorBrush disabled } && disabled.Color == Ui.ControlDisabledText.Color,
+                    "A disabled branch delete icon must use the theme's disabled text color.");
             }
         }
         app.Window.RequestedThemeVariant = variant;

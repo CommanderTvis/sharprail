@@ -41,7 +41,7 @@ gRPC.
 | Workspaces and worktrees | `ProjectServices.cs`, `WorkspaceActions.cs`, `WorkspaceRegistry.cs`, `HostStateStore.Workspaces.cs` | [Workspaces.SPEC.md](Workspaces.SPEC.md) |
 | Git runner, status and diffs | `GitRepository.cs`, `ProjectServices.cs` | [Git.SPEC.md](Git.SPEC.md) |
 | Files | `ProjectServices.cs`, `ProjectFileSaving.cs`, `WorkspaceHost.cs` | [Files.SPEC.md](Files.SPEC.md) |
-| Specs | `SpecCatalog.cs` | [Specs.SPEC.md](Specs.SPEC.md) |
+| Specs | Builtin spec dialect plugin | [Specs.SPEC.md](Specs.SPEC.md) |
 | Terminals | `PtyTerminalService.cs`, `HostedTerminal.cs`, `TerminalRecorder.cs`, `TerminalDevice.cs`, `Posix.cs` | [Terminals.SPEC.md](Terminals.SPEC.md) |
 | Plugins | `Plugins/*.cs` | [Plugins.SPEC.md](Plugins.SPEC.md) |
 
@@ -76,8 +76,13 @@ terminal attachments, never through a UI callback.
 
 - Host state changes reach every client only as complete snapshots from `HostStateStore`; a client that
   missed events rehydrates from the next one. No operation patches one client directly.
+- Creating a project creates one new empty folder inside an existing parent. It rejects existing
+  targets and names containing path separators; opening the project remains a separate operation.
 - A project session serializes its mutations (open, Git actions, saves) with one gate, while reads use the
   root they started with, so a concurrent project switch never redirects an in-flight write.
+- Plain-folder workspace listing preserves the opened project's path identity, including a trailing
+  separator, in the returned Default workspace. Known-project authorization treats paths with and
+  without that separator as the same folder.
 - Paths from a client are contained to the workspace root and never followed through a symbolic link.
 - Every Git, `gh` and network child runs through one bounded runner (`ChildProcess.cs`,
   [Terminals.SPEC.md](Terminals.SPEC.md)): an explicit working directory, its own session, closed input,

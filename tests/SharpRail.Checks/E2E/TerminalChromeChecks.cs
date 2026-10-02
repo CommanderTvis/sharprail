@@ -30,7 +30,7 @@ internal static class TerminalChromeChecks
         var name = terminal.Id.Replace(':', '_');
         var body = app.Find<Control>("TerminalSurface_" + name);
         var tab = app.Find<Button>("Tab_" + name);
-        var side = app.Window.Layout.State.Groups.Single(group => group.Tools.Any(tool => tool.Id == "specs"));
+        var side = app.Window.Layout.State.Groups.Single(group => group.Tools.Any(tool => tool.Id == DockState.SpecsTool));
         var menu = tab.ContextMenu!;
         app.ContextAction(tab, "Move to pane");
         var move = menu.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Move to pane"));
@@ -136,7 +136,7 @@ internal static class TerminalChromeChecks
     private static void TabTooltip(string root)
     {
         using var app = new E2eWorkspace(Path.Combine(root, "tab-tooltip"));
-        var tab = app.Find<Button>("Tab_specs");
+        var tab = app.Find<Button>("Tab_plugin_spec-dialect_specs");
         var tip = (ToolTip)ToolTip.GetTip(tab)!;
         var bottom = tab.TranslatePoint(new Point(tab.Bounds.Width / 2, tab.Bounds.Height), app.Window)!.Value;
         app.Window.MouseMove(bottom - new Vector(0, 2));

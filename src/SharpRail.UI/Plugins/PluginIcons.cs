@@ -1,7 +1,7 @@
 using Avalonia.Controls;
-using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
+
 using SharpRail.Plugins.Api;
 
 namespace SharpRail.UI.Plugins;
@@ -25,16 +25,23 @@ public static class PluginIcons
         ["arrow-go-back-line"] = "arrowGoBack",
         ["arrow-right-s-line"] = "arrowRight",
         ["book-line"] = "book",
+        ["bar-chart-box-line"] = "barChartBox",
         ["book-fill"] = "bookFill",
+        ["book-open"] = "bookFill",
         ["book-open-line"] = "book",
         ["box-3-line"] = "box",
         ["chat-new-line"] = "chatNew",
         ["check-line"] = "check",
         ["close-line"] = "close",
         ["discuss-line"] = "discuss",
+        ["discord"] = "discord",
+        ["discord-line"] = "discord",
         ["file-line"] = "file",
+        ["file-pdf-2"] = "filePdf",
+        ["file-pdf-2-line"] = "filePdf",
         ["file-diff-line"] = "fileDiff",
         ["file-text-line"] = "fileText",
+        ["file-text"] = "fileText",
         ["file-list-line"] = "fileText",
         ["folder-line"] = "folder",
         ["folder-fill"] = "folderFill",
@@ -42,8 +49,13 @@ public static class PluginIcons
         ["folder-2-line"] = "folderTab",
         ["fullscreen-line"] = "fullscreen",
         ["git-branch-line"] = "gitBranch",
+        ["git-branch"] = "gitBranch",
         ["home-fill"] = "homeFill",
         ["layout-line"] = "layout",
+        ["pencil-line"] = "pencil",
+        ["pencil-ruler-2-line"] = "pencilRuler",
+        ["pencil-ruler-2"] = "pencilRuler",
+        ["lock-line"] = "lock",
         ["layout-left-line"] = "layoutLeft",
         ["layout-right-line"] = "layoutRight",
         ["list-unordered"] = "list",
@@ -51,6 +63,7 @@ public static class PluginIcons
         ["more-line"] = "more",
         ["more-2-line"] = "moreHorizontal",
         ["node-tree"] = "network",
+        ["openai-line"] = "openai",
         ["palette-line"] = "palette",
         ["refresh-line"] = "refresh",
         ["search-line"] = "search",
@@ -73,12 +86,12 @@ public static class PluginIcons
     /// <summary>The bundled glyph a Remix name maps to, or the puzzle glyph.</summary>
     public static string Glyph(string? name) => name is not null && Remix.TryGetValue(name, out var glyph) ? glyph : Fallback;
 
-    /// <summary>A control for the icon; an asset is drawn once read, over the puzzle glyph until then.</summary>
-    public static Control Resolve(string? name, PluginRosterEntry? entry, IBrush? color = null, double size = 16)
+    /// <summary>A control for the icon; an asset is drawn once read, with the supplied fallback if unavailable.</summary>
+    public static Control Resolve(string? name, PluginRosterEntry? entry, IBrush? color = null, double size = 16, string fallbackGlyph = Fallback)
     {
         if (name is null || !name.StartsWith(AssetPrefix, StringComparison.Ordinal) || entry?.Assets is not { } assets || ReadAsset is not { } read)
-            return Ui.Icon(Glyph(name), color, size);
-        var host = new ContentControl { Width = size, Height = size, VerticalAlignment = VerticalAlignment.Center, Content = Ui.Icon(Fallback, color, size) };
+            return Ui.Icon(name?.StartsWith(AssetPrefix, StringComparison.Ordinal) == true ? fallbackGlyph : Glyph(name), color, size);
+        var host = new AssetIcon(name, fallbackGlyph, color, size);
         var key = (entry.Id, assets.TrimEnd('/') + "/" + name[AssetPrefix.Length..].TrimStart('/'));
         if (!Assets.TryGetValue(key, out var pending)) Assets[key] = pending = read(key.Item1, key.Item2, CancellationToken.None);
         _ = Show();
@@ -89,7 +102,9 @@ public static class PluginIcons
             byte[]? bytes;
             try { bytes = await pending; }
             catch (Exception error) when (error is not OperationCanceledException) { Console.Error.WriteLine($"Plugin {entry.Id} icon {name}: {error.Message}"); return; }
-            if (bytes is not null) Dispatcher.UIThread.Post(() => host.Content = new SvgAsset(bytes, size));
+            if (bytes is null) return;
+            if (Dispatcher.UIThread.CheckAccess()) host.Show(bytes, color ?? Ui.TextBrush, size);
+            else Dispatcher.UIThread.Post(() => host.Show(bytes, color ?? Ui.TextBrush, size));
         }
     }
 }

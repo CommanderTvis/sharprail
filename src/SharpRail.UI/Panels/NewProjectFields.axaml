@@ -1,0 +1,14 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="SharpRail.UI.Panels.NewProjectFields">
+  <StackPanel Spacing="12">
+    <TextBlock Text="Parent folder" FontSize="12" />
+    <DockPanel>
+      <Button x:Name="CreateProjectBrowse" Content="Choose…" DockPanel.Dock="Right" Margin="8,0,0,0" />
+      <TextBox x:Name="CreateProjectParent" AutomationProperties.Name="Parent folder" PlaceholderText="Folder to create the project in" />
+    </DockPanel>
+    <TextBlock Text="Project name" FontSize="12" />
+    <TextBox x:Name="CreateProjectName" AutomationProperties.Name="Project name" PlaceholderText="New folder name" />
+    <TextBlock x:Name="CreateProjectError" IsVisible="False" TextWrapping="Wrap" />
+  </StackPanel>
+</UserControl>

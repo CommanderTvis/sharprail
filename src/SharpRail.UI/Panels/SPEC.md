@@ -43,6 +43,14 @@ these surfaces are specified in [../Panels.SPEC.md](../Panels.SPEC.md).
 - `PrDialogs` holds the pull request compose and setup dialogs; their behaviour is specified with the
   Review panel in [Panels.SPEC.md](../Panels.SPEC.md).
 
+## Create project
+
+The Add project menu exposes Create project before the existing open/path/clone actions. The compiled
+`NewProjectFields` asks for an existing parent folder and a new folder name; local hosts offer the native
+folder picker and remote hosts accept a path on the host. The caller performs creation off the dispatcher.
+Failures stay in the dialog with fields preserved; success opens Project Home. Existing targets are
+rejected without altering their contents. Dismissing before submission creates nothing.
+
 ## Search
 
 A query field over a results list. Typing searches after 150ms of quiet and cancels a superseded query;

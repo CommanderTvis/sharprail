@@ -3,12 +3,14 @@ using System.Globalization;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
+using Avalonia.Styling;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.Plugins.Api.UI;
@@ -106,10 +108,25 @@ public sealed partial class SettingsWindow : Window
         if (signature == pluginSectionsSignature) return;
         pluginSectionsSignature = signature;
         foreach (var key in navigation.Keys.Where(key => key.StartsWith("plugin:", StringComparison.Ordinal)).ToArray())
-        {
-            navigationList.Children.Remove(navigation[key]);
             navigation.Remove(key);
+        // Plugin pages are grouped under Plugins, indented behind a rule, as the fork's settings navigation does.
+        var group = navigationList.Children.OfType<Border>().FirstOrDefault(child => child.Name == "PluginSettingsNavigation");
+        if (group is null)
+        {
+            group = new Border
+            {
+                Name = "PluginSettingsNavigation",
+                Margin = new Thickness(16, 0, 0, 0),
+                Padding = new Thickness(4, 0, 0, 0),
+                BorderThickness = new Thickness(1, 0, 0, 0),
+                BorderBrush = Ui.BorderBrush,
+                Child = new StackPanel { Spacing = 2 }
+            };
+            navigationList.Children.Insert(navigationList.Children.IndexOf(navigation["Plugins"]) + 1, group);
         }
+        var groupList = (StackPanel)group.Child!;
+        groupList.Children.Clear();
+        group.IsVisible = sections.Count > 0;
         foreach (var row in sections)
         {
             var key = SectionKey(row);
@@ -118,7 +135,7 @@ public sealed partial class SettingsWindow : Window
             content.Children.Add(PluginIcons.Resolve(row.Value.Icon, registry.Entry(row.PluginId), Ui.Muted));
             content.Children.Add(Ui.Text(row.Value.Label));
             Navigation(button, key, content);
-            navigationList.Children.Add(button);
+            groupList.Children.Add(button);
         }
         if (section.StartsWith("plugin:", StringComparison.Ordinal) && !navigation.ContainsKey(section)) ShowSection("Plugins");
         else PaintNavigation();
@@ -408,9 +425,8 @@ public sealed partial class SettingsWindow : Window
         };
         save.Click += (_, _) => Commit();
         limit.IsChecked = bounded();
-        limit.IsCheckedChanged += (_, _) =>
+        limit.CheckedChange += requested =>
         {
-            var requested = limit.IsChecked == true;
             if (requested == bounded()) return;
             Share(HostStateChange.Setting(key + "-bounded", Setting(requested)));
             limit.IsChecked = bounded();
@@ -492,6 +508,52 @@ public sealed partial class SettingsWindow : Window
         alignment.ItemsSource = new[] { "center", "center-left", "center-right", "full" };
         alignment.SelectedItem = layout.State.BottomAlignment;
         alignment.SelectionChanged += (_, _) => { layout.Geometry(state => state.BottomAlignment = alignment.SelectedItem as string ?? "center"); Save(); };
+        var vertical = PageControl<CheckBox>(panel, "VerticalCenterTabs");
+        var inProjects = PageControl<CheckBox>(panel, "VerticalTabsInProjects");
+        var directions = PageControl<StackPanel>(panel, "PaneDirections");
+        var directionLabel = PageControl<TextBlock>(panel, "PaneDirectionLabel");
+        var directionDetail = PageControl<TextBlock>(panel, "PaneDirectionDetail");
+        void RenderTabs()
+        {
+            var on = state.Preferences.VerticalCenterTabs;
+            vertical.IsChecked = on;
+            inProjects.IsChecked = state.Preferences.VerticalTabsInProjects;
+            inProjects.IsEnabled = on;
+            directionLabel.Foreground = on ? Ui.TextBrush : Ui.Hint;
+            directionDetail.Text = on
+                ? "What a new pair looks like when two tabs are first shown together, from a tab's menu. A tab joining a pane that already exists follows that pane."
+                : "Tabs are shown together only in the vertical strip, so this waits on the setting above.";
+            directions.Children.Clear();
+            foreach (var (direction, label) in new[] { ("horizontal", "Columns"), ("vertical", "Rows") })
+            {
+                var active = state.Preferences.DefaultPaneDirection == direction;
+                var choice = new Button
+                {
+                    Name = "DefaultPane_" + direction,
+                    Content = label,
+                    IsEnabled = on,
+                    Padding = new Thickness(12, 4),
+                    CornerRadius = new CornerRadius(4),
+                    BorderThickness = new Thickness(1),
+                    BorderBrush = active ? Ui.PrimaryMuted : Ui.BorderBrush,
+                    Background = active ? Ui.PrimarySubtle : Avalonia.Media.Brushes.Transparent,
+                    Foreground = active ? Ui.TextBrush : Ui.Muted
+                };
+                choice.Click += (_, _) => { state.Preferences.DefaultPaneDirection = direction; Save(); RenderTabs(); };
+                directions.Children.Add(choice);
+            }
+        }
+        RenderTabs();
+        vertical.IsCheckedChanged += (_, _) =>
+        {
+            if (state.Preferences.VerticalCenterTabs == (vertical.IsChecked == true)) return;
+            state.Preferences.VerticalCenterTabs = vertical.IsChecked == true; Save(); RenderTabs();
+        };
+        inProjects.IsCheckedChanged += (_, _) =>
+        {
+            if (state.Preferences.VerticalTabsInProjects == (inProjects.IsChecked == true)) return;
+            state.Preferences.VerticalTabsInProjects = inProjects.IsChecked == true; Save(); RenderTabs();
+        };
         var preview = PageControl<CheckBox>(panel, "PreviewTabs");
         preview.IsChecked = state.Preferences.PreviewTabs;
         preview.IsCheckedChanged += (_, _) => { state.Preferences.PreviewTabs = preview.IsChecked == true; Save(); };
@@ -530,7 +592,39 @@ public sealed partial class SettingsWindow : Window
     {
         var panel = new StackPanel { Spacing = 4 };
         panel.Children.Add(Ui.Text(region == "side" ? "Side groups" : "Bottom groups", size: 12));
-        var input = new NumericUpDown { Name = "GroupLimit_" + region, Minimum = 1, Maximum = 32, Value = value, Width = 96 };
+        var input = new NumericUpDown
+        {
+            Name = "GroupLimit_" + region,
+            Minimum = 1,
+            Maximum = 32,
+            Value = value,
+            Width = 88,
+            Height = 28,
+            MinHeight = 28,
+            FontSize = 13,
+            Background = Ui.Elevated,
+            BorderBrush = Ui.BorderBrush,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(4)
+        };
+        // A setting that rarely changes: the steppers stay small and muted, lighting only on hover.
+        var stepper = new Style(selector => selector.OfType<RepeatButton>())
+        {
+            Setters =
+            {
+                new Setter(BackgroundProperty, Avalonia.Media.Brushes.Transparent),
+                new Setter(ForegroundProperty, Ui.Muted),
+                new Setter(BorderThicknessProperty, new Thickness(0)),
+                new Setter(PaddingProperty, new Thickness(4, 0)),
+                new Setter(MinWidthProperty, 0d),
+                new Setter(WidthProperty, 22d)
+            }
+        };
+        input.Styles.Add(stepper);
+        input.Resources["RepeatButtonBackgroundPointerOver"] = Ui.Hover;
+        input.Resources["RepeatButtonBackgroundPressed"] = Ui.Hover;
+        input.Resources["RepeatButtonForegroundPointerOver"] = Ui.TextBrush;
+        input.Resources["RepeatButtonForegroundPressed"] = Ui.TextBrush;
         AutomationProperties.SetName(input, "Maximum " + region + " groups");
         var save = Ui.Button("Save", () =>
         {
@@ -550,7 +644,7 @@ public sealed partial class SettingsWindow : Window
         var panel = Page("ProjectsPage");
         var hidden = PageControl<Switch>(panel, "ShowHiddenFiles");
         hidden.IsChecked = state.Preferences.ShowHiddenFiles;
-        hidden.IsCheckedChanged += (_, _) => { state.Preferences.ShowHiddenFiles = hidden.IsChecked == true; Save(); };
+        hidden.CheckedChange += requested => { state.Preferences.ShowHiddenFiles = requested; hidden.IsChecked = requested; Save(); };
         var recent = PageControl<StackPanel>(panel, "RecentProjects");
         foreach (var path in state.Current.Projects)
         {

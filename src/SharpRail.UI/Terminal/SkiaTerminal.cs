@@ -162,6 +162,8 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend
 
     public string ReadScreen() => terminal.ReadScreen();
 
+    public void SetAgentNewline(bool enabled) => terminal.AgentNewline = enabled;
+
     protected override void OnGotFocus(FocusChangedEventArgs e)
     {
         base.OnGotFocus(e);

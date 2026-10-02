@@ -41,11 +41,13 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
     private readonly TextBlock branchLabel;
     private readonly Control branchIcon;
     private readonly TextBlock status;
+    private readonly TextBlock statusDot;
     private readonly TextBlock errorText;
     private readonly DockSurface surface;
     internal void RequestClose() => surface.RequestClose();
     private readonly Grid root;
     private long projectRequest;
+    private bool switchingWorkspace;
     private string projectRoot = "";
     private string workspaceRoot = "";
     private GitSnapshot git = new(false, "", [], [], []);
@@ -67,10 +69,15 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         Host.Core.HostStateStore? state = null)
         : this(Standalone(profile, terminals, remote, state), host, profile.Data.Windows[0], rootPath) => workbench.Attach(this);
 
+    // As the app's own host does, a standalone window's host runs the builtin plugins in process.
     private static Workbench Standalone(ProfileStore profile, Terminal.TerminalFactory terminals, bool remote, Host.Core.HostStateStore? state)
     {
         var store = state ?? profile.OpenState();
-        return new(profile, new SharedState(new Host.Client.LocalStateAdapter(store), profile.Data.Preferences, store.Current), terminals, remote, null);
+        var plugins = new Host.Core.Plugins.PluginRuntime(new() { StateDirectory = null, State = store });
+        plugins.Start();
+        return new(profile, new SharedState(new Host.Client.LocalStateAdapter(store), profile.Data.Preferences, store.Current), terminals, remote, null,
+            new Host.Client.LocalPluginAdapter(plugins))
+        { OwnedHost = plugins };
     }
 
     internal WorkbenchWindow(Workbench workbench, IProjectServices host, WindowProfile slot, string rootPath)
@@ -84,6 +91,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         workspaceLabel = this.FindControl<TextBlock>("WorkspaceLabel")!;
         branchLabel = this.FindControl<TextBlock>("BranchLabel")!;
         status = this.FindControl<TextBlock>("ConnectionStatus")!;
+        statusDot = this.FindControl<TextBlock>("ConnectionDot")!;
         errorText = this.FindControl<TextBlock>("WorkspaceError")!;
         branchIcon = Ui.Icon("gitBranch", Ui.Muted, 14);
         this.FindControl<ContentControl>("BranchIcon")!.Content = branchIcon;
@@ -98,6 +106,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         Layout.SelectionChanged += _ => UpdateActiveChangeRows();
         Layout.Focused += UpdateActiveChangeRows;
         surface = new DockSurface(Layout, RenderContent);
+        WireCenterTabs();
         Ui.Place(root, surface, 1);
         WireGestureNotification();
         WireNavigation();
@@ -155,6 +164,15 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         this.FindControl<TextBlock>("QuitHintMessage")!.Text = message;
         AutomationProperties.SetName(overlay, hint == QuitHint.Armed ? $"Hold {key} to quit" : message);
     }
+
+    private async Task RenderSwitchAsync()
+    {
+        var rendered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        RequestAnimationFrame(_ => Dispatcher.UIThread.Post(() => rendered.TrySetResult(), DispatcherPriority.Background));
+        try { await rendered.Task.WaitAsync(lifetime.Token); }
+        catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
+    }
+
 
     private void WireHeader()
     {
@@ -220,12 +238,19 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         var previous = WorkspaceMounted ? (atHome ? "" : workspaceRoot) : null;
         var request = ++projectRequest; WorkspaceMounted = false;
         gitRefresh?.Cancel(); StopWatching();
+        switchingWorkspace = true;
+        SetStatus("Loading");
+        var target = home ? HomeKey(path) : path;
+        if (Layout.State.Workspaces.ContainsKey(target)) Layout.SwitchWorkspace(target);
+        surface.RefreshContents();
+        surface.RefreshEmptyContents();
         try { await projectGate.WaitAsync(lifetime.Token); }
         catch (OperationCanceledException) { return; }
         try
         {
             if (request != projectRequest) return;
-            status.Text = "Loading";
+            await RenderSwitchAsync();
+            if (request != projectRequest || lifetime.IsCancellationRequested) return;
             var workspace = await host.OpenProjectAsync(path, lifetime.Token);
             if (request != projectRequest) return;
             // A workspace removed while this open was in flight is not entered again.
@@ -235,8 +260,8 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
                 workspace = await host.OpenProjectAsync(workspace.ProjectRoot, lifetime.Token);
                 if (request != projectRequest) return;
             }
-            var files = await Task.Run(async () => await host.ListFilesAsync("", lifetime.Token), lifetime.Token);
-            if (request != projectRequest) return;
+            // A workspace of another project opens that project, whichever row or tab asked for it.
+            project |= workspace.ProjectRoot != projectRoot;
             // Workspaces of one project share its worktrees, so the rail and its list survive the switch.
             var sameProject = previous is not null && workspace.ProjectRoot == projectRoot;
             workspaceRoot = workspace.RootPath;
@@ -249,7 +274,6 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             git = sameProject ? new(git.IsRepository, "", [], git.Worktrees, git.Branches) : new(false, "", [], [], []);
             gitLoading = true; gitError = null;
             RestoreGitSelection(); folderCache.Clear(); expandedFolders.Clear();
-            folderCache[""] = files;
             var rail = sameProject ? toolContent.GetValueOrDefault("projects") : null;
             toolContent.Clear();
             if (rail is not null) { toolContent["projects"] = rail; UpdateRailSelection(); }
@@ -258,10 +282,20 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             slot.LastProject = workspaceRoot;
             slot.LastProjectRoot = projectRoot;
             slot.LastAtHome = home;
+            switchingWorkspace = false;
             WorkspaceMounted = true; restorePending = false;
-            Layout.SwitchWorkspace(home ? HomeKey(projectRoot) : workspaceRoot);
+            var resolvedTarget = home ? HomeKey(projectRoot) : workspaceRoot;
+            if (Layout.State.ActiveWorkspace != resolvedTarget) Layout.SwitchWorkspace(resolvedTarget);
+            else
+            {
+                surface.RefreshContents();
+                surface.RefreshEmptyContents();
+            }
+            surface.RefreshCenterActions();
+            ResolveRailDefaults();
+            PlaceWorkspaceTabs();
             foreach (var removed in removedWorkspaces) Layout.DropWorkspace(removed);
-            status.Text = remote ? "Remote" : "Connected";
+            ShowReady();
             errorText.IsVisible = false;
             ReportProfileError();
             LocationChanged?.Invoke();
@@ -269,12 +303,12 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             {
                 UpdateLayout();
                 Console.WriteLine($"SHARPRAIL_WORKSPACE_LAYOUT {DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}");
-                Console.WriteLine($"SHARPRAIL_TREE logical={this.GetLogicalDescendants().Distinct().Count()} files={files.Count}");
+                Console.WriteLine($"SHARPRAIL_TREE logical={this.GetLogicalDescendants().Distinct().Count()}");
             }, DispatcherPriority.Loaded);
         }
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
         catch (Exception error) when (error is not OperationCanceledException) { (failed ?? Report)(error); }
-        finally { projectGate.Release(); }
+        finally { if (request == projectRequest) switchingWorkspace = false; projectGate.Release(); }
         if (request == projectRequest && WorkspaceMounted)
             Dispatcher.UIThread.Post(() =>
             {
@@ -287,6 +321,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
 
     private Control RenderContent(DockTab? tab)
     {
+        if (switchingWorkspace && tab?.Id != "projects") return Ui.Text("Loading workspace…");
         if (tab is null)
         {
             if (atHome || cleanWelcome) return Welcome();
@@ -310,7 +345,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             foreach (var label in empty.Children.OfType<TextBlock>())
                 label.HorizontalAlignment = HorizontalAlignment.Center;
             var open = Ui.Button("Open file", () => RevealFiles(), "fileText"); open.HorizontalAlignment = HorizontalAlignment.Center;
-            empty.Children.Add(StartActions(open)); return empty;
+            empty.Children.Add(open); return empty;
         }
         if (tab.IsTool)
         {
@@ -320,7 +355,6 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
                 {
                     "projects" => ProjectsPanel(),
                     "files" => FilesPanel(),
-                    "specs" => SpecsPanel(),
                     "changes" => ChangesPanel(),
                     "review" => ReviewPanel(),
                     _ => PluginTool(tab.Id)
@@ -339,7 +373,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             { TabKey = tab.Id })
             { Name = "TerminalSurface_" + tab.Id.Replace(':', '_') };
             documentContent[key] = terminal;
-            AttachPluginTerminal(terminal, key);
+            AttachPluginTerminal(terminal);
             return terminal;
         }
         if (documents.TryGetValue(key, out var document))
@@ -396,6 +430,19 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
     }
 
+    /// <summary>An embedded host cannot disconnect, so its healthy state shows no indicator.</summary>
+    private void ShowReady()
+    {
+        if (remote) SetStatus("Remote");
+        else statusDot.IsVisible = status.IsVisible = false;
+    }
+
+    private void SetStatus(string text)
+    {
+        status.Text = text;
+        statusDot.IsVisible = status.IsVisible = true;
+    }
+
     public async Task RefreshAsync()
     {
         if (!WorkspaceMounted) return;
@@ -417,7 +464,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
 
     private void Report(Exception error)
     {
-        errorText.Text = error.Message; errorText.IsVisible = true; status.Text = "Error";
+        errorText.Text = error.Message; errorText.IsVisible = true; SetStatus("Error");
         Console.Error.WriteLine(error);
     }
 
@@ -482,7 +529,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
     private void ApplyChromeZoom()
     {
         var zoom = InterfaceZoom.Current;
-        ExtendClientAreaTitleBarHeightHint = 40 * zoom;
+        ExtendClientAreaTitleBarHeightHint = this.FindControl<Grid>("WorkbenchRoot")!.RowDefinitions[0].Height.Value * zoom;
         var lights = OperatingSystem.IsMacOS() && WindowState != WindowState.FullScreen;
         this.FindControl<Grid>("MainHeader")!.Margin = new Thickness(lights ? 80 / zoom : 12, 0, 12, 0);
     }
@@ -508,7 +555,11 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
     public void ShowSettings()
     {
         var undim = Dim();
-        var settings = new SettingsWindow(this, () => { RefreshAppearance(); ReportProfileError(); }, GitHubStatusProbe, settingsSection);
+        var settings = new SettingsWindow(this, () =>
+        {
+            RefreshAppearance(); ReportProfileError();
+            foreach (var window in workbench.Windows) window.ApplyTabLayout();
+        }, GitHubStatusProbe, settingsSection);
         settings.Closed += (_, _) => { settingsSection = settings.Section; undim(); };
         _ = settings.ShowDialog(this);
     }

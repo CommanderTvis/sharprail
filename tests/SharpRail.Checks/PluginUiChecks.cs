@@ -1,12 +1,15 @@
 using System.Net;
 using System.Runtime.Loader;
 using System.Text.Json;
+
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
+
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
+
 using SharpRail.Checks.E2E;
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
@@ -37,6 +40,7 @@ internal static class PluginUiChecks
         RegistryRules();
         DependencyWalks();
         Icons();
+        SwitchChecks.Run();
         Loader(Path.Combine(root, "plugin-loader"));
         Fixture(Path.Combine(root, "plugin-fixture-local"), remote: false);
         Fixture(Path.Combine(root, "plugin-fixture-remote"), remote: true);
@@ -184,7 +188,11 @@ internal static class PluginUiChecks
         var probeEntry = new PluginRosterEntry("probe", "Probe", "puzzle", "1", 1, PluginOrigin.Builtin, PluginStatus.Disabled)
         {
             Contributes = Manifest("probe", 1).Contributes,
-            Channels = new Dictionary<string, PluginRosterChannel> { ["count"] = new(PluginChannelKind.State, "count", ["workspace"]) }
+            Channels = new Dictionary<string, PluginRosterChannel>
+            {
+                ["count"] = new(PluginChannelKind.State, "count", ["workspace"]),
+                ["rows"] = new(PluginChannelKind.State, "rows", ["workspace"])
+            }
         };
         var host = new FakePluginHost(new LocalStateAdapter(store), store.Current, probeEntry,
             new("mismatched", "Mismatched", "puzzle", "1", 2, PluginOrigin.Builtin, PluginStatus.Disabled),
@@ -242,6 +250,28 @@ internal static class PluginUiChecks
         subscription.Dispose();
         E2eWorkspace.Until(() => host.Subscriptions == 0);
 
+        foreach (var remoteShape in new[] { false, true })
+        {
+            Count[] rows = [new("/w1", 11), new("/w1", 12), new("/w2", 99)];
+            host.Replies["rows"] = remoteShape ? JsonSerializer.SerializeToElement(rows, PluginJson.Options) : rows;
+            var hydrated = new List<int>();
+            var channel = PluginChannel<Count>.State("rows", new PluginMethod<Scope, IReadOnlyList<Count>>("rows"), "workspace");
+            using (context.Subscribe(channel, row => hydrated.Add(row.Value), new Scope("/w1")))
+            {
+                E2eWorkspace.Until(() => hydrated.Count == 2);
+                Require(hydrated.SequenceEqual([11, 12]), "Local and serialized list snapshots hydrate matching rows in order.");
+            }
+            E2eWorkspace.Until(() => host.Subscriptions == 0);
+            var calls = host.Calls.Count;
+            using (context.Subscribe(channel, _ => { }))
+            {
+                E2eWorkspace.Until(() => host.Subscriptions == 1);
+                E2eWorkspace.Settle(50);
+                Require(host.Calls.Count == calls, "An unscoped keyed subscriber streams without requesting an invalid snapshot.");
+            }
+            E2eWorkspace.Until(() => host.Subscriptions == 0);
+        }
+
         // Disabling unmounts: the disposer runs and every row goes; leaving the roster does the same.
         _ = state.ChangeAsync(HostStateChange.PluginEnabled("probe", false));
         E2eWorkspace.Until(() => !loader.Registry.Active.Contains("probe"));
@@ -289,7 +319,7 @@ internal static class PluginUiChecks
         try
         {
             using var app = server is null
-                ? new E2eWorkspace(workspace, profileRoot: profileRoot, plugins: true)
+                ? new E2eWorkspace(workspace, profileRoot: profileRoot)
                 : new E2eWorkspace(new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single()),
                     token, workspace, profileRoot, workspace, plugins: true);
             if (remote)
@@ -310,14 +340,18 @@ internal static class PluginUiChecks
     {
         var window = app.Window;
         var loader = app.Workbench.PluginLoader;
-        E2eWorkspace.Until(() => loader.Registry.Roster.Count == 3);
+        var disableIcons = app.Workbench.State.ChangeAsync(HostStateChange.PluginEnabled("file-icons", false));
+        E2eWorkspace.Until(() => disableIcons.IsCompleted && !loader.Registry.Active.Contains("file-icons"));
+        disableIcons.GetAwaiter().GetResult();
+        // The fixture and its refused/removable copies join the builtin plugins.
+        E2eWorkspace.Until(() => loader.Registry.Roster.Count(entry => entry.Origin == PluginOrigin.External) == 3);
 
         // The roster lists a discovered external plugin as disabled, with its version and origin; a refused one names both generations.
         window.ShowSettings("Plugins");
         E2eWorkspace.Until(() => window.OwnedWindows.OfType<SettingsWindow>().Any());
         var settings = window.OwnedWindows.OfType<SettingsWindow>().Single();
         var row = Find<Border>(settings, "PluginRow_fixture");
-        string Texts(Control control) => string.Join(" ", control.GetLogicalDescendants().OfType<TextBlock>().Select(text => text.Text));
+        static string Texts(Control control) => string.Join(" ", control.GetLogicalDescendants().OfType<TextBlock>().Select(text => text.Text));
         Require(Texts(row).Contains("external", StringComparison.Ordinal) && Texts(row).Contains("v1.0.0", StringComparison.Ordinal) &&
             Texts(row).Contains("disabled", StringComparison.Ordinal), "The fixture's row must show external, its version and disabled: " + Texts(row));
         var refusedRow = Find<Border>(settings, "PluginRow___refused:broken");
@@ -340,6 +374,11 @@ internal static class PluginUiChecks
         toggle.IsChecked = true;
         E2eWorkspace.Until(() => loader.Registry.Active.Contains("fixture"));
         E2eWorkspace.Until(() => Has(settings, "Settings_plugin_fixture_fixture"));
+        var nested = Find<Border>(settings, "PluginSettingsNavigation");
+        var navigationList = (Panel)nested.Parent!;
+        Require(nested.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "Settings_plugin_fixture_fixture") &&
+            navigationList.Children.IndexOf(nested) == navigationList.Children.IndexOf(Find<Button>(settings, "Settings_Plugins")) + 1,
+            "A plugin's settings page is listed under Plugins, as the fork groups them.");
         settings.ShowSection("plugin:fixture:fixture");
         Require(Find<TextBlock>(settings, "FixtureGreeting").Text == "hello", "The fixture's Settings section reads its settings namespace.");
         // UpdateSettingsAsync completes once the host's snapshot carries the value; the host half then answers with it.
@@ -370,7 +409,7 @@ internal static class PluginUiChecks
         Require(window.Layout.Tabs(window.Layout.View.FocusedCenter).Any(item => item.Kind == "viewer" && item.Path == "sample.fixture"), "The open uses a viewer tab.");
 
         window.Layout.Select(window.Layout.State.Groups.First(group => group.Tools.Any(item => item.Id == "files")).Id, "files");
-        E2eWorkspace.Until(() => ((Grid)app.FileRow("sample.fixture")).Children[0] is ContentControl);
+        E2eWorkspace.Until(() => ((Grid)app.FileRow("sample.fixture")).Children[0].Tag as string == "asset:icon.svg");
         Require(((Grid)app.FileRow("notes.txt")).Children[0] is Border, "The file-icon slot answers only for the paths it claims; core's glyph stays for the rest.");
 
         // A terminal shows the accessory row.
@@ -384,8 +423,9 @@ internal static class PluginUiChecks
         Find<ToggleSwitch>(Find<Border>(settings, "PluginRow_fixture"), "PluginToggle").IsChecked = false;
         E2eWorkspace.Until(() => !loader.Registry.Active.Contains("fixture"));
         E2eWorkspace.Until(() => !Has(settings, "Settings_plugin_fixture_fixture"));
-        Require(loader.Registry.SideTools.Count == 0 && loader.Registry.SettingsSections.Count == 0 && loader.Registry.FileViewers.Count == 0 &&
-            loader.Registry.WorkspaceActions.Count == 0 && loader.Registry.TerminalAccessories.Count == 0 && loader.Registry.FileIconSlots.Count == 0,
+        static bool Gone<T>(IReadOnlyList<PluginRow<T>> rows) => rows.All(row => row.PluginId != "fixture");
+        Require(Gone(loader.Registry.SideTools) && Gone(loader.Registry.SettingsSections) && loader.Registry.FileViewers.All(viewer => viewer.PluginId != "fixture") &&
+            Gone(loader.Registry.WorkspaceActions) && Gone(loader.Registry.TerminalAccessories) && Gone(loader.Registry.FileIconSlots),
             "Disabling must drop every registration of the plugin.");
         E2eWorkspace.Until(() => !Has(window, "FixtureAccessory") && !Has(window, "FixtureViewer"));
         window.Layout.Select(window.Layout.State.Groups.First(group => group.Tools.Any(item => item.Id == "plugin:fixture:board")).Id, "plugin:fixture:board");

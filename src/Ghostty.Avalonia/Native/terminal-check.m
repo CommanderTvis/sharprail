@@ -16,6 +16,23 @@ static void waitText(void *view, NSString *needle) {
     if (![readText(view) containsString:needle]) fprintf(stderr, "Terminal contents: %s\n", readText(view).UTF8String);
     require([readText(view) containsString:needle], needle.UTF8String);
 }
+static void checkAgentNewline(NSWindow *window, void *pointer, bool enabled, const char *mode, int bytes, NSString *expected, int stage) {
+    gav_view_set_agent_newline(pointer, enabled);
+    NSString *command = [NSString stringWithFormat:@"saved=$(stty -g); stty raw -echo; printf '\\033[=0u\\033[>4;0m%s'; printf '\\n%%s_%%d\\n' KEY_READY %d; dd bs=1 count=%d 2>/dev/null | od -An -tx1; printf '\\033[=0u\\033[>4;0m'; stty \"$saved\"; printf '\\n%%s_%%d\\n' KEY_DONE %d\r", mode, stage, bytes, stage];
+    gav_view_input(pointer, command.UTF8String);
+    waitText(pointer, [NSString stringWithFormat:@"KEY_READY_%d", stage]);
+    NSEvent *event = [NSEvent keyEventWithType:NSEventTypeKeyDown location:NSZeroPoint modifierFlags:NSEventModifierFlagShift timestamp:0
+        windowNumber:window.windowNumber context:nil characters:@"\r" charactersIgnoringModifiers:@"\r" isARepeat:NO keyCode:36];
+    [NSApp sendEvent:event];
+    waitText(pointer, [NSString stringWithFormat:@"KEY_DONE_%d", stage]);
+    NSString *screen = readText(pointer);
+    NSRange begin = [screen rangeOfString:[NSString stringWithFormat:@"KEY_READY_%d", stage] options:NSBackwardsSearch];
+    NSRange end = [screen rangeOfString:[NSString stringWithFormat:@"KEY_DONE_%d", stage] options:NSBackwardsSearch];
+    NSString *result = [screen substringWithRange:NSMakeRange(NSMaxRange(begin), end.location - NSMaxRange(begin))];
+    NSString *normalized = [[result stringByReplacingOccurrencesOfString:@"\\s+" withString:@" " options:NSRegularExpressionSearch range:NSMakeRange(0, result.length)] stringByTrimmingCharactersInSet:NSCharacterSet.whitespaceAndNewlineCharacterSet];
+    if (![normalized containsString:expected]) fprintf(stderr, "Agent newline stage %d terminal contents: %s\n", stage, screen.UTF8String);
+    require([normalized isEqualToString:expected], expected.UTF8String);
+}
 int main(int argc, char **argv) {
     @autoreleasepool {
         [NSApplication sharedApplication];
@@ -52,8 +69,13 @@ int main(int argc, char **argv) {
             [view keyDown:event];
         }
         waitText(pointer, @"KEY_OK");
+        checkAgentNewline(window, pointer, true, "", 2, @"1b 0d", 1);
+        checkAgentNewline(window, pointer, false, "", 10, @"1b 5b 32 37 3b 32 3b 31 33 7e", 2);
+        checkAgentNewline(window, pointer, true, "\\033[>1u", 7, @"1b 5b 31 33 3b 32 75", 3);
+        checkAgentNewline(window, pointer, true, "\\033[>4;2m", 10, @"1b 5b 32 37 3b 32 3b 31 33 7e", 4);
+        gav_view_set_agent_newline(pointer, false);
         require(gav_view_rendered(pointer), "resized terminal still renders");
-        printf("PASS embedded libghostty shell, cwd, ANSI, AppKit input, Metal IOSurface presentation, resize and retained session\n");
+        printf("PASS embedded libghostty shell, cwd, ANSI, AppKit input, agent newline/default/kitty/modifyOtherKeys bytes, Metal IOSurface presentation, resize and retained session\n");
         gav_view_destroy(pointer);
         [window orderOut:nil];
     }

@@ -32,8 +32,9 @@ tools the roster declares. Names, icons, default side, the reveal menus (`ShowTo
 `RestoreTool` read it; a change re-renders the surface only when the composed list differs. `IsValid` accepts
 core's ids and any `plugin:<id>:<tool>`, so a persisted tab from a plugin that is off, or since removed, keeps its
 slot and renders whatever the window supplies for it (a dormant placeholder). `DockSurface.TabIcon` and
-`TabAdornment` let the window decorate a tab without the docking layer knowing why, and `RefreshEmptyContents`
-re-renders only empty groups' content, keeping every tab's chrome.
+`TabAdornment` let the window decorate a tab without the docking layer knowing why, `CenterActions` appends the
+window's strip actions after New terminal in every center group, and `RefreshEmptyContents` re-renders only empty
+groups' content, keeping every tab's chrome.
 
 ## State contract
 
@@ -126,6 +127,16 @@ hit-testing. Escape, lost capture, an outside drop or a replacing transition can
 caused by a layout change mid-gesture is announced once (`GestureNotification.cs`). A drag moves one
 resource or one tool and never copies or crosses workspaces.
 
+Visual refreshes caused by a plugin catalog or decoration change keep the pressed tab alive until
+its pointer release; after the click selects it, apply the latest chrome and retain keyboard focus
+on the same control or its equivalent named tab. A real layout mutation still cancels an incompatible
+active gesture.
+
+Adding or removing entries in the tool catalogue leaves existing tabs and their focus intact when
+their displayed metadata is unchanged. Side groups update the availability of Show a hidden tool
+in place; opening its menu reads the current catalogue and excludes tools already placed anywhere
+in the frame. A change to metadata of a displayed tool refreshes its chrome.
+
 Pointer is never the only path. Tab, group and header menus cover keep, close/hide, reorder, move to
 another group, directional splits, new pane before/after, remove group, fold, region visibility, bottom
 alignment and tool restore; Alt+Shift+Left/Right reorders, Left/Right/Home/End rove, Delete or Mod+W
@@ -158,6 +169,10 @@ first visit creates its view and places one terminal, "Terminal 1", into the fir
 one when the limit allows; closing it never brings it back.
 
 ## Location
+
+Refreshing empty groups uses the same region-aware content factory as initial layout: center groups
+show the workbench receipt or Welcome; auxiliary groups keep their empty-group placeholder. Plugin
+action updates must not introduce extra Welcome pages in the rails.
 
 A window's location is Welcome, a project's Home, or a workspace. It is window-local, persisted in the
 window's profile entry as the last project, workspace root and whether Home was shown, and never stored by

@@ -76,6 +76,7 @@ public sealed partial class WorkbenchWindow
     {
         RememberGitSelection();
         projectRequest++; gitRefresh?.Cancel(); StopWatching();
+        switchingWorkspace = false;
         WorkspaceMounted = false; atHome = false; cleanWelcome = true;
         projectRoot = ""; workspaceRoot = "";
         git = new(false, "", [], [], []); gitLoading = false; gitError = null;
@@ -85,7 +86,9 @@ public sealed partial class WorkbenchWindow
         UpdateScopeLabels();
         SetBranch("");
         status.Text = remote ? "Remote" : "Connected";
+        ShowReady();
         Layout.SwitchWorkspace("");
+        surface.RefreshCenterActions();
         surface.RefreshContents();
         LocationChanged?.Invoke();
     }
@@ -212,8 +215,14 @@ public sealed partial class WorkbenchWindow
     private ContextMenu ProjectMenu()
     {
         var menu = new ContextMenu();
+        var create = Ui.Menu("Create project…", () => _ = CreateProjectAsync());
+        create.Name = "CreateProjectMenu";
+        menu.Items.Add(create);
         menu.Items.Add(Ui.Menu("Open project", () => _ = PickProjectAsync()));
         menu.Items.Add(Ui.Menu(remote ? "Enter host path…" : "Enter path…", () => _ = EnterHostPathAsync(null)));
+        var clone = Ui.Menu("Clone repository…", () => _ = CloneProjectAsync());
+        clone.Name = "CloneProjectMenu";
+        menu.Items.Add(clone);
         var recents = state.Current.RecentProjects.Where(path => !state.Current.Projects.Contains(path)).ToArray();
         if (recents.Length == 0) return menu;
         menu.Items.Add(new Separator());

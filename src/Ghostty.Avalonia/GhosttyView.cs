@@ -83,6 +83,16 @@ public sealed partial class GhosttyView : NativeControlHost, IDisposable
     /// <summary>Types text as keyboard input; newlines press Return.</summary>
     public void Type(string text) { if (view != 0) Native.Input(view, text); }
 
+    /// <summary>Shift+Enter sends ESC CR, the newline agents read, unless the program negotiated a keyboard protocol.</summary>
+    public bool AgentNewline
+    {
+        get;
+        set { field = value; if (view != 0) Native.SetAgentNewline(view, value); }
+    }
+
+    // For renderers that deliver keys themselves: false when a negotiated protocol should encode Shift+Enter.
+    internal bool SendAgentNewline() => view != 0 && Native.AgentNewline(view);
+
     /// <summary>The screen as plain text.</summary>
     public string ReadScreen()
     {
@@ -171,6 +181,11 @@ public sealed partial class GhosttyView : NativeControlHost, IDisposable
         [DllImport(Library, EntryPoint = "gav_view_busy")]
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool Busy(nint view);
+        [DllImport(Library, EntryPoint = "gav_view_set_agent_newline")]
+        internal static extern void SetAgentNewline(nint view, [MarshalAs(UnmanagedType.I1)] bool enabled);
+        [DllImport(Library, EntryPoint = "gav_view_agent_newline")]
+        [return: MarshalAs(UnmanagedType.I1)]
+        internal static extern bool AgentNewline(nint view);
         [DllImport(Library, EntryPoint = "gav_view_input")]
         internal static extern void Input(nint view, [MarshalAs(UnmanagedType.LPUTF8Str)] string text);
         [DllImport(Library, EntryPoint = "gav_view_read")]

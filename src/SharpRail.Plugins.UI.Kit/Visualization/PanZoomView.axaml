@@ -1,0 +1,18 @@
+<Grid xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:kit="using:SharpRail.Plugins.UI.Kit" x:Class="SharpRail.Plugins.UI.Kit.Visualization.PanZoomView" x:ClassModifier="internal">
+  <ScrollViewer x:Name="MermaidPanZoom" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Cursor="SizeAll" Background="Transparent">
+    <Image x:Name="DiagramImage" Stretch="Fill" HorizontalAlignment="Left" VerticalAlignment="Top" />
+  </ScrollViewer>
+  <Border Background="{x:Static kit:Ui.Elevated}" BorderBrush="{x:Static kit:Ui.BorderBrush}" BorderThickness="1"
+          CornerRadius="4" Padding="4" Margin="8" HorizontalAlignment="Right" VerticalAlignment="Bottom">
+    <StackPanel Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
+      <Button x:Name="MermaidZoomOut" Padding="4" Background="Transparent" BorderThickness="0" CornerRadius="4" AutomationProperties.Name="Zoom out" ToolTip.Tip="Zoom out" />
+      <TextBlock x:Name="MermaidZoomLevel" Text="100%" Foreground="{x:Static kit:Ui.Muted}" FontSize="12" MinWidth="36" TextAlignment="Center" VerticalAlignment="Center" />
+      <Button x:Name="MermaidZoomIn" Padding="4" Background="Transparent" BorderThickness="0" CornerRadius="4" AutomationProperties.Name="Zoom in" ToolTip.Tip="Zoom in" />
+      <Button x:Name="MermaidZoomReset" Padding="4" Background="Transparent" BorderThickness="0" CornerRadius="4" AutomationProperties.Name="Reset zoom" ToolTip.Tip="Reset zoom" />
+    </StackPanel>
+  </Border>
+  <Button x:Name="MermaidFullscreen" Padding="4" Margin="4" Background="{x:Static kit:Ui.Elevated}" BorderBrush="{x:Static kit:Ui.BorderBrush}"
+          BorderThickness="1" CornerRadius="4" HorizontalAlignment="Right" VerticalAlignment="Top" IsVisible="False"
+          AutomationProperties.Name="View diagram full screen" ToolTip.Tip="Full screen" />
+</Grid>

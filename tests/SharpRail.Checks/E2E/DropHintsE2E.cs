@@ -58,7 +58,7 @@ internal static class DropHintsE2E
         var section = Section(app, surface);
         Move(app, surface, section.Center);
         var header = Bounds(app.Find<Grid>("GroupHeader_" + app.Center), surface);
-        var rightId = app.Window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "specs")).Id;
+        var rightId = app.Window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == DockState.SpecsTool)).Id;
         var rightHeader = Bounds(app.Find<Grid>("GroupHeader_" + rightId), surface);
         var hints = Overlay(surface).Children.OfType<Border>().ToArray();
         Require(!hints.Any(hint => Same(PaintedBounds(hint), header)) &&

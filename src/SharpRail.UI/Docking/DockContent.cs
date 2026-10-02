@@ -10,8 +10,9 @@ public sealed partial class DockSurface
         {
             if (site.Header || site.Control is not DockPanel body || !contentHosts.Contains(body)) continue;
             var selected = Session.Selected(site.Group);
-            if (selected is null || tabIds.Length > 0 && !tabIds.Contains(selected.Id)) continue;
-            body.Mount(() => renderContent(selected), keep: true);
+            var pane = selected is null ? null : Session.PaneFor(site.Group, selected.Id);
+            if (selected is null || tabIds.Length > 0 && !tabIds.Contains(selected.Id) && pane?.TabIds.Any(tabIds.Contains) != true) continue;
+            body.Mount(() => pane is null ? renderContent(selected) : BodyFor(Session.Group(site.Group), selected), keep: true);
         }
     }
 
@@ -22,7 +23,7 @@ public sealed partial class DockSurface
         {
             if (site.Header || site.Control is not Border body || !contentHosts.Contains(body) || Session.Selected(site.Group) is not null) continue;
             body.Child = null;
-            body.Child = renderContent(null);
+            body.Child = Empty(Session.Group(site.Group));
         }
     }
 }

@@ -53,7 +53,10 @@ default `~/.sharprail`) and the initial root, opens the profile, migrates and op
 and composes one `Workbench`: the shared-state subscription, the terminal factory and a factory for
 per-window project sessions. It then opens one window per profile `Windows` entry, the first at the
 initial root and the rest at their own last location. Startup follows the root AGENTS.md performance
-rules: routing identity first, deferred Git and indexing, panels filled progressively.
+rules: workspace switches render loading bodies and remembered document tabs before host routing
+begins. Resolve routing identity before restoring document bodies or starting terminals; render the
+mounted workspace before loading its file list, Git and watchers. Panel results fill progressively,
+reject superseded switches and preserve dock chrome. File loading does not hold the project-switch gate.
 
 ## Windows
 
@@ -65,7 +68,7 @@ entry; quitting keeps every entry so the next launch restores the same set.
 
 ## Window chrome
 
-The 40px header is the window's title bar. `WorkbenchWindow.axaml` extends the client area into the
+The 48px header is the window's title bar. `WorkbenchWindow.axaml` extends the client area into the
 decorations so the native controls stay while the header provides the colour; on macOS the header leaves
 80px for the traffic lights. The header shows the brand mark, the location bar, the connection state and
 Settings. Pressing plain header content drags the window; buttons and text inputs in the header never
@@ -95,7 +98,9 @@ first, runs the confirmation gesture. Other platforms have no menu bar and keep 
 ## Location bar
 
 `LocationBar.cs` renders the header's captioned segments — PROJECT, WORKSPACE, BRANCH — each an uppercase
-10px caption above a 22px value pill, with a hairline before every segment but the first. It owns no host
+10px caption above a 22px value pill, separated by 4px, with a hairline before every segment but the first.
+The caption/value stack has 6px of vertical breathing room; divided segments have 16px left and 12px
+right padding, and the first segment has 8px left padding. It owns no host
 state: it shows what the window already knows and calls the same methods as the panels.
 
 - PROJECT lists every open project with the current one checked, Project home (disabled while there) and
@@ -261,6 +266,8 @@ menu. Abrupt death relies on operating-system process cleanup; remote shells bel
 - Host-owned values change through the host and apply when the broadcast arrives, never by writing a
   local copy first.
 - Panels stay arrangement-agnostic so another shell can project them differently without a rewrite.
+- The first file-watch ready batch refreshes already open document paths, closing the gap between
+  their initial reads and watch registration. Refresh remains deferred and rejects stale workspaces.
 
 ## Not yet ported
 

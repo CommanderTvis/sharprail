@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Media;
 
 namespace SharpRail.Plugins.Api.UI;
 
@@ -123,6 +124,9 @@ public sealed record TerminalAccessoryRegistration(Func<ITerminalAccessoryApi, C
 /// <param name="Availability">Reports whether the launcher can be used now.</param>
 public sealed record AgentLauncher(string Id, string Label, string Icon, Func<LauncherCommandOptions, string> TerminalCommand, Func<LauncherAvailability> Availability)
 {
+    /// <summary>Creates the launcher's icon at the supplied size and colour, using the owning plugin's assets; each call returns a new control.</summary>
+    public Func<double, IBrush?, Control>? CreateIcon { get; init; }
+
     /// <summary>The models the launcher offers, read when its picker opens; <see langword="null"/> when it offers no choice.</summary>
     public Func<IReadOnlyList<LauncherModel>>? Models { get; init; }
 }

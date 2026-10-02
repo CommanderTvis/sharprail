@@ -149,6 +149,10 @@ Publish the latest reviewed build to the single canonical macOS package
 `artifacts/SharpRail.app`. Do not create feature-named or versioned review
 bundles; the user wants one latest package.
 
+macOS plugin assets live in `Contents/Resources/plugins`; `Contents/MacOS/plugins` links there so
+the host's executable-relative lookup stays consistent. Claude's `.claude-plugin` metadata directories
+are resources, and must not be treated as native code bundles during signing.
+
 On iOS, run bundled code precompiled where supported and interpret newly loaded
 managed code without JIT or dynamically generated executable native memory.
 Extensions have no direct access to iOS APIs. Their supported integration surface

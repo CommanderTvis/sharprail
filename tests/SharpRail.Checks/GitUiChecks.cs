@@ -182,7 +182,8 @@ internal static class GitUiChecks
         Click(prompt, Buttons(prompt).Single(button => button.IsDefault));
         Pump(() => window.WorkspaceRoot != root && window.WorkspaceMounted);
         var worktree = window.WorkspaceRoot;
-        Require(Path.GetDirectoryName(worktree) == root + "-worktrees", "A new workspace must be created beside the project.");
+        Require(Path.GetDirectoryName(Path.GetDirectoryName(worktree)) == Path.Combine(window.Workbench.Profile.DirectoryPath, "worktrees"),
+            "A new workspace must be created under the host's worktrees directory.");
         Pump(() => window.WorkspaceRoot == worktree && window.WorkspaceMounted &&
             Buttons(window).Any(button => Equals(ToolTip.GetTip(button), root) && button.ContextMenu is not null));
         var main = Buttons(window).Single(button => Equals(ToolTip.GetTip(button), root) && button.ContextMenu is not null);

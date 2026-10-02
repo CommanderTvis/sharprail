@@ -2,9 +2,11 @@ using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Layout;
+using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Platform.Storage;
 using Avalonia.Threading;
+
 using SharpRail.Host.Abstractions;
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.UI;
@@ -20,7 +22,9 @@ namespace SharpRail.UI;
 public sealed partial class WorkbenchWindow
 {
     private readonly Dictionary<string, object?> viewerMounts = [];
+    private readonly HashSet<string> railAnswered = [], railAsking = [];
     private string decorationSignature = "";
+    private ContextMenu? pluginCatalogMenu;
 
     private PluginRegistry Plugins => workbench.PluginRegistry;
     internal bool AtHome => atHome;
@@ -29,9 +33,11 @@ public sealed partial class WorkbenchWindow
     private void WirePlugins()
     {
         surface.TabIcon = TabIcon;
+        surface.CenterActions = CenterActions;
         surface.TabAdornment = tab => Decoration(tab)?.Decoration.Adornment is { } adornment ? Mount(Decoration(tab)!.Value.PluginId, adornment) : null;
         Plugins.Changed += PluginsChanged;
-        Closed += (_, _) => Plugins.Changed -= PluginsChanged;
+        state.Changed += HostStateChanged;
+        Closed += (_, _) => { Plugins.Changed -= PluginsChanged; state.Changed -= HostStateChanged; };
         Layout.Changed += workbench.RaiseProjectionChanged;
         Layout.Changed += SyncEditors;
         Layout.Changed += () => decorationSignature = DecorationSignature();
@@ -42,25 +48,44 @@ public sealed partial class WorkbenchWindow
 
     private void PluginsChanged(PluginTables tables)
     {
-        if ((tables & (PluginTables.Roster | PluginTables.Active | PluginTables.Manifests | PluginTables.SideTools)) != 0) SyncPluginTools();
+        if ((tables & (PluginTables.Roster | PluginTables.Active | PluginTables.Manifests | PluginTables.SideTools)) != 0) { SyncPluginTools(); ResolveRailDefaults(); }
         if ((tables & (PluginTables.Roster | PluginTables.Active | PluginTables.TabDecorators | PluginTables.FileIconSlots)) != 0) RefreshDecorations();
-        if ((tables & (PluginTables.WorkspaceActions | PluginTables.ProjectActions)) != 0) surface.RefreshEmptyContents();
+        if (tables.HasFlag(PluginTables.WorkspaceActions)) surface.RefreshCenterActions();
+        if (tables.HasFlag(PluginTables.ProjectActions)) surface.RefreshEmptyContents();
         if (tables.HasFlag(PluginTables.FileIconSlots))
         {
             RefreshFileIcons();
             RefreshGitPanels();
         }
         if ((tables & (PluginTables.FileViewers | PluginTables.Roster)) != 0) RefreshViewers();
+        if (tables.HasFlag(PluginTables.DocumentLinkSlots))
+            foreach (var preview in documentContent.Values.SelectMany(control => control.GetLogicalDescendants().Prepend(control)).OfType<MarkdownPreview>())
+                preview.RefreshSpecLinks();
         if ((tables & (PluginTables.TerminalAccessories | PluginTables.Companions)) != 0)
-            foreach (var (key, control) in documentContent.ToArray())
-                if (control is Terminal.TerminalView terminal) AttachPluginTerminal(terminal, key);
+            foreach (var control in documentContent.Values.ToArray())
+                if (control is Terminal.TerminalView terminal) AttachPluginTerminal(terminal);
     }
 
     // The composed catalog: core's tools stay owned by the layout; plugin tools follow the roster, withheld without Git when they need it.
     private void SyncPluginTools()
     {
-        Layout.SetExtraTools([.. Plugins.ToolCatalog.Where(tool => !tool.RequiresGit || git.IsRepository)
-            .Select(tool => new DockToolInfo(tool.Id, tool.Label, PluginIcons.Glyph(tool.Icon), tool.DefaultSide == PluginToolSide.Left ? "left" : "right"))]);
+        var openMenu = surface.GetLogicalDescendants().OfType<Control>().Select(control => control.ContextMenu).FirstOrDefault(menu => menu?.IsOpen == true);
+        if (openMenu is not null)
+        {
+            if (pluginCatalogMenu is null)
+            {
+                pluginCatalogMenu = openMenu;
+                openMenu.Closed += Closed;
+                void Closed(object? sender, EventArgs args)
+                {
+                    openMenu.Closed -= Closed;
+                    pluginCatalogMenu = null;
+                    Dispatcher.UIThread.Post(() => { if (!lifetime.IsCancellationRequested) SyncPluginTools(); });
+                }
+            }
+        }
+        else KeepingFocus(() => Layout.SetExtraTools([.. Plugins.ToolCatalog.Where(tool => !tool.RequiresGit || git.IsRepository)
+            .Select(tool => new DockToolInfo(tool.Id, tool.Label, PluginIcons.Glyph(tool.Icon), tool.DefaultSide == PluginToolSide.Left ? "left" : "right"))]));
         InvalidatePluginTools();
     }
 
@@ -71,6 +96,56 @@ public sealed partial class WorkbenchWindow
     private Control PluginTool(string toolId)
     {
         return RetainedPluginTool(toolId);
+    }
+
+    private void HostStateChanged(HostState previous, HostState next)
+    {
+        if (!previous.Projects.SequenceEqual(next.Projects)) ResolveRailDefaults();
+    }
+
+    /// <summary>
+    /// A rail seeded onto a plugin tool that is off, or whose <c>RailDefault</c> refuses this workspace, opens on the next
+    /// tab of its group instead. Answered once per workspace, once the host knows the workspace and the plugins have
+    /// said, and applied only to a group still on the tool it was seeded with: anything picked afterwards is the user's.
+    /// </summary>
+    private async void ResolveRailDefaults()
+    {
+        if (!WorkspaceMounted || atHome) return;
+        var workspace = workspaceRoot;
+        if (railAnswered.Contains(workspace) || railAsking.Contains(workspace) || !state.Current.Projects.Contains(projectRoot)) return;
+        var seeded = new List<(string Group, string Tool, SideToolRegistration? Live)>();
+        foreach (var group in Layout.State.Groups.Where(group => group.Region != "center"))
+        {
+            if (Layout.Selected(group.Id) is not { IsTool: true } selected || PluginIdentity.ParseToolId(selected.Id) is not { } parsed) continue;
+            var live = LiveTool(selected.Id);
+            // Until the roster arrives and an active plugin's UI half mounts, its answer is not known yet.
+            if (live is null && workbench.Plugins is not null && (Plugins.Roster.Count == 0 || Plugins.Entry(parsed.PluginId)?.Status == PluginStatus.Active)) return;
+            seeded.Add((group.Id, selected.Id, live));
+        }
+        railAsking.Add(workspace);
+        try
+        {
+            foreach (var (group, tool, live) in seeded)
+            {
+                if (live is not null && await RailDefaultAsync(live, workspace)) continue;
+                if (workspace != workspaceRoot || atHome || Layout.State.Groups.All(item => item.Id != group) || Layout.Selected(group)?.Id != tool) continue;
+                if (Layout.Tabs(group).FirstOrDefault(tab => tab.Id != tool) is { } next) Layout.Reseat(group, next.Id);
+            }
+            if (workspace == workspaceRoot) railAnswered.Add(workspace);
+        }
+        catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
+        finally { railAsking.Remove(workspace); }
+    }
+
+    private async Task<bool> RailDefaultAsync(SideToolRegistration registration, string workspace)
+    {
+        if (registration.RailDefault is not { } railDefault) return true;
+        try { return await railDefault(workspace, lifetime.Token); }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            Console.Error.WriteLine("Plugin rail default failed: " + error.Message);
+            return true;
+        }
     }
 
     private Control DormantTool(string toolId, string pluginId)
@@ -121,7 +196,7 @@ public sealed partial class WorkbenchWindow
         if (tab.IsTool && Plugins.Tool(tab.Id) is { } tool)
             return PluginIcons.Resolve(tool.Icon, Plugins.Entry(tool.PluginId), brush, 14);
         if (tab.Path.Length > 0 && !tab.IsTool && Plugins.FileIcon(tab.Path, FileIconKind.File) is { } icon)
-            return PluginIcons.Resolve(icon.Icon, Plugins.Entry(icon.PluginId), brush, 14);
+            return PluginIcons.Resolve(icon.Icon, Plugins.Entry(icon.PluginId), brush, 14, "file");
         return null;
     }
 
@@ -129,8 +204,10 @@ public sealed partial class WorkbenchWindow
     private Control FileIcon(string path, bool directory, string glyph, IBrush? color = null)
     {
         if (Plugins.FileIcon(path, directory ? FileIconKind.Directory : FileIconKind.File) is { } icon)
-            return PluginIcons.Resolve(icon.Icon, Plugins.Entry(icon.PluginId), color, 14);
-        return Ui.Icon(glyph, color, 14);
+            return PluginIcons.Resolve(icon.Icon, Plugins.Entry(icon.PluginId), color, 14, "file");
+        var fallback = Ui.Icon(directory ? glyph : "file", color, 14);
+        fallback.Tag = directory ? glyph : "file";
+        return fallback;
     }
 
     // Rebuilding tabs closes menus and drops focus, so only a change in what decorations and icon slots answer rebuilds
@@ -150,16 +227,10 @@ public sealed partial class WorkbenchWindow
         return decoration is null && icon is null ? "" : $"{tab.Id}\t{decoration?.PluginId}\t{decoration?.Decoration.Icon}\t{decoration?.Decoration.Adornment is not null}\t{icon}";
     }).Where(line => line.Length > 0));
 
-    private Control StartActions(Control open)
+    // Like the fork's renderCenterActions: every workspace action follows New terminal in each center group's strip.
+    private IEnumerable<Control> CenterActions(string group)
     {
-        if (Plugins.WorkspaceActions.Count == 0) return open;
-        var row = new StackPanel { Name = "WorkspaceStartActions", Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Center };
-        row.Children.Add(open);
-        var workspace = workspaceRoot;
-        var group = Layout.View.FocusedCenter.Length > 0 ? Layout.View.FocusedCenter : Layout.State.Center.Leaves().First();
-        foreach (var action in Plugins.WorkspaceActions)
-            row.Children.Add(Mount(action.PluginId, () => action.Value.Create(workspace, group)));
-        return row;
+        return RetainedCenterActions(group);
     }
 
     private void AddProjectActions(Panel buttons)
@@ -204,11 +275,13 @@ public sealed partial class WorkbenchWindow
     private async Task<FileDocument> ReadForKindAsync(string path, string kind, CancellationToken token) =>
         kind == "viewer" && Plugins.FileViewer(path)?.Read == PluginFileRead.None ? new FileDocument(path, "") : await host.ReadFileAsync(path, token);
 
-    private void AttachPluginTerminal(Terminal.TerminalView terminal, string key)
+    private void AttachPluginTerminal(Terminal.TerminalView terminal)
     {
         var tabKey = terminal.Launch.TabKey;
         var workspace = terminal.Launch.WorkspaceRoot;
-        terminal.Accessories.Children.Clear();
+        foreach (var child in terminal.Accessories.Children.Where(child => child.Name == "TerminalCompanions" ||
+                     child.Tag is PluginRow<TerminalAccessoryRegistration> row && !Plugins.TerminalAccessories.Contains(row)).ToArray())
+            terminal.Accessories.Children.Remove(child);
         var hostRef = new CompanionHost(workspace, tabKey);
         var available = Plugins.Companions.Where(row => Safely(() => row.Value.IsAvailable(hostRef))).ToArray();
         if (available.Length > 0)
@@ -221,13 +294,24 @@ public sealed partial class WorkbenchWindow
                 button.Name = "TerminalCompanion_" + companion.PluginId + "_" + companion.Value.Kind;
                 bar.Children.Add(button);
             }
-            terminal.Accessories.Children.Add(bar);
+            terminal.Accessories.Children.Insert(0, bar);
         }
         foreach (var accessory in Plugins.TerminalAccessories)
-            terminal.Accessories.Children.Add(Mount(accessory.PluginId, () => accessory.Value.Create(new TerminalAccessory(terminal, workspace, tabKey))));
+        {
+            if (terminal.Accessories.Children.Any(child => Equals(child.Tag, accessory))) continue;
+            var control = Mount(accessory.PluginId, () => accessory.Value.Create(new TerminalAccessory(terminal, workspace, tabKey)));
+            control.Tag = accessory;
+            terminal.Accessories.Children.Add(control);
+        }
         var open = slot.Companions.GetValueOrDefault(workspace + "\n" + tabKey);
         var shown = open is null ? null : available.FirstOrDefault(row => row.PluginId + ":" + row.Value.Kind == open);
-        terminal.Companion = shown is null ? null : Mount(shown.PluginId, () => shown.Value.Create(hostRef));
+        if (shown is null) terminal.Companion = null;
+        else if (!Equals(terminal.Companion?.Tag, shown))
+        {
+            var companion = Mount(shown.PluginId, () => shown.Value.Create(hostRef));
+            companion.Tag = shown;
+            terminal.Companion = companion;
+        }
     }
 
     private void ToggleCompanion(Terminal.TerminalView terminal, string pluginId, string kind)
@@ -236,7 +320,7 @@ public sealed partial class WorkbenchWindow
         if (slot.Companions.GetValueOrDefault(key) == pluginId + ":" + kind) slot.Companions.Remove(key);
         else slot.Companions[key] = pluginId + ":" + kind;
         SaveProfile();
-        AttachPluginTerminal(terminal, key);
+        AttachPluginTerminal(terminal);
     }
 
     internal void FocusCompanion(CompanionHost companionHost, string pluginId, string kind)
@@ -246,8 +330,7 @@ public sealed partial class WorkbenchWindow
         SaveProfile();
         if (documentContent.GetValueOrDefault(companionHost.WorkspaceId + ":" + companionHost.TabKey) is Terminal.TerminalView terminal)
         {
-            AttachPluginTerminal(terminal, key);
-            terminal.Companion?.Focus();
+            AttachPluginTerminal(terminal);
         }
     }
 
@@ -275,20 +358,25 @@ public sealed partial class WorkbenchWindow
             return all.Length <= lines ? all : all[^lines..];
         }
 
-        // Shift+Return is the bridge's own; the agent newline encoding is not ported (see Terminal/SPEC.md).
-        public void SetKeyEncoding(TerminalKeyEncoding encoding) { }
+        public void SetKeyEncoding(TerminalKeyEncoding encoding) => terminal.SetAgentNewline(encoding == TerminalKeyEncoding.AgentNewline);
     }
 
     internal IEnumerable<(string Workspace, IReadOnlyList<DockTab> Tabs, IReadOnlyList<string> Shown)> TerminalTabs()
     {
         foreach (var (workspace, view) in Layout.State.Workspaces)
         {
+            if (workspace.StartsWith("home:", StringComparison.Ordinal)) continue;
             var tabs = view.Documents.Values.SelectMany(items => items).Where(tab => tab.Kind == "terminal").ToArray();
             if (tabs.Length == 0) continue;
-            string? SelectedIn(string group) => view.Selected.GetValueOrDefault(group) is { } id && tabs.Any(tab => tab.Id == id) ? id : null;
-            var bottom = Layout.State.Groups.Where(group => group.Region == "bottom").Select(group => SelectedIn(group.Id));
-            var shown = new[] { SelectedIn(view.FocusedCenter) }.Concat(bottom)
-                .Concat(view.Documents.Keys.Select(SelectedIn)).OfType<string>().Distinct().ToArray();
+            IEnumerable<string> ShownIn(string group)
+            {
+                if (view.Selected.GetValueOrDefault(group) is not { } selected) return [];
+                var pane = view.Panes.GetValueOrDefault(group)?.FirstOrDefault(candidate => candidate.TabIds.Contains(selected));
+                return new[] { selected }.Concat(pane?.TabIds ?? []).Where(id => tabs.Any(tab => tab.Id == id));
+            }
+            var bottom = Layout.State.Groups.Where(group => group.Region == "bottom").SelectMany(group => ShownIn(group.Id));
+            var shown = ShownIn(view.FocusedCenter).Concat(bottom)
+                .Concat(view.Documents.Keys.SelectMany(ShownIn)).Distinct().ToArray();
             yield return (workspace, tabs, shown);
         }
     }
@@ -346,7 +434,9 @@ public sealed partial class WorkbenchWindow
         if (options.KeyPath is { Count: > 0 } keys)
             try { line = KeyLine((await host.ReadFileAsync(path, lifetime.Token)).Text, keys); }
             catch (IOException) { line = 0; }
-        await OpenDocumentAsync(path, !options.Preview, line: line, raw: options.Raw);
+        // A plain open takes the same preview-then-keep flow as a click in Files, so a double click keeps one tab.
+        if (line == 0 && !options.Raw) await BrowseDocumentAsync(path, !options.Preview);
+        else await OpenDocumentAsync(path, !options.Preview, line: line, raw: options.Raw);
         return EditorRefs().FirstOrDefault(editor => editor.WorkspaceId == workspaceRoot && editor.Path == path);
     }
 
@@ -404,7 +494,7 @@ public sealed partial class WorkbenchWindow
 
     internal async Task<string?> PickHostPathAsync(FilePickOptions options)
     {
-        if (remote) return await Panels.Dialogs.HostPath(this, options.WorkspaceId ?? workspaceRoot, null, true);
+        if (remote) return await Panels.Dialogs.HostPath(this, options.WorkspaceId ?? workspaceRoot, null, true, options.Directory);
         if (options.Directory)
             return (await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions { AllowMultiple = false })).FirstOrDefault()?.TryGetLocalPath();
         return (await StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions { AllowMultiple = false })).FirstOrDefault()?.TryGetLocalPath();
@@ -453,6 +543,13 @@ public sealed partial class WorkbenchWindow
             workbench.PluginLoader.Editors.Emit(new EditorSelectionEvent(editor,
                 text.Length == 0 ? null : new EditorSelection(1, 1, lines.Length, lines[^1].Length + 1, text)));
         };
+    }
+
+    // A [[id]] in a rendered spec resolves through the plugins' document-link slot as a spec: link; with no answer it renders disabled.
+    private Func<string, string?> SpecLink()
+    {
+        var workspace = workspaceRoot;
+        return id => Plugins.DocumentLink(workspace, Frontmatter.SpecScheme + Uri.EscapeDataString(id));
     }
 
     // A rendered document's link goes through the plugins' document-link slot first, then core's own resolution.

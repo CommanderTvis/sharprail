@@ -7,7 +7,7 @@ namespace SharpRail.Host.Core;
 
 public sealed partial class ProjectServices
 {
-    public async IAsyncEnumerable<FileChange> WatchFilesAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public async IAsyncEnumerable<WorkspaceFileChanges> WatchFilesAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var directory = root;
         cancellationToken.ThrowIfCancellationRequested();
@@ -39,7 +39,7 @@ public sealed partial class ProjectServices
         try
         {
             // Re-read after registration to cover changes between the initial listing and subscription.
-            yield return new([], true);
+            yield return new([], Rescan: true);
             while (await signals.Reader.WaitToReadAsync(cancellationToken))
             {
                 var started = DateTime.UtcNow;
@@ -50,11 +50,11 @@ public sealed partial class ProjectServices
                     lock (gate) last = lastChange;
                     if (DateTime.UtcNow - last >= TimeSpan.FromMilliseconds(250) || DateTime.UtcNow - started >= TimeSpan.FromSeconds(1)) break;
                 }
-                FileChange change;
+                WorkspaceFileChanges change;
                 lock (gate)
                 {
                     while (signals.Reader.TryRead(out _)) { }
-                    change = new(paths.ToArray(), rescan);
+                    change = new(paths.ToArray(), GitChanged: true, Rescan: rescan);
                     paths.Clear(); rescan = false;
                 }
                 yield return change;

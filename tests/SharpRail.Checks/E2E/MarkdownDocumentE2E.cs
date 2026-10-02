@@ -4,6 +4,7 @@ using Avalonia.Controls.Documents;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
+
 using static SharpRail.Checks.E2E.E2eWorkspace;
 
 namespace SharpRail.Checks.E2E;
@@ -90,7 +91,7 @@ internal static class MarkdownDocumentE2E
         Console.WriteLine("PASS fork frontmatter.spec.ts: a block the editor cannot speak renders read-only instead of guessing");
     }
 
-    private static void SpecDocuments(string root)
+    internal static void SpecDocuments(string root)
     {
         using var app = OpenDocument(root, "spec-documents", "module.md",
             "---\nid: sample-module\ntype: module-design\ntitle: Sample Module\nparent: sample-root\n---\n\n## Goal\n\nPart of [[sample-root]], and [[no-such-node]] is not here.\n");

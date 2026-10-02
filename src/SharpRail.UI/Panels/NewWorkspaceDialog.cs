@@ -50,14 +50,14 @@ public sealed class NewWorkspaceDialog
         this.hasGit = hasGit; inFolder = !hasGit;
         this.collapsedRemotes = collapsedRemotes; this.saveCollapsed = saveCollapsed;
         this.launchers = launchers ?? [];
-        selected = catalog.DefaultBase;
+        selected = ExistingBase(catalog);
         Window = Dialogs.Create("Start work", 560);
         Window.Tag = "NewWorkspaceDialog";
         description = Window.FindControl<TextBlock>("DialogExplanation")!;
         var fields = Window.FindControl<StackPanel>("DialogFields")!;
 
         // The target sits directly under the constant title; only one line of prose follows the mode.
-        var targets = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+        var targets = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         worktreeTarget = Target("WsTargetWorktree", "New worktree", "gitBranch", false);
         worktreeTarget.IsEnabled = hasGit;
         worktreeTarget.IsVisible = hasGit;
@@ -88,7 +88,7 @@ public sealed class NewWorkspaceDialog
         };
         AutomationProperties.SetName(branchPicker, "Base branch");
         options = new StackPanel { Name = "BranchOptions", Spacing = 2 };
-        search = new TextBox { Name = "BranchSearch", PlaceholderText = "Search branches…", Width = 300 };
+        search = new TextBox { Name = "BranchSearch", PlaceholderText = "Search branches…", HorizontalAlignment = HorizontalAlignment.Stretch };
         search.TextChanged += (_, _) => RenderOptions();
         search.AddHandler(InputElement.KeyDownEvent, (_, e) =>
         {
@@ -97,7 +97,7 @@ public sealed class NewWorkspaceDialog
             if (options.Children.OfType<Button>().FirstOrDefault(button => button.Name == "BranchOption") is { } first) Pick((string)first.Tag!);
             e.Handled = true;
         }, RoutingStrategies.Tunnel);
-        var list = new StackPanel { Spacing = 8, Margin = new Thickness(4) };
+        var list = new StackPanel { Spacing = 8, Margin = new Thickness(4), MinWidth = 300 };
         list.Children.Add(search);
         list.Children.Add(new ScrollViewer { Content = options, MaxHeight = 260, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
         var flyout = new Flyout { Content = list, Placement = PlacementMode.BottomEdgeAlignedLeft };
@@ -168,8 +168,8 @@ public sealed class NewWorkspaceDialog
             {
                 Name = candidate is null ? "WsLauncherNone" : "WsLauncher_" + candidate.Id,
                 Content = candidate is null ? Ui.Text("Nothing") : LauncherLabel(candidate),
-                Padding = new Thickness(10, 5),
-                Margin = new Thickness(0, 0, 6, 6),
+                Padding = new Thickness(12, 4),
+                Margin = new Thickness(0, 0, 8, 8),
                 CornerRadius = new(4),
                 IsEnabled = availability.Available
             };
@@ -187,6 +187,11 @@ public sealed class NewWorkspaceDialog
     private static Control LauncherLabel(AgentLauncher launcher)
     {
         var row = Ui.Row(Plugins.PluginIcons.Glyph(launcher.Icon), launcher.Label);
+        try
+        {
+            if (launcher.CreateIcon?.Invoke(16, Ui.TextBrush) is { } icon) row.Children[0] = icon;
+        }
+        catch (Exception error) { Console.Error.WriteLine($"Launcher {launcher.Id} failed to create its icon: {error}"); }
         return row;
     }
 
@@ -251,9 +256,15 @@ public sealed class NewWorkspaceDialog
         var untouched = name.Text == SuggestedName;
         catalog = fresh;
         if (untouched) name.Text = SuggestedName;
-        if (!picked) selected = fresh.DefaultBase;
+        if (!picked || !HasBase(fresh, selected)) { selected = ExistingBase(fresh); picked = false; }
         Render();
     }
+
+    private static bool HasBase(BranchCatalog branches, string reference) =>
+        reference == "HEAD" || branches.Local.Contains(reference) || branches.Remote.Any(branch => branch.Ref == reference);
+
+    private static string ExistingBase(BranchCatalog branches) => HasBase(branches, branches.DefaultBase)
+        ? branches.DefaultBase : branches.Local.Contains(branches.Current) ? branches.Current : branches.Local.FirstOrDefault() ?? "HEAD";
 
     private ToggleButton Target(string name, string label, string icon, bool folder)
     {

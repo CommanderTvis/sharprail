@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json.Nodes;
+
 using Grpc.Core;
 
 using Microsoft.AspNetCore.Builder;
@@ -393,11 +394,14 @@ internal static partial class TerminalHostChecks
             await Task.Delay(50);
         }
     }
-    // An agent in a host terminal reaches the spec tools over MCP at the URL stamped into its shell.
+    // An agent in a host terminal reaches the spec tools, the builtin spec dialect plugin's, over MCP at the URL stamped into its shell.
     private static async Task Mcp(Uri address, string workspace)
     {
         await File.WriteAllTextAsync(Path.Combine(workspace, "SPEC.md"), "---\nid: mcp-root\ntype: module-design\ntitle: The root\n---\n\nNeedle line\n");
         using var terminals = new RemoteTerminalAdapter(address, "terminal-token");
+        string[] claude = ["CLAUDECODE", "CLAUDE_CODE_CHILD_SESSION", "CLAUDE_CONFIG_DIR"];
+        var inherited = claude.Select(Environment.GetEnvironmentVariable).ToArray();
+        foreach (var (name, value) in claude.Zip(["1", "1", "checks-config"])) Environment.SetEnvironmentVariable(name, value);
         var id = "mcp-" + Guid.NewGuid().ToString("N");
         var session = await terminals.AttachAsync(new(id, workspace, "client", 100, 30));
         var screen = new Screen(session);
@@ -406,8 +410,15 @@ internal static partial class TerminalHostChecks
         {
             await screen.Run("printf 'MCP_%s_\\n' \"$THINKRAIL_MCP_URL\"");
             url = await screen.WaitForMatch(@"MCP_(http://127\.0\.0\.1:\d+/mcp/[0-9a-f]+)_", "remote");
+            // A host started from inside a Claude Code session keeps its configuration but not its identity.
+            await screen.Run("printf 'CLAUDE_%s_%s_%s_\\n' \"$CLAUDECODE\" \"$CLAUDE_CODE_CHILD_SESSION\" \"$CLAUDE_CONFIG_DIR\"");
+            await screen.WaitFor("CLAUDE___checks-config_", "remote");
         }
-        finally { await session.DisposeAsync(); }
+        finally
+        {
+            await session.DisposeAsync();
+            foreach (var (name, value) in claude.Zip(inherited)) Environment.SetEnvironmentVariable(name, value);
+        }
         using var http = new HttpClient();
         async Task<JsonNode?> Call(string method, object? parameters = null)
         {
@@ -417,8 +428,12 @@ internal static partial class TerminalHostChecks
         }
         var initialized = await Call("initialize", new { protocolVersion = "2025-03-26" });
         Require(initialized?["result"]?["protocolVersion"]?.GetValue<string>() == "2025-03-26", "MCP initialize must echo a known protocol version.");
-        var tools = (await Call("tools/list"))!["result"]!["tools"]!.AsArray().Select(tool => tool!["name"]!.GetValue<string>()).ToArray();
-        Require(tools.Contains("spec_get") && tools.Contains("spec_grep"), "MCP must list the spec tools.");
+        string[] tools = [];
+        await Until(async () =>
+        {
+            tools = [.. (await Call("tools/list"))!["result"]!["tools"]!.AsArray().Select(tool => tool!["name"]!.GetValue<string>())];
+            return tools.Contains("spec_get") && tools.Contains("spec_grep");
+        }, "MCP must list the spec dialect's tools");
         var got = await Call("tools/call", new { name = "spec_get", arguments = new { id = "mcp-root" } });
         Require(got!["result"]!["content"]![0]!["text"]!.GetValue<string>().StartsWith("mcp-root [module-design]", StringComparison.Ordinal), "spec_get must read the terminal's workspace.");
         var grep = await Call("tools/call", new { name = "spec_grep", arguments = new { pattern = "needle" } });

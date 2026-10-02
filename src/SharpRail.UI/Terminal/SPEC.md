@@ -26,6 +26,13 @@ row of buttons above the accessories. `ITerminalBackend.Write` types into the sh
 `sr_terminal_input` and `sr_terminal_read`, and the checks' headless backend writes to its PTY session and reads its
 plain-text view. An accessory's `BufferTail` is the last lines of that text.
 
+Accessories select the terminal's agent newline encoding through `SetKeyEncoding`. The view retains
+that selection across asynchronous startup and retry. In agent mode, an uncomposed Shift+Enter with
+no other modifiers sends ESC+CR when neither kitty nor modifyOtherKeys is negotiated. Negotiated
+protocols keep Ghostty's own encoding; default mode also restores Ghostty's own encoding. The pinned
+embedding shim reads protocol state under the renderer lock and queues raw input, avoiding clipboard
+paste transformation. Native checks capture actual AppKit key bytes for all four cases.
+
 ## Boundary
 
 - Owns: attach/detach of one tab to one session, start-failure and retry, takeover notice and take-back,

@@ -40,9 +40,9 @@ internal static class ProjectContextE2E
         app.Click(fixtureRow.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "ProjectExpand"));
         Until(() => Controls(app).OfType<TextBlock>().Any(text => text.Name == "ProjectWorkspaceCount"));
         var count = Controls(app).OfType<TextBlock>().Single(text => text.Name == "ProjectWorkspaceCount");
-        var trailing = (StackPanel)count.Parent!;
-        Require(count.Text == "1" && trailing.Children.IndexOf(count) + 1 < trailing.Children.Count &&
-            trailing.Children[trailing.Children.IndexOf(count) + 1].Name == "AddWorkspace", "A collapsed project shows its workspace count beside Add workspace.");
+        var trailing = (Grid)count.Parent!;
+        Require(count.Text == "1" && trailing.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "AddWorkspace") is { } workspaceAdd &&
+            Grid.GetColumn(count) < Grid.GetColumn((Control)workspaceAdd.Parent!), "A collapsed project shows its workspace count beside Add workspace.");
         app.Click(Row(fixture).GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "ProjectExpand"));
         Until(() => WorktreePaths(app).Contains(workspace));
 
@@ -64,15 +64,17 @@ internal static class ProjectContextE2E
         var menuOrigin = Menu(fixture).TranslatePoint(default, app.Window)!.Value;
         Require(Math.Abs(menuOrigin.X - pointer.X) < 8 && Math.Abs(menuOrigin.Y - pointer.Y) < 8, $"The project menu opens at the pointer ({menuOrigin} vs {pointer}).");
         var parts = Menu(fixture).Items.Cast<object>().ToArray();
-        Require(parts.Length == 4 && parts[0] is MenuItem { Header: "Create workspace", Icon: not null } &&
+        Require(parts.Length == 5 && parts[0] is MenuItem { Header: "Start work", Icon: not null } &&
             parts[1] is MenuItem { Header: "Open existing worktree…", Icon: not null } && parts[2] is Separator &&
-            parts[3] is MenuItem { Header: "Close project", Icon: not null },
-            "Project actions stay compact: Create workspace, Open existing worktree, separator, Close project.");
+            parts[3] is MenuItem { Header: "Copy absolute path" } && parts[4] is MenuItem { Header: "Close project", Icon: not null },
+            "Project actions stay compact: Start work, Open existing worktree, separator, Copy absolute path, Close project.");
         Press(Entry(fixture, "ProjectMenuCreateWorkspace"), Avalonia.Input.Key.Down);
         Until(() => Entry(fixture, "ProjectMenuCreateWorkspace").IsFocused);
         Press(Entry(fixture, "ProjectMenuCreateWorkspace"), Avalonia.Input.Key.Down);
         Until(() => Entry(fixture, "ProjectMenuOpenExisting").IsFocused);
         Press(Entry(fixture, "ProjectMenuOpenExisting"), Avalonia.Input.Key.Down);
+        Until(() => Entry(fixture, "ProjectMenuCopyPath").IsFocused);
+        Press(Entry(fixture, "ProjectMenuCopyPath"), Avalonia.Input.Key.Down);
         Until(() => Entry(fixture, "ProjectMenuClose").IsFocused);
         CloseMenu(Menu(fixture));
         Until(() => Name(fixture).IsFocused);

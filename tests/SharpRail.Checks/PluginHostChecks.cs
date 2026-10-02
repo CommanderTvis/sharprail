@@ -4,9 +4,11 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using System.Threading.Channels;
+
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
+
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
 using SharpRail.Host.Core;
@@ -514,15 +516,15 @@ internal static class PluginHostChecks
                 if (note.Text == "hold") await release.Task;
                 return new PluginToolResult($"{note.Text}@{call.WorkspaceId}");
             }));
-            context.Tool(new PluginTool<Note>("spec_get", "Clash", "Takes core's name.", (_, _, _) => ValueTask.FromResult(new PluginToolResult(""))));
+            context.Tool(new PluginTool<Note>("tool_note", "Clash", "Takes the name again.", (_, _, _) => ValueTask.FromResult(new PluginToolResult(""))));
             return ValueTask.FromResult<PluginDisposer?>(() => { disposedAt = DateTime.UtcNow; return ValueTask.CompletedTask; });
         });
         await using var composed = await Compose(directory, [(Manifest("tooling"), tooling)]);
         Require(composed.Runtime.McpTools(null, directory).Count == 0, "A disabled plugin contributes no tools.");
         await composed.Enable("tooling");
         var tools = composed.Runtime.McpTools(new TerminalRef(directory, "tab"), directory);
-        Require(tools.Select(tool => tool.Name).SequenceEqual(["tool_note"]), "A tool clashing with core's name is refused at registration.");
-        lock (composed.Log) Require(composed.Log.Any(line => line.Contains("spec_get was refused", StringComparison.Ordinal)), "The clash is logged.");
+        Require(tools.Select(tool => tool.Name).SequenceEqual(["tool_note"]) && tools.Single().Title == "Note", "A tool clashing with a registered name is refused at registration.");
+        lock (composed.Log) Require(composed.Log.Any(line => line.Contains("tool_note was refused", StringComparison.Ordinal)), "The clash is logged.");
         var tool = tools.Single();
         Require(tool.InputSchema["properties"]?["text"] is not null && tool.InputSchema["required"]?.AsArray().Any(item => item!.GetValue<string>() == "text") == true,
             "The input schema comes from the parameters record: " + tool.InputSchema.ToJsonString());
@@ -540,10 +542,12 @@ internal static class PluginHostChecks
         await turningOff;
         Require(disposedAt != DateTime.MaxValue, "The disposer runs after the tool call finished.");
 
-        var (status, body) = await McpServer.HandleAsync(JsonNode.Parse("""{"jsonrpc":"2.0","id":1,"method":"tools/list"}"""), directory,
-            [new McpServer.McpTool("extra_tool", "Extra", "An added tool.", new JsonObject { ["type"] = "object" }, (_, _) => Task.FromResult(("ran", false)))]);
-        Require(status == 200 && body!["result"]!["tools"]!.AsArray().Select(item => item!["name"]!.GetValue<string>()).SequenceEqual(["spec_grep", "spec_get", "extra_tool"]),
-            "Added tools are listed after core's.");
+        McpServer.McpTool[] table = [new("extra_tool", "Extra", "An added tool.", new JsonObject { ["type"] = "object" }, (_, _) => Task.FromResult(("ran", false)))];
+        var (status, body) = await McpServer.HandleAsync(JsonNode.Parse("""{"jsonrpc":"2.0","id":1,"method":"tools/list"}"""), table);
+        Require(status == 200 && body!["result"]!["tools"]!.AsArray().Select(item => item!["name"]!.GetValue<string>()).SequenceEqual(["extra_tool"]),
+            "The MCP table is exactly the tools it is handed.");
+        var (_, called) = await McpServer.HandleAsync(JsonNode.Parse("""{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"extra_tool","arguments":{}}}"""), table);
+        Require(called!["result"]!["content"]![0]!["text"]!.GetValue<string>() == "ran", "A handed tool is dispatched.");
         Console.WriteLine("PASS plugin tools: schema from the record, arguments validated first, name clash refused, a running call drains before dispose");
     }
 
@@ -815,7 +819,9 @@ internal static class PluginHostChecks
         {
             context = activation;
             activation.TerminalEnvironment(terminal => new Dictionary<string, string> { ["SHARPRAIL_PROBE"] = terminal.TabKey });
-            activation.RevivePrefill((terminal, record) => record.Kind == "probe-agent" ? new RevivePrefill(record.Command, Submit: true) : null);
+            activation.RevivePrefill((terminal, record) => record.Kind == "probe-agent" ? new RevivePrefill(Submit: true) : null);
+            activation.RevivePrefill((terminal, record) => record.Kind == "probe-agent" ? new RevivePrefill(record.Command) : null);
+            activation.RevivePrefill((_, _) => new RevivePrefill("must not replace the first text"));
             activation.OnTerminal(change => { lock (events) events.Add(change); });
             return ValueTask.FromResult<PluginDisposer?>(null);
         });
@@ -837,7 +843,7 @@ internal static class PluginHostChecks
         var attached = await pty.AttachAsync(new(session, workspace, "client", 100, 30) { TabKey = tab.TabKey });
         try
         {
-            Require(attached.Prefill == new TerminalPrefill("probe --resume", true), "A shell starting for a tab with an agent record carries the revive prefill.");
+            Require(attached.Prefill == new TerminalPrefill("probe --resume", true), "Revive hooks compose the first text with a separate submit-only offer.");
             var text = new StringBuilder(Encoding.UTF8.GetString(attached.Replay.Span));
             var reading = Task.Run(async () =>
             {
@@ -864,7 +870,7 @@ internal static class PluginHostChecks
                 return JsonNode.Parse(await reply.Content.ReadAsStringAsync());
             }
             var names = (await Mcp("tools/list"))!["result"]!["tools"]!.AsArray().Select(tool => tool!["name"]!.GetValue<string>()).ToArray();
-            Require(names.Contains("spec_get") && names.Contains("fixture_echo"), "The terminal's MCP table lists core's tools and the active plugin's: " + string.Join(",", names));
+            Require(names.Contains("fixture_echo"), "The terminal's MCP table lists the active plugin's tools: " + string.Join(",", names));
             var echoed = await Mcp("tools/call", new { name = "fixture_echo", arguments = new { text = "through mcp" } });
             Require(echoed!["result"]!["content"]![0]!["text"]!.GetValue<string>() == "through mcp", "A plugin tool runs over the terminal's MCP route.");
             var wrong = await Mcp("tools/call", new { name = "fixture_echo", arguments = new { text = 5 } });

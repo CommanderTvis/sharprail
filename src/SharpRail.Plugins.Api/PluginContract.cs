@@ -81,7 +81,7 @@ public abstract class PluginChannelSpec
     public IReadOnlyList<string> Key { get; }
 }
 
-/// <summary>A typed channel, built with <see cref="State{TParams}"/> or <see cref="Event"/>.</summary>
+/// <summary>A typed channel, built with one of the State overloads or <see cref="Event"/>.</summary>
 /// <typeparam name="TPayload">The type of each pushed payload.</typeparam>
 public sealed class PluginChannel<TPayload> : PluginChannelSpec
 {
@@ -95,6 +95,15 @@ public sealed class PluginChannel<TPayload> : PluginChannelSpec
     /// <param name="key">The JSON names of the fields keying a subscription; empty for one unkeyed value.</param>
     /// <returns>The channel.</returns>
     public static PluginChannel<TPayload> State<TParams>(string name, PluginMethod<TParams, TPayload> snapshot, params IReadOnlyList<string> key) =>
+        new(name, PluginChannelKind.State, snapshot.Name, key);
+
+    /// <summary>Declares a state channel whose snapshot returns a list of current payloads.</summary>
+    /// <typeparam name="TParams">The snapshot method's params, which carry the key fields.</typeparam>
+    /// <param name="name">The channel name, unique within the contract.</param>
+    /// <param name="snapshot">The method returning current payloads; it must be declared in the same contract.</param>
+    /// <param name="key">The JSON names of the fields keying a subscription.</param>
+    /// <returns>The channel.</returns>
+    public static PluginChannel<TPayload> State<TParams>(string name, PluginMethod<TParams, IReadOnlyList<TPayload>> snapshot, params IReadOnlyList<string> key) =>
         new(name, PluginChannelKind.State, snapshot.Name, key);
 
     /// <summary>Declares a lossy event channel with no snapshot.</summary>

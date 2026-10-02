@@ -1,0 +1,9 @@
+<Border xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:kit="using:SharpRail.Plugins.UI.Kit" x:Class="SharpRail.Plugins.UI.Kit.Visualization.VisualizationCardFrame"
+        x:ClassModifier="internal" Name="VisualizationCard">
+  <Grid>
+    <ContentControl x:Name="CardContent" />
+    <ScrollViewer x:Name="CardScroll" IsVisible="False"><ContentControl x:Name="ScrolledContent" /></ScrollViewer>
+    <TextBlock x:Name="Empty" Foreground="{x:Static kit:Ui.Muted}" FontSize="12" FontStyle="Italic" IsVisible="False" />
+  </Grid>
+</Border>

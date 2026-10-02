@@ -19,7 +19,7 @@ internal static class WatchChecks
         if (!condition) throw new InvalidOperationException(message);
     }
 
-    private static async Task<FileChange> Next(IAsyncEnumerator<FileChange> stream, Func<FileChange, bool> wanted)
+    private static async Task<WorkspaceFileChanges> Next(IAsyncEnumerator<WorkspaceFileChanges> stream, Func<WorkspaceFileChanges, bool> wanted)
     {
         while (await stream.MoveNextAsync())
             if (wanted(stream.Current)) return stream.Current;
@@ -53,7 +53,7 @@ internal static class WatchChecks
         File.WriteAllText(Path.Combine(workspace, "healed.txt"), "two");
         await Next(first, change => change.Rescan || change.Paths.Contains("healed.txt")); await Next(third, change => change.Rescan || change.Paths.Contains("healed.txt"));
 
-        static async Task End(CancellationTokenSource source, IAsyncEnumerator<FileChange> stream)
+        static async Task End(CancellationTokenSource source, IAsyncEnumerator<WorkspaceFileChanges> stream)
         {
             source.Cancel();
             try { while (await stream.MoveNextAsync()) { } }

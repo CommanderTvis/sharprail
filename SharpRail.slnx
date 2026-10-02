@@ -6,6 +6,7 @@
     <Project Path="src/SharpRail.Host.Core/SharpRail.Host.Core.csproj" />
     <Project Path="src/SharpRail.Host.Protocol/SharpRail.Host.Protocol.csproj" />
     <Project Path="src/SharpRail.Host.Remote/SharpRail.Host.Remote.csproj" />
+    <Project Path="src/SharpRail.Plugins.Agent.UI/SharpRail.Plugins.Agent.UI.csproj" />
     <Project Path="src/SharpRail.Plugins.Api/SharpRail.Plugins.Api.csproj" />
     <Project Path="src/SharpRail.Plugins.Api.Host/SharpRail.Plugins.Api.Host.csproj" />
     <Project Path="src/SharpRail.Plugins.Api.UI/SharpRail.Plugins.Api.UI.csproj" />

@@ -123,7 +123,9 @@ public sealed class SharedState : IDisposable
         {
             try
             {
-                if (JsonSerializer.Deserialize<DockState>(preset.Layout) is { } layout && LayoutSession.IsValid(layout)) presets[preset.Name] = layout;
+                if (JsonSerializer.Deserialize<DockState>(preset.Layout) is not { } layout) continue;
+                layout.MigrateLegacyTools();
+                if (LayoutSession.IsValid(layout)) presets[preset.Name] = layout;
             }
             catch (JsonException) { }
         }

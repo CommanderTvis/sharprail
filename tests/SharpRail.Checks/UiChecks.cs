@@ -96,12 +96,14 @@ internal static class UiChecks
         Gate.Case("ReconnectE2E", () => E2E.ReconnectE2E.Run(root));
         Gate.Case("BranchListE2E", () => E2E.BranchListE2E.Run(root));
         Gate.Case("SearchE2E", () => E2E.SearchE2E.Run(root));
+        Gate.Case("CrossProjectTabsE2E", () => E2E.CrossProjectTabsE2E.Run(root));
     }
 
-    public static void Run(string root)
+    public static void Run(string root, bool translations = true)
     {
         AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
         SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+        Gate.Case("CreateProjectChecks", () => CreateProjectChecks.Run(root));
         Gate.Case("EditorChecks", () => EditorChecks.Run());
         Gate.Case("EditorTextChecks", () => EditorTextChecks.Run());
         Gate.Case("EditorWorkbenchChecks", () => EditorWorkbenchChecks.Run(root));
@@ -138,6 +140,7 @@ internal static class UiChecks
         Gate.Case("MarkdownDocumentE2E", () => E2E.MarkdownDocumentE2E.Run(Path.Combine(root, "upstream-e2e")));
         Gate.Case("EditorE2E", () => E2E.EditorE2E.Run(Path.Combine(root, "upstream-e2e")));
         Gate.Case("LayoutE2E", () => E2E.LayoutE2E.Run(Path.Combine(root, "upstream-e2e")));
+        Gate.Case("VerticalTabsE2E", () => E2E.VerticalTabsE2E.Run(Path.Combine(root, "upstream-e2e")));
         Gate.Case("workbench", () => Workbench(root, store, host));
         Gate.Case("NavigationChecks", () => NavigationChecks.Run(root));
         Gate.Case("StartupChecks", () => StartupChecks.Run(root));
@@ -203,21 +206,32 @@ internal static class UiChecks
                 "Mouse-wheel input did not scroll the Markdown preview.");
             scrollingWindow.Close();
         }
+        File.WriteAllText(Path.Combine(root, "SPEC.md"), "---\nid: ui-smoke-goal\ntitle: Project goal\ntype: product-goal\n---\n# Goal\n");
+        File.WriteAllText(Path.Combine(root, "src", "SPEC.md"), "---\nid: ui-smoke-architecture\ntitle: Architecture — components\nparent: ui-smoke-goal\ntype: module-design\n---\n# Architecture\n");
+        Directory.CreateDirectory(Path.Combine(root, "earlier-fixture"));
+        File.WriteAllText(Path.Combine(root, "earlier-fixture", "architecture.md"), "---\nid: architecture\ntitle: Separate architecture fixture\ntype: task-spec\n---\n# Fixture\n");
+        File.WriteAllText(Path.Combine(root, "independent.md"), "---\nid: independent-leaf\ntype: task-spec\ntitle: An independent leaf\n---\n# Independent\n");
         var window = new WorkbenchWindow(host, root, store, E2E.E2eTerminals.Plain);
         window.Width = 1352; window.Height = 848;
         window.Show();
         Pump(() => window.WorkspaceMounted, "Workspace did not mount.");
-        var specs = Find<TreeView>(window, "SpecsTree");
-        Pump(() => specs.Items.Count > 0 && specs.Items[0] is TreeViewItem { Items.Count: > 0 }, "Spec hierarchy did not render.");
+        Pump(() => window.GetLogicalDescendants().OfType<TreeView>().Any(tree => tree.Name == "SpecsTree"), "The spec dialect's Specs panel did not mount.");
+        Pump(() => Find<TreeView>(window, "SpecsTree").Items.OfType<TreeViewItem>().Any(item => Equals(item.Tag, "SPEC.md") &&
+            item.Items.OfType<TreeViewItem>().Any(child => Equals(child.Tag, "src/SPEC.md"))), "Spec hierarchy did not render.");
+        var specRoots = Find<TreeView>(window, "SpecsTree").Items.OfType<TreeViewItem>().ToArray();
+        Require(Array.FindIndex(specRoots, item => Equals(item.Tag, "independent.md")) < Array.FindIndex(specRoots, item => Equals(item.Tag, "SPEC.md")) &&
+            specRoots.Single(item => Equals(item.Tag, "independent.md")).Items.Count == 0,
+            "An independent leaf sorts before the project hierarchy without hiding it.");
         {
+            var specs = Find<TreeView>(window, "SpecsTree");
             var panel = (Control)specs.GetVisualParent()!;
-            var rootItem = (TreeViewItem)specs.Items[0]!;
-            var child = (TreeViewItem)rootItem.Items[0]!;
+            var rootItem = specRoots.Single(item => Equals(item.Tag, "SPEC.md"));
+            var nested = rootItem.Items.OfType<TreeViewItem>().Single(item => Equals(item.Tag, "src/SPEC.md"));
             double X(Visual visual) => visual.TranslatePoint(default, panel)!.Value.X;
             var chevron = rootItem.GetVisualDescendants().OfType<ToggleButton>().First();
             // The reference row: 4px inset, a 20px chevron slot, then the icon; each level indents 12px.
-            Require(Math.Abs(X(chevron) - 9) <= 1 && Math.Abs(X((Visual)rootItem.Header!) - 25) <= 1 && X((Visual)child.Header!) - X((Visual)rootItem.Header!) == 12,
-                $"Spec tree indentation differs from the reference: chevron={X(chevron)} icon={X((Visual)rootItem.Header!)} child={X((Visual)child.Header!)}.");
+            Require(Math.Abs(X(chevron) - 9) <= 1 && Math.Abs(X((Visual)rootItem.Header!) - 25) <= 1 && X((Visual)nested.Header!) - X((Visual)rootItem.Header!) == 12,
+                $"Spec tree indentation differs from the reference: chevron={X(chevron)} icon={X((Visual)rootItem.Header!)} child={X((Visual)nested.Header!)}.");
         }
         var controls = window.GetLogicalDescendants().OfType<Control>().Distinct().ToArray();
         Require(controls.Length > 100, "UI was flattened.");
@@ -247,14 +261,15 @@ internal static class UiChecks
         Require(window.GetLogicalDescendants().OfType<Button>().Any(button => button.ContextMenu is not null && Equals(ToolTip.GetTip(button), root)),
             "Keyboard project expansion did not restore its workspaces.");
         Capture(window, ".bench/prototype-empty-headless.png");
-        var specNode = (TreeViewItem)specs.Items[0]!;
-        var specHeader = (Grid)specNode.Header!;
-        var childHeader = (Grid)((TreeViewItem)specNode.Items[0]!).Header!;
+        var specNode = Find<TreeView>(window, "SpecsTree").Items.OfType<TreeViewItem>().Single(item => Equals(item.Tag, "SPEC.md"));
+        var specHeader = (Grid)((Border)specNode.Header!).Child!;
+        var child = specNode.Items.OfType<TreeViewItem>().Single(item => Equals(item.Tag, "src/SPEC.md"));
+        var childHeader = (Grid)((Border)child.Header!).Child!;
         Require(childHeader.Children.OfType<TextBlock>().Single(text => text.Name != "SpecRole").Text == "Architecture · components",
             "Spec titles must compact spaced em dashes to middle dots.");
         var specRole = specHeader.Children.OfType<TextBlock>().Single(text => text.Name == "SpecRole");
         Require(!specRole.IsVisible && specRole.Text == "PRODUCT GOAL", "Spec type must initially be hidden.");
-        Click(window, Find<Button>(window, "Tab_specs")); window.UpdateLayout();
+        Click(window, Find<Button>(window, "Tab_plugin_spec-dialect_specs")); window.UpdateLayout();
         window.MouseMove(Center(window, specHeader)); Dispatcher.UIThread.RunJobs();
         Require(specRole.IsVisible, "Spec type must be shown while hovering the row.");
         Click(window, specHeader.Children.OfType<TextBlock>().Single(text => text.Name != "SpecRole"));

@@ -16,12 +16,12 @@ namespace SharpRail.Host.Client;
 /// <summary>The app's own host's plugin runtime, called directly: params, results and payloads stay objects.</summary>
 public sealed class LocalPluginAdapter(IPluginService host) : IPluginService
 {
-    public ValueTask<IReadOnlyList<PluginRosterEntry>> ListAsync(CancellationToken cancellationToken = default) => host.ListAsync(cancellationToken);
-    public ValueTask<IReadOnlyList<PluginRosterEntry>> RescanAsync(CancellationToken cancellationToken = default) => host.RescanAsync(cancellationToken);
-    public ValueTask<IReadOnlyList<PluginRosterEntry>> RetryAsync(string id, CancellationToken cancellationToken = default) => host.RetryAsync(id, cancellationToken);
-    public ValueTask<object?> CallAsync(PluginCallRequest request, CancellationToken cancellationToken = default) => host.CallAsync(request, cancellationToken);
+    public ValueTask<IReadOnlyList<PluginRosterEntry>> ListAsync(CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.ListAsync(cancellationToken));
+    public ValueTask<IReadOnlyList<PluginRosterEntry>> RescanAsync(CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.RescanAsync(cancellationToken));
+    public ValueTask<IReadOnlyList<PluginRosterEntry>> RetryAsync(string id, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.RetryAsync(id, cancellationToken));
+    public ValueTask<object?> CallAsync(PluginCallRequest request, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.CallAsync(request, cancellationToken));
     public IAsyncEnumerable<object?> SubscribeAsync(PluginSubscription subscription, CancellationToken cancellationToken = default) => host.SubscribeAsync(subscription, cancellationToken);
-    public ValueTask<byte[]?> ReadFileAsync(string id, string path, CancellationToken cancellationToken = default) => host.ReadFileAsync(id, path, cancellationToken);
+    public ValueTask<byte[]?> ReadFileAsync(string id, string path, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.ReadFileAsync(id, path, cancellationToken));
 }
 
 /// <summary>
