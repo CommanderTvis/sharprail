@@ -12,6 +12,7 @@ using SharpRail.Plugins.BranchGraph;
 using SharpRail.Plugins.BranchGraph.Host;
 using SharpRail.Plugins.Visualize;
 using SharpRail.Plugins.Visualize.Host;
+using SharpRail.Plugins.FileIcons;
 
 
 namespace SharpRail.Host.Core.Plugins;
@@ -28,5 +29,6 @@ public static class BuiltinPlugins
         (PdfPreviewPlugin.Manifest, null),
         (BranchGraphPlugin.Manifest, new BranchGraphHost()),
         (VisualizeContract.Manifest, new VisualizeHost()),
+        (FileIconsManifest.Manifest, null),
     ];
 }
