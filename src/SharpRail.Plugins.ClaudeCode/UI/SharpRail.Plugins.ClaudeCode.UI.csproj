@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault><AvaloniaNameGeneratorIsEnabled>false</AvaloniaNameGeneratorIsEnabled></PropertyGroup>
+  <!-- The Claude Code plugin's UI half, built against the plugin API's UI entry and the kit. -->
+  <ItemGroup>
+    <ProjectReference Include="../SharpRail.Plugins.ClaudeCode.csproj" />
+    <ProjectReference Include="../../SharpRail.Plugins.Api.UI/SharpRail.Plugins.Api.UI.csproj" />
+    <ProjectReference Include="../../SharpRail.Plugins.UI.Kit/SharpRail.Plugins.UI.Kit.csproj" />
+    <PackageReference Include="Avalonia" />
+    <InternalsVisibleTo Include="SharpRail.Checks" />
+  </ItemGroup>
+</Project>

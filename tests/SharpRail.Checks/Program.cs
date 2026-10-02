@@ -122,6 +122,7 @@ internal static class Program
             PluginHostChecks.Run(root).GetAwaiter().GetResult();
             SpecDialectChecks.Run(root).GetAwaiter().GetResult();
             BlueprintChecks.Run(root).GetAwaiter().GetResult();
+            ClaudeCodeChecks.Run(root).GetAwaiter().GetResult();
             WorkspaceWatchChecks.Run(root).GetAwaiter().GetResult();
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
@@ -129,12 +130,24 @@ internal static class Program
             PluginWatchChecks.Run(root);
             SpecDialectChecks.RunUi(Path.Combine(root, "upstream-e2e"));
             BlueprintChecks.RunUi(root);
+            ClaudeCodeChecks.RunUi(root);
+            ClaudeCodeChecks.Launcher(root);
             Console.WriteLine("PASS plugin checks");
             return;
         }
         if (args.SequenceEqual(["--file-watch"]))
         {
             WorkspaceWatchChecks.Run(root).GetAwaiter().GetResult();
+            return;
+        }
+        if (args.SequenceEqual(["--claude-code"]))
+        {
+            ClaudeCodeChecks.Run(root).GetAwaiter().GetResult();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            ClaudeCodeChecks.RunUi(root);
+            ClaudeCodeChecks.Launcher(root);
+            Console.WriteLine("PASS Claude Code checks");
             return;
         }
         if (args.SequenceEqual(["--blueprint"]))
@@ -222,6 +235,7 @@ internal static class Program
         PluginHostChecks.Run(root).GetAwaiter().GetResult();
         SpecDialectChecks.Run(root).GetAwaiter().GetResult();
         BlueprintChecks.Run(root).GetAwaiter().GetResult();
+        ClaudeCodeChecks.Run(root).GetAwaiter().GetResult();
         WorkspaceWatchChecks.Run(root).GetAwaiter().GetResult();
         FileSavingChecks.Run(root).GetAwaiter().GetResult();
         LayoutChecks.Run();
@@ -231,6 +245,7 @@ internal static class Program
         PluginWatchChecks.Run(root);
         SpecDialectChecks.RunUi(Path.Combine(root, "upstream-e2e"));
         BlueprintChecks.RunUi(root);
+        ClaudeCodeChecks.RunUi(root);
         Console.WriteLine("PASS prototype checks and open-world runtime");
     }
 

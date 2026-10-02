@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The Claude Code plugin's host half. Its assets (the claude.svg mark and the shipped Claude marketplace with the
+       hook plugin) are staged at plugins/claude-code/assets in every output that references it. -->
+  <ItemGroup>
+    <ProjectReference Include="../SharpRail.Plugins.ClaudeCode.csproj" />
+    <ProjectReference Include="../../SharpRail.Plugins.Api.Host/SharpRail.Plugins.Api.Host.csproj" />
+    <InternalsVisibleTo Include="SharpRail.Checks" />
+    <Content Include="../assets/**" LinkBase="plugins/claude-code/assets" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

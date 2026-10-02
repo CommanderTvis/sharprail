@@ -1,0 +1,17 @@
+{
+	"name": "sharprail",
+	"description": "SharpRail integrations for Claude Code",
+	"owner": {
+		"name": "SharpRail"
+	},
+	"plugins": [
+		{
+			"name": "sharprail",
+			"description": "Terminal status tracking and native notifications when Claude Code runs inside SharpRail",
+			"source": "./claude-plugin",
+			"version": "0.3.0",
+			"category": "productivity",
+			"tags": ["notifications", "terminal", "sharprail"]
+		}
+	]
+}
