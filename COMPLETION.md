@@ -53,9 +53,52 @@ from disk, once through the in-process runtime and once through a remote host ov
 
 - `WorkspaceUpdated` fires on relabelling only, not on a branch switch, and plugin routes serve no static
   assets (see `Plugins.SPEC.md`, Not yet ported).
-- Not ported on the UI side: Scintilla selection events (the control exposes none), `AgentNewline` key encoding
-  and faint-cell blanking in terminal accessories, `WatchWorkspaceAsync` beyond the workspaces a window has open,
-  and file revisions for a remote host.
-- Companions, tab decorations, launchers and `SetDiffScope` are wired but have no fixture contribution exercising
-  them yet; the first builtin plugin that uses each should add its check.
-- No builtin plugins exist yet; the Specs panel stays in core until the spec-dialect plugin moves it out.
+- Not ported on the UI side: Scintilla selection events (the control exposes none),
+  faint-cell blanking in terminal accessories. `WatchWorkspaceAsync` now prepares watches beyond the
+  workspaces a window has open; its native multi-window behaviour is unverified.
+- Branch Graph now exercises `SetDiffScope` through local and gRPC windows with an independent host commit
+  lookup. Blueprint and Claude Code exercise companions, launchers and terminal decorations; remaining
+  fidelity gates are in their owning specs.
+- The spec dialect builtin now owns the Specs panel, graph and seven MCP tools. The remaining eight
+  builtin plugin ports are in progress; the recovered Claude worktrees contain partial implementations.
+  Blueprint is now registered with its host, companion, author opener and editable properties/controls.
+  Its focused runtime and headless checks pass, including gRPC parity and fork source-span stamping.
+  The fork's start-dialog, Claude-gate, takeover and author-recovery cases are translated (see `E2E.md`); the brief
+  streaming `@agent` run, the remaining blueprint-watch steps, a native fidelity review against the fork's
+  `assets/screenshots/blueprint.png` and full-suite gates remain before calling it complete.
+  Claude Code is now registered with its configuration pane, launcher, settings, accessory and IDE events.
+  Isolated host, authenticated IDE round trip and headless checks pass, with both launcher cases and the host halves of the
+  configuration mutation cases translated; `E2E.md` records the pane-driven, review and terminal-facts cases still pending.
+  Its owning spec lists pending protocol cases, notification, input,
+  layout, remote and complete verification gates. The fork itself answers IDE openDiff with
+  `diffShown: false`; that behavior is preserved rather than expanded.
+  Discord is now registered with the fork's presence decisions, Unix IPC client, settings and SVG mark.
+  Its local/remote settings, gRPC and IPC framing/lifecycle checks pass; native appearance,
+  published output and full-suite gates must be verified before closing its port.
+  PDF Preview is registered with rendering, selection, zoom and live local/remote refresh; its owning spec records
+  the remaining fidelity/verification gates. Selection across visible and offscreen pages,
+  clipboard/Select All, native Unicode extraction and rotated/cropped text geometry pass focused checks.
+  Branch Graph is registered with history/patch methods and a windowed side tool. Its focused local/remote
+  checks pass, including compiled row/menu templates, ref-update focus/menu retention and disable/remount;
+  remaining lifecycle and visual cases, published output and full gates are open.
+  Visualize is registered with its MCP tool, session persistence and live diagram/comparison companion.
+  Focused local/gRPC host and UI checks pass, including comparison contents/columns, drag panning, a second
+  terminal and disable/re-enable; remount render cancellation, one terminal in two windows, native,
+  published and full-suite gates remain open. File Icons is registered with generated assets and local/gRPC
+  tree, tab, Changes, theme, resize and fallback checks. Native/published app/full-suite gates remain open.
+  Codex is registered with configuration, account/models, launcher/revive, hooks, rollout facts and IDE IPC.
+  Focused logic and real gRPC UI checks pass; source fidelity, multi-window editor lists,
+  process-group, native/published/full gates remain open.
+
+All nine builtin plugins pass the combined published checks in
+`.bench/plugins-published-plugin-checks-2.log`. Native terminal probes and local/remote Avalonia paths
+pass, and the canonical package passes deep/strict signature verification with plugin assets under
+Resources. These close the recorded functional packaging and terminal checks; plugin-specific native
+appearance, complete source fidelity and the latest full repository runs remain open. Codex's settings,
+pane header/navigation, configuration rows, notices and terminal accessories are compiled XAML.
+
+On 2026-10-02 the latest source passed the full repository gate with Git fixtures
+(`.bench/final-full-checks.log`, exit 0) and format verification (`.bench/final-format.log`).
+Still open: rebuilding and publishing the canonical package from this source, deep signature,
+R2R and published-check verification of it, native GUI review of every plugin's appearance and
+input, native multi-window lifecycle, and the per-plugin fidelity gates in their owning specs.

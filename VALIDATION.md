@@ -1228,3 +1228,375 @@ Host and UI halves merged, uncommitted.
 - The full suite passes without `SHARPRAIL_TEST_GIT_SOURCE` (`.bench/checks-plugins-merged-full.log`, 217 PASS
   lines, exit 0; Git scenarios skipped), run once with nothing else running.
 - Not yet evidence: native capture of the plugin surfaces; the published checks with the copied fixture.
+
+## Spec Dialect port continuation (2026-10-01)
+
+- Release build and formatting verification passed. `.bench/spec-final-checks.log` passes all seven spec
+  tools, local/remote graph calls, parsing and mutation preservation, lifecycle, tree, migration, active
+  editor selection, hot toggle, preview ownership, empty-graph routing and spec links. Live refresh was
+  skipped in this focused run because its Git source was unset.
+- `.bench/spec-workspaces-retry.log` passes the complete focused workspace/project suite, including
+  the edited workspace name that timed out in `.bench/spec-full-suite-git.log`.
+- Full-suite verification remains incomplete. `.bench/spec-final-full-suite.log` stopped at a fixture
+  commit with `1Password: failed to fill whole buffer`; signing was not bypassed. The earlier full run
+  got farther but timed out on the workspace-name scenario. Neither run is recorded as passing.
+- Blueprint's registered host/UI halves build. `.bench/blueprint-transport-checks-2.log` passes format,
+  streamed partials, locked choices, rename identity, line spans, exact host-side reconciliation delivery,
+  reported session IDs, state persistence, gRPC polymorphic values, file-to-author redirect, staged prose,
+  confirm, checkbox, raw source and kept companion identity. The headless launcher is a fixture shell
+  command; this does not prove the real Claude launcher integration or native appearance.
+
+- Claude Code host/UI are registered; `.bench/claude-ui-checks.log` passes isolated lifecycle,
+  provenance, reviewed/stale configuration edits, token route, transcript usage, revive and headless
+  configuration pane/launcher/compiled settings. `.bench/claude-hook-tests.log` passes all 40 shell
+  hook checks. `.bench/claude-registered-checks.log` passed the prior plugin suite before these new
+  checks. These do not prove remaining IDE protocol, notification, native input/appearance or remote
+  UI fidelity gates; see the owning Claude Code spec.
+- `.bench/claude-protocol-checks.log` passes a real WebSocket IDE round trip, including missing-token
+  refusal and delivery to one app client with no peer broadcast. `.bench/claude-dialog-checks.log`
+  additionally passes the owned setting-value composer. The integrated plugin suite passed in
+  `.bench/claude-final-plugin-checks.log` before that final composer check was added.
+- `.bench/plugin-integration-current.log` passes the integrated plugin suite including the composer
+  and agent newline/accessory lifecycle checks. Formatting verification passed
+  `.bench/plugin-format-current.log`. `.bench/claude-keyboard-native-final.log` passes actual AppKit
+  Shift+Enter bytes for agent fallback, restored Ghostty default, kitty and modifyOtherKeys mode 2.
+- `.bench/claude-terminal-regression.log` passes the host terminal and terminal/bottom-panel translations.
+- `.bench/discord-ipc-checks.log` passes Discord decisions/retry, handshake-after-disable, fragmented
+  ping/pong, errors and socket closure, gRPC calls/status pushes/assets/redaction, and local/remote
+  settings UI persistence, file-name sharing, blocked projects and disable cleanup. These use an isolated
+  fake Unix socket server and do not reach the user's Discord. Native appearance, published output and
+  the full suite are still unverified.
+- `.bench/discord-integrated-plugin-checks.log` passes the integrated plugin suite with Discord;
+  `.bench/discord-format-verify.log` passes formatting before the final roster-icon adjustment.
+- `.bench/discord-final-focused.log` and `.bench/discord-final-format.log` pass after restoring the
+  roster's separate Remix icon and adding no-project/connecting/unconfigured decision coverage.
+- `.bench/pdf-remount-retry-checks-2.log` passes PDF engine and local UI rendering, raster zoom,
+  text selection, file rewrite/rename/reload, remount after raster release, unreadable-file retry/recovery
+  and disable behavior. Formatting passes `.bench/pdf-final-format.log`. This does not prove remote
+  live revisions, selection across pages, rotated/cropped/Unicode documents or the full port gates.
+- `.bench/pdf-integrated-plugin-checks.log` passes the integrated plugin suite with PDF Preview added.
+- `.bench/pdf-multipage-checks.log` passes rotated/cropped page geometry and real pointer drags
+  selecting across two pages in both directions, alongside the existing local PDF checks.
+- `.bench/pdf-copy-unicode-checks-3.log` additionally passes document-wide clipboard/Select All and
+  surrogate-safe selection boundaries. Formatting passes `.bench/pdf-selection-format-verify.log`.
+  The Unicode boundary check uses a synthetic page, not a native Unicode PDF extraction fixture.
+- `.bench/workspace-files-checks.log` passes host-owned local/remote file-stream registration,
+  nested writes, renames, Git metadata, captured workspace identity and cancellation.
+  `.bench/workspace-files-shutdown-checks.log` also passes graceful host shutdown with a live stream.
+- `.bench/pdf-remote-revisions-checks.log` passes the same PDF lifecycle scenario through embedded
+  and real gRPC hosts, including automatic rewrite/rename refresh, zoom, selection, clipboard,
+  remount, invalid-file recovery and disable behavior. Drag autoscroll and native appearance remain open.
+- `.bench/workspace-files-integrated-checks.log` passes the integrated plugin suite.
+  `.bench/workspace-files-final-format.log` passes formatting after the shutdown-test addition.
+- `.bench/pdf-native-unicode-checks-2.log` passes real PDF ToUnicode extraction of an astral character
+  and accent with boxes aligned to UTF-16 units; the regression found and fixed dropped surrogate pairs.
+  It also passes stationary captured drags scrolling across hidden pages in both directions, and stopping
+  on release or detach. `.bench/pdf-compiled-toolbar-checks.log` passes after moving toolbar/retry into XAML.
+- `.bench/pdf-gesture-checks.log` passes unmodified scroll versus Control/Command-wheel zoom,
+  bounded steps and the toolbar's 25–600% limits through embedded and gRPC hosts.
+  `.bench/pdf-fidelity-integrated-checks.log` passes the integrated plugin suite with these checks
+  and rapid toolbar bursts. `.bench/pdf-fidelity-final-format.log` passes formatting for that revision.
+- `.bench/pdf-native-unicode-copy-checks-2.log` additionally passes actual selection and clipboard
+  copying of the native Unicode PDF through embedded and gRPC hosts.
+  `.bench/pdf-native-unicode-copy-final-format.log` passes final formatting.
+- `.bench/branch-graph-recovered-build.log` builds the registered Branch Graph contract, host and UI.
+- `.bench/branch-graph-row-lifetime-checks.log` passes parser/lane fixtures, local/gRPC history/patch
+  parity and independent nullable commit lookup, plus local/remote UI windowing, paging, common gutter,
+  hash/patch copying, Graph-to-Changes selection and unchanged-row menu retention across host file refresh.
+  The real fixtures reuse existing fork history and create no commits or signing configuration changes.
+- `.bench/branch-graph-format-verify.log` passes formatting before the final paging-race adjustment.
+  The first integrated run exposed paging stalled when a refresh completed after scrolling; the fix
+  rechecks paging after refreshed history is laid out. `.bench/branch-graph-integrated-checks-2.log`
+  passes the follow-up integrated plugin suite. `.bench/branch-graph-final-format.log` passes formatting.
+- `.bench/branch-graph-final-focused-checks.log` passes the latest complete focused scenario, including
+  the guard against paging a zero-height viewport. Full prototype, native and published gates remain open.
+- `.bench/branch-graph-template-lifecycle-checks.log` passes after moving rows, menus and styles into
+  compiled XAML and adding the fork's 4.9.0 glyphs. Local and remote Git-only ref updates preserve
+  row/lane controls, focus and open menus; disable produces a dormant tab and re-enable remounts Graph.
+  Gitless workspaces withhold the tool. The regression also fixes omitted workspace revision bumps
+  for Git-only host batches, while file revisions remain unchanged.
+- `.bench/branch-graph-templates-integrated-checks.log` passes the integrated plugin suite after those
+  changes. `.bench/branch-graph-templates-format.log` passes formatting; `git diff --check` is clean.
+
+### Visualize port (in progress)
+
+- `.bench/visualize-remote-gesture-checks.log` passes host shape/schema, revision, render-report,
+  rollback and session tests, local/gRPC channel and snapshot parity, restart adoption, and local/gRPC
+  headless diagram/comparison companions with toolbar and wheel zoom, title, reopen and rollback.
+- `.bench/visualize-integrated-plugin-checks.log` passes the integrated plugin suite with the fork Git
+  fixture source, including completed asynchronous theme rerenders retaining diagram navigation.
+- `.bench/visualize-shared-fullscreen-checks.log` passes focused Visualize checks and the existing
+  Markdown Mermaid rendering, capped inline zoom/pan and fullscreen scenario after fullscreen adopts
+  the shared compiled pan/zoom control and 25–600% gesture math.
+- Real terminal HTTP ownership, companion geometry, multi-terminal/window lifecycle, UI session
+  adoption, comparison contents, native appearance, published output and full prototype gates remain open.
+- `.bench/visualize-final-integrated-checks.log` passes the latest integrated plugin suite after the
+  fullscreen consolidation. `.bench/visualize-format-verified.log` passes full solution formatting;
+  `git diff --check` is clean.
+
+## File Icons fork port
+
+- `.bench/file-icons-ui-checks-3.log` passes local and gRPC host assets, typed tree/tab/Changes icons,
+  theme raster changes, retained tab icons during resize, disable/re-enable and missing/malformed fallback.
+- `.bench/file-icons-generator-check.log` verifies generated mappings/assets;
+  `.bench/file-icons-fork-parity.log` verifies all 1,251 SVG bytes against the unchanged fork generator.
+- `.bench/file-icons-publish-assets.log` publishes the contract with all 1,251 assets. This is not the
+  canonical app publish gate. Native appearance and full-suite verification remain open.
+
+## Codex port in progress
+
+- `.bench/codex-checks-8.log` and later runs pass plugin logic: configuration, hooks, launch/revival,
+  rollout/process parsing, retained app-server protocol/cleanup, host module, IDE IPC and picker.
+- `.bench/codex-config-key-parity.log` confirms all 297 reference keys/types match the fork.
+- `.bench/codex-full-focused-checks.log` passes focused logic and real gRPC UI account, configuration,
+  context, IDE, launcher, session model picker and status checks. `.bench/codex-terminal-checks-6.log`
+  passes the hook/IDE/model/rollout/plan path with host-owned PTYs and actual terminal HTTP routes.
+- Native CLI protocol compatibility, multi-window, process-group, native/published/full verification
+  and complete source fidelity remain open.
+
+- `.bench/file-icons-integrated-checks-3.log` passes the combined first-eight plugin suite after
+  the external fixture disables the builtin icon provider while exercising its own slot.
+
+- `.bench/codex-all-plugin-checks-3.log` passes combined checks for all nine builtin plugins.
+- `.bench/codex-compiled-frames-checks-2.log` passes focused Codex checks after compiling its settings
+  and pane header/navigation, including settings changes while detached and after remounting.
+- The initial full-suite run failed when a ref update replaced an open Changes scope menu. A fix and
+  explicit menu-retention regression are under verification; full-suite completion is not claimed.
+
+- `.bench/plugins-changes-menu-checks-2.log` passes the Changes suite, including retaining the scope
+  menu and trigger across deletion of the comparison branch and a completed refresh.
+- `.bench/plugins-native-terminal-checks.log` passes the native Ghostty probe.
+- `.bench/plugins-native-avalonia-terminal-checks-2.log` passes embedded, local relay and authenticated
+  remote Avalonia terminals, including shutdown after moving ordered host cleanup off the UI context.
+- `.bench/plugins-resumed-publish-2.log` publishes the canonical app. Plugin assets are Resources data,
+  reached by the executable-relative link. `.bench/plugins-final-bundle-signature.log` passes deep/strict
+  signing verification; `.bench/plugins-final-bundle-assets.log` verifies all 1,251 icons and agent assets.
+- `.bench/plugins-published-branch-graph-checks-2.log` passes the stable published Branch Graph run.
+  `.bench/plugins-published-plugin-checks-2.log` passes all nine published builtin plugins.
+  Full repository verification is still in progress.
+
+- `.bench/plugins-welcome-checks-2.log` passes clean Welcome, Project Home, initialisation and workspace
+  navigation with a forced empty-group refresh and synthetic terminal-key exclusion.
+- `.bench/plugins-empty-groups-workspace-checks.log` passes the workspace/project suites after the
+  empty-group fix; no skip lines are present. It predates the synthetic terminal-key exclusion.
+
+- `.bench/plugins-resumed-publish-3.log` refreshes the canonical app after the Welcome and projection
+  fixes; `.bench/plugins-current-bundle-signature.log` passes deep/strict verification.
+- `.bench/plugin-published-native-smoke.png` captures only the launched canonical app's window,
+  showing native workbench, Changes file icons and Ghostty. The dedicated profile reached the parent
+  SharpRail Git repository; this is a smoke check, not a complete plugin visual comparison. The exact
+  test app quit normally through NSRunningApplication. Both full reruns subsequently stopped at
+  BottomPanel's stale context-menu target; full verification remains incomplete.
+
+- `.bench/plugins-restored-permissions-build.log` builds the checks after permissions were restored.
+  `.bench/codex-private-process-group-checks.log` passes Codex host and gRPC UI checks with the private
+  POSIX process group, including a crashed leader leaving a resistant descendant and bounded immediate
+  stop. The helper copies beside the checks executable. `.bench/codex-process-group-x64-build.log`
+  builds the x64 native target; file inspection confirms separate x86_64 and arm64 executable outputs.
+- `.bench/visualize-http-owner-window-checks.log` passes focused host, local/gRPC UI and Markdown
+  Mermaid checks. The remote fixture's host PTY supplies its real HTTP MCP URL; list/call, unknown
+  token rejection, rendering and refusal are covered. Both clients reopen a background terminal's
+  drawing while another window remains active, without giving that window the drawing.
+- The context-action helper now uses the target actually clicked after a deferred refresh. Subsequent
+  bottom-panel checks passed that action and revealed that deferred Git discovery added Branch Graph
+  to the tool catalog, rebuilding dock chrome and losing keyboard focus. Catalog updates now retain
+  focus and wait for an open dock menu to close. A held Git-read fixture makes the focus case explicit;
+  the broader bottom-panel and integrated plugin reruns are still pending.
+- `.bench/file-icons-files-selection-checks.log` passes Git-backed local/remote file icons and
+  fallback, with an explicit Files-tab selection assertion. The preceding combined run's missing
+  remote FilesTree is not yet explained; the current all-nine rerun remains pending.
+- `.bench/plugins-current-final-format.log` passes solution formatting after the latest edits.
+- `.bench/plugins-bottom-catalog-menu-regression-2.log` passes the full bottom-panel translations,
+  including the explicit late Git discovery focus/menu regressions and window-local persistence.
+- `.bench/codex-instructions-templates-checks.log` passes host/gRPC UI checks with compiled Context
+  rows, all instruction creation offers, override precedence and global source navigation.
+  `.bench/codex-capabilities-templates-checks.log` passes compiled hook/MCP rows, installation without
+  granting trust, trusted refresh and configuration source navigation.
+- `.bench/files-deferred-focus-loaded.log` passes a controlled Git catalog update between tab press
+  and release, asserting both selection and replacement-tab focus, followed by local/remote icon
+  and unavailable-asset checks. Rebuilding immediately discarded the press; immediate focus after
+  rebuilding returned false until the replacement control completed layout.
+- `.bench/plugins-bottom-after-deferred-focus.log` passes the full bottom-panel translations against
+  the final deferred-focus fix. `.bench/plugins-deferred-focus-format.log` passes solution formatting.
+  The full repository run with Git fixtures is still running in
+  `.bench/plugins-full-after-deferred-focus.log`; no complete-suite pass is claimed.
+- `.bench/plugin-fork-refresh-build-4.log` builds the fork refresh in a separate output directory with
+  zero warnings/errors. `.bench/plugin-fork-refresh-checks-2.log` passes all nine plugin host/UI checks
+  with the current Codex hook fields and shared Switch. Switch checks cover controlled state, geometry,
+  mouse/Space activation, accessible state, disabled input and palette tokens, and handled clicks.
+  Both local and remote FileIcons selections and the controlled deferred catalog case pass.
+  `.bench/plugin-fork-refresh-format.log` passes formatting. Native appearance/transitions remain open;
+  the earlier full run is still live against its pre-refresh build.
+- The full `.bench/plugins-full-after-deferred-focus.log` run has now exited134 at the final
+  workbench smoke's Spec hierarchy assertion (`UiChecks.cs:189`), after its docking, settings,
+  terminal and Markdown translations passed. The nine-plugin combined pass does not clear this gate.
+
+- Catalog identity smoke and independent Spec root regression pass in
+  `.bench/spec-hierarchy-catalog-regression-smoke.log`; bottom translations pass in
+  `.bench/bottom-catalog-identity-checks.log`. All nine combined plugin checks, including compiled
+  Switch and automation, pass in `.bench/plugins-catalog-identity-compiled-switch-checks-2.log`.
+- The subsequent Switch click-state snapshot/toggle-only peer follow-up builds with zero errors
+  and seven Avalonia runtime-loader warnings; its added regression remains unrun.
+- Full `.bench/plugins-full-current-catalog-identity.log` stopped at a temporary Git fixture commit
+  with `1Password: failed to fill whole buffer`. Full verification remains incomplete; signing was
+  not disabled or bypassed.
+- `.bench/switch-state-snapshot-checks.log` now passes the latest Switch follow-up through the focused
+  `--switch` runner, including activation-state capture when a routed click handler updates state.
+  `git diff --check` also passes. Full signing-dependent verification was not retried.
+- `.bench/switch-state-snapshot-format.log` passes formatting after the focused runner addition.
+- `.bench/blueprint-start-picker-checks-3.log` passes Blueprint host, gRPC and UI checks, including
+  actual remote start-dialog source switching, file-specific host-path copy, document selection,
+  retaining that selection when a second picker is cancelled, brief retention and dialog cancellation.
+  `.bench/blueprint-start-picker-format.log` passes before the final test teardown adjustment;
+  `git diff --check` passes. The resumed full run uses the pre-picker-change build and is still live.
+- `.bench/blueprint-start-picker-final-format.log` passes after the final test teardown adjustment.
+- Full `.bench/plugins-full-presence-resumed.log` exited134 at the hierarchy smoke assertion.
+  Inspecting its actual indexed graph in `.bench/spec-index-resumed-full.log` proved that nested
+  fixtures' reused architecture ID caused deduplication to drop the smoke child. Unique smoke IDs
+  and an earlier nested fixture now pass `.bench/spec-unique-fixture-smoke.log` (exit0), including
+  hierarchy, role/preview, startup and dock checks. Runtime duplicate-ID handling is unchanged.
+  Full `.bench/plugins-full-unique-spec-fixture.log` rerun is live with the current source build.
+- `.bench/spec-unique-fixture-format.log` passes formatting after the smoke fixture correction.
+- `.bench/blueprint-recovery-checks.log` passes Blueprint host/gRPC/UI with the added local recovery
+  scenarios: exact recorded-session launch options and author tab, fresh recovery without a session,
+  visible companion, preserved source and no second command when reopening. This does not prove
+  recovery failure/retry, remote recovery or native appearance. Full27407 uses the earlier build.
+- `.bench/blueprint-recovery-format.log` passes formatting after the recovery checks addition.
+- `.bench/blueprint-recovery-retry-checks.log` passes all Blueprint focused checks with the added
+  launcher failure case: actual error toast, successful second opening and no duplicate calls after
+  recovery. Runtime recovery behavior was unchanged; these checks do not prove remote/native recovery.
+- `.bench/blueprint-recovery-retry-format.log` passes formatting after retry coverage was added.
+- `.bench/blueprint-launcher-chip-checks-2.log` passes the actual remote start dialog's live launcher
+  label/icon, invalidated disabled reason, removal/restoration and retained/fresh icon lifetime.
+  `.bench/launcher-icon-factories-build-2.log` builds with zero warnings/errors; formatting passes in
+  `.bench/launcher-icon-factories-format.log`. `.bench/claude-launcher-icon-factory-final-checks.log`
+  passes Claude host/UI with real SVG reads through fresh launcher icon controls at distinct sizes.
+- Full `.bench/plugins-full-unique-spec-fixture.log` exited134 at EditedName's dialog/worktree wait,
+  before reaching the corrected hierarchy gate. Full-suite verification remains incomplete.
+- `.bench/codex-launcher-icon-factory-checks.log` passes Codex host/E2E, including fresh launcher
+  icon controls at distinct sizes and actual SVG reads. No verification jobs remain live.
+- Failed full workspace fixture proves worktree creation, Login Rework labelling and routing had
+  succeeded. Failure-only UI diagnostics were added; the cause of the rail/dialog wait is unproven.
+  `.bench/new-workspace-diagnostic-checks.log` passes all focused workspace-dialog cases; build and
+  formatting pass. No runtime fix or timeout relaxation was made.
+- `.bench/plugins-after-launcher-chip-checks.log` passes all nine plugin checks with icon factories
+  and live Blueprint chip. `.bench/blueprint-draft-flow-checks.log` then passes the added actual remote
+  Draft flow: Default workspace, launcher prompts, remote terminal author and visible companion.
+  `.bench/blueprint-draft-flow-build.log` passes0warnings/0errors; formatting passes in
+  `.bench/blueprint-draft-flow-format-2.log`. Full99075 is live against this compiled source.
+- `.bench/blueprint-existing-session-checks.log` passes the remote existing-session Draft case:
+  entering another idea from Project Home reuses the recorded author/companion, retains Product
+  source on host and makes no second launcher call. All focused Blueprint checks pass in that run.
+  Its isolated build has zero errors and seven Avalonia warnings; formatting and diff checks pass.
+  Full99075 remains live against the earlier build, excluding this new assertion.
+- `.bench/blueprint-worktree-start-checks.log` reproduced a visible workspace Draft action doing
+  nothing for a directly opened linked worktree. The plugin projection omitted its mounted identity.
+  Merging host-resolved mounted window identities now passes `.bench/blueprint-worktree-start-checks-2.log`:
+  project Default routing, one visible author, normalized idea and no feature-worktree record, plus
+  all earlier focused Blueprint checks. Isolated build has zero errors/seven Avalonia warnings;
+  formatting and diff checks pass. Combined plugin verification96118 is live on the new projection.
+- Full99075 passed the previously timed-out EditedName case and continues through terminal checks.
+  Its earlier build excludes the mounted-worktree projection fix; full verification remains incomplete.
+- `.bench/blueprint-remote-recovery-checks.log` passes matching local/gRPC recorded-session, fresh
+  recovery and failed-launch/retry UI contracts, along with Draft and Git-worktree routing checks.
+  Isolated build has zero errors/seven Avalonia warnings; formatting and diff checks pass.
+- Combined `.bench/plugins-mounted-worktree-projection-checks.log` failed remote PDF rewrite reload.
+  `.bench/pdf-mounted-worktree-projection-checks.log` passes standalone PDF checks on the same build.
+  Failure cause is unproven; combined verification remains incomplete. Full99075 is still live.
+- Full `.bench/plugins-full-launcher-draft-diagnostics.log` passed exit0. Its earlier build excludes
+  the later projection fix, existing-session/remote-recovery additions and current readiness fix.
+- `.bench/pdf-watch-ready-before-checks.log` deterministically failed a rewrite held before watch
+  registration. Consuming initial readiness through the existing open-document revision path passes
+  `.bench/pdf-watch-ready-after-checks.log`, including existing PDF local/gRPC cases. Formatting and
+  diff checks pass; isolated build has zero errors/seven Avalonia warnings. Earlier combined timeout
+  has not been conclusively tied to this race. Latest-source full verification remains open.
+- `.bench/pdf-watch-ready-ui-smoke.log` passes main workbench, Spec hierarchy, startup, focus/tab
+  identity and dock input after initial watch readiness refresh. All-nine readiness run is now live.
+
+## 2026-10-02 — SpecDialect, Blueprint and Claude Code fork e2e translations
+
+Release build and `dotnet format --verify-no-changes` pass. `--plugins` passes
+(`.bench/plugin-gaps-plugins.log`), including the new specs-panel tree/load-failure/update-failure
+Retry cases, Blueprint's Claude gate, outside-document takeover refusal and watcher-only pane
+rewrite, both Claude launcher cases and the host halves of five claude-config cases. Focused runs:
+`.bench/plugin-gaps-specs.log`, `.bench/plugin-gaps-blueprint.log`, `.bench/plugin-gaps-claude.log`.
+Per-case status is in `E2E.md`. The full repository gate was not rerun.
+
+## 2026-10-02 — Visualize lifetime checks, Codex compiled rows and IDE fallback
+
+Release solution build is clean (`.bench/gaps-build.log`) and format verification exits 0 (`.bench/gaps-format.log`).
+`--visualize` (`.bench/gaps-final-visualize.log`) adds comparison contents and responsive columns, drag panning,
+a second terminal's own drawing and disable/re-enable to the local and gRPC companion cases. `--codex`
+(`.bench/gaps-final-codex.log`) and `--codex-terminals` (`.bench/gaps-final-codex-terminals.log`) pass with the
+compiled configuration rows, notices and accessory row, and a background window answering IDE requests while
+an active window shows Home. `--file-icons` passes (`.bench/gaps-final-file-icons.log`); Git change rows skipped
+without `SHARPRAIL_TEST_GIT_SOURCE`. The full repository suite was not run.
+
+## 2026-10-02 — Final latest-source gate
+
+`SHARPRAIL_TEST_GIT_SOURCE=/Users/commandertvis/IdeaProjects/thinkrail .tools/dotnet/dotnet run --project
+tests/SharpRail.Checks -c Release` exits 0 (`.bench/final-full-checks.log`), ending with PASS Codex plugin E2E
+and PASS prototype checks and open-world runtime; no FAIL lines, Git fixtures included. `dotnet format
+--verify-no-changes` exits 0 (`.bench/final-format.log`). No fixes were needed. This is headless evidence only;
+the canonical `artifacts/SharpRail.app` predates this source and was not republished or natively inspected.
+
+
+## 2026-10-06 — Deferred workspace loading and retained project rail
+
+Release build and solution-wide format verification pass. Focused `--startup`, `--welcome`, `--rail`,
+`--branches`, `--vertical-tabs`, `--sync` and `--editor` pass. The deletion regression verifies retained
+rows/tab hosts/previews, zero survivor detach events, open menu/focus and nonzero scroll preservation
+for active and inactive workspaces. Gitless Start work and Project Home actions and disabled branch
+icon rendering have coverage. Logs are `.bench/rail-retention-*` and `.bench/branch-buttons-checks.log`.
+
+The complete `--workspaces` mode passes on rerun (`.bench/rail-retention-workspaces-retry.log`). Its
+first attempt timed out opening another project's retained workspace menu in CopyPath. The full
+suite with Git fixtures exits 134 on a detached Changes-tab click target in the large-diff editor
+check (`.bench/rail-retention-full.log`); focused editor rerun passes. Neither intermittent failure's
+cause was established, and the latest full gate is not green.
+
+All 28 rewritten commits build in Release in isolated worktrees (`.bench/workspace-amend-builds`).
+The amended source tree matched the pre-rebase tree exactly before updating local main. Verification
+is headless; the canonical app was not republished or restarted.
+
+## Pane retention and Start work choices — 2026-10-07
+
+Release build and touched-file format verification pass. Focused `--pane-retention`, `--startup`,
+`--claude-code`, `--codex`, `--branch-graph`, `--vertical-tabs` and `--file-icons` pass. The new
+regressions exercise retained workspace-specific tools/input, center actions, held routing, paired
+frames, repository graph identity/scroll/read counts and current-worktree commit actions over local
+and remote hosts. Changes retains unchanged rows, scroll and collapsed tree folders, Review updates
+without replacing controls, and unregistering a plugin evicts inactive panes. Start work renders the
+launcher's icon factory and distinguishes selected from hovered targets.
+
+Logs are `.bench/pane-retention-*`. Broader `--sync` times out entering remote Project Home and
+`--plugins` fails a remote Blueprint recovery call with Unknown workspace. Both reproduce on the
+unchanged f7fd5ec baseline (`.bench/pane-baseline-sync.log`, `.bench/pane-baseline-blueprint.log`).
+One full run with Git fixtures passes Changes, large Markdown diffs, live refresh and workspace-tab
+switching, then exits 134 at ProjectsE2E.ExpectExpansion line 31: Only expanded projects may expose
+workspace rows. The same failure predates this extension; the complete suite is still not green.
+Verification is headless; the canonical app was not republished or restarted.
+
+## Shared controls, worktree creation and Markdown — 2026-10-07
+
+Create project works through both host transports, preserves existing folders and keeps validation
+errors available for retry. Shared button/toggle/checkbox styles supply selected, hover and disabled
+states, with primary/check glyph contrast verified across every bundled theme, including hover.
+Launcher choices use their real icons and the rail tooltip says Start work.
+
+Worktree creation selects existing bases, falls back locally when a remote default is missing and
+unreachable, and can promote a successfully prefetched remote. Long branch names widen the search
+field without a centered offset. Suggested paths are under the configured host state directory, with
+local/remote parity; existing worktrees remain valid. Claude/Codex consume the host-owned directory.
+Markdown Split accepts typing, updates its preview, saves, preserves a dirty buffer during appearance
+refresh, and retains/discards edits correctly on close. A wide raster image keeps its full aspect ratio,
+fits the reading column and reserves its complete height.
+
+Focused shared-controls, create-project, new-workspace, Markdown, editor, project-host, Claude Code,
+Codex and pane-retention checks pass (.bench/pane-final-focused/). All 25 amended commits build in
+Release separately (.bench/pane-final-step-builds/), and full-solution format verification passes
+(.bench/pane-final-format-verify.log). The final code tree matches its pre-rebase source exactly.
+The outdated plain-folder rail assertions now pass. The broader workspace mode and one full run with
+Git fixtures reach the previously reproduced remote Project Home timeout in MultiClientE2E.RenamePropagates.
+The full run exits 134 after 202 passing checks (.bench/pane-final-full.log); the complete gate is not
+green. No push, app publication or restart.
