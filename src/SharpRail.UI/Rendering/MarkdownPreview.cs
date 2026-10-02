@@ -107,7 +107,7 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
             case FencedCodeBlock fence when renderDiagrams && string.Equals(fence.Info?.Trim(), "mermaid", StringComparison.OrdinalIgnoreCase):
                 return Mermaid(fence.Lines.ToString());
             case YamlFrontMatterBlock frontmatter:
-                var metadata = CodeFrame(frontmatter.Lines.ToString());
+                var metadata = CodeFrame(frontmatter.Lines.ToString().Trim('\r', '\n'));
                 metadata.Name = "MarkdownFrontmatter";
                 return metadata;
             case CodeBlock code:
