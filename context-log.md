@@ -1,4 +1,10 @@
-# Active prototype goal — 2026-09-28
+# Continuation log
+
+Start with the final section, “Session handoff — 2026-10-02, user requested a fresh session”.
+Earlier dated entries are historical; current AGENTS.md and the latest handoff take precedence,
+including terminal/editor scope and verification evidence.
+
+## Historical prototype goal — 2026-09-28
 
 Goal remains active. Functional prototype exists, but full screenshot and tiny
 pane-behavior parity is not yet proven. Do not mark complete from current tests.
@@ -2711,3 +2717,1206 @@ pushes), and the fork's `external-plugin.spec.ts` end to end through the real ho
 `RemotePluginAdapter`. Merging exposed one bug: the remote adapter surfaced a caller-cancelled call or subscription as
 `RpcException(Cancelled)`, which the UI logged as a dropped channel; it now throws `OperationCanceledException` as
 the local path does. `-- --plugins` runs the plugin checks alone. Open items are in `COMPLETION.md` (Plugin API).
+
+### Fork builtin plugin continuation — Codex, 2026-10-01
+
+User explicitly requests all nine fork plugins ported in full. Recovered the interrupted Claude
+conversation from `~/.claude/projects/-Users-commandertvis-thinkrail-sharprail/` session
+`cb069fb2-f1ff-4b27-9a4c-4d0309028ffa`. Its latest real user instruction was “Port the plugins”.
+The original user scope excludes Pi and AI chat and requires C#/Avalonia/gRPC adaptations only.
+Do not accept inherited partial ports or narrower existing tests as completion criteria.
+
+Main starts at `51d401a` (Plugin API), with `aed3eb6` general improvements and `33ab878`
+instruction changes. The initial main tree was clean. Work from this checkout, not the sibling
+`upstream` worktree. Nothing was pushed. No new agents were spawned.
+
+Fork source: `/Users/commandertvis/IdeaProjects/thinkrail`, Git ref
+`origin/claude-code-integration-plugin-api`, tip `0304a543e`. The actual fork working checkout
+is `/Users/commandertvis/.thinkrail/worktrees/thinkrail/claude-code-integration-plugin-api`.
+Use Git show against the recorded commits for exact sources. Plugin order:
+1. `e8a751bd7` spec dialect
+2. `b2a6c75a6` Blueprint
+3. `6401ccae8` Claude Code (preceded by review-to-terminal `54363cfd6`)
+4. `eb382d75e` Discord
+5. `ab23be7cf` PDF preview
+6. `e91aef250` branch graph
+7. `b8d8ec066` terminal visualization
+8. `40678fd30` file icons
+9. `177abd30c` Codex
+Keep one plugin per eventual signed commit, in that order.
+
+Surviving partial Claude worktrees, all under this authorized repository:
+- `.claude/worktrees/agent-af1e06aaf8f6bf1f0`: spec dialect; recovered into main via
+  `.bench/recovered-spec-dialect.patch` plus its untracked plugin files/checks. Blueprint not started.
+- `.claude/worktrees/agent-a5d1ceb97df985dca`: partial Claude Code, shared kit controls and contract additions.
+- `.claude/worktrees/agent-aded0ac393bfdb077`: staged Discord and PDF; unfinished branch graph.
+- `.claude/worktrees/agent-a43adec62b47df39f`: staged visualization; unfinished file icons.
+- `.claude/worktrees/agent-a122f4b5d21d3bfbc`: partial Codex and kit additions overlapping Claude Code.
+Inspect staged and unstaged changes and untracked source, excluding `.tools`, bin and obj. Do not
+replace main's integrated registries/solution with another worktree's baseline copies.
+
+Main now contains the spec dialect host/contract/UI assemblies and core Specs/MCP ownership move,
+layout/profile/preset legacy `specs` migration, dormant tool and railDefault behavior, plugin spec
+links and checks. Codex extended the recovered two-tool subset to all seven tools. YAML is parsed
+with YamlDotNet 18.1.0 (central package, MIT license saved); reads preserve BOM bytes and caching
+uses modification time/size. Graph mapping uses id as title fallback, all edge kinds, duplicate
+validation, bounded traversal; authoring enforces indexable safe paths and preserves YAML comments,
+custom fields, BOM/line endings/prose. UI now has loading/empty/error states, selected file styling
+and filled role icons, all rows expanded, and active-editor watches without panel rebuild.
+
+`SpecToolChecks` exercises seven tools through the runtime's MCP table, creation/path protection,
+updates and preservation, graph cycles/duplicates/dangling links/metadata filters/deletion. Existing
+`SpecDialectChecks` covers real local/remote host, lifecycle, store/sync/tree/migration and real-input
+hot toggle plus active-row selection. Most owning specs updated; finish stale docs/ledgers audit.
+
+Verification: Release build succeeds. `--specs` without Git source passed before the final cache
+change, with authoring and active selection checks. Format application and verify passed. Git-enabled
+spec check reached LiveRefresh after the other checks passed but signing failed because 1Password
+wasn't running. Full run also reached EditorWorkbench then encountered the same fixture signing
+failure. User said “1password is up”; a fresh full Git-enabled suite is now running in
+`.bench/spec-full-suite-git.log`, unified exec session 77160. Inspect that exact process/log before
+rerunning. Never disable signing, including fixture signing, unless explicitly asked to fix that.
+The running full suite uses the current Release build with the cache change. No plugin is committed
+by this continuation yet, and no full-port completion claim is justified. Continue all nine ports.
+
+### Later continuation checkpoint (2026-10-01)
+
+All preceding live processes finished. Final spec-focused checks passed in
+`.bench/spec-final-checks.log`; formatting verification passed in `.bench/spec-final-format.log`.
+The `--workspaces` retry passed completely in `.bench/spec-workspaces-retry.log`, including EditedName.
+The earlier full suite failed at that name timeout. A fresh full suite, session 52716,
+`.bench/spec-final-full-suite.log`, instead stopped early at EditorWorkbenchChecks.LargeDiff because
+1Password again rejected a fixture commit (`failed to fill whole buffer`). Reported to user and asked
+asynchronously for fingerprint unlock. No signing bypass, commit or push. Do not retry signing until
+the user says ready; finish work that does not require the agent, then wait. No full-suite pass yet.
+
+Blueprint now also has exact fork prompts (extracted from TS template literals into C# raw strings),
+BlueprintSessions persistent/live session behavior, BlueprintCheck and BlueprintHost draft handlers.
+Its host project builds without warnings/errors in `.bench/blueprint-complete-host-build.log`.
+Source references are saved in `.bench/blueprint-source`. No solution/registry references yet.
+UI, tests and owning spec still absent, so this is not a complete plugin.
+
+Required API correction discovered while porting Blueprint: fork `RevivePrefill.text` is optional;
+server plugins compose the first supplied text and OR every hook's submit flag. SharpRail currently
+requires text and returns the first hook. Blueprint's submit-only hook must not consume the Claude
+Code resume offer. Change the API record to nullable/defaulted Text, update PublicAPI, aggregate
+hooks in PluginRuntime, and test independent text/submit contributors through local and remote
+attachments. BlueprintHost's current empty-string offer is only a draft placeholder: replace with
+null Text after this API correction. Keep this correction with Blueprint, separate from Spec Dialect's
+eventual signed commit. No API generation bump needed for this source-compatible nullable addition,
+but review the repository's compatibility checks. Read authoritative fork composition at
+`b2a6c75a6:packages/server/src/plugins/index.ts` lines 145–159 and API host lines 58–64.
+
+### Blueprint implementation checkpoint (2026-10-01)
+
+Made concrete progress without using signing. Blueprint is now registered in both builtin arrays and
+the solution, with project references from host/app. Added UI store, opener, companion, controls,
+editable passages and properties, start dialog and file redirect. Host/session/check/prompts remain
+direct source ports. Added `src/SharpRail.Plugins.Blueprint/SPEC.md` and recorded remaining gates in
+COMPLETION. Use `--blueprint` for focused host+gRPC+UI checks; --plugins and full runner include it.
+
+Fixed the revive composition gap described above: nullable optional Text in API and PublicAPI;
+runtime keeps the first supplied text and ORs all submit flags; Blueprint offers Submit alone.
+PluginHostChecks exercises submit-only + text + ignored later text locally and over gRPC. Removed
+unused AttachPluginTerminal key argument as a separate cleanup patch, then kept the mounted companion
+when its PluginRow registration is unchanged. This stops Blueprint state publications from recreating
+the document and losing drafts. Strict null-required wire fields Author and State explicitly write null;
+the gRPC check caught the serializer otherwise omitting them. Multi-line edit commit captures key events
+in the tunnel before TextBox consumes Enter. New Remix v4.9.0 pencil/pencilRuler/lock PNGs generated with
+the existing `.bench/icon-probe`; standard license already applies.
+
+Verified `.bench/blueprint-transport-checks-2.log`: format, session, host-side reconciliation bytes,
+recorded session/persistence, generic gRPC polymorphic records, real headless redirect/staged edit/
+confirm/checkbox/raw source and retained pane. Latest integrated checks passed
+`.bench/blueprint-plugin-checks-final.log` (session 20523); formatting application and verify passed
+`.bench/blueprint-format.log` and `.bench/blueprint-format-verify.log` (session 27591). Those processes
+have final PASS output; revalidate handles if necessary. No full-suite retry because signing remains
+blocked; no fingerprint-ready reply yet. No project commits or pushes.
+
+Remaining Blueprint fidelity work: exact selected-source line stamps (currently approximates a whole
+prose block); tests for start dialog source/property editing and author recovery; project action card
+currently a plain button instead of fork's 220x150 card; hover/focus visibility of pencil action;
+full spec-link/outline review and retry on failed spec graph; remote companion input; actual Claude
+launcher integration once its port lands; native review and complete verification. Do not equate the
+passing subset with a full port. Continue the other seven plugins from the recovered worktrees, in
+the fork order, without importing Pi/bundled chat. `.bench/spec-port-before-blueprint.patch` captures
+the tracked Spec Dialect state before Blueprint edits so eventual commits can be split by plugin.
+
+### Claude Code recovery checkpoint (2026-10-01)
+
+Blueprint fidelity fixes since the preceding checkpoint: selection reports the complete prose block's
+source span, matching fork data-md-line stamps; edit action appears on hover/focus; project action uses
+compiled 220x150 card. `.bench/blueprint-fidelity-checks.log` passed.
+
+Recovered Claude Code root/Host/UI/assets from agent-a5d1ceb97df985dca, excluding build output. Copied
+shared ScopedSetting, SettingValueDialog, TerminalFacts and eight associated icons into kit. Compared
+status contract to fork 6401ccae8: statusSnapshot returns a list of per-terminal pushes. Added typed State
+list overload/PublicAPI and UI hydration for local object lists and serialized arrays; unscoped keyed
+subscriptions now skip invalid snapshot calls. Collection payloads retain their shape. Added regression
+checks for local/serialized hydration, filtering/order and unscoped stream behavior using configured
+FakePluginHost replies. Added SVG currentColor tint/theme reload with original constructor binary
+signature retained; added all recovered shared controls to PublicAPI. Fixed obsolete AutoCompleteBox
+Watermark property to PlaceholderText. Owning API/UI runtime/kit specs updated.
+
+Claude host builds cleanly in `.bench/claude-recovery-build.log`; UI builds in
+`.bench/claude-recovery-ui-build-3.log` with three existing Avalonia XAML warnings, zero errors.
+Integrated --plugins passed `.bench/claude-channel-checks.log`, including new hydration regressions,
+Spec Dialect and Blueprint. Format application passed `.bench/claude-recovery-format.log`; verify
+process session8402 in `.bench/claude-recovery-format-verify.log` was started; check final output.
+
+Claude plugin is NOT registered yet: missing ClaudeCodeUI entry point, no solution/app/host references.
+Build success does not mean complete port. Next implement authoritative web/index.ts registration
+(settings/config tool/launcher/actions/decorations/accessory/status hydration/editor+IDE events).
+Existing ClaudeStatusAdornment is in UI/ClaudeTerminal.cs and helper constructors are available.
+Audit all recovered code against fork: IdeActions.OpenDiff explicitly falls back to opening file and
+reports diffShown=false, violating full port; add actual unsaved proposed-diff capability rather than
+accepting this subset. Notification source uses away-window OS notifications, absent in app currently.
+Static recovered UI is procedural C# and needs compiled XAML per project contract. Other remaining
+plugins unchanged/unported. No goal completion claim, no signed commits/pushes. Full suite still
+blocked on prior 1Password presence error; no fingerprint-ready reply since that failure.
+
+### Claude Code registration and acceptance checkpoint (2026-10-01)
+
+Previous turn was concrete progress. This turn added ClaudeCodeUI activation, solution and host/app
+references, builtin arrays, asset icon tint, and compiled ClaudeCodeSettingsSection.axaml. One shared
+status store folds global pushes; config/terminal usage hydrates workspace snapshots; registered
+settings/config/launcher/workspace action/tab decoration/accessory/editor and addressed IDE events.
+Fixed the side tool registration to name `config` (the app registry matches its unqualified tool
+name); full tool ID is still used for navigation. DialogWindow.Name is immutable after XAML styling,
+so recovered ComposeDialogs/ReviewDialogs/SettingValueDialog identify dialogs by Tag. Removed
+undisposed JsonDocument roots from status/interrupt parse using owned JsonElement deserialization.
+
+Correction to preceding checkpoint: authoritative fork 6401ccae8 web/ideActions.ts AND SPEC.md
+explicitly implement openDiff as opening the target and replying diffShown=false. This is expected
+fork behavior, not an incomplete port. Do NOT invent a proposed-diff API; preserve that contract.
+Recorded the lesson in gotchas. Full fidelity still needs notifications, input sealing, static
+pane/dialog XAML, additional action/configuration cases, remote/native and full verification.
+
+New ClaudeCodeChecks.cs and --claude-code runner also included in --plugins/full. Tests isolate
+CLAUDE_CONFIG_DIR and SHARPRAIL_STATE_DIR with restoration; use /usr/bin/false rather than starting
+actual Claude. Check disabled lifecycle (no IDE files), configuration provenance, read-only plan,
+stale review refusal/preservation, token status/method rejection, transcript/session identity,
+continuation Stop, continue fallback, cleanup, incremental/subagent/partial usage, interrupt timestamp,
+client facts fold, actual WebSocket token refusal/init/tool catalogue/selection/addressed action reply,
+headless config pane/launcher models/compiled settings updates, value composer and disable.
+
+Verified .bench/claude-protocol-checks.log and latest .bench/claude-dialog-checks.log PASS, 40 hook
+checks in .bench/claude-hook-tests.log PASS. Integrated --plugins PASSED in
+.bench/claude-final-plugin-checks.log before adding only the final composer check; focused dialog check
+includes that final check and passes. Format verify passed .bench/claude-final-format-verify.log;
+latest verification for the added composer is session67777/.bench/claude-last-format.log, check its
+completion. Assets including hidden marketplace/plugin manifests and .mcp.json are confirmed staged
+in tests/bin/Release/net10.0/plugins/claude-code/assets. Owning ClaudeCode/SPEC.md and ledgers updated.
+Added Material Icon Theme MIT license/notice for the Claude mark, obtained from official repo.
+
+Remaining goal is all nine fork plugins in full, unchanged. Claude integration above remains partial
+until its explicit gates pass. Other six plugins remain to recover/complete, Blueprint fidelity still
+has gates, and no full-suite pass or signed per-plugin commits/pushes yet. Continue from current files,
+not old worktree registries. Signing remains presence-gated after the prior 1Password error; no bypass
+or retry was attempted in this turn.
+
+### Native agent newline and accessory lifetime checkpoint (2026-10-01)
+
+Implemented AgentNewline through TerminalView/backend/native Ghostty. The appended keyboard-mode.zig
+shim reads negotiated mode under Ghostty's renderer mutex and queues raw Escape+Return with the locked
+mailbox mode; negotiated kitty/modifyOtherKeys2 stay in Ghostty. AppKit intercepts Shift-only Return,
+preserves IME, and restores defaults when the agent record clears. Startup/retry reapplies the request.
+PluginSurfaces retains terminal accessory mounts while their registration row remains, preserving pickers
+on shared-state updates. Headless Claude check verifies retained identity and mode addition/removal.
+
+Integrated plugins PASS .bench/plugin-integration-current.log; format verify PASS
+.bench/plugin-format-current.log; native four-case keyboard check PASS
+.bench/claude-keyboard-native-final.log. Terminal regression log .bench/claude-terminal-regression.log
+is running as session7173; check completion. No signed commits or pushes. Remaining Claude gates include
+picker input sealing, faint-cell screen extraction, away-window notifications, static pane/dialog XAML,
+mutation/failure/remote/native/full matrices. Goal remains all nine plugins in full.
+
+Started read-only audit of recovered Discord under agent-aded0ac393bfdb077; nothing copied yet. Fork
+eb382d75e manifest explicitly disabled by default (confirmed), presence decision matches recovered
+Contract/Host. Its existing DiscordChecks.cs and compiled settings view are ready for audit/integration.
+Do not copy stale registries/solution from worktree. Source paths listed by git ls-tree, manifest.ts.
+
+### Discord integration and parity checkpoint (2026-10-01)
+
+Previous goal turn made progress: newline native/focused/integrated checks passed, terminal regression
+session7173 now exited0, .bench/claude-terminal-regression.log PASS. No signed commits or pushes.
+
+Recovered Discord Contract/Host/UI and DiscordChecks from agent-aded0ac393bfdb077 into main. Registered
+all three projects in solution and host/app dependencies, builtin arrays, --discord/--plugins/full runners.
+Audited all authoritative eb382d75e plugin source files (no diff to fork tip0304a543e for this plugin).
+Defaults, contracts, decisions, retry floor and report projection match fork. Extracted exact DiscordMark
+SVG into assets/discord.svg, staged/served through host; restored title and Enter blur behavior.
+Report equality matches fork (project id +file, excludes name). Added frame Send partial-write loop and
+bounded macOS getconf wait. Runtime discards a handshake after disable/silence generation; stopped
+activations cannot reconnect or publish. New delayed-handshake regression proves disable safety.
+
+Discord checks now also verify isolated socket candidates, fragmented ping/pong, ERROR and close,
+real gRPC roster/asset/calls/status pushes/redaction/disable refusal, and the complete settings UI
+scenario twice, local and remote: file sharing, invalid/empty/valid id, persistence, blocks, disable.
+.bench/discord-ipc-checks.log PASS (exit0), .bench/discord-local-remote-ui-3.log earlier PASS.
+Owning specs, tracking, E2E and evidence updated. Native appearance/published/full gates pending.
+Integrated --plugins session62707/.bench/discord-integrated-plugin-checks.log exited0 PASS; format verify
+session90451/.bench/discord-format-verify.log exited0 PASS. Final audit restored the roster's separate
+Remix discord line glyph (settings keeps the custom SVG), copied the recovered kit PNG and icon map,
+and added no-project/connecting/unconfigured decision coverage. Final focused/format checks follow.
+
+All nine-plugin goal remains active, no subset completion. Five remaining plugins not integrated:
+PDF, branch graph, visualize, file icons, Codex. Claude/Blueprint/Spec still have noted fidelity gates.
+Signing presence remains blocked after prior 1Password error; no new ready reply and no signing retry.
+
+Final Discord focused check session4480/.bench/discord-final-focused.log exited0 PASS and format verify
+session8858/.bench/discord-final-format.log exited0 PASS. All handles from this checkpoint terminal.
+Before calling Discord complete, review native appearance and the source's full-row share-file toggle/
+right-side blocked check mark (current recovered ToggleSwitch/CheckBox changes the visual layout), then
+published/full gates. PDF draft was read only: agent-aded0ac393bfdb077 has Contract/UI/PdfEngine/PdfTextLayer,
+and PdfPreviewChecks; it also needs shared ZoomGesture from that worktree and two central PDFium package
+pins156.0.8076. Nothing PDF copied yet. Native renderer is framework-forced PDFium rather than pdf.js;
+its draft notes remote file-revision gaps that must be closed for full fidelity, not accepted as complete.
+
+### PDF integration and resource lifetime checkpoint (2026-10-01)
+
+Previous turn progressed Discord. This turn recovered PdfPreview Contract/UI (no host half), PdfEngine,
+PdfTextLayer and checks from agent-aded0ac393bfdb077; shared kit ZoomGesture/PublicAPI, filePdf glyph,
+central PDFium macOS/Linux exact pins156.0.8076; solution/dependencies/builtin arrays; --pdf-preview,
+--plugins/full runners. Compared authoritative fork manifest/index/PdfPreview/pdfEngine/zoom math and
+E2E source; plugin source is unchanged from ab23be7cf to tip0304a543e.
+
+Recovered focused check passed .bench/pdf-recovered-checks.log. Fixed bitmap replacement/clear disposal,
+cancelled detach reads and cleared bytes/pages; remount reloads (including a still-cancelling prior read),
+preserves scale. CTS disposed after operation. PdfEngine now uses GetUnicode per character and boxes per
+UTF16 unit: GetText skips unmappable glyphs, which previously shifted the box map and left NULs. Docs:
+package's pinned fpdf_text.h and official PDFium fpdf_text.h. Multi-code-unit text selection still needs
+surrogate-safe boundaries; rotated/cropped page boxes currently naively flipped and need mapping via
+FPDF_PageToDevice. No fixes for these yet. Multi-page selection remains single-page-only and must be fixed.
+
+Added remount/raster release and actual unreadable Retry/recovery checks. Initial retry check wrote valid
+bytes before clicking, allowing the live watcher to replace the button; now retry while invalid, then
+restore valid bytes. .bench/pdf-remount-retry-checks-2.log PASS exit0, format verify
+.bench/pdf-final-format.log PASS exit0. Integrated --plugins running session62183 in
+.bench/pdf-integrated-plugin-checks.log; revalidate handle before rerun.
+
+PDFium license bundle generated from verified official chromium/8076 mac-arm64 archive:
+.bench/pdfium-8076-mac-arm64.tgz SHA2560d6781fe08906baff3d82c90953e519fbc4eb253fe76431e5ed53b157763b97c
+(release API digest matched). LICENSE+all14 licenses files combined licenses/PDFium.txt; publish script
+already copies licenses. Owning specs, tracking, E2E/evidence/COMPLETION updated without complete claim.
+
+Next major dependency for full PDF: generic remote filesystem change stream through host abstractions,
+Core, Protocol, both adapters and window watcher. PluginUIContext.ObserveFileRevision currently only reads
+Workbench revision dictionary; WorkbenchWindow.StartWatching explicitly skips remote; WatchWorkspaceAsync
+is a no-op. Do not add plugin-specific polling or accept manual Reload as full port. Read actual interfaces
+and ProjectSessions first; reuse window debounce/changed-path/BumpRevisions machinery with scoped
+cancellation and reconnect/stale-result handling. Then rerun same PDF UI scenario over remote host.
+Also complete static toolbar actions/XAML, gestures/races, selection/geometry/native/published/full gates.
+Four plugins remain entirely unintegrated: graph, visualize, file-icons, Codex; earlier plugins retain gates.
+Signing remains presence-gated, no ready reply/no signing retries/commits/pushes.
+
+Integrated PDF session62183 finished exit0 PASS .bench/pdf-integrated-plugin-checks.log; no live handles
+from this checkpoint remain. Next work is remote filesystem revisions as above, not re-running recovery.
+
+### PDF selection and page geometry checkpoint (2026-10-01)
+
+Previous goal turn made concrete PDF integration/resource progress. This turn added PdfSelection.cs,
+one document selection shared by its page layers. Pointer capture follows the nearest page and local
+character; forward/backward drags cross page boundaries. Copy uses the whole range; Select All covers
+the document. UTF16 selection endpoints expand around surrogates. Focus no longer clears selection
+merely on toolbar focus. Capture loss stops dragging. PdfPreview creates one selection per parsed doc.
+
+PdfEngine now maps native character corners through FPDF_PageToDevice at100pixels/point instead of
+naive height-minus-top, preserving rotation/crop origins. Pinned package header confirms signature.
+Real native rotated90 and cropped pages pass dimension/box expectations. PDF fixture generator now
+supports multiple pages/rotation/crop while retaining MinimalPdf helper. Headless actual forward and
+backward two-page drags pass .bench/pdf-multipage-checks.log (exit0).
+
+Added shared Unicode surrogate selection check and actual clipboard/SelectAll keyboard checks. Initial
+compile required current Avalonia physicalKey arg; corrected to PhysicalKey.C/A. Current focused check
+session24198/.bench/pdf-copy-unicode-checks-2.log; format verify
+session to be read from last tool/.bench/pdf-selection-format-verify.log. Revalidate handles.
+Drag autoscroll and native Unicode PDF extraction tests remain open, as do remote revisions, gestures,
+races/static actions/native/published/full checks. No goal completion or signed commits/pushes.
+
+Final current headless key input follows existing fixtures' full signature including null keySymbol.
+session63597/.bench/pdf-copy-unicode-checks-3.log exited0 PASS for all PDF checks including copied
+two-page selection and SelectAll, synthetic Unicode endpoints. session21038 format verification
+.bench/pdf-selection-format-verify.log exited0 PASS. No live handles from this checkpoint remain.
+Owning spec/evidence/tracking/completion updated. Remaining major next action remains generic remote
+file-change stream (no changes made there this turn); autoscroll and native Unicode extraction need
+separate acceptance. Entire nine-plugin goal stays active; nothing committed/pushed.
+
+### Host file stream and remote PDF checkpoint (2026-10-01)
+
+Added IProjectServices.WatchFilesAsync/WorkspaceFileChanges, Core WorkspaceFiles.cs, wire DTO/RPC,
+local/remote adapters and mock delegates. Each stream owns workspace/HEAD/common refs watchers,
+captures root, sends empty readiness batch, coalesces50ms, caps4096paths, requests rescan on lost events,
+disposes on cancellation. RPC links host shutdown, stream has no deadline. UI consumes for local/remote,
+keeps250ms/1s debounce, cancels/stale-guards project switches, retries1s and invalidates open paths after
+reconnect/rescan. Arbitrary inactive WatchWorkspaceAsync remains unimplemented; per-stream sharing,
+inode self-healing and ignore refinements remain open.
+
+.bench/workspace-files-build.log build succeeded. .bench/workspace-files-checks.log local/remote
+registration/nested/rename/Git/root/cancel passed. .bench/workspace-files-shutdown-checks.log adds
+live-stream host shutdown and passed exit0. PdfPreviewChecks now runs identical full scenario local and
+remote; .bench/pdf-remote-revisions-checks.log exit0 PASS incl remote live rewrite/rename, zoom,
+selection/copy, remount/error recovery/disable. .bench/workspace-files-integrated-checks.log exit0 PASS.
+Format .bench/workspace-files-format.log exit0 before final shutdown-test edit; rerun final verify.
+Owning specs/E2E/UPSTREAM/COMPLETION/evidence updated. No signed commits/pushes; signing remains
+presence-gated after prior failure (user's initial '1password is up' predates that failure).
+
+Next PDF gates: drag autoscroll, native Unicode extraction fixture, gesture/load races, static toolbar
+actions in compiled XAML and native/published/full acceptance. Earlier plugins retain their gates.
+Four plugins (BranchGraph, Visualize, FileIcons, Codex) still need integration from recovery drafts.
+All nine-plugin goal remains active. Final format .bench/workspace-files-final-format.log exited0 PASS;
+git diff --check passed. No live tool sessions remain from this checkpoint.
+
+### PDF autoscroll, Unicode and compiled toolbar checkpoint (2026-10-01)
+
+Previous goal turn made verified host-stream/remote-PDF progress. This turn added native selection
+autoscroll in PdfTextLayer:16ms timer, viewport edge/beyond pointer, continuous stationary-point
+transforms, stop on release/capture-loss/detach. PdfSelection.Move now takes position callback so the
+timer recomputes coordinates after scrolling. Standalone real-input8page checks prove forward/backward
+offscreen selection and release/detach. Test backward initial expectation erroneously required the
+whole first line despite pointing midway; fixed endpoint x0, not implementation.
+
+Real generated PDF ToUnicode fixture maps A to U+1F680/B to U+00E9. Found actual extraction bug:
+PDFium returns D83D thenDE80 rather than a single scalar; old Rune.TryCreate discarded both. Pair
+validated/combined before scalar append, consume2indices, duplicate box per UTF16unit. No diagnostic
+logging remains. Test native extraction/boxes and actual viewerSelectAll/clipboard local+gRPC pass.
+
+Toolbar/retry now declared/styled compiledPdfPreview.axaml; C# onlywires clicks+themedicon. Wheel
+ordinaryscroll/Control/Commandzoom consumedscroll/direction/step and25..600toolbarbounds covered,
+rapidclicks freshGesture:false so not550mssettles perclick. Trackpadmagnify/loadrace stillpending.
+
+.bench/pdf-native-unicode-checks-2.log exit0PASS engine+autoscroll+existinglocalremote.
+.bench/pdf-compiled-toolbar-checks.log exit0PASS. .bench/pdf-gesture-checks.log exit0PASS.
+.bench/pdf-fidelity-integrated-checks.log exit0PASS integratedsuite inclrapidbursts (prelastUnicodecopy).
+.bench/pdf-native-unicode-copy-checks-2.log exit0PASS latestfocusedlocalremote Unicodecopy.
+.bench/pdf-fidelity-final-format.log and .bench/pdf-unicode-copy-format.log exit0PASS; finalverify
+session68666/.bench/pdf-native-unicode-copy-final-format.log runningatcheckpoint, revalidatehandle.
+Specs/tracking/evidence/completion/gotcha updated; no signedcommits/pushes.
+
+BranchGraph draft read only, NOT copied. Complete filetree in agent-aded0ac393bfdb077 plugin directory
+and tests/BranchGraphChecks.cs. Current fork files packages/plugin-branch-graph/{contracts,manifest,
+host/index,host/graphBuild,web/GraphPanel,web/graphLanes}. Source host patch accepts sha string directly,
+draftrestrictshex4..64; audit ratherthan silentlybroaden/narrow. Draft tests use IsolatedGit from draft
+and E2eWorkspace(...plugins:true) removedconstructor arg; need adapt. IsolatedGit signing policy must
+be inspected before copying/running: do not bypass userpresence (no fixtureexceptionauthorization).
+GraphPanel draft procedures rows/meta/contextmenu, partialcompiledframe; lifecycle asyncstaleness and
+scrollrefresh/guttertransition needsourceaudit. Contracts/host/C#11API+UI compile integration stillneeded.
+Next continue BranchGraph port while retaining earlierplugins trackpad/loadrace/native/full gates.
+Goalallnine remainsactive; fourplugins stillunintegrated. Signingpresence stillblocked afterpriorfailure.
+
+Final session68666 formatting exited0 PASS; git diff --check clean and no temporary Unicode logging.
+No live tool sessions remain from this checkpoint.
+
+### Branch Graph integration checkpoint (2026-10-01)
+
+Previous goal turn made verified PDF fidelity progress. This turn copied only BranchGraph Contract/Host/UI
+from agent-aded0ac393bfdb077, then compared fork manifest, graphBuild, host index, GraphPanel and graphLanes.
+Registered three solution projects, Core host reference/builtin and UI reference/builtin. Icon git-branch
+maps to the existing kit gitBranch glyph. Removed draft-only hex restriction from patch: fork accepts
+Git revision expressions. Log/worktree parser and eight-lane layout retain source behavior; duplicate
+canonical workspace paths use last match, as the fork Map does. Clipboard failures notify rather than escape.
+Detach invalidates late reads, refresh prevents concurrent paging, errors use danger color.
+
+Created BranchGraphChecks with recovered pure parsing/lane fixtures and new real local/gRPC tests.
+No IsolatedGit instance, signing bypass or new commits: helper Run only executes git init, local fetch
+of 600 existing fork commits, checkout, branch and detached worktree in an isolated .bench fixture.
+Requires SHARPRAIL_TEST_GIT_SOURCE pointing to the fork clone containing its origin plugin branch ref.
+Without the env var only pure checks run and real fixture coverage is explicitly skipped.
+--branch-graph added; --plugins and full runner include host checks before headless and UI afterward.
+
+Actual integration bugs fixed:
+1. Graph commit selection was rejected because comparison menu was empty or excluded that commit.
+   Added IProjectServices.GetCommitAsync and Core lookup, nullable protocol reply/RPC, both adapters
+   and three test mock delegates. UI validates actual existence instead of menu membership, hydrates
+   commit metadata, preserves missing-object fallback. Lookup validates hex, uses quiet rev-parse
+   (only exit1 is missing), then show metadata; other failures propagate. Core catalog remains target..HEAD,
+   capped200, empty with no target. Local/remote tests verify tip, older450 and missing lookup.
+2. Remote refresh rebuilt identical graph rows and closed menus. Window now reuses mounted rows keyed
+   by full sha and compares displayed model/marks; unchanged buttons, lane art and menus stay attached.
+   MountedRow holds typed state, not resources. Real file nudges with an open context menu pass both hosts.
+   Changed-row identity, static row/menu templates and icons still need the full source port.
+3. Integrated test found paging stalled when scrolling during refresh. Show updates layout then rechecks
+   paging, as the fork's effect does; zero-height hidden viewports never page. Latest focused rerun covers
+   the final zero-height guard, which was added while integrated rerun was already running.
+
+Verification: .bench/branch-graph-recovered-build.log exit0; focused commit lookup and row-lifetime logs
+exit0. .bench/branch-graph-integrated-checks-2.log exit0 PASS with source env. Final format session75822
+/.bench/branch-graph-final-format.log exit0 PASS. Latest final focused session61027
+/.bench/branch-graph-final-focused-checks.log is pending at this checkpoint; revalidate its live handle.
+Owning plugin/host/interface/protocol/client/remote/UI specs, UPSTREAM, E2E, COMPLETION, evidence and
+gotchas updated. No commits or pushes; prior signing-presence blocker still applies.
+
+Next: finish Branch Graph compiled row/menu templates, clipboard icons, changed-row/focus retention,
+empty/gitless/disable and lifecycle/error tests, all rendered merge/orphan/gutter/ref scenarios and native,
+published/full verification. Earlier plugins still retain gates, notably PDF magnify/load races. Remaining
+entirely unintegrated plugins are Visualize, File Icons and Codex. All-nine goal remains active.
+
+Final focused session61027 exited0 PASS; .bench/branch-graph-final-focused-checks.log verifies the
+last viewport guard too. git diff --check passes. No live tool sessions remain from this checkpoint.
+
+### Branch Graph compiled rows and Git-only refresh checkpoint (2026-10-01)
+
+Previous goal turn integrated Graph with verified host/UI progress. This turn moved the full row,
+metadata item templates, context menu and hover style resources into GraphCommitRow.axaml. C# wires
+data/actions and themed SVG glyphs only. GraphPanel shrank from282 to~180lines; it caches actual
+GraphCommitRow buttons by sha and updates them in place even when refs/marks/lane models change.
+LaneArt.Update preserves the control while refreshing geometry, width and worktree emphasis.
+GraphCommitRow owns its current Model; no parallel resource/model cache remains.
+
+Bundled SVG git-commit-line/file-code-line downloaded from official RemixIcon v4.9.0, matching the
+fork's dependency. UI Assets embedded via AvaloniaResource, SvgAsset applies themed currentColor.
+Existing licenses/RemixIcon.txt covers them; THIRD-PARTY-NOTICES updated. Initial x:Static resource
+objects with x:Key were rejected by Avalonia; compiled resources now use bound Color from the shared
+kit brushes, keeping hover/theme values derived from one source.
+
+New real local+gRPC regression adds a Git branch while the first graph row has focus and its menu is
+open. Found workspace revisions were not bumped for pathless GitChanged batches. WorkspaceWatcher
+now always BumpRevisions for an actual scheduled refresh; empty paths bump only workspace revision,
+not file revisions. Ref labels update and button/focus/menu remain. This also retains unchanged rows.
+
+Added local/remote settings disable/re-enable/remount coverage and Gitless withholding. First test
+wrongly expected the dormant tool to disappear from Layout.Tools; existing API deliberately retains
+manifest descriptors and renders a placeholder while inactive. Corrected expectation to live graph
+unmount, then new graph instance on re-enable. Do not remove dormant descriptors.
+
+Focused .bench/branch-graph-template-lifecycle-checks.log exited0 PASS. Integrated
+.bench/branch-graph-templates-integrated-checks.log session46332 exited0 PASS with fork source env.
+Format .bench/branch-graph-templates-format.log session30821 exited0 PASS. git diff --check clean.
+Owning specs, notices, completion, tracking and evidence updated. No commits/pushes and no signing
+attempt; presence gate from the prior failure remains. No live tool sessions remain.
+
+Remaining Graph gates: error and in-flight lifecycle races, empty-history, all rendered merge/orphan/
+ref/gutter scenarios, native appearance/published/full checks. Earlier plugins still have their gates.
+Visualize, File Icons and Codex remain entirely unintegrated. Continue toward all nine, not just these
+six registered ports. Next reasonable work is Visualize integration from agent-a43adec62b47df39f,
+while retaining this remaining gate list. Also investigate per-window project projection for Graph
+before claiming multi-window fidelity (the UI context's Host projection uses the active window).
+
+## Visualize source audit started; presence restored
+
+User reported 1Password is up again, after the previous presence failure. Signed commit attempts may
+resume once reviewable plugin commits are ready; no signing attempt or commit was made this turn.
+Read recovered Visualize contract, host, parameters, store and UI plus kit VisualizationArgs/Card.
+Compared the complete host store with fork origin/claude-code-integration-plugin-api store.ts.
+Draft projects are three sibling directories (Visualize, Visualize.Host, Visualize.UI), unlike newer
+ports' Contract/Host/UI layout. No source files copied yet. Draft UI/card are procedural and require
+compiled XAML adaptation. Current kit has no MermaidView.cs at the recovered path; inspect actual
+renderer controls before adapting the draft. Investigate immediate comparison render report versus
+pending verdict registration (draft publishes before registering wait; fork does too, but dispatch
+timing differs). Preserve source behavior and cover local/gRPC timing. Recovered VisualizeChecks.cs
+exists and needs full inspection. All nine plugin objective remains active.
+
+## Visualize registered and focused/integrated checks pass (2026-10-01)
+
+Previous goal turn yielded source-audit evidence; this turn made verified implementation progress.
+All nine plugin objective remains active. Seven plugins now registered; File Icons and Codex remain
+unintegrated, and the first six still have their previously listed fidelity/verification gates.
+
+Visualize scoped code recovered into src/SharpRail.Plugins.Visualize/{Contract,Host,UI}, adapted
+project refs and registered all three projects, host module and UI factory. Compared complete fork
+host/store and pi-visualize/src/schema.ts/validate.ts, plus source kit cards/PanZoom and terminal E2E.
+Manifest enabled by default, wire1, two methods report/get, keyed whole-workspace changed channel;
+MCP tool validates shape and uses bound TerminalRef. Store revisions, five-second no-client success,
+renderer refusal/rollback and revision reuse, session persistence/adoption, workspace removal retained.
+
+Forced embedded adaptation: pending verdict registered under the store lock before Record publishes;
+a synchronous client report during publication otherwise disappears. Regression covers immediate
+success/refusal, cancellation and ignored wrong revisions. Stateful builtin host modules are now
+constructed per runtime (BuiltinPlugins.All expression property), instead of shared static instances.
+New isolation test verifies independent visualization stores. Prior plugin integrated tests still pass.
+
+Shared kit adds VisualizationArgs, VisualizationCard, MermaidView and internal compiled XAML frames:
+comparison/options/bullet rows, diagram/loading/errors, navigation/card wrapper. Public API listed.
+PanZoom uses existing ZoomGesture math (25..600,1.15 buttons,bounded wheel), mouse drag/capture loss,
+inline cap/fullscreen. Theme redraw updates existing navigation control and preserves zoom/scroll.
+Rendering off UI thread via pinned Merman; cancellation on detach/re-render cleans up CTS and SVG.
+New companion frame compiled; pane preserves unchanged revision and rejects obsolete reports.
+BarChartBox glyph copied from recovered kit asset and Remix alias registered; existing Remix license.
+
+MermaidDialog.Show now reuses the compiled PanZoomView; legacy Markdown Inline uses shared zoom math.
+Removed the duplicate fullscreen interaction code and orphaned zoom constants. Existing Markdown
+Mermaid translation still passes capped inline rendering/zoom/drag, reset, fullscreen115%/reset/Escape
+and source mode. Fullscreen ScrollViewer is now MermaidPanZoom, scoped by dialog in the check.
+Owning Rendering/kit/plugin specs updated. Pi/chat states remain excluded per product contract.
+
+Checks: --visualize-host and --visualize runners added, host/UI invoked by --plugins and full runner.
+VisualizeChecks covers schema/shape, tolerant args, revisions/maps, timeout/cancellation/immediate
+reports, refusal/reuse, adoption/binding/removal, isolated runtime and real local/gRPC snapshots/stream
+reports. RemoteServer restart restores session into a new terminal, without restoring stale tab keys.
+Raw plugin streams do not auto-hydrate: UI separately calls snapshot. Transport tests use a readiness
+publication and snapshot, filtering probe-only frames; do not assume an initial stream payload.
+VisualizeE2E runs local and gRPC headless windows, tool from real host MCP table (not HTTP yet),
+diagram/comparison, title/tab lifetime, toolbar bounds/wheel, completed theme rerenders, close/reopen,
+refusal/rollback. E2eWorkspace exposes its local runtime internally for scoped checks.
+
+Evidence terminal exit0:
+- .bench/visualize-remote-gesture-checks.log focused local/gRPC
+- .bench/visualize-shared-fullscreen-checks.log latest focused plus Markdown Mermaid
+- .bench/visualize-final-integrated-checks.log latest integrated --plugins with fork Git source
+- .bench/visualize-format-verified.log full format verify, empty log, exit0
+- git diff --check clean.
+No live tool sessions remain. No signing attempt, commits, pushes or external posts. User restored
+1Password presence after the prior failure; signing can be attempted when reviewable commits ready.
+
+Remaining Visualize: real terminal MCP HTTP ownership, companion45% geometry, UI session adoption,
+multi-terminal/window focus/lifecycle, comparison contents/responsive columns, drag/fullscreen/native
+appearance, cancellation/remount edge cases, published/full suite. The original source terminal E2E
+includes hook-driven session resume and companion share; those aren't yet claimed translated. Source
+chat agent cases excluded, but kit contents still require focused coverage. Investigate generic
+FocusCompanion targeting ActiveWindow only before claiming multi-window fidelity. Source parser's
+first bad drawing/no-previous behavior and persistence rollback match fork and remain unchanged.
+
+Next work: finish outstanding fidelity gates and integrate File Icons/Codex from their scoped drafts;
+never accept recovered draft registries/solution/docs wholesale. Preserve existing six-plugin gates.
+
+## File Icons continuation — 2026-10-01
+
+Eighth builtin registered; Codex remains unintegrated. UI-only manifest uses file-text, enabled default.
+Recovered only contract/UI/table and generator, not generated assets. Pinned Material Icon Theme5.38.1
+archive SHA256 d4342dc13a24bd40c4f417337dc19d2d2c42e47f8bb42ca677109bce769f078e.
+Build generates .tools/file-icons assets and copies to plugin output/publish via qualified MSBuild
+item metadata. 2127 names/1348 extensions match fork; all1251SVGs match unchanged fork generator bytes.
+AssetIcon compiled frame retains plain file fallback for missing/malformed bytes; tab icon retained on
+resize. Focused local/gRPC tree/tab/Changes/theme/disable/fallback checks exit0 in
+.bench/file-icons-ui-checks-3.log. Generator --check and contract publish1251assets pass.
+All focused tool sessions terminal, including44643. Combined suite/format verification pending.
+FileIcons added to combined/full runner. No signing attempts, commits, pushes or external posts.
+Remaining: native/canonical published app/full gates plus all prior plugin fidelity gates. Next Codex
+source/draft audit; no Codex source edited.
+
+## Codex integration continuation — 2026-10-01
+
+All nine builtins now registered, none newly declared complete. Codex recovered scoped source only
+from agent-a122f4b5d21d3bfbc (excluding bin/obj), plus CodexChecks/CodexE2E. Root layout matches
+ClaudeCode project; source package/spec audited at fork tip0304a543e, contract177abd30c. Three
+projects/reference/builtin entries added. Tomlyn2.10.1 centrally pinned; BSD license from its exact
+NuGet repository commit and LobeHub MIT license saved/notices added. Codex SVG and Remix OpenAI
+fallback asset recovered, openai-line alias added. All297configkeys/types matchfork (.bench log).
+
+Adapted draft shared setting names/signatures and nullable tuple result, E2eWorkspace constructor
+and shared state calls, Unix platform checks. Account helpers now shared kit public API inventory,
+compiled AccountRow/AccountUsageWindow frames; owningkit/Codexspec updated. Other recoveredstatic
+UI still needs compiled templates. No Pi subscription invitation (excluded).
+
+Logic checks now pass (latest logs12 and earlier8): config/hook/launch/revive/rollout/process/appserver/
+host/IDE/store/picker. Real teardown bug: Tree captured after stdin.Close lost reparented descendants;
+now capturebeforeEOF and resistantdescendant passes. Not yet source-owned POSIX process group parity.
+IPC stale fixture now preservesrenameinode across .NETDispose; direct Dispose unlinks path. IDE E2E
+helper now pumps dispatcher while requestpending; old synchronousGetResult blockedfrontendreplies.
+ConfigE2E adaptedControlrow and Button/Tag switch ratherthan draftBorder/ToggleButton.
+CodexE2E restores previousCODEX_HOME ondispose.
+
+UIchecks progress: account/config/context/IDE get past assertions; launcher later failswaitingNewCodex
+after closingterminal in menu-model launch. Latest attempt13 addsSettle100 beforeclosing toawait
+terminalmount; pending session24123, log.bench/codex-checks-13.log. Earlier12terminal134 at
+Launcherline495waitingbuttonreturn, actualargs alreadycorrect. No wholeUIpassclaimed.
+
+FileIcons combinedsuite twoattempts failed externalfixtureassumingsoleiconprovider. FixtureScenario
+now explicitly disables builtinfile-icons, waitsregistryinactive, and asserts assetidentifier rather
+than old ContentControlwrapperclass. Correctedfixture NOT yetverifiedincombinedsuite.
+FileIcons fullwhitespaceformat donebeforeCodex; fullverify/integrated/full gates stillpending.
+Currentdiffcheckclean. No commits/pushes/signingattempts/externalposts.
+
+Next: finish focusedCodex UI and sourceaudit, combinedsuite fixturefix, formatverify, preserveallprior
+plugin fidelity/native/published/full gates. Codex source spec is stale about Start work: actual web/index.ts exposes useModels and forwards
+model selection. Keep recovered Models behavior; do not remove it based on prose. Multiwindowfocus usesAnyActive
+app/globalActiveEditor; investigatebeforeclaimingisolation. WindowsIDEcurrentlyunsupported.
+
+Latest continuation: combined first-eight --plugins passes exit0 in
+.bench/file-icons-integrated-checks-3.log (session45529 terminal). External fixture fix verified.
+CodexE2E now uses realRemoteServer + RemoteTerminalAdapter; optional terminals argument added to
+remoteE2eWorkspace. Standalone fakePTY had no plugin seams. Shared HostTerminal now forwards
+launch.TabKey onattach, as productionGhostty does; otherwise host cannot assignterminalownership
+and injecthookURL. gRPC refusal test accepts exactFailedPrecondition/outsideworkspace error.
+Sourceactualweb/index.ts contradicts staleSPEC aboutgenericStartWork: useModels ispresent, keep it.
+CodexTerminalFacts no longer replacesrowwhenmodelcatalogarrives: catalog isreadwhenmenuopens,
+not displayedinrow. This preservesmodelchip/flyoutidentity duringasynccatalogload.
+UI18 pending session19962, .bench/codex-checks-18.log; awaits actual popup optionattachmentbeforeclick.
+Previous17 passedhook/modelchip/menu but failed detachedoption click. Previous13 passedlauncher
+onceSettle100 awaitsterminalmountbeforeclosing. Allother priorhandles terminal.
+Whitespaceformat passes session54739exit0. Fullformatverify pending (see toolhandle nextoutput).
+
+
+## Resumed continuation — 2026-10-01, user present / 1Password available
+
+All nine plugin registration and combined checks pass in .bench/codex-all-plugin-checks-3.log.
+Earlier focused Codex checks and terminal checks also pass. The earlier full-format log is empty;
+latest edits require another verification. No signing attempts, commits or pushes made.
+
+Codex settings and pane header/navigation now compiled XAML. The settings observer resumes on
+visual reattachment; gRPC fixture detaches the actual section, changes host settings, reattaches,
+then changes host settings again to prove both hydration and continued updates. Focused suite
+.bench/codex-compiled-frames-checks-2.log passes (session58942 exit0). Dynamic pane rows and terminal
+accessories still need compiled frames, and source audit/process group/native/multi-window gates remain.
+
+Full repository run with SHARPRAIL_TEST_GIT_SOURCE failed at ChangesScopeE2E.FailedRead:
+filesystem/ref updates rebuilt the Changes toolbar while its scope popup was open. RefreshGitPanels
+now defers rebuilding until the active scope/comparison menu closes. Regression holds the menu open
+through deleting the comparison branch and a completed explicit refresh, checks trigger/menu identity,
+then selects Uncommitted and verifies recovery/error behavior. Added --changes runner for this scope.
+Owning Panels.SPEC.md updated. Current full run .bench/all-plugins-full-checks-2.log session44837
+uses production fix but predates strengthened regression; targeted .bench/plugins-changes-menu-checks.log
+session94889 includes latest regression. Neither outcome claimed yet. All prior fidelity/native/published
+and full-suite gates remain open; active full-port goal is not complete.
+
+
+Latest evidence/update:
+- .bench/plugins-changes-menu-checks-2.log passes all --changes cases (session57310 terminal);
+  .bench/plugins-changes-menu-diagnostic.log passes --changes-menu (session28952 terminal).
+  Fresh E2eWorkspace.Click may replace its input target during its initial gesture settle, so the
+  regression reacquires the named trigger after Click before retaining it. Diagnostic logging removed.
+- .bench/plugins-resumed-format-verify.log passed full formatting (session51149 exit0), before the
+  final runner/shutdown edits. Re-run after these settle.
+- .bench/plugins-native-terminal-checks.log passes Ghostty native probe (session3789 exit0).
+- Native Avalonia run passed embedded/local but hung at remote server shutdown; synchronous stopping
+  callback awaited cleanup that captured UI context. RemoteServer now runs ordered runtime/loopback
+  cleanup in Task.Run before blocking the shutdown callback. Remote SPEC updated. Only our hung
+  native-check process70610 was killed. Restarted native suite .bench/plugins-native-avalonia-terminal-checks-2.log
+  session30325; remote success/exit not yet claimed. Previous session3058 killed; no other app touched.
+- Full run2 repeated the old FailedRead click race (predated strengthened regression). Full run3
+  .bench/all-plugins-full-checks-3.log session78453 includes the strengthened regression and UI fix,
+  but started just before latest RemoteServer shutdown fix. Previous full run sessions terminal.
+- No signatures/commits/pushes/external posts. Full-port goal remains active.
+
+
+Native and packaging gates advanced:
+- Native Avalonia rerun .bench/plugins-native-avalonia-terminal-checks-2.log session30325 exit0:
+  embedded, local relay and authenticated remote all pass including remote shutdown.
+- .bench/plugins-resumed-file-icons-check.log session61014 exit0; final format session68773 exit0.
+- Publish initially failed codesign because .claude-plugin folders under Contents/MacOS were interpreted
+  as native plugin bundles. Resources/plugins + MacOS/plugins -> ../Resources/plugins preserves host
+  lookup and passes codesign deep/strict verification. scripts/publish.sh now reproduces this layout;
+  SPEC updated. .bench/plugins-resumed-publish-2.log session57947 exit0. Bundle signature and all1251
+  assets/Claude marketplace metadata/Codex mark verified in plugins-final-bundle-* logs.
+- Published --plugins .bench/plugins-published-plugin-checks.log session25464 failed BranchGraph
+  unchanged-refresh row/menu retention. It overlapped republishing checks, so re-run in stable output
+  before inferring cause. .bench/plugins-published-branch-graph-checks-2.log is the real narrow rerun
+  with SHARPRAIL_TEST_GIT_SOURCE (earlier no-env run skipped Git/UI and is not evidence).
+- Full3 session78453 has passed Changes failed-read/menu-retention regression and continues remaining
+  UI translations. No whole-suite pass yet. No commits/pushes/signing attempts made.
+
+
+Final continuation snapshot (still active):
+- Stable published --branch-graph .bench/plugins-published-branch-graph-checks-2.log session81964 exit0.
+- Stable published --plugins .bench/plugins-published-plugin-checks-2.log session4817 exit0: all nine pass.
+- .bench/plugins-resumed-latest-format-verify.log session19585 exit0, before the next one-line fix.
+- Full source run3 session78453 failed WelcomeE2E: duplicate WelcomeTitle. Root cause:
+  DockSurface.RefreshEmptyContents called renderContent(null) for auxiliary groups, unlike its initial
+  region-aware Empty(group) path. Plugin action invalidation exposed extra Welcome pages in side groups.
+  One-line fix reuses Empty(Session.Group(site.Group)); WelcomeE2E now forces that refresh before
+  asserting the sole title. Docking SPEC updated. No constructor/API expansion needed.
+- Focused --workspaces .bench/plugins-empty-groups-workspace-checks.log session82697 running against
+  current source (SHARPRAIL_TEST_GIT_SOURCE omitted; do not claim source-dependent skipped cases).
+- Published full .bench/plugins-published-full-checks.log session62595 running with required R2R and
+  Git source, but predates the empty-group fix. Current canonical app also predates it; republish after
+  verification, checking for live canonical app first. No further artifact replacement while published
+  checks are running.
+- No signing attempts/commits/pushes/external posts. Goal all nine fully ported remains active.
+
+
+Latest jobs and source fixes:
+- --workspaces session82697 exit0 in .bench/plugins-empty-groups-workspace-checks.log; no SKIP lines.
+- --welcome .bench/plugins-welcome-checks-2.log session21274 exit0 against current source.
+- Excluded home: layout keys from WorkbenchWindow.TerminalTabs, so generic plugin projection no longer
+  exposes synthetic Project Home terminal workspaces. Welcome regression inspects this internal
+  projection source via reflection (root UI has no checks friend access). Plugins.SPEC updated.
+- Published full session62595 exit134 at the same old duplicate-Welcome bug; it predates the fix.
+- Whitespace format session93761 exit0; latest full verify still needed.
+- Rechecked no canonical app live. Publish3 .bench/plugins-resumed-publish-3.log session70429 running
+  with latest empty-group and terminal-projection fixes. Source full4 .bench/all-plugins-full-checks-4.log
+  session58332 running with Git source. After publish3 finishes, verify signature/assets and run published
+  full again with SHARPRAIL_REQUIRE_R2R=1 and Git source. Keep artifacts stable while checks run.
+- No commits/pushes/signing attempts/external posts. All earlier per-plugin full-fidelity gates remain.
+
+
+Current artifact/jobs snapshot:
+- Publish3 .bench/plugins-resumed-publish-3.log session70429 exit0, latest source. Current deep/strict
+  signature .bench/plugins-current-bundle-signature.log exit0. Latest format session48149 exit0.
+- Source full4 .bench/all-plugins-full-checks-4.log session58332 running with Git source.
+- Published full2 .bench/plugins-published-full-checks-2.log session72378 running with R2R required
+  and Git source. Both cover latest fixes; do not replace artifacts while published run is live.
+- Signed app native smoke launched with dedicated .bench profile and fixture. Git discovery found parent
+  SharpRail repo (fixture is under .bench), so screenshot shows actual repo/default workspace, Changes
+  Material icons and working native Ghostty; no real agent plugin enabled. Own PID3990/window155839
+  captured to .bench/plugin-published-native-smoke.png, inspected with view_image. This is native smoke,
+  not complete per-plugin visual comparison. .bench/plugin-published-native-smoke.log has Metal proof.
+- App TERM only stopped embedded Kestrel lifetimes; GUI remained live. Quit exact PID3990 through
+  NSRunningApplication terminate helper .bench/terminate-owned-app, session76436 exit0. No other app
+  touched; no canonical app is left running. Helper/source ignored .bench only.
+- --welcome2 and --workspaces both pass; stable published all-nine --plugins passed previously.
+- No commits/pushes/signing attempts or external posts. User's AGENTS.md change remains preserved.
+  Goal active: finish per-plugin source fidelity/native visual/multiwindow/lifecycle gates and latest
+  full source/published runs before claiming all-nine full port. Then review commit split in fork order.
+
+Continuation after the permission profile changed:
+- Source full4 and published full2 both ended with the BottomPanel SquareActions ContextAction
+  timeout. Click can replace its local target after a deferred refresh; ContextAction inspected the
+  original detached control's menu. Click now returns the actual target and ContextAction uses it.
+  Diff whitespace passes; this new helper fix has not been compiled or rerun yet.
+- Codex app-server POSIX process-group fidelity draft replaces descendant snapshots with a native
+  setsid/execv helper, PATH resolution without shell interpolation, TERM/KILL of the private group,
+  and a bounded immediate-start fallback. Host csproj builds/copies the helper beside its assembly.
+  New regression cases cover leader exit with a resistant descendant and immediate stop.
+  Native C helper compiled and literal-argv execution passed; .NET integration remains unverified.
+  Review cross-RID native compilation and transitive output/publish copying before accepting it.
+- First Host build session47010 ended after five minutes with exit1 and no compiler diagnostics.
+  No-restore session38596 and isolated no-restore session88209 are still pending with empty logs:
+  .bench/codex-process-group-build-no-restore.log and
+  .bench/codex-process-group-isolated-build.log. Resume these handles before starting another build.
+  The isolated command disables MSBuild servers/node reuse/shared compilation. Do not treat older
+  all-nine focused passes or the canonical published app as verification of these new source changes.
+- Current permissions are workspace-write, restricted network, approval never, with .git read-only.
+  Process inspection via ps is denied. Do not bypass the sandbox or signing; no commits/pushes made.
+  All remaining source-fidelity/native/multiwindow/lifecycle gates remain open.
+
+Latest continuation (unrestricted permissions restored):
+- The preceding turn made progress: fixed ContextAction's stale clicked target and preserved the
+  process-group draft. It did not complete the full goal.
+- Old no-restore build session38596 ended exit1. Isolated session88209 was sampled (monitor wait),
+  then its exact owned PID33001 was terminated; the handle returned terminal. A fresh unrestricted
+  checks build passes: .bench/plugins-restored-permissions-build.log. Latest build is
+  .bench/plugins-latest-checks-build.log, exit0 with zero warnings/errors.
+- Codex private POSIX process-group host + gRPC UI checks pass:
+  .bench/codex-private-process-group-checks.log session93677 exit0, including resistant descendants,
+  leader-crash cleanup and bounded immediate stop. Helper copies transitively beside checks.
+  Host csproj now chooses macOS arch like Scintilla and separates native caches by SDK and target RID;
+  .bench/codex-process-group-x64-build.log + file output prove x86_64 target versus arm64 checks helper.
+  Canonical published app still predates the process-group changes. Verify published placement/signing
+  and lifecycle; real CLI, Windows IPC, compiled dynamic rows and other Codex gates remain.
+- Visualize now uses real remote host PTYs through RemoteTerminalAdapter in its gRPC E2E scenario.
+  The shell emits its MCP URL; HTTP tools/list, tools/call, invalid-token404, renders and refusals pass.
+  Local and remote cases update/reopen an owning terminal's drawing with an unrelated window active.
+  PluginUIContext.FocusCompanion routes to all windows whose layout holds that terminal, rather than
+  ActiveWindow. WorkbenchWindow no longer takes keyboard focus when selecting a companion, matching
+  the fork's focusEmbeddedPane state action. .bench/visualize-http-owner-window-checks.log session27116
+  exit0, including host and Markdown Mermaid checks. Owning specs/E2E/VALIDATION updated.
+- Bottom-panel failures traced with temporary diagnostics (all removed): late Git discovery adds
+  Branch Graph via SetExtraTools, rebuilding dock chrome after F6 and dropping focus. SyncPluginTools
+  uses existing KeepingFocus and defers catalog update while a dock ContextMenu is open. Its Closed
+  callback posts to the dispatcher: synchronous refresh during menu-action Rebuild caused a nested
+  rebuild and already-parented-control exception. Controlled HoldGit regressions explicitly cover
+  keyboard focus and open alignment-menu retention, then selecting an action and catalog arrival.
+- E2eWorkspace.Click returns its actual rebound Control. ContextAction and BottomPanel.Align now use
+  that result. Added --bottom-panel runner for these translations. Latest bottom run
+  .bench/plugins-bottom-catalog-menu-regression-2.log session59097 is live; poll before restarting.
+  Prior run passed new controlled cases then failed ExcludedCorners's stale Align trigger; fixed now.
+- Combined .bench/plugins-process-group-owner-routing-integrated.log session67327 exit134 at remote
+  FileIcons FilesTree missing (FileRow line157), after Visualize/local FileIcons pass. Added an explicit
+  Files selection assertion to diagnose selection versus body mounting. Focused Git-backed
+  .bench/file-icons-files-selection-checks.log session54833 is live. Inspect before another all-nine run.
+- .bench/plugins-process-group-owner-format.log session81008 exit0, predates only the last test-helper
+  edits. git diff --check passes; final format and full source/published reruns are still required.
+- Permissions are now unrestricted/network enabled; previous .git read-only restriction no longer
+  applies. No commits/pushes/signing attempts made. Preserve user's AGENTS.md. Keep the goal active:
+  all-nine source fidelity/native/multiwindow/lifecycle and full-suite gates are still unfulfilled.
+
+Latest job update:
+- .bench/file-icons-files-selection-checks.log session54833 exit0: Git-backed local/remote icons,
+  selection assertion and fallback all pass. The earlier combined missing-tree failure has not yet
+  been explained or resolved by a complete combined rerun.
+- .bench/plugins-process-group-owner-routing-integrated-2.log session19200 is the current all-nine
+  rerun with Git fixtures, built after asynchronous catalog-menu close handling and the Align helper fix.
+- Bottom .bench/plugins-bottom-catalog-menu-regression-2.log session59097 exit0: controlled focus/menu
+  cases and the full bottom-panel translation suite pass through window-local persistence.
+- Final formatting .bench/plugins-current-final-format.log session32973 exit0.
+
+## Continuation: compiled Codex panes and deferred tab presses
+
+- Codex Context and Capabilities now use compiled XAML frames and instruction/MCP rows.
+  Context covers all three creation offers, override precedence and opening global instructions;
+  Capabilities covers hook installation, trust remaining Codex-owned, trusted refresh and MCP source
+  navigation. Focused host/gRPC UI passes: .bench/codex-instructions-templates-checks.log and
+  .bench/codex-capabilities-templates-checks.log. Configuration/notices/accessories, reactive launch
+  models, native/Windows/multiwindow and full source fidelity gates remain.
+- Integrated rerun session19200 failed remote Files selection. A shorter diagnostic and full
+  all-nine diagnostic session28197 passed, so those alone did not explain the intermittent failure.
+  Removed temporary click diagnostics and --visualize-file-icons runner.
+- Held-Git FileIcons regression reproduced catalog replacement between mouse down/up, losing the
+  click. DockSurface now defers visual rebuilding during tab/resize gestures; real layout changes
+  still cancel incompatible gestures. The first fix preserved selection but lost focus. Trace proved
+  FocusGroup succeeded, followed by rebuild and an immediate replacement Focus() returning false.
+  Restoration now runs at Loaded priority after layout. All temporary traces removed.
+  .bench/files-deferred-focus-loaded.log session77655 exit0: controlled click/focus and local/remote
+  FileIcons/fallback pass. Bottom suite session50454 passed before the final restoration adjustment.
+- Full source suite with Git fixtures .bench/plugins-full-after-deferred-focus.log session45824
+  is running, through Changes scope tests; poll before restarting. Formatting
+  .bench/plugins-deferred-focus-format.log session60978 exit0. Bottom-panel translations against
+  the final focus fix .bench/plugins-bottom-after-deferred-focus.log session71321 exit0.
+  Canonical published app still predates process-group and latest compiled UI changes.
+- Fork ref moved from 0304a543e to 1c7c90a5a. Source diff removes workspace auto-naming from host API,
+  Claude and Codex (already absent here), removes unused Codex Prompt/LastMessage report fields
+  (still present here), and adds plugin-ui Switch export/implementation/tests. Inspect remaining
+  diff and port Switch before updating upstream pin; do not mechanically replace historical IDs.
+- No commits, pushes or signing attempts. Preserve user AGENTS.md. Goal remains active.
+
+Next: poll the full suite; finish the fork refresh (remove Codex Prompt/LastMessage properties and
+their parse/test expectations, then port the new shared Switch contract). The properties are unused
+by runtime code, but Status() in CodexChecks does assert them, so update the matching source tests.
+Avoid replacing build outputs while the full run may still load plugin assemblies. Publish and
+published/native verification remain after source gates, with a live-app check before replacement.
+
+## Fork refresh progress, 2026-10-02
+
+- Removed unused Codex Prompt/LastMessage hook report fields and updated the matching Status checks,
+  following 1c7c90a5a. Updated owning spec and UPSTREAM pending refresh record.
+- Added public controlled Switch to the UI kit with compiled XAML, native toggle automation and
+  state-change automation notifications. Checked state remains caller-owned; handled/disabled clicks
+  make no request. Added shared exact workspace/hover/disabled brushes from the fork generated colors
+  (60% alpha for disabled text/border/accent). Listed public API and owning spec acceptance.
+- SwitchChecks is called by PluginUiChecks: no On/Off text, accessible label/state, 40x24 target,
+  36x20 track, 16px thumb positions, single mouse/Space request, no programmatic setter callback,
+  disabled mouse/automation and all bundled disabled palettes, handled click cancellation.
+  Transition/reduced-motion/native appearance remains open in the kit spec.
+- Isolated build .bench/plugin-fork-refresh-build-4.log session14243 exit0, zero warnings/errors.
+  OutputPath=.bench/plugin-fork-refresh-bin. Fixture projects hardcode their shipping paths, so copied
+  plugin-fixture into isolated output and overlaid its freshly built UI DLL. Main host/UI/checks bin
+  assemblies stayed unchanged. Initial isolated invocation lacked fixture and exited134; repaired.
+- .bench/plugin-fork-refresh-checks-2.log session58128 exit0: all-nine host/local/gRPC UI checks,
+  Switch and controlled Files click/focus regression pass. Both local and remote Files selections pass.
+  .bench/plugin-fork-refresh-format.log session94408 exit0. git diff --check passes.
+- Full source suite .bench/plugins-full-after-deferred-focus.log session45824 now terminal exit134.
+  It passed docking/terminal/settings/Markdown translations, then failed UiChecks.cs:189 with
+  "Spec hierarchy did not render". Uses pre-fork-refresh build (final deferred-focus fix and
+  compiled Codex frames). Failed full root is .bench/check-fixture-033bbd7daa9d4ee892297b03c90f494a.
+  Main fixture SPEC.md id=goal/title=Project goal/product-goal and src/SPEC.md parent=goal remain.
+  Many earlier fixtures below upstream-e2e also contain Sample Project specs (duplicate sample-root).
+  Assertion captures SpecsTree then assumes its first item has children; subsequent assertions cast
+  headers to Grid, but ported SpecsPanel wraps Grid in Border. Need a targeted main workbench smoke
+  runner/diagnostics for current versus captured tree, loaded paths and SpecsError. Do not guess that
+  the first-item assumption alone caused the timeout. Check standalone window composition/state too:
+  WorkbenchWindow.Standalone starts PluginRuntime with the profile state; graph only reads known
+  state workspaces. No need to repeat all translations just to debug the final smoke section.
+- Next Blueprint audit: BlueprintStartFields.cs picker unconditionally assigns null on cancel,
+  while fork BlueprintStartDialog only assigns a truthy selected path. Agent is fixed TextBlock
+  instead of the fork's live launcher chip. Verify start-source selection, cancellation and disabled
+  launcher updates through the actual dialog; resume/recovery opener tests remain open.
+  Remote PickFileAsync goes through PickHostPathAsync -> Dialogs.HostPath, whose copy always says
+  folder/Open project even for FilePickOptions.Directory=false. Adapt that generic picker copy with
+  a default preserving project folder callers and cover Blueprint's remote document selection.
+- No commits/pushes. Preserve user AGENTS.md and existing work. Goal active; no blocker.
+
+Fresh-eyes Switch follow-up: currently only the three-argument constructor is public. Add a declarative
+parameterless constructor plus bindable accessible label and change-request event, preserving the
+existing convenience constructor/controlled semantics, so plugins can use it from compiled XAML.
+Verify enabled automation requests and automation state-change notifications as well as the existing
+disabled test. Native transitions/reduced-motion remain open; do not call the component fully audited.
+Latest jobs: none live from this turn. Isolated combined plugins and format terminal exit0; full source
+terminal exit134. Next priority is the failed Spec Dialect workbench smoke gate, then Blueprint flows.
+
+## Continuation — 2026-10-02, catalog identity and compiled Switch
+
+- Specs smoke now reacquires the current tree and locates the project hierarchy by path; headers use
+  the current Border wrapper. Added an independent root fixture. `--ui-smoke` skips earlier E2E
+  translations while retaining the main workbench, startup, navigation and input checks.
+- Catalog-only tool changes update Add visibility/menu contents without replacing existing tabs.
+  Displayed tool metadata changes still rebuild. Startup tab identity/focus and bottom-menu checks pass.
+- Switch now supports compiled XAML, bindable Label, controlled CheckedChange requests and automation
+  state notifications. Latest follow-up captures requested state before routed Click handlers and uses
+  a toggle-only automation peer. This last follow-up builds, but its new regression is not yet run.
+- Visualize check registers its local subscription before scheduling consumption, removing a race
+  where publication preceded subscriber registration. No runtime behavior or timeout was changed.
+- Passed: `.bench/spec-hierarchy-catalog-regression-smoke.log`,
+  `.bench/bottom-catalog-identity-checks.log`,
+  `.bench/plugins-catalog-identity-compiled-switch-checks-2.log` (all nine),
+  `.bench/catalog-identity-final-format.log` (before latest Switch follow-up).
+- Latest isolated build `.bench/catalog-switch-snapshot-build.log`: zero errors, seven Avalonia
+  runtime-loader warnings. Build session36144 and format session53528 have completed.
+- Full `.bench/plugins-full-current-catalog-identity.log` stopped in EditorWorkbenchChecks.LargeDiff:
+  `1Password: failed to fill whole buffer`, `fatal: failed to write commit object` while creating a
+  temporary Git fixture. Presence rule applies: stop signing-dependent work, no bypass. User notified.
+- No commits or pushes. Port remains incomplete; Blueprint flows, native fidelity, published helper
+  lifecycle and full/published verification remain open. Canonical app predates these changes.
+
+Signing-independent follow-up: added focused `--switch` runner. The latest state-snapshot and
+controlled automation regression passes in `.bench/switch-state-snapshot-checks.log` (exit0),
+including a Click handler changing the state before the change request. `git diff --check` passes.
+Full signing-dependent checks have not been retried. Formatting session59005 is the only live job.
+Formatting session59005 completed exit0; `.bench/switch-state-snapshot-format.log` passes.
+No verification jobs remain live. Await signing-agent unlock before another full run.
+
+## Presence resumed — 2026-10-02
+
+User returned. Full source checks session55793, `.bench/plugins-full-presence-resumed.log`, are live
+and have passed the earlier signed Git fixture gate; no signing bypass. This run started before the
+Blueprint picker changes below, so it cannot prove their integration in the full suite.
+
+Blueprint picker now retains its selected document on cancel, matching fork `pickSpec`. Remote
+plugin file selection passes Directory=false to the shared path dialog, which has file-specific
+heading, explanation, placeholder and action; existing project-folder callers keep their copy.
+Added `BlueprintStartChecks` to Blueprint UI checks: actual remote Project Home action and modal
+source/picker controls, idea text retention, product explanation, document requirement, selection,
+second-pick cancellation and start-dialog cancellation. Owning Blueprint/Panels specs updated.
+`.bench/blueprint-start-picker-checks-3.log` passed exit0; session45223 terminal. Earlier runs failed
+in a test lookup, then hung in test shutdown; fixed logical control lookup and used established
+Task.Run asynchronous server teardown pattern. Failed processes terminated, sessions5965/77231
+terminal137. Formatting `.bench/blueprint-start-picker-format.log` passed before the teardown-only
+follow-up. No commits/pushes. Full fidelity and published/native gates remain open.
+Latest Blueprint formatting `.bench/blueprint-start-picker-final-format.log` completed exit0
+(session74138 terminal), after the final teardown adjustment. `git diff --check` passes.
+Full source session55793 remains live, progressing through new-workspace translations; no
+Unhandled exception or terminal full-pass marker. Do not restart it merely because a poll yields.
+Launcher-icon fidelity needs a real framework adaptation: API currently stores launcher Icon as
+string (`asset:claude.svg`), while fork passes a renderable React component. A consumer plugin's
+ReadAssetAsync reads only its own assets. Do not import app PluginIcons into Blueprint or silently
+substitute a hardcoded icon; inspect the shared API/kit design before implementing the live chip.
+
+## Full-run hierarchy autopsy
+
+Full session55793 completed exit134 at UiChecks.Spec hierarchy did not render. Signed Git fixtures
+and upstream translations passed; no 1Password failure. Raw graph diagnostic
+`.bench/spec-index-resumed-full.log` on fixture6c8425cfc9a54f608eef9820a505aa26 reports123nodes,
+Project goal with0children and no src/SPEC.md node. Nested prior fixtures reuse idarchitecture;
+SpecIndex.ReadAsync deduplicates by ID. Thus the shared root's smoke child is discarded before UI.
+This is a fixture collision, not a panel loading timeout. UiChecks now writes uniquely named
+ui-smoke-goal/ui-smoke-architecture immediately before its main window; adds earlier-fixture with
+legacy architecture ID so focused smoke exercises the contamination scenario. Existing hierarchy,
+path, title, hover, role and preview assertions retained. No runtime deduplication changes.
+Focused smoke session54670 `.bench/spec-unique-fixture-smoke.log` live; formatting session from
+`.bench/spec-unique-fixture-format.log` live (handle in current tool result). Full rerun pending.
+Focused smoke54670 finished exit0; `git diff --check` passes. Latest full rerun27407 is live against
+current build in `.bench/plugins-full-unique-spec-fixture.log`, including Blueprint picker changes.
+Formatting52064 remains live. These are the only current verification handles; do not restart them.
+Formatting52064 completed exit0 in `.bench/spec-unique-fixture-format.log`. Full27407 remains live.
+
+## Blueprint author recovery coverage
+
+Added BlueprintRecoveryChecks, invoked by BlueprintChecks.RunUi in focused/plugin/full runners.
+Uses actual local runtime and file opening, seeds author records through the host API, captures
+registered launcher command options and checks visible terminal/companion. Recorded missing author
+resumes its exact session/tab with no new initial/system prompt; author without session starts a
+fresh visible blueprint-author, records it, preserves the document and reopens without another
+launcher command. `.bench/blueprint-recovery-checks.log` session18832 passed exit0.
+Blueprint owning spec describes this coverage. `git diff --check` passes. No runtime changes here.
+Formatting60889 `.bench/blueprint-recovery-format.log` is live. Full27407 remains live through Changes
+translations against its earlier build, before this additional recovery test. Keep both handles.
+Remaining Blueprint gates: launcher chip/icon framework adaptation and reactive availability, error/
+retry recovery, start into default workspace/existing sessions, multi-window/native fidelity.
+No commits/pushes. Goal remains incomplete.
+Formatting60889 completed exit0; `.bench/blueprint-recovery-format.log` passes. Only full27407 live.
+
+## Blueprint recovery retry
+
+Extended recovery checks with launcher command creation failing once. Actual error toast is visible;
+reopening the file retries, resumes the exact recorded session, mounts the companion and retains
+source. Later opening does not add a launcher call. `.bench/blueprint-recovery-retry-checks.log`
+session86919 finished exit0; no runtime changes. Blueprint spec updated. `git diff --check` passes.
+Formatting61198 `.bench/blueprint-recovery-retry-format.log` pending latest poll. Full27407 still live
+through rendered diff/Changes translations; uses pre-recovery-test build. Keep original handle.
+
+Next concrete fidelity item: live launcher chip in BlueprintStartFields (currently fixed TextBlock).
+Consider additive UI-only AgentLauncher icon-control factory that preserves existing Icon string;
+React's launcher.icon is renderable, but current string cannot let a consumer read the owning plugin's
+asset. ClaudeCodeUI already has ClaudeGlyph(context), which can provide controls using its own asset
+reader. Inspect AgentLauncher in PluginUIRegistrations.cs and ClaudeParts.cs before choosing the
+framework adaptation; document/public-API-pin it and test actual rendered icon/label, launcher removal,
+availability reason and reenable. Do not add a host/UI coupling or hardcode Claude's icon in Blueprint.
+Formatting61198 completed exit0; `.bench/blueprint-recovery-retry-format.log` passes. Only full27407 live.
+
+## Live Blueprint launcher chip and owning icon factories
+
+BlueprintStartFields compiled layout replaces the fixed Claude label with a selected chip. It reads
+registered label, icon, availability and reason; hides with no launcher, shows disabled60% opacity,
+retains icon across availability changes and mounts a fresh icon after removal/restoration.
+AgentLauncher adds optional UI-only CreateIcon(double size, IBrush? color), preserving its string Icon
+and constructor. PublicAPI pin and API/Blueprint/Claude/Codex owning specs updated. Claude and Codex
+factories use their own existing SVG glyph readers, returning fresh controls; no host/UI coupling.
+OnLaunchersChanged now responds to Predicates invalidation as well as launcher-list changes, matching
+availability/models contract. Remote Blueprint start test verifies registered label/factory, disabled
+reason, invalidation, removal/restoration, icon retention and no reused parented control.
+`.bench/blueprint-launcher-chip-checks-2.log` session77146 passed exit0. Final build
+`.bench/launcher-icon-factories-build-2.log` session56993 passed0warnings/0errors; format26212
+`.bench/launcher-icon-factories-format.log` passed. Final Claude factory checks session9688
+`.bench/claude-launcher-icon-factory-final-checks.log` passed, including two fresh differently sized
+controls and actual SVG asset reads. Codex factory checks session97073 live in
+`.bench/codex-launcher-icon-factory-checks.log`. `git diff --check` passes.
+
+Full27407 `.bench/plugins-full-unique-spec-fixture.log` completed exit134 at NewWorkspaceE2E.EditedName
+line143, waiting for dialog close and exactly1worktree. This run failed before hierarchy gate;
+unique-ID fix remains focused-proven only. Diagnose actual edited-name creation state/error and
+pointer/disabled state before changing test, runtime or timeout. Earlier full55793 passed this case.
+No signing failure, no commits/pushes. Only97073 live now; all other listed latest jobs terminal.
+Codex97073 completed exit0; `.bench/codex-launcher-icon-factory-checks.log` passes host/E2E, including
+its new real asset factory checks. No verification jobs remain live. Full EditedName timeout is next.
+
+## Workspace timeout evidence and actual Blueprint Draft
+
+Inspected failed full fixturebcae2304d85846dcae104f3bc7228789: Git lists workspace-1, host state stores
+Login Rework, profile LastProject points at workspace-1/LastAtHome=false. Worktree creation, labelling
+and routing succeeded; the combined dialog/rail-count wait failed. Cause of its UI state remains
+unproven. Added failure-only diagnostics with owned windows, rail paths, active workspace and toast;
+no runtime or timeout change. Added --new-workspace runner. `.bench/new-workspace-diagnostic-checks.log`
+session17306 passed all cases exit0, including edited name. Diagnostic build10392 passed0warnings/
+0errors and format57883 passed. Earlier full timeout not reproduced; do not claim it fixed.
+
+`.bench/plugins-after-launcher-chip-checks.log` session3379 passed all nine plugin checks exit0.
+Then extended BlueprintStartChecks remote modal flow to press Draft after cancellation checks:
+project Product source enters Default, hands initial/system prompts to fixture launcher without
+resume, records blueprint-author on remote host and mounts companion. Owning spec updated.
+`.bench/blueprint-draft-flow-build.log` session24642 passed0warnings/0errors;
+`.bench/blueprint-draft-flow-checks.log` session28708 passed full focused Blueprint host/gRPC/UI,
+including recovery tests; `.bench/blueprint-draft-flow-format-2.log` session40680 passes.
+`git diff --check` passes. No commits/pushes, preserve user AGENTS.md.
+
+Only live verification now: full99075 `.bench/plugins-full-launcher-draft-diagnostics.log`, current
+compiled source including live chip/icon factories, unique smoke IDs, recovery tests, actual remote
+Draft and EditedName diagnostics. Keep this handle; do not restart on a yield. Full and native/
+published fidelity gates still open. Other concrete next gaps: Blueprint existing-session/default-
+worktree start and remote recovery/multi-window; shared Switch native motion/reduced-motion; plugin
+static layouts/fidelity listed in owning specs; publish latest process-group helper and verify lifecycle.
+
+## Blueprint existing-session Draft acceptance
+
+Extended the actual remote Draft dialog case: after starting a Product blueprint, return to Project
+Home, enter a different idea and press Draft again. The existing author/companion reopens, original
+Product source and blueprint-author remain on remote host, and launcher count stays1. This proves
+existing-session reuse without silently replacing the project source. Blueprint spec updated.
+Built separately under `.bench/blueprint-existing-session-bin` so live full binaries remain intact.
+`.bench/blueprint-existing-session-build.log` session21085 finished0errors/7Avalonia warnings;
+`.bench/blueprint-existing-session-checks.log` session75271 passed all focused Blueprint host/gRPC/UI,
+including chip, selection, Draft, recovery and retry; `.bench/blueprint-existing-session-format.log`
+session26364 passes formatting. `git diff --check` passes. No runtime change, no commits/pushes.
+Only live job remains full99075 `.bench/plugins-full-launcher-draft-diagnostics.log`, progressing
+through Changes translations; its earlier build excludes this additional existing-session assertion.
+No error or completion marker observed; retain its handle. Remaining Blueprint acceptance includes
+start action invoked from a Git worktree entering Default (current remote Draft fixture is non-Git),
+remote recorded-session recovery and multi-window/native fidelity. Goal incomplete.
+
+## Blueprint Git worktree routing regression
+
+Added BlueprintWorktreeStartChecks: creates a signed fixture repo and linked worktree, directly opens
+that worktree, presses the workspace Draft action and checks project Default, normalized idea,
+recorded visible author and no Blueprint record in feature worktree. First isolated run10475
+`.bench/blueprint-worktree-start-checks.log` failed waiting for Draft dialog: visible action could
+not resolve its project. PluginProjection built Workspaces only from host-published catalog; an
+out-of-band worktree was absent even though the window held resolved ProjectRoot/WorkspaceRoot.
+
+Fixed projection by merging mounted windows' host-resolved workspace identities into each existing
+project's catalog, with Distinct. No Git scan, persisted duplicate list or host/UI dependency added.
+Owning Plugins/Blueprint specs and gotchas updated. `.bench/blueprint-worktree-start-checks-2.log`
+run54045 passes all focused Blueprint checks including new routing regression. Isolated build62727
+`.bench/blueprint-worktree-start-build-2.log` has0errors/7Avalonia warnings; format91317
+`.bench/blueprint-worktree-start-format-2.log` passes; `git diff --check` passes.
+
+Full99075 still live against earlier binaries, now through terminal translations; importantly the
+EditedName case passed this time. Earlier failure's cause remains unproven, diagnostics retained.
+Latest all-nine projection run launched against `.bench/blueprint-worktree-start-bin-2`, with fixture
+assets/host copied and freshly built fixture UI. `.bench/plugins-mounted-worktree-projection-checks.log`
+live handle is in current tool result. Do not restart full99075 or this run on yields. No commits/pushes.
+Remote recovery, multi-window/native fidelity and published lifecycle gates remain incomplete.
+Live handles explicitly: full99075 and combined plugins96118. All isolated Blueprint/format jobs terminal.
+
+## Blueprint remote recovery parity
+
+BlueprintRecoveryChecks now runs recorded-session resume, fresh recovery and failed-launch/retry
+against both in-process and real gRPC hosts with identical assertions: exact commands/tab identity,
+visible companion, preserved document, reported errors and reuse. Remote app disposes before server;
+server async teardown runs off UI context. Owning Blueprint spec updated. Isolated build13206
+`.bench/blueprint-remote-recovery-build.log` finished0errors/7Avalonia warnings; focused76087
+`.bench/blueprint-remote-recovery-checks.log` passes all local/remote recovery, actual Draft reuse and
+Git-worktree routing checks exit0. Format53039 `.bench/blueprint-remote-recovery-format.log` passes;
+`git diff --check` passes. No runtime change this turn, no commits/pushes.
+
+Combined projection run96118 `.bench/plugins-mounted-worktree-projection-checks.log` completed134
+at PdfPreviewChecks remote live rewrite line255. Logs include cancelled StateRpc/Watch and WatchFiles
+streams, but their cause/relation to reload is not established (may be teardown after failure).
+Standalone85013 `.bench/pdf-mounted-worktree-projection-checks.log` passes all PDF checks on the
+same isolated projection binaries. Keep combined PDF failure open; do not call it fixed or relax timeout.
+Only full99075 remains live, now past main workbench smoke and Blueprint and into PDF checks on its
+older pre-projection build. Unique-ID hierarchy gate now covered in full run; extract PASS evidence.
+Next: verify full terminal result, trace/reproduce combined PDF watch/reload race, multi-window/native
+plugin fidelity and latest published helper lifecycle. Goal incomplete.
+
+## Full source baseline passed; PDF watch-readiness regression fixed
+
+Full99075 `.bench/plugins-full-launcher-draft-diagnostics.log` completed exit0 with PASS prototype
+checks and open-world runtime. Covers unique smoke IDs, live launcher chip/icon factories, initial
+remote Draft and local recovery. Excludes later mounted-worktree projection, existing-session Draft,
+remote recovery and current readiness change. No full gate claim for latest source yet.
+
+Confirmed UI WatchWorkspaceAsync remains ValueTask.CompletedTask: explicit/inactive plugin watches
+are still unported, despite host WatchFiles/local/remote implementations. Fork loader/context.ts
+calls watchWorkspaceForLiveContent -> transport/skillLoad.ts prepare(workspace,false), which starts
+watching and synthesizes broad invalidation if the workspace changed while preparing. Read full
+prepare before implementing W3; do not substitute the mounted-window watch for this API requirement.
+
+Added E2eHost.HoldWatch seam and PDF delayed-registration regression. Renders Before watch, rewrites
+file while subscription held before host watcher creation, releases it, expects fresh text without
+another event/Reload. `.bench/pdf-watch-ready-before-checks.log` run89266 failed exactly there.
+Fixed WorkspaceWatcher first batch to include open file/markdown/viewer paths in existing deferred
+revision refresh, with existing request/workspace/cancellation guards. No timeout relaxation, no
+mount blocking. Owning UI/PDF specs updated. `.bench/pdf-watch-ready-after-checks.log` run56048 passes
+all PDF checks plus held-watch regression; isolated build35625 has0errors/7Avalonia warnings;
+format60315 `.bench/pdf-watch-ready-format.log` passes; diff checks pass.
+This is a proven race; relation to earlier combined remote PDF timeout remains unproven.
+Current startup/focus smoke launched on isolated ready-fix build in `.bench/pdf-watch-ready-ui-smoke.log`
+(live handle in tool result). No other verification live. Next run combined plugins on this build,
+then implement real plugin explicit watching, multi-window/native fidelity and published lifecycle.
+Startup/focus smoke38051 `.bench/pdf-watch-ready-ui-smoke.log` completed exit0, including Spec hierarchy,
+startup cancellation, deferred Git focus/tab identity and docking input. All-nine readiness run launched
+in `.bench/plugins-watch-ready-checks.log`, with fixture artifacts prepared in isolated output.
+Its handle is in current tool result. This is now the only live verification; retain it on a yield.
+Live handle explicitly48218; all earlier full/PDF/smoke/format handles terminal.
+
+## Session handoff — 2026-10-02, user requested a fresh session
+
+Objective remains the complete fork Plugin API and all nine builtin plugin ports on main:
+SpecDialect, Blueprint, Claude Code, Discord, PDF Preview, Branch Graph, Visualize, File Icons,
+and Codex. Pi and bundled AI chat are excluded by project instructions. The port is NOT complete.
+Read AGENTS.md, gotchas.md, COMPLETION.md, VALIDATION.md and each owning plugin SPEC.md before
+continuing. Preserve the large recovered uncommitted implementation, untracked plugin directories,
+and the user's AGENTS.md changes. No commits or pushes were made in this session. Mirror the fork's
+commit shape when commits are authorized: general improvements, API, then one per builtin.
+Fork source is /Users/commandertvis/IdeaProjects/thinkrail, read through
+origin/claude-code-integration-plugin-api rather than assuming its physical checkout is that branch.
+Never bypass 1Password signing; user returned and signed fixtures subsequently worked.
+
+Latest combined verification is now terminal: .bench/plugins-watch-ready-checks.log ends with
+PASS Codex plugin E2E and PASS plugin checks. Tool session48218 no longer exists. This combines all
+nine plugins on the isolated .bench/pdf-watch-ready-after-bin build, including mounted-worktree
+projection, remote Blueprint recovery, Draft session reuse and the PDF first-watch readiness fix.
+The older complete repository run .bench/plugins-full-launcher-draft-diagnostics.log passed, but
+it predates those later changes. Latest source still needs the full repository gate. Latest focused
+PDF, startup/UI smoke and formatting passed as recorded above. Earlier intermittent combined PDF
+rewrite and NewWorkspace edited-name failures have not been conclusively explained; do not describe
+them as proven fixed merely because subsequent runs passed.
+
+Last investigation, not implemented: src/SharpRail.UI/Plugins/PluginUIContext.cs still implements
+WatchWorkspaceAsync as ValueTask.CompletedTask. Mounted-window watches and host local/gRPC watchers
+exist, but explicit plugin watching of inactive workspaces remains a real missing API behavior.
+Fork apps/web/src/plugins/loader/context.ts delegates to transport/skillLoad.ts
+watchWorkspaceForLiveContent -> prepare(workspace,false). It coalesces pending preparations, awaits
+actual watch readiness and synthesizes broad invalidation when changes happened during preparation.
+No code or spec edits for explicit watching were made in the final investigation turn.
+
+Suggested next bounded task: establish that contract in the owning spec; implement app-owned,
+activation-scoped workspace watch leases with independent project sessions, actual first-batch
+readiness, cancellation/disposal and reconnect invalidation. Keep Workbench revision dictionaries
+as the single source of truth. Avoid duplicate mounted-window revision delivery, UI-thread blocking,
+or mutating a mounted window's host route. Workbench sessions factory can be null in fixtures, so
+handle borrowed sessions deliberately. Test local/gRPC inactive workspaces, concurrent preparation,
+held readiness, disable/dispose, reconnect and startup focus/tab identity. The coordinator design
+was only considered, not agreed or implemented; use the simplest implementation meeting the fork.
+
+Remaining completion gates extend beyond watching: plugin-specific full source/interaction fidelity,
+multi-window lifecycle, native appearance/input, shared Switch transitions/reduced motion and latest
+published process-group/helper lifecycle. Codex's POSIX process-group helper and compiled panes,
+launcher icon factories, Blueprint chip, catalog identity and readiness changes postdate the canonical
+app. Earlier signed/published all-nine checks are evidence for an older package, not latest source.
+Rebuild/publish and verify signatures/R2R/native/published checks when appropriate; check for a live
+app before replacing its canonical package. Do not mark the goal complete on focused checks alone.
+
+At handoff, no verification process from this Codex session remains live. Process inspection also
+found older Claude-owned checks (PIDs53412/53436) whose executable PID53585 belongs to the sibling
+upstream worktree. Do not kill, edit or count those as main verification; inspect ownership if needed.
+User explicitly requested recording status and stopping for a fresh session; do not continue coding
+in this exhausted session. Resume from this checkpoint rather than rediscovering the entire history.
+
+## Final gate — 2026-10-02
+
+Full repository checks on the latest source pass with Git fixtures (`.bench/final-full-checks.log`, exit 0),
+and format verification passes (`.bench/final-format.log`). No code changes were needed in this gate.
+Explicit `WatchWorkspaceAsync` watching is now implemented in the UI plugin context (it no longer returns
+a completed task). Nothing was committed, pushed or published. Remaining: publish the canonical package
+from this source (check for a live app first), verify signature/R2R/published checks, review native GUI
+appearance/input of all nine plugins and native multi-window lifecycle, and the per-plugin fidelity gates
+in the owning specs and COMPLETION.md. Commits await the user, in the fork's shape.

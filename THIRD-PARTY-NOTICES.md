@@ -9,6 +9,8 @@ IOSurface-backed Metal render targets to Avalonia and wait for external GPU read
 before Ghostty reuses them. The targets also enable shader sampling.
 `src/Ghostty.Avalonia/Native/ScrollbackMemory.patch` preserves enlarged scrollback
 page allocations when recycling them, fixing unbounded memory growth.
+It appends `src/Ghostty.Avalonia/Native/keyboard-mode.zig` to the embedding runtime, which
+implements the agent newline fallback while preserving negotiated keyboard protocols.
 Its native library is built from https://github.com/ghostty-org/ghostty with
 the Metal renderer; Ghostty's source dependency declarations retain their
 upstream licenses.
@@ -47,6 +49,7 @@ The collapse/expand vertical and horizontal ellipsis, fullscreen, subtract,
 arrow-go-back and puzzle-2-line (the plugin fallback) icons use the same package's original
 vector paths.
 See licenses/RemixIcon.txt for Remix Icon License 1.0.
+Branch Graph's bundled commit and code-file SVG menu glyphs use the same 4.9.0 release and license.
 
 Geist Regular, Medium, SemiBold and Bold came from the reference's bundled assets.
 Geist Book uses the reference native prototype's weight-370 NativeText face;
@@ -57,6 +60,17 @@ included in the published app's Resources directory.
 
 Markdown parsing uses Markdig (BSD-2-Clause). Avalonia, protobuf-net.Grpc,
 grpc-dotnet, and other NuGet dependencies retain their package licenses.
+The spec dialect plugin parses YAML with YamlDotNet 18.1.0 (MIT);
+see licenses/YamlDotNet.txt.
+
+PDF Preview renders through PDFium 156.0.8076 from bblanchon.PDFium.macOS/Linux.
+The PDFium license and the linked libraries' notices from the checksummed
+chromium/8076 release archive are collected in licenses/PDFium.txt.
+
+The Claude Code plugin's monochrome `assets/claude.svg` is the fork's recolored
+Material Icon Theme Claude mark (MIT; Copyright 2025 Material Extensions).
+See licenses/Material-Icon-Theme-MIT.txt and the upstream license at
+https://github.com/material-extensions/vscode-material-icon-theme/blob/main/LICENSE.
 
 Side resize projection adapts the constraint and delta-distribution rules from
 react-resizable-panels 2.1.9 (Copyright 2023 Brian Vaughn, MIT).
@@ -74,3 +88,12 @@ The custom platform port uses SkiaSharp 4.148.0, the version Avalonia’s Skia b
 and Svg.Skia share in this app;
 SkiaSharp, Skia, HarfBuzzSharp and HarfBuzz retain their NuGet package licenses. No Cocoa Scintilla view
 or Lexilla binary is bundled.
+
+File Icons bundles 1,251 recoloured SVGs generated from Material Icon Theme 5.38.1
+(MIT; Copyright 2025 Material Extensions). See licenses/Material-Icon-Theme-MIT.txt.
+The source archive checksum is pinned in the plugin generator; generated assets are build output.
+
+Codex uses Tomlyn 2.10.1 (BSD-2-Clause; Copyright 2019–2026 Alexandre Mutel).
+See licenses/Tomlyn-BSD-2-Clause.txt. Its Codex SVG derives from LobeHub Icons
+(MIT; Copyright 2023 LobeHub); see licenses/LobeHub-Icons-MIT.txt. The fallback
+OpenAI glyph is covered by the existing Remix Icon notice.

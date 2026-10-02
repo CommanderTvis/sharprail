@@ -38,7 +38,14 @@ porting is recorded by fork commit title in "Fork port log" below.
 | `packages/server/src/workspaces/SPEC.md` | `src/SharpRail.Host.Core/Workspaces.SPEC.md` |
 | `packages/server/src/{projects,settings,persistence}/SPEC.md` | `src/SharpRail.Host.Core/HostState.SPEC.md` |
 | `packages/server/src/{fs,watch,trash}/SPEC.md` | `src/SharpRail.Host.Core/Files.SPEC.md` |
-| `packages/server/src/spec/SPEC.md`, `packages/spec-graph/SPEC.md`, `packages/spec-graph/core/SPEC.md` | `src/SharpRail.Host.Core/Specs.SPEC.md` |
+| `packages/server/src/spec/SPEC.md` | `src/SharpRail.Host.Core/Specs.SPEC.md` |
+| `packages/plugin-spec-dialect/SPEC.md`, `packages/spec-graph/{core,tools}/SPEC.md` | `src/SharpRail.Plugins.SpecDialect/SPEC.md` |
+| `packages/plugin-discord/SPEC.md` | `src/SharpRail.Plugins.Discord/SPEC.md` |
+| `packages/plugin-pdf-preview/SPEC.md` | `src/SharpRail.Plugins.PdfPreview/SPEC.md` |
+| `packages/plugin-branch-graph/SPEC.md` | `src/SharpRail.Plugins.BranchGraph/SPEC.md` |
+| `packages/plugin-visualize/SPEC.md` | `src/SharpRail.Plugins.Visualize/SPEC.md` |
+| `packages/plugin-file-icons/SPEC.md` | `src/SharpRail.Plugins.FileIcons/SPEC.md` |
+| `packages/plugin-codex/SPEC.md`, `packages/plugin-codex/host/ideBridge/SPEC.md` | `src/SharpRail.Plugins.Codex/SPEC.md` |
 | `packages/server/src/{terminal,subprocess}/SPEC.md` | `src/SharpRail.Host.Core/Terminals.SPEC.md`, `src/SharpRail.UI/Terminal/SPEC.md` |
 | `packages/contracts/SPEC.md` | `src/SharpRail.Host.Protocol/SPEC.md` |
 | `apps/web/src/transport/SPEC.md` | `src/SharpRail.Host.Client/SPEC.md` |
@@ -109,7 +116,7 @@ Commits are in chain order; the first ten are JetBrains commits the fork carries
 - `308b0eef4` A file in the tree can be dragged to where it is wanted: skipped (the diff is xterm drag-and-drop of a tree path into the web terminal; SharpRail's Files rows are not drag sources and its terminal is native Ghostty, so this needs native-bridge drop work)
 - `c4eebc5f1` feat(web): put the target choice above the Start work header: ported (the model/effort labels are AI and omitted; an edited name becomes the workspace's host label)
 - `87325ac26` An issue number in a comment stops being painted as a colour: already present (Scintilla has no colour decorators)
-- `1e4449a2a` A repository URL becomes a project, cloned into a folder you choose: skipped (not yet ported: no Clone repository… dialog and no host clone operation yet; the remaining diff deletes web-only unit tests)
+- `1e4449a2a` A repository URL becomes a project, cloned into a folder you choose: ported 2026-10-03 (`CloneProjectAsync` through every host layer, the Clone repository… dialog and both `clone-project.spec.ts` scenarios; the remaining diff deletes web-only unit tests)
 - `7a7685057` The desktop's right-click menu stops offering Look Up, Fonts, and Services: skipped (Electron context menu)
 - `3f01f8942` A file in the tree can be deleted, into the trash, after asking: ported (Delete file/folder asks, then moves to the OS trash via NSFileManager on macOS or gio on Linux; also the row menu itself and Copy absolute path; the git-ignored dimming and composer drag tests in the same diff are not ported)
 - `1d30e44be` A diff too narrow for two columns opens inline until you say otherwise: ported
@@ -138,8 +145,8 @@ Commits are in chain order; the first ten are JetBrains commits the fork carries
 - `9e5e727a2` Tests, fixtures and spec text the fork's changes left behind: skipped (nothing in scope: web unit tests, Playwright fixtures and the New project spec, a feature SharpRail lacks)
 - `7f94b1832` The CLI waits a beat for a tab that is already open before opening another: skipped (CLI)
 - `8e05d76c0` A default model and thinking level you can choose in Settings: skipped (AI)
-- `5bdc70e39` Vertical tabs can live under their workspace in Projects: skipped (a new tab-placement mode inside the Projects rail with a large layout-model change; not attempted in this pass)
-- `ba90884c6` A dirty worktree can be force-removed before its branch: skipped (needs the topbar branch list with branch deletion, which SharpRail does not have)
+- `5bdc70e39` Vertical tabs can live under their workspace in Projects: ported later, as `8feda8584` (see "Fork refresh, 2026-10-02")
+- `ba90884c6` A dirty worktree can be force-removed before its branch: partial (the host has `force-remove-worktree`, and removing a dirty workspace from the rail asks a second time before forcing; the branch list still refuses to delete a branch a workspace is on instead of removing that worktree first)
 - `ba3d301c4` Branch pickers show every remote, collapsibly, and a click can switch or start a workspace: partial (collapsible, profile-remembered remote groups in the New Workspace picker are ported; the topbar branch list and its click-to-switch/start actions do not exist in SharpRail)
 - `a86e95aaf` The Welcome provider warning recognizes connected JetBrains AI: skipped (AI)
 - `2c44d749d` JetBrains AI access source switching, for accounts with more than one org: skipped (AI)
@@ -167,3 +174,94 @@ Commits are in chain order; the first ten are JetBrains commits the fork carries
   `openChat`, tool renderers, the `writtenPathGroup` slot), workspace auto-naming hints, the `styles` manifest
   field, and the kit's settings-row and terminal-fact components, which arrive with their first plugin. The
   file-icons plugin's assets and the Specs panel's move are later commits.
+
+### Builtin plugin ports in progress (2026-10-01)
+
+- `e8a751bd7` Spec Dialect: recovered and extended to all seven MCP tools, the Specs tree, spec links,
+  rail defaults and legacy layout migration. Specs discovery and MCP ownership now belong to the plugin.
+  Focused checks pass; the signed commit awaits full-suite verification and the signing agent.
+- `b2a6c75a6` Blueprint: registered host/UI halves with the contract, streaming format, reconciliation,
+  exact prompts, persistent author, keyed state, tool, properties, controls, companion, start dialog and
+  file-to-author redirect. Focused runtime, gRPC and headless checks pass. Remaining fidelity/acceptance
+  gates are in `COMPLETION.md`; the signed commit and full-suite gate remain pending. Pi and bundled AI
+  chat remain excluded.
+- `6401ccae8` Claude Code: recovered host/configuration/IDE bridge/hook assets and UI controls;
+  added activation entry point and builtin registration. Host status/configuration/review/revive,
+  transcript folding, headless pane/launcher/settings lifecycle and 40 hook checks pass. Static
+  settings use compiled XAML. Other fidelity and full verification gates remain in the plugin spec;
+  no signed plugin commit yet. IDE `openDiff` retains the fork's documented file-opening fallback.
+- `eb382d75e` Discord: recovered and registered host/UI halves, preserving the fork's presence decisions,
+  IPC protocol, settings, disabled default and Discord mark. Local/remote settings and gRPC checks pass;
+  native/published/full-suite gates and the signed plugin commit remain pending.
+- `ab23be7cf` PDF Preview: recovered and registered the UI-only builtin, with PDFium rendering,
+  text selection, shared zoom math and local/remote live reload. Focused engine/UI checks pass.
+  The remaining fidelity/verification gates are still open.
+  Selection across visible pages, clipboard/Select All and rotated/cropped text geometry now pass checks.
+  Captured drags scroll across offscreen pages; native Unicode extraction and compiled toolbar/retry pass checks.
+- `e91aef250` Branch Graph: recovered and registered contract, host and UI halves. Parser/lane fixtures,
+  local/gRPC history and patches, windowed/paged UI, copy actions and Changes scoping pass focused checks.
+  Independent host commit lookup closes the comparison-menu dependency; unchanged graph rows retain their
+  controls during refresh. Compiled row/menu templates, glyphs, changed-ref focus/menu retention and
+  disable/remount are verified. Remaining lifecycle/visual scenarios and complete gates are open.
+- `b8d8ec066` Visualize: registered contract, host and UI halves with the terminal MCP drawing tool,
+  persisted session adoption, whole-workspace state channel and renderer reports. Shared comparison and
+  Mermaid controls use compiled XAML and the PDF zoom gesture vocabulary. Focused local/gRPC host and
+  companion checks pass, including rollback, revision reuse and restart. Remaining multi-terminal/window,
+  content/lifetime, MCP HTTP ownership, native/published/full gates are in its owning spec.
+
+- `40678fd30` File Icons: registered the UI-only builtin, exact filename/extension mappings and pinned
+  Material Icon Theme 5.38.1 generation. All 1,251 recoloured SVGs match the fork generator byte for byte.
+  Local/gRPC tree, tab, Changes, theme, resizing and disabled/missing/broken asset fallbacks pass focused checks.
+  Native appearance, canonical published app and full-suite gates remain open.
+
+- `177abd30c` Codex: recovered and registered contract/host/UI draft with TOML provenance, hooks,
+  launch/revive, rollout facts, app-server account/models and IDE v0 IPC. Logic checks pass; 297
+  documented keys/types match fork. Focused real gRPC UI account/config/context/IDE/launcher/model/status
+  checks pass; complete fidelity, native/published/full gates remain open.
+
+## Pending fork refresh, 2026-10-01
+
+The local fork ref now points to `1c7c90a5a`. Compared with the previous `0304a543e` tree,
+plugin sources remove workspace-name suggestions from the host API and Claude/Codex hooks,
+and add the UI kit's `Switch` control and tests. SharpRail already omits the naming operation.
+The obsolete Codex report fields and corresponding test expectations are now removed. The shared
+switch's controlled state, geometry, input, automation and disabled theme checks pass in the
+isolated build; combined verification and transition/native appearance review remain. Historical
+port references above remain until the source audit is complete.
+
+## Fork refresh, 2026-10-02
+
+Latest tracked fork commit: `867bffea508a25e48b7b8500f95ba8991bbc587f` ("The fork describes itself:
+what it adds, how to run it, how its history moves"), the tip of `claude-code-integration-plugin-api`
+fetched 2026-10-02. The chain is now rebased onto JetBrains `be804a563`, the commit `upstream` and
+therefore `main` already follow. Compared with `1c7c90a5a`, by title:
+
+- `d356661a5` feat(state): replace session activity with normalized session lifecycle (#525): skipped (pi/chat)
+- `be804a563` feat(desktop): frameless Windows title bar with HTML window controls (#536): inherited from `upstream`
+- `ee852215c` perf(web): enable the native React Compiler: skipped (web-only)
+- `71e884170` Restoring the latest Pi chat in every workspace is a setting: skipped (pi/chat)
+- `b9ec7d8ba` Recents stops listing project folders that no longer exist: ported (a read-time projection in
+  `HostStateStore`; missing or file-replaced paths are hidden, other errors keep them, and the stored list
+  is untouched)
+- "Folding a rail stops rebuilding the whole workbench" left the chain; its SharpRail regression check remains.
+- `4a8aa9191` Claude Code integration is a builtin plugin, amended: the appended system prompt is the fork's
+  compact text with SharpRail's tools; render-time host reads were already reactive through `WatchHost`.
+- `667cf631f` OpenAI Codex is a builtin plugin, amended: wire version 3, tab-scoped configuration and
+  AGENTS.md discovery from the tab's CWD, the "Tell Codex it is running in SharpRail" setting with its
+  developer-instructions file, launch-flag source and hook tagging, and revival that reapplies the
+  setting once. See `src/SharpRail.Plugins.Codex/SPEC.md`.
+- `8feda8584` Vertical tabs can live under their workspace in Projects: ported (vertical centre column with
+  px width, tab panes as workspace-view metadata with the fork's model rules, pane drops and menu verbs,
+  no centre split in the mode, ambiguous-name folder lines, the strips nested in Projects with other
+  workspaces' read-only tab lists). Its other parts were already covered or are web-only: keep-alive
+  terminals (SharpRail retains terminal controls), `useElementSize`, `content-visibility`, and the window
+  corner gutter. The "show beside a Claude terminal" open rule and `unofferedTools` are not ported.
+
+## Fork refresh, 2026-10-03
+
+`claude-code-integration-plugin-api` is still at `867bffea5` (checked with `git ls-remote` on 2026-10-03).
+Two of its features were missing here and are now ported:
+
+- The Settings dialog nests plugin sections under Plugins (its `SettingsDialog.tsx` fieldset): plugin pages
+  sit indented behind a rule directly below Settings › Plugins instead of after the core sections.
+- `1e4449a2a` A repository URL becomes a project: see its entry in the port log above.
