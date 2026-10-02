@@ -313,6 +313,7 @@ internal static class Program
             ClaudeCodeChecks.Run(root).GetAwaiter().GetResult();
             DiscordChecks.RunHostAsync(root).GetAwaiter().GetResult();
             WorkspaceWatchChecks.Run(root).GetAwaiter().GetResult();
+            BranchGraphChecks.RunHostAsync(root).GetAwaiter().GetResult();
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             PluginUiChecks.Run(root);
@@ -324,7 +325,17 @@ internal static class Program
             ClaudeCodeChecks.Launcher(root);
             DiscordChecks.RunUi(root);
             PdfPreviewChecks.Run(root);
+            BranchGraphChecks.RunUi(root);
             Console.WriteLine("PASS plugin checks");
+            return;
+        }
+        if (args.SequenceEqual(["--branch-graph"]))
+        {
+            BranchGraphChecks.RunHostAsync(root).GetAwaiter().GetResult();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            BranchGraphChecks.RunUi(root);
+            Console.WriteLine("PASS Branch Graph checks");
             return;
         }
         if (args.SequenceEqual(["--file-watch"]))
@@ -569,6 +580,8 @@ internal static class Program
         Gate.Case("DiscordChecks-RunHostAsync", () => DiscordChecks.RunHostAsync(root).GetAwaiter().GetResult());
         Gate.Case("DiscordChecks-RunUi", () => DiscordChecks.RunUi(root));
         Gate.Case("PdfPreviewChecks-Run", () => PdfPreviewChecks.Run(root));
+        Gate.Case("BranchGraphChecks-RunHostAsync", () => BranchGraphChecks.RunHostAsync(root).GetAwaiter().GetResult());
+        Gate.Case("BranchGraphChecks-RunUi", () => BranchGraphChecks.RunUi(root));
         Console.WriteLine("PASS prototype checks and open-world runtime");
     }
 

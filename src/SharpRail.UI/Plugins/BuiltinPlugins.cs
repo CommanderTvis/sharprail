@@ -9,6 +9,8 @@ using SharpRail.Plugins.Discord;
 using SharpRail.Plugins.Discord.UI;
 using SharpRail.Plugins.PdfPreview;
 using SharpRail.Plugins.PdfPreview.UI;
+using SharpRail.Plugins.BranchGraph;
+using SharpRail.Plugins.BranchGraph.UI;
 
 
 namespace SharpRail.UI.Plugins;
@@ -23,5 +25,6 @@ public static class BuiltinPlugins
         (ClaudeCodeManifest.Manifest, () => new ClaudeCodeUI()),
         (DiscordPlugin.Manifest, () => new DiscordUI()),
         (PdfPreviewPlugin.Manifest, () => new PdfPreviewUI()),
+        (BranchGraphPlugin.Manifest, () => new BranchGraphUI()),
     ];
 }
