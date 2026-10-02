@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
 
@@ -23,7 +24,7 @@ internal static class StartupChecks
     private static void Pump(Func<bool> done)
     {
         var deadline = Awake.Now.AddSeconds(15);
-        while (!done() && Awake.Now < deadline) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(1); }
+        while (!done() && Awake.Now < deadline) { Dispatcher.UIThread.RunJobs(); AvaloniaHeadlessPlatform.ForceRenderTimerTick(); Thread.Sleep(1); }
         Dispatcher.UIThread.RunJobs(); Require(done(), "Startup operation timed out.");
     }
 
@@ -32,6 +33,7 @@ internal static class StartupChecks
 
     internal static void Run(string root)
     {
+        DeferredWorkspaceSwitch(root);
         DeferredDocumentChrome(root);
         var profilePath = Path.Combine(root, ".startup-profile");
         var host = new DelayedGitHost(root);
@@ -83,10 +85,54 @@ internal static class StartupChecks
         host.Requests.Last().Result.SetException(new IOException("Git unavailable"));
         Pump(() => window.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "Git could not be loaded: Git unavailable"));
         Await(window.OpenDocumentAsync("hello.txt", true));
-        Require(window.WorkspaceMounted && window.FindControl<TextBlock>("ConnectionStatus")!.Text == "Connected",
+        Require(window.WorkspaceMounted && !window.FindControl<TextBlock>("ConnectionStatus")!.IsVisible,
             "Git failure made an accessible workspace unusable.");
         window.Close();
         Console.WriteLine("PASS usable fresh/restored startup with pending Git, cancellation, project switching, stale results and Git failure");
+    }
+
+    private static void DeferredWorkspaceSwitch(string root)
+    {
+        var profile = new ProfileStore(Path.Combine(root, ".switch-profile"));
+        var layout = new LayoutSession(profile.Data.Windows[0].Layout);
+        layout.SwitchWorkspace(root);
+        layout.Open(new("markdown:README.md", "README.md", "markdown", "README.md"), true);
+        profile.Data.Windows[0].Layout = layout.State;
+        var host = new DelayedGitHost(root)
+        {
+            OpenHold = new(TaskCreationOptions.RunContinuationsAsynchronously),
+            FilesHold = new(TaskCreationOptions.RunContinuationsAsynchronously)
+        };
+        var window = new WorkbenchWindow(host, root, profile, E2eTerminals.Plain);
+        window.Show();
+        try
+        {
+            Pump(() => host.OpenStarted);
+            Require(!window.WorkspaceMounted && host.Requests.IsEmpty && !host.FilesStarted,
+                "Host routing must run before file or Git loading.");
+            var tab = window.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "Tab_markdown_README.md");
+            Require(tab.Bounds.Width > 0 && window.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "Loading workspace…"),
+                "The requested document tab and loading body must render while host routing is held.");
+            host.OpenHold.SetResult();
+            Pump(() => window.WorkspaceMounted && host.FilesStarted && host.Requests.Count == 1);
+            Require(!host.FilesHold.Task.IsCompleted && window.GetLogicalDescendants().Contains(tab),
+                "File loading must not block mounting or replace the requested tab.");
+            var other = Path.Combine(root, "switch-other");
+            Directory.CreateDirectory(other);
+            host.OpenHold = null;
+            Await(window.OpenProjectAsync(other));
+            Require(window.WorkspaceRoot == other && window.WorkspaceMounted,
+                "A pending file list must not hold the project-switch gate.");
+            host.FilesHold.SetResult();
+            Pump(() => host.Requests.Count == 2);
+        }
+        finally
+        {
+            window.Close();
+            host.OpenHold?.TrySetResult(); host.FilesHold?.TrySetResult();
+            foreach (var request in host.Requests) request.Result.TrySetResult(new(false, "", [], [], []));
+        }
+        Console.WriteLine("PASS workspace tabs render before held host routing and file loading does not block switching");
     }
 
     private static void DeferredDocumentChrome(string root)
@@ -126,12 +172,27 @@ internal static class StartupChecks
 
     private sealed class DelayedGitHost(string root) : IProjectServices
     {
+        public IAsyncEnumerable<WorkspaceFileChanges> WatchFilesAsync(CancellationToken cancellationToken = default) => new ProjectServices(root).WatchFilesAsync(cancellationToken);
         private readonly ProjectServices inner = new(root);
         public ConcurrentQueue<GitRequest> Requests { get; } = new();
-        public IAsyncEnumerable<FileChange> WatchFilesAsync(CancellationToken ct = default) => inner.WatchFilesAsync(ct);
+        public TaskCompletionSource? OpenHold { get; set; }
+        public TaskCompletionSource? FilesHold { get; set; }
+        public bool OpenStarted { get; private set; }
+        public bool FilesStarted { get; private set; }
         public ValueTask SaveFileAsync(FileSaveRequest request, CancellationToken ct = default) => inner.SaveFileAsync(request, ct);
-        public ValueTask<WorkspaceInfo> OpenProjectAsync(string path, CancellationToken ct = default) => inner.OpenProjectAsync(path, ct);
-        public ValueTask<IReadOnlyList<ProjectFile>> ListFilesAsync(string path, CancellationToken ct = default) => inner.ListFilesAsync(path, ct);
+        public async ValueTask<WorkspaceInfo> OpenProjectAsync(string path, CancellationToken ct = default)
+        {
+            OpenStarted = true;
+            if (OpenHold is { } hold) await hold.Task.WaitAsync(ct);
+            return await inner.OpenProjectAsync(path, ct);
+        }
+        public async ValueTask<IReadOnlyList<ProjectFile>> ListFilesAsync(string path, CancellationToken ct = default)
+        {
+            var files = await inner.ListFilesAsync(path, ct);
+            FilesStarted = true;
+            if (FilesHold is { } hold) await hold.Task.WaitAsync(ct);
+            return files;
+        }
         public ValueTask<FileDocument> ReadFileAsync(string path, CancellationToken ct = default) => inner.ReadFileAsync(path, ct);
         public ValueTask<IReadOnlyList<SpecDocument>> ListSpecsAsync(CancellationToken ct = default) => inner.ListSpecsAsync(ct);
         public ValueTask<SpecGraph> GetSpecGraphAsync(CancellationToken ct = default) => inner.GetSpecGraphAsync(ct);
@@ -140,6 +201,9 @@ internal static class StartupChecks
         public ValueTask PrewarmWorkspaceAsync(string path, CancellationToken ct = default) => inner.PrewarmWorkspaceAsync(path, ct);
         public ValueTask<SearchHits> SearchAsync(string query, CancellationToken ct = default) => inner.SearchAsync(query, ct);
         public ValueTask<IReadOnlyList<GitCommit>> ListCommitsAsync(string comparison, CancellationToken ct = default) => inner.ListCommitsAsync(comparison, ct);
+        public ValueTask<GitCommit?> GetCommitAsync(string sha, CancellationToken ct = default) => inner.GetCommitAsync(sha, ct);
+            public ValueTask<string> CreateProjectAsync(string parentPath, string name, CancellationToken ct = default) => inner.CreateProjectAsync(parentPath, name, ct);
+        public ValueTask<string> CloneProjectAsync(string url, string parentPath, string name, int? depth = null, CancellationToken ct = default) => inner.CloneProjectAsync(url, parentPath, name, depth, ct);
         public ValueTask<string> GetDiffAsync(string path, string scope, string comparison = "", CancellationToken ct = default) => inner.GetDiffAsync(path, scope, comparison, ct);
         public ValueTask<DiffSides> GetDiffSidesAsync(string path, string scope, string comparison = "", CancellationToken ct = default) => inner.GetDiffSidesAsync(path, scope, comparison, ct);
         public ValueTask<ContentBytes> ReadContentBytesAsync(string path, string? revision, CancellationToken ct = default) => inner.ReadContentBytesAsync(path, revision, ct);

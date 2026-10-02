@@ -1,7 +1,9 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 using Avalonia.LogicalTree;
 
+using SharpRail.Plugins.Api.UI;
 using SharpRail.UI.State;
 
 using static SharpRail.Checks.E2E.E2eWorkspace;
@@ -15,6 +17,8 @@ internal static class NewWorkspaceE2E
     {
         using var git = new IsolatedGit(Path.Combine(root, "new-workspace-git"));
         ListsAndCreates(Path.Combine(root, "new-workspace-dialog"));
+        StartingPrompt(Path.Combine(root, "new-workspace-prompt"), false);
+        StartingPrompt(Path.Combine(root, "folder-prompt"), true);
         EditedName(Path.Combine(root, "new-workspace-name"));
         FolderMode(Path.Combine(root, "new-workspace-folder"));
         EnterCreates(Path.Combine(root, "new-workspace-enter"));
@@ -22,6 +26,67 @@ internal static class NewWorkspaceE2E
         RemoteGroups(Path.Combine(root, "new-workspace-remotes"));
         StalePrefetch(Path.Combine(root, "new-workspace-stale"));
         MissingPrefetch(Path.Combine(root, "new-workspace-missing"));
+    }
+
+    private static void StartingPrompt(string directory, bool inFolder)
+    {
+        using var app = OpenFixtureProject(directory);
+        var launches = new List<LauncherCommandOptions>();
+        app.Workbench.PluginRegistry.AddLauncher("prompt-fixture", new("prompt-check", "Test agent", "terminal", options =>
+        { launches.Add(options); return "echo prompt-fixture"; }, () => new(true)));
+        var dialog = OpenNewWorkspaceDialog(app);
+        var prompt = Named<TextBox>(dialog, "WsPrompt");
+        Require(!prompt.IsEnabled && prompt.PlaceholderText == "What do you want to work on?",
+            "Nothing must disable the starting prompt.");
+        app.Click(Named<ToggleButton>(dialog, "WsLauncher_prompt-check"), freshGesture: false);
+        Require(prompt.IsEnabled && prompt.IsFocused, "Selecting an agent enables and focuses the prompt.");
+        prompt.Text = "  Fix 'quoted' paths & $variables";
+        Require(Named<TextBox>(dialog, "WsName").Text == "Fix 'quoted' paths & $variables", "The task supplies the workspace name before creation.");
+        prompt.CaretIndex = prompt.Text.Length;
+        Press(prompt, Key.Enter, RawInputModifiers.Shift);
+        Require(dialog.IsVisible && prompt.Text!.Contains('\n'), "Shift+Enter inserts a newline without submitting.");
+        prompt.Text += "and preserve Unicode: café  ";
+        var expected = prompt.Text.Trim();
+        app.Click(Named<ToggleButton>(dialog, "WsLauncherNone"), freshGesture: false);
+        Require(!prompt.IsEnabled && prompt.Text.Trim() == expected, "Nothing preserves the disabled draft.");
+        app.Click(Named<ToggleButton>(dialog, "WsLauncher_prompt-check"), freshGesture: false);
+        app.Click(Named<ToggleButton>(dialog, "WsTargetDefault"), freshGesture: false);
+        if (!inFolder) app.Click(Named<ToggleButton>(dialog, "WsTargetWorktree"), freshGesture: false);
+        Require(prompt.Text.Trim() == expected, "Changing targets preserves the prompt.");
+        prompt.Focus();
+        Press(prompt, Key.Enter);
+        Until(() => launches.Count == 1);
+        Require(launches[0].InitialPrompt == expected, "The selected agent must receive the trimmed multiline prompt.");
+        Require(inFolder ? app.Window.WorkspaceRoot == app.Window.ProjectRoot : app.Window.WorkspaceRoot != app.Window.ProjectRoot,
+            "The agent must start in the selected workspace target.");
+        if (!inFolder)
+        {
+            Until(() => app.Find<TextBlock>("WorkspaceLabel").Text == "Fix 'quoted' paths & $variables");
+            Require(Git(app.Window.WorkspaceRoot, "branch", "--show-current") == "fix-quoted-paths-variables",
+                "The prompt names the created branch as well as the workspace.");
+        }
+        dialog = OpenNewWorkspaceDialog(app);
+        Require(string.IsNullOrEmpty(Named<TextBox>(dialog, "WsPrompt").Text), "A new dialog starts with an empty prompt.");
+        app.Click(Named<ToggleButton>(dialog, "WsLauncher_prompt-check"), freshGesture: false);
+        var nextPrompt = Named<TextBox>(dialog, "WsPrompt");
+        var nextName = Named<TextBox>(dialog, "WsName");
+        var fallback = nextName.Text;
+        nextPrompt.Text = "\n  Fix   another task\nwith details";
+        Require(nextName.Text == "Fix another task", "Naming skips blank lines and collapses whitespace.");
+        nextPrompt.Text = string.Concat(Enumerable.Repeat("😀", 70));
+        Require(new System.Globalization.StringInfo(nextName.Text!).LengthInTextElements == 60,
+            "Long names must be bounded without splitting Unicode characters.");
+        nextPrompt.Text = "  ";
+        Require(nextName.Text == fallback, "An empty prompt restores the host's suggested name.");
+        nextName.Text = "My chosen name";
+        nextPrompt.Text = "Another task";
+        Require(nextName.Text == "My chosen name", "A manual name wins over the prompt.");
+        nextPrompt.Text = "  ";
+        app.Click(Named<ToggleButton>(dialog, "WsTargetDefault"), freshGesture: false);
+        app.Click(Create(dialog), freshGesture: false);
+        Until(() => launches.Count == 2);
+        Require(launches[1].InitialPrompt is null, "Blank prompts are omitted from launcher options.");
+        Console.WriteLine($"PASS starting prompt: {(inFolder ? "folder" : "worktree")}, launcher options, draft preservation and keyboard submission");
     }
 
     private static (string Root, string Repo, string Origin) SeedRemoteProject(string directory, bool withUpstream = false)
@@ -73,6 +138,9 @@ internal static class NewWorkspaceE2E
         var picker = Picker(dialog);
         app.Click(picker, freshGesture: false);
         Until(() => picker.Flyout is Flyout { IsOpen: true });
+        var presenter = Avalonia.VisualTree.VisualExtensions.FindAncestorOfType<FlyoutPresenter>((Control)((Flyout)picker.Flyout!).Content!);
+        Require(Equals(presenter?.Background, SharpRail.Plugins.UI.Kit.Ui.Elevated),
+            $"The branch picker's popup takes the app theme's surface, not Fluent's system variant (was {presenter?.Background}).");
         return (StackPanel)((StackPanel)((Flyout)picker.Flyout!).Content!).Children.OfType<ScrollViewer>().Single().Content!;
     }
 
@@ -146,7 +214,14 @@ internal static class NewWorkspaceE2E
         Require(name.Text == "workspace-1", "The name field starts on the suggestion.");
         name.Text = "Login Rework";
         app.Click(Create(dialog), freshGesture: false);
-        Until(() => !app.Window.OwnedWindows.Any() && WorktreePaths(app).Count() == 1);
+        try { Until(() => !app.Window.OwnedWindows.Any() && WorktreePaths(app).Count() == 1); }
+        catch (InvalidOperationException error)
+        {
+            var windows = string.Join(", ", app.Window.OwnedWindows.Select(window => window.Title));
+            var paths = string.Join(", ", WorktreePaths(app));
+            var toast = app.Window.GetLogicalDescendants().OfType<TextBlock>().FirstOrDefault(control => control.Name == "GestureToastMessage")?.Text;
+            throw new InvalidOperationException($"Edited workspace did not settle: owned windows [{windows}], rail worktrees [{paths}], active workspace {app.Window.WorkspaceRoot}, notice {toast}.", error);
+        }
         Until(() => app.Find<TextBlock>("WorkspaceLabel").Text == "Login Rework");
         Require(Git(WorktreePaths(app).Single(), "branch", "--show-current") == "login-rework",
             "The entered workspace name must also name its Git branch.");

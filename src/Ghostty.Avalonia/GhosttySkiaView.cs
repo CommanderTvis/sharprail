@@ -111,6 +111,9 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
 
     /// <summary>The screen and scrollback as plain text.</summary>
     public string ReadScreen() => vt.ScreenText();
+
+    /// <summary>Shift+Enter sends ESC CR, the newline agents read, unless the program negotiated a keyboard protocol.</summary>
+    public bool AgentNewline { get; set; }
     public string SelectedText => vt.SelectionText();
     public void SelectAll() { vt.SelectAll(); Redraw(); }
 

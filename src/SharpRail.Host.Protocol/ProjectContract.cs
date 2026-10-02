@@ -33,6 +33,8 @@ public sealed class ProjectRequest
     [ProtoMember(3)] public string Branch { get; set; } = "";
     [ProtoMember(4)] public string Action { get; set; } = "";
     [ProtoMember(5)] public string BaseBranch { get; set; } = "HEAD";
+    [ProtoMember(6)] public string Url { get; set; } = "";
+    [ProtoMember(7)] public int Depth { get; set; }
 }
 
 [ProtoContract]
@@ -150,6 +152,12 @@ public sealed class ChangeReply
 }
 
 [ProtoContract]
+public sealed class WorktreesReply
+{
+    [ProtoMember(1)] public List<WorktreeReply> Worktrees { get; set; } = [];
+}
+
+[ProtoContract]
 public sealed class WorktreeReply
 {
     [ProtoMember(1)] public string Path { get; set; } = "";
@@ -180,13 +188,6 @@ public sealed class GitReply
 }
 
 [ProtoContract]
-public sealed class FileChangeReply
-{
-    [ProtoMember(1)] public List<string> Paths { get; set; } = [];
-    [ProtoMember(2)] public bool Rescan { get; set; }
-}
-
-[ProtoContract]
 public sealed class SearchHitReply
 {
     [ProtoMember(1)] public string Path { get; set; } = "";
@@ -201,19 +202,33 @@ public sealed class SearchReply
     [ProtoMember(2)] public bool Truncated { get; set; }
 }
 
+[ProtoContract]
+public sealed class WorkspaceFileChangesReply
+{
+    [ProtoMember(1)] public List<string> Paths { get; set; } = [];
+    [ProtoMember(2)] public bool GitChanged { get; set; }
+    [ProtoMember(3)] public bool Rescan { get; set; }
+}
+
 [Service]
 public partial interface IProjectRpc
 {
-    IAsyncEnumerable<FileChangeReply> WatchFilesAsync(ProjectRequest request, CallContext context = default);
     ValueTask<SaveFileReply> SaveFileAsync(SaveFileRequest request, CallContext context = default);
     ValueTask<WorkspaceReply> OpenProjectAsync(ProjectRequest request, CallContext context = default);
     ValueTask<ProjectFilesReply> ListFilesAsync(ProjectRequest request, CallContext context = default);
+    IAsyncEnumerable<WorkspaceFileChangesReply> WatchFilesAsync(ProjectRequest request, CallContext context = default);
     ValueTask<DocumentReply> ReadFileAsync(ProjectRequest request, CallContext context = default);
-    ValueTask<SpecsReply> ListSpecsAsync(ProjectRequest request, CallContext context = default);
     /// <summary>Searches the workspace for <see cref="ProjectRequest.Path"/> as a plain substring.</summary>
     ValueTask<SearchReply> SearchAsync(ProjectRequest request, CallContext context = default);
+    ValueTask<SpecsReply> ListSpecsAsync(ProjectRequest request, CallContext context = default);
     ValueTask<GitReply> GetGitAsync(ProjectRequest request, CallContext context = default);
     ValueTask<CommitsReply> ListCommitsAsync(ProjectRequest request, CallContext context = default);
+    ValueTask<CommitLookupReply> GetCommitAsync(ProjectRequest request, CallContext context = default);
+    /// <summary>Lists the workspaces of the project at <see cref="ProjectRequest.Path"/>.</summary>
+    /// <summary>Creates a project folder at <see cref="ProjectRequest.Path"/>/<see cref="ProjectRequest.Branch"/>.</summary>
+    ValueTask<DocumentReply> CreateProjectAsync(ProjectRequest request, CallContext context = default);
+    /// <summary>Clones <see cref="ProjectRequest.Url"/> into <see cref="ProjectRequest.Path"/>/<see cref="ProjectRequest.Branch"/>; a zero depth is a full clone.</summary>
+    ValueTask<DocumentReply> CloneProjectAsync(ProjectRequest request, CallContext context = default);
     ValueTask<DocumentReply> GetDiffAsync(ProjectRequest request, CallContext context = default);
     ValueTask<DiffSidesReply> GetDiffSidesAsync(ProjectRequest request, CallContext context = default);
     ValueTask<ContentReply> ReadContentBytesAsync(ContentRequest request, CallContext context = default);
@@ -312,6 +327,12 @@ public sealed class SpecReply
 public sealed class SpecsReply
 {
     [ProtoMember(1)] public List<SpecReply> Specs { get; set; } = [];
+}
+
+[ProtoContract]
+public sealed class CommitLookupReply
+{
+    [ProtoMember(1)] public CommitReply? Commit { get; set; }
 }
 
 [ProtoContract]

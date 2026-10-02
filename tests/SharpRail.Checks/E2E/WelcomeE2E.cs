@@ -1,6 +1,9 @@
+using System.Reflection;
+
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 
+using SharpRail.UI.Docking;
 using SharpRail.UI.Panels;
 
 using static SharpRail.Checks.E2E.E2eWorkspace;
@@ -23,6 +26,7 @@ internal static class WelcomeE2E
     {
         using var app = OpenFresh(directory);
         Until(() => HasWelcome(app));
+        app.Window.GetLogicalDescendants().OfType<DockSurface>().Single().RefreshEmptyContents();
         Require(!app.Window.WorkspaceMounted && app.Tabs.Count == 0, "A fresh start must not mount a workspace or open center tabs.");
         Require(WelcomeTitle(app) == "SharpRail", "The clean Welcome must show the product title.");
         var cta = app.Find<Button>("WelcomeCta");
@@ -40,6 +44,10 @@ internal static class WelcomeE2E
     private static void ProjectHome(string directory)
     {
         using var app = OpenFixtureProject(directory);
+        var terminals = (IEnumerable<(string Workspace, IReadOnlyList<DockTab> Tabs, IReadOnlyList<string> Shown)>)
+            app.Window.GetType().GetMethod("TerminalTabs", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(app.Window, null)!;
+        Require(!terminals.Any(entry => entry.Workspace.StartsWith("home:", StringComparison.Ordinal)),
+            "Project Home must not expose synthetic terminal workspaces to plugins.");
         Require(WelcomeTitle(app) == "sample-project", "Project Home must be titled with the project name.");
         Require(app.Find<TextBlock>("ProjectLabel").Text == "sample-project" && app.Find<TextBlock>("WorkspaceLabel").Text == "Project home" &&
             app.Find<TextBlock>("WelcomeScope").Text == "PROJECT HOME", "The scope context must say Project home.");
@@ -60,7 +68,7 @@ internal static class WelcomeE2E
     {
         using var app = OpenFresh(directory);
         Until(() => HasWelcome(app));
-        var plain = Path.Combine(directory, "plain-folder");
+        var plain = Path.Combine(directory, "plain-folder") + Path.DirectorySeparatorChar;
         Directory.CreateDirectory(plain);
         File.WriteAllText(Path.Combine(plain, "notes.txt"), "not a repository yet\n");
         app.Window.FolderPicker = () => Task.FromResult<string?>(plain);
@@ -94,6 +102,19 @@ internal static class WelcomeE2E
             Text(Named<Button>(dialog, "WsCreate")) == "Start", "Folder mode must offer Start without branch or name fields.");
         app.Click(Named<Button>(dialog, "WsCreate"));
         Until(() => !app.Window.AtProjectHome && app.Window.WorkspaceRoot == plain && !app.Window.OwnedWindows.Any());
+        app.Click(app.Find<Button>("SettingsButton"));
+        Until(() => app.Window.OwnedWindows.OfType<SettingsWindow>().Any(window => window.IsVisible));
+        var settings = app.Window.OwnedWindows.OfType<SettingsWindow>().Single(window => window.IsVisible);
+        app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "Settings_Layout"));
+        settings.GetLogicalDescendants().OfType<CheckBox>().Single(box => box.Name == "VerticalCenterTabs").IsChecked = true;
+        settings.GetLogicalDescendants().OfType<CheckBox>().Single(box => box.Name == "VerticalTabsInProjects").IsChecked = true;
+        settings.Close(); Until(() => !settings.IsVisible);
+        app.Click(app.Find<Button>("Tab_projects"));
+        _ = app.Workbench.State.ChangeAsync(SharpRail.Host.Abstractions.HostStateChange.PluginEnabled("codex", true));
+        var rail = app.Window.GetLogicalDescendants().OfType<ContentControl>()
+            .Single(host => host.Name == "WorkspaceTabs" && Equals(host.Tag, plain));
+        Until(() => rail.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "NewTerminal_" + app.Center) &&
+            rail.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "NewCodex"));
         var terminal = app.Find<Button>("NewTerminal_" + app.Center);
         app.Click(terminal);
         Until(() => app.Tabs.Any(tab => tab.Kind == "terminal"));

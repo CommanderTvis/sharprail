@@ -138,6 +138,8 @@ unavailability message. Rendered diffs pass `renderDiagrams: false` and keep the
 
 ## Diffs
 
+- Changes review applies its split and whitespace settings through the diff's existing toggles;
+  inline presentation is the side-by-side toggle's off state.
 - `DiffView` shows a path chip, a hide-whitespace toggle, a copy button (copies the diff text; no clipboard
   is a silent no-op) and either `Split | Inline` (source diffs) or `Source | Rendered` (Markdown diffs,
   rendered by default like Markdown files; choosing Source is remembered per tab). Until the user clicks

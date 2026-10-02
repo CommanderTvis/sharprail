@@ -136,6 +136,8 @@ SharpRail.Plugins.Api.UI.AgentLauncher.<Clone>$() -> SharpRail.Plugins.Api.UI.Ag
 SharpRail.Plugins.Api.UI.AgentLauncher.AgentLauncher(string! Id, string! Label, string! Icon, System.Func<SharpRail.Plugins.Api.UI.LauncherCommandOptions!, string!>! TerminalCommand, System.Func<SharpRail.Plugins.Api.UI.LauncherAvailability!>! Availability) -> void
 SharpRail.Plugins.Api.UI.AgentLauncher.Availability.get -> System.Func<SharpRail.Plugins.Api.UI.LauncherAvailability!>!
 SharpRail.Plugins.Api.UI.AgentLauncher.Availability.init -> void
+SharpRail.Plugins.Api.UI.AgentLauncher.CreateIcon.get -> System.Func<double, Avalonia.Media.IBrush?, Avalonia.Controls.Control!>?
+SharpRail.Plugins.Api.UI.AgentLauncher.CreateIcon.init -> void
 SharpRail.Plugins.Api.UI.AgentLauncher.Deconstruct(out string! Id, out string! Label, out string! Icon, out System.Func<SharpRail.Plugins.Api.UI.LauncherCommandOptions!, string!>! TerminalCommand, out System.Func<SharpRail.Plugins.Api.UI.LauncherAvailability!>! Availability) -> void
 SharpRail.Plugins.Api.UI.AgentLauncher.Equals(SharpRail.Plugins.Api.UI.AgentLauncher? other) -> bool
 SharpRail.Plugins.Api.UI.AgentLauncher.Icon.get -> string!

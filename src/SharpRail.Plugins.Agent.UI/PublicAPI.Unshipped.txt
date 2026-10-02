@@ -1,0 +1,61 @@
+#nullable enable
+SharpRail.Plugins.Agent.UI.TerminalFacts
+SharpRail.Plugins.Agent.UI.TerminalTodo
+SharpRail.Plugins.Agent.UI.TerminalTodo.<Clone>$() -> SharpRail.Plugins.Agent.UI.TerminalTodo!
+SharpRail.Plugins.Agent.UI.TerminalTodo.ActiveForm.get -> string?
+SharpRail.Plugins.Agent.UI.TerminalTodo.ActiveForm.init -> void
+SharpRail.Plugins.Agent.UI.TerminalTodo.Content.get -> string!
+SharpRail.Plugins.Agent.UI.TerminalTodo.Content.init -> void
+SharpRail.Plugins.Agent.UI.TerminalTodo.Deconstruct(out string! Content, out SharpRail.Plugins.Agent.UI.TerminalTodoStatus Status, out string? ActiveForm) -> void
+SharpRail.Plugins.Agent.UI.TerminalTodo.Equals(SharpRail.Plugins.Agent.UI.TerminalTodo? other) -> bool
+SharpRail.Plugins.Agent.UI.TerminalTodo.Status.get -> SharpRail.Plugins.Agent.UI.TerminalTodoStatus
+SharpRail.Plugins.Agent.UI.TerminalTodo.Status.init -> void
+SharpRail.Plugins.Agent.UI.TerminalTodo.TerminalTodo(string! Content, SharpRail.Plugins.Agent.UI.TerminalTodoStatus Status, string? ActiveForm = null) -> void
+SharpRail.Plugins.Agent.UI.TerminalTodoStatus
+SharpRail.Plugins.Agent.UI.TerminalTodoStatus.Completed = 2 -> SharpRail.Plugins.Agent.UI.TerminalTodoStatus
+SharpRail.Plugins.Agent.UI.TerminalTodoStatus.InProgress = 1 -> SharpRail.Plugins.Agent.UI.TerminalTodoStatus
+SharpRail.Plugins.Agent.UI.TerminalTodoStatus.Pending = 0 -> SharpRail.Plugins.Agent.UI.TerminalTodoStatus
+SharpRail.Plugins.Agent.UI.TokenUsage
+SharpRail.Plugins.Agent.UI.TokenUsage.<Clone>$() -> SharpRail.Plugins.Agent.UI.TokenUsage!
+SharpRail.Plugins.Agent.UI.TokenUsage.CacheRead.get -> long
+SharpRail.Plugins.Agent.UI.TokenUsage.CacheRead.init -> void
+SharpRail.Plugins.Agent.UI.TokenUsage.CacheWrite.get -> long
+SharpRail.Plugins.Agent.UI.TokenUsage.CacheWrite.init -> void
+SharpRail.Plugins.Agent.UI.TokenUsage.Deconstruct(out long Input, out long Output, out long CacheRead, out long CacheWrite) -> void
+SharpRail.Plugins.Agent.UI.TokenUsage.Equals(SharpRail.Plugins.Agent.UI.TokenUsage? other) -> bool
+SharpRail.Plugins.Agent.UI.TokenUsage.Input.get -> long
+SharpRail.Plugins.Agent.UI.TokenUsage.Input.init -> void
+SharpRail.Plugins.Agent.UI.TokenUsage.Output.get -> long
+SharpRail.Plugins.Agent.UI.TokenUsage.Output.init -> void
+SharpRail.Plugins.Agent.UI.TokenUsage.TokenUsage(long Input, long Output, long CacheRead, long CacheWrite) -> void
+override SharpRail.Plugins.Agent.UI.TerminalTodo.Equals(object? obj) -> bool
+override SharpRail.Plugins.Agent.UI.TerminalTodo.GetHashCode() -> int
+override SharpRail.Plugins.Agent.UI.TerminalTodo.ToString() -> string!
+override SharpRail.Plugins.Agent.UI.TokenUsage.Equals(object? obj) -> bool
+override SharpRail.Plugins.Agent.UI.TokenUsage.GetHashCode() -> int
+override SharpRail.Plugins.Agent.UI.TokenUsage.ToString() -> string!
+static SharpRail.Plugins.Agent.UI.TerminalFacts.AttachButton(string! title, System.Func<System.Threading.Tasks.Task<string?>!>! pickFile, System.Action<string!>! onAttach, System.Action<System.Exception!>! onError) -> Avalonia.Controls.Button!
+static SharpRail.Plugins.Agent.UI.TerminalFacts.AttachPath(string! path, string? worktreePath, string? cwd) -> string!
+static SharpRail.Plugins.Agent.UI.TerminalFacts.ChipButton(string! name, Avalonia.Controls.Control! content, string! tooltip, System.Action! onClick) -> Avalonia.Controls.Button!
+static SharpRail.Plugins.Agent.UI.TerminalFacts.CwdLabel(string? cwd) -> string?
+static SharpRail.Plugins.Agent.UI.TerminalFacts.FactChip(string! kind, string! label, string! title) -> Avalonia.Controls.Control!
+static SharpRail.Plugins.Agent.UI.TerminalFacts.FormatTokens(long count) -> string!
+static SharpRail.Plugins.Agent.UI.TerminalFacts.IdeContextChip(bool enabled, System.Action! onToggle) -> Avalonia.Controls.Button!
+static SharpRail.Plugins.Agent.UI.TerminalFacts.PickerChip(string! kind, string! label, string! title, System.Func<System.Collections.Generic.IReadOnlyList<Avalonia.Controls.Control!>!>! items) -> Avalonia.Controls.Button!
+static SharpRail.Plugins.Agent.UI.TerminalFacts.Plan(string! agent, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Agent.UI.TerminalTodo!>! todos) -> Avalonia.Controls.Control!
+static SharpRail.Plugins.Agent.UI.TerminalFacts.TokenUsageParts(SharpRail.Plugins.Agent.UI.TokenUsage! usage) -> System.Collections.Generic.IReadOnlyList<string!>!
+static SharpRail.Plugins.Agent.UI.TerminalFacts.UsageChip(string! agent, SharpRail.Plugins.Agent.UI.TokenUsage! usage) -> Avalonia.Controls.Control?
+static SharpRail.Plugins.Agent.UI.TerminalTodo.operator !=(SharpRail.Plugins.Agent.UI.TerminalTodo? left, SharpRail.Plugins.Agent.UI.TerminalTodo? right) -> bool
+static SharpRail.Plugins.Agent.UI.TerminalTodo.operator ==(SharpRail.Plugins.Agent.UI.TerminalTodo? left, SharpRail.Plugins.Agent.UI.TerminalTodo? right) -> bool
+static SharpRail.Plugins.Agent.UI.TokenUsage.operator !=(SharpRail.Plugins.Agent.UI.TokenUsage? left, SharpRail.Plugins.Agent.UI.TokenUsage? right) -> bool
+static SharpRail.Plugins.Agent.UI.TokenUsage.operator ==(SharpRail.Plugins.Agent.UI.TokenUsage? left, SharpRail.Plugins.Agent.UI.TokenUsage? right) -> bool
+SharpRail.Plugins.Agent.UI.Account
+SharpRail.Plugins.Agent.UI.AccountSeverity
+SharpRail.Plugins.Agent.UI.AccountSeverity.Critical = 2 -> SharpRail.Plugins.Agent.UI.AccountSeverity
+SharpRail.Plugins.Agent.UI.AccountSeverity.Normal = 0 -> SharpRail.Plugins.Agent.UI.AccountSeverity
+SharpRail.Plugins.Agent.UI.AccountSeverity.Warning = 1 -> SharpRail.Plugins.Agent.UI.AccountSeverity
+static SharpRail.Plugins.Agent.UI.Account.Heading(string! text) -> Avalonia.Controls.TextBlock!
+static SharpRail.Plugins.Agent.UI.Account.ReadingLabel(string! provider, System.DateTimeOffset fetchedAt) -> string!
+static SharpRail.Plugins.Agent.UI.Account.ResetLabel(System.DateTimeOffset at) -> string?
+static SharpRail.Plugins.Agent.UI.Account.Row(string! label, string! value) -> Avalonia.Controls.Control!
+static SharpRail.Plugins.Agent.UI.Account.UsageWindow(string! id, string! label, double percent, System.DateTimeOffset? resetsAt, string! namePrefix, SharpRail.Plugins.Agent.UI.AccountSeverity severity = SharpRail.Plugins.Agent.UI.AccountSeverity.Normal) -> Avalonia.Controls.Control!

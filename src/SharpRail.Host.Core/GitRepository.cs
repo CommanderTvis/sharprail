@@ -241,6 +241,18 @@ internal static class GitRepository
         return new(true, branch, changes, worktrees, branches) { Commits = commits };
     }
 
+    internal static async Task<GitCommit?> GetCommitAsync(string root, string sha, CancellationToken ct)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (sha.Length is < 4 or > 64 || !sha.All(char.IsAsciiHexDigit)) throw new ArgumentException("A commit lookup requires a hexadecimal id.");
+        string commit;
+        try { commit = (await RunAsync(root, ct, "rev-parse", "--verify", "--quiet", "--end-of-options", sha + "^{commit}")).Trim(); }
+        catch (GitException error) when (error.ExitCode == 1) { return null; }
+        var log = await RunAsync(root, ct, "show", "-s", "--format=%H%x00%h%x00%cI%x00%an%x00%s", "--end-of-options", commit, "--");
+        var fields = log.TrimEnd('\r', '\n').Split('\0', 5);
+        return fields.Length == 5 ? new(fields[0], fields[1], DisplayText(fields[4]), DisplayText(fields[3]), fields[2]) : null;
+    }
+
     internal static async Task<IReadOnlyList<GitCommit>> ListCommitsAsync(string root, string comparison, CancellationToken ct)
     {
         ct.ThrowIfCancellationRequested();

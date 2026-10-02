@@ -110,7 +110,30 @@ public sealed partial class HostStateStore : IHostStateService
             catch (Exception error) when (error is IOException or UnauthorizedAccessException) { LastError ??= error.Message; }
     }
 
-    public HostState Current { get { lock (gate) return state; } }
+    public HostState Current
+    {
+        get
+        {
+            HostState current;
+            lock (gate) current = state;
+            return Visible(current);
+        }
+    }
+
+    // Recents is a projection checked against the filesystem on every read: a folder that no longer exists, or became a
+    // file, drops out, while other filesystem errors keep it. The stored list is untouched, so a restored folder returns.
+    private static HostState Visible(HostState current)
+    {
+        var recents = current.RecentProjects.Where(Exists).ToArray();
+        return recents.Length == current.RecentProjects.Count ? current : current with { RecentProjects = recents };
+
+        static bool Exists(string path)
+        {
+            try { return File.GetAttributes(path).HasFlag(FileAttributes.Directory); }
+            catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException) { return false; }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { return true; }
+        }
+    }
 
     public ValueTask<HostState> GetStateAsync(CancellationToken cancellationToken = default) => ValueTask.FromResult(Current);
 
@@ -126,7 +149,7 @@ public sealed partial class HostStateStore : IHostStateService
             if (next.Settings.ThemeMode != "fixed" && changes.Any(change => change is { Kind: "setting", Key: "theme" }) &&
                 !changes.Any(change => change is { Kind: "setting", Key: "theme-mode" }))
                 next = next with { Settings = next.Settings with { ThemeMode = "fixed" } };
-            return ValueTask.FromResult(Publish(next, persist: true));
+            return ValueTask.FromResult(Visible(Publish(next, persist: true)));
         }
     }
 
@@ -188,7 +211,7 @@ public sealed partial class HostStateStore : IHostStateService
                 // Snapshots are complete; a slow watcher only needs the latest.
                 var latest = default(HostState);
                 while (channel.Reader.TryRead(out var item)) latest = item;
-                if (latest is not null) yield return latest;
+                if (latest is not null) yield return Visible(latest);
             }
         }
         finally { lock (gate) watchers.Remove(channel); }

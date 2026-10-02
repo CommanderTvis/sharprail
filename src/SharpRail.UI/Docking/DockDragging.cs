@@ -10,7 +10,8 @@ namespace SharpRail.UI.Docking;
 public sealed partial class DockSurface
 {
     private sealed record DragDraft(string Tab, string Source, Point Origin, long Epoch);
-    private sealed record DropTarget(string Group, int Index, string Edge, Rect Bounds, string Region = "");
+    /// <summary>A drop: an insertion, a new group at an edge, a hidden region, or (with <see cref="PaneWith"/>) sharing a pane with that tab.</summary>
+    private sealed record DropTarget(string Group, int Index, string Edge, Rect Bounds, string Region = "", string PaneWith = "", string Direction = "");
     private sealed record DropSite(DropTarget Target, Action<bool> Paint, bool Priority = false);
     private readonly Dictionary<(string Group, int Index, string Edge), bool> dropValidity = [];
     private DragDraft? draft;
@@ -41,7 +42,8 @@ public sealed partial class DockSurface
             CancelDrag();
             if (origin is not null && destination is not null && origin.Epoch == Session.Epoch)
             {
-                if (destination.Region.Length > 0) Session.MoveToRegion(origin.Tab, origin.Source, destination.Region);
+                if (destination.PaneWith.Length > 0) Session.GroupTabs(destination.Group, origin.Tab, destination.PaneWith, destination.Direction);
+                else if (destination.Region.Length > 0) Session.MoveToRegion(origin.Tab, origin.Source, destination.Region);
                 else Session.Move(origin.Tab, origin.Source, destination.Group, destination.Index, destination.Edge);
             }
             e.Handled = true;
@@ -148,6 +150,11 @@ public sealed partial class DockSurface
             }
             var group = Session.Group(site.Group);
             if (tab.Kind != "terminal" && tab.IsTool == (group.Region == "center")) continue;
+            if (site.Header && stripLayouts.TryGetValue(site.Group, out var layout) && layout.Style != StripStyle.Horizontal)
+            {
+                ColumnTargets(site.Group, tab, layout.Scroller, Legal, candidates);
+                continue;
+            }
             if (site.Header)
             {
                 var members = tabSites.GetValueOrDefault(site.Group) ?? [];
@@ -201,6 +208,8 @@ public sealed partial class DockSurface
             var section = group.Folded ? bounds : new Rect(bounds.Left, header.Top, bounds.Width, bounds.Bottom - header.Top);
             if (group.Region == "center")
             {
+                // With vertical tabs on, the centre cannot be split: grouping is what that layout does instead.
+                if (CenterTabs?.Invoke() is { Vertical: true }) continue;
                 foreach (var edge in new[] { "left", "right", "top", "bottom" })
                 {
                     var horizontal = edge is "left" or "right";
@@ -243,6 +252,53 @@ public sealed partial class DockSurface
             .ThenBy(candidate => CornerDistance(candidate.Target.Bounds, point)).FirstOrDefault();
         drop = winner?.Target;
         foreach (var candidate in candidates) candidate.Paint(ReferenceEquals(candidate, winner));
+    }
+
+    // A column's rows: the top and bottom quarters insert before and after, and the band between them shows the dragged
+    // tab together with that one, in the setting's arrangement or, over a pane member, the arrangement it joins.
+    private void ColumnTargets(string group, DockTab tab, ScrollViewer scroller, Func<string, int, string, bool> legal, List<DropSite> candidates)
+    {
+        var members = tabSites.GetValueOrDefault(group) ?? [];
+        var area = RectOf(scroller);
+        if (area.Width <= 0 || area.Height <= 0) return;
+        Action<bool> Line(Rect line) => active =>
+        {
+            if (!active || line.Width <= 0 || line.Height <= 0) return;
+            var marker = Hint(line, true);
+            marker.Background = Ui.Accent; marker.BorderThickness = new Thickness(0); marker.CornerRadius = new CornerRadius(0);
+        };
+        if (legal(group, members.Count, ""))
+        {
+            var last = members.Count > 0 ? RectOf(members[^1].Control) : new Rect(area.Left, area.Top, area.Width, 0);
+            candidates.Add(new(new(group, members.Count, "", area), Line(new Rect(area.Left, last.Bottom - 2, area.Width, 2).Intersect(area))));
+        }
+        var sameGroup = Session.Tabs(group).Any(item => item.Id == tab.Id) && !tab.IsTool && Session.Group(group).Region == "center";
+        var defaultDirection = CenterTabs?.Invoke().DefaultPaneDirection ?? "horizontal";
+        for (var i = 0; i < members.Count; i++)
+        {
+            var row = RectOf(members[i].Control).Intersect(area);
+            if (row.Height <= 0) continue;
+            var quarter = row.Height / 4;
+            foreach (var after in new[] { false, true })
+            {
+                var index = i + (after ? 1 : 0);
+                if (!legal(group, index, "")) continue;
+                var zone = new Rect(row.Left, after ? row.Bottom - quarter : row.Top, row.Width, quarter);
+                candidates.Add(new(new(group, index, "", zone), Line(new Rect(row.Left, after ? row.Bottom - 2 : row.Top, row.Width, 2))));
+            }
+            var target = members[i].Tab;
+            var pane = Session.PaneFor(group, target);
+            if (!sameGroup || target == tab.Id || pane?.TabIds.Contains(tab.Id) == true) continue;
+            var band = new Rect(row.Left, row.Top + quarter, row.Width, row.Height - 2 * quarter);
+            var direction = pane?.Direction ?? defaultDirection;
+            candidates.Add(new(new(group, 0, "", band, PaneWith: target, Direction: direction), active =>
+            {
+                var hint = Hint(band, active);
+                hint.Tag = direction == "vertical" ? "DropShowUnder" : "DropShowBeside";
+                hint.CornerRadius = new CornerRadius(0);
+                hint.BorderThickness = new Thickness(active ? 2 : 0);
+            }));
+        }
     }
 
     private Rect HiddenBottomBounds()

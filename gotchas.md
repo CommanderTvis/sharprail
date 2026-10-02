@@ -67,3 +67,54 @@
 - For product-contract updates, reuse literal JetBrains/thinkrail spec wording when behavior matches, and state SharpRail platform adaptations explicitly. Keep the root SPEC.md consistent with the owning module specs.
 - Headless input pumps dispatcher jobs between press and release, so rebuilding a panel shortly after a mount swallows the click that lands on it. Restyle rail rows in place for branch, selection and Git state; rebuild only when a row is added or removed.
 - A host operation that reads Git and then rewrites shared state must hold the store's workspace gate across both steps. A slow list that read worktrees before a create otherwise drops the record the create wrote.
+- Recovered subagent work is an implementation draft. For a full fork port, compare every plugin's source and contract before accepting its tests; a passing inherited subset can omit whole tool or UI surfaces.
+- A recovered port's stated limitation can be the fork's own deliberate contract. Compare the authoritative source and owning spec before replacing it: Claude Code IDE openDiff intentionally opens the target and returns diffShown=false in the fork too.
+- PDFium can return an astral character as two UTF-16 units from consecutive GetUnicode calls. Combine the pair before scalar validation and retain the glyph box for both units; synthetic selection text alone cannot catch extraction dropping an emoji. Verify a real PDF ToUnicode map.
+- A comparison menu is a bounded range, not proof that a graph-selected commit exists. Validate explicit commit scopes with an independent host lookup, and preserve rewritten-object fallback. Exercise the first graph click with no comparison target and an older commit beyond the menu limit.
+- Register a renderer's pending verdict before publishing its revision. An embedded plugin client can report synchronously during publication; WebSocket sequencing does not protect an in-process port. Cover an immediate success and immediate refusal.
+- Construct stateful builtin host modules per runtime. A static array of module instances shares stores and publishers between otherwise isolated embedded/remote hosts; retain manifests and factories, not activated module instances.
+
+- Capture a wrapper process tree before closing its redirected input. EOF can terminate the wrapper
+  and reparent children before enumeration; verify teardown against a child that ignores SIGTERM.
+- Keep the UI dispatcher running while an IPC fixture waits for frontend context. A blocking
+  GetResult on the UI thread prevents the request from being answered and only tests the timeout.
+- .NET removes a bound Unix socket path on disposal. To test stale socket recovery, preserve a
+  renamed socket inode through disposal and restore it; orderly Dispose does not simulate a crash.
+
+- A raw CLI fixture must own its PTY mode, as the fork's Bun fixture does. .NET's console input reader
+  can restore canonical input; raw byte fixtures use libc read after setting raw mode. A shell's
+  earlier stty call alone is insufficient. Check actual emitted bytes when Enter is echoed instead
+  of acted on.
+- A model catalog arriving is a menu update, not a reason to replace the model chip. Populate a
+  programmatically opened ContextMenu explicitly and update open choices while retaining the trigger.
+- Bring a tree row into view before asserting raster changes: logical visibility does not prove
+  that the icon lies inside its ancestors' clips.
+
+- A synchronous host shutdown callback must not block on async cleanup that captures its caller's
+  UI synchronization context. Execute ordered plugin/loopback cleanup without that context; verify
+  real embedded-server shutdown from the native UI as well as headless server teardown.
+
+- Refresh empty dock bodies through the same region-aware factory used for their initial layout.
+  Sending every empty auxiliary group through the center receipt factory can duplicate Welcome
+  when a plugin invalidates workspace actions. Cover a forced refresh on a clean profile.
+
+- A plugin UI context shared by an app must route terminal companions to windows holding the named
+  tab. The active window can be unrelated; selecting a companion changes pane state rather than
+  keyboard focus. Check background updates with another window active through the terminal's MCP URL.
+- Deferred Git discovery can change the plugin tool catalog after keyboard navigation or menu open.
+  Preserve focus and defer dock rebuilding until the menu closes; hold the Git read in the regression
+  so the late catalog update is exercised explicitly.
+- A visual dock rebuild between pointer down and up destroys the pressed control and can discard
+  its click. Defer it through release. Restore focus after replacement controls complete layout;
+  calling Focus immediately after attachment can return false even for a visible, focusable tab.
+- Specs are indexed by ID across the entire workspace. UI checks that open the shared fixture root
+  must use unique IDs: earlier nested Git/spec fixtures can claim generic IDs such as architecture
+  and remove the intended node through duplicate-ID deduplication. Inspect the actual indexed graph
+  before changing a render timeout or assertion; include a nested fixture in focused coverage.
+- A plugin workspace projection must include a mounted window's host-resolved workspace identity.
+  Host-published catalogs can omit worktrees created outside the app. Advertising an action while
+  excluding its current workspace makes project routing silently do nothing; test direct worktree
+  startup and route from that action before relying on a later catalog refresh.
+- A file watch's initial ready batch closes an observation gap. A document can finish reading and be
+  rewritten before watching is registered, producing no event. Recheck open paths at readiness;
+  test by holding subscription before watcher creation rather than relying on filesystem timing.

@@ -143,6 +143,7 @@ internal static class NavigationChecks
 
     private sealed class DelayedHost(IProjectServices inner) : IProjectServices
     {
+        public IAsyncEnumerable<WorkspaceFileChanges> WatchFilesAsync(CancellationToken cancellationToken = default) => inner.WatchFilesAsync(cancellationToken);
         private readonly Dictionary<string, TaskCompletionSource> gates = [];
         internal TaskCompletionSource Hold(string path)
         {
@@ -156,7 +157,6 @@ internal static class NavigationChecks
             if (gate is not null) await gate.Task.WaitAsync(ct);
             return document;
         }
-        public IAsyncEnumerable<FileChange> WatchFilesAsync(CancellationToken ct = default) => inner.WatchFilesAsync(ct);
         public ValueTask SaveFileAsync(FileSaveRequest request, CancellationToken ct = default) => inner.SaveFileAsync(request, ct);
         public ValueTask<WorkspaceInfo> OpenProjectAsync(string path, CancellationToken ct = default) => inner.OpenProjectAsync(path, ct);
         public ValueTask<IReadOnlyList<ProjectFile>> ListFilesAsync(string path, CancellationToken ct = default) => inner.ListFilesAsync(path, ct);
@@ -167,6 +167,9 @@ internal static class NavigationChecks
         public ValueTask PrewarmWorkspaceAsync(string path, CancellationToken ct = default) => inner.PrewarmWorkspaceAsync(path, ct);
         public ValueTask<SearchHits> SearchAsync(string query, CancellationToken ct = default) => inner.SearchAsync(query, ct);
         public ValueTask<IReadOnlyList<GitCommit>> ListCommitsAsync(string comparison, CancellationToken ct = default) => inner.ListCommitsAsync(comparison, ct);
+        public ValueTask<GitCommit?> GetCommitAsync(string sha, CancellationToken ct = default) => inner.GetCommitAsync(sha, ct);
+        public ValueTask<string> CreateProjectAsync(string parentPath, string name, CancellationToken ct = default) => inner.CreateProjectAsync(parentPath, name, ct);
+        public ValueTask<string> CloneProjectAsync(string url, string parentPath, string name, int? depth = null, CancellationToken ct = default) => inner.CloneProjectAsync(url, parentPath, name, depth, ct);
         public ValueTask<GitSnapshot> GetGitAsync(string comparison = "", CancellationToken ct = default, string scope = "all") => inner.GetGitAsync(comparison, ct, scope);
         public ValueTask<string> GetDiffAsync(string path, string scope, string comparison = "", CancellationToken ct = default) => inner.GetDiffAsync(path, scope, comparison, ct);
         public ValueTask<DiffSides> GetDiffSidesAsync(string path, string scope, string comparison = "", CancellationToken ct = default) => inner.GetDiffSidesAsync(path, scope, comparison, ct);

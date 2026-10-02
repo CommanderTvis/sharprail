@@ -11,13 +11,14 @@ using SharpRail.Plugins.Api.UI;
 
 namespace SharpRail.UI.Panels;
 
-public sealed record NewWorkspaceChoice(bool InProjectFolder, string Base, string Path, string Branch, string Project, string? Name = null, AgentLauncher? Launcher = null);
+public sealed record NewWorkspaceChoice(bool InProjectFolder, string Base, string Path, string Branch, string Project, string? Name = null, AgentLauncher? Launcher = null, string? InitialPrompt = null);
 
 public sealed class NewWorkspaceDialog
 {
     private readonly TextBlock description;
     private readonly TextBlock currentBranch;
     private readonly TextBox name;
+    private readonly TextBox prompt;
     private readonly TextBlock hint;
     private readonly ToggleButton worktreeTarget;
     private readonly ToggleButton folderTarget;
@@ -31,6 +32,8 @@ public sealed class NewWorkspaceDialog
     private BranchCatalog catalog;
     private string selected;
     private bool picked;
+    private bool nameEdited;
+    private bool updatingName;
     private bool inFolder;
     private TextBlock? projectLabel;
     private readonly bool hasGit;
@@ -50,14 +53,14 @@ public sealed class NewWorkspaceDialog
         this.hasGit = hasGit; inFolder = !hasGit;
         this.collapsedRemotes = collapsedRemotes; this.saveCollapsed = saveCollapsed;
         this.launchers = launchers ?? [];
-        selected = catalog.DefaultBase;
+        selected = ExistingBase(catalog);
         Window = Dialogs.Create("Start work", 560);
         Window.Tag = "NewWorkspaceDialog";
         description = Window.FindControl<TextBlock>("DialogExplanation")!;
         var fields = Window.FindControl<StackPanel>("DialogFields")!;
 
         // The target sits directly under the constant title; only one line of prose follows the mode.
-        var targets = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+        var targets = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         worktreeTarget = Target("WsTargetWorktree", "New worktree", "gitBranch", false);
         worktreeTarget.IsEnabled = hasGit;
         worktreeTarget.IsVisible = hasGit;
@@ -88,7 +91,7 @@ public sealed class NewWorkspaceDialog
         };
         AutomationProperties.SetName(branchPicker, "Base branch");
         options = new StackPanel { Name = "BranchOptions", Spacing = 2 };
-        search = new TextBox { Name = "BranchSearch", PlaceholderText = "Search branches…", Width = 300 };
+        search = new TextBox { Name = "BranchSearch", PlaceholderText = "Search branches…", HorizontalAlignment = HorizontalAlignment.Stretch };
         search.TextChanged += (_, _) => RenderOptions();
         search.AddHandler(InputElement.KeyDownEvent, (_, e) =>
         {
@@ -97,7 +100,7 @@ public sealed class NewWorkspaceDialog
             if (options.Children.OfType<Button>().FirstOrDefault(button => button.Name == "BranchOption") is { } first) Pick((string)first.Tag!);
             e.Handled = true;
         }, RoutingStrategies.Tunnel);
-        var list = new StackPanel { Spacing = 8, Margin = new Thickness(4) };
+        var list = new StackPanel { Spacing = 8, Margin = new Thickness(4), MinWidth = 300 };
         list.Children.Add(search);
         list.Children.Add(new ScrollViewer { Content = options, MaxHeight = 260, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
         var flyout = new Flyout { Content = list, Placement = PlacementMode.BottomEdgeAlignedLeft };
@@ -108,11 +111,22 @@ public sealed class NewWorkspaceDialog
         currentBranch.Name = "WsCurrentBranch";
         fields.Children.Add(currentBranch);
 
-        // Prefilled with the host's next free name so it is visible before creation; only an edit is sent.
+        // A manual name takes precedence over subsequent prompt and catalogue updates.
         name = new TextBox { Name = "WsName", Text = SuggestedName, Width = 300, HorizontalAlignment = HorizontalAlignment.Left };
         AutomationProperties.SetName(name, "Name");
         fields.Children.Add(name);
+        name.PropertyChanged += (_, e) =>
+        {
+            if (e.Property == TextBox.TextProperty && !updatingName) nameEdited = true;
+        };
 
+        var promptFields = new WorkspacePromptFields();
+        prompt = promptFields.FindControl<TextBox>("WsPrompt")!;
+        prompt.PropertyChanged += (_, e) =>
+        {
+            if (e.Property == TextBox.TextProperty) UpdateSuggestedName();
+        };
+        fields.Children.Add(promptFields);
         if (this.launchers.Count > 0) fields.Children.Add(Launchers());
 
         hint = Ui.Text("Press Enter to create.", Ui.Hint, 12);
@@ -126,15 +140,36 @@ public sealed class NewWorkspaceDialog
             var typed = name.Text?.Trim() ?? "";
             var edited = typed.Length > 0 && typed != SuggestedName ? typed : null;
             Window.Close(new NewWorkspaceChoice(inFolder, selected, this.catalog.SuggestedPath,
-                edited is null ? this.catalog.SuggestedBranch : BranchForName(edited), Project, edited, launcher));
+                edited is null ? this.catalog.SuggestedBranch : BranchForName(edited), Project, edited, launcher,
+                launcher is not null && !string.IsNullOrWhiteSpace(prompt.Text) ? prompt.Text.Trim() : null));
         });
         create.Name = "WsCreate"; create.IsDefault = true; Dialogs.Primary(create);
         actions.Children.Add(create);
+        prompt.AddHandler(InputElement.KeyDownEvent, (_, e) =>
+        {
+            if (e.Key != Key.Enter || e.KeyModifiers.HasFlag(KeyModifiers.Shift)) return;
+            if (create.IsEnabled) create.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            e.Handled = true;
+        }, RoutingStrategies.Tunnel);
         Window.Opened += (_, _) => create.Focus();
         Render();
     }
 
     private string SuggestedName => Path.GetFileName(catalog.SuggestedPath);
+
+    private void UpdateSuggestedName()
+    {
+        if (nameEdited) return;
+        var firstLine = launcher is null ? null : prompt.Text?.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
+            .FirstOrDefault(line => !string.IsNullOrWhiteSpace(line));
+        var suggestion = firstLine is null ? SuggestedName
+            : System.Text.RegularExpressions.Regex.Replace(firstLine.Trim(), @"\s+", " ");
+        var elements = new System.Globalization.StringInfo(suggestion);
+        if (elements.LengthInTextElements > 60) suggestion = elements.SubstringByTextElements(0, 60).TrimEnd();
+        updatingName = true;
+        try { name.Text = suggestion; }
+        finally { updatingName = false; }
+    }
 
     private string BranchForName(string displayName)
     {
@@ -157,6 +192,9 @@ public sealed class NewWorkspaceDialog
         void Select(AgentLauncher? choice)
         {
             launcher = choice;
+            prompt.IsEnabled = choice is not null;
+            UpdateSuggestedName();
+            if (choice is not null) prompt.Focus();
             foreach (var (button, candidate) in buttons) button.IsChecked = candidate == choice;
         }
         foreach (var candidate in new AgentLauncher?[] { null }.Concat(this.launchers))
@@ -168,8 +206,8 @@ public sealed class NewWorkspaceDialog
             {
                 Name = candidate is null ? "WsLauncherNone" : "WsLauncher_" + candidate.Id,
                 Content = candidate is null ? Ui.Text("Nothing") : LauncherLabel(candidate),
-                Padding = new Thickness(10, 5),
-                Margin = new Thickness(0, 0, 6, 6),
+                Padding = new Thickness(12, 4),
+                Margin = new Thickness(0, 0, 8, 8),
                 CornerRadius = new(4),
                 IsEnabled = availability.Available
             };
@@ -187,6 +225,11 @@ public sealed class NewWorkspaceDialog
     private static Control LauncherLabel(AgentLauncher launcher)
     {
         var row = Ui.Row(Plugins.PluginIcons.Glyph(launcher.Icon), launcher.Label);
+        try
+        {
+            if (launcher.CreateIcon?.Invoke(16, Ui.TextBrush) is { } icon) row.Children[0] = icon;
+        }
+        catch (Exception error) { Console.Error.WriteLine($"Launcher {launcher.Id} failed to create its icon: {error}"); }
         return row;
     }
 
@@ -236,6 +279,7 @@ public sealed class NewWorkspaceDialog
         {
             if (await LoadProject(path) is not { } loaded) return;
             Project = path; catalog = loaded; picked = false; selected = loaded.DefaultBase;
+            UpdateSuggestedName();
             projectLabel!.Text = new DirectoryInfo(path).Name;
             Render();
         }
@@ -248,12 +292,17 @@ public sealed class NewWorkspaceDialog
         if (project != Project) return;
         if (fresh.DefaultBase == catalog.DefaultBase && fresh.Local.SequenceEqual(catalog.Local) && fresh.Remote.SequenceEqual(catalog.Remote) &&
             fresh.SuggestedPath == catalog.SuggestedPath && fresh.Current == catalog.Current) return;
-        var untouched = name.Text == SuggestedName;
         catalog = fresh;
-        if (untouched) name.Text = SuggestedName;
-        if (!picked) selected = fresh.DefaultBase;
+        UpdateSuggestedName();
+        if (!picked || !HasBase(fresh, selected)) { selected = ExistingBase(fresh); picked = false; }
         Render();
     }
+
+    private static bool HasBase(BranchCatalog branches, string reference) =>
+        reference == "HEAD" || branches.Local.Contains(reference) || branches.Remote.Any(branch => branch.Ref == reference);
+
+    private static string ExistingBase(BranchCatalog branches) => HasBase(branches, branches.DefaultBase)
+        ? branches.DefaultBase : branches.Local.Contains(branches.Current) ? branches.Current : branches.Local.FirstOrDefault() ?? "HEAD";
 
     private ToggleButton Target(string name, string label, string icon, bool folder)
     {

@@ -1,0 +1,11 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="SharpRail.UI.Panels.WorkspacePromptFields">
+  <TextBox x:Name="WsPrompt"
+           AutomationProperties.Name="Starting prompt"
+           PlaceholderText="What do you want to work on?"
+           AcceptsReturn="True" TextWrapping="Wrap"
+           MinHeight="160" MaxHeight="240"
+           VerticalContentAlignment="Top"
+           IsEnabled="False" />
+</UserControl>

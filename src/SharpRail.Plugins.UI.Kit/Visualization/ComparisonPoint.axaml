@@ -1,0 +1,6 @@
+<DockPanel xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+           xmlns:kit="using:SharpRail.Plugins.UI.Kit" x:Class="SharpRail.Plugins.UI.Kit.Visualization.ComparisonPoint"
+           x:ClassModifier="internal">
+  <ContentControl x:Name="Glyph" DockPanel.Dock="Left" VerticalAlignment="Top" Margin="0,2,4,0" />
+  <TextBlock x:Name="Label" Foreground="{x:Static kit:Ui.TextBrush}" FontSize="12" TextWrapping="Wrap" />
+</DockPanel>

@@ -1,7 +1,9 @@
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
+
 using SharpRail.UI.Panels;
+
 using static SharpRail.Checks.E2E.E2eWorkspace;
 
 namespace SharpRail.Checks.E2E;
@@ -86,7 +88,8 @@ internal static class PreviewTabsE2E
         });
         Case("the Specs panel shares the one slot, and closing the preview tab releases it", app =>
         {
-            app.Open("README.md", true); app.Open("notes.txt"); app.Click(app.Find<Button>("Tab_specs"));
+            app.Open("README.md", true); app.Open("notes.txt"); app.Click(app.Find<Button>("Tab_plugin_spec-dialect_specs"));
+            Until(() => app.Window.GetLogicalDescendants().OfType<TreeView>().Any(tree => tree.Name == "SpecsTree"));
             var tree = app.Find<TreeView>("SpecsTree"); Until(() => tree.Items.Count > 0);
             var node = tree.Items.OfType<TreeViewItem>().Single(item => Equals(item.Tag, "SPEC.md")); app.Click((Control)node.Header!);
             Until(() => app.Tabs.Any(tab => tab.Path == "SPEC.md"));

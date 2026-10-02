@@ -148,6 +148,54 @@ internal static class ProjectPickerE2E
         Console.WriteLine("PASS upstream projects.spec.ts: activating a workspace in one project keeps the other project's rail expansion");
     }
 
+    private static void Clone(string root)
+    {
+        using var app = new E2eWorkspace(Path.Combine(root, "projects-clone-first"), openFiles: false);
+        var parent = Path.Combine(root, "clone-project-parent");
+        Directory.CreateDirectory(parent);
+        var source = IsolatedGit.Repository(Path.Combine(root, "clone-seed"), ("README.md", "one\n"));
+        IsolatedGit.Run(source, "commit", "--allow-empty", "-m", "second");
+        var remote = Path.Combine(root, "clone-source.git");
+        IsolatedGit.Run(root, "clone", "--bare", "--", source, remote);
+        app.Window.FolderPicker = () => Task.FromResult<string?>(parent);
+
+        AddProject(app, "Clone repository…");
+        var dialog = Dialog(app);
+        Require(Equals(dialog.Tag, "CloneProjectDialog"), "Clone repository opens its dialog.");
+        Named<TextBox>(dialog, "CloneProjectUrl").Text = "file://" + remote;
+        app.Click(Named<Button>(dialog, "CloneProjectBrowse"), freshGesture: false);
+        Until(() => Named<TextBox>(dialog, "CloneProjectParent").Text == parent);
+        Require(string.IsNullOrEmpty(Named<TextBox>(dialog, "CloneProjectName").Text) && Named<TextBox>(dialog, "CloneProjectName").PlaceholderText == "clone-source",
+            "The folder name defaults to the repository's, shown as a placeholder.");
+        Require(Named<TextBlock>(dialog, "CloneProjectTarget").Text == Path.Combine(parent, "clone-source"), "The target path shows before anything runs.");
+        Named<TextBox>(dialog, "CloneProjectDepth").Text = "0";
+        Settle(50);
+        Require(!Named<Button>(dialog, "CloneProjectCreate").IsEnabled, "A depth below one cannot be cloned.");
+        Named<TextBox>(dialog, "CloneProjectDepth").Text = "1";
+        Settle(50);
+        app.Click(Named<Button>(dialog, "CloneProjectCreate"), freshGesture: false);
+        WaitForProject(app, "clone-source");
+        Require(!app.Window.OwnedWindows.OfType<DialogWindow>().Any(), "The dialog closes once the clone opens.");
+        Require(Directory.Exists(Path.Combine(parent, "clone-source", ".git")) && File.Exists(Path.Combine(parent, "clone-source", ".git", "shallow")),
+            "A depth of one makes a shallow clone in the chosen folder.");
+        Console.WriteLine("PASS fork clone-project.spec.ts: clones into the chosen folder, names it after the repository, and opens it");
+
+        var empty = Path.Combine(root, "clone-project-empty");
+        Directory.CreateDirectory(empty);
+        app.Window.FolderPicker = () => Task.FromResult<string?>(empty);
+        AddProject(app, "Clone repository…");
+        dialog = Dialog(app);
+        Named<TextBox>(dialog, "CloneProjectUrl").Text = Path.Combine(root, "no-such-remote.git");
+        app.Click(Named<Button>(dialog, "CloneProjectBrowse"), freshGesture: false);
+        Until(() => Named<TextBox>(dialog, "CloneProjectParent").Text == empty);
+        app.Click(Named<Button>(dialog, "CloneProjectCreate"), freshGesture: false);
+        Until(() => Named<TextBlock>(dialog, "CloneProjectError").IsVisible);
+        Require(Named<TextBlock>(dialog, "CloneProjectError").Text!.Contains("does not exist", StringComparison.Ordinal) && dialog.IsVisible &&
+            Directory.GetFileSystemEntries(empty).Length == 0, "A failed clone shows git's reason, keeps the dialog and leaves nothing behind.");
+        dialog.Close();
+        Console.WriteLine("PASS fork clone-project.spec.ts: a clone that fails reports git's reason and leaves nothing behind");
+    }
+
     private static void AddProject(E2eWorkspace app, string item)
     {
         app.Click(app.Find<Button>("AddProjectMenu"));

@@ -61,9 +61,9 @@ internal static class LayoutFrameE2E
             Require(body.GetAutomationControlType() == AutomationControlType.Pane && ReferenceEquals(body.GetLabeledBy(), ControlAutomationPeer.CreatePeerForElement(selected[0])),
                 "The selected tab must label its pane.");
         }
-        foreach (var tool in DockState.ToolNames)
+        foreach (var tool in DockState.ToolNames.Append(DockState.SpecsTool))
         {
-            var wrapper = app.Find<Button>("Tab_" + tool).GetLogicalAncestors().OfType<Grid>().First(item => item.Name?.StartsWith("DockTab_", StringComparison.Ordinal) == true);
+            var wrapper = app.Find<Button>("Tab_" + tool.Replace(':', '_')).GetLogicalAncestors().OfType<Grid>().First(item => item.Name?.StartsWith("DockTab_", StringComparison.Ordinal) == true);
             Require(!wrapper.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "CloseTab"), "Tool tabs must not offer a close button.");
         }
         Require(app.Find<Button>("Tab_files").GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "Files") &&
@@ -167,10 +167,10 @@ internal static class LayoutFrameE2E
         app.ContextAction(app.Find<Button>("Tab_files"), "Close");
         Until(() => !state().Groups.Any(group => group.Tools.Any(tab => tab.Id == "files")));
         ShowTool(app, "files");
-        app.Find<Button>("Tab_specs").Focus();
+        app.Find<Button>("Tab_plugin_spec-dialect_specs").Focus();
         app.Window.KeyPress(Key.Delete, RawInputModifiers.None, PhysicalKey.Delete, null);
-        Until(() => !state().Groups.Any(group => group.Tools.Any(tab => tab.Id == "specs")));
-        ShowTool(app, "specs");
+        Until(() => !state().Groups.Any(group => group.Tools.Any(tab => tab.Id == DockState.SpecsTool)));
+        ShowTool(app, DockState.SpecsTool);
 
         app.Click(app.Find<Button>("Tab_files"));
         app.Open("README.md", true); app.Open("notes.txt", true); app.Open("LINKS.md", true);

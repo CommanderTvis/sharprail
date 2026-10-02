@@ -35,6 +35,8 @@ public sealed class DockGroup
 public sealed class WorkspaceView
 {
     public Dictionary<string, List<DockTab>> Documents { get; set; } = [];
+    /// <summary>Per centre group, its tabs shown together; workspace state because members are this workspace's tabs.</summary>
+    public Dictionary<string, List<DockPane>> Panes { get; set; } = [];
     public Dictionary<string, string> Selected { get; set; } = [];
     public Dictionary<string, string> BeforeToolByTabId { get; set; } = [];
     public int NextTerminalNumber { get; set; } = 1;
@@ -44,6 +46,7 @@ public sealed class WorkspaceView
     public WorkspaceView Copy() => new()
     {
         Documents = Documents.ToDictionary(pair => pair.Key, pair => pair.Value.ToList()),
+        Panes = Panes.ToDictionary(pair => pair.Key, pair => pair.Value.Select(pane => pane.Copy()).ToList()),
         Selected = new(Selected),
         BeforeToolByTabId = new(BeforeToolByTabId),
         NextTerminalNumber = NextTerminalNumber,
@@ -90,17 +93,48 @@ public sealed class DockState
         BottomLimit = BottomLimit
     };
 
-    public static readonly string[] ToolNames = ["projects", "specs", "files", "changes", "review"];
-    public static DockTab Tool(string id) => new(id, char.ToUpperInvariant(id[0]) + id[1..], "tool");
+    public static readonly string[] ToolNames = ["projects", "files", "changes", "review"];
+    /// <summary>The spec dialect plugin's Specs tool, which the presets seat first in the right rail.</summary>
+    public const string SpecsTool = "plugin:spec-dialect:specs";
+    /// <summary>Core tool ids that moved into a plugin, and the plugin tool id a persisted layout reads them as.</summary>
+    public static readonly IReadOnlyDictionary<string, string> LegacyToolIds = new Dictionary<string, string> { ["specs"] = SpecsTool };
+    public static DockTab Tool(string id)
+    {
+        var name = PluginIdentity.ParseToolId(id)?.Tool ?? id;
+        return new(id, char.ToUpperInvariant(name[0]) + name[1..], "tool");
+    }
     public static string ToolRegion(string id) => id == "projects" ? "left" : "right";
     /// <summary>Core's tools and any <c>plugin:&lt;id&gt;:&lt;tool&gt;</c>, so a tab from a plugin since removed keeps its slot.</summary>
     public static bool IsToolId(string id) => ToolNames.Contains(id) || PluginIdentity.ParseToolId(id) is not null;
+
+    /// <summary>Renames tool ids that moved out of core wherever a persisted layout names them; a malformed layout is left to validation.</summary>
+    public void MigrateLegacyTools()
+    {
+        static string Rename(string id) => LegacyToolIds.GetValueOrDefault(id) ?? id;
+        try
+        {
+            foreach (var group in Groups)
+                for (var index = 0; index < group.Tools.Count; index++)
+                    if (group.Tools[index] is { IsTool: true } tab && LegacyToolIds.TryGetValue(tab.Id, out var renamed))
+                        group.Tools[index] = Tool(renamed);
+            foreach (var (legacy, renamed) in LegacyToolIds)
+            {
+                if (ToolRestore.Remove(legacy, out var group)) ToolRestore[renamed] = group;
+                if (ToolRestorePositions.Remove(legacy, out var position)) ToolRestorePositions[renamed] = position;
+            }
+            foreach (var view in Workspaces.Values)
+                foreach (var map in new[] { view.Selected, view.BeforeToolByTabId })
+                    foreach (var (key, value) in map.ToArray())
+                        map[key] = Rename(value);
+        }
+        catch (NullReferenceException) { }
+    }
 
     public static DockState Preset(string name)
     {
         var center = new DockGroup();
         var left = new DockGroup { Region = "left", Tools = [Tool("projects")] };
-        var top = new DockGroup { Region = "right", Tools = [Tool("specs"), Tool("files")], Weight = 1.25 };
+        var top = new DockGroup { Region = "right", Tools = [Tool(SpecsTool), Tool("files")], Weight = 1.25 };
         var lower = new DockGroup { Region = "right", Tools = [Tool("changes"), Tool("review")] };
         var bottom = new DockGroup { Region = "bottom" };
         var state = new DockState { Center = new() { GroupId = center.Id }, Groups = [center, left, top, lower, bottom] };
@@ -111,7 +145,7 @@ public sealed class DockState
             state.Groups.Add(secondary);
             state.Center = new() { Axis = "vertical", First = new() { GroupId = center.Id }, Second = new() { GroupId = secondary.Id } };
             top.Tools = [Tool("changes"), Tool("review")]; top.Weight = 1.4;
-            lower.Tools = [Tool("specs"), Tool("files")];
+            lower.Tools = [Tool(SpecsTool), Tool("files")];
             state.LeftWidth = .16; state.RightWidth = .32;
         }
         return state;

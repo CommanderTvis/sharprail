@@ -9,7 +9,7 @@ namespace SharpRail.Host.Remote;
 
 public sealed partial class ProjectRpc(ProjectSessions sessions, IHostApplicationLifetime lifetime, RequestReplayCache replay) : IProjectRpc
 {
-    public async IAsyncEnumerable<FileChangeReply> WatchFilesAsync(ProjectRequest request, CallContext context = default)
+    public async IAsyncEnumerable<WorkspaceFileChangesReply> WatchFilesAsync(ProjectRequest request, CallContext context = default)
     {
         using var watch = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken, lifetime.ApplicationStopping);
         await using var changes = Host(context).WatchFilesAsync(watch.Token).GetAsyncEnumerator();
@@ -19,7 +19,7 @@ public sealed partial class ProjectRpc(ProjectSessions sessions, IHostApplicatio
             try { next = await changes.MoveNextAsync(); }
             catch (OperationCanceledException) when (watch.IsCancellationRequested) { }
             if (!next) yield break;
-            yield return new() { Paths = changes.Current.Paths.ToList(), Rescan = changes.Current.Rescan };
+            yield return new() { Paths = changes.Current.Paths.ToList(), GitChanged = changes.Current.GitChanged, Rescan = changes.Current.Rescan };
         }
     }
 
@@ -58,6 +58,14 @@ public sealed partial class ProjectRpc(ProjectSessions sessions, IHostApplicatio
         var result = await Host(context).ListSpecsAsync(context.CancellationToken);
         return new SpecsReply { Specs = result.Select(Map).ToList() };
     });
+    public ValueTask<DocumentReply> CreateProjectAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>
+        new DocumentReply { Text = await Host(context).CreateProjectAsync(request.Path, request.Branch, context.CancellationToken) });
+
+    public ValueTask<DocumentReply> CloneProjectAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>
+        new DocumentReply { Text = await Host(context).CloneProjectAsync(request.Url, request.Path, request.Branch, request.Depth > 0 ? request.Depth : null, context.CancellationToken) });
+
+    public ValueTask<CommitLookupReply> GetCommitAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>
+        new CommitLookupReply { Commit = await Host(context).GetCommitAsync(request.Branch, context.CancellationToken) is { } commit ? Map(commit) : null });
 
     public ValueTask<SearchReply> SearchAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>
     {

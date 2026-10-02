@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 
 using SharpRail.Host.Abstractions;
+using SharpRail.Plugins.Api.Host;
 
 namespace SharpRail.Host.Core;
 
@@ -111,6 +112,48 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
 
     public async ValueTask<IReadOnlyList<GitCommit>> ListCommitsAsync(string comparisonBranch, CancellationToken cancellationToken = default)
         => await GitRepository.ListCommitsAsync(root, comparisonBranch, cancellationToken);
+
+    public async ValueTask<GitCommit?> GetCommitAsync(string sha, CancellationToken cancellationToken = default)
+        => await GitRepository.GetCommitAsync(root, sha, cancellationToken);
+
+    public ValueTask<string> CreateProjectAsync(string parentPath, string name, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var target = NewFolderTarget(parentPath, name);
+        Directory.CreateDirectory(target);
+        return ValueTask.FromResult(target);
+    }
+
+    private static readonly TimeSpan CloneTimeout = TimeSpan.FromMinutes(10);
+
+    public async ValueTask<string> CloneProjectAsync(string url, string parentPath, string name, int? depth = null, CancellationToken cancellationToken = default)
+    {
+        var source = url.Trim();
+        if (source.Length == 0 || source.StartsWith('-')) throw new ArgumentException($"Not a repository URL: {url}");
+        if (depth is < 1) throw new ArgumentException($"Clone depth must be a whole number of commits, at least 1: {depth}");
+        var target = NewFolderTarget(parentPath, name);
+        string[] shallow = depth is { } commits ? ["--depth", commits.ToString(System.Globalization.CultureInfo.InvariantCulture)] : [];
+        var clone = await GitRepository.RunBoundedAsync(parentPath, ["clone", .. shallow, "--", source, target],
+            new(CloneTimeout, Network: true), cancellationToken).ConfigureAwait(false);
+        if (clone.Ok) return target;
+        try { if (Directory.Exists(target)) Directory.Delete(target, true); }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
+        throw new IOException(clone.Failure == GitRunFailure.Timeout ? "git clone did not finish within ten minutes."
+            : clone.Err.Trim() is { Length: > 0 } reason ? reason : $"git clone failed: {source}");
+    }
+
+    // A new project folder: one plain name inside an existing parent, not already taken.
+    private static string NewFolderTarget(string parentPath, string name)
+    {
+        var parent = Path.GetFullPath(parentPath);
+        if (!Directory.Exists(parent)) throw new DirectoryNotFoundException($"The parent folder does not exist: {parentPath}");
+        var folder = name.Trim();
+        if (folder.Length == 0 || folder is "." or ".." || folder.IndexOfAny(['/', '\\', '\0']) >= 0)
+            throw new ArgumentException($"Not a folder name: {name}");
+        var target = Path.Combine(parent, folder);
+        if (Path.Exists(target)) throw new IOException($"{target} already exists.");
+        return target;
+    }
 
     public async ValueTask<string> GetDiffAsync(string path, string scope, string comparisonBranch = "", CancellationToken cancellationToken = default)
     {
@@ -264,7 +307,7 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
                 case "create-worktree":
                     await CreateWorkspaceAsync(await MainWorktreeAsync(currentRoot, cancellationToken), "", action.BaseBranch, action.Path, action.Branch, cancellationToken);
                     break;
-                case "remove-worktree":
+                case "remove-worktree" or "force-remove-worktree":
                     var snapshot = await GitRepository.SnapshotAsync(currentRoot, "", cancellationToken);
                     var target = snapshot.Worktrees.SingleOrDefault(tree => tree.Path == Path.GetFullPath(action.Path));
                     if (target is null || target.IsMain || target.IsLocked || target.Path == currentRoot)
@@ -273,7 +316,7 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
                         throw new InvalidOperationException("An existing worktree stays on disk; remove it from SharpRail instead.");
                     using (await registry.LockWorkspacesAsync(cancellationToken))
                     {
-                        await GitRepository.RunAsync(currentRoot, cancellationToken, "worktree", "remove", "--", target.Path);
+                        await GitRepository.RunAsync(currentRoot, cancellationToken, ["worktree", "remove", .. (action.Kind == "force-remove-worktree" ? new[] { "--force" } : []), "--", target.Path]);
                         registry.ChangeWorkspaces(current => current.Where(workspace => workspace.Path != target.Path));
                     }
                     DropIndexes(target.Path);

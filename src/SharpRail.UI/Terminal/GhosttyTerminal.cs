@@ -22,6 +22,7 @@ internal sealed class GhosttyTerminal : Border, ITerminalBackend
     private bool switching;
     private string? statusPath, connectionPath;
     private bool disposed;
+    private bool agentNewline;
 
     // The relay attaches to the host session; exit status and takeover come back through its status file,
     // because Ghostty's login wrapper does not propagate the child's exit code.
@@ -53,7 +54,7 @@ internal sealed class GhosttyTerminal : Border, ITerminalBackend
             var child = new GhosttyLaunch(launch.WorkspaceRoot, command,
                 new(TerminalRelay.ConnectionVariable, connectionPath), launch.ClipboardDirectory);
 
-            texture = new GhosttyTextureView(child) { Colors = TerminalTheme.Colors() };
+            texture = new GhosttyTextureView(child) { Colors = TerminalTheme.Colors(), AgentNewline = agentNewline };
             texture.Exited += (_, code) => Ended(code);
             texture.OperationFailed += TextureFailed;
             Child = texture;
@@ -85,6 +86,7 @@ internal sealed class GhosttyTerminal : Border, ITerminalBackend
         texture = null;
         DeleteRelayFiles();
         fallback = new SkiaTerminal(launch, connection!.Terminals);
+        fallback.SetAgentNewline(agentNewline);
         Child = fallback.View;
         await fallback.Started;
         if (disposed) return;
@@ -158,6 +160,13 @@ internal sealed class GhosttyTerminal : Border, ITerminalBackend
     }
 
     public string ReadScreen() => texture?.ReadScreen() ?? fallback?.ReadScreen() ?? "";
+
+    public void SetAgentNewline(bool enabled)
+    {
+        agentNewline = enabled;
+        if (texture is not null) texture.AgentNewline = enabled;
+        fallback?.SetAgentNewline(enabled);
+    }
 
     protected override void OnGotFocus(FocusChangedEventArgs e)
     {

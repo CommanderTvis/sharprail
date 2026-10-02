@@ -71,6 +71,9 @@ public sealed partial class GhosttySkiaView
         var consumed = (ushort)(printable && mods.HasFlag(KeyModifiers.Shift) ? 1 : 0);
         var bytes = vt.Key(action, Vt.KeyCode(e.PhysicalKey), Vt.Mods(mods), consumed, action == Release ? null : text, unshifted);
         if (bytes.IsEmpty) return false;
+        // The legacy encoding of Shift+Enter is a bare CR; Kitty and modifyOtherKeys encode the modifier themselves.
+        if (AgentNewline && action == Press && e.PhysicalKey == PhysicalKey.Enter && mods == KeyModifiers.Shift && bytes.SequenceEqual("\r"u8))
+            bytes = "\u001b\r"u8;
         Typed(bytes);
         return true;
     }

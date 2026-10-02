@@ -30,6 +30,13 @@ The companion starts 360 px wide; its content fills the column as the user drags
 Closing it returns the whole column to the terminal, and reopening restores the width for that view.
 The column owns the width so a fixed-width child cannot leave unused space around a clipped drawing.
 
+Accessories select the terminal's agent newline encoding through `SetKeyEncoding`. The view retains
+that selection across asynchronous startup and retry. In agent mode, an uncomposed Shift+Enter with
+no other modifiers sends ESC+CR when neither kitty nor modifyOtherKeys is negotiated. Negotiated
+protocols keep Ghostty's own encoding; default mode also restores Ghostty's own encoding. The pinned
+embedding shim reads protocol state under the renderer lock and queues raw input, avoiding clipboard
+paste transformation. Native checks capture actual AppKit key bytes for all four cases.
+
 ## Boundary
 
 - Owns: attach/detach of one tab to one session, start-failure and retry, takeover notice and take-back,

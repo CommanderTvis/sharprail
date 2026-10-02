@@ -43,6 +43,11 @@ public sealed partial class GhosttyTextureView
             e.Handled = true;
             return;
         }
+        if (AgentNewline && e.PhysicalKey == PhysicalKey.Enter && e.KeyModifiers == KeyModifiers.Shift && terminal.SendAgentNewline())
+        {
+            e.Handled = true;
+            return;
+        }
         if (e.KeyModifiers.HasFlag(KeyModifiers.Meta) || !KeyCodes.TryGetValue(e.PhysicalKey, out var code)) return;
         var text = e.KeySymbol;
         var printable = !string.IsNullOrEmpty(text) && !char.IsControl(text[0]);

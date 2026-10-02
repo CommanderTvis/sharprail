@@ -28,6 +28,7 @@ internal sealed class DirectGhosttyTerminal : Border, ITerminalBackend
     private SkiaTerminal? fallback;
     private Task? fallbackStart;
     private bool disposed;
+    private bool agentNewline;
 
     internal DirectGhosttyTerminal(TerminalLaunch launch, ITerminalService terminals)
     {
@@ -50,6 +51,13 @@ internal sealed class DirectGhosttyTerminal : Border, ITerminalBackend
         else input.Writer.TryWrite((System.Text.Encoding.UTF8.GetBytes(data), null));
     }
 
+    public void SetAgentNewline(bool enabled)
+    {
+        agentNewline = enabled;
+        if (texture is not null) texture.AgentNewline = enabled;
+        fallback?.SetAgentNewline(enabled);
+    }
+
     public string ReadScreen() => fallback?.ReadScreen() ?? texture?.ReadScreen() ?? "";
 
     private async Task StartAsync()
@@ -66,7 +74,7 @@ internal sealed class DirectGhosttyTerminal : Border, ITerminalBackend
     {
         texture = new GhosttyTextureView(new(launch.WorkspaceRoot,
             ClipboardImageDirectory: launch.ClipboardDirectory, ExternalIo: io))
-        { Colors = TerminalTheme.Colors() };
+        { Colors = TerminalTheme.Colors(), AgentNewline = agentNewline };
         texture.OperationFailed += TextureFailed;
         Child = texture;
         Ui.ThemeChanged += UpdateColors;
@@ -173,6 +181,7 @@ internal sealed class DirectGhosttyTerminal : Border, ITerminalBackend
         }
         ObjectDisposedException.ThrowIf(disposed, this);
         fallback = new SkiaTerminal(launch, terminals);
+        fallback.SetAgentNewline(agentNewline);
         Child = fallback.View;
         await fallback.Started;
         if (disposed) return;

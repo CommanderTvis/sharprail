@@ -78,16 +78,16 @@ internal static class WorkspaceTabsE2E
 
     internal static string CreateWorkspace(E2eWorkspace app, string name)
     {
-        var path = Path.Combine(app.Window.ProjectRoot + "-worktrees", name);
+        var project = app.Window.ProjectRoot;
         Until(() => app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "AddWorkspace" && button.IsEnabled));
         app.Click(app.Find<Button>("AddWorkspace"));
         Until(() => app.Window.OwnedWindows.Any(window => Equals(window.Tag, "NewWorkspaceDialog")));
         var dialog = app.Window.OwnedWindows.Single(window => Equals(window.Tag, "NewWorkspaceDialog"));
         Settle(100);
         app.Click(dialog.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "WsCreate"));
-        Until(() => app.Window.WorkspaceMounted && app.Window.WorkspaceRoot == path && app.Find<TextBlock>("BranchLabel").Text == name);
+        Until(() => app.Window.WorkspaceMounted && app.Window.WorkspaceRoot != project && app.Find<TextBlock>("BranchLabel").Text == name);
         Require(app.Find<TextBlock>("WorkspaceLabel").Text == name, "The title bar must show the active workspace name.");
-        return path;
+        return app.Window.WorkspaceRoot;
     }
 
     internal static void Switch(E2eWorkspace app, string path, string? branch = null)
@@ -121,7 +121,7 @@ internal static class WorkspaceTabsE2E
         var first = CreateWorkspace(app, "workspace-1");
         var second = CreateWorkspace(app, "workspace-2");
         Switch(app, first, "workspace-1");
-        var specs = app.Window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "specs"));
+        var specs = app.Window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == DockState.SpecsTool));
         var projects = app.Find<Button>("Tab_projects");
         var menu = projects.ContextMenu!;
         app.ContextAction(projects, "Move to pane");

@@ -151,7 +151,7 @@ public interface IPluginUIContext
     /// <returns>The launchers, in registration order.</returns>
     IReadOnlyList<AgentLauncher> Launchers();
 
-    /// <summary>Observes the launcher list (W9).</summary>
+    /// <summary>Observes the launcher list and invalidated availability/model reads (W9).</summary>
     /// <param name="handler">Called on the UI thread with the list after each change.</param>
     /// <returns>Disposing it stops the observation.</returns>
     IDisposable OnLaunchersChanged(Action<IReadOnlyList<AgentLauncher>> handler);

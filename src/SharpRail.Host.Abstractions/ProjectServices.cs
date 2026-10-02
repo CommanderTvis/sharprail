@@ -12,7 +12,6 @@ public static class FileLimits
 }
 
 public record FileSaveRequest(string WorkspaceRoot, string Path, string OriginalText, string Text);
-public record FileChange(IReadOnlyList<string> Paths, bool Rescan = false);
 public record ProjectFile(string Path, string Name, bool IsDirectory);
 public record SpecDocument(string Id, string Title, string Path, string Parent, string Type)
 {
@@ -33,6 +32,8 @@ public record FileDocument(string Path, string Text, byte[]? ImageData = null)
 {
     public ContentMetadata? Info { get; init; }
 }
+/// <summary>Changed workspace-relative paths, Git metadata changes and a request to refresh after lost filesystem events.</summary>
+public record WorkspaceFileChanges(IReadOnlyList<string> Paths, bool GitChanged = false, bool Rescan = false);
 public record GitChange(string Path, string IndexStatus, string WorktreeStatus, string? OriginalPath, int Added, int Removed);
 public record WorktreeInfo(string Path, string Branch, bool IsMain, bool IsLocked);
 public record GitCommit(string Sha, string ShortSha, string Subject, string Author, string CommittedAt);
@@ -110,15 +111,30 @@ public record FileAction(string Kind, string Path, string To = "");
 
 public partial interface IProjectServices
 {
-    IAsyncEnumerable<FileChange> WatchFilesAsync(CancellationToken cancellationToken = default);
     ValueTask<WorkspaceInfo> OpenProjectAsync(string path, CancellationToken cancellationToken = default);
     ValueTask<IReadOnlyList<ProjectFile>> ListFilesAsync(string relativePath, CancellationToken cancellationToken = default);
+    /// <summary>Watches the currently opened workspace, captured for this subscription. The first empty batch confirms that watching has started.</summary>
+    IAsyncEnumerable<WorkspaceFileChanges> WatchFilesAsync(CancellationToken cancellationToken = default);
     ValueTask SaveFileAsync(FileSaveRequest request, CancellationToken cancellationToken = default);
     ValueTask<FileDocument> ReadFileAsync(string relativePath, CancellationToken cancellationToken = default);
     ValueTask<IReadOnlyList<SpecDocument>> ListSpecsAsync(CancellationToken cancellationToken = default);
     ValueTask<SearchHits> SearchAsync(string query, CancellationToken cancellationToken = default);
     ValueTask<GitSnapshot> GetGitAsync(string comparisonBranch = "", CancellationToken cancellationToken = default, string scope = "all");
     ValueTask<IReadOnlyList<GitCommit>> ListCommitsAsync(string comparisonBranch, CancellationToken cancellationToken = default);
+    /// <summary>Reads one commit by hexadecimal id, independently of the comparison catalog; null when it no longer exists.</summary>
+    ValueTask<GitCommit?> GetCommitAsync(string sha, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Lists the workspaces of an open or recent project of this host, independently of the project this session has
+    /// open: its worktrees with the main one first, or the folder itself when it is not a repository.
+    /// </summary>
+    /// <summary>Creates a new empty project folder under an existing parent and returns its path. Existing targets are rejected.</summary>
+    ValueTask<string> CreateProjectAsync(string parentPath, string name, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Clones <paramref name="url"/> into a new folder <paramref name="name"/> under <paramref name="parentPath"/> on
+    /// this host, shallowly when <paramref name="depth"/> is given, and returns the clone's path; the caller opens it as
+    /// a project. A failed clone leaves no folder behind and reports git's own reason.
+    /// </summary>
+    ValueTask<string> CloneProjectAsync(string url, string parentPath, string name, int? depth = null, CancellationToken cancellationToken = default);
     ValueTask<string> GetDiffAsync(string path, string scope, string comparisonBranch = "", CancellationToken cancellationToken = default);
     ValueTask<DiffSides> GetDiffSidesAsync(string path, string scope, string comparisonBranch = "", CancellationToken cancellationToken = default);
     ValueTask<ContentBytes> ReadContentBytesAsync(string path, string? revision, CancellationToken cancellationToken = default);

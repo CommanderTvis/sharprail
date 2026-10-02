@@ -155,7 +155,7 @@ internal sealed partial class DiffView : Grid, IDisposable
     internal void SetPresentation(bool sideBySide, bool ignoreWhitespace)
     {
         if (split.IsChecked == sideBySide && whitespace.IsChecked == ignoreWhitespace) return;
-        split.IsChecked = sideBySide; inline.IsChecked = !sideBySide; whitespace.IsChecked = ignoreWhitespace;
+        split.IsChecked = sideBySide; whitespace.IsChecked = ignoreWhitespace;
         Render();
     }
 

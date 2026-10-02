@@ -55,6 +55,8 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
     public TerminalColors Colors { get => terminal.Colors; set => terminal.Colors = value; }
     public string ReadScreen() => terminal.ReadScreen();
     public void Type(string text) => terminal.Type(text);
+    /// <inheritdoc cref="GhosttyView.AgentNewline"/>
+    public bool AgentNewline { get; set; }
     public void FocusTerminal() => Focus();
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)

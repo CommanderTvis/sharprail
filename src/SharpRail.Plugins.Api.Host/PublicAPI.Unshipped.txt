@@ -170,12 +170,12 @@ SharpRail.Plugins.Api.Host.PluginHttpResponse.Status.get -> int
 SharpRail.Plugins.Api.Host.PluginHttpResponse.Status.init -> void
 SharpRail.Plugins.Api.Host.RevivePrefill
 SharpRail.Plugins.Api.Host.RevivePrefill.<Clone>$() -> SharpRail.Plugins.Api.Host.RevivePrefill!
-SharpRail.Plugins.Api.Host.RevivePrefill.Deconstruct(out string! Text, out bool Submit) -> void
+SharpRail.Plugins.Api.Host.RevivePrefill.Deconstruct(out string? Text, out bool Submit) -> void
 SharpRail.Plugins.Api.Host.RevivePrefill.Equals(SharpRail.Plugins.Api.Host.RevivePrefill? other) -> bool
-SharpRail.Plugins.Api.Host.RevivePrefill.RevivePrefill(string! Text, bool Submit = false) -> void
+SharpRail.Plugins.Api.Host.RevivePrefill.RevivePrefill(string? Text = null, bool Submit = false) -> void
 SharpRail.Plugins.Api.Host.RevivePrefill.Submit.get -> bool
 SharpRail.Plugins.Api.Host.RevivePrefill.Submit.init -> void
-SharpRail.Plugins.Api.Host.RevivePrefill.Text.get -> string!
+SharpRail.Plugins.Api.Host.RevivePrefill.Text.get -> string?
 SharpRail.Plugins.Api.Host.RevivePrefill.Text.init -> void
 SharpRail.Plugins.Api.Host.TerminalAgentChanged
 SharpRail.Plugins.Api.Host.TerminalAgentChanged.Deconstruct(out SharpRail.Plugins.Api.TerminalRef! Terminal, out SharpRail.Plugins.Api.TerminalAgentRecord? Record) -> void

@@ -24,7 +24,7 @@ internal static class WorkspaceLifecycleE2E
         var first = CreateWorkspaceViaDialog(app);
         Require(WorktreePaths(app).Count() == 1, "One worktree row after creation.");
         var list = Git(app.Root, "worktree", "list");
-        Require(WorktreeCount(app.Root) >= 2 && list.Contains("/sample-project-worktrees/", StringComparison.Ordinal),
+        Require(WorktreeCount(app.Root) >= 2 && list.Contains("/worktrees/sample-project-", StringComparison.Ordinal),
             "Creating a workspace must add a Git worktree.");
         RemoveWorkspace(app, first);
         Until(() => !WorktreePaths(app).Any() && app.Window.AtProjectHome && HasWelcome(app));

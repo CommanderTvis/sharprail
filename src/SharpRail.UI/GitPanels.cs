@@ -187,8 +187,6 @@ public sealed partial class WorkbenchWindow
         var branches = ChangesDropdown(name, "Comparison branch", prefix + (comparison.Length > 0 ? comparison : git.Branch), "gitBranch");
         var local = new MenuItem { Header = "Local" };
         var remote = new MenuItem { Header = "Remote" };
-        if (gitBranches.Local.Count > 0) branches.ContextMenu!.Items.Add(local);
-        if (gitBranches.Remote.Count > 0) branches.ContextMenu!.Items.Add(remote);
         void AddBranch(MenuItem parent, string name, string branch)
         {
             var parts = name.Split('/');
@@ -216,15 +214,36 @@ public sealed partial class WorkbenchWindow
             ToolTip.SetTip(item, branch);
             parent.Items.Add(item);
         }
-        foreach (var branch in gitBranches.Local) AddBranch(local, branch, branch);
-        foreach (var group in gitBranches.Remote.GroupBy(branch => branch.Remote))
+        void Fill(BranchCatalog catalog)
         {
-            var owner = new MenuItem { Header = group.Key };
-            remote.Items.Add(owner);
-            foreach (var branch in group) AddBranch(owner, branch.Name, branch.Ref);
+            branches.ContextMenu!.Items.Clear(); local.Items.Clear(); remote.Items.Clear();
+            if (catalog.Local.Count > 0) branches.ContextMenu.Items.Add(local);
+            if (catalog.Remote.Count > 0) branches.ContextMenu.Items.Add(remote);
+            foreach (var branch in catalog.Local) AddBranch(local, branch, branch);
+            foreach (var group in catalog.Remote.GroupBy(branch => branch.Remote))
+            {
+                var owner = new MenuItem { Header = group.Key };
+                remote.Items.Add(owner);
+                foreach (var branch in group) AddBranch(owner, branch.Name, branch.Ref);
+            }
+            branches.ContextMenu.Items.Add(new Separator());
+            branches.ContextMenu.Items.Add(Ui.Menu("Refresh git", () => _ = RefreshAsync()));
         }
-        branches.ContextMenu!.Items.Add(new Separator());
-        branches.ContextMenu.Items.Add(Ui.Menu("Refresh git", () => _ = RefreshAsync()));
+        Fill(gitBranches);
+        var opening = 0;
+        branches.ContextMenu!.Opened += async (_, _) =>
+        {
+            var sequence = ++opening;
+            var request = projectRequest;
+            try
+            {
+                var catalog = await Task.Run(async () => await host.ListBranchesAsync(false, lifetime.Token), lifetime.Token);
+                if (sequence == opening && request == projectRequest && branches.ContextMenu.IsOpen && !lifetime.IsCancellationRequested)
+                    Fill(catalog);
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception error) { Console.Error.WriteLine(error); }
+        };
         return branches;
     }
 
@@ -349,6 +368,7 @@ public sealed partial class WorkbenchWindow
         button.ContextMenu = new ContextMenu { Placement = PlacementMode.BottomEdgeAlignedRight, PlacementTarget = actions };
         button.ContextMenu.Items.Add(Ui.Menu("View", () => OpenChanges(change)));
         button.ContextMenu.Items.Add(Ui.Menu("Open as tab", () => _ = OpenDiffAsync(change)));
+        button.ContextMenu.Items.Add(Ui.Menu("Jump to file", () => _ = BrowseDocumentAsync(change.Path, true)));
         button.ContextMenu.Items.Add(Ui.Menu("Copy path", () => _ = CopyChangePathAsync(change.Path)));
         var canStage = selectedCommit is null && (comparison.Length == 0 || changeScope is "Uncommitted" or "Staged");
         button.ContextMenu.Items.Add(Ui.Menu("Stage file", () => _ = GitActionAsync(new("stage", change.Path)), canStage && change.WorktreeStatus != " "));

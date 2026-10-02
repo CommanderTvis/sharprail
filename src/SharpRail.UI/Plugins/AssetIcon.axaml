@@ -1,0 +1,5 @@
+<Grid xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      x:Class="SharpRail.UI.Plugins.AssetIcon" x:ClassModifier="internal" Name="PluginAssetIcon" VerticalAlignment="Center">
+  <ContentControl x:Name="Fallback" />
+  <ContentControl x:Name="Image" />
+</Grid>

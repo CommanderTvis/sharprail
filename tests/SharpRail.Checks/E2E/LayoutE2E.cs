@@ -57,7 +57,7 @@ internal static class LayoutE2E
         Console.WriteLine("PASS upstream fold-perf.spec.ts: folding a side group does not remount the centre");
     }
 
-    private static void NoSpecsOpensFiles(string root)
+    internal static void NoSpecsOpensFiles(string root)
     {
         var project = Path.Combine(root, "layout-no-specs");
         using var app = new E2eWorkspace(project, openFiles: false, prepare: _ =>
@@ -65,11 +65,11 @@ internal static class LayoutE2E
             File.Delete(Path.Combine(project, "SPEC.md"));
             File.Delete(Path.Combine(project, "themes", "SPEC.md"));
         });
-        var group = app.Window.Layout.State.Groups.Single(item => item.Tools.Any(tool => tool.Id == "specs"));
+        var group = app.Window.Layout.State.Groups.Single(item => item.Tools.Any(tool => tool.Id == DockState.SpecsTool));
         Until(() => app.Window.Layout.Selected(group.Id)?.Id == "files");
-        Require(app.Window.Layout.Tabs(group.Id).Any(tab => tab.Id == "specs"), "Specs must stay docked and one click away.");
-        app.Click(app.Find<Button>("Tab_specs")); Settle();
-        Require(app.Window.Layout.Selected(group.Id)?.Id == "specs", "A later choice of Specs must be the user's to keep.");
+        Require(app.Window.Layout.Tabs(group.Id).Any(tab => tab.Id == DockState.SpecsTool), "Specs must stay docked and one click away.");
+        app.Click(app.Find<Button>("Tab_plugin_spec-dialect_specs")); Settle();
+        Require(app.Window.Layout.Selected(group.Id)?.Id == DockState.SpecsTool, "A later choice of Specs must be the user's to keep.");
         Console.WriteLine("PASS upstream layout.spec.ts: a project with no specs opens its rail on Files, not on the empty Specs panel");
     }
 
@@ -104,15 +104,15 @@ internal static class LayoutE2E
             app.Window.MouseMove(target); Settle(); app.Window.MouseUp(target, MouseButton.Left); Settle();
         }
         Drop(true);
-        Require(Order().SequenceEqual(new[] { "specs", "files", "changes" }), "Dropping above Changes must insert Files between the existing groups.");
+        Require(Order().SequenceEqual(new[] { DockState.SpecsTool, "files", "changes" }), "Dropping above Changes must insert Files between the existing groups.");
         Drop(false);
-        Require(Order().SequenceEqual(new[] { "specs", "empty", "changes", "files" }), "Dropping below Changes must retain the emptied source group.");
+        Require(Order().SequenceEqual(new[] { DockState.SpecsTool, "empty", "changes", "files" }), "Dropping below Changes must retain the emptied source group.");
         var changesId = app.Window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "changes")).Id;
         app.Find<Button>("FoldRestore_" + changesId).Focus();
         app.Window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null); Settle();
         Require(app.Window.Layout.Group(changesId).Folded, "Enter must fold the Changes group.");
         Drop(true);
-        Require(Order().SequenceEqual(new[] { "specs", "empty", "files", "changes", "empty" }) && app.Window.Layout.Group(changesId).Folded,
+        Require(Order().SequenceEqual(new[] { DockState.SpecsTool, "empty", "files", "changes", "empty" }) && app.Window.Layout.Group(changesId).Folded,
             "A folded group's split destination must insert Files above it and preserve its folded state.");
         Console.WriteLine("PASS upstream layout.spec.ts: side groups expose broad per-panel above and below split targets");
     }

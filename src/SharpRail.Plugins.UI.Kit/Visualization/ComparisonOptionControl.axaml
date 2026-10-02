@@ -1,0 +1,16 @@
+<Border xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:kit="using:SharpRail.Plugins.UI.Kit" x:Class="SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionControl"
+        x:ClassModifier="internal" Name="ComparisonOption" Margin="0,0,8,8" Padding="8" CornerRadius="4" BorderThickness="1">
+  <StackPanel Spacing="4">
+    <StackPanel Orientation="Horizontal" Spacing="4">
+      <TextBlock x:Name="Label" Foreground="{x:Static kit:Ui.TextBrush}" FontSize="13" TextWrapping="Wrap" />
+      <Border x:Name="ComparisonRecommended" Background="{x:Static kit:Ui.PrimaryFill}" CornerRadius="4" Padding="8,2">
+        <TextBlock Text="Recommended" Foreground="{x:Static kit:Ui.OnPrimary}" FontSize="12" />
+      </Border>
+    </StackPanel>
+    <TextBlock x:Name="Description" Foreground="{x:Static kit:Ui.Muted}" FontSize="12" TextWrapping="Wrap" />
+    <StackPanel x:Name="Pros" Spacing="2" />
+    <StackPanel x:Name="Cons" Spacing="2" />
+    <ContentControl x:Name="Diagram" />
+  </StackPanel>
+</Border>

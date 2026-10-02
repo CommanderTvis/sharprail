@@ -48,7 +48,7 @@ internal static class WorkspaceActionsE2E
             TopLevel.GetTopLevel(vsCode)!.UpdateLayout();
             app.Click(vsCode, freshGesture: false);
             Until(() => File.Exists(log) && File.ReadAllText(log).Trim().Length > 0);
-            Require(File.ReadAllText(log).Trim() == workspace && workspace.Contains("/sample-project-worktrees/", StringComparison.Ordinal),
+            Require(File.ReadAllText(log).Trim() == workspace && workspace.Contains("/worktrees/sample-project-", StringComparison.Ordinal),
                 "Open in must launch the detected editor at the worktree path.");
         }
         finally { Environment.SetEnvironmentVariable("PATH", path); }
@@ -62,7 +62,7 @@ internal static class WorkspaceActionsE2E
         Choose(app, OpenWorkspaceMenu(app, workspace), "WorkspaceCopyPath");
         var copied = app.Window.Clipboard!.TryGetTextAsync();
         Until(() => copied.IsCompleted);
-        Require(copied.Result == workspace && Path.IsPathFullyQualified(copied.Result) && copied.Result.Contains("/sample-project-worktrees/", StringComparison.Ordinal),
+        Require(copied.Result == workspace && Path.IsPathFullyQualified(copied.Result) && copied.Result.Contains("/worktrees/sample-project-", StringComparison.Ordinal),
             "Copy path must copy the worktree's absolute path.");
         Console.WriteLine("PASS upstream workspace-actions.spec.ts: Copy path copies the worktree's absolute path to the clipboard");
         Choose(app, OpenWorkspaceMenu(app, workspace), "WorkspaceCopyName");
@@ -70,6 +70,19 @@ internal static class WorkspaceActionsE2E
         Until(() => name.IsCompleted);
         Require(name.Result == Path.GetFileName(workspace), "Copy name must copy the workspace's display name.");
         Console.WriteLine("PASS fork workspace menu: Copy name copies the workspace's display name");
+
+        // With another project open, this one's workspaces still copy their path; renaming and removal stay with their project.
+        var second = IsolatedGit.Repository(Path.Combine(directory, "second-project"));
+        AddProject(app, "Open project", second);
+        Until(() => app.Window.ProjectRoot == second);
+        var foreign = OpenWorkspaceMenu(app, workspace);
+        Require(MenuEntry(foreign, "WorkspaceRename") is null && MenuEntry(foreign, "WorkspaceRemove") is null,
+            "Another project's workspace offers no rename or removal.");
+        Choose(app, foreign, "WorkspaceCopyPath");
+        var foreignPath = app.Window.Clipboard!.TryGetTextAsync();
+        Until(() => foreignPath.IsCompleted);
+        Require(foreignPath.Result == workspace, "Another project's workspace copies its absolute path.");
+        Console.WriteLine("PASS workspace menu: another project's workspace copies its path without focusing that project");
     }
 
     private static TextBox StartRename(E2eWorkspace app, string workspace)

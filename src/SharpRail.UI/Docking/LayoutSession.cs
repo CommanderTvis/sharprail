@@ -1,6 +1,6 @@
 namespace SharpRail.UI.Docking;
 
-public sealed class LayoutSession
+public sealed partial class LayoutSession
 {
     public DockState State { get; private set; }
     public long Epoch { get; private set; }
@@ -21,7 +21,6 @@ public sealed class LayoutSession
         .. DockState.ToolNames.Select(id => new DockToolInfo(id, DockState.Tool(id).Title, id switch
         {
             "projects" => "folderTab",
-            "specs" => "bookFill",
             "files" => "file",
             "changes" => "fileDiff",
             _ => "discuss"
@@ -78,6 +77,7 @@ public sealed class LayoutSession
         var candidate = State.Copy();
         try { mutation(candidate); }
         catch (InvalidOperationException) { return false; }
+        NormalizePanes(candidate);
         if (!IsValid(candidate)) return false;
         if (CanRemoveDocument is not null)
         {
@@ -179,7 +179,11 @@ public sealed class LayoutSession
             if (!view.Documents.TryGetValue(target, out var documents)) view.Documents[target] = documents = [];
             var selected = view.Selected.GetValueOrDefault(target) ?? documents.FirstOrDefault()?.Id;
             var preview = documents.FindIndex(item => item.Preview);
-            if ((!keep || claimPreview) && preview >= 0) documents[preview] = tab with { Preview = !keep };
+            if ((!keep || claimPreview) && preview >= 0)
+            {
+                ReplacePaneMember(view, target, documents[preview].Id, tab.Id);
+                documents[preview] = tab with { Preview = !keep };
+            }
             else documents.Add(tab with { Preview = !keep });
             view.Selected[target] = !activate && selected is not null && documents.Any(item => item.Id == selected) ? selected : tab.Id;
             if (activate) { view.FocusedCenter = target; view.FocusedGroup = target; }
@@ -346,6 +350,7 @@ public sealed class LayoutSession
         else
         {
             var documents = view.Documents[source];
+            var original = documents.Select(item => item.Id).ToArray();
             var prior = Array.FindIndex(ProjectTabs(state, source), item => item.Id == id);
             if (source == destination && index > prior) index--;
             if (source == destination && index == prior) throw new InvalidOperationException();
@@ -354,6 +359,13 @@ public sealed class LayoutSession
             documents.Remove(tab);
             if (!view.Documents.TryGetValue(destination, out var target)) view.Documents[destination] = target = [];
             target.Insert(order.Take(index).Count(item => !item.IsTool), tab with { Preview = false });
+            if (source == destination && to.Region == "center")
+            {
+                // A pane's members stay one run, so a drop between them is pulled aside; one that ends where it began is refused.
+                PaneAfterMemberDrop(view, source, id, order, index, target);
+                NormalizePanes(state);
+                if (view.Documents[source].Select(item => item.Id).SequenceEqual(original)) throw new InvalidOperationException();
+            }
             var anchor = order.Skip(index).FirstOrDefault(item => item.IsTool)?.Id;
             if (anchor is null) view.BeforeToolByTabId.Remove(id);
             else view.BeforeToolByTabId[id] = anchor;

@@ -37,6 +37,9 @@ SharpRail created, may be removed by it.
 
 ## Behavior
 
+- Creating a project makes one new empty folder under an existing parent on the host, without changing
+  the calling session's workspace. The name must be one plain folder name; traversal, missing parents
+  and existing targets are rejected. The caller opens the returned path at Project Home.
 - Opening a path resolves it to its repository top level; for a linked worktree the project root is the
   main worktree from `git worktree list`. A plain folder opens as itself. `WorkspaceInfo.ProjectRoot`
   carries the project identity so every window groups the workspace under the same project.

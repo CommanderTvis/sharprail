@@ -174,6 +174,8 @@ The checks own the scenarios under `tests/SharpRail.Checks` and `E2E/`, their
 fixtures, and the isolation rules above. `E2E/E2eWorkspace.cs` is the one shared
 place for input, window, fixture and `NewWindow()` helpers; `E2E/IsolatedGit.cs` is
 the one place fixture repositories are created and Git is shelled out to.
+When a redraw replaces an input target, the helper resolves it by name and tag
+within its owning row, so repeated hunk actions remain distinct.
 
 They consume the UI, Core, Client and Remote projects through their public
 composition (`Workbench`, `WorkbenchWindow`, host adapters, `RemoteServer`), plus

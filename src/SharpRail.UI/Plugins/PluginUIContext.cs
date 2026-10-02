@@ -1,6 +1,8 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
+
 using Avalonia.Threading;
+
 using SharpRail.Host.Abstractions;
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.UI;
@@ -17,6 +19,7 @@ internal sealed class PluginUIContext : IPluginUIContext
     private readonly PluginLoader loader;
     private readonly PluginRosterEntry entry;
     private readonly PluginActivation activation;
+    private readonly Dictionary<string, Task> watched = [];
 
     public PluginUIContext(PluginLoader loader, PluginRosterEntry entry, PluginActivation activation)
     {
@@ -66,7 +69,7 @@ internal sealed class PluginUIContext : IPluginUIContext
                 try
                 {
                     var stream = service.SubscribeAsync(new(pluginId, name, scope, loader.ClientKey), lifetime.Token).GetAsyncEnumerator(lifetime.Token);
-                    if (spec is { Kind: PluginChannelKind.State, Snapshot: { } snapshot })
+                    if (spec is { Kind: PluginChannelKind.State, Snapshot: { } snapshot } && (scope is not null || spec.Key.Count == 0))
                         _ = ReadSnapshotAsync(service, snapshot);
                     while (await stream.MoveNextAsync())
                         Deliver(stream.Current);
@@ -94,7 +97,11 @@ internal sealed class PluginUIContext : IPluginUIContext
             try
             {
                 var result = await service.CallAsync(new(pluginId, snapshot, scope ?? new { }, loader.ClientKey), lifetime.Token);
-                Deliver(result);
+                if (!typeof(System.Collections.IEnumerable).IsAssignableFrom(typeof(TPayload)) && result is JsonElement { ValueKind: JsonValueKind.Array } rows)
+                    foreach (var row in rows.EnumerateArray()) Deliver(row);
+                else if (result is System.Collections.IEnumerable list && result is not TPayload && result is not string)
+                    foreach (var row in list) Deliver(row);
+                else Deliver(result);
             }
             catch (Exception error) when (error is not OperationCanceledException)
             {
@@ -218,13 +225,18 @@ internal sealed class PluginUIContext : IPluginUIContext
         }
     }
 
-    public void FocusCompanion(CompanionHost host, string kind) => Workbench.ActiveWindow?.FocusCompanion(host, Id, kind);
+    public void FocusCompanion(CompanionHost host, string kind)
+    {
+        foreach (var window in Workbench.Windows.ToArray())
+            if (window.TerminalTabs().Any(workspace => workspace.Workspace == host.WorkspaceId && workspace.Tabs.Any(tab => tab.Id == host.TabKey)))
+                window.FocusCompanion(host, Id, kind);
+    }
 
     public IReadOnlyList<AgentLauncher> Launchers() => Registry.LauncherList;
 
     public IDisposable OnLaunchersChanged(Action<IReadOnlyList<AgentLauncher>> handler)
     {
-        void Changed(PluginTables tables) { if (tables.HasFlag(PluginTables.Launchers)) handler(Registry.LauncherList); }
+        void Changed(PluginTables tables) { if ((tables & (PluginTables.Launchers | PluginTables.Predicates)) != 0) handler(Registry.LauncherList); }
         Registry.Changed += Changed;
         return Track(Disposable(() => Registry.Changed -= Changed));
     }
@@ -246,6 +258,7 @@ internal sealed class PluginUIContext : IPluginUIContext
 
     public IDisposable ObserveFileRevision(string workspaceId, string path, Action<int> handler)
     {
+        Workbench.TrackRevision(workspaceId, path);
         var last = FileRevision(workspaceId, path);
         void Changed()
         {
@@ -257,7 +270,25 @@ internal sealed class PluginUIContext : IPluginUIContext
         return Track(Disposable(() => Workbench.RevisionsChanged -= Changed));
     }
 
-    public ValueTask WatchWorkspaceAsync(string workspaceId) => ValueTask.CompletedTask;
+    public async ValueTask WatchWorkspaceAsync(string workspaceId)
+    {
+        if (activation.Closed) return;
+        if (!watched.TryGetValue(workspaceId, out var ready))
+        {
+            var (lease, started) = Workbench.WorkspaceWatches.Acquire(workspaceId);
+            watched[workspaceId] = ready = started;
+            void Release()
+            {
+                if (watched.GetValueOrDefault(workspaceId) == started) watched.Remove(workspaceId);
+                lease.Dispose();
+            }
+            Track(Disposable(Release));
+            // A watch that failed or stopped before readiness is not kept: a later call starts another.
+            _ = started.ContinueWith(_ => Dispatcher.UIThread.Post(Release), CancellationToken.None,
+                TaskContinuationOptions.NotOnRanToCompletion, TaskScheduler.Default);
+        }
+        await ready;
+    }
 
     public IDisposable OnReconnect(Action handler)
     {

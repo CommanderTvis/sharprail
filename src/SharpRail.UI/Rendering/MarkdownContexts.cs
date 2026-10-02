@@ -6,9 +6,10 @@ namespace SharpRail.UI.Rendering;
 /// <summary>Binds the kit's Markdown views to a workspace's host and the window's preferences.</summary>
 public static class MarkdownContexts
 {
-    public static MarkdownContext For(IProjectServices host, Preferences preferences, Action<string, string?> navigate) => new(
+    /// <param name="resolveSpecLink">Maps a <c>[[id]]</c> to its path; without one every spec link renders disabled.</param>
+    public static MarkdownContext For(IProjectServices host, Preferences preferences, Action<string, string?> navigate, Func<string, string?>? resolveSpecLink = null) => new(
         async (path, token) => (await host.ReadFileAsync(path, token)).ImageData,
-        async token => (await host.ListSpecsAsync(token)).GroupBy(spec => spec.Id).ToDictionary(group => group.Key, group => group.First().Path),
+        id => resolveSpecLink?.Invoke(id),
         navigate, preferences.FontSize, preferences.MarkdownLineWidth, preferences.MarkdownLineWidthBounded)
     {
         SourceWrapWidth = LineWidths.File(preferences.FileLineWidth, preferences.FileLineWidthBounded)

@@ -81,6 +81,12 @@
       <Setter Property="SelectionBrush" Value="{x:Static rendering:Ui.TextSelection}" />
       <Setter Property="SelectionForegroundBrush" Value="{DynamicResource ThemeSelectionForeground}" />
     </Style>
+    <!-- Fluent paints flyouts from the system's light or dark variant; the app's theme decides instead. -->
+    <Style Selector="FlyoutPresenter">
+      <Setter Property="Background" Value="{x:Static rendering:Ui.Elevated}" />
+      <Setter Property="BorderBrush" Value="{x:Static rendering:Ui.BorderBrush}" />
+      <Setter Property="Foreground" Value="{x:Static rendering:Ui.TextBrush}" />
+    </Style>
     <Style Selector="FlyoutPresenter.tab-search">
       <Setter Property="Padding" Value="0" />
       <Setter Property="Background" Value="Transparent" />

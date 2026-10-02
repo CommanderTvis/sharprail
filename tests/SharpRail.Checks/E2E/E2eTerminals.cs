@@ -102,7 +102,7 @@ internal sealed partial class HostTerminal : ITerminalBackend
 
     private async Task StartAsync()
     {
-        session = await service.AttachAsync(new(launch.SessionId, launch.WorkspaceRoot, launch.ClientId, 120, 30), lifetime.Token);
+        session = await service.AttachAsync(new(launch.SessionId, launch.WorkspaceRoot, launch.ClientId, 120, 30) { TabKey = launch.TabKey }, lifetime.Token);
         if (lifetime.IsCancellationRequested) { await session.DisposeAsync(); return; }
         Show(session.Replay);
         _ = Task.Run(async () =>
@@ -149,6 +149,8 @@ internal sealed partial class HostTerminal : ITerminalBackend
     public void Write(string data) => Send(data);
 
     public string ReadScreen() => Text;
+    public bool AgentNewline { get; private set; }
+    public void SetAgentNewline(bool enabled) => AgentNewline = enabled;
 
     public void Dispose()
     {

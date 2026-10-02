@@ -10,7 +10,6 @@ namespace SharpRail.Plugins.UI.Kit.Markdown;
 public sealed partial class MarkdownPreview
 {
     private readonly List<(MarkdownLink Button, string Id)> specLinks = [];
-    private IReadOnlyDictionary<string, string>? specPaths;
 
     private MarkdownLink LinkButton(string label, FontWeight weight, FontStyle style)
     {
@@ -27,7 +26,7 @@ public sealed partial class MarkdownPreview
         };
     }
 
-    // A [[id]] inside a spec resolves against the workspace's spec catalog; an unknown id renders disabled.
+    // A [[id]] inside a spec resolves through the context when clicked; an id it cannot resolve renders disabled.
     private MarkdownLink SpecLink(string id, string label, FontWeight weight, FontStyle style)
     {
         var button = LinkButton(label, weight, style);
@@ -35,29 +34,21 @@ public sealed partial class MarkdownPreview
         ToolTip.SetTip(button, id);
         button.Click += (_, _) =>
         {
-            if (specPaths?.GetValueOrDefault(id) is { } target) context.Navigate(target, null);
+            if (context.ResolveSpecLink(id) is { } target) context.Navigate(target, null);
         };
         specLinks.Add((button, id));
         return button;
     }
 
-    private async Task ResolveSpecLinksAsync()
+    /// <summary>Asks the context again which <c>[[id]]</c> links resolve, after what it resolves against changed.</summary>
+    public void RefreshSpecLinks()
     {
-        try
-        {
-            specPaths = await Task.Run(async () => await context.ResolveSpecLinks(lifetime.Token), lifetime.Token);
-        }
-        catch (Exception error) when (error is OperationCanceledException or IOException or InvalidOperationException)
-        {
-            if (lifetime.IsCancellationRequested) return;
-            specPaths = new Dictionary<string, string>();
-        }
         foreach (var (button, id) in specLinks)
         {
-            if (specPaths.ContainsKey(id)) continue;
-            button.IsEnabled = false;
-            ToolTip.SetTip(button, $"No spec with id {id} in this workspace");
-            ToolTip.SetShowOnDisabled(button, true);
+            var known = context.ResolveSpecLink(id) is not null;
+            button.IsEnabled = known;
+            ToolTip.SetTip(button, known ? id : $"No spec with id {id} in this workspace");
+            ToolTip.SetShowOnDisabled(button, !known);
         }
     }
 

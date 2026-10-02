@@ -2,18 +2,24 @@
 id: submodule-host-specs
 type: submodule-design
 status: active
-title: Specs — workspace spec catalog
+title: Specs — ownership moved to the spec dialect plugin
 parent: module-host-core
+references: [module-plugin-spec-dialect]
 ---
 
-# Specs — workspace spec catalog
+Upstream: packages/server/src/spec/SPEC.md @ e8a751bd7 (CommanderTvis fork)
 
-Upstream: packages/server/src/spec/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
-Upstream: packages/spec-graph/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
-Upstream: packages/spec-graph/core/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
-Upstream: packages/server/src/mcp/SPEC.md @ b047c8f2 (CommanderTvis fork)
+The spec graph, Specs panel and all seven `spec_*` MCP tools belong to the builtin
+[spec dialect plugin](../SharpRail.Plugins.SpecDialect/SPEC.md). Core no longer has a
+`SpecCatalog`, spec records or a `ListSpecsAsync` operation. The plugin runtime composes
+its host half and the app loader mounts its UI half through the ordinary plugin API.
 
-## Responsibility
+Core's `McpServer` owns the stateless MCP JSON-RPC protocol and serves only the active
+tools supplied by the runtime for the calling terminal. It implements initialize,
+ping, tools/list and tools/call; notifications return 202, invalid frames -32600,
+unknown methods -32601 and unknown tools -32602. Tool failures are `isError` results.
+The loopback route authenticates the terminal token and supplies its workspace cwd.
+Initialization instructions are plugin-neutral and never require a spec workflow.
 
 Serve the Specs panel and the Welcome suggestion: the specs found in the active workspace as `SpecDocument`
 records (`Id`, `Title`, `Path`, `Parent`, `Type`, `Status`) through `IProjectServices.ListSpecsAsync`, the

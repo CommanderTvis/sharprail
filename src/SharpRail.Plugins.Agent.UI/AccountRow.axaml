@@ -1,0 +1,6 @@
+<Grid xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:kit="using:SharpRail.Plugins.UI.Kit" x:Class="SharpRail.Plugins.Agent.UI.AccountRow"
+      x:ClassModifier="internal" ColumnDefinitions="Auto,*" ColumnSpacing="8">
+  <TextBlock x:Name="Label" Foreground="{x:Static kit:Ui.Muted}" FontSize="13" />
+  <TextBlock x:Name="Value" Grid.Column="1" Foreground="{x:Static kit:Ui.TextBrush}" FontSize="13" HorizontalAlignment="Right" />
+</Grid>

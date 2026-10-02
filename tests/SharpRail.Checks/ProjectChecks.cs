@@ -31,7 +31,6 @@ internal static class ProjectChecks
         var files = await local.ListFilesAsync("");
         var markdown = await local.ReadFileAsync("README.md");
         Require(markdown.Text.Contains("# Preview", StringComparison.Ordinal), "Document read failed.");
-        Require((await local.ListSpecsAsync()).Count >= 2, "Spec catalog failed.");
         try
         {
             await local.ReadFileAsync("../outside.txt");
@@ -156,7 +155,7 @@ internal static class ProjectChecks
             Console.WriteLine("PASS remote shutdown releases an active filesystem subscription");
         }
         finally { await server.StopAsync(); }
-        Console.WriteLine("PASS project/files/specs local and gRPC parity, traversal and cancellation");
+        Console.WriteLine("PASS project/files local and gRPC parity, traversal and cancellation");
 
         var source = Environment.GetEnvironmentVariable("SHARPRAIL_TEST_GIT_SOURCE");
         if (string.IsNullOrEmpty(source))
@@ -174,7 +173,7 @@ internal static class ProjectChecks
         await using var second = remote.WatchFilesAsync(timeout.Token).GetAsyncEnumerator();
         Require(await first.MoveNextAsync() && first.Current.Rescan && await second.MoveNextAsync() && second.Current.Rescan,
             "Both file subscriptions must start with a rescan after registration.");
-        async Task Observe(IAsyncEnumerator<FileChange> stream, string path)
+        async Task Observe(IAsyncEnumerator<WorkspaceFileChanges> stream, string path)
         {
             while (await stream.MoveNextAsync())
                 if (stream.Current.Rescan || stream.Current.Paths.Contains(path)) return;
@@ -319,8 +318,17 @@ internal static class ProjectChecks
                 remoteBranches.DefaultBase == localBranches.DefaultBase &&
                 (localBranches.Local.Contains(localBranches.DefaultBase) || localBranches.Remote.Any(branch => branch.Ref == localBranches.DefaultBase)) &&
                 remoteBranches.SuggestedPath == localBranches.SuggestedPath && remoteBranches.SuggestedBranch == localBranches.SuggestedBranch &&
-                localBranches.SuggestedPath == Path.Combine(root + "-worktrees", localBranches.SuggestedBranch),
+                Path.GetDirectoryName(Path.GetDirectoryName(localBranches.SuggestedPath)) == Path.Combine(Environment.GetEnvironmentVariable("SHARPRAIL_STATE_DIR")!, "worktrees"),
                 $"Remote branch catalog differs: {localBranches.DefaultBase} {localBranches.SuggestedPath} {root}.");
+            var originalRemoteHead = (await Git(root, "symbolic-ref", "refs/remotes/origin/HEAD")).Trim();
+            await Git(root, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/missing-default");
+            foreach (var service in new IProjectServices[] { host, remote })
+            {
+                var catalog = await service.ListBranchesAsync(false);
+                Require(catalog.DefaultBase == "HEAD" || catalog.Local.Contains(catalog.DefaultBase),
+                    "A dangling remote default must resolve to an existing local base in both transports.");
+            }
+            await Git(root, "symbolic-ref", "refs/remotes/origin/HEAD", originalRemoteHead);
             Require((await remote.ListEditorsAsync()).SequenceEqual(await host.ListEditorsAsync()), "Remote editor list differs.");
             foreach (var service in new IProjectServices[] { host, remote })
             {

@@ -1,3 +1,5 @@
+using Avalonia.Threading;
+
 using SharpRail.Host.Abstractions;
 using SharpRail.UI.Rendering;
 
@@ -6,13 +8,22 @@ namespace SharpRail.UI;
 public sealed partial class WorkbenchWindow
 {
     private CancellationTokenSource? workspaceWatch;
+    private readonly HashSet<string> changedPaths = [];
     // Document keys whose file is gone from disk; the tab keeps its last content and says so.
     private readonly HashSet<string> deletedDocuments = [];
+    private DispatcherTimer? watchDebounce;
+    private DateTime watchPendingSince;
 
+    // A write storm refreshes at least this often instead of waiting for quiet.
+    private static readonly TimeSpan WatchMaxDelay = TimeSpan.FromSeconds(1);
+
+    /// <summary>Coalesced refreshes triggered by the workspace watcher, the native analogue of the reference's fsChanged frames.</summary>
     public int WatchRefreshes { get; private set; }
 
     private void StopWatching()
     {
+        watchDebounce?.Stop();
+        changedPaths.Clear();
         workspaceWatch?.Cancel();
         workspaceWatch?.Dispose();
         workspaceWatch = null;
@@ -22,49 +33,76 @@ public sealed partial class WorkbenchWindow
     {
         if (request != projectRequest || !WorkspaceMounted || lifetime.IsCancellationRequested) return;
         StopWatching();
-        workspaceWatch = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
-        _ = WatchWorkspaceAsync(request, workspaceWatch.Token);
+        var directory = workspaceRoot;
+        var cancellation = workspaceWatch = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
+        var token = cancellation.Token;
+        _ = Task.Run(() => WatchWorkspaceFilesAsync(directory, request, token), token);
     }
 
-    private async Task WatchWorkspaceAsync(long request, CancellationToken cancellationToken)
+    private async Task WatchWorkspaceFilesAsync(string directory, long request, CancellationToken cancellationToken)
     {
-        var firstFrame = true;
+        var reconnect = false;
         var generation = state.Generation;
-        while (!cancellationToken.IsCancellationRequested && request == projectRequest)
+        while (!cancellationToken.IsCancellationRequested)
         {
             try
             {
-                await foreach (var change in host.WatchFilesAsync(cancellationToken))
+                var firstBatch = true;
+                await foreach (var changes in host.WatchFilesAsync(cancellationToken))
                 {
-                    if (request != projectRequest || cancellationToken.IsCancellationRequested) return;
-                    var refreshGit = !firstFrame;
-                    firstFrame = false;
-                    await RefreshWatchedAsync(request, change, refreshGit);
+                    var ready = firstBatch;
+                    firstBatch = false;
+                    var restored = reconnect;
+                    reconnect = false;
+                    Dispatcher.UIThread.Post(() =>
+                    {
+                        if (request != projectRequest || directory != workspaceRoot || !WorkspaceMounted || cancellationToken.IsCancellationRequested) return;
+                        var paths = changes.Paths;
+                        if (ready || restored || changes.Rescan)
+                            paths = paths.Concat(Layout.State.Workspaces.GetValueOrDefault(directory)?.Documents.Values
+                                .SelectMany(items => items).Where(tab => tab.Kind is "file" or "markdown" or "viewer").Select(tab => tab.Path) ?? []).Distinct().ToArray();
+                        if (paths.Count > 0 || changes.GitChanged || changes.Rescan || restored) ScheduleWatchRefresh(paths);
+                    });
                 }
-                return;
             }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { return; }
-            catch (Exception error)
-            {
-                Console.Error.WriteLine("Workspace watching is unavailable: " + error.Message);
-                // A lost host re-hydrates the window under its next generation, which subscribes again.
-                if (remote && (state.Connection.Status == SharpRail.Host.Client.HostConnectionStatus.Disconnected || state.Generation != generation)) return;
-                try { await Task.Delay(1000, cancellationToken); }
-                catch (OperationCanceledException) { return; }
-            }
+            catch (Exception error) { Console.Error.WriteLine("Workspace watching interrupted: " + error.Message); }
+            if (remote && (state.Connection.Status == SharpRail.Host.Client.HostConnectionStatus.Disconnected || state.Generation != generation)) return;
+            reconnect = true;
+            try { await Task.Delay(1000, cancellationToken); }
+            catch (OperationCanceledException) { return; }
         }
     }
 
-    private async Task RefreshWatchedAsync(long request, FileChange change, bool refreshGit)
+    private void ScheduleWatchRefresh(IReadOnlyList<string> paths)
+    {
+        if (!WorkspaceMounted || lifetime.IsCancellationRequested) return;
+        foreach (var path in paths) changedPaths.Add(path);
+        if (watchDebounce is null)
+        {
+            watchDebounce = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(250) };
+            watchDebounce.Tick += (_, _) =>
+            {
+                watchDebounce.Stop();
+                if (WorkspaceMounted && !lifetime.IsCancellationRequested) _ = RefreshWatchedAsync(projectRequest);
+            };
+        }
+        if (!watchDebounce.IsEnabled) watchPendingSince = DateTime.UtcNow;
+        else if (DateTime.UtcNow - watchPendingSince >= WatchMaxDelay) return;
+        watchDebounce.Stop(); watchDebounce.Start();
+    }
+
+    private async Task RefreshWatchedAsync(long request)
     {
         WatchRefreshes++;
-        if (change.Paths.Count > 0) workbench.BumpRevisions(workspaceRoot, change.Paths);
-        if (change.Rescan || change.Paths.Any(path => path.EndsWith(".md", StringComparison.OrdinalIgnoreCase)))
-        { RefreshSpecs(); _ = ProbeSpecsAsync(); }
+        var paths = changedPaths.ToArray();
+        changedPaths.Clear();
+        workbench.BumpRevisions(workspaceRoot, paths);
+        RefreshSpecs(); _ = ProbeSpecsAsync();
         await Task.WhenAll(
-            ReloadOpenDocumentsAsync(request, change.Paths, change.Rescan),
-            refreshGit ? RefreshGitAsync(request) : Task.CompletedTask,
-            RefreshFilesAsync(request));
+            ReloadOpenDocumentsAsync(request, paths),
+            RefreshGitAsync(request),
+            paths.Length > 0 ? RefreshFilesAsync(request) : Task.CompletedTask);
     }
 
     // Re-lists the root and every loaded folder so expanded folders keep their children.
@@ -77,9 +115,7 @@ public sealed partial class WorkbenchWindow
             try { listed[folder] = await Task.Run(async () => await host.ListFilesAsync(folder, lifetime.Token), lifetime.Token); }
             catch (OperationCanceledException) { return; }
             catch (Exception error) when (folder.Length > 0 && error is IOException or UnauthorizedAccessException) { }
-            catch (Grpc.Core.RpcException error) when (folder.Length > 0 && error.StatusCode == Grpc.Core.StatusCode.FailedPrecondition) { }
             catch (Exception error) { if (request == projectRequest) Report(error); return; }
-            if (request != projectRequest) return;
         }
         if (request != projectRequest || !WorkspaceMounted) return;
         if (listed.Count == folderCache.Count && listed.All(entry => folderCache.TryGetValue(entry.Key, out var current) && current.SequenceEqual(entry.Value)))
@@ -90,17 +126,16 @@ public sealed partial class WorkbenchWindow
         toolContent.Remove("files"); surface.RefreshContents("files");
     }
 
-    private async Task ReloadOpenDocumentsAsync(long request, IReadOnlyCollection<string> paths, bool rescan)
+    private async Task ReloadOpenDocumentsAsync(long request, IReadOnlyCollection<string> paths)
     {
         var changed = paths.ToHashSet(StringComparer.Ordinal);
         var tabs = Layout.State.Workspaces.GetValueOrDefault(workspaceRoot)?.Documents.Values
             .SelectMany(items => items).Where(tab => tab.Kind is "file" or "markdown" &&
-                (rescan || changed.Contains(tab.Path) || changed.Any(path => tab.Path.StartsWith(path.TrimEnd('/') + "/", StringComparison.Ordinal))))
+                (changed.Contains(tab.Path) || changed.Any(path => tab.Path.StartsWith(path.TrimEnd('/') + "/", StringComparison.Ordinal))))
             .DistinctBy(tab => tab.Id).ToArray() ?? [];
         var refreshed = false;
         foreach (var tab in tabs)
         {
-            if (request != projectRequest || lifetime.IsCancellationRequested) return;
             var key = workspaceRoot + ":" + tab.Id;
             if (!documents.TryGetValue(key, out var current)) continue;
             if (Body<Editor.CodeDocumentView>(key) is { HasPendingChanges: true }) continue;

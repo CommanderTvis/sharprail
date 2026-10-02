@@ -241,7 +241,7 @@ internal static class ChangesScopeE2E
         Console.WriteLine("PASS upstream changes.spec.ts: A commit scope whose commit is rewritten away falls back to All changes with a toast");
     }
 
-    private static void FailedRead(string root, string source)
+    internal static void FailedRead(string root, string source)
     {
         var (app, worktree) = Open(root, "changes-failed-read", source);
         using var _ = app;
@@ -252,9 +252,19 @@ internal static class ChangesScopeE2E
         ShowChanges(app);
         PickTarget(app, "doomed");
         UntilRows(app, "README.md");
+        var selector = app.Find<Button>("ChangesScope");
+        app.Click(selector);
+        selector = app.Find<Button>("ChangesScope");
+        var menu = selector.ContextMenu!;
+        Until(() => menu.IsOpen);
         ChangesFixture.Git(worktree, "branch", "-D", "doomed");
-
-        PickScope(app, "Uncommitted");
+        var refresh = app.Window.RefreshAsync();
+        Until(() => refresh.IsCompleted);
+        refresh.GetAwaiter().GetResult();
+        Require(menu.IsOpen && ReferenceEquals(app.Find<Button>("ChangesScope"), selector),
+            "A Git refresh must retain an open scope menu and its trigger.");
+        app.Click(menu.Items.OfType<MenuItem>().Single(Header("Uncommitted")), freshGesture: false);
+        Until(() => !menu.IsOpen);
         UntilRows(app, "README.md");
         PickScope(app, "All changes");
         Until(() => app.Window.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "ChangesError"));

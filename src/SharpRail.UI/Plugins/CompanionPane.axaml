@@ -1,0 +1,10 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="SharpRail.UI.Plugins.CompanionPane" ClipToBounds="True">
+  <Grid RowDefinitions="Auto,*">
+    <Button x:Name="CompanionClose" HorizontalAlignment="Right" Width="24" Height="24" Padding="4" Margin="4"
+            CornerRadius="4" Background="Transparent" BorderThickness="0"
+            ToolTip.Tip="Close companion" AutomationProperties.Name="Close companion" />
+    <ContentControl x:Name="CompanionContent" Grid.Row="1"
+                    HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
+  </Grid>
+</UserControl>

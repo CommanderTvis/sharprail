@@ -1,8 +1,10 @@
+using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Schema;
 using System.Threading.Channels;
+
 using SharpRail.Host.Abstractions;
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.Host;
@@ -748,7 +750,6 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
 
     internal string? ToolClash(string name, ActivationTables self)
     {
-        if (McpServer.CoreToolNames.Contains(name)) return "core";
         if (self.Tools.Any(tool => tool.Name == name)) return "this plugin";
         return Active().FirstOrDefault(active => !ReferenceEquals(active.Tables, self) && active.Tables.Tools.Any(tool => tool.Name == name)).Entry?.Id;
     }
@@ -772,7 +773,17 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
 
     private static JsonObject Schema(Type type)
     {
-        var schema = PluginJson.Options.GetJsonSchemaAsNode(type, new JsonSchemaExporterOptions { TreatNullObliviousAsNonNullable = true });
+        // A parameter's [Description] is what the agent reads about it.
+        var schema = PluginJson.Options.GetJsonSchemaAsNode(type, new JsonSchemaExporterOptions
+        {
+            TreatNullObliviousAsNonNullable = true,
+            TransformSchemaNode = (context, node) =>
+            {
+                if (node is JsonObject property && context.PropertyInfo?.AttributeProvider?.GetCustomAttributes(typeof(DescriptionAttribute), true)
+                    .OfType<DescriptionAttribute>().FirstOrDefault() is { } description) property["description"] = description.Description;
+                return node;
+            }
+        });
         if (schema is not JsonObject json) return new JsonObject { ["type"] = "object" };
         json["additionalProperties"] = false;
         return json;
@@ -801,14 +812,18 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
     private TerminalPrefill? Prefill(TerminalRef terminal)
     {
         if (AgentRecord(terminal) is not { } record) return null;
+        string? text = null;
+        var submit = false;
         foreach (var (entry, tables) in Active())
             foreach (var hook in tables.ReviveHooks)
             {
                 RevivePrefill? offered = null;
                 Guard(entry.Id, () => offered = hook(terminal, record));
-                if (offered is not null) return new TerminalPrefill(offered.Text, offered.Submit);
+                if (offered is null) continue;
+                text ??= offered.Text;
+                submit |= offered.Submit;
             }
-        return null;
+        return text is null && !submit ? null : new TerminalPrefill(text ?? "", submit);
     }
 
     // A closed tab forgets its agent record, including one persisted for a tab no client attached this run.

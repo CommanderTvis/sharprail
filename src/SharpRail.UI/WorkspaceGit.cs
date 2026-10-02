@@ -1,3 +1,6 @@
+using Avalonia.Controls;
+using Avalonia.LogicalTree;
+
 namespace SharpRail.UI;
 
 public sealed partial class WorkbenchWindow
@@ -37,10 +40,20 @@ public sealed partial class WorkbenchWindow
         var scope = commit is not null ? "commit" : selectedScope == "Staged" ? "staged" : selectedScope == "Uncommitted" ? "uncommitted" : "all";
         try
         {
-            IReadOnlyList<SharpRail.Host.Abstractions.GitCommit> catalog = commit is not null
-                ? await Task.Run(async () => await host.ListCommitsAsync(selectedComparison, token), token) : [];
+            var catalog = commit is not null
+                ? await Task.Run(async () => await host.ListCommitsAsync(selectedComparison, token), token) : scopeCommits ?? [];
+            var resolved = commit is not null ? await Task.Run(async () => await host.GetCommitAsync(commit.Sha, token), token) : null;
             if (token.IsCancellationRequested || request != projectRequest || selectedComparison != comparison || selectedScope != changeScope || commit?.Sha != selectedCommit?.Sha) return;
-            if (commit is not null && !catalog.Any(item => item.Sha == commit.Sha)) { await ShowAllChangesAsync(request); return; }
+            if (commit is not null && resolved is null)
+            {
+                selectedCommit = null; changeScope = "All changes";
+                SaveGitSelection();
+                gitLoading = true; gitError = null; RefreshGitPanels();
+                ShowNotification("That commit is no longer in this branch — showing all changes.");
+                await RefreshGitAsync(request);
+                return;
+            }
+            if (resolved is not null) selectedCommit = resolved;
             var snapshot = await Task.Run(async () => await host.GetGitAsync(commit?.Sha ?? selectedComparison, token, scope), token);
             if (token.IsCancellationRequested || request != projectRequest || selectedComparison != comparison || selectedScope != changeScope || commit?.Sha != selectedCommit?.Sha) return;
             var branches = snapshot.IsRepository

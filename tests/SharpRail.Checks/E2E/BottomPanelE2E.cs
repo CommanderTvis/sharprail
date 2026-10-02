@@ -63,8 +63,8 @@ internal static class BottomPanelE2E
 
     private static void Align(E2eWorkspace app, string label)
     {
-        var button = app.Find<Button>("BottomAlignment");
-        app.Click(button); Until(() => button.ContextMenu!.IsOpen);
+        var button = (Button)app.Click(app.Find<Button>("BottomAlignment"));
+        Until(() => button.ContextMenu!.IsOpen);
         app.Click(button.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, label)), freshGesture: false);
         Until(() => !button.ContextMenu!.IsOpen); Settle(100);
     }
@@ -118,7 +118,8 @@ internal static class BottomPanelE2E
 
     private static void InitialTerminalGroup(string root)
     {
-        using var app = Default(Repository(root, "bottom-initial"));
+        TaskCompletionSource? gitReady = null;
+        using var app = new E2eWorkspace(Repository(root, "bottom-initial"), openFiles: false, prepare: host => gitReady = host.HoldGit());
         Ready(app, TerminalTabs(app).Single());
         Require(app.Window.Layout.State.BottomAlignment == "center" && Groups(app).Length == 1, "A new workspace must start with one centered bottom group.");
         var bottom = Groups(app).Single().Id;
@@ -139,6 +140,10 @@ internal static class BottomPanelE2E
         Press(Key.F6, PhysicalKey.F6, RawInputModifiers.Control, app.Window);
         Until(() => button.IsFocused);
         Press(Key.F6, PhysicalKey.F6, RawInputModifiers.Control | RawInputModifiers.Shift, app.Window);
+        Until(() => app.Find<Button>("Tab_changes").IsFocused);
+        Require(!app.Window.Layout.Tools.Any(tool => tool.Id == "plugin:branch-graph:graph"), "Git-dependent tools wait for deferred Git discovery.");
+        gitReady!.SetResult();
+        Until(() => app.Window.Layout.Tools.Any(tool => tool.Id == "plugin:branch-graph:graph"));
         Until(() => app.Find<Button>("Tab_changes").IsFocused);
         Console.WriteLine("PASS upstream bottom-panel.spec.ts: a new workspace starts with one accessible terminal group in a 30% bottom panel");
     }
@@ -248,7 +253,8 @@ internal static class BottomPanelE2E
     {
         var directory = Repository(root, "bottom-alignments");
         double resized;
-        using (var app = Default(directory))
+        TaskCompletionSource? gitReady = null;
+        using (var app = new E2eWorkspace(directory, openFiles: false, prepare: host => gitReady = host.HoldGit()))
         {
             HorizontalSpan(app, () => Panel(app), Center(app), Center(app));
             var button = app.Find<Button>("BottomAlignment");
@@ -258,10 +264,15 @@ internal static class BottomPanelE2E
             var items = button.ContextMenu!.Items.OfType<MenuItem>().ToArray();
             Until(() => items[0].IsFocused);
             Require(Equals(items[0].Header, "Below center"), "The alignment menu must open on Below center.");
+            gitReady!.SetResult();
+            Until(() => !string.IsNullOrEmpty(app.Find<TextBlock>("BranchLabel").Text));
+            Require(ReferenceEquals(button, app.Find<Button>("BottomAlignment")) && button.ContextMenu!.IsOpen,
+                "Deferred Git discovery must keep the open alignment menu and its trigger.");
             Press(Key.Down, PhysicalKey.ArrowDown, RawInputModifiers.None, TopLevel.GetTopLevel(items[0])!);
             Until(() => items[1].IsFocused && Equals(items[1].Header, "Below center and left"));
             Press(Key.Enter, PhysicalKey.Enter, RawInputModifiers.None, TopLevel.GetTopLevel(items[1])!);
             Until(() => app.Window.Layout.State.BottomAlignment == "center-left");
+            Until(() => app.Window.Layout.Tools.Any(tool => tool.Id == "plugin:branch-graph:graph"));
             Align(app, "Below center");
             var before = Height(app);
             Drag(app, app.Find<ResizeHandle>("bottomSeparator"), new Vector(0, -90));
@@ -453,7 +464,7 @@ internal static class BottomPanelE2E
         Menu(app, "files", "New bottom group at left");
         Until(() => Groups(app).Length == 3);
         Require(Titles(0) == "Files", "A new left bottom group must come first.");
-        var specs = app.Find<Button>("Tab_specs");
+        var specs = app.Find<Button>("Tab_plugin_spec-dialect_specs");
         app.Click(specs, mouseButton: MouseButton.Right); Until(() => specs.ContextMenu!.IsOpen);
         foreach (var direction in new[] { "left", "right" })
             Require(specs.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, $"New bottom group at {direction} — limited to 3")) is { IsEnabled: false },

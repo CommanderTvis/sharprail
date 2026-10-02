@@ -18,6 +18,10 @@ void gav_view_set_colors(void *view, const uint32_t *colors, double minimum_cont
 void gav_view_destroy(void *view);
 void gav_view_focus(void *view);
 void gav_view_input(void *view, const char *text);
+// Shift+Enter as ESC CR, the newline agents read, unless the program negotiated a keyboard protocol.
+void gav_view_set_agent_newline(void *view, bool enabled);
+// Sends that newline now; false when a negotiated protocol should encode Shift+Enter instead.
+bool gav_view_agent_newline(void *view);
 bool gav_view_rendered(void *view);
 size_t gav_view_read(void *view, char *buffer, size_t capacity);
 // Texture mode keeps Ghostty's platform view unparented; Avalonia owns presentation and input.

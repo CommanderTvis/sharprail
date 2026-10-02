@@ -19,7 +19,6 @@ public sealed partial class WorkbenchWindow
 {
     private readonly Dictionary<string, IReadOnlyList<ProjectFile>> folderCache = [];
     private readonly HashSet<string> expandedFolders = [];
-    private readonly HashSet<string> specsReseated = [];
 
     public Func<Task<string?>>? FolderPicker { get; set; }
     private int projectPicker;
@@ -50,6 +49,29 @@ public sealed partial class WorkbenchWindow
         if (path is null || picker != projectPicker) return;
         projectPicker++;
         await OpenPickedProjectAsync(path);
+    }
+
+    private async Task CreateProjectAsync()
+    {
+        var parent = Path.GetDirectoryName(projectRoot.Length > 0 ? projectRoot : workspaceRoot) ?? "";
+        Func<Task<string?>>? pick = remote ? null : async () => FolderPicker is { } custom ? await custom()
+            : (await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = "Create project in", AllowMultiple = false }))
+                .FirstOrDefault()?.TryGetLocalPath();
+        var path = await Dialogs.CreateProject(this, parent, pick,
+            (into, name) => Task.Run(async () => await host.CreateProjectAsync(into, name, lifetime.Token), lifetime.Token));
+        if (path is not null) await OpenPickedProjectAsync(path);
+    }
+
+    private async Task CloneProjectAsync()
+    {
+        var parent = Path.GetDirectoryName(projectRoot.Length > 0 ? projectRoot : workspaceRoot) ?? "";
+        Func<Task<string?>>? pick = remote ? null : async () => FolderPicker is { } custom ? await custom()
+            : (await StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions { Title = "Clone into", AllowMultiple = false }))
+                .FirstOrDefault()?.TryGetLocalPath();
+        // The clone runs git for up to ten minutes; it never runs on the dispatcher.
+        var path = await Dialogs.CloneProject(this, parent, pick,
+            (url, into, name, depth) => Task.Run(async () => await host.CloneProjectAsync(url, into, name, depth, lifetime.Token), lifetime.Token));
+        if (path is not null) await OpenPickedProjectAsync(path);
     }
 
     private async Task OpenPickedProjectAsync(string path)
@@ -116,6 +138,7 @@ public sealed partial class WorkbenchWindow
         railSignature = RailSignature();
         railSelection.Clear();
         railStats.Clear();
+        workspaceTabHosts.Clear();
         var panel = new Grid { Name = "ProjectsPanel", Margin = new Thickness(12), RowDefinitions = new RowDefinitions("28,8,*") };
         var toolbar = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(8, 0, 4, 0) };
         var title = Ui.Text("PROJECTS", size: 12); title.FontWeight = Avalonia.Media.FontWeight.Medium;
@@ -194,7 +217,11 @@ public sealed partial class WorkbenchWindow
             }
             tree.Children.Add(highlight);
             if (collapsed) continue;
-            foreach (var workspace in workspaces) tree.Children.Add(WorkspaceItem(workspace));
+            foreach (var workspace in workspaces)
+            {
+                tree.Children.Add(WorkspaceItem(workspace));
+                tree.Children.Add(WorkspaceTabsHost(workspace.Path));
+            }
         }
         Ui.Place(panel, new ScrollViewer { Content = tree, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled }, 2);
         return panel;
@@ -213,6 +240,9 @@ public sealed partial class WorkbenchWindow
 
     private Control WorkspaceItem(WorkspaceRecord worktree)
     {
+        // Another project's workspace opens that project; renaming and removal stay with the project that is open, while
+        // opening it elsewhere and copying its path or name work from any row.
+        var foreign = worktree.ProjectRoot != projectRoot;
         var name = WorkspaceName(worktree.Path);
         var active = !atHome && worktree.Path == workspaceRoot;
         var color = active ? Ui.Accent : Ui.Muted;
@@ -291,10 +321,10 @@ public sealed partial class WorkbenchWindow
         };
         AutomationProperties.SetName(kebab, "Workspace actions");
         ToolTip.SetTip(kebab, "Workspace actions");
+        var item = new Grid { Name = "WorkspaceItem", Tag = worktree.Path, ColumnDefinitions = new ColumnDefinitions("*,Auto"), Background = Avalonia.Media.Brushes.Transparent };
         var menu = WorkspaceActions(worktree, kebab);
         button.ContextMenu = menu;
         kebab.Click += (_, _) => menu.Open(button);
-        var item = new Grid { Name = "WorkspaceItem", Tag = worktree.Path, ColumnDefinitions = new ColumnDefinitions("*,Auto"), Background = Avalonia.Media.Brushes.Transparent };
         void Reveal() => kebab.Opacity = item.IsPointerOver || item.IsKeyboardFocusWithin || menu.IsOpen ? 1 : 0;
         item.PointerEntered += (_, _) => { Reveal(); Prewarm(worktree.Path); };
         item.PointerExited += (_, _) => Reveal();
@@ -490,6 +520,7 @@ public sealed partial class WorkbenchWindow
         return ReferenceEquals(source is TreeViewItem ? source : source.GetVisualAncestors().OfType<TreeViewItem>().FirstOrDefault(), node);
     }
 
+    private readonly HashSet<string> specsReseated = [];
     private TreeView? specsTree;
     private StackPanel? specsFailure;
 
@@ -609,7 +640,6 @@ public sealed partial class WorkbenchWindow
         Ui.Place(row, Ui.Text(file.Name), 0, 2);
         return row;
     }
-
     private static Control TreeRow(string icon, string title, bool primary = false)
     {
         var row = new Grid { ColumnDefinitions = new ColumnDefinitions("14,4,*") };

@@ -37,6 +37,8 @@ public interface ITerminalBackend : IDisposable
     void Write(string data);
     // The screen and scrollback as plain text.
     string ReadScreen();
+    // Agent Shift+Enter fallback; negotiated keyboard protocols remain the renderer's own.
+    void SetAgentNewline(bool enabled);
 }
 
 public delegate ITerminalBackend TerminalFactory(TerminalLaunch launch);

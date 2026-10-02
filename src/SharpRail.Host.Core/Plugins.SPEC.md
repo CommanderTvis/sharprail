@@ -13,7 +13,7 @@ Upstream: packages/server/src/plugins/SPEC.md @ 4737df6d (CommanderTvis fork)
 
 ## Responsibility
 
-Turns plugin host halves (builtin, from `BuiltinPlugins.All`, which is empty in this commit; or external, from
+Turns plugin host halves (builtin, from `BuiltinPlugins.All`; or external, from
 `<stateDir>/plugins/<id>/sharprail-plugin.json` plus every root in `HostState.PluginPaths`) into one running
 `PluginRuntime`: a roster the host publishes on its shared state, a method/channel/route dispatcher, the MCP
 tools a terminal's agent sees, the plugin file read the app loads UI halves and assets through, and the
@@ -43,7 +43,7 @@ implemented here and never redeclared.
 | `PluginDiscovery.cs` | manifest intake and the scan of plugin roots |
 | `PluginLoadContext.cs` | the external host half's load context, keyed by directory and content hash |
 | `WorkspaceFileWatcher.cs` | one activation's coalescing watch of a workspace (`OnFilesChanged`) |
-| `BuiltinPlugins.cs` | the builtin array, empty in this commit |
+| `BuiltinPlugins.cs` | Spec Dialect, Blueprint, Claude Code and Discord host halves; PDF Preview's UI-only manifest |
 
 The runtime runs where the host runs: in the app's process for its own host, inside `SharpRail.Host.Remote` for a
 remote host. A remote client never runs a host half.
@@ -203,7 +203,8 @@ from future listings and calls; a run already executing finishes.
 The terminal service learns three things for plugins. An attach names its tab key, so the host knows each
 session's `TerminalRef`; the session id stays the hash of workspace root and tab key the app already uses.
 Environment contributors run when a shell starts, after core's own variables. A shell that starts for a tab whose
-agent record is set offers that record to every active revive hook, first non-null wins, and the prefill rides
+agent record is set offers that record to every active revive hook. The first supplied text wins and all
+submit flags are combined; a submit-only hook leaves another plugin's text intact. The prefill rides
 the attachment to the client, which types it once the shell's first output has arrived. Agent records persist in
 the host state file, travel on `HostState.TerminalAgents`, and are dropped when the tab closes. Lifecycle events
 fire on spawn (with the shell's pid), exit and close, and on every agent record change.
@@ -226,6 +227,9 @@ answers, a route serving, rescan promoting a fixed manifest, shutdown running di
 fixture plugin under `tests/` is the external plugin these load from disk.
 
 ## External configuration files
+
+Builtin host modules are constructed for each runtime. Stateful plugin stores and publishers must not
+be shared between embedded hosts or between an embedded host and a remote server in the same process.
 
 Activation-scoped `ExternalFiles` providers supply exact absolute paths per workspace. The runtime's
 `AllowsExternalFile(workspaceRoot, path)` consults active registrations only, so disabling a plugin removes
