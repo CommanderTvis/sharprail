@@ -121,18 +121,29 @@ internal static class Program
         {
             PluginHostChecks.Run(root).GetAwaiter().GetResult();
             SpecDialectChecks.Run(root).GetAwaiter().GetResult();
+            BlueprintChecks.Run(root).GetAwaiter().GetResult();
             WorkspaceWatchChecks.Run(root).GetAwaiter().GetResult();
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             PluginUiChecks.Run(root);
             PluginWatchChecks.Run(root);
             SpecDialectChecks.RunUi(Path.Combine(root, "upstream-e2e"));
+            BlueprintChecks.RunUi(root);
             Console.WriteLine("PASS plugin checks");
             return;
         }
         if (args.SequenceEqual(["--file-watch"]))
         {
             WorkspaceWatchChecks.Run(root).GetAwaiter().GetResult();
+            return;
+        }
+        if (args.SequenceEqual(["--blueprint"]))
+        {
+            BlueprintChecks.Run(root).GetAwaiter().GetResult();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            BlueprintChecks.RunUi(root);
+            Console.WriteLine("PASS Blueprint checks");
             return;
         }
         if (args.SequenceEqual(["--scratch"]))
@@ -210,6 +221,7 @@ internal static class Program
         StateChecks.Run(root).GetAwaiter().GetResult();
         PluginHostChecks.Run(root).GetAwaiter().GetResult();
         SpecDialectChecks.Run(root).GetAwaiter().GetResult();
+        BlueprintChecks.Run(root).GetAwaiter().GetResult();
         WorkspaceWatchChecks.Run(root).GetAwaiter().GetResult();
         FileSavingChecks.Run(root).GetAwaiter().GetResult();
         LayoutChecks.Run();
@@ -218,6 +230,7 @@ internal static class Program
         PluginUiChecks.Run(root);
         PluginWatchChecks.Run(root);
         SpecDialectChecks.RunUi(Path.Combine(root, "upstream-e2e"));
+        BlueprintChecks.RunUi(root);
         Console.WriteLine("PASS prototype checks and open-world runtime");
     }
 

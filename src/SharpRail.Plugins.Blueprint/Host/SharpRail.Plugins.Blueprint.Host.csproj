@@ -1,0 +1,1 @@
+<Project Sdk="Microsoft.NET.Sdk"><ItemGroup><ProjectReference Include="../../SharpRail.Plugins.Api.Host/SharpRail.Plugins.Api.Host.csproj" /><ProjectReference Include="../../SharpRail.Plugins.SpecDialect/Contract/SharpRail.Plugins.SpecDialect.csproj" /><ProjectReference Include="../Contract/SharpRail.Plugins.Blueprint.csproj" /></ItemGroup></Project>

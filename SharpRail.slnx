@@ -9,6 +9,9 @@
     <Project Path="src/SharpRail.Plugins.Api/SharpRail.Plugins.Api.csproj" />
     <Project Path="src/SharpRail.Plugins.Api.Host/SharpRail.Plugins.Api.Host.csproj" />
     <Project Path="src/SharpRail.Plugins.Api.UI/SharpRail.Plugins.Api.UI.csproj" />
+    <Project Path="src/SharpRail.Plugins.Blueprint/Contract/SharpRail.Plugins.Blueprint.csproj" />
+    <Project Path="src/SharpRail.Plugins.Blueprint/Host/SharpRail.Plugins.Blueprint.Host.csproj" />
+    <Project Path="src/SharpRail.Plugins.Blueprint/UI/SharpRail.Plugins.Blueprint.UI.csproj" />
     <Project Path="src/SharpRail.Plugins.SpecDialect/Contract/SharpRail.Plugins.SpecDialect.csproj" />
     <Project Path="src/SharpRail.Plugins.SpecDialect/Host/SharpRail.Plugins.SpecDialect.Host.csproj" />
     <Project Path="src/SharpRail.Plugins.SpecDialect/UI/SharpRail.Plugins.SpecDialect.UI.csproj" />

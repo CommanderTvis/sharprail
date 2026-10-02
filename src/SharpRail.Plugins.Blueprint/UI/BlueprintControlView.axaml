@@ -1,0 +1,14 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="SharpRail.Plugins.Blueprint.UI.BlueprintControlView">
+  <Border x:Name="Frame" CornerRadius="4" BorderThickness="1" Padding="12,8" Margin="0,12">
+    <StackPanel Spacing="4">
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <TextBlock x:Name="Title" FontSize="12" VerticalAlignment="Center" />
+        <ContentControl x:Name="Lock" VerticalAlignment="Center" />
+        <Button x:Name="Choice" Padding="8,4" />
+      </StackPanel>
+      <StackPanel x:Name="Options" Spacing="4" />
+    </StackPanel>
+  </Border>
+</UserControl>

@@ -3,5 +3,6 @@
     <ProjectReference Include="../SharpRail.Host.Abstractions/SharpRail.Host.Abstractions.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.Api.Host/SharpRail.Plugins.Api.Host.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.SpecDialect/Host/SharpRail.Plugins.SpecDialect.Host.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Blueprint/Host/SharpRail.Plugins.Blueprint.Host.csproj" />
   </ItemGroup>
 </Project>
