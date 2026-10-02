@@ -83,6 +83,11 @@ of the API.
 
 ### Recording the surface
 
+`TerminalAgentRecord.LaunchedByUi` is nullable launch provenance: true for a detected UI launch,
+false for a detected manual launch, null when unknown. Hosts persist and broadcast it, including over
+gRPC. Providers determine it independently of optional prompts or MCP settings; status-only updates
+retain it. Older state and hosts leave it unknown rather than mislabelling sessions.
+
 No stability promise is not the same as no accounting. Every change to the plugin-facing surface has to be
 visible in review.
 

@@ -1,0 +1,43 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:kit="using:SharpRail.Plugins.UI.Kit"
+             x:Class="SharpRail.Plugins.ClaudeCode.UI.ClaudeCodeSettingsSection"
+             x:Name="SettingsClaudeCode">
+  <UserControl.Styles>
+    <Style Selector="TextBlock"><Setter Property="TextWrapping" Value="Wrap" /><Setter Property="FontSize" Value="12" /><Setter Property="Foreground" Value="{x:Static kit:Ui.Muted}" /></Style>
+    <Style Selector="TextBlock.heading"><Setter Property="Foreground" Value="{x:Static kit:Ui.TextBrush}" /><Setter Property="FontSize" Value="13" /></Style>
+  </UserControl.Styles>
+  <StackPanel Spacing="16">
+    <StackPanel Spacing="4">
+      <TextBlock Classes="heading" FontSize="15" Text="Claude Code" />
+      <TextBlock Text="The Claude Code pane, terminal status and the plugin offer — turn the plugin itself on or off from Settings › Plugins." />
+    </StackPanel>
+    <StackPanel Spacing="4">
+      <TextBlock Classes="heading" Text="Launch command" />
+      <TextBlock Text="What the launcher types into a new terminal. A command line, so flags are welcome — pick an executable if claude is not on your PATH." />
+      <DockPanel>
+        <Button x:Name="ClaudeCommandBrowse" DockPanel.Dock="Right" Margin="4,0,0,0" Content="Browse…" />
+        <TextBox x:Name="ClaudeCommandInput" PlaceholderText="claude" FontFamily="{x:Static kit:Ui.CodeFont}" AutomationProperties.Name="Claude Code launch command" />
+      </DockPanel>
+    </StackPanel>
+    <CheckBox x:Name="ClaudeDisableAgentView">
+      <StackPanel Spacing="2">
+        <TextBlock Classes="heading" Text="Start Claude Code without its own agent view" />
+        <TextBlock Text="Parallel sessions are what SharpRail's workspaces and terminals are for, so a session started from here does not also open the CLI's own view of them. Applies to sessions SharpRail starts; one you type yourself is your own." />
+      </StackPanel>
+    </CheckBox>
+    <CheckBox x:Name="ClaudeAppendSystemPrompt">
+      <StackPanel Spacing="2">
+        <TextBlock Classes="heading" Text="Tell Claude Code it is running in SharpRail" />
+        <TextBlock Text="Sessions SharpRail starts append a short system prompt: that they run in a workspace rather than a bare shell, which SharpRail tools to reach for, and how to create worktrees the app lists. Turn it off to start sessions with Claude Code's own prompt only. Applies to new sessions; a resumed one keeps the prompt it began with." />
+      </StackPanel>
+    </CheckBox>
+    <StackPanel Orientation="Horizontal" Spacing="12" Margin="28,-10,0,0">
+      <Button x:Name="ClaudeSystemPromptEdit" Classes="link" Content="Edit instructions" />
+      <Button x:Name="ClaudeSystemPromptReset" Classes="link" Content="Reset to SharpRail's text" IsVisible="False"
+              ToolTip.Tip="You have edited the instructions, so SharpRail no longer updates them. This puts back the text this version ships." />
+    </StackPanel>
+    <TextBlock Text="While on: the Claude Code pane resolves the configuration that applies to a workspace, terminals are watched for a running agent, and SharpRail offers to install its Claude Code plugin. Configuration is only ever written after you approve the exact change." />
+    <TextBlock Text="While off: no file under ~/.claude is read, the process table is not polled, and the host refuses these requests even if a client asks." />
+  </StackPanel>
+</UserControl>

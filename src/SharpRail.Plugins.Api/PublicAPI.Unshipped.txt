@@ -302,6 +302,8 @@ SharpRail.Plugins.Api.TerminalAgentRecord.Kind.get -> string!
 SharpRail.Plugins.Api.TerminalAgentRecord.Kind.init -> void
 SharpRail.Plugins.Api.TerminalAgentRecord.Model.get -> string?
 SharpRail.Plugins.Api.TerminalAgentRecord.Model.init -> void
+SharpRail.Plugins.Api.TerminalAgentRecord.LaunchedByUi.get -> bool?
+SharpRail.Plugins.Api.TerminalAgentRecord.LaunchedByUi.init -> void
 SharpRail.Plugins.Api.TerminalAgentRecord.SessionId.get -> string?
 SharpRail.Plugins.Api.TerminalAgentRecord.SessionId.init -> void
 SharpRail.Plugins.Api.TerminalAgentRecord.TerminalAgentRecord(string! Kind, string! Command) -> void

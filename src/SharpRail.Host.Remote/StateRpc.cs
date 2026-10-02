@@ -87,7 +87,8 @@ public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime li
             Command = agent.Record.Command,
             SessionId = agent.Record.SessionId ?? "",
             Cwd = agent.Record.Cwd ?? "",
-            Model = agent.Record.Model ?? ""
+            Model = agent.Record.Model ?? "",
+            LaunchedByUi = agent.Record.LaunchedByUi
         }).ToList(),
         TerminalTitles = state.TerminalTitles.Select(title => new TerminalTitleMessage
         { WorkspaceId = title.Terminal.WorkspaceId, TabKey = title.Terminal.TabKey, Title = title.Title }).ToList(),
