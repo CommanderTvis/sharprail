@@ -1,5 +1,6 @@
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.UI;
+using SharpRail.Plugins.SpecDialect;
 
 
 namespace SharpRail.UI.Plugins;
@@ -9,5 +10,6 @@ public static class BuiltinPlugins
 {
     public static IReadOnlyList<(PluginManifest Manifest, Func<PluginUIModule> Load)> All =
     [
+        (SpecDialectManifest.Manifest, () => new SpecDialectUI()),
     ];
 }

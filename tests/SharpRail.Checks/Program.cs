@@ -324,12 +324,14 @@ internal static class Program
         if (args.SequenceEqual(["--plugins"]))
         {
             PluginHostChecks.Run(root).GetAwaiter().GetResult();
+            SpecDialectChecks.Run(root).GetAwaiter().GetResult();
             WorkspaceWatchChecks.Run(root).GetAwaiter().GetResult();
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             PluginUiChecks.Run(root);
             FileActionChecks.Run(root);
             PluginWatchChecks.Run(root);
+            SpecDialectChecks.RunUi(Path.Combine(root, "upstream-e2e"));
             Console.WriteLine("PASS plugin checks");
             return;
         }
@@ -382,6 +384,20 @@ internal static class Program
             StartupChecks.Run(root);
             DockInputChecks.Run(root);
             Console.WriteLine("PASS scratch");
+            return;
+        }
+        if (args.SequenceEqual(["--specs"]))
+        {
+            SpecDialectChecks.Run(root).GetAwaiter().GetResult();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            var e2e = Path.Combine(root, "upstream-e2e");
+            SpecDialectChecks.RunUi(e2e);
+            E2E.PreviewTabsE2E.Run(e2e);
+            E2E.LayoutE2E.NoSpecsOpensFiles(e2e);
+            E2E.MarkdownDocumentE2E.SpecDocuments(e2e);
+            E2E.LiveRefreshE2E.Run(e2e);
+            Console.WriteLine("PASS spec dialect checks");
             return;
         }
         if (args.SequenceEqual(["--welcome"]))
@@ -517,6 +533,8 @@ internal static class Program
         Gate.Case("plugin-host", () => PluginHostChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("file-actions", () => FileActionChecks.Run(root));
         Gate.Case("plugin-ui", () => PluginUiChecks.Run(root));
+        Gate.Case("spec-dialect", () => SpecDialectChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("spec-dialect-ui", () => SpecDialectChecks.RunUi(Path.Combine(root, "upstream-e2e")));
         Console.WriteLine("PASS prototype checks and open-world runtime");
     }
 

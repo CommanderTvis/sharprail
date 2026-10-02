@@ -5,6 +5,7 @@
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Themes.Fluent" />
     <PackageReference Include="SkiaSharp" />
+    <InternalsVisibleTo Include="SharpRail.Plugins.SpecDialect.UI" />
     <PackageReference Include="Markdig" />
     <PackageReference Include="Svg.Controls.Skia.Avalonia" />
     <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
