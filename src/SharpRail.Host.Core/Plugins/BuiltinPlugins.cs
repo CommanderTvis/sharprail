@@ -10,6 +10,8 @@ using SharpRail.Plugins.Discord.Host;
 using SharpRail.Plugins.PdfPreview;
 using SharpRail.Plugins.BranchGraph;
 using SharpRail.Plugins.BranchGraph.Host;
+using SharpRail.Plugins.Visualize;
+using SharpRail.Plugins.Visualize.Host;
 
 
 namespace SharpRail.Host.Core.Plugins;
@@ -25,5 +27,6 @@ public static class BuiltinPlugins
         (DiscordPlugin.Manifest, new DiscordHost()),
         (PdfPreviewPlugin.Manifest, null),
         (BranchGraphPlugin.Manifest, new BranchGraphHost()),
+        (VisualizeContract.Manifest, new VisualizeHost()),
     ];
 }

@@ -314,6 +314,7 @@ internal static class Program
             DiscordChecks.RunHostAsync(root).GetAwaiter().GetResult();
             WorkspaceWatchChecks.Run(root).GetAwaiter().GetResult();
             BranchGraphChecks.RunHostAsync(root).GetAwaiter().GetResult();
+            VisualizeChecks.Host(root).GetAwaiter().GetResult();
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             PluginUiChecks.Run(root);
@@ -326,6 +327,7 @@ internal static class Program
             DiscordChecks.RunUi(root);
             PdfPreviewChecks.Run(root);
             BranchGraphChecks.RunUi(root);
+            E2E.VisualizeE2E.Run(root);
             Console.WriteLine("PASS plugin checks");
             return;
         }
@@ -336,6 +338,20 @@ internal static class Program
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             BranchGraphChecks.RunUi(root);
             Console.WriteLine("PASS Branch Graph checks");
+            return;
+        }
+        if (args.SequenceEqual(["--visualize"]))
+        {
+            VisualizeChecks.Host(root).GetAwaiter().GetResult();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            E2E.VisualizeE2E.Run(root);
+            E2E.MarkdownMermaidE2E.Run(root);
+            return;
+        }
+        if (args.SequenceEqual(["--visualize-host"]))
+        {
+            VisualizeChecks.Host(root).GetAwaiter().GetResult();
             return;
         }
         if (args.SequenceEqual(["--file-watch"]))
@@ -582,6 +598,7 @@ internal static class Program
         Gate.Case("PdfPreviewChecks-Run", () => PdfPreviewChecks.Run(root));
         Gate.Case("BranchGraphChecks-RunHostAsync", () => BranchGraphChecks.RunHostAsync(root).GetAwaiter().GetResult());
         Gate.Case("BranchGraphChecks-RunUi", () => BranchGraphChecks.RunUi(root));
+        Gate.Case("VisualizeChecks-Host", () => VisualizeChecks.Host(root).GetAwaiter().GetResult());
         Console.WriteLine("PASS prototype checks and open-world runtime");
     }
 
