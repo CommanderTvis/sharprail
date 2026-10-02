@@ -1,0 +1,26 @@
+<Button xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:kit="using:SharpRail.Plugins.UI.Kit"
+        x:Class="SharpRail.Plugins.BranchGraph.UI.GraphCommitRow"
+        x:ClassModifier="internal" Name="GraphCommit"
+        Height="40" Padding="8,0" CornerRadius="0" BorderThickness="0" Background="Transparent"
+        HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch">
+  <Button.Resources>
+    <DataTemplate x:Key="GraphMenuTemplate">
+    <ContextMenu Name="GraphCommitMenu" Background="{x:Static kit:Ui.Elevated}" BorderBrush="{x:Static kit:Ui.BorderBrush}"
+                 BorderThickness="1" CornerRadius="6" Padding="4" Foreground="{x:Static kit:Ui.TextBrush}" FontFamily="{x:Static kit:Ui.InterfaceFont}">
+      <ContextMenu.Resources>
+        <SolidColorBrush x:Key="MenuFlyoutItemBackgroundPointerOver" x:CompileBindings="False" Color="{Binding Color, Source={x:Static kit:Ui.Hover}}" />
+        <SolidColorBrush x:Key="MenuFlyoutItemBackgroundPressed" x:CompileBindings="False" Color="{Binding Color, Source={x:Static kit:Ui.Hover}}" />
+        <SolidColorBrush x:Key="MenuFlyoutItemForegroundPointerOver" x:CompileBindings="False" Color="{Binding Color, Source={x:Static kit:Ui.TextBrush}}" />
+      </ContextMenu.Resources>
+      <MenuItem x:Name="GraphCopyHash" Header="Copy commit hash" />
+      <MenuItem x:Name="GraphCopyPatch" Header="Copy patch to clipboard" />
+    </ContextMenu>
+    </DataTemplate>
+  </Button.Resources>
+  <Grid ColumnDefinitions="Auto,*">
+    <ContentControl x:Name="GraphLaneHost" />
+    <ContentControl x:Name="GraphLabelsHost" Grid.Column="1" Margin="8,0,0,0" />
+  </Grid>
+</Button>

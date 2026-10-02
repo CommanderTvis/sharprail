@@ -13,6 +13,9 @@
     <Project Path="src/SharpRail.Plugins.Blueprint/Contract/SharpRail.Plugins.Blueprint.csproj" />
     <Project Path="src/SharpRail.Plugins.Blueprint/Host/SharpRail.Plugins.Blueprint.Host.csproj" />
     <Project Path="src/SharpRail.Plugins.Blueprint/UI/SharpRail.Plugins.Blueprint.UI.csproj" />
+    <Project Path="src/SharpRail.Plugins.BranchGraph/Contract/SharpRail.Plugins.BranchGraph.csproj" />
+    <Project Path="src/SharpRail.Plugins.BranchGraph/Host/SharpRail.Plugins.BranchGraph.Host.csproj" />
+    <Project Path="src/SharpRail.Plugins.BranchGraph/UI/SharpRail.Plugins.BranchGraph.UI.csproj" />
     <Project Path="src/SharpRail.Plugins.ClaudeCode/SharpRail.Plugins.ClaudeCode.csproj" />
     <Project Path="src/SharpRail.Plugins.ClaudeCode/Host/SharpRail.Plugins.ClaudeCode.Host.csproj" />
     <Project Path="src/SharpRail.Plugins.ClaudeCode/UI/SharpRail.Plugins.ClaudeCode.UI.csproj" />

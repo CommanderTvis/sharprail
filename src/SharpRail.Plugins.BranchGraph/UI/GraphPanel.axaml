@@ -1,0 +1,15 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:kit="using:SharpRail.Plugins.UI.Kit"
+             x:Class="SharpRail.Plugins.BranchGraph.UI.GraphPanel"
+             x:ClassModifier="internal"
+             Name="GraphPanel">
+  <Grid>
+    <TextBlock x:Name="GraphMessage" Margin="8" TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" Text="Reading history…" />
+    <ScrollViewer x:Name="GraphScroll" IsVisible="False" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+      <Border x:Name="GraphBody">
+        <StackPanel x:Name="GraphWindow" VerticalAlignment="Top" />
+      </Border>
+    </ScrollViewer>
+  </Grid>
+</UserControl>

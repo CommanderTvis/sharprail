@@ -8,6 +8,8 @@ using SharpRail.Plugins.ClaudeCode.Host;
 using SharpRail.Plugins.Discord;
 using SharpRail.Plugins.Discord.Host;
 using SharpRail.Plugins.PdfPreview;
+using SharpRail.Plugins.BranchGraph;
+using SharpRail.Plugins.BranchGraph.Host;
 
 
 namespace SharpRail.Host.Core.Plugins;
@@ -22,5 +24,6 @@ public static class BuiltinPlugins
         (ClaudeCodeManifest.Manifest, new ClaudeCodeHost()),
         (DiscordPlugin.Manifest, new DiscordHost()),
         (PdfPreviewPlugin.Manifest, null),
+        (BranchGraphPlugin.Manifest, new BranchGraphHost()),
     ];
 }
