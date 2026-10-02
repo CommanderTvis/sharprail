@@ -30,7 +30,6 @@ public static class Ui
     public static readonly SolidColorBrush BorderBrush = new();
     public static readonly SolidColorBrush Hover = new();
     public static readonly SolidColorBrush TextSelection = new();
-    public static readonly SolidColorBrush PreviewSelection = new();
     public static readonly SolidColorBrush Success = new();
     public static readonly SolidColorBrush Danger = new();
     public static readonly SolidColorBrush Info = new();
@@ -77,7 +76,6 @@ public static class Ui
         BorderBrush.Color = theme["borderStrong"];
         Hover.Color = theme["hover"];
         TextSelection.Color = theme["selection"];
-        PreviewSelection.Color = Alpha(theme["selection"], 40);
         Info.Color = theme["info"];
         Warning.Color = theme["warning"];
         Success.Color = theme["success"];

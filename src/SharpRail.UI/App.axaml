@@ -53,8 +53,12 @@
         <ColorPaletteResources x:Key="Light" Accent="#2a7314" />
       </FluentTheme.Palettes>
     </FluentTheme>
-    <Style Selector="Button.dock-tab-button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+    <!-- The tab frame paints hover and selection; pressing a tab (to drag it) must not tint or shrink it. -->
+    <Style Selector="Button.dock-tab-button:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.dock-tab-button:pressed /template/ ContentPresenter#PART_ContentPresenter">
       <Setter Property="Background" Value="Transparent" />
+    </Style>
+    <Style Selector="Button.dock-tab-button:pressed">
+      <Setter Property="RenderTransform" Value="none" />
     </Style>
     <!-- Menus, flyouts and tooltips scale with the page zoom of the window that opened them. -->
     <Style Selector="Popup">
@@ -62,9 +66,6 @@
     </Style>
     <Style Selector="TreeViewItem">
       <Setter Property="MinHeight" Value="28" />
-    </Style>
-    <Style Selector="TreeViewItem /template/ Panel#PART_ExpandCollapseChevronContainer">
-      <Setter Property="Margin" Value="4,0" />
     </Style>
   </Application.Styles>
 </Application>

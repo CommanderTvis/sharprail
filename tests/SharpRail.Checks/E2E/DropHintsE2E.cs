@@ -61,9 +61,9 @@ internal static class DropHintsE2E
         var rightId = app.Window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "specs")).Id;
         var rightHeader = Bounds(app.Find<Grid>("GroupHeader_" + rightId), surface);
         var hints = Overlay(surface).Children.OfType<Border>().ToArray();
-        Require(hints.Any(hint => Same(PaintedBounds(hint), header) && Tint(hint.BorderBrush, 51) && Tint(hint.Background, 0)) &&
+        Require(!hints.Any(hint => Same(PaintedBounds(hint), header)) &&
             !hints.Any(hint => Same(PaintedBounds(hint), rightHeader)) && !hints.Any(hint => hint.Height == 24),
-            "A file drag must hint its legal center strip, exclude side tools and omit the hidden-bottom target.");
+            "A file drag must not frame tab strips (tabs are their only targets), exclude side tools and omit the hidden-bottom target.");
         var edge = new Rect(section.Right - 4 - section.Width / 5, section.Top + section.Height / 4, section.Width / 5, section.Height / 2);
         Require(hints.Any(hint => Same(PaintedBounds(hint), edge) && Tint(hint.Background, 26) && Tint(hint.BorderBrush, 51)),
             "The unhovered right split destination must use the reference subtle tint.");
@@ -71,7 +71,7 @@ internal static class DropHintsE2E
         hints = Overlay(surface).Children.OfType<Border>().ToArray();
         var half = new Rect(section.Center.X, section.Top, section.Width / 2, section.Height);
         Require(hints.Any(hint => Same(PaintedBounds(hint), half) && Tint(hint.Background, 51) && Tint(hint.BorderBrush, 255) && hint.BorderThickness == new Thickness(2)) &&
-            hints.Any(hint => Same(PaintedBounds(hint), header) && Tint(hint.BorderBrush, 51)),
+            hints.Any(hint => Tint(hint.BorderBrush, 51)),
             "Hovering the split must emphasize its half-pane preview while other valid destinations remain subtle.");
         app.Window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
         app.Window.MouseUp(surface.TranslatePoint(edge.Center, app.Window)!.Value, MouseButton.Left); Settle();

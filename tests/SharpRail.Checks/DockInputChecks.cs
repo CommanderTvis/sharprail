@@ -143,27 +143,22 @@ internal static class DockInputChecks
         var insertionFrom = Bounds(Find<Button>("Tab_files")).Center;
         var insertionTo = Bounds(Find<Button>("Tab_projects")).TopLeft + new Vector(16, 16);
         window.MouseDown(insertionFrom, MouseButton.Left); window.MouseMove(insertionTo);
-        var appendGroup = window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "projects")).Id;
-        var transientAppend = Find<Border>("DragAppend_" + appendGroup);
-        Require(transientAppend.IsVisible && transientAppend.Bounds.Width == 20,
-            "An eligible strip must expose a 20px append target during dragging.");
         var insertionHints = Find<DockSurface>("WorkspaceWorkbench").Children.OfType<Canvas>().Single().Children.OfType<Border>().ToArray();
         Require(insertionHints.Any(item => item.Width == 2 && item.BorderThickness == new Thickness(0) &&
             item.CornerRadius == new CornerRadius(0) && ReferenceEquals(item.Background, SharpRail.UI.Rendering.Ui.Accent)),
             "Tab insertion must show a solid square 2px primary line, not a pane drop rectangle.");
         window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
         window.MouseUp(insertionTo, MouseButton.Left);
-        Require(!transientAppend.IsVisible, "Cancelling a drag must remove its temporary append target.");
         var projectsPane = window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "projects"));
         var projectsHeader = Bounds(Find<Grid>("GroupHeader_" + projectsPane.Id));
         var appendPoint = new Point(projectsHeader.Right - 8, projectsHeader.Center.Y);
         insertionFrom = Bounds(Find<Button>("Tab_files")).Center;
         window.MouseDown(insertionFrom, MouseButton.Left); window.MouseMove(appendPoint);
-        var appendHint = Find<DockSurface>("WorkspaceWorkbench").Children.OfType<Canvas>().Single().Children.OfType<Border>()
-            .Single(item => item.Width == projectsHeader.Width && item.Height == projectsHeader.Height);
-        Require(appendHint.BorderThickness == new Thickness(2) &&
-            appendHint.Background is Avalonia.Media.SolidColorBrush { Color.A: 26 },
-            "Empty header space must show the full strip append frame with the reference subtle fill.");
+        var appendHints = Find<DockSurface>("WorkspaceWorkbench").Children.OfType<Canvas>().Single().Children.OfType<Border>()
+            .Where(item => projectsHeader.Intersects(new Rect(Canvas.GetLeft(item), Canvas.GetTop(item), item.Width, item.Height))).ToArray();
+        Require(appendHints.Length == 1 && appendHints[0].Width == 2 && ReferenceEquals(appendHints[0].Background, SharpRail.UI.Rendering.Ui.Accent) &&
+            !appendHints.Any(item => item.Width >= projectsHeader.Width || item.Width == 20),
+            $"Empty strip space must show only the insertion line after the last tab, with no strip frame or append block: {string.Join("; ", appendHints.Select(item => $"{Canvas.GetLeft(item)},{Canvas.GetTop(item)} {item.Width}x{item.Height} bg={item.Background}"))} header={projectsHeader}.");
         window.MouseUp(appendPoint, MouseButton.Left); Dispatcher.UIThread.RunJobs();
         Require(window.Layout.Group(projectsPane.Id).Tools.Last().Id == "files", "Dropping on trailing header space did not append the tool.");
         var dragCount = 0;

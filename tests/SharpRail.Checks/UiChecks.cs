@@ -3,8 +3,10 @@ using Avalonia.Automation.Peers;
 using Avalonia.Automation.Provider;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
@@ -134,9 +136,10 @@ internal static class UiChecks
                 string.Concat(text.Inlines?.OfType<Run>().Select(run => run.Text) ?? []));
             var renderedText = string.Join("\n", visibleText);
             Require(renderedText.Contains("Visible heading", StringComparison.Ordinal) && renderedText.Contains("Visible paragraph.", StringComparison.Ordinal) &&
-                !renderedText.Contains("private-metadata", StringComparison.Ordinal) && !renderedText.Contains("Internal title", StringComparison.Ordinal) &&
-                ((StackPanel)frontmatterPreview.Content!).Children.Count == 2,
-                "Markdown frontmatter leaked into visible content or left an empty block.");
+                renderedText.Contains("id: private-metadata\ntitle: Internal title", StringComparison.Ordinal) &&
+                ((StackPanel)frontmatterPreview.Content!).Children.Count == 3 &&
+                ((StackPanel)frontmatterPreview.Content!).Children[0] is Border { Name: "MarkdownFrontmatter" },
+                "Markdown frontmatter must render first as a code block, not as headings or stray paragraphs.");
         }
         foreach (var size in new[] { 14d, 24d })
         {
@@ -184,6 +187,16 @@ internal static class UiChecks
         Pump(() => window.WorkspaceMounted, "Workspace did not mount.");
         var specs = Find<TreeView>(window, "SpecsTree");
         Pump(() => specs.Items.Count > 0 && specs.Items[0] is TreeViewItem { Items.Count: > 0 }, "Spec hierarchy did not render.");
+        {
+            var panel = (Control)specs.GetVisualParent()!;
+            var rootItem = (TreeViewItem)specs.Items[0]!;
+            var child = (TreeViewItem)rootItem.Items[0]!;
+            double X(Visual visual) => visual.TranslatePoint(default, panel)!.Value.X;
+            var chevron = rootItem.GetVisualDescendants().OfType<ToggleButton>().First();
+            // The reference row: 4px inset, a 20px chevron slot, then the icon; each level indents 12px.
+            Require(Math.Abs(X(chevron) - 9) <= 1 && Math.Abs(X((Visual)rootItem.Header!) - 25) <= 1 && X((Visual)child.Header!) - X((Visual)rootItem.Header!) == 12,
+                $"Spec tree indentation differs from the reference: chevron={X(chevron)} icon={X((Visual)rootItem.Header!)} child={X((Visual)child.Header!)}.");
+        }
         var controls = window.GetLogicalDescendants().OfType<Control>().Distinct().ToArray();
         Require(controls.Length > 100, "UI was flattened.");
         Require(Find<Control>(window, "ProjectsPanel").Bounds.Width > 200, "Projects geometry differs.");
@@ -192,6 +205,16 @@ internal static class UiChecks
         var projectLabel = projectTab.GetLogicalDescendants().OfType<TextBlock>().Single(text => text.Text == "Projects");
         Require(projectLabel.TranslatePoint(default, projectTab)!.Value.X == 26 && projectLabel.FontWeight == Ui.InterfaceWeight,
             "Tab icon spacing or text weight differs from the reference.");
+        {
+            var pressPoint = projectTab.TranslatePoint(new Point(projectTab.Bounds.Width / 2, projectTab.Bounds.Height / 2), window)!.Value;
+            window.MouseDown(pressPoint, MouseButton.Left); Dispatcher.UIThread.RunJobs();
+            var presenter = projectTab.GetVisualDescendants().OfType<Avalonia.Controls.Presenters.ContentPresenter>().First(item => item.Name == "PART_ContentPresenter");
+            var pressed = projectTab.Classes.Contains(":pressed");
+            var tinted = presenter.Background is ISolidColorBrush { Color.A: > 0 };
+            var scaled = projectTab.RenderTransform is { Value.IsIdentity: false };
+            window.MouseUp(pressPoint, MouseButton.Left); Dispatcher.UIThread.RunJobs();
+            Require(pressed && !tinted && !scaled, $"Holding a tab must neither tint nor shrink it: pressed={pressed} background={presenter.Background} transform={projectTab.RenderTransform}.");
+        }
         Require(Find<Grid>(window, "ProjectRow").Bounds.Height == 28,
             "Project row does not match the reference height.");
         Click(window, Find<Button>(window, "ProjectExpand"));

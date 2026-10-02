@@ -96,7 +96,7 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `layout.spec.ts` | another window cannot cancel or adopt an active side resize | Ported |
 | `layout.spec.ts` | local layout transitions with no gesture in progress never announce a canceled drag | Ported |
 | `layout.spec.ts` | a local transition during a side resize cancels the gesture and says so | Ported |
-| `layout.spec.ts` | a tab drag reveals every valid destination subtly, then emphasizes the one under the pointer | Ported |
+| `layout.spec.ts` | a tab drag reveals every valid destination subtly, then emphasizes the one under the pointer | Diverges: tab strips are not framed; their tabs are the only strip targets |
 | `layout.spec.ts` | the hidden bottom drop zone wins overlapping terminal targets and reveals its frame group | Ported |
 | `projects.spec.ts` | opens a git repo as a project via the directory picker | Ported |
 | `projects.spec.ts` | opens a project from an explicit host path | Ported |
@@ -156,7 +156,7 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `reload-navigation.spec.ts` | workspace rows still list after a reload restore (the light list is complete) | Ported |
 | `files.spec.ts` | shows files and compacts single-directory runs in the Files tree | Ported |
 | `editor.spec.ts` | opens a file in a center Monaco tab, focuses on re-open, and closes | Ported (Markdown source is SharpRail's read-only source view; the ready placeholder omits chats) |
-| `editor.spec.ts` | hides YAML frontmatter in the rendered view but shows it in source | Ported |
+| `editor.spec.ts` | hides YAML frontmatter in the rendered view but shows it in source | Diverges: SharpRail renders frontmatter as a leading code block |
 | `editor.spec.ts` | opens a non-markdown file straight to Monaco with no rendered-view toggle | Ported (macOS Scintilla) |
 | `workspace-tabs.spec.ts` | editor tabs are scoped to the active workspace | Ported |
 | `workspace-tabs.spec.ts` | the selected side tool follows workspace switches | Ported |

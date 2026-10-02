@@ -22,7 +22,6 @@ public sealed partial class DockSurface
     private readonly Dictionary<string, Control> groupHeaders = [];
     private readonly Dictionary<string, Action> selectionUpdates = [];
     private readonly List<Action> modifiedUpdates = [];
-    private readonly Dictionary<string, Border> appendTargets = [];
 
     private Control BuildGroup(DockGroup group)
     {
@@ -224,12 +223,6 @@ public sealed partial class DockSurface
             chrome.ContextMenu = button.ContextMenu;
             tabs.Children.Add(chrome); tabSites[group.Id].Add((chrome, tab.Id));
             if (tab.Id == selected?.Id) Dispatcher.UIThread.Post(() => chrome.BringIntoView(), DispatcherPriority.Loaded);
-        }
-        if (!group.Folded)
-        {
-            var append = new Border { Name = "DragAppend_" + group.Id, Width = 20, Height = 32, IsVisible = false };
-            tabs.Children.Add(append);
-            appendTargets[group.Id] = append;
         }
         var actions = new StackPanel { Orientation = Orientation.Horizontal };
         Border Fade(bool left) => new()

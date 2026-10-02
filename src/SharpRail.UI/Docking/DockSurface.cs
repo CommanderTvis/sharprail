@@ -62,7 +62,7 @@ public sealed partial class DockSurface : Grid
         refreshPending = false;
         CancelDrag();
         foreach (var host in contentHosts) host.Child = null;
-        contentHosts.Clear(); tabSites.Clear(); groupHeaders.Clear(); selectionUpdates.Clear(); appendTargets.Clear();
+        contentHosts.Clear(); tabSites.Clear(); groupHeaders.Clear(); selectionUpdates.Clear();
         modifiedUpdates.Clear(); sites.Clear();
         foreach (var control in shell.Children.Where(control => control != centerRegion && !auxiliaryRegions.Values.Contains(control)).ToArray())
             shell.Children.Remove(control);

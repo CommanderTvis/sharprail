@@ -1,5 +1,7 @@
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Controls.Primitives;
 using Avalonia.Markup.Xaml;
 
 using SharpRail.Host.Abstractions;
@@ -19,6 +21,11 @@ public sealed partial class App : Application
         Ui.ApplyResources(this);
         foreach (var state in new[] { "Selected", "SelectedPointerOver", "SelectedPressed" })
             Resources["TreeViewItemBackground" + state] = Ui.Hover;
+        // The reference's 20px chevron slot. Fluent's template sets its 12px margins directly, which outranks styles.
+        TemplatedControl.TemplateAppliedEvent.AddClassHandler<TreeViewItem>((_, e) =>
+        {
+            if (e.NameScope.Find<Panel>("PART_ExpandCollapseChevronContainer") is { } chevron) chevron.Margin = new Thickness(4, 0);
+        });
     }
 
     // Creates terminal tabs for every window of this app, all attached to the app's one terminal host.

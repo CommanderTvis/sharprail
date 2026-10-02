@@ -37,7 +37,7 @@ without rebuilding the tree.
 | Border | `BorderBrush` | from `borderStrong` |
 | Primary | `Accent` · `PrimarySubtle` · `PrimaryMuted` | accent @ 10% and 40%: the selected Settings choice's fill and border |
 | Feedback | `Info` · `Success` · `Warning` · `Danger` + `*Wash` | a wash is the solid colour @ 12%, the feedback-surface fill |
-| Selection | `TextSelection` · `PreviewSelection` | `PreviewSelection` is `selection` @ 40% for the Markdown preview; the nullable selected-text foreground is the `ThemeSelectionForeground` dynamic resource |
+| Selection | `TextSelection` | Inputs and the Markdown preview share `selection`. Upstream mixes the preview at 40% because browsers wash whole line boxes; Avalonia highlights only glyph runs, and the mix left dark selections nearly invisible. The nullable selected-text foreground is the `ThemeSelectionForeground` dynamic resource |
 | Effects | `DialogShadow` · `FadeFromElevated` · `FadeToElevated` | shadow alpha differs per appearance; the fades are the tab strip's overflow edges |
 
 ## Transparency: one form only

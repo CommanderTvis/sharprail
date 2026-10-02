@@ -1,4 +1,7 @@
 using Avalonia.Controls;
+using Avalonia.LogicalTree;
+
+using SharpRail.UI.Rendering;
 
 using static SharpRail.Checks.E2E.E2eWorkspace;
 using static SharpRail.Checks.E2E.WorkspaceFixture;
@@ -13,6 +16,30 @@ internal static class DefaultWorkspaceE2E
         EnterDefault(Path.Combine(root, "default-enter"));
         BranchSwitch(Path.Combine(root, "default-branch"));
         Unique(Path.Combine(root, "default-unique"));
+        RailSurvivesSwitch(Path.Combine(root, "default-rail"));
+    }
+
+    private static void RailSurvivesSwitch(string directory)
+    {
+        using var app = OpenFixtureProject(directory);
+        var workspace = CreateWorkspaceViaDialog(app);
+        app.Click(Select(app, app.Root));
+        Until(() => Active(app, app.Root)); Settle(500);
+        var rows = WorktreePaths(app).ToDictionary(path => path, path => Item(app, path));
+        var rail = app.Find<Grid>("ProjectsPanel");
+        var shrank = false;
+        void Watch(object? sender, EventArgs e) =>
+            shrank |= rail.GetLogicalDescendants().OfType<Grid>().Count(item => item.Name == "WorkspaceItem") < rows.Count;
+        rail.LayoutUpdated += Watch;
+        app.Click(Select(app, workspace));
+        Until(() => Active(app, workspace)); Settle(500);
+        rail.LayoutUpdated -= Watch;
+        Require(ReferenceEquals(app.Find<Grid>("ProjectsPanel"), rail) && !shrank &&
+            rows.All(pair => ReferenceEquals(Item(app, pair.Key), pair.Value)),
+            "Switching workspaces within a project must keep the rail and its rows rather than rebuilding them.");
+        Require(Select(app, workspace).Background == Ui.Hover && Select(app, app.Root).Background != Ui.Hover,
+            $"The active highlight must move to the opened workspace: opened={Select(app, workspace).Background} default={Select(app, app.Root).Background}.");
+        Console.WriteLine("PASS switching workspaces keeps the Projects rail rows and moves the highlight in place");
     }
 
     internal static void EnterDefaultWorkspace(E2eWorkspace app)

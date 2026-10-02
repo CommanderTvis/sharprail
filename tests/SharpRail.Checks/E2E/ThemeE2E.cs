@@ -300,8 +300,8 @@ internal static class ThemeE2E
             Settle(100);
             using (var frame = app.Window.CaptureRenderedFrame()!)
                 frame.Save(Path.Combine(Directory.GetCurrentDirectory(), ".bench", $"theme-{theme.Id}.png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
-            Require(Ui.InfoWash.Color == Ui.Alpha(theme["info"], 12) && Ui.PreviewSelection.Color == Ui.Alpha(theme["selection"], 40),
-                $"Markdown washes and preview selection must follow {theme.Id}.");
+            Require(Ui.InfoWash.Color == Ui.Alpha(theme["info"], 12),
+                $"Markdown washes must follow {theme.Id}.");
         }
         Console.WriteLine("PASS Mermaid diagrams and Markdown tints re-theme under every bundled manifest");
     }

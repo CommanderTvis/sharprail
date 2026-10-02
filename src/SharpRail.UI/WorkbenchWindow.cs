@@ -192,6 +192,8 @@ public sealed partial class WorkbenchWindow : Window
             }
             var files = await Task.Run(async () => await host.ListFilesAsync("", lifetime.Token), lifetime.Token);
             if (request != projectRequest) return;
+            // Workspaces of one project share its worktrees, so the rail and its list survive the switch.
+            var sameProject = previous is not null && workspace.ProjectRoot == projectRoot;
             workspaceRoot = workspace.RootPath;
             if (project && projectRoot != workspace.ProjectRoot) selectionHistory.Clear();
             else if (previous is not null) { selectionHistory.Remove(previous); selectionHistory.Add(previous); }
@@ -200,10 +202,13 @@ public sealed partial class WorkbenchWindow : Window
             UpdateScopeLabels();
             branchLabel.Text = "";
             branchIcon.IsVisible = false;
-            git = new(false, "", [], [], []); gitLoading = true; gitError = null;
+            git = sameProject ? new(git.IsRepository, "", [], git.Worktrees, git.Branches) : new(false, "", [], [], []);
+            gitLoading = true; gitError = null;
             RestoreGitSelection(); folderCache.Clear(); expandedFolders.Clear();
             folderCache[""] = files;
+            var rail = sameProject ? toolContent.GetValueOrDefault("projects") : null;
             toolContent.Clear();
+            if (rail is not null) { toolContent["projects"] = rail; UpdateRailSelection(); }
             if (!state.Current.Projects.Contains(projectRoot) || state.Current.RecentProjects.Contains(projectRoot))
                 _ = ShareAsync(HostStateChange.OpenProject(projectRoot));
             slot.LastProject = workspaceRoot;

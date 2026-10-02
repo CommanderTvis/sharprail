@@ -69,9 +69,15 @@ public sealed partial class WorkbenchWindow
         catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
     }
 
+    /// <summary>Restyles the rail's active project and workspace without rebuilding it, so switching keeps rows and focus.</summary>
+    private readonly List<Action> railSelection = [];
+
+    private void UpdateRailSelection() { foreach (var update in railSelection) update(); }
+
     private Control ProjectsPanel()
     {
         railSignature = RailSignature();
+        railSelection.Clear();
         var panel = new Grid { Name = "ProjectsPanel", Margin = new Thickness(12), RowDefinitions = new RowDefinitions("28,8,*") };
         var toolbar = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(8, 0, 4, 0) };
         var title = Ui.Text("PROJECTS", size: 12); title.FontWeight = Avalonia.Media.FontWeight.Medium;
@@ -97,6 +103,7 @@ public sealed partial class WorkbenchWindow
             };
             highlight.Classes.Add("project-row");
             highlight.Classes.Set("active", atHome && project == projectRoot);
+            railSelection.Add(() => highlight.Classes.Set("active", atHome && project == projectRoot));
             var collapsed = profile.Data.CollapsedProjects.Contains(project);
             var toggle = Ui.IconButton(collapsed ? "arrowRight" : "arrowDown", collapsed ? "Expand project" : "Collapse project", () =>
             {
@@ -186,6 +193,12 @@ public sealed partial class WorkbenchWindow
             HorizontalAlignment = HorizontalAlignment.Stretch,
             HorizontalContentAlignment = HorizontalAlignment.Stretch
         };
+        railSelection.Add(() =>
+        {
+            var selected = !atHome && worktree.Path == workspaceRoot;
+            button.Background = selected ? Ui.Hover : Avalonia.Media.Brushes.Transparent;
+            ((Border)icon).Background = label.Foreground = selected ? Ui.Accent : Ui.Muted;
+        });
         AutomationProperties.SetName(button, name);
         ToolTip.SetTip(button, worktree.Path);
         button.Click += (_, _) => _ = OpenWorkspaceAsync(worktree.Path, false);
@@ -225,7 +238,7 @@ public sealed partial class WorkbenchWindow
     private Control FilesPanel()
     {
         var panel = new Grid { Name = "FilesPanel" };
-        var tree = new TreeView { Name = "FilesTree", Background = Ui.Sidebar, Margin = new Thickness(12) };
+        var tree = new TreeView { Name = "FilesTree", Background = Ui.Sidebar, Margin = new Thickness(4, 12, 12, 12) };
         ScrollViewer.SetHorizontalScrollBarVisibility(tree, ScrollBarVisibility.Disabled);
         foreach (var file in folderCache.GetValueOrDefault("") ?? []) tree.Items.Add(FileNode(file));
         Ui.Place(panel, tree);
@@ -305,7 +318,7 @@ public sealed partial class WorkbenchWindow
 
     private Control SpecsPanel()
     {
-        var tree = new TreeView { Name = "SpecsTree", Background = Ui.Sidebar, Margin = new Thickness(12) };
+        var tree = new TreeView { Name = "SpecsTree", Background = Ui.Sidebar, Margin = new Thickness(4, 12, 12, 12) };
         ScrollViewer.SetHorizontalScrollBarVisibility(tree, ScrollBarVisibility.Disabled);
         if (WorkspaceMounted) _ = PopulateSpecsAsync(tree);
         return tree;

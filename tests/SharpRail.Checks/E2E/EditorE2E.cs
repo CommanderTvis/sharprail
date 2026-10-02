@@ -90,12 +90,14 @@ internal static class EditorE2E
         app.Open("SPEC.md", keep: true);
         var preview = app.Find<MarkdownPreview>("MarkdownPreview");
         Until(() => Text(preview).Contains("Goal", StringComparison.Ordinal));
-        Require(!Text(preview).Contains("goal-and-requirements", StringComparison.Ordinal) && !Text(preview).Contains("id: sample-root", StringComparison.Ordinal),
-            "The rendered view must hide YAML frontmatter.");
+        var metadata = app.Find<Border>("MarkdownFrontmatter");
+        Require(((StackPanel)preview.Content!).Children[0] == metadata && Text(metadata).Contains("id: sample-root", StringComparison.Ordinal) &&
+            !Text(metadata).Contains("---", StringComparison.Ordinal),
+            "The rendered view must show YAML frontmatter as a leading code block without its fences.");
         app.Click(app.Find<Button>("MarkdownSourceMode"));
         Until(() => !PreviewShown(app));
         Require(Text(app.Find<ScrollViewer>("MarkdownSource")).Contains("id: sample-root", StringComparison.Ordinal), "Source mode must show the frontmatter.");
-        Console.WriteLine("PASS upstream editor.spec.ts: hides YAML frontmatter in the rendered view but shows it in source");
+        Console.WriteLine("PASS upstream editor.spec.ts (diverges): shows YAML frontmatter as a leading code block in the rendered view and in source");
     }
 
     private static ScintillaEditor OpenEditor(E2eWorkspace app, string path)

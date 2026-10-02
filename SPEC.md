@@ -333,9 +333,9 @@ reconnecting without server sessions.
 ## Markdown
 
 CommonMark/GFM headings/anchors, paragraphs, emphasis, links, inline/fenced code,
-lists/tasks, blockquotes/callouts, tables, rules and images. Selectable text,
+lists/tasks, blockquotes/callouts, tables, rules and images. Text selectable across blocks,
 relative document navigation, safe external link launch, local image loading,
-frontmatter removal and bounded configurable line width. No WebView or HTML
+frontmatter shown as a leading code block and bounded configurable line width. No WebView or HTML
 application runtime. Read-only source/diff viewing is not an editor.
 ` ```mermaid ` fences render natively on macOS through Merman as vector diagrams
 themed from the current appearance tokens, with a full-screen pan/zoom view; other

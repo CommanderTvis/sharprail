@@ -47,8 +47,12 @@ can use it without a cycle. Theme catalogue and colour roles have their own docu
 
 - `.md` and `.markdown` files open rendered by default; the extension check is the Markdown gate shared by
   file tabs and diff tabs.
-- A leading YAML front-matter block is not rendered, so spec metadata never shows as a stray heading; the
-  source view still shows it.
+- A leading YAML front-matter block renders first as a code block of its fields (without the fences), so
+  spec metadata is visible without reading as stray headings. Upstream hides it; SharpRail shows it on
+  request.
+- Selection spans the document: each paragraph, cell and code body is its own text block, and a drag
+  that leaves its block selects through every block up to the pointer. Mod+C copies the combined
+  selection with blank lines between blocks and Mod+A selects the whole document.
 - The document skin owns typography and the reading measure: headings at 24/20/18/16 against the interface
   body size, section spacing, bordered tables, blockquotes, task lists and GitHub-style alert callouts with
   their own icons. The column is capped at the Markdown line width (default 78 symbols, measured in the

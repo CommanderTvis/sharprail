@@ -30,10 +30,6 @@ public sealed partial class DockSurface
             {
                 if (Math.Abs(position.X - draft.Origin.X) + Math.Abs(position.Y - draft.Origin.Y) < 5) return;
                 dragging = true; capturedPointer = e.Pointer; e.Pointer.Capture(this);
-                foreach (var (group, target) in appendTargets)
-                    target.IsVisible = (group != draft.Source || Session.Tabs(group).LastOrDefault()?.Id != draft.Tab) &&
-                        Session.CanMove(draft.Tab, draft.Source, group, Session.Tabs(group).Count);
-                this.UpdateLayout();
             }
             PaintTargets(position);
             e.Handled = true;
@@ -79,7 +75,6 @@ public sealed partial class DockSurface
     private void CancelDrag()
     {
         draft = null; drop = null; dragging = false; overlay.Children.Clear(); dropValidity.Clear();
-        foreach (var target in appendTargets.Values) target.IsVisible = false;
         var pointer = capturedPointer; capturedPointer = null;
         pointer?.Capture(null);
         FlushRefresh();
@@ -131,7 +126,8 @@ public sealed partial class DockSurface
             {
                 var members = tabSites.GetValueOrDefault(site.Group) ?? [];
                 var tabArea = new Rect(bounds.TopLeft, new Size(((Grid)site.Control).ColumnDefinitions[0].ActualWidth, bounds.Height));
-                if (Legal(site.Group, members.Count))
+                // Tabs are the only strip targets; only a strip without tabs is a target as a whole.
+                if (members.Count == 0 && Legal(site.Group, 0))
                     candidates.Add(new(new(site.Group, members.Count, "", bounds), active =>
                     {
                         var hint = Hint(bounds, active);
@@ -146,7 +142,10 @@ public sealed partial class DockSurface
                     {
                         var index = i + (after ? 1 : 0);
                         if (!Legal(site.Group, index)) continue;
-                        var half = new Rect(after ? member.Center.X : member.Left, member.Top, member.Width / 2, member.Height).Intersect(tabArea);
+                        // The last tab's trailing half reaches across the empty strip, so dropping there appends.
+                        var right = after && i == members.Count - 1 ? tabArea.Right : after ? member.Right : member.Center.X;
+                        var left = after ? member.Center.X : member.Left;
+                        var half = new Rect(left, member.Top, right - left, member.Height).Intersect(tabArea);
                         if (half.Width <= 0 || half.Height <= 0) continue;
                         var markerBounds = new Rect(after ? member.Right - 2 : member.Left, bounds.Top, 2, bounds.Height).Intersect(tabArea);
                         candidates.Add(new(new(site.Group, index, "", half), active =>
@@ -158,12 +157,6 @@ public sealed partial class DockSurface
                             marker.CornerRadius = new CornerRadius(0);
                         }));
                     }
-                }
-                if (appendTargets.TryGetValue(site.Group, out var append) && append.IsVisible && Legal(site.Group, members.Count))
-                {
-                    var end = RectOf(append).Intersect(tabArea);
-                    if (end.Width > 0)
-                        candidates.Add(new(new(site.Group, members.Count, "", end), active => Hint(end, active)));
                 }
                 continue;
             }

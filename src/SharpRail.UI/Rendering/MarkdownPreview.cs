@@ -63,10 +63,10 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
             MaxWidth = LineWidths.Markdown(preferences),
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
-        foreach (var block in Document.Where(block => block is not YamlFrontMatterBlock)) body.Children.Add(Render(block));
-        TintSelection(body);
+        foreach (var block in Document) body.Children.Add(Render(block));
         CollapseMargins(body);
         Content = body;
+        WireSelection();
     }
 
     public static MarkdownDocument Parse(string text) => Markdown.Parse(text, Pipeline);
@@ -106,6 +106,10 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
                 return content;
             case FencedCodeBlock fence when renderDiagrams && string.Equals(fence.Info?.Trim(), "mermaid", StringComparison.OrdinalIgnoreCase):
                 return Mermaid(fence.Lines.ToString());
+            case YamlFrontMatterBlock frontmatter:
+                var metadata = CodeFrame(frontmatter.Lines.ToString());
+                metadata.Name = "MarkdownFrontmatter";
+                return metadata;
             case CodeBlock code:
                 return CodeFrame(code.Lines.ToString());
             case ListBlock list:
@@ -378,14 +382,6 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
         };
     }
 
-    private static void TintSelection(Control root)
-    {
-        foreach (var textBlock in root.GetLogicalDescendants().OfType<SelectableTextBlock>())
-        {
-            textBlock.SelectionBrush = Ui.PreviewSelection;
-        }
-    }
-
     private Control Mermaid(string text)
     {
         var holder = new Border { Margin = new Thickness(0, 12), Child = Ui.Text("Rendering diagram…", Ui.Muted, 12) };
@@ -420,7 +416,6 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
             var source = CodeFrame(text);
             source.Margin = new Thickness(0);
             failure.Children.Add(message); failure.Children.Add(source);
-            TintSelection(failure);
             holder.Child = failure;
             return;
         }
