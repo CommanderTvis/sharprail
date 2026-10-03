@@ -216,6 +216,9 @@ public sealed class NewWorkspaceDialog
             Padding = new Thickness(12, 4),
             CornerRadius = new(4)
         };
+        // Fluent fills a checked toggle with the accent, which the muted row cannot be read on; segments' hover does.
+        foreach (var state in new[] { "Checked", "CheckedPointerOver", "CheckedPressed" })
+            target.Resources["ToggleButtonBackground" + state] = Ui.Hover;
         target.Click += (_, _) => { inFolder = folder; Render(); };
         return target;
     }
