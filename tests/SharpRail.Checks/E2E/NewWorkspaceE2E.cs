@@ -88,6 +88,10 @@ internal static class NewWorkspaceE2E
         Require(Heading(dialog) == "Start work" && Description(dialog).Contains("A separate git worktree on its own new branch", StringComparison.Ordinal),
             "The dialog must explain a worktree workspace under its constant title.");
         Require(Named<ToggleButton>(dialog, "WsTargetWorktree").IsChecked == true, "The worktree target is the default.");
+        var presenter = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(Named<ToggleButton>(dialog, "WsTargetWorktree"))
+            .OfType<Avalonia.Controls.Presenters.ContentPresenter>().First(item => item.Name == "PART_ContentPresenter");
+        Require(Equals(presenter.Background, SharpRail.UI.Rendering.Ui.Hover),
+            $"The checked target is filled with the hover surface, not the accent its muted label cannot be read on (was {presenter.Background}).");
         app.Click(Named<ToggleButton>(dialog, "WsTargetDefault"), freshGesture: false);
         Require(Heading(dialog) == "Start work" && Description(dialog).Contains("No isolation", StringComparison.Ordinal) &&
             !Picker(dialog).IsVisible && Text(Create(dialog)).Contains("Start", StringComparison.Ordinal),
