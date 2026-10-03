@@ -1,6 +1,6 @@
 # State — profile and shared host state
 
-Upstream: apps/web/src/store/SPEC.md @ be804a56
+Upstream: apps/web/src/store/SPEC.md @ c44534ea
 Upstream: apps/web/src/navigation/SPEC.md @ 4a65ed7f
 
 ## Responsibility
@@ -83,8 +83,15 @@ location. Location is never shared between windows or clients; continuing elsewh
 
 ## Not yet ported
 
-- A transient toast queue that coalesces identical notifications and caps visible ones; the window shows
-  one gesture notification at a time.
+- A transient toast queue that coalesces identical notifications and caps visible ones at five; the window
+  shows one gesture notification at a time. A toast may carry its own duration and one action (an Undo
+  receipt). Actionable toasts are never coalesced, since their actions name different inverses, and the cap
+  evicts only actionless ones, so a receipt stays until its duration ends or the user dismisses it.
+- Per-tab renderer choice and opaque renderer view state for file and diff documents, cached with the
+  loaded content and its metadata and written against the owning workspace so a body closing after a
+  workspace switch still updates its own tab. Only the renderer interprets its view state; changing
+  renderer drops it. Split or inline and ignore-whitespace stay diff-only presentation. Document bodies
+  hold their own toggles today, and a Markdown diff's Rendered choice is a flag rather than a renderer.
 - Serialized routes and Back/Forward history over locations, with push for user intent and replace for
   passive changes.
 - A page-lifetime tombstone for removed workspaces so an in-flight read cannot recreate their local state.

@@ -1,6 +1,6 @@
 # Host client adapters
 
-Upstream: apps/web/src/transport/SPEC.md @ be804a56
+Upstream: apps/web/src/transport/SPEC.md @ c44534ea
 
 ## Responsibility
 
@@ -61,7 +61,10 @@ what makes remoteness an adapter choice rather than a mandatory daemon.
 - A connection status surface with a generation per reconnect, driving
   re-hydration explicitly rather than per-subscription retries.
 - A protocol version sent at connect, and capability gates that hide actions an
-  older host cannot serve.
+  older host cannot serve; the Changes diff withholds every revert/undo
+  affordance from a host that predates the change write path. Resource metadata
+  needs no gate: a reply without it reads as text, which is what that host's own
+  client showed.
 - Reconnect-safe unary requests: replaying an in-flight mutation under the same
   request id with host deduplication, plus ack/resume frames, so an accepted
   mutation can neither report a false failure nor run twice. Today a unary call

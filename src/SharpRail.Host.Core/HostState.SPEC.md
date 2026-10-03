@@ -10,7 +10,7 @@ parent: module-host-core
 
 Upstream: packages/server/src/projects/SPEC.md @ 4a65ed7f
 Upstream: packages/server/src/settings/SPEC.md @ be804a56
-Upstream: packages/server/src/persistence/SPEC.md @ be804a56
+Upstream: packages/server/src/persistence/SPEC.md @ c44534ea
 
 ## Responsibility
 

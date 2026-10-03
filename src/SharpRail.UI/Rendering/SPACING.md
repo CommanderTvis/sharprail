@@ -1,6 +1,6 @@
 # Spacing system
 
-Upstream: apps/web/src/styles/SPACING.md @ 4a65ed7f
+Upstream: apps/web/src/styles/SPACING.md @ c44534ea
 
 Spacing is one numeric vocabulary. When a design says "spacing 8", the implementation writes `8` as a
 `Spacing`, `Margin` or `Padding` value and it lays out as 8 device-independent pixels: one value, one name.

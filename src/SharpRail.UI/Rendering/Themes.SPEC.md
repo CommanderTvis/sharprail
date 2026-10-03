@@ -7,7 +7,7 @@ title: Themes
 
 # Themes: bundled manifest catalogue and application
 
-Upstream: apps/web/src/themes/SPEC.md @ 4a65ed7f
+Upstream: apps/web/src/themes/SPEC.md @ c44534ea
 
 ## Responsibility
 
@@ -92,4 +92,6 @@ ever arrive, the seam is a validated registration path in front of the same cata
   accent fills, hover-versus-surface distinguishability of at least 1.15, and AAA resting / AA hover for
   `contrast: "high"` manifests.
 - Consumption of the manifest's `syntax` palette; `Themes.Parse` ignores it and code surfaces pick their
-  own colours.
+  own colours. Upstream keeps one syntax scope map for both Markdown code blocks and the file editor: the
+  editor resolves it to concrete colours after each swap, and a colour it cannot resolve is omitted so the
+  editor's own default stays usable rather than painting a wrong one.

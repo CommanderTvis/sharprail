@@ -8,7 +8,8 @@ parent: module-host-core
 
 # Git — runner, scopes, status and diffs
 
-Upstream: packages/server/src/git/SPEC.md @ 4a65ed7f
+Upstream: packages/server/src/git/SPEC.md @ c44534ea
+Upstream: packages/server/src/changes/SPEC.md @ c44534ea
 
 ## Responsibility
 
@@ -102,3 +103,25 @@ binary content). Line counts come from `--numstat`; binary rows keep zero counts
 - Background prefetch reporting whether a remote-tracking ref moved, and a nudge to re-read workspaces
   whose comparison base it moved.
 - Workspace diff-stat badges computed from the same branch-scope range.
+- Byte-exact diff sides: each side read as bytes (`cat-file blob`, so a tree, commit or gitlink is an
+  error rather than content) and carrying the same content metadata as a file read (see
+  [Files.SPEC.md](Files.SPEC.md)); a side is decoded only when it is text, and a byte-only side travels
+  empty with its metadata so the client fetches the bytes instead of rendering replacement characters.
+  `DiffSides` holds two decoded strings today, and a byte-only working side fails the read.
+- The diff range's original side frozen to a commit id (none for a root commit, an unborn `HEAD` or a
+  base that no longer resolves) and returned with the diff sides, so a caller that reads the same side
+  twice cannot straddle a commit that moved the ref.
+- Untracked line counts only for content the shared classification calls text; invalid UTF-8 and
+  magic-typed files omit counts as NUL-bearing ones already do.
+- Reverting one hunk or one file's whole change in the working tree, with undo. The request carries the
+  scope, a line span per side and a SHA-256 per side, never content; the host re-reads both sides and
+  refuses a mismatch, so a stale view writes nothing. Only a scope ending at the working tree is mutable.
+  A hunk revert is text-only, never changes whether the file exists, treats only `\n` as a line
+  terminator and keeps the restored lines' own endings. A whole-file revert writes the original bytes,
+  restores a deleted file with its Git mode, or moves an added or untracked file to the system trash;
+  symbolic links and mode-only changes are refused, and a failed original read is never treated as
+  absence. Writes are atomic.
+- Undo receipts for those reverts: the path's previous bytes and mode held in host memory per workspace
+  (at most 20 receipts and 64 MiB, oldest evicted first, newest always kept, dropped with the workspace
+  and on restart). Undo checks the current file against what the client saw, restores the bytes, and
+  yields a receipt that is itself undoable once; an unknown receipt is reported, not ignored.

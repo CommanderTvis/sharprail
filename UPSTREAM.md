@@ -5,7 +5,7 @@ SharpRail's module specs are adapted from the upstream ThinkRail checkout at
 (`.claude/skills/sync-upstream-specs/SKILL.md`) pulls later upstream changes and advances
 the commit below.
 
-Synced commit: `be804a563931244d387722637a3e0a7997220fad` (2026-10-02)
+Synced commit: `c44534ead3bd2e64107904cebba20617c5eaac59` (2026-10-03)
 
 ## Mapping
 
@@ -13,16 +13,16 @@ Synced commit: `be804a563931244d387722637a3e0a7997220fad` (2026-10-02)
 | --- | --- |
 | `architecture.md` | `ARCHITECTURE.md` |
 | `packages/shared/SPEC.md`, `packages/server/SPEC.md`, `packages/server/src/host/SPEC.md` | `src/SharpRail.Host.Core/SPEC.md`, `src/SharpRail.Host.Abstractions/SPEC.md` |
-| `packages/server/src/git/SPEC.md` | `src/SharpRail.Host.Core/Git.SPEC.md` |
+| `packages/server/src/{git,changes}/SPEC.md` | `src/SharpRail.Host.Core/Git.SPEC.md` |
 | `packages/server/src/workspaces/SPEC.md` | `src/SharpRail.Host.Core/Workspaces.SPEC.md` |
 | `packages/server/src/{projects,settings,persistence}/SPEC.md` | `src/SharpRail.Host.Core/HostState.SPEC.md` |
-| `packages/server/src/{fs,watch}/SPEC.md` | `src/SharpRail.Host.Core/Files.SPEC.md` |
+| `packages/server/src/{fs,watch,trash}/SPEC.md` | `src/SharpRail.Host.Core/Files.SPEC.md` |
 | `packages/server/src/spec/SPEC.md`, `packages/spec-graph/SPEC.md`, `packages/spec-graph/core/SPEC.md` | `src/SharpRail.Host.Core/Specs.SPEC.md` |
 | `packages/server/src/{terminal,subprocess}/SPEC.md` | `src/SharpRail.Host.Core/Terminals.SPEC.md`, `src/SharpRail.UI/Terminal/SPEC.md` |
 | `packages/contracts/SPEC.md` | `src/SharpRail.Host.Protocol/SPEC.md` |
 | `apps/web/src/transport/SPEC.md` | `src/SharpRail.Host.Client/SPEC.md` |
 | `packages/server/src/auth/SPEC.md` | `src/SharpRail.Host.Remote/SPEC.md` |
-| `apps/web/SPEC.md`, `apps/desktop/SPEC.md` | `src/SharpRail.UI/SPEC.md` |
+| `apps/web/SPEC.md`, `apps/desktop/SPEC.md`, `apps/web/src/resources/SPEC.md` | `src/SharpRail.UI/SPEC.md` |
 | `apps/web/src/shell/**/SPEC.md` | `src/SharpRail.UI/Docking/SPEC.md` |
 | `apps/web/src/store/SPEC.md`, `apps/web/src/navigation/SPEC.md` | `src/SharpRail.UI/State/SPEC.md` |
 | `apps/web/src/panels/SPEC.md` | `src/SharpRail.UI/Panels.SPEC.md`, `src/SharpRail.UI/Panels/SPEC.md` |

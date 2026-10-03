@@ -7,7 +7,7 @@ title: Workbench panels
 
 # Workbench panels: Projects, Files, Specs, Changes, Review and Welcome
 
-Upstream: apps/web/src/panels/SPEC.md @ be804a56
+Upstream: apps/web/src/panels/SPEC.md @ c44534ea
 
 ## Responsibility
 
@@ -150,6 +150,18 @@ snapshot lands.
   branch-scope diff tabs. A row is highlighted while its diff is the focused center selection.
 - Rendering of the diff itself is `Rendering/DiffView` (see Rendering/SPEC.md).
 
+## File and diff views
+
+- A file or diff tab picks its view from what the content is, not from a per-pane format switch: Markdown
+  ranks its rendered view above source (`MarkdownDocumentView`, and the rendered merge in `DiffView`), and
+  every other text file falls back to the code view (`CodeDocumentView`, the source diff).
+- The view toggle exists only when a resource has more than one candidate view. Split | Inline, hide
+  whitespace and copy are shown only while the selected view supports them, so no control promises
+  something the view cannot do. View choice, layout and whitespace are independent per-tab state.
+- Unchanged context collapses around a change at Git's own three-line default, so a diff shows what
+  `git diff` would.
+- A commit-scope diff is historical: it never offers an action that mutates the working tree.
+
 ## Review
 
 A placeholder tool: it summarises the changed-file count on the current branch and offers Show Changes,
@@ -197,4 +209,19 @@ the change set keeps its last content.
 - The full review surface: per-file accordion, comment lifecycle, selection-triggered commenting in
   editors and rendered previews, tab review flags and send actions.
 - Chat deep links into Changes and Specs.
+- Reverting from a diff tab: a Revert on each change block and Revert file in the header for scopes whose
+  modified side is the worktree, checked against the content the tab rendered so a stale view reloads with
+  “This file changed since you opened it — review the new diff” instead of reverting, and an Undo offered
+  for a few seconds afterwards (a whole-file revert of a new file moves it to the trash). The host has no
+  revert or undo operation yet.
+- Format-specific views chosen by host content metadata, each with Source one toggle away where the file is
+  text: images (fit, natural size, zoom, dimensions and byte size on a transparency checkerboard; diffs as
+  2-up, swipe, onion skin or difference), SVG drawn inert, CSV/TSV tables with a sniffed delimiter and
+  cell-level diff, JSON/JSONC trees with a structural diff and explicit invalid and dialect notices,
+  notebooks, PDFs with page-pair diffs, sanitised HTML, a Git LFS pointer card, and a binary card with
+  identity, sizes and download. SharpRail opens everything as text or Markdown.
+- Sanitised raw HTML in rendered Markdown documents (centred or floated images, `<details>`,
+  `<picture>`), with relative sources resolved against the worktree; only the diff marks are recognised.
+- An explicit notice on a diff tab whose two sides became identical after its file left the change set;
+  the tab keeps its last content.
 - Live refresh for remote hosts.

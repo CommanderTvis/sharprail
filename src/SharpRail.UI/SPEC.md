@@ -1,7 +1,8 @@
 # SharpRail.UI — application and windows
 
-Upstream: apps/web/SPEC.md @ be804a56
-Upstream: apps/desktop/SPEC.md @ be804a56
+Upstream: apps/web/SPEC.md @ c44534ea
+Upstream: apps/desktop/SPEC.md @ c44534ea
+Upstream: apps/web/src/resources/SPEC.md @ c44534ea
 
 ## Responsibility
 
@@ -118,3 +119,13 @@ closes. Abrupt death relies on operating-system process cleanup; remote shells b
   minimize or nothing) on the custom header; SharpRail always zooms the window.
 - Per-region error isolation: a failing panel or document body shows an error in its own region rather
   than affecting sibling groups or the window.
+- Trackpad pinch on macOS driving the same page zoom continuously. The factor is captured when the gesture
+  starts and each reported scale is applied against that baseline, bounded to 50%–200%, so updates never
+  compound; content that claims the gesture keeps it, and pinch adds no second zoom owner. Zoom currently
+  snaps every value to the fixed steps, so a pinch needs the factor to hold values between them.
+- A resource-renderer registry behind file and diff bodies. Renderers declare what they match (MIME type,
+  falling back to the extension) and their capabilities; the ranked matches, ending in a required text or
+  byte fallback, are both the dispatch order and the document's view toggle. The registry owns no content
+  or tab state, and content keeps text, retrievable bytes and an absent diff side distinct. `WorkbenchWindow`
+  picks the body from the tab kind instead (image, Markdown, diff or code); the views and diff actions this
+  enables are listed in [Panels.SPEC.md](Panels.SPEC.md).

@@ -8,8 +8,8 @@ parent: architecture
 
 # Host abstractions — the public host surface
 
-Upstream: packages/shared/SPEC.md @ 4a65ed7f
-Upstream: packages/server/src/host/SPEC.md @ be804a56
+Upstream: packages/shared/SPEC.md @ c44534ea
+Upstream: packages/server/src/host/SPEC.md @ c44534ea
 
 ## Responsibility
 
@@ -60,3 +60,5 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
 - Named error codes that survive transport, so a client reacts to a specific failure rather than text.
 - Workspace records with stable ids, kinds and lifecycle events, a workspace diff-base setter, a
   change-notification stream, and a terminal catalog with reservation separate from attachment.
+- Change revert and undo operations, and content classification (media type, hash) on file and diff-side
+  reads, including a byte read of a path at one commit.

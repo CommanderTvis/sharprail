@@ -11,7 +11,9 @@ implement product behavior.
 
 ## Boundary
 
-The scripts own `bootstrap.sh` (installs the `global.json` SDK into `.tools/dotnet`),
+The scripts own `dev.sh` (builds and runs the app from source in one step, the counterpart of the
+reference's `bun run desktop:dev`: it bootstraps the SDK when missing, and the build itself prepares
+the native Ghostty and Mermaid libraries), `bootstrap.sh` (installs the `global.json` SDK into `.tools/dotnet`),
 `build-merman.sh` (pinned native library under `.tools`),
 `check-terminal.sh` (the native Ghostty shell/Metal probe), `publish.sh` (R2R
 publish into `artifacts/` and the canonical signed `artifacts/SharpRail.app`), and

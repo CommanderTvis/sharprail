@@ -1,6 +1,6 @@
 # Host wire contracts
 
-Upstream: packages/contracts/SPEC.md @ be804a56
+Upstream: packages/contracts/SPEC.md @ c44534ea
 
 ## Responsibility
 
@@ -97,3 +97,27 @@ project: local adapters call Core directly, with no serialization.
 - A host HTTP endpoint for worktree files (relative Markdown images over remote).
 - A named failure for an unresolvable scope so the client resets it rather than
   showing an error.
+- Host-decided resource metadata on file reads and both sides of a file diff:
+  SHA-256 of the bytes and byte length (both absent when the resource is), whether
+  the bytes are text (valid UTF-8, BOM-aware, not claimed by a known binary magic
+  number) and an optional MIME type sniffed from magic bytes before the filename.
+  A byte-only side travels with empty content and the resolved original object
+  id, so the client renders it from the host's file/blob HTTP endpoints and uses
+  the hash as its identity. Today an invalid UTF-8 read fails as "binary" and no
+  hash is reported.
+- A change write path for the Changes diff: revert a path's whole change or one
+  hunk, and undo a revert. The client names the scope, the target as 1-based
+  inclusive line spans on both sides (a zero count is an insertion point before
+  the start; never a patch or hunk header, since the client must not dictate
+  bytes) and the hashes of both sides it saw; the host re-derives the change from
+  its own reads under a per-workspace lock and writes nothing on a mismatch. The
+  reply is a receipt (before/after hash, length and mode, plus the trash claim
+  path for a whole-file removal) that is also the undo token; an undo's receipt
+  is itself undoable once, so redo needs no third operation. Receipts are host
+  memory only (per workspace at most 20 and 64 MiB of held bytes, oldest evicted,
+  newest always kept), because Git and the OS trash already back recovery.
+- Distinct failures for that write path, each of which the client handles
+  differently: stale view (re-read and re-offer), immutable scope (the modified
+  side is a commit), invalid range (a span outside its side, or a range revert of
+  a byte-only resource), unknown receipt, and unsupported change (symlink or
+  mode-only).

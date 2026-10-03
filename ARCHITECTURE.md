@@ -7,7 +7,7 @@ title: SharpRail — top-level architecture
 
 # SharpRail — top-level architecture
 
-Upstream: architecture.md @ be804a56
+Upstream: architecture.md @ c44534ea
 
 ## Drivers
 
@@ -105,5 +105,9 @@ tests/SharpRail.Checks    executable checks; references UI and Remote to exercis
 
 - A protocol version handshake so an independently shipped client can detect host drift.
 - Workspace-local review, pull-request opening and CI status.
+- Host-owned revert of a hunk or of a file's whole change, with undo: the host derives what to write and
+  guards it by compare-and-swap, so a client never sends the bytes.
+- Byte-only content (images, PDFs) on a diff side, served at an immutable commit, and active content
+  (HTML, SVG) confined so that repository script never runs.
 - A mobile shell projecting the same panels.
 - Revival of terminal tabs with recorded output across a host restart (restored tabs start fresh shells).

@@ -1,6 +1,6 @@
 # Remote host server
 
-Upstream: packages/server/SPEC.md @ 4a65ed7f
+Upstream: packages/server/SPEC.md @ c44534ea
 Upstream: packages/server/src/auth/SPEC.md @ 4a65ed7f
 
 ## Responsibility

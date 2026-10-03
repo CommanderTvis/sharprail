@@ -9,7 +9,7 @@ parent: module-host-core
 # Terminals — host-owned PTY sessions
 
 Upstream: packages/server/src/terminal/SPEC.md @ 4a65ed7f
-Upstream: packages/server/src/subprocess/SPEC.md @ 4a65ed7f
+Upstream: packages/server/src/subprocess/SPEC.md @ c44534ea
 
 ## Responsibility
 
@@ -79,4 +79,7 @@ a tab where is frontend-local and never reaches this service.
 - A bounded child-process runner: completion on the child's exit rather than pipe EOF (a grandchild
   holding the pipes must not turn success into a timeout), a drain grace after the deadline race is
   decided, process-group kill on expiry only, clamped budgets, stdin closed, both streams read from spawn,
-  and the live environment rather than a launch-time snapshot.
+  and the live environment rather than a launch-time snapshot. Standard output is captured as decoded
+  text or, for opaque content, as undecoded bytes; a streaming variant relays output while the child
+  runs, closing the stream only after a zero exit and failing it after a nonzero exit, expiry or failed
+  launch, so a truncated relay is never mistaken for a complete one, and cancelling it kills the child.

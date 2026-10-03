@@ -1,8 +1,8 @@
 # Rendering: shared controls, document rendering and helpers
 
-Upstream: apps/web/src/components/SPEC.md @ be804a56
-Upstream: apps/web/src/components/ui/SPEC.md @ be804a56
-Upstream: apps/web/src/lib/SPEC.md @ 4a65ed7f
+Upstream: apps/web/src/components/SPEC.md @ c44534ea
+Upstream: apps/web/src/components/ui/SPEC.md @ c44534ea
+Upstream: apps/web/src/lib/SPEC.md @ c44534ea
 
 ## Responsibility
 
@@ -81,6 +81,8 @@ unavailability message. Rendered diffs pass `renderDiagrams: false` and keep the
 - `DiffView` shows a path chip, a hide-whitespace toggle, a copy button (copies the diff text; no clipboard
   is a silent no-op) and either `Split | Inline` (source diffs, split by default) or `Source | Rendered`
   (Markdown diffs, rendered by default like Markdown files; choosing Source is remembered per tab). Source lines wrap at the file line width.
+  Upstream's diffs stopped honouring that width when they moved off the editor component to a diff library
+  that scrolls horizontally; SharpRail's source diffs are still editors, so they keep wrapping.
 - On macOS source diffs are read-only Scintilla editors (`Editor/EditorFrame`), so only visible lines are laid
   out and large diffs stay responsive. Each line carries a whole-line style: added/removed lines get a tinted
   foreground over a composited wash band, hunk headers the accent, collapsed context a `⋯ N hidden lines` row.
@@ -137,7 +139,8 @@ Every asynchronous gap renders something shaped for the wait, never nothing:
 - Height-bounded, scrollable menus with horizontal overflow hidden for long commit lists.
 - Syntax highlighting for Markdown code blocks beyond the minimal keyword/string/comment tinting, and a
   manifest-driven syntax palette.
-- Toasts: SharpRail reports failures through the window's error line and transient notifications.
+- Toasts, including one that carries its own action button: SharpRail reports failures through the
+  window's error line and transient notifications.
 - A relative-time helper for commit rows (they show short SHA and author only).
 - Rendering a link that escapes the worktree root or has malformed encoding as an inert control; today such
   a target reaches the host, whose path validation rejects it.

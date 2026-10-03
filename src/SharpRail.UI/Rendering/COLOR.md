@@ -1,6 +1,6 @@
 # Colour system
 
-Upstream: apps/web/src/styles/COLOR.md @ 4a65ed7f
+Upstream: apps/web/src/styles/COLOR.md @ c44534ea
 
 Colour arrives in two layers, and a control may only ever name the second one.
 
@@ -86,5 +86,12 @@ Never a raw hex or `Color.Parse` in a control, and never a second name for a val
 - The contrast and distinguishability floors, listed in [Themes.SPEC.md](Themes.SPEC.md).
 - Separate disabled roles (`control-disabled-*`: the enabled colour at a 60% step) and the stronger
   `control-border-active` for pressed, open and focused controls; Fluent's defaults paint those states.
+- The editor chrome roles derived from existing palette keys: secondary matches of the selection
+  (`editorSelection` @ 20%), the active find match (`warning` @ 40%) and widget shadows (`text` @ 20%), with
+  the wider set upstream now paints from roles (current line, indent guides, bracket match, inactive line
+  numbers, fold and whitespace marks). The Scintilla editor keeps its own defaults for all of these.
+- The transparency checkerboard behind image previews (`text` @ 20% tiles, so a dark logo on a transparent
+  image never reads as no image); image tabs and Markdown images sit directly on the surface. Both this and
+  the editor roles need a 20% step, which the alpha scale lacks.
 - Distinct `workspace` and `terminal` container roles and a separate `control-bg-selected`; SharpRail
   reuses `Surface`, `Sidebar` and `Hover`.

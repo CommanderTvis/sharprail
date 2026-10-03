@@ -1,6 +1,6 @@
 # Panels: Settings and shared dialogs
 
-Upstream: apps/web/src/panels/SPEC.md @ be804a56
+Upstream: apps/web/src/panels/SPEC.md @ c44534ea
 
 ## Responsibility
 

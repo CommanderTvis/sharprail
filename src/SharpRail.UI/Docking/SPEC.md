@@ -1,6 +1,6 @@
 # Docking — window-local workbench frame
 
-Upstream: apps/web/src/shell/SPEC.md @ be804a56
+Upstream: apps/web/src/shell/SPEC.md @ c44534ea
 Upstream: apps/web/src/shell/layout/SPEC.md @ 4a65ed7f
 Upstream: apps/web/src/shell/layoutIntents/SPEC.md @ 4a65ed7f
 Upstream: apps/web/src/shell/layoutState/SPEC.md @ 4a65ed7f

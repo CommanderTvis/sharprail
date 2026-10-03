@@ -24,6 +24,7 @@ versions; `global.json` selects the SDK. Use `.tools/dotnet/dotnet` for this che
 | `src/SharpRail.UI/Assets` | Reference icons and bundled fonts, with their licenses. |
 | `src/Ghostty.Avalonia` | Independent Ghostty controls: hosted AppKit/Metal, Metal textures composed by Avalonia, and libghostty-vt drawn by Skia; native bridges, build script and licenses. Its README documents reuse and limits. |
 | `tests/SharpRail.Checks` | Executable checks for host transports, runtime extensibility, layout, UI and Git/worktree integration. `E2E/` translates upstream scenarios using real headless Avalonia input. |
+| `scripts/dev.sh` | Builds and runs the app from source in one step (`SHARPRAIL_PROFILE` keeps a separate profile). |
 | `scripts/bootstrap.sh` | Installs the checkout's local .NET SDK. |
 | `src/Ghostty.Avalonia/build-native.sh` | Builds pinned libghostty and libghostty-vt bridges on the target macOS architecture, using checkout-local tools and caches. |
 | `scripts/build-merman.sh` | Downloads Merman's pinned, checksummed macOS xcframework and links its C ABI into `.tools/merman/libSharpRailMermaid.dylib`. `Rendering/MermaidRenderer.cs` renders SVG through it off the UI thread; Svg.Skia displays it. Other platforms show the source with an unavailability message. |
