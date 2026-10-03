@@ -32,6 +32,7 @@ public sealed partial class DockSurface
                 dragging = true; capturedPointer = e.Pointer; e.Pointer.Capture(this);
             }
             PaintTargets(position);
+            PaintPreview(position);
             e.Handled = true;
         }, RoutingStrategies.Tunnel, handledEventsToo: true);
         AddHandler(PointerReleasedEvent, (_, e) =>
@@ -78,6 +79,32 @@ public sealed partial class DockSurface
         var pointer = capturedPointer; capturedPointer = null;
         pointer?.Capture(null);
         FlushRefresh();
+    }
+
+    // The dragged tab follows the pointer, as the browser's drag image does in the reference. It is a panel rather than a
+    // border so it never reads as a drop hint.
+    private void PaintPreview(Point point)
+    {
+        var tab = draft is null ? null : Session.Tabs(draft.Source).FirstOrDefault(item => item.Id == draft.Tab);
+        if (tab is null) return;
+        var preview = new Panel
+        {
+            Name = "DragPreview",
+            Children =
+            {
+                new Border
+                {
+                    Background = Ui.Elevated,
+                    BorderBrush = Ui.BorderBrush,
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(4),
+                    Padding = new Thickness(12, 4),
+                    Child = Ui.Text(tab.Title, Ui.TextBrush)
+                }
+            }
+        };
+        Canvas.SetLeft(preview, point.X + 12); Canvas.SetTop(preview, point.Y + 8);
+        overlay.Children.Add(preview);
     }
 
     private Rect RectOf(Control control)

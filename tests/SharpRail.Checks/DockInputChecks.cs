@@ -329,6 +329,10 @@ internal static class DockInputChecks
         var sourceGroup = window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "files")).Id;
         window.MouseDown(from, MouseButton.Left); window.MouseMove(from + new Vector(20, 40));
         Require(surface.IsDragging && pointer is not null, "Capture-loss test did not start a drag.");
+        var preview = surface.Children.OfType<Canvas>().Single().Children.OfType<Panel>().SingleOrDefault(item => item.Name == "DragPreview");
+        Require(preview is not null && Canvas.GetLeft(preview) > from.X && Canvas.GetTop(preview) > from.Y &&
+            preview.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "Files"),
+            "A dragged tab shows a preview of itself under the pointer.");
         pointer!.Capture(null); Dispatcher.UIThread.RunJobs();
         window.MouseUp(from + new Vector(20, 40), MouseButton.Left);
         Require(!surface.IsDragging && window.Layout.Epoch == epoch &&
