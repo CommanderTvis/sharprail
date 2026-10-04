@@ -24,6 +24,9 @@ internal static class FilesE2E
         TreeViewItem? Node(string name, bool directory) => app.Find<TreeView>("FilesTree").GetLogicalDescendants().OfType<TreeViewItem>()
             .SingleOrDefault(node => node.Tag is ProjectFile file && file.Name == name && file.IsDirectory == directory);
         Until(() => Node("compact/only/here", true) is not null);
+        // Dotfiles are ordinary entries of a developer's tree, listed and visible like the reference's.
+        File.WriteAllText(Path.Combine(workspace, ".gitignore"), "bin/\n");
+        Until(() => Node(".gitignore", false) is { IsVisible: true });
         app.ExpandFolder(Path.Combine("compact", "only", "here"));
         Until(() => Node("leaf.txt", false) is not null && Node("compact/only/here", true)!.IsExpanded);
         Directory.CreateDirectory(Path.Combine(workspace, "compact", "only", "sibling"));

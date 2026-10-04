@@ -627,9 +627,6 @@ public sealed partial class SettingsWindow : Window
     private Control ProjectSettings()
     {
         var panel = Page("ProjectsPage");
-        var hidden = PageControl<Switch>(panel, "ShowHiddenFiles");
-        hidden.IsChecked = state.Preferences.ShowHiddenFiles;
-        hidden.CheckedChange += requested => { state.Preferences.ShowHiddenFiles = requested; hidden.IsChecked = requested; Save(); };
         var recent = PageControl<StackPanel>(panel, "RecentProjects");
         foreach (var path in state.Current.Projects)
         {

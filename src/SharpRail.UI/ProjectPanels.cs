@@ -370,8 +370,7 @@ public sealed partial class WorkbenchWindow
             MinHeight = 24,
             CornerRadius = new CornerRadius(4),
             HorizontalAlignment = HorizontalAlignment.Stretch,
-            Tag = file,
-            IsVisible = Preferences.ShowHiddenFiles || !file.Name.StartsWith('.')
+            Tag = file
         };
         AutomationProperties.SetName(node, file.Name);
         AutomationProperties.SetHelpText(node, file.Path);

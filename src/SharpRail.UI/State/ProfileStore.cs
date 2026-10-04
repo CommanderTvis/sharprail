@@ -23,7 +23,6 @@ public sealed class Preferences
     public double FontSize { get; set; } = 14;
     /// <summary>Browser-style page zoom shared by every window; Mod+=, Mod+- and Mod+0 step it.</summary>
     public double Zoom { get; set; } = 1;
-    public bool ShowHiddenFiles { get; set; }
     /// <summary>The local terminal renderer: composited Metal texture or Skia cells.</summary>
     public string TerminalRenderer { get; set; } = Terminal.TerminalRenderers.Texture;
     /// <summary>A single click previews into the group's reusable slot; off, every open keeps its tab.</summary>

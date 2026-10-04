@@ -120,8 +120,7 @@
     <DataTemplate x:Key="ProjectsPage">
       <StackPanel Spacing="8">
         <TextBlock Text="Projects" Classes="settings-heading" />
-        <TextBlock Text="Hidden files are a preference of this app; the project list is shared by every window and client of this host." Classes="settings-description" />
-        <rendering:Switch x:Name="ShowHiddenFiles" Content="Show hidden files" />
+        <TextBlock Text="The project list is shared by every window and client of this host." Classes="settings-description" />
         <TextBlock Text="Recent projects" Classes="settings-label" />
         <StackPanel x:Name="RecentProjects" Spacing="8" />
       </StackPanel>

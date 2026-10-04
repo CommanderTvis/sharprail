@@ -143,8 +143,9 @@ can be set by a plugin (W18): uncommitted, one commit, the comparison target, or
 ## Files
 
 - A lazily populated tree of the workspace. Directories read one level at a time through
-  `ListFilesAsync` when expanded; a not-yet-read directory shows a `Loading…` child. Hidden entries follow the
-  Show hidden files preference. A run of directories that each hold exactly one directory is one `a/b/c`
+  `ListFilesAsync` when expanded; a not-yet-read directory shows a `Loading…` child. Dotfiles are listed like any
+  other entry; the host leaves out only `.git`, `.sharprail` and `.tools`.
+  A run of directories that each hold exactly one directory is one `a/b/c`
   row, compacted by the host listing; it splits in place when a sibling appears and keeps what was expanded.
 - A file whose bytes are neither text nor a picture opens as the byte card of the resource renderers in its
   tab (media type, size and hash, see [Rendering/SPEC.md](Rendering/SPEC.md)) rather than a window error; a
