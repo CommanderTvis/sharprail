@@ -73,8 +73,7 @@ lifecycle are host state (`IHostStateService`): change them through the host and
 update UI when the broadcast arrives (`HostSync.cs`), never by writing a local copy.
 Local host state is `~/.sharprail/state.json`, migrated once from older profiles; a
 remote host keeps its own in `SHARPRAIL_STATE_DIR`. The default profile file is
-`~/.sharprail/profile.json`; it contains app preferences (interface size, hidden
-files), one `Windows` entry per window (frame, default preset, last location), rail
+`~/.sharprail/profile.json`; it contains app preferences (interface size), one `Windows` entry per window (frame, default preset, last location), rail
 expansion and per-workspace Git selections. The comparison target itself is host state
 (`HostState.DiffBase`); the profile's copy only serves a workspace the host has none for. Persist target,
 scope and selected commit; reload commit catalogs from Git rather than saving

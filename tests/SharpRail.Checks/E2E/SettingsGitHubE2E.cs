@@ -71,7 +71,7 @@ internal static class SettingsGitHubE2E
         Press(RawInputModifiers.Meta);
         Until(() => Open().Length == 1);
         settings = Open()[0];
-        Require(settings.Section == "Projects" && settings.GetLogicalDescendants().OfType<CheckBox>().Any(box => box.Name == "ShowHiddenFiles"),
+        Require(settings.Section == "Projects" && settings.GetLogicalDescendants().OfType<StackPanel>().Any(list => list.Name == "RecentProjects"),
             "Settings must reopen on the section it was left on.");
         settings.Close(); Until(() => !settings.IsVisible);
         Console.WriteLine("PASS upstream settings.spec.ts: macOS opens settings with its own Preferences chord, and other platforms do not");
