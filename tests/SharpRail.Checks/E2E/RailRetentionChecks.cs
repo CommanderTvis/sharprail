@@ -35,6 +35,14 @@ internal static class RailRetentionChecks
                 $"Switching to {Path.GetFileName(target)} keeps the workspace rows instead of rebuilding the list.");
             Require(detached == 0, $"Switching to {Path.GetFileName(target)} keeps the rail mounted instead of re-attaching it.");
         }
+        // Folding a project hides its rows in place: nothing in the rail is rebuilt, so nothing flickers.
+        var fold = Controls(app).OfType<Button>().Single(button => button.Name == "ProjectExpand");
+        app.Click(fold);
+        Until(() => Rows(app).All(row => !row.IsEffectivelyVisible));
+        app.Click(fold);
+        Until(() => Rows(app).All(row => row.IsEffectivelyVisible));
+        Require(Rows(app).Zip(rows).All(pair => ReferenceEquals(pair.First, pair.Second)) && detached == 0,
+            "Folding and unfolding a project keeps its workspace rows and the rail mounted.");
         Console.WriteLine("PASS switching workspaces keeps the rail's rows");
     }
 

@@ -255,12 +255,13 @@ internal static class UiChecks
         }
         Require(Find<Grid>(window, "ProjectRow").Bounds.Height == 28,
             "Project row does not match the reference height.");
+        var workspaceRows = Find<StackPanel>(window, "ProjectWorkspaces");
         Click(window, Find<Button>(window, "ProjectExpand"));
-        Require(!window.GetLogicalDescendants().OfType<Button>().Any(button => button.ContextMenu is not null && Equals(ToolTip.GetTip(button), root)),
+        Require(!workspaceRows.IsEffectivelyVisible && Equals(ToolTip.GetTip(Find<Button>(window, "ProjectExpand")), "Expand project"),
             "Collapsing a project did not hide its workspaces.");
         Require(Find<Button>(window, "ProjectExpand").IsFocused, "Project collapse lost keyboard focus.");
         window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null); Dispatcher.UIThread.RunJobs();
-        Require(window.GetLogicalDescendants().OfType<Button>().Any(button => button.ContextMenu is not null && Equals(ToolTip.GetTip(button), root)),
+        Require(workspaceRows.IsEffectivelyVisible && Equals(ToolTip.GetTip(Find<Button>(window, "ProjectExpand")), "Collapse project"),
             "Keyboard project expansion did not restore its workspaces.");
         Capture(window, ".bench/prototype-empty-headless.png");
         var specNode = Find<TreeView>(window, "SpecsTree").Items.OfType<TreeViewItem>().Single(item => Equals(item.Tag, "SPEC.md"));

@@ -157,7 +157,11 @@ may fall back to `~/.sharprail` or the developer's real profile or host state.
 starts, a private global configuration with a throwaway identity and signing off,
 restoring the environment afterwards; seeded authorship never depends on the
 developer's Git config. Cases that need a probe to degrade (for example `gh`) empty
-`PATH` for that case only.
+`PATH` for that case only. Pull-request checks retain only their fixture's Git
+executable when testing a missing `gh`, excluding system directories even if
+the runner has GitHub CLI installed; the original path is restored on failure too.
+Project expansion checks observe the retained workspace container and toggle state,
+including plain folders that intentionally have no Git workspace selection row.
 
 Headless terminal tabs run real host PTY sessions (`/bin/sh`) rendered as text.
 Commands print split markers so an echoed command line never satisfies an output

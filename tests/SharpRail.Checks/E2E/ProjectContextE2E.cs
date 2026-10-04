@@ -38,7 +38,7 @@ internal static class ProjectContextE2E
         Require(!fixtureRow.GetLogicalDescendants().OfType<Button>().Any(button => button.Name is "CloseProject" or "ProjectActionsButton"),
             "Project rows keep close and actions in the context menu.");
         app.Click(fixtureRow.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "ProjectExpand"));
-        Until(() => Controls(app).OfType<TextBlock>().Any(text => text.Name == "ProjectWorkspaceCount"));
+        Until(() => Controls(app).OfType<TextBlock>().Any(text => text.Name == "ProjectWorkspaceCount" && text.IsEffectivelyVisible));
         var count = Controls(app).OfType<TextBlock>().Single(text => text.Name == "ProjectWorkspaceCount");
         var trailing = (Grid)count.Parent!;
         Require(count.Text == "1" && trailing.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "AddWorkspace") is { } workspaceAdd &&
