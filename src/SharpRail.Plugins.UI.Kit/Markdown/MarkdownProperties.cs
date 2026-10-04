@@ -151,7 +151,7 @@ public sealed partial class MarkdownPreview
 
     private SelectableTextBlock ValueText(string text)
     {
-        var block = new SelectableTextBlock { Foreground = Ui.TextBrush, FontSize = context.FontSize - 1, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 8, 2) };
+        var block = new DocumentText { Foreground = Ui.TextBrush, FontSize = context.FontSize - 1, TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 2, 8, 2) };
         block.Inlines!.Add(Mark(new Run(text)));
         return block;
     }

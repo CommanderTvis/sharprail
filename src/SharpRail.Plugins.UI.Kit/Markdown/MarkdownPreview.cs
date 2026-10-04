@@ -89,8 +89,8 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
 
     private void SelectionMoved(object? sender, AvaloniaPropertyChangedEventArgs e)
     {
-        if (e.Property != SelectableTextBlock.SelectionEndProperty || sender is not SelectableTextBlock text) return;
-        SelectionChanged?.Invoke(text.SelectedText ?? "");
+        if (e.Property != SelectableTextBlock.SelectionEndProperty || sender is not SelectableTextBlock text || text is DocumentText { Restoring: true }) return;
+        SelectionChanged?.Invoke(Words(text));
     }
 
     /// <summary>Parses Markdown; inside a spec, <c>[[id]]</c> links become spec links. Ordinary Markdown keeps them as text.</summary>
@@ -293,7 +293,7 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
 
     private SelectableTextBlock Paragraph(ContainerInline? inline, double size, FontWeight? weight = null)
     {
-        var text = new SelectableTextBlock
+        var text = new DocumentText
         {
             Foreground = Ui.TextBrush,
             FontSize = size,
@@ -606,7 +606,7 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
 
     public static SelectableTextBlock Code(string text)
     {
-        var block = new SelectableTextBlock
+        var block = new DocumentText
         {
             FontFamily = Ui.CodeFont,
             FontSize = 13,

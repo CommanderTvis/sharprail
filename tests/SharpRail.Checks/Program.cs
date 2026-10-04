@@ -380,6 +380,16 @@ internal static class Program
             E2E.SwitchLatencyChecks.Run(Path.Combine(root, "upstream-e2e"));
             return;
         }
+        if (args.SequenceEqual(["--markdown"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            var e2e = Path.Combine(root, "upstream-e2e");
+            E2E.MarkdownLinksE2E.Run(e2e);
+            E2E.MarkdownAlertsE2E.Run(e2e);
+            E2E.MarkdownDocumentE2E.Run(e2e);
+            return;
+        }
         if (args.SequenceEqual(["--settings"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
