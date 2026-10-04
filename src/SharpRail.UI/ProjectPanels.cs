@@ -167,15 +167,29 @@ public sealed partial class WorkbenchWindow
             highlight.Classes.Set("active", atHome && project == projectRoot);
             railSelection.Add(() => highlight.Classes.Set("active", atHome && project == projectRoot));
             var collapsed = profile.Data.CollapsedProjects.Contains(project);
-            var workspaces = RailWorkspaces(project);
-            var toggle = Ui.IconButton(collapsed ? "arrowRight" : "arrowDown", collapsed ? "Expand project" : "Collapse project", () =>
+            var records = RailWorkspaces(project);
+            // The project's workspace rows live in one container: folding shows or hides it in place, so the rest of
+            // the rail, other projects' rows and the tab strips under them, stays mounted instead of being rebuilt.
+            StackPanel? workspaces = null;
+            Control? badge = null;
+            Button toggle = null!;
+            toggle = Ui.IconButton(collapsed ? "arrowRight" : "arrowDown", collapsed ? "Expand project" : "Collapse project", () =>
             {
-                // Expanding is the gesture that re-reads a background project's workspaces.
-                if (!profile.Data.CollapsedProjects.Add(project)) { profile.Data.CollapsedProjects.Remove(project); _ = SyncWorkspacesAsync(project); }
+                var folding = profile.Data.CollapsedProjects.Add(project);
+                if (!folding) { profile.Data.CollapsedProjects.Remove(project); _ = SyncWorkspacesAsync(project); }
                 SaveProfile();
-                toolContent.Remove("projects"); surface.RefreshContents();
-                Dispatcher.UIThread.Post(() => surface.GetLogicalDescendants().OfType<Button>()
-                    .FirstOrDefault(button => button.Name == "ProjectExpand" && Equals(button.Tag, project))?.Focus());
+                if (workspaces is null)
+                {
+                    // Not read yet: the rebuild lists them, loading them first if needed.
+                    toolContent.Remove("projects"); surface.RefreshContents();
+                    Dispatcher.UIThread.Post(() => surface.GetLogicalDescendants().OfType<Button>()
+                        .FirstOrDefault(button => button.Name == "ProjectExpand" && Equals(button.Tag, project))?.Focus());
+                    return;
+                }
+                workspaces.IsVisible = !folding;
+                if (badge is not null) badge.IsVisible = folding;
+                toggle.Content = Ui.Icon(folding ? "arrowRight" : "arrowDown");
+                ToolTip.SetTip(toggle, folding ? "Expand project" : "Collapse project");
             });
             toggle.Name = "ProjectExpand"; toggle.Tag = project;
             toggle.Width = toggle.Height = 16; toggle.Padding = new(0);
@@ -200,12 +214,12 @@ public sealed partial class WorkbenchWindow
             };
             var trailing = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2 };
             Ui.Place(row, trailing, 0, 3);
-            var count = workspaces.Count(workspace => workspace.Kind != WorkspaceKinds.Default);
-            if (collapsed && count > 0)
+            var count = records.Count(workspace => workspace.Kind != WorkspaceKinds.Default);
+            if (count > 0)
             {
-                var badge = Ui.Text(count.ToString(System.Globalization.CultureInfo.InvariantCulture), Ui.Hint, 12);
-                badge.Name = "ProjectWorkspaceCount"; badge.VerticalAlignment = VerticalAlignment.Center;
-                trailing.Children.Add(badge);
+                var countText = Ui.Text(count.ToString(System.Globalization.CultureInfo.InvariantCulture), Ui.Hint, 12);
+                countText.Name = "ProjectWorkspaceCount"; countText.IsVisible = collapsed; countText.VerticalAlignment = VerticalAlignment.Center;
+                trailing.Children.Add(badge = countText);
             }
             if (project == projectRoot)
             {
@@ -217,12 +231,13 @@ public sealed partial class WorkbenchWindow
                 trailing.Children.Add(add);
             }
             tree.Children.Add(highlight);
-            if (collapsed) continue;
-            foreach (var workspace in workspaces)
+            workspaces = new StackPanel { Name = "ProjectWorkspaces", Tag = project, Spacing = tree.Spacing, IsVisible = !collapsed };
+            foreach (var workspace in records)
             {
-                tree.Children.Add(WorkspaceItem(workspace));
-                tree.Children.Add(WorkspaceTabsHost(workspace.Path));
+                workspaces.Children.Add(WorkspaceItem(workspace));
+                workspaces.Children.Add(WorkspaceTabsHost(workspace.Path));
             }
+            tree.Children.Add(workspaces);
         }
         Ui.Place(panel, new ScrollViewer { Content = tree, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled }, 2);
         return panel;

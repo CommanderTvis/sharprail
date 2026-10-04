@@ -79,7 +79,7 @@ internal static class WorkspaceFixture
     }
 
     internal static IEnumerable<string> WorktreePaths(E2eWorkspace app) => Controls(app).OfType<Grid>()
-        .Where(item => item.Name == "WorkspaceItem" && (string)item.Tag! != app.Window.ProjectRoot).Select(item => (string)item.Tag!);
+        .Where(item => item.Name == "WorkspaceItem" && item.IsEffectivelyVisible && (string)item.Tag! != app.Window.ProjectRoot).Select(item => (string)item.Tag!);
 
     internal static Grid Item(E2eWorkspace app, string path)
     {

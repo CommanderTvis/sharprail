@@ -29,7 +29,7 @@ internal static class ProjectsE2E
         Require(Equals(ToolTip.GetTip(toggle), expanded ? "Collapse project" : "Expand project"),
             "Project expansion must survive window recreation.");
         Require(app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.ContextMenu is not null &&
-            Equals(ToolTip.GetTip(button), app.Root)) == expanded,
+            Equals(ToolTip.GetTip(button), app.Root) && button.IsEffectivelyVisible) == expanded,
             "Only expanded projects may expose workspace rows.");
     }
 }
