@@ -54,6 +54,16 @@ internal static class LayoutSettingsE2E
         var bottom = app.Window.Layout.State.Groups.Single(group => group.Region == "bottom");
         Require(app.Window.Layout.Tabs(bottom.Id).Single().Kind == "terminal", "The workspace must start with its initial bottom terminal.");
         var settings = Open(app);
+        var limit = settings.GetLogicalDescendants().OfType<NumericUpDown>().Single(input => input.Name == "GroupLimit_side");
+        settings.UpdateLayout();
+        var steps = limit.GetVisualDescendants().OfType<RepeatButton>().ToArray();
+        var digits = limit.GetVisualDescendants().OfType<TextBox>().Single();
+        Require(steps.Length == 2 && steps.All(step => step.Bounds.Width == 22) && digits.Bounds.Width >= 36,
+            $"A group limit leaves its digits room beside two narrow steppers ({digits.Bounds.Width} beside {string.Join(", ", steps.Select(step => step.Bounds.Width))}).");
+        var ink = (digits.Foreground as Avalonia.Media.ISolidColorBrush)?.Color ?? default;
+        Require(settings.ActualThemeVariant == app.Window.ActualThemeVariant &&
+            (settings.ActualThemeVariant != Avalonia.Styling.ThemeVariant.Dark || ink.R + ink.G + ink.B > 3 * 160),
+            $"Settings takes its window's theme variant, so Fluent inputs stay legible ({settings.ActualThemeVariant} beside {app.Window.ActualThemeVariant}, {ink}).");
         foreach (var region in new[] { "side", "bottom" })
         {
             settings.GetLogicalDescendants().OfType<NumericUpDown>().Single(input => input.Name == "GroupLimit_" + region).Value = region == "side" ? 3 : 2;

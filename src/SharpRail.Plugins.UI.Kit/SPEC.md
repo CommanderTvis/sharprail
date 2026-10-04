@@ -18,6 +18,16 @@ of `SharpRail.UI/Rendering` so a plugin can render UI without reaching into the 
 catalogue, workbench or panels. The app uses the same controls from here; there is one copy. In this commit
 the project is created empty with this spec, and the controls move into it as listed below.
 
+## Shared control states
+
+`ControlStyles.axaml` and `Ui.ApplyResources` own button, toggle and checkbox states for the entire app
+and its plugins, including compiled layouts and controls created from code. Primary, link, quiet and
+Welcome card variants share these rules; panes do not copy Fluent state resources. Selected toggles
+retain an accent outline when hovered or pressed. Checkbox glyphs use the same contrast-safe foreground
+as primary buttons: retain the manifest foreground when readable, otherwise use the more readable
+black or white against both normal and hovered fills. Button factory labels and icons follow the
+control foreground. Disabled controls use the shared disabled colors.
+
 ## Boundary
 
 The fork's shared `Switch` exposes a label and controlled checked state without visible On/Off text.

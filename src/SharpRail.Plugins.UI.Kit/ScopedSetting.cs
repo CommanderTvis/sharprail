@@ -69,8 +69,7 @@ public static partial class ScopedSetting
             HorizontalAlignment = HorizontalAlignment.Left,
             Cursor = new Cursor(StandardCursorType.Hand)
         };
-        button.Resources["ButtonBackgroundPointerOver"] = Brushes.Transparent;
-        button.Resources["ButtonBackgroundPressed"] = Brushes.Transparent;
+        button.Classes.Add("quiet");
         button.PointerEntered += (_, _) => { text.Foreground = Ui.Accent; text.TextDecorations = TextDecorations.Underline; };
         button.PointerExited += (_, _) => { text.Foreground = Ui.Muted; text.TextDecorations = null; };
         ToolTip.SetTip(button, path);
@@ -95,7 +94,6 @@ public static partial class ScopedSetting
             CornerRadius = new CornerRadius(4),
             VerticalAlignment = VerticalAlignment.Center
         };
-        button.Resources["ButtonBackgroundPointerOver"] = Ui.Hover;
         button.PointerEntered += (_, _) => text.Foreground = danger ? Ui.Danger : Ui.TextBrush;
         button.PointerExited += (_, _) => text.Foreground = danger ? Ui.Hint : Ui.Muted;
         AutomationProperties.SetName(button, label);
@@ -131,7 +129,7 @@ public static partial class ScopedSetting
                 BorderThickness = new Thickness(0),
                 Cursor = new Cursor(StandardCursorType.Hand)
             };
-            link.Resources["ButtonBackgroundPointerOver"] = Brushes.Transparent;
+            link.Classes.Add("quiet");
             link.PointerEntered += (_, _) => { keyText.Foreground = Ui.Accent; keyText.TextDecorations = TextDecorations.Underline; };
             link.PointerExited += (_, _) => { keyText.Foreground = Ui.TextBrush; keyText.TextDecorations = null; };
             if (docsTitle is not null) ToolTip.SetTip(link, docsTitle);

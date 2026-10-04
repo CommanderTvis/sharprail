@@ -28,7 +28,6 @@ public sealed partial class DialogWindow : Window
                 button.ClearValue(Button.PaddingProperty);
                 var primary = button.Classes.Contains("primary");
                 if (primary) { button.ClearValue(Button.BackgroundProperty); button.ClearValue(Button.BorderBrushProperty); button.ClearValue(Button.BorderThicknessProperty); }
-                if (button.Content is TextBlock label) label.Foreground = primary ? Ui.OnPrimary : Ui.TextBrush;
             }
             var fields = this.FindControl<StackPanel>("DialogFields")!;
             fields.IsVisible = fields.IsVisible && fields.Children.Count > 0;

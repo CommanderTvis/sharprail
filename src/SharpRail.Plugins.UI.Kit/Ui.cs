@@ -1,9 +1,12 @@
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
-using Avalonia.Input;
 using Avalonia.Controls.Primitives;
+using Avalonia.Data;
+using Avalonia.Input;
 using Avalonia.Layout;
+using Avalonia.LogicalTree;
+using Avalonia.Markup.Xaml.Styling;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
@@ -45,9 +48,57 @@ public static partial class Ui
     public static void ApplyResources(Application app)
     {
         app.Resources[SelectionForegroundKey] = SelectionText is { } foreground ? new SolidColorBrush(foreground) : null;
+        var source = new Uri("avares://SharpRail.Plugins.UI.Kit/ControlStyles.axaml");
+        if (!app.Styles.OfType<StyleInclude>().Any(style => style.Source == source))
+            app.Styles.Add(new StyleInclude(source) { Source = source });
+        foreach (var state in new[] { "", "PointerOver", "Pressed", "Disabled" })
+        {
+            var disabled = state == "Disabled";
+            app.Resources["ButtonBackground" + state] = disabled ? ControlDisabledFill : state == "" ? ControlFill : Hover;
+            app.Resources["ButtonForeground" + state] = disabled ? ControlDisabledText : TextBrush;
+            app.Resources["ButtonBorderBrush" + state] = disabled ? ControlDisabledBorder : ControlBorder;
+            app.Resources["RepeatButtonBackground" + state] = disabled || state == "" ? Brushes.Transparent : Hover;
+            app.Resources["RepeatButtonForeground" + state] = disabled ? ControlDisabledText : state == "" ? Muted : TextBrush;
+            app.Resources["ToggleButtonBackground" + state] = disabled ? ControlDisabledFill : state == "" ? ControlFill : Hover;
+            app.Resources["ToggleButtonForeground" + state] = disabled ? ControlDisabledText : TextBrush;
+            app.Resources["ToggleButtonBorderBrush" + state] = disabled ? ControlDisabledBorder : ControlBorder;
+            app.Resources["ToggleButtonBackgroundChecked" + state] = disabled ? ControlDisabledFill : PrimaryMuted;
+            app.Resources["ToggleButtonForegroundChecked" + state] = disabled ? ControlDisabledText : TextBrush;
+            app.Resources["ToggleButtonBorderBrushChecked" + state] = disabled ? ControlDisabledBorder : Accent;
+            foreach (var value in new[] { "Unchecked", "Checked", "Indeterminate" })
+            {
+                var selected = value != "Unchecked";
+                var suffix = value + state;
+                app.Resources["CheckBoxForeground" + suffix] = disabled ? ControlDisabledText : TextBrush;
+                app.Resources["CheckBoxCheckBackgroundFill" + suffix] = disabled ? ControlDisabledFill : selected ? (state == "" ? PrimaryFill : PrimaryFillHover) : ControlFill;
+                app.Resources["CheckBoxCheckBackgroundStroke" + suffix] = disabled ? ControlDisabledBorder : selected ? PrimaryFill : ControlBorder;
+                app.Resources["CheckBoxCheckGlyphForeground" + suffix] = disabled ? ControlDisabledText : OnPrimary;
+            }
+        }
         foreach (var fluent in app.Styles.OfType<FluentTheme>())
             if (fluent.Palettes.TryGetValue(Theme.IsLight ? ThemeVariant.Light : ThemeVariant.Dark, out var palette))
                 palette.Accent = Accent.Color;
+    }
+
+    private static Color ReadableForeground(Color preferred, params Color[] backgrounds)
+    {
+        static double Luminance(Color color)
+        {
+            static double Linear(byte channel)
+            {
+                var value = channel / 255.0;
+                return value <= .04045 ? value / 12.92 : Math.Pow((value + .055) / 1.055, 2.4);
+            }
+            return .2126 * Linear(color.R) + .7152 * Linear(color.G) + .0722 * Linear(color.B);
+        }
+        double Contrast(Color foreground) => backgrounds.Min(background =>
+        {
+            var a = Luminance(foreground);
+            var b = Luminance(background);
+            return (Math.Max(a, b) + .05) / (Math.Min(a, b) + .05);
+        });
+        if (Contrast(preferred) >= 4.5) return preferred;
+        return Contrast(Colors.Black) >= Contrast(Colors.White) ? Colors.Black : Colors.White;
     }
 
     private static LinearGradientBrush Fade() => new()
@@ -110,11 +161,14 @@ public static partial class Ui
         {
             Content = icon is null ? Text(label) : Row(icon, label),
             Padding = new Thickness(12, 4),
-            Background = Elevated,
             BorderBrush = BorderBrush,
             BorderThickness = new Thickness(1),
             CornerRadius = new(4)
         };
+        foreach (var text in ((Control)button.Content!).GetLogicalDescendants().Prepend((Control)button.Content!).OfType<TextBlock>())
+            text.Bind(TextBlock.ForegroundProperty, new Binding(nameof(button.Foreground)) { Source = button });
+        foreach (var glyph in ((Control)button.Content!).GetLogicalDescendants().Prepend((Control)button.Content!).OfType<Border>())
+            glyph.Bind(Border.BackgroundProperty, new Binding(nameof(button.Foreground)) { Source = button });
         button.Click += (_, _) => action();
         FollowEnabled(button);
         return button;
@@ -162,6 +216,7 @@ public static partial class Ui
             BorderThickness = new(0),
             CornerRadius = new(0)
         };
+        ((Border)button.Content!).Bind(Border.BackgroundProperty, new Binding(nameof(button.Foreground)) { Source = button });
         ToolTip.SetTip(button, tooltip);
         AutomationProperties.SetName(button, tooltip);
         button.Click += (_, _) => action();
@@ -199,7 +254,7 @@ public static partial class Ui
         return item;
     }
 
-    /// <summary>One option of a segmented toggle: muted until checked or hovered, then the hover fill and text colour.</summary>
+    /// <summary>One option of a segmented toggle: shared hover feedback and an accent outline when selected.</summary>
     public static ToggleButton Segment(string name, string label)
     {
         var button = new ToggleButton
@@ -215,11 +270,6 @@ public static partial class Ui
             Background = Brushes.Transparent,
             Foreground = Muted
         };
-        foreach (var state in new[] { "Checked", "CheckedPointerOver", "CheckedPressed", "PointerOver", "Pressed" })
-        {
-            button.Resources["ToggleButtonBackground" + state] = Hover;
-            button.Resources["ToggleButtonForeground" + state] = TextBrush;
-        }
         AutomationProperties.SetName(button, label);
         return button;
     }

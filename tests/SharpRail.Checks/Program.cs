@@ -296,6 +296,13 @@ internal static class Program
             WorkspaceWatchChecks.Run(root).GetAwaiter().GetResult();
             return;
         }
+        if (args.SequenceEqual(["--shared-controls"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            SharedControlChecks.Run();
+            return;
+        }
         if (args.SequenceEqual(["--create-project"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();

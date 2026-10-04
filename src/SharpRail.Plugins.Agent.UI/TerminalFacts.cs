@@ -122,8 +122,6 @@ public static class TerminalFacts
             CornerRadius = new CornerRadius(4),
             VerticalAlignment = VerticalAlignment.Center
         }, tooltip);
-        button.Resources["ButtonBackgroundPointerOver"] = Ui.Hover;
-        button.Resources["ButtonBackgroundPressed"] = Ui.Hover;
         button.Click += (_, _) => onClick();
         return button;
     }

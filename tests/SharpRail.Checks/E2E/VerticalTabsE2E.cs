@@ -148,6 +148,14 @@ internal static class VerticalTabsE2E
                 "The strip renders under the active workspace's row and the centre keeps only its editor.");
             app.Click(app.Tab("README.md"));
             Require(app.Window.Layout.Selected(app.Center)?.Path == "README.md", "Its tabs still select.");
+            app.Open("notes.txt", true); app.Click(app.Tab("README.md"));
+            Until(() => app.Window.Layout.Selected(app.Center)?.Path == "README.md");
+            // Anywhere on the row selects it, not only its icon and title.
+            var row = app.Find<Grid>("DockTab_file_notes.txt");
+            Settle(550);
+            var blank = row.TranslatePoint(new Point(row.Bounds.Width - 40, row.Bounds.Height / 2), app.Window)!.Value;
+            app.Window.MouseMove(blank); app.Window.MouseDown(blank, MouseButton.Left); app.Window.MouseUp(blank, MouseButton.Left);
+            Until(() => app.Window.Layout.Selected(app.Center)?.Path == "notes.txt");
 
             app.Window.Layout.Visible("left", false);
             Until(() => app.Window.GetLogicalDescendants().OfType<ResizeHandle>().Any(handle => handle.Name == "VerticalTabsResize_" + app.Center));

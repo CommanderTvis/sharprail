@@ -29,6 +29,13 @@ public sealed partial class App : Application
         {
             if (e.NameScope.Find<Panel>("PART_ExpandCollapseChevronContainer") is { } chevron) chevron.Margin = new Thickness(4, 0);
         });
+        // A window does not inherit its owner's theme variant, and Fluent colours every stock control from it: a dialog,
+        // Settings or plugin window would otherwise follow the OS appearance instead of the theme. Workbench windows
+        // pass theirs on to owned windows when the theme changes.
+        Window.OwnerProperty.Changed.AddClassHandler<Window>((window, _) =>
+        {
+            if (window.Owner is Window owner) window.RequestedThemeVariant = owner.RequestedThemeVariant;
+        });
     }
 
     // Creates terminal tabs for every window of this app, all attached to the app's one terminal host.
