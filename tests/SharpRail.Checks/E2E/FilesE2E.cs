@@ -1,7 +1,9 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input.Platform;
 using Avalonia.LogicalTree;
+using Avalonia.VisualTree;
 
 using SharpRail.Host.Abstractions;
 
@@ -27,6 +29,16 @@ internal static class FilesE2E
         // Dotfiles are ordinary entries of a developer's tree, listed and visible like the reference's.
         File.WriteAllText(Path.Combine(workspace, ".gitignore"), "bin/\n");
         Until(() => Node(".gitignore", false) is { IsVisible: true });
+        // A rail narrower than its names scrolls sideways instead of cutting them off.
+        var filesTree = app.Find<TreeView>("FilesTree");
+        var previousWidth = filesTree.Width;
+        filesTree.Width = 60;
+        Until(() => { app.Window.UpdateLayout(); return filesTree.GetVisualDescendants().OfType<ScrollViewer>().FirstOrDefault() is { } sideways && sideways.Extent.Width > sideways.Viewport.Width + 1; });
+        var label = Node("compact/only/here", true)!.GetLogicalDescendants().OfType<TextBlock>().First(text => text.Text == "compact/only/here");
+        var full = new TextBlock { Text = label.Text, FontSize = label.FontSize, FontFamily = label.FontFamily, FontWeight = label.FontWeight };
+        full.Measure(Size.Infinity);
+        Require(label.Bounds.Width >= full.DesiredSize.Width - 0.5, $"A narrow Files rail keeps whole names ({label.Bounds.Width} of {full.DesiredSize.Width}).");
+        filesTree.Width = previousWidth;
         app.ExpandFolder(Path.Combine("compact", "only", "here"));
         Until(() => Node("leaf.txt", false) is not null && Node("compact/only/here", true)!.IsExpanded);
         Directory.CreateDirectory(Path.Combine(workspace, "compact", "only", "sibling"));

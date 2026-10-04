@@ -356,7 +356,8 @@ public sealed partial class WorkbenchWindow
     {
         var panel = new Grid { Name = "FilesPanel", IsHitTestVisible = WorkspaceMounted && !switchingWorkspace };
         var tree = new TreeView { Name = "FilesTree", Background = Ui.Sidebar, Margin = new Thickness(4, 12, 12, 12) };
-        ScrollViewer.SetHorizontalScrollBarVisibility(tree, ScrollBarVisibility.Disabled);
+        // A rail narrower than its names scrolls sideways rather than cutting them off.
+        ScrollViewer.SetHorizontalScrollBarVisibility(tree, ScrollBarVisibility.Auto);
         foreach (var file in folderCache.GetValueOrDefault("") ?? []) tree.Items.Add(FileNode(file));
         Ui.Place(panel, tree);
         return panel;
