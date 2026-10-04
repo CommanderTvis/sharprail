@@ -37,6 +37,7 @@ internal static class MarkdownDocumentE2E
         Outline(root);
         Split(root);
         Find(root);
+        MarkdownFindE2E.Run(root);
     }
 
     private static E2eWorkspace OpenDocument(string root, string name, string file, string text)

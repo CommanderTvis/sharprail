@@ -26,6 +26,8 @@ public sealed partial class MarkdownDocumentView : UserControl, IDisposable
     private readonly Grid body;
     private readonly Border outline;
     private readonly GridSplitter splitter;
+    private readonly FindBar find;
+    private bool findSource;
     private Mode mode;
 
     public MarkdownDocumentView(string text, string path, MarkdownContext context)
@@ -50,10 +52,15 @@ public sealed partial class MarkdownDocumentView : UserControl, IDisposable
         Outline.Fill(this.FindControl<StackPanel>("MarkdownOutlineEntries")!, preview, sourceText,
             RevealSource);
         Paint(outlineButton, false);
-        var find = new FindBar(() => body);
+        find = new FindBar(() => mode == Mode.Source || mode == Mode.Split && findSource ? source : preview) { ZIndex = 1 };
         Grid.SetColumnSpan(find, 4);
         body.Children.Add(find);
         find.Attach(this);
+        body.GotFocus += (_, _) =>
+        {
+            if (source?.IsKeyboardFocusWithin == true) findSource = true;
+            else if (preview.IsKeyboardFocusWithin) findSource = false;
+        };
         Show(Mode.Preview);
     }
 
@@ -62,6 +69,7 @@ public sealed partial class MarkdownDocumentView : UserControl, IDisposable
 
     public void Show(Mode next)
     {
+        if (mode != next) find.Close();
         mode = next;
         if (next != Mode.Preview && source is null)
         {

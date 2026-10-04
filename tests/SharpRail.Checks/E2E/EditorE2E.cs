@@ -12,6 +12,7 @@ using SharpRail.UI.Panels;
 using SharpRail.UI.Rendering;
 
 using static SharpRail.Checks.E2E.E2eWorkspace;
+using static SharpRail.Checks.E2E.WorkspaceFixture;
 
 using ThemeCatalog = SharpRail.UI.Rendering.Themes;
 
@@ -125,6 +126,21 @@ internal static class EditorE2E
             && !PreviewShown(app),
             "A non-Markdown file must open straight to the editor without a rendered-view toggle.");
         Console.WriteLine("PASS upstream editor.spec.ts: opens a non-markdown file straight to Monaco with no rendered-view toggle");
+
+        // Like the reference's Monaco editor, a selection is reported to plugins (an agent's IDE integration among
+        // them) with one-based lines and columns; collapsing it reports presence only.
+        var reported = new List<SharpRail.Plugins.Api.UI.EditorSelectionEvent>();
+        using var events = app.Workbench.PluginLoader!.Editors.On(change => { if (change is SharpRail.Plugins.Api.UI.EditorSelectionEvent selected) reported.Add(selected); });
+        editor.Focus();
+        Press(editor, Avalonia.Input.Key.Home);
+        Press(editor, Avalonia.Input.Key.End, Avalonia.Input.RawInputModifiers.Shift);
+        Until(() => reported.LastOrDefault()?.Selection is not null);
+        var selection = reported.Last();
+        Require(selection.Editor.Path == "notes.txt" && selection.Selection == new SharpRail.Plugins.Api.UI.EditorSelection(1, 1, 1, 19, "plain-text-fixture"),
+            $"Selecting a line reports it with one-based positions, got {selection.Selection}.");
+        Press(editor, Avalonia.Input.Key.Home);
+        Until(() => reported.Last().Selection is null);
+        Console.WriteLine("PASS editor selections reach plugins with one-based positions, and clearing reports presence only");
     }
 
     private static Color Pixel(Bitmap frame, Control control, Point point, double scaling)

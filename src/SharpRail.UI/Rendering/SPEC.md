@@ -106,6 +106,10 @@ since the kit has no theme of its own.
   step with wrap, a count shows `i/n`, the input border turns red on no match, Escape closes it. The current
   match is selected and scrolled into view; other matches are not painted, and a match spanning two text
   blocks is not found.
+- Markdown Source find searches the current editable buffer, including syntax hidden in Preview. Split
+  find searches the focused pane once; a single bar stays above both panes. Escape restores focus to
+  the control that opened find, retaining a source match for editing. Switching modes dismisses find.
+  Source ranges use UTF-16 offsets and are converted to Scintilla's UTF-8 positions without editing text.
 - The document skin owns typography and the reading measure: headings at 24/20/18/16 against the interface
   body size, section spacing, bordered tables, blockquotes, task lists and GitHub-style alert callouts with
   their own icons. The column is capped at the Markdown line width (default 78 symbols, measured in the

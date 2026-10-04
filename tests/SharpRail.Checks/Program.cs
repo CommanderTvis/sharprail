@@ -66,6 +66,7 @@ internal static class Program
             EditorChecks.Run();
             EditorTextChecks.Run();
             EditorWorkbenchChecks.Run(root);
+            E2E.EditorE2E.Run(Path.Combine(root, "upstream-e2e"));
             Console.WriteLine("PASS editor integration checks");
             return;
         }
@@ -378,6 +379,13 @@ internal static class Program
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             E2E.SwitchLatencyChecks.Run(Path.Combine(root, "upstream-e2e"));
+            return;
+        }
+        if (args.SequenceEqual(["--markdown-find"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            E2E.MarkdownFindE2E.Run(Path.Combine(root, "upstream-e2e"));
             return;
         }
         if (args.SequenceEqual(["--markdown"]))

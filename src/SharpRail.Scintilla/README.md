@@ -14,6 +14,7 @@ var editor = new ScintillaEditor(text, typeface)   // the caller keeps the SKTyp
     WrapWidth = 800,                                // infinity disables wrapping
 };
 editor.TextChanged += (_, _) => { /* editor.Text, editor.IsModified */ };
+editor.SelectionChanged += (_, _) => { /* editor.Selection: one-based lines and UTF-16 columns, and its text */ };
 ```
 
 `LineStyles` is a palette of whole-line styles (a foreground and an optional
@@ -21,6 +22,7 @@ background band); `StyleLines` assigns one per document line, which suits read-o
 views such as diffs. `ShowLineNumbers` toggles the line-number margin, and
 `LabelLines` replaces the numbers with a right-aligned label per line. Views that
 scroll in step listen to `VerticalOffsetChanged` and call `ScrollToPixel`.
+`SelectRange(start, length)` selects UTF-16 offsets and reveals the caret without changing focus or text.
 
 Colours are opaque; composite translucent theme colours before passing them. `ScintillaColors.Caret`
 overrides the caret (the foreground otherwise), and `CurrentLine` highlights the caret's line when set. The

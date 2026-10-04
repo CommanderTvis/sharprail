@@ -545,6 +545,19 @@ public sealed partial class WorkbenchWindow
         };
     }
 
+    // The code editor reports its selections like the reference's Monaco editor; a collapsed one reports presence only.
+    private void ReportSelections(SharpRail.Scintilla.ScintillaEditor editor, DockTab tab)
+    {
+        var workspace = workspaceRoot;
+        editor.SelectionChanged += (_, _) =>
+        {
+            if (EditorRef(workspace, tab) is not { } reference) return;
+            var selection = editor.Selection;
+            workbench.PluginLoader.Editors.Emit(new EditorSelectionEvent(reference, selection.Text.Length == 0 ? null
+                : new EditorSelection(selection.StartLine, selection.StartColumn, selection.EndLine, selection.EndColumn, selection.Text)));
+        };
+    }
+
     // A [[id]] in a rendered spec resolves through the plugins' document-link slot as a spec: link; with no answer it renders disabled.
     private Func<string, string?> SpecLink()
     {

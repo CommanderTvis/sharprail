@@ -26,6 +26,7 @@ public sealed partial class WorkbenchWindow
         }, text => { documents[key] = document with { Text = text }; EmitSaved(key); }, surface.RefreshModified, Report);
         view.Editor.WrapWidth = FileWrapWidth;
         view.DeletedOnDisk = deletedDocuments.Contains(key);
+        ReportSelections(view.Editor, new DockTab(tabId, Path.GetFileName(document.Path), "file", document.Path));
         return view;
     }
 
