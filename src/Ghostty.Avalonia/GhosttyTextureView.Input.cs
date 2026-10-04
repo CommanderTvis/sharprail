@@ -134,9 +134,17 @@ public sealed partial class GhosttyTextureView
         base.OnPointerWheelChanged(e);
         if (disposed) return;
         Mouse(e, -1, 0);
-        Native.Scroll(terminal.Handle, e.Delta.X, e.Delta.Y);
         e.Handled = true;
+        // A trackpad gesture arrives as dozens of fractional events, and Ghostty reports each one to a program tracking
+        // the mouse as a whole wheel click; only whole steps go through, as the Skia view's accumulator does.
+        wheel += e.Delta;
+        var step = new Vector(Math.Truncate(wheel.X), Math.Truncate(wheel.Y));
+        if (step == default) return;
+        wheel -= step;
+        Native.Scroll(terminal.Handle, step.X, step.Y);
     }
+
+    private Vector wheel;
 
     private sealed class TextureInputClient(GhosttyTextureView owner) : TextInputMethodClient
     {
