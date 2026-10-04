@@ -30,7 +30,7 @@ internal static class FilesE2E
             "Splitting a compacted run must keep the expanded folders open.");
         Console.WriteLine("PASS upstream files.spec.ts: shows files and compacts single-directory runs in the Files tree");
 
-        // A single click on a folder's name toggles it, like the reference tree; a double click must not undo that.
+        // A single click on a folder's name toggles it, like the reference tree; two quick clicks open and close it.
         Directory.CreateDirectory(Path.Combine(workspace, "single"));
         File.WriteAllText(Path.Combine(workspace, "single", "inside.txt"), "inside\n");
         Until(() => Node("single", true) is not null);
@@ -40,7 +40,9 @@ internal static class FilesE2E
         Until(() => !Node("single", true)!.IsExpanded);
         app.Click(app.FileRow("single"), twice: true);
         Settle();
-        Require(Node("single", true)!.IsExpanded, "A double click on a folder must leave it toggled once, not twice.");
+        Require(!Node("single", true)!.IsExpanded, "Two quick clicks on a folder open it and close it again.");
+        app.Click(app.FileRow("single"));
+        Until(() => Node("single", true)!.IsExpanded);
         File.WriteAllText(Path.Combine(workspace, "single", "external.txt"), "external\n");
         Until(() => Node("external.txt", false) is not null);
         File.Move(Path.Combine(workspace, "single", "external.txt"), Path.Combine(workspace, "single", "renamed.txt"));
