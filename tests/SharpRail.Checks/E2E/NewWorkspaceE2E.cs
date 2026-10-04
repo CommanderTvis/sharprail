@@ -22,6 +22,7 @@ internal static class NewWorkspaceE2E
         RemoteGroups(Path.Combine(root, "new-workspace-remotes"));
         StalePrefetch(Path.Combine(root, "new-workspace-stale"));
         MissingPrefetch(Path.Combine(root, "new-workspace-missing"));
+        MissingUnavailableBase(Path.Combine(root, "new-workspace-missing-unavailable"));
     }
 
     private static (string Root, string Repo, string Origin) SeedRemoteProject(string directory, bool withUpstream = false)
@@ -93,8 +94,9 @@ internal static class NewWorkspaceE2E
         Require(Named<ToggleButton>(dialog, "WsTargetWorktree").IsChecked == true, "The worktree target is the default.");
         var presenter = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(Named<ToggleButton>(dialog, "WsTargetWorktree"))
             .OfType<Avalonia.Controls.Presenters.ContentPresenter>().First(item => item.Name == "PART_ContentPresenter");
-        Require(Equals(presenter.Background, SharpRail.Plugins.UI.Kit.Ui.Hover),
-            $"The checked target is filled with the hover surface, not the accent its muted label cannot be read on (was {presenter.Background}).");
+        Require(Equals(presenter.Background, SharpRail.Plugins.UI.Kit.Ui.PrimaryMuted) &&
+            Equals(presenter.BorderBrush, SharpRail.Plugins.UI.Kit.Ui.Accent),
+            "The selected target must have an accent outline and its own fill, distinct from hover.");
         app.Click(Named<ToggleButton>(dialog, "WsTargetDefault"), freshGesture: false);
         Require(Heading(dialog) == "Start work" && Description(dialog).Contains("No isolation", StringComparison.Ordinal) &&
             !Picker(dialog).IsVisible && Text(Create(dialog)).Contains("Start", StringComparison.Ordinal),
@@ -116,6 +118,10 @@ internal static class NewWorkspaceE2E
         Require(!Options(options).Any(option => Equals(option.Tag, "origin")), "No stray origin entry may be listed.");
         var search = Search(app, dialog);
         Require(search.PlaceholderText == "Search branches…", "The branch search must be labelled.");
+        Settle(100);
+        var popup = (StackPanel)search.Parent!;
+        Require(Math.Abs(search.Bounds.Width - popup.Bounds.Width) < 1 && Math.Abs(search.Bounds.X) < 1,
+            "Branch search must fill the popup and align with its left edge.");
         search.Text = "zzz-no-such-branch";
         Until(() => Options(options).Length == 0 && Text(options).Contains("No branches found.", StringComparison.Ordinal));
         search.Text = "main";
@@ -203,7 +209,6 @@ internal static class NewWorkspaceE2E
         Git(source, "push", remote, "main");
         Git(directory, "clone", remote, repo);
         Git(repo, "remote", "set-head", "origin", "main");
-        Git(repo, "update-ref", "-d", "refs/remotes/origin/main");
         Directory.Delete(remote, true);
         using var app = OpenFresh(directory);
         var dialog = OpenPickedProjectWorkspaceDialog(app, repo);
@@ -221,9 +226,15 @@ internal static class NewWorkspaceE2E
     private static void RemoteGroups(string directory)
     {
         var (_, repo, _) = SeedRemoteProject(directory, true);
+        Git(repo, "branch", "feature/" + new string('w', 70));
         var app = OpenFresh(directory);
         var dialog = OpenPickedProjectWorkspaceDialog(app, repo);
         var options = OpenBranchPicker(app, dialog);
+        Settle(100);
+        var search = Search(app, dialog);
+        var popup = (StackPanel)search.Parent!;
+        Require(popup.Bounds.Width > 400 && Math.Abs(search.Bounds.Width - popup.Bounds.Width) < 1 && Math.Abs(search.Bounds.X) < 1,
+            "Long branches must widen the search field without introducing a centered offset.");
         var headings = options.Children.OfType<TextBlock>().Where(text => text.Name == "BranchGroup").Select(text => text.Text).ToArray();
         Button RemoteToggle(string remote) => options.Children.OfType<Button>().Single(button => button.Name == "RemoteGroupToggle" && Equals(button.Tag, remote));
         Require(headings.Contains("Remote") && headings.Contains("Local") && RemoteToggle("origin") is not null && RemoteToggle("upstream") is not null,
@@ -287,9 +298,28 @@ internal static class NewWorkspaceE2E
         Git(repo, "update-ref", "-d", "refs/remotes/origin/main");
         using var app = OpenFresh(directory);
         var dialog = OpenPickedProjectWorkspaceDialog(app, repo);
-        Require(Text(Picker(dialog)).Contains("origin/main", StringComparison.Ordinal), "The default base is origin/main.");
-        Until(() => RefOid(repo, "refs/remotes/origin/main") == expected);
+        Require(RefOid(repo, "refs/remotes/origin/main") is not null || !Text(Picker(dialog)).Contains("origin/main", StringComparison.Ordinal),
+            "A dangling origin/HEAD must not select a nonexistent branch.");
+        Until(() => RefOid(repo, "refs/remotes/origin/main") == expected && Text(Picker(dialog)).Contains("origin/main", StringComparison.Ordinal));
         Press(dialog, Avalonia.Input.Key.Escape);
         Console.WriteLine("PASS upstream new-workspace.spec.ts: opening New Workspace prefetches a missing default tracking ref");
+    }
+
+    private static void MissingUnavailableBase(string directory)
+    {
+        var (_, repo, _) = SeedRemoteProject(directory);
+        Git(repo, "update-ref", "-d", "refs/remotes/origin/main");
+        Git(repo, "remote", "set-url", "origin", Path.Combine(directory, "missing.git"));
+        using var app = OpenFresh(directory);
+        var dialog = OpenPickedProjectWorkspaceDialog(app, repo);
+        Settle(300);
+        Require(!Text(Picker(dialog)).Contains("origin/main", StringComparison.Ordinal),
+            "A missing remote default must fall back to the existing local branch even if prefetch fails.");
+        var workspace = CreateWorkspaceViaDialog(app);
+        Require(Git(workspace, "rev-parse", "HEAD") == Git(repo, "rev-parse", "main"),
+            "The local fallback must create a usable worktree without the missing remote.");
+        Require(Path.GetDirectoryName(Path.GetDirectoryName(workspace)) == Path.Combine(app.Window.Workbench.Profile.DirectoryPath, "worktrees"),
+            "New worktrees belong under the host state directory.");
+        Console.WriteLine("PASS a missing remote base falls back to a local branch and creates under host state");
     }
 }

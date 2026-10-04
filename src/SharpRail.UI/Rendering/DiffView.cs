@@ -400,8 +400,6 @@ internal sealed partial class DiffView : Grid, IDisposable
             CornerRadius = new CornerRadius(4),
             Background = Brushes.Transparent
         };
-        foreach (var state in new[] { "Checked", "CheckedPointerOver", "CheckedPressed", "PointerOver", "Pressed" })
-            button.Resources["ToggleButtonBackground" + state] = state.StartsWith("Checked", StringComparison.Ordinal) ? Ui.Selected : Ui.Hover;
         AutomationProperties.SetName(button, tooltip);
         ToolTip.SetTip(button, tooltip);
         return button;

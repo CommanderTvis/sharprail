@@ -265,6 +265,8 @@ public sealed partial class DockSurface
                 Height = vertical ? double.NaN : group.Folded ? 26 : 28,
                 MinWidth = 0,
                 MinHeight = 0,
+                // The theme left-aligns buttons; the whole row selects, not just its icon and title.
+                HorizontalAlignment = HorizontalAlignment.Stretch,
                 VerticalAlignment = VerticalAlignment.Center,
                 Background = Brushes.Transparent,
                 BorderThickness = new(0),

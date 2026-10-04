@@ -1,6 +1,7 @@
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.VisualTree;
 
 using static SharpRail.Checks.E2E.E2eWorkspace;
 using static SharpRail.Checks.E2E.WorkspaceFixture;
@@ -26,6 +27,14 @@ internal static class NewWorkspaceShortcutE2E
         var dialog = Dialog(app, "NewWorkspaceDialog");
         Require(Dialogs(app) == 1 && Named<TextBlock>(dialog, "DialogHeading").Text == "Start work",
             "The shortcut must open one Start work dialog.");
+        var probe = new Avalonia.Controls.Primitives.ToggleButton { Content = "probe", IsChecked = true };
+        var fields = Named<StackPanel>(dialog, "DialogFields");
+        fields.Children.Add(probe);
+        dialog.UpdateLayout();
+        var fill = (probe.GetVisualDescendants().OfType<Avalonia.Controls.Presenters.ContentPresenter>()
+            .First(presenter => presenter.Name == "PART_ContentPresenter").Background as Avalonia.Media.ISolidColorBrush)?.Color;
+        fields.Children.Remove(probe);
+        Require(fill == SharpRail.Plugins.UI.Kit.Ui.PrimaryMuted.Color, $"A checked toggle has a fill distinct from hover ({fill}).");
     }
 
     private static void Escape(E2eWorkspace app)

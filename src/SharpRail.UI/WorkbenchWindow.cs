@@ -522,6 +522,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         if (system) RequestedThemeVariant = ThemeVariant.Default;
         var theme = Themes.Resolve(Preferences, ActualThemeVariant == ThemeVariant.Light ? "light" : "dark").Theme;
         if (!system) RequestedThemeVariant = theme.IsLight ? ThemeVariant.Light : ThemeVariant.Dark;
+        foreach (var owned in OwnedWindows) owned.RequestedThemeVariant = RequestedThemeVariant;
         Ui.Apply(theme);
     }
 

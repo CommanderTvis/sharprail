@@ -108,6 +108,7 @@ internal static class UiChecks
         Gate.Case("EditorChecks", () => EditorChecks.Run());
         Gate.Case("EditorTextChecks", () => EditorTextChecks.Run());
         Gate.Case("EditorWorkbenchChecks", () => EditorWorkbenchChecks.Run(root));
+        Gate.Case("SharedControlChecks", () => SharedControlChecks.Run());
         foreach (var weight in new[] { Ui.InterfaceWeight, FontWeight.Normal, FontWeight.Medium, FontWeight.SemiBold })
             Require(FontManager.Current.TryGetGlyphTypeface(new Typeface(Ui.InterfaceFont, weight: weight), out var face) && face.Weight == weight,
                 $"Bundled Geist face {weight} fell back to a different weight.");

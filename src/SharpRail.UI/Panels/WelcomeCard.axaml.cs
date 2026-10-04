@@ -18,12 +18,10 @@ public sealed partial class WelcomeCard : Button
     public WelcomeCard(string icon, string title, string subtitle, bool primary)
     {
         AvaloniaXamlLoader.Load(this);
+        Classes.Add("card");
+        if (primary) Classes.Add("card-accent");
         Background = primary ? Ui.PrimarySubtle : Ui.Sidebar;
         BorderBrush = primary ? Ui.PrimaryMuted : Ui.BorderBrush;
-        Resources["ButtonBackgroundPointerOver"] = primary ? Ui.PrimarySubtle : Ui.Elevated;
-        Resources["ButtonBackgroundPressed"] = primary ? Ui.PrimarySubtle : Ui.Elevated;
-        Resources["ButtonBorderBrushPointerOver"] = Ui.PrimaryMuted;
-        Resources["ButtonBorderBrushPressed"] = Ui.PrimaryMuted;
         this.FindControl<ContentControl>("Icon")!.Content = Ui.Icon(icon, primary ? Ui.Accent : Ui.Muted, 24);
         var heading = this.FindControl<TextBlock>("Title")!;
         heading.Text = title;

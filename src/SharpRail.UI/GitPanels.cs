@@ -287,8 +287,6 @@ public sealed partial class WorkbenchWindow
             VerticalAlignment = VerticalAlignment.Center
         };
         AutomationProperties.SetName(button, label + " view");
-        foreach (var state in new[] { "Checked", "CheckedPointerOver", "CheckedPressed", "PointerOver", "Pressed" })
-            button.Resources["ToggleButtonBackground" + state] = state.StartsWith("Checked", StringComparison.Ordinal) ? Ui.Selected : Ui.Hover;
         button.Click += (_, _) =>
         {
             changeTree = tree;
@@ -338,7 +336,7 @@ public sealed partial class WorkbenchWindow
             HorizontalAlignment = HorizontalAlignment.Stretch,
             HorizontalContentAlignment = HorizontalAlignment.Stretch
         };
-        foreach (var state in new[] { "PointerOver", "Pressed" }) button.Resources["ButtonBackground" + state] = Avalonia.Media.Brushes.Transparent;
+        button.Classes.Add("quiet");
         AutomationProperties.SetName(button, change.Path);
         ToolTip.SetTip(button, change.OriginalPath is null ? $"{change.Path}  [{change.IndexStatus}{change.WorktreeStatus}]" : $"{change.OriginalPath} → {change.Path}");
         button.Click += (_, _) => _ = OpenDiffAsync(change);

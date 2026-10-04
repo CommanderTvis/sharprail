@@ -67,8 +67,6 @@ public sealed partial class SettingsWindow : Window
         var close = this.FindControl<Button>("SettingsClose")!;
         close.Content = Ui.Icon("close");
         close.Click += (_, _) => Close();
-        close.Resources["ButtonBackgroundPointerOver"] = Ui.Hover;
-        close.Resources["ButtonBackgroundPressed"] = Ui.Hover;
         navigationList = this.FindControl<StackPanel>("SettingsNavigation")!;
         foreach (var item in new[] { ("Appearance", "palette"), ("Line width", "fileText"), ("Layout", "layout"), ("Projects", "folderTab"), ("Terminal", "terminal"), ("GitHub", "gitBranch"), ("Plugins", "puzzle") })
             Navigation(this.FindControl<Button>("Settings_" + item.Item1.Replace(' ', '_'))!, item.Item1, Ui.Row(item.Item2, item.Item1));
@@ -88,8 +86,6 @@ public sealed partial class SettingsWindow : Window
         content.Spacing = 8;
         button.Click += (_, _) => ShowSection(key);
         navigation[key] = button;
-        button.Resources["ButtonBackgroundPointerOver"] = Ui.Hover;
-        button.Resources["ButtonBackgroundPressed"] = Ui.Hover;
     }
 
     private void PluginsChanged(PluginTables tables)
@@ -323,8 +319,6 @@ public sealed partial class SettingsWindow : Window
         button.Content = row;
         button.Background = active ? Ui.PrimarySubtle : Ui.Elevated;
         button.BorderBrush = active ? Ui.PrimaryMuted : Ui.BorderBrush;
-        button.Resources["ButtonBackgroundPointerOver"] = Ui.Hover;
-        button.Resources["ButtonBackgroundPressed"] = Ui.Hover;
         AutomationProperties.SetName(button, label);
         return button;
     }
@@ -338,8 +332,6 @@ public sealed partial class SettingsWindow : Window
         Ui.Place(content, Ui.Icon("arrowDown", Ui.Muted), 0, 1);
         trigger.Content = content;
         Ui.FollowEnabled(trigger);
-        trigger.Resources["ButtonBackgroundPointerOver"] = Ui.Hover;
-        trigger.Resources["ButtonBackgroundPressed"] = Ui.Hover;
         AutomationProperties.SetName(trigger, $"{label}: {resolution.Theme.Label}");
         var menu = new ContextMenu
         {
@@ -607,24 +599,17 @@ public sealed partial class SettingsWindow : Window
             BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(4)
         };
-        // A setting that rarely changes: the steppers stay small and muted, lighting only on hover.
-        var stepper = new Style(selector => selector.OfType<RepeatButton>())
+        // A setting that rarely changes: the steppers stay small and muted, lighting only on hover. The spinner's
+        // template sizes its buttons itself, so they are narrowed once it exists, leaving room for the digits.
+        input.TemplateApplied += (_, outer) =>
         {
-            Setters =
+            if (outer.NameScope.Find<ButtonSpinner>("PART_Spinner") is not { } spinner) return;
+            spinner.TemplateApplied += (_, inner) =>
             {
-                new Setter(BackgroundProperty, Avalonia.Media.Brushes.Transparent),
-                new Setter(ForegroundProperty, Ui.Muted),
-                new Setter(BorderThicknessProperty, new Thickness(0)),
-                new Setter(PaddingProperty, new Thickness(4, 0)),
-                new Setter(MinWidthProperty, 0d),
-                new Setter(WidthProperty, 22d)
-            }
+                foreach (var name in new[] { "PART_IncreaseButton", "PART_DecreaseButton" })
+                    if (inner.NameScope.Find<RepeatButton>(name) is { } step) { step.Width = 22; step.MinWidth = 0; step.Padding = new Thickness(4, 0); }
+            };
         };
-        input.Styles.Add(stepper);
-        input.Resources["RepeatButtonBackgroundPointerOver"] = Ui.Hover;
-        input.Resources["RepeatButtonBackgroundPressed"] = Ui.Hover;
-        input.Resources["RepeatButtonForegroundPointerOver"] = Ui.TextBrush;
-        input.Resources["RepeatButtonForegroundPressed"] = Ui.TextBrush;
         AutomationProperties.SetName(input, "Maximum " + region + " groups");
         var save = Ui.Button("Save", () =>
         {
