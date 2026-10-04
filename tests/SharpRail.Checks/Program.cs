@@ -303,6 +303,13 @@ internal static class Program
             CreateProjectChecks.Run(root);
             return;
         }
+        if (args.SequenceEqual(["--pane-retention"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            PaneRetentionChecks.Run(root);
+            return;
+        }
         if (args.SequenceEqual(["--startup"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
@@ -342,6 +349,21 @@ internal static class Program
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             E2E.NewWorkspaceE2E.Run(Path.Combine(root, "upstream-e2e"));
             Console.WriteLine("PASS new-workspace E2E checks");
+            return;
+        }
+        if (args.SequenceEqual(["--files"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            E2E.FilesE2E.Run(Path.Combine(root, "upstream-e2e"));
+            return;
+        }
+        if (args.SequenceEqual(["--rail"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            E2E.CrossProjectTabsE2E.Run(Path.Combine(root, "upstream-e2e"));
+            E2E.RailRetentionChecks.Run(Path.Combine(root, "upstream-e2e"));
             return;
         }
         if (args.SequenceEqual(["--branches"]))

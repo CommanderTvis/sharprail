@@ -139,8 +139,8 @@ public sealed partial class WorkbenchWindow
         railSelection.Clear();
         railStats.Clear();
         workspaceTabHosts.Clear();
-        var panel = new Grid { Name = "ProjectsPanel", Margin = new Thickness(12), RowDefinitions = new RowDefinitions("28,8,*") };
-        var toolbar = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(8, 0, 4, 0) };
+        var panel = new Grid { Name = "ProjectsPanel", Margin = new Thickness(12, 12, 0, 12), RowDefinitions = new RowDefinitions("28,8,*") };
+        var toolbar = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(8, 0, 16, 0) };
         var title = Ui.Text("PROJECTS", size: 12); title.FontWeight = Avalonia.Media.FontWeight.Medium;
         Ui.Place(toolbar, title);
         var open = Ui.IconButton("add", "Add project", () => { });
@@ -151,7 +151,8 @@ public sealed partial class WorkbenchWindow
         open.Width = open.Height = 28;
         Ui.Place(toolbar, open, 0, 1);
         Ui.Place(panel, toolbar);
-        var tree = new StackPanel { Spacing = 4 };
+        // The right gutter is inside the scroller, so its overlay scrollbar never covers the rows' trailing buttons.
+        var tree = new StackPanel { Spacing = 4, Margin = new Thickness(0, 0, 12, 0) };
         foreach (var project in state.Current.Projects)
         {
             var row = new Grid { Name = "ProjectRow", ColumnDefinitions = new ColumnDefinitions("16,4,*,Auto"), Height = 28, Margin = new Thickness(4, 0), Background = Avalonia.Media.Brushes.Transparent, Tag = project };
@@ -353,7 +354,7 @@ public sealed partial class WorkbenchWindow
 
     private Control FilesPanel()
     {
-        var panel = new Grid { Name = "FilesPanel" };
+        var panel = new Grid { Name = "FilesPanel", IsHitTestVisible = WorkspaceMounted && !switchingWorkspace };
         var tree = new TreeView { Name = "FilesTree", Background = Ui.Sidebar, Margin = new Thickness(4, 12, 12, 12) };
         ScrollViewer.SetHorizontalScrollBarVisibility(tree, ScrollBarVisibility.Disabled);
         foreach (var file in folderCache.GetValueOrDefault("") ?? []) tree.Items.Add(FileNode(file));
@@ -386,14 +387,14 @@ public sealed partial class WorkbenchWindow
             {
                 expandedFolders.Add(file.Path);
                 if (folderCache.ContainsKey(file.Path)) return;
-                var workspace = workspaceRoot;
+                var request = projectRequest;
                 try
                 {
-                    var entries = await host.ListFilesAsync(file.Path, lifetime.Token);
-                    if (workspace != workspaceRoot) return;
+                    if (!WorkspaceMounted) return;
+                    var entries = await Task.Run(async () => await host.ListFilesAsync(file.Path, lifetime.Token), lifetime.Token);
+                    if (request != projectRequest) return;
                     folderCache[file.Path] = entries;
-                    node.Items.Clear();
-                    foreach (var entry in entries) node.Items.Add(FileNode(entry));
+                    ReconcileFileNodes(node.Items, entries);
                 }
                 catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
             }
@@ -423,6 +424,7 @@ public sealed partial class WorkbenchWindow
         }, RoutingStrategies.Bubble, handledEventsToo: true);
         node.KeyDown += (_, e) =>
         {
+            if (!WorkspaceMounted || toolContent.GetValueOrDefault("files")?.IsHitTestVisible != true) return;
             if (e.Key == Key.Enter && !file.IsDirectory) { _ = BrowseDocumentAsync(file.Path, true); e.Handled = true; }
         };
         return node;

@@ -239,6 +239,8 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         var request = ++projectRequest; WorkspaceMounted = false;
         gitRefresh?.Cancel(); StopWatching();
         switchingWorkspace = true;
+        foreach (var (id, control) in toolContent)
+            if (id != "projects") control.IsHitTestVisible = false;
         SetStatus("Loading");
         var target = home ? HomeKey(path) : path;
         if (Layout.State.Workspaces.ContainsKey(target)) Layout.SwitchWorkspace(target);
@@ -273,9 +275,16 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             SetBranch("");
             git = sameProject ? new(git.IsRepository, "", [], git.Worktrees, git.Branches) : new(false, "", [], [], []);
             gitLoading = true; gitError = null;
-            RestoreGitSelection(); folderCache.Clear(); expandedFolders.Clear();
+            RestoreGitSelection();
+            if (!sameProject) { folderCache.Clear(); expandedFolders.Clear(); }
             var rail = sameProject ? toolContent.GetValueOrDefault("projects") : null;
+            var filesPanel = sameProject ? toolContent.GetValueOrDefault("files") : null;
+            var changesPanel = sameProject ? toolContent.GetValueOrDefault("changes") : null;
+            var reviewPanel = toolContent.GetValueOrDefault("review");
             toolContent.Clear();
+            if (filesPanel is not null) toolContent["files"] = filesPanel;
+            if (changesPanel is not null) toolContent["changes"] = changesPanel;
+            if (reviewPanel is not null) { toolContent["review"] = reviewPanel; reviewPanel.IsHitTestVisible = true; }
             if (rail is not null) { toolContent["projects"] = rail; UpdateRailSelection(); }
             if (!state.Current.Projects.Contains(projectRoot) || state.Current.RecentProjects.Contains(projectRoot))
                 _ = ShareAsync(HostStateChange.OpenProject(projectRoot));
@@ -310,18 +319,37 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         catch (Exception error) when (error is not OperationCanceledException) { (failed ?? Report)(error); }
         finally { if (request == projectRequest) switchingWorkspace = false; projectGate.Release(); }
         if (request == projectRequest && WorkspaceMounted)
-            Dispatcher.UIThread.Post(() =>
+        {
+            await RenderSwitchAsync();
+            if (request != projectRequest || lifetime.IsCancellationRequested) return;
+            _ = LoadWorkspaceFilesAsync(request);
+            _ = RefreshGitAsync(request);
+            StartWatching(request);
+            if (syncedProject != projectRoot)
             {
-                _ = RefreshGitAsync(request); StartWatching(request);
-                if (syncedProject == projectRoot) return;
                 syncedProject = projectRoot;
                 _ = SyncWorkspacesAsync(projectRoot);
-            }, DispatcherPriority.Background);
+            }
+        }
+    }
+
+    private async Task LoadWorkspaceFilesAsync(long request)
+    {
+        try
+        {
+            await RefreshFilesAsync(request);
+        }
+        catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            if (request == projectRequest) Report(error);
+        }
     }
 
     private Control RenderContent(DockTab? tab)
     {
-        if (switchingWorkspace && tab?.Id != "projects") return Ui.Text("Loading workspace…");
+        if (switchingWorkspace && tab is { IsTool: true } && toolContent.TryGetValue(tab.Id, out var retained)) return retained;
+        if (switchingWorkspace) return Ui.Text("Loading workspace…");
         if (tab is null)
         {
             if (atHome || cleanWelcome) return Welcome();
@@ -361,6 +389,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
                 };
                 toolContent[tab.Id] = content;
             }
+            if (!switchingWorkspace && tab.Id.StartsWith("plugin:", StringComparison.Ordinal)) content.IsHitTestVisible = true;
             return content;
         }
         if (tab.Kind == "terminal" && !WorkspaceMounted) return Ui.Text("Loading terminal…");
@@ -449,11 +478,10 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         var request = projectRequest;
         try
         {
-            var files = await Task.Run(async () => await host.ListFilesAsync("", lifetime.Token), lifetime.Token);
+            ShowReady(); errorText.IsVisible = false;
+            await RefreshFilesAsync(request);
             if (request != projectRequest) return;
-            folderCache.Clear(); folderCache[""] = files;
-            status.Text = remote ? "Remote" : "Connected"; errorText.IsVisible = false;
-            toolContent.Remove("files"); toolContent.Remove("specs"); surface.RefreshContents("files", "specs");
+            toolContent.Remove("specs"); surface.RefreshContents("specs");
             _ = SyncWorkspacesAsync(projectRoot);
             await RefreshGitAsync(request);
         }

@@ -47,7 +47,7 @@ public sealed partial class DockSurface
         {
             if (horizontal) grid.ColumnDefinitions.Add(new(new GridLength(0)));
             else grid.RowDefinitions.Add(new(new GridLength(0)));
-            var control = BuildGroup(groups[i]);
+            var control = BuildTrackedGroup(groups[i]);
             control.ClipToBounds = true;
             Ui.Place(grid, control, horizontal ? 0 : i * 2, horizontal ? i * 2 : 0);
             if (i == groups.Length - 1) continue;

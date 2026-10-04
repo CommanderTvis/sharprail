@@ -6,6 +6,7 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Input.Platform;
 using Avalonia.Layout;
+using Avalonia.LogicalTree;
 using Avalonia.Media;
 
 using SharpRail.Host.Abstractions;
@@ -38,8 +39,9 @@ public sealed partial class WorkbenchWindow
 
     private void RefreshReviewPanel()
     {
-        toolContent.Remove("review");
-        surface.RefreshContents("review");
+        if (toolContent.GetValueOrDefault("review")?.GetLogicalDescendants().OfType<ContentControl>()
+            .FirstOrDefault(control => control.Name == "ReviewPullRequestHost") is { } section)
+            section.Content = PullRequestSection();
     }
 
     // Asked for when the Review panel is first drawn for a branch, so startup never waits on gh.

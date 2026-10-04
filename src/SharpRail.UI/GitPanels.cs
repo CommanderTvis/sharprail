@@ -23,6 +23,7 @@ public sealed partial class WorkbenchWindow
 
     private Control ChangesPanel()
     {
+        changesProjection = CurrentGitProjection();
         changeFrames.Clear();
         changesSignature = ChangesSignature();
         var panel = new Grid { Name = "ChangesPanel", RowDefinitions = new RowDefinitions("32,*") };
@@ -291,8 +292,8 @@ public sealed partial class WorkbenchWindow
         button.Click += (_, _) =>
         {
             changeTree = tree;
-            toolContent.Remove("changes");
-            surface.RefreshContents();
+            ReconcileChangesPanel();
+            surface.RefreshContents("changes");
         };
         return button;
     }
@@ -362,7 +363,7 @@ public sealed partial class WorkbenchWindow
         button.ContextMenu.Items.Add(Ui.Menu("Unstage file", () => _ = GitActionAsync(new("unstage", change.Path)), canStage && change.IndexStatus is not (" " or "?")));
         var wrapper = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
         Ui.Place(wrapper, button); Ui.Place(wrapper, actions, 0, 1);
-        var frame = new Border { Child = wrapper };
+        var frame = new Border { Child = wrapper, Tag = new ChangeFrameKey(change, label, canStage, Plugins.FileIcon(change.Path, SharpRail.Plugins.Api.UI.FileIconKind.File)) };
         frame.Classes.Add("change-row");
         changeFrames.Add((frame, change));
         frame.Classes.Set("active", IsActiveDiff(change));
@@ -444,10 +445,11 @@ public sealed partial class WorkbenchWindow
     private Control ReviewPanel()
     {
         var panel = new StackPanel { Margin = new Thickness(16), Spacing = 12, Name = "ReviewPanel" };
-        reviewSignature = ReviewSignature();
         panel.Children.Add(Ui.Text("Repository review", Ui.TextBrush, 16));
-        panel.Children.Add(Ui.Text(git.IsRepository ? $"{git.Changes.Count} changed files on {git.Branch}" : "No repository selected"));
-        if (PullRequestSection() is { } pullRequest) panel.Children.Add(pullRequest);
+        var summary = Ui.Text(ReviewSummary());
+        summary.Name = "ReviewSummary";
+        panel.Children.Add(summary);
+        panel.Children.Add(new ContentControl { Name = "ReviewPullRequestHost", Content = PullRequestSection() });
         panel.Children.Add(Ui.Text("Select a file in Changes to inspect its diff.", Ui.Hint, 12));
         panel.Children.Add(Ui.Button("Show Changes", () =>
         {
@@ -456,4 +458,6 @@ public sealed partial class WorkbenchWindow
         }, "fileDiff"));
         return panel;
     }
+
+    private string ReviewSummary() => git.IsRepository ? $"{git.Changes.Count} changed files on {git.Branch}" : "No repository selected";
 }
