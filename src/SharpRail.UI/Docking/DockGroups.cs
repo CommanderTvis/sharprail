@@ -49,10 +49,9 @@ public sealed partial class DockSurface
             var body = new DockPanel
             {
                 Name = "DockBody_" + group.Id,
-                Background = group.Region == "center" ? Ui.Surface : Ui.Sidebar,
-                Child = selected is null ? Empty(group) : BodyFor(group, selected)
+                Background = group.Region == "center" ? Ui.Surface : Ui.Sidebar
             };
-            body.Mount(() => selected is null ? Empty(group) : renderContent(selected));
+            body.Mount(() => selected is null ? Empty(group) : BodyFor(group, selected));
             void LabelBody()
             {
                 var label = headerFrame.GetLogicalDescendants().OfType<DockTabButton>().FirstOrDefault(button => button.IsSelected);
@@ -65,7 +64,17 @@ public sealed partial class DockSurface
             updates.Add(() =>
             {
                 var active = Session.Selected(group.Id);
-                body.Child = active is null ? Empty(Session.Group(group.Id)) : BodyFor(Session.Group(group.Id), active);
+                var current = Session.Group(group.Id);
+                body.Mount(() =>
+                {
+                    if (active is null) return Empty(current);
+                    if (Session.PaneFor(group.Id, active.Id) is null)
+                    {
+                        var content = renderContent(active);
+                        return ReferenceEquals(body.Child, content) ? content : Adopt(content);
+                    }
+                    return TryRefreshPane(body, current, active) ? body.Child! : BodyFor(current, active);
+                }, keep: true);
                 LabelBody();
             });
             PlaceBody(panel, body, style);
@@ -446,7 +455,17 @@ public sealed partial class DockSurface
             {
                 var extra = new StackPanel { Orientation = Orientation.Horizontal };
                 actions.Children.Add(extra);
-                void Fill() { extra.Children.Clear(); if (CenterActions is { } centerActions) extra.Children.AddRange(centerActions(group.Id)); }
+                void Fill()
+                {
+                    var controls = CenterActions?.Invoke(group.Id).ToArray() ?? [];
+                    foreach (var old in extra.Children.Where(control => !controls.Contains(control)).ToArray()) extra.Children.Remove(old);
+                    for (var index = 0; index < controls.Length; index++)
+                    {
+                        var current = extra.Children.IndexOf(controls[index]);
+                        if (current < 0) extra.Children.Insert(index, Adopt(controls[index]));
+                        else if (current != index) extra.Children.Move(current, index);
+                    }
+                }
                 centerActionUpdates.Add(Fill);
                 Fill();
             }
@@ -548,7 +567,7 @@ public sealed partial class DockSurface
         var members = pane.TabIds.Select(id => Session.Tabs(group.Id).FirstOrDefault(tab => tab.Id == id)).OfType<DockTab>().ToArray();
         if (members.Length < DockPane.MinMembers) return Adopt(renderContent(selected));
         var columns = pane.Direction == "horizontal";
-        var grid = new Grid { Name = "TabPane_" + group.Id };
+        var grid = new Grid { Name = "TabPane_" + group.Id, Tag = (pane.Id, pane.Direction) };
         var definitions = string.Join(",", members.Select((_, index) => $"{pane.Weights.ElementAtOrDefault(index) * 1000}*"));
         definitions = string.Join(",0,", definitions.Split(','));
         if (columns) grid.ColumnDefinitions = new ColumnDefinitions(definitions);

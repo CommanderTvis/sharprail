@@ -48,6 +48,8 @@ group, preview identity, selection per group, last-focused center/auxiliary/any 
 positions relative to tools. Tools are frame state: a group that shows Specs shows it in every workspace.
 Switching workspace carries the previous view's tool selections into the next one, never its selected
 resource.
+The surface keeps its chrome mounted across a transition that leaves the frame unchanged, such as a
+workspace switch: only groups whose tabs or panes differ are rebuilt, and content already shown stays attached.
 
 Every transition runs on a copy and installs only if the result validates, so a failed or illegal command
 changes nothing. A frame command (split, new/remove group, preset, tool move) rewrites every retained
@@ -167,6 +169,10 @@ geometry, folds, visibility or alignment. The dock chrome keeps its controls; on
 are keyed by workspace and tab id so one workspace's terminal or editor never appears in another. A
 first visit creates its view and places one terminal, "Terminal 1", into the first bottom group, creating
 one when the limit allows; closing it never brings it back.
+
+Previously mounted tool bodies remain visible while routing resolves. Workspace-scoped plugin tools and
+center actions return with their existing controls. Paired panes retain their frame and splitters when
+member tab ids and orientation are unchanged; refreshing a member replaces only changed content.
 
 ## Location
 

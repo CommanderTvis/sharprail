@@ -143,9 +143,11 @@ public sealed partial class WorkbenchWindow
     }
 
     private WrapPanel? welcomeCards;
+    private bool welcomeGitReady;
 
     private void FillWelcomeCards(WrapPanel buttons)
     {
+        welcomeGitReady = !gitLoading && gitError is null && git.IsRepository;
         buttons.Children.Clear();
         if (!atHome)
         {
@@ -161,7 +163,7 @@ public sealed partial class WorkbenchWindow
         }
         else
         {
-            if (!hasSpecs && !gitLoading && gitError is null && git.IsRepository)
+            if (!hasSpecs && welcomeGitReady)
             {
                 var setUp = new Panels.WelcomeCard("bookFill", "Set up project", "Draft the project's specs, starting from its goal, in an isolated workspace.", primary: true)
                 { Name = "WelcomeCta" };
@@ -169,7 +171,7 @@ public sealed partial class WorkbenchWindow
                 buttons.Children.Add(setUp);
             }
             var create = new Panels.WelcomeCard("add", "Create workspace", $"An isolated worktree on its own branch ({Shortcut("N")}).", primary: hasSpecs)
-            { Name = hasSpecs ? "WelcomeCta" : "WelcomeAction", IsVisible = !gitLoading && gitError is null && git.IsRepository };
+            { Name = hasSpecs ? "WelcomeCta" : "WelcomeAction", IsVisible = welcomeGitReady };
             create.Click += (_, _) => _ = CreateWorkspaceDialogAsync();
             var folder = new Panels.WelcomeCard("homeFill", "Work in project folder", "Changes and terminals run directly in your project folder — no isolation.",
                 primary: false)
@@ -207,9 +209,8 @@ public sealed partial class WorkbenchWindow
 
     private void UpdateProjectHomeActions()
     {
-        if (!atHome) return;
-        foreach (var card in surface.GetLogicalDescendants().OfType<Panels.WelcomeCard>().Where(card => card.Name == "WelcomeCta"))
-            card.IsVisible = !gitLoading && gitError is null && git.IsRepository;
+        if (atHome && welcomeCards is { } cards && welcomeGitReady != (!gitLoading && gitError is null && git.IsRepository))
+            FillWelcomeCards(cards);
     }
 
     private ContextMenu ProjectMenu()

@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
@@ -52,6 +54,13 @@ public sealed partial class DockSurface : Grid
     private bool rebuildPending;
     private CenterTabsMode? renderedMode;
     private IReadOnlyList<DockToolInfo> renderedTools = [];
+    // What the last rebuild drew, so a change that keeps the layout's structure, such as a workspace switch,
+    // rebuilds only the groups whose tabs changed and leaves the rest of the chrome mounted.
+    private string renderedStructure = "";
+    private readonly Dictionary<string, BuiltGroup> builtGroups = [];
+
+    private sealed record BuiltGroup(Control Control, string Signature, Border[] Hosts, (Control, string, bool)[] Sites,
+        Action[] Modified, Action[] Catalog, Action[] CenterActions);
     private long previewGesture;
     internal void InvalidatePreviewKeep() => previewGesture++;
     public DockSurface(LayoutSession session, Func<DockTab?, Control> renderContent)
@@ -66,7 +75,7 @@ public sealed partial class DockSurface : Grid
             if (!shell.GetLogicalDescendants().OfType<ResizeHandle>().Any(handle => handle.IsActive))
                 PreviewSides(new SideGeometry(Session.State, Bounds.Width).Project());
         };
-        Session.Changed += () => { CancelForLayoutChange(); Rebuild(); };
+        Session.Changed += () => { CancelForLayoutChange(); if (!Retarget()) Rebuild(); };
         Session.ToolsChanged += RefreshTools;
         Session.SelectionChanged += group =>
         {
@@ -107,7 +116,7 @@ public sealed partial class DockSurface : Grid
         refreshPending = false;
         CancelDrag();
         foreach (var host in contentHosts) host.Child = null;
-        contentHosts.Clear(); tabSites.Clear(); groupHeaders.Clear(); selectionUpdates.Clear();
+        contentHosts.Clear(); builtGroups.Clear(); tabSites.Clear(); groupHeaders.Clear(); selectionUpdates.Clear();
         modifiedUpdates.Clear(); catalogUpdates.Clear(); centerActionUpdates.Clear(); sites.Clear(); nestedStrips.Clear(); stripLayouts.Clear();
         renderedMode = CenterTabs?.Invoke();
         foreach (var control in shell.Children.Where(control => control != centerRegion && !auxiliaryRegions.Values.Contains(control)).ToArray())
@@ -167,7 +176,56 @@ public sealed partial class DockSurface : Grid
             splitter.Name = "bottomSeparator";
             Ui.Place(shell, splitter, 1, start); Grid.SetColumnSpan(splitter, end - start + 1);
         }
+        renderedStructure = Structure();
         NestedStripsChanged?.Invoke(nestedStrips);
+    }
+
+    private bool Retarget()
+    {
+        if (draft is not null || shell.GetLogicalDescendants().OfType<ResizeHandle>().Any(handle => handle.IsActive)) return false;
+        if (!renderedTools.SequenceEqual(Session.Tools) || CenterTabs?.Invoke() != renderedMode || Structure() != renderedStructure) return false;
+        foreach (var (id, built) in builtGroups.ToArray())
+            if (GroupSignature(id) == built.Signature) selectionUpdates[id]();
+            else RebuildGroup(Session.Group(id), built);
+        NestedStripsChanged?.Invoke(nestedStrips);
+        return true;
+    }
+
+    private string Structure()
+    {
+        var structure = Session.State.Copy();
+        structure.Workspaces = []; structure.ActiveWorkspace = "";
+        return JsonSerializer.Serialize(structure);
+    }
+
+    // Selection is left out: an unchanged group applies it through its selection update.
+    private string GroupSignature(string id) =>
+        JsonSerializer.Serialize(new { Tabs = Session.Tabs(id), Panes = Session.View.Panes.GetValueOrDefault(id) });
+
+    private Control BuildTrackedGroup(DockGroup group)
+    {
+        int hosts = contentHosts.Count, placed = sites.Count, modified = modifiedUpdates.Count, catalog = catalogUpdates.Count, actions = centerActionUpdates.Count;
+        var control = BuildGroup(group);
+        builtGroups[group.Id] = new(control, GroupSignature(group.Id), [.. contentHosts.Skip(hosts)], [.. sites.Skip(placed)],
+            [.. modifiedUpdates.Skip(modified)], [.. catalogUpdates.Skip(catalog)], [.. centerActionUpdates.Skip(actions)]);
+        return control;
+    }
+
+    private void RebuildGroup(DockGroup group, BuiltGroup built)
+    {
+        foreach (var host in built.Hosts) { host.Child = null; contentHosts.Remove(host); }
+        foreach (var site in built.Sites) sites.Remove(site);
+        foreach (var update in built.Modified) modifiedUpdates.Remove(update);
+        foreach (var update in built.Catalog) catalogUpdates.Remove(update);
+        foreach (var update in built.CenterActions) centerActionUpdates.Remove(update);
+        var old = built.Control;
+        var parent = old.Parent;
+        var control = BuildTrackedGroup(group);
+        control.ClipToBounds = old.ClipToBounds;
+        Grid.SetRow(control, Grid.GetRow(old)); Grid.SetColumn(control, Grid.GetColumn(old));
+        Grid.SetRowSpan(control, Grid.GetRowSpan(old)); Grid.SetColumnSpan(control, Grid.GetColumnSpan(old));
+        if (parent is Panel panel) panel.Children[panel.Children.IndexOf(old)] = control;
+        else if (parent is Decorator decorator) decorator.Child = control;
     }
 
     private void PlaceSide(Control control, int column, int span)
@@ -258,7 +316,7 @@ public sealed partial class DockSurface : Grid
 
     private Control BuildCenter(CenterNode node)
     {
-        if (node.IsLeaf) return BuildGroup(Session.Group(node.GroupId));
+        if (node.IsLeaf) return BuildTrackedGroup(Session.Group(node.GroupId));
         var horizontal = node.Axis == "horizontal";
         var grid = new Grid();
         if (horizontal)

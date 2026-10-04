@@ -15,7 +15,7 @@ internal static class PluginProjection
         var projects = state.Projects.Select(path => new HostProject(path, workbench.State.Label(path), path)).ToArray();
         var workspaces = state.Projects.ToDictionary(project => project, project =>
             (IReadOnlyList<HostWorkspace>)[.. new[] { project }.Concat(state.WorkspacesOf(project).Select(workspace => workspace.Path))
-                .Concat(workbench.Windows.Where(source => source.WorkspaceMounted && source.ProjectRoot == project).Select(source => source.WorkspaceRoot)).Distinct()
+                .Concat(workbench.Windows.Where(source => source.ProjectRoot == project && source.WorkspaceRoot.Length > 0).Select(source => source.WorkspaceRoot)).Distinct()
                 .Select(path => new HostWorkspace(path, project, workbench.State.Label(path), window?.WorkspaceRoot == path ? window.BranchName : "", path, path == project))]);
         var terminals = new Dictionary<string, List<TerminalTabInfo>>();
         var shown = new Dictionary<string, List<string>>();

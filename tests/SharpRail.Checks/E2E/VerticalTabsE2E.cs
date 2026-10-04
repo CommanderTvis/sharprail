@@ -76,6 +76,13 @@ internal static class VerticalTabsE2E
             var members = pane.GetLogicalDescendants().OfType<Border>().Where(border => border.Name == "PaneMember").ToArray();
             Require(members.Length == 2 && members[0].TranslatePoint(default, pane)!.Value.X < members[1].TranslatePoint(default, pane)!.Value.X,
                 "The members render side by side as columns.");
+            var detached = 0;
+            members[0].DetachedFromVisualTree += (_, _) => detached++;
+            var refresh = app.Window.RefreshAsync();
+            Until(() => refresh.IsCompleted);
+            refresh.GetAwaiter().GetResult();
+            Require(ReferenceEquals(pane, app.Find<Grid>("TabPane_" + app.Center)) && detached == 0,
+                "A content refresh must retain the paired pane and its mounted member frames.");
             Require(app.Find<Grid>("DockTab_file_notes.txt").GetLogicalDescendants().OfType<Border>().Any(border => border.Name == "PaneMarker"),
                 "Members carry a left accent in the column.");
 

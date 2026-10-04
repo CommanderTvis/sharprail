@@ -108,22 +108,24 @@ public sealed partial class WorkbenchWindow
     // Re-lists the root and every loaded folder so expanded folders keep their children.
     private async Task RefreshFilesAsync(long request)
     {
-        var folders = folderCache.Keys.ToArray();
+        var folders = folderCache.Keys.Prepend("").Distinct().ToArray();
         var listed = new Dictionary<string, IReadOnlyList<ProjectFile>>();
         foreach (var folder in folders)
         {
+            if (request != projectRequest || !WorkspaceMounted) return;
             try { listed[folder] = await Task.Run(async () => await host.ListFilesAsync(folder, lifetime.Token), lifetime.Token); }
             catch (OperationCanceledException) { return; }
             catch (Exception error) when (folder.Length > 0 && error is IOException or UnauthorizedAccessException) { }
             catch (Exception error) { if (request == projectRequest) Report(error); return; }
         }
         if (request != projectRequest || !WorkspaceMounted) return;
+        if (toolContent.GetValueOrDefault("files") is { } panel) panel.IsHitTestVisible = true;
         if (listed.Count == folderCache.Count && listed.All(entry => folderCache.TryGetValue(entry.Key, out var current) && current.SequenceEqual(entry.Value)))
             return;
-        folderCache.Clear();
+        foreach (var folder in folders) folderCache.Remove(folder);
         foreach (var entry in listed) folderCache[entry.Key] = entry.Value;
         expandedFolders.RemoveWhere(folder => !folderCache.ContainsKey(folder));
-        toolContent.Remove("files"); surface.RefreshContents("files");
+        ReconcileFilesPanel();
     }
 
     private async Task ReloadOpenDocumentsAsync(long request, IReadOnlyCollection<string> paths)

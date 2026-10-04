@@ -97,6 +97,7 @@ internal static class UiChecks
         Gate.Case("BranchListE2E", () => E2E.BranchListE2E.Run(root));
         Gate.Case("SearchE2E", () => E2E.SearchE2E.Run(root));
         Gate.Case("CrossProjectTabsE2E", () => E2E.CrossProjectTabsE2E.Run(root));
+        Gate.Case("RailRetentionChecks", () => E2E.RailRetentionChecks.Run(root));
     }
 
     public static void Run(string root, bool translations = true)

@@ -98,27 +98,48 @@ public sealed partial class WorkbenchWindow
 
     private void RefreshGitPanels()
     {
+        if (toolContent.GetValueOrDefault("review")?.GetLogicalDescendants().OfType<TextBlock>().FirstOrDefault(label => label.Name == "ReviewSummary") is { } summary)
+            summary.Text = ReviewSummary();
         UpdateProjectHomeActions();
         SyncPluginTools();
-        // A refresh that changes nothing a panel shows keeps its controls, so an open menu or a pointer target survives.
-        if (ChangesSignature() != changesSignature) toolContent.Remove("changes");
-        if (ReviewSignature() != reviewSignature) toolContent.Remove("review");
+        var openMenu = toolContent.GetValueOrDefault("changes")?.GetLogicalDescendants().OfType<Button>()
+            .Select(button => button.ContextMenu).FirstOrDefault(menu => menu?.IsOpen == true);
+        if (openMenu is not null)
+        {
+            if (gitPanelMenu is null)
+            {
+                gitPanelMenu = openMenu;
+                openMenu.Closed += Closed;
+                void Closed(object? sender, EventArgs args)
+                {
+                    openMenu.Closed -= Closed;
+                    gitPanelMenu = null;
+                    if (!lifetime.IsCancellationRequested) RefreshGitPanels();
+                }
+            }
+            return;
+        }
+        ReconcileChangesPanel();
+        if (toolContent.ContainsKey("review"))
+        {
+            var previousKey = reviewKey;
+            EnsureOpenReview();
+            if (previousKey != reviewKey) RefreshReviewPanel();
+        }
         if (RailSignature() == railSignature) { UpdateRailSelection(); surface.RefreshContents("changes", "review"); return; }
         KeepingFocus(() =>
         {
             toolContent.Remove("projects");
-            surface.RefreshContents("projects", "changes", "review");
+            surface.RefreshContents("projects", "changes");
         });
     }
 
-    private string reviewSignature = "";
+    private ContextMenu? gitPanelMenu;
     private string changesSignature = "";
 
     private string ChangesSignature() => string.Join("\0", [changeScope, comparison, selectedCommit?.Sha, changeTree, gitLoading, gitError, git.IsRepository, git.Branch,
         string.Join("\t", git.Branches), string.Join("\t", git.Changes), string.Join("\t", gitBranches.Local), string.Join("\t", gitBranches.Remote),
         scopeCommits is null ? null : string.Join("\t", scopeCommits.Select(commit => commit.Sha))]);
-
-    private string ReviewSignature() => $"{git.IsRepository}\0{git.Branch}\0{git.Changes.Count}";
 
     // The rows the rail is built from. Anything else it shows (selection, branches, what Git allows) is restyled in
     // place, so a refresh that adds or removes no row leaves its controls, focus and pointer targets alone.

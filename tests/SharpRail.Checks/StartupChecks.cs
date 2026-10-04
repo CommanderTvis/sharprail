@@ -1,9 +1,11 @@
 using System.Collections.Concurrent;
 
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 
 using SharpRail.Checks.E2E;
 using SharpRail.Host.Abstractions;
@@ -33,7 +35,9 @@ internal static class StartupChecks
 
     internal static void Run(string root)
     {
+        PaneRetentionChecks.Run(root);
         DeferredWorkspaceSwitch(root);
+        RetainedFiles(root);
         DeferredDocumentChrome(root);
         var profilePath = Path.Combine(root, ".startup-profile");
         var host = new DelayedGitHost(root);
@@ -89,6 +93,83 @@ internal static class StartupChecks
             "Git failure made an accessible workspace unusable.");
         window.Close();
         Console.WriteLine("PASS usable fresh/restored startup with pending Git, cancellation, project switching, stale results and Git failure");
+    }
+
+    private static void RetainedFiles(string root)
+    {
+        var project = IsolatedGit.Repository(Path.Combine(root, "retained-files"), ("same.txt", "main"), ("removed.txt", "main"));
+        Directory.CreateDirectory(Path.Combine(project, "folder"));
+        File.WriteAllText(Path.Combine(project, "folder", "child.txt"), "main child");
+        for (var index = 0; index < 40; index++) File.WriteAllText(Path.Combine(project, $"shared-{index:00}.txt"), "shared");
+        IsolatedGit.Run(project, "add", "-A");
+        IsolatedGit.Run(project, "commit", "-m", "folder");
+        var other = project + "-feature";
+        IsolatedGit.Run(project, "worktree", "add", "-b", "files-feature", other);
+        File.Delete(Path.Combine(other, "removed.txt"));
+        File.WriteAllText(Path.Combine(other, "added.txt"), "feature");
+        File.WriteAllText(Path.Combine(other, "same.txt"), "feature content");
+        File.WriteAllText(Path.Combine(other, "folder", "added-child.txt"), "feature child");
+        var host = new DelayedGitHost(project);
+        var window = new WorkbenchWindow(host, project, new ProfileStore(project + "-profile"), E2eTerminals.Plain);
+        window.Show();
+        TreeView Tree() => window.GetLogicalDescendants().OfType<TreeView>().Single(tree => tree.Name == "FilesTree");
+        TreeViewItem Node(string path) => Tree().GetLogicalDescendants().OfType<TreeViewItem>()
+            .Single(node => node.Tag is ProjectFile file && file.Path == path);
+        bool Listed(string path) => Tree().GetLogicalDescendants().OfType<TreeViewItem>()
+            .Any(node => node.Tag is ProjectFile file && file.Path == path);
+        try
+        {
+            Pump(() => window.WorkspaceMounted);
+            var filesGroup = window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "files"));
+            window.Layout.Select(filesGroup.Id, "files");
+            Pump(() => Listed("same.txt"));
+            var tree = Tree();
+            var same = Node("same.txt");
+            var folder = Node("folder");
+            folder.IsExpanded = true;
+            Pump(() => Listed(Path.Combine("folder", "child.txt")));
+            var child = Node(Path.Combine("folder", "child.txt"));
+            window.UpdateLayout();
+            var scroll = tree.GetVisualDescendants().OfType<ScrollViewer>().First();
+            scroll.Offset = new Vector(0, 100);
+            var offset = scroll.Offset;
+            Require(offset.Y > 0, "The Files fixture must have a scrolled viewport.");
+            var detaches = 0;
+            same.DetachedFromVisualTree += (_, _) => detaches++;
+            var gitReads = host.Requests.Count;
+            var refresh = window.RefreshAsync();
+            Pump(() => host.Requests.Count > gitReads);
+            host.Requests.Last().Result.SetResult(new(true, "main", [], [], []));
+            Await(refresh);
+            Require(ReferenceEquals(tree, Tree()) && detaches == 0 && scroll.Offset == offset,
+                "An identical listing must preserve the tree, row attachment and scroll offset.");
+            host.OpenHold = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            host.FilesHold = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            var switching = window.OpenProjectAsync(other);
+            Require(ReferenceEquals(tree, Tree()) && ReferenceEquals(same, Node("same.txt")),
+                "Pending workspace routing must retain the Files tree and rows.");
+            host.OpenHold.SetResult();
+            Await(switching);
+            Require(ReferenceEquals(tree, Tree()) && ReferenceEquals(folder, Node("folder")) && folder.IsExpanded,
+                $"Held file loading must retain the tree and expanded folder: tree={ReferenceEquals(tree, Tree())}, folder={ReferenceEquals(folder, Node("folder"))}, expanded={folder.IsExpanded}, workspace={window.WorkspaceRoot}, project={window.ProjectRoot}.");
+            host.FilesHold.SetResult();
+            Pump(() => Listed("added.txt") && Listed(Path.Combine("folder", "added-child.txt")) && !Listed("removed.txt"));
+            Require(ReferenceEquals(same, Node("same.txt")) && ReferenceEquals(child, Node(Path.Combine("folder", "child.txt"))),
+                "Changed listings must retain unchanged root and nested rows, even with different file contents.");
+            Require(detaches == 0 && scroll.Offset == offset, "Workspace reconciliation must preserve shared row attachment and scroll offset.");
+            host.OpenHold = null; host.FilesHold = null;
+            Await(window.OpenProjectAsync(project));
+            Pump(() => Listed("removed.txt") && !Listed("added.txt"));
+            Require(ReferenceEquals(tree, Tree()) && ReferenceEquals(same, Node("same.txt")) && folder.IsExpanded &&
+                ReferenceEquals(child, Node(Path.Combine("folder", "child.txt"))), "Switching back must preserve shared rows and expansion.");
+        }
+        finally
+        {
+            window.Close();
+            host.OpenHold?.TrySetResult(); host.FilesHold?.TrySetResult();
+            foreach (var request in host.Requests) request.Result.TrySetResult(new(false, "", [], [], []));
+        }
+        Console.WriteLine("PASS Files tree and shared nested rows survive held workspace switches and changed listings");
     }
 
     private static void DeferredWorkspaceSwitch(string root)
@@ -202,7 +283,7 @@ internal static class StartupChecks
         public ValueTask<SearchHits> SearchAsync(string query, CancellationToken ct = default) => inner.SearchAsync(query, ct);
         public ValueTask<IReadOnlyList<GitCommit>> ListCommitsAsync(string comparison, CancellationToken ct = default) => inner.ListCommitsAsync(comparison, ct);
         public ValueTask<GitCommit?> GetCommitAsync(string sha, CancellationToken ct = default) => inner.GetCommitAsync(sha, ct);
-            public ValueTask<string> CreateProjectAsync(string parentPath, string name, CancellationToken ct = default) => inner.CreateProjectAsync(parentPath, name, ct);
+        public ValueTask<string> CreateProjectAsync(string parentPath, string name, CancellationToken ct = default) => inner.CreateProjectAsync(parentPath, name, ct);
         public ValueTask<string> CloneProjectAsync(string url, string parentPath, string name, int? depth = null, CancellationToken ct = default) => inner.CloneProjectAsync(url, parentPath, name, depth, ct);
         public ValueTask<string> GetDiffAsync(string path, string scope, string comparison = "", CancellationToken ct = default) => inner.GetDiffAsync(path, scope, comparison, ct);
         public ValueTask<DiffSides> GetDiffSidesAsync(string path, string scope, string comparison = "", CancellationToken ct = default) => inner.GetDiffSidesAsync(path, scope, comparison, ct);

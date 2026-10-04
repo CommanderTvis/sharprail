@@ -156,6 +156,9 @@ can be set by a plugin (W18): uncommitted, one commit, the comparison target, or
 - Expansion lives above the rows and is keyed by directory path, so a rebuild or a watcher refresh re-reads
   the root and every loaded folder and restores what was expanded; vanished directories drop out through
   their parent.
+- Switching workspaces within one project retains the Files pane while listings load, including expanded
+  folders and scroll position. Listings reconcile rows by relative path and entry kind; unchanged rows
+  stay mounted and only added, removed or renamed entries change. File contents do not affect row identity.
 - Each row has its own context menu: New file…, New folder…, separator, Reveal in Finder (Show in Explorer
   on Windows, Open containing folder elsewhere), Copy absolute path, Rename…, and Delete file / Delete
   folder. New creates inside a folder row and beside a file row (a compact chain's row stands for its
@@ -196,6 +199,9 @@ created since the last snapshot is available without closing the menu or refresh
 
 Git refreshes retain an open scope or comparison menu and its trigger. The latest snapshot or error
 renders when the menu closes, so filesystem and ref events do not interrupt a choice already in progress.
+The pane, toolbar and scroller survive refreshes and same-project workspace switches. Identical results
+leave controls untouched; changed results reconcile unchanged file rows and tree folders, preserving
+scroll position and expansion. A loaded snapshot stays visible while its replacement is loading.
 
 - A fixed 32px toolbar says what is being diffed: the scope pill (All changes, Uncommitted, Staged, Branch,
   or one commit from the branch), the comparison-branch pill (`vs <branch>`, with Refresh git), and the
