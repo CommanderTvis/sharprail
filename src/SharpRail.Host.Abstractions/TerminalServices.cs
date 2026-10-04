@@ -29,7 +29,7 @@ public interface ITerminalService
     ValueTask<ITerminalSession> AttachAsync(TerminalAttachRequest request, CancellationToken cancellationToken = default);
     // True while a process other than the shell owns the terminal's foreground.
     ValueTask<bool> IsBusyAsync(string sessionId, CancellationToken cancellationToken = default);
-    // Ends the session's shell and forgets the session; closing a tab is the only way a client ends one.
+    // Ends the session's shell and forgets the session; closing a tab or its project ends it.
     ValueTask CloseAsync(string sessionId, CancellationToken cancellationToken = default);
 }
 

@@ -94,7 +94,8 @@ terminal attachments, never through a UI callback.
 - No process isolation: a fault in Core is a fault of its composer. Separate processes sharing a state
   directory are not coordinated; the last writer wins.
 - Stopping a remote host disposes its terminal service, ending its shells. Local shells end when their
-  owning app stops; disposing a terminal view only detaches it.
+  owning app stops; closing a project ends all its workspace shells, including detached sessions.
+  Disposing a terminal view only detaches it.
 
 ## Not yet ported
 

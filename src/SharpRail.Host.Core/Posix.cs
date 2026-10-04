@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace SharpRail.Host.Core;
 
-// libc entry points used by the PTY host and the terminal relay. .NET exposes no PTY API.
+// libc entry points used by the PTY host, the terminal relay and workspace resolution. .NET exposes no PTY API.
 internal static class Posix
 {
     private const string Libc = "libc";
@@ -60,6 +60,18 @@ internal static class Posix
     [DllImport(Libc, EntryPoint = "tcsetattr", SetLastError = true)] internal static extern int SetAttributes(int fd, int actions, byte[] termios);
     [DllImport(Libc, EntryPoint = "cfmakeraw")] internal static extern void MakeRaw(byte[] termios);
     [DllImport(Libc, EntryPoint = "strerror")] private static extern nint StrError(int error);
+    [DllImport(Libc, EntryPoint = "realpath", SetLastError = true)] private static extern nint RealPathNative(string path, nint resolved);
+    [DllImport(Libc, EntryPoint = "free")] private static extern void Free(nint pointer);
+
+    /// <summary>The physical path with every symbolic link resolved, as Git reports it, or null when it cannot be resolved.</summary>
+    internal static string? RealPath(string path)
+    {
+        if (!Mac && !OperatingSystem.IsLinux()) return null;
+        var resolved = RealPathNative(path, 0);
+        if (resolved == 0) return null;
+        try { return Marshal.PtrToStringUTF8(resolved); }
+        finally { Free(resolved); }
+    }
 
     [DllImport(Libc, EntryPoint = "sigemptyset")] internal static extern int SigEmptySet(nint set);
     [DllImport(Libc, EntryPoint = "sigfillset")] internal static extern int SigFillSet(nint set);

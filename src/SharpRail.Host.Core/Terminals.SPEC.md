@@ -19,6 +19,9 @@ client attaches. A shell outlives every client that shows it. `PtyTerminalServic
 its clients share (`ITerminalCatalogService`). Clients are opaque ids; which window places a tab where is
 frontend-local and never reaches this service.
 
+Closing a project ends its sessions across all workspaces, including detached shells, and revokes
+their MCP identities. The host waits for shell shutdown before completing the project-close change.
+
 ## Boundary
 
 - Owns: the session table keyed by session id, the PTY (`PtySession`: `posix_openpt`, `posix_spawn` of

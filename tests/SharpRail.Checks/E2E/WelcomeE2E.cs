@@ -68,10 +68,10 @@ internal static class WelcomeE2E
     {
         using var app = OpenFresh(directory);
         Until(() => HasWelcome(app));
-        var plain = Path.Combine(directory, "plain-folder") + Path.DirectorySeparatorChar;
+        var plain = Path.Combine(directory, "plain-folder");
         Directory.CreateDirectory(plain);
         File.WriteAllText(Path.Combine(plain, "notes.txt"), "not a repository yet\n");
-        app.Window.FolderPicker = () => Task.FromResult<string?>(plain);
+        app.Window.FolderPicker = () => Task.FromResult<string?>(plain + Path.DirectorySeparatorChar);
         var cta = app.Find<Button>("WelcomeCta");
         app.Click(cta);
         Until(() => cta.ContextMenu!.IsOpen);
@@ -81,7 +81,8 @@ internal static class WelcomeE2E
         Require(!app.Window.OwnedWindows.Any() && !Directory.Exists(Path.Combine(plain, ".git")), "A plain folder opens without git init.");
         Require(Buttons(app).Any(button => button.Name == "ProjectName" && Equals(button.Tag, plain)), "The plain folder must join the rail.");
         Require(app.Tabs.Count == 0 && WelcomeTitle(app) == "plain-folder", "A plain folder must land on its Project Home.");
-        Require(!app.Find<Button>("WelcomeCta").IsVisible, "A plain folder's Project Home must hide Create workspace.");
+        Require(!Buttons(app).Any(button => button.IsEffectivelyVisible && Text(button).Contains("Create workspace", StringComparison.Ordinal)),
+            "A plain folder's Project Home must hide Create workspace.");
         Require(Buttons(app).Any(button => button.Name == "WelcomeAction" && Text(button).Contains("Work in project folder", StringComparison.Ordinal)),
             "Project Home must offer the project-folder fork.");
         var row = Controls(app).OfType<Grid>().Single(control => control.Name == "ProjectRow" && Equals(control.Tag, plain));

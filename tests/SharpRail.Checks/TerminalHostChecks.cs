@@ -53,6 +53,8 @@ internal static partial class TerminalHostChecks
             await Exercise(new LocalTerminalAdapter(local), workspace, "local");
             await Sessions(new LocalTerminalAdapter(local), workspace, "local");
             await LiveInputModes(new LocalTerminalAdapter(local), workspace, "local");
+            var state = new HostStateStore(null) { Terminals = local };
+            await ProjectClosure(new LocalTerminalAdapter(local), new LocalStateAdapter(state), workspace, "local", state);
         }
 
         await RevivalLocal(root, workspace);
@@ -73,6 +75,8 @@ internal static partial class TerminalHostChecks
                 await Exercise(remote, workspace, "remote");
                 await Sessions(remote, workspace, "remote");
                 await LiveInputModes(remote, workspace, "remote");
+                using var state = new RemoteStateAdapter(address, "terminal-token");
+                await ProjectClosure(remote, state, workspace, "remote");
             }
             await Reconnects(address, workspace);
             await Mcp(address, workspace);
@@ -476,6 +480,43 @@ internal static partial class TerminalHostChecks
         await first.DisposeAsync();
         await terminals.CloseAsync(id);
         Console.WriteLine($"PASS host terminal input modes ({mode}): a live full-screen program's modes are restored on reattach and dropped after it leaves");
+    }
+
+    private static async Task ProjectClosure(ITerminalService terminals, IHostStateService state, string workspace, string mode, HostStateStore? store = null)
+    {
+        using var git = new E2E.IsolatedGit(workspace + "-git-" + mode);
+        workspace = E2E.IsolatedGit.Repository(workspace + "-project-" + mode);
+        var worktree = workspace + "-worktree";
+        E2E.IsolatedGit.Run(workspace, "worktree", "add", "--detach", worktree);
+        var other = workspace + "-other";
+        Directory.CreateDirectory(other);
+        await state.ChangeAsync([HostStateChange.OpenProject(workspace), HostStateChange.OpenProject(other)]);
+        var unstarted = new SharpRail.Plugins.Api.TerminalRef(worktree, "unstarted");
+        store?.SetTerminalAgent(unstarted, new("codex", "codex resume"));
+        var token = store?.Terminals?.Token(unstarted);
+        var id = mode + "-project-close";
+        await using var closing = await terminals.AttachAsync(new(id, workspace, "closing"));
+        await using var retained = await terminals.AttachAsync(new(id + "-other", other, "retained"));
+        await using var inactive = await terminals.AttachAsync(new(id + "-worktree", worktree, "inactive"));
+        _ = new Screen(inactive);
+        var screen = new Screen(closing);
+        await screen.Run("printf 'PROJECT_PID=%s\\n' \"$$\"");
+        var pid = int.Parse(await screen.WaitForMatch("PROJECT_PID=([0-9]+)", mode), System.Globalization.CultureInfo.InvariantCulture);
+        using var process = System.Diagnostics.Process.GetProcessById(pid);
+        _ = new Screen(retained);
+        await closing.DisposeAsync();
+        await state.ChangeAsync([HostStateChange.CloseProject(workspace)]);
+        await Until(() => Task.FromResult(process.HasExited), $"{mode}: project closure must terminate its detached shell process.");
+        await inactive.Exit.WaitAsync(TimeSpan.FromSeconds(10));
+        Require((await state.GetStateAsync()).TerminalAgents.All(agent => agent.Terminal != unstarted), $"{mode}: project closure must forget unstarted agent records.");
+        if (token is not null) Require(store!.Terminals!.McpOwner(token) is null, "Project closure must revoke tokens minted without an attached shell.");
+        Require(!retained.Exit.IsCompleted, $"{mode}: closing one project must keep another project's shell alive.");
+        await state.ChangeAsync([HostStateChange.OpenProject(workspace)]);
+        await using var reopened = await terminals.AttachAsync(new(id, workspace, "reopened"));
+        Require(reopened.Created, $"{mode}: reopening a closed project must start a fresh shell.");
+        await state.ChangeAsync([HostStateChange.CloseProject(workspace), HostStateChange.CloseProject(other)]);
+        await retained.Exit.WaitAsync(TimeSpan.FromSeconds(10));
+        Console.WriteLine($"PASS {mode} project closure ends detached shells and reopening starts fresh");
     }
 
     private sealed class Screen

@@ -268,6 +268,14 @@ internal static class ProjectChecks
         var linkedInfo = await linked.OpenProjectAsync(worktree);
         Require(linkedInfo.RootPath == worktree && linkedInfo.ProjectRoot == root,
             "Linked workspace identity did not resolve its main project before loading Git status.");
+        var alias = worktree + "-alias";
+        Directory.CreateSymbolicLink(alias, worktree);
+        var nested = Directory.CreateDirectory(Path.Combine(worktree, "nested")).FullName;
+        Require(await linked.OpenProjectAsync(alias) == linkedInfo && await linked.OpenProjectAsync(nested) == linkedInfo &&
+            await linked.OpenProjectAsync(root) == await host.OpenProjectAsync(root),
+            "Opening a checkout without Git must resolve symbolic links and subfolders exactly as Git does.");
+        Directory.Delete(alias); Directory.Delete(nested);
+        await linked.OpenProjectAsync(worktree);
         await using (var linkedServer = RemoteServer.Create(worktree, IPAddress.Loopback, 0, "linked-test"))
         {
             await linkedServer.StartAsync();
