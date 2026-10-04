@@ -9,10 +9,12 @@ using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 
+using SharpRail.Scintilla;
+
 namespace SharpRail.Plugins.UI.Kit;
 
 /// <summary>
-/// Find in a rendered document: Mod+F over a preview opens it, Enter / Shift+Enter step with wrap, a count shows
+/// Find in rendered text or an editor: Mod+F opens it, Enter / Shift+Enter step with wrap, a count shows
 /// <c>i/n</c>, and Escape closes it. The current match is selected and scrolled into view; the whole visible
 /// document is searched case-insensitively, and a match spanning two text blocks is not found.
 /// </summary>
@@ -21,7 +23,8 @@ public sealed class FindBar : Border
     private readonly Func<Control?> root;
     private readonly TextBox input = new() { Name = "FindInput", Width = 200, FontSize = 12, MinHeight = 0, Padding = new Thickness(8, 2), PlaceholderText = "Find" };
     private readonly TextBlock count = Ui.Text("0/0", Ui.Muted, 12);
-    private readonly List<(SelectableTextBlock Block, int Start)> matches = [];
+    private readonly List<(Control Block, int Start)> matches = [];
+    private Control? returnFocus;
     private int current = -1;
 
     public FindBar(Func<Control?> root)
@@ -56,13 +59,14 @@ public sealed class FindBar : Border
     /// <summary>Routes Mod+F from <paramref name="host"/> to this bar.</summary>
     public void Attach(Control host) => host.AddHandler(KeyDownEvent, (_, e) =>
     {
-        if (e.Key != Key.F || !(e.KeyModifiers.HasFlag(KeyModifiers.Meta) || e.KeyModifiers.HasFlag(KeyModifiers.Control))) return;
+        if (e.Key != Key.F || e.KeyModifiers is not (KeyModifiers.Meta or KeyModifiers.Control)) return;
         e.Handled = true;
         Open();
     }, Avalonia.Interactivity.RoutingStrategies.Bubble);
 
     public void Open()
     {
+        if (!IsKeyboardFocusWithin) returnFocus = TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() as Control;
         IsVisible = true;
         input.Focus();
         input.SelectAll();
@@ -71,9 +75,11 @@ public sealed class FindBar : Border
 
     public void Close()
     {
+        var restoreFocus = IsKeyboardFocusWithin;
         Select(-1);
         matches.Clear();
         IsVisible = false;
+        if (restoreFocus && returnFocus?.IsEffectivelyVisible == true) returnFocus.Focus();
     }
 
     private void Search()
@@ -82,9 +88,10 @@ public sealed class FindBar : Border
         matches.Clear();
         var query = input.Text ?? "";
         if (query.Length > 0 && root() is { } scope)
-            foreach (var block in scope.GetLogicalDescendants().OfType<SelectableTextBlock>().Where(block => block.IsEffectivelyVisible))
+            foreach (var block in scope.GetLogicalDescendants().OfType<Control>().Prepend(scope)
+                .Where(block => block.IsEffectivelyVisible && block is SelectableTextBlock or ScintillaEditor))
             {
-                var text = TextOf(block);
+                var text = block is ScintillaEditor editor ? editor.Text : TextOf((SelectableTextBlock)block);
                 for (var at = text.IndexOf(query, StringComparison.OrdinalIgnoreCase); at >= 0; at = text.IndexOf(query, at + query.Length, StringComparison.OrdinalIgnoreCase))
                     matches.Add((block, at));
             }
@@ -100,16 +107,20 @@ public sealed class FindBar : Border
 
     private void Select(int index)
     {
-        if (current >= 0 && current < matches.Count) matches[current].Block.ClearSelection();
+        if (current >= 0 && current < matches.Count && matches[current].Block is SelectableTextBlock previous) previous.ClearSelection();
         current = index;
         count.Text = matches.Count == 0 ? "0/0" : $"{current + 1}/{matches.Count}";
         if (index < 0) return;
         var (block, start) = matches[index];
         var length = (input.Text ?? "").Length;
-        block.SelectionStart = start;
-        block.SelectionEnd = start + length;
-        var bounds = block.TextLayout.HitTestTextRange(start, length).FirstOrDefault();
-        block.BringIntoView(bounds.Height > 0 ? bounds.Inflate(24) : new Rect(block.Bounds.Size));
+        if (block is ScintillaEditor editor) editor.SelectRange(start, length);
+        else if (block is SelectableTextBlock rendered)
+        {
+            rendered.SelectionStart = start;
+            rendered.SelectionEnd = start + length;
+            var bounds = rendered.TextLayout.HitTestTextRange(start, length).FirstOrDefault();
+            rendered.BringIntoView(bounds.Height > 0 ? bounds.Inflate(24) : new Rect(rendered.Bounds.Size));
+        }
     }
 
     // Positions follow the text source: a run is its text, an embedded control one placeholder character.

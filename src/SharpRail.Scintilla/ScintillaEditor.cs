@@ -1,3 +1,5 @@
+using System.Text;
+
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
@@ -44,6 +46,9 @@ public sealed partial class ScintillaEditor : Control, IDisposable
     internal int Recordings { get; private set; }
     private double wrapWidth = double.PositiveInfinity;
     public event EventHandler? TextChanged;
+    /// <summary>Raised when the selection or caret moves, by input or by an edit; read <see cref="Selection"/> for the range.</summary>
+    public event EventHandler? SelectionChanged;
+    private (nint Start, nint End) reportedSelection;
     public event EventHandler<Exception>? OperationFailed;
 
     /// <summary>Creates an editor; the caller keeps ownership of <paramref name="typeface"/>, which defaults to Menlo.</summary>
@@ -101,7 +106,46 @@ public sealed partial class ScintillaEditor : Control, IDisposable
     public void MarkSaved() { document.Send(ScintillaMessage.SetSavePoint); InvalidateVisual(); }
     public void Undo() { document.Send(ScintillaMessage.Undo); Changed(); }
     public void Redo() { document.Send(ScintillaMessage.Redo); Changed(); }
-    public void SelectAll() { document.Send(ScintillaMessage.SelectAll); InvalidateVisual(); }
+    public void SelectAll() { document.Send(ScintillaMessage.SelectAll); InvalidateVisual(); inputClient.Notify(); }
+
+    /// <summary>Selects a range counted in UTF-16 units and scrolls its caret into view, without changing focus or text.</summary>
+    public void SelectRange(int start, int length)
+    {
+        var text = Text;
+        var selected = text.AsSpan(start, length);
+        var first = Encoding.UTF8.GetByteCount(text.AsSpan(0, start));
+        document.Send(ScintillaMessage.SetSel, first, first + Encoding.UTF8.GetByteCount(selected));
+        document.Send(ScintillaMessage.ScrollCaret);
+        InvalidateVisual(); inputClient.Notify();
+    }
+
+    /// <summary>The selection as one-based lines and columns counted in UTF-16 units, with its text; empty when collapsed.</summary>
+    public ScintillaSelection Selection
+    {
+        get
+        {
+            var start = document.Send(ScintillaMessage.GetSelectionStart);
+            var end = document.Send(ScintillaMessage.GetSelectionEnd);
+            (int Line, int Column) At(nint position)
+            {
+                var line = document.Send(ScintillaMessage.LineFromPosition, position);
+                return (checked((int)line) + 1, document.Text(document.Send(ScintillaMessage.PositionFromLine, line), position).Length + 1);
+            }
+            var (startLine, startColumn) = At(start);
+            var (endLine, endColumn) = At(end);
+            return new(startLine, startColumn, endLine, endColumn, start == end ? "" : document.Text(start, end));
+        }
+    }
+
+    // Every input and edit path ends in the input client's notification, so the selection is compared there.
+    private void SyncSelection()
+    {
+        if (disposed) return;
+        var current = (document.Send(ScintillaMessage.GetSelectionStart), document.Send(ScintillaMessage.GetSelectionEnd));
+        if (current == reportedSelection) return;
+        reportedSelection = current;
+        SelectionChanged?.Invoke(this, EventArgs.Empty);
+    }
 
     private void Changed()
     {

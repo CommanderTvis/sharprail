@@ -55,7 +55,7 @@ public sealed partial class ScintillaEditor
             else _ = owner.ClipboardAsync(action switch { ContextMenuAction.Copy => Key.C, ContextMenuAction.Cut => Key.X, _ => Key.V });
         }
         internal void Notify()
-        { RaiseCursorRectangleChanged(); RaiseSurroundingTextChanged(); RaiseSelectionChanged(); }
+        { RaiseCursorRectangleChanged(); RaiseSurroundingTextChanged(); RaiseSelectionChanged(); owner.SyncSelection(); }
         internal void NotifyScrolled() => RaiseCursorRectangleChanged();
     }
 }

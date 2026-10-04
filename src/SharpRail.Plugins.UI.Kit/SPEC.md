@@ -55,6 +55,8 @@ publish toggle automation changes without requesting another update.
     `WorkbenchWindow`. Choice toggles use an accent outline and subtle primary fill for selection,
     including while hovered or pressed, so selection stays distinct from pointer feedback.
   - `FindBar`, `LineWidths`, `ViewerLimits`, `SvgAsset`.
+    Find searches rendered text blocks or a Scintilla buffer within the supplied scope, selects and
+    scrolls the current match, and restores the opening control's focus on Escape.
   - `Visualization.ZoomGesture` shares the fork's zoom bounds, toolbar step, Control/Command detection
     and bounded wheel delta math; Avalonia's upward-positive line delta is converted to pixels.
   - `ScopedSetting` provides configuration scope/source rows and their filter toolbar;

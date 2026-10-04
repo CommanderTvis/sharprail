@@ -40,6 +40,8 @@ removed worktree's shells (`TerminalCatalogChecks.cs`); and the host replay size
 `--registry` runs one workspace-registry scenario through the direct and the gRPC adapter and requires the same
 records, refusals and pushed lifecycle events from both, then the rail checks for attaching, forgetting,
 background project rows and removed-workspace cleanup.
+`--markdown-find` covers Source and Split search, UTF-16 selection, match navigation, pane isolation,
+overlay input, unsaved buffers and Escape focus; the same regressions run in `--markdown` and the full suite.
 `--native-osc52` runs those checks plus real Metal shell output and encoded read
 replies, plus local and remote clipboard round trips in both renderers and writes
 after renderer switches. This native coverage also runs in `--native-texture`.
