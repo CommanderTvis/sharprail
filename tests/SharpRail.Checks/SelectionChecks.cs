@@ -50,6 +50,9 @@ internal static class SelectionChecks
         Ui.Apply(original);
         Console.WriteLine("PASS input and Markdown selection appearance under every bundled theme");
         AcrossBlocks(host);
+        KeepsSelectionAcrossFocus(host);
+        SelectsLinks(host);
+        ExtendsSelections(host);
     }
 
     private static void AcrossBlocks(IProjectServices host)
@@ -80,5 +83,87 @@ internal static class SelectionChecks
             preview.SelectedText.StartsWith("First", StringComparison.Ordinal), "Select all must cover the whole document.");
         window.Close();
         Console.WriteLine("PASS Markdown selection drags, copies and selects all across paragraphs");
+    }
+
+    // As in a browser, a selection that began with a double-click keeps growing when dragged past its paragraph, and
+    // Shift+click extends any selection across paragraphs.
+    private static void ExtendsSelections(IProjectServices host)
+    {
+        using var preview = new MarkdownPreview("First paragraph here.\n\nSecond paragraph here.\n\nThird paragraph here.", "extend.md",
+            MarkdownContexts.For(host, new Preferences(), (_, _) => { }));
+        var window = new Window { Width = 500, Height = 300, Content = preview };
+        window.Show(); Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
+        var blocks = preview.GetLogicalDescendants().OfType<SelectableTextBlock>().ToArray();
+        Point At(SelectableTextBlock block, double x) => block.TranslatePoint(new Point(x, block.Bounds.Height / 2), window)!.Value;
+        var word = At(blocks[0], 10);
+        window.MouseDown(word, MouseButton.Left); window.MouseUp(word, MouseButton.Left);
+        window.MouseDown(word, MouseButton.Left);
+        window.MouseMove(At(blocks[2], blocks[2].Bounds.Width - 2), RawInputModifiers.LeftMouseButton);
+        window.MouseUp(At(blocks[2], blocks[2].Bounds.Width - 2), MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+        E2E.E2eWorkspace.Require(preview.SelectedText.StartsWith("First", StringComparison.Ordinal) && preview.SelectedText.Contains("Third paragraph", StringComparison.Ordinal),
+            $"Dragging after a double-click extends the selection across paragraphs, got '{preview.SelectedText}'.");
+        var start = At(blocks[0], 1);
+        window.MouseDown(start, MouseButton.Left); window.MouseUp(start, MouseButton.Left);
+        var end = At(blocks[1], blocks[1].Bounds.Width - 2);
+        window.MouseDown(end, MouseButton.Left, RawInputModifiers.Shift); window.MouseUp(end, MouseButton.Left, RawInputModifiers.Shift);
+        Dispatcher.UIThread.RunJobs();
+        E2E.E2eWorkspace.Require(preview.SelectedText.StartsWith("First paragraph here.\n\nSecond paragraph", StringComparison.Ordinal),
+            $"Shift+click extends the selection across paragraphs, got '{preview.SelectedText}'.");
+        window.Close();
+        Console.WriteLine("PASS Markdown selections extend across paragraphs after a double-click and with Shift+click");
+    }
+
+    // A link is part of the sentence it sits in: selecting across it copies its words and highlights it with the rest.
+    private static void SelectsLinks(IProjectServices host)
+    {
+        using var preview = new MarkdownPreview("See [the guide](https://example.com/guide) before you start.", "links.md",
+            MarkdownContexts.For(host, new Preferences(), (_, _) => { }));
+        var reported = new List<string>();
+        preview.SelectionChanged += reported.Add;
+        var window = new Window { Width = 600, Height = 200, Content = preview };
+        window.Show(); Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
+        var block = preview.GetLogicalDescendants().OfType<SelectableTextBlock>().Single();
+        block.Focus();
+        var command = OperatingSystem.IsMacOS() ? RawInputModifiers.Meta : RawInputModifiers.Control;
+        window.KeyPress(Key.A, command, PhysicalKey.A, null); Dispatcher.UIThread.RunJobs();
+        const string sentence = "See the guide before you start.";
+        E2E.E2eWorkspace.Require(preview.SelectedText == sentence, $"A selection across a link includes its words, got '{preview.SelectedText}'.");
+        window.KeyPress(Key.C, command, PhysicalKey.C, null); Dispatcher.UIThread.RunJobs();
+        var copied = window.Clipboard!.TryGetTextAsync().GetAwaiter().GetResult();
+        E2E.E2eWorkspace.Require(copied == sentence, $"Copying a selection across a link copies its words, got '{copied}'.");
+        E2E.E2eWorkspace.Require(reported.LastOrDefault() == sentence, $"The selection reported to plugins includes the link, got '{reported.LastOrDefault()}'.");
+        var link = block.GetLogicalDescendants().OfType<Button>().Single();
+        E2E.E2eWorkspace.Require(link.Background is ISolidColorBrush fill && block.SelectionBrush is ISolidColorBrush selection && fill.Color == selection.Color,
+            "A link inside the selection is highlighted with it.");
+        window.Close();
+        Console.WriteLine("PASS a Markdown selection across a link includes, copies and highlights the link");
+    }
+
+    // Like an editor's, the preview's selection outlives focus moving to a terminal, so an agent's IDE integration keeps
+    // reporting the selected lines rather than only the file.
+    private static void KeepsSelectionAcrossFocus(IProjectServices host)
+    {
+        using var preview = new MarkdownPreview("First paragraph here.\n\nSecond paragraph here.", "focus.md",
+            MarkdownContexts.For(host, new Preferences(), (_, _) => { }));
+        var reported = new List<string>();
+        preview.SelectionChanged += reported.Add;
+        var elsewhere = new TextBox { Text = "a terminal stand-in" };
+        var window = new Window { Width = 500, Height = 300, Content = new StackPanel { Children = { elsewhere, preview } } };
+        window.Show(); Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
+        var block = preview.GetLogicalDescendants().OfType<SelectableTextBlock>().First();
+        Point At(double x) => block.TranslatePoint(new Point(x, block.Bounds.Height / 2), window)!.Value;
+        window.MouseDown(At(1), MouseButton.Left);
+        window.MouseMove(At(block.Bounds.Width - 2), RawInputModifiers.LeftMouseButton);
+        window.MouseUp(At(block.Bounds.Width - 2), MouseButton.Left);
+        Dispatcher.UIThread.RunJobs();
+        var selected = preview.SelectedText;
+        E2E.E2eWorkspace.Require(selected.Length > 0 && block.IsFocused, "A drag selects text and focuses the paragraph.");
+        reported.Clear();
+        elsewhere.Focus(); Dispatcher.UIThread.RunJobs();
+        E2E.E2eWorkspace.Require(preview.SelectedText == selected && reported.All(text => text.Length > 0),
+            $"Moving focus elsewhere keeps the preview's selection and never reports it cleared ('{preview.SelectedText}', reported [{string.Join("|", reported)}]).");
+        window.Close();
+        Console.WriteLine("PASS a Markdown selection survives focus moving to another control, as an editor's does");
     }
 }
