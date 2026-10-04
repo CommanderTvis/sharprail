@@ -41,7 +41,8 @@ SharpRail created, may be removed by it.
   the calling session's workspace. The name must be one plain folder name; traversal, missing parents
   and existing targets are rejected. The caller opens the returned path at Project Home.
 - Opening a path resolves it to its repository top level; for a linked worktree the project root is the
-  main worktree from `git worktree list`. A plain folder opens as itself. `WorkspaceInfo.ProjectRoot`
+  main worktree from `git worktree list`. A repository or worktree root resolves from its `.git` files
+  without starting Git, giving the same symlink-resolved paths. A plain folder opens as itself. `WorkspaceInfo.ProjectRoot`
   carries the project identity so every window groups the workspace under the same project.
 - Listing a project ensures its Default workspace (find or create, collapsing duplicates) and returns the
   project's records only for a project the host already knows through its project list, recents or registry.

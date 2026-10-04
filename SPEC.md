@@ -102,7 +102,9 @@ can be lost, as with ssh. Output reaches only the attached client. Attaching fro
 another window or client takes the session over and the previous one shows
 "This terminal is open somewhere else" with Take it back; a displaced client's input
 is ignored and its reconnects never take the session back. Closing a window or a
-connection detaches; closing a tab ends the shell. A shell that exits while
+connection detaches; closing a tab ends the shell. Closing a project ends all its
+workspace shells and releases cached document controls in every connected window;
+saved tab layouts remain, and reopening starts fresh shells. A shell that exits while
 detached keeps its final output and exit status for the next attach. Local shells
 end when the app quits and remote shells when their host stops; restored tabs
 start new shells after a restart.

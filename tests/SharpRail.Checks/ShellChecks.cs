@@ -170,8 +170,14 @@ internal static class ShellChecks
         Require(window.Location == new WindowLocation(root, root, "notes.txt"), "The selected file is part of the location.");
         var link = window.Location.Serialize();
 
+        void WaitForNavigation(Task navigation)
+        {
+            Until(() => navigation.IsCompleted);
+            navigation.GetAwaiter().GetResult();
+        }
+
         string? Selected() => window.Layout.Selected(window.Layout.View.FocusedCenter)?.Path;
-        _ = window.GoBackAsync();
+        WaitForNavigation(window.GoBackAsync());
         Until(() => Selected() == "README.md" && window.CanGoForward);
         var command = OperatingSystem.IsMacOS() ? RawInputModifiers.Meta : RawInputModifiers.Alt;
         void Chord(bool back)
@@ -182,29 +188,31 @@ internal static class ShellChecks
         }
         Chord(back: false);
         Until(() => Selected() == "notes.txt" && !window.CanGoForward);
-        while (window.CanGoBack && !WorkspaceFixture.Active(app, removed)) { Chord(back: true); Settle(); Until(() => window.WorkspaceMounted); }
+        Chord(back: true);
+        Until(() => Selected() == "README.md" && window.CanGoForward);
+        while (window.CanGoBack && !WorkspaceFixture.Active(app, removed)) WaitForNavigation(window.GoBackAsync());
         Require(WorkspaceFixture.Active(app, removed), "Back reaches the workspace visited before this one.");
-        _ = window.GoBackAsync();
+        WaitForNavigation(window.GoBackAsync());
         Until(() => window.AtProjectHome && window.WorkspaceMounted);
         Require(window.Location == new WindowLocation(root), "Back from the workspace is the Project Home it was created from.");
-        _ = window.GoBackAsync();
-        Until(() => WorkspaceFixture.Active(app, root) && !window.CanGoBack);
-        _ = window.GoForwardAsync();
+        WaitForNavigation(window.GoBackAsync());
+        Require(WorkspaceFixture.Active(app, root) && !window.CanGoBack, "Back stops at the initial workspace.");
+        WaitForNavigation(window.GoForwardAsync());
         Until(() => window.AtProjectHome && window.WorkspaceMounted);
 
-        _ = window.NavigateAsync(link);
+        WaitForNavigation(window.NavigateAsync(link));
         Until(() => WorkspaceFixture.Active(app, root) && Selected() == "notes.txt");
         Require(!window.CanGoForward && window.CanGoBack, "Opening a link is a navigation of its own.");
-        _ = window.GoBackAsync();
+        WaitForNavigation(window.GoBackAsync());
         Until(() => window.AtProjectHome && window.WorkspaceMounted);
 
         WorkspaceFixture.Git(root, "worktree", "remove", "--force", removed);
-        _ = window.NavigateAsync(gone);
+        WaitForNavigation(window.NavigateAsync(gone));
         Until(() => window.WorkspaceMounted && window.CanGoBack); Settle();
         Require(window.AtProjectHome && window.Location == new WindowLocation(root), "A link to a workspace that is gone lands on its Project Home.");
-        _ = window.NavigateAsync("#/v1/projects/%2Fnot%2Fopen");
+        WaitForNavigation(window.NavigateAsync("#/v1/projects/%2Fnot%2Fopen"));
         Until(() => window.ShowsWelcome && !window.WorkspaceMounted && window.Location == WindowLocation.Main);
-        _ = window.GoBackAsync();
+        WaitForNavigation(window.GoBackAsync());
         Until(() => window.AtProjectHome && window.WorkspaceMounted && window.ProjectRoot == root);
         Console.WriteLine("PASS shell: Back and Forward step through locations and links open a project, workspace or file");
     }

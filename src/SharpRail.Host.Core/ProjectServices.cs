@@ -24,8 +24,14 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
         await mutations.WaitAsync(cancellationToken);
         try
         {
-            var candidate = ProjectPaths.Resolve(path);
+            var candidate = Path.TrimEndingDirectorySeparator(ProjectPaths.Resolve(path));
             if (!Directory.Exists(candidate)) throw new DirectoryNotFoundException($"Directory does not exist: {candidate}");
+            // Switching to a repository or worktree root resolves from its .git files, without starting Git.
+            if (KnownCheckout(candidate) is { } known)
+            {
+                root = known.Root;
+                return new("Default workspace", new DirectoryInfo(root).Name, root) { ProjectRoot = known.ProjectRoot };
+            }
             try { candidate = (await GitRepository.RunAsync(candidate, cancellationToken, "rev-parse", "--show-toplevel")).TrimEnd('\r', '\n'); }
             catch (IOException) { }
             var projectRoot = candidate;
@@ -44,6 +50,15 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
             return new("Default workspace", new DirectoryInfo(root).Name, root) { ProjectRoot = projectRoot };
         }
         finally { mutations.Release(); }
+    }
+
+    // A non-bare checkout's main worktree is the parent of the shared .git directory, as `git worktree list` reports it first.
+    internal static (string Root, string ProjectRoot)? KnownCheckout(string directory)
+    {
+        if (Posix.RealPath(directory) is not { } physical) return null;
+        var (git, common) = ResolveGitDirectories(physical);
+        if (git is null || common is null || Path.GetFileName(common) != ".git") return null;
+        return Path.GetDirectoryName(common) is { } main && Directory.Exists(main) ? (physical, main) : null;
     }
 
     public ValueTask<IReadOnlyList<ProjectFile>> ListFilesAsync(string relativePath, CancellationToken cancellationToken = default)

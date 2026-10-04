@@ -171,6 +171,20 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
     /// <summary>The workspace root and tab of the terminal a token was minted for, or null for an unknown token.</summary>
     public (string Workspace, TerminalRef? Terminal)? McpOwner(string token) => owners.TryGetValue(token, out var owner) ? owner : null;
 
+    /// <summary>Ends all sessions and MCP identities owned by a closing project, including detached worktrees.</summary>
+    public async ValueTask CloseProjectAsync(string project, IReadOnlyList<string> workspaces)
+    {
+        var projectRoot = Path.GetFullPath(project);
+        var roots = workspaces.Append(projectRoot).Select(Path.GetFullPath).ToHashSet(StringComparer.Ordinal);
+        KeyValuePair<string, string>[] known;
+        lock (gate)
+            known = directories.Concat(tokens.Where(entry => owners.ContainsKey(entry.Value)).Select(entry =>
+                new KeyValuePair<string, string>(entry.Key, owners[entry.Value].Workspace))).ToArray();
+        var ids = known.Where(entry => roots.Contains(entry.Value) || ProjectServices.KnownCheckout(entry.Value)?.ProjectRoot == projectRoot)
+            .Select(entry => entry.Key).Distinct().ToArray();
+        foreach (var id in ids) await CloseAsync(id);
+    }
+
     public string Token(TerminalRef terminal)
     {
         lock (gate) return Mint(SessionOf(terminal), Path.GetFullPath(terminal.WorkspaceId), terminal);

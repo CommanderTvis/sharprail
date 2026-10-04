@@ -60,7 +60,7 @@ presets belong to the UI.
 
 - A project is identified by its absolute root path. `project-open` puts an unknown project first and
   removes it from recents; `project-close` moves it to the front of recents (at most 10) without touching
-  the repository, its worktrees or their terminals; `project-forget` drops it from the open list.
+  the repository or its worktrees. Closing or forgetting a project ends its workspace terminals, including detached sessions; `project-forget` drops it from the open list.
 - Every open or recent project has one `ProjectRecord`: a UUID, a readable slug (lower-case name with runs
   of other characters as one dash, `-2`, `-3`… on a clash) and `lastOpened` in Unix milliseconds. Opening
   mints the record or advances `lastOpened`; closing keeps it, so identity survives close and reopen, and
@@ -79,6 +79,9 @@ presets belong to the UI.
 - Opening a plain folder offers Initialize: `git init -b main`, `git add -A` and an allow-empty initial
   commit, supplying a fallback identity only for a field Git has none configured for. A failed commit
   removes the new `.git` again, and a folder that is already a repository is refused.
+- Recents is filtered against the host filesystem whenever a snapshot is read: a path that no longer
+  names a directory (missing, or replaced by a file) disappears, while permission or other filesystem
+  errors keep the entry. The projection never changes the stored list, so a restored folder returns.
 - A plain folder opens as a project directly, with no Git required: it is its own root and its Default
   workspace is the only one it has. A folder that later gains a `.git` is a repository on its next open.
 
@@ -95,8 +98,9 @@ presets belong to the UI.
 
 ## Settings and presets
 
-- Converge on broadcast, no client optimism. `ChangeAsync` applies every change to the current snapshot
-  under one lock, persists, increments `Revision` and publishes to every watcher, the initiator included.
+- Converge on broadcast, no client optimism. `ChangeAsync` serializes batches and validates them under
+  the state lock. Project shutdown runs outside that lock; the final changes are applied, persisted,
+  assigned a new `Revision` and published under it to every watcher, the initiator included.
   A control keeps showing the host's value until the broadcast arrives. A change that leaves state equal
   publishes nothing.
 - An invalid change rejects the whole batch before persistence or broadcast. Line widths accept whole

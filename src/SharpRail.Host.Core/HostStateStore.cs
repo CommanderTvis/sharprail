@@ -45,6 +45,10 @@ public sealed partial class HostStateStore : IHostStateService
     private readonly Dictionary<string, JsonNode?> unknownSettings = [];
     private static readonly HashSet<string> KnownSettings = typeof(HostSettings).GetProperties().Select(property => property.Name).ToHashSet();
     private HostState state;
+    private readonly SemaphoreSlim changesGate = new(1, 1);
+
+    /// <summary>The host's terminals, ended when their project closes.</summary>
+    public PtyTerminalService? Terminals { get; set; }
 
     public string? LastError { get; private set; }
     /// <summary>Raised with the path of a workspace the host removed, so its other resources can end with it.</summary>
@@ -137,20 +141,44 @@ public sealed partial class HostStateStore : IHostStateService
 
     public ValueTask<HostState> GetStateAsync(CancellationToken cancellationToken = default) => ValueTask.FromResult(Current);
 
-    public ValueTask<HostState> ChangeAsync(IReadOnlyList<HostStateChange> changes, CancellationToken cancellationToken = default)
+    public async ValueTask<HostState> ChangeAsync(IReadOnlyList<HostStateChange> changes, CancellationToken cancellationToken = default)
     {
-        cancellationToken.ThrowIfCancellationRequested();
-        lock (gate)
+        await changesGate.WaitAsync(cancellationToken);
+        try
         {
-            var next = state;
-            foreach (var change in changes) next = Apply(next, change);
-            if (!ReferenceEquals(next, state)) next = next with { ProjectRecords = Records(next, next.ProjectRecords) };
-            // A client that predates theme modes sends only the theme and means it to take effect.
-            if (next.Settings.ThemeMode != "fixed" && changes.Any(change => change is { Kind: "setting", Key: "theme" }) &&
-                !changes.Any(change => change is { Kind: "setting", Key: "theme-mode" }))
-                next = next with { Settings = next.Settings with { ThemeMode = "fixed" } };
-            return ValueTask.FromResult(Visible(Publish(next, persist: true)));
+            HostState previous;
+            HostState next;
+            lock (gate)
+            {
+                previous = state;
+                next = state;
+                foreach (var change in changes) next = Apply(next, change);
+            }
+            if (Terminals is { } terminals)
+                foreach (var project in previous.Projects.Except(next.Projects))
+                {
+                    await terminals.CloseProjectAsync(project, previous.WorkspacesOf(project).Select(workspace => workspace.Path).ToArray());
+                    var roots = (previous.WorkspacesOf(project).Select(workspace => workspace.Path).ToArray()).Append(project).ToHashSet(StringComparer.Ordinal);
+                    var agents = previous.TerminalAgents.Where(agent => roots.Contains(agent.Terminal.WorkspaceId) ||
+                        ProjectServices.KnownCheckout(agent.Terminal.WorkspaceId)?.ProjectRoot == Path.GetFullPath(project))
+                        .Select(agent => agent.Terminal).ToHashSet();
+                    foreach (var terminal in agents) await terminals.CloseAsync(PtyTerminalService.SessionFor(terminal));
+                    RemoveTerminalAgents(agents.Contains);
+                }
+            lock (gate)
+            {
+                // Terminal closure can remove agent records while the shells drain.
+                next = state;
+                foreach (var change in changes) next = Apply(next, change);
+                if (!ReferenceEquals(next, state)) next = next with { ProjectRecords = Records(next, next.ProjectRecords) };
+                // A client that predates theme modes sends only the theme and means it to take effect.
+                if (next.Settings.ThemeMode != "fixed" && changes.Any(change => change is { Kind: "setting", Key: "theme" }) &&
+                    !changes.Any(change => change is { Kind: "setting", Key: "theme-mode" }))
+                    next = next with { Settings = next.Settings with { ThemeMode = "fixed" } };
+                return Visible(Publish(next, persist: true));
+            }
         }
+        finally { changesGate.Release(); }
     }
 
     private static IReadOnlyDictionary<string, string> Without(IReadOnlyDictionary<string, string> entries, string key) =>
