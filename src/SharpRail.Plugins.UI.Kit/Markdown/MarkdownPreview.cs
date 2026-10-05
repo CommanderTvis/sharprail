@@ -5,6 +5,7 @@ using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
+using Avalonia.Data;
 using Avalonia.Input.Platform;
 using Avalonia.Layout;
 using Avalonia.LogicalTree;
@@ -302,7 +303,13 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
             LineHeight = size * 1.6
         };
         diffMark = null;
-        if (inline is not null) AddInline(text.Inlines!, inline, weight ?? Ui.InterfaceWeight, FontStyle.Normal, false);
+        if (inline is not null)
+        {
+            if (inline.Descendants().Any(child => child is LinkInline { IsImage: true } ||
+                child is HtmlInline html && HtmlTokens(html.Tag) is [{ Tag: "img", Closing: false }]))
+                text.ClearValue(TextBlock.LineHeightProperty);
+            AddInline(text.Inlines!, inline, weight ?? Ui.InterfaceWeight, FontStyle.Normal, false);
+        }
         return text;
     }
 
@@ -563,7 +570,10 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
             using var bytes = new MemoryStream(data);
             var bitmap = new Bitmap(bytes);
             loadedImages.Add(bitmap);
-            holder.Child = new Image { Source = bitmap, Stretch = Stretch.Uniform, MaxHeight = 800 };
+            var image = new Image { Source = bitmap, Stretch = Stretch.Uniform, MaxHeight = 800 };
+            image.Bind(Image.MaxWidthProperty, new Binding("Bounds.Width")
+            { RelativeSource = new RelativeSource(RelativeSourceMode.FindAncestor) { AncestorType = typeof(SelectableTextBlock) } });
+            holder.Child = image;
         }
         catch (Exception error) when (error is IOException or HttpRequestException or OperationCanceledException or ArgumentException)
         {

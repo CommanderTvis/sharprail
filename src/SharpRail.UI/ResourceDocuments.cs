@@ -25,11 +25,22 @@ public sealed partial class WorkbenchWindow
         registry.Register(new(ResourceRegistry.Code, "Source", new(Text: true), 100) { View = CodeBody, DiffsInPane = true });
         registry.Register(new(ResourceRegistry.Markdown, "Preview", new(Glob: ["*.md", "*.markdown"], Text: true), 110)
         {
-            View = view => new MarkdownPreviewBody(view, text => new(text, view.Resource.Path, MarkdownContexts.For(host, Preferences, FollowLink))),
+            View = view => new MarkdownPreviewBody(view, text =>
+            {
+                var document = new MarkdownDocumentView(text, view.Resource.Path, MarkdownContexts.For(host, Preferences, FollowLink, SpecLink()), _ => CodeBody(view));
+                void ObservePreview() => ReportSelections(document.Preview, new DockTab(view.TabId, Path.GetFileName(view.Resource.Path), "markdown", view.Resource.Path));
+                document.PreviewChanged += ObservePreview;
+                ObservePreview();
+                return document;
+            }),
             Diff = RenderMergedAsync
         });
         return registry;
     }
+
+    private static CodeDocumentView? EditableDocument(Control? content) => content as CodeDocumentView
+        ?? (content as ResourcePane)?.Find<CodeDocumentView>()
+        ?? (content as MarkdownDocumentView)?.Source as CodeDocumentView;
 
     private T? Body<T>(string key) where T : class => documentContent.GetValueOrDefault(key) switch
     {
@@ -39,9 +50,13 @@ public sealed partial class WorkbenchWindow
     };
 
     // The rendered Markdown view builds a control per block, so a document past its limit keeps only the editor.
-    private IReadOnlyList<ResourceRenderer> ViewCandidates(ResourceDescriptor resource, FileDocument document) =>
-        [.. Renderers.Resolve(resource, ResourceIntent.View).Where(renderer =>
-            renderer.Id != ResourceRegistry.Markdown || document.Text.Length <= ViewerLimits.RenderedMarkdown || !OperatingSystem.IsMacOS())];
+    private IReadOnlyList<ResourceRenderer> ViewCandidates(ResourceDescriptor resource, FileDocument document)
+    {
+        var candidates = Renderers.Resolve(resource, ResourceIntent.View).Where(renderer =>
+            renderer.Id != ResourceRegistry.Markdown || document.Text.Length <= ViewerLimits.RenderedMarkdown || !OperatingSystem.IsMacOS()).ToArray();
+        return candidates.Any(renderer => renderer.Id == ResourceRegistry.Markdown)
+            ? [.. candidates.Where(renderer => renderer.Id != ResourceRegistry.Code)] : candidates;
+    }
 
     // A host that predates content metadata still sends a picture's bytes; describe them by the file name.
     private static ContentMetadata? Described(FileDocument document) => document.Info ??
@@ -83,7 +98,18 @@ public sealed partial class WorkbenchWindow
                 Margin = new Thickness(24),
                 HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto
             };
-        return hasPreview ? new MarkdownSourceBody(view, FileWrapWidth) : CodeDocument(document, view.TabId, key);
+        var code = CodeDocument(document, view.TabId, key);
+        if (hasPreview)
+        {
+            code.Editor.Name = "MarkdownSource";
+            code.Editor.TextChanged += (_, _) =>
+            {
+                if (documentContent.GetValueOrDefault(key) is ResourcePane pane)
+                    pane.Reload(view.Resource, ResourceContent.Of(Described(document), code.Editor.Text,
+                        token => ReadBytesAsync(document.Path, null, document.Info?.Sha256, token)), code);
+            };
+        }
+        return code;
     }
 
     /// <summary>Shows a reloaded file in its open body, keeping every view that can take the new content.</summary>

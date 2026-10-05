@@ -420,3 +420,27 @@ SharpRail.Plugins.UI.Kit.ThemeManifest.Syntax.init -> void
 SharpRail.Plugins.UI.Kit.ThemeManifest.ThemeManifest(string! Id, string! Label, int Order, string! Appearance, string! Contrast, System.Collections.Generic.IReadOnlyDictionary<string!, Avalonia.Media.Color?>! Colors, System.Collections.Generic.IReadOnlyList<Avalonia.Media.Color>! Ansi, System.Collections.Generic.IReadOnlyDictionary<string!, Avalonia.Media.Color>! Syntax) -> void
 static SharpRail.Plugins.UI.Kit.Markdown.MarkdownDiff.Sequence(string![]! a, string![]! b, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Collections.Generic.List<(int Side, string! Value)>!
 static SharpRail.Plugins.UI.Kit.Ui.FollowEnabled(Avalonia.Controls.Button! button) -> void
+~override SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.Equals(object obj) -> bool
+~override SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.ToString() -> string
+override SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.GetHashCode() -> int
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Restore(SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState state) -> void
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.State.get -> SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.Deconstruct(out SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode Mode, out Avalonia.Vector Preview, out Avalonia.Vector Source) -> void
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.Equals(SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState other) -> bool
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.Mode.get -> SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.Mode.init -> void
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.Preview.get -> Avalonia.Vector
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.Preview.init -> void
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.Source.get -> Avalonia.Vector
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.Source.init -> void
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.ViewState() -> void
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.ViewState(SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Mode Mode, Avalonia.Vector Preview, Avalonia.Vector Source) -> void
+static SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.operator !=(SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState left, SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState right) -> bool
+static SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState.operator ==(SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState left, SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.ViewState right) -> bool
+
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.MarkdownDocumentView(string! text, string! path, SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext! context, System.Func<string!, Avalonia.Controls.Control!>? sourceFactory) -> void
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Source.get -> Avalonia.Controls.Control?
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.PreviewChanged -> System.Action?
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.RefreshPreviewAsync(string! text) -> System.Threading.Tasks.Task!
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.RefreshPreviewAsync(string! text, SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext! context) -> System.Threading.Tasks.Task!

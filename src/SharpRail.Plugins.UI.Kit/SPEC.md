@@ -68,6 +68,9 @@ publish toggle automation changes without requesting another update.
 - Owns, in `SharpRail.Plugins.UI.Kit.Markdown`: `MarkdownPreview`, `MarkdownDocumentView` (with its compiled
   header), `MarkdownProperties`, `Frontmatter`, `MarkdownLink`, and `Outline` (the heading column, extracted
   from `MarkdownDocumentView.FillOutline`, which `DiffView` also uses).
+  The document view accepts a lazy source-control factory so its owner can supply an editable buffer;
+  `RefreshPreviewAsync` debounces and parses edits off the dispatcher, rejecting stale results.
+  `PreviewChanged` lets the owner reconnect selection observers after replacement.
 - Owns, in `SharpRail.Plugins.UI.Kit.Editor`: `EditorFrame` (the Scintilla host with theme colours, fonts and
   line styles).
 - Owns, in `SharpRail.Plugins.UI.Kit.Visualization`: `MermaidRenderer` and `MermaidDialog` (inline and
@@ -96,6 +99,8 @@ publish toggle automation changes without requesting another update.
   selected text, which the app feeds into the plugin editor-event stream.
 - Inline links, including spec links, inherit rendered diff insertion/deletion colors and backgrounds;
   deleted links and links inside Markdown strikethrough carry the strike decoration.
+- Paragraphs containing Markdown images or inline HTML images reserve the full image height,
+  including inside table cells, rather than clipping pictures to a fixed text line height.
 - `LineWidths.File(width, bounded)` and `Markdown(width, bounded, fontSize)` take the values a preference holds.
 - The kit's XAML uses `FindControl` rather than the Avalonia name generator, whose generated members would join
   the public listing.

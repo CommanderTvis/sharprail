@@ -79,7 +79,7 @@ internal static class MarkdownMermaidE2E
         app.Click((Button)Part("MermaidZoomReset"));
         Until(() => ((TextBlock)Part("MermaidZoomLevel")).Text == "100%" && Math.Abs(detail.Bounds.Width - fitted) < 1);
 
-        var viewer = (ScrollViewer)Part("MermaidFullscreenViewer");
+        var viewer = (ScrollViewer)Part("MermaidPanZoom");
         string Level() => ((TextBlock)Part("MermaidZoomLevel")).Text!;
         bool Pinch(double magnification)
         {
@@ -91,12 +91,12 @@ internal static class MarkdownMermaidE2E
         Require(Pinch(0.5), "The viewer must claim a trackpad pinch.");
         Until(() => Level() == "150%" && detail.Bounds.Width > fitted * 1.45);
         for (var step = 0; step < 8; step++) Pinch(0.5);
-        Until(() => Level() == "500%");
+        Until(() => Level() == "600%");
         for (var step = 0; step < 8; step++) Pinch(-0.5);
         Until(() => Level() == "25%");
         app.Click((Button)Part("MermaidZoomReset"));
         Until(() => Level() == "100%");
-        Console.WriteLine("PASS Mermaid viewer pinch zooms about the fitted width and stays within 25-500%");
+        Console.WriteLine("PASS Mermaid viewer pinch zooms about the fitted width and stays within 25-600%");
 
         app.Click((Button)Part("MermaidZoomIn"));
         app.Click((Button)Part("MermaidZoomIn"));
@@ -130,7 +130,7 @@ internal static class MarkdownMermaidE2E
         dialog.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
         Until(() => !app.Window.OwnedWindows.OfType<DialogWindow>().Any());
 
-        app.Click(app.Find<Button>("ViewToggle_code"));
+        app.Click(app.Find<Button>("MarkdownSourceMode"));
         var source = app.Find<Control>("MarkdownSource");
         Require(MarkdownSourceText(source).Contains("flowchart TD; Start --> Finish", StringComparison.Ordinal),
             "Source mode must show the Mermaid source.");

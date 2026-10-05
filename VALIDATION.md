@@ -1241,3 +1241,12 @@ Host and UI halves merged, uncommitted.
 - The full suite passes without `SHARPRAIL_TEST_GIT_SOURCE` (`.bench/checks-plugins-merged-full.log`, 217 PASS
   lines, exit 0; Git scenarios skipped), run once with nothing else running.
 - Not yet evidence: native capture of the plugin surfaces; the published checks with the copied fixture.
+
+## HTML images in Markdown tables (2026-10-10)
+
+Inline HTML images now release the fixed paragraph line height, matching Markdown
+images and reserving their full height inside table cells. The regression checks
+table paragraph height and image aspect ratio. Release build passes with zero
+warnings/errors; --markdown, touched-file format verification and git diff --check
+pass. The full gate passes all 118 cases across six lanes. Task fixtures were
+removed. The packaged app and physical devices were not checked.

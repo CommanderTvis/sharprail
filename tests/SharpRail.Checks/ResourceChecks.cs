@@ -334,12 +334,12 @@ internal static partial class ResourceChecks
 
         app.Open("README.md");
         Until(() => Shown<SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview>(app, "MarkdownPreview") is not null);
-        var preview = Shown<ToggleButton>(app, "ViewToggle_markdown")!;
-        app.Click(Shown<ToggleButton>(app, "ViewToggle_code")!);
+        var preview = Shown<Button>(app, "MarkdownPreviewMode")!;
+        app.Click(Shown<Button>(app, "MarkdownSourceMode")!);
         var source = Await<Control>(app, "MarkdownSource");
         File.WriteAllText(Path.Combine(root, "README.md"), "# sample-project\n\nAn edited paragraph.\n");
         Watched(() => MarkdownSourceText(source).Contains("An edited paragraph.", StringComparison.Ordinal));
-        Require(ReferenceEquals(source, Shown<Control>(app, "MarkdownSource")) && ReferenceEquals(preview, Shown<ToggleButton>(app, "ViewToggle_markdown")), "A reload keeps the pane, its toggle and the source view.");
+        Require(ReferenceEquals(source, Shown<Control>(app, "MarkdownSource")) && ReferenceEquals(preview, Shown<Button>(app, "MarkdownPreviewMode")), "A reload keeps the pane, its toggle and the source view.");
         app.Click(preview);
         Until(() => Shown<SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview>(app, "MarkdownPreview") is { } rendered && Text(rendered).Length >= 0 &&
             rendered.GetLogicalDescendants().OfType<SelectableTextBlock>().Any(block => block.Inlines?.Text?.Contains("An edited paragraph.", StringComparison.Ordinal) == true));
@@ -413,7 +413,8 @@ internal static partial class ResourceChecks
         Require(Shown<ToggleButton>(app, "DiffView_markdown")!.IsChecked == true && Shown<ToggleButton>(app, "DiffSplit") is null, "A Markdown diff opens on its rendered view, chosen from the registry.");
         app.Click(Shown<ToggleButton>(app, "DiffView_code")!);
         Until(() => Shown<ToggleButton>(app, "DiffView_code")!.IsChecked == true && !Pane(app)!.GetLogicalDescendants().OfType<SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview>().Any());
-        if (OperatingSystem.IsMacOS()) Require(Pane(app)!.GetLogicalDescendants().OfType<ScintillaEditor>().Count(editor => editor.IsEffectivelyVisible) == 2, "Source replaces the rendered diff with both sides.");
+        if (OperatingSystem.IsMacOS()) Require(Pane(app)!.GetLogicalDescendants().OfType<ScintillaEditor>().Any(editor => editor.IsEffectivelyVisible)
+            && DiffText(app).Contains("An edited paragraph.", StringComparison.Ordinal), "Source replaces the rendered diff with the changed text in the pane's responsive layout.");
         File.AppendAllText(Path.Combine(root, "README.md"), "\nA third paragraph.\n");
         Watched(() => DiffText(app).Contains("A third paragraph.", StringComparison.Ordinal));
         Require(Shown<ToggleButton>(app, "DiffView_code")!.IsChecked == true, "A refreshed diff keeps the tab's chosen view.");

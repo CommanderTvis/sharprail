@@ -2834,3 +2834,12 @@ pushes), and the fork's `external-plugin.spec.ts` end to end through the real ho
 `RemotePluginAdapter`. Merging exposed one bug: the remote adapter surfaced a caller-cancelled call or subscription as
 `RpcException(Cancelled)`, which the UI logged as a dropped channel; it now throws `OperationCanceledException` as
 the local path does. `-- --plugins` runs the plugin checks alone. Open items are in `COMPLETION.md` (Plugin API).
+
+## HTML images in Markdown tables (2026-10-10)
+
+Inline HTML images now release the fixed paragraph line height, matching Markdown
+images and reserving their full height inside table cells. The regression checks
+table paragraph height and image aspect ratio. Release build passes with zero
+warnings/errors; --markdown, touched-file format verification and git diff --check
+pass. The full gate passes all 118 cases across six lanes. Task fixtures were
+removed. The packaged app and physical devices were not checked.
