@@ -51,11 +51,10 @@ public sealed partial class App : Application
             var remoteTerminals = remote ? new RemoteTerminalAdapter(new Uri(endpoint!), token) : null;
             // Local sessions belong to the app's host: they survive their windows and end when the app quits.
             var localTerminals = remoteTerminals is null && !OperatingSystem.IsWindows() ? new PtyTerminalService() : null;
-            var relay = localTerminals is null ? null : new LocalTerminalRelay(localTerminals);
             string Renderer() => profile.Data.Preferences.TerminalRenderer;
             Terminals = remoteTerminals is not null
                 ? TerminalBackends.Ghostty(new RemoteTerminalConnection(new Uri(endpoint!), token, remoteTerminals), Renderer)
-                : relay is not null ? TerminalBackends.Ghostty(new LocalTerminalAdapter(localTerminals!), relay.ConnectAsync, Renderer)
+                : localTerminals is not null ? TerminalBackends.Ghostty(new LocalTerminalAdapter(localTerminals), Renderer)
                 : launch => TerminalBackends.Unavailable("Embedded terminals currently require macOS.");
             var workbench = new Workbench(profile, state, Terminals, remote, sessions);
             foreach (var slot in profile.Data.Windows.ToArray())
@@ -72,7 +71,6 @@ public sealed partial class App : Application
                 // Off the UI thread: ending shells awaits their exit, which a blocked dispatcher would never resume.
                 Task.Run(async () =>
                 {
-                    if (relay is not null) await relay.DisposeAsync();
                     if (localTerminals is not null) await localTerminals.DisposeAsync();
                 }).GetAwaiter().GetResult();
             };

@@ -1160,3 +1160,24 @@ The native texture run fails the previously observed changed-theme-background
 pixel assertion, before completing the suite (`.bench/url-native-texture.log`).
 Actual system-browser opening and Metal link pixels have not been verified.
 No live app restart, publication, commit or push was performed.
+
+### In-process Ghostty execution (2026-10-05)
+
+Local Metal attaches directly to the app-owned PTY service through Ghostty's
+external-I/O backend. No local relay child or RPC server is configured, and the
+UI no longer references Host.Remote or ASP.NET Core. An HTTP diagnostics probe
+requires zero local requests across launch, input, resize, takeover/take-back,
+renderer switching, clipboard and close, with a remote positive control.
+Metal acceptance rejects silent fallback to Skia.
+
+Release solution build, --terminals, --native-direct, --native-texture,
+--texture-fallback and formatting verification pass. Native checks preserve shell
+PID and state through renderer changes and takeover, propagate actual PTY size,
+interrupt a foreground process and report exit code 7. The broader texture suite
+also passes GPU import, theme/ANSI pixels, clipping, input, remount/disposal and
+library NSView checks. The earlier theme-pixel failure did not recur.
+Evidence: .bench/in-process/{build-final,format-verified,terminals,direct-complete,
+native-texture,fallback-verified}.log. Build retains four existing XAML warnings.
+The complete checks runner also passes with
+`SHARPRAIL_TEST_GIT_SOURCE=/Users/commandertvis/IdeaProjects/thinkrail`;
+evidence: `.bench/in-process/full.log`. Spec-graph validation passes.

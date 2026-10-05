@@ -74,10 +74,10 @@ scope and selected commit; reload commit catalogs from Git rather than saving
 derived snapshots. Tests use isolated profile directories.
 Commit listing is a separate host operation; do not fetch a full working-tree
 snapshot merely to populate or restore the commit catalog.
-Settings selects Metal texture (default) or Skia (fallback) terminal rendering. Metal texture tabs
-embed Ghostty, whose child is the `--terminal-relay` mode attached to a
-host-owned PTY session: remote tabs reach the remote host, and local tabs reach the app's
-own host over a private Unix socket, so shells outlive their windows while the app runs.
+Settings selects Metal texture (default) or Skia (fallback) terminal rendering. Local Metal tabs
+use Ghostty's external-I/O backend with direct calls to the app-owned PTY service: no relay child,
+socket, serialization or RPC, including fallback to Skia. Remote Metal tabs run the
+`--terminal-relay` child attached to their remote host. Shells outlive their windows while the host runs.
 Skia tabs attach directly to the same host service and draw through `GhosttySkiaView`.
 Both native builds currently require macOS; other platforms show an availability message. `WorkbenchWindow`
 takes its terminal factory from the composition root; headless checks pass one that
@@ -106,8 +106,7 @@ Host dependencies flow toward abstractions: Core references Abstractions; Client
 references Abstractions and Protocol; Remote references Core and Protocol. The UI
 references Core and Client to compose either direct local calls or remote proxies,
 the Scintilla editor control, which it supplies with theme colours and fonts, and
-Remote, only to serve the in-process terminal host socket that local relays attach to
-(no daemon: it starts with the first terminal and stops when the app quits).
+Ghostty.Avalonia. The UI does not reference Remote or start a local RPC server.
 Checks reference the UI and Remote to exercise both paths. Do not introduce a UI
 dependency into the host projects.
 

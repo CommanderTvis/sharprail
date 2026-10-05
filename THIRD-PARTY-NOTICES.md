@@ -9,6 +9,8 @@ IOSurface-backed Metal render targets to Avalonia and wait for external GPU read
 before Ghostty reuses them. The targets also enable shader sampling.
 `src/Ghostty.Avalonia/Native/ScrollbackMemory.patch` preserves enlarged scrollback
 page allocations when recycling them, fixing unbounded memory growth.
+`src/Ghostty.Avalonia/Native/ExternalIo.patch` adds caller-owned in-process I/O
+without starting a Ghostty child or transport.
 Its native library is built from https://github.com/ghostty-org/ghostty with
 the Metal renderer; Ghostty's source dependency declarations retain their
 upstream licenses.

@@ -40,3 +40,12 @@ void gav_texture_ime_point(void *view, double *x, double *y, double *width, doub
 void gav_texture_mouse(void *view, double x, double y, int32_t mods, int32_t action, int32_t button);
 void gav_texture_scroll(void *view, double x, double y);
 void gav_texture_action(void *view, const char *action);
+
+// In-process transport: no child process, socket, serialization or RPC.
+// Callbacks run on Ghostty's IO thread; copy input before returning.
+typedef void (*gav_io_write_cb)(void *context, const uint8_t *data, size_t length);
+typedef void (*gav_io_resize_cb)(void *context, uint16_t columns, uint16_t rows);
+void *gav_view_create_external(const char *directory, const char *clipboard_directory,
+                              void *context, gav_io_write_cb write, gav_io_resize_cb resize);
+void gav_view_output(void *view, const uint8_t *data, size_t length);
+void gav_view_grid(void *view, uint16_t *columns, uint16_t *rows);

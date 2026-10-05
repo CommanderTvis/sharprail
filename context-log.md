@@ -2685,3 +2685,36 @@ theme-background assertion; browser launching and Metal link pixels are unverifi
 Logs: .bench/url-skia-final.log, .bench/url-native-texture.log,
 .bench/url-format-verify.log. Existing dirty work preserved; no restart, publish,
 commit or push. HTTP(S) detection only in Skia; OSC 8 remains outside this change.
+
+### Direct local Ghostty execution — 2026-10-05
+
+Local Metal now uses a real in-process Ghostty external-I/O backend. Native
+ExternalIo.patch adds caller write/resize callbacks and feeds PTY output into the
+existing locked Termio parser without creating a Ghostty child. GhosttyExternalIo
+and DirectGhosttyTerminal attach to the app-owned ITerminalService, preserve
+host-owned shell identity, and serialize native output with disposal. Input and
+resizes share an ordered queue. Local Skia fallback uses that same direct service.
+Removed LocalTerminalRelay, its server factory, and the UI's Host.Remote and
+ASP.NET framework references. Remote Metal retains its authenticated relay.
+
+Take-back previously kept the replacement body hidden while waiting for the first
+frame. TerminalView now shows the replacement before awaiting readiness. Direct
+fallback records its completion task before cancelling texture startup, because
+cancellation can resume the startup continuation inline. Native checks cover both
+regressions, local/remote shell retention, resize, clipboard, Ctrl-C and exit.
+An HTTP diagnostics probe observes zero requests locally and nonzero requests in
+the remote control case; native Metal checks forbid silent Skia fallback.
+
+Release solution build passes with the four existing XAML warnings. --terminals,
+--native-direct, --native-texture and --texture-fallback pass. The native texture
+suite's previously recorded theme-pixel failure did not recur in this run.
+Formatting verification and full checks with upstream Git fixtures pass;
+full-gate log .bench/in-process/full.log. Other evidence:
+.bench/in-process/{build-final,format-verified,direct-complete,native-texture,
+fallback-verified,terminals}.log. Changes uncommitted; no app publication/restart.
+
+Separate existing limitation: TerminalRecorder.Snapshot retains OSC52 queries.
+Reattaching after a clipboard read can repeat its reply into the live shell.
+The expanded takeover test exposed this; clipboard read assertions now follow
+reattachment assertions, with write coverage still exercised across switches.
+No recorder behavior was changed in this task.

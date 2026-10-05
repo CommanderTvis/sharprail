@@ -27,7 +27,7 @@ library; remoteness is an adapter choice, never a mandatory local daemon.
   whose `Local*Adapter`s call Core directly and whose `Remote*Adapter`s proxy over gRPC.
 
 ```
-SharpRail.UI              Avalonia app + workbench   ── depends on ─▶ Host.Core, Host.Client, Host.Remote (terminal relay socket only), Scintilla
+SharpRail.UI              Avalonia app + workbench   ── depends on ─▶ Host.Core, Host.Client, Scintilla, Ghostty.Avalonia
 SharpRail.Host.Client     local adapters + gRPC proxies ─ depends on ─▶ Host.Abstractions, Host.Protocol
 SharpRail.Host.Remote     Kestrel host + RPC adapters ── depends on ─▶ Host.Core, Host.Protocol
 SharpRail.Host.Core       host implementation        ── depends on ─▶ Host.Abstractions
@@ -40,8 +40,7 @@ tests/SharpRail.Checks    executable checks; references UI and Remote to exercis
 ## Decisions
 
 1. Client/host split. The host owns domain state; the UI renders it. Host projects never reference the
-   UI or Avalonia. The UI references Core only to compose the embedded host, and Remote only to serve the
-   in-process terminal relay socket.
+   UI or Avalonia. The UI references Core to compose the embedded host; it does not reference Remote.
 2. The host is a library; the launcher is thin. `SharpRail.UI/Program.cs` and `App.cs` compose one
    app-owned `Workbench` (profile, shared-state subscription, terminal factory, per-window project session
    factory); the remote `Program.cs` reads its root, bind address, port, token and state directory from
@@ -78,10 +77,10 @@ tests/SharpRail.Checks    executable checks; references UI and Remote to exercis
    document placement is local; closing a terminal tab ends its shell on the host.
 10. Dependencies pin exact versions, once. `Directory.Packages.props` pins shared package versions and
     `global.json` selects the SDK; specs name the behavior they rely on rather than restating versions.
-11. Terminal = Ghostty. macOS terminal tabs embed libghostty in native AppKit/Metal views hosted by
-    Avalonia; other platforms show an availability message. The terminal child is the SharpRail executable
-    in `--terminal-relay` mode, attached to a host-owned PTY session, so emulation stays native while
-    shells stay on the host.
+11. Terminal = Ghostty. macOS tabs use libghostty's Metal textures composed by Avalonia or libghostty-vt
+    cells drawn with Skia. Local Metal uses an external I/O backend attached directly to the app-owned
+    PTY service: no relay, socket or RPC. Remote Metal runs a `--terminal-relay` child attached over gRPC.
+    Both retain host-owned shells; other platforms show an availability message.
 12. A shell belongs to a tab, and the host owns it. `PtyTerminalService` keys sessions by a stable id
     derived from workspace and tab; attach is get-or-create and exclusive with takeover. Shells outlive
     windows and client connections while the host runs, and end on tab close, natural exit or host stop.

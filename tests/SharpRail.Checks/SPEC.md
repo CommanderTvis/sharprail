@@ -36,6 +36,10 @@ after renderer switches. This native coverage also runs in `--native-texture`.
 The library-only NSView fixture preserves mutable AppKit input coverage. The app
 integration check uses texture controls. `--texture-fallback` forces software
 rendering and verifies automatic Skia fallback with retained local/remote sessions.
+`--native-direct` checks Metal and Skia session switches, resize, takeover/take-back,
+clipboard, Ctrl-C and exit independently of the texture pixel probes. An HTTP
+diagnostic subscriber requires zero requests for the local path and a nonzero
+count for the remote control case. Metal checks must not silently fall back to Skia.
 `--terminal-relay` lets the checks binary act as the relay child that tabs launch.
 
 Host checks that block on async work run before the Avalonia synchronization

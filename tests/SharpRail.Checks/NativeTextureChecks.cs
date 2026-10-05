@@ -33,6 +33,7 @@ internal static class NativeTextureChecks
     private static bool fallbackCheck;
     private static bool skiaCheck;
     private static bool clipboardCheck;
+    private static bool directCheck;
     private const string Title = "SharpRail Ghostty texture check";
 
     public static void Run(string[] args)
@@ -41,6 +42,7 @@ internal static class NativeTextureChecks
         fallbackCheck = args.Contains("--texture-fallback");
         skiaCheck = args.Contains("--native-skia");
         clipboardCheck = args.Contains("--native-osc52");
+        directCheck = args.Contains("--native-direct");
         AppBuilder.Configure<TextureApplication>().UsePlatformDetect()
             .With(new AvaloniaNativePlatformOptions { RenderingMode = [fallbackCheck ? AvaloniaNativeRenderingMode.Software : AvaloniaNativeRenderingMode.Metal] })
             .StartWithClassicDesktopLifetime(args);
@@ -59,12 +61,12 @@ internal static class NativeTextureChecks
                 try
                 {
                     if (!OperatingSystem.IsMacOS()) throw new PlatformNotSupportedException();
-                    if (clipboardCheck) { Osc52Checks.RunSkia(); await CheckOsc52(window); await CheckSessions(window); }
+                    if (directCheck) await CheckSessions(window);
+                    else if (clipboardCheck) { Osc52Checks.RunSkia(); await CheckOsc52(window); await CheckSessions(window); }
                     else if (skiaCheck) await CheckSkia(window);
                     else
                     {
-                        await CheckOsc52(window);
-                        if (!fallbackCheck) await Check(window);
+                        if (!fallbackCheck) { await CheckOsc52(window); await Check(window); }
                         await CheckSessions(window);
                         if (!fallbackCheck) await CheckNativeLibrary(window);
                     }
@@ -381,24 +383,27 @@ internal static class NativeTextureChecks
     {
         var root = Path.Combine(Directory.GetCurrentDirectory(), ".bench", "texture-sessions-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(root);
+        using var traffic = new HttpRequestProbe();
         await using (var pty = new PtyTerminalService())
-        await using (var relay = new LocalTerminalRelay(pty))
-            await Switching(await relay.ConnectAsync(), "local");
+            await Switching(renderer => TerminalBackends.Ghostty(new LocalTerminalAdapter(pty), renderer), "local");
+        Require(traffic.Requests == 0, "Local terminals issued HTTP/RPC requests.");
+        Console.WriteLine("PASS local Ghostty: zero HTTP/RPC requests through launch, input, resize, takeover, renderer switching and close");
         const string token = "texture-check-token";
         await using var server = RemoteServer.Create(root, IPAddress.Loopback, 0, token);
         await server.StartAsync();
         var address = new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single());
         using var remote = new RemoteTerminalAdapter(address, token);
-        await Switching(new RemoteTerminalConnection(address, token, remote), "remote");
+        await Switching(renderer => TerminalBackends.Ghostty(new RemoteTerminalConnection(address, token, remote), renderer), "remote");
+        Require(traffic.Requests > 0, "The HTTP probe did not observe the remote control case.");
         Console.WriteLine("PASS OSC 52 transport: local and authenticated remote clipboard writes and read replies in Metal and Skia, including writes after renderer switches");
         Console.WriteLine("PASS texture/Skia switching: local and authenticated remote host shells keep their PID and variables; Ctrl-C and real exit status work");
 
-        async Task Switching(RemoteTerminalConnection connection, string name)
+        async Task Switching(Func<Func<string>, TerminalFactory> factory, string name)
         {
             var renderer = TerminalRenderers.Texture;
             var launch = new TerminalLaunch(root, name + Guid.NewGuid().ToString("N"), Path.Combine(root, "clipboard"), "texture-client");
             using var clipboardScope = new Osc52Checks.ClipboardScope();
-            using var tab = new TerminalView(TerminalBackends.Ghostty(connection, () => renderer), launch);
+            using var tab = new TerminalView(factory(() => renderer), launch);
             window.Content = tab;
             window.Show();
             await Started();
@@ -420,8 +425,30 @@ internal static class NativeTextureChecks
                 Type(native, "printf 'AGAIN_%s_%s_\\n' $$ $RENDER_CHECK\r");
                 await Until(() => Screen().Contains($"AGAIN_{pid}_stable_", StringComparison.Ordinal), "Switching renderer lost the host shell.");
                 Require(!Native.HasNativeTerminal(native), "A renderer switch attached a raw terminal NSView.");
-                await Clipboard(next == TerminalRenderers.Texture);
+                await Clipboard(false);
             }
+            var control = tab.GetVisualDescendants().OfType<Control>().Single(value => value is GhosttyTextureView or GhosttySkiaView);
+            TerminalSize Size() => control is GhosttyTextureView metal ? metal.Size : ((GhosttySkiaView)control).Size;
+            var previousSize = Size();
+            window.Width += 96;
+            await Until(() => Size() != previousSize, "The terminal grid did not resize.");
+            var size = Size();
+            await Command(native, control, "printf 'GRID_'; stty size");
+            await Until(() => Screen().Contains($"GRID_{size.Rows} {size.Columns}", StringComparison.Ordinal), "The host PTY did not receive the resized grid.");
+            using (var other = new TerminalView(factory(() => renderer), launch with { ClientId = "takeover-client" }))
+            {
+                window.Content = other;
+                await other.Backend!.Started.WaitAsync(TimeSpan.FromSeconds(20));
+                await Until(() => tab.IsDetached, "Takeover was not reported to the displaced view.");
+                window.Content = tab;
+                tab.Restart();
+                await Started();
+                await Until(() => other.IsDetached, "Taking back did not displace the second client.");
+            }
+            tab.FocusTerminal();
+            Type(native, "printf 'TAKEBACK_%s_%s_\\n' $$ $RENDER_CHECK\r");
+            await Until(() => Screen().Contains($"TAKEBACK_{pid}_stable_", StringComparison.Ordinal), "Takeover lost the shell state.");
+            await Clipboard(true);
             Type(native, "sleep 30\r");
             var deadline = DateTime.UtcNow.AddSeconds(20);
             while (!await tab.IsBusyAsync())
@@ -440,7 +467,7 @@ internal static class NativeTextureChecks
             Require(await tab.Backend!.Exited == 7, "The renderer lost the exit status.");
             window.Content = null;
 
-            using var freshSkia = new TerminalView(TerminalBackends.Ghostty(connection, () => TerminalRenderers.Skia),
+            using var freshSkia = new TerminalView(factory(() => TerminalRenderers.Skia),
                 launch with { SessionId = launch.SessionId + "-clipboard" });
             window.Content = freshSkia;
             await Until(() => freshSkia.Backend is not null, "No fresh Skia backend was created.");
@@ -481,6 +508,7 @@ internal static class NativeTextureChecks
                 await Until(() => tab.Backend is not null, "No renderer backend was created.");
                 await tab.Backend!.Started.WaitAsync(TimeSpan.FromSeconds(20));
                 if (fallbackCheck) Require(tab.GetVisualDescendants().OfType<GhosttySkiaView>().Any() && !tab.GetVisualDescendants().OfType<GhosttyTextureView>().Any(), "Software rendering did not fall back to Skia.");
+                else if (renderer == TerminalRenderers.Texture) Require(tab.GetVisualDescendants().OfType<GhosttyTextureView>().Any(), "The Metal execution check silently fell back to Skia.");
             }
             string Screen() => tab.GetVisualDescendants().OfType<GhosttyTextureView>().SingleOrDefault()?.ReadScreen()
                 ?? tab.GetVisualDescendants().OfType<GhosttySkiaView>().Single().ReadScreen();

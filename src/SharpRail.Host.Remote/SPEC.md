@@ -9,7 +9,7 @@ Serves the host over the wire: a Kestrel HTTP/2 server exposing the Protocol
 services as thin RPC adapters that delegate to Core, plus token authentication
 for every connection. It is both a standalone executable (`Program.cs`, a
 remote host on another machine) and an embeddable library (`RemoteServer`),
-which the UI uses only to serve its in-process terminal relay socket.
+used by remote deployments and transport integration checks. The UI does not reference this project.
 
 ## Boundary
 
@@ -18,10 +18,7 @@ which the UI uses only to serve its in-process terminal relay socket.
   `TerminalRpc.cs`, `ProjectSessions.cs` (per-call workspace resolution) and
   `Program.cs` (environment-driven startup).
 - Public surface: `RemoteServer.Create(root, address, port, token,
-  stateDirectory?, terminals?)` for a full host and
-  `RemoteServer.CreateTerminalRelay(terminals, socketPath, token)` for a
-  terminal-only server on a private Unix socket. Both return an unstarted
-  `WebApplication`; the embedder starts and stops it.
+  stateDirectory?, terminals?)` returns an unstarted `WebApplication`; the embedder starts and stops it.
 - Allowed deps: Core, Protocol, Abstractions, ASP.NET Core/Kestrel,
   protobuf-net.Grpc.AspNetCore.
 - Forbidden: the UI or Avalonia; product behavior in the adapters. An RPC

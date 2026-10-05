@@ -53,8 +53,7 @@ There is no composition root inside Core. Two composers wire it:
 
 - `SharpRail.UI` composes one app-owned `Workbench`: a `HostStateStore` over `~/.sharprail`, a
   `PtyTerminalService` shared by every window, and one `ProjectServices` per window, all behind local
-  adapters. Local terminal tabs reach that terminal service through a private Unix socket
-  (`RemoteServer.CreateTerminalRelay`) started with the first terminal and stopped when the app quits.
+  adapters. Both local terminal renderers call that service directly in process; no local RPC server runs.
 - `RemoteServer.Create` registers `WorkspaceHost`, a `HostStateStore` over `SHARPRAIL_STATE_DIR`, a
   `ProjectSessions` cache that resolves each call's `ProjectServices` from the client's root header, and a
   `PtyTerminalService` the host owns, then maps the four RPC services behind bearer-token authentication.
@@ -76,8 +75,8 @@ terminal attachments, never through a UI callback.
   byte-oriented and a backspace over a multi-byte character corrupts the line).
 - No process isolation: a fault in Core is a fault of its composer. Separate processes sharing a state
   directory are not coordinated; the last writer wins.
-- Stopping a remote host disposes its terminal service, ending its shells. Stopping the local relay does
-  not, because the app owns those sessions.
+- Stopping a remote host disposes its terminal service, ending its shells. Local shells end when their
+  owning app stops; disposing a terminal view only detaches it.
 
 ## Not yet ported
 

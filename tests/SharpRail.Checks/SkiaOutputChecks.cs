@@ -20,7 +20,7 @@ internal static class SkiaOutputChecks
         {
             var source = new OutputSession();
             using var backend = TerminalBackends.Ghostty(source,
-                () => throw new InvalidOperationException("Skia must not start a relay."), () => TerminalRenderers.Skia)
+                () => TerminalRenderers.Skia)
                 (new(root, "output-check", root, "client"));
             var view = (GhosttySkiaView)((Border)backend.View).Child!;
             var interleaved = false;

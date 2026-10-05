@@ -75,10 +75,10 @@ public sealed partial class TerminalView : UserControl, IDisposable
             backend = factory(launch);
             Backend = backend;
             body.Content = backend.View;
-            await backend.Started;
-            if (current != generation) return;
             failure.IsVisible = false;
             detachedNotice.IsVisible = false; body.IsVisible = true;
+            await backend.Started;
+            if (current != generation) return;
             if (retrying) backend.FocusTerminal();
             await Task.WhenAny(backend.Exited, backend.Detached);
             if (current != generation) return;

@@ -6,8 +6,8 @@ and Ghostty license. It references no SharpRail project.
 
 | Control | Rendering | Process ownership |
 | --- | --- | --- |
-| `GhosttyView` | Ghostty's AppKit view and Metal renderer, hosted by `NativeControlHost` | Ghostty starts the configured child |
-| `GhosttyTextureView` | Ghostty's Metal output sampled directly by Avalonia's Skia compositor; no hosted native view | Ghostty starts the configured child |
+| `GhosttyView` | Ghostty's AppKit view and Metal renderer, hosted by `NativeControlHost` | Ghostty starts the configured child, or the caller supplies external I/O |
+| `GhosttyTextureView` | Ghostty's Metal output sampled directly by Avalonia's Skia compositor; no hosted native view | Ghostty starts the configured child, or the caller supplies external I/O |
 | `GhosttySkiaView` | libghostty-vt cells and cursor recorded into Skia pictures, composed by Avalonia | The caller supplies output, consumes input and resizes its PTY |
 
 Both native libraries currently build on macOS, on the target architecture.
@@ -111,6 +111,20 @@ safe reuse. Only the latest source and in-flight readers are retained; resize
 and disposal release old sources. Native leases keep their source alive even
 if the view is disposed during a draw. Avalonia must use a Metal-backed Skia
 context; other backends fail explicitly. The Skia cell control is the fallback.
+
+Supply `GhosttyLaunch.ExternalIo` to use an existing PTY without starting a Ghostty child.
+`GhosttyExternalIo.Input` and `GridResized` run on Ghostty's I/O thread; enqueue
+work and return without reentering the surface. Input bytes are already copied;
+callback failures fault `Failure`.
+Feed output with `GhosttyTextureView.WriteOutput` (safe against disposal), and read
+`Size` on the UI thread after layout. All other view operations remain on the UI thread.
+The caller owns session lifetime and exit status. Disposing the surface stops its I/O
+thread before releasing callback state; it does not close the caller's PTY.
+
+`ExternalIo.patch` adds this backend to pinned Ghostty and exposes its existing
+locked output parser through the C ABI. It creates no subprocess, socket or RPC
+transport. SharpRail's local Metal and Skia factories both attach directly to the
+app-owned host service; remote Metal retains its authenticated relay.
 
 `ScrollbackMemory.patch` fixes the pinned native Ghostty's recycling of enlarged
 scrollback pages. It preserves their allocation size and capacity so repeated

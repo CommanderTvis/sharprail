@@ -80,13 +80,16 @@ Shells belong to the host, following upstream's terminal module. The host PTY
 (`posix_openpt`, `posix_spawn` of the user's login shell as a new session leader in
 the worktree) reports output, exit status and whether a foreground process is
 running; the host's session token is removed from shell environments. A tab's
-session id derives from its workspace and tab id, and each window is a client. Every
-Metal texture tab, local or remote, runs the SharpRail executable in `--terminal-relay`
+session id derives from its workspace and tab id, and each window is a client.
+Local Metal texture tabs use an in-process Ghostty I/O backend attached directly to
+the app's PTY service, with no relay process, socket, serialization or RPC. Input,
+output, resize, busy queries and close all stay in process; Skia fallback uses the
+same direct service. Shells remain ordinary host-owned child processes.
+A remote Metal texture tab runs the SharpRail executable in `--terminal-relay`
 mode as its child: the relay reads the endpoint, token, session and client from a
 private one-use file named by an environment variable (never argv), puts its
 terminal in raw mode, attaches over authenticated code-first gRPC streaming and
-forwards SIGWINCH resizes. Local tabs reach the app's own host through a private
-Unix socket started with the first terminal; remote tabs reach the remote host. The
+forwards SIGWINCH resizes to the remote host. The
 relay reports the real exit code through a status file.
 
 Attaching replays recent output: a fresh view gets a bounded snapshot of the main

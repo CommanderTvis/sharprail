@@ -346,7 +346,7 @@ internal static class GhosttySkiaChecks
     private static void CheckSession(string root)
     {
         var pty = new PtyTerminalService();
-        var factory = TerminalBackends.Ghostty(new LocalTerminalAdapter(pty), () => throw new InvalidOperationException("The Skia renderer needs no relay."), () => TerminalRenderers.Skia);
+        var factory = TerminalBackends.Ghostty(new LocalTerminalAdapter(pty), () => TerminalRenderers.Skia);
         var launch = new TerminalLaunch(root, "skia-" + Guid.NewGuid().ToString("N"), Path.Combine(root, ".clipboard"), "skia-check");
         var terminal = new TerminalView(factory, launch);
         var window = new Window { Width = 700, Height = 360, Content = terminal };

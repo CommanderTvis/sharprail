@@ -8,12 +8,13 @@ using Avalonia.Threading;
 
 namespace Ghostty.Avalonia;
 
-/// <summary>Where a <see cref="GhosttyView"/> starts its child process.</summary>
+/// <summary>Configure a <see cref="GhosttyView"/> with a child process or caller-owned I/O.</summary>
 /// <param name="Command">A shell command line; null runs the user's login shell.</param>
 /// <param name="Environment">One variable added to the child's environment.</param>
 /// <param name="ClipboardImageDirectory">When set, pasting an image saves it there as PNG and pastes its shell-quoted path.</param>
+/// <param name="ExternalIo">When supplied, no child starts; Command and Environment are ignored.</param>
 public sealed record GhosttyLaunch(string WorkingDirectory, string? Command = null,
-    KeyValuePair<string, string>? Environment = null, string? ClipboardImageDirectory = null);
+    KeyValuePair<string, string>? Environment = null, string? ClipboardImageDirectory = null, GhosttyExternalIo? ExternalIo = null);
 
 /// <summary>A Command key equivalent offered to the host before the terminal sees it.</summary>
 public sealed class GhosttyShortcutEventArgs(Key key, KeyModifiers modifiers, bool repeat) : EventArgs
@@ -30,7 +31,7 @@ public sealed class GhosttyShortcutEventArgs(Key key, KeyModifiers modifiers, bo
 /// Metal renderer. Avalonia hosts the view as a native control, so it always draws above Avalonia content.
 /// </summary>
 [SupportedOSPlatform("macos")]
-public sealed class GhosttyView : NativeControlHost, IDisposable
+public sealed partial class GhosttyView : NativeControlHost, IDisposable
 {
     private GCHandle self;
     private nint view;
@@ -40,12 +41,19 @@ public sealed class GhosttyView : NativeControlHost, IDisposable
     public GhosttyView(GhosttyLaunch launch)
     {
         Focusable = true;
+        externalIo = launch.ExternalIo;
         self = GCHandle.Alloc(this);
-        unsafe
+        try
         {
-            view = Native.Create(launch.WorkingDirectory, launch.ClipboardImageDirectory, launch.Command,
-                launch.Environment?.Key, launch.Environment?.Value, &OnEvent, &OnShortcut, GCHandle.ToIntPtr(self));
+            unsafe
+            {
+                view = externalIo is not null
+                    ? ExternalNative.Create(launch.WorkingDirectory, launch.ClipboardImageDirectory, GCHandle.ToIntPtr(self), &OnInput, &OnResize)
+                    : Native.Create(launch.WorkingDirectory, launch.ClipboardImageDirectory, launch.Command,
+                    launch.Environment?.Key, launch.Environment?.Value, &OnEvent, &OnShortcut, GCHandle.ToIntPtr(self));
+            }
         }
+        catch { self.Free(); throw; }
         if (view == 0)
         {
             self.Free();
@@ -107,10 +115,13 @@ public sealed class GhosttyView : NativeControlHost, IDisposable
 
     public void Dispose()
     {
-        if (view == 0) return;
-        Native.Destroy(view);
-        view = 0;
-        self.Free();
+        lock (ioGate)
+        {
+            if (view == 0) return;
+            Native.Destroy(view);
+            view = 0;
+            self.Free();
+        }
     }
 
     [UnmanagedCallersOnly]

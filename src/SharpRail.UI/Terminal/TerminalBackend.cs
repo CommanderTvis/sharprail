@@ -47,16 +47,19 @@ public static class TerminalBackends
 {
     public static ITerminalBackend Unavailable(string reason) => throw new TerminalStartException(reason);
 
-    // Ghostty draws every tab, chosen per tab when it starts. The texture renderer's child process is the relay,
-    // attached to a host session over gRPC: the app's own host through a private socket, or a remote host.
-    // The Skia renderer attaches to the same sessions in-process.
-    public static TerminalFactory Ghostty(ITerminalService terminals, Func<Task<RemoteTerminalConnection>> relay, Func<string> renderer) => launch =>
+    // This overload has no endpoint or relay factory: both renderers call the supplied host directly.
+    public static TerminalFactory Ghostty(ITerminalService terminals, Func<string>? renderer = null) => launch =>
     {
-        if (renderer() == TerminalRenderers.Skia) return new SkiaTerminal(launch, terminals);
         if (!OperatingSystem.IsMacOS()) return Unavailable("Embedded terminals currently require macOS.");
-        return new GhosttyTerminal(launch, relay());
+        return renderer?.Invoke() == TerminalRenderers.Skia
+            ? new SkiaTerminal(launch, terminals)
+            : new DirectGhosttyTerminal(launch, terminals);
     };
 
-    public static TerminalFactory Ghostty(RemoteTerminalConnection connection, Func<string>? renderer = null) =>
-        Ghostty(connection.Terminals, () => Task.FromResult(connection), renderer ?? (() => TerminalRenderers.Texture));
+    public static TerminalFactory Ghostty(RemoteTerminalConnection connection, Func<string>? renderer = null) => launch =>
+    {
+        if (renderer?.Invoke() == TerminalRenderers.Skia) return new SkiaTerminal(launch, connection.Terminals);
+        if (!OperatingSystem.IsMacOS()) return Unavailable("Embedded terminals currently require macOS.");
+        return new GhosttyTerminal(launch, Task.FromResult(connection));
+    };
 }

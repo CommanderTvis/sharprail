@@ -18,8 +18,7 @@ panel or feature flow.
   (`Workbench.cs`), window chrome and the window title bar, global shortcuts, theme application, and the
   integration of the docking engine with profile persistence, host state and panels.
 - Allowed dependencies: `SharpRail.Host.Abstractions`; `SharpRail.Host.Core` and `SharpRail.Host.Client`
-  to compose direct local calls or remote proxies; `SharpRail.Host.Remote` only to serve the in-process
-  terminal socket local relays attach to; `SharpRail.Scintilla`; `Ghostty.Avalonia`; Avalonia.
+  to compose direct local calls or remote proxies; `SharpRail.Scintilla`; `Ghostty.Avalonia`; Avalonia.
 - Forbidden: host projects depending on the UI; panels reading the frame or knowing where they are placed;
   a UI-private copy of host-owned state; a background daemon.
 
@@ -99,7 +98,7 @@ header's prominent actions use larger ones. Icon-only controls carry a tooltip a
 ## Lifecycle
 
 Quitting marks the workbench as shutting down so closing windows keep their profile entries, disposes the
-state subscription and remote adapters, then ends the local relay socket and every local shell off the UI
+state subscription and remote adapters, then ends every local shell off the UI
 thread, because ending a shell awaits its exit. Each window saves its profile entry and Git selections as it
 closes. Abrupt death relies on operating-system process cleanup; remote shells belong to their host.
 

@@ -253,9 +253,9 @@ static bool initialize(void) {
 }
 @end
 
-void *gav_view_create(const char *directory, const char *clipboard_directory, const char *command,
+static void *create_view(const char *directory, const char *clipboard_directory, const char *command,
                       const char *environment_name, const char *environment_value,
-                      gav_view_event_cb event, gav_view_shortcut_cb shortcut, void *context) {
+                      gav_view_event_cb event, gav_view_shortcut_cb shortcut, void *context, const ghostty_external_io_s *external) {
     NSCAssert(NSThread.isMainThread, @"Terminal views require the main thread");
     if (!initialize()) return NULL;
     GAVTerminalView *view = [[GAVTerminalView alloc] initWithFrame:NSMakeRect(0, 0, 640, 360)];
@@ -271,6 +271,7 @@ void *gav_view_create(const char *directory, const char *clipboard_directory, co
     config.scale_factor = NSScreen.mainScreen.backingScaleFactor;
     config.working_directory = directory;
     config.command = command;
+    config.external_io = external;
     ghostty_env_var_s variable = { .key = environment_name, .value = environment_value };
     if (environment_name && environment_value) { config.env_vars = &variable; config.env_var_count = 1; }
     view.surface = ghostty_surface_new(app, &config);
@@ -415,4 +416,24 @@ void gav_texture_scroll(void *pointer, double x, double y) {
 void gav_texture_action(void *pointer, const char *action) {
     GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;
     ghostty_surface_binding_action(view.surface, action, strlen(action));
+}
+
+void *gav_view_create(const char *directory, const char *clipboard_directory, const char *command,
+                      const char *environment_name, const char *environment_value,
+                      gav_view_event_cb event, gav_view_shortcut_cb shortcut, void *context) {
+    return create_view(directory, clipboard_directory, command, environment_name, environment_value, event, shortcut, context, NULL);
+}
+void *gav_view_create_external(const char *directory, const char *clipboard_directory,
+                              void *context, gav_io_write_cb write, gav_io_resize_cb resize) {
+    ghostty_external_io_s external = { .context = context, .write = write, .resize = resize };
+    return create_view(directory, clipboard_directory, NULL, NULL, NULL, NULL, NULL, NULL, &external);
+}
+void gav_view_output(void *pointer, const uint8_t *data, size_t length) {
+    GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;
+    ghostty_surface_external_output(view.surface, data, length);
+}
+void gav_view_grid(void *pointer, uint16_t *columns, uint16_t *rows) {
+    GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;
+    ghostty_surface_size_s size = ghostty_surface_size(view.surface);
+    *columns = size.columns; *rows = size.rows;
 }

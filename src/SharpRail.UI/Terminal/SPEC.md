@@ -10,8 +10,8 @@ Upstream: apps/web/src/store/SPEC.md @ c44534ea
 
 The client side of host-owned shells: the terminal tab body (`TerminalView`), the backend seam that
 attaches it to a host session (`ITerminalBackend`, `TerminalFactory`), the Ghostty native view
-(`GhosttyTerminal`), the in-process socket that serves the app's own sessions to local relays
-(`LocalTerminalRelay`) and the `--terminal-relay` child mode (`TerminalRelay`). PTY lifetime, output
+(`DirectGhosttyTerminal` for local sessions, `GhosttyTerminal` for remote sessions)
+and the remote `--terminal-relay` child mode (`TerminalRelay`). PTY lifetime, output
 recording and replay belong to the host (`Host.Core/PtyTerminalService.cs` behind
 `ITerminalService`); tab placement belongs to the window's workspace view (see
 [Docking/SPEC.md](../Docking/SPEC.md)).
@@ -41,12 +41,17 @@ recording and replay belong to the host (`Host.Core/PtyTerminalService.cs` behin
   screen or a mode sequence, then the foreground program is nudged to redraw. A reconnecting client
   resumes from its last output position. Replay and the switch to live output are atomic, so nothing is
   shown twice.
-- Metal texture tabs run the SharpRail executable in relay mode as their child. The relay reads endpoint,
+- Local Metal texture tabs use Ghostty's external I/O backend. The app-owned PTY service attaches
+  through direct calls; output enters Ghostty's parser under its renderer lock, while input and resize
+  callbacks feed an ordered managed queue. No relay child, socket, HTTP/2, protobuf or RPC is involved,
+  including busy queries, close and fallback to Skia. The local factory has no relay or endpoint input.
+  Disposing the native surface joins its I/O thread before releasing callback state; output calls and
+  disposal are serialized. The host still owns the shell and replay, exit and takeover semantics.
+- Remote Metal texture tabs run the SharpRail executable in relay mode as their child. The relay reads endpoint,
   token, session and client from a private one-use file named by `SHARPRAIL_TERMINAL_RELAY`, puts its
   terminal in raw mode, attaches over authenticated gRPC streaming, forwards window-size changes and reports
   the real exit code or a takeover through a status file, because Ghostty's login wrapper does not
-  propagate the child's exit code. Local tabs reach the app's host through a private Unix socket that starts
-  with the first terminal; remote tabs reach the remote host. A lost connection reconnects for up to 30
+  propagate the child's exit code. Remote tabs reach the remote host. A lost connection reconnects for up to 30
   seconds; input typed before the loss is noticed can be lost, as with ssh.
 - Each window is one terminal client. Terminals of different tabs are independent and survive workspace
   switches without a second shell.
@@ -136,6 +141,8 @@ scrollback, resize and a real host shell surviving a renderer restart.
 `--native-texture` requires real imported pixels with theme changes, Avalonia
 overlays and parent clipping, native keyboard/clipboard input, Retina resize,
 remounting and texture/Skia switches retaining local and remote shells.
+`--native-direct` runs the local direct and remote session checks independently of renderer pixel probes.
+It verifies zero local HTTP requests, shell retention, input, resize, takeover and exit.
 `--texture-fallback` forces software composition and requires automatic Skia
 fallback while preserving the local/remote shell and its exit status.
 

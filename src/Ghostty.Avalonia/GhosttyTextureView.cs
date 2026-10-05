@@ -50,6 +50,8 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
     }
     public PixelSize TextureSize { get; private set; }
     public bool IsBusy => terminal.IsBusy;
+    public TerminalSize Size => terminal.Size;
+    public void WriteOutput(ReadOnlySpan<byte> data) => terminal.WriteOutput(data);
     public TerminalColors Colors { get => terminal.Colors; set => terminal.Colors = value; }
     public string ReadScreen() => terminal.ReadScreen();
     public void FocusTerminal() => Focus();
