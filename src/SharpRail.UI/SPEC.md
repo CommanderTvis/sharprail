@@ -1,6 +1,6 @@
 # SharpRail.UI — application and windows
 
-Upstream: apps/web/SPEC.md @ c44534ea
+Upstream: apps/web/SPEC.md @ 3822748b
 Upstream: apps/desktop/SPEC.md @ c44534ea
 Upstream: apps/web/src/resources/SPEC.md @ c44534ea
 

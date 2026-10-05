@@ -1,8 +1,8 @@
 # Rendering: shared controls, document rendering and helpers
 
-Upstream: apps/web/src/components/SPEC.md @ c44534ea
+Upstream: apps/web/src/components/SPEC.md @ 3822748b
 Upstream: apps/web/src/components/ui/SPEC.md @ c44534ea
-Upstream: apps/web/src/lib/SPEC.md @ c44534ea
+Upstream: apps/web/src/lib/SPEC.md @ 3822748b
 
 ## Responsibility
 

@@ -5,7 +5,7 @@ SharpRail's module specs are adapted from the upstream ThinkRail checkout at
 (`.claude/skills/sync-upstream-specs/SKILL.md`) pulls later upstream changes and advances
 the commit below.
 
-Synced commit: `c44534ead3bd2e64107904cebba20617c5eaac59` (2026-10-03)
+Synced commit: `3822748ba86a365d776c4db73af341f822d064dc` (2026-10-05)
 
 ## Mapping
 
