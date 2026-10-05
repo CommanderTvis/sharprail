@@ -209,3 +209,46 @@ does, so reordering and roving continue from the keyboard.
   peer-created terminal is placed passively into a compatible slot without taking focus, and a host-side
   close removes the tab from every window. The host side exists (`ITerminalCatalogService`, its adapters
   and broadcast); no window reserves its tabs or applies the broadcast yet.
+- Dropping a removed workspace's view from the frame and ending its terminals.
+- Back/Forward navigation history over locations, and serializable deep links to a project, workspace or
+  resource.
+
+## Vertical centre tabs and tab panes
+
+Ported from the fork's "Vertical tabs can live under their workspace in Projects". Settings › Layout
+("Editor tabs") holds four app preferences: `VerticalCenterTabs`, the column's `VerticalCenterTabsWidth` in
+pixels (120–480, default 200, clamped on load so it survives a window resize unchanged),
+`VerticalTabsInProjects` and `DefaultPaneDirection` (columns or rows). A change redraws every window.
+
+- **The column.** With vertical tabs on, every centre group, including both halves of a split that already
+  existed, draws its tabs as a column beside the editor with a draggable edge (`VerticalTabsResize_<group>`).
+  The mode never flips: the centre cannot be split while it is on, so the split drop targets and the Split
+  menu items are not offered at all (a verb the mode removed is hidden, where one a limit blocks stays
+  disabled with its reason). The active marker is a left rule, insertion targets are the top and bottom
+  quarters of a row, and the start actions wrap in a row under the tabs. A basename shared by two open tabs
+  gets a second, dimmed line naming its folder (`./` for the workspace root, since tab paths are
+  workspace-relative); nothing else does.
+- **Panes.** `DockPane` is metadata on a centre group in the workspace view (`WorkspaceView.Panes`), never a
+  centre-tree node: two to four tabs of one group shown together, in columns or rows, with one weight each.
+  `LayoutSession` re-derives panes after every mutation: a member closed or moved away leaves no membership,
+  a pane below two members dissolves, and members are pulled into one contiguous run anchored where the first
+  member sat, in the pane's order. A preview opened over a member takes its place. Joining an existing pane
+  keeps its direction and its members' proportions, the newcomer taking an equal share; membership is
+  exclusive. A member dropped inside its own run reorders the pane, a drop past it takes the member out, and
+  a drop that changes nothing is refused. Making a pane is a vertical-strip gesture: the band between a
+  row's insertion quarters, or "Show beside/under <neighbour>" for the immediate neighbours in the tab menu.
+  Managing one works in either orientation ("Move up/left in this group", "Stack this group" / "Put this
+  group in columns", "Show on its own"), and an existing pane keeps rendering together with vertical tabs
+  off. Selecting any member shows the whole pane; its dividers commit weights when a drag ends.
+- **Tabs in Projects.** With both preferences on and Projects on screen (`LayoutSession.IsToolShowing`: a
+  visible region, an unfolded group, and its shown tab), each centre group's strip renders nested under the
+  active workspace's row in Projects and the centre keeps only its editor. Plain directories place
+  those tabs directly beneath the directory name, without a workspace row. Nested rows highlight on hover,
+  the selected one draws a rounded bordered box, and a pane is one bubble with a continuous left accent.
+  Other workspaces list their retained tabs read-only under their rows; choosing one selects it there
+  (`SelectIn`) and switches to that workspace. When Projects is hidden, folded or behind another tool, the
+  strips come back to the centre as the ordinary column.
+
+Inactive workspace previews refresh their plugin icons and badges when host agent identity
+changes, even when the active workspace's decorations are unchanged. Preview caching includes
+decoration results, so unchanged rows stay mounted and Codex/Claude marks follow workspace switches.

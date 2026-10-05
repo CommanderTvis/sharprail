@@ -126,12 +126,8 @@ public sealed partial class WorkbenchWindow
             EnsureOpenReview();
             if (previousKey != reviewKey) RefreshReviewPanel();
         }
-        if (RailSignature() == railSignature) { UpdateRailSelection(); surface.RefreshContents("changes", "review"); return; }
-        KeepingFocus(() =>
-        {
-            toolContent.Remove("projects");
-            surface.RefreshContents("projects", "changes");
-        });
+        UpdateRailSelection();
+        surface.RefreshContents("changes", "review");
     }
 
     private ContextMenu? gitPanelMenu;

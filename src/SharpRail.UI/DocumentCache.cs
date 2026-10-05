@@ -9,6 +9,7 @@ namespace SharpRail.UI;
 public sealed partial class WorkbenchWindow
 {
     private readonly HashSet<string> restoringDocuments = [];
+    private readonly Dictionary<string, HashSet<string>> documentWorkspaces = [];
 
     private HashSet<string> LiveDocuments() => Layout.State.Workspaces.SelectMany(workspace =>
         workspace.Value.Documents.Values.SelectMany(tabs => tabs).Select(tab => workspace.Key + ":" + tab.Id)).ToHashSet();
@@ -34,6 +35,30 @@ public sealed partial class WorkbenchWindow
         if (control is IDisposable disposable) disposable.Dispose();
         else foreach (var image in control.GetLogicalDescendants().OfType<Image>())
             (image.Source as Bitmap)?.Dispose();
+    }
+
+    private void ReleaseProjectDocuments(string project)
+    {
+        var roots = documentWorkspaces.GetValueOrDefault(project) ?? [];
+        if (project == projectRoot)
+        {
+            roots.Add(workspaceRoot);
+            if (WorkspaceMounted)
+            {
+                projectRequest++; WorkspaceMounted = false;
+                gitRefresh?.Cancel(); StopWatching();
+            }
+        }
+        foreach (var workspace in roots)
+        {
+            var prefix = workspace + ":";
+            foreach (var key in documents.Keys.Where(key => key.StartsWith(prefix, StringComparison.Ordinal)).ToArray()) documents.Remove(key);
+            foreach (var key in documentContent.Keys.Where(key => key.StartsWith(prefix, StringComparison.Ordinal)).ToArray()) DropDocumentContent(key);
+            deletedDocuments.RemoveWhere(key => key.StartsWith(prefix, StringComparison.Ordinal));
+            selectionHistory.Remove(workspace);
+        }
+        documentWorkspaces.Remove(project);
+        InvalidatePluginTools(project);
     }
 
     /// <summary>Reattaches every open terminal tab, for example with another renderer; shells keep running.</summary>

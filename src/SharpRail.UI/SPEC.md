@@ -163,6 +163,13 @@ except the one currently checked out and a workspace's branch; both say why on t
 the host refuses them again. Disabled delete icons stay dimmed on transparent backgrounds, matching idle
 enabled icons. The list's Fetch brings every remote up to date without moving a local branch.
 
+Projects keeps its panel, scroller, project headers, workspace rows and tab hosts mounted. Rows are keyed
+by project and workspace path: discovery and creation insert rows, removal drops only the removed row and
+its tab host, and labels, branches, selection and folding update existing controls. Surviving controls keep
+focus, open menus and scroll position. Switching projects moves the shared trailing actions only when needed.
+Workspace catalogs refresh on window activation, failed workspace opens and host catalog broadcasts,
+including projects that are not currently open, so removed checkouts leave the Projects list.
+
 ## Global shortcuts
 
 The window handles app-wide chords before panels: Mod+O opens a project, Mod+N (and Mod+Alt+N) opens

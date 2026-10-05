@@ -61,13 +61,16 @@ public sealed partial class WorkbenchWindow
     /// <summary>Sends shared changes to the host, reporting a failure in this window.</summary>
     private async Task<bool> ShareAsync(params HostStateChange[] changes)
     {
-        try { await state.ChangeAsync(changes); return true; }
+        try { await Task.Run(() => state.ChangeAsync(changes), lifetime.Token); return true; }
         catch (OperationCanceledException) { return false; }
         catch (Exception error) { Report(new IOException("The host could not save this change: " + error.Message)); return false; }
     }
 
     private void SharedStateChanged(HostState previous, HostState next)
     {
+        foreach (var project in previous.Projects.Except(next.Projects)) ReleaseProjectDocuments(project);
+        foreach (var removed in previous.Workspaces.Where(workspace => !next.Workspaces.Any(current => current.Path == workspace.Path)))
+            ClearRetainedTools(removed.Path);
         if (next.Settings != previous.Settings) RefreshAppearance();
         var registry = !next.Workspaces.SequenceEqual(previous.Workspaces);
         var rail = RailSignature() != railSignature || !next.Projects.SequenceEqual(previous.Projects) || !next.RecentProjects.SequenceEqual(previous.RecentProjects) ||
@@ -77,8 +80,8 @@ public sealed partial class WorkbenchWindow
             KeepingFocus(() =>
             {
                 UpdateScopeLabels();
-                if (toolContent.Remove("projects")) surface.RefreshContents("projects");
-                if (atHome || cleanWelcome) surface.RefreshContents();
+                UpdateRailSelection();
+                if (atHome || cleanWelcome) surface.RefreshEmptyContents();
             });
         else if (registry) UpdateRailSelection();
         if (WorkspaceMounted && (!ReferenceEquals(next.WorkspaceDiffBases, previous.WorkspaceDiffBases) || !ReferenceEquals(next.WorkspaceBases, previous.WorkspaceBases)))

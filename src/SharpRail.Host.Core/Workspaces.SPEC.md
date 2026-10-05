@@ -37,6 +37,8 @@ SharpRail created, may be removed by it.
 
 ## Behavior
 
+- Workspace catalogs and Git snapshots omit checkout directories that no longer exist, even while Git
+  retains their worktree metadata. Listing does not prune Git metadata or delete any files.
 - Creating a project makes one new empty folder under an existing parent on the host, without changing
   the calling session's workspace. The name must be one plain folder name; traversal, missing parents
   and existing targets are rejected. The caller opens the returned path at Project Home.

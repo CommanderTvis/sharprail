@@ -47,7 +47,7 @@ internal static class NewWorkspaceShortcutE2E
     {
         using var app = OpenFixtureProject(directory);
         var add = app.Find<Button>("AddWorkspace");
-        Require(AutomationProperties.GetName(add) is { } label && System.Text.RegularExpressions.Regex.IsMatch(label, @"^Create workspace \(.*N.*\)$"),
+        Require(AutomationProperties.GetName(add) is { } label && System.Text.RegularExpressions.Regex.IsMatch(label, @"^Start work \(.*N.*\)$"),
             "The add-workspace control must advertise its shortcut.");
         app.Click(app.Find<TextBlock>("WelcomeTitle"));
         Press(app.Window, Avalonia.Input.Key.N, Mod);

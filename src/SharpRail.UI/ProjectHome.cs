@@ -153,7 +153,7 @@ public sealed partial class WorkbenchWindow
         {
             var open = new Panels.WelcomeCard("folderFill", "Open project", "Choose a local folder to work in.", primary: true) { Name = "WelcomeCta" };
             open.ContextMenu = ProjectMenu();
-            open.Click += (_, _) => open.ContextMenu.Open(open);
+            open.Click += (_, _) => { FillProjectMenu(open.ContextMenu); open.ContextMenu.Open(open); };
             buttons.Children.Add(open);
         }
         else if (!projectSpecs.TryGetValue(projectRoot, out var hasSpecs))
@@ -216,6 +216,14 @@ public sealed partial class WorkbenchWindow
     private ContextMenu ProjectMenu()
     {
         var menu = new ContextMenu();
+        FillProjectMenu(menu);
+        menu.Opening += (_, _) => FillProjectMenu(menu);
+        return menu;
+    }
+
+    private void FillProjectMenu(ContextMenu menu)
+    {
+        menu.Items.Clear();
         var create = Ui.Menu("Create project…", () => _ = CreateProjectAsync());
         create.Name = "CreateProjectMenu";
         menu.Items.Add(create);
@@ -225,7 +233,7 @@ public sealed partial class WorkbenchWindow
         clone.Name = "CloneProjectMenu";
         menu.Items.Add(clone);
         var recents = state.Current.RecentProjects.Where(path => !state.Current.Projects.Contains(path)).ToArray();
-        if (recents.Length == 0) return menu;
+        if (recents.Length == 0) return;
         menu.Items.Add(new Separator());
         menu.Items.Add(new MenuItem { Header = "Recent", IsEnabled = false });
         foreach (var path in recents)
@@ -234,7 +242,6 @@ public sealed partial class WorkbenchWindow
             item.Name = "RecentProject";
             menu.Items.Add(item);
         }
-        return menu;
     }
 
     private ContextMenu ProjectActions(string project)
@@ -296,7 +303,7 @@ public sealed partial class WorkbenchWindow
         // A project whose folder is gone has nothing left to lose, so it closes without asking.
         var missing = !remote && !Directory.Exists(project);
         if (!missing && !await Dialogs.Confirm(this, $"Close {name}?",
-            "Removes this project from the open projects list. Its repository and workspaces are kept. Reopen it from Add project → Recents.",
+            "Removes this project from the open projects list and stops its terminals and running processes. Its repository and workspaces are kept. Reopen it from Add project → Recents.",
             "Close project"))
         {
             FocusProject(project);
@@ -312,7 +319,7 @@ public sealed partial class WorkbenchWindow
                 if (next is null) ShowWelcome();
                 else await OpenProjectHomeAsync(next);
             }
-            else { toolContent.Remove("projects"); surface.RefreshContents("projects"); }
+            else UpdateRailSelection();
             FocusProject(next);
         }
         finally { closingProject = null; }
@@ -489,6 +496,13 @@ public sealed partial class WorkbenchWindow
             !WorktreeLocked(worktree.Path));
         remove.Name = "WorkspaceRemove";
         menu.Items.Add(remove);
+        void ScopeActions()
+        {
+            foreach (var item in menu.Items.OfType<Control>().Where(item => item.Name is "WorkspaceRename" or "WorkspaceRemove" || item is Separator))
+                item.IsVisible = worktree.ProjectRoot == projectRoot;
+        }
+        ScopeActions();
+        menu.Opened += (_, _) => ScopeActions();
         return openIn;
     }
 
@@ -529,7 +543,7 @@ public sealed partial class WorkbenchWindow
         renaming = path; renameDraft = renameOriginal = WorkspaceName(path); renameCommitPending = false;
         renameInHeader = header; renameBox = null;
         UpdateScopeLabels();
-        toolContent.Remove("projects"); surface.RefreshContents("projects");
+        if (!header) RefreshRailWorkspace(path);
     }
 
     private Control RenameBox(Thickness margin, double height)
@@ -544,8 +558,8 @@ public sealed partial class WorkbenchWindow
             if (e.Key == Key.Enter) { CommitRename(); e.Handled = true; }
             else if (e.Key == Key.Escape) { EndRename(); e.Handled = true; }
         }, RoutingStrategies.Tunnel);
-        // Leaving the box within this window commits. Focus moving to another window, or a rail rebuilt
-        // by a broadcast replacing this box, keeps the rename open; the check is deferred until focus settles.
+        // Leaving the box within this window commits. Focus moving to another window keeps the rename
+        // open; the check is deferred until focus settles.
         box.LostFocus += (_, _) => Dispatcher.UIThread.Post(() =>
         {
             var focused = FocusManager?.GetFocusedElement() as Visual;
@@ -583,8 +597,10 @@ public sealed partial class WorkbenchWindow
 
     private void EndRename()
     {
+        var path = renameInHeader ? null : renaming;
         renaming = null; renameBox = null; renameCommitPending = false;
         UpdateScopeLabels();
-        toolContent.Remove("projects"); surface.RefreshContents("projects");
+        if (path is not null) RefreshRailWorkspace(path);
+        else UpdateRailSelection();
     }
 }

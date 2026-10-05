@@ -95,7 +95,7 @@ internal static class ExternalWorkspaceE2E
 
         var expand = Buttons(app).Single(button => button.Name == "ProjectExpand" && Equals(button.Tag, first));
         app.Click(expand);
-        Until(() => !Controls(app).OfType<Grid>().Any(item => item.Name == "WorkspaceItem" && Equals(item.Tag, workspace)));
+        Until(() => !Controls(app).OfType<Grid>().Any(item => item.Name == "WorkspaceItem" && Equals(item.Tag, workspace) && item.IsEffectivelyVisible));
         var row = Controls(app).OfType<Grid>().Single(item => item.Name == "ProjectRow" && Equals(item.Tag, first));
         Require(row.GetLogicalDescendants().OfType<TextBlock>().Single(text => text.Name == "ProjectWorkspaceCount").Text == "1" &&
             !row.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "AddWorkspace"),

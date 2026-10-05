@@ -24,6 +24,10 @@ internal static class ProjectContextE2E
             ProjectName(app, app.Root).Background is Avalonia.Media.ISolidColorBrush { Color.A: 0 },
             "The selected project must highlight its whole row, not only its name.");
         var workspace = CreateWorkspaceViaDialog(app);
+        Until(() => app.Terminals.StartedIn(workspace) > 0);
+        var terminalViews = Controls(app).OfType<SharpRail.UI.Terminal.TerminalView>().ToArray();
+        Require(terminalViews.Length > 0, "The workspace has a live terminal view before closing its project.");
+        var started = app.Terminals.StartedIn(workspace);
         var fixture = app.Root;
 
         Grid Row(string project) => Controls(app).OfType<Grid>().Single(row => row.Name == "ProjectRow" && Equals(row.Tag, project));
@@ -112,7 +116,7 @@ internal static class ProjectContextE2E
         CloseChoice(second);
         var confirm = Dialog(app);
         Require(confirm.Title == "Close second-project?" && Text(confirm).Contains(
-            "Removes this project from the open projects list. Its repository and workspaces are kept. Reopen it from Add project → Recents.", StringComparison.Ordinal),
+            "Removes this project from the open projects list and stops its terminals and running processes. Its repository and workspaces are kept. Reopen it from Add project → Recents.", StringComparison.Ordinal),
             "Closing a project asks for confirmation.");
         var cancel = confirm.GetLogicalDescendants().OfType<Button>().Single(button => Text(button) == "Cancel");
         Until(() => cancel.IsFocused);
@@ -143,6 +147,7 @@ internal static class ProjectContextE2E
         Until(() => !Controls(app).OfType<Grid>().Any(row => row.Name == "ProjectRow") && HasWelcome(app) && WelcomeTitle(app) == "SharpRail");
         Until(() => app.Find<Button>("AddProjectMenu").IsFocused);
         Until(() => !Controls(observer).OfType<Grid>().Any(row => row.Name == "ProjectRow") && HasWelcome(observer) && WelcomeTitle(observer) == "SharpRail");
+        Require(terminalViews.All(view => view.Backend is null), "Closing a project disposes its cached terminal views in inactive workspaces.");
 
         var add = app.Find<Button>("AddProjectMenu");
         app.Click(add);
@@ -154,6 +159,10 @@ internal static class ProjectContextE2E
         Require(app.Tabs.Count == 0, "Reopening lands on Project Home.");
         Until(() => WorktreePaths(app).Contains(workspace));
         Until(() => Listed(observer, fixture) && !Listed(observer, second));
+        var reopen = app.Window.OpenProjectAsync(workspace);
+        Until(() => reopen.IsCompleted && app.Terminals.StartedIn(workspace) == started + 1);
+        reopen.GetAwaiter().GetResult();
+        GoProjectHome(app);
 
         // SharpRail regression: a project whose folder was deleted closes without the confirmation.
         var deleted = IsolatedGit.Repository(Path.Combine(directory, "deleted-project"));
@@ -164,6 +173,6 @@ internal static class ProjectContextE2E
         CloseChoice(deleted);
         Until(() => !Listed(app, deleted));
         Require(!app.Window.OwnedWindows.Any(), "Closing a project whose folder is gone does not ask for confirmation.");
-        Console.WriteLine("PASS upstream projects.spec.ts: project context actions stay compact and close/reopen is lossless across clients");
+        Console.WriteLine("PASS project context actions: close/reopen retains repositories and saved tabs across clients and releases terminals");
     }
 }

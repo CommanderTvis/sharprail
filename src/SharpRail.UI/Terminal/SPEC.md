@@ -47,7 +47,8 @@ paste transformation. Native checks capture actual AppKit key bytes for all four
   root and tab id (`TerminalLaunch.SessionFor`), so rebuilding a view or opening the same tab in another
   window reattaches to the same shell.
 - A shell outlives every client that shows it. Disposing a view or closing a window only detaches; closing
-  the tab is the only UI action that ends the shell. Local shells end when the app quits and remote shells
+  a tab or its project ends the shell. Project closure releases cached views across its workspaces;
+  reopening restores saved tabs with fresh shells. Local shells end when the app quits and remote shells
   when their host stops; restored tabs start new shells showing their last recorded screen after a restart
   (the local host saves it on a graceful quit).
 - Attach is exclusive with takeover. A session has one size, so a new attach becomes the recipient and the

@@ -92,8 +92,11 @@ internal static class WorkspaceTabsE2E
 
     internal static void Switch(E2eWorkspace app, string path, string? branch = null)
     {
-        Until(() => app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.ContextMenu is not null && Equals(ToolTip.GetTip(button), path)));
-        app.Click(app.Window.GetLogicalDescendants().OfType<Button>().Single(button => button.ContextMenu is not null && Equals(ToolTip.GetTip(button), path)));
+        Button? Target() => app.Window.GetLogicalDescendants().OfType<Button>()
+            .FirstOrDefault(button => button.ContextMenu is not null && Equals(ToolTip.GetTip(button), path))
+            ?? app.Window.GetLogicalDescendants().OfType<Button>().FirstOrDefault(button => button.Name == "ProjectName" && Equals(button.Tag, path));
+        Until(() => Target() is not null);
+        app.Click(Target()!);
         Until(() => app.Window.WorkspaceMounted && app.Window.WorkspaceRoot == path && (branch is null || app.Find<TextBlock>("BranchLabel").Text == branch));
         Require(app.Find<TextBlock>("WorkspaceLabel").Text == (path == app.Root ? "Default" : Path.GetFileName(path)),
             "Switching workspaces must update the title bar scope.");

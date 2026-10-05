@@ -17,6 +17,7 @@ internal sealed class E2eTerminals(ITerminalService? inner = null) : ITerminalSe
 {
     private static readonly PtyTerminalService Pty = new("/bin/sh");
     private readonly ITerminalService inner = inner ?? Pty;
+    internal PtyTerminalService? HostService => inner as PtyTerminalService;
     private readonly Queue<string> failures = [];
     private readonly HashSet<string> sessions = [];
     private TaskCompletionSource? gate;
