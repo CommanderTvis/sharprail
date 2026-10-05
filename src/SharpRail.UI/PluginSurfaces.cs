@@ -34,7 +34,7 @@ public sealed partial class WorkbenchWindow
     {
         surface.TabIcon = TabIcon;
         surface.CenterActions = CenterActions;
-        surface.TabAdornment = tab => Decoration(tab)?.Decoration.Adornment is { } adornment ? Mount(Decoration(tab)!.Value.PluginId, adornment) : null;
+        surface.TabAdornment = tab => TabAdornment(tab);
         Plugins.Changed += PluginsChanged;
         state.Changed += HostStateChanged;
         Closed += (_, _) => { Plugins.Changed -= PluginsChanged; state.Changed -= HostStateChanged; };
@@ -179,19 +179,26 @@ public sealed partial class WorkbenchWindow
         return host;
     }
 
-    private TabRef TabRef(DockTab tab) => tab.Kind switch
+    // A tab of the active workspace unless another is named, as the rail's read-only lists of other workspaces do.
+    private TabRef TabRef(DockTab tab, string? workspace = null) => tab.Kind switch
     {
-        "terminal" => new TerminalTabRef(workspaceRoot, tab.Id),
-        "tool" => new ToolTabRef(workspaceRoot, tab.Id),
-        "diff" => new FileTabRef(workspaceRoot, EditorKind.Diff, tab.Path),
-        _ => new FileTabRef(workspaceRoot, EditorKind.File, tab.Path)
+        "terminal" => new TerminalTabRef(workspace ?? Layout.State.ActiveWorkspace, tab.Id),
+        "tool" => new ToolTabRef(workspace ?? workspaceRoot, tab.Id),
+        "diff" => new FileTabRef(workspace ?? workspaceRoot, EditorKind.Diff, tab.Path),
+        _ => new FileTabRef(workspace ?? workspaceRoot, EditorKind.File, tab.Path)
     };
 
-    private (string PluginId, TabDecoration Decoration)? Decoration(DockTab tab) => Plugins.TabDecorators.Count == 0 ? null : Plugins.Decorate(TabRef(tab));
+    private (string PluginId, TabDecoration Decoration)? Decoration(DockTab tab, string? workspace = null) =>
+        Plugins.TabDecorators.Count == 0 ? null : Plugins.Decorate(TabRef(tab, workspace));
 
-    private Control? TabIcon(DockTab tab, IBrush brush)
+    private Control? TabAdornment(DockTab tab, string? workspace = null) =>
+        Decoration(tab, workspace) is { Decoration.Adornment: { } adornment } decoration ? Mount(decoration.PluginId, adornment) : null;
+
+    private Control? TabIcon(DockTab tab, IBrush brush) => TabIcon(tab, brush, null);
+
+    private Control? TabIcon(DockTab tab, IBrush brush, string? workspace)
     {
-        if (Decoration(tab) is { Decoration.Icon: { } decorated } decoration)
+        if (Decoration(tab, workspace) is { Decoration.Icon: { } decorated } decoration)
             return PluginIcons.Resolve(decorated, Plugins.Entry(decoration.PluginId), brush, 14);
         if (tab.IsTool && Plugins.Tool(tab.Id) is { } tool)
             return PluginIcons.Resolve(tool.Icon, Plugins.Entry(tool.PluginId), brush, 14);

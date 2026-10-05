@@ -19,11 +19,18 @@ internal static class CrossProjectTabsE2E
         var second = Path.Combine(root, "cross-project-tabs", "second-project");
         IsolatedGit.Repository(second);
         File.WriteAllText(Path.Combine(second, "README.md"), "second\n");
+        File.WriteAllText(Path.Combine(second, "OTHER.md"), "other\n");
         IsolatedGit.Run(second, "add", "-A");
         IsolatedGit.Run(second, "commit", "-m", "second");
         _ = app.Window.OpenProjectAsync(second);
         Until(() => app.Window.WorkspaceMounted && app.Window.ProjectRoot == second && !app.Window.AtProjectHome);
         app.Open("README.md", true);
+        // Two centre groups, so the read-only list under this workspace must keep them apart.
+        app.Open("OTHER.md", true);
+        var center = app.Center;
+        Require(app.Window.Layout.NewGroup(center, "after"), "A second centre group is created.");
+        var split = app.Window.Layout.State.Center.Leaves().Single(group => group != center);
+        Require(app.Window.Layout.Move("markdown:OTHER.md", center, split, 0), "OTHER.md moves into the second group.");
         app.Click(app.Find<Button>("Tab_projects"));
         app.Click(app.Find<Button>("SettingsButton"));
         Until(() => app.Window.OwnedWindows.OfType<SettingsWindow>().Any(window => window.IsVisible));
@@ -39,6 +46,12 @@ internal static class CrossProjectTabsE2E
             .GetLogicalDescendants().OfType<Button>().First(button => button.Name == "WorkspaceTabPreview");
         Until(() => app.Window.GetLogicalDescendants().OfType<ContentControl>().Any(host => host.Name == "WorkspaceTabs" && Equals(host.Tag, second) &&
             host.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "WorkspaceTabPreview")));
+        var listed = app.Window.GetLogicalDescendants().OfType<ContentControl>().Single(host => host.Name == "WorkspaceTabs" && Equals(host.Tag, second));
+        var sections = listed.GetLogicalDescendants().OfType<StackPanel>().Where(panel => panel.Name == "WorkspaceTabsPreviewGroup").ToArray();
+        Require(sections.Length == 2 && sections.All(section => section.Children.OfType<Button>().Count(button =>
+            button.Background is Avalonia.Media.ISolidColorBrush { Color.A: > 0 }) == 1),
+            "Another workspace's tabs keep their groups apart, each with its selected tab marked, as the live strip draws them.");
+        Console.WriteLine("PASS another workspace's tabs in Projects keep their groups and selected tabs");
         app.Click(Preview());
         Until(() => app.Window.WorkspaceMounted && app.Window.WorkspaceRoot == second);
         Settle(500);

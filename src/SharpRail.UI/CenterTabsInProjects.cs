@@ -74,37 +74,75 @@ public sealed partial class WorkbenchWindow
         }
     }
 
-    // Another workspace's tabs, read-only, from its retained documents: choosing one selects it there and switches to it.
+    // Another workspace's tabs, read-only, from its retained documents, drawn like the live strip: one section per group,
+    // a pane's members together, the selected tab boxed, and the icons and badges plugins give tabs (an agent's chat
+    // mark among them). Choosing one selects it there and switches to it.
     private Control? WorkspaceTabsPreview(string workspace)
     {
         if (Layout.State.Workspaces.GetValueOrDefault(workspace) is not { } view) return null;
-        var list = new StackPanel { Name = "WorkspaceTabsPreview", Spacing = 2 };
+        var groups = new StackPanel { Name = "WorkspaceTabsPreview", Spacing = 8 };
         foreach (var group in Layout.State.Center.Leaves())
-            foreach (var tab in view.Documents.GetValueOrDefault(group) ?? [])
+        {
+            var tabs = view.Documents.GetValueOrDefault(group) ?? [];
+            if (tabs.Count == 0) continue;
+            var section = new StackPanel { Name = "WorkspaceTabsPreviewGroup", Tag = group, Spacing = 2 };
+            var selected = view.Selected.GetValueOrDefault(group) ?? tabs[0].Id;
+            var panes = view.Panes.GetValueOrDefault(group) ?? [];
+            foreach (var tab in tabs)
             {
-                var row = new Grid { ColumnDefinitions = new ColumnDefinitions("14,4,*") };
-                Ui.Place(row, Ui.Icon(tab.Kind == "terminal" ? "terminal" : tab.Kind == "diff" ? "fileDiff" : "fileText", Ui.Hint, 14));
-                var title = Ui.Text(tab.Title, Ui.Muted, 13);
-                title.TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis;
-                Ui.Place(row, title, 0, 2);
-                var button = new Button
+                var pane = panes.FirstOrDefault(candidate => candidate.TabIds.Contains(tab.Id));
+                if (pane is not null && pane.TabIds[0] != tab.Id) continue;
+                if (pane is null) { section.Children.Add(PreviewTab(workspace, group, tab, tab.Id == selected, boxed: true)); continue; }
+                // A pane's members sit in one bubble, boxed together when one of them is selected.
+                var members = pane.TabIds.Select(id => tabs.FirstOrDefault(item => item.Id == id)).OfType<DockTab>().ToArray();
+                var active = members.Any(member => member.Id == selected);
+                var bubble = new StackPanel { Spacing = 2 };
+                foreach (var member in members) bubble.Children.Add(PreviewTab(workspace, group, member, member.Id == selected, boxed: false));
+                section.Children.Add(new Border
                 {
-                    Name = "WorkspaceTabPreview",
-                    Tag = tab.Id,
-                    Content = row,
-                    Padding = new Thickness(8, 4),
-                    CornerRadius = new CornerRadius(6),
-                    BorderThickness = default,
-                    Background = Avalonia.Media.Brushes.Transparent,
-                    HorizontalAlignment = HorizontalAlignment.Stretch,
-                    HorizontalContentAlignment = HorizontalAlignment.Stretch
-                };
-                var groupId = group;
-                button.Click += (_, _) => { Layout.SelectIn(workspace, groupId, tab.Id); _ = OpenWorkspaceAsync(workspace, false); };
-                AutomationProperties.SetName(button, tab.Title);
-                ToolTip.SetTip(button, tab.Path.Length > 0 ? tab.Path : tab.Title);
-                list.Children.Add(button);
+                    Name = "WorkspaceTabsPreviewPane",
+                    Child = bubble,
+                    CornerRadius = new CornerRadius(8),
+                    BorderThickness = new Thickness(1),
+                    BorderBrush = active ? Ui.BorderBrush : Avalonia.Media.Brushes.Transparent,
+                    Background = active ? Ui.Hover : Avalonia.Media.Brushes.Transparent
+                });
             }
-        return list.Children.Count == 0 ? null : list;
+            groups.Children.Add(section);
+        }
+        return groups.Children.Count == 0 ? null : groups;
+    }
+
+    private Button PreviewTab(string workspace, string group, DockTab tab, bool selected, bool boxed)
+    {
+        var foreground = selected ? Ui.TextBrush : Ui.Muted;
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("14,4,*,Auto") };
+        Ui.Place(row, TabIcon(tab, foreground, workspace) ?? Ui.Icon(tab.Kind == "terminal" ? "terminal" : tab.Kind == "diff" ? "fileDiff" : "fileText", foreground, 14));
+        var title = Ui.Text(tab.Title, foreground, 13);
+        title.TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis;
+        Ui.Place(row, title, 0, 2);
+        if (TabAdornment(tab, workspace) is { } adornment)
+        {
+            adornment.Margin = new Thickness(4, 0, 0, 0);
+            adornment.VerticalAlignment = VerticalAlignment.Center;
+            Ui.Place(row, adornment, 0, 3);
+        }
+        var button = new Button
+        {
+            Name = "WorkspaceTabPreview",
+            Tag = tab.Id,
+            Content = row,
+            Padding = new Thickness(8, 4),
+            CornerRadius = new CornerRadius(6),
+            BorderThickness = new Thickness(boxed ? 1 : 0),
+            BorderBrush = selected && boxed ? Ui.BorderBrush : Avalonia.Media.Brushes.Transparent,
+            Background = selected && boxed ? Ui.Hover : Avalonia.Media.Brushes.Transparent,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            HorizontalContentAlignment = HorizontalAlignment.Stretch
+        };
+        button.Click += (_, _) => { Layout.SelectIn(workspace, group, tab.Id); _ = OpenWorkspaceAsync(workspace, false); };
+        AutomationProperties.SetName(button, tab.Title);
+        ToolTip.SetTip(button, tab.Path.Length > 0 ? tab.Path : tab.Title);
+        return button;
     }
 }

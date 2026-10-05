@@ -216,6 +216,8 @@ a plugin deleted from disk, and a shared assembly in the plugin directory not lo
   does; project actions render beside Create workspace on Project Home.
 - Terminal projections include filesystem workspaces only. Synthetic Project Home layout keys do not
   describe host workspaces and must not trigger plugin state or spec subscriptions.
+  Terminal tab decorations use the layout's active workspace during switches, before the window's
+  asynchronous project open completes, so existing agent marks survive without another host update.
 - `Workbench.ActiveWindow` is the last activated window; `ProjectionChanged` is raised on shared-state snapshots,
   window activation, layout and selection changes and revision bumps, and `WatchHost` filters it.
 - Local and remote file revisions advance from the host's workspace change stream. Reconnecting or a
