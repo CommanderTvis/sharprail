@@ -26,6 +26,35 @@ internal static class VerticalTabsE2E
             Console.WriteLine("PASS fork layout.spec.ts: " + title);
         }
 
+        Case("Projects uniquely marks the active tab across center groups and pane members", app =>
+        {
+            app.Open("README.md", true); app.Open("notes.txt", true);
+            SetLayout(app, settings =>
+            {
+                Control<CheckBox>(settings, "VerticalCenterTabs").IsChecked = true;
+                Control<CheckBox>(settings, "VerticalTabsInProjects").IsChecked = true;
+            });
+            app.Click(app.Find<Button>("Tab_projects"));
+            var center = app.Center;
+            Require(app.Window.Layout.NewGroup(center, "after"), "A second center group is created.");
+            var other = app.Window.Layout.State.Center.Leaves().Single(group => group != center);
+            Require(app.Window.Layout.Move("file:notes.txt", center, other, 0), "Notes moves to the other group.");
+            void Check(string tab)
+            {
+                var markers = app.Window.GetLogicalDescendants().OfType<Border>()
+                    .Where(border => border.Name == "ActiveWorkspaceTab" && border.IsVisible).ToArray();
+                Require(markers.Length == 1 && markers[0].GetLogicalAncestors().OfType<Grid>()
+                    .Any(grid => grid.Name == "DockTab_" + tab), "Exactly the active tab carries the rail accent.");
+            }
+            app.Window.Layout.Focus(center); Check("markdown_README.md");
+            app.Window.Layout.Focus(other); Check("file_notes.txt");
+            app.Window.Layout.Focus(center); Check("markdown_README.md");
+            Require(app.Window.Layout.Move("file:notes.txt", other, center, 1), "Notes returns to the first group.");
+            app.ContextAction(app.Tab("notes.txt"), "Show beside README.md");
+            app.Click(app.Tab("README.md")); Check("markdown_README.md");
+            app.Click(app.Tab("notes.txt")); Check("file_notes.txt");
+        });
+
         Case("vertical tabs are a setting, a resizable column beside the editor, with no centre split", app =>
         {
             app.Open("README.md", true); app.Open("notes.txt", true);

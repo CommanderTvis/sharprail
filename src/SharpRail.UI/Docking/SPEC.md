@@ -46,6 +46,9 @@ visibility, singleton-tool placement, tool restore targets and the window's side
 Project Home keyed per project). A view carries document and terminal membership and order per frame
 group, preview identity, selection per group, last-focused center/auxiliary/any group, and resource
 positions relative to tools. Tools are frame state: a group that shows Specs shows it in every workspace.
+When center tabs live in Projects, only the active workspace's selected tab in its last-focused center
+group carries the accent marker. Per-group selected boxes and pane bubbles remain visible; focus changes
+move the marker without rebuilding tabs, and inactive workspace previews have no active marker.
 Switching workspace carries the previous view's tool selections into the next one, never its selected
 resource.
 The surface keeps its chrome mounted across a transition that leaves the frame unchanged, such as a

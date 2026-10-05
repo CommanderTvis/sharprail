@@ -151,6 +151,8 @@ public sealed partial class DockSurface
         };
         StackPanel? bubble = null;
         string? bubblePane = null;
+        var activeUpdates = new List<Action>();
+        activeTabUpdates[group.Id] = () => { foreach (var update in activeUpdates) update(); };
         foreach (var tab in Session.Tabs(group.Id))
         {
             var subtitle = subtitles.GetValueOrDefault(tab.Id);
@@ -237,17 +239,21 @@ public sealed partial class DockSurface
                 Background = nested ? Brushes.Transparent : tab.Id == selected?.Id ? Ui.Hover : Ui.Elevated
             };
             Ui.Place(chrome, tabFrame);
-            // The active marker: a bottom rule in a strip, a left rule in a column; nested rows draw a selected box instead.
+            // Nested rows mark the last-focused center tab separately from each pane's selection.
             var underline = new Border
             {
+                Name = nested ? "ActiveWorkspaceTab" : null,
                 Background = Ui.Accent,
                 CornerRadius = new CornerRadius(1),
                 IsHitTestVisible = false,
-                IsVisible = tab.Id == selected?.Id && !nested
+                IsVisible = tab.Id == selected?.Id && (!nested || Session.View.FocusedCenter == group.Id)
             };
-            if (vertical) { underline.Width = 2; underline.HorizontalAlignment = HorizontalAlignment.Left; }
+            if (vertical) { underline.Width = 2; underline.HorizontalAlignment = nested ? HorizontalAlignment.Right : HorizontalAlignment.Left; }
             else { underline.Height = 2; underline.VerticalAlignment = VerticalAlignment.Bottom; }
             Ui.Place(chrome, underline);
+            void UpdateActiveMarker() => underline.IsVisible = Session.Selected(group.Id)?.Id == tab.Id &&
+                (!nested || Session.View.FocusedCenter == group.Id);
+            activeUpdates.Add(UpdateActiveMarker);
             if (vertical && !nested && pane is not null)
             {
                 // A pane's members carry a left accent so the pairing is visible in the list.
@@ -293,7 +299,7 @@ public sealed partial class DockSurface
                 button.IsTabStop = active;
                 title.Foreground = active ? Ui.TextBrush : Ui.Muted;
                 if (icon is Border glyph) glyph.Background = title.Foreground;
-                underline.IsVisible = active && !nested;
+                UpdateActiveMarker();
                 UpdateBackground();
                 if (active) chrome.BringIntoView();
             });
@@ -381,30 +387,30 @@ public sealed partial class DockSurface
                 bubble = new StackPanel { Children = { chrome } };
                 bubblePane = pane!.Id;
                 var memberIds = pane.TabIds.ToArray();
+                // The accent is part of the box: clipped by its rounded corners, it curves with them like a CSS left border.
+                var accent = new Border { Name = "TabPaneAccent", Width = 2, Background = Ui.Accent, HorizontalAlignment = HorizontalAlignment.Left, IsHitTestVisible = false };
                 var frame = new Border
                 {
                     Name = "TabPaneGroup",
-                    Child = bubble,
+                    Child = new Grid { Children = { bubble, accent } },
                     CornerRadius = new CornerRadius(8),
-                    BorderThickness = new Thickness(2, 1, 1, 1),
+                    BorderThickness = new Thickness(1),
                     BorderBrush = Ui.BorderBrush,
-                    Background = Brushes.Transparent
+                    Background = Brushes.Transparent,
+                    ClipToBounds = true
                 };
                 void Paint()
                 {
                     var active = Session.State.Groups.Any(item => item.Id == group.Id) && memberIds.Contains(Session.Selected(group.Id)?.Id);
                     frame.Background = active || frame.IsPointerOver ? Ui.Hover : Brushes.Transparent;
-                    frame.BorderBrush = new ImmutableSolidColorBrush(active ? Ui.BorderBrush.Color : Colors.Transparent);
+                    frame.BorderBrush = active ? Ui.BorderBrush : Brushes.Transparent;
                     frame.Tag = active ? "active" : null;
                 }
-                // The left edge stays the accent while the rest of the border follows the state.
-                var accent = new Border { Width = 2, Background = Ui.Accent, HorizontalAlignment = HorizontalAlignment.Left, IsHitTestVisible = false, CornerRadius = new CornerRadius(8, 0, 0, 8) };
-                var holder = new Grid { Children = { frame, accent } };
                 frame.PointerEntered += (_, _) => Paint();
                 frame.PointerExited += (_, _) => Paint();
                 updates.Add(Paint);
                 Paint();
-                tabs.Children.Add(holder);
+                tabs.Children.Add(frame);
             }
             else { bubble = null; bubblePane = null; tabs.Children.Add(chrome); }
             tabSites[group.Id].Add((chrome, tab.Id));
