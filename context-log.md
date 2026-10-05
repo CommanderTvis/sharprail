@@ -2738,3 +2738,21 @@ expansion, live panels/documents, write storms and unsaved-editor conflicts.
 Watching remains per subscription; root-inode replacement healing and sharing
 watchers across subscribers remain outside this change. Changes uncommitted;
 no publication, app restart, commit or push.
+
+### Agent edits and Git refresh — 2026-10-06
+
+Watcher refreshes now start document, Git and folder reads independently. Git index
+and packed-ref changes invalidate the UI, including external staging/unstaging in
+linked worktrees. Directory invalidations include open descendants. Markdown updates
+retain their mode controls and selected Source/Preview view; clean Scintilla buffers
+reload in place while unsaved buffers retain the existing conflict-checked save.
+
+Release build and formatting verification pass (four existing XAML warnings).
+The final --files run passes with upstream Git fixtures, including external staging,
+Git updates during a held document read, atomic Markdown replacement, write storms
+and unsaved-editor conflicts: .bench/agent-refresh-files-final.log.
+The full run passed preceding suites but exposed a GitUiChecks pointer timeout;
+its click helper needed a render tick before hit testing. The corrected Git UI suite
+passes in isolation: .bench/agent-refresh-git-ui-render.log. The full suite was not
+repeated after that test-only fix. Temporary diagnostic runner changes were removed.
+Changes remain uncommitted; no publication or app restart.

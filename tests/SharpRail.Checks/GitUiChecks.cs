@@ -40,6 +40,8 @@ internal static class GitUiChecks
     {
         button.BringIntoView();
         Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        Dispatcher.UIThread.RunJobs();
         var point = button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), window)!.Value;
         window.MouseDown(point, MouseButton.Left); window.MouseUp(point, MouseButton.Left);
         Dispatcher.UIThread.RunJobs();

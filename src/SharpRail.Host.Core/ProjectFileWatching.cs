@@ -50,7 +50,8 @@ public sealed partial class ProjectServices
             var (gitDirectory, commonDirectory) = ResolveGitDirectories(directory);
             if (gitDirectory is not null)
             {
-                Watch(gitDirectory, false, path => Path.GetFileName(path) == "HEAD", false);
+                Watch(gitDirectory, false, path => Path.GetFileName(path) is "HEAD" or "index", false);
+                Watch(commonDirectory!, false, path => Path.GetFileName(path) == "packed-refs", false);
                 Watch(Path.Combine(commonDirectory!, "refs"), true, _ => true, false);
             }
             // Re-read after registration to cover changes between the initial listing and subscription.

@@ -53,12 +53,12 @@ public sealed partial class WorkbenchWindow
     private async Task RefreshWatchedAsync(long request, FileChange change, bool refreshGit)
     {
         WatchRefreshes++;
-        await RefreshFilesAsync(request);
-        if (request != projectRequest) return;
         if (change.Rescan || change.Paths.Any(path => path.EndsWith(".md", StringComparison.OrdinalIgnoreCase)))
         { toolContent.Remove("specs"); surface.RefreshContents("specs"); }
-        await ReloadOpenDocumentsAsync(request, change.Paths, change.Rescan);
-        if (refreshGit && request == projectRequest) await RefreshGitAsync(request);
+        await Task.WhenAll(
+            ReloadOpenDocumentsAsync(request, change.Paths, change.Rescan),
+            refreshGit ? RefreshGitAsync(request) : Task.CompletedTask,
+            RefreshFilesAsync(request));
     }
 
     // Re-lists the root and every loaded folder so expanded folders keep their children.
@@ -88,7 +88,8 @@ public sealed partial class WorkbenchWindow
     {
         var changed = paths.ToHashSet(StringComparer.Ordinal);
         var tabs = Layout.State.Workspaces.GetValueOrDefault(workspaceRoot)?.Documents.Values
-            .SelectMany(items => items).Where(tab => tab.Kind is "file" or "markdown" && (rescan || changed.Contains(tab.Path)))
+            .SelectMany(items => items).Where(tab => tab.Kind is "file" or "markdown" &&
+                (rescan || changed.Contains(tab.Path) || changed.Any(path => tab.Path.StartsWith(path.TrimEnd('/') + "/", StringComparison.Ordinal))))
             .DistinctBy(tab => tab.Id).ToArray() ?? [];
         var refreshed = false;
         foreach (var tab in tabs)
@@ -106,6 +107,12 @@ public sealed partial class WorkbenchWindow
             if (documentContent.GetValueOrDefault(key) is Editor.CodeDocumentView view)
             {
                 if (view.Reload(file.Text)) documents[key] = file;
+                continue;
+            }
+            if (documentContent.GetValueOrDefault(key) is MarkdownDocumentView markdown)
+            {
+                markdown.Reload(file);
+                documents[key] = file;
                 continue;
             }
             documents[key] = file; DropDocumentContent(key); refreshed = true;

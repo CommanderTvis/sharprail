@@ -75,11 +75,42 @@ internal static class LiveRefreshE2E
         File.WriteAllText(Path.Combine(worktree, "README.md"), "# sample-project\n\nedited twice by e2e\n");
         UntilDiff(app, text => text.Contains("edited twice by e2e", StringComparison.Ordinal));
 
+        PickScope(app, "Staged");
+        Until(() => !Paths(app).Contains("README.md"));
+        Settle(500);
+        Git(worktree, "add", "README.md");
+        Until(() => Paths(app).Contains("README.md"));
+        Git(worktree, "reset", "HEAD", "--", "README.md");
+        Until(() => !Paths(app).Contains("README.md"));
+        PickScope(app, "All changes");
+
         app.Click(app.Find<Button>("Tab_files"));
         app.Click(app.FileRow("README.md"), twice: true);
         Until(() => PreviewText(app).Contains("edited twice by e2e", StringComparison.Ordinal));
-        File.WriteAllText(Path.Combine(worktree, "README.md"), "# sample-project\n\nlive tab reload\n");
+        ShowChanges(app);
+        Settle(500);
+        var heldRead = app.Host.Hold("README.md");
+        try
+        {
+            File.WriteAllText(Path.Combine(worktree, "README.md"), "# sample-project\n\nlive tab reload\n");
+            File.WriteAllText(Path.Combine(worktree, "agent-created.txt"), "agent change\n");
+            Until(() => Paths(app).Contains("agent-created.txt"));
+            Require(!PreviewText(app).Contains("live tab reload", StringComparison.Ordinal),
+                "Git must refresh while an open document read is still held.");
+        }
+        finally { heldRead.TrySetResult(); }
         Until(() => PreviewText(app).Contains("live tab reload", StringComparison.Ordinal) && !PreviewText(app).Contains("edited twice by e2e", StringComparison.Ordinal));
+        app.Click(app.Find<Button>("MarkdownSourceMode"));
+        var documentView = app.Find<Button>("MarkdownSourceMode");
+        var replacement = Path.Combine(worktree, "README.md.tmp");
+        File.WriteAllText(replacement, "# atomically replaced by agent\n");
+        File.Move(replacement, Path.Combine(worktree, "README.md"), true);
+        Until(() => app.Window.GetLogicalDescendants().OfType<ScrollViewer>().Any(view => view.Name == "MarkdownSource" &&
+            view.IsEffectivelyVisible && view.GetLogicalDescendants().OfType<SelectableTextBlock>().Any(block =>
+                string.Concat(block.Inlines?.OfType<Run>().Select(run => run.Text) ?? []).Contains("atomically replaced by agent", StringComparison.Ordinal))));
+        Require(ReferenceEquals(documentView, app.Find<Button>("MarkdownSourceMode")), "Reload must preserve the Markdown mode controls.");
+        app.Click(app.Find<Button>("MarkdownPreviewMode"));
+        Until(() => PreviewText(app).Contains("atomically replaced by agent", StringComparison.Ordinal));
         Console.WriteLine("PASS upstream live-refresh.spec.ts: worktree changes on disk appear live in Specs, Files, Changes, and an open file tab");
     }
 

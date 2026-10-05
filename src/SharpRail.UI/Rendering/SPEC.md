@@ -47,6 +47,8 @@ can use it without a cycle. Theme catalogue and colour roles have their own docu
 
 - `.md` and `.markdown` files open rendered by default; the extension check is the Markdown gate shared by
   file tabs and diff tabs.
+- External edits reload the document without replacing its mode controls or switching the selected
+  Source/Preview mode; both views show the new disk content.
 - A leading YAML front-matter block renders first as a code block of its fields (without the fences), so
   spec metadata is visible without reading as stray headings. Upstream hides it; SharpRail shows it on
   request.

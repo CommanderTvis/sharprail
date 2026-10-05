@@ -11,9 +11,12 @@ namespace SharpRail.UI.Rendering;
 
 internal sealed partial class MarkdownDocumentView : UserControl, IDisposable
 {
-    private readonly MarkdownPreview preview;
+    private MarkdownPreview preview;
+    private readonly IProjectServices host;
+    private readonly Preferences preferences;
+    private readonly Action<string, string?> navigate;
     private ScrollViewer? source;
-    private readonly string sourceText;
+    private string sourceText;
     private readonly Button previewButton;
     private readonly Button sourceButton;
     private readonly ContentControl body;
@@ -21,6 +24,7 @@ internal sealed partial class MarkdownDocumentView : UserControl, IDisposable
     internal MarkdownDocumentView(FileDocument document, IProjectServices host, Preferences preferences, Action<string, string?> navigate)
     {
         AvaloniaXamlLoader.Load(this);
+        this.host = host; this.preferences = preferences; this.navigate = navigate;
         preview = new(document.Text, document.Path, host, preferences, navigate);
         sourceText = document.Text;
         previewButton = this.FindControl<Button>("MarkdownPreviewMode")!;
@@ -46,6 +50,19 @@ internal sealed partial class MarkdownDocumentView : UserControl, IDisposable
         previewButton.Foreground = show ? Ui.Muted : Ui.TextBrush;
         sourceButton.Background = show ? Ui.Hover : Brushes.Transparent;
         sourceButton.Foreground = show ? Ui.TextBrush : Ui.Muted;
+    }
+
+    internal void Reload(FileDocument document)
+    {
+        var showSource = source is not null && ReferenceEquals(body.Content, source);
+        var previewOffset = preview.Offset;
+        var sourceOffset = source?.Offset ?? default;
+        preview.Dispose();
+        preview = new(document.Text, document.Path, host, preferences, navigate) { Offset = previewOffset };
+        sourceText = document.Text;
+        source = null;
+        ShowSource(showSource);
+        if (source is not null) source.Offset = sourceOffset;
     }
 
     internal void ScrollToAnchor(string id) { ShowSource(false); preview.ScrollToAnchor(id); }

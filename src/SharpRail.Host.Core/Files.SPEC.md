@@ -59,13 +59,17 @@ mutations.
 - One recursive watcher covers the workspace root, ignoring `.git`, `.sharprail`, `.tools`,
   `node_modules` and `.DS_Store` events. Git metadata changes
   (commit, checkout, branch switch) that leave the working tree unchanged are seen through a second,
-  non-recursive watcher on the worktree's Git directory (`HEAD`) and a recursive one on the common
-  directory's `refs`; a linked worktree's Git directory is resolved by reading its `.git` file, never by
+  non-recursive watcher on the worktree's Git directory (`HEAD`, `index`), the common directory's
+  `packed-refs`, and a recursive one on the common directory's `refs`. External staging and unstaging
+  therefore refresh Changes even without a file-content change. A linked worktree's Git directory is resolved by reading its `.git` file, never by
   running Git.
 - Events coalesce into one refresh after 250 ms of quiet, and a storm still refreshes at least once a
   second. A refresh re-lists loaded folders (leaving the tree untouched when nothing moved), refreshes
   Specs when a Markdown file changed, reloads clean open documents in place, keeps unsaved editor text,
-  and refreshes Changes and open diffs.
+  and refreshes Changes and open diffs. Document, Git and folder reads start independently so folder
+  enumeration cannot delay editor or Git updates. Directory invalidations include open descendants.
+  Markdown reloads preserve the selected source/preview mode and its controls. Unsaved editor buffers
+  stay intact, and conflict-checked saves prevent overwriting an agent's version on disk.
 - A watcher that cannot start degrades to read-on-demand with a logged reason; Git failure never blocks
   opening files.
 
