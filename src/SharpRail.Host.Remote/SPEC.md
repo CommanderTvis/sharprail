@@ -65,6 +65,8 @@ loopback is an explicit opt-in via `SHARPRAIL_BIND`.
   therefore never share a current project, and reconnects need no session.
 - State watch streams end on application stopping, so graceful shutdown never
   waits for watchers. Changes are broadcast to every subscriber as full snapshots.
+- File watch streams send host filesystem invalidations for the workspace in request metadata;
+  cancellation or application stopping releases each subscription's native watchers.
 - A terminal call is one attachment: dropping the call detaches, and the shell
   keeps running on the host until it exits, its tab closes or the host stops.
   Output goes only to the attached client; another attach takes the session over
@@ -94,5 +96,4 @@ loopback is an explicit opt-in via `SHARPRAIL_BIND`.
 - Structured leveled diagnostics with rotating on-disk logs.
 - A per-client request-result cache keyed by client identity and request id for
   reconnect deduplication.
-- Worktree file watching on the host with pushed invalidations, and pushed
-  project/workspace lifecycle events.
+- Pushed project/workspace lifecycle events.

@@ -239,6 +239,7 @@ internal sealed class E2eHost(IProjectServices inner) : IProjectServices
         if (gate is not null) await gate.Task.WaitAsync(ct);
         return document;
     }
+    public IAsyncEnumerable<FileChange> WatchFilesAsync(CancellationToken ct = default) => inner.WatchFilesAsync(ct);
     public ValueTask SaveFileAsync(FileSaveRequest request, CancellationToken ct = default) => inner.SaveFileAsync(request, ct);
     public async ValueTask<WorkspaceInfo> OpenProjectAsync(string path, CancellationToken ct = default)
     {

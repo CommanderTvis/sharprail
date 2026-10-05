@@ -7,8 +7,22 @@ using SharpRail.Host.Protocol;
 
 namespace SharpRail.Host.Remote;
 
-public sealed class ProjectRpc(ProjectSessions sessions) : IProjectRpc
+public sealed class ProjectRpc(ProjectSessions sessions, IHostApplicationLifetime lifetime) : IProjectRpc
 {
+    public async IAsyncEnumerable<FileChangeReply> WatchFilesAsync(ProjectRequest request, CallContext context = default)
+    {
+        using var watch = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken, lifetime.ApplicationStopping);
+        await using var changes = Host(context).WatchFilesAsync(watch.Token).GetAsyncEnumerator();
+        while (true)
+        {
+            var next = false;
+            try { next = await changes.MoveNextAsync(); }
+            catch (OperationCanceledException) when (watch.IsCancellationRequested) { }
+            if (!next) yield break;
+            yield return new() { Paths = changes.Current.Paths.ToList(), Rescan = changes.Current.Rescan };
+        }
+    }
+
     public ValueTask<WorkspaceReply> OpenProjectAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>
     {
         var result = await sessions.Detached().OpenProjectAsync(request.Path, context.CancellationToken);

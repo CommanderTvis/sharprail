@@ -50,6 +50,7 @@ internal static class ProjectChecks
             using var remote = new RemoteProjectAdapter(new Uri(address), "project-test");
             Require(await remote.OpenProjectAsync(fixture) == info, "Remote project differs.");
             Require((await remote.ListFilesAsync("")).SequenceEqual(files), "Remote files differ.");
+            await CheckWatching(local, remote, fixture);
             Require(await remote.ReadFileAsync("README.md") == markdown, "Remote text differs.");
             // Like the reference, valid UTF-8 opens as text even with NUL control characters; only invalid UTF-8 is binary.
             await File.WriteAllTextAsync(Path.Combine(fixture, "controls.txt"), "before\0after\n");
@@ -75,6 +76,15 @@ internal static class ProjectChecks
                 Require(error.StatusCode == Grpc.Core.StatusCode.FailedPrecondition && GitDetail(error.Status.Detail, broken),
                     "Remote Git probe failure detail differs.");
             }
+            await remote.OpenProjectAsync(fixture);
+            using var shutdownTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+            await using var watching = remote.WatchFilesAsync(shutdownTimeout.Token).GetAsyncEnumerator();
+            Require(await watching.MoveNextAsync(), "The shutdown probe must have an active file subscription.");
+            var pendingChange = watching.MoveNextAsync().AsTask();
+            await server.StopAsync(shutdownTimeout.Token);
+            try { Require(!await pendingChange, "A file stream must finish when the host stops."); }
+            catch (Grpc.Core.RpcException error) when (error.StatusCode == Grpc.Core.StatusCode.Cancelled) { }
+            Console.WriteLine("PASS remote shutdown releases an active filesystem subscription");
         }
         finally { await server.StopAsync(); }
         Console.WriteLine("PASS project/files/specs local and gRPC parity, traversal and cancellation");
@@ -86,6 +96,42 @@ internal static class ProjectChecks
             return;
         }
         await CheckGit(source, fixture + "-git");
+    }
+
+    private static async Task CheckWatching(IProjectServices local, IProjectServices remote, string root)
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        await using var first = local.WatchFilesAsync(timeout.Token).GetAsyncEnumerator();
+        await using var second = remote.WatchFilesAsync(timeout.Token).GetAsyncEnumerator();
+        Require(await first.MoveNextAsync() && first.Current.Rescan && await second.MoveNextAsync() && second.Current.Rescan,
+            "Both file subscriptions must start with a rescan after registration.");
+        async Task Observe(IAsyncEnumerator<FileChange> stream, string path)
+        {
+            while (await stream.MoveNextAsync())
+                if (stream.Current.Rescan || stream.Current.Paths.Contains(path)) return;
+            throw new InvalidOperationException("File subscription ended before " + path);
+        }
+        async Task Changed(string path, Action mutation, bool exists)
+        {
+            var observations = Task.WhenAll(Observe(first, path), Observe(second, path));
+            mutation();
+            await observations;
+            foreach (var service in new[] { local, remote })
+                Require((await service.ListFilesAsync("", timeout.Token)).Any(file => file.Path == path) == exists,
+                    "Watcher invalidations must expose the actual filesystem through both transports.");
+        }
+        var original = Path.Combine(root, "watch-created.txt");
+        var renamed = Path.Combine(root, "watch-renamed.txt");
+        await Changed("watch-created.txt", () => File.WriteAllText(original, "created"), true);
+        await Changed("watch-created.txt", () => File.AppendAllText(original, " changed"), true);
+        Require((await remote.ReadFileAsync("watch-created.txt")).Text == "created changed", "External edits must be readable after notification.");
+        await Changed("watch-renamed.txt", () => File.Move(original, renamed), true);
+        Require(!(await remote.ListFilesAsync("")).Any(file => file.Path == "watch-created.txt"), "Rename must remove the old path.");
+        await Changed("watch-renamed.txt", () => File.Delete(renamed), false);
+        timeout.Cancel();
+        try { await first.MoveNextAsync(); throw new InvalidOperationException("File watcher ignored cancellation."); }
+        catch (OperationCanceledException) { }
+        Console.WriteLine("PASS filesystem create/edit/rename/delete notifications locally and over gRPC, with cancellation");
     }
 
     private static async Task<string> Git(string root, params string[] args)

@@ -179,8 +179,9 @@ to the current focus.
 
 ## Live refresh
 
-On a local host the window watches the workspace (excluding `.git`) plus the Git `HEAD` and refs, coalesces
-bursts (flushing at least once a second during a storm), and refreshes the Files tree, the Specs tree when a
+For local and remote hosts the window subscribes to host-owned filesystem watching of the workspace
+plus Git `HEAD` and refs. The host coalesces bursts (flushing at least once a second during a storm),
+and the window refreshes the Files tree, the Specs tree when a
 spec changed, open documents and the Git snapshot. Every refresh is stamped with the project request, so an answer that arrives
 after a switch is dropped. Refreshes preserve view state (expansion, selected rows). A diff whose file left
 the change set keeps its last content.

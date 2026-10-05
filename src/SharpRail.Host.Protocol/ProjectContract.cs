@@ -102,9 +102,17 @@ public sealed class GitReply
     [ProtoMember(6)] public List<CommitReply> Commits { get; set; } = [];
 }
 
+[ProtoContract]
+public sealed class FileChangeReply
+{
+    [ProtoMember(1)] public List<string> Paths { get; set; } = [];
+    [ProtoMember(2)] public bool Rescan { get; set; }
+}
+
 [Service]
 public interface IProjectRpc
 {
+    IAsyncEnumerable<FileChangeReply> WatchFilesAsync(ProjectRequest request, CallContext context = default);
     ValueTask<SaveFileReply> SaveFileAsync(SaveFileRequest request, CallContext context = default);
     ValueTask<WorkspaceReply> OpenProjectAsync(ProjectRequest request, CallContext context = default);
     ValueTask<ProjectFilesReply> ListFilesAsync(ProjectRequest request, CallContext context = default);

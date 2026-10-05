@@ -2718,3 +2718,23 @@ Reattaching after a clipboard read can repeat its reply into the live shell.
 The expanded takeover test exposed this; clipboard read assertions now follow
 reattachment assertions, with write coverage still exercised across switches.
 No recorder behavior was changed in this task.
+
+### Host-owned filesystem watching — 2026-10-05
+
+Files now subscribes to IProjectServices.WatchFilesAsync for both local and remote
+workspaces. ProjectFileWatching.cs owns recursive FileSystemWatcher subscriptions,
+Git HEAD/refs watchers, a bounded 100-path buffer, 250 ms quiet coalescing and a
+one-second storm flush. Initial registration and overflow request a full rescan.
+Workspace switches/window closure cancel subscriptions; remote host shutdown
+ends active streams normally. The UI retries disconnected streams, preserves
+expanded folders and unsaved editors, and re-reads through existing host methods.
+The registration frame does not duplicate startup's existing Git refresh.
+
+Release compilation, formatting verification and the full checks with upstream
+Git fixtures pass. Evidence: .bench/watcher-full-final.log and
+.bench/watcher-format-verify.log. Focused --files mode covers local/gRPC
+create/edit/rename/delete, cancellation, active-stream shutdown, Files tree
+expansion, live panels/documents, write storms and unsaved-editor conflicts.
+Watching remains per subscription; root-inode replacement healing and sharing
+watchers across subscribers remain outside this change. Changes uncommitted;
+no publication, app restart, commit or push.

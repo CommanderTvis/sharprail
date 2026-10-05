@@ -1,3 +1,5 @@
+using System.Runtime.CompilerServices;
+
 using Grpc.Core;
 using Grpc.Net.Client;
 
@@ -11,6 +13,7 @@ namespace SharpRail.Host.Client;
 
 public sealed class LocalProjectAdapter(IProjectServices host) : IProjectServices
 {
+    public IAsyncEnumerable<FileChange> WatchFilesAsync(CancellationToken cancellationToken = default) => host.WatchFilesAsync(cancellationToken);
     public ValueTask SaveFileAsync(FileSaveRequest request, CancellationToken cancellationToken = default) => host.SaveFileAsync(request, cancellationToken);
     public ValueTask<WorkspaceInfo> OpenProjectAsync(string path, CancellationToken cancellationToken = default) => host.OpenProjectAsync(path, cancellationToken);
     public ValueTask<IReadOnlyList<ProjectFile>> ListFilesAsync(string relativePath, CancellationToken cancellationToken = default) => host.ListFilesAsync(relativePath, cancellationToken);
@@ -48,11 +51,17 @@ public sealed class RemoteProjectAdapter : IProjectServices, IDisposable
     // The host keeps no per-client session: each call names the workspace this adapter opened last.
     private volatile string root = "";
 
-    private CallContext Context(CancellationToken ct)
+    private CallContext Context(CancellationToken ct, bool stream = false)
     {
         var headers = new Metadata { { "authorization", $"Bearer {token}" } };
         if (root.Length > 0) headers.Add(ProjectHeaders.Root, System.Text.Encoding.UTF8.GetBytes(root));
-        return new(new CallOptions(headers: headers, deadline: DateTime.UtcNow.AddSeconds(60), cancellationToken: ct));
+        return new(new CallOptions(headers: headers, deadline: stream ? null : DateTime.UtcNow.AddSeconds(60), cancellationToken: ct));
+    }
+
+    public async IAsyncEnumerable<FileChange> WatchFilesAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        await foreach (var reply in service.WatchFilesAsync(new(), Context(cancellationToken, stream: true)).WithCancellation(cancellationToken))
+            yield return new(reply.Paths, reply.Rescan);
     }
 
     public async ValueTask<WorkspaceInfo> OpenProjectAsync(string path, CancellationToken cancellationToken = default)

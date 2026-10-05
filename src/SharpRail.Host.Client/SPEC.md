@@ -29,7 +29,7 @@ what makes remoteness an adapter choice rather than a mandatory daemon.
 - Deadlines: short (15 s) for cheap workspace and terminal control calls, 60 s
   for project, Git and state calls. The host's own network Git budget must stay
   under that ceiling so its error, naming the ref, wins the race against a bare
-  deadline. Long-lived streams (state watch, terminal) carry no deadline.
+  deadline. Long-lived streams (state watch, file watch, terminal) carry no deadline.
 - Channels reconnect quickly (250 ms initial, 3 s maximum backoff) instead of
   gRPC's two-minute ceiling, because an interactive client is waiting.
 - The project adapter remembers the root it opened last and sends it with each

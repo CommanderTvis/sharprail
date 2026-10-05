@@ -41,6 +41,13 @@ internal static class FilesE2E
         app.Click(app.FileRow("single"), twice: true);
         Settle();
         Require(Node("single", true)!.IsExpanded, "A double click on a folder must leave it toggled once, not twice.");
+        File.WriteAllText(Path.Combine(workspace, "single", "external.txt"), "external\n");
+        Until(() => Node("external.txt", false) is not null);
+        File.Move(Path.Combine(workspace, "single", "external.txt"), Path.Combine(workspace, "single", "renamed.txt"));
+        Until(() => Node("external.txt", false) is null && Node("renamed.txt", false) is not null);
+        File.Delete(Path.Combine(workspace, "single", "renamed.txt"));
+        Until(() => Node("renamed.txt", false) is null);
+        Require(Node("single", true)!.IsExpanded, "External changes must preserve expanded folders.");
         Console.WriteLine("PASS files tree folders toggle on a single click of their name");
     }
 }

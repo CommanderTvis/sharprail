@@ -17,7 +17,8 @@ Upstream: packages/server/src/trash/SPEC.md @ c44534ea
 Read directories and files inside a workspace root, save edited text back safely, and tell the
 workbench when the worktree changed so it re-reads. Reads and saves are host operations
 (`IProjectServices.ListFilesAsync`, `ReadFileAsync`, `SaveFileAsync`; `IWorkspaceHost.ListRootFilesAsync`).
-Change notification currently runs in the UI (`SharpRail.UI/WorkspaceWatcher.cs`) for local workspaces.
+Change notification is host-owned (`IProjectServices.WatchFilesAsync`, `ProjectFileWatching.cs`),
+with direct local and streaming gRPC adapters. The UI consumes the same stream for either host.
 
 ## Boundary
 
@@ -51,7 +52,12 @@ mutations.
 
 - The notification is an invalidation nudge, not data: the workbench re-reads through the same host
   reads, so a duplicate or coalesced event costs one extra read and never produces wrong state.
-- One recursive watcher covers the workspace root with `.git` paths excluded. Git metadata changes
+- Each subscription owns its watchers and disposes them on cancellation; switching workspace or
+  closing a window cancels its subscription. Frames cap paths at 100 and request a full rescan on
+  overflow, watcher errors, Git metadata changes and initial registration. The UI retries a failed
+  stream after one second, with a fresh registration rescan covering disconnected changes.
+- One recursive watcher covers the workspace root, ignoring `.git`, `.sharprail`, `.tools`,
+  `node_modules` and `.DS_Store` events. Git metadata changes
   (commit, checkout, branch switch) that leave the working tree unchanged are seen through a second,
   non-recursive watcher on the worktree's Git directory (`HEAD`) and a recursive one on the common
   directory's `refs`; a linked worktree's Git directory is resolved by reading its `.git` file, never by
@@ -65,14 +71,10 @@ mutations.
 
 ## Not yet ported
 
-- Host-owned watching, so remote workspaces receive live refresh: a per-workspace watcher started lazily
-  by the first read, pushing a pathless or path-capped (100 paths, `truncated`) change frame through the
-  host to every client looking at that workspace.
+- Sharing one watcher per workspace among subscriptions rather than watching per subscription.
 - Self-healing watchers that re-create themselves when the root's inode changes and reap watchers for
   forgotten workspaces.
-- A startup nudge covering the platform stream's registration window, and a bounded pre-warm pool for
-  workspaces a client is about to open.
-- Ignoring `node_modules` and `.DS_Store` churn in the watcher.
+- A bounded pre-warm pool for workspaces a client is about to open.
 - One byte-level content classification shared by file reads, diff sides and untracked line counts:
   media type from magic numbers (PNG, JPEG, GIF, WebP, AVIF, BMP, ICO, PDF, zip, gzip, WOFF/WOFF2), SVG
   from a text root element, a Git LFS pointer from its exact three-line form, and the filename consulted

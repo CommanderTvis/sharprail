@@ -91,6 +91,16 @@ internal static class Program
             Console.WriteLine("PASS multi-window and multi-client checks");
             return;
         }
+        if (args.SequenceEqual(["--files"]))
+        {
+            ProjectChecks.Run(root).GetAwaiter().GetResult();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            E2E.FilesE2E.Run(Path.Combine(root, "upstream-e2e"));
+            E2E.LiveRefreshE2E.Run(Path.Combine(root, "upstream-e2e"));
+            Console.WriteLine("PASS file watching checks");
+            return;
+        }
         if (args.SequenceEqual(["--workspaces"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();

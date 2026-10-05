@@ -34,6 +34,9 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
   with a conflict check, list specs, Git snapshot/commits/diffs/diff sides, Git actions (stage, unstage,
   init, create and remove worktree), branch catalog, and editor detection/launch. Every call is
   cancellable. Paths are workspace-relative.
+- `WatchFilesAsync` subscribes to the current workspace and yields bounded `FileChange` invalidations.
+  Its first frame requests a rescan; later frames name paths or request a full rescan when paths are
+  unavailable or capped. Cancelling the subscription releases its watchers.
 - `IHostStateService` is the shared state of one host. `GetStateAsync` reads, `ChangeAsync` applies a
   batch atomically and returns the published snapshot, and `WatchAsync` yields the current snapshot and
   then every later one. Snapshots are complete and carry a `Revision`, so a client that missed events
@@ -59,6 +62,6 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
 - A protocol version exchanged on connect so a client can detect host drift.
 - Named error codes that survive transport, so a client reacts to a specific failure rather than text.
 - Workspace records with stable ids, kinds and lifecycle events, a workspace diff-base setter, a
-  change-notification stream, and a terminal catalog with reservation separate from attachment.
+  lifecycle-notification stream, and a terminal catalog with reservation separate from attachment.
 - Change revert and undo operations, and content classification (media type, hash) on file and diff-side
   reads, including a byte read of a path at one commit.

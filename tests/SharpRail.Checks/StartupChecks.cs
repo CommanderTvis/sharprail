@@ -129,6 +129,7 @@ internal static class StartupChecks
     {
         private readonly ProjectServices inner = new(root);
         public ConcurrentQueue<GitRequest> Requests { get; } = new();
+        public IAsyncEnumerable<FileChange> WatchFilesAsync(CancellationToken ct = default) => inner.WatchFilesAsync(ct);
         public ValueTask SaveFileAsync(FileSaveRequest request, CancellationToken ct = default) => inner.SaveFileAsync(request, ct);
         public ValueTask<WorkspaceInfo> OpenProjectAsync(string path, CancellationToken ct = default) => inner.OpenProjectAsync(path, ct);
         public ValueTask<IReadOnlyList<ProjectFile>> ListFilesAsync(string path, CancellationToken ct = default) => inner.ListFilesAsync(path, ct);

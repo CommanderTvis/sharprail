@@ -36,6 +36,8 @@ project: local adapters call Core directly, with no serialization.
   open-in-editor. Git scope travels as a string (`all` when empty); the comparison
   branch is the review target. Commit listing is its own operation so the commit
   catalog never requires a full working-tree snapshot.
+- Project file watching is a server stream with no deadline. `FileChangeReply` carries up to 100
+  workspace-relative paths plus `Rescan` for startup registration, overflow or pathless invalidations.
 - State: one complete `StateReply` snapshot (revision, settings, custom layout
   presets, open and recent projects, workspace labels, workspaces per project),
   `ChangeAsync` taking an ordered batch of `(Kind, Key, Value)` changes and

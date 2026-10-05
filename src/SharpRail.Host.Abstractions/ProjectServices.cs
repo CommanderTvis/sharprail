@@ -12,6 +12,7 @@ public static class FileLimits
 }
 
 public record FileSaveRequest(string WorkspaceRoot, string Path, string OriginalText, string Text);
+public record FileChange(IReadOnlyList<string> Paths, bool Rescan = false);
 public record ProjectFile(string Path, string Name, bool IsDirectory);
 public record SpecDocument(string Id, string Title, string Path, string Parent, string Type);
 public record FileDocument(string Path, string Text, byte[]? ImageData = null);
@@ -39,6 +40,7 @@ public record GitAction(string Kind, string Path = "", string Branch = "", strin
 
 public interface IProjectServices
 {
+    IAsyncEnumerable<FileChange> WatchFilesAsync(CancellationToken cancellationToken = default);
     ValueTask<WorkspaceInfo> OpenProjectAsync(string path, CancellationToken cancellationToken = default);
     ValueTask<IReadOnlyList<ProjectFile>> ListFilesAsync(string relativePath, CancellationToken cancellationToken = default);
     ValueTask SaveFileAsync(FileSaveRequest request, CancellationToken cancellationToken = default);
