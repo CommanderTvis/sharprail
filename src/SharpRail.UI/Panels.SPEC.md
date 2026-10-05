@@ -36,9 +36,9 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
 ## Projects
 
 - Each project row is a compact 28px row: always-visible chevron, folder icon and name, a collapsed-only
-  plain count of the project's workspaces other than Default, and, on the shown project, a Create workspace
+  plain count of the project's workspaces other than Default, and, on the shown project, a Start work
   `+` in a fixed right-edge column, the same
-  control shape as the header's Add project `+` so the glyphs line up. The Create `+` tooltip names the
+  control shape as the header's Add project `+` so the glyphs line up. The Start work `+` tooltip names the
   platform's `Mod+N` chord. Long names truncate before the count and action. There is no visible Close or
   overflow icon.
 - The whole row is one rounded highlight: hover highlights it, and the selected project at Project Home stays
@@ -51,12 +51,14 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
   unattached worktrees: branch and absolute path per row, detached-HEAD rows visible but disabled, an empty
   note, and a load failure with Retry. Choosing a row attaches it through the host, keeps the dialog open
   while the host answers and shows a refusal inline; success expands the project and enters the workspace.
-- Close asks “Close {name}?” with “Removes this project from the open projects list. Its repository and
+- Close asks “Close {name}?” with “Removes this project from the open projects list. It stops terminals and running processes. Its repository and
   workspaces are kept. Reopen it from Add project → Recents.”, Cancel focused and a Close project action.
   Confirm sends the host change and waits for its result; a rejection keeps the row. Closing the shown project
   moves to the next project's home or the clean Welcome. A project whose folder no longer exists closes
   without asking, since there is nothing left to lose. Dismissal restores focus to the source project name;
   a successful close focuses the fallback project or the Add project control.
+  Every window releases cached document bodies for the closed project's workspaces; saved tab layouts
+  remain for reopening, but terminal sessions and replay are discarded.
 - Workspace rows come from the host's registry (`HostState.Workspaces`), so every expanded project lists its
   own, shown or not; a row of another project switches project and workspace in one step. Each is two lines
   when the workspace has a branch: display name on top, branch beneath in the hint tier. The Default
@@ -76,6 +78,10 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
   managed worktree adds Rename and Remove worktree…; an external one only Remove from SharpRail, whose
   confirmation promises the checkout and its branch stay untouched. The Default workspace gets neither
   mutation. A locked worktree's Remove is disabled.
+- A plain folder has no workspace row: its tabs and terminal/agent actions sit directly beneath the
+  directory, one indentation level down. Clicking its name enters the directory, and the directory
+  itself is highlighted while active. Its tab host keeps the mounted path identity, including a trailing
+  separator from the folder picker. Folding hides its tabs; inactive directories retain their tab lists.
 - Rename replaces the row with an in-place single-line input, prefilled, focused and selected. Enter or
   focus leaving to another control in the same window commits; Escape cancels; blank text or text unchanged
   from the edit-start label exits without a request, so a peer's rename is never reverted by an untouched

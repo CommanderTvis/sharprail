@@ -76,7 +76,7 @@ internal static class WorkspaceActionsE2E
         AddProject(app, "Open project", second);
         Until(() => app.Window.ProjectRoot == second);
         var foreign = OpenWorkspaceMenu(app, workspace);
-        Require(MenuEntry(foreign, "WorkspaceRename") is null && MenuEntry(foreign, "WorkspaceRemove") is null,
+        Require(MenuEntry(foreign, "WorkspaceRename") is null or { IsVisible: false } && MenuEntry(foreign, "WorkspaceRemove") is null or { IsVisible: false },
             "Another project's workspace offers no rename or removal.");
         Choose(app, foreign, "WorkspaceCopyPath");
         var foreignPath = app.Window.Clipboard!.TryGetTextAsync();

@@ -114,6 +114,7 @@ internal sealed class E2eWorkspace : IDisposable
         prepare?.Invoke(Host);
         ownsTerminals = terminals is null;
         Terminals = terminals ?? new();
+        State.Terminals = Terminals.HostService;
         IHostStateService service = new LocalStateAdapter(State);
         var first = true;
         Workbench = new(profile, new SharedState(state?.Invoke(service) ?? service, profile.Data.Preferences, State.Current), Terminals.Factory, false,
@@ -333,7 +334,24 @@ internal sealed class E2eHost(IProjectServices inner) : IProjectServices
         return inner.RevertChangeAsync(path, scope, comparison, target, expect, ct);
     }
     public ValueTask<ChangeReceipt> UndoChangeAsync(string receiptId, string? expectModifiedHash, CancellationToken ct = default) => inner.UndoChangeAsync(receiptId, expectModifiedHash, ct);
-    public ValueTask<GitSnapshot> ApplyGitActionAsync(GitAction action, CancellationToken ct = default) => inner.ApplyGitActionAsync(action, ct);
+    private TaskCompletionSource? actionGate;
+    internal bool GitActionPending { get; private set; }
+    internal TaskCompletionSource HoldGitAction() => actionGate = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    public async ValueTask<GitSnapshot> ApplyGitActionAsync(GitAction action, CancellationToken ct = default)
+    {
+        await WaitForActionAsync(ct);
+        return await inner.ApplyGitActionAsync(action, ct);
+    }
+    private async Task WaitForActionAsync(CancellationToken ct)
+    {
+        var gate = actionGate; actionGate = null;
+        if (gate is not null)
+        {
+            GitActionPending = true;
+            try { await gate.Task.WaitAsync(ct); }
+            finally { GitActionPending = false; }
+        }
+    }
     public ValueTask<BranchCatalog> ListBranchesAsync(bool fetchDefault, CancellationToken ct = default) => inner.ListBranchesAsync(fetchDefault, ct);
     public ValueTask<DiffStats?> GetDiffStatsAsync(string workspacePath, CancellationToken ct = default) => inner.GetDiffStatsAsync(workspacePath, ct);
     /// <summary>Rewrites a pull request lookup, for states a fixture origin cannot produce.</summary>
@@ -349,5 +367,9 @@ internal sealed class E2eHost(IProjectServices inner) : IProjectServices
     public ValueTask ApplyFileActionAsync(FileAction action, CancellationToken ct = default) => inner.ApplyFileActionAsync(action, ct);
     public ValueTask OpenInEditorAsync(string editorId, string worktreePath, CancellationToken ct = default) => inner.OpenInEditorAsync(editorId, worktreePath, ct);
     public ValueTask<WorkspaceCatalog> ListWorkspacesAsync(string projectRoot, CancellationToken ct = default) => inner.ListWorkspacesAsync(projectRoot, ct);
-    public ValueTask<WorkspaceRecord?> ApplyWorkspaceActionAsync(WorkspaceAction action, CancellationToken ct = default) => inner.ApplyWorkspaceActionAsync(action, ct);
+    public async ValueTask<WorkspaceRecord?> ApplyWorkspaceActionAsync(WorkspaceAction action, CancellationToken ct = default)
+    {
+        await WaitForActionAsync(ct);
+        return await inner.ApplyWorkspaceActionAsync(action, ct);
+    }
 }

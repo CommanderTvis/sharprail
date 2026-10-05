@@ -43,7 +43,7 @@ public sealed record PluginHostSeams
     /// <summary>The worktrees of a project root; empty for a folder without Git.</summary>
     public Func<string, CancellationToken, Task<IReadOnlyList<WorktreeInfo>>> Worktrees { get; init; } = async (root, ct) =>
     {
-        try { return GitRepository.ParseWorktrees(await GitRepository.RunAsync(root, ct, "worktree", "list", "--porcelain", "-z")); }
+        try { return await GitRepository.ListWorktreesAsync(root, ct); }
         catch (Exception error) when (error is IOException or System.ComponentModel.Win32Exception) { return []; }
     };
 

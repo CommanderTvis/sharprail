@@ -9,6 +9,11 @@
         Background="{x:Static rendering:Ui.Workspace}" Foreground="{x:Static rendering:Ui.Muted}"
         FontFamily="{x:Static rendering:Ui.InterfaceFont}" FontWeight="370">
   <Window.Styles>
+    <Style Selector="TextBlock.workspace-description">
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="MaxLines" Value="3" />
+      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    </Style>
     <Style Selector="TextBlock.header-label">
       <Setter Property="VerticalAlignment" Value="Center" />
       <Setter Property="TextTrimming" Value="CharacterEllipsis" />

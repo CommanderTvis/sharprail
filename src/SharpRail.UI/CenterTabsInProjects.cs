@@ -8,12 +8,13 @@ using SharpRail.UI.Docking;
 namespace SharpRail.UI;
 
 /// <summary>
-/// Where centre tabs render, from this app's layout preferences, and their home under the workspace rows in Projects:
+/// Where centre tabs render, from this app's layout preferences, and their home under directories or workspace rows in Projects:
 /// the active workspace shows its live strips there, and every other workspace a read-only list of its retained tabs.
 /// </summary>
 public sealed partial class WorkbenchWindow
 {
     private readonly Dictionary<string, ContentControl> workspaceTabHosts = [];
+    private readonly Dictionary<string, string> workspaceTabPreviewSignatures = [];
     private IReadOnlyDictionary<string, Control> centerStripsInProjects = new Dictionary<string, Control>();
     private string tabLayoutSignature = "";
 
@@ -46,7 +47,8 @@ public sealed partial class WorkbenchWindow
 
     private ContentControl WorkspaceTabsHost(string workspace)
     {
-        var host = new ContentControl { Name = "WorkspaceTabs", Tag = workspace, Margin = new Thickness(20, 0, 4, 4) };
+        // One level deeper than its workspace's row, which sits one level under the project.
+        var host = new ContentControl { Name = "WorkspaceTabs", Tag = workspace, Margin = new Thickness(40, 0, 4, 4) };
         workspaceTabHosts[workspace] = host;
         Avalonia.Threading.Dispatcher.UIThread.Post(PlaceWorkspaceTabs);
         return host;
@@ -57,20 +59,41 @@ public sealed partial class WorkbenchWindow
         var inProjects = CenterTabsModeNow().Home == "projects";
         foreach (var (workspace, host) in workspaceTabHosts)
         {
-            host.Content = null;
-            if (!inProjects) continue;
+            if (!inProjects)
+            {
+                host.Content = null; workspaceTabPreviewSignatures.Remove(workspace);
+                continue;
+            }
             if (!atHome && workspace == workspaceRoot)
             {
-                var strips = new StackPanel { Name = "CenterTabsInProjects", Spacing = 8 };
+                workspaceTabPreviewSignatures.Remove(workspace);
+                var strips = host.Content as StackPanel;
+                if (strips?.Name != "CenterTabsInProjects") strips = new StackPanel { Name = "CenterTabsInProjects", Spacing = 8 };
+                var children = new List<Control>();
                 foreach (var group in Layout.State.Center.Leaves())
                     if (centerStripsInProjects.GetValueOrDefault(group) is { } strip)
                     {
-                        (strip.Parent as Panel)?.Children.Remove(strip);
-                        strips.Children.Add(strip);
+                        if (!ReferenceEquals(strip.Parent, strips)) (strip.Parent as Panel)?.Children.Remove(strip);
+                        children.Add(strip);
                     }
-                host.Content = strips;
+                ReconcileRailChildren(strips, children);
+                if (!ReferenceEquals(host.Content, strips)) host.Content = strips;
             }
-            else host.Content = WorkspaceTabsPreview(workspace);
+            else
+            {
+                var view = Layout.State.Workspaces.GetValueOrDefault(workspace);
+                var signature = System.Text.Json.JsonSerializer.Serialize(Layout.State.Center.Leaves().Select(group => new
+                {
+                    Group = group,
+                    Tabs = view?.Documents.GetValueOrDefault(group),
+                    Decorations = view?.Documents.GetValueOrDefault(group)?.Select(tab => TabDecorationSignature(tab, workspace)),
+                    Selected = view?.Selected.GetValueOrDefault(group),
+                    Panes = view?.Panes.GetValueOrDefault(group)
+                }));
+                if (workspaceTabPreviewSignatures.GetValueOrDefault(workspace) == signature) continue;
+                workspaceTabPreviewSignatures[workspace] = signature;
+                host.Content = WorkspaceTabsPreview(workspace);
+            }
         }
     }
 

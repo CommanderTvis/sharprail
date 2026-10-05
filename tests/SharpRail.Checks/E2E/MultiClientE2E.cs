@@ -140,7 +140,9 @@ internal static class MultiClientE2E
         Press(input, Key.Enter);
         Until(() => Shown(source, created) == "Shared Rename");
         Until(() => RenameInput(peer, created)?.Text == name);
-        Press(RenameInput(peer, created)!, Key.Enter);
+        Require(ReferenceEquals(RenameInput(peer, created), peerInput), "A shared rename must retain the peer's existing input and draft.");
+        Require(peerInput.Focus(), "The peer's retained rename input must accept focus before its Enter key.");
+        Press(peerInput, Key.Enter);
         Until(() => RenameInput(peer, created) is null && Shown(peer, created) == "Shared Rename");
         Require(ItemText(source, created, "WorkspaceName") == "Shared Rename", "An unchanged peer draft must not overwrite the shared name.");
 

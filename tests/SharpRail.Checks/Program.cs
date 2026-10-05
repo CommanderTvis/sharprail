@@ -103,6 +103,15 @@ internal static class Program
             E2E.BottomPanelE2E.Run(Path.Combine(root, "upstream-e2e"));
             return;
         }
+        if (args.SequenceEqual(["--project-close"]))
+        {
+            TerminalHostChecks.Run(root).GetAwaiter().GetResult();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            E2E.ProjectContextE2E.Run(root);
+            Console.WriteLine("PASS project closure checks");
+            return;
+        }
         if (args.SequenceEqual(["--terminal-replay"]))
         {
             TerminalReplayChecks.Run();
@@ -355,6 +364,7 @@ internal static class Program
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            E2E.NewWorkspaceShortcutE2E.Run(Path.Combine(root, "upstream-e2e"));
             E2E.NewWorkspaceE2E.Run(Path.Combine(root, "upstream-e2e"));
             Console.WriteLine("PASS new-workspace E2E checks");
             return;

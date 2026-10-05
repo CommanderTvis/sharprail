@@ -28,8 +28,10 @@ internal static class ProjectsE2E
         var toggle = app.Find<Button>("ProjectExpand");
         Require(Equals(ToolTip.GetTip(toggle), expanded ? "Collapse project" : "Expand project"),
             "Project expansion must survive window recreation.");
-        Require(app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.ContextMenu is not null &&
-            Equals(ToolTip.GetTip(button), app.Root) && button.IsEffectivelyVisible) == expanded,
+        var workspaces = app.Find<StackPanel>("ProjectWorkspaces");
+        Require(workspaces.IsEffectivelyVisible == expanded, "Project expansion must show or hide its workspace container.");
+        Require(expanded || !app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.ContextMenu is not null &&
+            Equals(ToolTip.GetTip(button), app.Root) && button.IsEffectivelyVisible),
             "Only expanded projects may expose workspace rows.");
     }
 }

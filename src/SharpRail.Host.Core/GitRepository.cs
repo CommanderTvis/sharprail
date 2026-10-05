@@ -233,7 +233,7 @@ internal static class GitRepository
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }
         }
-        var worktrees = ParseWorktrees(await RunAsync(root, ct, "worktree", "list", "--porcelain", "-z"));
+        var worktrees = await ListWorktreesAsync(root, ct);
         var branches = (await RunAsync(root, ct, "for-each-ref", "--format=%(refname:short)", "refs/heads", "refs/remotes"))
             .Split('\n', StringSplitOptions.RemoveEmptyEntries);
         // Commit and pinned scopes carry a commit id where the others carry the target the catalog is listed against.
@@ -298,6 +298,9 @@ internal static class GitRepository
         for (var i = 0; i + 1 < parts.Length; i += 2) result.Add(new(parts[i + 1], " ", parts[i], null, 0, 0));
         return result;
     }
+
+    internal static async Task<IReadOnlyList<WorktreeInfo>> ListWorktreesAsync(string root, CancellationToken ct) =>
+        [.. ParseWorktrees(await RunAsync(root, ct, "worktree", "list", "--porcelain", "-z")).Where(tree => Directory.Exists(tree.Path))];
 
     internal static List<WorktreeInfo> ParseWorktrees(string text)
     {

@@ -121,6 +121,22 @@ internal static class WelcomeE2E
         Until(() => app.Tabs.Any(tab => tab.Kind == "terminal"));
         app.Open("notes.txt", keep: true);
         Require(!Directory.Exists(Path.Combine(plain, ".git")), "Starting work and opening tabs must not initialize Git.");
+        Require(!Controls(app).Any(control => control.Name == "WorkspaceItem" && Equals(control.Tag, plain)) && rail.Margin.Left == 20,
+            "A plain directory shows its tabs one level beneath its name, with no redundant workspace row.");
+        Require(Controls(app).OfType<Border>().Single(border => border.Name == "ProjectHighlight" && Equals(border.Tag, plain)).Classes.Contains("active"),
+            "The directory itself is highlighted while its files are active.");
+        var fold = Buttons(app).Single(button => button.Name == "ProjectExpand" && Equals(button.Tag, plain));
+        app.Click(fold);
+        Require(!((Control)rail.Parent!).IsVisible, "Folding a plain directory hides its tab list.");
+        app.Click(fold);
+        Require(((Control)rail.Parent!).IsVisible && app.Tabs.Any(tab => tab.Path == "notes.txt"), "Unfolding retains the directory's tabs.");
+        var other = app.Window.OpenProjectAsync(app.Root);
+        Until(() => other.IsCompletedSuccessfully && app.Window.WorkspaceRoot == app.Root);
+        Require(Controls(app).Contains(rail) && !Controls(app).Any(control => control.Name == "WorkspaceItem" && Equals(control.Tag, plain)),
+            "An inactive plain directory retains the same tab host without a workspace row.");
+        app.Click(ProjectName(app, plain));
+        Until(() => app.Window.WorkspaceRoot == plain && !app.Window.AtProjectHome && app.Tabs.Any(tab => tab.Path == "notes.txt"));
+        Require(app.Window.Layout.Selected(app.Center)?.Path == "notes.txt", "Clicking the directory restores its selected document directly.");
         Console.WriteLine("PASS fork gitless.spec.ts: a plain folder opened from the Welcome screen lands on its Project Home, with no git required");
     }
 

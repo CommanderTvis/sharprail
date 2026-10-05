@@ -222,17 +222,23 @@ public sealed partial class WorkbenchWindow
     private void RefreshDecorations()
     {
         var signature = DecorationSignature();
-        if (signature == decorationSignature) return;
-        decorationSignature = signature;
-        surface.Rebuild();
+        if (signature != decorationSignature)
+        {
+            decorationSignature = signature;
+            surface.Rebuild();
+        }
+        PlaceWorkspaceTabs();
     }
 
-    private string DecorationSignature() => string.Join("\n", Layout.State.Groups.SelectMany(group => Layout.Tabs(group.Id)).Select(tab =>
+    private string DecorationSignature() => string.Join("\n", Layout.State.Groups.SelectMany(group => Layout.Tabs(group.Id))
+        .Select(tab => TabDecorationSignature(tab)).Where(line => line.Length > 0));
+
+    private string TabDecorationSignature(DockTab tab, string? workspace = null)
     {
-        var decoration = Decoration(tab);
+        var decoration = Decoration(tab, workspace);
         var icon = tab.IsTool ? Plugins.Tool(tab.Id)?.Icon : tab.Path.Length > 0 ? Plugins.FileIcon(tab.Path, FileIconKind.File)?.Icon : null;
         return decoration is null && icon is null ? "" : $"{tab.Id}\t{decoration?.PluginId}\t{decoration?.Decoration.Icon}\t{decoration?.Decoration.Adornment is not null}\t{icon}";
-    }).Where(line => line.Length > 0));
+    }
 
     // Like the fork's renderCenterActions: every workspace action follows New terminal in each center group's strip.
     private IEnumerable<Control> CenterActions(string group)

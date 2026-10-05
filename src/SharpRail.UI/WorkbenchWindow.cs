@@ -116,6 +116,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         ApplyAppearance();
         ActualThemeVariantChanged += (_, _) => ApplyTheme();
         Opened += async (_, _) => await StartAsync();
+        Activated += (_, _) => { if (WorkspaceMounted) RefreshProjectWorkspaces(); };
         Closed += (_, _) =>
         {
             RememberGitSelection(); lifetime.Cancel(); StopWatching(); profile.Save();
@@ -270,6 +271,9 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             if (project && projectRoot != workspace.ProjectRoot) selectionHistory.Clear();
             else if (previous is not null) { selectionHistory.Remove(previous); selectionHistory.Add(previous); }
             if (project) projectRoot = workspace.ProjectRoot;
+            if (!documentWorkspaces.TryGetValue(projectRoot, out var mountedWorkspaces))
+                documentWorkspaces[projectRoot] = mountedWorkspaces = [];
+            mountedWorkspaces.Add(workspaceRoot);
             atHome = home; cleanWelcome = false;
             UpdateScopeLabels();
             SetBranch("");
@@ -277,7 +281,8 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             gitLoading = true; gitError = null;
             RestoreGitSelection();
             if (!sameProject) { folderCache.Clear(); expandedFolders.Clear(); }
-            var rail = sameProject ? toolContent.GetValueOrDefault("projects") : null;
+            // The rail survives any switch whose projects and workspaces it already lists; only its styling follows.
+            var rail = toolContent.GetValueOrDefault("projects");
             var filesPanel = sameProject ? toolContent.GetValueOrDefault("files") : null;
             var changesPanel = sameProject ? toolContent.GetValueOrDefault("changes") : null;
             var reviewPanel = toolContent.GetValueOrDefault("review");
