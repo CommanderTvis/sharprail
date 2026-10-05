@@ -1,4 +1,7 @@
+using Avalonia.Controls;
+
 using SharpRail.Host.Abstractions;
+using SharpRail.Plugins.UI.Kit.Markdown;
 using SharpRail.UI.Docking;
 using SharpRail.UI.Editor;
 using SharpRail.UI.Panels;

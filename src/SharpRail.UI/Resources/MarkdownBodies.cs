@@ -1,7 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
 
-using SharpRail.UI.Editor;
 using SharpRail.UI.Rendering;
 
 namespace SharpRail.UI.Resources;
@@ -9,62 +8,35 @@ namespace SharpRail.UI.Resources;
 /// <summary>The rendered Markdown view of a file; a reload keeps the reader's place.</summary>
 internal sealed class MarkdownPreviewBody : Decorator, IResourceBody, IDisposable
 {
-    private readonly Func<string, MarkdownPreview> create;
-    private MarkdownPreview preview;
+    private readonly MarkdownDocumentView document;
+    private string text;
 
-    internal MarkdownPreviewBody(ResourceView view, Func<string, MarkdownPreview> create)
+    internal MarkdownPreviewBody(ResourceView view, Func<string, MarkdownDocumentView> create)
     {
-        this.create = create;
-        Child = preview = create(Text(view.Content));
-        if (view.ViewState is Vector offset) preview.Offset = offset;
+        text = Text(view.Content);
+        Child = document = create(text);
+        if (view.ViewState is MarkdownDocumentView.ViewState state) document.Restore(state);
+        else if (view.ViewState is Vector offset) document.Preview.Offset = offset;
     }
 
     private static string Text(ResourceContent content) => (content as ResourceContent.Text)?.Value ?? "";
 
-    public object? ViewState => preview.Offset;
+    public object? ViewState => document.State;
 
     public bool Reload(ResourceContent content)
     {
-        var offset = preview.Offset;
-        preview.Dispose();
-        Child = preview = create(Text(content));
-        preview.Offset = offset;
+        text = Text(content);
+        _ = document.RefreshPreviewAsync(text);
         return true;
     }
 
-    internal void ScrollToAnchor(string id) => preview.ScrollToAnchor(id);
+    internal void Refresh(MarkdownContext context) => _ = document.RefreshPreviewAsync(text, context);
 
-    public void Dispose() => preview.Dispose();
-}
-
-/// <summary>The read-only source of a Markdown file that also has a rendered view.</summary>
-internal sealed class MarkdownSourceBody : Decorator, IResourceBody, IDisposable
-{
-    private readonly EditorFrame frame;
-
-    internal MarkdownSourceBody(ResourceView view, double wrapWidth)
+    internal void ScrollToAnchor(string id)
     {
-        frame = new EditorFrame((view.Content as ResourceContent.Text)?.Value ?? "", "MarkdownSource");
-        frame.Editor.IsReadOnly = true;
-        frame.Editor.WrapWidth = wrapWidth;
-        Child = frame;
-        if (view.ViewState is int line) frame.Editor.ScrollToLine(line);
+        document.Show(MarkdownDocumentView.Mode.Preview);
+        document.Preview.ScrollToAnchor(id);
     }
 
-    internal double WrapWidth { set => frame.Editor.WrapWidth = value; }
-
-    public object? ViewState => frame.Editor.FirstVisibleLine;
-
-    public bool Reload(ResourceContent content)
-    {
-        if (content is not ResourceContent.Text text) return false;
-        var line = frame.Editor.FirstVisibleLine;
-        frame.Editor.IsReadOnly = false;
-        try { frame.Editor.Text = text.Value; }
-        finally { frame.Editor.IsReadOnly = true; }
-        frame.Editor.ScrollToLine(line);
-        return true;
-    }
-
-    public void Dispose() => frame.Editor.Dispose();
+    public void Dispose() => document.Dispose();
 }

@@ -2,6 +2,8 @@ using Avalonia.Controls;
 using Avalonia.LogicalTree;
 using Avalonia.Media.Imaging;
 
+using SharpRail.UI.Resources;
+
 namespace SharpRail.UI;
 
 public sealed partial class WorkbenchWindow
@@ -46,8 +48,9 @@ public sealed partial class WorkbenchWindow
             if (!preserveDocuments || documentContent[key] is not (Terminal.TerminalView or SharpRail.UI.Resources.ResourcePane)) DropDocumentContent(key);
             else if (documentContent[key] is SharpRail.UI.Resources.ResourcePane pane)
             {
-                // Editors keep their unsaved text; every other view is rebuilt from the tab's content.
-                pane.Reset(body => body is Editor.CodeDocumentView);
+                if (pane.Find<MarkdownPreviewBody>() is { } markdown)
+                    markdown.Refresh(Rendering.MarkdownContexts.For(host, Preferences, FollowLink, SpecLink()));
+                pane.Reset(body => body is Editor.CodeDocumentView or MarkdownPreviewBody);
                 if (pane.Find<Editor.CodeDocumentView>() is { } view) view.Editor.WrapWidth = FileWrapWidth;
             }
     }

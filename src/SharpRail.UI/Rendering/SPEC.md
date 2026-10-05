@@ -71,22 +71,23 @@ since the kit has no theme of its own.
 
 - `.md` and `.markdown` files open rendered by default; the extension check is the Markdown gate shared by
   file tabs and diff tabs.
-- Source is the lazy read-only editor. On macOS it uses `EditorFrame` / Scintilla with the same font,
+- Source is a lazy editable file buffer. On macOS it uses the normal file editor / Scintilla with the same font,
   theme colours, selection and scrollbars as code files; other platforms retain selectable source text.
   Creating the rendered preview does not allocate the source editor. Source shows the complete file,
   including YAML frontmatter, alert markers and Mermaid fences, and follows the file line-width preference.
 - The choice is per tab, survives tab switches, and is not persisted across reload. Switching Preview
   and Source retains both controls and their scroll positions. External edits update an existing source
   editor in place and preserve its first visible line; returning to a previously hidden Source shows the
-  latest disk content. The source stays read-only after reload. Closing the document disposes both views.
-- Acceptance checks cover Scintilla selection on macOS, read-only source, editor identity across mode
+  latest disk content when the buffer is clean. Unsaved edits update the preview and use the normal Save,
+  conflict and close guards; external changes never replace a dirty buffer. Closing disposes both views.
+- Acceptance checks cover Scintilla selection and typing on macOS, saving, editor identity across mode
   switches and external reloads, and raw frontmatter, alert and Mermaid content. Long files use the
   viewer limits below rather than eagerly creating a rendered preview.
 - External edits reload the document without replacing its mode controls or switching the selected
   Source/Preview mode; both views show the new disk content.
 - A leading YAML frontmatter block renders as an Obsidian-style properties block at the top of the scrolling
   document, never as a stray heading: key/value rows, list values as chips, collapsible. It is read-only,
-  because a Markdown tab has no editable source here. Top-level scalars, inline and multi-line flow
+  with edits made through Source or Split. Top-level scalars, inline and multi-line flow
   sequences, block lists of scalars and one-level mappings are readable; any other shape shows the raw block
   rather than a guess. The source view shows the YAML as written.
 - A document is a spec when its frontmatter carries an `id` and one of the spec graph's `type`s
@@ -123,7 +124,8 @@ since the kit has no theme of its own.
   host.
 - Images load asynchronously: relative images read through `IProjectServices.ReadFileAsync`, remote
   `http`/`https` images through a shared client with a timeout and an 8 MB cap. A failed image stays an empty
-  holder whose tooltip carries the reason, never a crash.
+  holder whose tooltip carries the reason, never a crash. Images fit the column, keep their aspect ratio
+  and reserve their full height rather than being clipped to a text line.
 - Parsing can happen off the UI thread (`MarkdownPreview.Parse`), and the control is built from the parsed
   document on the dispatcher.
 

@@ -469,7 +469,7 @@ public sealed partial class WorkbenchWindow
 
     internal async Task SaveEditorAsync(string id)
     {
-        if (documentContent.GetValueOrDefault(id) is Editor.CodeDocumentView view) await view.SaveAsync();
+        if (EditableDocument(documentContent.GetValueOrDefault(id)) is { } view) await view.SaveAsync();
     }
 
     internal async Task<string> OpenPluginTerminalAsync(string workspace, TerminalOpenOptions options)

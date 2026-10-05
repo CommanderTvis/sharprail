@@ -3,6 +3,7 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
+using Avalonia.LogicalTree;
 using Avalonia.Media;
 
 using SharpRail.UI.Rendering;
@@ -65,7 +66,8 @@ internal sealed class ResourcePane : Grid, IDisposable
     internal IEnumerable<string> Candidates => candidates.Select(candidate => candidate.Id);
     internal string Selected { get; private set; } = "";
     internal Control? Body => host.Content as Control;
-    internal T? Find<T>() where T : class => bodies.Values.OfType<T>().FirstOrDefault();
+    internal T? Find<T>() where T : class => bodies.Values.OfType<T>().FirstOrDefault()
+        ?? bodies.Values.SelectMany(body => body.GetLogicalDescendants()).OfType<T>().FirstOrDefault();
 
     /// <summary>Chooses a renderer for the tab; its predecessor's view state does not carry over.</summary>
     internal void Select(string rendererId)

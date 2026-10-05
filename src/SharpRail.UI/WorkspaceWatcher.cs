@@ -164,7 +164,7 @@ public sealed partial class WorkbenchWindow
 
     private void MarkDeletedOnDisk(string key, bool deleted)
     {
-        if (documentContent.GetValueOrDefault(key) is Editor.CodeDocumentView view) view.DeletedOnDisk = deleted;
+        if (EditableDocument(documentContent.GetValueOrDefault(key)) is { } view) view.DeletedOnDisk = deleted;
         if (deleted ? deletedDocuments.Add(key) : deletedDocuments.Remove(key)) surface.RefreshModified();
     }
 

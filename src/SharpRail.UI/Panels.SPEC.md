@@ -312,8 +312,11 @@ scroll position and expansion. A loaded snapshot stays visible while its replace
   repository script never runs.
 
 - A file or diff tab picks its view from what the content is, not from a per-pane format switch: Markdown
-  ranks its rendered view above source (`MarkdownPreviewBody`, and the rendered merge in `DiffView`), and
+  ranks its document view above source (`MarkdownPreviewBody`, and the rendered merge in `DiffView`), and
   every other text file falls back to the code view (`CodeDocumentView`, the source diff).
+- The Markdown renderer owns Preview, Source and Split, its outline and Find. Its source is the same
+  editable buffer used for saves and close prompts; appearance and file reloads retain that buffer and
+  the reader's mode and position. The generic renderer toggle does not duplicate its Source control.
 - The view toggle exists only when a resource has more than one candidate view. Split | Inline, hide
   whitespace and copy are shown only while the selected view supports them, so no control promises
   something the view cannot do. View choice, layout and whitespace are independent per-tab state.

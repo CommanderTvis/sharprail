@@ -11,8 +11,7 @@ namespace SharpRail.Checks.E2E;
 
 /// <summary>
 /// The fork's Markdown document cases: frontmatter properties, spec titles and [[links]], the outline, the
-/// Split view and find. Properties are read-only here because SharpRail's Markdown tabs have no editable
-/// source, so the fork's edit-to-draft assertions have no counterpart.
+/// Split view and find. Frontmatter properties remain read-only; the source uses the normal file editor.
 /// </summary>
 internal static class MarkdownDocumentE2E
 {
@@ -38,6 +37,26 @@ internal static class MarkdownDocumentE2E
         Split(root);
         Find(root);
         MarkdownFindE2E.Run(root);
+        LiveEdits(root);
+        Images(root);
+    }
+
+    // An agent editing the open file reloads its view; the reader keeps their place and mode, as in the reference (#608).
+    private static void LiveEdits(string root)
+    {
+        using var app = new E2eWorkspace(Path.Combine(root, "markdown-live-edits"));
+        app.Open("LARGE.md", true);
+        var preview = app.Find<MarkdownPreview>("MarkdownPreview");
+        Until(() => preview.Extent.Height > preview.Viewport.Height + 600);
+        preview.Offset = new Vector(0, 500);
+        Settle(100);
+        File.AppendAllText(Path.Combine(app.Root, "LARGE.md"), "\n\nAn appended paragraph.\n");
+        Until(() => app.Find<MarkdownPreview>("MarkdownPreview") is var reloaded && !ReferenceEquals(reloaded, preview) &&
+            Text(reloaded).Contains("An appended paragraph.", StringComparison.Ordinal));
+        Settle(300);
+        var after = app.Find<MarkdownPreview>("MarkdownPreview");
+        Require(Math.Abs(after.Offset.Y - 500) < 1, $"A live edit keeps the reader's scroll position, got {after.Offset.Y}.");
+        Console.WriteLine("PASS a live edit of an open Markdown file keeps its scroll position");
     }
 
     private static E2eWorkspace OpenDocument(string root, string name, string file, string text)
@@ -151,13 +170,76 @@ internal static class MarkdownDocumentE2E
         Settle(100);
         Require(source.IsEffectivelyVisible && preview.IsEffectivelyVisible && source.Bounds.Width > 100 && preview.Bounds.Width > 100 &&
             source.TranslatePoint(new Point(), preview)!.Value.X < 0, "Split must show the source beside its preview.");
+        if (source is SharpRail.Scintilla.ScintillaEditor editor)
+        {
+            editor.Focus();
+            editor.SelectAll();
+            app.Window.KeyTextInput("# Edited in split view\n\nAn unsaved paragraph.\n");
+            Until(() => Text(app.Find<MarkdownPreview>("MarkdownPreview")).Contains("An unsaved paragraph.", StringComparison.Ordinal));
+            Require(!File.ReadAllText(Path.Combine(app.Root, "README.md")).Contains("An unsaved paragraph.", StringComparison.Ordinal),
+                "Editing must keep the draft in memory until Save.");
+            var view = app.Window.GetLogicalDescendants().OfType<MarkdownDocumentView>().Single();
+            var refresh = view.RefreshPreviewAsync(editor.Text, new MarkdownContext((_, _) => ValueTask.FromResult<byte[]?>(null),
+                _ => null, (_, _) => { }, 20, 60, true));
+            Until(() => refresh.IsCompleted);
+            Require(refresh.IsCompletedSuccessfully && editor.IsModified && ReferenceEquals(source, app.Find<Control>("MarkdownSource")) &&
+                view.Preview.GetLogicalDescendants().OfType<SelectableTextBlock>().Any(block => block.FontSize == 20),
+                "Refreshing appearance must update the preview and retain the dirty source buffer.");
+            app.Window.KeyPress(Key.S, Command, PhysicalKey.S, "s");
+            app.Window.KeyRelease(Key.S, Command, PhysicalKey.S, "s");
+            Until(() => File.ReadAllText(Path.Combine(app.Root, "README.md")).Contains("An unsaved paragraph.", StringComparison.Ordinal));
+            preview = app.Find<MarkdownPreview>("MarkdownPreview");
+        }
         app.Click(app.Find<Button>("MarkdownSourceMode"));
         Settle(100);
         Require(source.IsEffectivelyVisible && !preview.IsEffectivelyVisible, "Source must show only the buffer.");
         app.Click(app.Find<Button>("MarkdownPreviewMode"));
         Settle(100);
         Require(!source.IsEffectivelyVisible && preview.IsEffectivelyVisible, "Preview must show only the rendering.");
+        if (source is SharpRail.Scintilla.ScintillaEditor editable)
+        {
+            app.Click(app.Find<Button>("MarkdownSplitMode"));
+            editable.Focus();
+            app.Window.KeyTextInput("Unsaved before closing.\n");
+            var group = app.Window.Layout.View.FocusedCenter;
+            app.Window.Layout.Close(group, "markdown:README.md");
+            Until(() => app.Window.OwnedWindows.OfType<DialogWindow>().Any());
+            var prompt = app.Window.OwnedWindows.OfType<DialogWindow>().Single();
+            var cancel = prompt.GetLogicalDescendants().OfType<Button>().Single(button => button.Content is TextBlock { Text: "Cancel" });
+            cancel.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            Until(() => !prompt.IsVisible);
+            Require(app.Tabs.Any(tab => tab.Path == "README.md") && editable.Text.Contains("Unsaved before closing.", StringComparison.Ordinal),
+                "Cancelling a Markdown close must keep its unsaved buffer.");
+            app.Window.Layout.Close(group, "markdown:README.md");
+            Until(() => app.Window.OwnedWindows.OfType<DialogWindow>().Any());
+            prompt = app.Window.OwnedWindows.OfType<DialogWindow>().Single();
+            prompt.GetLogicalDescendants().OfType<Button>().Single(button => button.Content is TextBlock { Text: "Don't Save" })
+                .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            Until(() => !app.Tabs.Any(tab => tab.Path == "README.md"));
+            Require(!File.ReadAllText(Path.Combine(app.Root, "README.md")).Contains("Unsaved before closing.", StringComparison.Ordinal),
+                "Discarding Markdown edits must leave the saved file intact.");
+        }
         Console.WriteLine("PASS fork EmbeddedSplit: Markdown gets a Split view, the buffer and its preview at once");
+    }
+
+    private static void Images(string root)
+    {
+        var directory = Path.Combine(root, "markdown-images");
+        Directory.CreateDirectory(directory);
+        using var bitmap = new SkiaSharp.SKBitmap(1600, 900);
+        bitmap.Erase(SkiaSharp.SKColors.Lime);
+        using var encoded = bitmap.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100);
+        File.WriteAllBytes(Path.Combine(directory, "wide.png"), encoded.ToArray());
+        using var app = OpenDocument(root, "markdown-images", "images.md", "# Image\n\n![Wide chart](wide.png)\n\nAfter the image.\n");
+        var preview = app.Find<MarkdownPreview>("MarkdownPreview");
+        Image? image = null;
+        Until(() => (image = preview.GetLogicalDescendants().OfType<Image>().FirstOrDefault()) is { Bounds.Height: > 100 });
+        var loaded = image!;
+        var paragraph = loaded.GetLogicalAncestors().OfType<SelectableTextBlock>().First();
+        Require(loaded.Bounds.Width <= paragraph.Bounds.Width + 1, "A wide image must fit the Markdown column.");
+        Require(paragraph.Bounds.Height >= loaded.Bounds.Height, "The image paragraph must reserve the full image height.");
+        Require(Math.Abs(loaded.Bounds.Width / loaded.Bounds.Height - 1600d / 900) < .02, "The whole image must keep its aspect ratio.");
+        Console.WriteLine("PASS Markdown images fit the column and reserve their full height");
     }
 
     private static void Find(string root)

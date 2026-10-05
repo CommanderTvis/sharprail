@@ -453,7 +453,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             if (line > 0)
                 Dispatcher.UIThread.Post(() =>
                 {
-                    if (documentContent.GetValueOrDefault(key) is Editor.CodeDocumentView code) code.Editor.ScrollToLine(Math.Max(0, line - 4));
+                    if (EditableDocument(documentContent.GetValueOrDefault(key)) is { } code) code.Editor.ScrollToLine(Math.Max(0, line - 4));
                 }, DispatcherPriority.Loaded);
         }
         catch (Exception error) when (error is not OperationCanceledException) { Report(error); }

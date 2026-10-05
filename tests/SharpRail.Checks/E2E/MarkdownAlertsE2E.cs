@@ -26,11 +26,11 @@ internal static class MarkdownAlertsE2E
             .Select(text => string.Concat(text.Inlines?.OfType<Run>().Select(run => run.Text) ?? [])));
         Require(rendered.Contains("Useful information", StringComparison.Ordinal) && !rendered.Contains("[!NOTE]", StringComparison.Ordinal),
             "The rendered note must preserve content and hide its source marker.");
-        app.Click(app.Find<Button>("ViewToggle_code"));
+        app.Click(app.Find<Button>("MarkdownSourceMode"));
         var source = app.Find<Control>("MarkdownSource");
         Require(MarkdownSourceText(source).Contains("[!NOTE]", StringComparison.Ordinal),
             "Source mode must display the original alert marker.");
-        app.Click(app.Find<Button>("ViewToggle_markdown"));
+        app.Click(app.Find<Button>("MarkdownPreviewMode"));
         Require(ReferenceEquals(preview, app.Find<MarkdownPreview>("MarkdownPreview")), "Returning to preview must retain its mounted document.");
         Console.WriteLine("PASS upstream markdown-alerts.spec.ts: renders GitHub-style alert callouts in the rendered markdown view");
     }

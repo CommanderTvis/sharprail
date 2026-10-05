@@ -20,7 +20,7 @@ namespace SharpRail.Checks.E2E;
 
 /// <summary>
 /// Upstream editor.spec.ts, plus the Monaco cases of theme.spec.ts and line-width-settings.spec.ts
-/// translated to the macOS Scintilla editor. Markdown source views stay SharpRail's read-only source view.
+/// translated to the macOS Scintilla editor, including Markdown source views.
 /// </summary>
 internal static class EditorE2E
 {
@@ -66,17 +66,17 @@ internal static class EditorE2E
         app.Open("README.md", keep: true);
         Require(app.Tabs.Count(tab => tab.Path == "README.md") == 1, "Double-clicking README.md must open one center tab.");
         Until(() => Text(app.Find<MarkdownPreview>("MarkdownPreview")).Contains("sample-project", StringComparison.Ordinal));
-        app.Click(app.Find<Button>("ViewToggle_code"));
+        app.Click(app.Find<Button>("MarkdownSourceMode"));
         Until(() => !PreviewShown(app));
         Require(MarkdownSourceText(app.Find<Control>("MarkdownSource")).Contains("# sample-project", StringComparison.Ordinal), "Source mode must show the Markdown source.");
         var source = app.Find<Control>("MarkdownSource");
         if (OperatingSystem.IsMacOS())
-            Require(source is ScintillaEditor { IsReadOnly: true }, "Markdown source must use a read-only Scintilla editor on macOS.");
-        app.Click(app.Find<Button>("ViewToggle_markdown"));
+            Require(source is ScintillaEditor { IsReadOnly: false }, "Markdown source must use the editable file buffer on macOS.");
+        app.Click(app.Find<Button>("MarkdownPreviewMode"));
         Until(() => PreviewShown(app));
-        app.Click(app.Find<Button>("ViewToggle_code"));
+        app.Click(app.Find<Button>("MarkdownSourceMode"));
         Require(ReferenceEquals(source, app.Find<Control>("MarkdownSource")), "Mode switches must retain the source editor.");
-        app.Click(app.Find<Button>("ViewToggle_markdown"));
+        app.Click(app.Find<Button>("MarkdownPreviewMode"));
 
         app.Click(app.FileRow("README.md"), twice: true);
         Settle();
@@ -103,10 +103,10 @@ internal static class EditorE2E
         var prose = string.Join('\n', ((StackPanel)preview.Content!).Children.Where(block => block != properties).Select(Text));
         Require(!prose.Contains("goal-and-requirements", StringComparison.Ordinal) && !Text(preview).Contains("id: sample-root", StringComparison.Ordinal),
             "The rendered view must hide YAML frontmatter.");
-        app.Click(app.Find<Button>("ViewToggle_code"));
+        app.Click(app.Find<Button>("MarkdownSourceMode"));
         Until(() => !PreviewShown(app));
         Require(MarkdownSourceText(app.Find<Control>("MarkdownSource")).Contains("id: sample-root", StringComparison.Ordinal), "Source mode must show the frontmatter.");
-        Console.WriteLine("PASS upstream editor.spec.ts (diverges): shows YAML frontmatter as a leading code block in the rendered view and in source");
+        Console.WriteLine("PASS upstream editor.spec.ts (diverges): shows YAML frontmatter as properties in the rendered view and preserves it in source");
     }
 
     private static ScintillaEditor OpenEditor(E2eWorkspace app, string path)
@@ -122,7 +122,7 @@ internal static class EditorE2E
         var editor = OpenEditor(app, "notes.txt");
         Require(app.Tabs.Any(tab => tab.Path == "notes.txt"), "notes.txt must open in a center tab.");
         Require(editor.Text.Contains("plain-text-fixture", StringComparison.Ordinal), "The editor must show the file contents.");
-        Require(!app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name is "ViewToggle_code" or "ViewToggle_markdown" && button.IsEffectivelyVisible)
+        Require(!app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name is "MarkdownSourceMode" or "MarkdownPreviewMode" && button.IsEffectivelyVisible)
             && !PreviewShown(app),
             "A non-Markdown file must open straight to the editor without a rendered-view toggle.");
         Console.WriteLine("PASS upstream editor.spec.ts: opens a non-markdown file straight to Monaco with no rendered-view toggle");

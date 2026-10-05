@@ -68,6 +68,9 @@ publish toggle automation changes without requesting another update.
 - Owns, in `SharpRail.Plugins.UI.Kit.Markdown`: `MarkdownPreview`, `MarkdownDocumentView` (with its compiled
   header), `MarkdownProperties`, `Frontmatter`, `MarkdownLink`, and `Outline` (the heading column, extracted
   from `MarkdownDocumentView.FillOutline`, which `DiffView` also uses).
+  The document view accepts a lazy source-control factory so its owner can supply an editable buffer;
+  `RefreshPreviewAsync` debounces and parses edits off the dispatcher, rejecting stale results.
+  `PreviewChanged` lets the owner reconnect selection observers after replacement.
 - Owns, in `SharpRail.Plugins.UI.Kit.Editor`: `EditorFrame` (the Scintilla host with theme colours, fonts and
   line styles).
 - Owns, in `SharpRail.Plugins.UI.Kit.Visualization`: `MermaidRenderer` and `MermaidDialog` (inline and
