@@ -38,6 +38,7 @@ public sealed partial class DockSurface : Grid
     /// <summary>Raised after a rebuild with the centre strips that belong in Projects, by centre group; empty otherwise.</summary>
     public event Action<IReadOnlyDictionary<string, Control>>? NestedStripsChanged;
     private readonly Dictionary<string, Control> nestedStrips = [];
+    private readonly Dictionary<string, Action> activeTabUpdates = [];
     /// <summary>Extra strip actions after New terminal in a center group, given the group's id.</summary>
     public Func<string, IEnumerable<Control>>? CenterActions { get; set; }
     /// <summary>Recreates every center group's <see cref="CenterActions"/>, leaving tabs and the rest of the strip in place.</summary>
@@ -77,6 +78,7 @@ public sealed partial class DockSurface : Grid
         };
         Session.Changed += () => { CancelForLayoutChange(); if (!Retarget()) Rebuild(); };
         Session.ToolsChanged += RefreshTools;
+        Session.Focused += () => { foreach (var update in activeTabUpdates.Values) update(); };
         Session.SelectionChanged += group =>
         {
             var resizing = CancelForLayoutChange();
@@ -117,6 +119,7 @@ public sealed partial class DockSurface : Grid
         CancelDrag();
         foreach (var host in contentHosts) host.Child = null;
         contentHosts.Clear(); builtGroups.Clear(); tabSites.Clear(); groupHeaders.Clear(); selectionUpdates.Clear();
+        activeTabUpdates.Clear();
         modifiedUpdates.Clear(); catalogUpdates.Clear(); centerActionUpdates.Clear(); sites.Clear(); nestedStrips.Clear(); stripLayouts.Clear();
         renderedMode = CenterTabs?.Invoke();
         foreach (var control in shell.Children.Where(control => control != centerRegion && !auxiliaryRegions.Values.Contains(control)).ToArray())
@@ -204,6 +207,7 @@ public sealed partial class DockSurface : Grid
 
     private Control BuildTrackedGroup(DockGroup group)
     {
+        activeTabUpdates.Remove(group.Id);
         int hosts = contentHosts.Count, placed = sites.Count, modified = modifiedUpdates.Count, catalog = catalogUpdates.Count, actions = centerActionUpdates.Count;
         var control = BuildGroup(group);
         builtGroups[group.Id] = new(control, GroupSignature(group.Id), [.. contentHosts.Skip(hosts)], [.. sites.Skip(placed)],
