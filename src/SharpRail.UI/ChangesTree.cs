@@ -31,7 +31,10 @@ public sealed partial class WorkbenchWindow
             var label = string.Join('/', parts.Skip(depth).Take(end - depth));
             var node = new TreeViewItem { IsExpanded = true, Tag = string.Join('/', parts.Take(end)) };
             var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,8,Auto"), Height = 28 };
-            Ui.Place(row, Ui.Row("folder", label));
+            var folderLabel = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,6,*"), ClipToBounds = true };
+            Ui.Place(folderLabel, Ui.Icon("folder"));
+            Ui.Place(folderLabel, Ui.Text(label), 0, 2);
+            Ui.Place(row, folderLabel);
             var stats = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
             stats.Children.Add(Ui.Text("+" + descendants.Sum(change => change.Change.Added), Ui.Success, 12));
             stats.Children.Add(Ui.Text("−" + descendants.Sum(change => change.Change.Removed), Ui.Danger, 12));

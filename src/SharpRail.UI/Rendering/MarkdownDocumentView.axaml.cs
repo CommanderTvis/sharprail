@@ -5,6 +5,7 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Media;
 
 using SharpRail.Host.Abstractions;
+using SharpRail.UI.Editor;
 using SharpRail.UI.State;
 
 namespace SharpRail.UI.Rendering;
@@ -15,7 +16,7 @@ internal sealed partial class MarkdownDocumentView : UserControl, IDisposable
     private readonly IProjectServices host;
     private readonly Preferences preferences;
     private readonly Action<string, string?> navigate;
-    private ScrollViewer? source;
+    private Control? source;
     private string sourceText;
     private readonly Button previewButton;
     private readonly Button sourceButton;
@@ -38,13 +39,22 @@ internal sealed partial class MarkdownDocumentView : UserControl, IDisposable
     private void ShowSource(bool show)
     {
         if (show && source is null)
-            source = new ScrollViewer
+        {
+            if (OperatingSystem.IsMacOS())
+            {
+                var frame = new EditorFrame(sourceText, "MarkdownSource");
+                frame.Editor.IsReadOnly = true;
+                frame.Editor.WrapWidth = LineWidths.File(preferences);
+                source = frame;
+            }
+            else source = new ScrollViewer
             {
                 Name = "MarkdownSource",
                 Content = MarkdownPreview.Code(sourceText),
                 Margin = new Thickness(20),
                 HorizontalScrollBarVisibility = ScrollBarVisibility.Auto
             };
+        }
         body.Content = show ? source : preview;
         previewButton.Background = show ? Brushes.Transparent : Ui.Hover;
         previewButton.Foreground = show ? Ui.Muted : Ui.TextBrush;
@@ -56,15 +66,27 @@ internal sealed partial class MarkdownDocumentView : UserControl, IDisposable
     {
         var showSource = source is not null && ReferenceEquals(body.Content, source);
         var previewOffset = preview.Offset;
-        var sourceOffset = source?.Offset ?? default;
+        var sourceOffset = (source as ScrollViewer)?.Offset ?? default;
+        var sourceLine = (source as EditorFrame)?.Editor.FirstVisibleLine ?? 0;
         preview.Dispose();
         preview = new(document.Text, document.Path, host, preferences, navigate) { Offset = previewOffset };
         sourceText = document.Text;
-        source = null;
+        if (source is EditorFrame frame)
+        {
+            frame.Editor.IsReadOnly = false;
+            try { frame.Editor.Text = sourceText; }
+            finally { frame.Editor.IsReadOnly = true; }
+            frame.Editor.ScrollToLine(sourceLine);
+        }
+        else source = null;
         ShowSource(showSource);
-        if (source is not null) source.Offset = sourceOffset;
+        if (source is ScrollViewer scroll) scroll.Offset = sourceOffset;
     }
 
     internal void ScrollToAnchor(string id) { ShowSource(false); preview.ScrollToAnchor(id); }
-    public void Dispose() => preview.Dispose();
+    public void Dispose()
+    {
+        preview.Dispose();
+        (source as EditorFrame)?.Editor.Dispose();
+    }
 }

@@ -56,6 +56,33 @@ internal static class GitUiChecks
         Button Change() => Buttons(window).Single(button => ToolTip.GetTip(button) is string tip &&
             tip.StartsWith("space ü\tfile.txt", StringComparison.Ordinal) &&
             button.ContextMenu?.Items.OfType<MenuItem>().Any(item => Equals(item.Header, "Stage file")) == true);
+        var changeButton = Change();
+        var changeRow = (Grid)changeButton.Content!;
+        var pathLabel = (Grid)changeRow.Children[0];
+        var basename = pathLabel.Children.OfType<TextBlock>().Single(text => text.Classes.Contains("change-path-base"));
+        var originalName = basename.Text;
+        basename.Text = new string('W', 100) + ".cs";
+        changeButton.Content = null;
+        var rowWindow = new Window { Content = changeRow, Width = 180, Height = 80 };
+        rowWindow.Show();
+        foreach (var width in new[] { 180d, 320d, 140d })
+        {
+            rowWindow.Width = width;
+            Dispatcher.UIThread.RunJobs();
+            rowWindow.UpdateLayout();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Dispatcher.UIThread.RunJobs();
+            var counts = changeRow.Children[1];
+            Require(pathLabel.Bounds.Right + 8 <= counts.Bounds.Left + 0.1,
+                "Long change labels must reserve the gap before line counts.");
+            Require(basename.Bounds.Right <= pathLabel.Bounds.Width + 0.1,
+                $"Long change basenames must truncate inside the path column: row {width}, path {pathLabel.Bounds}, basename {basename.Bounds}, max {basename.MaxWidth}.");
+        }
+        rowWindow.Content = null;
+        rowWindow.Close();
+        changeButton.Content = changeRow;
+        basename.Text = originalName;
+        window.UpdateLayout();
         Button Named(string name) => Buttons(window).Single(button => button.Name == name);
         Require(Named("ChangesBranch").ContextMenu!.Items.OfType<MenuItem>().Any(item => Equals(item.Header, "Local") && item.Items.Count > 0),
             "Comparison branches must be grouped under Local.");

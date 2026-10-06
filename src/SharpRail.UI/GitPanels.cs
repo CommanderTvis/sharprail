@@ -221,7 +221,7 @@ public sealed partial class WorkbenchWindow
         var color = change.IndexStatus is "?" or "A" || change.WorktreeStatus is "?" or "A" ? Ui.Success :
             change.IndexStatus == "D" || change.WorktreeStatus == "D" ? Ui.Danger : Ui.Muted;
         var separator = label.LastIndexOf('/');
-        var path = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), HorizontalAlignment = HorizontalAlignment.Left };
+        var path = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), HorizontalAlignment = HorizontalAlignment.Left, ClipToBounds = true };
         var directory = Ui.Text(separator < 0 ? "" : label[..(separator + 1)], Ui.Muted);
         directory.Classes.Add("change-path-dir");
         Ui.Place(path, directory);
@@ -233,7 +233,11 @@ public sealed partial class WorkbenchWindow
         numbers.Children.Add(Ui.Text("+" + change.Added, Ui.Success, 12));
         numbers.Children.Add(Ui.Text("−" + change.Removed, Ui.Danger, 12));
         Ui.Place(row, numbers, 0, 2);
-        row.SizeChanged += (_, _) => filename.MaxWidth = Math.Max(0, row.Bounds.Width - numbers.DesiredSize.Width - 8);
+        row.SizeChanged += (_, _) =>
+        {
+            path.MaxWidth = Math.Max(0, row.Bounds.Width - numbers.DesiredSize.Width - 8);
+            filename.MaxWidth = path.MaxWidth;
+        };
         var button = new Button
         {
             Content = row,

@@ -3,6 +3,7 @@
 Upstream: apps/web/src/components/SPEC.md @ 3822748b
 Upstream: apps/web/src/components/ui/SPEC.md @ c44534ea
 Upstream: apps/web/src/lib/SPEC.md @ 3822748b
+Markdown source contract: apps/web/src/panels/SPEC.md @ be804a563
 
 ## Responsibility
 
@@ -47,6 +48,17 @@ can use it without a cycle. Theme catalogue and colour roles have their own docu
 
 - `.md` and `.markdown` files open rendered by default; the extension check is the Markdown gate shared by
   file tabs and diff tabs.
+- Source is the lazy read-only editor. On macOS it uses `EditorFrame` / Scintilla with the same font,
+  theme colours, selection and scrollbars as code files; other platforms retain selectable source text.
+  Creating the rendered preview does not allocate the source editor. Source shows the complete file,
+  including YAML frontmatter, alert markers and Mermaid fences, and follows the file line-width preference.
+- The choice is per tab, survives tab switches, and is not persisted across reload. Switching Preview
+  and Source retains both controls and their scroll positions. External edits update an existing source
+  editor in place and preserve its first visible line; returning to a previously hidden Source shows the
+  latest disk content. The source stays read-only after reload. Closing the document disposes both views.
+- Acceptance checks cover Scintilla selection on macOS, read-only source, editor identity across mode
+  switches and external reloads, and raw frontmatter, alert and Mermaid content. Long files use the
+  viewer limits below rather than eagerly creating a rendered preview.
 - External edits reload the document without replacing its mode controls or switching the selected
   Source/Preview mode; both views show the new disk content.
 - A leading YAML front-matter block renders first as a code block of its fields (without the fences), so

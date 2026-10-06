@@ -216,7 +216,11 @@ hover kebab and right-click menu anchored to it: Open in a detected editor, Copy
 path, and for worktrees an inline display rename shared through the host and
 removal. The Default workspace is never removable; removing the active workspace
 returns to the previously selected one. The Files tree compacts single-directory runs. Git: working/staged/untracked/renamed files,
-branch comparison, read-only diffs, refresh and worktree listing/switching.
+branch comparison, read-only diffs, refresh and worktree listing/switching. Every path is
+rendered as two truncatable halves (dir + basename), so a long basename can never push
+the counts out of the box. The dir prefix yields completely before the basename
+gives up a pixel. File and folder labels truncate before the reserved counts and action gutter
+in both List and Tree views; resizing preserves the gap. See [Panels.SPEC.md](src/SharpRail.UI/Panels.SPEC.md).
 Markdown diffs offer the reference's Source|Rendered toggle: Rendered shows one merged
 document with insertions and deletions marked, merged off the UI thread, cancelled when
 the file changes again, and replaced by an error placeholder if the merge fails.
@@ -339,7 +343,19 @@ CommonMark/GFM headings/anchors, paragraphs, emphasis, links, inline/fenced code
 lists/tasks, blockquotes/callouts, tables, rules and images. Text selectable across blocks,
 relative document navigation, safe external link launch, local image loading,
 frontmatter shown as a leading code block and bounded configurable line width. No WebView or HTML
-application runtime. Read-only source/diff viewing is not an editor.
+application runtime.
+
+Markdown file tabs render, don't read. A `.md`/`.markdown` file tab (from the file tree
+or the Specs panel — same open path) opens rendered by default and shows a slim
+`Preview | Source` header. Source is the lazy read-only editor: the shared Scintilla
+frame on macOS, replacing upstream's `MonacoEditor`, with selectable text elsewhere.
+It shows the complete file, including frontmatter and fenced code, and uses the file
+line-width preference. The choice is per tab, survives tab switches, and is not
+persisted across reload. Mode switches retain both views; disk reloads preserve
+mode, source editor identity and scroll position. Closing the tab disposes both views.
+Source and diff views remain read-only. See [Rendering/SPEC.md](src/SharpRail.UI/Rendering/SPEC.md).
+The Markdown source and path-truncation wording follows JetBrains/thinkrail's
+`apps/web/src/panels/SPEC.md` at `be804a563`, with the platform adaptations above.
 ` ```mermaid ` fences render natively on macOS through Merman as vector diagrams
 themed from the current appearance tokens, with a full-screen pan/zoom view; other
 platforms show the source with an unavailability message. Invalid diagrams show

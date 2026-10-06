@@ -67,9 +67,15 @@ internal static class EditorE2E
         Until(() => Text(app.Find<MarkdownPreview>("MarkdownPreview")).Contains("sample-project", StringComparison.Ordinal));
         app.Click(app.Find<Button>("MarkdownSourceMode"));
         Until(() => !PreviewShown(app));
-        Require(Text(app.Find<ScrollViewer>("MarkdownSource")).Contains("# sample-project", StringComparison.Ordinal), "Source mode must show the Markdown source.");
+        Require(MarkdownSourceText(app.Find<Control>("MarkdownSource")).Contains("# sample-project", StringComparison.Ordinal), "Source mode must show the Markdown source.");
+        var source = app.Find<Control>("MarkdownSource");
+        if (OperatingSystem.IsMacOS())
+            Require(source is ScintillaEditor { IsReadOnly: true }, "Markdown source must use a read-only Scintilla editor on macOS.");
         app.Click(app.Find<Button>("MarkdownPreviewMode"));
         Until(() => PreviewShown(app));
+        app.Click(app.Find<Button>("MarkdownSourceMode"));
+        Require(ReferenceEquals(source, app.Find<Control>("MarkdownSource")), "Mode switches must retain the source editor.");
+        app.Click(app.Find<Button>("MarkdownPreviewMode"));
 
         app.Click(app.FileRow("README.md"), twice: true);
         Settle();
@@ -96,7 +102,7 @@ internal static class EditorE2E
             "The rendered view must show YAML frontmatter as a leading code block without its fences.");
         app.Click(app.Find<Button>("MarkdownSourceMode"));
         Until(() => !PreviewShown(app));
-        Require(Text(app.Find<ScrollViewer>("MarkdownSource")).Contains("id: sample-root", StringComparison.Ordinal), "Source mode must show the frontmatter.");
+        Require(MarkdownSourceText(app.Find<Control>("MarkdownSource")).Contains("id: sample-root", StringComparison.Ordinal), "Source mode must show the frontmatter.");
         Console.WriteLine("PASS upstream editor.spec.ts (diverges): shows YAML frontmatter as a leading code block in the rendered view and in source");
     }
 

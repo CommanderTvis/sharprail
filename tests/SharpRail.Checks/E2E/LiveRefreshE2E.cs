@@ -102,12 +102,14 @@ internal static class LiveRefreshE2E
         Until(() => PreviewText(app).Contains("live tab reload", StringComparison.Ordinal) && !PreviewText(app).Contains("edited twice by e2e", StringComparison.Ordinal));
         app.Click(app.Find<Button>("MarkdownSourceMode"));
         var documentView = app.Find<Button>("MarkdownSourceMode");
+        var sourceView = app.Find<Control>("MarkdownSource");
         var replacement = Path.Combine(worktree, "README.md.tmp");
         File.WriteAllText(replacement, "# atomically replaced by agent\n");
         File.Move(replacement, Path.Combine(worktree, "README.md"), true);
-        Until(() => app.Window.GetLogicalDescendants().OfType<ScrollViewer>().Any(view => view.Name == "MarkdownSource" &&
-            view.IsEffectivelyVisible && view.GetLogicalDescendants().OfType<SelectableTextBlock>().Any(block =>
-                string.Concat(block.Inlines?.OfType<Run>().Select(run => run.Text) ?? []).Contains("atomically replaced by agent", StringComparison.Ordinal))));
+        Until(() => app.Window.GetLogicalDescendants().OfType<Control>().Any(view => view.Name == "MarkdownSource" &&
+            view.IsEffectivelyVisible && MarkdownSourceText(view).Contains("atomically replaced by agent", StringComparison.Ordinal)));
+        if (OperatingSystem.IsMacOS())
+            Require(ReferenceEquals(sourceView, app.Find<Control>("MarkdownSource")), "Reload must retain the Scintilla source editor.");
         Require(ReferenceEquals(documentView, app.Find<Button>("MarkdownSourceMode")), "Reload must preserve the Markdown mode controls.");
         app.Click(app.Find<Button>("MarkdownPreviewMode"));
         Until(() => PreviewText(app).Contains("atomically replaced by agent", StringComparison.Ordinal));

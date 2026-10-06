@@ -28,9 +28,8 @@ internal static class MarkdownAlertsE2E
         Require(rendered.Contains("Useful information", StringComparison.Ordinal) && !rendered.Contains("[!NOTE]", StringComparison.Ordinal),
             "The rendered note must preserve content and hide its source marker.");
         app.Click(app.Find<Button>("MarkdownSourceMode"));
-        var source = app.Find<ScrollViewer>("MarkdownSource");
-        Require(source.GetLogicalDescendants().OfType<SelectableTextBlock>()
-            .Any(text => string.Concat(text.Inlines?.OfType<Run>().Select(run => run.Text) ?? []).Contains("[!NOTE]", StringComparison.Ordinal)),
+        var source = app.Find<Control>("MarkdownSource");
+        Require(MarkdownSourceText(source).Contains("[!NOTE]", StringComparison.Ordinal),
             "Source mode must display the original alert marker.");
         app.Click(app.Find<Button>("MarkdownPreviewMode"));
         Require(ReferenceEquals(preview, app.Find<MarkdownPreview>("MarkdownPreview")), "Returning to preview must retain its mounted document.");

@@ -18,6 +18,11 @@ namespace SharpRail.Checks.E2E;
 
 internal sealed class E2eWorkspace : IDisposable
 {
+    internal static string MarkdownSourceText(Control source) => source is SharpRail.Scintilla.ScintillaEditor editor
+        ? editor.Text
+        : string.Join('\n', source.GetLogicalDescendants().OfType<SelectableTextBlock>().Select(block =>
+            string.Concat(block.Inlines?.OfType<Avalonia.Controls.Documents.Run>().Select(run => run.Text) ?? [])));
+
     internal WorkbenchWindow Window { get; }
     internal E2eHost Host { get; }
     internal E2eTerminals Terminals { get; }

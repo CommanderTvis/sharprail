@@ -2776,3 +2776,20 @@ GitUiChecks all pass, including staging and fresh-window selection restoration.
 The full run was not repeated after the fixture fix. Temporary runner removed.
 Evidence: .bench/branch-tree-full.log, .bench/branch-tree-focused-final.log,
 .bench/branch-tree-build-final.log. Changes uncommitted; no publication/restart.
+
+### Markdown source and Changes label bounds — 2026-10-06
+
+Markdown Source now lazily uses the shared read-only Scintilla frame on macOS,
+with file-width wrapping, retained editor identity across toggles and disk reloads,
+and explicit disposal. Other platforms retain selectable text. Changes file paths
+are capped and clipped as a whole before counts; folder labels use a shrinking
+grid. Regression checks cover Scintilla identity/read-only/content/live reload
+and rendered long-basename geometry at three widths. Rendering and Panels specs
+reuse literal upstream panels wording at be804a563 and identify SharpRail adaptations.
+
+Release compilation and focused Markdown/alerts/Mermaid/editor/live-refresh checks
+pass with upstream Git fixtures (.bench/markdown-source-focused.log). Focused Git
+UI checks, including row geometry and staging/restoration, pass
+(.bench/change-row-focused-real-layout.log). Full suite stopped before Markdown
+at a MultiClientE2E Project Home timeout (.bench/markdown-source-checks.log).
+Temporary runner restored. Changes uncommitted; no publication or restart.

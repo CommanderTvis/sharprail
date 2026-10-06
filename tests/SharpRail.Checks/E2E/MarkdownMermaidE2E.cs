@@ -66,8 +66,8 @@ internal static class MarkdownMermaidE2E
         Until(() => !app.Window.OwnedWindows.OfType<DialogWindow>().Any());
 
         app.Click(app.Find<Button>("MarkdownSourceMode"));
-        var source = app.Find<ScrollViewer>("MarkdownSource");
-        Require(source.GetLogicalDescendants().OfType<SelectableTextBlock>().Any(text => TextOf(text).Contains("flowchart TD; Start --> Finish", StringComparison.Ordinal)),
+        var source = app.Find<Control>("MarkdownSource");
+        Require(MarkdownSourceText(source).Contains("flowchart TD; Start --> Finish", StringComparison.Ordinal),
             "Source mode must show the Mermaid source.");
         Console.WriteLine("PASS upstream markdown-mermaid.spec.ts: renders mermaid fences as diagrams in the rendered markdown view");
     }

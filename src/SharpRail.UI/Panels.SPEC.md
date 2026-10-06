@@ -8,6 +8,7 @@ title: Workbench panels
 # Workbench panels: Projects, Files, Specs, Changes, Review and Welcome
 
 Upstream: apps/web/src/panels/SPEC.md @ 3822748b
+Changes-row truncation and Markdown source contract: apps/web/src/panels/SPEC.md @ be804a563
 
 ## Responsibility
 
@@ -134,9 +135,16 @@ snapshot lands.
   `Loading Git…`; a failure shows the error with Retry; only a landed snapshot with no changes says the
   working tree is clean. A folder that is genuinely not a repository says so. A clean claim from a read that
   never landed would be this product's worst failure.
-- List shows the full worktree-relative path as two truncatable halves: muted directory prefix and the
-  status-coloured basename (added or untracked in success, deleted in danger, otherwise muted). The
-  directory yields before the basename. Each row carries `+N −M`.
+- The List shows the full worktree-relative path — muted directory prefix (which yields first when the
+  row overflows) + the status-colored basename, so the name a user scans stays visible. Added or untracked
+  names use success, deleted names danger, otherwise muted. Each row carries `+N −M`.
+- Every path is rendered as two truncatable halves (dir + basename), so a long basename can never push
+  the counts out of the box. The halves are not equally truncatable: the dir prefix yields completely
+  before the basename gives up a pixel, because the name is what a user scans. In Avalonia, the directory
+  occupies the shrinking star column; the basename occupies the Auto column and is capped at the path's
+  available width. The whole path is capped and clipped before the 8px gap and reserved counts column.
+  Short directory/name pairs remain adjacent. Resizing the panel recalculates the available width.
+  Tree folder labels also truncate within their column, preserving the icon, counts and menu gutter.
 - Tree builds folders from the changed paths only, default expanded, compacting single-directory runs into
   one slash-joined row, with summed `+N −M` per folder. Folder rows reserve the same trailing gutter as file
   rows so counts align.
@@ -151,6 +159,13 @@ snapshot lands.
 - Rendering of the diff itself is `Rendering/DiffView` (see Rendering/SPEC.md).
 
 ## File and diff views
+
+- Markdown file tabs render, don't read. A `.md`/`.markdown` file tab (from the file tree or the Specs
+  panel — same open path) opens rendered by default and shows a slim `Preview | Source` header.
+  Source is the lazy read-only editor: SharpRail uses the shared Scintilla frame on macOS in place of
+  upstream's `MonacoEditor`, with selectable text as the other-platform fallback. Source shows the
+  complete file, including frontmatter and fenced code. The choice is per tab, survives tab switches,
+  and is not persisted across reload. Renderer behavior and lifecycle live in [Rendering/SPEC.md](Rendering/SPEC.md).
 
 - A file or diff tab picks its view from what the content is, not from a per-pane format switch: Markdown
   ranks its rendered view above source (`MarkdownDocumentView`, and the rendered merge in `DiffView`), and
