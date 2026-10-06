@@ -79,9 +79,24 @@ public sealed partial class WorkbenchWindow
         {
             var branches = ChangesDropdown("ChangesBranch", "Comparison branch", "vs " + (comparison.Length > 0 ? comparison : git.Branch), "gitBranch");
             branches.MaxWidth = 200;
-            foreach (var branch in git.Branches)
+            var local = new MenuItem { Header = "Local" };
+            var remote = new MenuItem { Header = "Remote" };
+            if (gitBranches.Local.Count > 0) branches.ContextMenu!.Items.Add(local);
+            if (gitBranches.Remote.Count > 0) branches.ContextMenu!.Items.Add(remote);
+            void AddBranch(MenuItem parent, string name, string branch)
             {
-                var item = Ui.Menu(branch, () =>
+                var parts = name.Split('/');
+                foreach (var folder in parts[..^1])
+                {
+                    var group = parent.Items.OfType<MenuItem>().FirstOrDefault(item => item.Tag is null && Equals(item.Header, folder));
+                    if (group is null)
+                    {
+                        group = new MenuItem { Header = folder };
+                        parent.Items.Add(group);
+                    }
+                    parent = group;
+                }
+                var item = Ui.Menu(parts[^1], () =>
                 {
                     changeScope = "All changes"; selectedCommit = null; comparison = branch;
                     RetargetDiffTabs();
@@ -89,7 +104,16 @@ public sealed partial class WorkbenchWindow
                 });
                 item.ToggleType = MenuItemToggleType.Radio;
                 item.IsChecked = comparison == branch;
-                branches.ContextMenu!.Items.Add(item);
+                item.Tag = branch;
+                ToolTip.SetTip(item, branch);
+                parent.Items.Add(item);
+            }
+            foreach (var branch in gitBranches.Local) AddBranch(local, branch, branch);
+            foreach (var group in gitBranches.Remote.GroupBy(branch => branch.Remote))
+            {
+                var owner = new MenuItem { Header = group.Key };
+                remote.Items.Add(owner);
+                foreach (var branch in group) AddBranch(owner, branch.Name, branch.Ref);
             }
             branches.ContextMenu!.Items.Add(new Separator());
             branches.ContextMenu.Items.Add(Ui.Menu("Refresh git", () => _ = RefreshAsync()));

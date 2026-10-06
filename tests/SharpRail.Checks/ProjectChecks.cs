@@ -321,6 +321,10 @@ internal static class ProjectChecks
             "Comparison must include local committed changes since the fork as well as working changes.");
         var behind = root + "-fork";
         await host.ApplyGitActionAsync(new("create-worktree", behind, "sharprail-fork", fork));
+        await Git(root, "branch", "feature/tree/local", fork);
+        await Git(root, "remote", "add", "tree/remote", root);
+        await Git(root, "update-ref", "refs/remotes/tree/remote/feature/tree/local", fork);
+        await Git(root, "symbolic-ref", "refs/remotes/tree/remote/HEAD", "refs/remotes/tree/remote/feature/tree/local");
         var forkHost = new ProjectServices(behind);
         await forkHost.OpenProjectAsync(behind);
         await File.WriteAllTextAsync(Path.Combine(behind, path), "Only local work\n");

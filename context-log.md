@@ -2756,3 +2756,23 @@ its click helper needed a render tick before hit testing. The corrected Git UI s
 passes in isolation: .bench/agent-refresh-git-ui-render.log. The full suite was not
 repeated after that test-only fix. Temporary diagnostic runner changes were removed.
 Changes remain uncommitted; no publication or app restart.
+
+### Comparison branch tree — 2026-10-06
+
+Changes now groups comparison targets into Local/path folders and
+Remote/configured remote/path folders. Leaves retain full references for
+selection and tooltips; HEAD aliases and empty groups are omitted. Uses the
+existing host catalogue in the cancellable background Git refresh, with stale
+result checks before and after the catalogue read. Updated the panels spec.
+
+Regression fixtures cover nested local branches, slash-containing remote names,
+identical local/remote leaf names and HEAD aliases. E2E pointer helpers now open
+submenus; target selection, active marking and open-diff retargeting pass.
+Release build and formatting verification pass. The full run passed through the
+translated UI suites but stopped at StartupChecks: its simulated repository had
+been delegating branch listing to a real non-Git folder. Fixed that fixture;
+focused ProjectChecks, StartupChecks, DockInputChecks, AuxiliaryInputChecks and
+GitUiChecks all pass, including staging and fresh-window selection restoration.
+The full run was not repeated after the fixture fix. Temporary runner removed.
+Evidence: .bench/branch-tree-full.log, .bench/branch-tree-focused-final.log,
+.bench/branch-tree-build-final.log. Changes uncommitted; no publication/restart.

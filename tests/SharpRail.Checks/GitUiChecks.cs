@@ -28,7 +28,8 @@ internal static class GitUiChecks
     }
 
     private static IEnumerable<Button> Buttons(Window window) => window.GetLogicalDescendants().OfType<Button>();
-    private static MenuItem Action(Button button, string name) => button.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, name));
+    private static IEnumerable<MenuItem> MenuItems(IEnumerable<object?> items) => items.OfType<MenuItem>().SelectMany(item => new[] { item }.Concat(MenuItems(item.Items)));
+    private static MenuItem Action(Button button, string name) => MenuItems(button.ContextMenu!.Items).Single(item => Equals(item.Tag, name) || item.Tag is null && Equals(item.Header, name));
     private static void Invoke(MenuItem item)
     {
         Require(item.IsEnabled, "Git menu action is disabled.");
@@ -56,6 +57,18 @@ internal static class GitUiChecks
             tip.StartsWith("space ü\tfile.txt", StringComparison.Ordinal) &&
             button.ContextMenu?.Items.OfType<MenuItem>().Any(item => Equals(item.Header, "Stage file")) == true);
         Button Named(string name) => Buttons(window).Single(button => button.Name == name);
+        Require(Named("ChangesBranch").ContextMenu!.Items.OfType<MenuItem>().Any(item => Equals(item.Header, "Local") && item.Items.Count > 0),
+            "Comparison branches must be grouped under Local.");
+        var localGroup = Action(Named("ChangesBranch"), "Local");
+        var feature = localGroup.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "feature"));
+        var folder = feature.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "tree"));
+        Require(folder.Items.OfType<MenuItem>().Single().Tag is "feature/tree/local",
+            "Local branch paths must form nested folders and retain their full reference.");
+        var remoteGroup = Action(Named("ChangesBranch"), "Remote");
+        var owner = remoteGroup.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "tree/remote"));
+        Require(MenuItems(owner.Items).Any(item => item.Tag is "tree/remote/feature/tree/local") &&
+            !MenuItems(remoteGroup.Items).Any(item => item.Tag is string reference && reference.EndsWith("/HEAD", StringComparison.Ordinal)),
+            "Remote branch folders must preserve configured remote ownership and omit HEAD aliases.");
         Click(window, Named("ChangesTree"));
         Require(window.GetLogicalDescendants().OfType<TreeView>().Any(tree => tree.GetLogicalAncestors().OfType<Grid>().Any(grid => grid.Name == "ChangesPanel")),
             "Changes Tree control did not switch the view.");
@@ -101,6 +114,12 @@ internal static class GitUiChecks
         Pump(() => Buttons(window).Any(button => ToolTip.GetTip(button) is string tip && tip.StartsWith("space ü\tfile.txt", StringComparison.Ordinal)));
         Pump(() => !Action(Change(), "Unstage file").IsEnabled);
 
+        Invoke(Action(Named("ChangesBranch"), "tree/remote/feature/tree/local"));
+        Pump(() => Action(Named("ChangesBranch"), "tree/remote/feature/tree/local").IsChecked);
+        Invoke(Action(Named("ChangesBranch"), "feature/tree/local"));
+        Pump(() => Action(Named("ChangesBranch"), "feature/tree/local").IsChecked);
+        Require(!Action(Named("ChangesBranch"), "tree/remote/feature/tree/local").IsChecked,
+            "Identical local and remote leaf names must select independent full references.");
         Invoke(Action(Named("ChangesBranch"), "sharprail-fork"));
         Pump(() => Named("ChangesScope").ContextMenu!.Items.OfType<MenuItem>().Any(item => item.Name?.StartsWith("ChangesCommit_", StringComparison.Ordinal) == true));
         MenuItem Commit() => Named("ChangesScope").ContextMenu!.Items.OfType<MenuItem>().Single(item => item.Name?.StartsWith("ChangesCommit_", StringComparison.Ordinal) == true);

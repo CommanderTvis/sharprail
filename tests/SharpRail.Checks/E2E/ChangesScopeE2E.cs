@@ -92,7 +92,7 @@ internal static class ChangesScopeE2E
         Require(Text(app.Find<Button>("ChangesBranch")).Contains("workspace-1", StringComparison.Ordinal), "The target picker must show the chosen branch.");
         var picker = app.Find<Button>("ChangesBranch");
         app.Click(picker); Until(() => picker.ContextMenu!.IsOpen);
-        Require(picker.ContextMenu!.Items.OfType<MenuItem>().Single(Header("workspace-1")).IsChecked, "The chosen target must be marked active in the picker.");
+        Require(MenuItems(picker.ContextMenu!.Items).Single(item => Equals(item.Tag, "workspace-1")).IsChecked, "The chosen target must be marked active in the picker.");
         CloseMenu(picker);
         Console.WriteLine("PASS upstream changes.spec.ts: The scope menu's target-branch picker re-points what the changes are measured against");
     }

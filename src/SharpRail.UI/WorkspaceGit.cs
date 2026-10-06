@@ -5,6 +5,7 @@ public sealed partial class WorkbenchWindow
     private CancellationTokenSource? gitRefresh;
     private bool gitLoading;
     private string? gitError;
+    private SharpRail.Host.Abstractions.BranchCatalog gitBranches = new([], [], "");
 
     private void RememberGitSelection()
     {
@@ -16,6 +17,7 @@ public sealed partial class WorkbenchWindow
         var selection = profile.Data.GitSelections.GetValueOrDefault(workspaceRoot);
         comparison = selection?.Target ?? ""; changeScope = selection?.Scope ?? "All changes";
         selectedCommit = selection?.Commit; gitCommits = [];
+        gitBranches = new([], [], "");
     }
 
     private void SaveGitSelection() { RememberGitSelection(); SaveProfile(); }
@@ -47,7 +49,12 @@ public sealed partial class WorkbenchWindow
             }
             var snapshot = await Task.Run(async () => await host.GetGitAsync(commit?.Sha ?? selectedComparison, token, scope), token);
             if (token.IsCancellationRequested || request != projectRequest || selectedComparison != comparison || selectedScope != changeScope || commit?.Sha != selectedCommit?.Sha) return;
+            var branches = snapshot.IsRepository
+                ? await Task.Run(async () => await host.ListBranchesAsync(false, token), token)
+                : new SharpRail.Host.Abstractions.BranchCatalog([], [], "");
+            if (token.IsCancellationRequested || request != projectRequest || selectedComparison != comparison || selectedScope != changeScope || commit?.Sha != selectedCommit?.Sha) return;
             git = snapshot;
+            gitBranches = branches;
             gitCommits = scope == "commit" ? catalog : snapshot.Commits;
             branchLabel.Text = snapshot.IsRepository ? snapshot.Branch : "";
             branchIcon.IsVisible = snapshot.IsRepository;

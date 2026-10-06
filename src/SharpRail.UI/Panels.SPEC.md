@@ -205,7 +205,10 @@ the change set keeps its last content.
 - A distinct inline Specs load-failure hint with Retry that keeps the previous tree; failures are reported
   through the window.
 - Compact single-directory runs in the Files tree.
-- A shared searchable, grouped branch combobox for the comparison target; the Changes pill is a flat menu.
+- A shared searchable branch combobox for the comparison target; the Changes pill uses a tree menu:
+  Local contains branch path folders, Remote contains configured remote names and branch path folders.
+  Leaves display the final path segment, retain the full ref for selection and tooltips, and mark the
+  selected target. Empty groups and remote HEAD aliases are omitted using the host branch catalogue.
 - Lazy, open-triggered loading of the scope menu's commit rows and an “No uncommitted changes” probe.
 - The full review surface: per-file accordion, comment lifecycle, selection-triggered commenting in
   editors and rendered previews, tab review flags and send actions.

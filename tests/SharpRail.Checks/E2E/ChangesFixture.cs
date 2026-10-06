@@ -104,15 +104,26 @@ internal static class ChangesFixture
 
     internal static bool Clean(E2eWorkspace app) => Text(app.Find<Control>("ChangesPanel")).Contains("Working tree clean", StringComparison.Ordinal);
 
+    internal static IEnumerable<MenuItem> MenuItems(IEnumerable<object?> items) =>
+        items.OfType<MenuItem>().SelectMany(item => new[] { item }.Concat(MenuItems(item.Items)));
+
     internal static bool HasMenuItem(E2eWorkspace app, string dropdown, Func<MenuItem, bool> match) =>
-        app.Find<Button>(dropdown).ContextMenu!.Items.OfType<MenuItem>().Any(match);
+        MenuItems(app.Find<Button>(dropdown).ContextMenu!.Items).Any(match);
 
     internal static void Pick(E2eWorkspace app, string dropdown, Func<MenuItem, bool> match)
     {
         Until(() => HasMenuItem(app, dropdown, match));
         app.Click(app.Find<Button>(dropdown));
         Until(() => app.Find<Button>(dropdown).ContextMenu!.IsOpen);
-        app.Click(app.Find<Button>(dropdown).ContextMenu!.Items.OfType<MenuItem>().First(match), freshGesture: false);
+        void Select(IEnumerable<object?> items)
+        {
+            var item = items.OfType<MenuItem>().First(item => match(item) || MenuItems(item.Items).Any(match));
+            app.Click(item, freshGesture: false);
+            if (match(item)) return;
+            Until(() => item.IsSubMenuOpen);
+            Select(item.Items);
+        }
+        Select(app.Find<Button>(dropdown).ContextMenu!.Items);
         Until(() => !app.Find<Button>(dropdown).ContextMenu!.IsOpen);
     }
 
@@ -123,7 +134,7 @@ internal static class ChangesFixture
 
     internal static void PickScope(E2eWorkspace app, string title) => Pick(app, "ChangesScope", Header(title));
 
-    internal static void PickTarget(E2eWorkspace app, string branch) => Pick(app, "ChangesBranch", Header(branch));
+    internal static void PickTarget(E2eWorkspace app, string branch) => Pick(app, "ChangesBranch", item => Equals(item.Tag, branch));
 
     internal static IEnumerable<DockTab> DiffTabs(E2eWorkspace app) =>
         app.Window.Layout.State.Workspaces[app.Window.WorkspaceRoot].Documents.Values.SelectMany(tabs => tabs).Where(tab => tab.Kind == "diff");
