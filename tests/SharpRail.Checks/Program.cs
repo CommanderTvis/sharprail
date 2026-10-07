@@ -391,6 +391,14 @@ internal static class Program
             E2E.SwitchLatencyChecks.Run(Path.Combine(root, "upstream-e2e"));
             return;
         }
+        if (args.SequenceEqual(["--serving"]))
+        {
+            HostListenerChecks.Run(root).GetAwaiter().GetResult();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            E2E.HostServingE2E.Run(Path.Combine(root, "upstream-e2e"));
+            return;
+        }
         if (args.SequenceEqual(["--markdown-find"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
@@ -430,6 +438,20 @@ internal static class Program
             Console.WriteLine("PASS workspace and project E2E checks");
             return;
         }
+        if (args.SequenceEqual(["--changes"]) || args.SequenceEqual(["--changes-menu"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            if (args[0] == "--changes-menu")
+                E2E.ChangesScopeE2E.FailedRead(root, E2E.ChangesFixture.Source ?? throw new InvalidOperationException("Set SHARPRAIL_TEST_GIT_SOURCE."));
+            else
+            {
+                E2E.ChangesE2E.Run(root);
+                E2E.ChangesScopeE2E.Run(root);
+            }
+            Console.WriteLine("PASS Changes checks");
+            return;
+        }
         Gate.Case("packaged-app", PackagedApp.Run);
         Gate.Case("hosts", () => CheckHosts(root).GetAwaiter().GetResult());
         Gate.Case("boundaries", () => BoundaryChecks.Run(root));
@@ -453,6 +475,7 @@ internal static class Program
         Gate.Case("layout", LayoutChecks.Run);
         Gate.Case("quit-confirmation", QuitConfirmationChecks.Run);
         Gate.Case("open-world", CheckOpenWorld);
+        Gate.Case("host-listener", () => HostListenerChecks.Run(root).GetAwaiter().GetResult());
         UiChecks.Run(root);
         Gate.Case("resources", () => ResourceChecks.Run(root));
         Gate.Case("design", () => Design.DesignChecks.Run(write: false));

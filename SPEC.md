@@ -314,6 +314,11 @@ Application state lives in `~/.sharprail`, independent of the opened project.
 
 Multi-client means the windows of one app process plus the clients of one remote
 host. There is no daemon; separately launched local processes stay independent.
+An app with an embedded host can start serving authenticated gRPC immediately from Settings → Host,
+and stop or restart serving without restarting the app. It shares its existing host services with
+remote clients while every local window retains direct in-process adapters, controls and shells.
+Serving starts off, defaults to loopback, and has an explicit bind address, port and session token.
+The listener and token are session-only; app exit closes it before releasing host resources.
 New window (header menu, Mod+Shift+N, unused upstream) opens another window at the
 current project's Home. Windows of one app share the app-owned host composition:
 one shared-state subscription, the terminal factory, and a project session per window.

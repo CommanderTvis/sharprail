@@ -10,6 +10,29 @@
         Foreground="{x:Static rendering:Ui.TextBrush}"
         FontFamily="{x:Static rendering:Ui.InterfaceFont}" FontSize="14" FontWeight="370">
   <Window.Resources>
+    <DataTemplate x:Key="HostPage">
+      <StackPanel Spacing="8">
+        <TextBlock Text="Host" Classes="settings-heading" />
+        <TextBlock x:Name="HostDescription" Text="Let other SharpRail clients connect to this running app. They share its projects, settings, plugins and terminals." Classes="settings-description" />
+        <StackPanel x:Name="HostControls" Spacing="8">
+          <TextBlock Text="Bind address" Classes="settings-label" />
+          <TextBox x:Name="HostAddress" MaxWidth="360" HorizontalAlignment="Left" />
+          <TextBlock Text="127.0.0.1 accepts connections from this computer. Use a network address to accept other computers." Classes="settings-description" />
+          <TextBlock Text="Port" Classes="settings-label" />
+          <TextBox x:Name="HostPort" Width="120" HorizontalAlignment="Left" />
+          <TextBlock Text="Use 0 to choose an available port." Classes="settings-description" />
+          <TextBlock Text="Session token" Classes="settings-label" />
+          <TextBox x:Name="HostToken" PasswordChar="●" MaxWidth="360" HorizontalAlignment="Left" />
+          <TextBlock Text="Clients use this token to connect. Serving stays off until you start it, and stops when the app quits." Classes="settings-description" />
+          <TextBlock x:Name="HostStatus" TextWrapping="Wrap" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button x:Name="HostToggle" Content="Start listening" />
+            <Button x:Name="HostCopyEndpoint" Content="Copy endpoint" />
+            <Button x:Name="HostCopyToken" Content="Copy token" />
+          </StackPanel>
+        </StackPanel>
+      </StackPanel>
+    </DataTemplate>
     <DataTemplate x:Key="AppearancePage">
       <StackPanel Spacing="8">
         <TextBlock Text="Theme" Classes="settings-heading" />
@@ -194,6 +217,7 @@
               <Button x:Name="Settings_Layout" Classes="settings-navigation" />
               <Button x:Name="Settings_Projects" Classes="settings-navigation" />
               <Button x:Name="Settings_Terminal" Classes="settings-navigation" />
+              <Button x:Name="Settings_Host" Classes="settings-navigation" />
               <Button x:Name="Settings_GitHub" Classes="settings-navigation" />
               <Button x:Name="Settings_Plugins" Classes="settings-navigation" />
             </StackPanel>

@@ -107,12 +107,20 @@ expressions, a case toggle, a glob filter and replace.
 
 ## Settings
 
-A modal two-pane window: a section rail (Appearance, Line width, Layout, Projects, GitHub, Plugins, then each
+A modal two-pane window: a section rail (Appearance, Line width, Layout, Projects, Terminal, Host, GitHub, Plugins, then each
 active plugin's own sections in registration order) and a scrolling
 content pane. Escape and the close button dismiss. It first opens on Appearance and afterwards on the section it was last left on in that window, the way a
 Preferences window returns where it was left; it is sized to 80% of the owner's height.
 Shared-setting writes go to the host and the view converges on the broadcast; a rejection shows “The host
 could not save this change: …” inline and re-renders from host state.
+
+- Host controls the app-owned embedded listener shared by all its windows. Bind address defaults
+  to 127.0.0.1 and port to 54123 (0 requests an available port); the random session token is masked.
+  Start/Stop runs off the dispatcher, disables fields while pending or listening, reports errors
+  inline with drafts preserved, and updates all open Host pages. Endpoint/token copy actions are
+  available while listening. Closing Settings retains serving; app exit stops it. Configuration
+  stays in memory and never enables automatic serving. A remote client explains that serving must
+  be started at the embedded host instead of offering these controls.
 
 - Appearance explains that mode and pair are shared by every window and client while each device reads its
   own light or dark setting, then offers two top-level cards, Fixed (“Use one theme everywhere.”) and Match

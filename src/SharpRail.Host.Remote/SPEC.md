@@ -10,7 +10,7 @@ Serves the host over the wire: a Kestrel HTTP/2 server exposing the Protocol
 services as thin RPC adapters that delegate to Core, plus token authentication
 for every connection. It is both a standalone executable (`Program.cs`, a
 remote host on another machine) and an embeddable library (`RemoteServer`),
-used by remote deployments and transport integration checks. The UI does not reference this project.
+used by remote deployments, the app's optional runtime listener and transport integration checks.
 
 ## Boundary
 
@@ -23,6 +23,13 @@ used by remote deployments and transport integration checks. The UI does not ref
   plugin runtime's seams, as the checks do) returns an unstarted `WebApplication`;
   the embedder starts and stops it. `LoopbackServer` is public so the app's own host
   composes the same server.
+- `RemoteServer.CreateListener` borrows an embedded host's existing state, terminals and plugin runtime.
+  `HostListener` serializes runtime Start/Stop, reports the bound endpoint, disposes failed starts and
+  prevents restart after disposal. Neither path recreates or owns the borrowed services. Embedded
+  listeners have a passive host lifetime, leaving process signals and app shutdown to their owner.
+  Listener shutdown allows five seconds for connections to drain, then aborts remaining transport calls.
+  Embedded listeners resolve configuration from the executable directory without file reload watchers;
+  the current workspace's appsettings files do not configure or delay serving.
 - Allowed deps: Core, Protocol, Abstractions, ASP.NET Core/Kestrel,
   protobuf-net.Grpc.AspNetCore.
 - Forbidden: the UI or Avalonia; product behavior in the adapters. An RPC
@@ -85,6 +92,11 @@ unauthenticated peer learns nothing about the host's version.
   a restarted host runs a replay afresh. A call without the metadata behaves as before.
 - State watch streams end on application stopping, so graceful shutdown never
   waits for watchers. Changes are broadcast to every subscriber as full snapshots.
+- An embedded app can start and stop authenticated HTTP/2 serving while it runs. Remote clients
+  share its live state, plugins and terminal service; the app keeps its direct adapters and project
+  sessions. Stopping serving cancels remote state, file, plugin and terminal streams, detaches
+  remote terminal attachments, and leaves shells and local calls alive. The app stops serving
+  before disposing plugins, loopback routes or PTYs at exit. No second state directory is opened.
 - `ProjectRpc.ReadContentBytesAsync` delegates to the session's host and returns bytes and metadata as one
   message, sized by the existing message limits; diff-side replies carry metadata and revisions.
 - Plugin and loopback cleanup run without the caller's synchronization context before the host

@@ -52,6 +52,7 @@ public sealed partial class SettingsWindow : Window
         {
             lifetime.Cancel(); Ui.ThemeChanged -= SystemThemeChanged; state.Changed -= SharedChanged;
             window.Workbench.PluginRegistry.Changed -= PluginsChanged;
+            if (window.Workbench.Listener is { } listener) listener.Changed -= ListenerChanged;
         };
         Ui.ThemeChanged += SystemThemeChanged;
         state.Changed += SharedChanged;
@@ -68,10 +69,11 @@ public sealed partial class SettingsWindow : Window
         close.Content = Ui.Icon("close");
         close.Click += (_, _) => Close();
         navigationList = this.FindControl<StackPanel>("SettingsNavigation")!;
-        foreach (var item in new[] { ("Appearance", "palette"), ("Line width", "fileText"), ("Layout", "layout"), ("Projects", "folderTab"), ("Terminal", "terminal"), ("GitHub", "gitBranch"), ("Plugins", "puzzle") })
+        foreach (var item in new[] { ("Appearance", "palette"), ("Line width", "fileText"), ("Layout", "layout"), ("Projects", "folderTab"), ("Terminal", "terminal"), ("Host", "terminal"), ("GitHub", "gitBranch"), ("Plugins", "puzzle") })
             Navigation(this.FindControl<Button>("Settings_" + item.Item1.Replace(' ', '_'))!, item.Item1, Ui.Row(item.Item2, item.Item1));
         SyncPluginSections();
         window.Workbench.PluginRegistry.Changed += PluginsChanged;
+        if (window.Workbench.Listener is { } listener) listener.Changed += ListenerChanged;
         var frame = this.FindControl<Border>("SettingsFrame")!;
         frame.SizeChanged += (_, args) => frame.Clip = new RectangleGeometry(new Rect(args.NewSize), 8, 8);
         KeyDown += (_, e) => { if (e.Key == Key.Escape || AppCommands.IsClose(e)) { Close(); e.Handled = true; } };
@@ -158,6 +160,7 @@ public sealed partial class SettingsWindow : Window
             "Layout" => LayoutSettings(),
             "Projects" => ProjectSettings(),
             "Terminal" => TerminalSettings(),
+            "Host" => ServingSettings(),
             "GitHub" => GitHubSettings(),
             "Plugins" => new PluginsSettings(state, window.Workbench.Plugins, this),
             _ when name.StartsWith("plugin:", StringComparison.Ordinal) => PluginSection(name),
