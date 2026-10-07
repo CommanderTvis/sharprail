@@ -145,6 +145,8 @@ frontend-local and never reaches this service.
   then consumes its entry: `TerminalRecorder.Restore` re-parses the bytes like live output, so modes are
   tracked again rather than copied and the alternate screen and mouse modes stay absent. The attach reports
   `Created` and replays the old picture; no redraw nudge runs. A failed spawn keeps the pending recording.
+- Replay strips historical cursor, colour and capability queries so their replies cannot enter the new
+  shell. Live reconnect output retains its query bytes.
 - Revival is keyed to the catalog. Membership is on disk after every change, so an unclean exit gives back
   the right tabs with blank screens. On start, once a catalog file exists, a recording that no catalogued
   tab names is deleted rather than left for the cap to evict; a directory that never had a catalog keeps
@@ -156,6 +158,7 @@ frontend-local and never reaches this service.
   alternate screen and mouse hygiene, corrupt, oversized and surplus files, and the recorder round trip.
 - `TerminalReplayChecks.cs` covers the replay size: validation, clamping, zero, a larger size locally and
   through a remote host, and a large screen surviving a host restart.
+- `TerminalQueryReplayChecks.cs` covers historical query filtering, split reads and live replies.
 - `TerminalLimitChecks.cs` covers refused grids on attach and resize and the start guidance, locally and
   through a real gRPC host.
 

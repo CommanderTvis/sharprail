@@ -104,7 +104,7 @@ internal static class PullRequestChecks
             Environment.SetEnvironmentVariable("GIT_SSH_COMMAND", null);
             await Plain(parent, gitOnly);
             Environment.SetEnvironmentVariable("PATH", shim + ":" + gitOnly + ":/usr/bin:/bin");
-            await GitHub(parent, shim);
+            await GitHub(parent, shim, gitOnly);
             Console.WriteLine("PASS pull request lookup and opening through gh shims and bare origins, locally and over gRPC");
         }
         finally { foreach (var (name, value) in saved) Environment.SetEnvironmentVariable(name, value); }
@@ -143,7 +143,7 @@ internal static class PullRequestChecks
     }
 
     [System.Runtime.Versioning.UnsupportedOSPlatform("windows")]
-    private static async Task GitHub(string parent, string shim)
+    private static async Task GitHub(string parent, string shim, string gitOnly)
     {
         var work = await MakeRepo(parent, "hub", github: true);
         var bare = Path.Combine(parent, "hub.git");
@@ -219,9 +219,9 @@ internal static class PullRequestChecks
         Require((await host.OpenPrAsync(new("T", false, "", false))).Action == "compare" && Calls(shim, "pr") == 0, "Offline mode must not call gh.");
         Environment.SetEnvironmentVariable("SHARPRAIL_GH_OFFLINE", null);
         var path = Environment.GetEnvironmentVariable("PATH");
-        Environment.SetEnvironmentVariable("PATH", path!.Replace(shim + ":", ""));
-        Require((await host.OpenPrAsync(new("T", false, "", false))).GhProblem == "missing", "A missing gh must be reported.");
-        Environment.SetEnvironmentVariable("PATH", path);
+        Environment.SetEnvironmentVariable("PATH", gitOnly);
+        try { Require((await host.OpenPrAsync(new("T", false, "", false))).GhProblem == "missing", "A missing gh must be reported."); }
+        finally { Environment.SetEnvironmentVariable("PATH", path); }
 
         // A rejected SSH login is classified instead of surfacing as a generic failure.
         var key = Path.Combine(parent, "deny-ssh");

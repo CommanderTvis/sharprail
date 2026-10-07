@@ -70,6 +70,11 @@ internal static class Program
             GhosttySkiaChecks.Run(root);
             return;
         }
+        if (args.SequenceEqual(["--terminal-replay"]))
+        {
+            TerminalReplayChecks.Run();
+            return;
+        }
         if (args.SequenceEqual(["--terminals"]))
         {
             TerminalHostChecks.Run(root).GetAwaiter().GetResult();
