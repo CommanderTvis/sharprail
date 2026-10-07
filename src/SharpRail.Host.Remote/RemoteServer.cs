@@ -21,12 +21,7 @@ public static class RemoteServer
         Func<PluginHostSeams, PluginHostSeams>? plugins = null)
     {
         if (string.IsNullOrWhiteSpace(token)) throw new ArgumentException("A host session token is required.", nameof(token));
-        var builder = WebApplication.CreateSlimBuilder();
-        builder.WebHost.ConfigureKestrel(options =>
-        {
-            options.Limits.MaxRequestBodySize = FileLimits.SaveMessageBytes;
-            options.Listen(address, port, endpoint => endpoint.Protocols = HttpProtocols.Http2);
-        });
+        var builder = Builder(address, port);
         builder.Services.AddSingleton<IWorkspaceHost>(new WorkspaceHost(root));
         var state = new HostStateStore(stateDirectory);
         builder.Services.AddSingleton<IHostStateService>(state);
@@ -45,14 +40,8 @@ public static class RemoteServer
         builder.Services.AddSingleton(services => services.GetRequiredService<ITerminalService>() as ITerminalCatalogService ?? new MemoryTerminalCatalog());
         builder.Services.AddCodeFirstGrpc(options => options.MaxReceiveMessageSize = FileLimits.SaveMessageBytes);
         var app = builder.Build();
-        RequireToken(app, token);
-        app.MapGrpcService<WorkspaceRpc>();
-        app.MapGrpcService<ProjectRpc>();
-        app.MapGrpcService<StateRpc>();
-        app.MapGrpcService<TerminalRpc>();
-        app.MapGrpcService<TerminalCatalogRpc>();
+        Map(app, token);
         state.WorkspaceRemoved += path => _ = Task.Run(async () => await app.Services.GetRequiredService<ITerminalCatalogService>().CloseWorkspaceAsync(path));
-        app.MapGrpcService<PluginRpc>();
         runtime.Start();
         // Terminals need the MCP route from their first shell; plugins start it themselves when they ask for its URL.
         app.Lifetime.ApplicationStarted.Register(() =>
@@ -69,6 +58,68 @@ public static class RemoteServer
             }).GetAwaiter().GetResult();
         });
         return app;
+    }
+
+    /// <summary>Exposes an existing host. Stopping or disposing this listener never disposes the supplied
+    /// state, terminals or plugins; their owner continues to serve direct local calls.</summary>
+    public static WebApplication CreateListener(string root, IPAddress address, int port, string token,
+        HostStateStore state, ITerminalService? terminals, PluginRuntime plugins)
+    {
+        if (string.IsNullOrWhiteSpace(token)) throw new ArgumentException("A host session token is required.", nameof(token));
+        var builder = Builder(address, port, embedded: true);
+        builder.Services.AddSingleton<IHostLifetime, ListenerLifetime>();
+        builder.Services.Configure<HostOptions>(options => options.ShutdownTimeout = TimeSpan.FromSeconds(5));
+        builder.Services.AddSingleton<IWorkspaceHost>(new WorkspaceHost(root));
+        builder.Services.AddSingleton<IHostStateService>(state);
+        builder.Services.AddSingleton<ITerminalService>(terminals ?? new UnavailableTerminals());
+        builder.Services.AddSingleton(services => services.GetRequiredService<ITerminalService>() as ITerminalCatalogService ?? new MemoryTerminalCatalog());
+        builder.Services.AddSingleton<RequestReplayCache>();
+        builder.Services.AddSingleton(plugins);
+        builder.Services.AddSingleton(new ProjectSessions(root, state, plugins.AllowsExternalFile));
+        builder.Services.AddCodeFirstGrpc(options => options.MaxReceiveMessageSize = FileLimits.SaveMessageBytes);
+        var app = builder.Build();
+        Map(app, token);
+        return app;
+    }
+
+    private static WebApplicationBuilder Builder(IPAddress address, int port, bool embedded = false)
+    {
+        var builder = embedded ? WebApplication.CreateSlimBuilder(new WebApplicationOptions
+        {
+            ContentRootPath = AppContext.BaseDirectory,
+            Args = ["--hostBuilder:reloadConfigOnChange=false"]
+        }) : WebApplication.CreateSlimBuilder();
+        builder.WebHost.ConfigureKestrel(options =>
+        {
+            options.Limits.MaxRequestBodySize = FileLimits.SaveMessageBytes;
+            options.Listen(address, port, endpoint => endpoint.Protocols = HttpProtocols.Http2);
+        });
+        return builder;
+    }
+
+    private static void Map(WebApplication app, string token)
+    {
+        RequireToken(app, token);
+        app.MapGrpcService<WorkspaceRpc>();
+        app.MapGrpcService<ProjectRpc>();
+        app.MapGrpcService<StateRpc>();
+        app.MapGrpcService<TerminalRpc>();
+        app.MapGrpcService<PluginRpc>();
+        app.MapGrpcService<TerminalCatalogRpc>();
+    }
+
+    private sealed class ListenerLifetime : IHostLifetime
+    {
+        public Task WaitForStartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    }
+
+    private sealed class UnavailableTerminals : ITerminalService
+    {
+        public ValueTask<ITerminalSession> AttachAsync(TerminalAttachRequest request, CancellationToken cancellationToken = default) =>
+            throw new PlatformNotSupportedException("This host does not support terminals.");
+        public ValueTask<bool> IsBusyAsync(string sessionId, CancellationToken cancellationToken = default) => ValueTask.FromResult(false);
+        public ValueTask CloseAsync(string sessionId, CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
     }
 
     private static void RequireToken(WebApplication app, string token)

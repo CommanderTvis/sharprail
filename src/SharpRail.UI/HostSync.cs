@@ -44,6 +44,22 @@ public sealed partial class WorkbenchWindow
         state.ConnectionChanged += ConnectionChanged;
         state.HandshakeChanged += HandshakeChanged;
         Closed += (_, _) => { state.Changed -= SharedStateChanged; state.ConnectionChanged -= ConnectionChanged; state.HandshakeChanged -= HandshakeChanged; };
+#if !ANDROID
+        if (workbench.Listener is { } listener)
+        {
+            void RefreshListener()
+            {
+                if (lifetime.IsCancellationRequested) return;
+                var mark = this.FindControl<StackPanel>("HostListeningMark")!;
+                mark.IsVisible = listener.Endpoint is not null;
+                ToolTip.SetTip(mark, listener.Endpoint is { } endpoint ? "Host listening at " + endpoint : null);
+            }
+            void ListenerChanged() => Dispatcher.UIThread.Post(RefreshListener);
+            listener.Changed += ListenerChanged;
+            Closed += (_, _) => listener.Changed -= ListenerChanged;
+            RefreshListener();
+        }
+#endif
     }
 
     /// <summary>Applies the capability gates of the connected host and detects one built for another protocol version.</summary>

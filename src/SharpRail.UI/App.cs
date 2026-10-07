@@ -75,6 +75,7 @@ public sealed partial class App : Application
             });
             if (loopback is not null) loopback.Plugins = runtime;
             runtime?.Start();
+            var listener = runtime is null ? null : new SharpRail.Host.Remote.HostListener(initialRoot, local, localTerminals, runtime);
             var remotePlugins = remote ? new RemotePluginAdapter(new Uri(endpoint!), token) : null;
             IPluginService plugins = remotePlugins ?? (IPluginService)new LocalPluginAdapter(runtime!);
             Func<IProjectServices> sessions = remote
@@ -85,7 +86,7 @@ public sealed partial class App : Application
                 ? TerminalBackends.Ghostty(new RemoteTerminalConnection(new Uri(endpoint!), token, remoteTerminals), Renderer)
                 : localTerminals is not null ? TerminalBackends.Ghostty(new LoopbackTerminals(new LocalTerminalAdapter(localTerminals), loopback!), Renderer)
                 : launch => TerminalBackends.Unavailable("Embedded terminals currently require macOS.");
-            var workbench = new Workbench(profile, state, Terminals, remote, sessions, plugins) { Endpoint = remote ? endpoint! : "local" };
+            var workbench = new Workbench(profile, state, Terminals, remote, sessions, plugins) { Endpoint = remote ? endpoint! : "local", Listener = listener };
             if (OperatingSystem.IsMacOS()) ApplicationMenu.Install(this, workbench.Commands);
             foreach (var slot in profile.Data.Windows.ToArray())
             {
@@ -106,6 +107,7 @@ public sealed partial class App : Application
                 // Plugins stop first, before the terminals and the loopback server they reach.
                 Task.Run(async () =>
                 {
+                    if (listener is not null) await listener.DisposeAsync();
                     if (runtime is not null) await runtime.DisposeAsync();
                     if (loopback is not null) await loopback.DisposeAsync();
                     if (localTerminals is not null) await localTerminals.DisposeAsync();

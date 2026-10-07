@@ -128,6 +128,7 @@ internal static class UiChecks
         Gate.Case("ReviewChecks", () => ReviewChecks.Run(Path.Combine(root, "review")));
         Gate.Case("LiveRefreshE2E", () => E2E.LiveRefreshE2E.Run(Path.Combine(root, "upstream-e2e")));
         Gate.Case("WorkspaceTabsE2E", () => E2E.WorkspaceTabsE2E.Run(Path.Combine(root, "upstream-e2e")));
+        Gate.Case("HostServingE2E", () => E2E.HostServingE2E.Run(Path.Combine(root, "upstream-e2e")));
         RunWorkspaceSuites(Path.Combine(root, "upstream-e2e"));
         Gate.Case("SettingsGitHubE2E", () => E2E.SettingsGitHubE2E.Run(Path.Combine(root, "upstream-e2e")));
         Gate.Case("LineWidthE2E", () => E2E.LineWidthE2E.Run(Path.Combine(root, "upstream-e2e")));

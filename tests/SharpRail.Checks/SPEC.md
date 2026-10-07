@@ -40,6 +40,14 @@ removed worktree's shells (`TerminalCatalogChecks.cs`); and the host replay size
 `--registry` runs one workspace-registry scenario through the direct and the gRPC adapter and requires the same
 records, refusals and pushed lifecycle events from both, then the rail checks for attaching, forgetting,
 background project rows and removed-workspace cleanup.
+
+`--serving` covers spontaneous serving of the existing embedded host: two authenticated clients,
+shared local/remote state broadcasts and plugin instance, independent project sessions, bind-failure
+recovery, startup from a workspace with malformed appsettings.json, token rotation, and local/remote
+shells surviving listener stop/restart. Headless Settings
+coverage starts/stops serving across two app windows, applies remote state changes, retains local
+controls and sessions, validates drafts, and keeps serving alive when Settings closes. Both run in
+the full gate; serving configuration and secrets remain session-local.
 `--markdown-find` covers Source and Split search, UTF-16 selection, match navigation, pane isolation,
 overlay input, unsaved buffers and Escape focus; the same regressions run in `--markdown` and the full suite.
 `--native-osc52` runs those checks plus real Metal shell output and encoded read

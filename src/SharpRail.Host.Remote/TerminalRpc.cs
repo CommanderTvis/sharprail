@@ -7,12 +7,12 @@ using SharpRail.Host.Protocol;
 
 namespace SharpRail.Host.Remote;
 
-public sealed class TerminalRpc(ITerminalService terminals) : ITerminalRpc
+public sealed class TerminalRpc(ITerminalService terminals, IHostApplicationLifetime lifetime) : ITerminalRpc
 {
     // A call is one attachment: a dropped client detaches, and the shell keeps running on the host.
     public async IAsyncEnumerable<TerminalOutput> RunAsync(IAsyncEnumerable<TerminalInput> input, CallContext context = default)
     {
-        using var call = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
+        using var call = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken, lifetime.ApplicationStopping);
         var inputs = input.GetAsyncEnumerator(call.Token);
         var pump = Task.CompletedTask;
         try

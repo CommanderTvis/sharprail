@@ -86,7 +86,7 @@ internal sealed class E2eWorkspace : IDisposable
 
     internal E2eWorkspace(string root, bool openFiles = true, string? profileRoot = null, E2eTerminals? terminals = null, string? startPath = null,
         Action<E2eHost>? prepare = null, Func<IHostStateService, IHostStateService>? state = null,
-        Func<IPluginService, IPluginService>? plugins = null)
+        Func<IPluginService, IPluginService>? plugins = null, bool serving = false)
     {
         Root = root;
         Directory.CreateDirectory(root);
@@ -119,7 +119,8 @@ internal sealed class E2eWorkspace : IDisposable
         var first = true;
         Workbench = new(profile, new SharedState(state?.Invoke(service) ?? service, profile.Data.Preferences, State.Current), Terminals.Factory, false,
             () => { if (!first) return new E2eHost(new ProjectServices(root, State, allowsExternalFile)); first = false; return Host; },
-            plugins?.Invoke(new LocalPluginAdapter(pluginRuntime)) ?? new LocalPluginAdapter(pluginRuntime));
+            plugins?.Invoke(new LocalPluginAdapter(pluginRuntime)) ?? new LocalPluginAdapter(pluginRuntime))
+        { Listener = serving ? new HostListener(root, State, Terminals.HostService, pluginRuntime) : null };
         Window = Workbench.Open(profile.Data.Windows[0], startPath ?? root);
         Window.Width = 1352; Window.Height = 848;
         Window.Show();
@@ -257,6 +258,7 @@ internal sealed class E2eWorkspace : IDisposable
         if (pluginRuntime is not null || loopback is not null)
             Task.Run(async () =>
             {
+                if (Workbench.Listener is { } listener) await listener.DisposeAsync();
                 if (pluginRuntime is not null) await pluginRuntime.DisposeAsync();
                 if (loopback is not null) await loopback.DisposeAsync();
             }).GetAwaiter().GetResult();

@@ -34,6 +34,8 @@ public sealed class Workbench : IDisposable
     public AppCommands Commands { get; }
     public Terminal.TerminalFactory Terminals { get; }
     public bool Remote { get; }
+    /// <summary>Optional serving for this app's embedded host, shared by every window.</summary>
+    public Host.Remote.HostListener? Listener { get; init; }
     /// <summary>The host's plugin runtime; null for a workbench composed without one.</summary>
     public IPluginService? Plugins { get; }
     /// <summary>The app's plugin runtime and the registry its windows render contributions from.</summary>
