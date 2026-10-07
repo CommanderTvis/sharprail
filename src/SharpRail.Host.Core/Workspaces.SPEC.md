@@ -9,7 +9,7 @@ depends-on: [submodule-host-git, submodule-host-state]
 
 # Workspaces — Git worktrees
 
-Upstream: packages/server/src/workspaces/SPEC.md @ be804a56
+Upstream: packages/server/src/workspaces/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
 
 ## Responsibility
 

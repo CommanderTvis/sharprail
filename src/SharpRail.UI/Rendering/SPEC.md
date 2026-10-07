@@ -1,9 +1,10 @@
 # Rendering: shared controls, document rendering and helpers
 
-Upstream: apps/web/src/components/SPEC.md @ 3822748b
-Upstream: apps/web/src/components/ui/SPEC.md @ c44534ea
-Upstream: apps/web/src/lib/SPEC.md @ 3822748b
-Markdown source contract: apps/web/src/panels/SPEC.md @ be804a563
+Upstream: apps/web/src/components/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
+Upstream: packages/ui/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
+Upstream: apps/web/src/lib/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
+Typography contract: apps/web/src/styles/TYPOGRAPHY.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
+Markdown source contract: apps/web/src/panels/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
 
 ## Responsibility
 
@@ -137,6 +138,8 @@ Every asynchronous gap renders something shaped for the wait, never nothing:
 
 - Theme-baked surfaces subscribe to `Ui.ThemeChanged` on attach and unsubscribe on detach, so a detached
   preview never re-renders diagrams for a window that no longer shows it.
+  The subscription belongs to the shared primitive layer, independent of theme catalogue and preference
+  resolution; consumers observe a completed swap rather than the window's appearance directly.
 - Links never become native navigation: a relative target is always routed through the callback.
 - Nothing here catches workbench errors on behalf of a panel; failures surface through the workbench's own
   reporting.
@@ -150,6 +153,8 @@ Every asynchronous gap renders something shaped for the wait, never nothing:
 - A shared switch control (track and thumb, state exposed accessibly, never visible On/Off text);
   settings toggles are check boxes.
 - A tooltip provider with tuned delay and a `wrapTrigger` for disabled controls.
+- A shared non-modal dialog panel with dialog/title semantics, Escape dismissal and focus return while
+  surrounding controls remain interactive; `DialogWindow` supplies modal cards instead.
 - Height-bounded, scrollable menus with horizontal overflow hidden for long commit lists.
 - Syntax highlighting for Markdown code blocks beyond the minimal keyword/string/comment tinting, and a
   manifest-driven syntax palette.
@@ -158,3 +163,6 @@ Every asynchronous gap renders something shaped for the wait, never nothing:
 - A relative-time helper for commit rows (they show short SHA and author only).
 - Rendering a link that escapes the worktree root or has malformed encoding as an inert control; today such
   a target reaches the host, whose path validation rejects it.
+- A single authored typography vocabulary with generated roles and a build-time adoption check spanning
+  every shared primitive and app surface. Fonts and sizes currently live in `Ui` and individual controls;
+  extending shared UI must not create a second type system.

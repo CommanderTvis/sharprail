@@ -1,7 +1,7 @@
 # State — profile and shared host state
 
-Upstream: apps/web/src/store/SPEC.md @ c44534ea
-Upstream: apps/web/src/navigation/SPEC.md @ 4a65ed7f
+Upstream: apps/web/src/store/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
+Upstream: apps/web/src/navigation/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
 
 ## Responsibility
 
@@ -58,6 +58,10 @@ to the next open project's Home or Welcome; a background open never steals a win
 workspace returns only the windows that showed it. Workspace selection history is per window and never
 host state.
 
+After each (re)connect the subscription asks the host for its handshake in the background and publishes it;
+the version is cleared when the connection drops, and an answer from a superseded connection is discarded.
+A window that sees a protocol version other than its own logs it and shows a non-blocking notice.
+
 ## Profile persistence
 
 Loading is defensive: unreadable files yield a fresh profile with the error kept in `LastError`; missing
@@ -69,7 +73,8 @@ usable. Legacy single-window fields are read into the first `Windows` entry and 
 
 Shared fields migrate once: `OpenState` seeds the local host's `state.json` from the profile's pre-host
 fields and clears them only after the state file is written, so a failed migration never loses data. A
-remote host keeps its own state in `SHARPRAIL_STATE_DIR`.
+remote host keeps its own state in `SHARPRAIL_STATE_DIR`. The local terminal service saves recorded screens
+in the profile directory's `terminals` subdirectory, so `SHARPRAIL_PROFILE` isolates them.
 
 ## Location
 

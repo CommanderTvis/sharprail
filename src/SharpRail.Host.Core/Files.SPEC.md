@@ -8,9 +8,9 @@ parent: module-host-core
 
 # Files — workspace reads, saves and change notification
 
-Upstream: packages/server/src/fs/SPEC.md @ c44534ea
-Upstream: packages/server/src/watch/SPEC.md @ 4a65ed7f
-Upstream: packages/server/src/trash/SPEC.md @ c44534ea
+Upstream: packages/server/src/fs/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
+Upstream: packages/server/src/watch/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
+Upstream: packages/server/src/trash/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
 
 ## Responsibility
 
@@ -36,7 +36,15 @@ with direct local and streaming gRPC adapters. The UI consumes the same stream f
 - A read returns images (PNG, JPEG, GIF, WebP, BMP) as bytes and text as strict UTF-8; invalid UTF-8 is
   reported as binary, while NUL and other control characters in valid text are allowed. Markdown and
   image previews are limited to `FileLimits.PreviewBytes`, editable text to `FileLimits.EditableBytes`,
-  and a gRPC message is sized for one whole read or save.
+  and a gRPC message is sized for one whole read or save. Every read also carries content metadata
+  (`ContentClassifier.Classify`, below).
+- `ContentClassifier` is the one byte classification: media type from magic numbers (PNG, JPEG, GIF,
+  WebP, AVIF, BMP, ICO, PDF, zip, gzip, WOFF/WOFF2), SVG from a text root element (after an optional
+  XML prolog), a Git LFS pointer from its exact three-line form, and the filename only when the bytes
+  say nothing. Text means no recognised magic number, no NUL in the first 8 KiB and a strict UTF-8
+  decode, so an ASCII-only PDF is still byte-only. The metadata is `ContentMetadata` (SHA-256, byte
+  length, textness, media type) and `IsActive` marks HTML, XHTML and SVG, which a client must show inert.
+  Diff sides use it in full; file reads attach it but keep their own text rule (below).
 - Relative Markdown images resolve through the same contained read.
 
 ## Saves
@@ -79,16 +87,9 @@ mutations.
 - Self-healing watchers that re-create themselves when the root's inode changes and reap watchers for
   forgotten workspaces.
 - A bounded pre-warm pool for workspaces a client is about to open.
-- One byte-level content classification shared by file reads, diff sides and untracked line counts:
-  media type from magic numbers (PNG, JPEG, GIF, WebP, AVIF, BMP, ICO, PDF, zip, gzip, WOFF/WOFF2), SVG
-  from a text root element, a Git LFS pointer from its exact three-line form, and the filename consulted
-  only when the bytes say nothing. Text means no recognized magic number, no NUL in the first 8 KiB and a
-  strict UTF-8 decode. Reads decide images by extension today and allow NUL in text.
-- Content metadata on every read (SHA-256, byte length, textness, media type), with a byte-only file
-  answered as empty text plus metadata rather than an error. The hash is the resource's identity for
-  compare-and-swap writes.
-- Containment that also refuses `.git` and allows a missing leaf, so a deleted file can be restored, with
-  an option not to follow a leaf link.
-- Moving a path to the system trash as the only way the host destroys a user's file: one literal path, a
-  failure surfaced to the caller, and no permanent-delete fallback. Nothing in SharpRail deletes
-  workspace files yet; the first consumer is the whole-file revert in [Git.SPEC.md](Git.SPEC.md).
+- The shared classification inside file reads and untracked line counts: reads still decide images by
+  extension, allow NUL in text and fail a byte-only file as "binary" rather than answering empty text
+  plus metadata, and untracked line counts do not consult it.
+- Containment for reads and saves that also refuses `.git` and allows a missing leaf; today only the change
+  write path has it (`ProjectServices.ResolveForWrite`, which does not follow a leaf link), and the trash
+  is `Trash.cs` (see [Git.SPEC.md](Git.SPEC.md)). Neither is shared by file reads and saves yet.

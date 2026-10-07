@@ -61,6 +61,16 @@ internal sealed class TerminalRecorder(int snapshotBytes = TerminalRecorder.Snap
         return [.. Encoding.ASCII.GetBytes(prefix.ToString()), .. recorded.AsSpan(0, recordedLength)];
     }
 
+    // Reloads a snapshot saved by an earlier host. The bytes go through the same parser as live output, so the
+    // mode preamble is read back into tracked modes instead of being kept as text.
+    internal void Restore(ReadOnlySpan<byte> snapshot)
+    {
+        if (snapshotBytes <= 0) return;
+        var reset = "\x1b[0m"u8;
+        if (snapshot.StartsWith(reset)) snapshot = snapshot[reset.Length..];
+        Consume(snapshot.ToArray());
+    }
+
     private void Retain(ReadOnlySpan<byte> chunk)
     {
         var position = Position;

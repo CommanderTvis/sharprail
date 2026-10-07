@@ -70,7 +70,7 @@ public sealed partial class SettingsWindow : Window
         }
         var frame = this.FindControl<Border>("SettingsFrame")!;
         frame.SizeChanged += (_, args) => frame.Clip = new RectangleGeometry(new Rect(args.NewSize), 8, 8);
-        KeyDown += (_, e) => { if (e.Key == Key.Escape) { Close(); e.Handled = true; } };
+        KeyDown += (_, e) => { if (e.Key == Key.Escape || AppCommands.IsClose(e)) { Close(); e.Handled = true; } };
         ShowSection(section);
     }
 

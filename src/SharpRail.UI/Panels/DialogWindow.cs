@@ -12,7 +12,7 @@ public sealed partial class DialogWindow : Window
     public DialogWindow()
     {
         AvaloniaXamlLoader.Load(this);
-        KeyDown += (_, e) => { if (e.Key == Key.Escape) { Close(); e.Handled = true; } };
+        KeyDown += (_, e) => { if (e.Key == Key.Escape || AppCommands.IsClose(e)) { Close(); e.Handled = true; } };
         Opened += (_, _) =>
         {
             this.FindControl<Border>("DialogCard")!.Effect =

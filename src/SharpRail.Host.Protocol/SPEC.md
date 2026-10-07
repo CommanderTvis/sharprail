@@ -1,6 +1,6 @@
 # Host wire contracts
 
-Upstream: packages/contracts/SPEC.md @ c44534ea
+Upstream: packages/contracts/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
 
 ## Responsibility
 
@@ -31,7 +31,7 @@ project: local adapters call Core directly, with no serialization.
 - Project: open a project (resolving the workspace/project roots), list and
   read files, save a file with its original text for conflict detection, list
   specs, Git snapshot, commit list, per-file diff and diff sides, Git actions,
-  branch catalog (optional default-base fetch; local, per-remote rows, the
+  open pull request lookup, pull request draft and opening, branch catalog (optional default-base fetch; local, per-remote rows, the
   default base and suggested new worktree path/branch), editor listing and
   open-in-editor. Git scope travels as a string (`all` when empty); the comparison
   branch is the review target. Commit listing is its own operation so the commit
@@ -71,10 +71,29 @@ project: local adapters call Core directly, with no serialization.
   distinguishes `FailedPrecondition` (the shell cannot start; show the reason)
   from transient transport codes (reconnect); state changes report invalid input
   as `InvalidArgument`. Everything else stays the status detail text.
+- The change write path (`RevertChangeAsync`, `UndoChangeAsync`; protocol version 2) names the scope, the
+  target as 1-based inclusive line spans on both sides (a zero count is an insertion point before the
+  start; never a patch or hunk header, since the client must not dictate bytes) and the SHA-256 of both
+  sides the client saw. A hash is never empty, so an omitted one means the side is absent. The reply is a
+  receipt (before/after hash, length and mode, plus the trash claim path for a whole-file removal) that is
+  also the undo token; an undo's receipt is itself undoable once, so redo needs no third operation.
+  Receipts are host memory only (per workspace at most 20 and 64 MiB of held bytes, oldest evicted,
+  newest always kept), because Git and the OS trash already back recovery.
+- A refused change is a `FailedPrecondition` status carrying the failure in the `x-sharprail-change-code`
+  trailer (`StaleView`, `ScopeImmutable`, `RangeInvalid`, `ReceiptUnknown`, `UnsupportedChange`); the
+  client proxy rethrows it as the same `ChangeException` the embedded host throws.
+- `DiffSidesReply` carries a hash per side and the original commit as additive members 3 to 5, then
+  content metadata per side and each side's revision as 6 to 9; `DocumentReply` gains metadata as 4. An
+  older client ignores them. `ReadContentBytes` takes a path and a revision (`WorkingTree` says null, since
+  null and empty are the same on the wire) and replies with the raw bytes and their metadata.
 - Message size limits come from `FileLimits` in Abstractions (read and save
   messages sized from the editable-file limit), so both ends agree on one number.
 - Credentials never ride a DTO: authentication is the `authorization` metadata,
   owned by the transport.
+
+- The state service answers `Handshake` with the protocol and build versions. The request carries the
+  caller's own version (0 when unknown); the host records nothing from it yet. Existing member numbers
+  never change; a host without the method answers `Unimplemented`.
 
 ## Invariants
 
@@ -86,8 +105,6 @@ project: local adapters call Core directly, with no serialization.
 
 ## Not yet ported
 
-- A protocol version exchanged at connect, with per-feature introduction versions
-  so a newer client hides actions an older host cannot serve.
 - Request-id deduplication on reconnect (replay under the same id, host-cached
   results, ack/resume frames).
 - Pushed invalidations beyond host state: project/workspace lifecycle as separate
@@ -99,27 +116,11 @@ project: local adapters call Core directly, with no serialization.
 - A host HTTP endpoint for worktree files (relative Markdown images over remote).
 - A named failure for an unresolvable scope so the client resets it rather than
   showing an error.
-- Host-decided resource metadata on file reads and both sides of a file diff:
-  SHA-256 of the bytes and byte length (both absent when the resource is), whether
-  the bytes are text (valid UTF-8, BOM-aware, not claimed by a known binary magic
-  number) and an optional MIME type sniffed from magic bytes before the filename.
-  A byte-only side travels with empty content and the resolved original object
-  id, so the client renders it from the host's file/blob HTTP endpoints and uses
-  the hash as its identity. Today an invalid UTF-8 read fails as "binary" and no
-  hash is reported.
-- A change write path for the Changes diff: revert a path's whole change or one
-  hunk, and undo a revert. The client names the scope, the target as 1-based
-  inclusive line spans on both sides (a zero count is an insertion point before
-  the start; never a patch or hunk header, since the client must not dictate
-  bytes) and the hashes of both sides it saw; the host re-derives the change from
-  its own reads under a per-workspace lock and writes nothing on a mismatch. The
-  reply is a receipt (before/after hash, length and mode, plus the trash claim
-  path for a whole-file removal) that is also the undo token; an undo's receipt
-  is itself undoable once, so redo needs no third operation. Receipts are host
-  memory only (per workspace at most 20 and 64 MiB of held bytes, oldest evicted,
-  newest always kept), because Git and the OS trash already back recovery.
-- Distinct failures for that write path, each of which the client handles
-  differently: stale view (re-read and re-offer), immutable scope (the modified
-  side is a commit), invalid range (a span outside its side, or a range revert of
-  a byte-only resource), unknown receipt, and unsupported change (symlink or
-  mode-only).
+- Distinct project-open failures for a non-repository (`NOT_GIT`) and a folder
+  already owned by a workspace (`ALREADY_OPEN`), so clients can offer the
+  appropriate recovery without matching error text.
+- Resource metadata on file reads and diff sides is ported, with the bytes fetched over gRPC rather than
+  the host's file/blob HTTP endpoints. Still open: a byte-only file read (invalid UTF-8 still fails as
+  "binary"), and a streamed rather than single-message transfer.
+- Distinct codes for the remaining failures that clients handle differently (the change write path's own
+  are ported, see Decisions).

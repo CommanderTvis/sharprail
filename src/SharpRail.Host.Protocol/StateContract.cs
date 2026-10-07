@@ -67,9 +67,24 @@ public sealed class StateReply
     [ProtoMember(7)] public List<WorkspaceListMessage> Workspaces { get; set; } = [];
 }
 
+[ProtoContract]
+public sealed class HandshakeRequest
+{
+    /// <summary>The caller's own protocol version; 0 when unknown.</summary>
+    [ProtoMember(1)] public int ClientProtocolVersion { get; set; }
+}
+
+[ProtoContract]
+public sealed class HandshakeReply
+{
+    [ProtoMember(1)] public int ProtocolVersion { get; set; }
+    [ProtoMember(2)] public string HostVersion { get; set; } = "";
+}
+
 [Service]
 public interface IStateRpc
 {
+    ValueTask<HandshakeReply> HandshakeAsync(HandshakeRequest request, CallContext context = default);
     ValueTask<StateReply> GetStateAsync(StateRequest request, CallContext context = default);
     ValueTask<StateReply> ChangeAsync(StateChangeRequest request, CallContext context = default);
     /// <summary>Server streaming: the current snapshot first, then one per change.</summary>

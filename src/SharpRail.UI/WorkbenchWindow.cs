@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -47,6 +48,7 @@ public sealed partial class WorkbenchWindow : Window
     private string workspaceRoot = "";
     private GitSnapshot git = new(false, "", [], [], []);
     public LayoutSession Layout { get; }
+    public AppCommands Commands => workbench.Commands;
     public bool WorkspaceMounted { get; private set; }
     public string WorkspaceRoot => workspaceRoot;
     public Preferences Preferences => state.Preferences;
@@ -99,6 +101,9 @@ public sealed partial class WorkbenchWindow : Window
             RememberGitSelection(); lifetime.Cancel(); StopWatching(); profile.Save();
             ClearDocumentContent();
         };
+        AddHandler(KeyDownEvent, (_, e) => { if (workbench.Commands.KeyDown(this, e)) e.Handled = true; }, RoutingStrategies.Tunnel);
+        AddHandler(KeyUpEvent, (_, e) => workbench.Commands.KeyUp(e), RoutingStrategies.Tunnel);
+        Deactivated += (_, _) => workbench.Commands.Deactivated();
         AddHandler(KeyDownEvent, (_, e) =>
         {
             var command = e.KeyModifiers.HasFlag(KeyModifiers.Meta) || e.KeyModifiers.HasFlag(KeyModifiers.Control);
@@ -117,6 +122,22 @@ public sealed partial class WorkbenchWindow : Window
             else if (command && e.Key is Key.D0 or Key.NumPad0) { Zoom(0); e.Handled = true; }
             else if (e.Key == Key.F5) { _ = RefreshAsync(); e.Handled = true; }
         }, RoutingStrategies.Bubble);
+    }
+
+    internal void ShowQuitHint(QuitHint hint)
+    {
+        var overlay = this.FindControl<Border>("QuitHintOverlay")!;
+        overlay.IsVisible = hint != QuitHint.Hidden;
+        var key = OperatingSystem.IsMacOS() ? "Command-Q" : "Ctrl+Q";
+        var message = hint switch
+        {
+            QuitHint.Armed => $"Press {key} again or hold to quit",
+            QuitHint.Release => "Release to quit",
+            QuitHint.Quitting => "Quitting",
+            _ => ""
+        };
+        this.FindControl<TextBlock>("QuitHintMessage")!.Text = message;
+        AutomationProperties.SetName(overlay, hint == QuitHint.Armed ? $"Hold {key} to quit" : message);
     }
 
     private void WireHeader()

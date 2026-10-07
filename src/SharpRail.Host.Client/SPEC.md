@@ -1,6 +1,6 @@
 # Host client adapters
 
-Upstream: apps/web/src/transport/SPEC.md @ c44534ea
+Upstream: apps/web/src/transport/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
 
 ## Responsibility
 
@@ -29,7 +29,8 @@ what makes remoteness an adapter choice rather than a mandatory daemon.
 - Deadlines: short (15 s) for cheap workspace and terminal control calls, 60 s
   for project, Git and state calls. The host's own network Git budget must stay
   under that ceiling so its error, naming the ref, wins the race against a bare
-  deadline. Long-lived streams (state watch, file watch, terminal) carry no deadline.
+  deadline. Opening a pull request pushes and
+  runs `gh`, so that call alone carries a 5 minute deadline. Long-lived streams (state watch, file watch, terminal) carry no deadline.
 - Channels reconnect quickly (250 ms initial, 3 s maximum backoff) instead of
   gRPC's two-minute ceiling, because an interactive client is waiting.
 - The project adapter remembers the root it opened last and sends it with each
@@ -53,6 +54,11 @@ what makes remoteness an adapter choice rather than a mandatory daemon.
 - Same interface, two adapters, rather than a local loopback server: embedded
   mode pays no socket or serialization cost, and local/remote parity is checked
   against one contract.
+- The remote state adapter sends the client's protocol version in the handshake and maps `Unimplemented`
+  to version 0. `HostCapabilities.Supports(version, introducedAt)` treats no handshake (null) and a lower
+  version as unsupported.
+- The project adapter rethrows a change write refusal (the `x-sharprail-change-code` trailer) as the
+  `ChangeException` the embedded host throws, so callers branch on one type; no other failure is coded.
 - One channel per adapter; ordering is per gRPC call, and state convergence
   relies on full snapshots with revisions rather than on cross-call ordering.
 
@@ -60,8 +66,10 @@ what makes remoteness an adapter choice rather than a mandatory daemon.
 
 - A connection status surface with a generation per reconnect, driving
   re-hydration explicitly rather than per-subscription retries.
-- A protocol version sent at connect, and capability gates that hide actions an
-  older host cannot serve; the Changes diff withholds every revert/undo
+- The local adapter forwards `ReadContentBytesAsync`; the remote proxy maps the metadata and bytes from
+  `ContentReply`.
+- Capability gates that hide actions an older host cannot serve (the version
+  is fetched, but no feature is gated yet); the Changes diff withholds every revert/undo
   affordance from a host that predates the change write path. Resource metadata
   needs no gate: a reply without it reads as text, which is what that host's own
   client showed.

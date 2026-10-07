@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
+using SharpRail.Host.Abstractions;
 using SharpRail.Host.Remote;
 using SharpRail.UI.State;
 
@@ -33,6 +34,7 @@ internal static class MultiClientE2E
         CreationPropagates(Path.Combine(root, "sync-creation"));
         RenamePropagates(Path.Combine(root, "sync-rename"));
         RenameSurvivesReconnect(Path.Combine(root, "sync-rename-reconnect"));
+        HandshakeSurvivesReconnect(Path.Combine(root, "sync-handshake-reconnect"));
         TransientReadFailure(Path.Combine(root, "sync-transient-read"));
         WindowsKeepPlacement(Path.Combine(root, "sync-placement"));
     }
@@ -182,6 +184,22 @@ internal static class MultiClientE2E
         Until(() => Status(app) == "Remote" && RenameInput(app, created) is null && Shown(app, created) == "Rename After Reconnect");
         Require(proxy.Accepted > 1 && ItemText(app, created, "WorkspaceBranch") == branch, "The rename commits after reconnecting, with the branch unchanged.");
         Console.WriteLine("PASS upstream workspace-actions.spec.ts: an open inline rename survives reconnect");
+    }
+
+    private static void HandshakeSurvivesReconnect(string directory)
+    {
+        var project = FixtureProject(directory);
+        using var host = new RemoteHost(project);
+        using var proxy = new CutProxy(host.Port);
+        using var app = RemoteClient(proxy.Endpoint, project, project + "-profile");
+        var state = app.Workbench.State;
+        Until(() => state.Handshake is { ProtocolVersion: HostProtocol.Current });
+
+        proxy.Cut();
+        Until(() => state.Handshake is null);
+        proxy.Allow();
+        Until(() => state.Handshake is { ProtocolVersion: HostProtocol.Current });
+        Console.WriteLine("PASS host handshake is cleared when the connection drops and fetched again on reconnect");
     }
 
     private static void TransientReadFailure(string directory)

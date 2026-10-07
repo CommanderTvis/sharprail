@@ -215,8 +215,7 @@ public sealed partial class DockSurface
                     };
                     Session.Select(group.Id, members[index].Id); FocusGroup(group.Id); e.Handled = true;
                 }
-                else if (e.Key is Key.Delete || (e.Key == Key.W &&
-                    (e.KeyModifiers.HasFlag(KeyModifiers.Meta) || e.KeyModifiers.HasFlag(KeyModifiers.Control))))
+                else if (e.Key is Key.Delete)
                 { Session.Close(group.Id, tab.Id); FocusGroup(group.Id); e.Handled = true; }
             };
             button.ContextMenu = TabMenu(group, tab, panel);

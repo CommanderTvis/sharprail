@@ -6,7 +6,7 @@ namespace SharpRail.Host.Core;
 
 internal static class GitRepository
 {
-    internal static async Task<string> RunAsync(string root, CancellationToken ct, params string[] args)
+    private static ProcessStartInfo StartInfo(string root, string[] args)
     {
         var start = new ProcessStartInfo("git")
         {
@@ -23,7 +23,12 @@ internal static class GitRepository
         start.ArgumentList.Add("-c");
         start.ArgumentList.Add("core.quotepath=false");
         foreach (var arg in args) start.ArgumentList.Add(arg);
-        using var process = Process.Start(start) ?? throw new IOException("Could not start git.");
+        return start;
+    }
+
+    internal static async Task<string> RunAsync(string root, CancellationToken ct, params string[] args)
+    {
+        using var process = Process.Start(StartInfo(root, args)) ?? throw new IOException("Could not start git.");
         using var registration = ct.Register(() =>
         {
             try { if (!process.HasExited) process.Kill(entireProcessTree: true); }
@@ -36,6 +41,52 @@ internal static class GitRepository
         var detail = await error;
         if (process.ExitCode != 0) throw new GitException(process.ExitCode, detail.Trim());
         return text;
+    }
+
+    /// <summary>Runs Git and returns its standard output undecoded, for blob contents whose bytes are hashed.</summary>
+    internal static async Task<byte[]> RunBytesAsync(string root, CancellationToken ct, params string[] args)
+    {
+        using var process = Process.Start(StartInfo(root, args)) ?? throw new IOException("Could not start git.");
+        using var registration = ct.Register(() =>
+        {
+            try { if (!process.HasExited) process.Kill(entireProcessTree: true); }
+            catch (InvalidOperationException) { }
+        });
+        using var buffer = new MemoryStream();
+        var output = process.StandardOutput.BaseStream.CopyToAsync(buffer, ct);
+        var error = process.StandardError.ReadToEndAsync(ct);
+        await output;
+        await process.WaitForExitAsync(ct);
+        var detail = await error;
+        if (process.ExitCode != 0) throw new GitException(process.ExitCode, detail.Trim());
+        return buffer.ToArray();
+    }
+
+    /// <summary>The two sides of a file's diff: null is absent, an empty string the index, otherwise a commit id; a null modified side is the working tree.</summary>
+    internal sealed record DiffRange(string? Original, string? Modified);
+
+    /// <summary>Resolves a scope to the exact revisions both sides are read at, so a diff and a revert of it agree.</summary>
+    internal static async Task<DiffRange> ResolveDiffRangeAsync(string root, string path, string scope, string comparison, CancellationToken ct)
+    {
+        async Task<string?> Head()
+        {
+            try { return (await RunAsync(root, ct, "rev-parse", "--verify", "HEAD")).Trim(); }
+            catch (IOException) when (!ct.IsCancellationRequested) { return null; }
+        }
+        async Task<bool> Untracked() =>
+            (await RunAsync(root, ct, "ls-files", "--others", "--exclude-standard", "-z", "--", path)).Length > 0;
+        if (scope == "untracked" || (scope is "uncommitted" or "branch") && await Untracked()) return new(null, null);
+        switch (scope)
+        {
+            case "commit":
+                var (parent, commit) = await CommitRangeAsync(root, comparison, ct);
+                return new(parent, commit);
+            case "staged": return new(await Head(), "");
+            case "working": return new("", null);
+            case "branch": return new(await ComparisonBaseAsync(root, comparison, ct), null);
+            case "uncommitted": return new(await Head(), null);
+            default: return new(await Head() ?? "", null);
+        }
     }
 
     private sealed class GitException(int exitCode, string message) : IOException(message)

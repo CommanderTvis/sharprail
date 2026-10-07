@@ -152,6 +152,8 @@ internal static class ProjectChecks
         return text;
     }
 
+    private static (string Original, string Modified) Texts(DiffSides sides) => (sides.Original, sides.Modified);
+
     private static async Task CheckGit(string source, string root)
     {
         var parent = Path.GetDirectoryName(root)!;
@@ -170,14 +172,14 @@ internal static class ProjectChecks
         snapshot = await host.ApplyGitActionAsync(new("stage", unusual));
         Require(snapshot.Changes.Any(change => change.Path == unusual && change.IndexStatus == "A"), "Staging failed.");
         Require((await host.GetDiffAsync(unusual, "staged")).Contains("Untracked content", StringComparison.Ordinal), "Staged diff failed.");
-        Require(await host.GetDiffSidesAsync(unusual, "staged") == new DiffSides("", "Untracked content\n"), "Staged diff sides must compare HEAD with the index.");
+        Require(Texts(await host.GetDiffSidesAsync(unusual, "staged")) == ("", "Untracked content\n"), "Staged diff sides must compare HEAD with the index.");
         await File.WriteAllTextAsync(Path.Combine(root, unusual), "Current unstaged content\nSecond line\n");
         var pendingDiff = await host.GetDiffAsync(unusual, "uncommitted");
         Require(pendingDiff.Contains("+Current unstaged content", StringComparison.Ordinal) &&
             !pendingDiff.Contains("+Untracked content", StringComparison.Ordinal),
             "Uncommitted diff must include net staged and unstaged content against HEAD.");
-        Require(await host.GetDiffSidesAsync(unusual, "uncommitted") == new DiffSides("", "Current unstaged content\nSecond line\n") &&
-            await host.GetDiffSidesAsync(unusual, "working") == new DiffSides("Untracked content\n", "Current unstaged content\nSecond line\n"),
+        Require(Texts(await host.GetDiffSidesAsync(unusual, "uncommitted")) == ("", "Current unstaged content\nSecond line\n") &&
+            Texts(await host.GetDiffSidesAsync(unusual, "working")) == ("Untracked content\n", "Current unstaged content\nSecond line\n"),
             "Diff sides must follow the scope's range, including index-only files.");
         var pending = (await host.GetGitAsync(scope: "uncommitted")).Changes.Single(change => change.Path == unusual);
         var staged = (await host.GetGitAsync(scope: "staged")).Changes.Single(change => change.Path == unusual);
@@ -239,8 +241,8 @@ internal static class ProjectChecks
             var readme = await host.GetDiffSidesAsync("README.md", "all");
             Require(readme.Original == await Git(root, "show", "HEAD:README.md") && readme.Modified == await File.ReadAllTextAsync(Path.Combine(root, "README.md")) &&
                 await remote.GetDiffSidesAsync("README.md", "all") == readme &&
-                await remote.GetDiffSidesAsync(unusual, "branch", "HEAD") == new DiffSides("", "Untracked content\n") &&
-                await host.GetDiffSidesAsync(unusual, "branch", "HEAD") == new DiffSides("", "Untracked content\n"),
+                Texts(await remote.GetDiffSidesAsync(unusual, "branch", "HEAD")) == ("", "Untracked content\n") &&
+                Texts(await host.GetDiffSidesAsync(unusual, "branch", "HEAD")) == ("", "Untracked content\n"),
                 "Remote diff sides differ from the local host.");
             var localBranches = await host.ListBranchesAsync(false);
             var remoteBranches = await remote.ListBranchesAsync(false);
@@ -301,7 +303,7 @@ internal static class ProjectChecks
             try { return await Git(root, "show", revision + ":" + commitPath); }
             catch (IOException) { return ""; }
         }
-        Require(await host.GetDiffSidesAsync(commitPath, "commit", target) == new DiffSides(await Blob(fork), await Blob(target)),
+        Require(Texts(await host.GetDiffSidesAsync(commitPath, "commit", target)) == (await Blob(fork), await Blob(target)),
             "Commit diff sides must use its first-parent range.");
         var rootNames = (await Git(root, "show", "--format=", "--no-renames", "--name-only", "-z", fork, "--"))
             .Split('\0', StringSplitOptions.RemoveEmptyEntries);

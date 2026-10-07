@@ -19,11 +19,17 @@ internal sealed class HostedTerminal
 
     internal PtySession Process { get; }
 
-    internal HostedTerminal(PtySession process, int columns, int rows)
+    internal HostedTerminal(PtySession process, int columns, int rows, byte[]? restored = null)
     {
         Process = process;
+        if (restored is { Length: > 0 }) recorder.Restore(restored);
         grid = (columns, rows);
         _ = Task.Run(Pump);
+    }
+
+    internal byte[] Recording()
+    {
+        lock (gate) return recorder.Snapshot();
     }
 
     private async Task Pump()

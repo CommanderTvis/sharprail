@@ -9,9 +9,9 @@ depends-on: [module-host-abstractions]
 
 # Host core
 
-Upstream: packages/shared/SPEC.md @ c44534ea
-Upstream: packages/server/SPEC.md @ c44534ea
-Upstream: packages/server/src/host/SPEC.md @ c44534ea
+Upstream: packages/shared/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
+Upstream: packages/server/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
+Upstream: packages/server/src/host/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
 
 ## Responsibility
 
@@ -87,11 +87,6 @@ terminal attachments, never through a UI callback.
   commit) rather than to message text.
 - A retrying recursive tree removal for teardown, and first-free-port selection for the remote host.
 - Host-side routes serving raw workspace files for relative Markdown images (images load through
-  `ReadFileAsync` instead), and a sibling serving a path's bytes at one commit: streamed, size-bounded
-  and immutable, so a diff side that must not be decoded as text is still viewable. The Git runner
-  captures child output only as text.
-- One byte classification (text or not, media type, SHA-256) shared by file reads and diff sides.
-- Reverting a hunk or a file's whole change in the worktree with undo receipts, serialized per workspace
-  and guarded by compare-and-swap against a stale view; a revert that removes a file moves it to the OS
-  trash rather than unlinking it.
+  `ReadFileAsync` instead). A path's bytes at one commit are served as a gRPC call
+  (`ReadContentBytesAsync`), not a route, and are not streamed.
 - Crash logging to the state directory and one graceful, idempotent shutdown path shared by launchers.

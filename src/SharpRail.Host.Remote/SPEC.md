@@ -1,7 +1,7 @@
 # Remote host server
 
-Upstream: packages/server/SPEC.md @ c44534ea
-Upstream: packages/server/src/auth/SPEC.md @ 4a65ed7f
+Upstream: packages/server/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
+Upstream: packages/server/src/auth/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
 
 ## Responsibility
 
@@ -51,11 +51,15 @@ loopback is an explicit opt-in via `SHARPRAIL_BIND`.
   directory) and uses a random per-process token, so reaching it requires both
   the user's filesystem access and the secret.
 
+The handshake is a state-service method behind the same authentication as every other call, so an
+unauthenticated peer learns nothing about the host's version.
+
 ## Composition and state
 
 - One `WorkspaceHost` for the startup root, one `HostStateStore` (persisted in
   the state directory, or in memory without one), `ProjectSessions`, and a
-  terminal service. The host owns its `PtyTerminalService` unless the embedder
+  terminal service. The host owns its `PtyTerminalService`, which records screens in
+  the `terminals` subdirectory of the state directory, unless the embedder
   supplies one; supplied terminals outlive the server, which is how local shells
   survive relay restarts while the app runs.
 - `ProjectSessions` resolves each project call from the workspace-root header,
@@ -65,6 +69,8 @@ loopback is an explicit opt-in via `SHARPRAIL_BIND`.
   therefore never share a current project, and reconnects need no session.
 - State watch streams end on application stopping, so graceful shutdown never
   waits for watchers. Changes are broadcast to every subscriber as full snapshots.
+- `ProjectRpc.ReadContentBytesAsync` delegates to the session's host and returns bytes and metadata as one
+  message, sized by the existing message limits; diff-side replies carry metadata and revisions.
 - File watch streams send host filesystem invalidations for the workspace in request metadata;
   cancellation or application stopping releases each subscription's native watchers.
 - A terminal call is one attachment: dropping the call detaches, and the shell

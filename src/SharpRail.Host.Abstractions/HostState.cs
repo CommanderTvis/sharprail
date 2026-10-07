@@ -50,6 +50,8 @@ public sealed record HostStateChange(string Kind, string Key = "", string Value 
 
 public interface IHostStateService
 {
+    /// <summary>The host's protocol version, so a client shipped separately can detect drift.</summary>
+    ValueTask<HostHandshake> GetHandshakeAsync(CancellationToken cancellationToken = default);
     ValueTask<HostState> GetStateAsync(CancellationToken cancellationToken = default);
     /// <summary>Applies the changes atomically and publishes one snapshot to every watcher.</summary>
     ValueTask<HostState> ChangeAsync(IReadOnlyList<HostStateChange> changes, CancellationToken cancellationToken = default);

@@ -8,8 +8,8 @@ parent: module-host-core
 
 # Terminals — host-owned PTY sessions
 
-Upstream: packages/server/src/terminal/SPEC.md @ 4a65ed7f
-Upstream: packages/server/src/subprocess/SPEC.md @ c44534ea
+Upstream: packages/server/src/terminal/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
+Upstream: packages/server/src/subprocess/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
 
 ## Responsibility
 
@@ -22,7 +22,9 @@ a tab where is frontend-local and never reaches this service.
 
 - Owns: the session table keyed by session id, the PTY (`PtySession`: `posix_openpt`, `posix_spawn` of
   the shell as a new session leader, a wait thread and a read pump), exclusive attachment with takeover
-  (`HostedTerminal`), the output recorder (`TerminalRecorder`) and foreground-process detection.
+  (`HostedTerminal`), the output recorder (`TerminalRecorder`), foreground-process detection and the
+  recording store (`TerminalRecordingStore`, one file per hex session id in the optional recordings
+  directory).
 - Public surface: `AttachAsync`, `IsBusyAsync`, `CloseAsync`, `DisposeAsync`; `TerminalDevice` for the
   relay's raw mode and window size.
 - Forbidden: UI and transport types. Output reaches clients only through the attachment they hold.
@@ -67,13 +69,30 @@ a tab where is frontend-local and never reaches this service.
   and repaint incrementally over a stale buffer. The restore is skipped when the shell exited or a real
   resize landed meanwhile.
 
+## Revival
+
+- With a recordings directory, `DisposeAsync` saves the snapshot of every session, exited ones included,
+  and every recording still pending, before ending the shells. Writes are atomic (temporary file, then
+  rename) and best effort; a recording over 64 KiB plus the mode preamble, or with an unreadable name, is
+  ignored, and at most 256 recordings load, newest first, the rest being deleted.
+- Loaded recordings wait in a pending table. The first attach of a session id starts a new shell and only
+  then consumes its entry: `TerminalRecorder.Restore` re-parses the bytes like live output, so modes are
+  tracked again rather than copied and the alternate screen and mouse modes stay absent. The attach reports
+  `Created` and replays the old picture; no redraw nudge runs. A failed spawn keeps the pending recording.
+- `CloseAsync` drops the pending entry and deletes the file. Without a recordings directory nothing is
+  persisted. The local app uses `<profile>/terminals`; a remote host uses `<state directory>/terminals`
+  and none without a state directory.
+- Checks cover local and remote (stopped and restarted host) revival, close, failed spawn then retry,
+  alternate screen and mouse hygiene, corrupt, oversized and surplus files, and the recorder round trip.
+
 ## Not yet ported
 
 - A persisted per-workspace terminal catalog (at most 256 tabs, bounded keys and titles) shared by every
   client, with reservation separate from attachment so a hidden default terminal survives reload and
   other clients without a shell, and catalog membership broadcast on change.
-- Revival across a host restart: persisting recordings at stop and restoring tabs whose first attach
-  starts a fresh shell showing the old picture; a failed spawn keeps the pending recording.
+- Revival keyed to a persisted terminal catalog: revival here is keyed by session id alone, so recordings
+  of tabs closed while the host was down linger until the store's cap evicts them, and a crash (as
+  opposed to a graceful stop) saves nothing.
 - Closing every terminal of a removed workspace.
 - Stable, non-native guidance when a shell cannot start, and Windows shells (PowerShell / cmd selection).
 - A bounded child-process runner: completion on the child's exit rather than pipe EOF (a grandchild

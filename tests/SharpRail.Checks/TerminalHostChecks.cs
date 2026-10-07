@@ -3,6 +3,7 @@ using System.Text;
 
 using Grpc.Core;
 
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
@@ -43,6 +44,10 @@ internal static class TerminalHostChecks
             await Sessions(new LocalTerminalAdapter(local), workspace, "local");
         }
 
+        await RevivalLocal(root, workspace);
+        await RevivalRemote(root, workspace);
+        RevivalRecorder();
+
         await using var app = RemoteServer.Create(root, IPAddress.Loopback, 0, "terminal-token");
         await app.StartAsync();
         try
@@ -70,6 +75,111 @@ internal static class TerminalHostChecks
         }
         finally { await app.StopAsync(); }
         Console.WriteLine("PASS host terminals: local/remote PTY echo, worktree root, controlling tty, UTF-8, resize, busy foreground, exit status, detach and close, start failure and auth rejection");
+    }
+
+    private static async Task<(ITerminalSession Session, Screen Screen)> Open(ITerminalService terminals, string id, string workspace)
+    {
+        var session = await terminals.AttachAsync(new(id, workspace, "client", 100, 30));
+        return (session, new Screen(session));
+    }
+
+    private static async Task RevivalLocal(string root, string workspace)
+    {
+        var directory = Path.Combine(root, "revival-local");
+        var id = "revive-" + Guid.NewGuid().ToString("N");
+        var closed = "closed-" + Guid.NewGuid().ToString("N");
+        var absent = Path.Combine(workspace, "revival-absent");
+        await using (var first = new PtyTerminalService(recordingsDirectory: directory))
+        {
+            var (session, screen) = await Open(first, id, workspace);
+            await screen.Run("printf 'MARK_%s\\n' ONE");
+            await screen.WaitFor("MARK_ONE", "revival");
+            await screen.Run("printf '\\033[?%s' 1049h; printf 'ALT_%s' HIDDEN; printf '\\033[?%s' 1000h; printf '\\033[?%s' 1049l; printf '\\033[?%s' 1000l; printf 'MARK_%s\\n' TWO");
+            await screen.WaitFor("MARK_TWO", "revival");
+            var (_, other) = await Open(first, closed, workspace);
+            await other.Run("printf 'GONE_%s\\n' X");
+            await other.WaitFor("GONE_X", "revival");
+            await first.CloseAsync(closed);
+            await session.DisposeAsync();
+        }
+        Require(!Directory.EnumerateFiles(directory).Any(file => Path.GetFileName(file).StartsWith(Convert.ToHexString(Encoding.UTF8.GetBytes(closed)), StringComparison.Ordinal)),
+            "Closing a tab must remove its recording.");
+        Require(Directory.EnumerateFiles(directory, "*.rec").Count() == 1, "Only the open tab should leave a recording.");
+
+        // A failed spawn keeps the recording for the retry.
+        await using (var second = new PtyTerminalService(recordingsDirectory: directory))
+        {
+            try { await second.AttachAsync(new(id, absent, "client")); throw new InvalidOperationException("A terminal started in a missing folder."); }
+            catch (IOException) { }
+            var (session, screen) = await Open(second, id, workspace);
+            Require(session.Created, "A revived tab starts a new shell.");
+            var text = Encoding.UTF8.GetString(session.Replay.Span);
+            Require(text.Contains("MARK_ONE", StringComparison.Ordinal) && text.Contains("MARK_TWO", StringComparison.Ordinal), "The revived replay lacks the recorded output: " + text);
+            Require(!text.Contains("ALT_HIDDEN", StringComparison.Ordinal) && !text.Contains("?1049", StringComparison.Ordinal) && !text.Contains("?1000", StringComparison.Ordinal),
+                "Alternate screen output and mouse modes must not be revived: " + text);
+            await screen.Run("printf 'NEW_%s\\n' SHELL");
+            await screen.WaitFor("NEW_SHELL", "revival");
+            await session.DisposeAsync();
+        }
+
+        // Corrupt, oversized and surplus files are ignored.
+        var junk = Path.Combine(root, "revival-junk");
+        Directory.CreateDirectory(junk);
+        File.WriteAllBytes(Path.Combine(junk, "not-hex.rec"), [1, 2, 3]);
+        File.WriteAllBytes(Path.Combine(junk, Convert.ToHexString("big"u8) + ".rec"), new byte[TerminalRecordingStore.MaxBytes + 1]);
+        var store = new TerminalRecordingStore(junk);
+        for (var index = 0; index < TerminalRecordingStore.MaxEntries + 10; index++) store.Save("s" + index, "x"u8.ToArray());
+        Require(store.LoadAll().Count == TerminalRecordingStore.MaxEntries, "The recording store must honour its entry cap.");
+        Require(store.Load("big") is null, "An oversized recording must be ignored.");
+        Require(new TerminalRecordingStore(Path.Combine(root, "revival-none")).LoadAll().Count == 0, "A missing store must be empty.");
+        Console.WriteLine("PASS host terminal revival (local): recorded screen shown by a new shell, close removes it, failed start keeps it, alternate screen and mouse modes dropped, corrupt/oversized/surplus files ignored");
+    }
+
+    private static async Task RevivalRemote(string root, string workspace)
+    {
+        var state = Path.Combine(root, "revival-remote");
+        var id = "revive-remote-" + Guid.NewGuid().ToString("N");
+        async Task<WebApplication> Start() { var host = RemoteServer.Create(root, IPAddress.Loopback, 0, "revive-token", state); await host.StartAsync(); return host; }
+        Uri Address(WebApplication host) => new(host.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single());
+        var app = await Start();
+        try
+        {
+            using var remote = new RemoteTerminalAdapter(Address(app), "revive-token");
+            var (session, screen) = await Open(remote, id, workspace);
+            await screen.Run("printf 'REMOTE_%s\\n' MARK");
+            await screen.WaitFor("REMOTE_MARK", "remote revival");
+            await session.DisposeAsync();
+        }
+        finally { await app.StopAsync(); await app.DisposeAsync(); }
+        app = await Start();
+        try
+        {
+            using var remote = new RemoteTerminalAdapter(Address(app), "revive-token");
+            var (session, screen) = await Open(remote, id, workspace);
+            Require(session.Created && Encoding.UTF8.GetString(session.Replay.Span).Contains("REMOTE_MARK", StringComparison.Ordinal), "A restarted host must revive the recorded screen.");
+            await screen.Run("printf 'AGAIN_%s\\n' OK");
+            await screen.WaitFor("AGAIN_OK", "remote revival");
+            await session.DisposeAsync();
+            await remote.CloseAsync(id);
+        }
+        finally { await app.StopAsync(); await app.DisposeAsync(); }
+        Console.WriteLine("PASS host terminal revival (remote): a stopped and restarted host over one state directory revives the tab with a fresh shell");
+    }
+
+    private static void RevivalRecorder()
+    {
+        var recorder = new TerminalRecorder();
+        recorder.Push("\x1b[?25l\x1b[?2004hhello\r\nworld\r\n"u8);
+        var snapshot = recorder.Snapshot();
+        var restored = new TerminalRecorder();
+        restored.Restore(snapshot);
+        Require(restored.Snapshot().AsSpan().SequenceEqual(snapshot), "Restore then Snapshot must round-trip without duplicating the preamble.");
+        restored.Restore(restored.Snapshot());
+        Require(Count(Encoding.UTF8.GetString(restored.Snapshot()), "\x1b[?2004h") == 1, "The mode preamble must not be duplicated.");
+        var big = new TerminalRecorder();
+        big.Restore(Encoding.UTF8.GetBytes(string.Concat(Enumerable.Repeat("line of output\n", 20_000))));
+        Require(big.Snapshot().Length <= TerminalRecorder.SnapshotBytes + 64, "Restored bytes must be capped.");
+        Console.WriteLine("PASS terminal recorder restore: snapshot round-trips, modes re-parsed, size capped");
     }
 
     private static async Task Exercise(ITerminalService terminals, string workspace, string mode)

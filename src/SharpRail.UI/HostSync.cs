@@ -20,7 +20,18 @@ public sealed partial class WorkbenchWindow
     {
         state.Changed += SharedStateChanged;
         state.ConnectionChanged += ConnectionChanged;
-        Closed += (_, _) => { state.Changed -= SharedStateChanged; state.ConnectionChanged -= ConnectionChanged; };
+        state.HandshakeChanged += HandshakeChanged;
+        Closed += (_, _) => { state.Changed -= SharedStateChanged; state.ConnectionChanged -= ConnectionChanged; state.HandshakeChanged -= HandshakeChanged; };
+    }
+
+    /// <summary>Detects a host built for another protocol version; there are no gates to apply yet.</summary>
+    private void HandshakeChanged(HostHandshake? handshake)
+    {
+        if (handshake is null || handshake.ProtocolVersion == HostProtocol.Current) return;
+        Console.Error.WriteLine($"Host protocol {handshake.ProtocolVersion} ({handshake.HostVersion}) differs from this app's {HostProtocol.Current}.");
+        ShowNotification(handshake.ProtocolVersion > HostProtocol.Current
+            ? "The host is newer than this app. Update the app to use every feature."
+            : "The host is older than this app. Some features may be unavailable until it is updated.");
     }
 
     /// <summary>Sends shared changes to the host, reporting a failure in this window.</summary>

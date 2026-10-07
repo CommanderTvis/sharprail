@@ -38,7 +38,7 @@ public sealed class ProjectRpc(ProjectSessions sessions, IHostApplicationLifetim
     public ValueTask<DocumentReply> ReadFileAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>
     {
         var result = await Host(context).ReadFileAsync(request.Path, context.CancellationToken);
-        return new DocumentReply { Path = result.Path, Text = result.Text, ImageData = result.ImageData };
+        return new DocumentReply { Path = result.Path, Text = result.Text, ImageData = result.ImageData, Info = Info(result.Info) };
     });
 
     public ValueTask<GitReply> GetGitAsync(ProjectRequest request, CallContext context = default)
@@ -59,8 +59,40 @@ public sealed class ProjectRpc(ProjectSessions sessions, IHostApplicationLifetim
     public ValueTask<DiffSidesReply> GetDiffSidesAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>
     {
         var sides = await Host(context).GetDiffSidesAsync(request.Path, request.Scope, request.Branch, context.CancellationToken);
-        return new DiffSidesReply { Original = sides.Original, Modified = sides.Modified };
+        return new DiffSidesReply
+        {
+            Original = sides.Original,
+            Modified = sides.Modified,
+            OriginalHash = sides.OriginalHash,
+            ModifiedHash = sides.ModifiedHash,
+            OriginalCommit = sides.OriginalCommit,
+            OriginalInfo = Info(sides.OriginalInfo),
+            ModifiedInfo = Info(sides.ModifiedInfo),
+            OriginalRevision = sides.OriginalRevision,
+            ModifiedRevision = sides.ModifiedRevision
+        };
     });
+
+    private static ContentMetadataDto? Info(ContentMetadata? info) =>
+        info is null ? null : new() { Sha256 = info.Sha256, ByteLength = info.ByteLength, IsText = info.IsText, MediaType = info.MediaType };
+
+    public ValueTask<ContentReply> ReadContentBytesAsync(ContentRequest request, CallContext context = default) => Execute(async () =>
+    {
+        var content = await Host(context).ReadContentBytesAsync(request.Path, request.WorkingTree ? null : request.Revision, context.CancellationToken);
+        return new ContentReply { Data = content.Data, Info = Info(content.Info)! };
+    });
+
+    public ValueTask<ChangeReceiptReply> RevertChangeAsync(RevertChangeRequest request, CallContext context = default) => Execute(async () =>
+    {
+        var target = request.IsRange
+            ? new RevertTarget(new(request.OriginalStart, request.OriginalCount), new(request.ModifiedStart, request.ModifiedCount))
+            : new RevertTarget();
+        return Map(await Host(context).RevertChangeAsync(request.Path, request.Scope, request.Branch, target,
+            new(request.OriginalHash, request.ModifiedHash), context.CancellationToken));
+    });
+
+    public ValueTask<ChangeReceiptReply> UndoChangeAsync(UndoChangeRequest request, CallContext context = default)
+        => Execute(async () => Map(await Host(context).UndoChangeAsync(request.ReceiptId, request.ModifiedHash, context.CancellationToken)));
 
     public ValueTask<GitReply> ApplyGitActionAsync(ProjectRequest request, CallContext context = default)
         => Execute(async () => Map(await Host(context).ApplyGitActionAsync(new(request.Action, request.Path, request.Branch, request.BaseBranch), context.CancellationToken)));
@@ -76,6 +108,23 @@ public sealed class ProjectRpc(ProjectSessions sessions, IHostApplicationLifetim
             SuggestedPath = result.SuggestedPath,
             SuggestedBranch = result.SuggestedBranch
         };
+    });
+
+    public ValueTask<OpenReviewReply> GetOpenReviewAsync(OpenReviewRequest request, CallContext context = default) => Execute(async () =>
+        await Host(context).GetOpenReviewAsync(request.Fresh, context.CancellationToken) is { } review
+            ? new OpenReviewReply { Found = true, Number = review.Number, Url = review.Url, Provider = review.Provider, UnpushedCommits = review.UnpushedCommits, BehindCommits = review.BehindCommits }
+            : new OpenReviewReply());
+
+    public ValueTask<PrDraftReply> PreviewPrAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>
+    {
+        var draft = await Host(context).PreviewPrAsync(context.CancellationToken);
+        return new PrDraftReply { Title = draft.Title, Body = draft.Body };
+    });
+
+    public ValueTask<PrReply> OpenPrAsync(OpenPrRequest request, CallContext context = default) => Execute(async () =>
+    {
+        var result = await Host(context).OpenPrAsync(new(request.Title, request.TitleEdited, request.Body, request.Draft), context.CancellationToken);
+        return new PrReply { Action = result.Action, Url = result.Url, Number = result.Number, DirtyFiles = result.DirtyFiles, GhProblem = result.GhProblem };
     });
 
     public ValueTask<EditorsReply> ListEditorsAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>
@@ -103,6 +152,21 @@ public sealed class ProjectRpc(ProjectSessions sessions, IHostApplicationLifetim
         Worktrees = result.Worktrees.Select(tree => new WorktreeReply { Path = tree.Path, Branch = tree.Branch, IsMain = tree.IsMain, IsLocked = tree.IsLocked }).ToList()
     };
 
+    private static ChangeReceiptReply Map(ChangeReceipt receipt) => new()
+    {
+        Id = receipt.Id,
+        Path = receipt.Path,
+        Kind = receipt.Kind,
+        At = receipt.At,
+        Trashed = receipt.Trashed,
+        BeforeHash = receipt.Before.Hash,
+        BeforeLength = receipt.Before.ByteLength,
+        BeforeMode = receipt.Before.Mode,
+        AfterHash = receipt.After.Hash,
+        AfterLength = receipt.After.ByteLength,
+        AfterMode = receipt.After.Mode
+    };
+
     private static CommitReply Map(GitCommit commit) => new()
     { Sha = commit.Sha, ShortSha = commit.ShortSha, Subject = commit.Subject, Author = commit.Author, CommittedAt = commit.CommittedAt };
 
@@ -112,6 +176,10 @@ public sealed class ProjectRpc(ProjectSessions sessions, IHostApplicationLifetim
     private static async ValueTask<T> Execute<T>(Func<Task<T>> action)
     {
         try { return await action(); }
+        catch (ChangeException error)
+        {
+            throw new RpcException(new Status(StatusCode.FailedPrecondition, error.Message), new Metadata { { ProjectHeaders.ChangeCode, error.Code.ToString() } });
+        }
         catch (Exception error) when (error is IOException or ArgumentException or InvalidOperationException or UnauthorizedAccessException)
         {
             throw new RpcException(new Status(StatusCode.FailedPrecondition, error.Message));

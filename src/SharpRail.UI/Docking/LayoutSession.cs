@@ -191,6 +191,23 @@ public sealed class LayoutSession
         });
     }
 
+    /// <summary>
+    /// Closes the selected (else first) tab of the keyboard-focused group, otherwise of the last-focused
+    /// center group, through <see cref="Close"/>. A tool tab, folded group or hidden region has no target
+    /// and no fallback. Returns whether a target was found.
+    /// </summary>
+    public bool RequestClose()
+    {
+        var view = View;
+        var groupId = State.Groups.Any(item => item.Id == view.FocusedGroup) ? view.FocusedGroup : view.FocusedCenter;
+        var group = State.Groups.FirstOrDefault(item => item.Id == groupId);
+        if (group is null || group.Folded) return false;
+        var visible = group.Region switch { "left" => State.LeftVisible, "right" => State.RightVisible, "bottom" => State.BottomVisible, _ => true };
+        if (!visible || Selected(groupId) is not { IsTool: false } tab) return false;
+        Close(groupId, tab.Id);
+        return true;
+    }
+
     public bool CanMove(string tabId, string source, string destination, int index, string edge = "")
     {
         var candidate = State.Copy();

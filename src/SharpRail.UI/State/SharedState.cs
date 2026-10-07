@@ -36,12 +36,19 @@ public sealed class SharedState : IDisposable
     /// <summary>Raised on the UI thread when the subscription drops or is re-established.</summary>
     public event Action<bool>? ConnectionChanged;
 
+    /// <summary>The connected host's handshake; null until it answers and again after the connection drops.</summary>
+    public HostHandshake? Handshake { get; private set; }
+    /// <summary>Raised on the UI thread when <see cref="Handshake"/> is set or cleared.</summary>
+    public event Action<HostHandshake?>? HandshakeChanged;
+    private int handshakeGeneration;
+
     public TimeSpan RetryDelay { get; init; } = TimeSpan.FromMilliseconds(250);
 
     public void Start()
     {
         if (started) return;
         started = true;
+        if (Connected) _ = FetchHandshakeAsync();
         Dispatcher.UIThread.Post(() => _ = WatchAsync());
     }
 
@@ -57,7 +64,7 @@ public sealed class SharedState : IDisposable
             {
                 await foreach (var state in service.WatchAsync(lifetime.Token))
                 {
-                    if (!Connected) { Connected = true; ConnectionChanged?.Invoke(true); }
+                    if (!Connected) { Connected = true; ConnectionChanged?.Invoke(true); _ = FetchHandshakeAsync(); }
                     var previous = Current;
                     Apply(state);
                     Changed?.Invoke(previous, state);
@@ -65,10 +72,31 @@ public sealed class SharedState : IDisposable
             }
             catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { return; }
             catch (Exception error) { Console.Error.WriteLine("Host state subscription dropped: " + error.Message); }
-            if (Connected) { Connected = false; ConnectionChanged?.Invoke(false); }
+            if (Connected) { Connected = false; SetHandshake(null); ConnectionChanged?.Invoke(false); }
             try { await Task.Delay(RetryDelay, lifetime.Token); }
             catch (OperationCanceledException) { return; }
         }
+    }
+
+    private void SetHandshake(HostHandshake? value)
+    {
+        handshakeGeneration++;
+        if (Handshake == value) return;
+        Handshake = value;
+        HandshakeChanged?.Invoke(value);
+    }
+
+    /// <summary>Asks the host in the background; an answer from a superseded connection is dropped.</summary>
+    private async Task FetchHandshakeAsync()
+    {
+        var generation = ++handshakeGeneration;
+        try
+        {
+            var handshake = await Task.Run(async () => await service.GetHandshakeAsync(lifetime.Token), lifetime.Token);
+            if (generation == handshakeGeneration && Connected) { Handshake = handshake; HandshakeChanged?.Invoke(handshake); }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception error) { Console.Error.WriteLine("Host handshake failed: " + error.Message); }
     }
 
     private void Apply(HostState state)

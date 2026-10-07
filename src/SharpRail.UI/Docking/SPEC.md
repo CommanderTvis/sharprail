@@ -1,11 +1,11 @@
 # Docking — window-local workbench frame
 
-Upstream: apps/web/src/shell/SPEC.md @ c44534ea
-Upstream: apps/web/src/shell/layout/SPEC.md @ 4a65ed7f
-Upstream: apps/web/src/shell/layoutIntents/SPEC.md @ 4a65ed7f
-Upstream: apps/web/src/shell/layoutState/SPEC.md @ 4a65ed7f
-Upstream: apps/web/src/shell/terminalReconciliation/SPEC.md @ 4a65ed7f
-Upstream: apps/web/src/navigation/SPEC.md @ 4a65ed7f
+Upstream: apps/web/src/shell/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
+Upstream: apps/web/src/shell/layout/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
+Upstream: apps/web/src/shell/layoutIntents/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
+Upstream: apps/web/src/shell/layoutState/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
+Upstream: apps/web/src/shell/terminalReconciliation/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
+Upstream: apps/web/src/navigation/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
 
 ## Responsibility
 
@@ -144,6 +144,11 @@ and tab id, so the session survives view rebuilds and other windows showing the 
 terminal body is created only when its tab is selected in a visible, unfolded group; hidden tabs keep
 their session without a body, and a hidden bottom reserves the initial terminal without starting a shell
 until shown. New terminal from a group lands in that group and reveals its region.
+
+A close request from the window (`LayoutSession.RequestClose`, driven by the app command owner) closes the
+selected (else first) tab of the keyboard-focused group, otherwise of the last-focused center group, through
+the normal close path including busy-terminal confirmation. A tool tab, folded group or hidden region yields
+no target and no further fallback. The tab button no longer handles Mod+W itself; Delete still closes it.
 
 ## Not yet ported
 

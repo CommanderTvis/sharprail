@@ -1,6 +1,6 @@
 # Repository scripts
 
-Upstream: scripts/SPEC.md @ be804a56
+Upstream: scripts/SPEC.md (revision: [UPSTREAM.md](../UPSTREAM.md))
 
 ## Responsibility
 
@@ -55,5 +55,8 @@ readiness markers, not synthetic timers; it is never part of the check gate.
 
 ## Not yet ported
 
-- A boundary checker that fails when a project reference or `using` crosses the documented dependency direction (host projects must not reference the UI; Core must not reference Client or Remote).
+- A boundary checker that fails when project references or source imports cross the documented
+  dependency direction, including aliases, static imports and re-exports; generated/build output
+  is excluded, and negative fixtures exercise the same scan as the repository gate. Host projects
+  must not reference the UI; Core must not reference Client or Remote.
 - A public-surface check comparing identifier lists declared in enrolled specs against the effective public API of the corresponding assembly.

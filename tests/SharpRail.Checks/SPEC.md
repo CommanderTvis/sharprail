@@ -1,6 +1,6 @@
 # Headless checks and E2E translations
 
-Upstream: e2e/SPEC.md @ 3822748b
+Upstream: e2e/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
 
 ## Responsibility
 
@@ -30,6 +30,7 @@ OSC 52 checks use a private AppKit pasteboard and scripted read confirmation,
 restoring both after each case. `--ghostty-skia` covers fragmented ST/BEL writes,
 Unicode, selection destinations, malformed/cancelled data, embedded NULs, large
 and empty payloads, approved/denied reads, repeated permission and terminal reset.
+`--terminals` also covers terminal revival: local and remote restarts, close, failed spawn, mode hygiene and store limits.
 `--native-osc52` runs those checks plus real Metal shell output and encoded read
 replies, plus local and remote clipboard round trips in both renderers and writes
 after renderer switches. This native coverage also runs in `--native-texture`.
@@ -63,7 +64,9 @@ loopback `RemoteServer` with `RemoteHostAdapter` must return equal results,
 propagate cancellation, and reject a bad token as unauthenticated. Multi-client
 translations attach remote clients to one real gRPC host, and `E2E/CutProxy.cs`
 drops and restores a single client's connection to exercise reconnect. A new host
-operation adds its parity assertion here rather than a copied feature check.
+operation adds its parity assertion here. The handshake checks cover local/remote equality, a rejected
+wrong token, a stub host without the method (version 0), the capability table, and clearing and refetching
+the version across a cut connection. rather than a copied feature check.
 
 ## Isolation contract
 
@@ -122,10 +125,35 @@ verification remain native checks (`scripts/check-terminal.sh`,
 `--native-terminal`, own-window captures) because the headless platform cannot
 prove them. Screenshots are evidence, never the assertion.
 
+## Content checks
+
+`ContentChecks.cs` (`-- --content`, also in the default run) covers the classifier (magic numbers, ASCII-only
+PDF byte-only, SVG and HTML flagged active, NUL and invalid UTF-8, LFS pointer), then the same fixture
+through the embedded host and a real gRPC host with equal results: byte-only diff sides empty with metadata
+and a frozen original commit, no commit for a root commit or untracked file, a binary notice for an untracked
+byte-only diff, exact bytes for the commit, working tree and index, an original that survives the branch
+moving, and refusal of refs, abbreviations, unknown, tree and blob ids, path escape, missing paths and a
+symbolic link. The headless UI part opens `BinaryDiffView` for a PNG (two pictures) and a PDF (cards only)
+and requires no replacement characters.
+
+## Quit and close commands
+
+`QuitConfirmationChecks` translates upstream's quit-confirmation cases against a fake clock and scheduler:
+tap expiry, double press, hold, key repeat, re-arming, focus loss before and during release, unreadable key
+state, a missing hint surface, and idempotent quit. `AppCommandChecks` drives a headless window with an
+injected shutdown action: quit hint and confirmation paths, Alt+F4 left alone, direct quit, Mod+W on the
+selected tab, tool/folded/hidden no-ops, modal dismissal, and typed-letter versus physical-key matching.
+`-- --commands` runs both. A busy-terminal confirmation from Mod+W and a terminal retaining Ctrl+W off
+macOS are not asserted.
+
 ## Not yet ported
 
 - Parallel lanes: splitting the gate across independent processes with lane-owned fixtures and merged results.
+- CI machine sharding composed with local lanes so every case runs exactly once across all jobs, with
+  conflicting explicit shard selection rejected; packaged checks need their own isolated artifact hosts.
 - A last-failed repair loop that reruns only the previously failing cases.
 - An idle-sleep assertion held by the runner for the duration of a macOS run.
 - Signal forwarding and forced cleanup of every descendant process when the runner is interrupted.
 - A gate that runs the full suite against the packaged `artifacts/SharpRail.app` rather than the built assemblies.
+- Mermaid drag-pan and pinch-gesture regression checks. Existing provider-free Markdown checks cover
+  malformed-source fallback, full-screen growth, zoom reset and Escape; theme checks cover re-rendering.

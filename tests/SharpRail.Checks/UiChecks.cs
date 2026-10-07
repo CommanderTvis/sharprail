@@ -497,6 +497,7 @@ internal static class UiChecks
         NavigationChecks.Run(root);
         StartupChecks.Run(root);
         DockInputChecks.Run(root);
+        AppCommandChecks.Run(root);
         AuxiliaryInputChecks.Run(root);
         GitUiChecks.Run(root + "-git");
         Console.WriteLine("PASS tabs, Markdown, pointer drag/cancel/drop, settings persistence, project and frame restoration");

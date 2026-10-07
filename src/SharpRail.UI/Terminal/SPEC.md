@@ -1,10 +1,10 @@
 # Terminal — terminal tabs in the UI
 
-Upstream: packages/server/src/terminal/SPEC.md @ 4a65ed7f
-Upstream: apps/web/src/shell/SPEC.md @ c44534ea
-Upstream: apps/web/src/shell/layout/SPEC.md @ 4a65ed7f
-Upstream: apps/web/src/shell/terminalReconciliation/SPEC.md @ 4a65ed7f
-Upstream: apps/web/src/store/SPEC.md @ c44534ea
+Upstream: packages/server/src/terminal/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
+Upstream: apps/web/src/shell/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
+Upstream: apps/web/src/shell/layout/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
+Upstream: apps/web/src/shell/terminalReconciliation/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
+Upstream: apps/web/src/store/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
 
 ## Responsibility
 
@@ -31,7 +31,8 @@ recording and replay belong to the host (`Host.Core/PtyTerminalService.cs` behin
   window reattaches to the same shell.
 - A shell outlives every client that shows it. Disposing a view or closing a window only detaches; closing
   the tab is the only UI action that ends the shell. Local shells end when the app quits and remote shells
-  when their host stops; restored tabs start new shells after a restart.
+  when their host stops; restored tabs start new shells showing their last recorded screen after a restart
+  (the local host saves it on a graceful quit).
 - Attach is exclusive with takeover. A session has one size, so a new attach becomes the recipient and the
   previous client shows "This terminal is open somewhere else" with Take it back. A displaced client's
   input and resizes are ignored and its reconnects never take the session back; taking back is an explicit
@@ -150,6 +151,5 @@ fallback while preserving the local/remote shell and its exit status.
 
 - A host-persisted per-workspace terminal catalog, reserved separately from starting a shell, bounded in
   size, broadcast to every client, and used to seed each client's placement.
-- Reviving tabs across a host restart with their last recorded screen.
 - Ending a workspace's shells when its worktree is removed.
 - A host-configurable replay size.

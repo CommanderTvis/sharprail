@@ -18,6 +18,9 @@ public sealed class SaveFileReply { }
 
 public static class ProjectHeaders
 {
+    /// <summary>Trailer naming the <c>ChangeFailure</c> of a refused change write.</summary>
+    public const string ChangeCode = "x-sharprail-change-code";
+
     /// <summary>Binary metadata carrying the UTF-8 workspace root a client last opened; the host resolves each call against it.</summary>
     public const string Root = "x-sharprail-root-bin";
 }
@@ -52,6 +55,33 @@ public sealed class DocumentReply
     [ProtoMember(1)] public string Path { get; set; } = "";
     [ProtoMember(2)] public string Text { get; set; } = "";
     [ProtoMember(3)] public byte[]? ImageData { get; set; }
+    [ProtoMember(4)] public ContentMetadataDto? Info { get; set; }
+}
+
+[ProtoContract]
+public sealed class ContentMetadataDto
+{
+    // A hash is never empty, so null (omitted on the wire) means the resource is absent.
+    [ProtoMember(1)] public string? Sha256 { get; set; }
+    [ProtoMember(2)] public long? ByteLength { get; set; }
+    [ProtoMember(3)] public bool IsText { get; set; }
+    [ProtoMember(4)] public string? MediaType { get; set; }
+}
+
+/// <summary>Revision null is the working tree, empty the index, otherwise a commit id; null is not distinguishable from empty on the wire, so <see cref="WorkingTree"/> says it.</summary>
+[ProtoContract]
+public sealed class ContentRequest
+{
+    [ProtoMember(1)] public string Path { get; set; } = "";
+    [ProtoMember(2)] public bool WorkingTree { get; set; }
+    [ProtoMember(3)] public string Revision { get; set; } = "";
+}
+
+[ProtoContract]
+public sealed class ContentReply
+{
+    [ProtoMember(1)] public byte[] Data { get; set; } = [];
+    [ProtoMember(2)] public ContentMetadataDto Info { get; set; } = new();
 }
 
 [ProtoContract]
@@ -59,6 +89,53 @@ public sealed class DiffSidesReply
 {
     [ProtoMember(1)] public string Original { get; set; } = "";
     [ProtoMember(2)] public string Modified { get; set; } = "";
+    // A hash is never empty, so null (omitted on the wire) unambiguously means the side is absent.
+    [ProtoMember(3)] public string? OriginalHash { get; set; }
+    [ProtoMember(4)] public string? ModifiedHash { get; set; }
+    [ProtoMember(5)] public string? OriginalCommit { get; set; }
+    [ProtoMember(6)] public ContentMetadataDto? OriginalInfo { get; set; }
+    [ProtoMember(7)] public ContentMetadataDto? ModifiedInfo { get; set; }
+    [ProtoMember(8)] public string? OriginalRevision { get; set; }
+    [ProtoMember(9)] public string? ModifiedRevision { get; set; }
+}
+
+[ProtoContract]
+public sealed class RevertChangeRequest
+{
+    [ProtoMember(1)] public string Path { get; set; } = "";
+    [ProtoMember(2)] public string Scope { get; set; } = "";
+    [ProtoMember(3)] public string Branch { get; set; } = "";
+    /// <summary>False reverts the file's whole change and ignores the spans.</summary>
+    [ProtoMember(4)] public bool IsRange { get; set; }
+    [ProtoMember(5)] public int OriginalStart { get; set; }
+    [ProtoMember(6)] public int OriginalCount { get; set; }
+    [ProtoMember(7)] public int ModifiedStart { get; set; }
+    [ProtoMember(8)] public int ModifiedCount { get; set; }
+    [ProtoMember(9)] public string? OriginalHash { get; set; }
+    [ProtoMember(10)] public string? ModifiedHash { get; set; }
+}
+
+[ProtoContract]
+public sealed class UndoChangeRequest
+{
+    [ProtoMember(1)] public string ReceiptId { get; set; } = "";
+    [ProtoMember(2)] public string? ModifiedHash { get; set; }
+}
+
+[ProtoContract]
+public sealed class ChangeReceiptReply
+{
+    [ProtoMember(1)] public string Id { get; set; } = "";
+    [ProtoMember(2)] public string Path { get; set; } = "";
+    [ProtoMember(3)] public string Kind { get; set; } = "";
+    [ProtoMember(4)] public long At { get; set; }
+    [ProtoMember(5)] public string? BeforeHash { get; set; }
+    [ProtoMember(6)] public long? BeforeLength { get; set; }
+    [ProtoMember(7)] public int? BeforeMode { get; set; }
+    [ProtoMember(8)] public string? AfterHash { get; set; }
+    [ProtoMember(9)] public long? AfterLength { get; set; }
+    [ProtoMember(10)] public int? AfterMode { get; set; }
+    [ProtoMember(11)] public string? Trashed { get; set; }
 }
 
 [ProtoContract]
@@ -122,8 +199,14 @@ public interface IProjectRpc
     ValueTask<CommitsReply> ListCommitsAsync(ProjectRequest request, CallContext context = default);
     ValueTask<DocumentReply> GetDiffAsync(ProjectRequest request, CallContext context = default);
     ValueTask<DiffSidesReply> GetDiffSidesAsync(ProjectRequest request, CallContext context = default);
+    ValueTask<ContentReply> ReadContentBytesAsync(ContentRequest request, CallContext context = default);
+    ValueTask<ChangeReceiptReply> RevertChangeAsync(RevertChangeRequest request, CallContext context = default);
+    ValueTask<ChangeReceiptReply> UndoChangeAsync(UndoChangeRequest request, CallContext context = default);
     ValueTask<GitReply> ApplyGitActionAsync(ProjectRequest request, CallContext context = default);
     ValueTask<BranchesReply> ListBranchesAsync(BranchesRequest request, CallContext context = default);
+    ValueTask<OpenReviewReply> GetOpenReviewAsync(OpenReviewRequest request, CallContext context = default);
+    ValueTask<PrDraftReply> PreviewPrAsync(ProjectRequest request, CallContext context = default);
+    ValueTask<PrReply> OpenPrAsync(OpenPrRequest request, CallContext context = default);
     ValueTask<EditorsReply> ListEditorsAsync(ProjectRequest request, CallContext context = default);
     ValueTask<SaveFileReply> OpenInEditorAsync(OpenInEditorRequest request, CallContext context = default);
 }
@@ -191,4 +274,46 @@ public sealed class SpecsReply
 public sealed class CommitsReply
 {
     [ProtoMember(1)] public List<CommitReply> Commits { get; set; } = [];
+}
+[ProtoContract]
+public sealed class OpenReviewRequest
+{
+    [ProtoMember(1)] public bool Fresh { get; set; }
+}
+
+[ProtoContract]
+public sealed class OpenReviewReply
+{
+    [ProtoMember(1)] public bool Found { get; set; }
+    [ProtoMember(2)] public int Number { get; set; }
+    [ProtoMember(3)] public string Url { get; set; } = "";
+    [ProtoMember(4)] public string Provider { get; set; } = "";
+    [ProtoMember(5)] public int UnpushedCommits { get; set; }
+    [ProtoMember(6)] public int BehindCommits { get; set; }
+}
+
+[ProtoContract]
+public sealed class PrDraftReply
+{
+    [ProtoMember(1)] public string Title { get; set; } = "";
+    [ProtoMember(2)] public string Body { get; set; } = "";
+}
+
+[ProtoContract]
+public sealed class OpenPrRequest
+{
+    [ProtoMember(1)] public string Title { get; set; } = "";
+    [ProtoMember(2)] public bool TitleEdited { get; set; }
+    [ProtoMember(3)] public string Body { get; set; } = "";
+    [ProtoMember(4)] public bool Draft { get; set; }
+}
+
+[ProtoContract]
+public sealed class PrReply
+{
+    [ProtoMember(1)] public string Action { get; set; } = "";
+    [ProtoMember(2)] public string Url { get; set; } = "";
+    [ProtoMember(3)] public int Number { get; set; }
+    [ProtoMember(4)] public int DirtyFiles { get; set; }
+    [ProtoMember(5)] public string GhProblem { get; set; } = "";
 }

@@ -50,7 +50,7 @@ public sealed partial class App : Application
                 : () => new LocalProjectAdapter(new ProjectServices(initialRoot, local));
             var remoteTerminals = remote ? new RemoteTerminalAdapter(new Uri(endpoint!), token) : null;
             // Local sessions belong to the app's host: they survive their windows and end when the app quits.
-            var localTerminals = remoteTerminals is null && !OperatingSystem.IsWindows() ? new PtyTerminalService() : null;
+            var localTerminals = remoteTerminals is null && !OperatingSystem.IsWindows() ? new PtyTerminalService(recordingsDirectory: Path.Combine(profile.DirectoryPath, "terminals")) : null;
             string Renderer() => profile.Data.Preferences.TerminalRenderer;
             Terminals = remoteTerminals is not null
                 ? TerminalBackends.Ghostty(new RemoteTerminalConnection(new Uri(endpoint!), token, remoteTerminals), Renderer)
@@ -64,6 +64,7 @@ public sealed partial class App : Application
                 desktop.MainWindow ??= window;
                 if (window != desktop.MainWindow) window.Show();
             }
+            workbench.Commands.Shutdown = () => desktop.TryShutdown();
             desktop.ShutdownRequested += (_, _) => workbench.ShuttingDown = true;
             desktop.Exit += (_, _) =>
             {

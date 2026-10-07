@@ -9,6 +9,12 @@ namespace SharpRail.Host.Remote;
 
 public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime lifetime) : IStateRpc
 {
+    public async ValueTask<HandshakeReply> HandshakeAsync(HandshakeRequest request, CallContext context = default)
+    {
+        var handshake = await host.GetHandshakeAsync(context.CancellationToken);
+        return new() { ProtocolVersion = handshake.ProtocolVersion, HostVersion = handshake.HostVersion };
+    }
+
     public async ValueTask<StateReply> GetStateAsync(StateRequest request, CallContext context = default)
         => Map(await host.GetStateAsync(context.CancellationToken));
 

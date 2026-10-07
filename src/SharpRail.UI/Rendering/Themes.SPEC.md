@@ -7,7 +7,7 @@ title: Themes
 
 # Themes: bundled manifest catalogue and application
 
-Upstream: apps/web/src/themes/SPEC.md @ c44534ea
+Upstream: apps/web/src/themes/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
 
 ## Responsibility
 
@@ -28,6 +28,8 @@ rebuilding: no code, contract, style or check changes.
   selected-text foreground resource, then raises `Ui.ThemeChanged`. That event is the one way to observe a
   completed swap; Mermaid diagrams, the Scintilla editor and Ghostty terminals rebuild their baked colours
   from it rather than each watching the window's theme variant.
+  The subscription lives in the shared `Ui` layer independently of catalogue and preference resolution,
+  matching upstream's shared UI theme-observation seam; theme selection and application stay app-owned.
 - Forbidden: host state writes, UI state, runtime theme registration or discovery, executable theme code,
   layout or arbitrary style supplied by a manifest.
 

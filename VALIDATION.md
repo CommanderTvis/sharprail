@@ -1181,3 +1181,15 @@ native-texture,fallback-verified}.log. Build retains four existing XAML warnings
 The complete checks runner also passes with
 `SHARPRAIL_TEST_GIT_SOURCE=/Users/commandertvis/IdeaProjects/thinkrail`;
 evidence: `.bench/in-process/full.log`. Spec-graph validation passes.
+
+### Host-owned change revert and undo (2026-10-07)
+
+`ChangeChecks.cs` (`-- --changes`, also part of the complete run) covers the line arithmetic, ring retention,
+hunk and whole-file reverts (modified, inserted, deleted, deleted executable, untracked to the trash), stale
+original and modified hashes with bytes and mtime unchanged, serialized concurrent reverts, every refusal
+code, undo and redo, eviction at 20 receipts and receipt loss on leaving the workspace, once through the
+embedded host and once through a real gRPC host with identical receipts and codes. Debug build with warnings
+as errors and formatting verification pass; the host and Git fixture checks of the complete runner pass
+(`SHARPRAIL_TEST_GIT_SOURCE` set). The same complete run later stopped in a headless UI check
+(`ProjectName` occluded in the project-context E2E) in code this change does not touch; it is unresolved here.
+No UI wiring, so the Revert and Undo controls are not exercised.

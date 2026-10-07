@@ -15,14 +15,20 @@ public sealed class PtyTerminalService : ITerminalService, IAsyncDisposable
 {
     private readonly Dictionary<string, HostedTerminal> sessions = [];
     private readonly Lock gate = new();
+    private readonly Dictionary<string, byte[]> pending = [];
     private readonly string? shell;
+    private readonly TerminalRecordingStore? store;
     private bool disposed;
 
-    // A null shell runs the user's login shell.
-    public PtyTerminalService(string? shell = null)
+    // A null shell runs the user's login shell. With a recordings directory, the last screen of every session is
+    // saved when the service is disposed, and a tab attached again after a restart starts a new shell showing it.
+    public PtyTerminalService(string? shell = null, string? recordingsDirectory = null)
     {
         Posix.EnsureSupported();
         this.shell = shell;
+        if (recordingsDirectory is null) return;
+        store = new TerminalRecordingStore(recordingsDirectory);
+        foreach (var (id, bytes) in store.LoadAll()) pending[id] = bytes;
     }
 
     public ValueTask<ITerminalSession> AttachAsync(TerminalAttachRequest request, CancellationToken cancellationToken = default)
@@ -39,7 +45,9 @@ public sealed class PtyTerminalService : ITerminalService, IAsyncDisposable
             var directory = Path.GetFullPath(request.WorkspaceRoot);
             if (!Directory.Exists(directory)) throw new DirectoryNotFoundException($"The workspace folder {directory} does not exist.");
             var process = PtySession.Start(request.SessionId, shell ?? LoginShell(), directory, request.Columns, request.Rows);
-            var terminal = new HostedTerminal(process, request.Columns, request.Rows);
+            // A recording is consumed only once the shell runs, so a failed start keeps it for the retry.
+            pending.Remove(request.SessionId, out var restored);
+            var terminal = new HostedTerminal(process, request.Columns, request.Rows, restored);
             sessions.Add(request.SessionId, terminal);
             return ValueTask.FromResult<ITerminalSession>(terminal.Attach(request, created: true));
         }
@@ -54,15 +62,28 @@ public sealed class PtyTerminalService : ITerminalService, IAsyncDisposable
     public async ValueTask CloseAsync(string sessionId, CancellationToken cancellationToken = default)
     {
         HostedTerminal? terminal;
-        lock (gate) sessions.Remove(sessionId, out terminal);
+        lock (gate)
+        {
+            sessions.Remove(sessionId, out terminal);
+            pending.Remove(sessionId);
+        }
+        store?.Delete(sessionId);
         if (terminal is not null) await terminal.Process.DisposeAsync();
     }
 
     public async ValueTask DisposeAsync()
     {
-        HostedTerminal[] all;
-        lock (gate) { disposed = true; all = [.. sessions.Values]; sessions.Clear(); }
-        foreach (var terminal in all) await terminal.Process.DisposeAsync();
+        KeyValuePair<string, HostedTerminal>[] all;
+        lock (gate)
+        {
+            disposed = true; all = [.. sessions]; sessions.Clear();
+            if (store is not null)
+            {
+                foreach (var (id, bytes) in pending) store.Save(id, bytes);
+                foreach (var (id, terminal) in all) store.Save(id, terminal.Recording());
+            }
+        }
+        foreach (var (_, terminal) in all) await terminal.Process.DisposeAsync();
     }
 
     private static string LoginShell()

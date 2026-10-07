@@ -8,9 +8,9 @@ parent: module-host-core
 
 # Host state — projects, settings and persistence
 
-Upstream: packages/server/src/projects/SPEC.md @ 4a65ed7f
-Upstream: packages/server/src/settings/SPEC.md @ be804a56
-Upstream: packages/server/src/persistence/SPEC.md @ c44534ea
+Upstream: packages/server/src/projects/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
+Upstream: packages/server/src/settings/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
+Upstream: packages/server/src/persistence/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
 
 ## Responsibility
 
@@ -80,7 +80,9 @@ presets belong to the UI.
 
 - Resolving `~` and rejecting relative project paths against the host filesystem, and a path inspection
   that classifies a folder as repository, initializable, missing or not a directory before acting.
-- Refusing to open as a project a root already held as another workspace's worktree.
+- Distinct project-open refusals for a non-repository (`NOT_GIT`) and a canonical root already held as
+  another workspace's worktree (`ALREADY_OPEN`), preserved across local and remote adapters. Opening
+  currently accepts plain folders and does not check workspace ownership.
 - Stable project ids, readable slugs and `lastOpened` ordering that preserve identity across close and
   reopen.
 - A legacy `theme` change without an explicit mode switching the host to fixed mode, and dropping a

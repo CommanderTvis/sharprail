@@ -115,8 +115,9 @@ dependency into the host projects.
 evidence. Read `gotchas.md` for lessons and `context-log.md` for continuation state.
 The authoritative upstream checkout is `/Users/commandertvis/IdeaProjects/thinkrail`.
 Module `SPEC.md`/`*.SPEC.md` files and `ARCHITECTURE.md` are adapted from upstream specs;
-`UPSTREAM.md` records the synced commit and mapping, and the `sync-upstream-specs` skill
-pulls later upstream changes. Update the owning spec when changing its module.
+`UPSTREAM.md` is the single source of truth for the synced upstream commit and mapping;
+the [sync-upstream-specs skill](.claude/skills/sync-upstream-specs/SKILL.md) pulls later
+upstream changes. Update the owning spec when changing its module.
 
 Run checks with `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release`;
 `-- --terminals` runs host terminals, terminal/bottom-panel translations and Skia renderer checks.

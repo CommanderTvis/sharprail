@@ -8,8 +8,8 @@ parent: architecture
 
 # Host abstractions — the public host surface
 
-Upstream: packages/shared/SPEC.md @ c44534ea
-Upstream: packages/server/src/host/SPEC.md @ c44534ea
+Upstream: packages/shared/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
+Upstream: packages/server/src/host/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
 
 ## Responsibility
 
@@ -32,11 +32,21 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
 
 - `IProjectServices` is one client's project session: open a project root, list and read files, save
   with a conflict check, list specs, Git snapshot/commits/diffs/diff sides, Git actions (stage, unstage,
-  init, create and remove worktree), branch catalog, and editor detection/launch. Every call is
+  init, create and remove worktree), branch catalog, open pull request lookup, pull request draft and opening (`PrResult.Action` is `created`,
+  `updated`, `pushed`, `compare` or `authFailed`), and editor detection/launch. Every call is
   cancellable. Paths are workspace-relative.
 - `WatchFilesAsync` subscribes to the current workspace and yields bounded `FileChange` invalidations.
   Its first frame requests a rescan; later frames name paths or request a full rescan when paths are
   unavailable or capped. Cancelling the subscription releases its watchers.
+- `RevertChangeAsync` and `UndoChangeAsync` write the worktree on the client's behalf: the client sends
+  a scope, a `RevertTarget` (a file, or a line span per side) and the SHA-256 of each side it saw
+  (`ChangeExpectation`), never bytes. They return a `ChangeReceipt`, which is also the undo token, or
+  throw `ChangeException` with a `ChangeFailure` the client branches on. `HostProtocol.ChangeWritePath`
+  is the version that introduced them.
+- `DiffSides` carries `ContentMetadata` per side and the revision each was read at; a byte-only side has
+  empty text. `ReadContentBytesAsync` returns `ContentBytes` (raw bytes plus metadata) for the working
+  tree (null), the index (empty) or a commit id. `FileDocument.Info` carries the same metadata on reads.
+  `ContentMetadata.IsActive` marks HTML, XHTML and SVG, which a client must treat as inert.
 - `IHostStateService` is the shared state of one host. `GetStateAsync` reads, `ChangeAsync` applies a
   batch atomically and returns the published snapshot, and `WatchAsync` yields the current snapshot and
   then every later one. Snapshots are complete and carry a `Revision`, so a client that missed events
@@ -45,6 +55,10 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
   session and identifies itself; `Offset = -1` asks for a fresh replay, a non-negative offset resumes.
   Disposing an attachment detaches without ending the shell; `CloseAsync` is the only way a client ends
   one.
+- `IHostStateService.GetHandshakeAsync` returns a `HostHandshake` (protocol version and build version).
+  `HostProtocol.Current` rises when a host operation or message changes in a way an older client must
+  know about; features record the version that introduced them beside it. Version 0 means a host that
+  predates the handshake.
 - `IWorkspaceHost` is the minimal probe of the host's root workspace: its identity and top-level entries.
 
 ## Invariants
@@ -59,9 +73,10 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
 
 ## Not yet ported
 
-- A protocol version exchanged on connect so a client can detect host drift.
-- Named error codes that survive transport, so a client reacts to a specific failure rather than text.
+- Named error codes that survive transport, so a client reacts to a specific failure rather than text,
+  including project-open refusals for a non-repository (`NOT_GIT`) or a folder already owned by a
+  workspace (`ALREADY_OPEN`).
 - Workspace records with stable ids, kinds and lifecycle events, a workspace diff-base setter, a
   lifecycle-notification stream, and a terminal catalog with reservation separate from attachment.
-- Change revert and undo operations, and content classification (media type, hash) on file and diff-side
-  reads, including a byte read of a path at one commit.
+- Content classification (media type, hash) on file reads and a byte read of a path at one commit; diff
+  sides already carry hashes.

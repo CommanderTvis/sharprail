@@ -7,7 +7,7 @@ title: SharpRail — top-level architecture
 
 # SharpRail — top-level architecture
 
-Upstream: architecture.md @ c44534ea
+Upstream: architecture.md (revision: [UPSTREAM.md](UPSTREAM.md))
 
 ## Drivers
 
@@ -85,6 +85,9 @@ tests/SharpRail.Checks    executable checks; references UI and Remote to exercis
     derived from workspace and tab; attach is get-or-create and exclusive with takeover. Shells outlive
     windows and client connections while the host runs, and end on tab close, natural exit or host stop.
     Lifetime is bounded by reference, never by idle timers. tmux is not used.
+13. Host drift is detectable. The state service's handshake carries a protocol version (`HostProtocol.Current`,
+    SharpRail's own counter) so an independently shipped client can tell that its host is newer, older or
+    predates the handshake. A client treats a missing answer as unsupported and never guesses.
 
 ## Invariants
 
@@ -92,6 +95,8 @@ tests/SharpRail.Checks    executable checks; references UI and Remote to exercis
   Core + Protocol). No host project depends on the UI.
 - Domain records live in Abstractions; serialized DTOs live in Protocol. Both adapters stay consistent
   with the public interface.
+- Shared contracts stay independent of host and UI implementations. A shared runtime policy must
+  have an explicit purpose in its owning spec rather than turning contracts into product logic.
 - The host holds the truth and clients hydrate from reads, then stream changes; the UI holds only view
   state of its own.
 - Blocking I/O and Git run off the UI thread; startup mounts the routed workspace before loading
@@ -102,11 +107,10 @@ tests/SharpRail.Checks    executable checks; references UI and Remote to exercis
 
 ## Not yet ported
 
-- A protocol version handshake so an independently shipped client can detect host drift.
 - Workspace-local review, pull-request opening and CI status.
-- Host-owned revert of a hunk or of a file's whole change, with undo: the host derives what to write and
-  guards it by compare-and-swap, so a client never sends the bytes.
-- Byte-only content (images, PDFs) on a diff side, served at an immutable commit, and active content
-  (HTML, SVG) confined so that repository script never runs.
+- Byte-only content on a diff side beyond the first slice: swipe, onion and difference image modes, PDF
+  page-pair diffs, an inert SVG drawing and sanitised HTML. Bytes are fetched over gRPC at an immutable
+  commit (not HTTP routes); the host never executes content and the UI draws pixels only, so repository
+  script never runs.
 - A mobile shell projecting the same panels.
 - Revival of terminal tabs with recorded output across a host restart (restored tabs start fresh shells).

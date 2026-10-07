@@ -101,6 +101,32 @@ internal static class Program
             Console.WriteLine("PASS file watching checks");
             return;
         }
+        if (args.SequenceEqual(["--commands"]))
+        {
+            QuitConfirmationChecks.Run();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            AppCommandChecks.Run(root);
+            Console.WriteLine("PASS quit and close command checks");
+            return;
+        }
+        if (args.SequenceEqual(["--pull-requests"]))
+        {
+            PullRequestChecks.Run(root).GetAwaiter().GetResult();
+            return;
+        }
+        if (args.SequenceEqual(["--content"]))
+        {
+            ContentChecks.Run(root).GetAwaiter().GetResult();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            ContentChecks.RunUi(root);
+            return;
+        }
+        if (args.SequenceEqual(["--changes"]))
+        {
+            ChangeChecks.Run(root).GetAwaiter().GetResult();
+            return;
+        }
         if (args.SequenceEqual(["--workspaces"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
@@ -112,9 +138,13 @@ internal static class Program
         CheckHosts(root).GetAwaiter().GetResult();
         TerminalHostChecks.Run(root).GetAwaiter().GetResult();
         ProjectChecks.Run(root).GetAwaiter().GetResult();
+        PullRequestChecks.Run(root).GetAwaiter().GetResult();
+        ChangeChecks.Run(root).GetAwaiter().GetResult();
+        ContentChecks.Run(root).GetAwaiter().GetResult();
         StateChecks.Run(root).GetAwaiter().GetResult();
         FileSavingChecks.Run(root).GetAwaiter().GetResult();
         LayoutChecks.Run();
+        QuitConfirmationChecks.Run();
         CheckOpenWorld();
         UiChecks.Run(root);
         Console.WriteLine("PASS prototype checks and open-world runtime");

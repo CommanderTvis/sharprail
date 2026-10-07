@@ -1,6 +1,6 @@
 # Colour system
 
-Upstream: apps/web/src/styles/COLOR.md @ c44534ea
+Upstream: apps/web/src/styles/COLOR.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
 
 Colour arrives in two layers, and a control may only ever name the second one.
 
@@ -82,7 +82,8 @@ Never a raw hex or `Color.Parse` in a control, and never a second name for a val
 ## Not yet ported
 
 - A generated single source (`colors.json`) and a usage guard failing on raw colours, unknown roles, unused
-  roles or stale generated output.
+  roles or stale generated output. The guard must cover shared primitives as well as app controls, so moving
+  a control across module boundaries never exempts it from the colour contract.
 - The contrast and distinguishability floors, listed in [Themes.SPEC.md](Themes.SPEC.md).
 - Separate disabled roles (`control-disabled-*`: the enabled colour at a 60% step) and the stronger
   `control-border-active` for pressed, open and focused controls; Fluent's defaults paint those states.

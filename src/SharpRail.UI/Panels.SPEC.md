@@ -7,8 +7,8 @@ title: Workbench panels
 
 # Workbench panels: Projects, Files, Specs, Changes, Review and Welcome
 
-Upstream: apps/web/src/panels/SPEC.md @ 3822748b
-Changes-row truncation and Markdown source contract: apps/web/src/panels/SPEC.md @ be804a563
+Upstream: apps/web/src/panels/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
+Changes-row truncation and Markdown source contract: apps/web/src/panels/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
 
 ## Responsibility
 
@@ -180,7 +180,8 @@ snapshot lands.
 ## Review
 
 A placeholder tool: it summarises the changed-file count on the current branch and offers Show Changes,
-which reveals or restores the Changes tool.
+which reveals or restores the Changes tool. The host exposes the open pull request, a draft and opening
+(see Git.SPEC.md); the panel does not use them yet.
 
 ## Browsing: preview versus keep
 
@@ -212,6 +213,8 @@ the change set keeps its last content.
 
 ## Not yet ported
 
+- The Review panel's pull request chip, Open PR / Push updates / diverged states, compose dialog and
+  `gh` setup guidance on top of the host's pull request operations; CI status has no upstream source.
 - Open existing worktree… in the project menu, an external-worktree row kind with Remove from SharpRail, and
   Reveal in file manager in the workspace menu.
 - Project rows for non-shown projects expanding their own worktree lists (only the shown project lists
@@ -231,16 +234,29 @@ the change set keeps its last content.
 - Reverting from a diff tab: a Revert on each change block and Revert file in the header for scopes whose
   modified side is the worktree, checked against the content the tab rendered so a stale view reloads with
   “This file changed since you opened it — review the new diff” instead of reverting, and an Undo offered
-  for a few seconds afterwards (a whole-file revert of a new file moves it to the trash). The host has no
-  revert or undo operation yet.
+  for a few seconds afterwards (a whole-file revert of a new file moves it to the trash). The host serves this
+  (`RevertChangeAsync`, `UndoChangeAsync`); the controls are not wired yet.
+- A diff of non-text bytes (`BinaryDiffView`, chosen when Git's output has a "Binary files" notice and no
+  hunks) shows a card per side with media type, byte length and a SHA-256 prefix, and for PNG, JPEG,
+  GIF, WebP and BMP the two pictures side by side, decoded as pixels from bytes fetched off the UI thread
+  and kept only while their hash still matches. It is not refreshed when the file changes under the open
+  tab. SVG and HTML are never drawn there: they are text and show as a source diff, so repository script
+  never runs.
 - Format-specific views chosen by host content metadata, each with Source one toggle away where the file is
   text: images (fit, natural size, zoom, dimensions and byte size on a transparency checkerboard; diffs as
-  2-up, swipe, onion skin or difference), SVG drawn inert, CSV/TSV tables with a sniffed delimiter and
+  swipe, onion skin or difference beyond the built 2-up), SVG drawn inert, CSV/TSV tables with a sniffed delimiter and
   cell-level diff, JSON/JSONC trees with a structural diff and explicit invalid and dialect notices,
   notebooks, PDFs with page-pair diffs, sanitised HTML, a Git LFS pointer card, and a binary card with
-  identity, sizes and download. SharpRail opens everything as text or Markdown.
+  download. SharpRail opens everything as text or Markdown outside the diff cards above.
 - Sanitised raw HTML in rendered Markdown documents (centred or floated images, `<details>`,
   `<picture>`), with relative sources resolved against the worktree; only the diff marks are recognised.
+- Rendered Markdown diffs focusing changed prose blocks and changed top-level list items with two units
+  of context on each side. Change detection must include attribute-only changes and use positional
+  alignment, so an identical block elsewhere cannot hide a change. Collapse unchanged runs of more than
+  one unit behind a count-labelled expander (with the last hidden heading for block runs); expansion is
+  one-way and survives refresh only at the same position. Preserve ordered-list numbering; lists changed
+  only in their own attributes, nested lists, tables and quotes stay whole. A merge with no rendered
+  change shows a notice pointing to Source and one expander instead of an unmarked full document.
 - An explicit notice on a diff tab whose two sides became identical after its file left the change set;
   the tab keeps its last content.
 - Live refresh for remote hosts.

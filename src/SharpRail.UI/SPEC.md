@@ -1,8 +1,8 @@
 # SharpRail.UI — application and windows
 
-Upstream: apps/web/SPEC.md @ 3822748b
-Upstream: apps/desktop/SPEC.md @ c44534ea
-Upstream: apps/web/src/resources/SPEC.md @ c44534ea
+Upstream: apps/web/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
+Upstream: apps/desktop/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
+Upstream: apps/web/src/resources/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
 
 ## Responsibility
 
@@ -95,12 +95,36 @@ different themes at once. Surfaces that bake colours (Mermaid, Scintilla, Ghostt
 Icons are sized by context: compact chrome (tabs, panel headers, menus, rails) uses 14px glyphs and the
 header's prominent actions use larger ones. Icon-only controls carry a tooltip and an automation name.
 
+## Keyboard commands
+
+One app-owned command owner (`AppCommands`, held by `Workbench`) serves every window, so a native menu
+added later calls the same methods and each press dispatches once. Windows feed it from a tunnel key
+handler, so a focused terminal or editor never dispatches twice.
+
+Keyboard quit is Command-Q on macOS and Ctrl+Q on Linux; Windows keeps its ordinary Alt+F4 close. It runs
+the pure `QuitConfirmation` gesture: a 1200ms hold, or a second press within 500ms of the first, arms a
+quit that completes on key release. A single tap expires silently and key repeat never confirms. The key
+state comes from tracked key-down and key-up events, and a window losing activation cancels an unconfirmed
+gesture while an already-confirmed release still completes. The active window shows a non-interactive,
+accessible hint (armed, release, quitting) drawn with the shared brushes; with no active window the gesture
+skips the hint and quits at once on a tap or on release after a hold. A quit calls the application
+lifetime's normal shutdown, so any window can drive it. Explicit menu or operating-system quit stays direct
+(`QuitNow`) and never enters the gesture.
+
+Close is Command-W on macOS and Ctrl+W or Ctrl+F4 elsewhere, with Ctrl+W kept by a focused terminal. It
+dismisses an open popup first, and a modal handles the chord itself, so the workbench behind it never sees
+it; otherwise it asks the layout to close the selected (else first) tab of the keyboard-focused group, or
+the last-focused center group, through the normal close path including the busy-terminal confirmation. A
+tool, folded group or hidden region is no target. It never closes a window. Quit and close letter chords
+follow the typed Latin letter and fall back to the key's physical position when the layout types none.
+
 ## Lifecycle
 
 Quitting marks the workbench as shutting down so closing windows keep their profile entries, disposes the
 state subscription and remote adapters, then ends every local shell off the UI
 thread, because ending a shell awaits its exit. Each window saves its profile entry and Git selections as it
-closes. Abrupt death relies on operating-system process cleanup; remote shells belong to their host.
+closes. Keyboard quit ends the app through the application lifetime's shutdown, the same path as the
+menu. Abrupt death relies on operating-system process cleanup; remote shells belong to their host.
 
 ## Get right
 

@@ -15,12 +15,15 @@ public sealed class Workbench : IDisposable
 
     public Workbench(ProfileStore profile, SharedState state, Terminal.TerminalFactory terminals, bool remote, Func<IProjectServices>? sessions)
     {
+        Commands = new AppCommands(this);
         Profile = profile; State = state; Terminals = terminals; Remote = remote; this.sessions = sessions;
         state.Start();
     }
 
     public ProfileStore Profile { get; }
     public SharedState State { get; }
+    /// <summary>The one owner of quit and close commands for every window.</summary>
+    public AppCommands Commands { get; }
     public Terminal.TerminalFactory Terminals { get; }
     public bool Remote { get; }
     public IReadOnlyList<WorkbenchWindow> Windows => windows;

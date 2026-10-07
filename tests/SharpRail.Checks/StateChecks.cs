@@ -1,8 +1,11 @@
 using System.Net;
 
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
@@ -71,6 +74,44 @@ internal static class StateChecks
             "Changes apply in order: presets rename, closing moves a project to the recents.");
         Require(Describe(new HostStateStore(localDirectory).Current) == expected && Describe(new HostStateStore(remoteDirectory).Current) == expected,
             "Both hosts persist their state beside themselves.");
+        var localShake = await local.GetHandshakeAsync();
+        var remoteShake = await remote.GetHandshakeAsync();
+        Require(localShake == remoteShake && localShake.ProtocolVersion == HostProtocol.Current, "Local and remote handshakes must match.");
+        using var wrong = new RemoteStateAdapter(new Uri(address), "wrong-token");
+        try { await wrong.GetHandshakeAsync(); throw new InvalidOperationException("A wrong token must not learn the protocol version."); }
+        catch (Grpc.Core.RpcException error) when (error.StatusCode is Grpc.Core.StatusCode.Unauthenticated or Grpc.Core.StatusCode.PermissionDenied) { }
+        Require(new HostHandshake(0, "").Supports(0) && !new HostHandshake(0, "").Supports(1) && new HostHandshake(2, "").Supports(2) && new HostHandshake(3, "").Supports(2),
+            "A handshake supports features introduced at or below its version.");
+        Require(!HostCapabilities.Supports(null, 0) && !HostCapabilities.Supports(0, 1) && HostCapabilities.Supports(1, 1) && HostCapabilities.Supports(2, 1),
+            "No handshake or a lower version is unsupported; equal or greater is supported.");
+        await using (var oldHost = await OldHost.StartAsync())
+        {
+            using var legacy = new RemoteStateAdapter(new Uri(oldHost.Address), "state-test");
+            var shake = await legacy.GetHandshakeAsync();
+            Require(shake.ProtocolVersion == 0 && !HostCapabilities.Supports(shake.ProtocolVersion, 1), "A host without the handshake reports version 0.");
+        }
+        Console.WriteLine("PASS host handshake matches locally and remotely, rejects bad tokens and maps an older host to version 0");
         Console.WriteLine("PASS host state changes, broadcasts, validation and persistence match locally and over gRPC");
+    }
+
+    /// <summary>A gRPC host that serves no state methods, like a build that predates the handshake.</summary>
+    private sealed class OldHost : IAsyncDisposable
+    {
+        private readonly Microsoft.AspNetCore.Builder.WebApplication app;
+        private OldHost(Microsoft.AspNetCore.Builder.WebApplication app, string address) { this.app = app; Address = address; }
+        internal string Address { get; }
+
+        internal static async Task<OldHost> StartAsync()
+        {
+            var builder = Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder();
+            builder.WebHost.ConfigureKestrel(options => options.Listen(IPAddress.Loopback, 0, listen => listen.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http2));
+            builder.Logging.ClearProviders();
+            var app = builder.Build();
+            app.Use((Microsoft.AspNetCore.Http.HttpContext context, Func<Task> _) => { context.Response.Headers["grpc-status"] = "12"; context.Response.ContentType = "application/grpc"; return Task.CompletedTask; });
+            await app.StartAsync();
+            return new(app, app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single());
+        }
+
+        public ValueTask DisposeAsync() => app.DisposeAsync();
     }
 }

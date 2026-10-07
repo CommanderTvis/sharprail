@@ -13,8 +13,9 @@ public sealed partial class WorkbenchWindow
     /// <summary>Merges two Markdown sources for a rendered diff; runs on a thread-pool thread.</summary>
     public Func<string, string, CancellationToken, string> RenderedDiffMerge { get; set; } = MarkdownDiff.Merge;
 
-    private DiffView DiffDocument(FileDocument document, DockTab tab, string key)
+    private Control DiffDocument(FileDocument document, DockTab tab, string key)
     {
+        if (BinaryDiffView.IsBinaryDiff(document.Text)) return new BinaryDiffView(host, tab.Path, tab.Scope, tab.Comparison);
         var markdown = Path.GetExtension(tab.Path).ToLowerInvariant() is ".md" or ".markdown";
         return new DiffView(document.Text, tab.Path, LineWidths.File(Preferences),
             markdown ? token => RenderMergedAsync(tab, token) : null, !sourceDiffs.Contains(key),

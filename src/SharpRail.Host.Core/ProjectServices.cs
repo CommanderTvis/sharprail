@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.RegularExpressions;
 
 using SharpRail.Host.Abstractions;
 
@@ -30,6 +31,7 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
                 }
                 catch (IOException) { }
             }
+            if (candidate != root) receipts.Clear();
             root = candidate;
             return new("Default workspace", new DirectoryInfo(root).Name, root) { ProjectRoot = projectRoot };
         }
@@ -85,9 +87,10 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
             throw new IOException($"Previews are limited to files under {FileLimits.PreviewBytes >> 20} MiB.");
         if (length > FileLimits.EditableBytes) throw new IOException($"Files over {FileLimits.EditableBytes >> 20} MiB cannot be opened.");
         var bytes = await File.ReadAllBytesAsync(path, cancellationToken);
-        if (image) return new(relativePath, "", bytes);
+        var info = ContentClassifier.Classify(bytes, relativePath);
+        if (image) return new(relativePath, "", bytes) { Info = info };
         // Like the reference, text may contain NUL and other control characters; only invalid UTF-8 is binary.
-        try { return new(relativePath, StrictUtf8.GetString(bytes)); }
+        try { return new(relativePath, StrictUtf8.GetString(bytes)) { Info = info }; }
         catch (DecoderFallbackException) { throw new IOException("Binary files cannot be previewed."); }
     }
 
@@ -105,10 +108,10 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
         var currentRoot = root;
         Resolve(currentRoot, path);
         if (scope is not ("untracked" or "staged" or "working" or "all" or "uncommitted" or "branch" or "commit")) throw new ArgumentException("Unknown diff scope.");
-        if (scope == "untracked") return AddedDiff(path, (await ReadFileAsync(path, cancellationToken)).Text);
+        if (scope == "untracked") return await AddedDiffAsync(currentRoot, path, cancellationToken);
         if (scope == "uncommitted" &&
             (await GitRepository.RunAsync(currentRoot, cancellationToken, "ls-files", "--others", "--exclude-standard", "-z", "--", path)).Length > 0)
-            return AddedDiff(path, (await ReadFileAsync(path, cancellationToken)).Text);
+            return await AddedDiffAsync(currentRoot, path, cancellationToken);
         if (scope == "commit")
         {
             var commit = await GitRepository.CommitDiffArgumentsAsync(currentRoot, comparisonBranch, cancellationToken);
@@ -127,11 +130,26 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
         {
             var baseline = await GitRepository.ComparisonBaseAsync(currentRoot, comparisonBranch, cancellationToken);
             if ((await GitRepository.RunAsync(currentRoot, cancellationToken, "ls-files", "--others", "--exclude-standard", "-z", "--", path)).Length > 0)
-                return AddedDiff(path, (await ReadFileAsync(path, cancellationToken)).Text);
+                return await AddedDiffAsync(currentRoot, path, cancellationToken);
             args.Add(baseline);
         }
         args.Add("--"); args.Add(path);
         return await GitRepository.RunAsync(currentRoot, cancellationToken, args.ToArray());
+    }
+
+    private static async Task<string> AddedDiffAsync(string currentRoot, string path, CancellationToken cancellationToken)
+    {
+        var bytes = await ReadWorkingBytesAsync(currentRoot, path, cancellationToken);
+        return ContentClassifier.Classify(bytes, path).IsText
+            ? AddedDiff(path, ContentInfo.Decode(bytes))
+            : $"diff --git a/{path} b/{path}\nnew file mode 100644\nBinary files /dev/null and b/{path} differ\n";
+    }
+
+    private static async Task<byte[]> ReadWorkingBytesAsync(string currentRoot, string path, CancellationToken cancellationToken)
+    {
+        var full = Resolve(currentRoot, path);
+        if (new FileInfo(full).Length > FileLimits.EditableBytes) throw new IOException($"Files over {FileLimits.EditableBytes >> 20} MiB cannot be opened.");
+        return await File.ReadAllBytesAsync(full, cancellationToken);
     }
 
     /// <summary>Git's unified diff for a new file, which <c>git diff</c> cannot produce for untracked paths.</summary>
@@ -152,43 +170,63 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
         var currentRoot = root;
         Resolve(currentRoot, path);
         if (scope is not ("untracked" or "staged" or "working" or "all" or "uncommitted" or "branch" or "commit")) throw new ArgumentException("Unknown diff scope.");
-        async Task<string> Blob(string? revision)
+        var range = await GitRepository.ResolveDiffRangeAsync(currentRoot, path, scope, comparisonBranch, cancellationToken);
+        static (string Text, ContentMetadata Info) Side(byte[]? bytes, string path)
         {
-            if (revision is null) return "";
-            try { return await GitRepository.RunAsync(currentRoot, cancellationToken, "cat-file", "-p", revision + ":./" + path); }
-            catch (IOException error) when (error.Message.Contains("does not exist", StringComparison.Ordinal) ||
-                error.Message.Contains("exists on disk, but not in", StringComparison.Ordinal))
-            { return ""; }
+            if (bytes is null) return ("", ContentClassifier.Absent);
+            var info = ContentClassifier.Classify(bytes, path);
+            return (info.IsText ? ContentInfo.Decode(bytes) : "", info);
         }
-        async Task<string> Working()
+        async Task<(string Text, ContentMetadata Info)> Blob(string? revision) =>
+            revision is null ? Side(null, path) : Side(await ReadBlobAsync(currentRoot, revision, path, cancellationToken), path);
+        async Task<(string Text, ContentMetadata Info)> Working()
         {
-            try { return (await ReadFileAsync(path, cancellationToken)).Text; }
-            catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException) { return ""; }
+            try { return Side(await ReadWorkingBytesAsync(currentRoot, path, cancellationToken), path); }
+            catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException) { return Side(null, path); }
         }
-        async Task<bool> Untracked() =>
-            (await GitRepository.RunAsync(currentRoot, cancellationToken, "ls-files", "--others", "--exclude-standard", "-z", "--", path)).Length > 0;
-        async Task<string?> Head()
+        var original = await Blob(range.Original);
+        var modified = range.Modified is null ? await Working() : await Blob(range.Modified);
+        return new(original.Text, modified.Text)
         {
-            try { return (await GitRepository.RunAsync(currentRoot, cancellationToken, "rev-parse", "--verify", "HEAD")).Trim(); }
-            catch (IOException) when (!cancellationToken.IsCancellationRequested) { return null; }
-        }
-        if (scope == "untracked" || (scope is "uncommitted" or "branch") && await Untracked()) return new("", await Working());
-        switch (scope)
+            OriginalHash = original.Info.Sha256,
+            ModifiedHash = modified.Info.Sha256,
+            OriginalCommit = range.Original is { Length: > 0 } commit ? commit : null,
+            OriginalInfo = original.Info,
+            ModifiedInfo = modified.Info,
+            OriginalRevision = original.Info.Sha256 is null ? null : range.Original,
+            ModifiedRevision = modified.Info.Sha256 is null ? null : range.Modified
+        };
+    }
+
+    [GeneratedRegex("^[0-9a-f]{40}(?:[0-9a-f]{24})?$")]
+    private static partial Regex ObjectId();
+
+    public async ValueTask<ContentBytes> ReadContentBytesAsync(string path, string? revision, CancellationToken cancellationToken = default)
+    {
+        var currentRoot = root;
+        Resolve(currentRoot, path);
+        if (revision is { Length: > 0 } && !ObjectId().IsMatch(revision)) throw new ArgumentException("A revision must be a full commit id.");
+        byte[]? bytes;
+        if (revision is null) bytes = await ReadWorkingBytesAsync(currentRoot, path, cancellationToken);
+        else
         {
-            case "commit":
-                var (parent, commit) = await GitRepository.CommitRangeAsync(currentRoot, comparisonBranch, cancellationToken);
-                return new(await Blob(parent), await Blob(commit));
-            case "staged":
-                return new(await Blob(await Head()), await Blob(""));
-            case "working":
-                return new(await Blob(""), await Working());
-            case "branch":
-                return new(await Blob(await GitRepository.ComparisonBaseAsync(currentRoot, comparisonBranch, cancellationToken)), await Working());
-            case "uncommitted":
-                return new(await Blob(await Head()), await Working());
-            default:
-                return new(await Blob(await Head() ?? ""), await Working());
+            if (revision.Length > 0)
+                try { await GitRepository.RunAsync(currentRoot, cancellationToken, "rev-parse", "--verify", "--quiet", "--end-of-options", revision + "^{commit}"); }
+                catch (IOException) when (!cancellationToken.IsCancellationRequested) { throw new FileNotFoundException("The commit does not exist."); }
+            var size = long.Parse((await GitRepository.RunAsync(currentRoot, cancellationToken, "cat-file", "-s", revision + ":./" + path)).Trim(), System.Globalization.CultureInfo.InvariantCulture);
+            if (size > FileLimits.EditableBytes) throw new IOException($"Files over {FileLimits.EditableBytes >> 20} MiB cannot be opened.");
+            bytes = await ReadBlobAsync(currentRoot, revision, path, cancellationToken) ?? throw new FileNotFoundException("The path is not in that revision.");
         }
+        return new(bytes, ContentClassifier.Classify(bytes, path));
+    }
+
+    /// <summary>A blob's bytes at a revision (empty for the index), or null when the path is not in it.</summary>
+    internal static async Task<byte[]?> ReadBlobAsync(string currentRoot, string revision, string path, CancellationToken cancellationToken)
+    {
+        try { return await GitRepository.RunBytesAsync(currentRoot, cancellationToken, "cat-file", "blob", revision + ":./" + path); }
+        catch (IOException error) when (error.Message.Contains("does not exist", StringComparison.Ordinal) ||
+            error.Message.Contains("exists on disk, but not in", StringComparison.Ordinal))
+        { return null; }
     }
 
     public async ValueTask<GitSnapshot> ApplyGitActionAsync(GitAction action, CancellationToken cancellationToken = default)

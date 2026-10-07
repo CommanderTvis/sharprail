@@ -1,6 +1,6 @@
 # Spacing system
 
-Upstream: apps/web/src/styles/SPACING.md @ c44534ea
+Upstream: apps/web/src/styles/SPACING.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
 
 Spacing is one numeric vocabulary. When a design says "spacing 8", the implementation writes `8` as a
 `Spacing`, `Margin` or `Padding` value and it lays out as 8 device-independent pixels: one value, one name.
@@ -37,7 +37,8 @@ call site is the step.
 ## Not yet ported
 
 - A single authored source for the scale (upstream `spacing.json` and its generated tokens) and a guard
-  rejecting off-scale rhythm values. The C# panels still use some off-scale rhythm, notably 6 (icon/label
+  rejecting off-scale rhythm values across app layouts and shared primitives, including compiled XAML
+  and dynamically constructed C# controls. The C# panels still use some off-scale rhythm, notably 6 (icon/label
   gaps in `Ui.Row` and a few stacks), 10 (button padding, some settings stacks) and 20 (dialog margins), which
   a guard would move onto existing steps.
 - The documented escape hatches (measured geometry such as a close-button reserve or an icon-aligned indent)

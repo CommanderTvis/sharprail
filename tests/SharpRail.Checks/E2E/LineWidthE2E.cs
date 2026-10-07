@@ -115,6 +115,7 @@ internal static class LineWidthE2E
         internal Task Held => held!.Task;
         internal void Arm() { held = new(TaskCreationOptions.RunContinuationsAsynchronously); release = new(TaskCreationOptions.RunContinuationsAsynchronously); }
         internal void Release() => release?.TrySetResult();
+        public ValueTask<HostHandshake> GetHandshakeAsync(CancellationToken cancellationToken = default) => inner.GetHandshakeAsync(cancellationToken);
         public ValueTask<HostState> GetStateAsync(CancellationToken cancellationToken = default) => inner.GetStateAsync(cancellationToken);
         public ValueTask<HostState> ChangeAsync(IReadOnlyList<HostStateChange> changes, CancellationToken cancellationToken = default) => inner.ChangeAsync(changes, cancellationToken);
         public async IAsyncEnumerable<HostState> WatchAsync([System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)

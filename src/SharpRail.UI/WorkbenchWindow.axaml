@@ -39,6 +39,12 @@
     <TextBlock x:Name="WorkspaceError" Grid.Row="2" FontSize="12" Margin="12,4"
                Foreground="{x:Static rendering:Ui.Danger}" TextWrapping="Wrap" IsVisible="False"
                Classes="header-label" />
+    <Border x:Name="QuitHintOverlay" Grid.Row="1" ZIndex="31" IsVisible="False" IsHitTestVisible="False"
+            HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="12,12,12,24" Padding="16,10"
+            Background="{x:Static rendering:Ui.Elevated}" BorderBrush="{x:Static rendering:Ui.BorderBrush}"
+            BorderThickness="1" CornerRadius="4" AutomationProperties.LiveSetting="Assertive">
+      <TextBlock x:Name="QuitHintMessage" Foreground="{x:Static rendering:Ui.TextBrush}" FontSize="14" TextWrapping="Wrap" />
+    </Border>
     <Border x:Name="GestureToast" Grid.Row="1" ZIndex="30" IsVisible="False"
             HorizontalAlignment="Right" VerticalAlignment="Bottom" Width="356" Margin="12"
             Background="{x:Static rendering:Ui.Elevated}" BorderBrush="{x:Static rendering:Ui.BorderBrush}"

@@ -32,6 +32,9 @@ public sealed class HostStateStore : IHostStateService
 
     public string? LastError { get; private set; }
 
+    public ValueTask<HostHandshake> GetHandshakeAsync(CancellationToken cancellationToken = default)
+        => ValueTask.FromResult(new HostHandshake(HostProtocol.Current, HostProtocol.BuildVersion));
+
     /// <summary>Opens the store; when the directory has no state file yet, <paramref name="seed"/> supplies migrated state.</summary>
     public HostStateStore(string? directory, Func<HostState>? seed = null)
     {

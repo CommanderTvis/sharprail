@@ -18,8 +18,16 @@ internal static class StateAdapterDefaults
     internal static readonly TimeSpan MaxReconnect = TimeSpan.FromSeconds(3);
 }
 
+/// <summary>Feature gates: a feature is served only when a handshake arrived and its version reaches the feature's.</summary>
+public static class HostCapabilities
+{
+    /// <summary>Null means no handshake yet, which is unsupported.</summary>
+    public static bool Supports(int? hostVersion, int introducedAt) => hostVersion is { } version && version >= introducedAt;
+}
+
 public sealed class LocalStateAdapter(IHostStateService host) : IHostStateService
 {
+    public ValueTask<HostHandshake> GetHandshakeAsync(CancellationToken cancellationToken = default) => host.GetHandshakeAsync(cancellationToken);
     public ValueTask<HostState> GetStateAsync(CancellationToken cancellationToken = default) => host.GetStateAsync(cancellationToken);
     public ValueTask<HostState> ChangeAsync(IReadOnlyList<HostStateChange> changes, CancellationToken cancellationToken = default) => host.ChangeAsync(changes, cancellationToken);
     public IAsyncEnumerable<HostState> WatchAsync(CancellationToken cancellationToken = default) => host.WatchAsync(cancellationToken);
@@ -46,6 +54,17 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
     private CallContext Context(CancellationToken ct, bool stream = false) => new(new CallOptions(
         headers: new Metadata { { "authorization", $"Bearer {token}" } },
         deadline: stream ? null : DateTime.UtcNow.AddSeconds(60), cancellationToken: ct));
+
+    /// <summary>A host that does not implement the handshake predates it and reports version 0.</summary>
+    public async ValueTask<HostHandshake> GetHandshakeAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var reply = await service.HandshakeAsync(new() { ClientProtocolVersion = HostProtocol.Current }, Context(cancellationToken));
+            return new(reply.ProtocolVersion, reply.HostVersion);
+        }
+        catch (RpcException error) when (error.StatusCode == StatusCode.Unimplemented) { return new(0, ""); }
+    }
 
     public async ValueTask<HostState> GetStateAsync(CancellationToken cancellationToken = default)
         => Map(await service.GetStateAsync(new(), Context(cancellationToken)));
