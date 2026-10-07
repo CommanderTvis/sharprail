@@ -35,6 +35,8 @@ refused grids and start guidance (`TerminalLimitChecks.cs`); a stalled reader an
 (`TerminalBackpressureChecks.cs`); and the terminal catalog, its storage, catalog-keyed revival and a
 removed worktree's shells (`TerminalCatalogChecks.cs`); and the host replay size with its Settings control
 (`TerminalReplayChecks.cs`).
+`--terminal-replay` checks historical query filtering while retaining live terminal replies
+(`TerminalQueryReplayChecks.cs`).
 `--registry` runs one workspace-registry scenario through the direct and the gRPC adapter and requires the same
 records, refusals and pushed lifecycle events from both, then the rail checks for attaching, forgetting,
 background project rows and removed-workspace cleanup.

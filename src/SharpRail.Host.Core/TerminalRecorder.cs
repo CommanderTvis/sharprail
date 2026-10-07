@@ -59,7 +59,7 @@ internal sealed class TerminalRecorder(int snapshotBytes = TerminalRecorder.Snap
         if (recordedLength == 0) return [];
         var prefix = new StringBuilder("\x1b[0m");
         foreach (var (mode, enabled) in modes) prefix.Append($"\x1b[?{mode}{(enabled ? 'h' : 'l')}");
-        return [.. Encoding.ASCII.GetBytes(prefix.ToString()), .. recorded.AsSpan(0, recordedLength)];
+        return [.. Encoding.ASCII.GetBytes(prefix.ToString()), .. TerminalReplay.WithoutQueries(recorded.AsSpan(0, recordedLength))];
     }
 
     // Reloads a snapshot saved by an earlier host. The bytes go through the same parser as live output, so the

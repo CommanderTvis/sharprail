@@ -38,6 +38,7 @@ internal static partial class TerminalHostChecks
 
     private static async Task RunIsolated(string root, string workspace)
     {
+        TerminalReplayChecks.Run();
         await using (var local = new PtyTerminalService())
         {
             await Exercise(new LocalTerminalAdapter(local), workspace, "local");
@@ -96,7 +97,7 @@ internal static partial class TerminalHostChecks
         await using (var first = new PtyTerminalService(recordingsDirectory: directory))
         {
             var (session, screen) = await Open(first, id, workspace);
-            await screen.Run("printf 'MARK_%s\\n' ONE");
+            await screen.Run("printf '\\033[6n\\033]10;?\\007\\033[?u\\033[c'; printf 'MARK_%s\\n' ONE");
             await screen.WaitFor("MARK_ONE", "revival");
             await screen.Run("printf '\\033[?%s' 1049h; printf 'ALT_%s' HIDDEN; printf '\\033[?%s' 1000h; printf '\\033[?%s' 1049l; printf '\\033[?%s' 1000l; printf 'MARK_%s\\n' TWO");
             await screen.WaitFor("MARK_TWO", "revival");
@@ -119,6 +120,8 @@ internal static partial class TerminalHostChecks
             Require(session.Created, "A revived tab starts a new shell.");
             var text = Encoding.UTF8.GetString(session.Replay.Span);
             Require(text.Contains("MARK_ONE", StringComparison.Ordinal) && text.Contains("MARK_TWO", StringComparison.Ordinal), "The revived replay lacks the recorded output: " + text);
+            Require(!text.Contains("\x1b[6n", StringComparison.Ordinal) && !text.Contains("\x1b]10;?", StringComparison.Ordinal) &&
+                !text.Contains("\x1b[?u", StringComparison.Ordinal) && !text.Contains("\x1b[c", StringComparison.Ordinal), "Revival must not query a new shell on behalf of the old process.");
             Require(!text.Contains("ALT_HIDDEN", StringComparison.Ordinal) && !text.Contains("?1049", StringComparison.Ordinal) && !text.Contains("?1000", StringComparison.Ordinal),
                 "Alternate screen output and mouse modes must not be revived: " + text);
             await screen.Run("printf 'NEW_%s\\n' SHELL");
@@ -150,7 +153,7 @@ internal static partial class TerminalHostChecks
         {
             using var remote = new RemoteTerminalAdapter(Address(app), "revive-token");
             var (session, screen) = await Open(remote, id, workspace);
-            await screen.Run("printf 'REMOTE_%s\\n' MARK");
+            await screen.Run("printf '\\033[6n\\033]11;?\\007'; printf 'REMOTE_%s\\n' MARK");
             await screen.WaitFor("REMOTE_MARK", "remote revival");
             await session.DisposeAsync();
         }
@@ -161,6 +164,9 @@ internal static partial class TerminalHostChecks
             using var remote = new RemoteTerminalAdapter(Address(app), "revive-token");
             var (session, screen) = await Open(remote, id, workspace);
             Require(session.Created && Encoding.UTF8.GetString(session.Replay.Span).Contains("REMOTE_MARK", StringComparison.Ordinal), "A restarted host must revive the recorded screen.");
+            var replay = Encoding.UTF8.GetString(session.Replay.Span);
+            Require(!replay.Contains("\x1b[6n", StringComparison.Ordinal) && !replay.Contains("\x1b]11;?", StringComparison.Ordinal),
+                "Remote revival must remove historical cursor and color queries.");
             await screen.Run("printf 'AGAIN_%s\\n' OK");
             await screen.WaitFor("AGAIN_OK", "remote revival");
             await session.DisposeAsync();
