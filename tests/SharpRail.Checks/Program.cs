@@ -122,6 +122,11 @@ internal static class Program
             ContentChecks.RunUi(root);
             return;
         }
+        if (args.SequenceEqual(["--git-host"]))
+        {
+            GitHostChecks.Run(root).GetAwaiter().GetResult();
+            return;
+        }
         if (args.SequenceEqual(["--process"]))
         {
             ProcessChecks.Run(root).GetAwaiter().GetResult();
@@ -144,6 +149,7 @@ internal static class Program
         TerminalHostChecks.Run(root).GetAwaiter().GetResult();
         ProcessChecks.Run(root).GetAwaiter().GetResult();
         ProjectChecks.Run(root).GetAwaiter().GetResult();
+        GitHostChecks.Run(root).GetAwaiter().GetResult();
         PullRequestChecks.Run(root).GetAwaiter().GetResult();
         ChangeChecks.Run(root).GetAwaiter().GetResult();
         ContentChecks.Run(root).GetAwaiter().GetResult();

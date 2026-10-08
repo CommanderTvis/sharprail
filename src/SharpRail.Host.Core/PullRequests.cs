@@ -131,8 +131,7 @@ public sealed partial class ProjectServices
         var currentRoot = root;
         var branch = await CurrentBranchAsync(currentRoot, cancellationToken) ?? throw new InvalidOperationException("A detached HEAD has no branch to open a pull request for.");
         if (branch.StartsWith('-')) throw new ArgumentException("Refusing a branch name shaped like an option.");
-        try { await GitRepository.RunAsync(currentRoot, cancellationToken, "check-ref-format", "--branch", branch); }
-        catch (IOException) { throw new ArgumentException("The current branch name is not a valid ref."); }
+        if (!GitRefs.IsSafe(branch)) throw new ArgumentException("The current branch name is not a valid ref.");
         if (!(await RemotesAsync(currentRoot, cancellationToken)).Contains("origin"))
             throw new InvalidOperationException("Pull requests are opened against the origin remote.");
         var baseRef = await DefaultBaseAsync(currentRoot, cancellationToken);

@@ -142,6 +142,13 @@ and requires no replacement characters.
 real `sh` and `git` children; [Terminals.SPEC.md](../../src/SharpRail.Host.Core/Terminals.SPEC.md) lists
 the cases.
 
+## Git host checks
+
+`GitHostChecks.cs` (`-- --git-host`, also in the default run) runs one scenario list against the embedded
+host and a real gRPC host over twin fixtures (a bare origin and a clone one commit ahead on `feature`) and
+requires equal logs. It covers the ref-shape table, and every door refusing option, range, reflog and
+revision syntax before Git runs, with refs unchanged afterwards and a crafted `origin/HEAD` skipped.
+
 ## Quit and close commands
 
 `QuitConfirmationChecks` translates upstream's quit-confirmation cases against a fake clock and scheduler:

@@ -20,7 +20,7 @@ and worktree listing. Exposed through `IProjectServices` (`GetGitAsync`, `ListCo
 
 ## Boundary
 
-- Owns: `GitRepository` (`RunAsync`, `SnapshotAsync`, `ListCommitsAsync`, `ComparisonBaseAsync`,
+- Owns: `GitRefs` (the ref-shape check), `GitRepository` (`RunAsync`, `SnapshotAsync`, `ListCommitsAsync`, `ComparisonBaseAsync`,
   `CommitRangeAsync`, `CommitDiffArgumentsAsync`, `ParseWorktrees`) and the scope handling in
   `ProjectServices`.
 - Forbidden: UI types; interpreting a Git failure as "no changes".
@@ -42,6 +42,15 @@ carries exit code -1, so no semantic probe mistakes it for an expected exit. Sem
 Every path argument is literal, never a pathspec, so a file named like pathspec magic or a glob matches
 only itself. Revisions go after `--end-of-options` and before a trailing `--`, so neither an option-shaped
 ref nor a ref that also names a path can be misread.
+
+Every ref passes `GitRefs.IsSafe` before any Git call, at each door that accepts one: the comparison
+target of a snapshot, commit list, diff or diff sides, a new workspace's branch and base, a fetched
+reference, the branch a pull request pushes, and the default base the repository itself names
+(`origin/HEAD` or the main worktree's branch; an unusable one is skipped, not trusted). The check runs in
+process with `check-ref-format`'s rules and costs no child: it refuses an empty or option-shaped name,
+`..`, `@{`, a lone `@`, a trailing `.` or `/`, control characters and space, `~ ^ : ? * [ \`, and an
+empty, dot-led or `.lock` component. A refusal is `Not a usable git ref: <ref>`. A commit scope keeps its
+own stricter hexadecimal rule.
 
 ## Scopes
 
@@ -84,7 +93,7 @@ binary content). Line counts come from `--numstat`; binary rows keep zero counts
   for 60 s per worktree and branch; failures never are. Concurrent lookups share one `gh` call, and `fresh`
   skips the cache (joining a call already running) and fetches the branch so the behind count can be trusted.
 - `PreviewPrAsync` proposes the branch name as title and the commit subjects since the base as body.
-  `OpenPrAsync` guards in order: a branch shaped like an option or failing `check-ref-format`, a missing `origin`,
+  `OpenPrAsync` guards in order: a branch shaped like an option or failing the ref-shape check, a missing `origin`,
   a base that is not on `origin`, and the base branch itself (nothing is pushed in these cases). It counts dirty
   files without blocking, re-reads the live branch, pushes `--set-upstream origin <branch>` with prompts
   disabled (`GIT_TERMINAL_PROMPT=0`, `LC_MESSAGES=C` with `LC_ALL` demoted to `LC_CTYPE`, a batch-mode SSH
@@ -107,8 +116,8 @@ binary content). Line counts come from `--numstat`; binary rows keep zero counts
   because a terminal checkout moves it out of band.
 - Stale responses are rejected by the caller per workspace and scope; scope and target changes cancel
   the superseded read (`WorkspaceGit.cs` in the UI).
-- Remote fetches run only for a ref whose remote is configured, pass the branch through
-  `check-ref-format --branch` first and fetch `--no-tags` after `--end-of-options`, so a crafted ref cannot
+- Remote fetches run only for a ref whose remote is configured, pass the ref-shape check first and fetch
+  `--no-tags` after `--end-of-options`, so a crafted ref cannot
   become a refspec. A failed fetch reports Git's own error.
 
 ## Change write path
@@ -158,8 +167,6 @@ binary content). Line counts come from `--numstat`; binary rows keep zero counts
 
 - A per-workspace review target (`diffBase`) persisted separately from creation provenance, and a
   `pinned` scope measuring an immutable commit against the working tree.
-- An in-process ref-shape check (`check-ref-format` rules) at every door that accepts a ref, including a
-  base read from the repository's own `HEAD`.
 - Background prefetch reporting whether a remote-tracking ref moved, and a nudge to re-read workspaces
   whose comparison base it moved.
 - Workspace diff-stat badges computed from the same branch-scope range.

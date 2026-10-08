@@ -271,9 +271,10 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
                     }
                     break;
                 case "create-worktree":
-                    await FetchRemoteAsync(currentRoot, action.BaseBranch, cancellationToken);
                     if (string.IsNullOrWhiteSpace(action.Branch)) throw new ArgumentException("Enter a new branch name.");
-                    await GitRepository.RunAsync(currentRoot, cancellationToken, "check-ref-format", "--branch", action.Branch);
+                    GitRefs.Require(action.Branch);
+                    GitRefs.Require(action.BaseBranch);
+                    await FetchRemoteAsync(currentRoot, action.BaseBranch, cancellationToken);
                     await GitRepository.RunAsync(currentRoot, cancellationToken, "rev-parse", "--verify", "--end-of-options", action.BaseBranch + "^{commit}");
                     await GitRepository.RunAsync(currentRoot, cancellationToken, "worktree", "add", "-b", action.Branch,
                         "--", Path.GetFullPath(action.Path), action.BaseBranch);

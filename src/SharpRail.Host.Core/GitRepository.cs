@@ -87,7 +87,7 @@ internal static class GitRepository
 
     internal static async Task<string> ComparisonBaseAsync(string root, string comparison, CancellationToken ct)
     {
-        var target = (await RunAsync(root, ct, "rev-parse", "--verify", "--end-of-options", comparison + "^{commit}")).Trim();
+        var target = (await RunAsync(root, ct, "rev-parse", "--verify", "--end-of-options", GitRefs.Require(comparison) + "^{commit}")).Trim();
         try { return (await RunAsync(root, ct, "merge-base", "--end-of-options", target, "HEAD")).Trim(); }
         catch (GitException error) when (error.ExitCode == 1) { return target; }
     }
@@ -180,6 +180,7 @@ internal static class GitRepository
         var commits = new List<GitCommit>();
         if (comparison.Length > 0)
         {
+            GitRefs.Require(comparison);
             string log;
             try { log = await RunAsync(root, ct, "log", "--max-count=200", "--format=%H%x00%h%x00%cI%x00%an%x00%s", "--end-of-options", comparison + "..HEAD", "--"); }
             catch (GitException error) when (error.ExitCode == 128) { log = ""; }

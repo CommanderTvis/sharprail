@@ -88,7 +88,8 @@ public sealed partial class ProjectServices
             var head = (await GitRepository.RunAsync(currentRoot, cancellationToken, "symbolic-ref", "--quiet", "refs/remotes/origin/HEAD")).Trim();
             // A missing tracking ref is still the base while origin exists (creation fetches it, as the reference
             // does), but removing the remote leaves origin/HEAD dangling with nothing to fetch it from.
-            if (head.StartsWith("refs/remotes/", StringComparison.Ordinal) &&
+            // The repository's own answer is a ref like any other: a crafted origin/HEAD must not pass unchecked.
+            if (head.StartsWith("refs/remotes/", StringComparison.Ordinal) && GitRefs.IsSafe(head[13..]) &&
                 (await RemotesAsync(currentRoot, cancellationToken)).Contains("origin"))
                 return head[13..];
         }
@@ -97,7 +98,7 @@ public sealed partial class ProjectServices
         {
             var main = await MainWorktreeAsync(currentRoot, cancellationToken);
             var branch = (await GitRepository.RunAsync(main, cancellationToken, "symbolic-ref", "--short", "--quiet", "HEAD")).Trim();
-            if (branch.Length > 0) return branch;
+            if (GitRefs.IsSafe(branch)) return branch;
         }
         catch (IOException) { }
         return "HEAD";
@@ -114,12 +115,8 @@ public sealed partial class ProjectServices
         var remote = (await RemotesAsync(currentRoot, cancellationToken))
             .Where(candidate => reference.StartsWith(candidate + "/", StringComparison.Ordinal)).MaxBy(candidate => candidate.Length);
         if (remote is null) return;
-        var branch = reference[(remote.Length + 1)..];
-        try
-        {
-            await GitRepository.RunAsync(currentRoot, cancellationToken, "check-ref-format", "--branch", branch);
-            await GitRepository.RunAsync(currentRoot, cancellationToken, "fetch", "--quiet", "--no-tags", "--end-of-options", remote, branch);
-        }
+        var branch = GitRefs.Require(reference)[(remote.Length + 1)..];
+        try { await GitRepository.RunAsync(currentRoot, cancellationToken, "fetch", "--quiet", "--no-tags", "--end-of-options", remote, branch); }
         catch (IOException error) { throw new IOException($"Could not fetch {reference}: {error.Message}"); }
     }
 
