@@ -87,6 +87,12 @@ a tab where is frontend-local and never reaches this service.
 
 ## Not yet ported
 
+- Rejecting attach and resize grids outside 1–32,767 before session lookup or PTY work. C# already types
+  dimensions as integers and input as bytes; upstream's runtime string-input check does not apply here.
+- Bounded host-side output backpressure and recovery after system sleep. Awaited gRPC delivery does not
+  bound the unbounded PTY and attachment queues; a transport-specific implementation must guarantee
+  progress without relying on a single drain notification. Upstream's WebSocket latch and 1-second
+  buffered-byte reconciler have no direct equivalent in the current gRPC stream.
 - A persisted per-workspace terminal catalog (at most 256 tabs, bounded keys and titles) shared by every
   client, with reservation separate from attachment so a hidden default terminal survives reload and
   other clients without a shell, and catalog membership broadcast on change.

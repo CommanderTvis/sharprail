@@ -155,5 +155,8 @@ macOS are not asserted.
 - An idle-sleep assertion held by the runner for the duration of a macOS run.
 - Signal forwarding and forced cleanup of every descendant process when the runner is interrupted.
 - A gate that runs the full suite against the packaged `artifacts/SharpRail.app` rather than the built assemblies.
+- Login-shell PATH repair fixture isolation: if host startup begins probing the login shell, checks must
+  supply a fixture shell that answers the environment probe with the hermetic PATH and delegates normal
+  terminal execution to a real shell, so developer tools cannot leak into isolated fixtures.
 - Mermaid drag-pan and pinch-gesture regression checks. Existing provider-free Markdown checks cover
   malformed-source fallback, full-screen growth, zoom reset and Escape; theme checks cover re-rendering.

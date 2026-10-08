@@ -152,6 +152,10 @@ no target and no further fallback. The tab button no longer handles Mod+W itself
 
 ## Not yet ported
 
+- Verification of arrangement isolation: drag and resize previews must retain mounted feature bodies;
+  selecting or focusing one group must leave sibling chrome and bodies untouched. `DockSurface` already
+  keeps gesture projections local and updates selections per group, but the upstream isolation guarantees
+  are not yet pinned by equivalent checks for injected body lifetime and refreshes.
 - A host terminal catalog: terminal membership is shared across windows, a peer-created terminal is
   placed passively into a compatible slot without taking focus, and a host-side close removes the tab
   from every window.

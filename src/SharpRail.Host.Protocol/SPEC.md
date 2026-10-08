@@ -55,6 +55,8 @@ project: local adapters call Core directly, with no serialization.
 
 - Code-first contracts rather than `.proto` files: C# interfaces are the schema,
   shared by the server and the client proxies, so there is no generation step.
+- RPC adapters implement these interfaces directly, so missing or mistyped methods fail compilation;
+  no separate string-keyed method registry needs synchronization with the wire contract.
 - Snapshots, not deltas. Every state reply and broadcast is the complete
   host-state snapshot with a monotonic revision, so a replayed, duplicated or
   post-reconnect frame is idempotent and a client rehydrates whatever it missed.

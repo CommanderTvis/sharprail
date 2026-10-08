@@ -213,6 +213,10 @@ the change set keeps its last content.
 
 ## Not yet ported
 
+- Scroll-offset restoration across file/diff renderer detach and attach, including delayed content. An
+  offset that the new scroller cannot yet hold stays pending until content grows or the user scrolls;
+  switching away first saves that pending offset rather than the temporary clamped value. This belongs to
+  the tab's renderer view state, rather than a second panel-local copy.
 - The Review panel's pull request chip, Open PR / Push updates / diverged states, compose dialog and
   `gh` setup guidance on top of the host's pull request operations; CI status has no upstream source.
 - Open existing worktree… in the project menu, an external-worktree row kind with Remove from SharpRail, and

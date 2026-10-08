@@ -157,7 +157,9 @@ Every asynchronous gap renders something shaped for the wait, never nothing:
   surrounding controls remain interactive; `DialogWindow` supplies modal cards instead.
 - Height-bounded, scrollable menus with horizontal overflow hidden for long commit lists.
 - Syntax highlighting for Markdown code blocks beyond the minimal keyword/string/comment tinting, and a
-  manifest-driven syntax palette.
+  manifest-driven syntax palette. Upstream now highlights chat fences off the main thread with lazy
+  grammars, bounded caching and ordered replies; its worker/fallback machinery is web-specific. Any native
+  equivalent must keep expensive highlighting off the dispatcher and reject stale results.
 - Toasts, including one that carries its own action button: SharpRail reports failures through the
   window's error line and transient notifications.
 - A relative-time helper for commit rows (they show short SHA and author only).
@@ -166,3 +168,5 @@ Every asynchronous gap renders something shaped for the wait, never nothing:
 - A single authored typography vocabulary with generated roles and a build-time adoption check spanning
   every shared primitive and app surface. Fonts and sizes currently live in `Ui` and individual controls;
   extending shared UI must not create a second type system.
+- The location strip's shared caption style: uppercase 10px text above a 22px value row within the
+  40px strip. This belongs to the typography vocabulary when the captioned location bar is ported.

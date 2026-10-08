@@ -81,7 +81,10 @@ terminal attachments, never through a UI callback.
 ## Not yet ported
 
 - Login-shell `PATH` and `SSH_AUTH_SOCK` repair for a host launched from Finder, launchd or a service
-  manager.
+  manager. On Unix, always probe the login shell once with an OS-base `PATH`, rather than guessing
+  completeness from user-directory markers; prepend inherited entries absent from the login result so
+  activated environments retain precedence. Use a bounded probe with a non-interactive retry and leave
+  the inherited `PATH` untouched on failure.
 - A single bounded child-process runner with a wall-clock budget, used for every Git or network call.
 - Named error codes on the wire so a client can react to a specific failure (for example a vanished
   commit) rather than to message text.

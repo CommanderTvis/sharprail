@@ -62,6 +62,9 @@ presets belong to the UI.
   numbers 40–240; loaded values outside that range fall back to the client default (zero) without
   discarding valid siblings. Theme ids are opaque: availability and resolution belong to the UI.
   `themeMode` is `fixed` or `system`; anything else loads as `fixed`.
+- Setting updates accept a closed set of keys and validate their values before publishing the batch;
+  unknown setting keys and change kinds are rejected. The typed change-list contract replaces upstream's
+  object-shaped partial update, so arbitrary JSON payloads are not a separate mutation surface.
 - Custom presets are resource-free, uniquely named, opaque layouts. Saving replaces a preset of the same
   name; renaming onto an existing name is refused; deleting changes only the shared definition, never any
   window's instantiated frame.
@@ -78,6 +81,8 @@ presets belong to the UI.
 
 ## Not yet ported
 
+- Preserving unknown settings already on disk across valid updates, so an older host does not erase a
+  newer host's settings. Mutation keys remain closed; new keys require protocol-version gating by clients.
 - Resolving `~` and rejecting relative project paths against the host filesystem, and a path inspection
   that classifies a folder as repository, initializable, missing or not a directory before acting.
 - Distinct project-open refusals for a non-repository (`NOT_GIT`) and a canonical root already held as

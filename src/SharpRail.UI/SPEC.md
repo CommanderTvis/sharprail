@@ -3,6 +3,7 @@
 Upstream: apps/web/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
 Upstream: apps/desktop/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
 Upstream: apps/web/src/resources/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
+Upstream: apps/web/src/shell/locationBar/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
 
 ## Responsibility
 
@@ -135,6 +136,16 @@ menu. Abrupt death relies on operating-system process cleanup; remote shells bel
 
 ## Not yet ported
 
+- Captioned Project, Workspace and Branch segments in the 40px header, with project and sibling-workspace
+  switchers, shared workspace actions and a branch card. The card's comparison picker must use the same
+  workspace target as Changes; managed workspaces also show their base branch. Controls and inline rename
+  inputs must never start window dragging, while captions and separators remain draggable. As width shrinks,
+  branch yields before project and workspace; workspace identity always stays visible. Review/remote chips
+  remain outside the current GitHub/PR scope.
+- Sharing workspace actions between the header and Projects without duplicating host requests or rename
+  state. A header rename is bound to its starting workspace and abandoned on a workspace switch, including
+  a pending offline commit. A Remove dialog names its captured workspace and dismisses if the active
+  workspace changes before confirmation.
 - A native application menu (application, Edit, Window roles on macOS) so standard editing commands route
   through the platform responder chain.
 - Removing the traffic-light inset in macOS full screen.
