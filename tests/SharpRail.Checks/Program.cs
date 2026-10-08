@@ -122,6 +122,11 @@ internal static class Program
             ContentChecks.RunUi(root);
             return;
         }
+        if (args.SequenceEqual(["--process"]))
+        {
+            ProcessChecks.Run(root).GetAwaiter().GetResult();
+            return;
+        }
         if (args.SequenceEqual(["--changes"]))
         {
             ChangeChecks.Run(root).GetAwaiter().GetResult();
@@ -137,6 +142,7 @@ internal static class Program
         }
         CheckHosts(root).GetAwaiter().GetResult();
         TerminalHostChecks.Run(root).GetAwaiter().GetResult();
+        ProcessChecks.Run(root).GetAwaiter().GetResult();
         ProjectChecks.Run(root).GetAwaiter().GetResult();
         PullRequestChecks.Run(root).GetAwaiter().GetResult();
         ChangeChecks.Run(root).GetAwaiter().GetResult();

@@ -11,6 +11,7 @@ internal static class Posix
     internal const short PollIn = 1;
     internal const int Eintr = 4, Eagain = 35, EagainLinux = 11;
     internal const int Sighup = 1, Sigkill = 9, Sigwinch = 28;
+    internal const int Wnohang = 1;
 
     internal static readonly bool Mac = OperatingSystem.IsMacOS();
     internal static int ONoctty => Mac ? 0x20000 : 0x100;
@@ -49,6 +50,9 @@ internal static class Posix
     [DllImport(Libc, EntryPoint = "read", SetLastError = true)] internal static extern nint Read(int fd, byte[] buffer, nint count);
     [DllImport(Libc, EntryPoint = "write", SetLastError = true)] internal static extern nint Write(int fd, ref byte buffer, nint count);
     [DllImport(Libc, EntryPoint = "poll", SetLastError = true)] internal static extern int Poll(ref PollFd fd, uint count, int timeout);
+    [DllImport(Libc, EntryPoint = "poll", SetLastError = true)] internal static extern int Poll([In, Out] PollFd[] fds, uint count, int timeout);
+    [DllImport(Libc, EntryPoint = "pipe", SetLastError = true)] private static extern int Pipe(int[] fds);
+    [DllImport(Libc, EntryPoint = "pipe2", SetLastError = true)] private static extern int Pipe2(int[] fds, int flags);
     [DllImport(Libc, EntryPoint = "waitpid", SetLastError = true)] internal static extern int WaitPid(int pid, out int status, int options);
     [DllImport(Libc, EntryPoint = "kill", SetLastError = true)] internal static extern int Kill(int pid, int signal);
     [DllImport(Libc, EntryPoint = "tcgetpgrp", SetLastError = true)] internal static extern int ForegroundGroup(int fd);
@@ -101,6 +105,14 @@ internal static class Posix
         var ok = Ioctl(fd, Tiocgwinsz, ref size) == 0 && size.Columns > 0 && size.Rows > 0;
         columns = size.Columns; rows = size.Rows;
         return ok;
+    }
+
+    /// <summary>A pipe no other child inherits: close-on-exec on Linux, while macOS spawns close everything by default.</summary>
+    internal static (int Read, int Write) OpenPipe()
+    {
+        var fds = new int[2];
+        if ((Mac ? Pipe(fds) : Pipe2(fds, 0x80000)) != 0) throw new IOException("Could not open a pipe: " + LastError());
+        return (fds[0], fds[1]);
     }
 
     internal static string Error(int error) => Marshal.PtrToStringUTF8(StrError(error)) ?? "error " + error;

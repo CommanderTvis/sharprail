@@ -1,65 +1,56 @@
-using System.Diagnostics;
-
 using SharpRail.Host.Abstractions;
 
 namespace SharpRail.Host.Core;
 
 internal static class GitRepository
 {
-    private static ProcessStartInfo StartInfo(string root, string[] args)
-    {
-        var start = new ProcessStartInfo("git")
-        {
-            WorkingDirectory = root,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-        start.Environment["LC_ALL"] = "C";
-        // Background status refreshes must not take index.lock away from the user's own Git commands.
-        start.Environment["GIT_OPTIONAL_LOCKS"] = "0";
-        start.ArgumentList.Add("--literal-pathspecs");
-        start.ArgumentList.Add("-c");
-        start.ArgumentList.Add("core.quotepath=false");
-        foreach (var arg in args) start.ArgumentList.Add(arg);
-        return start;
-    }
+    /// <summary>Upstream's budget for any Git call: long enough for a slow fetch, short enough to report one that stalled.</summary>
+    internal static readonly TimeSpan Budget = TimeSpan.FromSeconds(55);
+    private const int ErrorLimit = 2000, ErrorHead = 1200;
+    private const string Truncated = "… (truncated) …";
 
-    internal static async Task<string> RunAsync(string root, CancellationToken ct, params string[] args)
+    private static readonly Dictionary<string, string?> Prompts = new()
     {
-        using var process = Process.Start(StartInfo(root, args)) ?? throw new IOException("Could not start git.");
-        using var registration = ct.Register(() =>
-        {
-            try { if (!process.HasExited) process.Kill(entireProcessTree: true); }
-            catch (InvalidOperationException) { }
-        });
-        var output = process.StandardOutput.ReadToEndAsync(ct);
-        var error = process.StandardError.ReadToEndAsync(ct);
-        await process.WaitForExitAsync(ct);
-        var text = await output;
-        var detail = await error;
-        if (process.ExitCode != 0) throw new GitException(process.ExitCode, detail.Trim());
-        return text;
-    }
+        ["LC_ALL"] = "C",
+        // Background status refreshes must not take index.lock away from the user's own Git commands.
+        ["GIT_OPTIONAL_LOCKS"] = "0",
+        // With no terminal to ask on, a credential or passphrase prompt fails at once instead of waiting.
+        ["GIT_TERMINAL_PROMPT"] = "0"
+    };
+
+    internal static async Task<string> RunAsync(string root, CancellationToken ct, params string[] args) =>
+        (await ExecuteAsync(root, args, Budget, ct)).Output;
 
     /// <summary>Runs Git and returns its standard output undecoded, for blob contents whose bytes are hashed.</summary>
-    internal static async Task<byte[]> RunBytesAsync(string root, CancellationToken ct, params string[] args)
+    internal static async Task<byte[]> RunBytesAsync(string root, CancellationToken ct, params string[] args) =>
+        (await ExecuteAsync(root, args, Budget, ct)).Bytes;
+
+    internal static async Task<ChildProcess.Result> ExecuteAsync(string root, string[] args, TimeSpan budget, CancellationToken ct)
     {
-        using var process = Process.Start(StartInfo(root, args)) ?? throw new IOException("Could not start git.");
-        using var registration = ct.Register(() =>
-        {
-            try { if (!process.HasExited) process.Kill(entireProcessTree: true); }
-            catch (InvalidOperationException) { }
-        });
-        using var buffer = new MemoryStream();
-        var output = process.StandardOutput.BaseStream.CopyToAsync(buffer, ct);
-        var error = process.StandardError.ReadToEndAsync(ct);
-        await output;
-        await process.WaitForExitAsync(ct);
-        var detail = await error;
-        if (process.ExitCode != 0) throw new GitException(process.ExitCode, detail.Trim());
-        return buffer.ToArray();
+        string[] full = ["--literal-pathspecs", "-c", "core.quotepath=false", .. args];
+        ChildProcess.Result result;
+        try { result = await ChildProcess.RunAsync("git", root, full, budget, ct, Prompts); }
+        catch (ChildProcess.ExpiredException error) { throw new GitException(-1, TimeoutMessage(error, args)); }
+        if (result.ExitCode != 0) throw new GitException(result.ExitCode, Bounded(result.Error));
+        return result;
+    }
+
+    /// <summary>Keeps what Git wrote; without it, names only what was observed, with the SSH hint for network calls alone.</summary>
+    private static string TimeoutMessage(ChildProcess.ExpiredException error, string[] args)
+    {
+        var network = args.Length > 0 && args[0] is "fetch" or "push" or "pull" or "clone" or "ls-remote";
+        var captured = Bounded(error.Error);
+        if (captured.Length == 0)
+            captured = network
+                ? "the remote never answered; if it uses SSH, a key that is not loaded is the usual cause (`ssh-add`)"
+                : "git did not exit";
+        return $"timed out after {Math.Max(1, Math.Round(error.Waited.TotalSeconds)):0}s — {captured}";
+    }
+
+    private static string Bounded(string raw)
+    {
+        var text = raw.Trim();
+        return text.Length <= ErrorLimit ? text : text[..ErrorHead] + Truncated + text[^(ErrorLimit - Truncated.Length - ErrorHead)..];
     }
 
     /// <summary>The two sides of a file's diff: null is absent, an empty string the index, otherwise a commit id; a null modified side is the working tree.</summary>

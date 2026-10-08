@@ -85,6 +85,31 @@ a tab where is frontend-local and never reaches this service.
 - Checks cover local and remote (stopped and restarted host) revival, close, failed spawn then retry,
   alternate screen and mouse hygiene, corrupt, oversized and surplus files, and the recorder round trip.
 
+## Bounded child runner
+
+`ChildProcess.RunAsync` is the one way Core runs a prompt-free child (Git, `gh`, the login-shell probe).
+
+- On POSIX the child is spawned with `posix_spawn` as the leader of a new session, with standard input
+  on `/dev/null` and both output streams piped. One thread owns it from spawn to reap, so both streams
+  are read from the first byte and neither can fill and stall the child.
+- Completion is the child's exit (`waitpid`), not the end of its pipes. After the exit the pipes get a
+  250 ms drain grace, so a grandchild that keeps them open costs that much and never turns a success into
+  a timeout; a successful child's descendants are left running.
+- The budget is clamped to zero through 2^31-1 ms. Expiry and cancellation send SIGKILL to the child's
+  process group, and nothing is killed otherwise. Expiry throws `ExpiredException` (a `TimeoutException`)
+  with the time waited and whatever the child wrote to standard error; cancellation throws
+  `OperationCanceledException`.
+- The environment is read at each spawn with the caller's overrides applied (null removes a variable),
+  and the program is resolved against that `PATH`, so an environment repaired after startup reaches every
+  later child. A program that is missing or cannot start throws `Win32Exception`.
+- Standard output is returned as bytes and decoded as UTF-8 on request; standard error is text.
+- Windows has no session to detach from: the same contract runs over `System.Diagnostics.Process`, with
+  the process tree standing in for the group.
+- `-- --process` checks exit status and both streams, opaque and multi-megabyte output, a grandchild
+  holding the pipes, the own-session leader with no terminal, group kill on expiry and on cancellation,
+  the live environment and overrides, a missing program, a clamped budget, and Git's prompt-free
+  environment and three timeout messages.
+
 ## Not yet ported
 
 - Rejecting attach and resize grids outside 1–32,767 before session lookup or PTY work. C# already types
@@ -101,10 +126,7 @@ a tab where is frontend-local and never reaches this service.
   opposed to a graceful stop) saves nothing.
 - Closing every terminal of a removed workspace.
 - Stable, non-native guidance when a shell cannot start, and Windows shells (PowerShell / cmd selection).
-- A bounded child-process runner: completion on the child's exit rather than pipe EOF (a grandchild
-  holding the pipes must not turn success into a timeout), a drain grace after the deadline race is
-  decided, process-group kill on expiry only, clamped budgets, stdin closed, both streams read from spawn,
-  and the live environment rather than a launch-time snapshot. Standard output is captured as decoded
-  text or, for opaque content, as undecoded bytes; a streaming variant relays output while the child
-  runs, closing the stream only after a zero exit and failing it after a nonzero exit, expiry or failed
-  launch, so a truncated relay is never mistaken for a complete one, and cancelling it kills the child.
+- A streaming variant of the bounded child runner that relays output while the child runs, closing the
+  stream only after a zero exit and failing it after a nonzero exit, expiry or failed launch, so a
+  truncated relay is never mistaken for a complete one, and cancelling it kills the child. Nothing here
+  streams a child's output yet; it belongs with the streamed byte route ([Git.SPEC.md](Git.SPEC.md)).

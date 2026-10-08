@@ -136,6 +136,12 @@ moving, and refusal of refs, abbreviations, unknown, tree and blob ids, path esc
 symbolic link. The headless UI part opens `BinaryDiffView` for a PNG (two pictures) and a PDF (cards only)
 and requires no replacement characters.
 
+## Process checks
+
+`ProcessChecks.cs` (`-- --process`, also in the default run) drives the host's bounded child runner with
+real `sh` and `git` children; [Terminals.SPEC.md](../../src/SharpRail.Host.Core/Terminals.SPEC.md) lists
+the cases.
+
 ## Quit and close commands
 
 `QuitConfirmationChecks` translates upstream's quit-confirmation cases against a fake clock and scheduler:

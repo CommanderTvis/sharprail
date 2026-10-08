@@ -27,11 +27,17 @@ and worktree listing. Exposed through `IProjectServices` (`GetGitAsync`, `ListCo
 
 ## Runner
 
-`RunAsync(root, ct, args)` starts `git` asynchronously with `--literal-pathspecs` and
+`RunAsync(root, ct, args)` (and `RunBytesAsync` for undecoded output) starts `git` through the bounded
+child runner ([Terminals.SPEC.md](Terminals.SPEC.md)) with `--literal-pathspecs` and
 `core.quotepath=false`, in the workspace root, with `LC_ALL=C` and `GIT_OPTIONAL_LOCKS=0` so background status refreshes never
-hold `index.lock` against the user's own Git commands. It reads both streams to completion,
-throws an `IOException` carrying Git's trimmed stderr and exit code on a nonzero exit, and kills the whole
-process tree on cancellation. Semantic probes distinguish an expected exit (for example exit 1 from
+hold `index.lock` against the user's own Git commands. Every call also runs with `GIT_TERMINAL_PROMPT=0`
+in a session of its own: with no terminal to ask on, a credential or passphrase prompt fails at once. It
+throws an `IOException` carrying Git's trimmed stderr (bounded to 2,000 characters, head and tail kept)
+and exit code on a nonzero exit, and kills the child's process group on cancellation. Every call has a
+55 s wall-clock budget (`ExecuteAsync` takes another); on expiry the group is killed and the error reads
+`timed out after Ns — ` followed by what Git had written, else `git did not exit`, or for `fetch`, `push`,
+`pull`, `clone` and `ls-remote` alone the hint that an unloaded SSH key is the usual cause. A timeout
+carries exit code -1, so no semantic probe mistakes it for an expected exit. Semantic probes distinguish an expected exit (for example exit 1 from
 `merge-base` or `symbolic-ref -q`) from any other failure by that exit code; nothing else is swallowed.
 Every path argument is literal, never a pathspec, so a file named like pathspec magic or a glob matches
 only itself. Revisions go after `--end-of-options` and before a trailing `--`, so neither an option-shaped
@@ -73,7 +79,7 @@ binary content). Line counts come from `--numstat`; binary rows keep zero counts
   logging rather than failing when the fetch does.
 - `GetOpenReviewAsync` answers the open GitHub pull request of the workspace branch (number, https URL, unpushed
   and behind counts; -1 when unknown) from `gh pr list --head`, run with prompts disabled and an 8 s budget whose
-  expiry kills the child's process tree. Only a github.com `origin` is looked up; a missing or unauthenticated
+  expiry kills the child's process group. Only a github.com `origin` is looked up; a missing or unauthenticated
   `gh`, a timeout or a non-https link degrade to no review. Successful answers, empty ones included, are cached
   for 60 s per worktree and branch; failures never are. Concurrent lookups share one `gh` call, and `fresh`
   skips the cache (joining a call already running) and fetches the branch so the behind count can be trusted.
@@ -150,11 +156,6 @@ binary content). Line counts come from `--numstat`; binary rows keep zero counts
 
 ## Not yet ported
 
-- A wall-clock budget on every Git call beyond pull-request pushes and `gh` (upstream 55 s) whose timeout message keeps what Git wrote and
-  names only observed causes, with the child's process group killed on expiry and a hint about unloaded
-  SSH keys only for network operations.
-- `GIT_TERMINAL_PROMPT=0` and a detached session for Git children so a passphrase prompt fails fast
-  instead of waiting on a terminal.
 - A per-workspace review target (`diffBase`) persisted separately from creation provenance, and a
   `pinned` scope measuring an immutable commit against the working tree.
 - An in-process ref-shape check (`check-ref-format` rules) at every door that accepts a ref, including a
