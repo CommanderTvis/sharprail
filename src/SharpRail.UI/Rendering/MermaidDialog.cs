@@ -10,7 +10,7 @@ using SharpRail.UI.Panels;
 
 namespace SharpRail.UI.Rendering;
 
-/// <summary>Full-screen Mermaid view: 100% fits the viewer width, with drag panning and 25–500% zoom as in the reference.</summary>
+/// <summary>Full-screen Mermaid view: 100% fits the viewer width, with drag panning, pinch and 25–500% zoom as in the reference.</summary>
 internal static class MermaidDialog
 {
     private const double MinZoom = 0.25, MaxZoom = 5;
@@ -89,6 +89,12 @@ internal static class MermaidDialog
             Zoom(e.Delta.Y > 0 ? 1.1 : 1 / 1.1);
             e.Handled = true;
         }, handledEventsToo: true);
+        // A trackpad pinch reports each step's change in magnification; claiming it keeps the pinch on the diagram.
+        viewer.AddHandler(InputElement.PointerTouchPadGestureMagnifyEvent, (_, e) =>
+        {
+            Zoom(1 + e.Delta.X);
+            e.Handled = true;
+        });
         Point? drag = null;
         viewer.PointerPressed += (_, e) =>
         {

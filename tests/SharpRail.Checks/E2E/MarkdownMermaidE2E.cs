@@ -62,6 +62,55 @@ internal static class MarkdownMermaidE2E
         Until(() => ((TextBlock)Part("MermaidZoomLevel")).Text == "125%" && detail.Bounds.Width > fitted * 1.2);
         app.Click((Button)Part("MermaidZoomReset"));
         Until(() => ((TextBlock)Part("MermaidZoomLevel")).Text == "100%" && Math.Abs(detail.Bounds.Width - fitted) < 1);
+
+        var viewer = (ScrollViewer)Part("MermaidFullscreenViewer");
+        string Level() => ((TextBlock)Part("MermaidZoomLevel")).Text!;
+        bool Pinch(double magnification)
+        {
+            var pinch = new PointerDeltaEventArgs(InputElement.PointerTouchPadGestureMagnifyEvent, viewer, new Pointer(Pointer.GetNextFreeId(), PointerType.Mouse, true),
+                dialog, new Point(40, 40), 0, new PointerPointProperties(RawInputModifiers.None, PointerUpdateKind.Other), KeyModifiers.None, new Vector(magnification, magnification));
+            viewer.RaiseEvent(pinch);
+            return pinch.Handled;
+        }
+        Require(Pinch(0.5), "The viewer must claim a trackpad pinch.");
+        Until(() => Level() == "150%" && detail.Bounds.Width > fitted * 1.45);
+        for (var step = 0; step < 8; step++) Pinch(0.5);
+        Until(() => Level() == "500%");
+        for (var step = 0; step < 8; step++) Pinch(-0.5);
+        Until(() => Level() == "25%");
+        app.Click((Button)Part("MermaidZoomReset"));
+        Until(() => Level() == "100%");
+        Console.WriteLine("PASS Mermaid viewer pinch zooms about the fitted width and stays within 25-500%");
+
+        app.Click((Button)Part("MermaidZoomIn"));
+        app.Click((Button)Part("MermaidZoomIn"));
+        app.Click((Button)Part("MermaidZoomIn"));
+        Until(() => viewer.Extent.Width > viewer.Viewport.Width + 100);
+        var grab = viewer.TranslatePoint(new Point(viewer.Bounds.Width / 2, viewer.Bounds.Height / 2), dialog)!.Value;
+        var tall = viewer.Extent.Height > viewer.Viewport.Height + 100;
+        dialog.MouseMove(grab);
+        Require(viewer.Offset == default, "Moving without a pressed button must not pan the diagram.");
+        dialog.MouseDown(grab, MouseButton.Left);
+        dialog.MouseMove(grab + new Vector(-60, -40));
+        Until(() => Math.Abs(viewer.Offset.X - 60) < 1 && (!tall || Math.Abs(viewer.Offset.Y - 40) < 1));
+        dialog.MouseMove(grab + new Vector(-90, -40));
+        Until(() => Math.Abs(viewer.Offset.X - 90) < 1);
+        dialog.MouseMove(grab + new Vector(400, 400));
+        Until(() => viewer.Offset == default);
+        dialog.MouseMove(grab + new Vector(370, 400));
+        Until(() => Math.Abs(viewer.Offset.X - 30) < 1);
+        dialog.MouseUp(grab + new Vector(370, 400), MouseButton.Left);
+        dialog.MouseMove(grab);
+        Settle(100);
+        Require(Math.Abs(viewer.Offset.X - 30) < 1, "Releasing the button must end the pan.");
+        dialog.MouseDown(grab, MouseButton.Right);
+        dialog.MouseMove(grab + new Vector(-50, 0));
+        dialog.MouseUp(grab + new Vector(-50, 0), MouseButton.Right);
+        Settle(100);
+        Require(Math.Abs(viewer.Offset.X - 30) < 1, "Only the primary button pans.");
+        app.Click((Button)Part("MermaidZoomReset"));
+        Until(() => Level() == "100%" && viewer.Offset == default);
+        Console.WriteLine("PASS Mermaid viewer drag pans the zoomed diagram, clamps at its edges and resets");
         dialog.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
         Until(() => !app.Window.OwnedWindows.OfType<DialogWindow>().Any());
 

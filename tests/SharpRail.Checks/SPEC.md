@@ -136,6 +136,15 @@ moving, and refusal of refs, abbreviations, unknown, tree and blob ids, path esc
 symbolic link. The headless UI part opens `BinaryDiffView` for a PNG (two pictures) and a PDF (cards only)
 and requires no replacement characters.
 
+## Mermaid viewer
+
+The Markdown Mermaid translation also covers the full-screen viewer's gestures. A trackpad pinch is raised as
+Avalonia's magnify event, which the headless platform cannot inject as raw input: the viewer must claim it,
+reach 150% from one half-step as upstream's gesture case does, and stay within 25–500%. A primary-button drag
+pans the zoomed diagram by the pointer's travel, clamps at the edges, ends on release and ignores other
+buttons and unpressed movement; Reset returns the scroll origin. Malformed-source fallback, full-screen
+growth, zoom reset and Escape are in the same case; theme checks cover re-rendering.
+
 ## Quit and close commands
 
 `QuitConfirmationChecks` translates upstream's quit-confirmation cases against a fake clock and scheduler:
@@ -158,5 +167,3 @@ macOS are not asserted.
 - Login-shell PATH repair fixture isolation: if host startup begins probing the login shell, checks must
   supply a fixture shell that answers the environment probe with the hermetic PATH and delegates normal
   terminal execution to a real shell, so developer tools cannot leak into isolated fixtures.
-- Mermaid drag-pan and pinch-gesture regression checks. Existing provider-free Markdown checks cover
-  malformed-source fallback, full-screen growth, zoom reset and Escape; theme checks cover re-rendering.
