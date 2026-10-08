@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading.Channels;
 
 using SharpRail.Host.Abstractions;
@@ -28,9 +29,15 @@ public sealed class HostStateStore : IHostStateService
     private readonly Lock gate = new();
     private readonly string? path;
     private readonly List<Channel<HostState>> watchers = [];
+    // Settings a newer host wrote that this one does not know; written back untouched.
+    private readonly Dictionary<string, JsonNode?> unknownSettings = [];
+    private static readonly HashSet<string> KnownSettings = typeof(HostSettings).GetProperties().Select(property => property.Name).ToHashSet();
     private HostState state;
 
     public string? LastError { get; private set; }
+
+    /// <summary>The state directory's identity; null for a memory-only store or an unwritable directory.</summary>
+    public string? InstallationId { get; }
 
     public ValueTask<HostHandshake> GetHandshakeAsync(CancellationToken cancellationToken = default)
         => ValueTask.FromResult(new HostHandshake(HostProtocol.Current, HostProtocol.BuildVersion));
@@ -44,7 +51,11 @@ public sealed class HostStateStore : IHostStateService
         {
             if (path is not null && File.Exists(path))
             {
-                var stored = JsonSerializer.Deserialize<Stored>(File.ReadAllText(path), Json) ?? new();
+                var text = File.ReadAllText(path);
+                var stored = JsonSerializer.Deserialize<Stored>(text, Json) ?? new();
+                if (JsonNode.Parse(text)?[nameof(Stored.Settings)] is JsonObject settings)
+                    foreach (var (name, value) in settings)
+                        if (!KnownSettings.Contains(name)) unknownSettings[name] = value?.DeepClone();
                 initial = new()
                 {
                     Settings = stored.Settings ?? new(),
@@ -62,6 +73,9 @@ public sealed class HostStateStore : IHostStateService
         }
         state = Normalize(initial);
         if (path is not null && !File.Exists(path) && LastError is null) Save(state);
+        if (directory is not null)
+            try { InstallationId = Installation.EnsureIn(directory); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { LastError ??= error.Message; }
     }
 
     public HostState Current { get { lock (gate) return state; } }
@@ -75,6 +89,10 @@ public sealed class HostStateStore : IHostStateService
         {
             var next = state;
             foreach (var change in changes) next = Apply(next, change);
+            // A client that predates theme modes sends only the theme and means it to take effect.
+            if (next.Settings.ThemeMode != "fixed" && changes.Any(change => change is { Kind: "setting", Key: "theme" }) &&
+                !changes.Any(change => change is { Kind: "setting", Key: "theme-mode" }))
+                next = next with { Settings = next.Settings with { ThemeMode = "fixed" } };
             return ValueTask.FromResult(Publish(next, persist: true));
         }
     }
@@ -133,7 +151,9 @@ public sealed class HostStateStore : IHostStateService
                 WorkspaceLabels = snapshot.WorkspaceLabels.ToDictionary()
             };
             var temporary = path + ".tmp";
-            File.WriteAllText(temporary, JsonSerializer.Serialize(stored, Json));
+            var document = JsonSerializer.SerializeToNode(stored, Json)!;
+            foreach (var (name, value) in unknownSettings) document[nameof(Stored.Settings)]![name] = value?.DeepClone();
+            File.WriteAllText(temporary, document.ToJsonString(Json));
             File.Move(temporary, path, overwrite: true);
             LastError = null;
         }
@@ -144,25 +164,31 @@ public sealed class HostStateStore : IHostStateService
 
     private static bool ValidText(string value) => !string.IsNullOrWhiteSpace(value) && !value.Contains('\0');
 
-    private static HostState Normalize(HostState value) => value with
+    private static HostState Normalize(HostState value)
     {
-        Revision = 0,
-        Settings = value.Settings with
+        var light = Clean(value.Settings.SystemLight); var dark = Clean(value.Settings.SystemDark);
+        // Half a system pair is malformed: the client falls back to its own default pair.
+        if (light.Length == 0 || dark.Length == 0) light = dark = "";
+        return value with
         {
-            ThemeMode = value.Settings.ThemeMode is "system" ? "system" : "fixed",
-            Theme = Clean(value.Settings.Theme),
-            SystemLight = Clean(value.Settings.SystemLight),
-            SystemDark = Clean(value.Settings.SystemDark),
-            FileLineWidth = Width(value.Settings.FileLineWidth),
-            MarkdownLineWidth = Width(value.Settings.MarkdownLineWidth)
-        },
-        Presets = value.Presets.Where(preset => preset is not null && ValidText(preset.Name) && preset.Layout is { Length: > 0 })
-            .DistinctBy(preset => preset.Name).ToArray(),
-        Projects = value.Projects.Where(item => item is not null && ValidPath(item)).Distinct().ToArray(),
-        RecentProjects = value.RecentProjects.Where(item => item is not null && ValidPath(item)).Distinct().Take(HostStateChange.RecentLimit).ToArray(),
-        WorkspaceLabels = value.WorkspaceLabels.Where(entry => ValidPath(entry.Key) && entry.Value is not null && ValidText(entry.Value)).ToDictionary(),
-        Workspaces = new Dictionary<string, IReadOnlyList<string>>()
-    };
+            Revision = 0,
+            Settings = value.Settings with
+            {
+                ThemeMode = value.Settings.ThemeMode is "system" ? "system" : "fixed",
+                Theme = Clean(value.Settings.Theme),
+                SystemLight = light,
+                SystemDark = dark,
+                FileLineWidth = Width(value.Settings.FileLineWidth),
+                MarkdownLineWidth = Width(value.Settings.MarkdownLineWidth)
+            },
+            Presets = value.Presets.Where(preset => preset is not null && ValidText(preset.Name) && preset.Layout is { Length: > 0 })
+                .DistinctBy(preset => preset.Name).ToArray(),
+            Projects = value.Projects.Where(item => item is not null && ValidPath(item)).Distinct().ToArray(),
+            RecentProjects = value.RecentProjects.Where(item => item is not null && ValidPath(item)).Distinct().Take(HostStateChange.RecentLimit).ToArray(),
+            WorkspaceLabels = value.WorkspaceLabels.Where(entry => ValidPath(entry.Key) && entry.Value is not null && ValidText(entry.Value)).ToDictionary(),
+            Workspaces = new Dictionary<string, IReadOnlyList<string>>()
+        };
+    }
 
     private static string Clean(string? value) => value is null || value.Contains('\0') ? "" : value.Trim();
 

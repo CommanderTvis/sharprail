@@ -42,6 +42,12 @@ presets belong to the UI.
   through `LastError` and never discards the in-memory state; a corrupt file starts from defaults rather
   than blocking the app.
 - The published workspace lists are runtime-only and never persisted.
+- Settings in the file that this host does not know are kept verbatim and written back on every save, so
+  an older host does not erase a newer host's settings. Mutation keys remain closed; new keys require
+  protocol-version gating by clients.
+- `installation.json` beside the state file holds the directory's identity (`Installation.EnsureIn`,
+  surfaced as `HostStateStore.InstallationId`): a UUID created exclusively on first use, so racing first
+  launches agree on one id. A malformed file is reported and never replaced; a memory-only store has none.
 
 ## Projects
 
@@ -61,7 +67,9 @@ presets belong to the UI.
 - An invalid change rejects the whole batch before persistence or broadcast. Line widths accept whole
   numbers 40–240; loaded values outside that range fall back to the client default (zero) without
   discarding valid siblings. Theme ids are opaque: availability and resolution belong to the UI.
-  `themeMode` is `fixed` or `system`; anything else loads as `fixed`.
+  `themeMode` is `fixed` or `system`; anything else loads as `fixed`. A batch that changes `theme` without
+  naming a mode switches the host to fixed mode, so a client that predates modes still sees its theme
+  applied. A system pair with only one side is malformed and loads as no pair.
 - Setting updates accept a closed set of keys and validate their values before publishing the batch;
   unknown setting keys and change kinds are rejected. The typed change-list contract replaces upstream's
   object-shaped partial update, so arbitrary JSON payloads are not a separate mutation surface.
@@ -81,8 +89,6 @@ presets belong to the UI.
 
 ## Not yet ported
 
-- Preserving unknown settings already on disk across valid updates, so an older host does not erase a
-  newer host's settings. Mutation keys remain closed; new keys require protocol-version gating by clients.
 - Resolving `~` and rejecting relative project paths against the host filesystem, and a path inspection
   that classifies a folder as repository, initializable, missing or not a directory before acting.
 - Distinct project-open refusals for a non-repository (`NOT_GIT`) and a canonical root already held as
@@ -90,6 +96,4 @@ presets belong to the UI.
   currently accepts plain folders and does not check workspace ownership.
 - Stable project ids, readable slugs and `lastOpened` ordering that preserve identity across close and
   reopen.
-- A legacy `theme` change without an explicit mode switching the host to fixed mode, and dropping a
-  malformed system pair on load.
-- Host-persisted terminal catalogs and a per-installation identity file.
+- Host-persisted terminal catalogs.

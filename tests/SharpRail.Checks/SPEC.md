@@ -136,6 +136,14 @@ moving, and refusal of refs, abbreviations, unknown, tree and blob ids, path esc
 symbolic link. The headless UI part opens `BinaryDiffView` for a PNG (two pictures) and a PDF (cards only)
 and requires no replacement characters.
 
+## Host state store checks
+
+`StateStoreChecks.cs` (`-- --host-state`, with `StateChecks.cs`; also in the default run) covers what the
+store keeps on disk: unknown settings surviving a valid update while unknown change keys stay rejected, a
+half system theme pair dropped on load, a theme change without a mode switching to fixed mode, and one
+stable installation identity across reopen and sixteen racing first launches, with a malformed identity
+file never replaced.
+
 ## Quit and close commands
 
 `QuitConfirmationChecks` translates upstream's quit-confirmation cases against a fake clock and scheduler:

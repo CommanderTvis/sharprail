@@ -91,6 +91,12 @@ internal static class Program
             Console.WriteLine("PASS multi-window and multi-client checks");
             return;
         }
+        if (args.SequenceEqual(["--host-state"]))
+        {
+            StateChecks.Run(root).GetAwaiter().GetResult();
+            StateStoreChecks.Run(root).GetAwaiter().GetResult();
+            return;
+        }
         if (args.SequenceEqual(["--files"]))
         {
             ProjectChecks.Run(root).GetAwaiter().GetResult();
@@ -142,6 +148,7 @@ internal static class Program
         ChangeChecks.Run(root).GetAwaiter().GetResult();
         ContentChecks.Run(root).GetAwaiter().GetResult();
         StateChecks.Run(root).GetAwaiter().GetResult();
+        StateStoreChecks.Run(root).GetAwaiter().GetResult();
         FileSavingChecks.Run(root).GetAwaiter().GetResult();
         LayoutChecks.Run();
         QuitConfirmationChecks.Run();
