@@ -43,10 +43,12 @@ public sealed partial class App : Application
             // The local host's state always migrates, so a remote session never leaves pre-host fields behind.
             var local = profile.OpenState();
             var remote = !string.IsNullOrEmpty(endpoint);
-            IHostStateService stateService = remote ? new RemoteStateAdapter(new Uri(endpoint!), token) : new LocalStateAdapter(local);
+            // Every window's project session is the same client of the host as the state subscription.
+            var connection = new HostConnection();
+            IHostStateService stateService = remote ? new RemoteStateAdapter(new Uri(endpoint!), token, connection) : new LocalStateAdapter(local);
             var state = new SharedState(stateService, profile.Data.Preferences, remote ? null : local.Current);
             Func<IProjectServices> sessions = remote
-                ? () => new RemoteProjectAdapter(new Uri(endpoint!), token)
+                ? () => new RemoteProjectAdapter(new Uri(endpoint!), token, connection)
                 : () => new LocalProjectAdapter(new ProjectServices(initialRoot, local));
             var remoteTerminals = remote ? new RemoteTerminalAdapter(new Uri(endpoint!), token) : null;
             // Local sessions belong to the app's host: they survive their windows and end when the app quits.

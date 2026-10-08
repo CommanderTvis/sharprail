@@ -14,6 +14,12 @@ public static class HostProtocol
     /// <summary>Revert and undo of a change, and the SHA-256 on both diff sides they depend on.</summary>
     public const int ChangeWritePath = 2;
 
+    /// <summary>
+    /// A mutation replayed under its request id runs once. A client replays only against a host that reports
+    /// at least this version; against an older one a call lost with its connection still fails to the caller.
+    /// </summary>
+    public const int RequestReplay = 3;
+
     /// <summary>The build's own version, reported beside the protocol number.</summary>
     public static string BuildVersion => typeof(HostProtocol).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion.Split('+')[0] ?? "";
 }

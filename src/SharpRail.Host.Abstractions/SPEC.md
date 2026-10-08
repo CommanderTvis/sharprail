@@ -61,8 +61,8 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
   one.
 - `IHostStateService.GetHandshakeAsync` returns a `HostHandshake` (protocol version and build version).
   `HostProtocol.Current` rises when a host operation or message changes in a way an older client must
-  know about; features record the version that introduced them beside it. Version 0 means a host that
-  predates the handshake.
+  know about; features record the version that introduced them beside it (`ChangeWritePath` 2,
+  `RequestReplay` 3). Version 0 means a host that predates the handshake.
 - `IWorkspaceHost` is the minimal probe of the host's root workspace: its identity and top-level entries.
 
 ## Invariants

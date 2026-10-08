@@ -141,7 +141,13 @@ and requires no replacement characters.
 `ReconnectChecks.cs` (`-- --reconnect`, also in the default run) runs against the embedded host and real
 gRPC hosts. Named failures: a vanished commit is `HostErrorCode.UnknownCommit` with the same message from
 the snapshot, diff, diff-sides and byte reads of both hosts, an unnamed failure stays unnamed, and `NotGit`
-and `AlreadyOpen` survive the state service's transport from a host that refuses with them.
+and `AlreadyOpen` survive the state service's transport from a host that refuses with them. Replay: a
+state change whose connection `CutProxy` drops in flight completes with the first run's reply or refusal
+once the proxy allows reconnecting, the host having run it once and to completion; a host reporting an
+older version gets no replay and the call fails. With explicit request ids the host returns a kept
+reply, scopes ids to their client, refuses a reused id with another payload, releases results a resume no
+longer names, refuses a client over its request limit and never reruns a reply it could not keep; a save
+sent twice under one id succeeds twice through `RemoteServer`, while a new id meets the conflict check.
 
 ## Quit and close commands
 

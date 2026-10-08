@@ -42,7 +42,8 @@ public sealed class RemoteProjectAdapter : IProjectServices, IDisposable
     private readonly IProjectRpc service;
     private readonly string token;
 
-    public RemoteProjectAdapter(Uri address, string token)
+    /// <summary>Adapters of one client share <paramref name="connection"/>; without one this adapter is its own client.</summary>
+    public RemoteProjectAdapter(Uri address, string token, HostConnection? connection = null)
     {
         if (string.IsNullOrWhiteSpace(token)) throw new ArgumentException("A host session token is required.");
         this.token = token;
@@ -52,7 +53,7 @@ public sealed class RemoteProjectAdapter : IProjectServices, IDisposable
             InitialReconnectBackoff = StateAdapterDefaults.InitialReconnect,
             MaxReconnectBackoff = StateAdapterDefaults.MaxReconnect
         });
-        service = channel.Intercept(new HostCallInterceptor()).CreateGrpcService<IProjectRpc>();
+        service = channel.Intercept(new HostCallInterceptor(connection ?? new())).CreateGrpcService<IProjectRpc>();
     }
 
     // The host keeps no per-client session: each call names the workspace this adapter opened last.

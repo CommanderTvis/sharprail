@@ -36,6 +36,14 @@ what makes remoteness an adapter choice rather than a mandatory daemon.
   gRPC's two-minute ceiling, because an interactive client is waiting.
 - The project adapter remembers the root it opened last and sends it with each
   call, so the host needs no per-client session and a reconnect resumes silently.
+- `HostConnection` is one client's identity towards a host; the composition root shares one between the
+  state proxy and every window's project proxy. A mutation (`ReplayHeaders.IsReplayable`) carries that
+  identity, a request id and the connection's unresolved ids. When its call ends `Unavailable`, the
+  interceptor sends it again under the same id with the channel's reconnect backoff until a reply is read,
+  the caller cancels or the call's own deadline passes, and the host answers with the first run's outcome:
+  an accepted mutation neither reports a false failure nor runs twice. Replay needs the host's
+  deduplication, so it happens only when the last handshake reported `HostProtocol.RequestReplay`;
+  otherwise a mutation lost with its connection fails to the caller. Reads are not replayed.
 - The state watch yields complete snapshots and ends with an exception when the
   transport drops; the caller (`SharedState`) resubscribes and receives a fresh
   snapshot, so nothing missed while disconnected stays stale.
@@ -77,10 +85,8 @@ what makes remoteness an adapter choice rather than a mandatory daemon.
   affordance from a host that predates the change write path. Resource metadata
   needs no gate: a reply without it reads as text, which is what that host's own
   client showed.
-- Reconnect-safe unary requests: replaying an in-flight mutation under the same
-  request id with host deduplication, plus ack/resume frames, so an accepted
-  mutation can neither report a false failure nor run twice. Today a unary call
-  lost with its connection fails to the caller.
+- Raising `HostProtocol.Current` to `RequestReplay` (3). Until a host reports it, mutation replay stays
+  off against every host, including this build's own, and a mutation lost with its connection fails.
 - A per-request timeout override for calls answered only after a human acts.
 - An HTTP base derived from the endpoint for host-served worktree files.
 - Re-reading already-known workspace rows after reconnect without treating it as

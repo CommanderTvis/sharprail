@@ -7,7 +7,7 @@ using SharpRail.Host.Protocol;
 
 namespace SharpRail.Host.Remote;
 
-public sealed class ProjectRpc(ProjectSessions sessions, IHostApplicationLifetime lifetime) : IProjectRpc
+public sealed class ProjectRpc(ProjectSessions sessions, IHostApplicationLifetime lifetime, RequestReplayCache replay) : IProjectRpc
 {
     public async IAsyncEnumerable<FileChangeReply> WatchFilesAsync(ProjectRequest request, CallContext context = default)
     {
@@ -82,20 +82,20 @@ public sealed class ProjectRpc(ProjectSessions sessions, IHostApplicationLifetim
         return new ContentReply { Data = content.Data, Info = Info(content.Info)! };
     });
 
-    public ValueTask<ChangeReceiptReply> RevertChangeAsync(RevertChangeRequest request, CallContext context = default) => Execute(async () =>
+    public ValueTask<ChangeReceiptReply> RevertChangeAsync(RevertChangeRequest request, CallContext context = default) => Replayed(context, request, async (host, token) =>
     {
         var target = request.IsRange
             ? new RevertTarget(new(request.OriginalStart, request.OriginalCount), new(request.ModifiedStart, request.ModifiedCount))
             : new RevertTarget();
-        return Map(await Host(context).RevertChangeAsync(request.Path, request.Scope, request.Branch, target,
-            new(request.OriginalHash, request.ModifiedHash), context.CancellationToken));
+        return Map(await host.RevertChangeAsync(request.Path, request.Scope, request.Branch, target,
+            new(request.OriginalHash, request.ModifiedHash), token));
     });
 
     public ValueTask<ChangeReceiptReply> UndoChangeAsync(UndoChangeRequest request, CallContext context = default)
-        => Execute(async () => Map(await Host(context).UndoChangeAsync(request.ReceiptId, request.ModifiedHash, context.CancellationToken)));
+        => Replayed(context, request, async (host, token) => Map(await host.UndoChangeAsync(request.ReceiptId, request.ModifiedHash, token)));
 
     public ValueTask<GitReply> ApplyGitActionAsync(ProjectRequest request, CallContext context = default)
-        => Execute(async () => Map(await Host(context).ApplyGitActionAsync(new(request.Action, request.Path, request.Branch, request.BaseBranch), context.CancellationToken)));
+        => Replayed(context, request, async (host, token) => Map(await host.ApplyGitActionAsync(new(request.Action, request.Path, request.Branch, request.BaseBranch), token)));
 
     public ValueTask<BranchesReply> ListBranchesAsync(BranchesRequest request, CallContext context = default) => Execute(async () =>
     {
@@ -121,24 +121,24 @@ public sealed class ProjectRpc(ProjectSessions sessions, IHostApplicationLifetim
         return new PrDraftReply { Title = draft.Title, Body = draft.Body };
     });
 
-    public ValueTask<PrReply> OpenPrAsync(OpenPrRequest request, CallContext context = default) => Execute(async () =>
+    public ValueTask<PrReply> OpenPrAsync(OpenPrRequest request, CallContext context = default) => Replayed(context, request, async (host, token) =>
     {
-        var result = await Host(context).OpenPrAsync(new(request.Title, request.TitleEdited, request.Body, request.Draft), context.CancellationToken);
+        var result = await host.OpenPrAsync(new(request.Title, request.TitleEdited, request.Body, request.Draft), token);
         return new PrReply { Action = result.Action, Url = result.Url, Number = result.Number, DirtyFiles = result.DirtyFiles, GhProblem = result.GhProblem };
     });
 
     public ValueTask<EditorsReply> ListEditorsAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>
         new EditorsReply { Editors = (await Host(context).ListEditorsAsync(context.CancellationToken)).Select(editor => new EditorReply { Id = editor.Id, Label = editor.Label }).ToList() });
 
-    public ValueTask<SaveFileReply> OpenInEditorAsync(OpenInEditorRequest request, CallContext context = default) => Execute(async () =>
+    public ValueTask<SaveFileReply> OpenInEditorAsync(OpenInEditorRequest request, CallContext context = default) => Replayed(context, request, async (host, token) =>
     {
-        await Host(context).OpenInEditorAsync(request.EditorId, request.WorktreePath, context.CancellationToken);
+        await host.OpenInEditorAsync(request.EditorId, request.WorktreePath, token);
         return new SaveFileReply();
     });
 
-    public ValueTask<SaveFileReply> SaveFileAsync(SaveFileRequest request, CallContext context = default) => Execute(async () =>
+    public ValueTask<SaveFileReply> SaveFileAsync(SaveFileRequest request, CallContext context = default) => Replayed(context, request, async (host, token) =>
     {
-        await Host(context).SaveFileAsync(new(request.WorkspaceRoot, request.Path, request.OriginalText, request.Text), context.CancellationToken);
+        await host.SaveFileAsync(new(request.WorkspaceRoot, request.Path, request.OriginalText, request.Text), token);
         return new SaveFileReply();
     });
 
@@ -172,6 +172,13 @@ public sealed class ProjectRpc(ProjectSessions sessions, IHostApplicationLifetim
 
     private IProjectServices Host(CallContext context) =>
         sessions.For(context.ServerCallContext?.RequestHeaders.GetValueBytes(ProjectHeaders.Root) is { } root ? System.Text.Encoding.UTF8.GetString(root) : null);
+
+    /// <summary>A mutation: its workspace is resolved from the call, then it runs once per request id however often the client replays it.</summary>
+    private ValueTask<T> Replayed<TRequest, T>(CallContext context, TRequest request, Func<IProjectServices, CancellationToken, Task<T>> action) where T : class
+    {
+        var host = Host(context);
+        return replay.RunAsync(context, request, token => Execute(() => action(host, token)));
+    }
 
     private static async ValueTask<T> Execute<T>(Func<Task<T>> action)
     {

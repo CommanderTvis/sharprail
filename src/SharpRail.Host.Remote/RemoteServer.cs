@@ -28,6 +28,7 @@ public static class RemoteServer
         var state = new HostStateStore(stateDirectory);
         builder.Services.AddSingleton<IHostStateService>(state);
         builder.Services.AddSingleton(new ProjectSessions(root, state));
+        builder.Services.AddSingleton<RequestReplayCache>();
         // Sessions belong to the host: they outlive client connections and end when the host stops.
         if (terminals is null) builder.Services.AddSingleton<ITerminalService>(_ => new PtyTerminalService(recordingsDirectory: stateDirectory is null ? null : Path.Combine(stateDirectory, "terminals")));
         else builder.Services.AddSingleton(terminals);

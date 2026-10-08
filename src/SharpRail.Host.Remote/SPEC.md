@@ -67,6 +67,17 @@ unauthenticated peer learns nothing about the host's version.
   value, and caches one `ProjectServices` per root. Opening a project uses a
   detached instance so resolution never disturbs a cached workspace. Clients
   therefore never share a current project, and reconnects need no session.
+- `RequestReplayCache` deduplicates mutations: the project service's save, Git action, revert, undo,
+  pull-request opening and open-in-editor, and the state service's change. A call carrying
+  `x-sharprail-client` and `x-sharprail-request` runs once per pair, detached from the call so a dropped
+  connection cannot abandon it half done (it ends with the host instead); a replay of the pair awaits and
+  returns the same outcome, success or failure. The request's method and serialized bytes are its
+  fingerprint: an id reused with another payload is `InvalidArgument`. Each call's `x-sharprail-resume`
+  names the client's still-unresolved ids and every other settled result is released. A client may hold
+  512 requests (`ResourceExhausted` beyond) and 16 MiB of serialized replies; a reply over that budget is
+  not kept and a replay of it is `FailedPrecondition`, never a second run. At most 64 clients are
+  remembered, the least recently seen one without running work going first. Results are memory only, so
+  a restarted host runs a replay afresh. A call without the metadata behaves as before.
 - State watch streams end on application stopping, so graceful shutdown never
   waits for watchers. Changes are broadcast to every subscriber as full snapshots.
 - `ProjectRpc.ReadContentBytesAsync` delegates to the session's host and returns bytes and metadata as one
@@ -101,6 +112,4 @@ unauthenticated peer learns nothing about the host's version.
   logging.
 - Resolving the login-shell `PATH` at boot.
 - Structured leveled diagnostics with rotating on-disk logs.
-- A per-client request-result cache keyed by client identity and request id for
-  reconnect deduplication.
 - Pushed project/workspace lifecycle events.

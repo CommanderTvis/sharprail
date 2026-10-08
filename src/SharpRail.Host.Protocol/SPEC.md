@@ -89,6 +89,14 @@ project: local adapters call Core directly, with no serialization.
   the project and state services; the client proxies rethrow it as the `HostException` the embedded host
   throws. An older client ignores the trailer and shows the detail text. Upstream's other codes have no
   counterpart here: a rejected push is `PrResult.Action == "authFailed"`, and the rest are chat failures.
+- Mutations are replayable (`ReplayContract.cs`, protocol version 3 as `HostProtocol.RequestReplay`). The
+  client sends its identity (`x-sharprail-client`, one per client process), a request id that stays the
+  same across replays (`x-sharprail-request`) and its complete set of unresolved ids
+  (`x-sharprail-resume`) with every replayable call (`ReplayHeaders.IsReplayable`). gRPC has no
+  per-connection frame to carry upstream's `ack` and `resume` messages, so one header does both jobs: an
+  id missing from it has had its reply read, and restating the whole set on each call repairs anything a
+  lost call failed to say. An older host ignores the headers, so a client replays only against a host
+  whose handshake reaches the version.
 - `DiffSidesReply` carries a hash per side and the original commit as additive members 3 to 5, then
   content metadata per side and each side's revision as 6 to 9; `DocumentReply` gains metadata as 4. An
   older client ignores them. `ReadContentBytes` takes a path and a revision (`WorkingTree` says null, since
@@ -112,8 +120,6 @@ project: local adapters call Core directly, with no serialization.
 
 ## Not yet ported
 
-- Request-id deduplication on reconnect (replay under the same id, host-cached
-  results, ack/resume frames).
 - Pushed invalidations beyond host state: project/workspace lifecycle as separate
   channels, a worktree file-change nudge (`workspace.fsChanged`), and a host
   update notice.
