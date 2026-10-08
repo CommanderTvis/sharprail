@@ -26,6 +26,27 @@ internal static class ChangesScopeE2E
         RetargetOpenTabs(root, source);
         RewrittenCommit(root, source);
         FailedRead(root, source);
+        SharedTarget(root, source);
+    }
+
+    /// <summary>SharpRail regression: the review target lives on the host, so another client's choice reaches this window.</summary>
+    private static void SharedTarget(string root, string source)
+    {
+        var (app, worktree) = Open(root, "changes-shared-target", source);
+        using var _ = app;
+        SeedCommitAndDirtyEdit(worktree);
+        ShowChanges(app);
+        UntilRows(app, "README.md", "committed.txt");
+        var workspace = app.Window.WorkspaceRoot;
+
+        PickTarget(app, "workspace-1");
+        Until(() => app.State!.Current.DiffBase(workspace) == "workspace-1");
+
+        ChangesFixture.Git(worktree, "branch", "elsewhere", "HEAD~1");
+        app.State!.ChangeAsync([SharpRail.Host.Abstractions.HostStateChange.DiffBase(workspace, "elsewhere")]).AsTask().GetAwaiter().GetResult();
+        Until(() => Text(app.Find<Button>("ChangesBranch")).Contains("elsewhere", StringComparison.Ordinal));
+        UntilRows(app, "README.md", "committed.txt");
+        Console.WriteLine("PASS a review target chosen here is stored on the host, and one re-pointed by another client is followed");
     }
 
     private static bool Sha(string label) => Regex.IsMatch(label, "^[0-9a-f]{7,}$");

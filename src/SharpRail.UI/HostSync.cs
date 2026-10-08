@@ -55,6 +55,15 @@ public sealed partial class WorkbenchWindow
                 if (toolContent.Remove("projects")) surface.RefreshContents("projects");
                 if (atHome || cleanWelcome) surface.RefreshContents();
             });
+        // Another client re-pointed this workspace's review target: follow it, as a local choice would.
+        if (WorkspaceMounted && !atHome && next.DiffBase(workspaceRoot) is { Length: > 0 } target &&
+            target != previous.DiffBase(workspaceRoot) && target != comparison)
+        {
+            comparison = target;
+            RetargetDiffTabs();
+            SaveGitSelection();
+            _ = RefreshGitAsync(projectRequest);
+        }
         // Another client closed this window's project: move on as a local close would.
         if (projectRoot.Length > 0 && projectRoot != closingProject && previous.Projects.Contains(projectRoot) && !next.Projects.Contains(projectRoot))
         {

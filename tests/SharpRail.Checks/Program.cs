@@ -125,6 +125,9 @@ internal static class Program
         if (args.SequenceEqual(["--git-host"]))
         {
             GitHostChecks.Run(root).GetAwaiter().GetResult();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            E2E.ChangesScopeE2E.Run(Path.Combine(root, "upstream-e2e"));
             return;
         }
         if (args.SequenceEqual(["--process"]))

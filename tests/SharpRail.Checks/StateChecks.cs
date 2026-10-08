@@ -26,7 +26,9 @@ internal static class StateChecks
         state.Settings.ToString(),
         string.Join(",", state.Presets.Select(preset => preset.Name + "=" + preset.Layout)),
         string.Join(",", state.Projects), string.Join(",", state.RecentProjects),
-        string.Join(",", state.WorkspaceLabels.OrderBy(entry => entry.Key).Select(entry => entry.Key + "=" + entry.Value)));
+        string.Join(",", state.WorkspaceLabels.OrderBy(entry => entry.Key).Select(entry => entry.Key + "=" + entry.Value)),
+        string.Join(",", state.WorkspaceBases.OrderBy(entry => entry.Key).Select(entry => entry.Key + "=" + entry.Value)),
+        string.Join(",", state.WorkspaceDiffBases.OrderBy(entry => entry.Key).Select(entry => entry.Key + "=" + entry.Value)));
 
     internal static async Task Run(string root)
     {
@@ -39,7 +41,8 @@ internal static class StateChecks
             HostStateChange.Setting("markdown-width", "80"), HostStateChange.Setting("file-bounded", "false"),
             HostStateChange.SavePreset("Mine", "{}"), HostStateChange.RenamePreset("Mine", "Renamed"),
             HostStateChange.OpenProject(project), HostStateChange.OpenProject(other), HostStateChange.CloseProject(other),
-            HostStateChange.Label(Path.Combine(project + "-worktrees", "workspace-1"), "Shared name")
+            HostStateChange.Label(Path.Combine(project + "-worktrees", "workspace-1"), "Shared name"),
+            HostStateChange.DiffBase(Path.Combine(project + "-worktrees", "workspace-1"), "origin/release")
         ];
 
         var localDirectory = Path.Combine(root, "state-local");
@@ -62,6 +65,12 @@ internal static class StateChecks
             {
                 await service.ChangeAsync([HostStateChange.Setting("file-width", "39")]);
                 throw new InvalidOperationException($"The {name} host accepted an invalid width.");
+            }
+            catch (Exception error) when (error is ArgumentException or Grpc.Core.RpcException) { }
+            try
+            {
+                await service.ChangeAsync([HostStateChange.DiffBase(project, "--output=x")]);
+                throw new InvalidOperationException($"The {name} host stored an option-shaped review target.");
             }
             catch (Exception error) when (error is ArgumentException or Grpc.Core.RpcException) { }
             watch.Cancel();

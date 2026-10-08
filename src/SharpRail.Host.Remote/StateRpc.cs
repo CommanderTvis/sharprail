@@ -56,6 +56,8 @@ public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime li
         Projects = state.Projects.ToList(),
         RecentProjects = state.RecentProjects.ToList(),
         Labels = state.WorkspaceLabels.Select(entry => new LabelMessage { Path = entry.Key, Label = entry.Value }).ToList(),
+        Bases = state.WorkspaceBases.Select(entry => new WorkspaceRefMessage { Path = entry.Key, Reference = entry.Value }).ToList(),
+        DiffBases = state.WorkspaceDiffBases.Select(entry => new WorkspaceRefMessage { Path = entry.Key, Reference = entry.Value }).ToList(),
         Workspaces = state.Workspaces.Select(entry => new WorkspaceListMessage { ProjectRoot = entry.Key, Paths = entry.Value.ToList() }).ToList()
     };
 }

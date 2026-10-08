@@ -15,7 +15,9 @@ public sealed partial class WorkbenchWindow
     private void RestoreGitSelection()
     {
         var selection = profile.Data.GitSelections.GetValueOrDefault(workspaceRoot);
-        comparison = selection?.Target ?? ""; changeScope = selection?.Scope ?? "All changes";
+        // The review target is the host's, shared by every client; the profile only remembers one the host has none for.
+        comparison = state.Current.DiffBase(workspaceRoot) is { Length: > 0 } target ? target : selection?.Target ?? "";
+        changeScope = selection?.Scope ?? "All changes";
         selectedCommit = selection?.Commit; gitCommits = [];
         gitBranches = new([], [], "");
     }

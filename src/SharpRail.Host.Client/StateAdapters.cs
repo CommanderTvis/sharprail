@@ -100,6 +100,8 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
         Projects = reply.Projects.ToArray(),
         RecentProjects = reply.RecentProjects.ToArray(),
         WorkspaceLabels = reply.Labels.ToDictionary(label => label.Path, label => label.Label),
+        WorkspaceBases = reply.Bases.ToDictionary(entry => entry.Path, entry => entry.Reference),
+        WorkspaceDiffBases = reply.DiffBases.ToDictionary(entry => entry.Path, entry => entry.Reference),
         Workspaces = reply.Workspaces.ToDictionary(list => list.ProjectRoot, list => (IReadOnlyList<string>)list.Paths.ToArray())
     };
 

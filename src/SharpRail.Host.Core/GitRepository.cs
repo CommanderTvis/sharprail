@@ -66,7 +66,7 @@ internal static class GitRepository
         }
         async Task<bool> Untracked() =>
             (await RunAsync(root, ct, "ls-files", "--others", "--exclude-standard", "-z", "--", path)).Length > 0;
-        if (scope == "untracked" || (scope is "uncommitted" or "branch") && await Untracked()) return new(null, null);
+        if (scope == "untracked" || (scope is "uncommitted" or "branch" or "pinned") && await Untracked()) return new(null, null);
         switch (scope)
         {
             case "commit":
@@ -75,6 +75,7 @@ internal static class GitRepository
             case "staged": return new(await Head(), "");
             case "working": return new("", null);
             case "branch": return new(await ComparisonBaseAsync(root, comparison, ct), null);
+            case "pinned": return new(await PinnedCommitAsync(root, comparison, ct), null);
             case "uncommitted": return new(await Head(), null);
             default: return new(await Head() ?? "", null);
         }
@@ -98,11 +99,27 @@ internal static class GitRepository
         return parent is null ? ["show", "--format=", "--no-renames", sha] : ["diff", "--no-renames", parent, sha];
     }
 
-    /// <summary>Resolves a commit and its first parent, which is null for a root commit.</summary>
-    internal static async Task<(string? Parent, string Commit)> CommitRangeAsync(string root, string commit, CancellationToken ct)
+    /// <summary>
+    /// The immutable commit a pinned scope measures the working tree against. Unlike a branch target it is used
+    /// as given, never through a merge base, so the range cannot move while the branch or its target does.
+    /// </summary>
+    internal static async Task<string> PinnedCommitAsync(string root, string commit, CancellationToken ct)
+    {
+        RequireCommitId(commit);
+        try { return (await RunAsync(root, ct, "rev-parse", "--verify", "--quiet", "--end-of-options", commit + "^{commit}")).Trim(); }
+        catch (GitException error) when (error.ExitCode == 1) { throw new IOException("Unknown commit: " + commit); }
+    }
+
+    private static void RequireCommitId(string commit)
     {
         if (commit.Length is < 4 or > 64 || !commit.All(value => value is >= '0' and <= '9' or >= 'a' and <= 'f'))
             throw new ArgumentException("A commit scope requires a hexadecimal commit id.");
+    }
+
+    /// <summary>Resolves a commit and its first parent, which is null for a root commit.</summary>
+    internal static async Task<(string? Parent, string Commit)> CommitRangeAsync(string root, string commit, CancellationToken ct)
+    {
+        RequireCommitId(commit);
         var sha = (await RunAsync(root, ct, "rev-parse", "--verify", "--quiet", "--end-of-options", commit + "^{commit}")).Trim();
         try { return ((await RunAsync(root, ct, "rev-parse", "--verify", "--quiet", "--end-of-options", sha + "^")).Trim(), sha); }
         catch (GitException error) when (error.ExitCode == 1) { return (null, sha); }
@@ -110,7 +127,7 @@ internal static class GitRepository
 
     internal static async Task<GitSnapshot> SnapshotAsync(string root, string comparison, CancellationToken ct, string scope = "all")
     {
-        if (scope is not ("all" or "uncommitted" or "staged" or "commit")) throw new ArgumentException("Unknown change scope.");
+        if (scope is not ("all" or "uncommitted" or "staged" or "commit" or "pinned")) throw new ArgumentException("Unknown change scope.");
         try { await RunAsync(root, ct, "rev-parse", "--git-dir"); }
         catch (GitException error) when (error.ExitCode == 128 && error.Message.StartsWith("fatal: not a git repository (or any", StringComparison.Ordinal))
         { return new(false, "", [], [], []); }
@@ -122,6 +139,7 @@ internal static class GitRepository
         var workingChanges = ParseStatus(status);
         var diff = scope == "commit" ? await CommitDiffArgumentsAsync(root, comparison, ct) : new List<string> { "diff", "--no-renames" };
         if (scope == "staged") diff.Add("--cached");
+        else if (scope == "pinned") diff.Add(await PinnedCommitAsync(root, comparison, ct));
         else if (scope == "all" && comparison.Length > 0)
             diff.Add(await ComparisonBaseAsync(root, comparison, ct));
         else if (scope == "uncommitted") diff.Add("HEAD");
@@ -170,7 +188,8 @@ internal static class GitRepository
         var worktrees = ParseWorktrees(await RunAsync(root, ct, "worktree", "list", "--porcelain", "-z"));
         var branches = (await RunAsync(root, ct, "for-each-ref", "--format=%(refname:short)", "refs/heads", "refs/remotes"))
             .Split('\n', StringSplitOptions.RemoveEmptyEntries);
-        var commits = scope != "commit" ? await ListCommitsAsync(root, comparison, ct) : [];
+        // Commit and pinned scopes carry a commit id where the others carry the target the catalog is listed against.
+        var commits = scope is "commit" or "pinned" ? [] : await ListCommitsAsync(root, comparison, ct);
         return new(true, branch, changes, worktrees, branches) { Commits = commits };
     }
 

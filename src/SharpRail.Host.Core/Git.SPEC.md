@@ -67,11 +67,25 @@ A scope is defined once, and the file list, counts and both diff sides use the s
   edits and untracked files never enter. The id must be 4–64 lowercase hex characters before it reaches
   Git and must then resolve with `rev-parse --verify`; a commit that exists but is no longer reachable from
   the branch still shows its diff.
+- `pinned`: one immutable commit to the working tree, plus untracked files. The id follows the commit
+  scope's hexadecimal rule and is used as resolved, never through a merge base, so the range holds still
+  while the branch and its target move. An id that names no commit fails as `Unknown commit: <id>`. The
+  modified side is the worktree, so the scope is mutable. Its snapshot lists no commits. No panel selects
+  it yet; it is the range a "since I last looked" review measures.
 - `branch` and `working` serve diff reads only: the comparison baseline to the working tree, and index to
   working tree.
 
 Untracked files count their whole content as added lines (skipping symbolic links, files over 8 MiB and
 binary content). Line counts come from `--numstat`; binary rows keep zero counts.
+
+## Review target
+
+What a workspace's changes are measured against is the host's, shared by every client
+([HostState.SPEC.md](HostState.SPEC.md)): the ref the workspace was created from, recorded when the host
+creates the worktree (never for `HEAD`), and a re-pointed target kept apart from it. A client sends the
+effective one as the comparison target of its reads; the Changes panel's target picker writes it and
+follows another client's choice. A target only has to be well formed: one that does not resolve is
+stored, and the read against it fails visibly.
 
 ## Commit and branch catalogs
 
@@ -127,8 +141,8 @@ binary content). Line counts come from `--numstat`; binary rows keep zero counts
   of each side the client saw, never content; under the workspace's mutation lock the host re-resolves the
   diff range (`GitRepository.ResolveDiffRangeAsync`, shared with `GetDiffSidesAsync`), re-reads both
   sides and refuses a hash mismatch, so a stale view writes nothing.
-- Mutable scopes are those whose modified side is the worktree: `uncommitted`, `working`, `branch`, `all`
-  and `untracked`. `commit` and `staged` are immutable.
+- Mutable scopes are those whose modified side is the worktree: `uncommitted`, `working`, `branch`, `all`,
+  `pinned` and `untracked`. `commit` and `staged` are immutable.
 - A hunk revert is text-only and never changes whether the file exists. Only `\n` ends a line and a
   restored line keeps its own ending. A whole-file revert writes the original bytes with the Git mode
   (executable or not), restores a deleted file, or moves an added or untracked file to the system trash.
@@ -165,8 +179,6 @@ binary content). Line counts come from `--numstat`; binary rows keep zero counts
 
 ## Not yet ported
 
-- A per-workspace review target (`diffBase`) persisted separately from creation provenance, and a
-  `pinned` scope measuring an immutable commit against the working tree.
 - Background prefetch reporting whether a remote-tracking ref moved, and a nudge to re-read workspaces
   whose comparison base it moved.
 - Workspace diff-stat badges computed from the same branch-scope range.

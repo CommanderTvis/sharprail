@@ -147,7 +147,12 @@ the cases.
 `GitHostChecks.cs` (`-- --git-host`, also in the default run) runs one scenario list against the embedded
 host and a real gRPC host over twin fixtures (a bare origin and a clone one commit ahead on `feature`) and
 requires equal logs. It covers the ref-shape table, and every door refusing option, range, reflog and
-revision syntax before Git runs, with refs unchanged afterwards and a crafted `origin/HEAD` skipped.
+revision syntax before Git runs, with refs unchanged afterwards and a crafted `origin/HEAD` skipped; the
+pinned scope (commits, working edits and untracked files from one commit, unmoved by a later commit,
+abbreviated, unknown and malformed ids, revert and undo); and the creation base and re-pointed review
+target through create, re-point, restore, an unresolvable ref, a refused range and removal. The mode then
+runs `ChangesScopeE2E` headless, whose SharpRail-only last case stores a picked target on the host and
+follows one re-pointed by another client; it needs `SHARPRAIL_TEST_GIT_SOURCE`.
 
 ## Quit and close commands
 

@@ -42,7 +42,7 @@ public sealed partial class ProjectServices
         try
         {
             var currentRoot = root;
-            if (scope is not ("untracked" or "staged" or "working" or "all" or "uncommitted" or "branch" or "commit")) throw new ArgumentException("Unknown diff scope.");
+            if (scope is not ("untracked" or "staged" or "working" or "all" or "uncommitted" or "branch" or "commit" or "pinned")) throw new ArgumentException("Unknown diff scope.");
             if (scope is "commit" or "staged")
                 throw new ChangeException(ChangeFailure.ScopeImmutable, "This diff's modified side is not the worktree, so there is nothing to revert.");
             var full = ResolveForWrite(currentRoot, path);

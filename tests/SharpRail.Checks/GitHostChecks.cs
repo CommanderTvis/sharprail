@@ -79,25 +79,28 @@ internal static class GitHostChecks
         {
             var localRoot = await Fixture(Path.Combine(directory, "local"));
             var remoteRoot = await Fixture(Path.Combine(directory, "remote"));
-            IProjectServices local = new LocalProjectAdapter(new ProjectServices(localRoot));
+            var store = new HostStateStore(Path.Combine(directory, "local-state"));
+            IProjectServices local = new LocalProjectAdapter(new ProjectServices(localRoot, store));
             await local.OpenProjectAsync(localRoot);
-            var localLog = await Scenarios(local, localRoot);
+            var localLog = await Scenarios(local, new LocalStateAdapter(store), localRoot);
+            Require(new HostStateStore(Path.Combine(directory, "local-state")).Current.WorkspaceBases.Count == 0, "A removed workspace's review target was persisted.");
 
-            await using var server = RemoteServer.Create(remoteRoot, IPAddress.Loopback, 0, "git-host-test");
+            await using var server = RemoteServer.Create(remoteRoot, IPAddress.Loopback, 0, "git-host-test", Path.Combine(directory, "remote-state"));
             await server.StartAsync();
             try
             {
                 var address = server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single();
                 using var remote = new RemoteProjectAdapter(new Uri(address), "git-host-test");
                 await remote.OpenProjectAsync(remoteRoot);
-                var remoteLog = await Scenarios(remote, remoteRoot);
+                using var remoteState = new RemoteStateAdapter(new Uri(address), "git-host-test");
+                var remoteLog = await Scenarios(remote, remoteState, remoteRoot);
                 Require(localLog.SequenceEqual(remoteLog),
                     "Local and remote Git results differ:\n" + string.Join('\n', localLog.Zip(remoteLog).Where(pair => pair.First != pair.Second).Select(pair => pair.First + "  <>  " + pair.Second)));
             }
             finally { await server.StopAsync(); }
         }
         finally { foreach (var (name, value) in saved) Environment.SetEnvironmentVariable(name, value); }
-        Console.WriteLine("PASS Git host checks: ref shapes at every door, locally and over gRPC");
+        Console.WriteLine("PASS Git host checks: ref shapes at every door, creation base and re-pointed review target, pinned scope, locally and over gRPC");
     }
 
     private static void CheckRefShapes()
@@ -112,11 +115,94 @@ internal static class GitHostChecks
             Require(!GitRefs.IsSafe(bad), "An unusable ref passed: " + bad);
     }
 
-    private static async Task<List<string>> Scenarios(IProjectServices host, string root)
+    private static async Task<List<string>> Scenarios(IProjectServices host, IHostStateService state, string root)
     {
         var log = new List<string>();
         await RefDoors(host, root, log);
+        await Pinned(host, root, log);
+        await DiffBases(host, state, root, log);
         return log;
+    }
+
+    private static string Names(GitSnapshot snapshot) => string.Join(",", snapshot.Changes.Select(change => $"{change.Path}+{change.Added}-{change.Removed}").Order(StringComparer.Ordinal));
+
+    /// <summary>A pinned scope measures one immutable commit against the working tree, wherever the branch goes.</summary>
+    private static async Task Pinned(IProjectServices host, string root, List<string> log)
+    {
+        var seed = await Git(root, "rev-parse", "main");
+        await File.WriteAllTextAsync(Path.Combine(root, "a.txt"), "one\ntwo\nthree\n");
+        await File.WriteAllTextAsync(Path.Combine(root, "new.txt"), "n\n");
+        var pinned = await host.GetGitAsync(seed, scope: "pinned");
+        log.Add("pinned " + Names(pinned));
+        Require(Names(pinned) == "a.txt+1-0,b.txt+1-0,new.txt+1-0", "A pinned scope spans commits, working edits and untracked files: " + Names(pinned));
+        Require(Names(await host.GetGitAsync(seed[..8], scope: "pinned")) == Names(pinned), "An abbreviated pin must resolve to the same range.");
+        Require(pinned.Commits.Count == 0, "A pinned snapshot carries a commit id, not a target to list commits against.");
+
+        var sides = await host.GetDiffSidesAsync("a.txt", "pinned", seed);
+        Require(sides.Original == "one\ntwo\n" && sides.Modified == "one\ntwo\nthree\n" && sides.OriginalCommit == seed, "Pinned diff sides must read the pin and the working tree.");
+        var diff = await host.GetDiffAsync("a.txt", "pinned", seed);
+        Require(diff.Contains("+three", StringComparison.Ordinal), "A pinned diff must show the working edit.");
+        Require((await host.GetDiffAsync("new.txt", "pinned", seed)).Contains("+n", StringComparison.Ordinal), "An untracked file is an addition under a pin.");
+        var added = await host.GetDiffSidesAsync("b.txt", "pinned", seed);
+        Require(added.Original.Length == 0 && added.Modified == "b\n", "A file committed after the pin is absent on its original side.");
+
+        // Committing moves HEAD and the branch; the pin does not move with them.
+        await Git(root, "add", "a.txt");
+        await Git(root, "commit", "-q", "-m", "Third line");
+        Require(Names(await host.GetGitAsync(seed, scope: "pinned")) == Names(pinned), "A pinned range moved with the branch.");
+        Require(Names(await host.GetGitAsync("", scope: "uncommitted")) == "new.txt+1-0", "The uncommitted scope should now hold the untracked file alone.");
+
+        log.Add(await Refused(async () => await host.GetGitAsync("--output=leak", scope: "pinned"), "An option-shaped pin"));
+        log.Add(await Refused(async () => await host.GetGitAsync("main", scope: "pinned"), "A ref name as a pin"));
+        log.Add(await Refused(async () => await host.GetGitAsync("deadbeefcafe", scope: "pinned"), "An unknown pin"));
+        log.Add(await Refused(async () => await host.GetDiffSidesAsync("a.txt", "pinned", "deadbeefcafe"), "Diff sides at an unknown pin"));
+        Require(log[^2] == "Unknown commit: deadbeefcafe" && log[^1] == log[^2], "An unknown pin must be named as such: " + log[^2]);
+
+        var receipt = await host.RevertChangeAsync("a.txt", "pinned", seed, new(),
+            new(sides.OriginalHash, sides.ModifiedHash));
+        Require(await File.ReadAllTextAsync(Path.Combine(root, "a.txt")) == "one\ntwo\n", "Reverting under a pin restores the pinned content.");
+        await host.UndoChangeAsync(receipt.Id, receipt.After.Hash);
+        File.Delete(Path.Combine(root, "new.txt"));
+    }
+
+    /// <summary>The host records what a workspace was created from and, apart from it, where its review now points.</summary>
+    private static async Task DiffBases(IProjectServices host, IHostStateService state, string root, List<string> log)
+    {
+        var path = Path.GetFullPath(Path.Combine(root, "..", "review"));
+        async Task<string> Record()
+        {
+            var current = await state.GetStateAsync();
+            return $"base={current.WorkspaceBases.GetValueOrDefault(path)} target={current.WorkspaceDiffBases.GetValueOrDefault(path)} effective={current.DiffBase(path)}";
+        }
+        await host.ApplyGitActionAsync(new("create-worktree", path, "review", "origin/main"));
+        log.Add(await Record());
+        Require(log[^1] == "base=origin/main target= effective=origin/main", "Creation must record the base as the review target: " + log[^1]);
+
+        await state.ChangeAsync([HostStateChange.DiffBase(path, "feature")]);
+        log.Add(await Record());
+        Require(log[^1] == "base=origin/main target=feature effective=feature", "Re-pointing must leave the creation base alone: " + log[^1]);
+
+        // A target that does not resolve is still the user's choice; reading against it reports the failure.
+        await state.ChangeAsync([HostStateChange.DiffBase(path, "gone-branch")]);
+        log.Add(await Record());
+        Require(log[^1].EndsWith("effective=gone-branch", StringComparison.Ordinal), "A well-formed target must be stored even when it does not resolve.");
+
+        await state.ChangeAsync([HostStateChange.DiffBase(path, "origin/main")]);
+        log.Add(await Record());
+        Require(log[^1] == "base=origin/main target= effective=origin/main", "Pointing back at the creation base must drop the override: " + log[^1]);
+        await state.ChangeAsync([HostStateChange.DiffBase(path, "feature")]);
+        await state.ChangeAsync([HostStateChange.DiffBase(path, "")]);
+        log.Add(await Record());
+        Require(log[^1] == "base=origin/main target= effective=origin/main", "An empty target must restore the creation base: " + log[^1]);
+
+        try { await state.ChangeAsync([HostStateChange.DiffBase(path, "main..feature")]); throw new InvalidOperationException("A range was stored as a review target."); }
+        catch (Exception error) when (error is ArgumentException or RpcException) { }
+
+        await state.ChangeAsync([HostStateChange.DiffBase(path, "feature")]);
+        await host.ApplyGitActionAsync(new("remove-worktree", path));
+        log.Add(await Record());
+        Require(log[^1] == "base= target= effective=", "Removing a workspace must drop its base and target: " + log[^1]);
+        await Git(root, "branch", "-D", "review");
     }
 
     private static async Task RefDoors(IProjectServices host, string root, List<string> log)

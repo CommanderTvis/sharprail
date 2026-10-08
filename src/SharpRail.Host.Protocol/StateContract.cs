@@ -49,6 +49,13 @@ public sealed class LabelMessage
 }
 
 [ProtoContract]
+public sealed class WorkspaceRefMessage
+{
+    [ProtoMember(1)] public string Path { get; set; } = "";
+    [ProtoMember(2)] public string Reference { get; set; } = "";
+}
+
+[ProtoContract]
 public sealed class WorkspaceListMessage
 {
     [ProtoMember(1)] public string ProjectRoot { get; set; } = "";
@@ -65,6 +72,8 @@ public sealed class StateReply
     [ProtoMember(5)] public List<string> RecentProjects { get; set; } = [];
     [ProtoMember(6)] public List<LabelMessage> Labels { get; set; } = [];
     [ProtoMember(7)] public List<WorkspaceListMessage> Workspaces { get; set; } = [];
+    [ProtoMember(8)] public List<WorkspaceRefMessage> Bases { get; set; } = [];
+    [ProtoMember(9)] public List<WorkspaceRefMessage> DiffBases { get; set; } = [];
 }
 
 [ProtoContract]
