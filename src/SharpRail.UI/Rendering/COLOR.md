@@ -112,7 +112,6 @@ a control lives, and fails on:
 
 ## Not yet ported
 
-- The contrast and distinguishability floors, listed in [Themes.SPEC.md](Themes.SPEC.md).
 - Separate disabled roles (`control-disabled-*`: the enabled colour at a 60% step) and the stronger
   `control-border-active` for pressed, open and focused controls; Fluent's defaults paint those states.
 - The editor chrome roles derived from existing palette keys: secondary matches of the selection

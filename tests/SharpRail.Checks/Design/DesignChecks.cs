@@ -14,12 +14,18 @@ internal static partial class DesignChecks
 
     internal static void Run(bool write)
     {
+        var failures = new List<string>();
+        if (!write)
+        {
+            ThemeGates.Run(failures);
+            if (failures.Count > 0) throw new InvalidOperationException("Theme gates failed:\n" + string.Join("\n", failures));
+            Console.WriteLine("PASS bundled manifests parse strictly, agree with their schema and meet the contrast and distinguishability floors");
+        }
         if (DesignSources.Root() is not { } root)
         {
             Console.WriteLine("SKIP design source checks: no checkout around this executable");
             return;
         }
-        var failures = new List<string>();
         foreach (var (name, text) in DesignSources.Generate(root))
         {
             var path = DesignSources.Generated(root, name);

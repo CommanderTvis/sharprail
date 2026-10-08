@@ -35,10 +35,16 @@ rebuilding: no code, contract, style or check changes.
 
 ## Manifest contract
 
-A theme is exactly one `*.theme.json`. Schema version 2 is strict and self-contained: id, label and order,
-light or dark appearance, normal or high contrast, a complete semantic UI palette, all 16 ANSI colours and a
-syntax palette. Colours are canonical six- or eight-digit hex (`#rrggbbaa`; Avalonia's own parser reads eight
-digits as `#aarrggbb`, so `Themes.Hex` decodes them itself). The two selected-text foregrounds
+A theme is exactly one `*.theme.json`. Schema version 2 is strict and self-contained: a lowercase slug id,
+label and order, light or dark appearance, normal or high contrast, a complete semantic UI palette, all 16
+ANSI colours and a syntax palette. Colours are canonical lowercase six- or eight-digit hex (`#rrggbbaa`;
+Avalonia's own parser reads eight digits as `#aarrggbb`, so `Themes.Hex` decodes them itself). An unknown
+property at any level rejects the manifest, as a missing one does.
+
+`Assets/theme.schema.json` is the authoring schema each manifest's `$schema` points at, bundled beside the
+themes. `Themes.RequireSchemaAgreement` runs before the first manifest is read and fails loading unless the
+schema and `Themes.Parse` describe the same thing: the same root, colour, ANSI and syntax keys in the same
+order, the same nullable keys, the same id and hex patterns, and no additional properties. The two selected-text foregrounds
 (`selectionForeground`, `editorSelectionForeground`) may be `null` to keep the consumer's native foreground.
 There is no inheritance or partial overlay. Typography, spacing, radii, fonts and motion are product values,
 not theme values.
@@ -52,6 +58,18 @@ every bundled manifest ships them equal: a role can only vary between themes if 
 it. The accent is a triple for the same reason: `accent` (and `accentSolid`, the primary button fill),
 `accentHover` as the primary button's hover fill, and `onAccent` as the label on both. Pinning the primary
 button to a constant outside the palette would make it the one control a theme cannot restyle.
+
+A manifest must also be legible, not merely complete. The design checks hold every bundled manifest to
+WCAG AA (4.5) for `text`, `muted`, `accent` and `success` on every resting surface (`background`, `content`,
+`sidebar`, `header`, `elevated`, `input`) and to 3.0 for `hint` and for everything on the transient `hover`
+surface; `accent` and `success` are exempt on `input` alone, where neither is rendered as text. `onAccent`
+must clear AA on both accent fills (`accentSolid`, `accentHover`), so a theme cannot darken its hover step
+far enough to swallow the primary button's label. Legibility alone is insufficient, since a `hover` fill
+that matches its surface is an invisible selection with every text check green, so `hover` must also stay
+distinguishable (at least 1.15) from every resting surface. A `contrast: "high"` manifest is held to AAA
+(7.0) resting and full AA on hover, `hint` excepted, and must supply both selected-text foregrounds at AA
+against their selection fills: the stricter floor is what makes high contrast an enforced property rather
+than a label.
 
 Bundled files are enumerated from the `Assets/Themes` avares folder rather than named in code, and validated
 all-or-nothing at first use of `Themes.All`. They are our own files, so an invalid or duplicate manifest, a
@@ -77,8 +95,10 @@ fixed mode it pins the manifest's variant. Application is atomic from consumers'
 and resources are written before `ThemeChanged` fires. The listener is per window and never writes host
 state, so one device's appearance never affects another client.
 
-Coverage lives in `tests/SharpRail.Checks` (`E2E/ThemeE2E.cs`, `StateChecks.cs`): catalogue order and ids,
-high-contrast metadata, pair derivation, and host round-tripping of mode and pair.
+Coverage lives in `tests/SharpRail.Checks` (`E2E/ThemeE2E.cs`, `StateChecks.cs`, `Design/ThemeGates.cs`):
+catalogue order and ids, high-contrast metadata, pair derivation, host round-tripping of mode and pair,
+all-or-nothing rejection of partial, unknown and non-canonical manifests, schema agreement and the contrast
+floors. `-- --design` runs the theme translations and gates alone.
 
 ## Non-goals
 
@@ -88,12 +108,7 @@ ever arrive, the seam is a validated registration path in front of the same cata
 
 ## Not yet ported
 
-- A JSON schema file for manifests (`$schema` points at `../theme.schema.json`, which is not bundled) and a
-  load-time check that validation and schema agree.
-- The contrast gates: WCAG AA on resting surfaces, 3.0 on `hover` and for `hint`, `onAccent` AA on both
-  accent fills, hover-versus-surface distinguishability of at least 1.15, and AAA resting / AA hover for
-  `contrast: "high"` manifests.
-- Consumption of the manifest's `syntax` palette; `Themes.Parse` ignores it and code surfaces pick their
-  own colours. Upstream keeps one syntax scope map for both Markdown code blocks and the file editor: the
+- Consumption of the manifest's `syntax` palette; `Themes.Parse` validates and carries it
+  (`ThemeManifest.Syntax`), but code surfaces still pick their own colours. Upstream keeps one syntax scope map for both Markdown code blocks and the file editor: the
   editor resolves it to concrete colours after each swap, and a colour it cannot resolve is omitted so the
   editor's own default stays usable rather than painting a wrong one.
