@@ -10,34 +10,8 @@ using Avalonia.Themes.Fluent;
 
 namespace SharpRail.UI.Rendering;
 
-public static class Ui
+public static partial class Ui
 {
-    public static readonly SolidColorBrush Sidebar = new();
-    public static readonly SolidColorBrush Surface = new();
-    public static readonly SolidColorBrush Header = new();
-    public static readonly SolidColorBrush Elevated = new();
-    public static readonly SolidColorBrush TextBrush = new();
-    public static readonly SolidColorBrush Muted = new();
-    public static readonly SolidColorBrush Hint = new();
-    public static readonly SolidColorBrush Accent = new();
-    // The reference's control-primary tokens: the solid primary button fill, its hover step and its label.
-    public static readonly SolidColorBrush PrimaryFill = new();
-    public static readonly SolidColorBrush PrimaryFillHover = new();
-    public static readonly SolidColorBrush OnPrimary = new();
-    public static readonly SolidColorBrush DialogShadow = new();
-    public static readonly SolidColorBrush PrimarySubtle = new();
-    public static readonly SolidColorBrush PrimaryMuted = new();
-    public static readonly SolidColorBrush BorderBrush = new();
-    public static readonly SolidColorBrush Hover = new();
-    public static readonly SolidColorBrush TextSelection = new();
-    public static readonly SolidColorBrush Success = new();
-    public static readonly SolidColorBrush Danger = new();
-    public static readonly SolidColorBrush Info = new();
-    public static readonly SolidColorBrush Warning = new();
-    public static readonly SolidColorBrush SuccessWash = new();
-    public static readonly SolidColorBrush DangerWash = new();
-    public static readonly SolidColorBrush InfoWash = new();
-    public static readonly SolidColorBrush WarningWash = new();
     public static readonly LinearGradientBrush FadeFromElevated = Fade();
     public static readonly LinearGradientBrush FadeToElevated = Fade();
     /// <summary>Resource key for the selected-text foreground; null when the theme keeps the native foreground.</summary>
@@ -59,33 +33,9 @@ public static class Ui
     {
         if (ReferenceEquals(theme, Theme)) return;
         Theme = theme;
-        Sidebar.Color = theme["sidebar"];
-        Surface.Color = theme["content"];
-        Header.Color = theme["header"];
-        Elevated.Color = theme["elevated"];
-        TextBrush.Color = theme["text"];
-        Muted.Color = theme["muted"];
-        Hint.Color = theme["hint"];
-        Accent.Color = theme["accent"];
-        PrimaryFill.Color = theme["accentSolid"];
-        PrimaryFillHover.Color = theme["accentHover"];
-        OnPrimary.Color = theme["onAccent"];
-        DialogShadow.Color = Color.FromArgb(theme.IsLight ? (byte)36 : (byte)102, 0, 0, 0);
-        PrimarySubtle.Color = Alpha(theme["accent"], 10);
-        PrimaryMuted.Color = Alpha(theme["accent"], 40);
-        BorderBrush.Color = theme["borderStrong"];
-        Hover.Color = theme["hover"];
-        TextSelection.Color = theme["selection"];
-        Info.Color = theme["info"];
-        Warning.Color = theme["warning"];
-        Success.Color = theme["success"];
-        Danger.Color = theme["danger"];
-        InfoWash.Color = Alpha(theme["info"], 12);
-        WarningWash.Color = Alpha(theme["warning"], 12);
-        SuccessWash.Color = Alpha(theme["success"], 12);
-        DangerWash.Color = Alpha(theme["danger"], 12);
-        FadeFromElevated.GradientStops[0].Color = FadeToElevated.GradientStops[1].Color = theme["elevated"];
-        FadeFromElevated.GradientStops[1].Color = FadeToElevated.GradientStops[0].Color = Alpha(theme["elevated"], 0);
+        ApplyRoles(theme);
+        FadeFromElevated.GradientStops[0].Color = FadeToElevated.GradientStops[1].Color = Elevated.Color;
+        FadeFromElevated.GradientStops[1].Color = FadeToElevated.GradientStops[0].Color = Alpha(Elevated.Color, 0);
         if (Application.Current is { } app) ApplyResources(app);
         ThemeChanged?.Invoke();
     }
@@ -93,10 +43,10 @@ public static class Ui
     /// <summary>Writes the theme values that application styles read as resources rather than through these brushes.</summary>
     public static void ApplyResources(Application app)
     {
-        app.Resources[SelectionForegroundKey] = Theme.Colors["selectionForeground"] is { } foreground ? new SolidColorBrush(foreground) : null;
+        app.Resources[SelectionForegroundKey] = SelectionText is { } foreground ? new SolidColorBrush(foreground) : null;
         foreach (var fluent in app.Styles.OfType<FluentTheme>())
             if (fluent.Palettes.TryGetValue(Theme.IsLight ? ThemeVariant.Light : ThemeVariant.Dark, out var palette))
-                palette.Accent = Theme["accent"];
+                palette.Accent = Accent.Color;
     }
 
     private static LinearGradientBrush Fade() => new()

@@ -26,13 +26,13 @@ public sealed record ThemeResolution(string RequestedId, ThemeManifest Theme, bo
 public static class Themes
 {
     public const string DefaultId = "dark";
-    private static readonly string[] ColorKeys =
+    public static IReadOnlyList<string> ColorKeys { get; } =
     [
         "accent", "accentHover", "accentSolid", "onAccent", "bubbleAccent", "background", "header", "content", "sidebar",
         "input", "elevated", "hover", "border", "borderStrong", "text", "muted", "hint", "selection", "selectionForeground",
         "editorSelection", "editorSelectionForeground", "info", "success", "danger", "warning"
     ];
-    private static readonly string[] NullableKeys = ["selectionForeground", "editorSelectionForeground"];
+    public static IReadOnlyList<string> NullableKeys { get; } = ["selectionForeground", "editorSelectionForeground"];
     private static readonly string[] AnsiKeys =
     [
         "black", "red", "green", "yellow", "blue", "magenta", "cyan", "white", "brightBlack", "brightRed", "brightGreen",

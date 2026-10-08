@@ -49,8 +49,8 @@
     </Style>
     <FluentTheme>
       <FluentTheme.Palettes>
-        <ColorPaletteResources x:Key="Dark" Accent="#8dff4f" />
-        <ColorPaletteResources x:Key="Light" Accent="#2a7314" />
+        <ColorPaletteResources x:Key="Dark" />
+        <ColorPaletteResources x:Key="Light" />
       </FluentTheme.Palettes>
     </FluentTheme>
     <!-- The tab frame paints hover and selection; pressing a tab (to drag it) must not tint or shrink it. -->

@@ -236,15 +236,14 @@ public sealed partial class DockSurface
 
     private Border Hint(Rect rect, bool active, bool split = false)
     {
-        var color = Ui.Accent.Color;
         var hint = new Border
         {
             Width = rect.Width,
             Height = rect.Height,
             CornerRadius = new CornerRadius(4),
             BorderThickness = new Thickness(split ? 2 : 1),
-            BorderBrush = new SolidColorBrush(Color.FromArgb(active ? (byte)255 : (byte)51, color.R, color.G, color.B)),
-            Background = new SolidColorBrush(Color.FromArgb(active ? (byte)51 : (byte)26, color.R, color.G, color.B))
+            BorderBrush = active ? Ui.Accent : Ui.PrimarySoft,
+            Background = active ? Ui.PrimarySoft : Ui.PrimarySubtle
         };
         Canvas.SetLeft(hint, rect.Left); Canvas.SetTop(hint, rect.Top); overlay.Children.Add(hint);
         return hint;

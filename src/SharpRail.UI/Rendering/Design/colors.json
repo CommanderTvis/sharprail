@@ -1,0 +1,50 @@
+{
+  "note": "The semantic colour layer. Palettes live in Assets/Themes/*.theme.json; this file says what each palette entry is for and is the only place a derivation is written. Generated/Ui.Colors.g.cs is produced from it by the checks executable's --design --write mode. See COLOR.md.",
+  "scale": {
+    "subtle": 10,
+    "wash": 12,
+    "soft": 20,
+    "muted": 40
+  },
+  "roles": {
+    "TextBrush": { "role": "text-default", "from": "text" },
+    "Muted": { "role": "text-muted", "from": "muted" },
+    "Hint": { "role": "text-subtle", "from": "hint" },
+    "Sidebar": { "role": "container-sidebar-bg", "from": "sidebar" },
+    "Surface": { "role": "container-content-bg", "from": "content" },
+    "Header": { "role": "container-header-bg", "from": "header" },
+    "Elevated": { "role": "container-elevated-bg", "from": "elevated" },
+    "Hover": { "role": "control-bg-hovered", "from": "hover" },
+    "PrimaryFill": { "role": "control-primary-bg", "from": "accentSolid" },
+    "PrimaryFillHover": { "role": "control-primary-bg-hovered", "from": "accentHover" },
+    "OnPrimary": { "role": "control-primary-text", "from": "onAccent" },
+    "BorderBrush": { "role": "border-default", "from": "borderStrong" },
+    "Accent": { "role": "primary", "from": "accent" },
+    "PrimarySubtle": { "role": "primary-subtle", "from": "accent", "alpha": "subtle" },
+    "PrimarySoft": { "role": "primary-soft", "from": "accent", "alpha": "soft" },
+    "PrimaryMuted": { "role": "primary-muted", "from": "accent", "alpha": "muted" },
+    "Info": { "role": "feedback-info", "from": "info" },
+    "InfoWash": { "role": "feedback-info-subtle", "from": "info", "alpha": "wash" },
+    "Success": { "role": "feedback-success", "from": "success" },
+    "SuccessWash": { "role": "feedback-success-subtle", "from": "success", "alpha": "wash" },
+    "Warning": { "role": "feedback-warning", "from": "warning" },
+    "WarningWash": { "role": "feedback-warning-subtle", "from": "warning", "alpha": "wash" },
+    "Danger": { "role": "feedback-error", "from": "danger" },
+    "DangerWash": { "role": "feedback-error-subtle", "from": "danger", "alpha": "wash" },
+    "TextSelection": { "role": "selection-bg", "from": "selection" },
+    "SelectionText": { "role": "selection-text", "from": "selectionForeground", "kind": "color" },
+    "EditorSelection": { "role": "editor-selection-bg", "from": "editorSelection", "kind": "color" },
+    "EditorSelectionText": { "role": "editor-selection-text", "from": "editorSelectionForeground", "kind": "color" }
+  },
+  "effects": {
+    "Overlay": { "note": "the scrim behind a modal", "dark": "#00000080", "light": "#00000080" },
+    "PopoverShadow": { "note": "upstream shadow-md: transient notifications", "dark": "#00000059", "light": "#0000001f" },
+    "DialogShadow": { "note": "upstream shadow-lg: dialog cards", "dark": "#00000066", "light": "#00000024" }
+  },
+  "unclaimed": {
+    "bubbleAccent": "chat bubbles; AI functionality is out of scope",
+    "background": "the workspace container role is not ported",
+    "input": "the control fill and disabled roles are not ported",
+    "border": "the muted border and resting control border roles are not ported"
+  }
+}

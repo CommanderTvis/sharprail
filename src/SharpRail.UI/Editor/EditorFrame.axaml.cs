@@ -41,7 +41,7 @@ internal sealed partial class EditorFrame : UserControl
     }
 
     private static ScintillaColors ThemeColors() => new(Ui.TextBrush.Color, Ui.Surface.Color, Ui.Muted.Color,
-        Ui.Over(Ui.Theme["editorSelection"], Ui.Surface.Color), Ui.Theme.Colors["editorSelectionForeground"]);
+        Ui.Over(Ui.EditorSelection, Ui.Surface.Color), Ui.EditorSelectionText);
 
     private void ApplyTheme() { Editor.Colors = ThemeColors(); ThemeApplied?.Invoke(); }
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)

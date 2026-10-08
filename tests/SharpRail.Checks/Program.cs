@@ -127,6 +127,16 @@ internal static class Program
             ChangeChecks.Run(root).GetAwaiter().GetResult();
             return;
         }
+        if (args.Length > 0 && args[0] == "--design")
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            Design.DesignChecks.Run(args.Contains("--write"));
+            if (args.Contains("--write")) return;
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            E2E.ThemeE2E.Run(Path.Combine(root, "upstream-e2e"));
+            Console.WriteLine("PASS design-system checks");
+            return;
+        }
         if (args.SequenceEqual(["--workspaces"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
@@ -147,6 +157,7 @@ internal static class Program
         QuitConfirmationChecks.Run();
         CheckOpenWorld();
         UiChecks.Run(root);
+        Design.DesignChecks.Run(write: false);
         Console.WriteLine("PASS prototype checks and open-world runtime");
     }
 

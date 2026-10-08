@@ -326,10 +326,9 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
     private Run Mark(Run run)
     {
         if (diffMark is null) return run;
-        var color = diffMark == "ins" ? Ui.Success : Ui.Danger;
         run.Classes.Add(diffMark);
-        run.Foreground = color;
-        run.Background = new SolidColorBrush(Color.FromArgb(38, color.Color.R, color.Color.G, color.Color.B));
+        run.Foreground = diffMark == "ins" ? Ui.Success : Ui.Danger;
+        run.Background = diffMark == "ins" ? Ui.SuccessWash : Ui.DangerWash;
         if (diffMark == "del") run.TextDecorations = TextDecorations.Strikethrough;
         return run;
     }

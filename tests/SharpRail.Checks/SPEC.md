@@ -17,7 +17,7 @@ contract, not that list.
 run is the complete gate: host transport parity, host terminals, project/Git parity,
 host state, file saving, layout transitions, the open-world runtime probe, and then
 the headless UI checks with every upstream translation. Named modes
-(`--editor`, `--files`, `--terminals`, `--ghostty-skia`, `--sync`, `--workspaces`) are focused iteration subsets
+(`--editor`, `--files`, `--terminals`, `--ghostty-skia`, `--sync`, `--workspaces`, `--design`) are focused iteration subsets
 of that same code, never separate coverage; anything they run is also in the full
 run. `--native-terminal` and `--native-texture` drive real macOS windows; the latter
 verifies GPU texture composition, overlays/clipping, theme, clipboard/input,
@@ -42,6 +42,10 @@ clipboard, Ctrl-C and exit independently of the texture pixel probes. An HTTP
 diagnostic subscriber requires zero requests for the local path and a nonzero
 count for the remote control case. Metal checks must not silently fall back to Skia.
 `--terminal-relay` lets the checks binary act as the relay child that tabs launch.
+
+`--design` is the design-system gate described in `src/SharpRail.UI/Rendering/COLOR.md`: it reads the UI
+project's sources from the checkout around the executable (and reports a skip when there is none), then
+runs the theme translations. `--design --write` only regenerates the committed output of `Rendering/Design`.
 
 Host checks that block on async work run before the Avalonia synchronization
 context is installed; UI checks run after it, on the dispatcher. The runner is

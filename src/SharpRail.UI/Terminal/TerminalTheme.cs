@@ -19,8 +19,8 @@ internal static class TerminalTheme
         return new TerminalColors(background, Ui.TextBrush.Color, [.. theme.Ansi])
         {
             Cursor = Ui.Accent.Color,
-            SelectionBackground = Ui.Over(theme["editorSelection"], background),
-            SelectionForeground = theme.Colors["editorSelectionForeground"],
+            SelectionBackground = Ui.Over(Ui.EditorSelection, background),
+            SelectionForeground = Ui.EditorSelectionText,
             MinimumContrast = theme.IsHighContrast ? 7 : 1
         };
     }
