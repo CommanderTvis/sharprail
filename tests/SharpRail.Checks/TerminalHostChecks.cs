@@ -48,6 +48,7 @@ internal static partial class TerminalHostChecks
         await RevivalRemote(root, workspace);
         RevivalRecorder();
         await Limits(root, workspace);
+        await Backpressure(root, workspace);
 
         await using var app = RemoteServer.Create(root, IPAddress.Loopback, 0, "terminal-token");
         await app.StartAsync();

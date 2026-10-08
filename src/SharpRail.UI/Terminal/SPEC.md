@@ -120,7 +120,8 @@ draw operations retain row resources until released.
 The Skia adapter awaits bounded output dispatches (up to 8 KiB, with a 2 ms
 cooperative budget checked every 1 KiB); replay follows the same path. Exit is
 reported only after output drains, and disposal cancels pending dispatches.
-This bounds UI work, not host-side output queues. VT state stays UI-thread-owned.
+This bounds UI work; the host bounds its own queues (see
+[Terminals.SPEC.md](../../SharpRail.Host.Core/Terminals.SPEC.md#backpressure)). VT state stays UI-thread-owned.
 Design provenance and Royal Apps MIT attribution are in
 [Ghostty.Avalonia/README.md](../../Ghostty.Avalonia/README.md#skia-rendering-design).
 

@@ -143,7 +143,8 @@ internal sealed class PtySession : IAsyncDisposable
     // Held open so macOS keeps output the shell wrote just before exiting.
     private readonly int slave;
     private readonly int pid;
-    private readonly Channel<ReadOnlyMemory<byte>> output = Channel.CreateUnbounded<ReadOnlyMemory<byte>>(new() { SingleReader = true, SingleWriter = true });
+    // Bounded, so a consumer that stalls blocks the read pump and the kernel holds the program back.
+    private readonly Channel<ReadOnlyMemory<byte>> output = Channel.CreateBounded<ReadOnlyMemory<byte>>(new BoundedChannelOptions(16) { SingleReader = true, SingleWriter = true });
     private readonly TaskCompletionSource<int> exited = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TaskCompletionSource<int> exit = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly Lock writing = new();
@@ -269,7 +270,8 @@ internal sealed class PtySession : IAsyncDisposable
                     break;
                 }
                 if (count == 0) break;
-                output.Writer.TryWrite(buffer.AsSpan(0, (int)count).ToArray());
+                var chunk = buffer.AsSpan(0, (int)count).ToArray();
+                if (!output.Writer.TryWrite(chunk)) output.Writer.WriteAsync(chunk).AsTask().GetAwaiter().GetResult();
             }
         }
         finally

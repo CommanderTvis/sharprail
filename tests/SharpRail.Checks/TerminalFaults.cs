@@ -13,6 +13,7 @@ internal sealed class TcpProxy : IAsyncDisposable
     private readonly TcpListener listener = new(IPAddress.Loopback, 0);
     private readonly Uri target;
     private readonly List<(TcpClient Client, TcpClient Upstream)> pairs = [];
+    private int stalled;
     private readonly CancellationTokenSource lifetime = new();
     private TaskCompletionSource? held;
 
@@ -39,6 +40,16 @@ internal sealed class TcpProxy : IAsyncDisposable
         }
     }
 
+    // Existing connections stay open but carry nothing more, as after a machine slept; new ones work.
+    internal void Stall() => Interlocked.Increment(ref stalled);
+
+    private async Task CopyAsync(NetworkStream from, NetworkStream to, int epoch)
+    {
+        var buffer = new byte[64 * 1024];
+        while (await from.ReadAsync(buffer, lifetime.Token) is var count and > 0)
+            if (Volatile.Read(ref stalled) == epoch) await to.WriteAsync(buffer.AsMemory(0, count), lifetime.Token);
+    }
+
     private async Task AcceptAsync()
     {
         while (!lifetime.IsCancellationRequested)
@@ -60,7 +71,8 @@ internal sealed class TcpProxy : IAsyncDisposable
             if (gate is not null) await gate.Task.WaitAsync(lifetime.Token);
             await upstream.ConnectAsync(target.Host, target.Port, lifetime.Token);
             lock (pairs) pairs.Add((client, upstream));
-            await Task.WhenAny(client.GetStream().CopyToAsync(upstream.GetStream(), lifetime.Token), upstream.GetStream().CopyToAsync(client.GetStream(), lifetime.Token));
+            var epoch = Volatile.Read(ref stalled);
+            await Task.WhenAny(CopyAsync(client.GetStream(), upstream.GetStream(), epoch), CopyAsync(upstream.GetStream(), client.GetStream(), epoch));
         }
         catch (Exception) { }
         finally

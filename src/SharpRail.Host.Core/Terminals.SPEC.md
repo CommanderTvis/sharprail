@@ -81,6 +81,22 @@ a tab where is frontend-local and never reaches this service.
   and repaint incrementally over a stale buffer. The restore is skipped when the shell exited or a real
   resize landed meanwhile.
 
+## Backpressure
+
+- Delivery is pull-driven end to end: the read pump hands chunks to the session through a bounded queue
+  and blocks when it is full, so the kernel holds the program back; the gRPC call writes one chunk, awaits
+  the transport's flow control and only then takes the next. There is no drain latch to miss, which is why
+  upstream's WebSocket latch and one-second buffered-byte reconciler have no counterpart.
+- An attachment whose reader stops reading keeps at most the resume window (1 MiB) queued. Beyond that the
+  oldest chunks are dropped, never the newest; positions still advance past the gap, so a later resume is
+  exact. Nothing tells the client that output was skipped, unlike upstream's `truncated` flag.
+- A remote terminal connection is pinged while a terminal call is open (every 15 s, 10 s to answer). A
+  connection that stays open but carries nothing — a slept machine, a dropped route — fails within that
+  time and the session reconnects and resumes from its position; the attachment it left behind is displaced
+  by the resume and was bounded meanwhile.
+- `TerminalBackpressureChecks.cs` floods a session nobody reads, locally and remotely, and stalls a proxied
+  connection without closing it.
+
 ## Revival
 
 - With a recordings directory, `DisposeAsync` saves the snapshot of every session, exited ones included,
@@ -101,10 +117,6 @@ a tab where is frontend-local and never reaches this service.
 
 ## Not yet ported
 
-- Bounded host-side output backpressure and recovery after system sleep. Awaited gRPC delivery does not
-  bound the unbounded PTY and attachment queues; a transport-specific implementation must guarantee
-  progress without relying on a single drain notification. Upstream's WebSocket latch and 1-second
-  buffered-byte reconciler have no direct equivalent in the current gRPC stream.
 - A persisted per-workspace terminal catalog (at most 256 tabs, bounded keys and titles) shared by every
   client, with reservation separate from attachment so a hidden default terminal survives reload and
   other clients without a shell, and catalog membership broadcast on change.

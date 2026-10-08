@@ -28,8 +28,10 @@ public sealed class RemoteTerminalAdapter : ITerminalService, IDisposable
     private readonly GrpcChannel channel;
     private readonly string token;
 
-    // A unix: address names a Unix domain socket, such as the app's own terminal relay endpoint.
-    public RemoteTerminalAdapter(Uri address, string token, Interceptor? interceptor = null)
+    // A unix: address names a Unix domain socket, such as the app's own terminal relay endpoint. A TCP
+    // connection is pinged while it carries a terminal, so one that died silently (a slept machine, a dropped
+    // route) fails within keepAlive plus its timeout and its sessions reconnect and resume.
+    public RemoteTerminalAdapter(Uri address, string token, Interceptor? interceptor = null, TimeSpan? keepAlive = null)
     {
         if (string.IsNullOrWhiteSpace(token)) throw new ArgumentException("A host session token is required.", nameof(token));
         this.token = token;
@@ -50,7 +52,16 @@ public sealed class RemoteTerminalAdapter : ITerminalService, IDisposable
                     }
                 }
             })
-            : GrpcChannel.ForAddress(address);
+            : GrpcChannel.ForAddress(address, new GrpcChannelOptions
+            {
+                HttpHandler = new SocketsHttpHandler
+                {
+                    EnableMultipleHttp2Connections = true,
+                    KeepAlivePingDelay = keepAlive ?? TimeSpan.FromSeconds(15),
+                    KeepAlivePingTimeout = keepAlive ?? TimeSpan.FromSeconds(10),
+                    KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests
+                }
+            });
         var invoker = interceptor is null ? channel.CreateCallInvoker() : channel.Intercept(interceptor);
         Service = invoker.CreateGrpcService<ITerminalRpc>();
     }

@@ -130,9 +130,13 @@ internal sealed class HostedTerminal
 
 internal sealed class Attachment : ITerminalSession
 {
+    // What a reader that stopped reading may leave queued: the resume window, so nothing a resume could still
+    // fetch is held twice.
+    internal const int BacklogBytes = TerminalRecorder.ResumeBytes;
     private readonly HostedTerminal terminal;
-    private readonly Channel<(ReadOnlyMemory<byte> Data, long End)> output =
-        Channel.CreateUnbounded<(ReadOnlyMemory<byte>, long)>(new() { SingleReader = true });
+    // Not single-reader: delivery drops the oldest chunks itself when the reader falls behind.
+    private readonly Channel<(ReadOnlyMemory<byte> Data, long End)> output = Channel.CreateUnbounded<(ReadOnlyMemory<byte>, long)>();
+    private long backlog;
     private readonly TaskCompletionSource<int> exit = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TaskCompletionSource detached = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private int reading, disposed;
@@ -157,7 +161,15 @@ internal sealed class Attachment : ITerminalSession
     public Task<int> Exit => exit.Task;
     public Task Detached => detached.Task;
 
-    internal void Deliver(ReadOnlyMemory<byte> chunk, long end) => output.Writer.TryWrite((chunk, end));
+    // Called under the terminal's output lock. A reader that cannot keep up loses the oldest output, never the
+    // newest, and the host never holds more than the backlog for it; positions still advance past the gap.
+    internal void Deliver(ReadOnlyMemory<byte> chunk, long end)
+    {
+        if (!output.Writer.TryWrite((chunk, end))) return;
+        var queued = Interlocked.Add(ref backlog, chunk.Length);
+        while (queued > BacklogBytes && output.Reader.TryRead(out var dropped))
+            queued = Interlocked.Add(ref backlog, -dropped.Data.Length);
+    }
 
     internal void Finish(int code)
     {
@@ -177,6 +189,7 @@ internal sealed class Attachment : ITerminalSession
         if (Interlocked.Exchange(ref reading, 1) != 0) throw new InvalidOperationException("A terminal session has a single reader.");
         await foreach (var (data, end) in output.Reader.ReadAllAsync(cancellationToken))
         {
+            Interlocked.Add(ref backlog, -data.Length);
             Interlocked.Exchange(ref position, end);
             yield return data;
         }
