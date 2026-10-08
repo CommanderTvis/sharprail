@@ -192,6 +192,7 @@ internal sealed class Attachment : ITerminalSession
     {
         cancellationToken.ThrowIfCancellationRequested();
         ObjectDisposedException.ThrowIf(Volatile.Read(ref disposed) != 0, this);
+        TerminalGrid.Require(columns, rows);
         terminal.Resize(this, columns, rows);
         return ValueTask.CompletedTask;
     }

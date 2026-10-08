@@ -62,6 +62,7 @@ public sealed class RemoteTerminalAdapter : ITerminalService, IDisposable
 
     public async ValueTask<ITerminalSession> AttachAsync(TerminalAttachRequest request, CancellationToken cancellationToken = default)
     {
+        TerminalGrid.Require(request.Columns, request.Rows);
         var session = new RemoteTerminalSession(this, request);
         try
         {
@@ -219,6 +220,7 @@ internal sealed class RemoteTerminalSession(RemoteTerminalAdapter adapter, Termi
 
     public ValueTask ResizeAsync(int columns, int rows, CancellationToken cancellationToken = default)
     {
+        TerminalGrid.Require(columns, rows);
         size = (columns, rows);
         return Send(new() { Kind = TerminalInputKind.Resize, Columns = columns, Rows = rows });
     }

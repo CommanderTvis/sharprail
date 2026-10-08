@@ -16,7 +16,7 @@ using SharpRail.Host.Remote;
 namespace SharpRail.Checks;
 
 // Host PTY sessions through the direct adapter and a real authenticated gRPC host.
-internal static class TerminalHostChecks
+internal static partial class TerminalHostChecks
 {
     public static async Task Run(string root)
     {
@@ -47,6 +47,7 @@ internal static class TerminalHostChecks
         await RevivalLocal(root, workspace);
         await RevivalRemote(root, workspace);
         RevivalRecorder();
+        await Limits(root, workspace);
 
         await using var app = RemoteServer.Create(root, IPAddress.Loopback, 0, "terminal-token");
         await app.StartAsync();

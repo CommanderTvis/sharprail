@@ -9,6 +9,18 @@ public record TerminalAttachRequest(string SessionId, string WorkspaceRoot, stri
     public bool Resume => Offset >= 0;
 }
 
+// A PTY's size is a pair of unsigned shorts; a grid outside it is refused before any session work.
+public static class TerminalGrid
+{
+    public const int Max = 32767;
+
+    public static void Require(int columns, int rows)
+    {
+        if (columns is < 1 or > Max || rows is < 1 or > Max)
+            throw new ArgumentOutOfRangeException(nameof(columns), "A terminal grid must have between 1 and 32,767 columns and rows.");
+    }
+}
+
 public interface ITerminalService
 {
     // Attaches to the session, starting its shell when none exists yet.
@@ -32,7 +44,7 @@ public interface ITerminalSession : IAsyncDisposable
     // A single reader receives live output after the replay. It ends after the shell exits and its final
     // output drains, or when another client takes the session over.
     IAsyncEnumerable<ReadOnlyMemory<byte>> ReadAsync(CancellationToken cancellationToken = default);
-    // Input and resizes from a detached client are ignored.
+    // Input and resizes from a detached client are ignored. A grid outside 1–32,767 is refused.
     ValueTask WriteAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken = default);
     ValueTask ResizeAsync(int columns, int rows, CancellationToken cancellationToken = default);
     ValueTask KillAsync(CancellationToken cancellationToken = default);

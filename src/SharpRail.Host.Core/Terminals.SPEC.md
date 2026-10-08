@@ -51,6 +51,18 @@ a tab where is frontend-local and never reaches this service.
 - Busy means a process other than the shell owns the terminal's foreground process group (`tcgetpgrp`);
   a builtin running in the shell itself reads as idle. Closing a busy tab asks first; an idle tab closes
   immediately.
+- Attach and resize refuse a grid outside 1–32,767 columns and rows (`TerminalGrid.Require`) before
+  session lookup or PTY work, so a refused attach leaves no session. The remote adapter applies the same
+  check before sending, which keeps the exception identical on both paths; the server ignores an
+  out-of-range resize from a client that bypassed it. Dimensions are integers and input is bytes by type,
+  so upstream's runtime string-input check has no equivalent here.
+- A shell that cannot start reports fixed guidance chosen by where the shell came from: `SHELL`
+  ("Couldn’t start the shell configured by SHELL. Fix or clear SHELL in the host environment, restart
+  SharpRail, then retry.") or the host's own choice ("Couldn’t start the configured shell. Check the host’s
+  shell installation, then retry."). The native error, the executable path and the value of `SHELL` stay
+  on the host as the inner exception. Because macOS execs the shell from a trampoline, the host checks that
+  the shell is an executable file before spawning; otherwise an unusable shell would read as one that
+  exited. A missing workspace folder keeps its own message.
 - Killing sends SIGHUP to the shell's process group, then SIGKILL if it does not exit.
 - Not tmux: no extra dependency, no competing tab model.
 
@@ -84,11 +96,11 @@ a tab where is frontend-local and never reaches this service.
   and none without a state directory.
 - Checks cover local and remote (stopped and restarted host) revival, close, failed spawn then retry,
   alternate screen and mouse hygiene, corrupt, oversized and surplus files, and the recorder round trip.
+- `TerminalLimitChecks.cs` covers refused grids on attach and resize and the start guidance, locally and
+  through a real gRPC host.
 
 ## Not yet ported
 
-- Rejecting attach and resize grids outside 1–32,767 before session lookup or PTY work. C# already types
-  dimensions as integers and input as bytes; upstream's runtime string-input check does not apply here.
 - Bounded host-side output backpressure and recovery after system sleep. Awaited gRPC delivery does not
   bound the unbounded PTY and attachment queues; a transport-specific implementation must guarantee
   progress without relying on a single drain notification. Upstream's WebSocket latch and 1-second
@@ -100,7 +112,8 @@ a tab where is frontend-local and never reaches this service.
   of tabs closed while the host was down linger until the store's cap evicts them, and a crash (as
   opposed to a graceful stop) saves nothing.
 - Closing every terminal of a removed workspace.
-- Stable, non-native guidance when a shell cannot start, and Windows shells (PowerShell / cmd selection).
+- Windows shells (PowerShell / cmd selection, its Settings picker and the per-shell start guidance). The
+  host is POSIX only and a Windows PTY cannot be verified on the machines this port is built on.
 - A bounded child-process runner: completion on the child's exit rather than pipe EOF (a grandchild
   holding the pipes must not turn success into a timeout), a drain grace after the deadline race is
   decided, process-group kill on expiry only, clamped budgets, stdin closed, both streams read from spawn,

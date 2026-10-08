@@ -36,6 +36,7 @@ public sealed class PtyTerminalService : ITerminalService, IAsyncDisposable
         cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(request.SessionId)) throw new ArgumentException("A terminal session id is required.", nameof(request));
         if (string.IsNullOrWhiteSpace(request.ClientId)) throw new ArgumentException("A terminal client id is required.", nameof(request));
+        TerminalGrid.Require(request.Columns, request.Rows);
         // Lookup and start happen under one lock so concurrent attaches never start two shells for a session.
         lock (gate)
         {
@@ -44,7 +45,7 @@ public sealed class PtyTerminalService : ITerminalService, IAsyncDisposable
             if (request.Resume) throw new IOException("The terminal session no longer exists.");
             var directory = Path.GetFullPath(request.WorkspaceRoot);
             if (!Directory.Exists(directory)) throw new DirectoryNotFoundException($"The workspace folder {directory} does not exist.");
-            var process = PtySession.Start(request.SessionId, shell ?? LoginShell(), directory, request.Columns, request.Rows);
+            var process = Start(request, directory);
             // A recording is consumed only once the shell runs, so a failed start keeps it for the retry.
             pending.Remove(request.SessionId, out var restored);
             var terminal = new HostedTerminal(process, request.Columns, request.Rows, restored);
@@ -86,12 +87,33 @@ public sealed class PtyTerminalService : ITerminalService, IAsyncDisposable
         foreach (var (_, terminal) in all) await terminal.Process.DisposeAsync();
     }
 
-    private static string LoginShell()
+    // The native reason, the executable path and the value of SHELL stay on the host: a client is told only
+    // which choice failed and what to do about it.
+    private PtySession Start(TerminalAttachRequest request, string directory)
     {
-        var configured = Environment.GetEnvironmentVariable("SHELL");
-        if (!string.IsNullOrWhiteSpace(configured) && File.Exists(configured)) return configured;
-        return File.Exists("/bin/zsh") && Posix.Mac ? "/bin/zsh" : "/bin/sh";
+        var fromEnvironment = shell is null && ConfiguredShell() is not null;
+        var program = shell ?? LoginShell();
+        try
+        {
+            // macOS execs the shell from a trampoline, so a shell that cannot run would otherwise look like one that exited.
+            if (!Runnable(program)) throw new IOException("The shell is not an executable file.");
+            return PtySession.Start(request.SessionId, program, directory, request.Columns, request.Rows);
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        {
+            throw new IOException(fromEnvironment
+                ? "Couldn’t start the shell configured by SHELL. Fix or clear SHELL in the host environment, restart SharpRail, then retry."
+                : "Couldn’t start the configured shell. Check the host’s shell installation, then retry.", error);
+        }
     }
+
+    private static bool Runnable(string program) =>
+        !OperatingSystem.IsWindows() && File.Exists(program) && (File.GetUnixFileMode(program) & (UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute)) != 0;
+
+    private static string? ConfiguredShell() =>
+        Environment.GetEnvironmentVariable("SHELL") is { } configured && !string.IsNullOrWhiteSpace(configured) && File.Exists(configured) ? configured : null;
+
+    private static string LoginShell() => ConfiguredShell() ?? (File.Exists("/bin/zsh") && Posix.Mac ? "/bin/zsh" : "/bin/sh");
 
     internal static string?[] ShellEnvironment()
     {
