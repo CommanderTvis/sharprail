@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 
 using Grpc.Core;
+using Grpc.Core.Interceptors;
 using Grpc.Net.Client;
 
 using ProtoBuf.Grpc;
@@ -48,7 +49,7 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
             InitialReconnectBackoff = StateAdapterDefaults.InitialReconnect,
             MaxReconnectBackoff = StateAdapterDefaults.MaxReconnect
         });
-        service = channel.CreateGrpcService<IStateRpc>();
+        service = channel.Intercept(new HostCallInterceptor()).CreateGrpcService<IStateRpc>();
     }
 
     private CallContext Context(CancellationToken ct, bool stream = false) => new(new CallOptions(

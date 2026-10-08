@@ -86,8 +86,6 @@ terminal attachments, never through a UI callback.
   activated environments retain precedence. Use a bounded probe with a non-interactive retry and leave
   the inherited `PATH` untouched on failure.
 - A single bounded child-process runner with a wall-clock budget, used for every Git or network call.
-- Named error codes on the wire so a client can react to a specific failure (for example a vanished
-  commit) rather than to message text.
 - A retrying recursive tree removal for teardown, and first-free-port selection for the remote host.
 - Host-side routes serving raw workspace files for relative Markdown images (images load through
   `ReadFileAsync` instead). A path's bytes at one commit are served as a gRPC call

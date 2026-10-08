@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 
 using Grpc.Core;
+using Grpc.Core.Interceptors;
 using Grpc.Net.Client;
 
 using ProtoBuf.Grpc;
@@ -51,7 +52,7 @@ public sealed class RemoteProjectAdapter : IProjectServices, IDisposable
             InitialReconnectBackoff = StateAdapterDefaults.InitialReconnect,
             MaxReconnectBackoff = StateAdapterDefaults.MaxReconnect
         });
-        service = channel.CreateGrpcService<IProjectRpc>();
+        service = channel.Intercept(new HostCallInterceptor()).CreateGrpcService<IProjectRpc>();
     }
 
     // The host keeps no per-client session: each call names the workspace this adapter opened last.

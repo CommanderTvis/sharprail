@@ -85,9 +85,9 @@ presets belong to the UI.
   newer host's settings. Mutation keys remain closed; new keys require protocol-version gating by clients.
 - Resolving `~` and rejecting relative project paths against the host filesystem, and a path inspection
   that classifies a folder as repository, initializable, missing or not a directory before acting.
-- Distinct project-open refusals for a non-repository (`NOT_GIT`) and a canonical root already held as
-  another workspace's worktree (`ALREADY_OPEN`), preserved across local and remote adapters. Opening
-  currently accepts plain folders and does not check workspace ownership.
+- Refusing to open a non-repository (`HostErrorCode.NotGit`) and a canonical root already held as
+  another workspace's worktree (`HostErrorCode.AlreadyOpen`). Both codes already survive the local and
+  remote adapters; opening still accepts plain folders and does not check workspace ownership.
 - Stable project ids, readable slugs and `lastOpened` ordering that preserve identity across close and
   reopen.
 - A legacy `theme` change without an explicit mode switching the host to fixed mode, and dropping a

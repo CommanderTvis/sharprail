@@ -136,6 +136,13 @@ moving, and refusal of refs, abbreviations, unknown, tree and blob ids, path esc
 symbolic link. The headless UI part opens `BinaryDiffView` for a PNG (two pictures) and a PDF (cards only)
 and requires no replacement characters.
 
+## Reconnect checks
+
+`ReconnectChecks.cs` (`-- --reconnect`, also in the default run) runs against the embedded host and real
+gRPC hosts. Named failures: a vanished commit is `HostErrorCode.UnknownCommit` with the same message from
+the snapshot, diff, diff-sides and byte reads of both hosts, an unnamed failure stays unnamed, and `NotGit`
+and `AlreadyOpen` survive the state service's transport from a host that refuses with them.
+
 ## Quit and close commands
 
 `QuitConfirmationChecks` translates upstream's quit-confirmation cases against a fake clock and scheduler:

@@ -180,6 +180,7 @@ public sealed class ProjectRpc(ProjectSessions sessions, IHostApplicationLifetim
         {
             throw new RpcException(new Status(StatusCode.FailedPrecondition, error.Message), new Metadata { { ProjectHeaders.ChangeCode, error.Code.ToString() } });
         }
+        catch (HostException error) { throw HostErrors.ToRpc(error); }
         catch (Exception error) when (error is IOException or ArgumentException or InvalidOperationException or UnauthorizedAccessException)
         {
             throw new RpcException(new Status(StatusCode.FailedPrecondition, error.Message));

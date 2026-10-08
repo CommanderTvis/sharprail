@@ -212,7 +212,7 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
         {
             if (revision.Length > 0)
                 try { await GitRepository.RunAsync(currentRoot, cancellationToken, "rev-parse", "--verify", "--quiet", "--end-of-options", revision + "^{commit}"); }
-                catch (IOException) when (!cancellationToken.IsCancellationRequested) { throw new FileNotFoundException("The commit does not exist."); }
+                catch (IOException) when (!cancellationToken.IsCancellationRequested) { throw new HostException(HostErrorCode.UnknownCommit, $"Unknown commit: {revision}"); }
             var size = long.Parse((await GitRepository.RunAsync(currentRoot, cancellationToken, "cat-file", "-s", revision + ":./" + path)).Trim(), System.Globalization.CultureInfo.InvariantCulture);
             if (size > FileLimits.EditableBytes) throw new IOException($"Files over {FileLimits.EditableBytes >> 20} MiB cannot be opened.");
             bytes = await ReadBlobAsync(currentRoot, revision, path, cancellationToken) ?? throw new FileNotFoundException("The path is not in that revision.");

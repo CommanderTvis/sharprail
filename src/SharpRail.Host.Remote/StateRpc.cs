@@ -25,6 +25,7 @@ public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime li
             return Map(await host.ChangeAsync(request.Changes.Select(change => new HostStateChange(change.Kind, change.Key, change.Value)).ToArray(),
                 context.CancellationToken));
         }
+        catch (HostException error) { throw HostErrors.ToRpc(error); }
         catch (Exception error) when (error is ArgumentException or InvalidOperationException)
         {
             throw new RpcException(new Status(StatusCode.InvalidArgument, error.Message));

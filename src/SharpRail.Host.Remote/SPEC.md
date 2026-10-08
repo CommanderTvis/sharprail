@@ -89,7 +89,8 @@ unauthenticated peer learns nothing about the host's version.
   stream.
 - Expected failures (I/O, argument, invalid operation, access) become
   `FailedPrecondition` or `InvalidArgument` with the message as detail; other
-  exceptions stay internal errors.
+  exceptions stay internal errors. A `HostException` from the project or state service additionally
+  names its code in the `x-sharprail-error-code` trailer.
 
 ## Not yet ported
 

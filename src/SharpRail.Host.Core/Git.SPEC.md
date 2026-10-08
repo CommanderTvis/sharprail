@@ -51,7 +51,8 @@ A scope is defined once, and the file list, counts and both diff sides use the s
 - `commit`: the selected commit against its first parent; a root commit shows its whole tree. Working
   edits and untracked files never enter. The id must be 4–64 lowercase hex characters before it reaches
   Git and must then resolve with `rev-parse --verify`; a commit that exists but is no longer reachable from
-  the branch still shows its diff.
+  the branch still shows its diff. One that does not resolve fails as `HostErrorCode.UnknownCommit`, as
+  does a `ReadContentBytesAsync` revision, so the client resets its scope instead of showing an error.
 - `branch` and `working` serve diff reads only: the comparison baseline to the working tree, and index to
   working tree.
 

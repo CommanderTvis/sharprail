@@ -13,8 +13,9 @@ what makes remoteness an adapter choice rather than a mandatory daemon.
 ## Boundary
 
 - Owns `HostAdapters.cs` (`IWorkspaceHost`), `ProjectAdapters.cs`
-  (`IProjectServices`), `StateAdapters.cs` (`IHostStateService`) and
-  `TerminalAdapters.cs` (`ITerminalService` and the remote terminal session).
+  (`IProjectServices`), `StateAdapters.cs` (`IHostStateService`),
+  `TerminalAdapters.cs` (`ITerminalService` and the remote terminal session) and
+  `HostCalls.cs` (what every unary project and state call shares).
 - Local adapters are pure delegation: no sockets, serialization or copying.
 - Remote adapters own channel setup, the bearer token on every call, per-call
   deadlines, mapping DTOs to Abstractions records, and reconnection.
@@ -58,7 +59,10 @@ what makes remoteness an adapter choice rather than a mandatory daemon.
   to version 0. `HostCapabilities.Supports(version, introducedAt)` treats no handshake (null) and a lower
   version as unsupported.
 - The project adapter rethrows a change write refusal (the `x-sharprail-change-code` trailer) as the
-  `ChangeException` the embedded host throws, so callers branch on one type; no other failure is coded.
+  `ChangeException` the embedded host throws, so callers branch on one type.
+- `HostCalls.cs` holds the interceptor every unary call of the project and state proxies passes through.
+  It rethrows a failure carrying the `x-sharprail-error-code` trailer as `HostException`; any other failure
+  stays an `RpcException`, so having a code is how a caller tells a specific failure from a failed call.
 - One channel per adapter; ordering is per gRPC call, and state convergence
   relies on full snapshots with revisions rather than on cross-call ordering.
 
@@ -77,8 +81,6 @@ what makes remoteness an adapter choice rather than a mandatory daemon.
   request id with host deduplication, plus ack/resume frames, so an accepted
   mutation can neither report a false failure nor run twice. Today a unary call
   lost with its connection fails to the caller.
-- Named host error codes surfaced as a typed exception distinct from generic
-  failures.
 - A per-request timeout override for calls answered only after a human acts.
 - An HTTP base derived from the endpoint for host-served worktree files.
 - Re-reading already-known workspace rows after reconnect without treating it as

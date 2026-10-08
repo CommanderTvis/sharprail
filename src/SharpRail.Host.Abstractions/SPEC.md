@@ -47,6 +47,10 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
   empty text. `ReadContentBytesAsync` returns `ContentBytes` (raw bytes plus metadata) for the working
   tree (null), the index (empty) or a commit id. `FileDocument.Info` carries the same metadata on reads.
   `ContentMetadata.IsActive` marks HTML, XHTML and SVG, which a client must treat as inert.
+- `HostException` is a failure a client reacts to specifically; its `HostErrorCode` is `UnknownCommit`
+  (a commit named by a scope or revision no longer resolves), `NotGit` or `AlreadyOpen` (the two
+  project-open refusals). It derives from `IOException`, so a caller that handles none of them sees an
+  ordinary failure. Both adapters deliver the same type and message.
 - `IHostStateService` is the shared state of one host. `GetStateAsync` reads, `ChangeAsync` applies a
   batch atomically and returns the published snapshot, and `WatchAsync` yields the current snapshot and
   then every later one. Snapshots are complete and carry a `Revision`, so a client that missed events
@@ -73,9 +77,6 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
 
 ## Not yet ported
 
-- Named error codes that survive transport, so a client reacts to a specific failure rather than text,
-  including project-open refusals for a non-repository (`NOT_GIT`) or a folder already owned by a
-  workspace (`ALREADY_OPEN`).
 - Workspace records with stable ids, kinds and lifecycle events, a workspace diff-base setter, a
   lifecycle-notification stream, and a terminal catalog with reservation separate from attachment.
 - Content classification (media type, hash) on file reads and a byte read of a path at one commit; diff
