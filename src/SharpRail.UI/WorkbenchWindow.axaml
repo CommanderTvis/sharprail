@@ -4,7 +4,7 @@
         x:Class="SharpRail.UI.WorkbenchWindow"
         Title="SharpRail" Width="1440" Height="920" MinWidth="390" MinHeight="540"
         ExtendClientAreaToDecorationsHint="True" ExtendClientAreaTitleBarHeightHint="40"
-        Background="{x:Static rendering:Ui.Surface}" Foreground="{x:Static rendering:Ui.Muted}"
+        Background="{x:Static rendering:Ui.Workspace}" Foreground="{x:Static rendering:Ui.Muted}"
         FontFamily="{x:Static rendering:Ui.InterfaceFont}" FontWeight="370">
   <Window.Styles>
     <Style Selector="TextBlock.header-label">

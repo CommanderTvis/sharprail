@@ -56,9 +56,9 @@ internal sealed partial class MarkdownDocumentView : UserControl, IDisposable
             };
         }
         body.Content = show ? source : preview;
-        previewButton.Background = show ? Brushes.Transparent : Ui.Hover;
+        previewButton.Background = show ? Brushes.Transparent : Ui.Selected;
         previewButton.Foreground = show ? Ui.Muted : Ui.TextBrush;
-        sourceButton.Background = show ? Ui.Hover : Brushes.Transparent;
+        sourceButton.Background = show ? Ui.Selected : Brushes.Transparent;
         sourceButton.Foreground = show ? Ui.TextBrush : Ui.Muted;
     }
 

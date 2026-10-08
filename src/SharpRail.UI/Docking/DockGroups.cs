@@ -102,7 +102,7 @@ public sealed partial class DockSurface
                 BorderBrush = Ui.BorderBrush,
                 BorderThickness = new Thickness(0, 0, 1, 0),
                 Child = contents,
-                Background = tab.Id == selected?.Id ? Ui.Hover : Ui.Elevated
+                Background = tab.Id == selected?.Id ? Ui.Selected : Ui.Elevated
             };
             Ui.Place(chrome, tabFrame);
             var underline = new Border
@@ -134,7 +134,7 @@ public sealed partial class DockSurface
             button.Classes.Add("dock-tab-button");
             Ui.Place(contents, button);
             void UpdateBackground() => tabFrame.Background =
-                underline.IsVisible || chrome.IsPointerOver ? Ui.Hover : Ui.Elevated;
+                underline.IsVisible ? Ui.Selected : chrome.IsPointerOver ? Ui.Hover : Ui.Elevated;
             chrome.PointerEntered += (_, _) => UpdateBackground();
             chrome.PointerExited += (_, _) => UpdateBackground();
             updates.Add(() =>

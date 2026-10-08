@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
@@ -115,7 +116,35 @@ public static partial class Ui
             CornerRadius = new(4)
         };
         button.Click += (_, _) => action();
+        FollowEnabled(button);
         return button;
+    }
+
+    // Labels and icons built here carry their own colour, so a disabled button repaints them from the
+    // disabled role and restores whatever they wore when it is enabled again.
+    private static void FollowEnabled(Button button)
+    {
+        Control[] parts = button.Content is Panel panel ? [.. panel.Children] : [(Control)button.Content!];
+        IBrush?[]? resting = null;
+        static IBrush? Read(Control part) => part is TextBlock label ? label.Foreground : ((Border)part).Background;
+        static void Write(Control part, IBrush? brush)
+        {
+            if (part is TextBlock label) label.Foreground = brush; else ((Border)part).Background = brush;
+        }
+        button.PropertyChanged += (_, e) =>
+        {
+            if (e.Property != InputElement.IsEffectivelyEnabledProperty) return;
+            if (!button.IsEffectivelyEnabled)
+            {
+                resting ??= [.. parts.Select(Read)];
+                foreach (var part in parts) Write(part, button.Classes.Contains("primary") ? PrimaryDisabledText : ControlDisabledText);
+            }
+            else if (resting is not null)
+            {
+                for (var index = 0; index < parts.Length; index++) Write(parts[index], resting[index]);
+                resting = null;
+            }
+        };
     }
 
     public static Button IconButton(string icon, string tooltip, Action action)
@@ -133,6 +162,7 @@ public static partial class Ui
         ToolTip.SetTip(button, tooltip);
         AutomationProperties.SetName(button, tooltip);
         button.Click += (_, _) => action();
+        FollowEnabled(button);
         return button;
     }
 

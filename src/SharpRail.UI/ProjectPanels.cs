@@ -185,7 +185,7 @@ public sealed partial class WorkbenchWindow
             Name = "WorkspaceSelect",
             Tag = worktree.Path,
             Content = contents,
-            Background = active ? Ui.Hover : Avalonia.Media.Brushes.Transparent,
+            Background = active ? Ui.Selected : Avalonia.Media.Brushes.Transparent,
             Padding = new Thickness(24, 4, 32, 4),
             MinHeight = 28,
             CornerRadius = new(4),
@@ -196,7 +196,7 @@ public sealed partial class WorkbenchWindow
         railSelection.Add(() =>
         {
             var selected = !atHome && worktree.Path == workspaceRoot;
-            button.Background = selected ? Ui.Hover : Avalonia.Media.Brushes.Transparent;
+            button.Background = selected ? Ui.Selected : Avalonia.Media.Brushes.Transparent;
             ((Border)icon).Background = label.Foreground = selected ? Ui.Accent : Ui.Muted;
         });
         AutomationProperties.SetName(button, name);

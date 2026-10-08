@@ -131,7 +131,7 @@ internal sealed partial class DiffView : Grid, IDisposable
         };
         foreach (var state in new[] { "Checked", "CheckedPointerOver", "CheckedPressed", "PointerOver", "Pressed" })
         {
-            button.Resources["ToggleButtonBackground" + state] = Ui.Hover;
+            button.Resources["ToggleButtonBackground" + state] = state.StartsWith("Checked", StringComparison.Ordinal) ? Ui.Selected : Ui.Hover;
             button.Resources["ToggleButtonForeground" + state] = Ui.TextBrush;
         }
         AutomationProperties.SetName(button, label);
@@ -221,7 +221,7 @@ internal sealed partial class DiffView : Grid, IDisposable
             Background = Brushes.Transparent
         };
         foreach (var state in new[] { "Checked", "CheckedPointerOver", "CheckedPressed", "PointerOver", "Pressed" })
-            button.Resources["ToggleButtonBackground" + state] = Ui.Hover;
+            button.Resources["ToggleButtonBackground" + state] = state.StartsWith("Checked", StringComparison.Ordinal) ? Ui.Selected : Ui.Hover;
         AutomationProperties.SetName(button, tooltip);
         ToolTip.SetTip(button, tooltip);
         return button;
@@ -371,7 +371,7 @@ internal sealed partial class DiffView : Grid, IDisposable
 
     private EditorFrame Code(string name, Side side, string?[] labels)
     {
-        var frame = new EditorFrame(side.Text.ToString(), name) { Margin = new Thickness(0, 8, 0, 0) };
+        var frame = new EditorFrame(side.Text.ToString(), name, Ui.Surface) { Margin = new Thickness(0, 8, 0, 0) };
         var editor = frame.Editor;
         editor.LabelLines(labels);
         editor.IsReadOnly = true;

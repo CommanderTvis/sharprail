@@ -15,7 +15,7 @@ internal static class TerminalTheme
     internal static TerminalColors Colors()
     {
         var theme = Ui.Theme;
-        var background = Ui.Surface.Color;
+        var background = Ui.Terminal.Color;
         return new TerminalColors(background, Ui.TextBrush.Color, [.. theme.Ansi])
         {
             Cursor = Ui.Accent.Color,

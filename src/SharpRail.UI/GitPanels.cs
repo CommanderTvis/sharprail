@@ -200,12 +200,12 @@ public sealed partial class WorkbenchWindow
             Padding = new Thickness(8, 2),
             BorderThickness = new Thickness(0),
             CornerRadius = new CornerRadius(4),
-            Background = selected ? Ui.Hover : Avalonia.Media.Brushes.Transparent,
+            Background = selected ? Ui.Selected : Avalonia.Media.Brushes.Transparent,
             VerticalAlignment = VerticalAlignment.Center
         };
         AutomationProperties.SetName(button, label + " view");
         foreach (var state in new[] { "Checked", "CheckedPointerOver", "CheckedPressed", "PointerOver", "Pressed" })
-            button.Resources["ToggleButtonBackground" + state] = Ui.Hover;
+            button.Resources["ToggleButtonBackground" + state] = state.StartsWith("Checked", StringComparison.Ordinal) ? Ui.Selected : Ui.Hover;
         button.Click += (_, _) =>
         {
             changeTree = tree;

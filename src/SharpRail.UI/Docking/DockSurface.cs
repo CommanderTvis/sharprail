@@ -144,7 +144,6 @@ public sealed partial class DockSurface : Grid
         button.HorizontalAlignment = HorizontalAlignment.Center;
         ((Border)button.Content!).Width = 14; ((Border)button.Content!).Height = 14;
         button.IsEnabled = Session.State.Groups.Any(group => group.Region == region);
-        if (!button.IsEnabled) ((Border)button.Content!).Background = Ui.Hint;
         var rail = new Border
         {
             Name = region + "HiddenSideRail",

@@ -25,6 +25,10 @@
       <Setter Property="Background" Value="{x:Static rendering:Ui.PrimaryFillHover}" />
       <Setter Property="Foreground" Value="{x:Static rendering:Ui.OnPrimary}" />
     </Style>
+    <Style Selector="Border#DialogCard Button.primary:disabled /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{x:Static rendering:Ui.PrimaryDisabledFill}" />
+      <Setter Property="Foreground" Value="{x:Static rendering:Ui.PrimaryDisabledText}" />
+    </Style>
   </Window.Styles>
   <LayoutTransformControl LayoutTransform="{DynamicResource InterfaceZoom}">
   <Border x:Name="DialogCard" Margin="24" Padding="16" CornerRadius="8" BorderThickness="1"

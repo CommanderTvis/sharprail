@@ -12,7 +12,7 @@
       <Setter Property="Background" Value="Transparent" />
     </Style>
     <Style Selector="Border.change-row.active">
-      <Setter Property="Background" Value="{x:Static rendering:Ui.Hover}" />
+      <Setter Property="Background" Value="{x:Static rendering:Ui.Selected}" />
     </Style>
     <Style Selector="Border.change-row:pointerover, Border.change-row.menu-open">
       <Setter Property="Background" Value="{x:Static rendering:Ui.Hover}" />
@@ -21,7 +21,10 @@
       <Setter Property="CornerRadius" Value="4" />
       <Setter Property="Background" Value="Transparent" />
     </Style>
-    <Style Selector="Border.project-row.active, Border.project-row:pointerover">
+    <Style Selector="Border.project-row.active">
+      <Setter Property="Background" Value="{x:Static rendering:Ui.Selected}" />
+    </Style>
+    <Style Selector="Border.project-row:pointerover">
       <Setter Property="Background" Value="{x:Static rendering:Ui.Hover}" />
     </Style>
     <Style Selector="Button.project-name:pointerover /template/ ContentPresenter#PART_ContentPresenter, Button.project-name:pressed /template/ ContentPresenter#PART_ContentPresenter">

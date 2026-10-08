@@ -133,6 +133,7 @@ internal static class Program
             Design.DesignChecks.Run(args.Contains("--write"));
             if (args.Contains("--write")) return;
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            Design.RoleChecks.Run();
             E2E.ThemeE2E.Run(Path.Combine(root, "upstream-e2e"));
             Console.WriteLine("PASS design-system checks");
             return;
@@ -158,6 +159,7 @@ internal static class Program
         CheckOpenWorld();
         UiChecks.Run(root);
         Design.DesignChecks.Run(write: false);
+        Design.RoleChecks.Run();
         Console.WriteLine("PASS prototype checks and open-world runtime");
     }
 

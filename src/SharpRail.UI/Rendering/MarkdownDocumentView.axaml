@@ -14,6 +14,8 @@
                 MinHeight="0" Padding="8,2" BorderThickness="0" CornerRadius="4" />
       </StackPanel>
     </Border>
-    <ContentControl x:Name="MarkdownBody" Grid.Row="1" />
+    <Border Grid.Row="1" Background="{x:Static rendering:Ui.Workspace}">
+      <ContentControl x:Name="MarkdownBody" />
+    </Border>
   </Grid>
 </UserControl>

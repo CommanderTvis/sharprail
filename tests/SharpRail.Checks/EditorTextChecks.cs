@@ -190,6 +190,23 @@ internal static class EditorTextChecks
         var offset = SelectionOrigin(editor, window);
         Require(greenX.Min() >= offset + X(editor, 6) - 2 && greenX.Max() <= offset + X(editor, 4) + 2,
             $"The selection must cover shin's visual interval ({greenX.Min()}–{greenX.Max()} vs {offset + X(editor, 6)}–{offset + X(editor, 4)}).");
+
+        // The caret's line is highlighted only when the owner names a colour for it, and the caret takes its own.
+        Send(editor, ScintillaMessage.SetSel, 0, 0);
+        editor.Colors = editor.Colors with { CurrentLine = Color.FromRgb(0, 0, 255), Caret = Color.FromRgb(255, 0, 0) };
+        editor.Focus(); Pump(); Pump();
+        using (var lined = Capture(window))
+        {
+            var band = lined.GetPixel(lined.Width - 40, row);
+            Require(band.Blue > 200 && band.Red < 60 && band.Green < 60, $"The current line must be painted in its colour to the right edge (saw {band}).");
+        }
+        editor.Colors = editor.Colors with { CurrentLine = null };
+        Pump(); Pump();
+        using (var plain = Capture(window))
+        {
+            var band = plain.GetPixel(plain.Width - 40, row);
+            Require(band is { Red: > 240, Green: > 240, Blue: > 240 }, $"Without a current-line colour the caret's line keeps the background (saw {band}).");
+        }
         Console.WriteLine("PASS Scintilla paints reordered text and selection at their visual positions");
     }
 

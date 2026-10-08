@@ -4,20 +4,32 @@
     "subtle": 10,
     "wash": 12,
     "soft": 20,
-    "muted": 40
+    "muted": 40,
+    "strong": 60
   },
   "roles": {
     "TextBrush": { "role": "text-default", "from": "text" },
     "Muted": { "role": "text-muted", "from": "muted" },
     "Hint": { "role": "text-subtle", "from": "hint" },
+    "Workspace": { "role": "container-workspace-bg", "from": "background" },
     "Sidebar": { "role": "container-sidebar-bg", "from": "sidebar" },
+    "Terminal": { "role": "container-terminal-bg", "from": "sidebar" },
     "Surface": { "role": "container-content-bg", "from": "content" },
     "Header": { "role": "container-header-bg", "from": "header" },
     "Elevated": { "role": "container-elevated-bg", "from": "elevated" },
+    "ControlFill": { "role": "control-bg", "from": "input" },
     "Hover": { "role": "control-bg-hovered", "from": "hover" },
+    "Selected": { "role": "control-bg-selected", "from": "hover" },
+    "ControlBorder": { "role": "control-border-default", "from": "border" },
+    "ControlBorderActive": { "role": "control-border-active", "from": "borderStrong" },
+    "ControlDisabledFill": { "role": "control-disabled-bg", "from": "input", "alpha": "strong" },
+    "ControlDisabledText": { "role": "control-disabled-text", "from": "text", "alpha": "strong" },
+    "ControlDisabledBorder": { "role": "control-disabled-border", "from": "border", "alpha": "strong" },
     "PrimaryFill": { "role": "control-primary-bg", "from": "accentSolid" },
     "PrimaryFillHover": { "role": "control-primary-bg-hovered", "from": "accentHover" },
     "OnPrimary": { "role": "control-primary-text", "from": "onAccent" },
+    "PrimaryDisabledFill": { "role": "control-primary-disabled-bg", "from": "accent", "alpha": "strong" },
+    "PrimaryDisabledText": { "role": "control-primary-disabled-text", "from": "onAccent", "alpha": "strong" },
     "BorderBrush": { "role": "border-default", "from": "borderStrong" },
     "Accent": { "role": "primary", "from": "accent" },
     "PrimarySubtle": { "role": "primary-subtle", "from": "accent", "alpha": "subtle" },
@@ -42,9 +54,6 @@
     "DialogShadow": { "note": "upstream shadow-lg: dialog cards", "dark": "#00000066", "light": "#00000024" }
   },
   "unclaimed": {
-    "bubbleAccent": "chat bubbles; AI functionality is out of scope",
-    "background": "the workspace container role is not ported",
-    "input": "the control fill and disabled roles are not ported",
-    "border": "the muted border and resting control border roles are not ported"
+    "bubbleAccent": "chat bubbles; AI functionality is out of scope"
   }
 }

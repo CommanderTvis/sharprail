@@ -13,9 +13,14 @@ namespace SharpRail.Scintilla;
 /// <summary>Base paragraph direction for bidirectional text; automatic uses each line's first strong character.</summary>
 public enum ScintillaTextDirection { LeftToRight, RightToLeft, Auto }
 
-/// <summary>Editor colours; the selection foreground keeps each style's colour when null.</summary>
+/// <summary>
+/// Editor colours; the selection foreground keeps each style's colour when null, the caret takes the
+/// foreground when null, and the caret's line is highlighted only when <see cref="CurrentLine"/> is set.
+/// </summary>
 public sealed record ScintillaColors(Color Foreground, Color Background, Color LineNumbers, Color Selection, Color? SelectionForeground = null)
 {
+    public Color? Caret { get; init; }
+    public Color? CurrentLine { get; init; }
     public static ScintillaColors Light { get; } = new(Colors.Black, Colors.White, Colors.Gray, Color.FromRgb(0xb4, 0xd5, 0xfe));
 }
 
@@ -165,7 +170,9 @@ public sealed partial class ScintillaEditor : Control, IDisposable
         ApplyLineStyles(Rgb);
         document.Send(ScintillaMessage.StyleSetFore, 33, (nint)Rgb(colors.LineNumbers));
         document.Send(ScintillaMessage.StyleSetBack, 33, (nint)background);
-        document.Send(ScintillaMessage.SetCaretFore, (nint)foreground);
+        document.Send(ScintillaMessage.SetCaretFore, (nint)(colors.Caret is { } caret ? Rgb(caret) : foreground));
+        if (colors.CurrentLine is { } line) document.Send(ScintillaMessage.SetElementColour, CaretLineBack, (nint)(Rgb(line) | 0xff000000));
+        else document.Send(ScintillaMessage.ResetElementColour, CaretLineBack);
         var selection = Rgb(colors.Selection) | 0xff000000;
         document.Send(ScintillaMessage.SetElementColour, SelectionBack, (nint)selection);
         document.Send(ScintillaMessage.SetElementColour, SelectionInactiveBack, (nint)selection);
@@ -184,7 +191,7 @@ public sealed partial class ScintillaEditor : Control, IDisposable
     }
 
     // Scintilla's SC_ELEMENT_SELECTION_* ids; element colours are 0xAABBGGRR.
-    private const int SelectionText = 10, SelectionBack = 11, SelectionInactiveText = 16, SelectionInactiveBack = 17;
+    private const int SelectionText = 10, SelectionBack = 11, SelectionInactiveText = 16, SelectionInactiveBack = 17, CaretLineBack = 50;
 
     protected override void OnGotFocus(FocusChangedEventArgs e)
     { base.OnGotFocus(e); document.Focus(true); timer.Start(); InvalidateVisual(); }

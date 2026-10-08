@@ -19,8 +19,9 @@ public sealed partial class App : Application
     {
         AvaloniaXamlLoader.Load(this);
         Ui.ApplyResources(this);
+        ControlStates.Apply(Resources);
         foreach (var state in new[] { "Selected", "SelectedPointerOver", "SelectedPressed" })
-            Resources["TreeViewItemBackground" + state] = Ui.Hover;
+            Resources["TreeViewItemBackground" + state] = Ui.Selected;
         // The reference's 20px chevron slot. Fluent's template sets its 12px margins directly, which outranks styles.
         TemplatedControl.TemplateAppliedEvent.AddClassHandler<TreeViewItem>((_, e) =>
         {

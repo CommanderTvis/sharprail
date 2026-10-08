@@ -41,9 +41,10 @@ without rebuilding the tree.
 | Family | Brushes | Notes |
 | --- | --- | --- |
 | Text | `TextBrush` · `Muted` · `Hint` | `Hint` (the `hint` key) is the quiet metadata tier: branch lines, spec roles, counts, empty states |
-| Container | `Sidebar` · `Surface` · `Header` · `Elevated` | `Surface` is the `content` canvas behind documents and diffs; `Elevated` is every raised surface: menus, dialogs, inactive tab chrome, resting buttons |
-| Control | `Hover` · `PrimaryFill` · `PrimaryFillHover` · `OnPrimary` | `Hover` is both pointer hover and the persistent selected/active fill (active project row, active change row, selected tab, active toggle segment); the primary trio is the solid primary button, its hover step and its label |
-| Border | `BorderBrush` | from `borderStrong` |
+| Container | `Workspace` · `Sidebar` · `Terminal` · `Surface` · `Header` · `Elevated` | `Workspace` (the `background` key) is the app surface and the opened-document canvas: the window, the file editor, the Markdown preview and source. `Surface` is the recessed `content` canvas a diff is read on, and the centre column's backdrop. `Terminal` is the terminal's own canvas, from `sidebar`. `Elevated` is every raised surface: menus, dialogs, inactive tab chrome, resting buttons |
+| Control | `ControlFill` · `Hover` · `Selected` · `PrimaryFill` · `PrimaryFillHover` · `OnPrimary` | `ControlFill` is an input's fill. `Hover` is pointer hover; `Selected` is the persistent selected or active fill (active project and change rows, selected tab, checked toggle segment, selected tree and list rows). Both read `hover` today, and are separate roles so a theme key can part them. The primary trio is the solid primary button, its hover step and its label |
+| Disabled | `ControlDisabledFill` · `ControlDisabledText` · `ControlDisabledBorder` · `PrimaryDisabledFill` · `PrimaryDisabledText` | the enabled colour at the 60% step: a disabled control keeps its semantic colour, dimmed at the role, never a separate palette value and never `Opacity` |
+| Border | `BorderBrush` · `ControlBorder` · `ControlBorderActive` | `BorderBrush` is the structural border (`borderStrong`); `ControlBorder` is an input's quiet resting border (`border`); `ControlBorderActive` is the neutral strengthening for focused, pressed and open controls, never the accent |
 | Primary | `Accent` · `PrimarySubtle` · `PrimarySoft` · `PrimaryMuted` | accent @ 10%, 20% and 40%: the selected Settings choice's fill and border; dock drop hints rest at subtle fill with a soft border and activate to a soft fill with an accent border |
 | Feedback | `Info` · `Success` · `Warning` · `Danger` + `*Wash` | a wash is the solid colour @ 12%, the feedback-surface fill |
 | Selection | `TextSelection` | Inputs and the Markdown preview share `selection`. Upstream mixes the preview at 40% because browsers wash whole line boxes; Avalonia highlights only glyph runs, and the mix left dark selections nearly invisible. The nullable selected-text foreground is the `ThemeSelectionForeground` dynamic resource |
@@ -56,13 +57,24 @@ A tint is a role on the alpha scale (`scale` in `colors.json`), computed by `Ui.
 the colour's own alpha:
 
 ```
-subtle 10%   ·   wash 12%   ·   soft 20%   ·   muted 40%
+subtle 10%   ·   wash 12%   ·   soft 20%   ·   muted 40%   ·   strong 60%
 ```
 
 `wash` sits one step above `subtle` so primary fills stay at 10% while feedback backgrounds read at 12%.
 Control-level `Opacity` is not a colour tool: it dims nested content and bypasses role ownership. It is used
 only to hide and reveal affordances (the workspace kebab, the change-row menu button), so the guard accepts
 only 0 and 1. A new tint is a new role on the scale, never a one-off alpha at the call site.
+
+## Control states
+
+Fluent paints disabled, pressed and focused states from its own palette. `Rendering/ControlStates.cs` points
+the resource keys behind those states at roles once, for the whole application (`App.Initialize`): buttons,
+toggle buttons, inputs, combo boxes and menu items take the disabled trio; inputs rest on `ControlFill` inside
+`ControlBorder`; focus, press and open take `ControlBorderActive`. No control restyles its own states.
+
+`Ui.Button` and `Ui.IconButton` build labels and icons that carry their own colour, so they repaint that
+content from `ControlDisabledText` (`PrimaryDisabledText` on a primary button) while disabled and restore it
+afterwards. A dialog's primary button takes `PrimaryDisabledFill` from the dialog card's style.
 
 ## Non-brush consumers
 
@@ -72,8 +84,8 @@ input and reference no SharpRail project, so the app's adapters to them are wher
 
 | Consumer | We set | The rest comes from |
 | --- | --- | --- |
-| Scintilla editor | text, `Surface` background, muted gutter, `editorSelection` composited over the surface (`Ui.Over`), the nullable editor selection foreground | the control's own defaults |
-| Ghostty terminal | `Surface` background, text foreground, accent cursor, composited editor selection and its foreground, all 16 ANSI colours | Ghostty's configuration shim |
+| Scintilla editor | text, its canvas (`Workspace` for a document, `Surface` for a diff), muted gutter, `EditorSelection` composited over the canvas (`Ui.Over`), the nullable editor selection foreground, the accent caret and, for a document, the `Hover` current line | the control's own defaults |
+| Ghostty terminal | `Terminal` background, text foreground, accent cursor, composited editor selection and its foreground, all 16 ANSI colours | Ghostty's configuration shim |
 | Mermaid | the base theme variables derived in `MermaidRenderer` | Merman's base theme |
 | Fluent | the palette accent for the current variant | Fluent's own palette |
 
@@ -112,13 +124,11 @@ a control lives, and fails on:
 
 ## Not yet ported
 
-- Separate disabled roles (`control-disabled-*`: the enabled colour at a 60% step) and the stronger
-  `control-border-active` for pressed, open and focused controls; Fluent's defaults paint those states.
-- The editor chrome roles derived from existing palette keys: secondary matches of the selection
-  (`editorSelection` @ 20%), the active find match (`warning` @ 40%) and widget shadows (`text` @ 20%), with
-  the wider set upstream now paints from roles (current line, indent guides, bracket match, inactive line
-  numbers, fold and whitespace marks). The Scintilla editor keeps its own defaults for all of these.
+- The editor chrome roles for features the Scintilla control does not have: secondary matches of the
+  selection (`editorSelection` @ 20%), the active find match (`warning` @ 40%), widget shadows (`text` @ 20%),
+  indent guides, bracket match, the active line number, fold and whitespace marks. A role with no consumer
+  fails the guard, so each arrives with its feature. The caret and current line are ported.
 - The transparency checkerboard behind image previews (`text` @ 20% tiles, so a dark logo on a transparent
   image never reads as no image); image tabs and Markdown images sit directly on the surface.
-- Distinct `workspace` and `terminal` container roles and a separate `control-bg-selected`; SharpRail
-  reuses `Surface`, `Sidebar` and `Hover`.
+- A muted border role (`border-muted`) for separators inside a surface; every structural border is
+  `BorderBrush`.

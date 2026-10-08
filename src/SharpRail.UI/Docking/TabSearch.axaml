@@ -14,7 +14,7 @@
       <Setter Property="CornerRadius" Value="4" />
     </Style>
     <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter, ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter, ListBoxItem:selected:pressed /template/ ContentPresenter#PART_ContentPresenter">
-      <Setter Property="Background" Value="{x:Static rendering:Ui.Hover}" />
+      <Setter Property="Background" Value="{x:Static rendering:Ui.Selected}" />
       <Setter Property="Foreground" Value="{x:Static rendering:Ui.TextBrush}" />
     </Style>
     <Style Selector="TextBox:focus /template/ Border#PART_BorderElement, TextBox:pointerover /template/ Border#PART_BorderElement">
