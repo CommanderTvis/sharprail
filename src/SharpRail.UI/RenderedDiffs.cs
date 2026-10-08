@@ -19,7 +19,7 @@ public sealed partial class WorkbenchWindow
         var markdown = Path.GetExtension(tab.Path).ToLowerInvariant() is ".md" or ".markdown";
         return new DiffView(document.Text, tab.Path, LineWidths.File(Preferences),
             markdown ? token => RenderMergedAsync(tab, token) : null, !sourceDiffs.Contains(key),
-            show => { if (show) sourceDiffs.Remove(key); else sourceDiffs.Add(key); });
+            show => { if (show) sourceDiffs.Remove(key); else sourceDiffs.Add(key); }, DiffRevert(tab, key));
     }
 
     private async Task<Control?> RenderMergedAsync(DockTab tab, CancellationToken token)

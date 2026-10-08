@@ -29,6 +29,10 @@ can use it without a cycle. Theme catalogue and colour roles have their own docu
   document with `<ins>`/`<del>` marks.
 - `MermaidRenderer` / `MermaidDialog` render fenced Mermaid through Merman's native library and show the
   full-screen viewer.
+- `ToastStack` draws a `State/ToastQueue` as stacked cards above the window's bottom-right corner: a
+  variant stripe (accent, success or danger), optional title, wrapped message, the toast's one action and a
+  Dismiss button. Cards are kept by toast id, so a push or dismissal never restarts another toast's timer;
+  an error card is announced assertively, the others politely.
 - `LineWidths` converts symbol-count line widths to logical pixels, like CSS `ch` units.
 - `MarkdownLink` is the inline link button that keeps the text baseline of the surrounding paragraph.
 - Forbidden: workbench, docking or host-state types; per-call-site raw colours (see COLOR.md).
@@ -160,8 +164,7 @@ Every asynchronous gap renders something shaped for the wait, never nothing:
   manifest-driven syntax palette. Upstream now highlights chat fences off the main thread with lazy
   grammars, bounded caching and ordered replies; its worker/fallback machinery is web-specific. Any native
   equivalent must keep expensive highlighting off the dispatcher and reject stale results.
-- Toasts, including one that carries its own action button: SharpRail reports failures through the
-  window's error line and transient notifications.
+- Swipe-to-dismiss on toasts, and pausing a toast's timer while the pointer or focus is on it.
 - A relative-time helper for commit rows (they show short SHA and author only).
 - Rendering a link that escapes the worktree root or has malformed encoding as an inert control; today such
   a target reaches the host, whose path validation rejects it.

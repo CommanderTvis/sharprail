@@ -176,6 +176,21 @@ snapshot lands.
 - Unchanged context collapses around a change at Git's own three-line default, so a diff shows what
   `git diff` would.
 - A commit-scope diff is historical: it never offers an action that mutates the working tree.
+- Reverting from a diff tab. A diff whose modified side is the worktree (All changes, Uncommitted, Branch
+  and untracked files; never Staged or a commit) shows Revert file in its header, and on macOS each change
+  block of a source view carries its own Revert on the block's first row, on the modified side when split.
+  A block is a run of added and removed lines with its line span on both sides; a file that is all added or
+  all deleted has no block, only the file. Buttons follow the editor as it scrolls and are created when
+  their row first comes into view. SharpRail has no Ask agent action beside them. The rendered Markdown view
+  and the other-platform text fallback offer Revert file only.
+- A revert is checked against the content the tab rendered: at the click the window reads both sides and
+  the diff again, and only if that diff is the one drawn does it send the sides' hashes with the request
+  (`RevertChangeAsync`); the host refuses if either side moved since. A stale view, found by either check,
+  reloads with the toast “This file changed since you opened it — review the new diff” instead of reverting.
+  Success shows “Reverted hunk in {name}”, “Reverted {name}” or, for a new file, “Moved {name} to the trash”
+  for eight seconds with an Undo action (`UndoChangeAsync`, expecting the content the revert left). A
+  receipt the host no longer holds says “This change can no longer be undone — the host no longer holds
+  it”; any other refusal is an error toast titled with what failed. Git and open diffs refresh afterwards.
 
 ## Review
 
@@ -235,11 +250,6 @@ the change set keeps its last content.
 - The full review surface: per-file accordion, comment lifecycle, selection-triggered commenting in
   editors and rendered previews, tab review flags and send actions.
 - Chat deep links into Changes and Specs.
-- Reverting from a diff tab: a Revert on each change block and Revert file in the header for scopes whose
-  modified side is the worktree, checked against the content the tab rendered so a stale view reloads with
-  “This file changed since you opened it — review the new diff” instead of reverting, and an Undo offered
-  for a few seconds afterwards (a whole-file revert of a new file moves it to the trash). The host serves this
-  (`RevertChangeAsync`, `UndoChangeAsync`); the controls are not wired yet.
 - A diff of non-text bytes (`BinaryDiffView`, chosen when Git's output has a "Binary files" notice and no
   hunks) shows a card per side with media type, byte length and a SHA-256 prefix, and for PNG, JPEG,
   GIF, WebP and BMP the two pictures side by side, decoded as pixels from bytes fetched off the UI thread

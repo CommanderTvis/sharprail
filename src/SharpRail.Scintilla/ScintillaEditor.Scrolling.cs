@@ -52,6 +52,9 @@ public sealed partial class ScintillaEditor
         }
     }
 
+    /// <summary>The viewport y of a document line's first row, for overlays that follow a line; outside the viewport when scrolled away.</summary>
+    public double LineTop(int line) => (document.Send(ScintillaMessage.VisibleFromDocLine, line) - FirstVisibleLine) * LineHeight - SubLine;
+
     /// <summary>Scrolls a document line to the top, offset into its wrapped rows; for views whose lines wrap differently.</summary>
     public void ScrollToDocumentPosition(int line, double offset)
     {

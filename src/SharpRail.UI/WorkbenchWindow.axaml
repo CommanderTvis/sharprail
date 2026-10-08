@@ -45,8 +45,9 @@
             BorderThickness="1" CornerRadius="4" AutomationProperties.LiveSetting="Assertive">
       <TextBlock x:Name="QuitHintMessage" Foreground="{x:Static rendering:Ui.TextBrush}" FontSize="14" TextWrapping="Wrap" />
     </Border>
-    <Border x:Name="GestureToast" Grid.Row="1" ZIndex="30" IsVisible="False"
-            HorizontalAlignment="Right" VerticalAlignment="Bottom" Width="356" Margin="12"
+    <StackPanel Grid.Row="1" ZIndex="30" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="12" Spacing="8">
+    <rendering:ToastStack x:Name="ToastStack" Width="356" />
+    <Border x:Name="GestureToast" IsVisible="False" Width="356"
             Background="{x:Static rendering:Ui.Elevated}" BorderBrush="{x:Static rendering:Ui.BorderBrush}"
             BorderThickness="0,1,1,1" CornerRadius="4" ClipToBounds="True">
       <Grid ColumnDefinitions="4,*">
@@ -60,6 +61,7 @@
         </Grid>
       </Grid>
     </Border>
+    </StackPanel>
   </Grid>
   </LayoutTransformControl>
 </Window>

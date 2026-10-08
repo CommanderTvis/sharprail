@@ -10,6 +10,7 @@ using Avalonia.Input.Platform;
 using Avalonia.Layout;
 using Avalonia.Media;
 
+using SharpRail.Host.Abstractions;
 using SharpRail.Scintilla;
 using SharpRail.UI.Editor;
 
@@ -28,6 +29,8 @@ internal sealed partial class DiffView : Grid, IDisposable
     private readonly double wrapWidth;
     private readonly Func<CancellationToken, Task<Control?>>? renderMerged;
     private readonly Action<bool>? renderedChanged;
+    private readonly Func<RevertTarget, Task>? revert;
+    private bool reverting;
     private CancellationTokenSource? merge;
     private Control? merged;
     private readonly List<EditorFrame> frames = [];
@@ -38,10 +41,14 @@ internal sealed partial class DiffView : Grid, IDisposable
     /// A unified diff viewer. Markdown diffs pass <paramref name="renderMerged"/> to offer the reference's
     /// Source|Rendered toggle; their source view is always side by side. A null rendering means the documents
     /// exceed <see cref="ViewerLimits.RenderedMarkdown"/>, and the view falls back to source.
+    /// A diff whose modified side is the worktree passes <paramref name="revert"/>, which never throws: the header
+    /// offers Revert file and each change block of a source view its own Revert.
     /// </summary>
     internal DiffView(string text, string path, double wrapWidth,
-        Func<CancellationToken, Task<Control?>>? renderMerged = null, bool showRendered = false, Action<bool>? renderedChanged = null)
+        Func<CancellationToken, Task<Control?>>? renderMerged = null, bool showRendered = false, Action<bool>? renderedChanged = null,
+        Func<RevertTarget, Task>? revert = null)
     {
+        this.revert = revert;
         this.text = text;
         this.wrapWidth = wrapWidth;
         this.renderMerged = renderMerged;
@@ -77,6 +84,12 @@ internal sealed partial class DiffView : Grid, IDisposable
         };
         var controls = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Margin = new Thickness(8, 0, 12, 0), VerticalAlignment = VerticalAlignment.Center };
         controls.Children.Add(whitespace); controls.Children.Add(copy);
+        if (revert is not null)
+        {
+            var revertFile = RevertButton("DiffRevertFile", "Revert file", new RevertTarget());
+            revertFile.Width = 28;
+            controls.Children.Insert(0, revertFile);
+        }
         // Scintilla is macOS-only; elsewhere the raw diff is shown without view modes.
         if (renderMerged is null && OperatingSystem.IsMacOS()) { controls.Children.Insert(0, inline); controls.Children.Insert(0, split); }
         else { controls.Children.Add(source); controls.Children.Add(rendered); }
@@ -96,6 +109,94 @@ internal sealed partial class DiffView : Grid, IDisposable
     }
 
     internal bool IsRendered { get; private set; }
+
+    private Button RevertButton(string name, string label, RevertTarget target)
+    {
+        var button = new Button
+        {
+            Name = name,
+            Tag = target,
+            Content = Ui.Icon("arrowGoBack", size: 14),
+            Height = 20,
+            Padding = new Thickness(0),
+            Background = Brushes.Transparent,
+            BorderThickness = new Thickness(0),
+            CornerRadius = new CornerRadius(4)
+        };
+        AutomationProperties.SetName(button, label);
+        ToolTip.SetTip(button, label);
+        button.Click += async (_, _) =>
+        {
+            if (reverting) return;
+            reverting = true; button.IsEnabled = false;
+            try { await revert!(target); }
+            finally { reverting = false; button.IsEnabled = true; }
+        };
+        return button;
+    }
+
+    // One Revert per change block, kept on the block's first row as the editor scrolls. Buttons are made when their
+    // row first comes into view, so a diff with thousands of blocks costs nothing up front.
+    private Control WithBlockActions(EditorFrame frame, List<(int Row, RevertTarget Target)> blocks, params ScintillaEditor[] scrolledWith)
+    {
+        if (revert is null || blocks.Count == 0) return frame;
+        var overlay = new Canvas { Name = "DiffBlockActions", ClipToBounds = true, Margin = frame.Margin };
+        var buttons = new Button?[blocks.Count];
+        void Place()
+        {
+            if (disposed || !frames.Contains(frame)) return;
+            for (var index = 0; index < blocks.Count; index++)
+            {
+                var top = frame.Editor.LineTop(blocks[index].Row);
+                var visible = top > -20 && top < overlay.Bounds.Height;
+                if (buttons[index] is null)
+                {
+                    if (!visible) continue;
+                    var button = buttons[index] = RevertButton("DiffRevertBlock", "Revert this change", blocks[index].Target);
+                    button.Width = 24; button.Background = Ui.Elevated;
+                    Canvas.SetRight(button, 20);
+                    overlay.Children.Add(button);
+                }
+                buttons[index]!.IsVisible = visible;
+                Canvas.SetTop(buttons[index]!, top);
+            }
+        }
+        foreach (var editor in scrolledWith.Append(frame.Editor))
+        {
+            editor.VerticalOffsetChanged += (_, _) => Place();
+            editor.ScrollChanged += (_, _) => Place();
+        }
+        overlay.SizeChanged += (_, _) => Place();
+        var layers = new Grid();
+        layers.Children.Add(frame); layers.Children.Add(overlay);
+        return layers;
+    }
+
+    private static Dictionary<int, RevertTarget> Blocks(Hunk hunk)
+    {
+        var blocks = new Dictionary<int, RevertTarget>();
+        // A file that is all added or all deleted has no line range to restore; only Revert file applies.
+        if (hunk.OldStart == 0 || hunk.NewStart == 0) return blocks;
+        int old = hunk.OldStart, @new = hunk.NewStart;
+        for (var index = 0; index < hunk.Lines.Count;)
+        {
+            if (hunk.Lines[index] is not ['-' or '+', ..])
+            {
+                if (!hunk.Lines[index].StartsWith('\\')) { old++; @new++; }
+                index++;
+                continue;
+            }
+            int start = index, removed = 0, added = 0;
+            for (; index < hunk.Lines.Count && hunk.Lines[index] is ['-' or '+' or '\\', ..]; index++)
+            {
+                if (hunk.Lines[index][0] == '-') removed++;
+                else if (hunk.Lines[index][0] == '+') added++;
+            }
+            blocks[start] = new(new(old, removed), new(@new, added));
+            old += removed; @new += added;
+        }
+        return blocks;
+    }
 
     internal void Update(string diff)
     {
@@ -295,6 +396,7 @@ internal sealed partial class DiffView : Grid, IDisposable
     private void RenderInline(List<string> preamble, List<Hunk> hunks)
     {
         var side = new Side();
+        var blocks = new List<(int Row, RevertTarget Target)>();
         foreach (var line in preamble) side.Add(line, LineKind.Meta);
         var previous = (Hunk?)null;
         foreach (var hunk in hunks)
@@ -302,8 +404,11 @@ internal sealed partial class DiffView : Grid, IDisposable
             side.AddGap(Gap(previous, hunk));
             side.Add(hunk.Header, LineKind.Header);
             int old = hunk.OldStart, @new = hunk.NewStart;
-            foreach (var line in hunk.Lines)
+            var starts = Blocks(hunk);
+            for (var index = 0; index < hunk.Lines.Count; index++)
             {
+                var line = hunk.Lines[index];
+                if (starts.TryGetValue(index, out var target)) blocks.Add((side.Styles.Count, target));
                 if (line.StartsWith('+')) side.Add(line, LineKind.Added, null, @new++);
                 else if (line.StartsWith('-')) side.Add(line, LineKind.Removed, old++);
                 else if (line.StartsWith('\\')) side.Add(line, LineKind.Meta);
@@ -311,13 +416,14 @@ internal sealed partial class DiffView : Grid, IDisposable
             }
             previous = hunk;
         }
-        Ui.Place(body, Code("DiffInlineText", side, side.Labels(true, true)));
+        Ui.Place(body, WithBlockActions(Code("DiffInlineText", side, side.Labels(true, true)), blocks));
     }
 
     private void RenderSplit(List<Hunk> hunks)
     {
         var oldSide = new Side();
         var newSide = new Side();
+        var blocks = new List<(int Row, RevertTarget Target)>();
         var previous = (Hunk?)null;
         foreach (var hunk in hunks)
         {
@@ -325,8 +431,12 @@ internal sealed partial class DiffView : Grid, IDisposable
             oldSide.AddGap(gap); newSide.AddGap(gap);
             int old = hunk.OldStart, @new = hunk.NewStart;
             var removed = new List<string>(); var added = new List<string>();
+            var starts = Blocks(hunk);
+            RevertTarget? block = null;
             void Flush()
             {
+                if (block is not null) blocks.Add((newSide.Styles.Count, block));
+                block = null;
                 for (var index = 0; index < Math.Max(removed.Count, added.Count); index++)
                 {
                     if (index < removed.Count) oldSide.Add(removed[index], LineKind.Removed, old++); else oldSide.Add("", LineKind.Filler);
@@ -334,8 +444,10 @@ internal sealed partial class DiffView : Grid, IDisposable
                 }
                 removed.Clear(); added.Clear();
             }
-            foreach (var line in hunk.Lines)
+            for (var index = 0; index < hunk.Lines.Count; index++)
             {
+                var line = hunk.Lines[index];
+                if (starts.TryGetValue(index, out var target)) block = target;
                 if (line.StartsWith('-')) removed.Add(line[1..]);
                 else if (line.StartsWith('+')) added.Add(line[1..]);
                 else if (line.StartsWith('\\')) continue;
@@ -357,7 +469,7 @@ internal sealed partial class DiffView : Grid, IDisposable
         var columns = new Grid { ColumnDefinitions = new ColumnDefinitions("*,1,*") };
         Ui.Place(columns, oldFrame);
         Ui.Place(columns, new Border { Width = 1, Background = Ui.BorderBrush }, 0, 1);
-        Ui.Place(columns, newFrame, 0, 2);
+        Ui.Place(columns, WithBlockActions(newFrame, blocks, oldFrame.Editor), 0, 2);
         Ui.Place(body, columns);
 
         // Rows wrap differently on each side, so the side being scrolled places the same document line at the other's

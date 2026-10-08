@@ -136,6 +136,16 @@ moving, and refusal of refs, abbreviations, unknown, tree and blob ids, path esc
 symbolic link. The headless UI part opens `BinaryDiffView` for a PNG (two pictures) and a PDF (cards only)
 and requires no replacement characters.
 
+## Change actions
+
+`ChangeActionChecks.cs` (`-- --change-actions`, also in the default run) is SharpRail-only coverage on an
+isolated repository with `SHARPRAIL_TRASH_DIR` pointed into the fixture. It checks the toast queue as a
+model (coalescing, the cap evicting only actionless toasts, default and own lifetimes) and as cards (order,
+width, expiry without rebuilding the others, action, dismissal), then reverts through the diff tab: one of
+two change blocks with its spans, Undo, a file moved by `E2eHost.BeforeRevert` after the tab drew it (nothing
+reverted, notice, reloaded diff), Revert file and Undo, a new file to the trash and back, and no revert
+controls on a staged diff. Block controls are asserted on macOS only.
+
 ## Quit and close commands
 
 `QuitConfirmationChecks` translates upstream's quit-confirmation cases against a fake clock and scheduler:
