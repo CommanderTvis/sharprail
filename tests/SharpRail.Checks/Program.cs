@@ -122,6 +122,19 @@ internal static class Program
             ContentChecks.RunUi(root);
             return;
         }
+        if (args.SequenceEqual(["--git-host"]))
+        {
+            GitHostChecks.Run(root).GetAwaiter().GetResult();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            E2E.ChangesScopeE2E.Run(Path.Combine(root, "upstream-e2e"));
+            return;
+        }
+        if (args.SequenceEqual(["--process"]))
+        {
+            ProcessChecks.Run(root).GetAwaiter().GetResult();
+            return;
+        }
         if (args.SequenceEqual(["--changes"]))
         {
             ChangeChecks.Run(root).GetAwaiter().GetResult();
@@ -145,7 +158,9 @@ internal static class Program
         }
         CheckHosts(root).GetAwaiter().GetResult();
         TerminalHostChecks.Run(root).GetAwaiter().GetResult();
+        ProcessChecks.Run(root).GetAwaiter().GetResult();
         ProjectChecks.Run(root).GetAwaiter().GetResult();
+        GitHostChecks.Run(root).GetAwaiter().GetResult();
         PullRequestChecks.Run(root).GetAwaiter().GetResult();
         ChangeChecks.Run(root).GetAwaiter().GetResult();
         ContentChecks.Run(root).GetAwaiter().GetResult();

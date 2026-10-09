@@ -22,6 +22,8 @@ public sealed class HostStateStore : IHostStateService
         public List<string> Projects { get; set; } = [];
         public List<string> RecentProjects { get; set; } = [];
         public Dictionary<string, string> WorkspaceLabels { get; set; } = [];
+        public Dictionary<string, string> WorkspaceBases { get; set; } = [];
+        public Dictionary<string, string> WorkspaceDiffBases { get; set; } = [];
     }
 
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true };
@@ -51,7 +53,9 @@ public sealed class HostStateStore : IHostStateService
                     Presets = stored.Presets ?? [],
                     Projects = stored.Projects ?? [],
                     RecentProjects = stored.RecentProjects ?? [],
-                    WorkspaceLabels = stored.WorkspaceLabels ?? []
+                    WorkspaceLabels = stored.WorkspaceLabels ?? [],
+                    WorkspaceBases = stored.WorkspaceBases ?? [],
+                    WorkspaceDiffBases = stored.WorkspaceDiffBases ?? []
                 };
             }
             else initial = seed?.Invoke() ?? new();
@@ -79,18 +83,38 @@ public sealed class HostStateStore : IHostStateService
         }
     }
 
-    /// <summary>Records a project's workspaces after one was created or removed; a removed workspace loses its label.</summary>
-    public void PublishWorkspaces(string projectRoot, IReadOnlyList<string> workspaces, string? removed = null)
+    /// <summary>
+    /// Records a project's workspaces after one was created or removed. A removed workspace loses its label and
+    /// review target; a created one records <paramref name="createdBase"/> as the ref it started from.
+    /// </summary>
+    public void PublishWorkspaces(string projectRoot, IReadOnlyList<string> workspaces, string? removed = null,
+        string? created = null, string? createdBase = null)
     {
         lock (gate)
         {
             var lists = state.Workspaces.ToDictionary();
             lists[projectRoot] = workspaces.ToArray();
-            var labels = state.WorkspaceLabels;
-            if (removed is not null && labels.ContainsKey(removed)) labels = labels.Where(entry => entry.Key != removed).ToDictionary();
-            Publish(state with { Workspaces = lists, WorkspaceLabels = labels }, persist: !ReferenceEquals(labels, state.WorkspaceLabels));
+            var next = state with { Workspaces = lists };
+            if (removed is not null)
+                next = next with
+                {
+                    WorkspaceLabels = Without(next.WorkspaceLabels, removed),
+                    WorkspaceBases = Without(next.WorkspaceBases, removed),
+                    WorkspaceDiffBases = Without(next.WorkspaceDiffBases, removed)
+                };
+            if (created is not null && createdBase is not null && GitRefs.IsSafe(createdBase))
+                next = next with
+                {
+                    WorkspaceBases = new Dictionary<string, string>(next.WorkspaceBases) { [created] = createdBase },
+                    WorkspaceDiffBases = Without(next.WorkspaceDiffBases, created)
+                };
+            Publish(next, persist: !ReferenceEquals(next.WorkspaceLabels, state.WorkspaceLabels) ||
+                !ReferenceEquals(next.WorkspaceBases, state.WorkspaceBases) || !ReferenceEquals(next.WorkspaceDiffBases, state.WorkspaceDiffBases));
         }
     }
+
+    private static IReadOnlyDictionary<string, string> Without(IReadOnlyDictionary<string, string> entries, string key) =>
+        entries.ContainsKey(key) ? entries.Where(entry => entry.Key != key).ToDictionary() : entries;
 
     public async IAsyncEnumerable<HostState> WatchAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
@@ -130,7 +154,9 @@ public sealed class HostStateStore : IHostStateService
                 Presets = snapshot.Presets.ToList(),
                 Projects = snapshot.Projects.ToList(),
                 RecentProjects = snapshot.RecentProjects.ToList(),
-                WorkspaceLabels = snapshot.WorkspaceLabels.ToDictionary()
+                WorkspaceLabels = snapshot.WorkspaceLabels.ToDictionary(),
+                WorkspaceBases = snapshot.WorkspaceBases.ToDictionary(),
+                WorkspaceDiffBases = snapshot.WorkspaceDiffBases.ToDictionary()
             };
             var temporary = path + ".tmp";
             File.WriteAllText(temporary, JsonSerializer.Serialize(stored, Json));
@@ -161,6 +187,9 @@ public sealed class HostStateStore : IHostStateService
         Projects = value.Projects.Where(item => item is not null && ValidPath(item)).Distinct().ToArray(),
         RecentProjects = value.RecentProjects.Where(item => item is not null && ValidPath(item)).Distinct().Take(HostStateChange.RecentLimit).ToArray(),
         WorkspaceLabels = value.WorkspaceLabels.Where(entry => ValidPath(entry.Key) && entry.Value is not null && ValidText(entry.Value)).ToDictionary(),
+        WorkspaceBases = value.WorkspaceBases.Where(entry => ValidPath(entry.Key) && entry.Value is not null && GitRefs.IsSafe(entry.Value)).ToDictionary(),
+        WorkspaceDiffBases = value.WorkspaceDiffBases.Where(entry => ValidPath(entry.Key) && entry.Value is not null && GitRefs.IsSafe(entry.Value) &&
+            value.WorkspaceBases.GetValueOrDefault(entry.Key) != entry.Value).ToDictionary(),
         Workspaces = new Dictionary<string, IReadOnlyList<string>>()
     };
 
@@ -213,6 +242,15 @@ public sealed class HostStateStore : IHostStateService
                 else if (labels.GetValueOrDefault(key) == label) return current;
                 else labels[key] = label;
                 return current with { WorkspaceLabels = labels };
+            case "workspace-diff-base":
+                if (!ValidPath(key)) throw new ArgumentException("Invalid workspace path.");
+                var targets = current.WorkspaceDiffBases.ToDictionary();
+                // The ref only has to be well formed: one that does not resolve yet is stored and reported when read.
+                if (value.Length == 0 || value == current.WorkspaceBases.GetValueOrDefault(key))
+                { if (!targets.Remove(key)) return current; }
+                else if (targets.GetValueOrDefault(key) == GitRefs.Require(value)) return current;
+                else targets[key] = value;
+                return current with { WorkspaceDiffBases = targets };
             case "project-open":
                 if (!ValidPath(key)) throw new ArgumentException("Invalid project path.");
                 if (current.Projects.Contains(key) && !current.RecentProjects.Contains(key)) return current;

@@ -74,10 +74,39 @@ public sealed partial class WorkbenchWindow
 
     private void UpdateRailSelection() { foreach (var update in railSelection) update(); }
 
+    // Change totals per workspace path, read after the rail is up and applied to the rows in place.
+    private readonly Dictionary<string, DiffStats> workspaceStats = [];
+    private readonly List<Action> railStats = [];
+    private CancellationTokenSource? statsRefresh;
+
+    private async Task RefreshWorkspaceStatsAsync(long request)
+    {
+        statsRefresh?.Cancel();
+        statsRefresh?.Dispose();
+        statsRefresh = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
+        var token = statsRefresh.Token;
+        var read = new Dictionary<string, DiffStats>();
+        foreach (var worktree in git.Worktrees)
+        {
+            try
+            {
+                if (await Task.Run(async () => await host.GetDiffStatsAsync(worktree.Path, token), token) is { } stats) read[worktree.Path] = stats;
+            }
+            catch (OperationCanceledException) { return; }
+            // A badge is a convenience: a workspace whose totals cannot be read simply shows none.
+            catch (Exception error) { Console.Error.WriteLine($"Change totals of {worktree.Path} are unavailable: {error.Message}"); }
+            if (token.IsCancellationRequested || request != projectRequest) return;
+        }
+        workspaceStats.Clear();
+        foreach (var (path, stats) in read) workspaceStats[path] = stats;
+        foreach (var update in railStats) update();
+    }
+
     private Control ProjectsPanel()
     {
         railSignature = RailSignature();
         railSelection.Clear();
+        railStats.Clear();
         var panel = new Grid { Name = "ProjectsPanel", Margin = new Thickness(12), RowDefinitions = new RowDefinitions("28,8,*") };
         var toolbar = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(8, 0, 4, 0) };
         var title = Ui.Text("PROJECTS", size: 12); title.FontWeight = Avalonia.Media.FontWeight.Medium;
@@ -174,11 +203,28 @@ public sealed partial class WorkbenchWindow
         var labels = new StackPanel();
         var label = Ui.Text(name, color); label.LineHeight = 17.5; label.Name = "WorkspaceName";
         labels.Children.Add(label);
+        var added = Ui.Text("", Ui.Success, 12);
+        var removed = Ui.Text("", Ui.Danger, 12);
+        var totals = new StackPanel { Name = "WorkspaceDiffStats", Orientation = Orientation.Horizontal, Spacing = 4, Children = { added, removed } };
+        void ShowTotals()
+        {
+            var stats = workspaceStats.GetValueOrDefault(worktree.Path);
+            totals.IsVisible = stats is { Added: > 0 } or { Removed: > 0 };
+            added.Text = "+" + (stats?.Added ?? 0); removed.Text = "−" + (stats?.Removed ?? 0);
+        }
+        ShowTotals();
+        railStats.Add(ShowTotals);
         if (twoLines)
         {
             var branch = Ui.Text(worktree.Branch, Ui.Hint, 12); branch.LineHeight = 15; branch.Name = "WorkspaceBranch";
-            labels.Children.Add(branch);
+            branch.TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis;
+            var second = new DockPanel();
+            DockPanel.SetDock(totals, Dock.Right);
+            totals.Margin = new(8, 0, 0, 0);
+            second.Children.Add(totals); second.Children.Add(branch);
+            labels.Children.Add(second);
         }
+        else labels.Children.Add(totals);
         Ui.Place(contents, labels, 0, 2);
         var button = new Button
         {

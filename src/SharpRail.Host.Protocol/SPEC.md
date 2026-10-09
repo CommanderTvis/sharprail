@@ -124,7 +124,7 @@ project: local adapters call Core directly, with no serialization.
   channels, a worktree file-change nudge (`workspace.fsChanged`), and a host
   update notice.
 - Project inspection (`repo`/`initable`/`missing`/`notDirectory`), `git init`,
-  lazy "has specs", attaching existing worktrees, persisted diff-base re-pointing
+  lazy "has specs", attaching existing worktrees
   and a `GitDiffScope` of a single commit carried on file diffs as a typed value.
 - A host HTTP endpoint for worktree files (relative Markdown images over remote).
 - Resource metadata on file reads and diff sides is ported, with the bytes fetched over gRPC rather than

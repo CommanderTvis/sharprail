@@ -88,7 +88,8 @@ public sealed partial class ProjectServices
             var head = (await GitRepository.RunAsync(currentRoot, cancellationToken, "symbolic-ref", "--quiet", "refs/remotes/origin/HEAD")).Trim();
             // A missing tracking ref is still the base while origin exists (creation fetches it, as the reference
             // does), but removing the remote leaves origin/HEAD dangling with nothing to fetch it from.
-            if (head.StartsWith("refs/remotes/", StringComparison.Ordinal) &&
+            // The repository's own answer is a ref like any other: a crafted origin/HEAD must not pass unchecked.
+            if (head.StartsWith("refs/remotes/", StringComparison.Ordinal) && GitRefs.IsSafe(head[13..]) &&
                 (await RemotesAsync(currentRoot, cancellationToken)).Contains("origin"))
                 return head[13..];
         }
@@ -97,7 +98,7 @@ public sealed partial class ProjectServices
         {
             var main = await MainWorktreeAsync(currentRoot, cancellationToken);
             var branch = (await GitRepository.RunAsync(main, cancellationToken, "symbolic-ref", "--short", "--quiet", "HEAD")).Trim();
-            if (branch.Length > 0) return branch;
+            if (GitRefs.IsSafe(branch)) return branch;
         }
         catch (IOException) { }
         return "HEAD";
@@ -109,18 +110,33 @@ public sealed partial class ProjectServices
         return list.Split('\0').First(field => field.StartsWith("worktree ", StringComparison.Ordinal))[9..];
     }
 
-    private static async Task FetchRemoteAsync(string currentRoot, string reference, CancellationToken cancellationToken)
+    /// <summary>Raised with a repository's common Git directory and a remote-tracking ref a fetch just moved.</summary>
+    internal static event Action<string, string>? BaseMoved;
+
+    /// <summary>
+    /// Fetches a remote-tracking ref and answers whether it moved, nudging the workspaces measured against it.
+    /// A fetch that failed after the ref had already advanced still reports the move before it throws.
+    /// </summary>
+    internal static async Task<bool> FetchRemoteAsync(string currentRoot, string reference, CancellationToken cancellationToken)
     {
         var remote = (await RemotesAsync(currentRoot, cancellationToken))
             .Where(candidate => reference.StartsWith(candidate + "/", StringComparison.Ordinal)).MaxBy(candidate => candidate.Length);
-        if (remote is null) return;
-        var branch = reference[(remote.Length + 1)..];
-        try
-        {
-            await GitRepository.RunAsync(currentRoot, cancellationToken, "check-ref-format", "--branch", branch);
-            await GitRepository.RunAsync(currentRoot, cancellationToken, "fetch", "--quiet", "--no-tags", "--end-of-options", remote, branch);
-        }
-        catch (IOException error) { throw new IOException($"Could not fetch {reference}: {error.Message}"); }
+        if (remote is null) return false;
+        var branch = GitRefs.Require(reference)[(remote.Length + 1)..];
+        var before = await TrackingCommitAsync(currentRoot, reference, cancellationToken);
+        IOException? failure = null;
+        try { await GitRepository.RunAsync(currentRoot, cancellationToken, "fetch", "--quiet", "--no-tags", "--end-of-options", remote, branch); }
+        catch (IOException error) { failure = new IOException($"Could not fetch {reference}: {error.Message}"); }
+        var after = await TrackingCommitAsync(currentRoot, reference, cancellationToken);
+        var moved = after is not null && after != before;
+        if (moved && ResolveGitDirectories(currentRoot).CommonDirectory is { } common) BaseMoved?.Invoke(common, reference);
+        return failure is null ? moved : throw failure;
+    }
+
+    private static async Task<string?> TrackingCommitAsync(string currentRoot, string reference, CancellationToken cancellationToken)
+    {
+        try { return (await GitRepository.RunAsync(currentRoot, cancellationToken, "rev-parse", "--verify", "--quiet", "--end-of-options", "refs/remotes/" + reference)).Trim(); }
+        catch (IOException) when (!cancellationToken.IsCancellationRequested) { return null; }
     }
 
     private static async Task<(string Path, string Branch)> NextWorkspaceAsync(string currentRoot, CancellationToken cancellationToken)

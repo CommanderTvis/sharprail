@@ -209,6 +209,20 @@ public interface IProjectRpc
     ValueTask<PrReply> OpenPrAsync(OpenPrRequest request, CallContext context = default);
     ValueTask<EditorsReply> ListEditorsAsync(ProjectRequest request, CallContext context = default);
     ValueTask<SaveFileReply> OpenInEditorAsync(OpenInEditorRequest request, CallContext context = default);
+    ValueTask<DiffStatsReply> GetDiffStatsAsync(DiffStatsRequest request, CallContext context = default);
+}
+
+[ProtoContract]
+public sealed class DiffStatsRequest
+{
+    [ProtoMember(1)] public string WorkspacePath { get; set; } = "";
+}
+
+[ProtoContract]
+public sealed class DiffStatsReply
+{
+    [ProtoMember(1)] public int Added { get; set; }
+    [ProtoMember(2)] public int Removed { get; set; }
 }
 
 [ProtoContract]

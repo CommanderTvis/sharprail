@@ -16,7 +16,8 @@ Upstream: packages/server/src/persistence/SPEC.md (revision: [UPSTREAM.md](../..
 
 The state every client of one host shares: the open project list and recents, shared settings
 (appearance mode, fixed theme and system light/dark pair, file and Markdown line widths with their bound
-switches), the custom layout-preset catalog, workspace display labels and the published workspace lists.
+switches), the custom layout-preset catalog, workspace display labels, each workspace's creation base and re-pointed
+review target, and the published workspace lists.
 `HostStateStore` implements `IHostStateService`: it reads, validates, persists and broadcasts complete
 snapshots.
 
@@ -51,6 +52,16 @@ presets belong to the UI.
 - Opening a plain folder offers Initialize: `git init -b main`, `git add -A` and an allow-empty initial
   commit, supplying a fallback identity only for a field Git has none configured for. A failed commit
   removes the new `.git` again, and a folder that is already a repository is refused.
+
+## Workspace review targets
+
+- `WorkspaceBases` is creation provenance: the host records the base ref when it creates a worktree from
+  anything but `HEAD`, and no client change touches it. `WorkspaceDiffBases` holds a target re-pointed away
+  from it (`workspace-diff-base`); `HostState.DiffBase(path)` is the override, else the base, else empty.
+- Re-pointing to an empty ref or to the creation base removes the override rather than storing a copy. A
+  ref must pass the ref-shape check ([Git.SPEC.md](Git.SPEC.md)) but need not resolve. Both entries persist,
+  are dropped with the workspace when the host removes it, and entries with an invalid path or ref are
+  dropped on load.
 
 ## Settings and presets
 

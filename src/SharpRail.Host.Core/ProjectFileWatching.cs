@@ -44,10 +44,17 @@ public sealed partial class ProjectServices
             watcher.Error += (_, e) => { Console.Error.WriteLine("Workspace watcher error: " + e.GetException().Message); Changed(null); };
             watcher.EnableRaisingEvents = true;
         }
+        string? commonDirectory = null;
+        // A fetch that moved this workspace's review target changed its diff without touching a file in it.
+        void Moved(string common, string reference)
+        {
+            if (common == commonDirectory && state?.Current.DiffBase(directory) == reference) signals.Writer.TryWrite(true);
+        }
         try
         {
             Watch(directory, true, path => !Path.GetRelativePath(directory, path).Replace('\\', '/').Split('/').Any(part => part is ".git" or ".sharprail" or ".tools" or "node_modules" or ".DS_Store"), true);
-            var (gitDirectory, commonDirectory) = ResolveGitDirectories(directory);
+            (var gitDirectory, commonDirectory) = ResolveGitDirectories(directory);
+            BaseMoved += Moved;
             if (gitDirectory is not null)
             {
                 Watch(gitDirectory, false, path => Path.GetFileName(path) is "HEAD" or "index", false);
@@ -76,7 +83,11 @@ public sealed partial class ProjectServices
                 yield return change;
             }
         }
-        finally { foreach (var watcher in watchers) watcher.Dispose(); }
+        finally
+        {
+            BaseMoved -= Moved;
+            foreach (var watcher in watchers) watcher.Dispose();
+        }
     }
 
     private static (string? GitDirectory, string? CommonDirectory) ResolveGitDirectories(string directory)

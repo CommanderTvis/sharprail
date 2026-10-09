@@ -28,6 +28,13 @@ public sealed record HostState
     public IReadOnlyList<string> Projects { get; init; } = [];
     public IReadOnlyList<string> RecentProjects { get; init; } = [];
     public IReadOnlyDictionary<string, string> WorkspaceLabels { get; init; } = new Dictionary<string, string>();
+    /// <summary>The ref each workspace was created from, recorded by the host and never changed by a client.</summary>
+    public IReadOnlyDictionary<string, string> WorkspaceBases { get; init; } = new Dictionary<string, string>();
+    /// <summary>A review target re-pointed away from the creation base; absent while they agree.</summary>
+    public IReadOnlyDictionary<string, string> WorkspaceDiffBases { get; init; } = new Dictionary<string, string>();
+    /// <summary>The ref a workspace's changes are measured against: its re-pointed target, else its creation base, else none.</summary>
+    public string DiffBase(string workspace) =>
+        WorkspaceDiffBases.GetValueOrDefault(workspace) ?? WorkspaceBases.GetValueOrDefault(workspace) ?? "";
     /// <summary>Workspace paths per project root, published after the host creates or removes a workspace. Not persisted.</summary>
     public IReadOnlyDictionary<string, IReadOnlyList<string>> Workspaces { get; init; } = new Dictionary<string, IReadOnlyList<string>>();
 }
@@ -42,6 +49,8 @@ public sealed record HostStateChange(string Kind, string Key = "", string Value 
     public static HostStateChange DeletePreset(string name) => new("preset-delete", name);
     /// <summary>An empty label restores the directory name.</summary>
     public static HostStateChange Label(string path, string label) => new("workspace-label", path, label);
+    /// <summary>Re-points a workspace's review target; an empty ref, or its creation base, restores that base.</summary>
+    public static HostStateChange DiffBase(string path, string reference) => new("workspace-diff-base", path, reference);
     public static HostStateChange OpenProject(string path) => new("project-open", path);
     /// <summary>Moves an open project to the front of the recents.</summary>
     public static HostStateChange CloseProject(string path) => new("project-close", path);

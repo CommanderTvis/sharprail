@@ -1,65 +1,56 @@
-using System.Diagnostics;
-
 using SharpRail.Host.Abstractions;
 
 namespace SharpRail.Host.Core;
 
 internal static class GitRepository
 {
-    private static ProcessStartInfo StartInfo(string root, string[] args)
-    {
-        var start = new ProcessStartInfo("git")
-        {
-            WorkingDirectory = root,
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            CreateNoWindow = true
-        };
-        start.Environment["LC_ALL"] = "C";
-        // Background status refreshes must not take index.lock away from the user's own Git commands.
-        start.Environment["GIT_OPTIONAL_LOCKS"] = "0";
-        start.ArgumentList.Add("--literal-pathspecs");
-        start.ArgumentList.Add("-c");
-        start.ArgumentList.Add("core.quotepath=false");
-        foreach (var arg in args) start.ArgumentList.Add(arg);
-        return start;
-    }
+    /// <summary>Upstream's budget for any Git call: long enough for a slow fetch, short enough to report one that stalled.</summary>
+    internal static readonly TimeSpan Budget = TimeSpan.FromSeconds(55);
+    private const int ErrorLimit = 2000, ErrorHead = 1200;
+    private const string Truncated = "… (truncated) …";
 
-    internal static async Task<string> RunAsync(string root, CancellationToken ct, params string[] args)
+    private static readonly Dictionary<string, string?> Prompts = new()
     {
-        using var process = Process.Start(StartInfo(root, args)) ?? throw new IOException("Could not start git.");
-        using var registration = ct.Register(() =>
-        {
-            try { if (!process.HasExited) process.Kill(entireProcessTree: true); }
-            catch (InvalidOperationException) { }
-        });
-        var output = process.StandardOutput.ReadToEndAsync(ct);
-        var error = process.StandardError.ReadToEndAsync(ct);
-        await process.WaitForExitAsync(ct);
-        var text = await output;
-        var detail = await error;
-        if (process.ExitCode != 0) throw new GitException(process.ExitCode, detail.Trim());
-        return text;
-    }
+        ["LC_ALL"] = "C",
+        // Background status refreshes must not take index.lock away from the user's own Git commands.
+        ["GIT_OPTIONAL_LOCKS"] = "0",
+        // With no terminal to ask on, a credential or passphrase prompt fails at once instead of waiting.
+        ["GIT_TERMINAL_PROMPT"] = "0"
+    };
+
+    internal static async Task<string> RunAsync(string root, CancellationToken ct, params string[] args) =>
+        (await ExecuteAsync(root, args, Budget, ct)).Output;
 
     /// <summary>Runs Git and returns its standard output undecoded, for blob contents whose bytes are hashed.</summary>
-    internal static async Task<byte[]> RunBytesAsync(string root, CancellationToken ct, params string[] args)
+    internal static async Task<byte[]> RunBytesAsync(string root, CancellationToken ct, params string[] args) =>
+        (await ExecuteAsync(root, args, Budget, ct)).Bytes;
+
+    internal static async Task<ChildProcess.Result> ExecuteAsync(string root, string[] args, TimeSpan budget, CancellationToken ct)
     {
-        using var process = Process.Start(StartInfo(root, args)) ?? throw new IOException("Could not start git.");
-        using var registration = ct.Register(() =>
-        {
-            try { if (!process.HasExited) process.Kill(entireProcessTree: true); }
-            catch (InvalidOperationException) { }
-        });
-        using var buffer = new MemoryStream();
-        var output = process.StandardOutput.BaseStream.CopyToAsync(buffer, ct);
-        var error = process.StandardError.ReadToEndAsync(ct);
-        await output;
-        await process.WaitForExitAsync(ct);
-        var detail = await error;
-        if (process.ExitCode != 0) throw new GitException(process.ExitCode, detail.Trim());
-        return buffer.ToArray();
+        string[] full = ["--literal-pathspecs", "-c", "core.quotepath=false", .. args];
+        ChildProcess.Result result;
+        try { result = await ChildProcess.RunAsync("git", root, full, budget, ct, Prompts); }
+        catch (ChildProcess.ExpiredException error) { throw new GitException(-1, TimeoutMessage(error, args)); }
+        if (result.ExitCode != 0) throw new GitException(result.ExitCode, Bounded(result.Error));
+        return result;
+    }
+
+    /// <summary>Keeps what Git wrote; without it, names only what was observed, with the SSH hint for network calls alone.</summary>
+    private static string TimeoutMessage(ChildProcess.ExpiredException error, string[] args)
+    {
+        var network = args.Length > 0 && args[0] is "fetch" or "push" or "pull" or "clone" or "ls-remote";
+        var captured = Bounded(error.Error);
+        if (captured.Length == 0)
+            captured = network
+                ? "the remote never answered; if it uses SSH, a key that is not loaded is the usual cause (`ssh-add`)"
+                : "git did not exit";
+        return $"timed out after {Math.Max(1, Math.Round(error.Waited.TotalSeconds)):0}s — {captured}";
+    }
+
+    private static string Bounded(string raw)
+    {
+        var text = raw.Trim();
+        return text.Length <= ErrorLimit ? text : text[..ErrorHead] + Truncated + text[^(ErrorLimit - Truncated.Length - ErrorHead)..];
     }
 
     /// <summary>The two sides of a file's diff: null is absent, an empty string the index, otherwise a commit id; a null modified side is the working tree.</summary>
@@ -75,7 +66,7 @@ internal static class GitRepository
         }
         async Task<bool> Untracked() =>
             (await RunAsync(root, ct, "ls-files", "--others", "--exclude-standard", "-z", "--", path)).Length > 0;
-        if (scope == "untracked" || (scope is "uncommitted" or "branch") && await Untracked()) return new(null, null);
+        if (scope == "untracked" || (scope is "uncommitted" or "branch" or "pinned") && await Untracked()) return new(null, null);
         switch (scope)
         {
             case "commit":
@@ -84,6 +75,7 @@ internal static class GitRepository
             case "staged": return new(await Head(), "");
             case "working": return new("", null);
             case "branch": return new(await ComparisonBaseAsync(root, comparison, ct), null);
+            case "pinned": return new(await PinnedCommitAsync(root, comparison, ct), null);
             case "uncommitted": return new(await Head(), null);
             default: return new(await Head() ?? "", null);
         }
@@ -96,7 +88,7 @@ internal static class GitRepository
 
     internal static async Task<string> ComparisonBaseAsync(string root, string comparison, CancellationToken ct)
     {
-        var target = (await RunAsync(root, ct, "rev-parse", "--verify", "--end-of-options", comparison + "^{commit}")).Trim();
+        var target = (await RunAsync(root, ct, "rev-parse", "--verify", "--end-of-options", GitRefs.Require(comparison) + "^{commit}")).Trim();
         try { return (await RunAsync(root, ct, "merge-base", "--end-of-options", target, "HEAD")).Trim(); }
         catch (GitException error) when (error.ExitCode == 1) { return target; }
     }
@@ -107,21 +99,34 @@ internal static class GitRepository
         return parent is null ? ["show", "--format=", "--no-renames", sha] : ["diff", "--no-renames", parent, sha];
     }
 
-    /// <summary>Resolves a commit and its first parent, which is null for a root commit.</summary>
-    internal static async Task<(string? Parent, string Commit)> CommitRangeAsync(string root, string commit, CancellationToken ct)
+    /// <summary>
+    /// The immutable commit a pinned scope measures the working tree against. Unlike a branch target it is used
+    /// as given, never through a merge base, so the range cannot move while the branch or its target does.
+    /// </summary>
+    internal static async Task<string> PinnedCommitAsync(string root, string commit, CancellationToken ct)
+    {
+        RequireCommitId(commit);
+        try { return (await RunAsync(root, ct, "rev-parse", "--verify", "--quiet", "--end-of-options", commit + "^{commit}")).Trim(); }
+        catch (GitException error) when (error.ExitCode == 1) { throw new HostException(HostErrorCode.UnknownCommit, $"Unknown commit: {commit}"); }
+    }
+
+    private static void RequireCommitId(string commit)
     {
         if (commit.Length is < 4 or > 64 || !commit.All(value => value is >= '0' and <= '9' or >= 'a' and <= 'f'))
             throw new ArgumentException("A commit scope requires a hexadecimal commit id.");
-        string sha;
-        try { sha = (await RunAsync(root, ct, "rev-parse", "--verify", "--quiet", "--end-of-options", commit + "^{commit}")).Trim(); }
-        catch (GitException error) when (error.ExitCode == 1) { throw new HostException(HostErrorCode.UnknownCommit, $"Unknown commit: {commit}"); }
+    }
+
+    /// <summary>Resolves a commit and its first parent, which is null for a root commit.</summary>
+    internal static async Task<(string? Parent, string Commit)> CommitRangeAsync(string root, string commit, CancellationToken ct)
+    {
+        var sha = await PinnedCommitAsync(root, commit, ct);
         try { return ((await RunAsync(root, ct, "rev-parse", "--verify", "--quiet", "--end-of-options", sha + "^")).Trim(), sha); }
         catch (GitException error) when (error.ExitCode == 1) { return (null, sha); }
     }
 
     internal static async Task<GitSnapshot> SnapshotAsync(string root, string comparison, CancellationToken ct, string scope = "all")
     {
-        if (scope is not ("all" or "uncommitted" or "staged" or "commit")) throw new ArgumentException("Unknown change scope.");
+        if (scope is not ("all" or "uncommitted" or "staged" or "commit" or "pinned")) throw new ArgumentException("Unknown change scope.");
         try { await RunAsync(root, ct, "rev-parse", "--git-dir"); }
         catch (GitException error) when (error.ExitCode == 128 && error.Message.StartsWith("fatal: not a git repository (or any", StringComparison.Ordinal))
         { return new(false, "", [], [], []); }
@@ -133,6 +138,7 @@ internal static class GitRepository
         var workingChanges = ParseStatus(status);
         var diff = scope == "commit" ? await CommitDiffArgumentsAsync(root, comparison, ct) : new List<string> { "diff", "--no-renames" };
         if (scope == "staged") diff.Add("--cached");
+        else if (scope == "pinned") diff.Add(await PinnedCommitAsync(root, comparison, ct));
         else if (scope == "all" && comparison.Length > 0)
             diff.Add(await ComparisonBaseAsync(root, comparison, ct));
         else if (scope == "uncommitted") diff.Add("HEAD");
@@ -181,7 +187,8 @@ internal static class GitRepository
         var worktrees = ParseWorktrees(await RunAsync(root, ct, "worktree", "list", "--porcelain", "-z"));
         var branches = (await RunAsync(root, ct, "for-each-ref", "--format=%(refname:short)", "refs/heads", "refs/remotes"))
             .Split('\n', StringSplitOptions.RemoveEmptyEntries);
-        var commits = scope != "commit" ? await ListCommitsAsync(root, comparison, ct) : [];
+        // Commit and pinned scopes carry a commit id where the others carry the target the catalog is listed against.
+        var commits = scope is "commit" or "pinned" ? [] : await ListCommitsAsync(root, comparison, ct);
         return new(true, branch, changes, worktrees, branches) { Commits = commits };
     }
 
@@ -191,6 +198,7 @@ internal static class GitRepository
         var commits = new List<GitCommit>();
         if (comparison.Length > 0)
         {
+            GitRefs.Require(comparison);
             string log;
             try { log = await RunAsync(root, ct, "log", "--max-count=200", "--format=%H%x00%h%x00%cI%x00%an%x00%s", "--end-of-options", comparison + "..HEAD", "--"); }
             catch (GitException error) when (error.ExitCode == 128) { log = ""; }

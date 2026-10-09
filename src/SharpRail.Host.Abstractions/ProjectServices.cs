@@ -87,6 +87,8 @@ public record BranchCatalog(IReadOnlyList<string> Local, IReadOnlyList<RemoteBra
     public string SuggestedBranch { get; init; } = "";
 }
 public record EditorInfo(string Id, string Label);
+/// <summary>Line totals of a workspace's changes against its review target.</summary>
+public record DiffStats(int Added, int Removed);
 /// <summary>The open pull request of the workspace branch; counts are -1 when unknown.</summary>
 public record OpenReview(int Number, string Url, string Provider, int UnpushedCommits, int BehindCommits);
 public record PrDraft(string Title, string Body);
@@ -112,6 +114,8 @@ public interface IProjectServices
     ValueTask<ChangeReceipt> UndoChangeAsync(string receiptId, string? expectModifiedHash, CancellationToken cancellationToken = default);
     ValueTask<GitSnapshot> ApplyGitActionAsync(GitAction action, CancellationToken cancellationToken = default);
     ValueTask<BranchCatalog> ListBranchesAsync(bool fetchDefault, CancellationToken cancellationToken = default);
+    /// <summary>The change totals of one of this project's workspaces, or null from a host that cannot tell.</summary>
+    ValueTask<DiffStats?> GetDiffStatsAsync(string workspacePath, CancellationToken cancellationToken = default) => ValueTask.FromResult<DiffStats?>(null);
     ValueTask<OpenReview?> GetOpenReviewAsync(bool fresh, CancellationToken cancellationToken = default);
     ValueTask<PrDraft> PreviewPrAsync(CancellationToken cancellationToken = default);
     ValueTask<PrResult> OpenPrAsync(PrRequest request, CancellationToken cancellationToken = default);

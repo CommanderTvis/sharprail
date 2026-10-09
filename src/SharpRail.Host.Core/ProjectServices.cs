@@ -107,9 +107,9 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
     {
         var currentRoot = root;
         Resolve(currentRoot, path);
-        if (scope is not ("untracked" or "staged" or "working" or "all" or "uncommitted" or "branch" or "commit")) throw new ArgumentException("Unknown diff scope.");
+        if (scope is not ("untracked" or "staged" or "working" or "all" or "uncommitted" or "branch" or "commit" or "pinned")) throw new ArgumentException("Unknown diff scope.");
         if (scope == "untracked") return await AddedDiffAsync(currentRoot, path, cancellationToken);
-        if (scope == "uncommitted" &&
+        if (scope is "uncommitted" or "pinned" &&
             (await GitRepository.RunAsync(currentRoot, cancellationToken, "ls-files", "--others", "--exclude-standard", "-z", "--", path)).Length > 0)
             return await AddedDiffAsync(currentRoot, path, cancellationToken);
         if (scope == "commit")
@@ -121,6 +121,7 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
         var args = new List<string> { "diff", "--no-ext-diff", "--no-color", "--unified=5" };
         if (scope == "staged") args.Add("--cached");
         else if (scope == "uncommitted") args.Add("HEAD");
+        else if (scope == "pinned") args.Add(await GitRepository.PinnedCommitAsync(currentRoot, comparisonBranch, cancellationToken));
         else if (scope == "all")
         {
             try { await GitRepository.RunAsync(currentRoot, cancellationToken, "rev-parse", "--verify", "HEAD"); args.Add("HEAD"); }
@@ -169,7 +170,7 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
     {
         var currentRoot = root;
         Resolve(currentRoot, path);
-        if (scope is not ("untracked" or "staged" or "working" or "all" or "uncommitted" or "branch" or "commit")) throw new ArgumentException("Unknown diff scope.");
+        if (scope is not ("untracked" or "staged" or "working" or "all" or "uncommitted" or "branch" or "commit" or "pinned")) throw new ArgumentException("Unknown diff scope.");
         var range = await GitRepository.ResolveDiffRangeAsync(currentRoot, path, scope, comparisonBranch, cancellationToken);
         static (string Text, ContentMetadata Info) Side(byte[]? bytes, string path)
         {
@@ -271,9 +272,10 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
                     }
                     break;
                 case "create-worktree":
-                    await FetchRemoteAsync(currentRoot, action.BaseBranch, cancellationToken);
                     if (string.IsNullOrWhiteSpace(action.Branch)) throw new ArgumentException("Enter a new branch name.");
-                    await GitRepository.RunAsync(currentRoot, cancellationToken, "check-ref-format", "--branch", action.Branch);
+                    GitRefs.Require(action.Branch);
+                    GitRefs.Require(action.BaseBranch);
+                    await FetchRemoteAsync(currentRoot, action.BaseBranch, cancellationToken);
                     await GitRepository.RunAsync(currentRoot, cancellationToken, "rev-parse", "--verify", "--end-of-options", action.BaseBranch + "^{commit}");
                     await GitRepository.RunAsync(currentRoot, cancellationToken, "worktree", "add", "-b", action.Branch,
                         "--", Path.GetFullPath(action.Path), action.BaseBranch);
@@ -290,7 +292,10 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
             var result = await GitRepository.SnapshotAsync(currentRoot, "", cancellationToken);
             if (action.Kind is "create-worktree" or "remove-worktree" && state is not null && result.Worktrees.FirstOrDefault(tree => tree.IsMain) is { } main)
                 state.PublishWorkspaces(main.Path, result.Worktrees.Select(tree => tree.Path).ToArray(),
-                    action.Kind == "remove-worktree" ? Path.GetFullPath(action.Path) : null);
+                    action.Kind == "remove-worktree" ? Path.GetFullPath(action.Path) : null,
+                    action.Kind == "create-worktree" ? Path.GetFullPath(action.Path) : null,
+                    // HEAD is wherever the session stood, not a target a later reader could resolve to the same commit.
+                    action.BaseBranch == "HEAD" ? null : action.BaseBranch);
             return result;
         }
         finally { mutations.Release(); }

@@ -20,22 +20,37 @@ and worktree listing. Exposed through `IProjectServices` (`GetGitAsync`, `ListCo
 
 ## Boundary
 
-- Owns: `GitRepository` (`RunAsync`, `SnapshotAsync`, `ListCommitsAsync`, `ComparisonBaseAsync`,
+- Owns: `GitRefs` (the ref-shape check), `GitRepository` (`RunAsync`, `SnapshotAsync`, `ListCommitsAsync`, `ComparisonBaseAsync`,
   `CommitRangeAsync`, `CommitDiffArgumentsAsync`, `ParseWorktrees`) and the scope handling in
   `ProjectServices`.
 - Forbidden: UI types; interpreting a Git failure as "no changes".
 
 ## Runner
 
-`RunAsync(root, ct, args)` starts `git` asynchronously with `--literal-pathspecs` and
+`RunAsync(root, ct, args)` (and `RunBytesAsync` for undecoded output) starts `git` through the bounded
+child runner ([Terminals.SPEC.md](Terminals.SPEC.md)) with `--literal-pathspecs` and
 `core.quotepath=false`, in the workspace root, with `LC_ALL=C` and `GIT_OPTIONAL_LOCKS=0` so background status refreshes never
-hold `index.lock` against the user's own Git commands. It reads both streams to completion,
-throws an `IOException` carrying Git's trimmed stderr and exit code on a nonzero exit, and kills the whole
-process tree on cancellation. Semantic probes distinguish an expected exit (for example exit 1 from
+hold `index.lock` against the user's own Git commands. Every call also runs with `GIT_TERMINAL_PROMPT=0`
+in a session of its own: with no terminal to ask on, a credential or passphrase prompt fails at once. It
+throws an `IOException` carrying Git's trimmed stderr (bounded to 2,000 characters, head and tail kept)
+and exit code on a nonzero exit, and kills the child's process group on cancellation. Every call has a
+55 s wall-clock budget (`ExecuteAsync` takes another); on expiry the group is killed and the error reads
+`timed out after Ns — ` followed by what Git had written, else `git did not exit`, or for `fetch`, `push`,
+`pull`, `clone` and `ls-remote` alone the hint that an unloaded SSH key is the usual cause. A timeout
+carries exit code -1, so no semantic probe mistakes it for an expected exit. Semantic probes distinguish an expected exit (for example exit 1 from
 `merge-base` or `symbolic-ref -q`) from any other failure by that exit code; nothing else is swallowed.
 Every path argument is literal, never a pathspec, so a file named like pathspec magic or a glob matches
 only itself. Revisions go after `--end-of-options` and before a trailing `--`, so neither an option-shaped
 ref nor a ref that also names a path can be misread.
+
+Every ref passes `GitRefs.IsSafe` before any Git call, at each door that accepts one: the comparison
+target of a snapshot, commit list, diff or diff sides, a new workspace's branch and base, a fetched
+reference, the branch a pull request pushes, and the default base the repository itself names
+(`origin/HEAD` or the main worktree's branch; an unusable one is skipped, not trusted). The check runs in
+process with `check-ref-format`'s rules and costs no child: it refuses an empty or option-shaped name,
+`..`, `@{`, a lone `@`, a trailing `.` or `/`, control characters and space, `~ ^ : ? * [ \`, and an
+empty, dot-led or `.lock` component. A refusal is `Not a usable git ref: <ref>`. A commit scope keeps its
+own stricter hexadecimal rule.
 
 ## Scopes
 
@@ -53,11 +68,37 @@ A scope is defined once, and the file list, counts and both diff sides use the s
   Git and must then resolve with `rev-parse --verify`; a commit that exists but is no longer reachable from
   the branch still shows its diff. One that does not resolve fails as `HostErrorCode.UnknownCommit`, as
   does a `ReadContentBytesAsync` revision, so the client resets its scope instead of showing an error.
+- `pinned`: one immutable commit to the working tree, plus untracked files. The id follows the commit
+  scope's hexadecimal rule and is used as resolved, never through a merge base, so the range holds still
+  while the branch and its target move. An id that names no commit fails as `HostErrorCode.UnknownCommit`. The
+  modified side is the worktree, so the scope is mutable. Its snapshot lists no commits. No panel selects
+  it yet; it is the range a "since I last looked" review measures.
 - `branch` and `working` serve diff reads only: the comparison baseline to the working tree, and index to
   working tree.
 
 Untracked files count their whole content as added lines (skipping symbolic links, files over 8 MiB and
 binary content). Line counts come from `--numstat`; binary rows keep zero counts.
+
+## Review target
+
+What a workspace's changes are measured against is the host's, shared by every client
+([HostState.SPEC.md](HostState.SPEC.md)): the ref the workspace was created from, recorded when the host
+creates the worktree (never for `HEAD`), and a re-pointed target kept apart from it. A client sends the
+effective one as the comparison target of its reads; the Changes panel's target picker writes it and
+follows another client's choice. A target only has to be well formed: one that does not resolve is
+stored, and the read against it fails visibly.
+
+`GetDiffStatsAsync(workspacePath)` totals a workspace row's badge over the range its Changes panel opens
+on: `diff --shortstat` from the merge base of the review target and the workspace's `HEAD` (the same
+`ComparisonBaseAsync` the snapshot uses), or from `HEAD` without a target. Untracked files are not
+counted. Only a worktree of the session's project is answered; a failed read is an error and the row
+shows no badge. A client of a host without the call gets null.
+
+Every fetch of a remote-tracking ref (`FetchRemoteAsync`: the default-base prefetch and workspace
+creation) compares the ref's commit before and after and reports whether it moved, also when the fetch
+failed after the ref had advanced. A move raises `BaseMoved` with the repository's common Git directory;
+each file watcher of that repository whose workspace's review target is that ref emits a change, so its
+clients re-read Git although no file in the workspace changed.
 
 ## Commit and branch catalogs
 
@@ -74,12 +115,12 @@ binary content). Line counts come from `--numstat`; binary rows keep zero counts
   logging rather than failing when the fetch does.
 - `GetOpenReviewAsync` answers the open GitHub pull request of the workspace branch (number, https URL, unpushed
   and behind counts; -1 when unknown) from `gh pr list --head`, run with prompts disabled and an 8 s budget whose
-  expiry kills the child's process tree. Only a github.com `origin` is looked up; a missing or unauthenticated
+  expiry kills the child's process group. Only a github.com `origin` is looked up; a missing or unauthenticated
   `gh`, a timeout or a non-https link degrade to no review. Successful answers, empty ones included, are cached
   for 60 s per worktree and branch; failures never are. Concurrent lookups share one `gh` call, and `fresh`
   skips the cache (joining a call already running) and fetches the branch so the behind count can be trusted.
 - `PreviewPrAsync` proposes the branch name as title and the commit subjects since the base as body.
-  `OpenPrAsync` guards in order: a branch shaped like an option or failing `check-ref-format`, a missing `origin`,
+  `OpenPrAsync` guards in order: a branch shaped like an option or failing the ref-shape check, a missing `origin`,
   a base that is not on `origin`, and the base branch itself (nothing is pushed in these cases). It counts dirty
   files without blocking, re-reads the live branch, pushes `--set-upstream origin <branch>` with prompts
   disabled (`GIT_TERMINAL_PROMPT=0`, `LC_MESSAGES=C` with `LC_ALL` demoted to `LC_CTYPE`, a batch-mode SSH
@@ -102,8 +143,8 @@ binary content). Line counts come from `--numstat`; binary rows keep zero counts
   because a terminal checkout moves it out of band.
 - Stale responses are rejected by the caller per workspace and scope; scope and target changes cancel
   the superseded read (`WorkspaceGit.cs` in the UI).
-- Remote fetches run only for a ref whose remote is configured, pass the branch through
-  `check-ref-format --branch` first and fetch `--no-tags` after `--end-of-options`, so a crafted ref cannot
+- Remote fetches run only for a ref whose remote is configured, pass the ref-shape check first and fetch
+  `--no-tags` after `--end-of-options`, so a crafted ref cannot
   become a refspec. A failed fetch reports Git's own error.
 
 ## Change write path
@@ -113,8 +154,8 @@ binary content). Line counts come from `--numstat`; binary rows keep zero counts
   of each side the client saw, never content; under the workspace's mutation lock the host re-resolves the
   diff range (`GitRepository.ResolveDiffRangeAsync`, shared with `GetDiffSidesAsync`), re-reads both
   sides and refuses a hash mismatch, so a stale view writes nothing.
-- Mutable scopes are those whose modified side is the worktree: `uncommitted`, `working`, `branch`, `all`
-  and `untracked`. `commit` and `staged` are immutable.
+- Mutable scopes are those whose modified side is the worktree: `uncommitted`, `working`, `branch`, `all`,
+  `pinned` and `untracked`. `commit` and `staged` are immutable.
 - A hunk revert is text-only and never changes whether the file exists. Only `\n` ends a line and a
   restored line keeps its own ending. A whole-file revert writes the original bytes with the Git mode
   (executable or not), restores a deleted file, or moves an added or untracked file to the system trash.
@@ -151,18 +192,8 @@ binary content). Line counts come from `--numstat`; binary rows keep zero counts
 
 ## Not yet ported
 
-- A wall-clock budget on every Git call beyond pull-request pushes and `gh` (upstream 55 s) whose timeout message keeps what Git wrote and
-  names only observed causes, with the child's process group killed on expiry and a hint about unloaded
-  SSH keys only for network operations.
-- `GIT_TERMINAL_PROMPT=0` and a detached session for Git children so a passphrase prompt fails fast
-  instead of waiting on a terminal.
-- A per-workspace review target (`diffBase`) persisted separately from creation provenance, and a
-  `pinned` scope measuring an immutable commit against the working tree.
-- An in-process ref-shape check (`check-ref-format` rules) at every door that accepts a ref, including a
-  base read from the repository's own `HEAD`.
-- Background prefetch reporting whether a remote-tracking ref moved, and a nudge to re-read workspaces
-  whose comparison base it moved.
-- Workspace diff-stat badges computed from the same branch-scope range.
+- Prefetching a base other than the default when it is picked in the Create workspace dialog (the
+  default is prefetched as the dialog opens, and creation fetches whichever base was chosen).
 - An immutable original for the index side: a `working` diff measures against the index, which has no
   commit id, so its bytes can change between two reads. Other scopes' originals are frozen to a commit.
 - A streamed, HTTP-served byte route; the host returns one gRPC message per read, so the cap is the

@@ -157,6 +157,27 @@ after the reconnect with no row added, removed or navigated away from. A per-req
 from the `grpc-timeout` the host receives: the adapter default, a raised scope on a read and a mutation,
 a nested scope across threads, restoration on leaving each, and expiry of a lowered one.
 
+## Process checks
+
+`ProcessChecks.cs` (`-- --process`, also in the default run) drives the host's bounded child runner with
+real `sh` and `git` children; [Terminals.SPEC.md](../../src/SharpRail.Host.Core/Terminals.SPEC.md) lists
+the cases.
+
+## Git host checks
+
+`GitHostChecks.cs` (`-- --git-host`, also in the default run) runs one scenario list against the embedded
+host and a real gRPC host over twin fixtures (a bare origin and a clone one commit ahead on `feature`) and
+requires equal logs. It covers the ref-shape table, and every door refusing option, range, reflog and
+revision syntax before Git runs, with refs unchanged afterwards and a crafted `origin/HEAD` skipped; the
+pinned scope (commits, working edits and untracked files from one commit, unmoved by a later commit,
+abbreviated, unknown and malformed ids, revert and undo); and the creation base and re-pointed review
+target through create, re-point, restore, an unresolvable ref, a refused range and removal; badge totals
+without a target, against one, with working edits, equal to the snapshot's sums and refused outside the
+project; and a prefetch that reports a move once, nudges the watcher of the workspace measured against the
+ref, stays silent when nothing changed and refuses a local branch or a range. The mode then
+runs `ChangesScopeE2E` headless, whose SharpRail-only last case requires the rail badge to total the listed changes, stores a picked target
+on the host and follows one re-pointed by another client; it needs `SHARPRAIL_TEST_GIT_SOURCE`.
+
 ## Quit and close commands
 
 `QuitConfirmationChecks` translates upstream's quit-confirmation cases against a fake clock and scheduler:

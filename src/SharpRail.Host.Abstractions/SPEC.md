@@ -65,19 +65,22 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
   `RequestReplay` 3). Version 0 means a host that predates the handshake.
 - `IWorkspaceHost` is the minimal probe of the host's root workspace: its identity and top-level entries.
 
+- `IProjectServices.GetDiffStatsAsync` has a default body answering null, so a test double or an older
+  implementation simply offers no badge.
+
 ## Invariants
 
 - Hydrate, then stream: every piece of shared domain state is readable in full and observable as
   complete snapshots; no surface relies on a client having witnessed an event.
 - One definition per concept: a diff scope is a string understood identically by status, commit listing
-  and diff reads (`all`, `uncommitted`, `staged`, `commit`, plus `branch` and `working` for diff reads).
+  and diff reads (`all`, `uncommitted`, `staged`, `commit`, `pinned`, plus `branch` and `working` for diff reads).
 - A record added here gets a Protocol DTO and both adapters in the same change, with local/remote
   parity verified in `tests/SharpRail.Checks`.
 - Size limits that both sides must agree on (`FileLimits`) are defined once here.
 
 ## Not yet ported
 
-- Workspace records with stable ids, kinds and lifecycle events, a workspace diff-base setter, a
+- Workspace records with stable ids, kinds and lifecycle events, a
   lifecycle-notification stream, and a terminal catalog with reservation separate from attachment.
 - Content classification (media type, hash) on file reads and a byte read of a path at one commit; diff
   sides already carry hashes.

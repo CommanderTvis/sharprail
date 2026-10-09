@@ -25,7 +25,7 @@ gRPC.
 
 - Owns: `WorkspaceHost`, `ProjectServices` (one client's project session), `HostStateStore`,
   `PtyTerminalService` and its internals (`HostedTerminal`, `TerminalRecorder`, `PtySession`,
-  `Posix.cs`), `GitRepository`, `SpecCatalog` and `TerminalDevice` (raw mode and window size for the
+  `Posix.cs`), `ChildProcess` (the bounded runner), `GitRepository`, `SpecCatalog` and `TerminalDevice` (raw mode and window size for the
   relay).
 - Public surface: the Abstractions interfaces as implemented by those public classes; everything else is
   `internal`.
@@ -68,8 +68,10 @@ terminal attachments, never through a UI callback.
 - A project session serializes its mutations (open, Git actions, saves) with one gate, while reads use the
   root they started with, so a concurrent project switch never redirects an in-flight write.
 - Paths from a client are contained to the workspace root and never followed through a symbolic link.
-- Child processes run with an explicit working directory, no window, redirected output and, for Git,
-  `LC_ALL=C` so diagnostics are parseable. Cancellation kills the whole child process tree.
+- Every Git, `gh` and network child runs through one bounded runner (`ChildProcess.cs`,
+  [Terminals.SPEC.md](Terminals.SPEC.md)): an explicit working directory, its own session, closed input,
+  captured output, a wall-clock budget and, for Git, `LC_ALL=C` so diagnostics are parseable. Expiry and
+  cancellation kill the child's whole process group. Launching an editor is the one unbounded spawn.
 - User shells receive the host environment minus `SHARPRAIL_TOKEN`, with `TERM=xterm-256color`,
   `COLORTERM=truecolor` and a UTF-8 locale when none is configured (without one, line editing is
   byte-oriented and a backspace over a multi-byte character corrupts the line).
@@ -85,7 +87,6 @@ terminal attachments, never through a UI callback.
   completeness from user-directory markers; prepend inherited entries absent from the login result so
   activated environments retain precedence. Use a bounded probe with a non-interactive retry and leave
   the inherited `PATH` untouched on failure.
-- A single bounded child-process runner with a wall-clock budget, used for every Git or network call.
 - A retrying recursive tree removal for teardown, and first-free-port selection for the remote host.
 - Host-side routes serving raw workspace files for relative Markdown images (images load through
   `ReadFileAsync` instead). A path's bytes at one commit are served as a gRPC call

@@ -40,7 +40,11 @@ public sealed partial class WorkbenchWindow
             {
                 changeScope = label;
                 selectedCommit = null;
-                if (label == "Branch" && comparison.Length == 0) comparison = git.Branches.FirstOrDefault(branch => branch != git.Branch) ?? "HEAD";
+                if (label == "Branch" && comparison.Length == 0)
+                {
+                    comparison = git.Branches.FirstOrDefault(branch => branch != git.Branch) ?? "HEAD";
+                    _ = ShareAsync(SharpRail.Host.Abstractions.HostStateChange.DiffBase(workspaceRoot, comparison));
+                }
                 SaveGitSelection();
                 _ = RefreshAsync();
             });
@@ -101,6 +105,7 @@ public sealed partial class WorkbenchWindow
                     changeScope = "All changes"; selectedCommit = null; comparison = branch;
                     RetargetDiffTabs();
                     SaveGitSelection(); _ = RefreshAsync();
+                    _ = ShareAsync(SharpRail.Host.Abstractions.HostStateChange.DiffBase(workspaceRoot, branch));
                 });
                 item.ToggleType = MenuItemToggleType.Radio;
                 item.IsChecked = comparison == branch;
