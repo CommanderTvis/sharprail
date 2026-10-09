@@ -4,6 +4,7 @@ type: module-design
 status: active
 title: Host abstractions — the public host surface
 parent: architecture
+tags: [public-surface-checked]
 ---
 
 # Host abstractions — the public host surface
@@ -60,6 +61,20 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
   know about; features record the version that introduced them beside it. Version 0 means a host that
   predates the handshake.
 - `IWorkspaceHost` is the minimal probe of the host's root workspace: its identity and top-level entries.
+
+## Public surface
+
+The public top-level types of the assembly, held to it in both directions by the conformance checks
+(a type added here is added to this list in the same change):
+
+`BranchCatalog`, `ChangeException`, `ChangeExpectation`, `ChangeFailure`, `ChangeIdentity`,
+`ChangeReceipt`, `ContentBytes`, `ContentMetadata`, `DiffSides`, `EditorInfo`, `FileChange`,
+`FileDocument`, `FileEntry`, `FileLimits`, `FileSaveRequest`, `GitAction`, `GitChange`, `GitCommit`,
+`GitSnapshot`, `HostHandshake`, `HostProtocol`, `HostSettings`, `HostState`, `HostStateChange`,
+`IHostStateService`, `IProjectServices`, `ITerminalService`, `ITerminalSession`, `IWorkspaceHost`,
+`LayoutPreset`, `LineSpan`, `OpenReview`, `PrDraft`, `PrRequest`, `PrResult`, `ProjectFile`,
+`RemoteBranch`, `RevertTarget`, `SpecDocument`, `TerminalAttachRequest`, `WorkspaceInfo`,
+`WorktreeInfo`.
 
 ## Invariants
 

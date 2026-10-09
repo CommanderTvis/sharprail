@@ -35,10 +35,10 @@ internal static class SkiaOutputChecks
             window.Show();
             try
             {
-                var deadline = DateTime.UtcNow.AddSeconds(20);
+                var deadline = Awake.Now.AddSeconds(20);
                 while (cancel ? !backend.Started.IsCompleted : !exitObserved.Task.IsCompleted)
                 {
-                    if (DateTime.UtcNow > deadline) throw new InvalidOperationException("Skia output did not drain.");
+                    if (Awake.Now > deadline) throw new InvalidOperationException("Skia output did not drain.");
                     Dispatcher.UIThread.RunJobs();
                     AvaloniaHeadlessPlatform.ForceRenderTimerTick();
                     Thread.Sleep(1);

@@ -129,9 +129,9 @@ internal static class ContentChecks
         foreach (var (path, images) in new[] { ("pic.png", 2), ("doc.pdf", 0) })
         {
             using var view = new BinaryDiffView(host, path, "uncommitted", "");
-            var deadline = DateTime.UtcNow.AddSeconds(15);
+            var deadline = Awake.Now.AddSeconds(15);
             int Cards() => view.GetLogicalDescendants().OfType<StackPanel>().Count(panel => panel.Name?.StartsWith("BinarySide_", StringComparison.Ordinal) == true);
-            while (Cards() < 2 && DateTime.UtcNow < deadline) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(20); }
+            while (Cards() < 2 && Awake.Now < deadline) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(20); }
             Require(Cards() == 2, path + ": both side cards must be shown.");
             Require(view.GetLogicalDescendants().OfType<Image>().Count() == images, path + ": raster images are drawn as pixels and other types only described.");
             var text = string.Concat(view.GetLogicalDescendants().OfType<TextBlock>().Select(block => block.Text));

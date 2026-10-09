@@ -28,8 +28,7 @@ namespace SharpRail.Checks;
 
 internal static class Program
 {
-    [STAThread]
-    public static void Main(string[] args)
+    internal static void Checks(string[] args)
     {
         if (args.Contains("--native-terminal"))
         {
@@ -127,6 +126,17 @@ internal static class Program
             ChangeChecks.Run(root).GetAwaiter().GetResult();
             return;
         }
+        if (args.SequenceEqual(["--conformance"]))
+        {
+            BoundaryChecks.Run(root);
+            SurfaceChecks.Run(root);
+            return;
+        }
+        if (args.SequenceEqual(["--runner"]))
+        {
+            RunnerChecks.Run(root);
+            return;
+        }
         if (args.SequenceEqual(["--workspaces"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
@@ -135,17 +145,21 @@ internal static class Program
             Console.WriteLine("PASS workspace and project E2E checks");
             return;
         }
-        CheckHosts(root).GetAwaiter().GetResult();
-        TerminalHostChecks.Run(root).GetAwaiter().GetResult();
-        ProjectChecks.Run(root).GetAwaiter().GetResult();
-        PullRequestChecks.Run(root).GetAwaiter().GetResult();
-        ChangeChecks.Run(root).GetAwaiter().GetResult();
-        ContentChecks.Run(root).GetAwaiter().GetResult();
-        StateChecks.Run(root).GetAwaiter().GetResult();
-        FileSavingChecks.Run(root).GetAwaiter().GetResult();
-        LayoutChecks.Run();
-        QuitConfirmationChecks.Run();
-        CheckOpenWorld();
+        Gate.Case("packaged-app", PackagedApp.Run);
+        Gate.Case("hosts", () => CheckHosts(root).GetAwaiter().GetResult());
+        Gate.Case("boundaries", () => BoundaryChecks.Run(root));
+        Gate.Case("public-surface", () => SurfaceChecks.Run(root));
+        Gate.Case("runner", () => RunnerChecks.Run(root));
+        Gate.Case("terminal-hosts", () => TerminalHostChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("projects", () => ProjectChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("pull-requests", () => PullRequestChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("changes", () => ChangeChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("content", () => ContentChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("state", () => StateChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("file-saving", () => FileSavingChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("layout", LayoutChecks.Run);
+        Gate.Case("quit-confirmation", QuitConfirmationChecks.Run);
+        Gate.Case("open-world", CheckOpenWorld);
         UiChecks.Run(root);
         Console.WriteLine("PASS prototype checks and open-world runtime");
     }

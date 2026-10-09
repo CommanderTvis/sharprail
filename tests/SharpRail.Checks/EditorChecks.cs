@@ -131,8 +131,8 @@ internal static class EditorChecks
         try
         {
             // Idle wrapping grows the range in slices; wait until it settles.
-            var deadline = DateTime.UtcNow.AddSeconds(10);
-            for (var stable = 0; stable < 10 && DateTime.UtcNow < deadline;)
+            var deadline = Awake.Now.AddSeconds(10);
+            for (var stable = 0; stable < 10 && Awake.Now < deadline;)
             {
                 var before = editor.VerticalScroll;
                 using var slice = new CancellationTokenSource(20);

@@ -28,8 +28,8 @@ internal static class DockInputChecks
     {
         var window = new WorkbenchWindow(new ProjectServices(root), root, new ProfileStore(root + "-dock-input"), E2E.E2eTerminals.Plain);
         window.Show();
-        var deadline = DateTime.UtcNow.AddSeconds(15);
-        while (!window.WorkspaceMounted && DateTime.UtcNow < deadline) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(1); }
+        var deadline = Awake.Now.AddSeconds(15);
+        while (!window.WorkspaceMounted && Awake.Now < deadline) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(1); }
         Require(window.WorkspaceMounted, "Dock input workspace did not mount.");
         T Find<T>(string name) where T : Control
         {
