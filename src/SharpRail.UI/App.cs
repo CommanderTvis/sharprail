@@ -65,7 +65,7 @@ public sealed partial class App : Application
             if (localTerminals is not null) local.WorkspaceRemoved += path => _ = Task.Run(async () => await localTerminals.CloseWorkspaceAsync(path));
             local.Terminals = localTerminals;
             // The app's own host runs its plugins in process; a remote host runs them where it runs.
-            var loopback = remote ? null : new SharpRail.Host.Remote.LoopbackServer(localTerminals);
+            var loopback = remote ? null : new SharpRail.Host.Remote.LoopbackServer(localTerminals, local);
             var runtime = loopback is null ? null : new SharpRail.Host.Core.Plugins.PluginRuntime(new()
             {
                 StateDirectory = profile.DirectoryPath,

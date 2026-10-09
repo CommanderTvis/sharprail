@@ -115,6 +115,7 @@ internal static class UiChecks
         var store = new ProfileStore(Path.Combine(root, ".profile"));
         var host = new LocalProjectAdapter(new ProjectServices(root));
         Gate.Case("SelectionChecks", () => SelectionChecks.Run(host));
+        Gate.Case("workspace-tools-ui", () => WorkspaceToolChecks.RunUi(root));
         Gate.Case("TerminalChromeChecks", () => E2E.TerminalChromeChecks.Run(Path.Combine(root, "upstream-e2e")));
         Gate.Case("LayoutSettingsE2E", () => E2E.LayoutSettingsE2E.Run(Path.Combine(root, "upstream-e2e")));
         Gate.Case("ThemeE2E", () => E2E.ThemeE2E.Run(Path.Combine(root, "upstream-e2e")));

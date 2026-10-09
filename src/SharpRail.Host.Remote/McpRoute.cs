@@ -12,12 +12,13 @@ using SharpRail.Plugins.Api.Host;
 
 namespace SharpRail.Host.Remote;
 
-// The host's loopback HTTP/1.1 server, which processes on the host machine reach: the active plugins' tools
+// The host's loopback HTTP/1.1 server, which processes on the host machine reach: workspace and active plugin tools
 // over MCP at /mcp/{token}, where the per-terminal token is the only identity and an unknown one is 404,
 // and plugin routes at /plugin/{id}/{subpath}. It starts on first use and lives as long as the host.
-public sealed class LoopbackServer(PtyTerminalService? terminals) : IAsyncDisposable
+public sealed class LoopbackServer(PtyTerminalService? terminals, HostStateStore? state = null) : IAsyncDisposable
 {
     private readonly Lock gate = new();
+    private readonly WorkspaceMcpTools? workspaceTools = state is null ? null : new(state);
     private WebApplication? server;
     private string? baseUrl;
     private bool disposed;
@@ -69,6 +70,7 @@ public sealed class LoopbackServer(PtyTerminalService? terminals) : IAsyncDispos
             try { message = await JsonNode.ParseAsync(context.Request.Body, cancellationToken: context.RequestAborted); }
             catch (JsonException) { return Results.Text("""{"jsonrpc":"2.0","id":null,"error":{"code":-32700,"message":"Parse error"}}""", "application/json"); }
             var tools = Plugins?.McpTools(owner.Terminal, owner.Workspace) ?? [];
+            if (workspaceTools is not null) tools = [workspaceTools.Create(owner.Workspace), .. tools];
             var (status, body) = await McpServer.HandleAsync(message, tools, context.RequestAborted);
             return body is null ? Results.StatusCode(status) : Results.Text(body.ToJsonString(), "application/json", statusCode: status);
         });

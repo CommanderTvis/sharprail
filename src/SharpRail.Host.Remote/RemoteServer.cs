@@ -30,7 +30,7 @@ public static class RemoteServer
         state.Terminals = pty;
         if (terminals is null) builder.Services.AddSingleton<ITerminalService>(_ => pty ?? new PtyTerminalService());
         else builder.Services.AddSingleton(terminals);
-        var loopback = new LoopbackServer(pty);
+        var loopback = new LoopbackServer(pty, state);
         var seams = new PluginHostSeams { StateDirectory = stateDirectory, State = state, PublicBaseUrl = () => loopback.BaseUrl, Terminals = pty };
         var runtime = new PluginRuntime(plugins?.Invoke(seams) ?? seams);
         loopback.Plugins = runtime;

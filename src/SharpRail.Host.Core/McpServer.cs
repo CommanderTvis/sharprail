@@ -9,9 +9,9 @@ public static class McpServer
     private const string LatestProtocol = "2025-06-18";
     private static readonly HashSet<string> KnownProtocols = ["2024-11-05", "2025-03-26", LatestProtocol];
     private const string Instructions =
-        "SharpRail's project tools for the workspace this session runs in. Only enabled plugins contribute tools; use those relevant to the task and the project's workflow.";
+        "SharpRail's workspace tools and enabled plugins' project tools for the workspace this session runs in. Use those relevant to the task and the project's workflow.";
 
-    /// <summary>A tool on the table, from an active plugin; it validates its own arguments.</summary>
+    /// <summary>A host or active plugin tool on the table; it validates its own arguments.</summary>
     public sealed record McpTool(string Name, string Title, string Description, JsonObject InputSchema, Func<JsonObject, CancellationToken, Task<(string Text, bool Error)>> Call);
 
     public static async Task<(int Status, JsonNode? Body)> HandleAsync(JsonNode? message, IReadOnlyList<McpTool> tools, CancellationToken cancellationToken = default)
