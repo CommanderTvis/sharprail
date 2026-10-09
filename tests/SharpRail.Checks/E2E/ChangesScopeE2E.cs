@@ -139,16 +139,23 @@ internal static class ChangesScopeE2E
         using var _ = app;
         SeedCommitAndDirtyEdit(worktree);
         ShowChanges(app);
+        Require(!HasMenuItem(app, "ChangesScope", item => item.Name?.StartsWith("ChangesCommit_", StringComparison.Ordinal) == true),
+            "Commit rows must not be read before the scope menu opens.");
+        OpenMenu(app, "ChangesScope");
         Until(() => HasMenuItem(app, "ChangesScope", CommitItem("e2e scope commit")));
         Require(app.Find<Button>("ChangesScope").ContextMenu!.Items.OfType<MenuItem>().Count(item => item.Name?.StartsWith("ChangesCommit_", StringComparison.Ordinal) == true) == 1,
             "The first worktree must list its own commit exactly once.");
+        CloseMenu(app.Find<Button>("ChangesScope"));
 
         WorkspaceTabsE2E.Switch(app, app.Root);
         WorkspaceTabsE2E.CreateWorkspace(app, "workspace-2");
         ShowChanges(app);
+        OpenMenu(app, "ChangesScope");
         Until(() => HasMenuItem(app, "ChangesScope", item => item.Name == "ChangesNoCommits" && Equals(item.Header, "No commits on this branch")));
         Require(!HasMenuItem(app, "ChangesScope", item => item.Name?.StartsWith("ChangesCommit_", StringComparison.Ordinal) == true),
             "A second worktree must not inherit the first worktree's commit rows.");
+        Until(() => HasMenuItem(app, "ChangesScope", item => Equals(item.Header, "No uncommitted changes") && !item.IsEnabled));
+        CloseMenu(app.Find<Button>("ChangesScope"));
         Console.WriteLine("PASS upstream changes.spec.ts: The scope menu is per workspace: its commit rows never carry over to another worktree");
     }
 

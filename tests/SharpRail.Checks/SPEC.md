@@ -17,7 +17,7 @@ contract, not that list.
 run is the complete gate: host transport parity, host terminals, project/Git parity,
 host state, file saving, layout transitions, the open-world runtime probe, and then
 the headless UI checks with every upstream translation. Named modes
-(`--editor`, `--files`, `--terminals`, `--ghostty-skia`, `--sync`, `--workspaces`) are focused iteration subsets
+(`--editor`, `--files`, `--terminals`, `--ghostty-skia`, `--sync`, `--workspaces`, `--change-actions`, `--review`) are focused iteration subsets
 of that same code, never separate coverage; anything they run is also in the full
 run. `--native-terminal` and `--native-texture` drive real macOS windows; the latter
 verifies GPU texture composition, overlays/clipping, theme, clipboard/input,
@@ -144,7 +144,22 @@ model (coalescing, the cap evicting only actionless toasts, default and own life
 width, expiry without rebuilding the others, action, dismissal), then reverts through the diff tab: one of
 two change blocks with its spans, Undo, a file moved by `E2eHost.BeforeRevert` after the tab drew it (nothing
 reverted, notice, reloaded diff), Revert file and Undo, a new file to the trash and back, and no revert
-controls on a staged diff. Block controls are asserted on macOS only.
+controls on a staged diff. Block controls are asserted on macOS only. It also opens a missing folder
+through the Add project menu and requires the single-button notice instead of the error line, and checks
+that the scope menu reads its commit rows and the “No uncommitted changes” probe only when opened. The translated
+scope-menu cases open the menu before expecting commit rows and require “No uncommitted changes” on a clean
+worktree; the create-workspace fetch failure is asserted on its toast.
+
+## Review panel
+
+`ReviewChecks.cs` (`-- --review`, also in the default run) drives the Review panel's pull request flow against
+the host checks' bare origin and `gh` PATH shim: the compose dialog starting from the host draft, a failed push
+keeping the dialog and its edits, creation from the edited fields, the chip and its link, the dirty-file
+notice, unpushed commits and Push updates through the dialog, an unauthenticated `gh` handing over to setup
+guidance with Try again resubmitting the last edits, and the compare page. The diverged state cannot be
+produced by a fixture origin that is reachable only for pushes, so `E2eHost.Review` supplies the behind count
+at the host boundary; the check then requires the integrate command and that nothing was pushed. Links go
+to an injected `OpenLink`, never a browser.
 
 ## Quit and close commands
 

@@ -56,7 +56,15 @@ public sealed partial class WorkbenchWindow
     {
         try
         {
-            await OpenProjectHomeAsync(path);
+            // An open the user asked for by path has no surface of its own to fail on, so it says so in a notice.
+            Exception? failure = null;
+            await OpenWorkspaceAsync(path, true, home: true, failed: error => failure = error);
+            if (failure is not null)
+            {
+                Console.Error.WriteLine(failure);
+                await Dialogs.Notice(this, "Couldn't open project", failure.Message);
+                return;
+            }
             if (!WorkspaceMounted) return;
             var request = projectRequest;
             var snapshot = await host.GetGitAsync("", lifetime.Token);

@@ -30,6 +30,7 @@ internal sealed partial class DiffView : Grid, IDisposable
     private readonly Func<CancellationToken, Task<Control?>>? renderMerged;
     private readonly Action<bool>? renderedChanged;
     private readonly Func<RevertTarget, Task>? revert;
+    private readonly Button? revertFile;
     private bool reverting;
     private CancellationTokenSource? merge;
     private Control? merged;
@@ -86,7 +87,7 @@ internal sealed partial class DiffView : Grid, IDisposable
         controls.Children.Add(whitespace); controls.Children.Add(copy);
         if (revert is not null)
         {
-            var revertFile = RevertButton("DiffRevertFile", "Revert file", new RevertTarget());
+            revertFile = RevertButton("DiffRevertFile", "Revert file", new RevertTarget());
             revertFile.Width = 28;
             controls.Children.Insert(0, revertFile);
         }
@@ -331,6 +332,8 @@ internal sealed partial class DiffView : Grid, IDisposable
     private void Render()
     {
         whitespace.IsVisible = !IsRendered && OperatingSystem.IsMacOS();
+        // Identical sides leave nothing to restore.
+        if (revertFile is not null) revertFile.IsVisible = !string.IsNullOrWhiteSpace(text);
         if (IsRendered) { StartMerge(keepCurrent: false); return; }
         merge?.Cancel(); merge?.Dispose(); merge = null;
         DropMerged();
@@ -339,7 +342,7 @@ internal sealed partial class DiffView : Grid, IDisposable
         if (whitespace.IsChecked == true) foreach (var hunk in hunks) IgnoreWhitespace(hunk);
         if (hunks.Count == 0 && string.IsNullOrWhiteSpace(text))
         {
-            var empty = Ui.Text("No changes", Ui.Hint, 12);
+            var empty = Ui.Text("No differences between the two sides.", Ui.Hint, 12);
             empty.Name = "DiffEmpty"; empty.Margin = new Thickness(20); empty.HorizontalAlignment = HorizontalAlignment.Left;
             Ui.Place(body, empty); return;
         }

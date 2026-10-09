@@ -220,7 +220,7 @@ public sealed partial class WorkbenchWindow
             try { catalog = await host.ListBranchesAsync(false, lifetime.Token); }
             catch (Exception error) when (error is not OperationCanceledException)
             {
-                Report(new IOException("Couldn't create workspace. " + error.Message));
+                ReportDialogFailure("Couldn't create workspace", error);
                 return;
             }
             if (request != projectRequest) return;
@@ -233,6 +233,13 @@ public sealed partial class WorkbenchWindow
         }
         catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
         finally { creatingWorkspace = false; }
+    }
+
+    // A rejected dialog action has no dialog left to report in, so it is a toast rather than the window's error line.
+    private void ReportDialogFailure(string title, Exception error)
+    {
+        Toasts.Push(State.ToastVariant.Error, error.Message, title);
+        Console.Error.WriteLine(error);
     }
 
     private async Task PrefetchDefaultAsync(NewWorkspaceDialog dialog)
@@ -256,7 +263,7 @@ public sealed partial class WorkbenchWindow
         }
         catch (Exception error) when (error is not OperationCanceledException)
         {
-            Report(new IOException("Couldn't create workspace. " + error.Message));
+            ReportDialogFailure("Couldn't create workspace", error);
             RefreshGitPanels();
         }
     }
@@ -272,7 +279,7 @@ public sealed partial class WorkbenchWindow
             if (!atHome && workspaceRoot == worktree.Path) return;
         }
         selectionHistory.Remove(worktree.Path);
-        await GitActionAsync(new("remove-worktree", worktree.Path));
+        await GitActionAsync(new("remove-worktree", worktree.Path), "Couldn't remove the worktree");
     }
 
     private ContextMenu WorkspaceActions(WorktreeInfo worktree, Button kebab)

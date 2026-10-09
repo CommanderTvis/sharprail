@@ -27,7 +27,10 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
   `SharedState`; they change shared state (project list, workspace labels, recents) only through the host
   and redraw when the broadcast arrives (`HostSync.cs`), never by writing a local copy.
 - A panel is built on demand and cached in the window's tool-content map; a refresh drops the cached control
-  and asks the surface to rebuild only the affected tool.
+  and asks the surface to rebuild only the affected tool. A Git refresh drops Changes and Review only when
+  what they show changed (scope, target, commit, view, loading or error state, branch, change rows, branch
+  and commit catalogues; for Review the branch, change count and pull request), so a watcher refresh that
+  changes nothing leaves an open menu and the control under the pointer in place.
 - Forbidden: reaching into another window, writing host state directly, or drawing docking chrome.
 
 ## Projects
@@ -129,6 +132,14 @@ snapshot lands.
   List | Tree toggle. A commit scope is labelled by its short SHA with the full subject as tooltip, so the
   branch pill is not squeezed. The scope, comparison and selected commit belong to the workspace and persist
   in the profile; the commit catalogue is reloaded from Git, capped at 200.
+- The scope menu's contents load on each open, never when the panel mounts: `ListCommitsAsync` for the
+  commit rows and an uncommitted-scope status probe, which lets the Uncommitted row read “No uncommitted
+  changes”, disabled, instead of opening an unexplained empty list. Each degrades on its own: a failed
+  commit read says “Commits could not be loaded” when there are no earlier rows to keep, and a failed probe
+  leaves the row as it was. Until the first read lands the menu says `Loading commits…`; a reopened menu
+  keeps the previous rows while it re-reads. A selected commit scope already read the catalogue to
+  validate its commit, so its rows are present without opening. Changing the comparison target or the
+  workspace drops the rows.
 - A selected commit that no longer exists (rebase, reset) resets the scope to All changes with a notice.
   Other failures leave the chosen scope alone.
 - “Never answered”, “failed” and “answered empty” are three states. Before a snapshot the panel shows
@@ -194,9 +205,38 @@ snapshot lands.
 
 ## Review
 
-A placeholder tool: it summarises the changed-file count on the current branch and offers Show Changes,
-which reveals or restores the Changes tool. The host exposes the open pull request, a draft and opening
-(see Git.SPEC.md); the panel does not use them yet.
+The tool summarises the changed-file count on the current branch, offers Show Changes (which reveals or
+restores the Changes tool) and owns the branch's pull request, a deterministic host flow of push plus `gh`
+(see Git.SPEC.md). Upstream hangs this flow on its plan pane; SharpRail has no plan, so it lives here and the
+description comes from the host's draft (branch name and commit subjects).
+
+- The open pull request is one state per workspace and branch, first looked up when the panel is drawn for
+  that branch (the host's 60-second cache allowed), so startup never waits on `gh`. Window activation with
+  the panel built and every submit re-read it fresh. A lookup superseded by a newer one, by a submit's answer
+  or by a branch switch is dropped; a failed lookup reads as no pull request.
+- A `PR #N` chip links out to the pull request's URL through the system browser.
+- Without a pull request the panel offers Open PR and Open draft PR. Either fetches the draft (a failure
+  toasts “Couldn't prepare the PR”) and opens the compose dialog with editable Title and Description; only
+  its submit pushes. The submit reports whether the title was touched, is disabled for a blank title and
+  reads `Pushing…` while it runs, during which the dialog cannot be closed. The dialog closes on success and
+  stays open with its edits on a failure (“Open PR failed”); cancelling forgets them.
+- With a pull request the action reads Push updates, `Push updates (N)` and primary-filled with “N new
+  commits aren't in PR #N yet” when the lookup reports unpushed commits. Unlike upstream it goes through
+  the same dialog, titled Push updates and warning that the description overwrites the open PR's: the only
+  source for a silent refresh here would be the regenerated commit list, which must not replace a
+  hand-written description unseen.
+- A lookup reporting commits behind is a sync conflict, not a force-push cue, and takes precedence: the
+  action reads Branch diverged, the panel explains that a plain push cannot land and force-pushing would
+  drop the remote's commits, and the action copies `git pull --rebase origin <branch>`. The command is offered
+  only for a branch name that is inert in every shell (`[A-Za-z0-9][A-Za-z0-9._/-]*`); any other name gets the
+  instruction as text and a disabled action.
+- Every outcome toasts: PR opened, PR updated, Branch pushed (a non-GitHub origin, or the compare page, which
+  opens in the browser), and separately how many uncommitted files stayed local.
+- A fixable setup gap opens guidance instead of a toast: a push that could not authenticate, or a compare
+  result naming a missing or unauthenticated GitHub CLI, with copyable commands for the host's platform
+  (generic ones for a remote host, whose platform the client does not know), the compare page as an action
+  and Try again, which resubmits the last edited title and description rather than a regenerated draft.
+  Taking the compare page ends the flow.
 
 ## Browsing: preview versus keep
 
@@ -214,8 +254,11 @@ For local and remote hosts the window subscribes to host-owned filesystem watchi
 plus Git `HEAD` and refs. The host coalesces bursts (flushing at least once a second during a storm),
 and the window refreshes the Files tree, the Specs tree when a
 spec changed, open documents and the Git snapshot. Every refresh is stamped with the project request, so an answer that arrives
-after a switch is dropped. Refreshes preserve view state (expansion, selected rows). A diff whose file left
-the change set keeps its last content.
+after a switch is dropped. Refreshes preserve view state (expansion, selected rows). A diff tab whose file
+left the change set stays open: once its two sides are identical (an out-of-band commit, a revert) it says
+“No differences between the two sides.” in place of the diff and withdraws Revert file, and a diff that can
+no longer be read (an untracked file that was deleted) keeps its last content. The Changes list is where the
+disappearance shows.
 
 ## Get right
 
@@ -232,8 +275,10 @@ the change set keeps its last content.
   offset that the new scroller cannot yet hold stays pending until content grows or the user scrolls;
   switching away first saves that pending offset rather than the temporary clamped value. This belongs to
   the tab's renderer view state, rather than a second panel-local copy.
-- The Review panel's pull request chip, Open PR / Push updates / diverged states, compose dialog and
-  `gh` setup guidance on top of the host's pull request operations; CI status has no upstream source.
+- CI status beside the pull request chip; it has no upstream source.
+- In pull request setup guidance: a Run action that executes a command in a new workspace terminal, git's
+  own error text for a push that could not authenticate (the host reports only that it did) with the
+  host-key hint derived from it, and host-platform commands for a remote host.
 - Open existing worktree… in the project menu, an external-worktree row kind with Remove from SharpRail, and
   Reveal in file manager in the workspace menu.
 - Project rows for non-shown projects expanding their own worktree lists (only the shown project lists
@@ -246,7 +291,6 @@ the change set keeps its last content.
   Local contains branch path folders, Remote contains configured remote names and branch path folders.
   Leaves display the final path segment, retain the full ref for selection and tooltips, and mark the
   selected target. Empty groups and remote HEAD aliases are omitted using the host branch catalogue.
-- Lazy, open-triggered loading of the scope menu's commit rows and an “No uncommitted changes” probe.
 - The full review surface: per-file accordion, comment lifecycle, selection-triggered commenting in
   editors and rendered previews, tab review flags and send actions.
 - Chat deep links into Changes and Specs.
@@ -271,6 +315,3 @@ the change set keeps its last content.
   one-way and survives refresh only at the same position. Preserve ordered-list numbering; lists changed
   only in their own attributes, nested lists, tables and quotes stay whole. A merge with no rendered
   change shows a notice pointing to Source and one expander instead of an unmarked full document.
-- An explicit notice on a diff tab whose two sides became identical after its file left the change set;
-  the tab keeps its last content.
-- Live refresh for remote hosts.

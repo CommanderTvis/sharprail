@@ -134,6 +134,13 @@ internal static class Program
             ChangeActionChecks.Run(Path.Combine(root, "change-actions"));
             return;
         }
+        if (args.SequenceEqual(["--review"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            ReviewChecks.Run(Path.Combine(root, "review"));
+            return;
+        }
         if (args.SequenceEqual(["--workspaces"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();

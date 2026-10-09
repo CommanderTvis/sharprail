@@ -148,7 +148,11 @@ internal static class GitUiChecks
         Require(!Action(Named("ChangesBranch"), "tree/remote/feature/tree/local").IsChecked,
             "Identical local and remote leaf names must select independent full references.");
         Invoke(Action(Named("ChangesBranch"), "sharprail-fork"));
+        // Commit rows are read when the scope menu opens.
+        Pump(() => Action(Named("ChangesBranch"), "sharprail-fork").IsChecked);
+        Named("ChangesScope").ContextMenu!.Open(Named("ChangesScope"));
         Pump(() => Named("ChangesScope").ContextMenu!.Items.OfType<MenuItem>().Any(item => item.Name?.StartsWith("ChangesCommit_", StringComparison.Ordinal) == true));
+        Named("ChangesScope").ContextMenu!.Close();
         MenuItem Commit() => Named("ChangesScope").ContextMenu!.Items.OfType<MenuItem>().Single(item => item.Name?.StartsWith("ChangesCommit_", StringComparison.Ordinal) == true);
         var commitId = Commit().Name!["ChangesCommit_".Length..];
         var subject = ToolTip.GetTip(Commit());

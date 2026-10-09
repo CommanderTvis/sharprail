@@ -270,7 +270,13 @@ internal sealed class E2eHost(IProjectServices inner) : IProjectServices
     public ValueTask<ChangeReceipt> UndoChangeAsync(string receiptId, string? expectModifiedHash, CancellationToken ct = default) => inner.UndoChangeAsync(receiptId, expectModifiedHash, ct);
     public ValueTask<GitSnapshot> ApplyGitActionAsync(GitAction action, CancellationToken ct = default) => inner.ApplyGitActionAsync(action, ct);
     public ValueTask<BranchCatalog> ListBranchesAsync(bool fetchDefault, CancellationToken ct = default) => inner.ListBranchesAsync(fetchDefault, ct);
-    public ValueTask<OpenReview?> GetOpenReviewAsync(bool fresh, CancellationToken ct = default) => inner.GetOpenReviewAsync(fresh, ct);
+    /// <summary>Rewrites a pull request lookup, for states a fixture origin cannot produce.</summary>
+    internal Func<OpenReview?, OpenReview?>? Review { get; set; }
+    public async ValueTask<OpenReview?> GetOpenReviewAsync(bool fresh, CancellationToken ct = default)
+    {
+        var review = await inner.GetOpenReviewAsync(fresh, ct);
+        return Review is null ? review : Review(review);
+    }
     public ValueTask<PrDraft> PreviewPrAsync(CancellationToken ct = default) => inner.PreviewPrAsync(ct);
     public ValueTask<PrResult> OpenPrAsync(PrRequest request, CancellationToken ct = default) => inner.OpenPrAsync(request, ct);
     public ValueTask<IReadOnlyList<EditorInfo>> ListEditorsAsync(CancellationToken ct = default) => inner.ListEditorsAsync(ct);

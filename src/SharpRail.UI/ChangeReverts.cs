@@ -8,7 +8,9 @@ namespace SharpRail.UI;
 public sealed partial class WorkbenchWindow
 {
     private const string StaleDiff = "This file changed since you opened it — review the new diff";
-    private static readonly TimeSpan UndoWindow = TimeSpan.FromSeconds(8);
+
+    /// <summary>How long a revert's Undo receipt stays; checks under load lengthen it.</summary>
+    public TimeSpan UndoWindow { get; set; } = TimeSpan.FromSeconds(8);
 
     // Staged and commit diffs end in the index or history, so nothing in them is the worktree's to restore.
     private Func<RevertTarget, Task>? DiffRevert(DockTab tab, string key) =>

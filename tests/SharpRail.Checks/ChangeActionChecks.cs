@@ -23,6 +23,8 @@ internal static class ChangeActionChecks
         try
         {
             ToastCards(Path.Combine(root, "toasts"));
+            DialogFailures(Path.Combine(root, "dialogs"));
+            ScopeMenu(Path.Combine(root, "scope-menu"));
             Reverts(Path.Combine(root, "reverts"));
         }
         finally { Environment.SetEnvironmentVariable("SHARPRAIL_TRASH_DIR", previous); }
@@ -87,6 +89,52 @@ internal static class ChangeActionChecks
         Console.WriteLine("PASS toasts render stacked cards with their own duration, one action and dismissal");
     }
 
+    private static void DialogFailures(string directory)
+    {
+        using var app = WorkspaceFixture.OpenFixtureProject(directory);
+        var project = app.Window.ProjectRoot;
+        var missing = Path.Combine(directory, "no-such-folder");
+        WorkspaceFixture.AddProject(app, "Open project", missing);
+        var notice = WorkspaceFixture.Dialog(app, "NoticeDialog");
+        Require(Part<TextBlock>(notice, "DialogHeading").Text == "Couldn't open project" && Part<TextBlock>(notice, "DialogExplanation").Text is { Length: > 0 } &&
+            notice.GetLogicalDescendants().OfType<Button>().Select(button => button.Name).SequenceEqual(["NoticeDismiss"]),
+            "A failed open must say so in a notice with one button.");
+        Require(!app.Find<TextBlock>("WorkspaceError").IsVisible && Cards(app).Length == 0, "The notice replaces the error line for a failed open.");
+        app.Click(Part<Button>(notice, "NoticeDismiss"));
+        Until(() => !app.Window.OwnedWindows.Any());
+        Require(app.Window.ProjectRoot == project, "A failed open must leave the shown project in place.");
+        Console.WriteLine("PASS a project that cannot be opened is reported in a single-button notice dialog");
+    }
+
+    private static void ScopeMenu(string directory)
+    {
+        using var app = WorkspaceFixture.OpenFixtureProject(directory);
+        var worktree = WorkspaceFixture.CreateWorkspaceViaDialog(app);
+        File.WriteAllText(Path.Combine(worktree, "scoped.txt"), "scoped\n");
+        IsolatedGit.Run(worktree, "add", "scoped.txt");
+        IsolatedGit.Run(worktree, "commit", "-m", "scope menu commit");
+        ShowChanges(app);
+        bool Rows() => HasMenuItem(app, "ChangesScope", item => item.Name?.StartsWith("ChangesCommit_", StringComparison.Ordinal) == true);
+        UntilRows(app, "scoped.txt");
+        Require(!Rows() && HasMenuItem(app, "ChangesScope", item => item.Name == "ChangesCommitsLoading"),
+            "Commit rows must not be read before the scope menu opens.");
+        OpenMenu(app, "ChangesScope");
+        Until(() => HasMenuItem(app, "ChangesScope", CommitItem("scope menu commit")));
+        Until(() => HasMenuItem(app, "ChangesScope", item => Equals(item.Header, "No uncommitted changes") && !item.IsEnabled));
+        CloseMenu(app.Find<Button>("ChangesScope"));
+
+        File.WriteAllText(Path.Combine(worktree, "dirty.txt"), "dirty\n");
+        UntilRows(app, "dirty.txt", "scoped.txt");
+        Require(Rows(), "A rebuilt panel keeps the rows the menu last read.");
+        OpenMenu(app, "ChangesScope");
+        Until(() => HasMenuItem(app, "ChangesScope", item => Equals(item.Header, "Uncommitted") && item.IsEnabled));
+        CloseMenu(app.Find<Button>("ChangesScope"));
+        Pick(app, "ChangesScope", CommitItem("scope menu commit"));
+        UntilRows(app, "scoped.txt");
+        Until(() => Equals(ToolTip.GetTip(app.Find<Button>("ChangesScope")), "scope menu commit") && Rows());
+        Console.WriteLine("PASS the scope menu reads its commit rows and the uncommitted probe when it opens");
+    }
+
     private static Button[] BlockReverts(E2eWorkspace app)
     {
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
@@ -108,13 +156,16 @@ internal static class ChangeActionChecks
     {
         Until(() => Messages(app).Contains(message));
         var card = Cards(app).Single(card => Part<TextBlock>(card, "ToastMessage").Text == message);
-        Require(((Toast)card.Tag!).Lifetime == TimeSpan.FromSeconds(8), "An Undo receipt stays for its own few seconds.");
+        Require(((Toast)card.Tag!).Lifetime == app.Window.UndoWindow, "An Undo receipt stays for its own few seconds.");
         app.Click(Part<Button>(card, "ToastAction"));
     }
 
     private static void Reverts(string directory)
     {
         using var app = WorkspaceFixture.OpenFixtureProject(directory);
+        // A loaded machine must not let a receipt expire between the revert and the click on its Undo.
+        Require(app.Window.UndoWindow == TimeSpan.FromSeconds(8), "An Undo receipt stays for eight seconds.");
+        app.Window.UndoWindow = TimeSpan.FromMinutes(2);
         var lines = Enumerable.Range(1, 40).Select(index => "line " + index).ToArray();
         string Write(string name, params (int Line, string Text)[] edits)
         {
@@ -163,10 +214,13 @@ internal static class ChangeActionChecks
 
         app.Click(FileRevert(app)!);
         Until(() => Read("blocks.txt") == committed);
+        Until(() => Pane(app)!.GetLogicalDescendants().OfType<TextBlock>().Any(text => text is { Name: "DiffEmpty", Text: "No differences between the two sides." }) &&
+            FileRevert(app) is { IsVisible: false } && DiffTabs(app).Any(tab => tab.Path == "blocks.txt"));
         Undo(app, "Reverted blocks.txt");
         Until(() => Read("blocks.txt") == moved);
         UntilDiff(app, text => text.Contains("moved under the view", StringComparison.Ordinal));
-        Console.WriteLine("PASS Revert file restores the original side and Undo brings the edit back");
+        Require(FileRevert(app) is { IsVisible: true }, "A diff that has changes again offers Revert file again.");
+        Console.WriteLine("PASS Revert file restores the original side, the emptied tab says so, and Undo brings the edit back");
 
         OpenDiff(app, "new.txt");
         Until(() => FileRevert(app) is not null);
@@ -177,7 +231,9 @@ internal static class ChangeActionChecks
         Until(() => File.Exists(Path.Combine(app.Root, "new.txt")) && Read("new.txt") == "added\n");
         Console.WriteLine("PASS reverting a new file moves it to the trash and Undo puts it back");
 
+        // The index change rebuilds the panel; the menu is opened once the row shows the staged status.
         IsolatedGit.Run(app.Root, "add", "blocks.txt");
+        Until(() => Paths(app).Contains("blocks.txt") && ToolTip.GetTip(Row(app, "blocks.txt")) is string tip && tip.EndsWith("[M ]", StringComparison.Ordinal));
         PickScope(app, "Staged");
         UntilRows(app, "blocks.txt");
         OpenDiff(app, "blocks.txt");

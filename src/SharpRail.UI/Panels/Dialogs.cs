@@ -63,6 +63,25 @@ public static class Dialogs
         return await window.ShowDialog<bool>(owner);
     }
 
+    /// <summary>A single-button notice for a failure with no recovery inside it; unlike <see cref="Confirm"/> nothing is decided.</summary>
+    public static async Task Notice(Window owner, string title, string description, string dismissLabel = "OK")
+    {
+        var window = Create(title, 384);
+        window.Tag = "NoticeDialog";
+        window.FindControl<StackPanel>("DialogFields")!.IsVisible = false;
+        var heading = window.FindControl<TextBlock>("DialogHeading")!;
+        var header = (StackPanel)heading.Parent!;
+        header.Children.Remove(heading);
+        header.Children.Insert(0, new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 8, Children = { Ui.Icon("alertWarning", Ui.Danger), heading } });
+        var text = window.FindControl<TextBlock>("DialogExplanation")!;
+        text.Text = description; text.IsVisible = true;
+        var dismiss = Primary(Ui.Button(dismissLabel, () => window.Close()));
+        dismiss.Name = "NoticeDismiss"; dismiss.IsDefault = true;
+        window.FindControl<StackPanel>("DialogActions")!.Children.Add(dismiss);
+        window.Opened += (_, _) => dismiss.Focus();
+        await window.ShowDialog(owner);
+    }
+
     public enum SaveChoice { Cancel, Save, DontSave }
 
     public static async Task<SaveChoice> AskToSave(Window owner, string title, bool several)

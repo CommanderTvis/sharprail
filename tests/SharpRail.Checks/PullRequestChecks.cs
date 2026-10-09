@@ -30,7 +30,7 @@ internal static class PullRequestChecks
         return await output;
     }
 
-    private const string GhShim = """
+    internal const string GhShim = """
         #!/bin/bash
         echo "$@" >> "$SHIM_DIR/log"
         [ -f "$SHIM_DIR/hang" ] && { (sleep 30) & sleep 30; exit 0; }
@@ -49,7 +49,7 @@ internal static class PullRequestChecks
     private static int Calls(string shim, string text) =>
         File.Exists(Path.Combine(shim, "log")) ? File.ReadAllLines(Path.Combine(shim, "log")).Count(line => line.StartsWith(text, StringComparison.Ordinal)) : 0;
 
-    private static async Task<string> MakeRepo(string parent, string name, bool github)
+    internal static async Task<string> MakeRepo(string parent, string name, bool github)
     {
         var bare = Path.Combine(parent, name + ".git");
         var seed = Path.Combine(parent, name + "-seed");
