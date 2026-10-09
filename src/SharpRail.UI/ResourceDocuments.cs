@@ -80,7 +80,7 @@ public sealed partial class WorkbenchWindow
             {
                 Name = hasPreview ? "MarkdownSource" : null,
                 Content = MarkdownPreview.Code(document.Text),
-                Margin = new Thickness(20),
+                Margin = new Thickness(24),
                 HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto
             };
         return hasPreview ? new MarkdownSourceBody(view, FileWrapWidth) : CodeDocument(document, view.TabId, key);

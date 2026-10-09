@@ -127,7 +127,7 @@ internal sealed class ImageView : Grid, IResourceBody, IDisposable
 
     private Button Step(string name, string label, double factor)
     {
-        var button = new Button { Name = name, Content = label, Height = 20, MinWidth = 24, Padding = new Thickness(6, 0), FontSize = 12, BorderThickness = new Thickness(0), CornerRadius = new CornerRadius(4), Background = Brushes.Transparent, Foreground = Ui.Muted };
+        var button = new Button { Name = name, Content = label, Height = 20, MinWidth = 24, Padding = new Thickness(8, 0), FontSize = 12, BorderThickness = new Thickness(0), CornerRadius = new CornerRadius(4), Background = Brushes.Transparent, Foreground = Ui.Muted };
         button.Click += (_, _) => Apply(new(false, Math.Clamp((state.Fit ? 1 : state.Zoom) * factor, Pictures.MinZoom, Pictures.MaxZoom)));
         return button;
     }
@@ -233,7 +233,7 @@ internal sealed class ImageDiffView : Grid, IDisposable
         {
             case "difference":
                 difference ??= Pictures.Difference(original!, modified!);
-                Ui.Place(body, difference is null ? Ui.Text("These pictures are too large to compare pixel by pixel.", Ui.Muted, 12) : Framed("ImageDiffDifference", Picture(difference), Brushes.Black));
+                Ui.Place(body, difference is null ? Ui.Text("These pictures are too large to compare pixel by pixel.", Ui.Muted, 12) : Framed("ImageDiffDifference", Picture(difference), Ui.DifferenceBase));
                 break;
             case "swipe" or "onion":
                 int width = Math.Max(original!.PixelSize.Width, modified!.PixelSize.Width), height = Math.Max(original.PixelSize.Height, modified.PixelSize.Height);
@@ -269,7 +269,7 @@ internal sealed class ImageDiffView : Grid, IDisposable
         var panel = new DockPanel { Name = "ImageDiffSide_" + title, Margin = new Thickness(16) };
         var caption = Ui.Text(bitmap is null ? title + " — no picture" : $"{title} — {bitmap.PixelSize.Width} × {bitmap.PixelSize.Height}", Ui.Muted, 12);
         DockPanel.SetDock(caption, Dock.Top);
-        caption.Margin = new Thickness(0, 0, 0, 6);
+        caption.Margin = new Thickness(0, 0, 0, 8);
         panel.Children.Add(caption);
         if (bitmap is not null)
             panel.Children.Add(new Border

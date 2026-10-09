@@ -166,7 +166,7 @@ internal static class TableViews
         if (rows.Count == 0)
         {
             var empty = Ui.Text("No rows", Ui.Hint, 12);
-            empty.Name = name; empty.Margin = new Thickness(20); empty.HorizontalAlignment = HorizontalAlignment.Left; empty.VerticalAlignment = VerticalAlignment.Top;
+            empty.Name = name; empty.Margin = new Thickness(24); empty.HorizontalAlignment = HorizontalAlignment.Left; empty.VerticalAlignment = VerticalAlignment.Top;
             return empty;
         }
         var columns = rows.Max(row => Math.Max(row.Original?.Cells.Length ?? 0, row.Modified?.Cells.Length ?? 0));
@@ -239,7 +239,7 @@ internal static class TableViews
     {
         BorderBrush = Ui.BorderBrush,
         BorderThickness = new Thickness(0, 0, 1, 1),
-        Padding = new Thickness(8, 3),
+        Padding = new Thickness(8, 4),
         Child = child
     };
 

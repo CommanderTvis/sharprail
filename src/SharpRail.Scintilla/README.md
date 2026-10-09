@@ -22,7 +22,8 @@ views such as diffs. `ShowLineNumbers` toggles the line-number margin, and
 `LabelLines` replaces the numbers with a right-aligned label per line. Views that
 scroll in step listen to `VerticalOffsetChanged` and call `ScrollToPixel`.
 
-Colours are opaque; composite translucent theme colours before passing them. The
+Colours are opaque; composite translucent theme colours before passing them. `ScintillaColors.Caret`
+overrides the caret (the foreground otherwise), and `CurrentLine` highlights the caret's line when set. The
 control exposes scroll extents (`VerticalScroll`, `HorizontalScroll`, `ScrollChanged`)
 for external scrollbars, and `OperationFailed` for clipboard errors.
 

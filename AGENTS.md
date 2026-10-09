@@ -135,6 +135,8 @@ Run checks with `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Re
 `-- --change-actions` runs the toast and diff revert/undo checks; `-- --review` runs the Review panel checks.
 `-- --shell` runs the window shell checks (header location bar, application menu, window chrome, region errors,
 arrangement isolation, locations and links, the workspace dialog's project picker, commit menus and inert links).
+`-- --ui` runs the headless UI checks and upstream translations without the host suites.
+`-- --design` runs the design-system guards over the UI sources and the theme translations; `-- --design --write` regenerates `Rendering/Generated` from `Rendering/Design`.
 Set `SHARPRAIL_TEST_GIT_SOURCE` to an existing upstream clone to include Git fixtures.
 `tests/SharpRail.Checks/Program.cs` is the check runner, not an xUnit test project.
 `ProjectChecks.cs` covers project/Git host parity; `LayoutChecks.cs` covers layout

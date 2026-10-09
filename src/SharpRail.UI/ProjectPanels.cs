@@ -194,7 +194,7 @@ public sealed partial class WorkbenchWindow
                 var tip = $"Create workspace ({Shortcut("N")})";
                 var add = Ui.IconButton("add", tip, () => _ = CreateWorkspaceDialogAsync());
                 add.Name = "AddWorkspace";
-                add.Width = add.Height = 28; add.Padding = new(7);
+                add.Width = add.Height = 28; add.Padding = new(0);
                 add.IsEnabled = git.IsRepository;
                 railSelection.Add(() => add.IsEnabled = git.IsRepository);
                 trailing.Children.Add(add);
@@ -265,7 +265,7 @@ public sealed partial class WorkbenchWindow
             Name = "WorkspaceSelect",
             Tag = worktree.Path,
             Content = contents,
-            Background = active ? Ui.Hover : Avalonia.Media.Brushes.Transparent,
+            Background = active ? Ui.Selected : Avalonia.Media.Brushes.Transparent,
             Padding = new Thickness(24, 4, 32, 4),
             MinHeight = 28,
             CornerRadius = new(4),
@@ -276,7 +276,7 @@ public sealed partial class WorkbenchWindow
         railSelection.Add(() =>
         {
             var selected = !atHome && worktree.Path == workspaceRoot;
-            button.Background = selected ? Ui.Hover : Avalonia.Media.Brushes.Transparent;
+            button.Background = selected ? Ui.Selected : Avalonia.Media.Brushes.Transparent;
             ((Border)icon).Background = label.Foreground = selected ? Ui.Accent : Ui.Muted;
             ShowBranch();
         });
@@ -289,7 +289,7 @@ public sealed partial class WorkbenchWindow
             Content = Ui.Icon("moreHorizontal", null, 14),
             Width = 24,
             Height = 24,
-            Padding = new(5),
+            Padding = new(0),
             Margin = new(0, 0, 4, 0),
             Opacity = 0,
             Background = Avalonia.Media.Brushes.Transparent,

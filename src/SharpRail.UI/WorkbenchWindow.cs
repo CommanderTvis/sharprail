@@ -469,7 +469,7 @@ public sealed partial class WorkbenchWindow : Window
     /// <summary>Dims the workbench behind a modal, like the reference's overlay; the returned action removes it.</summary>
     internal Action Dim()
     {
-        var scrim = new Border { Background = new SolidColorBrush(Colors.Black, .5) };
+        var scrim = new Border { Background = Ui.Overlay };
         Grid.SetRowSpan(scrim, 3);
         root.Children.Add(scrim);
         return () => root.Children.Remove(scrim);

@@ -1,0 +1,60 @@
+{
+  "note": "The semantic colour layer. Palettes live in Assets/Themes/*.theme.json; this file says what each palette entry is for and is the only place a derivation is written. Generated/Ui.Colors.g.cs is produced from it by the checks executable's --design --write mode. See COLOR.md.",
+  "scale": {
+    "subtle": 10,
+    "wash": 12,
+    "soft": 20,
+    "muted": 40,
+    "strong": 60
+  },
+  "roles": {
+    "TextBrush": { "role": "text-default", "from": "text" },
+    "Muted": { "role": "text-muted", "from": "muted" },
+    "Hint": { "role": "text-subtle", "from": "hint" },
+    "Workspace": { "role": "container-workspace-bg", "from": "background" },
+    "Sidebar": { "role": "container-sidebar-bg", "from": "sidebar" },
+    "Terminal": { "role": "container-terminal-bg", "from": "sidebar" },
+    "Surface": { "role": "container-content-bg", "from": "content" },
+    "Header": { "role": "container-header-bg", "from": "header" },
+    "Elevated": { "role": "container-elevated-bg", "from": "elevated" },
+    "ControlFill": { "role": "control-bg", "from": "input" },
+    "Hover": { "role": "control-bg-hovered", "from": "hover" },
+    "Selected": { "role": "control-bg-selected", "from": "hover" },
+    "ControlBorder": { "role": "control-border-default", "from": "border" },
+    "ControlBorderActive": { "role": "control-border-active", "from": "borderStrong" },
+    "ControlDisabledFill": { "role": "control-disabled-bg", "from": "input", "alpha": "strong" },
+    "ControlDisabledText": { "role": "control-disabled-text", "from": "text", "alpha": "strong" },
+    "ControlDisabledBorder": { "role": "control-disabled-border", "from": "border", "alpha": "strong" },
+    "PrimaryFill": { "role": "control-primary-bg", "from": "accentSolid" },
+    "PrimaryFillHover": { "role": "control-primary-bg-hovered", "from": "accentHover" },
+    "OnPrimary": { "role": "control-primary-text", "from": "onAccent" },
+    "PrimaryDisabledFill": { "role": "control-primary-disabled-bg", "from": "accent", "alpha": "strong" },
+    "PrimaryDisabledText": { "role": "control-primary-disabled-text", "from": "onAccent", "alpha": "strong" },
+    "BorderBrush": { "role": "border-default", "from": "borderStrong" },
+    "Accent": { "role": "primary", "from": "accent" },
+    "PrimarySubtle": { "role": "primary-subtle", "from": "accent", "alpha": "subtle" },
+    "PrimarySoft": { "role": "primary-soft", "from": "accent", "alpha": "soft" },
+    "PrimaryMuted": { "role": "primary-muted", "from": "accent", "alpha": "muted" },
+    "Info": { "role": "feedback-info", "from": "info" },
+    "InfoWash": { "role": "feedback-info-subtle", "from": "info", "alpha": "wash" },
+    "Success": { "role": "feedback-success", "from": "success" },
+    "SuccessWash": { "role": "feedback-success-subtle", "from": "success", "alpha": "wash" },
+    "Warning": { "role": "feedback-warning", "from": "warning" },
+    "WarningWash": { "role": "feedback-warning-subtle", "from": "warning", "alpha": "wash" },
+    "Danger": { "role": "feedback-error", "from": "danger" },
+    "DangerWash": { "role": "feedback-error-subtle", "from": "danger", "alpha": "wash" },
+    "TextSelection": { "role": "selection-bg", "from": "selection" },
+    "SelectionText": { "role": "selection-text", "from": "selectionForeground", "kind": "color" },
+    "EditorSelection": { "role": "editor-selection-bg", "from": "editorSelection", "kind": "color" },
+    "EditorSelectionText": { "role": "editor-selection-text", "from": "editorSelectionForeground", "kind": "color" }
+  },
+  "effects": {
+    "Overlay": { "note": "the scrim behind a modal", "dark": "#00000080", "light": "#00000080" },
+    "DifferenceBase": { "note": "the zero of a pixel difference behind an image diff; it is data, so every theme shows black", "dark": "#000000ff", "light": "#000000ff" },
+    "PopoverShadow": { "note": "upstream shadow-md: transient notifications", "dark": "#00000059", "light": "#0000001f" },
+    "DialogShadow": { "note": "upstream shadow-lg: dialog cards", "dark": "#00000066", "light": "#00000024" }
+  },
+  "unclaimed": {
+    "bubbleAccent": "chat bubbles; AI functionality is out of scope"
+  }
+}

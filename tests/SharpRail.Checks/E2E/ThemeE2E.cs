@@ -193,7 +193,14 @@ internal static class ThemeE2E
             Require(Themes.Resolve(shared, "light").Theme == alternateLight && Themes.Resolve(shared, "dark").Theme == fixedTheme,
                 "A light-appearance peer shows the explicit light theme while this dark client shows the fixed theme.");
 
-            app.Click(Option(settings, "ThemeMode_fixed"));
+            // One theme mutation may be in flight: over gRPC the request is pending when the click returns.
+            var fixedMode = Option(settings, "ThemeMode_fixed");
+            var slot = Option(settings, "SystemTheme_light_trigger");
+            fixedMode.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            Require(!fixedMode.IsEffectivelyEnabled && !slot.IsEffectivelyEnabled &&
+                ((Grid)fixedMode.Content!).Children.OfType<TextBlock>().All(label => ReferenceEquals(label.Foreground, Ui.ControlDisabledText)),
+                "While a theme change is in flight every theme control must be really disabled and painted from the disabled role.");
+            Until(() => app.Window.Preferences.ThemeMode == "fixed" && Option(settings, "ThemeMode_fixed").IsEffectivelyEnabled);
             Until(() => Ui.Theme == fixedTheme && shared.ThemeMode == "fixed");
             Require(Themes.Resolve(shared, "light").Theme == fixedTheme, "Fixed mode reaches the peer.");
             app.Click(Option(settings, "ThemeMode_system"));

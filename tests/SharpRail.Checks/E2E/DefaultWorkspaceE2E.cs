@@ -37,7 +37,7 @@ internal static class DefaultWorkspaceE2E
         Require(ReferenceEquals(app.Find<Grid>("ProjectsPanel"), rail) && !shrank &&
             rows.All(pair => ReferenceEquals(Item(app, pair.Key), pair.Value)),
             "Switching workspaces within a project must keep the rail and its rows rather than rebuilding them.");
-        Require(Select(app, workspace).Background == Ui.Hover && Select(app, app.Root).Background != Ui.Hover,
+        Require(Select(app, workspace).Background == Ui.Selected && Select(app, app.Root).Background != Ui.Selected,
             $"The active highlight must move to the opened workspace: opened={Select(app, workspace).Background} default={Select(app, app.Root).Background}.");
         Console.WriteLine("PASS switching workspaces keeps the Projects rail rows and moves the highlight in place");
     }

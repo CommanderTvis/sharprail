@@ -62,7 +62,7 @@ public sealed class ToastStack : StackPanel
 
     private void Shade()
     {
-        var shadow = new BoxShadows(new BoxShadow { OffsetY = 4, Blur = 16, Color = Color.FromArgb(Ui.Theme.IsLight ? (byte)31 : (byte)89, 0, 0, 0) });
+        var shadow = new BoxShadows(new BoxShadow { OffsetY = 4, Blur = 16, Color = Ui.PopoverShadow.Color });
         foreach (var (card, _) in cards.Values) card.BoxShadow = shadow;
     }
 
@@ -102,7 +102,7 @@ public sealed class ToastStack : StackPanel
             Content = Ui.Icon("close", Ui.Muted, 14),
             Width = 24,
             Height = 24,
-            Padding = new Thickness(5),
+            Padding = new Thickness(4),
             Margin = new Thickness(0, -4, -4, 0),
             Background = Brushes.Transparent,
             BorderThickness = new Thickness(0),

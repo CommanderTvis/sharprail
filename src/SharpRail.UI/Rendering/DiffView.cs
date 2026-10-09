@@ -359,7 +359,7 @@ internal sealed partial class DiffView : Grid, IDisposable
             Background = Brushes.Transparent
         };
         foreach (var state in new[] { "Checked", "CheckedPointerOver", "CheckedPressed", "PointerOver", "Pressed" })
-            button.Resources["ToggleButtonBackground" + state] = Ui.Hover;
+            button.Resources["ToggleButtonBackground" + state] = state.StartsWith("Checked", StringComparison.Ordinal) ? Ui.Selected : Ui.Hover;
         AutomationProperties.SetName(button, tooltip);
         ToolTip.SetTip(button, tooltip);
         return button;
@@ -384,12 +384,12 @@ internal sealed partial class DiffView : Grid, IDisposable
         if (hunks.Count == 0 && string.IsNullOrWhiteSpace(text))
         {
             var empty = Ui.Text("No differences between the two sides.", Ui.Hint, 12);
-            empty.Name = "DiffEmpty"; empty.Margin = new Thickness(20); empty.HorizontalAlignment = HorizontalAlignment.Left;
+            empty.Name = "DiffEmpty"; empty.Margin = new Thickness(24); empty.HorizontalAlignment = HorizontalAlignment.Left;
             Ui.Place(body, empty); return;
         }
         if (!OperatingSystem.IsMacOS())
         {
-            Ui.Place(body, new ScrollViewer { Content = MarkdownPreview.Code(text), Margin = new Thickness(20, 8), HorizontalScrollBarVisibility = ScrollBarVisibility.Auto });
+            Ui.Place(body, new ScrollViewer { Content = MarkdownPreview.Code(text), Margin = new Thickness(24, 8), HorizontalScrollBarVisibility = ScrollBarVisibility.Auto });
             return;
         }
         if (hunks.Count == 0 || inline.IsChecked == true) RenderInline(preamble, hunks);
@@ -527,7 +527,7 @@ internal sealed partial class DiffView : Grid, IDisposable
 
     private EditorFrame Code(string name, Side side, string?[] labels)
     {
-        var frame = new EditorFrame(side.Text.ToString(), name) { Margin = new Thickness(0, 8, 0, 0) };
+        var frame = new EditorFrame(side.Text.ToString(), name, Ui.Surface) { Margin = new Thickness(0, 8, 0, 0) };
         var editor = frame.Editor;
         editor.LabelLines(labels);
         editor.IsReadOnly = true;

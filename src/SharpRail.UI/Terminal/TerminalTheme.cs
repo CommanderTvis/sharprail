@@ -15,12 +15,12 @@ internal static class TerminalTheme
     internal static TerminalColors Colors()
     {
         var theme = Ui.Theme;
-        var background = Ui.Surface.Color;
+        var background = Ui.Terminal.Color;
         return new TerminalColors(background, Ui.TextBrush.Color, [.. theme.Ansi])
         {
             Cursor = Ui.Accent.Color,
-            SelectionBackground = Ui.Over(theme["editorSelection"], background),
-            SelectionForeground = theme.Colors["editorSelectionForeground"],
+            SelectionBackground = Ui.Over(Ui.EditorSelection, background),
+            SelectionForeground = Ui.EditorSelectionText,
             MinimumContrast = theme.IsHighContrast ? 7 : 1
         };
     }

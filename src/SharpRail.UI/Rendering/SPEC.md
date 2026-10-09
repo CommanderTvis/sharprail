@@ -47,8 +47,14 @@ can use it without a cycle. Theme catalogue and colour roles have their own docu
   from a trigger is placed against that trigger.
 - Dialogs share one compiled `Panels/DialogWindow` card (see `Panels/SPEC.md`); the solid primary button is
   marked with the `primary` class and takes `PrimaryFill`/`OnPrimary`.
-- Selected state is the `Ui.Hover` fill with `TextBrush` text, whether on a tab, a toggle segment
+- Selected state is the `Ui.Selected` fill with `TextBrush` text, whether on a tab, a toggle segment
   (List | Tree, Split | Inline, Preview | Source) or a rail row, so "selected" reads the same everywhere.
+- An on/off setting is a `Switch` (`Rendering/Switch.cs`, themed in `App.axaml`): a 32 by 18 track with a
+  thumb beside its label. It is a toggle button underneath, so the toggle pattern carries its state to
+  assistive technology and it never shows On or Off text. Checked fills the track with `PrimaryFill`;
+  disabled paints from the disabled roles.
+- Disabled, pressed and focused states come from roles through one application-wide table and from
+  `Ui.Button`/`Ui.IconButton` (see [COLOR.md](COLOR.md)); no control restyles its own.
 
 ## Markdown documents
 
@@ -164,8 +170,6 @@ commit rows in the scope menu append it to the short SHA and author.
 - Content-shaped skeleton rows and the fade-in reveal of resolved content; SharpRail's placeholders are text.
 - The quiet-scroll frame: intent-revealed 6px scrollbars and directional edge curtains on clipped scroll
   viewers; SharpRail uses Fluent's scrollbars.
-- A shared switch control (track and thumb, state exposed accessibly, never visible On/Off text);
-  settings toggles are check boxes.
 - A tooltip provider with tuned delay and a `wrapTrigger` for disabled controls.
 - A shared non-modal dialog panel with dialog/title semantics, Escape dismissal and focus return while
   surrounding controls remain interactive; `DialogWindow` supplies modal cards instead.

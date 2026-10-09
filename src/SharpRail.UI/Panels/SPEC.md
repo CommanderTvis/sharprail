@@ -80,7 +80,10 @@ could not save this change: …” inline and re-renders from host state.
   that appearance plus a “Current on this device” row reading `<Light|Dark> → <palette> <theme>`; either slot
   may be normal or high contrast. First enable sends mode and the derived pair atomically; slot edits send the
   complete pair; returning to Fixed changes only the mode, keeping both choices. An unavailable or
-  wrong-appearance configured theme is disclosed beside the fallback and never written back. The page
+  wrong-appearance configured theme is disclosed beside the fallback and never written back. Exactly one
+  theme mutation may be in flight from this page: the mode cards, the theme list and both slot selectors
+  take their real disabled state, painted from the disabled roles, until the request settles, so rapid
+  complete-pair writes cannot overwrite one another with stale sibling slots. The page
   re-renders when the device appearance changes. All catalogue, resolution and pair logic comes from
   `Rendering/Themes` (see Rendering/Themes.SPEC.md). The interface font size is an app preference below.
 - Line width has File and Markdown groups, each a 40–240 integer field with a `symbols` suffix and an
@@ -103,9 +106,8 @@ could not save this change: …” inline and re-renders from host state.
 
 ## Not yet ported
 
-- Terminal replayed-output size and a Windows shell picker.
+- A Windows shell picker.
 - Keeping the Create workspace dialog open to retry after a rejected creation; the dialog has closed by
   then and the failure is a toast.
 - Toasts for the remaining rejections that follow a confirmation (closing a project, initialising a
   repository, closing busy terminals); they still use the window's error line.
-- A dedicated disabled treatment on theme controls while one theme mutation is in flight.

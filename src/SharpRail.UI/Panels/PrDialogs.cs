@@ -105,7 +105,7 @@ public static class PrDialogs
             var code = Ui.Text(command, Ui.TextBrush, 12);
             code.FontFamily = Ui.CodeFont;
             var copy = Ui.IconButton("file", "Copy command", () => _ = window.Clipboard?.SetTextAsync(command));
-            copy.Name = "PrSetupCopy"; copy.Tag = command; copy.Width = 24; copy.Height = 24; copy.Padding = new Thickness(5);
+            copy.Name = "PrSetupCopy"; copy.Tag = command; copy.Width = 24; copy.Height = 24; copy.Padding = new Thickness(4);
             var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
             Ui.Place(row, code); Ui.Place(row, copy, 0, 1);
             fields.Children.Add(new Border

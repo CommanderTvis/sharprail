@@ -489,7 +489,7 @@ public sealed partial class WorkbenchWindow
     private Control RenameBox(Thickness margin, double height)
     {
         var box = new TextBox { Name = "WorkspaceRenameInput", Text = renameDraft, MinHeight = height, Margin = margin };
-        if (height < 28) { box.Height = height; box.Padding = new Thickness(6, 1); box.MinWidth = 160; }
+        if (height < 28) { box.Height = height; box.Padding = new Thickness(8, 2); box.MinWidth = 160; }
         AutomationProperties.SetName(box, "Workspace name");
         renameBox = box;
         box.TextChanged += (_, _) => { if (ReferenceEquals(renameBox, box)) renameDraft = box.Text ?? ""; };

@@ -5,7 +5,7 @@
              FontFamily="{x:Static rendering:Ui.InterfaceFont}" Foreground="{x:Static rendering:Ui.TextBrush}">
   <Grid RowDefinitions="*,Auto">
     <ContentControl x:Name="TerminalBody" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
-    <StackPanel x:Name="TerminalStartFailure" IsVisible="False" Spacing="10" MaxWidth="520" Margin="24"
+    <StackPanel x:Name="TerminalStartFailure" IsVisible="False" Spacing="8" MaxWidth="520" Margin="24"
                 HorizontalAlignment="Center" VerticalAlignment="Center">
       <TextBlock Text="The terminal couldn’t start" FontSize="15" FontWeight="SemiBold" />
       <SelectableTextBlock x:Name="TerminalStartFailureText" TextWrapping="Wrap" />
@@ -13,7 +13,7 @@
                  Text="Check that the workspace folder still exists and that your login shell can start, then retry. The tab stays open." />
       <Button x:Name="TerminalStartRetry" Content="Retry" HorizontalAlignment="Left" />
     </StackPanel>
-    <Border x:Name="TerminalDetached" IsVisible="False" Background="{x:Static rendering:Ui.Surface}">
+    <Border x:Name="TerminalDetached" IsVisible="False" Background="{x:Static rendering:Ui.Terminal}">
       <StackPanel Spacing="8" HorizontalAlignment="Center" VerticalAlignment="Center">
         <TextBlock Text="This terminal is open somewhere else." HorizontalAlignment="Center"
                    Foreground="{x:Static rendering:Ui.Muted}" FontSize="12" />

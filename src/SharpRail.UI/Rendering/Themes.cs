@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 using Avalonia;
 using Avalonia.Media;
@@ -12,7 +13,7 @@ namespace SharpRail.UI.Rendering;
 
 /// <summary>One bundled <c>*.theme.json</c> manifest: the reference's schema-version-2 palette.</summary>
 public sealed record ThemeManifest(string Id, string Label, int Order, string Appearance, string Contrast,
-    IReadOnlyDictionary<string, Color?> Colors, IReadOnlyList<Color> Ansi)
+    IReadOnlyDictionary<string, Color?> Colors, IReadOnlyList<Color> Ansi, IReadOnlyDictionary<string, Color> Syntax)
 {
     public bool IsLight => Appearance == "light";
     public bool IsHighContrast => Contrast == "high";
@@ -26,18 +27,29 @@ public sealed record ThemeResolution(string RequestedId, ThemeManifest Theme, bo
 public static class Themes
 {
     public const string DefaultId = "dark";
-    private static readonly string[] ColorKeys =
+    public static IReadOnlyList<string> ColorKeys { get; } =
     [
         "accent", "accentHover", "accentSolid", "onAccent", "bubbleAccent", "background", "header", "content", "sidebar",
         "input", "elevated", "hover", "border", "borderStrong", "text", "muted", "hint", "selection", "selectionForeground",
         "editorSelection", "editorSelectionForeground", "info", "success", "danger", "warning"
     ];
-    private static readonly string[] NullableKeys = ["selectionForeground", "editorSelectionForeground"];
+    public static IReadOnlyList<string> NullableKeys { get; } = ["selectionForeground", "editorSelectionForeground"];
     private static readonly string[] AnsiKeys =
     [
         "black", "red", "green", "yellow", "blue", "magenta", "cyan", "white", "brightBlack", "brightRed", "brightGreen",
         "brightYellow", "brightBlue", "brightMagenta", "brightCyan", "brightWhite"
     ];
+
+    public static IReadOnlyList<string> SyntaxKeys { get; } =
+    [
+        "foreground", "comment", "commentDoc", "keyword", "string", "number", "regexp", "annotation", "tag", "attributeName",
+        "attributeValue", "property", "function", "type", "variable", "constant", "operator", "punctuation", "inserted", "deleted",
+        "changed"
+    ];
+    private static readonly string[] RootKeys =
+        ["$schema", "schemaVersion", "id", "label", "order", "appearance", "contrast", "colors", "ansi", "syntax"];
+    private const string HexPattern = "^#[0-9a-f]{6}(?:[0-9a-f]{2})?$";
+    private const string IdPattern = "^[a-z0-9](?:[a-z0-9._-]{0,63})$";
 
     public static IReadOnlyList<ThemeManifest> All { get; } = Load();
 
@@ -85,6 +97,9 @@ public static class Themes
 
     private static List<ThemeManifest> Load()
     {
+        using (var schema = AssetLoader.Open(new Uri("avares://SharpRail.UI/Assets/theme.schema.json")))
+        using (var json = JsonDocument.Parse(schema))
+            RequireSchemaAgreement(json.RootElement);
         var folder = new Uri("avares://SharpRail.UI/Assets/Themes/");
         var themes = new List<ThemeManifest>();
         foreach (var uri in AssetLoader.GetAssets(folder, null).Where(uri => uri.AbsolutePath.EndsWith(".theme.json", StringComparison.Ordinal)))
@@ -100,16 +115,53 @@ public static class Themes
         return [.. themes.OrderBy(theme => theme.Order).ThenBy(theme => theme.Label, StringComparer.Ordinal).ThenBy(theme => theme.Id, StringComparer.Ordinal)];
     }
 
-    private static ThemeManifest Parse(JsonElement root, string source)
+    /// <summary>
+    /// The authoring schema editors validate against must describe exactly what <see cref="Parse"/> accepts:
+    /// the same keys in the same order, the same patterns, and no additional properties anywhere.
+    /// </summary>
+    public static void RequireSchemaAgreement(JsonElement schema)
     {
+        static void Same(JsonElement section, IEnumerable<string> keys, string name)
+        {
+            var required = section.GetProperty("required").EnumerateArray().Select(key => key.GetString()!).ToArray();
+            var properties = section.GetProperty("properties").EnumerateObject().Select(property => property.Name)
+                .Where(property => property != "$schema").ToArray();
+            if (!required.SequenceEqual(keys) || !properties.SequenceEqual(required) || section.GetProperty("additionalProperties").GetBoolean())
+                throw new InvalidDataException($"theme.schema.json disagrees with the manifest parser on {name}.");
+        }
+        var definitions = schema.GetProperty("$defs");
+        Same(schema, RootKeys.Skip(1), "the manifest's properties");
+        Same(definitions.GetProperty("colors"), ColorKeys, "colors");
+        Same(definitions.GetProperty("ansi"), AnsiKeys, "ansi");
+        Same(definitions.GetProperty("syntax"), SyntaxKeys, "syntax");
+        var nullable = definitions.GetProperty("colors").GetProperty("properties").EnumerateObject()
+            .Where(property => property.Value.TryGetProperty("oneOf", out _)).Select(property => property.Name);
+        if (!nullable.SequenceEqual(NullableKeys) || definitions.GetProperty("hexColor").GetProperty("pattern").GetString() != HexPattern ||
+            schema.GetProperty("properties").GetProperty("id").GetProperty("pattern").GetString() != IdPattern ||
+            schema.GetProperty("properties").GetProperty("schemaVersion").GetProperty("const").GetInt32() != 2)
+            throw new InvalidDataException("theme.schema.json disagrees with the manifest parser on nullable keys, patterns or version.");
+    }
+
+    /// <summary>Strict and all-or-nothing: an unknown, missing or non-canonical entry rejects the whole manifest.</summary>
+    public static ThemeManifest Parse(JsonElement root, string source)
+    {
+        void Known(JsonElement section, IEnumerable<string> keys, string name)
+        {
+            foreach (var property in section.EnumerateObject())
+                if (!keys.Contains(property.Name)) throw new InvalidDataException($"{source}: {name}{property.Name} is not allowed.");
+        }
         string Text(string name) => root.GetProperty(name).GetString() is { Length: > 0 } value ? value
             : throw new InvalidDataException($"{source}: {name} must be a non-empty string.");
+        Known(root, RootKeys, "");
         if (root.GetProperty("schemaVersion").GetInt32() != 2) throw new InvalidDataException($"{source}: unsupported schema version.");
+        var id = Text("id");
+        if (!Regex.IsMatch(id, IdPattern)) throw new InvalidDataException($"{source}: id must be a lowercase slug.");
         var appearance = Text("appearance");
         var contrast = Text("contrast");
         if (appearance is not ("light" or "dark") || contrast is not ("normal" or "high"))
             throw new InvalidDataException($"{source}: invalid appearance or contrast.");
         var colors = root.GetProperty("colors");
+        Known(colors, ColorKeys, "colors.");
         var palette = ColorKeys.ToDictionary(key => key, key =>
         {
             var value = colors.GetProperty(key);
@@ -117,16 +169,20 @@ public static class Themes
             return Hex(value.GetString(), $"{source}: colors.{key}");
         });
         var ansi = root.GetProperty("ansi");
-        return new(Text("id"), Text("label"), root.GetProperty("order").GetInt32(), appearance, contrast, palette,
-            [.. AnsiKeys.Select(key => Hex(ansi.GetProperty(key).GetString(), $"{source}: ansi.{key}"))]);
+        Known(ansi, AnsiKeys, "ansi.");
+        var syntax = root.GetProperty("syntax");
+        Known(syntax, SyntaxKeys, "syntax.");
+        return new(id, Text("label"), root.GetProperty("order").GetInt32(), appearance, contrast, palette,
+            [.. AnsiKeys.Select(key => Hex(ansi.GetProperty(key).GetString(), $"{source}: ansi.{key}"))],
+            SyntaxKeys.ToDictionary(key => key, key => Hex(syntax.GetProperty(key).GetString(), $"{source}: syntax.{key}")));
     }
 
-    /// <summary>Canonical #rrggbb or #rrggbbaa; Avalonia's own parser reads eight digits as #aarrggbb.</summary>
+    /// <summary>Canonical lowercase #rrggbb or #rrggbbaa; Avalonia's own parser reads eight digits as #aarrggbb.</summary>
     private static Color Hex(string? value, string field)
     {
-        if (value is not ['#', ..] || value.Length is not (7 or 9) ||
-            !uint.TryParse(value.AsSpan(1), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var number))
-            throw new InvalidDataException($"{field} must be a six- or eight-digit hex colour.");
+        if (value is null || !Regex.IsMatch(value, HexPattern))
+            throw new InvalidDataException($"{field} must be a lowercase six- or eight-digit hex colour.");
+        var number = uint.Parse(value.AsSpan(1), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
         if (value.Length == 7) number = number << 8 | 0xff;
         return Color.FromArgb((byte)number, (byte)(number >> 24), (byte)(number >> 16), (byte)(number >> 8));
     }

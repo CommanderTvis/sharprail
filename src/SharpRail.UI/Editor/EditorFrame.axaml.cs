@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Markup.Xaml;
+using Avalonia.Media;
 using Avalonia.Platform;
 
 using SharpRail.Scintilla;
@@ -28,8 +29,14 @@ internal sealed partial class EditorFrame : UserControl
     /// <summary>Raised on theme changes after the editor colours update, for owners that derive line styles.</summary>
     internal event Action? ThemeApplied;
 
-    internal EditorFrame(string text, string name)
+    private readonly SolidColorBrush canvas;
+    private readonly bool currentLine;
+
+    /// <summary>An opened document sits on the workspace canvas; a diff passes the recessed surface it reads on.</summary>
+    internal EditorFrame(string text, string name, SolidColorBrush? canvas = null)
     {
+        this.canvas = canvas ?? Ui.Workspace;
+        currentLine = canvas is null;
         AvaloniaXamlLoader.Load(this);
         vertical = this.FindControl<ScrollBar>("EditorVerticalScroll")!;
         horizontal = this.FindControl<ScrollBar>("EditorHorizontalScroll")!;
@@ -40,8 +47,12 @@ internal sealed partial class EditorFrame : UserControl
         horizontal.ValueChanged += (_, e) => { if (!syncingScroll) Editor.ScrollToX(e.NewValue); };
     }
 
-    private static ScintillaColors ThemeColors() => new(Ui.TextBrush.Color, Ui.Surface.Color, Ui.Muted.Color,
-        Ui.Over(Ui.Theme["editorSelection"], Ui.Surface.Color), Ui.Theme.Colors["editorSelectionForeground"]);
+    private ScintillaColors ThemeColors() => new(Ui.TextBrush.Color, canvas.Color, Ui.Muted.Color,
+        Ui.Over(Ui.EditorSelection, canvas.Color), Ui.EditorSelectionText)
+    {
+        Caret = Ui.Accent.Color,
+        CurrentLine = currentLine ? Ui.Hover.Color : null
+    };
 
     private void ApplyTheme() { Editor.Colors = ThemeColors(); ThemeApplied?.Invoke(); }
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)

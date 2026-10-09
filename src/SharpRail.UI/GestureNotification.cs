@@ -1,6 +1,5 @@
 using Avalonia.Controls;
 using Avalonia.Media;
-using Avalonia.Styling;
 using Avalonia.Threading;
 
 using SharpRail.UI.Rendering;
@@ -19,6 +18,8 @@ public sealed partial class WorkbenchWindow
     {
         this.FindControl<TextBlock>("GestureToastMessage")!.Text = message;
         var toast = this.FindControl<Border>("GestureToast")!;
+        // A box shadow bakes its colour, so it is read when the toast appears rather than bound.
+        toast.BoxShadow = new BoxShadows(new BoxShadow { OffsetY = 4, Blur = 16, Color = Ui.PopoverShadow.Color });
         notificationTimer.Stop(); toast.IsVisible = true; notificationTimer.Start();
     }
 
@@ -28,18 +29,8 @@ public sealed partial class WorkbenchWindow
         var dismiss = this.FindControl<Button>("DismissGestureToast")!;
         var stack = this.FindControl<ToastStack>("ToastStack")!;
         stack.Attach(Toasts);
-        void Appearance()
-        {
-            stack.Width = toast.Width = Bounds.Width < 640 ? Math.Max(0, Bounds.Width - 24) : 356;
-            toast.BoxShadow = new BoxShadows(new BoxShadow
-            {
-                OffsetY = 4,
-                Blur = 16,
-                Color = Color.FromArgb(ActualThemeVariant == ThemeVariant.Light ? (byte)31 : (byte)89, 0, 0, 0)
-            });
-        }
+        void Appearance() => stack.Width = toast.Width = Bounds.Width < 640 ? Math.Max(0, Bounds.Width - 24) : 356;
         SizeChanged += (_, _) => Appearance();
-        ActualThemeVariantChanged += (_, _) => Appearance();
         Appearance();
         void Hide() { notificationTimer.Stop(); toast.IsVisible = false; }
         notificationTimer.Tick += (_, _) => Hide();

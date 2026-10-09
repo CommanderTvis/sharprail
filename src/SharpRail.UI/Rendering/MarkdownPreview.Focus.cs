@@ -131,7 +131,7 @@ public sealed partial class MarkdownPreview
             Content = Ui.Text("⋯ " + label, Ui.Hint, 12),
             HorizontalAlignment = HorizontalAlignment.Stretch,
             HorizontalContentAlignment = HorizontalAlignment.Left,
-            Padding = new Thickness(8, 3),
+            Padding = new Thickness(8, 4),
             Margin = new Thickness(0, 8),
             Background = Ui.Elevated,
             BorderThickness = new Thickness(0),

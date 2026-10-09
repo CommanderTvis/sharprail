@@ -464,7 +464,7 @@ internal static class UiChecks
         double PreviewWidth() { restored.UpdateLayout(); return ((StackPanel)Find<MarkdownPreview>(restored, "MarkdownPreview").Content!).MaxWidth; }
         Pump(() => Math.Abs(PreviewWidth() - previewWidth * 60 / 78) < 0.5,
             "Line-width settings did not update the mounted Markdown preview.");
-        var bounded = Find<CheckBox>(liveSettings, "MarkdownLineWidthBounded");
+        var bounded = Find<Switch>(liveSettings, "MarkdownLineWidthBounded");
         bounded.IsChecked = false;
         Pump(() => double.IsPositiveInfinity(PreviewWidth()), "Disabling bounded line width did not update the preview.");
         var savedProfile = new ProfileStore(Path.Combine(root, ".profile"));

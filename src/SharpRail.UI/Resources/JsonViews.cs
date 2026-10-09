@@ -196,7 +196,7 @@ internal static class JsonViews
     private static Control Notice(string name, string message, IBrush color)
     {
         var text = Ui.Text(message, color, 12);
-        text.Name = name; text.Margin = new Thickness(20); text.TextWrapping = TextWrapping.Wrap;
+        text.Name = name; text.Margin = new Thickness(24); text.TextWrapping = TextWrapping.Wrap;
         text.HorizontalAlignment = HorizontalAlignment.Left; text.VerticalAlignment = VerticalAlignment.Top;
         return text;
     }

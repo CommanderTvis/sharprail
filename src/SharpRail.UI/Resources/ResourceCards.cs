@@ -34,7 +34,7 @@ internal static partial class ResourceCards
 
     internal static Border Card(string name, params Control[] rows)
     {
-        var panel = new StackPanel { Spacing = 6 };
+        var panel = new StackPanel { Spacing = 8 };
         panel.Children.AddRange(rows);
         return new Border
         {
@@ -83,7 +83,7 @@ internal static partial class ResourceCards
             });
             save.Name = "BinarySave";
             save.HorizontalAlignment = HorizontalAlignment.Left;
-            save.Margin = new Thickness(0, 6, 0, 0);
+            save.Margin = new Thickness(0, 8, 0, 0);
             rows.Add(save); rows.Add(status);
         }
         else rows.Add(Ui.Text("Unavailable", Ui.Muted, 12));
@@ -92,7 +92,7 @@ internal static partial class ResourceCards
 
     internal static Control BinaryDiff(ResourceDiff diff)
     {
-        var row = new Grid { Name = "BinaryDiff", ColumnDefinitions = new ColumnDefinitions("*,*"), ColumnSpacing = 16, Margin = new Thickness(20) };
+        var row = new Grid { Name = "BinaryDiff", ColumnDefinitions = new ColumnDefinitions("*,*"), ColumnSpacing = 16, Margin = new Thickness(24) };
         Ui.Place(row, Side("Original", diff.Original));
         Ui.Place(row, Side("Modified", diff.Modified), 0, 1);
         return new ScrollViewer { Content = row };
@@ -100,7 +100,7 @@ internal static partial class ResourceCards
 
     internal static StackPanel Side(string title, ResourceContent content)
     {
-        var card = new StackPanel { Spacing = 6, VerticalAlignment = VerticalAlignment.Top, Name = "BinarySide_" + title };
+        var card = new StackPanel { Spacing = 8, VerticalAlignment = VerticalAlignment.Top, Name = "BinarySide_" + title };
         card.Children.Add(Ui.Text(title, Ui.TextBrush, 13));
         switch (content)
         {

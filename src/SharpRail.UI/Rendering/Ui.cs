@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
@@ -10,34 +11,8 @@ using Avalonia.Themes.Fluent;
 
 namespace SharpRail.UI.Rendering;
 
-public static class Ui
+public static partial class Ui
 {
-    public static readonly SolidColorBrush Sidebar = new();
-    public static readonly SolidColorBrush Surface = new();
-    public static readonly SolidColorBrush Header = new();
-    public static readonly SolidColorBrush Elevated = new();
-    public static readonly SolidColorBrush TextBrush = new();
-    public static readonly SolidColorBrush Muted = new();
-    public static readonly SolidColorBrush Hint = new();
-    public static readonly SolidColorBrush Accent = new();
-    // The reference's control-primary tokens: the solid primary button fill, its hover step and its label.
-    public static readonly SolidColorBrush PrimaryFill = new();
-    public static readonly SolidColorBrush PrimaryFillHover = new();
-    public static readonly SolidColorBrush OnPrimary = new();
-    public static readonly SolidColorBrush DialogShadow = new();
-    public static readonly SolidColorBrush PrimarySubtle = new();
-    public static readonly SolidColorBrush PrimaryMuted = new();
-    public static readonly SolidColorBrush BorderBrush = new();
-    public static readonly SolidColorBrush Hover = new();
-    public static readonly SolidColorBrush TextSelection = new();
-    public static readonly SolidColorBrush Success = new();
-    public static readonly SolidColorBrush Danger = new();
-    public static readonly SolidColorBrush Info = new();
-    public static readonly SolidColorBrush Warning = new();
-    public static readonly SolidColorBrush SuccessWash = new();
-    public static readonly SolidColorBrush DangerWash = new();
-    public static readonly SolidColorBrush InfoWash = new();
-    public static readonly SolidColorBrush WarningWash = new();
     public static readonly LinearGradientBrush FadeFromElevated = Fade();
     public static readonly LinearGradientBrush FadeToElevated = Fade();
     /// <summary>Resource key for the selected-text foreground; null when the theme keeps the native foreground.</summary>
@@ -59,33 +34,9 @@ public static class Ui
     {
         if (ReferenceEquals(theme, Theme)) return;
         Theme = theme;
-        Sidebar.Color = theme["sidebar"];
-        Surface.Color = theme["content"];
-        Header.Color = theme["header"];
-        Elevated.Color = theme["elevated"];
-        TextBrush.Color = theme["text"];
-        Muted.Color = theme["muted"];
-        Hint.Color = theme["hint"];
-        Accent.Color = theme["accent"];
-        PrimaryFill.Color = theme["accentSolid"];
-        PrimaryFillHover.Color = theme["accentHover"];
-        OnPrimary.Color = theme["onAccent"];
-        DialogShadow.Color = Color.FromArgb(theme.IsLight ? (byte)36 : (byte)102, 0, 0, 0);
-        PrimarySubtle.Color = Alpha(theme["accent"], 10);
-        PrimaryMuted.Color = Alpha(theme["accent"], 40);
-        BorderBrush.Color = theme["borderStrong"];
-        Hover.Color = theme["hover"];
-        TextSelection.Color = theme["selection"];
-        Info.Color = theme["info"];
-        Warning.Color = theme["warning"];
-        Success.Color = theme["success"];
-        Danger.Color = theme["danger"];
-        InfoWash.Color = Alpha(theme["info"], 12);
-        WarningWash.Color = Alpha(theme["warning"], 12);
-        SuccessWash.Color = Alpha(theme["success"], 12);
-        DangerWash.Color = Alpha(theme["danger"], 12);
-        FadeFromElevated.GradientStops[0].Color = FadeToElevated.GradientStops[1].Color = theme["elevated"];
-        FadeFromElevated.GradientStops[1].Color = FadeToElevated.GradientStops[0].Color = Alpha(theme["elevated"], 0);
+        ApplyRoles(theme);
+        FadeFromElevated.GradientStops[0].Color = FadeToElevated.GradientStops[1].Color = Elevated.Color;
+        FadeFromElevated.GradientStops[1].Color = FadeToElevated.GradientStops[0].Color = Alpha(Elevated.Color, 0);
         if (Application.Current is { } app) ApplyResources(app);
         ThemeChanged?.Invoke();
     }
@@ -93,10 +44,10 @@ public static class Ui
     /// <summary>Writes the theme values that application styles read as resources rather than through these brushes.</summary>
     public static void ApplyResources(Application app)
     {
-        app.Resources[SelectionForegroundKey] = Theme.Colors["selectionForeground"] is { } foreground ? new SolidColorBrush(foreground) : null;
+        app.Resources[SelectionForegroundKey] = SelectionText is { } foreground ? new SolidColorBrush(foreground) : null;
         foreach (var fluent in app.Styles.OfType<FluentTheme>())
             if (fluent.Palettes.TryGetValue(Theme.IsLight ? ThemeVariant.Light : ThemeVariant.Dark, out var palette))
-                palette.Accent = Theme["accent"];
+                palette.Accent = Accent.Color;
     }
 
     private static LinearGradientBrush Fade() => new()
@@ -148,7 +99,7 @@ public static class Ui
 
     public static StackPanel Row(string icon, string text, IBrush? color = null)
     {
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
         row.Children.Add(Icon(icon, color)); row.Children.Add(Text(text, color));
         return row;
     }
@@ -158,14 +109,45 @@ public static class Ui
         var button = new Button
         {
             Content = icon is null ? Text(label) : Row(icon, label),
-            Padding = new Thickness(10, 5),
+            Padding = new Thickness(12, 4),
             Background = Elevated,
             BorderBrush = BorderBrush,
             BorderThickness = new Thickness(1),
             CornerRadius = new(4)
         };
         button.Click += (_, _) => action();
+        FollowEnabled(button);
         return button;
+    }
+
+    /// <summary>
+    /// Labels and icons built by <see cref="Text"/> and <see cref="Icon"/> carry their own colour, so a disabled
+    /// button repaints them from the disabled role and restores what they wore when it is enabled again.
+    /// </summary>
+    internal static void FollowEnabled(Button button)
+    {
+        (Control Part, IBrush? Brush)[]? resting = null;
+        static IBrush? Read(Control part) => part is TextBlock label ? label.Foreground : ((Border)part).Background;
+        static void Write(Control part, IBrush? brush)
+        {
+            if (part is TextBlock label) label.Foreground = brush; else ((Border)part).Background = brush;
+        }
+        button.PropertyChanged += (_, e) =>
+        {
+            if (e.Property != InputElement.IsEffectivelyEnabledProperty) return;
+            if (!button.IsEffectivelyEnabled)
+            {
+                // Owners replace the content after construction, so the parts are read when the state changes.
+                IEnumerable<Control> parts = button.Content is Panel panel ? panel.Children : button.Content is Control single ? [single] : [];
+                resting ??= [.. parts.Where(part => part is TextBlock or Border).Select(part => (part, Read(part)))];
+                foreach (var (part, _) in resting) Write(part, button.Classes.Contains("primary") ? PrimaryDisabledText : ControlDisabledText);
+            }
+            else if (resting is not null)
+            {
+                foreach (var (part, brush) in resting) Write(part, brush);
+                resting = null;
+            }
+        };
     }
 
     public static Button IconButton(string icon, string tooltip, Action action)
@@ -175,7 +157,7 @@ public static class Ui
             Content = Icon(icon),
             Width = 32,
             Height = 32,
-            Padding = new Thickness(7),
+            Padding = new Thickness(0),
             Background = Brushes.Transparent,
             BorderThickness = new(0),
             CornerRadius = new(0)
@@ -183,6 +165,7 @@ public static class Ui
         ToolTip.SetTip(button, tooltip);
         AutomationProperties.SetName(button, tooltip);
         button.Click += (_, _) => action();
+        FollowEnabled(button);
         return button;
     }
 

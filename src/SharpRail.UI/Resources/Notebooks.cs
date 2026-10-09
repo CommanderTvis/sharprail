@@ -160,7 +160,7 @@ internal sealed class NotebookView : ScrollViewer, IDisposable
 
     private StackPanel Column()
     {
-        var panel = new StackPanel { Spacing = 10, Margin = new Thickness(20, 12), MaxWidth = 960, HorizontalAlignment = HorizontalAlignment.Left };
+        var panel = new StackPanel { Spacing = 12, Margin = new Thickness(24, 12), MaxWidth = 960, HorizontalAlignment = HorizontalAlignment.Left };
         Content = panel;
         return panel;
     }
@@ -183,7 +183,7 @@ internal sealed class NotebookView : ScrollViewer, IDisposable
 
     private Border CellCard(NotebookCell cell, int? number, string? change, NotebookCell? previous)
     {
-        var rows = new StackPanel { Spacing = 6 };
+        var rows = new StackPanel { Spacing = 8 };
         var label = cell.Kind + (number is { } ordinal ? " " + ordinal.ToString(CultureInfo.InvariantCulture) : "") + (cell.ExecutionCount is { } count ? $"  [{count}]" : "") +
             (change is null ? "" : " — " + change);
         rows.Children.Add(Ui.Text(label, change switch { "added" => Ui.Success, "removed" => Ui.Danger, "changed" => Ui.Warning, _ => Ui.Hint }, 11));

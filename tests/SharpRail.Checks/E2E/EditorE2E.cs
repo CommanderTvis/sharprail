@@ -156,7 +156,9 @@ internal static class EditorE2E
             Settle(300);
             using var frame = app.Window.CaptureRenderedFrame()!;
             var background = Pixel(frame, editor, new Point(editor.Bounds.Width - 24, editor.Bounds.Height - 8), app.Window.RenderScaling);
-            Require(background == Ui.Surface.Color, $"The mounted editor must re-theme to {theme} (painted {background}, expected {Ui.Surface.Color}).");
+            Require(background == Ui.Workspace.Color, $"The mounted editor must re-theme to {theme} (painted {background}, expected {Ui.Workspace.Color}).");
+            Require(editor.Colors.Caret == Ui.Accent.Color && editor.Colors.CurrentLine == Ui.Hover.Color,
+                $"The editor's caret and current line must follow the {theme} roles.");
             Require(editor.Text.Contains("plain-text-fixture", StringComparison.Ordinal), "Re-theming must keep the editor contents.");
             if (Ui.Theme.IsHighContrast)
                 Require(Ui.Theme.Colors["selectionForeground"] is not null && Ui.Theme.Colors["editorSelectionForeground"] is not null,

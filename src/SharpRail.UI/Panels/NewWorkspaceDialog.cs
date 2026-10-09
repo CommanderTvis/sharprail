@@ -48,7 +48,7 @@ public sealed class NewWorkspaceDialog
         description.IsVisible = true;
         var fields = Window.FindControl<StackPanel>("DialogFields")!;
 
-        var targets = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+        var targets = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
         worktreeTarget = Target("WsTargetWorktree", "New worktree", "gitBranch", false);
         folderTarget = Target("WsTargetDefault", "Project folder", "homeFill", true);
         targets.Children.Add(worktreeTarget); targets.Children.Add(folderTarget);
@@ -57,7 +57,7 @@ public sealed class NewWorkspaceDialog
         fields.Children.Add(ProjectPicker(projects));
 
         branchLabel = Ui.Text("", Ui.TextBrush);
-        var pickerContent = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+        var pickerContent = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
         pickerContent.Children.Add(Ui.Icon("gitBranch", null, 14));
         pickerContent.Children.Add(Ui.Text("From"));
         pickerContent.Children.Add(branchLabel);
@@ -66,14 +66,14 @@ public sealed class NewWorkspaceDialog
         {
             Name = "WsBranchPicker",
             Content = pickerContent,
-            Padding = new Thickness(10, 5),
+            Padding = new Thickness(12, 4),
             Background = Ui.Elevated,
             BorderBrush = Ui.BorderBrush,
             BorderThickness = new Thickness(1),
             CornerRadius = new(4)
         };
         AutomationProperties.SetName(branchPicker, "Base branch");
-        options = new StackPanel { Name = "BranchOptions", Spacing = 1 };
+        options = new StackPanel { Name = "BranchOptions", Spacing = 2 };
         search = new TextBox { Name = "BranchSearch", PlaceholderText = "Search branches…", Width = 300 };
         search.TextChanged += (_, _) => RenderOptions();
         search.AddHandler(InputElement.KeyDownEvent, (_, e) =>
@@ -118,7 +118,7 @@ public sealed class NewWorkspaceDialog
         {
             Name = "WsProjectTrigger",
             Content = row,
-            Padding = new Thickness(10, 5),
+            Padding = new Thickness(8, 4),
             Background = Ui.Elevated,
             BorderBrush = Ui.BorderBrush,
             BorderThickness = new Thickness(1),
@@ -173,7 +173,7 @@ public sealed class NewWorkspaceDialog
         {
             Name = name,
             Content = Ui.Row(icon, label),
-            Padding = new Thickness(10, 5),
+            Padding = new Thickness(12, 4),
             CornerRadius = new(4)
         };
         target.Click += (_, _) => { inFolder = folder; Render(); };

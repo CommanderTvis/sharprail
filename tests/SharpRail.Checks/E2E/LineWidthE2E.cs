@@ -65,8 +65,8 @@ internal static class LineWidthE2E
             var fileSave = Named<Button>(settings, "FileLineWidthSave");
             var markdownInput = Named<TextBox>(settings, "MarkdownLineWidthInput");
             Require(fileInput.Text == "120" && markdownInput.Text == "78", "Line widths must start at the reference defaults.");
-            Require(Named<CheckBox>(settings, "FileLineWidthBounded").IsChecked == true &&
-                Named<CheckBox>(settings, "MarkdownLineWidthBounded").IsChecked == true, "Both widths must start bounded.");
+            Require(Named<Switch>(settings, "FileLineWidthBounded").IsChecked == true &&
+                Named<Switch>(settings, "MarkdownLineWidthBounded").IsChecked == true, "Both widths must start bounded.");
 
             Type(app, settings, fileInput, "90");
             Require(fileSave.IsEnabled, "A valid changed draft must enable Save.");
@@ -88,7 +88,7 @@ internal static class LineWidthE2E
             Until(() => !fileSave.IsEnabled && app.Window.Preferences.FileLineWidth == 80);
             SaveWidth(app, settings, "Markdown", 60);
 
-            app.Click(Named<CheckBox>(settings, "MarkdownLineWidthBounded"));
+            app.Click(Named<Switch>(settings, "MarkdownLineWidthBounded"));
             Until(() => !app.Window.Preferences.MarkdownLineWidthBounded);
             Require(app.Window.Preferences.FileLineWidthBounded, "Toggling one width's limit must leave the other bounded.");
             Close(settings);
@@ -100,7 +100,7 @@ internal static class LineWidthE2E
         {
             var settings = OpenLineWidth(reopened);
             Require(Named<TextBox>(settings, "FileLineWidthInput").Text == "80" && Named<TextBox>(settings, "MarkdownLineWidthInput").Text == "60" &&
-                Named<CheckBox>(settings, "FileLineWidthBounded").IsChecked == true && Named<CheckBox>(settings, "MarkdownLineWidthBounded").IsChecked == false,
+                Named<Switch>(settings, "FileLineWidthBounded").IsChecked == true && Named<Switch>(settings, "MarkdownLineWidthBounded").IsChecked == false,
                 "A fresh window must restore the saved line widths.");
             Close(settings);
         }
@@ -149,7 +149,7 @@ internal static class LineWidthE2E
             SaveWidth(app, settings, "File", 160);
 
             hold!.Arm();
-            var markdownBounded = Named<CheckBox>(settings, "MarkdownLineWidthBounded");
+            var markdownBounded = Named<Switch>(settings, "MarkdownLineWidthBounded");
             app.Click(markdownBounded);
             Until(() => hold.Held.IsCompleted);
             Settle(100);
@@ -157,19 +157,19 @@ internal static class LineWidthE2E
                 "The toggle must show the host's value until its broadcast arrives.");
             hold.Release();
             Until(() => markdownBounded.IsChecked == false);
-            Require(Named<CheckBox>(settings, "FileLineWidthBounded").IsChecked == true, "The other width stays bounded.");
+            Require(Named<Switch>(settings, "FileLineWidthBounded").IsChecked == true, "The other width stays bounded.");
             Close(settings);
 
             using var peer = app.NewWindow();
             var peerSettings = OpenLineWidth(peer);
             settings = OpenLineWidth(app);
             Require(Named<TextBox>(peerSettings, "MarkdownLineWidthInput").Text == "80" && Named<TextBox>(peerSettings, "FileLineWidthInput").Text == "160" &&
-                Named<CheckBox>(peerSettings, "MarkdownLineWidthBounded").IsChecked == false && Named<CheckBox>(peerSettings, "FileLineWidthBounded").IsChecked == true,
+                Named<Switch>(peerSettings, "MarkdownLineWidthBounded").IsChecked == false && Named<Switch>(peerSettings, "FileLineWidthBounded").IsChecked == true,
                 "A second window shows the converged widths.");
-            app.Click(Named<CheckBox>(settings, "FileLineWidthBounded"));
-            Until(() => Named<CheckBox>(peerSettings, "FileLineWidthBounded").IsChecked == false);
-            app.Click(Named<CheckBox>(settings, "FileLineWidthBounded"));
-            Until(() => Named<CheckBox>(peerSettings, "FileLineWidthBounded").IsChecked == true);
+            app.Click(Named<Switch>(settings, "FileLineWidthBounded"));
+            Until(() => Named<Switch>(peerSettings, "FileLineWidthBounded").IsChecked == false);
+            app.Click(Named<Switch>(settings, "FileLineWidthBounded"));
+            Until(() => Named<Switch>(peerSettings, "FileLineWidthBounded").IsChecked == true);
             Close(peerSettings);
             Close(settings);
         }
@@ -177,7 +177,7 @@ internal static class LineWidthE2E
         {
             var settings = OpenLineWidth(reopened);
             Require(Named<TextBox>(settings, "MarkdownLineWidthInput").Text == "80" && Named<TextBox>(settings, "FileLineWidthInput").Text == "160" &&
-                Named<CheckBox>(settings, "MarkdownLineWidthBounded").IsChecked == false && Named<CheckBox>(settings, "FileLineWidthBounded").IsChecked == true,
+                Named<Switch>(settings, "MarkdownLineWidthBounded").IsChecked == false && Named<Switch>(settings, "FileLineWidthBounded").IsChecked == true,
                 "A fresh window must restore the converged widths.");
             Close(settings);
         }
