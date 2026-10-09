@@ -160,10 +160,10 @@ no target and no further fallback. The tab button no longer handles Mod+W itself
   selecting or focusing one group must leave sibling chrome and bodies untouched. `DockSurface` already
   keeps gesture projections local and updates selections per group, but the upstream isolation guarantees
   are not yet pinned by equivalent checks for injected body lifetime and refreshes.
-- A host terminal catalog: terminal membership is shared across windows, a peer-created terminal is
-  placed passively into a compatible slot without taking focus, and a host-side close removes the tab
-  from every window.
-- Ending a removed workspace's terminals on the host. Its view is dropped, which closes the terminal bodies
-  this window had mounted; shells whose tabs were never shown here end only with the host.
+
+- Reconciling with the host terminal catalog: terminal membership is shared across windows, a
+  peer-created terminal is placed passively into a compatible slot without taking focus, and a host-side
+  close removes the tab from every window. The host side exists (`ITerminalCatalogService`, its adapters
+  and broadcast); no window reserves its tabs or applies the broadcast yet.
 - Back/Forward navigation history over locations, and serializable deep links to a project, workspace or
   resource.

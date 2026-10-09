@@ -30,8 +30,11 @@ public static class RemoteServer
         builder.Services.AddSingleton(new ProjectSessions(root, state));
         builder.Services.AddSingleton<RequestReplayCache>();
         // Sessions belong to the host: they outlive client connections and end when the host stops.
-        if (terminals is null) builder.Services.AddSingleton<ITerminalService>(_ => new PtyTerminalService(recordingsDirectory: stateDirectory is null ? null : Path.Combine(stateDirectory, "terminals")));
+        if (terminals is null) builder.Services.AddSingleton<ITerminalService>(_ => new PtyTerminalService(recordingsDirectory: stateDirectory is null ? null : Path.Combine(stateDirectory, "terminals"),
+            replayBytes: () => state.Current.Settings.TerminalReplayKb * 1024));
         else builder.Services.AddSingleton(terminals);
+        // Supplied terminals without a catalog get one that lives as long as the host.
+        builder.Services.AddSingleton(services => services.GetRequiredService<ITerminalService>() as ITerminalCatalogService ?? new MemoryTerminalCatalog());
         builder.Services.AddCodeFirstGrpc(options => options.MaxReceiveMessageSize = FileLimits.SaveMessageBytes);
         var app = builder.Build();
         RequireToken(app, token);
@@ -39,6 +42,8 @@ public static class RemoteServer
         app.MapGrpcService<ProjectRpc>();
         app.MapGrpcService<StateRpc>();
         app.MapGrpcService<TerminalRpc>();
+        app.MapGrpcService<TerminalCatalogRpc>();
+        state.WorkspaceRemoved += path => _ = Task.Run(async () => await app.Services.GetRequiredService<ITerminalCatalogService>().CloseWorkspaceAsync(path));
         return app;
     }
 

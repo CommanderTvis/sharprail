@@ -5,8 +5,8 @@ namespace SharpRail.Host.Core;
 internal sealed class TerminalRecordingStore(string directory)
 {
     internal const int MaxEntries = 256;
-    // A snapshot is the recorded bytes plus a short mode preamble.
-    internal const int MaxBytes = TerminalRecorder.SnapshotBytes + 1024;
+    // A snapshot is the recorded bytes, at most the largest replay size, plus a short mode preamble.
+    internal const int MaxBytes = TerminalRecorder.MaxSnapshotBytes + 1024;
 
     internal void Save(string sessionId, byte[] recording)
     {

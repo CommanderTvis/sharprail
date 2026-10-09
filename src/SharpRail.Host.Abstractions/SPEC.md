@@ -24,7 +24,8 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
   (`ProjectServices.cs`), `IHostStateService` with `HostState`, `HostSettings`, `LayoutPreset` and
   `HostStateChange` (`HostState.cs`), the workspace registry records `WorkspaceRecord`, `WorkspaceAction`,
   `WorkspaceCatalog` and `LifecycleEvent` (`WorkspaceRegistry.cs`), `ITerminalService` / `ITerminalSession` with
-  `TerminalAttachRequest` (`TerminalServices.cs`), and `FileLimits`.
+  `TerminalAttachRequest` and `TerminalGrid` (`TerminalServices.cs`), `ITerminalCatalogService` with
+  `TerminalTab` and `TerminalCatalog` (`TerminalCatalog.cs`), and `FileLimits`.
 - Allowed deps: the .NET base library only.
 - Forbidden: serialization attributes, gRPC, Avalonia, filesystem or process access, and any AI or agent
   concept.
@@ -88,6 +89,5 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
 
 ## Not yet ported
 
-- A terminal catalog with reservation separate from attachment.
 - Content classification (media type, hash) on file reads and a byte read of a path at one commit; diff
   sides already carry hashes.

@@ -12,9 +12,10 @@ project: local adapters call Core directly, with no serialization.
 
 ## Boundary
 
-- Owns the wire: the four services `IWorkspaceRpc` (`WorkspaceContract.cs`),
-  `IProjectRpc` (`ProjectContract.cs`), `IStateRpc` (`StateContract.cs`) and
-  `ITerminalRpc` (`TerminalContract.cs`), their `[ProtoContract]` request/reply
+- Owns the wire: the five services `IWorkspaceRpc` (`WorkspaceContract.cs`),
+  `IProjectRpc` (`ProjectContract.cs`), `IStateRpc` (`StateContract.cs`),
+  `ITerminalRpc` (`TerminalContract.cs`) and `ITerminalCatalogRpc`
+  (`TerminalCatalogContract.cs`), their `[ProtoContract]` request/reply
   classes, and the metadata keys a call carries.
 - Domain records belong in `SharpRail.Host.Abstractions`; DTOs here are their
   serialized projection. Client and Remote adapters map between the two, and both
@@ -44,6 +45,10 @@ project: local adapters call Core directly, with no serialization.
   returning the resulting snapshot, and a server-streamed `WatchAsync` of full
   snapshots. Custom presets are the only layout value on the wire; current and
   default presets, frames and geometry stay client-local.
+- Terminal catalog: `OpenWorkspace`, `Reserve`, `CloseTab` and `CloseWorkspace` each return the complete
+  catalog snapshot they produced, and a server-streamed `WatchAsync` yields full snapshots. A host that
+  predates the service answers `Unimplemented`, which the client adapter reports as unsupported; the
+  protocol version was not raised for it.
 - Terminal: one bidirectional `RunAsync` stream per attachment. The first input
   is an attach (session id, workspace root, client id, size, resume offset); the
   first output acknowledges it with `Created`, the replay bytes and the stream

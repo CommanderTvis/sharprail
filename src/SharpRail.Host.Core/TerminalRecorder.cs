@@ -9,6 +9,7 @@ namespace SharpRail.Host.Core;
 internal sealed class TerminalRecorder(int snapshotBytes = TerminalRecorder.SnapshotBytes, int resumeBytes = TerminalRecorder.ResumeBytes)
 {
     internal const int SnapshotBytes = 64 * 1024;
+    internal const int MaxSnapshotBytes = 1024 * 1024;
     internal const int ResumeBytes = 1024 * 1024;
     private static readonly int[] Tracked = [1, 7, 25, 2004];
     private static readonly int[] AlternateScreens = [47, 1047, 1049];

@@ -106,7 +106,8 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
             FileLineWidth = reply.Settings.FileLineWidth,
             FileLineWidthBounded = !reply.Settings.FileLineWidthUnbounded,
             MarkdownLineWidth = reply.Settings.MarkdownLineWidth,
-            MarkdownLineWidthBounded = !reply.Settings.MarkdownLineWidthUnbounded
+            MarkdownLineWidthBounded = !reply.Settings.MarkdownLineWidthUnbounded,
+            TerminalReplayKb = reply.Settings.TerminalReplayKb
         },
         Presets = reply.Presets.Select(preset => new LayoutPreset(preset.Name, preset.Layout)).ToArray(),
         Projects = reply.Projects.ToArray(),

@@ -11,6 +11,11 @@ public sealed record HostSettings
     public bool FileLineWidthBounded { get; init; } = true;
     public int MarkdownLineWidth { get; init; }
     public bool MarkdownLineWidthBounded { get; init; } = true;
+    /// <summary>How much recent output a terminal opened from now on keeps for replay, in KiB; zero keeps none.</summary>
+    public int TerminalReplayKb { get; init; } = DefaultTerminalReplayKb;
+
+    public const int DefaultTerminalReplayKb = 64;
+    public const int MaxTerminalReplayKb = 1024;
 }
 
 /// <summary>A custom layout preset; the layout is opaque to the host.</summary>

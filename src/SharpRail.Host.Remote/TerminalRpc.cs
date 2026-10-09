@@ -64,7 +64,9 @@ public sealed class TerminalRpc(ITerminalService terminals) : ITerminalRpc
             switch (message.Kind)
             {
                 case TerminalInputKind.Data: await session.WriteAsync(message.Data, cancellationToken); break;
-                case TerminalInputKind.Resize: await session.ResizeAsync(message.Columns, message.Rows, cancellationToken); break;
+                // A client that bypasses its adapter's own grid check is ignored rather than ending the call.
+                case TerminalInputKind.Resize when message.Columns is >= 1 and <= TerminalGrid.Max && message.Rows is >= 1 and <= TerminalGrid.Max:
+                    await session.ResizeAsync(message.Columns, message.Rows, cancellationToken); break;
                 case TerminalInputKind.Kill: await session.KillAsync(cancellationToken); break;
             }
         }

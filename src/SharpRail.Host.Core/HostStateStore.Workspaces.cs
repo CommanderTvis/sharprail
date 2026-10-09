@@ -32,26 +32,32 @@ public sealed partial class HostStateStore
 
     /// <summary>
     /// Rewrites the workspace registry atomically. A record that leaves it loses its label, creation base and
-    /// review target; the result is saved before the snapshot and the lifecycle events of the difference are published.
+    /// review target, and <see cref="WorkspaceRemoved"/> is raised with its path; the result is saved before the snapshot
+    /// and the lifecycle events of the difference are published.
     /// </summary>
     public IReadOnlyList<WorkspaceRecord> ChangeWorkspaces(Func<IReadOnlyList<WorkspaceRecord>, IEnumerable<WorkspaceRecord>> change)
     {
+        string[] removed;
+        IReadOnlyList<WorkspaceRecord> workspaces;
         lock (gate)
         {
             // Each project's Default workspace leads its rows, as every client lists them.
             var next = change(state.Workspaces).Where(ValidWorkspace).OrderBy(workspace => workspace.Kind != WorkspaceKinds.Default).ToArray();
             if (next.SequenceEqual(state.Workspaces)) return state.Workspaces;
             var paths = next.Select(workspace => workspace.Path).ToHashSet();
+            removed = state.Workspaces.Select(workspace => workspace.Path).Where(path => !paths.Contains(path)).ToArray();
             var result = state with { Workspaces = next };
-            foreach (var gone in state.Workspaces.Select(workspace => workspace.Path).Where(path => !paths.Contains(path)))
+            foreach (var gone in removed)
                 result = result with
                 {
                     WorkspaceLabels = Without(result.WorkspaceLabels, gone),
                     WorkspaceBases = Without(result.WorkspaceBases, gone),
                     WorkspaceDiffBases = Without(result.WorkspaceDiffBases, gone)
                 };
-            return Publish(result, persist: true).Workspaces;
+            workspaces = Publish(result, persist: true).Workspaces;
         }
+        foreach (var path in removed) WorkspaceRemoved?.Invoke(path);
+        return workspaces;
     }
 
     /// <summary>Records the ref a workspace was just created from as its review target, clearing any override left at that path.</summary>

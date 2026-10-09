@@ -34,6 +34,8 @@ public sealed partial class HostStateStore : IHostStateService
     private HostState state;
 
     public string? LastError { get; private set; }
+    /// <summary>Raised with the path of a workspace the host removed, so its other resources can end with it.</summary>
+    public event Action<string>? WorkspaceRemoved;
 
     public ValueTask<HostHandshake> GetHandshakeAsync(CancellationToken cancellationToken = default)
         => ValueTask.FromResult(new HostHandshake(HostProtocol.Current, HostProtocol.BuildVersion));
@@ -155,7 +157,8 @@ public sealed partial class HostStateStore : IHostStateService
             SystemLight = Clean(value.Settings.SystemLight),
             SystemDark = Clean(value.Settings.SystemDark),
             FileLineWidth = Width(value.Settings.FileLineWidth),
-            MarkdownLineWidth = Width(value.Settings.MarkdownLineWidth)
+            MarkdownLineWidth = Width(value.Settings.MarkdownLineWidth),
+            TerminalReplayKb = Math.Clamp(value.Settings.TerminalReplayKb, 0, HostSettings.MaxTerminalReplayKb)
         },
         Presets = value.Presets.Where(preset => preset is not null && ValidText(preset.Name) && preset.Layout is { Length: > 0 })
             .DistinctBy(preset => preset.Name).ToArray(),
@@ -189,6 +192,8 @@ public sealed partial class HostStateStore : IHostStateService
                     "file-bounded" when bool.TryParse(value, out var bounded) => settings with { FileLineWidthBounded = bounded },
                     "markdown-width" when Number(value) is { } width => settings with { MarkdownLineWidth = width },
                     "markdown-bounded" when bool.TryParse(value, out var bounded) => settings with { MarkdownLineWidthBounded = bounded },
+                    "terminal-replay" when int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var kb) && kb <= HostSettings.MaxTerminalReplayKb
+                        => settings with { TerminalReplayKb = kb },
                     _ => throw new ArgumentException($"Invalid setting {key}.")
                 };
                 return settings == current.Settings ? current : current with { Settings = settings };

@@ -14,8 +14,8 @@ used by remote deployments and transport integration checks. The UI does not ref
 ## Boundary
 
 - Owns `RemoteServer.cs` (server composition and authentication), the RPC
-  adapters `WorkspaceRpc.cs`, `ProjectRpc.cs`, `StateRpc.cs` and
-  `TerminalRpc.cs`, `ProjectSessions.cs` (per-call workspace resolution) and
+  adapters `WorkspaceRpc.cs`, `ProjectRpc.cs`, `StateRpc.cs`,
+  `TerminalRpc.cs` and `TerminalCatalogRpc.cs`, `ProjectSessions.cs` (per-call workspace resolution) and
   `Program.cs` (environment-driven startup).
 - Public surface: `RemoteServer.Create(root, address, port, token,
   stateDirectory?, terminals?)` returns an unstarted `WebApplication`; the embedder starts and stops it.
