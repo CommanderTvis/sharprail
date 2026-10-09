@@ -108,6 +108,7 @@ public sealed partial class WorkbenchWindow : Window
         AddHandler(KeyDownEvent, (_, e) => { if (workbench.Commands.KeyDown(this, e)) e.Handled = true; }, RoutingStrategies.Tunnel);
         AddHandler(KeyUpEvent, (_, e) => workbench.Commands.KeyUp(e), RoutingStrategies.Tunnel);
         Deactivated += (_, _) => workbench.Commands.Deactivated();
+        Activated += (_, _) => { if (toolContent.ContainsKey("review")) RefreshOpenReview(); };
         AddHandler(KeyDownEvent, (_, e) =>
         {
             var command = e.KeyModifiers.HasFlag(KeyModifiers.Meta) || e.KeyModifiers.HasFlag(KeyModifiers.Control);
@@ -196,7 +197,7 @@ public sealed partial class WorkbenchWindow : Window
 
     public async Task OpenProjectAsync(string path) => await OpenWorkspaceAsync(path, true);
 
-    private async Task OpenWorkspaceAsync(string path, bool project, bool home = false)
+    private async Task OpenWorkspaceAsync(string path, bool project, bool home = false, Action<Exception>? failed = null)
     {
         RememberGitSelection();
         var previous = WorkspaceMounted ? (atHome ? "" : workspaceRoot) : null;
@@ -255,7 +256,7 @@ public sealed partial class WorkbenchWindow : Window
             }, DispatcherPriority.Loaded);
         }
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
-        catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
+        catch (Exception error) when (error is not OperationCanceledException) { (failed ?? Report)(error); }
         finally { projectGate.Release(); }
         if (request == projectRequest && WorkspaceMounted)
             Dispatcher.UIThread.Post(() =>

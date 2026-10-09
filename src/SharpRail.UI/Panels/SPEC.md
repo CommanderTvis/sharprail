@@ -32,6 +32,15 @@ these surfaces are specified in [../Panels.SPEC.md](../Panels.SPEC.md).
   `Dialogs.HostPath` focus their first field; `Dialogs.AskToSave` focuses Save.
 - `Dialogs.HostPath` is the Open project from host path dialog: it says the path belongs to the computer
   running SharpRail, shows the native picker's failure when there was one, and returns the trimmed path.
+- `Dialogs.Notice` is the single-button surface for a failure with no recovery inside it: a 384px card
+  with an alert glyph beside the heading, the reason, and one focused default action (OK). Opening a project
+  the user asked for by picker, path or recent entry that the host cannot open says “Couldn't open project”
+  there with the host's reason, and leaves the shown project in place. Confirmation stays `Dialogs.Confirm`.
+- A rejected action whose dialog has already closed is an error toast titled with what failed, never the
+  window's error line: “Couldn't create workspace” (the branch catalogue read or the creation, with Git's
+  own error) and “Couldn't remove the worktree”.
+- `PrDialogs` holds the pull request compose and setup dialogs; their behaviour is specified with the
+  Review panel in [Panels.SPEC.md](../Panels.SPEC.md).
 
 ## Create workspace
 
@@ -91,6 +100,8 @@ could not save this change: …” inline and re-renders from host state.
 
 - Terminal replayed-output size and a Windows shell picker.
 - A project picker in the Create workspace dialog; it shows only the current project.
-- A notice dialog distinct from confirmation for failures with no recovery.
-- Toast-based error reporting for rejected dialog actions.
+- Keeping the Create workspace dialog open to retry after a rejected creation; the dialog has closed by
+  then and the failure is a toast.
+- Toasts for the remaining rejections that follow a confirmation (closing a project, initialising a
+  repository, closing busy terminals); they still use the window's error line.
 - A dedicated disabled treatment on theme controls while one theme mutation is in flight.

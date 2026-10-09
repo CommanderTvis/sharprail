@@ -117,6 +117,8 @@ internal static class UiChecks
         E2E.ChangesScopeE2E.Run(Path.Combine(root, "upstream-e2e"));
         E2E.ChangesDiffE2E.Run(Path.Combine(root, "upstream-e2e"));
         E2E.RenderedDiffE2E.Run(Path.Combine(root, "upstream-e2e"));
+        ChangeActionChecks.Run(Path.Combine(root, "change-actions"));
+        ReviewChecks.Run(Path.Combine(root, "review"));
         E2E.LiveRefreshE2E.Run(Path.Combine(root, "upstream-e2e"));
         E2E.WorkspaceTabsE2E.Run(Path.Combine(root, "upstream-e2e"));
         RunWorkspaceSuites(Path.Combine(root, "upstream-e2e"));

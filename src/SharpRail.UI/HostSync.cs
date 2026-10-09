@@ -46,9 +46,11 @@ public sealed partial class WorkbenchWindow
         Closed += (_, _) => { state.Changed -= SharedStateChanged; state.ConnectionChanged -= ConnectionChanged; state.HandshakeChanged -= HandshakeChanged; };
     }
 
-    /// <summary>Detects a host built for another protocol version; there are no gates to apply yet.</summary>
+    /// <summary>Applies the capability gates of the connected host and detects one built for another protocol version.</summary>
     private void HandshakeChanged(HostHandshake? handshake)
     {
+        var canRevert = state.Supports(HostProtocol.ChangeWritePath);
+        foreach (var view in documentContent.Values.OfType<Rendering.DiffView>()) view.CanRevert = canRevert;
         if (handshake is null || handshake.ProtocolVersion == HostProtocol.Current) return;
         Console.Error.WriteLine($"Host protocol {handshake.ProtocolVersion} ({handshake.HostVersion}) differs from this app's {HostProtocol.Current}.");
         ShowNotification(handshake.ProtocolVersion > HostProtocol.Current

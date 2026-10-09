@@ -13,7 +13,7 @@ values: host-owned values live in the host and are mirrored here only as the lat
 ## Boundary
 
 - Owns: `Profile`, `Preferences`, `WindowProfile`, `GitSelection` and their normalization; atomic profile
-  writes; the one-time migration of pre-host fields into the local host's `state.json`; the shared-state
+  writes; each window's `ToastQueue`; the one-time migration of pre-host fields into the local host's `state.json`; the shared-state
   subscription, its reconnect loop and the mirroring of snapshot settings into `Preferences`.
 - Forbidden: UI controls or dialogs; writing host-owned values locally as the source of truth; persisting
   derived snapshots such as commit catalogs or file listings; project-directory state (default user state
@@ -95,6 +95,7 @@ A workspace that leaves the host's registry is tombstoned for the window's lifet
 selection, its place in the selection history and its view in the frame are dropped at once, an open of it
 that was still in flight lands on Project Home instead of entering it, and leaving it afterwards writes no
 selection back. The tombstone lifts when a workspace is registered at that path again.
+
 ## Tab view state
 
 Each file and diff tab has a `TabView`: the renderer it chose and that renderer's own view state. The
@@ -108,12 +109,21 @@ renderer drops it, and a late report from a renderer the tab has left is ignored
 follows the best match, so a file that gains or loses a candidate view keeps working. Split or inline and
 ignore-whitespace stay diff-only presentation held by the diff pane.
 
+## Toasts
+
+`ToastQueue` is one window's transient notifications, oldest first; `Rendering/ToastStack` draws it. A toast
+has a variant (info, success, error), a message, an optional title, its own duration and at most one action
+(an Undo receipt). Without a duration, info and success end after five seconds and an error stays until
+dismissed. Pushing a notification identical to a visible actionless one returns that one instead of adding
+another. Actionable toasts are never coalesced, since their actions name different inverses, and the cap of
+five evicts only the oldest actionless ones, so a receipt stays until its duration ends or the user dismisses
+it. The queue is never persisted or shared between windows.
+
 ## Not yet ported
 
-- A transient toast queue that coalesces identical notifications and caps visible ones at five; the window
-  shows one gesture notification at a time. A toast may carry its own duration and one action (an Undo
-  receipt). Actionable toasts are never coalesced, since their actions name different inverses, and the cap
-  evicts only actionless ones, so a receipt stays until its duration ends or the user dismisses it.
+- Routing the window's gesture notification (layout-cancelled drags, removed workspaces, protocol mismatch,
+  a vanished commit) and its error line through the toast queue; they keep their own single surfaces, so
+  those messages are neither coalesced nor capped.
 - View state for the code editor, the table, the JSON tree and the notebook (their scroll position and
   expansion); those views report none.
 - Serialized routes and Back/Forward history over locations, with push for user intent and replace for

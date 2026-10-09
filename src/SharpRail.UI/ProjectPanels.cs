@@ -59,12 +59,20 @@ public sealed partial class WorkbenchWindow
             var picker = projectPicker;
             var kind = await host.InspectProjectPathAsync(path, lifetime.Token);
             if (picker != projectPicker) return;
-            if (kind is ProjectPathKind.Missing or ProjectPathKind.NotDirectory)
+            // An open the user asked for by path has no surface of its own to fail on, so it says so in a notice.
+            Exception? failure = kind switch
             {
-                Report(new IOException((kind == ProjectPathKind.Missing ? "No such folder: " : "Not a folder: ") + path));
+                ProjectPathKind.Missing => new IOException("No such folder: " + path),
+                ProjectPathKind.NotDirectory => new IOException("Not a folder: " + path),
+                _ => null
+            };
+            if (failure is null) await OpenWorkspaceAsync(path, true, home: true, failed: error => failure = error);
+            if (failure is not null)
+            {
+                Console.Error.WriteLine(failure);
+                await Dialogs.Notice(this, "Couldn't open project", failure.Message);
                 return;
             }
-            await OpenProjectHomeAsync(path);
             if (!WorkspaceMounted) return;
             var request = projectRequest;
             if (kind != ProjectPathKind.Initable) return;

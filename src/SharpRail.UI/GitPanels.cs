@@ -17,13 +17,16 @@ public sealed partial class WorkbenchWindow
     private string comparison = "";
     private string changeScope = "All changes";
     private GitCommit? selectedCommit;
-    private IReadOnlyList<GitCommit> gitCommits = [];
+    // What the scope menu last read for this workspace and comparison; null until its first open.
+    private IReadOnlyList<GitCommit>? scopeCommits;
+    private CancellationTokenSource? scopeMenuLoad;
     private bool changeTree;
     private readonly List<(Border Frame, GitChange Change)> changeFrames = [];
 
     private Control ChangesPanel()
     {
         changeFrames.Clear();
+        changesSignature = ChangesSignature();
         var panel = new Grid { Name = "ChangesPanel", RowDefinitions = new RowDefinitions("32,*") };
         var toolbar = new Grid
         {
@@ -42,7 +45,7 @@ public sealed partial class WorkbenchWindow
                 selectedCommit = null;
                 if (label == "Branch" && comparison.Length == 0)
                 {
-                    comparison = git.Branches.FirstOrDefault(branch => branch != git.Branch) ?? "HEAD";
+                    comparison = git.Branches.FirstOrDefault(branch => branch != git.Branch) ?? "HEAD"; scopeCommits = null;
                     _ = ShareAsync(SharpRail.Host.Abstractions.HostStateChange.DiffBase(workspaceRoot, comparison));
                 }
                 SaveGitSelection();
@@ -53,31 +56,43 @@ public sealed partial class WorkbenchWindow
             scope.ContextMenu!.Items.Add(item);
         }
         scope.ContextMenu!.Items.Add(new Separator());
-        if (gitCommits.Count == 0)
+        var scopeMenu = scope.ContextMenu;
+        var fixedItems = scopeMenu.Items.Count;
+        var uncommitted = scopeMenu.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Uncommitted"));
+        void Note(string name, string text)
         {
-            var none = Ui.Menu("No commits on this branch", () => { }, false);
-            none.Name = "ChangesNoCommits";
-            scope.ContextMenu.Items.Add(none);
+            var note = Ui.Menu(text, () => { }, false);
+            note.Name = name;
+            scopeMenu.Items.Add(note);
         }
-        foreach (var commit in gitCommits)
+        void ShowCommits(IReadOnlyList<GitCommit>? commits)
         {
-            var item = Ui.Menu(commit.Subject, () =>
+            while (scopeMenu.Items.Count > fixedItems) scopeMenu.Items.RemoveAt(fixedItems);
+            if (commits is null) Note("ChangesCommitsError", "Commits could not be loaded");
+            else if (commits.Count == 0) Note("ChangesNoCommits", "No commits on this branch");
+            foreach (var commit in commits ?? [])
             {
-                selectedCommit = commit; changeScope = "Commit";
-                SaveGitSelection();
-                _ = RefreshAsync();
-            });
-            item.Name = "ChangesCommit_" + commit.Sha;
-            item.Header = new StackPanel
-            {
-                Children = { Ui.Text(commit.Subject.Length > 0 ? commit.Subject : commit.ShortSha),
-                    Ui.Text(commit.ShortSha + " · " + commit.Author, Ui.Muted, 12) }
-            };
-            ToolTip.SetTip(item, commit.Subject);
-            item.ToggleType = MenuItemToggleType.Radio;
-            item.IsChecked = selectedCommit?.Sha == commit.Sha;
-            scope.ContextMenu!.Items.Add(item);
+                var item = Ui.Menu(commit.Subject, () =>
+                {
+                    selectedCommit = commit; changeScope = "Commit";
+                    SaveGitSelection();
+                    _ = RefreshAsync();
+                });
+                item.Name = "ChangesCommit_" + commit.Sha;
+                item.Header = new StackPanel
+                {
+                    Children = { Ui.Text(commit.Subject.Length > 0 ? commit.Subject : commit.ShortSha),
+                        Ui.Text(commit.ShortSha + " · " + commit.Author, Ui.Muted, 12) }
+                };
+                ToolTip.SetTip(item, commit.Subject);
+                item.ToggleType = MenuItemToggleType.Radio;
+                item.IsChecked = selectedCommit?.Sha == commit.Sha;
+                scopeMenu.Items.Add(item);
+            }
         }
+        // The rows of the last open stay while this open's read runs, so a reopened menu does not flash empty.
+        if (scopeCommits is null) Note("ChangesCommitsLoading", "Loading commits…"); else ShowCommits(scopeCommits);
+        scopeMenu.Opened += (_, _) => _ = LoadScopeMenuAsync(uncommitted, ShowCommits);
         selectors.Children.Add(scope);
         if (git.IsRepository)
         {
@@ -102,7 +117,7 @@ public sealed partial class WorkbenchWindow
                 }
                 var item = Ui.Menu(parts[^1], () =>
                 {
-                    changeScope = "All changes"; selectedCommit = null; comparison = branch;
+                    changeScope = "All changes"; selectedCommit = null; comparison = branch; scopeCommits = null;
                     RetargetDiffTabs();
                     SaveGitSelection(); _ = RefreshAsync();
                     _ = ShareAsync(SharpRail.Host.Abstractions.HostStateChange.DiffBase(workspaceRoot, branch));
@@ -167,6 +182,41 @@ public sealed partial class WorkbenchWindow
             Ui.Place(panel, new ScrollViewer { Content = rows }, 1);
         }
         return panel;
+    }
+
+    // The menu's commit rows and its uncommitted probe are read on each open, never when the panel mounts, and
+    // each degrades on its own.
+    private async Task LoadScopeMenuAsync(MenuItem uncommitted, Action<IReadOnlyList<GitCommit>?> showCommits)
+    {
+        scopeMenuLoad?.Cancel(); scopeMenuLoad?.Dispose();
+        var load = scopeMenuLoad = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
+        var token = load.Token;
+        var request = projectRequest;
+        var target = comparison;
+        bool Current() => !token.IsCancellationRequested && request == projectRequest && target == comparison;
+        var commits = Task.Run(async () => await host.ListCommitsAsync(target, token), token);
+        var probe = Task.Run(async () => await host.GetGitAsync("", token, "uncommitted"), token);
+        try
+        {
+            var listed = await commits;
+            if (Current()) { scopeCommits = listed; showCommits(listed); }
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception error)
+        {
+            Console.Error.WriteLine(error);
+            if (Current() && scopeCommits is null) showCommits(null);
+        }
+        try
+        {
+            var status = await probe;
+            if (!Current()) return;
+            var none = status.IsRepository && status.Changes.Count == 0;
+            uncommitted.Header = none ? "No uncommitted changes" : "Uncommitted";
+            uncommitted.IsEnabled = !none;
+        }
+        catch (OperationCanceledException) { }
+        catch (Exception error) { Console.Error.WriteLine(error); }
     }
 
     private static Button ChangesDropdown(string name, string description, string label, string icon)
@@ -333,7 +383,7 @@ public sealed partial class WorkbenchWindow
         catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
     }
 
-    private async Task GitActionAsync(GitAction action)
+    private async Task GitActionAsync(GitAction action, string? failure = null)
     {
         gitRefresh?.Cancel();
         try
@@ -350,14 +400,19 @@ public sealed partial class WorkbenchWindow
                 RefreshGitPanels();
             }
         }
-        catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            if (failure is null) Report(error); else ReportDialogFailure(failure, error);
+        }
     }
 
     private Control ReviewPanel()
     {
         var panel = new StackPanel { Margin = new Thickness(16), Spacing = 12, Name = "ReviewPanel" };
+        reviewSignature = ReviewSignature();
         panel.Children.Add(Ui.Text("Repository review", Ui.TextBrush, 16));
         panel.Children.Add(Ui.Text(git.IsRepository ? $"{git.Changes.Count} changed files on {git.Branch}" : "No repository selected"));
+        if (PullRequestSection() is { } pullRequest) panel.Children.Add(pullRequest);
         panel.Children.Add(Ui.Text("Select a file in Changes to inspect its diff.", Ui.Hint, 12));
         panel.Children.Add(Ui.Button("Show Changes", () =>
         {

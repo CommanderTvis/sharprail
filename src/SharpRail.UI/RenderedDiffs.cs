@@ -19,7 +19,8 @@ public sealed partial class WorkbenchWindow
         var described = DiffView.IsBinaryDiff(document.Text) || document.Text.Contains("version https://git-lfs.github.com/spec/v1\n", StringComparison.Ordinal);
         var view = new DiffView(document.Text, tab.Path, LineWidths.File(Preferences),
             described ? null : DiffChoices(tab, key, new(workspaceRoot, tab.Path, ResourceRegistry.InferredMime(tab.Path), true, null), null),
-            tabViews.GetValueOrDefault(key)?.RendererId, id => WriteTabView(key, new(id)), pending: described);
+            tabViews.GetValueOrDefault(key)?.RendererId, id => WriteTabView(key, new(id)), pending: described,
+            revert: DiffRevert(tab, key), canRevert: state.Supports(HostProtocol.ChangeWritePath));
         if (described) _ = DescribeDiffAsync(view, tab, key);
         return view;
     }

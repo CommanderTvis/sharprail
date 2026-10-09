@@ -129,6 +129,7 @@ Run checks with `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Re
 `-- --sync` runs the multi-window and multi-client translations.
 `-- --registry` runs the workspace registry host parity checks and the external-workspace rail checks.
 `-- --documents` runs the resource-renderer checks and the translations that open file and diff bodies.
+`-- --change-actions` runs the toast and diff revert/undo checks; `-- --review` runs the Review panel checks.
 Set `SHARPRAIL_TEST_GIT_SOURCE` to an existing upstream clone to include Git fixtures.
 `tests/SharpRail.Checks/Program.cs` is the check runner, not an xUnit test project.
 `ProjectChecks.cs` covers project/Git host parity; `LayoutChecks.cs` covers layout

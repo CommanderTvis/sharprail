@@ -32,7 +32,11 @@ internal static class ProjectPickerE2E
         {
             app.Window.FolderPicker = () => Task.FromResult<string?>(path);
             AddProject(app, "Open project");
-            Until(() => app.Find<TextBlock>("WorkspaceError") is { IsVisible: true } error && error.Text == message + path);
+            var notice = Dialog(app);
+            Require(Equals(notice.Tag, "NoticeDialog") && notice.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "DialogExplanation" && text.Text == message + path) &&
+                !app.Find<TextBlock>("WorkspaceError").IsVisible, "An unusable path must be refused in the notice dialog: " + message);
+            app.Click(notice.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "NoticeDismiss"));
+            Until(() => !app.Window.OwnedWindows.Any());
             Require(app.Window.WorkspaceRoot == app.Root && ProjectNames(app).Count() == 1, "An unusable path must leave the open workspace and the project list alone.");
         }
         Console.WriteLine("PASS SharpRail: a missing folder or a file picked as a project is refused by inspection before anything opens");

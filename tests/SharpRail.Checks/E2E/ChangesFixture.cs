@@ -110,11 +110,19 @@ internal static class ChangesFixture
     internal static bool HasMenuItem(E2eWorkspace app, string dropdown, Func<MenuItem, bool> match) =>
         MenuItems(app.Find<Button>(dropdown).ContextMenu!.Items).Any(match);
 
-    internal static void Pick(E2eWorkspace app, string dropdown, Func<MenuItem, bool> match)
+    /// <summary>Opens a toolbar menu; the scope menu reads its commit rows only then.</summary>
+    internal static void OpenMenu(E2eWorkspace app, string dropdown)
     {
-        Until(() => HasMenuItem(app, dropdown, match));
         app.Click(app.Find<Button>(dropdown));
         Until(() => app.Find<Button>(dropdown).ContextMenu!.IsOpen);
+    }
+
+    internal static void Pick(E2eWorkspace app, string dropdown, Func<MenuItem, bool> match)
+    {
+        OpenMenu(app, dropdown);
+        Until(() => HasMenuItem(app, dropdown, match));
+        // The scope menu re-reads its rows on open and replaces the ones it kept; let that land before a row is held.
+        Settle();
         void Select(IEnumerable<object?> items)
         {
             var item = items.OfType<MenuItem>().First(item => match(item) || MenuItems(item.Items).Any(match));

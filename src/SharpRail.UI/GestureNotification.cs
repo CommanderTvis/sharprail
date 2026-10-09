@@ -4,12 +4,16 @@ using Avalonia.Styling;
 using Avalonia.Threading;
 
 using SharpRail.UI.Rendering;
+using SharpRail.UI.State;
 
 namespace SharpRail.UI;
 
 public sealed partial class WorkbenchWindow
 {
     private readonly DispatcherTimer notificationTimer = new() { Interval = TimeSpan.FromSeconds(5) };
+
+    /// <summary>This window's toasts: receipts, refusals and results that need no decision.</summary>
+    public ToastQueue Toasts { get; } = new();
 
     private void ShowNotification(string message)
     {
@@ -22,9 +26,11 @@ public sealed partial class WorkbenchWindow
     {
         var toast = this.FindControl<Border>("GestureToast")!;
         var dismiss = this.FindControl<Button>("DismissGestureToast")!;
+        var stack = this.FindControl<ToastStack>("ToastStack")!;
+        stack.Attach(Toasts);
         void Appearance()
         {
-            toast.Width = Bounds.Width < 640 ? Math.Max(0, Bounds.Width - 24) : 356;
+            stack.Width = toast.Width = Bounds.Width < 640 ? Math.Max(0, Bounds.Width - 24) : 356;
             toast.BoxShadow = new BoxShadows(new BoxShadow
             {
                 OffsetY = 4,
@@ -40,6 +46,6 @@ public sealed partial class WorkbenchWindow
         dismiss.Content = Ui.Icon("close", Ui.Muted, 14);
         dismiss.Click += (_, _) => Hide();
         surface.GestureCanceled += () => ShowNotification("The layout changed. Your drag was canceled.");
-        Closed += (_, _) => notificationTimer.Stop();
+        Closed += (_, _) => { notificationTimer.Stop(); stack.Detach(); };
     }
 }

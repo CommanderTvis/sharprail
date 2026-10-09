@@ -165,9 +165,9 @@ internal static class NewWorkspaceE2E
         var dialog = OpenPickedProjectWorkspaceDialog(app, repo);
         Require(Text(Picker(dialog)).Contains("origin/main", StringComparison.Ordinal), "The default base is the remote default branch.");
         app.Click(Create(dialog));
-        Until(() => !app.Window.OwnedWindows.Any() && app.Find<TextBlock>("WorkspaceError").IsVisible);
-        var error = app.Find<TextBlock>("WorkspaceError").Text!;
-        Require(error.Contains("Couldn't create workspace", StringComparison.Ordinal) && error.Contains("Could not fetch origin/main", StringComparison.Ordinal) &&
+        Until(() => !app.Window.OwnedWindows.Any() && app.Window.Toasts.Items.Any(toast => toast.Title == "Couldn't create workspace"));
+        var error = app.Window.Toasts.Items.Single(toast => toast.Title == "Couldn't create workspace").Message;
+        Require(!app.Find<TextBlock>("WorkspaceError").IsVisible && error.Contains("Could not fetch origin/main", StringComparison.Ordinal) &&
             error.Contains("fatal:", StringComparison.Ordinal), "A failed fetch must report git's own error: " + error);
         Require(!WorktreePaths(app).Any() && app.Window.AtProjectHome, "A failed fetch must not create a workspace.");
         Console.WriteLine("PASS upstream new-workspace.spec.ts: a base whose fetch fails reports git's error, not a request timeout");

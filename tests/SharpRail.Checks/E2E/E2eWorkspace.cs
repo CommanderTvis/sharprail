@@ -267,12 +267,24 @@ internal sealed class E2eHost(IProjectServices inner) : IProjectServices
     public ValueTask<string> GetDiffAsync(string path, string scope, string comparison = "", CancellationToken ct = default) => inner.GetDiffAsync(path, scope, comparison, ct);
     public ValueTask<DiffSides> GetDiffSidesAsync(string path, string scope, string comparison = "", CancellationToken ct = default) => inner.GetDiffSidesAsync(path, scope, comparison, ct);
     public ValueTask<ContentBytes> ReadContentBytesAsync(string path, string? revision, CancellationToken ct = default) => inner.ReadContentBytesAsync(path, revision, ct);
-    public ValueTask<ChangeReceipt> RevertChangeAsync(string path, string scope, string comparison, RevertTarget target, ChangeExpectation expect, CancellationToken ct = default) => inner.RevertChangeAsync(path, scope, comparison, target, expect, ct);
+    /// <summary>Runs once the client has read what it will revert, so a check can move the file under it.</summary>
+    internal Action? BeforeRevert { get; set; }
+    public ValueTask<ChangeReceipt> RevertChangeAsync(string path, string scope, string comparison, RevertTarget target, ChangeExpectation expect, CancellationToken ct = default)
+    {
+        BeforeRevert?.Invoke();
+        return inner.RevertChangeAsync(path, scope, comparison, target, expect, ct);
+    }
     public ValueTask<ChangeReceipt> UndoChangeAsync(string receiptId, string? expectModifiedHash, CancellationToken ct = default) => inner.UndoChangeAsync(receiptId, expectModifiedHash, ct);
     public ValueTask<GitSnapshot> ApplyGitActionAsync(GitAction action, CancellationToken ct = default) => inner.ApplyGitActionAsync(action, ct);
     public ValueTask<BranchCatalog> ListBranchesAsync(bool fetchDefault, CancellationToken ct = default) => inner.ListBranchesAsync(fetchDefault, ct);
     public ValueTask<DiffStats?> GetDiffStatsAsync(string workspacePath, CancellationToken ct = default) => inner.GetDiffStatsAsync(workspacePath, ct);
-    public ValueTask<OpenReview?> GetOpenReviewAsync(bool fresh, CancellationToken ct = default) => inner.GetOpenReviewAsync(fresh, ct);
+    /// <summary>Rewrites a pull request lookup, for states a fixture origin cannot produce.</summary>
+    internal Func<OpenReview?, OpenReview?>? Review { get; set; }
+    public async ValueTask<OpenReview?> GetOpenReviewAsync(bool fresh, CancellationToken ct = default)
+    {
+        var review = await inner.GetOpenReviewAsync(fresh, ct);
+        return Review is null ? review : Review(review);
+    }
     public ValueTask<PrDraft> PreviewPrAsync(CancellationToken ct = default) => inner.PreviewPrAsync(ct);
     public ValueTask<PrResult> OpenPrAsync(PrRequest request, CancellationToken ct = default) => inner.OpenPrAsync(request, ct);
     public ValueTask<IReadOnlyList<EditorInfo>> ListEditorsAsync(CancellationToken ct = default) => inner.ListEditorsAsync(ct);
