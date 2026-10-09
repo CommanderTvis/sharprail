@@ -31,6 +31,7 @@ public sealed class LocalStateAdapter(IHostStateService host) : IHostStateServic
     public ValueTask<HostState> GetStateAsync(CancellationToken cancellationToken = default) => host.GetStateAsync(cancellationToken);
     public ValueTask<HostState> ChangeAsync(IReadOnlyList<HostStateChange> changes, CancellationToken cancellationToken = default) => host.ChangeAsync(changes, cancellationToken);
     public IAsyncEnumerable<HostState> WatchAsync(CancellationToken cancellationToken = default) => host.WatchAsync(cancellationToken);
+    public IAsyncEnumerable<LifecycleEvent> WatchLifecycleAsync(CancellationToken cancellationToken = default) => host.WatchLifecycleAsync(cancellationToken);
 }
 
 public sealed class RemoteStateAdapter : IHostStateService, IDisposable
@@ -82,6 +83,13 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
             yield return Map(reply);
     }
 
+    public async IAsyncEnumerable<LifecycleEvent> WatchLifecycleAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        await foreach (var message in service.WatchLifecycleAsync(new(), Context(cancellationToken, stream: true)).WithCancellation(cancellationToken))
+            yield return new(message.Channel, message.Kind, message.ProjectRoot, message.WorkspaceId,
+                message.Workspace is { } workspace ? WorkspaceMessages.Map(workspace) : null);
+    }
+
     private static HostState Map(StateReply reply) => new()
     {
         Revision = reply.Revision,
@@ -100,7 +108,7 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
         Projects = reply.Projects.ToArray(),
         RecentProjects = reply.RecentProjects.ToArray(),
         WorkspaceLabels = reply.Labels.ToDictionary(label => label.Path, label => label.Label),
-        Workspaces = reply.Workspaces.ToDictionary(list => list.ProjectRoot, list => (IReadOnlyList<string>)list.Paths.ToArray())
+        Workspaces = reply.Workspaces.Select(WorkspaceMessages.Map).ToArray()
     };
 
     public void Dispose() => channel.Dispose();

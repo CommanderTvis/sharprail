@@ -69,7 +69,7 @@ public sealed partial class WorkbenchWindow
         catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
     }
 
-    /// <summary>Restyles the rail's active project and workspace without rebuilding it, so switching keeps rows and focus.</summary>
+    /// <summary>Restyles the rail's active project and workspace, and what Git allows, without rebuilding it, so switching keeps rows and focus.</summary>
     private readonly List<Action> railSelection = [];
 
     private void UpdateRailSelection() { foreach (var update in railSelection) update(); }
@@ -105,9 +105,11 @@ public sealed partial class WorkbenchWindow
             highlight.Classes.Set("active", atHome && project == projectRoot);
             railSelection.Add(() => highlight.Classes.Set("active", atHome && project == projectRoot));
             var collapsed = profile.Data.CollapsedProjects.Contains(project);
+            var workspaces = RailWorkspaces(project);
             var toggle = Ui.IconButton(collapsed ? "arrowRight" : "arrowDown", collapsed ? "Expand project" : "Collapse project", () =>
             {
-                if (!profile.Data.CollapsedProjects.Add(project)) profile.Data.CollapsedProjects.Remove(project);
+                // Expanding is the gesture that re-reads a background project's workspaces.
+                if (!profile.Data.CollapsedProjects.Add(project)) { profile.Data.CollapsedProjects.Remove(project); _ = SyncWorkspacesAsync(project); }
                 SaveProfile();
                 toolContent.Remove("projects"); surface.RefreshContents();
                 Dispatcher.UIThread.Post(() => surface.GetLogicalDescendants().OfType<Button>()
@@ -134,51 +136,68 @@ public sealed partial class WorkbenchWindow
                 if (e.Key == Key.Apps || e.Key == Key.F10 && e.KeyModifiers.HasFlag(KeyModifiers.Shift))
                 { row.ContextMenu.Open(row); e.Handled = true; }
             };
+            var trailing = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2 };
+            Ui.Place(row, trailing, 0, 3);
+            var count = workspaces.Count(workspace => workspace.Kind != WorkspaceKinds.Default);
+            if (collapsed && count > 0)
+            {
+                var badge = Ui.Text(count.ToString(System.Globalization.CultureInfo.InvariantCulture), Ui.Hint, 12);
+                badge.Name = "ProjectWorkspaceCount"; badge.VerticalAlignment = VerticalAlignment.Center;
+                trailing.Children.Add(badge);
+            }
             if (project == projectRoot)
             {
-                var trailing = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2 };
-                var count = git.Worktrees.Count(tree => !tree.IsMain);
-                if (collapsed && count > 0)
-                {
-                    var badge = Ui.Text(count.ToString(System.Globalization.CultureInfo.InvariantCulture), Ui.Hint, 12);
-                    badge.Name = "ProjectWorkspaceCount";
-                    trailing.Children.Add(badge);
-                }
                 var tip = $"Create workspace ({Shortcut("N")})";
                 var add = Ui.IconButton("add", tip, () => _ = CreateWorkspaceDialogAsync());
                 add.Name = "AddWorkspace";
                 add.Width = add.Height = 28; add.Padding = new(7);
                 add.IsEnabled = git.IsRepository;
+                railSelection.Add(() => add.IsEnabled = git.IsRepository);
                 trailing.Children.Add(add);
-                Ui.Place(row, trailing, 0, 3);
             }
             tree.Children.Add(highlight);
-            if (project != projectRoot || collapsed) continue;
-            var worktrees = git.Worktrees.Count > 0 ? git.Worktrees : new[] { new WorktreeInfo(projectRoot, "", true, false) };
-            foreach (var worktree in worktrees) tree.Children.Add(WorkspaceItem(worktree));
+            if (collapsed) continue;
+            foreach (var workspace in workspaces) tree.Children.Add(WorkspaceItem(workspace));
         }
         Ui.Place(panel, new ScrollViewer { Content = tree, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled }, 2);
         return panel;
     }
 
-    private Control WorkspaceItem(WorktreeInfo worktree)
+    /// <summary>
+    /// A project's rows come from the host's registry, so every project lists its own without being shown. Until the
+    /// host has listed the shown project, its folder alone stands in as the Default workspace.
+    /// </summary>
+    private IReadOnlyList<WorkspaceRecord> RailWorkspaces(string project)
+    {
+        var known = state.Current.WorkspacesOf(project).ToArray();
+        return project != projectRoot || known.Any(workspace => workspace.Kind == WorkspaceKinds.Default) ? known
+            : [new("", project, WorkspaceKinds.Default, project, git.Worktrees.FirstOrDefault(tree => tree.IsMain)?.Branch ?? "", ""), .. known];
+    }
+
+    private Control WorkspaceItem(WorkspaceRecord worktree)
     {
         var name = WorkspaceName(worktree.Path);
         var active = !atHome && worktree.Path == workspaceRoot;
-        var twoLines = worktree.Branch.Length > 0;
         var color = active ? Ui.Accent : Ui.Muted;
         var contents = new Grid { ColumnDefinitions = new ColumnDefinitions("14,4,*") };
-        var icon = Ui.Icon(worktree.IsMain ? "homeFill" : "gitBranch", color, 14);
-        if (twoLines) { icon.VerticalAlignment = VerticalAlignment.Top; icon.Margin = new(0, 2, 0, 0); }
+        var icon = Ui.Icon(worktree.Kind switch { WorkspaceKinds.Default => "homeFill", WorkspaceKinds.External => "folderOpen", _ => "gitBranch" }, color, 14);
         Ui.Place(contents, icon);
         var labels = new StackPanel();
         var label = Ui.Text(name, color); label.LineHeight = 17.5; label.Name = "WorkspaceName";
         labels.Children.Add(label);
-        if (twoLines)
+        var branch = Ui.Text("", Ui.Hint, 12); branch.LineHeight = 15; branch.Name = "WorkspaceBranch";
+        // A branch that moves under its checkout is redrawn in place: the row keeps its focus and pointer target.
+        void ShowBranch()
         {
-            var branch = Ui.Text(worktree.Branch, Ui.Hint, 12); branch.LineHeight = 15; branch.Name = "WorkspaceBranch";
-            labels.Children.Add(branch);
+            var text = RailWorkspaces(worktree.ProjectRoot).FirstOrDefault(workspace => workspace.Path == worktree.Path)?.Branch ?? worktree.Branch;
+            branch.Text = text;
+            var twoLines = text.Length > 0;
+            if (!twoLines) labels.Children.Remove(branch);
+            else if (branch.Parent is null) labels.Children.Add(branch);
+            icon.VerticalAlignment = twoLines ? VerticalAlignment.Top : VerticalAlignment.Center;
+            icon.Margin = twoLines ? new(0, 2, 0, 0) : default;
         }
+        ShowBranch();
         Ui.Place(contents, labels, 0, 2);
         var button = new Button
         {
@@ -198,10 +217,11 @@ public sealed partial class WorkbenchWindow
             var selected = !atHome && worktree.Path == workspaceRoot;
             button.Background = selected ? Ui.Hover : Avalonia.Media.Brushes.Transparent;
             ((Border)icon).Background = label.Foreground = selected ? Ui.Accent : Ui.Muted;
+            ShowBranch();
         });
         AutomationProperties.SetName(button, name);
         ToolTip.SetTip(button, worktree.Path);
-        button.Click += (_, _) => _ = OpenWorkspaceAsync(worktree.Path, false);
+        button.Click += (_, _) => _ = OpenWorkspaceAsync(worktree.Path, worktree.ProjectRoot != projectRoot);
         var kebab = new Button
         {
             Name = "WorkspaceMenu",

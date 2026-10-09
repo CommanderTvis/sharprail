@@ -57,8 +57,8 @@ public sealed partial class ProjectServices
     {
         var target = Path.GetFullPath(worktreePath);
         var worktrees = GitRepository.ParseWorktrees(await GitRepository.RunAsync(root, cancellationToken, "worktree", "list", "--porcelain", "-z"));
-        if (!worktrees.Any(tree => tree.Path == target))
-            throw new UnauthorizedAccessException("Only this project's workspaces can be opened in an editor.");
+        if (!worktrees.Any(tree => tree.Path == target) && !registry.Current.Workspaces.Any(workspace => workspace.Path == target))
+            throw new UnauthorizedAccessException("Only a workspace can be opened in an editor.");
         var bin = Editors.Where(editor => editor.Id == editorId).Select(editor => Which(editor.Bin)).FirstOrDefault(path => path is not null)
             ?? throw new InvalidOperationException($"\"{editorId}\" isn't installed on this host.");
         var start = new ProcessStartInfo(bin) { UseShellExecute = false, WorkingDirectory = target };

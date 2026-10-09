@@ -136,6 +136,23 @@ public sealed class ProjectRpc(ProjectSessions sessions, IHostApplicationLifetim
         return new SaveFileReply();
     });
 
+    public ValueTask<WorkspaceCatalogReply> ListWorkspacesAsync(WorkspaceCatalogRequest request, CallContext context = default) => Execute(async () =>
+    {
+        var result = await Host(context).ListWorkspacesAsync(request.ProjectRoot, context.CancellationToken);
+        return new WorkspaceCatalogReply
+        {
+            Workspaces = result.Workspaces.Select(WorkspaceMessages.Map).ToList(),
+            Existing = result.Existing.Select(tree => new ExistingWorktreeMessage { Path = tree.Path, Branch = tree.Branch }).ToList()
+        };
+    });
+
+    public ValueTask<WorkspaceActionReply> ApplyWorkspaceActionAsync(WorkspaceActionRequest request, CallContext context = default) => Execute(async () =>
+    {
+        var result = await Host(context).ApplyWorkspaceActionAsync(
+            new(request.Kind, request.ProjectRoot, request.Id, request.Path, request.Name, request.BaseBranch), context.CancellationToken);
+        return new WorkspaceActionReply { Workspace = result is null ? null : WorkspaceMessages.Map(result) };
+    });
+
     public ValueTask<SaveFileReply> SaveFileAsync(SaveFileRequest request, CallContext context = default) => Execute(async () =>
     {
         await Host(context).SaveFileAsync(new(request.WorkspaceRoot, request.Path, request.OriginalText, request.Text), context.CancellationToken);

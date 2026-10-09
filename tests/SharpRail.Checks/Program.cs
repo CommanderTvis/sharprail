@@ -127,6 +127,14 @@ internal static class Program
             ChangeChecks.Run(root).GetAwaiter().GetResult();
             return;
         }
+        if (args.SequenceEqual(["--registry"]))
+        {
+            WorkspaceRegistryChecks.Run(root).GetAwaiter().GetResult();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            E2E.ExternalWorkspaceE2E.Run(Path.Combine(root, "upstream-e2e"));
+            return;
+        }
         if (args.SequenceEqual(["--workspaces"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
@@ -138,6 +146,7 @@ internal static class Program
         CheckHosts(root).GetAwaiter().GetResult();
         TerminalHostChecks.Run(root).GetAwaiter().GetResult();
         ProjectChecks.Run(root).GetAwaiter().GetResult();
+        WorkspaceRegistryChecks.Run(root).GetAwaiter().GetResult();
         PullRequestChecks.Run(root).GetAwaiter().GetResult();
         ChangeChecks.Run(root).GetAwaiter().GetResult();
         ContentChecks.Run(root).GetAwaiter().GetResult();

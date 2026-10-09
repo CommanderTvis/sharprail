@@ -102,4 +102,3 @@ unauthenticated peer learns nothing about the host's version.
 - Structured leveled diagnostics with rotating on-disk logs.
 - A per-client request-result cache keyed by client identity and request id for
   reconnect deduplication.
-- Pushed project/workspace lifecycle events.

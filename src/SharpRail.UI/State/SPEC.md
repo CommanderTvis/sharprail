@@ -86,6 +86,11 @@ Welcome); a timeout or disconnect keeps the remembered location and retries afte
 project opens are cancelled by a monotonic request counter so a late response never replaces a newer
 location. Location is never shared between windows or clients; continuing elsewhere is an explicit action.
 
+A workspace that leaves the host's registry is tombstoned for the window's lifetime (`HostSync.cs`): its Git
+selection, its place in the selection history and its view in the frame are dropped at once, an open of it
+that was still in flight lands on Project Home instead of entering it, and leaving it afterwards writes no
+selection back. The tombstone lifts when a workspace is registered at that path again.
+
 ## Not yet ported
 
 - A transient toast queue that coalesces identical notifications and caps visible ones at five; the window
@@ -99,4 +104,3 @@ location. Location is never shared between windows or clients; continuing elsewh
   hold their own toggles today, and a Markdown diff's Rendered choice is a flag rather than a renderer.
 - Serialized routes and Back/Forward history over locations, with push for user intent and replace for
   passive changes.
-- A page-lifetime tombstone for removed workspaces so an in-flight read cannot recreate their local state.

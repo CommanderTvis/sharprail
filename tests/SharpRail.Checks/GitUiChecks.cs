@@ -51,7 +51,9 @@ internal static class GitUiChecks
     internal static void Run(string root)
     {
         if (!Directory.Exists(root + "/.git")) return;
-        var window = new WorkbenchWindow(new ProjectServices(root), root, new ProfileStore(root + "-ui-profile"), E2E.E2eTerminals.Plain);
+        var profile = new ProfileStore(root + "-ui-profile");
+        var state = profile.OpenState();
+        var window = new WorkbenchWindow(new ProjectServices(root, state), root, profile, E2E.E2eTerminals.Plain, state: state);
         window.Show(); Pump(() => window.WorkspaceMounted && Buttons(window).Any(button => button.Name == "ChangesBranch"));
         Button Change() => Buttons(window).Single(button => ToolTip.GetTip(button) is string tip &&
             tip.StartsWith("space ü\tfile.txt", StringComparison.Ordinal) &&
@@ -201,7 +203,8 @@ internal static class GitUiChecks
         var saved = new ProfileStore(root + "-ui-profile");
         Require(saved.Data.GitSelections[root].Target == "sharprail-fork" && saved.Data.GitSelections[root].Commit?.Sha == commitId,
             "The profile did not persist the independent target and commit.");
-        window = new WorkbenchWindow(new ProjectServices(root), root, saved, E2E.E2eTerminals.Plain);
+        state = saved.OpenState();
+        window = new WorkbenchWindow(new ProjectServices(root, state), root, saved, E2E.E2eTerminals.Plain, state: state);
         window.Show();
         Pump(() => window.WorkspaceMounted && Buttons(window).Any(button => button.Name == "ChangesBranch") &&
             Named("ChangesScope").ContextMenu!.Items.OfType<MenuItem>().Any(item => item.Name == "ChangesCommit_" + commitId));

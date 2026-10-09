@@ -118,6 +118,7 @@ internal static class LineWidthE2E
         public ValueTask<HostHandshake> GetHandshakeAsync(CancellationToken cancellationToken = default) => inner.GetHandshakeAsync(cancellationToken);
         public ValueTask<HostState> GetStateAsync(CancellationToken cancellationToken = default) => inner.GetStateAsync(cancellationToken);
         public ValueTask<HostState> ChangeAsync(IReadOnlyList<HostStateChange> changes, CancellationToken cancellationToken = default) => inner.ChangeAsync(changes, cancellationToken);
+        public IAsyncEnumerable<LifecycleEvent> WatchLifecycleAsync(CancellationToken cancellationToken = default) => inner.WatchLifecycleAsync(cancellationToken);
         public async IAsyncEnumerable<HostState> WatchAsync([System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             await foreach (var state in inner.WatchAsync(cancellationToken))

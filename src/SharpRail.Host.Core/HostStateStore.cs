@@ -11,7 +11,7 @@ namespace SharpRail.Host.Core;
 /// The host's shared state: persisted to <c>state.json</c> in its directory (or kept in memory
 /// without one) and published as complete snapshots to every watcher.
 /// </summary>
-public sealed class HostStateStore : IHostStateService
+public sealed partial class HostStateStore : IHostStateService
 {
     public const string FileName = "state.json";
 
@@ -22,6 +22,7 @@ public sealed class HostStateStore : IHostStateService
         public List<string> Projects { get; set; } = [];
         public List<string> RecentProjects { get; set; } = [];
         public Dictionary<string, string> WorkspaceLabels { get; set; } = [];
+        public List<WorkspaceRecord> Workspaces { get; set; } = [];
     }
 
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true };
@@ -51,7 +52,8 @@ public sealed class HostStateStore : IHostStateService
                     Presets = stored.Presets ?? [],
                     Projects = stored.Projects ?? [],
                     RecentProjects = stored.RecentProjects ?? [],
-                    WorkspaceLabels = stored.WorkspaceLabels ?? []
+                    WorkspaceLabels = stored.WorkspaceLabels ?? [],
+                    Workspaces = stored.Workspaces ?? []
                 };
             }
             else initial = seed?.Invoke() ?? new();
@@ -79,19 +81,6 @@ public sealed class HostStateStore : IHostStateService
         }
     }
 
-    /// <summary>Records a project's workspaces after one was created or removed; a removed workspace loses its label.</summary>
-    public void PublishWorkspaces(string projectRoot, IReadOnlyList<string> workspaces, string? removed = null)
-    {
-        lock (gate)
-        {
-            var lists = state.Workspaces.ToDictionary();
-            lists[projectRoot] = workspaces.ToArray();
-            var labels = state.WorkspaceLabels;
-            if (removed is not null && labels.ContainsKey(removed)) labels = labels.Where(entry => entry.Key != removed).ToDictionary();
-            Publish(state with { Workspaces = lists, WorkspaceLabels = labels }, persist: !ReferenceEquals(labels, state.WorkspaceLabels));
-        }
-    }
-
     public async IAsyncEnumerable<HostState> WatchAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         var channel = Channel.CreateUnbounded<HostState>(new() { SingleReader = true });
@@ -112,9 +101,11 @@ public sealed class HostStateStore : IHostStateService
     private HostState Publish(HostState next, bool persist)
     {
         if (ReferenceEquals(next, state)) return state;
+        var previous = state;
         state = next with { Revision = state.Revision + 1 };
         if (persist) Save(state);
         foreach (var watcher in watchers) watcher.Writer.TryWrite(state);
+        PublishLifecycle(previous, state);
         return state;
     }
 
@@ -130,7 +121,8 @@ public sealed class HostStateStore : IHostStateService
                 Presets = snapshot.Presets.ToList(),
                 Projects = snapshot.Projects.ToList(),
                 RecentProjects = snapshot.RecentProjects.ToList(),
-                WorkspaceLabels = snapshot.WorkspaceLabels.ToDictionary()
+                WorkspaceLabels = snapshot.WorkspaceLabels.ToDictionary(),
+                Workspaces = snapshot.Workspaces.ToList()
             };
             var temporary = path + ".tmp";
             File.WriteAllText(temporary, JsonSerializer.Serialize(stored, Json));
@@ -161,7 +153,7 @@ public sealed class HostStateStore : IHostStateService
         Projects = value.Projects.Where(item => item is not null && ValidPath(item)).Distinct().ToArray(),
         RecentProjects = value.RecentProjects.Where(item => item is not null && ValidPath(item)).Distinct().Take(HostStateChange.RecentLimit).ToArray(),
         WorkspaceLabels = value.WorkspaceLabels.Where(entry => ValidPath(entry.Key) && entry.Value is not null && ValidText(entry.Value)).ToDictionary(),
-        Workspaces = new Dictionary<string, IReadOnlyList<string>>()
+        Workspaces = value.Workspaces.Where(ValidWorkspace).DistinctBy(workspace => workspace.Id).DistinctBy(workspace => workspace.Path).ToArray()
     };
 
     private static string Clean(string? value) => value is null || value.Contains('\0') ? "" : value.Trim();

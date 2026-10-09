@@ -33,30 +33,46 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
 ## Projects
 
 - Each project row is a compact 28px row: always-visible chevron, folder icon and name, a collapsed-only
-  plain count of the project's worktrees, and a Create workspace `+` in a fixed right-edge column, the same
+  plain count of the project's workspaces other than Default, and, on the shown project, a Create workspace
+  `+` in a fixed right-edge column, the same
   control shape as the header's Add project `+` so the glyphs line up. The Create `+` tooltip names the
   platform's `Mod+N` chord. Long names truncate before the count and action. There is no visible Close or
   overflow icon.
 - The whole row is one rounded highlight: hover highlights it, and the selected project at Project Home stays
   highlighted.
 - Right-click opens the project context menu at the row without selecting or navigating; with the name
-  focused, the Context Menu key or Shift+F10 opens the same menu. The menu is Create workspace, separator,
-  Close project. Create is exactly the `+` flow (opening the project's home first if needed).
+  focused, the Context Menu key or Shift+F10 opens the same menu. The menu is Create workspace, Open existing
+  worktree…, separator, Close project. Create is exactly the `+` flow (opening the project's home first if
+  needed).
+- Open existing worktree… opens a chooser (`Panels/ExistingWorktreeDialog.cs`) fed by the host's list of
+  unattached worktrees: branch and absolute path per row, detached-HEAD rows visible but disabled, an empty
+  note, and a load failure with Retry. Choosing a row attaches it through the host, keeps the dialog open
+  while the host answers and shows a refusal inline; success expands the project and enters the workspace.
 - Close asks “Close {name}?” with “Removes this project from the open projects list. Its repository and
   workspaces are kept. Reopen it from Add project → Recents.”, Cancel focused and a Close project action.
   Confirm sends the host change and waits for its result; a rejection keeps the row. Closing the shown project
   moves to the next project's home or the clean Welcome. A project whose folder no longer exists closes
   without asking, since there is nothing left to lose. Dismissal restores focus to the source project name;
   a successful close focuses the fallback project or the Add project control.
-- Worktree rows appear under the shown project. Each is two lines when the worktree has a branch: display
-  name on top, branch beneath in the hint tier. The Default workspace (the project folder itself) is pinned
-  first with a home icon in place of the branch glyph. The active workspace's icon and name use the accent.
+- Workspace rows come from the host's registry (`HostState.Workspaces`), so every expanded project lists its
+  own, shown or not; a row of another project switches project and workspace in one step. Each is two lines
+  when the workspace has a branch: display name on top, branch beneath in the hint tier. The Default
+  workspace (the project folder itself) is pinned first with a home icon, an attached external worktree has
+  an open-folder icon and a managed one the branch glyph. The active workspace's icon and name use the accent.
+  Until the host has listed the shown project, its folder alone stands in as the Default row.
+- The window asks the host to list a project (ensuring its Default workspace and re-reading branches) when
+  it mounts a project it has not listed yet, on Refresh, and when the user expands a project row. The rail
+  redraws from the broadcast, never from that call's result. The rail is rebuilt only when a row is added,
+  removed or changes kind or lock; selection, branch text and what Git allows are restyled in place, so
+  rows, focus and pointer targets survive a mount, a Git refresh and a checkout.
 - Workspace rows carry no `+N −M` change badge: the rail is for navigation and identity; change detail
   belongs to Changes.
 - A hover- and focus-revealed kebab and right-click open the same workspace menu: “Open in” (editors from
   `ListEditorsAsync`, fetched lazily on first open, with explicit “Looking for editors…” and “No editors
-  found” rows), Copy path, and, for a non-Default worktree, Rename and Remove worktree…. The Default
-  workspace gets neither mutation. A locked worktree's Remove is disabled.
+  found” rows), Copy path and Reveal in file manager (the host opens the folder on its own machine). A
+  managed worktree adds Rename and Remove worktree…; an external one only Remove from SharpRail, whose
+  confirmation promises the checkout and its branch stay untouched. The Default workspace gets neither
+  mutation. A locked worktree's Remove is disabled.
 - Rename replaces the row with an in-place single-line input, prefilled, focused and selected. Enter or
   focus leaving to another control in the same window commits; Escape cancels; blank text or text unchanged
   from the edit-start label exits without a request, so a peer's rename is never reverted by an untouched
@@ -219,10 +235,8 @@ the change set keeps its last content.
   the tab's renderer view state, rather than a second panel-local copy.
 - The Review panel's pull request chip, Open PR / Push updates / diverged states, compose dialog and
   `gh` setup guidance on top of the host's pull request operations; CI status has no upstream source.
-- Open existing worktree… in the project menu, an external-worktree row kind with Remove from SharpRail, and
-  Reveal in file manager in the workspace menu.
-- Project rows for non-shown projects expanding their own worktree lists (only the shown project lists
-  worktrees), and revealing the active workspace's project on mount.
+- Revealing the active workspace's project on mount: rail expansion is the persisted collapsed set, so
+  every project starts expanded and a collapsed one stays collapsed when it is entered.
 - The Welcome “Set up project” card and has-specs routing.
 - A distinct inline Specs load-failure hint with Retry that keeps the previous tree; failures are reported
   through the window.

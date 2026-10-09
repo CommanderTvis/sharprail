@@ -49,6 +49,10 @@ merge deletes a group, and at least one center leaf always remains. Before a tra
 from any view, the window may veto it (`CanRemoveDocument`); `RemovalBlocked` hands it the blocked tabs and
 a retry, which is how closing a busy terminal asks first.
 
+`DropWorkspace` removes the view of a workspace that no longer exists. It asks nothing, since the
+workspace's documents went with it, and it never drops the active view: the window leaves a removed
+workspace first and the view goes once another is active.
+
 ## Layout grammar
 
 - Center: a horizontal/vertical binary tree of at most four leaves; a split halves one leaf. Interactive
@@ -159,6 +163,7 @@ no target and no further fallback. The tab button no longer handles Mod+W itself
 - A host terminal catalog: terminal membership is shared across windows, a peer-created terminal is
   placed passively into a compatible slot without taking focus, and a host-side close removes the tab
   from every window.
-- Dropping a removed workspace's view from the frame and ending its terminals.
+- Ending a removed workspace's terminals on the host. Its view is dropped, which closes the terminal bodies
+  this window had mounted; shells whose tabs were never shown here end only with the host.
 - Back/Forward navigation history over locations, and serializable deep links to a project, workspace or
   resource.

@@ -38,6 +38,20 @@ public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime li
         await foreach (var state in host.WatchAsync(watch.Token)) yield return Map(state);
     }
 
+    public async IAsyncEnumerable<LifecycleMessage> WatchLifecycleAsync(StateRequest request, CallContext context = default)
+    {
+        using var watch = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken, lifetime.ApplicationStopping);
+        await foreach (var item in host.WatchLifecycleAsync(watch.Token))
+            yield return new()
+            {
+                Channel = item.Channel,
+                Kind = item.Kind,
+                ProjectRoot = item.ProjectRoot,
+                WorkspaceId = item.WorkspaceId,
+                Workspace = item.Workspace is null ? null : WorkspaceMessages.Map(item.Workspace)
+            };
+    }
+
     private static StateReply Map(HostState state) => new()
     {
         Revision = state.Revision,
@@ -56,6 +70,6 @@ public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime li
         Projects = state.Projects.ToList(),
         RecentProjects = state.RecentProjects.ToList(),
         Labels = state.WorkspaceLabels.Select(entry => new LabelMessage { Path = entry.Key, Label = entry.Value }).ToList(),
-        Workspaces = state.Workspaces.Select(entry => new WorkspaceListMessage { ProjectRoot = entry.Key, Paths = entry.Value.ToList() }).ToList()
+        Workspaces = state.Workspaces.Select(WorkspaceMessages.Map).ToList()
     };
 }

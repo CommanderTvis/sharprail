@@ -17,7 +17,7 @@ contract, not that list.
 run is the complete gate: host transport parity, host terminals, project/Git parity,
 host state, file saving, layout transitions, the open-world runtime probe, and then
 the headless UI checks with every upstream translation. Named modes
-(`--editor`, `--files`, `--terminals`, `--ghostty-skia`, `--sync`, `--workspaces`) are focused iteration subsets
+(`--editor`, `--files`, `--terminals`, `--ghostty-skia`, `--sync`, `--workspaces`, `--registry`) are focused iteration subsets
 of that same code, never separate coverage; anything they run is also in the full
 run. `--native-terminal` and `--native-texture` drive real macOS windows; the latter
 verifies GPU texture composition, overlays/clipping, theme, clipboard/input,
@@ -31,6 +31,9 @@ restoring both after each case. `--ghostty-skia` covers fragmented ST/BEL writes
 Unicode, selection destinations, malformed/cancelled data, embedded NULs, large
 and empty payloads, approved/denied reads, repeated permission and terminal reset.
 `--terminals` also covers terminal revival: local and remote restarts, close, failed spawn, mode hygiene and store limits.
+`--registry` runs one workspace-registry scenario through the direct and the gRPC adapter and requires the same
+records, refusals and pushed lifecycle events from both, then the rail checks for attaching, forgetting,
+background project rows and removed-workspace cleanup.
 `--native-osc52` runs those checks plus real Metal shell output and encoded read
 replies, plus local and remote clipboard round trips in both renderers and writes
 after renderer switches. This native coverage also runs in `--native-texture`.

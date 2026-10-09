@@ -16,7 +16,7 @@ Upstream: packages/server/src/persistence/SPEC.md (revision: [UPSTREAM.md](../..
 
 The state every client of one host shares: the open project list and recents, shared settings
 (appearance mode, fixed theme and system light/dark pair, file and Markdown line widths with their bound
-switches), the custom layout-preset catalog, workspace display labels and the published workspace lists.
+switches), the custom layout-preset catalog, workspace display labels and the workspace registry.
 `HostStateStore` implements `IHostStateService`: it reads, validates, persists and broadcasts complete
 snapshots.
 
@@ -28,8 +28,8 @@ presets belong to the UI.
 
 - Owns: `state.json` in the store's directory (none means memory only), `HostStateChange` application,
   normalization of loaded state, and the watcher channels.
-- Public surface: `GetStateAsync`, `ChangeAsync` (atomic batch), `WatchAsync`, plus `PublishWorkspaces`
-  and `LastError` for Core and the composer.
+- Public surface: `GetStateAsync`, `ChangeAsync` (atomic batch), `WatchAsync`, `WatchLifecycleAsync`, plus
+  `ChangeWorkspaces` and `LastError` for Core and the composer.
 - Forbidden: storing frame or view state, workspace resources or window identity; reading old layout
   snapshots.
 
@@ -41,7 +41,12 @@ presets belong to the UI.
 - Writes go to a temporary file and are moved over the original. A failed load or save is reported
   through `LastError` and never discards the in-memory state; a corrupt file starts from defaults rather
   than blocking the app.
-- The published workspace lists are runtime-only and never persisted.
+- The workspace registry is persisted with the rest. `ChangeWorkspaces` rewrites it atomically, keeps
+  each project's Default workspace first and drops the label of a record that leaves. Loading keeps only
+  well-formed records, one per id and path ([Workspaces.SPEC.md](Workspaces.SPEC.md)).
+- After each published snapshot the store pushes the lifecycle events of its difference to
+  `WatchLifecycleAsync` subscribers: projects opened and closed, workspaces created, updated and removed.
+  The stream replays nothing, so a subscriber that needs the present state reads the snapshot.
 
 ## Projects
 

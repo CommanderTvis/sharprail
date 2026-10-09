@@ -39,7 +39,7 @@ public sealed partial class WorkbenchWindow
 
     private static string DirectoryName(string path) => new DirectoryInfo(path).Name;
 
-    private string WorkspaceName(string path) => path == projectRoot ? "Default" :
+    private string WorkspaceName(string path) => path == projectRoot || state.Current.Projects.Contains(path) ? "Default" :
         state.Current.WorkspaceLabels.GetValueOrDefault(path) ?? DirectoryName(path);
 
     private string ReadyBranchText() => workspaceRoot == projectRoot ? "on " + branchLabel.Text :
@@ -70,7 +70,7 @@ public sealed partial class WorkbenchWindow
         projectRoot = ""; workspaceRoot = "";
         git = new(false, "", [], [], []); gitLoading = false; gitError = null;
         folderCache.Clear(); expandedFolders.Clear(); toolContent.Clear(); selectionHistory.Clear();
-        slot.LastProject = ""; slot.LastProjectRoot = ""; slot.LastAtHome = false; restorePending = false;
+        slot.LastProject = ""; slot.LastProjectRoot = ""; slot.LastAtHome = false; restorePending = false; syncedProject = "";
         SaveProfile();
         UpdateScopeLabels();
         branchLabel.Text = ""; branchIcon.IsVisible = false;
@@ -159,7 +159,10 @@ public sealed partial class WorkbenchWindow
         create.Name = "ProjectMenuCreateWorkspace"; create.Icon = Ui.Icon("add", null, 14);
         var close = Ui.Menu("Close project", () => _ = CloseProjectAsync(project));
         close.Name = "ProjectMenuClose"; close.Icon = Ui.Icon("close", null, 14);
+        var existing = Ui.Menu("Open existing worktree…", () => _ = OpenExistingWorktreeAsync(project));
+        existing.Name = "ProjectMenuOpenExisting"; existing.Icon = Ui.Icon("folderOpen", null, 14);
         menu.Items.Add(create);
+        menu.Items.Add(existing);
         menu.Items.Add(new Separator());
         menu.Items.Add(close);
         menu.Closed += (_, _) => { if (!creatingWorkspace) FocusProject(project); };
@@ -178,6 +181,24 @@ public sealed partial class WorkbenchWindow
         if (project != projectRoot || !WorkspaceMounted) await OpenProjectHomeAsync(project);
         await CreateWorkspaceDialogAsync();
         FocusProject(project);
+    }
+
+    /// <summary>Attaches a worktree Git already lists and enters it; the dialog stays open while the host answers.</summary>
+    private async Task OpenExistingWorktreeAsync(string project)
+    {
+        creatingWorkspace = true;
+        try
+        {
+            var dialog = new ExistingWorktreeDialog(
+                async () => (await host.ListWorkspacesAsync(project, lifetime.Token)).Existing,
+                async path => (await host.ApplyWorkspaceActionAsync(WorkspaceAction.Attach(project, path), lifetime.Token))!);
+            if (await dialog.ShowAsync(this) is not { } attached) { FocusProject(project); return; }
+            if (profile.Data.CollapsedProjects.Remove(project)) SaveProfile();
+            removedWorkspaces.Remove(attached.Path);
+            await OpenWorkspaceAsync(attached.Path, project != projectRoot);
+        }
+        catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
+        finally { creatingWorkspace = false; }
     }
 
     private async Task CloseProjectAsync(string project)
@@ -251,6 +272,7 @@ public sealed partial class WorkbenchWindow
         try
         {
             git = await host.ApplyGitActionAsync(new("create-worktree", choice.Path, choice.Branch, choice.Base), lifetime.Token);
+            removedWorkspaces.Remove(choice.Path);
             if (choice.Base.Length > 0 && choice.Base != "HEAD") profile.Data.GitSelections[choice.Path] = new(choice.Base, "All changes", null);
             await OpenWorkspaceAsync(choice.Path, false);
         }
@@ -261,21 +283,36 @@ public sealed partial class WorkbenchWindow
         }
     }
 
-    private async Task RemoveWorktreeAsync(WorktreeInfo worktree)
+    /// <summary>An attached worktree is only forgotten; one SharpRail created is removed from disk unless Git refuses.</summary>
+    private async Task RemoveWorkspaceAsync(WorkspaceRecord worktree)
     {
-        if (!await Dialogs.Confirm(this, "Remove worktree?", $"Remove {worktree.Path}? Git will refuse if it has uncommitted changes. The branch will be retained.")) return;
+        var external = worktree.Kind == WorkspaceKinds.External;
+        if (!(external
+            ? await Dialogs.Confirm(this, $"Remove {WorkspaceName(worktree.Path)} from SharpRail?",
+                $"SharpRail stops listing {worktree.Path}. The checkout and its branch stay untouched; reopen it from Open existing worktree…", "Remove from SharpRail")
+            : await Dialogs.Confirm(this, "Remove worktree?", $"Remove {worktree.Path}? Git will refuse if it has uncommitted changes. The branch will be retained."))) return;
         if (!atHome && worktree.Path == workspaceRoot)
         {
-            var previous = selectionHistory.LastOrDefault(path => path != worktree.Path && (path.Length == 0 || git.Worktrees.Any(tree => tree.Path == path)));
+            var previous = selectionHistory.LastOrDefault(path => path != worktree.Path &&
+                (path.Length == 0 || path == projectRoot || state.Current.WorkspacesOf(projectRoot).Any(workspace => workspace.Path == path)));
             if (string.IsNullOrEmpty(previous)) await OpenProjectHomeAsync(projectRoot);
             else await OpenWorkspaceAsync(previous, false);
             if (!atHome && workspaceRoot == worktree.Path) return;
         }
         selectionHistory.Remove(worktree.Path);
-        await GitActionAsync(new("remove-worktree", worktree.Path));
+        // The row may predate a re-registration of its path, so the id is read when it is used.
+        var id = state.Current.Workspaces.FirstOrDefault(workspace => workspace.Path == worktree.Path)?.Id ?? worktree.Id;
+        try { await host.ApplyWorkspaceActionAsync(external ? WorkspaceAction.Forget(id) : WorkspaceAction.Remove(id), lifetime.Token); }
+        catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
     }
 
-    private ContextMenu WorkspaceActions(WorktreeInfo worktree, Button kebab)
+    private async Task RevealWorkspaceAsync(string path)
+    {
+        try { await host.ApplyWorkspaceActionAsync(WorkspaceAction.Reveal(path), lifetime.Token); }
+        catch (Exception error) when (error is not OperationCanceledException) { Report(new IOException("Couldn't reveal the workspace. " + error.Message)); }
+    }
+
+    private ContextMenu WorkspaceActions(WorkspaceRecord worktree, Button kebab)
     {
         var menu = new ContextMenu { Name = "WorkspaceActions", Placement = PlacementMode.BottomEdgeAlignedRight, PlacementTarget = kebab };
         var openIn = new MenuItem { Header = "Open in", Name = "WorkspaceOpenIn" };
@@ -291,12 +328,20 @@ public sealed partial class WorkbenchWindow
         var copy = Ui.Menu("Copy path", () => _ = CopyWorkspacePathAsync(worktree.Path));
         copy.Name = "WorkspaceCopyPath";
         menu.Items.Add(copy);
-        if (worktree.IsMain) return menu;
-        var rename = Ui.Menu("Rename", () => StartRename(worktree.Path));
-        rename.Name = "WorkspaceRename";
-        menu.Items.Add(rename);
+        var reveal = Ui.Menu("Reveal in file manager", () => _ = RevealWorkspaceAsync(worktree.Path));
+        reveal.Name = "WorkspaceReveal";
+        menu.Items.Add(reveal);
+        if (worktree.Kind == WorkspaceKinds.Default) return menu;
+        // An attached worktree is the user's: SharpRail neither renames nor removes it, it only stops listing it.
+        if (worktree.Kind == WorkspaceKinds.Managed)
+        {
+            var rename = Ui.Menu("Rename", () => StartRename(worktree.Path));
+            rename.Name = "WorkspaceRename";
+            menu.Items.Add(rename);
+        }
         menu.Items.Add(new Separator());
-        var remove = Ui.Menu("Remove worktree…", () => _ = RemoveWorktreeAsync(worktree), !worktree.IsLocked);
+        var remove = Ui.Menu(worktree.Kind == WorkspaceKinds.External ? "Remove from SharpRail" : "Remove worktree…", () => _ = RemoveWorkspaceAsync(worktree),
+            !WorktreeLocked(worktree.Path));
         remove.Name = "WorkspaceRemove";
         menu.Items.Add(remove);
         return menu;

@@ -109,11 +109,10 @@ project: local adapters call Core directly, with no serialization.
 
 - Request-id deduplication on reconnect (replay under the same id, host-cached
   results, ack/resume frames).
-- Pushed invalidations beyond host state: project/workspace lifecycle as separate
-  channels, a worktree file-change nudge (`workspace.fsChanged`), and a host
-  update notice.
+- Pushed invalidations beyond host state and the lifecycle stream: a worktree
+  file-change nudge (`workspace.fsChanged`) and a host update notice.
 - Project inspection (`repo`/`initable`/`missing`/`notDirectory`), `git init`,
-  lazy "has specs", attaching existing worktrees, persisted diff-base re-pointing
+  lazy "has specs", persisted diff-base re-pointing
   and a `GitDiffScope` of a single commit carried on file diffs as a typed value.
 - A host HTTP endpoint for worktree files (relative Markdown images over remote).
 - A named failure for an unresolvable scope so the client resets it rather than
