@@ -133,8 +133,28 @@ through the embedded host and a real gRPC host with equal results: byte-only dif
 and a frozen original commit, no commit for a root commit or untracked file, a binary notice for an untracked
 byte-only diff, exact bytes for the commit, working tree and index, an original that survives the branch
 moving, and refusal of refs, abbreviations, unknown, tree and blob ids, path escape, missing paths and a
-symbolic link. The headless UI part opens `BinaryDiffView` for a PNG (two pictures) and a PDF (cards only)
-and requires no replacement characters.
+symbolic link. The headless UI part checks how a byte diff is recognised and then runs the resource checks.
+
+## Resource checks
+
+`ResourceChecks.cs` (`-- --content` and `-- --documents`, also in the default run) covers the renderer
+registry (rank order, glob and MIME matching with the extension fallback, the required fallbacks, intent
+support), the file pane (toggle, view reuse, view state written to the tab, dropped on a renderer change,
+late writes ignored, captured on close and restored), SVG sanitising and rasterising, the table model
+(delimiter sniffing, quoting, row alignment and changed cells), the JSON model (dialect and invalid text,
+structural diff by key and identity, formatting-only changes), the notebook model and the rendered-diff
+focus (context runs, single-unit gaps, twin blocks, unmarked changes, list items). It then drives a real
+headless window over a fixture repository: a byte-only file as a card with Save a copy, an LFS pointer
+card, a picture's fit, natural size and zoom with an in-place reload, an SVG drawn with Source beside it, a
+table, a JSON tree, a notebook, a Markdown file's toggle surviving a reload, raw HTML in Markdown (placed
+pictures, dropped script, closed and open disclosures), and diffs of each: picture
+2-up, swipe, onion skin and difference, a byte diff refreshing when the file changes under its tab, PDF
+cards only, table, JSON and notebook diffs, a Markdown diff's rendered and source views with the choice
+kept across a refresh, collapsed unchanged runs with kept list numbers and an expansion surviving a
+refresh, an oversized Markdown diff falling back to source, and an LFS pointer diff.
+`-- --documents` also runs the upstream translations that open file and diff bodies (preview tabs,
+Markdown links, alerts and Mermaid, the editor, and with `SHARPRAIL_TEST_GIT_SOURCE` the Changes diff,
+rendered diff and live refresh suites).
 
 ## Quit and close commands
 

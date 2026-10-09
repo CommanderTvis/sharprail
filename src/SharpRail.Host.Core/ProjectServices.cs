@@ -75,23 +75,21 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
         catch (Exception error) when (error is IOException or UnauthorizedAccessException) { return null; }
     }
 
-    private static readonly UTF8Encoding StrictUtf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
+    private static readonly HashSet<string> RasterMedia = ["image/png", "image/jpeg", "image/gif", "image/webp", "image/bmp"];
 
     public async ValueTask<FileDocument> ReadFileAsync(string relativePath, CancellationToken cancellationToken = default)
     {
         var path = Resolve(root, relativePath);
-        var extension = Path.GetExtension(path).ToLowerInvariant();
-        var image = extension is ".png" or ".jpg" or ".jpeg" or ".gif" or ".webp" or ".bmp";
         var length = new FileInfo(path).Length;
-        if ((image || extension is ".md" or ".markdown") && length > FileLimits.PreviewBytes)
+        if (Path.GetExtension(path).ToLowerInvariant() is ".md" or ".markdown" && length > FileLimits.PreviewBytes)
             throw new IOException($"Previews are limited to files under {FileLimits.PreviewBytes >> 20} MiB.");
         if (length > FileLimits.EditableBytes) throw new IOException($"Files over {FileLimits.EditableBytes >> 20} MiB cannot be opened.");
         var bytes = await File.ReadAllBytesAsync(path, cancellationToken);
         var info = ContentClassifier.Classify(bytes, relativePath);
-        if (image) return new(relativePath, "", bytes) { Info = info };
-        // Like the reference, text may contain NUL and other control characters; only invalid UTF-8 is binary.
-        try { return new(relativePath, StrictUtf8.GetString(bytes)) { Info = info }; }
-        catch (DecoderFallbackException) { throw new IOException("Binary files cannot be previewed."); }
+        // A byte-only file answers empty text plus metadata; a raster picture small enough to preview also carries its bytes.
+        if (!info.IsText)
+            return new(relativePath, "", RasterMedia.Contains(info.MediaType ?? "") && bytes.Length <= FileLimits.PreviewBytes ? bytes : null) { Info = info };
+        return new(relativePath, ContentInfo.Decode(bytes)) { Info = info };
     }
 
     public async ValueTask<GitSnapshot> GetGitAsync(string comparisonBranch = "", CancellationToken cancellationToken = default, string scope = "all")

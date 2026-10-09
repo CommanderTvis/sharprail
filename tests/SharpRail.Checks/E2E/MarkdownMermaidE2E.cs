@@ -65,7 +65,7 @@ internal static class MarkdownMermaidE2E
         dialog.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
         Until(() => !app.Window.OwnedWindows.OfType<DialogWindow>().Any());
 
-        app.Click(app.Find<Button>("MarkdownSourceMode"));
+        app.Click(app.Find<Button>("ViewToggle_code"));
         var source = app.Find<Control>("MarkdownSource");
         Require(MarkdownSourceText(source).Contains("flowchart TD; Start --> Finish", StringComparison.Ordinal),
             "Source mode must show the Mermaid source.");

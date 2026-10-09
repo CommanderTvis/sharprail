@@ -52,13 +52,19 @@ internal static class ProjectChecks
             Require((await remote.ListFilesAsync("")).SequenceEqual(files), "Remote files differ.");
             await CheckWatching(local, remote, fixture);
             Require(await remote.ReadFileAsync("README.md") == markdown, "Remote text differs.");
-            // Like the reference, valid UTF-8 opens as text even with NUL control characters; only invalid UTF-8 is binary.
+            // The shared classification decides: NUL-bearing or invalid UTF-8 bytes answer empty text plus metadata.
             await File.WriteAllTextAsync(Path.Combine(fixture, "controls.txt"), "before\0after\n");
-            Require((await local.ReadFileAsync("controls.txt")).Text == "before\0after\n" && (await remote.ReadFileAsync("controls.txt")).Text == "before\0after\n",
-                "A UTF-8 file with NUL characters must open as text.");
             await File.WriteAllBytesAsync(Path.Combine(fixture, "blob.bin"), [0xFF, 0xFE, 0x00, 0x01]);
-            try { await local.ReadFileAsync("blob.bin"); throw new InvalidOperationException("Invalid UTF-8 opened as text."); }
-            catch (IOException error) { Require(error.Message == "Binary files cannot be previewed.", "Invalid UTF-8 must be reported as binary."); }
+            await File.WriteAllBytesAsync(Path.Combine(fixture, "picture.txt"), [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 1]);
+            foreach (var reader in new IProjectServices[] { local, remote })
+            {
+                var controls = await reader.ReadFileAsync("controls.txt");
+                Require(controls is { Text: "", ImageData: null, Info: { IsText: false, ByteLength: 13, Sha256.Length: 64 } }, "A NUL-bearing file must read as byte-only with metadata.");
+                var blob = await reader.ReadFileAsync("blob.bin");
+                Require(blob is { Text: "", ImageData: null, Info: { IsText: false, ByteLength: 4, MediaType: null } }, "Invalid UTF-8 must read as byte-only, not fail.");
+                var picture = await reader.ReadFileAsync("picture.txt");
+                Require(picture is { Text: "", ImageData.Length: 9, Info.MediaType: "image/png" }, "A picture is recognised by its bytes, not its extension.");
+            }
             Require((await remote.ListSpecsAsync()).SequenceEqual(await local.ListSpecsAsync()), "Remote specs differ.");
             var snapshot = await remote.GetGitAsync();
             Require(!snapshot.IsRepository, "Non-git directory detected as repository.");

@@ -126,6 +126,10 @@ public static partial class MarkdownDiff
 
     private static string[] Tokens(string text) => Token().Matches(text).Select(match => match.Value).ToArray();
 
+    /// <summary>Aligns two sequences: -1 for a value only in <paramref name="a"/>, 0 in both, 1 only in <paramref name="b"/>.</summary>
+    internal static List<(int Side, string Value)> Sequence(string[] a, string[] b, CancellationToken cancellationToken = default) =>
+        Align(a, b, cancellationToken).Select(step => (step.Op == Op.Delete ? -1 : step.Op == Op.Insert ? 1 : 0, step.Value)).ToList();
+
     // Myers' O(ND) alignment after trimming the common prefix and suffix.
     private static List<(Op Op, string Value)> Align(string[] a, string[] b, CancellationToken cancellationToken)
     {

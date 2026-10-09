@@ -121,8 +121,8 @@ project: local adapters call Core directly, with no serialization.
 - Distinct project-open failures for a non-repository (`NOT_GIT`) and a folder
   already owned by a workspace (`ALREADY_OPEN`), so clients can offer the
   appropriate recovery without matching error text.
-- Resource metadata on file reads and diff sides is ported, with the bytes fetched over gRPC rather than
-  the host's file/blob HTTP endpoints. Still open: a byte-only file read (invalid UTF-8 still fails as
-  "binary"), and a streamed rather than single-message transfer.
+- Resource metadata on file reads and diff sides is ported, and a byte-only file read answers empty text
+  plus metadata, with the bytes fetched over gRPC rather than the host's file/blob HTTP endpoints. Still
+  open: a streamed rather than single-message transfer.
 - Distinct codes for the remaining failures that clients handle differently (the change write path's own
   are ported, see Decisions).

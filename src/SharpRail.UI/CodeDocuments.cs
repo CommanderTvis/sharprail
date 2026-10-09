@@ -11,16 +11,16 @@ public sealed partial class WorkbenchWindow
 
     private double FileWrapWidth => Rendering.LineWidths.File(Preferences);
 
-    private CodeDocumentView CodeDocument(FileDocument document, DockTab tab, string key)
+    private CodeDocumentView CodeDocument(FileDocument document, string tabId, string key)
     {
         var view = new CodeDocumentView(document, workspaceRoot, host, () =>
         {
-            var group = Layout.State.Groups.FirstOrDefault(group => Layout.Tabs(group.Id).Any(item => item.Id == tab.Id && item.Preview));
+            var group = Layout.State.Groups.FirstOrDefault(group => Layout.Tabs(group.Id).Any(item => item.Id == tabId && item.Preview));
             if (group is not null)
             {
-                var editor = (documentContent.GetValueOrDefault(key) as CodeDocumentView)?.Editor;
+                var editor = Body<CodeDocumentView>(key)?.Editor;
                 bool focused = editor?.IsFocused == true;
-                Layout.Keep(group.Id, tab.Id);
+                Layout.Keep(group.Id, tabId);
                 if (focused) editor!.Focus();
             }
         }, text => documents[key] = document with { Text = text }, surface.RefreshModified, Report);
@@ -29,7 +29,7 @@ public sealed partial class WorkbenchWindow
     }
 
     private CodeDocumentView? PendingDocument(string workspace, string tabId) =>
-        documentContent.GetValueOrDefault(workspace + ":" + tabId) is CodeDocumentView { HasPendingChanges: true } view ? view : null;
+        Body<CodeDocumentView>(workspace + ":" + tabId) is { HasPendingChanges: true } view ? view : null;
 
     private void WireEditorLifetime()
     {
@@ -48,7 +48,7 @@ public sealed partial class WorkbenchWindow
         Closing += async (_, e) =>
         {
             if (closeConfirmed) return;
-            var pending = documentContent.Values.OfType<CodeDocumentView>().Where(view => view.HasPendingChanges).ToArray();
+            var pending = documentContent.Keys.Select(Body<CodeDocumentView>).OfType<CodeDocumentView>().Where(view => view.HasPendingChanges).ToArray();
             if (pending.Length == 0) return;
             e.Cancel = true;
             if (await ResolvePendingAsync(pending)) { closeConfirmed = true; Close(); }
@@ -57,7 +57,7 @@ public sealed partial class WorkbenchWindow
         {
             if (e.Key != Avalonia.Input.Key.S || !(e.KeyModifiers.HasFlag(Avalonia.Input.KeyModifiers.Meta) || e.KeyModifiers.HasFlag(Avalonia.Input.KeyModifiers.Control))) return;
             e.Handled = true;
-            if (Layout.Selected(Layout.View.FocusedCenter) is { } tab && documentContent.GetValueOrDefault(workspaceRoot + ":" + tab.Id) is CodeDocumentView view)
+            if (Layout.Selected(Layout.View.FocusedCenter) is { } tab && Body<CodeDocumentView>(workspaceRoot + ":" + tab.Id) is { } view)
                 await view.SaveAsync();
         }, Avalonia.Interactivity.RoutingStrategies.Bubble);
     }

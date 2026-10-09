@@ -100,8 +100,8 @@ internal static class LiveRefreshE2E
         }
         finally { heldRead.TrySetResult(); }
         Until(() => PreviewText(app).Contains("live tab reload", StringComparison.Ordinal) && !PreviewText(app).Contains("edited twice by e2e", StringComparison.Ordinal));
-        app.Click(app.Find<Button>("MarkdownSourceMode"));
-        var documentView = app.Find<Button>("MarkdownSourceMode");
+        app.Click(app.Find<Button>("ViewToggle_code"));
+        var documentView = app.Find<Button>("ViewToggle_code");
         var sourceView = app.Find<Control>("MarkdownSource");
         var replacement = Path.Combine(worktree, "README.md.tmp");
         File.WriteAllText(replacement, "# atomically replaced by agent\n");
@@ -110,8 +110,8 @@ internal static class LiveRefreshE2E
             view.IsEffectivelyVisible && MarkdownSourceText(view).Contains("atomically replaced by agent", StringComparison.Ordinal)));
         if (OperatingSystem.IsMacOS())
             Require(ReferenceEquals(sourceView, app.Find<Control>("MarkdownSource")), "Reload must retain the Scintilla source editor.");
-        Require(ReferenceEquals(documentView, app.Find<Button>("MarkdownSourceMode")), "Reload must preserve the Markdown mode controls.");
-        app.Click(app.Find<Button>("MarkdownPreviewMode"));
+        Require(ReferenceEquals(documentView, app.Find<Button>("ViewToggle_code")), "Reload must preserve the Markdown mode controls.");
+        app.Click(app.Find<Button>("ViewToggle_markdown"));
         Until(() => PreviewText(app).Contains("atomically replaced by agent", StringComparison.Ordinal));
         Console.WriteLine("PASS upstream live-refresh.spec.ts: worktree changes on disk appear live in Specs, Files, Changes, and an open file tab");
     }

@@ -18,7 +18,8 @@ versions; `global.json` selects the SDK. Use `.tools/dotnet/dotnet` for this che
 | `src/SharpRail.UI` | Avalonia application entry point and workbench. `WorkbenchWindow` partial files coordinate navigation, projects and Git panels. |
 | `src/SharpRail.UI/Docking` | Persisted frame/workspace layout model, transitions, geometry, pointer/keyboard gestures, tab chrome and search popover. |
 | `src/SharpRail.UI/Panels` | Settings and shared dialogs, including compiled XAML frames and page templates. |
-| `src/SharpRail.UI/Rendering` | Native Markdown rendering, preview/source view and shared UI assets/styles/helpers. |
+| `src/SharpRail.UI/Rendering` | Native Markdown rendering, the diff pane and shared UI assets/styles/helpers. |
+| `src/SharpRail.UI/Resources` | Resource-renderer registry, the file pane with its view toggle, and the format views (image, SVG, table, JSON, notebook, LFS and byte cards). |
 | `src/SharpRail.UI/State` | Profile persistence and migration (`ProfileStore`: app preferences and one entry per window) and the app's shared-state subscription (`SharedState`). Default user state belongs in `~/.sharprail`, not project directories. |
 | `src/SharpRail.UI/Terminal` | Terminal tab body (`TerminalView`: start failure/retry, exit notice), the Ghostty native-control bridge for local and relayed remote sessions, and the `--terminal-relay` mode. |
 | `src/SharpRail.UI/Assets` | Reference icons and bundled fonts, with their licenses. |
@@ -94,6 +95,7 @@ The workbench is split into partial files rather than separate window classes:
 | --- | --- |
 | `WorkbenchWindow.axaml` / `WorkbenchWindow.cs` | Static window frame, startup, workspace switching and workbench composition. |
 | `DocumentNavigation.cs` / `DocumentCache.cs` | Opening/restoring documents, navigation and cached document-control lifetime. |
+| `ResourceDocuments.cs` / `RenderedDiffs.cs` | File and diff bodies from the resource registry, per-tab renderer choice and view state, and the window's code and Markdown renderers. |
 | `ProjectPanels.cs` | Files, Specs and Projects panel construction and project actions. |
 | `ProjectHome.cs` | Startup routing, Welcome/Project Home, project context actions, the Create workspace flow and workspace row actions. |
 | `GitPanels.cs` / `ChangesTree.cs` / `WorkspaceGit.cs` | Git panel controls, compact change-tree projection and cancellable, workspace-scoped snapshot refreshes. |
@@ -124,6 +126,7 @@ Run checks with `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Re
 `-- --ghostty-skia` runs focused Skia input, pixel, PTY and renderer Settings checks.
 `-- --native-texture` checks GPU texture composition, input and local/remote renderer switching in a real macOS window.
 `-- --sync` runs the multi-window and multi-client translations.
+`-- --documents` runs the resource-renderer checks and the translations that open file and diff bodies.
 Set `SHARPRAIL_TEST_GIT_SOURCE` to an existing upstream clone to include Git fixtures.
 `tests/SharpRail.Checks/Program.cs` is the check runner, not an xUnit test project.
 `ProjectChecks.cs` covers project/Git host parity; `LayoutChecks.cs` covers layout

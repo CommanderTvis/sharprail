@@ -33,18 +33,19 @@ with direct local and streaming gRPC adapters. The UI consumes the same stream f
 - Listings hide `.git`, `.sharprail` and `.tools`, sort directories first and then by name
   case-insensitively, and compact a run of directories that each hold exactly one directory into one
   `a/b/c` row.
-- A read returns images (PNG, JPEG, GIF, WebP, BMP) as bytes and text as strict UTF-8; invalid UTF-8 is
-  reported as binary, while NUL and other control characters in valid text are allowed. Markdown and
-  image previews are limited to `FileLimits.PreviewBytes`, editable text to `FileLimits.EditableBytes`,
-  and a gRPC message is sized for one whole read or save. Every read also carries content metadata
-  (`ContentClassifier.Classify`, below).
+- A read is decided by the shared classification (`ContentClassifier.Classify`, below) and always carries
+  its metadata. Text is returned decoded. A byte-only file (a recognised magic number, NUL in the sniffed
+  prefix or invalid UTF-8) answers empty text plus metadata instead of failing; a raster picture (PNG,
+  JPEG, GIF, WebP, BMP, by its bytes rather than its extension) no larger than `FileLimits.PreviewBytes`
+  also carries its bytes. Markdown previews are limited to `FileLimits.PreviewBytes`, every read to
+  `FileLimits.EditableBytes`, and a gRPC message is sized for one whole read or save.
 - `ContentClassifier` is the one byte classification: media type from magic numbers (PNG, JPEG, GIF,
   WebP, AVIF, BMP, ICO, PDF, zip, gzip, WOFF/WOFF2), SVG from a text root element (after an optional
   XML prolog), a Git LFS pointer from its exact three-line form, and the filename only when the bytes
   say nothing. Text means no recognised magic number, no NUL in the first 8 KiB and a strict UTF-8
   decode, so an ASCII-only PDF is still byte-only. The metadata is `ContentMetadata` (SHA-256, byte
   length, textness, media type) and `IsActive` marks HTML, XHTML and SVG, which a client must show inert.
-  Diff sides use it in full; file reads attach it but keep their own text rule (below).
+  Diff sides and file reads use it in full.
 - Relative Markdown images resolve through the same contained read.
 
 ## Saves
@@ -87,9 +88,7 @@ mutations.
 - Self-healing watchers that re-create themselves when the root's inode changes and reap watchers for
   forgotten workspaces.
 - A bounded pre-warm pool for workspaces a client is about to open.
-- The shared classification inside file reads and untracked line counts: reads still decide images by
-  extension, allow NUL in text and fail a byte-only file as "binary" rather than answering empty text
-  plus metadata, and untracked line counts do not consult it.
+- The shared classification inside untracked line counts, which do not consult it.
 - Containment for reads and saves that also refuses `.git` and allows a missing leaf; today only the change
   write path has it (`ProjectServices.ResolveForWrite`, which does not follow a leaf link), and the trash
   is `Trash.cs` (see [Git.SPEC.md](Git.SPEC.md)). Neither is shared by file reads and saves yet.

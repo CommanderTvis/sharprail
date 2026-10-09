@@ -33,6 +33,7 @@ panel or feature flow.
 | `Panels` | Settings and shared dialogs | — |
 | `Rendering` | Markdown, diffs, Mermaid, themes and shared brushes | — |
 | `Editor` | The Scintilla-backed code document view | — |
+| `Resources` | The resource-renderer registry, the file pane and the format views | below |
 
 Dependency rules: `Docking` never references panels, host services or persistence; the window injects
 content through a render callback. `State` references `Docking` only for the `DockState` type it persists.
@@ -63,6 +64,32 @@ decorations so the native controls stay while the header provides the colour; on
 80px for the traffic lights. The header shows the brand mark, `project › workspace` with the branch, the
 connection state and Settings. Pressing plain header content drags the window and double-clicking it
 toggles maximize; buttons in the header never start a drag.
+
+## Resource renderers
+
+`Resources/ResourceRegistry.cs` decides what draws a file or a diff body. A renderer declares what it
+matches (file-name globs, MIME type with a `type/*` wildcard, and whether the content is text) and its rank;
+a resource is described by its path and the host's content metadata, with the MIME type falling back to the
+extension when the host names none. `Resolve` returns the matching renderers that support the intent (view
+or diff) by descending rank, always ending in the required fallback: `sharprail/code` for text and
+`sharprail/binary` for bytes. A registry without the fallback for an intent throws rather than showing
+nothing. That ordered list is both the dispatch order and the document's view toggle; a single candidate
+shows no toggle.
+
+The registry holds no content and no tab state. `ResourceContent` keeps text, bytes that can be fetched
+(a loader that checks the SHA-256 it was promised) and an absent diff side as three distinct cases, so
+absence is never an empty byte payload. `ResourcePane` is the file body: it builds a renderer's view on
+first use, keeps it while the pane lives, and reloads the views that can take new content in place.
+`DiffView` is the diff body and takes its toggle from the same resolution; the source diff is the pane's own
+drawing, so the text fallback supports diffs without a factory. A diff renderer that returns nothing cannot
+draw that content: its toggle is disabled and the next candidate takes over without changing the tab's
+choice.
+
+`BundledRenderers` registers the format views that need nothing from the window (image, vector, table,
+JSON tree, notebook, Git LFS pointer, byte card); `WorkbenchWindow` registers code and Markdown, which need
+its editing and navigation wiring (`ResourceDocuments.cs`, `RenderedDiffs.cs`). The views themselves are
+listed in [Panels.SPEC.md](Panels.SPEC.md). A text diff is described by its path; a diff Git reports as
+binary, or one that may hold an LFS pointer, waits for the host's side metadata before choosing.
 
 ## Global shortcuts
 
@@ -157,9 +184,6 @@ menu. Abrupt death relies on operating-system process cleanup; remote shells bel
   starts and each reported scale is applied against that baseline, bounded to 50%–200%, so updates never
   compound; content that claims the gesture keeps it, and pinch adds no second zoom owner. Zoom currently
   snaps every value to the fixed steps, so a pinch needs the factor to hold values between them.
-- A resource-renderer registry behind file and diff bodies. Renderers declare what they match (MIME type,
-  falling back to the extension) and their capabilities; the ranked matches, ending in a required text or
-  byte fallback, are both the dispatch order and the document's view toggle. The registry owns no content
-  or tab state, and content keeps text, retrievable bytes and an absent diff side distinct. `WorkbenchWindow`
-  picks the body from the tab kind instead (image, Markdown, diff or code); the views and diff actions this
-  enables are listed in [Panels.SPEC.md](Panels.SPEC.md).
+- Renderer capabilities beyond dispatch: review anchor geometry, phone support and the per-renderer copy,
+  layout and whitespace flags. The diff pane decides its own split, whitespace and copy controls from
+  whether the source diff is showing, and there is no review surface to anchor to.

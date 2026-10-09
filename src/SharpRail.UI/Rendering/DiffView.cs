@@ -12,8 +12,15 @@ using Avalonia.Media;
 
 using SharpRail.Scintilla;
 using SharpRail.UI.Editor;
+using SharpRail.UI.Resources;
 
 namespace SharpRail.UI.Rendering;
+
+/// <summary>One view of a diff tab. The source diff is drawn by the pane itself and has no <paramref name="Render"/>.</summary>
+internal sealed record DiffChoice(string Id, string Label, Func<CancellationToken, Task<Control?>>? Render)
+{
+    internal static DiffChoice Source { get; } = new(ResourceRegistry.Code, "Source", null);
+}
 
 internal sealed partial class DiffView : Grid, IDisposable
 {
@@ -23,29 +30,38 @@ internal sealed partial class DiffView : Grid, IDisposable
     private readonly ToggleButton split = Toggle("DiffSplit", "layout", "Side-by-side diff");
     private readonly ToggleButton inline = Toggle("DiffInline", "list", "Inline diff");
     private readonly ToggleButton whitespace = Toggle("DiffWhitespace", "collapseVertical", "Hide whitespace changes");
-    private readonly ToggleButton source = Segment("DiffSource", "Source");
-    private readonly ToggleButton rendered = Segment("DiffRendered", "Rendered");
+    private readonly StackPanel segments = new() { Orientation = Orientation.Horizontal, Spacing = 4 };
+    private readonly Dictionary<string, ToggleButton> toggles = [];
+    private readonly Button copy;
     private readonly double wrapWidth;
-    private readonly Func<CancellationToken, Task<Control?>>? renderMerged;
-    private readonly Action<bool>? renderedChanged;
+    private readonly Action<string>? selectedChanged;
+    private IReadOnlyList<DiffChoice> choices;
+    private DiffChoice current;
+    private bool pending;
     private CancellationTokenSource? merge;
     private Control? merged;
     private readonly List<EditorFrame> frames = [];
     private bool disposed;
     private string text;
 
+    /// <summary>Whether a unified diff says Git saw bytes it will not show as lines.</summary>
+    internal static bool IsBinaryDiff(string diff) => diff.Contains("Binary files ", StringComparison.Ordinal) && !diff.Contains("\n@@", StringComparison.Ordinal);
+
     /// <summary>
-    /// A unified diff viewer. Markdown diffs pass <paramref name="renderMerged"/> to offer the reference's
-    /// Source|Rendered toggle; their source view is always side by side. A null rendering means the documents
-    /// exceed <see cref="ViewerLimits.RenderedMarkdown"/>, and the view falls back to source.
+    /// A diff tab's pane. <paramref name="choices"/> are the resource renderers that match the file, in rank order,
+    /// and become the view toggle; a tab with only the source diff offers split and inline instead. A choice that
+    /// renders null cannot show this content, and the next one takes over. A <paramref name="pending"/> pane waits
+    /// for <see cref="SetChoices"/> before it draws anything.
     /// </summary>
     internal DiffView(string text, string path, double wrapWidth,
-        Func<CancellationToken, Task<Control?>>? renderMerged = null, bool showRendered = false, Action<bool>? renderedChanged = null)
+        IReadOnlyList<DiffChoice>? choices = null, string? selected = null, Action<string>? selectedChanged = null, bool pending = false)
     {
         this.text = text;
         this.wrapWidth = wrapWidth;
-        this.renderMerged = renderMerged;
-        this.renderedChanged = renderedChanged;
+        this.selectedChanged = selectedChanged;
+        this.pending = pending;
+        this.choices = choices is { Count: > 0 } ? choices : [DiffChoice.Source];
+        current = this.choices.FirstOrDefault(choice => choice.Id == selected) ?? this.choices[0];
         Name = "DiffPane";
         RowDefinitions = new RowDefinitions("32,*");
         var chip = new Border
@@ -58,7 +74,7 @@ internal sealed partial class DiffView : Grid, IDisposable
             VerticalAlignment = VerticalAlignment.Center,
             Child = Ui.Text(path, Ui.TextBrush, 12)
         };
-        var copy = new Button
+        copy = new Button
         {
             Name = "DiffCopy",
             Content = Ui.Icon("file", size: 14),
@@ -76,10 +92,7 @@ internal sealed partial class DiffView : Grid, IDisposable
             if (TopLevel.GetTopLevel(this)?.Clipboard is { } clipboard) await clipboard.SetTextAsync(this.text);
         };
         var controls = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Margin = new Thickness(8, 0, 12, 0), VerticalAlignment = VerticalAlignment.Center };
-        controls.Children.Add(whitespace); controls.Children.Add(copy);
-        // Scintilla is macOS-only; elsewhere the raw diff is shown without view modes.
-        if (renderMerged is null && OperatingSystem.IsMacOS()) { controls.Children.Insert(0, inline); controls.Children.Insert(0, split); }
-        else { controls.Children.Add(source); controls.Children.Add(rendered); }
+        controls.Children.AddRange([split, inline, whitespace, copy, segments]);
         var header = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(12, 0, 0, 0) };
         Ui.Place(header, chip); Ui.Place(header, controls, 0, 1);
         Ui.Place(this, header);
@@ -88,14 +101,42 @@ internal sealed partial class DiffView : Grid, IDisposable
         split.Click += (_, _) => { split.IsChecked = true; inline.IsChecked = false; Render(); };
         inline.Click += (_, _) => { inline.IsChecked = true; split.IsChecked = false; Render(); };
         whitespace.Click += (_, _) => Render();
-        IsRendered = showRendered && renderMerged is not null;
-        source.IsChecked = !IsRendered; rendered.IsChecked = IsRendered;
-        source.Click += (_, _) => ShowRendered(false);
-        rendered.Click += (_, _) => ShowRendered(true);
+        BuildSegments();
         Render();
     }
 
-    internal bool IsRendered { get; private set; }
+    internal bool IsRendered => current.Render is not null;
+
+    /// <summary>What the choices were resolved from, for a pane whose content is identified by more than its diff text.</summary>
+    internal string? Identity { get; private set; }
+
+    internal void SetChoices(IReadOnlyList<DiffChoice> next, string? selected, string? identity)
+    {
+        choices = next; pending = false; Identity = identity;
+        current = choices.FirstOrDefault(choice => choice.Id == selected) ?? choices[0];
+        BuildSegments();
+        Render();
+    }
+
+    internal void ShowError(string message)
+    {
+        pending = false;
+        merge?.Cancel(); merge?.Dispose(); merge = null;
+        ShowBody(Placeholder("DiffError", message, Ui.Danger));
+    }
+
+    private void BuildSegments()
+    {
+        segments.Children.Clear(); toggles.Clear();
+        if (choices.Count < 2) return;
+        foreach (var choice in choices)
+        {
+            var toggle = ResourcePane.Segment("DiffView_" + choice.Id[(choice.Id.LastIndexOf('/') + 1)..], choice.Label);
+            toggle.Click += (_, _) => Choose(choice);
+            toggles[choice.Id] = toggle;
+            segments.Children.Add(toggle);
+        }
+    }
 
     internal void Update(string diff)
     {
@@ -105,37 +146,17 @@ internal sealed partial class DiffView : Grid, IDisposable
         else Render();
     }
 
-    private void ShowRendered(bool show)
+    private void Choose(DiffChoice choice)
     {
-        source.IsChecked = !show; rendered.IsChecked = show;
-        if (show == IsRendered) return;
-        IsRendered = show;
-        renderedChanged?.Invoke(show);
+        if (choice == current) { Check(); return; }
+        current = choice;
+        selectedChanged?.Invoke(choice.Id);
         Render();
     }
 
-    private static ToggleButton Segment(string name, string label)
+    private void Check()
     {
-        var button = new ToggleButton
-        {
-            Name = name,
-            Content = label,
-            Height = 20,
-            Padding = new Thickness(8, 0),
-            FontSize = 12,
-            VerticalContentAlignment = VerticalAlignment.Center,
-            BorderThickness = new Thickness(0),
-            CornerRadius = new CornerRadius(4),
-            Background = Brushes.Transparent,
-            Foreground = Ui.Muted
-        };
-        foreach (var state in new[] { "Checked", "CheckedPointerOver", "CheckedPressed", "PointerOver", "Pressed" })
-        {
-            button.Resources["ToggleButtonBackground" + state] = Ui.Hover;
-            button.Resources["ToggleButtonForeground" + state] = Ui.TextBrush;
-        }
-        AutomationProperties.SetName(button, label);
-        return button;
+        foreach (var (id, toggle) in toggles) toggle.IsChecked = id == current.Id;
     }
 
     // Merges run off the UI thread; a newer merge or leaving the rendered view cancels the stale one.
@@ -143,13 +164,14 @@ internal sealed partial class DiffView : Grid, IDisposable
     {
         merge?.Cancel(); merge?.Dispose();
         var cancellation = merge = new CancellationTokenSource();
+        var render = current.Render!;
         if (!keepCurrent || merged is null) ShowBody(Placeholder("RenderedDiffLoading", "Rendering diff…", Ui.Muted));
         _ = Complete();
 
         async Task Complete()
         {
             Control? result;
-            try { result = await renderMerged!(cancellation.Token); }
+            try { result = await render(cancellation.Token); }
             catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { return; }
             catch (Exception error)
             {
@@ -165,13 +187,18 @@ internal sealed partial class DiffView : Grid, IDisposable
         }
     }
 
-    // Leaves the tab's Rendered preference alone, so reopening it after the document shrinks renders again.
+    // Leaves the tab's choice alone, so reopening it after the content changes renders again.
     private void RenderedUnavailable()
     {
-        rendered.IsEnabled = false;
-        ToolTip.SetTip(rendered, "Too large to render — showing the source diff");
-        IsRendered = false;
-        source.IsChecked = true; rendered.IsChecked = false;
+        if (toggles.GetValueOrDefault(current.Id) is { } toggle)
+        {
+            toggle.IsEnabled = false;
+            ToolTip.SetTip(toggle, "This view cannot show the content");
+        }
+        var fallback = choices.SkipWhile(choice => choice != current).Skip(1).Concat(choices)
+            .FirstOrDefault(choice => choice != current && toggles.GetValueOrDefault(choice.Id)?.IsEnabled != false);
+        if (fallback is null) { ShowBody(Placeholder("DiffError", "This content cannot be shown.", Ui.Muted)); return; }
+        current = fallback;
         Render();
     }
 
@@ -229,7 +256,12 @@ internal sealed partial class DiffView : Grid, IDisposable
 
     private void Render()
     {
+        Check();
+        // The source view of a file with other views is always side by side; Scintilla is macOS-only.
+        split.IsVisible = inline.IsVisible = choices.Count == 1 && !IsRendered && OperatingSystem.IsMacOS();
         whitespace.IsVisible = !IsRendered && OperatingSystem.IsMacOS();
+        copy.IsVisible = choices.Any(choice => choice.Render is null);
+        if (pending) { ShowBody(Placeholder("DiffLoading", "Loading…", Ui.Muted)); return; }
         if (IsRendered) { StartMerge(keepCurrent: false); return; }
         merge?.Cancel(); merge?.Dispose(); merge = null;
         DropMerged();

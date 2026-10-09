@@ -86,17 +86,27 @@ Welcome); a timeout or disconnect keeps the remembered location and retries afte
 project opens are cancelled by a monotonic request counter so a late response never replaces a newer
 location. Location is never shared between windows or clients; continuing elsewhere is an explicit action.
 
+## Tab view state
+
+Each file and diff tab has a `TabView`: the renderer it chose and that renderer's own view state. The
+window keeps them in memory by owning workspace and tab id, beside the loaded content and its metadata,
+and drops them when the tab closes; they are not written to the profile. Writes name the owning workspace,
+so a body that closes after a workspace switch still updates its own tab, and a write for a tab that no
+longer exists is ignored. Only the renderer interprets its view state (picture fit and zoom, the image
+diff's mode and position, a Markdown view's scroll offset or first visible source line, a rendered
+Markdown diff's expanded runs). Choosing another
+renderer drops it, and a late report from a renderer the tab has left is ignored. A tab that never chose
+follows the best match, so a file that gains or loses a candidate view keeps working. Split or inline and
+ignore-whitespace stay diff-only presentation held by the diff pane.
+
 ## Not yet ported
 
 - A transient toast queue that coalesces identical notifications and caps visible ones at five; the window
   shows one gesture notification at a time. A toast may carry its own duration and one action (an Undo
   receipt). Actionable toasts are never coalesced, since their actions name different inverses, and the cap
   evicts only actionless ones, so a receipt stays until its duration ends or the user dismisses it.
-- Per-tab renderer choice and opaque renderer view state for file and diff documents, cached with the
-  loaded content and its metadata and written against the owning workspace so a body closing after a
-  workspace switch still updates its own tab. Only the renderer interprets its view state; changing
-  renderer drops it. Split or inline and ignore-whitespace stay diff-only presentation. Document bodies
-  hold their own toggles today, and a Markdown diff's Rendered choice is a flag rather than a renderer.
+- View state for the code editor, the table, the JSON tree and the notebook (their scroll position and
+  expansion); those views report none.
 - Serialized routes and Back/Forward history over locations, with push for user intent and replace for
   passive changes.
 - A page-lifetime tombstone for removed workspaces so an in-flight read cannot recreate their local state.

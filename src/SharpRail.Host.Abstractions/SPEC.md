@@ -78,5 +78,3 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
   workspace (`ALREADY_OPEN`).
 - Workspace records with stable ids, kinds and lifecycle events, a workspace diff-base setter, a
   lifecycle-notification stream, and a terminal catalog with reservation separate from attachment.
-- Content classification (media type, hash) on file reads and a byte read of a path at one commit; diff
-  sides already carry hashes.
