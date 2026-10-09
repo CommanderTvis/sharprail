@@ -275,6 +275,9 @@ menu. Abrupt death relies on operating-system process cleanup; remote shells bel
 - Panels stay arrangement-agnostic so another shell can project them differently without a rewrite.
 - The first file-watch ready batch refreshes already open document paths, closing the gap between
   their initial reads and watch registration. Refresh remains deferred and rejects stale workspaces.
+- Open diffs follow coalesced filesystem and Git changes independently of the Changes panel's
+  snapshot and branch listing. New refreshes cancel superseded reads; updates retain the diff pane,
+  scope, display mode and rendered scroll position without changing the docking layout.
 
 ## Not yet ported
 

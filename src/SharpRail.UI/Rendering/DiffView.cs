@@ -315,6 +315,7 @@ internal sealed partial class DiffView : Grid, IDisposable
             if (cancellation.IsCancellationRequested || disposed) { (result as IDisposable)?.Dispose(); return; }
             if (ReferenceEquals(merge, cancellation)) { merge = null; cancellation.Dispose(); }
             if (result is null) { RenderedUnavailable(); return; }
+            if (merged is MarkdownPreview previous && result is MarkdownPreview next) next.Offset = previous.Offset;
             ShowBody(result is MarkdownPreview document ? WithOutline(document) : result);
             merged = result;
         }

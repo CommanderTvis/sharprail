@@ -30,6 +30,7 @@ public sealed partial class WorkbenchWindow
     private async Task RefreshGitAsync(long request)
     {
         if (request != projectRequest || !WorkspaceMounted || lifetime.IsCancellationRequested) return;
+        _ = RefreshDiffTabsAsync(request);
         gitRefresh?.Cancel();
         gitRefresh?.Dispose();
         gitRefresh = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
@@ -68,7 +69,6 @@ public sealed partial class WorkbenchWindow
             if (readyBranch is not null) readyBranch.Text = ReadyBranchText();
             gitLoading = false; gitError = null;
             RefreshGitPanels();
-            _ = RefreshDiffTabsAsync(request);
             _ = RefreshWorkspaceStatsAsync(request);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }

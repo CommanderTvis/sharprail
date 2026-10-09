@@ -183,6 +183,16 @@ internal static class RenderedDiffE2E
         OpenDiff(app, "README.md");
         Until(() => Marked(app, "ins").Contains("first edit by e2e", StringComparison.Ordinal));
 
+        var pane = Pane(app);
+        var heldGit = app.Host.HoldGit();
+        try
+        {
+            File.WriteAllText(readme, "# sample-project\n\nedit while Git is busy\n");
+            Until(() => Marked(app, "ins").Contains("edit while Git is busy", StringComparison.Ordinal));
+            Require(ReferenceEquals(pane, Pane(app)), "Live updates must retain the diff pane.");
+        }
+        finally { heldGit.TrySetResult(); }
+
         // Hold a merge for an intermediate edit so the next edit must cancel it rather than race it.
         using var held = new ManualResetEventSlim();
         var heldCancelled = false;

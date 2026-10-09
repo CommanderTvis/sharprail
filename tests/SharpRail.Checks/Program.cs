@@ -143,6 +143,13 @@ internal static class Program
             Console.WriteLine("PASS multi-window and multi-client checks");
             return;
         }
+        if (args.SequenceEqual(["--live-diffs"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            E2E.RenderedDiffE2E.Run(Path.Combine(root, "upstream-e2e"));
+            return;
+        }
         if (args.SequenceEqual(["--host-state"]))
         {
             StateChecks.Run(root).GetAwaiter().GetResult();
