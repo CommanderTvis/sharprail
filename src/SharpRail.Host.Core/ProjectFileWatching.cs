@@ -17,7 +17,6 @@ public sealed partial class ProjectServices
         var gate = new object();
         var rescan = false;
         var lastChange = DateTime.UtcNow;
-        var watchers = new List<FileSystemWatcher>();
         void Changed(string? path)
         {
             lock (gate)
@@ -28,32 +27,10 @@ public sealed partial class ProjectServices
             }
             signals.Writer.TryWrite(true);
         }
-        void Watch(string path, bool recursive, Func<string, bool> relevant, bool workspace)
-        {
-            if (!Directory.Exists(path)) return;
-            var watcher = new FileSystemWatcher(path) { IncludeSubdirectories = recursive, InternalBufferSize = 64 * 1024 };
-            watchers.Add(watcher);
-            void Notify(string fullPath)
-            {
-                if (relevant(fullPath)) Changed(workspace ? Path.GetRelativePath(directory, fullPath).Replace('\\', '/') : null);
-            }
-            watcher.Created += (_, e) => Notify(e.FullPath);
-            watcher.Changed += (_, e) => Notify(e.FullPath);
-            watcher.Deleted += (_, e) => Notify(e.FullPath);
-            watcher.Renamed += (_, e) => { Notify(e.OldFullPath); Notify(e.FullPath); };
-            watcher.Error += (_, e) => { Console.Error.WriteLine("Workspace watcher error: " + e.GetException().Message); Changed(null); };
-            watcher.EnableRaisingEvents = true;
-        }
+        // Subscriptions to one workspace share its watchers; each keeps its own coalescing window.
+        var subscription = WorkspaceWatches.Subscribe(directory, Changed);
         try
         {
-            Watch(directory, true, path => !Path.GetRelativePath(directory, path).Replace('\\', '/').Split('/').Any(part => part is ".git" or ".sharprail" or ".tools" or "node_modules" or ".DS_Store"), true);
-            var (gitDirectory, commonDirectory) = ResolveGitDirectories(directory);
-            if (gitDirectory is not null)
-            {
-                Watch(gitDirectory, false, path => Path.GetFileName(path) is "HEAD" or "index", false);
-                Watch(commonDirectory!, false, path => Path.GetFileName(path) == "packed-refs", false);
-                Watch(Path.Combine(commonDirectory!, "refs"), true, _ => true, false);
-            }
             // Re-read after registration to cover changes between the initial listing and subscription.
             yield return new([], true);
             while (await signals.Reader.WaitToReadAsync(cancellationToken))
@@ -76,10 +53,10 @@ public sealed partial class ProjectServices
                 yield return change;
             }
         }
-        finally { foreach (var watcher in watchers) watcher.Dispose(); }
+        finally { subscription.Dispose(); }
     }
 
-    private static (string? GitDirectory, string? CommonDirectory) ResolveGitDirectories(string directory)
+    internal static (string? GitDirectory, string? CommonDirectory) ResolveGitDirectories(string directory)
     {
         try
         {
@@ -97,4 +74,10 @@ public sealed partial class ProjectServices
         catch (UnauthorizedAccessException) { return (null, null); }
     }
 
+    public ValueTask PrewarmWorkspaceAsync(string path, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        WorkspaceWatches.Prewarm(ProjectPaths.Resolve(path));
+        return ValueTask.CompletedTask;
+    }
 }

@@ -312,6 +312,8 @@ public sealed partial class WorkbenchWindow : Window
             Control content;
             if (document.ImageData is not null)
                 content = new ScrollViewer { Content = new Image { Source = new Bitmap(new MemoryStream(document.ImageData)), Stretch = Stretch.Uniform } };
+            else if (tab.Kind != "diff" && document.Info is { IsText: false } info)
+                content = ViewerLimits.ByteOnly(info);
             else if (tab.Kind != "diff" && document.Text.Length > ViewerLimits.Scintilla)
                 content = ViewerLimits.TooLarge("file", document.Text.Length);
             else if (tab.Kind == "markdown" && (document.Text.Length <= ViewerLimits.RenderedMarkdown || !OperatingSystem.IsMacOS()))

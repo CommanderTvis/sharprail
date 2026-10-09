@@ -221,22 +221,5 @@ public sealed partial class ProjectServices
     /// Containment for a path about to be written: inside the workspace, never under <c>.git</c>, no linked
     /// directory on the way, and the leaf may be missing or a link (it is refused later, never followed).
     /// </summary>
-    private static string ResolveForWrite(string currentRoot, string path)
-    {
-        var full = Path.GetFullPath(Path.Combine(currentRoot, path));
-        var relative = Path.GetRelativePath(currentRoot, full);
-        if (relative == ".." || relative.StartsWith("../", StringComparison.Ordinal) || Path.IsPathRooted(relative))
-            throw new UnauthorizedAccessException("The path is outside this workspace.");
-        var segments = relative.Split(Path.DirectorySeparatorChar);
-        if (segments.Any(segment => segment.Equals(".git", StringComparison.OrdinalIgnoreCase)))
-            throw new UnauthorizedAccessException("Git's own directory cannot be changed.");
-        var check = currentRoot;
-        foreach (var segment in segments[..^1])
-        {
-            check = Path.Combine(check, segment);
-            if (new FileInfo(check).LinkTarget is not null)
-                throw new UnauthorizedAccessException("Changes through a symbolic link are not supported.");
-        }
-        return full;
-    }
+    private static string ResolveForWrite(string currentRoot, string path) => Contain(currentRoot, path, write: true);
 }

@@ -53,5 +53,48 @@ internal static class StateStoreChecks
         try { Installation.EnsureIn(raced); throw new InvalidOperationException("A malformed installation file was replaced."); }
         catch (IOException) { }
         Console.WriteLine("PASS host state keeps unknown settings, normalizes theme changes and mints one installation identity");
+        await CheckProjects(root);
+    }
+
+    private static async Task CheckProjects(string root)
+    {
+        using var git = new E2E.IsolatedGit(Path.Combine(root, "state-projects-git"));
+        var directory = Path.Combine(root, "state-projects");
+        var first = E2E.IsolatedGit.Repository(Path.Combine(root, "state-projects-repos", "My Project!"));
+        var second = E2E.IsolatedGit.Repository(Path.Combine(root, "state-projects-repos", "nested", "my.project"));
+        var store = new HostStateStore(directory);
+        var opened = await store.ChangeAsync([HostStateChange.OpenProject(first), HostStateChange.OpenProject(second)]);
+        var one = opened.ProjectRecords.Single(record => record.Path == first);
+        var two = opened.ProjectRecords.Single(record => record.Path == second);
+        Require(Guid.TryParse(one.Id, out _) && one.Id != two.Id && one.Slug == "my-project" && two.Slug == "my-project-2" && one.LastOpened > 0,
+            "Opening a project must mint an id and a readable slug that is unique among the host's projects.");
+        var closed = await store.ChangeAsync([HostStateChange.CloseProject(first)]);
+        Require(closed.ProjectRecords.Single(record => record.Path == first) == one, "Closing a project must keep its identity.");
+        await Task.Delay(5);
+        var reopened = (await store.ChangeAsync([HostStateChange.OpenProject(first)])).ProjectRecords.Single(record => record.Path == first);
+        Require(reopened.Id == one.Id && reopened.Slug == one.Slug && reopened.LastOpened > one.LastOpened, "Reopening must keep id and slug and advance lastOpened.");
+        var reloaded = new HostStateStore(directory).Current;
+        Require(reloaded.ProjectRecords.OrderBy(record => record.Id).SequenceEqual(store.Current.ProjectRecords.OrderBy(record => record.Id)), "Project identities must persist.");
+        var forgotten = await store.ChangeAsync([HostStateChange.ForgetProject(second)]);
+        Require(forgotten.ProjectRecords.Single().Path == first, "A forgotten project must lose its record.");
+
+        var legacy = Path.Combine(root, "state-projects-legacy");
+        Directory.CreateDirectory(legacy);
+        File.WriteAllText(Path.Combine(legacy, HostStateStore.FileName), new JsonObject { ["Projects"] = new JsonArray(first), ["RecentProjects"] = new JsonArray(second) }.ToJsonString());
+        var minted = new HostStateStore(legacy).Current.ProjectRecords;
+        Require(minted.Count == 2 && new HostStateStore(legacy).Current.ProjectRecords.SequenceEqual(minted), "Identities minted for an older state file must be written at once.");
+
+        var worktree = Path.Combine(root, "state-projects-repos", "linked");
+        E2E.IsolatedGit.Run(first, "worktree", "add", "-b", "linked", worktree);
+        try
+        {
+            await store.ChangeAsync([HostStateChange.OpenProject(worktree)]);
+            throw new InvalidOperationException("A worktree of an open project was opened as a second project.");
+        }
+        catch (InvalidOperationException error) when (error.Message.StartsWith("ALREADY_OPEN: ", StringComparison.Ordinal)) { }
+        Require(!store.Current.Projects.Contains(worktree), "A refused open must leave the project list unchanged.");
+        await store.ChangeAsync([HostStateChange.CloseProject(first)]);
+        Require((await store.ChangeAsync([HostStateChange.OpenProject(worktree)])).Projects.Contains(worktree), "A worktree whose project is not open may be opened on its own.");
+        Console.WriteLine("PASS projects keep ids, slugs and lastOpened across close and reopen, and a workspace is not opened as a project");
     }
 }

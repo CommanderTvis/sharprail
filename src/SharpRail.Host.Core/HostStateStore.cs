@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
 using System.Threading.Channels;
 
 using SharpRail.Host.Abstractions;
@@ -12,8 +13,10 @@ namespace SharpRail.Host.Core;
 /// The host's shared state: persisted to <c>state.json</c> in its directory (or kept in memory
 /// without one) and published as complete snapshots to every watcher.
 /// </summary>
-public sealed class HostStateStore : IHostStateService
+public sealed partial class HostStateStore : IHostStateService
 {
+    [GeneratedRegex("[^a-z0-9]+")] private static partial Regex NonSlug();
+
     public const string FileName = "state.json";
 
     private sealed class Stored
@@ -22,6 +25,7 @@ public sealed class HostStateStore : IHostStateService
         public List<LayoutPreset> Presets { get; set; } = [];
         public List<string> Projects { get; set; } = [];
         public List<string> RecentProjects { get; set; } = [];
+        public List<ProjectRecord> ProjectRecords { get; set; } = [];
         public Dictionary<string, string> WorkspaceLabels { get; set; } = [];
     }
 
@@ -62,6 +66,7 @@ public sealed class HostStateStore : IHostStateService
                     Presets = stored.Presets ?? [],
                     Projects = stored.Projects ?? [],
                     RecentProjects = stored.RecentProjects ?? [],
+                    ProjectRecords = stored.ProjectRecords ?? [],
                     WorkspaceLabels = stored.WorkspaceLabels ?? []
                 };
             }
@@ -72,7 +77,8 @@ public sealed class HostStateStore : IHostStateService
             initial = new(); LastError = error.Message;
         }
         state = Normalize(initial);
-        if (path is not null && !File.Exists(path) && LastError is null) Save(state);
+        // Identities minted for a file that predates them are written at once, or they would change on the next launch.
+        if (path is not null && LastError is null && (!File.Exists(path) || !state.ProjectRecords.SequenceEqual(initial.ProjectRecords))) Save(state);
         if (directory is not null)
             try { InstallationId = Installation.EnsureIn(directory); }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException) { LastError ??= error.Message; }
@@ -89,6 +95,7 @@ public sealed class HostStateStore : IHostStateService
         {
             var next = state;
             foreach (var change in changes) next = Apply(next, change);
+            if (!ReferenceEquals(next, state)) next = next with { ProjectRecords = Records(next, next.ProjectRecords) };
             // A client that predates theme modes sends only the theme and means it to take effect.
             if (next.Settings.ThemeMode != "fixed" && changes.Any(change => change is { Kind: "setting", Key: "theme" }) &&
                 !changes.Any(change => change is { Kind: "setting", Key: "theme-mode" }))
@@ -148,6 +155,7 @@ public sealed class HostStateStore : IHostStateService
                 Presets = snapshot.Presets.ToList(),
                 Projects = snapshot.Projects.ToList(),
                 RecentProjects = snapshot.RecentProjects.ToList(),
+                ProjectRecords = snapshot.ProjectRecords.ToList(),
                 WorkspaceLabels = snapshot.WorkspaceLabels.ToDictionary()
             };
             var temporary = path + ".tmp";
@@ -169,7 +177,7 @@ public sealed class HostStateStore : IHostStateService
         var light = Clean(value.Settings.SystemLight); var dark = Clean(value.Settings.SystemDark);
         // Half a system pair is malformed: the client falls back to its own default pair.
         if (light.Length == 0 || dark.Length == 0) light = dark = "";
-        return value with
+        var normalized = value with
         {
             Revision = 0,
             Settings = value.Settings with
@@ -188,6 +196,31 @@ public sealed class HostStateStore : IHostStateService
             WorkspaceLabels = value.WorkspaceLabels.Where(entry => ValidPath(entry.Key) && entry.Value is not null && ValidText(entry.Value)).ToDictionary(),
             Workspaces = new Dictionary<string, IReadOnlyList<string>>()
         };
+        var records = (value.ProjectRecords ?? []).Where(record => record is not null && ValidPath(record.Path ?? "") &&
+            ValidText(record.Id ?? "") && ValidText(record.Slug ?? "")).DistinctBy(record => record.Path).DistinctBy(record => record.Id).DistinctBy(record => record.Slug);
+        return normalized with { ProjectRecords = Records(normalized, records.ToArray()) };
+    }
+
+    /// <summary>Keeps one record per open or recent project, minting an identity for a path that has none.</summary>
+    private static IReadOnlyList<ProjectRecord> Records(HostState value, IReadOnlyList<ProjectRecord> known)
+    {
+        var paths = value.Projects.Concat(value.RecentProjects).Distinct().ToArray();
+        if (paths.Length == known.Count && paths.All(path => known.Any(record => record.Path == path))) return known;
+        var records = known.Where(record => paths.Contains(record.Path)).ToList();
+        var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        foreach (var path in paths.Where(path => records.All(record => record.Path != path)))
+            records.Add(new(Guid.NewGuid().ToString(), path, Slug(path, records), now));
+        return records;
+    }
+
+    private static string Slug(string path, IReadOnlyList<ProjectRecord> taken)
+    {
+        var name = NonSlug().Replace(Path.GetFileName(path.TrimEnd(Path.DirectorySeparatorChar)).ToLowerInvariant(), "-").Trim('-');
+        if (name.Length == 0) name = "project";
+        if (taken.All(record => record.Slug != name)) return name;
+        var suffix = 2;
+        while (taken.Any(record => record.Slug == $"{name}-{suffix}")) suffix++;
+        return $"{name}-{suffix}";
     }
 
     private static string Clean(string? value) => value is null || value.Contains('\0') ? "" : value.Trim();
@@ -242,10 +275,18 @@ public sealed class HostStateStore : IHostStateService
             case "project-open":
                 if (!ValidPath(key)) throw new ArgumentException("Invalid project path.");
                 if (current.Projects.Contains(key) && !current.RecentProjects.Contains(key)) return current;
+                // A linked worktree of an open project is that project's workspace, never a second project.
+                var owner = current.Workspaces.FirstOrDefault(entry => entry.Key != key && entry.Value.Contains(key)).Key ?? ProjectPaths.LinkedWorktreeOwner(key);
+                if (owner is not null && owner != key && current.Projects.Contains(owner))
+                    throw new InvalidOperationException($"ALREADY_OPEN: This folder is already open in SharpRail as a workspace: {key}");
+                var opened = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
                 return current with
                 {
                     Projects = current.Projects.Contains(key) ? current.Projects : [key, .. current.Projects],
-                    RecentProjects = current.RecentProjects.Where(item => item != key).ToArray()
+                    RecentProjects = current.RecentProjects.Where(item => item != key).ToArray(),
+                    ProjectRecords = current.ProjectRecords.Any(record => record.Path == key)
+                        ? current.ProjectRecords.Select(record => record.Path == key ? record with { LastOpened = opened } : record).ToArray()
+                        : [.. current.ProjectRecords, new(Guid.NewGuid().ToString(), key, Slug(key, current.ProjectRecords), opened)]
                 };
             case "project-close":
                 if (!current.Projects.Contains(key)) return current;

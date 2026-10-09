@@ -37,7 +37,17 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
   cancellable. Paths are workspace-relative.
 - `WatchFilesAsync` subscribes to the current workspace and yields bounded `FileChange` invalidations.
   Its first frame requests a rescan; later frames name paths or request a full rescan when paths are
-  unavailable or capped. Cancelling the subscription releases its watchers.
+  unavailable or capped. Cancelling the subscription releases its share of the workspace's watchers.
+  `PrewarmWorkspaceAsync` is a hint to start them for a workspace about to be opened.
+- `InspectProjectPathAsync` classifies a host path as `ProjectPathKind` (`Repository`, `Initable`,
+  `Missing`, `NotDirectory`) without opening it. It and `OpenProjectAsync` take `~` as the host user's
+  home and refuse a relative path.
+- `GetSpecGraphAsync` returns `SpecGraph`: the specs, one `SpecEdge` per link (kinds in `SpecLinks`) and
+  the validation lists (dangling links, duplicate ids, parent cycles). `HasDurableSpecsAsync` answers
+  whether the workspace holds any spec that is not a task spec, and never fails. `SpecDocument.Status`
+  carries the frontmatter status.
+- A read of a byte-only file returns a `FileDocument` with empty text and `Info.IsText` false; a picture
+  the client draws arrives in `ImageData`.
 - `RevertChangeAsync` and `UndoChangeAsync` write the worktree on the client's behalf: the client sends
   a scope, a `RevertTarget` (a file, or a line span per side) and the SHA-256 of each side it saw
   (`ChangeExpectation`), never bytes. They return a `ChangeReceipt`, which is also the undo token, or
@@ -50,7 +60,8 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
 - `IHostStateService` is the shared state of one host. `GetStateAsync` reads, `ChangeAsync` applies a
   batch atomically and returns the published snapshot, and `WatchAsync` yields the current snapshot and
   then every later one. Snapshots are complete and carry a `Revision`, so a client that missed events
-  rehydrates from the next.
+  rehydrates from the next. `HostState.ProjectRecords` holds one `ProjectRecord` (id, path, slug, last
+  opened) per open or recent project.
 - `ITerminalService` owns sessions; `ITerminalSession` is one client's attachment. The client names the
   session and identifies itself; `Offset = -1` asks for a fresh replay, a non-negative offset resumes.
   Disposing an attachment detaches without ending the shell; `CloseAsync` is the only way a client ends
@@ -78,5 +89,6 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
   workspace (`ALREADY_OPEN`).
 - Workspace records with stable ids, kinds and lifecycle events, a workspace diff-base setter, a
   lifecycle-notification stream, and a terminal catalog with reservation separate from attachment.
-- Content classification (media type, hash) on file reads and a byte read of a path at one commit; diff
-  sides already carry hashes.
+- A partial interface keeps `IProjectServices` one contract across files; the operations added since
+  `HostProtocol.Current` was last raised (path inspection, pre-warm, spec graph, durable-spec query) have
+  no version constant yet, so a client cannot gate them against an older host.

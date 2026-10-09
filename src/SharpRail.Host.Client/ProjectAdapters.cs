@@ -11,7 +11,7 @@ using SharpRail.Host.Protocol;
 
 namespace SharpRail.Host.Client;
 
-public sealed class LocalProjectAdapter(IProjectServices host) : IProjectServices
+public sealed partial class LocalProjectAdapter(IProjectServices host) : IProjectServices
 {
     public IAsyncEnumerable<FileChange> WatchFilesAsync(CancellationToken cancellationToken = default) => host.WatchFilesAsync(cancellationToken);
     public ValueTask SaveFileAsync(FileSaveRequest request, CancellationToken cancellationToken = default) => host.SaveFileAsync(request, cancellationToken);
@@ -35,7 +35,7 @@ public sealed class LocalProjectAdapter(IProjectServices host) : IProjectService
     public ValueTask OpenInEditorAsync(string editorId, string worktreePath, CancellationToken cancellationToken = default) => host.OpenInEditorAsync(editorId, worktreePath, cancellationToken);
 }
 
-public sealed class RemoteProjectAdapter : IProjectServices, IDisposable
+public sealed partial class RemoteProjectAdapter : IProjectServices, IDisposable
 {
     private readonly GrpcChannel channel;
     private readonly IProjectRpc service;
@@ -101,7 +101,7 @@ public sealed class RemoteProjectAdapter : IProjectServices, IDisposable
     public async ValueTask<IReadOnlyList<SpecDocument>> ListSpecsAsync(CancellationToken cancellationToken = default)
     {
         var reply = await service.ListSpecsAsync(new(), Context(cancellationToken));
-        return reply.Specs.Select(spec => new SpecDocument(spec.Id, spec.Title, spec.Path, spec.Parent, spec.Type)).ToArray();
+        return reply.Specs.Select(Map).ToArray();
     }
 
     public async ValueTask<string> GetDiffAsync(string path, string scope, string comparisonBranch = "", CancellationToken cancellationToken = default)

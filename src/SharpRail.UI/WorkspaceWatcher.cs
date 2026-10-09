@@ -54,7 +54,7 @@ public sealed partial class WorkbenchWindow
     {
         WatchRefreshes++;
         if (change.Rescan || change.Paths.Any(path => path.EndsWith(".md", StringComparison.OrdinalIgnoreCase)))
-        { toolContent.Remove("specs"); surface.RefreshContents("specs"); }
+        { RefreshSpecs(); _ = ProbeSpecsAsync(); }
         await Task.WhenAll(
             ReloadOpenDocumentsAsync(request, change.Paths, change.Rescan),
             refreshGit ? RefreshGitAsync(request) : Task.CompletedTask,
@@ -103,7 +103,10 @@ public sealed partial class WorkbenchWindow
             catch (OperationCanceledException) { return; }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException) { continue; }
             catch (Grpc.Core.RpcException error) when (error.StatusCode == Grpc.Core.StatusCode.FailedPrecondition) { continue; }
-            if (request != projectRequest || !LiveDocuments().Contains(key) || file.Text == current.Text && file.ImageData is null) continue;
+            var same = file.Text == current.Text && file.ImageData is null && file.Info?.IsText == current.Info?.IsText;
+            if (request != projectRequest || !LiveDocuments().Contains(key) || same) continue;
+            // Bytes that stopped being text leave the editor for the notice instead of loading as an empty file.
+            if (file.Info is { IsText: false }) { documents[key] = file; DropDocumentContent(key); refreshed = true; continue; }
             if (documentContent.GetValueOrDefault(key) is Editor.CodeDocumentView view)
             {
                 if (view.Reload(file.Text)) documents[key] = file;

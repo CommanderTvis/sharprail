@@ -56,6 +56,15 @@ public sealed class WorkspaceListMessage
 }
 
 [ProtoContract]
+public sealed class ProjectRecordMessage
+{
+    [ProtoMember(1)] public string Id { get; set; } = "";
+    [ProtoMember(2)] public string Path { get; set; } = "";
+    [ProtoMember(3)] public string Slug { get; set; } = "";
+    [ProtoMember(4)] public long LastOpened { get; set; }
+}
+
+[ProtoContract]
 public sealed class StateReply
 {
     [ProtoMember(1)] public long Revision { get; set; }
@@ -65,6 +74,7 @@ public sealed class StateReply
     [ProtoMember(5)] public List<string> RecentProjects { get; set; } = [];
     [ProtoMember(6)] public List<LabelMessage> Labels { get; set; } = [];
     [ProtoMember(7)] public List<WorkspaceListMessage> Workspaces { get; set; } = [];
+    [ProtoMember(8)] public List<ProjectRecordMessage> ProjectRecords { get; set; } = [];
 }
 
 [ProtoContract]

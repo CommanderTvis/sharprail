@@ -95,11 +95,31 @@ internal static class Program
         {
             StateChecks.Run(root).GetAwaiter().GetResult();
             StateStoreChecks.Run(root).GetAwaiter().GetResult();
+            ProjectPathChecks.Run(root).GetAwaiter().GetResult();
+            return;
+        }
+        if (args.SequenceEqual(["--specs-panel"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            E2E.SpecsPanelE2E.Run(Path.Combine(root, "upstream-e2e"));
+            E2E.WelcomeE2E.Run(Path.Combine(root, "upstream-e2e"));
+            return;
+        }
+        if (args.SequenceEqual(["--watchers"]))
+        {
+            WatchChecks.Run(root).GetAwaiter().GetResult();
+            return;
+        }
+        if (args.SequenceEqual(["--specs"]))
+        {
+            SpecChecks.Run(root).GetAwaiter().GetResult();
             return;
         }
         if (args.SequenceEqual(["--files"]))
         {
             ProjectChecks.Run(root).GetAwaiter().GetResult();
+            WatchChecks.Run(root).GetAwaiter().GetResult();
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             E2E.FilesE2E.Run(Path.Combine(root, "upstream-e2e"));
@@ -144,11 +164,14 @@ internal static class Program
         CheckHosts(root).GetAwaiter().GetResult();
         TerminalHostChecks.Run(root).GetAwaiter().GetResult();
         ProjectChecks.Run(root).GetAwaiter().GetResult();
+        WatchChecks.Run(root).GetAwaiter().GetResult();
         PullRequestChecks.Run(root).GetAwaiter().GetResult();
         ChangeChecks.Run(root).GetAwaiter().GetResult();
         ContentChecks.Run(root).GetAwaiter().GetResult();
         StateChecks.Run(root).GetAwaiter().GetResult();
         StateStoreChecks.Run(root).GetAwaiter().GetResult();
+        ProjectPathChecks.Run(root).GetAwaiter().GetResult();
+        SpecChecks.Run(root).GetAwaiter().GetResult();
         FileSavingChecks.Run(root).GetAwaiter().GetResult();
         LayoutChecks.Run();
         QuitConfirmationChecks.Run();

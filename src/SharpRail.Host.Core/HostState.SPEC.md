@@ -54,6 +54,21 @@ presets belong to the UI.
 - A project is identified by its absolute root path. `project-open` puts an unknown project first and
   removes it from recents; `project-close` moves it to the front of recents (at most 10) without touching
   the repository, its worktrees or their terminals; `project-forget` drops it from the open list.
+- Every open or recent project has one `ProjectRecord`: a UUID, a readable slug (lower-case name with runs
+  of other characters as one dash, `-2`, `-3`… on a clash) and `lastOpened` in Unix milliseconds. Opening
+  mints the record or advances `lastOpened`; closing keeps it, so identity survives close and reopen, and
+  it is dropped only when the project leaves both lists. A state file without records gets them minted and
+  written on load. The open list keeps newest-first order because an opened project goes to the front.
+- A client path is resolved on the host (`ProjectPaths.Resolve`, used by `OpenProjectAsync` and
+  `InspectProjectPathAsync`): `~` and `~/…` are the host user's home, anything else must be absolute, and
+  a relative path is refused rather than resolved against the host's working directory.
+  `InspectProjectPathAsync` classifies the folder before a client acts: `Repository` (inside a working
+  tree), `Initable` (a plain folder), `Missing` or `NotDirectory`. The picker flow refuses the last two
+  before opening anything and offers Initialize for the second.
+- `project-open` of a folder that is a linked worktree of an open project is refused with a message that
+  starts `ALREADY_OPEN: `, read from the published workspace lists and the folder's `.git` file without
+  running Git. The code travels in the message until project-open failures are typed; a worktree whose
+  project is not open may still be opened on its own.
 - Opening a plain folder offers Initialize: `git init -b main`, `git add -A` and an allow-empty initial
   commit, supplying a fallback identity only for a field Git has none configured for. A failed commit
   removes the new `.git` again, and a folder that is already a repository is refused.
@@ -89,11 +104,8 @@ presets belong to the UI.
 
 ## Not yet ported
 
-- Resolving `~` and rejecting relative project paths against the host filesystem, and a path inspection
-  that classifies a folder as repository, initializable, missing or not a directory before acting.
-- Distinct project-open refusals for a non-repository (`NOT_GIT`) and a canonical root already held as
-  another workspace's worktree (`ALREADY_OPEN`), preserved across local and remote adapters. Opening
-  currently accepts plain folders and does not check workspace ownership.
-- Stable project ids, readable slugs and `lastOpened` ordering that preserve identity across close and
-  reopen.
+- A `NOT_GIT` refusal of a non-repository. SharpRail opens a plain folder as a workspace on purpose (the
+  startup root, and Git failure never blocks opening files) and offers Initialize afterwards, so refusing it
+  needs the product decision upstream made; inspection already gives a client the classification. The
+  `ALREADY_OPEN` code is carried in the message, not yet as a typed failure across adapters.
 - Host-persisted terminal catalogs.

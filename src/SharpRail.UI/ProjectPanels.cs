@@ -56,11 +56,18 @@ public sealed partial class WorkbenchWindow
     {
         try
         {
+            var picker = projectPicker;
+            var kind = await host.InspectProjectPathAsync(path, lifetime.Token);
+            if (picker != projectPicker) return;
+            if (kind is ProjectPathKind.Missing or ProjectPathKind.NotDirectory)
+            {
+                Report(new IOException((kind == ProjectPathKind.Missing ? "No such folder: " : "Not a folder: ") + path));
+                return;
+            }
             await OpenProjectHomeAsync(path);
             if (!WorkspaceMounted) return;
             var request = projectRequest;
-            var snapshot = await host.GetGitAsync("", lifetime.Token);
-            if (request != projectRequest || snapshot.IsRepository) return;
+            if (kind != ProjectPathKind.Initable) return;
             if (!await Dialogs.Confirm(this, "Initialise a Git repository?",
                 $"{path} is not a Git repository. SharpRail can run git init and record an empty first commit so worktrees work.", "Initialise repository")) return;
             await host.ApplyGitActionAsync(new("init"), lifetime.Token);
@@ -222,9 +229,9 @@ public sealed partial class WorkbenchWindow
         kebab.Click += (_, _) => menu.Open(button);
         var item = new Grid { Name = "WorkspaceItem", Tag = worktree.Path, ColumnDefinitions = new ColumnDefinitions("*,Auto"), Background = Avalonia.Media.Brushes.Transparent };
         void Reveal() => kebab.Opacity = item.IsPointerOver || item.IsKeyboardFocusWithin || menu.IsOpen ? 1 : 0;
-        item.PointerEntered += (_, _) => Reveal();
+        item.PointerEntered += (_, _) => { Reveal(); Prewarm(worktree.Path); };
         item.PointerExited += (_, _) => Reveal();
-        item.GotFocus += (_, _) => Reveal();
+        item.GotFocus += (_, _) => { Reveal(); Prewarm(worktree.Path); };
         item.LostFocus += (_, _) => Reveal();
         menu.Opened += (_, _) => Reveal();
         menu.Closed += (_, _) => Reveal();
@@ -234,6 +241,18 @@ public sealed partial class WorkbenchWindow
         Ui.Place(item, kebab, 0, 1);
         return item;
     }
+
+    /// <summary>Pointing at or focusing another workspace asks the host to start watching it before it is opened.</summary>
+    private async void Prewarm(string path)
+    {
+        if (path == workspaceRoot || !prewarmed.Add(path)) return;
+        try { await Task.Run(async () => await host.PrewarmWorkspaceAsync(path, lifetime.Token), lifetime.Token); }
+        // Only a hint: the subscription made on opening starts the watcher itself.
+        catch (Exception error) when (error is OperationCanceledException or IOException or UnauthorizedAccessException or ArgumentException or Grpc.Core.RpcException)
+        { prewarmed.Remove(path); }
+    }
+
+    private readonly HashSet<string> prewarmed = [];
 
     private Control FilesPanel()
     {
@@ -316,21 +335,40 @@ public sealed partial class WorkbenchWindow
         return ReferenceEquals(source is TreeViewItem ? source : source.GetVisualAncestors().OfType<TreeViewItem>().FirstOrDefault(), node);
     }
 
+    private TreeView? specsTree;
+    private StackPanel? specsFailure;
+
     private Control SpecsPanel()
     {
+        var panel = new Grid { Name = "SpecsPanel", RowDefinitions = new RowDefinitions("Auto,*") };
         var tree = new TreeView { Name = "SpecsTree", Background = Ui.Sidebar, Margin = new Thickness(4, 12, 12, 12) };
         ScrollViewer.SetHorizontalScrollBarVisibility(tree, ScrollBarVisibility.Disabled);
-        if (WorkspaceMounted) _ = PopulateSpecsAsync(tree);
-        return tree;
+        var message = Ui.Text("", Ui.Hint, 12);
+        message.Name = "SpecsError"; message.TextWrapping = Avalonia.Media.TextWrapping.Wrap;
+        var failure = new StackPanel { Name = "SpecsFailure", Spacing = 4, Margin = new Thickness(12, 8, 12, 0), IsVisible = false, Children = { message } };
+        var retry = Ui.Button("Retry", () => _ = PopulateSpecsAsync(tree, failure));
+        retry.Name = "SpecsRetry"; retry.HorizontalAlignment = HorizontalAlignment.Left;
+        failure.Children.Add(retry);
+        Ui.Place(panel, failure); Ui.Place(panel, tree, 1);
+        specsTree = tree; specsFailure = failure;
+        if (WorkspaceMounted) _ = PopulateSpecsAsync(tree, failure);
+        return panel;
     }
 
-    private async Task PopulateSpecsAsync(TreeView tree)
+    /// <summary>Re-reads the mounted Specs panel in place; a panel that is not built yet reads when it is.</summary>
+    private void RefreshSpecs()
+    {
+        if (toolContent.ContainsKey("specs") && specsTree is { } tree && specsFailure is { } failure) _ = PopulateSpecsAsync(tree, failure);
+    }
+
+    private async Task PopulateSpecsAsync(TreeView tree, StackPanel failure)
     {
         var request = projectRequest;
         try
         {
             var specs = await Task.Run(async () => await host.ListSpecsAsync(lifetime.Token), lifetime.Token);
             if (request != projectRequest) return;
+            var nodes = new List<TreeViewItem>();
             var byParent = specs.GroupBy(spec => spec.Parent).ToDictionary(group => group.Key, group => group.ToArray());
             var ids = specs.Select(spec => spec.Id).ToHashSet();
             var roots = specs.Where(spec => spec.Parent.Length == 0 || !ids.Contains(spec.Parent)).ToArray();
@@ -381,11 +419,21 @@ public sealed partial class WorkbenchWindow
                     foreach (var child in children.Where(child => !placed.Contains(child.Id))) node.Items.Add(Build(child, depth + 1));
                 return node;
             }
-            foreach (var spec in roots) tree.Items.Add(Build(spec, 0));
-            foreach (var spec in specs.Where(spec => !placed.Contains(spec.Id))) tree.Items.Add(Build(spec, 0));
-            if (tree.Items.Count == 0) tree.Items.Add(new TreeViewItem { Header = Ui.Text("No specifications in this project", Ui.Hint, 12) });
+            foreach (var spec in roots) nodes.Add(Build(spec, 0));
+            foreach (var spec in specs.Where(spec => !placed.Contains(spec.Id))) nodes.Add(Build(spec, 0));
+            if (nodes.Count == 0) nodes.Add(new TreeViewItem { Header = Ui.Text("No specifications in this project", Ui.Hint, 12) });
+            tree.Items.Clear();
+            foreach (var node in nodes) tree.Items.Add(node);
+            failure.IsVisible = false;
         }
-        catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
+        catch (Exception error) when (error is not OperationCanceledException)
+        {
+            // The tree keeps what it last showed; the hint says it may be stale and offers the read again.
+            if (request != projectRequest) return;
+            ((TextBlock)failure.Children[0]).Text = "Specs could not be loaded: " + error.Message;
+            failure.IsVisible = true;
+            Console.Error.WriteLine("Specs could not be loaded: " + error.Message);
+        }
     }
 
     private static Control TreeRow(string icon, string title, bool primary = false)

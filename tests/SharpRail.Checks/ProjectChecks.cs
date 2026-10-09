@@ -52,13 +52,33 @@ internal static class ProjectChecks
             Require((await remote.ListFilesAsync("")).SequenceEqual(files), "Remote files differ.");
             await CheckWatching(local, remote, fixture);
             Require(await remote.ReadFileAsync("README.md") == markdown, "Remote text differs.");
-            // Like the reference, valid UTF-8 opens as text even with NUL control characters; only invalid UTF-8 is binary.
             await File.WriteAllTextAsync(Path.Combine(fixture, "controls.txt"), "before\0after\n");
-            Require((await local.ReadFileAsync("controls.txt")).Text == "before\0after\n" && (await remote.ReadFileAsync("controls.txt")).Text == "before\0after\n",
-                "A UTF-8 file with NUL characters must open as text.");
             await File.WriteAllBytesAsync(Path.Combine(fixture, "blob.bin"), [0xFF, 0xFE, 0x00, 0x01]);
-            try { await local.ReadFileAsync("blob.bin"); throw new InvalidOperationException("Invalid UTF-8 opened as text."); }
-            catch (IOException error) { Require(error.Message == "Binary files cannot be previewed.", "Invalid UTF-8 must be reported as binary."); }
+            await File.WriteAllTextAsync(Path.Combine(fixture, "bell.txt"), "ring\a\n");
+            // A picture is known by its bytes whatever it is called, and text named like a picture stays text.
+            await File.WriteAllBytesAsync(Path.Combine(fixture, "picture.dat"), [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]);
+            await File.WriteAllTextAsync(Path.Combine(fixture, "notes.png"), "not a picture\n");
+            Directory.CreateDirectory(Path.Combine(fixture, ".git"));
+            await File.WriteAllTextAsync(Path.Combine(fixture, ".git", "config"), "[core]\n");
+            foreach (var (name, host) in new (string, IProjectServices)[] { ("local", local), ("remote", remote) })
+            {
+                foreach (var binary in new[] { "controls.txt", "blob.bin" })
+                    Require(await host.ReadFileAsync(binary) is { Text: "", ImageData: null, Info: { IsText: false, Sha256.Length: 64 } },
+                        $"The {name} host must answer a byte-only file with empty text and its metadata: {binary}");
+                Require(await host.ReadFileAsync("bell.txt") is { Text: "ring\a\n", Info.IsText: true }, $"The {name} host must read control characters other than NUL as text.");
+                Require(await host.ReadFileAsync("picture.dat") is { Text: "", ImageData.Length: 12, Info.MediaType: "image/png" } &&
+                    await host.ReadFileAsync("notes.png") is { Text: "not a picture\n", ImageData: null }, $"The {name} host must decide pictures by their bytes.");
+                foreach (var act in new Func<Task>[]
+                {
+                    async () => await host.ReadFileAsync(".git/config"), async () => await host.ListFilesAsync(".git"),
+                    async () => await host.SaveFileAsync(new(fixture, ".git/config", "[core]\n", "[user]\n")), async () => await host.ReadContentBytesAsync(".GIT/config", null)
+                })
+                    try { await act(); throw new InvalidOperationException($"The {name} host reached into Git's own directory."); }
+                    catch (Exception error) when (error is UnauthorizedAccessException or Grpc.Core.RpcException && error.Message.Contains("Git's own directory", StringComparison.Ordinal)) { }
+                try { await host.ReadFileAsync("absent/leaf.txt"); throw new InvalidOperationException("A missing file was read."); }
+                catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException or Grpc.Core.RpcException && !error.Message.Contains("outside", StringComparison.Ordinal)) { }
+            }
+            Directory.Delete(Path.Combine(fixture, ".git"), recursive: true);
             Require((await remote.ListSpecsAsync()).SequenceEqual(await local.ListSpecsAsync()), "Remote specs differ.");
             var snapshot = await remote.GetGitAsync();
             Require(!snapshot.IsRepository, "Non-git directory detected as repository.");
