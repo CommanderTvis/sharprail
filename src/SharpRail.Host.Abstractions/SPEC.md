@@ -95,12 +95,16 @@ The public top-level types of the assembly, held to it in both directions by the
 (a type added here is added to this list in the same change):
 
 `BranchCatalog`, `ChangeException`, `ChangeExpectation`, `ChangeFailure`, `ChangeIdentity`,
-`ChangeReceipt`, `ContentBytes`, `ContentMetadata`, `DiffSides`, `EditorInfo`, `FileChange`,
-`FileDocument`, `FileEntry`, `FileLimits`, `FileSaveRequest`, `GitAction`, `GitChange`, `GitCommit`,
-`GitSnapshot`, `HostHandshake`, `HostProtocol`, `HostSettings`, `HostState`, `HostStateChange`,
-`IHostStateService`, `IProjectServices`, `ITerminalService`, `ITerminalSession`, `IWorkspaceHost`,
-`LayoutPreset`, `LineSpan`, `OpenReview`, `PrDraft`, `PrRequest`, `PrResult`, `ProjectFile`,
-`RemoteBranch`, `RevertTarget`, `SpecDocument`, `TerminalAttachRequest`, `WorkspaceInfo`,
+`ChangeReceipt`, `ContentBytes`, `ContentMetadata`, `DiffSides`, `DiffStats`, `EditorInfo`,
+`ExistingWorktree`, `FileChange`, `FileDocument`, `FileEntry`, `FileLimits`, `FileSaveRequest`,
+`GitAction`, `GitChange`, `GitCommit`, `GitSnapshot`, `HostErrorCode`, `HostException`,
+`HostHandshake`, `HostProtocol`, `HostSettings`, `HostState`, `HostStateChange`,
+`IHostStateService`, `IProjectServices`, `ITerminalCatalogService`, `ITerminalService`,
+`ITerminalSession`, `IWorkspaceHost`, `LayoutPreset`, `LifecycleEvent`, `LineSpan`, `OpenReview`,
+`PrDraft`, `PrRequest`, `PrResult`, `ProjectFile`, `ProjectPathKind`, `ProjectRecord`,
+`RemoteBranch`, `RevertTarget`, `SpecDocument`, `SpecDuplicate`, `SpecEdge`, `SpecGraph`,
+`SpecLinks`, `TerminalAttachRequest`, `TerminalCatalog`, `TerminalGrid`, `TerminalTab`,
+`WorkspaceAction`, `WorkspaceCatalog`, `WorkspaceInfo`, `WorkspaceKinds`, `WorkspaceRecord`,
 `WorktreeInfo`.
 
 ## Invariants
