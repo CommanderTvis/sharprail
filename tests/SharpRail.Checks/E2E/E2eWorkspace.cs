@@ -105,7 +105,7 @@ internal sealed class E2eWorkspace : IDisposable
         var profile = new ProfileStore(profileRoot ?? root + "-profile");
         State = profile.OpenState();
         // As in App.cs: the app's own host runs its plugins in process, from the profile directory's plugins/.
-        var server = loopback = new LoopbackServer(null);
+        var server = loopback = new LoopbackServer(null, State);
         pluginRuntime = new PluginRuntime(new() { StateDirectory = profile.DirectoryPath, State = State, PublicBaseUrl = () => server.BaseUrl });
         loopback.Plugins = pluginRuntime;
         pluginRuntime.Start();

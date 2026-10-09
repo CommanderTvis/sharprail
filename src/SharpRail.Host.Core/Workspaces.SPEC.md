@@ -37,6 +37,18 @@ SharpRail created, may be removed by it.
 
 ## Behavior
 
+- The host exposes `workspace_create` over each authenticated terminal's MCP endpoint, independently
+  of enabled plugins, for both local and remote hosts. It accepts a required task description, an
+  optional new branch and an optional base (default: the calling workspace's HEAD). It uses the host's
+  suggested managed path, publishes the worktree catalog and persists the description as the display
+  label. It returns path, branch and description without switching the terminal's workspace.
+  An omitted base or an explicit `HEAD` is resolved to a commit in the calling checkout before creation
+  is routed through the main worktree; a non-Default workspace may have a different HEAD.
+- Codex and Claude Code prompt appendixes direct agents to this tool and encourage non-forced removal
+  of their own completed workspaces once work is preserved; other users' workspaces, dirty checkouts
+  and active agents must be left alone. Agents reuse a workspace the user prepared for the task and
+  create another only for additional isolation or parallel work. User-edited prompt appendixes remain user-owned.
+
 - Workspace catalogs and Git snapshots omit checkout directories that no longer exist, even while Git
   retains their worktree metadata. Listing does not prune Git metadata or delete any files.
 - Creating a project makes one new empty folder under an existing parent on the host, without changing

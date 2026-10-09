@@ -57,6 +57,14 @@ internal static class Program
             ProjectChecks.Run(root).GetAwaiter().GetResult();
             return;
         }
+        if (args.SequenceEqual(["--workspace-tools"]))
+        {
+            WorkspaceToolChecks.Run(root).GetAwaiter().GetResult();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            WorkspaceToolChecks.RunUi(root);
+            return;
+        }
         if (args.SequenceEqual(["--editor"]))
         {
             CheckOpenWorld();
@@ -465,6 +473,7 @@ internal static class Program
         Gate.Case("public-surface", () => SurfaceChecks.Run(root));
         Gate.Case("runner", () => RunnerChecks.Run(root));
         Gate.Case("terminal-hosts", () => TerminalHostChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("workspace-tools", () => WorkspaceToolChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("projects", () => ProjectChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("pull-requests", () => PullRequestChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("changes", () => ChangeChecks.Run(root).GetAwaiter().GetResult());
