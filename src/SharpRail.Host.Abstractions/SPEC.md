@@ -4,6 +4,7 @@ type: module-design
 status: active
 title: Host abstractions — the public host surface
 parent: architecture
+tags: [public-surface-checked]
 ---
 
 # Host abstractions — the public host surface
@@ -87,6 +88,20 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
 
 - `IProjectServices.GetDiffStatsAsync` has a default body answering null, so a test double or an older
   implementation simply offers no badge.
+
+## Public surface
+
+The public top-level types of the assembly, held to it in both directions by the conformance checks
+(a type added here is added to this list in the same change):
+
+`BranchCatalog`, `ChangeException`, `ChangeExpectation`, `ChangeFailure`, `ChangeIdentity`,
+`ChangeReceipt`, `ContentBytes`, `ContentMetadata`, `DiffSides`, `EditorInfo`, `FileChange`,
+`FileDocument`, `FileEntry`, `FileLimits`, `FileSaveRequest`, `GitAction`, `GitChange`, `GitCommit`,
+`GitSnapshot`, `HostHandshake`, `HostProtocol`, `HostSettings`, `HostState`, `HostStateChange`,
+`IHostStateService`, `IProjectServices`, `ITerminalService`, `ITerminalSession`, `IWorkspaceHost`,
+`LayoutPreset`, `LineSpan`, `OpenReview`, `PrDraft`, `PrRequest`, `PrResult`, `ProjectFile`,
+`RemoteBranch`, `RevertTarget`, `SpecDocument`, `TerminalAttachRequest`, `WorkspaceInfo`,
+`WorktreeInfo`.
 
 ## Invariants
 

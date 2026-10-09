@@ -30,7 +30,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mode: [full, sync, workspaces, terminals]
+        mode: [sync, workspaces, terminals]
+        include:
+          - { mode: full, shard: 1/3 }
+          - { mode: full, shard: 2/3 }
+          - { mode: full, shard: 3/3 }
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-dotnet@v6
@@ -40,4 +44,6 @@ jobs:
           git config --global user.name CI
           git config --global user.email ci@example.invalid
           git config --global init.defaultBranch main
-      - run: dotnet run --project tests/SharpRail.Checks -c Release ${{ matrix.mode != 'full' && format('-- --{0}', matrix.mode) || '' }}
+      - env:
+          SHARPRAIL_CHECKS_JOB_SHARD: ${{ matrix.shard }}
+        run: dotnet run --project tests/SharpRail.Checks -c Release ${{ matrix.mode != 'full' && format('-- --{0}', matrix.mode) || '' }}

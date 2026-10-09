@@ -21,8 +21,8 @@ internal static class EditorWorkbenchChecks
     { if (!value) throw new InvalidOperationException(message); }
     private static void Pump(Func<bool> done)
     {
-        var deadline = DateTime.UtcNow.AddSeconds(15);
-        while (!done() && DateTime.UtcNow < deadline) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(1); }
+        var deadline = Awake.Now.AddSeconds(15);
+        while (!done() && Awake.Now < deadline) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(1); }
         Dispatcher.UIThread.RunJobs();
         Require(done(), "Editor workbench operation timed out.");
     }

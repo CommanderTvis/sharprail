@@ -24,8 +24,8 @@ internal static class AuxiliaryInputChecks
         var profilePath = root + "-auxiliary-input";
         var window = new WorkbenchWindow(new ProjectServices(root), root, new ProfileStore(profilePath), E2E.E2eTerminals.Plain);
         window.Show(); window.Width = 1600; window.Height = 1040;
-        var deadline = DateTime.UtcNow.AddSeconds(15);
-        while (!window.WorkspaceMounted && DateTime.UtcNow < deadline) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(1); }
+        var deadline = Awake.Now.AddSeconds(15);
+        while (!window.WorkspaceMounted && Awake.Now < deadline) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(1); }
         Require(window.WorkspaceMounted, "Auxiliary resize workspace did not mount.");
         T Find<T>(string name) where T : Control
         {

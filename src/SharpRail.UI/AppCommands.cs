@@ -101,7 +101,7 @@ public sealed class AppCommands
         if (TopLevel.GetTopLevel(window)?.FocusManager?.GetFocusedElement() is Visual focused &&
             focused.FindAncestorOfType<PopupRoot>(true) is { Parent: Popup popup })
         { popup.IsOpen = false; return; }
-        window.Layout.RequestClose();
+        window.RequestClose();
     }
 
     private static bool InTerminal(WorkbenchWindow window) =>

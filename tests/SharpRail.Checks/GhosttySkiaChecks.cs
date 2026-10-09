@@ -33,10 +33,10 @@ internal static class GhosttySkiaChecks
 
     private static void Until(Func<bool> condition, string description)
     {
-        var deadline = DateTime.UtcNow.AddSeconds(20);
+        var deadline = Awake.Now.AddSeconds(20);
         while (!condition())
         {
-            if (DateTime.UtcNow > deadline) throw new InvalidOperationException("Skia terminal condition timed out: " + description);
+            if (Awake.Now > deadline) throw new InvalidOperationException("Skia terminal condition timed out: " + description);
             Pump();
             Thread.Sleep(10);
         }

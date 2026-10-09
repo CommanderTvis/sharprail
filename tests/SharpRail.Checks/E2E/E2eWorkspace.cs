@@ -115,15 +115,16 @@ internal sealed class E2eWorkspace : IDisposable
 
     internal static void Until(Func<bool> condition)
     {
-        var deadline = DateTime.UtcNow.AddSeconds(10);
-        while (!condition() && DateTime.UtcNow < deadline) Pump();
+        // A liveness bound, not an assertion: workspace flows start a dozen Git processes, which a loaded machine stretches past ten seconds.
+        var deadline = Awake.Now.AddSeconds(30);
+        while (!condition() && Awake.Now < deadline) Pump();
         Dispatcher.UIThread.RunJobs(); Require(condition(), "E2E condition timed out.");
     }
 
     internal static void Settle(int milliseconds = 300)
     {
-        var deadline = DateTime.UtcNow.AddMilliseconds(milliseconds);
-        while (DateTime.UtcNow < deadline) Pump();
+        var deadline = Awake.Now.AddMilliseconds(milliseconds);
+        while (Awake.Now < deadline) Pump();
     }
 
     private static void Pump()

@@ -17,6 +17,8 @@ the native Ghostty and Mermaid libraries), `bootstrap.sh` (installs the `global.
 `build-merman.sh` (pinned native library under `.tools`),
 `check-terminal.sh` (the native Ghostty shell/Metal probe), `publish.sh` (R2R
 publish into `artifacts/` and the canonical signed `artifacts/SharpRail.app`), and
+`check-packaged.sh` (runs the check gate from a staged copy of the packaged bundle; the published checks
+add only what the bundle lacks, plus newer framework assemblies the gate itself vets) and
 `benchmark.mjs` with its `window-probe.m` helper (launch timing, only when a
 benchmark is requested).
 
@@ -53,10 +55,9 @@ bundle while the app runs is the caller's responsibility to rule out first.
 The benchmark refuses to run off AC power and measures process-tree memory and
 readiness markers, not synthetic timers; it is never part of the check gate.
 
-## Not yet ported
+## Conformance gates
 
-- A boundary checker that fails when project references or source imports cross the documented
-  dependency direction, including aliases, static imports and re-exports; generated/build output
-  is excluded, and negative fixtures exercise the same scan as the repository gate. Host projects
-  must not reference the UI; Core must not reference Client or Remote.
-- A public-surface check comparing identifier lists declared in enrolled specs against the effective public API of the corresponding assembly.
+The dependency-boundary check and the public-surface check are repository gates rather than product
+behavior, but they need the compiled assemblies and negative fixtures, so they live in the checks executable
+(`-- --conformance`, also in the argument-free gate) and are specified in
+[the checks spec](../tests/SharpRail.Checks/SPEC.md#conformance). No script duplicates them.

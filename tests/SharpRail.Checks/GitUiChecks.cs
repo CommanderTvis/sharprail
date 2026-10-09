@@ -22,8 +22,8 @@ internal static class GitUiChecks
 
     private static void Pump(Func<bool> done)
     {
-        var deadline = DateTime.UtcNow.AddSeconds(15);
-        while (!done() && DateTime.UtcNow < deadline) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(1); }
+        var deadline = Awake.Now.AddSeconds(15);
+        while (!done() && Awake.Now < deadline) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(1); }
         Dispatcher.UIThread.RunJobs(); Require(done(), "Git UI operation timed out.");
     }
 

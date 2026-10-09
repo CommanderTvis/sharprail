@@ -35,8 +35,8 @@ internal static class UiChecks
 
     private static void Pump(Func<bool> complete, string message)
     {
-        var timeout = DateTime.UtcNow.AddSeconds(15);
-        while (!complete() && DateTime.UtcNow < timeout)
+        var timeout = Awake.Now.AddSeconds(15);
+        while (!complete() && Awake.Now < timeout)
         {
             Dispatcher.UIThread.RunJobs();
             Thread.Sleep(1);
@@ -79,62 +79,74 @@ internal static class UiChecks
 
     internal static void RunWorkspaceSuites(string root)
     {
-        E2E.ProjectsE2E.Run(root);
-        E2E.ProjectPickerE2E.Run(root);
-        E2E.NewWorkspaceShortcutE2E.Run(root);
-        E2E.WorkspaceActionsE2E.Run(root);
-        E2E.WelcomeE2E.Run(root);
-        E2E.SpecsPanelE2E.Run(root);
-        E2E.DefaultWorkspaceE2E.Run(root);
-        E2E.WorkspaceLifecycleE2E.Run(root);
-        E2E.ExternalWorkspaceE2E.Run(root);
-        E2E.NewWorkspaceE2E.Run(root);
-        E2E.ReloadNavigationE2E.Run(root);
-        E2E.FilesE2E.Run(root);
-        E2E.ProjectContextE2E.Run(root);
-        E2E.MultiClientE2E.Run(root);
-        E2E.ReconnectE2E.Run(root);
+        Gate.Case("ProjectsE2E", () => E2E.ProjectsE2E.Run(root));
+        Gate.Case("ProjectPickerE2E", () => E2E.ProjectPickerE2E.Run(root));
+        Gate.Case("NewWorkspaceShortcutE2E", () => E2E.NewWorkspaceShortcutE2E.Run(root));
+        Gate.Case("WorkspaceActionsE2E", () => E2E.WorkspaceActionsE2E.Run(root));
+        Gate.Case("WelcomeE2E", () => E2E.WelcomeE2E.Run(root));
+        Gate.Case("SpecsPanelE2E", () => E2E.SpecsPanelE2E.Run(root));
+        Gate.Case("DefaultWorkspaceE2E", () => E2E.DefaultWorkspaceE2E.Run(root));
+        Gate.Case("WorkspaceLifecycleE2E", () => E2E.WorkspaceLifecycleE2E.Run(root));
+        Gate.Case("ExternalWorkspaceE2E", () => E2E.ExternalWorkspaceE2E.Run(root));
+        Gate.Case("NewWorkspaceE2E", () => E2E.NewWorkspaceE2E.Run(root));
+        Gate.Case("ReloadNavigationE2E", () => E2E.ReloadNavigationE2E.Run(root));
+        Gate.Case("FilesE2E", () => E2E.FilesE2E.Run(root));
+        Gate.Case("ProjectContextE2E", () => E2E.ProjectContextE2E.Run(root));
+        Gate.Case("MultiClientE2E", () => E2E.MultiClientE2E.Run(root));
+        Gate.Case("ReconnectE2E", () => E2E.ReconnectE2E.Run(root));
     }
 
     public static void Run(string root)
     {
         AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
         SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
-        EditorChecks.Run();
-        EditorTextChecks.Run();
-        EditorWorkbenchChecks.Run(root);
+        Gate.Case("EditorChecks", () => EditorChecks.Run());
+        Gate.Case("EditorTextChecks", () => EditorTextChecks.Run());
+        Gate.Case("EditorWorkbenchChecks", () => EditorWorkbenchChecks.Run(root));
         foreach (var weight in new[] { Ui.InterfaceWeight, FontWeight.Normal, FontWeight.Medium, FontWeight.SemiBold })
             Require(FontManager.Current.TryGetGlyphTypeface(new Typeface(Ui.InterfaceFont, weight: weight), out var face) && face.Weight == weight,
                 $"Bundled Geist face {weight} fell back to a different weight.");
         var store = new ProfileStore(Path.Combine(root, ".profile"));
         var host = new LocalProjectAdapter(new ProjectServices(root));
-        SelectionChecks.Run(host);
-        E2E.TerminalChromeChecks.Run(Path.Combine(root, "upstream-e2e"));
-        E2E.LayoutSettingsE2E.Run(Path.Combine(root, "upstream-e2e"));
-        E2E.ThemeE2E.Run(Path.Combine(root, "upstream-e2e"));
-        E2E.TopbarChromeE2E.Run(Path.Combine(root, "upstream-e2e"));
-        ShellChecks.Run(Path.Combine(root, "upstream-e2e"));
-        E2E.ChangesE2E.Run(Path.Combine(root, "upstream-e2e"));
-        E2E.ChangesScopeE2E.Run(Path.Combine(root, "upstream-e2e"));
-        E2E.ChangesDiffE2E.Run(Path.Combine(root, "upstream-e2e"));
-        E2E.RenderedDiffE2E.Run(Path.Combine(root, "upstream-e2e"));
-        ChangeActionChecks.Run(Path.Combine(root, "change-actions"));
-        ReviewChecks.Run(Path.Combine(root, "review"));
-        E2E.LiveRefreshE2E.Run(Path.Combine(root, "upstream-e2e"));
-        E2E.WorkspaceTabsE2E.Run(Path.Combine(root, "upstream-e2e"));
+        Gate.Case("SelectionChecks", () => SelectionChecks.Run(host));
+        Gate.Case("TerminalChromeChecks", () => E2E.TerminalChromeChecks.Run(Path.Combine(root, "upstream-e2e")));
+        Gate.Case("LayoutSettingsE2E", () => E2E.LayoutSettingsE2E.Run(Path.Combine(root, "upstream-e2e")));
+        Gate.Case("ThemeE2E", () => E2E.ThemeE2E.Run(Path.Combine(root, "upstream-e2e")));
+        Gate.Case("TopbarChromeE2E", () => E2E.TopbarChromeE2E.Run(Path.Combine(root, "upstream-e2e")));
+        Gate.Case("ShellChecks", () => ShellChecks.Run(Path.Combine(root, "upstream-e2e")));
+        Gate.Case("ChangesE2E", () => E2E.ChangesE2E.Run(Path.Combine(root, "upstream-e2e")));
+        Gate.Case("ChangesScopeE2E", () => E2E.ChangesScopeE2E.Run(Path.Combine(root, "upstream-e2e")));
+        Gate.Case("ChangesDiffE2E", () => E2E.ChangesDiffE2E.Run(Path.Combine(root, "upstream-e2e")));
+        Gate.Case("RenderedDiffE2E", () => E2E.RenderedDiffE2E.Run(Path.Combine(root, "upstream-e2e")));
+        Gate.Case("ChangeActionChecks", () => ChangeActionChecks.Run(Path.Combine(root, "change-actions")));
+        Gate.Case("ReviewChecks", () => ReviewChecks.Run(Path.Combine(root, "review")));
+        Gate.Case("LiveRefreshE2E", () => E2E.LiveRefreshE2E.Run(Path.Combine(root, "upstream-e2e")));
+        Gate.Case("WorkspaceTabsE2E", () => E2E.WorkspaceTabsE2E.Run(Path.Combine(root, "upstream-e2e")));
         RunWorkspaceSuites(Path.Combine(root, "upstream-e2e"));
-        E2E.SettingsGitHubE2E.Run(Path.Combine(root, "upstream-e2e"));
-        E2E.LineWidthE2E.Run(Path.Combine(root, "upstream-e2e"));
-        E2E.TerminalRemountE2E.Run(Path.Combine(root, "upstream-e2e"));
-        E2E.TerminalsE2E.Run(Path.Combine(root, "upstream-e2e"));
-        E2E.BottomPanelE2E.Run(Path.Combine(root, "upstream-e2e"));
-        GhosttySkiaChecks.Run(root);
-        E2E.PreviewTabsE2E.Run(Path.Combine(root, "upstream-e2e"));
-        E2E.MarkdownLinksE2E.Run(Path.Combine(root, "upstream-e2e"));
-        E2E.MarkdownAlertsE2E.Run(Path.Combine(root, "upstream-e2e"));
-        E2E.MarkdownMermaidE2E.Run(Path.Combine(root, "upstream-e2e"));
-        E2E.EditorE2E.Run(Path.Combine(root, "upstream-e2e"));
-        E2E.LayoutE2E.Run(Path.Combine(root, "upstream-e2e"));
+        Gate.Case("SettingsGitHubE2E", () => E2E.SettingsGitHubE2E.Run(Path.Combine(root, "upstream-e2e")));
+        Gate.Case("LineWidthE2E", () => E2E.LineWidthE2E.Run(Path.Combine(root, "upstream-e2e")));
+        Gate.Case("TerminalRemountE2E", () => E2E.TerminalRemountE2E.Run(Path.Combine(root, "upstream-e2e")));
+        Gate.Case("TerminalsE2E", () => E2E.TerminalsE2E.Run(Path.Combine(root, "upstream-e2e")));
+        Gate.Case("BottomPanelE2E", () => E2E.BottomPanelE2E.Run(Path.Combine(root, "upstream-e2e")));
+        Gate.Case("GhosttySkiaChecks", () => GhosttySkiaChecks.Run(root));
+        Gate.Case("PreviewTabsE2E", () => E2E.PreviewTabsE2E.Run(Path.Combine(root, "upstream-e2e")));
+        Gate.Case("MarkdownLinksE2E", () => E2E.MarkdownLinksE2E.Run(Path.Combine(root, "upstream-e2e")));
+        Gate.Case("MarkdownAlertsE2E", () => E2E.MarkdownAlertsE2E.Run(Path.Combine(root, "upstream-e2e")));
+        Gate.Case("MarkdownMermaidE2E", () => E2E.MarkdownMermaidE2E.Run(Path.Combine(root, "upstream-e2e")));
+        Gate.Case("EditorE2E", () => E2E.EditorE2E.Run(Path.Combine(root, "upstream-e2e")));
+        Gate.Case("LayoutE2E", () => E2E.LayoutE2E.Run(Path.Combine(root, "upstream-e2e")));
+        Gate.Case("workbench", () => Workbench(root, store, host));
+        Gate.Case("NavigationChecks", () => NavigationChecks.Run(root));
+        Gate.Case("StartupChecks", () => StartupChecks.Run(root));
+        Gate.Case("DockInputChecks", () => DockInputChecks.Run(root));
+        Gate.Case("AppCommandChecks", () => AppCommandChecks.Run(root));
+        Gate.Case("AuxiliaryInputChecks", () => AuxiliaryInputChecks.Run(root));
+        Gate.Case("GitUiChecks", () => GitUiChecks.Run(root + "-git"));
+        Console.WriteLine("PASS tabs, Markdown, pointer drag/cancel/drop, settings persistence, project and frame restoration");
+    }
+
+    private static void Workbench(string root, ProfileStore store, LocalProjectAdapter host)
+    {
         using (var frontmatterPreview = new MarkdownPreview("---\nid: private-metadata\ntitle: Internal title\n---\n\n# Visible heading\n\nVisible paragraph.",
             "metadata.md", host, store.Data.Preferences, (_, _) => { }))
         {
@@ -500,13 +512,6 @@ internal static class UiChecks
         Require(saveError.IsVisible && saveError.Text?.Contains("could not be saved", StringComparison.Ordinal) == true,
             "Profile save failure was silently hidden.");
         unsaved.Close();
-        NavigationChecks.Run(root);
-        StartupChecks.Run(root);
-        DockInputChecks.Run(root);
-        AppCommandChecks.Run(root);
-        AuxiliaryInputChecks.Run(root);
-        GitUiChecks.Run(root + "-git");
-        Console.WriteLine("PASS tabs, Markdown, pointer drag/cancel/drop, settings persistence, project and frame restoration");
     }
 
     private static void Capture(Window window, string path)

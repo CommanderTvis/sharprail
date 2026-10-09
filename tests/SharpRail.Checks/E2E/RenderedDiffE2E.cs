@@ -136,8 +136,8 @@ internal static class RenderedDiffE2E
         release.Set();
 
         var longest = TimeSpan.Zero;
-        var deadline = DateTime.UtcNow.AddSeconds(60);
-        while (!Marked(app, "ins").Contains("EDITED", StringComparison.Ordinal) && DateTime.UtcNow < deadline)
+        var deadline = Awake.Now.AddSeconds(60);
+        while (!Marked(app, "ins").Contains("EDITED", StringComparison.Ordinal) && Awake.Now < deadline)
         {
             var turn = Stopwatch.StartNew();
             Dispatcher.UIThread.RunJobs();

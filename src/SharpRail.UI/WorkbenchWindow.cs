@@ -43,6 +43,7 @@ public sealed partial class WorkbenchWindow : Window
     private readonly TextBlock status;
     private readonly TextBlock errorText;
     private readonly DockSurface surface;
+    internal void RequestClose() => surface.RequestClose();
     private readonly Grid root;
     private long projectRequest;
     private string projectRoot = "";

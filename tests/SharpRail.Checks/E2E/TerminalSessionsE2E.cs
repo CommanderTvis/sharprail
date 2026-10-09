@@ -334,8 +334,8 @@ internal static class TerminalSessionsE2E
 
         faults.Delay = TimeSpan.FromSeconds(4);
         a.Click(TakeBack(view));
-        var deadline = DateTime.UtcNow.AddSeconds(20);
-        while (!view.IsExited && DateTime.UtcNow < deadline) Settle(100);
+        var deadline = Awake.Now.AddSeconds(20);
+        while (!view.IsExited && Awake.Now < deadline) Settle(100);
         Require(view.IsExited && !view.IsDetached && !view.IsFailed, "A shell that dies during a reclaim must be presented as exited.");
         Console.WriteLine("PASS upstream terminals.spec.ts: a shell that dies during a reclaim is not presented as alive");
     }

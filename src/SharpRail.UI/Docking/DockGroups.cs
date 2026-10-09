@@ -554,6 +554,15 @@ public sealed partial class DockSurface
         FocusGroup(id);
     }
 
+    /// <summary>The window's close command. A tab closed while a tab button holds keyboard focus keeps focus on its group, as Delete does.</summary>
+    internal void RequestClose()
+    {
+        var view = Session.View;
+        var id = Session.State.Groups.Any(group => group.Id == view.FocusedGroup) ? view.FocusedGroup : view.FocusedCenter;
+        var fromTab = TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() is DockTabButton;
+        if (Session.RequestClose() && fromTab) FocusGroup(id);
+    }
+
     private void FocusGroup(string id, bool focusContent = false) => Dispatcher.UIThread.Post(() =>
     {
         if (!Session.State.Groups.Any(group => group.Id == id)) return;

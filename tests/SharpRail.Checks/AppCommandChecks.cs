@@ -20,15 +20,15 @@ internal static class AppCommandChecks
 
     private static void Pump(Func<bool> done, string message, int milliseconds = 5000)
     {
-        var deadline = DateTime.UtcNow.AddMilliseconds(milliseconds);
-        while (!done() && DateTime.UtcNow < deadline) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(5); }
+        var deadline = Awake.Now.AddMilliseconds(milliseconds);
+        while (!done() && Awake.Now < deadline) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(5); }
         Require(done(), message);
     }
 
     private static void Wait(int milliseconds)
     {
-        var until = DateTime.UtcNow.AddMilliseconds(milliseconds);
-        while (DateTime.UtcNow < until) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(5); }
+        var until = Awake.Now.AddMilliseconds(milliseconds);
+        while (Awake.Now < until) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(5); }
     }
 
     internal static void Run(string root)

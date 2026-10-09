@@ -223,10 +223,10 @@ internal static partial class TerminalHostChecks
             await Until(async () =>
             {
                 if (!await terminals.IsBusyAsync(id)) return true;
-                if (DateTime.UtcNow - interrupted > TimeSpan.FromMilliseconds(500))
+                if (Awake.Now - interrupted > TimeSpan.FromMilliseconds(500))
                 {
                     await session.WriteAsync("\u0003"u8.ToArray());
-                    interrupted = DateTime.UtcNow;
+                    interrupted = Awake.Now;
                 }
                 return false;
             }, mode + " interrupted foreground");
@@ -367,10 +367,10 @@ internal static partial class TerminalHostChecks
 
     private static async Task Until(Func<Task<bool>> condition, string description)
     {
-        var deadline = DateTime.UtcNow.AddSeconds(20);
+        var deadline = Awake.Now.AddSeconds(20);
         while (!await condition())
         {
-            if (DateTime.UtcNow > deadline) throw new InvalidOperationException("Terminal condition timed out: " + description);
+            if (Awake.Now > deadline) throw new InvalidOperationException("Terminal condition timed out: " + description);
             await Task.Delay(50);
         }
     }

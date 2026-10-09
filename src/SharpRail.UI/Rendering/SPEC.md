@@ -102,7 +102,7 @@ Fenced `mermaid` blocks render as themed diagrams. Rendering blocks on native pa
 runs off the UI thread; Svg.Skia displays the SVG. The base theme variables are captured from the current
 brushes at render time, and because Mermaid bakes colour into the SVG, every diagram renders again on
 `Ui.ThemeChanged`. A diagram opens in the full-screen viewer, which fits the viewer width at 100% and offers
-drag panning and 25–500% zoom. Where Merman is unavailable (non-macOS builds) the source is shown with an
+drag panning, trackpad pinch and 25–500% zoom. Where Merman is unavailable (non-macOS builds) the source is shown with an
 unavailability message. Rendered diffs pass `renderDiagrams: false` and keep the source-code degradation.
 
 ## Diffs

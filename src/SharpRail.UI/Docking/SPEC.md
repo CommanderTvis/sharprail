@@ -164,6 +164,8 @@ A close request from the window (`LayoutSession.RequestClose`, driven by the app
 selected (else first) tab of the keyboard-focused group, otherwise of the last-focused center group, through
 the normal close path including busy-terminal confirmation. A tool tab, folded group or hidden region yields
 no target and no further fallback. The tab button no longer handles Mod+W itself; Delete still closes it.
+When a tab button holds keyboard focus, the close returns focus to the group's newly selected tab, as Delete
+does, so reordering and roving continue from the keyboard.
 
 ## Not yet ported
 
