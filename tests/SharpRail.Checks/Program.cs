@@ -31,6 +31,12 @@ internal static class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        // Fixture repositories are never pushed; their commits must not wait on the developer's signing agent.
+        Environment.SetEnvironmentVariable("GIT_CONFIG_COUNT", "2");
+        Environment.SetEnvironmentVariable("GIT_CONFIG_KEY_0", "commit.gpgsign");
+        Environment.SetEnvironmentVariable("GIT_CONFIG_VALUE_0", "false");
+        Environment.SetEnvironmentVariable("GIT_CONFIG_KEY_1", "tag.gpgsign");
+        Environment.SetEnvironmentVariable("GIT_CONFIG_VALUE_1", "false");
         if (args.Contains("--native-terminal"))
         {
             if (!OperatingSystem.IsMacOS()) throw new PlatformNotSupportedException();
