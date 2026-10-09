@@ -11,7 +11,7 @@ using SharpRail.UI.Rendering;
 
 namespace SharpRail.UI.Panels;
 
-public sealed record NewWorkspaceChoice(bool InProjectFolder, string Base, string Path, string Branch);
+public sealed record NewWorkspaceChoice(bool InProjectFolder, string Base, string Path, string Branch, string Project);
 
 public sealed class NewWorkspaceDialog
 {
@@ -28,12 +28,18 @@ public sealed class NewWorkspaceDialog
     private string selected;
     private bool picked;
     private bool inFolder;
+    private TextBlock? projectLabel;
 
     public Window Window { get; }
+    /// <summary>The project the workspace will be created in; picking another one loads its branches through <see cref="LoadProject"/>.</summary>
+    public string Project { get; private set; }
+    /// <summary>Returns a project's branch catalogue, or null when it cannot be used; the dialog then keeps its project.</summary>
+    public Func<string, Task<BranchCatalog?>>? LoadProject { get; set; }
 
-    public NewWorkspaceDialog(string projectName, BranchCatalog catalog)
+    public NewWorkspaceDialog(IReadOnlyList<string> projects, string project, BranchCatalog catalog)
     {
         this.catalog = catalog;
+        Project = project;
         selected = catalog.DefaultBase;
         Window = Dialogs.Create("Create workspace", 560);
         Window.Tag = "NewWorkspaceDialog";
@@ -48,9 +54,7 @@ public sealed class NewWorkspaceDialog
         targets.Children.Add(worktreeTarget); targets.Children.Add(folderTarget);
         fields.Children.Add(targets);
 
-        var project = Ui.Row("folderFill", projectName, Ui.TextBrush);
-        project.Name = "WsProjectPicker";
-        fields.Children.Add(project);
+        fields.Children.Add(ProjectPicker(projects));
 
         branchLabel = Ui.Text("", Ui.TextBrush);
         var pickerContent = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
@@ -93,7 +97,7 @@ public sealed class NewWorkspaceDialog
 
         var actions = Window.FindControl<StackPanel>("DialogActions")!;
         actions.Children.Add(Ui.Button("Cancel", () => Window.Close(null)));
-        create = Ui.Button("Create", () => Window.Close(new NewWorkspaceChoice(inFolder, selected, this.catalog.SuggestedPath, this.catalog.SuggestedBranch)));
+        create = Ui.Button("Create", () => Window.Close(new NewWorkspaceChoice(inFolder, selected, this.catalog.SuggestedPath, this.catalog.SuggestedBranch, Project)));
         create.Name = "WsCreate"; create.IsDefault = true; Dialogs.Primary(create);
         actions.Children.Add(create);
         Window.Opened += (_, _) => create.Focus();
@@ -102,8 +106,60 @@ public sealed class NewWorkspaceDialog
 
     public Task<NewWorkspaceChoice?> ShowAsync(Window owner) => Window.ShowDialog<NewWorkspaceChoice?>(owner);
 
-    public void Update(BranchCatalog fresh)
+    /// <summary>One open project is a plain row; several make it a picker, so a workspace can start in any of them.</summary>
+    private Control ProjectPicker(IReadOnlyList<string> projects)
     {
+        var row = Ui.Row("folderFill", new DirectoryInfo(Project).Name, Ui.TextBrush);
+        row.Name = "WsProjectPicker";
+        projectLabel = row.Children.OfType<TextBlock>().Single();
+        if (projects.Count < 2) return row;
+        row.Children.Add(Ui.Icon("arrowDown", null, 12));
+        var picker = new Button
+        {
+            Name = "WsProjectTrigger",
+            Content = row,
+            Padding = new Thickness(10, 5),
+            Background = Ui.Elevated,
+            BorderBrush = Ui.BorderBrush,
+            BorderThickness = new Thickness(1),
+            CornerRadius = new(4),
+            HorizontalAlignment = HorizontalAlignment.Left,
+            ContextMenu = new ContextMenu { Placement = PlacementMode.BottomEdgeAlignedLeft }
+        };
+        AutomationProperties.SetName(picker, "Project");
+        foreach (var path in projects)
+        {
+            var item = Ui.Menu(new DirectoryInfo(path).Name, () => _ = PickProjectAsync(path));
+            item.Name = "WsProjectOption"; item.Tag = path; item.ToggleType = MenuItemToggleType.Radio; item.IsChecked = path == Project;
+            ToolTip.SetTip(item, path);
+            picker.ContextMenu.Items.Add(item);
+        }
+        picker.Click += (_, _) =>
+        {
+            foreach (var item in picker.ContextMenu.Items.OfType<MenuItem>()) item.IsChecked = Equals(item.Tag, Project);
+            picker.ContextMenu.Open(picker);
+        };
+        return picker;
+    }
+
+    private async Task PickProjectAsync(string path)
+    {
+        if (path == Project || LoadProject is null) return;
+        create.IsEnabled = false;
+        try
+        {
+            if (await LoadProject(path) is not { } loaded) return;
+            Project = path; catalog = loaded; picked = false; selected = loaded.DefaultBase;
+            projectLabel!.Text = new DirectoryInfo(path).Name;
+            Render();
+        }
+        finally { create.IsEnabled = true; }
+    }
+
+    /// <summary>Replaces the list with a fresher catalogue of <paramref name="project"/>, unless the dialog has moved to another one.</summary>
+    public void Update(BranchCatalog fresh, string project)
+    {
+        if (project != Project) return;
         if (fresh.DefaultBase == catalog.DefaultBase && fresh.Local.SequenceEqual(catalog.Local) && fresh.Remote.SequenceEqual(catalog.Remote) &&
             fresh.SuggestedPath == catalog.SuggestedPath) return;
         catalog = fresh;

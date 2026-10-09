@@ -60,6 +60,12 @@
     <Style Selector="Button.dock-tab-button:pressed">
       <Setter Property="RenderTransform" Value="none" />
     </Style>
+    <!-- A long menu (a branch's commits) scrolls inside a bounded height and trims its rows instead of growing sideways. -->
+    <Style Selector="ContextMenu">
+      <Setter Property="MaxHeight" Value="480" />
+      <Setter Property="MaxWidth" Value="420" />
+      <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+    </Style>
     <!-- Menus, flyouts and tooltips scale with the page zoom of the window that opened them. -->
     <Style Selector="Popup">
       <Setter Property="InheritsTransform" Value="True" />

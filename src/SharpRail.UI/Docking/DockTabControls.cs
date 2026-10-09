@@ -1,12 +1,64 @@
+using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Automation.Peers;
 using Avalonia.Automation.Provider;
 using Avalonia.Controls;
+using Avalonia.Layout;
 using Avalonia.LogicalTree;
+using Avalonia.Media;
+
+using SharpRail.UI.Rendering;
 
 namespace SharpRail.UI.Docking;
 
+/// <summary>
+/// One group's body. It is also the region's error boundary: a body that fails to build, measure or arrange
+/// is replaced by a notice here, so sibling groups and the window carry on.
+/// </summary>
 internal sealed class DockPanel : Border
 {
+    /// <summary>Mounts the body <paramref name="build"/> returns; <paramref name="keep"/> leaves an unchanged body attached.</summary>
+    internal void Mount(Func<Control> build, bool keep = false)
+    {
+        Control content;
+        try { content = build(); }
+        catch (Exception error) { Fail(error); return; }
+        if (keep && ReferenceEquals(Child, content)) return;
+        Child = null; Child = content;
+    }
+
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        try { return base.MeasureOverride(availableSize); }
+        catch (Exception error) { Fail(error); return base.MeasureOverride(availableSize); }
+    }
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        try { return base.ArrangeOverride(finalSize); }
+        catch (Exception error) { Fail(error); InvalidateMeasure(); return finalSize; }
+    }
+
+    private void Fail(Exception error)
+    {
+        Console.Error.WriteLine(error);
+        var message = Ui.Text(error.Message.Length > 0 ? error.Message : "An unexpected error occurred while showing this view.", size: 12);
+        message.TextWrapping = TextWrapping.Wrap; message.TextAlignment = TextAlignment.Center;
+        message.MaxWidth = 448;
+        var notice = new StackPanel
+        {
+            Name = "RegionError",
+            Spacing = 8,
+            Margin = new Thickness(16),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+            Children = { Ui.Icon("alertWarning", Ui.Danger, 24), Ui.Text("This view hit an error", Ui.TextBrush), message }
+        };
+        foreach (var child in notice.Children) child.HorizontalAlignment = HorizontalAlignment.Center;
+        AutomationProperties.SetLiveSetting(notice, AutomationLiveSetting.Assertive);
+        Child = null; Child = notice;
+    }
+
     protected override AutomationPeer OnCreateAutomationPeer() => new PanelPeer(this);
     private sealed class PanelPeer(DockPanel owner) : ControlAutomationPeer(owner)
     {

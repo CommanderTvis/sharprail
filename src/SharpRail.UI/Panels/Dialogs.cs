@@ -47,7 +47,8 @@ public static class Dialogs
         return await window.ShowDialog<string?>(owner);
     }
 
-    public static async Task<bool> Confirm(Window owner, string title, string explanation, string confirmLabel = "Remove worktree", string? confirmName = null)
+    public static async Task<bool> Confirm(Window owner, string title, string explanation, string confirmLabel = "Remove worktree", string? confirmName = null,
+        CancellationToken dismiss = default)
     {
         var window = Create(title, 520);
         window.FindControl<StackPanel>("DialogFields")!.IsVisible = false;
@@ -60,6 +61,7 @@ public static class Dialogs
         confirm.Name = confirmName;
         actions.Children.Add(confirm);
         window.Opened += (_, _) => cancel.Focus();
+        using var dismissal = dismiss.Register(() => window.Close(false));
         return await window.ShowDialog<bool>(owner);
     }
 

@@ -199,6 +199,16 @@ public static class Ui
         Grid.SetRow(child, row); Grid.SetColumn(child, column); grid.Children.Add(child);
     }
 
+    /// <summary>How long ago <paramref name="time"/> was, measured against the given now rather than the clock.</summary>
+    public static string RelativeTime(DateTimeOffset time, DateTimeOffset now)
+    {
+        var elapsed = now - time;
+        if (elapsed < TimeSpan.FromMinutes(1)) return "just now";
+        if (elapsed < TimeSpan.FromHours(1)) return $"{(int)elapsed.TotalMinutes}m ago";
+        if (elapsed < TimeSpan.FromDays(1)) return $"{(int)elapsed.TotalHours}h ago";
+        return $"{(int)elapsed.TotalDays}d ago";
+    }
+
     public static MenuItem Menu(string label, Action action, bool enabled = true)
     {
         var item = new MenuItem { Header = label, IsEnabled = enabled };

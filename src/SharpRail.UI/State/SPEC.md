@@ -84,7 +84,8 @@ waits for the host's snapshot rather than treating an empty or disconnected stat
 successful read that lacks the project or workspace falls back (workspace to Project Home, project to
 Welcome); a timeout or disconnect keeps the remembered location and retries after reconnect. Superseded
 project opens are cancelled by a monotonic request counter so a late response never replaces a newer
-location. Location is never shared between windows or clients; continuing elsewhere is an explicit action.
+location. Location is never shared between windows or clients; continuing elsewhere is an explicit action:
+a serialized link, described with the window's Back/Forward list in [../SPEC.md](../SPEC.md).
 
 ## Not yet ported
 
@@ -97,6 +98,7 @@ location. Location is never shared between windows or clients; continuing elsewh
   workspace switch still updates its own tab. Only the renderer interprets its view state; changing
   renderer drops it. Split or inline and ignore-whitespace stay diff-only presentation. Document bodies
   hold their own toggles today, and a Markdown diff's Rendered choice is a flag rather than a renderer.
-- Serialized routes and Back/Forward history over locations, with push for user intent and replace for
-  passive changes.
+- Telling user intent from passive moves in the Back/Forward list: every move to a different location adds
+  an entry, so a remote project close or workspace removal that relocates the window is recorded too. The
+  observed location is not persisted as a link; the profile keeps its own last-location fields.
 - A page-lifetime tombstone for removed workspaces so an in-flight read cannot recreate their local state.

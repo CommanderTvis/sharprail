@@ -37,6 +37,7 @@ public sealed partial class WorkbenchWindow : Window
     private readonly Dictionary<string, Control> documentContent = [];
     private readonly Dictionary<string, FileDocument> documents = [];
     private readonly TextBlock projectLabel;
+    private readonly TextBlock workspaceLabel;
     private readonly TextBlock branchLabel;
     private readonly Control branchIcon;
     private readonly TextBlock status;
@@ -75,6 +76,7 @@ public sealed partial class WorkbenchWindow : Window
         AvaloniaXamlLoader.Load(this);
         root = this.FindControl<Grid>("WorkbenchRoot")!;
         projectLabel = this.FindControl<TextBlock>("ProjectLabel")!;
+        workspaceLabel = this.FindControl<TextBlock>("WorkspaceLabel")!;
         branchLabel = this.FindControl<TextBlock>("BranchLabel")!;
         status = this.FindControl<TextBlock>("ConnectionStatus")!;
         errorText = this.FindControl<TextBlock>("WorkspaceError")!;
@@ -91,6 +93,7 @@ public sealed partial class WorkbenchWindow : Window
         surface = new DockSurface(Layout, RenderContent);
         Ui.Place(root, surface, 1);
         WireGestureNotification();
+        WireNavigation();
         WireEditorLifetime();
         WireHostSync();
         ApplyAppearance();
@@ -121,6 +124,7 @@ public sealed partial class WorkbenchWindow : Window
             else if (command && e.Key is Key.OemMinus or Key.Subtract) { Zoom(-1); e.Handled = true; }
             else if (command && e.Key is Key.D0 or Key.NumPad0) { Zoom(0); e.Handled = true; }
             else if (e.Key == Key.F5) { _ = RefreshAsync(); e.Handled = true; }
+            else if (HistoryStep(e) is var step and not 0) { _ = step < 0 ? GoBackAsync() : GoForwardAsync(); e.Handled = true; }
         }, RoutingStrategies.Bubble);
     }
 
@@ -145,8 +149,11 @@ public sealed partial class WorkbenchWindow : Window
         var header = this.FindControl<Grid>("MainHeader")!;
         ApplyChromeZoom();
         InterfaceZoom.Changed += ApplyChromeZoom;
+        PropertyChanged += (_, e) => { if (e.Property == WindowStateProperty) ApplyChromeZoom(); };
+        WirePinchZoom();
         Closed += (_, _) => InterfaceZoom.Changed -= ApplyChromeZoom;
         header.ContextMenu = ViewMenu();
+        WireLocationBar();
         this.FindControl<ContentControl>("BrandIcon")!.Content = Ui.Icon("brand", Ui.Accent, 28);
         var settings = this.FindControl<Button>("SettingsButton")!;
         settings.Content = Ui.Icon("settings");
@@ -155,9 +162,9 @@ public sealed partial class WorkbenchWindow : Window
         frame.PointerPressed += (_, e) =>
         {
             if (!e.GetCurrentPoint(frame).Properties.IsLeftButtonPressed || e.Source is not Control source ||
-                source is Button || source.GetLogicalAncestors().OfType<Button>().Any()) return;
+                source is Button or TextBox || source.GetLogicalAncestors().Any(ancestor => ancestor is Button or TextBox)) return;
             e.Handled = true;
-            if (e.ClickCount == 2) WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+            if (e.ClickCount == 2) TitleBarDoubleClicked();
             else BeginMoveDrag(e);
         };
     }
@@ -221,8 +228,7 @@ public sealed partial class WorkbenchWindow : Window
             if (project) projectRoot = workspace.ProjectRoot;
             atHome = home; cleanWelcome = false;
             UpdateScopeLabels();
-            branchLabel.Text = "";
-            branchIcon.IsVisible = false;
+            SetBranch("");
             git = sameProject ? new(git.IsRepository, "", [], git.Worktrees, git.Branches) : new(false, "", [], [], []);
             gitLoading = true; gitError = null;
             RestoreGitSelection(); folderCache.Clear(); expandedFolders.Clear();
@@ -240,6 +246,7 @@ public sealed partial class WorkbenchWindow : Window
             status.Text = remote ? "Remote" : "Connected";
             errorText.IsVisible = false;
             ReportProfileError();
+            LocationChanged?.Invoke();
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 UpdateLayout();
@@ -450,12 +457,16 @@ public sealed partial class WorkbenchWindow : Window
         SaveProfile();
     }
 
-    /// <summary>The native title bar and traffic lights do not zoom: the strip grows with the header while its inset stays physical.</summary>
+    /// <summary>
+    /// The native title bar and traffic lights do not zoom: the strip grows with the header while its inset stays
+    /// physical. Full screen hides the traffic lights, so the inset goes with them.
+    /// </summary>
     private void ApplyChromeZoom()
     {
         var zoom = InterfaceZoom.Current;
         ExtendClientAreaTitleBarHeightHint = 40 * zoom;
-        this.FindControl<Grid>("MainHeader")!.Margin = new Thickness((OperatingSystem.IsMacOS() ? 80 : 12) / zoom, 0, 12, 0);
+        var lights = OperatingSystem.IsMacOS() && WindowState != WindowState.FullScreen;
+        this.FindControl<Grid>("MainHeader")!.Margin = new Thickness(lights ? 80 / zoom : 12, 0, 12, 0);
     }
 
     /// <summary>Dims the workbench behind a modal, like the reference's overlay; the returned action removes it.</summary>

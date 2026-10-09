@@ -292,6 +292,10 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
                     target.Add(new InlineUIContainer(holder));
                     _ = LoadImageAsync(holder, link.Url ?? "");
                     break;
+                case LinkInline link when ResolveLink(path, link.Url ?? "") is null:
+                    // A target outside the worktree, or one that does not decode, is shown as the text it is.
+                    AddInline(target, link, weight, style, strike);
+                    break;
                 case LinkInline link:
                     var url = link.Url ?? "";
                     var linkText = Ui.Text(Plain(link), Ui.Accent, preferences.FontSize);
@@ -352,15 +356,41 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
     private void Follow(string url)
     {
         if (url.StartsWith('#')) { ScrollToAnchor(url); return; }
-        if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
+        // A leading slash is the worktree root, not a file URI.
+        if (!url.StartsWith('/') && Uri.TryCreate(url, UriKind.Absolute, out var uri))
         {
             if (uri.Scheme is "https" or "http" or "mailto") Process.Start(new ProcessStartInfo(uri.AbsoluteUri) { UseShellExecute = true });
             return;
         }
-        var parts = url.Split('#', 2);
-        navigate(Path.GetFullPath(Path.Combine("/", Path.GetDirectoryName(path) ?? "", Uri.UnescapeDataString(parts[0]))).TrimStart('/'),
-            parts.Length == 2 ? parts[1] : null);
+        if (ResolveLink(path, url) is { } target) navigate(target, url.Split('#', 2) is [_, var anchor] ? anchor : null);
     }
+
+    /// <summary>
+    /// The worktree-relative file a relative link in <paramref name="document"/> names, or the link itself when
+    /// it is an anchor or an absolute URI. Null means the link cannot be followed: it climbs out of the worktree
+    /// or its percent-encoding is malformed.
+    /// </summary>
+    public static string? ResolveLink(string document, string url)
+    {
+        if (url.StartsWith('#') || !url.StartsWith('/') && Uri.TryCreate(url, UriKind.Absolute, out _)) return url;
+        var file = url.Split('#', 2)[0];
+        if (MalformedEscape().IsMatch(file)) return null;
+        file = Uri.UnescapeDataString(file).Replace('\\', '/');
+        if (file.Contains('\0')) return null;
+        var segments = new List<string>();
+        if (!file.StartsWith('/')) segments.AddRange((Path.GetDirectoryName(document) ?? "").Split('/', '\\').Where(part => part.Length > 0));
+        foreach (var part in file.Split('/'))
+        {
+            if (part is "" or ".") continue;
+            if (part != "..") segments.Add(part);
+            else if (segments.Count == 0) return null;
+            else segments.RemoveAt(segments.Count - 1);
+        }
+        return string.Join('/', segments);
+    }
+
+    [GeneratedRegex("%(?![0-9A-Fa-f]{2})")]
+    private static partial Regex MalformedEscape();
 
     private Border CodeFrame(string text)
     {

@@ -146,6 +146,39 @@ selected tab, tool/folded/hidden no-ops, modal dismissal, and typed-letter versu
 `-- --commands` runs both. A busy-terminal confirmation from Mod+W and a terminal retaining Ctrl+W off
 macOS are not asserted.
 
+## Shell checks
+
+`ShellChecks` (`-- --shell`, also in the default run) covers the window shell. `LocationBarChecks` drives
+the header's segments with real input: captions and Project Home state, the project and workspace
+switchers, the header's workspace actions sharing Projects' rename (one input, one host label change,
+abandoned when the window leaves the workspace) and Remove (the dialog names its workspace and dismisses
+on a workspace change, removing nothing), the branch card's Copy and its comparison picker agreeing with
+Changes in both directions, pills staying out of the title bar's drag region, and the drop order as the
+header narrows. A rename left pending by an unreachable host being abandoned is not asserted.
+
+The rest of `ShellChecks` covers the application menu (composition, chords, a text box taking editing
+commands directly, any other control receiving them as chords with Delete never forwarded, Zoom, Close
+closing a dialog but only the selected tab of a workbench window, Minimize), window chrome (the full-screen
+inset, the double-click preference mapping and its effect, ignored in full screen; pinch against one
+baseline, both bounds, resting between steps, persistence, the chords stepping from there, the routed
+magnify gesture and a claimed one), region errors (a body that throws while being built and one that throws
+during layout each show a notice in their own group while a sibling body and the window carry on, and the
+region shows the next body that works) and arrangement isolation (a tab drag with its drop preview, its
+cancellation and a side resize preview detach no body and replace no tab strip; selecting a tab swaps only
+that group's body and no strip; focusing groups touches nothing). The native menu bar, a real trackpad and
+reading `AppleActionOnDoubleClick` need a real macOS window and are not asserted.
+
+It also covers locations (the link codec round trip and every invalid form, the history list, Back and
+Forward by method and by chord across files, workspaces and Project Home, a link opening a file, a link to
+a removed workspace landing on Project Home, a link to an unlisted project landing on Welcome and Back
+returning from it), the Create workspace project picker (absent with one project; with two it lists and
+checks them, loads the picked project's branches without moving the window, and Create makes the workspace
+in the picked project), commit menus (relative-time wording against a fixed now, forty long-subject commits
+each reading `just now`, the open menu inside its bounds and scrolling vertically with no horizontal
+overflow) and inert links (resolution inside the worktree, every escaping and malformed form refused, and a
+rendered document where only the followable link is a control). `--link` at launch and the mouse's
+back and forward buttons are not asserted.
+
 ## Not yet ported
 
 - Parallel lanes: splitting the gate across independent processes with lane-owned fixtures and merged results.
