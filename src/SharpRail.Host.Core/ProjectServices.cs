@@ -16,7 +16,7 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
         await mutations.WaitAsync(cancellationToken);
         try
         {
-            var candidate = Path.GetFullPath(path);
+            var candidate = ProjectPaths.Resolve(path);
             if (!Directory.Exists(candidate)) throw new DirectoryNotFoundException($"Directory does not exist: {candidate}");
             try { candidate = (await GitRepository.RunAsync(candidate, cancellationToken, "rev-parse", "--show-toplevel")).TrimEnd('\r', '\n'); }
             catch (IOException) { }
@@ -75,23 +75,20 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
         catch (Exception error) when (error is IOException or UnauthorizedAccessException) { return null; }
     }
 
-    private static readonly UTF8Encoding StrictUtf8 = new(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
-
     public async ValueTask<FileDocument> ReadFileAsync(string relativePath, CancellationToken cancellationToken = default)
     {
         var path = Resolve(root, relativePath);
-        var extension = Path.GetExtension(path).ToLowerInvariant();
-        var image = extension is ".png" or ".jpg" or ".jpeg" or ".gif" or ".webp" or ".bmp";
         var length = new FileInfo(path).Length;
-        if ((image || extension is ".md" or ".markdown") && length > FileLimits.PreviewBytes)
-            throw new IOException($"Previews are limited to files under {FileLimits.PreviewBytes >> 20} MiB.");
+        static string Preview() => $"Previews are limited to files under {FileLimits.PreviewBytes >> 20} MiB.";
+        if (Path.GetExtension(path).ToLowerInvariant() is ".md" or ".markdown" && length > FileLimits.PreviewBytes) throw new IOException(Preview());
         if (length > FileLimits.EditableBytes) throw new IOException($"Files over {FileLimits.EditableBytes >> 20} MiB cannot be opened.");
         var bytes = await File.ReadAllBytesAsync(path, cancellationToken);
+        // The bytes decide what a file is, never its name: a picture is sent as bytes and any other byte-only
+        // file as empty text with its metadata, for the client to describe rather than fail on.
         var info = ContentClassifier.Classify(bytes, relativePath);
-        if (image) return new(relativePath, "", bytes) { Info = info };
-        // Like the reference, text may contain NUL and other control characters; only invalid UTF-8 is binary.
-        try { return new(relativePath, StrictUtf8.GetString(bytes)) { Info = info }; }
-        catch (DecoderFallbackException) { throw new IOException("Binary files cannot be previewed."); }
+        if (info.MediaType is "image/png" or "image/jpeg" or "image/gif" or "image/webp" or "image/bmp")
+            return bytes.Length > FileLimits.PreviewBytes ? throw new IOException(Preview()) : new(relativePath, "", bytes) { Info = info };
+        return new(relativePath, info.IsText ? ContentInfo.Decode(bytes) : "") { Info = info };
     }
 
     public async ValueTask<GitSnapshot> GetGitAsync(string comparisonBranch = "", CancellationToken cancellationToken = default, string scope = "all")
@@ -104,9 +101,6 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
 
     public async ValueTask<IReadOnlyList<GitCommit>> ListCommitsAsync(string comparisonBranch, CancellationToken cancellationToken = default)
         => await GitRepository.ListCommitsAsync(root, comparisonBranch, cancellationToken);
-
-    public async ValueTask<IReadOnlyList<SpecDocument>> ListSpecsAsync(CancellationToken cancellationToken = default)
-        => await SpecCatalog.ReadAsync(root, cancellationToken);
 
     public async ValueTask<string> GetDiffAsync(string path, string scope, string comparisonBranch = "", CancellationToken cancellationToken = default)
     {
@@ -291,6 +285,7 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
                         await GitRepository.RunAsync(currentRoot, cancellationToken, "worktree", "remove", "--", target.Path);
                         registry.ChangeWorkspaces(current => current.Where(workspace => workspace.Path != target.Path));
                     }
+                    DropIndexes(target.Path);
                     break;
                 default: throw new ArgumentException("Unknown git action.");
             }
@@ -305,19 +300,5 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
         catch (IOException) { return false; }
     }
 
-    private static string Resolve(string currentRoot, string path)
-    {
-        var full = Path.GetFullPath(Path.Combine(currentRoot, path));
-        var relative = Path.GetRelativePath(currentRoot, full);
-        if (relative == ".." || relative.StartsWith("../", StringComparison.Ordinal) || Path.IsPathRooted(relative))
-            throw new UnauthorizedAccessException("The path is outside this workspace.");
-        var check = currentRoot;
-        foreach (var segment in relative.Split(Path.DirectorySeparatorChar))
-        {
-            check = Path.Combine(check, segment);
-            if (new FileInfo(check).LinkTarget is not null)
-                throw new UnauthorizedAccessException("Symbolic link previews are not supported.");
-        }
-        return full;
-    }
+    private static string Resolve(string currentRoot, string path) => Contain(currentRoot, path);
 }

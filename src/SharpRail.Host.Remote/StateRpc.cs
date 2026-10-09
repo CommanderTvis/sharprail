@@ -70,6 +70,7 @@ public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime li
         Presets = state.Presets.Select(preset => new PresetMessage { Name = preset.Name, Layout = preset.Layout }).ToList(),
         Projects = state.Projects.ToList(),
         RecentProjects = state.RecentProjects.ToList(),
+        ProjectRecords = state.ProjectRecords.Select(record => new ProjectRecordMessage { Id = record.Id, Path = record.Path, Slug = record.Slug, LastOpened = record.LastOpened }).ToList(),
         Labels = state.WorkspaceLabels.Select(entry => new LabelMessage { Path = entry.Key, Label = entry.Value }).ToList(),
         Bases = state.WorkspaceBases.Select(entry => new WorkspaceRefMessage { Path = entry.Key, Reference = entry.Value }).ToList(),
         DiffBases = state.WorkspaceDiffBases.Select(entry => new WorkspaceRefMessage { Path = entry.Key, Reference = entry.Value }).ToList(),

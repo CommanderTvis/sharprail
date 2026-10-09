@@ -58,6 +58,15 @@ public sealed class WorkspaceRefMessage
 }
 
 [ProtoContract]
+public sealed class ProjectRecordMessage
+{
+    [ProtoMember(1)] public string Id { get; set; } = "";
+    [ProtoMember(2)] public string Path { get; set; } = "";
+    [ProtoMember(3)] public string Slug { get; set; } = "";
+    [ProtoMember(4)] public long LastOpened { get; set; }
+}
+
+[ProtoContract]
 public sealed class StateReply
 {
     [ProtoMember(1)] public long Revision { get; set; }
@@ -70,6 +79,7 @@ public sealed class StateReply
     [ProtoMember(8)] public List<WorkspaceRefMessage> Bases { get; set; } = [];
     [ProtoMember(9)] public List<WorkspaceRefMessage> DiffBases { get; set; } = [];
     [ProtoMember(10)] public List<WorkspaceRecordMessage> Workspaces { get; set; } = [];
+    [ProtoMember(11)] public List<ProjectRecordMessage> ProjectRecords { get; set; } = [];
 }
 
 [ProtoContract]

@@ -45,7 +45,9 @@ internal static class WorkspaceFixture
         return Buttons(app).Single(button => button.Name == "ProjectName" && Equals(button.Tag, project));
     }
 
-    internal static bool HasWelcome(E2eWorkspace app) => Controls(app).Any(control => control.Name == "Welcome" && control.IsVisible);
+    /// <summary>Welcome with its cards: at a Project Home they appear once the host has said whether the project has specs.</summary>
+    internal static bool HasWelcome(E2eWorkspace app) => Controls(app).Any(control => control.Name == "Welcome" && control.IsVisible) &&
+        Controls(app).OfType<WrapPanel>().Any(cards => cards.Name == "WelcomeCards" && cards.Children.Count > 0);
 
     internal static string WelcomeTitle(E2eWorkspace app) => Controls(app).OfType<TextBlock>().Single(text => text.Name == "WelcomeTitle").Text!;
 

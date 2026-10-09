@@ -112,6 +112,7 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
         Presets = reply.Presets.Select(preset => new LayoutPreset(preset.Name, preset.Layout)).ToArray(),
         Projects = reply.Projects.ToArray(),
         RecentProjects = reply.RecentProjects.ToArray(),
+        ProjectRecords = reply.ProjectRecords.Select(record => new ProjectRecord(record.Id, record.Path, record.Slug, record.LastOpened)).ToArray(),
         WorkspaceLabels = reply.Labels.ToDictionary(label => label.Path, label => label.Label),
         WorkspaceBases = reply.Bases.ToDictionary(entry => entry.Path, entry => entry.Reference),
         WorkspaceDiffBases = reply.DiffBases.ToDictionary(entry => entry.Path, entry => entry.Reference),

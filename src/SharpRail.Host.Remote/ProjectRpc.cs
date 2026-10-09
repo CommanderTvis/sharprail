@@ -7,7 +7,7 @@ using SharpRail.Host.Protocol;
 
 namespace SharpRail.Host.Remote;
 
-public sealed class ProjectRpc(ProjectSessions sessions, IHostApplicationLifetime lifetime, RequestReplayCache replay) : IProjectRpc
+public sealed partial class ProjectRpc(ProjectSessions sessions, IHostApplicationLifetime lifetime, RequestReplayCache replay) : IProjectRpc
 {
     public async IAsyncEnumerable<FileChangeReply> WatchFilesAsync(ProjectRequest request, CallContext context = default)
     {
@@ -50,7 +50,7 @@ public sealed class ProjectRpc(ProjectSessions sessions, IHostApplicationLifetim
     public ValueTask<SpecsReply> ListSpecsAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>
     {
         var result = await Host(context).ListSpecsAsync(context.CancellationToken);
-        return new SpecsReply { Specs = result.Select(spec => new SpecReply { Id = spec.Id, Title = spec.Title, Path = spec.Path, Parent = spec.Parent, Type = spec.Type }).ToList() };
+        return new SpecsReply { Specs = result.Select(Map).ToList() };
     });
 
     public ValueTask<DocumentReply> GetDiffAsync(ProjectRequest request, CallContext context = default)

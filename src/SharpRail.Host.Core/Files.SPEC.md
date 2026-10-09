@@ -17,34 +17,41 @@ Upstream: packages/server/src/trash/SPEC.md (revision: [UPSTREAM.md](../../UPSTR
 Read directories and files inside a workspace root, save edited text back safely, and tell the
 workbench when the worktree changed so it re-reads. Reads and saves are host operations
 (`IProjectServices.ListFilesAsync`, `ReadFileAsync`, `SaveFileAsync`; `IWorkspaceHost.ListRootFilesAsync`).
-Change notification is host-owned (`IProjectServices.WatchFilesAsync`, `ProjectFileWatching.cs`),
+Change notification is host-owned (`IProjectServices.WatchFilesAsync`, `ProjectFileWatching.cs`, with the
+shared watchers in `WorkspaceWatches.cs` and `PrewarmWorkspaceAsync` to start them early),
 with direct local and streaming gRPC adapters. The UI consumes the same stream for either host.
 
 ## Boundary
 
-- Owns: path containment (`ProjectServices.Resolve`), directory listing with single-directory compaction,
+- Owns: path containment (`ProjectServices.Contain`), directory listing with single-directory compaction,
   typed reads bounded by `FileLimits`, and the conflict-checked atomic save (`ProjectFileSaving.cs`).
 - Forbidden: following a symbolic link anywhere below the workspace root; writing outside it.
 
 ## Reads
 
-- Every path is resolved against the workspace root and rejected when it escapes it or crosses a
-  symbolic link at any component. Listings skip links entirely.
+- Every path goes through one containment rule (`ProjectServices.Contain`), shared by listings, reads,
+  saves, diffs and the change write path: resolved against the workspace root and rejected when it escapes
+  it, names `.git` at any component in any letter case, or crosses a symbolic link. The leaf may be missing,
+  which the operation then reports itself. A read also refuses a linked leaf; a change write leaves the leaf
+  to its caller, which never follows it. Listings skip links entirely.
 - Listings hide `.git`, `.sharprail` and `.tools`, sort directories first and then by name
   case-insensitively, and compact a run of directories that each hold exactly one directory into one
   `a/b/c` row.
-- A read returns images (PNG, JPEG, GIF, WebP, BMP) as bytes and text as strict UTF-8; invalid UTF-8 is
-  reported as binary, while NUL and other control characters in valid text are allowed. Markdown and
-  image previews are limited to `FileLimits.PreviewBytes`, editable text to `FileLimits.EditableBytes`,
-  and a gRPC message is sized for one whole read or save. Every read also carries content metadata
-  (`ContentClassifier.Classify`, below).
+- A read is decided by the file's bytes through `ContentClassifier.Classify`, never by its name. A PNG,
+  JPEG, GIF, WebP or BMP is returned as bytes; text is returned decoded; any other byte-only file (a
+  recognised binary type, NUL in the first 8 KiB, invalid UTF-8) is answered with empty text and its
+  metadata instead of an error, and the workbench shows a notice with the type and size in its tab. Control
+  characters other than NUL stay text. Markdown and image previews are limited to
+  `FileLimits.PreviewBytes`, editable text to `FileLimits.EditableBytes`, and a gRPC message is sized for
+  one whole read or save.
 - `ContentClassifier` is the one byte classification: media type from magic numbers (PNG, JPEG, GIF,
   WebP, AVIF, BMP, ICO, PDF, zip, gzip, WOFF/WOFF2), SVG from a text root element (after an optional
   XML prolog), a Git LFS pointer from its exact three-line form, and the filename only when the bytes
   say nothing. Text means no recognised magic number, no NUL in the first 8 KiB and a strict UTF-8
   decode, so an ASCII-only PDF is still byte-only. The metadata is `ContentMetadata` (SHA-256, byte
   length, textness, media type) and `IsActive` marks HTML, XHTML and SVG, which a client must show inert.
-  Diff sides use it in full; file reads attach it but keep their own text rule (below).
+  Diff sides, file reads and the line counts of untracked files in a Git snapshot all use it, so a file
+  is text everywhere or nowhere.
 - Relative Markdown images resolve through the same contained read.
 
 ## Saves
@@ -60,8 +67,9 @@ mutations.
 
 - The notification is an invalidation nudge, not data: the workbench re-reads through the same host
   reads, so a duplicate or coalesced event costs one extra read and never produces wrong state.
-- Each subscription owns its watchers and disposes them on cancellation; switching workspace or
-  closing a window cancels its subscription. Frames cap paths at 100 and request a full rescan on
+- One set of watchers serves every subscription to a workspace root (`WorkspaceWatches`); each
+  subscription keeps its own coalescing window and path set, and the set is released when its last
+  subscriber cancels. Switching workspace or closing a window cancels its subscription. Frames cap paths at 100 and request a full rescan on
   overflow, watcher errors, Git metadata changes and initial registration. The UI retries a failed
   stream after one second, with a fresh registration rescan covering disconnected changes.
 - One recursive watcher covers the workspace root, ignoring `.git`, `.sharprail`, `.tools`,
@@ -78,18 +86,19 @@ mutations.
   enumeration cannot delay editor or Git updates. Directory invalidations include open descendants.
   Markdown reloads preserve the selected source/preview mode and its controls. Unsaved editor buffers
   stay intact, and conflict-checked saves prevent overwriting an agent's version on disk.
+- Watchers heal. A subscription or pre-warm that finds the root replaced by another directory (its
+  creation time changed, the portable stand-in for upstream's inode) restarts the set in place, keeps
+  the subscribers and sends them a rescan; a watcher error does the same while the root still exists.
+- `PrewarmWorkspaceAsync` starts the watchers of a workspace a client is about to open, which the
+  workbench asks for when a workspace row is pointed at or focused. Watchers without a subscriber form a
+  pool of at most eight, the least recently warmed evicted first; a subscription takes one over instead
+  of starting another, and one with subscribers is never evicted. A pre-warmed watcher whose folder is
+  gone is reaped on the next subscription or pre-warm, and removing a worktree drops its own.
 - A watcher that cannot start degrades to read-on-demand with a logged reason; Git failure never blocks
   opening files.
 
 ## Not yet ported
 
-- Sharing one watcher per workspace among subscriptions rather than watching per subscription.
-- Self-healing watchers that re-create themselves when the root's inode changes and reap watchers for
-  forgotten workspaces.
-- A bounded pre-warm pool for workspaces a client is about to open.
-- The shared classification inside file reads and untracked line counts: reads still decide images by
-  extension, allow NUL in text and fail a byte-only file as "binary" rather than answering empty text
-  plus metadata, and untracked line counts do not consult it.
-- Containment for reads and saves that also refuses `.git` and allows a missing leaf; today only the change
-  write path has it (`ProjectServices.ResolveForWrite`, which does not follow a leaf link), and the trash
-  is `Trash.cs` (see [Git.SPEC.md](Git.SPEC.md)). Neither is shared by file reads and saves yet.
+- A periodic identity check for a root replaced while its only subscribers stay attached and no client
+  subscribes or pre-warms; today such a watcher heals on the next of those or on a watcher error.
+- A readiness answer for a subscription (upstream's `startupNudge`); the registration rescan covers it.

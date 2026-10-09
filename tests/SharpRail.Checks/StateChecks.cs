@@ -83,6 +83,10 @@ internal static class StateChecks
             "Changes apply in order: presets rename, closing moves a project to the recents.");
         Require(Describe(new HostStateStore(localDirectory).Current) == expected && Describe(new HostStateStore(remoteDirectory).Current) == expected,
             "Both hosts persist their state beside themselves.");
+        var remoteRecords = (await remote.GetStateAsync()).ProjectRecords;
+        Require(state.ProjectRecords.Select(record => (record.Path, record.Slug)).Order().SequenceEqual(remoteRecords.Select(record => (record.Path, record.Slug)).Order()) &&
+            state.ProjectRecords.Count == 2 && remoteRecords.All(record => record.Id.Length > 0 && record.LastOpened > 0),
+            "Project records must reach remote clients with their identity.");
         var localShake = await local.GetHandshakeAsync();
         var remoteShake = await remote.GetHandshakeAsync();
         Require(localShake == remoteShake && localShake.ProtocolVersion == HostProtocol.Current, "Local and remote handshakes must match.");

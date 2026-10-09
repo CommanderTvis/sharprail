@@ -29,18 +29,24 @@ project: local adapters call Core directly, with no serialization.
 ## Contents
 
 - Workspace: the host's startup workspace identity and its root entries.
-- Project: open a project (resolving the workspace/project roots), list and
+- Project: open a project (resolving the workspace/project roots), classify a
+  host path before opening it (`InspectProjectReply.Kind`: repository, initable,
+  missing, not a directory), list and
   read files, save a file with its original text for conflict detection, list
-  specs, Git snapshot, commit list, per-file diff and diff sides, Git actions,
+  specs, the spec graph (`SpecGraphReply`: specs, edges, dangling links, duplicate
+  ids, parent cycles) and whether the workspace has durable specs, Git snapshot, commit list, per-file diff and diff sides, Git actions,
   open pull request lookup, pull request draft and opening, branch catalog (optional default-base fetch; local, per-remote rows, the
   default base and suggested new worktree path/branch), editor listing and
   open-in-editor. Git scope travels as a string (`all` when empty); the comparison
   branch is the review target. Commit listing is its own operation so the commit
   catalog never requires a full working-tree snapshot.
+- `PrewarmWorkspaceAsync` names a workspace root whose watchers the host should start ahead of a
+  subscription; it answers empty and is only a hint.
 - Project file watching is a server stream with no deadline. `FileChangeReply` carries up to 100
   workspace-relative paths plus `Rescan` for startup registration, overflow or pathless invalidations.
 - State: one complete `StateReply` snapshot (revision, settings, custom layout
-  presets, open and recent projects, workspace labels, workspaces per project),
+  presets, open and recent projects with one `ProjectRecordMessage` each (id,
+  path, slug, last opened), workspace labels, workspaces per project),
   `ChangeAsync` taking an ordered batch of `(Kind, Key, Value)` changes and
   returning the resulting snapshot, and a server-streamed `WatchAsync` of full
   snapshots. Custom presets are the only layout value on the wire; current and
@@ -127,10 +133,9 @@ project: local adapters call Core directly, with no serialization.
 
 - Pushed invalidations beyond host state and the lifecycle stream: a worktree
   file-change nudge (`workspace.fsChanged`) and a host update notice.
-- Project inspection (`repo`/`initable`/`missing`/`notDirectory`), `git init`,
-  lazy "has specs" and a `GitDiffScope` of a single commit carried on file diffs
+- `git init` by path and a `GitDiffScope` of a single commit carried on file diffs
   as a typed value.
 - A host HTTP endpoint for worktree files (relative Markdown images over remote).
-- Resource metadata on file reads and diff sides is ported, with the bytes fetched over gRPC rather than
-  the host's file/blob HTTP endpoints. Still open: a byte-only file read (invalid UTF-8 still fails as
-  "binary"), and a streamed rather than single-message transfer.
+- Resource metadata on file reads and diff sides is ported, including a byte-only file read answered as
+  empty text plus metadata, with the bytes fetched over gRPC rather than the host's file/blob HTTP
+  endpoints. Still open: a streamed rather than single-message transfer.

@@ -22,6 +22,12 @@ public sealed record HostSettings
 public sealed record LayoutPreset(string Name, string Layout);
 
 /// <summary>
+/// A project's identity, kept while it is open or recent so closing and reopening it changes nothing but
+/// <paramref name="LastOpened"/> (Unix milliseconds). The slug is a readable name unique among the host's projects.
+/// </summary>
+public sealed record ProjectRecord(string Id, string Path, string Slug, long LastOpened);
+
+/// <summary>
 /// One host's shared state. Every snapshot is complete, so a client that missed
 /// events rehydrates from the next one it receives.
 /// </summary>
@@ -32,6 +38,8 @@ public sealed record HostState
     public IReadOnlyList<LayoutPreset> Presets { get; init; } = [];
     public IReadOnlyList<string> Projects { get; init; } = [];
     public IReadOnlyList<string> RecentProjects { get; init; } = [];
+    /// <summary>One record per open or recent project, in no particular order.</summary>
+    public IReadOnlyList<ProjectRecord> ProjectRecords { get; init; } = [];
     public IReadOnlyDictionary<string, string> WorkspaceLabels { get; init; } = new Dictionary<string, string>();
     /// <summary>The ref each workspace was created from, recorded by the host and never changed by a client.</summary>
     public IReadOnlyDictionary<string, string> WorkspaceBases { get; init; } = new Dictionary<string, string>();

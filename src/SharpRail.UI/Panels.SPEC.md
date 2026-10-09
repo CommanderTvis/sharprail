@@ -100,6 +100,12 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
 - Project Home shows a `PROJECT HOME` eyebrow, the project's name as the heading, one explanatory line naming
   the Create workspace chord, and the mode fork as two actions: Create workspace (isolated worktree, primary)
   and Work in project folder (enters the Default workspace directly, no dialog).
+- A project without durable specs leads with a spec-first Set up project card (primary), followed by Create
+  workspace and Work in project folder. Whether it has specs is asked lazily through
+  `HasDurableSpecsAsync` for the one project at its home, off the UI thread; the cards wait for the first
+  answer, later answers arrive after Markdown changes and refill the mounted cards in place, and a host that
+  cannot answer leaves the ordinary two cards. Upstream's card seeds an agent prompt; with AI excluded it
+  opens the same Create workspace dialog, so specs are drafted on an isolated branch.
 - Welcome is the work-in-this-project surface once a project is shown; opening another project is the rail's
   `+`.
 
@@ -116,7 +122,13 @@ snapshot lands.
 
 - A lazily populated tree of the workspace. Directories read one level at a time through
   `ListFilesAsync` when expanded; a not-yet-read directory shows a `Loading…` child. Hidden entries follow the
-  Show hidden files preference.
+  Show hidden files preference. A run of directories that each hold exactly one directory is one `a/b/c`
+  row, compacted by the host listing; it splits in place when a sibling appears and keeps what was expanded.
+- A file whose bytes are neither text nor a picture opens as a notice in its tab (“Binary files cannot be
+  previewed”, with the media type and size) rather than a window error; a clean open file that turns
+  byte-only on disk is replaced by the same notice.
+- Pointing at or focusing another workspace's row asks the host to pre-warm its watcher (see
+  [Files.SPEC.md](../SharpRail.Host.Core/Files.SPEC.md)); a failure is ignored.
 - A single click on a directory row toggles it; the built-in double-tap toggle is suppressed so a double
   click does not undo the first click. A file row single click previews and double click (or Enter) keeps.
 - Expansion lives above the rows and is keyed by directory path, so a rebuild or a watcher refresh re-reads
@@ -137,6 +149,9 @@ snapshot lands.
   Files. The chevron alone expands. There is no toolbar or Refresh control, no lifecycle status, no graph
   canvas, no editing.
 - An empty graph shows “No specifications in this project”.
+- A refresh re-reads into the mounted tree rather than rebuilding the panel. A read that fails keeps the
+  tree it last showed and puts an inline hint above it (“Specs could not be loaded: …”) with Retry, which
+  repeats the read; the hint goes when a read succeeds. It is never a window error.
 
 ## Changes
 
@@ -237,10 +252,6 @@ the change set keeps its last content.
   `gh` setup guidance on top of the host's pull request operations; CI status has no upstream source.
 - Revealing the active workspace's project on mount: rail expansion is the persisted collapsed set, so
   every project starts expanded and a collapsed one stays collapsed when it is entered.
-- The Welcome “Set up project” card and has-specs routing.
-- A distinct inline Specs load-failure hint with Retry that keeps the previous tree; failures are reported
-  through the window.
-- Compact single-directory runs in the Files tree.
 - A shared searchable branch combobox for the comparison target; the Changes pill uses a tree menu:
   Local contains branch path folders, Remote contains configured remote names and branch path folders.
   Leaves display the final path segment, retain the full ref for selection and tooltips, and mark the

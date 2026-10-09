@@ -77,7 +77,7 @@ A scope is defined once, and the file list, counts and both diff sides use the s
   working tree.
 
 Untracked files count their whole content as added lines (skipping symbolic links, files over 8 MiB and
-binary content). Line counts come from `--numstat`; binary rows keep zero counts.
+content the shared classification does not call text). Line counts come from `--numstat`; binary rows keep zero counts.
 
 ## Review target
 
@@ -198,5 +198,3 @@ clients re-read Git although no file in the workspace changed.
   commit id, so its bytes can change between two reads. Other scopes' originals are frozen to a commit.
 - A streamed, HTTP-served byte route; the host returns one gRPC message per read, so the cap is the
   editable-file limit rather than a streamed bound.
-- Untracked line counts only for content the shared classification calls text; invalid UTF-8 and
-  magic-typed files omit counts as NUL-bearing ones already do.

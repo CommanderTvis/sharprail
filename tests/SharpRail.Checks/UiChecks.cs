@@ -84,6 +84,7 @@ internal static class UiChecks
         E2E.NewWorkspaceShortcutE2E.Run(root);
         E2E.WorkspaceActionsE2E.Run(root);
         E2E.WelcomeE2E.Run(root);
+        E2E.SpecsPanelE2E.Run(root);
         E2E.DefaultWorkspaceE2E.Run(root);
         E2E.WorkspaceLifecycleE2E.Run(root);
         E2E.ExternalWorkspaceE2E.Run(root);

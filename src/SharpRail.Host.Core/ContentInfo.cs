@@ -10,7 +10,7 @@ public static class ContentInfo
 
     public static string Sha256Hex(ReadOnlySpan<byte> bytes) => Convert.ToHexStringLower(SHA256.HashData(bytes));
 
-    /// <summary>Valid UTF-8, with or without a byte order mark. NUL and other controls are text, as in file reads.</summary>
+    /// <summary>Valid UTF-8, with or without a byte order mark. The classifier adds the NUL rule on top.</summary>
     public static bool IsText(ReadOnlySpan<byte> bytes) => DecodesStrictly(bytes);
 
     private static bool DecodesStrictly(ReadOnlySpan<byte> bytes)

@@ -49,12 +49,33 @@ presets belong to the UI.
 - After each published snapshot the store pushes the lifecycle events of its difference to
   `WatchLifecycleAsync` subscribers: projects opened and closed, workspaces created, updated and removed.
   The stream replays nothing, so a subscriber that needs the present state reads the snapshot.
+- Settings in the file that this host does not know are kept verbatim and written back on every save, so
+  an older host does not erase a newer host's settings. Mutation keys remain closed; new keys require
+  protocol-version gating by clients.
+- `installation.json` beside the state file holds the directory's identity (`Installation.EnsureIn`,
+  surfaced as `HostStateStore.InstallationId`): a UUID created exclusively on first use, so racing first
+  launches agree on one id. A malformed file is reported and never replaced; a memory-only store has none.
 
 ## Projects
 
 - A project is identified by its absolute root path. `project-open` puts an unknown project first and
   removes it from recents; `project-close` moves it to the front of recents (at most 10) without touching
   the repository, its worktrees or their terminals; `project-forget` drops it from the open list.
+- Every open or recent project has one `ProjectRecord`: a UUID, a readable slug (lower-case name with runs
+  of other characters as one dash, `-2`, `-3`… on a clash) and `lastOpened` in Unix milliseconds. Opening
+  mints the record or advances `lastOpened`; closing keeps it, so identity survives close and reopen, and
+  it is dropped only when the project leaves both lists. A state file without records gets them minted and
+  written on load. The open list keeps newest-first order because an opened project goes to the front.
+- A client path is resolved on the host (`ProjectPaths.Resolve`, used by `OpenProjectAsync` and
+  `InspectProjectPathAsync`): `~` and `~/…` are the host user's home, anything else must be absolute, and
+  a relative path is refused rather than resolved against the host's working directory.
+  `InspectProjectPathAsync` classifies the folder before a client acts: `Repository` (inside a working
+  tree), `Initable` (a plain folder), `Missing` or `NotDirectory`. The picker flow refuses the last two
+  before opening anything and offers Initialize for the second.
+- `project-open` of a folder that is a linked worktree of an open project is refused as
+  `HostErrorCode.AlreadyOpen`, read from the workspace registry and the folder's `.git` file without
+  running Git. The code reaches local and remote clients alike; a worktree whose project is not open may
+  still be opened on its own.
 - Opening a plain folder offers Initialize: `git init -b main`, `git add -A` and an allow-empty initial
   commit, supplying a fallback identity only for a field Git has none configured for. A failed commit
   removes the new `.git` again, and a folder that is already a repository is refused.
@@ -79,7 +100,9 @@ presets belong to the UI.
 - An invalid change rejects the whole batch before persistence or broadcast. Line widths accept whole
   numbers 40–240; loaded values outside that range fall back to the client default (zero) without
   discarding valid siblings. Theme ids are opaque: availability and resolution belong to the UI.
-  `themeMode` is `fixed` or `system`; anything else loads as `fixed`. The terminal replay size
+  `themeMode` is `fixed` or `system`; anything else loads as `fixed`. A batch that changes `theme` without
+  naming a mode switches the host to fixed mode, so a client that predates modes still sees its theme
+  applied. A system pair with only one side is malformed and loads as no pair. The terminal replay size
   (`terminal-replay`) accepts whole numbers 0–1024 KiB and defaults to 64; a loaded value outside that
   range is clamped. Zero is a real value, so the wire always carries the field and a host that predates
   it reads as the default.
@@ -102,16 +125,7 @@ presets belong to the UI.
 
 ## Not yet ported
 
-- Preserving unknown settings already on disk across valid updates, so an older host does not erase a
-  newer host's settings. Mutation keys remain closed; new keys require protocol-version gating by clients.
-- Resolving `~` and rejecting relative project paths against the host filesystem, and a path inspection
-  that classifies a folder as repository, initializable, missing or not a directory before acting.
-- Refusing to open a non-repository (`HostErrorCode.NotGit`) and a canonical root already held as
-  another workspace's worktree (`HostErrorCode.AlreadyOpen`). Both codes already survive the local and
-  remote adapters; opening still accepts plain folders and does not check workspace ownership.
-- Stable project ids, readable slugs and `lastOpened` ordering that preserve identity across close and
-  reopen.
-- A legacy `theme` change without an explicit mode switching the host to fixed mode, and dropping a
-  malformed system pair on load.
-- A per-installation identity file. The terminal catalog is persisted by the terminal service, not this
-  store (see [Terminals.SPEC.md](Terminals.SPEC.md#catalog)).
+- A `NotGit` refusal of a non-repository. SharpRail opens a plain folder as a workspace on purpose (the
+  startup root, and Git failure never blocks opening files) and offers Initialize afterwards, so refusing it
+  needs the product decision upstream made; inspection already gives a client the classification, and the
+  code already survives the local and remote adapters.

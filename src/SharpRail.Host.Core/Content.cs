@@ -60,6 +60,9 @@ public static partial class ContentClassifier
         return new(ContentInfo.Sha256Hex(bytes), bytes.Length, text, media ?? (ByExtension.TryGetValue(Path.GetExtension(path), out var named) ? named : null));
     }
 
+    /// <summary>The text half of <see cref="Classify"/> without hashing, for callers that only count or decode.</summary>
+    public static bool IsText(ReadOnlySpan<byte> bytes) => Sniff(bytes).Text;
+
     private static (bool Text, string? Media) Sniff(ReadOnlySpan<byte> bytes)
     {
         if (Magic(bytes) is { } magic) return (false, magic);

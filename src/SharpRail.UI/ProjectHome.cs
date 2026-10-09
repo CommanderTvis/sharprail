@@ -109,17 +109,41 @@ public sealed partial class WorkbenchWindow
         panel.Children.Add(title);
         // The reference's screen is heading, then one to three cards; no pitch prose.
         var buttons = new WrapPanel { Name = "WelcomeCards", Orientation = Orientation.Horizontal, ItemSpacing = 12, LineSpacing = 12 };
-        if (clean)
+        welcomeCards = buttons;
+        FillWelcomeCards(buttons);
+        panel.Children.Add(buttons);
+        foreach (var child in panel.Children) child.HorizontalAlignment = HorizontalAlignment.Center;
+        return panel;
+    }
+
+    private WrapPanel? welcomeCards;
+
+    private void FillWelcomeCards(WrapPanel buttons)
+    {
+        buttons.Children.Clear();
+        if (!atHome)
         {
             var open = new Panels.WelcomeCard("folderFill", "Open project", "Choose a local folder to work in.", primary: true) { Name = "WelcomeCta" };
             open.ContextMenu = ProjectMenu();
             open.Click += (_, _) => open.ContextMenu.Open(open);
             buttons.Children.Add(open);
         }
+        else if (!projectSpecs.TryGetValue(projectRoot, out var hasSpecs))
+        {
+            // Which card leads depends on whether the project has specs; the cards wait for that answer.
+            if (WorkspaceMounted) _ = ProbeSpecsAsync();
+        }
         else
         {
-            var create = new Panels.WelcomeCard("add", "Create workspace", $"An isolated worktree on its own branch ({Shortcut("N")}).", primary: true)
-            { Name = "WelcomeCta" };
+            if (!hasSpecs)
+            {
+                var setUp = new Panels.WelcomeCard("bookFill", "Set up project", "Draft the project's specs, starting from its goal, in an isolated workspace.", primary: true)
+                { Name = "WelcomeCta" };
+                setUp.Click += (_, _) => _ = CreateWorkspaceDialogAsync();
+                buttons.Children.Add(setUp);
+            }
+            var create = new Panels.WelcomeCard("add", "Create workspace", $"An isolated worktree on its own branch ({Shortcut("N")}).", primary: hasSpecs)
+            { Name = hasSpecs ? "WelcomeCta" : "WelcomeAction" };
             create.Click += (_, _) => _ = CreateWorkspaceDialogAsync();
             var folder = new Panels.WelcomeCard("homeFill", "Work in project folder", "Changes and terminals run directly in your project folder — no isolation.",
                 primary: false)
@@ -127,9 +151,29 @@ public sealed partial class WorkbenchWindow
             folder.Click += (_, _) => _ = OpenWorkspaceAsync(projectRoot, false);
             buttons.Children.Add(create); buttons.Children.Add(folder);
         }
-        panel.Children.Add(buttons);
-        foreach (var child in panel.Children) child.HorizontalAlignment = HorizontalAlignment.Center;
-        return panel;
+    }
+
+    // Whether each project shown at its home has durable specs; absent while the first answer is on its way.
+    private readonly Dictionary<string, bool> projectSpecs = [];
+    private readonly HashSet<string> specProbes = [];
+
+    /// <summary>Asks the host once per change whether the project at home has specs, then refills the Welcome cards if the answer moved.</summary>
+    private async Task ProbeSpecsAsync()
+    {
+        var project = projectRoot;
+        if (!atHome || !specProbes.Add(project)) return;
+        bool has;
+        try { has = await Task.Run(async () => await host.HasDurableSpecsAsync(lifetime.Token), lifetime.Token); }
+        catch (OperationCanceledException) { return; }
+        // Without an answer Welcome offers the ordinary fork rather than a suggestion it cannot justify.
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or Grpc.Core.RpcException) { has = true; }
+        finally { specProbes.Remove(project); }
+        // The session may have moved to a workspace or another project meanwhile; its answer would be about that root.
+        if (!atHome || projectRoot != project || lifetime.IsCancellationRequested) return;
+        if (projectSpecs.TryGetValue(project, out var known) && known == has) return;
+        projectSpecs[project] = has;
+        // The empty center is not a tab the surface re-renders, so the mounted cards are refilled in place.
+        if (welcomeCards is { } cards && cards.IsAttachedToVisualTree()) FillWelcomeCards(cards);
     }
 
     private static string Shortcut(string key) => (OperatingSystem.IsMacOS() ? "⌘" : "Ctrl+") + key;

@@ -177,9 +177,11 @@ public sealed partial class ProjectServices
         {
             await GitRepository.RunAsync(workspace.ProjectRoot, cancellationToken, "worktree", "remove", "--", workspace.Path);
             ForgetWorkspace(id);
+            DropIndexes(workspace.Path);
             return workspace;
         }
         ForgetWorkspace(id);
+        DropIndexes(workspace.Path);
         try { await GitRepository.RunAsync(workspace.ProjectRoot, cancellationToken, "worktree", "remove", "--force", "--", workspace.Path); }
         catch (IOException)
         {
@@ -187,6 +189,13 @@ public sealed partial class ProjectServices
             await GitRepository.RunAsync(workspace.ProjectRoot, cancellationToken, "worktree", "prune");
         }
         return workspace;
+    }
+
+    /// <summary>A removed worktree takes its spec index and its pre-warmed watcher with it.</summary>
+    private static void DropIndexes(string path)
+    {
+        SpecCatalog.Evict(path);
+        WorkspaceWatches.Forget(path);
     }
 
     private WorkspaceRecord ReserveTerminal(string id)

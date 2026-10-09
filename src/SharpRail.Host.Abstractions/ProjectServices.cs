@@ -14,7 +14,11 @@ public static class FileLimits
 public record FileSaveRequest(string WorkspaceRoot, string Path, string OriginalText, string Text);
 public record FileChange(IReadOnlyList<string> Paths, bool Rescan = false);
 public record ProjectFile(string Path, string Name, bool IsDirectory);
-public record SpecDocument(string Id, string Title, string Path, string Parent, string Type);
+public record SpecDocument(string Id, string Title, string Path, string Parent, string Type)
+{
+    /// <summary>The frontmatter <c>status</c>, empty when the spec has none.</summary>
+    public string Status { get; init; } = "";
+}
 /// <summary>
 /// What the host knows about a resource's bytes: SHA-256 in lowercase hex and byte length (both null when the resource is
 /// absent), whether it is text, and its media type from magic numbers, then the filename. A byte-only resource has no
@@ -97,7 +101,7 @@ public record PrRequest(string Title, bool TitleEdited, string Body, bool Draft)
 public record PrResult(string Action, string Url, int Number, int DirtyFiles, string GhProblem);
 public record GitAction(string Kind, string Path = "", string Branch = "", string BaseBranch = "HEAD");
 
-public interface IProjectServices
+public partial interface IProjectServices
 {
     IAsyncEnumerable<FileChange> WatchFilesAsync(CancellationToken cancellationToken = default);
     ValueTask<WorkspaceInfo> OpenProjectAsync(string path, CancellationToken cancellationToken = default);

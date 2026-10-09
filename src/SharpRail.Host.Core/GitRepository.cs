@@ -176,7 +176,7 @@ internal static class GitRepository
                 var info = new FileInfo(path);
                 if (info.LinkTarget is not null || info.Length > 8 * 1024 * 1024) continue;
                 var bytes = await File.ReadAllBytesAsync(path, ct);
-                if (bytes.Contains((byte)0)) continue;
+                if (!ContentClassifier.IsText(bytes)) continue;
                 var lines = bytes.Count(value => value == '\n');
                 if (bytes.Length > 0 && bytes[^1] != '\n') lines++;
                 changes[index] = change with { Added = lines };

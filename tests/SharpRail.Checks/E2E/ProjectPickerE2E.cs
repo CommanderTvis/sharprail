@@ -21,6 +21,21 @@ internal static class ProjectPickerE2E
         ManualSupersedes(root);
         InitialiseNonGit(root);
         RailExpansion(root);
+        UnusablePaths(root);
+    }
+
+    private static void UnusablePaths(string root)
+    {
+        using var app = new E2eWorkspace(Path.Combine(root, "projects-unusable-welcome"), openFiles: false);
+        var file = Path.Combine(app.Root, "README.md");
+        foreach (var (path, message) in new[] { (Path.Combine(root, "projects-unusable-absent"), "No such folder: "), (file, "Not a folder: ") })
+        {
+            app.Window.FolderPicker = () => Task.FromResult<string?>(path);
+            AddProject(app, "Open project");
+            Until(() => app.Find<TextBlock>("WorkspaceError") is { IsVisible: true } error && error.Text == message + path);
+            Require(app.Window.WorkspaceRoot == app.Root && ProjectNames(app).Count() == 1, "An unusable path must leave the open workspace and the project list alone.");
+        }
+        Console.WriteLine("PASS SharpRail: a missing folder or a file picked as a project is refused by inspection before anything opens");
     }
 
     private static void Picker(string root)

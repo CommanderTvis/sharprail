@@ -187,7 +187,7 @@ public sealed class FileChangeReply
 }
 
 [Service]
-public interface IProjectRpc
+public partial interface IProjectRpc
 {
     IAsyncEnumerable<FileChangeReply> WatchFilesAsync(ProjectRequest request, CallContext context = default);
     ValueTask<SaveFileReply> SaveFileAsync(SaveFileRequest request, CallContext context = default);
@@ -278,6 +278,7 @@ public sealed class SpecReply
     [ProtoMember(3)] public string Path { get; set; } = "";
     [ProtoMember(4)] public string Parent { get; set; } = "";
     [ProtoMember(5)] public string Type { get; set; } = "";
+    [ProtoMember(6)] public string Status { get; set; } = "";
 }
 
 [ProtoContract]

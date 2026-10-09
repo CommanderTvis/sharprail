@@ -17,7 +17,7 @@ contract, not that list.
 run is the complete gate: host transport parity, host terminals, project/Git parity,
 host state, file saving, layout transitions, the open-world runtime probe, and then
 the headless UI checks with every upstream translation. Named modes
-(`--editor`, `--files`, `--terminals`, `--ghostty-skia`, `--sync`, `--workspaces`, `--registry`) are focused iteration subsets
+(`--editor`, `--files`, `--host-state`, `--specs`, `--terminals`, `--ghostty-skia`, `--sync`, `--workspaces`, `--registry`) are focused iteration subsets
 of that same code, never separate coverage; anything they run is also in the full
 run. `--native-terminal` and `--native-texture` drive real macOS windows; the latter
 verifies GPU texture composition, overlays/clipping, theme, clipboard/input,
@@ -184,6 +184,52 @@ project; and a prefetch that reports a move once, nudges the watcher of the work
 ref, stays silent when nothing changed and refuses a local branch or a range. The mode then
 runs `ChangesScopeE2E` headless, whose SharpRail-only last case requires the rail badge to total the listed changes, stores a picked target
 on the host and follows one re-pointed by another client; it needs `SHARPRAIL_TEST_GIT_SOURCE`.
+
+## Host state store checks
+
+`StateStoreChecks.cs` (`-- --host-state`, with `StateChecks.cs`; also in the default run) covers what the
+store keeps on disk: unknown settings surviving a valid update while unknown change keys stay rejected, a
+half system theme pair dropped on load, a theme change without a mode switching to fixed mode, and one
+stable installation identity across reopen and sixteen racing first launches, with a malformed identity
+file never replaced. It then covers project identity (ids and unique slugs minted at open, kept across
+close and reopen with `lastOpened` advancing, persisted, dropped when forgotten, minted for an older state
+file) and the `HostErrorCode.AlreadyOpen` refusal of an open project's linked worktree. `ProjectPathChecks.cs` in the
+same mode covers `~` and relative path resolution and equal path classification through the embedded host
+and a real gRPC host; `ProjectPickerE2E` adds the UI refusal of a missing folder and of a file.
+
+## File read checks
+
+`ProjectChecks.cs` (`-- --files`) reads the same fixture through the embedded host and a real gRPC host:
+NUL-bearing and invalid UTF-8 files answered as empty text with metadata, other control characters kept
+as text, a PNG under another name returned as a picture and text named `.png` as text, `.git` refused for
+reads, listings, saves and byte reads in any letter case, and a missing leaf reported by the read rather
+than by containment. `FilesE2E` opens a byte-only file and requires the in-tab notice with its size and no
+window error.
+
+`WatchChecks.cs` (`-- --watchers`, also in `--files` and the default run) covers the shared watchers:
+two subscriptions on one root sharing one set and both notified, a root deleted and recreated restarting
+the set once with a rescan to existing subscribers, release with the last subscriber, and the pre-warm
+pool through the embedded host and a real gRPC host: eight kept, the least recently warmed evicted,
+re-warming, a subscription taking over a pre-warmed set and never being evicted, a vanished folder reaped
+and a relative path refused. `ProjectPathChecks.cs` checks that untracked line counts follow the shared
+classification.
+
+## Spec catalog checks
+
+`SpecChecks.cs` (`-- --specs`, also in the default run) builds a fixture with a byte order mark, CRLF,
+quoted and commented scalars, flow and block lists, a `SPEC.md` without frontmatter, a triple duplicate id
+across a directory, a file and another directory, a parent ring, a dangling link and an ignored directory.
+It requires the winner chosen by the one-list sort, every link kind forwards and backwards, the three
+validation lists, parse and build counters that stay still for an unchanged workspace and move by one for
+one edited file, equal graphs through the embedded host and a real gRPC host, the durable-spec query
+ignoring a lone task spec and answering false for a missing folder, and the index dropped with its
+worktree. Authoring covers the path rule's refusals, create, an exact-text frontmatter update that keeps
+comments, CRLF, the byte order mark and the body, refused identity edits, and delete.
+`E2E/SpecsPanelE2E.cs` (in `--workspaces`; `-- --specs-panel` runs it with the Welcome translations)
+covers the panels on top: Welcome leading with Set up project for a project whose only spec is a task
+spec, that card opening the Create workspace dialog, the cards following a durable spec appearing and
+disappearing on disk, and a failed Specs read keeping the previous tree behind the inline hint until
+Retry succeeds.
 
 ## Quit and close commands
 
