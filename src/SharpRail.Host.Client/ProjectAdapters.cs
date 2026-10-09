@@ -35,6 +35,8 @@ public sealed class LocalProjectAdapter(IProjectServices host) : IProjectService
     public ValueTask<PrResult> OpenPrAsync(PrRequest request, CancellationToken cancellationToken = default) => host.OpenPrAsync(request, cancellationToken);
     public ValueTask<IReadOnlyList<EditorInfo>> ListEditorsAsync(CancellationToken cancellationToken = default) => host.ListEditorsAsync(cancellationToken);
     public ValueTask OpenInEditorAsync(string editorId, string worktreePath, CancellationToken cancellationToken = default) => host.OpenInEditorAsync(editorId, worktreePath, cancellationToken);
+    public ValueTask<WorkspaceCatalog> ListWorkspacesAsync(string projectRoot, CancellationToken cancellationToken = default) => host.ListWorkspacesAsync(projectRoot, cancellationToken);
+    public ValueTask<WorkspaceRecord?> ApplyWorkspaceActionAsync(WorkspaceAction action, CancellationToken cancellationToken = default) => host.ApplyWorkspaceActionAsync(action, cancellationToken);
 }
 
 public sealed class RemoteProjectAdapter : IProjectServices, IDisposable
@@ -208,6 +210,27 @@ public sealed class RemoteProjectAdapter : IProjectServices, IDisposable
 
     public async ValueTask OpenInEditorAsync(string editorId, string worktreePath, CancellationToken cancellationToken = default)
         => await service.OpenInEditorAsync(new() { EditorId = editorId, WorktreePath = worktreePath }, Context(cancellationToken));
+
+    public async ValueTask<WorkspaceCatalog> ListWorkspacesAsync(string projectRoot, CancellationToken cancellationToken = default)
+    {
+        var reply = await service.ListWorkspacesAsync(new() { ProjectRoot = projectRoot }, Context(cancellationToken));
+        return new(reply.Workspaces.Select(WorkspaceMessages.Map).ToArray(), reply.Existing.Select(tree => new ExistingWorktree(tree.Path, tree.Branch)).ToArray());
+    }
+
+    // Creating may fetch the base first, which a slow remote stretches well past an ordinary call.
+    public async ValueTask<WorkspaceRecord?> ApplyWorkspaceActionAsync(WorkspaceAction action, CancellationToken cancellationToken = default)
+    {
+        var reply = await service.ApplyWorkspaceActionAsync(new()
+        {
+            Kind = action.Kind,
+            ProjectRoot = action.ProjectRoot,
+            Id = action.Id,
+            Path = action.Path,
+            Name = action.Name,
+            BaseBranch = action.BaseBranch
+        }, Context(cancellationToken, deadline: TimeSpan.FromMinutes(5)));
+        return reply.Workspace is { } workspace ? WorkspaceMessages.Map(workspace) : null;
+    }
 
     private static GitSnapshot Map(GitReply reply) => new(reply.IsRepository, reply.Branch,
         reply.Changes.Select(change => new GitChange(change.Path, change.IndexStatus, change.WorktreeStatus, change.OriginalPath, change.Added, change.Removed)).ToArray(),

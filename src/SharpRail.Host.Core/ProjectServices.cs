@@ -95,7 +95,12 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
     }
 
     public async ValueTask<GitSnapshot> GetGitAsync(string comparisonBranch = "", CancellationToken cancellationToken = default, string scope = "all")
-        => await GitRepository.SnapshotAsync(root, comparisonBranch, cancellationToken, scope);
+    {
+        var currentRoot = root;
+        var snapshot = await GitRepository.SnapshotAsync(currentRoot, comparisonBranch, cancellationToken, scope);
+        if (snapshot.IsRepository) await SyncBranchAsync(currentRoot, snapshot.Branch, cancellationToken);
+        return snapshot;
+    }
 
     public async ValueTask<IReadOnlyList<GitCommit>> ListCommitsAsync(string comparisonBranch, CancellationToken cancellationToken = default)
         => await GitRepository.ListCommitsAsync(root, comparisonBranch, cancellationToken);
@@ -272,31 +277,24 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
                     }
                     break;
                 case "create-worktree":
-                    if (string.IsNullOrWhiteSpace(action.Branch)) throw new ArgumentException("Enter a new branch name.");
-                    GitRefs.Require(action.Branch);
-                    GitRefs.Require(action.BaseBranch);
-                    await FetchRemoteAsync(currentRoot, action.BaseBranch, cancellationToken);
-                    await GitRepository.RunAsync(currentRoot, cancellationToken, "rev-parse", "--verify", "--end-of-options", action.BaseBranch + "^{commit}");
-                    await GitRepository.RunAsync(currentRoot, cancellationToken, "worktree", "add", "-b", action.Branch,
-                        "--", Path.GetFullPath(action.Path), action.BaseBranch);
+                    await CreateWorkspaceAsync(await MainWorktreeAsync(currentRoot, cancellationToken), "", action.BaseBranch, action.Path, action.Branch, cancellationToken);
                     break;
                 case "remove-worktree":
                     var snapshot = await GitRepository.SnapshotAsync(currentRoot, "", cancellationToken);
                     var target = snapshot.Worktrees.SingleOrDefault(tree => tree.Path == Path.GetFullPath(action.Path));
                     if (target is null || target.IsMain || target.IsLocked || target.Path == currentRoot)
                         throw new InvalidOperationException("The main, active, or locked worktree cannot be removed.");
-                    await GitRepository.RunAsync(currentRoot, cancellationToken, "worktree", "remove", "--", target.Path);
+                    if (registry.Current.Workspaces.Any(workspace => workspace.Path == target.Path && workspace.Kind == WorkspaceKinds.External))
+                        throw new InvalidOperationException("An existing worktree stays on disk; remove it from SharpRail instead.");
+                    using (await registry.LockWorkspacesAsync(cancellationToken))
+                    {
+                        await GitRepository.RunAsync(currentRoot, cancellationToken, "worktree", "remove", "--", target.Path);
+                        registry.ChangeWorkspaces(current => current.Where(workspace => workspace.Path != target.Path));
+                    }
                     break;
                 default: throw new ArgumentException("Unknown git action.");
             }
-            var result = await GitRepository.SnapshotAsync(currentRoot, "", cancellationToken);
-            if (action.Kind is "create-worktree" or "remove-worktree" && state is not null && result.Worktrees.FirstOrDefault(tree => tree.IsMain) is { } main)
-                state.PublishWorkspaces(main.Path, result.Worktrees.Select(tree => tree.Path).ToArray(),
-                    action.Kind == "remove-worktree" ? Path.GetFullPath(action.Path) : null,
-                    action.Kind == "create-worktree" ? Path.GetFullPath(action.Path) : null,
-                    // HEAD is wherever the session stood, not a target a later reader could resolve to the same commit.
-                    action.BaseBranch == "HEAD" ? null : action.BaseBranch);
-            return result;
+            return await GitRepository.SnapshotAsync(currentRoot, "", cancellationToken);
         }
         finally { mutations.Release(); }
     }

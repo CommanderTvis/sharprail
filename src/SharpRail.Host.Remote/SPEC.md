@@ -112,4 +112,3 @@ unauthenticated peer learns nothing about the host's version.
   logging.
 - Resolving the login-shell `PATH` at boot.
 - Structured leveled diagnostics with rotating on-disk logs.
-- Pushed project/workspace lifecycle events.

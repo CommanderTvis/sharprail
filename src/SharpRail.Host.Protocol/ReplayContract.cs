@@ -21,5 +21,5 @@ public static class ReplayHeaders
 
     /// <summary>The operations that change something and are therefore replayed under one id rather than retried.</summary>
     public static bool IsReplayable(string method) =>
-        method is "SaveFile" or "ApplyGitAction" or "RevertChange" or "UndoChange" or "OpenPr" or "OpenInEditor" or "Change";
+        method is "SaveFile" or "ApplyGitAction" or "RevertChange" or "UndoChange" or "OpenPr" or "OpenInEditor" or "ApplyWorkspaceAction" or "Change";
 }

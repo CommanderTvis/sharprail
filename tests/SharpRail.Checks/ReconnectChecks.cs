@@ -308,5 +308,10 @@ internal static class ReconnectChecks
             yield return new();
             await Task.Delay(Timeout.Infinite, cancellationToken);
         }
+        public async IAsyncEnumerable<LifecycleEvent> WatchLifecycleAsync([System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            await Task.Delay(Timeout.Infinite, cancellationToken);
+            yield break;
+        }
     }
 }

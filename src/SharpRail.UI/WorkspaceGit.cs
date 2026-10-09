@@ -9,7 +9,7 @@ public sealed partial class WorkbenchWindow
 
     private void RememberGitSelection()
     {
-        if (WorkspaceMounted) profile.Data.GitSelections[workspaceRoot] = new(comparison, changeScope, selectedCommit);
+        if (WorkspaceMounted && !removedWorkspaces.Contains(workspaceRoot)) profile.Data.GitSelections[workspaceRoot] = new(comparison, changeScope, selectedCommit);
     }
 
     private void RestoreGitSelection()
@@ -87,7 +87,7 @@ public sealed partial class WorkbenchWindow
     {
         toolContent.Remove("changes");
         toolContent.Remove("review");
-        if (RailSignature() == railSignature) { surface.RefreshContents("changes", "review"); return; }
+        if (RailSignature() == railSignature) { UpdateRailSelection(); surface.RefreshContents("changes", "review"); return; }
         KeepingFocus(() =>
         {
             toolContent.Remove("projects");
@@ -95,5 +95,10 @@ public sealed partial class WorkbenchWindow
         });
     }
 
-    private string RailSignature() => git.IsRepository + "\0" + string.Join("\0", git.Worktrees.Select(tree => $"{tree.Path}\t{tree.Branch}\t{tree.IsLocked}"));
+    // The rows the rail is built from. Anything else it shows (selection, branches, what Git allows) is restyled in
+    // place, so a refresh that adds or removes no row leaves its controls, focus and pointer targets alone.
+    private string RailSignature() => string.Join("\0", state.Current.Projects.SelectMany(RailWorkspaces)
+        .Select(workspace => $"{workspace.Path}\t{workspace.Kind}\t{WorktreeLocked(workspace.Path)}"));
+
+    private bool WorktreeLocked(string path) => git.Worktrees.Any(tree => tree.Path == path && tree.IsLocked);
 }

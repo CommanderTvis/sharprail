@@ -37,7 +37,7 @@ gRPC.
 | Area | Files | Spec |
 | --- | --- | --- |
 | Shared host state | `HostStateStore.cs` | [HostState.SPEC.md](HostState.SPEC.md) |
-| Workspaces and worktrees | `ProjectServices.cs`, `WorkspaceActions.cs` | [Workspaces.SPEC.md](Workspaces.SPEC.md) |
+| Workspaces and worktrees | `ProjectServices.cs`, `WorkspaceActions.cs`, `WorkspaceRegistry.cs`, `HostStateStore.Workspaces.cs` | [Workspaces.SPEC.md](Workspaces.SPEC.md) |
 | Git runner, status and diffs | `GitRepository.cs`, `ProjectServices.cs` | [Git.SPEC.md](Git.SPEC.md) |
 | Files | `ProjectServices.cs`, `ProjectFileSaving.cs`, `WorkspaceHost.cs` | [Files.SPEC.md](Files.SPEC.md) |
 | Specs | `SpecCatalog.cs` | [Specs.SPEC.md](Specs.SPEC.md) |

@@ -56,13 +56,6 @@ public sealed class WorkspaceRefMessage
 }
 
 [ProtoContract]
-public sealed class WorkspaceListMessage
-{
-    [ProtoMember(1)] public string ProjectRoot { get; set; } = "";
-    [ProtoMember(2)] public List<string> Paths { get; set; } = [];
-}
-
-[ProtoContract]
 public sealed class StateReply
 {
     [ProtoMember(1)] public long Revision { get; set; }
@@ -71,9 +64,10 @@ public sealed class StateReply
     [ProtoMember(4)] public List<string> Projects { get; set; } = [];
     [ProtoMember(5)] public List<string> RecentProjects { get; set; } = [];
     [ProtoMember(6)] public List<LabelMessage> Labels { get; set; } = [];
-    [ProtoMember(7)] public List<WorkspaceListMessage> Workspaces { get; set; } = [];
+    // 7 carried the unpersisted per-project worktree paths that the registry replaced.
     [ProtoMember(8)] public List<WorkspaceRefMessage> Bases { get; set; } = [];
     [ProtoMember(9)] public List<WorkspaceRefMessage> DiffBases { get; set; } = [];
+    [ProtoMember(10)] public List<WorkspaceRecordMessage> Workspaces { get; set; } = [];
 }
 
 [ProtoContract]
@@ -98,4 +92,6 @@ public interface IStateRpc
     ValueTask<StateReply> ChangeAsync(StateChangeRequest request, CallContext context = default);
     /// <summary>Server streaming: the current snapshot first, then one per change.</summary>
     IAsyncEnumerable<StateReply> WatchAsync(StateRequest request, CallContext context = default);
+    /// <summary>Server streaming: project and workspace lifecycle changes from now on, each tagged with its channel.</summary>
+    IAsyncEnumerable<LifecycleMessage> WatchLifecycleAsync(StateRequest request, CallContext context = default);
 }

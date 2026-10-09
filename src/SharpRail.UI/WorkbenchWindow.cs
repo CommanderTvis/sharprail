@@ -57,13 +57,17 @@ public sealed partial class WorkbenchWindow : Window
     public WindowProfile Slot => slot;
     internal IProjectServices Host => host;
 
-    /// <summary>A standalone window with its own workbench over the profile's local host state; it restores the profile's first window.</summary>
-    public WorkbenchWindow(IProjectServices host, string rootPath, ProfileStore profile, Terminal.TerminalFactory terminals, bool remote = false)
-        : this(Standalone(profile, terminals, remote), host, profile.Data.Windows[0], rootPath) => workbench.Attach(this);
+    /// <summary>
+    /// A standalone window with its own workbench over the profile's local host state; it restores the profile's first
+    /// window. A host that registers workspaces passes the store it writes to, or the rail never hears of them.
+    /// </summary>
+    public WorkbenchWindow(IProjectServices host, string rootPath, ProfileStore profile, Terminal.TerminalFactory terminals, bool remote = false,
+        Host.Core.HostStateStore? state = null)
+        : this(Standalone(profile, terminals, remote, state), host, profile.Data.Windows[0], rootPath) => workbench.Attach(this);
 
-    private static Workbench Standalone(ProfileStore profile, Terminal.TerminalFactory terminals, bool remote)
+    private static Workbench Standalone(ProfileStore profile, Terminal.TerminalFactory terminals, bool remote, Host.Core.HostStateStore? state)
     {
-        var store = profile.OpenState();
+        var store = state ?? profile.OpenState();
         return new(profile, new SharedState(new Host.Client.LocalStateAdapter(store), profile.Data.Preferences, store.Current), terminals, remote, null);
     }
 
@@ -206,6 +210,8 @@ public sealed partial class WorkbenchWindow : Window
             status.Text = "Loading";
             var workspace = await host.OpenProjectAsync(path, lifetime.Token);
             if (request != projectRequest) return;
+            // A workspace removed while this open was in flight is not entered again.
+            if (!home && workspace.RootPath != workspace.ProjectRoot && removedWorkspaces.Contains(workspace.RootPath)) home = true;
             if (home && workspace.RootPath != workspace.ProjectRoot)
             {
                 workspace = await host.OpenProjectAsync(workspace.ProjectRoot, lifetime.Token);
@@ -237,6 +243,7 @@ public sealed partial class WorkbenchWindow : Window
             slot.LastAtHome = home;
             WorkspaceMounted = true; restorePending = false;
             Layout.SwitchWorkspace(home ? HomeKey(projectRoot) : workspaceRoot);
+            foreach (var removed in removedWorkspaces) Layout.DropWorkspace(removed);
             status.Text = remote ? "Remote" : "Connected";
             errorText.IsVisible = false;
             ReportProfileError();
@@ -251,7 +258,13 @@ public sealed partial class WorkbenchWindow : Window
         catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
         finally { projectGate.Release(); }
         if (request == projectRequest && WorkspaceMounted)
-            Dispatcher.UIThread.Post(() => { _ = RefreshGitAsync(request); StartWatching(request); }, DispatcherPriority.Background);
+            Dispatcher.UIThread.Post(() =>
+            {
+                _ = RefreshGitAsync(request); StartWatching(request);
+                if (syncedProject == projectRoot) return;
+                syncedProject = projectRoot;
+                _ = SyncWorkspacesAsync(projectRoot);
+            }, DispatcherPriority.Background);
     }
 
     private Control RenderContent(DockTab? tab)
@@ -383,6 +396,7 @@ public sealed partial class WorkbenchWindow : Window
             folderCache.Clear(); folderCache[""] = files;
             status.Text = remote ? "Remote" : "Connected"; errorText.IsVisible = false;
             toolContent.Remove("files"); toolContent.Remove("specs"); surface.RefreshContents("files", "specs");
+            _ = SyncWorkspacesAsync(projectRoot);
             await RefreshGitAsync(request);
         }
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }

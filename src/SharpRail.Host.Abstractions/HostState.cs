@@ -35,8 +35,11 @@ public sealed record HostState
     /// <summary>The ref a workspace's changes are measured against: its re-pointed target, else its creation base, else none.</summary>
     public string DiffBase(string workspace) =>
         WorkspaceDiffBases.GetValueOrDefault(workspace) ?? WorkspaceBases.GetValueOrDefault(workspace) ?? "";
-    /// <summary>Workspace paths per project root, published after the host creates or removes a workspace. Not persisted.</summary>
-    public IReadOnlyDictionary<string, IReadOnlyList<string>> Workspaces { get; init; } = new Dictionary<string, IReadOnlyList<string>>();
+
+    /// <summary>The persisted workspace registry of every project, each project's Default workspace first.</summary>
+    public IReadOnlyList<WorkspaceRecord> Workspaces { get; init; } = [];
+
+    public IEnumerable<WorkspaceRecord> WorkspacesOf(string projectRoot) => Workspaces.Where(workspace => workspace.ProjectRoot == projectRoot);
 }
 
 public sealed record HostStateChange(string Kind, string Key = "", string Value = "")
@@ -66,4 +69,9 @@ public interface IHostStateService
     ValueTask<HostState> ChangeAsync(IReadOnlyList<HostStateChange> changes, CancellationToken cancellationToken = default);
     /// <summary>Yields the current snapshot, then every later one, until cancelled or disconnected.</summary>
     IAsyncEnumerable<HostState> WatchAsync(CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Yields each later project and workspace lifecycle change, after the snapshot that carries it was saved and
+    /// published. Nothing is replayed: a client that reconnects rehydrates from <see cref="WatchAsync"/>.
+    /// </summary>
+    IAsyncEnumerable<LifecycleEvent> WatchLifecycleAsync(CancellationToken cancellationToken = default);
 }

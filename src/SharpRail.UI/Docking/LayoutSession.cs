@@ -74,6 +74,16 @@ public sealed class LayoutSession
         return view;
     }
 
+    /// <summary>Drops the view of a workspace that no longer exists; nothing is asked, since its documents went with it.</summary>
+    public void DropWorkspace(string path)
+    {
+        if (path == State.ActiveWorkspace || !State.Workspaces.ContainsKey(path)) return;
+        var next = State.Copy();
+        next.Workspaces.Remove(path);
+        State = next; Epoch++;
+        Changed?.Invoke();
+    }
+
     public void SwitchWorkspace(string path) => Change(state =>
     {
         var previous = Active(state);

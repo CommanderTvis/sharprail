@@ -65,3 +65,5 @@
 - Group actions must follow the selected content: Projects and other tool views should not show a terminal opener. Update visibility on tab selection as well as group rebuilds so mixed tool/resource groups stay consistent.
 
 - For product-contract updates, reuse literal JetBrains/thinkrail spec wording when behavior matches, and state SharpRail platform adaptations explicitly. Keep the root SPEC.md consistent with the owning module specs.
+- Headless input pumps dispatcher jobs between press and release, so rebuilding a panel shortly after a mount swallows the click that lands on it. Restyle rail rows in place for branch, selection and Git state; rebuild only when a row is added or removed.
+- A host operation that reads Git and then rewrites shared state must hold the store's workspace gate across both steps. A slow list that read worktrees before a create otherwise drops the record the create wrote.

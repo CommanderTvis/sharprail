@@ -44,7 +44,8 @@ internal static class ChangesScopeE2E
             .SelectMany(item => item.GetLogicalDescendants().OfType<StackPanel>()).Where(panel => panel.Name == "WorkspaceDiffStats" && panel.IsVisible)
             .SelectMany(panel => panel.Children.OfType<TextBlock>()).Select(text => text.Text ?? "").ToArray();
         Until(() => Badge() is [var first, _] && first.StartsWith('+') && first != "+0");
-        var listed = app.Host.GetGitAsync(app.State!.Current.DiffBase(workspace)).AsTask().GetAwaiter().GetResult().Changes.Where(change => change.IndexStatus != "?");
+        // Off the UI thread: the host resumes on the caller's context, which this blocking wait would hold.
+        var listed = Task.Run(async () => await app.Host.GetGitAsync(app.State!.Current.DiffBase(workspace))).GetAwaiter().GetResult().Changes.Where(change => change.IndexStatus != "?");
         Require(Badge()[0] == "+" + listed.Sum(change => change.Added) && Badge()[1] == "−" + listed.Sum(change => change.Removed),
             "The workspace badge must total the tracked changes of the Changes list: " + string.Join(" ", Badge()));
 

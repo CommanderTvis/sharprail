@@ -120,12 +120,11 @@ project: local adapters call Core directly, with no serialization.
 
 ## Not yet ported
 
-- Pushed invalidations beyond host state: project/workspace lifecycle as separate
-  channels, a worktree file-change nudge (`workspace.fsChanged`), and a host
-  update notice.
+- Pushed invalidations beyond host state and the lifecycle stream: a worktree
+  file-change nudge (`workspace.fsChanged`) and a host update notice.
 - Project inspection (`repo`/`initable`/`missing`/`notDirectory`), `git init`,
-  lazy "has specs", attaching existing worktrees
-  and a `GitDiffScope` of a single commit carried on file diffs as a typed value.
+  lazy "has specs" and a `GitDiffScope` of a single commit carried on file diffs
+  as a typed value.
 - A host HTTP endpoint for worktree files (relative Markdown images over remote).
 - Resource metadata on file reads and diff sides is ported, with the bytes fetched over gRPC rather than
   the host's file/blob HTTP endpoints. Still open: a byte-only file read (invalid UTF-8 still fails as

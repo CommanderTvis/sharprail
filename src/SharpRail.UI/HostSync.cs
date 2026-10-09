@@ -16,6 +16,26 @@ public sealed partial class WorkbenchWindow
     private int hydratedGeneration = 1;
     // The project this window is closing itself; the broadcast of that close must not navigate again.
     private string? closingProject;
+    // Workspaces removed while this window lives: a read still in flight must not bring their local state back.
+    private readonly HashSet<string> removedWorkspaces = [];
+    private string syncedProject = "";
+
+    /// <summary>Has the host ensure and re-sync a project's registry; the rail follows the broadcast, never this call.</summary>
+    private async Task SyncWorkspacesAsync(string project)
+    {
+        try { await Task.Run(async () => await host.ListWorkspacesAsync(project, lifetime.Token), lifetime.Token); }
+        catch (OperationCanceledException) { }
+        catch (Exception error) { Console.Error.WriteLine("Workspaces could not be listed: " + error.Message); }
+    }
+
+    /// <summary>Forgets everything this window kept for a removed workspace; the view of one still shown goes once it is left.</summary>
+    private void DropWorkspaceState(string path)
+    {
+        removedWorkspaces.Add(path);
+        selectionHistory.Remove(path);
+        if (profile.Data.GitSelections.Remove(path)) SaveProfile();
+        Layout.DropWorkspace(path);
+    }
 
     private void WireHostSync()
     {
@@ -47,7 +67,8 @@ public sealed partial class WorkbenchWindow
     private void SharedStateChanged(HostState previous, HostState next)
     {
         if (next.Settings != previous.Settings) RefreshAppearance();
-        var rail = !next.Projects.SequenceEqual(previous.Projects) || !next.RecentProjects.SequenceEqual(previous.RecentProjects) ||
+        var registry = !next.Workspaces.SequenceEqual(previous.Workspaces);
+        var rail = RailSignature() != railSignature || !next.Projects.SequenceEqual(previous.Projects) || !next.RecentProjects.SequenceEqual(previous.RecentProjects) ||
             next.WorkspaceLabels.Count != previous.WorkspaceLabels.Count ||
             next.WorkspaceLabels.Any(entry => previous.WorkspaceLabels.GetValueOrDefault(entry.Key) != entry.Value);
         if (rail)
@@ -57,6 +78,7 @@ public sealed partial class WorkbenchWindow
                 if (toolContent.Remove("projects")) surface.RefreshContents("projects");
                 if (atHome || cleanWelcome) surface.RefreshContents();
             });
+        else if (registry) UpdateRailSelection();
         if (WorkspaceMounted && (!ReferenceEquals(next.WorkspaceDiffBases, previous.WorkspaceDiffBases) || !ReferenceEquals(next.WorkspaceBases, previous.WorkspaceBases)))
             _ = RefreshWorkspaceStatsAsync(projectRequest);
         // Another client re-pointed this workspace's review target: follow it, as a local choice would.
@@ -75,16 +97,20 @@ public sealed partial class WorkbenchWindow
             else ShowWelcome();
             return;
         }
-        if (projectRoot.Length == 0 || next.Workspaces.GetValueOrDefault(projectRoot) is not { } workspaces ||
-            previous.Workspaces.GetValueOrDefault(projectRoot) is { } known && known.SequenceEqual(workspaces)) return;
-        if (WorkspaceMounted && !atHome && workspaceRoot != projectRoot && !workspaces.Contains(workspaceRoot))
+        if (!registry) return;
+        var paths = next.Workspaces.Select(workspace => workspace.Path).ToHashSet();
+        removedWorkspaces.ExceptWith(paths);
+        var gone = previous.Workspaces.Where(workspace => !paths.Contains(workspace.Path)).ToArray();
+        var shown = WorkspaceMounted && !atHome && gone.Any(workspace => workspace.Path == workspaceRoot);
+        var name = shown ? previous.WorkspaceLabels.GetValueOrDefault(workspaceRoot) ?? DirectoryName(workspaceRoot) : "";
+        foreach (var workspace in gone) DropWorkspaceState(workspace.Path);
+        if (shown)
         {
-            var name = previous.WorkspaceLabels.GetValueOrDefault(workspaceRoot) ?? DirectoryName(workspaceRoot);
-            selectionHistory.Remove(workspaceRoot);
             _ = OpenProjectHomeAsync(projectRoot);
             ShowNotification($"{name} was removed.");
         }
-        else if (WorkspaceMounted) _ = RefreshGitAsync(projectRequest);
+        else if (WorkspaceMounted && !previous.WorkspacesOf(projectRoot).Select(workspace => workspace.Path)
+            .SequenceEqual(next.WorkspacesOf(projectRoot).Select(workspace => workspace.Path))) _ = RefreshGitAsync(projectRequest);
     }
 
     /// <summary>

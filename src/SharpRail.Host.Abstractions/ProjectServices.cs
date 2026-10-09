@@ -121,4 +121,11 @@ public interface IProjectServices
     ValueTask<PrResult> OpenPrAsync(PrRequest request, CancellationToken cancellationToken = default);
     ValueTask<IReadOnlyList<EditorInfo>> ListEditorsAsync(CancellationToken cancellationToken = default);
     ValueTask OpenInEditorAsync(string editorId, string worktreePath, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Reads a project's workspace registry after ensuring its Default workspace and re-syncing branches with their
+    /// checkouts, and lists the worktrees that could still be attached. Changes reach every client through host state.
+    /// </summary>
+    ValueTask<WorkspaceCatalog> ListWorkspacesAsync(string projectRoot, CancellationToken cancellationToken = default);
+    /// <summary>Returns the workspace the action created, changed or dropped; null when there was none to drop.</summary>
+    ValueTask<WorkspaceRecord?> ApplyWorkspaceActionAsync(WorkspaceAction action, CancellationToken cancellationToken = default);
 }

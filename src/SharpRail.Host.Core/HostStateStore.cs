@@ -11,7 +11,7 @@ namespace SharpRail.Host.Core;
 /// The host's shared state: persisted to <c>state.json</c> in its directory (or kept in memory
 /// without one) and published as complete snapshots to every watcher.
 /// </summary>
-public sealed class HostStateStore : IHostStateService
+public sealed partial class HostStateStore : IHostStateService
 {
     public const string FileName = "state.json";
 
@@ -24,6 +24,7 @@ public sealed class HostStateStore : IHostStateService
         public Dictionary<string, string> WorkspaceLabels { get; set; } = [];
         public Dictionary<string, string> WorkspaceBases { get; set; } = [];
         public Dictionary<string, string> WorkspaceDiffBases { get; set; } = [];
+        public List<WorkspaceRecord> Workspaces { get; set; } = [];
     }
 
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true };
@@ -55,7 +56,8 @@ public sealed class HostStateStore : IHostStateService
                     RecentProjects = stored.RecentProjects ?? [],
                     WorkspaceLabels = stored.WorkspaceLabels ?? [],
                     WorkspaceBases = stored.WorkspaceBases ?? [],
-                    WorkspaceDiffBases = stored.WorkspaceDiffBases ?? []
+                    WorkspaceDiffBases = stored.WorkspaceDiffBases ?? [],
+                    Workspaces = stored.Workspaces ?? []
                 };
             }
             else initial = seed?.Invoke() ?? new();
@@ -83,36 +85,6 @@ public sealed class HostStateStore : IHostStateService
         }
     }
 
-    /// <summary>
-    /// Records a project's workspaces after one was created or removed. A removed workspace loses its label and
-    /// review target; a created one records <paramref name="createdBase"/> as the ref it started from.
-    /// </summary>
-    public void PublishWorkspaces(string projectRoot, IReadOnlyList<string> workspaces, string? removed = null,
-        string? created = null, string? createdBase = null)
-    {
-        lock (gate)
-        {
-            var lists = state.Workspaces.ToDictionary();
-            lists[projectRoot] = workspaces.ToArray();
-            var next = state with { Workspaces = lists };
-            if (removed is not null)
-                next = next with
-                {
-                    WorkspaceLabels = Without(next.WorkspaceLabels, removed),
-                    WorkspaceBases = Without(next.WorkspaceBases, removed),
-                    WorkspaceDiffBases = Without(next.WorkspaceDiffBases, removed)
-                };
-            if (created is not null && createdBase is not null && GitRefs.IsSafe(createdBase))
-                next = next with
-                {
-                    WorkspaceBases = new Dictionary<string, string>(next.WorkspaceBases) { [created] = createdBase },
-                    WorkspaceDiffBases = Without(next.WorkspaceDiffBases, created)
-                };
-            Publish(next, persist: !ReferenceEquals(next.WorkspaceLabels, state.WorkspaceLabels) ||
-                !ReferenceEquals(next.WorkspaceBases, state.WorkspaceBases) || !ReferenceEquals(next.WorkspaceDiffBases, state.WorkspaceDiffBases));
-        }
-    }
-
     private static IReadOnlyDictionary<string, string> Without(IReadOnlyDictionary<string, string> entries, string key) =>
         entries.ContainsKey(key) ? entries.Where(entry => entry.Key != key).ToDictionary() : entries;
 
@@ -136,9 +108,11 @@ public sealed class HostStateStore : IHostStateService
     private HostState Publish(HostState next, bool persist)
     {
         if (ReferenceEquals(next, state)) return state;
+        var previous = state;
         state = next with { Revision = state.Revision + 1 };
         if (persist) Save(state);
         foreach (var watcher in watchers) watcher.Writer.TryWrite(state);
+        PublishLifecycle(previous, state);
         return state;
     }
 
@@ -156,7 +130,8 @@ public sealed class HostStateStore : IHostStateService
                 RecentProjects = snapshot.RecentProjects.ToList(),
                 WorkspaceLabels = snapshot.WorkspaceLabels.ToDictionary(),
                 WorkspaceBases = snapshot.WorkspaceBases.ToDictionary(),
-                WorkspaceDiffBases = snapshot.WorkspaceDiffBases.ToDictionary()
+                WorkspaceDiffBases = snapshot.WorkspaceDiffBases.ToDictionary(),
+                Workspaces = snapshot.Workspaces.ToList()
             };
             var temporary = path + ".tmp";
             File.WriteAllText(temporary, JsonSerializer.Serialize(stored, Json));
@@ -190,7 +165,7 @@ public sealed class HostStateStore : IHostStateService
         WorkspaceBases = value.WorkspaceBases.Where(entry => ValidPath(entry.Key) && entry.Value is not null && GitRefs.IsSafe(entry.Value)).ToDictionary(),
         WorkspaceDiffBases = value.WorkspaceDiffBases.Where(entry => ValidPath(entry.Key) && entry.Value is not null && GitRefs.IsSafe(entry.Value) &&
             value.WorkspaceBases.GetValueOrDefault(entry.Key) != entry.Value).ToDictionary(),
-        Workspaces = new Dictionary<string, IReadOnlyList<string>>()
+        Workspaces = value.Workspaces.Where(ValidWorkspace).DistinctBy(workspace => workspace.Id).DistinctBy(workspace => workspace.Path).ToArray()
     };
 
     private static string Clean(string? value) => value is null || value.Contains('\0') ? "" : value.Trim();

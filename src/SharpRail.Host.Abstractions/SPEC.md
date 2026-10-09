@@ -22,7 +22,8 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
 
 - Owns: `IWorkspaceHost` (`IWorkspaceHost.cs`), `IProjectServices`
   (`ProjectServices.cs`), `IHostStateService` with `HostState`, `HostSettings`, `LayoutPreset` and
-  `HostStateChange` (`HostState.cs`), `ITerminalService` / `ITerminalSession` with
+  `HostStateChange` (`HostState.cs`), the workspace registry records `WorkspaceRecord`, `WorkspaceAction`,
+  `WorkspaceCatalog` and `LifecycleEvent` (`WorkspaceRegistry.cs`), `ITerminalService` / `ITerminalSession` with
   `TerminalAttachRequest` (`TerminalServices.cs`), and `FileLimits`.
 - Allowed deps: the .NET base library only.
 - Forbidden: serialization attributes, gRPC, Avalonia, filesystem or process access, and any AI or agent
@@ -35,6 +36,13 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
   init, create and remove worktree), branch catalog, open pull request lookup, pull request draft and opening (`PrResult.Action` is `created`,
   `updated`, `pushed`, `compare` or `authFailed`), and editor detection/launch. Every call is
   cancellable. Paths are workspace-relative.
+- `ListWorkspacesAsync` and `ApplyWorkspaceActionAsync` name their project or workspace explicitly rather
+  than using the session's root, so a client can list and change any open project's workspaces. Kinds are
+  `default`, `managed` and `external`; a record's id never changes. Results also reach every client
+  through `HostState.Workspaces`.
+- `IHostStateService.WatchLifecycleAsync` pushes `LifecycleEvent`s on a `project` channel (`opened`,
+  `closed`) and a `workspace` channel (`created` and `updated` carrying the record, `removed` its id).
+  It replays nothing; a client rehydrates from the state snapshot.
 - `WatchFilesAsync` subscribes to the current workspace and yields bounded `FileChange` invalidations.
   Its first frame requests a rescan; later frames name paths or request a full rescan when paths are
   unavailable or capped. Cancelling the subscription releases its watchers.
@@ -80,7 +88,6 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
 
 ## Not yet ported
 
-- Workspace records with stable ids, kinds and lifecycle events, a
-  lifecycle-notification stream, and a terminal catalog with reservation separate from attachment.
+- A terminal catalog with reservation separate from attachment.
 - Content classification (media type, hash) on file reads and a byte read of a path at one commit; diff
   sides already carry hashes.
