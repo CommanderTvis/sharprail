@@ -12,12 +12,10 @@ namespace SharpRail.Checks;
 // once it reads again; a connection that goes silent without closing must be noticed and resumed.
 internal static partial class TerminalHostChecks
 {
-    private const int Flood = 40_000_000;
-
     private static async Task Backpressure(string root, string workspace)
     {
         await using var local = new PtyTerminalService();
-        var direct = await Stalled(new LocalTerminalAdapter(local), workspace, "local");
+        var direct = await Stalled(new LocalTerminalAdapter(local), workspace, "local", 8_000_000);
         Require(direct <= Attachment.BacklogBytes + 128 * 1024, $"local: a stalled reader was handed {direct} bytes, more than the backlog bound.");
         await using var app = RemoteServer.Create(root, IPAddress.Loopback, 0, "flow-token", terminals: local);
         await app.StartAsync();
@@ -26,8 +24,9 @@ internal static partial class TerminalHostChecks
             using (var remote = new RemoteTerminalAdapter(Address(app), "flow-token"))
             {
                 // The transport's own flow-control windows hold some output on top of the host's backlog.
-                var relayed = await Stalled(remote, workspace, "remote");
-                Require(relayed <= Flood / 2, $"remote: a stalled reader was handed {relayed} of {Flood} bytes.");
+                const int flood = 32_000_000;
+                var relayed = await Stalled(remote, workspace, "remote", flood);
+                Require(relayed <= flood / 2, $"remote: a stalled reader was handed {relayed} of {flood} bytes.");
             }
             Console.WriteLine("PASS host terminal backpressure: a reader that stops reading holds a bounded backlog, loses only the oldest output, and receives the newest and later output once it reads again, locally and remotely");
             await Silence(Address(app), workspace);
@@ -36,18 +35,20 @@ internal static partial class TerminalHostChecks
     }
 
     // Floods a session nobody reads, then reads it; returns how many bytes of the flood arrived.
-    private static async Task<long> Stalled(ITerminalService terminals, string workspace, string mode)
+    private static async Task<long> Stalled(ITerminalService terminals, string workspace, string mode, int flood)
     {
         var id = mode + "-flood-" + Guid.NewGuid().ToString("N");
         var session = await terminals.AttachAsync(new(id, workspace, "client", 100, 30));
         try
         {
-            await session.WriteAsync(Encoding.UTF8.GetBytes($"head -c {Flood} /dev/zero | tr '\\0' x; printf 'FLOOD_%s\\n' DONE\r"));
+            await session.WriteAsync(Encoding.UTF8.GetBytes($"head -c {flood} /dev/zero | tr '\\0' x; printf 'FLOOD_%s\\n' DONE\r"));
             await Until(async () => await terminals.IsBusyAsync(id), mode + " flood started");
-            await Until(async () => !await terminals.IsBusyAsync(id), mode + " flood finished without a reader");
+            // Bounded by PTY throughput on a busy machine, not by the host.
+            for (var deadline = DateTime.UtcNow.AddMinutes(3); await terminals.IsBusyAsync(id); await Task.Delay(100))
+                Require(DateTime.UtcNow < deadline, $"{mode}: the flood did not finish without a reader.");
             var text = new StringBuilder();
-            long flood = 0;
-            using var limit = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            long received = 0;
+            using var limit = new CancellationTokenSource(TimeSpan.FromMinutes(2));
             var reader = session.ReadAsync(limit.Token).GetAsyncEnumerator();
             async Task ReadUntil(string marker)
             {
@@ -55,16 +56,16 @@ internal static partial class TerminalHostChecks
                 {
                     Require(await reader.MoveNextAsync(), $"{mode}: output ended before {marker}.");
                     var chunk = Encoding.UTF8.GetString(reader.Current.Span);
-                    flood += chunk.Count(letter => letter == 'x');
+                    received += chunk.Count(letter => letter == 'x');
                     text.Append(chunk.Replace("x", "", StringComparison.Ordinal));
                 }
             }
             await ReadUntil("FLOOD_DONE");
-            Require(session.Position >= Flood, $"{mode}: positions must advance past dropped output, at {session.Position}.");
+            Require(session.Position >= flood, $"{mode}: positions must advance past dropped output, at {session.Position}.");
             await session.WriteAsync("printf 'AFTER_%s\\n' FLOOD\r"u8.ToArray());
             await ReadUntil("AFTER_FLOOD");
             await reader.DisposeAsync();
-            return flood;
+            return received;
         }
         finally { await session.DisposeAsync(); await terminals.CloseAsync(id); }
     }

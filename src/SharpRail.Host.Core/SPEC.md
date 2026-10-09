@@ -56,7 +56,8 @@ There is no composition root inside Core. Two composers wire it:
   adapters. Both local terminal renderers call that service directly in process; no local RPC server runs.
 - `RemoteServer.Create` registers `WorkspaceHost`, a `HostStateStore` over `SHARPRAIL_STATE_DIR`, a
   `ProjectSessions` cache that resolves each call's `ProjectServices` from the client's root header, and a
-  `PtyTerminalService` the host owns, then maps the four RPC services behind bearer-token authentication.
+  `PtyTerminalService` the host owns, then maps the five RPC services behind bearer-token authentication
+  and ends a removed workspace's terminals.
 
 Features never reach back into their composer: pushes flow through `IHostStateService.WatchAsync` and
 terminal attachments, never through a UI callback.

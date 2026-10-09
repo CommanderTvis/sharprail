@@ -100,7 +100,7 @@ public sealed partial class SettingsWindow : Window
     {
         RequestedThemeVariant = (Owner as Window)?.RequestedThemeVariant;
         if (section == "Line width") foreach (var refresh in refreshers) refresh();
-        else if (section is "Appearance" or "Layout" or "Projects") ShowSection(section);
+        else if (section is "Appearance" or "Layout" or "Projects" || section == "Terminal" && previous.Settings.TerminalReplayKb != next.Settings.TerminalReplayKb) ShowSection(section);
     }
 
     /// <summary>Saves this app's own preferences and window-local layout choices.</summary>
@@ -472,6 +472,21 @@ public sealed partial class SettingsWindow : Window
                 Save();
                 foreach (var open in window.Workbench.Windows) open.RestartTerminals();
                 ShowSection(section);
+            }));
+        // Host state: the selection follows the host's broadcast, never the click.
+        var replay = PageControl<StackPanel>(panel, "TerminalReplayChoices");
+        var current = state.Current.Settings.TerminalReplayKb;
+        foreach (var (kb, label, description) in new[]
+        {
+            (0, "Off", "Reattaching shows an empty screen over the live shell"),
+            (16, "16 KB", "About a screenful"),
+            (HostSettings.DefaultTerminalReplayKb, "64 KB", "A screenful plus scrollback (default)"),
+            (256, "256 KB", "Long scrollback; more memory per terminal"),
+            (HostSettings.MaxTerminalReplayKb, "1 MB", "Maximum")
+        })
+            replay.Children.Add(Choice("TerminalReplay_" + kb, label, description, current == kb, () =>
+            {
+                if (state.Current.Settings.TerminalReplayKb != kb) Share(HostStateChange.Setting("terminal-replay", kb.ToString(CultureInfo.InvariantCulture)));
             }));
         return panel;
     }

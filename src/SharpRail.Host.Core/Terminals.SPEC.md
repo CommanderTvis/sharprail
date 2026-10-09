@@ -15,8 +15,9 @@ Upstream: packages/server/src/subprocess/SPEC.md (revision: [UPSTREAM.md](../../
 
 Host-owned shells rooted in a workspace, one per terminal tab, and the recent output replayed when a
 client attaches. A shell outlives every client that shows it. `PtyTerminalService` implements
-`ITerminalService`; each attachment is an `ITerminalSession`. Clients are opaque ids; which window places
-a tab where is frontend-local and never reaches this service.
+`ITerminalService`; each attachment is an `ITerminalSession`. It also keeps the catalog of terminal tabs
+its clients share (`ITerminalCatalogService`). Clients are opaque ids; which window places a tab where is
+frontend-local and never reaches this service.
 
 ## Boundary
 
@@ -24,9 +25,11 @@ a tab where is frontend-local and never reaches this service.
   the shell as a new session leader, a wait thread and a read pump), exclusive attachment with takeover
   (`HostedTerminal`), the output recorder (`TerminalRecorder`), foreground-process detection and the
   recording store (`TerminalRecordingStore`, one file per hex session id in the optional recordings
-  directory).
-- Public surface: `AttachAsync`, `IsBusyAsync`, `CloseAsync`, `DisposeAsync`; `TerminalDevice` for the
-  relay's raw mode and window size.
+  directory) and the catalog (`TerminalCatalogStore`, `catalog.json` in the same directory).
+- Public surface: `AttachAsync`, `IsBusyAsync`, `CloseAsync`, `DisposeAsync`; `OpenWorkspaceAsync`,
+  `ReserveAsync`, `CloseTabAsync`, `CloseWorkspaceAsync`, `WatchAsync`; `TerminalDevice` for the relay's
+  raw mode and window size. `MemoryTerminalCatalog` serves the catalog for terminals this process does not
+  run (a platform without PTYs, or terminals an embedder supplied).
 - Forbidden: UI and transport types. Output reaches clients only through the attachment they hold.
 
 ## Decisions
@@ -44,8 +47,8 @@ a tab where is frontend-local and never reaches this service.
   ignored and it is told again that it is detached. A resuming client that lost the session to another
   client receives a detached attachment and never takes the session back; reclaiming is an explicit
   gesture ("Take it back").
-- A shell ends for exactly four reasons: its tab is closed (`CloseAsync`), it exits, the host stops, or
-  a client kills it. Detaching, closing a window or dropping a connection kills nothing. There is no idle
+- A shell ends for exactly five reasons: its tab is closed (`CloseTabAsync`, or `CloseAsync` by session
+  id), its workspace is removed, it exits, the host stops, or a client kills it. Detaching, closing a window or dropping a connection kills nothing. There is no idle
   culling and no abandoned-client reap. A shell that exits while detached keeps its final output and exit
   status for the next attach; the exit code is the shell's, or 128 plus the terminating signal.
 - Busy means a process other than the shell owns the terminal's foreground process group (`tcgetpgrp`);
@@ -68,7 +71,11 @@ a tab where is frontend-local and never reaches this service.
 
 ## Replay
 
-- A fresh view receives a bounded snapshot (64 KiB) of the main screen: raw bytes, never the alternate
+- The snapshot size is the host setting `TerminalReplayKb` (0–1024 KiB, default 64), read when a shell
+  starts, so a change applies to terminals opened afterwards. Zero keeps no snapshot: a fresh view shows
+  an empty screen over the live shell. The service takes the size as a delegate from its composer and has
+  no dependency on the state store; without one it uses 64 KiB.
+- A fresh view receives a bounded snapshot of the main screen: raw bytes, never the alternate
   screen (tracked as a stream, since a switch can split across reads), never a mode sequence itself,
   preceded by a reset and the last observed private modes other than mouse tracking. Resize events are
   never replayed.
@@ -80,6 +87,37 @@ a tab where is frontend-local and never reaches this service.
   restores it 50 ms later — not in the same tick, which a full-screen program would observe as no change
   and repaint incrementally over a stale buffer. The restore is skipped when the shell exited or a real
   resize landed meanwhile.
+
+## Catalog
+
+- Which terminals exist is shared state, keyed by workspace root and a client-minted tab key; the session
+  behind a tab is `TerminalTab.SessionFor(root, key)`, the same for every client. Output stays addressed
+  to one attachment; the catalog is the only terminal state that is broadcast.
+- Reservation and attachment are separate. `ReserveAsync` records a tab without starting anything and is
+  idempotent, its title included. Attach remains the only way a shell is born and does not touch the
+  catalog, so a client reserves a tab before it shows one; a session no tab names is allowed (the relay,
+  checks) and simply is not shared. Upstream's attach also adds an unknown tab; here that would let a
+  client that missed a close resurrect the tab.
+- A change is validated and applied, saved, then published. A reservation that cannot be saved is undone
+  and reaches nobody; a removal that cannot be saved still takes effect and is reported through
+  `LastError`.
+- Bounds: at most 256 tabs per workspace, a key of 1–500 characters and a title of 1–1000. Loading
+  truncates an oversized workspace, drops invalid or duplicate keys and repairs an invalid title to
+  "Terminal"; a corrupt file starts empty.
+- The initial terminal is the host's to give, once. `OpenWorkspaceAsync` on a workspace the host has not
+  heard of records the client's tabs, or `terminal:initial` ("Terminal 1") when it brings none; a known
+  workspace only gains tabs it lacks and never that key again, so closing the initial terminal is final
+  for every client. A workspace whose terminals were all closed stays known and empty. This replaces
+  upstream's pending marker on the workspace record, which SharpRail's path-keyed workspaces do not have,
+  and lets a client that predates the catalog bring its existing tabs.
+- Every change returns the complete snapshot it produced, and `WatchAsync` yields the current one and then
+  each later one, keeping only the latest for a slow watcher.
+- `CloseTabAsync` removes the tab and ends its shell; `CloseAsync` by session id does the same for the tab
+  that session belongs to. `CloseWorkspaceAsync` forgets the workspace and ends every shell started in
+  that folder, catalogued or not, with their recordings. The composition root calls it when
+  `HostStateStore.WorkspaceRemoved` fires after a worktree removal.
+- `TerminalCatalogChecks.cs` covers all of this locally and through a real gRPC host, including a worktree
+  removed through the project host.
 
 ## Backpressure
 
@@ -101,29 +139,28 @@ a tab where is frontend-local and never reaches this service.
 
 - With a recordings directory, `DisposeAsync` saves the snapshot of every session, exited ones included,
   and every recording still pending, before ending the shells. Writes are atomic (temporary file, then
-  rename) and best effort; a recording over 64 KiB plus the mode preamble, or with an unreadable name, is
+  rename) and best effort; a recording over 1 MiB (the largest replay size) plus the mode preamble, or with an unreadable name, is
   ignored, and at most 256 recordings load, newest first, the rest being deleted.
 - Loaded recordings wait in a pending table. The first attach of a session id starts a new shell and only
   then consumes its entry: `TerminalRecorder.Restore` re-parses the bytes like live output, so modes are
   tracked again rather than copied and the alternate screen and mouse modes stay absent. The attach reports
   `Created` and replays the old picture; no redraw nudge runs. A failed spawn keeps the pending recording.
+- Revival is keyed to the catalog. Membership is on disk after every change, so an unclean exit gives back
+  the right tabs with blank screens. On start, once a catalog file exists, a recording that no catalogued
+  tab names is deleted rather than left for the cap to evict; a directory that never had a catalog keeps
+  every recording until its clients have brought their tabs.
 - `CloseAsync` drops the pending entry and deletes the file. Without a recordings directory nothing is
   persisted. The local app uses `<profile>/terminals`; a remote host uses `<state directory>/terminals`
   and none without a state directory.
 - Checks cover local and remote (stopped and restarted host) revival, close, failed spawn then retry,
   alternate screen and mouse hygiene, corrupt, oversized and surplus files, and the recorder round trip.
+- `TerminalReplayChecks.cs` covers the replay size: validation, clamping, zero, a larger size locally and
+  through a remote host, and a large screen surviving a host restart.
 - `TerminalLimitChecks.cs` covers refused grids on attach and resize and the start guidance, locally and
   through a real gRPC host.
 
 ## Not yet ported
 
-- A persisted per-workspace terminal catalog (at most 256 tabs, bounded keys and titles) shared by every
-  client, with reservation separate from attachment so a hidden default terminal survives reload and
-  other clients without a shell, and catalog membership broadcast on change.
-- Revival keyed to a persisted terminal catalog: revival here is keyed by session id alone, so recordings
-  of tabs closed while the host was down linger until the store's cap evicts them, and a crash (as
-  opposed to a graceful stop) saves nothing.
-- Closing every terminal of a removed workspace.
 - Windows shells (PowerShell / cmd selection, its Settings picker and the per-shell start guidance). The
   host is POSIX only and a Windows PTY cannot be verified on the machines this port is built on.
 - A bounded child-process runner: completion on the child's exit rather than pipe EOF (a grandchild

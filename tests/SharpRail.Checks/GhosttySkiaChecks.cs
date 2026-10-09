@@ -62,6 +62,7 @@ internal static class GhosttySkiaChecks
         SkiaOutputChecks.Run(root);
         CheckSession(root);
         CheckRendererSetting(root);
+        TerminalHostChecks.ReplaySetting(root);
         Console.WriteLine("PASS Skia terminal renderer: libghostty-vt cells, colours, wide/combining text, box drawing, cursor, keyboard and mouse encoding, paste, selection, scrollback, resize and a host PTY session that survives a renderer restart");
     }
 

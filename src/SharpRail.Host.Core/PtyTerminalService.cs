@@ -9,27 +9,73 @@ using SharpRail.Host.Abstractions;
 
 namespace SharpRail.Host.Core;
 
-// Owns every terminal session for the lifetime of the host. Clients attach and detach; a shell ends only
-// when its tab is closed, it exits, or the host stops.
-public sealed class PtyTerminalService : ITerminalService, IAsyncDisposable
+// Owns every terminal session for the lifetime of the host, and the catalog of terminal tabs its clients
+// share. Clients attach and detach; a shell ends only when its tab is closed, its workspace is removed, it
+// exits, or the host stops.
+public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogService, IAsyncDisposable
 {
     private readonly Dictionary<string, HostedTerminal> sessions = [];
+    // The workspace folder each running session was started in.
+    private readonly Dictionary<string, string> roots = [];
+    private readonly TerminalCatalogStore catalog;
     private readonly Lock gate = new();
     private readonly Dictionary<string, byte[]> pending = [];
     private readonly string? shell;
     private readonly TerminalRecordingStore? store;
+    private readonly Func<int>? replayBytes;
     private bool disposed;
 
-    // A null shell runs the user's login shell. With a recordings directory, the last screen of every session is
-    // saved when the service is disposed, and a tab attached again after a restart starts a new shell showing it.
-    public PtyTerminalService(string? shell = null, string? recordingsDirectory = null)
+    // A null shell runs the user's login shell. With a recordings directory, the catalog is kept there, the last
+    // screen of every session is saved when the service is disposed, and a tab attached again after a restart
+    // starts a new shell showing it. replayBytes is read when a shell starts and sizes its replay snapshot; none
+    // means the default 64 KiB.
+    public PtyTerminalService(string? shell = null, string? recordingsDirectory = null, Func<int>? replayBytes = null)
     {
         Posix.EnsureSupported();
-        this.shell = shell;
+        this.shell = shell; this.replayBytes = replayBytes;
+        catalog = new TerminalCatalogStore(recordingsDirectory);
         if (recordingsDirectory is null) return;
         store = new TerminalRecordingStore(recordingsDirectory);
-        foreach (var (id, bytes) in store.LoadAll()) pending[id] = bytes;
+        // Once a catalog exists, a recording revives only a tab that is still in it. A host that never kept one
+        // keeps every recording until its clients have brought their tabs.
+        var catalogued = catalog.Loaded ? catalog.Sessions() : null;
+        foreach (var (id, bytes) in store.LoadAll())
+            if (catalogued?.Contains(id) == false) store.Delete(id);
+            else pending[id] = bytes;
     }
+
+    public TerminalCatalog Catalog => catalog.Current;
+
+    public ValueTask<TerminalCatalog> OpenWorkspaceAsync(string workspaceRoot, IReadOnlyList<TerminalTab> tabs, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return ValueTask.FromResult(catalog.OpenWorkspace(workspaceRoot, tabs));
+    }
+
+    public ValueTask<TerminalCatalog> ReserveAsync(string workspaceRoot, TerminalTab tab, CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        return ValueTask.FromResult(catalog.Reserve(workspaceRoot, tab));
+    }
+
+    public async ValueTask<TerminalCatalog> CloseTabAsync(string workspaceRoot, string key, CancellationToken cancellationToken = default)
+    {
+        var result = catalog.Remove(workspaceRoot, key);
+        await EndAsync(TerminalTab.SessionFor(workspaceRoot, key));
+        return result;
+    }
+
+    public async ValueTask<TerminalCatalog> CloseWorkspaceAsync(string workspaceRoot, CancellationToken cancellationToken = default)
+    {
+        var ended = catalog.Forget(workspaceRoot).Select(tab => TerminalTab.SessionFor(workspaceRoot, tab.Key)).ToHashSet();
+        // Sessions no tab names are rooted there too, and must not outlive the folder.
+        var folder = Path.GetFullPath(workspaceRoot);
+        lock (gate) ended.UnionWith(roots.Where(entry => entry.Value == folder).Select(entry => entry.Key));
+        foreach (var session in ended) await EndAsync(session);
+        return catalog.Current;
+    }
+
+    public IAsyncEnumerable<TerminalCatalog> WatchAsync(CancellationToken cancellationToken = default) => catalog.WatchAsync(cancellationToken);
 
     public ValueTask<ITerminalSession> AttachAsync(TerminalAttachRequest request, CancellationToken cancellationToken = default)
     {
@@ -48,8 +94,10 @@ public sealed class PtyTerminalService : ITerminalService, IAsyncDisposable
             var process = Start(request, directory);
             // A recording is consumed only once the shell runs, so a failed start keeps it for the retry.
             pending.Remove(request.SessionId, out var restored);
-            var terminal = new HostedTerminal(process, request.Columns, request.Rows, restored);
+            var replay = Math.Clamp(replayBytes?.Invoke() ?? TerminalRecorder.SnapshotBytes, 0, TerminalRecorder.MaxSnapshotBytes);
+            var terminal = new HostedTerminal(process, request.Columns, request.Rows, restored, replay);
             sessions.Add(request.SessionId, terminal);
+            roots[request.SessionId] = directory;
             return ValueTask.FromResult<ITerminalSession>(terminal.Attach(request, created: true));
         }
     }
@@ -62,10 +110,17 @@ public sealed class PtyTerminalService : ITerminalService, IAsyncDisposable
 
     public async ValueTask CloseAsync(string sessionId, CancellationToken cancellationToken = default)
     {
+        catalog.RemoveSession(sessionId);
+        await EndAsync(sessionId);
+    }
+
+    private async ValueTask EndAsync(string sessionId)
+    {
         HostedTerminal? terminal;
         lock (gate)
         {
             sessions.Remove(sessionId, out terminal);
+            roots.Remove(sessionId);
             pending.Remove(sessionId);
         }
         store?.Delete(sessionId);
@@ -77,7 +132,7 @@ public sealed class PtyTerminalService : ITerminalService, IAsyncDisposable
         KeyValuePair<string, HostedTerminal>[] all;
         lock (gate)
         {
-            disposed = true; all = [.. sessions]; sessions.Clear();
+            disposed = true; all = [.. sessions]; sessions.Clear(); roots.Clear();
             if (store is not null)
             {
                 foreach (var (id, bytes) in pending) store.Save(id, bytes);

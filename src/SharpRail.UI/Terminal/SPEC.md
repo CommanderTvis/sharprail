@@ -62,7 +62,9 @@ recording and replay belong to the host (`Host.Core/PtyTerminalService.cs` behin
 A body is created only when its tab is selected in a visible, unfolded group, so hidden tabs and a hidden
 bottom panel do not start shells. A shell that cannot start shows its reason and a Retry that restarts the
 same tab; an exited shell's tab says so with its exit code. A shell that exits while detached keeps its
-final output and status for the next attach. Closing a tab whose shell runs a foreground process asks
+final output and status for the next attach. Removing a workspace's worktree ends every shell started in
+it: the composition root passes the host's removal signal to the terminal service, in the local app and
+in a remote host alike. Closing a tab whose shell runs a foreground process asks
 first through the docking removal veto (`TerminalTabs.cs`); an idle or exited tab closes immediately.
 Removing a group or applying a preset moves terminal tabs but preserves their session identity.
 Appearance changes keep live terminal views (`DocumentCache.cs`); Ghostty receives the new background,
@@ -75,6 +77,10 @@ The Metal bridge loads theme values through a temporary Ghostty configuration fi
 then deletes it after applying the configuration; it does not modify user config files.
 
 ## Platform
+
+Settings → Terminal also offers the host's replay size (Off, 16 KB, 64 KB, 256 KB, 1 MB): how much recent
+output a terminal keeps so a rebuilt view shows its screen again. It is host state shared by every client,
+applies to terminals opened afterwards, and the selection moves only when the host's broadcast arrives.
 
 Settings chooses Metal texture (default) or Skia (fallback) and persists the choice in app preferences.
 Changing it reattaches existing views to their same host session; it must not end
@@ -150,7 +156,8 @@ fallback while preserving the local/remote shell and its exit status.
 
 ## Not yet ported
 
-- A host-persisted per-workspace terminal catalog, reserved separately from starting a shell, bounded in
-  size, broadcast to every client, and used to seed each client's placement.
-- Ending a workspace's shells when its worktree is removed.
-- A host-configurable replay size.
+- Using the host's terminal catalog. The host keeps one (`ITerminalCatalogService`, see
+  [Terminals.SPEC.md](../../SharpRail.Host.Core/Terminals.SPEC.md#catalog)) and the client adapters
+  exist, but no window reserves its tabs or reconciles against it yet: terminal membership is still each
+  window's own, the initial terminal has a random id per window, and a tab closed elsewhere stays until
+  this window closes it. See [Docking/SPEC.md](../Docking/SPEC.md).

@@ -16,7 +16,7 @@ Upstream: packages/server/src/persistence/SPEC.md (revision: [UPSTREAM.md](../..
 
 The state every client of one host shares: the open project list and recents, shared settings
 (appearance mode, fixed theme and system light/dark pair, file and Markdown line widths with their bound
-switches), the custom layout-preset catalog, workspace display labels and the published workspace lists.
+switches, the terminal replay size), the custom layout-preset catalog, workspace display labels and the published workspace lists.
 `HostStateStore` implements `IHostStateService`: it reads, validates, persists and broadcasts complete
 snapshots.
 
@@ -28,8 +28,9 @@ presets belong to the UI.
 
 - Owns: `state.json` in the store's directory (none means memory only), `HostStateChange` application,
   normalization of loaded state, and the watcher channels.
-- Public surface: `GetStateAsync`, `ChangeAsync` (atomic batch), `WatchAsync`, plus `PublishWorkspaces`
-  and `LastError` for Core and the composer.
+- Public surface: `GetStateAsync`, `ChangeAsync` (atomic batch), `WatchAsync`, plus `PublishWorkspaces`,
+  `WorkspaceRemoved` (raised with a removed workspace's path so its terminals can end) and `LastError` for
+  Core and the composer.
 - Forbidden: storing frame or view state, workspace resources or window identity; reading old layout
   snapshots.
 
@@ -61,7 +62,10 @@ presets belong to the UI.
 - An invalid change rejects the whole batch before persistence or broadcast. Line widths accept whole
   numbers 40–240; loaded values outside that range fall back to the client default (zero) without
   discarding valid siblings. Theme ids are opaque: availability and resolution belong to the UI.
-  `themeMode` is `fixed` or `system`; anything else loads as `fixed`.
+  `themeMode` is `fixed` or `system`; anything else loads as `fixed`. The terminal replay size
+  (`terminal-replay`) accepts whole numbers 0–1024 KiB and defaults to 64; a loaded value outside that
+  range is clamped. Zero is a real value, so the wire always carries the field and a host that predates
+  it reads as the default.
 - Setting updates accept a closed set of keys and validate their values before publishing the batch;
   unknown setting keys and change kinds are rejected. The typed change-list contract replaces upstream's
   object-shaped partial update, so arbitrary JSON payloads are not a separate mutation surface.
@@ -92,4 +96,5 @@ presets belong to the UI.
   reopen.
 - A legacy `theme` change without an explicit mode switching the host to fixed mode, and dropping a
   malformed system pair on load.
-- Host-persisted terminal catalogs and a per-installation identity file.
+- A per-installation identity file. The terminal catalog is persisted by the terminal service, not this
+  store (see [Terminals.SPEC.md](Terminals.SPEC.md#catalog)).

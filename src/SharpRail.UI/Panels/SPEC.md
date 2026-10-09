@@ -80,7 +80,9 @@ could not save this change: …” inline and re-renders from host state.
   reapplies the default preset.
 - Projects holds the app-local Show hidden files switch and the shared project list with per-row removal.
 - Terminal chooses Metal texture (default) or Skia (fallback) as an app-local preference and reattaches
-  attached terminal views in every window without ending their host shells.
+  attached terminal views in every window without ending their host shells. Below it, the host's replay
+  size (Off, 16 KB, 64 KB, 256 KB, 1 MB) is shared state: a click sends the change and the selection moves
+  when the broadcast arrives.
 - GitHub (“Local GitHub”) runs `gh auth status` with prompts disabled and a 10-second timeout and reports
   Connected with the account line, or Not connected with the reason (not installed, not signed in, no
   response), with Refresh. SharpRail stores no credentials.

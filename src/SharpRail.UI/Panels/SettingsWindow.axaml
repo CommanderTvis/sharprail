@@ -87,6 +87,9 @@
         <TextBlock Text="Terminal renderer" Classes="settings-heading" />
         <TextBlock Text="A preference of this app. Changing it redraws open terminals; their shells keep running." Classes="settings-description" />
         <StackPanel x:Name="TerminalRendererChoices" Spacing="8" />
+        <TextBlock Text="Replayed output" Classes="settings-heading" Margin="0,16,0,0" />
+        <TextBlock Text="A terminal keeps running when you leave it, but its view is rebuilt when you come back. This is how much of its recent output the host keeps so the screen is restored too. Shared by every client of this host; applies to terminals opened from now on." Classes="settings-description" TextWrapping="Wrap" />
+        <StackPanel x:Name="TerminalReplayChoices" Spacing="8" />
       </StackPanel>
     </DataTemplate>
     <DataTemplate x:Key="GitHubPage">

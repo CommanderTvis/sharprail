@@ -14,7 +14,9 @@ what makes remoteness an adapter choice rather than a mandatory daemon.
 
 - Owns `HostAdapters.cs` (`IWorkspaceHost`), `ProjectAdapters.cs`
   (`IProjectServices`), `StateAdapters.cs` (`IHostStateService`) and
-  `TerminalAdapters.cs` (`ITerminalService` and the remote terminal session).
+  `TerminalAdapters.cs` (`ITerminalService` and the remote terminal session) and
+  `TerminalCatalogAdapters.cs` (`ITerminalCatalogService`; refusals surface as the exceptions the local
+  catalog throws, and a host without the service as `NotSupportedException`).
 - Local adapters are pure delegation: no sockets, serialization or copying.
 - Remote adapters own channel setup, the bearer token on every call, per-call
   deadlines, mapping DTOs to Abstractions records, and reconnection.

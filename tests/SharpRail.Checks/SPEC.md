@@ -30,7 +30,11 @@ OSC 52 checks use a private AppKit pasteboard and scripted read confirmation,
 restoring both after each case. `--ghostty-skia` covers fragmented ST/BEL writes,
 Unicode, selection destinations, malformed/cancelled data, embedded NULs, large
 and empty payloads, approved/denied reads, repeated permission and terminal reset.
-`--terminals` also covers terminal revival: local and remote restarts, close, failed spawn, mode hygiene and store limits.
+`--terminals` also covers terminal revival: local and remote restarts, close, failed spawn, mode hygiene and store limits;
+refused grids and start guidance (`TerminalLimitChecks.cs`); a stalled reader and a silent connection
+(`TerminalBackpressureChecks.cs`); and the terminal catalog, its storage, catalog-keyed revival and a
+removed worktree's shells (`TerminalCatalogChecks.cs`); and the host replay size with its Settings control
+(`TerminalReplayChecks.cs`).
 `--native-osc52` runs those checks plus real Metal shell output and encoded read
 replies, plus local and remote clipboard round trips in both renderers and writes
 after renderer switches. This native coverage also runs in `--native-texture`.

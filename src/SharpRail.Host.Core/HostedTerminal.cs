@@ -11,7 +11,7 @@ internal sealed class HostedTerminal
 {
     private const int RedrawRestoreMilliseconds = 50;
     private readonly Lock gate = new();
-    private readonly TerminalRecorder recorder = new();
+    private readonly TerminalRecorder recorder;
     private Attachment? current;
     private string? client;
     private int? exitCode;
@@ -19,9 +19,10 @@ internal sealed class HostedTerminal
 
     internal PtySession Process { get; }
 
-    internal HostedTerminal(PtySession process, int columns, int rows, byte[]? restored = null)
+    internal HostedTerminal(PtySession process, int columns, int rows, byte[]? restored = null, int replayBytes = TerminalRecorder.SnapshotBytes)
     {
         Process = process;
+        recorder = new(replayBytes);
         if (restored is { Length: > 0 }) recorder.Restore(restored);
         grid = (columns, rows);
         _ = Task.Run(Pump);
