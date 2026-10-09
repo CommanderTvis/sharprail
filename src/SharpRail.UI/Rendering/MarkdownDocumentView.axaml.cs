@@ -51,7 +51,7 @@ internal sealed partial class MarkdownDocumentView : UserControl, IDisposable
             {
                 Name = "MarkdownSource",
                 Content = MarkdownPreview.Code(sourceText),
-                Margin = new Thickness(20),
+                Margin = new Thickness(24),
                 HorizontalScrollBarVisibility = ScrollBarVisibility.Auto
             };
         }

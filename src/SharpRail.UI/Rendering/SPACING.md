@@ -15,8 +15,9 @@ consumer, and adding a step (a `6`, say) is a design decision rather than a mech
 
 Rhythm is the gap between things: `StackPanel.Spacing`, `Grid` gutter columns and rows (`ColumnDefinitions("14,4,*")`
 reads as icon, 4px gap, label), and `Margin`/`Padding` on panels, rows and toolbars. The common values in the
-workbench are 4 (row and icon gaps), 8 (control groups, settings stacks), 12 (panel insets such as the
-Projects, Files and Specs trees and the Changes toolbar) and 16/24 (settings pages and dialogs).
+workbench are 4 (row and icon gaps, label-over-field stacks), 8 (control groups, settings stacks, dialog
+fields), 12 (panel insets such as the Projects, Files and Specs trees, the Changes toolbar and code frames)
+and 16/24 (settings pages, dialogs and document placeholders). A text button pads 12 by 4.
 
 ## Sizing is not rhythm
 
@@ -30,16 +31,34 @@ The interface font size preference scales text only.
 
 ## Where the values live
 
-Static layouts put spacing in compiled `.axaml` (`Spacing="8"`, `Margin="12"`); dynamic panels built in C#
-write the same numbers inline. Both use the scale directly rather than named resources, so the number at the
-call site is the step.
+`Rendering/Design/spacing.json` is the single authored source of the scale. Static layouts put spacing in
+compiled `.axaml` (`Spacing="8"`, `Margin="12"`); dynamic panels built in C# write the same numbers inline.
+Both use the scale directly rather than named resources, so the number at the call site is the step and
+nothing is generated from the source: the guard is what ties call sites to it.
+
+## The guard
+
+`-- --design` reads every literal `Spacing`, `RowSpacing`, `ColumnSpacing`, `Margin` and `Padding` in the UI
+project's XAML (attributes and style setters) and C# (assignments and object initialisers), wherever the
+control lives, and fails on a component that is not a step. A negative step is the same step pulled the other
+way. A value computed at run time is measured, not rhythm, and is not checked.
+
+An icon button's box is sizing: `Ui.IconButton` and the fixed-size icon buttons centre their icon in the box
+with no padding rather than deriving one from the two sizes.
+
+## Escape hatches
+
+Measured geometry that has to be written as a margin or padding is recorded in `spacing.json` under
+`exceptions`, each with its file, literal value and reason. The list is closed: the guard accepts exactly
+those values in those files and fails on an entry that no longer matches anything.
+
+- `Docking/DockGroups.cs` `0, 0, 3, 0`: room for an italic preview title's glyph overhang inside the measured
+  label box.
+- `Docking/DockGroups.cs` `6, 0, 0, 0`: the close-button and modified-dot reserve in fixed-height tab chrome.
+- `ProjectHome.cs` `20, 0, 32, 0`: the rename box aligns with the workspace row's icon indent and kebab
+  reserve.
 
 ## Not yet ported
 
-- A single authored source for the scale (upstream `spacing.json` and its generated tokens) and a guard
-  rejecting off-scale rhythm values across app layouts and shared primitives, including compiled XAML
-  and dynamically constructed C# controls. The C# panels still use some off-scale rhythm, notably 6 (icon/label
-  gaps in `Ui.Row` and a few stacks), 10 (button padding, some settings stacks) and 20 (dialog margins), which
-  a guard would move onto existing steps.
-- The documented escape hatches (measured geometry such as a close-button reserve or an icon-aligned indent)
-  as a closed, recorded list.
+- Grid gutter columns and rows written inside `ColumnDefinitions`/`RowDefinitions` strings mix rhythm with
+  sizing in one literal and are not read by the guard.

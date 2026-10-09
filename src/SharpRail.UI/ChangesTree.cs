@@ -13,7 +13,7 @@ public sealed partial class WorkbenchWindow
 {
     private TreeView ChangesTree(GitChange[] changes)
     {
-        var tree = new TreeView { Name = "ChangesTree", Background = Ui.Sidebar, Margin = new Thickness(6) };
+        var tree = new TreeView { Name = "ChangesTree", Background = Ui.Sidebar, Margin = new Thickness(4) };
         foreach (var node in ChangeNodes(changes.Select(change => (Change: change, Parts: change.Path.Split('/'))).ToArray(), 0)) tree.Items.Add(node);
         return tree;
     }

@@ -139,7 +139,7 @@ public sealed partial class DockSurface : Grid
     {
         var button = Ui.IconButton(region == "left" ? "layoutLeft" : "layoutRight", $"Show {region} side", () => Session.Visible(region, true));
         button.Name = region + "RestoreRail";
-        button.Width = 24; button.Height = 24; button.Padding = new(5); button.CornerRadius = new(4);
+        button.Width = 24; button.Height = 24; button.Padding = new(0); button.CornerRadius = new(4);
         button.VerticalAlignment = VerticalAlignment.Top;
         button.HorizontalAlignment = HorizontalAlignment.Center;
         ((Border)button.Content!).Width = 14; ((Border)button.Content!).Height = 14;

@@ -41,6 +41,16 @@ internal static class DesignSources
             [.. document.GetProperty("unclaimed").EnumerateObject().Select(key => key.Name)]);
     }
 
+    internal sealed record SpacingException(string File, string Value);
+
+    internal static (IReadOnlyList<double> Steps, IReadOnlyList<SpacingException> Exceptions) LoadSpacing(string root)
+    {
+        using var json = JsonDocument.Parse(File.ReadAllText(Source(root, "spacing.json")));
+        return ([.. json.RootElement.GetProperty("steps").EnumerateArray().Select(step => step.GetDouble())],
+            [.. json.RootElement.GetProperty("exceptions").EnumerateArray().Select(entry =>
+                new SpacingException(entry.GetProperty("file").GetString()!, entry.GetProperty("value").GetString()!))]);
+    }
+
     /// <summary>Every generated file by name, as it should currently read.</summary>
     internal static IReadOnlyDictionary<string, string> Generate(string root) => new Dictionary<string, string>
     {

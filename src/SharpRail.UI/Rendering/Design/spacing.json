@@ -1,0 +1,9 @@
+{
+  "note": "The canonical rhythm scale. A step is its pixel value. This is a defined primitive set, not an inventory of use: adding a step is a design decision. `exceptions` is the closed list of measured geometry that is written as a margin or padding but is not rhythm; each names its file, the literal value and why. See SPACING.md.",
+  "steps": [0, 2, 4, 8, 12, 16, 24, 32, 40, 64],
+  "exceptions": [
+    { "file": "Docking/DockGroups.cs", "value": "0, 0, 3, 0", "reason": "room for an italic preview title's glyph overhang inside the measured label box" },
+    { "file": "Docking/DockGroups.cs", "value": "6, 0, 0, 0", "reason": "the close-button and modified-dot reserve in fixed-height tab chrome" },
+    { "file": "ProjectHome.cs", "value": "20, 0, 32, 0", "reason": "the rename box aligns with the workspace row's icon indent and kebab reserve" }
+  ]
+}

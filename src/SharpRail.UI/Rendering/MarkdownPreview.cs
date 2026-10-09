@@ -373,7 +373,7 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
         {
             Child = codeBody,
             Background = Ui.Elevated,
-            Padding = new Thickness(14),
+            Padding = new Thickness(12),
             BorderBrush = Ui.BorderBrush,
             BorderThickness = new Thickness(1),
             CornerRadius = new(4),

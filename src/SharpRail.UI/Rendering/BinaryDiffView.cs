@@ -24,7 +24,7 @@ public sealed class BinaryDiffView : ScrollViewer, IDisposable
     public BinaryDiffView(IProjectServices host, string path, string scope, string comparison)
     {
         Name = "BinaryDiff";
-        var panel = new StackPanel { Margin = new Thickness(20), Spacing = 12 };
+        var panel = new StackPanel { Margin = new Thickness(24), Spacing = 12 };
         Content = panel;
         panel.Children.Add(Ui.Text("Loading…", Ui.Muted, 12));
         _ = LoadAsync(host, path, scope, comparison, panel);
@@ -71,7 +71,7 @@ public sealed class BinaryDiffView : ScrollViewer, IDisposable
 
     private static Control Card(string title, ContentMetadata? info, Bitmap? picture)
     {
-        var card = new StackPanel { Spacing = 6, VerticalAlignment = VerticalAlignment.Top, Name = "BinarySide_" + title };
+        var card = new StackPanel { Spacing = 4, VerticalAlignment = VerticalAlignment.Top, Name = "BinarySide_" + title };
         card.Children.Add(Ui.Text(title, Ui.TextBrush, 13));
         if (info?.Sha256 is null) { card.Children.Add(Ui.Text("No file", Ui.Muted, 12)); return card; }
         if (picture is not null)

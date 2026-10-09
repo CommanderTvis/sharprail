@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
@@ -62,6 +63,34 @@ internal static class RoleChecks
             "A focused input strengthens its border neutrally and keeps the control fill.");
         window.Close();
         Console.WriteLine("PASS container, selected, disabled and active roles reach buttons and inputs under every theme");
+        SwitchControl();
+    }
+
+    private static void SwitchControl()
+    {
+        var toggle = new Switch { Content = "Show hidden files" };
+        var window = new Window { Width = 320, Height = 120, Content = toggle };
+        window.Show(); Settle();
+        Border Part(string name) => toggle.GetVisualDescendants().OfType<Border>().Single(part => part.Name == name);
+        var peer = Avalonia.Automation.Peers.ControlAutomationPeer.CreatePeerForElement(toggle);
+        Avalonia.Automation.Provider.IToggleProvider state() => peer.GetProvider<Avalonia.Automation.Provider.IToggleProvider>()!;
+        Require(Part("PART_Track").Bounds.Size == new Avalonia.Size(32, 18) && ReferenceEquals(Part("PART_Track").Background, Ui.ControlFill) &&
+            Part("PART_Thumb").HorizontalAlignment == Avalonia.Layout.HorizontalAlignment.Left && state().ToggleState == Avalonia.Automation.Provider.ToggleState.Off,
+            "An unchecked switch rests its thumb at the left of a control-fill track and reports Off to assistive technology.");
+        var point = toggle.TranslatePoint(new Avalonia.Point(10, toggle.Bounds.Height / 2), window)!.Value;
+        Avalonia.Headless.HeadlessWindowExtensions.MouseDown(window, point, Avalonia.Input.MouseButton.Left);
+        Avalonia.Headless.HeadlessWindowExtensions.MouseUp(window, point, Avalonia.Input.MouseButton.Left); Settle();
+        Require(toggle.IsChecked == true && ReferenceEquals(Part("PART_Track").Background, Ui.PrimaryFill) &&
+            Part("PART_Thumb").HorizontalAlignment == Avalonia.Layout.HorizontalAlignment.Right && ReferenceEquals(Part("PART_Thumb").Background, Ui.OnPrimary) &&
+            state().ToggleState == Avalonia.Automation.Provider.ToggleState.On,
+            "Clicking the track checks the switch: primary track, thumb at the right, On for assistive technology.");
+        Require(toggle.GetVisualDescendants().OfType<TextBlock>().All(text => text.Text is not ("On" or "Off")),
+            "A switch never spells its state out as On or Off.");
+        toggle.IsEnabled = false; Settle();
+        Require(ReferenceEquals(Part("PART_Track").Background, Ui.ControlDisabledFill) && ReferenceEquals(Part("PART_Thumb").Background, Ui.ControlDisabledText),
+            "A disabled switch paints from the disabled roles.");
+        window.Close();
+        Console.WriteLine("PASS the shared switch toggles by pointer, exposes its state accessibly and paints from roles");
     }
 
     private static void Settle()

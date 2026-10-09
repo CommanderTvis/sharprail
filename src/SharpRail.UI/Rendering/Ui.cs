@@ -99,7 +99,7 @@ public static partial class Ui
 
     public static StackPanel Row(string icon, string text, IBrush? color = null)
     {
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
         row.Children.Add(Icon(icon, color)); row.Children.Add(Text(text, color));
         return row;
     }
@@ -109,7 +109,7 @@ public static partial class Ui
         var button = new Button
         {
             Content = icon is null ? Text(label) : Row(icon, label),
-            Padding = new Thickness(10, 5),
+            Padding = new Thickness(12, 4),
             Background = Elevated,
             BorderBrush = BorderBrush,
             BorderThickness = new Thickness(1),
@@ -120,12 +120,13 @@ public static partial class Ui
         return button;
     }
 
-    // Labels and icons built here carry their own colour, so a disabled button repaints them from the
-    // disabled role and restores whatever they wore when it is enabled again.
-    private static void FollowEnabled(Button button)
+    /// <summary>
+    /// Labels and icons built by <see cref="Text"/> and <see cref="Icon"/> carry their own colour, so a disabled
+    /// button repaints them from the disabled role and restores what they wore when it is enabled again.
+    /// </summary>
+    internal static void FollowEnabled(Button button)
     {
-        Control[] parts = button.Content is Panel panel ? [.. panel.Children] : [(Control)button.Content!];
-        IBrush?[]? resting = null;
+        (Control Part, IBrush? Brush)[]? resting = null;
         static IBrush? Read(Control part) => part is TextBlock label ? label.Foreground : ((Border)part).Background;
         static void Write(Control part, IBrush? brush)
         {
@@ -136,12 +137,14 @@ public static partial class Ui
             if (e.Property != InputElement.IsEffectivelyEnabledProperty) return;
             if (!button.IsEffectivelyEnabled)
             {
-                resting ??= [.. parts.Select(Read)];
-                foreach (var part in parts) Write(part, button.Classes.Contains("primary") ? PrimaryDisabledText : ControlDisabledText);
+                // Owners replace the content after construction, so the parts are read when the state changes.
+                IEnumerable<Control> parts = button.Content is Panel panel ? panel.Children : button.Content is Control single ? [single] : [];
+                resting ??= [.. parts.Where(part => part is TextBlock or Border).Select(part => (part, Read(part)))];
+                foreach (var (part, _) in resting) Write(part, button.Classes.Contains("primary") ? PrimaryDisabledText : ControlDisabledText);
             }
             else if (resting is not null)
             {
-                for (var index = 0; index < parts.Length; index++) Write(parts[index], resting[index]);
+                foreach (var (part, brush) in resting) Write(part, brush);
                 resting = null;
             }
         };
@@ -154,7 +157,7 @@ public static partial class Ui
             Content = Icon(icon),
             Width = 32,
             Height = 32,
-            Padding = new Thickness(7),
+            Padding = new Thickness(0),
             Background = Brushes.Transparent,
             BorderThickness = new(0),
             CornerRadius = new(0)

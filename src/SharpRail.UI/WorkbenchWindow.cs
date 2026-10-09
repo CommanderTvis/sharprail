@@ -324,7 +324,7 @@ public sealed partial class WorkbenchWindow : Window
                 content = new ScrollViewer
                 {
                     Content = MarkdownPreview.Code(document.Text),
-                    Margin = new Thickness(20),
+                    Margin = new Thickness(24),
                     HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto
                 };
             documentContent[key] = content; return content;

@@ -40,8 +40,9 @@ internal static partial class DesignChecks
         }
         var sources = Sources(root);
         ColorUsage(DesignSources.LoadColors(root), sources, failures);
+        SpacingUsage(root, sources, failures);
         if (failures.Count > 0) throw new InvalidOperationException("Design checks failed:\n" + string.Join("\n", failures));
-        Console.WriteLine("PASS generated design sources are current and colours are named only through roles");
+        Console.WriteLine("PASS generated design sources are current, colours are named only through roles and rhythm stays on the spacing scale");
     }
 
     /// <summary>The UI project's hand-written XAML and C#, with comments blanked so prose may name a value.</summary>
@@ -104,6 +105,34 @@ internal static partial class DesignChecks
             if (!Regex.IsMatch(text, $@"\bUi\.{name}\b") && !Regex.IsMatch(own, $@"(?<![.\w]){name}\b"))
                 failures.Add($"colors.json: role {name} is used by no control.");
     }
+
+    /// <summary>Literal gaps, margins and paddings in XAML and C# must be steps; computed values are not rhythm.</summary>
+    private static void SpacingUsage(string root, List<SourceFile> sources, List<string> failures)
+    {
+        var (steps, exceptions) = DesignSources.LoadSpacing(root);
+        var used = new HashSet<DesignSources.SpacingException>();
+        foreach (var source in sources)
+            for (var line = 0; line < source.Lines.Length; line++)
+                foreach (Match match in (source.Path.EndsWith(".axaml", StringComparison.Ordinal) ? SpacingXaml() : SpacingCode()).Matches(source.Lines[line]))
+                {
+                    var value = match.Groups["value"].Value.Trim();
+                    var parts = value.Split([',', ' '], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    var numbers = parts.Select(part => double.TryParse(part, System.Globalization.NumberStyles.Float,
+                        System.Globalization.CultureInfo.InvariantCulture, out var number) ? number : (double?)null).ToArray();
+                    // An expression is measured at run time; only literals are held to the scale.
+                    if (numbers.Any(number => number is null) || numbers.All(number => steps.Contains(Math.Abs(number!.Value)))) continue;
+                    var exception = exceptions.FirstOrDefault(entry => entry.File == source.Path && entry.Value == value);
+                    if (exception is null) failures.Add($"{source.Path}:{line + 1}: off-scale spacing: {match.Value.Trim()}");
+                    else used.Add(exception);
+                }
+        foreach (var exception in exceptions.Except(used))
+            failures.Add($"spacing.json: the exception for {exception.File} ({exception.Value}) matches nothing.");
+    }
+
+    [GeneratedRegex(@"\b(Spacing|RowSpacing|ColumnSpacing|Margin|Padding)\s*=\s*(new\s*(Thickness)?\s*\((?<value>[^()]*)\)|(?<value>-?[\d.]+)\b)")]
+    private static partial Regex SpacingCode();
+    [GeneratedRegex(@"\b(Spacing|RowSpacing|ColumnSpacing|Margin|Padding)=""(?<value>[^""{]*)""|Property=""(Margin|Padding|Spacing|RowSpacing|ColumnSpacing)""\s+Value=""(?<value>[^""{]*)""")]
+    private static partial Regex SpacingXaml();
 
     [GeneratedRegex(@"[^\n]")]
     private static partial Regex NonNewline();

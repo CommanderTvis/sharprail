@@ -127,6 +127,11 @@ internal static class Program
             ChangeChecks.Run(root).GetAwaiter().GetResult();
             return;
         }
+        if (args.SequenceEqual(["--ui"]))
+        {
+            UiChecks.Run(root);
+            return;
+        }
         if (args.Length > 0 && args[0] == "--design")
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();

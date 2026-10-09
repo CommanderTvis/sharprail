@@ -121,6 +121,30 @@ public sealed partial class SettingsWindow : Window
         }
     }
 
+    // One theme mutation at a time: a second complete-pair write built from a stale sibling slot would
+    // overwrite the first, so the theme controls are really disabled until the request settles.
+    private bool themeChanging;
+
+    private async void ShareTheme(params HostStateChange[] changes)
+    {
+        if (themeChanging) return;
+        themeChanging = true; GateThemeControls();
+        try { await state.ChangeAsync(changes); error.IsVisible = false; }
+        catch (Exception failure) when (failure is not OperationCanceledException)
+        {
+            error.Text = "The host could not save this change: " + failure.Message; error.IsVisible = true;
+            ShowSection(section);
+        }
+        finally { themeChanging = false; GateThemeControls(); }
+    }
+
+    private void GateThemeControls()
+    {
+        if (section != "Appearance" || body.Content is not Control page) return;
+        foreach (var name in new[] { "ThemeModeChoices", "ThemeChoices", "SystemThemes" })
+            PageControl<StackPanel>(page, name).IsEnabled = !themeChanging;
+    }
+
     private static string Setting(bool value) => value ? "true" : "false";
 
     private Control Page(string key)
@@ -149,7 +173,7 @@ public sealed partial class SettingsWindow : Window
             modes.Children.Add(Choice("ThemeMode_" + mode, label, description, preferences.ThemeMode == mode, () =>
             {
                 if (preferences.ThemeMode == mode) return;
-                Share(mode == "system"
+                ShareTheme(mode == "system"
                     ? [HostStateChange.Setting("theme-mode", mode), HostStateChange.Setting("system-light", pair.Light), HostStateChange.Setting("system-dark", pair.Dark)]
                     : [HostStateChange.Setting("theme-mode", mode)]);
             }));
@@ -159,7 +183,7 @@ public sealed partial class SettingsWindow : Window
         foreach (var theme in Themes.All)
         {
             var choice = Choice("Theme_" + theme.Id, theme.Label, null, theme == fixedTheme, () =>
-                Share(HostStateChange.Setting("theme", theme.Id), HostStateChange.Setting("theme-mode", "fixed")));
+                ShareTheme(HostStateChange.Setting("theme", theme.Id), HostStateChange.Setting("theme-mode", "fixed")));
             choice.Tag = theme;
             themes.Children.Add(choice);
         }
@@ -180,13 +204,15 @@ public sealed partial class SettingsWindow : Window
                 {
                     var next = new SystemThemePair { Light = slot == "light" ? id : pair.Light, Dark = slot == "dark" ? id : pair.Dark };
                     if (next.Light == pair.Light && next.Dark == pair.Dark) return;
-                    Share(HostStateChange.Setting("system-light", next.Light), HostStateChange.Setting("system-dark", next.Dark));
+                    ShareTheme(HostStateChange.Setting("system-light", next.Light), HostStateChange.Setting("system-dark", next.Dark));
                 });
             }
         }
         var size = PageControl<NumericUpDown>(panel, "InterfaceSize");
         size.Value = (decimal)state.Preferences.FontSize;
         size.ValueChanged += (_, _) => { if (size.Value is not null) { state.Preferences.FontSize = (double)size.Value; Save(); } };
+        foreach (var name in new[] { "ThemeModeChoices", "ThemeChoices", "SystemThemes" })
+            PageControl<StackPanel>(panel, name).IsEnabled = !themeChanging;
         return panel;
     }
 
@@ -218,6 +244,7 @@ public sealed partial class SettingsWindow : Window
         Ui.Place(content, Ui.Text(resolution.Theme.Label, Ui.TextBrush));
         Ui.Place(content, Ui.Icon("arrowDown", Ui.Muted), 0, 1);
         trigger.Content = content;
+        Ui.FollowEnabled(trigger);
         trigger.Resources["ButtonBackgroundPointerOver"] = Ui.Hover;
         trigger.Resources["ButtonBackgroundPressed"] = Ui.Hover;
         AutomationProperties.SetName(trigger, $"{label}: {resolution.Theme.Label}");
@@ -276,7 +303,7 @@ public sealed partial class SettingsWindow : Window
         var input = PageControl<TextBox>(control, "LineWidthInput");
         var save = PageControl<Button>(control, "LineWidthSave");
         var error = PageControl<TextBlock>(control, "LineWidthError");
-        var limit = PageControl<CheckBox>(control, "LineWidthBounded");
+        var limit = PageControl<Switch>(control, "LineWidthBounded");
         input.Name = kind + "LineWidthInput"; save.Name = kind + "LineWidthSave";
         error.Name = kind + "LineWidthError"; limit.Name = kind + "LineWidthBounded";
         AutomationProperties.SetName(input, kind + " line width");
@@ -422,7 +449,7 @@ public sealed partial class SettingsWindow : Window
 
     private Control Limit(string region, int value, Action<int> change)
     {
-        var panel = new StackPanel { Spacing = 6 };
+        var panel = new StackPanel { Spacing = 4 };
         panel.Children.Add(Ui.Text(region == "side" ? "Side groups" : "Bottom groups", size: 12));
         var input = new NumericUpDown { Name = "GroupLimit_" + region, Minimum = 1, Maximum = 32, Value = value, Width = 96 };
         AutomationProperties.SetName(input, "Maximum " + region + " groups");
@@ -442,7 +469,7 @@ public sealed partial class SettingsWindow : Window
     private Control ProjectSettings()
     {
         var panel = Page("ProjectsPage");
-        var hidden = PageControl<CheckBox>(panel, "ShowHiddenFiles");
+        var hidden = PageControl<Switch>(panel, "ShowHiddenFiles");
         hidden.IsChecked = state.Preferences.ShowHiddenFiles;
         hidden.IsCheckedChanged += (_, _) => { state.Preferences.ShowHiddenFiles = hidden.IsChecked == true; Save(); };
         var recent = PageControl<StackPanel>(panel, "RecentProjects");

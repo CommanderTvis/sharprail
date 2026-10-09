@@ -5,6 +5,43 @@
              Name="SharpRail">
   <Application.Resources>
     <x:Double x:Key="TreeViewItemIndent">12</x:Double>
+    <ControlTheme x:Key="{x:Type rendering:Switch}" TargetType="rendering:Switch">
+      <Setter Property="Foreground" Value="{x:Static rendering:Ui.TextBrush}" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Template">
+        <ControlTemplate>
+          <StackPanel Orientation="Horizontal" Spacing="8" Background="Transparent">
+            <Border x:Name="PART_Track" Width="32" Height="18" CornerRadius="9" BorderThickness="1" VerticalAlignment="Center"
+                    Background="{x:Static rendering:Ui.ControlFill}" BorderBrush="{x:Static rendering:Ui.ControlBorderActive}">
+              <Border x:Name="PART_Thumb" Width="12" Height="12" CornerRadius="6" Margin="2,0"
+                      HorizontalAlignment="Left" VerticalAlignment="Center" Background="{x:Static rendering:Ui.Muted}" />
+            </Border>
+            <ContentPresenter Content="{TemplateBinding Content}" VerticalAlignment="Center" />
+          </StackPanel>
+        </ControlTemplate>
+      </Setter>
+      <Style Selector="^:checked /template/ Border#PART_Track">
+        <Setter Property="Background" Value="{x:Static rendering:Ui.PrimaryFill}" />
+        <Setter Property="BorderBrush" Value="{x:Static rendering:Ui.PrimaryFill}" />
+      </Style>
+      <Style Selector="^:checked /template/ Border#PART_Thumb">
+        <Setter Property="HorizontalAlignment" Value="Right" />
+        <Setter Property="Background" Value="{x:Static rendering:Ui.OnPrimary}" />
+      </Style>
+      <Style Selector="^:focus-visible /template/ Border#PART_Track">
+        <Setter Property="BorderBrush" Value="{x:Static rendering:Ui.Accent}" />
+      </Style>
+      <Style Selector="^:disabled">
+        <Setter Property="Foreground" Value="{x:Static rendering:Ui.ControlDisabledText}" />
+      </Style>
+      <Style Selector="^:disabled /template/ Border#PART_Track">
+        <Setter Property="Background" Value="{x:Static rendering:Ui.ControlDisabledFill}" />
+        <Setter Property="BorderBrush" Value="{x:Static rendering:Ui.ControlDisabledBorder}" />
+      </Style>
+      <Style Selector="^:disabled /template/ Border#PART_Thumb">
+        <Setter Property="Background" Value="{x:Static rendering:Ui.ControlDisabledText}" />
+      </Style>
+    </ControlTheme>
   </Application.Resources>
   <Application.Styles>
     <Style Selector="Border.change-row">

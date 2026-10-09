@@ -30,7 +30,7 @@
         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
           <TextBlock Text="●" Classes="header-label" FontSize="10" Foreground="{x:Static rendering:Ui.Success}" />
           <TextBlock x:Name="ConnectionStatus" Text="Connecting" Classes="header-label" />
-          <Button x:Name="SettingsButton" Width="32" Height="32" Padding="7"
+          <Button x:Name="SettingsButton" Width="32" Height="32" Padding="0"
                   Background="Transparent" BorderThickness="0" CornerRadius="0"
                   ToolTip.Tip="Settings (⌘,)" AutomationProperties.Name="Settings (⌘,)" />
         </StackPanel>
@@ -40,7 +40,7 @@
                Foreground="{x:Static rendering:Ui.Danger}" TextWrapping="Wrap" IsVisible="False"
                Classes="header-label" />
     <Border x:Name="QuitHintOverlay" Grid.Row="1" ZIndex="31" IsVisible="False" IsHitTestVisible="False"
-            HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="12,12,12,24" Padding="16,10"
+            HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="12,12,12,24" Padding="16,12"
             Background="{x:Static rendering:Ui.Elevated}" BorderBrush="{x:Static rendering:Ui.BorderBrush}"
             BorderThickness="1" CornerRadius="4" AutomationProperties.LiveSetting="Assertive">
       <TextBlock x:Name="QuitHintMessage" Foreground="{x:Static rendering:Ui.TextBrush}" FontSize="14" TextWrapping="Wrap" />
@@ -55,7 +55,7 @@
           <TextBlock x:Name="GestureToastMessage" Text="The layout changed. Your drag was canceled."
                      Foreground="{x:Static rendering:Ui.Muted}" FontSize="14" TextWrapping="Wrap" Margin="0,0,8,0" />
           <Button x:Name="DismissGestureToast" Grid.Column="1" Width="24" Height="24" Margin="0,-4,-4,0"
-                  VerticalAlignment="Top" Background="Transparent" BorderThickness="0" Padding="5"
+                  VerticalAlignment="Top" Background="Transparent" BorderThickness="0" Padding="0"
                   AutomationProperties.Name="Dismiss" />
         </Grid>
       </Grid>

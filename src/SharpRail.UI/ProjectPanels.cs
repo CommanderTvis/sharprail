@@ -147,7 +147,7 @@ public sealed partial class WorkbenchWindow
                 var tip = $"Create workspace ({Shortcut("N")})";
                 var add = Ui.IconButton("add", tip, () => _ = CreateWorkspaceDialogAsync());
                 add.Name = "AddWorkspace";
-                add.Width = add.Height = 28; add.Padding = new(7);
+                add.Width = add.Height = 28; add.Padding = new(0);
                 add.IsEnabled = git.IsRepository;
                 trailing.Children.Add(add);
                 Ui.Place(row, trailing, 0, 3);
@@ -208,7 +208,7 @@ public sealed partial class WorkbenchWindow
             Content = Ui.Icon("moreHorizontal", null, 14),
             Width = 24,
             Height = 24,
-            Padding = new(5),
+            Padding = new(0),
             Margin = new(0, 0, 4, 0),
             Opacity = 0,
             Background = Avalonia.Media.Brushes.Transparent,
