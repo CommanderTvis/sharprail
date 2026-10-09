@@ -13,8 +13,9 @@ what makes remoteness an adapter choice rather than a mandatory daemon.
 ## Boundary
 
 - Owns `HostAdapters.cs` (`IWorkspaceHost`), `ProjectAdapters.cs`
-  (`IProjectServices`), `StateAdapters.cs` (`IHostStateService`) and
-  `TerminalAdapters.cs` (`ITerminalService` and the remote terminal session).
+  (`IProjectServices`), `StateAdapters.cs` (`IHostStateService`),
+  `TerminalAdapters.cs` (`ITerminalService` and the remote terminal session) and
+  `HostCalls.cs` (what every unary project and state call shares).
 - Local adapters are pure delegation: no sockets, serialization or copying.
 - Remote adapters own channel setup, the bearer token on every call, per-call
   deadlines, mapping DTOs to Abstractions records, and reconnection.
@@ -31,10 +32,31 @@ what makes remoteness an adapter choice rather than a mandatory daemon.
   under that ceiling so its error, naming the ref, wins the race against a bare
   deadline. Opening a pull request pushes and
   runs `gh`, so that call alone carries a 5 minute deadline. Long-lived streams (state watch, file watch, terminal) carry no deadline.
+- `HostRequest.WithTimeout(value)` replaces that deadline for the project and state calls the current
+  async flow starts until the scope is disposed; scopes nest and restore the enclosing one. It is for a
+  call the host answers only after a person acts. Raising it is safe; lowering it below the host's own
+  budgets hides their errors behind a bare deadline. The embedded host has no deadline and ignores it.
 - Channels reconnect quickly (250 ms initial, 3 s maximum backoff) instead of
   gRPC's two-minute ceiling, because an interactive client is waiting.
 - The project adapter remembers the root it opened last and sends it with each
   call, so the host needs no per-client session and a reconnect resumes silently.
+- `HostConnection` is one client's identity towards a host; the composition root shares one between the
+  state proxy and every window's project proxy. A mutation (`ReplayHeaders.IsReplayable`) carries that
+  identity, a request id and the connection's unresolved ids. When its call ends `Unavailable`, the
+  interceptor sends it again under the same id with the channel's reconnect backoff until a reply is read,
+  the caller cancels or the call's own deadline passes, and the host answers with the first run's outcome:
+  an accepted mutation neither reports a false failure nor runs twice. Replay needs the host's
+  deduplication, so it happens only when the last handshake reported `HostProtocol.RequestReplay`;
+  otherwise a mutation lost with its connection fails to the caller. Reads are not replayed.
+- `HostConnection` is also the connection status surface: `Status` (`Connecting`, `Connected`,
+  `Disconnected`), a `Generation` that is 1 for the first connection and rises by one per reconnect, and
+  `Changed`. The owner of the state subscription reports transitions (`Report`), since a delivering state
+  watch is the one signal that the host is reachable; an embedded host is connected at generation 1 for
+  good. A consumer re-reads under each new generation instead of retrying each of its own subscriptions.
+  Workspace rows are part of that read: they are Git's worktree list plus the labels of the state
+  snapshot, both read again under the new generation, so a row whose branch or name changed while the
+  client was away is corrected. There is no workspace registry or lifecycle push whose missed event a
+  separate row repair would have to cover.
 - The state watch yields complete snapshots and ends with an exception when the
   transport drops; the caller (`SharedState`) resubscribes and receives a fresh
   snapshot, so nothing missed while disconnected stays stale.
@@ -58,28 +80,22 @@ what makes remoteness an adapter choice rather than a mandatory daemon.
   to version 0. `HostCapabilities.Supports(version, introducedAt)` treats no handshake (null) and a lower
   version as unsupported.
 - The project adapter rethrows a change write refusal (the `x-sharprail-change-code` trailer) as the
-  `ChangeException` the embedded host throws, so callers branch on one type; no other failure is coded.
+  `ChangeException` the embedded host throws, so callers branch on one type.
+- `HostCalls.cs` holds the interceptor every unary call of the project and state proxies passes through.
+  It rethrows a failure carrying the `x-sharprail-error-code` trailer as `HostException`; any other failure
+  stays an `RpcException`, so having a code is how a caller tells a specific failure from a failed call.
 - One channel per adapter; ordering is per gRPC call, and state convergence
   relies on full snapshots with revisions rather than on cross-call ordering.
 
 ## Not yet ported
 
-- A connection status surface with a generation per reconnect, driving
-  re-hydration explicitly rather than per-subscription retries.
 - The local adapter forwards `ReadContentBytesAsync`; the remote proxy maps the metadata and bytes from
   `ContentReply`.
-- Capability gates that hide actions an older host cannot serve (the version
-  is fetched, but no feature is gated yet); the Changes diff withholds every revert/undo
-  affordance from a host that predates the change write path. Resource metadata
-  needs no gate: a reply without it reads as text, which is what that host's own
-  client showed.
-- Reconnect-safe unary requests: replaying an in-flight mutation under the same
-  request id with host deduplication, plus ack/resume frames, so an accepted
-  mutation can neither report a false failure nor run twice. Today a unary call
-  lost with its connection fails to the caller.
-- Named host error codes surfaced as a typed exception distinct from generic
-  failures.
-- A per-request timeout override for calls answered only after a human acts.
+- Hiding the actions an older host cannot serve. The gate exists (`SharedState.Supports(introducedAt)`,
+  false until the handshake answers and again while disconnected), but nothing consults it: the Changes
+  diff has no revert or undo controls yet, and they must be withheld from a host that predates
+  `HostProtocol.ChangeWritePath`. Resource metadata needs no gate: a reply without it reads as text,
+  which is what that host's own client showed.
+- Raising `HostProtocol.Current` to `RequestReplay` (3). Until a host reports it, mutation replay stays
+  off against every host, including this build's own, and a mutation lost with its connection fails.
 - An HTTP base derived from the endpoint for host-served worktree files.
-- Re-reading already-known workspace rows after reconnect without treating it as
-  membership reconciliation.

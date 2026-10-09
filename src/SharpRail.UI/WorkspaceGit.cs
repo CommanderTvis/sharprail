@@ -38,15 +38,7 @@ public sealed partial class WorkbenchWindow
             var catalog = commit is not null
                 ? await Task.Run(async () => await host.ListCommitsAsync(selectedComparison, token), token) : gitCommits;
             if (token.IsCancellationRequested || request != projectRequest || selectedComparison != comparison || selectedScope != changeScope || commit?.Sha != selectedCommit?.Sha) return;
-            if (commit is not null && !catalog.Any(item => item.Sha == commit.Sha))
-            {
-                selectedCommit = null; changeScope = "All changes";
-                SaveGitSelection();
-                gitLoading = true; gitError = null; RefreshGitPanels();
-                ShowNotification("That commit is no longer in this branch — showing all changes.");
-                await RefreshGitAsync(request);
-                return;
-            }
+            if (commit is not null && !catalog.Any(item => item.Sha == commit.Sha)) { await ShowAllChangesAsync(request); return; }
             var snapshot = await Task.Run(async () => await host.GetGitAsync(commit?.Sha ?? selectedComparison, token, scope), token);
             if (token.IsCancellationRequested || request != projectRequest || selectedComparison != comparison || selectedScope != changeScope || commit?.Sha != selectedCommit?.Sha) return;
             var branches = snapshot.IsRepository
@@ -64,6 +56,12 @@ public sealed partial class WorkbenchWindow
             _ = RefreshDiffTabsAsync(request);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
+        catch (SharpRail.Host.Abstractions.HostException error) when (error.Code == SharpRail.Host.Abstractions.HostErrorCode.UnknownCommit && commit is not null)
+        {
+            // The commit left the branch between the catalog read and the snapshot.
+            if (token.IsCancellationRequested || request != projectRequest || selectedComparison != comparison || selectedScope != changeScope || commit.Sha != selectedCommit?.Sha) return;
+            await ShowAllChangesAsync(request);
+        }
         catch (Exception error)
         {
             if (token.IsCancellationRequested || request != projectRequest || selectedComparison != comparison || selectedScope != changeScope || commit?.Sha != selectedCommit?.Sha) return;
@@ -71,6 +69,15 @@ public sealed partial class WorkbenchWindow
             RefreshGitPanels();
             Console.Error.WriteLine(error);
         }
+    }
+
+    private Task ShowAllChangesAsync(long request)
+    {
+        selectedCommit = null; changeScope = "All changes";
+        SaveGitSelection();
+        gitLoading = true; gitError = null; RefreshGitPanels();
+        ShowNotification("That commit is no longer in this branch — showing all changes.");
+        return RefreshGitAsync(request);
     }
 
     private void RefreshGitPanels()

@@ -112,7 +112,9 @@ internal static class GitRepository
     {
         if (commit.Length is < 4 or > 64 || !commit.All(value => value is >= '0' and <= '9' or >= 'a' and <= 'f'))
             throw new ArgumentException("A commit scope requires a hexadecimal commit id.");
-        var sha = (await RunAsync(root, ct, "rev-parse", "--verify", "--quiet", "--end-of-options", commit + "^{commit}")).Trim();
+        string sha;
+        try { sha = (await RunAsync(root, ct, "rev-parse", "--verify", "--quiet", "--end-of-options", commit + "^{commit}")).Trim(); }
+        catch (GitException error) when (error.ExitCode == 1) { throw new HostException(HostErrorCode.UnknownCommit, $"Unknown commit: {commit}"); }
         try { return ((await RunAsync(root, ct, "rev-parse", "--verify", "--quiet", "--end-of-options", sha + "^")).Trim(), sha); }
         catch (GitException error) when (error.ExitCode == 1) { return (null, sha); }
     }

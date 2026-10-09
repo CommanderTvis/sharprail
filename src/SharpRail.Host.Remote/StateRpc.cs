@@ -7,7 +7,7 @@ using SharpRail.Host.Protocol;
 
 namespace SharpRail.Host.Remote;
 
-public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime lifetime) : IStateRpc
+public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime lifetime, RequestReplayCache replay) : IStateRpc
 {
     public async ValueTask<HandshakeReply> HandshakeAsync(HandshakeRequest request, CallContext context = default)
     {
@@ -18,18 +18,18 @@ public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime li
     public async ValueTask<StateReply> GetStateAsync(StateRequest request, CallContext context = default)
         => Map(await host.GetStateAsync(context.CancellationToken));
 
-    public async ValueTask<StateReply> ChangeAsync(StateChangeRequest request, CallContext context = default)
+    public ValueTask<StateReply> ChangeAsync(StateChangeRequest request, CallContext context = default) => replay.RunAsync(context, request, async token =>
     {
         try
         {
-            return Map(await host.ChangeAsync(request.Changes.Select(change => new HostStateChange(change.Kind, change.Key, change.Value)).ToArray(),
-                context.CancellationToken));
+            return Map(await host.ChangeAsync(request.Changes.Select(change => new HostStateChange(change.Kind, change.Key, change.Value)).ToArray(), token));
         }
+        catch (HostException error) { throw HostErrors.ToRpc(error); }
         catch (Exception error) when (error is ArgumentException or InvalidOperationException)
         {
             throw new RpcException(new Status(StatusCode.InvalidArgument, error.Message));
         }
-    }
+    });
 
     public async IAsyncEnumerable<StateReply> WatchAsync(StateRequest request, CallContext context = default)
     {

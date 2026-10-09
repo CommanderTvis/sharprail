@@ -12,12 +12,14 @@ public sealed partial class WorkbenchWindow
 {
     // A startup restore failed and retries when the host's subscription is (re)established.
     private bool restorePending;
-    private bool hostLost;
+    // The connection generation this window's content was read under; the first needs no second read.
+    private int hydratedGeneration = 1;
     // The project this window is closing itself; the broadcast of that close must not navigate again.
     private string? closingProject;
 
     private void WireHostSync()
     {
+        hydratedGeneration = Math.Max(1, state.Generation);
         state.Changed += SharedStateChanged;
         state.ConnectionChanged += ConnectionChanged;
         state.HandshakeChanged += HandshakeChanged;
@@ -87,18 +89,25 @@ public sealed partial class WorkbenchWindow
             .FirstOrDefault(control => control.Name == name && Equals(control.Tag, focused.Tag))?.Focus());
     }
 
-    /// <summary>After a reconnect, retry a failed startup restore or refresh the mounted workspace, and finish a deferred rename.</summary>
+    /// <summary>
+    /// Each new connection generation re-reads what this window shows, once: a failed startup restore is
+    /// retried, or the mounted workspace is watched and read again. A deferred rename is then finished.
+    /// </summary>
     private void ConnectionChanged(bool connected)
     {
         if (!connected)
         {
-            hostLost = true;
             if (remote && status.Text is "Remote" or "Connected") status.Text = "Reconnecting";
             return;
         }
+        var generation = state.Generation;
         if (restorePending) _ = StartAsync();
-        else if (hostLost && WorkspaceMounted) _ = RefreshAsync();
-        hostLost = false;
+        else if (generation != hydratedGeneration && WorkspaceMounted)
+        {
+            StartWatching(projectRequest);
+            _ = RefreshAsync();
+        }
+        hydratedGeneration = generation;
         if (renameCommitPending) CommitRename();
     }
 }

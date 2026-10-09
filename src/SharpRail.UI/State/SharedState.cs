@@ -3,6 +3,7 @@ using System.Text.Json;
 using Avalonia.Threading;
 
 using SharpRail.Host.Abstractions;
+using SharpRail.Host.Client;
 using SharpRail.UI.Docking;
 using SharpRail.UI.Rendering;
 
@@ -19,10 +20,10 @@ public sealed class SharedState : IDisposable
     private readonly CancellationTokenSource lifetime = new();
     private bool started;
 
-    public SharedState(IHostStateService service, Preferences preferences, HostState? initial = null)
+    public SharedState(IHostStateService service, Preferences preferences, HostState? initial = null, HostConnection? connection = null)
     {
-        this.service = service; Preferences = preferences;
-        if (initial is not null) { Apply(initial); Connected = true; }
+        this.service = service; Preferences = preferences; Connection = connection ?? new();
+        if (initial is not null) { Apply(initial); Connection.Report(true); }
         else Current = new();
     }
 
@@ -30,7 +31,10 @@ public sealed class SharedState : IDisposable
     /// <summary>The app's preferences; shared fields mirror the latest snapshot.</summary>
     public Preferences Preferences { get; }
     /// <summary>Whether a subscription currently delivers snapshots; a host given an initial snapshot starts connected.</summary>
-    public bool Connected { get; private set; }
+    public bool Connected => Connection.Status == HostConnectionStatus.Connected;
+    /// <summary>The connection this subscription reports to; its generation rises with every reconnect.</summary>
+    public HostConnection Connection { get; }
+    public int Generation => Connection.Generation;
     /// <summary>Raised on the UI thread with the previous and the new snapshot.</summary>
     public event Action<HostState, HostState>? Changed;
     /// <summary>Raised on the UI thread when the subscription drops or is re-established.</summary>
@@ -38,6 +42,8 @@ public sealed class SharedState : IDisposable
 
     /// <summary>The connected host's handshake; null until it answers and again after the connection drops.</summary>
     public HostHandshake? Handshake { get; private set; }
+    /// <summary>Whether the connected host serves a feature introduced at that protocol version; false until its handshake answers.</summary>
+    public bool Supports(int introducedAt) => HostCapabilities.Supports(Handshake?.ProtocolVersion, introducedAt);
     /// <summary>Raised on the UI thread when <see cref="Handshake"/> is set or cleared.</summary>
     public event Action<HostHandshake?>? HandshakeChanged;
     private int handshakeGeneration;
@@ -64,7 +70,7 @@ public sealed class SharedState : IDisposable
             {
                 await foreach (var state in service.WatchAsync(lifetime.Token))
                 {
-                    if (!Connected) { Connected = true; ConnectionChanged?.Invoke(true); _ = FetchHandshakeAsync(); }
+                    if (!Connected) { Connection.Report(true); ConnectionChanged?.Invoke(true); _ = FetchHandshakeAsync(); }
                     var previous = Current;
                     Apply(state);
                     Changed?.Invoke(previous, state);
@@ -72,7 +78,7 @@ public sealed class SharedState : IDisposable
             }
             catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { return; }
             catch (Exception error) { Console.Error.WriteLine("Host state subscription dropped: " + error.Message); }
-            if (Connected) { Connected = false; SetHandshake(null); ConnectionChanged?.Invoke(false); }
+            if (Connected) { Connection.Report(false); SetHandshake(null); ConnectionChanged?.Invoke(false); }
             try { await Task.Delay(RetryDelay, lifetime.Token); }
             catch (OperationCanceledException) { return; }
         }

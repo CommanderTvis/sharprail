@@ -91,6 +91,7 @@ internal static class UiChecks
         E2E.FilesE2E.Run(root);
         E2E.ProjectContextE2E.Run(root);
         E2E.MultiClientE2E.Run(root);
+        E2E.ReconnectE2E.Run(root);
     }
 
     public static void Run(string root)

@@ -1,6 +1,7 @@
 using System.Runtime.CompilerServices;
 
 using Grpc.Core;
+using Grpc.Core.Interceptors;
 using Grpc.Net.Client;
 
 using ProtoBuf.Grpc;
@@ -38,17 +39,19 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
     private readonly GrpcChannel channel;
     private readonly IStateRpc service;
     private readonly string token;
+    private readonly HostConnection connection;
 
-    public RemoteStateAdapter(Uri address, string token)
+    /// <summary>Adapters of one client share <paramref name="connection"/>, which learns the host's version from each handshake.</summary>
+    public RemoteStateAdapter(Uri address, string token, HostConnection? connection = null)
     {
         if (string.IsNullOrWhiteSpace(token)) throw new ArgumentException("A host session token is required.", nameof(token));
-        this.token = token;
+        this.token = token; this.connection = connection ?? new();
         channel = GrpcChannel.ForAddress(address, new GrpcChannelOptions
         {
             InitialReconnectBackoff = StateAdapterDefaults.InitialReconnect,
             MaxReconnectBackoff = StateAdapterDefaults.MaxReconnect
         });
-        service = channel.CreateGrpcService<IStateRpc>();
+        service = channel.Intercept(new HostCallInterceptor(this.connection)).CreateGrpcService<IStateRpc>();
     }
 
     private CallContext Context(CancellationToken ct, bool stream = false) => new(new CallOptions(
@@ -61,9 +64,10 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
         try
         {
             var reply = await service.HandshakeAsync(new() { ClientProtocolVersion = HostProtocol.Current }, Context(cancellationToken));
+            connection.HostVersion = reply.ProtocolVersion;
             return new(reply.ProtocolVersion, reply.HostVersion);
         }
-        catch (RpcException error) when (error.StatusCode == StatusCode.Unimplemented) { return new(0, ""); }
+        catch (RpcException error) when (error.StatusCode == StatusCode.Unimplemented) { connection.HostVersion = 0; return new(0, ""); }
     }
 
     public async ValueTask<HostState> GetStateAsync(CancellationToken cancellationToken = default)

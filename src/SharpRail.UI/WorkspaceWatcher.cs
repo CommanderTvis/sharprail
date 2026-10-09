@@ -27,6 +27,7 @@ public sealed partial class WorkbenchWindow
     private async Task WatchWorkspaceAsync(long request, CancellationToken cancellationToken)
     {
         var firstFrame = true;
+        var generation = state.Generation;
         while (!cancellationToken.IsCancellationRequested && request == projectRequest)
         {
             try
@@ -44,6 +45,8 @@ public sealed partial class WorkbenchWindow
             catch (Exception error)
             {
                 Console.Error.WriteLine("Workspace watching is unavailable: " + error.Message);
+                // A lost host re-hydrates the window under its next generation, which subscribes again.
+                if (remote && (state.Connection.Status == SharpRail.Host.Client.HostConnectionStatus.Disconnected || state.Generation != generation)) return;
                 try { await Task.Delay(1000, cancellationToken); }
                 catch (OperationCanceledException) { return; }
             }
