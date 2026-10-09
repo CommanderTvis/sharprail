@@ -253,10 +253,6 @@ menu. Abrupt death relies on operating-system process cleanup; remote shells bel
 - Native role items in the Edit menu. Avalonia's menu model has no AppKit role selectors, so the items
   are app commands: editing in native panels (the folder picker's path field) is not served by them, and
   there is no About item.
-- Trackpad pinch on macOS driving the same page zoom continuously. The factor is captured when the gesture
-  starts and each reported scale is applied against that baseline, bounded to 50%–200%, so updates never
-  compound; content that claims the gesture keeps it, and pinch adds no second zoom owner. Zoom currently
-  snaps every value to the fixed steps, so a pinch needs the factor to hold values between them.
 - Renderer capabilities beyond dispatch: review anchor geometry, phone support and the per-renderer copy,
   layout and whitespace flags. The diff pane decides its own split, whitespace and copy controls from
   whether the source diff is showing, and there is no review surface to anchor to.

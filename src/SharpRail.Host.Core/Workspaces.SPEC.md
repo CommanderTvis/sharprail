@@ -107,8 +107,6 @@ SharpRail created, may be removed by it.
 
 ## Not yet ported
 
-- A re-pointable diff base per workspace, separate from creation provenance, and diff-stat totals on the
-  listed records.
 - Renaming a managed workspace's branch from an agent-supplied slug; labels are the only rename.
 - A host terminal catalog that consumes `InitialTerminalPending`: the first terminal is still reserved in
   each window's layout, and the marker is only kept and cleared by the host.

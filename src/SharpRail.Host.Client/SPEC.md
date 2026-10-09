@@ -91,13 +91,11 @@ what makes remoteness an adapter choice rather than a mandatory daemon.
 
 ## Not yet ported
 
-- The local adapter forwards `ReadContentBytesAsync`; the remote proxy maps the metadata and bytes from
-  `ContentReply`.
-- Hiding the actions an older host cannot serve. The gate exists (`SharedState.Supports(introducedAt)`,
-  false until the handshake answers and again while disconnected), but nothing consults it: the Changes
-  diff has no revert or undo controls yet, and they must be withheld from a host that predates
-  `HostProtocol.ChangeWritePath`. Resource metadata needs no gate: a reply without it reads as text,
-  which is what that host's own client showed.
+- Gates for the operations added since `HostProtocol.Current` was last raised. The one gate in use is
+  `HostProtocol.ChangeWritePath`: the diff's revert and undo controls consult
+  `SharedState.Supports(introducedAt)`, which is false until the handshake answers and again while
+  disconnected. Resource metadata needs no gate: a reply without it reads as text, which is what that
+  host's own client showed.
 - Raising `HostProtocol.Current` to `RequestReplay` (3). Until a host reports it, mutation replay stays
   off against every host, including this build's own, and a mutation lost with its connection fails.
 - An HTTP base derived from the endpoint for host-served worktree files.

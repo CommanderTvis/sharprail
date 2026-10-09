@@ -67,8 +67,9 @@ unauthenticated peer learns nothing about the host's version.
   value, and caches one `ProjectServices` per root. Opening a project uses a
   detached instance so resolution never disturbs a cached workspace. Clients
   therefore never share a current project, and reconnects need no session.
-- `RequestReplayCache` deduplicates mutations: the project service's save, Git action, revert, undo,
-  pull-request opening and open-in-editor, and the state service's change. A call carrying
+- `RequestReplayCache` deduplicates mutations: the project service's save, Git action, workspace action,
+  revert, undo, pull-request opening and open-in-editor, and the state service's change. Spec authoring
+  and the terminal catalog's writes are not replayed yet. A call carrying
   `x-sharprail-client` and `x-sharprail-request` runs once per pair, detached from the call so a dropped
   connection cannot abandon it half done (it ends with the host instead); a replay of the pair awaits and
   returns the same outcome, success or failure. The request's method and serialized bytes are its

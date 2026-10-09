@@ -107,10 +107,8 @@ tests/SharpRail.Checks    executable checks; references UI and Remote to exercis
 
 ## Not yet ported
 
-- Workspace-local review, pull-request opening and CI status.
-- Byte-only content on a diff side beyond the first slice: swipe, onion and difference image modes, PDF
-  page-pair diffs, an inert SVG drawing and sanitised HTML. Bytes are fetched over gRPC at an immutable
-  commit (not HTTP routes); the host never executes content and the UI draws pixels only, so repository
-  script never runs.
+- Workspace-local review comments and CI status.
+- PDF page-pair diffs and sanitised HTML for byte-only content on a diff side. Bytes are fetched over gRPC
+  at an immutable commit (not HTTP routes); the host never executes content and the UI draws pixels only,
+  so repository script never runs.
 - A mobile shell projecting the same panels.
-- Revival of terminal tabs with recorded output across a host restart (restored tabs start fresh shells).
