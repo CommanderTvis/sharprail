@@ -136,6 +136,14 @@ internal static class Program
             Console.WriteLine("PASS quit and close command checks");
             return;
         }
+        if (args.SequenceEqual(["--shell"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            ShellChecks.Run(Path.Combine(root, "upstream-e2e"));
+            Console.WriteLine("PASS shell and header checks");
+            return;
+        }
         if (args.SequenceEqual(["--pull-requests"]))
         {
             PullRequestChecks.Run(root).GetAwaiter().GetResult();

@@ -100,6 +100,9 @@ The workbench is split into partial files rather than separate window classes:
 | `ProjectPanels.cs` | Files, Specs and Projects panel construction and project actions. |
 | `ProjectHome.cs` | Startup routing, Welcome/Project Home, project context actions, the Create workspace flow and workspace row actions. |
 | `GitPanels.cs` / `ChangesTree.cs` / `WorkspaceGit.cs` | Git panel controls, compact change-tree projection and cancellable, workspace-scoped snapshot refreshes. |
+| `LocationBar.cs` | The header's captioned Project, Workspace and Branch segments, their switchers and the branch card. |
+| `WindowNavigation.cs` | Window locations, their serialized links and the Back/Forward list. |
+| `ApplicationMenu.cs` / `WindowChrome.cs` | The macOS menu bar (Edit, Window) over the app's commands; the title-bar double-click preference and pinch zoom. |
 | `GestureNotification.cs` | Feedback when layout transitions cancel an active gesture. |
 | `HostSync.cs` | Applying shared-state broadcasts and reconnects to the window. |
 | `Workbench.cs` | App-owned composition shared by windows and the per-window profile entries. |
@@ -130,6 +133,8 @@ Run checks with `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Re
 `-- --registry` runs the workspace registry host parity checks and the external-workspace rail checks.
 `-- --documents` runs the resource-renderer checks and the translations that open file and diff bodies.
 `-- --change-actions` runs the toast and diff revert/undo checks; `-- --review` runs the Review panel checks.
+`-- --shell` runs the window shell checks (header location bar, application menu, window chrome, region errors,
+arrangement isolation, locations and links, the workspace dialog's project picker, commit menus and inert links).
 Set `SHARPRAIL_TEST_GIT_SOURCE` to an existing upstream clone to include Git fixtures.
 `tests/SharpRail.Checks/Program.cs` is the check runner, not an xUnit test project.
 `ProjectChecks.cs` covers project/Git host parity; `LayoutChecks.cs` covers layout

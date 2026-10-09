@@ -78,9 +78,12 @@ can use it without a cycle. Theme catalogue and colour roles have their own docu
   their own icons. The column is capped at the Markdown line width (default 78 symbols, measured in the
   reading font) unless the unbounded preference is set.
 - Links navigate. A `#` link scrolls to the heading anchor. An absolute `http`, `https` or `mailto` link opens
-  in the system handler. A relative link resolves against the document's own path and is handed to the
-  workbench's navigation callback, fragment included, so the workbench decides preview versus keep. Nothing
-  else is followed.
+  in the system handler. A relative link resolves against the document's own path, and a leading slash
+  against the worktree root (`MarkdownPreview.ResolveLink`); the result is handed to the workbench's
+  navigation callback, fragment included, so the workbench decides preview versus keep. Nothing else is
+  followed. A link that climbs out of the worktree, or whose percent-encoding is malformed or decodes to a
+  NUL, never becomes a control: its text renders as the plain text around it and no request reaches the
+  host.
 - Images load asynchronously: relative images read through `IProjectServices.ReadFileAsync`, remote
   `http`/`https` images through a shared client with a timeout and an 8 MB cap. A failed image stays an empty
   holder whose tooltip carries the reason, never a crash.
@@ -139,6 +142,13 @@ Every asynchronous gap renders something shaped for the wait, never nothing:
 - Clipboard writes go through the top level's clipboard and degrade silently when none exists; the text stays
   visible and selectable.
 
+## Menus and time
+
+Every context menu is bounded to 480px high and 420px wide (an application style): a long list, such as a
+branch's commits, scrolls inside it and rows trim rather than widen it. `Ui.RelativeTime` words an instant
+against a given now, never the clock — `just now` under a minute, then `5m ago`, `3h ago`, `2d ago` — and
+commit rows in the scope menu append it to the short SHA and author.
+
 ## Get right
 
 - Theme-baked surfaces subscribe to `Ui.ThemeChanged` on attach and unsubscribe on detach, so a detached
@@ -151,7 +161,6 @@ Every asynchronous gap renders something shaped for the wait, never nothing:
 
 ## Not yet ported
 
-- A per-region error boundary: a throwing control is not contained to its region.
 - Content-shaped skeleton rows and the fade-in reveal of resolved content; SharpRail's placeholders are text.
 - The quiet-scroll frame: intent-revealed 6px scrollbars and directional edge curtains on clipped scroll
   viewers; SharpRail uses Fluent's scrollbars.
@@ -160,17 +169,14 @@ Every asynchronous gap renders something shaped for the wait, never nothing:
 - A tooltip provider with tuned delay and a `wrapTrigger` for disabled controls.
 - A shared non-modal dialog panel with dialog/title semantics, Escape dismissal and focus return while
   surrounding controls remain interactive; `DialogWindow` supplies modal cards instead.
-- Height-bounded, scrollable menus with horizontal overflow hidden for long commit lists.
 - Syntax highlighting for Markdown code blocks beyond the minimal keyword/string/comment tinting, and a
   manifest-driven syntax palette. Upstream now highlights chat fences off the main thread with lazy
   grammars, bounded caching and ordered replies; its worker/fallback machinery is web-specific. Any native
   equivalent must keep expensive highlighting off the dispatcher and reject stale results.
 - Swipe-to-dismiss on toasts, and pausing a toast's timer while the pointer or focus is on it.
-- A relative-time helper for commit rows (they show short SHA and author only).
-- Rendering a link that escapes the worktree root or has malformed encoding as an inert control; today such
-  a target reaches the host, whose path validation rejects it.
 - A single authored typography vocabulary with generated roles and a build-time adoption check spanning
   every shared primitive and app surface. Fonts and sizes currently live in `Ui` and individual controls;
   extending shared UI must not create a second type system.
-- The location strip's shared caption style: uppercase 10px text above a 22px value row within the
-  40px strip. This belongs to the typography vocabulary when the captioned location bar is ported.
+- The location strip's caption style (uppercase 10px text above a 22px value row within the 40px strip)
+  is a window-local style in `WorkbenchWindow.axaml`; it moves into the typography vocabulary when that
+  exists.

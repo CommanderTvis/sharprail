@@ -51,8 +51,7 @@ public sealed partial class WorkbenchWindow
             gitBranches = branches;
             // A commit scope already read the catalogue to validate its commit; the other scopes leave it to the menu.
             if (commit is not null) scopeCommits = catalog;
-            branchLabel.Text = snapshot.IsRepository ? snapshot.Branch : "";
-            branchIcon.IsVisible = snapshot.IsRepository;
+            SetBranch(snapshot.IsRepository ? snapshot.Branch : "");
             if (readyBranch is not null) readyBranch.Text = ReadyBranchText();
             gitLoading = false; gitError = null;
             RefreshGitPanels();

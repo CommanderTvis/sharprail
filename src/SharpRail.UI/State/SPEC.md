@@ -89,7 +89,8 @@ waits for the host's snapshot rather than treating an empty or disconnected stat
 successful read that lacks the project or workspace falls back (workspace to Project Home, project to
 Welcome); a timeout or disconnect keeps the remembered location and retries after reconnect. Superseded
 project opens are cancelled by a monotonic request counter so a late response never replaces a newer
-location. Location is never shared between windows or clients; continuing elsewhere is an explicit action.
+location. Location is never shared between windows or clients; continuing elsewhere is an explicit action:
+a serialized link, described with the window's Back/Forward list in [../SPEC.md](../SPEC.md).
 
 A workspace that leaves the host's registry is tombstoned for the window's lifetime (`HostSync.cs`): its Git
 selection, its place in the selection history and its view in the frame are dropped at once, an open of it
@@ -126,5 +127,6 @@ it. The queue is never persisted or shared between windows.
   those messages are neither coalesced nor capped.
 - View state for the code editor, the table, the JSON tree and the notebook (their scroll position and
   expansion); those views report none.
-- Serialized routes and Back/Forward history over locations, with push for user intent and replace for
-  passive changes.
+- Telling user intent from passive moves in the Back/Forward list: every move to a different location adds
+  an entry, so a remote project close or workspace removal that relocates the window is recorded too. The
+  observed location is not persisted as a link; the profile keeps its own last-location fields.

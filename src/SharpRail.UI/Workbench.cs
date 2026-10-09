@@ -28,6 +28,8 @@ public sealed class Workbench : IDisposable
     public bool Remote { get; }
     public IReadOnlyList<WorkbenchWindow> Windows => windows;
     public bool CanOpenWindows => sessions is not null;
+    /// <summary>A further project session of the same host, for looking at a project a window has not opened; the caller disposes it.</summary>
+    public IProjectServices? NewSession() => sessions?.Invoke();
     /// <summary>Set while the app quits, so closing windows keep their profile entries for the next launch.</summary>
     public bool ShuttingDown { get; set; }
     public event Action<WorkbenchWindow>? WindowOpened;

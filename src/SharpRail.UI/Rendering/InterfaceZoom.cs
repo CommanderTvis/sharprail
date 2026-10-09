@@ -25,9 +25,13 @@ public static class InterfaceZoom
         _ => Factors.LastOrDefault(factor => factor < current - Tolerance, current),
     };
 
-    /// <summary>Snaps a persisted factor onto the steps, so a hand-edited profile cannot leave the bounds.</summary>
+    /// <summary>Keeps a factor inside the bounds, so a hand-edited profile cannot leave them. A pinch may rest between the steps.</summary>
     public static double Normalize(double factor) =>
-        double.IsFinite(factor) ? Factors.MinBy(step => Math.Abs(step - factor)) : 1;
+        double.IsFinite(factor) ? Math.Clamp(factor, Factors[0], Factors[^1]) : 1;
+
+    /// <summary>The factor a pinch reports: its scale against the factor the gesture started at, never the previous step.</summary>
+    public static double ForGesture(double start, double scale) =>
+        double.IsFinite(scale) && scale > 0 ? Normalize(start * scale) : start;
 
     public static void Apply(Application app, double factor)
     {

@@ -58,6 +58,7 @@ public sealed partial class WorkbenchWindow
         else if (data.LastProjectRoot.Length > 0 && (remote || Directory.Exists(data.LastProjectRoot))) await OpenProjectHomeAsync(data.LastProjectRoot);
         else ShowWelcome();
         restorePending = !WorkspaceMounted && !cleanWelcome;
+        if (StartLink is { } link && !restorePending) { StartLink = null; await NavigateAsync(link); }
     }
 
     public Task OpenProjectHomeAsync(string project) => OpenWorkspaceAsync(project, true, home: true);
@@ -73,18 +74,31 @@ public sealed partial class WorkbenchWindow
         slot.LastProject = ""; slot.LastProjectRoot = ""; slot.LastAtHome = false; restorePending = false; syncedProject = "";
         SaveProfile();
         UpdateScopeLabels();
-        branchLabel.Text = ""; branchIcon.IsVisible = false;
+        SetBranch("");
         status.Text = remote ? "Remote" : "Connected";
         Layout.SwitchWorkspace("");
         surface.RefreshContents();
+        LocationChanged?.Invoke();
     }
 
     private void UpdateScopeLabels()
     {
+        // A header rename belongs to the workspace it started on; leaving that workspace abandons it.
+        if (renameInHeader && renaming is not null && (atHome || renaming != workspaceRoot))
+        { renaming = null; renameBox = null; renameCommitPending = false; }
         projectLabel.Text = projectRoot.Length == 0 ? "SharpRail" : DirectoryName(projectRoot);
-        var workspace = this.FindControl<TextBlock>("WorkspaceLabel")!;
-        workspace.Text = projectRoot.Length == 0 ? "" : atHome ? "Project home" : WorkspaceName(workspaceRoot);
-        this.FindControl<TextBlock>("ScopeSeparator")!.IsVisible = projectRoot.Length > 0;
+        workspaceLabel.Text = projectRoot.Length == 0 ? "" : atHome ? "Project home" : WorkspaceName(workspaceRoot);
+        this.FindControl<Border>("WorkspaceSegment")!.IsVisible = projectRoot.Length > 0;
+        var project = this.FindControl<Button>("ScopeProject")!;
+        var workspace = this.FindControl<Button>("ScopeWorkspace")!;
+        AutomationProperties.SetName(project, "Project " + projectLabel.Text);
+        AutomationProperties.SetName(workspace, "Workspace " + workspaceLabel.Text);
+        var input = this.FindControl<ContentControl>("ScopeRename")!;
+        var editing = renameInHeader && renaming is not null;
+        workspace.IsVisible = !editing; input.IsVisible = editing;
+        if (!editing) input.Content = null;
+        else input.Content ??= RenameBox(new Thickness(0), 22);
+        UpdateBranchSegment();
     }
 
     private Control Welcome()
@@ -277,6 +291,8 @@ public sealed partial class WorkbenchWindow
     {
         if (creatingWorkspace || projectRoot.Length == 0 || !WorkspaceMounted) return;
         creatingWorkspace = true;
+        // Another project's branches are read through a session of its own, so picking never moves this window.
+        IProjectServices? probe = null;
         try
         {
             var request = projectRequest;
@@ -289,15 +305,37 @@ public sealed partial class WorkbenchWindow
                 return;
             }
             if (request != projectRequest) return;
-            var dialog = new NewWorkspaceDialog(DirectoryName(project), catalog);
-            _ = PrefetchDefaultAsync(dialog);
+            var projects = workbench.CanOpenWindows ? state.Current.Projects : [project];
+            var dialog = new NewWorkspaceDialog(projects.Contains(project) ? projects : [project], project, catalog);
+            dialog.LoadProject = async picked =>
+            {
+                try
+                {
+                    if (picked == project) return await host.ListBranchesAsync(false, lifetime.Token);
+                    probe ??= workbench.NewSession();
+                    if (probe is null) return null;
+                    await probe.OpenProjectAsync(picked, lifetime.Token);
+                    return await probe.ListBranchesAsync(false, lifetime.Token);
+                }
+                catch (Exception error) when (error is not OperationCanceledException)
+                {
+                    Report(new IOException("Couldn't create workspace. " + error.Message));
+                    return null;
+                }
+            };
+            _ = PrefetchDefaultAsync(dialog, project);
             var choice = await dialog.ShowAsync(this);
             if (choice is null || request != projectRequest) return;
-            if (choice.InProjectFolder) await OpenWorkspaceAsync(project, false);
+            if (choice.Project != project)
+            {
+                await OpenProjectHomeAsync(choice.Project);
+                if (!WorkspaceMounted || projectRoot != choice.Project) return;
+            }
+            if (choice.InProjectFolder) await OpenWorkspaceAsync(choice.Project, false);
             else await CreateWorktreeAsync(choice);
         }
         catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
-        finally { creatingWorkspace = false; }
+        finally { (probe as IDisposable)?.Dispose(); creatingWorkspace = false; }
     }
 
     // A rejected dialog action has no dialog left to report in, so it is a toast rather than the window's error line.
@@ -307,12 +345,12 @@ public sealed partial class WorkbenchWindow
         Console.Error.WriteLine(error);
     }
 
-    private async Task PrefetchDefaultAsync(NewWorkspaceDialog dialog)
+    private async Task PrefetchDefaultAsync(NewWorkspaceDialog dialog, string project)
     {
         try
         {
             var fresh = await host.ListBranchesAsync(true, lifetime.Token);
-            if (dialog.Window.IsVisible) dialog.Update(fresh);
+            if (dialog.Window.IsVisible) dialog.Update(fresh, project);
         }
         catch (Exception error) when (error is not OperationCanceledException) { Console.Error.WriteLine(error.Message); }
     }
@@ -338,10 +376,19 @@ public sealed partial class WorkbenchWindow
     private async Task RemoveWorkspaceAsync(WorkspaceRecord worktree)
     {
         var external = worktree.Kind == WorkspaceKinds.External;
-        if (!(external
-            ? await Dialogs.Confirm(this, $"Remove {WorkspaceName(worktree.Path)} from SharpRail?",
-                $"SharpRail stops listing {worktree.Path}. The checkout and its branch stay untouched; reopen it from Open existing worktree…", "Remove from SharpRail")
-            : await Dialogs.Confirm(this, "Remove worktree?", $"Remove {worktree.Path}? Git will refuse if it has uncommitted changes. The branch will be retained."))) return;
+        // The dialog names the workspace it was opened for; leaving that workspace first dismisses it.
+        using var dismiss = new CancellationTokenSource();
+        void Left() { if (atHome || workspaceRoot != worktree.Path) dismiss.Cancel(); }
+        if (!atHome && worktree.Path == workspaceRoot) LocationChanged += Left;
+        try
+        {
+            if (!(external
+                ? await Dialogs.Confirm(this, $"Remove {WorkspaceName(worktree.Path)} from SharpRail?",
+                    $"SharpRail stops listing {worktree.Path}. The checkout and its branch stay untouched; reopen it from Open existing worktree…", "Remove from SharpRail", dismiss: dismiss.Token)
+                : await Dialogs.Confirm(this, "Remove worktree?", $"Remove {worktree.Path}? Git will refuse if it has uncommitted changes. The branch will be retained.",
+                    dismiss: dismiss.Token))) return;
+        }
+        finally { LocationChanged -= Left; }
         if (!atHome && worktree.Path == workspaceRoot)
         {
             var previous = selectionHistory.LastOrDefault(path => path != worktree.Path &&
@@ -366,15 +413,16 @@ public sealed partial class WorkbenchWindow
     private ContextMenu WorkspaceActions(WorkspaceRecord worktree, Button kebab)
     {
         var menu = new ContextMenu { Name = "WorkspaceActions", Placement = PlacementMode.BottomEdgeAlignedRight, PlacementTarget = kebab };
+        var openIn = AddWorkspaceActions(menu, worktree, header: false);
+        menu.Opened += (_, _) => _ = LoadEditorsAsync(openIn, worktree.Path);
+        return menu;
+    }
+
+    /// <summary>The one set of workspace actions, shown by a Projects row and by the header's workspace menu.</summary>
+    private MenuItem AddWorkspaceActions(ContextMenu menu, WorkspaceRecord worktree, bool header)
+    {
         var openIn = new MenuItem { Header = "Open in", Name = "WorkspaceOpenIn" };
         FillEditors(openIn, worktree.Path);
-        menu.Opened += async (_, _) =>
-        {
-            if (editors is not null) return;
-            try { editors = await host.ListEditorsAsync(lifetime.Token); }
-            catch (Exception error) when (error is not OperationCanceledException) { Report(error); return; }
-            FillEditors(openIn, worktree.Path);
-        };
         menu.Items.Add(openIn);
         var copy = Ui.Menu("Copy path", () => _ = CopyWorkspacePathAsync(worktree.Path));
         copy.Name = "WorkspaceCopyPath";
@@ -382,11 +430,11 @@ public sealed partial class WorkbenchWindow
         var reveal = Ui.Menu("Reveal in file manager", () => _ = RevealWorkspaceAsync(worktree.Path));
         reveal.Name = "WorkspaceReveal";
         menu.Items.Add(reveal);
-        if (worktree.Kind == WorkspaceKinds.Default) return menu;
+        if (worktree.Kind == WorkspaceKinds.Default) return openIn;
         // An attached worktree is the user's: SharpRail neither renames nor removes it, it only stops listing it.
         if (worktree.Kind == WorkspaceKinds.Managed)
         {
-            var rename = Ui.Menu("Rename", () => StartRename(worktree.Path));
+            var rename = Ui.Menu("Rename", () => StartRename(worktree.Path, header));
             rename.Name = "WorkspaceRename";
             menu.Items.Add(rename);
         }
@@ -395,7 +443,15 @@ public sealed partial class WorkbenchWindow
             !WorktreeLocked(worktree.Path));
         remove.Name = "WorkspaceRemove";
         menu.Items.Add(remove);
-        return menu;
+        return openIn;
+    }
+
+    private async Task LoadEditorsAsync(MenuItem openIn, string path)
+    {
+        if (editors is not null) return;
+        try { editors = await host.ListEditorsAsync(lifetime.Token); }
+        catch (Exception error) when (error is not OperationCanceledException) { Report(error); return; }
+        FillEditors(openIn, path);
     }
 
     private void FillEditors(MenuItem openIn, string path)
@@ -422,15 +478,18 @@ public sealed partial class WorkbenchWindow
         if (Clipboard is not null) await Clipboard.SetTextAsync(path);
     }
 
-    private void StartRename(string path)
+    private void StartRename(string path, bool header = false)
     {
         renaming = path; renameDraft = renameOriginal = WorkspaceName(path); renameCommitPending = false;
+        renameInHeader = header; renameBox = null;
+        UpdateScopeLabels();
         toolContent.Remove("projects"); surface.RefreshContents("projects");
     }
 
-    private Control RenameBox(string path)
+    private Control RenameBox(Thickness margin, double height)
     {
-        var box = new TextBox { Name = "WorkspaceRenameInput", Text = renameDraft, MinHeight = 28, Margin = new Thickness(20, 0, 32, 0) };
+        var box = new TextBox { Name = "WorkspaceRenameInput", Text = renameDraft, MinHeight = height, Margin = margin };
+        if (height < 28) { box.Height = height; box.Padding = new Thickness(6, 1); box.MinWidth = 160; }
         AutomationProperties.SetName(box, "Workspace name");
         renameBox = box;
         box.TextChanged += (_, _) => { if (ReferenceEquals(renameBox, box)) renameDraft = box.Text ?? ""; };

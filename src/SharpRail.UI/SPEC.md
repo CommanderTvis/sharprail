@@ -61,9 +61,63 @@ entry; quitting keeps every entry so the next launch restores the same set.
 
 The 40px header is the window's title bar. `WorkbenchWindow.axaml` extends the client area into the
 decorations so the native controls stay while the header provides the colour; on macOS the header leaves
-80px for the traffic lights. The header shows the brand mark, `project › workspace` with the branch, the
-connection state and Settings. Pressing plain header content drags the window and double-clicking it
-toggles maximize; buttons in the header never start a drag.
+80px for the traffic lights. The header shows the brand mark, the location bar, the connection state and
+Settings. Pressing plain header content drags the window; buttons and text inputs in the header never
+start a drag. In macOS full screen the traffic lights hide, so the header drops their inset and keeps only
+its ordinary 12px margin.
+
+The header covers the native strip, so the window handles a double-click on it itself (`WindowChrome.cs`).
+On macOS it reads `AppleActionOnDoubleClick` afresh on every double-click (`defaults read -g`, off the UI
+thread), so a changed System Settings choice applies without a restart: unset, `Maximize` and `Fill` zoom
+the window (a second double-click restores it), `Minimize` minimizes, anything else does nothing. A
+double-click arriving while the previous one is still resolving is dropped, and full screen ignores it.
+Other platforms, and windows with no native handle, zoom.
+
+## Application menu
+
+On macOS `ApplicationMenu` installs the native menu bar before the first window opens. The application
+menu keeps the platform's own items (Services, Hide, Hide Others, Show All, Quit); every window that opens,
+dialogs included, gets Edit (Undo, Redo, Cut, Copy, Paste, Delete, Select All) and Window (Minimize, Zoom,
+Close, Bring All to Front) with their conventional chords. Items call what their chords already reach, so
+a menu pick and a key press are one path and dispatch once: Close asks `AppCommands.Close` in a workbench
+window and closes any other window; an editing command acts on a focused text box directly and reaches
+every other focused control as its chord, because editors, terminals and selectable text implement those
+chords themselves. Delete has no chord and is never forwarded. The menu's Quit is the platform item and
+ends the app through the lifetime's shutdown directly; only the keyboard chord, which the window sees
+first, runs the confirmation gesture. Other platforms have no menu bar and keep their chords.
+
+## Location bar
+
+`LocationBar.cs` renders the header's captioned segments — PROJECT, WORKSPACE, BRANCH — each an uppercase
+10px caption above a 22px value pill, with a hairline before every segment but the first. It owns no host
+state: it shows what the window already knows and calls the same methods as the panels.
+
+- PROJECT lists every open project with the current one checked, Project home (disabled while there) and
+  Add project…, which is the Projects panel's picker. Choosing a project opens its Project Home. With no
+  project the segment reads `SharpRail` and the other two are absent.
+- WORKSPACE shows the active workspace's actions above Switch to (its siblings from the host's workspace
+  registry, the rows of the Projects rail, with their branch when it differs from the name) and New
+  workspace with the Mod+N label. The actions are the Projects row's own (`AddWorkspaceActions`): Open in,
+  Copy path, Reveal in file manager, Rename for a managed workspace, and Remove worktree… or, for an
+  attached one, Remove from SharpRail. At Project Home the pill reads `Project home` and offers only the
+  switcher and creation.
+- Rename replaces the pill with the same inline input and the same single rename state the Projects rail
+  uses; a flag says which of the two shows the input, so there is never a second request or a second
+  draft. A header rename is bound to the workspace it started on: landing anywhere else abandons it,
+  including a commit left pending while the host was unreachable.
+- Remove asks through the shared confirmation, which names the workspace it was opened for. When that was
+  the active workspace and the window lands elsewhere before the answer, the dialog dismisses itself, so
+  confirming can never remove a different workspace.
+- BRANCH is present in a workspace of a Git repository. Outside the project folder the caption adds
+  `· from <target>`, the workspace's current review target (the host's when it holds one), as the ready
+  placeholder does; the Default workspace's caption is plain. The pill opens the branch card, which takes focus itself: the branch with Copy (a
+  transient notice confirms), and Compare to, which is the Changes panel's own picker (`ComparisonPicker`)
+  writing the same per-workspace selection and the same host review target, so the two can never disagree.
+- Pills and the rename input never start a window drag; captions, hairlines and the space between remain
+  part of the title bar.
+- `LocationStrip` lays the segments out. As width shrinks the branch yields first, then the project; a
+  segment that would fall under 72px is dropped whole, and the workspace keeps what is left, so workspace
+  identity stays visible at the minimum window width.
 
 ## Resource renderers
 
@@ -107,6 +161,35 @@ derive their pixel density from the ancestor transform as well as the render sca
 stay sharp. The native title bar does not zoom: the title-bar height hint follows the zoomed header while
 the traffic-light inset stays physical. Zoom is independent of the Settings interface font size. The chords
 bubble, so a focused control that claims them (an editor or terminal) keeps them.
+
+A trackpad pinch drives the same factor continuously. Avalonia reports magnification as deltas with no
+phases, so a gesture starts at the first delta after 250ms of quiet: the factor is captured there and the
+accumulated scale is applied against that baseline, bounded to 50%–200%, so updates never compound. The
+factor may rest between the steps (a persisted factor is clamped, not snapped) and the chords step to the
+adjacent factor from wherever it rests. The profile is saved once, when the gesture ends. The handler
+bubbles, so content that claims the gesture keeps it, and pinch writes the one zoom preference.
+
+## Locations, history and links
+
+A window's location (`WindowNavigation.cs`) is Welcome, a project's home, a workspace, or a file selected in
+the focused center group of a workspace; diff and terminal tabs are workspace-level. It is window-local and
+never host state. `WindowLocation` serializes it to a versioned, host-relative link — `#/v1`,
+`#/v1/projects/<project>`, `…/workspaces/<workspace>`, `…/resources/<file>` — where each id is one
+percent-encoded segment: the project and workspace are their paths on the host and the file is
+worktree-relative. Links carry no credential and no host address. Unknown versions, empty ids, extra
+segments (a chat link included) and malformed encoding are invalid and mean Welcome.
+
+Each window keeps a Back/Forward list of up to 100 locations, not tab state, and never persists it. Every
+move to a different location adds an entry and drops the entries ahead; Mod+[ and Mod+] on macOS, Alt+Left
+and Alt+Right elsewhere, and the mouse's back and forward buttons step through it. A step or an opened
+link is intent checked against what exists now: a project the host no longer lists falls back to Welcome,
+a workspace whose folder is gone to its Project Home, and a file that will not open to its workspace. While
+a step is applied, the moves it causes rewrite its own entry instead of adding one, so the entry ends as
+where the window actually landed. Stepping onto a workspace-level entry while a file of that workspace is
+selected leaves the file selected, one dead press, as upstream accepts.
+
+Links are produced by Copy link among the header's workspace actions and consumed by `--link <link>` at launch,
+which the first window opens once it has restored its own location, and by `NavigateAsync`.
 
 ## Styling and theming
 
@@ -163,23 +246,13 @@ menu. Abrupt death relies on operating-system process cleanup; remote shells bel
 
 ## Not yet ported
 
-- Captioned Project, Workspace and Branch segments in the 40px header, with project and sibling-workspace
-  switchers, shared workspace actions and a branch card. The card's comparison picker must use the same
-  workspace target as Changes; managed workspaces also show their base branch. Controls and inline rename
-  inputs must never start window dragging, while captions and separators remain draggable. As width shrinks,
-  branch yields before project and workspace; workspace identity always stays visible. Review/remote chips
-  remain outside the current GitHub/PR scope.
-- Sharing workspace actions between the header and Projects without duplicating host requests or rename
-  state. A header rename is bound to its starting workspace and abandoned on a workspace switch, including
-  a pending offline commit. A Remove dialog names its captured workspace and dismisses if the active
-  workspace changes before confirmation.
-- A native application menu (application, Edit, Window roles on macOS) so standard editing commands route
-  through the platform responder chain.
-- Removing the traffic-light inset in macOS full screen.
-- Honouring the macOS title-bar double-click preference (`AppleActionOnDoubleClick`: zoom, fill,
-  minimize or nothing) on the custom header; SharpRail always zooms the window.
-- Per-region error isolation: a failing panel or document body shows an error in its own region rather
-  than affecting sibling groups or the window.
+- The location bar's REMOTE and PULL REQUEST chips and the branch card's Remote and review rows; the pull
+  request surface lives in the Review panel only. The card has no separate Based on row.
+- A registered URL scheme for location links (they are opened only by `--link` at launch), and a remote
+  host cannot confirm that a workspace folder still exists before a history step opens it.
+- Native role items in the Edit menu. Avalonia's menu model has no AppKit role selectors, so the items
+  are app commands: editing in native panels (the folder picker's path field) is not served by them, and
+  there is no About item.
 - Trackpad pinch on macOS driving the same page zoom continuously. The factor is captured when the gesture
   starts and each reported scale is applied against that baseline, bounded to 50%–200%, so updates never
   compound; content that claims the gesture keeps it, and pinch adds no second zoom owner. Zoom currently

@@ -296,9 +296,9 @@ public sealed partial class DockSurface
             var body = new DockPanel
             {
                 Name = "DockBody_" + group.Id,
-                Background = group.Region == "center" ? Ui.Surface : Ui.Sidebar,
-                Child = selected is null ? Empty(group) : renderContent(selected)
+                Background = group.Region == "center" ? Ui.Surface : Ui.Sidebar
             };
+            body.Mount(() => selected is null ? Empty(group) : renderContent(selected));
             void LabelBody()
             {
                 var label = tabs.GetLogicalDescendants().OfType<DockTabButton>().FirstOrDefault(button => button.IsSelected);
@@ -310,9 +310,8 @@ public sealed partial class DockSurface
             contentHosts.Add(body);
             updates.Add(() =>
             {
-                body.Child = null;
                 var active = Session.Selected(group.Id);
-                body.Child = active is null ? Empty(Session.Group(group.Id)) : renderContent(active);
+                body.Mount(() => active is null ? Empty(Session.Group(group.Id)) : renderContent(active));
                 LabelBody();
             });
             Ui.Place(panel, body, 1);

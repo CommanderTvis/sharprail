@@ -89,6 +89,17 @@ it at request time and carries the stamp to completion; a completion whose stamp
 tab without stealing focus, and one whose group vanished reroutes to the current last focus. Passive
 restoration does not advance clocks.
 
+## Body isolation
+
+A group's body host (`DockPanel`) is its region's error boundary. A body that throws while the window
+builds it, or during its measure or arrange, is replaced there by a notice naming the error; sibling
+groups, chrome and the window carry on, and the region shows the next body that works. Exceptions raised
+while painting are outside it.
+
+Gesture projections are local: a tab drag, its drop preview, its cancellation and a resize preview detach
+no body and replace no tab strip. Selecting a tab swaps only that group's body; focusing touches nothing.
+A committed transition rebuilds chrome and re-mounts the same body instances the window caches.
+
 ## Arrangement and accessibility
 
 A tab drag paints exactly one result: strip insertion, center half split, side before/after
@@ -156,14 +167,7 @@ no target and no further fallback. The tab button no longer handles Mod+W itself
 
 ## Not yet ported
 
-- Verification of arrangement isolation: drag and resize previews must retain mounted feature bodies;
-  selecting or focusing one group must leave sibling chrome and bodies untouched. `DockSurface` already
-  keeps gesture projections local and updates selections per group, but the upstream isolation guarantees
-  are not yet pinned by equivalent checks for injected body lifetime and refreshes.
-
 - Reconciling with the host terminal catalog: terminal membership is shared across windows, a
   peer-created terminal is placed passively into a compatible slot without taking focus, and a host-side
   close removes the tab from every window. The host side exists (`ITerminalCatalogService`, its adapters
   and broadcast); no window reserves its tabs or applies the broadcast yet.
-- Back/Forward navigation history over locations, and serializable deep links to a project, workspace or
-  resource.

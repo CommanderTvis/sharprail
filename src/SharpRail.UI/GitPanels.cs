@@ -79,10 +79,12 @@ public sealed partial class WorkbenchWindow
                     _ = RefreshAsync();
                 });
                 item.Name = "ChangesCommit_" + commit.Sha;
+                var when = DateTimeOffset.TryParse(commit.CommittedAt, System.Globalization.CultureInfo.InvariantCulture, out var committed)
+                    ? " · " + Ui.RelativeTime(committed, DateTimeOffset.UtcNow) : "";
                 item.Header = new StackPanel
                 {
                     Children = { Ui.Text(commit.Subject.Length > 0 ? commit.Subject : commit.ShortSha),
-                        Ui.Text(commit.ShortSha + " · " + commit.Author, Ui.Muted, 12) }
+                        Ui.Text(commit.ShortSha + " · " + commit.Author + when, Ui.Muted, 12) }
                 };
                 ToolTip.SetTip(item, commit.Subject);
                 item.ToggleType = MenuItemToggleType.Radio;
@@ -96,47 +98,8 @@ public sealed partial class WorkbenchWindow
         selectors.Children.Add(scope);
         if (git.IsRepository)
         {
-            var branches = ChangesDropdown("ChangesBranch", "Comparison branch", "vs " + (comparison.Length > 0 ? comparison : git.Branch), "gitBranch");
+            var branches = ComparisonPicker("ChangesBranch", "vs ");
             branches.MaxWidth = 200;
-            var local = new MenuItem { Header = "Local" };
-            var remote = new MenuItem { Header = "Remote" };
-            if (gitBranches.Local.Count > 0) branches.ContextMenu!.Items.Add(local);
-            if (gitBranches.Remote.Count > 0) branches.ContextMenu!.Items.Add(remote);
-            void AddBranch(MenuItem parent, string name, string branch)
-            {
-                var parts = name.Split('/');
-                foreach (var folder in parts[..^1])
-                {
-                    var group = parent.Items.OfType<MenuItem>().FirstOrDefault(item => item.Tag is null && Equals(item.Header, folder));
-                    if (group is null)
-                    {
-                        group = new MenuItem { Header = folder };
-                        parent.Items.Add(group);
-                    }
-                    parent = group;
-                }
-                var item = Ui.Menu(parts[^1], () =>
-                {
-                    changeScope = "All changes"; selectedCommit = null; comparison = branch; scopeCommits = null;
-                    RetargetDiffTabs();
-                    SaveGitSelection(); _ = RefreshAsync();
-                    _ = ShareAsync(SharpRail.Host.Abstractions.HostStateChange.DiffBase(workspaceRoot, branch));
-                });
-                item.ToggleType = MenuItemToggleType.Radio;
-                item.IsChecked = comparison == branch;
-                item.Tag = branch;
-                ToolTip.SetTip(item, branch);
-                parent.Items.Add(item);
-            }
-            foreach (var branch in gitBranches.Local) AddBranch(local, branch, branch);
-            foreach (var group in gitBranches.Remote.GroupBy(branch => branch.Remote))
-            {
-                var owner = new MenuItem { Header = group.Key };
-                remote.Items.Add(owner);
-                foreach (var branch in group) AddBranch(owner, branch.Name, branch.Ref);
-            }
-            branches.ContextMenu!.Items.Add(new Separator());
-            branches.ContextMenu.Items.Add(Ui.Menu("Refresh git", () => _ = RefreshAsync()));
             selectors.Children.Add(branches);
         }
         Ui.Place(toolbar, selectors);
@@ -217,6 +180,53 @@ public sealed partial class WorkbenchWindow
         }
         catch (OperationCanceledException) { }
         catch (Exception error) { Console.Error.WriteLine(error); }
+    }
+
+    /// <summary>The comparison target picker of Changes and of the header's branch card: one selection, one handler.</summary>
+    private Button ComparisonPicker(string name, string prefix)
+    {
+        var branches = ChangesDropdown(name, "Comparison branch", prefix + (comparison.Length > 0 ? comparison : git.Branch), "gitBranch");
+        var local = new MenuItem { Header = "Local" };
+        var remote = new MenuItem { Header = "Remote" };
+        if (gitBranches.Local.Count > 0) branches.ContextMenu!.Items.Add(local);
+        if (gitBranches.Remote.Count > 0) branches.ContextMenu!.Items.Add(remote);
+        void AddBranch(MenuItem parent, string name, string branch)
+        {
+            var parts = name.Split('/');
+            foreach (var folder in parts[..^1])
+            {
+                var group = parent.Items.OfType<MenuItem>().FirstOrDefault(item => item.Tag is null && Equals(item.Header, folder));
+                if (group is null)
+                {
+                    group = new MenuItem { Header = folder };
+                    parent.Items.Add(group);
+                }
+                parent = group;
+            }
+            var item = Ui.Menu(parts[^1], () =>
+            {
+                changeScope = "All changes"; selectedCommit = null; comparison = branch; scopeCommits = null;
+                RetargetDiffTabs();
+                SaveGitSelection(); _ = RefreshAsync();
+                _ = ShareAsync(HostStateChange.DiffBase(workspaceRoot, branch));
+                RefreshBranchCard();
+            });
+            item.ToggleType = MenuItemToggleType.Radio;
+            item.IsChecked = comparison == branch;
+            item.Tag = branch;
+            ToolTip.SetTip(item, branch);
+            parent.Items.Add(item);
+        }
+        foreach (var branch in gitBranches.Local) AddBranch(local, branch, branch);
+        foreach (var group in gitBranches.Remote.GroupBy(branch => branch.Remote))
+        {
+            var owner = new MenuItem { Header = group.Key };
+            remote.Items.Add(owner);
+            foreach (var branch in group) AddBranch(owner, branch.Name, branch.Ref);
+        }
+        branches.ContextMenu!.Items.Add(new Separator());
+        branches.ContextMenu.Items.Add(Ui.Menu("Refresh git", () => _ = RefreshAsync()));
+        return branches;
     }
 
     private static Button ChangesDropdown(string name, string description, string label, string icon)

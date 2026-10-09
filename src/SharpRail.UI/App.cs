@@ -62,10 +62,14 @@ public sealed partial class App : Application
                 : localTerminals is not null ? TerminalBackends.Ghostty(new LocalTerminalAdapter(localTerminals), Renderer)
                 : launch => TerminalBackends.Unavailable("Embedded terminals currently require macOS.");
             var workbench = new Workbench(profile, state, Terminals, remote, sessions);
+            if (OperatingSystem.IsMacOS()) ApplicationMenu.Install(this, workbench.Commands);
             foreach (var slot in profile.Data.Windows.ToArray())
             {
                 var root = slot.LastProject.Length > 0 ? slot.LastProject : slot == profile.Data.Windows[0] ? initialRoot : "";
                 var window = workbench.Open(slot, root);
+                // `--link <location>` opens a serialized location in the first window once it has restored its own.
+                if (desktop.MainWindow is null && desktop.Args is { } args && Array.IndexOf(args, "--link") is >= 0 and var at && at + 1 < args.Length)
+                    window.StartLink = args[at + 1];
                 desktop.MainWindow ??= window;
                 if (window != desktop.MainWindow) window.Show();
             }

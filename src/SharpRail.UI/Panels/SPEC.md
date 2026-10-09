@@ -50,6 +50,11 @@ these surfaces are specified in [../Panels.SPEC.md](../Panels.SPEC.md).
   to it.”; folder mode is “Work in project folder” / “Work directly in your project folder, with no
   isolation: changes land in your current checkout.” The submit reads Create or Start accordingly.
 - The dialog always opens on the worktree side; there is no opener-chosen target.
+- The dialog names its project. When the host lists several open projects that row is a picker over them,
+  checked on the dialog's own. Picking another project loads its branch catalogue through a separate
+  project session, so the window does not move and the base returns to that project's default; a project
+  whose branches cannot be read is reported and leaves the dialog where it was. Submitting for another
+  project opens its Project Home first, then creates or enters the workspace there.
 - Worktree mode shows the project and a base-branch trigger reading “From {base}”. Its flyout is a searchable
   list grouped Local, then Remote with one subgroup per remote whose rows show the branch name without the
   remote; the full ref stays each row's identity and automation name. The host's default base is marked
@@ -99,7 +104,6 @@ could not save this change: …” inline and re-renders from host state.
 ## Not yet ported
 
 - Terminal replayed-output size and a Windows shell picker.
-- A project picker in the Create workspace dialog; it shows only the current project.
 - Keeping the Create workspace dialog open to retry after a rejected creation; the dialog has closed by
   then and the failure is a toast.
 - Toasts for the remaining rejections that follow a confirmation (closing a project, initialising a
