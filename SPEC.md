@@ -221,8 +221,8 @@ rendered as two truncatable halves (dir + basename), so a long basename can neve
 the counts out of the box. The dir prefix yields completely before the basename
 gives up a pixel. File and folder labels truncate before the reserved counts and action gutter
 in both List and Tree views; resizing preserves the gap. See [Panels.SPEC.md](src/SharpRail.UI/Panels.SPEC.md).
-Markdown diffs offer the reference's Source|Rendered toggle: Rendered shows one merged
-document with insertions and deletions marked, merged off the UI thread, cancelled when
+Markdown diffs offer the reference's Source|Preview toggle: Preview shows one merged
+document with insertions and deletions marked and long unchanged runs collapsed, merged off the UI thread, cancelled when
 the file changes again, and replaced by an error placeholder if the merge fails.
 Worktree changes on disk refresh Files, Specs, Changes, open diffs and open documents
 live; a write storm coalesces into a few refreshes. A clean editor tab reloads in place;

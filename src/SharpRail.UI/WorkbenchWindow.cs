@@ -322,26 +322,7 @@ public sealed partial class WorkbenchWindow : Window
         }
         if (documents.TryGetValue(key, out var document))
         {
-            Control content;
-            if (document.ImageData is not null)
-                content = new ScrollViewer { Content = new Image { Source = new Bitmap(new MemoryStream(document.ImageData)), Stretch = Stretch.Uniform } };
-            else if (tab.Kind != "diff" && document.Info is { IsText: false } info)
-                content = ViewerLimits.ByteOnly(info);
-            else if (tab.Kind != "diff" && document.Text.Length > ViewerLimits.Scintilla)
-                content = ViewerLimits.TooLarge("file", document.Text.Length);
-            else if (tab.Kind == "markdown" && (document.Text.Length <= ViewerLimits.RenderedMarkdown || !OperatingSystem.IsMacOS()))
-                content = new MarkdownDocumentView(document, host, Preferences, (path, anchor) => _ = OpenDocumentAsync(path, false, anchor));
-            else if (tab.Kind == "diff")
-                content = DiffDocument(document, tab, key);
-            else if (tab.Kind is "file" or "markdown" && OperatingSystem.IsMacOS())
-                content = CodeDocument(document, tab, key);
-            else
-                content = new ScrollViewer
-                {
-                    Content = MarkdownPreview.Code(document.Text),
-                    Margin = new Thickness(20),
-                    HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto
-                };
+            var content = tab.Kind == "diff" ? DiffDocument(document, tab, key) : FileBody(document, tab, key);
             documentContent[key] = content; return content;
         }
         var loading = Ui.Text("Loading document…");
@@ -378,11 +359,10 @@ public sealed partial class WorkbenchWindow : Window
             var kind = Path.GetExtension(path).ToLowerInvariant() is ".md" or ".markdown" ? "markdown" : "file";
             var tab = new DockTab(kind + ":" + path, Path.GetFileName(path), kind, path);
             var key = workspace + ":" + tab.Id;
-            if (documentContent.GetValueOrDefault(key) is not Editor.CodeDocumentView)
+            if (Body<Editor.CodeDocumentView>(key) is null)
             { documents[key] = document; DropDocumentContent(key); }
             Layout.Open(tab, keep, destination, activate: destination == Layout.View.FocusedCenter);
-            if (anchor is not null && documentContent.GetValueOrDefault(key) is MarkdownDocumentView preview)
-                Dispatcher.UIThread.Post(() => preview.ScrollToAnchor(anchor), DispatcherPriority.Loaded);
+            if (anchor is not null) ScrollToAnchor(key, anchor);
         }
         catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
     }

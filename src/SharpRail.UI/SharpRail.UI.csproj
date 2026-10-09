@@ -12,6 +12,7 @@
     <PackageReference Include="Markdig" />
     <PackageReference Include="Svg.Controls.Skia.Avalonia" />
     <AvaloniaResource Include="Assets/**" />
+    <InternalsVisibleTo Include="SharpRail.Checks" />
   </ItemGroup>
   <Target Name="BuildMermaid" BeforeTargets="PrepareForBuild">
     <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/build-merman.sh&quot;" />

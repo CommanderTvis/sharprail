@@ -65,17 +65,17 @@ internal static class EditorE2E
         app.Open("README.md", keep: true);
         Require(app.Tabs.Count(tab => tab.Path == "README.md") == 1, "Double-clicking README.md must open one center tab.");
         Until(() => Text(app.Find<MarkdownPreview>("MarkdownPreview")).Contains("sample-project", StringComparison.Ordinal));
-        app.Click(app.Find<Button>("MarkdownSourceMode"));
+        app.Click(app.Find<Button>("ViewToggle_code"));
         Until(() => !PreviewShown(app));
         Require(MarkdownSourceText(app.Find<Control>("MarkdownSource")).Contains("# sample-project", StringComparison.Ordinal), "Source mode must show the Markdown source.");
         var source = app.Find<Control>("MarkdownSource");
         if (OperatingSystem.IsMacOS())
             Require(source is ScintillaEditor { IsReadOnly: true }, "Markdown source must use a read-only Scintilla editor on macOS.");
-        app.Click(app.Find<Button>("MarkdownPreviewMode"));
+        app.Click(app.Find<Button>("ViewToggle_markdown"));
         Until(() => PreviewShown(app));
-        app.Click(app.Find<Button>("MarkdownSourceMode"));
+        app.Click(app.Find<Button>("ViewToggle_code"));
         Require(ReferenceEquals(source, app.Find<Control>("MarkdownSource")), "Mode switches must retain the source editor.");
-        app.Click(app.Find<Button>("MarkdownPreviewMode"));
+        app.Click(app.Find<Button>("ViewToggle_markdown"));
 
         app.Click(app.FileRow("README.md"), twice: true);
         Settle();
@@ -100,7 +100,7 @@ internal static class EditorE2E
         Require(((StackPanel)preview.Content!).Children[0] == metadata && Text(metadata).Contains("id: sample-root", StringComparison.Ordinal) &&
             !Text(metadata).Contains("---", StringComparison.Ordinal),
             "The rendered view must show YAML frontmatter as a leading code block without its fences.");
-        app.Click(app.Find<Button>("MarkdownSourceMode"));
+        app.Click(app.Find<Button>("ViewToggle_code"));
         Until(() => !PreviewShown(app));
         Require(MarkdownSourceText(app.Find<Control>("MarkdownSource")).Contains("id: sample-root", StringComparison.Ordinal), "Source mode must show the frontmatter.");
         Console.WriteLine("PASS upstream editor.spec.ts (diverges): shows YAML frontmatter as a leading code block in the rendered view and in source");
@@ -119,7 +119,7 @@ internal static class EditorE2E
         var editor = OpenEditor(app, "notes.txt");
         Require(app.Tabs.Any(tab => tab.Path == "notes.txt"), "notes.txt must open in a center tab.");
         Require(editor.Text.Contains("plain-text-fixture", StringComparison.Ordinal), "The editor must show the file contents.");
-        Require(!app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name is "MarkdownSourceMode" or "MarkdownPreviewMode" && button.IsEffectivelyVisible)
+        Require(!app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name is "ViewToggle_code" or "ViewToggle_markdown" && button.IsEffectivelyVisible)
             && !PreviewShown(app),
             "A non-Markdown file must open straight to the editor without a rendered-view toggle.");
         Console.WriteLine("PASS upstream editor.spec.ts: opens a non-markdown file straight to Monaco with no rendered-view toggle");

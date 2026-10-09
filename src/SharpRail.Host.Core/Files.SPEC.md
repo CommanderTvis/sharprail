@@ -37,13 +37,15 @@ with direct local and streaming gRPC adapters. The UI consumes the same stream f
 - Listings hide `.git`, `.sharprail` and `.tools`, sort directories first and then by name
   case-insensitively, and compact a run of directories that each hold exactly one directory into one
   `a/b/c` row.
-- A read is decided by the file's bytes through `ContentClassifier.Classify`, never by its name. A PNG,
-  JPEG, GIF, WebP or BMP is returned as bytes; text is returned decoded; any other byte-only file (a
-  recognised binary type, NUL in the first 8 KiB, invalid UTF-8) is answered with empty text and its
-  metadata instead of an error, and the workbench shows a notice with the type and size in its tab. Control
-  characters other than NUL stay text. Markdown and image previews are limited to
-  `FileLimits.PreviewBytes`, editable text to `FileLimits.EditableBytes`, and a gRPC message is sized for
-  one whole read or save.
+
+- A read is decided by the shared classification (`ContentClassifier.Classify`, below) and always carries
+  its metadata. Text is returned decoded. A byte-only file (a recognised magic number, NUL in the sniffed
+  prefix or invalid UTF-8) answers empty text plus metadata instead of failing; a raster picture (PNG,
+  JPEG, GIF, WebP, BMP, by its bytes rather than its extension) no larger than `FileLimits.PreviewBytes`
+  also carries its bytes, and the workbench shows any other byte-only file as a card with its type, size
+  and hash. Control characters other than NUL stay text. Markdown previews are limited to
+  `FileLimits.PreviewBytes`, every read to `FileLimits.EditableBytes`, and a gRPC message is sized for one
+  whole read or save.
 - `ContentClassifier` is the one byte classification: media type from magic numbers (PNG, JPEG, GIF,
   WebP, AVIF, BMP, ICO, PDF, zip, gzip, WOFF/WOFF2), SVG from a text root element (after an optional
   XML prolog), a Git LFS pointer from its exact three-line form, and the filename only when the bytes

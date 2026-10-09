@@ -50,7 +50,7 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
 
     /// <summary>Renders an already parsed document, so callers can parse large sources off the UI thread.</summary>
     public MarkdownPreview(MarkdownDocument document, string path, IProjectServices host, Preferences preferences, Action<string, string?> navigate,
-        bool renderDiagrams = true)
+        bool renderDiagrams = true, DiffFocus? focus = null)
     {
         this.host = host; this.path = path; this.preferences = preferences; this.navigate = navigate; this.renderDiagrams = renderDiagrams;
         Name = "MarkdownPreview";
@@ -63,7 +63,8 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
             MaxWidth = LineWidths.Markdown(preferences),
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
-        foreach (var block in Document) body.Children.Add(Render(block));
+        if (focus is null) body.Children.AddRange(RenderBlocks(Document));
+        else RenderFocused(body, focus);
         CollapseMargins(body);
         Content = body;
         WireSelection();
@@ -114,27 +115,7 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
                 return CodeFrame(code.Lines.ToString());
             case ListBlock list:
                 var items = new StackPanel { Spacing = 4, Margin = new Thickness(0, 12) };
-                var number = int.TryParse(list.OrderedStart, out var start) ? start : 1;
-                foreach (var item in list.OfType<ListItemBlock>())
-                {
-                    var row = new Grid();
-                    row.ColumnDefinitions.Add(new ColumnDefinition(preferences.FontSize * 1.6, GridUnitType.Pixel));
-                    row.ColumnDefinitions.Add(new ColumnDefinition(1, GridUnitType.Star));
-                    var task = item.OfType<ParagraphBlock>().FirstOrDefault()?.Inline?.FirstChild as TaskList;
-                    if (task is null)
-                    {
-                        var marker = Ui.Text(list.IsOrdered ? $"{number++}." : "•", Ui.TextBrush, preferences.FontSize);
-                        marker.VerticalAlignment = VerticalAlignment.Top;
-                        marker.LineHeight = preferences.FontSize * 1.6;
-                        marker.Margin = new Thickness(0, 2, 0, 0);
-                        Ui.Place(row, marker);
-                    }
-                    var contents = Container(item); contents.Margin = new Thickness(0);
-                    foreach (var child in contents.Children) child.Margin = new Thickness(0, 2);
-                    Ui.Place(row, contents, 0, task is null ? 1 : 0);
-                    if (task is not null) Grid.SetColumnSpan(contents, 2);
-                    items.Children.Add(row);
-                }
+                foreach (var row in ListRows(list)) items.Children.Add(row());
                 return items;
             case Table table:
                 var grid = new Grid { Margin = new Thickness(0, 12) };
@@ -214,6 +195,8 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
                     Padding = new Thickness(12, 0, 0, 0),
                     Margin = new Thickness(0, 12)
                 };
+            case HtmlBlock html:
+                return Html(html.Lines.ToString());
             case ThematicBreakBlock:
                 return new Border { Height = 1, Background = Ui.BorderBrush, Margin = new Thickness(0, 24) };
             case ContainerBlock container:
@@ -223,10 +206,42 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
         }
     }
 
+    // One builder per item, each with the number it has in the whole list.
+    private List<Func<Control>> ListRows(ListBlock list)
+    {
+        var rows = new List<Func<Control>>();
+        var number = int.TryParse(list.OrderedStart, out var start) ? start : 1;
+        foreach (var item in list.OfType<ListItemBlock>())
+        {
+            var task = item.OfType<ParagraphBlock>().FirstOrDefault()?.Inline?.FirstChild as TaskList;
+            var label = task is not null ? null : list.IsOrdered ? $"{number++}." : "•";
+            rows.Add(() =>
+            {
+                var row = new Grid();
+                row.ColumnDefinitions.Add(new ColumnDefinition(preferences.FontSize * 1.6, GridUnitType.Pixel));
+                row.ColumnDefinitions.Add(new ColumnDefinition(1, GridUnitType.Star));
+                if (label is not null)
+                {
+                    var marker = Ui.Text(label, Ui.TextBrush, preferences.FontSize);
+                    marker.VerticalAlignment = VerticalAlignment.Top;
+                    marker.LineHeight = preferences.FontSize * 1.6;
+                    marker.Margin = new Thickness(0, 2, 0, 0);
+                    Ui.Place(row, marker);
+                }
+                var contents = Container(item); contents.Margin = new Thickness(0);
+                foreach (var child in contents.Children) child.Margin = new Thickness(0, 2);
+                Ui.Place(row, contents, 0, label is not null ? 1 : 0);
+                if (label is null) Grid.SetColumnSpan(contents, 2);
+                return row;
+            });
+        }
+        return rows;
+    }
+
     private StackPanel Container(ContainerBlock block)
     {
         var panel = new StackPanel();
-        foreach (var child in block) panel.Children.Add(Render(child));
+        panel.Children.AddRange(RenderBlocks(block));
         CollapseMargins(panel);
         return panel;
     }
@@ -275,6 +290,12 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
                     break;
                 case HtmlInline html when DiffTag().Match(html.Tag) is { Success: true } tag:
                     diffMark = tag.Groups[1].Success ? null : tag.Groups[2].Value;
+                    break;
+                case HtmlInline html when HtmlTokens(html.Tag) is [{ Tag: "img", Closing: false } picture] && HtmlImage(picture, HorizontalAlignment.Left) is { } inlinePicture:
+                    target.Add(new InlineUIContainer(inlinePicture));
+                    break;
+                case HtmlInline html when HtmlTokens(html.Tag) is [{ Tag: "br" }]:
+                    target.Add(new Run("\n"));
                     break;
                 case EmphasisInline emphasis:
                     AddInline(target, emphasis,

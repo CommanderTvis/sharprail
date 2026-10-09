@@ -22,6 +22,7 @@ public sealed partial class WorkbenchWindow
             if (documentContent[key] is Terminal.TerminalView terminal) terminal.Close();
             DropDocumentContent(key);
         }
+        foreach (var key in tabViews.Keys.Where(key => !live.Contains(key)).ToArray()) tabViews.Remove(key);
     }
 
     private void DropDocumentContent(string key)
@@ -41,7 +42,12 @@ public sealed partial class WorkbenchWindow
     private void ClearDocumentContent(bool preserveDocuments = false)
     {
         foreach (var key in documentContent.Keys.ToArray())
-            if (!preserveDocuments || documentContent[key] is not (Terminal.TerminalView or Editor.CodeDocumentView)) DropDocumentContent(key);
-            else if (documentContent[key] is Editor.CodeDocumentView view) view.Editor.WrapWidth = FileWrapWidth;
+            if (!preserveDocuments || documentContent[key] is not (Terminal.TerminalView or SharpRail.UI.Resources.ResourcePane)) DropDocumentContent(key);
+            else if (documentContent[key] is SharpRail.UI.Resources.ResourcePane pane)
+            {
+                // Editors keep their unsaved text; every other view is rebuilt from the tab's content.
+                pane.Reset(body => body is Editor.CodeDocumentView);
+                if (pane.Find<Editor.CodeDocumentView>() is { } view) view.Editor.WrapWidth = FileWrapWidth;
+            }
     }
 }

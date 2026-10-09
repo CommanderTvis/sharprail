@@ -146,6 +146,13 @@ internal static class Program
             ContentChecks.Run(root).GetAwaiter().GetResult();
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
             ContentChecks.RunUi(root);
+            ResourceChecks.Run(root);
+            return;
+        }
+        if (args.SequenceEqual(["--documents"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            ResourceChecks.RunDocuments(root);
             return;
         }
         if (args.SequenceEqual(["--git-host"]))
@@ -210,6 +217,7 @@ internal static class Program
         QuitConfirmationChecks.Run();
         CheckOpenWorld();
         UiChecks.Run(root);
+        ResourceChecks.Run(root);
         Console.WriteLine("PASS prototype checks and open-world runtime");
     }
 

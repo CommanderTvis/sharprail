@@ -53,8 +53,9 @@ internal static class FilesE2E
         File.WriteAllBytes(Path.Combine(workspace, "blob.bin"), [0xFF, 0xFE, 0x00, 0x01]);
         Until(() => Node("blob.bin", false) is not null);
         app.Click(app.FileRow("blob.bin"));
-        Until(() => app.Window.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "BinaryNotice" && text.Text!.Contains("4 bytes", StringComparison.Ordinal)));
-        Require(!app.Find<TextBlock>("WorkspaceError").IsVisible, "Opening a byte-only file is a notice in its tab, not a window error.");
-        Console.WriteLine("PASS SharpRail: a byte-only file opens as a notice with its size instead of failing");
+        Until(() => app.Window.GetLogicalDescendants().OfType<Border>().Any(card => card.Name == "BinaryResource" &&
+            card.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text!.Contains("4 bytes", StringComparison.Ordinal))));
+        Require(!app.Find<TextBlock>("WorkspaceError").IsVisible, "Opening a byte-only file is a card in its tab, not a window error.");
+        Console.WriteLine("PASS SharpRail: a byte-only file opens as a card with its size instead of failing");
     }
 }

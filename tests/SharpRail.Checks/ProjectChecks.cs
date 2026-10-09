@@ -314,7 +314,9 @@ internal static class ProjectChecks
         Require(commitSnapshot.Changes.Select(change => change.Path).Order().SequenceEqual(committed.Order()) &&
             !commitSnapshot.Changes.Any(change => change.Path == path),
             "Commit scope must contain only its committed changes, excluding working files.");
-        var commitPath = committed[0];
+        // Sides are compared as text, so the path must be one Git diffs as text; the source's head commit may lead with a picture.
+        var commitPath = (await Git(root, "diff", "--numstat", "--no-renames", fork, target, "--")).Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .Where(line => !line.StartsWith('-')).Select(line => line.Split('\t')[2]).First(committed.Contains);
         var commitDiff = await host.GetDiffAsync(commitPath, "commit", target);
         Require(commitDiff == await Git(root, "diff", "--no-renames", "--no-ext-diff", "--no-color", "--unified=5", fork, target, "--", commitPath),
             "Commit diff must use its first-parent range.");

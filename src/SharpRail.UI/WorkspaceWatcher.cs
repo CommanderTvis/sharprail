@@ -100,27 +100,16 @@ public sealed partial class WorkbenchWindow
             if (request != projectRequest || lifetime.IsCancellationRequested) return;
             var key = workspaceRoot + ":" + tab.Id;
             if (!documents.TryGetValue(key, out var current)) continue;
-            if (documentContent.GetValueOrDefault(key) is Editor.CodeDocumentView { HasPendingChanges: true }) continue;
+            if (Body<Editor.CodeDocumentView>(key) is { HasPendingChanges: true }) continue;
             FileDocument file;
             try { file = await Task.Run(async () => await host.ReadFileAsync(tab.Path, lifetime.Token), lifetime.Token); }
             catch (OperationCanceledException) { return; }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException) { continue; }
             catch (Grpc.Core.RpcException error) when (error.StatusCode == Grpc.Core.StatusCode.FailedPrecondition) { continue; }
-            var same = file.Text == current.Text && file.ImageData is null && file.Info?.IsText == current.Info?.IsText;
-            if (request != projectRequest || !LiveDocuments().Contains(key) || same) continue;
-            // Bytes that stopped being text leave the editor for the notice instead of loading as an empty file.
-            if (file.Info is { IsText: false }) { documents[key] = file; DropDocumentContent(key); refreshed = true; continue; }
-            if (documentContent.GetValueOrDefault(key) is Editor.CodeDocumentView view)
-            {
-                if (view.Reload(file.Text)) documents[key] = file;
-                continue;
-            }
-            if (documentContent.GetValueOrDefault(key) is MarkdownDocumentView markdown)
-            {
-                markdown.Reload(file);
-                documents[key] = file;
-                continue;
-            }
+            if (request != projectRequest || !LiveDocuments().Contains(key)) continue;
+            // Byte-only files read as empty text, so the hash decides whether anything changed.
+            if (file.Info?.Sha256 is { } hash ? hash == current.Info?.Sha256 : file.Text == current.Text && file.ImageData is null) continue;
+            if (ReloadFileBody(key, tab, file)) continue;
             documents[key] = file; DropDocumentContent(key); refreshed = true;
         }
         if (refreshed) surface.RefreshContents();
@@ -137,8 +126,10 @@ public sealed partial class WorkbenchWindow
             try
             {
                 var diff = await Task.Run(async () => await host.GetDiffAsync(tab.Path, tab.Scope, tab.Comparison, lifetime.Token), lifetime.Token);
-                if (request != projectRequest || !LiveDocuments().Contains(key) ||
-                    !documents.TryGetValue(key, out var current) || current.Text == diff) continue;
+                if (request != projectRequest || !LiveDocuments().Contains(key) || !documents.TryGetValue(key, out var current)) continue;
+                // Git's notice for a byte diff does not change with the bytes; the sides' hashes do.
+                if (documentContent.GetValueOrDefault(key) is DiffView { Identity: not null } described) await DescribeDiffAsync(described, tab, key);
+                if (current.Text == diff) continue;
                 documents[key] = new(tab.Path, diff);
                 if (documentContent.GetValueOrDefault(key) is DiffView view) view.Update(diff);
             }

@@ -124,9 +124,9 @@ snapshot lands.
   `ListFilesAsync` when expanded; a not-yet-read directory shows a `Loading…` child. Hidden entries follow the
   Show hidden files preference. A run of directories that each hold exactly one directory is one `a/b/c`
   row, compacted by the host listing; it splits in place when a sibling appears and keeps what was expanded.
-- A file whose bytes are neither text nor a picture opens as a notice in its tab (“Binary files cannot be
-  previewed”, with the media type and size) rather than a window error; a clean open file that turns
-  byte-only on disk is replaced by the same notice.
+- A file whose bytes are neither text nor a picture opens as the byte card of the resource renderers in its
+  tab (media type, size and hash, see [Rendering/SPEC.md](Rendering/SPEC.md)) rather than a window error; a
+  clean open file that turns byte-only on disk is replaced by the same card.
 - Pointing at or focusing another workspace's row asks the host to pre-warm its watcher (see
   [Files.SPEC.md](../SharpRail.Host.Core/Files.SPEC.md)); a failure is ignored.
 - A single click on a directory row toggles it; the built-in double-tap toggle is suppressed so a double
@@ -197,9 +197,63 @@ snapshot lands.
   upstream's `MonacoEditor`, with selectable text as the other-platform fallback. Source shows the
   complete file, including frontmatter and fenced code. The choice is per tab, survives tab switches,
   and is not persisted across reload. Renderer behavior and lifecycle live in [Rendering/SPEC.md](Rendering/SPEC.md).
+- Format views are chosen by the host's content metadata through the resource registry
+  ([SPEC.md](SPEC.md)), each with Source one toggle away where the file is text:
+  - Pictures (`image/*` bytes: PNG, JPEG, GIF, WebP, BMP, ICO) on a transparency checkerboard, fitted to the
+    pane, at natural size or zoomed in steps between 10% and 1600%, with pixel dimensions and byte size. A
+    picture over the preview limit or one that does not decode says so. A picture diff is 2-up, a swipe
+    line, an onion-skin blend or the per-channel absolute difference on a canvas that holds both pictures
+    (a side-only pixel differs by its alpha); overlays need both sides.
+  - SVG drawn inert (`VectorPictures`): the document is parsed without DTD or external entities, then
+    scripts, event attributes, foreign content, animation, external `href`s, external `url()` references,
+    `@import` styles and `xml:base` are removed before it is rasterised at up to twice its size. It then
+    uses the picture view and diff. Text that is not well-formed SVG is not drawn.
+  - CSV/TSV as a table (`TableModel`): `.tsv` is tab-delimited; otherwise the delimiter is the one of
+    comma, semicolon, tab and pipe on which the first twenty records agree, preferring a comma. Quoted
+    delimiters, doubled quotes and line breaks stay inside their cell. A diff aligns rows by their raw
+    text; a run of removals replaced by as many additions is shown as changed rows with the changed cells
+    marked old → new.
+  - JSON and JSONC as a tree built as nodes open. Text that only parses with comments or trailing commas
+    carries a JSONC notice; text that does not parse shows the parser's message instead of a tree. A diff
+    is structural: members by key regardless of order, array elements by identity (`id`, `key` or `name`,
+    otherwise the whole value), showing added, removed and changed nodes with a count of the unchanged
+    rest, a notice when the sides differ only in formatting or member order, and a notice naming the side
+    that is not valid JSON.
+  - Notebooks (`.ipynb`, nbformat 4) as cells with kind, execution count, source and outputs. Stream,
+    plain-text and error outputs are text, PNG/JPEG/GIF outputs are decoded as pixels, and markup outputs
+    (HTML, SVG, JavaScript) are named, never drawn. A diff aligns cells by id, otherwise by source, and
+    shows added, removed and edited cells with a count of the unchanged ones.
+  - A Git LFS pointer as a card with the object's size and id prefix and the `git lfs pull` hint; a diff
+    shows the old and new pointer.
+  - Any other bytes, including PDF, as a card with media type, byte length and SHA-256 prefix and Save a
+    copy…, which writes the bytes the card describes to a place the user picks. A byte diff shows one such
+    card per side.
+- Raw HTML in a rendered Markdown document is read, never run (`MarkdownPreview.Html.cs`). `<img>` loads
+  an http(s) or worktree-relative source at its stated width and height, centred or sent to a side by its
+  own `align` or an enclosing `<p>`, `<div>` or `<center>`; `<picture>` shows its `<img>`; `<details>`
+  is a disclosure titled by its `<summary>`, open when it says so, whose body may be ordinary Markdown
+  between the opening and closing tags; headings, emphasis, code, links, line breaks and rules map to
+  their native forms. Script, style, embedded documents and scripted or `data:` sources are dropped with
+  their content, and text inside any other tag shows as text.
+- A rendered Markdown diff focuses on its changes (`DiffFocus`). A top-level block changed when the
+  positional alignment of the two documents' blocks by source text finds it no counterpart, so an identical
+  block elsewhere cannot vouch for it and a change that earns no mark (a ticked checkbox, a list's start,
+  a code fence) still counts. Two unchanged blocks stay visible on each side of a change; a longer
+  unchanged run collapses behind one button naming the count and the last heading it hides, and a run of
+  one is never hidden. The same rule applies to the items of a changed list when an item changed; items
+  keep the number they have in the whole list, and a list that differs only in its own attributes, like
+  tables, quotes and nested lists, renders whole. Expanding is one-way; the expanded runs are the tab's
+  view state for that renderer and survive a refresh only while the run still starts at the same
+  position. A merge in which no block changed shows a notice pointing at Source and one expander instead
+  of an unmarked document.
+- A diff Git reports as binary (a "Binary files" notice and no hunks) is described by its sides' host
+  metadata rather than by its path. Bytes are fetched off the UI thread and used only while their hash
+  still matches. When the file changes under the open tab the pane re-reads the sides and redraws if their
+  hashes moved, keeping the tab's view and its state. HTML is text and shows as a source diff, so
+  repository script never runs.
 
 - A file or diff tab picks its view from what the content is, not from a per-pane format switch: Markdown
-  ranks its rendered view above source (`MarkdownDocumentView`, and the rendered merge in `DiffView`), and
+  ranks its rendered view above source (`MarkdownPreviewBody`, and the rendered merge in `DiffView`), and
   every other text file falls back to the code view (`CodeDocumentView`, the source diff).
 - The view toggle exists only when a resource has more than one candidate view. Split | Inline, hide
   whitespace and copy are shown only while the selected view supports them, so no control promises
@@ -244,10 +298,11 @@ the change set keeps its last content.
 
 ## Not yet ported
 
-- Scroll-offset restoration across file/diff renderer detach and attach, including delayed content. An
+- Scroll-offset restoration across file/diff renderer detach and attach for delayed content. An
   offset that the new scroller cannot yet hold stays pending until content grows or the user scrolls;
-  switching away first saves that pending offset rather than the temporary clamped value. This belongs to
-  the tab's renderer view state, rather than a second panel-local copy.
+  switching away first saves that pending offset rather than the temporary clamped value. The rendered
+  Markdown view and its source save their position in the tab's renderer view state; the pending-offset
+  rule and the other views are not ported.
 - The Review panel's pull request chip, Open PR / Push updates / diverged states, compose dialog and
   `gh` setup guidance on top of the host's pull request operations; CI status has no upstream source.
 - Revealing the active workspace's project on mount: rail expansion is the persisted collapsed set, so
@@ -265,27 +320,15 @@ the change set keeps its last content.
   “This file changed since you opened it — review the new diff” instead of reverting, and an Undo offered
   for a few seconds afterwards (a whole-file revert of a new file moves it to the trash). The host serves this
   (`RevertChangeAsync`, `UndoChangeAsync`); the controls are not wired yet.
-- A diff of non-text bytes (`BinaryDiffView`, chosen when Git's output has a "Binary files" notice and no
-  hunks) shows a card per side with media type, byte length and a SHA-256 prefix, and for PNG, JPEG,
-  GIF, WebP and BMP the two pictures side by side, decoded as pixels from bytes fetched off the UI thread
-  and kept only while their hash still matches. It is not refreshed when the file changes under the open
-  tab. SVG and HTML are never drawn there: they are text and show as a source diff, so repository script
-  never runs.
-- Format-specific views chosen by host content metadata, each with Source one toggle away where the file is
-  text: images (fit, natural size, zoom, dimensions and byte size on a transparency checkerboard; diffs as
-  swipe, onion skin or difference beyond the built 2-up), SVG drawn inert, CSV/TSV tables with a sniffed delimiter and
-  cell-level diff, JSON/JSONC trees with a structural diff and explicit invalid and dialect notices,
-  notebooks, PDFs with page-pair diffs, sanitised HTML, a Git LFS pointer card, and a binary card with
-  download. SharpRail opens everything as text or Markdown outside the diff cards above.
-- Sanitised raw HTML in rendered Markdown documents (centred or floated images, `<details>`,
-  `<picture>`), with relative sources resolved against the worktree; only the diff marks are recognised.
-- Rendered Markdown diffs focusing changed prose blocks and changed top-level list items with two units
-  of context on each side. Change detection must include attribute-only changes and use positional
-  alignment, so an identical block elsewhere cannot hide a change. Collapse unchanged runs of more than
-  one unit behind a count-labelled expander (with the last hidden heading for block runs); expansion is
-  one-way and survives refresh only at the same position. Preserve ordered-list numbering; lists changed
-  only in their own attributes, nested lists, tables and quotes stay whole. A merge with no rendered
-  change shows a notice pointing to Source and one expander instead of an unmarked full document.
+- PDF pages and page-pair diffs: no PDF renderer is referenced, so a PDF shows the byte card.
+- A sanitised HTML preview: HTML opens as source only.
+- Moved array elements in a JSON diff (they show as removed and added), free picture zoom and panning by
+  gesture, and review anchors on any format view.
+- Text wrapping around a floated picture in rendered Markdown (a floated picture is placed at its side
+  on its own line), and raw HTML tables, lists and inline styles, which show as their text.
+- In a rendered Markdown diff, a `<details>` whose body Markdown splits across blocks is not regrouped
+  into one disclosure, and a list is compared item by item only when both documents have the same number
+  of top-level lists (otherwise an item counts as changed when it carries a mark).
 - An explicit notice on a diff tab whose two sides became identical after its file left the change set;
   the tab keeps its last content.
 - Live refresh for remote hosts.

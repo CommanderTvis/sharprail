@@ -23,9 +23,10 @@ can use it without a cycle. Theme catalogue and colour roles have their own docu
 - `Icon` renders a bundled PNG from `Assets/Icons` as an opacity mask over a brush, so a glyph sizes with
   its box and colours with a brush exactly like text. This is the counterpart of upstream's `CustomIcon`
   mask and Remix icon set; the bitmaps are cached per name.
-- `MarkdownPreview` / `MarkdownDocumentView` render Markdown natively through Markdig into Avalonia
-  controls; `MarkdownDocumentView` adds the compiled `Preview | Source` header.
-- `DiffView` renders a file diff with its slim header; `MarkdownDiff` merges two Markdown sources into one
+- `MarkdownPreview` renders Markdown natively through Markdig into Avalonia controls. The `Preview | Source`
+  header of a Markdown file is the resource pane's view toggle ([../SPEC.md](../SPEC.md)).
+- `DiffView` is a diff tab's pane: its slim header, the source diff it draws itself, and the other views
+  the resource registry offers for the file. `MarkdownDiff` merges two Markdown sources into one
   document with `<ins>`/`<del>` marks.
 - `MermaidRenderer` / `MermaidDialog` render fenced Mermaid through Merman's native library and show the
   full-screen viewer.

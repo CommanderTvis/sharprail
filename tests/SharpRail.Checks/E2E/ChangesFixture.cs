@@ -153,7 +153,7 @@ internal static class ChangesFixture
     /// <summary>Waits on the source diff text; a Markdown diff opens rendered, so this switches it to Source first, as upstream's review.spec.ts does.</summary>
     internal static void UntilDiff(E2eWorkspace app, Func<string, bool> condition) => Until(() =>
     {
-        if (Pane(app)?.GetLogicalDescendants().OfType<ToggleButton>().FirstOrDefault(toggle => toggle.Name == "DiffSource" && toggle.IsEffectivelyVisible) is { IsChecked: false } source)
+        if (Pane(app)?.GetLogicalDescendants().OfType<ToggleButton>().FirstOrDefault(toggle => toggle.Name == "DiffView_code" && toggle.IsEffectivelyVisible) is { IsChecked: false } source)
             app.Click(source);
         return condition(DiffText(app));
     });
