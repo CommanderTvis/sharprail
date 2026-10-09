@@ -55,6 +55,8 @@ public sealed partial class WorkbenchWindow
                 if (toolContent.Remove("projects")) surface.RefreshContents("projects");
                 if (atHome || cleanWelcome) surface.RefreshContents();
             });
+        if (WorkspaceMounted && (!ReferenceEquals(next.WorkspaceDiffBases, previous.WorkspaceDiffBases) || !ReferenceEquals(next.WorkspaceBases, previous.WorkspaceBases)))
+            _ = RefreshWorkspaceStatsAsync(projectRequest);
         // Another client re-pointed this workspace's review target: follow it, as a local choice would.
         if (WorkspaceMounted && !atHome && next.DiffBase(workspaceRoot) is { Length: > 0 } target &&
             target != previous.DiffBase(workspaceRoot) && target != comparison)

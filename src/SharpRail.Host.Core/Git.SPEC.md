@@ -87,6 +87,18 @@ effective one as the comparison target of its reads; the Changes panel's target 
 follows another client's choice. A target only has to be well formed: one that does not resolve is
 stored, and the read against it fails visibly.
 
+`GetDiffStatsAsync(workspacePath)` totals a workspace row's badge over the range its Changes panel opens
+on: `diff --shortstat` from the merge base of the review target and the workspace's `HEAD` (the same
+`ComparisonBaseAsync` the snapshot uses), or from `HEAD` without a target. Untracked files are not
+counted. Only a worktree of the session's project is answered; a failed read is an error and the row
+shows no badge. A client of a host without the call gets null.
+
+Every fetch of a remote-tracking ref (`FetchRemoteAsync`: the default-base prefetch and workspace
+creation) compares the ref's commit before and after and reports whether it moved, also when the fetch
+failed after the ref had advanced. A move raises `BaseMoved` with the repository's common Git directory;
+each file watcher of that repository whose workspace's review target is that ref emits a change, so its
+clients re-read Git although no file in the workspace changed.
+
 ## Commit and branch catalogs
 
 - `ListCommitsAsync` lists at most 200 commits of `<target>..HEAD` (none without a target), newest first, one NUL-separated
@@ -179,9 +191,8 @@ stored, and the read against it fails visibly.
 
 ## Not yet ported
 
-- Background prefetch reporting whether a remote-tracking ref moved, and a nudge to re-read workspaces
-  whose comparison base it moved.
-- Workspace diff-stat badges computed from the same branch-scope range.
+- Prefetching a base other than the default when it is picked in the Create workspace dialog (the
+  default is prefetched as the dialog opens, and creation fetches whichever base was chosen).
 - An immutable original for the index side: a `working` diff measures against the index, which has no
   commit id, so its bytes can change between two reads. Other scopes' originals are frozen to a commit.
 - A streamed, HTTP-served byte route; the host returns one gRPC message per read, so the cap is the

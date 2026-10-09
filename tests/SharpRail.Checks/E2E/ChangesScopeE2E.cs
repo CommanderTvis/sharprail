@@ -39,6 +39,15 @@ internal static class ChangesScopeE2E
         UntilRows(app, "README.md", "committed.txt");
         var workspace = app.Window.WorkspaceRoot;
 
+        // The rail badge totals the same range the list shows: one committed file and one edited line.
+        string[] Badge() => app.Window.GetLogicalDescendants().OfType<Grid>().Where(item => item.Name == "WorkspaceItem" && Equals(item.Tag, workspace))
+            .SelectMany(item => item.GetLogicalDescendants().OfType<StackPanel>()).Where(panel => panel.Name == "WorkspaceDiffStats" && panel.IsVisible)
+            .SelectMany(panel => panel.Children.OfType<TextBlock>()).Select(text => text.Text ?? "").ToArray();
+        Until(() => Badge() is [var first, _] && first.StartsWith('+') && first != "+0");
+        var listed = app.Host.GetGitAsync(app.State!.Current.DiffBase(workspace)).AsTask().GetAwaiter().GetResult().Changes.Where(change => change.IndexStatus != "?");
+        Require(Badge()[0] == "+" + listed.Sum(change => change.Added) && Badge()[1] == "−" + listed.Sum(change => change.Removed),
+            "The workspace badge must total the tracked changes of the Changes list: " + string.Join(" ", Badge()));
+
         PickTarget(app, "workspace-1");
         Until(() => app.State!.Current.DiffBase(workspace) == "workspace-1");
 
@@ -46,7 +55,7 @@ internal static class ChangesScopeE2E
         app.State!.ChangeAsync([SharpRail.Host.Abstractions.HostStateChange.DiffBase(workspace, "elsewhere")]).AsTask().GetAwaiter().GetResult();
         Until(() => Text(app.Find<Button>("ChangesBranch")).Contains("elsewhere", StringComparison.Ordinal));
         UntilRows(app, "README.md", "committed.txt");
-        Console.WriteLine("PASS a review target chosen here is stored on the host, and one re-pointed by another client is followed");
+        Console.WriteLine("PASS a workspace badge totals its changes; a review target chosen here is stored on the host, and one re-pointed by another client is followed");
     }
 
     private static bool Sha(string label) => Regex.IsMatch(label, "^[0-9a-f]{7,}$");

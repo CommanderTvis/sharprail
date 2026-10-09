@@ -28,6 +28,7 @@ public sealed class LocalProjectAdapter(IProjectServices host) : IProjectService
     public ValueTask<ChangeReceipt> UndoChangeAsync(string receiptId, string? expectModifiedHash, CancellationToken cancellationToken = default) => host.UndoChangeAsync(receiptId, expectModifiedHash, cancellationToken);
     public ValueTask<GitSnapshot> ApplyGitActionAsync(GitAction action, CancellationToken cancellationToken = default) => host.ApplyGitActionAsync(action, cancellationToken);
     public ValueTask<BranchCatalog> ListBranchesAsync(bool fetchDefault, CancellationToken cancellationToken = default) => host.ListBranchesAsync(fetchDefault, cancellationToken);
+    public ValueTask<DiffStats?> GetDiffStatsAsync(string workspacePath, CancellationToken cancellationToken = default) => host.GetDiffStatsAsync(workspacePath, cancellationToken);
     public ValueTask<OpenReview?> GetOpenReviewAsync(bool fresh, CancellationToken cancellationToken = default) => host.GetOpenReviewAsync(fresh, cancellationToken);
     public ValueTask<PrDraft> PreviewPrAsync(CancellationToken cancellationToken = default) => host.PreviewPrAsync(cancellationToken);
     public ValueTask<PrResult> OpenPrAsync(PrRequest request, CancellationToken cancellationToken = default) => host.OpenPrAsync(request, cancellationToken);
@@ -167,6 +168,17 @@ public sealed class RemoteProjectAdapter : IProjectServices, IDisposable
         var reply = await service.ListBranchesAsync(new() { FetchDefault = fetchDefault }, Context(cancellationToken));
         return new(reply.Local, reply.Remote.Select(branch => new RemoteBranch(branch.Remote, branch.Name)).ToArray(), reply.DefaultBase)
         { SuggestedPath = reply.SuggestedPath, SuggestedBranch = reply.SuggestedBranch };
+    }
+
+    public async ValueTask<DiffStats?> GetDiffStatsAsync(string workspacePath, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var reply = await service.GetDiffStatsAsync(new() { WorkspacePath = workspacePath }, Context(cancellationToken));
+            return new(reply.Added, reply.Removed);
+        }
+        // A host that predates the totals has no badge to offer.
+        catch (RpcException error) when (error.StatusCode == StatusCode.Unimplemented) { return null; }
     }
 
     public async ValueTask<OpenReview?> GetOpenReviewAsync(bool fresh, CancellationToken cancellationToken = default)

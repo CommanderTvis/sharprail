@@ -61,6 +61,9 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
   predates the handshake.
 - `IWorkspaceHost` is the minimal probe of the host's root workspace: its identity and top-level entries.
 
+- `IProjectServices.GetDiffStatsAsync` has a default body answering null, so a test double or an older
+  implementation simply offers no badge.
+
 ## Invariants
 
 - Hydrate, then stream: every piece of shared domain state is readable in full and observable as

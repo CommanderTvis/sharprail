@@ -64,6 +64,7 @@ public sealed partial class WorkbenchWindow
             gitLoading = false; gitError = null;
             RefreshGitPanels();
             _ = RefreshDiffTabsAsync(request);
+            _ = RefreshWorkspaceStatsAsync(request);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
         catch (Exception error)

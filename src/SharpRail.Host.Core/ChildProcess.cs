@@ -6,7 +6,7 @@ using System.Text;
 
 namespace SharpRail.Host.Core;
 
-/// <summary>The one bounded runner for prompt-free children: every Git, <c>gh</c> and probe call goes through it.</summary>
+/// <summary>The one bounded runner for prompt-free children: every Git, <c>gh</c> call goes through it.</summary>
 /// <remarks>
 /// The child gets its own session, so nothing it starts can reach a terminal to prompt on and the whole group
 /// can be killed. Completion follows the child's exit rather than the end of its pipes: a grandchild that

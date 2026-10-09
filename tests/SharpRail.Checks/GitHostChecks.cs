@@ -39,7 +39,7 @@ internal static class GitHostChecks
     {
         try { await call(); }
         catch (RpcException error) when (error.StatusCode == StatusCode.FailedPrecondition) { return error.Status.Detail; }
-        catch (Exception error) when (error is ArgumentException or IOException or InvalidOperationException) { return error.Message; }
+        catch (Exception error) when (error is ArgumentException or IOException or InvalidOperationException or UnauthorizedAccessException) { return error.Message; }
         throw new InvalidOperationException(what + " was accepted.");
     }
 
@@ -100,7 +100,7 @@ internal static class GitHostChecks
             finally { await server.StopAsync(); }
         }
         finally { foreach (var (name, value) in saved) Environment.SetEnvironmentVariable(name, value); }
-        Console.WriteLine("PASS Git host checks: ref shapes at every door, creation base and re-pointed review target, pinned scope, locally and over gRPC");
+        Console.WriteLine("PASS Git host checks: ref shapes at every door, creation base and re-pointed review target, pinned scope, badge totals, prefetch moves and nudges, locally and over gRPC");
     }
 
     private static void CheckRefShapes()
@@ -121,7 +121,68 @@ internal static class GitHostChecks
         await RefDoors(host, root, log);
         await Pinned(host, root, log);
         await DiffBases(host, state, root, log);
+        await Totals(host, state, root, log);
+        await Prefetch(host, state, root, log);
         return log;
+    }
+
+    /// <summary>A workspace's badge totals cover the range its Changes panel opens on.</summary>
+    private static async Task Totals(IProjectServices host, IHostStateService state, string root, List<string> log)
+    {
+        log.Add("no target " + await host.GetDiffStatsAsync(root));
+        Require(log[^1] == "no target " + new DiffStats(0, 0), "A clean workspace without a target has no totals: " + log[^1]);
+        await state.ChangeAsync([HostStateChange.DiffBase(root, "origin/main")]);
+        log.Add("against target " + await host.GetDiffStatsAsync(root));
+        Require(log[^1] == "against target " + new DiffStats(2, 0), "Totals must span the commits since the target's merge base: " + log[^1]);
+        await File.WriteAllTextAsync(Path.Combine(root, "a.txt"), "one\nthree\nfour\n");
+        log.Add("with edits " + await host.GetDiffStatsAsync(root));
+        Require(log[^1] == "with edits " + new DiffStats(3, 1), "Totals must include working edits: " + log[^1]);
+        var snapshot = await host.GetGitAsync("origin/main");
+        Require(snapshot.Changes.Sum(change => change.Added) == 3 && snapshot.Changes.Sum(change => change.Removed) == 1, "The badge and the Changes list must measure one range.");
+        await Git(root, "checkout", "-q", "--", "a.txt");
+        log.Add(await Refused(async () => await host.GetDiffStatsAsync(Path.GetTempPath()), "Totals of a folder outside the project"));
+    }
+
+    /// <summary>A fetch reports whether the tracking ref moved, and a move reaches the workspaces measured against it.</summary>
+    private static async Task Prefetch(IProjectServices host, IHostStateService state, string root, List<string> log)
+    {
+        var pusher = Path.Combine(root, "..", "pusher");
+        await Git(Path.Combine(root, ".."), "clone", "-q", Path.Combine(root, "..", "origin.git"), pusher);
+        async Task Advance(string text)
+        {
+            await File.WriteAllTextAsync(Path.Combine(pusher, "upstream.txt"), text);
+            await Git(pusher, "add", ".");
+            await Git(pusher, "commit", "-q", "-m", text);
+            await Git(pusher, "push", "-q", "origin", "main");
+        }
+        var common = Path.Combine(root, ".git");
+        var moves = new List<string>();
+        void Moved(string directory, string reference) { lock (moves) if (directory == common) moves.Add(reference); }
+        ProjectServices.BaseMoved += Moved;
+        try
+        {
+            await Advance("first");
+            using var watch = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            await using var changes = host.WatchFilesAsync(watch.Token).GetAsyncEnumerator(watch.Token);
+            Require(await changes.MoveNextAsync(), "The watcher did not start.");
+            var before = await Git(root, "rev-parse", "origin/main");
+            await host.ListBranchesAsync(true);
+            Require(await Git(root, "rev-parse", "origin/main") != before, "The background prefetch did not fetch the default base.");
+            lock (moves) log.Add("moved " + string.Join(",", moves));
+            Require(log[^1] == "moved origin/main", "A fetch that advanced the tracking ref must report the move: " + log[^1]);
+            // This workspace's review target is origin/main, so the move must reach its watcher.
+            Require(await changes.MoveNextAsync(), "A moved review target did not nudge the workspace measured against it.");
+
+            await host.ListBranchesAsync(true);
+            lock (moves) Require(moves.Count == 1, "A fetch that changed nothing must not report a move.");
+            Require(!await ProjectServices.FetchRemoteAsync(root, "main", CancellationToken.None), "A local branch has nothing to fetch.");
+            await Advance("second");
+            Require(await ProjectServices.FetchRemoteAsync(root, "origin/main", CancellationToken.None), "A second advance must be reported as a move.");
+            Require(!await ProjectServices.FetchRemoteAsync(root, "origin/main", CancellationToken.None), "An unchanged ref must not be reported as moved.");
+            log.Add(await Refused(async () => await ProjectServices.FetchRemoteAsync(root, "origin/main..x", CancellationToken.None), "A range as a fetched ref"));
+        }
+        finally { ProjectServices.BaseMoved -= Moved; }
+        await state.ChangeAsync([HostStateChange.DiffBase(root, "")]);
     }
 
     private static string Names(GitSnapshot snapshot) => string.Join(",", snapshot.Changes.Select(change => $"{change.Path}+{change.Added}-{change.Removed}").Order(StringComparer.Ordinal));

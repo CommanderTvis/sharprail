@@ -110,6 +110,12 @@ public sealed class ProjectRpc(ProjectSessions sessions, IHostApplicationLifetim
         };
     });
 
+    public ValueTask<DiffStatsReply> GetDiffStatsAsync(DiffStatsRequest request, CallContext context = default) => Execute(async () =>
+    {
+        var stats = await Host(context).GetDiffStatsAsync(request.WorkspacePath, context.CancellationToken) ?? new(0, 0);
+        return new DiffStatsReply { Added = stats.Added, Removed = stats.Removed };
+    });
+
     public ValueTask<OpenReviewReply> GetOpenReviewAsync(OpenReviewRequest request, CallContext context = default) => Execute(async () =>
         await Host(context).GetOpenReviewAsync(request.Fresh, context.CancellationToken) is { } review
             ? new OpenReviewReply { Found = true, Number = review.Number, Url = review.Url, Provider = review.Provider, UnpushedCommits = review.UnpushedCommits, BehindCommits = review.BehindCommits }

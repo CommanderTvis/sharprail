@@ -150,9 +150,12 @@ requires equal logs. It covers the ref-shape table, and every door refusing opti
 revision syntax before Git runs, with refs unchanged afterwards and a crafted `origin/HEAD` skipped; the
 pinned scope (commits, working edits and untracked files from one commit, unmoved by a later commit,
 abbreviated, unknown and malformed ids, revert and undo); and the creation base and re-pointed review
-target through create, re-point, restore, an unresolvable ref, a refused range and removal. The mode then
-runs `ChangesScopeE2E` headless, whose SharpRail-only last case stores a picked target on the host and
-follows one re-pointed by another client; it needs `SHARPRAIL_TEST_GIT_SOURCE`.
+target through create, re-point, restore, an unresolvable ref, a refused range and removal; badge totals
+without a target, against one, with working edits, equal to the snapshot's sums and refused outside the
+project; and a prefetch that reports a move once, nudges the watcher of the workspace measured against the
+ref, stays silent when nothing changed and refuses a local branch or a range. The mode then
+runs `ChangesScopeE2E` headless, whose SharpRail-only last case requires the rail badge to total the listed changes, stores a picked target
+on the host and follows one re-pointed by another client; it needs `SHARPRAIL_TEST_GIT_SOURCE`.
 
 ## Quit and close commands
 

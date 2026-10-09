@@ -87,7 +87,7 @@ a tab where is frontend-local and never reaches this service.
 
 ## Bounded child runner
 
-`ChildProcess.RunAsync` is the one way Core runs a prompt-free child (Git, `gh`, the login-shell probe).
+`ChildProcess.RunAsync` is the one way Core runs a prompt-free child (Git and `gh`).
 
 - On POSIX the child is spawned with `posix_spawn` as the leader of a new session, with standard input
   on `/dev/null` and both output streams piped. One thread owns it from spawn to reap, so both streams
