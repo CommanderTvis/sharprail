@@ -26,6 +26,21 @@ internal static class ChangesDiffE2E
         Viewer(root, source);
         Rows(root, source);
         NarrowHeader(root, source);
+        DelayedWatch(root, source);
+    }
+
+    private static void DelayedWatch(string root, string source)
+    {
+        var repository = WorkspaceTabsE2E.Repository(root, "changes-delayed-watch", source);
+        TaskCompletionSource ready = null!;
+        using var app = new E2eWorkspace(repository, prepare: host => ready = host.HoldWatch());
+        ShowChanges(app);
+        Until(() => Paths(app).Contains("README.md"));
+        File.WriteAllText(Path.Combine(repository, "before-watch.txt"), "Written before subscribing\n");
+        Require(!Paths(app).Contains("before-watch.txt"), "The initial snapshot already contains the later edit.");
+        ready.SetResult();
+        Until(() => Paths(app).Contains("before-watch.txt"));
+        Console.WriteLine("PASS Changes catches an edit between the initial Git snapshot and file-watch readiness");
     }
 
     private static T Named<T>(Control pane, string name) where T : Control =>
