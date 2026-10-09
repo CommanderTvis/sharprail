@@ -148,6 +148,14 @@ older version gets no replay and the call fails. With explicit request ids the h
 reply, scopes ids to their client, refuses a reused id with another payload, releases results a resume no
 longer names, refuses a client over its request limit and never reruns a reply it could not keep; a save
 sent twice under one id succeeds twice through `RemoteServer`, while a new id meets the conflict check.
+`E2E/ReconnectE2E.cs` then drives a remote window behind `CutProxy` through two losses: the connection
+reports each transition once, every reconnect is one new generation, a file written while disconnected
+appears after it, and one written afterwards appears through the resubscribed watch; the capability gate
+is open for the host's own version, closed above it and closed while disconnected. A second case moves
+the branches of the Default and a created workspace while disconnected and requires both rows corrected
+after the reconnect with no row added, removed or navigated away from. A per-request timeout is checked
+from the `grpc-timeout` the host receives: the adapter default, a raised scope on a read and a mutation,
+a nested scope across threads, restoration on leaving each, and expiry of a lowered one.
 
 ## Quit and close commands
 

@@ -45,9 +45,14 @@ Snapshots are complete. A client receives the current one on subscribe and again
 which is how it rehydrates anything missed while disconnected; there is no event log to replay. Local
 clients receive in-process events; remote clients use a gRPC server stream. `Changed` is raised on the UI
 thread with the previous and new snapshot so windows can diff what moved; `ConnectionChanged` reports
-drops and re-establishment, after which windows retry a pending startup restore or refresh their mounted
-workspace. A local host constructed with an initial snapshot starts connected so the first window routes
-without waiting.
+drops and re-establishment. `SharedState` reports both to the client's `HostConnection`, whose
+`Generation` counts connections. A window remembers the generation it read its content under and, on a
+newer one, retries a pending startup restore or subscribes to its mounted workspace's file changes again
+and re-reads it, once per generation. A remote file watch that ends with its connection therefore stops
+instead of polling; one that fails while the host stays connected still retries each second. A local
+host constructed with an initial snapshot starts connected at generation 1 so the first window routes
+without waiting. `Supports(introducedAt)` answers whether the connected host serves a feature from its
+handshake; it is false before the handshake answers and while disconnected.
 
 Each snapshot is normalized on the read side: unknown or malformed theme mode or pair falls back to fixed
 mode retaining a valid opaque theme id, invalid line widths fall back to defaults, and a custom preset

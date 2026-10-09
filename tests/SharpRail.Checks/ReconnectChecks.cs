@@ -43,6 +43,42 @@ internal static class ReconnectChecks
         await ReplayedMutations();
         await ReplayCache();
         await ReplayedSave(Path.Combine(root, "replayed-save"));
+        await TimeoutOverride();
+    }
+
+    private static double Seconds(string timeout) => double.Parse(timeout[..^1], System.Globalization.CultureInfo.InvariantCulture) *
+        timeout[^1] switch { 'H' => 3600, 'M' => 60, 'S' => 1, 'm' => 1e-3, 'u' => 1e-6, _ => 1e-9 };
+
+    /// <summary>A caller's timeout replaces the adapter's deadline for the calls it wraps, and only for those.</summary>
+    private static async Task TimeoutOverride()
+    {
+        var wait = TimeSpan.Zero;
+        var sent = 0.0;
+        var host = new FakeState(HostProtocol.Current, (_, _) => new(new HostState()), () => Task.Delay(wait));
+        await using var server = await Serve(host, inspect: context => sent = Seconds(context.Request.Headers["grpc-timeout"].ToString()));
+        using var remote = new RemoteStateAdapter(new Uri(Address(server)), Token);
+        await remote.GetStateAsync();
+        Require(sent is > 50 and <= 60, $"A state call waits a minute by default, not {sent} s.");
+        using (HostRequest.WithTimeout(TimeSpan.FromMinutes(10)))
+        {
+            await remote.GetStateAsync();
+            Require(sent is > 590 and <= 600, $"A raised timeout must reach the call, not {sent} s.");
+            await remote.ChangeAsync([HostStateChange.SavePreset("slow", "{}")]);
+            Require(sent is > 590 and <= 600, $"A raised timeout must reach a mutation, not {sent} s.");
+            using (HostRequest.WithTimeout(TimeSpan.FromSeconds(2)))
+            {
+                await Task.Run(async () => await remote.GetStateAsync());
+                Require(sent <= 2, $"The innermost timeout applies, also on another thread of the same flow, not {sent} s.");
+            }
+            await remote.GetStateAsync();
+            Require(sent > 590, "Leaving a scope restores the enclosing timeout.");
+        }
+        await remote.GetStateAsync();
+        Require(sent is > 50 and <= 60, "Leaving the last scope restores the adapter's deadline.");
+        wait = TimeSpan.FromSeconds(2);
+        using (HostRequest.WithTimeout(TimeSpan.FromMilliseconds(300)))
+            Require(await Status(async () => await remote.GetStateAsync()) == StatusCode.DeadlineExceeded, "The overriding timeout is the one that expires.");
+        Console.WriteLine("PASS a per-request timeout replaces the adapter deadline within its scope");
     }
 
     private static async Task Wait(Func<bool> condition)
@@ -242,7 +278,8 @@ internal static class ReconnectChecks
     }
 
     /// <summary>A gRPC host serving only shared state from <paramref name="state"/>.</summary>
-    private static async Task<WebApplication> Serve(IHostStateService state, int maxRequests = 512, long maxWeight = 16 * 1024 * 1024)
+    private static async Task<WebApplication> Serve(IHostStateService state, int maxRequests = 512, long maxWeight = 16 * 1024 * 1024,
+        Action<Microsoft.AspNetCore.Http.HttpContext>? inspect = null)
     {
         var builder = WebApplication.CreateSlimBuilder();
         builder.WebHost.ConfigureKestrel(options => options.Listen(IPAddress.Loopback, 0, listen => listen.Protocols = HttpProtocols.Http2));
@@ -251,15 +288,20 @@ internal static class ReconnectChecks
         builder.Services.AddSingleton(services => new RequestReplayCache(services.GetRequiredService<Microsoft.Extensions.Hosting.IHostApplicationLifetime>(), maxRequests, maxWeight));
         builder.Services.AddCodeFirstGrpc();
         var app = builder.Build();
+        if (inspect is not null) app.Use((context, next) => { inspect(context); return next(context); });
         app.MapGrpcService<StateRpc>();
         await app.StartAsync();
         return app;
     }
 
-    private sealed class FakeState(int version, Func<IReadOnlyList<HostStateChange>, CancellationToken, ValueTask<HostState>> change) : IHostStateService
+    private sealed class FakeState(int version, Func<IReadOnlyList<HostStateChange>, CancellationToken, ValueTask<HostState>> change, Func<Task>? read = null) : IHostStateService
     {
         public ValueTask<HostHandshake> GetHandshakeAsync(CancellationToken cancellationToken = default) => new(new HostHandshake(version, ""));
-        public ValueTask<HostState> GetStateAsync(CancellationToken cancellationToken = default) => new(new HostState());
+        public async ValueTask<HostState> GetStateAsync(CancellationToken cancellationToken = default)
+        {
+            if (read is not null) await read();
+            return new();
+        }
         public ValueTask<HostState> ChangeAsync(IReadOnlyList<HostStateChange> changes, CancellationToken cancellationToken = default) => change(changes, cancellationToken);
         public async IAsyncEnumerable<HostState> WatchAsync([System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
         {

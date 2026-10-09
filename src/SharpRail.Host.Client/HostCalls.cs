@@ -6,9 +6,11 @@ using SharpRail.Host.Protocol;
 
 namespace SharpRail.Host.Client;
 
+public enum HostConnectionStatus { Connecting, Connected, Disconnected }
+
 /// <summary>
-/// One client's identity towards a remote host, shared by the adapters of that client. The identity spans
-/// reconnects, so the host recognises a mutation sent again after its connection died.
+/// One client's connection to its host, shared by the adapters of that client: its identity, which spans
+/// reconnects so the host recognises a mutation sent again, and whether the host is currently reachable.
 /// </summary>
 public sealed class HostConnection
 {
@@ -16,8 +18,40 @@ public sealed class HostConnection
     private readonly SortedSet<long> unresolved = [];
     private long lastRequest;
     private int? hostVersion;
+    private HostConnectionStatus status;
+    private int generation;
 
     public string ClientId { get; } = Guid.NewGuid().ToString("N");
+
+    public HostConnectionStatus Status
+    {
+        get { lock (gate) return status; }
+    }
+
+    /// <summary>
+    /// Counts connections: 1 for the first, one more per reconnect. Whatever a client read under an earlier
+    /// generation may have changed unseen, so a new one is the trigger to read it again.
+    /// </summary>
+    public int Generation
+    {
+        get { lock (gate) return generation; }
+    }
+
+    /// <summary>Raised after <see cref="Status"/> changes, on the reporting thread.</summary>
+    public event Action? Changed;
+
+    /// <summary>Called by the owner of the host subscription when it starts or stops delivering.</summary>
+    public void Report(bool connected)
+    {
+        lock (gate)
+        {
+            var next = connected ? HostConnectionStatus.Connected : HostConnectionStatus.Disconnected;
+            if (status == next) return;
+            status = next;
+            if (connected) generation++;
+        }
+        Changed?.Invoke();
+    }
 
     /// <summary>The host's protocol version from its latest handshake; null until one answers. It decides what the host can serve.</summary>
     public int? HostVersion
@@ -43,12 +77,39 @@ public sealed class HostConnection
     }
 }
 
+/// <summary>What the caller of a host operation may decide about how it travels.</summary>
+public static class HostRequest
+{
+    private static readonly AsyncLocal<TimeSpan?> timeout = new();
+
+    internal static TimeSpan? Timeout => timeout.Value;
+
+    /// <summary>
+    /// Until disposed, remote project and state calls started by this flow wait this long for their reply
+    /// instead of the adapter's deadline. For a call the host answers only after a person acts; an
+    /// embedded host has no deadline to replace.
+    /// </summary>
+    public static IDisposable WithTimeout(TimeSpan value)
+    {
+        var scope = new Scope(timeout.Value);
+        timeout.Value = value;
+        return scope;
+    }
+
+    private sealed class Scope(TimeSpan? previous) : IDisposable
+    {
+        public void Dispose() => timeout.Value = previous;
+    }
+}
+
 /// <summary>Shapes every unary call of a remote adapter the way the local host behaves.</summary>
 internal sealed class HostCallInterceptor(HostConnection connection) : Interceptor
 {
     public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(TRequest request,
         ClientInterceptorContext<TRequest, TResponse> context, AsyncUnaryCallContinuation<TRequest, TResponse> continuation)
     {
+        if (HostRequest.Timeout is { } timeout)
+            context = new(context.Method, context.Host, context.Options.WithDeadline(DateTime.UtcNow + timeout));
         if (ReplayHeaders.IsReplayable(context.Method.Name))
             return new(Named(Replayed(request, context, continuation)), Task.FromResult(new Metadata()), () => Status.DefaultSuccess, () => [], () => { });
         var call = continuation(request, context);

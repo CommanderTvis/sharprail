@@ -46,7 +46,7 @@ public sealed partial class App : Application
             // Every window's project session is the same client of the host as the state subscription.
             var connection = new HostConnection();
             IHostStateService stateService = remote ? new RemoteStateAdapter(new Uri(endpoint!), token, connection) : new LocalStateAdapter(local);
-            var state = new SharedState(stateService, profile.Data.Preferences, remote ? null : local.Current);
+            var state = new SharedState(stateService, profile.Data.Preferences, remote ? null : local.Current, connection);
             Func<IProjectServices> sessions = remote
                 ? () => new RemoteProjectAdapter(new Uri(endpoint!), token, connection)
                 : () => new LocalProjectAdapter(new ProjectServices(initialRoot, local));

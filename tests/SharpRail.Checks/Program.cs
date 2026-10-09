@@ -130,6 +130,9 @@ internal static class Program
         if (args.SequenceEqual(["--reconnect"]))
         {
             ReconnectChecks.Run(root).GetAwaiter().GetResult();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            E2E.ReconnectE2E.Run(Path.Combine(root, "upstream-e2e"));
             return;
         }
         if (args.SequenceEqual(["--workspaces"]))
