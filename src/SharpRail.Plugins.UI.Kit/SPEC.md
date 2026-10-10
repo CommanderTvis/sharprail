@@ -104,6 +104,8 @@ publish toggle automation changes without requesting another update.
   preview's context menu, shown beside Copy, and with none the text keeps its own menu.
 - Inline links, including spec links, inherit rendered diff insertion/deletion colors and backgrounds;
   deleted links and links inside Markdown strikethrough carry the strike decoration.
+- Paragraphs containing Markdown images or inline HTML images reserve the full image height,
+  including inside table cells, rather than clipping pictures to a fixed text line height.
 - Rendered Markdown diffs align pipe tables as complete blocks, then compare their rows and cell text.
   Insertion/deletion marks belong inside cells; pipes, alignment separators and container prefixes stay
   outside the marks so added and removed tables still render as tables. Changed headers and paired cells

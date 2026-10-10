@@ -230,7 +230,7 @@ internal static class MarkdownDocumentE2E
         bitmap.Erase(SkiaSharp.SKColors.Lime);
         using var encoded = bitmap.Encode(SkiaSharp.SKEncodedImageFormat.Png, 100);
         File.WriteAllBytes(Path.Combine(directory, "wide.png"), encoded.ToArray());
-        using var app = OpenDocument(root, "markdown-images", "images.md", "# Image\n\n![Wide chart](wide.png)\n\nAfter the image.\n");
+        using var app = OpenDocument(root, "markdown-images", "images.md", "# Image\n\n![Wide chart](wide.png)\n\nAfter the image.\n\n| Screenshot |\n| --- |\n| <img src=\"wide.png\" width=\"240\" /> |\n");
         var preview = app.Find<MarkdownPreview>("MarkdownPreview");
         Image? image = null;
         Until(() => (image = preview.GetLogicalDescendants().OfType<Image>().FirstOrDefault()) is { Bounds.Height: > 100 });
@@ -239,6 +239,12 @@ internal static class MarkdownDocumentE2E
         Require(loaded.Bounds.Width <= paragraph.Bounds.Width + 1, "A wide image must fit the Markdown column.");
         Require(paragraph.Bounds.Height >= loaded.Bounds.Height, "The image paragraph must reserve the full image height.");
         Require(Math.Abs(loaded.Bounds.Width / loaded.Bounds.Height - 1600d / 900) < .02, "The whole image must keep its aspect ratio.");
+        Image? htmlImage = null;
+        Until(() => (htmlImage = preview.GetLogicalDescendants().OfType<Image>().Skip(1).FirstOrDefault()) is { Bounds.Height: > 30 });
+        var loadedHtml = htmlImage!;
+        var htmlParagraph = loadedHtml.GetLogicalAncestors().OfType<SelectableTextBlock>().First();
+        Require(htmlParagraph.Bounds.Height >= loadedHtml.Bounds.Height, "A table paragraph must reserve the full HTML image height.");
+        Require(Math.Abs(loadedHtml.Bounds.Width / loadedHtml.Bounds.Height - 1600d / 900) < .02, "An HTML table image must keep its aspect ratio.");
         Console.WriteLine("PASS Markdown images fit the column and reserve their full height");
     }
 

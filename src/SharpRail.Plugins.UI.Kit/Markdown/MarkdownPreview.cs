@@ -305,7 +305,9 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
         diffMark = null;
         if (inline is not null)
         {
-            if (inline.Descendants().OfType<LinkInline>().Any(link => link.IsImage)) text.ClearValue(TextBlock.LineHeightProperty);
+            if (inline.Descendants().Any(child => child is LinkInline { IsImage: true } ||
+                child is HtmlInline html && HtmlTokens(html.Tag) is [{ Tag: "img", Closing: false }]))
+                text.ClearValue(TextBlock.LineHeightProperty);
             AddInline(text.Inlines!, inline, weight ?? Ui.InterfaceWeight, FontStyle.Normal, false);
         }
         return text;
