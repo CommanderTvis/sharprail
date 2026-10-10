@@ -1682,3 +1682,20 @@ across six lanes. Spec validation reports four existing dangling links in the
 Branch Graph spec. The running application was not republished or restarted.
 Temporary check logs and exited fixture directories were removed. The fix and
 validation are committed separately; the user requested pushing them to main.
+
+## Narrow document views and touch tab dragging — 2026-10-10
+
+Markdown panes below 640 logical pixels hide Split and return existing splits to Preview.
+Source diffs hide side-by-side on panes below their existing 40-column-per-side threshold
+and use inline even after a pinned split. Touch tab dragging requires a 500 ms hold;
+earlier movement cancels the draft so scrolling can proceed.
+
+Release compilation passes with zero warnings/errors. Markdown and document focused checks
+pass; Git-source-dependent document translations were skipped because SHARPRAIL_TEST_GIT_SOURCE
+was unset. The added headless touch regression passes in DockInputChecks. Touched-file
+format verification passes. The six-lane gate stopped at MultiClientE2E, which passed in
+isolation; --last-failed then completed the unfinished cases. The full run preceded the
+touch change; the final touch code passed its focused regression and the resumed layout
+checks. This is coverage across a full run and resumes, not a clean final-tip full run.
+Android compilation, a physical phone and the packaged app were not checked. Temporary
+fixture directories were removed.
