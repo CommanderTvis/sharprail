@@ -224,7 +224,7 @@ public sealed partial class DockSurface : Grid
         foreach (var region in new[] { "left", "right" })
         {
             if (!Side(region)) continue;
-            PlaceAuxiliary(BuildAuxiliary(region), region, 0, 3);
+            PlaceAuxiliary(region == "right" ? BuildSections(region) : BuildAuxiliary(region), region, 0, 3);
             var frame = auxiliaryRegions[region];
             Grid.SetColumnSpan(frame, 5);
             frame.ZIndex = 11; frame.Background = Ui.Sidebar;
@@ -248,6 +248,8 @@ public sealed partial class DockSurface : Grid
     private bool Retarget()
     {
         if (draft is not null || shell.GetLogicalDescendants().OfType<ResizeHandle>().Any(handle => handle.IsActive)) return false;
+        // A drawer's sections are drawn from every group of the region at once, so they are redrawn whole.
+        if (Drawers && Side("right")) return false;
         if (!renderedTools.SequenceEqual(Session.Tools) || CenterTabs?.Invoke() != renderedMode || Structure() != renderedStructure) return false;
         foreach (var (id, built) in builtGroups.ToArray())
             if (GroupSignature(id) == built.Signature) selectionUpdates[id]();

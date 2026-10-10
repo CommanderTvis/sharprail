@@ -69,6 +69,7 @@
     <!-- Avalonia's Android backend has no windows; Windowing/ supplies them over its view and top level, which are internal. -->
     <Publicize Include="Avalonia.Android:Avalonia.Android.Platform.SkiaPlatform.TopLevelImpl" />
     <Publicize Include="Avalonia.Android:Avalonia.Android.Platform.SkiaPlatform.TopLevelImpl.InternalView" />
+    <Publicize Include="Avalonia.Android:Avalonia.Android.Platform.SkiaPlatform.TopLevelImpl._systemNavigationManager" />
     <Publicize Include="Avalonia.Android:Avalonia.Android.InvalidationAwareSurfaceView" />
     <Publicize Include="Avalonia.Android:Avalonia.Android.AvaloniaView.TopLevelImpl" />
     <Publicize Include="Avalonia.Android:Avalonia.Android.AvaloniaView._root" />

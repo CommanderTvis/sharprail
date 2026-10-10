@@ -193,6 +193,19 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         header.ContextMenu = view;
         WireLocationBar();
         this.FindControl<ContentControl>("BrandIcon")!.Content = Ui.Icon("brand", Ui.Accent, 28);
+        if (workbench.ChangeHost is { } changeHost)
+        {
+            // A client of a chosen host names it from its connection status and leaves it from there.
+            var connection = this.FindControl<Button>("ConnectionButton")!;
+            connection.IsHitTestVisible = true;
+            connection.Click += (_, _) =>
+            {
+                var menu = new ContextMenu();
+                menu.Items.Add(Ui.Menu(workbench.Endpoint, () => { }, enabled: false));
+                menu.Items.Add(Ui.Menu("Change host…", changeHost));
+                menu.Open(connection);
+            };
+        }
         var settings = this.FindControl<Button>("SettingsButton")!;
         settings.Content = Ui.Icon("settings");
         settings.Click += (_, _) => ShowSettings();

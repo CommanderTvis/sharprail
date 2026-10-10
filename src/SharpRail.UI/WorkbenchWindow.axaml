@@ -85,8 +85,12 @@
           </Border>
         </local:LocationStrip>
         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
-          <TextBlock x:Name="ConnectionDot" Text="●" Classes="header-label" FontSize="10" Foreground="{x:Static rendering:Ui.Success}" />
-          <TextBlock x:Name="ConnectionStatus" Text="Connecting" Classes="header-label" />
+          <Button x:Name="ConnectionButton" Classes="location-pill" Padding="4,0" IsHitTestVisible="False" VerticalAlignment="Center">
+            <StackPanel Orientation="Horizontal" Spacing="4">
+              <TextBlock x:Name="ConnectionDot" Text="●" Classes="header-label" FontSize="10" Foreground="{x:Static rendering:Ui.Success}" />
+              <TextBlock x:Name="ConnectionStatus" Text="Connecting" Classes="header-label" />
+            </StackPanel>
+          </Button>
           <Button x:Name="RightDrawerButton" IsVisible="False" Width="32" Height="32" Padding="0"
                   Background="Transparent" BorderThickness="0" CornerRadius="0"
                   ToolTip.Tip="Files and changes" AutomationProperties.Name="Files and changes" />

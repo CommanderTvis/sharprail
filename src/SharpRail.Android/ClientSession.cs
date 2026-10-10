@@ -45,6 +45,14 @@ public sealed class ClientSession(string filesDirectory, bool compact) : IDispos
         ShowConnect(forgotten);
     }
 
+    /// <summary>Returns to the connect screen with this host still filled in and remembered.</summary>
+    public void ChangeHost()
+    {
+        if (Endpoint is not { } endpoint) return;
+        Close();
+        ShowConnect(endpoint);
+    }
+
     private ConnectWindow ShowConnect(HostEndpoint? remembered)
     {
         var connect = new ConnectWindow(remembered);
@@ -84,7 +92,7 @@ public sealed class ClientSession(string filesDirectory, bool compact) : IDispos
         // Android draws terminals with Skia only; the host runs their shells.
         var factory = TerminalBackends.Ghostty(new RemoteTerminalConnection(address, token, terminals), () => TerminalRenderers.Skia);
         Endpoint = endpoint;
-        workbench = new Workbench(profile, state, factory, remote: true, sessions, plugins, catalog) { Endpoint = address.ToString(), Compact = compact, TabsInProjects = true };
+        workbench = new Workbench(profile, state, factory, remote: true, sessions, plugins, catalog) { Endpoint = address.ToString(), Compact = compact, TabsInProjects = true, ChangeHost = ChangeHost };
         // The activity holds one workbench window; a profile never restores more.
         var slot = profile.Data.Windows[0];
         profile.Data.Windows.RemoveRange(1, profile.Data.Windows.Count - 1);

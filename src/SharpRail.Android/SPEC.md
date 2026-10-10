@@ -93,6 +93,8 @@ Contract:
 - Popups are not native windows (`CreatePopup` returns null); Avalonia draws menus and flyouts in the owning
   window's overlay layer.
 - Z-order is show order. Showing a window activates it and deactivates the others.
+- Each view's own Back listener is disposed and the windows report no system navigation manager: it would
+  answer the press again after the window acted on it and report it unhandled, finishing the activity.
 - System Back raises `TopLevel.BackRequested` on the window. Unhandled, a dialog is asked to close and may
   cancel; unhandled on the root, the activity moves the task to the background.
 - Storage provider, launcher and clipboard requests from a dialog are answered by the root window, whose
@@ -150,6 +152,8 @@ The host is any SharpRail gRPC endpoint: a desktop app listening from Settings �
 - A workbench whose host stays unreachable for 45 seconds of running time closes and returns to the
   connect screen with the endpoint still filled in and remembered; time the app spent suspended is not
   counted.
+- The header's connection status opens a menu naming the host with Change host…, which returns to the
+  connect screen with the endpoint still filled in and remembered (`Workbench.ChangeHost`).
 - Settings › Host shows the connected host's authority and a Disconnect button. Disconnect rewrites
   `host.json` with an empty token, closes the workbench's windows, disposes the adapters and shows the
   connect screen with the address still filled in.

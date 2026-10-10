@@ -59,6 +59,9 @@ internal sealed class AndroidWindow : IWindowImpl
         var embedded = view._root;
         view._root = null;
         if (embedded is not null) TopLevelAccess.Close(embedded);
+        // Back reaches windows through the activity (AndroidWindows.Back). The view's own listener would answer
+        // the same press a second time, after the window already acted on it, and report it unhandled.
+        (surface._systemNavigationManager as IDisposable)?.Dispose();
         surface.Paint = null; surface.Resized = null; surface.ScalingChanged = null; surface.LostFocus = null;
         surface.TransparencyLevelChanged = null; surface.Closed = null;
         surface.InternalView!.SurfaceWindowCreated += (_, _) => { hasSurface = true; Render(); Dispatcher.UIThread.Post(Fit); };
@@ -137,6 +140,7 @@ internal sealed class AndroidWindow : IWindowImpl
 
     public object? TryGetFeature(Type featureType)
     {
+        if (featureType == typeof(ISystemNavigationManagerImpl)) return null;
         if (featureType == typeof(IScreenImpl)) return screens ??= surface.TryGetFeature(featureType) is IScreenImpl found ? new Screens(found) : null;
         if (surface.TryGetFeature(featureType) is { } feature) return feature;
         // A dialog's view is not created in the activity, so what needs one comes from the window filling it.
