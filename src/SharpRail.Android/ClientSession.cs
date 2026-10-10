@@ -1,3 +1,5 @@
+using Avalonia.Threading;
+
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
 using SharpRail.UI.State;
@@ -14,6 +16,9 @@ public sealed class ClientSession(string filesDirectory, bool compact) : IDispos
     private readonly string directory = Path.Combine(filesDirectory, ".sharprail");
     private readonly List<IDisposable> adapters = [];
     private Workbench? workbench;
+    private DispatcherTimer? watch;
+    // How long the host may stay unreachable, counted while the app runs, before the workbench gives way.
+    private const int LostAfterSeconds = 45;
     private bool disposed;
 
     /// <summary>The running session, for the workbench's Host settings.</summary>
@@ -84,10 +89,25 @@ public sealed class ClientSession(string filesDirectory, bool compact) : IDispos
         var slot = profile.Data.Windows[0];
         profile.Data.Windows.RemoveRange(1, profile.Data.Windows.Count - 1);
         workbench.Open(slot, slot.LastProject).Show();
+        // The workbench retries a dropped host by itself; one that stays away sends the user back to the
+        // connect screen, where the address can be corrected. Seconds are counted, not read from a clock,
+        // so time the app spent suspended does not count against the host.
+        var unreachable = 0;
+        watch = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        watch.Tick += (_, _) =>
+        {
+            unreachable = state.Connected ? 0 : unreachable + 1;
+            if (unreachable < LostAfterSeconds) return;
+            Close();
+            ShowConnect(endpoint).Report("The host at " + address.Authority + " stopped answering.");
+        };
+        watch.Start();
     }
 
     private void Close()
     {
+        watch?.Stop();
+        watch = null;
         Endpoint = null;
         if (workbench is { } open)
         {

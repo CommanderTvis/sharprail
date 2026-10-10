@@ -56,6 +56,8 @@
     <PackageReference Include="Avalonia.Themes.Fluent" />
     <PackageReference Include="SkiaSharp" />
     <PackageReference Include="Markdig" />
+    <PackageReference Include="QRCoder" />
+    <PackageReference Include="Xamarin.GooglePlayServices.Code.Scanner" />
     <PackageReference Include="Svg.Controls.Skia.Avalonia" />
     <PackageReference Include="Krafs.Publicizer" PrivateAssets="all" />
     <!-- PDF Preview brings the desktop builds of PDFium, which are not Android libraries. -->

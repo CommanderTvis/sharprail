@@ -143,6 +143,13 @@ The host is any SharpRail gRPC endpoint: a desktop app listening from Settings �
 - The endpoint is stored as `files/.sharprail/host.json` in the app's private storage, beside the
   `profile.json` `ProfileStore` keeps in the same directory. On launch a remembered address with a token
   connects without a tap; the connect screen shows meanwhile and keeps any failure.
+- The connect screen also scans the QR code a serving desktop app shows under Settings › Host
+  (`HostLink`: `sharprail://connect?host=…&token=…`), through Play services' code scanner, which owns the
+  camera, so the app declares no camera permission. A device without Play services reports that and keeps
+  the typed fields.
+- A workbench whose host stays unreachable for 45 seconds of running time closes and returns to the
+  connect screen with the endpoint still filled in and remembered; time the app spent suspended is not
+  counted.
 - Settings › Host shows the connected host's authority and a Disconnect button. Disconnect rewrites
   `host.json` with an empty token, closes the workbench's windows, disposes the adapters and shows the
   connect screen with the address still filled in.

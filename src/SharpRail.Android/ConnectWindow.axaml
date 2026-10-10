@@ -11,7 +11,7 @@
         <ContentControl x:Name="ConnectBrand" HorizontalAlignment="Left" />
         <TextBlock Text="Connect to a host" FontSize="24" />
         <TextBlock TextWrapping="Wrap" Foreground="{x:Static rendering:Ui.Muted}"
-                   Text="This app is a client of a running SharpRail. On the computer, open Settings › Host and start listening on a network address." />
+                   Text="This app is a client of a running SharpRail. On the computer, open Settings › Host, start listening on a network address, and scan its QR code or type what it shows." />
       </StackPanel>
       <StackPanel Spacing="8">
         <TextBlock Text="Host address" Foreground="{x:Static rendering:Ui.Muted}" />
@@ -21,6 +21,7 @@
       </StackPanel>
       <TextBlock x:Name="ConnectError" IsVisible="False" TextWrapping="Wrap" Foreground="{x:Static rendering:Ui.Danger}" />
       <Button x:Name="ConnectSubmit" Classes="primary" Content="Connect" Height="40" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
+      <Button x:Name="ConnectScan" Height="40" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />
     </StackPanel>
   </ScrollViewer>
 </Window>
