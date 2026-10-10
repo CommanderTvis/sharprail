@@ -1622,7 +1622,11 @@ Settings as a full-screen page and dialogs as bottom sheets (tablet: 640 dp wide
 dismissed by a tap outside; phone: full width) were seen on both emulators. The Release package also
 installs and shows the connect screen on a Pixel 8 (Android 17); nothing further was driven there.
 
-Not verified: working in the workbench on a phone beyond its first frame; input methods other than Gboard; TalkBack and other
+On the phone emulator the left (Projects) and right (Specs, Files, Changes, Review) drawers open from the
+header over a dimmed centre, Back closes them, and Settings shows its sections in a drawer that closes on
+choice; `DrawerChecks` asserts the same headlessly in `-- --shell`.
+
+Not verified: input methods other than Gboard; TalkBack and other
 accessibility services; plugin UI beyond what the default workbench shows; HTTPS endpoints; CI. Known
 limits (cleartext HTTP, unencrypted stored token, one workbench window, unreachable desktop code in the
 package) are listed in `src/SharpRail.Android/SPEC.md`.
