@@ -335,7 +335,6 @@ SharpRail.Plugins.UI.Kit.Visualization.ZoomGesture
 static SharpRail.Plugins.UI.Kit.Visualization.ZoomGesture.Clamp(double scale) -> double
 static SharpRail.Plugins.UI.Kit.Visualization.ZoomGesture.ForWheel(double scale, double deltaLines) -> double
 static SharpRail.Plugins.UI.Kit.Visualization.ZoomGesture.IsZoom(Avalonia.Input.KeyModifiers modifiers) -> bool
-
 override SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.Equals(object? obj) -> bool
 override SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.GetHashCode() -> int
 override SharpRail.Plugins.UI.Kit.Visualization.ComparisonOptionView.ToString() -> string!
@@ -444,3 +443,6 @@ SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.Source.get -> Avalonia.Co
 SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.PreviewChanged -> System.Action?
 SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.RefreshPreviewAsync(string! text) -> System.Threading.Tasks.Task!
 SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.RefreshPreviewAsync(string! text, SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext! context) -> System.Threading.Tasks.Task!
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.ContextActions.get -> System.Func<System.Collections.Generic.IReadOnlyList<Avalonia.Controls.Control!>!>?
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.ContextActions.set -> void
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.SelectedLines.get -> (int Start, int End)?

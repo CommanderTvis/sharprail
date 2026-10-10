@@ -11,7 +11,10 @@ public interface IPluginEditors
     /// <returns>Disposing it stops the observation.</returns>
     IDisposable OnEvent(Action<EditorEvent> handler);
 
-    /// <summary>Opens a file in the active window. An absolute path opens an external-file editor when an active plugin exposes it.</summary>
+    /// <summary>
+    /// Opens a file in the window showing its workspace, or in the active window when none does. An absolute path
+    /// opens an external-file editor when an active plugin exposes it.
+    /// </summary>
     /// <param name="workspaceId">The file's workspace.</param>
     /// <param name="path">The workspace-relative path, or an exposed absolute path.</param>
     /// <param name="options">Where to reveal, whether to preview, and whether to bypass viewers.</param>
@@ -47,7 +50,7 @@ public interface IPluginEditors
 }
 
 /// <summary>
-/// The context passed to <see cref="PluginUIModule.Activate"/>: the closed set of UI capabilities (W1–W20 in the
+/// The context passed to <see cref="PluginUIModule.Activate"/>: the closed set of UI capabilities (W1–W21 in the
 /// module spec, without chat). Registrations are accepted only while <c>Activate</c> runs, so a plugin's whole
 /// surface exists when it returns and the runtime can remove it by plugin id; every registration is unmounted
 /// when the plugin is disabled. Calls arrive and callbacks run on the UI thread.
@@ -159,6 +162,10 @@ public interface IPluginUIContext
     /// <summary>Contributes a workspace- or project-scoped start action (W10).</summary>
     /// <param name="action">The action.</param>
     void WorkspaceAction(WorkspaceActionRegistration action);
+
+    /// <summary>Contributes an action to the context menus of files and of lines selected in them (W21).</summary>
+    /// <param name="action">The action.</param>
+    void FileAction(FileActionRegistration action);
 
     /// <summary>Contributes a terminal accessory row (W11).</summary>
     /// <param name="registration">The accessory.</param>

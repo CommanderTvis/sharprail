@@ -96,7 +96,9 @@ publish toggle automation changes without requesting another update.
 - `IDialogOwner.Dim` is how `DialogWindow` dims the window that owns it; `DialogWindow.Create(title, width)` is the
   standard card the app's `Dialogs` and `MermaidDialog` build on.
 - `MarkdownDocumentView.Preview` exposes the rendered document, and `MarkdownPreview.SelectionChanged` reports the
-  selected text, which the app feeds into the plugin editor-event stream.
+  selected text, which the app feeds into the plugin editor-event stream. Each rendered block remembers the source
+  lines it came from, so `SelectedLines` names a selection in the file; `ContextActions` supplies extra items for the
+  preview's context menu, shown beside Copy, and with none the text keeps its own menu.
 - Inline links, including spec links, inherit rendered diff insertion/deletion colors and backgrounds;
   deleted links and links inside Markdown strikethrough carry the strike decoration.
 - `LineWidths.File(width, bounded)` and `Markdown(width, bounded, fontSize)` take the values a preference holds.

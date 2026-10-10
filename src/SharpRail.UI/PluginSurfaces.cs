@@ -558,6 +558,46 @@ public sealed partial class WorkbenchWindow
         ShowNotification(message);
     }
 
+    // Plugins' file actions for a target, read as a menu opens so their labels and availability are current.
+    private List<Control> FileActionItems(FileActionTarget target) => [.. Plugins.FileActionsFor(target).Select(offer =>
+    {
+        var item = Ui.Menu(offer.Label, () =>
+        {
+            try { offer.Action.Run(target); }
+            catch (Exception error) { Console.Error.WriteLine($"Plugin {offer.PluginId} file action failed: {error.Message}"); }
+        });
+        item.Name = $"FileAction_{offer.PluginId}_{offer.Action.Id}";
+        if (offer.Action.Icon is { } icon) item.Icon = PluginIcons.Resolve(icon, Plugins.Entry(offer.PluginId), null, 14);
+        return (Control)item;
+    })];
+
+    // The code editor's context menu holds plugins' file actions only, so it opens when one is offered.
+    private void OfferFileActions(SharpRail.Scintilla.ScintillaEditor editor, string path)
+    {
+        if (Path.IsPathRooted(path)) return;
+        var workspace = workspaceRoot;
+        var menu = new ContextMenu { Name = "EditorFileActions" };
+        menu.Opening += (_, e) =>
+        {
+            var selection = editor.Selection;
+            // A selection that stops at the start of a line does not include that line.
+            var last = selection.EndColumn == 1 && selection.EndLine > selection.StartLine ? selection.EndLine - 1 : selection.EndLine;
+            var target = new FileActionTarget(workspace, path, false);
+            menu.Items.Clear();
+            foreach (var item in FileActionItems(selection.Text.Length == 0 ? target : target with { StartLine = selection.StartLine, EndLine = last }))
+                menu.Items.Add(item);
+            e.Cancel = menu.Items.Count == 0;
+        };
+        editor.ContextMenu = menu;
+    }
+
+    private void OfferFileActions(MarkdownPreview preview, string path)
+    {
+        var workspace = workspaceRoot;
+        preview.ContextActions = () => FileActionItems(preview.SelectedLines is { } lines
+            ? new(workspace, path, false) { StartLine = lines.Start, EndLine = lines.End } : new(workspace, path, false));
+    }
+
     // The Markdown preview reports its selections into the same editor-event stream as the code editor.
     private void ReportSelections(MarkdownPreview preview, DockTab tab)
     {
@@ -565,9 +605,9 @@ public sealed partial class WorkbenchWindow
         preview.SelectionChanged += text =>
         {
             if (EditorRef(workspace, tab) is not { } editor) return;
-            var lines = text.Split('\n');
-            workbench.PluginLoader.Editors.Emit(new EditorSelectionEvent(editor,
-                text.Length == 0 ? null : new EditorSelection(1, 1, lines.Length, lines[^1].Length + 1, text)));
+            // The preview knows which source blocks a selection touches, not the columns: it reports their whole lines.
+            workbench.PluginLoader.Editors.Emit(new EditorSelectionEvent(editor, text.Length == 0 || preview.SelectedLines is not { } lines
+                ? null : new EditorSelection(lines.Start, 1, lines.End + 1, 1, text)));
         };
     }
 

@@ -18,8 +18,56 @@ public sealed partial class MarkdownPreview
     private (int Block, int Start, int End)? origin;
     private bool dragging;
 
+    // The source lines each rendered block came from, so a selection in the preview can be named in the file.
+    private static readonly AttachedProperty<(int Start, int End)?> SourceLinesProperty =
+        AvaloniaProperty.RegisterAttached<MarkdownPreview, Control, (int Start, int End)?>("SourceLines");
+
+    private Control Sourced(Control control, Markdig.Syntax.Block block)
+    {
+        var last = block.Line;
+        if (Document.LineStartIndexes is { } starts)
+        {
+            var found = starts.BinarySearch(block.Span.End);
+            last = Math.Max(last, found >= 0 ? found : ~found - 1);
+        }
+        control.SetValue(SourceLinesProperty, (block.Line + 1, last + 1));
+        return control;
+    }
+
+    /// <summary>The one-based source lines of the blocks the selection touches; null when nothing is selected.</summary>
+    public (int Start, int End)? SelectedLines
+    {
+        get
+        {
+            (int Start, int End)? lines = null;
+            foreach (var block in Selectable().Where(block => block.SelectionStart != block.SelectionEnd))
+                if (block.GetSelfAndLogicalAncestors().OfType<Control>().Select(control => control.GetValue(SourceLinesProperty))
+                    .FirstOrDefault(span => span is not null) is { } span)
+                    lines = lines is { } known ? (Math.Min(known.Start, span.Start), Math.Max(known.End, span.End)) : span;
+            return lines;
+        }
+    }
+
+    /// <summary>Extra context-menu items, asked for as the menu opens; with none the text keeps its own menu.</summary>
+    public Func<IReadOnlyList<Control>>? ContextActions { get; set; }
+
+    private void OfferContextActions(object? sender, ContextRequestedEventArgs e)
+    {
+        // A menu left attached from an earlier open would otherwise answer this click with actions that are gone.
+        if (ContextActions?.Invoke() is not { Count: > 0 } actions) { ContextMenu = null; return; }
+        var text = SelectedText;
+        var menu = ContextMenu ??= new ContextMenu { Name = "MarkdownPreviewActions" };
+        menu.Items.Clear();
+        menu.Items.Add(Ui.Menu("Copy", () => _ = CopyAsync(text), text.Length > 0));
+        menu.Items.Add(new Separator());
+        foreach (var action in actions) menu.Items.Add(action);
+        menu.Open(this);
+        e.Handled = true;
+    }
+
     private void WireSelection()
     {
+        AddHandler(ContextRequestedEvent, OfferContextActions, RoutingStrategies.Tunnel);
         AddHandler(PointerPressedEvent, SelectionPressed, RoutingStrategies.Tunnel, handledEventsToo: true);
         AddHandler(PointerPressedEvent, SelectionChosen, RoutingStrategies.Bubble, handledEventsToo: true);
         AddHandler(PointerMovedEvent, SelectionMoved, RoutingStrategies.Bubble, handledEventsToo: true);

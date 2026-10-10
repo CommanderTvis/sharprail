@@ -199,6 +199,17 @@ public sealed partial class WorkbenchWindow
         Add("Copy absolute path", "FileNodeCopyPath", () => _ = CopyTextAsync(Path.Combine(workspaceRoot, file.Path)));
         Add("Rename…", "FileNodeRename", () => _ = RenamePathAsync(file));
         Add(file.IsDirectory ? "Delete folder" : "Delete file", "FileNodeDelete", () => _ = TrashPathAsync(file), "trash");
+        var contributed = new List<Control>();
+        menu.Opening += (_, _) =>
+        {
+            foreach (var item in contributed) menu.Items.Remove(item);
+            contributed.Clear();
+            var offered = FileActionItems(new(workspaceRoot, file.Path, file.IsDirectory));
+            if (offered.Count == 0) return;
+            contributed.Add(new Separator());
+            contributed.AddRange(offered);
+            foreach (var item in contributed) menu.Items.Add(item);
+        };
         return menu;
     }
 

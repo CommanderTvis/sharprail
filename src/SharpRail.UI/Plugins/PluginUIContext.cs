@@ -214,6 +214,8 @@ internal sealed class PluginUIContext : IPluginUIContext
         Registry.AddFileViewer(Id, registration, entry.Contributes.FileViewers.FirstOrDefault()?.Read ?? PluginFileRead.Text);
     }
 
+    public void FileAction(FileActionRegistration action) { Guard(); Registry.AddFileAction(Id, action); }
+
     public void WorkspaceAction(WorkspaceActionRegistration action)
     {
         Guard();
@@ -373,8 +375,12 @@ internal sealed class PluginUIContext : IPluginUIContext
 
         public IDisposable OnEvent(Action<EditorEvent> handler) => context.Track(context.loader.Editors.On(handler));
 
-        public async ValueTask<EditorRef?> OpenAsync(string workspaceId, string path, EditorOpenOptions? options = null) =>
-            Workbench.ActiveWindow is { } window ? await window.OpenEditorAsync(workspaceId, path, options ?? new()) : null;
+        public async ValueTask<EditorRef?> OpenAsync(string workspaceId, string path, EditorOpenOptions? options = null)
+        {
+            var active = Workbench.ActiveWindow;
+            var window = active?.WorkspaceRoot == workspaceId ? active : Workbench.Windows.FirstOrDefault(candidate => candidate.WorkspaceRoot == workspaceId) ?? active;
+            return window is null ? null : await window.OpenEditorAsync(workspaceId, path, options ?? new());
+        }
 
         public void Close(string id) { foreach (var window in Workbench.Windows) window.CloseEditor(id); }
 

@@ -28,7 +28,11 @@ public sealed partial class WorkbenchWindow
             View = view => new MarkdownPreviewBody(view, text =>
             {
                 var document = new MarkdownDocumentView(text, view.Resource.Path, MarkdownContexts.For(host, Preferences, FollowLink, SpecLink()), _ => CodeBody(view));
-                void ObservePreview() => ReportSelections(document.Preview, new DockTab(view.TabId, Path.GetFileName(view.Resource.Path), "markdown", view.Resource.Path));
+                void ObservePreview()
+                {
+                    ReportSelections(document.Preview, new DockTab(view.TabId, Path.GetFileName(view.Resource.Path), "markdown", view.Resource.Path));
+                    OfferFileActions(document.Preview, view.Resource.Path);
+                }
                 document.PreviewChanged += ObservePreview;
                 ObservePreview();
                 return document;

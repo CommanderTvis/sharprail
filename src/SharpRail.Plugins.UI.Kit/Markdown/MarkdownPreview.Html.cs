@@ -188,7 +188,7 @@ public sealed partial class MarkdownPreview
         {
             if (blocks[index] is YamlFrontMatterBlock) continue;
             if (blocks[index] is not HtmlBlock html || HtmlTokens(html.Lines.ToString()) is not [{ Tag: "details", Closing: false } open, ..] tokens)
-            { yield return Render(blocks[index]); continue; }
+            { yield return Sourced(Render(blocks[index]), blocks[index]); continue; }
             var depth = Depth(tokens);
             var inner = new List<Block>();
             var tail = new List<HtmlToken>();

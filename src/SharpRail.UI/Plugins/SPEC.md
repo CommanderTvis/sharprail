@@ -17,7 +17,7 @@ Upstream: apps/web/src/plugins/registry/SPEC.md @ 4737df6d (CommanderTvis fork)
 
 Owns the edge between two parts. The registry is the state a plugin's UI half fills in and the workbench,
 panels and Settings read back from; the loader is the composition root that turns the host's roster into
-activated (or dormant) UI halves. See [the plugin API](../../SharpRail.Plugins.Api/SPEC.md) for the W1–W20
+activated (or dormant) UI halves. See [the plugin API](../../SharpRail.Plugins.Api/SPEC.md) for the W1–W21
 capability contract this implements. The runtime is app-owned: one per `Workbench`, created from
 `Workbench.Plugins` (the host's `IPluginService`), shared by every window. Window-scoped capabilities (the
 active workspace and editor, opening, revealing, notifying) act on the app's active window.
@@ -145,6 +145,11 @@ it changes, never for the initial value.
   workspace without Git history, like Changes and Review. When deferred Git discovery changes the
   catalog, rebuilding the dock retains keyboard focus on the equivalent named control. An open dock
   menu defers that catalog refresh until it closes, then the window applies the latest catalog.
+- File actions (W21) are read from the registry as a context menu opens, so labels and availability are current:
+  after a separator in a Files row's menu, as the code editor's whole menu (it opens only when one is offered),
+  and beside Copy in the Markdown preview's. The editor and the preview pass the one-based source lines of the
+  selection; without one the action is for the file.
+- `Editors.OpenAsync` opens in the window showing the file's workspace, falling back to the active window.
 - Attention notifications (W20) go to the workbench's `AttentionNotifications`, which decides whether and
   how they leave the app ([Away notifications](../SPEC.md)); the context adds nothing of its own.
 - Settings sections (W4) are grouped under Settings › Plugins in `SettingsWindow`, indented behind a rule
