@@ -3,7 +3,7 @@
         xmlns:rendering="using:SharpRail.Plugins.UI.Kit"
         x:Class="SharpRail.Plugins.UI.Kit.DialogWindow"
         CanResize="False" WindowStartupLocation="CenterOwner" SizeToContent="Height"
-        SystemDecorations="None" TransparencyLevelHint="Transparent" Background="Transparent"
+        WindowDecorations="None" TransparencyLevelHint="Transparent" Background="Transparent"
         ShowInTaskbar="False"
         Foreground="{x:Static rendering:Ui.TextBrush}"
         FontFamily="{x:Static rendering:Ui.InterfaceFont}" FontSize="14">

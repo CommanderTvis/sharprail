@@ -65,7 +65,7 @@ internal static class BoundaryChecks
     internal static List<string> Scan(string root)
     {
         var projects = new[] { "src", "tests" }.Select(area => Path.Combine(root, area)).Where(Directory.Exists)
-            .SelectMany(Directory.EnumerateDirectories).SelectMany(directory => Directory.EnumerateFiles(directory, "*.csproj", SearchOption.AllDirectories).Where(project => !Path.GetRelativePath(directory, project).Split(Path.DirectorySeparatorChar).Any(Generated.Contains))).Order(StringComparer.Ordinal).ToArray();
+            .SelectMany(Directory.EnumerateDirectories).SelectMany(directory => Directory.EnumerateFiles(directory, "*.csproj", SearchOption.AllDirectories).Where(project => !Path.GetRelativePath(directory, project).Split(Path.DirectorySeparatorChar).Any(part => Generated.Contains(part) || part.StartsWith('.')))).Order(StringComparer.Ordinal).ToArray();
         var rules = Allowed.ToDictionary();
         foreach (var plugin in new[] { "SpecDialect", "Blueprint", "ClaudeCode", "Discord", "PdfPreview", "BranchGraph", "Visualize", "FileIcons", "Codex" })
         {
