@@ -88,6 +88,8 @@ public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime li
             Cwd = agent.Record.Cwd ?? "",
             Model = agent.Record.Model ?? ""
         }).ToList(),
+        TerminalTitles = state.TerminalTitles.Select(title => new TerminalTitleMessage
+        { WorkspaceId = title.Terminal.WorkspaceId, TabKey = title.Terminal.TabKey, Title = title.Title }).ToList(),
         Platform = state.Platform is { } platform ? System.Text.Json.JsonNamingPolicy.CamelCase.ConvertName(platform.ToString()) : ""
     };
 }

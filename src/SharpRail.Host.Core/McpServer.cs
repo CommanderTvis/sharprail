@@ -9,7 +9,7 @@ public static class McpServer
     private const string LatestProtocol = "2025-06-18";
     private static readonly HashSet<string> KnownProtocols = ["2024-11-05", "2025-03-26", LatestProtocol];
     private const string Instructions =
-        "SharpRail's workspace tools and enabled plugins' project tools for the workspace this session runs in. Use those relevant to the task and the project's workflow.";
+        "SharpRail's workspace tools and enabled plugins' project tools for the workspace this session runs in. Use those relevant to the task and the project's workflow. set_title titles this terminal once the task is clear.";
 
     /// <summary>A host or active plugin tool on the table; it validates its own arguments.</summary>
     public sealed record McpTool(string Name, string Title, string Description, JsonObject InputSchema, Func<JsonObject, CancellationToken, Task<(string Text, bool Error)>> Call);

@@ -66,12 +66,17 @@ public sealed partial class WorkbenchWindow
         catch (Exception error) { Report(new IOException("The host could not save this change: " + error.Message)); return false; }
     }
 
+    /// <summary>Terminal tabs take the titles the host holds for them, on a broadcast and when a workspace mounts.</summary>
+    private void ApplyTerminalTitles(HostState host) =>
+        Layout.TitleTerminals(host.TerminalTitles.ToDictionary(title => (title.Terminal.WorkspaceId, title.Terminal.TabKey), title => title.Title));
+
     private void SharedStateChanged(HostState previous, HostState next)
     {
         foreach (var project in previous.Projects.Except(next.Projects)) ReleaseProjectDocuments(project);
         foreach (var removed in previous.Workspaces.Where(workspace => !next.Workspaces.Any(current => current.Path == workspace.Path)))
             ClearRetainedTools(removed.Path);
         if (next.Settings != previous.Settings) RefreshAppearance();
+        if (!next.TerminalTitles.SequenceEqual(previous.TerminalTitles)) ApplyTerminalTitles(next);
         var registry = !next.Workspaces.SequenceEqual(previous.Workspaces);
         var rail = RailSignature() != railSignature || !next.Projects.SequenceEqual(previous.Projects) || !next.RecentProjects.SequenceEqual(previous.RecentProjects) ||
             next.WorkspaceLabels.Count != previous.WorkspaceLabels.Count ||

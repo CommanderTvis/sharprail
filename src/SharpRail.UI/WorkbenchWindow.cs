@@ -308,6 +308,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             surface.RefreshCenterActions();
             ResolveRailDefaults();
             PlaceWorkspaceTabs();
+            ApplyTerminalTitles(state.Current);
             foreach (var removed in removedWorkspaces) Layout.DropWorkspace(removed);
             ShowReady();
             errorText.IsVisible = false;

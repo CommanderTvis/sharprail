@@ -826,10 +826,11 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
         return text is null && !submit ? null : new TerminalPrefill(text ?? "", submit);
     }
 
-    // A closed tab forgets its agent record, including one persisted for a tab no client attached this run.
+    // A closed tab forgets its agent record and its title, including ones persisted for a tab no client attached this run.
     private void OnSessionClosed(string session, TerminalRef? terminal)
     {
         var dropped = Seams.State.RemoveTerminalAgents(known => known == terminal || PtyTerminalService.SessionFor(known) == session);
+        Seams.State.RemoveTerminalTitles(known => known == terminal || PtyTerminalService.SessionFor(known) == session);
         foreach (var closed in dropped.Append(terminal).OfType<TerminalRef>().Distinct()) OnTerminal(new TerminalClosed(closed));
     }
 

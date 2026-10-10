@@ -34,6 +34,7 @@ public sealed partial class HostStateStore : IHostStateService
         public Dictionary<string, JsonElement> PluginSettings { get; set; } = [];
         public List<string> PluginPaths { get; set; } = [];
         public List<TerminalAgent> TerminalAgents { get; set; } = [];
+        public List<TerminalTitle> TerminalTitles { get; set; } = [];
     }
 
     private static readonly JsonSerializerOptions Json = new() { WriteIndented = true };
@@ -97,7 +98,8 @@ public sealed partial class HostStateStore : IHostStateService
                     PluginPaths = stored.PluginPaths ?? [],
                     // Sessions end with the app, so a record whose workspace folder is gone can never resume; plugins
                     // that follow every recorded workspace would otherwise read and watch folders that no longer exist.
-                    TerminalAgents = (stored.TerminalAgents ?? []).Where(agent => agent?.Terminal?.WorkspaceId is { } workspace && Directory.Exists(workspace)).ToList()
+                    TerminalAgents = (stored.TerminalAgents ?? []).Where(agent => agent?.Terminal?.WorkspaceId is { } workspace && Directory.Exists(workspace)).ToList(),
+                    TerminalTitles = (stored.TerminalTitles ?? []).Where(title => title?.Terminal?.WorkspaceId is { } workspace && Directory.Exists(workspace)).ToList()
                 };
             }
             else initial = seed?.Invoke() ?? new();
@@ -164,6 +166,7 @@ public sealed partial class HostStateStore : IHostStateService
                         .Select(agent => agent.Terminal).ToHashSet();
                     foreach (var terminal in agents) await terminals.CloseAsync(PtyTerminalService.SessionFor(terminal));
                     RemoveTerminalAgents(agents.Contains);
+                    RemoveTerminalTitles(terminal => agents.Contains(terminal) || roots.Contains(terminal.WorkspaceId));
                 }
             lock (gate)
             {
@@ -214,6 +217,28 @@ public sealed partial class HostStateStore : IHostStateService
             var removed = state.TerminalAgents.Where(agent => closed(agent.Terminal)).Select(agent => agent.Terminal).ToArray();
             if (removed.Length > 0) Publish(state with { TerminalAgents = state.TerminalAgents.Where(agent => !closed(agent.Terminal)).ToArray() }, persist: true);
             return removed;
+        }
+    }
+
+    /// <summary>Sets or clears the title of one terminal's tab.</summary>
+    public void SetTerminalTitle(TerminalRef terminal, string? title)
+    {
+        lock (gate)
+        {
+            var titles = state.TerminalTitles.Where(known => known.Terminal != terminal).ToList();
+            if (title is not null) titles.Add(new(terminal, title));
+            if (titles.SequenceEqual(state.TerminalTitles)) return;
+            Publish(state with { TerminalTitles = titles }, persist: true);
+        }
+    }
+
+    /// <summary>Drops the titles of terminals that closed.</summary>
+    public void RemoveTerminalTitles(Func<TerminalRef, bool> closed)
+    {
+        lock (gate)
+        {
+            if (state.TerminalTitles.Any(title => closed(title.Terminal)))
+                Publish(state with { TerminalTitles = state.TerminalTitles.Where(title => !closed(title.Terminal)).ToArray() }, persist: true);
         }
     }
 
@@ -275,7 +300,8 @@ public sealed partial class HostStateStore : IHostStateService
                 Workspaces = snapshot.Workspaces.ToList(),
                 PluginSettings = snapshot.PluginSettings.ToDictionary(),
                 PluginPaths = snapshot.PluginPaths.ToList(),
-                TerminalAgents = snapshot.TerminalAgents.ToList()
+                TerminalAgents = snapshot.TerminalAgents.ToList(),
+                TerminalTitles = snapshot.TerminalTitles.ToList()
             };
             var temporary = path + ".tmp";
             var document = JsonSerializer.SerializeToNode(stored, Json)!;
@@ -324,6 +350,8 @@ public sealed partial class HostStateStore : IHostStateService
             Plugins = [],
             TerminalAgents = value.TerminalAgents.Where(agent => agent?.Terminal is { WorkspaceId: { } workspace, TabKey: { Length: > 0 } } && ValidPath(workspace) &&
                 agent.Record is { Kind: not null, Command: not null }).DistinctBy(agent => agent.Terminal).ToArray(),
+            TerminalTitles = value.TerminalTitles.Where(title => title?.Terminal is { WorkspaceId: { } workspace, TabKey: { Length: > 0 } } && ValidPath(workspace) &&
+                !string.IsNullOrWhiteSpace(title.Title)).DistinctBy(title => title.Terminal).ToArray(),
             Platform = OperatingSystem.IsMacOS() ? HostPlatform.MacOS : OperatingSystem.IsWindows() ? HostPlatform.Windows : HostPlatform.Linux,
             Workspaces = value.Workspaces.Where(ValidWorkspace).DistinctBy(workspace => workspace.Id).DistinctBy(workspace => workspace.Path).ToArray()
         };
