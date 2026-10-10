@@ -209,7 +209,7 @@ public sealed partial class ScintillaEditor
         wheel += new Vector(pixels, 0);
         var whole = Math.Truncate(wheel.X);
         wheel -= new Vector(whole, 0);
-        if (whole != 0) document.Send(ScintillaMessage.SetXOffset, Math.Max(0, document.Send(ScintillaMessage.GetXOffset) + (nint)whole));
+        if (whole != 0) ScrollToX(document.Send(ScintillaMessage.GetXOffset) + whole);
     }
     protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e)
     {

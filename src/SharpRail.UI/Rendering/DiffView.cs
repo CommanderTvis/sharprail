@@ -53,6 +53,7 @@ internal sealed partial class DiffView : Grid, IDisposable
     private readonly bool naturalHeight;
     private readonly bool embedded;
     private IReadOnlyDictionary<RevertTarget, string> contentKeys = new Dictionary<RevertTarget, string>();
+    private readonly string syntaxPath;
 
     // Below this many code columns per half, a side-by-side diff is unreadable and the view opens inline.
     private const int MinimumSplitColumns = 40;
@@ -80,6 +81,7 @@ internal sealed partial class DiffView : Grid, IDisposable
         this.canRevert = canRevert;
         this.text = text;
         singleSided = IsSingleSided(text);
+        syntaxPath = path;
         this.wrapWidth = wrapWidth;
         this.selectedChanged = selectedChanged;
         this.pending = pending;
@@ -498,15 +500,17 @@ internal sealed partial class DiffView : Grid, IDisposable
     {
         internal readonly StringBuilder Text = new();
         internal readonly List<int> Styles = [];
+        internal readonly List<SyntaxLine> Syntax = [];
         // The old and new file line numbers each row shows in its gutter.
         internal readonly List<(int? Old, int? New)> Numbers = [];
 
-        internal void Add(string line, LineKind kind, int? old = null, int? @new = null)
+        internal void Add(string line, LineKind kind, int? old = null, int? @new = null, int prefix = 0)
         {
             if (Styles.Count > 0) Text.Append('\n');
             Text.Append(line);
             Styles.Add((int)kind);
             Numbers.Add((old, @new));
+            Syntax.Add(new(prefix, old is not null, @new is not null, kind is LineKind.Header or LineKind.Gap));
         }
 
         internal void AddGap(int hidden) { if (hidden > 0) Add($"⋯ {hidden} hidden lines", LineKind.Gap); }
@@ -549,10 +553,10 @@ internal sealed partial class DiffView : Grid, IDisposable
             {
                 var line = hunk.Lines[index];
                 if (starts.TryGetValue(index, out var target)) blocks.Add((side.Styles.Count, target));
-                if (line.StartsWith('+')) side.Add(line, LineKind.Added, null, @new++);
-                else if (line.StartsWith('-')) side.Add(line, LineKind.Removed, old++);
+                if (line.StartsWith('+')) side.Add(line, LineKind.Added, null, @new++, 1);
+                else if (line.StartsWith('-')) side.Add(line, LineKind.Removed, old++, prefix: 1);
                 else if (line.StartsWith('\\')) side.Add(line, LineKind.Meta);
-                else side.Add(line, LineKind.Context, old++, @new++);
+                else side.Add(line, LineKind.Context, old++, @new++, 1);
             }
             previous = hunk;
         }
@@ -630,6 +634,7 @@ internal sealed partial class DiffView : Grid, IDisposable
         editor.WrapWidth = wrapWidth;
         editor.LineStyles = LineStyles();
         editor.StyleLines(side.Styles);
+        frame.Highlight(syntaxPath, side.Syntax, side.Styles);
         frame.ThemeApplied += () => editor.LineStyles = LineStyles();
         frames.Add(frame);
         if (naturalHeight)

@@ -84,7 +84,7 @@ internal static class CodexChecks
                 File.WriteAllText(path, text);
             }
             Require(Directory.GetDirectories(shipped).Select(Path.GetFileName).Order().SequenceEqual(
-                ["importing-a-codebase", "setting-up-a-project", "shipping-a-pr", "starting-a-new-project", "writing-specs"]), "the shipped skills");
+                ["add-highlighting", "importing-a-codebase", "setting-up-a-project", "shipping-a-pr", "starting-a-new-project", "writing-specs"]), "the shipped skills");
 
             // A skill of the same name that SharpRail never wrote is the user's, as is every other skill.
             Write(Installed("shipping-a-pr/SKILL.md"), "mine\n");

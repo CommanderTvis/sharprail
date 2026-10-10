@@ -188,6 +188,10 @@ Source diffs can share a continuous review's outer scroll by growing their edito
 lines. Embedded views leave Split/Inline and whitespace controls to their review toolbar. Optional
 triage supplies content-keyed Keep controls on source change blocks; individual file tabs and historical
 scopes supply no triage. Rendered review sections use a bounded viewport and the existing registry.
+Syntax highlighting for editable files, Markdown Source and source diffs follows
+[the UI kit contract](../../SharpRail.Plugins.UI.Kit/SPEC.md#syntax-highlighting).
+Source diffs retain the line backgrounds and metadata styling described above while
+code tokens use the current syntax palette.
 
 ## Loading vocabulary
 

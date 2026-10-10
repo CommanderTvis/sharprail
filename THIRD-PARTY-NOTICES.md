@@ -124,3 +124,20 @@ The Android client reads it through Google Play services' code scanner
 (Xamarin.GooglePlayServices.Code.Scanner 116.1.0.17 bindings, MIT, over Google's ML Kit code scanner,
 which is covered by the Android Software Development Kit License and runs inside Play services); the
 two QR icons come from the same Remix Icon set as the other PNG icons.
+Syntax highlighting uses TextMateSharp and TextMateSharp.Grammars 2.0.4 (MIT),
+with their Onigwrap 1.0.11 / Oniguruma native dependency. The engine licence is
+in licenses/TextMateSharp-MIT.txt; native dependency notices and licences are in
+licenses/Onigwrap-MIT.txt and licenses/Onigwrap-NOTICES.txt. Bundled grammars retain their upstream provenance
+in the embedded grammar resources. Supplementary grammar files under the UI kit's Editor/Grammars are:
+
+- Kotlin: fwcd/vscode-kotlin, commit 4a7c1538754828c1d22a8bee8ff3400045b4352a,
+  syntaxes/kotlin.tmLanguage.json (MIT; licenses/KotlinGrammar.txt).
+- Scala: scala/vscode-scala-syntax, commit 6dbe37fdda3610967e28717b31697e9699865641,
+  syntaxes/Scala.tmLanguage.json (MIT; licenses/ScalaGrammar.txt).
+
+Git ignore highlighting uses TextMateSharp.Grammars' bundled source.ignore grammar.
+
+- TOML: tamasfe/taplo, commit 08f343be02ce1b20296470396a42f0fa47820449,
+  editors/vscode/toml.tmLanguage.json (MIT; licenses/TomlGrammar.txt).
+- Fish: bmalehorn/vscode-fish, commit 0741d59ecf3d2aa018543747874eb8f34c655612,
+  syntaxes/fish.tmLanguage.json (MIT; licenses/FishGrammar.txt).

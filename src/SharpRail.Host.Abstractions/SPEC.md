@@ -15,6 +15,11 @@ Upstream: packages/contracts/SPEC.md @ 4737df6d (CommanderTvis fork), the plugin
 
 ## Responsibility
 
+`HostSettings.CustomHighlighting` carries custom TextMate grammars and filename
+patterns as a JSON array. `HostStateChange.Setting("custom-highlighting", json)`
+replaces that collection through the host; clients never write the state file directly.
+The UI owns grammar semantics; Core validates the bounded transport/persistence shape.
+
 The transport-independent contract between the workbench and a host: service interfaces and the domain
 records they exchange. The UI programs only against these types, so an embedded host and a remote one are
 interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, implementations in

@@ -86,22 +86,36 @@ public sealed partial class ScintillaEditor
     public void ScrollToX(double x)
     {
         if (disposed) return;
-        document.Send(ScintillaMessage.SetXOffset, (nint)Math.Round(Math.Max(0, x)));
+        document.Send(ScintillaMessage.SetXOffset, (nint)Math.Round(Math.Clamp(x, 0, HorizontalMaximum())));
         InvalidateVisual(); inputClient.NotifyScrolled();
     }
+
+    private double TextViewport()
+    {
+        double margins = document.Send(ScintillaMessage.GetMarginLeft) + document.Send(ScintillaMessage.GetMarginRight);
+        for (var margin = 0; margin < document.Send(ScintillaMessage.GetMargins); margin++)
+            margins += document.Send(ScintillaMessage.GetMarginWidthN, margin);
+        return Math.Max(0, Bounds.Width - margins);
+    }
+
+    private double HorizontalMaximum() => (double.IsFinite(wrapWidth) || WrapAlways) ? 0
+        : Math.Max(0, Math.Floor(document.Send(ScintillaMessage.GetScrollWidth) - TextViewport()));
 
     private void UpdateScroll()
     {
         if (disposed) return;
         var lines = document.Send(ScintillaMessage.LinesOnScreen);
         var vertical = new EditorScroll(MaxFirstLine(), lines, FirstVisibleLine);
-        double margins = document.Send(ScintillaMessage.GetMarginLeft) + document.Send(ScintillaMessage.GetMarginRight);
-        for (var margin = 0; margin < document.Send(ScintillaMessage.GetMargins); margin++)
-            margins += document.Send(ScintillaMessage.GetMarginWidthN, margin);
-        var text = Math.Max(0, Bounds.Width - margins);
+        var text = TextViewport();
         // Scintilla's tracked scroll width keeps pre-wrap line widths; wrapped text never scrolls horizontally.
-        var horizontal = double.IsFinite(wrapWidth) ? new EditorScroll(0, text, 0)
-            : new EditorScroll(Math.Max(0, document.Send(ScintillaMessage.GetScrollWidth) - text), text, document.Send(ScintillaMessage.GetXOffset));
+        var maximum = HorizontalMaximum();
+        var x = Math.Clamp((double)document.Send(ScintillaMessage.GetXOffset), 0, maximum);
+        if (x != document.Send(ScintillaMessage.GetXOffset))
+        {
+            document.Send(ScintillaMessage.SetXOffset, (nint)Math.Round(x));
+            InvalidateVisual(); inputClient.NotifyScrolled();
+        }
+        var horizontal = new EditorScroll(maximum, text, x);
         if (scroll == (vertical, horizontal)) return;
         scroll = (vertical, horizontal);
         ScrollChanged?.Invoke(this, EventArgs.Empty);

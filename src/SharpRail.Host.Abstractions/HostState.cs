@@ -19,6 +19,8 @@ public sealed record HostSettings
     public int TerminalReplayKb { get; init; } = DefaultTerminalReplayKb;
     /// <summary>Whether clients raise desktop notifications when a terminal's agent needs the user while they are away.</summary>
     public bool NotificationsEnabled { get; init; } = true;
+    /// <summary>Custom TextMate grammars and filename patterns, as a JSON array shared with clients.</summary>
+    public string CustomHighlighting { get; init; } = "";
 
     public const int DefaultTerminalReplayKb = 64;
     public const int MaxTerminalReplayKb = 1024;

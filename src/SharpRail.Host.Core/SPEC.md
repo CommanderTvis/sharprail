@@ -15,6 +15,13 @@ Upstream: packages/server/src/host/SPEC.md (revision: [UPSTREAM.md](../../UPSTRE
 
 ## Responsibility
 
+Custom highlighting is persisted host state. The `custom-highlighting` setting accepts
+an empty value or a JSON array of unique scopes, names, filename patterns and grammar
+JSON, bounded to 2 Mi characters in total, 64 entries, 512 Ki characters per grammar,
+and 32 filename patterns of 200 characters per entry. Scopes must agree with their
+grammar's `scopeName`; malformed values are rejected atomically. Core performs no
+tokenization and remains independent of the editor/UI.
+
 The host as an embeddable library: filesystem reads and saves, project and spec discovery, Git status,
 diffs and worktrees, shared host state, and host-owned PTY terminals. It implements the interfaces in
 `SharpRail.Host.Abstractions` and knows nothing of Avalonia, gRPC or the UI. The UI embeds it directly
