@@ -18,6 +18,12 @@ editor.TextChanged += (_, _) => { /* editor.Text, editor.IsModified */ };
 editor.SelectionChanged += (_, _) => { /* editor.Selection: one-based lines and UTF-16 columns, and its text */ };
 ```
 
+`StyleText` accepts one palette index per UTF-8 document byte and an opaque colour
+palette, allowing an editor-independent tokenizer to style text without editing it.
+Its style IDs start at 40, separate from whole-line styles and Scintilla defaults.
+`ClearTextStyles` restores the default style in one document operation. The UI kit
+supplies background TextMate highlighting for file and diff frames.
+
 `LineStyles` is a palette of whole-line styles (a foreground and an optional
 background band); `StyleLines` assigns one per document line, which suits read-only
 views such as diffs. `ShowLineNumbers` toggles the line-number margin, and
@@ -29,6 +35,10 @@ Colours are opaque; composite translucent theme colours before passing them. `Sc
 overrides the caret (the foreground otherwise), and `CurrentLine` highlights the caret's line when set. The
 control exposes scroll extents (`VerticalScroll`, `HorizontalScroll`, `ScrollChanged`)
 for external scrollbars, and `OperationFailed` for clipboard errors.
+Horizontal wheel/API scrolling is clamped to the tracked rendered text extent.
+Soft wrap resets the horizontal offset and disables horizontal scrolling. Edits reset
+the tracked width, so shortening text removes obsolete horizontal space; resizing
+clamps an existing offset to the new viewport.
 
 ## Architecture
 
@@ -90,7 +100,7 @@ A read-only editor requests no keyboard there.
 - Lines stay left-aligned whatever their direction. The bidi algorithm runs per
   wrapped subline, and shaping does not join across style boundaries.
 - Whitespace markers and indentation guides keep logical positions.
-- Syntax lexers, completion, full IME preedit and accessibility text providers are
+- Built-in syntax lexers, completion, full IME preedit and accessibility text providers are
   not implemented. Soft keyboards are asked not to compose (no suggestions); touch has
   no selection handles or copy menu.
 

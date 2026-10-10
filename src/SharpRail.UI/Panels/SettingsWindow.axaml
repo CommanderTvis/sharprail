@@ -11,6 +11,35 @@
         Foreground="{x:Static rendering:Ui.TextBrush}"
         FontFamily="{x:Static rendering:Ui.InterfaceFont}" FontSize="14" FontWeight="370">
   <Window.Resources>
+    <DataTemplate x:Key="HighlightingPage">
+      <StackPanel Spacing="8">
+        <TextBlock Text="Syntax highlighting" Classes="settings-heading" />
+        <TextBlock Text="Custom highlighting applies to file editors, Markdown source and diffs. Grammars and filename patterns are shared by every client of this host." Classes="settings-description" />
+        <TextBlock Text="Want some highlighting?" Classes="settings-label" />
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <Button x:Name="HighlightingAskClaude" Content="Ask Claude to add it" />
+          <Button x:Name="HighlightingAskCodex" Content="Ask Codex to add it" />
+        </StackPanel>
+        <TextBlock Text="Opens an agent in your current workspace using the builtin add-highlighting skill." Classes="settings-description" />
+        <TextBlock Text="Filename patterns" Classes="settings-label" Margin="0,16,0,0" />
+        <TextBox x:Name="HighlightingPatterns" PlaceholderText="*.foo, Foofile" />
+        <TextBlock Text="TextMate grammar (JSON)" Classes="settings-label" />
+        <TextBox x:Name="HighlightingGrammar" AcceptsReturn="True" Height="160" FontFamily="{x:Static rendering:Ui.CodeFont}" PlaceholderText="Paste a .tmLanguage.json grammar or choose a file" />
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <Button x:Name="HighlightingChoose" Content="Choose grammar file…" />
+          <Button x:Name="HighlightingImport" Content="Add highlighting" />
+        </StackPanel>
+        <TextBlock x:Name="HighlightingError" Foreground="{x:Static rendering:Ui.Danger}" TextWrapping="Wrap" IsVisible="False" />
+        <TextBlock Text="Custom grammars" Classes="settings-heading" Margin="0,16,0,0" />
+        <StackPanel x:Name="HighlightingGrammars" Spacing="8" />
+      </StackPanel>
+    </DataTemplate>
+    <DataTemplate x:Key="HighlightingGrammarRow">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+        <TextBlock x:Name="HighlightingGrammarLabel" TextWrapping="Wrap" VerticalAlignment="Center" />
+        <Button x:Name="HighlightingRemove" Grid.Column="1" Content="Remove" VerticalAlignment="Center" />
+      </Grid>
+    </DataTemplate>
     <DataTemplate x:Key="HostPage">
       <StackPanel Spacing="8">
         <TextBlock Text="Host" Classes="settings-heading" />
@@ -237,6 +266,7 @@
           <ScrollViewer>
             <StackPanel x:Name="SettingsNavigation" Spacing="2" Margin="12">
               <Button x:Name="Settings_Appearance" Classes="settings-navigation" />
+              <Button x:Name="Settings_Highlighting" Classes="settings-navigation" />
               <Button x:Name="Settings_Line_width" Classes="settings-navigation" />
               <Button x:Name="Settings_Layout" Classes="settings-navigation" />
               <Button x:Name="Settings_Projects" Classes="settings-navigation" />

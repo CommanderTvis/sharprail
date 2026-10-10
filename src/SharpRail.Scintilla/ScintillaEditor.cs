@@ -56,6 +56,11 @@ public sealed partial class ScintillaEditor : Control, IDisposable
     public event EventHandler? SelectionChanged;
     private (nint Start, nint End) reportedSelection;
     public event EventHandler<Exception>? OperationFailed;
+    /// <summary>Raised once before the native document is released, so integrations can cancel pending work.</summary>
+    public event EventHandler? Disposed;
+
+    /// <summary>Reports a failure from an editor integration without changing the document.</summary>
+    public void ReportOperationFailure(Exception error) => OperationFailed?.Invoke(this, error);
 
     /// <summary>Creates an editor; the caller keeps ownership of <paramref name="typeface"/>, which defaults to Menlo (the system monospace font on Android).</summary>
     public ScintillaEditor(string text = "", SKTypeface? typeface = null)
@@ -196,6 +201,7 @@ public sealed partial class ScintillaEditor : Control, IDisposable
         InvalidateVisual(); inputClient.Notify();
         if (revision == document.Revision) return;
         revision = document.Revision;
+        document.Send(ScintillaMessage.SetScrollWidth, 1);
         TextChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -213,6 +219,7 @@ public sealed partial class ScintillaEditor : Control, IDisposable
         var bounded = double.IsFinite(wrapWidth);
         var wrap = bounded || WrapAlways;
         document.Send(ScintillaMessage.SetWrapMode, wrap ? 1 : 0);
+        if (wrap) document.Send(ScintillaMessage.SetXOffset, 0);
         double gutter = document.Send(ScintillaMessage.GetMarginLeft);
         for (var margin = 0; margin < document.Send(ScintillaMessage.GetMargins); margin++)
             gutter += document.Send(ScintillaMessage.GetMarginWidthN, margin);
@@ -264,6 +271,7 @@ public sealed partial class ScintillaEditor : Control, IDisposable
         document.Send(ScintillaMessage.StyleSetSizeFractional, 32, (nint)Math.Round(TextSize * 100));
         document.Send(ScintillaMessage.StyleClearAll);
         ApplyLineStyles(Rgb);
+        ApplyTextStyles(Rgb);
         document.Send(ScintillaMessage.StyleSetFore, 33, (nint)Rgb(colors.LineNumbers));
         document.Send(ScintillaMessage.StyleSetBack, 33, (nint)background);
         document.Send(ScintillaMessage.SetCaretFore, (nint)(colors.Caret is { } caret ? Rgb(caret) : foreground));
@@ -308,7 +316,7 @@ public sealed partial class ScintillaEditor : Control, IDisposable
     public void Dispose()
     {
         if (disposed) return;
-        disposed = true; timer.Stop(); idle.Stop(); document.Dispose();
+        disposed = true; Disposed?.Invoke(this, EventArgs.Empty); timer.Stop(); idle.Stop(); document.Dispose();
     }
 
     private sealed class PictureOperation(Rect bounds, SKPicture picture) : ICustomDrawOperation

@@ -29,6 +29,7 @@ internal sealed class CodeDocumentView : UserControl, IDisposable
         this.host = host; this.workspace = workspace; path = file.Path;
         original = file.Text; this.saved = saved; this.modifiedChanged = modifiedChanged; this.report = report;
         var frame = new EditorFrame(file.Text, "CodeEditor");
+        frame.Highlight(file.Path);
         Editor = frame.Editor;
         deletedBanner = new Border
         {

@@ -405,14 +405,14 @@ internal static class ClaudeCodeChecks
     {
         var assets = Path.Combine(AppContext.BaseDirectory, "plugins", ClaudeCodeContract.Id, "assets");
         var skills = Path.Combine(assets, "marketplace", "claude-plugin", "skills");
-        string[] names = ["importing-a-codebase", "setting-up-a-project", "shipping-a-pr", "starting-a-new-project", "writing-specs"];
-        Require(Directory.GetDirectories(skills).Select(Path.GetFileName).Order().SequenceEqual(names), "The plugin ships exactly the ported skills.");
+        string[] names = ["add-highlighting", "importing-a-codebase", "setting-up-a-project", "shipping-a-pr", "starting-a-new-project", "writing-specs"];
+        Require(Directory.GetDirectories(skills).Select(Path.GetFileName).Order().SequenceEqual(names), "The plugin ships the ported workflow skills and custom highlighting skill.");
         foreach (var name in names)
         {
             var lines = File.ReadAllLines(Path.Combine(skills, name, "SKILL.md"));
             Require(lines is ["---", _, _, "---", ..] && lines[1] == "name: " + name && lines[2].StartsWith("description: \"Use ", StringComparison.Ordinal) &&
                 lines[2].EndsWith('"') && lines[2].Length <= 1024, $"The {name} skill opens with the name and one-line description both CLIs read.");
-            Require(name == "shipping-a-pr" || lines[2].Contains("Use only when", StringComparison.Ordinal) || lines[2].Contains("Not for projects without specs", StringComparison.Ordinal),
+            Require(name is "shipping-a-pr" or "add-highlighting" || lines[2].Contains("Use only when", StringComparison.Ordinal) || lines[2].Contains("Not for projects without specs", StringComparison.Ordinal),
                 $"The {name} skill does not offer itself for ordinary work in a project without specs.");
         }
         Require(new[] { "body.md", "checks.md", "creating.md", "review-comments.md", "screenshots.md", "syncing.md" }.All(file => File.Exists(Path.Combine(skills, "shipping-a-pr", file))),

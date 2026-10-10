@@ -122,6 +122,7 @@ public sealed partial class MarkdownDocumentView : UserControl, IDisposable
             else if (ScintillaEditor.IsSupported)
             {
                 var frame = new EditorFrame(sourceText, "MarkdownSource");
+                frame.Highlight(path);
                 frame.Editor.IsReadOnly = true;
                 frame.Editor.WrapWidth = context.SourceWrapWidth;
                 source = frame;

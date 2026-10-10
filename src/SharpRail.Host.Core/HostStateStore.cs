@@ -333,7 +333,8 @@ public sealed partial class HostStateStore : IHostStateService
                 SystemDark = dark,
                 FileLineWidth = Width(value.Settings.FileLineWidth),
                 MarkdownLineWidth = Width(value.Settings.MarkdownLineWidth),
-                TerminalReplayKb = Math.Clamp(value.Settings.TerminalReplayKb, 0, HostSettings.MaxTerminalReplayKb)
+                TerminalReplayKb = Math.Clamp(value.Settings.TerminalReplayKb, 0, HostSettings.MaxTerminalReplayKb),
+                CustomHighlighting = ValidHighlighting(value.Settings.CustomHighlighting) ? value.Settings.CustomHighlighting : ""
             },
             Presets = value.Presets.Where(preset => preset is not null && ValidText(preset.Name) && preset.Layout is { Length: > 0 })
                 .DistinctBy(preset => preset.Name).ToArray(),
@@ -386,6 +387,33 @@ public sealed partial class HostStateStore : IHostStateService
 
     private static int Width(int value) => value is >= 40 and <= 240 ? value : 0;
 
+    private static bool ValidHighlighting(string value)
+    {
+        if (value.Length == 0) return true;
+        if (value.Length > 2 * 1024 * 1024) return false;
+        try
+        {
+            using var document = JsonDocument.Parse(value);
+            if (document.RootElement.ValueKind != JsonValueKind.Array || document.RootElement.GetArrayLength() > 64) return false;
+            var scopes = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var entry in document.RootElement.EnumerateArray())
+            {
+                if (entry.ValueKind != JsonValueKind.Object ||
+                    !entry.TryGetProperty("Name", out var name) || name.ValueKind != JsonValueKind.String ||
+                    !entry.TryGetProperty("Scope", out var scope) || scope.ValueKind != JsonValueKind.String || string.IsNullOrWhiteSpace(scope.GetString()) || !scopes.Add(scope.GetString()!) ||
+                    !entry.TryGetProperty("Grammar", out var grammar) || grammar.ValueKind != JsonValueKind.String || grammar.GetString()!.Length > 512 * 1024 ||
+                    !entry.TryGetProperty("Patterns", out var patterns) || patterns.ValueKind != JsonValueKind.Array || patterns.GetArrayLength() is < 1 or > 32) return false;
+                foreach (var pattern in patterns.EnumerateArray())
+                    if (pattern.ValueKind != JsonValueKind.String || pattern.GetString() is not { Length: > 0 and <= 200 } text || text.Contains('/') || text.Contains('\\')) return false;
+                using var source = JsonDocument.Parse(grammar.GetString()!);
+                if (source.RootElement.ValueKind != JsonValueKind.Object || !source.RootElement.TryGetProperty("scopeName", out var declared) ||
+                    declared.ValueKind != JsonValueKind.String || declared.GetString() != scope.GetString()) return false;
+            }
+            return true;
+        }
+        catch (JsonException) { return false; }
+    }
+
     private HostState Apply(HostState current, HostStateChange change)
     {
         var key = change.Key ?? ""; var value = change.Value ?? "";
@@ -406,6 +434,7 @@ public sealed partial class HostStateStore : IHostStateService
                     "terminal-replay" when int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var kb) && kb <= HostSettings.MaxTerminalReplayKb
                         => settings with { TerminalReplayKb = kb },
                     "notifications" when bool.TryParse(value, out var enabled) => settings with { NotificationsEnabled = enabled },
+                    "custom-highlighting" when ValidHighlighting(value) => settings with { CustomHighlighting = value },
                     _ => throw new ArgumentException($"Invalid setting {key}.")
                 };
                 return settings == current.Settings ? current : current with { Settings = settings };

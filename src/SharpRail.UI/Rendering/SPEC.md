@@ -173,6 +173,11 @@ unavailability message. Rendered diffs pass `renderDiagrams: false` and keep the
   and the properties block, diffed per key so an added, removed or changed value wears the same ins/del marks
   as the prose.
 
+Syntax highlighting for editable files, Markdown Source and source diffs follows
+[the UI kit contract](../../SharpRail.Plugins.UI.Kit/SPEC.md#syntax-highlighting).
+Source diffs retain the line backgrounds and metadata styling described above while
+code tokens use the current syntax palette.
+
 ## Loading vocabulary
 
 Every asynchronous gap renders something shaped for the wait, never nothing:

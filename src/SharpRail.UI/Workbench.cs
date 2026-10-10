@@ -2,6 +2,7 @@ using Avalonia.Threading;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.Plugins.Api.UI;
+using SharpRail.Plugins.UI.Kit.Editor;
 using SharpRail.UI.Notifications;
 using SharpRail.UI.Plugins;
 using SharpRail.UI.State;
@@ -23,6 +24,8 @@ public sealed class Workbench : IDisposable
     private readonly TaskCompletionSource<bool> terminalCatalogStarted = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private WorkbenchWindow? activeWindow;
     private AttentionNotifications? attention;
+    private int highlightingVersion;
+    private bool disposed;
 
     /// <summary>Without a <paramref name="terminalTabs"/> catalog, terminal tabs are shared by this workbench's windows only.</summary>
     public Workbench(ProfileStore profile, SharedState state, Terminal.TerminalFactory terminals, bool remote, Func<IProjectServices>? sessions, IPluginService? plugins = null,
@@ -35,6 +38,8 @@ public sealed class Workbench : IDisposable
         PluginLoader = new(this);
         WorkspaceWatches = new(this, sessions);
         state.Changed += (_, _) => ProjectionChanged?.Invoke();
+        state.Changed += HighlightingChanged;
+        LoadHighlighting(state.Current.Settings.CustomHighlighting);
         state.Start();
         PluginLoader.Start();
         SharpRail.Scintilla.ScintillaEditor.TextSize = profile.Data.Preferences.CodeFontSize;
@@ -237,9 +242,36 @@ public sealed class Workbench : IDisposable
     {
         SharpRail.Scintilla.ScintillaEditor.TextSizeChosen -= RememberTextSize;
         lifetime.Cancel(); terminalCatalogStarted.TrySetCanceled();
+        disposed = true;
+        highlightingVersion++;
+        State.Changed -= HighlightingChanged;
         PluginLoader.Stop();
         attention?.Stop();
         State.Dispose();
         if (OwnedHost is { } host) _ = Task.Run(async () => await host.DisposeAsync());
+    }
+
+    private void HighlightingChanged(HostState previous, HostState next)
+    {
+        if (previous.Settings.CustomHighlighting != next.Settings.CustomHighlighting)
+            LoadHighlighting(next.Settings.CustomHighlighting);
+    }
+
+    private async void LoadHighlighting(string json)
+    {
+        var version = ++highlightingVersion;
+        try
+        {
+            var definitions = await Task.Run(() => CustomHighlighting.Read(json).Select(definition =>
+                CustomHighlighting.Import(definition.Grammar, string.Join(",", definition.Patterns))).ToArray());
+            await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                if (!disposed && version == highlightingVersion) CustomHighlighting.Apply(definitions);
+            });
+        }
+        catch (Exception error)
+        {
+            Console.Error.WriteLine("Custom highlighting could not be loaded: " + error.Message);
+        }
     }
 }

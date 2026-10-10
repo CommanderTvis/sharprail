@@ -52,11 +52,13 @@ public sealed partial class SettingsWindow : Window
         {
             lifetime.Cancel(); Ui.ThemeChanged -= SystemThemeChanged; state.Changed -= SharedChanged;
             window.Workbench.PluginRegistry.Changed -= PluginsChanged;
+            SharpRail.Plugins.UI.Kit.Editor.CustomHighlighting.Changed -= HighlightingChanged;
 #if !ANDROID
             if (window.Workbench.Listener is { } listener) listener.Changed -= ListenerChanged;
 #endif
         };
         Ui.ThemeChanged += SystemThemeChanged;
+        SharpRail.Plugins.UI.Kit.Editor.CustomHighlighting.Changed += HighlightingChanged;
         state.Changed += SharedChanged;
         Name = "SettingsWindow";
         AvaloniaXamlLoader.Load(this);
@@ -71,7 +73,7 @@ public sealed partial class SettingsWindow : Window
         close.Content = Ui.Icon("close");
         close.Click += (_, _) => Close();
         navigationList = this.FindControl<StackPanel>("SettingsNavigation")!;
-        foreach (var item in new[] { ("Appearance", "palette"), ("Line width", "fileText"), ("Layout", "layout"), ("Projects", "folderTab"), ("Terminal", "terminal"), ("Notifications", "alertInfo"), ("Host", "terminal"), ("GitHub", "gitBranch"), ("Plugins", "puzzle") })
+        foreach (var item in new[] { ("Appearance", "palette"), ("Highlighting", "fileText"), ("Line width", "fileText"), ("Layout", "layout"), ("Projects", "folderTab"), ("Terminal", "terminal"), ("Notifications", "alertInfo"), ("Host", "terminal"), ("GitHub", "gitBranch"), ("Plugins", "puzzle") })
             Navigation(this.FindControl<Button>("Settings_" + item.Item1.Replace(' ', '_'))!, item.Item1, Ui.Row(item.Item2, item.Item1));
         SyncPluginSections();
         window.Workbench.PluginRegistry.Changed += PluginsChanged;
@@ -100,6 +102,12 @@ public sealed partial class SettingsWindow : Window
     private void PluginsChanged(PluginTables tables)
     {
         if (tables.HasFlag(PluginTables.SettingsSections) || tables.HasFlag(PluginTables.Roster)) SyncPluginSections();
+        if (section == "Highlighting" && (tables.HasFlag(PluginTables.Launchers) || tables.HasFlag(PluginTables.Roster))) RefreshHighlightingAgents();
+    }
+
+    private void HighlightingChanged()
+    {
+        if (section == "Highlighting" && body.Content is Control panel) PopulateHighlightingGrammars(panel);
     }
 
     private static string SectionKey(PluginRow<SettingsSectionRegistration> row) => "plugin:" + row.PluginId + ":" + (row.Value.Id ?? row.PluginId);
@@ -215,6 +223,7 @@ public sealed partial class SettingsWindow : Window
         var page = name switch
         {
             "Line width" => LineWidth(),
+            "Highlighting" => HighlightingSettings(),
             "Layout" => LayoutSettings(),
             "Projects" => ProjectSettings(),
             "Terminal" => TerminalSettings(),

@@ -162,9 +162,11 @@ inspected and refreshed after prior approval; a new installation requires the of
 
 ## Workflow skills
 
-The marketplace plugin carries five skills in its `skills/` directory, which Claude Code discovers
+The marketplace plugin carries six skills in its `skills/` directory, which Claude Code discovers
 from an installed plugin: `writing-specs`, `setting-up-a-project`, `importing-a-codebase`,
-`starting-a-new-project` and `shipping-a-pr` with its phase documents. They are the fork's
+`starting-a-new-project`, `shipping-a-pr` with its phase documents, and `add-highlighting`.
+The highlighting skill prepares importable TextMate JSON grammars and filename patterns
+for Settings › Highlighting without modifying SharpRail's state files. The other five are the fork's
 `packages/pi-thinkrail-workflow/skills` at `3b7c7d589`; the fork ships them to pi only, so delivery to
 this CLI is SharpRail's own. Their single source is `src/SharpRail.Plugins.Agent.Skills`, staged into
 the plugin at build and shared with the Codex plugin; neither plugin references the other.

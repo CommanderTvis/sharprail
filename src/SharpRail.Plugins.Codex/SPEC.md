@@ -66,7 +66,7 @@ invitation and bundled AI chat are excluded by the SharpRail product contract.
   **launch flag** chip. Revival strips the generated override and reapplies the current setting once;
   changing the setting never affects a running session. Windows keeps the launcher prompt alone.
 - Workflow skills: activation copies `writing-specs`, `setting-up-a-project`, `importing-a-codebase`,
-  `starting-a-new-project` and `shipping-a-pr` to `$CODEX_HOME/skills/<name>/`, where Codex discovers a
+  `starting-a-new-project`, `shipping-a-pr` and `add-highlighting` to `$CODEX_HOME/skills/<name>/`, where Codex discovers a
   user's skills; there is no session-scoped skill root to point a launch at, so every Codex session sees
   them while the plugin is active. The text is the fork's `packages/pi-thinkrail-workflow/skills` as
   adapted in `src/SharpRail.Plugins.Agent.Skills`, the one source shared with Claude Code (see that

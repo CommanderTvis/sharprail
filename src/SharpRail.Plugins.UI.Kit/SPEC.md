@@ -184,4 +184,55 @@ The Codex builtin uses these controls without referencing app or host implementa
 
 ## Public surface
 
-`CommandKeys`, `DialogWindow`, `EditorFrame`, `FindBar`, `IDialogOwner`, `InterfaceZoom`, `LineWidths`, `RowActivation`, `DiffFocus`, `Frontmatter`, `FrontmatterBlock`, `FrontmatterProperty`, `MarkdownContext`, `MarkdownDiff`, `MarkdownDocumentView`, `MarkdownLink`, `MarkdownPreview`, `Outline`, `SpecIdentity`, `ScopedSetting`, `ScopedSettingShadow`, `ScopedSettingSource`, `SettingValueDialog`, `SettingValueDialogOptions`, `SvgAsset`, `Switch`, `ThemeManifest`, `Ui`, `ValueShape`, `ViewerLimits`, `ComparisonOptionView`, `MermaidDialog`, `MermaidRenderer`, `MermaidView`, `VisualizationArgs`, `VisualizationCard`, `ZoomGesture`.
+`CommandKeys`, `DialogWindow`, `EditorFrame`, `FindBar`, `IDialogOwner`, `InterfaceZoom`, `LineWidths`, `RowActivation`, `DiffFocus`, `Frontmatter`, `FrontmatterBlock`, `FrontmatterProperty`, `MarkdownContext`, `MarkdownDiff`, `MarkdownDocumentView`, `MarkdownLink`, `MarkdownPreview`, `Outline`, `SpecIdentity`, `ScopedSetting`, `ScopedSettingShadow`, `ScopedSettingSource`, `SettingValueDialog`, `SettingValueDialogOptions`, `SvgAsset`, `Switch`, `SyntaxLine`, `ThemeManifest`, `Ui`, `ValueShape`, `ViewerLimits`, `ComparisonOptionView`, `MermaidDialog`, `MermaidRenderer`, `MermaidView`, `VisualizationArgs`, `VisualizationCard`, `ZoomGesture`.
+
+## Syntax highlighting
+
+Editor horizontal scrolling is clamped to the rendered text extent. Soft wrap resets
+the horizontal offset and rejects horizontal wheel/API scrolling. Edits reset tracked
+widths and a wider viewport clamps an obsolete offset, keeping vertical trackpad motion.
+
+File editors and Markdown Source use TextMateSharp with the bundled language grammars,
+plus pinned MIT Kotlin, Scala, TOML and Fish grammars. Common ignore files use the bundled Git ignore
+grammar; filename detection includes Dockerfile variants, Makefiles, Git configuration
+dotfiles, Gradle/Kotlin scripts, properties, shell scripts and shell startup dotfiles.
+`.slnx` solution files select the XML grammar.
+Git attributes have a dedicated grammar for paths, macros, attribute flags and assigned values.
+Standalone patches use the bundled diff grammar with distinct inserted/deleted colours. Unknown files
+stay plain. The tokenizer consumes source and returns UTF-8 style indices independently
+of the editor; Scintilla applies the ranges without changing text, selections or undo.
+Scope categories map to the applied manifest's syntax palette.
+
+Grammar loading and tokenization run off the dispatcher. Each document caches line
+text and incoming/outgoing tokenizer state, so unchanged lines with unchanged incoming
+state reuse their tokens. Edits coalesce for 60 ms, superseded requests cancel, and
+results apply only to the still-attached document version. Detaching cancels work;
+reattaching highlights the current buffer. Theme changes recolour existing tokens.
+Highlighting is bounded to 1 Mi characters per document and 16 Ki UTF-16 units per
+line, with a 50 ms tokenizer budget per line. Larger inputs remain readable with
+plain text and existing diff line styles. TextMateSharp does not support cross-grammar
+injections; embedded-language coverage follows the grammar's ordinary includes.
+
+Inline and split diffs project displayed source rows into independent old/new streams.
+Diff prefixes, metadata and filler rows are not source. Hunk headers and omitted
+context reset tokenizer state, so highlighting at a hunk boundary can be approximate
+when the omitted source opened a multiline construct. Syntax colours compose with
+added/deleted whole-line background bands; metadata keeps its existing foreground.
+Acceptance covers all RedMonk January 2025 top-20 languages, development-file
+selection, multiline edits, Unicode/line endings, stale replies, attachment, theme
+changes and both diff presentations with preserved background bands.
+
+Custom JSON TextMate grammars override bundled filename selection. Comma-separated
+filename globs match case-insensitively without directory components; up to 32 patterns
+of 200 characters and 512 Ki characters of grammar are accepted per entry. Replacing
+the same scope invalidates cached grammar/state; removal restores bundled detection.
+The app applies validated host snapshots off the dispatcher and refreshes attached
+editors after applying a new catalogue. Settings owns import/removal and agent launch UI.
+
+TextMateSharp's extension helper returns a package's first grammar; detection instead
+resolves the matched language ID to its grammar, keeping C++ distinct from C and
+TSX distinct from TypeScript. The bundled Swift grammar uses nested repositories,
+but TextMateSharp's repository merge drops the parent scope. Before loading Swift,
+the adapter flattens scoped repositories into uniquely named rules and rewrites local
+includes, preserving lexical references and ordinary self-includes. This compatibility
+transform is restricted to Swift and exercised by real keyword/comment/string samples.

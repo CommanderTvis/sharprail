@@ -41,6 +41,7 @@ public sealed partial class EditorFrame : UserControl
         horizontal = this.FindControl<ScrollBar>("EditorHorizontalScroll")!;
         Editor = new(text, Typeface.Value) { Name = name, Colors = ThemeColors() };
         this.FindControl<ContentControl>("EditorBody")!.Content = Editor;
+        Editor.Disposed += (_, _) => { syntaxDisposed = true; DetachSyntax(); };
         Editor.ScrollChanged += (_, _) => SyncScrollBars();
         vertical.ValueChanged += (_, e) => { if (!syncingScroll) Editor.ScrollToLine(e.NewValue); };
         horizontal.ValueChanged += (_, e) => { if (!syncingScroll) Editor.ScrollToX(e.NewValue); };
@@ -53,11 +54,11 @@ public sealed partial class EditorFrame : UserControl
         CurrentLine = currentLine ? Ui.Hover.Color : null
     };
 
-    private void ApplyTheme() { Editor.Colors = ThemeColors(); ThemeApplied?.Invoke(); }
+    private void ApplyTheme() { Editor.Colors = ThemeColors(); ThemeApplied?.Invoke(); ApplySyntaxTheme(); }
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
-    { base.OnAttachedToVisualTree(e); ApplyTheme(); Ui.ThemeChanged += ApplyTheme; }
+    { base.OnAttachedToVisualTree(e); ApplyTheme(); Ui.ThemeChanged += ApplyTheme; AttachSyntax(); }
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
-    { Ui.ThemeChanged -= ApplyTheme; base.OnDetachedFromVisualTree(e); }
+    { DetachSyntax(); Ui.ThemeChanged -= ApplyTheme; base.OnDetachedFromVisualTree(e); }
 
     private void SyncScrollBars()
     {

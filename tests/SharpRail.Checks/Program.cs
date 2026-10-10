@@ -65,6 +65,13 @@ internal static class Program
             WorkspaceToolChecks.RunUi(root);
             return;
         }
+        if (args.SequenceEqual(["--syntax"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            SyntaxHighlightChecks.Run();
+            return;
+        }
         if (args.SequenceEqual(["--editor"]))
         {
             CheckOpenWorld();

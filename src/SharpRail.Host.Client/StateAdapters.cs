@@ -51,6 +51,8 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
         this.token = token; this.connection = connection ?? new();
         channel = GrpcChannel.ForAddress(address, new GrpcChannelOptions
         {
+            // Custom grammar JSON can occupy 2 Mi UTF-16 characters before UTF-8 encoding.
+            MaxReceiveMessageSize = 8 * 1024 * 1024,
             InitialReconnectBackoff = StateAdapterDefaults.InitialReconnect,
             MaxReconnectBackoff = StateAdapterDefaults.MaxReconnect
         });
@@ -110,7 +112,8 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
             MarkdownLineWidth = reply.Settings.MarkdownLineWidth,
             MarkdownLineWidthBounded = !reply.Settings.MarkdownLineWidthUnbounded,
             TerminalReplayKb = reply.Settings.TerminalReplayKb,
-            NotificationsEnabled = !reply.Settings.NotificationsDisabled
+            NotificationsEnabled = !reply.Settings.NotificationsDisabled,
+            CustomHighlighting = reply.Settings.CustomHighlighting
         },
         Presets = reply.Presets.Select(preset => new LayoutPreset(preset.Name, preset.Layout)).ToArray(),
         Projects = reply.Projects.ToArray(),

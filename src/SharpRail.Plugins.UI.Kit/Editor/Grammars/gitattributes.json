@@ -1,0 +1,38 @@
+{
+  "name": "Git attributes",
+  "scopeName": "source.gitattributes",
+  "patterns": [
+    { "name": "comment.line.number-sign.gitattributes", "match": "^[ \\t]*#.*$" },
+    {
+      "begin": "^[ \\t]*(\\[attr\\])([^ \\t]+)",
+      "beginCaptures": {
+        "1": { "name": "keyword.other.macro.gitattributes" },
+        "2": { "name": "entity.name.function.macro.gitattributes" }
+      },
+      "end": "$",
+      "patterns": [{ "include": "#attributes" }]
+    },
+    {
+      "begin": "^[ \\t]*(\"(?:[^\"\\\\]|\\\\.)*\"|[^ \\t]+)",
+      "beginCaptures": { "1": { "name": "string.unquoted.path.gitattributes" } },
+      "end": "$",
+      "patterns": [{ "include": "#attributes" }]
+    }
+  ],
+  "repository": {
+    "attributes": {
+      "patterns": [
+        {
+          "match": "(?<!\\S)([-!]?)([a-zA-Z0-9_.-]+)(=)([^ \\t]*)",
+          "captures": {
+            "1": { "name": "keyword.operator.gitattributes" },
+            "2": { "name": "entity.other.attribute-name.gitattributes" },
+            "3": { "name": "keyword.operator.assignment.gitattributes" },
+            "4": { "name": "string.unquoted.value.gitattributes" }
+          }
+        },
+        { "name": "keyword.other.attribute.gitattributes", "match": "(?<!\\S)[-!]?[a-zA-Z0-9_.-]+" }
+      ]
+    }
+  }
+}

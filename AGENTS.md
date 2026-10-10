@@ -276,6 +276,8 @@ Run checks with `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Re
 `-- --shared-terminals` runs the two-client terminal sharing, watching and take-over checks alone.
 `-- --notifications` runs the away-notification checks with a recording notifier; no check posts a real one.
 `-- --registry` runs the workspace registry host parity checks and the external-workspace rail checks.
+`-- --syntax` checks TextMate language coverage, incremental edits, Unicode, theme changes,
+attachment/disposal and inline/split diff syntax styling.
 `-- --documents` runs the resource-renderer checks and the translations that open file and diff bodies.
 `-- --editor` runs editor integration and source editing checks; `-- --markdown`
 and `-- --markdown-find` cover Markdown rendering and search.

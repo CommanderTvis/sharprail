@@ -118,6 +118,39 @@ internal static class EditorChecks
         WrappedScrolling();
         TextSizeAndWrapping();
         TouchAndSoftKeyboard();
+        HorizontalScrolling();
+    }
+
+    private static void HorizontalScrolling()
+    {
+        using var editor = new ScintillaEditor(new string('W', 200), Font);
+        var window = new Window { Width = 640, Height = 320, Content = editor };
+        window.Show(); Pump();
+        try
+        {
+            Require(editor.HorizontalScroll.Maximum > 0, "Long unwrapped lines need a horizontal range.");
+            editor.ScrollToX(double.MaxValue); Pump();
+            Require(editor.HorizontalScroll.Value == editor.HorizontalScroll.Maximum, "Horizontal API overscrolled past the text.");
+            window.MouseWheel(new Point(250, 150), new Vector(-1000, 0)); Pump();
+            Require(editor.HorizontalScroll.Value == editor.HorizontalScroll.Maximum, "Horizontal wheel overscrolled past the text.");
+            editor.WrapWidth = 400;
+            Require(editor.Document.Send(ScintillaMessage.GetXOffset) == 0, "Enabling soft wrap retained the horizontal offset.");
+            Pump();
+            editor.ScrollToX(1000);
+            window.MouseWheel(new Point(250, 150), new Vector(-1000, -0.1)); Pump();
+            Require(editor.HorizontalScroll is { Maximum: 0, Value: 0 } && editor.Document.Send(ScintillaMessage.GetXOffset) == 0,
+                "Soft-wrapped text must reject horizontal wheel and API scrolling.");
+            editor.WrapWidth = double.PositiveInfinity; Pump();
+            editor.ScrollToX(1000); Pump();
+            window.Width = 2400; Pump();
+            Require(editor.HorizontalScroll is { Maximum: 0, Value: 0 }, "Widening the viewport left unnecessary horizontal scrolling.");
+            window.Width = 640; Pump();
+            editor.ScrollToX(1000); Pump();
+            editor.Text = "short"; Pump();
+            Require(editor.HorizontalScroll is { Maximum: 0, Value: 0 }, "Shortening the document retained the old horizontal extent.");
+            Console.WriteLine("PASS macOS Scintilla horizontal scrolling is bounded and disabled by soft wrap");
+        }
+        finally { window.Close(); }
     }
 
     // Wrapped documents scroll in display lines; the range must cover every wrapped line,

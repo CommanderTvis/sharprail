@@ -13,6 +13,18 @@ these surfaces are specified in [../Panels.SPEC.md](../Panels.SPEC.md).
 
 ## Boundary
 
+Settings › Highlighting imports a TextMate JSON grammar from a file or pasted text,
+with comma-separated filename patterns, and lists custom entries with Remove actions.
+Adding an existing scope replaces it. Validation and file reads run off the dispatcher;
+errors preserve the form and leave host settings unchanged. The grammar payloads and
+patterns are shared through host state, with a 2 Mi character aggregate limit, and
+apply to attached file/source/diff editors without restarting or changing documents.
+“Want some highlighting?” offers “Ask Claude to add it” and “Ask Codex to add it”.
+Each uses the registered agent launcher in the current workspace with an initial prompt
+explicitly invoking the builtin `add-highlighting` skill. Buttons are disabled when
+the corresponding launcher or workspace is unavailable; these actions do not start
+agents merely by opening Settings. Static controls live in the compiled page template.
+
 - Settings reads and changes shared settings only through `SharedState` / `IHostStateService` and re-renders
   when the snapshot broadcast arrives; it writes window-local and app-local preferences through
   `ProfileStore`. It never keeps a local copy of host state.

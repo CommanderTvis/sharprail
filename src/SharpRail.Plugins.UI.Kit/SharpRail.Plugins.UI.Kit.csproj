@@ -5,6 +5,11 @@
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Themes.Fluent" />
     <PackageReference Include="SkiaSharp" />
+    <PackageReference Include="TextMateSharp" />
+    <PackageReference Include="TextMateSharp.Grammars" />
+    <InternalsVisibleTo Include="SharpRail.Checks" />
+    <InternalsVisibleTo Include="SharpRail.UI" />
+    <EmbeddedResource Include="Editor/Grammars/*.json" />
     <PackageReference Include="Markdig" />
     <PackageReference Include="Svg.Controls.Skia.Avalonia" />
     <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
