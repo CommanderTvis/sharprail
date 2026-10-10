@@ -20,9 +20,12 @@ public sealed partial class WorkbenchWindow
 
     // Projects is a home only while it is on screen: in a visible region, an unfolded group, and that group's shown tab.
     // Otherwise the strips come back to the centre, so tabs are never somewhere the user cannot see.
-    private CenterTabsMode CenterTabsModeNow() => new(Preferences.VerticalCenterTabs, Preferences.VerticalCenterTabsWidth,
-        Preferences.VerticalCenterTabs && Preferences.VerticalTabsInProjects && Layout.IsToolShowing("projects") ? "projects" : "column",
-        Preferences.DefaultPaneDirection);
+    // A workbench that keeps its tabs in Projects does so even while Projects is hidden: the centre never grows a strip.
+    private CenterTabsMode CenterTabsModeNow() => workbench.TabsInProjects
+        ? new(true, Preferences.VerticalCenterTabsWidth, "projects", Preferences.DefaultPaneDirection)
+        : new(Preferences.VerticalCenterTabs, Preferences.VerticalCenterTabsWidth,
+            Preferences.VerticalCenterTabs && Preferences.VerticalTabsInProjects && Layout.IsToolShowing("projects") ? "projects" : "column",
+            Preferences.DefaultPaneDirection);
 
     private void WireCenterTabs()
     {
@@ -30,7 +33,7 @@ public sealed partial class WorkbenchWindow
         surface.CenterTabsWidthChanged = width => { Preferences.VerticalCenterTabsWidth = VerticalTabs.ClampWidth(width); SaveProfile(); };
         surface.NestedStripsChanged += strips => { centerStripsInProjects = new Dictionary<string, Control>(strips); PlaceWorkspaceTabs(); };
         tabLayoutSignature = TabLayoutSignature();
-        if (Preferences.VerticalCenterTabs) surface.Rebuild();
+        if (Preferences.VerticalCenterTabs || workbench.TabsInProjects) surface.Rebuild();
     }
 
     private string TabLayoutSignature() =>

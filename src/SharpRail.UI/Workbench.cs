@@ -55,6 +55,8 @@ public sealed class Workbench : IDisposable
     public bool Remote { get; }
     /// <summary>A phone-sized screen: windows show their side panels as drawers over the centre.</summary>
     public bool Compact { get; init; }
+    /// <summary>Centre tabs always live in Projects, under their workspace, whatever the tab layout preferences say.</summary>
+    public bool TabsInProjects { get; init; }
 #if !ANDROID
     /// <summary>Optional serving for this app's embedded host, shared by every window.</summary>
     public Host.Remote.HostListener? Listener { get; init; }
