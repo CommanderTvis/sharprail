@@ -97,3 +97,10 @@ A read-only editor requests no keyboard there.
 Scintilla's license is in `licenses/Scintilla.txt`; SheenBidi is Apache-2.0
 (`licenses/SheenBidi.txt`). HarfBuzzSharp and SkiaSharp retain their NuGet package
 licenses.
+
+## Text size and wrapping
+
+`ScintillaEditor.TextSize` is one size for every editor (6 to 40, default 13). A two-finger pinch on any
+editor changes it live and raises `TextSizeChosen` when it settles, for the host to remember. `WrapWidth`
+is given at the default size and keeps its count of characters at any other. `WrapAlways` wraps at the
+pane's edge even with no wrap width, for screens where sideways scrolling is a chore.
