@@ -1,4 +1,7 @@
+using System.Net;
+
 using SharpRail.UI.Android;
+using SharpRail.UI.State;
 
 namespace SharpRail.Checks;
 
@@ -20,6 +23,17 @@ internal static class AndroidClientChecks
         foreach (var invalid in new[] { "", "   ", "two words", "ftp://host", "http://", "host:port" })
             Require(HostEndpoint.Parse(invalid) is null, $"'{invalid}' is not a host address.");
 
+        var link = HostLink.Format("192.168.1.20:54123", "s3cr&t=/+ key");
+        Require(HostLink.TryParse(link, out var host, out var token) && host == "192.168.1.20:54123" && token == "s3cr&t=/+ key",
+            "A connect link must carry the address and the token unchanged, whatever characters the token has.");
+        foreach (var invalid in new[] { null, "", "https://example.com", "sharprail://connect?host=1.2.3.4", "sharprail://connect?token=x" })
+            Require(!HostLink.TryParse(invalid, out _, out _), $"'{invalid}' is not a connect link.");
+        var addresses = new[] { IPAddress.Loopback, IPAddress.Parse("fe80::1"), IPAddress.Parse("192.168.1.20"), IPAddress.Parse("10.0.0.2") };
+        Require(HostLink.Reachable(new Uri("http://0.0.0.0:6000"), () => addresses) == "192.168.1.20:6000", "A listener on every interface must be named by this computer's first network address.");
+        Require(HostLink.Reachable(new Uri("http://192.168.1.7:6000"), () => addresses) == "192.168.1.7:6000", "A listener on one address must be named by it.");
+        Require(HostLink.Reachable(new Uri("http://0.0.0.0:6000"), () => [IPAddress.Loopback]) == "0.0.0.0:6000", "Without a network the listener keeps its own address.");
+        var view = new SharpRail.UI.Panels.QrCodeView { Text = link };
+
         var directory = Path.Combine(root, "android-client");
         Directory.CreateDirectory(directory);
         Require(HostEndpoint.Load(directory) is null, "A device that never connected remembers no host.");
@@ -29,6 +43,6 @@ internal static class AndroidClientChecks
         Require(HostEndpoint.Load(directory) is null, "A damaged record must read as no remembered host.");
         HostEndpoint.Forget(directory);
         Require(!File.Exists(Path.Combine(directory, "host.json")), "Forgetting must remove the record.");
-        Console.WriteLine("PASS Android client: host addresses parse with the default port and the endpoint is remembered");
+        Console.WriteLine("PASS Android client: host addresses parse with the default port, connect links round-trip and the endpoint is remembered");
     }
 }

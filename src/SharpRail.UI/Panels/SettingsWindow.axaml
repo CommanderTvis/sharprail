@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:rendering="using:SharpRail.Plugins.UI.Kit"
+        xmlns:local="using:SharpRail.UI.Panels"
         x:Class="SharpRail.UI.Panels.SettingsWindow"
         Title="Settings"
         Width="832" Height="680" MinWidth="640" MinHeight="440"
@@ -29,6 +30,11 @@
             <Button x:Name="HostToggle" Content="Start listening" />
             <Button x:Name="HostCopyEndpoint" Content="Copy endpoint" />
             <Button x:Name="HostCopyToken" Content="Copy token" />
+            <Button x:Name="HostShowCode" ToolTip.Tip="Show a QR code to connect a phone" AutomationProperties.Name="Show a QR code to connect a phone" />
+          </StackPanel>
+          <StackPanel x:Name="HostCode" Spacing="8" IsVisible="False" HorizontalAlignment="Left">
+            <local:QrCodeView x:Name="HostCodeImage" Width="240" Height="240" HorizontalAlignment="Left" />
+            <TextBlock x:Name="HostCodeDetail" MaxWidth="360" Classes="settings-description" />
           </StackPanel>
         </StackPanel>
       </StackPanel>

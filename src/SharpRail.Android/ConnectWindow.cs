@@ -7,6 +7,8 @@ using Avalonia.Styling;
 using Grpc.Core;
 
 using SharpRail.Host.Client;
+using SharpRail.UI.Android.Windowing;
+using SharpRail.UI.State;
 
 namespace SharpRail.UI.Android;
 
@@ -18,6 +20,7 @@ public sealed partial class ConnectWindow : Window
     private readonly TextBox token;
     private readonly TextBlock error;
     private readonly Button submit;
+    private readonly Button scan;
     private CancellationTokenSource? attempt;
     private bool abandoned;
 
@@ -43,6 +46,9 @@ public sealed partial class ConnectWindow : Window
         token.KeyDown += (_, e) => { if (e.Key == Key.Enter) { _ = ConnectAsync(); e.Handled = true; } };
         address.TextChanged += (_, _) => Refresh();
         token.TextChanged += (_, _) => Refresh();
+        scan = this.FindControl<Button>("ConnectScan")!;
+        scan.Content = Ui.Row("qrScan", "Scan QR code", Ui.TextBrush);
+        scan.Click += (_, _) => _ = ScanAsync();
         submit.Click += (_, _) => { if (attempt is null) _ = ConnectAsync(); else Abandon(); };
         Closed += (_, _) => Abandon();
         Refresh();
@@ -54,7 +60,7 @@ public sealed partial class ConnectWindow : Window
     private void Refresh()
     {
         var connecting = attempt is not null;
-        address.IsEnabled = token.IsEnabled = !connecting;
+        address.IsEnabled = token.IsEnabled = scan.IsEnabled = !connecting;
         submit.Content = connecting ? "Cancel" : "Connect";
         submit.IsEnabled = connecting || !string.IsNullOrWhiteSpace(address.Text) && !string.IsNullOrWhiteSpace(token.Text);
     }
@@ -91,6 +97,23 @@ public sealed partial class ConnectWindow : Window
         if (abandoned) return;
         if (failure is not null) Fail(failure);
         else Connected?.Invoke(endpoint);
+    }
+
+    /// <summary>Shows why the app is back on this screen, such as a host that stopped answering.</summary>
+    public void Report(string message) => Fail(message);
+
+    // The desktop app's Settings › Host draws the address and token as one code.
+    private async Task ScanAsync()
+    {
+        if (AndroidWindows.Instance.Activity is not { } activity) return;
+        error.IsVisible = false;
+        string? scanned;
+        try { scanned = await QrScanner.ScanAsync(activity); }
+        catch (IOException) { Fail("This device has no QR scanner. Type the address and token instead."); return; }
+        if (scanned is null || !IsVisible) return;
+        if (!HostLink.TryParse(scanned, out var host, out var session)) { Fail("That code is not a SharpRail host."); return; }
+        address.Text = host; token.Text = session;
+        await ConnectAsync();
     }
 
     private void Abandon()

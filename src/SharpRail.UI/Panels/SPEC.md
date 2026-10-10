@@ -181,3 +181,10 @@ could not save this change: …” inline and re-renders from host state.
   then and the failure is a toast.
 - Toasts for the remaining rejections that follow a confirmation (closing a project, initialising a
   repository, closing busy terminals); they still use the window's error line.
+
+Settings › Host, while listening, offers a QR button beside the copy buttons. It draws the connect link
+(`State/HostLink.cs`: the address another device can reach, and the session token) with `QrCodeView` only
+while asked for, and hides it again when listening stops, because the code is the credential. A listener
+on every interface is named by the computer's first network address; one on loopback says it cannot be
+reached from another device.
+

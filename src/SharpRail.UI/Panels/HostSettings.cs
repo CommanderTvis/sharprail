@@ -33,6 +33,12 @@ public sealed partial class SettingsWindow
         var toggle = PageControl<Button>(page, "HostToggle");
         var copyEndpoint = PageControl<Button>(page, "HostCopyEndpoint");
         var copyToken = PageControl<Button>(page, "HostCopyToken");
+        // The code carries the session token, so it is drawn only on request and never outlives the listener.
+        var showCode = PageControl<Button>(page, "HostShowCode");
+        var code = PageControl<StackPanel>(page, "HostCode");
+        var codeImage = PageControl<QrCodeView>(page, "HostCodeImage");
+        var codeDetail = PageControl<TextBlock>(page, "HostCodeDetail");
+        showCode.Content = Ui.Icon("qrCode", Ui.TextBrush);
         address.Text = listener.Address.ToString();
         port.Text = listener.Port.ToString(CultureInfo.InvariantCulture);
         token.Text = listener.Token;
@@ -44,7 +50,8 @@ public sealed partial class SettingsWindow
             toggle.IsEnabled = !busy;
             toggle.Content = busy ? running ? "Stopping…" : "Starting…" : running ? "Stop listening" : "Start listening";
             status.Text = running ? "Listening at " + listener.Endpoint : "Not listening";
-            copyEndpoint.IsEnabled = copyToken.IsEnabled = running && !busy;
+            copyEndpoint.IsEnabled = copyToken.IsEnabled = showCode.IsEnabled = running && !busy;
+            if (!running) code.IsVisible = false;
             if (running)
             {
                 address.Text = listener.Address.ToString();
@@ -79,6 +86,16 @@ public sealed partial class SettingsWindow
                 error.IsVisible = true;
             }
             finally { busy = false; Refresh(); }
+        };
+        showCode.Click += (_, _) =>
+        {
+            if (code.IsVisible || listener.Endpoint is not { } endpoint) { code.IsVisible = false; return; }
+            var reachable = State.HostLink.Reachable(endpoint);
+            codeImage.Text = State.HostLink.Format(reachable, listener.Token);
+            codeDetail.Text = IPAddress.TryParse(endpoint.Host, out var bound) && IPAddress.IsLoopback(bound)
+                ? "This host listens on this computer only, so another device cannot reach it. Listen on a network address to connect a phone."
+                : $"Scan this in SharpRail on a phone to connect to {reachable}. It contains the session token: show it only to devices you trust.";
+            code.IsVisible = true;
         };
         copyEndpoint.Click += async (_, _) =>
         {
