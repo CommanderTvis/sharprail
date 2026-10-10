@@ -1600,3 +1600,29 @@ The outdated plain-folder rail assertions now pass. The broader workspace mode a
 Git fixtures reach the previously reproduced remote Project Home timeout in MultiClientE2E.RenamePropagates.
 The full run exits 134 after 202 passing checks (.bench/pane-final-full.log); the complete gate is not
 green. No push, app publication or restart.
+
+## Android client — 2026-10-10
+
+`src/SharpRail.Android` builds with `scripts/android.sh` in Debug and Release and was run on an Android 16
+arm64 tablet emulator against a `SharpRail.Host.Remote` on the development Mac. The evidence is manual use of
+the emulator; there are no automated on-device checks.
+
+Verified there: the connect screen with the soft keyboard; automatic connection on relaunch from the
+remembered endpoint; the workbench rendering; popup menus; modal dialogs, including text entry kept above
+the keyboard; opening a project by host path; the file tree with touch scrolling and file icons; Markdown
+preview; the Scintilla code editor; a live terminal running a shell on the host, typed into from the soft
+keyboard; Settings; Disconnect returning to the connect screen; system Back closing dialogs. The Release
+package (`artifacts/android/SharpRail.apk`, untrimmed, JIT) is about 84 MB and cold-starts in about 2.3 s
+on the emulator. On a phone-sized emulator (1080x2340) the Release package showed the connect screen,
+connected, and opened on the centre-only `focus` preset a fresh narrow-screen profile starts with.
+`-- --android` passes (host address parsing and the remembered endpoint), and `-- --conformance` holds the
+Android project to the UI's dependencies without the serving half.
+
+Settings as a full-screen page and dialogs as bottom sheets (tablet: 640 dp wide, above the keyboard,
+dismissed by a tap outside; phone: full width) were seen on both emulators. The Release package also
+installs and shows the connect screen on a Pixel 8 (Android 17); nothing further was driven there.
+
+Not verified: working in the workbench on a phone beyond its first frame; input methods other than Gboard; TalkBack and other
+accessibility services; plugin UI beyond what the default workbench shows; HTTPS endpoints; CI. Known
+limits (cleartext HTTP, unencrypted stored token, one workbench window, unreachable desktop code in the
+package) are listed in `src/SharpRail.Android/SPEC.md`.

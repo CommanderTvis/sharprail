@@ -4650,3 +4650,15 @@ tree exactly matches the prepared pre-rebase tree. Final-tip touched-file format
 verification and --agent-marks pass; the full gate passes 113 cases across six lanes.
 Evidence is preserved in main's .bench/agent-marks-amend/ and
 .bench/agent-marks-switch/. No publication or app restart was requested.
+
+## Android client (2026-10-10)
+
+Branch `android` adds `src/SharpRail.Android`: the UI's sources compiled for Android as a client of a remote
+host, with its own windowing layer over Avalonia 12.1.3 internals, a connect screen and a remembered endpoint.
+It is outside `SharpRail.slnx`. Build and run with `scripts/android.sh`; the terminal and editor libraries
+cross-build with the NDK from `scripts/android-ndk.sh`. Shared UI sources must stay compilable for Android
+(`#if !ANDROID` or an excluded file for host-serving code). Design, limits and evidence are in
+`src/SharpRail.Android/SPEC.md` and the 2026-10-10 section of `VALIDATION.md`: emulator only.
+
+Open: physical devices, phone ergonomics beyond the first frame, other IMEs, accessibility, HTTPS, CI,
+on-device tests, a release keystore, packaging `licenses/` into the APK, trimming.
