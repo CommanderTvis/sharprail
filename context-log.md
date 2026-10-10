@@ -4678,3 +4678,62 @@ changes were aligned onto current main after its history rewrite; only an unrela
 correction differed in the base tree. Release build, touched-file format verification and
 --markdown-tables pass again on that base. The implementation and validation records use separate
 signed commits. No push was requested.
+## TextMate syntax highlighting (2026-10-10)
+
+In the user-requested separate workspace, branch feature/textmate-highlighting,
+file editors, Markdown Source and inline/split source diffs now use TextMateSharp
+2.0.4. Kotlin and Scala grammars are embedded from pinned MIT upstream commits;
+ignore files use the bundled source.ignore grammar. The tokenizer is independent
+of Scintilla, loads and tokenizes in the background, caches per-line state,
+cancels superseded/detached/disposed work, and applies only the current version
+on the dispatcher. Existing syntax palettes recolour tokens on theme changes.
+Scintilla consumes UTF-8 byte styles without changing text, undo or selection.
+Diff source lanes keep independent state and preserve line background bands.
+Hunks reset at omitted context, so boundary highlighting can be approximate.
+Documents above 1 Mi characters and lines above 16 Ki UTF-16 units stay plain.
+The owning kit spec records the language-ID detection and Swift nested-repository
+compatibility transform required by this pinned package.
+
+Release build (warnings as errors), touched-file format verification, --syntax,
+--editor, --documents, --design and --conformance pass. The six-lane full gate
+hit MultiClientE2E startup and spec-dialect-ui tree-preservation failures; both
+pass in isolation. The remaining lane was interrupted. The unfinished-case
+resume then hit AppCommandChecks' quit-hint timing assertion, which also passes
+in isolation. The final --last-failed resume passes and the runner's unfinished
+record is empty. This is completed coverage across the gate and resumes, not
+a clean first full run. Whole-solution format verification reports an existing
+extra final newline in src/SharpRail.Plugins.ClaudeCode/Host/SystemPrompt.cs:81;
+that file is byte-identical to HEAD.
+
+The approved follow-up adds patch files, Git configuration and attributes,
+Gradle/Kotlin build scripts, common ignore files, shell/PowerShell/batch/Fish,
+TOML, properties and XML .slnx highlighting. Settings now imports/removes custom
+TextMate JSON grammars and launches either agent with the bundled add-highlighting
+skill. Definitions persist through host state with local/remote parity and apply
+to open editors and diffs. Settings preserves typed input during registry updates.
+Horizontal scrolling is clamped to the text extent and is zero with soft wrap;
+shortening documents and widening the viewport clear obsolete scroll ranges.
+
+The final Release build has zero warnings/errors. Touched-file formatting,
+--syntax, --editor, --state, --design, --conformance, --codex and --claude-code
+pass. The follow-up full gate hit PreviewTabsE2E's double-click assertion and
+spec-dialect-ui's failed-update tree assertion. Both pass in isolation without
+source changes. The --last-failed resume finishes with PASS prototype checks and
+open-world runtime, no FAIL records and an empty unfinished-case record. Coverage
+is complete across the full run and resumes, rather than a clean first run.
+Task logs, captures, catalog scratch and exited check fixtures were removed under
+the updated scratch-file instructions. Changes remain uncommitted on
+feature/textmate-highlighting. No push, publication or app restart was requested.
+
+### Landing on current main (2026-10-10)
+
+The feature was rebased onto main after the Android, touch, shared-terminal and
+Markdown-table changes. Conflict resolutions preserve their public APIs, Settings
+platform guards, editor text sizing and touch scrolling. Horizontal touch/wheel
+scrolling now shares the clamped path, including Android's always-wrap mode.
+The rebased Release build passes with zero warnings/errors; --syntax, --editor
+and whole-solution format verification pass. The final full gate passes cleanly:
+118 cases across six lanes. Android compilation was not run because this
+checkout's SDK has no Android workload installed. The two feature/status commits
+are SSH-signed; main is fast-forwarded to them, and the task's managed workspace
+and temporary check fixtures are removed. No push or publication was requested.
