@@ -12,6 +12,8 @@
     <TieredCompilation>true</TieredCompilation>
     <TieredPGO>true</TieredPGO>
     <ServerGarbageCollection>false</ServerGarbageCollection>
+    <!-- Views take their dependencies as constructor arguments and load from compiled XAML only, never the runtime loader. -->
+    <NoWarn>$(NoWarn);AVLN3001</NoWarn>
     <!-- Ghostty.Avalonia keeps its pinned sources, toolchains and native builds with the checkout's other tools. -->
     <GhosttyNativeCache>$(MSBuildThisFileDirectory).tools/ghostty-avalonia</GhosttyNativeCache>
   </PropertyGroup>
