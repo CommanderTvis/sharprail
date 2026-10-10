@@ -54,12 +54,19 @@ internal static class DrawerChecks
         Require(!window.GetLogicalDescendants().OfType<Border>().Any(border => border.Name is "leftHiddenSideRail" or "rightHiddenSideRail"),
             "A compact window must not keep the collapsed side rails.");
 
+        Require(!Named<Button>(window, "ConnectionButton").IsHitTestVisible, "A workbench with no host to change must keep its connection status inert.");
         Click(left);
         Require(layout.State.LeftVisible && scrim.IsVisible && Region("left") is { IsVisible: true, HorizontalAlignment: HorizontalAlignment.Left } drawer &&
             drawer.Width <= window.Bounds.Width - 56 && Grid.GetColumnSpan(drawer) == 5, "The left drawer must open over the centre at the left edge.");
         Click(right);
         Require(!layout.State.LeftVisible && layout.State.RightVisible && Region("right").HorizontalAlignment == HorizontalAlignment.Right,
             "Opening the right drawer must close the left one.");
+        var sections = Region("right").GetLogicalDescendants().OfType<Button>().Where(button => button.Name?.StartsWith("DrawerSection_", StringComparison.Ordinal) == true).ToArray();
+        Require(sections.Length == 4 && Region("right").GetLogicalDescendants().OfType<Border>().Count(border => border.Name == "DrawerSectionBody") == 1,
+            "The right drawer must list its four tools as sections and show one of them.");
+        Click(sections.Single(section => section.Name == "DrawerSection_changes"));
+        Require(Region("right").GetLogicalDescendants().OfType<Border>().Single(border => border.Name == "DrawerSectionBody").Child is not null &&
+            layout.State.RightVisible, "Choosing a section must show that tool and keep the drawer open.");
         Click(right);
         Require(!layout.State.RightVisible && !scrim.IsVisible, "A drawer's button must close it again.");
 

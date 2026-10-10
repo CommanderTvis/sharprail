@@ -274,6 +274,9 @@ A compact workbench (`Workbench.Compact`, set by the Android client on phone-siz
   separators.
 - A visible left or right region lies over the centre at its edge, at most 360 px wide and always leaving
   56 px of the centre, above a scrim; pressing the scrim hides it.
+- The right drawer does not stack its groups: `DockDrawers.cs` lists every tool of the region as a section
+  header and shows one of them in the height the headers leave; choosing a header shows that tool and
+  keeps the drawer open.
 - The window (`Drawers.cs`) starts with both sides hidden, replaces the header's brand mark with a left
   drawer button and adds a right one, opens one side at a time, and hides both when the centre's selected
   tab or the workspace changes and on `BackRequested`.
