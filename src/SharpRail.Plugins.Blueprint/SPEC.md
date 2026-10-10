@@ -120,6 +120,12 @@ Unsupported YAML shapes remain read-only. The outline navigates prose headings.
 Changes have dismissible notices, highlighted controls and links to surviving controls.
 Loading, absent and awaiting-author states remain distinct.
 
+Only registered workspaces are followed and queried for spec links. Terminals can
+belong to other directories, such as the home directory; those do not trigger
+Blueprint subscriptions, filesystem watches or graph requests. Registering a
+workspace later starts following its existing terminals. A graph request completing
+after its workspace is removed is ignored, including its error.
+
 The core keeps the mounted companion while its selected registration remains the
 same. Publishing state must not recreate the pane or interrupt a draft.
 

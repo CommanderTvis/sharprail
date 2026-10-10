@@ -15,10 +15,11 @@ internal sealed class BlueprintStore(IPluginUIContext context) : IDisposable
     public bool Loaded(string workspace) => states.ContainsKey(workspace);
     public BlueprintState? Get(string workspace) => states.GetValueOrDefault(workspace);
     public string? SpecPath(string workspace, string id) => graphs.GetValueOrDefault(workspace)?.FirstOrDefault(node => node.Id == id)?.Path;
+    private bool Known(string workspace) => context.Host().Workspaces.Values.Any(workspaces => workspaces.Any(known => known.Id == workspace));
 
     public void Follow(string workspace)
     {
-        if (subscriptions.ContainsKey(workspace)) return;
+        if (disposed || !Known(workspace) || subscriptions.ContainsKey(workspace)) return;
         subscriptions[workspace] = context.Subscribe(BlueprintContract.Changed, payload => Set(payload.WorkspaceId, payload.State), new BlueprintScope(workspace));
         _ = Watch(workspace);
         RefreshGraph(workspace);
@@ -26,17 +27,18 @@ internal sealed class BlueprintStore(IPluginUIContext context) : IDisposable
 
     public async void RefreshGraph(string workspace)
     {
+        if (disposed || !Known(workspace)) return;
         var revision = context.Host().WorkspaceRevisions.GetValueOrDefault(workspace);
         if (revisions.TryGetValue(workspace, out var known) && known == revision) return;
         revisions[workspace] = revision;
         try
         {
             var graph = await context.Dependency(SpecDialectContract.Contract).RequestAsync(SpecDialectContract.Graph, new(workspace));
-            if (disposed || revisions.GetValueOrDefault(workspace) != revision) return;
+            if (disposed || !Known(workspace) || revisions.GetValueOrDefault(workspace) != revision) return;
             graphs[workspace] = graph.Nodes;
             Changed?.Invoke(workspace);
         }
-        catch (Exception error) { if (!disposed) context.Log.Warn("Could not read Blueprint's spec links", new { Workspace = workspace, error.Message }); }
+        catch (Exception error) { if (!disposed && Known(workspace)) context.Log.Warn("Could not read Blueprint's spec links", new { Workspace = workspace, error.Message }); }
     }
 
     private async Task Watch(string workspace)

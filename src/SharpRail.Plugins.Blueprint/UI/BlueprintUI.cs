@@ -20,6 +20,7 @@ public sealed class BlueprintUI : PluginUIModule
         }
         Follow(context.Host());
         context.WatchHost(host => host.Terminals, (_, _) => Follow(context.Host()));
+        context.WatchHost(host => host.Workspaces, (_, _) => Follow(context.Host()));
         context.WatchHost(host => host.WorkspaceRevisions, (_, _) =>
         {
             foreach (var workspace in context.Host().Terminals.Keys) store.RefreshGraph(workspace);
