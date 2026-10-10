@@ -51,12 +51,9 @@ public sealed partial class DockSurface : Grid
     private readonly Dictionary<string, Border> auxiliaryRegions = new[] { "left", "right", "bottom" }
         .ToDictionary(region => region, region => new Border { Name = "AuxiliaryRegion_" + region });
     private readonly Canvas overlay = new() { IsHitTestVisible = false };
-    private readonly Border drawerScrim = new() { Name = "DrawerScrim", Background = Ui.Overlay, IsVisible = false, ZIndex = 10 };
-    private const double DrawerWidth = 360, DrawerMargin = 56;
-
     /// <summary>
-    /// On a narrow screen the side regions are drawers over the centre instead of columns beside it: a visible
-    /// side slides over a dimmed centre, and a tap on the dimmed part hides it.
+    /// On a narrow screen the side regions are pages over the centre instead of columns beside it: a visible
+    /// left side shows Projects alone, and a visible right side every other side tool as sections.
     /// </summary>
     public bool Drawers
     {
@@ -82,17 +79,11 @@ public sealed partial class DockSurface : Grid
         Children.Add(shell); Children.Add(overlay);
         Grid.SetColumn(centerRegion, 2); shell.Children.Add(centerRegion);
         foreach (var region in auxiliaryRegions.Values) shell.Children.Add(region);
-        Grid.SetColumnSpan(drawerScrim, 5); Grid.SetRowSpan(drawerScrim, 3); shell.Children.Add(drawerScrim);
-        drawerScrim.PointerPressed += (_, e) =>
-        {
-            foreach (var region in new[] { "left", "right" }) if (Side(region)) Session.Visible(region, false);
-            e.Handled = true;
-        };
         InstallPointerGestures();
         SizeChanged += (_, _) =>
         {
-            if (Drawers) { foreach (var region in new[] { "left", "right" }) auxiliaryRegions[region].Width = Math.Min(DrawerWidth, Math.Max(0, Bounds.Width - DrawerMargin)); }
-            else if (!shell.GetLogicalDescendants().OfType<ResizeHandle>().Any(handle => handle.IsActive))
+            if (Drawers) return;
+            if (!shell.GetLogicalDescendants().OfType<ResizeHandle>().Any(handle => handle.IsActive))
                 PreviewSides(new SideGeometry(Session.State, Bounds.Width).Project());
         };
         Session.Changed += () => { CancelForLayoutChange(); if (!Retarget()) Rebuild(); };
@@ -141,7 +132,7 @@ public sealed partial class DockSurface : Grid
         activeTabUpdates.Clear();
         modifiedUpdates.Clear(); catalogUpdates.Clear(); centerActionUpdates.Clear(); sites.Clear(); nestedStrips.Clear(); stripLayouts.Clear();
         renderedMode = CenterTabs?.Invoke();
-        foreach (var control in shell.Children.Where(control => control != centerRegion && control != drawerScrim && !auxiliaryRegions.Values.Contains(control)).ToArray())
+        foreach (var control in shell.Children.Where(control => control != centerRegion && !auxiliaryRegions.Values.Contains(control)).ToArray())
             shell.Children.Remove(control);
         centerRegion.Child = null;
         foreach (var region in auxiliaryRegions.Values)
@@ -153,7 +144,6 @@ public sealed partial class DockSurface : Grid
         shell.RowDefinitions.Clear(); shell.ColumnDefinitions.Clear();
         var state = Session.State;
         if (Drawers) { RebuildDrawers(state); return; }
-        drawerScrim.IsVisible = false;
         var widths = new SideGeometry(state, Bounds.Width).Project();
         var left = state.LeftVisible && state.Groups.Any(group => group.Region == "left");
         var right = state.RightVisible && state.Groups.Any(group => group.Region == "right");
@@ -224,22 +214,18 @@ public sealed partial class DockSurface : Grid
         foreach (var region in new[] { "left", "right" })
         {
             if (!Side(region)) continue;
-            PlaceAuxiliary(region == "right" ? BuildSections(region) : BuildAuxiliary(region), region, 0, 3);
+            PlaceAuxiliary(region == "right" ? BuildSections() : BuildProjects(), region, 0, 3);
             var frame = auxiliaryRegions[region];
             Grid.SetColumnSpan(frame, 5);
             frame.ZIndex = 11; frame.Background = Ui.Sidebar;
-            frame.HorizontalAlignment = region == "left" ? HorizontalAlignment.Left : HorizontalAlignment.Right;
-            frame.Width = Math.Min(DrawerWidth, Math.Max(0, Bounds.Width - DrawerMargin));
         }
-        drawerScrim.IsVisible = Side("left") || Side("right");
         if (bottom)
         {
             var region = auxiliaryRegions["bottom"];
             region.Child = BuildAuxiliary("bottom"); region.IsVisible = true;
             Grid.SetRow(region, 2); Grid.SetColumn(region, 2);
-            var splitter = Separator(false, _ => { }, _ => { }, Rebuild);
-            splitter.Name = "bottomSeparator"; splitter.IsHitTestVisible = false;
-            Ui.Place(shell, splitter, 1, 2);
+            // A resize handle draws above its neighbours, and would above a side page too; a plain rule does not.
+            Ui.Place(shell, new Border { Name = "bottomRule", Background = Ui.BorderBrush }, 1, 2);
         }
         renderedStructure = Structure();
         NestedStripsChanged?.Invoke(nestedStrips);

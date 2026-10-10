@@ -74,8 +74,8 @@ Contract:
   soft keyboard, and the frame is painted in the window's background colour so the bars sit over it.
   Avalonia's automatic safe-area padding is turned off for its content, since the frame already applies it.
 - On a screen narrower than 600 dp the session composes the workbench as compact (`Workbench.Compact`):
-  the side panels are drawers over the centre and Settings shows one section with its list in a drawer; see
-  [Docking/SPEC.md](../SharpRail.UI/Docking/SPEC.md#drawers). Tablets keep the desktop frame.
+  the workbench is one page at a time from a bar at the bottom, and Settings is a list of sections; see
+  [Docking/SPEC.md](../SharpRail.UI/Docking/SPEC.md#phone-pages). Tablets keep the desktop frame.
 - On every Android screen centre tabs live in Projects, under their workspace (`Workbench.TabsInProjects`):
   the centre shows no tab strip even while Projects is hidden, and Settings › Layout offers no other place
   for them. A split centre still keeps a strip per group.

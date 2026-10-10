@@ -6,17 +6,29 @@ using Avalonia.Media;
 
 namespace SharpRail.UI.Docking;
 
-// A drawer has no room for two groups stacked or two tools side by side. The right drawer lists every tool of
-// its region as a section header and shows one of them, at the height the others leave.
+// A phone's side pages have no room for two groups stacked or two tools side by side. The left page is Projects
+// alone, without a tab strip; the right page lists every other side tool as a section header and shows one of
+// them, at the height the others leave.
 public sealed partial class DockSurface
 {
+    private const string ProjectsTool = "projects";
     private string? drawerSection;
 
-    private Control BuildSections(string region)
+    private IEnumerable<(DockGroup Group, DockTab Tab)> SideTools() => Session.State.Groups.Where(group => group.Region is "left" or "right")
+        .SelectMany(group => Session.Tabs(group.Id).Select(tab => (group, tab)));
+
+    private Control BuildProjects()
     {
-        var sections = Session.State.Groups.Where(group => group.Region == region)
-            .SelectMany(group => Session.Tabs(group.Id).Select(tab => (Group: group, Tab: tab))).ToArray();
-        var grid = new Grid { Name = "DrawerSections_" + region };
+        var body = new Border { Name = "ProjectsPage", ClipToBounds = true };
+        if (SideTools().FirstOrDefault(tool => tool.Tab.Id == ProjectsTool) is { Tab: { } projects }) body.Child = Adopt(renderContent(projects));
+        contentHosts.Add(body);
+        return body;
+    }
+
+    private Control BuildSections()
+    {
+        var sections = SideTools().Where(tool => tool.Tab.Id != ProjectsTool).ToArray();
+        var grid = new Grid { Name = "DrawerSections" };
         if (sections.Length == 0) return grid;
         var open = sections.FirstOrDefault(section => section.Tab.Id == drawerSection);
         if (open.Tab is null) open = sections.FirstOrDefault(section => Session.Selected(section.Group.Id)?.Id == section.Tab.Id);

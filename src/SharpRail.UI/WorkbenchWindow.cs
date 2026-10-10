@@ -601,7 +601,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
     public Action Dim()
     {
         var scrim = new Border { Background = Ui.Overlay };
-        Grid.SetRowSpan(scrim, 3);
+        Grid.SetRowSpan(scrim, 4);
         root.Children.Add(scrim);
         return () => root.Children.Remove(scrim);
     }
