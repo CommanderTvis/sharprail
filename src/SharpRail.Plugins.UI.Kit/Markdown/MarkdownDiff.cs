@@ -1,6 +1,10 @@
 using System.Text;
 using System.Text.RegularExpressions;
 
+using Markdig;
+using Markdig.Extensions.Tables;
+using Markdig.Syntax;
+
 namespace SharpRail.Plugins.UI.Kit.Markdown;
 
 /// <summary>
@@ -16,14 +20,20 @@ public static partial class MarkdownDiff
 
     private enum Op { Equal, Delete, Insert }
 
+    private static readonly MarkdownPipeline TablePipeline = new MarkdownPipelineBuilder().UsePipeTables().UseYamlFrontMatter().Build();
+    private sealed record Cell(int Start, int Length);
+    private sealed record Row(string Text, Cell[] Cells);
+    private sealed record TableSource(Row Header, string Separator, Row[] Rows);
+    private sealed record Unit(string Text, TableSource? Table = null);
+
     public static string Merge(string before, string after, CancellationToken cancellationToken = default)
     {
-        var oldLines = Lines(before);
-        var newLines = Lines(after);
+        var oldUnits = Units(before, cancellationToken);
+        var newUnits = Units(after, cancellationToken);
         var output = new StringBuilder(after.Length + 64);
         var fenced = false;
-        var deleted = new List<string>();
-        var inserted = new List<string>();
+        var deleted = new List<Unit>();
+        var inserted = new List<Unit>();
 
         void Emit(string line)
         {
@@ -37,35 +47,153 @@ public static partial class MarkdownDiff
             for (var index = 0; index < pairs; index++)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (fenced || FenceMarker().IsMatch(deleted[index]) || FenceMarker().IsMatch(inserted[index])) Emit(inserted[index]);
-                else Emit(MergeLine(deleted[index], inserted[index], cancellationToken));
+                var oldUnit = deleted[index];
+                var newUnit = inserted[index];
+                if (oldUnit.Table is { } oldTable && newUnit.Table is { } newTable && oldTable.Header.Cells.Length == newTable.Header.Cells.Length)
+                    Emit(MergeTable(oldTable, newTable, cancellationToken));
+                else if (oldUnit.Table is not null || newUnit.Table is not null)
+                {
+                    EmitUnit(oldUnit, "del");
+                    Emit("");
+                    EmitUnit(newUnit, "ins");
+                }
+                else if (fenced || FenceMarker().IsMatch(oldUnit.Text) || FenceMarker().IsMatch(newUnit.Text)) Emit(newUnit.Text);
+                else Emit(MergeLine(oldUnit.Text, newUnit.Text, cancellationToken));
             }
-            foreach (var line in deleted.Skip(pairs))
-                if (!fenced && !FenceMarker().IsMatch(line)) EmitWhole(line, "del");
-            foreach (var line in inserted.Skip(pairs))
-                if (fenced || FenceMarker().IsMatch(line)) Emit(line);
-                else EmitWhole(line, "ins");
+            foreach (var unit in deleted.Skip(pairs))
+                if (!fenced && !FenceMarker().IsMatch(unit.Text)) EmitUnit(unit, "del");
+            foreach (var unit in inserted.Skip(pairs))
+                if (fenced || FenceMarker().IsMatch(unit.Text)) Emit(unit.Text);
+                else EmitUnit(unit, "ins");
             deleted.Clear(); inserted.Clear();
         }
 
-        void EmitWhole(string line, string tag)
+        void EmitUnit(Unit unit, string tag)
         {
+            if (unit.Table is { } table)
+            {
+                Emit(MarkRow(table.Header, tag));
+                Emit(table.Separator);
+                foreach (var row in table.Rows) Emit(MarkRow(row, tag));
+                return;
+            }
+            var line = unit.Text;
             var prefix = BlockPrefix().Match(line).Length;
             if (line[prefix..].Trim().Length == 0) { if (tag == "ins") Emit(line); return; }
             Emit(line[..prefix] + Wrap(tag, line[prefix..]));
         }
 
-        foreach (var (op, line) in Align(oldLines, newLines, cancellationToken))
+        var oldIndex = 0;
+        var newIndex = 0;
+        foreach (var (op, line) in Align(oldUnits.Select(unit => unit.Text).ToArray(), newUnits.Select(unit => unit.Text).ToArray(), cancellationToken))
         {
             switch (op)
             {
-                case Op.Equal: Flush(); Emit(line); break;
-                case Op.Delete: deleted.Add(line); break;
-                default: inserted.Add(line); break;
+                case Op.Equal: Flush(); Emit(line); oldIndex++; newIndex++; break;
+                case Op.Delete: deleted.Add(oldUnits[oldIndex++]); break;
+                default: inserted.Add(newUnits[newIndex++]); break;
             }
         }
         Flush();
         return output.ToString();
+    }
+
+    // Treat each pipe table as one alignment unit. Its structural syntax never receives diff tags.
+    private static Unit[] Units(string source, CancellationToken cancellationToken)
+    {
+        var lines = Lines(source);
+        cancellationToken.ThrowIfCancellationRequested();
+        if (!source.Contains('|')) return lines.Select(line => new Unit(line)).ToArray();
+        var offsets = new int[lines.Length];
+        for (var index = 1; index < lines.Length; index++) offsets[index] = offsets[index - 1] + lines[index - 1].Length + 1;
+        var document = Markdig.Markdown.Parse(string.Join('\n', lines), TablePipeline);
+        var tables = document.Descendants<Table>().ToDictionary(table => table.Line);
+        var units = new List<Unit>(lines.Length);
+        for (var index = 0; index < lines.Length; index++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!tables.TryGetValue(index, out var table)) { units.Add(new(lines[index])); continue; }
+            var rows = table.OfType<TableRow>().ToArray();
+            var last = rows[^1].Line;
+            var header = ReadRow(rows[0]);
+            var body = rows.Skip(1).Select(ReadRow).ToArray();
+            // A header-only table still includes its delimiter row.
+            last = Math.Max(last, index + 1);
+            units.Add(new(string.Join('\n', lines[index..(last + 1)]), new(header, lines[index + 1], body)));
+            index = last;
+        }
+        return units.ToArray();
+
+        Row ReadRow(TableRow row)
+        {
+            var text = lines[row.Line];
+            var cells = row.OfType<TableCell>()
+                .Where(cell => cell.Span.Start >= offsets[row.Line] && cell.Span.End < offsets[row.Line] + text.Length)
+                .Select(cell => new Cell(cell.Span.Start - offsets[row.Line], cell.Span.Length)).ToArray();
+            return new(text, cells);
+        }
+    }
+
+    private static string MarkRow(Row row, string tag) => RewriteRow(row, (cell, _) => Wrap(tag, cell));
+
+    private static string RewriteRow(Row row, Func<string, int, string> rewrite)
+    {
+        var result = new StringBuilder(row.Text.Length + 32);
+        var position = 0;
+        for (var index = 0; index < row.Cells.Length; index++)
+        {
+            var cell = row.Cells[index];
+            result.Append(row.Text.AsSpan(position, cell.Start - position));
+            result.Append(rewrite(row.Text.Substring(cell.Start, cell.Length), index));
+            position = cell.Start + cell.Length;
+        }
+        result.Append(row.Text.AsSpan(position));
+        return result.ToString();
+    }
+
+    private static string MergeRow(Row before, Row after, CancellationToken cancellationToken) =>
+        RewriteRow(after, (cell, index) => index < before.Cells.Length
+            ? MergeLine(before.Text.Substring(before.Cells[index].Start, before.Cells[index].Length), cell, cancellationToken)
+            : Wrap("ins", cell));
+
+    private static string MergeTable(TableSource before, TableSource after, CancellationToken cancellationToken)
+    {
+        var output = new StringBuilder();
+        output.AppendLine(MergeRow(before.Header, after.Header, cancellationToken));
+        output.AppendLine(after.Separator);
+        var deleted = new List<Row>();
+        var inserted = new List<Row>();
+        var oldIndex = 0;
+        var newIndex = 0;
+        void Flush()
+        {
+            var pairs = Math.Min(deleted.Count, inserted.Count);
+            for (var index = 0; index < pairs; index++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (deleted[index].Cells.Length == inserted[index].Cells.Length)
+                    output.AppendLine(MergeRow(deleted[index], inserted[index], cancellationToken));
+                else
+                {
+                    output.AppendLine(MarkRow(deleted[index], "del"));
+                    output.AppendLine(MarkRow(inserted[index], "ins"));
+                }
+            }
+            foreach (var row in deleted.Skip(pairs)) output.AppendLine(MarkRow(row, "del"));
+            foreach (var row in inserted.Skip(pairs)) output.AppendLine(MarkRow(row, "ins"));
+            deleted.Clear(); inserted.Clear();
+        }
+        foreach (var (op, text) in Align(before.Rows.Select(row => row.Text).ToArray(), after.Rows.Select(row => row.Text).ToArray(), cancellationToken))
+        {
+            switch (op)
+            {
+                case Op.Equal: Flush(); output.AppendLine(text); oldIndex++; newIndex++; break;
+                case Op.Delete: deleted.Add(before.Rows[oldIndex++]); break;
+                default: inserted.Add(after.Rows[newIndex++]); break;
+            }
+        }
+        Flush();
+        return output.ToString().TrimEnd('\n');
     }
 
     private static string[] Lines(string text)

@@ -103,6 +103,14 @@ publish toggle automation changes without requesting another update.
   preview's context menu, shown beside Copy, and with none the text keeps its own menu.
 - Inline links, including spec links, inherit rendered diff insertion/deletion colors and backgrounds;
   deleted links and links inside Markdown strikethrough carry the strike decoration.
+- Rendered Markdown diffs align pipe tables as complete blocks, then compare their rows and cell text.
+  Insertion/deletion marks belong inside cells; pipes, alignment separators and container prefixes stay
+  outside the marks so added and removed tables still render as tables. Changed headers and paired cells
+  use word-level marks, while added/removed rows mark each cell. Tables whose column counts differ render
+  as separate removed and added tables, preserving each layout. Unequal cell counts in paired body rows
+  likewise retain both rows so removed cell text is never lost. Fenced table-like text stays code.
+  This avoids wrapping structural Markdown in HTML tags, which makes the parser treat an added table
+  as an ordinary paragraph of pipe-separated text.
 - `LineWidths.File(width, bounded)` and `Markdown(width, bounded, fontSize)` take the values a preference holds.
 - The kit's XAML uses `FindControl` rather than the Avalonia name generator, whose generated members would join
   the public listing.

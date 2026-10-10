@@ -259,6 +259,12 @@ symbolic link. The headless UI part checks how a byte diff is recognised and the
 
 ## Resource checks
 
+`MarkdownTableDiffChecks.cs` (`-- --markdown-tables`, also in the default gate) checks added and removed
+Markdown tables, cell/header edits, row changes and differing column counts. It asserts both parsed table
+structure and native preview grids with marked cell text, including quoted tables, escaped pipes, empty
+cells, header-only tables and frontmatter. Fenced code and ordinary prose with pipes remain outside table
+handling; unchanged table source and cancellation are preserved.
+
 `ResourceChecks.cs` (`-- --content` and `-- --documents`, also in the default run) covers the renderer
 registry (rank order, glob and MIME matching with the extension fallback, the required fallbacks, intent
 support), the file pane (toggle, view reuse, view state written to the tab, dropped on a renderer change,

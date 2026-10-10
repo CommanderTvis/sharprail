@@ -164,7 +164,9 @@ unavailability message. Rendered diffs pass `renderDiagrams: false` and keep the
 - The rendered Markdown diff is a real rich diff: `MarkdownDiff.Merge` aligns lines (Myers after trimming the
   common prefix and suffix, with a bounded edit budget before falling back to replacing the changed region),
   diffs only paired changed lines word by word, and keeps whitespace outside the marks so emphasis and line
-  structure survive. The merged document renders through the same `MarkdownPreview` pipeline. The merge runs
+  structure survive. Pipe-table merging preserves the structure and marks cell content as defined in
+  [the UI kit contract](../../SharpRail.Plugins.UI.Kit/SPEC.md). The merged document renders through the same
+  `MarkdownPreview` pipeline. The merge runs
   on a thread-pool thread; a newer merge or leaving the rendered view cancels the stale one, and a content
   update keeps the current rendering visible until the fresh merge lands.
 - The rendered diff carries the modified side's outline (the `Outline` toggle shows only in the rendered view)
