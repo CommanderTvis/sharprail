@@ -102,8 +102,8 @@ internal static class BlueprintChecks
             await runtime.Start();
             async Task<T> Call<P, T>(PluginMethod<P, T> method, P parameters) => PluginJson.Convert<T>(
                 await runtime.CallAsync(new("blueprint", method.Name, parameters, "client")));
-            var opened = await Call(BlueprintContract.Open, new(project, new BlueprintIdea("  an app to sell cats  "), BlueprintAgentId.Claude));
-            Require(opened.State is { Phase: BlueprintPhase.Awaiting, Author: null, Brief: "an app to sell cats" } && opened.State.Doc.Blocks.Count == 0,
+            var opened = await Call(BlueprintContract.Open, new(project, new BlueprintIdea("  an app to sell cats  "), BlueprintAgentId.Codex));
+            Require(opened.State is { Phase: BlueprintPhase.Awaiting, AgentId: BlueprintAgentId.Codex, Author: null, Brief: "an app to sell cats" } && opened.State.Doc.Blocks.Count == 0,
                 "A new blueprint is awaiting the author with its normalized brief.");
             Require(opened.Opening.Contains("an app to sell cats", StringComparison.Ordinal) && opened.SystemPrompt.Contains("!control multi", StringComparison.Ordinal),
                 "Opening carries the exact Blueprint instructions and interactive syntax.");
@@ -151,7 +151,7 @@ internal static class BlueprintChecks
             async Task<T> Call<P, T>(PluginMethod<P, T> method, P parameters) => PluginJson.Convert<T>(
                 await restored.CallAsync(new("blueprint", method.Name, parameters, "client")));
             var resumed = await Call(BlueprintContract.Get, new(project));
-            Require(resumed.State is { Brief: "an app to sell cats", Author: BlueprintTerminalAuthor { AgentSessionId: "conversation-1" } },
+            Require(resumed.State is { AgentId: BlueprintAgentId.Codex, Brief: "an app to sell cats", Author: BlueprintTerminalAuthor { AgentSessionId: "conversation-1" } },
                 "The author session and brief survive a host restart.");
             await Call(BlueprintContract.Close, new(project));
             Require((await Call(BlueprintContract.Get, new(project))).State is null && File.Exists(Path.Combine(project, "BLUEPRINT.md")),
@@ -180,7 +180,7 @@ internal static class BlueprintChecks
                 await Task.Delay(25);
             Require((await plugins.ListAsync()).Any(entry => entry is { Id: "blueprint", Status: PluginStatus.Active }), "The remote Blueprint activates.");
             async Task<T> Call<P, T>(PluginMethod<P, T> method, P parameters) => PluginJson.Convert<T>(await plugins.CallAsync(new("blueprint", method.Name, parameters, "client")));
-            var opened = await Call(BlueprintContract.Open, new(project, new BlueprintProduct(), BlueprintAgentId.Claude));
+            var opened = await Call(BlueprintContract.Open, new(project, new BlueprintProduct(), BlueprintAgentId.Codex));
             Require(opened.State.Phase == BlueprintPhase.Ready, "An existing blueprint opens through gRPC.");
             await Call(BlueprintContract.SetAuthor, new(project, new BlueprintTerminalAuthor("author", "remote-session")));
             await Call(BlueprintContract.Edit, new(project, new BlueprintOptionAxisTarget("language", "python"), "available everywhere"));

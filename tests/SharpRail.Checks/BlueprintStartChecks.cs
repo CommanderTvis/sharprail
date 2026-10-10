@@ -29,6 +29,7 @@ internal static class BlueprintStartChecks
         var home = app.Window.OpenProjectHomeAsync(project);
         Until(() => home.IsCompleted);
         home.GetAwaiter().GetResult();
+        Until(() => app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "ProjectDraftBlueprint"));
         app.Click(app.Find<Button>("ProjectDraftBlueprint"));
         Until(() => app.Window.OwnedWindows.Any(window => Equals(window.Tag, "BlueprintStart")));
         var dialog = app.Window.OwnedWindows.Single(window => Equals(window.Tag, "BlueprintStart"));
@@ -37,6 +38,11 @@ internal static class BlueprintStartChecks
         app.State!.ChangeAsync([SharpRail.Host.Abstractions.HostStateChange.PluginEnabled("claude-code", true)]).AsTask().GetAwaiter().GetResult();
         Until(() => Find<Button>("Agent").IsVisible && Find<TextBlock>("AgentLabel").Text == "Claude Code");
         app.State.ChangeAsync([SharpRail.Host.Abstractions.HostStateChange.PluginEnabled("claude-code", false)]).AsTask().GetAwaiter().GetResult();
+        Until(() => !Find<Button>("Agent").IsVisible);
+        app.State.ChangeAsync([SharpRail.Host.Abstractions.HostStateChange.PluginEnabled("codex", true)]).AsTask().GetAwaiter().GetResult();
+        Until(() => Find<Button>("Agent").IsVisible && Find<TextBlock>("AgentLabel").Text == "Codex");
+        Require(!Find<ComboBox>("AgentChoice").IsVisible, "A sole Codex launcher is selected without requiring an author choice.");
+        app.State.ChangeAsync([SharpRail.Host.Abstractions.HostStateChange.PluginEnabled("codex", false)]).AsTask().GetAwaiter().GetResult();
         Until(() => !Find<Button>("Agent").IsVisible);
         dialog.Close();
         Console.WriteLine("PASS fork plugins/blueprint/blueprint.spec.ts: the Claude host is offered only once its plugin is on");
@@ -65,6 +71,7 @@ internal static class BlueprintStartChecks
             var home = app.Window.OpenProjectHomeAsync(project);
             Until(() => home.IsCompleted);
             home.GetAwaiter().GetResult();
+            Until(() => app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "ProjectDraftBlueprint"));
             app.Click(app.Find<Button>("ProjectDraftBlueprint"));
             Until(() => app.Window.OwnedWindows.Any(window => Equals(window.Tag, "BlueprintStart")));
             var dialog = app.Window.OwnedWindows.Single(window => Equals(window.Tag, "BlueprintStart"));
@@ -126,6 +133,7 @@ internal static class BlueprintStartChecks
             // blueprint.spec.ts: a takeover starts only from inside the project; an outside document is refused.
             var outside = project + "-outside.md";
             File.WriteAllText(outside, "# Outside\n");
+            Until(() => app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "ProjectDraftBlueprint"));
             app.Click(app.Find<Button>("ProjectDraftBlueprint"));
             Until(() => app.Window.OwnedWindows.Any(window => Equals(window.Tag, "BlueprintStart")));
             dialog = app.Window.OwnedWindows.Single(window => Equals(window.Tag, "BlueprintStart"));
@@ -144,9 +152,16 @@ internal static class BlueprintStartChecks
             home = app.Window.OpenProjectHomeAsync(project);
             Until(() => home.IsCompleted);
             home.GetAwaiter().GetResult();
+            Until(() => app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "ProjectDraftBlueprint"));
             app.Click(app.Find<Button>("ProjectDraftBlueprint"));
             Until(() => app.Window.OwnedWindows.Any(window => Equals(window.Tag, "BlueprintStart")));
             dialog = app.Window.OwnedWindows.Single(window => Equals(window.Tag, "BlueprintStart"));
+            var codexLaunches = new List<LauncherCommandOptions>();
+            app.Workbench.PluginRegistry.AddLauncher("codex-fixture", new("codex", "Codex fixture", "terminal", options => { codexLaunches.Add(options); launches.Add(options); return ":"; }, () => new(true)));
+            Until(() => Find<ComboBox>("AgentChoice").IsVisible);
+            Require(Find<ComboBox>("AgentChoice").SelectedIndex == 0, "Claude remains the default when both launchers are registered.");
+            Find<ComboBox>("AgentChoice").SelectedIndex = 1;
+            Require(Find<TextBlock>("AgentLabel").Text == "Codex fixture", "Selecting Codex updates the author chip.");
             app.Click(Find<RadioButton>("Product"));
             app.Click(Find<Button>("BlueprintStart"));
             Until(() => !app.Window.OwnedWindows.Contains(dialog) && launches.Count == 1 &&
@@ -155,13 +170,14 @@ internal static class BlueprintStartChecks
             Until(() => snapshot.IsCompleted);
             var state = PluginJson.Convert<BlueprintChangedPayload>(snapshot.GetAwaiter().GetResult()).State;
             Require(!app.Window.AtProjectHome && app.Window.WorkspaceRoot == project && state is
-            { Source: BlueprintProduct, Author: BlueprintTerminalAuthor { TabKey: "blueprint-author" } },
+            { Source: BlueprintProduct, AgentId: BlueprintAgentId.Codex, Author: BlueprintTerminalAuthor { TabKey: "blueprint-author" } },
                 "Draft enters the project's Default workspace and records its visible terminal author through the remote host.");
-            Require(launches[0] is { InitialPrompt.Length: > 0, SystemPrompt.Length: > 0, ResumeSessionId: null },
+            Require(codexLaunches.Count == 1 && launches[0] is { InitialPrompt.Length: > 0, SystemPrompt.Length: > 0, ResumeSessionId: null },
                 "The initial author receives the Blueprint opening and system instructions, without a guessed resume session.");
             home = app.Window.OpenProjectHomeAsync(project);
             Until(() => home.IsCompleted);
             home.GetAwaiter().GetResult();
+            Until(() => app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "ProjectDraftBlueprint"));
             app.Click(app.Find<Button>("ProjectDraftBlueprint"));
             Until(() => app.Window.OwnedWindows.Any(window => Equals(window.Tag, "BlueprintStart")));
             dialog = app.Window.OwnedWindows.Single(window => Equals(window.Tag, "BlueprintStart"));
@@ -172,7 +188,7 @@ internal static class BlueprintStartChecks
             snapshot = app.Workbench.Plugins!.CallAsync(new("blueprint", BlueprintContract.Get.Name, new BlueprintScope(project), "start-check")).AsTask();
             Until(() => snapshot.IsCompleted);
             state = PluginJson.Convert<BlueprintChangedPayload>(snapshot.GetAwaiter().GetResult()).State;
-            Require(launches.Count == 1 && state is { Source: BlueprintProduct, Author: BlueprintTerminalAuthor { TabKey: "blueprint-author" } },
+            Require(launches.Count == 1 && state is { Source: BlueprintProduct, AgentId: BlueprintAgentId.Codex, Author: BlueprintTerminalAuthor { TabKey: "blueprint-author" } },
                 "Drafting again reopens the existing author and preserves its original source instead of starting the newly entered idea.");
             Console.WriteLine("PASS Blueprint start sources and remote document selection: host-file copy, retained selection on cancel, unchanged brief, and (fork blueprint.spec.ts) a takeover only from inside the project");
         }

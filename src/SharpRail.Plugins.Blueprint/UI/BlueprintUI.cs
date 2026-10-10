@@ -63,12 +63,11 @@ public sealed class BlueprintUI : PluginUIModule
             var busy = false;
             void Available()
             {
-                var launcher = context.Launchers().FirstOrDefault(candidate => candidate.Id == "claude");
-                fields.UpdateLauncher(launcher);
+                var launcher = fields.UpdateLaunchers(context.Launchers());
                 var availability = launcher?.Availability();
                 start.IsEnabled = !busy && fields.Source is not null && availability?.Available == true;
                 label.Text = busy ? "Starting…" : fields.Idea ? "Draft it" : "Take it over";
-                ToolTip.SetTip(start, availability?.Available == true ? null : availability?.Reason ?? "Enable the Claude Code plugin to author a blueprint in a terminal.");
+                ToolTip.SetTip(start, availability?.Available == true ? null : availability?.Reason ?? "Enable the Claude Code or Codex plugin to author a blueprint in a terminal.");
                 ToolTip.SetShowOnDisabled(start, true);
             }
             fields.Changed += Available;
@@ -84,7 +83,7 @@ public sealed class BlueprintUI : PluginUIModule
                     if (workspace is null) return;
                     var existing = (await context.RequestAsync(BlueprintContract.Get, new(workspace.Id))).State;
                     if (existing is not null) { store.Set(workspace.Id, existing); await opener.Open(workspace.Id); }
-                    else await opener.Start(workspace.Id, fields.Source ?? throw new InvalidOperationException("Choose what this blueprint starts from."));
+                    else await opener.Start(workspace.Id, fields.Source ?? throw new InvalidOperationException("Choose what this blueprint starts from."), fields.AgentId);
                     dialog.Close();
                 }
                 catch (Exception error) { context.Notify(PluginNotificationKind.Error, "Could not start the blueprint", error.Message); }

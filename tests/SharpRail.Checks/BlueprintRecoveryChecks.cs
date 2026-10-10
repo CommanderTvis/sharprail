@@ -20,6 +20,10 @@ internal static class BlueprintRecoveryChecks
 {
     internal static void Run(string root)
     {
+        Recover(root, "codex-recorded", "codex-session", agentId: BlueprintAgentId.Codex);
+        Recover(root, "codex-fresh", null, agentId: BlueprintAgentId.Codex);
+        Recover(root, "codex-remote-recorded", "codex-remote-session", remote: true, agentId: BlueprintAgentId.Codex);
+        Recover(root, "codex-remote-fresh", null, remote: true, agentId: BlueprintAgentId.Codex);
         Recover(root, "recorded", "recorded-session");
         Recover(root, "fresh", null);
         Recover(root, "retry", "retry-session", failFirst: true);
@@ -28,7 +32,7 @@ internal static class BlueprintRecoveryChecks
         Recover(root, "remote-retry", "remote-retry-session", failFirst: true, remote: true);
     }
 
-    private static void Recover(string root, string name, string? session, bool failFirst = false, bool remote = false)
+    private static void Recover(string root, string name, string? session, bool failFirst = false, bool remote = false, BlueprintAgentId agentId = BlueprintAgentId.Claude)
     {
         var project = Path.Combine(root, "blueprint-recovery-" + name);
         Directory.CreateDirectory(project);
@@ -43,7 +47,7 @@ internal static class BlueprintRecoveryChecks
             Until(() => app.Window.WorkspaceMounted && app.Workbench.PluginRegistry.Active.Contains("blueprint"));
             var commands = new List<LauncherCommandOptions>();
             var attempts = 0;
-            app.Workbench.PluginRegistry.AddLauncher("fixture", new("claude", "Claude Code", "terminal", options =>
+            app.Workbench.PluginRegistry.AddLauncher("fixture", new(agentId == BlueprintAgentId.Codex ? "codex" : "claude", "Fixture author", "terminal", options =>
             {
                 attempts++;
                 if (failFirst && attempts == 1) throw new InvalidOperationException("Fixture author launch refused.");
@@ -56,7 +60,7 @@ internal static class BlueprintRecoveryChecks
                 Until(() => task.IsCompleted);
                 return PluginJson.Convert<T>(task.GetAwaiter().GetResult());
             }
-            Call<BlueprintOpen, BlueprintOpened>(BlueprintContract.Open, new(project, new BlueprintProduct(), BlueprintAgentId.Claude));
+            Call<BlueprintOpen, BlueprintOpened>(BlueprintContract.Open, new(project, new BlueprintProduct(), agentId));
             Call<BlueprintSetAuthor, BlueprintAck>(BlueprintContract.SetAuthor, new(project, new BlueprintTerminalAuthor("missing-author", session)));
             var opening = app.Window.OpenDocumentAsync(BlueprintContract.File, true);
             Until(() => opening.IsCompleted);
@@ -85,6 +89,7 @@ internal static class BlueprintRecoveryChecks
                 var state = Call<BlueprintScope, BlueprintChangedPayload>(BlueprintContract.Get, new(project)).State;
                 Require(state?.Author is BlueprintTerminalAuthor { TabKey: "blueprint-author" }, "Fresh recovery records the terminal as the Blueprint author.");
             }
+            Require(Call<BlueprintScope, BlueprintChangedPayload>(BlueprintContract.Get, new(project)).State?.AgentId == agentId, "Recovery preserves the selected agent identity.");
             Require(File.ReadAllText(Path.Combine(project, BlueprintContract.File)).Contains("Keep the current document.", StringComparison.Ordinal),
                 "Author recovery preserves the existing Blueprint document.");
             var reopen = app.Window.OpenDocumentAsync(BlueprintContract.File, true);

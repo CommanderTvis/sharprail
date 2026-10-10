@@ -15,7 +15,7 @@ public sealed record BlueprintProse(string Id, string Text) : BlueprintBlock(Id)
 public sealed record BlueprintControlBlock(string Id, BlueprintControl Control) : BlueprintBlock(Id);
 public sealed record BlueprintBlockLines(int StartLine, int EndLine);
 public sealed record BlueprintDoc(IReadOnlyList<BlueprintBlock> Blocks, string Frontmatter);
-public enum BlueprintAgentId { Pi, Claude }
+public enum BlueprintAgentId { Pi, Claude, Codex }
 
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "kind")]
 [JsonDerivedType(typeof(BlueprintIdea), "idea")]

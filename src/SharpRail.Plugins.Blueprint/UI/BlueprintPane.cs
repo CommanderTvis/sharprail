@@ -93,7 +93,7 @@ internal sealed partial class BlueprintPane : UserControl
                 ? "This workspace has no specification open. The host keeps one only while it is running."
                 : "The spec shows up here as soon as the agent writes it. All of it is yours to change.";
             document.Children.Add(Ui.Text(message, Ui.Muted));
-            if (awaiting && state?.Author is BlueprintTerminalAuthor)
+            if (awaiting && state?.AgentId == BlueprintAgentId.Claude && state.Author is BlueprintTerminalAuthor)
                 document.Children.Add(Ui.Text("Claude Code asks to trust the folder on first run. It is the new, empty folder for this spec — answer Yes, I trust this folder in the terminal.", Ui.Muted));
             return;
         }

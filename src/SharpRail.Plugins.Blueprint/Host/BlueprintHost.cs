@@ -28,8 +28,8 @@ public sealed class BlueprintHost : PluginHostModule
 
         context.Method(BlueprintContract.Open, async (parameters, _, ct) =>
         {
-            if (parameters.AgentId != BlueprintAgentId.Claude)
-                throw new InvalidOperationException("Blueprint authoring uses a Claude Code terminal in SharpRail.");
+            if (parameters.AgentId is not (BlueprintAgentId.Claude or BlueprintAgentId.Codex))
+                throw new InvalidOperationException("Blueprint authoring uses a Claude Code or Codex terminal in SharpRail.");
             var workspace = await context.WorkspaceAsync(parameters.WorkspaceId, ct)
                 ?? throw new InvalidOperationException($"Unknown workspace: {parameters.WorkspaceId}");
             await context.WatchWorkspaceAsync(parameters.WorkspaceId, ct);

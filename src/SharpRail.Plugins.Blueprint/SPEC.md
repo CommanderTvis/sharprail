@@ -12,10 +12,10 @@ tags: [v1, plugins, blueprint]
 
 Port the fork's `packages/plugin-blueprint` at `b2a6c75a6`. A blueprint is a Markdown
 file at the workspace root, `BLUEPRINT.md`, whose real design decisions render as
-editable controls. Its author is an interactive Claude Code terminal beside the
+editable controls. Its author is an interactive Claude Code or Codex terminal beside the
 document. The host writes reader changes and tells that author to reconcile the rest.
 Pi and bundled AI chat remain outside SharpRail's scope. Their contract vocabulary
-can be read from old records, but authoring starts a visible Claude Code terminal.
+can be read from old records, but authoring starts a visible Claude Code or Codex terminal.
 
 ## Boundary
 
@@ -87,11 +87,15 @@ project action works from Project Home. Sources are An idea, This project and A
 document. Changing sources retains the idea text and selected document. Cancelling
 the document picker preserves any previous selection. Remote document selection asks
 for a file on the host, with file-specific title, explanation and confirm action.
-The selected agent chip comes from the registered `claude` launcher's label and icon
-factory. It is absent when no launcher is registered and updates its disabled state
+The author selector offers registered `claude` and `codex` launchers; Claude Code is
+the default when both are available, and Codex is selected when it is the only launcher.
+The selected agent chip comes from its launcher's label and icon factory. It is absent
+when no launcher is registered and updates its disabled state
 and reason when the launcher invalidates. Removing and restoring a launcher mounts a
-fresh icon; availability changes retain it. Pi/chat is excluded, so Claude is the sole
-author choice. Entering the project's Default workspace and checking for an existing
+fresh icon; availability changes retain it. Pi/chat is excluded. The chosen agent is
+persisted and used for fresh recovery and exact recorded-session resumption; recovery
+never sends a Codex session to Claude or vice versa. Entering the project's Default
+workspace and checking for an existing
 blueprint precede starting a new author. The start button reads `Draft it` for an idea,
 `Take it over` for the project or a document, and `Starting…` while it runs. A refused
 start, such as a document outside the project, is a `Could not start the blueprint`
@@ -103,8 +107,8 @@ Default workspace; it does not create a separate Blueprint session in the linked
 Opening `BLUEPRINT.md` redirects to its author/companion. Restored detached viewer tabs
 close and redirect too. Existing catalog terminals are opened visibly; missing ones
 resume only through a recorded agent session and the launcher's resume command. If
-recovery is unavailable, start a fresh visible Claude author with the existing-file
-instructions. Never guess a `--continue` session or silently show a detached viewer.
+there is no recorded session, start a fresh visible author of the recorded agent with
+the existing-file instructions. A missing launcher reports which plugin to enable. Never guess a `--continue` session or silently show a detached viewer.
 Raw source is an explicit action inside the companion.
 
 The companion hydrates the keyed state, follows file changes and reports reader
@@ -145,5 +149,7 @@ Recovery coverage through the in-process host and a real gRPC host checks exact
 recorded-session launch options, fresh recovery without a session, companion visibility,
 preserved documents and reuse of the author on reopening. A launcher failure reports its actual
 error and releases the pending opening so a second file-open can retry exactly once.
+Codex coverage checks the author choice, opening prompts, persisted identity, reader-edit
+delivery and fresh/recorded-session recovery through local and gRPC hosts.
 Run with `--blueprint`; the plugin and full runners also include these checks.
 Remaining acceptance gaps are tracked in `COMPLETION.md`.

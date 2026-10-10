@@ -15,6 +15,7 @@
       <Button x:Name="Pick" Content="Choose a document…" />
       <TextBlock x:Name="Path" Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
     </Grid>
+    <ComboBox x:Name="AgentChoice" HorizontalAlignment="Left" MinWidth="160" IsVisible="False" AutomationProperties.Name="Blueprint author" />
     <Button x:Name="Agent" HorizontalAlignment="Left" Padding="8,4" CornerRadius="4" IsVisible="False">
       <StackPanel Orientation="Horizontal" Spacing="6">
         <ContentControl x:Name="AgentIcon" Width="14" Height="14" VerticalAlignment="Center" />

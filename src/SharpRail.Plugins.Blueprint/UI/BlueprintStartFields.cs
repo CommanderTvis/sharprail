@@ -12,12 +12,25 @@ internal sealed partial class BlueprintStartFields : UserControl
     private readonly string project;
     private string? path;
     private AgentLauncher? shownLauncher;
+    private AgentLauncher[] launchers = [];
+    private bool updatingLaunchers;
+    public BlueprintAgentId AgentId { get; private set; } = BlueprintAgentId.Claude;
     public event Action? Changed;
 
     public BlueprintStartFields(IPluginUIContext context, string project)
     {
         AvaloniaXamlLoader.Load(this);
         this.context = context; this.project = project;
+        this.FindControl<ComboBox>("AgentChoice")!.SelectionChanged += (_, _) =>
+        {
+            if (updatingLaunchers) return;
+            if (this.FindControl<ComboBox>("AgentChoice")!.SelectedIndex is var index && index >= 0 && index < launchers.Length)
+            {
+                AgentId = launchers[index].Id == "codex" ? BlueprintAgentId.Codex : BlueprintAgentId.Claude;
+                UpdateLauncher(launchers[index]);
+                Changed?.Invoke();
+            }
+        };
         this.FindControl<RadioButton>("Idea")!.IsCheckedChanged += (_, _) => Render();
         this.FindControl<RadioButton>("Product")!.IsCheckedChanged += (_, _) => Render();
         this.FindControl<RadioButton>("Spec")!.IsCheckedChanged += (_, _) => Render();
@@ -43,7 +56,27 @@ internal sealed partial class BlueprintStartFields : UserControl
 
     public bool Idea => this.FindControl<RadioButton>("Idea")!.IsChecked == true;
 
-    public void UpdateLauncher(AgentLauncher? launcher)
+    public AgentLauncher? UpdateLaunchers(IEnumerable<AgentLauncher> registered)
+    {
+        var next = registered.Where(launcher => launcher.Id is "claude" or "codex").OrderBy(launcher => launcher.Id == "claude" ? 0 : 1).ToArray();
+        var selected = next.FirstOrDefault(launcher => launcher.Id == BlueprintOpener.LauncherId(AgentId))
+            ?? next.FirstOrDefault(launcher => launcher.Availability().Available) ?? next.FirstOrDefault();
+        if (selected is not null) AgentId = selected.Id == "codex" ? BlueprintAgentId.Codex : BlueprintAgentId.Claude;
+        var choice = this.FindControl<ComboBox>("AgentChoice")!;
+        updatingLaunchers = true;
+        if (!launchers.SequenceEqual(next))
+        {
+            launchers = next;
+            choice.ItemsSource = next.Select(launcher => launcher.Label).ToArray();
+        }
+        choice.IsVisible = next.Length > 1;
+        choice.SelectedIndex = selected is null ? -1 : Array.IndexOf(next, selected);
+        updatingLaunchers = false;
+        UpdateLauncher(selected);
+        return selected;
+    }
+
+    private void UpdateLauncher(AgentLauncher? launcher)
     {
         var agent = this.FindControl<Button>("Agent")!;
         agent.IsVisible = launcher is not null;
