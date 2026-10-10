@@ -272,6 +272,7 @@ Run checks with `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Re
 `-- --ghostty-skia` runs focused Skia input, pixel, PTY and renderer Settings checks.
 `-- --native-texture` checks GPU texture composition, input and local/remote renderer switching in a real macOS window.
 `-- --sync` runs the multi-window and multi-client translations.
+`-- --shared-terminals` runs the two-client terminal sharing, watching and take-over checks alone.
 `-- --notifications` runs the away-notification checks with a recording notifier; no check posts a real one.
 `-- --registry` runs the workspace registry host parity checks and the external-workspace rail checks.
 `-- --documents` runs the resource-renderer checks and the translations that open file and diff bodies.

@@ -51,7 +51,9 @@ terminal.Write(output.Span);
 ```
 
 The caller owns PTY startup, lifetime, reconnects and ordered asynchronous writes.
-Wait for layout before starting the PTY at `Size`. Use `FocusTerminal()` when
+Wait for layout before starting the PTY at `Size`. Set `FixedGrid` to show a program
+whose size another viewer decides: the control then measures to exactly that grid
+instead of fitting one, so its parent scrolls or clips it. Use `FocusTerminal()` when
 activating a tab. Dispose the control on the UI thread when releasing the view.
 `Write`, appearance changes and input operations also belong on the UI thread.
 A supplied `SKTypeface` remains caller-owned and must outlive the control.

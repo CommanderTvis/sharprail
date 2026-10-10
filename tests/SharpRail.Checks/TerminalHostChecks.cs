@@ -53,6 +53,7 @@ internal static partial class TerminalHostChecks
             await Exercise(new LocalTerminalAdapter(local), workspace, "local");
             await Sessions(new LocalTerminalAdapter(local), workspace, "local");
             await Yielding(new LocalTerminalAdapter(local), workspace, "local");
+            await Watching(new LocalTerminalAdapter(local), workspace, "local");
             await LiveInputModes(new LocalTerminalAdapter(local), workspace, "local");
             var state = new HostStateStore(null) { Terminals = local };
             await ProjectClosure(new LocalTerminalAdapter(local), new LocalStateAdapter(state), workspace, "local", state);
@@ -76,6 +77,7 @@ internal static partial class TerminalHostChecks
                 await Exercise(remote, workspace, "remote");
                 await Sessions(remote, workspace, "remote");
                 await Yielding(remote, workspace, "remote");
+                await Watching(remote, workspace, "remote");
                 await LiveInputModes(remote, workspace, "remote");
                 using var state = new RemoteStateAdapter(address, "terminal-token");
                 await ProjectClosure(remote, state, workspace, "remote");
@@ -375,6 +377,78 @@ internal static partial class TerminalHostChecks
         Require(!free.Created && !free.Detached.IsCompleted, $"{mode}: a yielding attach must join a session its holder left.");
         await terminals.CloseAsync(id);
         Console.WriteLine($"PASS host terminal yielding ({mode}): a held session keeps its client and size, a free one is joined, takeover resizes");
+    }
+
+    // Any number of clients watch a held session live without driving it; a take-over swaps the roles and the grid.
+    private static async Task Watching(ITerminalService terminals, string workspace, string mode)
+    {
+        const string size = "echo \"SIZE_$(stty size | tr ' ' x)_{0}\"";
+        var watch = new TerminalAttachRequest("", workspace, "", 61, 17) { Yield = true, Watch = true };
+        var id = mode + "-watch-" + Guid.NewGuid().ToString("N");
+        var holder = await terminals.AttachAsync(new(id, workspace, "window-a", 100, 30));
+        var a = new Screen(holder);
+        await a.Run("printf 'BEFORE_%s\\n' WATCH");
+        await a.WaitFor("BEFORE_WATCH", mode);
+        await using var watching = await terminals.AttachAsync(watch with { SessionId = id, ClientId = "window-b" });
+        Require(watching is { Watching: true, Created: false, Grid: (100, 30), Prefill: null } && !watching.Detached.IsCompleted &&
+            Count(Encoding.UTF8.GetString(watching.Replay.Span), "BEFORE_WATCH") == 1, $"{mode}: a watching attach must receive the held session's screen and grid.");
+        var b = new Screen(watching);
+        await using var stalled = await terminals.AttachAsync(watch with { SessionId = id, ClientId = "window-c" });
+        await watching.ResizeAsync(40, 10);
+        await watching.WriteAsync(Encoding.UTF8.GetBytes("printf 'GHOST_%s\\n' WATCHER\r"));
+        await watching.KillAsync();
+        await a.Run(string.Format(size, "HELD"));
+        await a.WaitFor("SIZE_30x100_HELD", mode);
+        await b.WaitFor("SIZE_30x100_HELD", mode);
+        Require(!holder.Detached.IsCompleted && !holder.Exit.IsCompleted && !a.Text.Contains("GHOST_WATCHER", StringComparison.Ordinal),
+            $"{mode}: a watcher must see live output without detaching, resizing, driving or ending the held session.");
+
+        // Nobody reads the third attachment: the shell, its holder and the other watcher go on regardless.
+        await a.Run("head -c 3000000 /dev/zero | tr '\\0' x; printf 'FLOOD_%s\\n' DONE");
+        await a.WaitFor("FLOOD_DONE", mode);
+        await b.WaitFor("FLOOD_DONE", mode);
+        var c = new Screen(stalled);
+        await a.Run("printf 'AFTER_%s\\n' STALL");
+        await c.WaitFor("AFTER_STALL", mode);
+        // The transport's own windows may hold a remote watcher's whole flood; the host's bound is the local one.
+        Require(mode != "local" || c.Text.Contains("\x1bc", StringComparison.Ordinal) && c.Text.Length < Attachment.BacklogBytes,
+            $"{mode}: a watcher that fell behind must start over from a fresh screen, not receive the backlog ({c.Text.Length} characters).");
+
+        await using var taker = await terminals.AttachAsync(new(id, workspace, "window-b", 61, 17));
+        var t = new Screen(taker);
+        await holder.Detached.WaitAsync(TimeSpan.FromSeconds(10));
+        await using var was = await terminals.AttachAsync(watch with { SessionId = id, ClientId = "window-a", Columns = 100, Rows = 30 });
+        Require(was is { Watching: true, Grid: (61, 17) } && !taker.Watching, $"{mode}: after a take-over the previous holder must watch the session at the new holder's grid.");
+        var w = new Screen(was);
+        await t.Run(string.Format(size, "TAKEN"));
+        await t.WaitFor("SIZE_17x61_TAKEN", mode);
+        await w.WaitFor("SIZE_17x61_TAKEN", mode);
+        await Until(() => Task.FromResult(watching.Grid == (61, 17)), mode + " a watcher learns the grid of a take-over");
+        await taker.ResizeAsync(90, 20);
+        await Until(() => Task.FromResult(watching.Grid == (90, 20) && was.Grid == (90, 20)), mode + " watchers follow the holder's resize without output");
+
+        var seen = was.Position;
+        await was.DisposeAsync();
+        await t.Run("printf 'MISSED_%s\\n' WATCH");
+        await t.WaitFor("MISSED_WATCH", mode);
+        await using var resumed = await terminals.AttachAsync(watch with { SessionId = id, ClientId = "window-a", Offset = seen });
+        var r = new Screen(resumed);
+        await r.WaitFor("MISSED_WATCH", mode);
+        Require(resumed.Watching && !taker.Detached.IsCompleted && Count(r.Text, "MISSED_WATCH") == 1 && !r.Text.Contains("SIZE_17x61_TAKEN", StringComparison.Ordinal),
+            $"{mode}: a watcher's resume must keep watching and replay only what it missed. Screen: {r.Text}");
+
+        await t.Run("exit 3");
+        Require(await watching.Exit.WaitAsync(TimeSpan.FromSeconds(10)) == 3 && await resumed.Exit.WaitAsync(TimeSpan.FromSeconds(10)) == 3 &&
+            await taker.Exit.WaitAsync(TimeSpan.FromSeconds(10)) == 3, $"{mode}: the shell's exit must reach its holder and every watcher.");
+        await b.Completed.WaitAsync(TimeSpan.FromSeconds(10));
+        await using var late = await terminals.AttachAsync(watch with { SessionId = id, ClientId = "window-d" });
+        var l = new Screen(late);
+        Require(await late.Exit.WaitAsync(TimeSpan.FromSeconds(10)) == 3, $"{mode}: watching an exited session must report its exit.");
+        await l.Completed;
+        Require(l.Text.Contains("MISSED_WATCH", StringComparison.Ordinal), $"{mode}: watching an exited session must show its final screen.");
+        await holder.DisposeAsync();
+        await terminals.CloseAsync(id);
+        Console.WriteLine($"PASS host terminal watching ({mode}): watchers get the screen, live output and the holder's grid, drive nothing, a stalled one holds nobody back and starts over, take-over swaps roles and size, resume and exit reach watchers");
     }
 
     // A remote session reconnects through a severed connection and resumes without duplicating output,

@@ -62,6 +62,12 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
 
     public TerminalSize Size { get; private set; } = new(80, 24);
 
+    /// <summary>
+    /// A grid decided elsewhere, such as by the program's other viewer: the control then measures to exactly
+    /// that many cells instead of fitting its grid to the space it is given. Null fits, the default.
+    /// </summary>
+    public TerminalSize? FixedGrid { get; set { field = value; Relayout(); } }
+
     /// <summary>A caller-owned grid face used for every style; null uses <see cref="FontFamily"/>. Characters it lacks fall back to system fonts.</summary>
     public SKTypeface? Typeface
     {
@@ -154,6 +160,8 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
     protected override Size MeasureOverride(Size availableSize)
     {
         var cells = Fonts();
+        if (FixedGrid is { } grid)
+            return new Size(grid.Columns * cells.CellWidth + Padding.Left + Padding.Right, grid.Rows * cells.CellHeight + Padding.Top + Padding.Bottom);
         double width = double.IsInfinity(availableSize.Width) ? 80 * cells.CellWidth + Padding.Left + Padding.Right : availableSize.Width;
         double height = double.IsInfinity(availableSize.Height) ? 24 * cells.CellHeight + Padding.Top + Padding.Bottom : availableSize.Height;
         return new Size(width, height);
@@ -163,7 +171,7 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
     {
         var cells = Fonts();
         var scale = fontKey.Scale;
-        var size = new TerminalSize(
+        var size = FixedGrid ?? new TerminalSize(
             Math.Max(1, (int)((finalSize.Width - Padding.Left - Padding.Right) / cells.CellWidth)),
             Math.Max(1, (int)((finalSize.Height - Padding.Top - Padding.Bottom) / cells.CellHeight)));
         var pixels = (Width: (int)Math.Round(cells.CellWidth * scale), Height: (int)Math.Round(cells.CellHeight * scale));

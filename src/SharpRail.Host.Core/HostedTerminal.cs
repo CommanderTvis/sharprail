@@ -5,14 +5,16 @@ using SharpRail.Host.Abstractions;
 
 namespace SharpRail.Host.Core;
 
-// A shell and its recent output, independent of the clients that view it. At most one attachment
-// receives output and drives the shell; a new attachment from another client takes it over.
+// A shell and its recent output, independent of the clients that view it. At most one attachment holds the
+// shell: it drives it and decides its grid, and a new attachment from another client takes it over. Any number
+// of others watch: they receive the same output and drive nothing.
 internal sealed class HostedTerminal
 {
     private const int RedrawRestoreMilliseconds = 50;
     private readonly Lock gate = new();
     private readonly TerminalRecorder recorder;
     private Attachment? current;
+    private readonly List<Attachment> watchers = [];
     private string? client;
     private int? exitCode;
     private (int Columns, int Rows) grid;
@@ -41,7 +43,8 @@ internal sealed class HostedTerminal
                 lock (gate)
                 {
                     recorder.Push(chunk.Span);
-                    current?.Deliver(chunk, recorder.Position);
+                    current?.Deliver(chunk, recorder.Position, grid);
+                    foreach (var watcher in watchers) watcher.Deliver(chunk, recorder.Position, grid);
                 }
         }
         catch (Exception) { }
@@ -50,6 +53,8 @@ internal sealed class HostedTerminal
         {
             exitCode = code;
             current?.Finish(code);
+            foreach (var watcher in watchers) watcher.Finish(code);
+            watchers.Clear();
         }
     }
 
@@ -59,12 +64,19 @@ internal sealed class HostedTerminal
     {
         lock (gate)
         {
-            // A resuming client that lost the session to another client must not take it back.
-            if (request.Resume && client != request.ClientId) return Attachment.Displaced(this, Process.Id, recorder.Position);
             // A yielding attach leaves the session with the client that holds it, and its grid with it.
-            if (request.Yield && current is not null && client != request.ClientId) return Attachment.Displaced(this, Process.Id, recorder.Position);
+            var held = request.Yield && current is not null && client != request.ClientId;
+            if (request.Watch && (request.Resume || held))
+            {
+                var watcher = new Attachment(this, Process.Id, false, request.Resume ? recorder.From(request.Offset) ?? Reset() : Fresh(), recorder.Position, grid, watching: true);
+                if (exitCode is { } ended) watcher.Finish(ended);
+                else watchers.Add(watcher);
+                return watcher;
+            }
+            // A resuming client that lost the session to another client must not take it back.
+            if (held || request.Resume && client != request.ClientId) return Attachment.Displaced(this, Process.Id, recorder.Position, grid);
             var replay = request.Resume ? recorder.From(request.Offset) ?? Fresh() : Fresh();
-            var attachment = new Attachment(this, Process.Id, created, replay, recorder.Position) { Prefill = prefill };
+            var attachment = new Attachment(this, Process.Id, created, replay, recorder.Position, grid) { Prefill = prefill };
             var previous = current;
             current = attachment; client = request.ClientId;
             previous?.Displace();
@@ -76,6 +88,19 @@ internal sealed class HostedTerminal
     }
 
     private byte[] Fresh() => exitCode is null ? [.. recorder.Snapshot(), .. recorder.LiveModes()] : recorder.Snapshot();
+
+    // A view that already shows older output starts over: a full terminal reset, then the snapshot.
+    private byte[] Reset() => [.. "\x1bc"u8, .. Fresh()];
+
+    // What a watcher that fell behind reads next, and from where its live output continues.
+    internal (ReadOnlyMemory<byte> Data, long End, (int Columns, int Rows) Grid) Resynchronise(Attachment watcher)
+    {
+        lock (gate)
+        {
+            watcher.Behind = false;
+            return (Reset(), recorder.Position, grid);
+        }
+    }
 
     // A fresh view needs the foreground program to repaint. Resizing to the same grid sends no SIGWINCH,
     // so it narrows the grid briefly and restores it later, as upstream does.
@@ -97,11 +122,14 @@ internal sealed class HostedTerminal
     {
         try { Process.ResizeAsync(columns, rows).AsTask().GetAwaiter().GetResult(); }
         catch (Exception error) when (error is IOException or ObjectDisposedException) { return; }
-        if (track) grid = (columns, rows);
+        if (!track) return;
+        grid = (columns, rows);
+        foreach (var watcher in watchers) watcher.Deliver(default, recorder.Position, grid);
     }
 
     private bool Drives(Attachment attachment)
     {
+        if (attachment.Watching) return false;
         lock (gate)
         {
             if (ReferenceEquals(current, attachment)) return true;
@@ -129,7 +157,10 @@ internal sealed class HostedTerminal
     internal void Detach(Attachment attachment)
     {
         lock (gate)
+        {
             if (ReferenceEquals(current, attachment)) current = null;
+            else watchers.Remove(attachment);
+        }
     }
 }
 
@@ -139,40 +170,58 @@ internal sealed class Attachment : ITerminalSession
     // fetch is held twice.
     internal const int BacklogBytes = TerminalRecorder.ResumeBytes;
     private readonly HostedTerminal terminal;
-    // Not single-reader: delivery drops the oldest chunks itself when the reader falls behind.
-    private readonly Channel<(ReadOnlyMemory<byte> Data, long End)> output = Channel.CreateUnbounded<(ReadOnlyMemory<byte>, long)>();
-    private long backlog;
+    // Not single-reader: delivery drops the oldest chunks itself when the reader falls behind. An item without
+    // data and without a grid marks where a watcher that fell behind resynchronises.
+    private readonly Channel<(ReadOnlyMemory<byte> Data, long End, (int Columns, int Rows) Grid)> output =
+        Channel.CreateUnbounded<(ReadOnlyMemory<byte>, long, (int, int))>();
+    private long backlog, grid;
     private readonly TaskCompletionSource<int> exit = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TaskCompletionSource detached = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private int reading, disposed;
     private long position;
 
-    internal Attachment(HostedTerminal terminal, string id, bool created, byte[] replay, long position)
+    internal Attachment(HostedTerminal terminal, string id, bool created, byte[] replay, long position, (int Columns, int Rows) grid, bool watching = false)
     {
-        this.terminal = terminal; Id = id; Created = created; Replay = replay; this.position = position;
+        this.terminal = terminal; Id = id; Created = created; Replay = replay; this.position = position; Watching = watching;
+        this.grid = Pack(grid);
     }
 
-    internal static Attachment Displaced(HostedTerminal terminal, string id, long position)
+    internal static Attachment Displaced(HostedTerminal terminal, string id, long position, (int Columns, int Rows) grid)
     {
-        var attachment = new Attachment(terminal, id, false, [], position);
+        var attachment = new Attachment(terminal, id, false, [], position, grid);
         attachment.Displace();
         return attachment;
     }
 
     public string Id { get; }
     public bool Created { get; }
+    public bool Watching { get; }
+    public (int Columns, int Rows) Grid => ((int)(Interlocked.Read(ref grid) >> 32), (int)Interlocked.Read(ref grid));
+    // Set and cleared under the terminal's output lock: nothing is queued until the reader resynchronises.
+    internal bool Behind { get; set; }
     public ReadOnlyMemory<byte> Replay { get; }
     public long Position => Interlocked.Read(ref position);
     public Task<int> Exit => exit.Task;
     public Task Detached => detached.Task;
     public TerminalPrefill? Prefill { get; init; }
 
-    // Called under the terminal's output lock. A reader that cannot keep up loses the oldest output, never the
-    // newest, and the host never holds more than the backlog for it; positions still advance past the gap.
-    internal void Deliver(ReadOnlyMemory<byte> chunk, long end)
+    private static long Pack((int Columns, int Rows) grid) => (long)grid.Columns << 32 | (uint)grid.Rows;
+
+    // Called under the terminal's output lock, and never waits for the reader. A holder that cannot keep up
+    // loses the oldest output, never the newest, and the host never holds more than the backlog for it;
+    // positions still advance past the gap. A watcher that cannot keep up loses everything queued and, once
+    // it reads again, starts over from a snapshot taken then, so a stalled one costs nothing meanwhile.
+    internal void Deliver(ReadOnlyMemory<byte> chunk, long end, (int Columns, int Rows) grid)
     {
-        if (!output.Writer.TryWrite((chunk, end))) return;
+        if (Behind || !output.Writer.TryWrite((chunk, end, grid))) return;
         var queued = Interlocked.Add(ref backlog, chunk.Length);
+        if (queued <= BacklogBytes) return;
+        if (Watching)
+        {
+            while (output.Reader.TryRead(out var dropped)) Interlocked.Add(ref backlog, -dropped.Data.Length);
+            Behind = output.Writer.TryWrite(default);
+            return;
+        }
         while (queued > BacklogBytes && output.Reader.TryRead(out var dropped))
             queued = Interlocked.Add(ref backlog, -dropped.Data.Length);
     }
@@ -193,10 +242,12 @@ internal sealed class Attachment : ITerminalSession
     public async IAsyncEnumerable<ReadOnlyMemory<byte>> ReadAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         if (Interlocked.Exchange(ref reading, 1) != 0) throw new InvalidOperationException("A terminal session has a single reader.");
-        await foreach (var (data, end) in output.Reader.ReadAllAsync(cancellationToken))
+        await foreach (var item in output.Reader.ReadAllAsync(cancellationToken))
         {
-            Interlocked.Add(ref backlog, -data.Length);
+            var (data, end, size) = item.Grid == default ? terminal.Resynchronise(this) : item;
+            if (item.Grid != default) Interlocked.Add(ref backlog, -data.Length);
             Interlocked.Exchange(ref position, end);
+            Interlocked.Exchange(ref grid, Pack(size));
             yield return data;
         }
     }

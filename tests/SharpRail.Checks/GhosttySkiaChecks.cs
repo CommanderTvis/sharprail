@@ -63,6 +63,7 @@ internal static class GhosttySkiaChecks
         CheckIncrementalRendering();
         SkiaOutputChecks.Run(root);
         CheckSession(root);
+        CheckWatching(root);
         CheckRendererSetting(root);
         TerminalHostChecks.ReplaySetting(root);
         Console.WriteLine("PASS Skia terminal renderer: libghostty-vt cells, colours, wide/combining text, box drawing, cursor, keyboard and mouse encoding, paste, selection, scrollback, resize, touch and soft-keyboard input, and a host PTY session that survives a renderer restart");
@@ -392,17 +393,17 @@ internal static class GhosttySkiaChecks
             var other = Task.Run(async () => await app.Terminals.AttachAsync(new(view.SessionId, directory, "renderer-other-client", 80, 24))).GetAwaiter().GetResult();
             try
             {
-                E2E.E2eWorkspace.Until(() => view.IsDetached);
+                E2E.E2eWorkspace.Until(() => view.IsWatching);
                 var displaced = view.Backend;
                 app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "TerminalRenderer_skia"));
                 E2E.E2eWorkspace.Settle();
-                Require(view.IsDetached && view.Backend == displaced && !other.Detached.IsCompleted,
+                Require(view.IsWatching && view.Backend == displaced && !other.Detached.IsCompleted,
                     "changing the renderer took a displaced terminal back from another client.");
             }
             finally { Task.Run(async () => await other.DisposeAsync()).GetAwaiter().GetResult(); }
         }
         finally { settings.Close(); }
-        Console.WriteLine("PASS terminal renderer Settings: pointer selection persists both choices, preserves shells and leaves displaced clients detached");
+        Console.WriteLine("PASS terminal renderer Settings: pointer selection persists both choices, preserves shells and leaves displaced clients watching");
     }
 
     // A real host shell behind the Skia backend: output, input and grid size, then a restart keeps the shell.
@@ -447,6 +448,61 @@ internal static class GhosttySkiaChecks
         static string PidOf(string screen) =>
             screen.Split('\n').Select(line => line.Trim()).LastOrDefault(line => line.StartsWith("PID_", StringComparison.Ordinal) && line.Length > 4 && char.IsDigit(line[4]))
             ?? throw new InvalidOperationException("Skia terminal: no shell PID on screen: " + screen);
+    }
+
+    // The Skia view of a terminal another client holds: the holder's grid whatever the pane's size, its live
+    // output, and nothing sent back, neither keys nor the reply to a terminal query; Enter on its offer takes over.
+    private static void CheckWatching(string root)
+    {
+        var pty = new PtyTerminalService("/bin/sh");
+        var terminals = new LocalTerminalAdapter(pty);
+        var id = "skia-watch-" + Guid.NewGuid().ToString("N");
+        var holder = Task.Run(async () => await terminals.AttachAsync(new(id, root, "skia-holder", 132, 43))).GetAwaiter().GetResult();
+        var held = new StringBuilder();
+        _ = Task.Run(async () => { await foreach (var chunk in holder.ReadAsync()) lock (held) held.Append(Encoding.UTF8.GetString(chunk.Span)); });
+        void Run(string command) => Task.Run(async () => await holder.WriteAsync(Encoding.UTF8.GetBytes(command + "\r"))).GetAwaiter().GetResult();
+        var terminal = new TerminalView(TerminalBackends.Ghostty(terminals, () => TerminalRenderers.Skia),
+            new TerminalLaunch(root, id, Path.Combine(root, ".clipboard"), "skia-watcher") { Yield = true });
+        var window = new Window { Width = 420, Height = 300, Content = terminal };
+        window.Show(); Pump();
+        try
+        {
+            GhosttySkiaView View() => terminal.Backend!.View.GetVisualDescendants().OfType<GhosttySkiaView>().Single();
+            Until(() => terminal.IsWatching, "the watching view attached");
+            Until(() => View().Size == new TerminalSize(132, 43), "the holder's grid on the watching view");
+            var scroller = terminal.GetVisualDescendants().OfType<ScrollViewer>().Single(viewer => viewer.Name == "TerminalWatched");
+            Require(View().Bounds.Width > scroller.Viewport.Width && scroller.Extent.Width >= View().Bounds.Width && !View().Focusable && !View().IsHitTestVisible,
+                "a watched terminal larger than its pane must keep the holder's grid, scroll, and take no input.");
+            Run("printf 'WATCH_%s_\\n' $((6*7)); printf '\\033[6n'");
+            Until(() => View().ReadScreen().Contains("WATCH_42_", StringComparison.Ordinal), "live output on the watching view");
+            terminal.FocusTerminal(); Pump();
+            var offer = terminal.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "TerminalTakeBack");
+            Require(offer.IsFocused, "a watched terminal's keyboard focus must be its offer.");
+            window.KeyTextInput("echo GHOST_$((40+2))"); Pump();
+            Task.Run(async () => await holder.ResizeAsync(100, 20)).GetAwaiter().GetResult();
+            Until(() => View().Size == new TerminalSize(100, 20), "the holder's resize on the watching view");
+            Run("printf 'AFTER_%s_\\n' \"$(stty size | tr ' ' x)\"");
+            Until(() => View().ReadScreen().Contains("AFTER_20x100_", StringComparison.Ordinal), "the holder's size after watching");
+            string Held() { lock (held) return held.ToString(); }
+            Require(!holder.Detached.IsCompleted && !Held().Contains("GHOST", StringComparison.Ordinal) && !System.Text.RegularExpressions.Regex.IsMatch(Held(), @"\[\d+;\d+R"),
+                "a watching view typed into, resized or answered a query of the terminal it watches: " + Held());
+
+            Press(window, Key.Enter, PhysicalKey.Enter, "\r");
+            Until(() => terminal is { IsWatching: false, Backend: { Watching: false, Started.IsCompletedSuccessfully: true } }, "the take-over");
+            Until(() => holder.Detached.IsCompleted, "the previous holder's detach");
+            var size = View().Size;
+            Require(size != new TerminalSize(100, 20) && View().IsFocused, "after a take-over the view must fit its own pane and take the keyboard.");
+            window.KeyTextInput("printf 'TOOK_%s_\\n' \"$(stty size | tr ' ' x)\""); Pump();
+            Press(window, Key.Enter, PhysicalKey.Enter, "\r");
+            Until(() => View().ReadScreen().Contains($"TOOK_{size.Rows}x{size.Columns}_", StringComparison.Ordinal), "the shell at the new holder's grid");
+            Console.WriteLine("PASS Skia watching: a held terminal shows live at its holder's grid in a scrolling pane, follows its resize, sends no keys or query replies, and Enter on the offer takes it over at the pane's size");
+        }
+        finally
+        {
+            window.Close();
+            terminal.Close();
+            Task.Run(async () => { await holder.DisposeAsync(); await pty.DisposeAsync(); }).GetAwaiter().GetResult();
+        }
     }
 
     private static List<Color> Pixels(Bitmap frame)

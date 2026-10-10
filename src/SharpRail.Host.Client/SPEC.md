@@ -76,6 +76,10 @@ what makes remoteness an adapter choice rather than a mandatory daemon.
   reach the app's in-process terminal relay.
 - A terminal attach carries the tab key, and the first attached reply's prefill
   becomes the session's `Prefill`; a reconnect's attach never sets it again.
+- A remote session is a watcher when the host's first reply says so, and a reconnect resumes in the role it
+  has: a watcher asks to watch again, a holder never does, so losing the session while disconnected still
+  ends in a detach. `Grid` follows the replies; a host that reports none leaves it at the requested size. A
+  chunk that only changes the grid is passed to the reader empty.
 - The local plugin adapter passes params, results and payloads through as objects.
   The remote one writes them as JSON with `PluginJson.Options` and returns
   `JsonElement`s (null for JSON `null`), so callers read every value with

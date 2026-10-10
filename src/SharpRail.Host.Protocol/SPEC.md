@@ -59,7 +59,10 @@ project: local adapters call Core directly, with no serialization.
   is an attach (session id, workspace root, client id, size, resume offset, tab
   key); the first output acknowledges it with `Created`, the replay bytes, the
   stream position and, for a shell a plugin revives, the prefill text and whether
-  to submit it. Later inputs carry data, resize or kill; later outputs carry data with
+  to submit it. An attach may yield and ask to watch; the acknowledgement then says `Watching`, and it and
+  every chunk carry the grid the shell runs at, a chunk without data marking a resize alone. These are added
+  fields: a host that predates them acknowledges such an attach as detached and an older client never asks,
+  so the protocol version was not raised. Later inputs carry data, resize or kill; later outputs carry data with
   positions and end with exactly one of exited (with code) or detached.
   `IsBusyAsync` and `CloseAsync` are unary.
 - Plugins: the roster (`ListAsync`, `RescanAsync`, `RetryAsync`), one generic

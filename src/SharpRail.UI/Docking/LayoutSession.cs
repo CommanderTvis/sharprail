@@ -151,8 +151,10 @@ public sealed partial class LayoutSession
     /// asking, unless its reservation is still <paramref name="pending"/>; one this view lacks lands in the
     /// last-focused (else last) bottom group, else the last-focused centre group, without selecting it,
     /// revealing its region or taking focus; titles follow the catalog. Returns whether anything changed.
+    /// With <paramref name="center"/>, for a window whose only tab list is the centre's, the last-focused centre
+    /// group takes them instead, and with them the terminals of every hidden region.
     /// </summary>
-    public bool ReconcileTerminals(string workspace, IReadOnlyList<TerminalTab> catalog, IReadOnlySet<string> pending)
+    public bool ReconcileTerminals(string workspace, IReadOnlyList<TerminalTab> catalog, IReadOnlySet<string> pending, bool center = false)
     {
         if (!State.Workspaces.ContainsKey(workspace)) return false;
         var next = State.Copy();
@@ -178,8 +180,17 @@ public sealed partial class LayoutSession
         var placed = view.Documents.Values.SelectMany(tabs => tabs).Select(tab => tab.Id).ToHashSet();
         var bottoms = next.Groups.Where(group => group.Region == "bottom").Select(group => group.Id).ToArray();
         var leaves = next.Center.Leaves().ToArray();
-        var target = bottoms.Contains(view.FocusedAuxiliary.GetValueOrDefault("bottom")) ? view.FocusedAuxiliary["bottom"]
-            : bottoms.LastOrDefault() ?? (leaves.Contains(view.FocusedCenter) ? view.FocusedCenter : leaves[0]);
+        var focused = leaves.Contains(view.FocusedCenter) ? view.FocusedCenter : leaves[0];
+        var target = center ? focused : bottoms.Contains(view.FocusedAuxiliary.GetValueOrDefault("bottom")) ? view.FocusedAuxiliary["bottom"] : bottoms.LastOrDefault() ?? focused;
+        if (center)
+            foreach (var group in next.Groups.Where(group => group.Region switch { "left" => !next.LeftVisible, "right" => !next.RightVisible, "bottom" => !next.BottomVisible, _ => false }))
+                foreach (var tab in view.Documents.GetValueOrDefault(group.Id)?.Where(tab => tab.Kind == "terminal").ToArray() ?? [])
+                {
+                    view.Documents[group.Id].Remove(tab); view.BeforeToolByTabId.Remove(tab.Id); changed = true;
+                    if (view.Selected.GetValueOrDefault(group.Id) == tab.Id) view.Selected.Remove(group.Id);
+                    if (!view.Documents.TryGetValue(target, out var tabs)) view.Documents[target] = tabs = [];
+                    tabs.Add(tab);
+                }
         foreach (var tab in catalog)
         {
             // New terminals here keep counting past every numbered title a peer already used.

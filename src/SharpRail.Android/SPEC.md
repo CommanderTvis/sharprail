@@ -141,7 +141,8 @@ The host is any SharpRail gRPC endpoint: a desktop app listening from Settings â
 - On success the endpoint is saved, the connect window closes and `ClientSession` composes one `Workbench`
   with `remote: true`: remote state, terminal, terminal catalog, plugin and per-window project adapters over
   one `HostConnection`, and a terminal factory fixed to the Skia renderer. The catalog is what makes the phone
-  show the host's existing terminal tabs; one a desktop holds is offered with Take over rather than taken
+  show the host's existing terminal tabs, in the centre and so in Projects under their workspace; one a
+  desktop holds is shown live and read-only with Take over rather than taken
   ([Terminal/SPEC.md](../SharpRail.UI/Terminal/SPEC.md#shared-terminals)). Only the profile's first window entry
   is opened; later entries are dropped.
 - The endpoint is stored as `files/.sharprail/host.json` in the app's private storage, beside the

@@ -52,9 +52,9 @@ their MCP identities. The host waits for shell shutdown before completing the pr
 - A shell is keyed by a stable session id the client derives from workspace and tab, never by a
   connection or a view. Attach is get-or-create under one lock, so concurrent attaches never start two
   shells. A resume (`Offset >= 0`) never starts a shell: a session that no longer exists is an error.
-- Ownership is the host's, not a window's. Any client may attach; attach is exclusive with takeover.
-  A PTY has one size, so the new attachment becomes the recipient and the previous one completes
-  `Detached`. Only the current attachment may write, resize or kill; a displaced client's input is
+- Ownership is the host's, not a window's. Any client may attach; holding is exclusive with takeover.
+  A PTY has one size, so the new attachment becomes the holder and the previous one completes
+  `Detached`. Only the holder may write, resize or kill; a displaced client's input is
   ignored and it is told again that it is detached. A resuming client that lost the session to another
   client receives a detached attachment and never takes the session back; reclaiming is an explicit
   gesture ("Take it back").
@@ -63,6 +63,20 @@ their MCP identities. The host waits for shell shutdown before completing the pr
   already detached, with no replay, and the session keeps its holder and its grid. The same client's own
   attachment does not stop it, so a retried or resumed attach still lands. This is how a client shows a tab it
   did not create; the remote reply marks the attachment detached in its first message.
+- A yielding attach that also asks to watch (`TerminalAttachRequest.Watch`) becomes a watcher where the plain
+  yielding one returns detached (`ITerminalSession.Watching`). Any number of clients watch one session. A
+  watcher receives the same fresh snapshot as any new view and then every chunk the holder receives; its
+  input, resizes and kill are dropped without detaching it, it never completes `Detached`, and it stays a
+  watcher when the holder leaves or changes. The shell's exit reaches every watcher, and watching an exited
+  session reports the exit after its final screen. `Grid` is the holder's grid as of the last chunk read; a
+  resize with no output reaches a watcher as an empty chunk, a redraw nudge does not. A resume with `Watch`
+  keeps watching whoever holds the session and replays only what was missed. After a take-over the previous
+  holder is detached as before; watching again is its client's next attach.
+- Fan-out never waits for a reader. Each attachment has its own queue bounded by the resume window: a holder
+  that falls behind loses the oldest output, while a watcher loses everything queued and, when it reads
+  again, receives a terminal reset (RIS) and a snapshot taken at that moment, so a stalled watcher costs the
+  host one marker and nothing per chunk, and its view is never left mid-sequence. Terminal query replies come
+  only from the holder: a watcher's writes are dropped on the host, and snapshots carry no queries.
 - A shell ends for exactly five reasons: its tab is closed (`CloseTabAsync`, or `CloseAsync` by session
   id), its workspace is removed, it exits, the host stops, or a client kills it. Detaching, closing a window or dropping a connection kills nothing. There is no idle
   culling and no abandoned-client reap. A shell that exits while detached keeps its final output and exit
