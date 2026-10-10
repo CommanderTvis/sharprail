@@ -33,6 +33,20 @@ internal static class ReviewChecks
         foreach (var toast in app.Window.Toasts.Items.ToArray()) app.Window.Toasts.Dismiss(toast.Id);
     }
 
+    // The host answers a lookup with the one still in flight, which may predate what the check just changed:
+    // the question is put again until an answer made afterwards arrives.
+    private static void UntilLabel(E2eWorkspace app, string label)
+    {
+        var asked = System.Diagnostics.Stopwatch.StartNew();
+        app.Window.RefreshOpenReview();
+        Until(() =>
+        {
+            if (PrLabel(app) == label) return true;
+            if (asked.Elapsed > TimeSpan.FromSeconds(3)) { asked.Restart(); app.Window.RefreshOpenReview(); }
+            return false;
+        });
+    }
+
     private static string PrLabel(E2eWorkspace app) => Maybe<Button>(app, "ReviewOpenPr") is { } button ? Text(button) : "";
 
     private static Window Compose(E2eWorkspace app)
@@ -119,8 +133,7 @@ internal static class ReviewChecks
         // New local commits are counted against the pull request and pushed through the same dialog.
         ClearToasts(app);
         Git(work, "commit", "--allow-empty", "-m", "More");
-        app.Window.RefreshOpenReview();
-        Until(() => PrLabel(app) == "Push updates (1)");
+        UntilLabel(app, "Push updates (1)");
         Require(app.Find<TextBlock>("ReviewPrNotice").Text!.Contains("1 new commit isn't in PR #7 yet.", StringComparison.Ordinal), "Unpushed commits must be named.");
         File.Delete(Path.Combine(shim, "log"));
         compose = Compose(app);
@@ -134,12 +147,9 @@ internal static class ReviewChecks
 
         // A gh that cannot be used hands over to setup guidance; Try again resubmits what was typed.
         ClearToasts(app);
-        // The update's own lookup must finish first: the host answers a second caller with the one still in flight.
-        Settle(600);
         File.WriteAllText(Path.Combine(shim, "fail-list"), "");
         File.WriteAllText(Path.Combine(shim, "unauth"), "");
-        app.Window.RefreshOpenReview();
-        Until(() => PrLabel(app) == "Open PR");
+        UntilLabel(app, "Open PR");
         compose = Compose(app);
         Part<TextBox>(compose, "PrComposeBody").Text = "Kept for the retry";
         app.Click(Part<Button>(compose, "PrComposeSubmit"));
@@ -158,8 +168,7 @@ internal static class ReviewChecks
         ClearToasts(app);
         File.WriteAllText(Path.Combine(shim, "fail-list"), "");
         File.WriteAllText(Path.Combine(shim, "unauth"), "");
-        app.Window.RefreshOpenReview();
-        Until(() => PrLabel(app) == "Open PR");
+        UntilLabel(app, "Open PR");
         app.Click(Part<Button>(Compose(app), "PrComposeSubmit"));
         Until(() => Open(app, "PrSetupDialog"));
         links.Clear();
@@ -176,8 +185,7 @@ internal static class ReviewChecks
         Git(work, "commit", "--allow-empty", "-m", "Local");
         var origin = Git(bare, "rev-parse", "refs/heads/feature");
         app.Host.Review = review => review is null ? null : review with { BehindCommits = 1 };
-        app.Window.RefreshOpenReview();
-        Until(() => PrLabel(app) == "Branch diverged");
+        UntilLabel(app, "Branch diverged");
         Require(app.Find<TextBlock>("ReviewIntegrateCommand").Text == "git pull --rebase origin feature" &&
             app.Find<TextBlock>("ReviewPrNotice").Text!.Contains("force-pushing would drop them", StringComparison.Ordinal),
             "A diverged branch must name the safe integrate command.");
