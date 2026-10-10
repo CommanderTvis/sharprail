@@ -69,7 +69,8 @@ grpc-dotnet, and other NuGet dependencies retain their package licenses.
 The spec dialect plugin parses YAML with YamlDotNet 18.1.0 (MIT);
 see licenses/YamlDotNet.txt.
 
-PDF Preview renders through PDFium 156.0.8076 from bblanchon.PDFium.macOS/Linux.
+PDF Preview renders through PDFium 156.0.8076 from bblanchon.PDFium.macOS/Linux, and from
+bblanchon.PDFium.Android in the Android client.
 The PDFium license and the linked libraries' notices from the checksummed
 chromium/8076 release archive are collected in licenses/PDFium.txt.
 
@@ -103,3 +104,17 @@ Codex uses Tomlyn 2.10.1 (BSD-2-Clause; Copyright 2019–2026 Alexandre Mutel).
 See licenses/Tomlyn-BSD-2-Clause.txt. Its Codex SVG derives from LobeHub Icons
 (MIT; Copyright 2023 LobeHub); see licenses/LobeHub-Icons-MIT.txt. The fallback
 OpenAI glyph is covered by the existing Remix Icon notice.
+
+The Android client uses Avalonia.Android 12.1.3 (MIT, as Avalonia). Through it the package
+includes the .NET bindings Xamarin.AndroidX.AppCompat 1.7.1.3, Xamarin.AndroidX.DocumentFile
+1.1.0.3 and Xamarin.AndroidX.Window 1.5.1.2 with their AndroidX, Kotlin, kotlinx, Guava
+ListenableFuture, JetBrains Annotations and JSpecify dependencies: the bindings are MIT
+(Copyright .NET Foundation Contributors) and the bound libraries Apache-2.0.
+See licenses/AndroidX-Bindings.txt. SkiaSharp and HarfBuzzSharp's Android native assets
+retain their NuGet package licenses.
+
+The Android editor library links LLVM libc++ and libc++abi statically from the Android NDK
+r27d (Apache-2.0 WITH LLVM-exception). See licenses/LLVM-libcxx.txt. The Android terminal
+library is libghostty-vt at the commit above and links only the system C library.
+Krafs.Publicizer 2.3.2 (MIT) is used while building the Android client and is not
+redistributed.
