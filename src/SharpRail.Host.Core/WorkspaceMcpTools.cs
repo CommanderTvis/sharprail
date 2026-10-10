@@ -65,6 +65,23 @@ public sealed class WorkspaceMcpTools(HostStateStore state)
             return Task.FromResult(($"Terminal titled \"{title}\".", false));
         });
 
+    public McpServer.McpTool Delete(string workspace) => new(
+        "workspace_delete", "Delete a workspace",
+        "Remove a workspace of this terminal's project from SharpRail and from disk, keeping its branch. Use it for a workspace you created once its work is preserved. Refuses a checkout with uncommitted changes, the workspace this terminal runs in, the Default workspace and a worktree SharpRail did not create.",
+        JsonNode.Parse("""
+            {"type":"object","properties":{
+              "path":{"type":"string","minLength":1,"description":"The workspace's path, as workspace_create returned it."}
+            },"required":["path"],"additionalProperties":false}
+            """)!.AsObject(),
+        async (arguments, token) =>
+        {
+            if (arguments.Any(argument => argument.Key is not "path"))
+                throw new ArgumentException("Only path is accepted.");
+            var path = Text(arguments, "path");
+            if (string.IsNullOrWhiteSpace(path) || path.Contains('\0')) throw new ArgumentException("Pass the path of the workspace to delete.");
+            return (await new ProjectServices(workspace, state).DeleteWorkspaceAsync(workspace, path, token), false);
+        });
+
     private static string? Text(JsonObject arguments, string key) => arguments[key] is null ? null
         : arguments[key] is JsonValue value && value.GetValueKind() == JsonValueKind.String ? value.GetValue<string>()
         : throw new ArgumentException($"{key} must be a string.");

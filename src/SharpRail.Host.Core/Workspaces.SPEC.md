@@ -49,6 +49,13 @@ SharpRail created, may be removed by it.
   (`HostState.TerminalTitles`), so every window shows it; a later call replaces it and closing the terminal
   drops it. It names nothing else: a terminal cannot rename the workspace it runs in or move its branch. A
   missing or letterless title and unknown arguments are tool errors before any write.
+- `workspace_delete` (`path`) is the counterpart: it runs the registry's Remove for a managed workspace of
+  the calling terminal's project (`ProjectServices.DeleteWorkspaceAsync`), so the record leaves host state
+  in the same step as the checkout and every client's Projects updates at once, where a `git worktree
+  remove` typed in the terminal is only noticed later. It never forces: Git's refusal of a dirty or locked
+  checkout is the tool's error and nothing changes. The calling terminal's own workspace, the Default
+  workspace, an external worktree, another project's workspace and an unknown path are refused; the branch
+  is kept.
 - Codex and Claude Code prompt appendixes direct agents to these tools and encourage non-forced removal
   of their own completed workspaces once work is preserved; other users' workspaces, dirty checkouts
   and active agents must be left alone. Agents reuse a workspace the user prepared for the task and

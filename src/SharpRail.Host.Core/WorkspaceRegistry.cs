@@ -200,6 +200,23 @@ public sealed partial class ProjectServices
         return workspace;
     }
 
+    /// <summary>
+    /// Removes a workspace for an agent working in <paramref name="calling"/>: a managed workspace of the same project
+    /// that is not the caller's own, and only when Git removes it without force. The branch stays.
+    /// </summary>
+    public async Task<string> DeleteWorkspaceAsync(string calling, string path, CancellationToken cancellationToken = default)
+    {
+        calling = Path.TrimEndingDirectorySeparator(Path.GetFullPath(calling));
+        path = Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
+        var known = registry.Current.Workspaces;
+        var workspace = known.FirstOrDefault(candidate => candidate.Path == path) ?? throw new ArgumentException("No SharpRail workspace is at that path.");
+        if (workspace.ProjectRoot != (known.FirstOrDefault(candidate => candidate.Path == calling)?.ProjectRoot ?? calling))
+            throw new ArgumentException("That workspace belongs to another project.");
+        if (path == calling) throw new InvalidOperationException("This terminal runs in that workspace; it can only be deleted from another one.");
+        await RemoveWorkspaceAsync(workspace.Id, false, cancellationToken);
+        return $"Workspace deleted: {path}. Branch {workspace.Branch} kept.";
+    }
+
     /// <summary>A removed worktree takes its spec index and its pre-warmed watcher with it.</summary>
     private static void DropIndexes(string path)
     {
