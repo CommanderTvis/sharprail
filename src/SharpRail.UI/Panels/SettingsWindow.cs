@@ -83,8 +83,8 @@ public sealed partial class SettingsWindow : Window
         if (OperatingSystem.IsAndroid()) { frame.CornerRadius = default; frame.BorderThickness = default; }
         else frame.SizeChanged += (_, args) => frame.Clip = new RectangleGeometry(new Rect(args.NewSize), 8, 8);
         KeyDown += (_, e) => { if (e.Key == Key.Escape || AppCommands.IsClose(e)) { Close(); e.Handled = true; } };
-        if (window.Workbench.Compact) WireSectionDrawer();
         ShowSection(section);
+        if (window.Workbench.Compact) WireSectionList();
     }
 
     public string Section => section;
@@ -156,30 +156,57 @@ public sealed partial class SettingsWindow : Window
         return page;
     }
 
-    private Action? closeSections;
+    private Action<bool>? showSectionList;
 
-    // On a phone-sized screen a section takes the whole page and the section list is a drawer from the left.
-    private void WireSectionDrawer()
+    private static readonly Dictionary<string, string> SectionSummaries = new()
+    {
+        ["Appearance"] = "Theme, interface font size",
+        ["Line width"] = "Code and Markdown columns",
+        ["Layout"] = "Presets, panes, file previews",
+        ["Projects"] = "Recent projects",
+        ["Terminal"] = "Renderer, replayed output",
+        ["Notifications"] = "When an agent needs you",
+        ["Host"] = "The host this app works with",
+        ["GitHub"] = "Command-line sign-in",
+        ["Plugins"] = "Installed plugins and their settings"
+    };
+
+    // On a phone-sized screen Settings is a list of sections; choosing one gives it the whole page, and Back
+    // or the header's arrow returns to the list.
+    private void WireSectionList()
     {
         var columns = this.FindControl<Grid>("SettingsColumns")!;
         var pane = this.FindControl<Border>("SettingsNavigationPane")!;
-        var scrim = this.FindControl<Border>("SettingsScrim")!;
-        var menu = this.FindControl<Button>("SettingsMenu")!;
-        columns.ColumnDefinitions[0].Width = new(0);
-        Grid.SetColumnSpan(pane, 2);
-        pane.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left; pane.Width = 240; pane.ZIndex = 2; pane.IsVisible = false;
-        void Show(bool open) => pane.IsVisible = scrim.IsVisible = open;
-        closeSections = () => Show(false);
-        menu.Content = Ui.Icon("layoutLeft");
-        menu.IsVisible = true;
-        menu.Click += (_, _) => Show(!pane.IsVisible);
-        scrim.PointerPressed += (_, e) => { Show(false); e.Handled = true; };
-        AddHandler(BackRequestedEvent, (_, e) => { if (pane.IsVisible) { Show(false); e.Handled = true; } });
+        var back = this.FindControl<Button>("SettingsBack")!;
+        var title = this.FindControl<TextBlock>("SettingsTitle")!;
+        pane.BorderThickness = default;
+        foreach (var (key, button) in navigation)
+        {
+            if (!SectionSummaries.TryGetValue(key, out var summary) || button.Content is not StackPanel row) continue;
+            var name = row.Children.OfType<TextBlock>().First();
+            row.Children.Remove(name);
+            name.FontSize = 15; name.Foreground = Ui.TextBrush;
+            row.Children.Add(new StackPanel { Spacing = 2, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center, Children = { name, Ui.Text(summary, Ui.Muted, 12) } });
+            row.Spacing = 16;
+            button.Height = 60;
+        }
+        void Show(bool list)
+        {
+            columns.ColumnDefinitions[0].Width = list ? new(1, GridUnitType.Star) : new(0);
+            columns.ColumnDefinitions[1].Width = list ? new(0) : new(1, GridUnitType.Star);
+            pane.IsVisible = list; back.IsVisible = !list;
+            title.Text = list ? "Settings" : section.StartsWith("plugin:", StringComparison.Ordinal) ? "Plugin settings" : section;
+        }
+        showSectionList = Show;
+        PaintNavigation();
+        back.Content = Ui.Icon("arrowGoBack");
+        back.Click += (_, _) => Show(true);
+        AddHandler(BackRequestedEvent, (_, e) => { if (!pane.IsVisible) { Show(true); e.Handled = true; } });
+        Show(true);
     }
 
     public void ShowSection(string name)
     {
-        closeSections?.Invoke();
         if (name.StartsWith("plugin:", StringComparison.Ordinal) && !navigation.ContainsKey(name)) name = "Plugins";
         section = name; refreshers.Clear();
         PaintNavigation();
@@ -199,13 +226,14 @@ public sealed partial class SettingsWindow : Window
         (error.Parent as Panel)?.Children.Remove(error);
         if (page is Panel content) content.Children.Add(error);
         body.Content = page;
+        showSectionList?.Invoke(false);
     }
 
     private void PaintNavigation()
     {
         foreach (var entry in navigation)
         {
-            var active = entry.Key == section;
+            var active = showSectionList is null && entry.Key == section;
             entry.Value.Background = active ? Ui.PrimarySubtle : Ui.Elevated;
             foreach (var text in ((StackPanel)entry.Value.Content!).Children.OfType<TextBlock>()) text.Foreground = active ? Ui.Accent : Ui.Muted;
             if (((StackPanel)entry.Value.Content!).Children[0] is Border glyph) glyph.Background = active ? Ui.Accent : Ui.Muted;

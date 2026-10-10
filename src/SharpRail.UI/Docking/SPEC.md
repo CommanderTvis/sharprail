@@ -265,23 +265,22 @@ Inactive workspace previews refresh their plugin icons and badges when host agen
 changes, even when the active workspace's decorations are unchanged. Preview caching includes
 decoration results, so unchanged rows stay mounted and Codex/Claude marks follow workspace switches.
 
-## Drawers
+## Phone pages
 
 A compact workbench (`Workbench.Compact`, set by the Android client on phone-sized screens) sets
 `DockSurface.Drawers`. The frame model is unchanged; only its projection differs:
 
-- The centre and the bottom region keep the whole width. There are no collapsed side rails and no side
-  separators.
-- A visible left or right region lies over the centre at its edge, at most 360 px wide and always leaving
-  56 px of the centre, above a scrim; pressing the scrim hides it.
-- The right drawer does not stack its groups: `DockDrawers.cs` lists every tool of the region as a section
-  header and shows one of them in the height the headers leave; choosing a header shows that tool and
-  keeps the drawer open.
-- The window (`Drawers.cs`) starts with both sides hidden, replaces the header's brand mark with a left
-  drawer button and adds a right one, opens one side at a time, and hides both when the centre's selected
-  tab or the workspace changes and on `BackRequested`.
-- Settings in a compact workbench gives the section the whole page; its section list opens from a header
-  button as a drawer and closes on choice, on its scrim and on Back.
+- The centre and the bottom region keep the whole width. There are no collapsed side rails, no side
+  separators and no resizing of the bottom region.
+- A visible left region is the Projects page: the Projects tool alone, over the whole workbench, with no
+  tool tab strip. A visible right region is the Tools page: `DockDrawers.cs` lists every other side tool,
+  whichever side group holds it, as a section header and shows one of them in the height the headers
+  leave; choosing a header shows that tool and stays on the page.
+- The window (`Drawers.cs`) shows a bar at the bottom with Projects, the current tab (Terminal or Editor,
+  by what the centre shows), Tools and Settings; the header keeps the location and the connection status
+  and loses its Settings button. It starts on the current page, returns to it when the centre's selected
+  tab or the workspace changes and on `BackRequested`, and hides the bar while the soft keyboard is open.
+- Settings in a compact workbench opens on a list of its sections with a line about each; choosing one
+  gives it the whole page under its name, and Back or the header's arrow returns to the list.
 
-`DrawerChecks` (in `-- --shell`) covers this headlessly. Dragging tabs between regions is not offered for
-drawers, and the bottom region is not resizable there.
+`DrawerChecks` (in `-- --shell`) covers this headlessly. Dragging tabs between regions is not offered here.

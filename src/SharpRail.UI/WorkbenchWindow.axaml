@@ -36,14 +36,11 @@
     </Style>
   </Window.Styles>
   <LayoutTransformControl x:Name="ZoomRoot" LayoutTransform="{DynamicResource InterfaceZoom}">
-  <Grid x:Name="WorkbenchRoot" RowDefinitions="48,*,Auto">
+  <Grid x:Name="WorkbenchRoot" RowDefinitions="48,*,Auto,Auto">
     <Border x:Name="WindowTitleBar" Background="{x:Static rendering:Ui.Header}"
             BorderBrush="{x:Static rendering:Ui.BorderBrush}" BorderThickness="0,0,1,1">
       <Grid x:Name="MainHeader" ColumnDefinitions="36,*,Auto">
         <ContentControl x:Name="BrandIcon" />
-        <Button x:Name="LeftDrawerButton" IsVisible="False" Width="36" Height="48" Padding="0"
-                Background="Transparent" BorderThickness="0" CornerRadius="0"
-                ToolTip.Tip="Projects" AutomationProperties.Name="Projects" />
         <local:LocationStrip x:Name="LocationBar" Grid.Column="1" ClipToBounds="True">
           <Border x:Name="ProjectSegment" Classes="location-segment" MaxWidth="220" BorderThickness="0" Padding="8,0,12,0">
             <Grid RowDefinitions="10,4,22" VerticalAlignment="Center">
@@ -91,9 +88,6 @@
               <TextBlock x:Name="ConnectionStatus" Text="Connecting" Classes="header-label" />
             </StackPanel>
           </Button>
-          <Button x:Name="RightDrawerButton" IsVisible="False" Width="32" Height="32" Padding="0"
-                  Background="Transparent" BorderThickness="0" CornerRadius="0"
-                  ToolTip.Tip="Files and changes" AutomationProperties.Name="Files and changes" />
           <Button x:Name="SettingsButton" Width="32" Height="32" Padding="0"
                   Background="Transparent" BorderThickness="0" CornerRadius="0"
                   ToolTip.Tip="Settings (⌘,)" AutomationProperties.Name="Settings (⌘,)" />
@@ -103,6 +97,11 @@
     <TextBlock x:Name="WorkspaceError" Grid.Row="2" FontSize="12" Margin="12,4"
                Foreground="{x:Static rendering:Ui.Danger}" TextWrapping="Wrap" IsVisible="False"
                Classes="header-label" />
+    <!-- A phone-sized workbench moves between its pages from a bar at the thumb's end of the screen. -->
+    <Border x:Name="PageBar" Grid.Row="3" IsVisible="False" Height="56" Background="{x:Static rendering:Ui.Header}"
+            BorderBrush="{x:Static rendering:Ui.BorderBrush}" BorderThickness="0,1,0,0">
+      <Grid x:Name="PageBarItems" ColumnDefinitions="*,*,*,*" />
+    </Border>
     <Border x:Name="QuitHintOverlay" Grid.Row="1" ZIndex="31" IsVisible="False" IsHitTestVisible="False"
             HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="12,12,12,24" Padding="16,12"
             Background="{x:Static rendering:Ui.Elevated}" BorderBrush="{x:Static rendering:Ui.BorderBrush}"

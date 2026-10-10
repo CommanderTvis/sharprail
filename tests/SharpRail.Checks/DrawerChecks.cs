@@ -45,65 +45,74 @@ internal static class DrawerChecks
         window.Show();
         Pump(() => window.WorkspaceMounted, "The compact workspace did not mount.");
         var layout = window.Layout;
-        var left = Named<Button>(window, "LeftDrawerButton");
-        var right = Named<Button>(window, "RightDrawerButton");
-        var scrim = Named<Border>(window, "DrawerScrim");
+        var projects = Named<Button>(window, "PageProjects");
+        var current = Named<Button>(window, "PageCurrent");
+        var tools = Named<Button>(window, "PageTools");
         Border Region(string region) => Named<Border>(window, "AuxiliaryRegion_" + region);
-        Require(left.IsVisible && right.IsVisible && !Named<ContentControl>(window, "BrandIcon").IsVisible, "A compact window must offer both drawers in its header.");
-        Require(!layout.State.LeftVisible && !layout.State.RightVisible && !scrim.IsVisible, "Both drawers must start closed.");
+        Require(Named<Border>(window, "PageBar").IsVisible && !Named<Button>(window, "SettingsButton").IsVisible && Named<Button>(window, "PageSettings").IsVisible,
+            "A compact window must move between its pages, Settings included, from the bar at the bottom.");
+        Require(Grid.GetRow(Named<Border>(window, "PageBar")) > Grid.GetRow(Named<Control>(window, "WorkspaceWorkbench")), "The page bar must sit below the workbench.");
+        Require(!layout.State.LeftVisible && !layout.State.RightVisible, "A compact window must start on its current page.");
         Require(!window.GetLogicalDescendants().OfType<Border>().Any(border => border.Name is "leftHiddenSideRail" or "rightHiddenSideRail"),
             "A compact window must not keep the collapsed side rails.");
-
         Require(!Named<Button>(window, "ConnectionButton").IsHitTestVisible, "A workbench with no host to change must keep its connection status inert.");
-        Click(left);
-        Require(layout.State.LeftVisible && scrim.IsVisible && Region("left") is { IsVisible: true, HorizontalAlignment: HorizontalAlignment.Left } drawer &&
-            drawer.Width <= window.Bounds.Width - 56 && Grid.GetColumnSpan(drawer) == 5, "The left drawer must open over the centre at the left edge.");
-        Click(right);
-        Require(!layout.State.LeftVisible && layout.State.RightVisible && Region("right").HorizontalAlignment == HorizontalAlignment.Right,
-            "Opening the right drawer must close the left one.");
+
+        Click(projects);
+        Require(layout.State.LeftVisible && Region("left") is { IsVisible: true } page && Grid.GetColumnSpan(page) == 5 && double.IsNaN(page.Width),
+            "Projects must open as a page over the whole workbench.");
+        Require(Region("left").GetLogicalDescendants().OfType<Border>().Any(border => border.Name == "ProjectsPage") &&
+            !Region("left").GetLogicalDescendants().OfType<SharpRail.UI.Docking.DockTabStrip>().Any(strip => strip.Name?.Contains("left", StringComparison.Ordinal) == true),
+            "The Projects page must show Projects alone, without a tool tab strip.");
+        Click(tools);
+        Require(!layout.State.LeftVisible && layout.State.RightVisible, "Opening Tools must leave Projects.");
         var sections = Region("right").GetLogicalDescendants().OfType<Button>().Where(button => button.Name?.StartsWith("DrawerSection_", StringComparison.Ordinal) == true).ToArray();
-        Require(sections.Length == 4 && Region("right").GetLogicalDescendants().OfType<Border>().Count(border => border.Name == "DrawerSectionBody") == 1,
-            "The right drawer must list its four tools as sections and show one of them.");
+        Require(sections.Length == 4 && sections.All(section => section.Name != "DrawerSection_projects") &&
+            Region("right").GetLogicalDescendants().OfType<Border>().Count(border => border.Name == "DrawerSectionBody") == 1,
+            "Tools must list every side tool but Projects as sections and show one of them.");
         Click(sections.Single(section => section.Name == "DrawerSection_changes"));
         Require(Region("right").GetLogicalDescendants().OfType<Border>().Single(border => border.Name == "DrawerSectionBody").Child is not null &&
-            layout.State.RightVisible, "Choosing a section must show that tool and keep the drawer open.");
-        Click(right);
-        Require(!layout.State.RightVisible && !scrim.IsVisible, "A drawer's button must close it again.");
+            layout.State.RightVisible, "Choosing a section must show that tool and stay on Tools.");
+        Click(current);
+        Require(!layout.State.RightVisible && !layout.State.LeftVisible, "The current page's button must leave the side pages.");
 
-        Click(left);
+        Click(projects);
         var back = new RoutedEventArgs(TopLevel.BackRequestedEvent);
         window.RaiseEvent(back);
         Dispatcher.UIThread.RunJobs();
-        Require(back.Handled && !layout.State.LeftVisible, "Back must close an open drawer.");
+        Require(back.Handled && !layout.State.LeftVisible, "Back must return from a side page to the current one.");
         back = new RoutedEventArgs(TopLevel.BackRequestedEvent);
         window.RaiseEvent(back);
-        Require(!back.Handled, "Back with no drawer open must be left to the system.");
+        Require(!back.Handled, "Back on the current page must be left to the system.");
 
-        Click(right);
+        Click(tools);
         _ = window.OpenDocumentAsync("notes.txt");
-        Pump(() => !layout.State.RightVisible, "Opening a document must close the drawer it was chosen from.");
+        Pump(() => !layout.State.RightVisible, "Opening a document must return to the current page.");
         Require(!Named<Border>(window, "CenterRegion").GetLogicalDescendants().OfType<SharpRail.UI.Docking.DockTabButton>().Any(),
-            "With Projects hidden, tabs kept in Projects must not fall back to a strip in the centre.");
-        Click(left);
+            "Tabs kept in Projects must not fall back to a strip in the centre.");
+        Click(projects);
         Pump(() => Region("left").GetLogicalDescendants().OfType<SharpRail.UI.Docking.DockTabButton>().Any(), "The open document's tab must be listed in Projects.");
-        Click(left);
+        Click(current);
 
         var settings = new SettingsWindow(window, () => { });
         settings.Show(window);
         Dispatcher.UIThread.RunJobs();
         var pane = Named<Border>(settings, "SettingsNavigationPane");
-        var menu = Named<Button>(settings, "SettingsMenu");
-        Require(menu.IsVisible && !pane.IsVisible, "Compact Settings must show one section with its list behind a button.");
-        Click(menu);
-        Require(pane.IsVisible && Named<Border>(settings, "SettingsScrim").IsVisible, "The section list must open as a drawer.");
+        var up = Named<Button>(settings, "SettingsBack");
+        Require(pane.IsVisible && !up.IsVisible && Named<TextBlock>(settings, "SettingsTitle").Text == "Settings", "Compact Settings must open on its list of sections.");
         Click(Named<Button>(settings, "Settings_Terminal"));
-        Require(!pane.IsVisible, "Choosing a section must close the list.");
+        Require(!pane.IsVisible && up.IsVisible && Named<TextBlock>(settings, "SettingsTitle").Text == "Terminal", "Choosing a section must give it the whole page under its name.");
+        var leave = new RoutedEventArgs(TopLevel.BackRequestedEvent);
+        settings.RaiseEvent(leave);
+        Require(leave.Handled && pane.IsVisible, "Back in a section must return to the list.");
+        leave = new RoutedEventArgs(TopLevel.BackRequestedEvent);
+        settings.RaiseEvent(leave);
+        Require(!leave.Handled, "Back on the list must be left to close Settings.");
         Click(Named<Button>(settings, "Settings_Layout"));
         Require(!Named<CheckBox>(settings, "VerticalCenterTabs").IsVisible && !Named<CheckBox>(settings, "VerticalTabsInProjects").IsVisible &&
             !Named<TextBlock>(settings, "EditorTabsLabel").IsVisible, "A workbench that keeps its tabs in Projects must not offer another place for them.");
         Require(Named<Button>(settings, "DefaultPane_horizontal").IsEnabled, "Pane direction must stay available where tabs always live in Projects.");
         settings.Close();
         window.Close();
-        Console.WriteLine("PASS phone drawers: side panels and Settings sections open over the content, one at a time, and close on choice or Back");
+        Console.WriteLine("PASS phone pages: the bottom bar moves between Projects, the current tab, Tools and Settings, and a choice or Back returns");
     }
 }
