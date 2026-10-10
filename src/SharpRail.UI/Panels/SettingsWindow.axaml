@@ -102,8 +102,8 @@
         <StackPanel x:Name="GroupLimits" MaxWidth="384" HorizontalAlignment="Left" Spacing="8" />
         <TextBlock Text="Bottom alignment" Classes="settings-label" />
         <ComboBox x:Name="BottomAlignment" Width="220" />
-        <TextBlock Text="Editor tabs" Classes="settings-label" />
-        <TextBlock Text="A column beside the editor instead of a strip above it. Drag its edge to resize. A split centre keeps the strip, since two columns leave too little room for the editors." Classes="settings-description" />
+        <TextBlock x:Name="EditorTabsLabel" Text="Editor tabs" Classes="settings-label" />
+        <TextBlock x:Name="EditorTabsDetail" Text="A column beside the editor instead of a strip above it. Drag its edge to resize. A split centre keeps the strip, since two columns leave too little room for the editors." Classes="settings-description" />
         <CheckBox x:Name="VerticalCenterTabs" Content="Show editor tabs vertically" />
         <CheckBox x:Name="VerticalTabsInProjects">
           <StackPanel Spacing="2">

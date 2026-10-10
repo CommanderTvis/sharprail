@@ -40,7 +40,7 @@ internal static class DrawerChecks
         var directory = Path.Combine(root, "drawers");
         Directory.CreateDirectory(directory);
         File.WriteAllText(Path.Combine(directory, "notes.txt"), "notes");
-        var window = new WorkbenchWindow(new ProjectServices(directory), directory, new ProfileStore(directory + "-profile"), E2E.E2eTerminals.Plain, compact: true);
+        var window = new WorkbenchWindow(new ProjectServices(directory), directory, new ProfileStore(directory + "-profile"), E2E.E2eTerminals.Plain, compact: true, tabsInProjects: true);
         window.Width = 400; window.Height = 800;
         window.Show();
         Pump(() => window.WorkspaceMounted, "The compact workspace did not mount.");
@@ -75,6 +75,11 @@ internal static class DrawerChecks
         Click(right);
         _ = window.OpenDocumentAsync("notes.txt");
         Pump(() => !layout.State.RightVisible, "Opening a document must close the drawer it was chosen from.");
+        Require(!Named<Border>(window, "CenterRegion").GetLogicalDescendants().OfType<SharpRail.UI.Docking.DockTabButton>().Any(),
+            "With Projects hidden, tabs kept in Projects must not fall back to a strip in the centre.");
+        Click(left);
+        Pump(() => Region("left").GetLogicalDescendants().OfType<SharpRail.UI.Docking.DockTabButton>().Any(), "The open document's tab must be listed in Projects.");
+        Click(left);
 
         var settings = new SettingsWindow(window, () => { });
         settings.Show(window);
@@ -86,6 +91,10 @@ internal static class DrawerChecks
         Require(pane.IsVisible && Named<Border>(settings, "SettingsScrim").IsVisible, "The section list must open as a drawer.");
         Click(Named<Button>(settings, "Settings_Terminal"));
         Require(!pane.IsVisible, "Choosing a section must close the list.");
+        Click(Named<Button>(settings, "Settings_Layout"));
+        Require(!Named<CheckBox>(settings, "VerticalCenterTabs").IsVisible && !Named<CheckBox>(settings, "VerticalTabsInProjects").IsVisible &&
+            !Named<TextBlock>(settings, "EditorTabsLabel").IsVisible, "A workbench that keeps its tabs in Projects must not offer another place for them.");
+        Require(Named<Button>(settings, "DefaultPane_horizontal").IsEnabled, "Pane direction must stay available where tabs always live in Projects.");
         settings.Close();
         window.Close();
         Console.WriteLine("PASS phone drawers: side panels and Settings sections open over the content, one at a time, and close on choice or Back");

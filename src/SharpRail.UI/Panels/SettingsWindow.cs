@@ -539,9 +539,13 @@ public sealed partial class SettingsWindow : Window
         var directions = PageControl<StackPanel>(panel, "PaneDirections");
         var directionLabel = PageControl<TextBlock>(panel, "PaneDirectionLabel");
         var directionDetail = PageControl<TextBlock>(panel, "PaneDirectionDetail");
+        // A workbench that keeps its tabs in Projects offers no other place for them.
+        var fixedTabs = window.Workbench.TabsInProjects;
+        PageControl<TextBlock>(panel, "EditorTabsLabel").IsVisible = PageControl<TextBlock>(panel, "EditorTabsDetail").IsVisible =
+            vertical.IsVisible = inProjects.IsVisible = !fixedTabs;
         void RenderTabs()
         {
-            var on = state.Preferences.VerticalCenterTabs;
+            var on = fixedTabs || state.Preferences.VerticalCenterTabs;
             vertical.IsChecked = on;
             inProjects.IsChecked = state.Preferences.VerticalTabsInProjects;
             inProjects.IsEnabled = on;

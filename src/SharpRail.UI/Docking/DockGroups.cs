@@ -846,7 +846,9 @@ public sealed partial class DockSurface
     private ContextMenu GroupMenu(DockGroup group, Control geometry)
     {
         var menu = new ContextMenu();
-        if (group.Region == "center")
+        // Tabs listed in Projects have no room for a second strip there, and grouping tabs does what a split would.
+        if (group.Region == "center" && CenterTabs?.Invoke() is { Home: "projects" }) { }
+        else if (group.Region == "center")
         {
             var right = Ui.Menu("New split right", () => Session.NewGroup(group.Id, "right"));
             var below = Ui.Menu("New split below", () => Session.NewGroup(group.Id, "bottom"));
