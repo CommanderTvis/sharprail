@@ -40,3 +40,27 @@ internal sealed class MarkdownPreviewBody : Decorator, IResourceBody, IDisposabl
 
     public void Dispose() => document.Dispose();
 }
+
+/// <summary>A file's text where the editor has no native library: one read-only code block, replaced when the file changes.</summary>
+internal sealed class PlainSourceBody : ScrollViewer, IResourceBody
+{
+    private string text;
+
+    protected override Type StyleKeyOverride => typeof(ScrollViewer);
+
+    internal PlainSourceBody(string text)
+    {
+        Margin = new Thickness(24);
+        HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto;
+        Content = MarkdownPreview.Code(this.text = text);
+    }
+
+    public object? ViewState => null;
+
+    public bool Reload(ResourceContent content)
+    {
+        if (content is not ResourceContent.Text next) return false;
+        if (next.Value != text) Content = MarkdownPreview.Code(text = next.Value);
+        return true;
+    }
+}

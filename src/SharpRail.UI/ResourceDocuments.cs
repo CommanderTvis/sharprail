@@ -95,13 +95,7 @@ public sealed partial class WorkbenchWindow
         var document = documents[key];
         var hasPreview = view.TabId.StartsWith("markdown:", StringComparison.Ordinal) && document.Text.Length <= ViewerLimits.RenderedMarkdown;
         if (!SharpRail.Scintilla.ScintillaEditor.IsSupported)
-            return new ScrollViewer
-            {
-                Name = hasPreview ? "MarkdownSource" : null,
-                Content = MarkdownPreview.Code(document.Text),
-                Margin = new Thickness(24),
-                HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto
-            };
+            return new PlainSourceBody(document.Text) { Name = hasPreview ? "MarkdownSource" : null };
         var code = CodeDocument(document, view.TabId, key);
         if (hasPreview)
         {
@@ -126,6 +120,8 @@ public sealed partial class WorkbenchWindow
         if (editor is not null && !editor.Reload(file.Text)) return true;
         documents[key] = file;
         pane.Reload(resource, FileContent(file), editor);
+        // Beside a Markdown preview the plain source is that view's child, which the pane does not reload.
+        pane.Find<PlainSourceBody>()?.Reload(FileContent(file));
         return true;
     }
 

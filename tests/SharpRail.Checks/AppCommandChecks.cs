@@ -96,7 +96,9 @@ internal static class AppCommandChecks
         layout.Visible("left", true);
         layout.Focus(center);
 
-        Press(Key.OemComma, command, PhysicalKey.Comma);
+        // Preferences' chord is a macOS convention; elsewhere Settings opens from its button.
+        if (OperatingSystem.IsMacOS()) Press(Key.OemComma, command, PhysicalKey.Comma);
+        else window.ShowSettings();
         Pump(() => window.OwnedWindows.Count == 1, "Settings did not open.");
         var settings = (Window)window.OwnedWindows[0];
         Press(Key.W, command, PhysicalKey.W);

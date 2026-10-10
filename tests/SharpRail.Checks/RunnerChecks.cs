@@ -131,13 +131,15 @@ internal static class RunnerChecks
         Rejects(null, "--lanes", "17");
         Rejects(null, "--lanes");
         Rejects(null, "--lanes", "2", "--terminals");
-        Rejects("1/2", "--sync");
         Rejects(null, "--last-failed", "--lanes", "2");
         Rejects("2/3", "--last-failed");
         Rejects("3/2");
         var plain = RunnerOptions.Parse(["--terminals"], null);
         Require(plain is { Lanes: 1, Shard: null, Job: null, LastFailed: false, Cases: null } && plain.Rest.SequenceEqual(["--terminals"]),
             "A focused mode must reach the gate untouched.");
+        var child = RunnerOptions.Parse(["--fake-codex", "control.json"], "1/2");
+        Require(child is { Job: null } && child.Rest.SequenceEqual(["--fake-codex", "control.json"]),
+            "A job's slice must not reach the children its checks start with arguments of their own.");
         var composed = RunnerOptions.Parse(["--lanes", "3"], "2/4");
         Require(composed is { Lanes: 3, Job: { Index: 2, Total: 4 } } && composed.Rest.Length == 0, "A job shard must compose with local lanes.");
         Require(RunnerOptions.Parse(["--lanes", "auto"], null).Lanes == RunnerOptions.AutomaticLanes && RunnerOptions.AutomaticLanes is >= 1 and <= 8,

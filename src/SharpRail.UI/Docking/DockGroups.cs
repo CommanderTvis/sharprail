@@ -363,6 +363,8 @@ public sealed partial class DockSurface
                     Session.Move(tab.Id, group.Id, group.Id, index + (key == Key.Left ? -1 : 2));
                     FocusGroup(group.Id); e.Handled = true;
                 }
+                // Alt with an arrow is Back and Forward where Windows and Linux conventions apply; the window answers it.
+                else if (!OperatingSystem.IsMacOS() && e.KeyModifiers == KeyModifiers.Alt) { }
                 else if (key is Key.Left or Key.Right or Key.Home or Key.End)
                 {
                     var members = Session.Tabs(group.Id);
