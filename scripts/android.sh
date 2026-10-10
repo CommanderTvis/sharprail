@@ -2,6 +2,8 @@
 # Builds the Android client (src/SharpRail.Android). `android.sh run` also installs it on the connected device or
 # emulator and starts it; `android.sh apk` builds the signed Release package into artifacts/android.
 # Needs the Android SDK (ANDROID_HOME, default ~/Library/Android/sdk) and a JDK 17 or 21 (JAVA_HOME).
+# With SHARPRAIL_ANDROID_KEYSTORE (a keystore file), SHARPRAIL_ANDROID_KEY_ALIAS and SHARPRAIL_ANDROID_KEY_PASSWORD
+# set, the package is signed with that key instead of the machine's debug key.
 set -eu
 cd "$(dirname "$0")/.."
 [ -x .tools/dotnet/dotnet ] || sh scripts/bootstrap.sh
@@ -11,7 +13,15 @@ sdk="${ANDROID_HOME:-$HOME/Library/Android/sdk}"
 [ -d "$sdk/platforms" ] || { echo "No Android SDK at $sdk; set ANDROID_HOME." >&2; exit 1; }
 [ -x "${JAVA_HOME:-}/bin/javac" ] || { echo 'Set JAVA_HOME to a JDK 17 or 21.' >&2; exit 1; }
 sh scripts/android-ndk.sh >/dev/null
-build() { .tools/dotnet/dotnet build src/SharpRail.Android "-p:AndroidSdkDirectory=$sdk" "-p:JavaSdkDirectory=$JAVA_HOME" "$@"; }
+build() {
+  if [ -n "${SHARPRAIL_ANDROID_KEYSTORE:-}" ]; then
+    # The passwords reach the build by name, so they appear in no command line or log.
+    set -- "$@" -p:AndroidKeyStore=true "-p:AndroidSigningKeyStore=$SHARPRAIL_ANDROID_KEYSTORE" \
+      "-p:AndroidSigningKeyAlias=$SHARPRAIL_ANDROID_KEY_ALIAS" \
+      -p:AndroidSigningKeyPass=env:SHARPRAIL_ANDROID_KEY_PASSWORD -p:AndroidSigningStorePass=env:SHARPRAIL_ANDROID_KEY_PASSWORD
+  fi
+  .tools/dotnet/dotnet build src/SharpRail.Android "-p:AndroidSdkDirectory=$sdk" "-p:JavaSdkDirectory=$JAVA_HOME" "$@"
+}
 case "${1:-build}" in
   build) build -c "${SHARPRAIL_CONFIGURATION:-Debug}" ;;
   run)

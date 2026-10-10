@@ -57,7 +57,8 @@ and nullable/warnings-as-errors gate.
 | `scripts/check-terminal.sh` | Runs the native shell/Metal probe; the checks executable's `--native-terminal` mode exercises Avalonia integration. |
 | `scripts/check-packaged.sh` | Runs the check gate from a staged copy of `artifacts/SharpRail.app`, so the files under test are the packaged ones. |
 | `scripts/publish.sh` | Publishes non-composite R2R UI, remote host and checks; refreshes and signs the canonical `artifacts/SharpRail.app`. Check for a live app process before replacing it. |
-| `scripts/android.sh` | Builds the Android client (`build`), installs and starts it on the connected device or emulator (`run`), or writes the Release package to `artifacts/android/SharpRail.apk` (`apk`). Needs `ANDROID_HOME` and a JDK 17 or 21 in `JAVA_HOME`; installs the `android` workload into `.tools/dotnet`. |
+| `scripts/dmg.sh` | Packs `artifacts/SharpRail.app` into `artifacts/SharpRail.dmg` (or the path given) with an Applications shortcut. `.github/workflows/nightly.yml` runs it and `android.sh apk` at 03:00 UTC, keeps both packages as workflow artifacts and replaces the `nightly` prerelease with them. |
+| `scripts/android.sh` | Builds the Android client (`build`), installs and starts it on the connected device or emulator (`run`), or writes the Release package to `artifacts/android/SharpRail.apk` (`apk`). Needs `ANDROID_HOME` and a JDK 17 or 21 in `JAVA_HOME`; signs with the key in `SHARPRAIL_ANDROID_KEYSTORE` when set; installs the `android` workload into `.tools/dotnet`. |
 | `scripts/android-ndk.sh` | Installs the pinned Android NDK under `.tools/android-ndk` and prints its path; `build-android.sh` in `src/Ghostty.Avalonia` and `src/SharpRail.Scintilla` build the Android terminal and editor libraries with it. |
 | `.bench` | Ignored disposable fixtures, verification logs and own-window captures. Its name does not authorize benchmarks. |
 
