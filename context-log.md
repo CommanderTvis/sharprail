@@ -4746,3 +4746,18 @@ table paragraph height and image aspect ratio. Release build passes with zero
 warnings/errors; --markdown, touched-file format verification and git diff --check
 pass. The full gate passes all 118 cases across six lanes. Task fixtures were
 removed. The packaged app and physical devices were not checked.
+
+## Codex Blueprint authoring (2026-10-10)
+
+The Blueprint dialog now offers Claude Code and Codex through their registered launchers.
+The chosen agent persists and controls fresh/recorded-session recovery on local and remote
+hosts. Codex uses the existing Blueprint prompts and reader-change delivery; the Claude-only
+trust hint is hidden for Codex. Blueprint checks cover agent choice, real Codex plugin gating,
+prompts, persistence, edits and local/gRPC recovery. The owning spec records the behavior.
+Release build, touched-file format verification and --blueprint pass. The isolated full gate
+completes across its first run and --last-failed resume after the known Spec Dialect tree
+assertion passed alone. After the concurrent Claude changes landed on main, the Release
+rebuild and whole-solution formatting pass there too. VALIDATION.md records optional skips.
+The user authorized commit and push to main. Implementation and status records use separate
+signed commits without rewriting published history. No publication or app restart. Task
+scratch and the verification workspace were removed.

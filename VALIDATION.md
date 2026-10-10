@@ -1715,3 +1715,23 @@ table paragraph height and image aspect ratio. Release build passes with zero
 warnings/errors; --markdown, touched-file format verification and git diff --check
 pass. The full gate passes all 118 cases across six lanes. Task fixtures were
 removed. The packaged app and physical devices were not checked.
+
+## Codex Blueprint authoring — 2026-10-10
+
+Blueprint's start dialog offers registered Claude Code and Codex launchers, with Claude
+as the default when both are present and Codex selected when it is the sole launcher.
+The host accepts and persists Codex authors. Fresh recovery and exact recorded-session
+resumption use the recorded agent; reader selections and confirmed edits reach its terminal.
+Codex authors do not see the Claude-specific trust instructions.
+
+Release builds pass with zero warnings/errors, touched-file formatting and `--blueprint`
+pass. The isolated six-lane full gate hit the previously recorded Spec Dialect failed-update
+tree assertion; that case passes alone, and `--last-failed` passes with an empty unfinished
+record. Coverage is complete across the run and resume, rather than a clean first run.
+Optional Git fixture cases were skipped because `SHARPRAIL_TEST_GIT_SOURCE` was unset.
+After the concurrent Claude change landed on main, the Release rebuild and whole-solution
+format verification also pass on that tip.
+Spec validation reports four existing dangling Branch Graph links, unrelated to Blueprint.
+No live Codex CLI session or Android build was exercised. The user authorized committing
+and pushing to main; implementation and validation use separate signed commits. No
+publication or running-app restart was requested.
