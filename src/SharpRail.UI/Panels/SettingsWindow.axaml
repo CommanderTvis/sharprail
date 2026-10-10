@@ -129,6 +129,19 @@
         <StackPanel x:Name="TerminalReplayChoices" Spacing="8" />
       </StackPanel>
     </DataTemplate>
+    <DataTemplate x:Key="NotificationsPage">
+      <StackPanel Spacing="8">
+        <TextBlock Text="Notifications" Classes="settings-heading" />
+        <TextBlock Text="Get a desktop notification when a terminal needs you: an agent asks a question, finishes, or fails. Notifications only appear while no SharpRail window is focused. Shared by every client of this host." Classes="settings-description" />
+        <Border Padding="12,8" CornerRadius="4" BorderThickness="1" BorderBrush="{x:Static rendering:Ui.BorderBrush}">
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+            <TextBlock Text="Enable notifications" Classes="settings-label" />
+            <rendering:Switch x:Name="NotificationsEnabled" Grid.Column="1" Label="Enable notifications" />
+          </Grid>
+        </Border>
+        <TextBlock x:Name="NotificationsChannel" Classes="settings-description" />
+      </StackPanel>
+    </DataTemplate>
     <DataTemplate x:Key="GitHubPage">
       <StackPanel Spacing="8">
         <TextBlock Text="Local GitHub" Classes="settings-heading" />
@@ -217,6 +230,7 @@
               <Button x:Name="Settings_Layout" Classes="settings-navigation" />
               <Button x:Name="Settings_Projects" Classes="settings-navigation" />
               <Button x:Name="Settings_Terminal" Classes="settings-navigation" />
+              <Button x:Name="Settings_Notifications" Classes="settings-navigation" />
               <Button x:Name="Settings_Host" Classes="settings-navigation" />
               <Button x:Name="Settings_GitHub" Classes="settings-navigation" />
               <Button x:Name="Settings_Plugins" Classes="settings-navigation" />

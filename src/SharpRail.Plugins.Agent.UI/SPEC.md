@@ -26,6 +26,11 @@ the module owns no session, account or terminal state.
   pickers, file attachment and the session IDE-context toggle.
 - `TokenUsage`, `TerminalTodo` and `TerminalTodoStatus` are presentation values,
   adapted from each provider's contract by its UI half.
+- `AgentAttention` words an away notification for an `AgentAttentionReason` (blocked,
+  done, failed): "*agent* needs you", "*agent* finished" or "*agent* hit an error",
+  scoped " — *project*" when one is known, with the first detail the agent reported as
+  the body or "Open the terminal for details." It returns text only; the provider decides
+  when to ask and hands the result to the plugin API.
 
 Generic scoped settings and value composers remain in the general UI kit.
 Provider protocols, configuration, launch behavior and state remain plugin-owned.
@@ -40,4 +45,4 @@ surface; `--codex` and `--claude-code` exercise the provider UI integrations.
 
 ## Public surface
 
-`Account`, `AccountSeverity`, `TerminalFacts`, `TerminalTodo`, `TerminalTodoStatus`, `TokenUsage`.
+`Account`, `AccountSeverity`, `AgentAttention`, `AgentAttentionReason`, `TerminalFacts`, `TerminalTodo`, `TerminalTodoStatus`, `TokenUsage`.

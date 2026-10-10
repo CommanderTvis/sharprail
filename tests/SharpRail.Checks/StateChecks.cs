@@ -43,6 +43,7 @@ internal static class StateChecks
             HostStateChange.Setting("theme", "light"), HostStateChange.Setting("theme-mode", "system"),
             HostStateChange.Setting("system-light", "light"), HostStateChange.Setting("system-dark", "high-contrast-dark"),
             HostStateChange.Setting("markdown-width", "80"), HostStateChange.Setting("file-bounded", "false"),
+            HostStateChange.Setting("notifications", "false"),
             HostStateChange.SavePreset("Mine", "{}"), HostStateChange.RenamePreset("Mine", "Renamed"),
             HostStateChange.OpenProject(project), HostStateChange.OpenProject(other), HostStateChange.CloseProject(other),
             HostStateChange.Label(Path.Combine(project + "-worktrees", "workspace-1"), "Shared name"),
@@ -84,7 +85,7 @@ internal static class StateChecks
         var expected = Describe(await local.GetStateAsync());
         Require(expected == Describe(await remote.GetStateAsync()), "Local and remote hosts must apply the same changes identically.");
         var state = await local.GetStateAsync();
-        Require(state.Settings is { Theme: "light", ThemeMode: "system", SystemDark: "high-contrast-dark", MarkdownLineWidth: 80, FileLineWidthBounded: false } &&
+        Require(state.Settings is { Theme: "light", ThemeMode: "system", SystemDark: "high-contrast-dark", MarkdownLineWidth: 80, FileLineWidthBounded: false, NotificationsEnabled: false } &&
             state.Presets.Single().Name == "Renamed" && state.Projects.SequenceEqual([project]) && state.RecentProjects.SequenceEqual([other]),
             "Changes apply in order: presets rename, closing moves a project to the recents.");
         Require(state.PluginSettings["probe"].GetRawText() == """{"size":1,"enabled":false}""" && state.PluginSettings["other"].GetRawText() == """{"kept":true}""" &&

@@ -17,6 +17,8 @@ public sealed record HostSettings
     public bool MarkdownLineWidthBounded { get; init; } = true;
     /// <summary>How much recent output a terminal opened from now on keeps for replay, in KiB; zero keeps none.</summary>
     public int TerminalReplayKb { get; init; } = DefaultTerminalReplayKb;
+    /// <summary>Whether clients raise desktop notifications when a terminal's agent needs the user while they are away.</summary>
+    public bool NotificationsEnabled { get; init; } = true;
 
     public const int DefaultTerminalReplayKb = 64;
     public const int MaxTerminalReplayKb = 1024;

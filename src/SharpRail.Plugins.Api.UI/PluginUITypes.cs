@@ -277,6 +277,23 @@ public enum PluginNotificationKind
     Error
 }
 
+/// <summary>
+/// A terminal asking for the user while the app is away (W20): an agent that is blocked on an answer, has finished,
+/// or has failed.
+/// </summary>
+/// <param name="WorkspaceId">The terminal's workspace.</param>
+/// <param name="TabKey">The terminal's tab key; activating the notification reveals this tab.</param>
+/// <param name="Title">The headline.</param>
+/// <param name="Body">What the terminal wants.</param>
+public sealed record AttentionNotification(string WorkspaceId, string TabKey, string Title, string Body)
+{
+    /// <summary>
+    /// Asked on the UI thread when the notification is about to be shown; <see langword="false"/> drops it, for
+    /// attention the user already gave. <see langword="null"/> always shows.
+    /// </summary>
+    public Func<bool>? StillNeeded { get; init; }
+}
+
 /// <summary>One client-local preference, namespaced by <see cref="PluginIdentity.PreferenceKey"/> and qualified by host endpoint.</summary>
 public interface IPluginPreference
 {

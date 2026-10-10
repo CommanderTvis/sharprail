@@ -25,4 +25,11 @@
       <Content Include="@(MermaidLibrary)" Link="%(MermaidLibrary.Filename)%(MermaidLibrary.Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     </ItemGroup>
   </Target>
+  <Target Name="BuildNotifications" BeforeTargets="PrepareForBuild">
+    <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/build-notifications.sh&quot;" />
+    <ItemGroup>
+      <NotificationsLibrary Include="../../.tools/notifications/*SharpRailNotifications.*" />
+      <Content Include="@(NotificationsLibrary)" Link="%(NotificationsLibrary.Filename)%(NotificationsLibrary.Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
 </Project>

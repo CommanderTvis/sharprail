@@ -1,4 +1,6 @@
 using SharpRail.Host.Abstractions;
+using SharpRail.Plugins.Api.UI;
+using SharpRail.UI.Notifications;
 using SharpRail.UI.Plugins;
 using SharpRail.UI.State;
 
@@ -16,6 +18,7 @@ public sealed class Workbench : IDisposable
     private readonly Dictionary<string, int> workspaceRevisions = [];
     private readonly Dictionary<(string Workspace, string Path), int> fileRevisions = [];
     private WorkbenchWindow? activeWindow;
+    private AttentionNotifications? attention;
 
     public Workbench(ProfileStore profile, SharedState state, Terminal.TerminalFactory terminals, bool remote, Func<IProjectServices>? sessions, IPluginService? plugins = null)
     {
@@ -45,6 +48,12 @@ public sealed class Workbench : IDisposable
     internal PluginWorkspaceWatches WorkspaceWatches { get; }
     /// <summary>A host this workbench composed for itself and stops when it is disposed.</summary>
     internal IAsyncDisposable? OwnedHost { get; init; }
+    /// <summary>The system's notification channel; a workbench without one raises no desktop notifications.</summary>
+    public IDesktopNotifier? Notifier { get; init; }
+    /// <summary>How long attention requests collect before they are shown as one notification.</summary>
+    public TimeSpan NotificationWindow { get; init; } = AttentionNotifications.DefaultWindow;
+    /// <summary>Whether the user is in the app: one of its windows, or a dialog of one, is the active window.</summary>
+    public bool Focused => windows.Any(window => window.IsActive || window.OwnedWindows.Any(owned => owned.IsActive));
     /// <summary>Qualifies client-local plugin preferences, so two hosts' plugins never share one.</summary>
     public string Endpoint { get; init; } = "local";
     /// <summary>The window plugins act on: the last one activated, else the first open.</summary>
@@ -100,6 +109,25 @@ public sealed class Workbench : IDisposable
 
     internal void RaiseProjectionChanged() => ProjectionChanged?.Invoke();
 
+    /// <summary>Queues a desktop notification for a terminal that needs the user; shown only while the app is away.</summary>
+    internal void RequestAttention(AttentionNotification notification)
+    {
+        if (Notifier is null) return;
+        (attention ??= new(this, Notifier, NotificationWindow)).Request(notification);
+    }
+
+    internal WorkbenchWindow? WindowHolding(string workspace, string tabKey) => windows.FirstOrDefault(window =>
+        window.TerminalTabs().Any(open => open.Workspace == workspace && open.Tabs.Any(tab => tab.Id == tabKey)));
+
+    /// <summary>Brings forward the window holding a terminal tab, on that tab's workspace with the tab selected.</summary>
+    internal async Task RevealTerminalAsync(string workspace, string tabKey)
+    {
+        if (WindowHolding(workspace, tabKey) is not { } window) return;
+        if (window.WindowState == Avalonia.Controls.WindowState.Minimized) window.WindowState = Avalonia.Controls.WindowState.Normal;
+        window.Activate();
+        await window.RevealTerminalAsync(workspace, tabKey);
+    }
+
     public int FileRevision(string workspace, string path) => fileRevisions.GetValueOrDefault((workspace, path));
 
     /// <summary>Advances the revisions of changed files in a watched workspace.</summary>
@@ -135,6 +163,7 @@ public sealed class Workbench : IDisposable
     public void Dispose()
     {
         PluginLoader.Stop();
+        attention?.Stop();
         State.Dispose();
         if (OwnedHost is { } host) _ = Task.Run(async () => await host.DisposeAsync());
     }

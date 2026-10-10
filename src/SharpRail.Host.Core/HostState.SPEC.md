@@ -111,7 +111,8 @@ presets belong to the UI.
   applied. A system pair with only one side is malformed and loads as no pair. The terminal replay size
   (`terminal-replay`) accepts whole numbers 0–1024 KiB and defaults to 64; a loaded value outside that
   range is clamped. Zero is a real value, so the wire always carries the field and a host that predates
-  it reads as the default.
+  it reads as the default. `notifications` (`true`/`false`, default on) is the master toggle for clients'
+  away notifications; the wire carries its negation, so a host that predates it reads as on.
 - Setting updates accept a closed set of keys and validate their values before publishing the batch;
   unknown setting keys and change kinds are rejected. The typed change-list contract replaces upstream's
   object-shaped partial update, so arbitrary JSON payloads are not a separate mutation surface.

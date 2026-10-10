@@ -26,6 +26,7 @@ versions; `global.json` selects the SDK. Use `.tools/dotnet/dotnet` for this che
 | `src/SharpRail.UI/State` | Profile persistence and migration (`ProfileStore`: app preferences and one entry per window) and the app's shared-state subscription (`SharedState`). Default user state belongs in `~/.sharprail`, not project directories. |
 | `src/SharpRail.UI/Plugins` | The app's plugin runtime: the contribution registry the workbench reads, the builtin UI array, external UI assembly loading through the host, `IPluginUIContext` and the roster reconciler. Settings › Plugins is `Panels/PluginsSettings.cs`. |
 | `src/SharpRail.UI/Terminal` | Terminal tab body (`TerminalView`: start failure/retry, exit notice), the Ghostty native-control bridge for local and relayed remote sessions, and the `--terminal-relay` mode. |
+| `src/SharpRail.UI/Notifications` | Away notifications for terminals whose agent needs the user: the collection window and gates (`AttentionNotifications`), the injected `IDesktopNotifier` and the macOS channel over `Native/Notifications.m`. |
 | `src/SharpRail.UI/Assets` | The bundled theme manifests; the icons and fonts, with their licenses, live in the kit's `Assets`. |
 | `src/Ghostty.Avalonia` | Independent Ghostty controls: hosted AppKit/Metal, Metal textures composed by Avalonia, and libghostty-vt drawn by Skia; native bridges, build script and licenses. Its README documents reuse and limits. |
 | `tests/SharpRail.Checks` | Executable checks for host transports, runtime extensibility, layout, UI and Git/worktree integration. `E2E/` translates upstream scenarios using real headless Avalonia input. |
@@ -33,6 +34,7 @@ versions; `global.json` selects the SDK. Use `.tools/dotnet/dotnet` for this che
 | `scripts/bootstrap.sh` | Installs the checkout's local .NET SDK. |
 | `src/Ghostty.Avalonia/build-native.sh` | Builds pinned libghostty and libghostty-vt bridges on the target macOS architecture, using checkout-local tools and caches. |
 | `scripts/build-merman.sh` | Downloads Merman's pinned, checksummed macOS xcframework and links its C ABI into `.tools/merman/libSharpRailMermaid.dylib`. The kit's `Visualization/MermaidRenderer.cs` renders SVG through it off the UI thread; Svg.Skia displays it. Other platforms show the source with an unavailability message. |
+| `scripts/build-notifications.sh` | Compiles the User Notifications bridge into `.tools/notifications/libSharpRailNotifications.dylib`; the UI build runs it and copies the library beside the app. |
 | `scripts/check-terminal.sh` | Runs the native shell/Metal probe; the checks executable's `--native-terminal` mode exercises Avalonia integration. |
 | `scripts/check-packaged.sh` | Runs the check gate from a staged copy of `artifacts/SharpRail.app`, so the files under test are the packaged ones. |
 | `scripts/publish.sh` | Publishes non-composite R2R UI, remote host and checks; refreshes and signs the canonical `artifacts/SharpRail.app`. Check for a live app process before replacing it. |
@@ -179,7 +181,7 @@ The full suite takes about 30 minutes (≈330 checks, measured 2026-10-02) and b
 because it executes from the build output. Spend it deliberately:
 
 - While iterating, run only the focused mode for what changed (`--plugins`, `--codex`, `--specs`,
-  `--branch-graph`, `--vertical-tabs`, `--terminals`, `--sync`, `--welcome`, `--workspaces`, `--scratch` for
+  `--branch-graph`, `--vertical-tabs`, `--terminals`, `--notifications`, `--sync`, `--welcome`, `--workspaces`, `--scratch` for
   layout and startup, `--ui-smoke`); add a mode when a change has none. Format-check the touched files.
 - Run the full suite once per batch of related changes, after the focused modes pass — never after each
   small fix, and never to "see what breaks".
@@ -198,6 +200,7 @@ Run checks with `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Re
 `-- --ghostty-skia` runs focused Skia input, pixel, PTY and renderer Settings checks.
 `-- --native-texture` checks GPU texture composition, input and local/remote renderer switching in a real macOS window.
 `-- --sync` runs the multi-window and multi-client translations.
+`-- --notifications` runs the away-notification checks with a recording notifier; no check posts a real one.
 `-- --registry` runs the workspace registry host parity checks and the external-workspace rail checks.
 `-- --documents` runs the resource-renderer checks and the translations that open file and diff bodies.
 `-- --change-actions` runs the toast and diff revert/undo checks; `-- --review` runs the Review panel checks.

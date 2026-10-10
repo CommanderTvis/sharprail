@@ -86,7 +86,12 @@ public sealed partial class App : Application
                 ? TerminalBackends.Ghostty(new RemoteTerminalConnection(new Uri(endpoint!), token, remoteTerminals), Renderer)
                 : localTerminals is not null ? TerminalBackends.Ghostty(new LoopbackTerminals(new LocalTerminalAdapter(localTerminals), loopback!), Renderer)
                 : launch => TerminalBackends.Unavailable("Embedded terminals currently require macOS.");
-            var workbench = new Workbench(profile, state, Terminals, remote, sessions, plugins) { Endpoint = remote ? endpoint! : "local", Listener = listener };
+            var workbench = new Workbench(profile, state, Terminals, remote, sessions, plugins)
+            {
+                Endpoint = remote ? endpoint! : "local",
+                Listener = listener,
+                Notifier = OperatingSystem.IsMacOS() ? Notifications.MacNotifier.Create() : null
+            };
             if (OperatingSystem.IsMacOS()) ApplicationMenu.Install(this, workbench.Commands);
             foreach (var slot in profile.Data.Windows.ToArray())
             {
