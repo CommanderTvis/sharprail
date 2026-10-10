@@ -321,6 +321,11 @@ internal static class Program
             SurfaceChecks.Run(root);
             return;
         }
+        if (args.SequenceEqual(["--android"]))
+        {
+            AndroidClientChecks.Run(root);
+            return;
+        }
         if (args.SequenceEqual(["--runner"]))
         {
             RunnerChecks.Run(root);
@@ -617,6 +622,7 @@ internal static class Program
         Gate.Case("runner", () => RunnerChecks.Run(root));
         Gate.Case("layout", LayoutChecks.Run);
         Gate.Case("quit-confirmation", QuitConfirmationChecks.Run);
+        Gate.Case("android-client", () => AndroidClientChecks.Run(root));
         Gate.Case("open-world", CheckOpenWorld);
         Gate.Case("hosts", () => CheckHosts(root).GetAwaiter().GetResult());
         Gate.Case("terminal-hosts", () => TerminalHostChecks.Run(root).GetAwaiter().GetResult());

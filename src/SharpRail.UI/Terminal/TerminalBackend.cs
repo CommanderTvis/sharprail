@@ -45,7 +45,7 @@ public delegate ITerminalBackend TerminalFactory(TerminalLaunch launch);
 
 public sealed class TerminalStartException(string message) : IOException(message);
 
-// Ghostty's texture composed by Avalonia, or libghostty-vt cells drawn with Skia.
+// Ghostty's texture composed by Avalonia, or libghostty-vt cells drawn with Skia. Android has only Skia.
 public static class TerminalRenderers
 {
     public const string Texture = "texture";
@@ -56,18 +56,19 @@ public static class TerminalBackends
 {
     public static ITerminalBackend Unavailable(string reason) => throw new TerminalStartException(reason);
 
+    private static bool Skia(Func<string>? renderer) => OperatingSystem.IsAndroid() || renderer?.Invoke() == TerminalRenderers.Skia;
+
     // This overload has no endpoint or relay factory: both renderers call the supplied host directly.
     public static TerminalFactory Ghostty(ITerminalService terminals, Func<string>? renderer = null) => launch =>
     {
+        if (Skia(renderer)) return new SkiaTerminal(launch, terminals);
         if (!OperatingSystem.IsMacOS()) return Unavailable("Embedded terminals currently require macOS.");
-        return renderer?.Invoke() == TerminalRenderers.Skia
-            ? new SkiaTerminal(launch, terminals)
-            : new DirectGhosttyTerminal(launch, terminals);
+        return new DirectGhosttyTerminal(launch, terminals);
     };
 
     public static TerminalFactory Ghostty(RemoteTerminalConnection connection, Func<string>? renderer = null) => launch =>
     {
-        if (renderer?.Invoke() == TerminalRenderers.Skia) return new SkiaTerminal(launch, connection.Terminals);
+        if (Skia(renderer)) return new SkiaTerminal(launch, connection.Terminals);
         if (!OperatingSystem.IsMacOS()) return Unavailable("Embedded terminals currently require macOS.");
         return new GhosttyTerminal(launch, Task.FromResult(connection));
     };

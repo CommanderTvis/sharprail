@@ -14,8 +14,8 @@ internal sealed class ScintillaDocument : IDisposable
     internal ScintillaDocument(string text, SKTypeface typeface)
     {
         surface = new(typeface);
-        if (!OperatingSystem.IsMacOS())
-            throw new PlatformNotSupportedException("The Scintilla editor currently supports macOS only.");
+        if (!ScintillaEditor.IsSupported)
+            throw new PlatformNotSupportedException("The Scintilla editor supports macOS and Android only.");
 
         Dispatcher.UIThread.VerifyAccess();
 

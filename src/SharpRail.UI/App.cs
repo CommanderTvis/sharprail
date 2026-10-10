@@ -43,6 +43,7 @@ public sealed partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+#if !ANDROID
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             var endpoint = Environment.GetEnvironmentVariable("SHARPRAIL_REMOTE");
@@ -119,6 +120,7 @@ public sealed partial class App : Application
                 }).GetAwaiter().GetResult();
             };
         }
+#endif
         base.OnFrameworkInitializationCompleted();
     }
 }

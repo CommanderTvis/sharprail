@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Input.TextInput;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Platform;
@@ -42,11 +43,15 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
         Focusable = true;
         ClipToBounds = true;
         Cursor = new Cursor(StandardCursorType.Ibeam);
-        vt = new Vt(Size.Columns, Size.Rows, scrollbackLines, Reply);
+        vt = new Vt(Size.Columns, Size.Rows, scrollbackLines, Reply, OperatingSystem.IsMacOS() ? null : text => _ = CopyAsync(text));
         vt.SetColors(colors);
         vt.OptionAsAlt = OperatingSystem.IsMacOS();
         blink.Tick += (_, _) => { cursorOn = !cursorOn; Redraw(snapshot: false); };
         AddHandler(TextInputMethodClientRequestedEvent, (_, e) => e.Client = InputMethod, RoutingStrategies.Bubble);
+        // A soft keyboard types what its keys say: no sentence capitals, and no suggestions rewriting the command line.
+        TextInputOptions.SetMultiline(this, true);
+        TextInputOptions.SetAutoCapitalization(this, false);
+        TextInputOptions.SetShowSuggestions(this, false);
     }
 
     /// <summary>Bytes for the program: typed keys, encoded mouse and paste input, and replies to terminal queries.</summary>

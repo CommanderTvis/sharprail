@@ -4,7 +4,8 @@ An Avalonia text editor control built on Scintilla 5.6.7, drawn with SkiaSharp. 
 is shaped with HarfBuzz and ordered with the Unicode Bidirectional Algorithm
 (SheenBidi 3.0.0), so emoji sequences, combining marks, ligatures, complex scripts
 and mixed right-to-left text lay out, hit-test and edit correctly. It depends only on
-Avalonia, Avalonia.Skia, SkiaSharp and HarfBuzzSharp, and runs on macOS arm64/x64.
+Avalonia, Avalonia.Skia, SkiaSharp and HarfBuzzSharp, and runs on macOS arm64/x64 and
+Android arm64-v8a/x86_64; `ScintillaEditor.IsSupported` says whether the platform has it.
 
 ```csharp
 var editor = new ScintillaEditor(text, typeface)   // the caller keeps the SKTypeface; Menlo by default
@@ -68,6 +69,20 @@ downloads the SHA-256-pinned Scintilla and SheenBidi archives into `obj/native`,
 patches Scintilla and links `libSharpRail.Scintilla.dylib`, which is copied to the
 output and publish directories of every project that references this one.
 
+### Android
+
+`build-android.sh <arm64-v8a|x86_64> [cache directory]` compiles the same patched sources with
+the NDK from `scripts/android-ndk.sh` into `<cache>/android/<abi>/libSharpRail.Scintilla.so`
+(API 24, static libc++, 16 KB pages, only the `sr_*` entry points exported). The bridge draws
+through callbacks into SkiaSharp, so it links no Skia. `dotnet build` does not run it: the
+Android app runs it per ABI and packages the result as an `AndroidNativeLibrary`.
+
+A finger taps to place the caret, drags to scroll with inertia and holds to select a word; mouse
+and pen keep selecting by dragging. The soft keyboard edits through Avalonia's input connection,
+which addresses text by offsets, so on Android the input client exposes the caret line with its
+neighbours, counts a line break as one character and keeps that window until an edit has finished.
+A read-only editor requests no keyboard there.
+
 ## Limits
 
 - Caret movement is logical: Left moves toward the start of the text, which is
@@ -76,7 +91,8 @@ output and publish directories of every project that references this one.
   wrapped subline, and shaping does not join across style boundaries.
 - Whitespace markers and indentation guides keep logical positions.
 - Syntax lexers, completion, full IME preedit and accessibility text providers are
-  not implemented.
+  not implemented. Soft keyboards are asked not to compose (no suggestions); touch has
+  no selection handles or copy menu.
 
 Scintilla's license is in `licenses/Scintilla.txt`; SheenBidi is Apache-2.0
 (`licenses/SheenBidi.txt`). HarfBuzzSharp and SkiaSharp retain their NuGet package

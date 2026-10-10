@@ -46,6 +46,7 @@ and nullable/warnings-as-errors gate.
 | `src/SharpRail.UI/Terminal` | Terminal tab body (`TerminalView`: start failure/retry, exit notice), the Ghostty native-control bridge for local and relayed remote sessions, and the `--terminal-relay` mode. |
 | `src/SharpRail.UI/Notifications` | Away notifications for terminals whose agent needs the user: the collection window and gates (`AttentionNotifications`), the injected `IDesktopNotifier` and the macOS channel over `Native/Notifications.m`. |
 | `src/SharpRail.UI/Assets` | The bundled theme manifests; the icons and fonts, with their licenses, live in the kit's `Assets`. |
+| `src/SharpRail.Android` | The Android client: the UI's sources compiled for Android as a client of a remote host, with the windowing layer (`Windowing/`), the connect screen and the remembered endpoint. Not in `SharpRail.slnx`; its `SPEC.md` holds the composition rules and limits. |
 | `src/Ghostty.Avalonia` | Independent Ghostty controls: hosted AppKit/Metal, Metal textures composed by Avalonia, and libghostty-vt drawn by Skia; native bridges, build script and licenses. Its README documents reuse and limits. |
 | `tests/SharpRail.Checks` | Executable checks for host transports, runtime extensibility, layout, UI and Git/worktree integration. `E2E/` translates upstream scenarios using real headless Avalonia input. |
 | `scripts/dev.sh` | Builds and runs the app from source in one step (`SHARPRAIL_PROFILE` keeps a separate profile). |
@@ -56,6 +57,8 @@ and nullable/warnings-as-errors gate.
 | `scripts/check-terminal.sh` | Runs the native shell/Metal probe; the checks executable's `--native-terminal` mode exercises Avalonia integration. |
 | `scripts/check-packaged.sh` | Runs the check gate from a staged copy of `artifacts/SharpRail.app`, so the files under test are the packaged ones. |
 | `scripts/publish.sh` | Publishes non-composite R2R UI, remote host and checks; refreshes and signs the canonical `artifacts/SharpRail.app`. Check for a live app process before replacing it. |
+| `scripts/android.sh` | Builds the Android client (`build`), installs and starts it on the connected device or emulator (`run`), or writes the Release package to `artifacts/android/SharpRail.apk` (`apk`). Needs `ANDROID_HOME` and a JDK 17 or 21 in `JAVA_HOME`; installs the `android` workload into `.tools/dotnet`. |
+| `scripts/android-ndk.sh` | Installs the pinned Android NDK under `.tools/android-ndk` and prints its path; `build-android.sh` in `src/Ghostty.Avalonia` and `src/SharpRail.Scintilla` build the Android terminal and editor libraries with it. |
 | `.bench` | Ignored disposable fixtures, verification logs and own-window captures. Its name does not authorize benchmarks. |
 
 ## Scratch files
@@ -176,6 +179,15 @@ dependency into the host projects. Plugins (`src/SharpRail.Plugins.Api/SPEC.md`)
 kit and their dependencies' contracts; external plugins install under `<stateDir>/plugins/<id>/` with a
 `sharprail-plugin.json` manifest.
 
+The Android client (`src/SharpRail.Android`) is a client only: no embedded host, PTY or relay, just the
+remote adapters against a host's gRPC endpoint. It compiles the sources of `src/SharpRail.UI` under the same
+assembly name instead of referencing the project, because the UI's host-serving half needs Remote and
+ASP.NET Core. Every shared UI source must therefore stay compilable for Android: desktop-only host-serving
+code goes under `#if !ANDROID` or into a file the Android project excludes (`Program.cs`,
+`Terminal/LoopbackTerminals.cs`, `Panels/HostSettings.cs`). Windows are real `Window`s there too, supplied
+by the project's `Windowing/` over Avalonia 12.1.3 internals; do not special-case dialogs for Android in
+shared code, and recheck that layer on any Avalonia version change.
+
 `SPEC.md` defines the product contract; `COMPLETION.md` records unfinished gates;
 `E2E.md` inventories upstream translations; `VALIDATION.md` records verified
 evidence. Read the relevant module specs and the latest relevant entries in
@@ -279,6 +291,7 @@ translations; `-- --design --write` regenerates `src/SharpRail.Plugins.UI.Kit/Ge
 from `src/SharpRail.UI/Rendering/Design`. Edit the authored design sources, not
 generated C#.
 `-- --conformance` runs the dependency-boundary and public-surface checks; `-- --runner` checks the runner itself.
+`-- --android` checks the Android client's host address parsing and remembered endpoint; the client itself needs a device (`scripts/android.sh run`).
 `-- --lanes N` (or `auto`) splits the argument-free gate across processes, `-- --last-failed` reruns what the last
 run left unfinished, `-- --list-cases` lists the gate and `-- --case A,B` runs named
 cases. Lane/shard options apply to the argument-free gate (optionally narrowed by

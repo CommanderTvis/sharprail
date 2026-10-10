@@ -18,7 +18,10 @@ the native Ghostty and Mermaid libraries), `bootstrap.sh` (installs the `global.
 `check-terminal.sh` (the native Ghostty shell/Metal probe), `publish.sh` (R2R
 publish into `artifacts/` and the canonical signed `artifacts/SharpRail.app`), and
 `check-packaged.sh` (runs the check gate from a staged copy of the packaged bundle; the published checks
-add only what the bundle lacks, plus newer framework assemblies the gate itself vets) and
+add only what the bundle lacks, plus newer framework assemblies the gate itself vets),
+`android-ndk.sh` (installs the pinned Android NDK r27d into `.tools/android-ndk` and prints its path),
+`android.sh` (builds the Android client in `src/SharpRail.Android`; `run` also installs and starts it on the
+connected device or emulator, `apk` copies the signed Release package to `artifacts/android/SharpRail.apk`) and
 `benchmark.mjs` with its `window-probe.m` helper (launch timing, only when a
 benchmark is requested).
 
@@ -27,7 +30,12 @@ Their public surface is the script invocations named in `AGENTS.md` and
 Ghostty's native build belongs to `src/Ghostty.Avalonia/build-native.sh` and runs
 through that independent library's project. It applies the checked-in texture
 export and scrollback memory patches to the pinned Ghostty source; native sources and patches are included
-in the build fingerprint. They may depend on POSIX `sh`, Git, curl, `shasum`, clang/Xcode
+in the build fingerprint. The Android terminal and editor libraries likewise belong to their libraries
+(`src/Ghostty.Avalonia/build-android.sh`, `src/SharpRail.Scintilla/build-android.sh`) and run from the Android
+project's build; both take their compiler from `android-ndk.sh`. `android.sh` additionally needs the Android
+SDK (`ANDROID_HOME`, default `~/Library/Android/sdk`) and a JDK 17 or 21 (`JAVA_HOME`), fails with a message
+when either is missing, and runs `bootstrap.sh` and installs the `android` workload into `.tools/dotnet`
+when those are absent. They may depend on POSIX `sh`, Git, curl, `shasum`, clang/Xcode
 tools and, for the benchmark only, Node. They read source trees and write only to
 `.tools`, `.bench` and `artifacts`. Product logic, a second source of package
 versions, and editing sources are forbidden.
@@ -45,7 +53,12 @@ architecture, pinned version and the inputs (including the script itself) skips
 the work when nothing changed. Because MSBuild may invoke them from several
 referencing projects at once, each takes a directory lock under `.tools` released
 on exit or signal. They are no-ops off macOS, and the Ghostty build refuses a
-runtime identifier for a different architecture than the host.
+runtime identifier for a different architecture than the host. The Android builds run on macOS or Linux
+and accept only `arm64-v8a` and `x86_64`.
+
+`android-ndk.sh` takes an `install.lock` directory under `.tools/android-ndk`, unpacks into `partial` and
+moves the NDK into place only when complete. Its SHA-256 pin is the macOS archive's and is checked on macOS
+only; a Linux download is not verified.
 
 `publish.sh` removes the previous outputs before publishing so stale files never
 survive into the package, publishes self-contained non-composite ReadyToRun UI,
