@@ -4662,3 +4662,19 @@ cross-build with the NDK from `scripts/android-ndk.sh`. Shared UI sources must s
 
 Open: physical devices, phone ergonomics beyond the first frame, other IMEs, accessibility, HTTPS, CI,
 on-device tests, a release keystore, packaging `licenses/` into the APK, trimming.
+
+## Rendered Markdown table diffs (2026-10-10)
+
+Workspace `fix/markdown-table-diffs` preserves pipe-table syntax in rendered Markdown diffs and marks
+cell content. Added/removed tables, changed headers/cells and row changes remain native grids; differing
+column counts retain both table layouts. The kit and rendering specs record the contract. The new
+`-- --markdown-tables` checks join the default gate and fail against the original merger.
+Release build, touched-file formatting, focused table/resource/rendered-diff checks and the full
+117-case six-lane gate pass. Evidence is recorded in VALIDATION.md; scratch files were cleaned.
+Changes remain uncommitted. No push, publication or running-app restart.
+
+The user authorized committing the fix into main and removing its workspace and branch. The pending
+changes were aligned onto current main after its history rewrite; only an unrelated final-newline
+correction differed in the base tree. Release build, touched-file format verification and
+--markdown-tables pass again on that base. The implementation and validation records use separate
+signed commits. No push was requested.
