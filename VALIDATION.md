@@ -1631,6 +1631,11 @@ workspace in Projects with no strip in the centre, Back closing a drawer without
 connection status menu with Change host…. The QR button, scanning and the 45-second lost-host fallback
 build and pass `-- --android` (link format and reachable address) but were not exercised on a device.
 
+The phone chrome was then reworked and seen on the phone emulator: a bottom bar with Projects, Terminal,
+Tools and Settings; Projects as a full page without a tool strip; Tools as four sections; Settings as a
+list of sections with a summary line each. `DrawerChecks` asserts the bar, the pages, Back and the
+Settings list.
+
 Not verified: input methods other than Gboard; TalkBack and other
 accessibility services; plugin UI beyond what the default workbench shows; HTTPS endpoints; CI. Known
 limits (cleartext HTTP, unencrypted stored token, one workbench window, unreachable desktop code in the
