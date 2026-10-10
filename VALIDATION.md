@@ -1700,6 +1700,13 @@ checks. This is coverage across a full run and resumes, not a clean final-tip fu
 Android compilation, a physical phone and the packaged app were not checked. Temporary
 fixture directories were removed.
 
+## Compact Claude surface selector (2026-10-10)
+
+The Claude pane's surface selector keeps horizontal scrolling without displaying
+a scrollbar. The narrow-pane check verifies the hidden bar and scrolling to the
+Account button. Release build, --claude-code, touched-file format verification
+and git diff --check pass. The full gate and packaged app were not checked.
+
 ## HTML images in Markdown tables (2026-10-10)
 
 Inline HTML images now release the fixed paragraph line height, matching Markdown
