@@ -1699,3 +1699,12 @@ touch change; the final touch code passed its focused regression and the resumed
 checks. This is coverage across a full run and resumes, not a clean final-tip full run.
 Android compilation, a physical phone and the packaged app were not checked. Temporary
 fixture directories were removed.
+
+## HTML images in Markdown tables (2026-10-10)
+
+Inline HTML images now release the fixed paragraph line height, matching Markdown
+images and reserving their full height inside table cells. The regression checks
+table paragraph height and image aspect ratio. Release build passes with zero
+warnings/errors; --markdown, touched-file format verification and git diff --check
+pass. The full gate passes all 118 cases across six lanes. Task fixtures were
+removed. The packaged app and physical devices were not checked.

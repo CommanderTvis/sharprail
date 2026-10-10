@@ -4737,3 +4737,12 @@ and whole-solution format verification pass. The final full gate passes cleanly:
 checkout's SDK has no Android workload installed. The two feature/status commits
 are SSH-signed; main is fast-forwarded to them, and the task's managed workspace
 and temporary check fixtures are removed. No push or publication was requested.
+
+## HTML images in Markdown tables (2026-10-10)
+
+Inline HTML images now release the fixed paragraph line height, matching Markdown
+images and reserving their full height inside table cells. The regression checks
+table paragraph height and image aspect ratio. Release build passes with zero
+warnings/errors; --markdown, touched-file format verification and git diff --check
+pass. The full gate passes all 118 cases across six lanes. Task fixtures were
+removed. The packaged app and physical devices were not checked.
