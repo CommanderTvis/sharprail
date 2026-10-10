@@ -132,6 +132,8 @@ internal static class RailRetentionChecks
         {
             RemoveWorkspace(app, removed);
             Until(() => app.Host.GitActionPending && !app.Window.OwnedWindows.Any(window => window.IsVisible));
+            Until(() => ItemText(app, removed, "WorkspaceBranch") == "Removing…");
+            Require(!Select(app, removed).IsEnabled, "A workspace being removed must not open or offer its actions.");
             var button = Select(app, survivor);
             Require(button.Focus(), "A surviving workspace must accept focus while deletion is pending.");
             var menu = button.ContextMenu!;

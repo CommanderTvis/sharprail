@@ -89,7 +89,8 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
   While the host is unreachable a commit stays pending and is sent after reconnecting; other rejections
   report the error and end editing. The label is host state; the branch and folder never change.
 - Remove asks for confirmation (Git refuses a dirty worktree; the branch is kept). Removing the active
-  workspace first moves to the previously selected workspace, or Project Home.
+  workspace first moves to the previously selected workspace, or Project Home. From the confirmation until
+  the host finishes, the row is dimmed and inert and its second line reads Removing…; a refusal restores it.
 - Rail expansion is per-app profile state (`CollapsedProjects`), so it survives restarts and window
   rebuilds. The chevron toggles it and keeps focus on the chevron.
 - Opening a project lands on its Project Home, never auto-entering a workspace. Selecting a project row goes
