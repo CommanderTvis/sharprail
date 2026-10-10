@@ -108,7 +108,7 @@ The public top-level types of the assembly, held to it in both directions by the
 `GitAction`, `GitChange`, `GitCommit`, `GitSnapshot`, `HostErrorCode`, `HostException`,
 `HostHandshake`, `HostProtocol`, `HostSettings`, `HostState`, `HostStateChange`,
 `IPluginService`, `PluginCallRequest`, `PluginSubscription`, `SearchHit`, `SearchHits`,
-`TerminalAgent`, `TerminalPrefill`, `IHostStateService`, `IProjectServices`, `ITerminalCatalogService`, `ITerminalService`,
+`TerminalAgent`, `TerminalPrefill`, `TerminalTitle`, `IHostStateService`, `IProjectServices`, `ITerminalCatalogService`, `ITerminalService`,
 `ITerminalSession`, `IWorkspaceHost`, `LayoutPreset`, `LifecycleEvent`, `LineSpan`, `OpenReview`,
 `PrDraft`, `PrRequest`, `PrResult`, `ProjectFile`, `ProjectPathKind`, `ProjectRecord`,
 `RemoteBranch`, `RevertTarget`, `SpecDocument`, `SpecDuplicate`, `SpecEdge`, `SpecGraph`,

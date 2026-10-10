@@ -65,11 +65,15 @@ public sealed record HostState
     public IReadOnlyList<PluginRosterEntry> Plugins { get; init; } = [];
     /// <summary>The agent record of each terminal that has one; persisted, and dropped when its terminal closes.</summary>
     public IReadOnlyList<TerminalAgent> TerminalAgents { get; init; } = [];
+    /// <summary>The title an agent gave its terminal's tab; persisted, and dropped when the terminal closes.</summary>
+    public IReadOnlyList<TerminalTitle> TerminalTitles { get; init; } = [];
     /// <summary>The host's operating system; null from a host that does not report it.</summary>
     public HostPlatform? Platform { get; init; }
 }
 
 public sealed record TerminalAgent(TerminalRef Terminal, TerminalAgentRecord Record);
+
+public sealed record TerminalTitle(TerminalRef Terminal, string Title);
 
 public sealed record HostStateChange(string Kind, string Key = "", string Value = "")
 {

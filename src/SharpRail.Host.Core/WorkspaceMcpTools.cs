@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 
 using SharpRail.Host.Abstractions;
+using SharpRail.Plugins.Api;
 
 namespace SharpRail.Host.Core;
 
@@ -43,6 +44,25 @@ public sealed class WorkspaceMcpTools(HostStateStore state)
                 return (JsonSerializer.Serialize(new { path = catalog.SuggestedPath, branch, description }), false);
             }
             finally { creation.Release(); }
+        });
+
+    public McpServer.McpTool Title(TerminalRef? terminal) => new(
+        "set_title", "Title this terminal",
+        "Title the SharpRail terminal tab you run in. Call it once, as soon as the task is clear, before your other tool calls, and again only when the terminal moves to another task. It titles the terminal only, never the workspace or its branch.",
+        JsonNode.Parse("""
+            {"type":"object","properties":{
+              "title":{"type":"string","minLength":1,"description":"3-6 words naming what this terminal is working on, in the user's language. For a PR, issue, or ticket: `<Verb> #<number> <its exact title>`."}
+            },"required":["title"],"additionalProperties":false}
+            """)!.AsObject(),
+        (arguments, _) =>
+        {
+            if (arguments.Any(argument => argument.Key is not "title")) throw new ArgumentException("Only title is accepted.");
+            var title = ProjectServices.DisplayName(Text(arguments, "title"));
+            if (title is null || !title.Any(char.IsLetterOrDigit) || title.Contains('\0'))
+                throw new ArgumentException("Pass a title with at least one letter or digit.");
+            if (terminal is null) throw new InvalidOperationException("This session has no terminal tab to title.");
+            state.SetTerminalTitle(terminal, title);
+            return Task.FromResult(($"Terminal titled \"{title}\".", false));
         });
 
     private static string? Text(JsonObject arguments, string key) => arguments[key] is null ? null

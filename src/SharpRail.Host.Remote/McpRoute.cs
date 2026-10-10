@@ -70,7 +70,7 @@ public sealed class LoopbackServer(PtyTerminalService? terminals, HostStateStore
             try { message = await JsonNode.ParseAsync(context.Request.Body, cancellationToken: context.RequestAborted); }
             catch (JsonException) { return Results.Text("""{"jsonrpc":"2.0","id":null,"error":{"code":-32700,"message":"Parse error"}}""", "application/json"); }
             var tools = Plugins?.McpTools(owner.Terminal, owner.Workspace) ?? [];
-            if (workspaceTools is not null) tools = [workspaceTools.Create(owner.Workspace), .. tools];
+            if (workspaceTools is not null) tools = [workspaceTools.Create(owner.Workspace), workspaceTools.Title(owner.Terminal), .. tools];
             var (status, body) = await McpServer.HandleAsync(message, tools, context.RequestAborted);
             return body is null ? Results.StatusCode(status) : Results.Text(body.ToJsonString(), "application/json", statusCode: status);
         });

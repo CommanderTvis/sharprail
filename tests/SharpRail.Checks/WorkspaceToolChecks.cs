@@ -91,9 +91,49 @@ internal static class WorkspaceToolChecks
             new { name = "workspace_create", arguments = new { description = "Parallel task " + index } })));
         Require(parallel.All(reply => reply["result"]!["isError"] is null) && (await GitRepository.ListWorktreesAsync(root, default)).Count == 6,
             "Concurrent agent calls must allocate distinct workspaces.");
+        await Titling(root, stateDirectory, state, client, server is null ? new LocalStateAdapter(state) : new RemoteStateAdapter(
+            new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single()), "workspace-tools"),
+            async (workspace, arguments) =>
+            {
+                url = endpoint + "/mcp/" + pty.Token(new TerminalRef(workspace, "claude"));
+                var reply = (await Request("tools/call", new { name = "set_title", arguments }))["result"]!;
+                return (reply["content"]![0]!["text"]!.GetValue<string>(), reply["isError"]?.GetValue<bool>() == true);
+            });
+        Require((await Request("tools/list"))["result"]!["tools"]!.AsArray().Any(tool => tool!["name"]!.GetValue<string>() == "set_title"),
+            "Terminal titling must be available without enabled plugins.");
         using var unknown = await http.PostAsync(endpoint + "/mcp/unknown", new StringContent("{}", Encoding.UTF8, "application/json"));
         Require(unknown.StatusCode == HttpStatusCode.NotFound, "Workspace tools must require a terminal token.");
-        Console.WriteLine($"PASS workspace MCP tool ({(remote ? "remote" : "local")}): validation, managed paths, base, descriptions, linked terminals and authentication");
+        Console.WriteLine($"PASS workspace MCP tool ({(remote ? "remote" : "local")}): validation, managed paths, base, descriptions, linked terminals, terminal titles and authentication");
+    }
+
+    private static async Task Titling(string root, string stateDirectory, HostStateStore state, IHostStateService client, IHostStateService second,
+        Func<string, object, Task<(string Text, bool Error)>> title)
+    {
+        var workspace = (await client.GetStateAsync()).WorkspacesOf(root).First(known => known.Path != root);
+        async Task<string?> Tab(string path, IHostStateService? from = null) =>
+            (await (from ?? client).GetStateAsync()).TerminalTitles.FirstOrDefault(known => known.Terminal == new TerminalRef(path, "claude"))?.Title;
+        foreach (var arguments in new object[] { new { }, new { title = " - " }, new { title = "Fix auth", workspace_name = "Fix auth" }, new { title = "Fix auth", branch = "fix-auth" } })
+            Require((await title(root, arguments)).Error && await Tab(root) is null,
+                "A missing title, a title without letters and the arguments that once named a workspace must be rejected before any write.");
+
+        var titled = await title(root, new { title = "  Fix   auth redirect " });
+        Require(!titled.Error && titled.Text == "Terminal titled \"Fix auth redirect\"." && await Tab(root) == "Fix auth redirect" && await Tab(root, second) == "Fix auth redirect",
+            "A terminal in the Default workspace takes a title, for every client: " + titled.Text);
+        Require(new HostStateStore(stateDirectory).Current.TerminalTitles.Any(known => known.Terminal == new TerminalRef(root, "claude") && known.Title == "Fix auth redirect"),
+            "A terminal's title must survive a host restart.");
+        var again = await title(root, new { title = "Review #12 Zoom" });
+        Require(!again.Error && await Tab(root) == "Review #12 Zoom", "A later call retitles the terminal for its next task.");
+
+        var before = await client.GetStateAsync();
+        var branch = (await GitRepository.RunAsync(workspace.Path, default, "symbolic-ref", "--short", "HEAD")).Trim();
+        var other = await title(workspace.Path, new { title = "Виправити вхід" });
+        var after = await client.GetStateAsync();
+        Require(!other.Error && await Tab(workspace.Path) == "Виправити вхід" && await Tab(root) == "Review #12 Zoom", "Each terminal keeps its own title, in any script.");
+        Require(after.WorkspaceLabels.GetValueOrDefault(workspace.Path) == before.WorkspaceLabels.GetValueOrDefault(workspace.Path) &&
+            after.Workspaces.SequenceEqual(before.Workspaces) && (await GitRepository.RunAsync(workspace.Path, default, "symbolic-ref", "--short", "HEAD")).Trim() == branch,
+            "Titling a terminal never renames the workspace it runs in or moves its branch.");
+        state.RemoveTerminalTitles(known => known.WorkspaceId == root);
+        Require(await Tab(root) is null && await Tab(workspace.Path) == "Виправити вхід", "A closed terminal's title is dropped, and only its own.");
     }
 
     internal static void RunUi(string root)
@@ -109,6 +149,16 @@ internal static class WorkspaceToolChecks
         Require(!created.GetAwaiter().GetResult().Error, "The workspace tool must create the UI fixture.");
         Until(() => app.Window.GetLogicalDescendants().OfType<TextBlock>().Any(label => label.Name == "WorkspaceName" && label.Text == "Investigate terminal marks"));
         Require(app.Window.WorkspaceRoot == app.Root, "Creating an agent workspace must not switch the user's workspace.");
-        Console.WriteLine("PASS agent-created workspace displays its task description in Projects without switching the user");
+        app.Window.Layout.NewTerminal(app.Center);
+        var terminalTab = app.Window.Layout.Tabs(app.Center).Last(tab => tab.Kind == "terminal");
+        var defaultTitle = terminalTab.Title;
+        var titled = Task.Run(async () => await new WorkspaceMcpTools(app.State!).Title(new TerminalRef(app.Root, terminalTab.Id)).Call(
+            new JsonObject { ["title"] = "Watch the build" }, default));
+        Until(() => titled.IsCompleted);
+        Require(!titled.GetAwaiter().GetResult().Error && defaultTitle.StartsWith("Terminal ", StringComparison.Ordinal), "The tool must title a terminal in the Default workspace: " + titled.GetAwaiter().GetResult().Text);
+        Until(() => app.Window.Layout.Tabs(app.Center).Single(tab => tab.Id == terminalTab.Id).Title == "Watch the build");
+        Until(() => app.Find<Button>("Tab_" + terminalTab.Id.Replace(':', '_')).GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "Watch the build"));
+        Require(app.Window.Layout.Selected(app.Center)?.Id == terminalTab.Id && app.Window.WorkspaceRoot == app.Root, "Titling a terminal keeps the selection and the workspace.");
+        Console.WriteLine("PASS agent-created workspace displays its task description, and a titled terminal its title, without switching the user");
     }
 }

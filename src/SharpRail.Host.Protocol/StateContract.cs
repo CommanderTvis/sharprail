@@ -84,6 +84,7 @@ public sealed class StateReply
     [ProtoMember(14)] public List<string> PluginPaths { get; set; } = [];
     [ProtoMember(15)] public List<PluginRosterMessage> Plugins { get; set; } = [];
     [ProtoMember(16)] public List<TerminalAgentMessage> TerminalAgents { get; set; } = [];
+    [ProtoMember(17)] public List<TerminalTitleMessage> TerminalTitles { get; set; } = [];
     // Empty when the host does not report its platform.
     [ProtoMember(12)] public string Platform { get; set; } = "";
 }
@@ -94,6 +95,14 @@ public sealed class PluginSettingsMessage
     [ProtoMember(1)] public string Id { get; set; } = "";
     // The namespace as a JSON object.
     [ProtoMember(2)] public string Json { get; set; } = "";
+}
+
+[ProtoContract]
+public sealed class TerminalTitleMessage
+{
+    [ProtoMember(1)] public string WorkspaceId { get; set; } = "";
+    [ProtoMember(2)] public string TabKey { get; set; } = "";
+    [ProtoMember(3)] public string Title { get; set; } = "";
 }
 
 [ProtoContract]

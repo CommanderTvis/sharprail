@@ -44,7 +44,12 @@ SharpRail created, may be removed by it.
   label. It returns path, branch and description without switching the terminal's workspace.
   An omitted base or an explicit `HEAD` is resolved to a commit in the calling checkout before creation
   is routed through the main worktree; a non-Default workspace may have a different HEAD.
-- Codex and Claude Code prompt appendixes direct agents to this tool and encourage non-forced removal
+- `set_title` (`title`) sits beside it and titles the calling terminal's tab (whitespace collapsed, 60
+  characters, at least one letter or digit). The title is host state per terminal
+  (`HostState.TerminalTitles`), so every window shows it; a later call replaces it and closing the terminal
+  drops it. It names nothing else: a terminal cannot rename the workspace it runs in or move its branch. A
+  missing or letterless title and unknown arguments are tool errors before any write.
+- Codex and Claude Code prompt appendixes direct agents to these tools and encourage non-forced removal
   of their own completed workspaces once work is preserved; other users' workspaces, dirty checkouts
   and active agents must be left alone. Agents reuse a workspace the user prepared for the task and
   create another only for additional isolation or parallel work. User-edited prompt appendixes remain user-owned.

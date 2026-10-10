@@ -190,6 +190,23 @@ public sealed partial class LayoutSession
         });
     }
 
+    /// <summary>
+    /// Gives terminal tabs the titles their agents chose, in whichever workspace shows them. The host owns the
+    /// titles; the tab keeps the last one it was given, as it keeps the "Terminal N" it was created with.
+    /// </summary>
+    public void TitleTerminals(IReadOnlyDictionary<(string Workspace, string TabId), string> titles)
+    {
+        bool Stale(string workspace, DockTab tab) => tab.Kind == "terminal" && titles.TryGetValue((workspace, tab.Id), out var title) && tab.Title != title;
+        if (!State.Workspaces.Any(pair => pair.Value.Documents.Values.Any(tabs => tabs.Any(tab => Stale(pair.Key, tab))))) return;
+        Change(state =>
+        {
+            foreach (var (workspace, view) in state.Workspaces)
+                foreach (var tabs in view.Documents.Values)
+                    for (var index = 0; index < tabs.Count; index++)
+                        if (Stale(workspace, tabs[index])) tabs[index] = tabs[index] with { Title = titles[(workspace, tabs[index].Id)] };
+        });
+    }
+
     public void Keep(string groupId, string tabId) => Change(state =>
     {
         var docs = Active(state).Documents.GetValueOrDefault(groupId);

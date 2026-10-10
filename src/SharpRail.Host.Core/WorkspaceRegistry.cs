@@ -264,7 +264,7 @@ public sealed partial class ProjectServices
 
     private HashSet<string> Represented(IEnumerable<WorkspaceRecord> workspaces) => workspaces.Select(workspace => workspace.Path).Concat(registry.Current.Projects).ToHashSet();
 
-    private static string? DisplayName(string? raw)
+    internal static string? DisplayName(string? raw)
     {
         var name = Regex.Replace((raw ?? "").Trim(), @"\s+", " ");
         if (name.Length > NameLimit) name = name[..NameLimit].TrimEnd();

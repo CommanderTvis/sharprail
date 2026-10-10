@@ -130,6 +130,9 @@ presets belong to the UI.
   (`PluginNamespaceValidator`); a refusal throws and the whole batch is rejected. Without one, or before
   the plugin's contract loads, a namespace merges unvalidated. Turning a plugin off also writes
   `enabled: false` into each transitive dependent's namespace (`PluginDependents`), touching no other.
+- `TerminalTitles` persist beside them (`SetTerminalTitle`, `RemoveTerminalTitles`): the title an agent gave
+  its terminal's tab through `set_title`, sent to remote clients and dropped with the terminal or its project.
+  A window writes each title onto the tab that shows the terminal, on a broadcast and when a workspace mounts.
 - `TerminalAgents` persist (`SetTerminalAgent`, `RemoveTerminalAgents`); the roster (`PublishPlugins`) and
   `Platform` ride every snapshot and are never persisted. Publishing an unchanged roster publishes nothing.
 - Namespaces are kept as compact JSON objects, so a reloaded file and a fresh change compare equal; a
