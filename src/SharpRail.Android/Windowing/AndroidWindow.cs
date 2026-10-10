@@ -44,6 +44,7 @@ internal sealed class AndroidWindow : IWindowImpl
     private AndroidWindow? parent;
     private WindowDialog? dialog;
     private InsetFrame? frame;
+    private Size maximum = Size.Infinity;
     private Screens? screens;
     private Size requested;
     private bool shown, hasSurface, rendering, disposed;
@@ -223,7 +224,11 @@ internal sealed class AndroidWindow : IWindowImpl
     public void BeginMoveDrag(PointerPressedEventArgs e) { }
     public void BeginResizeDrag(WindowEdge edge, PointerPressedEventArgs e) { }
     public void Move(PixelPoint point) { }
-    public void SetMinMaxSize(Size minSize, Size maxSize) { }
+    public void SetMinMaxSize(Size minSize, Size maxSize)
+    {
+        maximum = maxSize;
+        Place();
+    }
     public void SetExtendClientAreaToDecorationsHint(bool extendIntoClientAreaHint) { }
     public void SetExtendClientAreaTitleBarHeightHint(double titleBarHeight) { }
 
@@ -292,6 +297,13 @@ internal sealed class AndroidWindow : IWindowImpl
             attributes.X += (width - sheetWidth) / 2;
             attributes.Y += height - sheetHeight;
             (width, height) = (sheetWidth, sheetHeight);
+        }
+        else
+        {
+            // A page shorter than the screen leaves the window beneath it showing below, and reachable: a
+            // workbench keeps its page bar under Settings that way.
+            if (double.IsFinite(maximum.Height)) height = Math.Min(height, (int)Math.Ceiling(maximum.Height * metrics.Density));
+            window.AddFlags(WindowManagerFlags.NotTouchModal);
         }
         attributes.Width = width;
         attributes.Height = height;

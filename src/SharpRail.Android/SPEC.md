@@ -83,7 +83,9 @@ Contract:
   system bars and soft keyboard leave visible. A window sized to its content (`SizeToContent` with height:
   every `DialogWindow`) is a sheet across the bottom of that area, at the height it asks for and at most
   640 dp wide; a tap outside it or Back asks it to close. Any other window (Settings, the Mermaid viewer) is
-  a page over all of it. Windows are placed again whenever the insets change, so a sheet with a focused text
+  a page over all of it, or over as much as its `MaxHeight` allows from the top: a page shorter than the
+  screen lets touches below it through to the window beneath, which is how the workbench's page bar stays
+  in use under Settings. Windows are placed again whenever the insets change, so a sheet with a focused text
   field stays above the keyboard. The kit draws a `DialogWindow`'s card as a sheet on Android (no shadow
   margin, top corners only) and Settings drops its card frame there.
 - The screen decides sizes: a window's minimum width and height are cleared when it is shown. Until its
