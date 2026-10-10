@@ -118,3 +118,9 @@ r27d (Apache-2.0 WITH LLVM-exception). See licenses/LLVM-libcxx.txt. The Android
 library is libghostty-vt at the commit above and links only the system C library.
 Krafs.Publicizer 2.3.2 (MIT) is used while building the Android client and is not
 redistributed.
+
+The QR code in Settings › Host is generated with QRCoder 1.8.0 (MIT); see licenses/QRCoder-MIT.txt.
+The Android client reads it through Google Play services' code scanner
+(Xamarin.GooglePlayServices.Code.Scanner 116.1.0.17 bindings, MIT, over Google's ML Kit code scanner,
+which is covered by the Android Software Development Kit License and runs inside Play services); the
+two QR icons come from the same Remix Icon set as the other PNG icons.
