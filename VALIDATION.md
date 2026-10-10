@@ -1737,3 +1737,14 @@ touch change; the final touch code passed its focused regression and the resumed
 checks. This is coverage across a full run and resumes, not a clean final-tip full run.
 Android compilation, a physical phone and the packaged app were not checked. Temporary
 fixture directories were removed.
+
+## Rendered Markdown table diffs — 2026-10-10
+
+In workspace `fix/markdown-table-diffs`, Release compilation passes with zero warnings/errors and
+format verification passes for the three touched C# files. `-- --markdown-tables` passes, as does the
+focused gate selecting `markdown-table-diffs,resources,RenderedDiffE2E` with
+`SHARPRAIL_TEST_GIT_SOURCE=/Users/commandertvis/IdeaProjects/thinkrail`. The regression fails with the
+original merger on the added-table case, then passes with the correction. Coverage checks parsed tables
+and native preview grids with insertion/deletion cell marks. The full gate passes 117 cases across six
+lanes against the same Git source. No real window, Android device or packaged app was driven for this fix.
+Temporary logs, captures and fixture directories were removed after recording these results.
