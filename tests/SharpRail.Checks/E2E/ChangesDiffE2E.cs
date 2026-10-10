@@ -141,30 +141,34 @@ internal static class ChangesDiffE2E
 
         app.Window.Width = 620; app.Window.Height = 800; Settle();
         var pane = Pane(app)!;
-        foreach (var name in new[] { "DiffWhitespace", "DiffCopy", "DiffSplit" })
+        foreach (var name in new[] { "DiffWhitespace", "DiffCopy" })
         {
             var control = Named<Control>(pane, name);
             Require(control.IsEffectivelyVisible && control.Bounds.Width > 0 && Right(control, pane) <= pane.Bounds.Width + 1,
                 $"{name} must stay inside the narrow diff header.");
         }
         var chip = Named<Border>(pane, "DiffPath");
-        Require(Right(chip, pane) <= Named<Control>(pane, "DiffSplit").TranslatePoint(new Point(0, 0), pane)!.Value.X + 1,
+        Require(Right(chip, pane) <= Named<Control>(pane, "DiffWhitespace").TranslatePoint(new Point(0, 0), pane)!.Value.X + 1,
             "The path chip must give way to the controls, however long the path.");
         Console.WriteLine("PASS upstream changes.spec.ts: The diff header keeps its controls on a narrow pane, however long the file's path");
 
-        // Until the user picks a layout, it follows the pane width; a click pins it.
+        // Added files start inline; a wide pane honors a clicked layout.
         if (OperatingSystem.IsMacOS())
         {
-            Until(() => Named<ToggleButton>(Pane(app)!, "DiffInline").IsChecked == true && Named<ToggleButton>(Pane(app)!, "DiffSplit").IsChecked == false);
+            Until(() => Named<ToggleButton>(Pane(app)!, "DiffSplit").IsChecked == false);
             app.Window.Width = 1800; Settle();
-            Until(() => Named<ToggleButton>(Pane(app)!, "DiffSplit").IsChecked == true);
-            app.Window.Width = 620; Settle();
-            Until(() => Named<ToggleButton>(Pane(app)!, "DiffInline").IsChecked == true);
+            Until(() => Named<ToggleButton>(Pane(app)!, "DiffSplit").IsChecked == false);
+            app.Click(Named<ToggleButton>(Pane(app)!, "DiffSplit"));
+            Require(Named<ToggleButton>(Pane(app)!, "DiffSplit").IsChecked == true, "An added file must allow an explicit split on a wide pane.");
+            app.Click(Named<ToggleButton>(Pane(app)!, "DiffSplit"));
+            app.Window.Width = 1700; Settle();
+            Require(Named<ToggleButton>(Pane(app)!, "DiffSplit").IsChecked == false, "A clicked Inline must stay inline while the pane remains wide.");
             app.Click(Named<ToggleButton>(Pane(app)!, "DiffSplit"));
             app.Window.Width = 600; Settle();
             app.Window.Width = 640; Settle();
-            Require(Named<ToggleButton>(Pane(app)!, "DiffSplit").IsChecked == true, "A clicked Split must stay split on a narrow pane.");
-            Console.WriteLine("PASS fork diffLayout: A diff too narrow for two columns opens inline until you say otherwise");
+            Require(Named<ToggleButton>(Pane(app)!, "DiffSplit") is { IsChecked: false, IsVisible: false },
+                "A narrow pane uses inline and hides Split even after a pinned split.");
+            Console.WriteLine("PASS diffLayout: wide panes honor a pinned layout, while narrow panes use inline and hide Split");
         }
     }
 }

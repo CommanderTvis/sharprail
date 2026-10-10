@@ -28,7 +28,6 @@ internal sealed partial class DiffView : Grid, IDisposable
 
     private readonly Grid body = new();
     private readonly ToggleButton split = Toggle("DiffSplit", "layout", "Side-by-side diff");
-    private readonly ToggleButton inline = Toggle("DiffInline", "list", "Inline diff");
     private readonly ToggleButton whitespace = Toggle("DiffWhitespace", "collapseVertical", "Hide whitespace changes");
     private readonly StackPanel segments = new() { Orientation = Orientation.Horizontal, Spacing = 4 };
     private readonly Dictionary<string, ToggleButton> toggles = [];
@@ -48,6 +47,7 @@ internal sealed partial class DiffView : Grid, IDisposable
     private readonly List<EditorFrame> frames = [];
     private bool disposed;
     private bool layoutPinned;
+    private bool singleSided;
     private string text;
     private readonly DiffTriage? triage;
     private readonly bool naturalHeight;
@@ -63,7 +63,7 @@ internal sealed partial class DiffView : Grid, IDisposable
 
     /// <summary>
     /// A diff tab's pane. <paramref name="choices"/> are the resource renderers that match the file, in rank order,
-    /// and become the view toggle; a tab with only the source diff offers split and inline instead. A choice that
+    /// and become the view toggle; a tab with only the source diff offers one side-by-side toggle instead. A choice that
     /// renders null cannot show this content, and the next one takes over. A <paramref name="pending"/> pane waits
     /// for <see cref="SetChoices"/> before it draws anything.
     /// A diff whose modified side is the worktree passes <paramref name="revert"/>, which never throws: the header
@@ -79,6 +79,7 @@ internal sealed partial class DiffView : Grid, IDisposable
         this.revert = revert;
         this.canRevert = canRevert;
         this.text = text;
+        singleSided = IsSingleSided(text);
         this.wrapWidth = wrapWidth;
         this.selectedChanged = selectedChanged;
         this.pending = pending;
@@ -121,7 +122,7 @@ internal sealed partial class DiffView : Grid, IDisposable
             revertFile.Width = 28;
             controls.Children.Add(revertFile);
         }
-        controls.Children.AddRange([outline, split, inline, whitespace, copy, segments]);
+        controls.Children.AddRange([outline, split, whitespace, copy, segments]);
         var header = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(12, 0, 0, 0) };
         Ui.Place(header, chip); Ui.Place(header, controls, 0, 1);
         Ui.Place(this, header);
@@ -132,17 +133,17 @@ internal sealed partial class DiffView : Grid, IDisposable
             Ui.Place(this, find, 1);
             find.Attach(this);
         }
-        split.IsChecked = true; inline.IsChecked = false;
-        split.Click += (_, _) => { layoutPinned = true; split.IsChecked = true; inline.IsChecked = false; Render(); };
-        inline.Click += (_, _) => { layoutPinned = true; inline.IsChecked = true; split.IsChecked = false; Render(); };
-        // Until the user picks Split or Inline, the layout follows the pane width, and the toggle shows the effective view.
+        split.IsChecked = !singleSided;
+        split.Click += (_, _) => { layoutPinned = true; Render(); };
+        // Until the user flips the toggle, the layout follows the pane width, and the toggle shows the effective view.
         // A Markdown source diff has no segment to pick with, so it always follows.
         SizeChanged += (_, args) =>
         {
             if (layoutPinned || !OperatingSystem.IsMacOS() || args.NewSize.Width <= 0) return;
             var narrow = (args.NewSize.Width / 2 - SideChrome) < LineWidths.Code(MinimumSplitColumns);
-            if (narrow == (inline.IsChecked == true)) return;
-            inline.IsChecked = narrow; split.IsChecked = !narrow;
+            var sideBySide = !narrow && !singleSided;
+            if (sideBySide == (split.IsChecked == true)) return;
+            split.IsChecked = sideBySide;
             if (!IsRendered) Render();
         };
         whitespace.Click += (_, _) => Render();
@@ -307,9 +308,21 @@ internal sealed partial class DiffView : Grid, IDisposable
     {
         if (diff == text) return;
         text = diff;
+        var nextSingleSided = IsSingleSided(diff);
+        if (singleSided != nextSingleSided)
+        {
+            singleSided = nextSingleSided;
+            if (!layoutPinned)
+                split.IsChecked = !singleSided && (Bounds.Width <= 0 || (Bounds.Width / 2 - SideChrome) >= LineWidths.Code(MinimumSplitColumns));
+        }
         if (IsRendered) StartMerge(keepCurrent: true);
         else Render();
     }
+
+    private static bool IsSingleSided(string diff) => diff.Split('\n')
+        .TakeWhile(line => !line.StartsWith("@@", StringComparison.Ordinal))
+        .Any(line => line.TrimEnd('\r') is "--- /dev/null" or "+++ /dev/null" ||
+            line.StartsWith("new file mode ", StringComparison.Ordinal) || line.StartsWith("deleted file mode ", StringComparison.Ordinal));
 
     private void Choose(DiffChoice choice)
     {
@@ -443,7 +456,7 @@ internal sealed partial class DiffView : Grid, IDisposable
     {
         Check();
         // The source view of a file with other views is always side by side; Scintilla is macOS-only.
-        split.IsVisible = inline.IsVisible = !embedded && choices.Count == 1 && !IsRendered && OperatingSystem.IsMacOS();
+        split.IsVisible = !embedded && choices.Count == 1 && !IsRendered && OperatingSystem.IsMacOS();
         whitespace.IsVisible = !embedded && !IsRendered && OperatingSystem.IsMacOS();
         copy.IsVisible = choices.Any(choice => choice.Render is null);
         outline.IsVisible = IsRendered;
@@ -470,7 +483,7 @@ internal sealed partial class DiffView : Grid, IDisposable
             Ui.Place(body, new ScrollViewer { Content = MarkdownPreview.Code(text), Margin = new Thickness(24, 8), HorizontalScrollBarVisibility = ScrollBarVisibility.Auto });
             return;
         }
-        if (hunks.Count == 0 || inline.IsChecked == true) RenderInline(preamble, hunks);
+        if (hunks.Count == 0 || split.IsChecked != true) RenderInline(preamble, hunks);
         else RenderSplit(hunks);
     }
 

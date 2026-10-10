@@ -227,6 +227,10 @@ position; intersection with the scroll viewport alone does not prove that it is 
 
 ## Content checks
 
+The syntax checks exercise source diff layout as well as highlighting: added and deleted files open
+inline through narrow/wide resizes and live status changes, while a manual split remains available
+and survives refresh. Modified files retain the width-based default.
+
 `ContentChecks.cs` (`-- --content`, also in the default run) covers the classifier (magic numbers, ASCII-only
 PDF byte-only, SVG and HTML flagged active, NUL and invalid UTF-8, LFS pointer), then the same fixture
 through the embedded host and a real gRPC host with equal results: byte-only diff sides empty with metadata
