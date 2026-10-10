@@ -23,7 +23,14 @@ jobs:
       # build-native.sh archives libghostty with Homebrew's llvm-ar.
       - run: brew install llvm
       - run: sh scripts/bootstrap.sh
-      - run: sh scripts/publish.sh osx-arm64
+      # The terminal library's build fetches its dependencies over git, which drops connections now and then;
+      # what it has fetched stays cached, so another attempt carries on from there.
+      - run: |
+          for attempt in 1 2 3; do
+            sh scripts/publish.sh osx-arm64 && exit 0
+            sleep 30
+          done
+          exit 1
       - run: sh scripts/dmg.sh "artifacts/${{ steps.stamp.outputs.name }}.dmg"
       - uses: actions/upload-artifact@v4
         with:
