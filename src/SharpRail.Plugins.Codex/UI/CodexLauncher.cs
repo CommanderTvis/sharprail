@@ -37,13 +37,26 @@ public static class CodexLauncher
             Background = Brushes.Transparent,
             BorderThickness = new Thickness(0)
         };
-        ToolTip.SetTip(button, "Start Codex (right-click for options)");
         AutomationProperties.SetName(button, "Start Codex");
-        button.Click += (_, _) => start(null);
         var menu = new ContextMenu { Name = "CodexLaunchMenu" };
+        // A touch screen has no right click: a tap opens the options, and the plain start is the first of them.
+        var touch = OperatingSystem.IsAndroid();
+        if (touch) button.Click += (_, _) => menu.Open(button);
+        else
+        {
+            ToolTip.SetTip(button, "Start Codex (right-click for options)");
+            button.Click += (_, _) => start(null);
+        }
         void Fill()
         {
             menu.Items.Clear();
+            if (touch)
+            {
+                var plain = new MenuItem { Name = "CodexLaunch_default", Header = "Start Codex" };
+                plain.Click += (_, _) => start(null);
+                menu.Items.Add(plain);
+                menu.Items.Add(new Separator());
+            }
             var groups = Groups(store.Models);
             for (var index = 0; index < groups.Count; index++)
             {

@@ -55,6 +55,8 @@ public sealed class Workbench : IDisposable
     public bool Remote { get; }
     /// <summary>A phone-sized screen: windows show their side panels as drawers over the centre.</summary>
     public bool Compact { get; init; }
+    /// <summary>A touch screen: what a pointer's hover reveals elsewhere is always shown.</summary>
+    public bool Touch { get; init; }
     /// <summary>Leaves this host for the screen that chooses one; set by a client that has such a screen.</summary>
     public Action? ChangeHost { get; init; }
     /// <summary>Centre tabs always live in Projects, under their workspace, whatever the tab layout preferences say.</summary>

@@ -20,6 +20,7 @@ invitation and bundled AI chat are excluded by the SharpRail product contract.
   and apply permission defaults. IDE slash commands submit Enter separately after 250ms.
   The launcher's right-click menu offers With custom arguments: Start passes the typed shell arguments
   to this run, Cancel starts nothing, and the last submitted arguments are prefilled during this app session.
+  On Android, where nothing right-clicks, a tap opens that menu and Start Codex is its first item.
 - The prompt appendix directs workspace creation through the host's `workspace_create` tool with a
   visible task description and encourages cleanup of the agent's own completed workspaces. Reuse a
   workspace the user already prepared; create another only for additional isolation or parallel work.

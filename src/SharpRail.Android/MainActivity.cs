@@ -28,6 +28,18 @@ public sealed class MainActivity : AvaloniaActivity
         session.Start();
     }
 
+    protected override void OnResume()
+    {
+        base.OnResume();
+        if (session is not null) session.Foreground = true;
+    }
+
+    protected override void OnPause()
+    {
+        if (session is not null) session.Foreground = false;
+        base.OnPause();
+    }
+
     protected override void OnDestroy()
     {
         session?.Dispose();

@@ -63,6 +63,7 @@ public sealed partial class ScintillaEditor : Control, IDisposable
         defaultRightMargin = document.Send(ScintillaMessage.GetMarginRight);
         inputClient = new(this);
         // A soft keyboard appears with the input client, so a read-only editor offers none where there is one.
+        SoftKeyboard(false);
         TextInputMethodClientRequested += (_, e) => { if (!OperatingSystem.IsAndroid() || !IsReadOnly) { e.Client = inputClient; e.Handled = true; } };
         TextInputOptions.SetMultiline(this, true);
         TextInputOptions.SetShowSuggestions(this, false);
@@ -248,7 +249,14 @@ public sealed partial class ScintillaEditor : Control, IDisposable
     protected override void OnGotFocus(FocusChangedEventArgs e)
     { base.OnGotFocus(e); document.Focus(true); timer.Start(); InvalidateVisual(); }
     protected override void OnLostFocus(FocusChangedEventArgs e)
-    { base.OnLostFocus(e); if (!disposed) document.Focus(false); timer.Stop(); InvalidateVisual(); }
+    { base.OnLostFocus(e); SoftKeyboard(false); if (!disposed) document.Focus(false); timer.Stop(); InvalidateVisual(); }
+
+    // Android raises the keyboard for whichever focused control takes text. Opening a file focuses its editor,
+    // which is not a request to type, so the editor takes text only once tapped.
+    private void SoftKeyboard(bool wanted)
+    {
+        if (OperatingSystem.IsAndroid()) InputMethod.SetIsInputMethodEnabled(this, wanted);
+    }
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     { timer.Stop(); base.OnDetachedFromVisualTree(e); }
 

@@ -446,3 +446,5 @@ SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.RefreshPreviewAsync(strin
 SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.ContextActions.get -> System.Func<System.Collections.Generic.IReadOnlyList<Avalonia.Controls.Control!>!>?
 SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.ContextActions.set -> void
 SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview.SelectedLines.get -> (int Start, int End)?
+SharpRail.Plugins.UI.Kit.RowActivation
+static SharpRail.Plugins.UI.Kit.RowActivation.OnActivate(Avalonia.Controls.Control! row, System.Func<Avalonia.Controls.Control!, bool>! accepts, System.Action<int>! action) -> void

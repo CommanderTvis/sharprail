@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.LogicalTree;
@@ -22,7 +23,8 @@ internal static class DrawerChecks
     private static void Pump(Func<bool> done, string message)
     {
         var deadline = Awake.Now.AddSeconds(10);
-        while (!done() && Awake.Now < deadline) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(5); }
+        // The headless render timer never ticks by itself, and the pages' slide waits for its frames.
+        while (!done() && Awake.Now < deadline) { AvaloniaHeadlessPlatform.ForceRenderTimerTick(); Dispatcher.UIThread.RunJobs(); Thread.Sleep(5); }
         Require(done(), message);
     }
 
@@ -66,14 +68,41 @@ internal static class DrawerChecks
         Click(tools);
         Require(!layout.State.LeftVisible && layout.State.RightVisible, "Opening Tools must leave Projects.");
         var sections = Region("right").GetLogicalDescendants().OfType<Button>().Where(button => button.Name?.StartsWith("DrawerSection_", StringComparison.Ordinal) == true).ToArray();
-        Require(sections.Length == 4 && sections.All(section => section.Name != "DrawerSection_projects") &&
+        Require(sections.Length == window.Layout.Tools.Count - 1 && sections.Length >= 4 && sections.All(section => section.Name != "DrawerSection_projects") &&
             Region("right").GetLogicalDescendants().OfType<Border>().Count(border => border.Name == "DrawerSectionBody") == 1,
-            "Tools must list every side tool but Projects as sections and show one of them.");
+            "Tools must list every tool but Projects as sections, seated in a group or not, and show one of them.");
         Click(sections.Single(section => section.Name == "DrawerSection_changes"));
         Require(Region("right").GetLogicalDescendants().OfType<Border>().Single(border => border.Name == "DrawerSectionBody").Child is not null &&
             layout.State.RightVisible, "Choosing a section must show that tool and stay on Tools.");
         Click(current);
         Require(!layout.State.RightVisible && !layout.State.LeftVisible, "The current page's button must leave the side pages.");
+
+        window.SwipePage(towardsLeft: true);
+        Require(layout.State.LeftVisible, "A flick to the right from the current page must uncover Projects.");
+        window.SwipePage(towardsLeft: false);
+        window.SwipePage(towardsLeft: false);
+        Require(layout.State.RightVisible && !layout.State.LeftVisible, "Flicks to the left must pass the current page and reach Tools.");
+        window.SwipePage(towardsLeft: false);
+        Require(layout.State.RightVisible, "A flick past the last page must change nothing.");
+        Click(current);
+
+        // A finger drags the neighbouring page in with it: it stays when carried far enough, and goes back otherwise.
+        void Drag(double from, double to)
+        {
+            var y = window.Bounds.Height / 2;
+            var touch = window.TouchBegin(new(from, y), Avalonia.Input.RawInputModifiers.None);
+            for (var step = 1; step <= 5; step++) window.TouchMove(touch, new(from + (to - from) * step / 5, y), Avalonia.Input.RawInputModifiers.None);
+            // Held long enough that the drag is no flick.
+            using (var wait = new CancellationTokenSource(400)) Dispatcher.UIThread.MainLoop(wait.Token);
+            window.TouchEnd(touch, new(to, y), Avalonia.Input.RawInputModifiers.None);
+        }
+        var width = window.Bounds.Width;
+        Drag(width * 0.2, width * 0.4);
+        Pump(() => !layout.State.LeftVisible && !layout.State.RightVisible, "A page dragged a short way must go back to the one it left.");
+        Drag(width * 0.2, width * 0.7);
+        Pump(() => layout.State.LeftVisible, "A page dragged most of the way in must stay.");
+        Drag(width * 0.8, width * 0.3);
+        Pump(() => !layout.State.LeftVisible && !layout.State.RightVisible, "Dragging Projects away must return to the current page.");
 
         Click(projects);
         var back = new RoutedEventArgs(TopLevel.BackRequestedEvent);
@@ -91,6 +120,8 @@ internal static class DrawerChecks
             "Tabs kept in Projects must not fall back to a strip in the centre.");
         Click(projects);
         Pump(() => Region("left").GetLogicalDescendants().OfType<SharpRail.UI.Docking.DockTabButton>().Any(), "The open document's tab must be listed in Projects.");
+        Require(Region("left").GetLogicalDescendants().OfType<Button>().Where(button => button.Name == "CloseTab").All(close => close.Opacity == 1) &&
+            Region("left").GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "CloseTab"), "A touch workbench must always draw a tab's close button.");
         Click(current);
 
         var settings = new SettingsWindow(window, () => { });
@@ -114,6 +145,20 @@ internal static class DrawerChecks
             !Named<TextBlock>(settings, "EditorTabsLabel").IsVisible, "A workbench that keeps its tabs in Projects must not offer another place for them.");
         Require(Named<Button>(settings, "DefaultPane_horizontal").IsEnabled, "Pane direction must stay available where tabs always live in Projects.");
         settings.Close();
+        Click(current);
+        var menus = window.GetLogicalDescendants().OfType<Control>().Select(control => control.ContextMenu).OfType<ContextMenu>().Distinct().ToArray();
+        Require(menus.Length > 0 && !menus.SelectMany(menu => menu.Items.OfType<MenuItem>()).Any(item => item.Header is string header && header.StartsWith("New split", StringComparison.Ordinal)),
+            "A workbench that keeps its tabs in Projects must not offer to split the centre.");
+
+        Click(Named<Button>(window, "PageTools"));
+        Drag(width * 0.8, width * 0.3);
+        Pump(() => window.OwnedWindows.OfType<SettingsWindow>().Any(), "A sweep past Tools must open Settings, the page after it.");
+        var swept = window.OwnedWindows.OfType<SettingsWindow>().Single();
+        var finger = swept.TouchBegin(new(40, 200), Avalonia.Input.RawInputModifiers.None);
+        swept.TouchMove(finger, new(160, 200), Avalonia.Input.RawInputModifiers.None);
+        swept.TouchEnd(finger, new(240, 200), Avalonia.Input.RawInputModifiers.None);
+        Pump(() => !window.OwnedWindows.OfType<SettingsWindow>().Any() && layout.State.RightVisible, "A sweep back over Settings must return to Tools.");
+        Click(current);
         window.ShowSettings();
         Dispatcher.UIThread.RunJobs();
         var shown = window.OwnedWindows.OfType<SettingsWindow>().Single();

@@ -158,7 +158,15 @@ public sealed partial class GhosttySkiaView
     protected override void OnLostFocus(FocusChangedEventArgs e)
     {
         base.OnLostFocus(e);
+        SoftKeyboard(false);
         if (!disposed) Send(vt.Focus(false));
+    }
+
+    // Android raises the keyboard for whichever focused control takes text. Focus reaches a terminal without
+    // the user asking to type (a tab chosen elsewhere, a restored layout), so it takes text only once tapped.
+    private void SoftKeyboard(bool wanted)
+    {
+        if (OperatingSystem.IsAndroid()) global::Avalonia.Input.InputMethod.SetIsInputMethodEnabled(this, wanted);
     }
 
     // Grid-relative device pixels, the space Ghostty's mouse and selection encoders work in.
@@ -267,6 +275,7 @@ public sealed partial class GhosttySkiaView
                 vt.ClearSelection();
                 Redraw();
                 if (Track(Press, 1, e)) Track(Release, 1, e);
+                SoftKeyboard(true);
                 InputMethod.ShowPanel();
             }
             return;

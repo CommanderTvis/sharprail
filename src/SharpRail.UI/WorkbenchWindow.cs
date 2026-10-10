@@ -79,7 +79,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         plugins.Start();
         return new(profile, new SharedState(new Host.Client.LocalStateAdapter(store), profile.Data.Preferences, store.Current), terminals, remote, null,
             new Host.Client.LocalPluginAdapter(plugins), terminalTabs)
-        { OwnedHost = plugins, Compact = compact, TabsInProjects = tabsInProjects };
+        { OwnedHost = plugins, Compact = compact, TabsInProjects = tabsInProjects, Touch = compact };
     }
 
     internal WorkbenchWindow(Workbench workbench, IProjectServices host, WindowProfile slot, string rootPath)
@@ -107,7 +107,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         Layout.Changed += UpdateActiveChangeRows;
         Layout.SelectionChanged += _ => UpdateActiveChangeRows();
         Layout.Focused += UpdateActiveChangeRows;
-        surface = new DockSurface(Layout, RenderContent);
+        surface = new DockSurface(Layout, RenderContent) { CloseAlwaysShown = workbench.Touch };
         if (workbench.Compact) WireDrawers();
         WireCenterTabs();
         Ui.Place(root, surface, 1);

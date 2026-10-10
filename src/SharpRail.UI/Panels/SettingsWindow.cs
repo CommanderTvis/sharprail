@@ -164,7 +164,7 @@ public sealed partial class SettingsWindow : Window
         ["Line width"] = "Code and Markdown columns",
         ["Layout"] = "Presets, panes, file previews",
         ["Projects"] = "Recent projects",
-        ["Terminal"] = "Renderer, replayed output",
+        ["Terminal"] = OperatingSystem.IsAndroid() ? "Replayed output" : "Renderer, replayed output",
         ["Notifications"] = "When an agent needs you",
         ["Host"] = "The host this app works with",
         ["GitHub"] = "Command-line sign-in",
@@ -709,6 +709,8 @@ public sealed partial class SettingsWindow : Window
     private Control TerminalSettings()
     {
         var panel = Page("TerminalPage");
+        // Android terminals are always drawn by Skia, so there is nothing to choose.
+        PageControl<StackPanel>(panel, "TerminalRendererSection").IsVisible = !OperatingSystem.IsAndroid();
         var choices = PageControl<StackPanel>(panel, "TerminalRendererChoices");
         foreach (var (renderer, label, description) in new[]
         {

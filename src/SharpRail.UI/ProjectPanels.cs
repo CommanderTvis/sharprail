@@ -152,21 +152,13 @@ public sealed partial class WorkbenchWindow
             if (node.IsExpanded) _ = Expand();
             // Like the reference tree, every click on the folder's own row toggles it, so two quick clicks open and
             // close it. The tree's built-in double-tap toggle is suppressed there so it does not toggle a third time.
-            node.AddHandler(PointerPressedEvent, (_, e) =>
-            {
-                if (e.Source is not Control source || !IsOwnHeader(node, source) || !e.GetCurrentPoint(node).Properties.IsLeftButtonPressed) return;
-                // The chevron's own toggle already expands and collapses the folder.
-                if (source is ToggleButton || source.GetVisualAncestors().OfType<ToggleButton>().Any()) return;
-                node.IsExpanded = !node.IsExpanded;
-            }, RoutingStrategies.Bubble, handledEventsToo: true);
+            // The chevron's own toggle already expands and collapses the folder.
+            RowActivation.OnActivate(node, source => IsOwnHeader(node, source) && source is not ToggleButton && !source.GetVisualAncestors().OfType<ToggleButton>().Any(),
+                _ => node.IsExpanded = !node.IsExpanded);
             // Double taps only bubble; handling them on the row content keeps them from the header's own toggle.
             ((Control)node.Header!).DoubleTapped += (_, e) => e.Handled = true;
         }
-        else node.AddHandler(PointerPressedEvent, (_, e) =>
-        {
-            if (e.Source is not Control source || !IsOwnHeader(node, source) || !e.GetCurrentPoint(node).Properties.IsLeftButtonPressed) return;
-            _ = BrowseDocumentAsync(file.Path, e.ClickCount == 2);
-        }, RoutingStrategies.Bubble, handledEventsToo: true);
+        else RowActivation.OnActivate(node, source => IsOwnHeader(node, source), clicks => _ = BrowseDocumentAsync(file.Path, clicks == 2));
         node.KeyDown += (_, e) =>
         {
             if (!WorkspaceMounted || toolContent.GetValueOrDefault("files")?.IsHitTestVisible != true) return;
@@ -352,13 +344,8 @@ public sealed partial class WorkbenchWindow
                 node.LostFocus += (_, _) => UpdateRole();
                 AutomationProperties.SetName(node, spec.Title);
                 AutomationProperties.SetHelpText(node, spec.Path + " · " + role.Text);
-                node.AddHandler(PointerPressedEvent, (_, e) =>
-                {
-                    if (e.Source is not Control source || !IsOwnHeader(node, source) ||
-                        !e.GetCurrentPoint(node).Properties.IsLeftButtonPressed || source is ToggleButton ||
-                        source.GetVisualAncestors().OfType<ToggleButton>().Any()) return;
-                    _ = BrowseDocumentAsync(spec.Path, e.ClickCount == 2);
-                }, RoutingStrategies.Bubble, handledEventsToo: true);
+                RowActivation.OnActivate(node, source => IsOwnHeader(node, source) && source is not ToggleButton && !source.GetVisualAncestors().OfType<ToggleButton>().Any(),
+                    clicks => _ = BrowseDocumentAsync(spec.Path, clicks == 2));
                 node.KeyDown += (_, e) => { if (e.Key == Key.Enter) { _ = BrowseDocumentAsync(spec.Path, true); e.Handled = true; } };
                 if (depth < 32 && byParent.TryGetValue(spec.Id, out var children))
                     foreach (var child in children.Where(child => !placed.Contains(child.Id))) node.Items.Add(Build(child, depth + 1));

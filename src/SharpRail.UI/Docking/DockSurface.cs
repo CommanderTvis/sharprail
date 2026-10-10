@@ -51,6 +51,9 @@ public sealed partial class DockSurface : Grid
     private readonly Dictionary<string, Border> auxiliaryRegions = new[] { "left", "right", "bottom" }
         .ToDictionary(region => region, region => new Border { Name = "AuxiliaryRegion_" + region });
     private readonly Canvas overlay = new() { IsHitTestVisible = false };
+    /// <summary>A touch screen has no hover to reveal a tab's close button on, so it is always drawn.</summary>
+    public bool CloseAlwaysShown { get; set; }
+
     /// <summary>
     /// On a narrow screen the side regions are pages over the centre instead of columns beside it: a visible
     /// left side shows Projects alone, and a visible right side every other side tool as sections.
@@ -124,6 +127,8 @@ public sealed partial class DockSurface : Grid
         if (draft is not null || shell.GetLogicalDescendants().OfType<ResizeHandle>().Any(handle => handle.IsActive))
         { rebuildPending = true; return; }
         rebuildPending = false;
+        // The page being left is pictured before anything is rebuilt, so it can slide away over the next one.
+        var slide = Drawers ? PageSlide() : null;
         renderedTools = Session.Tools;
         refreshPending = false;
         CancelDrag();
@@ -143,7 +148,7 @@ public sealed partial class DockSurface : Grid
         }
         shell.RowDefinitions.Clear(); shell.ColumnDefinitions.Clear();
         var state = Session.State;
-        if (Drawers) { RebuildDrawers(state); return; }
+        if (Drawers) { RebuildDrawers(state); slide?.Invoke(); return; }
         var widths = new SideGeometry(state, Bounds.Width).Project();
         var left = state.LeftVisible && state.Groups.Any(group => group.Region == "left");
         var right = state.RightVisible && state.Groups.Any(group => group.Region == "right");

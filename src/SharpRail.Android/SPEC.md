@@ -152,10 +152,14 @@ The host is any SharpRail gRPC endpoint: a desktop app listening from Settings �
   camera, so the app declares no camera permission. A device without Play services reports that and keeps
   the typed fields.
 - A workbench whose host stays unreachable for 45 seconds of running time closes and returns to the
-  connect screen with the endpoint still filled in and remembered; time the app spent suspended is not
-  counted.
+  connect screen with the endpoint still filled in and remembered. Only time in the foreground counts,
+  and returning to the app starts the count again, since Android cuts a background app's connections.
 - The header's connection status opens a menu naming the host with Change host…, which returns to the
   connect screen with the endpoint still filled in and remembered (`Workbench.ChangeHost`).
+- Touch rules the client adds: a button stops being pressed once the finger has moved 12 px, so a scroll
+  or flick that ends on it does not click (`TouchClicks`); tree rows open on a tap, not a press
+  (`RowActivation` in the kit); and the terminal and the editor take text, and so raise the keyboard, only
+  after a tap in them, never because focus reached them.
 - Settings › Host shows the connected host's authority and a Disconnect button. Disconnect rewrites
   `host.json` with an empty token, closes the workbench's windows, disposes the adapters and shows the
   connect screen with the address still filled in.
@@ -179,7 +183,8 @@ shared cache `.tools/ghostty-avalonia/android/<abi>`, the Scintilla library in
 their assets excluded.
 
 Terminals draw with `GhosttySkiaView` only: `TerminalBackends` returns the Skia terminal on Android whatever
-the renderer preference says. Text files open in Scintilla wherever `ScintillaEditor.IsSupported` holds, which
+the renderer preference says, and Settings › Terminal does not offer the choice. The Claude Code and Codex
+start buttons open their launch menus on a tap, each led by the plain start a click gives on a desktop. Text files open in Scintilla wherever `ScintillaEditor.IsSupported` holds, which
 includes Android. Mermaid rendering stays macOS-only; Android shows the diagram source.
 
 ## Build
