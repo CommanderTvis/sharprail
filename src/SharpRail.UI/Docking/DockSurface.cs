@@ -51,6 +51,18 @@ public sealed partial class DockSurface : Grid
     private readonly Dictionary<string, Border> auxiliaryRegions = new[] { "left", "right", "bottom" }
         .ToDictionary(region => region, region => new Border { Name = "AuxiliaryRegion_" + region });
     private readonly Canvas overlay = new() { IsHitTestVisible = false };
+    private readonly Border drawerScrim = new() { Name = "DrawerScrim", Background = Ui.Overlay, IsVisible = false, ZIndex = 10 };
+    private const double DrawerWidth = 360, DrawerMargin = 56;
+
+    /// <summary>
+    /// On a narrow screen the side regions are drawers over the centre instead of columns beside it: a visible
+    /// side slides over a dimmed centre, and a tap on the dimmed part hides it.
+    /// </summary>
+    public bool Drawers
+    {
+        get;
+        set { if (field == value) return; field = value; Rebuild(); }
+    }
     private bool refreshPending;
     private bool rebuildPending;
     private CenterTabsMode? renderedMode;
@@ -70,10 +82,17 @@ public sealed partial class DockSurface : Grid
         Children.Add(shell); Children.Add(overlay);
         Grid.SetColumn(centerRegion, 2); shell.Children.Add(centerRegion);
         foreach (var region in auxiliaryRegions.Values) shell.Children.Add(region);
+        Grid.SetColumnSpan(drawerScrim, 5); Grid.SetRowSpan(drawerScrim, 3); shell.Children.Add(drawerScrim);
+        drawerScrim.PointerPressed += (_, e) =>
+        {
+            foreach (var region in new[] { "left", "right" }) if (Side(region)) Session.Visible(region, false);
+            e.Handled = true;
+        };
         InstallPointerGestures();
         SizeChanged += (_, _) =>
         {
-            if (!shell.GetLogicalDescendants().OfType<ResizeHandle>().Any(handle => handle.IsActive))
+            if (Drawers) { foreach (var region in new[] { "left", "right" }) auxiliaryRegions[region].Width = Math.Min(DrawerWidth, Math.Max(0, Bounds.Width - DrawerMargin)); }
+            else if (!shell.GetLogicalDescendants().OfType<ResizeHandle>().Any(handle => handle.IsActive))
                 PreviewSides(new SideGeometry(Session.State, Bounds.Width).Project());
         };
         Session.Changed += () => { CancelForLayoutChange(); if (!Retarget()) Rebuild(); };
@@ -122,12 +141,19 @@ public sealed partial class DockSurface : Grid
         activeTabUpdates.Clear();
         modifiedUpdates.Clear(); catalogUpdates.Clear(); centerActionUpdates.Clear(); sites.Clear(); nestedStrips.Clear(); stripLayouts.Clear();
         renderedMode = CenterTabs?.Invoke();
-        foreach (var control in shell.Children.Where(control => control != centerRegion && !auxiliaryRegions.Values.Contains(control)).ToArray())
+        foreach (var control in shell.Children.Where(control => control != centerRegion && control != drawerScrim && !auxiliaryRegions.Values.Contains(control)).ToArray())
             shell.Children.Remove(control);
         centerRegion.Child = null;
-        foreach (var region in auxiliaryRegions.Values) { region.Child = null; region.IsVisible = false; }
+        foreach (var region in auxiliaryRegions.Values)
+        {
+            region.Child = null; region.IsVisible = false;
+            region.Width = double.NaN; region.HorizontalAlignment = HorizontalAlignment.Stretch; region.ZIndex = 0; region.Background = null;
+            Grid.SetColumnSpan(region, 1);
+        }
         shell.RowDefinitions.Clear(); shell.ColumnDefinitions.Clear();
         var state = Session.State;
+        if (Drawers) { RebuildDrawers(state); return; }
+        drawerScrim.IsVisible = false;
         var widths = new SideGeometry(state, Bounds.Width).Project();
         var left = state.LeftVisible && state.Groups.Any(group => group.Region == "left");
         var right = state.RightVisible && state.Groups.Any(group => group.Region == "right");
@@ -178,6 +204,42 @@ public sealed partial class DockSurface : Grid
                 value => Session.Geometry(next => next.BottomHeight = value));
             splitter.Name = "bottomSeparator";
             Ui.Place(shell, splitter, 1, start); Grid.SetColumnSpan(splitter, end - start + 1);
+        }
+        renderedStructure = Structure();
+        NestedStripsChanged?.Invoke(nestedStrips);
+    }
+
+    private bool Side(string region) => (region == "left" ? Session.State.LeftVisible : Session.State.RightVisible) &&
+        Session.State.Groups.Any(group => group.Region == region);
+
+    // The centre and bottom keep the whole width; a visible side lies over them at the edge it belongs to.
+    private void RebuildDrawers(DockState state)
+    {
+        var bottom = state.BottomVisible && state.Groups.Any(group => group.Region == "bottom");
+        foreach (var width in new[] { 0d, 0, 1, 0, 0 }) shell.ColumnDefinitions.Add(new(new GridLength(width, width > 0 ? GridUnitType.Star : GridUnitType.Pixel)));
+        shell.RowDefinitions.Add(new(new GridLength(bottom ? 1 - state.BottomHeight : 1, GridUnitType.Star)));
+        shell.RowDefinitions.Add(new(new GridLength(bottom ? 1 : 0)));
+        shell.RowDefinitions.Add(new(new GridLength(bottom ? state.BottomHeight : 0, GridUnitType.Star)));
+        centerRegion.Child = BuildCenter(state.Center);
+        foreach (var region in new[] { "left", "right" })
+        {
+            if (!Side(region)) continue;
+            PlaceAuxiliary(BuildAuxiliary(region), region, 0, 3);
+            var frame = auxiliaryRegions[region];
+            Grid.SetColumnSpan(frame, 5);
+            frame.ZIndex = 11; frame.Background = Ui.Sidebar;
+            frame.HorizontalAlignment = region == "left" ? HorizontalAlignment.Left : HorizontalAlignment.Right;
+            frame.Width = Math.Min(DrawerWidth, Math.Max(0, Bounds.Width - DrawerMargin));
+        }
+        drawerScrim.IsVisible = Side("left") || Side("right");
+        if (bottom)
+        {
+            var region = auxiliaryRegions["bottom"];
+            region.Child = BuildAuxiliary("bottom"); region.IsVisible = true;
+            Grid.SetRow(region, 2); Grid.SetColumn(region, 2);
+            var splitter = Separator(false, _ => { }, _ => { }, Rebuild);
+            splitter.Name = "bottomSeparator"; splitter.IsHitTestVisible = false;
+            Ui.Place(shell, splitter, 1, 2);
         }
         renderedStructure = Structure();
         NestedStripsChanged?.Invoke(nestedStrips);
@@ -304,7 +366,7 @@ public sealed partial class DockSurface : Grid
 
     private void PreviewSides((double Left, double Center, double Right) widths)
     {
-        if (shell.ColumnDefinitions.Count != 5) return;
+        if (shell.ColumnDefinitions.Count != 5 || Drawers) return;
         if (Session.State.LeftVisible && Session.State.Groups.Any(group => group.Region == "left"))
             shell.ColumnDefinitions[0].Width = new(widths.Left, GridUnitType.Star);
         shell.ColumnDefinitions[2].Width = new(Math.Max(double.Epsilon, widths.Center), GridUnitType.Star);

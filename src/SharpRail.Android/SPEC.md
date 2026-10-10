@@ -73,6 +73,9 @@ Contract:
   replaces the activity's content inside a frame padded by the status bar, navigation bar, display cutout and
   soft keyboard, and the frame is painted in the window's background colour so the bars sit over it.
   Avalonia's automatic safe-area padding is turned off for its content, since the frame already applies it.
+- On a screen narrower than 600 dp the session composes the workbench as compact (`Workbench.Compact`):
+  the side panels are drawers over the centre and Settings shows one section with its list in a drawer; see
+  [Docking/SPEC.md](../SharpRail.UI/Docking/SPEC.md#drawers). Tablets keep the desktop frame.
 - Any other window is a transparent, undimmed Android dialog with its own view, laid out in the area the
   system bars and soft keyboard leave visible. A window sized to its content (`SizeToContent` with height:
   every `DialogWindow`) is a sheet across the bottom of that area, at the height it asks for and at most

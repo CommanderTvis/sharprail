@@ -83,6 +83,7 @@ public sealed partial class SettingsWindow : Window
         if (OperatingSystem.IsAndroid()) { frame.CornerRadius = default; frame.BorderThickness = default; }
         else frame.SizeChanged += (_, args) => frame.Clip = new RectangleGeometry(new Rect(args.NewSize), 8, 8);
         KeyDown += (_, e) => { if (e.Key == Key.Escape || AppCommands.IsClose(e)) { Close(); e.Handled = true; } };
+        if (window.Workbench.Compact) WireSectionDrawer();
         ShowSection(section);
     }
 
@@ -155,8 +156,30 @@ public sealed partial class SettingsWindow : Window
         return page;
     }
 
+    private Action? closeSections;
+
+    // On a phone-sized screen a section takes the whole page and the section list is a drawer from the left.
+    private void WireSectionDrawer()
+    {
+        var columns = this.FindControl<Grid>("SettingsColumns")!;
+        var pane = this.FindControl<Border>("SettingsNavigationPane")!;
+        var scrim = this.FindControl<Border>("SettingsScrim")!;
+        var menu = this.FindControl<Button>("SettingsMenu")!;
+        columns.ColumnDefinitions[0].Width = new(0);
+        Grid.SetColumnSpan(pane, 2);
+        pane.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left; pane.Width = 240; pane.ZIndex = 2; pane.IsVisible = false;
+        void Show(bool open) => pane.IsVisible = scrim.IsVisible = open;
+        closeSections = () => Show(false);
+        menu.Content = Ui.Icon("layoutLeft");
+        menu.IsVisible = true;
+        menu.Click += (_, _) => Show(!pane.IsVisible);
+        scrim.PointerPressed += (_, e) => { Show(false); e.Handled = true; };
+        AddHandler(BackRequestedEvent, (_, e) => { if (pane.IsVisible) { Show(false); e.Handled = true; } });
+    }
+
     public void ShowSection(string name)
     {
+        closeSections?.Invoke();
         if (name.StartsWith("plugin:", StringComparison.Ordinal) && !navigation.ContainsKey(name)) name = "Plugins";
         section = name; refreshers.Clear();
         PaintNavigation();

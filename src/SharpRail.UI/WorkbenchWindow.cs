@@ -66,19 +66,19 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
     /// window. A host that registers workspaces passes the store it writes to, or the rail never hears of them.
     /// </summary>
     public WorkbenchWindow(IProjectServices host, string rootPath, ProfileStore profile, Terminal.TerminalFactory terminals, bool remote = false,
-        Host.Core.HostStateStore? state = null, ITerminalCatalogService? terminalTabs = null)
-        : this(Standalone(profile, terminals, remote, state, terminalTabs), host, profile.Data.Windows[0], rootPath) => workbench.Attach(this);
+        Host.Core.HostStateStore? state = null, ITerminalCatalogService? terminalTabs = null, bool compact = false)
+        : this(Standalone(profile, terminals, remote, state, terminalTabs, compact), host, profile.Data.Windows[0], rootPath) => workbench.Attach(this);
 
     // As the app's own host does, a standalone window's host runs the builtin plugins in process.
     private static Workbench Standalone(ProfileStore profile, Terminal.TerminalFactory terminals, bool remote, Host.Core.HostStateStore? state,
-        ITerminalCatalogService? terminalTabs)
+        ITerminalCatalogService? terminalTabs, bool compact)
     {
         var store = state ?? profile.OpenState();
         var plugins = new Host.Core.Plugins.PluginRuntime(new() { StateDirectory = null, State = store });
         plugins.Start();
         return new(profile, new SharedState(new Host.Client.LocalStateAdapter(store), profile.Data.Preferences, store.Current), terminals, remote, null,
             new Host.Client.LocalPluginAdapter(plugins), terminalTabs)
-        { OwnedHost = plugins };
+        { OwnedHost = plugins, Compact = compact };
     }
 
     internal WorkbenchWindow(Workbench workbench, IProjectServices host, WindowProfile slot, string rootPath)
@@ -107,6 +107,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         Layout.SelectionChanged += _ => UpdateActiveChangeRows();
         Layout.Focused += UpdateActiveChangeRows;
         surface = new DockSurface(Layout, RenderContent);
+        if (workbench.Compact) WireDrawers();
         WireCenterTabs();
         Ui.Place(root, surface, 1);
         WireGestureNotification();
