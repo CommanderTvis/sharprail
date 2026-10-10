@@ -56,6 +56,7 @@ typedef struct {
     GhosttySelectionGesture gesture;
     GhosttySelectionGestureEvent gesture_events[3];
     gav_vt_write_cb write;
+    gav_vt_write_cb copy;
     void *context;
     uint32_t cell_width, cell_height;
     gav_vt_cell *cells;
@@ -119,12 +120,39 @@ GAV_API gav_vt *gav_vt_new(uint16_t columns, uint16_t rows, size_t scrollback_li
     if (!ok) { gav_vt_free(vt); return NULL; }
     ghostty_terminal_set(vt->terminal, GHOSTTY_TERMINAL_OPT_USERDATA, vt);
     ghostty_terminal_set(vt->terminal, GHOSTTY_TERMINAL_OPT_WRITE_PTY, (const void *)write_pty);
+#ifdef __APPLE__
     gav_vt_install_clipboard(vt->terminal);
+#endif
     GhosttyTerminalModeConfig graphemes = { .mode = GHOSTTY_MODE_GRAPHEME_CLUSTER, .value = true };
     ghostty_terminal_set(vt->terminal, GHOSTTY_TERMINAL_OPT_MODE_DEFAULT, &graphemes);
     size_t lines = scrollback_lines;
     ghostty_terminal_set(vt->terminal, GHOSTTY_TERMINAL_OPT_SCROLLBACK_MAX_LINES, &lines);
     return vt;
+}
+
+static void copy_clipboard(GhosttyTerminal terminal, void *userdata, const GhosttyClipboardWrite *request) {
+    (void)terminal;
+    gav_vt *vt = userdata;
+    GhosttyClipboardWriteReply reply = { .size = sizeof(reply), .result = GHOSTTY_CLIPBOARD_WRITE_RESULT_UNSUPPORTED };
+    if (request->contents_len == 0) {
+        vt->copy(vt->context, NULL, 0);
+        reply.result = GHOSTTY_CLIPBOARD_WRITE_RESULT_SUCCESS;
+    }
+    for (size_t i = 0; i < request->contents_len; i++) {
+        GhosttyClipboardContent content = request->contents[i];
+        if (content.mime.len != 10 || memcmp(content.mime.ptr, "text/plain", 10)) continue;
+        vt->copy(vt->context, content.data.ptr, content.data.len);
+        reply.result = GHOSTTY_CLIPBOARD_WRITE_RESULT_SUCCESS;
+        break;
+    }
+    request->reply(request, &reply);
+}
+
+// Hands OSC 52 text to the caller's clipboard where the native bridge has none; an empty write clears it.
+// Clipboard reads stay unanswered there, since they must reply before an asynchronous clipboard can.
+GAV_API void gav_vt_set_clipboard_write(gav_vt *vt, gav_vt_write_cb copy) {
+    vt->copy = copy;
+    ghostty_terminal_set(vt->terminal, GHOSTTY_TERMINAL_OPT_CLIPBOARD_WRITE, (const void *)copy_clipboard);
 }
 
 GAV_API void gav_vt_write(gav_vt *vt, const uint8_t *data, size_t len) { ghostty_terminal_vt_write(vt->terminal, data, len); }

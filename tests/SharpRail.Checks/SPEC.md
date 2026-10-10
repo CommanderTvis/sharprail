@@ -384,6 +384,14 @@ pans the zoomed diagram by the pointer's travel, clamps at the edges, ends on re
 buttons and unpressed movement; Reset returns the scroll origin. Malformed-source fallback, full-screen
 growth, zoom reset and Escape are in the same case; theme checks cover re-rendering.
 
+## Android client
+
+`AndroidClientChecks` compiles the client's `HostEndpoint.cs` into the checks, since the Android project builds
+only with the Android workload: address parsing (default port, written ports including the scheme's own,
+HTTPS, IPv6, rejected input) and the remembered endpoint (absent, saved, damaged, forgotten). `-- --android`
+runs it. The boundary scan gives `SharpRail.Android` the UI's dependencies without `SharpRail.Host.Remote`.
+Windowing, the connect screen and everything on a device are not asserted.
+
 ## Quit and close commands
 
 `QuitConfirmationChecks` translates upstream's quit-confirmation cases against a fake clock and scheduler:

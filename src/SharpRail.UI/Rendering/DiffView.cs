@@ -130,7 +130,7 @@ internal sealed partial class DiffView : Grid, IDisposable
         // A Markdown source diff has no segment to pick with, so it always follows.
         SizeChanged += (_, args) =>
         {
-            if (layoutPinned || !OperatingSystem.IsMacOS() || args.NewSize.Width <= 0) return;
+            if (layoutPinned || !ScintillaEditor.IsSupported || args.NewSize.Width <= 0) return;
             var narrow = (args.NewSize.Width / 2 - SideChrome) < LineWidths.Code(MinimumSplitColumns);
             if (narrow != (split.IsChecked == true)) return;
             split.IsChecked = !narrow;
@@ -407,9 +407,9 @@ internal sealed partial class DiffView : Grid, IDisposable
     private void Render()
     {
         Check();
-        // The source view of a file with other views is always side by side; Scintilla is macOS-only.
-        split.IsVisible = choices.Count == 1 && !IsRendered && OperatingSystem.IsMacOS();
-        whitespace.IsVisible = !IsRendered && OperatingSystem.IsMacOS();
+        // The source view of a file with other views is always side by side; the editor needs its native library.
+        split.IsVisible = choices.Count == 1 && !IsRendered && ScintillaEditor.IsSupported;
+        whitespace.IsVisible = !IsRendered && ScintillaEditor.IsSupported;
         copy.IsVisible = choices.Any(choice => choice.Render is null);
         outline.IsVisible = IsRendered;
         // Identical sides leave nothing to restore.
@@ -427,7 +427,7 @@ internal sealed partial class DiffView : Grid, IDisposable
             empty.Name = "DiffEmpty"; empty.Margin = new Thickness(24); empty.HorizontalAlignment = HorizontalAlignment.Left;
             Ui.Place(body, empty); return;
         }
-        if (!OperatingSystem.IsMacOS())
+        if (!ScintillaEditor.IsSupported)
         {
             Ui.Place(body, new ScrollViewer { Content = MarkdownPreview.Code(text), Margin = new Thickness(24, 8), HorizontalScrollBarVisibility = ScrollBarVisibility.Auto });
             return;

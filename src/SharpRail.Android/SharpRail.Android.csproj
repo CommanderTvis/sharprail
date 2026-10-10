@@ -1,0 +1,95 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The Android client: the workbench of SharpRail.UI compiled for Android, composed as a client of a remote host.
+    It compiles the UI's sources rather than referencing its project, whose host-serving half needs ASP.NET Core.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0-android</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>SharpRail.UI</AssemblyName>
+    <RootNamespace>SharpRail.UI</RootNamespace>
+    <ApplicationId>dev.thinkrail.sharprail</ApplicationId>
+    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationDisplayVersion>0.2.0</ApplicationDisplayVersion>
+    <SupportedOSPlatformVersion>24</SupportedOSPlatformVersion>
+    <RuntimeIdentifiers>android-arm64;android-x64</RuntimeIdentifiers>
+    <AndroidPackageFormat>apk</AndroidPackageFormat>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- gRPC needs HTTP/2, which the platform's handler lacks. -->
+    <UseNativeHttpHandler>false</UseNativeHttpHandler>
+    <!-- Native marshal stubs are not generated for this assembly's Java peers; they register at run time instead. -->
+    <AndroidEnableMarshalMethods>false</AndroidEnableMarshalMethods>
+    <!-- The solution builds untrimmed (Directory.Build.props), and Android compiles ahead of time only what it trims. -->
+    <RunAOTCompilation>false</RunAOTCompilation>
+    <UiSources>../SharpRail.UI/</UiSources>
+    <!-- The shared sources keep their desktop-only paths (the terminal relay child), which Android never reaches. -->
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Android's implicit usings collide with Avalonia's control names throughout the shared sources. -->
+    <Using Remove="Android.App" />
+    <Using Remove="Android.Widget" />
+    <Using Remove="Android.OS.Bundle" />
+    <Compile Include="$(UiSources)**/*.cs" Exclude="$(UiSources)bin/**;$(UiSources)obj/**;$(UiSources)Program.cs;$(UiSources)Terminal/LoopbackTerminals.cs;$(UiSources)Panels/HostSettings.cs" LinkBase="UI" />
+    <AvaloniaXaml Include="$(UiSources)**/*.axaml" Exclude="$(UiSources)bin/**;$(UiSources)obj/**" Link="%(RecursiveDir)%(Filename)%(Extension)" />
+    <AvaloniaResource Include="$(UiSources)Assets/**" Link="Assets/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../SharpRail.Host.Core/SharpRail.Host.Core.csproj" />
+    <ProjectReference Include="../SharpRail.Host.Client/SharpRail.Host.Client.csproj" />
+    <ProjectReference Include="../SharpRail.Scintilla/SharpRail.Scintilla.csproj" />
+    <ProjectReference Include="../Ghostty.Avalonia/Ghostty.Avalonia.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Api.UI/SharpRail.Plugins.Api.UI.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.UI.Kit/SharpRail.Plugins.UI.Kit.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.SpecDialect/UI/SharpRail.Plugins.SpecDialect.UI.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Blueprint/UI/SharpRail.Plugins.Blueprint.UI.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.ClaudeCode/UI/SharpRail.Plugins.ClaudeCode.UI.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Discord/UI/SharpRail.Plugins.Discord.UI.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.PdfPreview/UI/SharpRail.Plugins.PdfPreview.UI.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.BranchGraph/UI/SharpRail.Plugins.BranchGraph.UI.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Visualize/UI/SharpRail.Plugins.Visualize.UI.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Codex/UI/SharpRail.Plugins.Codex.UI.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.FileIcons/UI/SharpRail.Plugins.FileIcons.UI.csproj" />
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Android" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="SkiaSharp" />
+    <PackageReference Include="Markdig" />
+    <PackageReference Include="Svg.Controls.Skia.Avalonia" />
+    <PackageReference Include="Krafs.Publicizer" PrivateAssets="all" />
+    <!-- PDF Preview brings the desktop builds of PDFium, which are not Android libraries. -->
+    <PackageReference Include="bblanchon.PDFium.Android" />
+    <PackageReference Include="bblanchon.PDFium.Linux" ExcludeAssets="all" />
+    <PackageReference Include="bblanchon.PDFium.macOS" ExcludeAssets="all" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Avalonia's Android backend has no windows; Windowing/ supplies them over its view and top level, which are internal. -->
+    <Publicize Include="Avalonia.Android:Avalonia.Android.Platform.SkiaPlatform.TopLevelImpl" />
+    <Publicize Include="Avalonia.Android:Avalonia.Android.Platform.SkiaPlatform.TopLevelImpl.InternalView" />
+    <Publicize Include="Avalonia.Android:Avalonia.Android.InvalidationAwareSurfaceView" />
+    <Publicize Include="Avalonia.Android:Avalonia.Android.AvaloniaView.TopLevelImpl" />
+    <Publicize Include="Avalonia.Android:Avalonia.Android.AvaloniaView._root" />
+    <Publicize Include="Avalonia.Android:Avalonia.Android.AvaloniaView.Dispose" />
+  </ItemGroup>
+  <!-- The terminal state and editor libraries, built with the checkout's NDK for each packaged ABI. -->
+  <Target Name="BuildNativeLibraries" BeforeTargets="BeforeBuild">
+    <ItemGroup>
+      <NativeAbi Include="arm64-v8a;x86_64" />
+    </ItemGroup>
+    <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../Ghostty.Avalonia/build-android.sh&quot; %(NativeAbi.Identity) &quot;$(GhosttyNativeCache)&quot;" />
+    <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../SharpRail.Scintilla/build-android.sh&quot; %(NativeAbi.Identity)" />
+    <ItemGroup>
+      <AndroidNativeLibrary Include="$(GhosttyNativeCache)/android/%(NativeAbi.Identity)/libGhosttyAvaloniaVt.so" Abi="%(NativeAbi.Identity)" />
+      <AndroidNativeLibrary Include="$(MSBuildProjectDirectory)/../SharpRail.Scintilla/obj/native/android/%(NativeAbi.Identity)/libSharpRail.Scintilla.so" Abi="%(NativeAbi.Identity)" />
+    </ItemGroup>
+  </Target>
+  <!-- Avalonia's reference assemblies make its platform interfaces unimplementable; the implementation assemblies do not. -->
+  <Target Name="UseAvaloniaImplementationAssemblies" AfterTargets="ResolveAssemblyReferences" BeforeTargets="PublicizeAssemblies">
+    <ItemGroup>
+      <AvaloniaReferenceAssembly Include="@(ReferencePath->WithMetadataValue('NuGetPackageId', 'Avalonia'))" />
+      <ReferencePath Remove="@(AvaloniaReferenceAssembly)" />
+      <ReferencePath Include="@(AvaloniaReferenceAssembly->Replace('/ref/', '/lib/')->Replace('\ref\', '\lib\'))" />
+    </ItemGroup>
+  </Target>
+</Project>

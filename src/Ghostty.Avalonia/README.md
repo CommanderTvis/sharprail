@@ -10,7 +10,8 @@ and Ghostty license. It references no SharpRail project.
 | `GhosttyTextureView` | Ghostty's Metal output sampled directly by Avalonia's Skia compositor; no hosted native view | Ghostty starts the configured child, or the caller supplies external I/O |
 | `GhosttySkiaView` | libghostty-vt cells and cursor recorded into Skia pictures, composed by Avalonia | The caller supplies output, consumes input and resizes its PTY |
 
-Both native libraries currently build on macOS, on the target architecture.
+Both native libraries build on macOS, on the target architecture; the VT library
+behind the Skia control also cross-builds for Android.
 The Skia control uses Avalonia input, selection and clipboard APIs and participates
 in normal Avalonia clipping and overlays. The native view draws above Avalonia
 content. Skia rendering uses Avalonia's chosen Skia backend.
@@ -30,6 +31,14 @@ sources and Zig toolchains, and caches native output under `obj/native` by defau
 are copied to the consuming application's output and publish directory.
 The native view uses Ghostty 1.2.3; the VT library uses unreleased Ghostty commit
 `59c2dc032aba42aa5064bf206cc27286add3e9d8`. See `licenses/Ghostty-MIT.txt`.
+
+`build-android.sh <arm64-v8a|x86_64> [cache-directory]` cross-builds the same pinned
+VT source for Android API 24 with the NDK from `ANDROID_NDK_HOME` (in SharpRail,
+`scripts/android-ndk.sh`), from macOS or Linux. It writes
+`android/<abi>/libGhosttyAvaloniaVt.so` into the cache, 16 KB page aligned and
+depending only on bionic. Package it for its ABI, for example as an
+`AndroidNativeLibrary` item; the runtime loads it from the APK by name. Android has
+only the Skia control.
 
 ## Skia control
 
@@ -63,6 +72,16 @@ The Skia library preserves embedded NULs; the full libghostty callback uses a
 NUL-terminated string. Both return an empty clipboard on denied reads, completing
 the pending request without disclosing data. Skia preserves the query's BEL/ST
 terminator; full libghostty uses ST. Ordinary Skia copy/paste still uses Avalonia.
+Off macOS the Skia control passes OSC 52 text writes to Avalonia's clipboard and
+leaves reads unanswered.
+
+A finger scrolls the Skia control by dragging and taps to focus it and raise the soft
+keyboard; a tap is a click for a program that tracks the mouse. Holding selects the
+word under the finger, dragging on extends the selection, and lifting opens a Copy,
+Paste and Select All menu. The control gives Android's input connection a text field
+of what was typed since the last key that was not text, so replaced composing text
+and deletions reach the program as Backspace and retyped text; suggestions and
+automatic capitals are turned off.
 
 ## Native control
 
@@ -137,7 +156,9 @@ The Skia path does not reproduce every feature of Ghostty's native renderer:
 image protocols, cross-cell ligatures, OSC 8 hyperlink activation and an accessibility
 text provider are not implemented. Physical macOS IME behavior and font raster
 parity require native validation; headless input does not establish those.
-Other operating systems do not yet have native build targets.
+Windows and Linux do not yet have native build targets. The Android library, touch
+and soft-keyboard paths are built and covered by headless checks here, and have run in
+SharpRail's Android client on an arm64 emulator, not on a physical device.
 
 The texture and Skia controls rasterize at the window's render scaling times any ancestor scale, so a
 zoomed `LayoutTransformControl` shows sharp cells rather than a resampled frame. The hosted native control

@@ -3,6 +3,7 @@ using System.Text;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Input.TextInput;
 using Avalonia.Media;
 using Avalonia.Rendering.SceneGraph;
 using Avalonia.Skia;
@@ -29,7 +30,9 @@ public sealed record ScintillaColors(Color Foreground, Color Background, Color L
 public sealed partial class ScintillaEditor : Control, IDisposable
 {
     // System fonts are shared process-wide and never disposed.
-    private static readonly SKTypeface DefaultTypeface = SKTypeface.FromFamilyName("Menlo");
+    private static readonly SKTypeface DefaultTypeface = SKTypeface.FromFamilyName(OperatingSystem.IsAndroid() ? "monospace" : "Menlo");
+    /// <summary>Whether this platform has the native editor library; elsewhere creating an editor throws.</summary>
+    public static bool IsSupported { get; } = OperatingSystem.IsMacOS() || OperatingSystem.IsAndroid();
     private readonly ScintillaDocument document;
     private readonly DispatcherTimer timer;
     private readonly DispatcherTimer idle;
@@ -51,7 +54,7 @@ public sealed partial class ScintillaEditor : Control, IDisposable
     private (nint Start, nint End) reportedSelection;
     public event EventHandler<Exception>? OperationFailed;
 
-    /// <summary>Creates an editor; the caller keeps ownership of <paramref name="typeface"/>, which defaults to Menlo.</summary>
+    /// <summary>Creates an editor; the caller keeps ownership of <paramref name="typeface"/>, which defaults to Menlo (the system monospace font on Android).</summary>
     public ScintillaEditor(string text = "", SKTypeface? typeface = null)
     {
         Focusable = true; ClipToBounds = true; Cursor = new Cursor(StandardCursorType.Ibeam);
@@ -59,7 +62,12 @@ public sealed partial class ScintillaEditor : Control, IDisposable
         revision = document.Revision;
         defaultRightMargin = document.Send(ScintillaMessage.GetMarginRight);
         inputClient = new(this);
-        TextInputMethodClientRequested += (_, e) => { e.Client = inputClient; e.Handled = true; };
+        // A soft keyboard appears with the input client, so a read-only editor offers none where there is one.
+        TextInputMethodClientRequested += (_, e) => { if (!OperatingSystem.IsAndroid() || !IsReadOnly) { e.Client = inputClient; e.Handled = true; } };
+        TextInputOptions.SetMultiline(this, true);
+        TextInputOptions.SetShowSuggestions(this, false);
+        GestureRecognizers.Add(new TouchScroll());
+        ScrollGesture += OnTouchScroll;
         timer = new DispatcherTimer(TimeSpan.FromMilliseconds(500), DispatcherPriority.Background, (_, _) =>
         { if (IsFocused && !disposed) { document.Tick(); InvalidateVisual(); } });
         timer.Stop();

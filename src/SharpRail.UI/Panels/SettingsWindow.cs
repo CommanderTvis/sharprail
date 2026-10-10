@@ -52,7 +52,9 @@ public sealed partial class SettingsWindow : Window
         {
             lifetime.Cancel(); Ui.ThemeChanged -= SystemThemeChanged; state.Changed -= SharedChanged;
             window.Workbench.PluginRegistry.Changed -= PluginsChanged;
+#if !ANDROID
             if (window.Workbench.Listener is { } listener) listener.Changed -= ListenerChanged;
+#endif
         };
         Ui.ThemeChanged += SystemThemeChanged;
         state.Changed += SharedChanged;
@@ -73,9 +75,13 @@ public sealed partial class SettingsWindow : Window
             Navigation(this.FindControl<Button>("Settings_" + item.Item1.Replace(' ', '_'))!, item.Item1, Ui.Row(item.Item2, item.Item1));
         SyncPluginSections();
         window.Workbench.PluginRegistry.Changed += PluginsChanged;
+#if !ANDROID
         if (window.Workbench.Listener is { } listener) listener.Changed += ListenerChanged;
+#endif
         var frame = this.FindControl<Border>("SettingsFrame")!;
-        frame.SizeChanged += (_, args) => frame.Clip = new RectangleGeometry(new Rect(args.NewSize), 8, 8);
+        // On Android Settings is a page over the whole screen, not a card.
+        if (OperatingSystem.IsAndroid()) { frame.CornerRadius = default; frame.BorderThickness = default; }
+        else frame.SizeChanged += (_, args) => frame.Clip = new RectangleGeometry(new Rect(args.NewSize), 8, 8);
         KeyDown += (_, e) => { if (e.Key == Key.Escape || AppCommands.IsClose(e)) { Close(); e.Handled = true; } };
         ShowSection(section);
     }

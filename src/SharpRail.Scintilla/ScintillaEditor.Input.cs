@@ -4,6 +4,7 @@ using System.Text;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Input.GestureRecognizers;
 using Avalonia.Input.Platform;
 
 namespace SharpRail.Scintilla;
@@ -11,12 +12,16 @@ namespace SharpRail.Scintilla;
 public sealed partial class ScintillaEditor
 {
     private bool draggingSelection;
+    private bool tapping;
     private Vector wheel;
     protected override void OnTextInput(TextInputEventArgs e)
     {
         base.OnTextInput(e);
         if (disposed || string.IsNullOrEmpty(e.Text)) return;
-        document.Input(e.Text); Changed(); e.Handled = true;
+        // A soft keyboard commits Enter as text; the key inserts the document's own line ending.
+        if (e.Text is "\n" or "\r" or "\r\n") document.Key(13, 0);
+        else document.Input(e.Text);
+        Changed(); e.Handled = true;
     }
 
     protected override void OnKeyDown(KeyEventArgs e)
@@ -153,15 +158,58 @@ public sealed partial class ScintillaEditor
     {
         base.OnPointerPressed(e);
         if (disposed || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
+        // A finger scrolls by dragging, so it places the caret only once it lifts without having moved.
+        if (e.Pointer.Type == PointerType.Touch) { tapping = true; e.Handled = true; return; }
         Focus(); draggingSelection = true; e.Pointer.Capture(this); Mouse(e, 0);
     }
     protected override void OnPointerMoved(PointerEventArgs e)
-    { base.OnPointerMoved(e); if (!disposed && e.Pointer.Captured == this) Mouse(e, 1); }
+    { base.OnPointerMoved(e); if (!disposed && e.Pointer.Type != PointerType.Touch && e.Pointer.Captured == this) Mouse(e, 1); }
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
     {
         base.OnPointerReleased(e);
         if (disposed || e.InitialPressMouseButton != MouseButton.Left) return;
+        if (e.Pointer.Type == PointerType.Touch)
+        {
+            if (!tapping) return;
+            tapping = false;
+            Focus(); Mouse(e, 0); Mouse(e, 2); inputClient.ShowPanel();
+            return;
+        }
         Mouse(e, 2); draggingSelection = false; e.Pointer.Capture(null);
+    }
+    protected override void OnHolding(HoldingRoutedEventArgs e)
+    {
+        base.OnHolding(e);
+        if (disposed || e.HoldingState != HoldingState.Started || e.PointerType != PointerType.Touch) return;
+        tapping = false;
+        var position = document.Send(ScintillaMessage.PositionFromPoint, (nint)Math.Round(e.Position.X), (nint)Math.Round(e.Position.Y + SubLine));
+        document.Send(ScintillaMessage.SetSel, document.Send(ScintillaMessage.WordStartPosition, position, 1), document.Send(ScintillaMessage.WordEndPosition, position, 1));
+        Focus(); InvalidateVisual(); inputClient.Notify();
+    }
+
+    // Touch pointers only: mouse and pen drags keep selecting.
+    private sealed class TouchScroll : ScrollGestureRecognizer
+    {
+        public TouchScroll() { CanVerticallyScroll = true; CanHorizontallyScroll = true; }
+        protected override void PointerPressed(PointerPressedEventArgs e)
+        { if (e.Pointer.Type == PointerType.Touch) base.PointerPressed(e); }
+    }
+
+    private void OnTouchScroll(object? sender, ScrollGestureEventArgs e)
+    {
+        if (disposed) return;
+        tapping = false;
+        ScrollHorizontally(e.Delta.X);
+        if (e.Delta.Y != 0) ScrollPixels(e.Delta.Y);
+        InvalidateVisual(); inputClient.NotifyScrolled(); e.Handled = true;
+    }
+
+    private void ScrollHorizontally(double pixels)
+    {
+        wheel += new Vector(pixels, 0);
+        var whole = Math.Truncate(wheel.X);
+        wheel -= new Vector(whole, 0);
+        if (whole != 0) document.Send(ScintillaMessage.SetXOffset, Math.Max(0, document.Send(ScintillaMessage.GetXOffset) + (nint)whole));
     }
     protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e)
     {
@@ -175,10 +223,7 @@ public sealed partial class ScintillaEditor
         // Trackpads report fractional deltas on both axes; carry remainders so slow
         // gestures still scroll and slight sideways drift does not swallow vertical motion.
         var delta = e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? new Vector(e.Delta.Y, 0) : e.Delta;
-        wheel += new Vector(delta.X * 40, 0);
-        var pixels = Math.Truncate(wheel.X);
-        wheel -= new Vector(pixels, 0);
-        if (pixels != 0) document.Send(ScintillaMessage.SetXOffset, Math.Max(0, document.Send(ScintillaMessage.GetXOffset) - (nint)pixels));
+        ScrollHorizontally(-delta.X * 40);
         if (delta.Y != 0) ScrollPixels(-delta.Y * 50);
         InvalidateVisual(); inputClient.NotifyScrolled(); e.Handled = true;
     }

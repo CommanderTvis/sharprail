@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
+using Avalonia.Input.TextInput;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
@@ -58,12 +59,13 @@ internal static class GhosttySkiaChecks
         CheckZoomedDensity();
         Osc52Checks.RunSkia();
         CheckView();
+        CheckTouchAndSoftKeyboard();
         CheckIncrementalRendering();
         SkiaOutputChecks.Run(root);
         CheckSession(root);
         CheckRendererSetting(root);
         TerminalHostChecks.ReplaySetting(root);
-        Console.WriteLine("PASS Skia terminal renderer: libghostty-vt cells, colours, wide/combining text, box drawing, cursor, keyboard and mouse encoding, paste, selection, scrollback, resize and a host PTY session that survives a renderer restart");
+        Console.WriteLine("PASS Skia terminal renderer: libghostty-vt cells, colours, wide/combining text, box drawing, cursor, keyboard and mouse encoding, paste, selection, scrollback, resize, touch and soft-keyboard input, and a host PTY session that survives a renderer restart");
     }
 
     private static void CheckUrls()
@@ -289,6 +291,66 @@ internal static class GhosttySkiaChecks
             sizes.Clear();
             window.Width = 400; Pump();
             Require(sizes.Count == 1 && sizes[0].Columns < 60, "shrinking the control did not resize the grid.");
+        }
+        finally { window.Close(); }
+    }
+
+    // What an Android client drives: a finger taps, drags and holds, and Avalonia's input connection replaces what it
+    // composes by selecting it, pressing a Delete that has no scan code and typing again.
+    private static void CheckTouchAndSoftKeyboard()
+    {
+        var input = new List<byte>();
+        using var view = new GhosttySkiaView { Typeface = EditorChecks.Font, FontSize = 14, InputField = true };
+        view.Input += (_, data) => input.AddRange(data.ToArray());
+        var window = new Window { Width = 640, Height = 320, Content = view };
+        window.Show(); Pump();
+        string Sent() { var text = Encoding.UTF8.GetString([.. input]); input.Clear(); return text; }
+        void Touch(Point from, Point? to = null, bool held = false)
+        {
+            var touch = window.TouchBegin(from, RawInputModifiers.None);
+            if (held)
+            {
+                using var wait = new CancellationTokenSource(Application.Current!.PlatformSettings!.HoldWaitDuration + TimeSpan.FromMilliseconds(250));
+                Dispatcher.UIThread.MainLoop(wait.Token);
+            }
+            for (var step = 1; to is { } end && step <= 5; step++) window.TouchMove(touch, from + (end - from) * step / 5, RawInputModifiers.None);
+            window.TouchEnd(touch, to ?? from, RawInputModifiers.None); Pump();
+        }
+        try
+        {
+            view.Write("alpha beta\r\n"u8); Pump();
+            Touch(new Point(300, 100));
+            Require(view.IsFocused && view.SelectedText == "" && view.ClipboardMenu is null, "a tap did not just focus the terminal.");
+            var request = new TextInputMethodClientRequestedEventArgs { RoutedEvent = InputElement.TextInputMethodClientRequestedEvent };
+            view.RaiseEvent(request);
+            var ime = request.Client ?? throw new InvalidOperationException("The terminal offered the soft keyboard no input client.");
+
+            window.KeyTextInput("h"); ime.Selection = new(1, 1);
+            ime.Selection = new(0, 1);
+            window.KeyPress(Key.Delete, RawInputModifiers.None, PhysicalKey.None, null);
+            window.KeyTextInput("he"); ime.Selection = new(2, 2);
+            Require(Sent() == "h\u007fhe" && ime.SurroundingText == "he", "replacing composed text did not erase and retype it.");
+            window.KeyTextInput("\n");
+            Require(Sent() == "\r" && ime.SurroundingText == "", "a committed line feed did not send Return and start a new field.");
+            Press(window, Key.Back, PhysicalKey.None, null);
+            Press(window, Key.Enter, PhysicalKey.None, null);
+            Press(window, Key.Up, PhysicalKey.None, null);
+            Require(Sent() == "\u007f\r\e[A", "soft keys without scan codes were not encoded.");
+
+            var cell = view.Bounds.Width / view.Size.Columns;
+            Touch(new Point(view.Padding.Left + cell * 7.5, 12), held: true);
+            Require(view.SelectedText == "beta", $"a long press selected '{view.SelectedText}'.");
+            Require(view.ClipboardMenu?.IsOpen == true, "lifting a long press did not offer the clipboard.");
+            view.ClipboardMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Copy")).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
+            view.ClipboardMenu.Close(); Pump();
+            var copied = window.Clipboard!.TryGetTextAsync();
+            while (!copied.IsCompleted) Pump();
+            Require(copied.Result == "beta", "the long-press menu did not copy the selection.");
+
+            for (var i = 0; i < 200; i++) view.Write(Encoding.UTF8.GetBytes($"line {i}\r\n"));
+            Pump();
+            Touch(new Point(250, 60), new Point(250, 250));
+            Require(!view.IsAtBottom && view.SelectedText == "beta", $"a finger drag did not scroll into history instead of selecting ('{view.SelectedText}').");
         }
         finally { window.Close(); }
     }

@@ -119,7 +119,7 @@ public sealed partial class MarkdownDocumentView : UserControl, IDisposable
         if (next != Mode.Preview && source is null)
         {
             if (sourceFactory is not null) source = sourceFactory(sourceText);
-            else if (OperatingSystem.IsMacOS())
+            else if (ScintillaEditor.IsSupported)
             {
                 var frame = new EditorFrame(sourceText, "MarkdownSource");
                 frame.Editor.IsReadOnly = true;
