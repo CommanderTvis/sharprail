@@ -3,6 +3,7 @@ using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
+using Avalonia.Threading;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.UI.Panels;
@@ -13,6 +14,7 @@ public sealed partial class WorkbenchWindow
 {
     private StackPanel? branchList;
     private readonly StackPanel branchRows = new() { Name = "BranchRows", Spacing = 2 };
+    private readonly ScrollViewer branchScroll = new() { MaxHeight = 360, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
 
     /// <summary>
     /// The topbar branch is a control: it lists the project's local branches with the worktree occupying each,
@@ -29,7 +31,8 @@ public sealed partial class WorkbenchWindow
         Ui.Place(header, title); Ui.Place(header, fetch, 0, 1);
         var list = new StackPanel { Name = "BranchList", Spacing = 8, Width = 380, Margin = new Thickness(4) };
         list.Children.Add(header);
-        list.Children.Add(new ScrollViewer { Content = branchRows, MaxHeight = 360, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled });
+        branchScroll.Content = branchRows;
+        list.Children.Add(branchScroll);
         branchList = list;
         branchCard.Opened += (_, _) => _ = LoadBranchesAsync();
     }
@@ -80,10 +83,15 @@ public sealed partial class WorkbenchWindow
 
     private async Task DeleteBranchAsync(string name)
     {
-        if (!await Dialogs.Confirm(this, $"Delete branch {name}?",
-            "Commits that only this branch points at will no longer be reachable from any branch.", "Delete branch", "BranchDeleteConfirm")) return;
-        await GitActionAsync(new("delete-branch", "", name));
+        // The dialog takes the window's focus, which dismisses the card; it comes back where it was, so several
+        // branches can be deleted in a row.
+        var offset = branchScroll.Offset;
+        var confirmed = await Dialogs.Confirm(this, $"Delete branch {name}?",
+            "Commits that only this branch points at will no longer be reachable from any branch.", "Delete branch", "BranchDeleteConfirm");
+        if (confirmed) await GitActionAsync(new("delete-branch", "", name));
+        if (!branchCard.IsOpen && WorkspaceMounted) branchCard.ShowAt(this.FindControl<Button>("ScopeBranch")!);
         await LoadBranchesAsync();
+        Dispatcher.UIThread.Post(() => branchScroll.Offset = offset, DispatcherPriority.Loaded);
     }
 
     private async Task FetchBranchesAsync()
