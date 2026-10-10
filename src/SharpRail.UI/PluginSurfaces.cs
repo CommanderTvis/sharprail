@@ -498,6 +498,19 @@ public sealed partial class WorkbenchWindow
         return tabKey;
     }
 
+    internal async Task RevealTerminalAsync(string workspace, string tabKey)
+    {
+        if (!WorkspaceMounted || atHome || workspace != workspaceRoot) await OpenWorkspaceAsync(workspace, false);
+        if (!WorkspaceMounted || atHome || workspace != workspaceRoot) return;
+        if (Layout.State.Groups.FirstOrDefault(candidate => Layout.Tabs(candidate.Id).Any(tab => tab.Id == tabKey)) is not { } group) return;
+        if (group.Region != "center")
+        {
+            Layout.Visible(group.Region, true);
+            if (group.Folded) Layout.Fold(group.Id);
+        }
+        Layout.Select(group.Id, tabKey);
+    }
+
     internal async Task<HostWorkspace?> EnterDefaultWorkspaceAsync(string project)
     {
         await OpenWorkspaceAsync(project, true);

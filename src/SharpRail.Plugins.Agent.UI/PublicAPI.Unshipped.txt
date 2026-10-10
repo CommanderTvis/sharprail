@@ -1,4 +1,9 @@
 #nullable enable
+SharpRail.Plugins.Agent.UI.AgentAttention
+SharpRail.Plugins.Agent.UI.AgentAttentionReason
+SharpRail.Plugins.Agent.UI.AgentAttentionReason.Blocked = 0 -> SharpRail.Plugins.Agent.UI.AgentAttentionReason
+SharpRail.Plugins.Agent.UI.AgentAttentionReason.Done = 1 -> SharpRail.Plugins.Agent.UI.AgentAttentionReason
+SharpRail.Plugins.Agent.UI.AgentAttentionReason.Failed = 2 -> SharpRail.Plugins.Agent.UI.AgentAttentionReason
 SharpRail.Plugins.Agent.UI.TerminalFacts
 SharpRail.Plugins.Agent.UI.TerminalTodo
 SharpRail.Plugins.Agent.UI.TerminalTodo.<Clone>$() -> SharpRail.Plugins.Agent.UI.TerminalTodo!
@@ -34,6 +39,8 @@ override SharpRail.Plugins.Agent.UI.TerminalTodo.ToString() -> string!
 override SharpRail.Plugins.Agent.UI.TokenUsage.Equals(object? obj) -> bool
 override SharpRail.Plugins.Agent.UI.TokenUsage.GetHashCode() -> int
 override SharpRail.Plugins.Agent.UI.TokenUsage.ToString() -> string!
+static SharpRail.Plugins.Agent.UI.AgentAttention.Body(params string?[]! details) -> string!
+static SharpRail.Plugins.Agent.UI.AgentAttention.Title(string! agent, SharpRail.Plugins.Agent.UI.AgentAttentionReason reason, string? project = null) -> string!
 static SharpRail.Plugins.Agent.UI.TerminalFacts.AttachButton(string! title, System.Func<System.Threading.Tasks.Task<string?>!>! pickFile, System.Action<string!>! onAttach, System.Action<System.Exception!>! onError) -> Avalonia.Controls.Button!
 static SharpRail.Plugins.Agent.UI.TerminalFacts.AttachPath(string! path, string? worktreePath, string? cwd) -> string!
 static SharpRail.Plugins.Agent.UI.TerminalFacts.ChipButton(string! name, Avalonia.Controls.Control! content, string! tooltip, System.Action! onClick) -> Avalonia.Controls.Button!

@@ -333,6 +333,8 @@ internal sealed class PluginUIContext : IPluginUIContext
     public void Notify(PluginNotificationKind kind, string title, string? description = null) =>
         Workbench.ActiveWindow?.Notify(kind == PluginNotificationKind.Error, description is null ? title : title + " — " + description);
 
+    public void NotifyAttention(AttentionNotification notification) => Workbench.RequestAttention(notification);
+
     public void Invalidate() => Registry.Invalidate(Id);
 
     private sealed class DependencyHandle(PluginUIContext context, string pluginId) : IPluginDependencyHandle

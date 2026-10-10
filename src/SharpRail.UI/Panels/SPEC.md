@@ -107,7 +107,7 @@ expressions, a case toggle, a glob filter and replace.
 
 ## Settings
 
-A modal two-pane window: a section rail (Appearance, Line width, Layout, Projects, Terminal, Host, GitHub, Plugins, then each
+A modal two-pane window: a section rail (Appearance, Line width, Layout, Projects, Terminal, Notifications, Host, GitHub, Plugins, then each
 active plugin's own sections in registration order) and a scrolling
 content pane. Escape and the close button dismiss. It first opens on Appearance and afterwards on the section it was last left on in that window, the way a
 Preferences window returns where it was left; it is sized to 80% of the owner's height.
@@ -150,6 +150,11 @@ could not save this change: …” inline and re-renders from host state.
   attached terminal views in every window without ending their host shells. Below it, the host's replay
   size (Off, 16 KB, 64 KB, 256 KB, 1 MB) is shared state: a click sends the change and the selection moves
   when the broadcast arrives.
+- Notifications is the fork's `NotificationsSettings`: one "Enable notifications" switch over the host's
+  shared `notifications` setting (default on), following the broadcast rather than the click. Turning it
+  on also asks the system for notification permission, while the user is present. The line below says the
+  operating system delivers them, or that this platform has none; the fork's browser-permission states
+  have no counterpart.
 - GitHub (“Local GitHub”) runs `gh auth status` with prompts disabled and a 10-second timeout and reports
   Connected with the account line, or Not connected with the reason (not installed, not signed in, no
   response), with Refresh. SharpRail stores no credentials.

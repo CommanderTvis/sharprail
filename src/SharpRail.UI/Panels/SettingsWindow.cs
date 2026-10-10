@@ -69,7 +69,7 @@ public sealed partial class SettingsWindow : Window
         close.Content = Ui.Icon("close");
         close.Click += (_, _) => Close();
         navigationList = this.FindControl<StackPanel>("SettingsNavigation")!;
-        foreach (var item in new[] { ("Appearance", "palette"), ("Line width", "fileText"), ("Layout", "layout"), ("Projects", "folderTab"), ("Terminal", "terminal"), ("Host", "terminal"), ("GitHub", "gitBranch"), ("Plugins", "puzzle") })
+        foreach (var item in new[] { ("Appearance", "palette"), ("Line width", "fileText"), ("Layout", "layout"), ("Projects", "folderTab"), ("Terminal", "terminal"), ("Notifications", "alertInfo"), ("Host", "terminal"), ("GitHub", "gitBranch"), ("Plugins", "puzzle") })
             Navigation(this.FindControl<Button>("Settings_" + item.Item1.Replace(' ', '_'))!, item.Item1, Ui.Row(item.Item2, item.Item1));
         SyncPluginSections();
         window.Workbench.PluginRegistry.Changed += PluginsChanged;
@@ -160,6 +160,7 @@ public sealed partial class SettingsWindow : Window
             "Layout" => LayoutSettings(),
             "Projects" => ProjectSettings(),
             "Terminal" => TerminalSettings(),
+            "Notifications" => NotificationSettings(),
             "Host" => ServingSettings(),
             "GitHub" => GitHubSettings(),
             "Plugins" => new PluginsSettings(state, window.Workbench.Plugins, this),
@@ -193,6 +194,7 @@ public sealed partial class SettingsWindow : Window
         RequestedThemeVariant = (Owner as Window)?.RequestedThemeVariant;
         if (section == "Line width") foreach (var refresh in refreshers) refresh();
         else if (section is "Appearance" or "Layout" or "Projects" || section == "Terminal" && previous.Settings.TerminalReplayKb != next.Settings.TerminalReplayKb) ShowSection(section);
+        else if (section == "Notifications") foreach (var refresh in refreshers) refresh();
     }
 
     /// <summary>Saves this app's own preferences and window-local layout choices.</summary>
@@ -673,6 +675,26 @@ public sealed partial class SettingsWindow : Window
             {
                 if (state.Current.Settings.TerminalReplayKb != kb) Share(HostStateChange.Setting("terminal-replay", kb.ToString(CultureInfo.InvariantCulture)));
             }));
+        return panel;
+    }
+
+    private Control NotificationSettings()
+    {
+        var panel = Page("NotificationsPage");
+        var notifier = window.Workbench.Notifier;
+        // Host state: the switch follows the host's broadcast, never the click.
+        var enabled = PageControl<Switch>(panel, "NotificationsEnabled");
+        enabled.IsChecked = state.Current.Settings.NotificationsEnabled;
+        enabled.CheckedChange += on =>
+        {
+            Share(HostStateChange.Setting("notifications", on ? "true" : "false"));
+            // Turning it on is the user's gesture: the system asks for permission now, not at the first notification.
+            if (on) notifier?.RequestPermission();
+        };
+        refreshers.Add(() => enabled.IsChecked = state.Current.Settings.NotificationsEnabled);
+        PageControl<TextBlock>(panel, "NotificationsChannel").Text = notifier is null
+            ? "Desktop notifications are not available on this platform."
+            : "Your operating system delivers these notifications; allow or silence SharpRail in its notification settings.";
         return panel;
     }
 

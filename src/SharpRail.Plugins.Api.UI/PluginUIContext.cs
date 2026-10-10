@@ -47,7 +47,7 @@ public interface IPluginEditors
 }
 
 /// <summary>
-/// The context passed to <see cref="PluginUIModule.Activate"/>: the closed set of UI capabilities (W1–W19 in the
+/// The context passed to <see cref="PluginUIModule.Activate"/>: the closed set of UI capabilities (W1–W20 in the
 /// module spec, without chat). Registrations are accepted only while <c>Activate</c> runs, so a plugin's whole
 /// surface exists when it returns and the runtime can remove it by plugin id; every registration is unmounted
 /// when the plugin is disabled. Calls arrive and callbacks run on the UI thread.
@@ -268,6 +268,15 @@ public interface IPluginUIContext
     /// <param name="title">The headline.</param>
     /// <param name="description">More detail.</param>
     void Notify(PluginNotificationKind kind, string title, string? description = null);
+
+    /// <summary>
+    /// Asks for a desktop notification about a terminal that needs the user (W20). Core decides whether it is shown:
+    /// only while no window of the app is focused and the host's notification setting is on, with requests arriving
+    /// together folded into one. Activating it brings the app forward on the terminal's workspace and tab. Nothing
+    /// is shown where the platform has no desktop notifications.
+    /// </summary>
+    /// <param name="notification">The terminal and what it wants.</param>
+    void NotifyAttention(AttentionNotification notification);
 
     /// <summary>
     /// Re-evaluates every predicate this plugin registered (companion availability and titles, launcher

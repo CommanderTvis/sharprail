@@ -35,6 +35,7 @@ panel or feature flow.
 | `Editor` | The Scintilla-backed code document view | — |
 | `Resources` | The resource-renderer registry, the file pane and the format views | below |
 | `Plugins` | The app-side plugin runtime: registry, loader, `IPluginUIContext`, editor events | [Plugins/SPEC.md](Plugins/SPEC.md) |
+| `Notifications` | Away notifications: the collection window and gates, the notifier seam and the macOS channel | below |
 
 The shared controls (`Ui`, dialogs' card, Markdown, the editor frame, Mermaid) live in
 [`SharpRail.Plugins.UI.Kit`](../SharpRail.Plugins.UI.Kit/SPEC.md); `GlobalUsings.cs` imports its namespaces.
@@ -259,6 +260,38 @@ the last-focused center group, through the normal close path including the busy-
 tool, folded group or hidden region is no target. It never closes a window. Quit and close letter chords
 follow the typed Latin letter and fall back to the key's physical position when the layout types none.
 
+## Away notifications
+
+Adapted from the fork's `apps/web/src/notifications`: a derived consumer of what agent plugins report,
+adding only what a client alone knows: focus, a collection window, the system channel and the click.
+
+- Plugins ask through `IPluginUIContext.NotifyAttention` when a terminal's agent is blocked, finishes or
+  fails. `AttentionNotifications` (one per `Workbench`) keeps the latest request per terminal and flushes
+  them together after one collection window (1 s).
+- The decision is taken at the flush. A request is dropped when its terminal's tab is gone or its plugin
+  says the attention is no longer needed; nothing is shown when the host's `NotificationsEnabled` setting
+  is off or the app is focused. One rule, as in the fork: a focused SharpRail window (or a dialog of one)
+  never notifies, whichever workspace or tab it shows, because the tab's status mark is already in view.
+- One surviving terminal shows the plugin's title, its workspace label as the subtitle and the plugin's
+  body, under an id per terminal so a later one replaces it. Several show one notification titled "SharpRail" that
+  says "N terminals need your attention".
+- Activating a notification brings forward the window holding the tab, switches it to that workspace and
+  selects the tab (revealing a hidden bottom region). For several terminals it goes to the latest; the
+  fork opens its session switcher there, which SharpRail does not have.
+- Delivery is behind `IDesktopNotifier`, which the composition root supplies (`Workbench.Notifier`) the way
+  it supplies the terminal factory; a workbench without one, as in every headless check that does not
+  pass a recording one, raises nothing. `MacNotifier` is the only channel. Inside the app bundle it posts
+  through User Notifications (`Native/Notifications.m`, built by `scripts/build-notifications.sh` into
+  `libSharpRailNotifications.dylib`): the system attributes it to SharpRail, asks for permission on the
+  first notification or when the Settings toggle is turned on, and reports the click. The system refuses
+  that API to a process without a bundle identifier, so a run from source (`scripts/dev.sh`) falls back to
+  AppleScript's `display notification`: the banner appears under Script Editor's name, needs no permission
+  and its click cannot return to the app. Other platforms compose no notifier.
+- Nothing waits on the UI thread: requests and gates read in-memory state there, and each system call runs
+  on the thread pool; a click is posted back to the dispatcher.
+- Multi-client is accepted, as in the fork: focus is client-local, so one event may notify in several
+  connected apps.
+
 ## Lifecycle
 
 Quitting marks the workbench as shutting down so closing windows keep their profile entries, disposes the
@@ -287,6 +320,9 @@ menu. Abrupt death relies on operating-system process cleanup; remote shells bel
   without settling keep the legacy list. Default never settles. See [State/SPEC.md](State/SPEC.md) and
   [Panels.SPEC.md](Panels.SPEC.md) for the selection latch and shelf behaviour. Upstream's merged/closed
   pull-request chips and host review-snapshot arbitration are excluded from this sync.
+- Away notifications off macOS, reading the system's permission state (a denied permission drops
+  notifications silently; Settings only points at the system's settings), and the fork's chooser when
+  several terminals ask at once.
 - The location bar's REMOTE and PULL REQUEST chips and the branch card's Remote and review rows; the pull
   request surface lives in the Review panel only. The card has no separate Based on row.
 - A registered URL scheme for location links (they are opened only by `--link` at launch), and a remote

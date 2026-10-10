@@ -86,7 +86,7 @@ internal sealed class E2eWorkspace : IDisposable
 
     internal E2eWorkspace(string root, bool openFiles = true, string? profileRoot = null, E2eTerminals? terminals = null, string? startPath = null,
         Action<E2eHost>? prepare = null, Func<IHostStateService, IHostStateService>? state = null,
-        Func<IPluginService, IPluginService>? plugins = null, bool serving = false)
+        Func<IPluginService, IPluginService>? plugins = null, bool serving = false, SharpRail.UI.Notifications.IDesktopNotifier? notifier = null)
     {
         Root = root;
         Directory.CreateDirectory(root);
@@ -120,7 +120,11 @@ internal sealed class E2eWorkspace : IDisposable
         Workbench = new(profile, new SharedState(state?.Invoke(service) ?? service, profile.Data.Preferences, State.Current), Terminals.Factory, false,
             () => { if (!first) return new E2eHost(new ProjectServices(root, State, allowsExternalFile)); first = false; return Host; },
             plugins?.Invoke(new LocalPluginAdapter(pluginRuntime)) ?? new LocalPluginAdapter(pluginRuntime))
-        { Listener = serving ? new HostListener(root, State, Terminals.HostService, pluginRuntime) : null };
+        {
+            Listener = serving ? new HostListener(root, State, Terminals.HostService, pluginRuntime) : null,
+            Notifier = notifier,
+            NotificationWindow = TimeSpan.FromMilliseconds(150)
+        };
         Window = Workbench.Open(profile.Data.Windows[0], startPath ?? root);
         Window.Width = 1352; Window.Height = 848;
         Window.Show();

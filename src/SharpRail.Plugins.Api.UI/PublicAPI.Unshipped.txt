@@ -18,6 +18,9 @@ override sealed SharpRail.Plugins.Api.UI.WorkspaceScopedActionRegistration.Equal
 override SharpRail.Plugins.Api.UI.AgentLauncher.Equals(object? obj) -> bool
 override SharpRail.Plugins.Api.UI.AgentLauncher.GetHashCode() -> int
 override SharpRail.Plugins.Api.UI.AgentLauncher.ToString() -> string!
+override SharpRail.Plugins.Api.UI.AttentionNotification.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.AttentionNotification.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.AttentionNotification.ToString() -> string!
 override SharpRail.Plugins.Api.UI.BranchDiffScope.<Clone>$() -> SharpRail.Plugins.Api.UI.BranchDiffScope!
 override SharpRail.Plugins.Api.UI.BranchDiffScope.Equals(object? obj) -> bool
 override SharpRail.Plugins.Api.UI.BranchDiffScope.GetHashCode() -> int
@@ -150,6 +153,21 @@ SharpRail.Plugins.Api.UI.AgentLauncher.Models.get -> System.Func<System.Collecti
 SharpRail.Plugins.Api.UI.AgentLauncher.Models.init -> void
 SharpRail.Plugins.Api.UI.AgentLauncher.TerminalCommand.get -> System.Func<SharpRail.Plugins.Api.UI.LauncherCommandOptions!, string!>!
 SharpRail.Plugins.Api.UI.AgentLauncher.TerminalCommand.init -> void
+SharpRail.Plugins.Api.UI.AttentionNotification
+SharpRail.Plugins.Api.UI.AttentionNotification.<Clone>$() -> SharpRail.Plugins.Api.UI.AttentionNotification!
+SharpRail.Plugins.Api.UI.AttentionNotification.AttentionNotification(string! WorkspaceId, string! TabKey, string! Title, string! Body) -> void
+SharpRail.Plugins.Api.UI.AttentionNotification.Body.get -> string!
+SharpRail.Plugins.Api.UI.AttentionNotification.Body.init -> void
+SharpRail.Plugins.Api.UI.AttentionNotification.Deconstruct(out string! WorkspaceId, out string! TabKey, out string! Title, out string! Body) -> void
+SharpRail.Plugins.Api.UI.AttentionNotification.Equals(SharpRail.Plugins.Api.UI.AttentionNotification? other) -> bool
+SharpRail.Plugins.Api.UI.AttentionNotification.StillNeeded.get -> System.Func<bool>?
+SharpRail.Plugins.Api.UI.AttentionNotification.StillNeeded.init -> void
+SharpRail.Plugins.Api.UI.AttentionNotification.TabKey.get -> string!
+SharpRail.Plugins.Api.UI.AttentionNotification.TabKey.init -> void
+SharpRail.Plugins.Api.UI.AttentionNotification.Title.get -> string!
+SharpRail.Plugins.Api.UI.AttentionNotification.Title.init -> void
+SharpRail.Plugins.Api.UI.AttentionNotification.WorkspaceId.get -> string!
+SharpRail.Plugins.Api.UI.AttentionNotification.WorkspaceId.init -> void
 SharpRail.Plugins.Api.UI.BranchDiffScope
 SharpRail.Plugins.Api.UI.BranchDiffScope.BranchDiffScope() -> void
 SharpRail.Plugins.Api.UI.BranchDiffScope.Equals(SharpRail.Plugins.Api.UI.BranchDiffScope? other) -> bool
@@ -331,6 +349,7 @@ SharpRail.Plugins.Api.UI.IPluginUIContext.Launcher(SharpRail.Plugins.Api.UI.Agen
 SharpRail.Plugins.Api.UI.IPluginUIContext.Launchers() -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.UI.AgentLauncher!>!
 SharpRail.Plugins.Api.UI.IPluginUIContext.Log.get -> SharpRail.Plugins.Api.UI.IPluginUILogger!
 SharpRail.Plugins.Api.UI.IPluginUIContext.Notify(SharpRail.Plugins.Api.UI.PluginNotificationKind kind, string! title, string? description = null) -> void
+SharpRail.Plugins.Api.UI.IPluginUIContext.NotifyAttention(SharpRail.Plugins.Api.UI.AttentionNotification! notification) -> void
 SharpRail.Plugins.Api.UI.IPluginUIContext.ObserveFileRevision(string! workspaceId, string! path, System.Action<int>! handler) -> System.IDisposable!
 SharpRail.Plugins.Api.UI.IPluginUIContext.OnLaunchersChanged(System.Action<System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.UI.AgentLauncher!>!>! handler) -> System.IDisposable!
 SharpRail.Plugins.Api.UI.IPluginUIContext.OnReconnect(System.Action! handler) -> System.IDisposable!
@@ -561,6 +580,8 @@ SharpRail.Plugins.Api.UI.WorkspaceScopedActionRegistration.Equals(SharpRail.Plug
 SharpRail.Plugins.Api.UI.WorkspaceScopedActionRegistration.WorkspaceScopedActionRegistration(string! Id, System.Func<string!, string!, Avalonia.Controls.Control!>! Create) -> void
 static SharpRail.Plugins.Api.UI.AgentLauncher.operator !=(SharpRail.Plugins.Api.UI.AgentLauncher? left, SharpRail.Plugins.Api.UI.AgentLauncher? right) -> bool
 static SharpRail.Plugins.Api.UI.AgentLauncher.operator ==(SharpRail.Plugins.Api.UI.AgentLauncher? left, SharpRail.Plugins.Api.UI.AgentLauncher? right) -> bool
+static SharpRail.Plugins.Api.UI.AttentionNotification.operator !=(SharpRail.Plugins.Api.UI.AttentionNotification? left, SharpRail.Plugins.Api.UI.AttentionNotification? right) -> bool
+static SharpRail.Plugins.Api.UI.AttentionNotification.operator ==(SharpRail.Plugins.Api.UI.AttentionNotification? left, SharpRail.Plugins.Api.UI.AttentionNotification? right) -> bool
 static SharpRail.Plugins.Api.UI.BranchDiffScope.operator !=(SharpRail.Plugins.Api.UI.BranchDiffScope? left, SharpRail.Plugins.Api.UI.BranchDiffScope? right) -> bool
 static SharpRail.Plugins.Api.UI.BranchDiffScope.operator ==(SharpRail.Plugins.Api.UI.BranchDiffScope? left, SharpRail.Plugins.Api.UI.BranchDiffScope? right) -> bool
 static SharpRail.Plugins.Api.UI.CommitDiffScope.operator !=(SharpRail.Plugins.Api.UI.CommitDiffScope? left, SharpRail.Plugins.Api.UI.CommitDiffScope? right) -> bool

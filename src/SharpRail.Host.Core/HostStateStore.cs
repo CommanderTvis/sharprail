@@ -405,6 +405,7 @@ public sealed partial class HostStateStore : IHostStateService
                     "markdown-bounded" when bool.TryParse(value, out var bounded) => settings with { MarkdownLineWidthBounded = bounded },
                     "terminal-replay" when int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var kb) && kb <= HostSettings.MaxTerminalReplayKb
                         => settings with { TerminalReplayKb = kb },
+                    "notifications" when bool.TryParse(value, out var enabled) => settings with { NotificationsEnabled = enabled },
                     _ => throw new ArgumentException($"Invalid setting {key}.")
                 };
                 return settings == current.Settings ? current : current with { Settings = settings };

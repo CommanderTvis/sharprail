@@ -17,7 +17,7 @@ Upstream: apps/web/src/plugins/registry/SPEC.md @ 4737df6d (CommanderTvis fork)
 
 Owns the edge between two parts. The registry is the state a plugin's UI half fills in and the workbench,
 panels and Settings read back from; the loader is the composition root that turns the host's roster into
-activated (or dormant) UI halves. See [the plugin API](../../SharpRail.Plugins.Api/SPEC.md) for the W1–W19
+activated (or dormant) UI halves. See [the plugin API](../../SharpRail.Plugins.Api/SPEC.md) for the W1–W20
 capability contract this implements. The runtime is app-owned: one per `Workbench`, created from
 `Workbench.Plugins` (the host's `IPluginService`), shared by every window. Window-scoped capabilities (the
 active workspace and editor, opening, revealing, notifying) act on the app's active window.
@@ -145,6 +145,8 @@ it changes, never for the initial value.
   workspace without Git history, like Changes and Review. When deferred Git discovery changes the
   catalog, rebuilding the dock retains keyboard focus on the equivalent named control. An open dock
   menu defers that catalog refresh until it closes, then the window applies the latest catalog.
+- Attention notifications (W20) go to the workbench's `AttentionNotifications`, which decides whether and
+  how they leave the app ([Away notifications](../SPEC.md)); the context adds nothing of its own.
 - Settings sections (W4) are grouped under Settings › Plugins in `SettingsWindow`, indented behind a rule
   directly below it, as the fork's navigation nests them; Settings › Plugins is core's own section.
 - Companions (W6) open beside a terminal tab in an embedded split inside the terminal's body, never as a tab of
