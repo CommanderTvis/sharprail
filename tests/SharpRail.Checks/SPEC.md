@@ -114,7 +114,8 @@ no listing pass and is identical in every process of one build.
 - `SHARPRAIL_CHECKS_JOB_SHARD=k/N` gives a CI machine slice `k` of `N`; its lanes subdivide that slice into
   global shards `(k-1)·L+i` of `N·L`, so the union of all jobs is exactly the gate. The runner owns
   `--shard`: an explicit `--shard` beside the variable or beside `--lanes` is rejected. CI splits the full
-  gate across three jobs this way.
+  gate across three jobs this way. A run with arguments of its own ignores the variable: the children a check
+  starts from this executable (a fake agent, a relay) inherit it and are no slice of the gate.
 - A failed process stops at its failure and records what it still owed, the failing case and the rest of
   its shard, in `.bench/checks-last-run.txt`; lanes merge their records. `--last-failed` is a serial run of
   exactly those cases. A repair that fails again narrows the record to what is still owed, a passing one

@@ -34,7 +34,9 @@ internal sealed record RunnerOptions(string[] Rest, int Lanes, Shard? Shard, Sha
                 default: rest.Add(args[index]); break;
             }
         }
-        Shard? job = string.IsNullOrEmpty(jobShard) ? null : Checks.Shard.Parse(jobShard);
+        // The job's slice is inherited by every child of the run: the fixtures this executable plays for its own
+        // checks (a fake agent, a relay) carry arguments and are no slice of the gate.
+        Shard? job = string.IsNullOrEmpty(jobShard) || rest.Count > 0 ? null : Checks.Shard.Parse(jobShard);
         var selecting = lanes is not null || shard is not null || job is not null || lastFailed || cases is not null || list;
         if (selecting && rest.Count > 0)
             throw new ArgumentException("Lanes, shards and case selection apply to the argument-free gate; a focused mode runs whole, in one lane.");
