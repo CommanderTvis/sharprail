@@ -65,6 +65,19 @@ survive into the package, publishes self-contained non-composite ReadyToRun UI,
 remote host and checks, and keeps exactly one canonical app bundle. Replacing that
 bundle while the app runs is the caller's responsibility to rule out first.
 
+`dmg.sh` packs that bundle, unchanged and with an Applications shortcut beside it, into a compressed disk
+image (`artifacts/SharpRail.dmg` unless a path is given). The image is ad-hoc signed like the bundle and not
+notarized. `.github/workflows/nightly.yml` builds it on a macOS runner and the Android package on a Linux
+one every day at 03:00 UTC (and on demand), each uploaded as a workflow artifact named
+`SharpRail-nightly-<date>-<commit>`. When both succeed it replaces the `nightly` prerelease: the tag moves to
+the built commit and the files keep the names `SharpRail-nightly.dmg` and `SharpRail-nightly.apk`.
+
+`android.sh` signs with the key named by `SHARPRAIL_ANDROID_KEYSTORE`, `SHARPRAIL_ANDROID_KEY_ALIAS` and
+`SHARPRAIL_ANDROID_KEY_PASSWORD` (one password for the store and the key, passed to the build by name rather
+than by value); without them the package carries the machine's debug key. The nightly uses one key, kept in
+the repository secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD`, so each
+night's package installs over the last. Replacing that key breaks updating from every earlier package.
+
 The benchmark refuses to run off AC power and measures process-tree memory and
 readiness markers, not synthetic timers; it is never part of the check gate.
 
