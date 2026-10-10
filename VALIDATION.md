@@ -1626,6 +1626,11 @@ On the phone emulator the left (Projects) and right (Specs, Files, Changes, Revi
 header over a dimmed centre, Back closes them, and Settings shows its sections in a drawer that closes on
 choice; `DrawerChecks` asserts the same headlessly in `-- --shell`.
 
+Also seen on the phone emulator: the right drawer as four sections with one open, tabs listed under their
+workspace in Projects with no strip in the centre, Back closing a drawer without leaving the app, and the
+connection status menu with Change host…. The QR button, scanning and the 45-second lost-host fallback
+build and pass `-- --android` (link format and reachable address) but were not exercised on a device.
+
 Not verified: input methods other than Gboard; TalkBack and other
 accessibility services; plugin UI beyond what the default workbench shows; HTTPS endpoints; CI. Known
 limits (cleartext HTTP, unencrypted stored token, one workbench window, unreachable desktop code in the
