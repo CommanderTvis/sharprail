@@ -312,6 +312,7 @@ internal static class Program
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             PluginUiChecks.Run(root);
+            FileActionChecks.Run(root);
             PluginWatchChecks.Run(root);
             Console.WriteLine("PASS plugin checks");
             return;
@@ -497,6 +498,7 @@ internal static class Program
         Gate.Case("design", () => Design.DesignChecks.Run(write: false));
         Gate.Case("design-roles", Design.RoleChecks.Run);
         Gate.Case("plugin-host", () => PluginHostChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("file-actions", () => FileActionChecks.Run(root));
         Gate.Case("plugin-ui", () => PluginUiChecks.Run(root));
         Console.WriteLine("PASS prototype checks and open-world runtime");
     }

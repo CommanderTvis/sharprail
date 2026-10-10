@@ -22,6 +22,7 @@ background band); `StyleLines` assigns one per document line, which suits read-o
 views such as diffs. `ShowLineNumbers` toggles the line-number margin, and
 `LabelLines` replaces the numbers with a right-aligned label per line. Views that
 scroll in step listen to `VerticalOffsetChanged` and call `ScrollToPixel`.
+`CaretLine` reports the one-based source line at the active end of the selection.
 `SelectRange(start, length)` selects UTF-16 offsets and reveals the caret without changing focus or text.
 
 Colours are opaque; composite translucent theme colours before passing them. `ScintillaColors.Caret`

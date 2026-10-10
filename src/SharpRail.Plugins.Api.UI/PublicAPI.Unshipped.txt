@@ -55,6 +55,12 @@ override SharpRail.Plugins.Api.UI.EditorSelectionEvent.<Clone>$() -> SharpRail.P
 override SharpRail.Plugins.Api.UI.EditorSelectionEvent.Equals(object? obj) -> bool
 override SharpRail.Plugins.Api.UI.EditorSelectionEvent.GetHashCode() -> int
 override SharpRail.Plugins.Api.UI.EditorSelectionEvent.ToString() -> string!
+override SharpRail.Plugins.Api.UI.FileActionRegistration.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.FileActionRegistration.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.FileActionRegistration.ToString() -> string!
+override SharpRail.Plugins.Api.UI.FileActionTarget.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.FileActionTarget.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.FileActionTarget.ToString() -> string!
 override SharpRail.Plugins.Api.UI.FilePickOptions.Equals(object? obj) -> bool
 override SharpRail.Plugins.Api.UI.FilePickOptions.GetHashCode() -> int
 override SharpRail.Plugins.Api.UI.FilePickOptions.ToString() -> string!
@@ -272,6 +278,34 @@ SharpRail.Plugins.Api.UI.EditorSelectionEvent.EditorSelectionEvent(SharpRail.Plu
 SharpRail.Plugins.Api.UI.EditorSelectionEvent.Equals(SharpRail.Plugins.Api.UI.EditorSelectionEvent? other) -> bool
 SharpRail.Plugins.Api.UI.EditorSelectionEvent.Selection.get -> SharpRail.Plugins.Api.UI.EditorSelection?
 SharpRail.Plugins.Api.UI.EditorSelectionEvent.Selection.init -> void
+SharpRail.Plugins.Api.UI.FileActionRegistration
+SharpRail.Plugins.Api.UI.FileActionRegistration.<Clone>$() -> SharpRail.Plugins.Api.UI.FileActionRegistration!
+SharpRail.Plugins.Api.UI.FileActionRegistration.Deconstruct(out string! Id, out System.Func<SharpRail.Plugins.Api.UI.FileActionTarget!, string?>! Label, out System.Action<SharpRail.Plugins.Api.UI.FileActionTarget!>! Run) -> void
+SharpRail.Plugins.Api.UI.FileActionRegistration.Equals(SharpRail.Plugins.Api.UI.FileActionRegistration? other) -> bool
+SharpRail.Plugins.Api.UI.FileActionRegistration.FileActionRegistration(string! Id, System.Func<SharpRail.Plugins.Api.UI.FileActionTarget!, string?>! Label, System.Action<SharpRail.Plugins.Api.UI.FileActionTarget!>! Run) -> void
+SharpRail.Plugins.Api.UI.FileActionRegistration.Icon.get -> string?
+SharpRail.Plugins.Api.UI.FileActionRegistration.Icon.init -> void
+SharpRail.Plugins.Api.UI.FileActionRegistration.Id.get -> string!
+SharpRail.Plugins.Api.UI.FileActionRegistration.Id.init -> void
+SharpRail.Plugins.Api.UI.FileActionRegistration.Label.get -> System.Func<SharpRail.Plugins.Api.UI.FileActionTarget!, string?>!
+SharpRail.Plugins.Api.UI.FileActionRegistration.Label.init -> void
+SharpRail.Plugins.Api.UI.FileActionRegistration.Run.get -> System.Action<SharpRail.Plugins.Api.UI.FileActionTarget!>!
+SharpRail.Plugins.Api.UI.FileActionRegistration.Run.init -> void
+SharpRail.Plugins.Api.UI.FileActionTarget
+SharpRail.Plugins.Api.UI.FileActionTarget.<Clone>$() -> SharpRail.Plugins.Api.UI.FileActionTarget!
+SharpRail.Plugins.Api.UI.FileActionTarget.Deconstruct(out string! WorkspaceId, out string! Path, out bool IsDirectory) -> void
+SharpRail.Plugins.Api.UI.FileActionTarget.EndLine.get -> int?
+SharpRail.Plugins.Api.UI.FileActionTarget.EndLine.init -> void
+SharpRail.Plugins.Api.UI.FileActionTarget.Equals(SharpRail.Plugins.Api.UI.FileActionTarget? other) -> bool
+SharpRail.Plugins.Api.UI.FileActionTarget.FileActionTarget(string! WorkspaceId, string! Path, bool IsDirectory) -> void
+SharpRail.Plugins.Api.UI.FileActionTarget.IsDirectory.get -> bool
+SharpRail.Plugins.Api.UI.FileActionTarget.IsDirectory.init -> void
+SharpRail.Plugins.Api.UI.FileActionTarget.Path.get -> string!
+SharpRail.Plugins.Api.UI.FileActionTarget.Path.init -> void
+SharpRail.Plugins.Api.UI.FileActionTarget.StartLine.get -> int?
+SharpRail.Plugins.Api.UI.FileActionTarget.StartLine.init -> void
+SharpRail.Plugins.Api.UI.FileActionTarget.WorkspaceId.get -> string!
+SharpRail.Plugins.Api.UI.FileActionTarget.WorkspaceId.init -> void
 SharpRail.Plugins.Api.UI.FileIconKind
 SharpRail.Plugins.Api.UI.FileIconKind.Directory = 1 -> SharpRail.Plugins.Api.UI.FileIconKind
 SharpRail.Plugins.Api.UI.FileIconKind.File = 0 -> SharpRail.Plugins.Api.UI.FileIconKind
@@ -338,6 +372,7 @@ SharpRail.Plugins.Api.UI.IPluginUIContext.Dependency(SharpRail.Plugins.Api.Plugi
 SharpRail.Plugins.Api.UI.IPluginUIContext.DocumentLinkSlot(System.Func<string!, string!, string?>! resolver) -> void
 SharpRail.Plugins.Api.UI.IPluginUIContext.Editors.get -> SharpRail.Plugins.Api.UI.IPluginEditors!
 SharpRail.Plugins.Api.UI.IPluginUIContext.EnterDefaultWorkspaceAsync(string! projectId) -> System.Threading.Tasks.ValueTask<SharpRail.Plugins.Api.HostWorkspace?>
+SharpRail.Plugins.Api.UI.IPluginUIContext.FileAction(SharpRail.Plugins.Api.UI.FileActionRegistration! action) -> void
 SharpRail.Plugins.Api.UI.IPluginUIContext.FileIconSlot(System.Func<string!, SharpRail.Plugins.Api.UI.FileIconKind, string?>! resolver) -> void
 SharpRail.Plugins.Api.UI.IPluginUIContext.FileRevision(string! workspaceId, string! path) -> int
 SharpRail.Plugins.Api.UI.IPluginUIContext.FileViewer(SharpRail.Plugins.Api.UI.FileViewerRegistration! registration) -> void
@@ -602,6 +637,10 @@ static SharpRail.Plugins.Api.UI.EditorSelection.operator !=(SharpRail.Plugins.Ap
 static SharpRail.Plugins.Api.UI.EditorSelection.operator ==(SharpRail.Plugins.Api.UI.EditorSelection? left, SharpRail.Plugins.Api.UI.EditorSelection? right) -> bool
 static SharpRail.Plugins.Api.UI.EditorSelectionEvent.operator !=(SharpRail.Plugins.Api.UI.EditorSelectionEvent? left, SharpRail.Plugins.Api.UI.EditorSelectionEvent? right) -> bool
 static SharpRail.Plugins.Api.UI.EditorSelectionEvent.operator ==(SharpRail.Plugins.Api.UI.EditorSelectionEvent? left, SharpRail.Plugins.Api.UI.EditorSelectionEvent? right) -> bool
+static SharpRail.Plugins.Api.UI.FileActionRegistration.operator !=(SharpRail.Plugins.Api.UI.FileActionRegistration? left, SharpRail.Plugins.Api.UI.FileActionRegistration? right) -> bool
+static SharpRail.Plugins.Api.UI.FileActionRegistration.operator ==(SharpRail.Plugins.Api.UI.FileActionRegistration? left, SharpRail.Plugins.Api.UI.FileActionRegistration? right) -> bool
+static SharpRail.Plugins.Api.UI.FileActionTarget.operator !=(SharpRail.Plugins.Api.UI.FileActionTarget? left, SharpRail.Plugins.Api.UI.FileActionTarget? right) -> bool
+static SharpRail.Plugins.Api.UI.FileActionTarget.operator ==(SharpRail.Plugins.Api.UI.FileActionTarget? left, SharpRail.Plugins.Api.UI.FileActionTarget? right) -> bool
 static SharpRail.Plugins.Api.UI.FilePickOptions.operator !=(SharpRail.Plugins.Api.UI.FilePickOptions? left, SharpRail.Plugins.Api.UI.FilePickOptions? right) -> bool
 static SharpRail.Plugins.Api.UI.FilePickOptions.operator ==(SharpRail.Plugins.Api.UI.FilePickOptions? left, SharpRail.Plugins.Api.UI.FilePickOptions? right) -> bool
 static SharpRail.Plugins.Api.UI.FileTabRef.operator !=(SharpRail.Plugins.Api.UI.FileTabRef? left, SharpRail.Plugins.Api.UI.FileTabRef? right) -> bool

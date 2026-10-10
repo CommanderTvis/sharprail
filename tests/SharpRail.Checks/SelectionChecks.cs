@@ -52,6 +52,7 @@ internal static class SelectionChecks
         AcrossBlocks(host);
         KeepsSelectionAcrossFocus(host);
         SelectsLinks(host);
+        NamesSourceLines(host);
         ExtendsSelections(host);
     }
 
@@ -165,5 +166,38 @@ internal static class SelectionChecks
             $"Moving focus elsewhere keeps the preview's selection and never reports it cleared ('{preview.SelectedText}', reported [{string.Join("|", reported)}]).");
         window.Close();
         Console.WriteLine("PASS a Markdown selection survives focus moving to another control, as an editor's does");
+    }
+
+    // A selection in the preview is named by the source lines of the blocks it touches, and a right click offers what
+    // the workbench contributes for them beside Copy.
+    private static void NamesSourceLines(IProjectServices host)
+    {
+        using var preview = new MarkdownPreview("---\ntitle: Lines\n---\n# Heading\n\nFirst paragraph\ncontinues here.\n\n- one\n- two\n\nLast paragraph.\n", "lines.md",
+            MarkdownContexts.For(host, new Preferences(), (_, _) => { }));
+        var window = new Window { Width = 600, Height = 400, Content = preview };
+        window.Show(); Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
+        E2E.E2eWorkspace.Require(preview.SelectedLines is null, "Nothing selected names no lines.");
+        var blocks = preview.GetLogicalDescendants().OfType<SelectableTextBlock>().ToArray();
+        var paragraph = blocks.Single(block => (block.Inlines?.Text ?? block.Text ?? "").StartsWith("First paragraph", StringComparison.Ordinal));
+        paragraph.SelectAll(); Dispatcher.UIThread.RunJobs();
+        E2E.E2eWorkspace.Require(preview.SelectedLines == (6, 7), $"A paragraph's selection names its source lines, got {preview.SelectedLines}.");
+        preview.RaiseEvent(new ContextRequestedEventArgs { RoutedEvent = Control.ContextRequestedEvent, Source = paragraph });
+        E2E.E2eWorkspace.Require(preview.ContextMenu is null, "Without contributed actions the preview opens no menu of its own.");
+        var offered = new MenuItem { Header = "Contributed" };
+        preview.ContextActions = () => [offered];
+        foreach (var block in blocks) block.SelectAll();
+        Dispatcher.UIThread.RunJobs();
+        E2E.E2eWorkspace.Require(preview.SelectedLines == (4, 12), $"A selection across the document names its first and last lines, got {preview.SelectedLines}.");
+        preview.RaiseEvent(new ContextRequestedEventArgs { RoutedEvent = Control.ContextRequestedEvent, Source = paragraph });
+        Dispatcher.UIThread.RunJobs();
+        E2E.E2eWorkspace.Require(preview.ContextMenu is { IsOpen: true } menu && menu.Items.Contains(offered) &&
+            menu.Items.OfType<MenuItem>().First() is { Header: "Copy", IsEnabled: true },
+            "A right click offers Copy and the contributed actions for the selection.");
+        preview.ContextMenu!.Close();
+        preview.ContextActions = () => [];
+        preview.RaiseEvent(new ContextRequestedEventArgs { RoutedEvent = Control.ContextRequestedEvent, Source = paragraph });
+        E2E.E2eWorkspace.Require(preview.ContextMenu is null, "Once nothing is contributed, the menu that carried earlier actions is gone.");
+        window.Close();
+        Console.WriteLine("PASS a Markdown selection names its source lines and its context menu carries contributed actions");
     }
 }

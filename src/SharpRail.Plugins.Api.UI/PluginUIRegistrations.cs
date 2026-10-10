@@ -108,6 +108,32 @@ public sealed record WorkspaceScopedActionRegistration(string Id, Func<string, s
 /// <param name="Create">Creates the control for a project id.</param>
 public sealed record ProjectScopedActionRegistration(string Id, Func<string, Control> Create) : WorkspaceActionRegistration(Id);
 
+/// <summary>What a file action acts on: a file or folder of a workspace and, when lines were chosen in it, their range.</summary>
+/// <param name="WorkspaceId">The workspace.</param>
+/// <param name="Path">The workspace-relative path.</param>
+/// <param name="IsDirectory">Whether the path is a folder.</param>
+public sealed record FileActionTarget(string WorkspaceId, string Path, bool IsDirectory)
+{
+    /// <summary>The one-based first chosen line, or <see langword="null"/> when the action is for the whole file.</summary>
+    public int? StartLine { get; init; }
+
+    /// <summary>The one-based last chosen line.</summary>
+    public int? EndLine { get; init; }
+}
+
+/// <summary>
+/// An action offered in the context menu of a file wherever core shows one (W21): a row of the Files panel, the code
+/// editor and the Markdown preview, the last two with the lines selected there.
+/// </summary>
+/// <param name="Id">The action's id within the plugin.</param>
+/// <param name="Label">Returns the menu label for a target, or <see langword="null"/> when the action is not offered for it; read each time a menu opens.</param>
+/// <param name="Run">Runs the action on the UI thread.</param>
+public sealed record FileActionRegistration(string Id, Func<FileActionTarget, string?> Label, Action<FileActionTarget> Run)
+{
+    /// <summary>A Remix Icon name or <c>asset:&lt;path&gt;</c>.</summary>
+    public string? Icon { get; init; }
+}
+
 /// <summary>Registers a row shown alongside every terminal (W11).</summary>
 /// <param name="Create">Creates the row for one terminal's accessory handle.</param>
 public sealed record TerminalAccessoryRegistration(Func<ITerminalAccessoryApi, Control> Create);

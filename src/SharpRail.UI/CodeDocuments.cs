@@ -30,6 +30,7 @@ public sealed partial class WorkbenchWindow
         view.Editor.WrapWidth = FileWrapWidth;
         view.DeletedOnDisk = deletedDocuments.Contains(key);
         ReportSelections(view.Editor, new DockTab(tabId, Path.GetFileName(document.Path), "file", document.Path));
+        OfferFileActions(view.Editor, document.Path);
         return view;
     }
 

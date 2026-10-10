@@ -28,6 +28,9 @@ public sealed partial class MarkdownDocumentView : UserControl, IDisposable
     private readonly Button sourceButton;
     private readonly Button splitButton;
     private readonly Button outlineButton;
+    private readonly ToggleButton followButton;
+    private ScintillaEditor? followedEditor;
+    private bool followRequested;
     private readonly Grid body;
     private readonly Border outline;
     private readonly GridSplitter splitter;
@@ -49,6 +52,9 @@ public sealed partial class MarkdownDocumentView : UserControl, IDisposable
         sourceButton = this.FindControl<Button>("MarkdownSourceMode")!;
         splitButton = this.FindControl<Button>("MarkdownSplitMode")!;
         outlineButton = this.FindControl<Button>("MarkdownOutlineToggle")!;
+        followButton = this.FindControl<ToggleButton>("MarkdownFollowCursor")!;
+        followButton.IsCheckedChanged += (_, _) => RequestFollow();
+        LayoutUpdated += ApplyFollow;
         body = this.FindControl<Grid>("MarkdownBody")!;
         outline = this.FindControl<Border>("MarkdownOutline")!;
         splitter = this.FindControl<GridSplitter>("MarkdownSplitter")!;
@@ -84,9 +90,13 @@ public sealed partial class MarkdownDocumentView : UserControl, IDisposable
         : source?.GetLogicalDescendants().OfType<ScintillaEditor>().FirstOrDefault();
 
     /// <summary>Where the reader is: the mode and both panes' scroll positions, for a view that replaces this one.</summary>
-    public readonly record struct ViewState(Mode Mode, Vector Preview, Vector Source);
+    public readonly record struct ViewState(Mode Mode, Vector Preview, Vector Source)
+    {
+        /// <summary>Whether the split preview follows the source cursor.</summary>
+        public bool FollowCursor { get; init; } = true;
+    }
 
-    public ViewState State => new(mode, preview.Offset, SourceOffset);
+    public ViewState State => new(mode, preview.Offset, SourceOffset) { FollowCursor = followButton.IsChecked == true };
 
     private ViewState? pending;
     private int pendingPasses;
@@ -97,10 +107,11 @@ public sealed partial class MarkdownDocumentView : UserControl, IDisposable
     /// </summary>
     public void Restore(ViewState state)
     {
+        followButton.IsChecked = state.FollowCursor;
         Show(state.Mode);
+        followRequested = false;
         pending = state; pendingPasses = 0;
-        LayoutUpdated -= ApplyPending;
-        LayoutUpdated += ApplyPending;
+        InvalidateArrange();
     }
 
     private void ApplyPending(object? sender, EventArgs e)
@@ -109,7 +120,7 @@ public sealed partial class MarkdownDocumentView : UserControl, IDisposable
         preview.Offset = state.Preview;
         SetSourceOffset(state.Source);
         var held = Math.Abs(preview.Offset.Y - state.Preview.Y) < 1 && (source is null || Math.Abs(SourceOffset.Y - state.Source.Y) < 1);
-        if (held || ++pendingPasses >= 20) { pending = null; LayoutUpdated -= ApplyPending; }
+        if (held || ++pendingPasses >= 20) pending = null;
     }
 
     public void Show(Mode next)
@@ -135,6 +146,8 @@ public sealed partial class MarkdownDocumentView : UserControl, IDisposable
             };
             Grid.SetColumn(source, 1);
             body.Children.Add(source);
+            followedEditor = SourceEditor;
+            if (followedEditor is not null) followedEditor.SelectionChanged += SourceSelectionChanged;
         }
         var showSource = next != Mode.Preview;
         var showPreview = next != Mode.Source;
@@ -143,6 +156,8 @@ public sealed partial class MarkdownDocumentView : UserControl, IDisposable
         if (source is not null) source.IsVisible = showSource;
         preview.IsVisible = showPreview;
         splitter.IsVisible = next == Mode.Split;
+        followButton.IsVisible = next == Mode.Split && followedEditor is not null;
+        RequestFollow();
         Paint(previewButton, next == Mode.Preview);
         Paint(sourceButton, next == Mode.Source);
         Paint(splitButton, next == Mode.Split);
@@ -196,6 +211,29 @@ public sealed partial class MarkdownDocumentView : UserControl, IDisposable
         Outline.Fill(entries, preview, sourceText, RevealSource);
         Restore(state);
         PreviewChanged?.Invoke();
+        if (followedEditor?.IsKeyboardFocusWithin == true) RequestFollow();
+    }
+
+    private void SourceSelectionChanged(object? sender, EventArgs e) => RequestFollow();
+
+    private void RequestFollow()
+    {
+        followRequested = !disposed && mode == Mode.Split && followButton.IsChecked == true && followedEditor is not null;
+        if (followRequested) InvalidateArrange();
+    }
+
+    private void ApplyFollow(object? sender, EventArgs e)
+    {
+        if (pending is not null)
+        {
+            ApplyPending(sender, e);
+            if (followRequested) InvalidateArrange();
+            return;
+        }
+        if (!followRequested) return;
+        followRequested = false;
+        if (!disposed && mode == Mode.Split && followButton.IsChecked == true && followedEditor is { } editor)
+            preview.RevealSourceLine(editor.CaretLine);
     }
 
     private Vector SourceOffset => SourceEditor is { } editor
@@ -225,6 +263,8 @@ public sealed partial class MarkdownDocumentView : UserControl, IDisposable
     public void Dispose()
     {
         disposed = true; ++previewVersion;
+        LayoutUpdated -= ApplyFollow;
+        if (followedEditor is not null) followedEditor.SelectionChanged -= SourceSelectionChanged;
         preview.Dispose();
         if (source is IDisposable disposable) disposable.Dispose();
         else SourceEditor?.Dispose();

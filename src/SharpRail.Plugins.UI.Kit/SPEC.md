@@ -71,6 +71,13 @@ publish toggle automation changes without requesting another update.
   The document view accepts a lazy source-control factory so its owner can supply an editable buffer;
   `RefreshPreviewAsync` debounces and parses edits off the dispatcher, rejecting stale results.
   `PreviewChanged` lets the owner reconnect selection observers after replacement.
+  Split follows the source caret by default, keeping its rendered block visible with minimal scrolling.
+  Nested blocks use the smallest visible source range; blank lines use the nearest block, folded details
+  stay folded, and blocks taller than the viewport reveal their beginning. The toolbar’s Follow cursor
+  toggle is available in Split with an editor and is retained in the document’s view state. Cursor moves
+  and edited-preview replacement request following after layout; preview scrolling never moves the source
+  caret. Disabling following preserves independent scrolling through edits and mode changes.
+  Cursor tracking does not change the source ranges reported for selections in the preview.
 - Owns, in `SharpRail.Plugins.UI.Kit.Editor`: `EditorFrame` (the Scintilla host with theme colours, fonts and
   line styles).
 - Owns, in `SharpRail.Plugins.UI.Kit.Visualization`: `MermaidRenderer` and `MermaidDialog` (inline and
@@ -96,7 +103,9 @@ publish toggle automation changes without requesting another update.
 - `IDialogOwner.Dim` is how `DialogWindow` dims the window that owns it; `DialogWindow.Create(title, width)` is the
   standard card the app's `Dialogs` and `MermaidDialog` build on.
 - `MarkdownDocumentView.Preview` exposes the rendered document, and `MarkdownPreview.SelectionChanged` reports the
-  selected text, which the app feeds into the plugin editor-event stream.
+  selected text, which the app feeds into the plugin editor-event stream. Each rendered block remembers the source
+  lines it came from, so `SelectedLines` names a selection in the file; `ContextActions` supplies extra items for the
+  preview's context menu, shown beside Copy, and with none the text keeps its own menu.
 - Inline links, including spec links, inherit rendered diff insertion/deletion colors and backgrounds;
   deleted links and links inside Markdown strikethrough carry the strike decoration.
 - Paragraphs containing Markdown images or inline HTML images reserve the full image height,

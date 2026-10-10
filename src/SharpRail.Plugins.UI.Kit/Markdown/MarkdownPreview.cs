@@ -75,7 +75,12 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
             SpecTitle.Margin = new Thickness(0, 0, 0, 12);
             body.Children.Add(SpecTitle);
         }
-        if (frontmatter is not null || previousFrontmatter is not null) body.Children.Add(Properties(frontmatter, previousFrontmatter));
+        if (frontmatter is not null || previousFrontmatter is not null)
+        {
+            var properties = Properties(frontmatter, previousFrontmatter);
+            if (Document.OfType<YamlFrontMatterBlock>().FirstOrDefault() is { } yaml) Sourced(properties, yaml, selection: false);
+            body.Children.Add(properties);
+        }
         if (focus is null) body.Children.AddRange(RenderBlocks(Document));
         else RenderFocused(body, focus);
         RefreshSpecLinks();

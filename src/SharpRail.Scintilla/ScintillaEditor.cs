@@ -119,6 +119,9 @@ public sealed partial class ScintillaEditor : Control, IDisposable
         InvalidateVisual(); inputClient.Notify();
     }
 
+    /// <summary>The caret’s one-based source line, including the active end of a backwards selection.</summary>
+    public int CaretLine => checked((int)document.Send(ScintillaMessage.LineFromPosition, document.Send(ScintillaMessage.GetCurrentPos))) + 1;
+
     /// <summary>The selection as one-based lines and columns counted in UTF-16 units, with its text; empty when collapsed.</summary>
     public ScintillaSelection Selection
     {
@@ -141,7 +144,7 @@ public sealed partial class ScintillaEditor : Control, IDisposable
     private void SyncSelection()
     {
         if (disposed) return;
-        var current = (document.Send(ScintillaMessage.GetSelectionStart), document.Send(ScintillaMessage.GetSelectionEnd));
+        var current = (document.Send(ScintillaMessage.GetAnchor), document.Send(ScintillaMessage.GetCurrentPos));
         if (current == reportedSelection) return;
         reportedSelection = current;
         SelectionChanged?.Invoke(this, EventArgs.Empty);

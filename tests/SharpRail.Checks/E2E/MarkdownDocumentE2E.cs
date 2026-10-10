@@ -35,6 +35,7 @@ internal static class MarkdownDocumentE2E
         DiffLinks(root);
         Outline(root);
         Split(root);
+        CursorFollow(root);
         Find(root);
         MarkdownFindE2E.Run(root);
         LiveEdits(root);
@@ -220,6 +221,87 @@ internal static class MarkdownDocumentE2E
                 "Discarding Markdown edits must leave the saved file intact.");
         }
         Console.WriteLine("PASS fork EmbeddedSplit: Markdown gets a Split view, the buffer and its preview at once");
+    }
+
+    private static void CursorFollow(string root)
+    {
+        if (!SharpRail.Scintilla.ScintillaEditor.IsSupported) return;
+        var text = "---\ntitle: Cursor following\n---\n\n" + string.Concat(Enumerable.Range(0, 45)
+            .Select(index => $"## Section {index}\n\nParagraph {index} with Unicode café 👋.\n\n- Item {index}\n\n")) +
+            "~~~cs\nvar final = 42;\n~~~\n";
+        using var app = OpenDocument(root, "markdown-cursor-follow", "follow.md", text);
+        app.Click(app.Find<Button>("MarkdownSplitMode"));
+        var view = app.Window.GetLogicalDescendants().OfType<MarkdownDocumentView>().Single();
+        var editor = app.Find<SharpRail.Scintilla.ScintillaEditor>("MarkdownSource");
+        var toggle = app.Find<Avalonia.Controls.Primitives.ToggleButton>("MarkdownFollowCursor");
+        Require(toggle.IsChecked == true && toggle.IsEffectivelyVisible, "Split must offer cursor following enabled by default.");
+        void Move(string source)
+        {
+            editor.Focus();
+            editor.SelectRange(editor.Text.IndexOf(source, StringComparison.Ordinal), 0);
+            Settle(100);
+        }
+        bool Visible(string value)
+        {
+            var block = view.Preview.GetLogicalDescendants().OfType<SelectableTextBlock>()
+                .First(block => TextOf(block).Contains(value, StringComparison.Ordinal));
+            return block.TranslatePoint(default, view.Preview) is { } point && point.Y >= -1 &&
+                point.Y + block.Bounds.Height <= view.Preview.Viewport.Height + 1;
+        }
+        Move("Paragraph 40");
+        Require(Visible("Paragraph 40") && view.Preview.Offset.Y > 0, "The preview must reveal the paragraph at the source cursor.");
+        var offset = view.Preview.Offset;
+        editor.SelectRange(editor.Text.IndexOf("Paragraph 40", StringComparison.Ordinal) + 5, 0);
+        Settle(100);
+        Require(view.Preview.Offset == offset, "Moving within a visible paragraph must not scroll the preview.");
+        Move("## Section 3");
+        Require(Visible("Section 3"), "Moving backwards must reveal the matching heading.");
+        Move("Item 35");
+        Require(Visible("Item 35"), "Following must use nested list-item source locations.");
+        Move("var final");
+        Require(Visible("var final"), "Following must reveal a fenced code block.");
+        editor.Focus();
+        app.Window.KeyPress(Key.Up, RawInputModifiers.Meta | RawInputModifiers.Shift, PhysicalKey.None, null);
+        app.Window.KeyRelease(Key.Up, RawInputModifiers.Meta | RawInputModifiers.Shift, PhysicalKey.None, null);
+        Settle(100);
+        Require(editor.CaretLine == 1 && editor.Selection.EndLine > 100 && view.Preview.Offset.Y < 100,
+            "A backwards keyboard selection must follow its active caret, not its lower selection endpoint.");
+        Move("title:");
+        Require(view.Preview.Offset.Y < 100, "Frontmatter must follow to the properties near the top.");
+        Move("Paragraph 40");
+        editor.Focus();
+        app.Window.KeyTextInput("Edited ");
+        Until(() => Text(view.Preview).Contains("Edited Paragraph 40", StringComparison.Ordinal));
+        Settle(100);
+        Require(Visible("Edited Paragraph 40"), "Replacing the preview after typing must keep the edited block visible.");
+        app.Click(toggle);
+        Require(toggle.IsChecked == false, "The toolbar button must disable following.");
+        view.Preview.Offset = new Vector(0, 250);
+        Settle(100);
+        offset = view.Preview.Offset;
+        Move("Paragraph 1 ");
+        Require(view.Preview.Offset == offset, "Disabled following must leave the preview at its independent scroll position.");
+        editor.Focus();
+        app.Window.KeyTextInput("Independent ");
+        Until(() => Text(view.Preview).Contains("Independent Paragraph 1 ", StringComparison.Ordinal));
+        Settle(100);
+        Require(view.Preview.Offset == offset && !view.State.FollowCursor, "Disabled following and scroll position must survive preview replacement.");
+        app.Click(app.Find<Button>("MarkdownPreviewMode"));
+        Require(!toggle.IsVisible, "Following is only a Split control.");
+        app.Click(app.Find<Button>("MarkdownSplitMode"));
+        Require(toggle.IsChecked == false, "Mode changes must retain disabled following.");
+        var state = view.State;
+        app.Click(toggle);
+        Settle(100);
+        Require(Visible("Independent Paragraph 1 "), "Re-enabling following must immediately reveal the current cursor block.");
+        var selection = editor.Selection;
+        view.Preview.Offset = new Vector(0, 900);
+        Settle(100);
+        Require(editor.Selection == selection && view.Preview.Offset.Y > 800, "Manual preview scrolling must neither move the source cursor nor snap back.");
+        view.Restore(state);
+        Settle(100);
+        Require(toggle.IsChecked == false && view.Preview.Offset == state.Preview, "Restoring view state must retain the toggle and independent position.");
+        Console.WriteLine("PASS Markdown split follows the source cursor, preserves visible blocks, and retains its independent-scroll toggle");
     }
 
     private static void Images(string root)
