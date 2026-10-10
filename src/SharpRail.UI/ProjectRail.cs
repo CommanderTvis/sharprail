@@ -270,7 +270,8 @@ public sealed partial class WorkbenchWindow
         // A branch that moves under its checkout is redrawn in place: the row keeps its focus and pointer target.
         void ShowBranch()
         {
-            var text = RailWorkspaces(worktree.ProjectRoot).FirstOrDefault(workspace => workspace.Path == worktree.Path)?.Branch ?? worktree.Branch;
+            var text = removingWorkspaces.Contains(worktree.Path) ? "Removing…"
+                : RailWorkspaces(worktree.ProjectRoot).FirstOrDefault(workspace => workspace.Path == worktree.Path)?.Branch ?? worktree.Branch;
             branch.Text = text;
             var twoLines = text.Length > 0;
             if (!twoLines) second.Children.Remove(branch);
@@ -302,6 +303,9 @@ public sealed partial class WorkbenchWindow
             AutomationProperties.SetName(button, label.Text);
             button.Background = selected ? Ui.Selected : Avalonia.Media.Brushes.Transparent;
             ((Border)icon).Background = label.Foreground = selected ? Ui.Accent : Ui.Muted;
+            // A workspace being removed neither opens nor offers its actions; its second line says why.
+            button.IsEnabled = !removingWorkspaces.Contains(worktree.Path);
+            contents.Opacity = button.IsEnabled ? 1 : 0.5;
             ShowBranch();
         };
         AutomationProperties.SetName(button, name);
@@ -325,8 +329,8 @@ public sealed partial class WorkbenchWindow
         var item = new Grid { Name = "WorkspaceItem", Tag = worktree.Path, Margin = new Thickness(24, 0, 0, 0), ColumnDefinitions = new ColumnDefinitions("*,Auto"), Background = Avalonia.Media.Brushes.Transparent };
         var menu = WorkspaceActions(worktree, kebab);
         button.ContextMenu = menu;
-        kebab.Click += (_, _) => menu.Open(button);
-        void Reveal() => kebab.Opacity = item.IsPointerOver || item.IsKeyboardFocusWithin || menu.IsOpen ? 1 : 0;
+        kebab.Click += (_, _) => { if (button.IsEnabled) menu.Open(button); };
+        void Reveal() => kebab.Opacity = button.IsEnabled && (item.IsPointerOver || item.IsKeyboardFocusWithin || menu.IsOpen) ? 1 : 0;
         item.PointerEntered += (_, _) => { Reveal(); Prewarm(worktree.Path); };
         item.PointerExited += (_, _) => Reveal();
         item.GotFocus += (_, _) => { Reveal(); Prewarm(worktree.Path); };

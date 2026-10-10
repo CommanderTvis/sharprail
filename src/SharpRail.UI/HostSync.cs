@@ -18,6 +18,8 @@ public sealed partial class WorkbenchWindow
     private string? closingProject;
     // Workspaces removed while this window lives: a read still in flight must not bring their local state back.
     private readonly HashSet<string> removedWorkspaces = [];
+    // Workspaces whose removal this window asked for and the host has not finished; their rows say so.
+    private readonly HashSet<string> removingWorkspaces = [];
     private string syncedProject = "";
 
     /// <summary>Has the host ensure and re-sync a project's registry; the rail follows the broadcast, never this call.</summary>
@@ -110,6 +112,7 @@ public sealed partial class WorkbenchWindow
         if (!registry) return;
         var paths = next.Workspaces.Select(workspace => workspace.Path).ToHashSet();
         removedWorkspaces.ExceptWith(paths);
+        removingWorkspaces.IntersectWith(paths);
         var gone = previous.Workspaces.Where(workspace => !paths.Contains(workspace.Path)).ToArray();
         var shown = WorkspaceMounted && !atHome && gone.Any(workspace => workspace.Path == workspaceRoot);
         var name = shown ? previous.WorkspaceLabels.GetValueOrDefault(workspaceRoot) ?? DirectoryName(workspaceRoot) : "";
