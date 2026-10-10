@@ -41,6 +41,9 @@
             BorderBrush="{x:Static rendering:Ui.BorderBrush}" BorderThickness="0,0,1,1">
       <Grid x:Name="MainHeader" ColumnDefinitions="36,*,Auto">
         <ContentControl x:Name="BrandIcon" />
+        <Button x:Name="LeftDrawerButton" IsVisible="False" Width="36" Height="48" Padding="0"
+                Background="Transparent" BorderThickness="0" CornerRadius="0"
+                ToolTip.Tip="Projects" AutomationProperties.Name="Projects" />
         <local:LocationStrip x:Name="LocationBar" Grid.Column="1" ClipToBounds="True">
           <Border x:Name="ProjectSegment" Classes="location-segment" MaxWidth="220" BorderThickness="0" Padding="8,0,12,0">
             <Grid RowDefinitions="10,4,22" VerticalAlignment="Center">
@@ -84,6 +87,9 @@
         <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4" VerticalAlignment="Center">
           <TextBlock x:Name="ConnectionDot" Text="●" Classes="header-label" FontSize="10" Foreground="{x:Static rendering:Ui.Success}" />
           <TextBlock x:Name="ConnectionStatus" Text="Connecting" Classes="header-label" />
+          <Button x:Name="RightDrawerButton" IsVisible="False" Width="32" Height="32" Padding="0"
+                  Background="Transparent" BorderThickness="0" CornerRadius="0"
+                  ToolTip.Tip="Files and changes" AutomationProperties.Name="Files and changes" />
           <Button x:Name="SettingsButton" Width="32" Height="32" Padding="0"
                   Background="Transparent" BorderThickness="0" CornerRadius="0"
                   ToolTip.Tip="Settings (⌘,)" AutomationProperties.Name="Settings (⌘,)" />

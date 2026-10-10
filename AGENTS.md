@@ -165,6 +165,7 @@ The workbench is split into partial files rather than separate window classes:
 | `HostSync.cs` | Applying shared-state broadcasts and reconnects to the window. |
 | `Workbench.cs` | App-owned composition shared by windows and the per-window profile entries. |
 | `TerminalTabs.cs` | Confirmation before closing terminals that run a foreground process, and keeping the window's terminal tabs those of the host's catalog. |
+| `Drawers.cs` | The phone-sized workbench: side panels as drawers opened from the header, closed on choice or Back. |
 | `BranchList.cs` | The title bar branch's popover: local branches with their worktrees, deletion and Fetch. |
 
 Host dependencies flow toward abstractions: Abstractions references only the plugin API's root;

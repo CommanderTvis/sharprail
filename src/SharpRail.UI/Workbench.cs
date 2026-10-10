@@ -53,6 +53,8 @@ public sealed class Workbench : IDisposable
     /// <summary>Raised on the UI thread when <see cref="TerminalCatalog"/> advances.</summary>
     public event Action? TerminalCatalogChanged;
     public bool Remote { get; }
+    /// <summary>A phone-sized screen: windows show their side panels as drawers over the centre.</summary>
+    public bool Compact { get; init; }
 #if !ANDROID
     /// <summary>Optional serving for this app's embedded host, shared by every window.</summary>
     public Host.Remote.HostListener? Listener { get; init; }

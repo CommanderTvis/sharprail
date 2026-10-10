@@ -32,6 +32,7 @@ internal static class ShellChecks
         ProjectPicker(Path.Combine(root, "shell-project-picker"));
         CommitMenu(Path.Combine(root, "shell-commit-menu"));
         InertLinks(Path.Combine(root, "shell-inert-links"));
+        DrawerChecks.Run(root);
     }
 
     private static void ProjectPicker(string directory)

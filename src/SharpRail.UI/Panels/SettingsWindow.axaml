@@ -213,15 +213,20 @@
           BorderBrush="{x:Static rendering:Ui.BorderBrush}" BorderThickness="1" CornerRadius="8">
     <Grid RowDefinitions="42.5,*">
       <Border BorderBrush="{x:Static rendering:Ui.BorderBrush}" BorderThickness="0,0,0,1">
-        <Grid ColumnDefinitions="*,Auto" Margin="16,0,12,0">
-          <TextBlock Text="Settings" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
-          <Button x:Name="SettingsClose" Grid.Column="1" Width="24" Height="24" Padding="4"
+        <Grid ColumnDefinitions="Auto,*,Auto" Margin="16,0,12,0">
+          <Button x:Name="SettingsMenu" IsVisible="False" Width="24" Height="24" Padding="4" Margin="-4,0,8,0"
+                  CornerRadius="4" Background="Transparent" BorderThickness="0"
+                  ToolTip.Tip="Settings sections" AutomationProperties.Name="Settings sections" />
+          <TextBlock Grid.Column="1" Text="Settings" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <Button x:Name="SettingsClose" Grid.Column="2" Width="24" Height="24" Padding="4"
                   CornerRadius="4" Background="Transparent" BorderThickness="0"
                   ToolTip.Tip="Close settings (Escape)" AutomationProperties.Name="Close settings (Escape)" />
         </Grid>
       </Border>
-      <Grid Grid.Row="1" ColumnDefinitions="192,*">
-        <Border Background="{x:Static rendering:Ui.Elevated}" BorderBrush="{x:Static rendering:Ui.BorderBrush}"
+      <Grid x:Name="SettingsColumns" Grid.Row="1" ColumnDefinitions="192,*">
+        <Border x:Name="SettingsScrim" Grid.ColumnSpan="2" ZIndex="1" IsVisible="False"
+                Background="{x:Static rendering:Ui.Overlay}" />
+        <Border x:Name="SettingsNavigationPane" Background="{x:Static rendering:Ui.Elevated}" BorderBrush="{x:Static rendering:Ui.BorderBrush}"
                 BorderThickness="0,0,1,0">
           <ScrollViewer>
             <StackPanel x:Name="SettingsNavigation" Spacing="2" Margin="12">

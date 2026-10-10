@@ -264,3 +264,21 @@ pixels (120–480, default 200, clamped on load so it survives a window resize u
 Inactive workspace previews refresh their plugin icons and badges when host agent identity
 changes, even when the active workspace's decorations are unchanged. Preview caching includes
 decoration results, so unchanged rows stay mounted and Codex/Claude marks follow workspace switches.
+
+## Drawers
+
+A compact workbench (`Workbench.Compact`, set by the Android client on phone-sized screens) sets
+`DockSurface.Drawers`. The frame model is unchanged; only its projection differs:
+
+- The centre and the bottom region keep the whole width. There are no collapsed side rails and no side
+  separators.
+- A visible left or right region lies over the centre at its edge, at most 360 px wide and always leaving
+  56 px of the centre, above a scrim; pressing the scrim hides it.
+- The window (`Drawers.cs`) starts with both sides hidden, replaces the header's brand mark with a left
+  drawer button and adds a right one, opens one side at a time, and hides both when the centre's selected
+  tab or the workspace changes and on `BackRequested`.
+- Settings in a compact workbench gives the section the whole page; its section list opens from a header
+  button as a drawer and closes on choice, on its scrim and on Back.
+
+`DrawerChecks` (in `-- --shell`) covers this headlessly. Dragging tabs between regions is not offered for
+drawers, and the bottom region is not resizable there.
