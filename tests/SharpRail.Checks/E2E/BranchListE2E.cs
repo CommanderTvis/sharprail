@@ -75,10 +75,15 @@ internal static class BranchListE2E
             "A branch nothing has checked out has no path.");
         app.Click(Named<Button>(spare, "BranchDelete"));
         var confirm = Dialog(app);
+        // A real window loses focus to the dialog and dismisses the card; the headless one has to be told.
+        Close(app);
         app.Click(Named<Button>(confirm, "BranchDeleteConfirm"));
         Until(() => !app.Window.OwnedWindows.Any(window => window.IsVisible));
         Until(() => Git(app.Root, "branch", "--list", "spare-branch").Length == 0);
         Until(() => Row(list, "spare-branch") is null && Row(list, branch) is not null);
+        Until(() => app.Find<Button>("ScopeBranch").Flyout is Flyout { IsOpen: true });
+        Require(ReferenceEquals(list.GetLogicalAncestors().OfType<Border>().FirstOrDefault(card => card.Name == "ScopeBranchCard"),
+            ((Flyout)app.Find<Button>("ScopeBranch").Flyout!).Content), "The branch card must come back after a deletion, so the next branch can be deleted.");
         Close(app);
 
         // The host refuses on its own, whichever client asks.
