@@ -1671,3 +1671,14 @@ original merger on the added-table case, then passes with the correction. Covera
 and native preview grids with insertion/deletion cell marks. The full gate passes 117 cases across six
 lanes against the same Git source. No real window, Android device or packaged app was driven for this fix.
 Temporary logs, captures and fixture directories were removed after recording these results.
+
+## Blueprint unregistered terminal directories — 2026-10-10
+
+Blueprint now follows and queries spec links only for registered workspaces, and
+starts following existing terminals when their directory is registered later.
+Release compilation passes with zero warnings/errors, touched-file format
+verification passes, `-- --blueprint` passes, and the full gate passes 118 cases
+across six lanes. Spec validation reports four existing dangling links in the
+Branch Graph spec. The running application was not republished or restarted.
+Temporary check logs and exited fixture directories were removed. The fix and
+validation are committed separately; the user requested pushing them to main.
