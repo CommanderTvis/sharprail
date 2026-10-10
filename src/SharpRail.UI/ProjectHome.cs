@@ -439,19 +439,32 @@ public sealed partial class WorkbenchWindow
                     dismiss: dismiss.Token))) return;
         }
         finally { LocationChanged -= Left; }
-        if (!atHome && worktree.Path == workspaceRoot)
+        if (!removingWorkspaces.Add(worktree.Path)) return;
+        UpdateRailSelection();
+        var removed = false;
+        try
         {
-            var previous = selectionHistory.LastOrDefault(path => path != worktree.Path &&
-                (path.Length == 0 || path == projectRoot || state.Current.WorkspacesOf(projectRoot).Any(workspace => workspace.Path == path)));
-            if (string.IsNullOrEmpty(previous)) await OpenProjectHomeAsync(projectRoot);
-            else await OpenWorkspaceAsync(previous, false);
-            if (!atHome && workspaceRoot == worktree.Path) return;
+            if (!atHome && worktree.Path == workspaceRoot)
+            {
+                var previous = selectionHistory.LastOrDefault(path => path != worktree.Path &&
+                    (path.Length == 0 || path == projectRoot || state.Current.WorkspacesOf(projectRoot).Any(workspace => workspace.Path == path)));
+                if (string.IsNullOrEmpty(previous)) await OpenProjectHomeAsync(projectRoot);
+                else await OpenWorkspaceAsync(previous, false);
+                if (!atHome && workspaceRoot == worktree.Path) return;
+            }
+            selectionHistory.Remove(worktree.Path);
+            // The row may predate a re-registration of its path, so the id is read when it is used.
+            var id = state.Current.Workspaces.FirstOrDefault(workspace => workspace.Path == worktree.Path)?.Id ?? worktree.Id;
+            await host.ApplyWorkspaceActionAsync(external ? WorkspaceAction.Forget(id) : WorkspaceAction.Remove(id), lifetime.Token);
+            removed = true;
         }
-        selectionHistory.Remove(worktree.Path);
-        // The row may predate a re-registration of its path, so the id is read when it is used.
-        var id = state.Current.Workspaces.FirstOrDefault(workspace => workspace.Path == worktree.Path)?.Id ?? worktree.Id;
-        try { await host.ApplyWorkspaceActionAsync(external ? WorkspaceAction.Forget(id) : WorkspaceAction.Remove(id), lifetime.Token); }
         catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
+        finally
+        {
+            // A removed row stays marked until the broadcast drops it, so it never looks usable in between.
+            if (!removed || !state.Current.Workspaces.Any(workspace => workspace.Path == worktree.Path)) removingWorkspaces.Remove(worktree.Path);
+            UpdateRailSelection();
+        }
     }
 
     private async Task RevealWorkspaceAsync(string path)
