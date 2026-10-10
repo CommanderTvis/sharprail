@@ -132,8 +132,10 @@ internal sealed partial class DiffView : Grid, IDisposable
         // A Markdown source diff has no segment to pick with, so it always follows.
         SizeChanged += (_, args) =>
         {
-            if (layoutPinned || !ScintillaEditor.IsSupported || args.NewSize.Width <= 0) return;
+            if (!ScintillaEditor.IsSupported || args.NewSize.Width <= 0) return;
             var narrow = (args.NewSize.Width / 2 - SideChrome) < LineWidths.Code(MinimumSplitColumns);
+            split.IsVisible = !narrow && this.choices.Count == 1 && !IsRendered;
+            if (layoutPinned && !narrow) return;
             if (narrow != (split.IsChecked == true)) return;
             split.IsChecked = !narrow;
             if (!IsRendered) Render();
@@ -409,8 +411,11 @@ internal sealed partial class DiffView : Grid, IDisposable
     private void Render()
     {
         Check();
+        if (Bounds.Width > 0 && (Bounds.Width / 2 - SideChrome) < LineWidths.Code(MinimumSplitColumns))
+            split.IsChecked = false;
         // The source view of a file with other views is always side by side; the editor needs its native library.
-        split.IsVisible = choices.Count == 1 && !IsRendered && ScintillaEditor.IsSupported;
+        split.IsVisible = choices.Count == 1 && !IsRendered && ScintillaEditor.IsSupported
+            && (Bounds.Width / 2 - SideChrome) >= LineWidths.Code(MinimumSplitColumns);
         whitespace.IsVisible = !IsRendered && ScintillaEditor.IsSupported;
         copy.IsVisible = choices.Any(choice => choice.Render is null);
         outline.IsVisible = IsRendered;

@@ -121,7 +121,10 @@ A committed transition rebuilds chrome and re-mounts the same body instances the
 ## Arrangement and accessibility
 
 A tab drag paints exactly one result: strip insertion, center half split, side before/after
-group, bottom before/after group, or restoring a hidden region. Within a strip the tabs are the only visible
+group, bottom before/after group, or restoring a hidden region. Touch dragging requires a 500 ms hold
+before movement; moving earlier cancels the draft so the Projects rail can scroll. Mouse dragging retains
+its immediate movement threshold. Only the pointer that pressed the tab may move or release its draft.
+Within a strip the tabs are the only visible
 targets: each half inserts before or after its tab with a 2px line. The rest of the strip still appends
 (and catches a disabled self-insertion), showing the same line after the last tab; only a strip without
 tabs is framed. Unlike upstream there is no separate append block or strip-wide frame, which read as three
