@@ -130,9 +130,13 @@ internal static class ClaudeCodeChecks
         E2eWorkspace.Settle();
         var scrollBar = tabStrip.GetVisualDescendants().OfType<Avalonia.Controls.Primitives.ScrollBar>()
             .Single(bar => bar.Orientation == Avalonia.Layout.Orientation.Horizontal);
-        Require(scrollBar.IsVisible && scrollBar.Bounds.Height > 0 &&
-            contextButton.TranslatePoint(new(0, contextButton.Bounds.Height), tabStrip)!.Value.Y <= scrollBar.TranslatePoint(new(0, 0), tabStrip)!.Value.Y,
-            "The narrow Claude surface strip reserves space below its buttons for the scrollbar.");
+        Require(!scrollBar.IsVisible && tabStrip.Extent.Width > tabStrip.Viewport.Width,
+            "The narrow Claude surface strip keeps its button height without a visible scrollbar.");
+        tabStrip.Offset = new(tabStrip.Extent.Width - tabStrip.Viewport.Width, 0);
+        E2eWorkspace.Settle();
+        var accountButton = app.Window.GetLogicalDescendants().OfType<Control>().Single(control => control.Name == "ClaudeSurface_account");
+        Require(tabStrip.Offset.X > 0 && accountButton.TranslatePoint(new(accountButton.Bounds.Width, 0), tabStrip)!.Value.X <= tabStrip.Bounds.Width,
+            "The narrow Claude surface strip can scroll to its last button.");
         tabStrip.ClearValue(Control.WidthProperty);
         E2eWorkspace.Settle();
         // The fixture sits inside this checkout, so Claude's ancestor walk also lists the checkout's own files.

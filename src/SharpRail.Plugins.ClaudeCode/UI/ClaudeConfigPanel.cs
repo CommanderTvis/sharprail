@@ -62,7 +62,7 @@ internal sealed class ClaudeConfigPanel : DockPanel
         refresh.Padding = new Thickness(4);
         DockPanel.SetDock(refresh, Dock.Right);
         header.Children.Add(refresh);
-        header.Children.Add(new ScrollViewer { Content = switcher, AllowAutoHide = false, HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Disabled });
+        header.Children.Add(new ScrollViewer { Content = switcher, HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden, VerticalScrollBarVisibility = ScrollBarVisibility.Disabled });
         SetDock(header, Dock.Top);
         Children.Add(header);
         SetDock(scopeBlock, Dock.Top);

@@ -142,7 +142,7 @@ workspace launcher, generic `claude` launcher, status tab decorations and one te
 combining install offer, facts, model/effort pickers, plan, tokens, attach and session `/ide` switch.
 Tab marks refresh as soon as the host identifies or clears Claude in a terminal, without switching
 tabs or reopening a pane. The host agent record remains the source of truth for terminal identity.
-The surface selector reserves space for its horizontal scrollbar when narrow, keeping buttons unobscured.
+The surface selector scrolls horizontally when narrow without a visible scrollbar or extra header height.
 Each workspace retains its pane and selected surface. An unchanged configuration/capability result
 preserves the body, scope and surface controls, including local input and scroll state.
 The generic launcher supplies a fresh Claude SVG icon through its owning asset reader for
