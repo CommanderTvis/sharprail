@@ -77,7 +77,7 @@ internal sealed class E2eWorkspace : IDisposable
         Terminals = terminals ?? new();
         var first = true;
         Workbench = new(profile, new SharedState(service, profile.Data.Preferences), Terminals.Factory, true,
-            () => { if (!first) return new E2eHost(new RemoteProjectAdapter(endpoint, token)); first = false; return Host; }, remotePlugins)
+            () => { if (!first) return new E2eHost(new RemoteProjectAdapter(endpoint, token)); first = false; return Host; }, remotePlugins, Terminals.Catalog)
         { Endpoint = endpoint.ToString() };
         Window = Workbench.Open(profile.Data.Windows[0], startPath);
         Window.Width = 1352; Window.Height = 848;
@@ -113,13 +113,13 @@ internal sealed class E2eWorkspace : IDisposable
         Host = new(new ProjectServices(root, State, allowsExternalFile));
         prepare?.Invoke(Host);
         ownsTerminals = terminals is null;
-        Terminals = terminals ?? new();
+        Terminals = terminals ?? E2eTerminals.ForProfile(profile.DirectoryPath);
         State.Terminals = Terminals.HostService;
         IHostStateService service = new LocalStateAdapter(State);
         var first = true;
         Workbench = new(profile, new SharedState(state?.Invoke(service) ?? service, profile.Data.Preferences, State.Current), Terminals.Factory, false,
             () => { if (!first) return new E2eHost(new ProjectServices(root, State, allowsExternalFile)); first = false; return Host; },
-            plugins?.Invoke(new LocalPluginAdapter(pluginRuntime)) ?? new LocalPluginAdapter(pluginRuntime))
+            plugins?.Invoke(new LocalPluginAdapter(pluginRuntime)) ?? new LocalPluginAdapter(pluginRuntime), Terminals.Catalog)
         {
             Listener = serving ? new HostListener(root, State, Terminals.HostService, pluginRuntime) : null,
             Notifier = notifier,

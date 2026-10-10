@@ -92,7 +92,7 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `layout.spec.ts` | Layout settings controls keep their container-preset max-widths | Ported |
 | `layout.spec.ts` | an accepted side-group overage is grandfathered without allowing further growth | Ported |
 | `layout.spec.ts` | a narrow viewport compresses locally without rewriting recursive topology | Ported |
-| `layout.spec.ts` | frontend windows keep chat and file placement independent | Ported for terminal and file placement across two windows of the app; the chat-tab and closed-chat history assertions are excluded (AI chat is a non-goal) |
+| `layout.spec.ts` | frontend windows keep chat and file placement independent | Ported for file placement and terminal selection across two windows of the app (a terminal opened in one arrives in the other unselected, since terminal membership is the host's catalog); the chat-tab and closed-chat history assertions are excluded (AI chat is a non-goal) |
 | `layout.spec.ts` | layout survives a transport reconnect and remains writable | Ported |
 | `layout.spec.ts` | another window cannot cancel or rearrange an active tab drag | Ported |
 | `layout.spec.ts` | another window cannot cancel or adopt an active side resize | Ported |
@@ -206,11 +206,11 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `terminals.spec.ts` | a shell survives losing the connection and reconnecting | Ported (a TCP proxy severs the gRPC connection; the session resumes from its last output position without duplicates) |
 | `terminals.spec.ts` | a terminal attach response lost with its socket is replayed exactly once | Ported (a client interceptor drops the first attach reply; the retry attaches the same session and the host starts one shell) |
 | `terminals.spec.ts` | final shell output is delivered before exit after reconnect | Ported (the proxy holds the reconnect while the shell exits; final output arrives once, then exit code 7) |
-| `terminals.spec.ts` | a second client takes a terminal over and the first is told | Ported (second window, real gRPC host; the first shows the detached notice over its hidden surface and takes the terminal back) |
+| `terminals.spec.ts` | a second client takes a terminal over and the first is told | Ported (second window, real gRPC host; the second is offered the held terminal and takes it over, the first shows the detached notice over its hidden surface and takes the terminal back) |
 | `terminals.spec.ts` | closing a tab with a running process asks first | Ported |
 | `terminals.spec.ts` | a rejected forced close stays correlated and permits a clean retry | Excluded: closing disposes the tab's own session; SharpRail has no host close request that can be refused |
 | `terminals.spec.ts` | closing an idle tab does not ask | Ported |
-| `terminals.spec.ts` | a terminal opened in one browser never creates placement in another | Ported (second window, real gRPC host) |
+| `terminals.spec.ts` | a terminal opened in one browser never creates placement in another | Not ported: SharpRail shares every catalogued terminal, so the peer's terminal arrives passively (`SharedTerminalsE2E.cs`) |
 | `terminals.spec.ts` | a shell that dies during a reclaim is not presented as alive | Ported (the take-back attach reply is delayed while the shell is killed; the tab ends exited) |
 | `terminals.spec.ts` | a terminal that was hidden while it printed keeps its width | Excluded: xterm DOM rendering; Ghostty renders natively and keeps its grid while hidden |
 | `terminals.spec.ts` | terminal forwards pointer capture and Ctrl+T to a raw PTY | Ported as a host check (a live reattach replays the alternate screen and mouse modes); pointer forwarding is Ghostty's |

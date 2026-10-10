@@ -37,6 +37,7 @@ internal sealed class GhosttyTerminal : Border, ITerminalBackend
     public Task Started { get; }
     public Task<int> Exited => exited.Task;
     public Task Detached => detached.Task;
+    public bool Yielded { get; private set; }
 
     private async Task StartAsync(Task<RemoteTerminalConnection> pending)
     {
@@ -46,7 +47,7 @@ internal sealed class GhosttyTerminal : Border, ITerminalBackend
         // Each attachment gets its own relay files, so a take-back never races the files of the one it replaces.
         var name = launch.SessionId + "-" + Guid.NewGuid().ToString("N");
         statusPath = Path.Combine(TerminalRelay.Directory, name + ".status");
-        connectionPath = TerminalRelay.Write(name, new(remote.Endpoint.ToString(), remote.Token, launch.SessionId, launch.ClientId, launch.WorkspaceRoot, statusPath, launch.TabKey));
+        connectionPath = TerminalRelay.Write(name, new(remote.Endpoint.ToString(), remote.Token, launch.SessionId, launch.ClientId, launch.WorkspaceRoot, statusPath, launch.TabKey, launch.Yield));
         var executable = Environment.ProcessPath ?? throw new TerminalStartException("The SharpRail executable path is unknown.");
         var command = "'" + executable.Replace("'", "'\\''") + "' " + TerminalRelay.Argument;
         try
@@ -100,7 +101,7 @@ internal sealed class GhosttyTerminal : Border, ITerminalBackend
         {
             await Task.WhenAny(fallback!.Exited, fallback.Detached);
             if (disposed) return;
-            if (fallback.Detached.IsCompleted) detached.TrySetResult();
+            if (fallback.Detached.IsCompleted) { Yielded = fallback.Yielded; detached.TrySetResult(); }
             else exited.TrySetResult(await fallback.Exited);
         }
         catch (Exception error) { if (!disposed) exited.TrySetException(error); }
@@ -124,7 +125,7 @@ internal sealed class GhosttyTerminal : Border, ITerminalBackend
         if (disposed || switching) return;
         var status = statusPath is not null && File.Exists(statusPath) ? File.ReadAllText(statusPath) : null;
         if (statusPath is not null) File.Delete(statusPath);
-        if (status == TerminalRelay.DetachedStatus) detached.TrySetResult();
+        if (status is TerminalRelay.DetachedStatus or TerminalRelay.YieldedStatus) { Yielded = status == TerminalRelay.YieldedStatus; detached.TrySetResult(); }
         else if (status is not null && status.StartsWith(TerminalRelay.ExitStatus, StringComparison.Ordinal) &&
             int.TryParse(status[TerminalRelay.ExitStatus.Length..], out var code))
             exited.TrySetResult(code);

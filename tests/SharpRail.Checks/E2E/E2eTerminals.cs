@@ -13,16 +13,25 @@ namespace SharpRail.Checks.E2E;
 
 // Headless terminal tabs run real host PTY sessions; Ghostty needs a native window. Sessions belong to
 // the host, as in the app, so windows of one E2E app share an instance and reattach to its sessions.
-internal sealed class E2eTerminals(ITerminalService? inner = null) : ITerminalService
+internal sealed class E2eTerminals(ITerminalService? inner = null, ITerminalCatalogService? catalog = null) : ITerminalService, ITerminalCatalogService
 {
     private static readonly PtyTerminalService Pty = new("/bin/sh");
     private readonly ITerminalService inner = inner ?? Pty;
     internal PtyTerminalService? HostService => inner as PtyTerminalService;
+    // The catalog of the host these terminals run on. The shared headless host serves many apps, so each app
+    // without a host of its own keeps a catalog of its own and ends closed tabs' shells itself.
+    internal ITerminalCatalogService Catalog { get; } = catalog ?? inner as ITerminalCatalogService ??
+        new MemoryTerminalCatalog(end: inner is null ? id => Pty.CloseAsync(id) : null);
+    // The grid this client's terminal bodies attach with.
+    internal (int Columns, int Rows) Grid { get; set; } = (120, 30);
     private readonly Queue<string> failures = [];
     private readonly HashSet<string> sessions = [];
     private TaskCompletionSource? gate;
 
     internal static TerminalFactory Plain => new E2eTerminals().Factory;
+    // As the app's own host does, a relaunch over the same profile finds the catalog it left there.
+    internal static E2eTerminals ForProfile(string directory) =>
+        new(catalog: new MemoryTerminalCatalog(new TerminalCatalogStore(Path.Combine(directory, "terminals")), id => Pty.CloseAsync(id)));
     internal TerminalFactory Factory => launch =>
     {
         var terminal = new HostTerminal(this, launch);
@@ -66,6 +75,12 @@ internal sealed class E2eTerminals(ITerminalService? inner = null) : ITerminalSe
 
     public ValueTask CloseAsync(string sessionId, CancellationToken cancellationToken = default) => inner.CloseAsync(sessionId, cancellationToken);
 
+    public ValueTask<TerminalCatalog> OpenWorkspaceAsync(string workspaceRoot, IReadOnlyList<TerminalTab> tabs, CancellationToken cancellationToken = default) => Catalog.OpenWorkspaceAsync(workspaceRoot, tabs, cancellationToken);
+    public ValueTask<TerminalCatalog> ReserveAsync(string workspaceRoot, TerminalTab tab, CancellationToken cancellationToken = default) => Catalog.ReserveAsync(workspaceRoot, tab, cancellationToken);
+    public ValueTask<TerminalCatalog> CloseTabAsync(string workspaceRoot, string key, CancellationToken cancellationToken = default) => Catalog.CloseTabAsync(workspaceRoot, key, cancellationToken);
+    public ValueTask<TerminalCatalog> CloseWorkspaceAsync(string workspaceRoot, CancellationToken cancellationToken = default) => Catalog.CloseWorkspaceAsync(workspaceRoot, cancellationToken);
+    public IAsyncEnumerable<TerminalCatalog> WatchAsync(CancellationToken cancellationToken = default) => Catalog.WatchAsync(cancellationToken);
+
     // Ends every session this app attached, as quitting the app does.
     internal void Quit()
     {
@@ -98,13 +113,16 @@ internal sealed partial class HostTerminal : ITerminalBackend
     public Task Started { get; }
     public Task<int> Exited => exited.Task;
     public Task Detached => detached.Task;
+    public bool Yielded { get; private set; }
     internal string Text => text.ToString();
     internal string SessionId => launch.SessionId;
 
     private async Task StartAsync()
     {
-        session = await service.AttachAsync(new(launch.SessionId, launch.WorkspaceRoot, launch.ClientId, 120, 30) { TabKey = launch.TabKey }, lifetime.Token);
+        var (columns, rows) = (service as E2eTerminals)?.Grid ?? (120, 30);
+        session = await service.AttachAsync(new(launch.SessionId, launch.WorkspaceRoot, launch.ClientId, columns, rows) { TabKey = launch.TabKey, Yield = launch.Yield }, lifetime.Token);
         if (lifetime.IsCancellationRequested) { await session.DisposeAsync(); return; }
+        Yielded = launch.Yield && session.Detached.IsCompleted;
         Show(session.Replay);
         _ = Task.Run(async () =>
         {

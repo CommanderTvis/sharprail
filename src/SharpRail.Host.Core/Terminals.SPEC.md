@@ -58,6 +58,11 @@ their MCP identities. The host waits for shell shutdown before completing the pr
   ignored and it is told again that it is detached. A resuming client that lost the session to another
   client receives a detached attachment and never takes the session back; reclaiming is an explicit
   gesture ("Take it back").
+- A yielding attach (`TerminalAttachRequest.Yield`) never takes: it starts a session that does not exist and
+  joins one whose last attachment left, but where another client's attachment holds the session it returns
+  already detached, with no replay, and the session keeps its holder and its grid. The same client's own
+  attachment does not stop it, so a retried or resumed attach still lands. This is how a client shows a tab it
+  did not create; the remote reply marks the attachment detached in its first message.
 - A shell ends for exactly five reasons: its tab is closed (`CloseTabAsync`, or `CloseAsync` by session
   id), its workspace is removed, it exits, the host stops, or a client kills it. Detaching, closing a window or dropping a connection kills nothing. There is no idle
   culling and no abandoned-client reap. A shell that exits while detached keeps its final output and exit

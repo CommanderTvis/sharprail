@@ -39,7 +39,15 @@ and empty payloads, approved/denied reads, repeated permission and terminal rese
 refused grids and start guidance (`TerminalLimitChecks.cs`); a stalled reader and a silent connection
 (`TerminalBackpressureChecks.cs`); and the terminal catalog, its storage, catalog-keyed revival and a
 removed worktree's shells (`TerminalCatalogChecks.cs`); and the host replay size with its Settings control
-(`TerminalReplayChecks.cs`).
+(`TerminalReplayChecks.cs`). Yielding attach is checked locally and through gRPC in `TerminalHostChecks.cs`: a
+held session keeps its client and grid, a free one is joined, and a plain attach takes over at its own size.
+`E2E/SharedTerminalsE2E.cs` runs two remote clients of one real gRPC host, each with its own profile, connection
+and grid: the second shows the first's terminals, a terminal opened in one arrives in the other without selection,
+focus or an attachment, closing in either removes it from both and from the catalog, a held terminal is offered
+rather than taken or resized, Take over and Take it back move the shell and its size, and a relaunched client
+yields to the holder and attaches once nobody holds the terminal. The upstream translations whose second client
+enters a workspace now press Take over first, and "a terminal opened in one browser never creates placement in
+another" is replaced by the passive-arrival check, since SharpRail shares every catalogued terminal.
 `--notifications` (`AwayNotificationChecks.cs`) enables the real Claude Code and Codex UI halves, injects
 status pushes on their channels and records what would reach the system: which transitions notify, the
 focused-app, continuation-Stop, interrupted-run, answered-attention, closed-tab and setting-off silences,

@@ -1,3 +1,5 @@
+using SharpRail.Host.Abstractions;
+
 namespace SharpRail.UI.Docking;
 
 public sealed partial class LayoutSession
@@ -48,10 +50,12 @@ public sealed partial class LayoutSession
     public DockGroup Group(string id) => State.Groups.Single(group => group.Id == id);
     public IReadOnlyList<DockTab> Tabs(string groupId) => ProjectTabs(State, groupId);
 
-    private static DockTab[] ProjectTabs(DockState state, string groupId)
+    private static DockTab[] ProjectTabs(DockState state, string groupId) =>
+        ProjectTabs(state, state.Workspaces.GetValueOrDefault(state.ActiveWorkspace) ?? new(), groupId);
+
+    private static DockTab[] ProjectTabs(DockState state, WorkspaceView view, string groupId)
     {
         var tools = state.Groups.Single(group => group.Id == groupId).Tools;
-        var view = state.Workspaces.GetValueOrDefault(state.ActiveWorkspace) ?? new();
         var resources = view.Documents.GetValueOrDefault(groupId) ?? [];
         return tools.SelectMany(tool => resources.Where(tab => view.BeforeToolByTabId.GetValueOrDefault(tab.Id) == tool.Id)
             .Append(tool)).Concat(resources.Where(tab => !tools.Any(tool => view.BeforeToolByTabId.GetValueOrDefault(tab.Id) == tool.Id))).ToArray();
@@ -128,7 +132,9 @@ public sealed partial class LayoutSession
                 bottom = new DockGroup { Region = "bottom" };
                 PrepareAuxiliaryCreation(state, bottom); state.Groups.Add(bottom);
             }
-            var terminal = new DockTab("terminal:" + Guid.NewGuid().ToString("N"), "Terminal " + view.NextTerminalNumber++, "terminal");
+            // A workspace's first terminal has the key every client gives it; a project's home is not a shared workspace.
+            var terminal = new DockTab(path.StartsWith("home:", StringComparison.Ordinal) ? "terminal:" + Guid.NewGuid().ToString("N") : TerminalTab.InitialKey,
+                "Terminal " + view.NextTerminalNumber++, "terminal");
             view.Documents[bottom.Id] = [terminal];
             view.Selected[bottom.Id] = terminal.Id;
         }
@@ -139,6 +145,57 @@ public sealed partial class LayoutSession
         }
         if (!state.Center.Leaves().Contains(view.FocusedCenter)) view.FocusedCenter = state.Center.Leaves().First();
     });
+
+    /// <summary>
+    /// Makes a workspace's terminal tabs those of the host's catalog. A tab the catalog lacks goes without
+    /// asking, unless its reservation is still <paramref name="pending"/>; one this view lacks lands in the
+    /// last-focused (else last) bottom group, else the last-focused centre group, without selecting it,
+    /// revealing its region or taking focus; titles follow the catalog. Returns whether anything changed.
+    /// </summary>
+    public bool ReconcileTerminals(string workspace, IReadOnlyList<TerminalTab> catalog, IReadOnlySet<string> pending)
+    {
+        if (!State.Workspaces.ContainsKey(workspace)) return false;
+        var next = State.Copy();
+        var view = next.Workspaces[workspace];
+        var changed = !view.TerminalsShared;
+        view.TerminalsShared = true;
+        var known = catalog.ToDictionary(tab => tab.Key, tab => tab.Title);
+        foreach (var (groupId, tabs) in view.Documents.ToArray())
+        {
+            foreach (var tab in tabs.Where(tab => tab.Kind == "terminal" && !known.ContainsKey(tab.Id) && !pending.Contains(tab.Id)).ToArray())
+            {
+                var before = next.Groups.Any(group => group.Id == groupId) ? ProjectTabs(next, view, groupId) : [.. tabs];
+                var position = Array.FindIndex(before, item => item.Id == tab.Id);
+                var remaining = before.Where(item => item.Id != tab.Id).ToArray();
+                tabs.Remove(tab); view.BeforeToolByTabId.Remove(tab.Id); changed = true;
+                if ((view.Selected.GetValueOrDefault(groupId) ?? before.FirstOrDefault()?.Id) != tab.Id) continue;
+                if (remaining.Length == 0) view.Selected.Remove(groupId);
+                else view.Selected[groupId] = remaining[Math.Clamp(position, 0, remaining.Length - 1)].Id;
+            }
+            for (var i = 0; i < tabs.Count; i++)
+                if (tabs[i].Kind == "terminal" && known.TryGetValue(tabs[i].Id, out var title) && tabs[i].Title != title) { tabs[i] = tabs[i] with { Title = title }; changed = true; }
+        }
+        var placed = view.Documents.Values.SelectMany(tabs => tabs).Select(tab => tab.Id).ToHashSet();
+        var bottoms = next.Groups.Where(group => group.Region == "bottom").Select(group => group.Id).ToArray();
+        var leaves = next.Center.Leaves().ToArray();
+        var target = bottoms.Contains(view.FocusedAuxiliary.GetValueOrDefault("bottom")) ? view.FocusedAuxiliary["bottom"]
+            : bottoms.LastOrDefault() ?? (leaves.Contains(view.FocusedCenter) ? view.FocusedCenter : leaves[0]);
+        foreach (var tab in catalog)
+        {
+            // New terminals here keep counting past every numbered title a peer already used.
+            if (tab.Title.StartsWith("Terminal ", StringComparison.Ordinal) && int.TryParse(tab.Title.AsSpan(9), out var number) && number < int.MaxValue)
+                view.NextTerminalNumber = Math.Max(view.NextTerminalNumber, number + 1);
+            if (!placed.Add(tab.Key)) continue;
+            if (!view.Documents.TryGetValue(target, out var tabs)) view.Documents[target] = tabs = [];
+            tabs.Add(new DockTab(tab.Key, tab.Title, "terminal")); changed = true;
+        }
+        if (!changed) return false;
+        NormalizePanes(next);
+        if (!IsValid(next)) return false;
+        State = next; Epoch++;
+        Changed?.Invoke();
+        return true;
+    }
 
     /// <summary>Moves what a group opens on without navigating or taking focus.</summary>
     public void Reseat(string groupId, string tabId) => Change(state => Active(state).Selected[groupId] = tabId, groupId);

@@ -1,6 +1,3 @@
-using System.Security.Cryptography;
-using System.Text;
-
 using Avalonia.Controls;
 
 using SharpRail.Host.Abstractions;
@@ -12,10 +9,11 @@ public sealed record TerminalLaunch(string WorkspaceRoot, string SessionId, stri
 {
     // The tab's layout id; with the workspace root it is the TerminalRef plugins see.
     public string TabKey { get; init; } = "";
+    // Attach only when no other client holds the session; a tab created here, or taken over, attaches plainly.
+    public bool Yield { get; init; }
 
-    // A tab's session is stable across windows, so another window of the app reattaches to the same shell.
-    public static string SessionFor(string workspaceRoot, string tabId) =>
-        Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(workspaceRoot + "\n" + tabId)).AsSpan(0, 16));
+    // A tab's session is the same for every window and client of the host, so each reaches the same shell.
+    public static string SessionFor(string workspaceRoot, string tabId) => TerminalTab.SessionFor(workspaceRoot, tabId);
 }
 
 // One attachment to a host terminal session and the control that presents it. Disposing detaches
@@ -29,6 +27,8 @@ public interface ITerminalBackend : IDisposable
     Task<int> Exited { get; }
     // Completes when another window or client took the session over.
     Task Detached { get; }
+    // True when Detached completed because a yielding attach found the session held by another client.
+    bool Yielded { get; }
     ValueTask<bool> IsBusyAsync();
     // Ends the host session, as closing its tab does.
     ValueTask CloseAsync();

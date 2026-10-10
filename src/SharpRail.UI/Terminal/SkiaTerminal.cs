@@ -57,6 +57,7 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend
     public Task Started { get; }
     public Task<int> Exited => exited.Task;
     public Task Detached => detached.Task;
+    public bool Yielded { get; private set; }
     internal GhosttySkiaView Terminal => terminal;
 
     // The shell starts at the grid's real size, so its first prompt and the replay fit the view.
@@ -72,10 +73,11 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend
         await arranged.Task.WaitAsync(lifetime.Token);
         var size = terminal.Size;
         ITerminalSession attached;
-        try { attached = await terminals.AttachAsync(new(launch.SessionId, launch.WorkspaceRoot, launch.ClientId, size.Columns, size.Rows) { TabKey = launch.TabKey }, lifetime.Token); }
+        try { attached = await terminals.AttachAsync(new(launch.SessionId, launch.WorkspaceRoot, launch.ClientId, size.Columns, size.Rows) { TabKey = launch.TabKey, Yield = launch.Yield }, lifetime.Token); }
         catch (Grpc.Core.RpcException error) { throw new TerminalStartException(error.Status.Detail); }
         if (disposed) { await attached.DisposeAsync(); throw new ObjectDisposedException(nameof(SkiaTerminal)); }
         session = attached;
+        Yielded = launch.Yield && attached.Detached.IsCompleted;
         await WriteOutput(attached.Replay);
         if (terminal.Size != size) _ = Resize(attached, terminal.Size);
         _ = Task.Run(() => Pump(attached));

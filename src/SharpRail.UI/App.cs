@@ -87,7 +87,10 @@ public sealed partial class App : Application
                 ? TerminalBackends.Ghostty(new RemoteTerminalConnection(new Uri(endpoint!), token, remoteTerminals), Renderer)
                 : localTerminals is not null ? TerminalBackends.Ghostty(new LoopbackTerminals(new LocalTerminalAdapter(localTerminals), loopback!), Renderer)
                 : launch => TerminalBackends.Unavailable("Embedded terminals currently require macOS.");
-            var workbench = new Workbench(profile, state, Terminals, remote, sessions, plugins)
+            // Which terminal tabs exist is the host's to say, so every window and every other client shows the same ones.
+            var remoteCatalog = remote ? new RemoteTerminalCatalogAdapter(new Uri(endpoint!), token) : null;
+            ITerminalCatalogService? catalog = remoteCatalog is not null ? remoteCatalog : localTerminals is not null ? new LocalTerminalCatalogAdapter(localTerminals) : null;
+            var workbench = new Workbench(profile, state, Terminals, remote, sessions, plugins, catalog)
             {
                 Endpoint = remote ? endpoint! : "local",
                 Listener = listener,
@@ -108,7 +111,7 @@ public sealed partial class App : Application
             desktop.ShutdownRequested += (_, _) => workbench.ShuttingDown = true;
             desktop.Exit += (_, _) =>
             {
-                (stateService as IDisposable)?.Dispose(); remoteTerminals?.Dispose(); remotePlugins?.Dispose();
+                (stateService as IDisposable)?.Dispose(); remoteTerminals?.Dispose(); remoteCatalog?.Dispose(); remotePlugins?.Dispose();
                 // Off the UI thread: ending shells awaits their exit, which a blocked dispatcher would never resume.
                 // Plugins stop first, before the terminals and the loopback server they reach.
                 Task.Run(async () =>

@@ -72,13 +72,14 @@ public sealed class ClientSession(string filesDirectory, bool compact) : IDispos
         var states = new RemoteStateAdapter(address, token, connection);
         var terminals = new RemoteTerminalAdapter(address, token);
         var plugins = new RemotePluginAdapter(address, token);
-        adapters.AddRange([states, terminals, plugins]);
+        var catalog = new RemoteTerminalCatalogAdapter(address, token);
+        adapters.AddRange([states, terminals, plugins, catalog]);
         var state = new SharedState(states, profile.Data.Preferences, null, connection);
         Func<IProjectServices> sessions = () => new RemoteProjectAdapter(address, token, connection);
         // Android draws terminals with Skia only; the host runs their shells.
         var factory = TerminalBackends.Ghostty(new RemoteTerminalConnection(address, token, terminals), () => TerminalRenderers.Skia);
         Endpoint = endpoint;
-        workbench = new Workbench(profile, state, factory, remote: true, sessions, plugins) { Endpoint = address.ToString() };
+        workbench = new Workbench(profile, state, factory, remote: true, sessions, plugins, catalog) { Endpoint = address.ToString() };
         // The activity holds one workbench window; a profile never restores more.
         var slot = profile.Data.Windows[0];
         profile.Data.Windows.RemoveRange(1, profile.Data.Windows.Count - 1);

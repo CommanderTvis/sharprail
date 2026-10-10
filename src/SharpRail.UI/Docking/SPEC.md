@@ -199,6 +199,19 @@ terminal body is created only when its tab is selected in a visible, unfolded gr
 their session without a body, and a hidden bottom reserves the initial terminal without starting a shell
 until shown. New terminal from a group lands in that group and reveals its region.
 
+Terminal membership is the host's catalog, not a window's ([Terminal/SPEC.md](../Terminal/SPEC.md#shared-terminals)).
+A workspace's first terminal has the key `terminal:initial` in every window and client; a project's home, which is
+not a shared workspace, keeps a private one. `LayoutSession.ReconcileTerminals` makes a workspace view's terminal
+tabs those of the catalog, for the active view or a retained one: a tab the catalog lacks is removed without the
+removal veto (its shell was ended by whoever closed it), its group selecting the neighbour as a close does; a tab
+the view lacks is appended to the last-focused, else last, bottom group, else the last-focused centre group,
+without selecting it, revealing or unfolding its region, changing frame geometry or taking focus; titles follow
+the catalog, and the view's next terminal number moves past every numbered title a peer used. A tab created here
+is exempt until the host has recorded it. `WorkspaceView.TerminalsShared` records that a view has met the catalog,
+so a view saved before the catalog existed brings its tabs once instead of losing them. Upstream places only the
+initial terminal passively and leaves other peer-created terminals out of a surface's layout; here every catalogued
+terminal is placed, because a second device is expected to show the first one's terminals.
+
 A close request from the window (`LayoutSession.RequestClose`, driven by the app command owner) closes the
 selected (else first) tab of the keyboard-focused group, otherwise of the last-focused center group, through
 the normal close path including busy-terminal confirmation. A tool tab, folded group or hidden region yields
@@ -208,10 +221,6 @@ does, so reordering and roving continue from the keyboard.
 
 ## Not yet ported
 
-- Reconciling with the host terminal catalog: terminal membership is shared across windows, a
-  peer-created terminal is placed passively into a compatible slot without taking focus, and a host-side
-  close removes the tab from every window. The host side exists (`ITerminalCatalogService`, its adapters
-  and broadcast); no window reserves its tabs or applies the broadcast yet.
 - Dropping a removed workspace's view from the frame and ending its terminals.
 - Back/Forward navigation history over locations, and serializable deep links to a project, workspace or
   resource.

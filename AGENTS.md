@@ -164,7 +164,7 @@ The workbench is split into partial files rather than separate window classes:
 | `GestureNotification.cs` | Feedback when layout transitions cancel an active gesture. |
 | `HostSync.cs` | Applying shared-state broadcasts and reconnects to the window. |
 | `Workbench.cs` | App-owned composition shared by windows and the per-window profile entries. |
-| `TerminalTabs.cs` | Confirmation before closing terminals that run a foreground process. |
+| `TerminalTabs.cs` | Confirmation before closing terminals that run a foreground process, and keeping the window's terminal tabs those of the host's catalog. |
 | `BranchList.cs` | The title bar branch's popover: local branches with their worktrees, deletion and Fetch. |
 
 Host dependencies flow toward abstractions: Abstractions references only the plugin API's root;
@@ -185,8 +185,10 @@ assembly name instead of referencing the project, because the UI's host-serving 
 ASP.NET Core. Every shared UI source must therefore stay compilable for Android: desktop-only host-serving
 code goes under `#if !ANDROID` or into a file the Android project excludes (`Program.cs`,
 `Terminal/LoopbackTerminals.cs`, `Panels/HostSettings.cs`). Windows are real `Window`s there too, supplied
-by the project's `Windowing/` over Avalonia 12.1.3 internals; do not special-case dialogs for Android in
-shared code, and recheck that layer on any Avalonia version change.
+by the project's `Windowing/` over Avalonia 12.1.3 internals: a window sized to its content shows as a
+bottom sheet and any other owned window as a full-screen page. Shared code keeps opening windows as on
+desktop; only their Android look (the kit's sheet card, Settings without its card frame) is special-cased.
+Recheck that layer on any Avalonia version change.
 
 `SPEC.md` defines the product contract; `COMPLETION.md` records unfinished gates;
 `E2E.md` inventories upstream translations; `VALIDATION.md` records verified

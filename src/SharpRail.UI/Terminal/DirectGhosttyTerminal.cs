@@ -44,6 +44,7 @@ internal sealed class DirectGhosttyTerminal : Border, ITerminalBackend
     public Task Started { get; }
     public Task<int> Exited => exited.Task;
     public Task Detached => detached.Task;
+    public bool Yielded { get; private set; }
 
     public void Write(string data)
     {
@@ -81,7 +82,7 @@ internal sealed class DirectGhosttyTerminal : Border, ITerminalBackend
         await texture.Ready.WaitAsync(lifetime.Token);
         if (fallbackStart is not null) { await fallbackStart; return; }
         var size = texture.Size;
-        var request = new TerminalAttachRequest(launch.SessionId, launch.WorkspaceRoot, launch.ClientId, size.Columns, size.Rows) { TabKey = launch.TabKey };
+        var request = new TerminalAttachRequest(launch.SessionId, launch.WorkspaceRoot, launch.ClientId, size.Columns, size.Rows) { TabKey = launch.TabKey, Yield = launch.Yield };
         attaching = Task.Run(async () => await terminals.AttachAsync(request, lifetime.Token));
         var attached = await attaching;
         if (disposed || fallbackStart is not null)
@@ -92,6 +93,7 @@ internal sealed class DirectGhosttyTerminal : Border, ITerminalBackend
             return;
         }
         session = attached;
+        Yielded = launch.Yield && attached.Detached.IsCompleted;
         var view = texture;
         _ = Task.Run(() => Pump(attached, view));
         _ = Task.Run(() => Send(attached));
@@ -195,7 +197,7 @@ internal sealed class DirectGhosttyTerminal : Border, ITerminalBackend
         {
             await Task.WhenAny(fallback!.Exited, fallback.Detached);
             if (disposed) return;
-            if (fallback.Detached.IsCompleted) detached.TrySetResult();
+            if (fallback.Detached.IsCompleted) { Yielded = fallback.Yielded; detached.TrySetResult(); }
             else exited.TrySetResult(await fallback.Exited);
         }
         catch (Exception error) { if (!disposed) exited.TrySetException(error); }

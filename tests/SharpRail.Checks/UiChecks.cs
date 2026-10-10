@@ -38,6 +38,8 @@ internal static class UiChecks
         var timeout = Awake.Now.AddSeconds(15);
         while (!complete() && Awake.Now < timeout)
         {
+            // The headless render timer never ticks by itself, and an animation frame waits for the frame before it.
+            Avalonia.Headless.AvaloniaHeadlessPlatform.ForceRenderTimerTick();
             Dispatcher.UIThread.RunJobs();
             Thread.Sleep(1);
         }
@@ -502,7 +504,9 @@ internal static class UiChecks
         Find<TextBox>(liveSettings, "MarkdownLineWidthInput").Text = "60";
         Find<Button>(liveSettings, "MarkdownLineWidthSave").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
         double PreviewWidth() { restored.UpdateLayout(); return ((StackPanel)Find<MarkdownPreview>(restored, "MarkdownPreview").Content!).MaxWidth; }
-        Pump(() => Math.Abs(PreviewWidth() - previewWidth * 60 / 78) < 0.5,
+        // Measured against the width itself: the preview may still be at the font size chosen a moment ago.
+        Require(previewWidth > 0, "The Markdown preview has no line width.");
+        Pump(() => Math.Abs(PreviewWidth() - LineWidths.Markdown(60, true, 14)) < 0.5,
             "Line-width settings did not update the mounted Markdown preview.");
         var bounded = Find<Switch>(liveSettings, "MarkdownLineWidthBounded");
         Click(liveSettings, bounded);

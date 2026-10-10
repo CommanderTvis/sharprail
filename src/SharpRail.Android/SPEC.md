@@ -73,10 +73,13 @@ Contract:
   replaces the activity's content inside a frame padded by the status bar, navigation bar, display cutout and
   soft keyboard, and the frame is painted in the window's background colour so the bars sit over it.
   Avalonia's automatic safe-area padding is turned off for its content, since the frame already applies it.
-- Any other window is a transparent, undimmed Android dialog with its own view. Shown modally
-  (`ShowDialog`) it takes the client size the window asks for, clamped to the area the system bars and
-  keyboard leave visible, and is centred in that area; shown non-modally it fills that area. Dialogs are
-  placed again whenever the insets change, so a dialog with a focused text field stays above the keyboard.
+- Any other window is a transparent, undimmed Android dialog with its own view, laid out in the area the
+  system bars and soft keyboard leave visible. A window sized to its content (`SizeToContent` with height:
+  every `DialogWindow`) is a sheet across the bottom of that area, at the height it asks for and at most
+  640 dp wide; a tap outside it or Back asks it to close. Any other window (Settings, the Mermaid viewer) is
+  a page over all of it. Windows are placed again whenever the insets change, so a sheet with a focused text
+  field stays above the keyboard. The kit draws a `DialogWindow`'s card as a sheet on Android (no shadow
+  margin, top corners only) and Settings drops its card frame there.
 - The screen decides sizes: a window's minimum width and height are cleared when it is shown. Until its
   surface exists a window reports the size it will get (the screen for a filling window, the requested size
   for a modal one), so its first layout is not against an empty surface.
@@ -126,8 +129,10 @@ The host is any SharpRail gRPC endpoint: a desktop app listening from Settings â
   Cancel. A rejected token and an unreachable host are reported separately in the window, and the fields stay
   editable for a retry.
 - On success the endpoint is saved, the connect window closes and `ClientSession` composes one `Workbench`
-  with `remote: true`: remote state, terminal, plugin and per-window project adapters over one
-  `HostConnection`, and a terminal factory fixed to the Skia renderer. Only the profile's first window entry
+  with `remote: true`: remote state, terminal, terminal catalog, plugin and per-window project adapters over
+  one `HostConnection`, and a terminal factory fixed to the Skia renderer. The catalog is what makes the phone
+  show the host's existing terminal tabs; one a desktop holds is offered with Take over rather than taken
+  ([Terminal/SPEC.md](../SharpRail.UI/Terminal/SPEC.md#shared-terminals)). Only the profile's first window entry
   is opened; later entries are dropped.
 - The endpoint is stored as `files/.sharprail/host.json` in the app's private storage, beside the
   `profile.json` `ProfileStore` keeps in the same directory. On launch a remembered address with a token

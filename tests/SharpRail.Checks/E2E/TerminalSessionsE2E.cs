@@ -22,7 +22,7 @@ namespace SharpRail.Checks.E2E;
 // own connection to a real gRPC host; a dropped socket is a TCP proxy that severs the connection.
 internal static class TerminalSessionsE2E
 {
-    private const string Token = "e2e-terminal-token";
+    internal const string Token = "e2e-terminal-token";
 
     internal static void Run(string root)
     {
@@ -33,8 +33,8 @@ internal static class TerminalSessionsE2E
         LostAttachReply(root);
         FinalOutputAfterReconnect(root);
         SecondClientTakesOver(root);
-        PlacementStaysLocal(root);
         DiesDuringReclaim(root);
+        SharedTerminalsE2E.Run(root);
     }
 
     private static string Repository(string root, string name) => IsolatedGit.Repository(Path.Combine(root, name));
@@ -49,8 +49,18 @@ internal static class TerminalSessionsE2E
 
     private static int Count(string text, string marker) => text.Split(marker).Length - 1;
 
-    private static Button TakeBack(SharpRail.UI.Terminal.TerminalView view) =>
+    internal static Button TakeBack(SharpRail.UI.Terminal.TerminalView view) =>
         view.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "TerminalTakeBack");
+
+    // A client that finds a terminal held elsewhere is offered it; taking it is the user's gesture.
+    internal static HostTerminal TakeOver(E2eWorkspace app, SharpRail.UI.Docking.DockTab tab)
+    {
+        var view = View(app, tab);
+        Until(() => view.IsYielded);
+        Require((string?)TakeBack(view).Content == "Take over", "A terminal never attached here must offer to take it over.");
+        app.Click(TakeBack(view));
+        return Ready(app, tab);
+    }
 
     private static void ReloadSurvives(string root)
     {
@@ -124,7 +134,7 @@ internal static class TerminalSessionsE2E
     }
 
     // One gRPC host that windows reach through their own connections.
-    private sealed class GrpcHost : IDisposable
+    internal sealed class GrpcHost : IDisposable
     {
         private readonly PtyTerminalService pty = new("/bin/sh");
         private readonly WebApplication server;
@@ -143,8 +153,10 @@ internal static class TerminalSessionsE2E
         internal E2eTerminals Client(Uri? address = null, AttachFaults? faults = null)
         {
             var adapter = new RemoteTerminalAdapter(address ?? Address, Token, faults);
-            clients.Add(adapter);
-            return new E2eTerminals(adapter);
+            // The catalog keeps a connection of its own, so a proxied address carries the terminal alone.
+            var catalog = new RemoteTerminalCatalogAdapter(Address, Token);
+            clients.AddRange([adapter, catalog]);
+            return new E2eTerminals(adapter, catalog);
         }
 
         public void Dispose()
@@ -168,7 +180,7 @@ internal static class TerminalSessionsE2E
 
         using var b = Window(directory, host.Client());
         Enter(b, second);
-        var two = Ready(b, TerminalTabs(b).Single());
+        var two = TakeOver(b, TerminalTabs(b).Single());
         one.Run("printf 'TR_SECRET_%s\\n' FROM_A");
         Expect(one, "TR_SECRET_FROM_A");
         two.Run("printf 'TR_SECRET_%s\\n' FROM_B");
@@ -269,7 +281,7 @@ internal static class TerminalSessionsE2E
         using var b = Window(directory, host.Client());
         Enter(b, workspace);
         Require(TerminalTabs(b).Length == 1, "The second client must show the one terminal.");
-        var second = Ready(b, TerminalTabs(b).Single());
+        var second = TakeOver(b, TerminalTabs(b).Single());
         second.Run("echo \"SECOND=$TR_SHARED\"");
         Expect(second, "SECOND=yes\n");
 
@@ -286,34 +298,6 @@ internal static class TerminalSessionsE2E
         Console.WriteLine("PASS upstream terminals.spec.ts: a second client takes a terminal over and the first is told");
     }
 
-    private static void PlacementStaysLocal(string root)
-    {
-        var directory = Repository(root, "terminals-placement");
-        using var host = new GrpcHost(directory);
-        using var a = Window(directory, host.Client());
-        var workspace = WorkspaceTabsE2E.CreateWorkspace(a, "workspace-1");
-        Ready(a, TerminalTabs(a).Single());
-        Require(TerminalTabs(a).Length == 1, "The first client starts with one terminal.");
-
-        using var b = Window(directory, host.Client());
-        Enter(b, workspace);
-        Ready(b, TerminalTabs(b).Single());
-        var bottom = b.Window.Layout.State.Groups.Single(group => b.Window.Layout.Tabs(group.Id).Any(item => item.Kind == "terminal")).Id;
-        b.Click(b.Find<Button>("NewTerminal_" + bottom));
-        Until(() => TerminalTabs(b).Length == 2);
-        Settle(300);
-        Require(TerminalTabs(a).Length == 1, "A terminal opened in one client must not add a tab to another.");
-        var added = TerminalTabs(b)[1];
-        var terminal = Ready(b, added);
-        Require(!View(b, added).IsDetached, "The new terminal must be attached to the client that opened it.");
-        terminal.Run("printf 'TR_STILL_%s\\n' B");
-        Expect(terminal, "TR_STILL_B");
-        CloseTab(b, added);
-        Until(() => TerminalTabs(b).Length == 1);
-        Require(TerminalTabs(a).Length == 1, "Closing it must not change the other client's tabs.");
-        Console.WriteLine("PASS upstream terminals.spec.ts: a terminal opened in one browser never creates placement in another");
-    }
-
     private static void DiesDuringReclaim(string root)
     {
         var directory = Repository(root, "terminals-reclaim");
@@ -326,7 +310,7 @@ internal static class TerminalSessionsE2E
 
         using var b = Window(directory, host.Client());
         Enter(b, workspace);
-        var second = Ready(b, TerminalTabs(b).Single());
+        var second = TakeOver(b, TerminalTabs(b).Single());
         var view = View(a, tab);
         Until(() => view.IsDetached);
         second.Run("(sleep 2; kill -9 $$) &");

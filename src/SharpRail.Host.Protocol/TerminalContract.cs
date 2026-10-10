@@ -20,10 +20,12 @@ public sealed class TerminalInput
     [ProtoMember(7)] public string ClientId { get; set; } = "";
     [ProtoMember(8)] public long Offset { get; set; } = -1;
     [ProtoMember(9)] public string TabKey { get; set; } = "";
+    [ProtoMember(10)] public bool Yield { get; set; }
 }
 
 // One Attached message, then output chunks with the host position after each, then Exited with the exit
-// code or Detached when another client took the session over.
+// code or Detached when another client took the session over. The Attached message is also Detached when
+// the attachment never held the session: a yielding attach, or a resume, that found another client there.
 [ProtoContract]
 public sealed class TerminalOutput
 {

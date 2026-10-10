@@ -5,7 +5,7 @@ using Avalonia.Markup.Xaml;
 namespace SharpRail.UI.Terminal;
 
 // A terminal tab's body: attaches to its host session, explains start failures with an in-place retry,
-// offers to take the session back when another window took it over, and says when the shell has exited.
+// offers to take the session over from, or back from, the client that holds it, and says when the shell has exited.
 public sealed partial class TerminalView : UserControl, IDisposable
 {
     private readonly TerminalFactory factory;
@@ -15,6 +15,7 @@ public sealed partial class TerminalView : UserControl, IDisposable
     private readonly SelectableTextBlock failureText;
     private readonly Button retry;
     private readonly Control detachedNotice;
+    private readonly TextBlock detachedText;
     private readonly Button takeBack;
     private readonly TextBlock exitNotice;
     private readonly ContentControl companion;
@@ -32,13 +33,14 @@ public sealed partial class TerminalView : UserControl, IDisposable
         failureText = this.FindControl<SelectableTextBlock>("TerminalStartFailureText")!;
         retry = this.FindControl<Button>("TerminalStartRetry")!;
         detachedNotice = this.FindControl<Control>("TerminalDetached")!;
+        detachedText = this.FindControl<TextBlock>("TerminalDetachedText")!;
         takeBack = this.FindControl<Button>("TerminalTakeBack")!;
         exitNotice = this.FindControl<TextBlock>("TerminalExited")!;
         Accessories = this.FindControl<StackPanel>("TerminalAccessories")!;
         companion = this.FindControl<ContentControl>("TerminalCompanion")!;
         companionSplitter = this.FindControl<GridSplitter>("TerminalCompanionSplitter")!;
         retry.Click += (_, _) => Start(retrying: true);
-        takeBack.Click += (_, _) => Start(retrying: true);
+        takeBack.Click += (_, _) => Start(retrying: true, takeOver: true);
         Focusable = true;
         Start(retrying: false);
     }
@@ -72,6 +74,8 @@ public sealed partial class TerminalView : UserControl, IDisposable
     public bool IsFailed => failure.IsVisible;
     public bool IsExited => exitNotice.IsVisible;
     public bool IsDetached => detachedNotice.IsVisible;
+    /// <summary>Detached without ever holding the session: another client had it when this view attached.</summary>
+    public bool IsYielded => IsDetached && Backend is { Yielded: true };
 
     public async ValueTask<bool> IsBusyAsync() =>
         Backend is { } backend && !IsExited && !IsFailed && !IsDetached && backend.Started.IsCompletedSuccessfully && await backend.IsBusyAsync();
@@ -91,8 +95,9 @@ public sealed partial class TerminalView : UserControl, IDisposable
 
     public void Restart() => Start(retrying: IsKeyboardFocusWithin);
 
-    // Starting again attaches afresh, which also takes the session back from another window.
-    private async void Start(bool retrying)
+    // Starting again attaches afresh. Only the notice's button takes the session from another client; every
+    // other start of a yielding launch leaves it where it is.
+    private async void Start(bool retrying, bool takeOver = false)
     {
         if (disposed) return;
         var current = ++generation;
@@ -102,7 +107,7 @@ public sealed partial class TerminalView : UserControl, IDisposable
         ITerminalBackend? backend = null;
         try
         {
-            backend = factory(launch);
+            backend = factory(takeOver ? launch with { Yield = false } : launch);
             Backend = backend;
             body.Content = backend.View;
             failure.IsVisible = false;
@@ -117,6 +122,8 @@ public sealed partial class TerminalView : UserControl, IDisposable
             {
                 // The surface no longer receives output; hide it rather than show a stale screen as live.
                 body.IsVisible = false;
+                detachedText.Text = backend.Yielded ? "This terminal is in use by another client." : "This terminal is open somewhere else.";
+                takeBack.Content = backend.Yielded ? "Take over" : "Take it back";
                 detachedNotice.IsVisible = true;
                 takeBack.IsEnabled = true;
                 return;

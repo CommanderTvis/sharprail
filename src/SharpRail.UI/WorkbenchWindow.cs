@@ -29,7 +29,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
     private readonly string initialRoot;
     private readonly bool remote;
     private readonly Terminal.TerminalFactory terminals;
-    // Each window is one terminal client: attaching a tab here takes its session over from another window.
+    // Each window is one terminal client: a session is held by one of them, and taken over only when asked.
     private readonly string terminalClient = Guid.NewGuid().ToString("N");
     private readonly CancellationTokenSource lifetime = new();
     private readonly SemaphoreSlim projectGate = new(1, 1);
@@ -66,17 +66,18 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
     /// window. A host that registers workspaces passes the store it writes to, or the rail never hears of them.
     /// </summary>
     public WorkbenchWindow(IProjectServices host, string rootPath, ProfileStore profile, Terminal.TerminalFactory terminals, bool remote = false,
-        Host.Core.HostStateStore? state = null)
-        : this(Standalone(profile, terminals, remote, state), host, profile.Data.Windows[0], rootPath) => workbench.Attach(this);
+        Host.Core.HostStateStore? state = null, ITerminalCatalogService? terminalTabs = null)
+        : this(Standalone(profile, terminals, remote, state, terminalTabs), host, profile.Data.Windows[0], rootPath) => workbench.Attach(this);
 
     // As the app's own host does, a standalone window's host runs the builtin plugins in process.
-    private static Workbench Standalone(ProfileStore profile, Terminal.TerminalFactory terminals, bool remote, Host.Core.HostStateStore? state)
+    private static Workbench Standalone(ProfileStore profile, Terminal.TerminalFactory terminals, bool remote, Host.Core.HostStateStore? state,
+        ITerminalCatalogService? terminalTabs)
     {
         var store = state ?? profile.OpenState();
         var plugins = new Host.Core.Plugins.PluginRuntime(new() { StateDirectory = null, State = store });
         plugins.Start();
         return new(profile, new SharedState(new Host.Client.LocalStateAdapter(store), profile.Data.Preferences, store.Current), terminals, remote, null,
-            new Host.Client.LocalPluginAdapter(plugins))
+            new Host.Client.LocalPluginAdapter(plugins), terminalTabs)
         { OwnedHost = plugins };
     }
 
@@ -101,7 +102,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         FillViewMenu(this.FindControl<Grid>("MainHeader")!.ContextMenu!);
         Layout.Navigating += group => AdvanceNavigation(group);
         Layout.Focused += () => { slot.Layout = Layout.State; SaveProfile(); };
-        Layout.Changed += () => { slot.Layout = Layout.State; SaveProfile(); PruneDocuments(); };
+        Layout.Changed += () => { slot.Layout = Layout.State; SaveProfile(); TrackTerminalTabs(); PruneDocuments(); };
         Layout.Changed += UpdateActiveChangeRows;
         Layout.SelectionChanged += _ => UpdateActiveChangeRows();
         Layout.Focused += UpdateActiveChangeRows;
@@ -112,6 +113,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         WireNavigation();
         WireEditorLifetime();
         WireHostSync();
+        WireTerminalCatalog();
         WirePlugins();
         ApplyAppearance();
         ActualThemeVariantChanged += (_, _) => ApplyTheme();
@@ -309,6 +311,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             ResolveRailDefaults();
             PlaceWorkspaceTabs();
             ApplyTerminalTitles(state.Current);
+            if (!atHome) ShareTerminals(workspaceRoot);
             foreach (var removed in removedWorkspaces) Layout.DropWorkspace(removed);
             ShowReady();
             errorText.IsVisible = false;
@@ -403,12 +406,11 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         if (documentContent.TryGetValue(key, out var existing)) return existing;
         if (tab.Kind == "terminal")
         {
-            var terminal = new Terminal.TerminalView(terminals, new(workspaceRoot, Terminal.TerminalLaunch.SessionFor(workspaceRoot, tab.Id),
-                Path.Combine(profile.DirectoryPath, "clipboard"), terminalClient)
-            { TabKey = tab.Id })
-            { Name = "TerminalSurface_" + tab.Id.Replace(':', '_') };
+            if (!TerminalMayAttach(workspaceRoot, tab.Id)) return Ui.Text("Loading terminal…");
+            var terminal = new Terminal.TerminalView(terminals, LaunchTerminal(workspaceRoot, tab.Id)) { Name = "TerminalSurface_" + tab.Id.Replace(':', '_') };
             documentContent[key] = terminal;
             AttachPluginTerminal(terminal);
+            if (terminalCommands.Remove(key, out var command)) _ = TypeWhenStartedAsync(terminal, command);
             return terminal;
         }
         if (documents.TryGetValue(key, out var document))

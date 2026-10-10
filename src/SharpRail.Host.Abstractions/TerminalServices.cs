@@ -9,6 +9,9 @@ public record TerminalAttachRequest(string SessionId, string WorkspaceRoot, stri
     public bool Resume => Offset >= 0;
     // The tab's layout id, so the host knows the session's TerminalRef; empty from a client that does not send it.
     public string TabKey { get; init; } = "";
+    // A yielding attach never takes a session from the client that holds it: it starts or joins a session
+    // nobody holds, and otherwise returns already detached. Taking over is the plain attach.
+    public bool Yield { get; init; }
 }
 
 // A PTY's size is a pair of unsigned shorts; a grid outside it is refused before any session work.
@@ -53,6 +56,7 @@ public interface ITerminalSession : IAsyncDisposable
     // The shell's exit code, or 128 plus the signal that ended it; completes after output ends.
     Task<int> Exit { get; }
     // Completes when another client attached to the session; this attachment then receives nothing more.
+    // Already complete when a yielding attach found the session held by another client.
     Task Detached { get; }
     // Set on the attachment that started a shell for a tab whose agent record a plugin offered to revive: the
     // client types it once the shell's first output has arrived, pressing Return after it when Submit is set.

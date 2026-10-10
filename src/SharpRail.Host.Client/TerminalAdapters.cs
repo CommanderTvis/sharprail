@@ -139,6 +139,7 @@ internal sealed class RemoteTerminalSession(RemoteTerminalAdapter adapter, Termi
                 }
                 else pendingReplay = attached.Data;
                 Interlocked.Exchange(ref position, attached.Position);
+                if (attached.Detached) detached.TrySetResult();
                 return;
             }
             catch (Exception error) when (Transient(error) && !linked.IsCancellationRequested && DateTime.UtcNow < deadline)
@@ -170,7 +171,8 @@ internal sealed class RemoteTerminalSession(RemoteTerminalAdapter adapter, Termi
             Columns = size.Columns,
             Rows = size.Rows,
             Offset = Position,
-            TabKey = request.TabKey
+            TabKey = request.TabKey,
+            Yield = request.Yield
         };
         var stream = adapter.Service.RunAsync(Inputs(attach, current.Token), new CallContext(new CallOptions(adapter.Headers, cancellationToken: current.Token)))
             .GetAsyncEnumerator(current.Token);

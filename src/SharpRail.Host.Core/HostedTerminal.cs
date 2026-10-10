@@ -61,6 +61,8 @@ internal sealed class HostedTerminal
         {
             // A resuming client that lost the session to another client must not take it back.
             if (request.Resume && client != request.ClientId) return Attachment.Displaced(this, Process.Id, recorder.Position);
+            // A yielding attach leaves the session with the client that holds it, and its grid with it.
+            if (request.Yield && current is not null && client != request.ClientId) return Attachment.Displaced(this, Process.Id, recorder.Position);
             var replay = request.Resume ? recorder.From(request.Offset) ?? Fresh() : Fresh();
             var attachment = new Attachment(this, Process.Id, created, replay, recorder.Position) { Prefill = prefill };
             var previous = current;
