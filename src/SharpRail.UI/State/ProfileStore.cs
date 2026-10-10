@@ -21,6 +21,8 @@ public sealed class Preferences
     public bool MarkdownLineWidthBounded { get; set; } = true;
     public Dictionary<string, DockState> CustomPresets { get; set; } = [];
     public double FontSize { get; set; } = 14;
+    /// <summary>The editors' text size, set by pinching one of them.</summary>
+    public double CodeFontSize { get; set; } = SharpRail.Scintilla.ScintillaEditor.DefaultTextSize;
     /// <summary>Browser-style page zoom shared by every window; Mod+=, Mod+- and Mod+0 step it.</summary>
     public double Zoom { get; set; } = 1;
     /// <summary>The local terminal renderer: composited Metal texture or Skia cells.</summary>
@@ -166,6 +168,8 @@ public sealed class ProfileStore
             }
             Data.Preferences.CustomPresets ??= [];
             if (!double.IsFinite(Data.Preferences.FontSize) || Data.Preferences.FontSize is < 10 or > 24) Data.Preferences.FontSize = 14;
+            if (!double.IsFinite(Data.Preferences.CodeFontSize) || Data.Preferences.CodeFontSize is < SharpRail.Scintilla.ScintillaEditor.MinimumTextSize or > SharpRail.Scintilla.ScintillaEditor.MaximumTextSize)
+                Data.Preferences.CodeFontSize = SharpRail.Scintilla.ScintillaEditor.DefaultTextSize;
             Data.Preferences.Zoom = InterfaceZoom.Normalize(Data.Preferences.Zoom);
             Data.Preferences.VerticalCenterTabsWidth = VerticalTabs.ClampWidth(Data.Preferences.VerticalCenterTabsWidth);
             if (Data.Preferences.DefaultPaneDirection is not ("horizontal" or "vertical")) Data.Preferences.DefaultPaneDirection = "horizontal";

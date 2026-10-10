@@ -103,6 +103,8 @@ public sealed class ClientSession(string filesDirectory, bool compact) : IDispos
         // Android draws terminals with Skia only; the host runs their shells.
         var factory = TerminalBackends.Ghostty(new RemoteTerminalConnection(address, token, terminals), () => TerminalRenderers.Skia);
         Endpoint = endpoint;
+        // Sideways scrolling is a chore under a finger: lines wrap at the screen's edge whatever the line width says.
+        SharpRail.Scintilla.ScintillaEditor.WrapAlways = true;
         workbench = new Workbench(profile, state, factory, remote: true, sessions, plugins, catalog) { Endpoint = address.ToString(), Compact = compact, TabsInProjects = true, Touch = true, ChangeHost = ChangeHost };
         // The activity holds one workbench window; a profile never restores more.
         var slot = profile.Data.Windows[0];

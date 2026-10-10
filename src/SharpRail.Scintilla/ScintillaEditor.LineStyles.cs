@@ -33,7 +33,7 @@ public sealed partial class ScintillaEditor
             lineNumbers = value; widestLabel = null;
             document.Send(ScintillaMessage.SetMarginTypeN, 0, MarginNumber);
             document.Send(ScintillaMessage.MarginTextClearAll);
-            document.Send(ScintillaMessage.SetMarginWidthN, 0, value ? 48 : 0);
+            document.Send(ScintillaMessage.SetMarginWidthN, 0, value ? NumberMargin(appliedSize) : 0);
             ApplyWrap(Bounds.Width); InvalidateVisual();
         }
     }

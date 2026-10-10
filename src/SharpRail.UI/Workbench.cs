@@ -37,6 +37,15 @@ public sealed class Workbench : IDisposable
         state.Changed += (_, _) => ProjectionChanged?.Invoke();
         state.Start();
         PluginLoader.Start();
+        SharpRail.Scintilla.ScintillaEditor.TextSize = profile.Data.Preferences.CodeFontSize;
+        SharpRail.Scintilla.ScintillaEditor.TextSizeChosen += RememberTextSize;
+    }
+
+    // A pinch on any editor sizes them all; the size it settles on is this app's to remember.
+    private void RememberTextSize()
+    {
+        Profile.Data.Preferences.CodeFontSize = SharpRail.Scintilla.ScintillaEditor.TextSize;
+        Profile.Save();
     }
 
     public ProfileStore Profile { get; }
@@ -226,6 +235,7 @@ public sealed class Workbench : IDisposable
 
     public void Dispose()
     {
+        SharpRail.Scintilla.ScintillaEditor.TextSizeChosen -= RememberTextSize;
         lifetime.Cancel(); terminalCatalogStarted.TrySetCanceled();
         PluginLoader.Stop();
         attention?.Stop();

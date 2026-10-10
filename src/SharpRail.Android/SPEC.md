@@ -160,6 +160,9 @@ The host is any SharpRail gRPC endpoint: a desktop app listening from Settings â
   or flick that ends on it does not click (`TouchClicks`); tree rows open on a tap, not a press
   (`RowActivation` in the kit); and the terminal and the editor take text, and so raise the keyboard, only
   after a tap in them, never because focus reached them.
+- Editors wrap at the screen's edge whatever the shared line width says (`ScintillaEditor.WrapAlways`),
+  and a pinch sizes their text; the size is kept in the profile (`Preferences.CodeFontSize`), on desktop
+  too.
 - Settings â€º Host shows the connected host's authority and a Disconnect button. Disconnect rewrites
   `host.json` with an empty token, closes the workbench's windows, disposes the adapters and shows the
   connect screen with the address still filled in.

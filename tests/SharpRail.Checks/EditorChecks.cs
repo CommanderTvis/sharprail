@@ -116,11 +116,48 @@ internal static class EditorChecks
         }
         finally { window.Close(); }
         WrappedScrolling();
+        TextSizeAndWrapping();
         TouchAndSoftKeyboard();
     }
 
     // Wrapped documents scroll in display lines; the range must cover every wrapped line,
     // including lines Scintilla wraps during idle rather than while painting.
+    // What a pinch drives: one text size for every editor, a wrap column that keeps its count of characters,
+    // and, where sideways scrolling is a chore, wrapping at the pane's edge without any wrap width.
+    private static void TextSizeAndWrapping()
+    {
+        if (!OperatingSystem.IsMacOS()) return;
+        var line = new string('x', 600);
+        using var bounded = new ScintillaEditor(line, Font) { WrapWidth = 200 };
+        using var free = new ScintillaEditor(line, Font);
+        var window = new Window { Width = 2000, Height = 320, Content = new Grid { ColumnDefinitions = new("*,*"), Children = { bounded, free } } };
+        Grid.SetColumn(free, 1);
+        window.Show(); Pump();
+        try
+        {
+            static void Settle() { for (var pass = 0; pass < 20; pass++) { using var slice = new CancellationTokenSource(10); Dispatcher.UIThread.MainLoop(slice.Token); Pump(); } }
+            Settle();
+            var rows = bounded.WrapCount(0);
+            Require(rows > 1 && free.WrapCount(0) == 1, $"A wrap width must wrap and its absence must not ({rows}, {free.WrapCount(0)}).");
+            ScintillaEditor.TextSize = ScintillaEditor.DefaultTextSize * 2;
+            Settle();
+            Require(bounded.WrapCount(0) == rows, $"A wrap column must keep its characters at another text size ({rows} then {bounded.WrapCount(0)}).");
+            ScintillaEditor.TextSize = 1000;
+            Require(ScintillaEditor.TextSize == ScintillaEditor.MaximumTextSize, "The text size must stay within its range.");
+            ScintillaEditor.TextSize = ScintillaEditor.DefaultTextSize;
+            ScintillaEditor.WrapAlways = true;
+            free.WrapWidth = double.PositiveInfinity;
+            Settle();
+            var edge = free.WrapCount(0);
+            Require(edge > 1, "Always-wrap must wrap an unbounded editor at its pane's edge.");
+            ScintillaEditor.TextSize = ScintillaEditor.DefaultTextSize * 2;
+            Settle();
+            Require(free.WrapCount(0) > edge, $"Larger text must take more rows of the same pane ({edge} then {free.WrapCount(0)}).");
+            Console.WriteLine("PASS Scintilla text size: one size for every editor, wrap columns keep their characters, always-wrap follows the pane");
+        }
+        finally { ScintillaEditor.WrapAlways = false; ScintillaEditor.TextSize = ScintillaEditor.DefaultTextSize; window.Close(); }
+    }
+
     private static void WrappedScrolling()
     {
         if (!OperatingSystem.IsMacOS()) return;

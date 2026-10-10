@@ -40,6 +40,9 @@ public sealed partial class ScintillaEditor : Control, IDisposable
     private bool disposed;
     private ScintillaColors colors = ScintillaColors.Light;
     private ScintillaColors? appliedColors;
+    private double appliedSize = DefaultTextSize;
+    private static nint NumberMargin(double size) => (nint)Math.Round(48 * size / DefaultTextSize);
+    private void TextSized() => InvalidateVisual();
     private ScintillaTextDirection direction;
     private nint revision;
     private readonly nint defaultRightMargin;
@@ -69,6 +72,11 @@ public sealed partial class ScintillaEditor : Control, IDisposable
         TextInputOptions.SetShowSuggestions(this, false);
         GestureRecognizers.Add(new TouchScroll());
         ScrollGesture += OnTouchScroll;
+        // Two fingers size the text of every editor, as they size a page elsewhere on a touch screen.
+        GestureRecognizers.Add(new PinchGestureRecognizer());
+        var pinched = 0d;
+        AddHandler(PinchEvent, (_, e) => { if (pinched == 0) pinched = TextSize; tapping = false; TextSize = pinched * e.Scale; e.Handled = true; });
+        AddHandler(PinchEndedEvent, (_, _) => { if (pinched == 0) return; pinched = 0; TextSizeChosen?.Invoke(); });
         timer = new DispatcherTimer(TimeSpan.FromMilliseconds(500), DispatcherPriority.Background, (_, _) =>
         { if (IsFocused && !disposed) { document.Tick(); InvalidateVisual(); } });
         timer.Stop();
@@ -91,7 +99,34 @@ public sealed partial class ScintillaEditor : Control, IDisposable
         get => document.Send(ScintillaMessage.GetReadOnly) != 0;
         set { document.Send(ScintillaMessage.SetReadOnly, value ? 1 : 0); InvalidateVisual(); }
     }
-    /// <summary>Text column width before lines wrap, like the reference's bounded file width; infinity disables wrapping.</summary>
+    public const double DefaultTextSize = 13, MinimumTextSize = 6, MaximumTextSize = 40;
+
+    /// <summary>The size every editor draws its text at.</summary>
+    public static double TextSize
+    {
+        get;
+        set
+        {
+            value = double.IsFinite(value) ? Math.Clamp(Math.Round(value * 4) / 4, MinimumTextSize, MaximumTextSize) : DefaultTextSize;
+            if (field == value) return;
+            field = value;
+            TextSizeChanged?.Invoke();
+        }
+    } = DefaultTextSize;
+
+    /// <summary>Raised when <see cref="TextSize"/> changes, a pinch in progress included.</summary>
+    public static event Action? TextSizeChanged;
+
+    /// <summary>Raised when a pinch settles on a size, for whoever remembers it.</summary>
+    public static event Action? TextSizeChosen;
+
+    /// <summary>Wraps lines at the pane's edge even without a wrap width, where sideways scrolling is a chore.</summary>
+    public static bool WrapAlways { get; set; }
+
+    /// <summary>
+    /// Text column width before lines wrap, at <see cref="DefaultTextSize"/>, like the reference's bounded file
+    /// width; infinity disables wrapping. The column keeps its count of characters as the text size changes.
+    /// </summary>
     public double WrapWidth
     {
         get => wrapWidth;
@@ -175,12 +210,13 @@ public sealed partial class ScintillaEditor : Control, IDisposable
     private void ApplyWrap(double width)
     {
         if (disposed) return;
-        var wrap = double.IsFinite(wrapWidth);
+        var bounded = double.IsFinite(wrapWidth);
+        var wrap = bounded || WrapAlways;
         document.Send(ScintillaMessage.SetWrapMode, wrap ? 1 : 0);
         double gutter = document.Send(ScintillaMessage.GetMarginLeft);
         for (var margin = 0; margin < document.Send(ScintillaMessage.GetMargins); margin++)
             gutter += document.Send(ScintillaMessage.GetMarginWidthN, margin);
-        document.Send(ScintillaMessage.SetMarginRight, 0, wrap ? (nint)Math.Max(defaultRightMargin, width - gutter - wrapWidth) : defaultRightMargin);
+        document.Send(ScintillaMessage.SetMarginRight, 0, bounded ? (nint)Math.Max(defaultRightMargin, width - gutter - wrapWidth * TextSize / DefaultTextSize) : defaultRightMargin);
     }
 
     public override void Render(DrawingContext context)
@@ -213,12 +249,19 @@ public sealed partial class ScintillaEditor : Control, IDisposable
 
     private void ApplyColors()
     {
-        if (appliedColors == colors) return;
+        if (appliedColors == colors && appliedSize == TextSize) return;
         appliedColors = colors;
+        if (appliedSize != TextSize)
+        {
+            // The number margin was sized for the text it held.
+            if (document.Send(ScintillaMessage.GetMarginWidthN, 0) == NumberMargin(appliedSize)) document.Send(ScintillaMessage.SetMarginWidthN, 0, NumberMargin(TextSize));
+            appliedSize = TextSize;
+            ApplyWrap(Bounds.Width);
+        }
         var foreground = Rgb(colors.Foreground); var background = Rgb(colors.Background);
         document.Send(ScintillaMessage.StyleSetFore, 32, (nint)foreground);
         document.Send(ScintillaMessage.StyleSetBack, 32, (nint)background);
-        document.Send(ScintillaMessage.StyleSetSize, 32, 13);
+        document.Send(ScintillaMessage.StyleSetSizeFractional, 32, (nint)Math.Round(TextSize * 100));
         document.Send(ScintillaMessage.StyleClearAll);
         ApplyLineStyles(Rgb);
         document.Send(ScintillaMessage.StyleSetFore, 33, (nint)Rgb(colors.LineNumbers));
@@ -257,8 +300,10 @@ public sealed partial class ScintillaEditor : Control, IDisposable
     {
         if (OperatingSystem.IsAndroid()) InputMethod.SetIsInputMethodEnabled(this, wanted);
     }
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    { base.OnAttachedToVisualTree(e); TextSizeChanged += TextSized; InvalidateVisual(); }
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
-    { timer.Stop(); base.OnDetachedFromVisualTree(e); }
+    { TextSizeChanged -= TextSized; timer.Stop(); base.OnDetachedFromVisualTree(e); }
 
     public void Dispose()
     {
