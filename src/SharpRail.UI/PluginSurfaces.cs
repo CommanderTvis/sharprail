@@ -496,7 +496,15 @@ public sealed partial class WorkbenchWindow
     {
         if (!WorkspaceMounted || atHome || workspace != workspaceRoot) await OpenWorkspaceAsync(workspace, false);
         if (!WorkspaceMounted || atHome || workspace != workspaceRoot) return;
-        if (Layout.State.Groups.FirstOrDefault(candidate => Layout.Tabs(candidate.Id).Any(tab => tab.Id == tabKey)) is not { } group) return;
+        // A terminal this window has not placed yet is shown once the host's catalog has brought it; where tabs live
+        // in Projects that also moves it out of a hidden region, which must not be revealed for it meanwhile.
+        if (workbench.TabsInProjects && !terminalWorkspaces.Contains(workspace) ||
+            Layout.State.Groups.FirstOrDefault(candidate => Layout.Tabs(candidate.Id).Any(tab => tab.Id == tabKey)) is not { } group)
+        {
+            awaitedTerminal = (workspace, tabKey);
+            return;
+        }
+        awaitedTerminal = null;
         if (group.Region != "center")
         {
             Layout.Visible(group.Region, true);

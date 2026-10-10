@@ -21,11 +21,14 @@ public sealed class TerminalInput
     [ProtoMember(8)] public long Offset { get; set; } = -1;
     [ProtoMember(9)] public string TabKey { get; set; } = "";
     [ProtoMember(10)] public bool Yield { get; set; }
+    [ProtoMember(11)] public bool Watch { get; set; }
 }
 
 // One Attached message, then output chunks with the host position after each, then Exited with the exit
 // code or Detached when another client took the session over. The Attached message is also Detached when
 // the attachment never held the session: a yielding attach, or a resume, that found another client there.
+// It is Watching instead when the attach asked to watch; a watched stream carries a chunk without data when
+// only the grid changed. A host that predates watching leaves Watching and the grid unset.
 [ProtoContract]
 public sealed class TerminalOutput
 {
@@ -39,6 +42,10 @@ public sealed class TerminalOutput
     // On the Attached message of a shell started for a tab a plugin offered to revive.
     [ProtoMember(8)] public string PrefillText { get; set; } = "";
     [ProtoMember(9)] public bool PrefillSubmit { get; set; }
+    [ProtoMember(10)] public bool Watching { get; set; }
+    // The grid the shell runs at, on the Attached message and every chunk.
+    [ProtoMember(11)] public int Columns { get; set; }
+    [ProtoMember(12)] public int Rows { get; set; }
 }
 
 [ProtoContract]

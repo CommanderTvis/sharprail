@@ -24,6 +24,10 @@ internal sealed class E2eTerminals(ITerminalService? inner = null, ITerminalCata
         new MemoryTerminalCatalog(end: inner is null ? id => Pty.CloseAsync(id) : null);
     // The grid this client's terminal bodies attach with.
     internal (int Columns, int Rows) Grid { get; set; } = (120, 30);
+    // As the Metal renderers do, a body watches only when it was made for that; false asks with every yielding attach, as Skia does.
+    internal bool WatchesWhenAsked { get; set; }
+    // A host that predates watching ignores the request.
+    internal bool Legacy { get; set; }
     private readonly Queue<string> failures = [];
     private readonly HashSet<string> sessions = [];
     private TaskCompletionSource? gate;
@@ -61,7 +65,7 @@ internal sealed class E2eTerminals(ITerminalService? inner = null, ITerminalCata
         var held = gate; gate = null;
         if (held is not null) await held.Task.WaitAsync(cancellationToken);
         if (failures.TryDequeue(out var failure)) throw new IOException(failure);
-        var session = await inner.AttachAsync(request, cancellationToken);
+        var session = await inner.AttachAsync(Legacy ? request with { Watch = false } : request, cancellationToken);
         lock (sessions)
         {
             Attaches.Add(request);
@@ -114,15 +118,20 @@ internal sealed partial class HostTerminal : ITerminalBackend
     public Task<int> Exited => exited.Task;
     public Task Detached => detached.Task;
     public bool Yielded { get; private set; }
+    public bool Watching { get; private set; }
+    // The holder's grid as this body last read it.
+    internal (int Columns, int Rows) ShownGrid => session?.Grid ?? default;
     internal string Text => text.ToString();
     internal string SessionId => launch.SessionId;
 
     private async Task StartAsync()
     {
         var (columns, rows) = (service as E2eTerminals)?.Grid ?? (120, 30);
-        session = await service.AttachAsync(new(launch.SessionId, launch.WorkspaceRoot, launch.ClientId, columns, rows) { TabKey = launch.TabKey, Yield = launch.Yield }, lifetime.Token);
+        var watch = launch.Yield && (launch.Watch || service is not E2eTerminals { WatchesWhenAsked: true });
+        session = await service.AttachAsync(new(launch.SessionId, launch.WorkspaceRoot, launch.ClientId, columns, rows) { TabKey = launch.TabKey, Yield = launch.Yield, Watch = watch }, lifetime.Token);
         if (lifetime.IsCancellationRequested) { await session.DisposeAsync(); return; }
         Yielded = launch.Yield && session.Detached.IsCompleted;
+        Watching = session.Watching;
         Show(session.Replay);
         _ = Task.Run(async () =>
         {

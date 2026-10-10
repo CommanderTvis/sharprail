@@ -65,10 +65,12 @@ internal sealed class E2eWorkspace : IDisposable
     /// A remote client of a real gRPC host at <paramref name="endpoint"/>, restoring <paramref name="startPath"/>;
     /// with <paramref name="plugins"/> it reaches the host's plugin runtime as the app does.
     /// </summary>
-    internal E2eWorkspace(Uri endpoint, string token, string root, string profileRoot, string startPath, bool plugins = true, E2eTerminals? terminals = null)
+    internal E2eWorkspace(Uri endpoint, string token, string root, string profileRoot, string startPath, bool plugins = true, E2eTerminals? terminals = null,
+        bool tabsInProjects = false, Action<ProfileStore>? prepare = null, bool compact = false)
     {
         Root = root;
         var profile = new ProfileStore(profileRoot);
+        prepare?.Invoke(profile);
         var service = new RemoteStateAdapter(endpoint, token);
         remoteState = service;
         remotePlugins = plugins ? new RemotePluginAdapter(endpoint, token) : null;
@@ -78,7 +80,7 @@ internal sealed class E2eWorkspace : IDisposable
         var first = true;
         Workbench = new(profile, new SharedState(service, profile.Data.Preferences), Terminals.Factory, true,
             () => { if (!first) return new E2eHost(new RemoteProjectAdapter(endpoint, token)); first = false; return Host; }, remotePlugins, Terminals.Catalog)
-        { Endpoint = endpoint.ToString() };
+        { Endpoint = endpoint.ToString(), TabsInProjects = tabsInProjects, Compact = compact };
         Window = Workbench.Open(profile.Data.Windows[0], startPath);
         Window.Width = 1352; Window.Height = 848;
         Window.Show();

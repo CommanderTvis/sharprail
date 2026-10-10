@@ -103,8 +103,9 @@ unauthenticated peer learns nothing about the host's version.
   releases its terminals. Stopping an embedded server from a UI thread must not deadlock its cleanup.
 - A terminal call is one attachment: dropping the call detaches, and the shell
   keeps running on the host until it exits, its tab closes or the host stops.
-  Output goes only to the attached client; another attach takes the session over
-  and the previous call ends with a detached frame.
+  Output goes to the client that holds the session and to every watching call; another plain attach takes
+  the session over and the previous holder's call ends with a detached frame. A watching call reports the
+  holder's grid with every frame, and its data, resize and kill messages change nothing.
 - Request bodies and gRPC messages are capped from `FileLimits`, sized for the
   largest save.
 

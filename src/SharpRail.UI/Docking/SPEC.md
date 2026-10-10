@@ -212,6 +212,17 @@ so a view saved before the catalog existed brings its tabs once instead of losin
 initial terminal passively and leaves other peer-created terminals out of a surface's layout; here every catalogued
 terminal is placed, because a second device is expected to show the first one's terminals.
 
+A window whose workbench keeps its tabs in Projects (`Workbench.TabsInProjects`, the Android client) has the
+centre's strips as its only tab list, so there reconciliation keeps terminals in the centre: a tab the view lacks
+is appended to the last-focused centre group, and the terminals of every hidden region, the initial one in a
+hidden bottom among them, move there too. An empty centre group shows the first of them, which starts or
+watches its shell. Terminals in a visible side or bottom region stay in its strip. Under every other workspace
+row Projects lists, after the retained centre tabs, the terminals that workspace has outside the centre and
+those in the host's catalog this window has not placed, as for a workspace it never opened
+(`WorkspaceTabsPreviewTerminals`); choosing one opens the workspace and selects the terminal once the catalog
+has placed it. Before this the phone listed only terminals created on it: the others sat in its hidden bottom
+group or, for a workspace not opened yet, in no view at all.
+
 A close request from the window (`LayoutSession.RequestClose`, driven by the app command owner) closes the
 selected (else first) tab of the keyboard-focused group, otherwise of the last-focused center group, through
 the normal close path including busy-terminal confirmation. A tool tab, folded group or hidden region yields

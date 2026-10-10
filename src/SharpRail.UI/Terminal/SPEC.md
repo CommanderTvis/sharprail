@@ -35,7 +35,8 @@ paste transformation. Native checks capture actual AppKit key bytes for all four
 
 ## Boundary
 
-- Owns: attach/detach of one tab to one session, start-failure and retry, takeover notice and take-back,
+- Owns: attach/detach of one tab to one session, start-failure and retry, the read-only view of a terminal
+  another client holds with its take-over and take-back offer,
   exit notice, busy query for close confirmation, clipboard paste handling, theme propagation to Ghostty,
   and the relay's connection handoff.
 - Forbidden: starting or ending shells except through `ITerminalService`; deciding placement or which tab
@@ -51,16 +52,35 @@ paste transformation. Native checks capture actual AppKit key bytes for all four
   reopening restores saved tabs with fresh shells. Local shells end when the app quits and remote shells
   when their host stops; restored tabs start new shells showing their last recorded screen after a restart
   (the local host saves it on a graceful quit).
-- A session is held by one client and has that client's size. A tab's body attaches yielding
-  (`TerminalLaunch.Yield`): it starts or joins a session nobody holds, and where another client holds it the
-  body shows "This terminal is in use by another client." with Take over instead of attaching, so merely
-  showing a tab never takes a terminal or resizes it. Take over, and the first attach of a terminal created
-  in this window, attach plainly: the new attach becomes the recipient at its own grid and the previous
-  client shows "This terminal is open somewhere else" with Take it back. A displaced client's input and
-  resizes are ignored and its reconnects never take the session back. Upstream takes a terminal over when
-  its tab is selected; here taking is always the button, because a phone that opens a workspace must not
-  resize the terminal a desktop is using.
-- Output is addressed to the attached client only. A fresh view receives a bounded snapshot of the main
+- A session is held by one client and has that client's size; every other client that shows its tab watches
+  it. A tab's body attaches yielding (`TerminalLaunch.Yield`): it starts or joins a session nobody holds, and
+  where another client holds it the body is a watcher (`ITerminalBackend.Watching`): the holder's screen and
+  then its live output, read-only, over a slim bar "Read-only: in use by another client." with Take over. So
+  merely showing a tab never takes a terminal, resizes it or sends it anything. Take over, and the first attach
+  of a terminal created in this window, attach plainly: the new attach holds the shell at its own grid, and the
+  previous holder's view attaches again as a watcher, its bar reading "Read-only: another client took this
+  terminal over." with Take it back. Upstream takes a terminal over when its tab is selected; here taking is
+  always one deliberate step, because a phone that opens a workspace must not resize the terminal a desktop is
+  using.
+- Taking over is needed only to type. A watched terminal's keyboard focus is its offer, never its screen: a
+  click or tap on the button, or Enter or Space once the tab has focus, takes over, and any other key does
+  nothing. Typing does not take over by itself, since focus lands in a tab by navigation alone, and a view that
+  loses its terminal while being typed into does not get the keyboard, so the keys that follow cannot take it
+  straight back. No soft keyboard opens for a watched terminal. `TerminalView.Write` (plugin accessories, a
+  plugin's command) is dropped while watching.
+- A watcher is always the Skia renderer (`SkiaTerminal`), also where Settings selects Metal: the Metal
+  surfaces size the shell to themselves, so a Metal body yields as before and `TerminalView` attaches again
+  with `TerminalLaunch.Watch`, which the factories answer with Skia. The view shows the holder's grid at its
+  real cell size (`GhosttySkiaView.FixedGrid`) inside a scroller that starts at the top-left when the pane is
+  smaller, and follows the holder's resizes in order with the output. It is not focusable or hit-testable: no
+  key, paste, mouse or focus report, resize or terminal query reply leaves it, and the scroller takes the pan
+  and wheel gestures; scrollback and selection need a take-over. A watch attach that finds nobody holding the
+  session holds it, in the Skia renderer until the tab restarts. Changing the renderer in Settings leaves
+  watchers alone.
+- A host that predates watching returns a watch attach detached: the body is then hidden and the same bar
+  reads "This terminal is in use by another client." (or "This terminal is open somewhere else." for the
+  previous holder) with the same button, which is the earlier behaviour.
+- Output goes to the holder and to every watcher. A fresh view receives a bounded snapshot of the main
   screen, preceded by the observed private modes except mouse tracking and never containing the alternate
   screen or a mode sequence, then the foreground program is nudged to redraw. A reconnecting client
   resumes from its last output position. Replay and the switch to live output are atomic, so nothing is
@@ -189,14 +209,15 @@ on macOS (Ctrl elsewhere), and modifier-click opens the URL using the system
 browser. Soft-wrapped URLs remain one link across rows; explicit newlines remain
 boundaries. Ordinary clicks and drags retain terminal selection behavior.
 
-Host checks cover attach idempotency, takeover and displaced-client rejection, replay without the
+Host checks cover attach idempotency, takeover and displaced-client rejection, watching, replay without the
 alternate screen or mouse modes, resume without duplication, busy detection and close. `--terminals` runs
 them with the terminal and bottom-panel translations over local and remote hosts. Native acceptance
 additionally requires live shell output with nonuniform pixels in Ghostty's IOSurface, keyboard input,
 resizing and disposal (`scripts/check-terminal.sh`, `--native-terminal`); headless docking checks alone do
 not establish terminal execution. `--ghostty-skia` verifies real rendered colours,
 wide/combining text, keyboard and SGR mouse press/release, paste, selection,
-scrollback, resize and a real host shell surviving a renderer restart.
+scrollback, resize, a real host shell surviving a renderer restart, and a watching view of a held shell
+(the holder's grid in a smaller pane, its resize, no keys or query replies sent, Enter on the offer).
 `--native-texture` requires real imported pixels with theme changes, Avalonia
 overlays and parent clipping, native keyboard/clipboard input, Retina resize,
 remounting and texture/Skia switches retaining local and remote shells.

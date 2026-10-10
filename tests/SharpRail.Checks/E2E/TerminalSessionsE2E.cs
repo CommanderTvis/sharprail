@@ -52,14 +52,21 @@ internal static class TerminalSessionsE2E
     internal static Button TakeBack(SharpRail.UI.Terminal.TerminalView view) =>
         view.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "TerminalTakeBack");
 
-    // A client that finds a terminal held elsewhere is offered it; taking it is the user's gesture.
+    // A client that finds a terminal held elsewhere watches it and is offered it; taking it is the user's gesture.
     internal static HostTerminal TakeOver(E2eWorkspace app, SharpRail.UI.Docking.DockTab tab)
     {
         var view = View(app, tab);
-        Until(() => view.IsYielded);
+        Until(() => view.IsWatching);
         Require((string?)TakeBack(view).Content == "Take over", "A terminal never attached here must offer to take it over.");
         app.Click(TakeBack(view));
+        Until(() => !view.IsWatching && view.Backend is HostTerminal { Watching: false });
         return Ready(app, tab);
+    }
+
+    internal static HostTerminal Watched(SharpRail.UI.Terminal.TerminalView view)
+    {
+        Until(() => view.IsWatching && view.Backend is HostTerminal { Watching: true });
+        return (HostTerminal)view.Backend!;
     }
 
     private static void ReloadSurvives(string root)
@@ -286,16 +293,19 @@ internal static class TerminalSessionsE2E
         Expect(second, "SECOND=yes\n");
 
         var view = View(a, tab);
-        Until(() => view.IsDetached);
-        Require(!view.FindControl<ContentControl>("TerminalBody")!.IsVisible && view.FindControl<Control>("TerminalDetached")!.IsEffectivelyVisible,
-            "The first client must be told, over a hidden stale surface.");
+        var watched = Watched(view);
+        second.Run("echo \"WATCHED=$TR_SHARED\"");
+        Expect(watched, "WATCHED=yes\n");
+        Require(view.FindControl<ContentControl>("TerminalBody")!.IsEffectivelyVisible && view.FindControl<Control>("TerminalDetached")!.IsEffectivelyVisible &&
+            (string?)TakeBack(view).Content == "Take it back", "The first client must keep watching the terminal it lost, and be offered it back.");
         a.Click(TakeBack(view));
+        Until(() => !view.IsWatching);
         var back = Ready(a, tab);
         back.Run("echo \"BACK=$TR_SHARED\"");
         Expect(back, "BACK=yes\n");
-        Until(() => View(b, TerminalTabs(b).Single()).IsDetached);
+        Until(() => View(b, TerminalTabs(b).Single()).IsWatching);
         Require(host.Host.StartedIn(workspace) == 1, "Taking a terminal over and back must keep one shell.");
-        Console.WriteLine("PASS upstream terminals.spec.ts: a second client takes a terminal over and the first is told");
+        Console.WriteLine("PASS upstream terminals.spec.ts: a second client takes a terminal over and the first is told, and keeps watching it");
     }
 
     private static void DiesDuringReclaim(string root)
@@ -312,7 +322,7 @@ internal static class TerminalSessionsE2E
         Enter(b, workspace);
         var second = TakeOver(b, TerminalTabs(b).Single());
         var view = View(a, tab);
-        Until(() => view.IsDetached);
+        Until(() => view.IsWatching);
         second.Run("(sleep 2; kill -9 $$) &");
         Settle(300);
 
@@ -320,7 +330,7 @@ internal static class TerminalSessionsE2E
         a.Click(TakeBack(view));
         var deadline = Awake.Now.AddSeconds(20);
         while (!view.IsExited && Awake.Now < deadline) Settle(100);
-        Require(view.IsExited && !view.IsDetached && !view.IsFailed, "A shell that dies during a reclaim must be presented as exited.");
+        Require(view.IsExited && !view.IsDetached && !view.IsWatching && !view.IsFailed, "A shell that dies during a reclaim must be presented as exited.");
         Console.WriteLine("PASS upstream terminals.spec.ts: a shell that dies during a reclaim is not presented as alive");
     }
 }

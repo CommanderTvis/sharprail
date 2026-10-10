@@ -25,13 +25,17 @@ public sealed class TerminalRpc(ITerminalService terminals, IHostApplicationLife
                 Attached = true,
                 Created = session.Created,
                 Detached = session.Detached.IsCompleted,
+                Watching = session.Watching,
+                Columns = session.Grid.Columns,
+                Rows = session.Grid.Rows,
                 Data = session.Replay.ToArray(),
                 Position = session.Position,
                 PrefillText = session.Prefill?.Text ?? "",
                 PrefillSubmit = session.Prefill?.Submit ?? false
             };
             pump = Drive(inputs, session, call.Token);
-            await foreach (var chunk in session.ReadAsync(call.Token)) yield return new TerminalOutput { Data = chunk.ToArray(), Position = session.Position };
+            await foreach (var chunk in session.ReadAsync(call.Token))
+                yield return new TerminalOutput { Data = chunk.ToArray(), Position = session.Position, Columns = session.Grid.Columns, Rows = session.Grid.Rows };
             await Task.WhenAny(session.Exit, session.Detached);
             if (session.Detached.IsCompleted) yield return new TerminalOutput { Detached = true, Position = session.Position };
             else if (session.Exit.IsCompletedSuccessfully) yield return new TerminalOutput { Exited = true, ExitCode = session.Exit.Result, Position = session.Position };
@@ -60,7 +64,8 @@ public sealed class TerminalRpc(ITerminalService terminals, IHostApplicationLife
             return await terminals.AttachAsync(new(attach.SessionId, attach.WorkspaceRoot, attach.ClientId, attach.Columns, attach.Rows, attach.Offset)
             {
                 TabKey = attach.TabKey,
-                Yield = attach.Yield
+                Yield = attach.Yield,
+                Watch = attach.Watch
             }, cancellationToken);
         }
         catch (Exception error) when (error is IOException or ArgumentException or InvalidOperationException or UnauthorizedAccessException or PlatformNotSupportedException)

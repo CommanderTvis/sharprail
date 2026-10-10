@@ -206,7 +206,7 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `terminals.spec.ts` | a shell survives losing the connection and reconnecting | Ported (a TCP proxy severs the gRPC connection; the session resumes from its last output position without duplicates) |
 | `terminals.spec.ts` | a terminal attach response lost with its socket is replayed exactly once | Ported (a client interceptor drops the first attach reply; the retry attaches the same session and the host starts one shell) |
 | `terminals.spec.ts` | final shell output is delivered before exit after reconnect | Ported (the proxy holds the reconnect while the shell exits; final output arrives once, then exit code 7) |
-| `terminals.spec.ts` | a second client takes a terminal over and the first is told | Ported (second window, real gRPC host; the second is offered the held terminal and takes it over, the first shows the detached notice over its hidden surface and takes the terminal back) |
+| `terminals.spec.ts` | a second client takes a terminal over and the first is told | Ported (second window, real gRPC host; the second watches the held terminal and takes it over, the first keeps watching it live under the take-back offer and takes the terminal back) |
 | `terminals.spec.ts` | closing a tab with a running process asks first | Ported |
 | `terminals.spec.ts` | a rejected forced close stays correlated and permits a clean retry | Excluded: closing disposes the tab's own session; SharpRail has no host close request that can be refused |
 | `terminals.spec.ts` | closing an idle tab does not ask | Ported |

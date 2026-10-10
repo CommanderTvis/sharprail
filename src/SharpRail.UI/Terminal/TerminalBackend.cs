@@ -11,6 +11,8 @@ public sealed record TerminalLaunch(string WorkspaceRoot, string SessionId, stri
     public string TabKey { get; init; } = "";
     // Attach only when no other client holds the session; a tab created here, or taken over, attaches plainly.
     public bool Yield { get; init; }
+    // The body is wanted for a terminal another client holds, so it is the renderer that can watch one.
+    public bool Watch { get; init; }
 
     // A tab's session is the same for every window and client of the host, so each reaches the same shell.
     public static string SessionFor(string workspaceRoot, string tabId) => TerminalTab.SessionFor(workspaceRoot, tabId);
@@ -29,6 +31,8 @@ public interface ITerminalBackend : IDisposable
     Task Detached { get; }
     // True when Detached completed because a yielding attach found the session held by another client.
     bool Yielded { get; }
+    // Known once Started completes: the view shows a terminal another client holds, live and read-only.
+    bool Watching { get; }
     ValueTask<bool> IsBusyAsync();
     // Ends the host session, as closing its tab does.
     ValueTask CloseAsync();
@@ -45,7 +49,8 @@ public delegate ITerminalBackend TerminalFactory(TerminalLaunch launch);
 
 public sealed class TerminalStartException(string message) : IOException(message);
 
-// Ghostty's texture composed by Avalonia, or libghostty-vt cells drawn with Skia. Android has only Skia.
+// Ghostty's texture composed by Avalonia, or libghostty-vt cells drawn with Skia. Android has only Skia, and
+// only Skia watches: the Metal renderers size the shell to their own surface.
 public static class TerminalRenderers
 {
     public const string Texture = "texture";
@@ -56,19 +61,20 @@ public static class TerminalBackends
 {
     public static ITerminalBackend Unavailable(string reason) => throw new TerminalStartException(reason);
 
-    private static bool Skia(Func<string>? renderer) => OperatingSystem.IsAndroid() || renderer?.Invoke() == TerminalRenderers.Skia;
+    private static bool Skia(Func<string>? renderer, TerminalLaunch launch) =>
+        launch is { Yield: true, Watch: true } || OperatingSystem.IsAndroid() || renderer?.Invoke() == TerminalRenderers.Skia;
 
     // This overload has no endpoint or relay factory: both renderers call the supplied host directly.
     public static TerminalFactory Ghostty(ITerminalService terminals, Func<string>? renderer = null) => launch =>
     {
-        if (Skia(renderer)) return new SkiaTerminal(launch, terminals);
+        if (Skia(renderer, launch)) return new SkiaTerminal(launch, terminals);
         if (!OperatingSystem.IsMacOS()) return Unavailable("Embedded terminals currently require macOS.");
         return new DirectGhosttyTerminal(launch, terminals);
     };
 
     public static TerminalFactory Ghostty(RemoteTerminalConnection connection, Func<string>? renderer = null) => launch =>
     {
-        if (Skia(renderer)) return new SkiaTerminal(launch, connection.Terminals);
+        if (Skia(renderer, launch)) return new SkiaTerminal(launch, connection.Terminals);
         if (!OperatingSystem.IsMacOS()) return Unavailable("Embedded terminals currently require macOS.");
         return new GhosttyTerminal(launch, Task.FromResult(connection));
     };

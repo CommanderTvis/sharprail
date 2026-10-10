@@ -45,6 +45,7 @@ internal sealed class DirectGhosttyTerminal : Border, ITerminalBackend
     public Task<int> Exited => exited.Task;
     public Task Detached => detached.Task;
     public bool Yielded { get; private set; }
+    public bool Watching => fallback is { Watching: true };
 
     public void Write(string data)
     {

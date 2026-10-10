@@ -157,6 +157,14 @@ internal static class Program
             Console.WriteLine("PASS terminal checks");
             return;
         }
+        if (args.SequenceEqual(["--shared-terminals"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            using var git = new E2E.IsolatedGit(Path.Combine(root, "terminals-git"));
+            E2E.SharedTerminalsE2E.Run(Path.Combine(root, "upstream-e2e"));
+            return;
+        }
         if (args.SequenceEqual(["--sync"]))
         {
             // Host checks block on async work, so they run before the UI synchronisation context, as in the full run.

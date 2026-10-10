@@ -75,6 +75,8 @@ internal static class SkiaOutputChecks
     {
         public string Id => "output-check";
         public bool Created => true;
+        public bool Watching => false;
+        public (int Columns, int Rows) Grid => (80, 24);
         public long Position => 0;
         public TerminalPrefill? Prefill => null;
         public bool Disposed { get; private set; }

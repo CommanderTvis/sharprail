@@ -22,6 +22,8 @@ public sealed partial class WorkbenchWindow
     private readonly Dictionary<string, string> terminalCommands = [];
     private Dictionary<string, Dictionary<string, string>> knownTerminals = [];
     private bool applyingTerminalCatalog;
+    // A terminal chosen before this window's layout had it.
+    private (string Workspace, string Tab)? awaitedTerminal;
 
     private Dictionary<string, Dictionary<string, string>> TerminalsByWorkspace() => Layout.State.Workspaces
         .Where(workspace => !workspace.Key.StartsWith("home:", StringComparison.Ordinal))
@@ -73,6 +75,7 @@ public sealed partial class WorkbenchWindow
             // Without a catalog (an older host, or one that refused these tabs) the terminals stay this window's own.
             if (error is not NotSupportedException) Console.Error.WriteLine("Terminals could not be shared: " + error.Message);
             if (terminalWorkspaces.Add(workspace)) RefreshTerminals(workspace);
+            RevealAwaitedTerminal();
             return;
         }
         finally { sharingWorkspaces.Remove(workspace); }
@@ -100,11 +103,20 @@ public sealed partial class WorkbenchWindow
                 var prefix = workspace + ":";
                 if (terminalWorkspaces.Add(workspace)) ready = workspace;
                 Layout.ReconcileTerminals(workspace, tabs, reservingTerminals.Where(key => key.StartsWith(prefix, StringComparison.Ordinal))
-                    .Select(key => key[prefix.Length..]).ToHashSet());
+                    .Select(key => key[prefix.Length..]).ToHashSet(), workbench.TabsInProjects);
             }
         }
         finally { applyingTerminalCatalog = false; }
         if (ready is not null) RefreshTerminals(workspaceRoot);
+        PlaceWorkspaceTabs();
+        RevealAwaitedTerminal();
+    }
+
+    private void RevealAwaitedTerminal()
+    {
+        if (awaitedTerminal is { } awaited && WorkspaceMounted && !atHome && awaited.Workspace == workspaceRoot && terminalWorkspaces.Contains(workspaceRoot) &&
+            knownTerminals.GetValueOrDefault(workspaceRoot)?.ContainsKey(awaited.Tab) == true)
+            _ = RevealTerminalAsync(awaited.Workspace, awaited.Tab);
     }
 
     // Mounts the bodies of terminal tabs that waited for the host, leaving every other content as it is.

@@ -435,15 +435,18 @@ internal static class NativeTextureChecks
             var size = Size();
             await Command(native, control, "printf 'GRID_'; stty size");
             await Until(() => Screen().Contains($"GRID_{size.Rows} {size.Columns}", StringComparison.Ordinal), "The host PTY did not receive the resized grid.");
+            var held = tab.Backend;
             using (var other = new TerminalView(factory(() => renderer), launch with { ClientId = "takeover-client" }))
             {
                 window.Content = other;
                 await other.Backend!.Started.WaitAsync(TimeSpan.FromSeconds(20));
-                await Until(() => tab.IsDetached, "Takeover was not reported to the displaced view.");
+                var taker = other.Backend;
+                await Until(() => tab.Backend != held, "Takeover was not reported to the displaced view.");
                 window.Content = tab;
-                tab.Restart();
+                await Until(() => tab.IsWatching, "The displaced view did not watch the terminal it lost.");
+                Avalonia.LogicalTree.LogicalExtensions.GetLogicalDescendants(tab).OfType<Button>().Single(button => button.Name == "TerminalTakeBack").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
                 await Started();
-                await Until(() => other.IsDetached, "Taking back did not displace the second client.");
+                await Until(() => other.Backend != taker, "Taking back did not displace the second client.");
             }
             tab.FocusTerminal();
             Type(native, "printf 'TAKEBACK_%s_%s_\\n' $$ $RENDER_CHECK\r");

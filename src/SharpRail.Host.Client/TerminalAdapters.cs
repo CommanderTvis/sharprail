@@ -114,6 +114,8 @@ internal sealed class RemoteTerminalSession(RemoteTerminalAdapter adapter, Termi
 
     public string Id => request.SessionId;
     public bool Created { get; private set; }
+    public bool Watching { get; private set; }
+    public (int Columns, int Rows) Grid { get; private set; } = (request.Columns, request.Rows);
     public long Position => Interlocked.Read(ref position);
     public ReadOnlyMemory<byte> Replay { get; private set; }
     public Task<int> Exit => exit.Task;
@@ -134,11 +136,12 @@ internal sealed class RemoteTerminalSession(RemoteTerminalAdapter adapter, Termi
                 var attached = await OpenCallAsync(linked.Token);
                 if (!connected)
                 {
-                    Created = attached.Created; Replay = attached.Data; connected = true;
+                    Created = attached.Created; Replay = attached.Data; Watching = attached.Watching; connected = true;
                     if (attached.PrefillText.Length > 0) Prefill = new(attached.PrefillText, attached.PrefillSubmit);
                 }
                 else pendingReplay = attached.Data;
                 Interlocked.Exchange(ref position, attached.Position);
+                Resized(attached);
                 if (attached.Detached) detached.TrySetResult();
                 return;
             }
@@ -172,7 +175,9 @@ internal sealed class RemoteTerminalSession(RemoteTerminalAdapter adapter, Termi
             Rows = size.Rows,
             Offset = Position,
             TabKey = request.TabKey,
-            Yield = request.Yield
+            Yield = request.Yield,
+            // A reconnect keeps the role the session has: a watcher resumes watching, a holder never becomes one.
+            Watch = connected ? Watching : request.Watch
         };
         var stream = adapter.Service.RunAsync(Inputs(attach, current.Token), new CallContext(new CallOptions(adapter.Headers, cancellationToken: current.Token)))
             .GetAsyncEnumerator(current.Token);
@@ -221,10 +226,18 @@ internal sealed class RemoteTerminalSession(RemoteTerminalAdapter adapter, Termi
             }
             if (message!.Detached) { detached.TrySetResult(); yield break; }
             if (message.Exited) { exit.TrySetResult(message.ExitCode); yield break; }
-            if (message.Data.Length == 0) continue;
-            Interlocked.Exchange(ref position, message.Position);
+            if (!Resized(message) && message.Data.Length == 0) continue;
+            if (message.Data.Length > 0) Interlocked.Exchange(ref position, message.Position);
             yield return message.Data;
         }
+    }
+
+    // An older host reports no grid: the session keeps the one it asked for.
+    private bool Resized(TerminalOutput message)
+    {
+        if (message.Columns <= 0 || message.Rows <= 0 || Grid == (message.Columns, message.Rows)) return false;
+        Grid = (message.Columns, message.Rows);
+        return true;
     }
 
     private static bool Transient(Exception error) => error switch
