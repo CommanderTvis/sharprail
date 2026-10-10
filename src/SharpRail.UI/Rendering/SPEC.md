@@ -59,7 +59,7 @@ since the kit has no theme of its own.
 - Dialogs share one compiled `Panels/DialogWindow` card (see `Panels/SPEC.md`); the solid primary button is
   marked with the `primary` class and takes `PrimaryFill`/`OnPrimary`.
 - Selected state is the `Ui.Selected` fill with `TextBrush` text, whether on a tab, a toggle segment
-  (List | Tree, Split | Inline, Preview | Source) or a rail row, so "selected" reads the same everywhere.
+  (List | Tree, Preview | Source) or a rail row, so "selected" reads the same everywhere.
 - An on/off setting is a `Switch` (`Rendering/Switch.cs`, themed in `App.axaml`): a 32 by 18 track with a
   thumb beside its label. It is a toggle button underneath, so the toggle pattern carries its state to
   assistive technology and it never shows On or Off text. Checked fills the track with `PrimaryFill`;
@@ -144,9 +144,9 @@ unavailability message. Rendered diffs pass `renderDiagrams: false` and keep the
 ## Diffs
 
 - `DiffView` shows a path chip, a hide-whitespace toggle, a copy button (copies the diff text; no clipboard
-  is a silent no-op) and either `Split | Inline` (source diffs) or `Source | Rendered` (Markdown diffs,
+  is a silent no-op) and either one side-by-side toggle (source diffs: on splits, off shows the diff inline) or `Source | Rendered` (Markdown diffs,
   rendered by default like Markdown files; choosing Source is remembered per tab). Until the user clicks
-  Split or Inline, a pane whose halves would each hold fewer than 40 code columns opens inline and a wider
+  the toggle, a pane whose halves would each hold fewer than 40 code columns opens inline and a wider
   one splits, re-derived live on resize; the toggle always shows the effective view, and a click pins it
   for that tab. A Markdown diff's Source view has no segment and always follows the width rule. Source
   lines wrap at the file line width. Upstream's diffs stopped honouring that width when they moved off the

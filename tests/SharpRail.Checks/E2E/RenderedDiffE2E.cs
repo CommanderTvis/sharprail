@@ -69,8 +69,7 @@ internal static class RenderedDiffE2E
         Require(DiffTabs(app).Count() == 1 && app.Window.Layout.Selected(app.Center)?.Kind == "diff", "The diff must open as the active tab.");
         var pane = Pane(app)!;
         Require(Named<ToggleButton>(pane, "DiffView_markdown").IsChecked == true, "A Markdown diff must start on Rendered.");
-        Require(Find<ToggleButton>(pane, "DiffSplit") is null && Find<ToggleButton>(pane, "DiffInline") is null,
-            "A Markdown diff must offer Source|Rendered instead of Split|Inline.");
+        Require(Find<ToggleButton>(pane, "DiffSplit") is null, "A Markdown diff must offer Source|Rendered instead of the side-by-side toggle.");
         Until(() => Marked(app, "ins").Contains("edited by e2e", StringComparison.Ordinal));
         var heading = Rendered(app)!.GetLogicalDescendants().OfType<SelectableTextBlock>().First(block => block.FontSize == 24);
         Require(string.Concat(heading.Inlines!.OfType<Run>().Select(run => run.Text)) == "sample-project", "The unchanged heading must render as an h1.");
@@ -89,8 +88,9 @@ internal static class RenderedDiffE2E
         pane = Pane(app)!;
         Require(Named<ToggleButton>(pane, "DiffSplit").IsChecked == true && Find<ToggleButton>(pane, "DiffView_markdown") is null,
             "A non-Markdown diff must start split with no Rendered toggle.");
-        app.Click(Named<ToggleButton>(pane, "DiffInline"));
-        Require(Named<ToggleButton>(pane, "DiffInline").IsChecked == true, "Inline must become active.");
+        app.Click(Named<ToggleButton>(pane, "DiffSplit"));
+        Require(Named<ToggleButton>(pane, "DiffSplit").IsChecked == false && Find<ToggleButton>(pane, "DiffInline") is null,
+            "One toggle switches to inline; there is no second button.");
         UntilDiff(app, text => text.Contains("edited = true", StringComparison.Ordinal));
 
         WorkspaceTabsE2E.CreateWorkspace(app, "workspace-2");

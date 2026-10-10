@@ -155,11 +155,11 @@ internal static class ChangesDiffE2E
         // Until the user picks a layout, it follows the pane width; a click pins it.
         if (OperatingSystem.IsMacOS())
         {
-            Until(() => Named<ToggleButton>(Pane(app)!, "DiffInline").IsChecked == true && Named<ToggleButton>(Pane(app)!, "DiffSplit").IsChecked == false);
+            Until(() => Named<ToggleButton>(Pane(app)!, "DiffSplit").IsChecked == false);
             app.Window.Width = 1800; Settle();
             Until(() => Named<ToggleButton>(Pane(app)!, "DiffSplit").IsChecked == true);
             app.Window.Width = 620; Settle();
-            Until(() => Named<ToggleButton>(Pane(app)!, "DiffInline").IsChecked == true);
+            Until(() => Named<ToggleButton>(Pane(app)!, "DiffSplit").IsChecked == false);
             app.Click(Named<ToggleButton>(Pane(app)!, "DiffSplit"));
             app.Window.Width = 600; Settle();
             app.Window.Width = 640; Settle();
