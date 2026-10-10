@@ -1640,3 +1640,23 @@ Not verified: input methods other than Gboard; TalkBack and other
 accessibility services; plugin UI beyond what the default workbench shows; HTTPS endpoints; CI. Known
 limits (cleartext HTTP, unencrypted stored token, one workbench window, unreachable desktop code in the
 package) are listed in `src/SharpRail.Android/SPEC.md`.
+
+## Read-only terminals — 2026-10-10
+
+Headless evidence only; no device, emulator or real window was driven. On the branch rebased onto `android`
+(78583491): `-- --shared-terminals`, `-- --terminals`, `-- --scratch`, `-- --conformance`, `-- --sync`,
+`-- --shell` and `-- --ghostty-skia` pass. They cover watching on the host locally and over gRPC (screen, live
+output, the holder's grid, ignored input, a stalled watcher, take-over, resume, exit), two remote clients of
+one host (a held terminal shown live and read-only, Take over, the previous holder watching, Take it back, a
+client composed as the Android phone listing a workspace's terminals in Projects before and after opening it,
+the Metal-style yield-then-watch path and a host that predates watching), and the real Skia view as a watcher
+(the holder's grid in a smaller pane, its resize, no keys or query replies sent, Enter on the offer).
+`scripts/android.sh apk` builds.
+
+The argument-free gate did not pass as one run: it stops at `workbench` (a project switch that never
+completes) and at `design` (two raw colours in `Panels/QrCodeView.cs`); both fail the same way on the
+unmodified `android` tip. Every other case passed, the ones after each stop through `-- --case`. Format
+verification reports one inherited final-newline error in `SharpRail.Plugins.ClaudeCode/Host/SystemPrompt.cs`.
+
+Not verified: the Metal renderers handing a watched terminal to the Skia view in a real window
+(`NativeTextureChecks` was updated but not run), touch panning of a watched terminal, and anything on a device.
