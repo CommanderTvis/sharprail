@@ -198,6 +198,8 @@ public sealed partial class SettingsWindow : Window
             title.Text = list ? "Settings" : section.StartsWith("plugin:", StringComparison.Ordinal) ? "Plugin settings" : section;
         }
         showSectionList = Show;
+        // The page stops above the workbench's page bar, which stays in reach under it.
+        Opened += (_, _) => { if (Owner is Window owner) MaxHeight = Math.Max(1, owner.Bounds.Height - window.PageBarHeight); };
         PaintNavigation();
         back.Content = Ui.Icon("arrowGoBack");
         back.Click += (_, _) => Show(true);

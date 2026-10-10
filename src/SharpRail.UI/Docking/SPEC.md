@@ -281,6 +281,8 @@ A compact workbench (`Workbench.Compact`, set by the Android client on phone-siz
   and loses its Settings button. It starts on the current page, returns to it when the centre's selected
   tab or the workspace changes and on `BackRequested`, and hides the bar while the soft keyboard is open.
 - Settings in a compact workbench opens on a list of its sections with a line about each; choosing one
-  gives it the whole page under its name, and Back or the header's arrow returns to the list.
+  gives it the whole page under its name, and Back or the header's arrow returns to the list. The page
+  stops above the page bar (its `MaxHeight`), is not dimmed, lights the bar's Settings item, and closes
+  when another item is chosen.
 
 `DrawerChecks` (in `-- --shell`) covers this headlessly. Dragging tabs between regions is not offered here.

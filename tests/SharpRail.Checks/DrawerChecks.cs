@@ -96,6 +96,8 @@ internal static class DrawerChecks
         var settings = new SettingsWindow(window, () => { });
         settings.Show(window);
         Dispatcher.UIThread.RunJobs();
+        Require(window.PageBarHeight > 0 && settings.MaxHeight <= window.Bounds.Height - window.PageBarHeight + .5,
+            "Compact Settings must stop above the page bar.");
         var pane = Named<Border>(settings, "SettingsNavigationPane");
         var up = Named<Button>(settings, "SettingsBack");
         Require(pane.IsVisible && !up.IsVisible && Named<TextBlock>(settings, "SettingsTitle").Text == "Settings", "Compact Settings must open on its list of sections.");
@@ -112,6 +114,15 @@ internal static class DrawerChecks
             !Named<TextBlock>(settings, "EditorTabsLabel").IsVisible, "A workbench that keeps its tabs in Projects must not offer another place for them.");
         Require(Named<Button>(settings, "DefaultPane_horizontal").IsEnabled, "Pane direction must stay available where tabs always live in Projects.");
         settings.Close();
+        window.ShowSettings();
+        Dispatcher.UIThread.RunJobs();
+        var shown = window.OwnedWindows.OfType<SettingsWindow>().Single();
+        Require(!window.GetLogicalDescendants().OfType<Border>().Any(border => border.Background == Ui.Overlay && border.IsVisible && border.Name is null),
+            "Compact Settings must not dim the workbench, whose page bar stays in use.");
+        Click(projects);
+        Pump(() => !window.OwnedWindows.OfType<SettingsWindow>().Any(), "Choosing another page must close Settings.");
+        Require(layout.State.LeftVisible, "Choosing Projects from Settings must open Projects.");
+        _ = shown;
         window.Close();
         Console.WriteLine("PASS phone pages: the bottom bar moves between Projects, the current tab, Tools and Settings, and a choice or Back returns");
     }

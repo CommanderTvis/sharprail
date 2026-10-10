@@ -5,6 +5,8 @@ using Avalonia.Controls.Platform;
 using Avalonia.Layout;
 using Avalonia.Media;
 
+using SharpRail.UI.Panels;
+
 namespace SharpRail.UI;
 
 // On a phone-sized screen the workbench is one page at a time, chosen from a bar at the bottom: Projects, the
@@ -13,6 +15,17 @@ namespace SharpRail.UI;
 public sealed partial class WorkbenchWindow
 {
     private string pageContext = "";
+    private SettingsWindow? openSettings;
+
+    /// <summary>The height the page bar takes at the bottom of the window; nothing where there is none.</summary>
+    internal double PageBarHeight => this.FindControl<Border>("PageBar") is { IsVisible: true } bar ? bar.Bounds.Height : 0;
+
+    // Settings is a page like the others in a compact workbench: its item is lit while it shows.
+    private void SettingsShown(SettingsWindow? settings)
+    {
+        openSettings = settings;
+        foreach (var update in pageBarUpdates) update();
+    }
     private readonly List<Action> pageBarUpdates = [];
 
     private void WireDrawers()
@@ -23,11 +36,11 @@ public sealed partial class WorkbenchWindow
         var bar = this.FindControl<Border>("PageBar")!;
         var items = this.FindControl<Grid>("PageBarItems")!;
         bar.IsVisible = true;
-        PageItem(items, 0, "PageProjects", () => "folderTab", () => "Projects", () => Layout.State.LeftVisible, () => ShowPage("left"));
+        PageItem(items, 0, "PageProjects", () => "folderTab", () => "Projects", () => openSettings is null && Layout.State.LeftVisible, () => ShowPage("left"));
         PageItem(items, 1, "PageCurrent", () => CurrentIsTerminal() ? "terminal" : "fileText", () => CurrentIsTerminal() ? "Terminal" : "Editor",
-            () => !Layout.State.LeftVisible && !Layout.State.RightVisible, () => ShowPage(null));
-        PageItem(items, 2, "PageTools", () => "stack", () => "Tools", () => Layout.State.RightVisible, () => ShowPage("right"));
-        PageItem(items, 3, "PageSettings", () => "settings", () => "Settings", () => false, () => ShowSettings());
+            () => openSettings is null && !Layout.State.LeftVisible && !Layout.State.RightVisible, () => ShowPage(null));
+        PageItem(items, 2, "PageTools", () => "stack", () => "Tools", () => openSettings is null && Layout.State.RightVisible, () => ShowPage("right"));
+        PageItem(items, 3, "PageSettings", () => "settings", () => "Settings", () => openSettings is not null, () => { if (openSettings is null) ShowSettings(); });
         pageContext = PageContext();
         Layout.Changed += PageChanged;
         Layout.SelectionChanged += _ => PageChanged();
@@ -76,6 +89,7 @@ public sealed partial class WorkbenchWindow
 
     private void ShowPage(string? region)
     {
+        openSettings?.Close();
         CloseDrawers();
         if (region is not null) Layout.Visible(region, true);
     }

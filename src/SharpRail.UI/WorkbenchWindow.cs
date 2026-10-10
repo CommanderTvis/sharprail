@@ -617,13 +617,15 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
 
     public void ShowSettings()
     {
-        var undim = Dim();
+        // A compact workbench shows Settings as a page above its page bar, which must stay clear and in reach.
+        var undim = workbench.Compact ? () => { } : Dim();
         var settings = new SettingsWindow(this, () =>
         {
             RefreshAppearance(); ReportProfileError();
             foreach (var window in workbench.Windows) window.ApplyTabLayout();
         }, GitHubStatusProbe, settingsSection);
-        settings.Closed += (_, _) => { settingsSection = settings.Section; undim(); };
+        settings.Closed += (_, _) => { settingsSection = settings.Section; undim(); SettingsShown(null); };
+        SettingsShown(settings);
         _ = settings.ShowDialog(this);
     }
 }
