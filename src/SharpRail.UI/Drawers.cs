@@ -2,6 +2,8 @@ using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Platform;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 
@@ -24,6 +26,7 @@ public sealed partial class WorkbenchWindow
     private void SettingsShown(SettingsWindow? settings)
     {
         openSettings = settings;
+        if (settings is not null) WireSettingsSwipe(settings);
         foreach (var update in pageBarUpdates) update();
     }
     private readonly List<Action> pageBarUpdates = [];
@@ -50,6 +53,7 @@ public sealed partial class WorkbenchWindow
             CloseDrawers();
             e.Handled = true;
         });
+        WirePageSwipes();
         // The keyboard takes the bar's place: typing needs the rows more than it needs navigation.
         Opened += (_, _) =>
         {
@@ -85,6 +89,85 @@ public sealed partial class WorkbenchWindow
         pageBarUpdates.Add(Paint);
         Paint();
         Ui.Place(items, button, 0, column);
+    }
+
+    // The pages lie side by side: Projects, the current tab, Tools. A finger travelling sideways drags the
+    // neighbour in with it; let go far enough or fast enough and that page stays, otherwise the old one returns.
+    // A touch that started out vertical belongs to what is under it.
+    private void WirePageSwipes()
+    {
+        (IPointer Pointer, Point Start, long At)? touch = null;
+        (int From, int Sign)? drag = null;
+        var pastTools = false;
+        static string? Region(int page) => page < 0 ? "left" : page > 0 ? "right" : null;
+        AddHandler(PointerPressedEvent, (_, e) =>
+        {
+            // A drag whose touch the system took away never lifted: it ends where it was going.
+            if (drag is not null) { drag = null; surface.ReleasePage(true, () => { }); }
+            touch = e.Pointer.Type == PointerType.Touch && openSettings is null ? (e.Pointer, e.GetPosition(this), Environment.TickCount64) : null;
+            pastTools = false;
+        }, RoutingStrategies.Tunnel, handledEventsToo: true);
+        AddHandler(PointerMovedEvent, (_, e) =>
+        {
+            if (touch is not { } start || start.Pointer != e.Pointer) return;
+            var moved = e.GetPosition(this) - start.Start;
+            if (drag is null)
+            {
+                if (Math.Abs(moved.Y) > 24 && Math.Abs(moved.Y) > Math.Abs(moved.X)) { touch = null; return; }
+                if (Math.Abs(moved.X) < 20 || Math.Abs(moved.X) < 2 * Math.Abs(moved.Y)) return;
+                var page = Layout.State.LeftVisible ? -1 : Layout.State.RightVisible ? 1 : 0;
+                var next = Math.Clamp(page - Math.Sign(moved.X), -1, 1);
+                // Settings lies past Tools, but in a window of its own: nothing to drag in, so the lift opens it.
+                if (next == page) { pastTools = page > 0; if (!pastTools) touch = null; return; }
+                drag = (page, Math.Sign(moved.X));
+                surface.HoldPage(() => ShowPage(Region(next)));
+            }
+            surface.DragPage(moved.X);
+            e.Handled = true;
+        }, RoutingStrategies.Tunnel, handledEventsToo: true);
+        AddHandler(PointerReleasedEvent, (_, e) =>
+        {
+            if (touch is not { } start || start.Pointer != e.Pointer) return;
+            touch = null;
+            if (pastTools && drag is null)
+            {
+                var swept = e.GetPosition(this) - start.Start;
+                if (swept.X < -64 && Math.Abs(swept.X) > 2 * Math.Abs(swept.Y)) ShowSettings();
+                return;
+            }
+            if (drag is not { } dragged) return;
+            drag = null;
+            var travelled = (e.GetPosition(this).X - start.Start.X) * dragged.Sign;
+            var stays = travelled > Bounds.Width / 3 || travelled > 48 && Environment.TickCount64 - start.At < 350;
+            surface.ReleasePage(stays, () => ShowPage(Region(dragged.From)));
+            e.Handled = true;
+        }, RoutingStrategies.Tunnel, handledEventsToo: true);
+    }
+
+    // Settings is the last page: a finger swept to the right over it goes back to the one before.
+    private static void WireSettingsSwipe(SettingsWindow settings)
+    {
+        (IPointer Pointer, Point Start)? touch = null;
+        settings.AddHandler(PointerPressedEvent, (_, e) =>
+        {
+            touch = e.Pointer.Type == PointerType.Touch ? (e.Pointer, e.GetPosition(settings)) : null;
+        }, RoutingStrategies.Tunnel, handledEventsToo: true);
+        settings.AddHandler(PointerReleasedEvent, (_, e) =>
+        {
+            if (touch is not { } start || start.Pointer != e.Pointer) return;
+            touch = null;
+            var swept = e.GetPosition(settings) - start.Start;
+            if (swept.X > 64 && Math.Abs(swept.X) > 2 * Math.Abs(swept.Y)) settings.Close();
+        }, RoutingStrategies.Tunnel, handledEventsToo: true);
+    }
+
+    /// <summary>Moves to the neighbouring page: a finger travelling right uncovers the page on the left.</summary>
+    internal void SwipePage(bool towardsLeft)
+    {
+        if (openSettings is not null) return;
+        var page = Layout.State.LeftVisible ? -1 : Layout.State.RightVisible ? 1 : 0;
+        var next = Math.Clamp(page + (towardsLeft ? -1 : 1), -1, 1);
+        if (next != page) ShowPage(next < 0 ? "left" : next > 0 ? "right" : null);
     }
 
     private void ShowPage(string? region)

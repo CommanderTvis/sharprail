@@ -172,7 +172,7 @@ public sealed partial class ScintillaEditor
         {
             if (!tapping) return;
             tapping = false;
-            Focus(); Mouse(e, 0); Mouse(e, 2); inputClient.ShowPanel();
+            Focus(); Mouse(e, 0); Mouse(e, 2); SoftKeyboard(true); inputClient.ShowPanel();
             return;
         }
         Mouse(e, 2); draggingSelection = false; e.Pointer.Capture(null);

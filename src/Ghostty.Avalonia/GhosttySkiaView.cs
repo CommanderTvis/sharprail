@@ -48,6 +48,7 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
         vt.OptionAsAlt = OperatingSystem.IsMacOS();
         blink.Tick += (_, _) => { cursorOn = !cursorOn; Redraw(snapshot: false); };
         AddHandler(TextInputMethodClientRequestedEvent, (_, e) => e.Client = InputMethod, RoutingStrategies.Bubble);
+        SoftKeyboard(false);
         // A soft keyboard types what its keys say: no sentence capitals, and no suggestions rewriting the command line.
         TextInputOptions.SetMultiline(this, true);
         TextInputOptions.SetAutoCapitalization(this, false);

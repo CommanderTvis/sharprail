@@ -308,10 +308,12 @@ public sealed partial class DockSurface
                 // Like VS Code, an unsaved tab shows a dot that turns into the close button on hover.
                 void ShowClose(bool shown)
                 {
+                    shown |= CloseAlwaysShown;
                     close.Opacity = shown ? 1 : 0;
                     modifiedDot!.IsVisible = !shown && IsModified?.Invoke(tab) == true;
                     modifiedDot.Background = title.Foreground;
                 }
+                if (CloseAlwaysShown) ShowClose(true);
                 chrome.PointerEntered += (_, _) => ShowClose(true);
                 chrome.PointerExited += (_, _) => ShowClose(button.IsKeyboardFocusWithin);
                 button.GotFocus += (_, _) => ShowClose(true);

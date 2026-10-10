@@ -151,13 +151,8 @@ internal sealed class SpecsPanel : DockPanel
         AutomationProperties.SetName(node, spec.Title);
         AutomationProperties.SetHelpText(node, spec.Path + " · " + role.Text);
         ToolTip.SetTip(node, spec.Title + "\n" + spec.Id + " · " + spec.Type);
-        node.AddHandler(PointerPressedEvent, (_, e) =>
-        {
-            if (e.Source is not Control source || !IsOwnHeader(node, source) ||
-                !e.GetCurrentPoint(node).Properties.IsLeftButtonPressed || source is ToggleButton ||
-                source.GetVisualAncestors().OfType<ToggleButton>().Any()) return;
-            _ = context.Editors.OpenAsync(workspace, spec.Path, new() { Preview = e.ClickCount < 2 });
-        }, RoutingStrategies.Bubble, handledEventsToo: true);
+        RowActivation.OnActivate(node, source => IsOwnHeader(node, source) && source is not ToggleButton && !source.GetVisualAncestors().OfType<ToggleButton>().Any(),
+            clicks => _ = context.Editors.OpenAsync(workspace, spec.Path, new() { Preview = clicks < 2 }));
         node.KeyDown += (_, e) =>
         {
             if (e.Key != Key.Enter) return;

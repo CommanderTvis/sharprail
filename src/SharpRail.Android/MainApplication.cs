@@ -14,5 +14,6 @@ public sealed class MainApplication(nint handle, JniHandleOwnership ownership) :
     {
         base.OnCreate();
         AppBuilder.Configure<App>().UseAndroid().AfterPlatformServicesSetup(_ => AndroidWindows.Install()).LogToTrace().SetupWithoutStarting();
+        TouchClicks.Install();
     }
 }

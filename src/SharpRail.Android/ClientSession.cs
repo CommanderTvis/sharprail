@@ -17,6 +17,17 @@ public sealed class ClientSession(string filesDirectory, bool compact) : IDispos
     private readonly List<IDisposable> adapters = [];
     private Workbench? workbench;
     private DispatcherTimer? watch;
+    private int unreachable;
+
+    /// <summary>
+    /// Whether the app is on screen. Android cuts a background app's connections, so the host is given its
+    /// full time to answer again from the moment the app returns.
+    /// </summary>
+    public bool Foreground
+    {
+        get;
+        set { field = value; unreachable = 0; }
+    } = true;
     // How long the host may stay unreachable, counted while the app runs, before the workbench gives way.
     private const int LostAfterSeconds = 45;
     private bool disposed;
@@ -92,19 +103,19 @@ public sealed class ClientSession(string filesDirectory, bool compact) : IDispos
         // Android draws terminals with Skia only; the host runs their shells.
         var factory = TerminalBackends.Ghostty(new RemoteTerminalConnection(address, token, terminals), () => TerminalRenderers.Skia);
         Endpoint = endpoint;
-        workbench = new Workbench(profile, state, factory, remote: true, sessions, plugins, catalog) { Endpoint = address.ToString(), Compact = compact, TabsInProjects = true, ChangeHost = ChangeHost };
+        workbench = new Workbench(profile, state, factory, remote: true, sessions, plugins, catalog) { Endpoint = address.ToString(), Compact = compact, TabsInProjects = true, Touch = true, ChangeHost = ChangeHost };
         // The activity holds one workbench window; a profile never restores more.
         var slot = profile.Data.Windows[0];
         profile.Data.Windows.RemoveRange(1, profile.Data.Windows.Count - 1);
         workbench.Open(slot, slot.LastProject).Show();
         // The workbench retries a dropped host by itself; one that stays away sends the user back to the
         // connect screen, where the address can be corrected. Seconds are counted, not read from a clock,
-        // so time the app spent suspended does not count against the host.
-        var unreachable = 0;
+        // so time the app spent suspended or in the background does not count against the host.
+        unreachable = 0;
         watch = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
         watch.Tick += (_, _) =>
         {
-            unreachable = state.Connected ? 0 : unreachable + 1;
+            unreachable = state.Connected || !Foreground ? 0 : unreachable + 1;
             if (unreachable < LostAfterSeconds) return;
             Close();
             ShowConnect(endpoint).Report("The host at " + address.Authority + " stopped answering.");

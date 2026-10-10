@@ -130,10 +130,22 @@ internal static class ClaudeLauncherAction
             BorderThickness = new Thickness(0),
             CornerRadius = new CornerRadius(0)
         };
-        ToolTip.SetTip(button, "Start Claude Code (right-click for options)");
         Avalonia.Automation.AutomationProperties.SetName(button, "Start Claude Code");
-        button.Click += (_, _) => Launch();
         var menu = new ContextMenu { Name = "ClaudeLaunchMenu", Placement = PlacementMode.BottomEdgeAlignedLeft };
+        // A touch screen has no right click: a tap opens the options, and the plain start is the first of them.
+        if (OperatingSystem.IsAndroid())
+        {
+            button.Click += (_, _) => menu.Open(button);
+            var plain = new MenuItem { Name = "ClaudeLaunch_default", Header = "Start Claude Code", Icon = glyph.Create(14) };
+            plain.Click += (_, _) => Launch();
+            menu.Items.Add(plain);
+            menu.Items.Add(new Separator());
+        }
+        else
+        {
+            ToolTip.SetTip(button, "Start Claude Code (right-click for options)");
+            button.Click += (_, _) => Launch();
+        }
         for (var index = 0; index < ClaudeLaunch.Menu.Count; index++)
         {
             if (index > 0) menu.Items.Add(new Separator());
