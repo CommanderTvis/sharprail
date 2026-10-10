@@ -66,7 +66,23 @@ and empty payloads, approved/denied reads, repeated permission and terminal rese
 refused grids and start guidance (`TerminalLimitChecks.cs`); a stalled reader and a silent connection
 (`TerminalBackpressureChecks.cs`); and the terminal catalog, its storage, catalog-keyed revival and a
 removed worktree's shells (`TerminalCatalogChecks.cs`); and the host replay size with its Settings control
-(`TerminalReplayChecks.cs`).
+(`TerminalReplayChecks.cs`). Yielding attach is checked locally and through gRPC in `TerminalHostChecks.cs`: a
+held session keeps its client and grid, a free one is joined, and a plain attach takes over at its own size.
+Watching is checked beside it on both paths: a watcher gets the screen, live output and the holder's grid, its
+input, resize and kill change nothing, a watcher nobody reads holds back neither the shell nor the others and
+starts over from a reset and a fresh screen, a take-over swaps roles and grid, a resize alone reaches
+watchers, a watcher's resume replays only what it missed, and exit reaches every watcher.
+`E2E/SharedTerminalsE2E.cs` runs two remote clients of one real gRPC host, each with its own profile, connection
+and grid: the second shows the first's terminals, a terminal opened in one arrives in the other without selection,
+focus or an attachment, closing in either removes it from both and from the catalog, a held terminal is shown
+live and read-only rather than taken, resized or typed into, Take over and Take it back move the shell and its
+size while the other side keeps watching, and a relaunched client watches the holder's terminal and attaches
+once nobody holds it. A client composed as the Android phone (compact, tabs in Projects, bottom panel hidden)
+lists a workspace's terminals under its row on the Projects page before opening it, returns to the current
+page when one is chosen and has them all in the centre and its strip after, and a view whose renderer cannot watch, or whose host predates watching, falls back as specified.
+`-- --shared-terminals` runs this file alone. The upstream translations whose second client
+enters a workspace now press Take over first, and "a terminal opened in one browser never creates placement in
+another" is replaced by the passive-arrival check, since SharpRail shares every catalogued terminal.
 `--notifications` (`AwayNotificationChecks.cs`) enables the real Claude Code and Codex UI halves, injects
 status pushes on their channels and records what would reach the system: which transitions notify, the
 focused-app, continuation-Stop, interrupted-run, answered-attention, closed-tab and setting-off silences,
@@ -427,6 +443,14 @@ reach 150% from one half-step as upstream's gesture case does, and stay within 2
 pans the zoomed diagram by the pointer's travel, clamps at the edges, ends on release and ignores other
 buttons and unpressed movement; Reset returns the scroll origin. Malformed-source fallback, full-screen
 growth, zoom reset and Escape are in the same case; theme checks cover re-rendering.
+
+## Android client
+
+`AndroidClientChecks` compiles the client's `HostEndpoint.cs` into the checks, since the Android project builds
+only with the Android workload: address parsing (default port, written ports including the scheme's own,
+HTTPS, IPv6, rejected input) and the remembered endpoint (absent, saved, damaged, forgotten). `-- --android`
+runs it. The boundary scan gives `SharpRail.Android` the UI's dependencies without `SharpRail.Host.Remote`.
+Windowing, the connect screen and everything on a device are not asserted.
 
 ## Quit and close commands
 

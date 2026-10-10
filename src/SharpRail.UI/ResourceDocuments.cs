@@ -57,7 +57,7 @@ public sealed partial class WorkbenchWindow
     private IReadOnlyList<ResourceRenderer> ViewCandidates(ResourceDescriptor resource, FileDocument document)
     {
         var candidates = Renderers.Resolve(resource, ResourceIntent.View).Where(renderer =>
-            renderer.Id != ResourceRegistry.Markdown || document.Text.Length <= ViewerLimits.RenderedMarkdown || !OperatingSystem.IsMacOS()).ToArray();
+            renderer.Id != ResourceRegistry.Markdown || document.Text.Length <= ViewerLimits.RenderedMarkdown || !SharpRail.Scintilla.ScintillaEditor.IsSupported).ToArray();
         return candidates.Any(renderer => renderer.Id == ResourceRegistry.Markdown)
             ? [.. candidates.Where(renderer => renderer.Id != ResourceRegistry.Code)] : candidates;
     }
@@ -94,7 +94,7 @@ public sealed partial class WorkbenchWindow
         var key = view.Resource.Workspace + ":" + view.TabId;
         var document = documents[key];
         var hasPreview = view.TabId.StartsWith("markdown:", StringComparison.Ordinal) && document.Text.Length <= ViewerLimits.RenderedMarkdown;
-        if (!OperatingSystem.IsMacOS())
+        if (!SharpRail.Scintilla.ScintillaEditor.IsSupported)
             return new ScrollViewer
             {
                 Name = hasPreview ? "MarkdownSource" : null,

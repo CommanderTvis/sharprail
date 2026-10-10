@@ -139,8 +139,10 @@ internal sealed partial class DiffView : Grid, IDisposable
         // A Markdown source diff has no segment to pick with, so it always follows.
         SizeChanged += (_, args) =>
         {
-            if (layoutPinned || !OperatingSystem.IsMacOS() || args.NewSize.Width <= 0) return;
+            if (!ScintillaEditor.IsSupported || args.NewSize.Width <= 0) return;
             var narrow = (args.NewSize.Width / 2 - SideChrome) < LineWidths.Code(MinimumSplitColumns);
+            split.IsVisible = !narrow && this.choices.Count == 1 && !IsRendered;
+            if (layoutPinned && !narrow) return;
             var sideBySide = !narrow && !singleSided;
             if (sideBySide == (split.IsChecked == true)) return;
             split.IsChecked = sideBySide;
@@ -455,9 +457,12 @@ internal sealed partial class DiffView : Grid, IDisposable
     private void Render()
     {
         Check();
-        // The source view of a file with other views is always side by side; Scintilla is macOS-only.
-        split.IsVisible = !embedded && choices.Count == 1 && !IsRendered && OperatingSystem.IsMacOS();
-        whitespace.IsVisible = !embedded && !IsRendered && OperatingSystem.IsMacOS();
+        if (Bounds.Width > 0 && (Bounds.Width / 2 - SideChrome) < LineWidths.Code(MinimumSplitColumns))
+            split.IsChecked = false;
+        // The source view of a file with other views is always side by side; the editor needs its native library.
+        split.IsVisible = !embedded && choices.Count == 1 && !IsRendered && ScintillaEditor.IsSupported
+            && (Bounds.Width / 2 - SideChrome) >= LineWidths.Code(MinimumSplitColumns);
+        whitespace.IsVisible = !embedded && !IsRendered && ScintillaEditor.IsSupported;
         copy.IsVisible = choices.Any(choice => choice.Render is null);
         outline.IsVisible = IsRendered;
         // Identical sides leave nothing to restore.
@@ -478,7 +483,7 @@ internal sealed partial class DiffView : Grid, IDisposable
             empty.Name = "DiffEmpty"; empty.Margin = new Thickness(24); empty.HorizontalAlignment = HorizontalAlignment.Left;
             Ui.Place(body, empty); return;
         }
-        if (!OperatingSystem.IsMacOS())
+        if (!ScintillaEditor.IsSupported)
         {
             Ui.Place(body, new ScrollViewer { Content = MarkdownPreview.Code(text), Margin = new Thickness(24, 8), HorizontalScrollBarVisibility = ScrollBarVisibility.Auto });
             return;

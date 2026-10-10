@@ -26,6 +26,9 @@ library; remoteness is an adapter choice, never a mandatory local daemon.
   the only coupling between a remote client and host.
 - Client: `SharpRail.UI` (Avalonia workbench) consumes the abstractions through `SharpRail.Host.Client`,
   whose `Local*Adapter`s call Core directly and whose `Remote*Adapter`s proxy over gRPC.
+  `SharpRail.Android` is the same workbench compiled for Android and composed with the remote adapters only:
+  it has no embedded host and connects to an endpoint a desktop app or `SharpRail.Host.Remote` serves
+  (`src/SharpRail.Android/SPEC.md`).
 - Plugins: `SharpRail.Plugins.Api` (root, `.Host` and `.UI` entries) is the contract a plugin is written
   against, so its methods, channels and UI contributions can live outside either ring. The host runtime
   (`SharpRail.Host.Core/Plugins`) loads plugin host halves wherever the host runs; the app runtime
@@ -34,6 +37,7 @@ library; remoteness is an adapter choice, never a mandatory local daemon.
 
 ```
 SharpRail.UI              Avalonia app + workbench   ── depends on ─▶ Host.Core, Host.Client, Host.Remote (loopback server only), Plugins.Api.UI, Plugins.UI.Kit, Scintilla, Ghostty.Avalonia
+SharpRail.Android         Android client: UI sources + windowing ─ depends on ─▶ Host.Core, Host.Client, Plugins.Api.UI, Plugins.UI.Kit, Scintilla, Ghostty.Avalonia (not Host.Remote)
 SharpRail.Host.Client     local adapters + gRPC proxies ─ depends on ─▶ Host.Abstractions, Host.Protocol
 SharpRail.Host.Remote     Kestrel host + RPC adapters ── depends on ─▶ Host.Core, Host.Protocol
 SharpRail.Host.Core       host implementation        ── depends on ─▶ Host.Abstractions, Plugins.Api.Host
@@ -50,7 +54,8 @@ tests/SharpRail.Checks    executable checks; references UI and Remote to exercis
 ## Decisions
 
 1. Client/host split. The host owns domain state; the UI renders it. Host projects never reference the
-   UI or Avalonia. The UI references Core to compose the embedded host; it does not reference Remote.
+   UI or Avalonia. The UI references Core to compose the embedded host, and Remote only to serve that host (the
+   loopback server and the Settings › Host listener).
 2. The host is a library; the launcher is thin. `SharpRail.UI/Program.cs` and `App.cs` compose one
    app-owned `Workbench` (profile, shared-state subscription, terminal factory, per-window project session
    factory); the remote `Program.cs` reads its root, bind address, port, token and state directory from
@@ -138,4 +143,4 @@ tests/SharpRail.Checks    executable checks; references UI and Remote to exercis
 - PDF page-pair diffs and sanitised HTML for byte-only content on a diff side. Bytes are fetched over gRPC
   at an immutable commit (not HTTP routes); the host never executes content and the UI draws pixels only,
   so repository script never runs.
-- A mobile shell projecting the same panels.
+- A mobile shell projecting the same panels. The Android client shows the desktop workbench unchanged.

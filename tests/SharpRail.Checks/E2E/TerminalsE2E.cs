@@ -41,7 +41,13 @@ internal static class TerminalsE2E
     private static string GroupOf(E2eWorkspace app, DockTab tab) =>
         app.Window.Layout.State.Groups.Single(group => app.Window.Layout.Tabs(group.Id).Any(item => item.Id == tab.Id)).Id;
 
-    internal static TerminalView View(E2eWorkspace app, DockTab tab) => app.Find<TerminalView>("TerminalSurface_" + tab.Id.Replace(':', '_'));
+    // A body mounts once the host has confirmed its tab, which is a round trip after the tab appears.
+    internal static TerminalView View(E2eWorkspace app, DockTab tab)
+    {
+        var name = "TerminalSurface_" + tab.Id.Replace(':', '_');
+        Until(() => app.Window.GetLogicalDescendants().OfType<TerminalView>().Any(view => view.Name == name));
+        return app.Find<TerminalView>(name);
+    }
 
     internal static bool Presented(E2eWorkspace app, TerminalView view) => view.GetVisualAncestors().Contains(app.Window) && view.IsEffectivelyVisible;
 

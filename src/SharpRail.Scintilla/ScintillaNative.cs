@@ -6,6 +6,14 @@ internal static unsafe class ScintillaNative
 {
     private const string Library = "SharpRail.Scintilla";
 
+    // The library ships in the APK's lib/<abi> directory, which only the system linker searches, by file name.
+    static ScintillaNative()
+    {
+        if (OperatingSystem.IsAndroid())
+            NativeLibrary.SetDllImportResolver(typeof(ScintillaNative).Assembly, (name, _, _) =>
+                name == Library ? NativeLibrary.Load("libSharpRail.Scintilla.so") : 0);
+    }
+
     [StructLayout(LayoutKind.Sequential)]
     internal struct DrawCommand
     {

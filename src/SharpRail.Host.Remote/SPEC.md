@@ -46,6 +46,14 @@ used by remote deployments, the app's optional runtime listener and transport in
 <unix ms>` once listening, for launchers and checks to wait on. Binding beyond
 loopback is an explicit opt-in via `SHARPRAIL_BIND`.
 
+`scripts/host.sh` builds and launches only this host, binding to `0.0.0.0`.
+It uses `SHARPRAIL_TOKEN` or generates a fresh session token, and prints a terminal
+QR code and `sharprail://connect?host=…&token=…` link for the Android client.
+The advertised address is the first active non-loopback IPv4 address; set
+`SHARPRAIL_CONNECT_HOST` to override its hostname/IP. The port, root, state directory
+and build configuration retain their environment overrides. The QR helper uses
+the pinned QRCoder package through the checkout's .NET file-based app support.
+
 ## Connection authentication
 
 - Every request must carry `authorization: Bearer <token>`. A middleware ahead of
@@ -103,8 +111,9 @@ unauthenticated peer learns nothing about the host's version.
   releases its terminals. Stopping an embedded server from a UI thread must not deadlock its cleanup.
 - A terminal call is one attachment: dropping the call detaches, and the shell
   keeps running on the host until it exits, its tab closes or the host stops.
-  Output goes only to the attached client; another attach takes the session over
-  and the previous call ends with a detached frame.
+  Output goes to the client that holds the session and to every watching call; another plain attach takes
+  the session over and the previous holder's call ends with a detached frame. A watching call reports the
+  holder's grid with every frame, and its data, resize and kill messages change nothing.
 - Request bodies and gRPC messages are capped from `FileLimits`, sized for the
   largest save.
 

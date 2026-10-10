@@ -46,6 +46,7 @@ and nullable/warnings-as-errors gate.
 | `src/SharpRail.UI/Terminal` | Terminal tab body (`TerminalView`: start failure/retry, exit notice), the Ghostty native-control bridge for local and relayed remote sessions, and the `--terminal-relay` mode. |
 | `src/SharpRail.UI/Notifications` | Away notifications for terminals whose agent needs the user: the collection window and gates (`AttentionNotifications`), the injected `IDesktopNotifier` and the macOS channel over `Native/Notifications.m`. |
 | `src/SharpRail.UI/Assets` | The bundled theme manifests; the icons and fonts, with their licenses, live in the kit's `Assets`. |
+| `src/SharpRail.Android` | The Android client: the UI's sources compiled for Android as a client of a remote host, with the windowing layer (`Windowing/`), the connect screen and the remembered endpoint. Not in `SharpRail.slnx`; its `SPEC.md` holds the composition rules and limits. |
 | `src/Ghostty.Avalonia` | Independent Ghostty controls: hosted AppKit/Metal, Metal textures composed by Avalonia, and libghostty-vt drawn by Skia; native bridges, build script and licenses. Its README documents reuse and limits. |
 | `tests/SharpRail.Checks` | Executable checks for host transports, runtime extensibility, layout, UI and Git/worktree integration. `E2E/` translates upstream scenarios using real headless Avalonia input. |
 | `scripts/dev.sh` | Builds and runs the app from source in one step (`SHARPRAIL_PROFILE` keeps a separate profile). |
@@ -56,6 +57,9 @@ and nullable/warnings-as-errors gate.
 | `scripts/check-terminal.sh` | Runs the native shell/Metal probe; the checks executable's `--native-terminal` mode exercises Avalonia integration. |
 | `scripts/check-packaged.sh` | Runs the check gate from a staged copy of `artifacts/SharpRail.app`, so the files under test are the packaged ones. |
 | `scripts/publish.sh` | Publishes non-composite R2R UI, remote host and checks; refreshes and signs the canonical `artifacts/SharpRail.app`. Check for a live app process before replacing it. |
+| `scripts/dmg.sh` | Packs `artifacts/SharpRail.app` into `artifacts/SharpRail.dmg` (or the path given) with an Applications shortcut. `.github/workflows/nightly.yml` runs it and `android.sh apk` at 03:00 UTC, keeps both packages as workflow artifacts and replaces the `nightly` prerelease with them. |
+| `scripts/android.sh` | Builds the Android client (`build`), installs and starts it on the connected device or emulator (`run`), or writes the Release package to `artifacts/android/SharpRail.apk` (`apk`). Needs `ANDROID_HOME` and a JDK 17 or 21 in `JAVA_HOME`; signs with the key in `SHARPRAIL_ANDROID_KEYSTORE` when set; installs the `android` workload into `.tools/dotnet`. |
+| `scripts/android-ndk.sh` | Installs the pinned Android NDK under `.tools/android-ndk` and prints its path; `build-android.sh` in `src/Ghostty.Avalonia` and `src/SharpRail.Scintilla` build the Android terminal and editor libraries with it. |
 | `.bench` | Ignored disposable fixtures, verification logs and own-window captures. Its name does not authorize benchmarks. |
 
 ## Scratch files
@@ -161,7 +165,8 @@ The workbench is split into partial files rather than separate window classes:
 | `GestureNotification.cs` | Feedback when layout transitions cancel an active gesture. |
 | `HostSync.cs` | Applying shared-state broadcasts and reconnects to the window. |
 | `Workbench.cs` | App-owned composition shared by windows and the per-window profile entries. |
-| `TerminalTabs.cs` | Confirmation before closing terminals that run a foreground process. |
+| `TerminalTabs.cs` | Confirmation before closing terminals that run a foreground process, and keeping the window's terminal tabs those of the host's catalog. |
+| `Drawers.cs` | The phone-sized workbench: one page at a time from a bar at the bottom (Projects, the current tab, Tools, Settings). |
 | `BranchList.cs` | The title bar branch's popover: local branches with their worktrees, deletion and Fetch. |
 
 Host dependencies flow toward abstractions: Abstractions references only the plugin API's root;
@@ -175,6 +180,17 @@ Checks reference the UI and Remote to exercise both paths. Do not introduce a UI
 dependency into the host projects. Plugins (`src/SharpRail.Plugins.Api/SPEC.md`) reference only the API assemblies, the
 kit and their dependencies' contracts; external plugins install under `<stateDir>/plugins/<id>/` with a
 `sharprail-plugin.json` manifest.
+
+The Android client (`src/SharpRail.Android`) is a client only: no embedded host, PTY or relay, just the
+remote adapters against a host's gRPC endpoint. It compiles the sources of `src/SharpRail.UI` under the same
+assembly name instead of referencing the project, because the UI's host-serving half needs Remote and
+ASP.NET Core. Every shared UI source must therefore stay compilable for Android: desktop-only host-serving
+code goes under `#if !ANDROID` or into a file the Android project excludes (`Program.cs`,
+`Terminal/LoopbackTerminals.cs`, `Panels/HostSettings.cs`). Windows are real `Window`s there too, supplied
+by the project's `Windowing/` over Avalonia 12.1.3 internals: a window sized to its content shows as a
+bottom sheet and any other owned window as a full-screen page. Shared code keeps opening windows as on
+desktop; only their Android look (the kit's sheet card, Settings without its card frame) is special-cased.
+Recheck that layer on any Avalonia version change.
 
 `SPEC.md` defines the product contract; `COMPLETION.md` records unfinished gates;
 `E2E.md` inventories upstream translations; `VALIDATION.md` records verified
@@ -257,6 +273,7 @@ Run checks with `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Re
 `-- --ghostty-skia` runs focused Skia input, pixel, PTY and renderer Settings checks.
 `-- --native-texture` checks GPU texture composition, input and local/remote renderer switching in a real macOS window.
 `-- --sync` runs the multi-window and multi-client translations.
+`-- --shared-terminals` runs the two-client terminal sharing, watching and take-over checks alone.
 `-- --notifications` runs the away-notification checks with a recording notifier; no check posts a real one.
 `-- --registry` runs the workspace registry host parity checks and the external-workspace rail checks.
 `-- --documents` runs the resource-renderer checks and the translations that open file and diff bodies.
@@ -279,6 +296,7 @@ translations; `-- --design --write` regenerates `src/SharpRail.Plugins.UI.Kit/Ge
 from `src/SharpRail.UI/Rendering/Design`. Edit the authored design sources, not
 generated C#.
 `-- --conformance` runs the dependency-boundary and public-surface checks; `-- --runner` checks the runner itself.
+`-- --android` checks the Android client's host address parsing and remembered endpoint; the client itself needs a device (`scripts/android.sh run`).
 `-- --lanes N` (or `auto`) splits the argument-free gate across processes, `-- --last-failed` reruns what the last
 run left unfinished, `-- --list-cases` lists the gate and `-- --case A,B` runs named
 cases. Lane/shard options apply to the argument-free gate (optionally narrowed by

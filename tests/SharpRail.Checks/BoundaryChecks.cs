@@ -14,7 +14,7 @@ internal static class BoundaryChecks
     private const string Abstractions = "SharpRail.Host.Abstractions", Protocol = "SharpRail.Host.Protocol", Core = "SharpRail.Host.Core",
         Client = "SharpRail.Host.Client", Remote = "SharpRail.Host.Remote", Scintilla = "SharpRail.Scintilla", Ghostty = "Ghostty.Avalonia",
         UI = "SharpRail.UI", Checks = "SharpRail.Checks", Api = "SharpRail.Plugins.Api",
-        ApiHost = "SharpRail.Plugins.Api.Host", ApiUi = "SharpRail.Plugins.Api.UI", Kit = "SharpRail.Plugins.UI.Kit";
+        ApiHost = "SharpRail.Plugins.Api.Host", ApiUi = "SharpRail.Plugins.Api.UI", Kit = "SharpRail.Plugins.UI.Kit", Android = "SharpRail.Android";
 
     /// <summary>Every project and what it may reach, directly or through a reference. A new project needs its own entry.</summary>
     private static readonly Dictionary<string, string[]> Allowed = new()
@@ -27,7 +27,9 @@ internal static class BoundaryChecks
         [Scintilla] = [],
         [Ghostty] = [],
         [UI] = [Abstractions, Core, Client, Remote, Scintilla, Ghostty, Api, ApiUi, Kit, "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex"],
-        [Checks] = [Abstractions, Protocol, Core, Client, Remote, Scintilla, Ghostty, UI, Api, ApiHost, ApiUi, Kit,
+        // The Android client compiles the UI's sources and reaches what they do, except the serving half.
+        [Android] = [Abstractions, Core, Client, Scintilla, Ghostty, UI, Api, ApiUi, Kit, "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex"],
+        [Checks] = [Abstractions, Protocol, Core, Client, Remote, Scintilla, Ghostty, UI, Android, Api, ApiHost, ApiUi, Kit,
             "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex", "SharpRail.PluginFixture.Host", "SharpRail.PluginFixture.UI"],
         [Api] = [],
         [ApiHost] = [Api],
@@ -75,6 +77,7 @@ internal static class BoundaryChecks
             rules[contract + ".UI"] = [Api, ApiUi, Kit, Scintilla, contract, "SharpRail.Plugins.SpecDialect", "SharpRail.Plugins.Agent.UI"];
             rules[Core] = [.. rules[Core], contract, contract + ".Host"];
             rules[UI] = [.. rules[UI], contract, contract + ".UI"];
+            rules[Android] = [.. rules[Android], contract, contract + ".UI"];
             rules[Checks] = [.. rules[Checks], contract, contract + ".Host", contract + ".UI"];
         }
         var names = projects.Select(project => Path.GetFileNameWithoutExtension(project)).ToArray();

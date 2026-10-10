@@ -173,6 +173,14 @@ internal static class Program
             Console.WriteLine("PASS terminal checks");
             return;
         }
+        if (args.SequenceEqual(["--shared-terminals"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            using var git = new E2E.IsolatedGit(Path.Combine(root, "terminals-git"));
+            E2E.SharedTerminalsE2E.Run(Path.Combine(root, "upstream-e2e"));
+            return;
+        }
         if (args.SequenceEqual(["--sync"]))
         {
             // Host checks block on async work, so they run before the UI synchronisation context, as in the full run.
@@ -335,6 +343,11 @@ internal static class Program
         {
             BoundaryChecks.Run(root);
             SurfaceChecks.Run(root);
+            return;
+        }
+        if (args.SequenceEqual(["--android"]))
+        {
+            AndroidClientChecks.Run(root);
             return;
         }
         if (args.SequenceEqual(["--runner"]))
@@ -633,6 +646,7 @@ internal static class Program
         Gate.Case("runner", () => RunnerChecks.Run(root));
         Gate.Case("layout", LayoutChecks.Run);
         Gate.Case("quit-confirmation", QuitConfirmationChecks.Run);
+        Gate.Case("android-client", () => AndroidClientChecks.Run(root));
         Gate.Case("open-world", CheckOpenWorld);
         Gate.Case("hosts", () => CheckHosts(root).GetAwaiter().GetResult());
         Gate.Case("terminal-hosts", () => TerminalHostChecks.Run(root).GetAwaiter().GetResult());

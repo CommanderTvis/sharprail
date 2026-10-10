@@ -71,6 +71,7 @@ publish toggle automation changes without requesting another update.
 - Owns, in `SharpRail.Plugins.UI.Kit.Markdown`: `MarkdownPreview`, `MarkdownDocumentView` (with its compiled
   header), `MarkdownProperties`, `Frontmatter`, `MarkdownLink`, and `Outline` (the heading column, extracted
   from `MarkdownDocumentView.FillOutline`, which `DiffView` also uses).
+  Markdown panes below 640 logical pixels hide Split and fall back from Split to Preview, including restored views.
   The document view accepts a lazy source-control factory so its owner can supply an editable buffer;
   `RefreshPreviewAsync` debounces and parses edits off the dispatcher, rejecting stale results.
   `PreviewChanged` lets the owner reconnect selection observers after replacement.
@@ -134,6 +135,8 @@ Themes that replace the selected foreground keep Avalonia's existing styled-sele
   resolver (spec id to workspace path; an id it omits renders disabled), navigation, and the font size, reading
   measure and bound. The app builds it with `Rendering/MarkdownContexts.For(host, preferences, navigate)`.
 - `CommandKeys` shares platform and keyboard-layout matching between app commands and dialogs.
+- `RowActivation.OnActivate` activates a list or tree row on a mouse's press and on a finger's tap, since a
+  finger's press also begins a scroll.
   Dialogs close on Escape or the platform close chord without referencing the app assembly.
 - `IDialogOwner.Dim` is how `DialogWindow` dims the window that owns it; `DialogWindow.Create(title, width)` is the
   standard card the app's `Dialogs` and `MermaidDialog` build on.
@@ -219,4 +222,4 @@ The Codex builtin uses these controls without referencing app or host implementa
 
 ## Public surface
 
-`CommandKeys`, `DialogWindow`, `EditorFrame`, `FindBar`, `IDialogOwner`, `InterfaceZoom`, `LineWidths`, `DiffFocus`, `Frontmatter`, `FrontmatterBlock`, `FrontmatterProperty`, `MarkdownContext`, `MarkdownDiff`, `MarkdownDocumentView`, `MarkdownLink`, `MarkdownPreview`, `Outline`, `SpecIdentity`, `ScopedSetting`, `ScopedSettingShadow`, `ScopedSettingSource`, `SettingValueDialog`, `SettingValueDialogOptions`, `SvgAsset`, `Switch`, `ThemeManifest`, `Ui`, `ValueShape`, `ViewerLimits`, `ComparisonOptionView`, `MermaidDialog`, `MermaidRenderer`, `MermaidView`, `VisualizationArgs`, `VisualizationCard`, `ZoomGesture`.
+`CommandKeys`, `DialogWindow`, `EditorFrame`, `FindBar`, `IDialogOwner`, `InterfaceZoom`, `LineWidths`, `RowActivation`, `DiffFocus`, `Frontmatter`, `FrontmatterBlock`, `FrontmatterProperty`, `MarkdownContext`, `MarkdownDiff`, `MarkdownDocumentView`, `MarkdownLink`, `MarkdownPreview`, `Outline`, `SpecIdentity`, `ScopedSetting`, `ScopedSettingShadow`, `ScopedSettingSource`, `SettingValueDialog`, `SettingValueDialogOptions`, `SvgAsset`, `Switch`, `ThemeManifest`, `Ui`, `ValueShape`, `ViewerLimits`, `ComparisonOptionView`, `MermaidDialog`, `MermaidRenderer`, `MermaidView`, `VisualizationArgs`, `VisualizationCard`, `ZoomGesture`.

@@ -29,7 +29,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
     private readonly string initialRoot;
     private readonly bool remote;
     private readonly Terminal.TerminalFactory terminals;
-    // Each window is one terminal client: attaching a tab here takes its session over from another window.
+    // Each window is one terminal client: a session is held by one of them, and taken over only when asked.
     private readonly string terminalClient = Guid.NewGuid().ToString("N");
     private readonly CancellationTokenSource lifetime = new();
     private readonly SemaphoreSlim projectGate = new(1, 1);
@@ -66,18 +66,20 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
     /// window. A host that registers workspaces passes the store it writes to, or the rail never hears of them.
     /// </summary>
     public WorkbenchWindow(IProjectServices host, string rootPath, ProfileStore profile, Terminal.TerminalFactory terminals, bool remote = false,
-        Host.Core.HostStateStore? state = null)
-        : this(Standalone(profile, terminals, remote, state), host, profile.Data.Windows[0], rootPath) => workbench.Attach(this);
+        Host.Core.HostStateStore? state = null, ITerminalCatalogService? terminalTabs = null, bool compact = false,
+        bool tabsInProjects = false)
+        : this(Standalone(profile, terminals, remote, state, terminalTabs, compact, tabsInProjects), host, profile.Data.Windows[0], rootPath) => workbench.Attach(this);
 
     // As the app's own host does, a standalone window's host runs the builtin plugins in process.
-    private static Workbench Standalone(ProfileStore profile, Terminal.TerminalFactory terminals, bool remote, Host.Core.HostStateStore? state)
+    private static Workbench Standalone(ProfileStore profile, Terminal.TerminalFactory terminals, bool remote, Host.Core.HostStateStore? state,
+        ITerminalCatalogService? terminalTabs, bool compact, bool tabsInProjects)
     {
         var store = state ?? profile.OpenState();
         var plugins = new Host.Core.Plugins.PluginRuntime(new() { StateDirectory = null, State = store });
         plugins.Start();
         return new(profile, new SharedState(new Host.Client.LocalStateAdapter(store), profile.Data.Preferences, store.Current), terminals, remote, null,
-            new Host.Client.LocalPluginAdapter(plugins))
-        { OwnedHost = plugins };
+            new Host.Client.LocalPluginAdapter(plugins), terminalTabs)
+        { OwnedHost = plugins, Compact = compact, TabsInProjects = tabsInProjects, Touch = compact };
     }
 
     internal WorkbenchWindow(Workbench workbench, IProjectServices host, WindowProfile slot, string rootPath)
@@ -101,17 +103,19 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         FillViewMenu(this.FindControl<Grid>("MainHeader")!.ContextMenu!);
         Layout.Navigating += group => AdvanceNavigation(group);
         Layout.Focused += () => { slot.Layout = Layout.State; SaveProfile(); };
-        Layout.Changed += () => { slot.Layout = Layout.State; SaveProfile(); PruneDocuments(); };
+        Layout.Changed += () => { slot.Layout = Layout.State; SaveProfile(); TrackTerminalTabs(); PruneDocuments(); };
         Layout.Changed += UpdateActiveChangeRows;
         Layout.SelectionChanged += _ => UpdateActiveChangeRows();
         Layout.Focused += UpdateActiveChangeRows;
-        surface = new DockSurface(Layout, RenderContent);
+        surface = new DockSurface(Layout, RenderContent) { CloseAlwaysShown = workbench.Touch };
+        if (workbench.Compact) WireDrawers();
         WireCenterTabs();
         Ui.Place(root, surface, 1);
         WireGestureNotification();
         WireNavigation();
         WireEditorLifetime();
         WireHostSync();
+        WireTerminalCatalog();
         WirePlugins();
         ApplyAppearance();
         ActualThemeVariantChanged += (_, _) => ApplyTheme();
@@ -189,6 +193,19 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         header.ContextMenu = view;
         WireLocationBar();
         this.FindControl<ContentControl>("BrandIcon")!.Content = Ui.Icon("brand", Ui.Accent, 28);
+        if (workbench.ChangeHost is { } changeHost)
+        {
+            // A client of a chosen host names it from its connection status and leaves it from there.
+            var connection = this.FindControl<Button>("ConnectionButton")!;
+            connection.IsHitTestVisible = true;
+            connection.Click += (_, _) =>
+            {
+                var menu = new ContextMenu();
+                menu.Items.Add(Ui.Menu(workbench.Endpoint, () => { }, enabled: false));
+                menu.Items.Add(Ui.Menu("Change host…", changeHost));
+                menu.Open(connection);
+            };
+        }
         var settings = this.FindControl<Button>("SettingsButton")!;
         settings.Content = Ui.Icon("settings");
         settings.Click += (_, _) => ShowSettings();
@@ -309,6 +326,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             ResolveRailDefaults();
             PlaceWorkspaceTabs();
             ApplyTerminalTitles(state.Current);
+            if (!atHome) ShareTerminals(workspaceRoot);
             foreach (var removed in removedWorkspaces) Layout.DropWorkspace(removed);
             ShowReady();
             errorText.IsVisible = false;
@@ -410,12 +428,11 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         if (tab.Kind == "changes") return Ui.Text("Loading changes…");
         if (tab.Kind == "terminal")
         {
-            var terminal = new Terminal.TerminalView(terminals, new(workspaceRoot, Terminal.TerminalLaunch.SessionFor(workspaceRoot, tab.Id),
-                Path.Combine(profile.DirectoryPath, "clipboard"), terminalClient)
-            { TabKey = tab.Id })
-            { Name = "TerminalSurface_" + tab.Id.Replace(':', '_') };
+            if (!TerminalMayAttach(workspaceRoot, tab.Id)) return Ui.Text("Loading terminal…");
+            var terminal = new Terminal.TerminalView(terminals, LaunchTerminal(workspaceRoot, tab.Id)) { Name = "TerminalSurface_" + tab.Id.Replace(':', '_') };
             documentContent[key] = terminal;
             AttachPluginTerminal(terminal);
+            if (terminalCommands.Remove(key, out var command)) _ = TypeWhenStartedAsync(terminal, command);
             return terminal;
         }
         if (documents.TryGetValue(key, out var document))
@@ -591,7 +608,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
     public Action Dim()
     {
         var scrim = new Border { Background = Ui.Overlay };
-        Grid.SetRowSpan(scrim, 3);
+        Grid.SetRowSpan(scrim, 4);
         root.Children.Add(scrim);
         return () => root.Children.Remove(scrim);
     }
@@ -607,13 +624,15 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
 
     public void ShowSettings()
     {
-        var undim = Dim();
+        // A compact workbench shows Settings as a page above its page bar, which must stay clear and in reach.
+        var undim = workbench.Compact ? () => { } : Dim();
         var settings = new SettingsWindow(this, () =>
         {
             RefreshAppearance(); ReportProfileError();
             foreach (var window in workbench.Windows) window.ApplyTabLayout();
         }, GitHubStatusProbe, settingsSection);
-        settings.Closed += (_, _) => { settingsSection = settings.Section; undim(); };
+        settings.Closed += (_, _) => { settingsSection = settings.Section; undim(); SettingsShown(null); };
+        SettingsShown(settings);
         _ = settings.ShowDialog(this);
     }
 }

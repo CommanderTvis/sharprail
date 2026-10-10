@@ -1660,3 +1660,80 @@ The outdated plain-folder rail assertions now pass. The broader workspace mode a
 Git fixtures reach the previously reproduced remote Project Home timeout in MultiClientE2E.RenamePropagates.
 The full run exits 134 after 202 passing checks (.bench/pane-final-full.log); the complete gate is not
 green. No push, app publication or restart.
+
+## Android client — 2026-10-10
+
+`src/SharpRail.Android` builds with `scripts/android.sh` in Debug and Release and was run on an Android 16
+arm64 tablet emulator against a `SharpRail.Host.Remote` on the development Mac. The evidence is manual use of
+the emulator; there are no automated on-device checks.
+
+Verified there: the connect screen with the soft keyboard; automatic connection on relaunch from the
+remembered endpoint; the workbench rendering; popup menus; modal dialogs, including text entry kept above
+the keyboard; opening a project by host path; the file tree with touch scrolling and file icons; Markdown
+preview; the Scintilla code editor; a live terminal running a shell on the host, typed into from the soft
+keyboard; Settings; Disconnect returning to the connect screen; system Back closing dialogs. The Release
+package (`artifacts/android/SharpRail.apk`, untrimmed, JIT) is about 84 MB and cold-starts in about 2.3 s
+on the emulator. On a phone-sized emulator (1080x2340) the Release package showed the connect screen,
+connected, and opened on the centre-only `focus` preset a fresh narrow-screen profile starts with.
+`-- --android` passes (host address parsing and the remembered endpoint), and `-- --conformance` holds the
+Android project to the UI's dependencies without the serving half.
+
+Settings as a full-screen page and dialogs as bottom sheets (tablet: 640 dp wide, above the keyboard,
+dismissed by a tap outside; phone: full width) were seen on both emulators. The Release package also
+installs and shows the connect screen on a Pixel 8 (Android 17); nothing further was driven there.
+
+On the phone emulator the left (Projects) and right (Specs, Files, Changes, Review) drawers open from the
+header over a dimmed centre, Back closes them, and Settings shows its sections in a drawer that closes on
+choice; `DrawerChecks` asserts the same headlessly in `-- --shell`.
+
+Also seen on the phone emulator: the right drawer as four sections with one open, tabs listed under their
+workspace in Projects with no strip in the centre, Back closing a drawer without leaving the app, and the
+connection status menu with Change host…. The QR button, scanning and the 45-second lost-host fallback
+build and pass `-- --android` (link format and reachable address) but were not exercised on a device.
+
+The phone chrome was then reworked and seen on the phone emulator: a bottom bar with Projects, Terminal,
+Tools and Settings; Projects as a full page without a tool strip; Tools as four sections; Settings as a
+list of sections with a summary line each. `DrawerChecks` asserts the bar, the pages, Back and the
+Settings list.
+
+Not verified: input methods other than Gboard; TalkBack and other
+accessibility services; plugin UI beyond what the default workbench shows; HTTPS endpoints; CI. Known
+limits (cleartext HTTP, unencrypted stored token, one workbench window, unreachable desktop code in the
+package) are listed in `src/SharpRail.Android/SPEC.md`.
+
+## Read-only terminals — 2026-10-10
+
+Headless evidence only; no device, emulator or real window was driven. On the branch rebased onto `android`
+(78583491): `-- --shared-terminals`, `-- --terminals`, `-- --scratch`, `-- --conformance`, `-- --sync`,
+`-- --shell` and `-- --ghostty-skia` pass. They cover watching on the host locally and over gRPC (screen, live
+output, the holder's grid, ignored input, a stalled watcher, take-over, resume, exit), two remote clients of
+one host (a held terminal shown live and read-only, Take over, the previous holder watching, Take it back, a
+client composed as the Android phone listing a workspace's terminals in Projects before and after opening it,
+the Metal-style yield-then-watch path and a host that predates watching), and the real Skia view as a watcher
+(the holder's grid in a smaller pane, its resize, no keys or query replies sent, Enter on the offer).
+`scripts/android.sh apk` builds.
+
+The argument-free gate did not pass as one run: it stops at `workbench` (a project switch that never
+completes) and at `design` (two raw colours in `Panels/QrCodeView.cs`); both fail the same way on the
+unmodified `android` tip. Every other case passed, the ones after each stop through `-- --case`. Format
+verification reports one inherited final-newline error in `SharpRail.Plugins.ClaudeCode/Host/SystemPrompt.cs`.
+
+Not verified: the Metal renderers handing a watched terminal to the Skia view in a real window
+(`NativeTextureChecks` was updated but not run), touch panning of a watched terminal, and anything on a device.
+
+## Narrow document views and touch tab dragging — 2026-10-10
+
+Markdown panes below 640 logical pixels hide Split and return existing splits to Preview.
+Source diffs hide side-by-side on panes below their existing 40-column-per-side threshold
+and use inline even after a pinned split. Touch tab dragging requires a 500 ms hold;
+earlier movement cancels the draft so scrolling can proceed.
+
+Release compilation passes with zero warnings/errors. Markdown and document focused checks
+pass; Git-source-dependent document translations were skipped because SHARPRAIL_TEST_GIT_SOURCE
+was unset. The added headless touch regression passes in DockInputChecks. Touched-file
+format verification passes. The six-lane gate stopped at MultiClientE2E, which passed in
+isolation; --last-failed then completed the unfinished cases. The full run preceded the
+touch change; the final touch code passed its focused regression and the resumed layout
+checks. This is coverage across a full run and resumes, not a clean final-tip full run.
+Android compilation, a physical phone and the packaged app were not checked. Temporary
+fixture directories were removed.

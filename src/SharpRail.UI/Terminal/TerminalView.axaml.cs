@@ -4,8 +4,9 @@ using Avalonia.Markup.Xaml;
 
 namespace SharpRail.UI.Terminal;
 
-// A terminal tab's body: attaches to its host session, explains start failures with an in-place retry,
-// offers to take the session back when another window took it over, and says when the shell has exited.
+// A terminal tab's body: attaches to its host session, explains start failures with an in-place retry, shows a
+// terminal another client holds live and read-only with an offer to take it over, or back, and says when the
+// shell has exited.
 public sealed partial class TerminalView : UserControl, IDisposable
 {
     private readonly TerminalFactory factory;
@@ -15,6 +16,7 @@ public sealed partial class TerminalView : UserControl, IDisposable
     private readonly SelectableTextBlock failureText;
     private readonly Button retry;
     private readonly Control detachedNotice;
+    private readonly TextBlock detachedText;
     private readonly Button takeBack;
     private readonly TextBlock exitNotice;
     private readonly ContentControl companion;
@@ -23,6 +25,8 @@ public sealed partial class TerminalView : UserControl, IDisposable
     private int generation;
     private bool disposed;
     private bool agentNewline;
+    // This view held the terminal until another client took it.
+    private bool displaced;
 
     public TerminalView(TerminalFactory factory, TerminalLaunch launch)
     {
@@ -33,13 +37,14 @@ public sealed partial class TerminalView : UserControl, IDisposable
         failureText = this.FindControl<SelectableTextBlock>("TerminalStartFailureText")!;
         retry = this.FindControl<Button>("TerminalStartRetry")!;
         detachedNotice = this.FindControl<Control>("TerminalDetached")!;
+        detachedText = this.FindControl<TextBlock>("TerminalDetachedText")!;
         takeBack = this.FindControl<Button>("TerminalTakeBack")!;
         exitNotice = this.FindControl<TextBlock>("TerminalExited")!;
         Accessories = this.FindControl<StackPanel>("TerminalAccessories")!;
         companion = this.FindControl<ContentControl>("TerminalCompanion")!;
         companionSplitter = this.FindControl<GridSplitter>("TerminalCompanionSplitter")!;
         retry.Click += (_, _) => Start(retrying: true);
-        takeBack.Click += (_, _) => Start(retrying: true);
+        takeBack.Click += (_, _) => Start(retrying: true, takeOver: true);
         Focusable = true;
         Start(retrying: false);
     }
@@ -71,7 +76,7 @@ public sealed partial class TerminalView : UserControl, IDisposable
     /// <summary>Types into the shell as if typed; ignored until the shell has started.</summary>
     public void Write(string data)
     {
-        if (Backend is { } backend && backend.Started.IsCompletedSuccessfully && !IsExited && !IsDetached) backend.Write(data);
+        if (Backend is { } backend && backend.Started.IsCompletedSuccessfully && !IsExited && !IsDetached && !IsWatching) backend.Write(data);
     }
 
     /// <summary>The surface's screen and scrollback as text, oldest line first.</summary>
@@ -83,14 +88,17 @@ public sealed partial class TerminalView : UserControl, IDisposable
     }
     public bool IsFailed => failure.IsVisible;
     public bool IsExited => exitNotice.IsVisible;
-    public bool IsDetached => detachedNotice.IsVisible;
+    /// <summary>Another client holds the terminal and this view shows it live, read-only.</summary>
+    public bool IsWatching => detachedNotice.IsVisible && Backend is { Watching: true };
+    /// <summary>Another client holds the terminal and its host cannot show it to this one.</summary>
+    public bool IsDetached => detachedNotice.IsVisible && !IsWatching;
 
     public async ValueTask<bool> IsBusyAsync() =>
         Backend is { } backend && !IsExited && !IsFailed && !IsDetached && backend.Started.IsCompletedSuccessfully && await backend.IsBusyAsync();
 
     public void FocusTerminal()
     {
-        if (IsDetached) takeBack.Focus();
+        if (detachedNotice.IsVisible) takeBack.Focus();
         else if (IsFailed) retry.Focus();
         else Backend?.FocusTerminal();
     }
@@ -101,20 +109,22 @@ public sealed partial class TerminalView : UserControl, IDisposable
         if (e.Source == this) FocusTerminal();
     }
 
-    public void Restart() => Start(retrying: IsKeyboardFocusWithin);
+    public void Restart() => Start(retrying: IsKeyboardFocusWithin, watch: IsWatching);
 
-    // Starting again attaches afresh, which also takes the session back from another window.
-    private async void Start(bool retrying)
+    // Starting again attaches afresh. Only the notice's button takes the session from another client; every
+    // other start of a yielding launch leaves it where it is, and watches it there.
+    private async void Start(bool retrying, bool takeOver = false, bool watch = false)
     {
         if (disposed) return;
         var current = ++generation;
         Backend?.Dispose(); Backend = null; body.Content = null;
         retry.IsEnabled = false; takeBack.IsEnabled = false;
         exitNotice.IsVisible = false;
+        if (takeOver) displaced = false;
         ITerminalBackend? backend = null;
         try
         {
-            backend = factory(launch);
+            backend = factory(takeOver ? launch with { Yield = false } : watch ? launch with { Yield = true, Watch = true } : launch);
             Backend = backend;
             body.Content = backend.View;
             failure.IsVisible = false;
@@ -122,18 +132,31 @@ public sealed partial class TerminalView : UserControl, IDisposable
             await backend.Started;
             if (current != generation) return;
             backend.SetAgentNewline(agentNewline);
-            if (retrying) backend.FocusTerminal();
+            if (backend.Watching)
+            {
+                Offer(displaced ? "Read-only: another client took this terminal over." : "Read-only: in use by another client.");
+                if (retrying) takeBack.Focus();
+            }
+            else if (retrying) backend.FocusTerminal();
             await Task.WhenAny(backend.Exited, backend.Detached);
             if (current != generation) return;
             if (backend.Detached.IsCompleted)
             {
-                // The surface no longer receives output; hide it rather than show a stale screen as live.
+                // Taken over, or held elsewhere when a renderer that cannot watch attached: watch it from now on,
+                // without the keyboard, so what was being typed here cannot take it straight back.
+                if (!watch || !backend.Yielded)
+                {
+                    displaced |= !backend.Yielded;
+                    Start(retrying: false, watch: true);
+                    return;
+                }
+                // A host that predates watching returned a watch detached; hide the surface rather than show a stale screen as live.
                 body.IsVisible = false;
-                detachedNotice.IsVisible = true;
-                takeBack.IsEnabled = true;
+                Offer(displaced ? "This terminal is open somewhere else." : "This terminal is in use by another client.");
                 return;
             }
             var code = await backend.Exited;
+            detachedNotice.IsVisible = false;
             exitNotice.Text = $"[process exited with code {code}]";
             exitNotice.IsVisible = true;
         }
@@ -148,6 +171,14 @@ public sealed partial class TerminalView : UserControl, IDisposable
             retry.IsEnabled = true;
             if (retrying) retry.Focus();
         }
+    }
+
+    private void Offer(string text)
+    {
+        detachedText.Text = text;
+        takeBack.Content = displaced ? "Take it back" : "Take over";
+        detachedNotice.IsVisible = true;
+        takeBack.IsEnabled = true;
     }
 
     // Closing the tab ends the host session; disposing alone only detaches this view from it.

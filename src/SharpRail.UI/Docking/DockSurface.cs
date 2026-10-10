@@ -51,6 +51,18 @@ public sealed partial class DockSurface : Grid
     private readonly Dictionary<string, Border> auxiliaryRegions = new[] { "left", "right", "bottom" }
         .ToDictionary(region => region, region => new Border { Name = "AuxiliaryRegion_" + region });
     private readonly Canvas overlay = new() { IsHitTestVisible = false };
+    /// <summary>A touch screen has no hover to reveal a tab's close button on, so it is always drawn.</summary>
+    public bool CloseAlwaysShown { get; set; }
+
+    /// <summary>
+    /// On a narrow screen the side regions are pages over the centre instead of columns beside it: a visible
+    /// left side shows Projects alone, and a visible right side every other side tool as sections.
+    /// </summary>
+    public bool Drawers
+    {
+        get;
+        set { if (field == value) return; field = value; Rebuild(); }
+    }
     private bool refreshPending;
     private bool rebuildPending;
     private CenterTabsMode? renderedMode;
@@ -73,6 +85,7 @@ public sealed partial class DockSurface : Grid
         InstallPointerGestures();
         SizeChanged += (_, _) =>
         {
+            if (Drawers) return;
             if (!shell.GetLogicalDescendants().OfType<ResizeHandle>().Any(handle => handle.IsActive))
                 PreviewSides(new SideGeometry(Session.State, Bounds.Width).Project());
         };
@@ -114,6 +127,8 @@ public sealed partial class DockSurface : Grid
         if (draft is not null || shell.GetLogicalDescendants().OfType<ResizeHandle>().Any(handle => handle.IsActive))
         { rebuildPending = true; return; }
         rebuildPending = false;
+        // The page being left is pictured before anything is rebuilt, so it can slide away over the next one.
+        var slide = Drawers ? PageSlide() : null;
         renderedTools = Session.Tools;
         refreshPending = false;
         CancelDrag();
@@ -125,9 +140,15 @@ public sealed partial class DockSurface : Grid
         foreach (var control in shell.Children.Where(control => control != centerRegion && !auxiliaryRegions.Values.Contains(control)).ToArray())
             shell.Children.Remove(control);
         centerRegion.Child = null;
-        foreach (var region in auxiliaryRegions.Values) { region.Child = null; region.IsVisible = false; }
+        foreach (var region in auxiliaryRegions.Values)
+        {
+            region.Child = null; region.IsVisible = false;
+            region.Width = double.NaN; region.HorizontalAlignment = HorizontalAlignment.Stretch; region.ZIndex = 0; region.Background = null;
+            Grid.SetColumnSpan(region, 1);
+        }
         shell.RowDefinitions.Clear(); shell.ColumnDefinitions.Clear();
         var state = Session.State;
+        if (Drawers) { RebuildDrawers(state); slide?.Invoke(); return; }
         var widths = new SideGeometry(state, Bounds.Width).Project();
         var left = state.LeftVisible && state.Groups.Any(group => group.Region == "left");
         var right = state.RightVisible && state.Groups.Any(group => group.Region == "right");
@@ -183,9 +204,43 @@ public sealed partial class DockSurface : Grid
         NestedStripsChanged?.Invoke(nestedStrips);
     }
 
+    private bool Side(string region) => (region == "left" ? Session.State.LeftVisible : Session.State.RightVisible) &&
+        Session.State.Groups.Any(group => group.Region == region);
+
+    // The centre and bottom keep the whole width; a visible side lies over them at the edge it belongs to.
+    private void RebuildDrawers(DockState state)
+    {
+        var bottom = state.BottomVisible && state.Groups.Any(group => group.Region == "bottom");
+        foreach (var width in new[] { 0d, 0, 1, 0, 0 }) shell.ColumnDefinitions.Add(new(new GridLength(width, width > 0 ? GridUnitType.Star : GridUnitType.Pixel)));
+        shell.RowDefinitions.Add(new(new GridLength(bottom ? 1 - state.BottomHeight : 1, GridUnitType.Star)));
+        shell.RowDefinitions.Add(new(new GridLength(bottom ? 1 : 0)));
+        shell.RowDefinitions.Add(new(new GridLength(bottom ? state.BottomHeight : 0, GridUnitType.Star)));
+        centerRegion.Child = BuildCenter(state.Center);
+        foreach (var region in new[] { "left", "right" })
+        {
+            if (!Side(region)) continue;
+            PlaceAuxiliary(region == "right" ? BuildSections() : BuildProjects(), region, 0, 3);
+            var frame = auxiliaryRegions[region];
+            Grid.SetColumnSpan(frame, 5);
+            frame.ZIndex = 11; frame.Background = Ui.Sidebar;
+        }
+        if (bottom)
+        {
+            var region = auxiliaryRegions["bottom"];
+            region.Child = BuildAuxiliary("bottom"); region.IsVisible = true;
+            Grid.SetRow(region, 2); Grid.SetColumn(region, 2);
+            // A resize handle draws above its neighbours, and would above a side page too; a plain rule does not.
+            Ui.Place(shell, new Border { Name = "bottomRule", Background = Ui.BorderBrush }, 1, 2);
+        }
+        renderedStructure = Structure();
+        NestedStripsChanged?.Invoke(nestedStrips);
+    }
+
     private bool Retarget()
     {
         if (draft is not null || shell.GetLogicalDescendants().OfType<ResizeHandle>().Any(handle => handle.IsActive)) return false;
+        // A drawer's sections are drawn from every group of the region at once, so they are redrawn whole.
+        if (Drawers && Side("right")) return false;
         if (!renderedTools.SequenceEqual(Session.Tools) || CenterTabs?.Invoke() != renderedMode || Structure() != renderedStructure) return false;
         foreach (var (id, built) in builtGroups.ToArray())
             if (GroupSignature(id) == built.Signature) selectionUpdates[id]();
@@ -304,7 +359,7 @@ public sealed partial class DockSurface : Grid
 
     private void PreviewSides((double Left, double Center, double Right) widths)
     {
-        if (shell.ColumnDefinitions.Count != 5) return;
+        if (shell.ColumnDefinitions.Count != 5 || Drawers) return;
         if (Session.State.LeftVisible && Session.State.Groups.Any(group => group.Region == "left"))
             shell.ColumnDefinitions[0].Width = new(widths.Left, GridUnitType.Star);
         shell.ColumnDefinitions[2].Width = new(Math.Max(double.Epsilon, widths.Center), GridUnitType.Star);

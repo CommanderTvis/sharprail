@@ -93,6 +93,8 @@ internal enum ScintillaMessage : uint
     GetReadOnly = 2140,
     SetCaretPeriod = 2076,
     PositionFromPoint = 2022,
+    WordStartPosition = 2266,
+    WordEndPosition = 2267,
     GotoPos = 2025,
     StartStyling = 2032,
     SetStyling = 2033,

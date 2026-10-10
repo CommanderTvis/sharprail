@@ -308,10 +308,12 @@ public sealed partial class DockSurface
                 // Like VS Code, an unsaved tab shows a dot that turns into the close button on hover.
                 void ShowClose(bool shown)
                 {
+                    shown |= CloseAlwaysShown;
                     close.Opacity = shown ? 1 : 0;
                     modifiedDot!.IsVisible = !shown && IsModified?.Invoke(tab) == true;
                     modifiedDot.Background = title.Foreground;
                 }
+                if (CloseAlwaysShown) ShowClose(true);
                 chrome.PointerEntered += (_, _) => ShowClose(true);
                 chrome.PointerExited += (_, _) => ShowClose(button.IsKeyboardFocusWithin);
                 button.GotFocus += (_, _) => ShowClose(true);
@@ -846,7 +848,9 @@ public sealed partial class DockSurface
     private ContextMenu GroupMenu(DockGroup group, Control geometry)
     {
         var menu = new ContextMenu();
-        if (group.Region == "center")
+        // Tabs listed in Projects have no room for a second strip there, and grouping tabs does what a split would.
+        if (group.Region == "center" && CenterTabs?.Invoke() is { Home: "projects" }) { }
+        else if (group.Region == "center")
         {
             var right = Ui.Menu("New split right", () => Session.NewGroup(group.Id, "right"));
             var below = Ui.Menu("New split below", () => Session.NewGroup(group.Id, "bottom"));

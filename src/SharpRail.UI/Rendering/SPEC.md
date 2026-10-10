@@ -101,7 +101,8 @@ since the kit has no theme of its own.
   that leaves its block selects through every block up to the pointer. Mod+C copies the combined
   selection with blank lines between blocks and Mod+A selects the whole document.
 - `Preview | Source | Split` switches the body; Split shows the source beside its preview with a draggable
-  divider. The Outline toggle opens a heading column at the pane's left edge in every view. Its entries come
+  divider. Below 640 logical pixels of pane width, Split is hidden and an existing split falls back to Preview.
+  The Outline toggle opens a heading column at the pane's left edge in every view. Its entries come
   from the parsed source (so fenced `#` lines are not headings), open with a spec's title, and a click jumps
   whichever sides are showing: the preview to the heading's anchor, the source to its line.
 - Mod+F over a rendered document or rendered diff opens a find bar: case-insensitive, Enter / Shift+Enter
@@ -157,7 +158,8 @@ including whole-document selection/search and offscreen anchor realization; see 
   one splits, re-derived live on resize. Added and deleted files default to inline at every width,
   avoiding an empty comparison pane; the default is re-evaluated when the diff refreshes. The toggle
   always shows the effective view, and a click pins it
-  for that tab. A Markdown diff's Source view has no segment and always follows the width rule. Source
+  for that tab while wide enough. Narrow panes hide the toggle and use inline even after a pinned split.
+  A Markdown diff's Source view has no segment and always follows the width rule. Source
   lines wrap at the file line width. Upstream's diffs stopped honouring that width when they moved off the
   editor component to a diff library that scrolls horizontally; SharpRail's source diffs are still editors,
   so they keep wrapping.

@@ -356,6 +356,19 @@ internal static class DockInputChecks
         Drag("files", new Point(-20, -20));
         Require(!surface.IsDragging && window.Layout.Epoch == epoch,
             "Dropping outside the workbench changed the layout.");
+        from = Bounds(Find<Button>("Tab_files")).Center;
+        var finger = window.TouchBegin(from, RawInputModifiers.None);
+        window.TouchMove(finger, from + new Vector(0, 20), RawInputModifiers.None);
+        Require(!surface.IsDragging, "A touch swipe on a tab must remain available for scrolling.");
+        window.TouchEnd(finger, from + new Vector(0, 20), RawInputModifiers.None);
+        epoch = window.Layout.Epoch;
+        finger = window.TouchBegin(from, RawInputModifiers.None);
+        using (var hold = new CancellationTokenSource(550)) Dispatcher.UIThread.MainLoop(hold.Token);
+        window.TouchMove(finger, from + new Vector(0, 20), RawInputModifiers.None);
+        Require(surface.IsDragging, "Holding a tab before moving must start a touch drag.");
+        window.TouchMove(finger, new Point(-20, -20), RawInputModifiers.None);
+        window.TouchEnd(finger, new Point(-20, -20), RawInputModifiers.None);
+        Require(!surface.IsDragging && window.Layout.Epoch == epoch, "A cancelled touch drag must preserve placement.");
         foreach (var alignment in new[] { "center-left", "center-right", "full" })
         {
             window.Layout.ApplyPreset(DockState.Preset("balanced"));

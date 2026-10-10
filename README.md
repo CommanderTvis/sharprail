@@ -129,3 +129,21 @@ address in `SHARPRAIL_REMOTE`. Remote connections use cleartext HTTP/2 and requi
 encrypted network such as Tailscale. The host keeps its shared state in
 `SHARPRAIL_STATE_DIR` (default `~/.sharprail/host`) and its terminal sessions until it
 stops.
+
+## Android client
+
+The Android app is a client only: it shows the same workbench, while projects, settings, plugins and shells
+stay on a host it connects to. It needs the Android SDK (`ANDROID_HOME`) and a JDK 17 or 21 (`JAVA_HOME`);
+the script installs the .NET `android` workload and the pinned NDK into `.tools`.
+
+```sh
+scripts/android.sh run   # build, install on the connected device or emulator, and start
+scripts/android.sh apk   # Release package at artifacts/android/SharpRail.apk
+```
+
+On the computer, start listening on an address the device can reach: Settings › Host in the desktop app, or
+`SharpRail.Host.Remote` with `SHARPRAIL_BIND` as above. In the app, enter that address (port 54123 when none
+is given) and the session token. The app remembers both and connects by itself on the next launch; Settings ›
+Host › Disconnect forgets the token. The connection is cleartext HTTP/2, so use an encrypted network such as
+Tailscale. Requires Android 7.0 or later on arm64 or x86-64; so far it has only run on a tablet emulator.
+See `src/SharpRail.Android/SPEC.md` for the design and limits.

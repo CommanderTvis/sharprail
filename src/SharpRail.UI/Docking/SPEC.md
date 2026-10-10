@@ -121,7 +121,10 @@ A committed transition rebuilds chrome and re-mounts the same body instances the
 ## Arrangement and accessibility
 
 A tab drag paints exactly one result: strip insertion, center half split, side before/after
-group, bottom before/after group, or restoring a hidden region. Within a strip the tabs are the only visible
+group, bottom before/after group, or restoring a hidden region. Touch dragging requires a 500 ms hold
+before movement; moving earlier cancels the draft so the Projects rail can scroll. Mouse dragging retains
+its immediate movement threshold. Only the pointer that pressed the tab may move or release its draft.
+Within a strip the tabs are the only visible
 targets: each half inserts before or after its tab with a 2px line. The rest of the strip still appends
 (and catches a disabled self-insertion), showing the same line after the last tab; only a strip without
 tabs is framed. Unlike upstream there is no separate append block or strip-wide frame, which read as three
@@ -199,6 +202,30 @@ terminal body is created only when its tab is selected in a visible, unfolded gr
 their session without a body, and a hidden bottom reserves the initial terminal without starting a shell
 until shown. New terminal from a group lands in that group and reveals its region.
 
+Terminal membership is the host's catalog, not a window's ([Terminal/SPEC.md](../Terminal/SPEC.md#shared-terminals)).
+A workspace's first terminal has the key `terminal:initial` in every window and client; a project's home, which is
+not a shared workspace, keeps a private one. `LayoutSession.ReconcileTerminals` makes a workspace view's terminal
+tabs those of the catalog, for the active view or a retained one: a tab the catalog lacks is removed without the
+removal veto (its shell was ended by whoever closed it), its group selecting the neighbour as a close does; a tab
+the view lacks is appended to the last-focused, else last, bottom group, else the last-focused centre group,
+without selecting it, revealing or unfolding its region, changing frame geometry or taking focus; titles follow
+the catalog, and the view's next terminal number moves past every numbered title a peer used. A tab created here
+is exempt until the host has recorded it. `WorkspaceView.TerminalsShared` records that a view has met the catalog,
+so a view saved before the catalog existed brings its tabs once instead of losing them. Upstream places only the
+initial terminal passively and leaves other peer-created terminals out of a surface's layout; here every catalogued
+terminal is placed, because a second device is expected to show the first one's terminals.
+
+A window whose workbench keeps its tabs in Projects (`Workbench.TabsInProjects`, the Android client) has the
+centre's strips as its only tab list, so there reconciliation keeps terminals in the centre: a tab the view lacks
+is appended to the last-focused centre group, and the terminals of every hidden region, the initial one in a
+hidden bottom among them, move there too. An empty centre group shows the first of them, which starts or
+watches its shell. Terminals in a visible side or bottom region stay in its strip. Under every other workspace
+row Projects lists, after the retained centre tabs, the terminals that workspace has outside the centre and
+those in the host's catalog this window has not placed, as for a workspace it never opened
+(`WorkspaceTabsPreviewTerminals`); choosing one opens the workspace and selects the terminal once the catalog
+has placed it. Before this the phone listed only terminals created on it: the others sat in its hidden bottom
+group or, for a workspace not opened yet, in no view at all.
+
 A close request from the window (`LayoutSession.RequestClose`, driven by the app command owner) closes the
 selected (else first) tab of the keyboard-focused group, otherwise of the last-focused center group, through
 the normal close path including busy-terminal confirmation. A tool tab, folded group or hidden region yields
@@ -232,10 +259,6 @@ belongs to the window state owner; see [State/SPEC.md](../State/SPEC.md).
 - Dropping normalized no-op focus/selection writes before notifying observers, and committing document,
   attention and singleton-tool fan-out together. Body-local review state must invalidate only that body,
   preserving sibling chrome and bodies during review progress writes.
-- Reconciling with the host terminal catalog: terminal membership is shared across windows, a
-  peer-created terminal is placed passively into a compatible slot without taking focus, and a host-side
-  close removes the tab from every window. The host side exists (`ITerminalCatalogService`, its adapters
-  and broadcast); no window reserves its tabs or applies the broadcast yet.
 - Dropping a removed workspace's view from the frame and ending its terminals.
 - Back/Forward navigation history over locations, and serializable deep links to a project, workspace or
   resource.
@@ -251,7 +274,8 @@ pixels (120–480, default 200, clamped on load so it survives a window resize u
   existed, draws its tabs as a column beside the editor with a draggable edge (`VerticalTabsResize_<group>`).
   The mode never flips: the centre cannot be split while it is on, so the split drop targets and the Split
   menu items are not offered at all (a verb the mode removed is hidden, where one a limit blocks stays
-  disabled with its reason). The active marker is a left rule, insertion targets are the top and bottom
+  disabled with its reason). Where the tabs are listed in Projects the group menu drops New split right and
+  New split below as well. The active marker is a left rule, insertion targets are the top and bottom
   quarters of a row, and the start actions wrap in a row under the tabs. A basename shared by two open tabs
   gets a second, dimmed line naming its folder (`./` for the workspace root, since tab paths are
   workspace-relative); nothing else does.
@@ -279,3 +303,33 @@ pixels (120–480, default 200, clamped on load so it survives a window resize u
 Inactive workspace previews refresh their plugin icons and badges when host agent identity
 changes, even when the active workspace's decorations are unchanged. Preview caching includes
 decoration results, so unchanged rows stay mounted and Codex/Claude marks follow workspace switches.
+
+## Phone pages
+
+A compact workbench (`Workbench.Compact`, set by the Android client on phone-sized screens) sets
+`DockSurface.Drawers`. The frame model is unchanged; only its projection differs:
+
+- The centre and the bottom region keep the whole width. There are no collapsed side rails, no side
+  separators and no resizing of the bottom region.
+- A visible left region is the Projects page: the Projects tool alone, over the whole workbench, with no
+  tool tab strip. A visible right region is the Tools page: `DockDrawers.cs` lists every other side tool,
+  whichever side group holds it, as a section header and shows one of them in the height the headers
+  leave; choosing a header shows that tool and stays on the page. The list is every tool the workbench
+  has, seated in a group or not, so plugins' tools are there before any group holds them.
+- The window (`Drawers.cs`) shows a bar at the bottom with Projects, the current tab (Terminal or Editor,
+  by what the centre shows), Tools and Settings; the header keeps the location and the connection status
+  and loses its Settings button. It starts on the current page, returns to it when the centre's selected
+  tab or the workspace changes and on `BackRequested`, and hides the bar while the soft keyboard is open.
+  The three workbench pages lie side by side and move together: a finger travelling sideways drags the
+  neighbour in beside the page it leaves, which stays when carried a third of the way or flicked and goes back
+  otherwise; a page chosen from the bar slides in the same way. A touch that sets out vertically is left alone.
+  Settings is the page after Tools but a window of its own, so nothing is dragged: a sweep past Tools opens it
+  when the finger lifts, and a sweep back over it closes it.
+- A touch workbench (`Workbench.Touch`) always draws a tab's close button, which a pointer's hover reveals
+  elsewhere.
+- Settings in a compact workbench opens on a list of its sections with a line about each; choosing one
+  gives it the whole page under its name, and Back or the header's arrow returns to the list. The page
+  stops above the page bar (its `MaxHeight`), is not dimmed, lights the bar's Settings item, and closes
+  when another item is chosen.
+
+`DrawerChecks` (in `-- --shell`) covers this headlessly. Dragging tabs between regions is not offered here.

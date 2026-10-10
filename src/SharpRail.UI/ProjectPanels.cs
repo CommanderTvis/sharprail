@@ -329,13 +329,8 @@ public sealed partial class WorkbenchWindow
                 node.LostFocus += (_, _) => UpdateRole();
                 AutomationProperties.SetName(node, spec.Title);
                 AutomationProperties.SetHelpText(node, spec.Path + " · " + role.Text);
-                node.AddHandler(PointerPressedEvent, (_, e) =>
-                {
-                    if (e.Source is not Control source || !IsOwnHeader(node, source) ||
-                        !e.GetCurrentPoint(node).Properties.IsLeftButtonPressed || source is ToggleButton ||
-                        source.GetVisualAncestors().OfType<ToggleButton>().Any()) return;
-                    _ = BrowseDocumentAsync(spec.Path, e.ClickCount == 2);
-                }, RoutingStrategies.Bubble, handledEventsToo: true);
+                RowActivation.OnActivate(node, source => IsOwnHeader(node, source) && source is not ToggleButton && !source.GetVisualAncestors().OfType<ToggleButton>().Any(),
+                    clicks => _ = BrowseDocumentAsync(spec.Path, clicks == 2));
                 node.KeyDown += (_, e) => { if (e.Key == Key.Enter) { _ = BrowseDocumentAsync(spec.Path, true); e.Handled = true; } };
                 if (depth < 32 && byParent.TryGetValue(spec.Id, out var children))
                     foreach (var child in children.Where(child => !placed.Contains(child.Id))) node.Items.Add(Build(child, depth + 1));

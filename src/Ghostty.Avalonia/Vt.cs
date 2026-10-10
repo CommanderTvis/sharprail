@@ -43,18 +43,22 @@ internal unsafe struct Frame
 internal sealed unsafe class Vt : IDisposable
 {
     private const string Library = "GhosttyAvaloniaVt";
+    private static readonly UTF8Encoding StrictUtf8 = new(false, true);
     private readonly byte[] scratch = new byte[4096];
     private GCHandle self;
     private nint handle;
 
-    internal Vt(int columns, int rows, int scrollback, Action<ReadOnlySpan<byte>> reply)
+    /// <param name="copy">Receives text a program copies with OSC 52; null leaves it to the native clipboard bridge.</param>
+    internal Vt(int columns, int rows, int scrollback, Action<ReadOnlySpan<byte>> reply, Action<string>? copy = null)
     {
         Reply = reply;
+        Copy = copy;
         self = GCHandle.Alloc(this);
         try
         {
             handle = gav_vt_new((ushort)columns, (ushort)rows, (nuint)scrollback, &OnWrite, GCHandle.ToIntPtr(self));
             if (handle == 0) throw new InvalidOperationException("libghostty-vt could not create a terminal.");
+            if (copy is not null) gav_vt_set_clipboard_write(handle, &OnCopy);
         }
         catch
         {
@@ -65,11 +69,21 @@ internal sealed unsafe class Vt : IDisposable
 
     // Query responses (device attributes, cursor reports) and encoded paste chunks for the PTY.
     private Action<ReadOnlySpan<byte>> Reply { get; }
+    private Action<string>? Copy { get; }
 
     [UnmanagedCallersOnly]
     private static void OnWrite(nint context, byte* data, nuint length)
     {
         if (GCHandle.FromIntPtr(context).Target is Vt vt) vt.Reply(new ReadOnlySpan<byte>(data, (int)length));
+    }
+
+    [UnmanagedCallersOnly]
+    private static void OnCopy(nint context, byte* data, nuint length)
+    {
+        if (GCHandle.FromIntPtr(context).Target is not Vt vt) return;
+        // Invalid UTF-8 is ignored, as the native bridge does.
+        try { vt.Copy?.Invoke(StrictUtf8.GetString(data, (int)length)); }
+        catch (DecoderFallbackException) { }
     }
 
     internal void Write(ReadOnlySpan<byte> data) { fixed (byte* bytes = data) gav_vt_write(handle, bytes, (nuint)data.Length); }
@@ -161,6 +175,7 @@ internal sealed unsafe class Vt : IDisposable
 
     [DllImport(Library)] private static extern nint gav_vt_new(ushort columns, ushort rows, nuint scrollback, delegate* unmanaged<nint, byte*, nuint, void> write, nint context);
     [DllImport(Library)] private static extern void gav_vt_free(nint vt);
+    [DllImport(Library)] private static extern void gav_vt_set_clipboard_write(nint vt, delegate* unmanaged<nint, byte*, nuint, void> copy);
     [DllImport(Library)] private static extern void gav_vt_write(nint vt, byte* data, nuint length);
     [DllImport(Library)] private static extern void gav_vt_resize(nint vt, ushort columns, ushort rows, uint cellWidth, uint cellHeight);
     [DllImport(Library)] private static extern void gav_vt_set_colors(nint vt, uint* colors);

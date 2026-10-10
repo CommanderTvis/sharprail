@@ -10,6 +10,8 @@ namespace SharpRail.UI;
 /// <summary>
 /// Where centre tabs render, from this app's layout preferences, and their home under directories or workspace rows in Projects:
 /// the active workspace shows its live strips there, and every other workspace a read-only list of its retained tabs.
+/// A workbench that keeps its tabs in Projects also lists there the terminals a workspace has outside the centre or
+/// that this window has not placed yet, since no other strip of it may be on screen.
 /// </summary>
 public sealed partial class WorkbenchWindow
 {
@@ -20,9 +22,12 @@ public sealed partial class WorkbenchWindow
 
     // Projects is a home only while it is on screen: in a visible region, an unfolded group, and that group's shown tab.
     // Otherwise the strips come back to the centre, so tabs are never somewhere the user cannot see.
-    private CenterTabsMode CenterTabsModeNow() => new(Preferences.VerticalCenterTabs, Preferences.VerticalCenterTabsWidth,
-        Preferences.VerticalCenterTabs && Preferences.VerticalTabsInProjects && Layout.IsToolShowing("projects") ? "projects" : "column",
-        Preferences.DefaultPaneDirection);
+    // A workbench that keeps its tabs in Projects does so even while Projects is hidden: the centre never grows a strip.
+    private CenterTabsMode CenterTabsModeNow() => workbench.TabsInProjects
+        ? new(true, Preferences.VerticalCenterTabsWidth, "projects", Preferences.DefaultPaneDirection)
+        : new(Preferences.VerticalCenterTabs, Preferences.VerticalCenterTabsWidth,
+            Preferences.VerticalCenterTabs && Preferences.VerticalTabsInProjects && Layout.IsToolShowing("projects") ? "projects" : "column",
+            Preferences.DefaultPaneDirection);
 
     private void WireCenterTabs()
     {
@@ -30,7 +35,7 @@ public sealed partial class WorkbenchWindow
         surface.CenterTabsWidthChanged = width => { Preferences.VerticalCenterTabsWidth = VerticalTabs.ClampWidth(width); SaveProfile(); };
         surface.NestedStripsChanged += strips => { centerStripsInProjects = new Dictionary<string, Control>(strips); PlaceWorkspaceTabs(); };
         tabLayoutSignature = TabLayoutSignature();
-        if (Preferences.VerticalCenterTabs) surface.Rebuild();
+        if (Preferences.VerticalCenterTabs || workbench.TabsInProjects) surface.Rebuild();
     }
 
     private string TabLayoutSignature() =>
@@ -89,7 +94,7 @@ public sealed partial class WorkbenchWindow
                     Decorations = view?.Documents.GetValueOrDefault(group)?.Select(tab => TabDecorationSignature(tab, workspace)),
                     Selected = view?.Selected.GetValueOrDefault(group),
                     Panes = view?.Panes.GetValueOrDefault(group)
-                }));
+                })) + System.Text.Json.JsonSerializer.Serialize(TerminalsElsewhere(workspace).Select(tab => new { Tab = tab, Decoration = TabDecorationSignature(tab, workspace) }));
                 if (workspaceTabPreviewSignatures.GetValueOrDefault(workspace) == signature) continue;
                 workspaceTabPreviewSignatures[workspace] = signature;
                 host.Content = WorkspaceTabsPreview(workspace);
@@ -102,11 +107,11 @@ public sealed partial class WorkbenchWindow
     // mark among them). Choosing one selects it there and switches to it.
     private Control? WorkspaceTabsPreview(string workspace)
     {
-        if (Layout.State.Workspaces.GetValueOrDefault(workspace) is not { } view) return null;
+        var view = Layout.State.Workspaces.GetValueOrDefault(workspace);
         var groups = new StackPanel { Name = "WorkspaceTabsPreview", Spacing = 8 };
-        foreach (var group in Layout.State.Center.Leaves())
+        foreach (var group in view is null ? [] : Layout.State.Center.Leaves())
         {
-            var tabs = view.Documents.GetValueOrDefault(group) ?? [];
+            var tabs = view!.Documents.GetValueOrDefault(group) ?? [];
             if (tabs.Count == 0) continue;
             var section = new StackPanel { Name = "WorkspaceTabsPreviewGroup", Tag = group, Spacing = 2 };
             var selected = view.Selected.GetValueOrDefault(group) ?? tabs[0].Id;
@@ -133,10 +138,31 @@ public sealed partial class WorkbenchWindow
             }
             groups.Children.Add(section);
         }
+        if (TerminalsElsewhere(workspace) is { Length: > 0 } elsewhere)
+        {
+            var section = new StackPanel { Name = "WorkspaceTabsPreviewTerminals", Spacing = 2 };
+            foreach (var tab in elsewhere) section.Children.Add(PreviewTab(workspace, null, tab, selected: false, boxed: true));
+            groups.Children.Add(section);
+        }
         return groups.Children.Count == 0 ? null : groups;
     }
 
-    private Button PreviewTab(string workspace, string group, DockTab tab, bool selected, bool boxed)
+    // The terminals of a workspace that its centre tabs do not show: those its view keeps in another region, and
+    // those in the host's catalog this window has not placed, as for a workspace it never opened.
+    private DockTab[] TerminalsElsewhere(string workspace)
+    {
+        if (!workbench.TabsInProjects) return [];
+        var view = Layout.State.Workspaces.GetValueOrDefault(workspace);
+        var center = Layout.State.Center.Leaves().ToHashSet();
+        var placed = view?.Documents.Values.SelectMany(tabs => tabs).Select(tab => tab.Id).ToHashSet() ?? [];
+        return
+        [
+            .. view?.Documents.Where(entry => !center.Contains(entry.Key)).SelectMany(entry => entry.Value).Where(tab => tab.Kind == "terminal") ?? [],
+            .. (workbench.TerminalCatalog?.Workspaces.GetValueOrDefault(workspace) ?? []).Where(tab => !placed.Contains(tab.Key)).Select(tab => new DockTab(tab.Key, tab.Title, "terminal"))
+        ];
+    }
+
+    private Button PreviewTab(string workspace, string? group, DockTab tab, bool selected, bool boxed)
     {
         var foreground = selected ? Ui.TextBrush : Ui.Muted;
         var row = new Grid { ColumnDefinitions = new ColumnDefinitions("14,4,*,Auto") };
@@ -163,7 +189,11 @@ public sealed partial class WorkbenchWindow
             HorizontalAlignment = HorizontalAlignment.Stretch,
             HorizontalContentAlignment = HorizontalAlignment.Stretch
         };
-        button.Click += (_, _) => { Layout.SelectIn(workspace, group, tab.Id); _ = OpenWorkspaceAsync(workspace, false); };
+        button.Click += (_, _) =>
+        {
+            if (group is null) { _ = RevealTerminalAsync(workspace, tab.Id); return; }
+            Layout.SelectIn(workspace, group, tab.Id); _ = OpenWorkspaceAsync(workspace, false);
+        };
         AutomationProperties.SetName(button, tab.Title);
         ToolTip.SetTip(button, tab.Path.Length > 0 ? tab.Path : tab.Title);
         return button;

@@ -19,8 +19,15 @@ public sealed partial class DialogWindow : Window
         KeyDown += (_, e) => { if (e.Key == Key.Escape || CommandKeys.IsClose(e)) { Close(); e.Handled = true; } };
         Opened += (_, _) =>
         {
-            this.FindControl<Border>("DialogCard")!.Effect =
-                new DropShadowEffect { OffsetX = 0, OffsetY = 8, BlurRadius = 28, Opacity = 1, Color = Ui.DialogShadow.Color };
+            var card = this.FindControl<Border>("DialogCard")!;
+            if (OperatingSystem.IsAndroid())
+            {
+                // On Android a dialog is a sheet across the bottom of the screen: no margin for a shadow, square to the edge.
+                card.Margin = default;
+                card.CornerRadius = new(12, 12, 0, 0);
+                card.BorderThickness = new(0, 1, 0, 0);
+            }
+            else card.Effect = new DropShadowEffect { OffsetX = 0, OffsetY = 8, BlurRadius = 28, Opacity = 1, Color = Ui.DialogShadow.Color };
             // An empty field area would still add a gap between the text and the actions.
             foreach (var button in this.FindControl<StackPanel>("DialogActions")!.Children.OfType<Button>())
             {

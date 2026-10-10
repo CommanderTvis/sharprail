@@ -9,7 +9,7 @@ namespace SharpRail.UI.Docking;
 
 public sealed partial class DockSurface
 {
-    private sealed record DragDraft(string Tab, string Source, Point Origin, long Epoch);
+    private sealed record DragDraft(string Tab, string Source, Point Origin, long Epoch, IPointer Pointer, long ReadyAt);
     /// <summary>A drop: an insertion, a new group at an edge, a hidden region, or (with <see cref="PaneWith"/>) sharing a pane with that tab.</summary>
     private sealed record DropTarget(string Group, int Index, string Edge, Rect Bounds, string Region = "", string PaneWith = "", string Direction = "");
     private sealed record DropSite(DropTarget Target, Action<bool> Paint, bool Priority = false);
@@ -24,11 +24,12 @@ public sealed partial class DockSurface
     {
         AddHandler(PointerMovedEvent, (_, e) =>
         {
-            if (draft is null || draft.Epoch != Session.Epoch) return;
+            if (draft is null || draft.Epoch != Session.Epoch || draft.Pointer != e.Pointer) return;
             var position = e.GetPosition(this);
             if (!dragging)
             {
                 if (Math.Abs(position.X - draft.Origin.X) + Math.Abs(position.Y - draft.Origin.Y) < 5) return;
+                if (Environment.TickCount64 < draft.ReadyAt) { CancelDrag(); return; }
                 dragging = true; capturedPointer = e.Pointer; e.Pointer.Capture(this);
             }
             PaintTargets(position);
@@ -37,6 +38,7 @@ public sealed partial class DockSurface
         }, RoutingStrategies.Tunnel, handledEventsToo: true);
         AddHandler(PointerReleasedEvent, (_, e) =>
         {
+            if (draft is not null && draft.Pointer != e.Pointer) return;
             if (!dragging) { draft = null; FlushRefresh(); return; }
             var origin = draft; var destination = drop;
             CancelDrag();
@@ -71,7 +73,8 @@ public sealed partial class DockSurface
     private void ArmDrag(PointerPressedEventArgs e, string tab, string source)
     {
         dropValidity.Clear();
-        draft = new(tab, source, e.GetPosition(this), Session.Epoch);
+        draft = new(tab, source, e.GetPosition(this), Session.Epoch, e.Pointer,
+            e.Pointer.Type == PointerType.Touch ? Environment.TickCount64 + 500 : 0);
     }
 
     private void CancelDrag()

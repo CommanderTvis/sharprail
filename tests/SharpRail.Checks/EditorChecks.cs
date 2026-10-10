@@ -116,10 +116,48 @@ internal static class EditorChecks
         }
         finally { window.Close(); }
         WrappedScrolling();
+        TextSizeAndWrapping();
+        TouchAndSoftKeyboard();
     }
 
     // Wrapped documents scroll in display lines; the range must cover every wrapped line,
     // including lines Scintilla wraps during idle rather than while painting.
+    // What a pinch drives: one text size for every editor, a wrap column that keeps its count of characters,
+    // and, where sideways scrolling is a chore, wrapping at the pane's edge without any wrap width.
+    private static void TextSizeAndWrapping()
+    {
+        if (!OperatingSystem.IsMacOS()) return;
+        var line = new string('x', 600);
+        using var bounded = new ScintillaEditor(line, Font) { WrapWidth = 200 };
+        using var free = new ScintillaEditor(line, Font);
+        var window = new Window { Width = 2000, Height = 320, Content = new Grid { ColumnDefinitions = new("*,*"), Children = { bounded, free } } };
+        Grid.SetColumn(free, 1);
+        window.Show(); Pump();
+        try
+        {
+            static void Settle() { for (var pass = 0; pass < 20; pass++) { using var slice = new CancellationTokenSource(10); Dispatcher.UIThread.MainLoop(slice.Token); Pump(); } }
+            Settle();
+            var rows = bounded.WrapCount(0);
+            Require(rows > 1 && free.WrapCount(0) == 1, $"A wrap width must wrap and its absence must not ({rows}, {free.WrapCount(0)}).");
+            ScintillaEditor.TextSize = ScintillaEditor.DefaultTextSize * 2;
+            Settle();
+            Require(bounded.WrapCount(0) == rows, $"A wrap column must keep its characters at another text size ({rows} then {bounded.WrapCount(0)}).");
+            ScintillaEditor.TextSize = 1000;
+            Require(ScintillaEditor.TextSize == ScintillaEditor.MaximumTextSize, "The text size must stay within its range.");
+            ScintillaEditor.TextSize = ScintillaEditor.DefaultTextSize;
+            ScintillaEditor.WrapAlways = true;
+            free.WrapWidth = double.PositiveInfinity;
+            Settle();
+            var edge = free.WrapCount(0);
+            Require(edge > 1, "Always-wrap must wrap an unbounded editor at its pane's edge.");
+            ScintillaEditor.TextSize = ScintillaEditor.DefaultTextSize * 2;
+            Settle();
+            Require(free.WrapCount(0) > edge, $"Larger text must take more rows of the same pane ({edge} then {free.WrapCount(0)}).");
+            Console.WriteLine("PASS Scintilla text size: one size for every editor, wrap columns keep their characters, always-wrap follows the pane");
+        }
+        finally { ScintillaEditor.WrapAlways = false; ScintillaEditor.TextSize = ScintillaEditor.DefaultTextSize; window.Close(); }
+    }
+
     private static void WrappedScrolling()
     {
         if (!OperatingSystem.IsMacOS()) return;
@@ -145,6 +183,72 @@ internal static class EditorChecks
             editor.ScrollToLine(editor.VerticalScroll.Maximum); Pump();
             Require(editor.FirstVisibleLine == (int)editor.VerticalScroll.Maximum, $"Scrolling to the end of the range must reach it (first {editor.FirstVisibleLine}, {editor.VerticalScroll}).");
             Console.WriteLine("PASS macOS Scintilla wrapped documents scroll over every display line");
+        }
+        finally { window.Close(); }
+    }
+
+    // What an Android client drives: a finger taps, drags and holds, and Avalonia's input connection edits through
+    // offsets into the surrounding text, deleting with the Delete key and committing Enter as text.
+    private static void TouchAndSoftKeyboard()
+    {
+        if (!OperatingSystem.IsMacOS()) return;
+        using var editor = new ScintillaEditor("one\r\ntwo\r\nthree", Font) { InputSpansNeighbours = true };
+        var window = new Window { Width = 640, Height = 320, Content = editor };
+        window.Show(); Pump();
+        try
+        {
+            nint Send(ScintillaMessage message) => editor.Document.Send(message);
+            (nint, nint) Selected() => (Send(ScintillaMessage.GetSelectionStart), Send(ScintillaMessage.GetSelectionEnd));
+            void Touch(Point from, Point? to = null, TimeSpan? held = null)
+            {
+                var touch = window.TouchBegin(from, RawInputModifiers.None);
+                if (held is { } duration)
+                {
+                    using var wait = new CancellationTokenSource(duration);
+                    Dispatcher.UIThread.MainLoop(wait.Token);
+                }
+                for (var step = 1; to is { } end && step <= 5; step++) window.TouchMove(touch, from + (end - from) * step / 5, RawInputModifiers.None);
+                window.TouchEnd(touch, to ?? from, RawInputModifiers.None); Pump();
+            }
+            var row = (double)Send(ScintillaMessage.TextHeight);
+
+            Touch(new Point(600, row * 1.5));
+            Require(editor.IsFocused && Selected() == (8, 8), $"A tap must focus the editor and place the caret ({Selected()}).");
+            var ime = editor.InputMethodClient;
+            Require(ime.SurroundingText == "one\ntwo\nthree" && ime.Selection == new TextSelection(7, 7),
+                $"The soft keyboard must see the neighbouring lines with single-character breaks ({ime.Selection}).");
+
+            Key(window, Avalonia.Input.Key.Home);
+            ime.Selection = new(3, 4);
+            Key(window, Avalonia.Input.Key.Delete);
+            ime.Selection = new(3, 3);
+            Require(editor.Text == "onetwo\r\nthree" && Selected() == (3, 3), $"Backspace at a line start must join the lines ({Selected()}).");
+
+            window.KeyTextInput("\n");
+            ime.Selection = new(4, 4);
+            Pump();
+            Require(editor.Text == "one\r\ntwo\r\nthree" && Selected() == (5, 5), $"Enter must insert the document's line ending and keep the caret after it ({Selected()}).");
+
+            Key(window, Avalonia.Input.Key.Down);
+            // The platform's read after the caret moved still addresses the old text; the new one arrives afterwards.
+            Require(ime.Selection == new TextSelection(8, 8), $"An edit in progress must keep its offsets ({ime.Selection}).");
+            Pump();
+            Require(ime.SurroundingText == "two\nthree" && ime.Selection == new TextSelection(4, 4), "The surrounding text must follow the caret once an edit has finished.");
+
+            Touch(new Point(80, row * 1.5), held: Application.Current!.PlatformSettings!.HoldWaitDuration + TimeSpan.FromMilliseconds(250));
+            Require(Selected() == (5, 8), $"A long press must select the word under the finger and lifting must keep it ({Selected()}).");
+
+            editor.Text = string.Join('\n', Enumerable.Range(0, 150).Select(i => $"line {i}"));
+            Pump();
+            Touch(new Point(250, 250), new Point(250, 60));
+            var (start, end) = Selected();
+            Require(editor.FirstVisibleLine > 0 && start == end, $"A finger drag must scroll instead of selecting (first {editor.FirstVisibleLine}, {start}..{end}).");
+
+            editor.IsReadOnly = true;
+            var request = new TextInputMethodClientRequestedEventArgs { RoutedEvent = InputElement.TextInputMethodClientRequestedEvent };
+            editor.RaiseEvent(request);
+            Require(request.Client is not null, "A read-only editor keeps its input client on desktop.");
+            Console.WriteLine("PASS Scintilla touch tap, drag scrolling, long-press selection and soft-keyboard edits");
         }
         finally { window.Close(); }
     }

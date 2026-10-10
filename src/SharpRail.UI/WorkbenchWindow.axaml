@@ -41,7 +41,7 @@
     </Style>
   </Window.Styles>
   <LayoutTransformControl x:Name="ZoomRoot" LayoutTransform="{DynamicResource InterfaceZoom}">
-  <Grid x:Name="WorkbenchRoot" RowDefinitions="48,*,Auto">
+  <Grid x:Name="WorkbenchRoot" RowDefinitions="48,*,Auto,Auto">
     <Border x:Name="WindowTitleBar" Background="{x:Static rendering:Ui.Header}"
             BorderBrush="{x:Static rendering:Ui.BorderBrush}" BorderThickness="0,0,1,1">
       <Grid x:Name="MainHeader" ColumnDefinitions="36,*,Auto">
@@ -92,8 +92,12 @@
             <TextBlock Text="●" Classes="header-label" FontSize="10" Foreground="{x:Static rendering:Ui.Success}" />
             <TextBlock Text="Listening" Classes="header-label" />
           </StackPanel>
-          <TextBlock x:Name="ConnectionDot" Text="●" Classes="header-label" FontSize="10" Foreground="{x:Static rendering:Ui.Success}" />
-          <TextBlock x:Name="ConnectionStatus" Text="Connecting" Classes="header-label" />
+          <Button x:Name="ConnectionButton" Classes="location-pill" Padding="4,0" IsHitTestVisible="False" VerticalAlignment="Center">
+            <StackPanel Orientation="Horizontal" Spacing="4">
+              <TextBlock x:Name="ConnectionDot" Text="●" Classes="header-label" FontSize="10" Foreground="{x:Static rendering:Ui.Success}" />
+              <TextBlock x:Name="ConnectionStatus" Text="Connecting" Classes="header-label" />
+            </StackPanel>
+          </Button>
           <Button x:Name="SettingsButton" Width="32" Height="32" Padding="0"
                   Background="Transparent" BorderThickness="0" CornerRadius="0"
                   ToolTip.Tip="Settings (⌘,)" AutomationProperties.Name="Settings (⌘,)" />
@@ -103,6 +107,11 @@
     <TextBlock x:Name="WorkspaceError" Grid.Row="2" FontSize="12" Margin="12,4"
                Foreground="{x:Static rendering:Ui.Danger}" TextWrapping="Wrap" IsVisible="False"
                Classes="header-label" />
+    <!-- A phone-sized workbench moves between its pages from a bar at the thumb's end of the screen. -->
+    <Border x:Name="PageBar" Grid.Row="3" IsVisible="False" Height="56" Background="{x:Static rendering:Ui.Header}"
+            BorderBrush="{x:Static rendering:Ui.BorderBrush}" BorderThickness="0,1,0,0">
+      <Grid x:Name="PageBarItems" ColumnDefinitions="*,*,*,*" />
+    </Border>
     <Border x:Name="QuitHintOverlay" Grid.Row="1" ZIndex="31" IsVisible="False" IsHitTestVisible="False"
             HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="12,12,12,24" Padding="16,12"
             Background="{x:Static rendering:Ui.Elevated}" BorderBrush="{x:Static rendering:Ui.BorderBrush}"

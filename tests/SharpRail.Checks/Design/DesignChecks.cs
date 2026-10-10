@@ -80,7 +80,8 @@ internal static partial class DesignChecks
     }
 
     // Ui computes tints and compositing; Themes decodes the palette's hex.
-    private static readonly string[] ColorOwners = ["Rendering/Ui.cs", "Rendering/Themes.cs"];
+    // A QR code is dark on white under every theme, or a camera does not read it.
+    private static readonly string[] ColorOwners = ["Rendering/Ui.cs", "Rendering/Themes.cs", "Panels/QrCodeView.cs"];
 
     private static void ColorUsage(DesignSources.Colors colors, List<SourceFile> sources, List<string> failures)
     {

@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
+using Avalonia.Input.TextInput;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
@@ -58,12 +59,14 @@ internal static class GhosttySkiaChecks
         CheckZoomedDensity();
         Osc52Checks.RunSkia();
         CheckView();
+        CheckTouchAndSoftKeyboard();
         CheckIncrementalRendering();
         SkiaOutputChecks.Run(root);
         CheckSession(root);
+        CheckWatching(root);
         CheckRendererSetting(root);
         TerminalHostChecks.ReplaySetting(root);
-        Console.WriteLine("PASS Skia terminal renderer: libghostty-vt cells, colours, wide/combining text, box drawing, cursor, keyboard and mouse encoding, paste, selection, scrollback, resize and a host PTY session that survives a renderer restart");
+        Console.WriteLine("PASS Skia terminal renderer: libghostty-vt cells, colours, wide/combining text, box drawing, cursor, keyboard and mouse encoding, paste, selection, scrollback, resize, touch and soft-keyboard input, and a host PTY session that survives a renderer restart");
     }
 
     private static void CheckUrls()
@@ -293,6 +296,66 @@ internal static class GhosttySkiaChecks
         finally { window.Close(); }
     }
 
+    // What an Android client drives: a finger taps, drags and holds, and Avalonia's input connection replaces what it
+    // composes by selecting it, pressing a Delete that has no scan code and typing again.
+    private static void CheckTouchAndSoftKeyboard()
+    {
+        var input = new List<byte>();
+        using var view = new GhosttySkiaView { Typeface = EditorChecks.Font, FontSize = 14, InputField = true };
+        view.Input += (_, data) => input.AddRange(data.ToArray());
+        var window = new Window { Width = 640, Height = 320, Content = view };
+        window.Show(); Pump();
+        string Sent() { var text = Encoding.UTF8.GetString([.. input]); input.Clear(); return text; }
+        void Touch(Point from, Point? to = null, bool held = false)
+        {
+            var touch = window.TouchBegin(from, RawInputModifiers.None);
+            if (held)
+            {
+                using var wait = new CancellationTokenSource(Application.Current!.PlatformSettings!.HoldWaitDuration + TimeSpan.FromMilliseconds(250));
+                Dispatcher.UIThread.MainLoop(wait.Token);
+            }
+            for (var step = 1; to is { } end && step <= 5; step++) window.TouchMove(touch, from + (end - from) * step / 5, RawInputModifiers.None);
+            window.TouchEnd(touch, to ?? from, RawInputModifiers.None); Pump();
+        }
+        try
+        {
+            view.Write("alpha beta\r\n"u8); Pump();
+            Touch(new Point(300, 100));
+            Require(view.IsFocused && view.SelectedText == "" && view.ClipboardMenu is null, "a tap did not just focus the terminal.");
+            var request = new TextInputMethodClientRequestedEventArgs { RoutedEvent = InputElement.TextInputMethodClientRequestedEvent };
+            view.RaiseEvent(request);
+            var ime = request.Client ?? throw new InvalidOperationException("The terminal offered the soft keyboard no input client.");
+
+            window.KeyTextInput("h"); ime.Selection = new(1, 1);
+            ime.Selection = new(0, 1);
+            window.KeyPress(Key.Delete, RawInputModifiers.None, PhysicalKey.None, null);
+            window.KeyTextInput("he"); ime.Selection = new(2, 2);
+            Require(Sent() == "h\u007fhe" && ime.SurroundingText == "he", "replacing composed text did not erase and retype it.");
+            window.KeyTextInput("\n");
+            Require(Sent() == "\r" && ime.SurroundingText == "", "a committed line feed did not send Return and start a new field.");
+            Press(window, Key.Back, PhysicalKey.None, null);
+            Press(window, Key.Enter, PhysicalKey.None, null);
+            Press(window, Key.Up, PhysicalKey.None, null);
+            Require(Sent() == "\u007f\r\e[A", "soft keys without scan codes were not encoded.");
+
+            var cell = view.Bounds.Width / view.Size.Columns;
+            Touch(new Point(view.Padding.Left + cell * 7.5, 12), held: true);
+            Require(view.SelectedText == "beta", $"a long press selected '{view.SelectedText}'.");
+            Require(view.ClipboardMenu?.IsOpen == true, "lifting a long press did not offer the clipboard.");
+            view.ClipboardMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Copy")).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
+            view.ClipboardMenu.Close(); Pump();
+            var copied = window.Clipboard!.TryGetTextAsync();
+            while (!copied.IsCompleted) Pump();
+            Require(copied.Result == "beta", "the long-press menu did not copy the selection.");
+
+            for (var i = 0; i < 200; i++) view.Write(Encoding.UTF8.GetBytes($"line {i}\r\n"));
+            Pump();
+            Touch(new Point(250, 60), new Point(250, 250));
+            Require(!view.IsAtBottom && view.SelectedText == "beta", $"a finger drag did not scroll into history instead of selecting ('{view.SelectedText}').");
+        }
+        finally { window.Close(); }
+    }
+
     private static void CheckRendererSetting(string root)
     {
         var legacy = new ProfileStore(Path.Combine(root, "legacy-renderer"));
@@ -330,17 +393,17 @@ internal static class GhosttySkiaChecks
             var other = Task.Run(async () => await app.Terminals.AttachAsync(new(view.SessionId, directory, "renderer-other-client", 80, 24))).GetAwaiter().GetResult();
             try
             {
-                E2E.E2eWorkspace.Until(() => view.IsDetached);
+                E2E.E2eWorkspace.Until(() => view.IsWatching);
                 var displaced = view.Backend;
                 app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "TerminalRenderer_skia"));
                 E2E.E2eWorkspace.Settle();
-                Require(view.IsDetached && view.Backend == displaced && !other.Detached.IsCompleted,
+                Require(view.IsWatching && view.Backend == displaced && !other.Detached.IsCompleted,
                     "changing the renderer took a displaced terminal back from another client.");
             }
             finally { Task.Run(async () => await other.DisposeAsync()).GetAwaiter().GetResult(); }
         }
         finally { settings.Close(); }
-        Console.WriteLine("PASS terminal renderer Settings: pointer selection persists both choices, preserves shells and leaves displaced clients detached");
+        Console.WriteLine("PASS terminal renderer Settings: pointer selection persists both choices, preserves shells and leaves displaced clients watching");
     }
 
     // A real host shell behind the Skia backend: output, input and grid size, then a restart keeps the shell.
@@ -385,6 +448,61 @@ internal static class GhosttySkiaChecks
         static string PidOf(string screen) =>
             screen.Split('\n').Select(line => line.Trim()).LastOrDefault(line => line.StartsWith("PID_", StringComparison.Ordinal) && line.Length > 4 && char.IsDigit(line[4]))
             ?? throw new InvalidOperationException("Skia terminal: no shell PID on screen: " + screen);
+    }
+
+    // The Skia view of a terminal another client holds: the holder's grid whatever the pane's size, its live
+    // output, and nothing sent back, neither keys nor the reply to a terminal query; Enter on its offer takes over.
+    private static void CheckWatching(string root)
+    {
+        var pty = new PtyTerminalService("/bin/sh");
+        var terminals = new LocalTerminalAdapter(pty);
+        var id = "skia-watch-" + Guid.NewGuid().ToString("N");
+        var holder = Task.Run(async () => await terminals.AttachAsync(new(id, root, "skia-holder", 132, 43))).GetAwaiter().GetResult();
+        var held = new StringBuilder();
+        _ = Task.Run(async () => { await foreach (var chunk in holder.ReadAsync()) lock (held) held.Append(Encoding.UTF8.GetString(chunk.Span)); });
+        void Run(string command) => Task.Run(async () => await holder.WriteAsync(Encoding.UTF8.GetBytes(command + "\r"))).GetAwaiter().GetResult();
+        var terminal = new TerminalView(TerminalBackends.Ghostty(terminals, () => TerminalRenderers.Skia),
+            new TerminalLaunch(root, id, Path.Combine(root, ".clipboard"), "skia-watcher") { Yield = true });
+        var window = new Window { Width = 420, Height = 300, Content = terminal };
+        window.Show(); Pump();
+        try
+        {
+            GhosttySkiaView View() => terminal.Backend!.View.GetVisualDescendants().OfType<GhosttySkiaView>().Single();
+            Until(() => terminal.IsWatching, "the watching view attached");
+            Until(() => View().Size == new TerminalSize(132, 43), "the holder's grid on the watching view");
+            var scroller = terminal.GetVisualDescendants().OfType<ScrollViewer>().Single(viewer => viewer.Name == "TerminalWatched");
+            Require(View().Bounds.Width > scroller.Viewport.Width && scroller.Extent.Width >= View().Bounds.Width && !View().Focusable && !View().IsHitTestVisible,
+                "a watched terminal larger than its pane must keep the holder's grid, scroll, and take no input.");
+            Run("printf 'WATCH_%s_\\n' $((6*7)); printf '\\033[6n'");
+            Until(() => View().ReadScreen().Contains("WATCH_42_", StringComparison.Ordinal), "live output on the watching view");
+            terminal.FocusTerminal(); Pump();
+            var offer = terminal.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "TerminalTakeBack");
+            Require(offer.IsFocused, "a watched terminal's keyboard focus must be its offer.");
+            window.KeyTextInput("echo GHOST_$((40+2))"); Pump();
+            Task.Run(async () => await holder.ResizeAsync(100, 20)).GetAwaiter().GetResult();
+            Until(() => View().Size == new TerminalSize(100, 20), "the holder's resize on the watching view");
+            Run("printf 'AFTER_%s_\\n' \"$(stty size | tr ' ' x)\"");
+            Until(() => View().ReadScreen().Contains("AFTER_20x100_", StringComparison.Ordinal), "the holder's size after watching");
+            string Held() { lock (held) return held.ToString(); }
+            Require(!holder.Detached.IsCompleted && !Held().Contains("GHOST", StringComparison.Ordinal) && !System.Text.RegularExpressions.Regex.IsMatch(Held(), @"\[\d+;\d+R"),
+                "a watching view typed into, resized or answered a query of the terminal it watches: " + Held());
+
+            Press(window, Key.Enter, PhysicalKey.Enter, "\r");
+            Until(() => terminal is { IsWatching: false, Backend: { Watching: false, Started.IsCompletedSuccessfully: true } }, "the take-over");
+            Until(() => holder.Detached.IsCompleted, "the previous holder's detach");
+            var size = View().Size;
+            Require(size != new TerminalSize(100, 20) && View().IsFocused, "after a take-over the view must fit its own pane and take the keyboard.");
+            window.KeyTextInput("printf 'TOOK_%s_\\n' \"$(stty size | tr ' ' x)\""); Pump();
+            Press(window, Key.Enter, PhysicalKey.Enter, "\r");
+            Until(() => View().ReadScreen().Contains($"TOOK_{size.Rows}x{size.Columns}_", StringComparison.Ordinal), "the shell at the new holder's grid");
+            Console.WriteLine("PASS Skia watching: a held terminal shows live at its holder's grid in a scrolling pane, follows its resize, sends no keys or query replies, and Enter on the offer takes it over at the pane's size");
+        }
+        finally
+        {
+            window.Close();
+            terminal.Close();
+            Task.Run(async () => { await holder.DisposeAsync(); await pty.DisposeAsync(); }).GetAwaiter().GetResult();
+        }
     }
 
     private static List<Color> Pixels(Bitmap frame)

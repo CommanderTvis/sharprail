@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:rendering="using:SharpRail.Plugins.UI.Kit"
+        xmlns:local="using:SharpRail.UI.Panels"
         x:Class="SharpRail.UI.Panels.SettingsWindow"
         Title="Settings"
         Width="832" Height="680" MinWidth="640" MinHeight="440"
@@ -29,6 +30,11 @@
             <Button x:Name="HostToggle" Content="Start listening" />
             <Button x:Name="HostCopyEndpoint" Content="Copy endpoint" />
             <Button x:Name="HostCopyToken" Content="Copy token" />
+            <Button x:Name="HostShowCode" ToolTip.Tip="Show a QR code to connect a phone" AutomationProperties.Name="Show a QR code to connect a phone" />
+          </StackPanel>
+          <StackPanel x:Name="HostCode" Spacing="8" IsVisible="False" HorizontalAlignment="Left">
+            <local:QrCodeView x:Name="HostCodeImage" Width="240" Height="240" HorizontalAlignment="Left" />
+            <TextBlock x:Name="HostCodeDetail" MaxWidth="360" Classes="settings-description" />
           </StackPanel>
         </StackPanel>
       </StackPanel>
@@ -102,8 +108,8 @@
         <StackPanel x:Name="GroupLimits" MaxWidth="384" HorizontalAlignment="Left" Spacing="8" />
         <TextBlock Text="Bottom alignment" Classes="settings-label" />
         <ComboBox x:Name="BottomAlignment" Width="220" />
-        <TextBlock Text="Editor tabs" Classes="settings-label" />
-        <TextBlock Text="A column beside the editor instead of a strip above it. Drag its edge to resize. A split centre keeps the strip, since two columns leave too little room for the editors." Classes="settings-description" />
+        <TextBlock x:Name="EditorTabsLabel" Text="Editor tabs" Classes="settings-label" />
+        <TextBlock x:Name="EditorTabsDetail" Text="A column beside the editor instead of a strip above it. Drag its edge to resize. A split centre keeps the strip, since two columns leave too little room for the editors." Classes="settings-description" />
         <CheckBox x:Name="VerticalCenterTabs" Content="Show editor tabs vertically" />
         <CheckBox x:Name="VerticalTabsInProjects">
           <StackPanel Spacing="2">
@@ -121,10 +127,12 @@
     </DataTemplate>
     <DataTemplate x:Key="TerminalPage">
       <StackPanel Spacing="8">
-        <TextBlock Text="Terminal renderer" Classes="settings-heading" />
-        <TextBlock Text="A preference of this app. Changing it redraws open terminals; their shells keep running." Classes="settings-description" />
-        <StackPanel x:Name="TerminalRendererChoices" Spacing="8" />
-        <TextBlock Text="Replayed output" Classes="settings-heading" Margin="0,16,0,0" />
+        <StackPanel x:Name="TerminalRendererSection" Spacing="8" Margin="0,0,0,16">
+          <TextBlock Text="Terminal renderer" Classes="settings-heading" />
+          <TextBlock Text="A preference of this app. Changing it redraws open terminals; their shells keep running." Classes="settings-description" />
+          <StackPanel x:Name="TerminalRendererChoices" Spacing="8" />
+        </StackPanel>
+        <TextBlock Text="Replayed output" Classes="settings-heading" />
         <TextBlock Text="A terminal keeps running when you leave it, but its view is rebuilt when you come back. This is how much of its recent output the host keeps so the screen is restored too. Shared by every client of this host; applies to terminals opened from now on." Classes="settings-description" TextWrapping="Wrap" />
         <StackPanel x:Name="TerminalReplayChoices" Spacing="8" />
       </StackPanel>
@@ -213,15 +221,18 @@
           BorderBrush="{x:Static rendering:Ui.BorderBrush}" BorderThickness="1" CornerRadius="8">
     <Grid RowDefinitions="42.5,*">
       <Border BorderBrush="{x:Static rendering:Ui.BorderBrush}" BorderThickness="0,0,0,1">
-        <Grid ColumnDefinitions="*,Auto" Margin="16,0,12,0">
-          <TextBlock Text="Settings" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
-          <Button x:Name="SettingsClose" Grid.Column="1" Width="24" Height="24" Padding="4"
+        <Grid ColumnDefinitions="Auto,*,Auto" Margin="16,0,12,0">
+          <Button x:Name="SettingsBack" IsVisible="False" Width="24" Height="24" Padding="4" Margin="-4,0,8,0"
+                  CornerRadius="4" Background="Transparent" BorderThickness="0"
+                  ToolTip.Tip="All settings" AutomationProperties.Name="All settings" />
+          <TextBlock x:Name="SettingsTitle" Grid.Column="1" Text="Settings" FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" />
+          <Button x:Name="SettingsClose" Grid.Column="2" Width="24" Height="24" Padding="4"
                   CornerRadius="4" Background="Transparent" BorderThickness="0"
                   ToolTip.Tip="Close settings (Escape)" AutomationProperties.Name="Close settings (Escape)" />
         </Grid>
       </Border>
-      <Grid Grid.Row="1" ColumnDefinitions="192,*">
-        <Border Background="{x:Static rendering:Ui.Elevated}" BorderBrush="{x:Static rendering:Ui.BorderBrush}"
+      <Grid x:Name="SettingsColumns" Grid.Row="1" ColumnDefinitions="192,*">
+        <Border x:Name="SettingsNavigationPane" Background="{x:Static rendering:Ui.Elevated}" BorderBrush="{x:Static rendering:Ui.BorderBrush}"
                 BorderThickness="0,0,1,0">
           <ScrollViewer>
             <StackPanel x:Name="SettingsNavigation" Spacing="2" Margin="12">

@@ -63,6 +63,11 @@ public sealed partial class MarkdownDocumentView : UserControl, IDisposable
         previewButton.Click += (_, _) => Show(Mode.Preview);
         sourceButton.Click += (_, _) => Show(Mode.Source);
         splitButton.Click += (_, _) => Show(Mode.Split);
+        SizeChanged += (_, args) =>
+        {
+            splitButton.IsVisible = args.NewSize.Width >= 640;
+            if (!splitButton.IsVisible && mode == Mode.Split) Show(Mode.Preview);
+        };
         outlineButton.Click += (_, _) => { outline.IsVisible = !outline.IsVisible; Paint(outlineButton, outline.IsVisible); };
         Outline.Fill(this.FindControl<StackPanel>("MarkdownOutlineEntries")!, preview, sourceText,
             RevealSource);
@@ -125,12 +130,13 @@ public sealed partial class MarkdownDocumentView : UserControl, IDisposable
 
     public void Show(Mode next)
     {
+        if (next == Mode.Split && Bounds.Width > 0 && Bounds.Width < 640) next = Mode.Preview;
         if (mode != next) find.Close();
         mode = next;
         if (next != Mode.Preview && source is null)
         {
             if (sourceFactory is not null) source = sourceFactory(sourceText);
-            else if (OperatingSystem.IsMacOS())
+            else if (ScintillaEditor.IsSupported)
             {
                 var frame = new EditorFrame(sourceText, "MarkdownSource");
                 frame.Editor.IsReadOnly = true;

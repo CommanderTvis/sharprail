@@ -40,6 +40,8 @@ public sealed class WorkspaceView
     public Dictionary<string, string> Selected { get; set; } = [];
     public Dictionary<string, string> BeforeToolByTabId { get; set; } = [];
     public int NextTerminalNumber { get; set; } = 1;
+    /// <summary>Set once this view's terminals were reconciled with the host's catalog, which decides them from then on.</summary>
+    public bool TerminalsShared { get; set; }
     public string FocusedCenter { get; set; } = "";
     public string FocusedGroup { get; set; } = "";
     public Dictionary<string, string> FocusedAuxiliary { get; set; } = [];
@@ -50,6 +52,7 @@ public sealed class WorkspaceView
         Selected = new(Selected),
         BeforeToolByTabId = new(BeforeToolByTabId),
         NextTerminalNumber = NextTerminalNumber,
+        TerminalsShared = TerminalsShared,
         FocusedCenter = FocusedCenter,
         FocusedGroup = FocusedGroup,
         FocusedAuxiliary = new(FocusedAuxiliary)

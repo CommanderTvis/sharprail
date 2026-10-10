@@ -9,6 +9,12 @@ public record TerminalAttachRequest(string SessionId, string WorkspaceRoot, stri
     public bool Resume => Offset >= 0;
     // The tab's layout id, so the host knows the session's TerminalRef; empty from a client that does not send it.
     public string TabKey { get; init; } = "";
+    // A yielding attach never takes a session from the client that holds it: it starts or joins a session
+    // nobody holds, and otherwise returns already detached. Taking over is the plain attach.
+    public bool Yield { get; init; }
+    // A yielding attach that finds the session held watches it instead of returning detached, and a resume
+    // keeps watching. A host that predates watching ignores it.
+    public bool Watch { get; init; }
 }
 
 // A PTY's size is a pair of unsigned shorts; a grid outside it is refused before any session work.
@@ -43,16 +49,24 @@ public interface ITerminalSession : IAsyncDisposable
     ReadOnlyMemory<byte> Replay { get; }
     // The host output position after the replay and every chunk read since; resuming from it replays nothing twice.
     long Position { get; }
+    // True for an attachment that watches a session another client holds: it receives the replay and the live
+    // output, its input, resizes and kill are ignored, and it never detaches. Any number may watch.
+    bool Watching { get; }
+    // The grid the shell runs at, which its holder decides, as of the last chunk read. A watching reader
+    // receives an empty chunk when it changes without output.
+    (int Columns, int Rows) Grid { get; }
     // A single reader receives live output after the replay. It ends after the shell exits and its final
-    // output drains, or when another client takes the session over.
+    // output drains, or when another client takes the session over. A watching reader that falls further
+    // behind than the host keeps for it receives a terminal reset and a fresh snapshot instead of the gap.
     IAsyncEnumerable<ReadOnlyMemory<byte>> ReadAsync(CancellationToken cancellationToken = default);
-    // Input and resizes from a detached client are ignored. A grid outside 1–32,767 is refused.
+    // Input and resizes from a detached or watching client are ignored. A grid outside 1–32,767 is refused.
     ValueTask WriteAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken = default);
     ValueTask ResizeAsync(int columns, int rows, CancellationToken cancellationToken = default);
     ValueTask KillAsync(CancellationToken cancellationToken = default);
     // The shell's exit code, or 128 plus the signal that ended it; completes after output ends.
     Task<int> Exit { get; }
     // Completes when another client attached to the session; this attachment then receives nothing more.
+    // Already complete when a yielding attach found the session held by another client.
     Task Detached { get; }
     // Set on the attachment that started a shell for a tab whose agent record a plugin offered to revive: the
     // client types it once the shell's first output has arrived, pressing Return after it when Submit is set.

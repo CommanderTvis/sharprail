@@ -23,6 +23,7 @@
     <PackageReference Include="Avalonia.Themes.Fluent" />
     <PackageReference Include="SkiaSharp" />
     <PackageReference Include="Markdig" />
+    <PackageReference Include="QRCoder" />
     <PackageReference Include="Svg.Controls.Skia.Avalonia" />
     <AvaloniaResource Include="Assets/**" />
     <InternalsVisibleTo Include="SharpRail.Checks" />

@@ -24,8 +24,10 @@ public static class TerminalRelay
     internal const string ExitStatus = "exit:";
     // The status of a relay whose session another window or client took over.
     internal const string DetachedStatus = "detached";
+    // The status of a relay whose yielding attach found the session held by another client.
+    internal const string YieldedStatus = "yielded";
 
-    internal sealed record Connection(string Endpoint, string Token, string SessionId, string ClientId, string WorkspaceRoot, string StatusPath, string TabKey = "");
+    internal sealed record Connection(string Endpoint, string Token, string SessionId, string ClientId, string WorkspaceRoot, string StatusPath, string TabKey = "", bool Yield = false);
 
     internal static string Directory { get; } = Path.Combine(Path.GetTempPath(), "sharprail-relay-" + Environment.UserName);
 
@@ -73,7 +75,7 @@ public static class TerminalRelay
         ITerminalSession session;
         try
         {
-            session = await terminals.AttachAsync(new(connection.SessionId, connection.WorkspaceRoot, connection.ClientId, columns, rows) { TabKey = connection.TabKey });
+            session = await terminals.AttachAsync(new(connection.SessionId, connection.WorkspaceRoot, connection.ClientId, columns, rows) { TabKey = connection.TabKey, Yield = connection.Yield });
         }
         catch (Exception error)
         {
@@ -82,6 +84,7 @@ public static class TerminalRelay
             Report(output, "Couldn’t start the shell: " + message);
             return 1;
         }
+        var yielded = connection.Yield && session.Detached.IsCompleted;
         await using (session)
         {
             using var raw = TerminalDevice.EnterRawMode(0);
@@ -109,7 +112,7 @@ public static class TerminalRelay
                 }
                 if (session.Detached.IsCompleted)
                 {
-                    await File.WriteAllTextAsync(connection.StatusPath, DetachedStatus);
+                    await File.WriteAllTextAsync(connection.StatusPath, yielded ? YieldedStatus : DetachedStatus);
                     return 0;
                 }
                 var code = await session.Exit;

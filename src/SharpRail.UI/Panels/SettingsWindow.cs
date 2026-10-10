@@ -52,7 +52,9 @@ public sealed partial class SettingsWindow : Window
         {
             lifetime.Cancel(); Ui.ThemeChanged -= SystemThemeChanged; state.Changed -= SharedChanged;
             window.Workbench.PluginRegistry.Changed -= PluginsChanged;
+#if !ANDROID
             if (window.Workbench.Listener is { } listener) listener.Changed -= ListenerChanged;
+#endif
         };
         Ui.ThemeChanged += SystemThemeChanged;
         state.Changed += SharedChanged;
@@ -73,11 +75,16 @@ public sealed partial class SettingsWindow : Window
             Navigation(this.FindControl<Button>("Settings_" + item.Item1.Replace(' ', '_'))!, item.Item1, Ui.Row(item.Item2, item.Item1));
         SyncPluginSections();
         window.Workbench.PluginRegistry.Changed += PluginsChanged;
+#if !ANDROID
         if (window.Workbench.Listener is { } listener) listener.Changed += ListenerChanged;
+#endif
         var frame = this.FindControl<Border>("SettingsFrame")!;
-        frame.SizeChanged += (_, args) => frame.Clip = new RectangleGeometry(new Rect(args.NewSize), 8, 8);
+        // On Android Settings is a page over the whole screen, not a card.
+        if (OperatingSystem.IsAndroid()) { frame.CornerRadius = default; frame.BorderThickness = default; }
+        else frame.SizeChanged += (_, args) => frame.Clip = new RectangleGeometry(new Rect(args.NewSize), 8, 8);
         KeyDown += (_, e) => { if (e.Key == Key.Escape || AppCommands.IsClose(e)) { Close(); e.Handled = true; } };
         ShowSection(section);
+        if (window.Workbench.Compact) WireSectionList();
     }
 
     public string Section => section;
@@ -149,6 +156,57 @@ public sealed partial class SettingsWindow : Window
         return page;
     }
 
+    private Action<bool>? showSectionList;
+
+    private static readonly Dictionary<string, string> SectionSummaries = new()
+    {
+        ["Appearance"] = "Theme, interface font size",
+        ["Line width"] = "Code and Markdown columns",
+        ["Layout"] = "Presets, panes, file previews",
+        ["Projects"] = "Recent projects",
+        ["Terminal"] = OperatingSystem.IsAndroid() ? "Replayed output" : "Renderer, replayed output",
+        ["Notifications"] = "When an agent needs you",
+        ["Host"] = "The host this app works with",
+        ["GitHub"] = "Command-line sign-in",
+        ["Plugins"] = "Installed plugins and their settings"
+    };
+
+    // On a phone-sized screen Settings is a list of sections; choosing one gives it the whole page, and Back
+    // or the header's arrow returns to the list.
+    private void WireSectionList()
+    {
+        var columns = this.FindControl<Grid>("SettingsColumns")!;
+        var pane = this.FindControl<Border>("SettingsNavigationPane")!;
+        var back = this.FindControl<Button>("SettingsBack")!;
+        var title = this.FindControl<TextBlock>("SettingsTitle")!;
+        pane.BorderThickness = default;
+        foreach (var (key, button) in navigation)
+        {
+            if (!SectionSummaries.TryGetValue(key, out var summary) || button.Content is not StackPanel row) continue;
+            var name = row.Children.OfType<TextBlock>().First();
+            row.Children.Remove(name);
+            name.FontSize = 15; name.Foreground = Ui.TextBrush;
+            row.Children.Add(new StackPanel { Spacing = 2, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center, Children = { name, Ui.Text(summary, Ui.Muted, 12) } });
+            row.Spacing = 16;
+            button.Height = 60;
+        }
+        void Show(bool list)
+        {
+            columns.ColumnDefinitions[0].Width = list ? new(1, GridUnitType.Star) : new(0);
+            columns.ColumnDefinitions[1].Width = list ? new(0) : new(1, GridUnitType.Star);
+            pane.IsVisible = list; back.IsVisible = !list;
+            title.Text = list ? "Settings" : section.StartsWith("plugin:", StringComparison.Ordinal) ? "Plugin settings" : section;
+        }
+        showSectionList = Show;
+        // The page stops above the workbench's page bar, which stays in reach under it.
+        Opened += (_, _) => { if (Owner is Window owner) MaxHeight = Math.Max(1, owner.Bounds.Height - window.PageBarHeight); };
+        PaintNavigation();
+        back.Content = Ui.Icon("arrowGoBack");
+        back.Click += (_, _) => Show(true);
+        AddHandler(BackRequestedEvent, (_, e) => { if (!pane.IsVisible) { Show(true); e.Handled = true; } });
+        Show(true);
+    }
+
     public void ShowSection(string name)
     {
         if (name.StartsWith("plugin:", StringComparison.Ordinal) && !navigation.ContainsKey(name)) name = "Plugins";
@@ -170,13 +228,14 @@ public sealed partial class SettingsWindow : Window
         (error.Parent as Panel)?.Children.Remove(error);
         if (page is Panel content) content.Children.Add(error);
         body.Content = page;
+        showSectionList?.Invoke(false);
     }
 
     private void PaintNavigation()
     {
         foreach (var entry in navigation)
         {
-            var active = entry.Key == section;
+            var active = showSectionList is null && entry.Key == section;
             entry.Value.Background = active ? Ui.PrimarySubtle : Ui.Elevated;
             foreach (var text in ((StackPanel)entry.Value.Content!).Children.OfType<TextBlock>()) text.Foreground = active ? Ui.Accent : Ui.Muted;
             if (((StackPanel)entry.Value.Content!).Children[0] is Border glyph) glyph.Background = active ? Ui.Accent : Ui.Muted;
@@ -510,9 +569,13 @@ public sealed partial class SettingsWindow : Window
         var directions = PageControl<StackPanel>(panel, "PaneDirections");
         var directionLabel = PageControl<TextBlock>(panel, "PaneDirectionLabel");
         var directionDetail = PageControl<TextBlock>(panel, "PaneDirectionDetail");
+        // A workbench that keeps its tabs in Projects offers no other place for them.
+        var fixedTabs = window.Workbench.TabsInProjects;
+        PageControl<TextBlock>(panel, "EditorTabsLabel").IsVisible = PageControl<TextBlock>(panel, "EditorTabsDetail").IsVisible =
+            vertical.IsVisible = inProjects.IsVisible = !fixedTabs;
         void RenderTabs()
         {
-            var on = state.Preferences.VerticalCenterTabs;
+            var on = fixedTabs || state.Preferences.VerticalCenterTabs;
             vertical.IsChecked = on;
             inProjects.IsChecked = state.Preferences.VerticalTabsInProjects;
             inProjects.IsEnabled = on;
@@ -646,6 +709,8 @@ public sealed partial class SettingsWindow : Window
     private Control TerminalSettings()
     {
         var panel = Page("TerminalPage");
+        // Android terminals are always drawn by Skia, so there is nothing to choose.
+        PageControl<StackPanel>(panel, "TerminalRendererSection").IsVisible = !OperatingSystem.IsAndroid();
         var choices = PageControl<StackPanel>(panel, "TerminalRendererChoices");
         foreach (var (renderer, label, description) in new[]
         {
