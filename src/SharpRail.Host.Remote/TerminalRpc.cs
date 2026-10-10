@@ -24,6 +24,7 @@ public sealed class TerminalRpc(ITerminalService terminals, IHostApplicationLife
             {
                 Attached = true,
                 Created = session.Created,
+                Detached = session.Detached.IsCompleted,
                 Data = session.Replay.ToArray(),
                 Position = session.Position,
                 PrefillText = session.Prefill?.Text ?? "",
@@ -58,7 +59,8 @@ public sealed class TerminalRpc(ITerminalService terminals, IHostApplicationLife
         {
             return await terminals.AttachAsync(new(attach.SessionId, attach.WorkspaceRoot, attach.ClientId, attach.Columns, attach.Rows, attach.Offset)
             {
-                TabKey = attach.TabKey
+                TabKey = attach.TabKey,
+                Yield = attach.Yield
             }, cancellationToken);
         }
         catch (Exception error) when (error is IOException or ArgumentException or InvalidOperationException or UnauthorizedAccessException or PlatformNotSupportedException)

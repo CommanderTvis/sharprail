@@ -487,14 +487,8 @@ public sealed partial class WorkbenchWindow
         var leaves = Layout.State.Center.Leaves().ToArray();
         var target = options.GroupId is { } requested && Layout.State.Groups.Any(group => group.Id == requested) ? requested
             : leaves.Contains(Layout.View.FocusedCenter) ? Layout.View.FocusedCenter : leaves[0];
+        if (options.Command is { } command) terminalCommands[workspaceRoot + ":" + tabKey] = command;
         Layout.NewTerminal(target, tabKey);
-        if (options.Command is { } command)
-            Dispatcher.UIThread.Post(async () =>
-            {
-                if (documentContent.GetValueOrDefault(workspaceRoot + ":" + tabKey) is not Terminal.TerminalView terminal || terminal.Backend is not { } backend) return;
-                try { await backend.Started; } catch (Exception) { return; }
-                terminal.Write(command + "\r");
-            }, DispatcherPriority.Background);
         return tabKey;
     }
 

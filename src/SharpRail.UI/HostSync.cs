@@ -154,6 +154,7 @@ public sealed partial class WorkbenchWindow
             StartWatching(projectRequest);
             _ = RefreshAsync();
         }
+        if (generation != hydratedGeneration) ReshareTerminals();
         hydratedGeneration = generation;
         if (renameCommitPending) CommitRename();
     }

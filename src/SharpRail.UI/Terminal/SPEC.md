@@ -51,10 +51,15 @@ paste transformation. Native checks capture actual AppKit key bytes for all four
   reopening restores saved tabs with fresh shells. Local shells end when the app quits and remote shells
   when their host stops; restored tabs start new shells showing their last recorded screen after a restart
   (the local host saves it on a graceful quit).
-- Attach is exclusive with takeover. A session has one size, so a new attach becomes the recipient and the
-  previous client shows "This terminal is open somewhere else" with Take it back. A displaced client's
-  input and resizes are ignored and its reconnects never take the session back; taking back is an explicit
-  gesture.
+- A session is held by one client and has that client's size. A tab's body attaches yielding
+  (`TerminalLaunch.Yield`): it starts or joins a session nobody holds, and where another client holds it the
+  body shows "This terminal is in use by another client." with Take over instead of attaching, so merely
+  showing a tab never takes a terminal or resizes it. Take over, and the first attach of a terminal created
+  in this window, attach plainly: the new attach becomes the recipient at its own grid and the previous
+  client shows "This terminal is open somewhere else" with Take it back. A displaced client's input and
+  resizes are ignored and its reconnects never take the session back. Upstream takes a terminal over when
+  its tab is selected; here taking is always the button, because a phone that opens a workspace must not
+  resize the terminal a desktop is using.
 - Output is addressed to the attached client only. A fresh view receives a bounded snapshot of the main
   screen, preceded by the observed private modes except mouse tracking and never containing the alternate
   screen or a mode sequence, then the foreground program is nudged to redraw. A reconnecting client
@@ -74,6 +79,34 @@ paste transformation. Native checks capture actual AppKit key bytes for all four
   seconds; input typed before the loss is noticed can be lost, as with ssh.
 - Each window is one terminal client. Terminals of different tabs are independent and survive workspace
   switches without a second shell.
+
+## Shared terminals
+
+Which terminal tabs a workspace has is the host's catalog (`ITerminalCatalogService`, see
+[Terminals.SPEC.md](../../SharpRail.Host.Core/Terminals.SPEC.md#catalog)), so every window of every client shows
+the same ones; where a tab sits stays each window's own. `Workbench` takes the catalog from its composition root
+(the local PTY service, a remote adapter, or an in-memory one when there is neither), keeps one subscription for
+all its windows and hands them the latest snapshot; a change's reply and the subscription race, and the higher
+revision wins, except that the first snapshot of a subscription always applies because a restarted host counts
+again. The window half is `TerminalTabs.cs`; placement is `LayoutSession.ReconcileTerminals`
+([Docking/SPEC.md](../Docking/SPEC.md)).
+
+- Mounting a workspace announces it (`OpenWorkspaceAsync`), once per connection. The window brings its own
+  terminal tabs when its view never met the catalog or the host does not know the workspace, so saved layouts
+  with older random tab ids are adopted; otherwise it brings none, and a tab closed elsewhere meanwhile is not
+  brought back. The view is then reconciled, and again on every snapshot, for every workspace this window
+  announced, shown or not.
+- A terminal created here (New terminal, a plugin's terminal) is placed at once but its body waits, showing
+  "Loading terminal…", until `ReserveAsync` has recorded it; a refused reservation removes the tab and reports
+  why. Bodies of a workspace likewise wait for its first reconciliation, so no shell starts for a tab the host
+  already closed.
+- A terminal tab that leaves the layout by this window's doing is closed through `CloseTabAsync`, mounted or
+  not, which removes it for every client and ends its shell. A tab the catalog removed only loses its body here.
+- The session behind a tab is `TerminalTab.SessionFor(root, key)`, the same for every client.
+- A host that predates the catalog, or refuses a workspace's tabs, leaves that workspace's terminals this
+  window's own. A new connection generation announces the shown workspace again.
+- Not ported: dismissing a busy-close confirmation when another client closes the same terminal meanwhile;
+  the confirmation then closes a tab that is already gone.
 
 ## Tab lifecycle
 
@@ -178,11 +211,6 @@ fallback while preserving the local/remote shell and its exit status.
   count only input delivered to the PTY; viewing output, reconnecting or a displaced client's ignored
   write never reactivates a settled workspace (see
   [Terminals.SPEC.md](../../SharpRail.Host.Core/Terminals.SPEC.md#not-yet-ported)).
-- Using the host's terminal catalog. The host keeps one (`ITerminalCatalogService`, see
-  [Terminals.SPEC.md](../../SharpRail.Host.Core/Terminals.SPEC.md#catalog)) and the client adapters
-  exist, but no window reserves its tabs or reconciles against it yet: terminal membership is still each
-  window's own, the initial terminal has a random id per window, and a tab closed elsewhere stays until
-  this window closes it. See [Docking/SPEC.md](../Docking/SPEC.md).
 - `TerminalKeyEncoding.AgentNewline`: the bridge has no key-encoding switch, so `SetKeyEncoding` is a no-op and
   Shift+Return keeps Ghostty's own encoding.
 - Faint-cell blanking in `BufferTail(omitFaint: true)`: libghostty's text read carries no cell attributes, so faint

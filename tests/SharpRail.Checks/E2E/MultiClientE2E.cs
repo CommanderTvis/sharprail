@@ -241,8 +241,12 @@ internal static class MultiClientE2E
         var bottom = peer.Window.Layout.State.Groups.First(group => group.Region == "bottom" && peer.Window.Layout.Tabs(group.Id).Any(tab => tab.Kind == "terminal"));
         peer.Click(peer.Find<Button>("NewTerminal_" + bottom.Id));
         Until(() => Terminals(peer) == 2);
+        // Which terminals exist is shared; where they sit and which one a window shows is not.
+        var first = TerminalsE2E.TerminalTabs(app)[0];
+        Until(() => Terminals(app) == 2);
         Settle(200);
-        Require(Terminals(app) == 1, "A terminal opened in one window must not add a tab to another.");
+        Require(app.Window.Layout.State.Groups.Single(group => app.Window.Layout.Tabs(group.Id).Any(tab => tab.Id == first.Id)) is { } shown &&
+            app.Window.Layout.Selected(shown.Id)?.Id == first.Id, "A terminal opened in one window must arrive in another without becoming the tab it shows.");
 
         app.Click(app.Find<Button>("Tab_files"));
         app.Open("README.md", keep: true);

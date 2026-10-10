@@ -52,6 +52,7 @@ internal static partial class TerminalHostChecks
         {
             await Exercise(new LocalTerminalAdapter(local), workspace, "local");
             await Sessions(new LocalTerminalAdapter(local), workspace, "local");
+            await Yielding(new LocalTerminalAdapter(local), workspace, "local");
             await LiveInputModes(new LocalTerminalAdapter(local), workspace, "local");
             var state = new HostStateStore(null) { Terminals = local };
             await ProjectClosure(new LocalTerminalAdapter(local), new LocalStateAdapter(state), workspace, "local", state);
@@ -74,6 +75,7 @@ internal static partial class TerminalHostChecks
             {
                 await Exercise(remote, workspace, "remote");
                 await Sessions(remote, workspace, "remote");
+                await Yielding(remote, workspace, "remote");
                 await LiveInputModes(remote, workspace, "remote");
                 using var state = new RemoteStateAdapter(address, "terminal-token");
                 await ProjectClosure(remote, state, workspace, "remote");
@@ -337,6 +339,42 @@ internal static partial class TerminalHostChecks
         Require(fresh.Created, $"{mode}: a closed session's id must start a new shell.");
         await terminals.CloseAsync(id);
         Console.WriteLine($"PASS host terminal sessions ({mode}): detach keeps the shell, exactly-once replay, takeover with notice, displaced input ignored, resume without duplicates and exit while detached");
+    }
+
+    // A yielding attach starts or joins a session nobody holds and leaves a held one, with its size, alone.
+    private static async Task Yielding(ITerminalService terminals, string workspace, string mode)
+    {
+        const string size = "echo \"SIZE_$(stty size | tr ' ' x)_{0}\"";
+        var id = mode + "-yield-" + Guid.NewGuid().ToString("N");
+        await using var holder = await terminals.AttachAsync(new(id, workspace, "window-a", 100, 30) { Yield = true });
+        var a = new Screen(holder);
+        Require(holder.Created && !holder.Detached.IsCompleted, $"{mode}: a yielding attach must start a session nobody holds.");
+        await using var passive = await terminals.AttachAsync(new(id, workspace, "window-b", 61, 17) { Yield = true });
+        Require(passive.Detached.IsCompleted && !passive.Created && passive.Replay.IsEmpty, $"{mode}: a yielding attach must return detached from a session another client holds.");
+        _ = new Screen(passive);
+        await passive.ResizeAsync(40, 10);
+        await passive.WriteAsync(Encoding.UTF8.GetBytes("printf 'GHOST_%s\\n' YIELDED\r"));
+        await a.Run(string.Format(size, "HELD"));
+        await a.WaitFor("SIZE_30x100_HELD", mode);
+        Require(!holder.Detached.IsCompleted && !a.Text.Contains("GHOST_YIELDED", StringComparison.Ordinal), $"{mode}: a yielding attach must not detach, resize or drive the holder's session.");
+
+        var taker = await terminals.AttachAsync(new(id, workspace, "window-b", 61, 17));
+        var b = new Screen(taker);
+        await holder.Detached.WaitAsync(TimeSpan.FromSeconds(10));
+        await holder.ResizeAsync(100, 30);
+        await b.Run(string.Format(size, "TAKEN"));
+        await b.WaitFor("SIZE_17x61_TAKEN", mode);
+        Require(!taker.Detached.IsCompleted, $"{mode}: a plain attach must take the session over at its own size, whatever the displaced client resizes.");
+
+        await taker.DisposeAsync();
+        await Task.Delay(500);
+        await using var free = await terminals.AttachAsync(new(id, workspace, "window-c", 80, 24) { Yield = true });
+        var c = new Screen(free);
+        await c.Run(string.Format(size, "FREE"));
+        await c.WaitFor("SIZE_24x80_FREE", mode);
+        Require(!free.Created && !free.Detached.IsCompleted, $"{mode}: a yielding attach must join a session its holder left.");
+        await terminals.CloseAsync(id);
+        Console.WriteLine($"PASS host terminal yielding ({mode}): a held session keeps its client and size, a free one is joined, takeover resizes");
     }
 
     // A remote session reconnects through a severed connection and resumes without duplicating output,
