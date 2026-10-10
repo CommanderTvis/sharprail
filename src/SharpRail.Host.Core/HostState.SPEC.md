@@ -125,6 +125,9 @@ presets belong to the UI.
 
 ## Not yet ported
 
+- The host-wide settled-workspace idle window: default seven days, a positive integer clamped to
+  1–365, or null to disable idle settling. Validate mutations as known settings; malformed nonnumeric
+  persisted values restore the default rather than silently disabling the lifecycle.
 - A `NotGit` refusal of a non-repository. SharpRail opens a plain folder as a workspace on purpose (the
   startup root, and Git failure never blocks opening files) and offers Initialize afterwards, so refusing it
   needs the product decision upstream made; inspection already gives a client the classification, and the

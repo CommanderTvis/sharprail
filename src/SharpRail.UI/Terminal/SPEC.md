@@ -156,6 +156,10 @@ fallback while preserving the local/remote shell and its exit status.
 
 ## Not yet ported
 
+- Host-side attribution of accepted input to workspace activity. Local and remote terminal paths must
+  count only input delivered to the PTY; viewing output, reconnecting or a displaced client's ignored
+  write never reactivates a settled workspace (see
+  [Terminals.SPEC.md](../../SharpRail.Host.Core/Terminals.SPEC.md#not-yet-ported)).
 - Using the host's terminal catalog. The host keeps one (`ITerminalCatalogService`, see
   [Terminals.SPEC.md](../../SharpRail.Host.Core/Terminals.SPEC.md#catalog)) and the client adapters
   exist, but no window reserves its tabs or reconciles against it yet: terminal membership is still each

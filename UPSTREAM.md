@@ -8,7 +8,7 @@ upstream revision; module specs link here rather than recording their own hashes
 The revision records completed spec triage and adaptation, not implementation
 completion; remaining code work lives in each spec's `Not yet ported` section.
 
-Synced commit: `68bb837474bf57fea1be6d9d9735172ab42b18e6` (2026-10-08)
+Synced commit: `830de941a12905c54ff7c0418acc6bde2d9a5157` (2026-10-09)
 
 ## Mapping
 
@@ -46,54 +46,63 @@ analytics, GitHub/PR review, desktop updates, web-only tooling): every other ups
 
 ## Latest sync triage
 
-Compared `fdebcdd532a5a3955539e96439f2ddae074d18ec` with the fetched
-JetBrains/thinkrail `upstream/main`: 20 commits. The checkout's `origin` is the
-personal fork and has no `origin/main`; the authoritative remote is `upstream`.
+Compared `68bb837474bf57fea1be6d9d9735172ab42b18e6` with the upstream
+checkout's local `main`: one commit, `feat(workspaces): settle quiet workspaces
+onto a per-project shelf (#663)`. No fetch was performed. The checkout's
+`origin` is the personal fork; JetBrains/thinkrail is its `upstream` remote.
+Triage completed on 2026-10-10; the revision date above is the commit date.
 
-Applicable changes are adapted in the owning specs:
+All twelve changed specs were triaged. Nine mapped specs add applicable behavior,
+recorded in the native destinations' `Not yet ported` sections:
 
-- `packages/shared/SPEC.md`: always probe the Unix login-shell PATH and merge
-  launcher-specific entries ahead of it; Core records this existing implementation gap.
-- `packages/server/src/terminal/SPEC.md` and `packages/server/src/host/SPEC.md`:
-  validate terminal grids and guarantee backpressure progress. C# input is already
-  typed; Bun's lost-drain latch is not a demonstrated gRPC bug. Bounded output queues
-  and progress guarantees remain native work.
-- `packages/server/src/settings/SPEC.md`: mutation keys/values are already validated;
-  retaining unknown settings on disk across older-host updates remains missing.
-- `packages/contracts/SPEC.md`: RPC interfaces already enforce adapter completeness
-  at compile time. Native attention-notification bridges are excluded.
-- New `apps/web/src/shell/locationBar/SPEC.md` maps to the UI spec: captioned
-  project/workspace/branch controls, responsive priorities and shared workspace actions.
-  The related shell/panels changes also require workspace-bound rename/remove state.
-- `apps/web/src/shell/layout/SPEC.md`: document the remaining layout-isolation
-  validation gap without copying React component boundaries.
-- `apps/web/src/panels/SPEC.md` and the renderer source fix: preserve pending scroll
-  restoration until content is ready or user input takes over; PR-review cache changes
-  remain excluded.
-- `apps/web/src/lib/SPEC.md` and `styles/TYPOGRAPHY.md`: native highlighting work must
-  avoid dispatcher stalls and stale replies; the new location caption is unported.
-  Worker engines and generated CSS remain web-specific. Added muted feedback colors
-  serve AI Plan/TODO status, so introduce no native color roles in this sync.
-- `e2e/SPEC.md`: record login-shell fixture isolation needed with PATH repair.
-  Heavy chat replay, CPU throttling and React profiling remain web/AI tooling;
-  no benchmarks or coverage translations were run or claimed.
+- `packages/server/src/workspaces/SPEC.md`: host-owned activity timestamps and
+  explicit settle/keep-active overrides, safe write coalescing, creation stamps,
+  HEAD baselines and one-time migration. Settling organises the list without
+  removing a worktree; Default never settles. Native activity sources are accepted
+  PTY input and actual HEAD movement; viewing or selecting is not activity.
+- `packages/server/src/host/SPEC.md`: compose these activity sources and migration
+  without allowing lifecycle-maintenance failures to block listing or kill the host.
+- `packages/server/src/watch/SPEC.md`: seed HEAD before metadata events, compare
+  the retained baseline on watcher recreation and clean up failed admission.
+- `packages/server/src/terminal/SPEC.md`: attribute only input that reaches the
+  PTY to its workspace; displaced, exited and ignored writes must not reactivate it.
+- `packages/server/src/settings/SPEC.md`: shared idle window, seven days by
+  default, positive integer clamped to 1–365 or null for Never; malformed stored
+  values restore the default.
+- `packages/contracts/SPEC.md`: additive activity/override facts, settle/unsettle
+  mutations and nullable idle setting, with a native capability version and
+  local/remote parity. The client derives the partition; it is never a wire boolean.
+- `apps/web/src/store/SPEC.md`: one partition for rail and header, Recent activity /
+  Created / Name sorting, Default pinned first, active-selection latch and a shared
+  clock. Native sort preferences belong in the profile; shelf expansion and paging
+  stay transient per window. Unsupported hosts retain their legacy list, and a
+  temporary disconnect must not discard the last completed capability verdict.
+- `apps/web/src/panels/SPEC.md`: collapsed Settled shelf, reason chips, paging,
+  shared Settle / Keep active actions, force-reveal of selected rows and a one-time
+  automatic-move notice with Show. Workspaces settings offers 1 / 3 / 7 / 14 days /
+  Never and does not mislabel valid non-preset values.
+- `apps/web/src/shell/locationBar/SPEC.md`: the same actions and sorted partition
+  in the workspace switcher, a Settled submenu and a settled selection caption.
 
-Mapped `architecture.md`, server parent, web parent, desktop, store and spec-graph
-changes otherwise concern AI extensions, native agent-attention notifications or
-web bundling, so their native counterparts need no additional adaptation.
+The three changed untracked specs remain excluded:
+`packages/server/src/branch-review/SPEC.md` (open/merged/closed provider lookup,
+reliable review snapshots and bounded asynchronous refresh),
+`packages/server/src/host/planReview.SPEC.md` (AI review as activity), and
+`packages/server/src/pr/SPEC.md` (branch-safe PR snapshot mutation). The review
+snapshot, PR-driven settling/chips and AI session activity/backfill portions of
+mapped specs are likewise excluded under this sync's existing scope. No specs
+were added, moved or deleted; the mapping is unchanged.
 
-New `apps/web/src/notifications/SPEC.md` and
-`packages/server/src/extensions/SPEC.md` are not tracked: agent attention and AI
-extension composition are outside scope. Deleted `packages/pi-visualize/SPEC.md`
-was not tracked; its replacement lives in the already excluded pi/ThinkRail
-extension specs. No SharpRail spec is deleted.
+Source changes reinforce the same feature. New `e2e/settled-shelf.spec.ts` covers
+manual settle/keep-active, the first-move notice, legacy-host behavior and persisted
+idle settings; these remain untranslated acceptance gaps. Existing terminal,
+workspace-tab and topbar journeys now locate rows by identity because sorting
+invalidates positional assumptions. Chat history journeys, Plan/PR changes,
+product analytics, React hydration, compact age formatting and README screenshots
+add no independent native implementation work beyond the shelf or excluded scope.
 
-The remaining changed specs are excluded: CLI; website and vibecoding;
-artifact-tests; server agent and analytics; pi-delegation, pi-thinkrail-workflow,
-pi-todos (parent/core/tools); website-analytics; pi-extensions (parent/visualize);
-thinkrail-extensions (parent/visualize). Their source changes cover AI chat,
-TODOs, delegation, analytics, packaging and extension migration. The changed
-product goal concerns the loose TODO queue and is likewise outside scope.
-
-This sync changes documentation only. Implementation gaps remain in the module
-specs' `Not yet ported` sections; advancing this revision does not claim code parity.
+Implementation work remains: host lifecycle facts and activity wiring, shared
+idle settings and compatible adapters, then the shared UI partition, shelf,
+header actions and notice with local/remote and multi-window acceptance coverage.
+This sync changes documentation only; no implementation or translated coverage
+is claimed, and advancing this revision does not claim code parity.

@@ -106,6 +106,11 @@ could not save this change: …” inline and re-renders from host state.
 
 ## Not yet ported
 
+- A capability-gated Workspaces settings section with Settle idle workspaces after: 1, 3, 7 (default),
+  14 days or Never. Changes are shared host settings and converge through the broadcast; a valid
+  non-preset value leaves all cards unselected. The copy must explain which activity resets the idle
+  timer and which workspaces stay live, using SharpRail's supported activity sources rather than AI
+  or pull-request rules.
 - A Windows shell picker.
 - Keeping the Create workspace dialog open to retry after a rejected creation; the dialog has closed by
   then and the failure is a toast.

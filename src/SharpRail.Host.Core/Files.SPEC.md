@@ -101,6 +101,10 @@ mutations.
 
 ## Not yet ported
 
+- A watcher-start notification for the workspace activity lifecycle, before repository-metadata events
+  can arrive, including pre-warm admission and recreation. It seeds or compares the retained HEAD SHA
+  baseline (see [Workspaces.SPEC.md](Workspaces.SPEC.md#not-yet-ported)); registration failure must
+  dispose the new watcher set rather than leave a partially admitted entry.
 - A periodic identity check for a root replaced while its only subscribers stay attached and no client
   subscribes or pre-warms; today such a watcher heals on the next of those or on a watcher error.
 - A readiness answer for a subscription (upstream's `startupNudge`); the registration rescan covers it.

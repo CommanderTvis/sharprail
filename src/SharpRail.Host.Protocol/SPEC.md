@@ -131,6 +131,12 @@ project: local adapters call Core directly, with no serialization.
 
 ## Not yet ported
 
+- Additive, version-gated workspace activity timestamps, settled/active override and its timestamp,
+  settle/unsettle mutations returning the updated record, and a nullable idle-day setting (seven days
+  by default; null means never). Full snapshots and lifecycle updates converge clients; the live/shelf
+  partition stays client-derived. The native protocol needs its own capability version rather than
+  copying upstream's numeric version (see
+  [Workspaces.SPEC.md](../SharpRail.Host.Core/Workspaces.SPEC.md#not-yet-ported)).
 - Pushed invalidations beyond host state and the lifecycle stream: a worktree
   file-change nudge (`workspace.fsChanged`) and a host update notice.
 - `git init` by path and a `GitDiffScope` of a single commit carried on file diffs

@@ -359,6 +359,21 @@ disappearance shows.
 
 ## Not yet ported
 
+- The Settled shelf: a sort row above live workspaces, a collapsed `Settled · N` disclosure and slim
+  name-only settled rows with reason chips and tooltips, initially ten rows with Show 25 more. Selecting
+  a settled workspace expands and pages its shelf to reveal it. Settle and Keep active belong to the
+  shared row/header actions, with hover actions and the same context menus; Default never settles.
+  This is list organisation only: it never deletes files, and offers no bulk removal. The shelf and
+  sorting must appear only when the host supports settling. AI activity guards are outside scope.
+- A client-local, host-qualified first-automatic-move notice: after automatic settled counts remain
+  stable for two seconds, announce “Moved N quiet workspaces to Settled”, explain the rules and offer
+  Show to expand the affected projects and shelves. Manually settled rows do not count; remember the
+  notice in the profile rather than browser storage. Activity-based settling is in scope; upstream's
+  pull-request-driven automatic settling and shared review snapshot are excluded from this sync.
+- Acceptance coverage for the shelf remains unported: Settle / Keep active roundtrips converge across
+  windows, the first-move notice appears once and Show reveals affected rows, unsupported hosts retain
+  their legacy order, the idle setting survives restart, and selection/reselection preserves the live
+  latch without moving an opened settled row.
 - Scroll-offset restoration across file/diff renderer detach and attach for delayed content. An
   offset that the new scroller cannot yet hold stays pending until content grows or the user scrolls;
   switching away first saves that pending offset rather than the temporary clamped value. The rendered

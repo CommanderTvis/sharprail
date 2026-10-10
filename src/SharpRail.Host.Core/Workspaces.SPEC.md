@@ -107,6 +107,17 @@ SharpRail created, may be removed by it.
 
 ## Not yet ported
 
+- Host-owned settled lifecycle facts: last real activity, an explicit settled/active override and its
+  timestamp. The client derives the live rows and Settled shelf; the host must not persist the partition.
+  Creation and attachment stamp activity; accepted terminal input and an observed HEAD SHA change clear
+  either override. Selecting a workspace, reading files or viewing output never count as activity.
+  Settle and unsettle save and publish the updated record without touching the worktree, and reject the
+  Default workspace; removal remains a separate teardown operation.
+- Activity writes coalesce to at most one per minute only when skipping a stamp cannot alter the
+  partition; clearing an override must always persist. Watcher admission seeds the HEAD baseline once
+  per host lifetime, and recreation compares against the retained baseline to detect work while
+  unwatched. Backfill records with no activity stamp once from the worktree's `.git` gitfile mtime,
+  falling back to now (including the Default workspace); it must preserve explicit overrides.
 - Renaming a managed workspace's branch from an agent-supplied slug; labels are the only rename.
 - A host terminal catalog that consumes `InitialTerminalPending`: the first terminal is still reserved in
   each window's layout, and the marker is only kept and cleared by the host.

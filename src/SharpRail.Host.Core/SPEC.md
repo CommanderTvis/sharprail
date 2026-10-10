@@ -83,6 +83,11 @@ terminal attachments, never through a UI callback.
 
 ## Not yet ported
 
+- Settled-workspace lifecycle composition: accepted PTY input and actual HEAD movement feed the
+  workspace activity writer; watcher creation seeds the baseline before metadata notifications. Viewing
+  or selecting a workspace does not count. Post-list migration backfills missing activity stamps, and
+  per-row failures must remain logged degradation rather than fail workspace listing or host lifetime
+  (see [Workspaces.SPEC.md](Workspaces.SPEC.md#not-yet-ported)).
 - Login-shell `PATH` and `SSH_AUTH_SOCK` repair for a host launched from Finder, launchd or a service
   manager. On Unix, always probe the login shell once with an OS-base `PATH`, rather than guessing
   completeness from user-directory markers; prepend inherited entries absent from the login result so

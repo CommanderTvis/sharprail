@@ -122,6 +122,17 @@ it. The queue is never persisted or shared between windows.
 
 ## Not yet ported
 
+- One shared, pure workspace partition for the Projects rail and location switcher, driven by host
+  activity, settle overrides and the shared idle-days setting. Default stays live; explicit Settled or
+  Keep active wins over the active-selection latch. A workspace selected while live stays live as time
+  passes; opening an already settled workspace reveals it without moving it, and reselecting the same
+  workspace preserves the latch. New activity re-arms it. Idle settling uses a caller-provided clock,
+  refreshed every 30 seconds. AI work and unread-result guards are outside SharpRail's scope.
+- Recent activity (default), Created and Name sorting with Default pinned first, persisted as a
+  client-local profile preference. Shelf disclosure and paging are per-window transient state and start
+  collapsed. A future settle capability must retain the last completed handshake's verdict through a
+  transient disconnect and preserve the legacy list when a host does not support it, ignoring stale
+  persisted settle fields.
 - Routing the window's gesture notification (layout-cancelled drags, removed workspaces, protocol mismatch,
   a vanished commit) and its error line through the toast queue; they keep their own single surfaces, so
   those messages are neither coalesced nor capped.

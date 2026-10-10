@@ -246,6 +246,12 @@ menu. Abrupt death relies on operating-system process cleanup; remote shells bel
 
 ## Not yet ported
 
+- Capability-gated Settle / Keep active in the shared workspace actions, a `Settled · N` submenu with
+  reason chips after live siblings, and a warning-tone `WORKSPACE · settled` caption for a settled
+  selection. The rail and switcher must consume the same partition, sort and 30-second clock; hosts
+  without settling keep the legacy list. Default never settles. See [State/SPEC.md](State/SPEC.md) and
+  [Panels.SPEC.md](Panels.SPEC.md) for the selection latch and shelf behaviour. Upstream's merged/closed
+  pull-request chips and host review-snapshot arbitration are excluded from this sync.
 - The location bar's REMOTE and PULL REQUEST chips and the branch card's Remote and review rows; the pull
   request surface lives in the Review panel only. The card has no separate Based on row.
 - A registered URL scheme for location links (they are opened only by `--link` at launch), and a remote

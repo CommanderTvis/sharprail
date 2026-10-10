@@ -186,6 +186,9 @@ frontend-local and never reaches this service.
 
 ## Not yet ported
 
+- An accepted-input activity signal carrying the owning workspace to the host lifecycle. Input that
+  actually reaches the PTY counts; displaced, exited or otherwise ignored writes must not reactivate
+  a workspace (see [Workspaces.SPEC.md](Workspaces.SPEC.md#not-yet-ported)).
 - Windows shells (PowerShell / cmd selection, its Settings picker and the per-shell start guidance). The
   host is POSIX only and a Windows PTY cannot be verified on the machines this port is built on.
 - A streaming variant of the bounded child runner that relays output while the child runs, closing the

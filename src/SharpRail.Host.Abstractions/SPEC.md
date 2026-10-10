@@ -119,6 +119,10 @@ The public top-level types of the assembly, held to it in both directions by the
 
 ## Not yet ported
 
+- Workspace activity and explicit settled/active overrides with timestamps, settle/unsettle actions,
+  and the nullable host-wide idle-day setting. These are host facts; the client derives the Settled
+  shelf. No partition boolean belongs in `WorkspaceRecord` (see
+  [Workspaces.SPEC.md](../SharpRail.Host.Core/Workspaces.SPEC.md#not-yet-ported)).
 - A partial interface keeps `IProjectServices` one contract across files; the operations added since
   `HostProtocol.Current` was last raised (path inspection, pre-warm, spec graph, durable-spec query) have
   no version constant yet, so a client cannot gate them against an older host.
