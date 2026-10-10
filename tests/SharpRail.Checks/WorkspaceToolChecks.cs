@@ -101,9 +101,56 @@ internal static class WorkspaceToolChecks
             });
         Require((await Request("tools/list"))["result"]!["tools"]!.AsArray().Any(tool => tool!["name"]!.GetValue<string>() == "set_title"),
             "Terminal titling must be available without enabled plugins.");
+        await Deleting(root, client, async (workspace, arguments) =>
+        {
+            url = endpoint + "/mcp/" + pty.Token(new TerminalRef(workspace, "claude"));
+            var reply = (await Request("tools/call", new { name = "workspace_delete", arguments }))["result"]!;
+            return (reply["content"]![0]!["text"]!.GetValue<string>(), reply["isError"]?.GetValue<bool>() == true);
+        }, async (workspace, description) =>
+        {
+            url = endpoint + "/mcp/" + pty.Token(new TerminalRef(workspace, "claude"));
+            var reply = await Request("tools/call", new { name = "workspace_create", arguments = new { description } });
+            return JsonNode.Parse(reply["result"]!["content"]![0]!["text"]!.GetValue<string>())!["path"]!.GetValue<string>();
+        });
+        Require((await Request("tools/list"))["result"]!["tools"]!.AsArray().Any(tool => tool!["name"]!.GetValue<string>() == "workspace_delete"),
+            "Workspace deletion must be available without enabled plugins.");
         using var unknown = await http.PostAsync(endpoint + "/mcp/unknown", new StringContent("{}", Encoding.UTF8, "application/json"));
         Require(unknown.StatusCode == HttpStatusCode.NotFound, "Workspace tools must require a terminal token.");
-        Console.WriteLine($"PASS workspace MCP tool ({(remote ? "remote" : "local")}): validation, managed paths, base, descriptions, linked terminals, terminal titles and authentication");
+        Console.WriteLine($"PASS workspace MCP tool ({(remote ? "remote" : "local")}): validation, managed paths, base, descriptions, linked terminals, terminal titles, deletion and authentication");
+    }
+
+    private static async Task Deleting(string root, IHostStateService client, Func<string, object, Task<(string Text, bool Error)>> delete,
+        Func<string, string, Task<string>> create)
+    {
+        var finished = await create(root, "Finished task");
+        var dirty = await create(root, "Unfinished task");
+        var branch = (await GitRepository.RunAsync(finished, default, "branch", "--show-current")).Trim();
+        File.WriteAllText(Path.Combine(dirty, "unsaved.txt"), "work in progress\n");
+        async Task<bool> Listed(string path) => (await client.GetStateAsync()).WorkspacesOf(root).Any(workspace => workspace.Path == path);
+        foreach (var (caller, arguments, why) in new (string, object, string)[]
+        {
+            (root, new { }, "a missing path"),
+            (root, new { path = finished, force = true }, "an unknown argument"),
+            (root, new { path = Path.Combine(root, "not-a-workspace") }, "a path that is no workspace"),
+            (root, new { path = root }, "the Default workspace"),
+            (finished, new { path = finished }, "the calling terminal's own workspace"),
+            (root, new { path = dirty }, "a checkout with uncommitted work")
+        })
+        {
+            var refused = await delete(caller, arguments);
+            Require(refused.Error && Directory.Exists(finished) && Directory.Exists(dirty) && await Listed(finished) && await Listed(dirty),
+                $"Deleting must refuse {why} and change nothing: {refused.Text}");
+        }
+        Require(File.Exists(Path.Combine(dirty, "unsaved.txt")), "A refused deletion must leave uncommitted work in place.");
+        var deleted = await delete(dirty, new { path = finished });
+        Require(!deleted.Error && deleted.Text.Contains(finished, StringComparison.Ordinal) && deleted.Text.Contains(branch, StringComparison.Ordinal),
+            "Another workspace's terminal must delete a clean workspace and be told what was kept: " + deleted.Text);
+        // The record is gone when the call returns: no filesystem watcher or later refresh is involved.
+        Require(!Directory.Exists(finished) && !await Listed(finished) && await Listed(dirty), "The checkout and its record must be gone as soon as the tool answers.");
+        Require((await GitRepository.ListWorktreesAsync(root, default)).All(tree => tree.Path != finished)
+            && (await GitRepository.RunAsync(root, default, "branch", "--list", branch)).Contains(branch, StringComparison.Ordinal),
+            "Git must no longer list the worktree, and its branch must be kept.");
+        Require((await delete(root, new { path = finished })).Error, "Deleting a workspace twice must be a tool error.");
     }
 
     private static async Task Titling(string root, string stateDirectory, HostStateStore state, IHostStateService client, IHostStateService second,
@@ -159,6 +206,12 @@ internal static class WorkspaceToolChecks
         Until(() => app.Window.Layout.Tabs(app.Center).Single(tab => tab.Id == terminalTab.Id).Title == "Watch the build");
         Until(() => app.Find<Button>("Tab_" + terminalTab.Id.Replace(':', '_')).GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "Watch the build"));
         Require(app.Window.Layout.Selected(app.Center)?.Id == terminalTab.Id && app.Window.WorkspaceRoot == app.Root, "Titling a terminal keeps the selection and the workspace.");
-        Console.WriteLine("PASS agent-created workspace displays its task description, and a titled terminal its title, without switching the user");
+        var createdPath = app.State!.Current.WorkspaceLabels.Single(label => label.Value == "Investigate terminal marks").Key;
+        var deleted = Task.Run(async () => await new WorkspaceMcpTools(app.State!).Delete(app.Root).Call(new JsonObject { ["path"] = createdPath }, default));
+        Until(() => deleted.IsCompleted);
+        Require(!deleted.GetAwaiter().GetResult().Error, "The deletion tool must remove the UI fixture: " + deleted.GetAwaiter().GetResult().Text);
+        Until(() => !app.Window.GetLogicalDescendants().OfType<TextBlock>().Any(label => label.Name == "WorkspaceName" && label.Text == "Investigate terminal marks"));
+        Require(app.Window.WorkspaceRoot == app.Root, "Deleting an agent's workspace must not switch the user's workspace.");
+        Console.WriteLine("PASS agent-created workspace displays its task description, a titled terminal its title, and a deleted workspace leaves Projects, without switching the user");
     }
 }
