@@ -472,10 +472,21 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         else statusDot.IsVisible = status.IsVisible = false;
     }
 
-    private void SetStatus(string text)
+    /// <summary>A status with a <paramref name="problem"/> turns the dot to the danger colour and says what went wrong on hover.</summary>
+    private void SetStatus(string text, string? problem = null)
     {
         status.Text = text;
+        statusDot.Foreground = problem is null ? Ui.Success : Ui.Danger;
+        ToolTip.SetTip(status, problem);
+        ToolTip.SetTip(statusDot, problem);
         statusDot.IsVisible = status.IsVisible = true;
+    }
+
+    /// <summary>The header's Error never outlives the message it stands for.</summary>
+    private void ClearError()
+    {
+        errorText.IsVisible = false;
+        if (status.Text == "Error") ShowReady();
     }
 
     public async Task RefreshAsync()
@@ -498,7 +509,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
 
     private void Report(Exception error)
     {
-        errorText.Text = error.Message; errorText.IsVisible = true; SetStatus("Error");
+        errorText.Text = error.Message; errorText.IsVisible = true; SetStatus("Error", error.Message);
         Console.Error.WriteLine(error);
     }
 

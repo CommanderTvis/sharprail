@@ -218,6 +218,8 @@ internal static class MultiClientE2E
         proxy.Cut();
         using var reloaded = RemoteClient(proxy.Endpoint, project, profile, workspace);
         Until(() => Status(reloaded) == "Error");
+        Require(ToolTip.GetTip(reloaded.Find<TextBlock>("ConnectionStatus")) is string { Length: > 0 } problem && problem == reloaded.Find<TextBlock>("WorkspaceError").Text
+            && ReferenceEquals(reloaded.Find<TextBlock>("ConnectionDot").Foreground, SharpRail.Plugins.UI.Kit.Ui.Danger), "The header's Error says what failed on hover and its dot is not the healthy colour.");
         Require(!reloaded.Window.WorkspaceMounted && new ProfileStore(profile).Data.Windows[0].LastProject == workspace,
             "A failed restore read must keep the remembered workspace.");
         proxy.Allow();

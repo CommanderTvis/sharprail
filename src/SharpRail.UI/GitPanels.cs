@@ -426,7 +426,7 @@ public sealed partial class WorkbenchWindow
             var snapshot = await host.ApplyGitActionAsync(action, lifetime.Token);
             if (request != projectRequest) return;
             gitRefresh?.Cancel();
-            errorText.IsVisible = false;
+            ClearError();
             if (changeScope == "Staged" || selectedCommit is not null || comparison.Length > 0) await RefreshGitAsync(request);
             else
             {
