@@ -4849,6 +4849,23 @@ unfinished. A serial --last-failed retry stops at the 50,000-line diff timing li
 four pre-existing Branch Graph dangling links. No packaged app rebuild or restart.
 Task fixture directories were removed; prior scratch is preserved.
 
+## Builtin Tailscale pairing (2026-10-11)
+
+Implemented in the separate tailscale-handshake workspace. Enable the builtin on
+the host in Settings > Plugins, then use the desktop Tailscale connection picker
+or Android's hostname pairing. Approval grants a remembered per-device credential;
+revocation closes authenticated streams. The bootstrap binds only the host's
+Tailscale IPv4 on port 54124 and returns the actual gRPC endpoint after approval.
+Android uses hostname entry because it cannot assume access to another app's
+Tailscale peer list. No Tailscale binary or SDK is redistributed.
+
+Desktop and Android Release builds, formatting and focused checks pass. The full
+gate completes across the initial run and --last-failed resume after two existing
+document-opening timeouts passed in isolation. VALIDATION.md records warnings,
+optional skips and unverified physical pairing. The module spec remains draft;
+changes are committed. The user authorized fast-forwarding main, removing the task
+worktree and pushing main. No publication or running-app restart.
+
 ## Specs at Project Home (2026-10-11)
 
 A cold Project Home mounted the Specs panel but exposed no active workspace to

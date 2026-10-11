@@ -1802,6 +1802,35 @@ empty unfinished-case record. This is complete coverage across the run and
 resume, rather than a clean first run. Android compilation, packaged-app and
 live Codex CLI checks were not run.
 
+## Tailscale pairing plugin (2026-10-11)
+
+The disabled-by-default builtin discovers desktop hosts through the local Tailscale
+CLI and lets Android pair using a MagicDNS hostname once. Host approval compares
+a short code and grants a separate revocable credential; reconnects refresh the
+actual gRPC port. Automated coverage uses verified fake network identities and
+real HTTP/gRPC transports, including persistence, cancellation, revocation of live
+streams, plugin disable/re-enable, UI commands and credential file permissions.
+
+Desktop Release builds pass with zero warnings/errors. Android Release builds pass
+with two existing XA4301 duplicate PDFium library warnings. Whole-solution format
+verification, Android whitespace verification, --tailscale, --conformance, --serving
+and --shell pass. The full gate completes across its four-lane run and serial
+--last-failed resume: BottomPanelE2E and MarkdownDocumentE2E initially timed out
+opening documents, then passed together in isolation without source changes.
+Optional Git-source checks were skipped because SHARPRAIL_TEST_GIT_SOURCE was unset.
+The installed Tailscale daemon's status/whois fields match the adapter in a read-only
+probe. Real device-to-device pairing, packaged-app deployment and device UI testing
+remain unverified. Spec graph inspection found no new broken links or cycles; four
+existing Branch Graph dangling links remain unchanged. The new module spec is draft.
+Work is preserved in signed commits on tailscale-handshake.
+
+Rebase verification: the plugin patch is unchanged after rebasing onto local main.
+Release rebuild and whole-solution formatting pass. The subsequent gate passed
+Tailscale host pairing and progressed through UI checks; the user stopped it before
+completion and requested no further repeated tests. An existing large-diff timing
+check passed in isolation after timing out. No complete gate is claimed for the
+latest rebased tip. Main's subsequent editor-fix commits were retained unchanged.
+
 ## Specs at Project Home (2026-10-11)
 
 A cold Project Home mounted the Specs panel but exposed no active workspace to

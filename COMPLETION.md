@@ -103,3 +103,12 @@ On 2026-10-02 the latest source passed the full repository gate with Git fixture
 Still open: rebuilding and publishing the canonical package from this source, deep signature,
 R2R and published-check verification of it, native GUI review of every plugin's appearance and
 input, native multi-window lifecycle, and the per-plugin fidelity gates in their owning specs.
+
+## Tailscale pairing completion limits (2026-10-11)
+
+The new builtin's implementation and automated host/client/UI checks are complete;
+desktop and Android Release builds pass. Full gate coverage completes across its
+initial run and successful resume, with optional Git-source fixtures skipped.
+Acceptance on two real Tailscale devices, physical Android UI and the packaged
+application remains unverified. The owning module spec is draft pending review,
+and the changes are preserved in signed commits.
