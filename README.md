@@ -114,6 +114,21 @@ without a JavaScript engine.
 Published .NET 10 builds start with precompiled code and tune hot paths as you work,
 while keeping support for loading managed plugins.
 
+### Terminal comparison with Ghostty
+
+Single runs on the same MacBook Pro (October 11, 2026), with a 48 × 93 grid
+and `term-bench` 0.10.15-alpha: `--duration 15 --fps 120`.
+
+| Metric | SharpRail Metal texture | Ghostty |
+| --- | ---: | ---: |
+| Generated FPS | 108.7 | 109.4 |
+| Average draw call | 1.91 ms | 1.22 ms |
+| Worst draw call | 56.53 ms | 7.81 ms |
+
+Both looked smooth, with similar paced output rates; Ghostty had shorter draw
+calls. The benchmark measures generation and output, including PTY backpressure,
+not GPU time or frames actually displayed.
+
 ## Run
 
 From a source checkout. macOS builds need the Xcode command-line tools, LLVM at

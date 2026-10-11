@@ -2369,3 +2369,37 @@ Imported terminal companion resizing from fix/visualization-clipping and huge Ma
 Final combined Release build passed with zero warnings/errors; whole-solution format and whitespace verification passed. Reused unchanged source-workspace focused checks and the recorded Markdown benchmark rather than rerunning them. The combined Git-enabled four-lane gate stopped at LiveRefreshE2E, RenderedDiffE2E, watchers and ChangesScopeE2E alongside macOS EventStream startup failures. The serial resume passed watchers and progressed into ChangesScopeE2E, then timed out at HeadMovesOutOfBand (line 107) with repeated EventStream failures. The combined full gate remains incomplete; its resume positions remain in .bench/checks-last-run.txt. No code or fixture changes were made to hide these failures. No new benchmark, native-window smoke test, packaging or Android run.
 
 Both source checkouts are clean and their branches preserved; no push.
+
+
+## Start work commands, naming and images (2026-10-12)
+
+Verified in managed workspace-9, branch `fix/start-work-dialogue`. Start work offers
+an optional shell command through Terminal and editable generated agent commands.
+The prompt remains a separate draft; an edited agent command keeps the prompt and
+host image paths as launcher arguments. Keyboard image paste, preview removal,
+draft preservation, real shell execution, both workspace targets and manual naming
+pass in the focused `NewWorkspaceE2E` case. Images are held in memory until submit;
+cancelled and removed drafts do not upload files.
+
+Local and remote workspace-tool checks pass, including PNG upload to the host
+clipboard directory, invalid upload rejection, first-title naming of an untouched
+managed workspace and keeping its name on later title calls. Claude Code checks
+pass with image-reading instructions in the opening prompt. Codex checks pass with
+quoted `--image` paths and an argument terminator before the initial prompt, so the
+CLI's variable-length image option cannot consume the prompt. An untouched workspace
+keeps `workspace-N` until the launched agent calls `set_title`; no separate inference
+request runs before creation.
+
+The final Release solution build passes with zero warnings/errors. Whole-solution
+format verification, design guards and dependency/public-surface conformance pass.
+The broad workspace mode stops at SpecsPanelE2E's durable-spec refresh timeout before
+reaching the dialog; the dialog case passes when selected directly.
+
+One four-lane Git-enabled full gate was attempted. It stops at `watchers` (replaced
+root restart), `LiveRefreshE2E.Panels`, `ChangesScopeE2E.HeadMovesOutOfBand` and
+`RenderedDiffE2E.Toggle`/the unchanged diff-row click helper. Repeated macOS
+“Failed to start the EventStream” errors accompany the watcher/live-refresh failures.
+The full gate is not green and later cases remain unrun; its unfinished record stays
+in `.bench/checks-last-run.txt`. No full rerun, live provider session, Android build,
+packaged/native UI verification or app restart was performed. Temporary logs and
+fixtures were removed. Changes remain uncommitted; no push.

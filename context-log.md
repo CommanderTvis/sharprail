@@ -5243,3 +5243,21 @@ Work remains uncommitted in workspace-1; no push was requested.
 Landed workspace-4 and workspace-1 on local main. The terminal API owner carries companion-column width retention; Visualize carries splitter/reflow regressions; the shared rendering owner carries tracked Markdown selection and shaped-run caching. Both source branches remain clean and preserved. Pending Git graph commit review remains uncommitted.
 
 Final Release build (zero warnings/errors), whole formatting and whitespace checks pass. Reused source focused checks and benchmark evidence. The combined full gate and serial repair remain incomplete due to watcher/change-loading timeouts with macOS EventStream failures; .bench/checks-last-run.txt retains the resume positions. Nothing pushed or packaged.
+
+
+## Start work dialog fixes (2026-10-12)
+
+Work is isolated in managed workspace-9 on `fix/start-work-dialogue`. The user
+approved custom Terminal commands plus editable agent commands, naming after launch
+by the agent, and pasted image previews. Terminal can start any shell command; agent
+command edits retain the separate prompt and image arguments. Clipboard images stay
+in memory until submit and upload to the terminal host, supporting local and remote
+workspaces. Codex gets `--image` arguments; Claude gets image-reading instructions.
+An agent's first `set_title` names only an unlabeled managed `workspace-N` branch;
+manual names, Default/external workspaces and subsequent labels are kept.
+
+Release build and formatting pass. Focused dialog, local/remote workspace tools,
+Codex and Claude Code checks pass, as do design and conformance. The four-lane full
+gate remains incomplete at watcher/live refresh and diff cases; VALIDATION.md records
+the exact limits. Keep `.bench/checks-last-run.txt` for a future repair run. Other task
+scratch and fixtures are removed. No commit, push, package or running-app replacement.
