@@ -4958,6 +4958,19 @@ passes with zero warnings/errors; touched C# implementation and tests are byte-i
 to the verified workspace. Existing verification is reused, with no test rerun on
 main. Main already contains the separate editor fix. No app restart was requested.
 
+## Android watched-terminal crash fix (2026-10-11)
+
+Pixel 8 logcat identified the Skia surface still parented by the Android key-bar
+panel when the watcher scroll viewer adopted it. Detach it first; the existing
+Skia watching check now recreates that Android container. Release desktop and
+Android builds, touched-file formatting and --ghostty-skia pass. The four-lane
+full gate and serial --last-failed resume leave no unfinished cases; File Icons
+passed on resume without code changes. Android retains the two existing PDFium
+packaging warnings; optional Git-source cases were skipped. Rebuilt APK installed
+and launched on Pixel 8, with watched-terminal restoration and normal key-bar
+rendering observed and no new-process crash entries. User authorized commit and
+push; published Android feature history stays intact.
+
 ## Specs at Project Home (2026-10-11)
 
 A cold Project Home mounted the Specs panel but exposed no active workspace to
@@ -4994,3 +5007,239 @@ is reused; newly inherited main changes were not retested in this workspace.
 
 Landing the unchanged fix into local main on top of a8519b5a. Existing
 verification is reused; inherited Android changes were not retested here.
+
+## Workspace starting prompt (2026-10-11)
+
+2026-10-11 workspace starting prompt: Start work now includes the fork's multiline
+“What do you want to work on?” field and passes its trimmed text to the selected
+agent for either workspace target. Nothing disables the field while preserving
+its draft; Enter submits and Shift+Enter inserts a newline. Release build has
+zero warnings/errors, whole-solution format verification and --new-workspace pass.
+The six-lane full gate and serial --last-failed resume finish with no unfinished
+cases; MarkdownDocumentE2E's document-open timeout passed on resume without code
+changes. Optional Git-source fixtures were skipped (SHARPRAIL_TEST_GIT_SOURCE
+unset). No packaged-app rebuild, native visual inspection or Android build.
+
+Work is uncommitted in fix/workspace-starting-prompt; the original checkout is untouched.
+
+## Prompt-derived workspace names (2026-10-11)
+
+2026-10-11 prompt-derived workspace names: with an agent selected, the Name field
+follows the prompt's first nonblank line (collapsed whitespace, at most 60 Unicode
+text elements) until manually edited. Clearing the prompt or selecting Nothing
+restores the host suggestion; creation applies the name to both label and branch.
+Release build (zero warnings/errors), whole-solution formatting, --new-workspace
+and whitespace checks pass. The six-lane full gate hit terminal-start and Markdown
+document-open timeouts; both passed in the serial resume, which then timed out
+opening a document in SpecDialectChecks.HotToggle. The full gate is incomplete;
+checks-last-run.txt retains that unfinished case. Optional Git-source fixtures
+were skipped. No packaged-app rebuild, native visual inspection or Android build.
+
+The changes remain uncommitted in fix/workspace-starting-prompt.
+
+## Land workspace prompt and companion fixes (2026-10-11)
+
+2026-10-11 landing workspaces 4 and 10: the Start work prompt and prompt-derived
+names, plus the companion close button and diagram clipping, are committed on
+main in their owning general/Plugin API and Visualize commits. Imported source
+and checks are byte-identical to their workspace branches. The combined working
+tree builds in Release with zero warnings/errors; whole-solution formatting and
+focused NewWorkspaceE2E/visualize-ui checks pass. The four-lane full gate and
+serial last-failed resume finish with no unfinished cases; the previously recorded
+Specs failed-update assertion passed on resume without source changes. Optional
+Git-source fixtures were skipped. Existing Git graph review edits remain
+uncommitted. No Android build, native appearance inspection, packaging or restart.
+Nothing was pushed.
+
+The pre-autosquash and post-autosquash committed trees matched exactly. The
+Git graph review edits were restored after landing, including both sets of status
+records. Workspace 4's fix/workspace-starting-prompt and workspace 10's
+fix/visualization-close-button branches preserve their source commits; both
+workspaces are clean. Their deletion was not performed because this session's
+workspace rules restrict deletion to workspaces it created.
+
+## Markdown split cursor following (2026-10-11) — source workspace before landing
+
+Workspace `markdown-cursor-follow` adds the agreed default-on Follow cursor toolbar
+toggle in Split. It follows the caret's rendered block after layout, including
+preview replacement after edits, and retains disabled following in view state.
+Preview scrolling never moves the source caret. The owning UI kit spec and the
+Scintilla caret-line API documentation are updated.
+
+Release build, formatting, cursor-follow and selection regressions, and the focused
+Markdown Find retry pass. The full gate and serial resume remain blocked by the
+unmodified Review test click helper; the initial gate also hit the resource diff
+helper. See VALIDATION.md for exact checks and limits. Keep checks-last-run.txt for
+resuming after those independent failures are addressed. Two one-line build
+prerequisites already present in the original checkout are included here (the
+removed inline toggle reference and the Review pane's kit namespace). No commit,
+push, package rebuild or restart; the workspace retains the uncommitted work.
+
+
+## Terminal file references (2026-10-11) — source workspace before landing
+
+Implemented on `chat-file-links` in managed `workspace-1`. Claude Code, Codex and other terminal
+output share Command/Ctrl-hover and click for existing file references. A host-side character scanner
+resolves paths against the live shell directory, preserving line/column positions and supporting local
+and remote sessions. Skia and Metal map soft-wrapped Unicode text to cells; the native URL matcher no
+longer claims plain file paths before the existence check. Files open as source in SharpRail. Exact
+external targets use the existing external-file lifecycle, scoped to the terminal's workspace.
+
+Release build, whole-solution formatting, focused file-link/editor checks and the native Metal check
+pass. Full-gate continuations complete 119/121 cases; commit-scope fixture and narrow diff-header
+failures reproduce and remain open. Markdown, Specs and PDF transient failures pass on retries.
+See VALIDATION.md for commands and limits. Scratch fixtures/logs are cleaned, with the unresolved-case
+record retained. No commit, push, packaged rebuild, Android check or app replacement. Keep this
+workspace for review; the original checkout's changes were not touched.
+
+
+## Added and deleted file diff defaults (2026-10-11) — source workspace before landing
+
+Added and deleted file diff tabs default to inline at every pane width, including
+after resize and live status changes. Manual side-by-side selection remains
+available; modified files retain the width-based default.
+
+Release build passes with zero warnings/errors; touched-file formatting, --syntax,
+and RenderedDiffE2E with SHARPRAIL_TEST_GIT_SOURCE pointing to the local upstream
+clone pass. The four-lane full gate hit a nullable-value exception in file-icon
+raster capture; serial --last-failed passed without code changes and leaves no
+unfinished cases. Other optional Git-source cases were skipped in the full gate.
+The production code was unchanged after that full run; the subsequent build and
+focused run verify the updated added-file expectation in RenderedDiffE2E.
+No Android build, packaged-app rebuild or native visual inspection was performed.
+Changes remain uncommitted in fix/single-pane-file-diffs (workspace-13); nothing
+was pushed and the original checkout was not edited.
+
+
+## Land workspaces 11, 1, 9 and 13 on main (2026-10-11)
+
+Main now contains Changes Jump to file, terminal file references and Markdown split cursor following, and inline defaults for added/deleted file diffs. The four source branches preserve signed commits and are clean. Shared build prerequisites are committed; the earlier Git graph View changes work remains uncommitted. No push, package replacement or Android build was performed.
+
+The integrated Release solution build has zero warnings/errors, whole-solution formatting and whitespace checks pass. Terminal file-link, Markdown document/cursor-follow, Changes, Review and continuous review, syntax and rendered diff checks pass. Unchanged native Metal file-link evidence from workspace 1 is reused. The gate with upstream Git fixtures completes 121/122 cases across the four-lane run and named serial continuations. ChangesDiffE2E still fails its existing narrow DiffSplit visibility assertion. Terminal chrome, bottom-panel, layout, rendered-document opening and quit-command timing failures pass on unchanged retries. The final added/deleted diff slice passes syntax, rendered diff, resource and continuous review checks; unchanged full-gate slices and workspace 13 full-gate evidence are reused. Verification includes the pending Git graph edits in the working tree.
+
+The history rewrite preserves the integrated tree apart from public API declaration ordering. The six merged workspaces (1, 4, 9, 10, 11 and 13) have been removed; this session did not delete them. Disposable fixtures and logs were removed.
+
+
+## Drawn documents and trees (2026-10-11)
+
+The user requested a separate workspace for Markdown preview/diff, Git graph and
+Files/Specs tree rendering, and explicitly authorized measurement. Work is uncommitted
+on `perf/drawn-document-and-tree-views` in SharpRail `workspace-6`, based on `d4cfa5eb`.
+Markdown uses block virtualization; trees use recycled drawn rows; graph labels are
+drawn and menus are lazy. The owning specs and regression checks are updated.
+
+Release build, whole-solution format verification, focused checks and the four-lane
+gate plus serial resume pass, including optional Git fixtures. The unfinished-case
+record is empty. [VALIDATION.md](VALIDATION.md) records the before/after measurements:
+large memory/mount reductions for documents and trees, faster graph scrolling, but
+higher Files scrolling costs and no demonstrated graph resident-memory improvement.
+Large single Markdown blocks/media and native screen-reader/Android acceptance remain
+outside the verified coverage. The running app and original checkout were not changed;
+no commit or push was made. Temporary measurement and check artifacts were removed.
+
+## Files scrolling follow-up (2026-10-11)
+
+The user requested faster Files scrolling in the same workspace. Recycled containers
+now retain their labels, equivalent file icons reuse controls, and mounted SVG icons
+share parsed sources by asset and tint until the last user detaches. The 2,000-file
+fixture allocates 29.21 MB over 120 steps instead of 75.74 MB (about 61% less).
+Three fresh-process runs report p95 5.53–6.64 ms, versus the earlier 9.19 ms sample;
+the mixed-file fixture reports 7.84 ms. Method, memory variation and limitations are
+recorded in [VALIDATION.md](VALIDATION.md).
+
+Release build, formatting, focused checks and the four-lane full gate plus serial
+resume pass; no unfinished cases remain. Checks now cover bounded icon construction,
+provider invalidation and rendered SVG tint/lifetime behavior. Test synchronization
+was tightened around Specs retry injection and standalone diff-tab readiness.
+Temporary artifacts were removed. All work remains uncommitted in `workspace-6`;
+the running app and original checkout were not changed.
+
+## Committed rendering improvements (2026-10-11)
+
+The user requested commits in the task worktree. Shared document/tree rendering is
+one general UI and Plugin API kit improvement; Specs, graph and file-icon checks
+are folded into their owning plugin commits. The inherited namespace and removed
+diff-toggle fixes are folded into their owning commits. Status and measured evidence
+sit at the tip. The final source tree is compared with the pre-rebase tree and the
+existing verification is reused for identical code. No push or merge was requested.
+
+
+## Agent launch defaults (2026-10-11)
+
+Created managed workspace-12 on agent-launch-defaults, leaving the original
+checkout's in-progress changes alone. Claude Code and Codex Settings now have
+separate model and effort defaults for SharpRail launches. Empty values use the
+CLI defaults and are written explicitly so merged settings updates can clear
+previous choices. Per-launch model choices and custom arguments take precedence.
+The user approved Codex's supported `-c model_reasoning_effort` spelling instead
+of the unavailable `--effort`; Claude uses `--effort`, and both use `--model`.
+
+The user specified that revival must restore a session's latest used choices.
+Status reports persist model and effort on the agent record; Codex's existing
+incremental rollout reader also reads turn contexts. Sparse reports preserve
+known values for the same session, and a new session id resets them. Revive
+commands replace old model/effort overrides with the recorded values. Effort
+persists and crosses gRPC. Claude Code wire version 2 and Codex wire version 4
+guard the extended strict settings schemas against older host/UI peers.
+
+Focused Claude Code/Codex checks, plugin host parity and final plugin UI
+compatibility checks pass, as does whole-solution formatting. The unchanged
+baseline has a removed inline-control reference and an invalid Ui namespace in
+Review. A temporary MSBuild compile overlay for those two files lets the final
+Release build pass with zero warnings/errors; the actual source build stays
+blocked. The four-lane full gate and its serial resume remain incomplete:
+watching/navigation failures pass on resume, which later hits a Markdown image
+document open timeout. ChangesReviewChecks reproduces alone in the unchanged
+click helper's ambiguous control lookup. See VALIDATION.md for exact limits.
+The unfinished runner record is retained at .bench/checks-last-run.txt; task
+scratch and overlays are removed. No package, Android build, real provider
+session or app restart. Changes remain uncommitted; no push was requested.
+
+## 2026-10-11 — Workspaces 6 and 12 landed on main
+
+Imported perf/drawn-document-and-tree-views and agent-launch-defaults, assigning provider fixes to their plugin owners and inserting the shared rendering improvement before builtin plugins. Preserved existing ignored-file styling, added-file inline defaults, Markdown cursor following and the pending lazy Git graph View changes action. Fixed Claude Code contract version 1/manifest version 2 mismatch found by the UI gate.
+
+Release build (zero warnings/errors), whole format and affected focused checks passed. All 123 Git-enabled gate cases passed cumulatively with serial repair runs; the final isolated watcher run passed after macOS EventStream failures. Source branches/checkouts are clean; no push. Graph commit review remains uncommitted.
+## Terminal visualization clipping (2026-10-12)
+
+Created managed workspace-4 on `fix/visualization-clipping`. The terminal
+companion's fixed child width stayed at 360 px while its splitter enlarged the
+grid column, leaving blank space around a clipped visualization. Width now
+belongs to the column; closing releases it and reopening restores it. Local and
+remote checks reproduce the original failure with real splitter input and pass
+with the fix, including diagram fit and comparison reflow.
+
+Release build, whole-solution formatting and `--visualize` pass. The full gate
+and serial resume remain incomplete at the unchanged Markdown image-document
+opening timeout; details are in VALIDATION.md. Task fixtures and logs were
+removed, retaining the runner's resume record. Changes remain uncommitted in
+the new workspace; nothing was pushed or packaged.
+
+
+
+## Huge Markdown selection responsiveness (2026-10-12)
+
+Created managed workspace-1 on `perf/huge-markdown-selection` from main
+`6012f6b4`. Drag selection no longer walks the entire inline tree on every pointer
+move or source-line query. A retained block catalog, mounted hit-testing and tracked
+selection ranges preserve Copy, Select All, Shift-click and offscreen selections.
+Mounted document text reuses shaped runs with content/style invalidation and detach
+cleanup; replacement selection foregrounds retain the existing layout behavior.
+
+The actual 19-million-character fixture improves from 81.06 to 7.96 ms median and
+103.13 to 21.53 ms p95 pointer updates. Allocation falls from 19,926.43 to 149.55 MB
+over 120 updates. The final initial press takes 15.24 ms. These are headless Skia
+measurements, with method and limitations recorded in VALIDATION.md.
+
+Release rebuild, whole formatting, affected focused checks and the Git-enabled full
+gate with serial resumes pass; no unfinished cases remain. Changes loading/opening
+timeouts recovered without changes to those modules. Actual pixel checks cover inline
+edits, nested additions, font changes and remounts under every theme. Scratch evidence
+and fixtures are cleaned after recording. No app replacement or native smoke check.
+Work remains uncommitted in workspace-1; no push was requested.
+
+## 2026-10-12 — Land terminal resizing and Markdown selection
+
+Landed workspace-4 and workspace-1 on local main. The terminal API owner carries companion-column width retention; Visualize carries splitter/reflow regressions; the shared rendering owner carries tracked Markdown selection and shaped-run caching. Both source branches remain clean and preserved. Pending Git graph commit review remains uncommitted.
+
+Final Release build (zero warnings/errors), whole formatting and whitespace checks pass. Reused source focused checks and benchmark evidence. The combined full gate and serial repair remain incomplete due to watcher/change-loading timeouts with macOS EventStream failures; .bench/checks-last-run.txt retains the resume positions. Nothing pushed or packaged.

@@ -259,7 +259,7 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `changes.spec.ts` | A commit scope whose commit is rewritten away falls back to All changes with a toast | Ported |
 | `changes.spec.ts` | A failed read says so — it never renders as an empty (clean) change set | Ported |
 | `changes.spec.ts` | Closing a diff tab disposes Monaco cleanly — no 'TextModel got disposed' assertion | Excluded: Monaco model lifetime; SharpRail diff tabs do not use an editor |
-| `changes.spec.ts` (fork) | The diff header keeps its controls on a narrow pane: an unpinned diff opens inline there, a click pins Split | Ported (the pane widths are SharpRail's own, so the wide step uses a wider window) |
+| `changes.spec.ts` (fork) | The diff header keeps its controls on a narrow pane: an unpinned diff opens inline there, a click pins Split | Ported with the native width rule: layout pins apply while wide enough; narrow panes hide Split and use inline |
 | `changes.spec.ts` (fork) | The rendered markdown diff carries the outline and the properties block | Ported (properties are diffed per key rather than through the text merge; the marks are the same ins/del runs) |
 | `changes.spec.ts` (fork) | A markdown diff drops to one column on a narrow pane like every other file | Covered by the width rule shared with source diffs; no separate case |
 | `frontmatter.spec.ts` (fork) | frontmatter renders as editable properties, and an edit lands in the draft | Partial: the properties render and fold; SharpRail Markdown tabs have no editable source, so there is no draft to edit |

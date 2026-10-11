@@ -112,3 +112,31 @@ initial run and successful resume, with optional Git-source fixtures skipped.
 Acceptance on two real Tailscale devices, physical Android UI and the packaged
 application remains unverified. The owning module spec is draft pending review,
 and the changes are preserved in signed commits.
+
+
+## Terminal file-reference verification (2026-10-11) — source workspace before landing
+
+The implementation and focused local/remote, editor and native Metal checks are complete on
+`chat-file-links`. The full gate remains at 119/121 completed cases: the source-dependent commit-scope
+fixture and the narrow diff-header assertion reproduce outside the changed file-link paths. Details
+are in VALIDATION.md. Android/device and packaged-app verification were not run. Changes are
+uncommitted in the feature workspace.
+
+
+## Main landing gate (2026-10-11)
+
+The gate with upstream Git fixtures completes 121/122 cases across the four-lane run and named serial continuations. ChangesDiffE2E still fails its existing narrow DiffSplit visibility assertion. Terminal chrome, bottom-panel, layout, rendered-document opening and quit-command timing failures pass on unchanged retries. The final added/deleted diff slice passes syntax, rendered diff, resource and continuous review checks; unchanged full-gate slices and workspace 13 full-gate evidence are reused. Verification includes the pending Git graph edits in the working tree. The imported work is committed on main. Earlier Git graph edits remain uncommitted; Android and packaged verification remain unrun.
+
+
+## Document and tree rendering limits (2026-10-11)
+
+The viewport/drawn-row changes and automated gates are complete in the
+`perf/drawn-document-and-tree-views` workspace. The user-authorized synthetic
+measurements and their tradeoffs are recorded in `VALIDATION.md`. They do not establish
+native presentation latency or whole-app RAM savings. The Files scrolling follow-up
+reduces allocations from 75.74 to 29.21 MB over 120 steps, still above the fully prebuilt
+baseline's 3.60 MB; Git graph's process-resident sample did not decrease.
+Markdown virtualization is between top-level blocks, with full content retained for
+selection and Find; a single large list/table/code block and media storage remain
+unbounded internally. Native screen-reader and physical Android acceptance, packaging
+and a running-app review have not been performed for this change.
