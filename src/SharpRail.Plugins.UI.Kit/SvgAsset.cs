@@ -17,7 +17,15 @@ public sealed class SvgAsset : Image
 {
     private readonly byte[] svg;
     private readonly ISolidColorBrush? color;
-    private SvgSource? source;
+    private static readonly Dictionary<(byte[] Bytes, Color? Tint), SharedSource> Sources = [];
+    private (byte[] Bytes, Color? Tint)? sourceKey;
+
+    private sealed class SharedSource(SvgSource? source)
+    {
+        internal SvgSource? Source { get; } = source;
+        internal SvgImage? Image { get; } = source is null ? null : new SvgImage { Source = source };
+        internal int Users { get; set; }
+    }
 
     public SvgAsset(byte[] svg, double size) : this(svg, size, null) { }
 
@@ -40,20 +48,42 @@ public sealed class SvgAsset : Image
 
     private void Load()
     {
-        Source = null;
-        source?.Dispose();
+        var key = (svg, color?.Color);
+        if (sourceKey == key) return;
+        Release();
+        if (!Sources.TryGetValue(key, out var shared))
+            Sources.Add(key, shared = new SharedSource(Parse()));
+        shared.Users++;
+        sourceKey = key;
+        Source = shared.Image;
+    }
+
+    private SvgSource? Parse()
+    {
         try
         {
             var bytes = svg;
             if (color is { Color: var tint })
                 bytes = Encoding.UTF8.GetBytes(Encoding.UTF8.GetString(svg).Replace("currentColor", $"#{tint.R:x2}{tint.G:x2}{tint.B:x2}", StringComparison.Ordinal));
             using var stream = new MemoryStream(bytes);
-            source = SvgSource.LoadFromStream(stream);
-            Source = new SvgImage { Source = source };
+            return SvgSource.LoadFromStream(stream);
         }
         catch (Exception error) when (error is IOException or InvalidOperationException or ArgumentException or System.Xml.XmlException)
         {
-            source = null;
+            return null;
+        }
+    }
+
+    private void Release()
+    {
+        Source = null;
+        if (sourceKey is not { } key) return;
+        sourceKey = null;
+        var shared = Sources[key];
+        if (--shared.Users == 0)
+        {
+            Sources.Remove(key);
+            shared.Source?.Dispose();
         }
     }
 
@@ -61,8 +91,6 @@ public sealed class SvgAsset : Image
     {
         base.OnDetachedFromVisualTree(e);
         Ui.ThemeChanged -= Load;
-        Source = null;
-        source?.Dispose();
-        source = null;
+        Release();
     }
 }

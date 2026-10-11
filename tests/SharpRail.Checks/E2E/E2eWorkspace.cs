@@ -168,19 +168,27 @@ internal sealed class E2eWorkspace : IDisposable
 
     internal Control FileRow(string path)
     {
-        Until(() => Window.GetLogicalDescendants().OfType<TreeView>().Any(item => item.Name == "FilesTree"));
-        var tree = Find<TreeView>("FilesTree");
+        Until(() => Window.GetLogicalDescendants().OfType<DrawnTree>().Any(item => item.Name == "FilesTree"));
+        var tree = Find<DrawnTree>("FilesTree");
         Until(() => tree.Items.Count > 0);
-        var node = tree.GetLogicalDescendants().OfType<TreeViewItem>().Single(item => item.Tag is ProjectFile file && file.Path == path);
-        return (Control)node.Header!;
+        return TreeRow(tree, path);
+    }
+
+    internal static DrawnTreeLabel TreeRow(DrawnTree tree, string path)
+    {
+        var entry = tree.Rows.Single(item => item.Id == path);
+        tree.ScrollIntoView(entry);
+        tree.UpdateLayout();
+        Until(() => tree.GetVisualDescendants().OfType<DrawnTreeLabel>().Any(label => ReferenceEquals(label.Entry, entry)));
+        return tree.GetVisualDescendants().OfType<DrawnTreeLabel>().Single(label => ReferenceEquals(label.Entry, entry));
     }
 
     internal void ExpandFolder(string path)
     {
-        var tree = Find<TreeView>("FilesTree");
-        var node = tree.GetLogicalDescendants().OfType<TreeViewItem>().Single(item => item.Tag is ProjectFile file && file.Path == path);
-        Click(node.GetVisualDescendants().OfType<ToggleButton>().First());
-        Until(() => node.IsExpanded && node.Items.OfType<TreeViewItem>().All(item => item.Tag is ProjectFile));
+        var tree = Find<DrawnTree>("FilesTree");
+        var node = tree.Rows.Single(item => item.Id == path);
+        Click(TreeRow(tree, path));
+        Until(() => node.Expanded && node.Children.All(item => item.Tag is ProjectFile));
     }
 
     internal Control Click(Control control, bool twice = false, bool freshGesture = true, MouseButton mouseButton = MouseButton.Left)
@@ -191,7 +199,8 @@ internal sealed class E2eWorkspace : IDisposable
         var rowName = row?.Name;
         var rowTag = row?.Tag;
         var owner = control.GetLogicalAncestors().OfType<Control>().FirstOrDefault(item => item.Name?.StartsWith("DockTab_", StringComparison.Ordinal) == true)?.Name;
-        var filePath = control.GetLogicalAncestors().OfType<TreeViewItem>().Select(item => item.Tag).OfType<ProjectFile>().FirstOrDefault()?.Path;
+        var filePath = control is DrawnTreeLabel { Entry.Tag: ProjectFile file } ? file.Path :
+            control.GetLogicalAncestors().OfType<TreeViewItem>().Select(item => item.Tag).OfType<ProjectFile>().FirstOrDefault()?.Path;
         if (freshGesture)
         {
             Window.MouseMove(new Point(Window.Bounds.Width - 2, Window.Bounds.Height - 2));
@@ -202,7 +211,7 @@ internal sealed class E2eWorkspace : IDisposable
             if (name is not null && rowName is not null)
             {
                 var currentRow = Window.GetLogicalDescendants().OfType<Control>().Single(item => item.Name == rowName && Equals(item.Tag, rowTag));
-                control = currentRow.GetLogicalDescendants().OfType<Control>().Single(item => item.Name == name && Equals(item.Tag, tag));
+                control = currentRow.GetLogicalDescendants().OfType<Control>().Single(item => item.Name == name && (tag is null || Equals(item.Tag, tag)));
             }
             else if (name is not null && owner is not null) control = Find<Control>(owner).GetLogicalDescendants().OfType<Control>().Single(item => item.Name == name);
             else if (name is not null && tag is not null)
@@ -219,7 +228,8 @@ internal sealed class E2eWorkspace : IDisposable
         TopLevel.GetTopLevel(control)!.UpdateLayout();
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         var input = TopLevel.GetTopLevel(control)!;
-        var point = control.TranslatePoint(new Point(Math.Min(24, control.Bounds.Width / 2), control.Bounds.Height / 2), input)!.Value;
+        var targetX = control is DrawnTreeLabel label ? label.Entry.Depth * 12 + 52 : 24;
+        var point = control.TranslatePoint(new Point(Math.Min(targetX, control.Bounds.Width / 2), control.Bounds.Height / 2), input)!.Value;
         Require(control.Bounds.Width > 0 && control.Bounds.Height > 0, "E2E input target is not arranged.");
         input.MouseMove(point);
         Dispatcher.UIThread.RunJobs();

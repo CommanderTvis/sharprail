@@ -409,8 +409,8 @@ internal static class PluginUiChecks
         Require(window.Layout.Tabs(window.Layout.View.FocusedCenter).Any(item => item.Kind == "viewer" && item.Path == "sample.fixture"), "The open uses a viewer tab.");
 
         window.Layout.Select(window.Layout.State.Groups.First(group => group.Tools.Any(item => item.Id == "files")).Id, "files");
-        E2eWorkspace.Until(() => ((Grid)app.FileRow("sample.fixture")).Children[0].Tag as string == "asset:icon.svg");
-        Require(((Grid)app.FileRow("notes.txt")).Children[0] is Border, "The file-icon slot answers only for the paths it claims; core's glyph stays for the rest.");
+        E2eWorkspace.Until(() => ((DrawnTreeLabel)app.FileRow("sample.fixture")).Child?.Tag as string == "asset:icon.svg");
+        Require(((DrawnTreeLabel)app.FileRow("notes.txt")).Child is Border, "The file-icon slot answers only for the paths it claims; core's glyph stays for the rest.");
 
         // A terminal shows the accessory row.
         window.Layout.NewTerminal(window.Layout.View.FocusedCenter);

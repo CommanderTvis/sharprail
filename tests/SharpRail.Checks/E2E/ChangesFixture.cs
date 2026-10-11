@@ -93,6 +93,7 @@ internal static class ChangesFixture
         app.Window.MouseMove(new Point(app.Window.Bounds.Width - 2, app.Window.Bounds.Height - 2));
         Settle(550);
         app.Click(Row(app, path), twice, freshGesture: false);
+        if (twice) Until(() => app.Window.Layout.Selected(app.Center) is { Kind: "diff" } tab && tab.Path == path);
     }
 
     internal static void UntilRows(E2eWorkspace app, params string[] paths) =>

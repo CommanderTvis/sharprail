@@ -85,9 +85,9 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
         else RenderFocused(body, focus);
         RefreshSpecLinks();
         CollapseMargins(body);
-        Content = body;
+        Content = body.Children.Count > 64 ? new MarkdownBlockList(body) : body;
         WireSelection();
-        foreach (var text in body.GetLogicalDescendants().OfType<SelectableTextBlock>()) text.PropertyChanged += SelectionMoved;
+        Selectable();
     }
 
     /// <summary>Raised with the selected text whenever a selection in the rendered document changes; empty when cleared.</summary>
@@ -95,7 +95,9 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
 
     private void SelectionMoved(object? sender, AvaloniaPropertyChangedEventArgs e)
     {
-        if (e.Property != SelectableTextBlock.SelectionEndProperty || sender is not SelectableTextBlock text || text is DocumentText { Restoring: true }) return;
+        if (sender is not SelectableTextBlock text || (e.Property != SelectableTextBlock.SelectionStartProperty && e.Property != SelectableTextBlock.SelectionEndProperty)) return;
+        TrackSelection(text);
+        if (e.Property != SelectableTextBlock.SelectionEndProperty || text is DocumentText { Restoring: true }) return;
         SelectionChanged?.Invoke(Words(text));
     }
 
@@ -112,12 +114,32 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
     public IEnumerable<(int Level, string Text, string Id, int Line)> Headings =>
         Document.Descendants<HeadingBlock>().Select(heading => (heading.Level, Plain(heading.Inline ?? new ContainerInline()), heading.GetAttributes().Id ?? "", heading.Line));
 
-    public void ScrollToTitle() => SpecTitle?.BringIntoView();
+    public void ScrollToTitle()
+    {
+        if (SpecTitle is { } title) { RevealBlock(title); title.BringIntoView(); }
+    }
 
     public void ScrollToAnchor(string? id)
     {
         if (id is not null && anchors.TryGetValue(Uri.UnescapeDataString(id.TrimStart('#')), out var control))
+        {
+            RevealBlock(control);
             control.BringIntoView();
+        }
+    }
+
+    internal IEnumerable<SelectableTextBlock> TextBlocks() =>
+        (Content is MarkdownBlockList list ? list.Blocks : [(Control)Content!])
+        .SelectMany(control => control.GetLogicalDescendants().Prepend(control)).OfType<SelectableTextBlock>();
+
+    internal void RevealBlock(Control control)
+    {
+        if (control is SelectableTextBlock block && !selectableIndexes.ContainsKey(block))
+        {
+            selectionCatalog = null;
+            Selectable();
+        }
+        (Content as MarkdownBlockList)?.Reveal(control);
     }
 
     private Control Render(Block block)
@@ -518,6 +540,7 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
             source.Margin = new Thickness(0);
             failure.Children.Add(message); failure.Children.Add(source);
             holder.Child = failure;
+            selectionCatalog = null;
             return;
         }
         loadedImages.Add(svg);

@@ -112,10 +112,10 @@ internal static class StartupChecks
         var host = new DelayedGitHost(project);
         var window = new WorkbenchWindow(host, project, new ProfileStore(project + "-profile"), E2eTerminals.Plain);
         window.Show();
-        TreeView Tree() => window.GetLogicalDescendants().OfType<TreeView>().Single(tree => tree.Name == "FilesTree");
-        TreeViewItem Node(string path) => Tree().GetLogicalDescendants().OfType<TreeViewItem>()
+        DrawnTree Tree() => window.GetLogicalDescendants().OfType<DrawnTree>().Single(tree => tree.Name == "FilesTree");
+        DrawnTreeEntry Node(string path) => Tree().Rows
             .Single(node => node.Tag is ProjectFile file && file.Path == path);
-        bool Listed(string path) => Tree().GetLogicalDescendants().OfType<TreeViewItem>()
+        bool Listed(string path) => Tree().Rows
             .Any(node => node.Tag is ProjectFile file && file.Path == path);
         try
         {
@@ -126,23 +126,26 @@ internal static class StartupChecks
             var tree = Tree();
             var same = Node("same.txt");
             var folder = Node("folder");
-            folder.IsExpanded = true;
+            tree.Expand(folder, true);
             Pump(() => Listed(Path.Combine("folder", "child.txt")));
             var child = Node(Path.Combine("folder", "child.txt"));
             window.UpdateLayout();
             var scroll = tree.GetVisualDescendants().OfType<ScrollViewer>().First();
+            var focused = Node("shared-05.txt");
+            tree.Reveal(focused);
             scroll.Offset = new Vector(0, 100);
+            window.UpdateLayout();
             var offset = scroll.Offset;
             Require(offset.Y > 0, "The Files fixture must have a scrolled viewport.");
             var detaches = 0;
-            same.DetachedFromVisualTree += (_, _) => detaches++;
+            tree.GetVisualDescendants().OfType<DrawnTreeLabel>().First(label => label.Entry.Id == "shared-05.txt").DetachedFromVisualTree += (_, _) => detaches++;
             var gitReads = host.Requests.Count;
             var refresh = window.RefreshAsync();
             Pump(() => host.Requests.Count > gitReads);
             host.Requests.Last().Result.SetResult(new(true, "main", [], [], []));
             Await(refresh);
             Require(ReferenceEquals(tree, Tree()) && detaches == 0 && scroll.Offset == offset,
-                "An identical listing must preserve the tree, row attachment and scroll offset.");
+                $"An identical listing must preserve the tree, row attachment and scroll offset: tree={ReferenceEquals(tree, Tree())}, detaches={detaches}, offset={scroll.Offset}, expected={offset}.");
             host.OpenHold = new(TaskCreationOptions.RunContinuationsAsynchronously);
             host.FilesHold = new(TaskCreationOptions.RunContinuationsAsynchronously);
             var switching = window.OpenProjectAsync(other);
@@ -150,17 +153,18 @@ internal static class StartupChecks
                 "Pending workspace routing must retain the Files tree and rows.");
             host.OpenHold.SetResult();
             Await(switching);
-            Require(ReferenceEquals(tree, Tree()) && ReferenceEquals(folder, Node("folder")) && folder.IsExpanded,
-                $"Held file loading must retain the tree and expanded folder: tree={ReferenceEquals(tree, Tree())}, folder={ReferenceEquals(folder, Node("folder"))}, expanded={folder.IsExpanded}, workspace={window.WorkspaceRoot}, project={window.ProjectRoot}.");
+            Require(ReferenceEquals(tree, Tree()) && ReferenceEquals(folder, Node("folder")) && folder.Expanded,
+                $"Held file loading must retain the tree and expanded folder: tree={ReferenceEquals(tree, Tree())}, folder={ReferenceEquals(folder, Node("folder"))}, expanded={folder.Expanded}, workspace={window.WorkspaceRoot}, project={window.ProjectRoot}.");
             host.FilesHold.SetResult();
             Pump(() => Listed("added.txt") && Listed(Path.Combine("folder", "added-child.txt")) && !Listed("removed.txt"));
             Require(ReferenceEquals(same, Node("same.txt")) && ReferenceEquals(child, Node(Path.Combine("folder", "child.txt"))),
                 "Changed listings must retain unchanged root and nested rows, even with different file contents.");
-            Require(detaches == 0 && scroll.Offset == offset, "Workspace reconciliation must preserve shared row attachment and scroll offset.");
+            Require(scroll.Offset == offset && ReferenceEquals(tree.SelectedItem, focused) && tree.ContainerFromItem(focused)?.IsFocused == true,
+                $"Workspace reconciliation must preserve shared row identity, selection, keyboard focus and scroll offset: offset={scroll.Offset}, expected={offset}.");
             host.OpenHold = null; host.FilesHold = null;
             Await(window.OpenProjectAsync(project));
             Pump(() => Listed("removed.txt") && !Listed("added.txt"));
-            Require(ReferenceEquals(tree, Tree()) && ReferenceEquals(same, Node("same.txt")) && folder.IsExpanded &&
+            Require(ReferenceEquals(tree, Tree()) && ReferenceEquals(same, Node("same.txt")) && folder.Expanded &&
                 ReferenceEquals(child, Node(Path.Combine("folder", "child.txt"))), "Switching back must preserve shared rows and expansion.");
         }
         finally

@@ -37,7 +37,7 @@ internal static class FileActionChecks
         {
             var row = app.FileRow(path);
             app.Click(row, mouseButton: MouseButton.Right);
-            return row.GetLogicalAncestors().OfType<TreeViewItem>().First().ContextMenu!;
+            return row.ContextMenu!;
         }
 
         Choose(FileMenu("notes.txt"), "Probe notes.txt");
@@ -68,7 +68,7 @@ internal static class FileActionChecks
         if (OperatingSystem.IsMacOS())
         {
             File.WriteAllText(Path.Combine(app.Root, "lines.txt"), "one\ntwo\nthree\nfour\n");
-            Until(() => app.Window.GetLogicalDescendants().OfType<TreeViewItem>().Any(item => item.Tag is SharpRail.Host.Abstractions.ProjectFile { Path: "lines.txt" }));
+            Until(() => app.Find<DrawnTree>("FilesTree").Rows.Any(item => item.Tag is SharpRail.Host.Abstractions.ProjectFile { Path: "lines.txt" }));
             app.Open("lines.txt", keep: true);
             Until(() => app.Window.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().Any(candidate => candidate.IsEffectivelyVisible && candidate.Text.StartsWith("one", StringComparison.Ordinal)));
             var editor = app.Window.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().Single(candidate => candidate.IsEffectivelyVisible);

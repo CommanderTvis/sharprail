@@ -153,6 +153,13 @@ can be set by a plugin (W18): uncommitted, one commit, the comparison target, or
   other entry; the host leaves out only `.git`, `.sharprail` and `.tools`.
   A run of directories that each hold exactly one directory is one `a/b/c`
   row, compacted by the host listing; it splits in place when a sibling appears and keeps what was expanded.
+- Loaded entries are data in the kit's virtualized drawn tree. Only viewport rows acquire
+  containers, text layouts and plugin icons; menus are created when requested. Recycled
+  rows must use the current entry for navigation and file actions. Horizontal scrolling
+  preserves complete file names, and ignored entries keep their muted, italic appearance.
+  A recycled row retains its icon when the provider's answer, file/directory kind and ignored
+  state match; plugin invalidation still refreshes it. Scrolling equivalent file types must not
+  recreate icon controls for each filename.
 - A file whose bytes are neither text nor a picture opens as the byte card of the resource renderers in its
   tab (media type, size and hash, see [Rendering/SPEC.md](Rendering/SPEC.md)) rather than a window error; a
   clean open file that turns byte-only on disk is replaced by the same card.

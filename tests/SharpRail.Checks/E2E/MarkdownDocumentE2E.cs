@@ -24,7 +24,7 @@ internal static class MarkdownDocumentE2E
         block.Text ?? string.Concat(block.Inlines?.OfType<Run>().Select(run => run.Text) ?? []);
 
     private static string Text(Control scope) =>
-        string.Join("\n", scope.GetLogicalDescendants().OfType<SelectableTextBlock>().Select(TextOf));
+        string.Join("\n", (scope is MarkdownPreview preview ? preview.TextBlocks() : scope.GetLogicalDescendants().OfType<SelectableTextBlock>()).Select(TextOf));
 
     internal static void Run(string root)
     {

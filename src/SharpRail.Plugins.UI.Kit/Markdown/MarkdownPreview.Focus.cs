@@ -141,9 +141,18 @@ public sealed partial class MarkdownPreview
         // Expansion is one-way: Source and the file preview already offer the whole document.
         button.Click += (_, _) =>
         {
+            if (Content is MarkdownBlockList blocks && blocks.Blocks.Contains(button))
+            {
+                blocks.Replace(button, Expanded());
+                selectionCatalog = null;
+                focus.Expanded.Add(key);
+                focus.ExpandedChanged?.Invoke();
+                return;
+            }
             if (button.Parent is not Panel parent) return;
             var index = parent.Children.IndexOf(button);
             parent.Children[index] = Expanded();
+            selectionCatalog = null;
             focus.Expanded.Add(key);
             focus.ExpandedChanged?.Invoke();
         };

@@ -126,7 +126,7 @@ internal static class ShellChecks
         using var app = new E2eWorkspace(directory);
         File.WriteAllText(Path.Combine(app.Root, "INERT.md"), "# Inert links\n\nSee [outside the tree](../../outside.md), [broken encoding](docs/%zz.md) and [the spec](SPEC.md).\n");
         _ = app.Window.RefreshAsync();
-        Until(() => app.Find<TreeView>("FilesTree").GetLogicalDescendants().OfType<TreeViewItem>().Any(item => item.Tag is SharpRail.Host.Abstractions.ProjectFile { Path: "INERT.md" }));
+        Until(() => app.Find<DrawnTree>("FilesTree").Rows.Any(item => item.Tag is SharpRail.Host.Abstractions.ProjectFile { Path: "INERT.md" }));
         app.Open("INERT.md", true);
         var preview = app.Find<MarkdownPreview>("MarkdownPreview");
         var blocks = preview.GetLogicalDescendants().OfType<SelectableTextBlock>().ToArray();

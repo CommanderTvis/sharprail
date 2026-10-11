@@ -89,9 +89,9 @@ internal static class PreviewTabsE2E
         Case("the Specs panel shares the one slot, and closing the preview tab releases it", app =>
         {
             app.Open("README.md", true); app.Open("notes.txt"); app.Click(app.Find<Button>("Tab_plugin_spec-dialect_specs"));
-            Until(() => app.Window.GetLogicalDescendants().OfType<TreeView>().Any(tree => tree.Name == "SpecsTree"));
-            var tree = app.Find<TreeView>("SpecsTree"); Until(() => tree.Items.Count > 0);
-            var node = tree.Items.OfType<TreeViewItem>().Single(item => Equals(item.Tag, "SPEC.md")); app.Click((Control)node.Header!);
+            Until(() => app.Window.GetLogicalDescendants().OfType<DrawnTree>().Any(tree => tree.Name == "SpecsTree"));
+            var tree = app.Find<DrawnTree>("SpecsTree"); Until(() => tree.Items.Count > 0);
+            app.Click(TreeRow(tree, "SPEC.md"));
             Until(() => app.Tabs.Any(tab => tab.Path == "SPEC.md"));
             Require(app.Tabs.Count == 2 && app.Tabs[0].Path == "README.md" && app.Tabs[1].Preview, "Specs must use the same preview slot.");
             app.Click(app.Tab("SPEC.md").GetLogicalAncestors().OfType<Grid>().First(grid => grid.Name?.StartsWith("DockTab_", StringComparison.Ordinal) == true)

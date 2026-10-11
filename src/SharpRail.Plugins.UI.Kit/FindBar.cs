@@ -9,6 +9,7 @@ using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 
+using SharpRail.Plugins.UI.Kit.Markdown;
 using SharpRail.Scintilla;
 
 namespace SharpRail.Plugins.UI.Kit;
@@ -23,7 +24,7 @@ public sealed class FindBar : Border
     private readonly Func<Control?> root;
     private readonly TextBox input = new() { Name = "FindInput", Width = 200, FontSize = 12, MinHeight = 0, Padding = new Thickness(8, 2), PlaceholderText = "Find" };
     private readonly TextBlock count = Ui.Text("0/0", Ui.Muted, 12);
-    private readonly List<(Control Block, int Start)> matches = [];
+    private readonly List<(Control Block, int Start, MarkdownPreview? Preview)> matches = [];
     private Control? returnFocus;
     private int current = -1;
 
@@ -88,15 +89,28 @@ public sealed class FindBar : Border
         matches.Clear();
         var query = input.Text ?? "";
         if (query.Length > 0 && root() is { } scope)
-            foreach (var block in scope.GetLogicalDescendants().OfType<Control>().Prepend(scope)
-                .Where(block => block.IsEffectivelyVisible && block is SelectableTextBlock or ScintillaEditor))
+            foreach (var (block, preview) in SearchBlocks(scope))
             {
                 var text = block is ScintillaEditor editor ? editor.Text : TextOf((SelectableTextBlock)block);
                 for (var at = text.IndexOf(query, StringComparison.OrdinalIgnoreCase); at >= 0; at = text.IndexOf(query, at + query.Length, StringComparison.OrdinalIgnoreCase))
-                    matches.Add((block, at));
+                    matches.Add((block, at, preview));
             }
         Select(matches.Count > 0 ? 0 : -1);
         input.BorderBrush = Missed ? Ui.Danger : null;
+    }
+
+    private static IEnumerable<(Control Block, MarkdownPreview? Preview)> SearchBlocks(ILogical node)
+    {
+        if (node is Control { IsVisible: false }) yield break;
+        if (node is MarkdownPreview preview)
+        {
+            foreach (var text in preview.TextBlocks().Where(text => text.GetSelfAndLogicalAncestors().OfType<Control>().All(control => control.IsVisible)))
+                yield return (text, preview);
+            yield break;
+        }
+        if (node is SelectableTextBlock or ScintillaEditor) yield return ((Control)node, null);
+        foreach (var child in node.GetLogicalChildren())
+            foreach (var result in SearchBlocks(child)) yield return result;
     }
 
     private void Step(int direction)
@@ -111,11 +125,12 @@ public sealed class FindBar : Border
         current = index;
         count.Text = matches.Count == 0 ? "0/0" : $"{current + 1}/{matches.Count}";
         if (index < 0) return;
-        var (block, start) = matches[index];
+        var (block, start, preview) = matches[index];
         var length = (input.Text ?? "").Length;
         if (block is ScintillaEditor editor) editor.SelectRange(start, length);
         else if (block is SelectableTextBlock rendered)
         {
+            preview?.RevealBlock(rendered);
             rendered.SelectionStart = start;
             rendered.SelectionEnd = start + length;
             var bounds = rendered.TextLayout.HitTestTextRange(start, length).FirstOrDefault();

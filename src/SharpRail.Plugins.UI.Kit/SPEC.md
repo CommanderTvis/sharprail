@@ -63,7 +63,10 @@ publish toggle automation changes without requesting another update.
     `SettingValueDialog` composes typed setting values. Agent account and terminal components
     live in `SharpRail.Plugins.Agent.UI`, which depends on this kit.
   - `SvgAsset` can tint `currentColor` from a shared solid brush and reloads on theme changes while
-    attached. Its original two-argument constructor remains available to compiled plugins.
+    attached. Mounted icons with identical byte-array assets and tint share a parsed SVG; the last
+    detach releases it. This avoids repeated parsing during tree scrolling without retaining a cache
+    of offscreen SVGs. Different tints remain independent. Its original two-argument constructor
+    remains available to compiled plugins.
   - `Assets/Icons` and `Assets/Fonts`, with their license files, as `avares://SharpRail.Plugins.UI.Kit/Assets/…`.
 - Owns, in `SharpRail.Plugins.UI.Kit.Markdown`: `MarkdownPreview`, `MarkdownDocumentView` (with its compiled
   header), `MarkdownProperties`, `Frontmatter`, `MarkdownLink`, and `Outline` (the heading column, extracted
@@ -94,6 +97,38 @@ publish toggle automation changes without requesting another update.
   takes the width and bound it converts; `DialogWindow` takes its owner window.
 
 ## Reaches replaced by parameters
+
+The Files and Specs trees share an internal virtualized row list. Hierarchy, expansion and
+row actions stay in data; only rows near the viewport acquire controls. Row text, chevrons,
+selection and role labels use Avalonia's drawing surface, with plugin icons retained as
+small child controls. Containers recycle without carrying the previous entry's menu or actions.
+Each container retains its label across the presenter's template clearing during recycling.
+Callers can supply an icon identity to reuse the child icon across equivalent entries; a different
+identity or explicit plugin invalidation replaces it. Retention stays bounded by recycled containers,
+not the number of entries visited.
+The list preserves keyboard navigation and exposes tree/tree-item automation identities,
+selection and expand/collapse providers. File operations and spec navigation remain callbacks
+owned by their respective modules.
+
+Markdown documents with more than 64 top-level blocks keep block content outside the
+mounted control tree and lay out only the viewport through a virtualizing panel. Detached
+document text releases its shaped-text layout cache. Content remains available to whole-document
+selection, source-line reporting and Find; anchors and search results realize their block before
+scrolling to text. Preview and rendered diffs share this path, including expanded unchanged blocks.
+This reuses the existing rich-text drawing and interaction behavior rather than introducing a
+second Markdown renderer. Virtualization is between top-level blocks: a single large table,
+list or code block still uses its existing internal layout, and content/media storage is not
+bounded by the viewport.
+
+Selection gestures index document blocks once at the start. Pointer hit-testing visits mounted
+text only; extending or shrinking a drag updates changed ranges, while selected text and source
+lines read the tracked selection instead of rescanning the document. Offscreen blocks still
+participate in Shift-click, Copy and Select All. Content added by diff expansion or revealed by
+Find joins the selection index before interaction.
+
+Document text retains shaped runs across selection changes when the selection keeps the normal
+foreground. Inline/content and styling changes invalidate this cache; detaching releases it.
+Themes that replace the selected foreground keep Avalonia's existing styled-selection layout.
 
 - `MarkdownContext` carries what a rendered document reaches outside the kit for: the image reader, the spec-link
   resolver (spec id to workspace path; an id it omits renders disabled), navigation, and the font size, reading

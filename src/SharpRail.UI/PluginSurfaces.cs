@@ -207,6 +207,9 @@ public sealed partial class WorkbenchWindow
         return null;
     }
 
+    private object FileTreeIconKey(ProjectFile file) =>
+        (Plugins.FileIcon(file.Path, file.IsDirectory ? FileIconKind.Directory : FileIconKind.File), file.IsDirectory, file.GitIgnored);
+
     /// <summary>The icon a plugin's file-icon slot answers for a path, else core's glyph.</summary>
     private Control FileIcon(string path, bool directory, string glyph, IBrush? color = null)
     {

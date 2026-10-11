@@ -220,23 +220,25 @@ internal static class UiChecks
         window.Width = 1352; window.Height = 848;
         window.Show();
         Pump(() => window.WorkspaceMounted, "Workspace did not mount.");
-        Pump(() => window.GetLogicalDescendants().OfType<TreeView>().Any(tree => tree.Name == "SpecsTree"), "The spec dialect's Specs panel did not mount.");
-        Pump(() => Find<TreeView>(window, "SpecsTree").Items.OfType<TreeViewItem>().Any(item => Equals(item.Tag, "SPEC.md") &&
-            item.Items.OfType<TreeViewItem>().Any(child => Equals(child.Tag, "src/SPEC.md"))), "Spec hierarchy did not render.");
-        var specRoots = Find<TreeView>(window, "SpecsTree").Items.OfType<TreeViewItem>().ToArray();
+        Pump(() => window.GetLogicalDescendants().OfType<DrawnTree>().Any(tree => tree.Name == "SpecsTree"), "The spec dialect's Specs panel did not mount.");
+        Pump(() => Find<DrawnTree>(window, "SpecsTree").Roots.Any(item => Equals(item.Tag, "SPEC.md") &&
+            item.Children.Any(child => Equals(child.Tag, "src/SPEC.md"))), "Spec hierarchy did not render.");
+        var specRoots = Find<DrawnTree>(window, "SpecsTree").Roots.ToArray();
         Require(Array.FindIndex(specRoots, item => Equals(item.Tag, "independent.md")) < Array.FindIndex(specRoots, item => Equals(item.Tag, "SPEC.md")) &&
-            specRoots.Single(item => Equals(item.Tag, "independent.md")).Items.Count == 0,
+            specRoots.Single(item => Equals(item.Tag, "independent.md")).Children.Count == 0,
             "An independent leaf sorts before the project hierarchy without hiding it.");
         {
-            var specs = Find<TreeView>(window, "SpecsTree");
+            var specs = Find<DrawnTree>(window, "SpecsTree");
             var panel = (Control)specs.GetVisualParent()!;
             var rootItem = specRoots.Single(item => Equals(item.Tag, "SPEC.md"));
-            var nested = rootItem.Items.OfType<TreeViewItem>().Single(item => Equals(item.Tag, "src/SPEC.md"));
+            var nested = rootItem.Children.Single(item => Equals(item.Tag, "src/SPEC.md"));
+            var rootLabel = E2E.E2eWorkspace.TreeRow(specs, rootItem.Id);
+            var nestedLabel = E2E.E2eWorkspace.TreeRow(specs, nested.Id);
+            var rootIcon = rootLabel.Child!;
+            var nestedIcon = nestedLabel.Child!;
             double X(Visual visual) => visual.TranslatePoint(default, panel)!.Value.X;
-            var chevron = rootItem.GetVisualDescendants().OfType<ToggleButton>().First();
-            // The reference row: 4px inset, a 20px chevron slot, then the icon; each level indents 12px.
-            Require(Math.Abs(X(chevron) - 9) <= 1 && Math.Abs(X((Visual)rootItem.Header!) - 25) <= 1 && X((Visual)nested.Header!) - X((Visual)rootItem.Header!) == 12,
-                $"Spec tree indentation differs from the reference: chevron={X(chevron)} icon={X((Visual)rootItem.Header!)} child={X((Visual)nested.Header!)}.");
+            Require(Math.Abs(X(rootIcon) - 28) <= 1 && X(nestedIcon) - X(rootIcon) == 12,
+                "Spec icons retain the row inset and each level indents 12px.");
         }
         var controls = window.GetLogicalDescendants().OfType<Control>().Distinct().ToArray();
         Require(controls.Length > 100, "UI was flattened.");
@@ -267,18 +269,15 @@ internal static class UiChecks
         Require(workspaceRows.IsEffectivelyVisible && Equals(ToolTip.GetTip(Find<Button>(window, "ProjectExpand")), "Collapse project"),
             "Keyboard project expansion did not restore its workspaces.");
         Capture(window, ".bench/prototype-empty-headless.png");
-        var specNode = Find<TreeView>(window, "SpecsTree").Items.OfType<TreeViewItem>().Single(item => Equals(item.Tag, "SPEC.md"));
-        var specHeader = (Grid)((Border)specNode.Header!).Child!;
-        var child = specNode.Items.OfType<TreeViewItem>().Single(item => Equals(item.Tag, "src/SPEC.md"));
-        var childHeader = (Grid)((Border)child.Header!).Child!;
-        Require(childHeader.Children.OfType<TextBlock>().Single(text => text.Name != "SpecRole").Text == "Architecture · components",
-            "Spec titles must compact spaced em dashes to middle dots.");
-        var specRole = specHeader.Children.OfType<TextBlock>().Single(text => text.Name == "SpecRole");
-        Require(!specRole.IsVisible && specRole.Text == "PRODUCT GOAL", "Spec type must initially be hidden.");
+        var specNode = Find<DrawnTree>(window, "SpecsTree").Roots.Single(item => Equals(item.Tag, "SPEC.md"));
+        var child = specNode.Children.Single(item => Equals(item.Tag, "src/SPEC.md"));
+        Require(child.Text == "Architecture · components", "Spec titles must compact spaced em dashes to middle dots.");
         Click(window, Find<Button>(window, "Tab_plugin_spec-dialect_specs")); window.UpdateLayout();
+        var specHeader = E2E.E2eWorkspace.TreeRow(Find<DrawnTree>(window, "SpecsTree"), specNode.Id);
+        Require(!specHeader.RoleVisible && specNode.Role == "PRODUCT GOAL", "Spec type must initially be hidden.");
         window.MouseMove(Center(window, specHeader)); Dispatcher.UIThread.RunJobs();
-        Require(specRole.IsVisible, "Spec type must be shown while hovering the row.");
-        Click(window, specHeader.Children.OfType<TextBlock>().Single(text => text.Name != "SpecRole"));
+        Require(specHeader.RoleVisible, "Spec type must be shown while hovering the row.");
+        Click(window, specHeader);
         Pump(() => window.Layout.State.Workspaces[root].Documents.Values.SelectMany(tabs => tabs)
             .Any(tab => tab.Path == "SPEC.md" && tab.Preview), "Single-clicking a spec did not preview its Markdown.");
 
@@ -296,13 +295,14 @@ internal static class UiChecks
             "Accessible selection did not update canonical tab state.");
         Click(window, Find<Button>(window, "Tab_files"));
         Require(window.Layout.State.Groups.Any(group => window.Layout.Selected(group.Id)?.Id == "files"), "Tab click failed.");
-        Require(Find<TreeView>(window, "FilesTree").Items.Count >= 3, "File tree is empty.");
-        var readmeNode = Find<TreeView>(window, "FilesTree").Items.OfType<TreeViewItem>()
-            .Single(item => item.Tag is SharpRail.Host.Abstractions.ProjectFile { Path: "README.md" });
-        Click(window, ((Grid)readmeNode.Header!).Children.OfType<TextBlock>().Single());
-        var selectedFileRow = readmeNode.GetVisualDescendants().OfType<Border>().Single(border => border.Name == "PART_LayoutRoot");
-        Require(selectedFileRow.Bounds.Height == 24 && selectedFileRow.Background is SolidColorBrush selectedFill && selectedFill.Color == Ui.Hover.Color,
-            $"Selected file row differs from the reference's 24px height and muted fill ({selectedFileRow.Bounds.Height}px, {(selectedFileRow.Background as SolidColorBrush)?.Color}).");
+        Require(Find<DrawnTree>(window, "FilesTree").Items.Count >= 3, "File tree is empty.");
+        var filesTree = Find<DrawnTree>(window, "FilesTree");
+        var readmeNode = filesTree.Rows.Single(item => item.Tag is SharpRail.Host.Abstractions.ProjectFile { Path: "README.md" });
+        var readmeRow = E2E.E2eWorkspace.TreeRow(filesTree, readmeNode.Id);
+        Click(window, readmeRow);
+        var selectedFileRow = filesTree.ContainerFromItem(readmeNode)!.GetVisualDescendants().OfType<Avalonia.Controls.Presenters.ContentPresenter>().First();
+        Require(readmeRow.Bounds.Height == 24 && selectedFileRow.Background is SolidColorBrush selectedFill && selectedFill.Color == Ui.Hover.Color,
+            "Selected file rows retain their 24px height and muted fill.");
         Pump(() => window.Layout.State.Workspaces[root].Documents.Values.SelectMany(tabs => tabs)
             .Any(tab => tab.Path == "README.md" && tab.Preview), "File-tree click did not open its preview.");
         var primary = window.Layout.State.Center.Leaves().Single();

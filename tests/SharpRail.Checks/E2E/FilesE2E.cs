@@ -23,27 +23,27 @@ internal static class FilesE2E
         File.WriteAllText(Path.Combine(workspace, "compact", "only", "here", "leaf.txt"), "leaf\n");
         app.Click(app.Find<Button>("Tab_files"));
         app.FileRow("README.md");
-        TreeViewItem? Node(string name, bool directory) => app.Find<TreeView>("FilesTree").GetLogicalDescendants().OfType<TreeViewItem>()
+        DrawnTreeEntry? Node(string name, bool directory) => app.Find<DrawnTree>("FilesTree").Rows
             .SingleOrDefault(node => node.Tag is ProjectFile file && file.Name == name && file.IsDirectory == directory);
         Until(() => Node("compact/only/here", true) is not null);
         // Dotfiles are ordinary entries of a developer's tree, listed and visible like the reference's.
         File.WriteAllText(Path.Combine(workspace, ".gitignore"), "bin/\n");
-        Until(() => Node(".gitignore", false) is { IsVisible: true });
+        Until(() => Node(".gitignore", false) is not null);
         // A rail narrower than its names scrolls sideways instead of cutting them off.
-        var filesTree = app.Find<TreeView>("FilesTree");
+        var filesTree = app.Find<DrawnTree>("FilesTree");
         var previousWidth = filesTree.Width;
         filesTree.Width = 60;
         Until(() => { app.Window.UpdateLayout(); return filesTree.GetVisualDescendants().OfType<ScrollViewer>().FirstOrDefault() is { } sideways && sideways.Extent.Width > sideways.Viewport.Width + 1; });
-        var label = Node("compact/only/here", true)!.GetLogicalDescendants().OfType<TextBlock>().First(text => text.Text == "compact/only/here");
-        var full = new TextBlock { Text = label.Text, FontSize = label.FontSize, FontFamily = label.FontFamily, FontWeight = label.FontWeight };
+        var label = (DrawnTreeLabel)app.FileRow("compact/only/here");
+        var full = new TextBlock { Text = label.Entry.Text, FontSize = Ui.FontSize, FontFamily = Ui.InterfaceFont, FontWeight = Ui.InterfaceWeight };
         full.Measure(Size.Infinity);
-        Require(label.Bounds.Width >= full.DesiredSize.Width - 0.5, $"A narrow Files rail keeps whole names ({label.Bounds.Width} of {full.DesiredSize.Width}).");
+        Require(label.Bounds.Width >= full.DesiredSize.Width + 42 - 0.5, "A narrow Files rail keeps whole names alongside its icon and chevron.");
         filesTree.Width = previousWidth;
         app.ExpandFolder(Path.Combine("compact", "only", "here"));
-        Until(() => Node("leaf.txt", false) is not null && Node("compact/only/here", true)!.IsExpanded);
+        Until(() => Node("leaf.txt", false) is not null && Node("compact/only/here", true)!.Expanded);
         Directory.CreateDirectory(Path.Combine(workspace, "compact", "only", "sibling"));
         Until(() => Node("compact/only", true) is not null && Node("here", true) is not null && Node("leaf.txt", false) is not null);
-        Require(Node("compact/only", true)!.IsExpanded && Node("here", true)!.IsExpanded,
+        Require(Node("compact/only", true)!.Expanded && Node("here", true)!.Expanded,
             "Splitting a compacted run must keep the expanded folders open.");
         Console.WriteLine("PASS upstream files.spec.ts: shows files and compacts single-directory runs in the Files tree");
 
@@ -52,21 +52,21 @@ internal static class FilesE2E
         File.WriteAllText(Path.Combine(workspace, "single", "inside.txt"), "inside\n");
         Until(() => Node("single", true) is not null);
         app.Click(app.FileRow("single"));
-        Until(() => Node("single", true)!.IsExpanded && Node("inside.txt", false) is not null);
+        Until(() => Node("single", true)!.Expanded && Node("inside.txt", false) is not null);
         app.Click(app.FileRow("single"));
-        Until(() => !Node("single", true)!.IsExpanded);
+        Until(() => !Node("single", true)!.Expanded);
         app.Click(app.FileRow("single"), twice: true);
         Settle();
-        Require(!Node("single", true)!.IsExpanded, "Two quick clicks on a folder open it and close it again.");
+        Require(!Node("single", true)!.Expanded, "Two quick clicks on a folder open it and close it again.");
         app.Click(app.FileRow("single"));
-        Until(() => Node("single", true)!.IsExpanded);
+        Until(() => Node("single", true)!.Expanded);
         File.WriteAllText(Path.Combine(workspace, "single", "external.txt"), "external\n");
         Until(() => Node("external.txt", false) is not null);
         File.Move(Path.Combine(workspace, "single", "external.txt"), Path.Combine(workspace, "single", "renamed.txt"));
         Until(() => Node("external.txt", false) is null && Node("renamed.txt", false) is not null);
         File.Delete(Path.Combine(workspace, "single", "renamed.txt"));
         Until(() => Node("renamed.txt", false) is null);
-        Require(Node("single", true)!.IsExpanded, "External changes must preserve expanded folders.");
+        Require(Node("single", true)!.Expanded, "External changes must preserve expanded folders.");
         Console.WriteLine("PASS files tree folders toggle on a single click of their name");
 
         File.WriteAllBytes(Path.Combine(workspace, "blob.bin"), [0xFF, 0xFE, 0x00, 0x01]);
@@ -84,16 +84,16 @@ internal static class FilesE2E
         if (OperatingSystem.IsMacOS()) DeleteToTrash(app, workspace);
     }
 
-    private static TreeViewItem Node(E2eWorkspace app, string path)
+    private static DrawnTreeEntry Node(E2eWorkspace app, string path)
     {
-        Until(() => app.Find<TreeView>("FilesTree").GetLogicalDescendants().OfType<TreeViewItem>().Any(node => node.Tag is ProjectFile file && file.Path == path));
-        return app.Find<TreeView>("FilesTree").GetLogicalDescendants().OfType<TreeViewItem>().Single(node => node.Tag is ProjectFile file && file.Path == path);
+        Until(() => app.Find<DrawnTree>("FilesTree").Rows.Any(node => node.Tag is ProjectFile file && file.Path == path));
+        return app.Find<DrawnTree>("FilesTree").Rows.Single(node => node.Tag is ProjectFile file && file.Path == path);
     }
 
     private static ContextMenu OpenMenu(E2eWorkspace app, string path)
     {
         app.Click(app.FileRow(path), mouseButton: Avalonia.Input.MouseButton.Right);
-        var menu = Node(app, path).ContextMenu!;
+        var menu = app.FileRow(path).ContextMenu!;
         Until(() => menu.IsOpen);
         return menu;
     }
@@ -184,7 +184,7 @@ internal static class FilesE2E
         File.Delete(file);
         Until(() => Mark().IsVisible);
         if (OperatingSystem.IsMacOS()) Until(() => app.Find<Border>("FileDeletedOnDisk").IsVisible);
-        Until(() => !app.Find<TreeView>("FilesTree").GetLogicalDescendants().OfType<TreeViewItem>().Any(node => node.Tag is ProjectFile { Path: "fleeting.txt" }));
+        Until(() => !app.Find<DrawnTree>("FilesTree").Rows.Any(node => node.Tag is ProjectFile { Path: "fleeting.txt" }));
         File.WriteAllText(file, "back again\n");
         Until(() => !Mark().IsVisible);
         if (OperatingSystem.IsMacOS()) Until(() => !app.Find<Border>("FileDeletedOnDisk").IsVisible);
@@ -202,7 +202,7 @@ internal static class FilesE2E
         Require(confirm.Title == "Delete gone-soon.txt?", "Deleting a file asks first.");
         app.Click(Named<Button>(confirm, "FileNodeDeleteConfirm"));
         Until(() => !app.Window.OwnedWindows.Any() && !File.Exists(disposable));
-        Until(() => !app.Find<TreeView>("FilesTree").GetLogicalDescendants().OfType<TreeViewItem>().Any(node => node.Tag is ProjectFile { Path: "gone-soon.txt" }));
+        Until(() => !app.Find<DrawnTree>("FilesTree").Rows.Any(node => node.Tag is ProjectFile { Path: "gone-soon.txt" }));
         app.Open("README.md");
         Console.WriteLine("PASS fork files.spec.ts: deleting a previewed file leaves the workbench interactive");
     }

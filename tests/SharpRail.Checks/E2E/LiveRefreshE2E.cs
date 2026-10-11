@@ -35,11 +35,11 @@ internal static class LiveRefreshE2E
     }
 
     private static bool HasFile(E2eWorkspace app, string path) =>
-        app.Find<TreeView>("FilesTree").GetLogicalDescendants().OfType<TreeViewItem>().Any(item => item.Tag is ProjectFile file && file.Path == path);
+        app.Find<DrawnTree>("FilesTree").Rows.Any(item => item.Tag is ProjectFile file && file.Path == path);
 
     private static bool HasSpec(E2eWorkspace app, string title) =>
-        app.Window.GetLogicalDescendants().OfType<TreeView>().Any(tree => tree.Name == "SpecsTree" &&
-            tree.GetLogicalDescendants().OfType<TreeViewItem>().Any(item => AutomationProperties.GetName(item) == title));
+        app.Window.GetLogicalDescendants().OfType<DrawnTree>().Any(tree => tree.Name == "SpecsTree" &&
+            tree.Rows.Any(item => item.Text == title));
 
     private static string PreviewText(E2eWorkspace app) => string.Concat(app.Window.GetLogicalDescendants().OfType<MarkdownPreview>()
         .Where(preview => preview.IsEffectivelyVisible && preview.Name == "MarkdownPreview")

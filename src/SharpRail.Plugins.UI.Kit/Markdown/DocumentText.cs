@@ -5,6 +5,7 @@ using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
+using Avalonia.Media.TextFormatting;
 
 namespace SharpRail.Plugins.UI.Kit;
 
@@ -16,9 +17,15 @@ internal sealed class DocumentText : SelectableTextBlock
 {
     private const char Placeholder = '￼';
     private readonly Dictionary<Control, IBrush?> restingFills = [];
+    private TextRunCache? shapedText;
+    private InlineCollection? watchedInlines;
+    private HashSet<Inline>? watchedElements;
+    private HashSet<InlineCollection>? watchedCollections;
+    private bool inlineSubscriptionsDirty = true;
 
     public DocumentText()
     {
+        WatchInlines(Inlines);
         CopyingToClipboard += async (_, e) =>
         {
             e.Handled = true;
@@ -27,6 +34,19 @@ internal sealed class DocumentText : SelectableTextBlock
     }
 
     protected override Type StyleKeyOverride => typeof(SelectableTextBlock);
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        shapedText?.Invalidate();
+        shapedText = null;
+        foreach (var inline in watchedElements ?? []) inline.PropertyChanged -= InlinePropertyChanged;
+        watchedElements = null;
+        foreach (var collection in watchedCollections ?? []) collection.Invalidated -= InlineContentChanged;
+        watchedCollections = null;
+        inlineSubscriptionsDirty = true;
+        InvalidateTextLayout();
+        base.OnDetachedFromVisualTree(e);
+    }
 
     /// <summary>True while focus loss clears and this block restores its selection; the change is not a real one.</summary>
     internal bool Restoring { get; private set; }
@@ -59,8 +79,58 @@ internal sealed class DocumentText : SelectableTextBlock
 
     protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
+        if (change.Property != SelectionStartProperty && change.Property != SelectionEndProperty &&
+            change.Property != SelectedTextProperty && change.Property != CanCopyProperty) shapedText?.Invalidate();
         base.OnPropertyChanged(change);
+        if (change.Property == InlinesProperty) WatchInlines(change.NewValue as InlineCollection);
         if (change.Property == SelectionStartProperty || change.Property == SelectionEndProperty) PaintEmbedded();
+    }
+
+    private void WatchInlines(InlineCollection? inlines)
+    {
+        if (ReferenceEquals(watchedInlines, inlines)) return;
+        if (watchedInlines is not null) watchedInlines.Invalidated -= InlineContentChanged;
+        watchedInlines = inlines;
+        if (inlines is not null) inlines.Invalidated += InlineContentChanged;
+        InlineContentChanged(null, EventArgs.Empty);
+    }
+
+    private void InlineContentChanged(object? sender, EventArgs e)
+    {
+        shapedText?.Invalidate();
+        inlineSubscriptionsDirty = true;
+    }
+
+    private void InlinePropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e) => shapedText?.Invalidate();
+
+    private void WatchInlineElements()
+    {
+        if (!inlineSubscriptionsDirty) return;
+        watchedElements ??= [];
+        watchedCollections ??= [];
+        foreach (var inline in watchedElements) inline.PropertyChanged -= InlinePropertyChanged;
+        watchedElements.Clear();
+        foreach (var collection in watchedCollections) collection.Invalidated -= InlineContentChanged;
+        watchedCollections.Clear();
+        foreach (var inline in Flatten(Inlines))
+        {
+            if (watchedElements.Add(inline)) inline.PropertyChanged += InlinePropertyChanged;
+            if (inline is Span span && watchedCollections.Add(span.Inlines)) span.Inlines.Invalidated += InlineContentChanged;
+        }
+        inlineSubscriptionsDirty = false;
+    }
+
+    protected override TextLayout CreateTextLayout(string? text)
+    {
+        if (SelectionForegroundBrush is not null || _textRuns is null) return base.CreateTextLayout(text);
+        WatchInlineElements();
+        var properties = new GenericTextRunProperties(new Typeface(FontFamily, FontStyle, FontWeight, FontStretch),
+            FontSize, TextDecorations, Foreground, fontFeatures: FontFeatures);
+        var paragraph = new GenericTextParagraphProperties(FlowDirection, TextAlignment, true, false, properties,
+            TextWrapping, LineHeight, 0, LetterSpacing);
+        var source = new InlinesTextSource(_textRuns);
+        var size = GetMaxSizeFromConstraint();
+        return new TextLayout(source, paragraph, TextTrimming, size.Width, size.Height, MaxLines, shapedText ??= new TextRunCache());
     }
 
     // Embedded controls are not glyphs, so the text block's highlight passes under them; they take the selection fill themselves.

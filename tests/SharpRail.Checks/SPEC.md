@@ -13,6 +13,30 @@ contract, not that list.
 
 ## Execution model
 
+`--drawn-rendering` covers viewport-bounded Markdown preview/diff controls, offscreen
+selection and source spans, Find and anchors, plus virtualized tree navigation,
+recycled row actions, bounded icon construction, provider invalidation and automation expansion.
+File-icon UI checks cover shared SVG tint isolation and lifetime through sibling detach/remount.
+`--drawn-trees` selects just the tree
+portion; both belong to the `drawn-rendering` case in the full gate. Existing Files,
+Specs and graph cases continue exercising actual pointer input and host actions.
+Specs retry fixtures keep injected failures active until the actual Retry press, so a background
+load cannot recover during pointer settling and hide the button before the gesture.
+The failed-update fixture drains earlier reads before writing the new spec, so an already
+accepted read cannot observe the change that the fixture intends to reject.
+Double-clicking a change row waits for its standalone diff tab before querying its content;
+the first click can already mount the review's embedded diffs while that tab is loading.
+
+`--rendering-bench markdown|markdown-diff|markdown-selection|graph|files|files-mixed|specs` is an opt-in measurement
+fixture, excluded from the gate and run only when measurement is requested. Each
+scrolling process mounts 2,000 blocks or rows, captures actual headless Skia frames and
+scrolls 120 steps. It reports mount time/allocations, retained managed-memory delta
+after collection, process resident memory, mounted visual/logical counts and scroll
+frame median/p95/allocations. Screenshots go to disposable `.bench/rendering`.
+`files` uses C# files; `files-mixed` alternates five file types with every seventh entry ignored.
+These synthetic results are not native presentation latency or whole-app RAM savings;
+timing requires attention to concurrent workloads. Blank or non-scrolling surfaces fail.
+
 `SharpRail.Checks` is an executable, not a test framework project. The argument-free
 run is the complete gate: host transport parity, host terminals, project/Git parity,
 host state, file saving, layout transitions, the open-world runtime probe, and then
@@ -458,3 +482,11 @@ back and forward buttons are not asserted.
   supply a fixture shell that recognizes the probe by a shared marker and answers with that marker and
   the hermetic PATH, without importing the developer's login environment, and delegates normal
   terminal execution to a real shell, so developer tools cannot leak into isolated fixtures.
+
+`MarkdownSelectionChecks` runs with `--drawn-rendering` and the default gate. It checks reverse
+and shrinking drags in a virtual document, source-line observers, offscreen Shift-click and
+Copy, plus rendered selection, inline/font invalidation and detach/remount under every theme.
+`--rendering-bench markdown-selection` measures 120 pointer updates with a source-line observer
+and headless Skia frame capture. `SHARPRAIL_BENCH_MARKDOWN` selects a source file; otherwise it
+uses a large generated document. It reports input/frame median and p95 plus allocated bytes,
+not native presentation latency.

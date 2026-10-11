@@ -52,6 +52,22 @@ internal static class Program
         File.WriteAllText(Path.Combine(root, "README.md"), "# Preview\n\nA **bold** paragraph with a [link](#preview).\n\n- [x] Done\n- [ ] Next\n\n| Name | Value |\n| --- | --- |\n| A | 1 |\n\n> [!NOTE]\n> A callout.\n\n\u0060\u0060\u0060cs\npublic class Example { }\n\u0060\u0060\u0060\n");
         File.WriteAllText(Path.Combine(root, "SPEC.md"), "---\nid: goal\ntitle: Project goal\ntype: product-goal\n---\n# Goal\n");
         File.WriteAllText(Path.Combine(root, "src", "SPEC.md"), "---\nid: architecture\ntitle: Architecture — components\nparent: goal\ntype: module-design\n---\n# Architecture\n");
+        if (args is ["--rendering-bench", var surface])
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            try { RenderingBenchmarks.Run(surface, root); }
+            finally { Directory.Delete(root, true); }
+            return;
+        }
+        if (args.SequenceEqual(["--drawn-rendering"]) || args.SequenceEqual(["--drawn-trees"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            if (args[0] == "--drawn-trees") DrawnRenderingChecks.Trees();
+            else DrawnRenderingChecks.Run();
+            return;
+        }
         if (args.SequenceEqual(["--project-host"]))
         {
             ProjectChecks.Run(root).GetAwaiter().GetResult();
@@ -495,6 +511,7 @@ internal static class Program
         Gate.Case("host-listener", () => HostListenerChecks.Run(root).GetAwaiter().GetResult());
         UiChecks.Run(root);
         Gate.Case("resources", () => ResourceChecks.Run(root));
+        Gate.Case("drawn-rendering", DrawnRenderingChecks.Run);
         Gate.Case("design", () => Design.DesignChecks.Run(write: false));
         Gate.Case("design-roles", Design.RoleChecks.Run);
         Gate.Case("plugin-host", () => PluginHostChecks.Run(root).GetAwaiter().GetResult());

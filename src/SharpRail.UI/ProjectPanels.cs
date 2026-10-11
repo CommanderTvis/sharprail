@@ -100,34 +100,31 @@ public sealed partial class WorkbenchWindow
     private Control FilesPanel()
     {
         var panel = new Grid { Name = "FilesPanel", IsHitTestVisible = WorkspaceMounted && !switchingWorkspace };
-        var tree = new TreeView { Name = "FilesTree", Background = Ui.Sidebar, Margin = new Thickness(4, 12, 12, 12) };
-        // A rail narrower than its names scrolls sideways rather than cutting them off.
+        var tree = new DrawnTree { Name = "FilesTree", Background = Ui.Sidebar, Margin = new Thickness(4, 12, 12, 12) };
         ScrollViewer.SetHorizontalScrollBarVisibility(tree, ScrollBarVisibility.Auto);
-        foreach (var file in folderCache.GetValueOrDefault("") ?? []) tree.Items.Add(FileNode(file));
+        tree.SetRoots(FileEntries([], folderCache.GetValueOrDefault("") ?? [], tree));
         Ui.Place(panel, tree);
         return panel;
     }
 
-    private TreeViewItem FileNode(ProjectFile file)
+    private DrawnTreeEntry FileNode(ProjectFile file, DrawnTree tree)
     {
-        var node = new TreeViewItem
+        var entry = new DrawnTreeEntry(file.Path, file.Name)
         {
-            Header = FileRow(file),
-            MinHeight = 24,
-            CornerRadius = new CornerRadius(4),
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            Tag = file
+            Tag = file,
+            Help = file.Path,
+            Tip = file.GitIgnored ? "Ignored by git" : null,
+            Muted = file.GitIgnored,
+            Italic = file.GitIgnored,
+            CanExpand = file.IsDirectory,
+            IconKey = _ => FileTreeIconKey(file),
+            Icon = _ => FileIcon(file.Path, file.IsDirectory, file.IsDirectory ? "folder" : "fileText", file.GitIgnored ? Ui.Hint : null)
         };
-        AutomationProperties.SetName(node, file.Name);
-        AutomationProperties.SetHelpText(node, file.Path);
-        node.ContextMenu = FileActions(file, node);
+        entry.Menu = () => FileActions(file, () => tree.Expand(entry, true));
         if (file.IsDirectory)
         {
-            if (folderCache.TryGetValue(file.Path, out var children))
-                foreach (var child in children) node.Items.Add(FileNode(child));
-            else node.Items.Add(new TreeViewItem { Header = Ui.Text("Loading…", Ui.Hint) });
             var prefix = file.Path + Path.DirectorySeparatorChar;
-            node.IsExpanded = expandedFolders.Contains(file.Path) || expandedFolders.Any(path => path.StartsWith(prefix, StringComparison.Ordinal));
+            entry.Expanded = expandedFolders.Contains(file.Path) || expandedFolders.Any(path => path.StartsWith(prefix, StringComparison.Ordinal));
             async Task Expand()
             {
                 expandedFolders.Add(file.Path);
@@ -139,47 +136,32 @@ public sealed partial class WorkbenchWindow
                     var entries = await Task.Run(async () => await host.ListFilesAsync(file.Path, lifetime.Token), lifetime.Token);
                     if (request != projectRequest) return;
                     folderCache[file.Path] = entries;
-                    ReconcileFileNodes(node.Items, entries);
+                    entry.Children = FileEntries(entry.Children, entries, tree);
+                    tree.SetRoots(tree.Roots);
                 }
                 catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
             }
-            node.PropertyChanged += (_, e) =>
+            entry.ExpansionChanged = expanded =>
             {
-                if (e.Property != TreeViewItem.IsExpandedProperty) return;
-                if (node.IsExpanded) _ = Expand();
+                if (expanded) _ = Expand();
                 else expandedFolders.Remove(file.Path);
             };
-            if (node.IsExpanded) _ = Expand();
-            // Like the reference tree, every click on the folder's own row toggles it, so two quick clicks open and
-            // close it. The tree's built-in double-tap toggle is suppressed there so it does not toggle a third time.
-            node.AddHandler(PointerPressedEvent, (_, e) =>
-            {
-                if (e.Source is not Control source || !IsOwnHeader(node, source) || !e.GetCurrentPoint(node).Properties.IsLeftButtonPressed) return;
-                // The chevron's own toggle already expands and collapses the folder.
-                if (source is ToggleButton || source.GetVisualAncestors().OfType<ToggleButton>().Any()) return;
-                node.IsExpanded = !node.IsExpanded;
-            }, RoutingStrategies.Bubble, handledEventsToo: true);
-            // Double taps only bubble; handling them on the row content keeps them from the header's own toggle.
-            ((Control)node.Header!).DoubleTapped += (_, e) => e.Handled = true;
+            entry.Activate = _ => tree.Expand(entry, !entry.Expanded);
+            if (entry.Expanded) _ = Expand();
         }
-        else node.AddHandler(PointerPressedEvent, (_, e) =>
+        else entry.Activate = clicks =>
         {
-            if (e.Source is not Control source || !IsOwnHeader(node, source) || !e.GetCurrentPoint(node).Properties.IsLeftButtonPressed) return;
-            _ = BrowseDocumentAsync(file.Path, e.ClickCount == 2);
-        }, RoutingStrategies.Bubble, handledEventsToo: true);
-        node.KeyDown += (_, e) =>
-        {
-            if (!WorkspaceMounted || toolContent.GetValueOrDefault("files")?.IsHitTestVisible != true) return;
-            if (e.Key == Key.Enter && !file.IsDirectory) { _ = BrowseDocumentAsync(file.Path, true); e.Handled = true; }
+            if (WorkspaceMounted && toolContent.GetValueOrDefault("files")?.IsHitTestVisible == true)
+                _ = BrowseDocumentAsync(file.Path, clicks >= 2);
         };
-        return node;
+        return entry;
     }
 
     // Each platform's file manager has its own name, and the wrong one reads as a bug.
     private static readonly string RevealLabel = OperatingSystem.IsMacOS() ? "Reveal in Finder"
         : OperatingSystem.IsWindows() ? "Show in Explorer" : "Open containing folder";
 
-    private ContextMenu FileActions(ProjectFile file, TreeViewItem node)
+    private ContextMenu FileActions(ProjectFile file, Action expand)
     {
         // New creates inside a folder row and beside a file row; a compact chain's row stands for its deepest folder.
         var parent = Path.GetDirectoryName(file.Path) ?? "";
@@ -192,31 +174,26 @@ public sealed partial class WorkbenchWindow
             if (icon is not null) item.Icon = Ui.Icon(icon, null, 14);
             menu.Items.Add(item);
         }
-        Add("New file…", "FileNodeNewFile", () => _ = CreatePathAsync(into, false, node), "fileText");
-        Add("New folder…", "FileNodeNewFolder", () => _ = CreatePathAsync(into, true, node), "folder");
+        Add("New file…", "FileNodeNewFile", () => _ = CreatePathAsync(into, false, expand), "fileText");
+        Add("New folder…", "FileNodeNewFolder", () => _ = CreatePathAsync(into, true, expand), "folder");
         menu.Items.Add(new Separator());
         Add(RevealLabel, "FileNodeReveal", () => _ = FileActionAsync(new("reveal", file.Path)), "folderOpen");
         Add("Copy absolute path", "FileNodeCopyPath", () => _ = CopyTextAsync(Path.Combine(workspaceRoot, file.Path)));
         Add("Rename…", "FileNodeRename", () => _ = RenamePathAsync(file));
         Add(file.IsDirectory ? "Delete folder" : "Delete file", "FileNodeDelete", () => _ = TrashPathAsync(file), "trash");
-        var contributed = new List<Control>();
-        menu.Opening += (_, _) =>
+        var offered = FileActionItems(new(workspaceRoot, file.Path, file.IsDirectory));
+        if (offered.Count > 0)
         {
-            foreach (var item in contributed) menu.Items.Remove(item);
-            contributed.Clear();
-            var offered = FileActionItems(new(workspaceRoot, file.Path, file.IsDirectory));
-            if (offered.Count == 0) return;
-            contributed.Add(new Separator());
-            contributed.AddRange(offered);
-            foreach (var item in contributed) menu.Items.Add(item);
-        };
+            menu.Items.Add(new Separator());
+            foreach (var item in offered) menu.Items.Add(item);
+        }
         return menu;
     }
 
     private static bool PathListed(IReadOnlyList<ProjectFile> entries, string path) => entries.Any(entry =>
         entry.Path == path || entry.Path.StartsWith(path + Path.DirectorySeparatorChar, StringComparison.Ordinal));
 
-    private async Task CreatePathAsync(string folder, bool directory, TreeViewItem node)
+    private async Task CreatePathAsync(string folder, bool directory, Action expand)
     {
         var workspace = workspaceRoot;
         string Target(string name) => Path.Combine(folder, name.Replace('/', Path.DirectorySeparatorChar));
@@ -233,7 +210,7 @@ public sealed partial class WorkbenchWindow
             {
                 await host.ApplyFileActionAsync(new(directory ? "create-folder" : "create-file", Target(name)), lifetime.Token);
                 if (workspace != workspaceRoot) return;
-                if (node.Tag is ProjectFile { IsDirectory: true }) node.IsExpanded = true;
+                expand();
                 await RefreshFilesAsync(projectRequest);
                 if (!directory) await BrowseDocumentAsync(Target(name), true);
             });
@@ -391,13 +368,6 @@ public sealed partial class WorkbenchWindow
             if (Layout.Selected(group.Id)?.Id == "specs") Layout.Reseat(group.Id, group.Tools[1].Id);
     }
 
-    private Control FileRow(ProjectFile file)
-    {
-        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("14,4,*") };
-        Ui.Place(row, FileIcon(file.Path, file.IsDirectory, file.IsDirectory ? "folder" : "fileText"));
-        Ui.Place(row, Ui.Text(file.Name), 0, 2);
-        return row;
-    }
     private static Control TreeRow(string icon, string title, bool primary = false)
     {
         var row = new Grid { ColumnDefinitions = new ColumnDefinitions("14,4,*") };

@@ -69,7 +69,7 @@ internal static class ReconnectE2E
     }
 
     private static bool HasFile(E2eWorkspace app, string path) =>
-        app.Find<TreeView>("FilesTree").GetLogicalDescendants().OfType<TreeViewItem>().Any(item => item.Tag is ProjectFile file && file.Path == path);
+        app.Find<DrawnTree>("FilesTree").Rows.Any(item => item.Tag is ProjectFile file && file.Path == path);
 
     private static void Generations(string directory)
     {
