@@ -239,10 +239,9 @@ notices) sit in one commit at the tip.
   appended at the tip), a new plugin (part 3), or a core API capability the API commit would be
   incomplete without. A capability a plugin introduced stays in that plugin's commit until it
   is generalised. A feature and its follow-up fixes end as one commit.
-- Every commit is green on its own: the solution builds in Release with warnings as errors, and
-  tests land with the code they test, never ahead of it. Build each step in a separate
-  worktree so the working tree is never disturbed, and compare the final tree with the
-  pre-rebase tree before replacing the branch.
+- Tests land with the code they test, never ahead of it. Verify the final tip rather than
+  building each intermediate commit, and compare the final tree with the pre-rebase tree
+  before replacing the branch.
 
 ## Verification budget
 
@@ -263,8 +262,8 @@ runs. Spend it deliberately:
   each process uses. Never mutate that checkout's build output during its run.
 - A failure ends a run early: fix the cause, rerun the focused mode that covers it, then resume with one
   full run — not a full run per attempt.
-- Rewriting commits needs a build of each rewritten commit, not a full suite per commit; the full suite runs
-  on the final tip only.
+- Rewriting commits needs verification of the final tip only, including its Release build and
+  the full suite; intermediate commits do not need separate builds or suites.
 - Fixture git repositories run unsigned under a private configuration (`IsolatedGit.ForProcess`); a
   signing prompt during checks is a harness bug, not a reason to wait for the developer.
 

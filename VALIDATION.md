@@ -13,6 +13,14 @@ using the four-lane run followed by `--last-failed` repairs. Evidence:
 The final runner record has no unfinished cases. Existing Avalonia build warnings
 remain. Formatting and diff whitespace checks pass. No package was published.
 
+2026-10-10 Blueprint frontmatter: Release build has zero warnings/errors;
+touched-file formatting, --blueprint and git diff --check pass. The headless UI
+checks verify full-width scalar values below their keys and unclipped shape-selector
+widths at 320 pixels. The full six-lane gate completes with a --last-failed resume
+after the Specs retry-button occlusion passes alone. Optional Git-source fixtures
+were skipped because SHARPRAIL_TEST_GIT_SOURCE was unset. The packaged app and
+native appearance were not checked.
+
 Latest source verification includes lightweight commit catalogs: full Release and
 published R2R suites pass in `.bench/commit-catalog-release.log` and
 `.bench/commit-catalog-published-checks.log`, each with 39 translated upstream cases.
@@ -1242,53 +1250,6 @@ Host and UI halves merged, uncommitted.
   lines, exit 0; Git scenarios skipped), run once with nothing else running.
 - Not yet evidence: native capture of the plugin surfaces; the published checks with the copied fixture.
 
-## HTML images in Markdown tables (2026-10-10)
-
-Inline HTML images now release the fixed paragraph line height, matching Markdown
-images and reserving their full height inside table cells. The regression checks
-table paragraph height and image aspect ratio. Release build passes with zero
-warnings/errors; --markdown, touched-file format verification and git diff --check
-pass. The full gate passes all 118 cases across six lanes. Task fixtures were
-removed. The packaged app and physical devices were not checked.
-
-## Blueprint unregistered terminal directories — 2026-10-10
-
-Blueprint now follows and queries spec links only for registered workspaces, and
-starts following existing terminals when their directory is registered later.
-Release compilation passes with zero warnings/errors, touched-file format
-verification passes, `-- --blueprint` passes, and the full gate passes 118 cases
-across six lanes. Spec validation reports four existing dangling links in the
-Branch Graph spec. The running application was not republished or restarted.
-Temporary check logs and exited fixture directories were removed. The fix and
-validation are committed separately; the user requested pushing them to main.
-
-## Codex Blueprint authoring — 2026-10-10
-
-Blueprint's start dialog offers registered Claude Code and Codex launchers, with Claude
-as the default when both are present and Codex selected when it is the sole launcher.
-The host accepts and persists Codex authors. Fresh recovery and exact recorded-session
-resumption use the recorded agent; reader selections and confirmed edits reach its terminal.
-Codex authors do not see the Claude-specific trust instructions.
-
-Release builds pass with zero warnings/errors, touched-file formatting and `--blueprint`
-pass. The isolated six-lane full gate hit the previously recorded Spec Dialect failed-update
-tree assertion; that case passes alone, and `--last-failed` passes with an empty unfinished
-record. Coverage is complete across the run and resume, rather than a clean first run.
-Optional Git fixture cases were skipped because `SHARPRAIL_TEST_GIT_SOURCE` was unset.
-After the concurrent Claude change landed on main, the Release rebuild and whole-solution
-format verification also pass on that tip.
-Spec validation reports four existing dangling Branch Graph links, unrelated to Blueprint.
-No live Codex CLI session or Android build was exercised. The user authorized committing
-and pushing to main; implementation and validation use separate signed commits. No
-publication or running-app restart was requested.
-## Compact Claude surface selector (2026-10-10)
-
-The Claude pane's surface selector keeps horizontal scrolling without displaying
-a scrollbar. The narrow-pane check verifies the hidden bar and scrolling to the
-Account button. Release build, --claude-code, touched-file format verification
-and git diff --check pass. The full gate and packaged app were not checked.
-
-
 ## Spec Dialect port continuation (2026-10-01)
 
 - Release build and formatting verification passed. `.bench/spec-final-checks.log` passes all seven spec
@@ -1721,6 +1682,28 @@ verification reports one inherited final-newline error in `SharpRail.Plugins.Cla
 Not verified: the Metal renderers handing a watched terminal to the Skia view in a real window
 (`NativeTextureChecks` was updated but not run), touch panning of a watched terminal, and anything on a device.
 
+## Rendered Markdown table diffs — 2026-10-10
+
+In workspace `fix/markdown-table-diffs`, Release compilation passes with zero warnings/errors and
+format verification passes for the three touched C# files. `-- --markdown-tables` passes, as does the
+focused gate selecting `markdown-table-diffs,resources,RenderedDiffE2E` with
+`SHARPRAIL_TEST_GIT_SOURCE=/Users/commandertvis/IdeaProjects/thinkrail`. The regression fails with the
+original merger on the added-table case, then passes with the correction. Coverage checks parsed tables
+and native preview grids with insertion/deletion cell marks. The full gate passes 117 cases across six
+lanes against the same Git source. No real window, Android device or packaged app was driven for this fix.
+Temporary logs, captures and fixture directories were removed after recording these results.
+
+## Blueprint unregistered terminal directories — 2026-10-10
+
+Blueprint now follows and queries spec links only for registered workspaces, and
+starts following existing terminals when their directory is registered later.
+Release compilation passes with zero warnings/errors, touched-file format
+verification passes, `-- --blueprint` passes, and the full gate passes 118 cases
+across six lanes. Spec validation reports four existing dangling links in the
+Branch Graph spec. The running application was not republished or restarted.
+Temporary check logs and exited fixture directories were removed. The fix and
+validation are committed separately; the user requested pushing them to main.
+
 ## Narrow document views and touch tab dragging — 2026-10-10
 
 Markdown panes below 640 logical pixels hide Split and return existing splits to Preview.
@@ -1738,13 +1721,114 @@ checks. This is coverage across a full run and resumes, not a clean final-tip fu
 Android compilation, a physical phone and the packaged app were not checked. Temporary
 fixture directories were removed.
 
-## Rendered Markdown table diffs — 2026-10-10
+## Compact Claude surface selector (2026-10-10)
 
-In workspace `fix/markdown-table-diffs`, Release compilation passes with zero warnings/errors and
-format verification passes for the three touched C# files. `-- --markdown-tables` passes, as does the
-focused gate selecting `markdown-table-diffs,resources,RenderedDiffE2E` with
-`SHARPRAIL_TEST_GIT_SOURCE=/Users/commandertvis/IdeaProjects/thinkrail`. The regression fails with the
-original merger on the added-table case, then passes with the correction. Coverage checks parsed tables
-and native preview grids with insertion/deletion cell marks. The full gate passes 117 cases across six
-lanes against the same Git source. No real window, Android device or packaged app was driven for this fix.
-Temporary logs, captures and fixture directories were removed after recording these results.
+The Claude pane's surface selector keeps horizontal scrolling without displaying
+a scrollbar. The narrow-pane check verifies the hidden bar and scrolling to the
+Account button. Release build, --claude-code, touched-file format verification
+and git diff --check pass. The full gate and packaged app were not checked.
+
+## HTML images in Markdown tables (2026-10-10)
+
+Inline HTML images now release the fixed paragraph line height, matching Markdown
+images and reserving their full height inside table cells. The regression checks
+table paragraph height and image aspect ratio. Release build passes with zero
+warnings/errors; --markdown, touched-file format verification and git diff --check
+pass. The full gate passes all 118 cases across six lanes. Task fixtures were
+removed. The packaged app and physical devices were not checked.
+
+## Codex Blueprint authoring — 2026-10-10
+
+Blueprint's start dialog offers registered Claude Code and Codex launchers, with Claude
+as the default when both are present and Codex selected when it is the sole launcher.
+The host accepts and persists Codex authors. Fresh recovery and exact recorded-session
+resumption use the recorded agent; reader selections and confirmed edits reach its terminal.
+Codex authors do not see the Claude-specific trust instructions.
+
+Release builds pass with zero warnings/errors, touched-file formatting and `--blueprint`
+pass. The isolated six-lane full gate hit the previously recorded Spec Dialect failed-update
+tree assertion; that case passes alone, and `--last-failed` passes with an empty unfinished
+record. Coverage is complete across the run and resume, rather than a clean first run.
+Optional Git fixture cases were skipped because `SHARPRAIL_TEST_GIT_SOURCE` was unset.
+After the concurrent Claude change landed on main, the Release rebuild and whole-solution
+format verification also pass on that tip.
+Spec validation reports four existing dangling Branch Graph links, unrelated to Blueprint.
+No live Codex CLI session or Android build was exercised. The user authorized committing
+and pushing to main; implementation and validation use separate signed commits. No
+publication or running-app restart was requested.
+
+## Host-only launcher (2026-10-11)
+
+`scripts/host.sh` builds and starts the standalone host on `0.0.0.0` and
+prints a session connection link and terminal QR code. Release solution build
+passes with zero warnings/errors; solution format verification, shell syntax
+and diff whitespace checks pass. An isolated launcher smoke check verifies
+the wildcard listener, advertised link, QR output and HTTP/2 authentication
+(401 without the token, authenticated routing with it). Temporary host state
+was removed after shutdown. Camera scanning and the full gate were not run.
+
+## Codex launcher tool allowances (2026-10-11)
+
+Release solution build passes with zero warnings/errors. Touched-file format
+verification, --codex logic and launcher E2E, and diff whitespace checks pass.
+Actual launcher fixture arguments verify session-scoped approval of set_title,
+spec_get, spec_graph, spec_grep, spec_validate and blueprint_check. Revival checks
+cover duplication, disabling MCP and preserving other tools' policies.
+The isolated six-lane full gate is incomplete: MarkdownDocumentE2E timed out
+opening a document, and file-actions/spec-dialect-ui remained unfinished. A serial
+--last-failed retry also timed out opening a Markdown source document. No real
+Codex CLI session, packaged app or Android build was exercised.
+
+## Consolidated feature history (2026-10-11)
+
+All pending launcher, listening-header, workspace-description and Codex changes
+are included. Android client, phone UI, pairing, touch and shared-terminal work
+share one commit; TextMate and its validation share one commit. Blueprint and
+Claude follow-ups and the Markdown image fix are folded into their owning
+feature commits. Shared pre-plugin history is unchanged. AGENTS.md now requires
+final-tip verification rather than building every intermediate commit.
+The consolidated source tree exactly matches the captured pending changes.
+Final Release build and whole-solution format verification pass; diff whitespace
+checks pass. The final full gate completes across its four-lane run and serial
+--last-failed resume: MarkdownDocumentE2E and spec-dialect-ui passed in the
+resume, which finishes with PASS prototype checks and open-world runtime and an
+empty unfinished-case record. This is complete coverage across the run and
+resume, rather than a clean first run. Android compilation, packaged-app and
+live Codex CLI checks were not run.
+
+## Specs at Project Home (2026-10-11)
+
+A cold Project Home mounted the Specs panel but exposed no active workspace to
+plugins, so its automatic graph read never ran and the skeleton stayed forever.
+The unchanged implementation reproduces this in a headless check. Spec Dialect
+now follows the context project's default workspace and its filesystem revision
+at home, without changing other plugins' active-workspace projection. Local and
+gRPC regressions cover cold loading and watched edits; the local check also opens
+a spec into the default workspace. Graph reads already run off the dispatcher;
+a separate native UI stall was not reproduced.
+
+Release build passes with zero warnings/errors; whole-solution format verification,
+spec-dialect and spec-dialect-ui checks pass. The four-lane full gate and resumes
+complete with an empty unfinished-case record. The initial run hit the previously
+recorded preview-tab and Specs failed-update assertions; a resume hit a Markdown
+search document-open timeout. Those cases pass alone without source changes, and
+the final resume passes. Optional Git-source checks were skipped because
+SHARPRAIL_TEST_GIT_SOURCE was unset. No packaged-app rebuild, native visual check,
+Android build or running-app restart. The fix is committed on fix/project-home-specs; the original checkout's
+in-progress work is untouched.
+
+Rebased onto main at 82fed8df. The Spec Dialect implementation, owning spec and
+regression checks are byte-identical to the verified patch. At the preceding
+main base c41fd56a, Release build and whole-solution format verification pass;
+SyntaxHighlightChecks and spec-dialect-ui pass. The six-lane full gate and its
+serial resume complete with an empty unfinished-case record; the first run hit
+file-actions and the previously recorded Specs failed-update assertion. Reuse
+that verification for the unchanged slice per the test-budget rule. The new
+Tailscale changes inherited from main were not rebuilt or retested here.
+
+Rebased again onto main at 0ffa4f5a. The three Spec Dialect source, spec and
+check files remain byte-identical to the verified patch. Existing verification
+is reused; newly inherited main changes were not retested in this workspace.
+
+Landing the unchanged fix into local main on top of a8519b5a. Existing
+verification is reused; inherited Android changes were not retested here.

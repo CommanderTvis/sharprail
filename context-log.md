@@ -1,4 +1,10 @@
-# Active prototype goal — 2026-09-28
+# Continuation log
+
+Start with the final section, “Session handoff — 2026-10-02, user requested a fresh session”.
+Earlier dated entries are historical; current AGENTS.md and the latest handoff take precedence,
+including terminal/editor scope and verification evidence.
+
+## Historical prototype goal — 2026-09-28
 
 Goal remains active. Functional prototype exists, but full screenshot and tiny
 pane-behavior parity is not yet proven. Do not mark complete from current tests.
@@ -2835,37 +2841,6 @@ pushes), and the fork's `external-plugin.spec.ts` end to end through the real ho
 `RpcException(Cancelled)`, which the UI logged as a dropped channel; it now throws `OperationCanceledException` as
 the local path does. `-- --plugins` runs the plugin checks alone. Open items are in `COMPLETION.md` (Plugin API).
 
-## HTML images in Markdown tables (2026-10-10)
-
-Inline HTML images now release the fixed paragraph line height, matching Markdown
-images and reserving their full height inside table cells. The regression checks
-table paragraph height and image aspect ratio. Release build passes with zero
-warnings/errors; --markdown, touched-file format verification and git diff --check
-pass. The full gate passes all 118 cases across six lanes. Task fixtures were
-removed. The packaged app and physical devices were not checked.
-
-## Codex Blueprint authoring (2026-10-10)
-
-The Blueprint dialog now offers Claude Code and Codex through their registered launchers.
-The chosen agent persists and controls fresh/recorded-session recovery on local and remote
-hosts. Codex uses the existing Blueprint prompts and reader-change delivery; the Claude-only
-trust hint is hidden for Codex. Blueprint checks cover agent choice, real Codex plugin gating,
-prompts, persistence, edits and local/gRPC recovery. The owning spec records the behavior.
-Release build, touched-file format verification and --blueprint pass. The isolated full gate
-completes across its first run and --last-failed resume after the known Spec Dialect tree
-assertion passed alone. After the concurrent Claude changes landed on main, the Release
-rebuild and whole-solution formatting pass there too. VALIDATION.md records optional skips.
-The user authorized commit and push to main. Implementation and status records use separate
-signed commits without rewriting published history. No publication or app restart. Task
-scratch and the verification workspace were removed.
-# Continuation log
-
-Start with the final section, “Session handoff — 2026-10-02, user requested a fresh session”.
-Earlier dated entries are historical; current AGENTS.md and the latest handoff take precedence,
-including terminal/editor scope and verification evidence.
-
-## Historical prototype goal — 2026-09-28
-
 ### Fork builtin plugin continuation — Codex, 2026-10-01
 
 User explicitly requests all nine fork plugins ported in full. Recovered the interrupted Claude
@@ -4777,3 +4752,123 @@ and whole-solution format verification pass. The final full gate passes cleanly:
 checkout's SDK has no Android workload installed. The two feature/status commits
 are SSH-signed; main is fast-forwarded to them, and the task's managed workspace
 and temporary check fixtures are removed. No push or publication was requested.
+
+## HTML images in Markdown tables (2026-10-10)
+
+Inline HTML images now release the fixed paragraph line height, matching Markdown
+images and reserving their full height inside table cells. The regression checks
+table paragraph height and image aspect ratio. Release build passes with zero
+warnings/errors; --markdown, touched-file format verification and git diff --check
+pass. The full gate passes all 118 cases across six lanes. Task fixtures were
+removed. The packaged app and physical devices were not checked.
+
+## Codex Blueprint authoring (2026-10-10)
+
+The Blueprint dialog now offers Claude Code and Codex through their registered launchers.
+The chosen agent persists and controls fresh/recorded-session recovery on local and remote
+hosts. Codex uses the existing Blueprint prompts and reader-change delivery; the Claude-only
+trust hint is hidden for Codex. Blueprint checks cover agent choice, real Codex plugin gating,
+prompts, persistence, edits and local/gRPC recovery. The owning spec records the behavior.
+Release build, touched-file format verification and --blueprint pass. The isolated full gate
+completes across its first run and --last-failed resume after the known Spec Dialect tree
+assertion passed alone. After the concurrent Claude changes landed on main, the Release
+rebuild and whole-solution formatting pass there too. VALIDATION.md records optional skips.
+The user authorized commit and push to main. Implementation and status records use separate
+signed commits without rewriting published history. No publication or app restart. Task
+scratch and the verification workspace were removed.
+
+## Blueprint frontmatter layout (2026-10-10)
+
+Properties now put each key, type selector and removal action above its full-width
+value. Shape labels have enough room, and mapping columns share available width.
+A headless regression covers scalar value placement and selector widths in a
+320-pixel pane. The module spec records the layout. Release build, touched-file
+format verification, --blueprint and diff whitespace checks pass. The full gate
+completes across a six-lane run and --last-failed resume: the initial run's Specs
+retry-button occlusion passed alone. Optional Git-source cases were skipped.
+No packaged-app rebuild or native visual inspection; changes remain uncommitted.
+
+## Host listening header mark (2026-10-11)
+
+Every desktop window shows a green Listening mark in the top-right header while
+the embedded host serves socket connections, with the endpoint in its tooltip.
+Listener changes update the mark on the dispatcher; closing a window detaches
+its subscription. Serving off and Android clients keep the mark hidden.
+Release build passes with zero warnings/errors; --serving, --shell, touched-file
+format verification and diff whitespace checks pass. Full gate, Android build
+and native visual inspection were not run for this change. Check fixtures were
+removed. Changes remain uncommitted; unrelated in-progress work was preserved.
+## Workspace description wrapping (2026-10-11)
+
+Projects rail workspace descriptions now wrap to at most three lines and ellipsize
+overflow. The UI spec records the behavior. Release build (single MSBuild node),
+--workspaces, touched-file formatting verification and diff whitespace checks pass.
+Full gate and native visual inspection were not run. Task fixtures were removed;
+changes remain uncommitted and unrelated edits were preserved.
+
+## Codex launcher tool allowances (2026-10-11)
+
+Launcher MCP configuration always approves set_title and the five read-only tools
+spec_get, spec_graph, spec_grep, spec_validate and blueprint_check for the session.
+Revival refreshes the policies without duplication and removes them when launcher
+MCP is disabled; other tools' policies survive. The Codex spec records the contract.
+Release solution build passes with zero warnings/errors; touched-file formatting,
+--codex logic and launcher E2E, and diff whitespace checks pass in an isolated
+workspace. The six-lane full gate is incomplete: MarkdownDocumentE2E timed out
+opening a document; file-actions and spec-dialect-ui remained unfinished. The
+serial --last-failed retry also timed out opening a Markdown source document.
+No real Codex CLI session, packaged app or Android build was exercised. Changes
+remain uncommitted; no push or publication. Verification workspace was removed.
+
+## Consolidated feature history (2026-10-11)
+
+The user authorized organizing all uncommitted changes and force-pushing main,
+then requested one Android commit, one TextMate commit and feature follow-ups
+folded into their owning commits while preserving shared history. The later
+chain is consolidated from 75 commits to 44. Android includes the standalone
+host pairing launcher, phone UX, touch and shared-terminal integration. Blueprint
+and Claude follow-ups and the Markdown image fix are folded into their owners;
+validation records and the requested AGENTS.md final-tip-only verification rule
+are included. Exact tree comparisons preserve every captured pending change.
+Final Release build, whole-solution formatting and diff whitespace checks pass.
+The final gate completes across four lanes and a serial --last-failed resume;
+MarkdownDocumentE2E and Spec Dialect UI pass on resume, and no cases remain
+unfinished. The consolidated commits are signed. No Android build, packaged-app
+or live Codex CLI check was run. No publication or app restart was requested.
+
+## Specs at Project Home (2026-10-11)
+
+A cold Project Home mounted the Specs panel but exposed no active workspace to
+plugins, so its automatic graph read never ran and the skeleton stayed forever.
+The unchanged implementation reproduces this in a headless check. Spec Dialect
+now follows the context project's default workspace and its filesystem revision
+at home, without changing other plugins' active-workspace projection. Local and
+gRPC regressions cover cold loading and watched edits; the local check also opens
+a spec into the default workspace. Graph reads already run off the dispatcher;
+a separate native UI stall was not reproduced.
+
+Release build passes with zero warnings/errors; whole-solution format verification,
+spec-dialect and spec-dialect-ui checks pass. The four-lane full gate and resumes
+complete with an empty unfinished-case record. The initial run hit the previously
+recorded preview-tab and Specs failed-update assertions; a resume hit a Markdown
+search document-open timeout. Those cases pass alone without source changes, and
+the final resume passes. Optional Git-source checks were skipped because
+SHARPRAIL_TEST_GIT_SOURCE was unset. No packaged-app rebuild, native visual check,
+Android build or running-app restart. The fix is committed on fix/project-home-specs; the original checkout's
+in-progress work is untouched.
+
+Rebased onto main at 82fed8df. The Spec Dialect implementation, owning spec and
+regression checks are byte-identical to the verified patch. At the preceding
+main base c41fd56a, Release build and whole-solution format verification pass;
+SyntaxHighlightChecks and spec-dialect-ui pass. The six-lane full gate and its
+serial resume complete with an empty unfinished-case record; the first run hit
+file-actions and the previously recorded Specs failed-update assertion. Reuse
+that verification for the unchanged slice per the test-budget rule. The new
+Tailscale changes inherited from main were not rebuilt or retested here.
+
+Rebased again onto main at 0ffa4f5a. The three Spec Dialect source, spec and
+check files remain byte-identical to the verified patch. Existing verification
+is reused; newly inherited main changes were not retested in this workspace.
+
+Landing the unchanged fix into local main on top of a8519b5a. Existing
+verification is reused; inherited Android changes were not retested here.
