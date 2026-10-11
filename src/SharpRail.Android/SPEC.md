@@ -191,6 +191,19 @@ the renderer preference says, and Settings › Terminal does not offer the choic
 start buttons open their launch menus on a tap, each led by the plain start a click gives on a desktop. Text files open in Scintilla wherever `ScintillaEditor.IsSupported` holds, which
 includes Android. Mermaid rendering stays macOS-only; Android shows the diagram source.
 
+An Android terminal shows two rows of touch keys below its screen: Esc, Tab, Ctrl, Alt, the four arrows,
+Home, End, PgUp and PgDn. Ctrl and Alt toggle one-shot modifiers for the next key or committed text.
+The keys preserve terminal focus and use Ghostty's negotiated encoding. Read-only watched terminals
+show no key bar.
+
+On Android, every terminal-tab removal asks for confirmation, including idle, exited,
+failed or unmounted terminals. Cancel keeps the tab and session; confirmation permits
+the requested close. Desktop terminals retain their foreground-process confirmation.
+
+The Projects rail has no pointer-hover colors, tooltips, workspace action reveal or
+workspace prewarming on Android. Workspace actions remain available by long press;
+selection and deliberate taps retain their feedback and behavior.
+
 ## Build
 
 `scripts/android.sh [build|run|apk]` is the entry point (see [scripts/SPEC.md](../../scripts/SPEC.md)). It

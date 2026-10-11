@@ -168,6 +168,10 @@ the host refuses them again. Disabled delete icons stay dimmed on transparent ba
 enabled icons. The list's Fetch brings every remote up to date without moving a local branch.
 
 Workspace descriptions wrap to at most three lines, with an ellipsis for overflow.
+
+On Android the Projects rail suppresses hover colors, tooltips and workspace menu
+reveal/prewarming. Workspace actions remain available through long press.
+
 Projects keeps its panel, scroller, project headers, workspace rows and tab hosts mounted. Rows are keyed
 by project and workspace path: discovery and creation insert rows, removal drops only the removed row and
 its tab host, and labels, branches, selection and folding update existing controls. Surviving controls keep

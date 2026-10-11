@@ -288,7 +288,7 @@ public sealed partial class DockSurface
                 // Nested rows react to hover lightly; only the selected one draws a rounded, bordered box. A pane's
                 // bubble does that for all its members together.
                 if (inBubble) return;
-                tabFrame.Background = IsActive() || chrome.IsPointerOver ? Ui.Hover : Brushes.Transparent;
+                tabFrame.Background = IsActive() || NestedHoverEnabled && chrome.IsPointerOver ? Ui.Hover : Brushes.Transparent;
                 tabFrame.BorderBrush = IsActive() ? Ui.BorderBrush : Brushes.Transparent;
             }
             chrome.PointerEntered += (_, _) => UpdateBackground();
@@ -406,7 +406,7 @@ public sealed partial class DockSurface
                 void Paint()
                 {
                     var active = Session.State.Groups.Any(item => item.Id == group.Id) && memberIds.Contains(Session.Selected(group.Id)?.Id);
-                    frame.Background = active || frame.IsPointerOver ? Ui.Hover : Brushes.Transparent;
+                    frame.Background = active || NestedHoverEnabled && frame.IsPointerOver ? Ui.Hover : Brushes.Transparent;
                     frame.BorderBrush = active ? Ui.BorderBrush : Brushes.Transparent;
                     frame.Tag = active ? "active" : null;
                 }

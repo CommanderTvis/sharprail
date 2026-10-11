@@ -9,6 +9,7 @@ public sealed partial class WorkbenchWindow
     // Live terminals whose removal was confirmed for the transition being retried.
     private readonly HashSet<string> approvedTerminalCloses = [];
     private bool askingToCloseTerminal;
+    internal bool ConfirmEveryTerminalClose { get; set; } = OperatingSystem.IsAndroid();
     // Workspaces this window has told the host it shows; their terminal tabs follow the host's catalog.
     private readonly HashSet<string> sharedWorkspaces = [];
     private readonly HashSet<string> sharingWorkspaces = [];
@@ -184,9 +185,12 @@ public sealed partial class WorkbenchWindow
         documentContent.GetValueOrDefault(workspace + ":" + tabId) is TerminalView { IsExited: false, IsFailed: false } view ? view : null;
 
     private bool TerminalMayClose(string workspace, string tabId) =>
-        LiveTerminal(workspace, tabId) is null || approvedTerminalCloses.Contains(workspace + ":" + tabId);
+        approvedTerminalCloses.Contains(workspace + ":" + tabId) ||
+        !(ConfirmEveryTerminalClose && Layout.State.Workspaces.GetValueOrDefault(workspace)?.Documents.Values
+            .SelectMany(tabs => tabs).Any(tab => tab.Id == tabId && tab.Kind == "terminal") == true ||
+          LiveTerminal(workspace, tabId) is not null);
 
-    // Returns whether every blocked terminal may now close; asks only when one runs a foreground process.
+    // Returns whether every blocked terminal may now close.
     private async Task<bool> ResolveTerminalsAsync(IReadOnlyList<(string Workspace, string TabId)> blocked)
     {
         var live = blocked.Where(item => !TerminalMayClose(item.Workspace, item.TabId)).ToArray();
@@ -196,10 +200,13 @@ public sealed partial class WorkbenchWindow
         try
         {
             var busy = 0;
-            foreach (var (workspace, tabId) in live)
-                if (LiveTerminal(workspace, tabId) is { } view && await view.IsBusyAsync()) busy++;
-            if (busy > 0 && !await Dialogs.Confirm(this, busy == 1 ? "Close this terminal?" : $"Close {busy} terminals?",
-                    "A process is still running. Closing the tab terminates it.", "Close terminal", "TerminalCloseBusyConfirm"))
+            if (!ConfirmEveryTerminalClose)
+                foreach (var (workspace, tabId) in live)
+                    if (LiveTerminal(workspace, tabId) is { } view && await view.IsBusyAsync()) busy++;
+            var count = ConfirmEveryTerminalClose ? live.Length : busy;
+            if (count > 0 && !await Dialogs.Confirm(this, count == 1 ? "Close this terminal?" : $"Close {count} terminals?",
+                    ConfirmEveryTerminalClose ? "Closing ends the terminal session for all clients." :
+                        "A process is still running. Closing the tab terminates it.", "Close terminal", "TerminalCloseBusyConfirm"))
                 return false;
             foreach (var (workspace, tabId) in live) approvedTerminalCloses.Add(workspace + ":" + tabId);
             return true;

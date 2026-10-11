@@ -20,6 +20,14 @@ public sealed partial class WorkbenchWindow
     private readonly Dictionary<string, ProjectRailRow> projectRailRows = [];
     private string railSignature = "";
     private StackPanel? projectsTree;
+    private Grid? projectsPanel;
+    private bool ProjectsHoverEnabled => projectsPanel?.Classes.Contains("touch-projects") != true;
+
+    internal static void ConfigureProjectsTouch(Grid panel, bool touch)
+    {
+        panel.Classes.Set("touch-projects", touch);
+        ToolTip.SetServiceEnabled(panel, !touch);
+    }
     private Action? placeProjectTrailing;
 
     private void UpdateRailSelection()
@@ -102,6 +110,8 @@ public sealed partial class WorkbenchWindow
         railStats.Clear();
         railSelection.Clear(); projectRailRows.Clear(); workspaceTabHosts.Clear(); workspaceTabPreviewSignatures.Clear();
         var panel = new Grid { Name = "ProjectsPanel", Margin = new Thickness(12, 12, 0, 12), RowDefinitions = new RowDefinitions("28,8,*") };
+        projectsPanel = panel;
+        ConfigureProjectsTouch(panel, OperatingSystem.IsAndroid());
         var toolbar = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), Margin = new Thickness(8, 0, 16, 0) };
         var title = Ui.Text("PROJECTS", size: 12); title.FontWeight = Avalonia.Media.FontWeight.Medium;
         Ui.Place(toolbar, title);
@@ -331,10 +341,10 @@ public sealed partial class WorkbenchWindow
         var menu = WorkspaceActions(worktree, kebab);
         button.ContextMenu = menu;
         kebab.Click += (_, _) => { if (button.IsEnabled) menu.Open(button); };
-        void Reveal() => kebab.Opacity = button.IsEnabled && (item.IsPointerOver || item.IsKeyboardFocusWithin || menu.IsOpen) ? 1 : 0;
-        item.PointerEntered += (_, _) => { Reveal(); Prewarm(worktree.Path); };
+        void Reveal() => kebab.Opacity = ProjectsHoverEnabled && button.IsEnabled && (item.IsPointerOver || item.IsKeyboardFocusWithin || menu.IsOpen) ? 1 : 0;
+        item.PointerEntered += (_, _) => { Reveal(); if (ProjectsHoverEnabled) Prewarm(worktree.Path); };
         item.PointerExited += (_, _) => Reveal();
-        item.GotFocus += (_, _) => { Reveal(); Prewarm(worktree.Path); };
+        item.GotFocus += (_, _) => { Reveal(); if (ProjectsHoverEnabled) Prewarm(worktree.Path); };
         item.LostFocus += (_, _) => Reveal();
         menu.Opened += (_, _) => Reveal();
         menu.Closed += (_, _) => Reveal();

@@ -159,6 +159,7 @@ public sealed partial class TerminalView : UserControl, IDisposable
             detachedNotice.IsVisible = false;
             exitNotice.Text = $"[process exited with code {code}]";
             exitNotice.IsVisible = true;
+            if (backend is SkiaTerminal { KeyBar: { } keys }) keys.IsVisible = false;
         }
         catch (Exception error)
         {

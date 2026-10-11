@@ -338,6 +338,23 @@ internal static class GhosttySkiaChecks
             Press(window, Key.Up, PhysicalKey.None, null);
             Require(Sent() == "\u007f\r\e[A", "soft keys without scan codes were not encoded.");
 
+            var bar = new TerminalKeyBar(view);
+            var up = bar.FindControl<Button>("UpKey")!;
+            var ctrl = bar.FindControl<Avalonia.Controls.Primitives.ToggleButton>("CtrlKey")!;
+            Require(bar.GetLogicalDescendants().OfType<Button>().Count() == 12 && !up.Focusable && !ctrl.Focusable,
+                "the touch key bar did not offer twelve keys that preserve terminal focus.");
+            up.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            ctrl.IsChecked = true;
+            ctrl.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            window.KeyTextInput("c");
+            Require(ctrl.IsChecked == false && view.IsFocused, "a consumed modifier stayed selected or took terminal focus.");
+            window.KeyTextInput("x");
+            view.PendingModifiers = KeyModifiers.Alt;
+            window.KeyTextInput("b");
+            Require(Sent() == "\e[A\u0003x\eb" && view.PendingModifiers == KeyModifiers.None,
+                "on-screen keys or one-shot soft-keyboard modifiers were not encoded.");
+
+
             var cell = view.Bounds.Width / view.Size.Columns;
             Touch(new Point(view.Padding.Left + cell * 7.5, 12), held: true);
             Require(view.SelectedText == "beta", $"a long press selected '{view.SelectedText}'.");

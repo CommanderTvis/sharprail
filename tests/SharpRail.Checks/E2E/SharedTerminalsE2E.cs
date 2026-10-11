@@ -20,6 +20,7 @@ internal static class SharedTerminalsE2E
     {
         Shared(root);
         InProjects(root);
+        PhoneToDesktop(root);
         Renderers(root);
     }
 
@@ -63,6 +64,32 @@ internal static class SharedTerminalsE2E
             Console.WriteLine("PASS shared terminals: with tabs in Projects every terminal of the workspace sits in the centre and its strip there, whoever holds it");
         }
         finally { b?.Dispose(); a.Dispose(); }
+    }
+
+    private static void PhoneToDesktop(string root)
+    {
+        var project = IsolatedGit.Repository(Path.Combine(root, "phone-to-desktop"));
+        using var host = new GrpcHost(project);
+        using var desktop = Client(host, project, "desktop", project, host.Client());
+        Until(() => desktop.Window.WorkspaceMounted);
+        using var phone = new E2eWorkspace(host.Address, Token, project, project + "-phone-profile", project,
+            terminals: host.Client(), tabsInProjects: true, compact: true);
+        Until(() => phone.Window.WorkspaceMounted);
+        phone.Click(phone.Find<Button>("PageProjects"));
+        var workspace = WorkspaceTabsE2E.CreateWorkspace(phone, "workspace-1");
+        var tab = TerminalTabs(phone).Single();
+        var held = Ready(phone, tab);
+        held.Run("echo PHONE_$((40+2))");
+        Until(() => Listed(desktop, workspace).Any(button => Equals(button.Tag, tab.Id)));
+        Require(desktop.Window.WorkspaceRoot == project, "Listing a phone terminal must not switch the desktop workspace.");
+        desktop.Click(Listed(desktop, workspace).Single(button => Equals(button.Tag, tab.Id)));
+        Until(() => desktop.Window.WorkspaceMounted && desktop.Window.WorkspaceRoot == workspace && View(desktop, tab).IsWatching);
+        Expect(Watched(View(desktop, tab)), "PHONE_42");
+        Require(!View(phone, tab).IsWatching && host.Host.Started.Count(request => request.SessionId == TerminalTab.SessionFor(workspace, tab.Id)) == 1,
+            "Opening a phone terminal on desktop must watch the existing shell without taking ownership.");
+        held.Run("echo LIVE_$((40+3))");
+        Expect(Watched(View(desktop, tab)), "LIVE_43");
+        Console.WriteLine("PASS phone-to-desktop terminals: an unopened workspace lists its phone-owned terminal and opens its live read-only view without takeover");
     }
 
     private static Button[] Listed(E2eWorkspace app, string workspace) => [.. app.Window.GetLogicalDescendants().OfType<ContentControl>()

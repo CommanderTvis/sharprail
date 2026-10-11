@@ -10,8 +10,7 @@ namespace SharpRail.UI;
 /// <summary>
 /// Where centre tabs render, from this app's layout preferences, and their home under directories or workspace rows in Projects:
 /// the active workspace shows its live strips there, and every other workspace a read-only list of its retained tabs.
-/// A workbench that keeps its tabs in Projects also lists there the terminals a workspace has outside the centre or
-/// that this window has not placed yet, since no other strip of it may be on screen.
+/// Projects also lists shared terminals this window has not placed or whose strips live elsewhere.
 /// </summary>
 public sealed partial class WorkbenchWindow
 {
@@ -64,12 +63,7 @@ public sealed partial class WorkbenchWindow
         var inProjects = CenterTabsModeNow().Home == "projects";
         foreach (var (workspace, host) in workspaceTabHosts)
         {
-            if (!inProjects)
-            {
-                host.Content = null; workspaceTabPreviewSignatures.Remove(workspace);
-                continue;
-            }
-            if (!atHome && workspace == workspaceRoot)
+            if (inProjects && !atHome && workspace == workspaceRoot)
             {
                 workspaceTabPreviewSignatures.Remove(workspace);
                 var strips = host.Content as StackPanel;
@@ -87,17 +81,17 @@ public sealed partial class WorkbenchWindow
             else
             {
                 var view = Layout.State.Workspaces.GetValueOrDefault(workspace);
-                var signature = System.Text.Json.JsonSerializer.Serialize(Layout.State.Center.Leaves().Select(group => new
+                var signature = inProjects + ":" + System.Text.Json.JsonSerializer.Serialize(Layout.State.Center.Leaves().Select(group => new
                 {
                     Group = group,
                     Tabs = view?.Documents.GetValueOrDefault(group),
                     Decorations = view?.Documents.GetValueOrDefault(group)?.Select(tab => TabDecorationSignature(tab, workspace)),
                     Selected = view?.Selected.GetValueOrDefault(group),
                     Panes = view?.Panes.GetValueOrDefault(group)
-                })) + System.Text.Json.JsonSerializer.Serialize(TerminalsElsewhere(workspace).Select(tab => new { Tab = tab, Decoration = TabDecorationSignature(tab, workspace) }));
+                })) + System.Text.Json.JsonSerializer.Serialize(TerminalsOutsidePreview(workspace, inProjects).Select(tab => new { Tab = tab, Decoration = TabDecorationSignature(tab, workspace) }));
                 if (workspaceTabPreviewSignatures.GetValueOrDefault(workspace) == signature) continue;
                 workspaceTabPreviewSignatures[workspace] = signature;
-                host.Content = WorkspaceTabsPreview(workspace);
+                host.Content = WorkspaceTabsPreview(workspace, inProjects);
             }
         }
     }
@@ -105,11 +99,11 @@ public sealed partial class WorkbenchWindow
     // Another workspace's tabs, read-only, from its retained documents, drawn like the live strip: one section per group,
     // a pane's members together, the selected tab boxed, and the icons and badges plugins give tabs (an agent's chat
     // mark among them). Choosing one selects it there and switches to it.
-    private Control? WorkspaceTabsPreview(string workspace)
+    private Control? WorkspaceTabsPreview(string workspace, bool centerPreview)
     {
         var view = Layout.State.Workspaces.GetValueOrDefault(workspace);
         var groups = new StackPanel { Name = "WorkspaceTabsPreview", Spacing = 8 };
-        foreach (var group in view is null ? [] : Layout.State.Center.Leaves())
+        foreach (var group in view is null || !centerPreview ? [] : Layout.State.Center.Leaves())
         {
             var tabs = view!.Documents.GetValueOrDefault(group) ?? [];
             if (tabs.Count == 0) continue;
@@ -138,7 +132,7 @@ public sealed partial class WorkbenchWindow
             }
             groups.Children.Add(section);
         }
-        if (TerminalsElsewhere(workspace) is { Length: > 0 } elsewhere)
+        if (TerminalsOutsidePreview(workspace, centerPreview) is { Length: > 0 } elsewhere)
         {
             var section = new StackPanel { Name = "WorkspaceTabsPreviewTerminals", Spacing = 2 };
             foreach (var tab in elsewhere) section.Children.Add(PreviewTab(workspace, null, tab, selected: false, boxed: true));
@@ -149,15 +143,14 @@ public sealed partial class WorkbenchWindow
 
     // The terminals of a workspace that its centre tabs do not show: those its view keeps in another region, and
     // those in the host's catalog this window has not placed, as for a workspace it never opened.
-    private DockTab[] TerminalsElsewhere(string workspace)
+    private DockTab[] TerminalsOutsidePreview(string workspace, bool centerPreview)
     {
-        if (!workbench.TabsInProjects) return [];
         var view = Layout.State.Workspaces.GetValueOrDefault(workspace);
         var center = Layout.State.Center.Leaves().ToHashSet();
         var placed = view?.Documents.Values.SelectMany(tabs => tabs).Select(tab => tab.Id).ToHashSet() ?? [];
         return
         [
-            .. view?.Documents.Where(entry => !center.Contains(entry.Key)).SelectMany(entry => entry.Value).Where(tab => tab.Kind == "terminal") ?? [],
+            .. view?.Documents.Where(entry => !centerPreview || !center.Contains(entry.Key)).SelectMany(entry => entry.Value).Where(tab => tab.Kind == "terminal") ?? [],
             .. (workbench.TerminalCatalog?.Workspaces.GetValueOrDefault(workspace) ?? []).Where(tab => !placed.Contains(tab.Key)).Select(tab => new DockTab(tab.Key, tab.Title, "terminal"))
         ];
     }

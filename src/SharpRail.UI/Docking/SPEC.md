@@ -215,6 +215,15 @@ so a view saved before the catalog existed brings its tabs once instead of losin
 initial terminal passively and leaves other peer-created terminals out of a surface's layout; here every catalogued
 terminal is placed, because a second device is expected to show the first one's terminals.
 
+Android's nested tab strips in Projects suppress pointer-hover fill changes, including
+pane bubbles. Active selection and focus markers remain visible, and touch close
+buttons remain available; terminal closing asks for confirmation through the window.
+
+Every client lists shared terminal tabs under their workspace in Projects, including
+workspaces the window has not opened. Choosing a listed terminal opens its workspace
+and reveals its group without taking the shell from its holder. Desktop clients keep
+their normal tab-strip placement; this list also exposes terminals in hidden regions.
+
 A window whose workbench keeps its tabs in Projects (`Workbench.TabsInProjects`, the Android client) has the
 centre's strips as its only tab list, so there reconciliation keeps terminals in the centre: a tab the view lacks
 is appended to the last-focused centre group, and the terminals of every hidden region, the initial one in a

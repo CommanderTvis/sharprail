@@ -29,6 +29,7 @@ internal static class TerminalsE2E
         ShellExit(root);
         BusyClose(root);
         IdleClose(root);
+        TouchClose(root);
         TerminalSessionsE2E.Run(root);
     }
 
@@ -300,4 +301,28 @@ internal static class TerminalsE2E
         Require(Dialog(app) is null, "Closing an idle terminal must not ask.");
         Console.WriteLine("PASS upstream terminals.spec.ts: closing an idle tab does not ask");
     }
+
+    private static void TouchClose(string root)
+    {
+        using var app = Open(root, "terminals-touch-close");
+        app.Window.ConfirmEveryTerminalClose = true;
+        WorkspaceTabsE2E.CreateWorkspace(app, "workspace-1");
+        var tab = TerminalTabs(app).Single();
+        var terminal = Ready(app, tab);
+        CloseTab(app, tab);
+        Until(() => Dialog(app) is not null);
+        Require(TerminalTabs(app).Length == 1, "An idle Android terminal must stay open pending confirmation.");
+        app.Click(Dialog(app)!.GetLogicalDescendants().OfType<Button>().Single(button => Equals(button.Content, "Cancel") || button.Content is TextBlock { Text: "Cancel" }));
+        Until(() => Dialog(app) is null);
+        Require(TerminalTabs(app).Length == 1, "Cancel must preserve an idle Android terminal.");
+        terminal.Run("exit");
+        Until(() => View(app, tab).IsExited);
+        CloseTab(app, tab);
+        Until(() => Dialog(app) is not null);
+        Require(TerminalTabs(app).Length == 1, "An exited Android terminal must also ask before closing.");
+        app.Click(Dialog(app)!.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "TerminalCloseBusyConfirm"));
+        Until(() => TerminalTabs(app).Length == 0);
+        Console.WriteLine("PASS Android terminal closing: idle and exited tabs ask, Cancel preserves the tab and confirmation closes it");
+    }
+
 }

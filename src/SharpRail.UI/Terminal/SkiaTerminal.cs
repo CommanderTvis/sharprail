@@ -50,7 +50,17 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend
         terminal.Input += (_, data) => { if (!Watching) input.Writer.TryWrite(data); };
         terminal.GridResized += (_, size) => { if (session is { Watching: false } attached) _ = Resize(attached, size); };
         terminal.LayoutUpdated += Arranged;
-        Child = terminal;
+        if (OperatingSystem.IsAndroid())
+        {
+            var panel = new DockPanel();
+            var keys = new TerminalKeyBar(terminal);
+            KeyBar = keys;
+            DockPanel.SetDock(keys, Dock.Bottom);
+            panel.Children.Add(keys);
+            panel.Children.Add(terminal);
+            Child = panel;
+        }
+        else Child = terminal;
         Ui.ThemeChanged += UpdateColors;
         Started = StartAsync();
     }
@@ -62,6 +72,7 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend
     public bool Yielded { get; private set; }
     public bool Watching { get; private set; }
     internal GhosttySkiaView Terminal => terminal;
+    internal Control? KeyBar { get; }
 
     // The shell starts at the grid's real size, so its first prompt and the replay fit the view.
     private void Arranged(object? sender, EventArgs e)

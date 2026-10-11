@@ -37,6 +37,21 @@ protocols keep Ghostty's own encoding; default mode also restores Ghostty's own 
 embedding shim reads protocol state under the renderer lock and queues raw input, avoiding clipboard
 paste transformation. Native checks capture actual AppKit key bytes for all four cases.
 
+Projects lists host-catalogued terminals on every client, including workspaces the
+window has never opened and terminals whose tab strips are hidden or elsewhere.
+Choosing one reveals its tab and watches another client's live shell without taking
+it over. Centre file-tab previews still follow the client's tabs-in-Projects setting.
+
+## Android touch keys
+
+Android's Skia terminal includes a two-row key bar for Esc, Tab, one-shot Ctrl and Alt,
+arrows and Home/End/Page Up/Page Down. It preserves input focus and uses the terminal's
+negotiated key encoding. Watched and exited terminals do not offer the bar.
+
+On Android, every terminal-tab removal asks for confirmation, including idle, exited,
+failed or unmounted terminals. Cancel keeps the tab and session; confirmation permits
+the requested close. Desktop terminals retain their foreground-process confirmation.
+
 ## Boundary
 
 - Owns: attach/detach of one tab to one session, start-failure and retry, the read-only view of a terminal

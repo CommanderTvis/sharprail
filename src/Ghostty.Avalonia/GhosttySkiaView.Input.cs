@@ -21,11 +21,35 @@ public sealed partial class GhosttySkiaView
     private double wheel;
     private Point? touch;
     private bool tapping;
+    private KeyModifiers keyBarReleaseModifiers;
 
     private InputClient InputMethod => inputMethod ??= new InputClient(this);
 
     /// <summary>Whether the input method edits a text field of the typed text, as Android's input connection requires.</summary>
     internal bool InputField { get; set; } = OperatingSystem.IsAndroid();
+
+    /// <summary>One-shot modifiers supplied by an on-screen terminal keyboard.</summary>
+    public KeyModifiers PendingModifiers { get; set; }
+
+    /// <summary>Raised when an on-screen modifier is consumed.</summary>
+    public event EventHandler? PendingModifiersConsumed;
+
+    private KeyModifiers TakeModifiers()
+    {
+        var modifiers = PendingModifiers;
+        PendingModifiers = KeyModifiers.None;
+        if (modifiers != KeyModifiers.None) PendingModifiersConsumed?.Invoke(this, EventArgs.Empty);
+        return modifiers;
+    }
+
+    /// <summary>Sends a key through the terminal's negotiated keyboard encoder.</summary>
+    public void SendKey(Key key, KeyModifiers modifiers = KeyModifiers.None)
+    {
+        if (disposed) return;
+        var e = new KeyEventArgs { Key = key, KeyModifiers = modifiers | TakeModifiers() };
+        Encode(e, Press);
+        Encode(e, Release);
+    }
 
     protected override void OnKeyDown(KeyEventArgs e)
     {
@@ -44,7 +68,8 @@ public sealed partial class GhosttySkiaView
         }
         // Command shortcuts belong to the application, as in Ghostty's own macOS app.
         if (OperatingSystem.IsMacOS() && mods.HasFlag(KeyModifiers.Meta)) return;
-        if (Encode(e, Press)) e.Handled = true;
+        keyBarReleaseModifiers = TakeModifiers();
+        if (Encode(e, Press, keyBarReleaseModifiers)) e.Handled = true;
     }
 
     protected override void OnKeyUp(KeyEventArgs e)
@@ -54,12 +79,13 @@ public sealed partial class GhosttySkiaView
         Redraw(false);
         if (disposed || e.Handled || OperatingSystem.IsMacOS() && e.KeyModifiers.HasFlag(KeyModifiers.Meta)) return;
         // Only the Kitty keyboard protocol reports releases; the encoder returns nothing otherwise.
-        Encode(e, Release);
+        Encode(e, Release, keyBarReleaseModifiers);
+        keyBarReleaseModifiers = KeyModifiers.None;
     }
 
-    private bool Encode(KeyEventArgs e, int action)
+    private bool Encode(KeyEventArgs e, int action, KeyModifiers extraModifiers = KeyModifiers.None)
     {
-        var mods = e.KeyModifiers;
+        var mods = e.KeyModifiers | extraModifiers;
         var physical = Physical(e);
         // Match Ghostty's macOS word-navigation bindings before protocol encoding.
         if (OperatingSystem.IsMacOS() && mods == KeyModifiers.Alt && physical is PhysicalKey.ArrowLeft or PhysicalKey.ArrowRight)
@@ -134,6 +160,19 @@ public sealed partial class GhosttySkiaView
         preedit = "";
         // A soft keyboard commits Enter as a line feed.
         var text = e.Text.Replace("\r\n", "\r").Replace('\n', '\r');
+        var modifiers = TakeModifiers();
+        if (modifiers != KeyModifiers.None)
+        {
+            foreach (var character in text.EnumerateRunes())
+            {
+                var symbol = character.ToString();
+                var key = new KeyEventArgs { Key = character.Value switch { 13 => Key.Enter, 9 => Key.Tab, _ => Key.None }, KeySymbol = symbol, KeyModifiers = modifiers };
+                Encode(key, Press);
+                Encode(key, Release);
+            }
+            e.Handled = true;
+            return;
+        }
         InputMethod.Typed(text);
         Typed(Encoding.UTF8.GetBytes(text), text: true);
         e.Handled = true;
