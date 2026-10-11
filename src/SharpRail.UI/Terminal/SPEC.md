@@ -47,6 +47,8 @@ it over. Centre file-tab previews still follow the client's tabs-in-Projects set
 Android's Skia terminal includes a two-row key bar for Esc, Tab, one-shot Ctrl and Alt,
 arrows and Home/End/Page Up/Page Down. It preserves input focus and uses the terminal's
 negotiated key encoding. Watched and exited terminals do not offer the bar.
+Switching to watching detaches the surface from the key-bar panel before moving it
+into the read-only scroll viewer.
 
 On Android, every terminal-tab removal asks for confirmation, including idle, exited,
 failed or unmounted terminals. Cancel keeps the tab and session; confirmation permits

@@ -113,6 +113,7 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend
         terminal.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left;
         terminal.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top;
         Focusable = false;
+        if (Child is DockPanel panel) panel.Children.Remove(terminal);
         Child = null;
         Child = new ScrollViewer
         {

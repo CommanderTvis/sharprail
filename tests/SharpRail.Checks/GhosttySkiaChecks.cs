@@ -478,7 +478,20 @@ internal static class GhosttySkiaChecks
         var held = new StringBuilder();
         _ = Task.Run(async () => { await foreach (var chunk in holder.ReadAsync()) lock (held) held.Append(Encoding.UTF8.GetString(chunk.Span)); });
         void Run(string command) => Task.Run(async () => await holder.WriteAsync(Encoding.UTF8.GetBytes(command + "\r"))).GetAwaiter().GetResult();
-        var terminal = new TerminalView(TerminalBackends.Ghostty(terminals, () => TerminalRenderers.Skia),
+        var factory = TerminalBackends.Ghostty(terminals, () => TerminalRenderers.Skia);
+        var terminal = new TerminalView(launch =>
+        {
+            var backend = factory(launch);
+            // Reproduce Android's key-bar container before the watch attachment completes.
+            var border = (Border)backend.View;
+            var surface = border.Child!;
+            border.Child = null;
+            var panel = new Avalonia.Controls.DockPanel();
+            panel.Children.Add(new TerminalKeyBar((GhosttySkiaView)surface));
+            panel.Children.Add(surface);
+            border.Child = panel;
+            return backend;
+        },
             new TerminalLaunch(root, id, Path.Combine(root, ".clipboard"), "skia-watcher") { Yield = true });
         var window = new Window { Width = 420, Height = 300, Content = terminal };
         window.Show(); Pump();
