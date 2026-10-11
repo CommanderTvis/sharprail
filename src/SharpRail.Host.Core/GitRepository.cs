@@ -88,7 +88,10 @@ internal static class GitRepository
     /// The runner plugins reach (H17): the same environment as the host's own reads, a bounded run, and network
     /// transports refused unless asked for. A non-zero exit is a result, not an exception.
     /// </summary>
-    internal static async Task<GitRunResult> RunBoundedAsync(string cwd, IReadOnlyList<string> args, GitRunOptions? options, CancellationToken ct)
+    internal static Task<GitRunResult> RunBoundedAsync(string cwd, IReadOnlyList<string> args, GitRunOptions? options, CancellationToken ct) =>
+        RunBoundedAsync(cwd, args, options, ct, null);
+
+    internal static async Task<GitRunResult> RunBoundedAsync(string cwd, IReadOnlyList<string> args, GitRunOptions? options, CancellationToken ct, string? input)
     {
         var start = new ProcessStartInfo("git")
         {
@@ -114,14 +117,24 @@ internal static class GitRepository
         }
         using (process)
         {
-            process.StandardInput.Close();
+            var output = process.StandardOutput.ReadToEndAsync(CancellationToken.None);
+            var error = process.StandardError.ReadToEndAsync(CancellationToken.None);
             using var registration = bounded.Token.Register(() =>
             {
                 try { if (!process.HasExited) process.Kill(entireProcessTree: true); }
                 catch (InvalidOperationException) { }
             });
-            var output = process.StandardOutput.ReadToEndAsync(CancellationToken.None);
-            var error = process.StandardError.ReadToEndAsync(CancellationToken.None);
+            try
+            {
+                if (input is not null) await process.StandardInput.WriteAsync(input.AsMemory(), bounded.Token);
+            }
+            catch (IOException) { }
+            catch (OperationCanceledException) { }
+            finally
+            {
+                try { process.StandardInput.Close(); }
+                catch (IOException) { }
+            }
             await process.WaitForExitAsync(CancellationToken.None);
             var (text, detail) = (await output, await error);
             ct.ThrowIfCancellationRequested();

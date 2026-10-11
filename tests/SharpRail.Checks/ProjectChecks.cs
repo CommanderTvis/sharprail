@@ -23,6 +23,39 @@ internal static class ProjectChecks
         if (!value) throw new InvalidOperationException(message);
     }
 
+    private static async Task CheckIgnoredFiles(IProjectServices local, IProjectServices remote, string fixture)
+    {
+        var folder = Path.Combine(fixture, "ignore-fixture");
+        E2E.IsolatedGit.Repository(folder, ("tracked.log", "tracked"));
+        File.WriteAllText(Path.Combine(folder, ".gitignore"), "*.log\n!keep.log\ncache/\n");
+        File.WriteAllText(Path.Combine(folder, ".git", "info", "exclude"), "excluded.txt\n");
+        foreach (var name in new[] { "ignored.log", "keep.log", "excluded.txt", "line\nbreak.log", "-leading.log" })
+            File.WriteAllText(Path.Combine(folder, name), "fixture");
+        Directory.CreateDirectory(Path.Combine(folder, "cache", "only"));
+        File.WriteAllText(Path.Combine(folder, "cache", "only", "leaf.txt"), "fixture");
+        var global = Path.Combine(fixture, "global-ignore");
+        File.WriteAllText(global, "global.txt\n");
+        E2E.IsolatedGit.Run(folder, "config", "core.excludesFile", global);
+        File.WriteAllText(Path.Combine(folder, "global.txt"), "fixture");
+        foreach (var host in new[] { local, remote })
+        {
+            await host.OpenProjectAsync(folder);
+            var listed = await host.ListFilesAsync("");
+            foreach (var name in new[] { "ignored.log", "excluded.txt", "line\nbreak.log", "-leading.log", "global.txt", "cache/only" })
+                Require(listed.Single(file => file.Name == name).GitIgnored, "Git ignore rules must mark " + name);
+            foreach (var name in new[] { "tracked.log", "keep.log", ".gitignore" })
+                Require(!listed.Single(file => file.Name == name).GitIgnored, "Tracked and negated entries must remain unmarked.");
+            Require((await host.ListFilesAsync("cache/only")).Single().GitIgnored,
+                "Children of ignored directories must be marked.");
+            await host.OpenProjectAsync(fixture);
+        }
+        File.WriteAllText(Path.Combine(folder, ".gitignore"), "");
+        await local.OpenProjectAsync(folder);
+        Require(!(await local.ListFilesAsync("")).Single(file => file.Name == "ignored.log").GitIgnored,
+            "A refreshed listing must re-evaluate edited ignore rules.");
+        await local.OpenProjectAsync(fixture);
+    }
+
     public static async Task Run(string fixture)
     {
         var core = new ProjectServices(fixture);
@@ -49,6 +82,7 @@ internal static class ProjectChecks
             using var remote = new RemoteProjectAdapter(new Uri(address), "project-test");
             Require(await remote.OpenProjectAsync(fixture) == info, "Remote project differs.");
             Require((await remote.ListFilesAsync("")).SequenceEqual(files), "Remote files differ.");
+            await CheckIgnoredFiles(local, remote, fixture);
             await CheckWatching(local, remote, fixture);
             Require(await remote.ReadFileAsync("README.md") == markdown, "Remote text differs.");
             await File.WriteAllTextAsync(Path.Combine(fixture, "controls.txt"), "before\0after\n");

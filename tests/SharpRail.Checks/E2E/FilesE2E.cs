@@ -29,6 +29,19 @@ internal static class FilesE2E
         // Dotfiles are ordinary entries of a developer's tree, listed and visible like the reference's.
         File.WriteAllText(Path.Combine(workspace, ".gitignore"), "bin/\n");
         Until(() => Node(".gitignore", false) is not null);
+        Directory.CreateDirectory(Path.Combine(workspace, "bin"));
+        File.WriteAllText(Path.Combine(workspace, "bin", "ignored.txt"), "ignored\n");
+        Until(() => Node("bin", true)?.Tag is ProjectFile { GitIgnored: true });
+        var ignored = Node("bin", true)!;
+        var ignoredRow = (DrawnTreeLabel)app.FileRow("bin");
+        Require(ignored.Italic && ignored.Muted &&
+            ReferenceEquals(((Border)ignoredRow.Child!).Background, Ui.Hint) &&
+            Equals(ToolTip.GetTip(ignoredRow), "Ignored by git"),
+            "Ignored rows must have an italic label, dimmed icon and explanatory tooltip.");
+        app.Click(app.FileRow("bin"));
+        Until(() => Node("ignored.txt", false) is not null);
+        app.Click(app.FileRow("bin/ignored.txt"));
+        Until(() => app.Tabs.Any(tab => tab.Path == "bin/ignored.txt"));
         // A rail narrower than its names scrolls sideways instead of cutting them off.
         var filesTree = app.Find<DrawnTree>("FilesTree");
         var previousWidth = filesTree.Width;

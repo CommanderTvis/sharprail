@@ -98,7 +98,7 @@ public sealed partial class RemoteProjectAdapter : IProjectServices, IDisposable
     public async ValueTask<IReadOnlyList<ProjectFile>> ListFilesAsync(string relativePath, CancellationToken cancellationToken = default)
     {
         var reply = await service.ListFilesAsync(new() { Path = relativePath }, Context(cancellationToken));
-        return reply.Files.Select(file => new ProjectFile(file.Path, file.Name, file.IsDirectory)).ToArray();
+        return reply.Files.Select(file => new ProjectFile(file.Path, file.Name, file.IsDirectory, file.GitIgnored)).ToArray();
     }
 
     public async IAsyncEnumerable<WorkspaceFileChanges> WatchFilesAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)

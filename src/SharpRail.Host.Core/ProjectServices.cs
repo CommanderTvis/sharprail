@@ -61,7 +61,7 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
         return Path.GetDirectoryName(common) is { } main && Directory.Exists(main) ? (physical, main) : null;
     }
 
-    public ValueTask<IReadOnlyList<ProjectFile>> ListFilesAsync(string relativePath, CancellationToken cancellationToken = default)
+    public async ValueTask<IReadOnlyList<ProjectFile>> ListFilesAsync(string relativePath, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         var currentRoot = root;
@@ -82,8 +82,18 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
             }
             files.Add(new(Path.GetRelativePath(currentRoot, path), name, isDirectory));
         }
-        return ValueTask.FromResult<IReadOnlyList<ProjectFile>>(files.OrderByDescending(file => file.IsDirectory)
-            .ThenBy(file => file.Name, StringComparer.OrdinalIgnoreCase).ToArray());
+        if (files.Count > 0)
+        {
+            var result = await GitRepository.RunBoundedAsync(currentRoot, ["check-ignore", "-z", "--stdin"], null,
+                cancellationToken, string.Join('\0', files.Select(file => file.Path)) + "\0");
+            if (result.Ok)
+            {
+                var ignored = result.Out.Split('\0', StringSplitOptions.RemoveEmptyEntries).ToHashSet(StringComparer.Ordinal);
+                files = files.Select(file => file with { GitIgnored = ignored.Contains(file.Path) }).ToList();
+            }
+        }
+        return files.OrderByDescending(file => file.IsDirectory)
+            .ThenBy(file => file.Name, StringComparer.OrdinalIgnoreCase).ToArray();
     }
 
     private static bool Hidden(string name) => name is ".git" or ".sharprail" or ".tools";

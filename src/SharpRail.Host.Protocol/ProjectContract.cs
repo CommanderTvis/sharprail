@@ -49,6 +49,7 @@ public sealed class ProjectFileReply
     [ProtoMember(1)] public string Path { get; set; } = "";
     [ProtoMember(2)] public string Name { get; set; } = "";
     [ProtoMember(3)] public bool IsDirectory { get; set; }
+    [ProtoMember(4)] public bool GitIgnored { get; set; }
 }
 
 [ProtoContract]

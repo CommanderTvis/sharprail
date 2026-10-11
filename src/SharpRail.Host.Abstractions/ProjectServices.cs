@@ -12,7 +12,7 @@ public static class FileLimits
 }
 
 public record FileSaveRequest(string WorkspaceRoot, string Path, string OriginalText, string Text);
-public record ProjectFile(string Path, string Name, bool IsDirectory);
+public record ProjectFile(string Path, string Name, bool IsDirectory, bool GitIgnored = false);
 public record SpecDocument(string Id, string Title, string Path, string Parent, string Type)
 {
     /// <summary>The frontmatter <c>status</c>, empty when the spec has none.</summary>

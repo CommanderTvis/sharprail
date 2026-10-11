@@ -149,6 +149,8 @@ can be set by a plugin (W18): uncommitted, one commit, the comparison target, or
 
 ## Files
 
+Git-ignored Files rows remain openable and show a muted icon and chevron, a subtle italic label, and an “Ignored by git” tooltip. Icon-plugin refreshes preserve the ignored appearance.
+
 - A lazily populated tree of the workspace. Directories read one level at a time through
   `ListFilesAsync` when expanded; a not-yet-read directory shows a `Loading…` child. Dotfiles are listed like any
   other entry; the host leaves out only `.git`, `.sharprail` and `.tools`.

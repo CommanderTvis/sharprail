@@ -32,7 +32,7 @@ public sealed partial class ProjectRpc(ProjectSessions sessions, IHostApplicatio
     public ValueTask<ProjectFilesReply> ListFilesAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>
     {
         var result = await Host(context).ListFilesAsync(request.Path, context.CancellationToken);
-        return new ProjectFilesReply { Files = result.Select(file => new ProjectFileReply { Path = file.Path, Name = file.Name, IsDirectory = file.IsDirectory }).ToList() };
+        return new ProjectFilesReply { Files = result.Select(file => new ProjectFileReply { Path = file.Path, Name = file.Name, IsDirectory = file.IsDirectory, GitIgnored = file.GitIgnored }).ToList() };
     });
 
     public ValueTask<DocumentReply> ReadFileAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>

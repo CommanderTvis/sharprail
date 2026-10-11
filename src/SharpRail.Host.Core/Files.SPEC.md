@@ -29,6 +29,8 @@ with direct local and streaming gRPC adapters. The UI consumes the same stream f
 
 ## Reads
 
+Listings mark Git-ignored entries without hiding them, using a NUL-delimited `git check-ignore` batch for each listed directory. Git decides nested patterns, negation, repository and global excludes, and tracked-file exceptions. Non-Git folders or Git failures remain readable without ignore marks; local and remote listings carry the same flag.
+
 - Every path goes through one containment rule (`ProjectServices.Contain`), shared by listings, reads,
   saves, diffs and the change write path: resolved against the workspace root and rejected when it escapes
   it, names `.git` at any component in any letter case, or crosses a symbolic link. The leaf may be missing,
