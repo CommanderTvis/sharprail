@@ -252,8 +252,10 @@ Scope categories map to the applied manifest's syntax palette.
 Grammar loading and tokenization run off the dispatcher. Each document caches line
 text and incoming/outgoing tokenizer state, so unchanged lines with unchanged incoming
 state reuse their tokens. Edits coalesce for 60 ms, superseded requests cancel, and
-results apply only to the still-attached document version. Detaching cancels work;
-reattaching highlights the current buffer. Theme changes recolour existing tokens.
+results apply only to the still-attached document version. Detaching cancels work
+and discards cached style bytes; reattaching highlights the current buffer, including
+edits made while detached, before any cached syntax styles can be recoloured.
+Theme changes recolour existing tokens.
 Highlighting is bounded to 1 Mi characters per document and 16 Ki UTF-16 units per
 line, with a 50 ms tokenizer budget per line. Larger inputs remain readable with
 plain text and existing diff line styles. TextMateSharp does not support cross-grammar

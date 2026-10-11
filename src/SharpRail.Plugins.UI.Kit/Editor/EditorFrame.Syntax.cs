@@ -148,6 +148,7 @@ public sealed partial class EditorFrame
     private void DetachSyntax()
     {
         syntaxAttached = false;
+        syntaxStyles = null;
         syntaxVersion++;
         syntaxCancellation?.Cancel();
         Editor.TextChanged -= SyntaxChanged;

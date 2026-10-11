@@ -161,6 +161,16 @@ internal static class SyntaxHighlightChecks
             frame.Editor.Text = "// 😀 newest\npublic class Latest {}";
             Until(() => NativeStyle(frame.Editor, "public") == 40 + Role("keyword"));
             Require(NativeStyle(frame.Editor, "newest") == 40 + Role("comment"), "Stale token result was applied.");
+            foreach (var text in new[] { "// 😀 detached\npublic class ReattachedLonger {}", "public class A {}", "//😀abcdefghijk" })
+            {
+                window.Content = null; Pump();
+                frame.Editor.Text = text;
+                window.Content = frame;
+                var fragment = text.StartsWith("//", StringComparison.Ordinal) ? (text.Contains("detached", StringComparison.Ordinal) ? "detached" : "abcdefghijk") : "public";
+                var role = text.StartsWith("//", StringComparison.Ordinal) ? "comment" : "keyword";
+                Until(() => NativeStyle(frame.Editor, fragment) == 40 + Role(role));
+                Require(failure is null, $"Detached buffer edit failed: {failure}");
+            }
             window.Content = null; Pump();
             frame.Editor.Text = "val x = 42";
             frame.Highlight("a.kt");
