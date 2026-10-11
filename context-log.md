@@ -4873,6 +4873,68 @@ picker with the scanned hostname. No token or port is encoded; comparison-code
 approval remains required. Desktop/Android Release builds and focused --tailscale
 checks pass. No repeated full gate, device-camera check, commit, push or deployment.
 
+## Android terminal key bar (2026-10-11)
+
+Android terminals now have two rows of touch keys: Esc, Tab, Ctrl, Alt, PgUp,
+PgDn, Home, arrows and End. Ctrl/Alt apply once to the next key or committed
+soft-keyboard text. Buttons preserve terminal focus and use Ghostty's negotiated
+encoding. Watched and exited terminals offer no key bar.
+
+Desktop Release build passes with zero warnings/errors. Android Release build
+passes with two XA4301 duplicate PDFium native-library warnings. Touched-file
+format verification, --ghostty-skia and --design pass. Regression coverage checks
+twelve non-focusable buttons, modifier consumption, arrow bytes, Ctrl+C and Alt+B.
+The six-lane full gate hit a StartupChecks document-open timeout; --startup passes
+alone without changes, and --last-failed passes with no unfinished cases. Optional
+Git-source cases were skipped because SHARPRAIL_TEST_GIT_SOURCE was unset. No
+device input or keyboard visibility was verified. Changes remain uncommitted in
+feature/android-terminal-keys; no push, installation or publication was requested.
+
+## Android closing, Projects hover and desktop terminal discovery (2026-10-11)
+
+Android asks before every terminal-tab removal, including idle and exited tabs;
+Cancel preserves the tab/session. Projects suppresses hover fills, tooltips,
+workspace action reveal and hover prewarming, including its live nested tab rows
+and pane bubbles. Deliberate taps and long-press workspace menus remain available.
+Desktop Projects lists shared terminals even in unopened workspaces or hidden tab
+regions. Choosing a phone-owned terminal opens its live read-only view without
+taking over or starting another shell.
+
+Release solution compilation passes with zero warnings/errors; Android Release
+compilation passes with the same two XA4301 duplicate PDFium packaging warnings.
+Touched-file formatting, --terminals, ProjectsE2E, --shared-terminals, codex-ui,
+and design checks pass. Regressions cover idle/exited confirmation and Cancel,
+touch scrolling and nested-row hover, and phone-to-desktop discovery/live output.
+The six-lane full gate completed across its initial run and --last-failed resume;
+the Codex badge check was updated to verify both the tab and its new Projects
+entry. No unfinished cases remain. Optional Git-source checks were skipped because
+SHARPRAIL_TEST_GIT_SOURCE was unset. No device, packaged desktop app or installation
+was exercised. All changes remain uncommitted on feature/android-terminal-keys.
+
+## Android fixes rebased onto main (2026-10-11)
+
+feature/android-terminal-keys now starts at main 1a6baf1f. Android key-bar,
+closing, Projects hover and desktop discovery code/tests are byte-identical to
+the verified pre-rebase slice. Documentation merges preserve both branches.
+Release solution build passes with zero warnings/errors; Android Release build
+passes with two existing XA4301 PDFium duplicate-library warnings. Existing
+formatting and focused results are reused. The earlier full gate completed across
+its four-lane run and serial resumes after Default-workspace timing and Specs
+retry-button occlusion failures; no unfinished cases remain. No tests were rerun
+for the unchanged feature slice on this latest rebase. No device or packaged-app
+check was performed. Changes remain uncommitted; nothing was pushed.
+
+## Android feature landing (2026-10-11)
+
+The user authorized putting the Android feature batch on main, pushing it and
+removing its workspace. The batch is based on main 13dccc28; feature code and
+tests exactly match the verified workspace slice. Latest documentation merges
+preserve the Tailscale QR records. Existing Release build, Android compilation,
+formatting, focused checks and completed full-gate results are reused under the
+unchanged-slice verification rule. Code/specs/checks form one signed feature
+commit, with these validation records in a separate tip commit. No force-push
+or published-history rewrite is needed.
+
 ## Specs at Project Home (2026-10-11)
 
 A cold Project Home mounted the Specs panel but exposed no active workspace to
