@@ -34,6 +34,7 @@ internal static class NativeTextureChecks
     private static bool skiaCheck;
     private static bool clipboardCheck;
     private static bool directCheck;
+    private static bool fileLinkCheck;
     private const string Title = "SharpRail Ghostty texture check";
 
     public static void Run(string[] args)
@@ -43,6 +44,7 @@ internal static class NativeTextureChecks
         skiaCheck = args.Contains("--native-skia");
         clipboardCheck = args.Contains("--native-osc52");
         directCheck = args.Contains("--native-direct");
+        fileLinkCheck = args.Contains("--native-file-links");
         AppBuilder.Configure<TextureApplication>().UsePlatformDetect()
             .With(new AvaloniaNativePlatformOptions { RenderingMode = [fallbackCheck ? AvaloniaNativeRenderingMode.Software : AvaloniaNativeRenderingMode.Metal] })
             .StartWithClassicDesktopLifetime(args);
@@ -61,7 +63,8 @@ internal static class NativeTextureChecks
                 try
                 {
                     if (!OperatingSystem.IsMacOS()) throw new PlatformNotSupportedException();
-                    if (directCheck) await CheckSessions(window);
+                    if (fileLinkCheck) await CheckFileLinks(window);
+                    else if (directCheck) await CheckSessions(window);
                     else if (clipboardCheck) { Osc52Checks.RunSkia(); await CheckOsc52(window); await CheckSessions(window); }
                     else if (skiaCheck) await CheckSkia(window);
                     else
@@ -86,6 +89,54 @@ internal static class NativeTextureChecks
             if (DateTime.UtcNow > deadline) throw new InvalidOperationException(message);
             await Task.Delay(20);
         }
+    }
+
+    [SupportedOSPlatform("macos")]
+    private static async Task CheckFileLinks(Window window)
+    {
+        using var terminal = new GhosttyTextureView(new GhosttyLaunch(Directory.GetCurrentDirectory(), ExternalIo: new GhosttyExternalIo()));
+        window.Content = terminal;
+        await terminal.Ready;
+        var path = "src/" + new string('a', terminal.Size.Columns) + "/界é.cs:12:3";
+        var opened = new List<TerminalLink>();
+        string? observed = null;
+        terminal.ResolveFileLinks = (text, token) =>
+        {
+            Require(!Dispatcher.UIThread.CheckAccess(), "Metal file lookup ran on the UI thread.");
+            observed = text.TrimEnd();
+            IReadOnlyList<TerminalLink> links = observed == "界 " + path ? [new(2, path.Length, "/project/界é.cs", 12, 3, false)] : [];
+            return Task.FromResult(links);
+        };
+        terminal.OpenFileLink = link => { opened.Add(link); return Task.CompletedTask; };
+        terminal.WriteOutput(System.Text.Encoding.UTF8.GetBytes("\e[2J\e[H\e[?25l界 " + path));
+        await Task.Delay(150);
+        var pointer = new Pointer(91, PointerType.Mouse, true);
+        var point = new Point(terminal.Bounds.Width / terminal.Size.Columns * 2.5, terminal.Bounds.Height / terminal.Size.Rows * 1.5);
+        void Move(KeyModifiers modifiers) => terminal.RaiseEvent(new PointerEventArgs(InputElement.PointerMovedEvent, terminal,
+            pointer, terminal, point, 1, new PointerPointProperties(), modifiers));
+        Move(KeyModifiers.Meta);
+        await Until(() => terminal.Cursor?.ToString() == "Hand", "Metal wrapped file link was not found: " + observed);
+        Require(observed == "界 " + path, "Metal changed Unicode text or inserted a newline at a soft wrap: [" + observed + "] expected [界 " + path + "]");
+        terminal.RaiseEvent(new PointerPressedEventArgs(terminal, pointer, terminal, point, 2,
+            new PointerPointProperties(RawInputModifiers.LeftMouseButton | RawInputModifiers.Meta, PointerUpdateKind.LeftButtonPressed), KeyModifiers.Meta, 1));
+        terminal.RaiseEvent(new PointerReleasedEventArgs(terminal, pointer, terminal, point, 3,
+            new PointerPointProperties(RawInputModifiers.Meta, PointerUpdateKind.LeftButtonReleased), KeyModifiers.Meta, MouseButton.Left));
+        await Until(() => opened.Count == 1, "Metal modifier click did not open the file.");
+        Require(opened[0].Line == 12 && opened[0].Column == 3, "Metal lost source coordinates.");
+        Move(KeyModifiers.None);
+        Require(terminal.Cursor?.ToString() != "Hand", "Metal retained a file link after modifier release.");
+        terminal.WriteOutput("\e[2J\e[Hmissing.cs"u8);
+        await Task.Delay(150);
+        Move(KeyModifiers.Meta);
+        await Task.Delay(150);
+        Require(terminal.Cursor?.ToString() != "Hand", "Metal kept a stale file link after output changed.");
+        terminal.WriteOutput("\e[2J\e[Hhttps://example.com/path"u8);
+        await Task.Delay(150);
+        point = new Point(point.X, terminal.Bounds.Height / terminal.Size.Rows * .5);
+        Move(KeyModifiers.Meta);
+        await Until(() => terminal.Cursor?.ToString() == "Hand", "Metal lost ordinary HTTP URL hover.");
+        window.Content = null;
+        Console.WriteLine("PASS native Metal file hover, Unicode, soft wrapping, click coordinates and stale-link clearing");
     }
 
     [SupportedOSPlatform("macos")]

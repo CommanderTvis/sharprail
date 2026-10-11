@@ -31,7 +31,7 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
   (`ProjectServices.cs`), `IHostStateService` with `HostState`, `HostSettings`, `LayoutPreset` and
   `HostStateChange` (`HostState.cs`), the workspace registry records `WorkspaceRecord`, `WorkspaceAction`,
   `WorkspaceCatalog` and `LifecycleEvent` (`WorkspaceRegistry.cs`), `ITerminalService` / `ITerminalSession` with
-  `TerminalAttachRequest` and `TerminalGrid` (`TerminalServices.cs`), `ITerminalCatalogService` with
+  `TerminalAttachRequest`, `TerminalFileLink` and `TerminalGrid` (`TerminalServices.cs`), `ITerminalCatalogService` with
   `TerminalTab` and `TerminalCatalog` (`TerminalCatalog.cs`), and `FileLimits`.
 - Allowed deps: the .NET base library and `SharpRail.Plugins.Api`, whose roster, agent-record and project
   records `HostState` and `IPluginService` share with plugins rather than mirror.
@@ -87,7 +87,8 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
 - `ITerminalService` owns sessions; `ITerminalSession` is one client's attachment. The client names the
   session and identifies itself; `Offset = -1` asks for a fresh replay, a non-negative offset resumes.
   Disposing an attachment detaches without ending the shell; `CloseAsync` is the only way a client ends
-  one.
+  one. File-link lookup resolves a hovered logical line on the session's host; `TerminalFileLink`
+  carries its UTF-16 span, existing absolute target, file kind and one-based source coordinates.
 - `IHostStateService.GetHandshakeAsync` returns a `HostHandshake` (protocol version and build version).
   `HostProtocol.Current` rises when a host operation or message changes in a way an older client must
   know about; features record the version that introduced them beside it (`ChangeWritePath` 2,
@@ -117,7 +118,7 @@ The public top-level types of the assembly, held to it in both directions by the
 `ITerminalSession`, `IWorkspaceHost`, `LayoutPreset`, `LifecycleEvent`, `LineSpan`, `OpenReview`,
 `PrDraft`, `PrRequest`, `PrResult`, `ProjectFile`, `ProjectPathKind`, `ProjectRecord`,
 `RemoteBranch`, `RevertTarget`, `SpecDocument`, `SpecDuplicate`, `SpecEdge`, `SpecGraph`,
-`SpecLinks`, `TerminalAttachRequest`, `TerminalCatalog`, `TerminalGrid`, `TerminalTab`,
+`SpecLinks`, `TerminalAttachRequest`, `TerminalCatalog`, `TerminalFileLink`, `TerminalGrid`, `TerminalTab`,
 `WorkspaceAction`, `WorkspaceCatalog`, `WorkspaceInfo`, `WorkspaceKinds`, `WorkspaceRecord`,
 `WorktreeInfo`.
 

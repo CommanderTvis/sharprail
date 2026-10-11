@@ -257,3 +257,30 @@ fallback while preserving the local/remote shell and its exit status.
   Shift+Return keeps Ghostty's own encoding.
 - Faint-cell blanking in `BufferTail(omitFaint: true)`: libghostty's text read carries no cell attributes, so faint
   placeholders are returned as text.
+
+## File references
+
+Claude Code, Codex and ordinary shells share the terminal's file-link interaction. Holding Command
+on macOS (Ctrl elsewhere) over an existing file underlines it; modifier-click opens its source in
+SharpRail, positioning the caret at the supplied one-based line and column. Ordinary selection stays
+unchanged. Relative paths and bare filenames resolve against the shell's current working directory;
+there is no recursive filename search. Absolute paths, home-relative paths, local `file://` URLs,
+`:line`, `:line:column`, `:start-end` and `: (line, column)` positions are accepted. The start of a
+range is the navigation target. Directory candidates aid parsing but are not editor links.
+
+The terminal host runs a bounded character scanner and checks filesystem existence off the dispatcher.
+Unknown working directories disable relative links. Remote sessions resolve on their host, including
+home expansion; the client never probes its own filesystem for them. The scanner follows the general
+approach of [IntelliJ's terminal filters at bf3ace2df](https://github.com/JetBrains/intellij-community/tree/bf3ace2df/plugins/terminal/backend/src/com/intellij/terminal/backend/hyperlinks/filter),
+without a regex path matcher. Spaces in absolute paths retain the longest existing candidate; prose
+punctuation is excluded from the highlighted span.
+
+Only the hovered logical line is submitted after a short debounce. Both renderers map Unicode text
+and soft wraps back to cells. Hover results are cached for at most one second in a bounded cache;
+changed text, pointer exit, modifier release and disposal reject pending results. Activation rechecks
+existence and the current directory. HTTP(S) links retain their browser action. The terminal library
+exposes resolver/navigation callbacks and has no host or application dependency.
+
+`--terminal-links` exercises parser boundaries, positions, existing/missing targets, working-directory
+changes through direct and gRPC adapters, and Skia wrapped-path hover and click. `--native-file-links` verifies Metal Unicode and wrapped-line detection, modifier-click coordinates,
+stale-link clearing and retained web-link hover.

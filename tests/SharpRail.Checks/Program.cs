@@ -39,7 +39,7 @@ internal static class Program
             if (!OperatingSystem.IsMacOS()) throw new PlatformNotSupportedException();
             NativeTerminalChecks.Run(args); return;
         }
-        if (args.Contains("--native-direct") || args.Contains("--native-texture") || args.Contains("--texture-fallback") || args.Contains("--native-skia") || args.Contains("--native-osc52")) { NativeTextureChecks.Run(args); return; }
+        if (args.Contains("--native-file-links") || args.Contains("--native-direct") || args.Contains("--native-texture") || args.Contains("--texture-fallback") || args.Contains("--native-skia") || args.Contains("--native-osc52")) { NativeTextureChecks.Run(args); return; }
         if (args.Contains("--terminal-relay")) { Environment.Exit(SharpRail.UI.Terminal.TerminalRelay.Run()); return; }
         var root = Path.Combine(Directory.GetCurrentDirectory(), ".bench", "check-fixture-" + Guid.NewGuid().ToString("N"));
         Environment.SetEnvironmentVariable("SHARPRAIL_STATE_DIR", Path.Combine(root, "host-state"));
@@ -162,6 +162,15 @@ internal static class Program
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             E2E.ProjectContextE2E.Run(root);
             Console.WriteLine("PASS project closure checks");
+            return;
+        }
+        if (args.SequenceEqual(["--terminal-links"]))
+        {
+            TerminalFileLinkChecks.Run(root).GetAwaiter().GetResult();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            GhosttySkiaChecks.CheckFileLinks();
+            EditorWorkbenchChecks.FileLinkPosition(root);
             return;
         }
         if (args.SequenceEqual(["--terminal-replay"]))
@@ -671,6 +680,7 @@ internal static class Program
         Gate.Case("android-client", () => AndroidClientChecks.Run(root));
         Gate.Case("open-world", CheckOpenWorld);
         Gate.Case("hosts", () => CheckHosts(root).GetAwaiter().GetResult());
+        Gate.Case("terminal-links", () => TerminalFileLinkChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("terminal-hosts", () => TerminalHostChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("workspace-tools", () => WorkspaceToolChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("agent-launch-origins", AgentLaunchChecks.RunHost);

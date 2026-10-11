@@ -56,7 +56,13 @@ internal sealed class GhosttyTerminal : Border, ITerminalBackend
             var child = new GhosttyLaunch(launch.WorkspaceRoot, command,
                 new(TerminalRelay.ConnectionVariable, connectionPath), launch.ClipboardDirectory);
 
-            texture = new GhosttyTextureView(child) { Colors = TerminalTheme.Colors(), AgentNewline = agentNewline };
+            texture = new GhosttyTextureView(child)
+            {
+                Colors = TerminalTheme.Colors(),
+                AgentNewline = agentNewline,
+                ResolveFileLinks = (text, token) => TerminalFileLinks.Resolve(remote.Terminals, launch, text, token),
+                OpenFileLink = launch.OpenFileLink
+            };
             texture.Exited += (_, code) => Ended(code);
             texture.OperationFailed += TextureFailed;
             Child = texture;

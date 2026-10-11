@@ -252,9 +252,10 @@ public sealed partial class GhosttySkiaView
             return;
         }
         RefreshLink(e);
-        if (button == 1 && hoveredUrl is { } url)
+        if (button == 1 && (hoveredUrl is not null || FileHover.Link is not null))
         {
-            pressedUrl = url;
+            pressedUrl = hoveredUrl;
+            pressedFile = FileHover.Link;
             linkPressPointer = e.GetPosition(this);
             return;
         }
@@ -319,10 +320,19 @@ public sealed partial class GhosttySkiaView
             }
             return;
         }
+        var file = pressedFile;
+        pressedFile = null;
         var link = pressedUrl;
         pressedUrl = null;
         RefreshLink(e);
         e.Pointer.Capture(null);
+        if (file is not null)
+        {
+            var delta = e.GetPosition(this) - linkPressPointer;
+            if (FileHover.Link == file && delta.X * delta.X + delta.Y * delta.Y <= 16) _ = OpenFileAsync(file);
+            e.Handled = true;
+            return;
+        }
         if (link is not null)
         {
             var delta = e.GetPosition(this) - linkPressPointer;
@@ -346,6 +356,7 @@ public sealed partial class GhosttySkiaView
         base.OnPointerCaptureLost(e);
         selecting = -1;
         pressedUrl = null;
+        pressedFile = null;
         touch = null;
         tapping = false;
     }

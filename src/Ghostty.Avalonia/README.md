@@ -219,3 +219,13 @@ VT processing remains on the UI thread to preserve its ownership contract.
 own-window pixels, incremental redraw, theme parity with an Avalonia swatch,
 Retina resize and disposal. `--ghostty-skia` also checks sparse redraw against a
 full repaint, replay yielding to input, cancellation, split UTF-8 and exit ordering.
+
+### File references
+
+`GhosttySkiaView` and `GhosttyTextureView` accept `ResolveFileLinks` and `OpenFileLink` callbacks.
+Resolution receives one logical line off the dispatcher and returns UTF-16 spans with file targets
+and one-based positions. The embedding host owns filesystem checks and navigation. Modifier-hover
+underlines resolved files; modifier-click revalidates before navigation. Soft wraps and Unicode cell
+mapping are preserved. The Metal bridge snapshots only the hovered line under the renderer lock.
+The pinned native URL matcher excludes file paths and `file:` URLs so it cannot bypass the host's
+existence check. HTTP(S) and the other native URL schemes retain their native action.

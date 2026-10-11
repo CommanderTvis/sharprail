@@ -40,7 +40,9 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend
                 Typeface = TerminalTheme.Typeface.Value,
                 Colors = TerminalTheme.Colors(),
                 ClipboardImageDirectory = launch.ClipboardDirectory,
-                Name = "TerminalSkiaView"
+                Name = "TerminalSkiaView",
+                ResolveFileLinks = (text, token) => TerminalFileLinks.Resolve(terminals, launch, text, token),
+                OpenFileLink = launch.OpenFileLink
             };
         }
         catch (DllNotFoundException)

@@ -17,7 +17,7 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
 
     // An absolute path some active plugin exposes for this workspace, or null for an ordinary workspace path.
     private string? External(string currentRoot, string path) =>
-        Path.IsPathFullyQualified(path) && allowsExternalFile?.Invoke(currentRoot, path) == true ? path : null;
+        Path.IsPathFullyQualified(path) && (allowsExternalFile?.Invoke(currentRoot, path) == true || state?.Terminals?.AllowsFileLink(currentRoot, path) == true) ? path : null;
 
     public async ValueTask<WorkspaceInfo> OpenProjectAsync(string path, CancellationToken cancellationToken = default)
     {

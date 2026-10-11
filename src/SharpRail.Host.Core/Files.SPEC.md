@@ -150,6 +150,10 @@ A read of a file that is gone throws `FileNotFoundException` (a remote client ge
   subscribes or pre-warms; today such a watcher heals on the next of those or on a watcher error.
 - A readiness answer for a subscription (upstream's `startupNudge`); the registration rescan covers it.
 
+Terminal file references additionally admit exact existing paths resolved by a host-owned terminal
+for its workspace. This uses the same external-file read/save lifecycle as plugin configuration
+files; it does not relax containment for arbitrary client paths. See [Terminals.SPEC.md](Terminals.SPEC.md#file-references-in-terminal-output).
+
 Prompt attachments use `SavePromptImageAsync`: bounded PNG bytes are saved under the host state's
 clipboard directory, returning an absolute host path. Local calls run off the dispatcher; remote calls
 carry the bytes and return the same host path, never a client-local file path.

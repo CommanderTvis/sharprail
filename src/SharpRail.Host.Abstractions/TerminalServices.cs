@@ -35,6 +35,9 @@ public interface ITerminalService
     ValueTask<ITerminalSession> AttachAsync(TerminalAttachRequest request, CancellationToken cancellationToken = default);
     // True while a process other than the shell owns the terminal's foreground.
     ValueTask<bool> IsBusyAsync(string sessionId, CancellationToken cancellationToken = default);
+    // Resolves one hovered logical line on the terminal host, using the current shell directory.
+    ValueTask<IReadOnlyList<TerminalFileLink>> FindFileLinksAsync(string sessionId, string text, CancellationToken cancellationToken = default)
+        => ValueTask.FromResult<IReadOnlyList<TerminalFileLink>>([]);
     // Ends the session's shell and forgets the session; closing a tab or its project ends it.
     ValueTask CloseAsync(string sessionId, CancellationToken cancellationToken = default);
 }
@@ -74,3 +77,5 @@ public interface ITerminalSession : IAsyncDisposable
 }
 
 public sealed record TerminalPrefill(string Text, bool Submit);
+
+public sealed record TerminalFileLink(int Start, int Length, string Path, int Line, int Column, bool IsDirectory);

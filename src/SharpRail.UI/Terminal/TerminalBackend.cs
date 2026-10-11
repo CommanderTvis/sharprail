@@ -7,6 +7,7 @@ namespace SharpRail.UI.Terminal;
 // SessionId names the host session a tab shows; ClientId names the window showing it.
 public sealed record TerminalLaunch(string WorkspaceRoot, string SessionId, string ClipboardDirectory, string ClientId)
 {
+    public Func<Ghostty.Avalonia.TerminalLink, Task>? OpenFileLink { get; init; }
     // The tab's layout id; with the workspace root it is the TerminalRef plugins see.
     public string TabKey { get; init; } = "";
     // Attach only when no other client holds the session; a tab created here, or taken over, attaches plainly.

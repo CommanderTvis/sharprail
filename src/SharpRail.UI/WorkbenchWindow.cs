@@ -460,7 +460,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         finally { restoringDocuments.Remove(key); }
     }
 
-    public async Task OpenDocumentAsync(string path, bool keep = false, string? anchor = null, int line = 0, bool raw = false)
+    public async Task OpenDocumentAsync(string path, bool keep = false, string? anchor = null, int line = 0, bool raw = false, int column = 0)
     {
         if (!WorkspaceMounted) return;
         if (atHome) await OpenWorkspaceAsync(projectRoot, false);
@@ -483,7 +483,25 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             if (line > 0)
                 Dispatcher.UIThread.Post(() =>
                 {
-                    if (EditableDocument(documentContent.GetValueOrDefault(key)) is { } code) code.Editor.ScrollToLine(Math.Max(0, line - 4));
+                    if (workspaceRoot != workspace) return;
+                    if (EditableDocument(documentContent.GetValueOrDefault(key)) is { } code)
+                    {
+                        if (column > 0)
+                        {
+                            var text = code.Editor.Text;
+                            var offset = 0;
+                            for (var row = 1; row < line && offset < text.Length; row++)
+                            {
+                                var next = text.IndexOf('\n', offset);
+                                offset = next < 0 ? text.Length : next + 1;
+                            }
+                            var end = text.IndexOf('\n', offset);
+                            if (end < 0) end = text.Length;
+                            if (end > offset && text[end - 1] == '\r') end--;
+                            code.Editor.SelectRange(offset + Math.Min(column - 1, end - offset), 0);
+                        }
+                        else code.Editor.ScrollToLine(Math.Max(0, line - 4));
+                    }
                 }, DispatcherPriority.Loaded);
         }
         catch (Exception error) when (error is not OperationCanceledException) { Report(error); }

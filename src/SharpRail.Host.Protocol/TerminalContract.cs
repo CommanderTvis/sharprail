@@ -63,9 +63,34 @@ public sealed class TerminalBusyReply
 [ProtoContract]
 public sealed class TerminalClosed;
 
+[ProtoContract]
+public sealed class TerminalFileLinksRequest
+{
+    [ProtoMember(1)] public string SessionId { get; set; } = "";
+    [ProtoMember(2)] public string Text { get; set; } = "";
+}
+
+[ProtoContract]
+public sealed class TerminalFileLinkDto
+{
+    [ProtoMember(1)] public int Start { get; set; }
+    [ProtoMember(2)] public int Length { get; set; }
+    [ProtoMember(3)] public string Path { get; set; } = "";
+    [ProtoMember(4)] public int Line { get; set; }
+    [ProtoMember(5)] public int Column { get; set; }
+    [ProtoMember(6)] public bool IsDirectory { get; set; }
+}
+
+[ProtoContract]
+public sealed class TerminalFileLinksReply
+{
+    [ProtoMember(1)] public List<TerminalFileLinkDto> Links { get; set; } = [];
+}
+
 [Service]
 public interface ITerminalRpc
 {
+    ValueTask<TerminalFileLinksReply> FindFileLinksAsync(TerminalFileLinksRequest request, CallContext context = default);
     IAsyncEnumerable<TerminalOutput> RunAsync(IAsyncEnumerable<TerminalInput> input, CallContext context = default);
     ValueTask<TerminalBusyReply> IsBusyAsync(TerminalSessionRequest request, CallContext context = default);
     ValueTask<TerminalClosed> CloseAsync(TerminalSessionRequest request, CallContext context = default);

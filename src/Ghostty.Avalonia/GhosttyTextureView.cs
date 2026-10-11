@@ -78,7 +78,7 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
         Dispatcher.UIThread.Post(() =>
         {
             Interlocked.Exchange(ref notificationPending, 0);
-            if (active && !disposed) InvalidateVisual();
+            if (active && !disposed) { RefreshFileLink(); InvalidateVisual(); }
         });
     }
 
@@ -151,7 +151,11 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
         if (change.Property == BoundsProperty) Resize();
     }
 
-    public override void Render(DrawingContext context) => context.Custom(new TextureOperation(this, new Rect(Bounds.Size)));
+    public override void Render(DrawingContext context)
+    {
+        context.Custom(new TextureOperation(this, new Rect(Bounds.Size)));
+        foreach (var line in fileUnderlines) context.FillRectangle(new SolidColorBrush(Colors.Foreground), line);
+    }
 
     private sealed class TextureOperation(GhosttyTextureView owner, Rect bounds) : ICustomDrawOperation
     {
@@ -178,6 +182,7 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
         {
             if (disposed) return;
             disposed = true;
+            fileHover?.Dispose();
             active = false;
             Native.Stop(source);
             Native.Release(source);

@@ -56,6 +56,7 @@ internal static class GhosttySkiaChecks
         CheckClusters();
         CheckUrls();
         CheckUrlHover();
+        CheckFileLinks();
         CheckZoomedDensity();
         Osc52Checks.RunSkia();
         CheckView();
@@ -117,6 +118,45 @@ internal static class GhosttySkiaChecks
             window.KeyRelease(Key.LWin, RawInputModifiers.None, PhysicalKey.MetaLeft, null); Pump();
             using var cleared = window.CaptureRenderedFrame()!;
             Require(Pixels(plain).SequenceEqual(Pixels(cleared)), "removing the modifier left stale underlines.");
+        }
+        finally { window.Close(); Pump(); }
+    }
+
+    internal static void CheckFileLinks()
+    {
+        using var view = new GhosttySkiaView { Typeface = EditorChecks.Font, FontSize = 14 };
+        var window = new Window { Width = 240, Height = 160, Content = view };
+        var opened = new List<TerminalLink>();
+        var calls = 0;
+        const string path = "src/a/very/long/path/Main.cs:12:3";
+        view.ResolveFileLinks = (text, token) =>
+        {
+            Interlocked.Increment(ref calls);
+            Require(!Dispatcher.UIThread.CheckAccess(), "file lookup ran on the dispatcher.");
+            IReadOnlyList<TerminalLink> links = text.TrimEnd() == path ? [new(0, path.Length, "/project/Main.cs", 12, 3, false)] : [];
+            return Task.FromResult(links);
+        };
+        view.OpenFileLink = link => { opened.Add(link); return Task.CompletedTask; };
+        window.Show(); Pump();
+        try
+        {
+            view.Focus(); view.Write(Encoding.UTF8.GetBytes("\e[?25l" + path)); Pump();
+            var cw = (view.Bounds.Width - view.Padding.Left - view.Padding.Right) / view.Size.Columns;
+            var ch = (view.Bounds.Height - view.Padding.Top - view.Padding.Bottom) / view.Size.Rows;
+            var point = new Point(view.Padding.Left + cw * 1.5, view.Padding.Top + ch * 1.5);
+            window.MouseMove(point); Pump();
+            Require(calls == 0, "ordinary pointer movement queried files.");
+            window.KeyPress(Key.LWin, RawInputModifiers.Meta, PhysicalKey.MetaLeft, null);
+            Until(() => view.Cursor?.ToString() == "Hand", "file link on wrapped continuation");
+            window.MouseDown(point, MouseButton.Left, RawInputModifiers.Meta);
+            window.MouseUp(point, MouseButton.Left, RawInputModifiers.Meta);
+            Until(() => opened.Count == 1, "file navigation");
+            Require(opened[0].Line == 12 && opened[0].Column == 3, "file click lost source coordinates.");
+            window.KeyRelease(Key.LWin, RawInputModifiers.None, PhysicalKey.MetaLeft, null); Pump();
+            Require(view.Cursor?.ToString() != "Hand", "file hover survived modifier release.");
+            view.Write("\r\e[2Kmissing.cs"u8); Pump();
+            window.KeyPress(Key.LWin, RawInputModifiers.Meta, PhysicalKey.MetaLeft, null); Pump();
+            Require(view.Cursor?.ToString() != "Hand", "changed output kept stale file link.");
         }
         finally { window.Close(); Pump(); }
     }

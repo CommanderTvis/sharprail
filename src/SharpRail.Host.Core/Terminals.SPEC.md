@@ -255,3 +255,14 @@ their MCP identities. The host waits for shell shutdown before completing the pr
   stream only after a zero exit and failing it after a nonzero exit, expiry or failed launch, so a
   truncated relay is never mistaken for a complete one, and cancelling it kills the child. Nothing here
   streams a child's output yet; it belongs with the streamed byte route ([Git.SPEC.md](Git.SPEC.md)).
+
+## File references in terminal output
+
+A session's file-link operation scans one bounded logical line on a worker, checking the host's
+filesystem. Relative paths use the live shell process's working directory (Darwin process info or
+Linux `/proc`); inability to read it disables relative candidates. Home paths use the host's home.
+The result carries UTF-16 spans, absolute paths, one-based line/column and file kind through both
+adapters. Unknown sessions yield no links. Parsing never invokes the shell or recursively searches.
+Exact files found for a session are admitted for document reading and saving in its workspace,
+including files outside it; unrelated paths retain the ordinary containment checks.
+Those external-file admissions expire when the terminal session closes or the host stops.

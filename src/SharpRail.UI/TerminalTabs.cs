@@ -43,7 +43,17 @@ public sealed partial class WorkbenchWindow
 
     private TerminalLaunch LaunchTerminal(string workspace, string tabId) =>
         new(workspace, TerminalLaunch.SessionFor(workspace, tabId), Path.Combine(profile.DirectoryPath, "clipboard"), terminalClient)
-        { TabKey = tabId, Yield = !ownTerminals.Remove(workspace + ":" + tabId) };
+        {
+            TabKey = tabId,
+            Yield = !ownTerminals.Remove(workspace + ":" + tabId),
+            OpenFileLink = async link =>
+            {
+                if (workspaceRoot != workspace || !WorkspaceMounted) return;
+                var relative = Path.GetRelativePath(workspace, link.Path);
+                var path = relative == ".." || relative.StartsWith("../", StringComparison.Ordinal) || Path.IsPathFullyQualified(relative) ? link.Path : relative;
+                await OpenDocumentAsync(path, true, line: link.Line, raw: true, column: link.Column);
+            }
+        };
 
     private static async Task TypeWhenStartedAsync(TerminalView terminal, string command)
     {

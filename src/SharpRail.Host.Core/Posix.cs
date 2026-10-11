@@ -6,6 +6,26 @@ namespace SharpRail.Host.Core;
 // libc entry points used by the PTY host, the terminal relay and workspace resolution. .NET exposes no PTY API.
 internal static class Posix
 {
+    internal static string? ProcessDirectory(int pid)
+    {
+        try
+        {
+            if (OperatingSystem.IsLinux()) return File.ResolveLinkTarget($"/proc/{pid}/cwd", true)?.FullName;
+            if (OperatingSystem.IsMacOS())
+            {
+                // Darwin proc_vnodepathinfo: two vnode_info_path records, each with a 152-byte header and MAXPATHLEN path.
+                var buffer = new byte[2352];
+                if (ProcessInfo(pid, 9, 0, buffer, buffer.Length) != buffer.Length) return null;
+                var end = Array.IndexOf(buffer, (byte)0, 152, 1024);
+                return end > 152 ? System.Text.Encoding.UTF8.GetString(buffer, 152, end - 152) : null;
+            }
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
+        return null;
+    }
+    [DllImport("/usr/lib/libproc.dylib", EntryPoint = "proc_pidinfo")]
+    private static extern int ProcessInfo(int pid, int flavor, ulong arg, [Out] byte[] buffer, int size);
+
     private const string Libc = "libc";
     internal const int ORdwr = 2;
     internal const short PollIn = 1;

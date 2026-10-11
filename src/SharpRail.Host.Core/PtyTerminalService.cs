@@ -21,6 +21,8 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
     private readonly Dictionary<string, HostedTerminal> sessions = [];
     // The workspace folder each running session was started in.
     private readonly Dictionary<string, string> roots = [];
+    private readonly ConcurrentDictionary<(string Workspace, string Path), string> linkedFiles = new();
+    public bool AllowsFileLink(string workspace, string path) => linkedFiles.ContainsKey((workspace, path));
     private readonly TerminalCatalogStore catalog;
     // The tab each session shows, known once a client attaches with its tab key.
     private readonly Dictionary<string, TerminalRef> terminals = [];
@@ -144,6 +146,20 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         lock (gate) return ValueTask.FromResult(sessions.TryGetValue(sessionId, out var terminal) && terminal.Process.IsBusy);
     }
 
+    public async ValueTask<IReadOnlyList<TerminalFileLink>> FindFileLinksAsync(string sessionId, string text, CancellationToken cancellationToken = default)
+    {
+        PtySession? process;
+        string? workspace;
+        lock (gate) { process = sessions.GetValueOrDefault(sessionId)?.Process; workspace = roots.GetValueOrDefault(sessionId); }
+        if (process is null || text.Length > TerminalFileLinks.MaxLineLength) return [];
+        var links = await Task.Run(() => TerminalFileLinks.Find(text, process.CurrentDirectory,
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), cancellationToken), cancellationToken);
+        lock (gate)
+            if (workspace is not null && sessions.GetValueOrDefault(sessionId)?.Process == process)
+                foreach (var link in links.Where(link => !link.IsDirectory)) linkedFiles[(workspace, link.Path)] = sessionId;
+        return links;
+    }
+
     public async ValueTask CloseAsync(string sessionId, CancellationToken cancellationToken = default)
     {
         catalog.RemoveSession(sessionId);
@@ -158,6 +174,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         {
             sessions.Remove(sessionId, out terminal);
             roots.Remove(sessionId);
+            foreach (var link in linkedFiles.Where(link => link.Value == sessionId)) linkedFiles.TryRemove(link.Key, out _);
             pending.Remove(sessionId);
             terminals.Remove(sessionId, out closed);
             directories.Remove(sessionId);
@@ -276,7 +293,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         KeyValuePair<string, HostedTerminal>[] all;
         lock (gate)
         {
-            disposed = true; all = [.. sessions]; sessions.Clear(); roots.Clear();
+            disposed = true; all = [.. sessions]; sessions.Clear(); roots.Clear(); linkedFiles.Clear();
             if (store is not null)
             {
                 foreach (var (id, bytes) in pending) store.Save(id, bytes);
@@ -370,6 +387,7 @@ internal sealed class PtySession : IAsyncDisposable
 
     public string Id { get; }
     public int Pid => pid;
+    public string? CurrentDirectory => exited.Task.IsCompleted || Volatile.Read(ref disposed) != 0 ? null : Posix.ProcessDirectory(pid);
     public Task<int> Exit => exit.Task;
     public bool IsBusy
     {

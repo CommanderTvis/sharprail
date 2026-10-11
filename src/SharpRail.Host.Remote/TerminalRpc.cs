@@ -48,6 +48,13 @@ public sealed class TerminalRpc(ITerminalService terminals, IHostApplicationLife
         }
     }
 
+    public async ValueTask<TerminalFileLinksReply> FindFileLinksAsync(TerminalFileLinksRequest request, CallContext context = default)
+        => new()
+        {
+            Links = (await terminals.FindFileLinksAsync(request.SessionId, request.Text, context.CancellationToken))
+            .Select(link => new TerminalFileLinkDto { Start = link.Start, Length = link.Length, Path = link.Path, Line = link.Line, Column = link.Column, IsDirectory = link.IsDirectory }).ToList()
+        };
+
     public async ValueTask<TerminalBusyReply> IsBusyAsync(TerminalSessionRequest request, CallContext context = default)
         => new() { Busy = await terminals.IsBusyAsync(request.SessionId, context.CancellationToken) };
 

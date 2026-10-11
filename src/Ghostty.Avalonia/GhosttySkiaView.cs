@@ -439,6 +439,7 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
     {
         if (disposed) return;
         disposed = true;
+        fileHover?.Dispose();
         blink.Stop();
         vt.Dispose();
         fonts?.Dispose();

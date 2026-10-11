@@ -14,8 +14,11 @@ public sealed partial class GhosttyTextureView
 
     private void RefreshLinkModifiers(KeyModifiers modifiers)
     {
+        linkModifiers = modifiers;
         if (!disposed) Native.Mouse(terminal.Handle, linkPointer.X, linkPointer.Y, Vt.Mods(modifiers), -1, 0);
         if (!disposed) Cursor = new Cursor(Native.OverLink(terminal.Handle) ? StandardCursorType.Hand : StandardCursorType.Ibeam);
+        RefreshFileLink();
+        InvalidateVisual();
     }
 
     protected override void OnGotFocus(FocusChangedEventArgs e)
@@ -90,8 +93,11 @@ public sealed partial class GhosttyTextureView
         if (disposed) return;
         var point = e.GetPosition(this);
         linkPointer = point;
+        linkModifiers = e.KeyModifiers;
         Native.Mouse(terminal.Handle, point.X, point.Y, Vt.Mods(e.KeyModifiers), action, button);
         Cursor = new Cursor(Native.OverLink(terminal.Handle) ? StandardCursorType.Hand : StandardCursorType.Ibeam);
+        RefreshFileLink();
+        InvalidateVisual();
     }
 
     private static int Button(PointerUpdateKind kind) => kind switch
@@ -108,7 +114,12 @@ public sealed partial class GhosttyTextureView
         if (disposed) return;
         Focus();
         e.Pointer.Capture(this);
-        Mouse(e, 1, Button(e.GetCurrentPoint(this).Properties.PointerUpdateKind));
+        Mouse(e, -1, 0);
+        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && FileHover.Link is { } file)
+        {
+            pressedFile = file; filePressPoint = e.GetPosition(this);
+        }
+        else Mouse(e, 1, Button(e.GetCurrentPoint(this).Properties.PointerUpdateKind));
         e.Handled = true;
     }
 
@@ -124,9 +135,23 @@ public sealed partial class GhosttyTextureView
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
     {
         base.OnPointerReleased(e);
-        Mouse(e, 0, Button(e.GetCurrentPoint(this).Properties.PointerUpdateKind));
+        var file = pressedFile;
+        pressedFile = null;
+        if (file is not null)
+        {
+            Mouse(e, -1, 0);
+            var delta = e.GetPosition(this) - filePressPoint;
+            if (FileHover.Link == file && delta.X * delta.X + delta.Y * delta.Y <= 16) _ = OpenFileAsync(file);
+        }
+        else Mouse(e, 0, Button(e.GetCurrentPoint(this).Properties.PointerUpdateKind));
         e.Pointer.Capture(null);
         e.Handled = true;
+    }
+
+    protected override void OnPointerCaptureLost(PointerCaptureLostEventArgs e)
+    {
+        base.OnPointerCaptureLost(e);
+        pressedFile = null;
     }
 
     protected override void OnPointerWheelChanged(PointerWheelEventArgs e)

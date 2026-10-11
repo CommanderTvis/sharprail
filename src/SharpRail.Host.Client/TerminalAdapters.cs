@@ -18,6 +18,8 @@ public sealed class LocalTerminalAdapter(ITerminalService host) : ITerminalServi
 {
     public ValueTask<ITerminalSession> AttachAsync(TerminalAttachRequest request, CancellationToken cancellationToken = default) => host.AttachAsync(request, cancellationToken);
     public ValueTask<bool> IsBusyAsync(string sessionId, CancellationToken cancellationToken = default) => host.IsBusyAsync(sessionId, cancellationToken);
+    public ValueTask<IReadOnlyList<TerminalFileLink>> FindFileLinksAsync(string sessionId, string text, CancellationToken cancellationToken = default)
+        => host.FindFileLinksAsync(sessionId, text, cancellationToken);
     public ValueTask CloseAsync(string sessionId, CancellationToken cancellationToken = default) => host.CloseAsync(sessionId, cancellationToken);
 }
 
@@ -89,6 +91,10 @@ public sealed class RemoteTerminalAdapter : ITerminalService, IDisposable
 
     public async ValueTask<bool> IsBusyAsync(string sessionId, CancellationToken cancellationToken = default)
         => (await Service.IsBusyAsync(new() { SessionId = sessionId }, Options(cancellationToken))).Busy;
+
+    public async ValueTask<IReadOnlyList<TerminalFileLink>> FindFileLinksAsync(string sessionId, string text, CancellationToken cancellationToken = default)
+        => (await Service.FindFileLinksAsync(new() { SessionId = sessionId, Text = text }, Options(cancellationToken))).Links
+            .Select(link => new TerminalFileLink(link.Start, link.Length, link.Path, link.Line, link.Column, link.IsDirectory)).ToArray();
 
     public async ValueTask CloseAsync(string sessionId, CancellationToken cancellationToken = default)
         => await Service.CloseAsync(new() { SessionId = sessionId }, Options(cancellationToken));

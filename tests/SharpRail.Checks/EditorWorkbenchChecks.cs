@@ -43,9 +43,30 @@ internal static class EditorWorkbenchChecks
         window.KeyPress(Key.S, command, PhysicalKey.S, "s");
         window.KeyRelease(Key.S, command, PhysicalKey.S, "s");
     }
+    internal static void FileLinkPosition(string fixture)
+    {
+        if (!OperatingSystem.IsMacOS()) return;
+        var root = Path.Combine(fixture, "file-link-editor");
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, ".git"), "gitdir: " + Path.Combine(root, "missing"));
+        File.WriteAllText(Path.Combine(root, "target.cs"), "// first\n// second\nclass Third {}\n");
+        var window = new WorkbenchWindow(new LocalProjectAdapter(new ProjectServices(root)), root,
+            new ProfileStore(Path.Combine(root, ".profile")), E2E.E2eTerminals.Plain);
+        window.Show(); Pump(() => window.WorkspaceMounted);
+        try
+        {
+            Await(window.OpenDocumentAsync("target.cs", true, line: 2, raw: true, column: 4));
+            window.UpdateLayout();
+            Pump(() => Editor(window).Selection.StartLine == 2);
+            Require(Editor(window).Selection.StartColumn == 4, "Terminal file position did not move the editor caret.");
+        }
+        finally { window.Close(); Dispatcher.UIThread.RunJobs(); }
+    }
+
     internal static void Run(string fixture)
     {
         if (!OperatingSystem.IsMacOS()) return;
+        FileLinkPosition(fixture);
         LargeDiff(fixture);
         Limits(fixture);
         var root = Path.Combine(fixture, "editor-workbench"); Directory.CreateDirectory(root);

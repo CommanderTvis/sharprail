@@ -449,3 +449,9 @@ void gav_view_grid(void *pointer, uint16_t *columns, uint16_t *rows) {
     ghostty_surface_size_s size = ghostty_surface_size(view.surface);
     *columns = size.columns; *rows = size.rows;
 }
+
+extern size_t gav_ghostty_link_line(ghostty_surface_t surface, double x, double y, uint32_t *text, uint32_t *cells, size_t capacity, double *info);
+size_t gav_texture_link_line(void *pointer, double x, double y, uint32_t *text, uint32_t *cells, size_t capacity, double *info) {
+    GAVTerminalView *view = (__bridge GAVTerminalView *)pointer;
+    return gav_ghostty_link_line(view.surface, x, y, text, cells, capacity, info);
+}
