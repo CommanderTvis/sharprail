@@ -245,6 +245,9 @@ notices) sit in one commit at the tip.
 
 ## Verification budget
 
+Do not rerun tests on the same codebase slice, including after a rebase that
+leaves the workspace byte-identical. Reuse the existing verification results.
+
 The full suite is expensive; duration and case counts vary with the branch and
 lane count. It executes from build output, which must stay unchanged while it
 runs. Spend it deliberately:
