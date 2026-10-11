@@ -385,3 +385,8 @@ Build/format checks, R2R header + runtime assembly loading/code emission checks,
 published GUI smoke and reference screenshots at matching logical dimensions.
 Native typography/compositing differences must be measured and reported;
 do not declare pixel-perfect equivalence without comparison evidence.
+
+The optional builtin Tailscale plugin pairs clients without copying IP addresses, ports or session tokens.
+Desktop clients discover hosts by name; Android clients enter the host's MagicDNS name once. First-time
+pairing requires host approval and subsequent launches remember the device. See
+[Tailscale](src/SharpRail.Plugins.Tailscale/SPEC.md).

@@ -27,12 +27,13 @@
     <NoWarn>$(NoWarn);CA1416</NoWarn>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../SharpRail.Plugins.Tailscale/UI/SharpRail.Plugins.Tailscale.UI.csproj" />
     <!-- Android's implicit usings collide with Avalonia's control names throughout the shared sources. -->
     <Using Remove="Android.App" />
     <Using Remove="Android.Widget" />
     <Using Remove="Android.OS.Bundle" />
-    <Compile Include="$(UiSources)**/*.cs" Exclude="$(UiSources)bin/**;$(UiSources)obj/**;$(UiSources)Program.cs;$(UiSources)Terminal/LoopbackTerminals.cs;$(UiSources)Panels/HostSettings.cs" LinkBase="UI" />
-    <AvaloniaXaml Include="$(UiSources)**/*.axaml" Exclude="$(UiSources)bin/**;$(UiSources)obj/**" Link="%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="$(UiSources)**/*.cs" Exclude="$(UiSources)bin/**;$(UiSources)obj/**;$(UiSources)TailscaleDesktopWindow.axaml.cs;$(UiSources)Program.cs;$(UiSources)Terminal/LoopbackTerminals.cs;$(UiSources)Panels/HostSettings.cs" LinkBase="UI" />
+    <AvaloniaXaml Include="$(UiSources)**/*.axaml" Exclude="$(UiSources)bin/**;$(UiSources)obj/**;$(UiSources)TailscaleDesktopWindow.axaml" Link="%(RecursiveDir)%(Filename)%(Extension)" />
     <AvaloniaResource Include="$(UiSources)Assets/**" Link="Assets/%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
   <ItemGroup>

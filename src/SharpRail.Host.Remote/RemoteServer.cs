@@ -9,6 +9,7 @@ using ProtoBuf.Grpc.Server;
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Core;
 using SharpRail.Host.Core.Plugins;
+using SharpRail.Plugins.Tailscale;
 
 namespace SharpRail.Host.Remote;
 
@@ -31,7 +32,8 @@ public static class RemoteServer
         if (terminals is null) builder.Services.AddSingleton<ITerminalService>(_ => pty ?? new PtyTerminalService());
         else builder.Services.AddSingleton(terminals);
         var loopback = new LoopbackServer(pty, state);
-        var seams = new PluginHostSeams { StateDirectory = stateDirectory, State = state, PublicBaseUrl = () => loopback.BaseUrl, Terminals = pty };
+        var tailscale = new TailscaleServing();
+        var seams = new PluginHostSeams { StateDirectory = stateDirectory, State = state, PublicBaseUrl = () => loopback.BaseUrl, Terminals = pty, Builtins = BuiltinPlugins.Create(tailscale) };
         var runtime = new PluginRuntime(plugins?.Invoke(seams) ?? seams);
         loopback.Plugins = runtime;
         builder.Services.AddSingleton(runtime);
@@ -40,7 +42,15 @@ public static class RemoteServer
         builder.Services.AddSingleton(services => services.GetRequiredService<ITerminalService>() as ITerminalCatalogService ?? new MemoryTerminalCatalog());
         builder.Services.AddCodeFirstGrpc(options => options.MaxReceiveMessageSize = FileLimits.SaveMessageBytes);
         var app = builder.Build();
-        Map(app, token);
+        Map(app, token, tailscale);
+        tailscale.EnsureListening = (tailnetAddress, _) =>
+        {
+            if (!address.Equals(IPAddress.Any) && !address.Equals(IPAddress.IPv6Any) && address.ToString() != tailnetAddress)
+                throw new IOException("Start this host with SHARPRAIL_BIND set to its Tailscale address.");
+            var endpoint = app.Services.GetRequiredService<Microsoft.AspNetCore.Hosting.Server.IServer>().Features
+                .Get<Microsoft.AspNetCore.Hosting.Server.Features.IServerAddressesFeature>()!.Addresses.Single();
+            return ValueTask.FromResult(new UriBuilder("http", tailnetAddress, new Uri(endpoint).Port).Uri.ToString());
+        };
         state.WorkspaceRemoved += path => _ = Task.Run(async () => await app.Services.GetRequiredService<ITerminalCatalogService>().CloseWorkspaceAsync(path));
         runtime.Start();
         // Terminals need the MCP route from their first shell; plugins start it themselves when they ask for its URL.
@@ -63,7 +73,7 @@ public static class RemoteServer
     /// <summary>Exposes an existing host. Stopping or disposing this listener never disposes the supplied
     /// state, terminals or plugins; their owner continues to serve direct local calls.</summary>
     public static WebApplication CreateListener(string root, IPAddress address, int port, string token,
-        HostStateStore state, ITerminalService? terminals, PluginRuntime plugins)
+        HostStateStore state, ITerminalService? terminals, PluginRuntime plugins, TailscaleServing? tailscale = null)
     {
         if (string.IsNullOrWhiteSpace(token)) throw new ArgumentException("A host session token is required.", nameof(token));
         var builder = Builder(address, port, embedded: true);
@@ -78,7 +88,7 @@ public static class RemoteServer
         builder.Services.AddSingleton(new ProjectSessions(root, state, plugins.AllowsExternalFile));
         builder.Services.AddCodeFirstGrpc(options => options.MaxReceiveMessageSize = FileLimits.SaveMessageBytes);
         var app = builder.Build();
-        Map(app, token);
+        Map(app, token, tailscale);
         return app;
     }
 
@@ -97,9 +107,9 @@ public static class RemoteServer
         return builder;
     }
 
-    private static void Map(WebApplication app, string token)
+    private static void Map(WebApplication app, string token, TailscaleServing? tailscale)
     {
-        RequireToken(app, token);
+        RequireToken(app, token, tailscale);
         app.MapGrpcService<WorkspaceRpc>();
         app.MapGrpcService<ProjectRpc>();
         app.MapGrpcService<StateRpc>();
@@ -122,18 +132,37 @@ public static class RemoteServer
         public ValueTask CloseAsync(string sessionId, CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
     }
 
-    private static void RequireToken(WebApplication app, string token)
+    private static void RequireToken(WebApplication app, string token, TailscaleServing? tailscale)
     {
         var expected = SHA256.HashData(Encoding.UTF8.GetBytes($"Bearer {token}"));
         app.Use(async (context, next) =>
         {
-            var actual = SHA256.HashData(Encoding.UTF8.GetBytes(context.Request.Headers.Authorization.ToString()));
-            if (!CryptographicOperations.FixedTimeEquals(expected, actual))
+            var authorization = context.Request.Headers.Authorization.ToString();
+            var actual = SHA256.HashData(Encoding.UTF8.GetBytes(authorization));
+            var paired = authorization.StartsWith("Bearer ", StringComparison.Ordinal) && tailscale?.Authenticate?.Invoke(authorization[7..]) == true;
+            if (!CryptographicOperations.FixedTimeEquals(expected, actual) && !paired)
             {
                 context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                 return;
             }
-            await next(context);
+            if (!paired) { await next(context); return; }
+            using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(context.RequestAborted);
+            var watching = Task.Run(async () =>
+            {
+                try
+                {
+                    while (true)
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(1), lifetime.Token);
+                        if (tailscale?.Authenticate?.Invoke(authorization[7..]) == true) continue;
+                        context.Abort();
+                        return;
+                    }
+                }
+                catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
+            });
+            try { await next(context); }
+            finally { await lifetime.CancelAsync(); await watching; }
         });
     }
 }

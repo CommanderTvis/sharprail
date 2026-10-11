@@ -18,6 +18,23 @@ public sealed partial class SettingsWindow
     private Control ServingSettings()
     {
         var page = Page("HostPage");
+        PageControl<Button>(page, "HostTailscaleConnect").Click += (_, _) =>
+        {
+            _ = Task.Run(() =>
+            {
+                try
+                {
+                    var start = new System.Diagnostics.ProcessStartInfo(Environment.ProcessPath!) { UseShellExecute = false };
+                    if (Path.GetFileNameWithoutExtension(Environment.ProcessPath) == "dotnet") start.ArgumentList.Add(typeof(App).Assembly.Location);
+                    start.ArgumentList.Add("--tailscale");
+                    System.Diagnostics.Process.Start(start)?.Dispose();
+                }
+                catch (Exception failure) when (failure is IOException or System.ComponentModel.Win32Exception)
+                {
+                    Dispatcher.UIThread.Post(() => { error.Text = failure.Message; error.IsVisible = true; });
+                }
+            });
+        };
         if (window.Workbench.Listener is not { } listener)
         {
             PageControl<StackPanel>(page, "HostControls").IsVisible = false;

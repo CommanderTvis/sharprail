@@ -245,3 +245,8 @@ save without depending on any plugin id.
   workspace lists and labels, so it fires on creation, removal and relabelling.
 - Serving a plugin's static assets on its HTTP route, as the fork did for its web bundle; the app reads UI
   assemblies and assets through `ReadFileAsync` instead.
+
+The builtin factory accepts the Tailscale plugin's serving bridge from composition. Its host module owns
+bootstrap pairing and grants; Core only constructs it alongside the other builtins. Ordinary plugin
+contexts and external module loading gain no transport dependency. See
+[Tailscale](../SharpRail.Plugins.Tailscale/SPEC.md).

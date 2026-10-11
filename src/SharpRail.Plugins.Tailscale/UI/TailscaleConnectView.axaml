@@ -1,0 +1,20 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:kit="using:SharpRail.Plugins.UI.Kit" xmlns:local="using:SharpRail.Plugins.Tailscale" x:Class="SharpRail.Plugins.Tailscale.UI.TailscaleConnectView">
+  <StackPanel Spacing="12">
+    <TextBlock Text="Connect over Tailscale" FontSize="20" />
+    <TextBlock Text="Enable the Tailscale plugin on the host. Both devices must be connected to the same Tailscale network." TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
+    <Button x:Name="TailscaleDiscover" Content="Find hosts" HorizontalAlignment="Stretch" />
+    <ComboBox x:Name="TailscaleHosts" HorizontalAlignment="Stretch" IsVisible="False">
+      <ComboBox.ItemTemplate>
+        <DataTemplate x:DataType="local:TailscalePeer">
+          <TextBlock Text="{Binding Name}" />
+        </DataTemplate>
+      </ComboBox.ItemTemplate>
+    </ComboBox>
+    <TextBlock Text="Tailscale host name" />
+    <TextBox x:Name="TailscaleHost" PlaceholderText="my-computer or my-computer.tailnet.ts.net" />
+    <TextBlock x:Name="TailscaleProgress" TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
+    <Button x:Name="TailscalePair" Content="Pair and connect" Classes="primary" HorizontalAlignment="Stretch" />
+    <Button x:Name="TailscaleCancel" Content="Cancel" HorizontalAlignment="Stretch" IsVisible="False" />
+  </StackPanel>
+</UserControl>

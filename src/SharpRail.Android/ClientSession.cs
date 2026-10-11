@@ -2,6 +2,7 @@ using Avalonia.Threading;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
+using SharpRail.Plugins.Tailscale;
 using SharpRail.UI.State;
 using SharpRail.UI.Terminal;
 
@@ -47,11 +48,18 @@ public sealed class ClientSession(string filesDirectory, bool compact) : IDispos
     }
 
     /// <summary>Leaves the host and forgets its token, keeping the address for the connect screen.</summary>
-    public void Disconnect()
+    public void Disconnect() => _ = DisconnectAsync();
+
+    private async Task DisconnectAsync()
     {
         if (Endpoint is not { } endpoint) return;
         var forgotten = endpoint with { Token = "" };
-        forgotten.Save(directory);
+        await Task.Run(() =>
+        {
+            forgotten.Save(directory);
+            TailscaleClient.Forget(Path.Combine(directory, "tailscale-client.json"), endpoint.Token);
+        });
+        if (disposed || Endpoint != endpoint) return;
         Close();
         ShowConnect(forgotten);
     }
@@ -66,7 +74,7 @@ public sealed class ClientSession(string filesDirectory, bool compact) : IDispos
 
     private ConnectWindow ShowConnect(HostEndpoint? remembered)
     {
-        var connect = new ConnectWindow(remembered);
+        var connect = new ConnectWindow(remembered, Path.Combine(directory, "tailscale-client.json"));
         connect.Connected += endpoint =>
         {
             endpoint.Save(directory);

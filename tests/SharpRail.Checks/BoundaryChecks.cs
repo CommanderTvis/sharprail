@@ -23,7 +23,7 @@ internal static class BoundaryChecks
         [Protocol] = [],
         [Core] = [Abstractions, Api, ApiHost, "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex"],
         [Client] = [Abstractions, Protocol, Api],
-        [Remote] = [Abstractions, Protocol, Core, Api, ApiHost],
+        [Remote] = [Abstractions, Protocol, Core, Api, ApiHost, "SharpRail.Plugins.Tailscale"],
         [Scintilla] = [],
         [Ghostty] = [],
         [UI] = [Abstractions, Core, Client, Remote, Scintilla, Ghostty, Api, ApiUi, Kit, "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex"],
@@ -69,7 +69,7 @@ internal static class BoundaryChecks
         var projects = new[] { "src", "tests" }.Select(area => Path.Combine(root, area)).Where(Directory.Exists)
             .SelectMany(Directory.EnumerateDirectories).SelectMany(directory => Directory.EnumerateFiles(directory, "*.csproj", SearchOption.AllDirectories).Where(project => !Path.GetRelativePath(directory, project).Split(Path.DirectorySeparatorChar).Any(part => Generated.Contains(part) || part.StartsWith('.')))).Order(StringComparer.Ordinal).ToArray();
         var rules = Allowed.ToDictionary();
-        foreach (var plugin in new[] { "SpecDialect", "Blueprint", "ClaudeCode", "Discord", "PdfPreview", "BranchGraph", "Visualize", "FileIcons", "Codex" })
+        foreach (var plugin in new[] { "SpecDialect", "Blueprint", "ClaudeCode", "Discord", "PdfPreview", "BranchGraph", "Visualize", "FileIcons", "Codex", "Tailscale" })
         {
             var contract = "SharpRail.Plugins." + plugin;
             rules[contract] = [Api];

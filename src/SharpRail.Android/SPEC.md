@@ -223,3 +223,11 @@ than 600 dp starts on the centre-only `focus` preset, with the panels behind the
 
 Not verified: physical devices, working in the workbench on a phone beyond its first frame, input methods other than Gboard, TalkBack and other
 accessibility services, plugin UI beyond what the default workbench shows, HTTPS endpoints and CI.
+
+## Tailscale pairing
+
+The connect screen can mount the builtin [Tailscale picker](../SharpRail.Plugins.Tailscale/SPEC.md). Android
+uses a MagicDNS host name instead of enumerating another app's private peer list. Pairing handles approval
+and remembers its own token. Launching a remembered Tailscale connection bootstraps again to obtain the
+host's current port. Manual entry and QR scanning remain available. Desktop picker window source and XAML
+are excluded from the linked UI sources.

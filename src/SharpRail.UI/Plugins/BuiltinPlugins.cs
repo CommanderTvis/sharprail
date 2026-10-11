@@ -15,6 +15,8 @@ using SharpRail.Plugins.FileIcons.UI;
 using SharpRail.Plugins.PdfPreview;
 using SharpRail.Plugins.PdfPreview.UI;
 using SharpRail.Plugins.SpecDialect;
+using SharpRail.Plugins.Tailscale;
+using SharpRail.Plugins.Tailscale.UI;
 using SharpRail.Plugins.Visualize;
 using SharpRail.Plugins.Visualize.UI;
 
@@ -33,6 +35,7 @@ public static class BuiltinPlugins
         (BranchGraphPlugin.Manifest, () => new BranchGraphUI()),
         (VisualizeContract.Manifest, () => new VisualizeUI()),
         (FileIconsManifest.Manifest, () => new FileIconsUI()),
-        (CodexManifest.Manifest, () => new CodexUI())
+        (CodexManifest.Manifest, () => new CodexUI()),
+        (TailscaleContract.Manifest, () => new TailscaleUI())
     ];
 }

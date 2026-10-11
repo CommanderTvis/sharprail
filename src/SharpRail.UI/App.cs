@@ -7,6 +7,8 @@ using Avalonia.Markup.Xaml;
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
 using SharpRail.Host.Core;
+using SharpRail.Plugins.Tailscale;
+using SharpRail.Plugins.Tailscale.UI;
 using SharpRail.UI.Rendering;
 using SharpRail.UI.State;
 using SharpRail.UI.Terminal;
@@ -46,84 +48,110 @@ public sealed partial class App : Application
 #if !ANDROID
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            var endpoint = Environment.GetEnvironmentVariable("SHARPRAIL_REMOTE");
-            var initialRoot = Environment.GetEnvironmentVariable("SHARPRAIL_ROOT") ?? Directory.GetCurrentDirectory();
-            var profileDirectory = Environment.GetEnvironmentVariable("SHARPRAIL_PROFILE");
-            var profile = profileDirectory is null ? ProfileStore.OpenDefault(initialRoot) : new ProfileStore(profileDirectory);
-            var token = Environment.GetEnvironmentVariable("SHARPRAIL_TOKEN") ?? "";
-            // The local host's state always migrates, so a remote session never leaves pre-host fields behind.
-            var local = profile.OpenState();
-            var remote = !string.IsNullOrEmpty(endpoint);
-            // Every window's project session is the same client of the host as the state subscription.
-            var connection = new HostConnection();
-            IHostStateService stateService = remote ? new RemoteStateAdapter(new Uri(endpoint!), token, connection) : new LocalStateAdapter(local);
-            var state = new SharedState(stateService, profile.Data.Preferences, remote ? null : local.Current, connection);
-            var remoteTerminals = remote ? new RemoteTerminalAdapter(new Uri(endpoint!), token) : null;
-            // Local sessions belong to the app's host: they survive their windows and end when the app quits.
-            var localTerminals = remoteTerminals is null && !OperatingSystem.IsWindows() ? new PtyTerminalService(recordingsDirectory: Path.Combine(profile.DirectoryPath, "terminals"),
-                replayBytes: () => local.Current.Settings.TerminalReplayKb * 1024) : null;
-            // A removed workspace takes its shells with it, whichever window removed it.
-            if (localTerminals is not null) local.WorkspaceRemoved += path => _ = Task.Run(async () => await localTerminals.CloseWorkspaceAsync(path));
-            local.Terminals = localTerminals;
-            // The app's own host runs its plugins in process; a remote host runs them where it runs.
-            var loopback = remote ? null : new SharpRail.Host.Remote.LoopbackServer(localTerminals, local);
-            var runtime = loopback is null ? null : new SharpRail.Host.Core.Plugins.PluginRuntime(new()
+            if (desktop.Args?.Contains("--tailscale", StringComparer.Ordinal) == true)
             {
-                StateDirectory = profile.DirectoryPath,
-                State = local,
-                PublicBaseUrl = () => loopback.BaseUrl,
-                Terminals = localTerminals
-            });
-            if (loopback is not null) loopback.Plugins = runtime;
-            runtime?.Start();
-            var listener = runtime is null ? null : new SharpRail.Host.Remote.HostListener(initialRoot, local, localTerminals, runtime);
-            var remotePlugins = remote ? new RemotePluginAdapter(new Uri(endpoint!), token) : null;
-            IPluginService plugins = remotePlugins ?? (IPluginService)new LocalPluginAdapter(runtime!);
-            Func<IProjectServices> sessions = remote
-                ? () => new RemoteProjectAdapter(new Uri(endpoint!), token, connection)
-                : () => new LocalProjectAdapter(new ProjectServices(initialRoot, local, runtime!.AllowsExternalFile));
-            string Renderer() => profile.Data.Preferences.TerminalRenderer;
-            Terminals = remoteTerminals is not null
-                ? TerminalBackends.Ghostty(new RemoteTerminalConnection(new Uri(endpoint!), token, remoteTerminals), Renderer)
-                : localTerminals is not null ? TerminalBackends.Ghostty(new LoopbackTerminals(new LocalTerminalAdapter(localTerminals), loopback!), Renderer)
-                : launch => TerminalBackends.Unavailable("Embedded terminals currently require macOS.");
-            // Which terminal tabs exist is the host's to say, so every window and every other client shows the same ones.
-            var remoteCatalog = remote ? new RemoteTerminalCatalogAdapter(new Uri(endpoint!), token) : null;
-            ITerminalCatalogService? catalog = remoteCatalog is not null ? remoteCatalog : localTerminals is not null ? new LocalTerminalCatalogAdapter(localTerminals) : null;
-            var workbench = new Workbench(profile, state, Terminals, remote, sessions, plugins, catalog)
-            {
-                Endpoint = remote ? endpoint! : "local",
-                Listener = listener,
-                Notifier = OperatingSystem.IsMacOS() ? Notifications.MacNotifier.Create() : null
-            };
-            if (OperatingSystem.IsMacOS()) ApplicationMenu.Install(this, workbench.Commands);
-            foreach (var slot in profile.Data.Windows.ToArray())
-            {
-                var root = slot.LastProject.Length > 0 ? slot.LastProject : slot == profile.Data.Windows[0] ? initialRoot : "";
-                var window = workbench.Open(slot, root);
-                // `--link <location>` opens a serialized location in the first window once it has restored its own.
-                if (desktop.MainWindow is null && desktop.Args is { } args && Array.IndexOf(args, "--link") is >= 0 and var at && at + 1 < args.Length)
-                    window.StartLink = args[at + 1];
-                desktop.MainWindow ??= window;
-                if (window != desktop.MainWindow) window.Show();
-            }
-            workbench.Commands.Shutdown = () => desktop.TryShutdown();
-            desktop.ShutdownRequested += (_, _) => workbench.ShuttingDown = true;
-            desktop.Exit += (_, _) =>
-            {
-                (stateService as IDisposable)?.Dispose(); remoteTerminals?.Dispose(); remoteCatalog?.Dispose(); remotePlugins?.Dispose();
-                // Off the UI thread: ending shells awaits their exit, which a blocked dispatcher would never resume.
-                // Plugins stop first, before the terminals and the loopback server they reach.
-                Task.Run(async () =>
+                var directory = TailscaleClientDirectory();
+                var connect = new TailscaleDesktopWindow(Path.Combine(directory, "tailscale-client.json"));
+                desktop.MainWindow = connect;
+                connect.Connected += connection =>
                 {
-                    if (listener is not null) await listener.DisposeAsync();
-                    if (runtime is not null) await runtime.DisposeAsync();
-                    if (loopback is not null) await loopback.DisposeAsync();
-                    if (localTerminals is not null) await localTerminals.DisposeAsync();
-                }).GetAwaiter().GetResult();
-            };
+                    desktop.MainWindow = null;
+                    StartDesktop(desktop, connection);
+                    desktop.MainWindow?.Show();
+                    connect.Close();
+                };
+            }
+            else StartDesktop(desktop, null);
         }
 #endif
         base.OnFrameworkInitializationCompleted();
     }
+
+#if !ANDROID
+    private static string TailscaleClientDirectory() => Path.Combine(Environment.GetEnvironmentVariable("SHARPRAIL_PROFILE") ??
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".sharprail"), "tailscale-client");
+
+    private void StartDesktop(IClassicDesktopStyleApplicationLifetime desktop, TailscaleConnection? chosen)
+    {
+        var endpoint = chosen?.Address ?? Environment.GetEnvironmentVariable("SHARPRAIL_REMOTE");
+        var initialRoot = Environment.GetEnvironmentVariable("SHARPRAIL_ROOT") ?? (chosen is null ? Directory.GetCurrentDirectory() : "");
+        var profileDirectory = chosen is null ? Environment.GetEnvironmentVariable("SHARPRAIL_PROFILE") : TailscaleClientDirectory();
+        var profile = profileDirectory is null ? ProfileStore.OpenDefault(initialRoot) : new ProfileStore(profileDirectory);
+        var token = chosen?.Token ?? Environment.GetEnvironmentVariable("SHARPRAIL_TOKEN") ?? "";
+        // The local host's state always migrates, so a remote session never leaves pre-host fields behind.
+        var local = profile.OpenState();
+        var remote = !string.IsNullOrEmpty(endpoint);
+        // Every window's project session is the same client of the host as the state subscription.
+        var connection = new HostConnection();
+        IHostStateService stateService = remote ? new RemoteStateAdapter(new Uri(endpoint!), token, connection) : new LocalStateAdapter(local);
+        var state = new SharedState(stateService, profile.Data.Preferences, remote ? null : local.Current, connection);
+        var remoteTerminals = remote ? new RemoteTerminalAdapter(new Uri(endpoint!), token) : null;
+        // Local sessions belong to the app's host: they survive their windows and end when the app quits.
+        var localTerminals = remoteTerminals is null && !OperatingSystem.IsWindows() ? new PtyTerminalService(recordingsDirectory: Path.Combine(profile.DirectoryPath, "terminals"),
+            replayBytes: () => local.Current.Settings.TerminalReplayKb * 1024) : null;
+        // A removed workspace takes its shells with it, whichever window removed it.
+        if (localTerminals is not null) local.WorkspaceRemoved += path => _ = Task.Run(async () => await localTerminals.CloseWorkspaceAsync(path));
+        local.Terminals = localTerminals;
+        // The app's own host runs its plugins in process; a remote host runs them where it runs.
+        var loopback = remote ? null : new SharpRail.Host.Remote.LoopbackServer(localTerminals, local);
+        var tailscale = new TailscaleServing();
+        var runtime = loopback is null ? null : new SharpRail.Host.Core.Plugins.PluginRuntime(new()
+        {
+            StateDirectory = profile.DirectoryPath,
+            State = local,
+            PublicBaseUrl = () => loopback.BaseUrl,
+            Terminals = localTerminals,
+            Builtins = SharpRail.Host.Core.Plugins.BuiltinPlugins.Create(tailscale)
+        });
+        if (loopback is not null) loopback.Plugins = runtime;
+        var listener = runtime is null ? null : new SharpRail.Host.Remote.HostListener(initialRoot, local, localTerminals, runtime);
+        listener?.ConfigureTailscale(tailscale);
+        runtime?.Start();
+        var remotePlugins = remote ? new RemotePluginAdapter(new Uri(endpoint!), token) : null;
+        IPluginService plugins = remotePlugins ?? (IPluginService)new LocalPluginAdapter(runtime!);
+        Func<IProjectServices> sessions = remote
+            ? () => new RemoteProjectAdapter(new Uri(endpoint!), token, connection)
+            : () => new LocalProjectAdapter(new ProjectServices(initialRoot, local, runtime!.AllowsExternalFile));
+        string Renderer() => profile.Data.Preferences.TerminalRenderer;
+        Terminals = remoteTerminals is not null
+            ? TerminalBackends.Ghostty(new RemoteTerminalConnection(new Uri(endpoint!), token, remoteTerminals), Renderer)
+            : localTerminals is not null ? TerminalBackends.Ghostty(new LoopbackTerminals(new LocalTerminalAdapter(localTerminals), loopback!), Renderer)
+            : launch => TerminalBackends.Unavailable("Embedded terminals currently require macOS.");
+        // Which terminal tabs exist is the host's to say, so every window and every other client shows the same ones.
+        var remoteCatalog = remote ? new RemoteTerminalCatalogAdapter(new Uri(endpoint!), token) : null;
+        ITerminalCatalogService? catalog = remoteCatalog is not null ? remoteCatalog : localTerminals is not null ? new LocalTerminalCatalogAdapter(localTerminals) : null;
+        var workbench = new Workbench(profile, state, Terminals, remote, sessions, plugins, catalog)
+        {
+            Endpoint = remote ? endpoint! : "local",
+            Listener = listener,
+            Notifier = OperatingSystem.IsMacOS() ? Notifications.MacNotifier.Create() : null
+        };
+        if (OperatingSystem.IsMacOS()) ApplicationMenu.Install(this, workbench.Commands);
+        foreach (var slot in profile.Data.Windows.ToArray())
+        {
+            var root = slot.LastProject.Length > 0 ? slot.LastProject : slot == profile.Data.Windows[0] ? initialRoot : "";
+            var window = workbench.Open(slot, root);
+            // `--link <location>` opens a serialized location in the first window once it has restored its own.
+            if (desktop.MainWindow is null && desktop.Args is { } args && Array.IndexOf(args, "--link") is >= 0 and var at && at + 1 < args.Length)
+                window.StartLink = args[at + 1];
+            desktop.MainWindow ??= window;
+            if (window != desktop.MainWindow) window.Show();
+        }
+        workbench.Commands.Shutdown = () => desktop.TryShutdown();
+        desktop.ShutdownRequested += (_, _) => workbench.ShuttingDown = true;
+        desktop.Exit += (_, _) =>
+        {
+            (stateService as IDisposable)?.Dispose(); remoteTerminals?.Dispose(); remoteCatalog?.Dispose(); remotePlugins?.Dispose();
+            // Off the UI thread: ending shells awaits their exit, which a blocked dispatcher would never resume.
+            // Plugins stop first, before the terminals and the loopback server they reach.
+            Task.Run(async () =>
+            {
+                if (listener is not null) await listener.DisposeAsync();
+                if (runtime is not null) await runtime.DisposeAsync();
+                if (loopback is not null) await loopback.DisposeAsync();
+                if (localTerminals is not null) await localTerminals.DisposeAsync();
+            }).GetAwaiter().GetResult();
+        };
+    }
+#endif
 }

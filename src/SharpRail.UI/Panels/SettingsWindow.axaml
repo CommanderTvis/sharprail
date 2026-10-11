@@ -43,6 +43,7 @@
     <DataTemplate x:Key="HostPage">
       <StackPanel Spacing="8">
         <TextBlock Text="Host" Classes="settings-heading" />
+        <Button x:Name="HostTailscaleConnect" Content="Connect to a Tailscale host" HorizontalAlignment="Left" />
         <TextBlock x:Name="HostDescription" Text="Let other SharpRail clients connect to this running app. They share its projects, settings, plugins and terminals." Classes="settings-description" />
         <StackPanel x:Name="HostControls" Spacing="8">
           <TextBlock Text="Bind address" Classes="settings-label" />

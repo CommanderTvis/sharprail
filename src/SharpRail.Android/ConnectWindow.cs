@@ -7,6 +7,8 @@ using Avalonia.Styling;
 using Grpc.Core;
 
 using SharpRail.Host.Client;
+using SharpRail.Plugins.Tailscale;
+using SharpRail.Plugins.Tailscale.UI;
 using SharpRail.UI.Android.Windowing;
 using SharpRail.UI.State;
 
@@ -23,12 +25,14 @@ public sealed partial class ConnectWindow : Window
     private readonly Button scan;
     private CancellationTokenSource? attempt;
     private bool abandoned;
+    private readonly string? tailscaleStatePath;
 
     /// <summary>Raised once the host answered with the entered token.</summary>
     public event Action<HostEndpoint>? Connected;
 
-    public ConnectWindow(HostEndpoint? remembered)
+    public ConnectWindow(HostEndpoint? remembered, string? tailscaleStatePath = null)
     {
+        this.tailscaleStatePath = tailscaleStatePath;
         // Stock controls and the system bars take their colours from the variant, which follows the app's theme.
         RequestedThemeVariant = Ui.Theme.IsLight ? ThemeVariant.Light : ThemeVariant.Dark;
         AvaloniaXamlLoader.Load(this);
@@ -49,13 +53,42 @@ public sealed partial class ConnectWindow : Window
         scan = this.FindControl<Button>("ConnectScan")!;
         scan.Content = Ui.Row("qrScan", "Scan QR code", Ui.TextBrush);
         scan.Click += (_, _) => _ = ScanAsync();
+        var tailscale = this.FindControl<Button>("ConnectTailscale")!;
+        tailscale.IsVisible = tailscaleStatePath is not null;
+        tailscale.Click += (_, _) => ShowTailscale();
+        this.FindControl<Button>("ConnectManualBack")!.Click += (_, _) =>
+        {
+            this.FindControl<ContentControl>("ConnectTailscaleBody")!.Content = null;
+            this.FindControl<StackPanel>("ConnectManual")!.IsVisible = true;
+            tailscale.IsVisible = true;
+            this.FindControl<Button>("ConnectManualBack")!.IsVisible = false;
+        };
         submit.Click += (_, _) => { if (attempt is null) _ = ConnectAsync(); else Abandon(); };
         Closed += (_, _) => Abandon();
         Refresh();
     }
 
     /// <summary>Tries the remembered host without waiting for a tap.</summary>
-    public void ConnectNow() => _ = ConnectAsync();
+    public void ConnectNow() => _ = RestoreConnectionAsync();
+
+    private async Task RestoreConnectionAsync()
+    {
+        var pairing = tailscaleStatePath is null ? null : await Task.Run(() => TailscaleClient.Load(tailscaleStatePath));
+        if (!IsVisible) return;
+        if (pairing is not null && pairing.Token == token.Text) ShowTailscale();
+        else await ConnectAsync();
+    }
+
+    private void ShowTailscale()
+    {
+        if (tailscaleStatePath is null) return;
+        var view = new TailscaleConnectView(tailscaleStatePath);
+        view.Connected += next => Connected?.Invoke(new(next.Address, next.Token));
+        this.FindControl<StackPanel>("ConnectManual")!.IsVisible = false;
+        this.FindControl<Button>("ConnectTailscale")!.IsVisible = false;
+        this.FindControl<ContentControl>("ConnectTailscaleBody")!.Content = view;
+        this.FindControl<Button>("ConnectManualBack")!.IsVisible = true;
+    }
 
     private void Refresh()
     {

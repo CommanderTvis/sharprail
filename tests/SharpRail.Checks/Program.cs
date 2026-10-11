@@ -654,6 +654,14 @@ internal static class Program
             Console.WriteLine("PASS Changes checks");
             return;
         }
+        if (args.SequenceEqual(["--tailscale"]))
+        {
+            TailscaleChecks.Run(root).GetAwaiter().GetResult();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            TailscaleChecks.RunUi(root);
+            return;
+        }
         Gate.Case("packaged-app", PackagedApp.Run);
         Gate.Case("boundaries", () => BoundaryChecks.Run(root));
         Gate.Case("public-surface", () => SurfaceChecks.Run(root));
@@ -680,6 +688,7 @@ internal static class Program
         Gate.Case("host-state", () => StateStoreChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("project-paths", () => ProjectPathChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("specs", () => SpecChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("tailscale", () => TailscaleChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("host-listener", () => HostListenerChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("plugin-host", () => PluginHostChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("spec-dialect", () => SpecDialectChecks.Run(root).GetAwaiter().GetResult());
@@ -697,6 +706,7 @@ internal static class Program
         Gate.Case("drawn-rendering", DrawnRenderingChecks.Run);
         Gate.Case("design", () => Design.DesignChecks.Run(write: false));
         Gate.Case("design-roles", Design.RoleChecks.Run);
+        Gate.Case("tailscale-ui", () => TailscaleChecks.RunUi(root));
         Gate.Case("plugin-ui", () => PluginUiChecks.Run(root));
         Gate.Case("file-actions", () => FileActionChecks.Run(root));
         Gate.Case("spec-dialect-ui", () => SpecDialectChecks.RunUi(Path.Combine(root, "upstream-e2e")));

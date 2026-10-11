@@ -527,6 +527,9 @@ back and forward buttons are not asserted.
   the hermetic PATH, without importing the developer's login environment, and delegates normal
   terminal execution to a real shell, so developer tools cannot leak into isolated fixtures.
 
+`--tailscale` covers builtin Tailscale bootstrap, approved-token authentication and revocation using fake
+peer identities over real HTTP/gRPC. It never reaches the developer's Tailscale installation or tailnet.
+
 `MarkdownSelectionChecks` runs with `--drawn-rendering` and the default gate. It checks reverse
 and shrinking drags in a virtual document, source-line observers, offscreen Shift-click and
 Copy, plus rendered selection, inline/font invalidation and detach/remount under every theme.

@@ -260,3 +260,10 @@ drawing controls are compiled XAML; no app dependency is introduced into the plu
 File Icons occupies the file icon slot only for files. Its cached asset bytes feed a compiled icon frame
 that retains a plain file glyph until a valid SVG is available. Missing and malformed assets preserve
 that fallback. Theme changes recolour existing controls; resizing retains tab icon controls.
+
+## Tailscale before connection
+
+The builtin [Tailscale plugin](../../SharpRail.Plugins.Tailscale/SPEC.md) contributes approval Settings
+through ordinary activation, and exposes a client-local picker for discovery and bootstrap before any
+host projection exists. Desktop and Android composition mount that picker directly; discovery never
+uses an unconnected host's RPC. Other plugin activation remains roster-driven.

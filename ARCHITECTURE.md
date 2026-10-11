@@ -144,3 +144,7 @@ tests/SharpRail.Checks    executable checks; references UI and Remote to exercis
   at an immutable commit (not HTTP routes); the host never executes content and the UI draws pixels only,
   so repository script never runs.
 - A mobile shell projecting the same panels. The Android client shows the desktop workbench unchanged.
+
+The optional builtin Tailscale plugin owns tailnet discovery and pre-connection device approval. Its
+injected serving bridge supplies approved-token authentication and embedded listener startup; the host
+remains transport-independent below Remote. See [the plugin contract](src/SharpRail.Plugins.Tailscale/SPEC.md).

@@ -497,3 +497,7 @@ disappearance shows.
 - An explicit notice on a diff tab whose two sides became identical after its file left the change set;
   the tab keeps its last content.
 - Live refresh for remote hosts.
+
+Settings › Host offers a dedicated Tailscale client instance; plugin-owned Settings › Tailscale shows
+verified pairing requests and remembered-device revocation. See
+[Tailscale](../SharpRail.Plugins.Tailscale/SPEC.md).

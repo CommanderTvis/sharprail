@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Hosting.Server.Features;
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Core;
 using SharpRail.Host.Core.Plugins;
+using SharpRail.Plugins.Tailscale;
 
 namespace SharpRail.Host.Remote;
 
@@ -17,6 +18,40 @@ public sealed class HostListener(string root, HostStateStore state, ITerminalSer
     private WebApplication? server;
     private Uri? endpoint;
     private bool disposed;
+    private TailscaleServing? tailscale;
+    private readonly SemaphoreSlim pairingGate = new(1, 1);
+    private Uri? pairingEndpoint;
+
+    public void ConfigureTailscale(TailscaleServing serving)
+    {
+        tailscale = serving;
+        serving.EnsureListening = async (address, cancellationToken) =>
+        {
+            await pairingGate.WaitAsync(cancellationToken);
+            try
+            {
+                if (Endpoint is null)
+                {
+                    await StartAsync(IPAddress.Parse(address), 0, Token, cancellationToken);
+                    pairingEndpoint = Endpoint;
+                }
+                if (!Address.Equals(IPAddress.Any) && !Address.Equals(IPAddress.IPv6Any) && Address.ToString() != address)
+                    throw new IOException("Stop the existing listener in Settings › Host so Tailscale can start one on its network address.");
+                return new UriBuilder("http", address, Port).Uri.ToString();
+            }
+            finally { pairingGate.Release(); }
+        };
+        serving.StopListening = async () =>
+        {
+            await pairingGate.WaitAsync();
+            try
+            {
+                if (pairingEndpoint is not null && ReferenceEquals(Endpoint, pairingEndpoint)) await StopAsync();
+                pairingEndpoint = null;
+            }
+            finally { pairingGate.Release(); }
+        };
+    }
 
     public IPAddress Address { get; private set; } = IPAddress.Loopback;
     public int Port { get; private set; } = 54123;
@@ -33,7 +68,7 @@ public sealed class HostListener(string root, HostStateStore state, ITerminalSer
         {
             ObjectDisposedException.ThrowIf(disposed, this);
             if (server is not null) throw new InvalidOperationException("The host is already listening.");
-            var candidate = RemoteServer.CreateListener(root, address, port, token, state, terminals, plugins);
+            var candidate = RemoteServer.CreateListener(root, address, port, token, state, terminals, plugins, tailscale);
             try
             {
                 await candidate.StartAsync(cancellationToken);

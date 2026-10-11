@@ -342,3 +342,11 @@ menu. Abrupt death relies on operating-system process cleanup; remote shells bel
 - Renderer capabilities beyond dispatch: review anchor geometry, phone support and the per-renderer copy,
   layout and whitespace flags. The diff pane decides its own split, whitespace and copy controls from
   whether the source diff is showing, and there is no review surface to anchor to.
+
+## Tailscale client entry
+
+`--tailscale` starts the builtin plugin's picker before constructing a remote workbench. Settings › Host
+can open that client in a separate app instance, preserving the local host. A remembered host name and
+client token live in a `tailscale-client` subdirectory of the active profile, isolating the dedicated
+client instance from the embedded host's profile; bootstrap resolves the current endpoint before connecting.
+See [Tailscale](../SharpRail.Plugins.Tailscale/SPEC.md).

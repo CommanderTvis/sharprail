@@ -209,3 +209,14 @@ Host › Disconnect forgets the token. The connection is cleartext HTTP/2, so us
 Tailscale. Requires Android 7.0 or later on arm64 or x86-64. Most validation has been on phone and tablet
 emulators; a physical Pixel 8 has only been checked through installation and the connect screen.
 See `src/SharpRail.Android/SPEC.md` for the design and limits.
+
+### Pair over Tailscale
+
+On the host, enable Tailscale in Settings › Plugins, then open Settings › Tailscale. On a desktop client,
+choose Settings › Host › Connect to a Tailscale host (or launch with `--tailscale`) and click Find hosts.
+On Android, choose Connect over Tailscale and enter the host's MagicDNS name shown on the host. Both
+devices must be connected to Tailscale; Android must use Tailscale DNS and route SharpRail through its VPN.
+No IP, port or session-token copying is required. Compare the pairing code and approve the device on the
+host. Subsequent launches of the Tailscale client remember the pairing. Revoke a device in Settings ›
+Tailscale. The host requires the Tailscale CLI and available TCP port 54124; tailnet policy must allow
+bootstrap and the host's gRPC listener. A standalone host must bind its listener to its Tailscale address.
