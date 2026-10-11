@@ -2793,3 +2793,17 @@ UI checks, including row geometry and staging/restoration, pass
 (.bench/change-row-focused-real-layout.log). Full suite stopped before Markdown
 at a MultiClientE2E Project Home timeout (.bench/markdown-source-checks.log).
 Temporary runner restored. Changes uncommitted; no publication or restart.
+
+# Continuous Changes review — 2026-10-11
+
+Ported the scope review UI from upstream `f7cca7b` and advanced `UPSTREAM.md`;
+Git graph and AI integrations remain outside this task. Single click browses the
+scope review, double click keeps an individual diff. Review supports lazy stacked
+sections, One file mode, sticky headers, Keep/viewed progress, navigation and the
+existing host-confirmed revert/undo path. Progress is session-local; layout mode
+is an app preference. Owning specs and interaction checks were updated.
+
+Release source gate passed through a four-lane run and serial last-failed repairs;
+the runner has no unfinished cases. Focused review coverage also passes for
+untracked content. See VALIDATION.md for evidence. Changes are uncommitted;
+no push, packaging, or app restart was requested.

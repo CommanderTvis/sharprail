@@ -366,7 +366,7 @@ internal static partial class ResourceChecks
         File.WriteAllText(Path.Combine(root, "model.bin"), Pointer.Replace("12345", "2048"));
         Quiet(app);
         ShowChanges(app);
-        ClickRow(app, "photo.png");
+        ClickRow(app, "photo.png", twice: true);
         var diff = Await<Grid>(app, "ImageDiff");
         Require(Pane(app)!.GetLogicalDescendants().OfType<ToggleButton>().Where(toggle => toggle.Name!.StartsWith("DiffView_", StringComparison.Ordinal)).Select(toggle => toggle.Name)
             .SequenceEqual(["DiffView_image", "DiffView_binary"]), "A picture diff offers the image view above the byte card.");
@@ -390,25 +390,25 @@ internal static partial class ResourceChecks
         Require(cards.GetLogicalDescendants().OfType<StackPanel>().Count(panel => panel.Name?.StartsWith("BinarySide_", StringComparison.Ordinal) == true) == 2 &&
             Text(cards).Contains("image/png", StringComparison.Ordinal) && Text(cards).Contains("SHA-256", StringComparison.Ordinal), "The byte card describes both sides: " + Text(cards));
 
-        ClickRow(app, "doc.pdf");
+        ClickRow(app, "doc.pdf", twice: true);
         Until(() => Shown<Grid>(app, "BinaryDiff") is { } pdf && Text(pdf).Contains("application/pdf", StringComparison.Ordinal));
         Require(!Pane(app)!.GetLogicalDescendants().OfType<Image>().Any() && !Pane(app)!.GetLogicalDescendants().OfType<ToggleButton>().Any(toggle => toggle.Name!.StartsWith("DiffView_", StringComparison.Ordinal) && toggle.IsEffectivelyVisible),
             "A PDF diff shows cards only.");
 
-        ClickRow(app, "data.csv");
+        ClickRow(app, "data.csv", twice: true);
         var tableDiff = Await<ListBox>(app, "TableDiff");
         Require(tableDiff.ItemsSource!.Cast<AlignedRow>().Select(row => row.Kind).SequenceEqual([TableChange.Unchanged, TableChange.Changed, TableChange.Changed]) &&
             Shown<ToggleButton>(app, "DiffView_csv")!.IsChecked == true && Shown<ToggleButton>(app, "DiffView_code") is not null, "A delimited diff opens as a table of changed rows and cells.");
-        ClickRow(app, "config.json");
+        ClickRow(app, "config.json", twice: true);
         var jsonDiff = Await<TreeView>(app, "JsonDiff");
         Require(jsonDiff.GetLogicalDescendants().OfType<TreeViewItem>().Count(item => item.Classes.Contains("json-added")) == 1 &&
             jsonDiff.GetLogicalDescendants().OfType<TreeViewItem>().Count(item => item.Classes.Contains("json-changed")) == 3, "A JSON diff opens as the tree of what changed.");
-        ClickRow(app, "nb.ipynb");
+        ClickRow(app, "nb.ipynb", twice: true);
         var notebookDiff = Await<ScrollViewer>(app, "NotebookDiff");
         Require(notebookDiff.GetLogicalDescendants().OfType<Border>().Count(border => border.Classes.Contains("notebook-changed")) == 1 && Text(notebookDiff).Contains("1 unchanged cell", StringComparison.Ordinal),
             "A notebook diff shows the edited cell and counts the rest: " + Text(notebookDiff));
 
-        ClickRow(app, "README.md");
+        ClickRow(app, "README.md", twice: true);
         Until(() => Pane(app) is { } pane && pane.GetLogicalDescendants().OfType<SharpRail.UI.Rendering.MarkdownPreview>().Any(preview => preview.Name == "RenderedDiff" && preview.IsEffectivelyVisible));
         Require(Shown<ToggleButton>(app, "DiffView_markdown")!.IsChecked == true && Shown<ToggleButton>(app, "DiffSplit") is null, "A Markdown diff opens on its rendered view, chosen from the registry.");
         app.Click(Shown<ToggleButton>(app, "DiffView_code")!);
@@ -420,7 +420,7 @@ internal static partial class ResourceChecks
 
         paragraphs[5] = "Paragraph 6 rewritten."; entries[7] = "8. entry 8 rewritten";
         File.WriteAllText(Path.Combine(root, "FOCUS.md"), FocusText());
-        ClickRow(app, "FOCUS.md");
+        ClickRow(app, "FOCUS.md", twice: true);
         string[] Collapsed() => Pane(app) is { } pane ? [.. pane.GetLogicalDescendants().OfType<Button>().Where(button => button.Classes.Contains("rendered-diff-collapsed") && button.IsEffectivelyVisible)
             .Select(button => ((TextBlock)button.Content!).Text!)] : [];
         Until(() => Collapsed().Length == 3);
@@ -436,11 +436,11 @@ internal static partial class ResourceChecks
         Require(Rendered().Contains("Paragraph 2 text.", StringComparison.Ordinal), "An expansion survives a refresh while its run starts at the same position.");
 
         File.WriteAllText(Path.Combine(root, "BIG.md"), large + "Appended paragraph.\n");
-        ClickRow(app, "BIG.md");
+        ClickRow(app, "BIG.md", twice: true);
         Until(() => Shown<ToggleButton>(app, "DiffView_markdown") is { IsEnabled: false } && DiffText(app).Contains("Appended paragraph.", StringComparison.Ordinal));
         Require(Shown<ToggleButton>(app, "DiffView_code")!.IsChecked == true, "A view that cannot draw the content is disabled and the next candidate takes over.");
 
-        ClickRow(app, "model.bin");
+        ClickRow(app, "model.bin", twice: true);
         var lfs = Await<Grid>(app, "LfsDiff");
         Require(Text(lfs).Contains("12 KB", StringComparison.Ordinal) && Text(lfs).Contains("2.0 KB", StringComparison.Ordinal), "An LFS pointer diff shows both objects' sizes: " + Text(lfs));
     }

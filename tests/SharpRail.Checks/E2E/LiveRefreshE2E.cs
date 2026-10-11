@@ -70,7 +70,7 @@ internal static class LiveRefreshE2E
         Require(!Paths(app).Contains("README.md"), "A clean README must not be listed.");
         File.WriteAllText(Path.Combine(worktree, "README.md"), "# sample-project\n\nedited live by e2e\n");
         Until(() => RenderedDiffE2E.Modified(app, "README.md"));
-        ClickRow(app, "README.md");
+        ClickRow(app, "README.md", twice: true);
         UntilDiff(app, text => text.Contains("edited live by e2e", StringComparison.Ordinal));
         File.WriteAllText(Path.Combine(worktree, "README.md"), "# sample-project\n\nedited twice by e2e\n");
         UntilDiff(app, text => text.Contains("edited twice by e2e", StringComparison.Ordinal));

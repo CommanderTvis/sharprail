@@ -8,7 +8,7 @@ upstream revision; module specs link here rather than recording their own hashes
 The revision records completed spec triage and adaptation, not implementation
 completion; remaining code work lives in each spec's `Not yet ported` section.
 
-Synced commit: `830de941a12905c54ff7c0418acc6bde2d9a5157` (2026-10-09)
+Synced commit: `f7cca7bfb0b1d0543eb9898c52d28df5a784eb09` (2026-10-11)
 
 ## Mapping
 
@@ -26,11 +26,11 @@ Synced commit: `830de941a12905c54ff7c0418acc6bde2d9a5157` (2026-10-09)
 | `apps/web/src/transport/SPEC.md` | `src/SharpRail.Host.Client/SPEC.md` |
 | `packages/server/src/auth/SPEC.md` | `src/SharpRail.Host.Remote/SPEC.md` |
 | `apps/web/SPEC.md`, `apps/desktop/SPEC.md`, `apps/web/src/resources/SPEC.md` | `src/SharpRail.UI/SPEC.md` |
-| `apps/web/src/shell/SPEC.md`, `apps/web/src/shell/{layout,layoutState}/SPEC.md` | `src/SharpRail.UI/Docking/SPEC.md` |
+| `apps/web/src/shell/SPEC.md`, `apps/web/src/shell/{layout,layoutState,layoutIntents}/SPEC.md` | `src/SharpRail.UI/Docking/SPEC.md` |
 | `apps/web/src/shell/locationBar/SPEC.md` | `src/SharpRail.UI/SPEC.md` |
 | `apps/web/src/store/SPEC.md`, `apps/web/src/navigation/SPEC.md` | `src/SharpRail.UI/State/SPEC.md` |
 | `apps/web/src/panels/SPEC.md` | `src/SharpRail.UI/Panels.SPEC.md`, `src/SharpRail.UI/Panels/SPEC.md` |
-| `apps/web/src/components/SPEC.md`, `packages/ui/SPEC.md`, `apps/web/src/lib/SPEC.md`, `apps/web/src/styles/TYPOGRAPHY.md` | `src/SharpRail.UI/Rendering/SPEC.md` |
+| `apps/web/src/components/SPEC.md`, `packages/ui/SPEC.md`, `apps/web/src/lib/SPEC.md`, `apps/web/src/resources/SPEC.md`, `apps/web/src/styles/TYPOGRAPHY.md` | `src/SharpRail.UI/Rendering/SPEC.md` |
 | `apps/web/src/themes/SPEC.md` | `src/SharpRail.UI/Rendering/Themes.SPEC.md` |
 | `apps/web/src/styles/COLOR.md` | `src/SharpRail.UI/Rendering/COLOR.md` |
 | `apps/web/src/styles/SPACING.md` | `src/SharpRail.UI/Rendering/SPACING.md` |
@@ -46,63 +46,40 @@ analytics, GitHub/PR review, desktop updates, web-only tooling): every other ups
 
 ## Latest sync triage
 
-Compared `68bb837474bf57fea1be6d9d9735172ab42b18e6` with the upstream
-checkout's local `main`: one commit, `feat(workspaces): settle quiet workspaces
-onto a per-project shelf (#663)`. No fetch was performed. The checkout's
-`origin` is the personal fork; JetBrains/thinkrail is its `upstream` remote.
-Triage completed on 2026-10-10; the revision date above is the commit date.
+Compared the previously tracked revision with the requested commit
+`f7cca7bfb0b1d0543eb9898c52d28df5a784eb09`: six commits, through the continuous
+Changes review feature (#668). The requested object was fetched directly from
+JetBrains/thinkrail into this checkout; the authoritative upstream checkout was
+not changed. Triage completed on 2026-10-11.
 
-All twelve changed specs were triaged. Nine mapped specs add applicable behavior,
-recorded in the native destinations' `Not yet ported` sections:
+Every changed spec and the changed styles were triaged. Applicable deltas are
+adapted in their mapped destinations, with unimplemented behavior explicitly
+recorded under Not yet ported:
 
-- `packages/server/src/workspaces/SPEC.md`: host-owned activity timestamps and
-  explicit settle/keep-active overrides, safe write coalescing, creation stamps,
-  HEAD baselines and one-time migration. Settling organises the list without
-  removing a worktree; Default never settles. Native activity sources are accepted
-  PTY input and actual HEAD movement; viewing or selecting is not activity.
-- `packages/server/src/host/SPEC.md`: compose these activity sources and migration
-  without allowing lifecycle-maintenance failures to block listing or kill the host.
-- `packages/server/src/watch/SPEC.md`: seed HEAD before metadata events, compare
-  the retained baseline on watcher recreation and clean up failed admission.
-- `packages/server/src/terminal/SPEC.md`: attribute only input that reaches the
-  PTY to its workspace; displaced, exited and ignored writes must not reactivate it.
-- `packages/server/src/settings/SPEC.md`: shared idle window, seven days by
-  default, positive integer clamped to 1–365 or null for Never; malformed stored
-  values restore the default.
-- `packages/contracts/SPEC.md`: additive activity/override facts, settle/unsettle
-  mutations and nullable idle setting, with a native capability version and
-  local/remote parity. The client derives the partition; it is never a wire boolean.
-- `apps/web/src/store/SPEC.md`: one partition for rail and header, Recent activity /
-  Created / Name sorting, Default pinned first, active-selection latch and a shared
-  clock. Native sort preferences belong in the profile; shelf expansion and paging
-  stay transient per window. Unsupported hosts retain their legacy list, and a
-  temporary disconnect must not discard the last completed capability verdict.
-- `apps/web/src/panels/SPEC.md`: collapsed Settled shelf, reason chips, paging,
-  shared Settle / Keep active actions, force-reveal of selected rows and a one-time
-  automatic-move notice with Show. Workspaces settings offers 1 / 3 / 7 / 14 days /
-  Never and does not mislabel valid non-preset values.
-- `apps/web/src/shell/locationBar/SPEC.md`: the same actions and sorted partition
-  in the workspace switcher, a Settled submenu and a settled selection caption.
+- UI, shell/layout, layoutState, layoutIntents and lib: persistent edge tool rails,
+  compatible tool/terminal panes, remount-free visibility and topology changes,
+  workspace-fenced gestures/focus, atomic attention updates, no-op notification
+  suppression, Home routing and shared modal/text-entry keyboard ownership.
+- Panels, store and resources: continuous Changes review tabs, sidebar navigation,
+  single-click reveal versus double-click individual diff, lazy bounded sections,
+  stacked/one-file presentation, viewed and content-keyed hunk Keep progress,
+  scoped session state, historical-scope immutability and renderer sizing.
+- Themes: opaque primary-fill semantics and the Minimal Light/Dark pair.
+- Shared host: login-shell environment import with inherited-value precedence and
+  excluded probe variables; it remains an implementation gap.
+- Spec graph: exclude assistant scratch directories from indexing.
+- E2E: pending rail/layout/Home translations, continuous Changes journeys and
+  fixture/disclosure-anchor invariants; no new translated coverage is claimed.
 
-The three changed untracked specs remain excluded:
-`packages/server/src/branch-review/SPEC.md` (open/merged/closed provider lookup,
-reliable review snapshots and bounded asynchronous refresh),
-`packages/server/src/host/planReview.SPEC.md` (AI review as activity), and
-`packages/server/src/pr/SPEC.md` (branch-safe PR snapshot mutation). The review
-snapshot, PR-driven settling/chips and AI session activity/backfill portions of
-mapped specs are likewise excluded under this sync's existing scope. No specs
-were added, moved or deleted; the mapping is unchanged.
+The mapping now includes layoutIntents under Docking and resource-renderer
+contracts under Rendering as well as UI. The new
+`packages/server/src/turns/SPEC.md` is not tracked: agent-run snapshots and change
+receipts are AI functionality. Changes to contracts, transport, server/git/host,
+persistence, settings, workspaces, agent, pi-delegation, chat, reviews and
+planReview specify excluded AI turn tracking, subagent concurrency or review
+guides. Web scripts' React compiler census and styles' CSS token allowance are
+web-only; chat colour changes remain excluded. No specs were deleted.
 
-Source changes reinforce the same feature. New `e2e/settled-shelf.spec.ts` covers
-manual settle/keep-active, the first-move notice, legacy-host behavior and persisted
-idle settings; these remain untranslated acceptance gaps. Existing terminal,
-workspace-tab and topbar journeys now locate rows by identity because sorting
-invalidates positional assumptions. Chat history journeys, Plan/PR changes,
-product analytics, React hydration, compact age formatting and README screenshots
-add no independent native implementation work beyond the shelf or excluded scope.
-
-Implementation work remains: host lifecycle facts and activity wiring, shared
-idle settings and compatible adapters, then the shared UI partition, shelf,
-header actions and notice with local/remote and multi-window acceptance coverage.
-This sync changes documentation only; no implementation or translated coverage
-is claimed, and advancing this revision does not claim code parity.
+This revision records completed specification triage, not implementation parity.
+Remaining native work is recorded in the owning specs. Git graph work belongs to
+another branch and is outside this task.

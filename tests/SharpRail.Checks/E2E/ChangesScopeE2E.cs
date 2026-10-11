@@ -210,12 +210,12 @@ internal static class ChangesScopeE2E
         PickTarget(app, "e2e-target");
         UntilDiff(app, text => text.Contains("committed by e2e", StringComparison.Ordinal));
 
-        ClickRow(app, "README.md");
+        ClickRow(app, "README.md", twice: true);
         UntilDiff(app, text => text.Contains("dirty edit by e2e", StringComparison.Ordinal));
         PickTarget(app, main);
         Until(() => DiffTabs(app).Where(tab => tab.Scope == "branch").All(tab => tab.Comparison == main));
 
-        ClickRow(app, "committed.txt");
+        ClickRow(app, "committed.txt", twice: true);
         UntilDiff(app, text => text.Contains("revised by the workspace", StringComparison.Ordinal));
         Require(!DiffText(app).Contains("committed by e2e", StringComparison.Ordinal), "The backgrounded diff tab must be re-read against the restored target.");
         Console.WriteLine("PASS upstream changes.spec.ts: Re-pointing the target branch re-reads an open branch-scope diff tab — active or backgrounded");

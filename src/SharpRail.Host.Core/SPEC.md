@@ -93,6 +93,11 @@ terminal attachments, never through a UI callback.
   completeness from user-directory markers; prepend inherited entries absent from the login result so
   activated environments retain precedence. Use a bounded probe with a non-interactive retry and leave
   the inherited `PATH` untouched on failure.
+- Import the remaining login-shell environment once at startup for GUI-launched hosts without `TERM`.
+  Reuse the `PATH` probe: a marker-delimited, NUL-separated environment ignores shell startup chatter,
+  with interactive login first and a login-only retry. Existing process variables win; exclude `PATH`,
+  `PWD`, `OLDPWD`, `SHLVL`, `_` and SharpRail's own `SHARPRAIL_*` controls. Imported exports become
+  available to the host and its children, including secrets the user's shell exports.
 - A retrying recursive tree removal for teardown, and first-free-port selection for the remote host.
 - Host-side routes serving raw workspace files for relative Markdown images (images load through
   `ReadFileAsync` instead). A path's bytes at one commit are served as a gRPC call

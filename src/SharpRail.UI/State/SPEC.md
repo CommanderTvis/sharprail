@@ -110,6 +110,15 @@ renderer drops it, and a late report from a renderer the tab has left is ignored
 follows the best match, so a file that gains or loses a candidate view keeps working. Split or inline and
 ignore-whitespace stay diff-only presentation held by the diff pane.
 
+## Changes review state
+
+Continuous review placement persists as a content-free Changes tab with its diff scope. The window
+owns session-local viewed paths, content-keyed Keep decisions, active path, collapse overrides, source
+layout/whitespace and per-section renderer state. Progress writes retain the actual owning preview;
+keeping the final block updates hunk and file progress together. Closing a tab clears its session state,
+and restoring a profile reloads scopes without persisting Git status or diffs. Stacked/One file is an
+app preference shared across windows; historical scopes remain read-only.
+
 ## Toasts
 
 `ToastQueue` is one window's transient notifications, oldest first; `Rendering/ToastStack` draws it. A toast
@@ -122,6 +131,12 @@ it. The queue is never persisted or shared between windows.
 
 ## Not yet ported
 
+- Pending review scroll restoration after delayed section sizing and session-local scratch drafts
+  across section remounts; the current outer scroll restores its last available offset. Review authoring
+  remains unported, so there are no section composer drafts to retain yet.
+- A shared keyboard gate for shell commands and review's plain-letter shortcuts: an open modal owns
+  keyboard input, and text-entry controls keep their letters. Review shortcuts must not intercept editor
+  typing or terminal input.
 - One shared, pure workspace partition for the Projects rail and location switcher, driven by host
   activity, settle overrides and the shared idle-days setting. Default stays live; explicit Settled or
   Keep active wins over the active-selection latch. A workspace selected while live stays live as time

@@ -48,7 +48,7 @@ internal static class ChangesE2E
         app.Click(folder); Require(folders[0].IsExpanded && row.IsEffectivelyVisible, "Clicking again must reveal its files.");
         Require(file.Tag is GitChange { IndexStatus: "?", Added: 3 } && Text(row).Contains("notes.md") && Text(row).Contains("+3"),
             "The file row must retain its untracked status and line count.");
-        app.Click(row);
+        app.Click(row, twice: true);
         Until(() => app.Tabs.Count(tab => tab.Kind == "diff") == 1);
         ChangesFixture.UntilDiff(app, text => text.Contains("three", StringComparison.Ordinal));
         app.Click(app.Find<Button>("Tab_files")); app.Click(app.Find<Button>("Tab_changes"));
@@ -84,8 +84,11 @@ internal static class ChangesE2E
         Require(copied.GetAwaiter().GetResult() == "docs/notes.md", "Copy path must write the repository-relative path to the clipboard.");
         app.Click(row, mouseButton: MouseButton.Right); Until(() => row.ContextMenu.IsOpen);
         app.Click(row.ContextMenu.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "View")), freshGesture: false);
-        Until(() => app.Tabs.Count(tab => tab.Kind == "diff") == 1);
-        ChangesFixture.UntilDiff(app, text => text.Contains("two", StringComparison.Ordinal));
+        Until(() => app.Tabs.Any(tab => tab.Kind == "changes") &&
+            app.Window.GetLogicalDescendants().OfType<SharpRail.UI.ChangesReviewPane>().Any(pane => pane.DiffFor("docs/notes.md") is not null));
+        var review = app.Window.GetLogicalDescendants().OfType<SharpRail.UI.ChangesReviewPane>().Single();
+        Require(review.DiffFor("docs/notes.md")!.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "DiffCopy"),
+            "View must reveal the file's diff in the continuous review.");
         app.Click(app.Find<ToggleButton>("ChangesTree"));
         var file = Row();
         app.Click(file, mouseButton: MouseButton.Right); Until(() => file.ContextMenu!.IsOpen);

@@ -1,5 +1,18 @@
 # Prototype validation
 
+### Continuous Changes review (2026-10-11)
+
+Ported the review view from upstream `f7cca7b` without Git graph integration.
+`ChangesReviewChecks` verifies single-click review/double-click individual diffs,
+lazy generated sections, Keep identity and invalidation, viewed progress, sticky
+headers, presentation switches, revert/undo, historical scopes and untracked content.
+Release compilation and the complete source gate pass with upstream Git fixtures,
+using the four-lane run followed by `--last-failed` repairs. Evidence:
+`.bench/changes-review-full2.log`, `.bench/changes-review-repaired.log`,
+`.bench/changes-review-gate-final.log` and `.bench/changes-review-untracked.log`.
+The final runner record has no unfinished cases. Existing Avalonia build warnings
+remain. Formatting and diff whitespace checks pass. No package was published.
+
 Latest source verification includes lightweight commit catalogs: full Release and
 published R2R suites pass in `.bench/commit-catalog-release.log` and
 `.bench/commit-catalog-published-checks.log`, each with 39 translated upstream cases.

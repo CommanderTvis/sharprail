@@ -117,6 +117,8 @@ public sealed partial class WorkbenchWindow
 
     private async Task RefreshDiffTabsAsync(long request)
     {
+        foreach (var pane in documentContent.Where(pair => DocumentOwner(pair.Key).StartsWith(workspaceRoot + ":changes:", StringComparison.Ordinal))
+            .Select(pair => pair.Value).OfType<ChangesReviewPane>().ToArray()) _ = pane.RefreshAsync();
         var tabs = Layout.State.Workspaces.GetValueOrDefault(workspaceRoot)?.Documents.Values
             .SelectMany(items => items).Where(tab => tab.Kind == "diff").ToArray() ?? [];
         foreach (var tab in tabs)

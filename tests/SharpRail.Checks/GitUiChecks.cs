@@ -122,14 +122,14 @@ internal static class GitUiChecks
         Invoke(Action(Named("ChangesScope"), "Uncommitted"));
         Pump(() => Action(Named("ChangesScope"), "Uncommitted").IsChecked &&
             Change().GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "+2"));
-        Click(window, Change());
+        Invoke(Action(Change(), "Open as tab"));
         Pump(() => window.Layout.State.Workspaces[root].Documents.Values.SelectMany(tabs => tabs).Any(tab => tab.Kind == "diff" && tab.Scope == "uncommitted"));
         Require(window.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().Any(editor =>
             editor.Text.Contains("Untracked content", StringComparison.Ordinal)),
             "Uncommitted scope did not include the staged-only file and its diff.");
         Invoke(Action(Named("ChangesScope"), "All changes"));
         Pump(() => Action(Named("ChangesScope"), "All changes").IsChecked);
-        Click(window, Change());
+        Invoke(Action(Change(), "Open as tab"));
         Pump(() => window.Layout.State.Workspaces[root].Documents.Values.SelectMany(tabs => tabs).Any(tab => tab.Kind == "diff" && tab.Scope == "all"));
         Require(window.Layout.State.Workspaces[root].Documents.Values.SelectMany(tabs => tabs).Count(tab => tab.Kind == "diff") == 2,
             "All changes and Uncommitted reused the same diff tab.");

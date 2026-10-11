@@ -246,6 +246,11 @@ menu. Abrupt death relies on operating-system process cleanup; remote shells bel
 
 ## Not yet ported
 
+- Project Home's independent collapsible Projects pane with the workbench's shared 40px left tool
+  rail and plain Hide header. No right or bottom rail appears without a workspace. Mod+B and the rail
+  toggle the same pane; hiding returns focus from the pane or separator to its rail control, and showing
+  restores the last tree control, active row or first tree control. Home visibility and remembered width
+  remain independent of the workspace frame.
 - Capability-gated Settle / Keep active in the shared workspace actions, a `Settled · N` submenu with
   reason chips after live siblings, and a warning-tone `WORKSPACE · settled` caption for a settled
   selection. The rail and switcher must consume the same partition, sort and 30-second clock; hosts

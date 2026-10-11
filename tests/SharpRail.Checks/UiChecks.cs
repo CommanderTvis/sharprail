@@ -142,6 +142,7 @@ internal static class UiChecks
         Gate.Case("AppCommandChecks", () => AppCommandChecks.Run(root));
         Gate.Case("AuxiliaryInputChecks", () => AuxiliaryInputChecks.Run(root));
         Gate.Case("GitUiChecks", () => GitUiChecks.Run(root + "-git"));
+        Gate.Case("ChangesReviewChecks", () => ChangesReviewChecks.Run(root));
         Console.WriteLine("PASS tabs, Markdown, pointer drag/cancel/drop, settings persistence, project and frame restoration");
     }
 

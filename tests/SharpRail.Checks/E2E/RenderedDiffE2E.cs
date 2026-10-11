@@ -36,7 +36,7 @@ internal static class RenderedDiffE2E
     private static void OpenDiff(E2eWorkspace app, string path)
     {
         ShowChanges(app);
-        ClickRow(app, path);
+        ClickRow(app, path, twice: true);
         Until(() => Pane(app) is { } pane && DiffTabs(app).Any(tab => tab.Path == path) && Named<ToggleButton>(pane, "DiffView_code") is not null);
     }
 
@@ -77,7 +77,7 @@ internal static class RenderedDiffE2E
         app.Click(Named<ToggleButton>(pane, "DiffView_code"));
         Require(Named<ToggleButton>(pane, "DiffView_code").IsChecked == true && Rendered(app) is null, "Source must replace the rendered diff.");
         UntilDiff(app, text => text.Contains("edited by e2e", StringComparison.Ordinal));
-        ClickRow(app, "README.md");
+        ClickRow(app, "README.md", twice: true);
         Require(DiffTabs(app).Count() == 1, "Reopening the row must reuse its diff tab.");
 
         File.WriteAllText(Path.Combine(worktree, "script.ts"), "export const edited = true;\n");
@@ -101,7 +101,7 @@ internal static class RenderedDiffE2E
 
     private static void OpenDiffNamed(E2eWorkspace app, string path)
     {
-        ClickRow(app, path);
+        ClickRow(app, path, twice: true);
         Until(() => app.Window.Layout.Selected(app.Center) is { Kind: "diff" } tab && tab.Path == path && Pane(app) is not null);
     }
 

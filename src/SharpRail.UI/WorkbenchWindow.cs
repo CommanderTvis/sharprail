@@ -321,6 +321,13 @@ public sealed partial class WorkbenchWindow : Window
         if (tab.Kind == "terminal" && !WorkspaceMounted) return Ui.Text("Loading terminal…");
         var key = workspaceRoot + ":" + tab.Id;
         if (documentContent.TryGetValue(key, out var existing)) return existing;
+        if (tab.Kind == "changes" && WorkspaceMounted)
+        {
+            var review = ReviewDocument(tab, key);
+            documentContent[key] = review;
+            return review;
+        }
+        if (tab.Kind == "changes") return Ui.Text("Loading changes…");
         if (tab.Kind == "terminal")
         {
             var terminal = new Terminal.TerminalView(terminals, new(workspaceRoot, Terminal.TerminalLaunch.SessionFor(workspaceRoot, tab.Id),

@@ -204,6 +204,8 @@ Window moving, zooming, platform dialogs, native Metal Ghostty rendering and fin
 verification remain native checks (`scripts/check-terminal.sh`,
 `--native-terminal`, own-window captures) because the headless platform cannot
 prove them. Screenshots are evidence, never the assertion.
+Disclosure-anchor probes place the entire header below any sticky breadcrumb before asserting its
+position; intersection with the scroll viewport alone does not prove that it is unobscured.
 
 ## Content checks
 
@@ -235,6 +237,15 @@ refresh, an oversized Markdown diff falling back to source, and an LFS pointer d
 `-- --documents` also runs the upstream translations that open file and diff bodies (preview tabs,
 Markdown links, alerts and Mermaid, the editor, and with `SHARPRAIL_TEST_GIT_SOURCE` the Changes diff,
 rendered diff and live refresh suites).
+
+## Continuous Changes review checks
+
+`ChangesReviewChecks` is native regression coverage for continuous review, separate from upstream
+translations: single-click review/double-click file diff, deferred generated sections, content-keyed Keep
+with duplicate and line-shift cases, explicit unviewed state across remounts, app layout switches,
+sidebar marks/navigation, bulk viewed progress, keyboard input, live edits, Revert/Undo, sticky header
+ownership and historical scope immutability. It runs through the ordinary UI gate over an isolated Git
+fixture; rendered captures are supporting evidence.
 
 ## Reconnect checks
 
@@ -403,6 +414,18 @@ back and forward buttons are not asserted.
 
 ## Not yet ported
 
+- The upstream tool-rail journeys: pane clusters and their distinct join/create drop targets,
+  independent terminal groups, dimmed unplaced tools, remembered terminal selection across folding and
+  reload, linked collapsed regions, focus without activation, and workspace switches during a drag.
+  Shape-change probes must retain the same document, terminal, Projects and Changes controls through
+  fold/hide/show; compressed-resize probes assert actual compression without accidentally folding panes.
+- Rail layout regressions for replacement before bottom measurement, explicit drops into folded
+  destinations and workspace switches during every resize gesture. Assert live rollback, unchanged
+  persistence, retained controls, reload and a subsequent working resize, beyond the cancellation notice.
+  Project Home and Welcome also need the left rail/header geometry, visibility chords and focus endpoints
+  checked across a workspace round trip, with no right or bottom rail there. The upstream bottom-fold
+  contract now occupies no body space and restores through the edge rail or `Ctrl+F6`; existing native
+  translations still assert the earlier 27px fold.
 - Fixture commits outside `E2E/IsolatedGit.cs`: `ChangeChecks`, `ContentChecks`, the seed commits of
   `PullRequestChecks`, `E2E/ChangesFixture.cs` and callers of the static `IsolatedGit.Repository` without an
   `IsolatedGit` in scope still commit under the developer's global Git configuration. Where that signs
@@ -410,5 +433,6 @@ back and forward buttons are not asserted.
   when it does not answer, which breaks the isolation contract above.
 - Interrupt cleanup on Windows (retained descendant ids and `taskkill`); POSIX is covered.
 - Login-shell PATH repair fixture isolation: if host startup begins probing the login shell, checks must
-  supply a fixture shell that answers the environment probe with the hermetic PATH and delegates normal
+  supply a fixture shell that recognizes the probe by a shared marker and answers with that marker and
+  the hermetic PATH, without importing the developer's login environment, and delegates normal
   terminal execution to a real shell, so developer tools cannot leak into isolated fixtures.

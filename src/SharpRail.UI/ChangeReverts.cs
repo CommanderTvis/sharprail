@@ -14,15 +14,16 @@ public sealed partial class WorkbenchWindow
 
     // Staged and commit diffs end in the index or history, so nothing in them is the worktree's to restore.
     private Func<RevertTarget, Task>? DiffRevert(DockTab tab, string key) =>
-        tab.Scope is "all" or "uncommitted" or "branch" or "untracked" ? target => RevertAsync(tab.Id, key, target) : null;
+        tab.Scope is "all" or "uncommitted" or "branch" or "untracked" ? target => RevertAsync(tab.Id, key, target, tab.Path, tab.Scope) : null;
 
-    private async Task RevertAsync(string tabId, string key, RevertTarget target)
+    private async Task RevertAsync(string tabId, string key, RevertTarget target, string path, string scope)
     {
         if (!state.Supports(HostProtocol.ChangeWritePath)) return;
         var request = projectRequest;
         // A retargeted branch diff keeps its tab and view, so the comparison is read at the time of the click.
         if (Layout.State.Workspaces.GetValueOrDefault(workspaceRoot)?.Documents.Values.SelectMany(tabs => tabs)
             .FirstOrDefault(tab => tab.Id == tabId) is not { } tab) return;
+        if (tab.Kind == "changes") tab = tab with { Path = path, Scope = scope };
         var name = Path.GetFileName(tab.Path);
         try
         {
@@ -36,6 +37,7 @@ public sealed partial class WorkbenchWindow
             {
                 documents[key] = new(tab.Path, diff);
                 if (documentContent.GetValueOrDefault(key) is DiffView view) view.Update(diff);
+                else SectionDiff(key)?.Update(diff);
                 Toasts.Push(ToastVariant.Info, StaleDiff);
                 return;
             }

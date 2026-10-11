@@ -3,6 +3,7 @@
 Upstream: apps/web/src/components/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
 Upstream: packages/ui/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
 Upstream: apps/web/src/lib/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
+Upstream: apps/web/src/resources/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
 Typography contract: apps/web/src/styles/TYPOGRAPHY.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
 Markdown source contract: apps/web/src/panels/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
 
@@ -128,6 +129,11 @@ unavailability message. Rendered diffs pass `renderDiagrams: false` and keep the
   on a thread-pool thread; a newer merge or leaving the rendered view cancels the stale one, and a content
   update keeps the current rendering visible until the fresh merge lands.
 
+Source diffs can share a continuous review's outer scroll by growing their editor frames with wrapped
+lines. Embedded views leave Split/Inline and whitespace controls to their review toolbar. Optional
+triage supplies content-keyed Keep controls on source change blocks; individual file tabs and historical
+scopes supply no triage. Rendered review sections use a bounded viewport and the existing registry.
+
 ## Loading vocabulary
 
 Every asynchronous gap renders something shaped for the wait, never nothing:
@@ -167,6 +173,8 @@ commit rows in the scope menu append it to the short SHA and author.
 
 ## Not yet ported
 
+- Per-renderer natural-height capabilities for continuous review. Source diffs grow with their lines;
+  rendered sections currently use a bounded viewport rather than format-specific sizing contracts.
 - Content-shaped skeleton rows and the fade-in reveal of resolved content; SharpRail's placeholders are text.
 - The quiet-scroll frame: intent-revealed 6px scrollbars and directional edge curtains on clipped scroll
   viewers; SharpRail uses Fluent's scrollbars.

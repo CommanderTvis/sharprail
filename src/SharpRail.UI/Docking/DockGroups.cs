@@ -362,7 +362,7 @@ public sealed partial class DockSurface
         return empty;
     }
 
-    private static string ToolIcon(DockTab tab) => tab.Kind == "terminal" ? "terminal" : tab.Kind == "diff" ? "fileDiff" : tab.IsTool ? tab.Id switch
+    private static string ToolIcon(DockTab tab) => tab.Kind == "terminal" ? "terminal" : tab.Kind is "diff" or "changes" ? "fileDiff" : tab.IsTool ? tab.Id switch
     {
         "projects" => "folderTab",
         "specs" => "bookFill",

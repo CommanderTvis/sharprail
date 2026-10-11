@@ -38,7 +38,7 @@ internal static class LineWidthE2E
         Until(() => app.Find<Control>("ChangesPanel").GetLogicalDescendants().OfType<Button>()
             .Any(button => AutomationProperties.GetName(button) == "LONG_LINE.txt"));
         app.Click(app.Find<Control>("ChangesPanel").GetLogicalDescendants().OfType<Button>()
-            .Single(button => AutomationProperties.GetName(button) == "LONG_LINE.txt"));
+            .Single(button => AutomationProperties.GetName(button) == "LONG_LINE.txt"), twice: true);
         Until(() => app.Tabs.Count(tab => tab.Kind == "diff") == 1);
         Until(() => app.Window.GetLogicalDescendants().OfType<ScintillaEditor>()
             .Any(editor => editor.Name == "DiffNewText" && editor.Text.Contains("changed segment-01", StringComparison.Ordinal)));

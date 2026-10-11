@@ -192,13 +192,39 @@ snapshot lands.
   rows so counts align.
 - Every file row, in both views, is wrapped in one frame that owns the whole highlight (hover, active diff,
   menu open), including the trailing menu slot. A hover- or focus-revealed chevron and right-click open the
-  same menu: View, Copy path, and Stage file / Unstage file where the scope allows it. Folder rows get no
+  same menu: View, Open as tab, Copy path, and Stage file / Unstage file where the scope allows it. Folder rows get no
   menu.
-- Clicking a row opens its diff as a center document through the shared preview/keep navigation. A diff
-  tab's identity includes its scope (and commit), so the same file in another scope is another tab and a
-  tab's meaning never changes when the Changes scope flips. Changing the comparison branch re-points open
-  branch-scope diff tabs. A row is highlighted while its diff is the focused center selection.
+- A single click opens or reveals the file in the scope's continuous Changes review preview. Double-click
+  or Open as tab opens its kept individual diff; double-click claims its leading click's preview slot.
+  Tab identity includes scope and commit, so changing the sidebar scope leaves existing tabs alone.
+  Changing the comparison target re-points branch reviews and individual diffs. Sidebar highlighting
+  follows the focused review's active section, and viewed files carry a check and dimmed path in List and Tree.
 - Rendering of the diff itself is `Rendering/DiffView` (see Rendering/SPEC.md).
+
+## Changes review
+
+A review tab owns one scope's ordered file list. Stacked mode supplies one outer scroll, sticky file
+headers, collapsible sections and lazy bodies; offscreen editors detach while their measured height,
+renderer choice and content remain cached. Generated and large files start collapsed. One file mode
+fills the pane with the active file and offers Previous/Next; switching modes retains viewed marks,
+kept keys, active path and collapse overrides. The layout preference belongs to the app profile and is
+shared by its windows. Scope snapshots and diff reads run in the background and reject superseded
+workspace, target and generation results; errors offer Retry, while a missing historical commit drops
+the list and offers Review all changes without repointing that tab.
+
+Sections reuse the resource registry and existing host-confirmed Revert/Undo path. The review toolbar
+applies Split/Inline and whitespace settings across sections. Source editors grow with their display
+lines in Stacked mode; rendered views receive a bounded viewport. Open as tab retains the independent
+file diff. Viewed, Keep and Mark all viewed retain the owning preview placement. Next unreviewed wraps;
+V toggles the active file, J advances to an unviewed file, and Alt+Up/Down steps files. Shortcuts belong
+to the focused review and do not consume editor or text-entry input.
+
+Keep is review progress for mutable scopes, never a Git write. A removed/added-content hash survives
+neighbouring line shifts and expires when the block changes. Identical blocks include duplicate-group
+size and original position, so removing a twin cannot transfer its decision. Keeping the final block
+marks the file viewed in the same update; explicitly unviewing it survives remounts. Historical and
+staged scopes have no Keep or Revert. Progress is session-local and clears when the tab closes.
+AI turn receipts, review guides and agent send actions are excluded from this port.
 
 ## File and diff views
 

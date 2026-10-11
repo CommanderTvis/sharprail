@@ -59,7 +59,7 @@ public sealed partial class WorkbenchWindow
 
     private void WriteTabView(string key, TabView view)
     {
-        if (LiveDocuments().Contains(key)) tabViews[key] = view;
+        if (LiveDocuments().Contains(DocumentOwner(key))) tabViews[key] = view;
     }
 
     private Control FileBody(FileDocument document, DockTab tab, string key)

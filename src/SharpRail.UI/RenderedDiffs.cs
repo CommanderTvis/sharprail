@@ -12,7 +12,7 @@ public sealed partial class WorkbenchWindow
     /// <summary>Merges two Markdown sources for a rendered diff; runs on a thread-pool thread.</summary>
     public Func<string, string, CancellationToken, string> RenderedDiffMerge { get; set; } = MarkdownDiff.Merge;
 
-    private Control DiffDocument(FileDocument document, DockTab tab, string key)
+    private DiffView DiffDocument(FileDocument document, DockTab tab, string key, DiffTriage? triage = null, bool naturalHeight = false, bool embedded = false)
     {
         // Bytes, and text that may be a Git LFS pointer, are described by their sides' metadata, which only the host
         // knows; any other text diff is described by its path.
@@ -20,7 +20,7 @@ public sealed partial class WorkbenchWindow
         var view = new DiffView(document.Text, tab.Path, LineWidths.File(Preferences),
             described ? null : DiffChoices(tab, key, new(workspaceRoot, tab.Path, ResourceRegistry.InferredMime(tab.Path), true, null), null),
             tabViews.GetValueOrDefault(key)?.RendererId, id => WriteTabView(key, new(id)), pending: described,
-            revert: DiffRevert(tab, key), canRevert: state.Supports(HostProtocol.ChangeWritePath));
+            revert: DiffRevert(tab, key), canRevert: state.Supports(HostProtocol.ChangeWritePath), triage: triage, naturalHeight: naturalHeight, embedded: embedded);
         if (described) _ = DescribeDiffAsync(view, tab, key);
         return view;
     }
@@ -53,7 +53,7 @@ public sealed partial class WorkbenchWindow
         {
             var request = projectRequest;
             var sides = await Task.Run(async () => await host.GetDiffSidesAsync(tab.Path, tab.Scope, tab.Comparison, lifetime.Token), lifetime.Token);
-            if (request != projectRequest || !ReferenceEquals(documentContent.GetValueOrDefault(key), view) || view.Identity == SidesIdentity(sides)) return;
+            if (request != projectRequest || !IsCurrentDiff(key, view) || view.Identity == SidesIdentity(sides)) return;
             var original = sides.OriginalInfo ?? new(null, null, true, null);
             var modified = sides.ModifiedInfo ?? new(null, null, true, null);
             var named = modified.Sha256 is null ? original : modified;
@@ -63,7 +63,7 @@ public sealed partial class WorkbenchWindow
         catch (OperationCanceledException) { }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException or Grpc.Core.RpcException)
         {
-            if (ReferenceEquals(documentContent.GetValueOrDefault(key), view)) view.ShowError("Could not load this file's bytes: " + error.Message);
+            if (IsCurrentDiff(key, view)) view.ShowError("Could not load this file's bytes: " + error.Message);
         }
     }
 

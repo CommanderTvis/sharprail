@@ -1,0 +1,53 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:rendering="using:SharpRail.UI.Rendering"
+             x:Class="SharpRail.UI.ChangesReviewPane">
+  <UserControl.Styles>
+    <Style Selector="Button.review-action">
+      <Setter Property="Height" Value="22" />
+      <Setter Property="Padding" Value="8,0" />
+      <Setter Property="Margin" Value="4,0,0,0" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{x:Static rendering:Ui.Muted}" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="4" />
+    </Style>
+    <Style Selector="ToggleButton.review-choice">
+      <Setter Property="Height" Value="22" />
+      <Setter Property="Padding" Value="8,0" />
+      <Setter Property="Margin" Value="4,0,0,0" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{x:Static rendering:Ui.Muted}" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="CornerRadius" Value="4" />
+    </Style>
+  </UserControl.Styles>
+  <Grid RowDefinitions="Auto,Auto,*,Auto">
+    <WrapPanel x:Name="ReviewToolbar" Margin="12,4" Orientation="Horizontal">
+      <TextBlock x:Name="ReviewScope" VerticalAlignment="Center" Margin="0,0,12,0" />
+      <TextBlock x:Name="ReviewSummary" VerticalAlignment="Center" Margin="0,0,12,0" />
+      <ToggleButton x:Name="ReviewStacked" Classes="review-choice" Content="Stacked" />
+      <ToggleButton x:Name="ReviewSingle" Classes="review-choice" Content="One file" />
+      <ToggleButton x:Name="ReviewSplit" Classes="review-choice" Content="Split" />
+      <ToggleButton x:Name="ReviewInline" Classes="review-choice" Content="Inline" />
+      <ToggleButton x:Name="ReviewWhitespace" Classes="review-choice" Content="Hide whitespace" />
+      <Button x:Name="ReviewCollapse" Classes="review-action" Content="Collapse all" />
+      <Button x:Name="ReviewExpand" Classes="review-action" Content="Expand all" />
+      <Button x:Name="ReviewPrevious" Classes="review-action" Content="Previous" />
+      <Button x:Name="ReviewNext" Classes="review-action" Content="Next" />
+    </WrapPanel>
+    <WrapPanel x:Name="ReviewScaleNotice" Grid.Row="1" Margin="12,4" IsVisible="False">
+      <TextBlock Text="This scope has many files." VerticalAlignment="Center" Foreground="{x:Static rendering:Ui.Hint}" />
+      <Button x:Name="ReviewScaleSingle" Classes="review-action" Content="Use One file" />
+      <Button x:Name="ReviewScaleDismiss" Classes="review-action" Content="Dismiss" />
+    </WrapPanel>
+    <Grid x:Name="ReviewBody" Grid.Row="2" />
+    <WrapPanel Grid.Row="3" Margin="12,4">
+      <TextBlock x:Name="ReviewProgress" VerticalAlignment="Center" Margin="0,0,12,0" />
+      <Button x:Name="ReviewNextUnviewed" Classes="review-action" Content="Next unreviewed" />
+      <Button x:Name="ReviewMarkAll" Classes="review-action" Content="Mark all viewed" />
+    </WrapPanel>
+  </Grid>
+</UserControl>

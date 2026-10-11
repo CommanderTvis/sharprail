@@ -71,6 +71,9 @@ terminal or by Git are current on the next read. The workbench re-reads after a 
 
 ## Not yet ported
 
+- Exclude assistant scratch directories `.claude`, `.superpowers`, `.gsd`, `.mockups` and
+  `.playwright-mcp` from traversal and the authoring path rule: their plans and generated skills may
+  carry spec-shaped frontmatter but do not belong to the project's graph.
 - A full YAML parser for frontmatter (anchors, nested maps, multi-line scalars); the dialect above covers
   what specs use.
 - Case-folded path matching in the path rule for case-insensitive filesystems, and the content search and

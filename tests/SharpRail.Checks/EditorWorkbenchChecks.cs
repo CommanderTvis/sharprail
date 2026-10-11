@@ -155,7 +155,7 @@ internal static class EditorWorkbenchChecks
         Pump(() => app.Find<Control>("ChangesPanel").GetLogicalDescendants().OfType<Button>()
             .Any(button => Avalonia.Automation.AutomationProperties.GetName(button) == "big.txt"));
         var clock = System.Diagnostics.Stopwatch.StartNew();
-        app.Click(Row());
+        app.Click(Row(), twice: true);
         ScintillaEditor Side(string name) => app.Window.GetLogicalDescendants().OfType<ScintillaEditor>().Single(editor => editor.Name == name);
         Pump(() => app.Window.GetLogicalDescendants().OfType<ScintillaEditor>().Any(editor => editor.Name == "DiffNewText" && editor.IsEffectivelyVisible));
         app.Window.UpdateLayout(); Dispatcher.UIThread.RunJobs();
@@ -200,7 +200,7 @@ internal static class EditorWorkbenchChecks
         Pump(() => app.Window.GetLogicalDescendants().OfType<ScintillaEditor>().Any(editor => editor.IsEffectivelyVisible && editor.Text.StartsWith("# Big", StringComparison.Ordinal)));
 
         E2E.ChangesFixture.ShowChanges(app);
-        E2E.ChangesFixture.ClickRow(app, "BIG.md");
+        E2E.ChangesFixture.ClickRow(app, "BIG.md", twice: true);
         Pump(() => Visible<Avalonia.Controls.Primitives.ToggleButton>("DiffView_markdown") is { IsEnabled: false } &&
             Visible<ScintillaEditor>("DiffNewText")?.Text.Contains("Appended paragraph.", StringComparison.Ordinal) == true);
         // The headless mouse is shared; outlast the double-click interval so the next window's first click stays single.

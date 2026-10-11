@@ -167,8 +167,32 @@ no target and no further fallback. The tab button no longer handles Mod+W itself
 When a tab button holds keyboard focus, the close returns focus to the group's newly selected tab, as Delete
 does, so reordering and roving continue from the keyboard.
 
+Changes review tabs use the ordinary resource preview/keep placement, persisting only identity and
+scope. Body reads start when the mounted review requests them, outside layout hydration. Review progress
+belongs to the window state owner; see [State/SPEC.md](../State/SPEC.md).
+
 ## Not yet ported
 
+- Persistent auxiliary edge rails whose separated icon clusters mirror frame groups, including hidden
+  and folded panes and dimmed unplaced tools. Selecting an unpressed entry reveals its pane; selecting
+  the pressed entry folds it. Folded panes occupy no interior strip. Tools use a plain draggable title
+  header with Hide; terminals retain named session tabs. Rails expose roving keyboard focus and pressed
+  state, restore focus on fold/unfold, and remain navigation controls rather than resource close targets.
+- Separate tool and terminal panes. Joins, group merges, passive placement and preset remaps must use
+  the same compatibility rule; a displaced terminal chooses the nearest tool-free sibling, then bottom,
+  then center. Session selection itself recalls the terminal; no second terminal-recall authority is
+  needed. Legacy mixed-order anchors are accepted and discarded. New terminal from a tool pane creates
+  a compatible pane directly below; showing an empty region only offers creation and starts no process.
+- Rail entry halves join or reorder within a pane; cluster boundaries create adjacent panes. Explicit
+  drops reveal and unfold their destination atomically, while passive reconciliation preserves folds.
+  Menus name panes by their contents and omit commands that cannot apply to the selected resource.
+- Keeping panel groups and mounted bodies in place through fold, visibility and topology changes,
+  applying committed geometry without rebuilding surviving chrome. Workspace identity must fence
+  pending focus, drag and resize work even when both workspaces use the same tab id; an invalidated
+  resize restores committed geometry before paint and ignores the remaining gesture until release.
+- Dropping normalized no-op focus/selection writes before notifying observers, and committing document,
+  attention and singleton-tool fan-out together. Body-local review state must invalidate only that body,
+  preserving sibling chrome and bodies during review progress writes.
 - Reconciling with the host terminal catalog: terminal membership is shared across windows, a
   peer-created terminal is placed passively into a compatible slot without taking focus, and a host-side
   close removes the tab from every window. The host side exists (`ITerminalCatalogService`, its adapters

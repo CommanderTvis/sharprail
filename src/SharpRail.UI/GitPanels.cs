@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input.Platform;
 using Avalonia.Layout;
+using Avalonia.LogicalTree;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.UI.Docking;
@@ -295,6 +296,7 @@ public sealed partial class WorkbenchWindow
         Ui.Place(path, filename, 0, 1);
         Ui.Place(row, path);
         var numbers = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
+        numbers.Children.Add(new TextBlock { Name = "ChangeViewed", Text = "✓", Foreground = Ui.Muted, IsVisible = IsChangeViewed(change) });
         numbers.Children.Add(Ui.Text("+" + change.Added, Ui.Success, 12));
         numbers.Children.Add(Ui.Text("−" + change.Removed, Ui.Danger, 12));
         Ui.Place(row, numbers, 0, 2);
@@ -315,7 +317,16 @@ public sealed partial class WorkbenchWindow
         foreach (var state in new[] { "PointerOver", "Pressed" }) button.Resources["ButtonBackground" + state] = Avalonia.Media.Brushes.Transparent;
         AutomationProperties.SetName(button, change.Path);
         ToolTip.SetTip(button, change.OriginalPath is null ? $"{change.Path}  [{change.IndexStatus}{change.WorktreeStatus}]" : $"{change.OriginalPath} → {change.Path}");
-        button.Click += (_, _) => _ = OpenDiffAsync(change);
+        var skipClick = false;
+        var claimReviewPreview = false;
+        button.Click += (_, _) =>
+        {
+            if (skipClick) { skipClick = false; return; }
+            OpenChanges(change);
+            claimReviewPreview = Layout.Selected(Layout.View.FocusedCenter) is { Kind: "changes", Preview: true };
+        };
+        button.DoubleTapped += (_, e) => { skipClick = true; _ = OpenDiffAsync(change, claimPreview: claimReviewPreview); e.Handled = true; };
+        button.PointerReleased += (_, _) => skipClick = false;
         var actions = new Button
         {
             Content = Ui.Icon("arrowDown"),
@@ -330,7 +341,8 @@ public sealed partial class WorkbenchWindow
         actions.Classes.Add("change-actions");
         AutomationProperties.SetName(actions, "Actions for " + change.Path);
         button.ContextMenu = new ContextMenu { Placement = PlacementMode.BottomEdgeAlignedRight, PlacementTarget = actions };
-        button.ContextMenu.Items.Add(Ui.Menu("View", () => _ = OpenDiffAsync(change)));
+        button.ContextMenu.Items.Add(Ui.Menu("View", () => OpenChanges(change)));
+        button.ContextMenu.Items.Add(Ui.Menu("Open as tab", () => _ = OpenDiffAsync(change)));
         button.ContextMenu.Items.Add(Ui.Menu("Copy path", () => _ = CopyChangePathAsync(change.Path)));
         var canStage = selectedCommit is null && (comparison.Length == 0 || changeScope is "Uncommitted" or "Staged");
         button.ContextMenu.Items.Add(Ui.Menu("Stage file", () => _ = GitActionAsync(new("stage", change.Path)), canStage && change.WorktreeStatus != " "));
@@ -361,12 +373,22 @@ public sealed partial class WorkbenchWindow
         return new($"diff:{scope}:{identity}:{change.Path}", Path.GetFileName(change.Path) + " · Diff", "diff", change.Path, Scope: scope, Comparison: reference);
     }
 
-    private bool IsActiveDiff(GitChange change) =>
-        Layout.Selected(Layout.View.FocusedCenter) is { Kind: "diff" } selected && selected.Id == DiffTab(change).Id;
+    private bool IsChangeViewed(GitChange change) => reviewStates.GetValueOrDefault(workspaceRoot + ":" + ChangesTab().Id)?.Viewed.Contains(change.Path) == true;
+
+    private bool IsActiveDiff(GitChange change) => Layout.Selected(Layout.View.FocusedCenter) is { } selected &&
+        (selected.Kind == "diff" && selected.Id == DiffTab(change).Id || selected.Kind == "changes" && selected.Id == ChangesTab().Id &&
+            reviewStates.GetValueOrDefault(workspaceRoot + ":" + selected.Id)?.ActivePath == change.Path);
 
     private void UpdateActiveChangeRows()
     {
-        foreach (var (frame, change) in changeFrames) frame.Classes.Set("active", IsActiveDiff(change));
+        foreach (var (frame, change) in changeFrames)
+        {
+            frame.Classes.Set("active", IsActiveDiff(change));
+            var viewed = IsChangeViewed(change);
+            foreach (var text in frame.GetLogicalDescendants().OfType<TextBlock>())
+                if (text.Name == "ChangeViewed") text.IsVisible = viewed;
+                else if (text.Classes.Contains("change-path-dir") || text.Classes.Contains("change-path-base")) text.Opacity = viewed ? .6 : 1;
+        }
     }
 
     private void RetargetDiffTabs() => Layout.Geometry(state =>
@@ -374,13 +396,19 @@ public sealed partial class WorkbenchWindow
         if (!state.Workspaces.TryGetValue(workspaceRoot, out var view)) return;
         foreach (var tabs in view.Documents.Values)
             for (var index = 0; index < tabs.Count; index++)
-                if (tabs[index] is { Kind: "diff", Scope: "branch" } tab && tab.Comparison != comparison) tabs[index] = tab with { Comparison = comparison };
+                if (tabs[index] is { Scope: "branch" } tab && tab.Kind is "diff" or "changes" && tab.Comparison != comparison) tabs[index] = tab with { Comparison = comparison };
     });
 
-    private async Task OpenDiffAsync(GitChange change)
+    private async Task OpenDiffAsync(GitChange change, DockTab? scopeTab = null, bool claimPreview = false)
     {
         var request = BeginNavigation();
-        var tab = DiffTab(change);
+        var tab = scopeTab is null ? DiffTab(change) : scopeTab with
+        {
+            Id = $"diff:{scopeTab.Scope}:{(scopeTab.Scope == "branch" ? "" : scopeTab.Comparison)}:{change.Path}",
+            Title = Path.GetFileName(change.Path) + " · Diff",
+            Kind = "diff",
+            Path = change.Path
+        };
         try
         {
             var diff = await host.GetDiffAsync(change.Path, tab.Scope, tab.Comparison, lifetime.Token);
@@ -388,7 +416,7 @@ public sealed partial class WorkbenchWindow
             if (destination is null) return;
             var key = workspaceRoot + ":" + tab.Id;
             documents[key] = new(change.Path, diff); DropDocumentContent(key);
-            Layout.Open(tab, true, destination);
+            Layout.Open(tab, true, destination, claimPreview: claimPreview);
         }
         catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
     }

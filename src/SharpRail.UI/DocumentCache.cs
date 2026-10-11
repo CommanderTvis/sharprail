@@ -14,7 +14,7 @@ public sealed partial class WorkbenchWindow
     private void PruneDocuments()
     {
         var live = LiveDocuments();
-        foreach (var key in documents.Keys.Where(key => !live.Contains(key)).ToArray())
+        foreach (var key in documents.Keys.Where(key => !live.Contains(DocumentOwner(key))).ToArray())
         { documents.Remove(key); DropDocumentContent(key); }
         foreach (var key in documentContent.Keys.Where(key => !live.Contains(key)).ToArray())
         {
@@ -22,7 +22,8 @@ public sealed partial class WorkbenchWindow
             if (documentContent[key] is Terminal.TerminalView terminal) terminal.Close();
             DropDocumentContent(key);
         }
-        foreach (var key in tabViews.Keys.Where(key => !live.Contains(key)).ToArray()) tabViews.Remove(key);
+        foreach (var key in tabViews.Keys.Where(key => !live.Contains(DocumentOwner(key))).ToArray()) tabViews.Remove(key);
+        foreach (var key in reviewStates.Keys.Where(key => !live.Contains(key)).ToArray()) reviewStates.Remove(key);
     }
 
     private void DropDocumentContent(string key)

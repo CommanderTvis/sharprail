@@ -45,7 +45,7 @@ internal static class ChangesDiffE2E
         ShowChanges(app);
         PickScope(app, "Uncommitted");
         Until(() => Paths(app).Contains("long.ts"));
-        ClickRow(app, "long.ts");
+        ClickRow(app, "long.ts", twice: true);
         Until(() => Pane(app) is not null);
         var pane = Pane(app)!;
         Require(Text(Named<Border>(pane, "DiffPath")) == "long.ts", "The diff header must name the file.");
@@ -94,7 +94,7 @@ internal static class ChangesDiffE2E
         Require(Clipped(Part(LongPath, "change-path-base")) && Clipped(Part(rootLevel, "change-path-base")), "A long file name must be truncated.");
 
         var longRow = Frame(LongPath);
-        ClickRow(app, LongPath);
+        ClickRow(app, LongPath, twice: true);
         Until(() => Frames(app).Count(frame => frame.Classes.Contains("active")) == 1);
         var active = Frames(app).Single(frame => frame.Classes.Contains("active"));
         Require(RowPath(active) == LongPath, "The active diff's row must be the highlighted one.");
@@ -121,7 +121,7 @@ internal static class ChangesDiffE2E
         File.WriteAllText(Path.Combine(worktree, LongPath), "export const range = 1;\n");
         ShowChanges(app);
         Until(() => Paths(app).Contains(LongPath));
-        ClickRow(app, LongPath);
+        ClickRow(app, LongPath, twice: true);
         Until(() => Pane(app) is not null);
 
         app.Window.Width = 620; app.Window.Height = 800; Settle();

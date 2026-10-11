@@ -147,7 +147,7 @@ internal static class ChangeActionChecks
 
     private static void OpenDiff(E2eWorkspace app, string path)
     {
-        ClickRow(app, path);
+        ClickRow(app, path, twice: true);
         Until(() => DiffTabs(app).Any(tab => tab.Path == path) && Pane(app) is not null &&
             app.Window.Layout.Selected(app.Center) is { Kind: "diff" } selected && selected.Path == path);
     }

@@ -24,6 +24,7 @@ public sealed class Preferences
     /// <summary>Browser-style page zoom shared by every window; Mod+=, Mod+- and Mod+0 step it.</summary>
     public double Zoom { get; set; } = 1;
     public bool ShowHiddenFiles { get; set; }
+    public bool ChangesSingle { get; set; }
     /// <summary>The local terminal renderer: composited Metal texture or Skia cells.</summary>
     public string TerminalRenderer { get; set; } = Terminal.TerminalRenderers.Texture;
     /// <summary>Read from profiles that predate window-local defaults.</summary>

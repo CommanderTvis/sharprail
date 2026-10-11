@@ -48,6 +48,10 @@ internal sealed partial class DiffView : Grid, IDisposable
     private readonly List<EditorFrame> frames = [];
     private bool disposed;
     private string text;
+    private readonly DiffTriage? triage;
+    private readonly bool naturalHeight;
+    private readonly bool embedded;
+    private IReadOnlyDictionary<RevertTarget, string> contentKeys = new Dictionary<RevertTarget, string>();
 
     /// <summary>Whether a unified diff says Git saw bytes it will not show as lines.</summary>
     internal static bool IsBinaryDiff(string diff) => diff.Contains("Binary files ", StringComparison.Ordinal) && !diff.Contains("\n@@", StringComparison.Ordinal);
@@ -62,8 +66,11 @@ internal sealed partial class DiffView : Grid, IDisposable
     /// </summary>
     internal DiffView(string text, string path, double wrapWidth,
         IReadOnlyList<DiffChoice>? choices = null, string? selected = null, Action<string>? selectedChanged = null, bool pending = false,
-        Func<RevertTarget, Task>? revert = null, bool canRevert = true)
+        Func<RevertTarget, Task>? revert = null, bool canRevert = true, DiffTriage? triage = null, bool naturalHeight = false, bool embedded = false)
     {
+        this.triage = triage;
+        this.naturalHeight = naturalHeight;
+        this.embedded = embedded;
         this.revert = revert;
         this.canRevert = canRevert;
         this.text = text;
@@ -122,6 +129,13 @@ internal sealed partial class DiffView : Grid, IDisposable
     }
 
     internal bool IsRendered => current.Render is not null;
+
+    internal void SetPresentation(bool sideBySide, bool ignoreWhitespace)
+    {
+        if (split.IsChecked == sideBySide && whitespace.IsChecked == ignoreWhitespace) return;
+        split.IsChecked = sideBySide; inline.IsChecked = !sideBySide; whitespace.IsChecked = ignoreWhitespace;
+        Render();
+    }
 
     /// <summary>Whether the host can take a revert now; the controls go while it cannot and return in place.</summary>
     internal bool CanRevert
@@ -190,9 +204,9 @@ internal sealed partial class DiffView : Grid, IDisposable
     // row first comes into view, so a diff with thousands of blocks costs nothing up front.
     private Control WithBlockActions(EditorFrame frame, List<(int Row, RevertTarget Target)> blocks, params ScintillaEditor[] scrolledWith)
     {
-        if (revert is null || !canRevert || blocks.Count == 0) return frame;
+        if ((revert is null || !canRevert) && triage is null || blocks.Count == 0) return frame;
         var overlay = new Canvas { Name = "DiffBlockActions", ClipToBounds = true, Margin = frame.Margin };
-        var buttons = new Button?[blocks.Count];
+        var buttons = new StackPanel?[blocks.Count];
         void Place()
         {
             if (disposed || !frames.Contains(frame)) return;
@@ -203,10 +217,28 @@ internal sealed partial class DiffView : Grid, IDisposable
                 if (buttons[index] is null)
                 {
                     if (!visible) continue;
-                    var button = buttons[index] = RevertButton("DiffRevertBlock", "Revert this change", blocks[index].Target);
-                    button.Width = 24; button.Background = Ui.Elevated;
-                    Canvas.SetRight(button, 20);
-                    overlay.Children.Add(button);
+                    var actions = buttons[index] = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Background = Ui.Elevated };
+                    var target = blocks[index].Target;
+                    if (triage is not null && contentKeys.TryGetValue(target, out var key))
+                    {
+                        var keep = new Button { Name = "DiffKeepBlock", Tag = key, Height = 20, Padding = new Thickness(8, 0), Content = triage.IsKept(key) ? "Kept" : "Keep" };
+                        AutomationProperties.SetName(keep, "Keep this change");
+                        keep.Click += (_, _) =>
+                        {
+                            var next = !triage.IsKept(key);
+                            triage.SetKept(key, next, contentKeys.Values.ToArray());
+                            keep.Content = next ? "Kept" : "Keep";
+                        };
+                        actions.Children.Add(keep);
+                    }
+                    if (revert is not null && canRevert && target.Original!.Start > 0 && target.Modified!.Start > 0)
+                    {
+                        var button = RevertButton("DiffRevertBlock", "Revert this change", target);
+                        button.Width = 24;
+                        actions.Children.Add(button);
+                    }
+                    Canvas.SetRight(actions, 20);
+                    overlay.Children.Add(actions);
                 }
                 buttons[index]!.IsVisible = visible;
                 Canvas.SetTop(buttons[index]!, top);
@@ -223,11 +255,11 @@ internal sealed partial class DiffView : Grid, IDisposable
         return layers;
     }
 
-    private static Dictionary<int, RevertTarget> Blocks(Hunk hunk)
+    private static Dictionary<int, RevertTarget> Blocks(Hunk hunk, bool includeWhole = false)
     {
         var blocks = new Dictionary<int, RevertTarget>();
         // A file that is all added or all deleted has no line range to restore; only Revert file applies.
-        if (hunk.OldStart == 0 || hunk.NewStart == 0) return blocks;
+        if (!includeWhole && (hunk.OldStart == 0 || hunk.NewStart == 0)) return blocks;
         int old = hunk.OldStart, @new = hunk.NewStart;
         for (var index = 0; index < hunk.Lines.Count;)
         {
@@ -316,6 +348,7 @@ internal sealed partial class DiffView : Grid, IDisposable
     private void ShowBody(Control content)
     {
         DropMerged();
+        if (naturalHeight) body.Height = IsRendered ? 480 : double.NaN;
         Ui.Place(body, content);
     }
 
@@ -369,8 +402,8 @@ internal sealed partial class DiffView : Grid, IDisposable
     {
         Check();
         // The source view of a file with other views is always side by side; Scintilla is macOS-only.
-        split.IsVisible = inline.IsVisible = choices.Count == 1 && !IsRendered && OperatingSystem.IsMacOS();
-        whitespace.IsVisible = !IsRendered && OperatingSystem.IsMacOS();
+        split.IsVisible = inline.IsVisible = !embedded && choices.Count == 1 && !IsRendered && OperatingSystem.IsMacOS();
+        whitespace.IsVisible = !embedded && !IsRendered && OperatingSystem.IsMacOS();
         copy.IsVisible = choices.Any(choice => choice.Render is null);
         // Identical sides leave nothing to restore.
         if (revertFile is not null) revertFile.IsVisible = canRevert && !string.IsNullOrWhiteSpace(text);
@@ -378,8 +411,11 @@ internal sealed partial class DiffView : Grid, IDisposable
         if (IsRendered) { StartMerge(keepCurrent: false); return; }
         merge?.Cancel(); merge?.Dispose(); merge = null;
         DropMerged();
+        if (naturalHeight) body.Height = double.NaN;
         if (text.Length > ViewerLimits.Scintilla) { Ui.Place(body, ViewerLimits.TooLarge("diff", text.Length)); return; }
         var (preamble, hunks) = Parse(text);
+        contentKeys = triage is null ? new Dictionary<RevertTarget, string>() : ContentKeys(text);
+        triage?.ReportKeys(contentKeys.Values.ToArray());
         if (whitespace.IsChecked == true) foreach (var hunk in hunks) IgnoreWhitespace(hunk);
         if (hunks.Count == 0 && string.IsNullOrWhiteSpace(text))
         {
@@ -448,7 +484,7 @@ internal sealed partial class DiffView : Grid, IDisposable
             side.AddGap(Gap(previous, hunk));
             side.Add(hunk.Header, LineKind.Header);
             int old = hunk.OldStart, @new = hunk.NewStart;
-            var starts = Blocks(hunk);
+            var starts = Blocks(hunk, includeWhole: triage is not null);
             for (var index = 0; index < hunk.Lines.Count; index++)
             {
                 var line = hunk.Lines[index];
@@ -475,7 +511,7 @@ internal sealed partial class DiffView : Grid, IDisposable
             oldSide.AddGap(gap); newSide.AddGap(gap);
             int old = hunk.OldStart, @new = hunk.NewStart;
             var removed = new List<string>(); var added = new List<string>();
-            var starts = Blocks(hunk);
+            var starts = Blocks(hunk, includeWhole: triage is not null);
             RevertTarget? block = null;
             void Flush()
             {
@@ -536,6 +572,17 @@ internal sealed partial class DiffView : Grid, IDisposable
         editor.StyleLines(side.Styles);
         frame.ThemeApplied += () => editor.LineStyles = LineStyles();
         frames.Add(frame);
+        if (naturalHeight)
+        {
+            frame.MinHeight = Math.Max(40, side.Styles.Count * 22);
+            frame.SizeChanged += (_, _) =>
+            {
+                if (disposed || !frames.Contains(frame)) return;
+                var last = Math.Max(0, side.Styles.Count - 1);
+                var height = Math.Max(40, editor.LineTop(last) - editor.LineTop(0) + Math.Max(1, editor.WrapCount(last)) * 22);
+                if (Math.Abs(frame.Height - height) > .5 || double.IsNaN(frame.Height)) frame.Height = height;
+            };
+        }
         return frame;
     }
 

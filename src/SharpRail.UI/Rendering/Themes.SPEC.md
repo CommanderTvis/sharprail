@@ -55,9 +55,11 @@ brush layer in `Ui` (`Sidebar`, `Elevated`, `Hint`, `PrimarySubtle`), the only l
 
 One key per role that themes may vary independently. `header` is separate from `content` even though
 every bundled manifest ships them equal: a role can only vary between themes if the manifest has a key for
-it. The accent is a triple for the same reason: `accent` (and `accentSolid`, the primary button fill),
-`accentHover` as the primary button's hover fill, and `onAccent` as the label on both. Pinning the primary
-button to a constant outside the palette would make it the one control a theme cannot restyle.
+it. `accent` is the foreground, ring, border and tint source. The primary button's opaque fill is
+independent: `accentSolid` at rest, `accentHover` on hover, and `onAccent` as the label on both. A palette
+can change solid controls without changing every accent tint; pinning the fill outside the palette would
+make it the one control a theme cannot restyle. Every theme renders the same fills, borders and roles;
+components never branch on theme identity or contrast metadata to remove them.
 
 A manifest must also be legible, not merely complete. The design checks hold every bundled manifest to
 WCAG AA (4.5) for `text`, `muted`, `accent` and `success` on every resting surface (`background`, `content`,
@@ -108,6 +110,10 @@ ever arrive, the seam is a validated registration path in front of the same cata
 
 ## Not yet ported
 
+- Minimal Dark and Minimal Light palettes: quiet neutral surfaces, restrained green accents and neutral
+  bubble accents, sharing the standard pair's syntax and terminal palettes. The native catalogue still
+  ships four manifests. Upstream's standard Light now uses an independently tuned `accentSolid`; the
+  native Light manifest retains its existing primary fill.
 - Consumption of the manifest's `syntax` palette; `Themes.Parse` validates and carries it
   (`ThemeManifest.Syntax`), but code surfaces still pick their own colours. Upstream keeps one syntax scope map for both Markdown code blocks and the file editor: the
   editor resolves it to concrete colours after each swap, and a colour it cannot resolve is omitted so the
