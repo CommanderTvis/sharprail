@@ -4866,6 +4866,13 @@ optional skips and unverified physical pairing. The module spec remains draft;
 changes are committed. The user authorized fast-forwarding main, removing the task
 worktree and pushing main. No publication or running-app restart.
 
+## Tailscale QR hostname entry (2026-10-11)
+
+Added a QR code to Tailscale settings and Android scanner routing to the pairing
+picker with the scanned hostname. No token or port is encoded; comparison-code
+approval remains required. Desktop/Android Release builds and focused --tailscale
+checks pass. No repeated full gate, device-camera check, commit, push or deployment.
+
 ## Specs at Project Home (2026-10-11)
 
 A cold Project Home mounted the Specs panel but exposed no active workspace to

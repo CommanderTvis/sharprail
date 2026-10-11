@@ -1831,6 +1831,26 @@ completion and requested no further repeated tests. An existing large-diff timin
 check passed in isolation after timing out. No complete gate is claimed for the
 latest rebased tip. Main's subsequent editor-fix commits were retained unchanged.
 
+## Tailscale hostname QR pairing (2026-10-11)
+
+The Tailscale settings page displays a credential-free hostname QR code. Android's
+existing scanner routes it into normal host-approved pairing, without name/port
+entry. Focused --tailscale checks pass, including QR payload parsing, rejection
+of credential/URL payloads and the displayed settings code. Desktop Release builds
+pass with zero warnings/errors; Android Release passes with the two existing
+XA4301 duplicate PDFium warnings. Changed C# formatting and diff whitespace are
+checked. Existing evidence is reused for unchanged code; the full gate was not
+repeated. Physical camera scanning and packaged-app deployment remain unverified.
+Changes remain uncommitted.
+
+## Tailscale brand icon (2026-10-11)
+
+The plugin manifest and settings navigation use the official media-kit nine-dot
+SVG as a host-served asset, with theme-aware fill and source attribution. Release
+build passes with zero warnings/errors; SVG XML/geometry and byte-identical asset
+staging in UI/remote-host output are verified. No tests repeated for this asset
+and icon-name change; native visual inspection remains unverified. Uncommitted.
+
 ## Specs at Project Home (2026-10-11)
 
 A cold Project Home mounted the Specs panel but exposed no active workspace to
