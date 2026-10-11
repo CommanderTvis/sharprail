@@ -1913,6 +1913,42 @@ unchanged-slice verification rule. Code/specs/checks form one signed feature
 commit, with these validation records in a separate tip commit. No force-push
 or published-history rewrite is needed.
 
+## Ignored Files-tree highlighting — 2026-10-11
+
+The fork's ignored-file appearance is ported in `fix/ignored-file-highlighting`:
+subtle label, icon and chevron colours, an italic label, and an “Ignored by git”
+tooltip. Ignored entries remain openable. Git decides the flag in one NUL-delimited
+batch per listing; the flag travels through both direct and gRPC adapters.
+
+Release build passes with zero warnings/errors. `--files`, `--design` and touched-file
+format verification pass. Host regressions cover tracked exceptions, negation,
+repository/global excludes, unusual filenames, compacted ignored directories,
+ignored descendants and changed rules; headless input covers the appearance and
+opening an ignored file. File Icons passes locally and remotely in isolation.
+
+The six-lane gate and named resumes cover 117 of 118 cases. The gate is not clean:
+`EditorWorkbenchChecks` fails with stale syntax-style bytes during reattachment on
+this workspace's base. Main already contains the separate fix (`5f10a42c`), but its
+history was rewritten while this workspace was active; this task did not change
+its base or import unrelated editor work. The named resume's File Icons raster
+and Specs Retry-button failures pass in isolation without source changes; the
+remaining notification case also passes. Optional Git-source integration cases
+were skipped because `SHARPRAIL_TEST_GIT_SOURCE` was unset. No Android build or
+packaged-app/native visual check was run. The user subsequently authorized landing on main and pushing to origin/main.
+Task logs and exited fixture directories were removed; the verification workspace
+retained its last-failed record at that stage.
+
+### Landing on current main
+
+The implementation applies cleanly to current main as SSH-signed commit `4b8800d6`,
+without rewriting published commits. The integration Release build passes with zero
+warnings/errors. All touched C# implementation and test files are byte-identical to
+the verified workspace; shared XAML and spec additions preserve main's later changes.
+Existing test and formatting results are reused under the verification-budget rule:
+no unchanged test slice or full gate was rerun on main. Main already includes the
+separate editor reattachment fix. The user requested a normal push to origin/main
+and removal of the task workspace after preserving its work.
+
 ## Specs at Project Home (2026-10-11)
 
 A cold Project Home mounted the Specs panel but exposed no active workspace to

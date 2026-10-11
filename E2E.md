@@ -178,7 +178,7 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `files.spec.ts` (fork) | a new file warns as soon as its name already exists | Ported (within the folder-row case) |
 | `files.spec.ts` (fork) | a file row creates a folder beside it, and renames itself | Ported (the stem selection is asserted; the rename text is set rather than typed) |
 | `files.spec.ts` (fork) | an open tab says when its file is deleted on disk, and recovers when it returns | Ported (the banner is asserted on macOS, where text files open in Scintilla) |
-| `files.spec.ts` (fork) | an entry git ignores is dimmed, whichever rule ignores it | Not ported: the tree does not mark ignored entries |
+| `files.spec.ts` (fork) | an entry git ignores is dimmed, whichever rule ignores it | Ported: host checks cover ignore rules locally and over gRPC; headless input checks dimming, italics, tooltip and opening an ignored file |
 | `files.spec.ts` (fork) | a file row drags into the composer as a mention and into a terminal as a path | Not ported: AI composer excluded; tree rows are not drag sources |
 | `clone-project.spec.ts` (fork) | clone repository | Not ported yet |
 | `gitless.spec.ts` (fork) | Changes and Review withheld for a plain folder or an unborn repository | Not ported yet |

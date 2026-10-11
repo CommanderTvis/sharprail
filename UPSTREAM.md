@@ -167,7 +167,7 @@ Commits are in chain order; the first ten are JetBrains commits the fork carries
 - `87325ac26` An issue number in a comment stops being painted as a colour: already present (Scintilla has no colour decorators)
 - `1e4449a2a` A repository URL becomes a project, cloned into a folder you choose: ported 2026-10-03 (`CloneProjectAsync` through every host layer, the Clone repository… dialog and both `clone-project.spec.ts` scenarios; the remaining diff deletes web-only unit tests)
 - `7a7685057` The desktop's right-click menu stops offering Look Up, Fonts, and Services: skipped (Electron context menu)
-- `3f01f8942` A file in the tree can be deleted, into the trash, after asking: ported (Delete file/folder asks, then moves to the OS trash via NSFileManager on macOS or gio on Linux; also the row menu itself and Copy absolute path; the git-ignored dimming and composer drag tests in the same diff are not ported)
+- `3f01f8942` A file in the tree can be deleted, into the trash, after asking: ported (Delete file/folder asks, then moves to the OS trash via NSFileManager on macOS or gio on Linux; also the row menu itself and Copy absolute path; git-ignored dimming is now ported with host rule checks and headless styling/opening coverage; composer drag remains unported)
 - `1d30e44be` A diff too narrow for two columns opens inline until you say otherwise: ported
 - `82419d3ad` Cmd+F finds text in every preview, not only inside the editor: partial (find bar over Markdown previews and rendered diffs with count and stepping; only the current match is selected, other matches are not painted; no find over terminals)
 - `be216ba71` Typechecking the desktop stops waiting on a dev host that is running: skipped (Bun tooling)

@@ -4935,6 +4935,29 @@ unchanged-slice verification rule. Code/specs/checks form one signed feature
 commit, with these validation records in a separate tip commit. No force-push
 or published-history rewrite is needed.
 
+## Ignored Files-tree highlighting (2026-10-11)
+
+Workspace `workspace-10`, branch `fix/ignored-file-highlighting`, ports the fork's
+subtle italic ignored rows and “Ignored by git” tooltip. A bounded NUL-delimited
+Git check-ignore batch per directory supplies the flag through local and gRPC
+listings; ignored files stay openable and icon refreshes retain the subtle brush.
+The owning Files and Panels specs, E2E inventory and upstream port log are updated.
+
+Release build, --files, --design, touched-file format verification and whitespace
+checks pass. Full-gate coverage plus named resumes reaches 117/118 cases; the
+workspace's old base still hits the editor reattachment style-length error. The
+separate fix is already on main as 5f10a42c; main's history was rewritten during
+this task, so this workspace's base was left intact. File Icons and Specs Retry
+assertions from the resume pass alone without code changes. See VALIDATION.md for
+limits. Updated instructions require reusing these results rather than rerunning
+unchanged slices. Task fixtures and logs are removed, with checks-last-run.txt
+retained. The user subsequently authorized landing on main, deleting the task workspace and
+pushing origin/main. SSH-signed implementation commit 4b8800d6 applies cleanly to
+current main without rewriting published history. The integration Release build
+passes with zero warnings/errors; touched C# implementation and tests are byte-identical
+to the verified workspace. Existing verification is reused, with no test rerun on
+main. Main already contains the separate editor fix. No app restart was requested.
+
 ## Specs at Project Home (2026-10-11)
 
 A cold Project Home mounted the Specs panel but exposed no active workspace to
