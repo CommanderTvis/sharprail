@@ -4836,6 +4836,19 @@ MarkdownDocumentE2E and Spec Dialect UI pass on resume, and no cases remain
 unfinished. The consolidated commits are signed. No Android build, packaged-app
 or live Codex CLI check was run. No publication or app restart was requested.
 
+## Editor reattachment crash (2026-10-11)
+
+Detaching an editor discards cached syntax style bytes, so edits while detached
+cannot apply stale styles during reattachment. Regression coverage includes longer,
+shorter and equal-byte-length Unicode replacements without another Highlight call.
+Release build passes with zero warnings/errors; --syntax, touched-file format
+verification and diff whitespace checks pass. The four-lane full gate is incomplete:
+BottomPanelE2E, EditorWorkbenchChecks, MarkdownDocumentE2E and spec-dialect-ui remain
+unfinished. A serial --last-failed retry stops at the 50,000-line diff timing limit
+(5.4 seconds); other workspaces also have active suites. Spec validation reports
+four pre-existing Branch Graph dangling links. No packaged app rebuild or restart.
+Task fixture directories were removed; prior scratch is preserved.
+
 ## Specs at Project Home (2026-10-11)
 
 A cold Project Home mounted the Specs panel but exposed no active workspace to

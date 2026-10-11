@@ -1,5 +1,11 @@
 # Prototype validation
 
+2026-10-11 editor reattachment: Release build, --syntax, touched-file format
+verification and diff whitespace checks pass. Detached buffer replacements cover
+longer, shorter and equal-byte-length Unicode text. The four-lane full gate and
+serial --last-failed retry are incomplete; the retry exceeds the large-diff timing
+limit. No packaged app rebuild or restart.
+
 ### Continuous Changes review (2026-10-11)
 
 Ported the review view from upstream `f7cca7b` without Git graph integration.
