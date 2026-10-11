@@ -17,13 +17,16 @@ public sealed partial class TailscaleConnectView : UserControl
     private CancellationTokenSource? attempt;
     private TailscaleRemembered? remembered;
     private bool restored;
+    private readonly bool scannedHost;
     public event Action<TailscaleConnection>? Connected;
 
-    public TailscaleConnectView(string statePath)
+    public TailscaleConnectView(string statePath, string? initialHost = null)
     {
         this.statePath = statePath;
         AvaloniaXamlLoader.Load(this);
         host = this.FindControl<TextBox>("TailscaleHost")!;
+        scannedHost = !string.IsNullOrWhiteSpace(initialHost);
+        if (scannedHost) host.Text = initialHost;
         progress = this.FindControl<TextBlock>("TailscaleProgress")!;
         pair = this.FindControl<Button>("TailscalePair")!;
         discover = this.FindControl<Button>("TailscaleDiscover")!;
@@ -44,7 +47,8 @@ public sealed partial class TailscaleConnectView : UserControl
         restored = true;
         remembered = await Task.Run(() => TailscaleClient.Load(statePath));
         if (TopLevel.GetTopLevel(this) is null) return;
-        if (remembered is { } saved && string.IsNullOrWhiteSpace(host.Text))
+        if (scannedHost) await PairAsync();
+        else if (remembered is { } saved && string.IsNullOrWhiteSpace(host.Text))
         {
             host.Text = saved.Host;
             await PairAsync();

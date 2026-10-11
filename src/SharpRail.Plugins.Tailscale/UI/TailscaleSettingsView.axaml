@@ -5,6 +5,8 @@
     <TextBlock Text="Clients can find this host on your Tailscale network. Approve a new device only when its pairing code matches the code on that device." TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
     <TextBlock x:Name="PairingStatus" Text="Checking…" TextWrapping="Wrap" />
     <TextBlock x:Name="PairingName" TextWrapping="Wrap" />
+    <local:TailscaleQrCodeView x:Name="PairingQr" Width="240" Height="240" HorizontalAlignment="Left" IsVisible="False" />
+    <TextBlock x:Name="PairingQrHint" Text="On your Android client, tap Scan QR code. Then compare the pairing codes and approve the device below." TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" IsVisible="False" />
     <TextBlock Text="Waiting for approval" FontWeight="SemiBold" />
     <ItemsControl x:Name="PairingPending">
       <ItemsControl.ItemTemplate>

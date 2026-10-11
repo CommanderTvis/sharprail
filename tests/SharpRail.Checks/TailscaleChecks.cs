@@ -33,6 +33,9 @@ internal static class TailscaleChecks
 
     internal static async Task Run(string root)
     {
+        var link = TailscaleLink.Format("host.tailnet.ts.net");
+        Require(TailscaleLink.TryParse(link, out var scanned) && scanned == "host.tailnet.ts.net", "QR pairing links preserve the hostname.");
+        Require(!TailscaleLink.TryParse(link + "&token=secret", out _) && !TailscaleLink.TryParse("sharprail://tailscale?host=http%3A%2F%2Fevil.test", out _), "Pairing links reject credentials and URLs.");
         Registry();
         Addresses();
         await BootstrapValidation();
@@ -69,6 +72,8 @@ internal static class TailscaleChecks
             E2eWorkspace.Until(() => Find<TextBlock>("PairingName").Text?.Contains("host.tailnet.ts.net", StringComparison.Ordinal) == true);
             E2eWorkspace.Until(() => fake.Subscriptions > 0 && settings.GetLogicalDescendants().OfType<Button>().Any(button => Equals(button.Content, "Approve")));
             Require(settings.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == device.Code), "The approval UI shows the comparison code.");
+            var qr = Find<TailscaleQrCodeView>("PairingQr");
+            Require(qr.IsVisible && TailscaleLink.TryParse(qr.Text, out var qrHost) && qrHost == pending.HostName, "The host shows a credential-free pairing QR code.");
             var rows = Find<ItemsControl>("PairingPending").ItemsSource;
             fake.Push("tailscale", "status", pending);
             E2eWorkspace.Settle(50);

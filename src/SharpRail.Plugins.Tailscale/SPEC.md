@@ -79,3 +79,12 @@ authentication callback and stops any listener it owns before returning.
 actual HTTP discovery and approval against a fake Tailscale identity provider, embedded gRPC startup,
 local/remote status parity, authenticated calls, revocation and plugin teardown. Fixtures never call the
 user's Tailscale daemon. Desktop and Android device-to-device operation requires manual verification.
+
+The Tailscale settings page displays a credential-free `sharprail://tailscale?host=…`
+QR code for its hostname. Android's existing Scan QR code action opens Tailscale
+pairing with that hostname and starts the usual comparison-code/host-approval flow.
+The code contains no token or gRPC port. Existing manual-host QR codes still work.
+
+The plugin list and settings navigation use the official Tailscale nine-dot SVG icon,
+staged as a host-served plugin asset. Its fill follows the theme; geometry and opacity
+are preserved. Source and trademark attribution are recorded in NOTICE.md.

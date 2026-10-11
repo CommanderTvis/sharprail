@@ -23,10 +23,11 @@ public static class TailscaleContract
     public static readonly PluginMethod<TailscaleRevoke, TailscaleStatus> Revoke = new("revoke");
     public static readonly PluginChannel<TailscaleStatus> Changed = PluginChannel<TailscaleStatus>.State("status", Status);
     public static readonly PluginContract Contract = PluginContract.Create<TailscaleSettings>(Id, 1, [Status, Decide, Revoke], [Changed]);
-    public static readonly PluginManifest Manifest = new(Id, "Tailscale", "global-line", "0.1.0", PluginApi.Generation, 1)
+    public static readonly PluginManifest Manifest = new(Id, "Tailscale", "asset:tailscale.svg", "0.1.0", PluginApi.Generation, 1)
     {
         Description = "Pairs clients on your Tailscale network without copying IP addresses, ports or session tokens.",
         EnabledByDefault = false,
+        Assets = "assets",
         Host = "SharpRail.Plugins.Tailscale.Host.dll",
         Ui = "SharpRail.Plugins.Tailscale.UI.dll"
     };

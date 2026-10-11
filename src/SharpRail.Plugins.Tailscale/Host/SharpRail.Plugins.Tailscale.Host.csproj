@@ -2,6 +2,7 @@
   <ItemGroup>
     <ProjectReference Include="../Contract/SharpRail.Plugins.Tailscale.csproj" />
     <ProjectReference Include="../../SharpRail.Plugins.Api.Host/SharpRail.Plugins.Api.Host.csproj" />
+    <None Include="../assets/**" Link="plugins/tailscale/assets/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <InternalsVisibleTo Include="SharpRail.Checks" />
   </ItemGroup>
 </Project>

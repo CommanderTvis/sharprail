@@ -231,3 +231,8 @@ uses a MagicDNS host name instead of enumerating another app's private peer list
 and remembers its own token. Launching a remembered Tailscale connection bootstraps again to obtain the
 host's current port. Manual entry and QR scanning remain available. Desktop picker window source and XAML
 are excluded from the linked UI sources.
+
+The Tailscale settings page displays a credential-free `sharprail://tailscale?host=…`
+QR code for its hostname. Android's existing Scan QR code action opens Tailscale
+pairing with that hostname and starts the usual comparison-code/host-approval flow.
+The code contains no token or gRPC port. Existing manual-host QR codes still work.

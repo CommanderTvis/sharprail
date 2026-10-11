@@ -23,6 +23,8 @@ internal sealed partial class TailscaleSettingsView : UserControl
     private IDisposable? subscription;
     private readonly TextBlock status;
     private readonly TextBlock name;
+    private readonly TailscaleQrCodeView qr;
+    private readonly TextBlock qrHint;
     private readonly ItemsControl pending;
     private readonly ItemsControl approved;
     private TailscaleStatus? previous;
@@ -33,6 +35,8 @@ internal sealed partial class TailscaleSettingsView : UserControl
         AvaloniaXamlLoader.Load(this);
         status = this.FindControl<TextBlock>("PairingStatus")!;
         name = this.FindControl<TextBlock>("PairingName")!;
+        qr = this.FindControl<TailscaleQrCodeView>("PairingQr")!;
+        qrHint = this.FindControl<TextBlock>("PairingQrHint")!;
         pending = this.FindControl<ItemsControl>("PairingPending")!;
         approved = this.FindControl<ItemsControl>("PairingApproved")!;
         AttachedToVisualTree += (_, _) => subscription ??= context.Subscribe(TailscaleContract.Changed, Apply, new TailscaleStatusParams());
@@ -47,6 +51,11 @@ internal sealed partial class TailscaleSettingsView : UserControl
     {
         status.Text = next.Detail;
         name.Text = next.HostName is { } host ? "Host name: " + host : "";
+        if (previous?.HostName != next.HostName)
+        {
+            qr.IsVisible = qrHint.IsVisible = !string.IsNullOrWhiteSpace(next.HostName);
+            if (qr.IsVisible) qr.Text = TailscaleLink.Format(next.HostName!);
+        }
         if (previous is null || !previous.Pending.SequenceEqual(next.Pending)) pending.ItemsSource = next.Pending.Select(Row).ToArray();
         if (previous is null || !previous.Approved.SequenceEqual(next.Approved)) approved.ItemsSource = next.Approved.Select(Row).ToArray();
         previous = next;
