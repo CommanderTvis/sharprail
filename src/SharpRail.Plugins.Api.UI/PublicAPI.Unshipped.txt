@@ -702,3 +702,6 @@ virtual SharpRail.Plugins.Api.UI.TabRef.PrintMembers(System.Text.StringBuilder! 
 virtual SharpRail.Plugins.Api.UI.WorkspaceActionRegistration.EqualityContract.get -> System.Type!
 virtual SharpRail.Plugins.Api.UI.WorkspaceActionRegistration.Equals(SharpRail.Plugins.Api.UI.WorkspaceActionRegistration? other) -> bool
 virtual SharpRail.Plugins.Api.UI.WorkspaceActionRegistration.PrintMembers(System.Text.StringBuilder! builder) -> bool
+
+SharpRail.Plugins.Api.UI.LauncherCommandOptions.Images.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Plugins.Api.UI.LauncherCommandOptions.Images.init -> void

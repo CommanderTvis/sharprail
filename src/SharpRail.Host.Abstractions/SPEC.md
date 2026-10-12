@@ -135,3 +135,7 @@ The public top-level types of the assembly, held to it in both directions by the
 - A partial interface keeps `IProjectServices` one contract across files; the operations added since
   `HostProtocol.Current` was last raised (path inspection, pre-warm, spec graph, durable-spec query) have
   no version constant yet, so a client cannot gate them against an older host.
+
+Prompt attachments use `SavePromptImageAsync`: bounded PNG bytes are saved under the host state's
+clipboard directory, returning an absolute host path. Local calls run off the dispatcher; remote calls
+carry the bytes and return the same host path, never a client-local file path.

@@ -164,3 +164,7 @@ Git metadata invalidation and rescan requests. They end on client cancellation o
   logging.
 - Resolving the login-shell `PATH` at boot.
 - Structured leveled diagnostics with rotating on-disk logs.
+
+Prompt attachments use `SavePromptImageAsync`: bounded PNG bytes are saved under the host state's
+clipboard directory, returning an absolute host path. Local calls run off the dispatcher; remote calls
+carry the bytes and return the same host path, never a client-local file path.

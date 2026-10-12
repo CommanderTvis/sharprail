@@ -115,6 +115,9 @@ public partial interface IProjectServices
     ValueTask<IReadOnlyList<ProjectFile>> ListFilesAsync(string relativePath, CancellationToken cancellationToken = default);
     /// <summary>Watches the currently opened workspace, captured for this subscription. The first empty batch confirms that watching has started.</summary>
     IAsyncEnumerable<WorkspaceFileChanges> WatchFilesAsync(CancellationToken cancellationToken = default);
+    /// <summary>Stores a PNG prompt attachment in the host clipboard directory and returns its absolute path.</summary>
+    ValueTask<string> SavePromptImageAsync(byte[] data, CancellationToken cancellationToken = default)
+        => ValueTask.FromException<string>(new NotSupportedException("This host cannot store prompt images."));
     ValueTask SaveFileAsync(FileSaveRequest request, CancellationToken cancellationToken = default);
     ValueTask<FileDocument> ReadFileAsync(string relativePath, CancellationToken cancellationToken = default);
     ValueTask<IReadOnlyList<SpecDocument>> ListSpecsAsync(CancellationToken cancellationToken = default);

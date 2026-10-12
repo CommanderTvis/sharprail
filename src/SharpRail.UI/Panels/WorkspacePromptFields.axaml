@@ -1,11 +1,15 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="SharpRail.UI.Panels.WorkspacePromptFields">
-  <TextBox x:Name="WsPrompt"
-           AutomationProperties.Name="Starting prompt"
-           PlaceholderText="What do you want to work on?"
-           AcceptsReturn="True" TextWrapping="Wrap"
-           MinHeight="160" MaxHeight="240"
-           VerticalContentAlignment="Top"
-           IsEnabled="False" />
+  <StackPanel Spacing="8">
+    <TextBox x:Name="WsCommand" AutomationProperties.Name="Starting command"
+             PlaceholderText="Starting command (optional)" IsVisible="False" />
+    <TextBox x:Name="WsPrompt" AutomationProperties.Name="Starting prompt"
+             PlaceholderText="What do you want to work on?"
+             AcceptsReturn="True" TextWrapping="Wrap"
+             MinHeight="160" MaxHeight="240" VerticalContentAlignment="Top" IsEnabled="False" />
+    <WrapPanel x:Name="WsImages" IsVisible="False" />
+    <TextBlock x:Name="WsPasteHint" Text="Paste images into the prompt." IsVisible="False" />
+    <TextBlock x:Name="WsPromptError" IsVisible="False" TextWrapping="Wrap" />
+  </StackPanel>
 </UserControl>

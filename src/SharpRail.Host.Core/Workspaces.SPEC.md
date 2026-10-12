@@ -16,7 +16,7 @@ Upstream: packages/server/src/workspaces/SPEC.md (revision: [UPSTREAM.md](../../
 A workspace is a Git worktree on its own branch — the anchor for files, changes and terminals. The host
 keeps a registry of them (`WorkspaceRecord`): a stable id, the project root, a kind, the worktree path, its
 branch and the base it is measured from. Its display label is decoupled from its branch: the label lives
-in host state (`HostState.WorkspaceLabels`), the branch in Git, and renaming one never touches the other.
+in host state (`HostState.WorkspaceLabels`), the branch in Git, and ordinary label renames never touch the branch. The first agent title of an unnamed generated managed workspace also supplies its branch slug.
 
 Two kinds are user-owned — SharpRail uses their folder but never renames, removes or reclaims them. Every
 project has exactly one `default` workspace whose root is the project folder itself (Git's main working
@@ -32,7 +32,7 @@ SharpRail created, may be removed by it.
   suggesting the next workspace (`ListBranchesAsync`).
 - The records are host state: `HostStateStore.ChangeWorkspaces` saves them in `state.json`, publishes the
   snapshot and then the lifecycle events of the difference ([HostState.SPEC.md](HostState.SPEC.md)).
-- Forbidden: moving a worktree directory, renaming a branch, mutating the Default workspace's checkout,
+- Forbidden: moving a worktree directory, renaming an already named branch, mutating the Default workspace's checkout,
   and any Git or filesystem write into an external worktree.
 
 ## Behavior
@@ -47,8 +47,11 @@ SharpRail created, may be removed by it.
 - `set_title` (`title`) sits beside it and titles the calling terminal's tab (whitespace collapsed, 60
   characters, at least one letter or digit). The title is host state per terminal
   (`HostState.TerminalTitles`), so every window shows it; a later call replaces it and closing the terminal
-  drops it. It names nothing else: a terminal cannot rename the workspace it runs in or move its branch. A
-  missing or letterless title and unknown arguments are tool errors before any write.
+  drops it. If the calling workspace is managed, has no saved label, and still checks out its generated
+  `workspace-N` branch, the first title also becomes its label and a lowercase ASCII branch slug with
+  numeric collision suffixes. The workspace gate serializes naming with registry mutations. Default,
+  external, manually named and switched branches stay unchanged. Subsequent titles only change the tab.
+  A missing or letterless title and unknown arguments are tool errors before any write.
 - `workspace_delete` (`path`) is the counterpart: it runs the registry's Remove for a managed workspace of
   the calling terminal's project (`ProjectServices.DeleteWorkspaceAsync`), so the record leaves host state
   in the same step as the checkout and every client's Projects updates at once, where a `git worktree
@@ -150,7 +153,7 @@ SharpRail created, may be removed by it.
   per host lifetime, and recreation compares against the retained baseline to detect work while
   unwatched. Backfill records with no activity stamp once from the worktree's `.git` gitfile mtime,
   falling back to now (including the Default workspace); it must preserve explicit overrides.
-- Renaming a managed workspace's branch from an agent-supplied slug; labels are the only rename.
+- Renaming an already named managed workspace branch; later label renames stay independent of Git.
 - A host terminal catalog that consumes `InitialTerminalPending`: the first terminal is still reserved in
   each window's layout, and the marker is only kept and cleared by the host.
 - Seeding the scratch directory of a user-owned workspace when a session starts there.

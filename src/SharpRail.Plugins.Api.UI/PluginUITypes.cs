@@ -213,6 +213,9 @@ public sealed record LauncherCommandOptions
     /// <summary>The agent's opening prompt.</summary>
     public string? InitialPrompt { get; init; }
 
+    /// <summary>Absolute image paths on the terminal host to attach to the opening prompt.</summary>
+    public IReadOnlyList<string> Images { get; init; } = [];
+
     /// <summary>An agent session to resume.</summary>
     public string? ResumeSessionId { get; init; }
 }

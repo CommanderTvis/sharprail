@@ -25,6 +25,7 @@ internal static class OffDispatcher
 public sealed partial class LocalProjectAdapter(IProjectServices host) : IProjectServices
 {
     public IAsyncEnumerable<WorkspaceFileChanges> WatchFilesAsync(CancellationToken cancellationToken = default) => host.WatchFilesAsync(cancellationToken);
+    public ValueTask<string> SavePromptImageAsync(byte[] data, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.SavePromptImageAsync(data, cancellationToken));
     public ValueTask SaveFileAsync(FileSaveRequest request, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.SaveFileAsync(request, cancellationToken));
     public ValueTask<WorkspaceInfo> OpenProjectAsync(string path, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.OpenProjectAsync(path, cancellationToken));
     public ValueTask<IReadOnlyList<ProjectFile>> ListFilesAsync(string relativePath, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.ListFilesAsync(relativePath, cancellationToken));
@@ -197,6 +198,9 @@ public sealed partial class RemoteProjectAdapter : IProjectServices, IDisposable
 
     public async ValueTask<GitSnapshot> ApplyGitActionAsync(GitAction action, CancellationToken cancellationToken = default)
         => Map(await service.ApplyGitActionAsync(new() { Action = action.Kind, Path = action.Path, Branch = action.Branch, BaseBranch = action.BaseBranch }, Context(cancellationToken)));
+
+    public async ValueTask<string> SavePromptImageAsync(byte[] data, CancellationToken cancellationToken = default)
+        => (await service.SavePromptImageAsync(new() { Data = data }, Context(cancellationToken))).Path;
 
     public async ValueTask SaveFileAsync(FileSaveRequest request, CancellationToken cancellationToken = default)
         => await service.SaveFileAsync(new() { WorkspaceRoot = request.WorkspaceRoot, Path = request.Path, OriginalText = request.OriginalText, Text = request.Text }, Context(cancellationToken));

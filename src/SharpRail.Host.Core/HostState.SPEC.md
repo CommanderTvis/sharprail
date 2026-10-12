@@ -156,3 +156,7 @@ presets belong to the UI.
   startup root, and Git failure never blocks opening files) and offers Initialize afterwards, so refusing it
   needs the product decision upstream made; inspection already gives a client the classification, and the
   code already survives the local and remote adapters.
+
+The first agent title may fill an unnamed generated managed workspace label through the workspace
+tool. The write checks under the state lock that no manual label arrived in the meantime; manual
+labels always take precedence. The workspace tool owns the corresponding initial branch rename.

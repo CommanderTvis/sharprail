@@ -14,6 +14,12 @@ public sealed class SaveFileRequest
 }
 
 [ProtoContract]
+public sealed class PromptImageRequest
+{
+    [ProtoMember(1)] public byte[] Data { get; set; } = [];
+}
+
+[ProtoContract]
 public sealed class SaveFileReply { }
 
 public static class ProjectHeaders
@@ -213,6 +219,7 @@ public sealed class WorkspaceFileChangesReply
 [Service]
 public partial interface IProjectRpc
 {
+    ValueTask<DocumentReply> SavePromptImageAsync(PromptImageRequest request, CallContext context = default);
     ValueTask<SaveFileReply> SaveFileAsync(SaveFileRequest request, CallContext context = default);
     ValueTask<WorkspaceReply> OpenProjectAsync(ProjectRequest request, CallContext context = default);
     ValueTask<ProjectFilesReply> ListFilesAsync(ProjectRequest request, CallContext context = default);

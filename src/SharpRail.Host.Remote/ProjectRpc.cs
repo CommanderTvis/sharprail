@@ -186,6 +186,9 @@ public sealed partial class ProjectRpc(ProjectSessions sessions, IHostApplicatio
         return new WorkspaceActionReply { Workspace = result is null ? null : WorkspaceMessages.Map(result) };
     });
 
+    public ValueTask<DocumentReply> SavePromptImageAsync(PromptImageRequest request, CallContext context = default) => Replayed(context, request, async (host, token) =>
+        new DocumentReply { Path = await host.SavePromptImageAsync(request.Data, token) });
+
     public ValueTask<SaveFileReply> SaveFileAsync(SaveFileRequest request, CallContext context = default) => Replayed(context, request, async (host, token) =>
     {
         await host.SaveFileAsync(new(request.WorkspaceRoot, request.Path, request.OriginalText, request.Text), token);

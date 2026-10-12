@@ -60,6 +60,15 @@ public sealed partial class HostStateStore
         return workspaces;
     }
 
+    internal void SetInferredWorkspaceLabel(string path, string title)
+    {
+        lock (gate)
+        {
+            if (state.WorkspaceLabels.ContainsKey(path) || !state.Workspaces.Any(workspace => workspace.Path == path)) return;
+            Publish(state with { WorkspaceLabels = new Dictionary<string, string>(state.WorkspaceLabels) { [path] = title } }, persist: true);
+        }
+    }
+
     /// <summary>Records the ref a workspace was just created from as its review target, clearing any override left at that path.</summary>
     public void RecordWorkspaceBase(string path, string reference)
     {

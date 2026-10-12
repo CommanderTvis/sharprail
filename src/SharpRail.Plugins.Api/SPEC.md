@@ -663,7 +663,9 @@ set is closed.
 
 H11 (send text to an agent session) and H16 (contribute agent extensions and skills) are not ported: SharpRail
 has no in-process agent. The fork's H12 `suggestWorkspaceName` is not ported either, since SharpRail has no
-host-side naming inference to feed. The Start work dialog derives its initial name locally from the prompt.
+host-side naming inference to feed. Start work keeps the generated name until the launched agent titles
+its task; `set_title` names an untouched generated managed workspace once. Launcher command options
+carry absolute image paths on the terminal host.
 
 Git is a capability rather than something a plugin spawns for itself, which is the one exception to the rule
 that a host half is ordinary .NET code. The host's runner already disables terminal prompts, bounds every child,

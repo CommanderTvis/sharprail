@@ -490,3 +490,6 @@ Copy, plus rendered selection, inline/font invalidation and detach/remount under
 and headless Skia frame capture. `SHARPRAIL_BENCH_MARKDOWN` selects a source file; otherwise it
 uses a large generated document. It reports input/frame median and p95 plus allocated bytes,
 not native presentation latency.
+Start work checks cover custom terminal commands, preserved command/prompt/image drafts, removable
+image previews and host attachment delivery. Workspace-tool checks verify image upload over both
+adapters and first-title workspace naming without replacing manual or subsequent workspace names.

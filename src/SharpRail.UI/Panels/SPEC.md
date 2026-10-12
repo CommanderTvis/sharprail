@@ -88,18 +88,17 @@ expressions, a case toggle, a glob filter and replace.
   when it lands it replaces the list and, unless the user already picked, the default base. The default base
   is whatever the host reports, never a literal `HEAD` sentinel that would be believed and persisted.
 - Worktree mode has a Name field prefilled with the host's next free `workspace-N`, so the name is visible
-  before creation and follows a prefetched catalogue while untouched. With an agent selected, the
-  prompt's first nonblank line replaces that suggestion: whitespace is collapsed and the name is
-  limited to 60 Unicode text elements. Clearing the prompt or selecting Nothing restores the host
-  suggestion. Editing Name takes precedence over later prompt, launcher and catalogue changes.
-  A name different from the host suggestion is stored as the new workspace's label and supplies its branch:
+  before creation and follows a prefetched catalogue while untouched. Prompt text never replaces this
+  suggestion. An agent's first task title names an untouched generated workspace after launch through
+  the host's `set_title`; creation does not wait for a separate AI request. Editing Name takes precedence.
+  A manually entered name is stored as the new workspace's label and supplies its branch:
   lowercase ASCII letters and digits, other runs replaced by hyphens, trimmed to 60 characters,
   with `workspace` as the empty-slug fallback. Existing local branches (including branch directories)
   receive a numeric suffix starting at `-2`. Later label renames do not rename branches.
 - Folder mode hides the base picker and the name, and says where the work lands with an “On {branch}” line
   read from the catalogue's checked-out branch (absent when HEAD is detached); submitting enters the
   project's Default workspace, creating nothing.
-- When plugins register agent launchers (W9), a “Start in a terminal with” row offers Nothing and each launcher,
+- A “Start in a terminal with” row offers Nothing, Terminal and each registered agent launcher (W9),
   using the launcher's icon factory for plugin assets. An unavailable launcher is disabled with its reason
   as the tooltip. The chosen launcher's command is typed into a new
   terminal of the workspace once it opens, with the optional starting prompt.
@@ -108,6 +107,14 @@ expressions, a case toggle, a glob filter and replace.
   focused when an agent is selected. Switching agents or targets preserves the draft. Enter submits;
   Shift+Enter inserts a newline. Both targets pass trimmed, nonempty text through the launcher's
   initial-prompt option; blank text or Nothing omits it.
+- The launcher row also offers Terminal: it opens a shell with an optional starting command. Agents show
+  their generated starting command in an editable field; edits retain the prompt and images as launcher
+  arguments. Switching launchers preserves each command draft.
+- Pasting an image into the prompt adds a removable preview. Up to eight PNG attachments of 8 MB each
+  remain in memory until submission. Cancelled or removed drafts write no files. Submission uploads
+  attachments to the host clipboard directory before starting the agent; both local and remote agents
+  receive paths on their own host. Switching launchers preserves attachments. Codex attaches them with
+  `--image`; Claude Code receives instructions to read the image files.
 - Selected target and launcher choices have an accent outline and subtle primary fill, distinct from hover.
 - Worktree submit returns the choice, and the workbench creates the worktree with the host-suggested path and
   the name-derived branch (or the suggested branch for an untouched name), persists the base as the

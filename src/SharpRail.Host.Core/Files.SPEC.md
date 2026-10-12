@@ -147,3 +147,7 @@ A read of a file that is gone throws `FileNotFoundException` (a remote client ge
 - A periodic identity check for a root replaced while its only subscribers stay attached and no client
   subscribes or pre-warms; today such a watcher heals on the next of those or on a watcher error.
 - A readiness answer for a subscription (upstream's `startupNudge`); the registration rescan covers it.
+
+Prompt attachments use `SavePromptImageAsync`: bounded PNG bytes are saved under the host state's
+clipboard directory, returning an absolute host path. Local calls run off the dispatcher; remote calls
+carry the bytes and return the same host path, never a client-local file path.

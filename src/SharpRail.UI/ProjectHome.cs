@@ -380,8 +380,23 @@ public sealed partial class WorkbenchWindow
             }
             if (choice.InProjectFolder) await OpenWorkspaceAsync(choice.Project, false);
             else await CreateWorktreeAsync(choice);
-            if (choice.Launcher is { } launcher && WorkspaceMounted && !atHome)
-                await OpenPluginTerminalAsync(workspaceRoot, new() { Command = launcher.TerminalCommand(new() { InitialPrompt = choice.InitialPrompt }) });
+            if (choice.OpenTerminal && WorkspaceMounted && !atHome && workspaceRoot == (choice.InProjectFolder ? choice.Project : choice.Path))
+            {
+                var launchWorkspace = workspaceRoot;
+                var launchRequest = projectRequest;
+                var images = new List<string>();
+                foreach (var image in choice.Images ?? []) images.Add(await host.SavePromptImageAsync(image, lifetime.Token));
+                var command = choice.Command ?? "";
+                if (choice.Launcher is { } launcher)
+                {
+                    var baseline = choice.DefaultCommand ?? "";
+                    var generated = launcher.TerminalCommand(new() { InitialPrompt = choice.InitialPrompt, Images = images });
+                    command = string.IsNullOrWhiteSpace(command) || command == baseline ? generated : command + (generated.StartsWith(baseline, StringComparison.Ordinal)
+                        ? generated[baseline.Length..] : throw new InvalidOperationException("This launcher cannot attach a prompt to an edited command."));
+                }
+                if (launchRequest != projectRequest || workspaceRoot != launchWorkspace || atHome) return;
+                await OpenPluginTerminalAsync(launchWorkspace, new() { Command = command });
+            }
         }
         catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
         finally { (probe as IDisposable)?.Dispose(); creatingWorkspace = false; }

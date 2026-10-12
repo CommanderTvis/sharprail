@@ -11,7 +11,7 @@ using SharpRail.Plugins.Api.UI;
 
 namespace SharpRail.UI.Panels;
 
-public sealed record NewWorkspaceChoice(bool InProjectFolder, string Base, string Path, string Branch, string Project, string? Name = null, AgentLauncher? Launcher = null, string? InitialPrompt = null);
+public sealed record NewWorkspaceChoice(bool InProjectFolder, string Base, string Path, string Branch, string Project, string? Name = null, AgentLauncher? Launcher = null, string? InitialPrompt = null, bool OpenTerminal = false, string? Command = null, IReadOnlyList<byte[]>? Images = null, string? DefaultCommand = null);
 
 public sealed class NewWorkspaceDialog
 {
@@ -19,6 +19,12 @@ public sealed class NewWorkspaceDialog
     private readonly TextBlock currentBranch;
     private readonly TextBox name;
     private readonly TextBox prompt;
+    private readonly TextBox command;
+    private readonly WorkspacePromptFields promptFields;
+    private bool openTerminal;
+    private bool loadingProject;
+    private string defaultCommand = "";
+    private readonly Dictionary<string, string> commands = [];
     private readonly TextBlock hint;
     private readonly ToggleButton worktreeTarget;
     private readonly ToggleButton folderTarget;
@@ -120,14 +126,11 @@ public sealed class NewWorkspaceDialog
             if (e.Property == TextBox.TextProperty && !updatingName) nameEdited = true;
         };
 
-        var promptFields = new WorkspacePromptFields();
+        promptFields = new WorkspacePromptFields();
+        command = promptFields.FindControl<TextBox>("WsCommand")!;
         prompt = promptFields.FindControl<TextBox>("WsPrompt")!;
-        prompt.PropertyChanged += (_, e) =>
-        {
-            if (e.Property == TextBox.TextProperty) UpdateSuggestedName();
-        };
         fields.Children.Add(promptFields);
-        if (this.launchers.Count > 0) fields.Children.Add(Launchers());
+        fields.Children.Add(Launchers());
 
         hint = Ui.Text("Press Enter to create.", Ui.Hint, 12);
         hint.Name = "WsEnterHint";
@@ -138,13 +141,15 @@ public sealed class NewWorkspaceDialog
         create = Ui.Button("Create", () =>
         {
             var typed = name.Text?.Trim() ?? "";
-            var edited = typed.Length > 0 && typed != SuggestedName ? typed : null;
+            var edited = typed.Length > 0 && (nameEdited || typed != SuggestedName) ? typed : null;
             Window.Close(new NewWorkspaceChoice(inFolder, selected, this.catalog.SuggestedPath,
                 edited is null ? this.catalog.SuggestedBranch : BranchForName(edited), Project, edited, launcher,
-                launcher is not null && !string.IsNullOrWhiteSpace(prompt.Text) ? prompt.Text.Trim() : null));
+                launcher is not null && !string.IsNullOrWhiteSpace(prompt.Text) ? prompt.Text.Trim() : null,
+                openTerminal, command.Text?.Trim(), launcher is not null ? promptFields.Images : [], defaultCommand));
         });
         create.Name = "WsCreate"; create.IsDefault = true; Dialogs.Primary(create);
         actions.Children.Add(create);
+        promptFields.StateChanged += () => create.IsEnabled = !loadingProject && !promptFields.IsPasting;
         prompt.AddHandler(InputElement.KeyDownEvent, (_, e) =>
         {
             if (e.Key != Key.Enter || e.KeyModifiers.HasFlag(KeyModifiers.Shift)) return;
@@ -160,12 +165,7 @@ public sealed class NewWorkspaceDialog
     private void UpdateSuggestedName()
     {
         if (nameEdited) return;
-        var firstLine = launcher is null ? null : prompt.Text?.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries)
-            .FirstOrDefault(line => !string.IsNullOrWhiteSpace(line));
-        var suggestion = firstLine is null ? SuggestedName
-            : System.Text.RegularExpressions.Regex.Replace(firstLine.Trim(), @"\s+", " ");
-        var elements = new System.Globalization.StringInfo(suggestion);
-        if (elements.LengthInTextElements > 60) suggestion = elements.SubstringByTextElements(0, 60).TrimEnd();
+        var suggestion = SuggestedName;
         updatingName = true;
         try { name.Text = suggestion; }
         finally { updatingName = false; }
@@ -189,13 +189,20 @@ public sealed class NewWorkspaceDialog
         panel.Children.Add(Ui.Text("Start in a terminal with", Ui.Muted, 12));
         var choices = new WrapPanel { Orientation = Orientation.Horizontal };
         var buttons = new List<(ToggleButton Button, AgentLauncher? Launcher)>();
-        void Select(AgentLauncher? choice)
+        void Select(AgentLauncher? choice, bool terminal = false)
         {
+            if (openTerminal) commands[launcher?.Id ?? "terminal"] = command.Text ?? "";
             launcher = choice;
+            openTerminal = terminal || choice is not null;
+            command.IsVisible = openTerminal;
+            defaultCommand = choice?.TerminalCommand(new()) ?? "";
+            command.Text = openTerminal ? commands.GetValueOrDefault(choice?.Id ?? "terminal") ?? defaultCommand : "";
+            promptFields.FindControl<WrapPanel>("WsImages")!.IsEnabled = choice is not null;
+            promptFields.FindControl<TextBlock>("WsPasteHint")!.IsVisible = choice is not null;
             prompt.IsEnabled = choice is not null;
             UpdateSuggestedName();
             if (choice is not null) prompt.Focus();
-            foreach (var (button, candidate) in buttons) button.IsChecked = candidate == choice;
+            foreach (var (button, candidate) in buttons) button.IsChecked = candidate == choice && (candidate is not null || (terminal ? button.Name == "WsLauncherTerminal" : button.Name == "WsLauncherNone"));
         }
         foreach (var candidate in new AgentLauncher?[] { null }.Concat(this.launchers))
         {
@@ -217,6 +224,10 @@ public sealed class NewWorkspaceDialog
             buttons.Add((button, candidate));
             choices.Children.Add(button);
         }
+        var shell = new ToggleButton { Name = "WsLauncherTerminal", Content = Ui.Text("Terminal"), Padding = new Thickness(12, 4), Margin = new Thickness(0, 0, 8, 8), CornerRadius = new(4) };
+        shell.Classes.Add("choice");
+        shell.Click += (_, _) => Select(null, true);
+        buttons.Add((shell, null)); choices.Children.Insert(1, shell);
         panel.Children.Add(choices);
         Select(null);
         return panel;
@@ -274,7 +285,7 @@ public sealed class NewWorkspaceDialog
     private async Task PickProjectAsync(string path)
     {
         if (path == Project || LoadProject is null) return;
-        create.IsEnabled = false;
+        loadingProject = true; create.IsEnabled = false;
         try
         {
             if (await LoadProject(path) is not { } loaded) return;
@@ -283,7 +294,7 @@ public sealed class NewWorkspaceDialog
             projectLabel!.Text = new DirectoryInfo(path).Name;
             Render();
         }
-        finally { create.IsEnabled = true; }
+        finally { loadingProject = false; create.IsEnabled = !promptFields.IsPasting; }
     }
 
     /// <summary>Replaces the list with a fresher catalogue of <paramref name="project"/>, unless the dialog has moved to another one.</summary>

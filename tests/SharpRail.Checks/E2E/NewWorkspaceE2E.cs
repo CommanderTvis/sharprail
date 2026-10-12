@@ -1,7 +1,9 @@
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.LogicalTree;
+using Avalonia.Media.Imaging;
 
 using SharpRail.Plugins.Api.UI;
 using SharpRail.UI.State;
@@ -19,6 +21,7 @@ internal static class NewWorkspaceE2E
         ListsAndCreates(Path.Combine(root, "new-workspace-dialog"));
         StartingPrompt(Path.Combine(root, "new-workspace-prompt"), false);
         StartingPrompt(Path.Combine(root, "folder-prompt"), true);
+        TerminalCommand(Path.Combine(root, "new-workspace-command"));
         EditedName(Path.Combine(root, "new-workspace-name"));
         FolderMode(Path.Combine(root, "new-workspace-folder"));
         EnterCreates(Path.Combine(root, "new-workspace-enter"));
@@ -29,20 +32,50 @@ internal static class NewWorkspaceE2E
         MissingUnavailableBase(Path.Combine(root, "new-workspace-missing-unavailable"));
     }
 
+    private static void TerminalCommand(string directory)
+    {
+        using var app = OpenFixtureProject(directory);
+        var dialog = OpenNewWorkspaceDialog(app);
+        app.Click(Named<ToggleButton>(dialog, "WsLauncherTerminal"), freshGesture: false);
+        var command = Named<TextBox>(dialog, "WsCommand");
+        Require(command.IsVisible && !Named<TextBox>(dialog, "WsPrompt").IsEnabled, "Terminal offers a shell command without an agent prompt.");
+        command.Text = "echo start-command-check";
+        app.Click(Named<ToggleButton>(dialog, "WsLauncherNone"), freshGesture: false);
+        app.Click(Named<ToggleButton>(dialog, "WsLauncherTerminal"), freshGesture: false);
+        Require(command.Text == "echo start-command-check", "Switching launchers preserves the shell command draft.");
+        app.Click(Create(dialog), freshGesture: false);
+        Until(() => app.Terminals.Views.Any(terminal => terminal.Text.Contains("start-command-check", StringComparison.Ordinal)));
+        Console.WriteLine("PASS Start work custom terminal command and preserved draft");
+    }
+
     private static void StartingPrompt(string directory, bool inFolder)
     {
         using var app = OpenFixtureProject(directory);
         var launches = new List<LauncherCommandOptions>();
         app.Workbench.PluginRegistry.AddLauncher("prompt-fixture", new("prompt-check", "Test agent", "terminal", options =>
-        { launches.Add(options); return "echo prompt-fixture"; }, () => new(true)));
+        {
+            launches.Add(options); return "echo prompt-fixture" + (options.InitialPrompt is { } text ? " " + SharpRail.Plugins.Codex.CodexLaunch.ShellQuote(text) : "")
+            + string.Concat(options.Images.Select(image => " " + SharpRail.Plugins.Codex.CodexLaunch.ShellQuote(image)));
+        }, () => new(true)));
         var dialog = OpenNewWorkspaceDialog(app);
         var prompt = Named<TextBox>(dialog, "WsPrompt");
         Require(!prompt.IsEnabled && prompt.PlaceholderText == "What do you want to work on?",
             "Nothing must disable the starting prompt.");
         app.Click(Named<ToggleButton>(dialog, "WsLauncher_prompt-check"), freshGesture: false);
         Require(prompt.IsEnabled && prompt.IsFocused, "Selecting an agent enables and focuses the prompt.");
+        var imageFields = dialog.GetLogicalDescendants().OfType<SharpRail.UI.Panels.WorkspacePromptFields>().Single();
+        var png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGP4DwQACfsD/fteaysAAAAASUVORK5CYII=");
+        using var bitmap = new Bitmap(new MemoryStream(png));
+        var clipboardWrite = dialog.Clipboard!.SetBitmapAsync(bitmap);
+        Until(() => clipboardWrite.IsCompleted);
+        Press(prompt, Key.V, OperatingSystem.IsMacOS() ? RawInputModifiers.Meta : RawInputModifiers.Control);
+        Until(() => imageFields.Images.Count == 1 && !imageFields.IsPasting);
+        Require(imageFields.Images.Count == 1, "Pasted images are held in the dialog draft.");
+        app.Click(Named<WrapPanel>(dialog, "WsImages").GetLogicalDescendants().OfType<Button>().Single(), freshGesture: false);
+        Require(imageFields.Images.Count == 0, "Removing an image discards its draft attachment.");
+        imageFields.AddImage(png);
         prompt.Text = "  Fix 'quoted' paths & $variables";
-        Require(Named<TextBox>(dialog, "WsName").Text == "Fix 'quoted' paths & $variables", "The task supplies the workspace name before creation.");
+        Require(Named<TextBox>(dialog, "WsName").Text!.StartsWith("workspace-", StringComparison.Ordinal), "The task must not be copied into the workspace name.");
         prompt.CaretIndex = prompt.Text.Length;
         Press(prompt, Key.Enter, RawInputModifiers.Shift);
         Require(dialog.IsVisible && prompt.Text!.Contains('\n'), "Shift+Enter inserts a newline without submitting.");
@@ -54,17 +87,20 @@ internal static class NewWorkspaceE2E
         app.Click(Named<ToggleButton>(dialog, "WsTargetDefault"), freshGesture: false);
         if (!inFolder) app.Click(Named<ToggleButton>(dialog, "WsTargetWorktree"), freshGesture: false);
         Require(prompt.Text.Trim() == expected, "Changing targets preserves the prompt.");
+        Named<TextBox>(dialog, "WsCommand").Text = "echo edited-agent-command";
+        launches.Clear();
         prompt.Focus();
         Press(prompt, Key.Enter);
         Until(() => launches.Count == 1);
+        Until(() => app.Terminals.Views.Any(terminal => terminal.Text.Contains("edited-agent-command", StringComparison.Ordinal)));
+        Require(launches[0].Images.Count == 1 && File.ReadAllBytes(launches[0].Images[0]).SequenceEqual(png), "The launched agent receives host-stored images.");
         Require(launches[0].InitialPrompt == expected, "The selected agent must receive the trimmed multiline prompt.");
         Require(inFolder ? app.Window.WorkspaceRoot == app.Window.ProjectRoot : app.Window.WorkspaceRoot != app.Window.ProjectRoot,
             "The agent must start in the selected workspace target.");
         if (!inFolder)
         {
-            Until(() => app.Find<TextBlock>("WorkspaceLabel").Text == "Fix 'quoted' paths & $variables");
-            Require(Git(app.Window.WorkspaceRoot, "branch", "--show-current") == "fix-quoted-paths-variables",
-                "The prompt names the created branch as well as the workspace.");
+            Require(Git(app.Window.WorkspaceRoot, "branch", "--show-current").StartsWith("workspace-", StringComparison.Ordinal),
+                "An untouched workspace keeps its generated name until the agent titles it.");
         }
         dialog = OpenNewWorkspaceDialog(app);
         Require(string.IsNullOrEmpty(Named<TextBox>(dialog, "WsPrompt").Text), "A new dialog starts with an empty prompt.");
@@ -73,10 +109,9 @@ internal static class NewWorkspaceE2E
         var nextName = Named<TextBox>(dialog, "WsName");
         var fallback = nextName.Text;
         nextPrompt.Text = "\n  Fix   another task\nwith details";
-        Require(nextName.Text == "Fix another task", "Naming skips blank lines and collapses whitespace.");
+        Require(nextName.Text == fallback, "The prompt does not substitute for AI naming.");
         nextPrompt.Text = string.Concat(Enumerable.Repeat("😀", 70));
-        Require(new System.Globalization.StringInfo(nextName.Text!).LengthInTextElements == 60,
-            "Long names must be bounded without splitting Unicode characters.");
+        Require(nextName.Text == fallback, "Long prompts do not become workspace names.");
         nextPrompt.Text = "  ";
         Require(nextName.Text == fallback, "An empty prompt restores the host's suggested name.");
         nextName.Text = "My chosen name";
@@ -84,9 +119,10 @@ internal static class NewWorkspaceE2E
         Require(nextName.Text == "My chosen name", "A manual name wins over the prompt.");
         nextPrompt.Text = "  ";
         app.Click(Named<ToggleButton>(dialog, "WsTargetDefault"), freshGesture: false);
+        launches.Clear();
         app.Click(Create(dialog), freshGesture: false);
-        Until(() => launches.Count == 2);
-        Require(launches[1].InitialPrompt is null, "Blank prompts are omitted from launcher options.");
+        Until(() => launches.Count == 1);
+        Require(launches[0].InitialPrompt is null, "Blank prompts are omitted from launcher options.");
         Console.WriteLine($"PASS starting prompt: {(inFolder ? "folder" : "worktree")}, launcher options, draft preservation and keyboard submission");
     }
 

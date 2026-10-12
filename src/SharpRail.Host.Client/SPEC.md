@@ -114,3 +114,7 @@ what makes remoteness an adapter choice rather than a mandatory daemon.
 - Raising `HostProtocol.Current` to `RequestReplay` (3). Until a host reports it, mutation replay stays
   off against every host, including this build's own, and a mutation lost with its connection fails.
 - An HTTP base derived from the endpoint for host-served worktree files.
+
+Prompt attachments use `SavePromptImageAsync`: bounded PNG bytes are saved under the host state's
+clipboard directory, returning an absolute host path. Local calls run off the dispatcher; remote calls
+carry the bytes and return the same host path, never a client-local file path.

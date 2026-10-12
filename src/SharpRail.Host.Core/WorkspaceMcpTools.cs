@@ -48,21 +48,47 @@ public sealed class WorkspaceMcpTools(HostStateStore state)
 
     public McpServer.McpTool Title(TerminalRef? terminal) => new(
         "set_title", "Title this terminal",
-        "Title the SharpRail terminal tab you run in. Call it once, as soon as the task is clear, before your other tool calls, and again only when the terminal moves to another task. It titles the terminal only, never the workspace or its branch.",
+        "Title the SharpRail terminal tab you run in. Call it once, as soon as the task is clear, before your other tool calls, and again only when the terminal moves to another task. An unnamed managed workspace on a generated workspace-N branch takes this first title as its workspace name and branch slug; manual names are kept.",
         JsonNode.Parse("""
             {"type":"object","properties":{
               "title":{"type":"string","minLength":1,"description":"3-6 words naming what this terminal is working on, in the user's language. For a PR, issue, or ticket: `<Verb> #<number> <its exact title>`."}
             },"required":["title"],"additionalProperties":false}
             """)!.AsObject(),
-        (arguments, _) =>
+        async (arguments, token) =>
         {
             if (arguments.Any(argument => argument.Key is not "title")) throw new ArgumentException("Only title is accepted.");
             var title = ProjectServices.DisplayName(Text(arguments, "title"));
             if (title is null || !title.Any(char.IsLetterOrDigit) || title.Contains('\0'))
                 throw new ArgumentException("Pass a title with at least one letter or digit.");
             if (terminal is null) throw new InvalidOperationException("This session has no terminal tab to title.");
+            using (await state.LockWorkspacesAsync(token))
+            {
+                var workspace = state.Current.Workspaces.FirstOrDefault(workspace => workspace.Path == terminal.WorkspaceId);
+                if (workspace is { Kind: WorkspaceKinds.Managed } && !state.Current.WorkspaceLabels.ContainsKey(workspace.Path) &&
+                    System.Text.RegularExpressions.Regex.IsMatch(workspace.Branch, @"^workspace-\d+$"))
+                {
+                    var actual = (await GitRepository.RunAsync(workspace.Path, token, "branch", "--show-current")).Trim();
+                    if (actual == workspace.Branch)
+                    {
+                        var slug = System.Text.RegularExpressions.Regex.Replace(title.ToLowerInvariant(), "[^a-z0-9]+", "-").Trim('-');
+                        if (slug.Length == 0) slug = "task";
+                        var branches = (await GitRepository.RunAsync(workspace.Path, token, "for-each-ref", "--format=%(refname:short)", "refs/heads")).Split('\n', StringSplitOptions.RemoveEmptyEntries);
+                        var branch = slug;
+                        for (var suffix = 2; branches.Any(known => known == branch || known.StartsWith(branch + "/", StringComparison.Ordinal) || branch.StartsWith(known + "/", StringComparison.Ordinal)); suffix++)
+                            branch = slug + "-" + suffix;
+                        if (state.Current.WorkspaceLabels.ContainsKey(workspace.Path))
+                        {
+                            state.SetTerminalTitle(terminal, title);
+                            return ($"Terminal titled \"{title}\".", false);
+                        }
+                        await GitRepository.RunAsync(workspace.Path, token, "branch", "-m", branch);
+                        state.ChangeWorkspaces(workspaces => workspaces.Select(known => known.Path == workspace.Path ? known with { Branch = branch } : known));
+                        state.SetInferredWorkspaceLabel(workspace.Path, title);
+                    }
+                }
+            }
             state.SetTerminalTitle(terminal, title);
-            return Task.FromResult(($"Terminal titled \"{title}\".", false));
+            return ($"Terminal titled \"{title}\".", false);
         });
 
     public McpServer.McpTool Delete(string workspace) => new(

@@ -91,6 +91,28 @@ internal static class WorkspaceToolChecks
             new { name = "workspace_create", arguments = new { description = "Parallel task " + index } })));
         Require(parallel.All(reply => reply["result"]!["isError"] is null) && (await GitRepository.ListWorktreesAsync(root, default)).Count == 6,
             "Concurrent agent calls must allocate distinct workspaces.");
+        var namingProject = new ProjectServices(root, state);
+        var namingCatalog = await namingProject.ListBranchesAsync(false);
+        await namingProject.ApplyGitActionAsync(new("create-worktree", namingCatalog.SuggestedPath, namingCatalog.SuggestedBranch, "main"));
+        url = endpoint + "/mcp/" + pty.Token(new TerminalRef(namingCatalog.SuggestedPath, "name-check"));
+        var named = await Request("tools/call", new { name = "set_title", arguments = new { title = "Fix screenshot paste" } });
+        Require(named["result"]!["isError"] is null && (await client.GetStateAsync()).WorkspaceLabels.GetValueOrDefault(namingCatalog.SuggestedPath) == "Fix screenshot paste" &&
+            (await GitRepository.RunAsync(namingCatalog.SuggestedPath, default, "branch", "--show-current")).Trim() == "fix-screenshot-paste",
+            "An agent's inferred terminal title names an untouched generated workspace and branch.");
+        await Request("tools/call", new { name = "set_title", arguments = new { title = "Another task later" } });
+        Require((await client.GetStateAsync()).WorkspaceLabels.GetValueOrDefault(namingCatalog.SuggestedPath) == "Fix screenshot paste",
+            "Subsequent titles preserve the workspace name.");
+        using (var imageClient = remote ? new RemoteProjectAdapter(new Uri(server!.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single()), "workspace-tools") : null)
+        {
+            IProjectServices imageHost = imageClient is null ? new LocalProjectAdapter(namingProject) : imageClient;
+            await imageHost.OpenProjectAsync(root);
+            var png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR4nGP4DwQACfsD/fteaysAAAAASUVORK5CYII=");
+            var imagePath = await imageHost.SavePromptImageAsync(png);
+            Require(Path.GetDirectoryName(imagePath) == Path.Combine(stateDirectory, "clipboard") && File.ReadAllBytes(imagePath).SequenceEqual(png),
+                "Prompt images must be stored on the host and survive local and remote transport unchanged.");
+            try { await imageHost.SavePromptImageAsync([1, 2, 3]); throw new InvalidOperationException("Invalid images were accepted."); }
+            catch (Exception error) when (error is ArgumentException or Grpc.Core.RpcException) { }
+        }
         await Titling(root, stateDirectory, state, client, server is null ? new LocalStateAdapter(state) : new RemoteStateAdapter(
             new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single()), "workspace-tools"),
             async (workspace, arguments) =>

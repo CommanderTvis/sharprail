@@ -155,3 +155,7 @@ project: local adapters call Core directly, with no serialization.
 - Resource metadata on file reads and diff sides is ported, including a byte-only file read answered as
   empty text plus metadata, with the bytes fetched over gRPC rather than the host's file/blob HTTP
   endpoints. Still open: a streamed rather than single-message transfer.
+
+Prompt attachments use `SavePromptImageAsync`: bounded PNG bytes are saved under the host state's
+clipboard directory, returning an absolute host path. Local calls run off the dispatcher; remote calls
+carry the bytes and return the same host path, never a client-local file path.
