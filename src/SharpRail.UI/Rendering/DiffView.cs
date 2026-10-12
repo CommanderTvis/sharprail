@@ -97,6 +97,7 @@ internal sealed partial class DiffView : Grid, IDisposable
             chipContent = labelled;
         }
         var chip = Ui.Chip(chipContent);
+        chip.IsVisible = !embedded;
         chip.Name = "DiffPath";
         chip.HorizontalAlignment = HorizontalAlignment.Left;
         chip.VerticalAlignment = VerticalAlignment.Center;
@@ -365,7 +366,7 @@ internal sealed partial class DiffView : Grid, IDisposable
             if (ReferenceEquals(merge, cancellation)) { merge = null; cancellation.Dispose(); }
             if (result is null) { RenderedUnavailable(); return; }
             if (merged is MarkdownPreview previous && result is MarkdownPreview next) next.Offset = previous.Offset;
-            ShowBody(result is MarkdownPreview document ? WithOutline(document) : result);
+            ShowBody(result is MarkdownPreview document ? WithOutline(document) : result, grows: result is MarkdownPreview);
             merged = result;
         }
     }
@@ -399,16 +400,17 @@ internal sealed partial class DiffView : Grid, IDisposable
             Child = new ScrollViewer { Content = entries, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled },
             [!IsVisibleProperty] = outline[!ToggleButton.IsCheckedProperty]
         };
-        var split = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") };
+        if (naturalHeight) document.VerticalScrollBarVisibility = ScrollBarVisibility.Disabled;
+        var split = new Grid { Name = "DiffWithOutline", ColumnDefinitions = new ColumnDefinitions("Auto,*") };
         Ui.Place(split, column);
         Ui.Place(split, document, 0, 1);
         return split;
     }
 
-    private void ShowBody(Control content)
+    private void ShowBody(Control content, bool grows = false)
     {
         DropMerged();
-        if (naturalHeight) body.Height = IsRendered ? 480 : double.NaN;
+        if (naturalHeight) body.Height = grows || !IsRendered ? double.NaN : 480;
         Ui.Place(body, content);
     }
 
@@ -631,7 +633,7 @@ internal sealed partial class DiffView : Grid, IDisposable
         var editor = frame.Editor;
         editor.LabelLines(labels);
         editor.IsReadOnly = true;
-        editor.WrapWidth = wrapWidth;
+        editor.WrapWidth = embedded ? double.PositiveInfinity : wrapWidth;
         editor.LineStyles = LineStyles();
         editor.StyleLines(side.Styles);
         frame.Highlight(syntaxPath, side.Syntax, side.Styles);
@@ -639,14 +641,16 @@ internal sealed partial class DiffView : Grid, IDisposable
         frames.Add(frame);
         if (naturalHeight)
         {
-            frame.MinHeight = Math.Max(40, side.Styles.Count * 22);
-            frame.SizeChanged += (_, _) =>
+            frame.MinHeight = 40;
+            void Resize()
             {
                 if (disposed || !frames.Contains(frame)) return;
-                var last = Math.Max(0, side.Styles.Count - 1);
-                var height = Math.Max(40, editor.LineTop(last) - editor.LineTop(0) + Math.Max(1, editor.WrapCount(last)) * 22);
+                var height = Math.Max(40, editor.ContentHeight + 4);
                 if (Math.Abs(frame.Height - height) > .5 || double.IsNaN(frame.Height)) frame.Height = height;
-            };
+            }
+            frame.SizeChanged += (_, _) => Resize();
+            editor.ScrollChanged += (_, _) => Resize();
+            Resize();
         }
         return frame;
     }

@@ -326,7 +326,8 @@ rendered diff and live refresh suites).
 translations: single-click review/double-click file diff, deferred generated sections, content-keyed Keep
 with duplicate and line-shift cases, explicit unviewed state across remounts, app layout switches,
 sidebar marks/navigation, bulk viewed progress, keyboard input, live edits, Revert/Undo, sticky header
-ownership and historical scope immutability. It runs through the ordinary UI gate over an isolated Git
+ownership, historical scope immutability, compact headers, unwrapped horizontal code scrolling and
+outer-only vertical input over code and naturally sized Markdown previews through resizing. It runs through the ordinary UI gate over an isolated Git
 fixture; rendered captures are supporting evidence.
 
 ## Reconnect checks

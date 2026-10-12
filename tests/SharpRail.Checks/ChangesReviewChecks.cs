@@ -19,8 +19,9 @@ internal static class ChangesReviewChecks
     internal static void Run(string root)
     {
         ContentIdentity();
+        MarkdownScrolling();
         var original = string.Join('\n', Enumerable.Range(1, 35).Select(index => "line " + index)) + "\n";
-        var changed = original.Replace("line 2\n", "first change\n", StringComparison.Ordinal)
+        var changed = original.Replace("line 2\n", "first change " + new string('x', 200) + "\n", StringComparison.Ordinal)
             .Replace("line 30\n", "last change\n", StringComparison.Ordinal);
         var repository = E2E.IsolatedGit.Repository(Path.Combine(root, "continuous-review"),
             ("a.txt", original), ("b.txt", "before\n"), ("large.lock", "base\n"));
@@ -89,6 +90,18 @@ internal static class ChangesReviewChecks
             .Any(button => Equals(button.Tag, "a.txt")));
         scroller.Offset = default;
         Until(() => Parts<Grid>("ReviewStickyHeader").Single().Children.Count == 0);
+        var editor = Review()!.DiffFor("a.txt")!.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().Last();
+        Until(() => editor.VerticalScroll.Maximum == 0);
+        Require(double.IsPositiveInfinity(editor.WrapWidth), "Stacked code must stay unwrapped.");
+        var wheelPoint = editor.TranslatePoint(new Point(120, 30), app.Window)!.Value;
+        app.Window.MouseWheel(wheelPoint, new Vector(-2, 0));
+        Until(() => editor.HorizontalScroll.Value > 0);
+        Require(scroller.Offset.Y == 0, "Horizontal code scrolling must leave the changeset position alone.");
+        app.Window.MouseWheel(wheelPoint, new Vector(0, -1));
+        Until(() => scroller.Offset.Y > 0);
+        Require(editor.VerticalPixelOffset == 0, "Wheeling over stacked code must move only the changeset.");
+        scroller.Offset = default;
+
         using (var capture = app.Window.CaptureRenderedFrame()) capture?.Save(Path.Combine(root, "changes-review.png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
         ClickRow(app, "b.txt", twice: true);
         Until(() => app.Window.Layout.Selected(app.Center) is { Kind: "diff", Path: "b.txt", Preview: false });
@@ -106,6 +119,39 @@ internal static class ChangesReviewChecks
         Until(() => Review()!.DiffFor("untracked.txt")?.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>()
             .Any(editor => editor.Text.Contains("new untracked content", StringComparison.Ordinal)) == true);
         Console.WriteLine("PASS continuous Changes review: click grammar, lazy generated sections, Keep/viewed progress, presentation switches, navigator and historical scope");
+    }
+
+    private static void MarkdownScrolling()
+    {
+        var context = new SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext((_, _) => ValueTask.FromResult<byte[]?>(null), _ => null, (_, _) => { }, 14, 100, true);
+        var markdown = string.Join("\n\n", Enumerable.Range(1, 90).Select(index => "Paragraph " + index + " with enough content to review."));
+        var state = new ChangesReviewState();
+        using var pane = new ChangesReviewPane("Changes", state, false,
+            _ => Task.FromResult(new GitSnapshot(true, "main", [new GitChange("README.md", "M", " ", null, 90, 0)], [], [])),
+            (_, natural, triage, _) => Task.FromResult(new DiffView("", "README.md", 800,
+                [new DiffChoice("markdown", "Preview", _ => Task.FromResult<Control?>(new SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview(markdown, "README.md", context)))],
+                naturalHeight: natural, embedded: true)),
+            _ => { }, () => { }, () => { }, () => true, () => false, _ => { });
+        var window = new Window { Width = 800, Height = 500, Content = pane };
+        window.Show();
+        try
+        {
+            SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview? Preview() => pane.GetLogicalDescendants().OfType<SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview>().FirstOrDefault();
+            Until(() => Preview()?.Bounds.Height > 1000);
+            var preview = Preview()!;
+            var scroll = pane.GetLogicalDescendants().OfType<ScrollViewer>().Single(view => view.Name == "ReviewScroll");
+            Require(preview.Extent.Height <= preview.Viewport.Height + 1, "Stacked Markdown must show its full content without an inner vertical viewport.");
+            window.MouseWheel(preview.TranslatePoint(new Point(100, 60), window)!.Value, new Vector(0, -2));
+            Until(() => scroll.Offset.Y > 0);
+            Require(preview.Offset.Y == 0, "Markdown wheel input must move only the changeset.");
+            var header = pane.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "ReviewFile");
+            Require(header.Bounds.Height == 32 && !pane.GetLogicalDescendants().OfType<Border>().Any(control => control.Name == "DiffPath" && control.IsVisible),
+                "File headers must stay compact without repeating the path.");
+            window.Width = 600;
+            Until(() => preview.Bounds.Width < 700);
+            Require(preview.Extent.Height <= preview.Viewport.Height + 1, "Markdown must retain natural height after resizing.");
+        }
+        finally { window.Close(); }
     }
 
     private static void ContentIdentity()

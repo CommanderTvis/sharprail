@@ -184,10 +184,9 @@ including whole-document selection/search and offscreen anchor realization; see 
   and the properties block, diffed per key so an added, removed or changed value wears the same ins/del marks
   as the prose.
 
-Source diffs can share a continuous review's outer scroll by growing their editor frames with wrapped
-lines. Embedded views leave Split/Inline and whitespace controls to their review toolbar. Optional
+Source diffs can share a continuous review's outer scroll by growing their editor frames to the measured document height. Embedded code does not wrap. Embedded views leave Split/Inline and whitespace controls to their review toolbar. Optional
 triage supplies content-keyed Keep controls on source change blocks; individual file tabs and historical
-scopes supply no triage. Rendered review sections use a bounded viewport and the existing registry.
+scopes supply no triage. Markdown review previews grow naturally; other rendered review sections use a bounded viewport and the existing registry.
 Syntax highlighting for editable files, Markdown Source and source diffs follows
 [the UI kit contract](../../SharpRail.Plugins.UI.Kit/SPEC.md#syntax-highlighting).
 Source diffs retain the line backgrounds and metadata styling described above while
@@ -232,8 +231,8 @@ commit rows in the scope menu append it to the short SHA and author.
 
 ## Not yet ported
 
-- Per-renderer natural-height capabilities for continuous review. Source diffs grow with their lines;
-  rendered sections currently use a bounded viewport rather than format-specific sizing contracts.
+- Per-renderer natural-height capabilities for continuous review. Source and Markdown diffs grow with their content;
+  other rendered sections use a bounded viewport rather than format-specific sizing contracts.
 - Content-shaped skeleton rows and the fade-in reveal of resolved content; SharpRail's placeholders are text.
 - The quiet-scroll frame: intent-revealed 6px scrollbars and directional edge curtains on clipped scroll
   viewers; SharpRail uses Fluent's scrollbars.

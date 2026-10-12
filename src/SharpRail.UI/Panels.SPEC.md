@@ -280,7 +280,10 @@ the list and offers Review all changes without repointing that tab.
 
 Sections reuse the resource registry and existing host-confirmed Revert/Undo path. The review toolbar
 applies Split/Inline and whitespace settings across sections. Source editors grow with their display
-lines in Stacked mode; rendered views receive a bounded viewport. Open as tab retains the independent
+lines in Stacked mode without wrapping; horizontal gestures scroll code while vertical wheel and touch
+input anywhere in a section move the outer changeset. Markdown previews also grow with their content;
+other resource renderers retain a bounded viewport. Compact file headers truncate long paths, expose
+the full path in a tooltip and avoid repeating it in the embedded diff toolbar. Open as tab retains the independent
 file diff. Viewed, Keep and Mark all viewed retain the owning preview placement. Next unreviewed wraps;
 V toggles the active file, J advances to an unviewed file, and Alt+Up/Down steps files. Shortcuts belong
 to the focused review and do not consume editor or text-entry input.

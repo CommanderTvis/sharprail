@@ -3,6 +3,13 @@
              xmlns:rendering="using:SharpRail.Plugins.UI.Kit"
              x:Class="SharpRail.UI.ChangesReviewPane">
   <UserControl.Styles>
+    <Style Selector="Button.review-file">
+      <Setter Property="Height" Value="32" />
+      <Setter Property="MinHeight" Value="0" />
+      <Setter Property="Padding" Value="8,0" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+    </Style>
     <Style Selector="Button.review-action">
       <Setter Property="Height" Value="22" />
       <Setter Property="Padding" Value="8,0" />

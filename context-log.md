@@ -5261,3 +5261,8 @@ Codex and Claude Code checks pass, as do design and conformance. The four-lane f
 gate remains incomplete at watcher/live refresh and diff cases; VALIDATION.md records
 the exact limits. Keep `.bench/checks-last-run.txt` for a future repair run. Other task
 scratch and fixtures are removed. No commit, push, package or running-app replacement.
+
+
+## Review diff scrolling (2026-10-12)
+
+Workspace-1 (`review-hunk-scrolling`) implements single-vertical-scroll stacked review for code and Markdown, compact file headers and unwrapped horizontal code scrolling. Focused review and editor/change-diff checks pass, as do the Release build, format verification and whitespace check. The Git-enabled four-lane full gate stalled in repeated UI dispatcher work and was interrupted; `.bench/checks-last-run.txt` preserves four shards at setup. A focused RenderedDiff translation also timed out at row opening alongside EventStream failures. Details are in `VALIDATION.md`. Changes are landed locally; no push, package or app replacement.

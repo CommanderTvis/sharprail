@@ -2403,3 +2403,12 @@ The full gate is not green and later cases remain unrun; its unfinished record s
 in `.bench/checks-last-run.txt`. No full rerun, live provider session, Android build,
 packaged/native UI verification or app restart was performed. Temporary logs and
 fixtures were removed. Changes remain uncommitted; no push.
+
+
+## Review diff scrolling (2026-10-12)
+
+In managed workspace-1, branch `review-hunk-scrolling`, stacked Changes review uses one vertical scroll for code and Markdown sections. Embedded code grows to its measured document height, stays unwrapped and scrolls horizontally. Markdown grows to its full height. Wheel and touch input over these sections moves the changeset. File headers are compact and the embedded diff toolbar no longer repeats the file path. Other rendered formats retain their bounded viewport.
+
+The focused `ChangesReviewChecks` and editor, Changes diff translation checks pass, including outer-only scrolling, long-line horizontal scrolling, Markdown resizing and compact headers. Release solution build has zero warnings/errors; whole-solution format verification and `git diff --check` pass. A separate focused `RenderedDiffE2E` run timed out while clicking a change row, with macOS EventStream startup failures.
+
+The four-lane full gate was interrupted after 11 minutes without completing a lane. A process sample showed the lane UI threads repeating the same dispatcher stack. `.bench/checks-last-run.txt` retains four unfinished shards at setup; full-suite verification is incomplete. No app was packaged or replaced. Changes are landed locally; nothing was pushed.

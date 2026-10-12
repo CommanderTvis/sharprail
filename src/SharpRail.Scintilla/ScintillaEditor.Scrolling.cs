@@ -17,6 +17,15 @@ public sealed partial class ScintillaEditor
     public EditorScroll VerticalScroll => scroll.Vertical;
     public EditorScroll HorizontalScroll => scroll.Horizontal;
     public double VerticalPixelOffset => FirstVisibleLine * LineHeight + SubLine;
+    /// <summary>The full document height in pixels, including wrapped rows, for an outer scrolling surface.</summary>
+    public double ContentHeight
+    {
+        get
+        {
+            var last = document.Send(ScintillaMessage.GetLineCount) - 1;
+            return (document.Send(ScintillaMessage.VisibleFromDocLine, last) + document.Send(ScintillaMessage.WrapCount, last)) * LineHeight;
+        }
+    }
     private double LineHeight => document.Send(ScintillaMessage.TextHeight);
     // Any other scroll (keyboard, scrollbar, caret) moves the first line and drops the remainder.
     private double SubLine => subLineTop == FirstVisibleLine ? subLine : 0;

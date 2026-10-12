@@ -215,13 +215,19 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
                 Build(); changed();
             });
             title.Name = "ReviewFile"; title.Tag = file.Path;
+            title.Classes.Add("review-file");
+            title.ClearValue(PaddingProperty);
+            title.ClearValue(BorderThicknessProperty);
+            title.Content = new TextBlock { Text = file.Path + $"   +{file.Added} −{file.Removed}", TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis, FontSize = 12 };
             title.ClipToBounds = true;
             ToolTip.SetTip(title, file.Path);
             title.HorizontalAlignment = HorizontalAlignment.Stretch;
             title.HorizontalContentAlignment = HorizontalAlignment.Left;
             var kept = Ui.Text("", Ui.Hint, 12); kept.Tag = file.Path;
-            var open = Ui.Button("Open as tab", () => openFile(file)); open.Name = "ReviewOpenFile";
-            var viewed = new CheckBox { Name = "ReviewViewed", Tag = file.Path, Content = "Viewed", IsChecked = state.Viewed.Contains(file.Path), Margin = new Thickness(8, 0) };
+            var open = new Button { Name = "ReviewOpenFile", Content = "Open as tab" };
+            open.Classes.Add("review-action");
+            open.Click += (_, _) => openFile(file);
+            var viewed = new CheckBox { Name = "ReviewViewed", Tag = file.Path, Content = "Viewed", IsChecked = state.Viewed.Contains(file.Path), Margin = new Thickness(8, 0), FontSize = 12, MinHeight = 0, VerticalAlignment = VerticalAlignment.Center };
             AutomationProperties.SetName(viewed, "Viewed " + file.Path);
             viewed.IsCheckedChanged += (_, _) =>
             {
@@ -250,6 +256,18 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
             var end = new Border { Name = "ReviewEnd", Padding = new Thickness(12), Child = Ui.Text($"End of changes · {files.Count} files", Ui.Hint, 12) };
             rows.Children.Add(end);
             scroll = new ScrollViewer { Name = "ReviewScroll", Content = rows };
+            scroll.AddHandler(PointerWheelChangedEvent, (_, e) =>
+            {
+                if (e.KeyModifiers.HasFlag(KeyModifiers.Shift) || e.Delta.Y == 0) return;
+                scroll.Offset = new Vector(scroll.Offset.X, scroll.Offset.Y - e.Delta.Y * 50);
+                e.Handled = true;
+            }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
+            scroll.AddHandler(ScrollGestureEvent, (_, e) =>
+            {
+                if (e.Delta.Y == 0) return;
+                scroll.Offset = new Vector(scroll.Offset.X, scroll.Offset.Y + e.Delta.Y);
+                e.Handled = true;
+            }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
             scroll.ScrollChanged += (_, _) => { state.Offset = scroll.Offset.Y; QueueVisible(); };
             scroll.SizeChanged += (_, _) => { end.MinHeight = Math.Max(0, scroll.Bounds.Height - 32); QueueVisible(); };
             rows.SizeChanged += (_, _) => QueueVisible();
