@@ -95,7 +95,11 @@ public sealed partial class WorkbenchWindow
         foreach (var removed in previous.Workspaces.Where(workspace => !next.Workspaces.Any(current => current.Path == workspace.Path)))
             ClearRetainedTools(removed.Path);
         if (next.Settings != previous.Settings) RefreshAppearance();
-        if (!next.TerminalTitles.SequenceEqual(previous.TerminalTitles)) ApplyTerminalTitles(next);
+        if (!next.TerminalTitles.SequenceEqual(previous.TerminalTitles))
+        {
+            ApplyTerminalTitles(next);
+            PlaceWorkspaceTabs();
+        }
         var registry = !next.Workspaces.SequenceEqual(previous.Workspaces);
         var rail = RailSignature() != railSignature || !next.Projects.SequenceEqual(previous.Projects) || !next.RecentProjects.SequenceEqual(previous.RecentProjects) ||
             next.WorkspaceLabels.Count != previous.WorkspaceLabels.Count ||

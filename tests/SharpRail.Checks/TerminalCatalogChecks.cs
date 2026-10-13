@@ -50,8 +50,16 @@ internal static partial class TerminalHostChecks
         Task Everyone(Func<IReadOnlyList<TerminalTab>, bool> expected, string what) =>
             Until(() => Task.FromResult(seen.All(snapshot => expected(Tabs(Volatile.Read(ref snapshot))))), $"{mode} catalog broadcast: {what}");
 
-        // A workspace the host has not heard of gets its one initial terminal, and no shell.
-        var opened = await catalog.OpenWorkspaceAsync(area, []);
+        var empty = area + "-empty";
+        Directory.CreateDirectory(empty);
+        Require((await catalog.OpenWorkspaceAsync(empty, [])).Workspaces[empty].Count == 0,
+            $"{mode}: opening a workspace without tabs must not reserve an implicit terminal.");
+        Require((await catalog.OpenWorkspaceAsync(empty, [new(TerminalTab.InitialKey, TerminalTab.InitialTitle)])).Workspaces[empty].Count == 0,
+            $"{mode}: a later client must not add an implicit initial terminal to an already opened empty workspace.");
+        await catalog.CloseWorkspaceAsync(empty);
+
+        // A client may supply its one initial terminal, without starting a shell.
+        var opened = await catalog.OpenWorkspaceAsync(area, [new(TerminalTab.InitialKey, TerminalTab.InitialTitle)]);
         Require(Tabs(opened) is [{ Key: TerminalTab.InitialKey, Title: TerminalTab.InitialTitle }], $"{mode}: a new workspace must be given the initial terminal.");
         await Everyone(tabs => tabs.Count == 1, "initial terminal");
         var initial = TerminalTab.SessionFor(area, TerminalTab.InitialKey);
@@ -124,7 +132,7 @@ internal static partial class TerminalHostChecks
         var directory = Path.Combine(root, "catalog-store");
         var first = new TerminalCatalogStore(directory);
         Require(!first.Loaded, "A directory without a catalog must not read as loaded.");
-        first.OpenWorkspace("/work/a", []);
+        first.OpenWorkspace("/work/a", [new(TerminalTab.InitialKey, TerminalTab.InitialTitle)]);
         first.Reserve("/work/a", new("tab-a", "Kept"));
         // Membership is on disk after every change, not only when the host stops.
         var second = new TerminalCatalogStore(directory);
@@ -217,7 +225,7 @@ internal static partial class TerminalHostChecks
             var worktree = Path.Combine(Path.GetDirectoryName(project.RootPath)!, "catalog-worktree-" + Guid.NewGuid().ToString("N"));
             var snapshot = await projects.ApplyGitActionAsync(new("create-worktree", worktree, "catalog-" + Guid.NewGuid().ToString("N")));
             var path = snapshot.Worktrees.Single(tree => !tree.IsMain).Path;
-            await catalog.OpenWorkspaceAsync(path, []);
+            await catalog.OpenWorkspaceAsync(path, [new(TerminalTab.InitialKey, TerminalTab.InitialTitle)]);
             var session = await terminals.AttachAsync(new(TerminalTab.SessionFor(path, TerminalTab.InitialKey), path, "client", 100, 30));
             var screen = new Screen(session);
             await screen.Run("printf 'PID_%s_\\n' \"$$\"");

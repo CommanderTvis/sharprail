@@ -39,6 +39,7 @@ paste transformation. Native checks capture actual AppKit key bytes for all four
 
 Projects lists host-catalogued terminals on every client, including workspaces the
 window has never opened and terminals whose tab strips are hidden or elsewhere.
+Saved host agent titles take precedence over catalog titles in these lists too.
 Choosing one reveals its tab and watches another client's live shell without taking
 it over. Centre file-tab previews still follow the client's tabs-in-Projects setting.
 
@@ -135,7 +136,8 @@ again. The window half is `TerminalTabs.cs`; placement is `LayoutSession.Reconci
 - Mounting a workspace announces it (`OpenWorkspaceAsync`), once per connection. The window brings its own
   terminal tabs when its view never met the catalog or the host does not know the workspace, so saved layouts
   with older random tab ids are adopted; otherwise it brings none, and a tab closed elsewhere meanwhile is not
-  brought back. The view is then reconciled, and again on every snapshot, for every workspace this window
+  brought back. An empty first view announces no tabs and the host preserves that empty workspace.
+  The view is then reconciled, and again on every snapshot, for every workspace this window
   announced, shown or not.
 - A terminal created here (New terminal, a plugin's terminal) is placed at once but its body waits, showing
   "Loading terminal…", until `ReserveAsync` has recorded it; a refused reservation removes the tab and reports

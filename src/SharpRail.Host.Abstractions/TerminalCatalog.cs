@@ -6,7 +6,7 @@ namespace SharpRail.Host.Abstractions;
 /// <summary>A terminal tab every client of the host agrees exists; where a client shows it is that client's business.</summary>
 public sealed record TerminalTab(string Key, string Title)
 {
-    /// <summary>The terminal a workspace is given once, when the host first learns of it.</summary>
+    /// <summary>The optional initial terminal a client supplies when the host first learns of a workspace.</summary>
     public const string InitialKey = "terminal:initial";
     public const string InitialTitle = "Terminal 1";
     public const int MaxPerWorkspace = 256;
@@ -36,7 +36,7 @@ public interface ITerminalCatalogService
 {
     /// <summary>
     /// Tells the host a client shows this workspace. A workspace it did not know receives the client's
-    /// tabs, or the initial terminal when the client has none. A known one only gains tabs it lacks, never
+    /// tabs, remaining empty when the client has none. A known one only gains tabs it lacks, never
     /// the initial terminal again, so closing that one is final.
     /// </summary>
     ValueTask<TerminalCatalog> OpenWorkspaceAsync(string workspaceRoot, IReadOnlyList<TerminalTab> tabs, CancellationToken cancellationToken = default);

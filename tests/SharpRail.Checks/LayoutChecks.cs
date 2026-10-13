@@ -9,8 +9,34 @@ internal static class LayoutChecks
         if (!value) throw new InvalidOperationException(message);
     }
 
+    private static void CheckTerminalTitles()
+    {
+        var session = new LayoutSession();
+        session.SwitchWorkspace("one");
+        var titles = new Dictionary<string, string> { ["terminal:initial"] = "Fix login" };
+        SharpRail.Host.Abstractions.TerminalTab[] catalog = [new("terminal:initial", "Terminal 1")];
+        session.ReconcileTerminals("one", catalog, new HashSet<string>(), titles: titles);
+        session.SwitchWorkspace("two");
+        session.ReconcileTerminals("two", catalog, new HashSet<string>());
+        catalog = [.. catalog, new("peer", "Terminal 72")];
+        session.ReconcileTerminals("one", catalog, new HashSet<string>(), titles: titles);
+        var tabs = session.State.Workspaces["one"].Documents.Values.SelectMany(tabs => tabs).ToArray();
+        Require(tabs.Single(tab => tab.Id == "terminal:initial").Title == "Fix login",
+            "Catalog updates must retain the host's agent title in an inactive workspace.");
+        Require(tabs.Single(tab => tab.Id == "peer").Title == "Terminal 72" && session.State.Workspaces["one"].NextTerminalNumber == 73,
+            "Untitled terminals must retain catalog titles and numbering.");
+        titles["peer"] = "Review changes";
+        session.ReconcileTerminals("one", catalog, new HashSet<string>(), titles: titles);
+        session.SwitchWorkspace("one");
+        Require(session.State.Workspaces["one"].Documents.Values.SelectMany(tabs => tabs).Single(tab => tab.Id == "peer").Title == "Review changes",
+            "A terminal placed by the catalog must also receive later agent titles.");
+        Require(session.State.Workspaces["two"].Documents.Values.SelectMany(tabs => tabs).Single(tab => tab.Id == "terminal:initial").Title == "Terminal 1",
+            "Agent titles must be scoped to their workspace.");
+    }
+
     public static void Run()
     {
+        CheckTerminalTitles();
         CheckAuxiliaryRegions();
         CheckMixedResources();
         CheckPanes();

@@ -68,7 +68,7 @@ public sealed class TerminalCatalogStore
                 var known = workspaces.TryGetValue(workspaceRoot, out var existing);
                 if (!known) workspaces[workspaceRoot] = existing = [];
                 var changed = !known;
-                foreach (var tab in !known && tabs.Count == 0 ? [new(TerminalTab.InitialKey, TerminalTab.InitialTitle)] : tabs)
+                foreach (var tab in tabs)
                 {
                     if (known && tab.Key == TerminalTab.InitialKey || existing!.Count >= TerminalTab.MaxPerWorkspace || existing.Any(item => item.Key == tab.Key)) continue;
                     existing.Add(tab); changed = true;

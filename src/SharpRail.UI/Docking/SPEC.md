@@ -174,7 +174,9 @@ Switching workspace changes resource contents and view attention, never frame to
 geometry, folds, visibility or alignment. The dock chrome keeps its controls; only bodies swap, and bodies
 are keyed by workspace and tab id so one workspace's terminal or editor never appears in another. A
 first visit creates its view and places one terminal, "Terminal 1", into the first bottom group, creating
-one when the limit allows; closing it never brings it back.
+one when the limit allows; closing it never brings it back. With vertical tabs in Projects (or the
+client's forced Projects-tab mode), a first visit creates an empty view instead: no bottom terminal
+is placed or reserved. Explicit terminal and agent launches keep their normal placement.
 
 Previously mounted tool bodies remain visible while routing resolves. Workspace-scoped plugin tools and
 center actions return with their existing controls. Paired panes retain their frame and splitters when
@@ -209,7 +211,9 @@ tabs those of the catalog, for the active view or a retained one: a tab the cata
 removal veto (its shell was ended by whoever closed it), its group selecting the neighbour as a close does; a tab
 the view lacks is appended to the last-focused, else last, bottom group, else the last-focused centre group,
 without selecting it, revealing or unfolding its region, changing frame geometry or taking focus; titles follow
-the catalog, and the view's next terminal number moves past every numbered title a peer used. A tab created here
+the host's saved agent title when present, otherwise the catalog. Catalog refreshes cannot replace an agent
+title with its original numbered title, including retained inactive views and newly placed tabs. The view's next
+terminal number moves past every numbered title a peer used. A tab created here
 is exempt until the host has recorded it. `WorkspaceView.TerminalsShared` records that a view has met the catalog,
 so a view saved before the catalog existed brings its tabs once instead of losing them. Upstream places only the
 initial terminal passively and leaves other peer-created terminals out of a surface's layout; here every catalogued

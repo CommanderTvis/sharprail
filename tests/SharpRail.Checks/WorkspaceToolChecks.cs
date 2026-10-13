@@ -228,7 +228,22 @@ internal static class WorkspaceToolChecks
         Until(() => app.Window.Layout.Tabs(app.Center).Single(tab => tab.Id == terminalTab.Id).Title == "Watch the build");
         Until(() => app.Find<Button>("Tab_" + terminalTab.Id.Replace(':', '_')).GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "Watch the build"));
         Require(app.Window.Layout.Selected(app.Center)?.Id == terminalTab.Id && app.Window.WorkspaceRoot == app.Root, "Titling a terminal keeps the selection and the workspace.");
+        app.Window.Layout.NewTerminal(app.Center);
+        var added = app.Window.Layout.Tabs(app.Center).Last(tab => tab.Kind == "terminal");
+        Until(() => app.Workbench.TerminalCatalog?.Workspaces.GetValueOrDefault(app.Root)?.Any(tab => tab.Key == added.Id) == true);
+        Settle(300);
+        Require(app.Window.Layout.Tabs(app.Center).Single(tab => tab.Id == terminalTab.Id).Title == "Watch the build",
+            "Opening another terminal must not replace the saved agent title with the catalog's numbered title.");
         var createdPath = app.State!.Current.WorkspaceLabels.Single(label => label.Value == "Investigate terminal marks").Key;
+        var reserved = Task.Run(async () => await app.Workbench.TerminalTabs.ReserveAsync(createdPath, new("unopened", "Terminal 42"), default));
+        Until(() => reserved.IsCompleted);
+        reserved.GetAwaiter().GetResult();
+        Until(() => app.Window.GetLogicalDescendants().OfType<Button>().Any(button => (string?)Avalonia.Automation.AutomationProperties.GetName(button) == "Terminal 42"));
+        var unopenedTitle = Task.Run(async () => await new WorkspaceMcpTools(app.State!).Title(new TerminalRef(createdPath, "unopened")).Call(
+            new JsonObject { ["title"] = "Review unopened workspace" }, default));
+        Until(() => unopenedTitle.IsCompleted);
+        Require(!unopenedTitle.GetAwaiter().GetResult().Error, "An unopened workspace terminal must accept an agent title.");
+        Until(() => app.Window.GetLogicalDescendants().OfType<Button>().Any(button => (string?)Avalonia.Automation.AutomationProperties.GetName(button) == "Review unopened workspace"));
         var deleted = Task.Run(async () => await new WorkspaceMcpTools(app.State!).Delete(app.Root).Call(new JsonObject { ["path"] = createdPath }, default));
         Until(() => deleted.IsCompleted);
         Require(!deleted.GetAwaiter().GetResult().Error, "The deletion tool must remove the UI fixture: " + deleted.GetAwaiter().GetResult().Text);

@@ -2450,3 +2450,10 @@ stopped on a spec-link readiness assertion and an occluded Git Graph review row.
 --last-failed resume passes without behavioral source changes and clears all unfinished cases.
 No native/package verification or app replacement was performed. Scratch logs and fixtures
 are removed. Changes are landed locally; nothing pushed.
+
+
+## Agent terminal title retention (2026-10-13)
+
+Managed workspace-9 fixes terminal catalog reconciliation overwriting saved agent titles with original numbered titles. Saved host titles take precedence for existing and newly placed tabs, including inactive workspaces, and for Projects entries in workspaces the window has never opened. Title broadcasts refresh those catalog-only entries immediately. Catalog numbering remains unchanged.
+
+Release solution build passes with zero warnings/errors. Touched-file format verification, whitespace checks, focused `--workspace-tools` local/gRPC and UI checks, and the `layout` gate case pass. Regression checks cover opening a terminal after titling another, inactive-workspace reconciliation, workspace-scoped titles, numbered terminals and titles in unopened-workspace Projects entries. The Git-enabled four-lane full gate stopped on a ResourceChecks diff-row opening timeout; serial `--last-failed` passed without source changes and left no unfinished cases. Temporary logs and fixtures were removed. No Android build, native app replacement or package smoke check was run. Changes are landed locally; nothing pushed.

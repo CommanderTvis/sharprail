@@ -117,14 +117,14 @@ public sealed partial class LayoutSession
         Changed?.Invoke();
     }
 
-    public void SwitchWorkspace(string path) => Change(state =>
+    public void SwitchWorkspace(string path, bool initialTerminal = true) => Change(state =>
     {
         var previous = Active(state);
         var fresh = path.Length > 0 && !state.Workspaces.ContainsKey(path);
         state.ActiveWorkspace = path;
         var view = Active(state);
         // A workspace opens one terminal once; closing it later never brings it back.
-        if (fresh)
+        if (fresh && initialTerminal)
         {
             var bottom = state.Groups.FirstOrDefault(group => group.Region == "bottom");
             if (bottom is null)
@@ -150,18 +150,18 @@ public sealed partial class LayoutSession
     /// Makes a workspace's terminal tabs those of the host's catalog. A tab the catalog lacks goes without
     /// asking, unless its reservation is still <paramref name="pending"/>; one this view lacks lands in the
     /// last-focused (else last) bottom group, else the last-focused centre group, without selecting it,
-    /// revealing its region or taking focus; titles follow the catalog. Returns whether anything changed.
+    /// revealing its region or taking focus; saved agent titles override catalog titles. Returns whether anything changed.
     /// With <paramref name="center"/>, for a window whose only tab list is the centre's, the last-focused centre
     /// group takes them instead, and with them the terminals of every hidden region.
     /// </summary>
-    public bool ReconcileTerminals(string workspace, IReadOnlyList<TerminalTab> catalog, IReadOnlySet<string> pending, bool center = false)
+    public bool ReconcileTerminals(string workspace, IReadOnlyList<TerminalTab> catalog, IReadOnlySet<string> pending, bool center = false, IReadOnlyDictionary<string, string>? titles = null)
     {
         if (!State.Workspaces.ContainsKey(workspace)) return false;
         var next = State.Copy();
         var view = next.Workspaces[workspace];
         var changed = !view.TerminalsShared;
         view.TerminalsShared = true;
-        var known = catalog.ToDictionary(tab => tab.Key, tab => tab.Title);
+        var known = catalog.ToDictionary(tab => tab.Key, tab => titles?.GetValueOrDefault(tab.Key) ?? tab.Title);
         foreach (var (groupId, tabs) in view.Documents.ToArray())
         {
             foreach (var tab in tabs.Where(tab => tab.Kind == "terminal" && !known.ContainsKey(tab.Id) && !pending.Contains(tab.Id)).ToArray())
@@ -198,7 +198,7 @@ public sealed partial class LayoutSession
                 view.NextTerminalNumber = Math.Max(view.NextTerminalNumber, number + 1);
             if (!placed.Add(tab.Key)) continue;
             if (!view.Documents.TryGetValue(target, out var tabs)) view.Documents[target] = tabs = [];
-            tabs.Add(new DockTab(tab.Key, tab.Title, "terminal")); changed = true;
+            tabs.Add(new DockTab(tab.Key, known[tab.Key], "terminal")); changed = true;
         }
         if (!changed) return false;
         NormalizePanes(next);

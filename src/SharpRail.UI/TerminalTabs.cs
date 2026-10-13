@@ -114,7 +114,8 @@ public sealed partial class WorkbenchWindow
                 var prefix = workspace + ":";
                 if (terminalWorkspaces.Add(workspace)) ready = workspace;
                 Layout.ReconcileTerminals(workspace, tabs, reservingTerminals.Where(key => key.StartsWith(prefix, StringComparison.Ordinal))
-                    .Select(key => key[prefix.Length..]).ToHashSet(), workbench.TabsInProjects);
+                    .Select(key => key[prefix.Length..]).ToHashSet(), workbench.TabsInProjects, state.Current.TerminalTitles
+                        .Where(title => title.Terminal.WorkspaceId == workspace).ToDictionary(title => title.Terminal.TabKey, title => title.Title));
             }
         }
         finally { applyingTerminalCatalog = false; }

@@ -5317,3 +5317,10 @@ stopped on a spec-link readiness assertion and an occluded Git Graph review row.
 --last-failed resume passes without behavioral source changes and clears all unfinished cases.
 No native/package verification or app replacement was performed. Scratch logs and fixtures
 are removed. Changes are landed locally; nothing pushed.
+
+
+## Agent terminal title retention (2026-10-13)
+
+Created managed workspace-9 from local main for agent titles reverting to Terminal N. Catalog refreshes now prefer host-saved agent titles when reconciling mounted and retained workspace tabs. Projects resolves these titles for catalog-only terminals and refreshes those entries on title broadcasts. Numbering still follows the original catalog titles.
+
+Release build, touched-file formatting, whitespace and focused workspace-tools/layout checks pass. The Git-enabled four-lane gate and serial resume pass with no unfinished cases; the resource diff-row timeout passed on resume without code changes. Task logs and fixtures are cleaned. Changes are landed locally; no push, package or running-app replacement.

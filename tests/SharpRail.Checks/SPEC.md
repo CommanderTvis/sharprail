@@ -65,7 +65,8 @@ and empty payloads, approved/denied reads, repeated permission and terminal rese
 `--terminals` also covers terminal revival: local and remote restarts, close, failed spawn, mode hygiene and store limits;
 refused grids and start guidance (`TerminalLimitChecks.cs`); a stalled reader and a silent connection
 (`TerminalBackpressureChecks.cs`); and the terminal catalog, its storage, catalog-keyed revival and a
-removed worktree's shells (`TerminalCatalogChecks.cs`); and the host replay size with its Settings control
+removed worktree's shells (`TerminalCatalogChecks.cs`), including opening an empty workspace without
+reserving an initial terminal on either transport; and the host replay size with its Settings control
 (`TerminalReplayChecks.cs`). Yielding attach is checked locally and through gRPC in `TerminalHostChecks.cs`: a
 held session keeps its client and grid, a free one is joined, and a plain attach takes over at its own size.
 Watching is checked beside it on both paths: a watcher gets the screen, live output and the holder's grid, its

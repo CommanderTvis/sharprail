@@ -18,13 +18,64 @@ internal static class VerticalTabsE2E
     internal static void Run(string root)
     {
         var index = 0;
-        void Case(string title, Action<E2eWorkspace> test)
+        void Case(string title, Action<E2eWorkspace> test, bool tabsInProjects = false)
         {
-            using var app = new E2eWorkspace(Path.Combine(root, "vertical-" + index++));
+            using var app = new E2eWorkspace(Path.Combine(root, "vertical-" + index++), tabsInProjects: tabsInProjects);
             try { test(app); }
             catch (Exception error) { throw new InvalidOperationException("Fork layout.spec.ts: " + title, error); }
             Console.WriteLine("PASS fork layout.spec.ts: " + title);
         }
+
+        Case("forced Projects tab mode opens without an implicit terminal", app =>
+        {
+            Until(() => app.Workbench.TerminalCatalog?.Workspaces.ContainsKey(app.Root) == true);
+            Require(!app.Window.Preferences.VerticalCenterTabs &&
+                app.Window.Layout.View.Documents.Values.SelectMany(tabs => tabs).All(tab => tab.Kind != "terminal") &&
+                app.Workbench.TerminalCatalog!.Workspaces[app.Root].Count == 0 && app.Terminals.StartedIn(app.Root) == 0,
+                "Forced Projects tab mode must open without a default terminal even when the desktop preferences are off.");
+            app.Window.Layout.NewTerminal(app.Center);
+            Until(() => app.Workbench.TerminalCatalog!.Workspaces[app.Root].Count == 1 && app.Terminals.StartedIn(app.Root) == 1);
+        }, tabsInProjects: true);
+
+        Case("new workspaces in Projects tab mode have no implicit terminal and still allow explicit launches", app =>
+        {
+            SetLayout(app, settings =>
+            {
+                Control<CheckBox>(settings, "VerticalCenterTabs").IsChecked = true;
+                Control<CheckBox>(settings, "VerticalTabsInProjects").IsChecked = true;
+            });
+            var workspace = Path.Combine(app.Root, "new-workspace");
+            Directory.CreateDirectory(workspace);
+            var open = app.Window.OpenProjectAsync(workspace);
+            Until(() => open.IsCompleted);
+            open.GetAwaiter().GetResult();
+            Until(() => app.Workbench.TerminalCatalog?.Workspaces.ContainsKey(workspace) == true);
+            Require(app.Window.Layout.View.Documents.Values.SelectMany(tabs => tabs).All(tab => tab.Kind != "terminal") &&
+                app.Workbench.TerminalCatalog!.Workspaces[workspace].Count == 0 && app.Terminals.StartedIn(workspace) == 0,
+                "A new workspace in Projects tab mode must not place, reserve or start a default terminal.");
+            app.Window.Layout.NewTerminal(app.Center);
+            Until(() => app.Workbench.TerminalCatalog!.Workspaces[workspace].Count == 1 && app.Terminals.StartedIn(workspace) == 1);
+            Require(app.Window.Layout.Tabs(app.Center).Single(tab => tab.Kind == "terminal").Title == "Terminal 1",
+                "An explicit terminal still starts with the first terminal number.");
+            var terminal = app.Window.Layout.Tabs(app.Center).Single(tab => tab.Kind == "terminal").Id;
+
+            SetLayout(app, settings => Control<CheckBox>(settings, "VerticalTabsInProjects").IsChecked = false);
+            var columnWorkspace = Path.Combine(app.Root, "column-workspace");
+            Directory.CreateDirectory(columnWorkspace);
+            open = app.Window.OpenProjectAsync(columnWorkspace);
+            Until(() => open.IsCompleted);
+            open.GetAwaiter().GetResult();
+            Until(() => app.Workbench.TerminalCatalog?.Workspaces.ContainsKey(columnWorkspace) == true);
+            Require(app.Workbench.TerminalCatalog!.Workspaces[columnWorkspace].Single().Key == Host.Abstractions.TerminalTab.InitialKey,
+                "Vertical tabs beside the editor retain the initial terminal behavior.");
+            SetLayout(app, settings => Control<CheckBox>(settings, "VerticalTabsInProjects").IsChecked = true);
+            open = app.Window.OpenProjectAsync(workspace);
+            Until(() => open.IsCompleted);
+            open.GetAwaiter().GetResult();
+            Require(app.Window.Layout.View.Documents.Values.SelectMany(tabs => tabs).Single(tab => tab.Kind == "terminal").Id == terminal &&
+                app.Workbench.TerminalCatalog!.Workspaces[workspace].Single().Key == terminal,
+                "Revisiting a workspace in Projects tab mode must retain its existing explicit terminal.");
+        });
 
         Case("Projects uniquely marks the active tab across center groups and pane members", app =>
         {

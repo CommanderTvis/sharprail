@@ -161,8 +161,8 @@ their MCP identities. The host waits for shell shutdown before completing the pr
 - Bounds: at most 256 tabs per workspace, a key of 1–500 characters and a title of 1–1000. Loading
   truncates an oversized workspace, drops invalid or duplicate keys and repairs an invalid title to
   "Terminal"; a corrupt file starts empty.
-- The initial terminal is the host's to give, once. `OpenWorkspaceAsync` on a workspace the host has not
-  heard of records the client's tabs, or `terminal:initial` ("Terminal 1") when it brings none; a known
+- The initial terminal is optional and supplied by the client. `OpenWorkspaceAsync` on a workspace the host has not
+  heard of records the client's tabs, keeping an empty list when it brings none; a known
   workspace only gains tabs it lacks and never that key again, so closing the initial terminal is final
   for every client. A workspace whose terminals were all closed stays known and empty. This replaces
   upstream's pending marker on the workspace record, which SharpRail's path-keyed workspaces do not have,
