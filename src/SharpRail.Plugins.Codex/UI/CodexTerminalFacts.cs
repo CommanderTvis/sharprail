@@ -43,6 +43,8 @@ public sealed class CodexTerminalFacts : ContentControl
     {
         this.context = context; this.store = store; this.terminal = terminal; this.startsWithIdeContext = startsWithIdeContext;
         io = new TerminalIo(terminal);
+        SetValue(FileDrop.AcceptsProperty, () => isCodex);
+        SetValue(FileDrop.AttachProperty, paths => terminal.Write(string.Join(" ", paths.Select(path => TerminalFacts.QuoteAttachPath(TerminalFacts.AttachPath(path, WorktreePath(), store.Session(terminal.WorkspaceId, terminal.TabKey)?.Cwd)))) + " "));
         Name = "CodexTerminalFacts";
         HorizontalContentAlignment = HorizontalAlignment.Stretch;
     }

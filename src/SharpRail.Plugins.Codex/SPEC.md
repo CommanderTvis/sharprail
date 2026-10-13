@@ -100,6 +100,9 @@ invitation and bundled AI chat are excluded by the SharpRail product contract.
   interpolate the configured executable or its arguments.
 - IDE v0 IPC owns or joins a router, isolates workspaces, rebases subdirectories, requests fresh
   frontend editor snapshots and rejects unsupported versions. Unavailable frontends time out.
+- File drops on an active, held terminal insert file/folder references without submitting the prompt.
+  The plugin formats paths relative to the agent's working directory and quotes spaces/control characters;
+  the workbench supplies host paths and uploads client-local files for remote sessions.
 - UI lifetimes preserve status, selection, terminal focus and per-session model choices. File attach
   is relative to reported cwd without Claude's @ prefix. Static layouts use compiled XAML.
 
