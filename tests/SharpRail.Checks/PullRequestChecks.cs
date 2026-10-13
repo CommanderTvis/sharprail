@@ -105,7 +105,7 @@ internal static class PullRequestChecks
             await Plain(parent, gitOnly);
             Environment.SetEnvironmentVariable("PATH", shim + ":" + gitOnly + ":/usr/bin:/bin");
             await GitHub(parent, shim, gitOnly);
-            Console.WriteLine("PASS pull request lookup and opening through gh shims and bare origins, locally and over gRPC");
+            Console.WriteLine("PASS pull request lookup and opening through gh shims and bare origins, locally and over WebSocket RPC");
         }
         finally { foreach (var (name, value) in saved) Environment.SetEnvironmentVariable(name, value); }
     }

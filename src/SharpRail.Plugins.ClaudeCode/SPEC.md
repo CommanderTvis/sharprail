@@ -23,8 +23,8 @@ shared kit. Neither half imports a host service or app implementation. Core comp
 host; the app composes the builtin UI. Assets publish under `plugins/claude-code/assets`.
 
 The generic plugin call, addressed event and keyed state transports carry this contract through
-direct calls or gRPC. Claude Code's own IDE protocol remains an authenticated loopback WebSocket
-MCP server: replacing it with gRPC would break the external CLI's protocol.
+direct calls or WebSocket RPC. Claude Code's own IDE protocol remains an authenticated loopback WebSocket
+MCP server: replacing it with the host RPC protocol would break the external CLI's protocol.
 
 The prompt appendix directs workspace creation through the host's `workspace_create` tool with a
 visible task description and encourages cleanup of the agent's own completed workspaces. Reuse a

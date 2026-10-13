@@ -121,7 +121,7 @@ internal sealed partial class PdfPreview : UserControl
         try
         {
             var read = await context.ReadFileAsync(props.WorkspaceId, props.Path, cancel.Token);
-            var parsed = await Task.Run(() => PdfEngine.Read(read), cancel.Token);
+            var parsed = await PdfEngine.ReadAsync(read, cancel.Token);
             if (cancel.IsCancellationRequested) return;
             bytes = read;
             Show(parsed);
@@ -190,7 +190,7 @@ internal sealed partial class PdfPreview : UserControl
         if (bytes is not { } source || shown.Count == 0) return;
         var target = scale;
         var density = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
-        var rasters = await Task.Run(() => PdfEngine.Render(source, target * density));
+        var rasters = await PdfEngine.RenderAsync(source, target * density);
         // A newer read or zoom has superseded this one.
         if (!ReferenceEquals(source, bytes) || target != scale || rasters.Count != shown.Count) return;
         for (var index = 0; index < rasters.Count; index++)

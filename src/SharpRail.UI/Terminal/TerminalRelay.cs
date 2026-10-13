@@ -79,7 +79,7 @@ public static class TerminalRelay
         }
         catch (Exception error)
         {
-            var message = error is Grpc.Core.RpcException rpc ? rpc.Status.Detail : error.Message;
+            var message = error.Message;
             await File.WriteAllTextAsync(connection.StatusPath, message);
             Report(output, "Couldn’t start the shell: " + message);
             return 1;
@@ -122,7 +122,7 @@ public static class TerminalRelay
             catch (Exception error)
             {
                 raw?.Dispose();
-                var message = error is Grpc.Core.RpcException rpc ? "The terminal connection was lost: " + rpc.Status.Detail : error.Message;
+                var message = RemoteErrors.IsTransport(error) ? "The terminal connection was lost: " + error.Message : error.Message;
                 await File.WriteAllTextAsync(connection.StatusPath, message);
                 Report(output, message);
                 return 1;

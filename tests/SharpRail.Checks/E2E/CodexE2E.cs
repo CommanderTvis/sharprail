@@ -18,6 +18,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
+using SharpRail.Host.Protocol;
 using SharpRail.Host.Remote;
 using SharpRail.Plugins.Api.UI;
 using SharpRail.Plugins.Codex;
@@ -419,7 +420,7 @@ internal static class CodexE2E
         {
             try { Task.Run(async () => await codex.App.Host.ReadFileAsync(file)).GetAwaiter().GetResult(); return false; }
             catch (UnauthorizedAccessException) { return true; }
-            catch (Grpc.Core.RpcException error) when (error.StatusCode == Grpc.Core.StatusCode.FailedPrecondition && error.Status.Detail == "The path is outside this workspace.") { return true; }
+            catch (SharpRail.Host.Protocol.RpcException error) when (error.StatusCode == SharpRail.Host.Protocol.StatusCode.FailedPrecondition && error.Status.Detail == "The path is outside this workspace.") { return true; }
         }
         File.WriteAllText(Path.Combine(codex.Home, "auth.json"), "{}");
         Require(Refused(Path.Combine(codex.Home, "auth.json")), "an unrelated file in CODEX_HOME stays outside");

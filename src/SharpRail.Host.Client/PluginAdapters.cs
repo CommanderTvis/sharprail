@@ -1,12 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 
-using Grpc.Core;
-using Grpc.Net.Client;
-
-using ProtoBuf.Grpc;
-using ProtoBuf.Grpc.Client;
-
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Protocol;
 using SharpRail.Plugins.Api;
@@ -25,14 +19,14 @@ public sealed class LocalPluginAdapter(IPluginService host) : IPluginService
 }
 
 /// <summary>
-/// A remote host's plugin runtime over gRPC. Values cross as JSON written with <see cref="PluginJson.Options"/>
+/// A remote host's plugin runtime over WebSocket RPC. Values cross as JSON written with <see cref="PluginJson.Options"/>
 /// and arrive as <see cref="JsonElement"/>s; a failed call is the same <see cref="PluginCallException"/> as locally.
 /// </summary>
 public sealed class RemotePluginAdapter : IPluginService, IDisposable
 {
     // An external UI half and its sibling assemblies are read through the host in one message each.
     private const int FileMessageBytes = 256 * 1024 * 1024;
-    private readonly GrpcChannel channel;
+    private readonly RpcChannel channel;
     private readonly IPluginRpc service;
     private readonly string token;
 
@@ -40,13 +34,8 @@ public sealed class RemotePluginAdapter : IPluginService, IDisposable
     {
         if (string.IsNullOrWhiteSpace(token)) throw new ArgumentException("A host session token is required.", nameof(token));
         this.token = token;
-        channel = GrpcChannel.ForAddress(address, new GrpcChannelOptions
-        {
-            MaxReceiveMessageSize = FileMessageBytes,
-            InitialReconnectBackoff = StateAdapterDefaults.InitialReconnect,
-            MaxReconnectBackoff = StateAdapterDefaults.MaxReconnect
-        });
-        service = channel.CreateGrpcService<IPluginRpc>();
+        channel = new RpcChannel(address, null);
+        service = channel.CreateService<IPluginRpc>();
     }
 
     private CallContext Context(CancellationToken ct, bool stream = false) => new(new CallOptions(

@@ -1,6 +1,7 @@
 using Avalonia.Controls;
 
 using SharpRail.Host.Abstractions;
+using SharpRail.Host.Client;
 using SharpRail.UI.Docking;
 using SharpRail.UI.Rendering;
 using SharpRail.UI.Resources;
@@ -61,7 +62,7 @@ public sealed partial class WorkbenchWindow
             view.SetChoices(DiffChoices(tab, key, resource, sides), tabViews.GetValueOrDefault(key)?.RendererId, SidesIdentity(sides));
         }
         catch (OperationCanceledException) { }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException or Grpc.Core.RpcException)
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException || RemoteErrors.IsTransport(error))
         {
             if (IsCurrentDiff(key, view)) view.ShowError("Could not load this file's bytes: " + error.Message);
         }

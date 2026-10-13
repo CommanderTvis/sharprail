@@ -63,7 +63,7 @@ public static class TerminalBackends
     public static ITerminalBackend Unavailable(string reason) => throw new TerminalStartException(reason);
 
     private static bool Skia(Func<string>? renderer, TerminalLaunch launch) =>
-        launch is { Yield: true, Watch: true } || OperatingSystem.IsAndroid() || renderer?.Invoke() == TerminalRenderers.Skia;
+        launch is { Yield: true, Watch: true } || OperatingSystem.IsAndroid() || OperatingSystem.IsBrowser() || renderer?.Invoke() == TerminalRenderers.Skia;
 
     // This overload has no endpoint or relay factory: both renderers call the supplied host directly.
     public static TerminalFactory Ghostty(ITerminalService terminals, Func<string>? renderer = null) => launch =>

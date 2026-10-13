@@ -1,6 +1,3 @@
-using Grpc.Core;
-using Grpc.Core.Interceptors;
-
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Protocol;
 
@@ -99,61 +96,5 @@ public static class HostRequest
     private sealed class Scope(TimeSpan? previous) : IDisposable
     {
         public void Dispose() => timeout.Value = previous;
-    }
-}
-
-/// <summary>Shapes every unary call of a remote adapter the way the local host behaves.</summary>
-internal sealed class HostCallInterceptor(HostConnection connection) : Interceptor
-{
-    public override AsyncUnaryCall<TResponse> AsyncUnaryCall<TRequest, TResponse>(TRequest request,
-        ClientInterceptorContext<TRequest, TResponse> context, AsyncUnaryCallContinuation<TRequest, TResponse> continuation)
-    {
-        if (HostRequest.Timeout is { } timeout)
-            context = new(context.Method, context.Host, context.Options.WithDeadline(DateTime.UtcNow + timeout));
-        if (ReplayHeaders.IsReplayable(context.Method.Name))
-            return new(Named(Replayed(request, context, continuation)), Task.FromResult(new Metadata()), () => Status.DefaultSuccess, () => [], () => { });
-        var call = continuation(request, context);
-        return new(Named(call.ResponseAsync), call.ResponseHeadersAsync, call.GetStatus, call.GetTrailers, call.Dispose);
-    }
-
-    /// <summary>
-    /// Sends a mutation under one request id until a reply is read. A connection lost in flight says nothing
-    /// about whether the host ran it, so it is sent again and the host answers with the first run's outcome.
-    /// </summary>
-    private async Task<TResponse> Replayed<TRequest, TResponse>(TRequest request, ClientInterceptorContext<TRequest, TResponse> context,
-        AsyncUnaryCallContinuation<TRequest, TResponse> continuation) where TRequest : class where TResponse : class
-    {
-        var deduplicated = HostCapabilities.Supports(connection.HostVersion, HostProtocol.RequestReplay);
-        var options = context.Options;
-        var id = connection.Begin();
-        try
-        {
-            for (var delay = StateAdapterDefaults.InitialReconnect; ; delay = delay * 2 < StateAdapterDefaults.MaxReconnect ? delay * 2 : StateAdapterDefaults.MaxReconnect)
-            {
-                var headers = new Metadata();
-                foreach (var entry in options.Headers ?? []) headers.Add(entry);
-                headers.Add(ReplayHeaders.Client, connection.ClientId);
-                headers.Add(ReplayHeaders.Request, id.ToString(System.Globalization.CultureInfo.InvariantCulture));
-                headers.Add(ReplayHeaders.Resume, connection.Unresolved());
-                using var call = continuation(request, new(context.Method, context.Host, options.WithHeaders(headers)));
-                try { return await call.ResponseAsync; }
-                catch (RpcException error) when (deduplicated && error.StatusCode == StatusCode.Unavailable &&
-                    !options.CancellationToken.IsCancellationRequested && (options.Deadline is not { } deadline || DateTime.UtcNow + delay < deadline))
-                {
-                    await Task.Delay(delay, options.CancellationToken);
-                }
-            }
-        }
-        finally { connection.End(id); }
-    }
-
-    /// <summary>A failure the host named arrives as the exception the local host throws.</summary>
-    private static async Task<T> Named<T>(Task<T> response)
-    {
-        try { return await response; }
-        catch (RpcException error) when (error.Trailers.GetValue(HostHeaders.ErrorCode) is { } name && Enum.TryParse<HostErrorCode>(name, out var code))
-        {
-            throw new HostException(code, error.Status.Detail);
-        }
     }
 }

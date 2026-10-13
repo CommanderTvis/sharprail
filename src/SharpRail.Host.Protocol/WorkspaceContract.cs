@@ -1,6 +1,4 @@
 using ProtoBuf;
-using ProtoBuf.Grpc;
-using ProtoBuf.Grpc.Configuration;
 
 namespace SharpRail.Host.Protocol;
 
@@ -29,7 +27,6 @@ public sealed class FilesReply
     [ProtoMember(1)] public List<FileReply> Entries { get; set; } = [];
 }
 
-[Service]
 public interface IWorkspaceRpc
 {
     ValueTask<WorkspaceReply> GetWorkspaceAsync(WorkspaceRequest request, CallContext context = default);

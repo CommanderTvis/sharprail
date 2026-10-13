@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
 using SharpRail.Host.Core;
+using SharpRail.Host.Protocol;
 using SharpRail.Host.Remote;
 
 namespace SharpRail.Checks;
@@ -84,7 +85,7 @@ internal static class WatchChecks
             await remote.PrewarmWorkspaceAsync(Path.Combine(root, "watch-pool", "absent"));
             foreach (var host in new[] { local, remote })
                 try { await host.PrewarmWorkspaceAsync("relative"); throw new InvalidOperationException("A relative path was pre-warmed."); }
-                catch (Exception error) when (error is ArgumentException or Grpc.Core.RpcException) { }
+                catch (Exception error) when (error is ArgumentException or SharpRail.Host.Protocol.RpcException) { }
 
             using var warmEnd = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token);
             var warm = new ProjectServices(pool[^1]).WatchFilesAsync(warmEnd.Token).GetAsyncEnumerator();
@@ -103,6 +104,6 @@ internal static class WatchChecks
         finally { await server.StopAsync(); }
         foreach (var path in pool) WorkspaceWatches.Forget(path);
         Require(pool.All(path => WorkspaceWatches.Inspect(path) is null), "Forgetting a workspace drops its pre-warmed watcher.");
-        Console.WriteLine("PASS workspace watchers are shared per root, restart when the root is replaced, and pre-warm within a bounded pool locally and over gRPC");
+        Console.WriteLine("PASS workspace watchers are shared per root, restart when the root is replaced, and pre-warm within a bounded pool locally and over WebSocket RPC");
     }
 }

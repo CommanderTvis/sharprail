@@ -11,6 +11,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 
 using SharpRail.Host.Abstractions;
+using SharpRail.Host.Client;
 using SharpRail.UI.Panels;
 
 namespace SharpRail.UI;
@@ -195,7 +196,7 @@ public sealed partial class WorkbenchWindow
         try { has = await Task.Run(async () => await host.HasDurableSpecsAsync(lifetime.Token), lifetime.Token); }
         catch (OperationCanceledException) { return; }
         // Without an answer Welcome offers the ordinary fork rather than a suggestion it cannot justify.
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException or Grpc.Core.RpcException) { has = true; }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException || RemoteErrors.IsTransport(error)) { has = true; }
         finally { specProbes.Remove(project); }
         // The session may have moved to a workspace or another project meanwhile; its answer would be about that root.
         if (!atHome || projectRoot != project || lifetime.IsCancellationRequested) return;

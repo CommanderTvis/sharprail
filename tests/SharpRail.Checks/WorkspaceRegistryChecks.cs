@@ -8,11 +8,12 @@ using SharpRail.Checks.E2E;
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
 using SharpRail.Host.Core;
+using SharpRail.Host.Protocol;
 using SharpRail.Host.Remote;
 
 namespace SharpRail.Checks;
 
-/// <summary>The workspace registry through direct and gRPC adapters: the same scenario must leave the same records, events and files.</summary>
+/// <summary>The workspace registry through direct and WebSocket RPC adapters: the same scenario must leave the same records, events and files.</summary>
 internal static class WorkspaceRegistryChecks
 {
     private static void Require(bool condition, string message)
@@ -25,9 +26,9 @@ internal static class WorkspaceRegistryChecks
     private static async Task<string> Refused(Func<ValueTask<WorkspaceRecord?>> action, string what)
     {
         try { await action(); }
-        catch (Exception error) when (error is IOException or ArgumentException or InvalidOperationException or Grpc.Core.RpcException)
+        catch (Exception error) when (error is IOException or ArgumentException or InvalidOperationException or SharpRail.Host.Protocol.RpcException)
         {
-            return error is Grpc.Core.RpcException rpc ? rpc.Status.Detail : error.Message;
+            return error is SharpRail.Host.Protocol.RpcException rpc ? rpc.Status.Detail : error.Message;
         }
         throw new InvalidOperationException(what);
     }
@@ -73,7 +74,7 @@ internal static class WorkspaceRegistryChecks
         var reader = Task.Run(async () =>
         {
             try { await foreach (var item in state.WatchLifecycleAsync(lifetime.Token)) lock (events) events.Add(item); }
-            catch (Exception error) when (error is OperationCanceledException or Grpc.Core.RpcException) { }
+            catch (Exception error) when (error is OperationCanceledException or SharpRail.Host.Protocol.RpcException) { }
         });
         async Task Seen(Func<LifecycleEvent, bool> match, Func<Task>? nudge = null)
         {

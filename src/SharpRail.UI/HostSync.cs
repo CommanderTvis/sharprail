@@ -46,7 +46,7 @@ public sealed partial class WorkbenchWindow
         state.ConnectionChanged += ConnectionChanged;
         state.HandshakeChanged += HandshakeChanged;
         Closed += (_, _) => { state.Changed -= SharedStateChanged; state.ConnectionChanged -= ConnectionChanged; state.HandshakeChanged -= HandshakeChanged; };
-#if !ANDROID
+#if !ANDROID && !BROWSER
         if (workbench.Listener is { } listener)
         {
             void RefreshListener()

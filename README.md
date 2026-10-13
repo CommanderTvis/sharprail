@@ -199,7 +199,7 @@ SHARPRAIL_REMOTE=http://127.0.0.1:54123 SHARPRAIL_TOKEN=your-token artifacts/Sha
 ```
 
 For another machine, set the host's `SHARPRAIL_BIND` to its Tailscale IP and use that
-address in `SHARPRAIL_REMOTE`. Remote connections use cleartext HTTP/2 and require an
+address in `SHARPRAIL_REMOTE`. Remote connections use cleartext WebSockets and require an
 encrypted network such as Tailscale. The host keeps its shared state in
 `SHARPRAIL_STATE_DIR` (default `~/.sharprail/host`) and its terminal sessions until it
 stops.
@@ -220,7 +220,7 @@ On the computer, start listening on an address the device can reach: Settings �
 Settings › Host and choose Scan QR code on Android to fill in the address and token. You can also enter
 them manually (port 54123 when none is given). QR-code scanning has not yet been exercised on a device.
 The app remembers both and connects by itself on the next launch; Settings ›
-Host › Disconnect forgets the token. The connection is cleartext HTTP/2, so use an encrypted network such as
+Host › Disconnect forgets the token. The connection is cleartext WebSockets, so use an encrypted network such as
 Tailscale. Requires Android 7.0 or later on arm64 or x86-64. Most validation has been on phone and tablet
 emulators; a physical Pixel 8 has only been checked through installation and the connect screen.
 See `src/SharpRail.Android/SPEC.md` for the design and limits.
@@ -234,4 +234,4 @@ devices must be connected to Tailscale; Android must use Tailscale DNS and route
 No IP, port or session-token copying is required. Compare the pairing code and approve the device on the
 host. Subsequent launches of the Tailscale client remember the pairing. Revoke a device in Settings ›
 Tailscale. The host requires the Tailscale CLI and available TCP port 54124; tailnet policy must allow
-bootstrap and the host's gRPC listener. A standalone host must bind its listener to its Tailscale address.
+bootstrap and the host's WebSocket RPC listener. A standalone host must bind its listener to its Tailscale address.

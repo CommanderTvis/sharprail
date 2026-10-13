@@ -103,7 +103,7 @@ The terminal MCP tools implement the portable spec dialect without a Pi dependen
 
 ## Checks
 
-`SpecDialectChecks` covers host graph reads, workspace removal, local/gRPC parity, tree/store/sync,
+`SpecDialectChecks` covers host graph reads, workspace removal, local/WebSocket RPC parity, tree/store/sync,
 legacy layout migration, real-input plugin toggling, active-file selection and rail defaults.
 Cold Project Home checks cover local/gRPC graph loading and watched edits; the local check also
 opens a spec into the default workspace.

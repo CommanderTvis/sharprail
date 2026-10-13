@@ -7,11 +7,12 @@ using Microsoft.Extensions.DependencyInjection;
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
 using SharpRail.Host.Core;
+using SharpRail.Host.Protocol;
 using SharpRail.Host.Remote;
 
 namespace SharpRail.Checks;
 
-/// <summary>Project path resolution and inspection, equal through the embedded host and a real gRPC host.</summary>
+/// <summary>Project path resolution and inspection, equal through the embedded host and a real WebSocket RPC host.</summary>
 internal static class ProjectPathChecks
 {
     private static void Require(bool condition, string message)
@@ -60,14 +61,14 @@ internal static class ProjectPathChecks
                 Require(await host.InspectProjectPathAsync("~") is ProjectPathKind.Repository or ProjectPathKind.Initable, $"The {name} host must resolve ~ to its home.");
                 foreach (var act in new Func<Task>[] { async () => await host.InspectProjectPathAsync("relative/path"), async () => await host.OpenProjectAsync("relative/path") })
                     try { await act(); throw new InvalidOperationException($"The {name} host accepted a relative project path."); }
-                    catch (Exception error) when (error is ArgumentException or Grpc.Core.RpcException && error.Message.Contains("must be absolute or start with ~/", StringComparison.Ordinal)) { }
+                    catch (Exception error) when (error is ArgumentException or SharpRail.Host.Protocol.RpcException && error.Message.Contains("must be absolute or start with ~/", StringComparison.Ordinal)) { }
                 try { await host.OpenProjectAsync("~/sharprail-absent-" + Guid.NewGuid().ToString("N")); throw new InvalidOperationException("A missing home folder opened."); }
-                catch (Exception error) when (error is DirectoryNotFoundException or Grpc.Core.RpcException &&
+                catch (Exception error) when (error is DirectoryNotFoundException or SharpRail.Host.Protocol.RpcException &&
                     error.Message.Contains(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), StringComparison.Ordinal))
                 { }
             }
         }
         finally { await server.StopAsync(); }
-        Console.WriteLine("PASS project paths resolve ~, refuse relative input and are classified identically locally and over gRPC");
+        Console.WriteLine("PASS project paths resolve ~, refuse relative input and are classified identically locally and over WebSocket RPC");
     }
 }

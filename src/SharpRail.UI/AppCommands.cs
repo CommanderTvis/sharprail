@@ -60,7 +60,7 @@ public sealed class AppCommands
         }
         if (!IsClose(e)) return false;
         // A terminal keeps Ctrl+W (delete word) outside macOS.
-        if (!OperatingSystem.IsMacOS() && e.Key == Key.W && InTerminal(window)) return false;
+        if (CommandKeys.Modifier != KeyModifiers.Meta && e.Key == Key.W && InTerminal(window)) return false;
         Close(window);
         return true;
     }

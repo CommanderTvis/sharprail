@@ -47,7 +47,7 @@ Consequences the shared sources must keep honouring:
   for that reason.
 - Android's implicit usings `Android.App`, `Android.Widget` and `Android.OS.Bundle` are removed because they
   collide with Avalonia's control names throughout the shared sources.
-- gRPC needs HTTP/2, so the managed HTTP handler is used (`UseNativeHttpHandler=false`).
+- The managed HTTP handler is used for WebSocket connections (`UseNativeHttpHandler=false`).
 - The package is untrimmed and runs on the JIT. `Directory.Build.props` builds the solution untrimmed, and
   Android compiles ahead of time only what it trims, so `RunAOTCompilation` is off. Marshal methods are
   disabled; Java peers register at run time.
@@ -128,7 +128,7 @@ recheck it:
 
 ## Connecting
 
-The host is any SharpRail gRPC endpoint: a desktop app listening from Settings › Host, or
+The host is any SharpRail WebSocket RPC endpoint: a desktop app listening from Settings › Host, or
 `SharpRail.Host.Remote`. The client speaks the same protocol and bearer token as a desktop remote client.
 
 - `HostEndpoint` holds the address as typed and the session token. An address without a scheme is read as
@@ -248,4 +248,4 @@ are excluded from the linked UI sources.
 The Tailscale settings page displays a credential-free `sharprail://tailscale?host=…`
 QR code for its hostname. Android's existing Scan QR code action opens Tailscale
 pairing with that hostname and starts the usual comparison-code/host-approval flow.
-The code contains no token or gRPC port. Existing manual-host QR codes still work.
+The code contains no token or WebSocket RPC port. Existing manual-host QR codes still work.

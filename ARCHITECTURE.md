@@ -14,21 +14,27 @@ Upstream: architecture.md @ 4737df6d (CommanderTvis fork), Decision 17 and the p
 
 SharpRail is a native C# port of ThinkRail's workbench: projects, Git worktree workspaces, files, specs,
 changes and terminals, without the agent. One Avalonia application composes a host either in process
-(direct calls, no sockets or serialization) or over authenticated gRPC to a remote host. The host is a
+(direct calls, no sockets or serialization) or over authenticated WebSocket RPC to a remote host. The host is a
 library; remoteness is an adapter choice, never a mandatory local daemon.
 
 ## Topology — three rings
 
 - Host: `SharpRail.Host.Core` implements filesystem, project/spec discovery, Git, worktree, shared-state and
   PTY terminal services behind the interfaces in `SharpRail.Host.Abstractions`. `SharpRail.Host.Remote`
-  serves them over Kestrel HTTP/2 (`RemoteServer.Create`, started by its `Program.cs`).
-- The wire: `SharpRail.Host.Protocol` holds the code-first protobuf-net.Grpc service contracts and DTOs —
+  serves them over Kestrel HTTP/1.1 WebSockets (`RemoteServer.Create`, started by its `Program.cs`).
+- The wire: `SharpRail.Host.Protocol` holds the typed protobuf service contracts and DTOs —
   the only coupling between a remote client and host.
 - Client: `SharpRail.UI` (Avalonia workbench) consumes the abstractions through `SharpRail.Host.Client`,
-  whose `Local*Adapter`s call Core directly and whose `Remote*Adapter`s proxy over gRPC.
+  whose `Local*Adapter`s call Core directly and whose `Remote*Adapter`s proxy over WebSocket RPC.
   `SharpRail.Android` is the same workbench compiled for Android and composed with the remote adapters only:
   it has no embedded host and connects to an endpoint a desktop app or `SharpRail.Host.Remote` serves
   (`src/SharpRail.Android/SPEC.md`).
+  `SharpRail.Browser` compiles the same UI sources for WebAssembly and composes remote adapters only.
+  Browser WebSockets carry the existing protobuf contracts, including duplex streams, through direct
+  dispatch to the host adapters, shared with desktop and Android. Ghostty, Scintilla, SheenBidi, Skia, HarfBuzz and
+  Oniguruma share the managed WASM runtime; PDFium and Merman render in browser workers. Browser window
+  surfaces and storage adapt the platform, while filesystem, Git, processes and shells stay on the host
+  (`src/SharpRail.Browser/SPEC.md`).
 - Plugins: `SharpRail.Plugins.Api` (root, `.Host` and `.UI` entries) is the contract a plugin is written
   against, so its methods, channels and UI contributions can live outside either ring. The host runtime
   (`SharpRail.Host.Core/Plugins`) loads plugin host halves wherever the host runs; the app runtime
@@ -38,7 +44,7 @@ library; remoteness is an adapter choice, never a mandatory local daemon.
 ```
 SharpRail.UI              Avalonia app + workbench   ── depends on ─▶ Host.Core, Host.Client, Host.Remote (loopback server only), Plugins.Api.UI, Plugins.UI.Kit, Scintilla, Ghostty.Avalonia
 SharpRail.Android         Android client: UI sources + windowing ─ depends on ─▶ Host.Core, Host.Client, Plugins.Api.UI, Plugins.UI.Kit, Scintilla, Ghostty.Avalonia (not Host.Remote)
-SharpRail.Host.Client     local adapters + gRPC proxies ─ depends on ─▶ Host.Abstractions, Host.Protocol
+SharpRail.Host.Client     local adapters + WebSocket RPC proxies ─ depends on ─▶ Host.Abstractions, Host.Protocol
 SharpRail.Host.Remote     Kestrel host + RPC adapters ── depends on ─▶ Host.Core, Host.Protocol
 SharpRail.Host.Core       host implementation        ── depends on ─▶ Host.Abstractions, Plugins.Api.Host
 SharpRail.Host.Protocol   wire contracts + DTOs
@@ -94,7 +100,7 @@ tests/SharpRail.Checks    executable checks; references UI and Remote to exercis
     `global.json` selects the SDK; specs name the behavior they rely on rather than restating versions.
 11. Terminal = Ghostty. macOS tabs use libghostty's Metal textures composed by Avalonia or libghostty-vt
     cells drawn with Skia. Local Metal uses an external I/O backend attached directly to the app-owned
-    PTY service: no relay, socket or RPC. Remote Metal runs a `--terminal-relay` child attached over gRPC.
+    PTY service: no relay, socket or RPC. Remote Metal runs a `--terminal-relay` child attached over WebSocket RPC.
     Both retain host-owned shells; other platforms show an availability message.
 12. A shell belongs to a tab, and the host owns it. `PtyTerminalService` keys sessions by a stable id
     derived from workspace and tab; attach is get-or-create and exclusive with takeover. Shells outlive
@@ -114,7 +120,7 @@ tests/SharpRail.Checks    executable checks; references UI and Remote to exercis
     through one serialised reconciler per host and the same reconcile in the app. A host half runs wherever
     the host runs, in process for the app's own host and inside a remote host otherwise; a UI half always
     runs in the app, an external one read through the host. Plugin methods and channels are one generic call
-    and one generic stream, direct in process and JSON over gRPC. The API carries no compatibility promise; a
+    and one generic stream, direct in process and JSON over WebSocket RPC. The API carries no compatibility promise; a
     single generation integer, declared in the manifest and checked before load, is the whole contract, and a
     mismatch is refused with a reason naming both generations. There is no sandbox: plugin code runs with the
     privileges of the host or the app. Full contract: `src/SharpRail.Plugins.Api/SPEC.md`.
@@ -140,7 +146,7 @@ tests/SharpRail.Checks    executable checks; references UI and Remote to exercis
 ## Not yet ported
 
 - Workspace-local review comments and CI status.
-- PDF page-pair diffs and sanitised HTML for byte-only content on a diff side. Bytes are fetched over gRPC
+- PDF page-pair diffs and sanitised HTML for byte-only content on a diff side. Bytes are fetched over WebSocket RPC
   at an immutable commit (not HTTP routes); the host never executes content and the UI draws pixels only,
   so repository script never runs.
 - A mobile shell projecting the same panels. The Android client shows the desktop workbench unchanged.

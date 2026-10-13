@@ -200,7 +200,7 @@ clients re-read Git although no file in the workspace changed.
   every other (escape and symbolic links refused), the size is capped at `FileLimits.EditableBytes`, and
   the bytes are never decoded, interpreted or written to disk. A commit id never moves, so reading the
   original side again after the branch advanced returns the same bytes; the hash is the identity a
-  client compares. This is a gRPC call rather than an HTTP route, as the host serves no HTTP.
+  client compares. This is a WebSocket RPC call rather than an HTTP route, as the host serves no HTTP.
 - `DiffSides` carries a SHA-256 per side (null when the side is absent) and the commit the original side
   was read at (null for the index, an unborn `HEAD` or an absent side). Hashes cover the raw bytes.
 
@@ -210,5 +210,5 @@ clients re-read Git although no file in the workspace changed.
   default is prefetched as the dialog opens, and creation fetches whichever base was chosen).
 - An immutable original for the index side: a `working` diff measures against the index, which has no
   commit id, so its bytes can change between two reads. Other scopes' originals are frozen to a commit.
-- A streamed, HTTP-served byte route; the host returns one gRPC message per read, so the cap is the
+- A streamed, HTTP-served byte route; the host returns one WebSocket RPC message per read, so the cap is the
   editable-file limit rather than a streamed bound.

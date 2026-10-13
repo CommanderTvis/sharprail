@@ -8,6 +8,7 @@ using Avalonia.Threading;
 using Ghostty.Avalonia;
 
 using SharpRail.Host.Abstractions;
+using SharpRail.Host.Client;
 using SharpRail.UI.Rendering;
 
 namespace SharpRail.UI.Terminal;
@@ -40,6 +41,7 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend
                 Typeface = TerminalTheme.Typeface.Value,
                 Colors = TerminalTheme.Colors(),
                 ClipboardImageDirectory = launch.ClipboardDirectory,
+                SaveClipboardImage = OperatingSystem.IsBrowser() ? bytes => terminals.SaveClipboardImageAsync(launch.SessionId, bytes, lifetime.Token).AsTask() : null,
                 Name = "TerminalSkiaView",
                 ResolveFileLinks = (text, token) => TerminalFileLinks.Resolve(terminals, launch, text, token),
                 OpenFileLink = launch.OpenFileLink
@@ -94,7 +96,7 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend
             attached = await terminals.AttachAsync(new(launch.SessionId, launch.WorkspaceRoot, launch.ClientId, size.Columns, size.Rows)
             { TabKey = launch.TabKey, Yield = launch.Yield, Watch = launch.Yield }, lifetime.Token);
         }
-        catch (Grpc.Core.RpcException error) { throw new TerminalStartException(error.Status.Detail); }
+        catch (Exception error) when (RemoteErrors.IsTransport(error)) { throw new TerminalStartException(error.Message); }
         if (disposed) { await attached.DisposeAsync(); throw new ObjectDisposedException(nameof(SkiaTerminal)); }
         session = attached;
         Yielded = launch.Yield && attached.Detached.IsCompleted;
@@ -133,21 +135,61 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend
         {
             // A revived agent's command is typed once the shell has printed something, so it never lands before the prompt.
             var prefill = attached.Prefill;
+            using var reading = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
+            // Read ahead independently of UI dispatches. Bounded pieces keep at most 1 MiB queued,
+            // with no dropped bytes; a slow renderer backpressures the host through the reader.
+            var output = Channel.CreateBounded<(ReadOnlyMemory<byte> Data, (int Columns, int Rows) Grid)>(
+                new BoundedChannelOptions(128) { SingleReader = true, SingleWriter = true });
             var grid = attached.Grid;
-            await foreach (var chunk in attached.ReadAsync(lifetime.Token))
+            var reader = ReadOutput();
+            try
             {
-                // The holder's resize reaches a watcher in order with the output drawn for it.
-                if (Watching && attached.Grid != grid)
+                while (await output.Reader.WaitToReadAsync(lifetime.Token))
                 {
-                    grid = attached.Grid;
-                    await Dispatcher.UIThread.InvokeAsync(() => { if (!disposed) terminal.FixedGrid = new(grid.Columns, grid.Rows); }, DispatcherPriority.Background);
+                    var received = false;
+                    await Dispatcher.UIThread.InvokeAsync(() =>
+                    {
+                        lifetime.Token.ThrowIfCancellationRequested();
+                        var started = Stopwatch.GetTimestamp();
+                        var bytes = 0;
+                        while (output.Reader.TryRead(out var item))
+                        {
+                            // Resizes stay ordered with the bytes they describe, including empty updates.
+                            if (Watching && item.Grid != grid)
+                            {
+                                grid = item.Grid;
+                                terminal.FixedGrid = new(grid.Columns, grid.Rows);
+                                terminal.UpdateLayout();
+                            }
+                            terminal.Write(item.Data.Span);
+                            received |= !item.Data.IsEmpty;
+                            bytes += item.Data.Length;
+                            if (bytes >= 256 * 1024 || Stopwatch.GetElapsedTime(started).TotalMilliseconds >= 2) break;
+                        }
+                    }, DispatcherPriority.Background);
+                    if (prefill is not null && received)
+                    {
+                        await attached.WriteAsync(System.Text.Encoding.UTF8.GetBytes(prefill.Text + (prefill.Submit ? "\r" : "")), lifetime.Token);
+                        prefill = null;
+                    }
                 }
-                await WriteOutput(chunk);
-                if (prefill is not null && chunk.Length > 0)
+            }
+            finally { reading.Cancel(); await reader; }
+
+            async Task ReadOutput()
+            {
+                try
                 {
-                    await attached.WriteAsync(System.Text.Encoding.UTF8.GetBytes(prefill.Text + (prefill.Submit ? "\r" : "")), lifetime.Token);
-                    prefill = null;
+                    await foreach (var chunk in attached.ReadAsync(reading.Token))
+                    {
+                        var size = attached.Grid;
+                        if (chunk.IsEmpty) await output.Writer.WriteAsync((chunk, size), reading.Token);
+                        for (var offset = 0; offset < chunk.Length; offset += 8 * 1024)
+                            await output.Writer.WriteAsync((chunk.Slice(offset, Math.Min(8 * 1024, chunk.Length - offset)), size), reading.Token);
+                    }
+                    output.Writer.TryComplete();
                 }
+                catch (Exception error) { output.Writer.TryComplete(error); }
             }
             if (attached.Detached.IsCompleted) { detached.TrySetResult(); return; }
             exited.TrySetResult(await attached.Exit);
@@ -155,13 +197,13 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend
         catch (Exception) when (lifetime.IsCancellationRequested) { }
         catch (Exception error)
         {
-            var message = error is Grpc.Core.RpcException rpc ? "The terminal connection was lost: " + rpc.Status.Detail : error.Message;
+            var message = RemoteErrors.IsTransport(error) ? "The terminal connection was lost: " + error.Message : error.Message;
             exited.TrySetException(new TerminalStartException(message));
         }
     }
 
     // RoyalTerminal's bounded output slices inspired this drain. See Ghostty.Avalonia/README.md.
-    // Await each dispatch so a flood cannot create an unbounded queue of UI callbacks.
+    // Replay yields between slices; live output is coalesced by the bounded read-ahead queue above.
     private async Task WriteOutput(ReadOnlyMemory<byte> bytes)
     {
         var offset = 0;

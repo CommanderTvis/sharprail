@@ -85,7 +85,7 @@ of the API.
 
 `TerminalAgentRecord.LaunchedByUi` is nullable launch provenance: true for a detected UI launch,
 false for a detected manual launch, null when unknown. Hosts persist and broadcast it, including over
-gRPC. Providers determine it independently of optional prompts or MCP settings; status-only updates
+WebSocket RPC. Providers determine it independently of optional prompts or MCP settings; status-only updates
 retain it. Older state and hosts leave it unknown rather than mislabelling sessions.
 
 `TerminalAgentRecord.Model` and `Effort` retain the latest choices reported by the session for
@@ -128,7 +128,7 @@ parameter, or widening a return is a breaking change and has to come with a gene
   the types.
 - Allowed deps: the .NET base library for the root and host entries; the root entry, and Avalonia's `Control`
   types, for the UI entry.
-- Forbidden: any `SharpRail.Host.*` or `SharpRail.UI` project, ASP.NET Core, gRPC or protobuf types,
+- Forbidden: any `SharpRail.Host.*` or `SharpRail.UI` project, ASP.NET Core, WebSocket RPC or protobuf types,
   Avalonia in the root or host entry, and any runtime beyond identity helpers and name builders
   (`PluginJson.Convert` and `PluginTool<T>.RunAsync` are the two conversions they need). The UI kit is a
   separate assembly ([SPEC.md](../SharpRail.Plugins.UI.Kit/SPEC.md)), since controls here would make it a
@@ -584,9 +584,9 @@ Method and channel names are `plugin.<id>.<name>`. The core wire gained the rost
 changes move only its own wire version. A UI half whose version differs from the host's stays dormant with that
 as its reason, which matters most when the two halves can be updated separately.
 
-There is one generic method and one generic stream, not a gRPC service per plugin: `IPluginService.CallAsync`
+There is one generic method and one generic stream, not a WebSocket RPC service per plugin: `IPluginService.CallAsync`
 (plugin id, method name, params → result) and `IPluginService.SubscribeAsync` (plugin id, channel name, optional
-key → payloads). Over gRPC the params, results and payloads are JSON bytes written with `PluginJson.Options`. In
+key → payloads). Over WebSocket RPC the params, results and payloads are JSON bytes written with `PluginJson.Options`. In
 the app's own host the call is direct, with no serialization, as with every other host service: params and
 results stay objects, and `PluginJson.Convert` turns a value into the declared type, passing an instance of
 that type through untouched and converting anything else (a JSON element from the wire, or an equivalent type
@@ -623,7 +623,7 @@ payloads are not validated per message.
 way locally and remotely; a client behaves differently only for `Disabled`, and learns enablement from the
 roster.
 
-The one-time core edit covers: `IPluginService` in `Host.Abstractions` and its gRPC contract; the roster,
+The one-time core edit covers: `IPluginService` in `Host.Abstractions` and its WebSocket RPC contract; the roster,
 `PluginSettings`, `PluginPaths`, `TerminalAgents` and `Platform` on `HostState`, with the `plugin-settings`
 and `plugin-paths` changes; and the `plugin:` tool ids the layout accepts. Carrying label, icon, and
 contributions on the roster is what lets the app know an external plugin's contributions without loading its
@@ -634,7 +634,7 @@ dependent plugin's host half, in process.
 
 ```mermaid
 flowchart LR
-    B["a UI half in the app"] -->|"IPluginService.CallAsync · direct or gRPC"| REG
+    B["a UI half in the app"] -->|"IPluginService.CallAsync · direct or WebSocket RPC"| REG
     D["a dependent plugin's host half"] -->|"in process"| REG["plugin runtime"]
     REG --> V["convert params to the method's type"]
     V --> H["the plugin's registered handler"]

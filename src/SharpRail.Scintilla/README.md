@@ -116,3 +116,7 @@ licenses.
 editor changes it live and raises `TextSizeChosen` when it settles, for the host to remember. `WrapWidth`
 is given at the default size and keeps its count of characters at any other. `WrapAlways` wraps at the
 pane's edge even with no wrap width, for screens where sideways scrolling is a chore.
+
+The browser links the same editor and SheenBidi into WASM through `scripts/wasm-native.sh`. Its native
+draw callback uses an unmanaged function pointer; managed rendering and editing behavior stay shared.
+WASM requires `PTRDIFF_DOESNT_ALIAS_INT` when building Scintilla template instantiations.

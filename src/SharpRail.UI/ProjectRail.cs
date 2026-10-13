@@ -6,6 +6,7 @@ using Avalonia.Input;
 using Avalonia.Layout;
 
 using SharpRail.Host.Abstractions;
+using SharpRail.Host.Client;
 
 namespace SharpRail.UI;
 
@@ -361,7 +362,7 @@ public sealed partial class WorkbenchWindow
         if (path == workspaceRoot || !prewarmed.Add(path)) return;
         try { await Task.Run(async () => await host.PrewarmWorkspaceAsync(path, lifetime.Token), lifetime.Token); }
         // Only a hint: the subscription made on opening starts the watcher itself.
-        catch (Exception error) when (error is OperationCanceledException or IOException or UnauthorizedAccessException or ArgumentException or Grpc.Core.RpcException)
+        catch (Exception error) when (error is OperationCanceledException or IOException or UnauthorizedAccessException or ArgumentException || RemoteErrors.IsTransport(error))
         { prewarmed.Remove(path); }
     }
 

@@ -79,7 +79,7 @@ Three projects under `Contract`, `Host` and `UI`: `SharpRail.Plugins.Visualize` 
 
 ## Framework adaptations
 
-- The state channel and render report cross the existing plugin gRPC adapter remotely and remain typed
+- The state channel and render report cross the existing plugin WebSocket RPC adapter remotely and remain typed
   calls in embedded mode. Register the pending render verdict before publication: an embedded client
   may report synchronously where the fork sends a WebSocket message.
 - The kit renders Mermaid off the UI thread through the pinned Merman native library instead of browser
@@ -96,14 +96,14 @@ companion while another window is active and leave unrelated terminals without a
 
 The focused checks cover shape/schema fields, revisions, whole-workspace snapshots and streams, timeout,
 cancellation, immediate embedded reports, refusal/rollback and revision reuse, session binding/adoption,
-workspace removal and host restart. Headless local and gRPC windows cover diagram/comparison companion
+workspace removal and host restart. Headless local and WebSocket RPC windows cover diagram/comparison companion
 mounting, title, toolbar/wheel zoom bounds, theme navigation retention, close/reopen and rollback.
-The gRPC fixture's terminals now run on that remote host's PTYs: their emitted HTTP MCP URL lists
-and calls visualize, refuses unknown tokens and returns renderer refusals. Both local and gRPC
+The WebSocket RPC fixture's terminals now run on that remote host's PTYs: their emitted HTTP MCP URL lists
+and calls visualize, refuses unknown tokens and returns renderer refusals. Both local and WebSocket RPC
 cases reopen the owning terminal's closed drawing while another window stays active; the unrelated
 window does not receive the drawing.
 
-The local and gRPC companion checks also cover every comparison option's description, pros, cons and
+The local and WebSocket RPC companion checks also cover every comparison option's description, pros, cons and
 single recommended badge; one versus two columns across the 640 boundary as the companion width changes;
 drag panning of a zoomed diagram; splitter resizing that expands the diagram viewport, with width restored
 after close/reopen; a second terminal of the same workspace receiving only its own drawing;

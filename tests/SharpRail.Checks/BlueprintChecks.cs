@@ -195,17 +195,17 @@ internal static class BlueprintChecks
             Require((await plugins.ListAsync()).Any(entry => entry is { Id: "blueprint", Status: PluginStatus.Active }), "The remote Blueprint activates.");
             async Task<T> Call<P, T>(PluginMethod<P, T> method, P parameters) => PluginJson.Convert<T>(await plugins.CallAsync(new("blueprint", method.Name, parameters, "client")));
             var opened = await Call(BlueprintContract.Open, new(project, new BlueprintProduct(), BlueprintAgentId.Codex));
-            Require(opened.State.Phase == BlueprintPhase.Ready, "An existing blueprint opens through gRPC.");
+            Require(opened.State.Phase == BlueprintPhase.Ready, "An existing blueprint opens through WebSocket RPC.");
             await Call(BlueprintContract.SetAuthor, new(project, new BlueprintTerminalAuthor("author", "remote-session")));
             await Call(BlueprintContract.Edit, new(project, new BlueprintOptionAxisTarget("language", "python"), "available everywhere"));
             await Call(BlueprintContract.ConfirmEdits, new(project));
             var remote = await Call(BlueprintContract.Get, new(project));
             var local = PluginJson.Convert<BlueprintChangedPayload>(await runtime.CallAsync(new("blueprint", "get", new BlueprintScope(project), "client")));
             Require(JsonSerializer.Serialize(remote, PluginJson.Options) == JsonSerializer.Serialize(local, PluginJson.Options) &&
-                BlueprintFormat.Controls(remote.State!.Doc)[0].Options[0].Axis == "available everywhere", "Polymorphic edits and state match local answers over gRPC.");
+                BlueprintFormat.Controls(remote.State!.Doc)[0].Options[0].Axis == "available everywhere", "Polymorphic edits and state match local answers over WebSocket RPC.");
         }
         finally { await server.StopAsync(); }
-        Console.WriteLine("PASS Blueprint transport: polymorphic authors, sources, edits and snapshots over gRPC");
+        Console.WriteLine("PASS Blueprint transport: polymorphic authors, sources, edits and snapshots over WebSocket RPC");
     }
 
     private sealed class CapturedTerminals : IPluginTerminalSeams

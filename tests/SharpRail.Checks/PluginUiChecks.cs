@@ -296,7 +296,7 @@ internal static class PluginUiChecks
 
     // The fork's external-plugin.spec.ts against a real host: the fixture plugin installed from disk into the host's
     // state directory, beside a copy built for another generation and one that is later deleted. Run once with the
-    // app's own in-process runtime and once against a remote host over gRPC.
+    // app's own in-process runtime and once against a remote host over WebSocket RPC.
     private static void Fixture(string root, bool remote)
     {
         var mode = remote ? "remote" : "local";

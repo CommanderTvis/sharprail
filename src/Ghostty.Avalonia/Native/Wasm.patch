@@ -1,0 +1,36 @@
+diff --git a/src/build/GhosttyZig.zig b/src/build/GhosttyZig.zig
+index 46ab05d..926e702 100644
+--- a/src/build/GhosttyZig.zig
++++ b/src/build/GhosttyZig.zig
+@@ -116,6 +116,7 @@ fn initVt(
+ 
+     const vt = b.addModule(name, .{
+         .root_source_file = b.path("src/lib_vt.zig"),
++        .strip = cfg.strip,
+         .target = cfg.target,
+         .optimize = cfg.optimize,
+ 
+diff --git a/src/terminal/PageList.zig b/src/terminal/PageList.zig
+index 22488ac..881ee08 100644
+--- a/src/terminal/PageList.zig
++++ b/src/terminal/PageList.zig
+@@ -330,7 +330,9 @@ const std_size = Page.layout(std_capacity).total_size;
+ ///
+ /// Test builds use the native pool even on wasm so that pool memory goes
+ /// through the testing allocator and participates in leak detection.
+-const wasm_page_pool = builtin.target.cpu.arch.isWasm() and !builtin.is_test;
++// SharpRail shares the Emscripten heap; the standalone WASM page pool grows
++// memory independently and cannot coexist with its allocator.
++const wasm_page_pool = false;
+ 
+ /// The memory pool we use for page memory buffers. We use a separate pool
+ /// so we can allocate these with a page allocator. We have to use a page
+@@ -574,7 +576,7 @@ inline fn pageAllocator(alloc: Allocator) Allocator {
+ 
+     // Native freestanding targets don't have an OS page allocator, so use
+     // the allocator provided by the embedder.
+-    if (native_freestanding) return alloc;
++    if (native_freestanding or builtin.cpu.arch.isWasm()) return alloc;
+ 
+     // On non-macOS we use our standard Zig page allocator.
+     if (!builtin.target.os.tag.isDarwin()) return std.heap.page_allocator;

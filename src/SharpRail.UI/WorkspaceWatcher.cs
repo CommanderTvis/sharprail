@@ -1,6 +1,7 @@
 using Avalonia.Threading;
 
 using SharpRail.Host.Abstractions;
+using SharpRail.Host.Client;
 using SharpRail.UI.Rendering;
 
 namespace SharpRail.UI;
@@ -161,7 +162,7 @@ public sealed partial class WorkbenchWindow
                 continue;
             }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException) { continue; }
-            catch (Grpc.Core.RpcException error) when (error.StatusCode == Grpc.Core.StatusCode.FailedPrecondition) { continue; }
+            catch (Exception error) when (RemoteErrors.IsFailedPrecondition(error)) { continue; }
             if (request != projectRequest || !LiveDocuments().Contains(key)) continue;
             MarkDeletedOnDisk(key, false);
             // Byte-only files read as empty text, so the hash decides whether anything changed.

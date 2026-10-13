@@ -15,6 +15,7 @@ internal sealed unsafe class TerminalRowPicture
     private int references = 1;
     private readonly Cell[] cells;
     private readonly uint[] text;
+    private readonly uint textStart;
     private readonly RowAppearance appearance;
     internal long Id { get; } = Interlocked.Increment(ref sequence);
     internal SKPicture Picture { get; }
@@ -24,15 +25,13 @@ internal sealed unsafe class TerminalRowPicture
         this.appearance = appearance;
         Picture = picture;
         cells = new ReadOnlySpan<Cell>(frame.Cells + row * frame.Columns, frame.Columns).ToArray();
-        uint start = 0, end = 0;
-        foreach (var cell in cells)
-        {
-            if (cell.Length == 0) continue;
-            if (end == 0) start = cell.Text;
-            end = cell.Text + cell.Length;
-        }
-        text = new ReadOnlySpan<uint>(frame.Text + start, (int)(end - start)).ToArray();
-        for (var x = 0; x < cells.Length; x++) cells[x].Text = cells[x].Length == 0 ? 0 : cells[x].Text - start;
+        var first = 0;
+        while (first < cells.Length && cells[first].Length == 0) first++;
+        var last = cells.Length - 1;
+        while (last >= first && cells[last].Length == 0) last--;
+        textStart = first < cells.Length ? cells[first].Text : 0;
+        var end = last >= first ? cells[last].Text + cells[last].Length : 0;
+        text = new ReadOnlySpan<uint>(frame.Text + textStart, (int)(end - textStart)).ToArray();
     }
 
     internal bool Matches(Frame frame, int row, RowAppearance next)
@@ -43,7 +42,7 @@ internal sealed unsafe class TerminalRowPicture
             var a = cells[x]; var b = frame.Cells[row * frame.Columns + x];
             if (a.Length != b.Length || a.Wide != b.Wide || a.Underline != b.Underline || a.Flags != b.Flags ||
                 a.Foreground != b.Foreground || a.Background != b.Background || a.UnderlineColor != b.UnderlineColor ||
-                !text.AsSpan((int)a.Text, a.Length).SequenceEqual(new ReadOnlySpan<uint>(frame.Text + b.Text, b.Length))) return false;
+                a.Length != 0 && !text.AsSpan((int)(a.Text - textStart), a.Length).SequenceEqual(new ReadOnlySpan<uint>(frame.Text + b.Text, b.Length))) return false;
         }
         return true;
     }

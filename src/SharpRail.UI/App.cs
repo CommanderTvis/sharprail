@@ -45,7 +45,7 @@ public sealed partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
-#if !ANDROID
+#if !ANDROID && !BROWSER
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             if (desktop.Args?.Contains("--tailscale", StringComparer.Ordinal) == true)
@@ -67,7 +67,7 @@ public sealed partial class App : Application
         base.OnFrameworkInitializationCompleted();
     }
 
-#if !ANDROID
+#if !ANDROID && !BROWSER
     private static string TailscaleClientDirectory() => Path.Combine(Environment.GetEnvironmentVariable("SHARPRAIL_PROFILE") ??
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".sharprail"), "tailscale-client");
 

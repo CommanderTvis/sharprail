@@ -19,7 +19,7 @@ workbench when the worktree changed so it re-reads. Reads and saves are host ope
 (`IProjectServices.ListFilesAsync`, `ReadFileAsync`, `SaveFileAsync`; `IWorkspaceHost.ListRootFilesAsync`).
 Change notification is host-owned (`IProjectServices.WatchFilesAsync`, `ProjectFileWatching.cs`, with the
 shared watchers in `WorkspaceWatches.cs` and `PrewarmWorkspaceAsync` to start them early),
-with direct local and streaming gRPC adapters. The UI consumes the same stream for either host.
+with direct local and streaming WebSocket RPC adapters. The UI consumes the same stream for either host.
 
 ## Boundary
 
@@ -46,7 +46,7 @@ Listings mark Git-ignored entries without hiding them, using a NUL-delimited `gi
   JPEG, GIF, WebP, BMP, by its bytes rather than its extension) no larger than `FileLimits.PreviewBytes`
   also carries its bytes, and the workbench shows any other byte-only file as a card with its type, size
   and hash. Control characters other than NUL stay text. Markdown previews are limited to
-  `FileLimits.PreviewBytes`, every read to `FileLimits.EditableBytes`, and a gRPC message is sized for one
+  `FileLimits.PreviewBytes`, every read to `FileLimits.EditableBytes`, and a WebSocket RPC message is sized for one
   whole read or save.
 - `ContentClassifier` is the one byte classification: media type from magic numbers (PNG, JPEG, GIF,
   WebP, AVIF, BMP, ICO, PDF, zip, gzip, WOFF/WOFF2), SVG from a text root element (after an optional
@@ -98,7 +98,7 @@ the ordinary text read and compare-and-swap save; the delegate is asked again ju
 plugin disabled mid-save withdraws the file. Any other absolute path is still refused as outside the workspace.
 Core knows no plugin id.
 
-A read of a file that is gone throws `FileNotFoundException` (a remote client gets it back from gRPC's
+A read of a file that is gone throws `FileNotFoundException` (a remote client gets it back from WebSocket RPC's
 `NotFound`), the one read failure a client acts on: an open tab marks its file deleted on disk.
 
 ## Change notification

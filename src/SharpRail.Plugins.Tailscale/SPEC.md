@@ -42,7 +42,7 @@ requests cannot be recreated by polling, and pending requests and approved grant
 
 Approval persists the hash of the client's secret and its node identity in plugin state. The client stores
 its own secret and host name in client-local `tailscale-client.json`, with user-only Unix permissions.
-An approved bootstrap returns the actual gRPC address and port; the client authenticates using its own
+An approved bootstrap returns the actual WebSocket RPC address and port; the client authenticates using its own
 secret. A remembered bootstrap secret cannot be used by another Tailscale node. The listener accepts
 approved client secrets alongside the existing master token. Revoking a grant rejects new calls and ends
 its running streaming calls within one second; disabling does the same for every plugin grant. Terminal
@@ -57,7 +57,7 @@ plugin host or Core. The bridge lives in the plugin contract assembly and is not
 plugin RPC because the client has no connection yet: the builtin UI exposes a client-local picker before
 ordinary UI activation. External plugin activation and capability parity are unchanged.
 
-The embedded host starts an ephemeral gRPC listener on its Tailscale address after approval. An already
+The embedded host starts an ephemeral WebSocket RPC listener on its Tailscale address after approval. An already
 running listener is reused when bound to that address or a wildcard; an incompatible listener produces
 an actionable error instead of being reconfigured. The plugin stops only the listener it started and only
 if that instance is still running. The standalone host reuses its configured listener and requires its
@@ -76,14 +76,14 @@ authentication callback and stops any listener it owns before returning.
 ## Verification
 
 `--tailscale` exercises registry expiry and limits, node binding, credential secrecy and persistence,
-actual HTTP discovery and approval against a fake Tailscale identity provider, embedded gRPC startup,
+actual HTTP discovery and approval against a fake Tailscale identity provider, embedded WebSocket RPC startup,
 local/remote status parity, authenticated calls, revocation and plugin teardown. Fixtures never call the
 user's Tailscale daemon. Desktop and Android device-to-device operation requires manual verification.
 
 The Tailscale settings page displays a credential-free `sharprail://tailscale?host=…`
 QR code for its hostname. Android's existing Scan QR code action opens Tailscale
 pairing with that hostname and starts the usual comparison-code/host-approval flow.
-The code contains no token or gRPC port. Existing manual-host QR codes still work.
+The code contains no token or WebSocket RPC port. Existing manual-host QR codes still work.
 
 The plugin list and settings navigation use the official Tailscale nine-dot SVG icon,
 staged as a host-served plugin asset. Its fill follows the theme; geometry and opacity

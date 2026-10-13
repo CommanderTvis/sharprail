@@ -1,11 +1,5 @@
 using System.Runtime.CompilerServices;
 
-using Grpc.Core;
-using Grpc.Net.Client;
-
-using ProtoBuf.Grpc;
-using ProtoBuf.Grpc.Client;
-
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Protocol;
 
@@ -21,12 +15,12 @@ public sealed class LocalTerminalCatalogAdapter(ITerminalCatalogService host) : 
 }
 
 /// <summary>
-/// The terminal catalog of a gRPC host. Refusals surface as the exceptions the local catalog throws; a host
+/// The terminal catalog of a WebSocket RPC host. Refusals surface as the exceptions the local catalog throws; a host
 /// that predates the catalog reports <see cref="NotSupportedException"/>.
 /// </summary>
 public sealed class RemoteTerminalCatalogAdapter : ITerminalCatalogService, IDisposable
 {
-    private readonly GrpcChannel channel;
+    private readonly RpcChannel channel;
     private readonly ITerminalCatalogRpc service;
     private readonly string token;
 
@@ -34,12 +28,8 @@ public sealed class RemoteTerminalCatalogAdapter : ITerminalCatalogService, IDis
     {
         if (string.IsNullOrWhiteSpace(token)) throw new ArgumentException("A host session token is required.", nameof(token));
         this.token = token;
-        channel = GrpcChannel.ForAddress(address, new GrpcChannelOptions
-        {
-            InitialReconnectBackoff = StateAdapterDefaults.InitialReconnect,
-            MaxReconnectBackoff = StateAdapterDefaults.MaxReconnect
-        });
-        service = channel.CreateGrpcService<ITerminalCatalogRpc>();
+        channel = new RpcChannel(address, null);
+        service = channel.CreateService<ITerminalCatalogRpc>();
     }
 
     private CallContext Context(CancellationToken cancellationToken, bool stream = false) => new(new CallOptions(

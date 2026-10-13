@@ -18,6 +18,8 @@ internal sealed class CellFonts : IDisposable
     // Font units per em that shaped positions are expressed in.
     private const int ShapeScale = 1 << 12;
     private readonly SKFont[] fonts = new SKFont[4];
+    private readonly SKTextBlob?[] asciiBlobs = new SKTextBlob?[4 * 95];
+    private nint[]? asciiHandles;
     private readonly Dictionary<(string Text, int Style, int Span), CellGlyphs?> glyphs = [];
     private readonly Dictionary<(string Text, bool Bold, bool Italic, int Span, bool Run), SKTextBlob?> blobs = [];
     private readonly Dictionary<(string Family, int Style), SKFont> fallbacks = [];
@@ -65,6 +67,25 @@ internal sealed class CellFonts : IDisposable
 
     // Cache native draw objects as well as glyph positions, following RoyalTerminal's text caches.
     // See README.md for pinned Royal Apps source links and MIT attribution.
+    internal SKTextBlob? AsciiBlob(char character, bool bold, bool italic)
+    {
+        var index = ((bold ? 1 : 0) | (italic ? 2 : 0)) * 95 + character - 32;
+        return asciiBlobs[index] ??= BuildBlob(character.ToString(), bold, italic, 1, asciiRun: true);
+    }
+
+    internal nint[] AsciiHandles
+    {
+        get
+        {
+            if (asciiHandles is not null) return asciiHandles;
+            var handles = new nint[4 * 95];
+            for (var style = 0; style < 4; style++)
+                for (var c = 0; c < 95; c++)
+                    handles[style * 95 + c] = AsciiBlob((char)(c + 32), (style & 1) != 0, (style & 2) != 0)?.Handle ?? 0;
+            return asciiHandles = handles;
+        }
+    }
+
     internal SKTextBlob? Blob(string text, bool bold, bool italic, int span, bool asciiRun = false)
     {
         var key = (text, bold, italic, span, asciiRun);
@@ -74,6 +95,11 @@ internal sealed class CellFonts : IDisposable
             foreach (var blob in blobs.Values) blob?.Dispose();
             blobs.Clear();
         }
+        return blobs[key] = BuildBlob(text, bold, italic, span, asciiRun);
+    }
+
+    private SKTextBlob? BuildBlob(string text, bool bold, bool italic, int span, bool asciiRun)
+    {
         var parts = asciiRun
             ? text.Select(character => Glyphs(character.ToString(), bold, italic, 1)).ToArray()
             : [Glyphs(text, bold, italic, span)];
@@ -96,7 +122,7 @@ internal sealed class CellFonts : IDisposable
                 offset += part.Glyphs.Length;
             }
         }
-        return blobs[key] = builder.Build();
+        return builder.Build();
     }
 
     /// <summary>The glyphs that draw a grapheme across <paramref name="span"/> cells, or null when no font has it.</summary>
@@ -196,6 +222,7 @@ internal sealed class CellFonts : IDisposable
 
     public void Dispose()
     {
+        foreach (var blob in asciiBlobs) blob?.Dispose();
         foreach (var blob in blobs.Values) blob?.Dispose();
         foreach (var shaper in shapers.Values) shaper?.Dispose();
         foreach (var font in shrunk) font.Dispose();

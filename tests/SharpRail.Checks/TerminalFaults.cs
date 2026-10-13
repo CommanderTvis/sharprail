@@ -1,12 +1,11 @@
 using System.Net;
 using System.Net.Sockets;
 
-using Grpc.Core;
-using Grpc.Core.Interceptors;
+using SharpRail.Host.Protocol;
 
 namespace SharpRail.Checks;
 
-// Sits between a client and a real gRPC host so a check can cut the connection, or hold new
+// Sits between a client and a real WebSocket RPC host so a check can cut the connection, or hold new
 // connections back, while the host and its sessions keep running.
 internal sealed class TcpProxy : IAsyncDisposable
 {
@@ -91,43 +90,35 @@ internal sealed class TcpProxy : IAsyncDisposable
 }
 
 // Faults the reply to a terminal attach, as a connection lost or slowed right after the host answered.
-internal sealed class AttachFaults : Interceptor
+internal sealed class AttachFaults : SharpRail.Host.Client.ITerminalRpcInterceptor
 {
     private int calls;
     internal int Calls => Volatile.Read(ref calls);
-    // Drops the reply to the next attach and breaks its call.
     internal bool DropNextReply { get; set; }
-    // Delays the replies to later attaches.
     internal TimeSpan Delay { get; set; }
-
-    public override AsyncDuplexStreamingCall<TRequest, TResponse> AsyncDuplexStreamingCall<TRequest, TResponse>(
-        ClientInterceptorContext<TRequest, TResponse> context, AsyncDuplexStreamingCallContinuation<TRequest, TResponse> continuation)
+    public ITerminalRpc Wrap(ITerminalRpc service) => new FaultyService(this, service);
+    private sealed class FaultyService(AttachFaults faults, ITerminalRpc service) : ITerminalRpc
     {
-        var call = continuation(context);
-        Interlocked.Increment(ref calls);
-        var drop = DropNextReply;
-        DropNextReply = false;
-        var responses = new FaultyReplies<TResponse>(call.ResponseStream, call.Dispose, drop, Delay);
-        return new(call.RequestStream, responses, call.ResponseHeadersAsync, call.GetStatus, call.GetTrailers, call.Dispose);
-    }
-
-    private sealed class FaultyReplies<T>(IAsyncStreamReader<T> inner, Action breakCall, bool drop, TimeSpan delay) : IAsyncStreamReader<T>
-    {
-        private bool first = true;
-        public T Current => inner.Current;
-
-        public async Task<bool> MoveNext(CancellationToken cancellationToken)
+        public ValueTask<TerminalFileLinksReply> FindFileLinksAsync(TerminalFileLinksRequest request, CallContext context = default) => service.FindFileLinksAsync(request, context);
+        public ValueTask<DocumentReply> SaveClipboardImageAsync(TerminalClipboardRequest request, CallContext context = default) => service.SaveClipboardImageAsync(request, context);
+        public ValueTask<TerminalBusyReply> IsBusyAsync(TerminalSessionRequest request, CallContext context = default) => service.IsBusyAsync(request, context);
+        public ValueTask<TerminalClosed> CloseAsync(TerminalSessionRequest request, CallContext context = default) => service.CloseAsync(request, context);
+        public async IAsyncEnumerable<TerminalOutput> RunAsync(IAsyncEnumerable<TerminalInput> input, CallContext context = default)
         {
-            var next = await inner.MoveNext(cancellationToken);
-            if (!first) return next;
-            first = false;
-            if (drop)
+            Interlocked.Increment(ref faults.calls);
+            var drop = faults.DropNextReply; faults.DropNextReply = false;
+            var delay = faults.Delay;
+            var first = true;
+            await foreach (var reply in service.RunAsync(input, context))
             {
-                breakCall();
-                throw new RpcException(new Status(StatusCode.Unavailable, "The attach reply was lost with its connection."));
+                if (first)
+                {
+                    first = false;
+                    if (drop) throw new RpcException(new(StatusCode.Unavailable, "The attach reply was lost with its connection."));
+                    if (delay > TimeSpan.Zero) await Task.Delay(delay, context.CancellationToken);
+                }
+                yield return reply;
             }
-            if (delay > TimeSpan.Zero) await Task.Delay(delay, cancellationToken);
-            return next;
         }
     }
 }

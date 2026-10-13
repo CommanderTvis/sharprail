@@ -1,5 +1,3 @@
-using Grpc.Core;
-
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Protocol;
 

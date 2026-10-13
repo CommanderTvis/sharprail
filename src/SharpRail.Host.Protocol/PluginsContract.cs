@@ -1,6 +1,4 @@
 using ProtoBuf;
-using ProtoBuf.Grpc;
-using ProtoBuf.Grpc.Configuration;
 
 namespace SharpRail.Host.Protocol;
 
@@ -116,7 +114,6 @@ public sealed class PluginFileReply
 
 // A failed call is an RpcException: Unknown is NotFound, Disabled is FailedPrecondition, InvalidParams is
 // InvalidArgument and Failed is Unknown, with the message as the status detail.
-[Service]
 public interface IPluginRpc
 {
     ValueTask<PluginRosterReply> ListAsync(PluginRosterRequest request, CallContext context = default);

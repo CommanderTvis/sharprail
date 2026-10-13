@@ -1,8 +1,5 @@
 using System.Net;
 
-using Grpc.Core;
-using Grpc.Net.Client;
-
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Hosting.Server;
@@ -10,10 +7,6 @@ using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-
-using ProtoBuf.Grpc;
-using ProtoBuf.Grpc.Client;
-using ProtoBuf.Grpc.Server;
 
 using SharpRail.Checks.E2E;
 using SharpRail.Host.Abstractions;
@@ -24,7 +17,7 @@ using SharpRail.Host.Remote;
 
 namespace SharpRail.Checks;
 
-/// <summary>Named host failures and reconnect behaviour, through the embedded host and a real gRPC host.</summary>
+/// <summary>Named host failures and reconnect behaviour, through the embedded host and a real WebSocket RPC host.</summary>
 internal static class ReconnectChecks
 {
     private const string Token = "reconnect-checks";
@@ -46,16 +39,13 @@ internal static class ReconnectChecks
         await TimeoutOverride();
     }
 
-    private static double Seconds(string timeout) => double.Parse(timeout[..^1], System.Globalization.CultureInfo.InvariantCulture) *
-        timeout[^1] switch { 'H' => 3600, 'M' => 60, 'S' => 1, 'm' => 1e-3, 'u' => 1e-6, _ => 1e-9 };
-
     /// <summary>A caller's timeout replaces the adapter's deadline for the calls it wraps, and only for those.</summary>
     private static async Task TimeoutOverride()
     {
         var wait = TimeSpan.Zero;
         var sent = 0.0;
         var host = new FakeState(HostProtocol.Current, (_, _) => new(new HostState()), () => Task.Delay(wait));
-        await using var server = await Serve(host, inspect: context => sent = Seconds(context.Request.Headers["grpc-timeout"].ToString()));
+        await using var server = await Serve(host, inspect: context => sent = (context.Options.Deadline!.Value - DateTime.UtcNow).TotalSeconds);
         using var remote = new RemoteStateAdapter(new Uri(Address(server)), Token);
         await remote.GetStateAsync();
         Require(sent is > 50 and <= 60, $"A state call waits a minute by default, not {sent} s.");
@@ -151,7 +141,7 @@ internal static class ReconnectChecks
 
     private static CallContext Call(string client, string request, string? resume = null)
     {
-        var headers = new Metadata { { ReplayHeaders.Client, client }, { ReplayHeaders.Request, request } };
+        var headers = new Metadata { { "authorization", "Bearer " + Token }, { ReplayHeaders.Client, client }, { ReplayHeaders.Request, request } };
         if (resume is not null) headers.Add(ReplayHeaders.Resume, resume);
         return new(new CallOptions(headers, DateTime.UtcNow.AddSeconds(20)));
     }
@@ -172,8 +162,8 @@ internal static class ReconnectChecks
         gate.SetResult();
         var host = new FakeState(HostProtocol.RequestReplay, async (_, _) => { var run = Interlocked.Increment(ref runs); await gate.Task; return new() { Revision = run }; });
         await using var server = await Serve(host, maxRequests: 2);
-        using var channel = GrpcChannel.ForAddress(Address(server));
-        var rpc = channel.CreateGrpcService<IStateRpc>();
+        using var channel = RpcChannel.ForAddress(Address(server));
+        var rpc = channel.CreateService<IStateRpc>();
         Require((await rpc.ChangeAsync(Preset("a"), Call("one", "1", "1"))).Revision == 1 && (await rpc.ChangeAsync(Preset("a"), Call("one", "1", "1"))).Revision == 1 && runs == 1,
             "A reply stays replayable until its client stops naming the request.");
         Require(await Status(async () => await rpc.ChangeAsync(Preset("b"), Call("one", "1", "1"))) == StatusCode.InvalidArgument && runs == 1,
@@ -182,8 +172,8 @@ internal static class ReconnectChecks
         Require((await rpc.ChangeAsync(Preset("b"), Call("one", "2", "2"))).Revision == 3, "A second request runs.");
         Require((await rpc.ChangeAsync(Preset("a"), Call("one", "1", "1,2"))).Revision == 4,
             "A result its client no longer names as unresolved is released, so the id runs afresh.");
-        Require((await rpc.ChangeAsync(Preset("c"), new CallContext(new CallOptions(deadline: DateTime.UtcNow.AddSeconds(20))))).Revision == 5 &&
-            (await rpc.ChangeAsync(Preset("c"), new CallContext(new CallOptions(deadline: DateTime.UtcNow.AddSeconds(20))))).Revision == 6,
+        Require((await rpc.ChangeAsync(Preset("c"), new CallContext(new CallOptions(new Metadata { { "authorization", "Bearer " + Token } }, deadline: DateTime.UtcNow.AddSeconds(20))))).Revision == 5 &&
+            (await rpc.ChangeAsync(Preset("c"), new CallContext(new CallOptions(new Metadata { { "authorization", "Bearer " + Token } }, deadline: DateTime.UtcNow.AddSeconds(20))))).Revision == 6,
             "A call without replay metadata runs every time, as from an older client.");
 
         gate = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -196,8 +186,8 @@ internal static class ReconnectChecks
         await Task.WhenAll(first, second);
 
         await using var small = await Serve(host, maxWeight: 1);
-        using var smallChannel = GrpcChannel.ForAddress(Address(small));
-        var tight = smallChannel.CreateGrpcService<IStateRpc>();
+        using var smallChannel = RpcChannel.ForAddress(Address(small));
+        var tight = smallChannel.CreateService<IStateRpc>();
         await tight.ChangeAsync(Preset("g"), Call("one", "1", "1"));
         var before = runs;
         Require(await Status(async () => await tight.ChangeAsync(Preset("g"), Call("one", "1", "1"))) == StatusCode.FailedPrecondition && runs == before,
@@ -213,11 +203,10 @@ internal static class ReconnectChecks
         await File.WriteAllTextAsync(file, "before");
         await using var server = RemoteServer.Create(directory, IPAddress.Loopback, 0, Token);
         await server.StartAsync();
-        using var channel = GrpcChannel.ForAddress(Address(server));
-        var rpc = channel.CreateGrpcService<IProjectRpc>();
+        using var channel = RpcChannel.ForAddress(Address(server));
+        var rpc = channel.CreateService<IProjectRpc>();
         static CallContext Authorized(CallContext call)
         {
-            call.RequestHeaders!.Add("authorization", "Bearer " + Token);
             return call;
         }
         var save = new SaveFileRequest { WorkspaceRoot = Path.GetFullPath(directory), Path = "note.txt", OriginalText = "before", Text = "after" };
@@ -277,19 +266,17 @@ internal static class ReconnectChecks
         Console.WriteLine("PASS named host failures reach local and remote clients as the same typed exception");
     }
 
-    /// <summary>A gRPC host serving only shared state from <paramref name="state"/>.</summary>
+    /// <summary>A WebSocket RPC host serving only shared state from <paramref name="state"/>.</summary>
     private static async Task<WebApplication> Serve(IHostStateService state, int maxRequests = 512, long maxWeight = 16 * 1024 * 1024,
-        Action<Microsoft.AspNetCore.Http.HttpContext>? inspect = null)
+        Action<CallContext>? inspect = null)
     {
         var builder = WebApplication.CreateSlimBuilder();
-        builder.WebHost.ConfigureKestrel(options => options.Listen(IPAddress.Loopback, 0, listen => listen.Protocols = HttpProtocols.Http2));
+        builder.WebHost.ConfigureKestrel(options => options.Listen(IPAddress.Loopback, 0, listen => listen.Protocols = HttpProtocols.Http1));
         builder.Logging.ClearProviders();
         builder.Services.AddSingleton(state);
         builder.Services.AddSingleton(services => new RequestReplayCache(services.GetRequiredService<Microsoft.Extensions.Hosting.IHostApplicationLifetime>(), maxRequests, maxWeight));
-        builder.Services.AddCodeFirstGrpc();
         var app = builder.Build();
-        if (inspect is not null) app.Use((context, next) => { inspect(context); return next(context); });
-        app.MapGrpcService<StateRpc>();
+        WebSocketRpc.Map(app, Token, observe: inspect);
         await app.StartAsync();
         return app;
     }

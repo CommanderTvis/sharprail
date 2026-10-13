@@ -116,8 +116,10 @@ public sealed class ProfileStore
     public string DirectoryPath => Path.GetDirectoryName(path)!;
     public Profile Data { get; }
     public string? LastError { get; private set; }
-    public ProfileStore(string directory)
+    private readonly Action<string>? persist;
+    public ProfileStore(string directory, Func<string?>? read = null, Action<string>? persist = null)
     {
+        this.persist = persist;
         path = Path.Combine(directory, "profile.json");
         writing = new JsonSerializerOptions
         {
@@ -126,7 +128,8 @@ public sealed class ProfileStore
         };
         try
         {
-            Data = File.Exists(path) ? JsonSerializer.Deserialize<Profile>(File.ReadAllText(path)) ?? new() : new();
+            var json = read is not null ? read() : File.Exists(path) ? File.ReadAllText(path) : null;
+            Data = json is null ? new() : JsonSerializer.Deserialize<Profile>(json) ?? new();
             Data.Preferences ??= new(); Data.CollapsedProjects ??= []; Data.CollapsedRemotes ??= []; Data.Windows ??= [];
             Data.Windows.RemoveAll(window => window is null);
             if (Data.Windows.Count == 0)
@@ -263,6 +266,7 @@ public sealed class ProfileStore
     {
         try
         {
+            if (persist is not null) { persist(JsonSerializer.Serialize(Data, writing)); LastError = null; return; }
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);
             var temporary = path + ".tmp";
             File.WriteAllText(temporary, JsonSerializer.Serialize(Data, writing));

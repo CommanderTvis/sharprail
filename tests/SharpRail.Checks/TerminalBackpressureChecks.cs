@@ -8,7 +8,7 @@ using SharpRail.Host.Remote;
 
 namespace SharpRail.Checks;
 
-// A reader that stops reading must cost the host a bounded amount of memory and still see the newest output
+// A reader that stops reading must cost the host a bounded amount of memory and preserve the byte stream
 // once it reads again; a connection that goes silent without closing must be noticed and resumed.
 internal static partial class TerminalHostChecks
 {
@@ -16,7 +16,8 @@ internal static partial class TerminalHostChecks
     {
         await using var local = new PtyTerminalService();
         var direct = await Stalled(new LocalTerminalAdapter(local), workspace, "local", 8_000_000);
-        Require(direct <= Attachment.BacklogBytes + 128 * 1024, $"local: a stalled reader was handed {direct} bytes, more than the backlog bound.");
+        Require(direct == 8_000_000, $"local: a stalled reader lost output ({direct} bytes).");
+        await StalledRelease(new LocalTerminalAdapter(local), workspace);
         await using var app = RemoteServer.Create(root, IPAddress.Loopback, 0, "flow-token", terminals: local);
         await app.StartAsync();
         try
@@ -26,9 +27,9 @@ internal static partial class TerminalHostChecks
                 // The transport's own flow-control windows hold some output on top of the host's backlog.
                 const int flood = 32_000_000;
                 var relayed = await Stalled(remote, workspace, "remote", flood);
-                Require(relayed <= flood / 2, $"remote: a stalled reader was handed {relayed} of {flood} bytes.");
+                Require(relayed == flood, $"remote: a stalled reader lost output ({relayed} of {flood} bytes).");
             }
-            Console.WriteLine("PASS host terminal backpressure: a reader that stops reading holds a bounded backlog, loses only the oldest output, and receives the newest and later output once it reads again, locally and remotely");
+            Console.WriteLine("PASS host terminal backpressure: a reader that stops reading holds a bounded backlog, pauses the producer, and receives every byte and later output once it reads again, locally and remotely");
             await Silence(Address(app), workspace);
         }
         finally { await app.StopAsync(); }
@@ -41,13 +42,13 @@ internal static partial class TerminalHostChecks
         var session = await terminals.AttachAsync(new(id, workspace, "client", 100, 30));
         try
         {
-            await session.WriteAsync(Encoding.UTF8.GetBytes($"head -c {flood} /dev/zero | tr '\\0' x; printf 'FLOOD_%s\\n' DONE\r"));
+            await session.WriteAsync(Encoding.UTF8.GetBytes($"head -c {flood} /dev/zero | tr '\\0' '\\176'; printf 'FLOOD_%s\\n' DONE\r"));
             await Until(async () => await terminals.IsBusyAsync(id), mode + " flood started");
-            // Bounded by PTY throughput on a busy machine, not by the host.
-            for (var deadline = DateTime.UtcNow.AddMinutes(3); await terminals.IsBusyAsync(id); await Task.Delay(100))
-                Require(DateTime.UtcNow < deadline, $"{mode}: the flood did not finish without a reader.");
+            await Task.Delay(1000);
+            Require(await terminals.IsBusyAsync(id), $"{mode}: the producer must pause while its holder is not reading.");
             var text = new StringBuilder();
             long received = 0;
+            var position = session.Position;
             using var limit = new CancellationTokenSource(TimeSpan.FromMinutes(2));
             var reader = session.ReadAsync(limit.Token).GetAsyncEnumerator();
             async Task ReadUntil(string marker)
@@ -55,19 +56,52 @@ internal static partial class TerminalHostChecks
                 while (!text.ToString().Contains(marker, StringComparison.Ordinal))
                 {
                     Require(await reader.MoveNextAsync(), $"{mode}: output ended before {marker}.");
+                    Require(session.Position == position + reader.Current.Length,
+                        $"{mode}: an output batch's position does not match its byte count.");
+                    position = session.Position;
                     var chunk = Encoding.UTF8.GetString(reader.Current.Span);
-                    received += chunk.Count(letter => letter == 'x');
-                    text.Append(chunk.Replace("x", "", StringComparison.Ordinal));
+                    received += chunk.Count(letter => letter == '~');
+                    text.Append(chunk.Replace("~", "", StringComparison.Ordinal));
                 }
             }
             await ReadUntil("FLOOD_DONE");
-            Require(session.Position >= flood, $"{mode}: positions must advance past dropped output, at {session.Position}.");
+            Require(session.Position >= flood, $"{mode}: positions must advance through all output, at {session.Position}.");
             await session.WriteAsync("printf 'AFTER_%s\\n' FLOOD\r"u8.ToArray());
             await ReadUntil("AFTER_FLOOD");
             await reader.DisposeAsync();
             return received;
         }
         finally { await session.DisposeAsync(); await terminals.CloseAsync(id); }
+    }
+
+    private static async Task StalledRelease(ITerminalService terminals, string workspace)
+    {
+        foreach (var action in new[] { "detach", "takeover", "close" })
+        {
+            var id = "stalled-" + action + "-" + Guid.NewGuid().ToString("N");
+            await using var holder = await terminals.AttachAsync(new(id, workspace, "first", 80, 24));
+            try
+            {
+                await holder.WriteAsync("head -c 4000000 /dev/zero | tr '\\0' x; printf 'RELEASE_%s\\n' DONE\r"u8.ToArray());
+                await Until(async () => await terminals.IsBusyAsync(id), "stalled " + action);
+                await Task.Delay(500);
+                if (action == "close") await terminals.CloseAsync(id).AsTask().WaitAsync(TimeSpan.FromSeconds(10));
+                else if (action == "detach")
+                {
+                    await holder.DisposeAsync();
+                    await Until(async () => !await terminals.IsBusyAsync(id), "detaching releases the blocked producer");
+                }
+                else
+                {
+                    await using var taker = await terminals.AttachAsync(new(id, workspace, "second", 80, 24));
+                    await holder.Detached.WaitAsync(TimeSpan.FromSeconds(10));
+                    var screen = new Screen(taker);
+                    await screen.WaitFor("RELEASE_DONE", action);
+                }
+            }
+            finally { await terminals.CloseAsync(id); }
+        }
+        Console.WriteLine("PASS a backpressured holder can detach, be taken over or close without stranding the PTY pump");
     }
 
     private static async Task Silence(Uri address, string workspace)

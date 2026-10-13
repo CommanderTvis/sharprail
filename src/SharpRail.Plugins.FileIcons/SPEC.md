@@ -25,7 +25,7 @@ changes. Missing or malformed assets retain the core plain file glyph. No folder
 
 ## Verification
 
-`--file-icons` covers lookup precedence, output asset serving and traversal protection, local/gRPC
+`--file-icons` covers lookup precedence, output asset serving and traversal protection, local/WebSocket RPC
 tree/tab/Changes glyphs, rendered primary/45%-opacity secondary fills, theme changes, resize retention
 and disable/re-enable. Missing and malformed SVGs preserve fallback. Generated assets and table match
 fork; contract publishing includes

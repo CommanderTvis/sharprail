@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 
+using SharpRail.Host.Client;
 
 namespace SharpRail.UI.Panels;
 
@@ -52,7 +53,7 @@ public static class Dialogs
             catch (OperationCanceledException) { window.Close(null); }
             catch (Exception failure)
             {
-                error.Text = failure is Grpc.Core.RpcException rpc ? rpc.Status.Detail : failure.Message;
+                error.Text = failure.Message;
                 error.IsVisible = true;
                 busy = false; Refresh();
             }
@@ -306,7 +307,7 @@ public static class Dialogs
             try { window.Close(await clone(input.Url, input.Parent, input.Folder, input.Depth)); }
             catch (Exception failure) when (failure is not OperationCanceledException)
             {
-                error.Text = failure is Grpc.Core.RpcException rpc ? rpc.Status.Detail : failure.Message;
+                error.Text = failure.Message;
                 error.IsVisible = true;
                 busy = false; Refresh();
             }

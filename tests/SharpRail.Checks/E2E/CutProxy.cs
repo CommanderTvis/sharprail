@@ -4,7 +4,7 @@ using System.Net.Sockets;
 namespace SharpRail.Checks.E2E;
 
 /// <summary>
-/// A loopback TCP relay in front of a gRPC host that can drop one client's connections and refuse
+/// A loopback TCP relay in front of a WebSocket RPC host that can drop one client's connections and refuse
 /// reconnects until allowed, standing in for the reference's routed WebSocket.
 /// </summary>
 internal sealed class CutProxy : IDisposable

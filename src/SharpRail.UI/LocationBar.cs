@@ -153,7 +153,7 @@ public sealed partial class WorkbenchWindow
         menu.Items.Add(new Separator());
         var create = Ui.Menu("New workspace", () => _ = CreateWorkspaceDialogAsync(), git.IsRepository);
         create.Name = "ScopeWorkspaceNew"; create.Icon = Ui.Icon("add", null, 14);
-        create.InputGesture = new KeyGesture(Key.N, OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control);
+        create.InputGesture = new KeyGesture(Key.N, CommandKeys.Modifier);
         menu.Items.Add(create);
     }
 

@@ -6,7 +6,7 @@ Upstream: packages/server/src/mcp/SPEC.md @ b047c8f2 (CommanderTvis fork)
 
 ## Responsibility
 
-Serves the host over the wire: a Kestrel HTTP/2 server exposing the Protocol
+Serves the host over the wire: a Kestrel HTTP/1.1 WebSockets server exposing the Protocol
 services as thin RPC adapters that delegate to Core, plus token authentication
 for every connection. It is both a standalone executable (`Program.cs`, a
 remote host on another machine) and an embeddable library (`RemoteServer`),
@@ -31,7 +31,7 @@ used by remote deployments, the app's optional runtime listener and transport in
   Embedded listeners resolve configuration from the executable directory without file reload watchers;
   the current workspace's appsettings files do not configure or delay serving.
 - Allowed deps: Core, Protocol, Abstractions, ASP.NET Core/Kestrel,
-  protobuf-net.Grpc.AspNetCore.
+  protobuf-net.
 - Forbidden: the UI or Avalonia; product behavior in the adapters. An RPC
   method maps DTOs to and from Core calls and translates expected failures to
   status codes, nothing more; behavior lives in Core so local and remote paths
@@ -100,7 +100,7 @@ unauthenticated peer learns nothing about the host's version.
   a restarted host runs a replay afresh. A call without the metadata behaves as before.
 - State watch streams end on application stopping, so graceful shutdown never
   waits for watchers. Changes are broadcast to every subscriber as full snapshots.
-- An embedded app can start and stop authenticated HTTP/2 serving while it runs. Remote clients
+- An embedded app can start and stop authenticated WebSocket serving while it runs. Remote clients
   share its live state, plugins and terminal service; the app keeps its direct adapters and project
   sessions. Stopping serving cancels remote state, file, plugin and terminal streams, detaches
   remote terminal attachments, and leaves shells and local calls alive. The app stops serving
@@ -114,7 +114,7 @@ unauthenticated peer learns nothing about the host's version.
   Output goes to the client that holds the session and to every watching call; another plain attach takes
   the session over and the previous holder's call ends with a detached frame. A watching call reports the
   holder's grid with every frame, and its data, resize and kill messages change nothing.
-- Request bodies and gRPC messages are capped from `FileLimits`, sized for the
+- Request bodies and WebSocket RPC messages are capped from `FileLimits`, sized for the
   largest save.
 
 ## Plugins
@@ -166,8 +166,7 @@ Git metadata invalidation and rescan requests. They end on client cancellation o
 
 ## Not yet ported
 
-- Serving a static client or host HTTP endpoints (worktree files for relative
-  Markdown images).
+- Host HTTP endpoints for worktree files used by relative Markdown images.
 - A bounded, idempotent shutdown that settles work and disposes sockets, PTYs and
   watchers, awaited by every launcher, with SIGINT/SIGTERM handling and crash
   logging.
@@ -180,8 +179,20 @@ The optional [Tailscale plugin](../SharpRail.Plugins.Tailscale/SPEC.md) supplies
 validation through its injected serving bridge. The listener accepts those tokens alongside its configured
 master token, rejects revoked tokens, and aborts existing calls within one second of revocation. Embedded
 serving can start on the Tailscale address after approval; standalone serving retains its configured bind
-and port. The plugin owns bootstrap and peer identity; Remote owns gRPC listener lifetime and authentication.
+and port. The plugin owns bootstrap and peer identity; Remote owns WebSocket RPC listener lifetime and authentication.
 
 Prompt attachments use `SavePromptImageAsync`: bounded PNG bytes are saved under the host state's
 clipboard directory, returning an absolute host path. Local calls run off the dispatcher; remote calls
 carry the bytes and return the same host path, never a client-local file path.
+
+
+
+
+## Remote transports and browser assets
+
+The normal host endpoint accepts WebSocket RPC at `/rpc` for desktop, Android and browser clients.
+`WebSocketRpc` authenticates each call's bearer metadata and dispatches the generated method table
+directly into the existing RPC adapters. Paired Tailscale credentials are rechecked while calls run.
+Tokens never travel in URLs. The desktop listener's endpoint and token work for every client.
+The standalone host can serve public browser assets from `SHARPRAIL_BROWSER_ROOT` on the same port,
+with COOP/COEP isolation headers. `SHARPRAIL_PORT` configures that single endpoint.

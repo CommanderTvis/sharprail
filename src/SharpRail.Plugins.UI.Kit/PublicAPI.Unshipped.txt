@@ -470,3 +470,6 @@ SharpRail.Plugins.UI.Kit.Editor.SyntaxLine.<Clone>$() -> SharpRail.Plugins.UI.Ki
 SharpRail.Plugins.UI.Kit.Editor.SyntaxLine.Deconstruct(out int PrefixLength, out bool Old, out bool New, out bool Reset) -> void
 SharpRail.Plugins.UI.Kit.Editor.SyntaxLine.SyntaxLine(int PrefixLength, bool Old, bool New, bool Reset = false) -> void
 SharpRail.Plugins.UI.Kit.Editor.EditorFrame.Highlight(string! path, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.UI.Kit.Editor.SyntaxLine!>? lines = null, System.Collections.Generic.IReadOnlyList<int>? lineStyles = null) -> void
+static SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.PlatformRender.set -> void
+static SharpRail.Plugins.UI.Kit.CommandKeys.Modifier.get -> Avalonia.Input.KeyModifiers
+static SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.RenderAsync(string! source, string! options, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result!>!

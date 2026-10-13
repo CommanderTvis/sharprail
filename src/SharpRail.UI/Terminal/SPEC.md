@@ -115,7 +115,7 @@ the requested close. Desktop terminals retain their foreground-process confirmat
   disposal are serialized. The host still owns the shell and replay, exit and takeover semantics.
 - Remote Metal texture tabs run the SharpRail executable in relay mode as their child. The relay reads endpoint,
   token, session and client from a private one-use file named by `SHARPRAIL_TERMINAL_RELAY`, puts its
-  terminal in raw mode, attaches over authenticated gRPC streaming, forwards window-size changes and reports
+  terminal in raw mode, attaches over authenticated WebSocket RPC streaming, forwards window-size changes and reports
   the real exit code or a takeover through a status file, because Ghostty's login wrapper does not
   propagate the child's exit code. Remote tabs reach the remote host. A lost connection reconnects for up to 30
   seconds; input typed before the loss is noticed can be lost, as with ssh.
@@ -217,9 +217,12 @@ when only the cursor moves. Theme, font, geometry, selection and preedit changes
 must invalidate affected rows. Cached native text blobs batch compatible ASCII
 cells while preserving the grid and existing complex-grapheme behavior. Queued
 draw operations retain row resources until released.
-The Skia adapter awaits bounded output dispatches (up to 8 KiB, with a 2 ms
-cooperative budget checked every 1 KiB); replay follows the same path. Exit is
-reported only after output drains, and disposal cancels pending dispatches.
+The Skia adapter reads live output independently into a bounded queue (128 pieces of at most
+8 KiB) and drains available pieces in one UI dispatch, up to 256 KiB or a cooperative 2 ms
+budget. Invalidations within that dispatch coalesce; small transport packets do not each wait
+for a separate redraw. Holder grid changes remain ordered with watched output and apply before
+parsing its bytes. Replay yields after 8 KiB or 2 ms, checked every 1 KiB. Exit is reported only
+after output drains; disposal cancels both the reader and pending dispatches. No bytes are dropped.
 This bounds UI work; the host bounds its own queues (see
 [Terminals.SPEC.md](../../SharpRail.Host.Core/Terminals.SPEC.md#backpressure)). VT state stays UI-thread-owned.
 Design provenance and Royal Apps MIT attribution are in
@@ -288,5 +291,9 @@ existence and the current directory. HTTP(S) links retain their browser action. 
 exposes resolver/navigation callbacks and has no host or application dependency.
 
 `--terminal-links` exercises parser boundaries, positions, existing/missing targets, working-directory
-changes through direct and gRPC adapters, and Skia wrapped-path hover and click. `--native-file-links` verifies Metal Unicode and wrapped-line detection, modifier-click coordinates,
+changes through direct and WebSocket RPC adapters, and Skia wrapped-path hover and click. `--native-file-links` verifies Metal Unicode and wrapped-line detection, modifier-click coordinates,
 stale-link clearing and retained web-link hover.
+
+Browser composition defaults to restty; see [Browser](../../SharpRail.Browser/SPEC.md).
+Its initialization fallback uses the shared Skia backend over remote adapters and WASM libghostty-vt.
+In that fallback, pasted PNG images are uploaded to the host terminal service, and only the returned host path is typed.

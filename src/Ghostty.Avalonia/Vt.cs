@@ -56,9 +56,9 @@ internal sealed unsafe class Vt : IDisposable
         self = GCHandle.Alloc(this);
         try
         {
-            handle = gav_vt_new((ushort)columns, (ushort)rows, (nuint)scrollback, &OnWrite, GCHandle.ToIntPtr(self));
+            handle = gav_vt_new((ushort)columns, (ushort)rows, (nuint)scrollback, (nint)(delegate* unmanaged<nint, byte*, nuint, void>)&OnWrite, GCHandle.ToIntPtr(self));
             if (handle == 0) throw new InvalidOperationException("libghostty-vt could not create a terminal.");
-            if (copy is not null) gav_vt_set_clipboard_write(handle, &OnCopy);
+            if (copy is not null) gav_vt_set_clipboard_write(handle, (nint)(delegate* unmanaged<nint, byte*, nuint, void>)&OnCopy);
         }
         catch
         {
@@ -128,16 +128,17 @@ internal sealed unsafe class Vt : IDisposable
         fixed (byte* output = scratch) return scratch.AsSpan(0, (int)gav_vt_focus(handle, gained, output, (nuint)scratch.Length));
     }
 
-    internal string SelectionText() => Text(&gav_vt_selection_text);
-    internal string ScreenText() => Text(&gav_vt_screen_text);
+    internal string SelectionText() => Text(true);
+    internal string ScreenText() => Text(false);
 
-    private string Text(delegate*<nint, byte*, nuint, nuint> read)
+    private string Text(bool selection)
     {
-        var length = (int)read(handle, null, 0);
+        var length = (int)Read(null, 0);
         if (length == 0) return "";
         var buffer = new byte[length];
-        fixed (byte* output = buffer) length = (int)read(handle, output, (nuint)buffer.Length);
+        fixed (byte* output = buffer) length = (int)Read(output, (nuint)buffer.Length);
         return Encoding.UTF8.GetString(buffer, 0, Math.Min(length, buffer.Length));
+        nuint Read(byte* output, nuint capacity) => selection ? gav_vt_selection_text(handle, output, capacity) : gav_vt_screen_text(handle, output, capacity);
     }
 
     public void Dispose()
@@ -173,9 +174,9 @@ internal sealed unsafe class Vt : IDisposable
         (modifiers.HasFlag(KeyModifiers.Shift) ? 1 : 0) | (modifiers.HasFlag(KeyModifiers.Control) ? 2 : 0) |
         (modifiers.HasFlag(KeyModifiers.Alt) ? 4 : 0) | (modifiers.HasFlag(KeyModifiers.Meta) ? 8 : 0));
 
-    [DllImport(Library)] private static extern nint gav_vt_new(ushort columns, ushort rows, nuint scrollback, delegate* unmanaged<nint, byte*, nuint, void> write, nint context);
+    [DllImport(Library)] private static extern nint gav_vt_new(ushort columns, ushort rows, nuint scrollback, nint write, nint context);
     [DllImport(Library)] private static extern void gav_vt_free(nint vt);
-    [DllImport(Library)] private static extern void gav_vt_set_clipboard_write(nint vt, delegate* unmanaged<nint, byte*, nuint, void> copy);
+    [DllImport(Library)] private static extern void gav_vt_set_clipboard_write(nint vt, nint copy);
     [DllImport(Library)] private static extern void gav_vt_write(nint vt, byte* data, nuint length);
     [DllImport(Library)] private static extern void gav_vt_resize(nint vt, ushort columns, ushort rows, uint cellWidth, uint cellHeight);
     [DllImport(Library)] private static extern void gav_vt_set_colors(nint vt, uint* colors);

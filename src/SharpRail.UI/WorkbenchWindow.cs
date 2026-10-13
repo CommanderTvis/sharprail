@@ -139,7 +139,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             { _ = SearchWorkspaceAsync(); e.Handled = true; }
             else if (command && e.Key == Key.N) { _ = CreateWorkspaceDialogAsync(); e.Handled = true; }
             // Preferences' own chord on macOS; other platforms have no such convention to honour.
-            else if (OperatingSystem.IsMacOS() && e.KeyModifiers == KeyModifiers.Meta && e.Key == Key.OemComma) { ShowSettings(); e.Handled = true; }
+            else if (CommandKeys.Modifier == KeyModifiers.Meta && e.KeyModifiers == KeyModifiers.Meta && e.Key == Key.OemComma) { ShowSettings(); e.Handled = true; }
             else if (command && e.Key == Key.J && e.KeyModifiers.HasFlag(KeyModifiers.Shift))
             { Layout.Visible("bottom", !Layout.State.BottomVisible); e.Handled = true; }
             else if (command && e.Key == Key.B)
@@ -238,7 +238,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         menu.Items.Add(new Separator());
         var window = Ui.Menu("New window", () => NewWindow(), workbench.CanOpenWindows);
         window.Name = "NewWindow";
-        window.InputGesture = new KeyGesture(Key.N, (OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control) | KeyModifiers.Shift);
+        window.InputGesture = new KeyGesture(Key.N, CommandKeys.Modifier | KeyModifiers.Shift);
         menu.Items.Add(window);
     }
 
@@ -629,7 +629,12 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         var scrim = new Border { Background = Ui.Overlay };
         Grid.SetRowSpan(scrim, 4);
         root.Children.Add(scrim);
+#if BROWSER
+        var undimNative = Browser.BrowserWindows.Instance.Dim(this, Ui.Overlay.Color);
+        return () => { root.Children.Remove(scrim); undimNative(); };
+#else
         return () => root.Children.Remove(scrim);
+#endif
     }
 
     private string settingsSection = "Appearance";

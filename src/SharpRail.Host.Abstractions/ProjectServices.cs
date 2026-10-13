@@ -6,7 +6,7 @@ public static class FileLimits
     public const int EditableBytes = 64 * 1024 * 1024;
     // Markdown and image previews render the whole document at once.
     public const int PreviewBytes = 8 * 1024 * 1024;
-    // gRPC carries a read as one message and a save as original plus new text.
+    // WebSocket RPC carries a read as one message and a save as original plus new text.
     public const int ReadMessageBytes = EditableBytes + 16 * 1024 * 1024;
     public const int SaveMessageBytes = 2 * EditableBytes + 16 * 1024 * 1024;
 }
@@ -109,8 +109,12 @@ public record GitAction(string Kind, string Path = "", string Branch = "", strin
 /// <summary>A change to one workspace path: create-file, create-folder, rename (to <see cref="To"/>), trash or reveal.</summary>
 public record FileAction(string Kind, string Path, string To = "");
 
+public sealed record GitHubAuthentication(bool Connected, string Detail);
+
 public partial interface IProjectServices
 {
+    /// <summary>The host's gh authentication status; no credentials leave the host.</summary>
+    ValueTask<GitHubAuthentication> GetGitHubAuthenticationAsync(CancellationToken cancellationToken = default) => ValueTask.FromResult(new GitHubAuthentication(false, "This host does not report GitHub authentication."));
     ValueTask<WorkspaceInfo> OpenProjectAsync(string path, CancellationToken cancellationToken = default);
     ValueTask<IReadOnlyList<ProjectFile>> ListFilesAsync(string relativePath, CancellationToken cancellationToken = default);
     /// <summary>Watches the currently opened workspace, captured for this subscription. The first empty batch confirms that watching has started.</summary>

@@ -1,6 +1,4 @@
 using ProtoBuf;
-using ProtoBuf.Grpc;
-using ProtoBuf.Grpc.Configuration;
 
 namespace SharpRail.Host.Protocol;
 
@@ -135,7 +133,6 @@ public sealed class HandshakeReply
     [ProtoMember(2)] public string HostVersion { get; set; } = "";
 }
 
-[Service]
 public interface IStateRpc
 {
     ValueTask<HandshakeReply> HandshakeAsync(HandshakeRequest request, CallContext context = default);

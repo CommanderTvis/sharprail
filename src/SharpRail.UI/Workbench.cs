@@ -75,7 +75,7 @@ public sealed class Workbench : IDisposable
     public Action? ChangeHost { get; init; }
     /// <summary>Centre tabs always live in Projects, under their workspace, whatever the tab layout preferences say.</summary>
     public bool TabsInProjects { get; init; }
-#if !ANDROID
+#if !ANDROID && !BROWSER
     /// <summary>Optional serving for this app's embedded host, shared by every window.</summary>
     public Host.Remote.HostListener? Listener { get; init; }
 #endif

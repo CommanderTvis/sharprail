@@ -59,7 +59,7 @@ internal static class NativeTerminalChecks
                     await CheckLocalSessions(fixture);
                     Console.WriteLine("PASS native local terminal sessions: Ghostty relay to the app's host PTY with input latency, resize, reattach after its window closes, and the real exit status");
                     await CheckRemote(fixture);
-                    Console.WriteLine("PASS native remote terminal: Ghostty relay to an authenticated gRPC host PTY with I/O, worktree root, resize, busy foreground and exit status");
+                    Console.WriteLine("PASS native remote terminal: Ghostty relay to an authenticated WebSocket RPC host PTY with I/O, worktree root, resize, busy foreground and exit status");
                     desktop.Shutdown(0);
                 }
                 catch (Exception error)
@@ -284,7 +284,7 @@ internal static class NativeTerminalChecks
         finally { second.Close(); }
     }
 
-    // A remote workspace's Ghostty tab runs this executable's relay against a real gRPC host PTY.
+    // A remote workspace's Ghostty tab runs this executable's relay against a real WebSocket RPC host PTY.
     private static async Task CheckRemote(string fixture)
     {
         const string token = "native-remote-token";

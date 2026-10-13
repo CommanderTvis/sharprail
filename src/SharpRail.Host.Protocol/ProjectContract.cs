@@ -1,6 +1,4 @@
 using ProtoBuf;
-using ProtoBuf.Grpc;
-using ProtoBuf.Grpc.Configuration;
 
 namespace SharpRail.Host.Protocol;
 
@@ -217,7 +215,6 @@ public sealed class WorkspaceFileChangesReply
     [ProtoMember(3)] public bool Rescan { get; set; }
 }
 
-[Service]
 public partial interface IProjectRpc
 {
     ValueTask<DocumentReply> SavePromptImageAsync(PromptImageRequest request, CallContext context = default);

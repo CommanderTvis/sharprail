@@ -97,7 +97,7 @@ internal static class SpecChecks
         Require(!await new ProjectServices(Path.Combine(root, "spec-absent")).HasDurableSpecsAsync(), "An unreadable project has no durable specs rather than an error.");
         try { await new ProjectServices(Path.Combine(root, "spec-absent")).ListSpecsAsync(); throw new InvalidOperationException("A missing workspace listed specs."); }
         catch (DirectoryNotFoundException) { }
-        Console.WriteLine("PASS spec catalog: deterministic traversal, tolerant frontmatter, full graph and validation, incremental index and durable-spec query, equal over gRPC");
+        Console.WriteLine("PASS spec catalog: deterministic traversal, tolerant frontmatter, full graph and validation, incremental index and durable-spec query, equal over WebSocket RPC");
 
         using (var git = new E2E.IsolatedGit(Path.Combine(root, "spec-git")))
         {

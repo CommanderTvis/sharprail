@@ -6,6 +6,7 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Platform.Storage;
 
+using SharpRail.Host.Client;
 using SharpRail.UI.Rendering;
 
 namespace SharpRail.UI.Resources;
@@ -76,7 +77,7 @@ internal static partial class ResourceCards
                     await using var target = await file.OpenWriteAsync();
                     await target.WriteAsync(await bytes.Load(CancellationToken.None));
                 }
-                catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidOperationException or Grpc.Core.RpcException)
+                catch (Exception error) when (error is IOException or UnauthorizedAccessException or InvalidOperationException || RemoteErrors.IsTransport(error))
                 {
                     status.Text = "Could not save: " + error.Message; status.Foreground = Ui.Danger; status.IsVisible = true;
                 }

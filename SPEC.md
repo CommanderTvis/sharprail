@@ -20,7 +20,7 @@ the target and HEAD, including staged, unstaged and untracked files. Snapshot
 counts and opened diffs must use the same baseline; target-only commits must not
 appear as local deletions. Unrelated histories fall back to the resolved target,
 while invalid refs and failures resolving the comparison remain errors. Verify local and
-gRPC parity using disposable clones of existing commits; no new commits or
+WebSocket RPC parity using disposable clones of existing commits; no new commits or
 benchmark runs are needed for these regression fixtures.
 
 A genuine plain folder may report that it is not a Git repository. Corrupt Git
@@ -45,7 +45,7 @@ switching scopes preserves the target and switching worktrees restores selection
 Workspace Git target, scope and selected commit persist in the global profile.
 Commit catalogs are reloaded from Git rather than persisted as stale derived data.
 The host exposes commit listing independently of working-tree snapshots. Restoring
-a commit selection must use that lightweight call, with direct local and gRPC
+a commit selection must use that lightweight call, with direct local and WebSocket RPC
 parity, cancellation and the same capped range and sanitized metadata. Index
 failures must not prevent listing otherwise accessible commits.
 Profiles without query state retain the default scope; malformed saved selections
@@ -88,7 +88,7 @@ same direct service. Shells remain ordinary host-owned child processes.
 A remote Metal texture tab runs the SharpRail executable in `--terminal-relay`
 mode as its child: the relay reads the endpoint, token, session and client from a
 private one-use file named by an environment variable (never argv), puts its
-terminal in raw mode, attaches over authenticated code-first gRPC streaming and
+terminal in raw mode, attaches over authenticated code-first WebSocket RPC streaming and
 forwards SIGWINCH resizes to the remote host. The
 relay reports the real exit code through a status file.
 
@@ -312,9 +312,15 @@ Application state lives in `~/.sharprail`, independent of the opened project.
 
 ## Windows and shared host state
 
+The browser client has parity with the desktop remote workbench: the same projects and workspaces,
+docking, source editing, previews, Git and Review, terminal sharing, agent integrations, settings and
+compatible plugin UI. It runs only as a client of a host. Native terminal/editor dependencies compile
+to WASM; browser platform services adapt window presentation, clipboard, notifications and local view
+state. Its contract and acceptance gates are in `src/SharpRail.Browser/SPEC.md`.
+
 Multi-client means the windows of one app process plus the clients of one remote
 host. There is no daemon; separately launched local processes stay independent.
-An app with an embedded host can start serving authenticated gRPC immediately from Settings → Host,
+An app with an embedded host can start serving authenticated WebSocket RPC immediately from Settings → Host,
 and stop or restart serving without restarting the app. It shares its existing host services with
 remote clients while every local window retains direct in-process adapters, controls and shells.
 Serving starts off, defaults to loopback, and has an explicit bind address, port and session token.
@@ -330,7 +336,7 @@ and applies when its broadcast arrives, so every window and client converges on
 the same snapshot; a control keeps showing the host's value until then. Snapshots
 are complete: a client receives the current one on subscribe and again after a
 reconnect, so it rehydrates whatever it missed. Local clients receive in-process
-events; remote clients use a code-first gRPC server stream and resubscribe after
+events; remote clients use a code-first WebSocket RPC server stream and resubscribe after
 a dropped transport. Closing a project elsewhere moves a window on to the next
 project's Home or the Welcome; removing the workspace a window shows returns it to
 Project Home with a notice; creation and renames update every rail. An inline

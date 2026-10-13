@@ -47,13 +47,17 @@ public sealed partial class SettingsWindow : Window
     {
         this.section = section;
         this.window = window; profile = window.Workbench.Profile; state = window.Workbench.State; layout = window.Layout; this.apply = apply;
-        this.gitHub = gitHub ?? GitHubProbe.CheckAsync;
+        this.gitHub = gitHub ?? (async ct =>
+        {
+            var status = await window.Host.GetGitHubAuthenticationAsync(ct);
+            return new(status.Connected, status.Detail);
+        });
         Closed += (_, _) =>
         {
             lifetime.Cancel(); Ui.ThemeChanged -= SystemThemeChanged; state.Changed -= SharedChanged;
             window.Workbench.PluginRegistry.Changed -= PluginsChanged;
             SharpRail.Plugins.UI.Kit.Editor.CustomHighlighting.Changed -= HighlightingChanged;
-#if !ANDROID
+#if !ANDROID && !BROWSER
             if (window.Workbench.Listener is { } listener) listener.Changed -= ListenerChanged;
 #endif
         };
@@ -77,7 +81,7 @@ public sealed partial class SettingsWindow : Window
             Navigation(this.FindControl<Button>("Settings_" + item.Item1.Replace(' ', '_'))!, item.Item1, Ui.Row(item.Item2, item.Item1));
         SyncPluginSections();
         window.Workbench.PluginRegistry.Changed += PluginsChanged;
-#if !ANDROID
+#if !ANDROID && !BROWSER
         if (window.Workbench.Listener is { } listener) listener.Changed += ListenerChanged;
 #endif
         var frame = this.FindControl<Border>("SettingsFrame")!;
@@ -172,7 +176,7 @@ public sealed partial class SettingsWindow : Window
         ["Line width"] = "Code and Markdown columns",
         ["Layout"] = "Presets, panes, file previews",
         ["Projects"] = "Recent projects",
-        ["Terminal"] = OperatingSystem.IsAndroid() ? "Replayed output" : "Renderer, replayed output",
+        ["Terminal"] = OperatingSystem.IsAndroid() || OperatingSystem.IsBrowser() ? "Replayed output" : "Renderer, replayed output",
         ["Notifications"] = "When an agent needs you",
         ["Host"] = "The host this app works with",
         ["GitHub"] = "Command-line sign-in",
@@ -719,7 +723,7 @@ public sealed partial class SettingsWindow : Window
     {
         var panel = Page("TerminalPage");
         // Android terminals are always drawn by Skia, so there is nothing to choose.
-        PageControl<StackPanel>(panel, "TerminalRendererSection").IsVisible = !OperatingSystem.IsAndroid();
+        PageControl<StackPanel>(panel, "TerminalRendererSection").IsVisible = !OperatingSystem.IsAndroid() && !OperatingSystem.IsBrowser();
         var choices = PageControl<StackPanel>(panel, "TerminalRendererChoices");
         foreach (var (renderer, label, description) in new[]
         {

@@ -49,10 +49,13 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
     // screen of every session is saved when the service is disposed, and a tab attached again after a restart
     // starts a new shell showing it. replayBytes is read when a shell starts and sizes its replay snapshot; none
     // means the default 64 KiB.
+    private readonly string clipboardDirectory;
+
     public PtyTerminalService(string? shell = null, string? recordingsDirectory = null, Func<int>? replayBytes = null)
     {
         Posix.EnsureSupported();
         this.shell = shell; this.replayBytes = replayBytes;
+        clipboardDirectory = recordingsDirectory is null ? Path.Combine(Path.GetTempPath(), "sharprail-clipboard", Guid.NewGuid().ToString("N")) : Path.Combine(Path.GetDirectoryName(Path.GetFullPath(recordingsDirectory))!, "clipboard");
         catalog = new TerminalCatalogStore(recordingsDirectory);
         if (recordingsDirectory is null) return;
         store = new TerminalRecordingStore(recordingsDirectory);
@@ -62,6 +65,29 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         foreach (var (id, bytes) in store.LoadAll())
             if (catalogued?.Contains(id) == false) store.Delete(id);
             else pending[id] = bytes;
+    }
+
+    public async ValueTask<string> SaveClipboardImageAsync(string sessionId, ReadOnlyMemory<byte> png, CancellationToken cancellationToken = default)
+    {
+        lock (gate) if (!sessions.ContainsKey(sessionId)) throw new IOException("The terminal session is no longer attached.");
+        if (png.Length is < 8 or > 16 * 1024 * 1024 || !png.Span[..8].SequenceEqual(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }))
+            throw new ArgumentException("A clipboard image must be a PNG smaller than 16 MiB.", nameof(png));
+        Directory.CreateDirectory(clipboardDirectory);
+        if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(clipboardDirectory, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+        var path = Path.Combine(clipboardDirectory, Guid.NewGuid().ToString("N") + ".png");
+        try
+        {
+            var options = new FileStreamOptions { Mode = FileMode.CreateNew, Access = FileAccess.Write, Share = FileShare.None, Options = FileOptions.Asynchronous };
+            if (!OperatingSystem.IsWindows()) options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+            await using var file = new FileStream(path, options);
+            await file.WriteAsync(png, cancellationToken);
+        }
+        catch
+        {
+            File.Delete(path);
+            throw;
+        }
+        return path;
     }
 
     public TerminalCatalog Catalog => catalog.Current;
@@ -181,7 +207,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
             if (tokens.Remove(sessionId, out var token)) owners.TryRemove(token, out _);
         }
         store?.Delete(sessionId);
-        if (terminal is not null) await terminal.Process.DisposeAsync();
+        if (terminal is not null) await terminal.DisposeAsync();
         SessionClosed?.Invoke(sessionId, closed);
     }
 
@@ -300,7 +326,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
                 foreach (var (id, terminal) in all) store.Save(id, terminal.Recording());
             }
         }
-        foreach (var (_, terminal) in all) await terminal.Process.DisposeAsync();
+        foreach (var (_, terminal) in all) await terminal.DisposeAsync();
     }
 
     // The native reason, the executable path and the value of SHELL stay on the host: a client is told only

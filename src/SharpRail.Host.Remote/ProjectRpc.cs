@@ -1,7 +1,3 @@
-using Grpc.Core;
-
-using ProtoBuf.Grpc;
-
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Protocol;
 
@@ -224,7 +220,7 @@ public sealed partial class ProjectRpc(ProjectSessions sessions, IHostApplicatio
     { Sha = commit.Sha, ShortSha = commit.ShortSha, Subject = commit.Subject, Author = commit.Author, CommittedAt = commit.CommittedAt };
 
     private IProjectServices Host(CallContext context) =>
-        sessions.For(context.ServerCallContext?.RequestHeaders.GetValueBytes(ProjectHeaders.Root) is { } root ? System.Text.Encoding.UTF8.GetString(root) : null);
+        sessions.For(context.RequestHeaders?.GetValueBytes(ProjectHeaders.Root) is { } root ? System.Text.Encoding.UTF8.GetString(root) : null);
 
     /// <summary>A mutation: its workspace is resolved from the call, then it runs once per request id however often the client replays it.</summary>
     private ValueTask<T> Replayed<TRequest, T>(CallContext context, TRequest request, Func<IProjectServices, CancellationToken, Task<T>> action) where T : class

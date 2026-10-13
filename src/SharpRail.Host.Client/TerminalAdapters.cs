@@ -2,20 +2,19 @@ using System.Net.Sockets;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
 
-using Grpc.Core;
-using Grpc.Core.Interceptors;
-using Grpc.Net.Client;
-
-using ProtoBuf.Grpc;
-using ProtoBuf.Grpc.Client;
-
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Protocol;
 
 namespace SharpRail.Host.Client;
 
+public interface ITerminalRpcInterceptor
+{
+    ITerminalRpc Wrap(ITerminalRpc service);
+}
+
 public sealed class LocalTerminalAdapter(ITerminalService host) : ITerminalService
 {
+    public ValueTask<string> SaveClipboardImageAsync(string sessionId, ReadOnlyMemory<byte> png, CancellationToken cancellationToken = default) => host.SaveClipboardImageAsync(sessionId, png, cancellationToken);
     public ValueTask<ITerminalSession> AttachAsync(TerminalAttachRequest request, CancellationToken cancellationToken = default) => host.AttachAsync(request, cancellationToken);
     public ValueTask<bool> IsBusyAsync(string sessionId, CancellationToken cancellationToken = default) => host.IsBusyAsync(sessionId, cancellationToken);
     public ValueTask<IReadOnlyList<TerminalFileLink>> FindFileLinksAsync(string sessionId, string text, CancellationToken cancellationToken = default)
@@ -23,49 +22,23 @@ public sealed class LocalTerminalAdapter(ITerminalService host) : ITerminalServi
     public ValueTask CloseAsync(string sessionId, CancellationToken cancellationToken = default) => host.CloseAsync(sessionId, cancellationToken);
 }
 
-// Terminal sessions on a gRPC host. A session survives a lost connection: it reconnects and resumes from the
+// Terminal sessions on a WebSocket RPC host. A session survives a lost connection: it reconnects and resumes from the
 // last output it read, so nothing is shown twice and final output still precedes the exit status.
 public sealed class RemoteTerminalAdapter : ITerminalService, IDisposable
 {
-    private readonly GrpcChannel channel;
+    private readonly RpcChannel channel;
     private readonly string token;
 
     // A unix: address names a Unix domain socket, such as the app's own terminal relay endpoint. A TCP
     // connection is pinged while it carries a terminal, so one that died silently (a slept machine, a dropped
     // route) fails within keepAlive plus its timeout and its sessions reconnect and resume.
-    public RemoteTerminalAdapter(Uri address, string token, Interceptor? interceptor = null, TimeSpan? keepAlive = null)
+    public RemoteTerminalAdapter(Uri address, string token, ITerminalRpcInterceptor? interceptor = null, TimeSpan? keepAlive = null)
     {
         if (string.IsNullOrWhiteSpace(token)) throw new ArgumentException("A host session token is required.", nameof(token));
         this.token = token;
-        channel = address.Scheme == "unix"
-            ? GrpcChannel.ForAddress("http://localhost", new GrpcChannelOptions
-            {
-                HttpHandler = new SocketsHttpHandler
-                {
-                    ConnectCallback = async (_, cancellationToken) =>
-                    {
-                        var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.Unspecified);
-                        try
-                        {
-                            await socket.ConnectAsync(new UnixDomainSocketEndPoint(Uri.UnescapeDataString(address.AbsolutePath)), cancellationToken);
-                            return new NetworkStream(socket, ownsSocket: true);
-                        }
-                        catch { socket.Dispose(); throw; }
-                    }
-                }
-            })
-            : GrpcChannel.ForAddress(address, new GrpcChannelOptions
-            {
-                HttpHandler = new SocketsHttpHandler
-                {
-                    EnableMultipleHttp2Connections = true,
-                    KeepAlivePingDelay = keepAlive ?? TimeSpan.FromSeconds(15),
-                    KeepAlivePingTimeout = keepAlive ?? TimeSpan.FromSeconds(10),
-                    KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests
-                }
-            });
-        var invoker = interceptor is null ? channel.CreateCallInvoker() : channel.Intercept(interceptor);
-        Service = invoker.CreateGrpcService<ITerminalRpc>();
+        channel = new RpcChannel(address, keepAlive: keepAlive);
+        var service = channel.CreateService<ITerminalRpc>();
+        Service = interceptor is null ? service : interceptor.Wrap(service);
     }
 
     internal ITerminalRpc Service { get; }
@@ -98,6 +71,9 @@ public sealed class RemoteTerminalAdapter : ITerminalService, IDisposable
 
     public async ValueTask CloseAsync(string sessionId, CancellationToken cancellationToken = default)
         => await Service.CloseAsync(new() { SessionId = sessionId }, Options(cancellationToken));
+
+    public async ValueTask<string> SaveClipboardImageAsync(string sessionId, ReadOnlyMemory<byte> png, CancellationToken cancellationToken = default)
+        => (await Service.SaveClipboardImageAsync(new() { SessionId = sessionId, Png = png.ToArray() }, Options(cancellationToken))).Text;
 
     private CallContext Options(CancellationToken cancellationToken) => new(new CallOptions(Headers, DateTime.UtcNow.AddSeconds(15), cancellationToken));
 

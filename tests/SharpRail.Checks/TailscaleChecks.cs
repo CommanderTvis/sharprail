@@ -6,13 +6,12 @@ using System.Text.Json;
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 
-using Grpc.Core;
-
 using SharpRail.Checks.E2E;
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
 using SharpRail.Host.Core;
 using SharpRail.Host.Core.Plugins;
+using SharpRail.Host.Protocol;
 using SharpRail.Host.Remote;
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Tailscale;

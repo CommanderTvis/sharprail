@@ -6,7 +6,7 @@ Upstream: apps/web/src/transport/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM
 
 The UI's only route to a host. Each host abstraction has two implementations of
 the same interface: a direct local adapter delegating to Core in-process, and a
-remote proxy over code-first gRPC. The composition root (`App.cs`) picks one per
+remote proxy over code-first WebSocket RPC. The composition root (`App.cs`) picks one per
 service from `SHARPRAIL_REMOTE`; nothing downstream knows which it got, which is
 what makes remoteness an adapter choice rather than a mandatory daemon.
 
@@ -21,13 +21,13 @@ what makes remoteness an adapter choice rather than a mandatory daemon.
 - Local adapters are pure delegation: no sockets, serialization or copying.
 - Remote adapters own channel setup, the bearer token on every call, per-call
   deadlines, mapping DTOs to Abstractions records, and reconnection.
-- Allowed deps: Abstractions, Protocol, Grpc.Net.Client, protobuf-net.Grpc.
+- Allowed deps: Abstractions, Protocol, System.Net.WebSockets.
 - Forbidden: Core, Remote, the UI or Avalonia; requesting or persisting
   current-layout state.
 
 ## Behavior
 
-- The project adapter maps independent nullable commit lookup through the same local or gRPC API;
+- The project adapter maps independent nullable commit lookup through the same local or WebSocket RPC API;
   selecting a graph commit does not require it to occur in a comparison catalog.
 - Every remote call carries `authorization: Bearer <token>`; constructing a
   remote adapter without a token fails immediately.
@@ -41,13 +41,13 @@ what makes remoteness an adapter choice rather than a mandatory daemon.
   call the host answers only after a person acts. Raising it is safe; lowering it below the host's own
   budgets hides their errors behind a bare deadline. The embedded host has no deadline and ignores it.
 - Channels reconnect quickly (250 ms initial, 3 s maximum backoff) instead of
-  gRPC's two-minute ceiling, because an interactive client is waiting.
+  long waits, because an interactive client is waiting.
 - The project adapter remembers the root it opened last and sends it with each
   call, so the host needs no per-client session and a reconnect resumes silently.
 - `HostConnection` is one client's identity towards a host; the composition root shares one between the
   state proxy and every window's project proxy. A mutation (`ReplayHeaders.IsReplayable`) carries that
   identity, a request id and the connection's unresolved ids. When its call ends `Unavailable`, the
-  interceptor sends it again under the same id with the channel's reconnect backoff until a reply is read,
+  channel sends it again under the same id with the channel's reconnect backoff until a reply is read,
   the caller cancels or the call's own deadline passes, and the host answers with the first run's outcome:
   an accepted mutation neither reports a false failure nor runs twice. Replay needs the host's
   deduplication, so it happens only when the last handshake reported `HostProtocol.RequestReplay`;
@@ -105,7 +105,7 @@ what makes remoteness an adapter choice rather than a mandatory daemon.
 - `HostCalls.cs` holds the interceptor every unary call of the project and state proxies passes through.
   It rethrows a failure carrying the `x-sharprail-error-code` trailer as `HostException`; any other failure
   stays an `RpcException`, so having a code is how a caller tells a specific failure from a failed call.
-- One channel per adapter; ordering is per gRPC call, and state convergence
+- One channel per adapter; ordering is per WebSocket RPC call, and state convergence
   relies on full snapshots with revisions rather than on cross-call ordering.
 
 ## Not yet ported
@@ -122,3 +122,13 @@ what makes remoteness an adapter choice rather than a mandatory daemon.
 Prompt attachments use `SavePromptImageAsync`: bounded PNG bytes are saved under the host state's
 clipboard directory, returning an absolute host path. Local calls run off the dispatcher; remote calls
 carry the bytes and return the same host path, never a client-local file path.
+
+
+
+## Shared WebSocket calls
+
+`RpcChannel` implements the typed wire client for every remote platform. Adapters share reference-counted
+connections by endpoint, client identity and heartbeat configuration. Concurrent calls multiplex within
+those connections. Cancellation, deadlines, bounded queues and receive credits follow Protocol's contract.
+The channel owns mutation replay and domain error translation; typed generated proxies require no dynamic
+code generation in WASM. Terminal fault injection wraps the typed terminal interface.

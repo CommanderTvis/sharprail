@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "@mermanjs/web": "0.7.0",
+    "restty": "0.3.0"
+  },
+  "devDependencies": {
+    "playwright": "1.64.0"
+  }
+}

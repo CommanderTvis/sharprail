@@ -12,8 +12,6 @@ using Avalonia.LogicalTree;
 using Avalonia.Media.Imaging;
 using Avalonia.Threading;
 
-using Grpc.Core;
-
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,6 +19,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
 using SharpRail.Host.Core;
+using SharpRail.Host.Protocol;
 using SharpRail.Host.Remote;
 using SharpRail.UI;
 
@@ -66,6 +65,12 @@ internal static class Program
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             if (args[0] == "--drawn-trees") DrawnRenderingChecks.Trees();
             else DrawnRenderingChecks.Run();
+            return;
+        }
+        if (args.SequenceEqual(["--browser"]) || args.SequenceEqual(["--transport"]))
+        {
+            BrowserTransportChecks.Run(root).GetAwaiter().GetResult();
+            WebSocketFlowChecks.Run().GetAwaiter().GetResult();
             return;
         }
         if (args.SequenceEqual(["--project-host"]))
@@ -686,6 +691,8 @@ internal static class Program
         Gate.Case("quit-confirmation", QuitConfirmationChecks.Run);
         Gate.Case("android-client", () => AndroidClientChecks.Run(root));
         Gate.Case("open-world", CheckOpenWorld);
+        Gate.Case("websocket-flow", () => WebSocketFlowChecks.Run().GetAwaiter().GetResult());
+        Gate.Case("browser-transport", () => BrowserTransportChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("hosts", () => CheckHosts(root).GetAwaiter().GetResult());
         Gate.Case("terminal-links", () => TerminalFileLinkChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("terminal-hosts", () => TerminalHostChecks.Run(root).GetAwaiter().GetResult());

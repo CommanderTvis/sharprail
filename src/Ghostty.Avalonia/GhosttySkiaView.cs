@@ -37,6 +37,7 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
     internal bool IsGpuBacked => framebuffer.IsGpuBacked;
     private bool stale = true, snapshotNeeded = true, cursorOn = true, disposed;
     private Frame last;
+    private readonly bool batchAscii = OperatingSystem.IsBrowser();
 
     public GhosttySkiaView(int scrollbackLines = 10_000)
     {
@@ -46,6 +47,7 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
         vt = new Vt(Size.Columns, Size.Rows, scrollbackLines, Reply, OperatingSystem.IsMacOS() ? null : text => _ = CopyAsync(text));
         vt.SetColors(colors);
         vt.OptionAsAlt = OperatingSystem.IsMacOS();
+        if (OperatingSystem.IsBrowser()) OptionAsAlt = MacKeyboard;
         blink.Tick += (_, _) => { cursorOn = !cursorOn; Redraw(snapshot: false); };
         AddHandler(TextInputMethodClientRequestedEvent, (_, e) => e.Client = InputMethod, RoutingStrategies.Bubble);
         SoftKeyboard(false);
@@ -102,6 +104,9 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
 
     /// <summary>When set, pasting an image saves it there as PNG and pastes its shell-quoted path.</summary>
     public string? ClipboardImageDirectory { get; set; }
+
+    /// <summary>Stores pasted PNG bytes on a remote host and returns their shell-visible path.</summary>
+    public Func<ReadOnlyMemory<byte>, Task<string>>? SaveClipboardImage { get; set; }
 
     /// <summary>Raised when clipboard access fails, for example while saving a pasted image.</summary>
     public event EventHandler<Exception>? OperationFailed;
@@ -258,6 +263,7 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
         fill.BlendMode = SKBlendMode.SrcOver;
         var y = row;
         var rowTop = top + y * ch;
+        if (batchAscii && DrawAsciiRow(canvas, fill, text, frame, cells, width, height, row, cursorCell)) return recorder.EndRecording();
         // Backgrounds first, merged into runs, so wide glyphs and overhangs are not clipped by later cells.
         for (var x = 0; x < frame.Columns;)
         {
@@ -288,13 +294,13 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
                 canvas.DrawRect(bounds, fill);
                 fg = colors.Cursor is null && frame.CursorColor >> 24 == 0 ? bg : Contrast(background, cursorColor);
             }
-            if (x > drawnThrough && cell.Length > 0 && !cell.Flags.HasFlag(CellFlags.Invisible))
+            if (x > drawnThrough && cell.Length > 0 && (cell.Flags & CellFlags.Invisible) == 0)
             {
                 var grapheme = new ReadOnlySpan<uint>(frame.Text + cell.Text, cell.Length);
                 if (cell.Length != 1 || !BoxDrawing.Draw(canvas, (int)grapheme[0], bounds, fg, cells.LineThickness))
                 {
-                    var bold = cell.Flags.HasFlag(CellFlags.Bold);
-                    var italic = cell.Flags.HasFlag(CellFlags.Italic);
+                    var bold = (cell.Flags & CellFlags.Bold) != 0;
+                    var italic = (cell.Flags & CellFlags.Italic) != 0;
                     SKTextBlob? blob;
                     if (span == 1 && cell.Length == 1 && grapheme[0] is >= 32 and <= 126 && index != cursorCell)
                     {
@@ -307,9 +313,13 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
                                 y * frame.Columns + end == cursorCell) break;
                             end++;
                         }
-                        var chars = new char[end - x];
-                        for (var i = x; i < end; i++) chars[i - x] = (char)frame.Text[frame.Cells[y * frame.Columns + i].Text];
-                        blob = cells.Blob(new string(chars), bold, italic, 1, asciiRun: true);
+                        if (end == x + 1) blob = cells.AsciiBlob((char)grapheme[0], bold, italic);
+                        else
+                        {
+                            var chars = new char[end - x];
+                            for (var i = x; i < end; i++) chars[i - x] = (char)frame.Text[frame.Cells[y * frame.Columns + i].Text];
+                            blob = cells.Blob(new string(chars), bold, italic, 1, asciiRun: true);
+                        }
                         drawnThrough = end - 1;
                     }
                     else blob = cells.Blob(CellFonts.Grapheme(grapheme), bold, italic, span);
@@ -323,6 +333,32 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
         }
         if (preedit.Length > 0 && frame.CursorVisible != 0 && frame.CursorY == row) DrawPreedit(canvas, frame, cells, background);
         return recorder.EndRecording();
+    }
+
+    private unsafe bool DrawAsciiRow(SKCanvas canvas, SKPaint fill, SKPaint paint, Frame frame, CellFonts fonts,
+        float width, float height, int row, int cursorCell)
+    {
+        if (colors.MinimumContrast > 1 || cursorCell >= 0 && cursorCell / frame.Columns == row ||
+            preedit.Length > 0 && frame.CursorY == row) return false;
+        var metrics = new RowMetrics
+        {
+            Left = (float)Padding.Left,
+            Top = (float)Padding.Top,
+            CellWidth = fonts.CellWidth,
+            CellHeight = fonts.CellHeight,
+            Baseline = fonts.Baseline,
+            Width = width,
+            Height = height,
+            Row = row
+        };
+        int drawn;
+        fixed (nint* blobs = fonts.AsciiHandles)
+            drawn = NativeTextBatch.Draw(canvas.Handle, fill.Handle, paint.Handle, &frame, blobs, &metrics);
+        GC.KeepAlive(fonts);
+        GC.KeepAlive(canvas);
+        GC.KeepAlive(fill);
+        GC.KeepAlive(paint);
+        return drawn != 0;
     }
 
     // Composition text from an input method, underlined at the cursor until it is committed.
@@ -372,8 +408,8 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
                 break;
         }
         paint.Color = foreground; paint.PathEffect = null;
-        if (cell.Flags.HasFlag(CellFlags.Strikethrough)) canvas.DrawLine(bounds.Left, bounds.Top + cells.StrikePosition, bounds.Right, bounds.Top + cells.StrikePosition, paint);
-        if (cell.Flags.HasFlag(CellFlags.Overline)) canvas.DrawLine(bounds.Left, bounds.Top + thickness / 2, bounds.Right, bounds.Top + thickness / 2, paint);
+        if ((cell.Flags & CellFlags.Strikethrough) != 0) canvas.DrawLine(bounds.Left, bounds.Top + cells.StrikePosition, bounds.Right, bounds.Top + cells.StrikePosition, paint);
+        if ((cell.Flags & CellFlags.Overline) != 0) canvas.DrawLine(bounds.Left, bounds.Top + thickness / 2, bounds.Right, bounds.Top + thickness / 2, paint);
     }
 
     private static void DrawCursor(SKCanvas canvas, byte style, bool focused, SKRect bounds, SKColor color, CellFonts cells)
@@ -397,8 +433,8 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
     {
         var fg = cell.Foreground >> 24 != 0 ? cell.Foreground : frame.Foreground;
         var bg = cell.Background >> 24 != 0 ? cell.Background : frame.Background;
-        if (cell.Flags.HasFlag(CellFlags.Inverse)) (fg, bg) = (bg, fg);
-        if (cell.Flags.HasFlag(CellFlags.Selected))
+        if ((cell.Flags & CellFlags.Inverse) != 0) (fg, bg) = (bg, fg);
+        if ((cell.Flags & CellFlags.Selected) != 0)
         {
             var selection = colors.SelectionBackground?.ToUInt32() ?? fg;
             fg = colors.SelectionForeground?.ToUInt32() ?? (colors.SelectionBackground is null ? bg : fg);
@@ -407,7 +443,7 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
         var foreground = new SKColor(fg);
         var background = new SKColor(bg);
         if (colors.MinimumContrast > 1 && Ratio(foreground, background) < colors.MinimumContrast) foreground = Contrast(background, foreground);
-        if (cell.Flags.HasFlag(CellFlags.Faint)) foreground = foreground.WithAlpha(0x80);
+        if ((cell.Flags & CellFlags.Faint) != 0) foreground = foreground.WithAlpha(0x80);
         return (foreground, background);
     }
 

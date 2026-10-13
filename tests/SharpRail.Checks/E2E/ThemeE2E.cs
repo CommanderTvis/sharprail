@@ -149,7 +149,7 @@ internal static class ThemeE2E
     }
 
     /// <summary>
-    /// The peer is a second client of a real gRPC host with its own profile. Both clients share one
+    /// The peer is a second client of a real WebSocket RPC host with its own profile. Both clients share one
     /// process and so one device appearance; each resolves the host-synced mode and pair for its own
     /// appearance, which the check evaluates for both slots.
     /// </summary>
@@ -193,7 +193,7 @@ internal static class ThemeE2E
             Require(Themes.Resolve(shared, "light").Theme == alternateLight && Themes.Resolve(shared, "dark").Theme == fixedTheme,
                 "A light-appearance peer shows the explicit light theme while this dark client shows the fixed theme.");
 
-            // One theme mutation may be in flight: over gRPC the request is pending when the click returns.
+            // One theme mutation may be in flight: over WebSocket RPC the request is pending when the click returns.
             var fixedMode = Option(settings, "ThemeMode_fixed");
             var slot = Option(settings, "SystemTheme_light_trigger");
             fixedMode.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
@@ -216,7 +216,7 @@ internal static class ThemeE2E
             application.RequestedThemeVariant = device;
             Task.Run(() => server.StopAsync()).GetAwaiter().GetResult();
         }
-        Console.WriteLine("PASS upstream: system mode follows each client and retains its explicit pair (second gRPC client)");
+        Console.WriteLine("PASS upstream: system mode follows each client and retains its explicit pair (second WebSocket RPC client)");
     }
 
     private static void HighContrastTabs(string root)

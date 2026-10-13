@@ -111,7 +111,7 @@ internal static class WorkspaceToolChecks
             Require(Path.GetDirectoryName(imagePath) == Path.Combine(stateDirectory, "clipboard") && File.ReadAllBytes(imagePath).SequenceEqual(png),
                 "Prompt images must be stored on the host and survive local and remote transport unchanged.");
             try { await imageHost.SavePromptImageAsync([1, 2, 3]); throw new InvalidOperationException("Invalid images were accepted."); }
-            catch (Exception error) when (error is ArgumentException or Grpc.Core.RpcException) { }
+            catch (Exception error) when (error is ArgumentException or SharpRail.Host.Protocol.RpcException) { }
         }
         await Titling(root, stateDirectory, state, client, server is null ? new LocalStateAdapter(state) : new RemoteStateAdapter(
             new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single()), "workspace-tools"),

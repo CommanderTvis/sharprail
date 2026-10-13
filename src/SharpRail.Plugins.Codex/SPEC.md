@@ -125,7 +125,7 @@ user scope and external source links; capability checks cover installation, manu
 MCP targets/source links. Configuration value cells, row actions, the trust line, the no-match line, notices and the terminal
 accessory row (model chip, slots for the kit's usage/plan/IDE/attach chips and the driving status) are
 compiled frames too; the kit's shared setting rows and chips stay kit-owned. Settings observers restart on remount, with host changes both while detached and after
-reattachment covered by gRPC checks.
+reattachment covered by WebSocket RPC checks.
 The earlier descendant snapshot teardown passed its resistant-child regression. Its replacement
 uses a private POSIX process group, with new leader-crash and immediate-stop regression cases.
 The .NET build and focused account/configuration/IDE/UI checks pass with that replacement, including
@@ -133,7 +133,7 @@ the leader-crash regression. The helper copies transitively beside the checks ex
 compilation follows the requested arm64 or x64 RID with separate native caches. Published placement
 and teardown remain to be verified. Account and usage controls carry the upstream licenses.
 
-Focused `--codex` logic and real gRPC UI checks pass: skill installation (idempotent, edits and the
+Focused `--codex` logic and real WebSocket RPC UI checks pass: skill installation (idempotent, edits and the
 user's own skills kept, refresh, removal on disable), account, configuration edits/external files,
 context offers, IDE request/reply, launcher options, session-only model selection, lifecycle badges,
 separate IDE submission, rollout usage and plan. Raw terminal fixtures own their mode and read through

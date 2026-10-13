@@ -113,7 +113,7 @@ The host half references only the contract and `SharpRail.Plugins.Api.Host`; the
   Discord's `SET_ACTIVITY`, clearing the id silences it, an invalid id is kept in the field but never stored,
   a valid one survives reopening and is persisted, and a blocked project stays blocked.
 - Additional transport checks cover disabled lifecycle, the SVG asset, presence/status call parity, status
-  pushes and redaction over gRPC. Lifecycle coverage holds a handshake until after disable and checks that
+  pushes and redaction over WebSocket RPC. Lifecycle coverage holds a handshake until after disable and checks that
   it cannot publish. IPC coverage checks fragmented frames, ping/pong, errors and socket-close notification.
 
 Native appearance, published output and the full repository gates remain unverified.

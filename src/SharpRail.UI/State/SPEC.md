@@ -43,7 +43,7 @@ default. It is app-local because rendering is a client capability, not host stat
 
 Snapshots are complete. A client receives the current one on subscribe and again after every reconnect,
 which is how it rehydrates anything missed while disconnected; there is no event log to replay. Local
-clients receive in-process events; remote clients use a gRPC server stream. `Changed` is raised on the UI
+clients receive in-process events; remote clients use a WebSocket RPC server stream. `Changed` is raised on the UI
 thread with the previous and new snapshot so windows can diff what moved; `ConnectionChanged` reports
 drops and re-establishment. `SharedState` reports both to the client's `HostConnection`, whose
 `Generation` counts connections. A window remembers the generation it read its content under and, on a
@@ -161,3 +161,7 @@ it. The queue is never persisted or shared between windows.
 - Telling user intent from passive moves in the Back/Forward list: every move to a different location adds
   an entry, so a remote project close or workspace removal that relocates the window is recorded too. The
   observed location is not persisted as a link; the profile keeps its own last-location fields.
+
+Browser profiles supply JSON read/write callbacks to `ProfileStore`; normalization and serialization
+remain shared. Host-owned settings are still excluded after migration. Browser storage contains view
+state only and never becomes a workspace filesystem.

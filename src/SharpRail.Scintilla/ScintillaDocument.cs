@@ -15,13 +15,13 @@ internal sealed class ScintillaDocument : IDisposable
     {
         surface = new(typeface);
         if (!ScintillaEditor.IsSupported)
-            throw new PlatformNotSupportedException("The Scintilla editor supports macOS and Android only.");
+            throw new PlatformNotSupportedException("The Scintilla editor supports macOS, Android and browsers.");
 
         Dispatcher.UIThread.VerifyAccess();
 
         try
         {
-            Handle = ScintillaNative.sr_create(surface.Callback, 0);
+            unsafe { Handle = OperatingSystem.IsBrowser() ? ScintillaNative.sr_create_browser((nint)(delegate* unmanaged<nint, ScintillaNative.DrawCommand*, double>)&SkiaSurface.BrowserDraw, surface.BrowserContext) : ScintillaNative.sr_create(surface.Callback, 0); }
             surface.CheckError();
             if (Handle == 0) throw new InvalidOperationException("Unable to create the Scintilla editor.");
 

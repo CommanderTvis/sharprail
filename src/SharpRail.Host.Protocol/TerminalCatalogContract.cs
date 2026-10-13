@@ -1,6 +1,4 @@
 using ProtoBuf;
-using ProtoBuf.Grpc;
-using ProtoBuf.Grpc.Configuration;
 
 namespace SharpRail.Host.Protocol;
 
@@ -34,7 +32,6 @@ public sealed class TerminalCatalogReply
     [ProtoMember(2)] public List<TerminalWorkspaceMessage> Workspaces { get; set; } = [];
 }
 
-[Service]
 public interface ITerminalCatalogRpc
 {
     ValueTask<TerminalCatalogReply> OpenWorkspaceAsync(TerminalCatalogRequest request, CallContext context = default);

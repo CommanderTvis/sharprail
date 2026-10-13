@@ -16,7 +16,7 @@
     <AndroidPackageFormat>apk</AndroidPackageFormat>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <!-- gRPC needs HTTP/2, which the platform's handler lacks. -->
+    <!-- Remote calls use the managed WebSocket/HTTP stack on every platform. -->
     <UseNativeHttpHandler>false</UseNativeHttpHandler>
     <!-- Native marshal stubs are not generated for this assembly's Java peers; they register at run time instead. -->
     <AndroidEnableMarshalMethods>false</AndroidEnableMarshalMethods>

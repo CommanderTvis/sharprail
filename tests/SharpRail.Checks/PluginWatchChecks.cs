@@ -46,7 +46,7 @@ internal static class PluginWatchChecks
         finally { Task.Run(async () => { await server.StopAsync(); await server.DisposeAsync(); }).GetAwaiter().GetResult(); }
 
         Unsessioned(Path.Combine(root, "plugin-watch-fixture"), local);
-        Console.WriteLine("PASS plugin workspace watching: local/gRPC inactive workspaces, shared preparation, held readiness, drop recovery, disable and fixtures");
+        Console.WriteLine("PASS plugin workspace watching: local/WebSocket RPC inactive workspaces, shared preparation, held readiness, drop recovery, disable and fixtures");
     }
 
     private static void Cases(string app, string workspace, Func<IProjectServices> open)

@@ -1,6 +1,4 @@
 using ProtoBuf;
-using ProtoBuf.Grpc;
-using ProtoBuf.Grpc.Configuration;
 
 namespace SharpRail.Host.Protocol;
 
@@ -87,10 +85,17 @@ public sealed class TerminalFileLinksReply
     [ProtoMember(1)] public List<TerminalFileLinkDto> Links { get; set; } = [];
 }
 
-[Service]
+[ProtoContract]
+public sealed class TerminalClipboardRequest
+{
+    [ProtoMember(1)] public string SessionId { get; set; } = "";
+    [ProtoMember(2)] public byte[] Png { get; set; } = [];
+}
+
 public interface ITerminalRpc
 {
     ValueTask<TerminalFileLinksReply> FindFileLinksAsync(TerminalFileLinksRequest request, CallContext context = default);
+    ValueTask<DocumentReply> SaveClipboardImageAsync(TerminalClipboardRequest request, CallContext context = default);
     IAsyncEnumerable<TerminalOutput> RunAsync(IAsyncEnumerable<TerminalInput> input, CallContext context = default);
     ValueTask<TerminalBusyReply> IsBusyAsync(TerminalSessionRequest request, CallContext context = default);
     ValueTask<TerminalClosed> CloseAsync(TerminalSessionRequest request, CallContext context = default);

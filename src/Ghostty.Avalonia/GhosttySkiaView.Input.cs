@@ -7,12 +7,15 @@ using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Input.TextInput;
 using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 using Avalonia.Threading;
 
 namespace Ghostty.Avalonia;
 
 public sealed partial class GhosttySkiaView
 {
+    private bool MacKeyboard => OperatingSystem.IsMacOS() || OperatingSystem.IsBrowser() &&
+        (Application.Current?.TryGetFeature(typeof(IPlatformSettings)) as IPlatformSettings)?.HotkeyConfiguration.CommandModifiers == KeyModifiers.Meta;
     private const int Press = 1, Release = 0, Motion = 2;
     private const double TapSlop = 8;
     private InputClient? inputMethod;
@@ -59,7 +62,7 @@ public sealed partial class GhosttySkiaView
         linkModifiers = mods;
         Redraw(false);
         if (InputMethod.Erase(e)) { e.Handled = true; return; }
-        var copyPaste = OperatingSystem.IsMacOS() ? mods == KeyModifiers.Meta : mods == (KeyModifiers.Control | KeyModifiers.Shift);
+        var copyPaste = MacKeyboard ? mods == KeyModifiers.Meta : mods == (KeyModifiers.Control | KeyModifiers.Shift);
         if (copyPaste && e.Key is Key.C or Key.V)
         {
             _ = ClipboardAsync(e.Key == Key.V);
@@ -67,7 +70,7 @@ public sealed partial class GhosttySkiaView
             return;
         }
         // Command shortcuts belong to the application, as in Ghostty's own macOS app.
-        if (OperatingSystem.IsMacOS() && mods.HasFlag(KeyModifiers.Meta)) return;
+        if (MacKeyboard && mods.HasFlag(KeyModifiers.Meta)) return;
         keyBarReleaseModifiers = TakeModifiers();
         if (Encode(e, Press, keyBarReleaseModifiers)) e.Handled = true;
     }
@@ -77,7 +80,7 @@ public sealed partial class GhosttySkiaView
         base.OnKeyUp(e);
         linkModifiers = e.KeyModifiers;
         Redraw(false);
-        if (disposed || e.Handled || OperatingSystem.IsMacOS() && e.KeyModifiers.HasFlag(KeyModifiers.Meta)) return;
+        if (disposed || e.Handled || MacKeyboard && e.KeyModifiers.HasFlag(KeyModifiers.Meta)) return;
         // Only the Kitty keyboard protocol reports releases; the encoder returns nothing otherwise.
         Encode(e, Release, keyBarReleaseModifiers);
         keyBarReleaseModifiers = KeyModifiers.None;
@@ -88,14 +91,14 @@ public sealed partial class GhosttySkiaView
         var mods = e.KeyModifiers | extraModifiers;
         var physical = Physical(e);
         // Match Ghostty's macOS word-navigation bindings before protocol encoding.
-        if (OperatingSystem.IsMacOS() && mods == KeyModifiers.Alt && physical is PhysicalKey.ArrowLeft or PhysicalKey.ArrowRight)
+        if (MacKeyboard && mods == KeyModifiers.Alt && physical is PhysicalKey.ArrowLeft or PhysicalKey.ArrowRight)
         {
             if (action == Press) Typed(physical == PhysicalKey.ArrowLeft ? "\u001bb"u8 : "\u001bf"u8);
             return true;
         }
         var symbol = e.KeySymbol;
         var printable = !string.IsNullOrEmpty(symbol) && !char.IsControl(symbol[0]);
-        var alt = mods.HasFlag(KeyModifiers.Alt) && (OptionAsAlt || !OperatingSystem.IsMacOS());
+        var alt = mods.HasFlag(KeyModifiers.Alt) && (OptionAsAlt || !MacKeyboard);
         // Plain text arrives through TextInput, so input methods and dead keys compose.
         if (action == Press && printable && !mods.HasFlag(KeyModifiers.Control) && !alt) return false;
         var unshifted = Unshifted(physical);
@@ -469,14 +472,25 @@ public sealed partial class GhosttySkiaView
                 return;
             }
             string? text = null;
-            if (ClipboardImageDirectory is { } directory && await clipboard.TryGetBitmapAsync() is { } image)
+            if ((SaveClipboardImage is not null || ClipboardImageDirectory is not null) && await clipboard.TryGetBitmapAsync() is { } image)
             {
                 using (image)
                 {
-                    Directory.CreateDirectory(directory);
-                    if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(directory, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
-                    var path = Path.Combine(directory, Guid.NewGuid().ToString("D").ToUpperInvariant() + ".png");
-                    image.Save(path, PngBitmapEncoderOptions.Default);
+                    string path;
+                    if (SaveClipboardImage is { } save)
+                    {
+                        using var bytes = new MemoryStream();
+                        image.Save(bytes, PngBitmapEncoderOptions.Default);
+                        path = await save(bytes.ToArray());
+                    }
+                    else
+                    {
+                        var directory = ClipboardImageDirectory!;
+                        Directory.CreateDirectory(directory);
+                        if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(directory, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+                        path = Path.Combine(directory, Guid.NewGuid().ToString("D").ToUpperInvariant() + ".png");
+                        image.Save(path, PngBitmapEncoderOptions.Default);
+                    }
                     text = "'" + path.Replace("'", "'\\''") + "'";
                 }
             }

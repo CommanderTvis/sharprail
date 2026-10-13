@@ -1,9 +1,3 @@
-using Grpc.Core;
-using Grpc.Net.Client;
-
-using ProtoBuf.Grpc;
-using ProtoBuf.Grpc.Client;
-
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Protocol;
 
@@ -20,7 +14,7 @@ public sealed class LocalHostAdapter(IWorkspaceHost host) : IWorkspaceHost
 
 public sealed class RemoteHostAdapter : IWorkspaceHost, IDisposable
 {
-    private readonly GrpcChannel channel;
+    private readonly RpcChannel channel;
     private readonly IWorkspaceRpc service;
     private readonly string token;
 
@@ -28,8 +22,8 @@ public sealed class RemoteHostAdapter : IWorkspaceHost, IDisposable
     {
         if (string.IsNullOrWhiteSpace(token)) throw new ArgumentException("A host session token is required.", nameof(token));
         this.token = token;
-        channel = GrpcChannel.ForAddress(address);
-        service = channel.CreateGrpcService<IWorkspaceRpc>();
+        channel = new RpcChannel(address, null);
+        service = channel.CreateService<IWorkspaceRpc>();
     }
 
     private CallContext Context(CancellationToken cancellationToken) => new(new CallOptions(

@@ -3,8 +3,6 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json.Nodes;
 
-using Grpc.Core;
-
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
@@ -13,11 +11,12 @@ using Microsoft.Extensions.DependencyInjection;
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
 using SharpRail.Host.Core;
+using SharpRail.Host.Protocol;
 using SharpRail.Host.Remote;
 
 namespace SharpRail.Checks;
 
-// Host PTY sessions through the direct adapter and a real authenticated gRPC host.
+// Host PTY sessions through the direct adapter and a real authenticated WebSocket RPC host.
 internal static partial class TerminalHostChecks
 {
     public static async Task Run(string root)
@@ -480,7 +479,7 @@ internal static partial class TerminalHostChecks
         Require(Count(screen.Text, "FINAL_DURING_DROP") == 1, "Final output must be delivered once before the exit after a reconnect.");
         await session.DisposeAsync();
         await terminals.CloseAsync(id);
-        Console.WriteLine("PASS host terminal reconnects: a severed gRPC connection resumes the same shell without duplicates, and output written while disconnected precedes the exit status");
+        Console.WriteLine("PASS host terminal reconnects: a severed WebSocket RPC connection resumes the same shell without duplicates, and output written while disconnected precedes the exit status");
     }
 
     private static int Count(string text, string marker)

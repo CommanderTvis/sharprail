@@ -354,3 +354,10 @@ can open that client in a separate app instance, preserving the local host. A re
 client token live in a `tailscale-client` subdirectory of the active profile, isolating the dedicated
 client instance from the embedded host's profile; bootstrap resolves the current endpoint before connecting.
 See [Tailscale](../SharpRail.Plugins.Tailscale/SPEC.md).
+
+## Browser composition
+
+The browser client compiles these shared sources and XAML, like Android, and composes only remote host
+adapters. Desktop host-serving composition is excluded with `BROWSER`. Workbench behavior remains
+shared; browser surfaces, persistence and native WASM adapters belong to `../SharpRail.Browser/SPEC.md`.
+Settings reads GitHub authentication from the host; credentials and the `gh` process stay there.

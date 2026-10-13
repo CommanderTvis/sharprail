@@ -135,7 +135,7 @@ internal static class DiscordChecks
             Environment.SetEnvironmentVariable("SHARPRAIL_DISCORD_IPC_DIR", saved);
             Directory.Delete(socketDirectory, true);
         }
-        Console.WriteLine("PASS Discord transport: disabled lifecycle, SVG asset, presence, status push and redaction over gRPC");
+        Console.WriteLine("PASS Discord transport: disabled lifecycle, SVG asset, presence, status push and redaction over WebSocket RPC");
     }
 
     private static async Task StopDuringHandshakeAsync()

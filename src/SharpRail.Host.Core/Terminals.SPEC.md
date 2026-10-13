@@ -72,8 +72,9 @@ their MCP identities. The host waits for shell shutdown before completing the pr
   resize with no output reaches a watcher as an empty chunk, a redraw nudge does not. A resume with `Watch`
   keeps watching whoever holds the session and replays only what was missed. After a take-over the previous
   holder is detached as before; watching again is its client's next attach.
-- Fan-out never waits for a reader. Each attachment has its own queue bounded by the resume window: a holder
-  that falls behind loses the oldest output, while a watcher loses everything queued and, when it reads
+- Each attachment has its own queue bounded by the resume window. A holder that falls behind pauses the
+  PTY producer without dropping bytes or splitting escape sequences. A watcher never blocks delivery; it
+  loses everything queued and, when it reads
   again, receives a terminal reset (RIS) and a snapshot taken at that moment, so a stalled watcher costs the
   host one marker and nothing per chunk, and its view is never left mid-sequence. Terminal query replies come
   only from the holder: a watcher's writes are dropped on the host, and snapshots carry no queries.
@@ -173,18 +174,21 @@ their MCP identities. The host waits for shell shutdown before completing the pr
   that session belongs to. `CloseWorkspaceAsync` forgets the workspace and ends every shell started in
   that folder, catalogued or not, with their recordings. The composition root calls it when
   `HostStateStore.WorkspaceRemoved` fires after a worktree removal.
-- `TerminalCatalogChecks.cs` covers all of this locally and through a real gRPC host, including a worktree
+- `TerminalCatalogChecks.cs` covers all of this locally and through a real WebSocket RPC host, including a worktree
   removed through the project host.
 
 ## Backpressure
 
 - Delivery is pull-driven end to end: the read pump hands chunks to the session through a bounded queue
-  and blocks when it is full, so the kernel holds the program back; the gRPC call writes one chunk, awaits
+  and blocks when it is full, so the kernel holds the program back; the WebSocket RPC call writes one chunk, awaits
   the transport's flow control and only then takes the next. There is no drain latch to miss, which is why
   upstream's WebSocket latch and one-second buffered-byte reconciler have no counterpart.
+- A reader coalesces already queued, contiguous output up to 128 KiB before yielding it. This reduces
+  framing and browser thread transitions without waiting for more output. Resizes and watcher
+  resynchronisations remain ordered boundaries; the position describes the last byte in the batch.
 - An attachment whose reader stops reading keeps at most the resume window (1 MiB) queued. Beyond that the
-  oldest chunks are dropped, never the newest; positions still advance past the gap, so a later resume is
-  exact. Nothing tells the client that output was skipped, unlike upstream's `truncated` flag.
+  holder pauses the PTY read pump until space is available, preserving every byte. Detach, takeover and
+  explicit close release a stalled pump; it never waits while holding the terminal output lock.
 - A remote terminal connection is pinged while a terminal call is open (every 15 s, 10 s to answer). A
   connection that stays open but carries nothing — a slept machine, a dropped route — fails within that
   time and the session reconnects and resumes from its position; the attachment it left behind is displaced
@@ -217,7 +221,7 @@ their MCP identities. The host waits for shell shutdown before completing the pr
   through a remote host, and a large screen surviving a host restart.
 - `TerminalQueryReplayChecks.cs` covers historical query filtering, split reads and live replies.
 - `TerminalLimitChecks.cs` covers refused grids on attach and resize and the start guidance, locally and
-  through a real gRPC host.
+  through a real WebSocket RPC host.
 
 ## Bounded child runner
 
@@ -266,3 +270,7 @@ adapters. Unknown sessions yield no links. Parsing never invokes the shell or re
 Exact files found for a session are admitted for document reading and saving in its workspace,
 including files outside it; unrelated paths retain the ordinary containment checks.
 Those external-file admissions expire when the terminal session closes or the host stops.
+
+The terminal service accepts bounded PNG clipboard uploads for an existing session and writes a unique
+file under the host profile clipboard directory with private permissions. The response is a host path;
+browser-local files are never offered to host shells.

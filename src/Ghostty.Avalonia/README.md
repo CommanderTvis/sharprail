@@ -213,11 +213,23 @@ Text blobs are cached up to 4096 entries and explicitly disposed on eviction or
 font disposal. A recorded picture retains its native drawing resources, so cache
 eviction cannot invalidate a queued frame.
 
-SharpRail's Skia adapter awaits one output dispatch at a time, processes at most
-8 KiB per dispatch in 1 KiB pieces, and yields after approximately 2 ms. A single
-piece can exceed that budget. Replay uses the same drain and exit follows the
-last processed byte. This bounds UI dispatch, not the separate host queues;
+SharpRail's Skia adapter coalesces live output from a bounded read-ahead queue (at most
+128 pieces of 8 KiB). Each UI dispatch drains up to 256 KiB or approximately 2 ms, with
+redraw invalidations coalesced within that dispatch. Replay processes up to 8 KiB in
+1 KiB pieces under the same time budget. A single piece can exceed the budget. Exit
+follows the last processed byte; cancellation stops both the reader and UI drain.
 VT processing remains on the UI thread to preserve its ownership contract.
+Single ASCII glyphs use a separate, bounded style-indexed blob cache owned by the
+font set, avoiding per-cell string allocation when adjacent colors differ.
+In the browser, plain ASCII rows pass their VT cells and font-owned glyph handles through
+one native WASM call. Eligibility checks, default/inverse/faint colors, background runs
+and glyph positioning execute in that native loop, avoiding interpreted per-cell work.
+Skia still draws the same glyphs in the same order; no glyph
+raster atlas or replacement font renderer is involved. Cursor, composition, wide
+text, combining characters, selection, contrast correction, decorations and hovered links retain the shared path.
+Retained rows keep their original text offsets and a base offset instead of rewriting
+every copied cell. Equality still compares cell attributes and exact grapheme contents.
+Hover bookkeeping traverses cells only when links are highlighted or cleared.
 
 `--native-skia` verifies the GPU framebuffer in a real macOS window with
 own-window pixels, incremental redraw, theme parity with an Avalonia swatch,
@@ -233,3 +245,7 @@ underlines resolved files; modifier-click revalidates before navigation. Soft wr
 mapping are preserved. The Metal bridge snapshots only the hovered line under the renderer lock.
 The pinned native URL matcher excludes file paths and `file:` URLs so it cannot bypass the host's
 existence check. HTTP(S) and the other native URL schemes retain their native action.
+
+Browser builds link libghostty-vt and the existing C bridge into WASM. The bridge uses the Emscripten
+allocator to share the managed runtime heap. `GhosttySkiaView.SaveClipboardImage` can store PNG bytes
+on a remote host and paste the returned shell path instead of writing a client-local file.

@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
 using SharpRail.Host.Core;
+using SharpRail.Host.Protocol;
 using SharpRail.Host.Remote;
 
 namespace SharpRail.Checks;
@@ -34,7 +35,7 @@ internal static class WorkspaceWatchChecks
             var waiting = stream.MoveNextAsync().AsTask();
             await server.StopAsync(timeout.Token);
             try { Require(!await waiting, "Host shutdown closes its file streams."); }
-            catch (Grpc.Core.RpcException) { }
+            catch (SharpRail.Host.Protocol.RpcException) { }
         }
         finally { await server.StopAsync(); }
         Console.WriteLine("PASS workspace file streams: local/remote ready, nested write, rename, Git metadata, root capture, cancellation and host shutdown");
@@ -71,7 +72,7 @@ internal static class WorkspaceWatchChecks
         await Changed("captured.txt");
         timeout.Cancel();
         try { Require(!await stream.MoveNextAsync(), "Cancellation closes the file stream."); }
-        catch (Exception error) when (error is OperationCanceledException or Grpc.Core.RpcException) { return; }
+        catch (Exception error) when (error is OperationCanceledException or SharpRail.Host.Protocol.RpcException) { return; }
     }
 
     private static void Require(bool condition, string message)

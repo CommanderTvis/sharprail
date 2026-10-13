@@ -1,8 +1,6 @@
 using System.Diagnostics;
 using System.Net;
 
-using Grpc.Core;
-
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
@@ -10,11 +8,12 @@ using Microsoft.Extensions.DependencyInjection;
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
 using SharpRail.Host.Core;
+using SharpRail.Host.Protocol;
 using SharpRail.Host.Remote;
 
 namespace SharpRail.Checks;
 
-/// <summary>Git host behaviour beyond status and diffs, through the embedded host and a real gRPC host with equal results.</summary>
+/// <summary>Git host behaviour beyond status and diffs, through the embedded host and a real WebSocket RPC host with equal results.</summary>
 internal static class GitHostChecks
 {
     private static void Require(bool condition, string message)
@@ -100,7 +99,7 @@ internal static class GitHostChecks
             finally { await server.StopAsync(); }
         }
         finally { foreach (var (name, value) in saved) Environment.SetEnvironmentVariable(name, value); }
-        Console.WriteLine("PASS Git host checks: ref shapes at every door, creation base and re-pointed review target, pinned scope, badge totals, prefetch moves and nudges, locally and over gRPC");
+        Console.WriteLine("PASS Git host checks: ref shapes at every door, creation base and re-pointed review target, pinned scope, badge totals, prefetch moves and nudges, locally and over WebSocket RPC");
     }
 
     private static void CheckRefShapes()

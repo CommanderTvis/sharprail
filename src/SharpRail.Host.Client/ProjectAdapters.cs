@@ -1,12 +1,5 @@
 using System.Runtime.CompilerServices;
 
-using Grpc.Core;
-using Grpc.Core.Interceptors;
-using Grpc.Net.Client;
-
-using ProtoBuf.Grpc;
-using ProtoBuf.Grpc.Client;
-
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Protocol;
 
@@ -57,7 +50,7 @@ public sealed partial class LocalProjectAdapter(IProjectServices host) : IProjec
 
 public sealed partial class RemoteProjectAdapter : IProjectServices, IDisposable
 {
-    private readonly GrpcChannel channel;
+    private readonly RpcChannel channel;
     private readonly IProjectRpc service;
     private readonly string token;
 
@@ -66,13 +59,8 @@ public sealed partial class RemoteProjectAdapter : IProjectServices, IDisposable
     {
         if (string.IsNullOrWhiteSpace(token)) throw new ArgumentException("A host session token is required.");
         this.token = token;
-        channel = GrpcChannel.ForAddress(address, new GrpcChannelOptions
-        {
-            MaxReceiveMessageSize = FileLimits.ReadMessageBytes,
-            InitialReconnectBackoff = StateAdapterDefaults.InitialReconnect,
-            MaxReconnectBackoff = StateAdapterDefaults.MaxReconnect
-        });
-        service = channel.Intercept(new HostCallInterceptor(connection ?? new())).CreateGrpcService<IProjectRpc>();
+        channel = new RpcChannel(address, connection ?? new());
+        service = channel.CreateService<IProjectRpc>();
     }
 
     // The host keeps no per-client session: each call names the workspace this adapter opened last.

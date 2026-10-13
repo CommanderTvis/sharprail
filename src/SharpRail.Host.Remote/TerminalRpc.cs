@@ -1,7 +1,3 @@
-using Grpc.Core;
-
-using ProtoBuf.Grpc;
-
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Protocol;
 
@@ -9,6 +5,14 @@ namespace SharpRail.Host.Remote;
 
 public sealed class TerminalRpc(ITerminalService terminals, IHostApplicationLifetime lifetime) : ITerminalRpc
 {
+    public async ValueTask<DocumentReply> SaveClipboardImageAsync(TerminalClipboardRequest request, CallContext context = default)
+    {
+        try { return new() { Text = await terminals.SaveClipboardImageAsync(request.SessionId, request.Png, context.CancellationToken) }; }
+        catch (ArgumentException error) { throw new RpcException(new Status(StatusCode.InvalidArgument, error.Message)); }
+        catch (IOException error) { throw new RpcException(new Status(StatusCode.FailedPrecondition, error.Message)); }
+        catch (NotSupportedException error) { throw new RpcException(new Status(StatusCode.Unimplemented, error.Message)); }
+    }
+
     // A call is one attachment: a dropped client detaches, and the shell keeps running on the host.
     public async IAsyncEnumerable<TerminalOutput> RunAsync(IAsyncEnumerable<TerminalInput> input, CallContext context = default)
     {

@@ -23,7 +23,7 @@ namespace SharpRail.Checks;
 
 /// <summary>
 /// The spec dialect plugin's own checks, translated from the fork's <c>packages/plugin-spec-dialect</c> tests: the host
-/// half's graph read, eviction and MCP tools, local and over gRPC; the UI half's tree, store and sync; and the
+/// half's graph read, eviction and MCP tools, local and over WebSocket RPC; the UI half's tree, store and sync; and the
 /// hot-toggle, document-link and rail translations through the real workbench.
 /// </summary>
 internal static class SpecDialectChecks
@@ -186,7 +186,7 @@ internal static class SpecDialectChecks
             var local = PluginJson.Convert<SpecGraphSnapshot>(await server.Services.GetRequiredService<PluginRuntime>()
                 .CallAsync(new(SpecDialectContract.Id, "graph", new SpecGraphParams(project), "client")));
             Require(remote.Nodes.Single().Id == "remote-root" && JsonSerializer.Serialize(remote, PluginJson.Options) == JsonSerializer.Serialize(local, PluginJson.Options),
-                "The graph over gRPC equals the host's in-process answer.");
+                "The graph over WebSocket RPC equals the host's in-process answer.");
             var runtime = server.Services.GetRequiredService<PluginRuntime>();
             async Task<JsonNode?> Mcp(string method, JsonObject? parameters = null)
             {
@@ -204,7 +204,7 @@ internal static class SpecDialectChecks
                 "the remote spec dialect disables");
             var listed = await Mcp("tools/list");
             Require(!listed!["result"]!["tools"]!.AsArray().Any(tool => tool!["name"]!.GetValue<string>().StartsWith("spec_", StringComparison.Ordinal)),
-                "Disabling Specs over gRPC withdraws all seven spec tools from MCP listings.");
+                "Disabling Specs over WebSocket RPC withdraws all seven spec tools from MCP listings.");
             var refused = await Mcp("tools/call", new JsonObject { ["name"] = "spec_graph" });
             Require(refused!["error"]!["code"]!.GetValue<int>() == -32602, "MCP refuses a disabled spec tool.");
             var initialized = await Mcp("initialize");
@@ -217,7 +217,7 @@ internal static class SpecDialectChecks
                 "Re-enabling Specs restores all seven MCP tools.");
         }
         finally { await server.StopAsync(); }
-        Console.WriteLine("PASS spec dialect graph: local and gRPC parity");
+        Console.WriteLine("PASS spec dialect graph: local and WebSocket RPC parity");
     }
 
     private static void Tree()

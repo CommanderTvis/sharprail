@@ -4,8 +4,6 @@ using Avalonia.Input.TextInput;
 using Avalonia.Markup.Xaml;
 using Avalonia.Styling;
 
-using Grpc.Core;
-
 using SharpRail.Host.Client;
 using SharpRail.Plugins.Tailscale;
 using SharpRail.Plugins.Tailscale.UI;
@@ -118,8 +116,8 @@ public sealed partial class ConnectWindow : Window
                 await probe.GetHandshakeAsync(current.Token);
             });
         }
-        catch (RpcException fault) when (fault.StatusCode == StatusCode.Unauthenticated) { failure = "The host rejected this session token."; }
-        catch (Exception fault) when (fault is RpcException or OperationCanceledException or IOException or HttpRequestException)
+        catch (Exception fault) when (RemoteErrors.IsUnauthenticated(fault)) { failure = "The host rejected this session token."; }
+        catch (Exception fault) when (RemoteErrors.IsTransport(fault) || fault is OperationCanceledException or IOException or HttpRequestException)
         {
             failure = "No host answered at " + uri.Authority + ". Check the address, and that the host is listening on a network this device can reach.";
         }

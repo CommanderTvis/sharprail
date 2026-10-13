@@ -1,7 +1,5 @@
 using System.Net;
 
-using Grpc.Core;
-
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
@@ -9,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
 using SharpRail.Host.Core;
+using SharpRail.Host.Protocol;
 using SharpRail.Host.Remote;
 
 namespace SharpRail.Checks;
@@ -35,7 +34,7 @@ internal static class FileSavingChecks
             catch (RpcException error) when (error.StatusCode == StatusCode.Unauthenticated) { }
         }
         finally { await server.StopAsync(); }
-        Console.WriteLine("PASS editor saves locally and over gRPC, conflict/workspace/path checks, encoding, permissions and cancellation");
+        Console.WriteLine("PASS editor saves locally and over WebSocket RPC, conflict/workspace/path checks, encoding, permissions and cancellation");
     }
 
     private static async Task Exercise(IProjectServices host, string root)

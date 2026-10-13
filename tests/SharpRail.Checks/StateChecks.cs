@@ -10,11 +10,12 @@ using Microsoft.Extensions.Logging;
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
 using SharpRail.Host.Core;
+using SharpRail.Host.Protocol;
 using SharpRail.Host.Remote;
 
 namespace SharpRail.Checks;
 
-/// <summary>Host state parity: the same changes through direct and gRPC adapters yield the same snapshots, broadcasts and files.</summary>
+/// <summary>Host state parity: the same changes through direct and WebSocket RPC adapters yield the same snapshots, broadcasts and files.</summary>
 internal static class StateChecks
 {
     private static void Require(bool condition, string message)
@@ -74,20 +75,20 @@ internal static class StateChecks
                 await service.ChangeAsync([HostStateChange.Setting("file-width", "39")]);
                 throw new InvalidOperationException($"The {name} host accepted an invalid width.");
             }
-            catch (Exception error) when (error is ArgumentException or Grpc.Core.RpcException) { }
+            catch (Exception error) when (error is ArgumentException or SharpRail.Host.Protocol.RpcException) { }
             try
             {
                 await service.ChangeAsync([HostStateChange.DiffBase(project, "--output=x")]);
                 throw new InvalidOperationException($"The {name} host stored an option-shaped review target.");
             }
-            catch (Exception error) when (error is ArgumentException or Grpc.Core.RpcException) { }
+            catch (Exception error) when (error is ArgumentException or SharpRail.Host.Protocol.RpcException) { }
             watch.Cancel();
             try
             {
                 await service.ChangeAsync([HostStateChange.Setting("custom-highlighting", """[{"Scope":"broken"}]""")]);
                 throw new InvalidOperationException($"The {name} host accepted malformed custom highlighting.");
             }
-            catch (Exception error) when (error is ArgumentException or Grpc.Core.RpcException) { }
+            catch (Exception error) when (error is ArgumentException or SharpRail.Host.Protocol.RpcException) { }
         }
         var expected = Describe(await local.GetStateAsync());
         Require(expected == Describe(await remote.GetStateAsync()), "Local and remote hosts must apply the same changes identically.");
@@ -110,7 +111,7 @@ internal static class StateChecks
         Require(localShake == remoteShake && localShake.ProtocolVersion == HostProtocol.Current, "Local and remote handshakes must match.");
         using var wrong = new RemoteStateAdapter(new Uri(address), "wrong-token");
         try { await wrong.GetHandshakeAsync(); throw new InvalidOperationException("A wrong token must not learn the protocol version."); }
-        catch (Grpc.Core.RpcException error) when (error.StatusCode is Grpc.Core.StatusCode.Unauthenticated or Grpc.Core.StatusCode.PermissionDenied) { }
+        catch (SharpRail.Host.Protocol.RpcException error) when (error.StatusCode is SharpRail.Host.Protocol.StatusCode.Unauthenticated or SharpRail.Host.Protocol.StatusCode.PermissionDenied) { }
         Require(new HostHandshake(0, "").Supports(0) && !new HostHandshake(0, "").Supports(1) && new HostHandshake(2, "").Supports(2) && new HostHandshake(3, "").Supports(2),
             "A handshake supports features introduced at or below its version.");
         Require(!HostCapabilities.Supports(null, 0) && !HostCapabilities.Supports(0, 1) && HostCapabilities.Supports(1, 1) && HostCapabilities.Supports(2, 1),
@@ -150,10 +151,10 @@ internal static class StateChecks
         Directory.Delete(vanished);
         Require(new HostStateStore(agentsDirectory).Current.TerminalAgents.Select(agent => agent.Terminal.WorkspaceId).SequenceEqual([living]),
             "Loading state forgets agent records of workspaces whose folder is gone.");
-        Console.WriteLine("PASS host state changes, broadcasts, validation and persistence match locally and over gRPC");
+        Console.WriteLine("PASS host state changes, broadcasts, validation and persistence match locally and over WebSocket RPC");
     }
 
-    /// <summary>A gRPC host that serves no state methods, like a build that predates the handshake.</summary>
+    /// <summary>A WebSocket RPC host that serves no state methods, like a build that predates the handshake.</summary>
     private sealed class OldHost : IAsyncDisposable
     {
         private readonly Microsoft.AspNetCore.Builder.WebApplication app;
@@ -163,10 +164,16 @@ internal static class StateChecks
         internal static async Task<OldHost> StartAsync()
         {
             var builder = Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder();
-            builder.WebHost.ConfigureKestrel(options => options.Listen(IPAddress.Loopback, 0, listen => listen.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http2));
+            builder.WebHost.ConfigureKestrel(options => options.Listen(IPAddress.Loopback, 0, listen => listen.Protocols = Microsoft.AspNetCore.Server.Kestrel.Core.HttpProtocols.Http1));
             builder.Logging.ClearProviders();
             var app = builder.Build();
-            app.Use((Microsoft.AspNetCore.Http.HttpContext context, Func<Task> _) => { context.Response.Headers["grpc-status"] = "12"; context.Response.ContentType = "application/grpc"; return Task.CompletedTask; });
+            app.UseWebSockets();
+            app.Run(async context =>
+            {
+                using var socket = await context.WebSockets.AcceptWebSocketAsync(RpcWire.Subprotocol);
+                await using var peer = new RpcPeer(socket, (stream, _) => stream.Finish(new RpcException(new(StatusCode.Unimplemented, "Unknown operation."))).AsTask());
+                await peer.Completion;
+            });
             await app.StartAsync();
             return new(app, app.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single());
         }
@@ -174,7 +181,7 @@ internal static class StateChecks
         public ValueTask DisposeAsync() => app.DisposeAsync();
     }
 
-    // Any known project's workspaces, from any session, identically over gRPC; never an arbitrary folder.
+    // Any known project's workspaces, from any session, identically over WebSocket RPC; never an arbitrary folder.
     private static async Task WorkspaceListing(string root)
     {
         var repository = E2E.IsolatedGit.Repository(Path.Combine(root, "listing-repo"));
@@ -206,7 +213,7 @@ internal static class StateChecks
             Require((await service.ListWorkspacesAsync(withoutSeparator)).Workspaces.Single().Path == withoutSeparator,
                 $"A {label} known folder also authorizes the same path without its trailing separator.");
             try { await service.ListWorkspacesAsync(stranger); throw new InvalidOperationException($"A {label} host listed a folder that is not its project."); }
-            catch (Exception error) when (error is UnauthorizedAccessException or Grpc.Core.RpcException) { }
+            catch (Exception error) when (error is UnauthorizedAccessException or SharpRail.Host.Protocol.RpcException) { }
         }
         Directory.Delete(linked, recursive: true);
         foreach (var service in new[] { local, remote })

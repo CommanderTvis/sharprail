@@ -28,7 +28,9 @@ public sealed partial class ScintillaEditor
     {
         base.OnKeyDown(e);
         if (disposed) return;
-        bool command = e.KeyModifiers.HasFlag(KeyModifiers.Meta);
+        var commandModifier = OperatingSystem.IsBrowser() ? (Application.Current?.TryGetFeature(typeof(Avalonia.Platform.IPlatformSettings)) as Avalonia.Platform.IPlatformSettings)?.HotkeyConfiguration.CommandModifiers ?? KeyModifiers.Control : KeyModifiers.Meta;
+        bool command = e.KeyModifiers.HasFlag(commandModifier);
+        bool macCommands = commandModifier == KeyModifiers.Meta;
         bool shift = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
         bool option = e.KeyModifiers.HasFlag(KeyModifiers.Alt);
         if (command && e.Key is Key.C or Key.X or Key.V)
@@ -37,10 +39,11 @@ public sealed partial class ScintillaEditor
         {
             (true, _, Key.A) => ScintillaMessage.SelectAll,
             (true, _, Key.Z) => shift ? ScintillaMessage.Redo : ScintillaMessage.Undo,
-            (true, _, Key.Left) => shift ? ScintillaMessage.VCHomeExtend : ScintillaMessage.VCHome,
-            (true, _, Key.Right) => shift ? ScintillaMessage.LineEndExtend : ScintillaMessage.LineEnd,
-            (true, _, Key.Up) => shift ? ScintillaMessage.DocumentStartExtend : ScintillaMessage.DocumentStart,
-            (true, _, Key.Down) => shift ? ScintillaMessage.DocumentEndExtend : ScintillaMessage.DocumentEnd,
+            (true, _, Key.Y) when !macCommands => ScintillaMessage.Redo,
+            (true, _, Key.Left) when macCommands => shift ? ScintillaMessage.VCHomeExtend : ScintillaMessage.VCHome,
+            (true, _, Key.Right) when macCommands => shift ? ScintillaMessage.LineEndExtend : ScintillaMessage.LineEnd,
+            (true, _, Key.Up) when macCommands => shift ? ScintillaMessage.DocumentStartExtend : ScintillaMessage.DocumentStart,
+            (true, _, Key.Down) when macCommands => shift ? ScintillaMessage.DocumentEndExtend : ScintillaMessage.DocumentEnd,
             (false, true, Key.Left) => shift ? ScintillaMessage.WordLeftExtend : ScintillaMessage.WordLeft,
             (false, true, Key.Right) => shift ? ScintillaMessage.WordRightExtend : ScintillaMessage.WordRight,
             (false, true, Key.Back) => ScintillaMessage.DelWordLeft,
@@ -48,7 +51,7 @@ public sealed partial class ScintillaEditor
             _ => null
         };
         if (message is { } action) { document.Send(action); Changed(); e.Handled = true; return; }
-        if (command) return;
+        if (command && (macCommands || e.Key is not (Key.Left or Key.Right or Key.Up or Key.Down or Key.Home or Key.End or Key.Back or Key.Delete))) return;
         if (!option && !e.KeyModifiers.HasFlag(KeyModifiers.Control) && e.Key is Key.Left or Key.Right or Key.Back or Key.Delete && EditByGrapheme(e.Key, shift))
         { Changed(); e.Handled = true; return; }
         int key = e.Key switch

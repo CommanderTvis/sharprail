@@ -139,7 +139,7 @@ same. Publishing state must not recreate the pane or interrupt a draft.
 
 `BlueprintChecks` translates format, reconciliation and session cases from the fork,
 uses the real plugin runtime, exercises host-side delivery and reported session IDs,
-and checks generic gRPC parity. Its headless UI check opens the file through the
+and checks generic WebSocket RPC parity. Its headless UI check opens the file through the
 redirect, edits and confirms prose, toggles a checkbox, opens raw source and verifies
 the companion's identity, then rewrites the file on disk as a terminal author would and
 waits for the mounted pane to show each rewrite through the host's watcher alone. Start-dialog coverage exercises remote document selection,
@@ -147,11 +147,11 @@ source switching and cancellation, then Draft from Project Home into the Default
 workspace with launcher prompts, a recorded terminal author and a visible companion. It also
 refuses an outside document with the notification above, and a local check turns the real Claude
 Code plugin on and off with the dialog open to show its author chip appearing and leaving.
-Recovery coverage through the in-process host and a real gRPC host checks exact
+Recovery coverage through the in-process host and a real WebSocket RPC host checks exact
 recorded-session launch options, fresh recovery without a session, companion visibility,
 preserved documents and reuse of the author on reopening. A launcher failure reports its actual
 error and releases the pending opening so a second file-open can retry exactly once.
 Codex coverage checks the author choice, opening prompts, persisted identity, reader-edit
-delivery and fresh/recorded-session recovery through local and gRPC hosts.
+delivery and fresh/recorded-session recovery through local and WebSocket RPC hosts.
 Run with `--blueprint`; the plugin and full runners also include these checks.
 Remaining acceptance gaps are tracked in `COMPLETION.md`.

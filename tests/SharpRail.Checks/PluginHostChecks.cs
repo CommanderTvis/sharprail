@@ -13,6 +13,7 @@ using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
 using SharpRail.Host.Core;
 using SharpRail.Host.Core.Plugins;
+using SharpRail.Host.Protocol;
 using SharpRail.Host.Remote;
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.Host;
@@ -22,7 +23,7 @@ namespace SharpRail.Checks;
 /// <summary>
 /// The host's plugin runtime: manifest intake, discovery, the registry and reconciler, activation ids, drain and
 /// bounded disposal, dispatch, settings namespaces, tools, terminals, and the external fixture plugin installed
-/// from disk and driven through the direct adapter and a real gRPC host.
+/// from disk and driven through the direct adapter and a real WebSocket RPC host.
 /// </summary>
 internal static class PluginHostChecks
 {
@@ -162,7 +163,7 @@ internal static class PluginHostChecks
         await External(Path.Combine(directory, "external"));
         await ExternalFiles(Path.Combine(directory, "external-files"));
         await Terminals(Path.Combine(directory, "terminals"));
-        Console.WriteLine("PASS plugin host: generation pin, manifests, discovery, registry, activation ids, drain, reconciler, dispatch, settings, tools, terminals and the external fixture locally and over gRPC");
+        Console.WriteLine("PASS plugin host: generation pin, manifests, discovery, registry, activation ids, drain, reconciler, dispatch, settings, tools, terminals and the external fixture locally and over WebSocket RPC");
     }
 
     private static string FixtureSource()
@@ -641,13 +642,13 @@ internal static class PluginHostChecks
                 await stranger.ListAsync();
                 throw new InvalidOperationException("The plugin service accepted a bad token.");
             }
-            catch (Grpc.Core.RpcException error) when (error.StatusCode == Grpc.Core.StatusCode.Unauthenticated) { }
+            catch (SharpRail.Host.Protocol.RpcException error) when (error.StatusCode == SharpRail.Host.Protocol.StatusCode.Unauthenticated) { }
         }
         finally { await server.StopAsync(); }
         Console.WriteLine("PASS external fixture plugin: shared assemblies from the default context, route on the loopback server, rescan reload and promotion, generation and dependency refusals");
     }
 
-    // The same scenario through the direct adapter and a gRPC host: install from disk arrives disabled, enable,
+    // The same scenario through the direct adapter and a WebSocket RPC host: install from disk arrives disabled, enable,
     // call, channel publish and snapshot, bad params naming the path, settings namespaces, disable, the file read.
     private static async Task Exercise(string mode, IPluginService plugins, IHostStateService state)
     {
@@ -687,7 +688,7 @@ internal static class PluginHostChecks
             await state.ChangeAsync([HostStateChange.PluginSettings("fixture", """{"greeting":5}""")]);
             throw new InvalidOperationException($"{mode}: an invalid namespace was accepted.");
         }
-        catch (Exception error) when (error is ArgumentException or Grpc.Core.RpcException) { }
+        catch (Exception error) when (error is ArgumentException or SharpRail.Host.Protocol.RpcException) { }
 
         var workspace = "workspace-" + mode;
         await using (var mine = new Pushes(plugins.SubscribeAsync(new("fixture", "counter", new { workspace }, "client"))))
@@ -768,14 +769,14 @@ internal static class PluginHostChecks
                 await project.ReadFileAsync(hidden);
                 throw new InvalidOperationException($"{mode}: an unexposed absolute file was read.");
             }
-            catch (Exception error) when (error is UnauthorizedAccessException or Grpc.Core.RpcException) { }
+            catch (Exception error) when (error is UnauthorizedAccessException or SharpRail.Host.Protocol.RpcException) { }
             await enable(false);
             try
             {
                 await project.ReadFileAsync(exposed);
                 throw new InvalidOperationException($"{mode}: a disabled plugin's file was still readable.");
             }
-            catch (Exception error) when (error is UnauthorizedAccessException or Grpc.Core.RpcException) { }
+            catch (Exception error) when (error is UnauthorizedAccessException or SharpRail.Host.Protocol.RpcException) { }
         }
 
         await using (var composed = await Compose(Path.Combine(directory, "local"), [(Manifest("exposer", true), Exposer())]))
@@ -799,7 +800,7 @@ internal static class PluginHostChecks
             });
         }
         finally { await server.StopAsync(); }
-        Console.WriteLine("PASS plugin external files: exact absolute files read and save locally and over gRPC, others refused, withdrawn on disable");
+        Console.WriteLine("PASS plugin external files: exact absolute files read and save locally and over WebSocket RPC, others refused, withdrawn on disable");
     }
 
     private static async Task Terminals(string directory)
@@ -886,9 +887,9 @@ internal static class PluginHostChecks
         finally { await attached.DisposeAsync(); }
         await pty.CloseAsync(session);
         Require(composed.State.Current.TerminalAgents.Count == 0, "Closing the tab drops its agent record.");
-        await Until(() => { lock (events) return Task.FromResult(events.OfType<TerminalClosed>().Any(closed => closed.Terminal == tab)); }, "the close event");
+        await Until(() => { lock (events) return Task.FromResult(events.OfType<SharpRail.Plugins.Api.Host.TerminalClosed>().Any(closed => closed.Terminal == tab)); }, "the close event");
 
-        // Over gRPC the tab key and the prefill ride the attach.
+        // Over WebSocket RPC the tab key and the prefill ride the attach.
         var remoteDirectory = Path.Combine(directory, "remote");
         await using var server = RemoteServer.Create(workspace, IPAddress.Loopback, 0, "terminal-plugins", remoteDirectory,
             plugins: seams => seams with { Builtins = [(Manifest("reviver", true), Reviver())] });
@@ -914,6 +915,6 @@ internal static class PluginHostChecks
             Require((await remoteState.GetStateAsync()).TerminalAgents.Count == 0, "Closing a remote tab drops its agent record.");
         }
         finally { await server.StopAsync(); }
-        Console.WriteLine("PASS plugin terminals: environment contributors, revive prefill locally and over gRPC, host-side write, tokens, MCP plugin tools, process table, lifecycle, agent records");
+        Console.WriteLine("PASS plugin terminals: environment contributors, revive prefill locally and over WebSocket RPC, host-side write, tokens, MCP plugin tools, process table, lifecycle, agent records");
     }
 }

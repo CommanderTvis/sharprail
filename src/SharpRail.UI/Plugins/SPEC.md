@@ -206,7 +206,7 @@ Both walks are pure functions over the roster, and the checks call them directly
 dependency walks; the loader against builtin modules on a stand-in host (`E2E/FakePluginHost.cs`), which alone can
 list builtin UI halves with another wire version or a throwing activation and push off-scope channel values;
 activation outside `Activate` refused. The fixture plugin then runs end to end through the real host, once in
-process and once remote over gRPC: installed from disk beside a refused and a removable copy, a dormant tool
+process and once remote over WebSocket RPC: installed from disk beside a refused and a removable copy, a dormant tool
 placeholder turning live with the tab instance kept, its UI half loaded through the host, its side tool,
 Settings section (with a settings update reaching the host half) and file viewer mounted, a call and a state
 subscription round-tripping, every contribution gone after disabling it from Settings › Plugins, Rescan dropping

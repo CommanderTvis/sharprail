@@ -85,9 +85,9 @@ straight/branched/merged/orphan histories, lane caps and carried pages.
 Set `SHARPRAIL_TEST_GIT_SOURCE` to the fork clone containing
 `refs/remotes/origin/claude-code-integration-plugin-api` for real Git checks. These fetch existing history
 and create refs/worktrees in an isolated fixture; they create no commits and never alter signing configuration.
-Local and gRPC host checks cover pagination, refs, worktrees, patches and errors. UI checks cover windowing,
+Local and WebSocket RPC host checks cover pagination, refs, worktrees, patches and errors. UI checks cover windowing,
 shared gutters, copying, Changes scope and paging through both host modes. Independent local and
-gRPC fixtures cover View changes for multi-file, root and empty commits, kept-tab reuse, committed
+WebSocket RPC fixtures cover View changes for multi-file, root and empty commits, kept-tab reuse, committed
 content despite worktree edits and the absence of historical Keep/revert actions. Fresh committed fixtures
 (isolated, unsigned) translate the fork's merge/orphan rendering (branch art only on the merge row, the
 orphan's `docs-site` chip) and gutter scenarios (one lane at the tip, widening on scroll into dated

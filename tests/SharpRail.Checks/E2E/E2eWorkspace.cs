@@ -62,7 +62,7 @@ internal sealed class E2eWorkspace : IDisposable
     private readonly LoopbackServer? loopback;
 
     /// <summary>
-    /// A remote client of a real gRPC host at <paramref name="endpoint"/>, restoring <paramref name="startPath"/>;
+    /// A remote client of a real WebSocket RPC host at <paramref name="endpoint"/>, restoring <paramref name="startPath"/>;
     /// with <paramref name="plugins"/> it reaches the host's plugin runtime as the app does.
     /// </summary>
     internal E2eWorkspace(Uri endpoint, string token, string root, string profileRoot, string startPath, bool plugins = true, E2eTerminals? terminals = null,

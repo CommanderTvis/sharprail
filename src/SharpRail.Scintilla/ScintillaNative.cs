@@ -33,6 +33,8 @@ internal static unsafe class ScintillaNative
 
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
     internal static extern nint sr_create(DrawCallback callback, nint context);
+    [DllImport(Library, EntryPoint = "sr_create")]
+    internal static extern nint sr_create_browser(nint callback, nint context);
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
     internal static extern int sr_failed();
     [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]

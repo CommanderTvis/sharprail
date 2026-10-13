@@ -24,9 +24,9 @@ tokenization and remains independent of the editor/UI.
 
 The host as an embeddable library: filesystem reads and saves, project and spec discovery, Git status,
 diffs and worktrees, shared host state, and host-owned PTY terminals. It implements the interfaces in
-`SharpRail.Host.Abstractions` and knows nothing of Avalonia, gRPC or the UI. The UI embeds it directly
+`SharpRail.Host.Abstractions` and knows nothing of Avalonia, WebSocket RPC or the UI. The UI embeds it directly
 through `SharpRail.Host.Client`'s local adapters; `SharpRail.Host.Remote` serves the same instances over
-gRPC.
+WebSocket RPC.
 
 ## Boundary
 
@@ -123,6 +123,9 @@ terminal attachments, never through a UI callback.
   available to the host and its children, including secrets the user's shell exports.
 - A retrying recursive tree removal for teardown, and first-free-port selection for the remote host.
 - Host-side routes serving raw workspace files for relative Markdown images (images load through
-  `ReadFileAsync` instead). A path's bytes at one commit are served as a gRPC call
+  `ReadFileAsync` instead). A path's bytes at one commit are served as a WebSocket RPC call
   (`ReadContentBytesAsync`), not a route, and are not streamed.
 - Crash logging to the state directory and one graceful, idempotent shutdown path shared by launchers.
+
+GitHub authentication status is a project service operation performed by the host through `gh auth
+status`, with cancellation and a bounded timeout. The response contains status text, never credentials.

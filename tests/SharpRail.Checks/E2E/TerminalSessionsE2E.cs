@@ -19,7 +19,7 @@ namespace SharpRail.Checks.E2E;
 
 // Translates the host-owned session rows of upstream e2e/terminals.spec.ts. A reload is a new window of the
 // same app over the same profile and terminal host. A second browser is a second window of the app with its
-// own connection to a real gRPC host; a dropped socket is a TCP proxy that severs the connection.
+// own connection to a real WebSocket RPC host; a dropped socket is a TCP proxy that severs the connection.
 internal static class TerminalSessionsE2E
 {
     internal const string Token = "e2e-terminal-token";
@@ -140,8 +140,8 @@ internal static class TerminalSessionsE2E
         Console.WriteLine("PASS upstream terminals.spec.ts: a shell that dies while detached is not re-attached as if alive");
     }
 
-    // One gRPC host that windows reach through their own connections.
-    internal sealed class GrpcHost : IDisposable
+    // One WebSocket RPC host that windows reach through their own connections.
+    internal sealed class RemoteHost : IDisposable
     {
         private readonly PtyTerminalService pty = new("/bin/sh");
         private readonly WebApplication server;
@@ -149,7 +149,7 @@ internal static class TerminalSessionsE2E
         internal E2eTerminals Host { get; }
         internal Uri Address { get; }
 
-        internal GrpcHost(string root)
+        internal RemoteHost(string root)
         {
             Host = new E2eTerminals(pty);
             server = RemoteServer.Create(root, IPAddress.Loopback, 0, Token, terminals: Host);
@@ -176,7 +176,7 @@ internal static class TerminalSessionsE2E
     private static void OutputStaysAddressed(string root)
     {
         var directory = Repository(root, "terminals-addressed");
-        using var host = new GrpcHost(directory);
+        using var host = new RemoteHost(directory);
         using var a = Window(directory, host.Client());
         var first = WorkspaceTabsE2E.CreateWorkspace(a, "workspace-1");
         Ready(a, TerminalTabs(a).Single());
@@ -202,7 +202,7 @@ internal static class TerminalSessionsE2E
     private static void ReconnectSurvives(string root)
     {
         var directory = Repository(root, "terminals-reconnect");
-        using var host = new GrpcHost(directory);
+        using var host = new RemoteHost(directory);
         var proxy = new TcpProxy(host.Address);
         try
         {
@@ -228,7 +228,7 @@ internal static class TerminalSessionsE2E
     private static void LostAttachReply(string root)
     {
         var directory = Repository(root, "terminals-lost-attach");
-        using var host = new GrpcHost(directory);
+        using var host = new RemoteHost(directory);
         var faults = new AttachFaults();
         using var app = Window(directory, host.Client(faults: faults));
         Ready(app, TerminalTabs(app).Single());
@@ -248,7 +248,7 @@ internal static class TerminalSessionsE2E
     private static void FinalOutputAfterReconnect(string root)
     {
         var directory = Repository(root, "terminals-final-output");
-        using var host = new GrpcHost(directory);
+        using var host = new RemoteHost(directory);
         var proxy = new TcpProxy(host.Address);
         try
         {
@@ -276,7 +276,7 @@ internal static class TerminalSessionsE2E
     private static void SecondClientTakesOver(string root)
     {
         var directory = Repository(root, "terminals-takeover");
-        using var host = new GrpcHost(directory);
+        using var host = new RemoteHost(directory);
         using var a = Window(directory, host.Client());
         var workspace = WorkspaceTabsE2E.CreateWorkspace(a, "workspace-1");
         var tab = TerminalTabs(a).Single();
@@ -311,7 +311,7 @@ internal static class TerminalSessionsE2E
     private static void DiesDuringReclaim(string root)
     {
         var directory = Repository(root, "terminals-reclaim");
-        using var host = new GrpcHost(directory);
+        using var host = new RemoteHost(directory);
         var faults = new AttachFaults();
         using var a = Window(directory, host.Client(faults: faults));
         var workspace = WorkspaceTabsE2E.CreateWorkspace(a, "workspace-1");

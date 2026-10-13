@@ -1,20 +1,13 @@
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 
-using Grpc.Core;
-using Grpc.Core.Interceptors;
-using Grpc.Net.Client;
-
-using ProtoBuf.Grpc;
-using ProtoBuf.Grpc.Client;
-
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Protocol;
 using SharpRail.Plugins.Api;
 
 namespace SharpRail.Host.Client;
 
-/// <summary>Interactive clients retry a dropped host quickly instead of gRPC's default two-minute backoff ceiling.</summary>
+/// <summary>Interactive clients retry a dropped host with bounded exponential backoff.</summary>
 internal static class StateAdapterDefaults
 {
     internal static readonly TimeSpan InitialReconnect = TimeSpan.FromMilliseconds(250);
@@ -39,7 +32,7 @@ public sealed class LocalStateAdapter(IHostStateService host) : IHostStateServic
 
 public sealed class RemoteStateAdapter : IHostStateService, IDisposable
 {
-    private readonly GrpcChannel channel;
+    private readonly RpcChannel channel;
     private readonly IStateRpc service;
     private readonly string token;
     private readonly HostConnection connection;
@@ -49,14 +42,8 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
     {
         if (string.IsNullOrWhiteSpace(token)) throw new ArgumentException("A host session token is required.", nameof(token));
         this.token = token; this.connection = connection ?? new();
-        channel = GrpcChannel.ForAddress(address, new GrpcChannelOptions
-        {
-            // Custom grammar JSON can occupy 2 Mi UTF-16 characters before UTF-8 encoding.
-            MaxReceiveMessageSize = 8 * 1024 * 1024,
-            InitialReconnectBackoff = StateAdapterDefaults.InitialReconnect,
-            MaxReconnectBackoff = StateAdapterDefaults.MaxReconnect
-        });
-        service = channel.Intercept(new HostCallInterceptor(this.connection)).CreateGrpcService<IStateRpc>();
+        channel = new RpcChannel(address, this.connection);
+        service = channel.CreateService<IStateRpc>();
     }
 
     private CallContext Context(CancellationToken ct, bool stream = false) => new(new CallOptions(

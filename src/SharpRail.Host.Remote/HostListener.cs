@@ -11,7 +11,7 @@ using SharpRail.Plugins.Tailscale;
 
 namespace SharpRail.Host.Remote;
 
-/// <summary>A runtime-switchable gRPC listener over a caller-owned embedded host.</summary>
+/// <summary>A runtime-switchable WebSocket RPC listener over a caller-owned embedded host.</summary>
 public sealed class HostListener(string root, HostStateStore state, ITerminalService? terminals, PluginRuntime plugins) : IAsyncDisposable
 {
     private readonly SemaphoreSlim gate = new(1, 1);

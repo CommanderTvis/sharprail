@@ -52,12 +52,8 @@ public sealed partial class MermaidView : ContentControl
         MermaidRenderer.Result result;
         try
         {
-            result = await Task.Run(() =>
-            {
-                var rendered = MermaidRenderer.Render(source, options);
-                if (rendered.Svg is not null) svg = SvgSource.LoadFromSvg(rendered.Svg);
-                return rendered;
-            }, lifetime.Token);
+            result = await MermaidRenderer.RenderAsync(source, options, lifetime.Token);
+            if (result.Svg is { } sourceSvg) svg = await Task.Run(() => SvgSource.LoadFromSvg(sourceSvg), lifetime.Token);
         }
         catch (OperationCanceledException) { return; }
         finally { if (lifetime.IsCancellationRequested) svg?.Dispose(); }

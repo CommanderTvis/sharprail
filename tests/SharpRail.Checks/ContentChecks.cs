@@ -18,7 +18,7 @@ using SharpRail.UI.Rendering;
 
 namespace SharpRail.Checks;
 
-/// <summary>Byte classification, byte-only diff sides, immutable original reads and inert active content, locally and over gRPC.</summary>
+/// <summary>Byte classification, byte-only diff sides, immutable original reads and inert active content, locally and over WebSocket RPC.</summary>
 internal static class ContentChecks
 {
     private static readonly byte[] Png = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 1, 2, 3];

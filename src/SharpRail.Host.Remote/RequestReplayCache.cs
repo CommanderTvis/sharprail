@@ -1,9 +1,6 @@
 using System.Security.Cryptography;
 
-using Grpc.Core;
-
 using ProtoBuf;
-using ProtoBuf.Grpc;
 
 using SharpRail.Host.Protocol;
 
@@ -57,10 +54,10 @@ public sealed class RequestReplayCache(IHostApplicationLifetime lifetime, int ma
     /// </summary>
     public ValueTask<T> RunAsync<TRequest, T>(CallContext context, TRequest request, Func<CancellationToken, ValueTask<T>> execute) where T : class
     {
-        var headers = context.ServerCallContext?.RequestHeaders;
+        var headers = context.RequestHeaders;
         if (headers?.GetValue(ReplayHeaders.Client) is not { Length: > 0 } clientKey || headers.GetValue(ReplayHeaders.Request) is not { Length: > 0 } id)
             return execute(context.CancellationToken);
-        var fingerprint = context.ServerCallContext!.Method + ":" + Fingerprint(request);
+        var fingerprint = context.Method + ":" + Fingerprint(request);
         Task<object> result;
         lock (clients)
         {

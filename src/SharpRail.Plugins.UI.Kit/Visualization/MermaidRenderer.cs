@@ -12,6 +12,9 @@ public static class MermaidRenderer
 {
     public sealed record Result(string? Svg, string? Error);
 
+    /// <summary>A platform renderer with the same Merman options contract, such as the browser WASM runtime.</summary>
+    public static Func<string, string, Task<Result>>? PlatformRender { private get; set; }
+
     /// <summary>Captures the current appearance as Mermaid's base theme, as the reference derives it from its CSS tokens.</summary>
     public static string Options() => new JsonObject
     {
@@ -38,6 +41,10 @@ public static class MermaidRenderer
         // Svg.Skia cannot draw <foreignObject> labels; the preview supplies the surface colour.
         ["svg"] = new JsonObject { ["pipeline"] = "resvg-safe", ["root_background_color"] = "transparent" }
     }.ToJsonString();
+
+    /// <summary>Runs the platform renderer or native parsing and layout off the caller's UI thread.</summary>
+    public static Task<Result> RenderAsync(string source, string options, CancellationToken cancellationToken = default)
+        => PlatformRender is { } platform ? platform(source, options) : Task.Run(() => Render(source, options), cancellationToken);
 
     /// <summary>Blocks on native parsing and layout; call it off the UI thread.</summary>
     public static Result Render(string source, string options)

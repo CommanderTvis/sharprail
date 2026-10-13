@@ -294,3 +294,6 @@ but TextMateSharp's repository merge drops the parent scope. Before loading Swif
 the adapter flattens scoped repositories into uniquely named rules and rewrites local
 includes, preserving lexical references and ordinary self-includes. This compatibility
 transform is restricted to Swift and exercised by real keyword/comment/string samples.
+
+Merman can be supplied through `MermaidRenderer.PlatformRender`, retaining the same source/options/SVG
+contract for a browser WASM instance. Native desktop rendering remains the default.

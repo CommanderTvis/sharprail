@@ -104,7 +104,7 @@ minimal one-page fixture generated with correct offsets for each text:
 
 - the engine: page size and text, a character's box from the top left, rasterizing at a scale, and a non-PDF
   refused with a reason;
-- the fork's `pdf-preview.spec.ts` through embedded and real gRPC hosts: the page rasterizes, zooming in rasterizes it
+- the fork's `pdf-preview.spec.ts` through embedded and real WebSocket RPC hosts: the page rasterizes, zooming in rasterizes it
   larger and reset returns to 100%, a pointer drag across the line selects "ThinkRail PDF", the toolbar shows and
   no Markdown chrome does; a rewrite, a delete-and-rename and a Reload each show the new text without reopening the
   tab;
@@ -120,3 +120,7 @@ geometry have checks, as do drag autoscroll and native Unicode extraction from a
 The toolbar and retry layout use compiled XAML. Control/Command-wheel, ordinary scrolling and
 toolbar zoom bounds have checks. Trackpad magnify and load-race checks, native appearance,
 published output and full-suite verification remain open.
+
+The browser supplies the same pinned PDFium release as a separate WASM instance through `PdfPlatform`.
+Its adapter returns the viewer's existing page text, character rectangles and premultiplied BGRA rasters,
+including crop and rotation transforms. The shared viewer keeps selection, search, zoom and navigation.

@@ -20,7 +20,7 @@ namespace SharpRail.Checks.E2E;
 
 /// <summary>
 /// Upstream cases where several clients share one host. A second window of the same app stands in
-/// for another in-process client; a real gRPC host behind <see cref="CutProxy"/> stands in for
+/// for another in-process client; a real WebSocket RPC host behind <see cref="CutProxy"/> stands in for
 /// remote clients whose socket drops and reconnects.
 /// </summary>
 internal static class MultiClientE2E
@@ -68,6 +68,8 @@ internal static class MultiClientE2E
         if (startPath is null)
         {
             Until(() => client.Window.WorkspaceMounted);
+            // The rail chooses folder versus Project Home navigation from the deferred Git metadata.
+            Until(() => client.Find<TextBlock>("BranchLabel").Text == "main");
             GoProjectHome(client);
             Until(() => client.Find<TextBlock>("BranchLabel").Text == "main");
         }

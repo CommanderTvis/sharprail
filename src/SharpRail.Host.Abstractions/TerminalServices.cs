@@ -31,6 +31,8 @@ public static class TerminalGrid
 
 public interface ITerminalService
 {
+    /// <summary>Stores a PNG on the host for pasting its path into this session.</summary>
+    ValueTask<string> SaveClipboardImageAsync(string sessionId, ReadOnlyMemory<byte> png, CancellationToken cancellationToken = default) => throw new NotSupportedException("This host does not accept clipboard images.");
     // Attaches to the session, starting its shell when none exists yet.
     ValueTask<ITerminalSession> AttachAsync(TerminalAttachRequest request, CancellationToken cancellationToken = default);
     // True while a process other than the shell owns the terminal's foreground.

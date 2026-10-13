@@ -5,9 +5,8 @@ Upstream: packages/contracts/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md)
 ## Responsibility
 
 The client↔host wire spine for remote hosts: the single source of truth for the
-code-first protobuf-net.Grpc service interfaces and their DTOs. It holds contracts
-only, with no behavior; the one runtime constant beyond DTO shapes is the
-`ProjectHeaders.Root` metadata key. Embedded (local) mode never touches this
+typed protobuf service interfaces, DTOs, generated clients and shared WebSocket framing runtime.
+The runtime owns multiplexing, call lifetime and bounded flow control; host behavior stays in the adapters. Embedded (local) mode never touches this
 project: local adapters call Core directly, with no serialization.
 
 ## Boundary
@@ -21,7 +20,7 @@ project: local adapters call Core directly, with no serialization.
   serialized projection. Client and Remote adapters map between the two, and both
   directions must stay consistent with the public abstraction. A DTO is never
   exposed to the UI.
-- Allowed deps: protobuf-net and protobuf-net.Grpc attribute/`CallContext` types.
+- Allowed deps: protobuf-net and the .NET WebSocket/channel APIs.
 - Forbidden: any reference to Core, Remote, Client, the UI or Avalonia. Contracts
   describe host behavior and compatibility, never the launcher or deployment
   that supplies it.
@@ -94,7 +93,7 @@ project: local adapters call Core directly, with no serialization.
 - Terminal positions are byte offsets into the session's output. Resuming from an
   offset is what makes reconnects show nothing twice; position rides every output
   frame rather than being inferred from lengths.
-- Failures use gRPC status codes, not a bespoke error-code enum. A code earns a
+- Failures use WebSocket RPC status codes, not a bespoke error-code enum. A code earns a
   distinct meaning only when a client behaves differently for it: terminal attach
   distinguishes `FailedPrecondition` (the shell cannot start; show the reason)
   from transient transport codes (reconnect); state changes report invalid input
@@ -118,7 +117,7 @@ project: local adapters call Core directly, with no serialization.
 - Mutations are replayable (`ReplayContract.cs`, protocol version 3 as `HostProtocol.RequestReplay`). The
   client sends its identity (`x-sharprail-client`, one per client process), a request id that stays the
   same across replays (`x-sharprail-request`) and its complete set of unresolved ids
-  (`x-sharprail-resume`) with every replayable call (`ReplayHeaders.IsReplayable`). gRPC has no
+  (`x-sharprail-resume`) with every replayable call (`ReplayHeaders.IsReplayable`). WebSocket RPC has no
   per-connection frame to carry upstream's `ack` and `resume` messages, so one header does both jobs: an
   id missing from it has had its reply read, and restating the whole set on each call repairs anything a
   lost call failed to say. An older host ignores the headers, so a client replays only against a host
@@ -158,9 +157,33 @@ project: local adapters call Core directly, with no serialization.
   as a typed value.
 - A host HTTP endpoint for worktree files (relative Markdown images over remote).
 - Resource metadata on file reads and diff sides is ported, including a byte-only file read answered as
-  empty text plus metadata, with the bytes fetched over gRPC rather than the host's file/blob HTTP
+  empty text plus metadata, with the bytes fetched over WebSocket RPC rather than the host's file/blob HTTP
   endpoints. Still open: a streamed rather than single-message transfer.
 
 Prompt attachments use `SavePromptImageAsync`: bounded PNG bytes are saved under the host state's
 clipboard directory, returning an absolute host path. Local calls run off the dispatcher; remote calls
 carry the bytes and return the same host path, never a client-local file path.
+
+
+
+## WebSocket protocol
+
+Every remote client uses `/rpc` with the required `sharprail.rpc.v1` WebSocket subprotocol.
+Binary protobuf envelopes carry call ids, method names, request metadata, remaining deadline budgets,
+payload chunks, half-close, final status/error metadata, cancellation, receive credits and heartbeats.
+`scripts/generate-rpc.py` generates typed clients and a closed host dispatch table from the interfaces;
+there is no runtime proxy generation and no gRPC dependency or loopback forwarding.
+
+Each connection allows at most 64 active calls and queues at most 64 outgoing frames. Payload chunks
+are at most 32 KiB; envelopes are at most 48 KiB. Reassembled messages are limited to 144 MiB, with a
+192 MiB connection budget for retained receive buffers and pending serialized sends. Each call grants
+16 messages of receive credit in each direction. A consumer advances its stream to grant another;
+the bounded window pipelines terminal chunks without a round trip per chunk, and a stalled stream never blocks the connection's receive pump. Protocol violations disconnect the peer.
+Call cancellation and deadline expiry end only that call, preserve the connection and cancel host work;
+mutations protected by the replay cache retain their established independent lifetime.
+
+Ping/pong detects a silent connection within three heartbeat periods. A lost connection faults its
+calls as Unavailable; subscriptions reconnect through their owners and mutations retain replay ids.
+Domain error metadata survives the transport. The backing buffers belong to their call and are released
+on consumption, completion or cancellation. Network clients and servers must both support this wire
+protocol; the old HTTP/2 gRPC wire format is not accepted.

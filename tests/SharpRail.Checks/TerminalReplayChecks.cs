@@ -6,6 +6,7 @@ using Avalonia.LogicalTree;
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
 using SharpRail.Host.Core;
+using SharpRail.Host.Protocol;
 using SharpRail.Host.Remote;
 using SharpRail.UI.Panels;
 
@@ -52,7 +53,7 @@ internal static partial class TerminalHostChecks
             Require((await settings.ChangeAsync([HostStateChange.Setting("terminal-replay", "0")])).Settings.TerminalReplayKb == 0, "Zero must survive the wire as zero.");
             Require(await Replayed(terminals, workspace) == 0, "A remote host must apply a replay size of zero.");
             try { await settings.ChangeAsync([HostStateChange.Setting("terminal-replay", "2000")]); throw new InvalidOperationException("A remote host accepted an oversized replay size."); }
-            catch (Grpc.Core.RpcException error) when (error.StatusCode == Grpc.Core.StatusCode.InvalidArgument) { }
+            catch (SharpRail.Host.Protocol.RpcException error) when (error.StatusCode == SharpRail.Host.Protocol.StatusCode.InvalidArgument) { }
             await settings.ChangeAsync([HostStateChange.Setting("terminal-replay", "256")]);
             Require(await Replayed(terminals, workspace, id, close: false) > 128 * 1024, "A remote host must apply a larger replay size to terminals opened afterwards.");
         }

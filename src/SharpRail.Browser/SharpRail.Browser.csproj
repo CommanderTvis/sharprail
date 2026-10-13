@@ -1,0 +1,90 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0-browser</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>SharpRail.UI</AssemblyName>
+    <RootNamespace>SharpRail.UI</RootNamespace>
+    <RuntimeIdentifier>browser-wasm</RuntimeIdentifier>
+    <DefineConstants>$(DefineConstants);BROWSER</DefineConstants>
+    <DefineConstants Condition="'$(BrowserChecks)' == 'true'">$(DefineConstants);BROWSER_CHECKS</DefineConstants>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <BrowserBinaryen>$(MSBuildProjectDirectory)/../../.tools/wasm-native/binaryen</BrowserBinaryen>
+    <EmccFlags>$(EmccFlags) -Wno-version-check</EmccFlags>
+    <WasmBuildNative>true</WasmBuildNative>
+    <WasmEnableThreads>true</WasmEnableThreads>
+    <WasmGenerateAppBundle>true</WasmGenerateAppBundle>
+    <WasmMainJSPath>wwwroot/main.js</WasmMainJSPath>
+    <WasmMainHTMLPath>wwwroot/index.html</WasmMainHTMLPath>
+    <WasmAppDir>$(MSBuildProjectDirectory)/bin/$(Configuration)/net10.0-browser/AppBundle</WasmAppDir>
+    <WasmNativeDebugSymbols Condition="'$(Configuration)' == 'Release'">false</WasmNativeDebugSymbols>
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
+    <UiSources>../SharpRail.UI/</UiSources>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../tests/SharpRail.Browser.Checks/BrowserChecks.cs" Condition="'$(BrowserChecks)' == 'true'" />
+    <Compile Include="$(UiSources)**/*.cs" Exclude="$(UiSources)bin/**;$(UiSources)obj/**;$(UiSources)Program.cs;$(UiSources)Terminal/LoopbackTerminals.cs;$(UiSources)Panels/HostSettings.cs" LinkBase="UI" />
+    <AvaloniaXaml Include="$(UiSources)**/*.axaml" Exclude="$(UiSources)bin/**;$(UiSources)obj/**" Link="%(RecursiveDir)%(Filename)%(Extension)" />
+    <AvaloniaResource Include="$(UiSources)Assets/**" Link="Assets/%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../SharpRail.Host.Core/SharpRail.Host.Core.csproj" />
+    <ProjectReference Include="../SharpRail.Host.Client/SharpRail.Host.Client.csproj" />
+    <ProjectReference Include="../SharpRail.Scintilla/SharpRail.Scintilla.csproj" />
+    <ProjectReference Include="../Ghostty.Avalonia/Ghostty.Avalonia.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Api.UI/SharpRail.Plugins.Api.UI.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.UI.Kit/SharpRail.Plugins.UI.Kit.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.SpecDialect/UI/SharpRail.Plugins.SpecDialect.UI.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Blueprint/UI/SharpRail.Plugins.Blueprint.UI.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.ClaudeCode/UI/SharpRail.Plugins.ClaudeCode.UI.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Discord/UI/SharpRail.Plugins.Discord.UI.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.PdfPreview/UI/SharpRail.Plugins.PdfPreview.UI.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.BranchGraph/UI/SharpRail.Plugins.BranchGraph.UI.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Visualize/UI/SharpRail.Plugins.Visualize.UI.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Codex/UI/SharpRail.Plugins.Codex.UI.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.FileIcons/UI/SharpRail.Plugins.FileIcons.UI.csproj" />
+    <ProjectReference Include="../SharpRail.Plugins.Tailscale/UI/SharpRail.Plugins.Tailscale.UI.csproj" />
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Browser" />
+    <PackageReference Include="Microsoft.NET.WebAssembly.Threading" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+    <PackageReference Include="SkiaSharp" />
+    <PackageReference Include="SkiaSharp.NativeAssets.WebAssembly" />
+    <PackageReference Include="HarfBuzzSharp.NativeAssets.WebAssembly" />
+    <PackageReference Include="Markdig" />
+    <PackageReference Include="QRCoder" />
+    <PackageReference Include="Svg.Controls.Skia.Avalonia" />
+    <!-- The browser supplies the WASM PDFium build. -->
+    <PackageReference Include="bblanchon.PDFium.Linux" ExcludeAssets="all" />
+    <PackageReference Include="bblanchon.PDFium.macOS" ExcludeAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <WasmOptConfigurationFlags Include="--enable-nontrapping-float-to-int" />
+    <NativeFileReference Include="../../.tools/wasm-native/GhosttyAvaloniaVt.a" />
+    <NativeFileReference Include="../../.tools/wasm-native/SharpRail.Scintilla.a" />
+  </ItemGroup>
+  <Target Name="BuildBrowserNative" BeforeTargets="PrepareForBuild">
+    <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/browser-binaryen.sh&quot;" />
+    <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/wasm-native.sh&quot;" />
+    <Exec Command="node &quot;$(MSBuildProjectDirectory)/../../scripts/browser-assets.mjs&quot;" />
+    <ItemGroup>
+      <BrowserAsset Include="wwwroot/**/*" />
+      <WasmExtraFilesToDeploy Include="@(BrowserAsset)" TargetPath="%(BrowserAsset.RecursiveDir)%(BrowserAsset.Filename)%(BrowserAsset.Extension)" />
+    </ItemGroup>
+  </Target>
+  <Target Name="UseBrowserBinaryen" AfterTargets="_SetupEmscripten">
+    <ItemGroup>
+      <EmscriptenEnvVars Remove="@(EmscriptenEnvVars)" Condition="$([System.String]::Copy('%(Identity)').StartsWith('DOTNET_EMSCRIPTEN_BINARYEN_ROOT=')) Or $([System.String]::Copy('%(Identity)').StartsWith('PATH='))" />
+      <EmscriptenEnvVars Include="DOTNET_EMSCRIPTEN_BINARYEN_ROOT=$(BrowserBinaryen)" />
+      <EmscriptenEnvVars Include="PATH=$(BrowserBinaryen)/bin$(_PathSeparator)$(_EmscriptenPrependPATHProperty)$(_PathSeparator)$([MSBuild]::Escape($(PATH)))" />
+    </ItemGroup>
+  </Target>
+  <Target Name="UseAvaloniaImplementationAssemblies" AfterTargets="ResolveAssemblyReferences" BeforeTargets="CoreCompile">
+    <ItemGroup>
+      <AvaloniaReferenceAssembly Include="@(ReferencePath->WithMetadataValue('NuGetPackageId', 'Avalonia'))" />
+      <ReferencePath Remove="@(AvaloniaReferenceAssembly)" />
+      <ReferencePath Include="@(AvaloniaReferenceAssembly->Replace('/ref/', '/lib/')->Replace('\ref\', '\lib\'))" />
+    </ItemGroup>
+  </Target>
+</Project>

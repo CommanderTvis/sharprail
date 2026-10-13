@@ -1,4 +1,5 @@
 using System.Runtime.ExceptionServices;
+using System.Runtime.InteropServices;
 
 using SkiaSharp;
 
@@ -19,12 +20,18 @@ internal sealed unsafe class SkiaSurface : IDisposable
     private SKCanvas? canvas;
     private ExceptionDispatchInfo? error;
     internal ScintillaNative.DrawCallback Callback { get; }
+    private GCHandle browserHandle;
+    internal nint BrowserContext => GCHandle.ToIntPtr(browserHandle);
+    [UnmanagedCallersOnly]
+    internal static double BrowserDraw(nint context, ScintillaNative.DrawCommand* command) =>
+        ((SkiaSurface)GCHandle.FromIntPtr(context).Target!).Dispatch(context, in *command);
 
     internal SkiaSurface(SKTypeface typeface)
     {
         this.typeface = typeface;
         shaper = new(typeface);
         Callback = Dispatch;
+        if (OperatingSystem.IsBrowser()) browserHandle = GCHandle.Alloc(this);
     }
 
     internal void CheckError()
@@ -200,6 +207,7 @@ internal sealed unsafe class SkiaSurface : IDisposable
     {
         foreach (var surface in surfaces.Values) surface.Dispose();
         foreach (var font in fonts.Values) font.Dispose();
+        if (browserHandle.IsAllocated) browserHandle.Free();
         surfaces.Clear(); fonts.Clear(); shaper.Dispose();
         blobBuilder.Dispose(); fill.Dispose(); stroke.Dispose();
     }

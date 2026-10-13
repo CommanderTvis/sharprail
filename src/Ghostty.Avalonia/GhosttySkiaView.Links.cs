@@ -26,7 +26,7 @@ public sealed partial class GhosttySkiaView
     private KeyModifiers linkModifiers;
     private string? hoveredUrl, pressedUrl;
 
-    private static KeyModifiers LinkModifier => OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control;
+    private KeyModifiers LinkModifier => MacKeyboard ? KeyModifiers.Meta : KeyModifiers.Control;
 
     internal static unsafe Dictionary<int, string> FindUrls(Frame frame)
     {
@@ -74,6 +74,7 @@ public sealed partial class GhosttySkiaView
 
     private unsafe void UpdateLinks(Frame frame)
     {
+        var hadLinks = linkCells.Count != 0;
         linkCells.Clear();
         hoveredUrl = null;
         var fileText = (string?)null;
@@ -122,9 +123,10 @@ public sealed partial class GhosttySkiaView
                 linkCells.Add(index);
                 if (frame.Cells[index].Wide == 1 && index + 1 < frame.Columns * frame.Rows) linkCells.Add(index + 1);
             }
-        for (var i = 0; i < frame.Columns * frame.Rows; i++)
-            frame.Cells[i].Flags = (frame.Cells[i].Flags & ~CellFlags.LinkHover) | (linkCells.Contains(i) ? CellFlags.LinkHover : 0);
-        Cursor = new Cursor(hoveredUrl is null && FileHover.Link is null ? StandardCursorType.Ibeam : StandardCursorType.Hand);
+        if (hadLinks || linkCells.Count != 0)
+            for (var i = 0; i < frame.Columns * frame.Rows; i++)
+                frame.Cells[i].Flags = (frame.Cells[i].Flags & ~CellFlags.LinkHover) | (linkCells.Contains(i) ? CellFlags.LinkHover : 0);
+        if (hadLinks != (linkCells.Count != 0)) Cursor = new Cursor(hoveredUrl is null && FileHover.Link is null ? StandardCursorType.Ibeam : StandardCursorType.Hand);
     }
 
     private unsafe void RefreshLink(PointerEventArgs e)

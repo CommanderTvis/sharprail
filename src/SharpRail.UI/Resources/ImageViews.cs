@@ -8,6 +8,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 
 using SharpRail.Host.Abstractions;
+using SharpRail.Host.Client;
 using SharpRail.UI.Rendering;
 
 using SkiaSharp;
@@ -148,7 +149,7 @@ internal sealed class ImageView : Grid, IResourceBody, IDisposable
             Apply(state);
         }
         catch (OperationCanceledException) { }
-        catch (Exception error) when (error is IOException or Grpc.Core.RpcException) { details.Text = "Could not load this picture: " + error.Message; details.Foreground = Ui.Danger; }
+        catch (Exception error) when (error is IOException || RemoteErrors.IsTransport(error)) { details.Text = "Could not load this picture: " + error.Message; details.Foreground = Ui.Danger; }
     }
 
     private void Apply(ImageViewState next)

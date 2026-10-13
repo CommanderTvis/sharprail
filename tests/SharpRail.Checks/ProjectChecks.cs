@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
 using SharpRail.Host.Core;
+using SharpRail.Host.Protocol;
 using SharpRail.Host.Remote;
 
 namespace SharpRail.Checks;
@@ -107,9 +108,9 @@ internal static class ProjectChecks
                     async () => await host.SaveFileAsync(new(fixture, ".git/config", "[core]\n", "[user]\n")), async () => await host.ReadContentBytesAsync(".GIT/config", null)
                 })
                     try { await act(); throw new InvalidOperationException($"The {name} host reached into Git's own directory."); }
-                    catch (Exception error) when (error is UnauthorizedAccessException or Grpc.Core.RpcException && error.Message.Contains("Git's own directory", StringComparison.Ordinal)) { }
+                    catch (Exception error) when (error is UnauthorizedAccessException or SharpRail.Host.Protocol.RpcException && error.Message.Contains("Git's own directory", StringComparison.Ordinal)) { }
                 try { await host.ReadFileAsync("absent/leaf.txt"); throw new InvalidOperationException("A missing file was read."); }
-                catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException or Grpc.Core.RpcException && !error.Message.Contains("outside", StringComparison.Ordinal)) { }
+                catch (Exception error) when (error is FileNotFoundException or DirectoryNotFoundException or SharpRail.Host.Protocol.RpcException && !error.Message.Contains("outside", StringComparison.Ordinal)) { }
             }
             Directory.Delete(Path.Combine(fixture, ".git"), recursive: true);
             Require((await remote.ListSpecsAsync()).SequenceEqual(await local.ListSpecsAsync()), "Remote specs differ.");
@@ -128,10 +129,10 @@ internal static class ProjectChecks
                 await service.ApplyFileActionAsync(new("create-file", Path.Combine(folder, "a.txt")));
                 Require(File.Exists(Path.Combine(fixture, folder, "a.txt")), label + " create-file must make an empty file inside its folder.");
                 try { await service.ApplyFileActionAsync(new("create-file", Path.Combine(folder, "a.txt"))); throw new InvalidOperationException(label + " create overwrote a file."); }
-                catch (Exception error) when (error is IOException or Grpc.Core.RpcException) { }
+                catch (Exception error) when (error is IOException or SharpRail.Host.Protocol.RpcException) { }
                 await File.WriteAllTextAsync(Path.Combine(fixture, folder, "b.txt"), "kept\n");
                 try { await service.ApplyFileActionAsync(new("rename", Path.Combine(folder, "a.txt"), Path.Combine(folder, "b.txt"))); throw new InvalidOperationException(label + " rename replaced a file."); }
-                catch (Exception error) when (error is IOException or Grpc.Core.RpcException) { }
+                catch (Exception error) when (error is IOException or SharpRail.Host.Protocol.RpcException) { }
                 await service.ApplyFileActionAsync(new("rename", Path.Combine(folder, "a.txt"), Path.Combine(folder, "c.txt")));
                 Require(File.Exists(Path.Combine(fixture, folder, "c.txt")) && !File.Exists(Path.Combine(fixture, folder, "a.txt")) &&
                     await File.ReadAllTextAsync(Path.Combine(fixture, folder, "b.txt")) == "kept\n", label + " rename must move only its own file.");
@@ -139,7 +140,7 @@ internal static class ProjectChecks
                 {
                     var refused = false;
                     try { await service.ApplyFileActionAsync(escape); }
-                    catch (Exception error) when (error is UnauthorizedAccessException or InvalidOperationException or Grpc.Core.RpcException) { refused = true; }
+                    catch (Exception error) when (error is UnauthorizedAccessException or InvalidOperationException or SharpRail.Host.Protocol.RpcException) { refused = true; }
                     Require(refused, $"{label} {escape.Kind} accepted \"{escape.Path}\".");
                 }
                 try { await service.ReadFileAsync(Path.Combine(folder, "gone.txt")); throw new InvalidOperationException(label + " read a missing file."); }
@@ -157,9 +158,9 @@ internal static class ProjectChecks
             catch (IOException error) { Require(GitDetail(error.Message, broken), $"Git probe failure detail was lost: {error.Message}"); }
             await remote.OpenProjectAsync(broken);
             try { await remote.GetGitAsync(); throw new InvalidOperationException("Remote Git probe failure was hidden."); }
-            catch (Grpc.Core.RpcException error)
+            catch (SharpRail.Host.Protocol.RpcException error)
             {
-                Require(error.StatusCode == Grpc.Core.StatusCode.FailedPrecondition && GitDetail(error.Status.Detail, broken),
+                Require(error.StatusCode == SharpRail.Host.Protocol.StatusCode.FailedPrecondition && GitDetail(error.Status.Detail, broken),
                     "Remote Git probe failure detail differs.");
             }
             var unborn = Path.Combine(fixture, "unborn-git");
@@ -173,7 +174,7 @@ internal static class ProjectChecks
                     await host.ApplyGitActionAsync(new("create-worktree", unborn + "-worktree", "first", "HEAD"));
                     throw new InvalidOperationException("A worktree was cut from a repository with no commits.");
                 }
-                catch (Exception error) when (error is InvalidOperationException or Grpc.Core.RpcException &&
+                catch (Exception error) when (error is InvalidOperationException or SharpRail.Host.Protocol.RpcException &&
                     error.Message.Contains("no commits yet", StringComparison.Ordinal))
                 { }
                 Require(!Directory.Exists(unborn + "-worktree"), "An unborn repository must be refused before Git mutates anything.");
@@ -185,11 +186,11 @@ internal static class ProjectChecks
             var pendingChange = watching.MoveNextAsync().AsTask();
             await server.StopAsync(shutdownTimeout.Token);
             try { Require(!await pendingChange, "A file stream must finish when the host stops."); }
-            catch (Grpc.Core.RpcException error) when (error.StatusCode == Grpc.Core.StatusCode.Cancelled) { }
+            catch (SharpRail.Host.Protocol.RpcException error) when (error.StatusCode is SharpRail.Host.Protocol.StatusCode.Cancelled or SharpRail.Host.Protocol.StatusCode.Unavailable) { }
             Console.WriteLine("PASS remote shutdown releases an active filesystem subscription");
         }
         finally { await server.StopAsync(); }
-        Console.WriteLine("PASS project/files local and gRPC parity, traversal and cancellation");
+        Console.WriteLine("PASS project/files local and WebSocket RPC parity, traversal and cancellation");
 
         var source = Environment.GetEnvironmentVariable("SHARPRAIL_TEST_GIT_SOURCE");
         if (string.IsNullOrEmpty(source))
@@ -233,7 +234,7 @@ internal static class ProjectChecks
         timeout.Cancel();
         try { await first.MoveNextAsync(); throw new InvalidOperationException("File watcher ignored cancellation."); }
         catch (OperationCanceledException) { }
-        Console.WriteLine("PASS filesystem create/edit/rename/delete notifications locally and over gRPC, with cancellation");
+        Console.WriteLine("PASS filesystem create/edit/rename/delete notifications locally and over WebSocket RPC, with cancellation");
     }
 
     private static async Task<string> Git(string root, params string[] args)
@@ -379,7 +380,7 @@ internal static class ProjectChecks
                     await service.OpenInEditorAsync("vscode", Path.GetTempPath());
                     throw new InvalidOperationException("An editor opened a path outside the project's workspaces.");
                 }
-                catch (Exception error) when (error is UnauthorizedAccessException or Grpc.Core.RpcException) { }
+                catch (Exception error) when (error is UnauthorizedAccessException or SharpRail.Host.Protocol.RpcException) { }
             }
             Require(await remote.GetDiffAsync(unusual, "uncommitted") == UntrackedDiff(unusual) &&
                 await remote.GetDiffAsync(unusual, "uncommitted") == await host.GetDiffAsync(unusual, "uncommitted"),

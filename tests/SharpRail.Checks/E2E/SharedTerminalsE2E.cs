@@ -12,7 +12,7 @@ using static SharpRail.Checks.E2E.TerminalSessionsE2E;
 
 namespace SharpRail.Checks.E2E;
 
-// Two clients of one real gRPC host, each with its own profile, connection and grid: which terminals exist is
+// Two clients of one real WebSocket RPC host, each with its own profile, connection and grid: which terminals exist is
 // the host's catalog, and a terminal is held by one client, and watched by the others, until another takes it over.
 internal static class SharedTerminalsE2E
 {
@@ -28,7 +28,7 @@ internal static class SharedTerminalsE2E
     private static void InProjects(string root)
     {
         var project = IsolatedGit.Repository(Path.Combine(root, "terminals-listed"));
-        using var host = new GrpcHost(project);
+        using var host = new RemoteHost(project);
         var a = Client(host, project, "desk", project, host.Client());
         E2eWorkspace? b = null;
         try
@@ -69,7 +69,7 @@ internal static class SharedTerminalsE2E
     private static void PhoneToDesktop(string root)
     {
         var project = IsolatedGit.Repository(Path.Combine(root, "phone-to-desktop"));
-        using var host = new GrpcHost(project);
+        using var host = new RemoteHost(project);
         using var desktop = Client(host, project, "desktop", project, host.Client());
         Until(() => desktop.Window.WorkspaceMounted);
         using var phone = new E2eWorkspace(host.Address, Token, project, project + "-phone-profile", project,
@@ -109,7 +109,7 @@ internal static class SharedTerminalsE2E
     private static void Renderers(string root)
     {
         var project = IsolatedGit.Repository(Path.Combine(root, "terminals-renderers"));
-        using var host = new GrpcHost(project);
+        using var host = new RemoteHost(project);
         var metal = host.Client();
         metal.WatchesWhenAsked = true;
         var a = Client(host, project, "desk", project, host.Client());
@@ -151,7 +151,7 @@ internal static class SharedTerminalsE2E
     private static void Shared(string root)
     {
         var project = IsolatedGit.Repository(Path.Combine(root, "terminals-shared"));
-        using var host = new GrpcHost(project);
+        using var host = new RemoteHost(project);
         var desk = host.Client();
         var phone = host.Client();
         phone.Grid = (61, 17);
@@ -253,11 +253,11 @@ internal static class SharedTerminalsE2E
         finally { b?.Dispose(); if (a.Workbench.Windows.Count > 0) a.Dispose(); }
     }
 
-    private static E2eWorkspace Client(GrpcHost host, string project, string name, string start, E2eTerminals terminals) =>
+    private static E2eWorkspace Client(RemoteHost host, string project, string name, string start, E2eTerminals terminals) =>
         new(host.Address, Token, project, project + "-" + name + "-profile", start, terminals: terminals);
 
     private static string[] Ids(E2eWorkspace app) => [.. TerminalTabs(app).Select(tab => tab.Id)];
 
-    private static string[] Catalog(GrpcHost host, string workspace) =>
+    private static string[] Catalog(RemoteHost host, string workspace) =>
         [.. (host.Host.HostService!.Catalog.Workspaces.GetValueOrDefault(workspace) ?? []).Select(tab => tab.Key)];
 }

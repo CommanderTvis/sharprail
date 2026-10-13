@@ -6,6 +6,7 @@ using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
 using SharpRail.Host.Core;
 using SharpRail.Host.Core.Plugins;
+using SharpRail.Host.Protocol;
 using SharpRail.Host.Remote;
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.Host;
@@ -113,7 +114,7 @@ internal static class HostListenerChecks
                 "Serving must expose the existing plugin instance without reactivation.");
             using var wrong = new RemoteStateAdapter(endpoint, "wrong-token");
             try { await wrong.GetHandshakeAsync(); throw new InvalidOperationException("A bad token must be rejected."); }
-            catch (Grpc.Core.RpcException error) when (error.StatusCode == Grpc.Core.StatusCode.Unauthenticated) { }
+            catch (SharpRail.Host.Protocol.RpcException error) when (error.StatusCode == SharpRail.Host.Protocol.StatusCode.Unauthenticated) { }
             using var remoteTerminals = new RemoteTerminalAdapter(endpoint, "listener-token");
             if (terminals is not null)
             {
@@ -139,7 +140,7 @@ internal static class HostListenerChecks
             using var restarted = new RemoteStateAdapter(listener.Endpoint!, "replacement-token");
             Require((await restarted.GetStateAsync()).Revision == state.Current.Revision, "Restarted serving must retain the live state.");
             try { await first.GetHandshakeAsync(); throw new InvalidOperationException("The old token must be rejected after rotation."); }
-            catch (Grpc.Core.RpcException error) when (error.StatusCode == Grpc.Core.StatusCode.Unauthenticated) { }
+            catch (SharpRail.Host.Protocol.RpcException error) when (error.StatusCode == SharpRail.Host.Protocol.StatusCode.Unauthenticated) { }
             if (terminals is not null)
             {
                 await using var resumed = await terminals.AttachAsync(new("listener-remote", other, "local-after-stop"));

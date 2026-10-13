@@ -35,7 +35,7 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
   `TerminalTab` and `TerminalCatalog` (`TerminalCatalog.cs`), and `FileLimits`.
 - Allowed deps: the .NET base library and `SharpRail.Plugins.Api`, whose roster, agent-record and project
   records `HostState` and `IPluginService` share with plugins rather than mirror.
-- Forbidden: serialization attributes, gRPC, Avalonia, filesystem or process access, and any AI or agent
+- Forbidden: serialization attributes, WebSocket RPC, Avalonia, filesystem or process access, and any AI or agent
   behaviour. A terminal's agent record is data a plugin writes; the host only stores and broadcasts it.
 
 ## Surfaces
@@ -111,7 +111,7 @@ The public top-level types of the assembly, held to it in both directions by the
 `BranchCatalog`, `ChangeException`, `ChangeExpectation`, `ChangeFailure`, `ChangeIdentity`,
 `ChangeReceipt`, `ContentBytes`, `ContentMetadata`, `DiffSides`, `DiffStats`, `EditorInfo`,
 `ExistingWorktree`, `WorkspaceFileChanges`, `FileAction`, `FileDocument`, `FileEntry`, `FileLimits`, `FileSaveRequest`,
-`GitAction`, `GitChange`, `GitCommit`, `GitSnapshot`, `HostErrorCode`, `HostException`,
+`GitAction`, `GitChange`, `GitCommit`, `GitHubAuthentication`, `GitSnapshot`, `HostErrorCode`, `HostException`,
 `HostHandshake`, `HostProtocol`, `HostSettings`, `HostState`, `HostStateChange`,
 `IPluginService`, `PluginCallRequest`, `PluginSubscription`, `SearchHit`, `SearchHits`,
 `TerminalAgent`, `TerminalPrefill`, `TerminalTitle`, `IHostStateService`, `IProjectServices`, `ITerminalCatalogService`, `ITerminalService`,
@@ -145,3 +145,6 @@ The public top-level types of the assembly, held to it in both directions by the
 Prompt attachments use `SavePromptImageAsync`: bounded PNG bytes are saved under the host state's
 clipboard directory, returning an absolute host path. Local calls run off the dispatcher; remote calls
 carry the bytes and return the same host path, never a client-local file path.
+
+Project services expose host-side GitHub authentication status. Terminal services accept a bounded PNG
+clipboard upload for a session and return its host-visible path; unsupported hosts report unavailability.

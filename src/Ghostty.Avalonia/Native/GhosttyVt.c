@@ -5,6 +5,31 @@
 #include <string.h>
 #include <ghostty/vt.h>
 
+#ifdef __EMSCRIPTEN__
+#include <malloc.h>
+static void *wasm_alloc(void *ctx, size_t len, uint8_t alignment, uintptr_t ra) {
+    (void)ctx; (void)ra;
+    return memalign((size_t)1 << alignment, len);
+}
+static bool wasm_resize(void *ctx, void *memory, size_t len, uint8_t alignment, size_t next, uintptr_t ra) {
+    (void)ctx; (void)memory; (void)alignment; (void)ra;
+    return next <= len;
+}
+static void *wasm_remap(void *ctx, void *memory, size_t len, uint8_t alignment, size_t next, uintptr_t ra) {
+    (void)ctx; (void)memory; (void)len; (void)alignment; (void)next; (void)ra;
+    return NULL;
+}
+static void wasm_free(void *ctx, void *memory, size_t len, uint8_t alignment, uintptr_t ra) {
+    (void)ctx; (void)len; (void)alignment; (void)ra;
+    free(memory);
+}
+static const GhosttyAllocatorVtable wasm_vtable = { wasm_alloc, wasm_resize, wasm_remap, wasm_free };
+static const GhosttyAllocator wasm_allocator = { NULL, &wasm_vtable };
+#define GAV_ALLOCATOR (&wasm_allocator)
+#else
+#define GAV_ALLOCATOR NULL
+#endif
+
 #if defined(_WIN32)
 #define GAV_API __declspec(dllexport)
 #else
@@ -107,16 +132,16 @@ GAV_API gav_vt *gav_vt_new(uint16_t columns, uint16_t rows, size_t scrollback_li
     vt->cell_width = vt->cell_height = 1;
     static const GhosttySelectionGestureEventType types[3] = {
         GHOSTTY_SELECTION_GESTURE_EVENT_TYPE_PRESS, GHOSTTY_SELECTION_GESTURE_EVENT_TYPE_DRAG, GHOSTTY_SELECTION_GESTURE_EVENT_TYPE_RELEASE };
-    bool ok = ghostty_terminal_new(NULL, &vt->terminal, columns, rows) == GHOSTTY_SUCCESS &&
-        ghostty_render_state_new(NULL, &vt->render) == GHOSTTY_SUCCESS &&
-        ghostty_render_state_row_iterator_new(NULL, &vt->rows) == GHOSTTY_SUCCESS &&
-        ghostty_render_state_row_cells_new(NULL, &vt->row_cells) == GHOSTTY_SUCCESS &&
-        ghostty_key_encoder_new(NULL, &vt->keys) == GHOSTTY_SUCCESS &&
-        ghostty_key_event_new(NULL, &vt->key) == GHOSTTY_SUCCESS &&
-        ghostty_mouse_encoder_new(NULL, &vt->mouse) == GHOSTTY_SUCCESS &&
-        ghostty_mouse_event_new(NULL, &vt->mouse_event) == GHOSTTY_SUCCESS &&
-        ghostty_selection_gesture_new(NULL, &vt->gesture) == GHOSTTY_SUCCESS;
-    for (int i = 0; ok && i < 3; i++) ok = ghostty_selection_gesture_event_new(NULL, &vt->gesture_events[i], types[i]) == GHOSTTY_SUCCESS;
+    bool ok = ghostty_terminal_new(GAV_ALLOCATOR, &vt->terminal, columns, rows) == GHOSTTY_SUCCESS &&
+        ghostty_render_state_new(GAV_ALLOCATOR, &vt->render) == GHOSTTY_SUCCESS &&
+        ghostty_render_state_row_iterator_new(GAV_ALLOCATOR, &vt->rows) == GHOSTTY_SUCCESS &&
+        ghostty_render_state_row_cells_new(GAV_ALLOCATOR, &vt->row_cells) == GHOSTTY_SUCCESS &&
+        ghostty_key_encoder_new(GAV_ALLOCATOR, &vt->keys) == GHOSTTY_SUCCESS &&
+        ghostty_key_event_new(GAV_ALLOCATOR, &vt->key) == GHOSTTY_SUCCESS &&
+        ghostty_mouse_encoder_new(GAV_ALLOCATOR, &vt->mouse) == GHOSTTY_SUCCESS &&
+        ghostty_mouse_event_new(GAV_ALLOCATOR, &vt->mouse_event) == GHOSTTY_SUCCESS &&
+        ghostty_selection_gesture_new(GAV_ALLOCATOR, &vt->gesture) == GHOSTTY_SUCCESS;
+    for (int i = 0; ok && i < 3; i++) ok = ghostty_selection_gesture_event_new(GAV_ALLOCATOR, &vt->gesture_events[i], types[i]) == GHOSTTY_SUCCESS;
     if (!ok) { gav_vt_free(vt); return NULL; }
     ghostty_terminal_set(vt->terminal, GHOSTTY_TERMINAL_OPT_USERDATA, vt);
     ghostty_terminal_set(vt->terminal, GHOSTTY_TERMINAL_OPT_WRITE_PTY, (const void *)write_pty);
@@ -403,3 +428,59 @@ GAV_API size_t gav_vt_screen_text(gav_vt *vt, char *out, size_t capacity) {
     if (ghostty_terminal_select_all(vt->terminal, &selection) != GHOSTTY_SUCCESS) return 0;
     return format(vt, &selection, out, capacity);
 }
+
+#ifdef __EMSCRIPTEN__
+// The browser links Skia's C ABI into the same WASM module; see the Skia rendering design in README.md.
+extern void sk_paint_set_color(void *paint, uint32_t color);
+extern void sk_canvas_draw_text_blob(void *canvas, const void *blob, float x, float y, const void *paint);
+typedef struct { float left, top, right, bottom; } gav_sk_rect;
+extern void sk_canvas_draw_rect(void *canvas, const gav_sk_rect *rect, const void *paint);
+typedef struct {
+    float left, top, cell_width, cell_height, baseline, width, height;
+    int row;
+} gav_row_metrics;
+
+static uint32_t row_color(const gav_vt_frame *frame, const gav_vt_cell *cell, bool background) {
+    bool inverse = (cell->flags & GAV_CELL_INVERSE) != 0;
+    uint32_t value = background != inverse ? cell->background : cell->foreground;
+    if (!(value >> 24)) value = background != inverse ? frame->background : frame->foreground;
+    if (!background && (cell->flags & GAV_CELL_FAINT)) value = (value & 0xFFFFFFu) | 0x80000000u;
+    return value;
+}
+
+GAV_API int gav_draw_ascii_row(void *canvas, void *fill, void *text, const gav_vt_frame *frame,
+        const void *const *blobs, const gav_row_metrics *m) {
+    const gav_vt_cell *cells = frame->cells + m->row * frame->columns;
+    const uint16_t allowed = GAV_CELL_BOLD | GAV_CELL_ITALIC | GAV_CELL_FAINT | GAV_CELL_BLINK |
+        GAV_CELL_INVERSE | GAV_CELL_INVISIBLE;
+    for (int x = 0; x < frame->columns; x++) {
+        const gav_vt_cell *cell = cells + x;
+        if (cell->wide || cell->underline || (cell->flags & ~allowed) || cell->length > 1 ||
+                (cell->length == 1 && (frame->text[cell->text] < 32 || frame->text[cell->text] > 126))) return 0;
+    }
+    const float top = m->top + m->row * m->cell_height;
+    for (int x = 0; x < frame->columns;) {
+        const uint32_t color = row_color(frame, cells + x, true);
+        int end = x + 1;
+        while (end < frame->columns && row_color(frame, cells + end, true) == color) end++;
+        if (color != frame->background) {
+            gav_sk_rect rect = { x == 0 ? 0 : m->left + x * m->cell_width, m->row == 0 ? 0 : top,
+                end == frame->columns ? m->width : m->left + end * m->cell_width,
+                m->row == frame->rows - 1 ? m->height : top + m->cell_height };
+            sk_paint_set_color(fill, color);
+            sk_canvas_draw_rect(canvas, &rect, fill);
+        }
+        x = end;
+    }
+    for (int x = 0; x < frame->columns; x++) {
+        const gav_vt_cell *cell = cells + x;
+        if (!cell->length || (cell->flags & GAV_CELL_INVISIBLE)) continue;
+        const int style = ((cell->flags & GAV_CELL_BOLD) ? 1 : 0) | ((cell->flags & GAV_CELL_ITALIC) ? 2 : 0);
+        const void *blob = blobs[style * 95 + frame->text[cell->text] - 32];
+        if (!blob) continue;
+        sk_paint_set_color(text, row_color(frame, cell, false));
+        sk_canvas_draw_text_blob(canvas, blob, m->left + x * m->cell_width, top + m->baseline, text);
+    }
+    return 1;
+}
+#endif

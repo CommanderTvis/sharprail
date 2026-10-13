@@ -3,12 +3,13 @@ using System.Security.Cryptography;
 using System.Text;
 
 using Microsoft.AspNetCore.Server.Kestrel.Core;
-
-using ProtoBuf.Grpc.Server;
+using Microsoft.AspNetCore.StaticFiles;
+using Microsoft.Extensions.FileProviders;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Core;
 using SharpRail.Host.Core.Plugins;
+using SharpRail.Host.Protocol;
 using SharpRail.Plugins.Tailscale;
 
 namespace SharpRail.Host.Remote;
@@ -19,7 +20,7 @@ public static class RemoteServer
     /// The host owns its terminals unless the caller supplies and owns them. External plugins install under
     /// <c>&lt;stateDirectory&gt;/plugins</c>; <paramref name="plugins"/> adjusts the runtime's seams, as checks do.</summary>
     public static WebApplication Create(string root, IPAddress address, int port, string token, string? stateDirectory = null, ITerminalService? terminals = null,
-        Func<PluginHostSeams, PluginHostSeams>? plugins = null)
+        Func<PluginHostSeams, PluginHostSeams>? plugins = null, string? browserRoot = null)
     {
         if (string.IsNullOrWhiteSpace(token)) throw new ArgumentException("A host session token is required.", nameof(token));
         var builder = Builder(address, port);
@@ -40,15 +41,28 @@ public static class RemoteServer
         builder.Services.AddSingleton(new ProjectSessions(root, state, runtime.AllowsExternalFile));
         builder.Services.AddSingleton<RequestReplayCache>();
         builder.Services.AddSingleton(services => services.GetRequiredService<ITerminalService>() as ITerminalCatalogService ?? new MemoryTerminalCatalog());
-        builder.Services.AddCodeFirstGrpc(options => options.MaxReceiveMessageSize = FileLimits.SaveMessageBytes);
         var app = builder.Build();
+        if (browserRoot is not null)
+        {
+            var files = new PhysicalFileProvider(Path.GetFullPath(browserRoot));
+            app.Use(async (context, next) =>
+            {
+                context.Response.Headers["Cross-Origin-Opener-Policy"] = "same-origin";
+                context.Response.Headers["Cross-Origin-Embedder-Policy"] = "require-corp";
+                await next(context);
+            });
+            app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = files });
+            var contentTypes = new FileExtensionContentTypeProvider();
+            foreach (var extension in new[] { ".dll", ".pdb", ".dat", ".blat", ".symbols" }) contentTypes.Mappings[extension] = "application/octet-stream";
+            app.UseStaticFiles(new StaticFileOptions { FileProvider = files, ContentTypeProvider = contentTypes });
+        }
         Map(app, token, tailscale);
         tailscale.EnsureListening = (tailnetAddress, _) =>
         {
             if (!address.Equals(IPAddress.Any) && !address.Equals(IPAddress.IPv6Any) && address.ToString() != tailnetAddress)
                 throw new IOException("Start this host with SHARPRAIL_BIND set to its Tailscale address.");
             var endpoint = app.Services.GetRequiredService<Microsoft.AspNetCore.Hosting.Server.IServer>().Features
-                .Get<Microsoft.AspNetCore.Hosting.Server.Features.IServerAddressesFeature>()!.Addresses.Single();
+                .Get<Microsoft.AspNetCore.Hosting.Server.Features.IServerAddressesFeature>()!.Addresses.First();
             return ValueTask.FromResult(new UriBuilder("http", tailnetAddress, new Uri(endpoint).Port).Uri.ToString());
         };
         state.WorkspaceRemoved += path => _ = Task.Run(async () => await app.Services.GetRequiredService<ITerminalCatalogService>().CloseWorkspaceAsync(path));
@@ -86,7 +100,6 @@ public static class RemoteServer
         builder.Services.AddSingleton<RequestReplayCache>();
         builder.Services.AddSingleton(plugins);
         builder.Services.AddSingleton(new ProjectSessions(root, state, plugins.AllowsExternalFile));
-        builder.Services.AddCodeFirstGrpc(options => options.MaxReceiveMessageSize = FileLimits.SaveMessageBytes);
         var app = builder.Build();
         Map(app, token, tailscale);
         return app;
@@ -102,20 +115,15 @@ public static class RemoteServer
         builder.WebHost.ConfigureKestrel(options =>
         {
             options.Limits.MaxRequestBodySize = FileLimits.SaveMessageBytes;
-            options.Listen(address, port, endpoint => endpoint.Protocols = HttpProtocols.Http2);
+            options.Listen(address, port, endpoint => endpoint.Protocols = HttpProtocols.Http1);
+            options.Limits.MaxConcurrentUpgradedConnections = 128;
         });
         return builder;
     }
 
     private static void Map(WebApplication app, string token, TailscaleServing? tailscale)
     {
-        RequireToken(app, token, tailscale);
-        app.MapGrpcService<WorkspaceRpc>();
-        app.MapGrpcService<ProjectRpc>();
-        app.MapGrpcService<StateRpc>();
-        app.MapGrpcService<TerminalRpc>();
-        app.MapGrpcService<PluginRpc>();
-        app.MapGrpcService<TerminalCatalogRpc>();
+        WebSocketRpc.Map(app, token, tailscale?.Authenticate);
     }
 
     private sealed class ListenerLifetime : IHostLifetime
@@ -132,37 +140,4 @@ public static class RemoteServer
         public ValueTask CloseAsync(string sessionId, CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
     }
 
-    private static void RequireToken(WebApplication app, string token, TailscaleServing? tailscale)
-    {
-        var expected = SHA256.HashData(Encoding.UTF8.GetBytes($"Bearer {token}"));
-        app.Use(async (context, next) =>
-        {
-            var authorization = context.Request.Headers.Authorization.ToString();
-            var actual = SHA256.HashData(Encoding.UTF8.GetBytes(authorization));
-            var paired = authorization.StartsWith("Bearer ", StringComparison.Ordinal) && tailscale?.Authenticate?.Invoke(authorization[7..]) == true;
-            if (!CryptographicOperations.FixedTimeEquals(expected, actual) && !paired)
-            {
-                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
-                return;
-            }
-            if (!paired) { await next(context); return; }
-            using var lifetime = CancellationTokenSource.CreateLinkedTokenSource(context.RequestAborted);
-            var watching = Task.Run(async () =>
-            {
-                try
-                {
-                    while (true)
-                    {
-                        await Task.Delay(TimeSpan.FromSeconds(1), lifetime.Token);
-                        if (tailscale?.Authenticate?.Invoke(authorization[7..]) == true) continue;
-                        context.Abort();
-                        return;
-                    }
-                }
-                catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
-            });
-            try { await next(context); }
-            finally { await lifetime.CancelAsync(); await watching; }
-        });
-    }
 }

@@ -8,11 +8,12 @@ using Microsoft.Extensions.DependencyInjection;
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
 using SharpRail.Host.Core;
+using SharpRail.Host.Protocol;
 using SharpRail.Host.Remote;
 
 namespace SharpRail.Checks;
 
-/// <summary>Host-owned revert and undo: pure line arithmetic, then the same scenarios through the embedded host and a real gRPC host.</summary>
+/// <summary>Host-owned revert and undo: pure line arithmetic, then the same scenarios through the embedded host and a real WebSocket RPC host.</summary>
 internal static class ChangeChecks
 {
     private static void Require(bool condition, string message)
@@ -135,7 +136,7 @@ internal static class ChangeChecks
         try { return Project(await action()); }
         catch (ChangeException error) { return "code:" + error.Code; }
         catch (UnauthorizedAccessException) { return "denied"; }
-        catch (Grpc.Core.RpcException) { return "denied"; }
+        catch (SharpRail.Host.Protocol.RpcException) { return "denied"; }
     }
 
     private static string Hash(string path) => ContentInfo.Sha256Hex(File.ReadAllBytes(path));
