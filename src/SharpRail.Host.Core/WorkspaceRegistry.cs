@@ -67,6 +67,7 @@ public sealed partial class ProjectServices
         "attach" => await AttachWorktreeAsync(ProjectPath(action.ProjectRoot), action.Path, cancellationToken),
         "forget" => ForgetWorkspace(action.Id),
         "remove" => await RemoveWorkspaceAsync(action.Id, false, cancellationToken),
+        "force-remove" => await RemoveWorkspaceAsync(action.Id, false, cancellationToken, force: true),
         "reclaim" => await RemoveWorkspaceAsync(action.Id, true, cancellationToken),
         "reserve-terminal" => ReserveTerminal(action.Id),
         "reveal" => Reveal(action.Path),
@@ -174,7 +175,7 @@ public sealed partial class ProjectServices
         return forgotten;
     }
 
-    private async Task<WorkspaceRecord> RemoveWorkspaceAsync(string id, bool reclaim, CancellationToken cancellationToken)
+    private async Task<WorkspaceRecord> RemoveWorkspaceAsync(string id, bool reclaim, CancellationToken cancellationToken, bool force = false)
     {
         var workspace = registry.Current.Workspaces.FirstOrDefault(known => known.Id == id) ?? throw new InvalidOperationException($"Unknown workspace: {id}");
         // The fallback below deletes a directory, so it must never see the user's repository or an attached checkout.
@@ -184,7 +185,9 @@ public sealed partial class ProjectServices
         using var gate = await registry.LockWorkspacesAsync(cancellationToken);
         if (!reclaim)
         {
-            await GitRepository.RunAsync(workspace.ProjectRoot, cancellationToken, "worktree", "remove", "--", workspace.Path);
+            await GitRepository.RunAsync(workspace.ProjectRoot, cancellationToken, force
+                ? ["worktree", "remove", "--force", "--", workspace.Path]
+                : ["worktree", "remove", "--", workspace.Path]);
             ForgetWorkspace(id);
             DropIndexes(workspace.Path);
             return workspace;

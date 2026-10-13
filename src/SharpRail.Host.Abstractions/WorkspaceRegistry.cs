@@ -39,6 +39,8 @@ public sealed record WorkspaceAction(string Kind, string ProjectRoot = "", strin
     public static WorkspaceAction Forget(string id) => new("forget", Id: id);
     /// <summary>Removes a managed worktree unless Git refuses, keeping its branch.</summary>
     public static WorkspaceAction Remove(string id) => new("remove", Id: id);
+    /// <summary>Removes a dirty managed worktree after explicit approval, keeping its branch; locked worktrees still refuse.</summary>
+    public static WorkspaceAction ForceRemove(string id) => new("force-remove", Id: id);
     /// <summary>Drops a managed workspace and removes its worktree even when it is dirty or locked.</summary>
     public static WorkspaceAction Reclaim(string id) => new("reclaim", Id: id);
     public static WorkspaceAction ReserveTerminal(string id) => new("reserve-terminal", Id: id);

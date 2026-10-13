@@ -94,6 +94,9 @@ Settings switch. It never posts a real notification; on macOS it also loads the 
 `--registry` runs one workspace-registry scenario through the direct and the gRPC adapter and requires the same
 records, refusals and pushed lifecycle events from both, then the rail checks for attaching, forgetting,
 background project rows and removed-workspace cleanup.
+Force removal coverage requires explicit dirty-file approval, retains the branch, and preserves the
+registry, label and files when Git refuses a lock; Default and attached workspaces still refuse.
+Workspace lifecycle input checks Cancel preserves dirty files and Delete anyway removes only the checkout.
 
 `--serving` covers spontaneous serving of the existing embedded host: two authenticated clients,
 shared local/remote state broadcasts and plugin instance, independent project sessions, bind-failure

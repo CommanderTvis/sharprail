@@ -137,9 +137,11 @@ internal static class WorkspaceRegistryChecks
         log.Add(await Refused(() => host.ApplyWorkspaceActionAsync(WorkspaceAction.Attach(repo, Path.Combine(root, "loose"))), "A detached worktree was attached."));
         log.Add(await Refused(() => host.ApplyWorkspaceActionAsync(WorkspaceAction.Attach(repo, root)), "A folder that is no worktree was attached."));
         log.Add(await Refused(() => host.ApplyWorkspaceActionAsync(WorkspaceAction.Remove(attached.Id)), "An external workspace was removed from disk."));
+        log.Add(await Refused(() => host.ApplyWorkspaceActionAsync(WorkspaceAction.ForceRemove(attached.Id)), "An external workspace was force removed."));
         log.Add(await Refused(() => host.ApplyWorkspaceActionAsync(WorkspaceAction.Reclaim(attached.Id)), "An external workspace was reclaimed."));
         log.Add(await Refused(() => host.ApplyWorkspaceActionAsync(WorkspaceAction.Forget(first.Workspaces[0].Id)), "The Default workspace was forgotten."));
         log.Add(await Refused(() => host.ApplyWorkspaceActionAsync(WorkspaceAction.Reclaim(first.Workspaces[0].Id)), "The Default workspace was reclaimed."));
+        log.Add(await Refused(() => host.ApplyWorkspaceActionAsync(WorkspaceAction.ForceRemove(first.Workspaces[0].Id)), "The Default workspace was force removed."));
         await state.ChangeAsync([HostStateChange.Label(late, "Late work")]);
         Require((await host.ApplyWorkspaceActionAsync(WorkspaceAction.Forget(attached.Id)))!.Id == attached.Id && Directory.Exists(late) &&
             !(await state.GetStateAsync()).WorkspaceLabels.ContainsKey(late), "Forgetting drops the record and its label and keeps the worktree.");
@@ -204,16 +206,26 @@ internal static class WorkspaceRegistryChecks
             watch.Cancel();
         }
 
-        // Git refuses a dirty removal; a reclaim does not, and keeps the branch.
+        // Ordinary removal refuses dirty files; approved force removal keeps the branch and still refuses locks.
         File.WriteAllText(Path.Combine(named.Path, "dirty.txt"), "dirty\n");
         log.Add((await Refused(() => host.ApplyWorkspaceActionAsync(WorkspaceAction.Remove(named.Id)), "A dirty worktree was removed.")).Split('\n')[0].Replace(root, "."));
         Require((await state.GetStateAsync()).Workspaces.Any(workspace => workspace.Id == named.Id) && Directory.Exists(named.Path), "A refused removal keeps the workspace.");
-        await host.ApplyWorkspaceActionAsync(WorkspaceAction.Reclaim(named.Id));
+        Git(repo, "worktree", "lock", named.Path);
+        await Refused(() => host.ApplyWorkspaceActionAsync(WorkspaceAction.ForceRemove(named.Id)), "A locked worktree was force removed.");
+        Require(Directory.Exists(named.Path) && (await state.GetStateAsync()).Workspaces.Any(workspace => workspace.Id == named.Id) &&
+            (await state.GetStateAsync()).WorkspaceLabels.ContainsKey(named.Path), "A failed force removal keeps the folder, registry and label.");
+        Git(repo, "worktree", "unlock", named.Path);
+        await host.ApplyWorkspaceActionAsync(WorkspaceAction.ForceRemove(named.Id));
         Require(!Directory.Exists(named.Path) && !(await state.GetStateAsync()).Workspaces.Any(workspace => workspace.Id == named.Id) &&
             !(await state.GetStateAsync()).WorkspaceLabels.ContainsKey(named.Path) && Git(repo, "branch", "--list", "fix-login-flow").Length > 0 &&
-            !Git(repo, "worktree", "list").Contains("fix-login-flow\n", StringComparison.Ordinal), "A reclaim removes a dirty worktree, its record and label, and keeps the branch.");
+            !Git(repo, "worktree", "list").Contains("fix-login-flow\n", StringComparison.Ordinal), "Approved force removal removes a dirty worktree, its record and label, and keeps the branch.");
         await host.ApplyWorkspaceActionAsync(WorkspaceAction.Remove(tracked.Id));
         Require(!Directory.Exists(tracked.Path), "A clean managed worktree is removed.");
+        var reclaimed = (await host.ApplyWorkspaceActionAsync(WorkspaceAction.Create(repo, "Reclaim fixture")))!;
+        File.WriteAllText(Path.Combine(reclaimed.Path, "dirty.txt"), "dirty\n");
+        await host.ApplyWorkspaceActionAsync(WorkspaceAction.Reclaim(reclaimed.Id));
+        Require(!Directory.Exists(reclaimed.Path) && Git(repo, "branch", "--list", reclaimed.Branch).Length > 0,
+            "The separate reclaim action retains its existing dirty-removal behavior.");
 
         // The existing Git actions keep the registry in step, and a worktree removed behind the host's back leaves it.
         var explicitPath = Path.Combine(root, "explicit");

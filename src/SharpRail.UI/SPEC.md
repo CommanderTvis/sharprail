@@ -116,6 +116,10 @@ state: it shows what the window already knows and calls the same methods as the 
   Copy path, Reveal in file manager, Rename for a managed workspace, and Remove worktree… or, for an
   attached one, Remove from SharpRail. At Project Home the pill reads `Project home` and offers only the
   switcher and creation.
+- Removing a dirty managed worktree offers a second confirmation explaining that modified and
+  untracked files will be permanently lost. Cancel has focus; only an explicit Delete anyway action
+  retries with force. The committed branch remains, locked worktrees still refuse, and other deletion
+  failures do not offer force removal. Cancelling or a failed retry leaves the workspace registered.
 - Rename replaces the pill with the same inline input and the same single rename state the Projects rail
   uses; a flag says which of the two shows the input, so there is never a second request or a second
   draft. A header rename is bound to the workspace it started on: landing anywhere else abandons it,

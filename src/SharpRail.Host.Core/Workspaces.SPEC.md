@@ -27,7 +27,7 @@ SharpRail created, may be removed by it.
 
 - Owns: opening a project or workspace root (`ProjectServices.OpenProjectAsync`), the registry
   (`WorkspaceRegistry.cs`: `ListWorkspacesAsync`, `ApplyWorkspaceActionAsync` with `create`, `attach`,
-  `forget`, `remove`, `reclaim`, `reserve-terminal` and `reveal`), the older worktree Git actions
+  `forget`, `remove`, `force-remove`, `reclaim`, `reserve-terminal` and `reveal`), the older worktree Git actions
   (`ApplyGitActionAsync` with `create-worktree` / `remove-worktree`, which keep the registry in step) and
   suggesting the next workspace (`ListBranchesAsync`).
 - The records are host state: `HostStateStore.ChangeWorkspaces` saves them in `state.json`, publishes the
@@ -117,7 +117,11 @@ SharpRail created, may be removed by it.
   workspace refuses. Remove runs `git worktree remove` for a managed worktree, which refuses a dirty or
   locked one, and drops the record only when Git succeeded. Reclaim drops the record first and then runs
   `worktree remove --force`, falling back to deleting the directory and pruning; it keeps the branch.
-  Remove and reclaim refuse both user-owned kinds and any record whose path is the project folder.
+  Approved force removal runs `worktree remove --force` and only drops the record when Git succeeds;
+  it still refuses locked worktrees and never falls back to directory deletion. The UI offers this
+  only after ordinary removal reports modified/untracked files, with Cancel focused and an explicit
+  Delete anyway action warning that uncommitted changes are permanently lost. The branch is retained.
+  Remove, force removal and reclaim refuse both user-owned kinds and any record whose path is the project folder.
 - `remove-worktree` additionally refuses the main, the active and a locked worktree, and an external
   record. The UI asks for explicit confirmation first; removing the active workspace in a window returns
   it to the previously selected one.

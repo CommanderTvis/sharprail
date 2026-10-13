@@ -471,7 +471,18 @@ public sealed partial class WorkbenchWindow
             selectionHistory.Remove(worktree.Path);
             // The row may predate a re-registration of its path, so the id is read when it is used.
             var id = state.Current.Workspaces.FirstOrDefault(workspace => workspace.Path == worktree.Path)?.Id ?? worktree.Id;
-            await host.ApplyWorkspaceActionAsync(external ? WorkspaceAction.Forget(id) : WorkspaceAction.Remove(id), lifetime.Token);
+            try
+            {
+                await host.ApplyWorkspaceActionAsync(external ? WorkspaceAction.Forget(id) : WorkspaceAction.Remove(id), lifetime.Token);
+            }
+            catch (Exception error) when (!external && error.Message.Contains("contains modified or untracked files", StringComparison.Ordinal) &&
+                error.Message.Contains("use --force to delete it", StringComparison.Ordinal))
+            {
+                if (!await Dialogs.Confirm(this, "Delete uncommitted changes?",
+                    $"{worktree.Path} contains modified or untracked files. Deleting this worktree permanently loses those uncommitted changes. The branch will be retained.",
+                    "Delete anyway", "WorkspaceForceRemove", lifetime.Token)) return;
+                await host.ApplyWorkspaceActionAsync(WorkspaceAction.ForceRemove(id), lifetime.Token);
+            }
             removed = true;
         }
         catch (Exception error) when (error is not OperationCanceledException) { Report(error); }
