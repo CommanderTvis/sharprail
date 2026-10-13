@@ -7,14 +7,14 @@ namespace SharpRail.Plugins.Codex.UI;
 
 /// <summary>
 /// The editor projection Codex's <c>/ide</c> reads: open file editors, the active one and its selection, retained per
-/// workspace so focusing a terminal keeps its context. Diff views are never context; a closed editor drops its selection.
+/// workspace so focusing a terminal keeps its context. Diff views carry their selected source-side path and text; a closed editor drops its selection.
 /// </summary>
 public static class CodexEditorContext
 {
     /// <summary>Codex positions are zero-based; editor selections are one-based, converted here exactly once.</summary>
     public static CodexIdeContext Build(IReadOnlyList<EditorRef> editors, EditorRef? active, EditorSelection? selection)
     {
-        var files = editors.Where(editor => editor.Kind != EditorKind.Diff).ToArray();
+        var files = editors.Where(editor => editor.Path.Length > 0).ToArray();
         static CodexIdeFile Descriptor(EditorRef editor) => new(editor.Path.Split('/', '\\')[^1], editor.Path);
         var current = files.FirstOrDefault(editor => editor.Id == active?.Id);
         return new([.. files.Select(Descriptor)])
@@ -36,7 +36,7 @@ public static class CodexEditorContext
         var activeEditors = new Dictionary<string, EditorRef>();
         void RememberActive()
         {
-            if (context.Host().ActiveEditor is { Kind: not EditorKind.Diff } active) activeEditors[active.WorkspaceId] = active;
+            if (context.Host().ActiveEditor is { } active) activeEditors[active.WorkspaceId] = active;
         }
         RememberActive();
         context.WatchHost(host => host.ActiveEditor, (_, _) => RememberActive());

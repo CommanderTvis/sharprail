@@ -1262,7 +1262,8 @@ internal static class CodexChecks
         var selection = new EditorSelection(1, 1, 1, 8, "private");
         Require(CodexEditorContext.Build([], editor, selection) is { OpenTabs.Count: 0, ActiveFile: null }, "a closed editor leaves no selection");
         var diff = editor with { Kind = EditorKind.Diff };
-        Require(CodexEditorContext.Build([diff], diff, selection) is { OpenTabs.Count: 0, ActiveFile: null }, "a diff view is not context");
+        Require(CodexEditorContext.Build([diff], diff, selection).ActiveFile is { ActiveSelectionContent: "private", Path: "src/main.ts" }, "a diff selection is IDE context");
+        Require(CodexEditorContext.Build([diff with { Path = "" }], diff, selection).ActiveFile is null, "an unselected continuous review has no file context");
         var external = editor with { Path = "C:\\Users\\me\\AGENTS.md", Kind = EditorKind.ExternalFile };
         Require(CodexEditorContext.Build([external], external, null).ActiveFile == new CodexIdeActiveFile("AGENTS.md", external.Path, new(new(0, 0), new(0, 0)), ""),
             "an external path is kept and an unselected file starts at zero");

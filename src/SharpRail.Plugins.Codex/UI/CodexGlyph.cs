@@ -1,6 +1,3 @@
-using System.Globalization;
-using System.Text;
-
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
@@ -48,10 +45,7 @@ public sealed class CodexGlyph : ContentControl
     private async Task Draw()
     {
         if (await asset! is not { } svg) return;
-        var color = brush.Color;
-        var hex = "#" + color.R.ToString("x2", CultureInfo.InvariantCulture) + color.G.ToString("x2", CultureInfo.InvariantCulture) + color.B.ToString("x2", CultureInfo.InvariantCulture);
-        var painted = Encoding.UTF8.GetBytes(Encoding.UTF8.GetString(svg).Replace("currentColor", hex, StringComparison.Ordinal));
-        Dispatcher.UIThread.Post(() => Content = new SvgAsset(painted, size));
+        Dispatcher.UIThread.Post(() => Content = new SvgAsset(svg, size, brush));
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)

@@ -106,7 +106,8 @@ invitation and bundled AI chat are excluded by the SharpRail product contract.
 ## Current implementation and remaining gates
 
 The registered launcher supplies fresh Codex glyph controls at the consumer's requested size and
-theme tint, retaining its own asset reader across plugin boundaries.
+theme tint, retaining its own asset reader across plugin boundaries. SVG tint resolves on
+attachment and follows theme changes, including for glyphs created before a theme is applied.
 
 Instruction-context template acceptance preserves the fork's three missing-file offers, the summed
 byte count, ordered instruction rows, user/project scope, full source-path tooltips and source links
@@ -165,3 +166,5 @@ come from `SharpRail.Plugins.Agent.UI`. The plugin adapts its own contract value
 retains all provider state and commands; generic settings controls remain kit-owned.
 
 Start work passes host image paths through the launcher options to `--image`, shell-quoted separately from the prompt. The first agent task title names an untouched generated managed workspace through `set_title`.
+
+IDE snapshots include selected diff files as read-only editor context. Continuous Changes uses the selected file within its owner tab; source-side paths, ranges and selected text are retained while the terminal has focus, and closing the owner forgets them. An empty Changes review does not invent a file context.

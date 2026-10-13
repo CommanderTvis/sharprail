@@ -263,6 +263,7 @@ internal static class CodexE2E
         Context(Path.Combine(root, "codex-context"));
         Capabilities(Path.Combine(root, "codex-capabilities"));
         IdeContext(Path.Combine(root, "codex-ide"));
+        DiffIdeContext(Path.Combine(root, "codex-diff-ide"));
         Launcher(Path.Combine(root, "codex-launcher"));
         if (!OperatingSystem.IsWindows()) LaunchInstructions(Path.Combine(root, "codex-launch-instructions"));
         ModelPicker(Path.Combine(root, "codex-model-picker"));
@@ -503,6 +504,75 @@ internal static class CodexE2E
         var request = Task.Run(() => CodexChecks.IdeRequest(Path.Combine(home, "ipc", "ipc.sock"), workspaceRoot));
         E2eWorkspace.Until(() => request.IsCompleted);
         return JsonSerializer.SerializeToElement(request.GetAwaiter().GetResult());
+    }
+
+    private static void DiffIdeContext(string root)
+    {
+        if (!SharpRail.Scintilla.ScintillaEditor.IsSupported) return;
+        Directory.CreateDirectory(root);
+        File.WriteAllText(Path.Combine(root, "notes.txt"), "plain-text-fixture\n");
+        File.WriteAllText(Path.Combine(root, "README.md"), "# Diff context\n\nold context\n");
+        ChangesFixture.Git(root, "init");
+        ChangesFixture.Git(root, "add", "notes.txt", "README.md");
+        ChangesFixture.Commit(root, "diff context fixture");
+        using var codex = new Codex(root);
+        var app = codex.App;
+        var workspace = app.Window.WorkspaceRoot;
+        var events = new List<EditorEvent>();
+        using var observe = codex.Loader.Editors.On(events.Add);
+        JsonElement Active() => Ide(codex.Home, workspace).GetProperty("result").GetProperty("ideContext").GetProperty("activeFile");
+        void Selected(string path, string text)
+        {
+            E2eWorkspace.Until(() =>
+            {
+                var active = Active();
+                return active.ValueKind == JsonValueKind.Object && active.GetProperty("path").GetString() == path &&
+                    active.GetProperty("activeSelectionContent").GetString() == text;
+            });
+        }
+        File.WriteAllText(Path.Combine(root, "notes.txt"), "selected diff context\n");
+        var sourceTab = new SharpRail.UI.Docking.DockTab("diff-context-source", "Diff", "diff", "notes.txt", Scope: "uncommitted");
+        app.Window.Layout.Open(sourceTab, true, app.Center);
+        E2eWorkspace.Until(() => app.Window.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>()
+            .Any(editor => editor.IsEffectivelyVisible && editor.Text.Contains("selected diff context", StringComparison.Ordinal)));
+        var source = app.Window.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>()
+            .First(editor => editor.IsEffectivelyVisible && editor.Text.Contains("selected diff context", StringComparison.Ordinal));
+        source.Focus();
+        source.SelectRange(source.Text.IndexOf("selected diff context", StringComparison.Ordinal), "selected diff context".Length);
+        Selected("notes.txt", "selected diff context");
+        Require(events.OfType<EditorSelectionEvent>().Last().Editor.Kind == EditorKind.Diff && source.IsReadOnly,
+            "a real source diff reports selection through the shared stream without becoming editable");
+        var terminal = codex.Terminal();
+        terminal.FocusTerminal();
+        Selected("notes.txt", "selected diff context");
+        app.Window.Layout.Close(app.Center, sourceTab.Id);
+        E2eWorkspace.Until(() => Active().ValueKind == JsonValueKind.Null);
+        Require(events.OfType<EditorLifecycleEvent>().Any(change => change.Editor.Id == workspace + ":" + sourceTab.Id && change.Lifecycle == EditorLifecycle.Closed),
+            "closing the diff drops retained IDE context through its owner lifecycle");
+
+        File.WriteAllText(Path.Combine(root, "README.md"), "# Diff context\n\nupdated context\n");
+        var renderedTab = new SharpRail.UI.Docking.DockTab("diff-context-rendered", "Diff", "diff", "README.md", Scope: "uncommitted");
+        app.Window.Layout.Open(renderedTab, true, app.Center);
+        E2eWorkspace.Until(() => Has(app.Window, "RenderedDiff"));
+        var preview = One<MarkdownPreview>(app.Window, "RenderedDiff");
+        var block = preview.GetLogicalDescendants().OfType<SelectableTextBlock>()
+            .First(text => (text.Text ?? text.Inlines?.Text ?? "").Contains("updated", StringComparison.Ordinal));
+        var words = block.Text ?? block.Inlines?.Text ?? "";
+        block.SelectionStart = words.IndexOf("updated", StringComparison.Ordinal);
+        block.SelectionEnd = block.SelectionStart + "updated".Length;
+        var renderedEvent = events.OfType<EditorSelectionEvent>().LastOrDefault();
+        Require(preview.SelectedText == "updated" && preview.SelectedLines == (3, 3) &&
+            renderedEvent is { Editor.Path: "README.md", Selection.Text: "updated" },
+            $"rendered selection wiring: words={words}; range={block.SelectionStart}-{block.SelectionEnd}; block={block.SelectedText}; " +
+            $"preview={preview.SelectedText}; lines={preview.SelectedLines}; event={renderedEvent}; active={app.Window.Layout.Selected(app.Center)}; IPC={Active()}");
+        Selected("README.md", "updated");
+        Require(events.OfType<EditorSelectionEvent>().Last().Selection is { StartLine: 3, StartColumn: 1, EndLine: 4, EndColumn: 1 },
+            "a real rendered diff reports its modified source-block bounds");
+        block.SelectionEnd = block.SelectionStart;
+        Selected("README.md", "");
+        app.Window.Layout.Close(app.Center, renderedTab.Id);
+        E2eWorkspace.Until(() => Active().ValueKind == JsonValueKind.Null);
+        Console.WriteLine("PASS Codex diff IDE context: real source/rendered selection, read-only state, terminal focus, clear and close");
     }
 
     private static string IdeResult(string home, string workspaceRoot)
