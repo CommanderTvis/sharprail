@@ -128,7 +128,7 @@ public sealed class CodexAccountReader(Func<string> command, TimeSpan? timeout =
     {
         try
         {
-            using var process = Process.Start(new ProcessStartInfo(executable, ["--version"]) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false });
+            using var process = Process.Start(new ProcessStartInfo(executable, ["--version"]) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false, CreateNoWindow = true });
             if (process is null) return null;
             using var cancel = new CancellationTokenSource(timeout);
             var output = await process.StandardOutput.ReadToEndAsync(cancel.Token);

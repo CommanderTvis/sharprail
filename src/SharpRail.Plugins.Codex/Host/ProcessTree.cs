@@ -98,7 +98,7 @@ public sealed partial class ProcessSnapshot
     {
         try
         {
-            using var process = Process.Start(new ProcessStartInfo(file, arguments) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false });
+            using var process = Process.Start(new ProcessStartInfo(file, arguments) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false, CreateNoWindow = true });
             if (process is null) return null;
             var output = process.StandardOutput.ReadToEndAsync();
             if (!process.WaitForExit(5000)) { process.Kill(); return null; }
