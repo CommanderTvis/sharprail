@@ -25,8 +25,8 @@ connected device or emulator, `apk` copies the signed Release package to `artifa
 `benchmark.mjs` with its `window-probe.m` helper (launch timing, only when a
 benchmark is requested).
 
-Their public surface is the script invocations named in `AGENTS.md` and
-`README.md`, plus the Mermaid MSBuild hook in `SharpRail.UI.csproj`.
+Their public surface is the script invocations documented in [scripts/README.md](README.md),
+`AGENTS.md` and the root `README.md`, plus the Mermaid MSBuild hook in `SharpRail.UI.csproj`.
 Ghostty's native build belongs to `src/Ghostty.Avalonia/build-native.sh` and runs
 through that independent library's project. It applies the checked-in texture
 export and scrollback memory patches to the pinned Ghostty source; native sources and patches are included
