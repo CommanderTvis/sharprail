@@ -166,3 +166,13 @@ Live input, clipboard text, resize, UTF-8 and reload/reattach checks pass. It re
 60 Hz headless browser cadence, but desktop performance parity remains unproven.
 Shared-texture composition, full font fallback, clipboard images, full scrollback reads,
 high-contrast handling and overlapping in-window UI remain incomplete.
+
+
+## Windows host/client acceptance — 2026-10-13
+
+Windows x64 host/client implementation, Skia-only terminal rendering, native editor and
+terminal DLL builds, PowerShell packaging and a packaged Windows CI gate are in place.
+Release/format, portable Windows checks and macOS editor/Skia/conformance checks pass.
+Acceptance still requires actual Windows ConPTY lifecycle, Recycle Bin, desktop/native
+rendering and packaged execution. The existing terminal suite also has an automatic-terminal
+fixture mismatch; it blocks the focused gate before a full run. See VALIDATION.md.

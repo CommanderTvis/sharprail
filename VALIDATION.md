@@ -2746,3 +2746,38 @@ Landed workspace-10 preview frontmatter editing with its source draft, undo, sav
 The terminal batch focused checks passed: `--vertical-tabs`, `--workspace-tools`, `--ghostty-skia`, `--native-file-links`, `--markdown-tables`, `--claude-code` and `--codex`, including source/rendered diff IDE selection delivery. Automatic initial terminals are suppressed in Projects vertical-tab mode, terminal menus offer Rename, and native/Skia terminal link menus offer Open link. Browser restty link hit-testing remains unavailable.
 
 One main two-lane full gate stopped in watchers/projects after macOS EventStream startup failures; preceding host terminal and transport checks passed. `--documents` also stopped at its watcher refresh assertion. No full-gate pass is claimed. Checks used `DOTNET_HOSTBUILDER__RELOADCONFIGONCHANGE=false` to avoid the configuration watcher retry loop. Nothing pushed.
+
+## 2026-10-13 — Approved dirty workspace deletion
+
+The Projects removal flow retries a dirty Git refusal only after a separate Cancel-focused “Delete anyway” confirmation explaining permanent loss of modified/untracked files. The host uses one `--force`, retains branches, and forgets the workspace only after Git succeeds; locked, Default and attached worktrees remain protected. Agent and combined main Release builds passed with zero warnings/errors; final touched C# formatting and whitespace checks passed. Direct and WebSocket registry scenarios passed, including failed-force preservation. `WorkspaceLifecycleE2E` passed actual cancel and approval paths. The broader `--registry` mode stopped in unchanged `ExternalWorkspaceE2E.AttachAndForget` branch-refresh waiting after macOS EventStream startup failed. No full-gate pass is claimed; unchanged watcher failure slices were not repeated. Nothing pushed.
+
+
+## 2026-10-13 — Windows host and desktop client
+
+Implemented in managed workspace-13 on windows-host-client: Windows x64 ConPTY shells
+for embedded and standalone hosts, Windows process cleanup and busy detection, Skia-only
+terminal selection, native Windows terminal/editor builds, host-path normalization and
+Recycle Bin operations. PowerShell bootstrap/publish scripts produce a self-contained
+client/host ZIP; the Windows CI lane runs packaged --windows checks. WINDOWS.md documents
+setup and platform limits.
+
+Verification:
+
+- Release solution build passed with zero warnings/errors; whole-solution format verification
+  and git diff --check passed.
+- Both Windows native PowerShell build scripts ran on macOS with a Zig cross-compiler and
+  produced x64 PE DLLs. Imports require only Windows OS/UCRT libraries. All new PowerShell
+  scripts parsed successfully. This does not validate execution on Windows.
+- --windows passed its portable quoting, path/profile, containment and local/remote Git
+  worktree checks. ConPTY, Recycle Bin and Windows UI cases require Windows and were not run.
+- --editor, --ghostty-skia and --conformance passed on macOS.
+- --terminals passed host local/remote sessions, replay, lifecycle, backpressure and the
+  preceding UI scenarios, then failed at SharedTerminalsE2E.PhoneToDesktop line 80:
+  TerminalTabs(phone).Single() found no terminal. The unchanged fixture assumes automatic
+  terminal creation while Projects mode now suppresses it. No full gate was started after
+  this focused failure; no full-suite pass is claimed.
+
+Windows runtime/package acceptance remains pending on a Windows machine or the added CI
+lane. No Windows runner was available here. Changes remain uncommitted; nothing pushed,
+published externally or installed over the running application. Temporary check logs and
+fixtures were removed after recording these results.

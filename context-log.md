@@ -5477,3 +5477,18 @@ Changes remain uncommitted; no push, package or running-app replacement.
 ## 2026-10-13 — Main landings
 
 Workspace-10 frontmatter editing is landed; combined Release/format/frontmatter checks pass. Terminal suppression, Rename, link context menus and Codex/Claude diff selections are landed with focused checks passing. Full gate remains blocked by EventStream watcher failures; see VALIDATION.md. Separate upstream branch tracks 5ab283a35 with native ports and recorded pending gaps. Nothing pushed.
+
+## 2026-10-13 — Dirty workspace deletion confirmation
+
+Added a second, explicit Delete anyway confirmation after dirty worktree removal fails. Cancellation preserves files; successful single-force Git removal keeps the branch and drops the row. Host direct/remote and lifecycle UI regression checks pass; broader registry UI checks remain blocked by native watcher startup. See VALIDATION.md.
+
+
+## 2026-10-13 — Windows support worktree
+
+Workspace-13, branch windows-host-client, implements Windows host/client support with
+ConPTY and Skia-only terminals, native editor/terminal builds, filesystem/path handling,
+PowerShell packaging and Windows CI. Release, formatting, portable Windows checks,
+macOS editor/Skia and conformance checks pass. The terminal suite stops at an unchanged
+phone-to-desktop fixture expecting a suppressed automatic terminal; full gate not run.
+Actual Windows ConPTY, Recycle Bin, UI and packaged execution remain pending. See
+WINDOWS.md and VALIDATION.md. Work is uncommitted and unpushed.
