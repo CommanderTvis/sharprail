@@ -41,6 +41,7 @@ internal static class Bounded
             RedirectStandardError = true,
             RedirectStandardInput = true,
             UseShellExecute = false,
+            CreateNoWindow = true,
             WorkingDirectory = cwd ?? Environment.CurrentDirectory
         };
         foreach (var argument in argv.Skip(1)) start.ArgumentList.Add(argument);
