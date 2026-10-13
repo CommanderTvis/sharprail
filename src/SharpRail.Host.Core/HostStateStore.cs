@@ -419,6 +419,13 @@ public sealed partial class HostStateStore : IHostStateService
         var key = change.Key ?? ""; var value = change.Value ?? "";
         switch (change.Kind)
         {
+            case "terminal-title":
+                var terminal = JsonSerializer.Deserialize<TerminalRef>(key) ?? throw new ArgumentException("A terminal is required.");
+                if (string.IsNullOrWhiteSpace(terminal.WorkspaceId) || string.IsNullOrWhiteSpace(terminal.TabKey) ||
+                    string.IsNullOrWhiteSpace(value) || value.Length > TerminalTab.MaxTitleLength)
+                    throw new ArgumentException("A terminal and a nonempty title of at most 1000 characters are required.");
+                var titles = current.TerminalTitles.Where(title => title.Terminal != terminal).Append(new TerminalTitle(terminal, value.Trim())).ToArray();
+                return titles.SequenceEqual(current.TerminalTitles) ? current : current with { TerminalTitles = titles };
             case "setting":
                 var settings = current.Settings;
                 settings = key switch

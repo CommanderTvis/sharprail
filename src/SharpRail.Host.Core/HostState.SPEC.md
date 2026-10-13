@@ -131,6 +131,8 @@ presets belong to the UI.
   (`PluginNamespaceValidator`); a refusal throws and the whole batch is rejected. Without one, or before
   the plugin's contract loads, a namespace merges unvalidated. Turning a plugin off also writes
   `enabled: false` into each transitive dependent's namespace (`PluginDependents`), touching no other.
+- The shared `terminal-title` state change lets clients rename a terminal through the same title store;
+  it validates nonempty identities and titles, persists and broadcasts through local and remote adapters.
 - `TerminalTitles` persist beside them (`SetTerminalTitle`, `RemoveTerminalTitles`): the title an agent gave
   its terminal's tab through `set_title`, sent to remote clients and dropped with the terminal or its project.
   A window writes each title onto the tab that shows the terminal, on a broadcast and when a workspace mounts.

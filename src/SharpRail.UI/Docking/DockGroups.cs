@@ -748,6 +748,13 @@ public sealed partial class DockSurface
     {
         var menu = new ContextMenu();
         if (!tab.IsTool && tab.Kind != "terminal") menu.Items.Add(Ui.Menu("Keep open", () => Session.Keep(group.Id, tab.Id), tab.Preview));
+        if (tab.Kind == "terminal" && RenameTerminal is not null)
+        {
+            var workspace = Session.State.ActiveWorkspace;
+            var rename = Ui.Menu("Rename", () => RenameTerminal(workspace, tab));
+            rename.Name = "TerminalRename";
+            menu.Items.Add(rename);
+        }
         menu.Items.Add(Ui.Menu("Close", () => Session.Close(group.Id, tab.Id)));
         menu.Items.Add(RemoveGroupMenuItem(group));
         var members = Session.Tabs(group.Id);

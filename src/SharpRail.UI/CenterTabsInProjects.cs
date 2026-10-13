@@ -182,6 +182,12 @@ public sealed partial class WorkbenchWindow
             HorizontalAlignment = HorizontalAlignment.Stretch,
             HorizontalContentAlignment = HorizontalAlignment.Stretch
         };
+        if (tab.Kind == "terminal")
+        {
+            var rename = Ui.Menu("Rename", () => RenameTerminal(workspace, tab));
+            rename.Name = "TerminalRename";
+            button.ContextMenu = new ContextMenu { Items = { rename } };
+        }
         button.Click += (_, _) =>
         {
             if (group is null) { _ = RevealTerminalAsync(workspace, tab.Id); return; }

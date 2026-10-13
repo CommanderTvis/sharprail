@@ -204,6 +204,10 @@ terminal body is created only when its tab is selected in a visible, unfolded gr
 their session without a body, and a hidden bottom reserves the initial terminal without starting a shell
 until shown. New terminal from a group lands in that group and reveals its region.
 
+Terminal tab context menus include Rename in horizontal, vertical and Projects strips. The name prompt
+starts with the current title; cancellation, blank and unchanged names leave it alone. Accepted names
+persist in host state and broadcast to other windows, surviving terminal-catalog reconciliation.
+
 Terminal membership is the host's catalog, not a window's ([Terminal/SPEC.md](../Terminal/SPEC.md#shared-terminals)).
 A workspace's first terminal has the key `terminal:initial` in every window and client; a project's home, which is
 not a shared workspace, keeps a private one. `LayoutSession.ReconcileTerminals` makes a workspace view's terminal

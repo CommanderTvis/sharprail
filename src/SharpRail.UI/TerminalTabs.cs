@@ -1,4 +1,5 @@
 using SharpRail.Host.Abstractions;
+using SharpRail.Plugins.Api;
 using SharpRail.UI.Panels;
 using SharpRail.UI.Terminal;
 
@@ -33,9 +34,25 @@ public sealed partial class WorkbenchWindow
 
     private void WireTerminalCatalog()
     {
+        surface.RenameTerminal = RenameTerminal;
         knownTerminals = TerminalsByWorkspace();
         workbench.TerminalCatalogChanged += ApplyTerminalCatalog;
         Closed += (_, _) => workbench.TerminalCatalogChanged -= ApplyTerminalCatalog;
+    }
+
+    private async void RenameTerminal(string workspace, Docking.DockTab tab)
+    {
+        var result = await Dialogs.Prompt(this, "Rename terminal", ("Name", tab.Title));
+        if (result is not [var title] || title.Length == 0 || title == tab.Title) return;
+        if (title.Length > TerminalTab.MaxTitleLength)
+        {
+            Report(new ArgumentException("A terminal name can have at most 1000 characters."));
+            return;
+        }
+        if (Layout.State.Workspaces.GetValueOrDefault(workspace)?.Documents.Values.SelectMany(tabs => tabs)
+            .Any(known => known.Kind == "terminal" && known.Id == tab.Id) != true &&
+            workbench.TerminalCatalog?.Workspaces.GetValueOrDefault(workspace)?.Any(known => known.Key == tab.Id) != true) return;
+        await ShareAsync(HostStateChange.TitleTerminal(new TerminalRef(workspace, tab.Id), title));
     }
 
     private bool TerminalMayAttach(string workspace, string tabId) =>

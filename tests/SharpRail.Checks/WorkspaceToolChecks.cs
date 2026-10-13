@@ -193,11 +193,17 @@ internal static class WorkspaceToolChecks
         var again = await title(root, new { title = "Review #12 Zoom" });
         Require(!again.Error && await Tab(root) == "Review #12 Zoom", "A later call retitles the terminal for its next task.");
 
+        var renameBefore = await client.GetStateAsync();
+        await client.ChangeAsync([HostStateChange.TitleTerminal(new(root, "claude"), "  User name  ")]);
+        Require(await Tab(root) == "User name" && await Tab(root, second) == "User name" &&
+            new HostStateStore(stateDirectory).Current.TerminalTitles.Any(known => known.Terminal == new TerminalRef(root, "claude") && known.Title == "User name"),
+            "Client renaming shares and persists the trimmed title through local and remote state adapters.");
+        Require((await client.GetStateAsync()).TerminalAgents.SequenceEqual(renameBefore.TerminalAgents), "Renaming leaves terminal agent metadata alone.");
         var before = await client.GetStateAsync();
         var branch = (await GitRepository.RunAsync(workspace.Path, default, "symbolic-ref", "--short", "HEAD")).Trim();
         var other = await title(workspace.Path, new { title = "Виправити вхід" });
         var after = await client.GetStateAsync();
-        Require(!other.Error && await Tab(workspace.Path) == "Виправити вхід" && await Tab(root) == "Review #12 Zoom", "Each terminal keeps its own title, in any script.");
+        Require(!other.Error && await Tab(workspace.Path) == "Виправити вхід" && await Tab(root) == "User name", "Each terminal keeps its own title, in any script.");
         Require(after.WorkspaceLabels.GetValueOrDefault(workspace.Path) == before.WorkspaceLabels.GetValueOrDefault(workspace.Path) &&
             after.Workspaces.SequenceEqual(before.Workspaces) && (await GitRepository.RunAsync(workspace.Path, default, "symbolic-ref", "--short", "HEAD")).Trim() == branch,
             "Titling a terminal never renames the workspace it runs in or moves its branch.");

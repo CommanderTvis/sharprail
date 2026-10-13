@@ -69,7 +69,7 @@ public sealed record HostState
     public IReadOnlyList<PluginRosterEntry> Plugins { get; init; } = [];
     /// <summary>The agent record of each terminal that has one; persisted, and dropped when its terminal closes.</summary>
     public IReadOnlyList<TerminalAgent> TerminalAgents { get; init; } = [];
-    /// <summary>The title an agent gave its terminal's tab; persisted, and dropped when the terminal closes.</summary>
+    /// <summary>The title chosen for a terminal's tab; persisted, and dropped when the terminal closes.</summary>
     public IReadOnlyList<TerminalTitle> TerminalTitles { get; init; } = [];
     /// <summary>The host's operating system; null from a host that does not report it.</summary>
     public HostPlatform? Platform { get; init; }
@@ -91,6 +91,8 @@ public sealed record HostStateChange(string Kind, string Key = "", string Value 
     public static HostStateChange Label(string path, string label) => new("workspace-label", path, label);
     /// <summary>Re-points a workspace's review target; an empty ref, or its creation base, restores that base.</summary>
     public static HostStateChange DiffBase(string path, string reference) => new("workspace-diff-base", path, reference);
+    /// <summary>Persists the title of a terminal tab for every client.</summary>
+    public static HostStateChange TitleTerminal(TerminalRef terminal, string title) => new("terminal-title", JsonSerializer.Serialize(terminal), title);
     public static HostStateChange OpenProject(string path) => new("project-open", path);
     /// <summary>Moves an open project to the front of the recents.</summary>
     public static HostStateChange CloseProject(string path) => new("project-close", path);

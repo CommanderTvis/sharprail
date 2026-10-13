@@ -77,6 +77,62 @@ internal static class VerticalTabsE2E
                 "Revisiting a workspace in Projects tab mode must retain its existing explicit terminal.");
         });
 
+        Case("terminal Rename in Projects shares titles and cancellation leaves them alone", app =>
+        {
+            SetLayout(app, settings =>
+            {
+                Control<CheckBox>(settings, "VerticalCenterTabs").IsChecked = true;
+                Control<CheckBox>(settings, "VerticalTabsInProjects").IsChecked = true;
+            });
+            app.Click(app.Find<Button>("Tab_projects"));
+            app.Window.Layout.NewTerminal(app.Center);
+            var workspace = app.Window.WorkspaceRoot;
+            var terminal = app.Tabs.Last(tab => tab.Kind == "terminal");
+            using var peer = app.NewWindow();
+            var peerOpening = peer.Window.OpenProjectAsync(workspace);
+            Until(() => peerOpening.IsCompleted && peer.Window.WorkspaceMounted && peer.Window.WorkspaceRoot == workspace);
+            if (peerOpening.IsFaulted) throw peerOpening.Exception!;
+            Until(() => peer.Window.Layout.State.Workspaces.GetValueOrDefault(workspace)?.Documents.Values
+                .SelectMany(tabs => tabs).Any(tab => tab.Id == terminal.Id) == true);
+            Window Rename()
+            {
+                var button = app.Window.WorkspaceRoot == workspace ? app.Find<Button>("Tab_" + terminal.Id.Replace(':', '_')) :
+                    app.Window.GetLogicalDescendants().OfType<ContentControl>().Single(host => host.Name == "WorkspaceTabs" && Equals(host.Tag, workspace))
+                        .GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "WorkspaceTabPreview" && Equals(button.Tag, terminal.Id));
+                app.ContextAction(button, "Rename");
+                Until(() => app.Window.OwnedWindows.Any(window => window.Title == "Rename terminal"));
+                return app.Window.OwnedWindows.Single(window => window.Title == "Rename terminal");
+            }
+            var dialog = Rename();
+            var input = dialog.GetLogicalDescendants().OfType<TextBox>().Single();
+            Require(input.Text == terminal.Title, "Rename starts with the displayed terminal name.");
+            input.Text = "Canceled name";
+            app.Click(dialog.GetLogicalDescendants().OfType<Button>().Single(button => button.Content is TextBlock { Text: "Cancel" }));
+            Require(app.Tabs.Single(tab => tab.Id == terminal.Id).Title == terminal.Title, "Cancel preserves the existing title.");
+            dialog = Rename();
+            dialog.GetLogicalDescendants().OfType<TextBox>().Single().Text = "  Review changes  ";
+            app.Click(dialog.GetLogicalDescendants().OfType<Button>().Single(button => button.Content is TextBlock { Text: "Continue" }));
+            string? Title(E2eWorkspace window) => window.Window.Layout.State.Workspaces[workspace].Documents.Values
+                .SelectMany(tabs => tabs).Single(tab => tab.Id == terminal.Id).Title;
+            Until(() => Title(app) == "Review changes" && Title(peer) == "Review changes");
+            app.Window.Layout.NewTerminal(app.Center);
+            Until(() => peer.Window.Layout.State.Workspaces[workspace].Documents.Values
+                .SelectMany(tabs => tabs).Count(tab => tab.Kind == "terminal") == app.Window.Layout.State.Workspaces[workspace].Documents.Values
+                .SelectMany(tabs => tabs).Count(tab => tab.Kind == "terminal"));
+            Require(Title(app) == "Review changes" && Title(peer) == "Review changes", "Catalog reconciliation preserves a renamed terminal in both windows.");
+            var other = Path.Combine(app.Root, "other-project");
+            Directory.CreateDirectory(other);
+            var opening = app.Window.OpenProjectAsync(other);
+            Until(() => opening.IsCompleted && app.Window.WorkspaceMounted && app.Window.WorkspaceRoot == other);
+            if (opening.IsFaulted) throw opening.Exception!;
+            dialog = Rename();
+            dialog.GetLogicalDescendants().OfType<TextBox>().Single().Text = "Rename inactive terminal";
+            app.Click(dialog.GetLogicalDescendants().OfType<Button>().Single(button => button.Content is TextBlock { Text: "Continue" }));
+            Until(() => Title(app) == "Rename inactive terminal" && Title(peer) == "Rename inactive terminal");
+            Require(app.State!.Current.TerminalTitles.All(title => title.Terminal.TabKey != terminal.Id || title.Terminal.WorkspaceId == workspace),
+                "An inactive Projects tab retains its original workspace when renamed.");
+        });
+
         Case("Projects uniquely marks the active tab across center groups and pane members", app =>
         {
             app.Open("README.md", true); app.Open("notes.txt", true);
