@@ -88,6 +88,9 @@ public sealed class ClaudeCodeUI : PluginUIModule
                         selected.Editor.Path, selection?.Text ?? "", new(selection?.StartLine ?? 1, selection?.StartColumn ?? 1,
                             selection?.EndLine ?? 1, selection?.EndColumn ?? 1)));
                 }
+                else if (editorEvent is EditorLifecycleEvent { Lifecycle: EditorLifecycle.Activated } activated)
+                    await context.RequestAsync(ClaudeCodeContract.SelectionChanged, new(activated.Editor.WorkspaceId,
+                        activated.Editor.Path, "", new(1, 1, 1, 1)));
                 else if (editorEvent is EditorLifecycleEvent { Lifecycle: EditorLifecycle.Closed } closed)
                     await context.RequestAsync(ClaudeCodeContract.DocumentClosed, new(closed.Editor.WorkspaceId, closed.Editor.Path));
             }

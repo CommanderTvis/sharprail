@@ -229,3 +229,5 @@ come from `SharpRail.Plugins.Agent.UI`. The plugin adapts its own contract value
 retains all provider state and commands; generic settings controls remain kit-owned.
 
 Start work includes host image paths in the opening prompt with instructions to read the attached image files. The first agent task title names an untouched generated managed workspace through `set_title`.
+
+Source and rendered diff selections use the same selection notifications as file editors, including continuous Changes review. Activating a different document clears the former current selection; closing a diff or review forgets its selected file. Original-side source selections are not replaced with working-tree contents.
