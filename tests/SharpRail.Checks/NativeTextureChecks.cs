@@ -135,6 +135,33 @@ internal static class NativeTextureChecks
         point = new Point(point.X, terminal.Bounds.Height / terminal.Size.Rows * .5);
         Move(KeyModifiers.Meta);
         await Until(() => terminal.Cursor?.ToString() == "Hand", "Metal lost ordinary HTTP URL hover.");
+        void RightClick(KeyModifiers modifiers = KeyModifiers.None)
+        {
+            terminal.RaiseEvent(new PointerPressedEventArgs(terminal, pointer, terminal, point, 4,
+                new PointerPointProperties(RawInputModifiers.RightMouseButton, PointerUpdateKind.RightButtonPressed), modifiers, 1));
+            terminal.RaiseEvent(new PointerReleasedEventArgs(terminal, pointer, terminal, point, 5,
+                new PointerPointProperties(RawInputModifiers.None, PointerUpdateKind.RightButtonReleased), modifiers, MouseButton.Right));
+        }
+        RightClick();
+        Require(terminal.ClipboardMenu?.IsOpen == true, "Metal RMB did not open the URL menu without Command.");
+        var open = terminal.ClipboardMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Open link"));
+        Require(Equals(open.Tag, "https://example.com/path"), "Metal menu lost the URI target.");
+        terminal.WriteOutput("\e[2J\e[H\e]8;;https://example.com/hidden-target\e\\Label\e]8;;\e\\"u8);
+        await Task.Delay(150);
+        Require(Equals(open.Tag, "https://example.com/path"), "Metal menu target changed after output.");
+        terminal.ClipboardMenu.Close();
+        RightClick();
+        Require(Equals(terminal.ClipboardMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Open link")).Tag, "https://example.com/hidden-target"),
+            "Metal OSC8 label must open its URI, not its label text.");
+        terminal.ClipboardMenu.Close();
+        terminal.WriteOutput("\e[2J\e[Hplain\e[?1000h"u8);
+        await Task.Delay(150);
+        RightClick();
+        Require(!terminal.ClipboardMenu.IsOpen, "Metal RMB must stay with mouse-tracking applications.");
+        RightClick(KeyModifiers.Shift);
+        Require(terminal.ClipboardMenu.IsOpen && terminal.ClipboardMenu.Items.OfType<MenuItem>().All(item => !Equals(item.Header, "Open link")),
+            "Shift bypass must offer clipboard actions without a link on plain text.");
+        terminal.ClipboardMenu.Close();
         window.Content = null;
         Console.WriteLine("PASS native Metal file hover, Unicode, soft wrapping, click coordinates and stale-link clearing");
     }

@@ -63,6 +63,15 @@ public sealed partial class GhosttySkiaView
         return result;
     }
 
+    private unsafe string? UrlAt(Point point)
+    {
+        if (fonts is not { } cells || !vt.Snapshot(out last)) return null;
+        var x = (int)Math.Floor((point.X - Padding.Left) / cells.CellWidth);
+        var y = (int)Math.Floor((point.Y - Padding.Top) / cells.CellHeight);
+        return x >= 0 && x < last.Columns && y >= 0 && y < last.Rows
+            ? FindUrls(last).GetValueOrDefault(y * last.Columns + x) : null;
+    }
+
     private unsafe void UpdateLinks(Frame frame)
     {
         linkCells.Clear();

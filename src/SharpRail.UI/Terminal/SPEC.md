@@ -230,7 +230,11 @@ Design provenance and Royal Apps MIT attribution are in
 Both renderers underline HTTP(S) URLs under the pointer while Command is held
 on macOS (Ctrl elsewhere), and modifier-click opens the URL using the system
 browser. Soft-wrapped URLs remain one link across rows; explicit newlines remain
-boundaries. Ordinary clicks and drags retain terminal selection behavior.
+boundaries. Right-click over a web URL offers Open link alongside the terminal clipboard menu,
+without Command/Ctrl. The action opens the URI captured at right-click even if output changes. Mouse
+tracking forwards RMB to the program; Shift bypasses tracking for the menu. Native Metal resolves
+OSC 8 label targets as well; browser Skia inherits HTTP(S) text detection. The separate restty canvas
+has no exposed point-to-link query and does not yet offer this action. Ordinary clicks and drags retain terminal selection behavior.
 
 Host checks cover attach idempotency, takeover and displaced-client rejection, watching, replay without the
 alternate screen or mouse modes, resume without duplication, busy detection and close. `--terminals` runs

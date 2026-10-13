@@ -49,3 +49,13 @@ export fn gav_ghostty_link_line(surface: *Surface, x: f64, y: f64, text: [*]u32,
     }
     return count;
 }
+
+export fn gav_ghostty_context_link(surface: *Surface, x: f64, y: f64, shift: bool, output: [*]u8, capacity: usize) isize {
+    const pixels = surface.cursorPosToPixels(.{ .x = @floatCast(x), .y = @floatCast(y) }) catch return 0;
+    const core = &surface.core_surface;
+    const grid = core.size.grid();
+    if (pixels.x < @as(f64, @floatFromInt(core.size.padding.left)) or pixels.y < @as(f64, @floatFromInt(core.size.padding.top))) return 0;
+    const point = core.posToViewport(pixels.x, pixels.y);
+    if (point.x >= grid.columns or point.y >= grid.rows) return 0;
+    return core.contextLink(pixels, shift, output[0..capacity]);
+}

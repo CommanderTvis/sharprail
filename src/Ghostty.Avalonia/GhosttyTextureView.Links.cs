@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
 
@@ -59,6 +60,29 @@ public sealed partial class GhosttyTextureView
             fileUnderlines.Add(new(info[4] + cell % (int)info[0] * info[2], info[5] + (cell / (int)info[0] + 1) * info[3] - 2, info[2] * width, 1));
         }
         Cursor = new Cursor(StandardCursorType.Hand);
+    }
+
+    private void ShowClipboardMenu(string? url)
+    {
+        ClipboardMenu = new ContextMenu();
+        if (url is not null)
+        {
+            var open = new MenuItem { Header = "Open link", Tag = url };
+            open.Click += async (_, _) =>
+            {
+                try { if (TopLevel.GetTopLevel(this)?.Launcher is { } launcher) await launcher.LaunchUriAsync(new Uri(url)); }
+                catch (Exception) { /* Opening a link must not replace the terminal renderer. */ }
+            };
+            ClipboardMenu.Items.Add(open);
+            ClipboardMenu.Items.Add(new Separator());
+        }
+        foreach (var (title, action) in new[] { ("Copy", "copy_to_clipboard"), ("Paste", "paste_from_clipboard"), ("Select All", "select_all") })
+        {
+            var item = new MenuItem { Header = title };
+            item.Click += (_, _) => { if (!disposed) Native.Action(terminal.Handle, action); };
+            ClipboardMenu.Items.Add(item);
+        }
+        ClipboardMenu.Open(this);
     }
 
     private async Task OpenFileAsync(TerminalLink link)

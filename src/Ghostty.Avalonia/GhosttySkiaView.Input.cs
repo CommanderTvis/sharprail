@@ -239,6 +239,7 @@ public sealed partial class GhosttySkiaView
     {
         base.OnPointerPressed(e);
         if (disposed) return;
+        contextClick = false;
         Focus();
         var properties = e.GetCurrentPoint(this).Properties;
         var button = Button(properties.PointerUpdateKind);
@@ -259,7 +260,14 @@ public sealed partial class GhosttySkiaView
             linkPressPointer = e.GetPosition(this);
             return;
         }
-        if (Track(Press, button, e) || button != 1) return;
+        if (Track(Press, button, e)) return;
+        if (button == 2)
+        {
+            contextClick = true;
+            ShowClipboardMenu(UrlAt(e.GetPosition(this)));
+            return;
+        }
+        if (button != 1) return;
         var point = Grid(e);
         selecting = 0;
         vt.Select(0, point.X, point.Y, Now());
@@ -320,6 +328,7 @@ public sealed partial class GhosttySkiaView
             }
             return;
         }
+        if (contextClick) { contextClick = false; e.Pointer.Capture(null); e.Handled = true; return; }
         var file = pressedFile;
         pressedFile = null;
         var link = pressedUrl;
@@ -379,17 +388,26 @@ public sealed partial class GhosttySkiaView
         e.Handled = true;
     }
 
+    private bool contextClick;
     internal ContextMenu? ClipboardMenu { get; private set; }
 
-    private void ShowClipboardMenu()
+    private void ShowClipboardMenu(string? url = null)
     {
         var copy = new MenuItem { Header = "Copy", IsEnabled = SelectedText.Length > 0 };
         copy.Click += (_, _) => _ = ClipboardAsync(false);
         var paste = new MenuItem { Header = "Paste" };
         paste.Click += (_, _) => _ = ClipboardAsync(true);
         var all = new MenuItem { Header = "Select All" };
-        all.Click += (_, _) => { SelectAll(); Dispatcher.UIThread.Post(ShowClipboardMenu); };
-        ClipboardMenu = new ContextMenu { Items = { copy, paste, all } };
+        all.Click += (_, _) => { SelectAll(); Dispatcher.UIThread.Post(() => ShowClipboardMenu()); };
+        ClipboardMenu = new ContextMenu();
+        if (url is not null)
+        {
+            var open = new MenuItem { Header = "Open link", Tag = url };
+            open.Click += (_, _) => _ = OpenLinkAsync(url);
+            ClipboardMenu.Items.Add(open);
+            ClipboardMenu.Items.Add(new Separator());
+        }
+        ClipboardMenu.Items.Add(copy); ClipboardMenu.Items.Add(paste); ClipboardMenu.Items.Add(all);
         ClipboardMenu.Open(this);
     }
 

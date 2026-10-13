@@ -1,4 +1,7 @@
+using System.Text;
+
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Input.TextInput;
 
@@ -10,6 +13,8 @@ public sealed partial class GhosttyTextureView
     private TextureInputClient InputMethod => inputMethod ??= new(this);
     private uint? pendingTextKey;
     private KeyModifiers pendingTextModifiers;
+    private bool contextClick;
+    internal ContextMenu? ClipboardMenu { get; private set; }
     private Point linkPointer = new(-1, -1);
 
     private void RefreshLinkModifiers(KeyModifiers modifiers)
@@ -112,7 +117,21 @@ public sealed partial class GhosttyTextureView
     {
         base.OnPointerPressed(e);
         if (disposed) return;
+        contextClick = false;
         Focus();
+        if (e.GetCurrentPoint(this).Properties.IsRightButtonPressed)
+        {
+            var point = e.GetPosition(this);
+            var buffer = new byte[16384];
+            var length = (int)Native.ContextLink(terminal.Handle, point.X, point.Y, e.KeyModifiers.HasFlag(KeyModifiers.Shift), buffer, (nuint)buffer.Length);
+            if (length >= 0)
+            {
+                contextClick = true;
+                ShowClipboardMenu(length > 0 ? Encoding.UTF8.GetString(buffer, 0, length) : null);
+                e.Handled = true;
+                return;
+            }
+        }
         e.Pointer.Capture(this);
         Mouse(e, -1, 0);
         if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && FileHover.Link is { } file)
@@ -135,6 +154,7 @@ public sealed partial class GhosttyTextureView
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
     {
         base.OnPointerReleased(e);
+        if (contextClick) { contextClick = false; e.Handled = true; return; }
         var file = pressedFile;
         pressedFile = null;
         if (file is not null)

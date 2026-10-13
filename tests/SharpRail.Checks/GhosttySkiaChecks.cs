@@ -56,6 +56,7 @@ internal static class GhosttySkiaChecks
         CheckClusters();
         CheckUrls();
         CheckUrlHover();
+        CheckLinkContextMenu();
         CheckFileLinks();
         CheckZoomedDensity();
         Osc52Checks.RunSkia();
@@ -118,6 +119,46 @@ internal static class GhosttySkiaChecks
             window.KeyRelease(Key.LWin, RawInputModifiers.None, PhysicalKey.MetaLeft, null); Pump();
             using var cleared = window.CaptureRenderedFrame()!;
             Require(Pixels(plain).SequenceEqual(Pixels(cleared)), "removing the modifier left stale underlines.");
+        }
+        finally { window.Close(); Pump(); }
+    }
+
+    private static void CheckLinkContextMenu()
+    {
+        using var view = new GhosttySkiaView { Typeface = EditorChecks.Font, FontSize = 14 };
+        var window = new Window { Width = 240, Height = 160, Content = view };
+        window.Show(); Pump();
+        try
+        {
+            const string url = "https://example.com/a/very/long/wrapped/path";
+            view.Write(Encoding.UTF8.GetBytes("\e[?25l" + url)); Pump();
+            var cw = (view.Bounds.Width - view.Padding.Left - view.Padding.Right) / view.Size.Columns;
+            var ch = (view.Bounds.Height - view.Padding.Top - view.Padding.Bottom) / view.Size.Rows;
+            var point = new Point(view.Padding.Left + cw * 1.5, view.Padding.Top + ch * 1.5);
+            void RightClick(RawInputModifiers modifiers = RawInputModifiers.None)
+            {
+                window.MouseDown(point, MouseButton.Right, modifiers); window.MouseUp(point, MouseButton.Right, modifiers); Pump();
+            }
+            RightClick();
+            Require(view.ClipboardMenu?.IsOpen == true, "RMB on a wrapped URL without Command did not open its menu.");
+            var open = view.ClipboardMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Open link"));
+            Require(Equals(open.Tag, url), "Open link changed the soft-wrapped URL target.");
+            view.Write("\e[2J\e[Hdifferent output"u8); Pump();
+            Require(Equals(open.Tag, url), "Output changed the target captured by the menu.");
+            view.ClipboardMenu.Close(); Pump();
+            point = new Point(view.Padding.Left + cw * 1.5, view.Padding.Top + ch * .5);
+            RightClick();
+            Require(view.ClipboardMenu!.Items.OfType<MenuItem>().All(item => !Equals(item.Header, "Open link")), "Plain terminal text offered Open link.");
+            view.ClipboardMenu.Close(); Pump();
+            view.Write("\e[?1000h\e[?1006h"u8); Pump();
+            var output = new List<byte>();
+            view.Input += (_, bytes) => output.AddRange(bytes.ToArray());
+            RightClick();
+            Require(!view.ClipboardMenu.IsOpen && Encoding.UTF8.GetString(output.ToArray()).Contains("\e[<2;", StringComparison.Ordinal),
+                "RMB must reach programs tracking the mouse instead of opening a menu.");
+            RightClick(RawInputModifiers.Shift);
+            Require(view.ClipboardMenu.IsOpen, "Shift must bypass mouse reporting for the terminal menu.");
+            view.ClipboardMenu.Close();
         }
         finally { window.Close(); Pump(); }
     }

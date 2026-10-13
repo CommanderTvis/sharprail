@@ -52,7 +52,7 @@ checkout() {
 }
 fresh() { [ -f "$cache/$1.fingerprint" ] && [ -f "$cache/$2" ] && [ "$(cat "$cache/$1.fingerprint")" = "$3" ]; }
 
-view_fingerprint="$arch $(cat Native/GhosttyView.h Native/GhosttyView.m Native/GhosttyTexture.m Native/MetalTexture.patch Native/ScrollbackMemory.patch Native/ReverseColors.patch Native/ConfigFile.patch Native/ExternalIo.patch Native/keyboard-mode.zig Native/file-links.zig Native/FileLinks.patch build-native.sh | shasum -a 256)"
+view_fingerprint="$arch $(cat Native/GhosttyView.h Native/GhosttyView.m Native/GhosttyTexture.m Native/MetalTexture.patch Native/ScrollbackMemory.patch Native/ReverseColors.patch Native/ConfigFile.patch Native/ExternalIo.patch Native/keyboard-mode.zig Native/file-links.zig Native/context-link.zig Native/FileLinks.patch build-native.sh | shasum -a 256)"
 if ! fresh view libGhosttyAvaloniaView.dylib "$view_fingerprint"; then
   checkout view-source "$view_commit"
   git -C "$cache/view-source" show "$view_commit:src/config/CApi.zig" > "$cache/view-source/src/config/CApi.zig"
@@ -72,6 +72,7 @@ if ! fresh view libGhosttyAvaloniaView.dylib "$view_fingerprint"; then
   patch -s -d "$cache/view-source" -p1 < Native/ExternalIo.patch
   git -C "$cache/view-source" show "$view_commit:src/config/url.zig" > "$cache/view-source/src/config/url.zig"
   patch -s -d "$cache/view-source" -p1 < Native/FileLinks.patch
+  cat Native/context-link.zig >> "$cache/view-source/src/Surface.zig"
   cat Native/keyboard-mode.zig Native/file-links.zig >> "$cache/view-source/src/apprt/embedded.zig"
   view_zig_path="$(zig_path "$view_zig")"
   (

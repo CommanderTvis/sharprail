@@ -171,6 +171,10 @@ Command-click to open HTTP(S) URLs in the system browser (Ctrl on other platform
 Soft-wrapped URLs remain clickable across rows; dragging still selects text.
 The texture control uses Ghostty's built-in link detection; Skia detects web URLs
 from VT cells and soft-wrap metadata.
+Right-click offers Open link when the pointer is over a URL, without a keyboard modifier, alongside
+Copy, Paste and Select All. The menu retains the URI captured at the click even as output changes.
+Mouse-tracking programs retain right-button input; Shift bypasses reporting to open the menu. Native
+Metal also resolves OSC 8 label targets; Skia retains its existing HTTP(S)-text detection.
 
 In SharpRail, `--ghostty-skia` runs focused real-pixel/input and host PTY checks;
 `--terminals` additionally checks local/remote host behavior and terminal docking.
