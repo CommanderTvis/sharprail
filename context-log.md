@@ -5477,3 +5477,15 @@ Changes remain uncommitted; no push, package or running-app replacement.
 ## 2026-10-13 — Main landings
 
 Workspace-10 frontmatter editing is landed; combined Release/format/frontmatter checks pass. Terminal suppression, Rename, link context menus and Codex/Claude diff selections are landed with focused checks passing. Full gate remains blocked by EventStream watcher failures; see VALIDATION.md. Separate upstream branch tracks 5ab283a35 with native ports and recorded pending gaps. Nothing pushed.
+
+## 2026-10-13 — Dirty workspace deletion confirmation
+
+Added a second, explicit Delete anyway confirmation after dirty worktree removal fails. Cancellation preserves files; successful single-force Git removal keeps the branch and drops the row. Host direct/remote and lifecycle UI regression checks pass; broader registry UI checks remain blocked by native watcher startup. See VALIDATION.md.
+
+## 2026-10-13 — Scripts reference and Tailscale pairing
+
+Documented scripts and helpers in scripts/README.md. Tailscale pairing now offers actionable DNS errors, Settings-independent incoming-request popups, centered consistent buttons and one remembered row per verified node; device revoke covers all its grants. Focused --tailscale and Release/format checks pass. Physical-phone behavior remains unverified.
+
+## 2026-10-13 — Mermaid diffs and review flicker
+
+Mermaid diff blocks render once when unchanged, with Before/After when changed. Changes review now retains loaded content during refresh instead of showing Loading diff on return. Focused checks and combined Release build pass; full gate remains unverified under known watcher startup failures.

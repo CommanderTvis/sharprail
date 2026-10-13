@@ -2746,3 +2746,19 @@ Landed workspace-10 preview frontmatter editing with its source draft, undo, sav
 The terminal batch focused checks passed: `--vertical-tabs`, `--workspace-tools`, `--ghostty-skia`, `--native-file-links`, `--markdown-tables`, `--claude-code` and `--codex`, including source/rendered diff IDE selection delivery. Automatic initial terminals are suppressed in Projects vertical-tab mode, terminal menus offer Rename, and native/Skia terminal link menus offer Open link. Browser restty link hit-testing remains unavailable.
 
 One main two-lane full gate stopped in watchers/projects after macOS EventStream startup failures; preceding host terminal and transport checks passed. `--documents` also stopped at its watcher refresh assertion. No full-gate pass is claimed. Checks used `DOTNET_HOSTBUILDER__RELOADCONFIGONCHANGE=false` to avoid the configuration watcher retry loop. Nothing pushed.
+
+## 2026-10-13 — Approved dirty workspace deletion
+
+The Projects removal flow retries a dirty Git refusal only after a separate Cancel-focused “Delete anyway” confirmation explaining permanent loss of modified/untracked files. The host uses one `--force`, retains branches, and forgets the workspace only after Git succeeds; locked, Default and attached worktrees remain protected. Agent and combined main Release builds passed with zero warnings/errors; final touched C# formatting and whitespace checks passed. Direct and WebSocket registry scenarios passed, including failed-force preservation. `WorkspaceLifecycleE2E` passed actual cancel and approval paths. The broader `--registry` mode stopped in unchanged `ExternalWorkspaceE2E.AttachAndForget` branch-refresh waiting after macOS EventStream startup failed. No full-gate pass is claimed; unchanged watcher failure slices were not repeated. Nothing pushed.
+
+## 2026-10-13 — Scripts reference and Tailscale pairing fixes
+
+Added scripts/README.md covering all 19 runnable/helper files and linked it from the owning spec. File coverage, local links and whitespace checks passed; scripts were inspected rather than executed.
+
+Tailscale DNS failures now provide connection checks; an activation-lifetime subscription shows each pending approval through the existing in-app popup even with Settings closed. The popup lasts the normal notification duration and directs the user to Settings; approval remains there. Buttons have consistent minimum heights and centered text. Remembered devices group by verified node identity, preserving existing grants; revoking a device removes every grant for that node. Agent Release build, touched C# formatting/whitespace and --tailscale host/local-remote authentication/headless UI checks passed. No real phone/Android build or full gate was run for this change; prior native watcher startup blockers remain recorded above. Nothing pushed.
+
+## 2026-10-13 — Mermaid diffs and review tab retention
+
+Rendered Markdown diffs render unchanged Mermaid once, changed diagrams as labeled Before/After, and additions/removals as one labeled diagram. Complete fences preserve syntax, nested list/quote structure, source-side ranges and unclosed-fence boundaries; the existing renderer/error fallback is reused. Agent Release build, formatting/whitespace and --markdown-tables passed both existing structural-table checks and new Mermaid rendering checks.
+
+Changes review retains mounted bodies through hidden/visible asynchronous refresh, reuses existing DiffView updates and waits for valid layout before virtualization. The deterministic --review-retention regression passed content, editor/selection and scroll retention as well as ready changed replacement. Agent Release build and formatting passed. Combined main Release build passed with zero warnings/errors; whitespace checks passed. Focused results are reused for unchanged slices. No visual capture/benchmark or full gate was run for this batch; previously recorded native watcher failures remain unresolved. Nothing pushed.
