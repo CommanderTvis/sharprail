@@ -89,7 +89,7 @@ public sealed partial class WorkbenchWindow
             return (document, DiffFocus.Create(original, merged, document, expanded, () => diff.SaveViewState(expanded), token));
         }, token);
         token.ThrowIfCancellationRequested();
-        var preview = new MarkdownPreview(parsed, diff.Resource.Path, MarkdownContexts.For(host, Preferences, FollowLink, SpecLink()), renderDiagrams: false, focus, Frontmatter.Parse(modified), Frontmatter.Parse(original))
+        var preview = new MarkdownPreview(parsed, diff.Resource.Path, MarkdownContexts.For(host, Preferences, FollowLink, SpecLink()), renderDiagrams: true, focus, Frontmatter.Parse(modified), Frontmatter.Parse(original))
         { Name = "RenderedDiff" };
         var workspace = diff.Resource.Workspace;
         var tab = new DockTab(diff.TabId, "", "diff", diff.Resource.Path);

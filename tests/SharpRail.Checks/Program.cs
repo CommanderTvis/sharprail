@@ -620,6 +620,7 @@ internal static class Program
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             MarkdownTableDiffChecks.Run();
+            MarkdownMermaidDiffChecks.Run();
             return;
         }
         if (args.SequenceEqual(["--frontmatter"]))
@@ -727,6 +728,7 @@ internal static class Program
         UiChecks.Run(root);
         Gate.Case("resources", () => ResourceChecks.Run(root));
         Gate.Case("markdown-table-diffs", MarkdownTableDiffChecks.Run);
+        Gate.Case("markdown-mermaid-diffs", MarkdownMermaidDiffChecks.Run);
         Gate.Case("drawn-rendering", DrawnRenderingChecks.Run);
         Gate.Case("design", () => Design.DesignChecks.Run(write: false));
         Gate.Case("design-roles", Design.RoleChecks.Run);

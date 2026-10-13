@@ -24,7 +24,7 @@ public static partial class MarkdownDiff
     private sealed record Cell(int Start, int Length);
     private sealed record Row(string Text, Cell[] Cells);
     private sealed record TableSource(Row Header, string Separator, Row[] Rows);
-    private sealed record Unit(string Text, TableSource? Table = null);
+    private sealed record Unit(string Text, TableSource? Table = null, bool Mermaid = false, bool CodeFence = false, string? ClosingFence = null);
 
     public static string Merge(string before, string after, CancellationToken cancellationToken = default) =>
         MergeWithSourceLines(before, after, null, cancellationToken);
@@ -44,7 +44,7 @@ public static partial class MarkdownDiff
 
         void Emit(string line)
         {
-            if (FenceMarker().IsMatch(line)) fenced = !fenced;
+            if ((line.Split('\n').Count(part => FenceMarker().IsMatch(part)) & 1) != 0) fenced = !fenced;
             output.Append(line).Append('\n');
             if (sourceLine is not null)
                 foreach (var _ in line.Split('\n')) sourceLine(source.Old, source.New);
@@ -59,7 +59,15 @@ public static partial class MarkdownDiff
                 var oldUnit = deleted[index];
                 var newUnit = inserted[index];
                 source = (oldRanges?.GetValueOrDefault(oldUnit), newRanges?.GetValueOrDefault(newUnit));
-                if (oldUnit.Table is { } oldTable && newUnit.Table is { } newTable && oldTable.Header.Cells.Length == newTable.Header.Cells.Length)
+                if (oldUnit.Mermaid || newUnit.Mermaid)
+                {
+                    source = (oldRanges?.GetValueOrDefault(oldUnit), null);
+                    EmitUnit(oldUnit, oldUnit.Mermaid ? newUnit.Mermaid ? "Before" : "Removed" : "del");
+                    Emit("");
+                    source = (null, newRanges?.GetValueOrDefault(newUnit));
+                    EmitUnit(newUnit, newUnit.Mermaid ? oldUnit.Mermaid ? "After" : "Added" : "ins");
+                }
+                else if (oldUnit.Table is { } oldTable && newUnit.Table is { } newTable && oldTable.Header.Cells.Length == newTable.Header.Cells.Length)
                     Emit(MergeTable(oldTable, newTable, cancellationToken));
                 else if (oldUnit.Table is not null || newUnit.Table is not null)
                 {
@@ -69,18 +77,20 @@ public static partial class MarkdownDiff
                     source = (null, newRanges?.GetValueOrDefault(newUnit));
                     EmitUnit(newUnit, "ins");
                 }
-                else if (fenced || FenceMarker().IsMatch(oldUnit.Text) || FenceMarker().IsMatch(newUnit.Text)) Emit(newUnit.Text);
+                else if (oldUnit.CodeFence || newUnit.CodeFence || fenced || FenceMarker().IsMatch(oldUnit.Text) || FenceMarker().IsMatch(newUnit.Text)) Emit(newUnit.Text);
                 else Emit(MergeLine(oldUnit.Text, newUnit.Text, cancellationToken));
             }
             foreach (var unit in deleted.Skip(pairs))
             {
                 source = (oldRanges?.GetValueOrDefault(unit), null);
-                if (!fenced && !FenceMarker().IsMatch(unit.Text)) EmitUnit(unit, "del");
+                if (unit.Mermaid) EmitUnit(unit, "Removed");
+                else if (!unit.CodeFence && !fenced && !FenceMarker().IsMatch(unit.Text)) EmitUnit(unit, "del");
             }
             foreach (var unit in inserted.Skip(pairs))
             {
                 source = (null, newRanges?.GetValueOrDefault(unit));
-                if (fenced || FenceMarker().IsMatch(unit.Text)) Emit(unit.Text);
+                if (unit.Mermaid) EmitUnit(unit, "Added");
+                else if (unit.CodeFence || fenced || FenceMarker().IsMatch(unit.Text)) Emit(unit.Text);
                 else EmitUnit(unit, "ins");
             }
             deleted.Clear(); inserted.Clear();
@@ -88,6 +98,16 @@ public static partial class MarkdownDiff
 
         void EmitUnit(Unit unit, string tag)
         {
+            if (unit.CodeFence)
+            {
+                var containerPrefix = Regex.Match(unit.Text, @"^[^`~]*").Value;
+                Emit(containerPrefix + "**" + (tag == "del" ? "Removed" : tag == "ins" ? "Added" : tag) + "**");
+                var continuation = Regex.Replace(containerPrefix, @"(?:[-*+]|\d+[.)])\s+$", match => new string(' ', match.Length));
+                Emit(continuation);
+                Emit(continuation + unit.Text[containerPrefix.Length..] + (unit.ClosingFence is { } closing ? "\n" + continuation + closing : ""));
+                Emit(continuation);
+                return;
+            }
             if (unit.Table is { } table)
             {
                 Emit(MarkRow(table.Header, tag));
@@ -134,15 +154,25 @@ public static partial class MarkdownDiff
     {
         var lines = Lines(source);
         cancellationToken.ThrowIfCancellationRequested();
-        if (!source.Contains('|')) return lines.Select(line => new Unit(line)).ToArray();
+        if (!source.Contains('|') && !source.Contains("```", StringComparison.Ordinal) && !source.Contains("~~~", StringComparison.Ordinal)) return lines.Select(line => new Unit(line)).ToArray();
         var offsets = new int[lines.Length];
         for (var index = 1; index < lines.Length; index++) offsets[index] = offsets[index - 1] + lines[index - 1].Length + 1;
         var document = Markdig.Markdown.Parse(string.Join('\n', lines), TablePipeline);
         var tables = document.Descendants<Table>().ToDictionary(table => table.Line);
+        var diagrams = document.Descendants<FencedCodeBlock>().ToDictionary(block => block.Line);
         var units = new List<Unit>(lines.Length);
         for (var index = 0; index < lines.Length; index++)
         {
             cancellationToken.ThrowIfCancellationRequested();
+            if (diagrams.TryGetValue(index, out var diagram))
+            {
+                var diagramEnd = Array.BinarySearch(offsets, diagram.Span.End);
+                if (diagramEnd < 0) diagramEnd = ~diagramEnd - 1;
+                if (diagram.ClosingFencedCharCount == 0) diagramEnd = Math.Min(lines.Length - 1, Math.Max(diagramEnd, index + diagram.Lines.Count));
+                units.Add(new(string.Join('\n', lines[index..(diagramEnd + 1)]), Mermaid: string.Equals(diagram.Info?.Trim(), "mermaid", StringComparison.OrdinalIgnoreCase), CodeFence: true, ClosingFence: diagram.ClosingFencedCharCount == 0 ? new string(diagram.FencedChar, diagram.OpeningFencedCharCount) : null));
+                index = diagramEnd;
+                continue;
+            }
             if (!tables.TryGetValue(index, out var table)) { units.Add(new(lines[index])); continue; }
             var rows = table.OfType<TableRow>().ToArray();
             var last = rows[^1].Line;

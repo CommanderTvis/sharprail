@@ -560,3 +560,5 @@ not native presentation latency.
 Start work checks cover custom terminal commands, preserved command/prompt/image drafts, removable
 image previews and host attachment delivery. Workspace-tool checks verify image upload over both
 adapters and first-title workspace naming without replacing manual or subsequent workspace names.
+
+Markdown Mermaid diff checks cover unchanged, changed, added/removed and nested fences, exact fence syntax, source-side ranges and shared renderer/error fallback. They run in the full gate and the focused `--markdown-tables` mode alongside structural Markdown diff checks.

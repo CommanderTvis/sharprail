@@ -147,7 +147,7 @@ brushes at render time, and because Mermaid bakes colour into the SVG, every dia
 the same zoom controls as the full-screen viewer, and ⌘/Ctrl+wheel zooms: zoom scales the drawing, never the
 box, a drag pans inside it, and a plain wheel keeps scrolling the document. A diagram opens in the full-screen viewer, which fits the viewer width at 100% and offers
 drag panning, trackpad pinch and 25–500% zoom. Where Merman is unavailable (non-macOS builds) the source is shown with an
-unavailability message. Rendered diffs pass `renderDiagrams: false` and keep the source-code degradation.
+unavailability message. Rendered Markdown diffs render unchanged Mermaid fences once, changed fences as labeled Before/After diagrams, and added or removed fences as a single labeled diagram. Each side keeps complete source syntax and its source-line bounds. Both standalone document diffs and continuous Changes sections share this renderer, including its theme refresh, zoom and error/unavailability source fallback.
 
 ## Diffs
 
