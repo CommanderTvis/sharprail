@@ -5489,3 +5489,37 @@ Documented scripts and helpers in scripts/README.md. Tailscale pairing now offer
 ## 2026-10-13 — Mermaid diffs and review flicker
 
 Mermaid diff blocks render once when unchanged, with Before/After when changed. Changes review now retains loaded content during refresh instead of showing Loading diff on return. Focused checks and combined Release build pass; full gate remains unverified under known watcher startup failures.
+
+## 2026-10-13 — Browser terminal layout
+
+Share vertical/Projects tab mode through host state and repair legacy browser bottom placement once, preserving client pane geometry and later deliberate terminal placement. Existing profile values seed upgraded hosts; older hosts retain local fallback. Release desktop/browser builds, formatting, state/layout and nine vertical-tab cases pass. Earlier browser acceptance passed; final reruns stalled before Chromium app startup. See VALIDATION.md for the exact limit. No push or running-app replacement.
+
+## 2026-10-13 — File drag and drop
+
+Created managed workspace-15 for tree-to-Codex/Claude prompt attachments, file-tree moves
+and modifier copies, and external imports including remote/browser uploads. Plugins own
+attachment syntax through kit callbacks; the workbench resolves host paths and rejects
+inactive, detached or watching terminals. Transfers pin the workspace, stage before
+installation, refuse collisions and traversal, preserve empty folders, and expose Cancel.
+Native browser terminal DOM drops forward window-relative coordinates into Avalonia.
+
+Release solution/browser builds, formatting, focused file-drop checks, Chromium uploads,
+conformance and design checks pass. The full gate and continuation stop in the unchanged
+phone-to-desktop terminal fixture's automatic-terminal expectation, incompatible with
+Projects-mode suppression. Keep `.bench/checks-last-run.txt`; VALIDATION.md records evidence
+and manual/native limits. Other scratch data is cleaned. Work remains uncommitted in
+workspace-15; nothing pushed or installed.
+
+## 2026-10-13 — Windows support worktree
+
+Workspace-13, branch windows-host-client, implements Windows host/client support with
+ConPTY and Skia-only terminals, native editor/terminal builds, filesystem/path handling,
+PowerShell packaging and Windows CI. Release, formatting, portable Windows checks,
+macOS editor/Skia and conformance checks pass. The terminal suite stops at an unchanged
+phone-to-desktop fixture expecting a suppressed automatic terminal; full gate not run.
+Actual Windows ConPTY, Recycle Bin, UI and packaged execution remain pending. See
+WINDOWS.md and VALIDATION.md. Work is uncommitted and unpushed.
+
+## 2026-10-13 — Workspace landings
+
+Landed workspace-15 file drag/drop and captured workspace-13 Windows commits on main, preserving shared browser tab mode and plugin commit boundaries. Combined Release, portable Windows, file-drop and nine vertical-tab checks pass. Windows execution and physical/live-agent drops remain unverified; prior browser boot and full-gate limits remain recorded. Source workspaces are retained. Nothing pushed or installed.

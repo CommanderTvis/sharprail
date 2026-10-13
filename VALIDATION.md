@@ -2762,3 +2762,87 @@ Tailscale DNS failures now provide connection checks; an activation-lifetime sub
 Rendered Markdown diffs render unchanged Mermaid once, changed diagrams as labeled Before/After, and additions/removals as one labeled diagram. Complete fences preserve syntax, nested list/quote structure, source-side ranges and unclosed-fence boundaries; the existing renderer/error fallback is reused. Agent Release build, formatting/whitespace and --markdown-tables passed both existing structural-table checks and new Mermaid rendering checks.
 
 Changes review retains mounted bodies through hidden/visible asynchronous refresh, reuses existing DiffView updates and waits for valid layout before virtualization. The deterministic --review-retention regression passed content, editor/selection and scroll retention as well as ready changed replacement. Agent Release build and formatting passed. Combined main Release build passed with zero warnings/errors; whitespace checks passed. Focused results are reused for unchanged slices. No visual capture/benchmark or full gate was run for this batch; previously recorded native watcher failures remain unresolved. Nothing pushed.
+
+## 2026-10-13 — Browser terminal tab placement
+
+Tab orientation and Projects tab projection are host settings shared by connected clients. Existing desktop preferences seed missing host values; older hosts retain client-local fallback. Browsers repair legacy bottom terminal placement once per endpoint/workspace when the host uses Projects tabs, preserving selection and subsequent deliberate placement. Pane geometry remains client-local.
+
+Final Release solution and browser builds passed with zero warnings/errors. Touched C# formatting and whitespace checks passed. State/migration/transport checks, the layout case and all nine vertical-tab cases passed. The browser acceptance run passed shared mode propagation, terminal repair and existing browser scenarios before the final Settings write-lifetime adjustment. Final browser reruns could not reach the app: Chromium stalled during startup despite successful asset responses and required isolation headers. Final browser acceptance is therefore unverified. No full gate was repeated; earlier native watcher failures remain recorded. No push or running-app replacement.
+
+## 2026-10-13 — File drag and drop
+
+Managed workspace-15 adds tree-to-agent attachments for Codex and Claude Code, tree moves
+and modifier copies, and external file/folder imports. Remote/browser clients upload bytes
+to the host; agent uploads live in private host-state attachment directories. Drops keep
+prompts unsubmitted, refuse overwrites and invalid destinations, show destination highlights
+and provide cancellation during transfers. The owning module specs describe the contract.
+
+Verification:
+
+- Final Release solution build: passes, zero warnings/errors.
+- Release browser check build: passes, zero warnings/errors.
+- Whole-solution formatting verification passes; the subsequently updated test dependency
+  rule also passes touched-file formatting verification. Whitespace checks pass.
+- `--file-drop`: passes direct/WebSocket host parity, arbitrary bytes and empty folders,
+  copy/move, Unix modes, containment, collisions, cancellation and stage cleanup; deferred
+  click activation and drag thresholds; routed tree and agent drops, prompt quoting,
+  highlights and inactive/watching terminal rejection.
+- Chromium `restty.mjs --file-drop`: passes native-DOM forwarding into Avalonia, actual
+  client-byte upload to host storage, agent callback and inactive-handler rejection.
+- `--conformance` and `--design`: pass. Checks explicitly allow the shared agent UI library
+  so the attachment path quoting regression can exercise it directly.
+- The Git-enabled two-lane gate and serial continuation remain incomplete. The continuation
+  stops at `SharedTerminalsE2E.PhoneToDesktop`, line 80: `TerminalTabs(phone).Single()` finds
+  no terminal. That fixture expects an automatic terminal in Projects mode, which the
+  unchanged workspace-switch implementation suppresses. Prior host, file-tree, live refresh,
+  navigation, workspace and remote synchronization cases passed. No full-gate pass is claimed.
+- `.bench/checks-last-run.txt` retains the unfinished gate positions for follow-up.
+
+Physical Finder drags and live Codex/Claude sessions were not manually exercised. No native
+package, installed-app replacement, commit or push was performed. Temporary task evidence
+and completed fixtures are removed; changes remain uncommitted in workspace-15.
+
+## 2026-10-13 — Windows host and desktop client
+
+Implemented in managed workspace-13 on windows-host-client: Windows x64 ConPTY shells
+for embedded and standalone hosts, Windows process cleanup and busy detection, Skia-only
+terminal selection, native Windows terminal/editor builds, host-path normalization and
+Recycle Bin operations. PowerShell bootstrap/publish scripts produce a self-contained
+client/host ZIP; the Windows CI lane runs packaged --windows checks. WINDOWS.md documents
+setup and platform limits.
+
+Verification:
+
+- Release solution build passed with zero warnings/errors; whole-solution format verification
+  and git diff --check passed.
+- Both Windows native PowerShell build scripts ran on macOS with a Zig cross-compiler and
+  produced x64 PE DLLs. Imports require only Windows OS/UCRT libraries. All new PowerShell
+  scripts parsed successfully. This does not validate execution on Windows.
+- --windows passed its portable quoting, path/profile, containment and local/remote Git
+  worktree checks. ConPTY, Recycle Bin and Windows UI cases require Windows and were not run.
+- --editor, --ghostty-skia and --conformance passed on macOS.
+- --terminals passed host local/remote sessions, replay, lifecycle, backpressure and the
+  preceding UI scenarios, then failed at SharedTerminalsE2E.PhoneToDesktop line 80:
+  TerminalTabs(phone).Single() found no terminal. The unchanged fixture assumes automatic
+  terminal creation while Projects mode now suppresses it. No full gate was started after
+  this focused failure; no full-suite pass is claimed.
+
+Windows runtime/package acceptance remains pending on a Windows machine or the added CI
+lane. No Windows runner was available here. Changes remain uncommitted; nothing pushed,
+published externally or installed over the running application. Temporary check logs and
+fixtures were removed after recording these results.
+
+
+## 2026-10-13 — Supplied Windows follow-up patch
+
+Applied https://paste.rs/FZCEp unchanged in windows-host-client. Release build passed
+with zero warnings/errors; --editor and --shell passed on macOS. The new PowerShell
+hook parsed successfully, and git diff --check passed. Touched C# formatting verification
+reported five whitespace errors in WorkbenchWindow.cs at lines 236–238; the supplied
+patch was preserved. Windows batch scripts, hooks and caption controls were not run
+on Windows. Full suite was not run; formatting remains an unfinished gate. Patch
+changes are uncommitted and have not been pushed.
+
+## 2026-10-13 — Workspace-15 and workspace-13 landed on main
+
+Landed file drag/drop and Windows host/client support, retaining the browser shared tab-mode fix. Plugin-specific Claude Code, File Icons and Codex changes remain separate commits. Corrected the Windows caption button formatting reported by the source worktree. Combined main Release build passed with zero warnings/errors; whole-solution formatting and whitespace verification passed; portable --windows, --file-drop and all nine --vertical-tabs cases passed. Source browser/native cross-build and editor/Skia/conformance/design results are reused for unchanged slices. Windows runtime/package execution, physical Finder/live-agent drops and final browser startup acceptance remain unverified as recorded above. The full gate was not repeated after the recorded automatic-terminal fixture failure. Nothing pushed or installed; the existing scripts/browser.sh executable-bit change is preserved.
