@@ -404,10 +404,21 @@ public sealed partial class WorkbenchWindow
         return Layout.Selected(Layout.View.FocusedCenter) is { } tab ? EditorRef(workspaceRoot, tab) : null;
     }
 
+    private readonly Dictionary<string, EditorRef> diffEditors = [];
+
+    private void ReportDiffSelection(string workspace, DockTab tab, string path, EditorSelection? selection)
+    {
+        if (workspace != workspaceRoot || Layout.Selected(Layout.View.FocusedCenter)?.Id != tab.Id) return;
+        var reference = new EditorRef(workspace + ":" + tab.Id, workspace, path, EditorKind.Diff, false);
+        diffEditors[reference.Id] = reference;
+        if (openEditors.ContainsKey(reference.Id)) openEditors[reference.Id] = reference;
+        workbench.PluginLoader.Editors.Emit(new EditorSelectionEvent(reference, selection));
+    }
+
     private EditorRef? EditorRef(string workspace, DockTab tab) => tab.Kind switch
     {
         "file" or "markdown" or "viewer" => new(workspace + ":" + tab.Id, workspace, tab.Path, EditorKind.File, PendingDocument(workspace, tab.Id) is not null),
-        "diff" => new(workspace + ":" + tab.Id, workspace, tab.Path, EditorKind.Diff, false),
+        "diff" or "changes" => diffEditors.GetValueOrDefault(workspace + ":" + tab.Id) ?? new(workspace + ":" + tab.Id, workspace, tab.Path, EditorKind.Diff, false),
         _ => null
     };
 
@@ -434,7 +445,10 @@ public sealed partial class WorkbenchWindow
         foreach (var editor in next.Values.Where(editor => !previous.ContainsKey(editor.Id)))
             workbench.PluginLoader.Editors.Emit(new EditorLifecycleEvent(editor, EditorLifecycle.Opened));
         foreach (var editor in previous.Values.Where(editor => !next.ContainsKey(editor.Id)))
+        {
+            diffEditors.Remove(editor.Id);
             workbench.PluginLoader.Editors.Emit(new EditorLifecycleEvent(editor, EditorLifecycle.Closed));
+        }
         EmitActivated();
     }
 

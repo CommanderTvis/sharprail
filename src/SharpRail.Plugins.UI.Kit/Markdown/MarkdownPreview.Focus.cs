@@ -100,7 +100,7 @@ public sealed partial class MarkdownPreview
         foreach (var (start, count, hidden) in DiffFocus.Segments(focus.Blocks))
         {
             IEnumerable<Control> Shown() => Enumerable.Range(start, count).Select(index =>
-                Document[index] is ListBlock list && focus.Items.TryGetValue(index, out var items) ? FocusedList(list, items, index, focus, live) : Render(Document[index]));
+                Sourced(Document[index] is ListBlock list && focus.Items.TryGetValue(index, out var items) ? FocusedList(list, items, index, focus, live) : Render(Document[index]), Document[index]));
             if (!hidden) { body.Children.AddRange(Shown()); continue; }
             var heading = Enumerable.Range(start, count).Select(index => Document[index]).OfType<HeadingBlock>().LastOrDefault();
             var label = $"{count} unchanged {(count == 1 ? "block" : "blocks")}" + (heading?.Inline is { } title ? " · " + Plain(title) : "");

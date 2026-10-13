@@ -26,10 +26,17 @@ public static partial class MarkdownDiff
     private sealed record TableSource(Row Header, string Separator, Row[] Rows);
     private sealed record Unit(string Text, TableSource? Table = null);
 
-    public static string Merge(string before, string after, CancellationToken cancellationToken = default)
+    public static string Merge(string before, string after, CancellationToken cancellationToken = default) =>
+        MergeWithSourceLines(before, after, null, cancellationToken);
+
+    /// <summary>Merges Markdown and reports the original/modified source block ranges of each emitted line.</summary>
+    internal static string MergeWithSourceLines(string before, string after, Action<(int Start, int End)?, (int Start, int End)?>? sourceLine, CancellationToken cancellationToken = default)
     {
         var oldUnits = Units(before, cancellationToken);
         var newUnits = Units(after, cancellationToken);
+        var oldRanges = sourceLine is null ? null : Ranges(oldUnits);
+        var newRanges = sourceLine is null ? null : Ranges(newUnits);
+        ((int Start, int End)? Old, (int Start, int End)? New) source = default;
         var output = new StringBuilder(after.Length + 64);
         var fenced = false;
         var deleted = new List<Unit>();
@@ -39,6 +46,8 @@ public static partial class MarkdownDiff
         {
             if (FenceMarker().IsMatch(line)) fenced = !fenced;
             output.Append(line).Append('\n');
+            if (sourceLine is not null)
+                foreach (var _ in line.Split('\n')) sourceLine(source.Old, source.New);
         }
 
         void Flush()
@@ -49,22 +58,31 @@ public static partial class MarkdownDiff
                 cancellationToken.ThrowIfCancellationRequested();
                 var oldUnit = deleted[index];
                 var newUnit = inserted[index];
+                source = (oldRanges?.GetValueOrDefault(oldUnit), newRanges?.GetValueOrDefault(newUnit));
                 if (oldUnit.Table is { } oldTable && newUnit.Table is { } newTable && oldTable.Header.Cells.Length == newTable.Header.Cells.Length)
                     Emit(MergeTable(oldTable, newTable, cancellationToken));
                 else if (oldUnit.Table is not null || newUnit.Table is not null)
                 {
+                    source = (oldRanges?.GetValueOrDefault(oldUnit), null);
                     EmitUnit(oldUnit, "del");
                     Emit("");
+                    source = (null, newRanges?.GetValueOrDefault(newUnit));
                     EmitUnit(newUnit, "ins");
                 }
                 else if (fenced || FenceMarker().IsMatch(oldUnit.Text) || FenceMarker().IsMatch(newUnit.Text)) Emit(newUnit.Text);
                 else Emit(MergeLine(oldUnit.Text, newUnit.Text, cancellationToken));
             }
             foreach (var unit in deleted.Skip(pairs))
+            {
+                source = (oldRanges?.GetValueOrDefault(unit), null);
                 if (!fenced && !FenceMarker().IsMatch(unit.Text)) EmitUnit(unit, "del");
+            }
             foreach (var unit in inserted.Skip(pairs))
+            {
+                source = (null, newRanges?.GetValueOrDefault(unit));
                 if (fenced || FenceMarker().IsMatch(unit.Text)) Emit(unit.Text);
                 else EmitUnit(unit, "ins");
+            }
             deleted.Clear(); inserted.Clear();
         }
 
@@ -89,13 +107,26 @@ public static partial class MarkdownDiff
         {
             switch (op)
             {
-                case Op.Equal: Flush(); Emit(line); oldIndex++; newIndex++; break;
+                case Op.Equal: Flush(); source = (oldRanges?.GetValueOrDefault(oldUnits[oldIndex]), newRanges?.GetValueOrDefault(newUnits[newIndex])); Emit(line); oldIndex++; newIndex++; break;
                 case Op.Delete: deleted.Add(oldUnits[oldIndex++]); break;
                 default: inserted.Add(newUnits[newIndex++]); break;
             }
         }
         Flush();
         return output.ToString();
+    }
+
+    private static Dictionary<Unit, (int Start, int End)> Ranges(Unit[] units)
+    {
+        var ranges = new Dictionary<Unit, (int Start, int End)>(ReferenceEqualityComparer.Instance);
+        var line = 1;
+        foreach (var unit in units)
+        {
+            var count = unit.Text.Count(character => character == '\n') + 1;
+            ranges[unit] = (line, line + count - 1);
+            line += count;
+        }
+        return ranges;
     }
 
     // Treat each pipe table as one alignment unit. Its structural syntax never receives diff tags.

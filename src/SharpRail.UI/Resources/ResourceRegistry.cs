@@ -29,7 +29,10 @@ internal abstract record ResourceContent
 /// <summary>Only the renderer interprets <paramref name="ViewState"/>; it reports a new one through <paramref name="SaveViewState"/>.</summary>
 internal sealed record ResourceView(ResourceDescriptor Resource, string TabId, ResourceContent Content, object? ViewState, Action<object?> SaveViewState);
 
-internal sealed record ResourceDiff(ResourceDescriptor Resource, string TabId, ResourceContent Original, ResourceContent Modified, object? ViewState, Action<object?> SaveViewState);
+internal sealed record ResourceDiff(ResourceDescriptor Resource, string TabId, ResourceContent Original, ResourceContent Modified, object? ViewState, Action<object?> SaveViewState)
+{
+    internal string? OriginalPath { get; init; }
+}
 
 /// <summary>Every stated condition must hold. A glob without a slash matches the file name; a MIME pattern may end in <c>/*</c>.</summary>
 internal sealed record ResourceMatch(string[]? Glob = null, string[]? Mime = null, bool? Text = null);

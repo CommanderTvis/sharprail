@@ -269,3 +269,5 @@ The builtin [Tailscale plugin](../../SharpRail.Plugins.Tailscale/SPEC.md) contri
 through ordinary activation, and exposes a client-local picker for discovery and bootstrap before any
 host projection exists. Desktop and Android composition mount that picker directly; discovery never
 uses an unconnected host's RPC. Other plugin activation remains roster-driven.
+
+Diff and continuous Changes selections participate in W12 through the owning document tab. The active editor reference carries the selected file and original/modified source path; closing the owner drops that reference. Only the active workspace and selected document may publish selections.

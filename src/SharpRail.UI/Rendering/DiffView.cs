@@ -11,6 +11,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 
 using SharpRail.Host.Abstractions;
+using SharpRail.Plugins.Api.UI;
 using SharpRail.Scintilla;
 using SharpRail.UI.Resources;
 
@@ -54,6 +55,39 @@ internal sealed partial class DiffView : Grid, IDisposable
     private readonly bool embedded;
     private IReadOnlyDictionary<RevertTarget, string> contentKeys = new Dictionary<RevertTarget, string>();
     private readonly string syntaxPath;
+    internal event Action<string, EditorSelection?>? SelectionChanged;
+    internal string OriginalPath => OriginalFilePath(text, syntaxPath);
+
+    internal static string OriginalFilePath(string diff, string fallback)
+    {
+        var header = diff.Split('\n').FirstOrDefault(line => line.StartsWith("--- ", StringComparison.Ordinal));
+        if (header is null) return fallback;
+        var path = header[4..].TrimEnd('\r');
+        if (path.StartsWith('"') && path.EndsWith('"'))
+        {
+            // Git quotes UTF-8 bytes as octal escapes, unlike JSON's Unicode escapes.
+            var bytes = new List<byte>();
+            var plain = new StringBuilder();
+            void Flush() { bytes.AddRange(Encoding.UTF8.GetBytes(plain.ToString())); plain.Clear(); }
+            for (var index = 1; index < path.Length - 1; index++)
+            {
+                if (path[index] != '\\') { plain.Append(path[index]); continue; }
+                Flush();
+                if (++index >= path.Length - 1) return fallback;
+                var character = path[index];
+                if (character is >= '0' and <= '7' && index + 2 < path.Length - 1 &&
+                    path[index + 1] is >= '0' and <= '7' && path[index + 2] is >= '0' and <= '7')
+                {
+                    bytes.Add((byte)((character - '0') * 64 + (path[index + 1] - '0') * 8 + path[index + 2] - '0'));
+                    index += 2;
+                }
+                else bytes.Add((byte)(character switch { 'a' => '\a', 'b' => '\b', 't' => '\t', 'n' => '\n', 'v' => '\v', 'f' => '\f', 'r' => '\r', _ => character }));
+            }
+            Flush();
+            path = Encoding.UTF8.GetString(bytes.ToArray());
+        }
+        return path.StartsWith("a/", StringComparison.Ordinal) ? path[2..] : fallback;
+    }
 
     // Below this many code columns per half, a side-by-side diff is unreadable and the view opens inline.
     private const int MinimumSplitColumns = 40;
@@ -416,6 +450,7 @@ internal sealed partial class DiffView : Grid, IDisposable
 
     private void DropMerged()
     {
+        if (frames.Count > 0 || merged is not null) SelectionChanged?.Invoke(syntaxPath, null);
         body.Children.Clear();
         foreach (var frame in frames) frame.Editor.Dispose();
         frames.Clear();
@@ -633,6 +668,13 @@ internal sealed partial class DiffView : Grid, IDisposable
         var editor = frame.Editor;
         editor.LabelLines(labels);
         editor.IsReadOnly = true;
+        editor.SelectionChanged += (_, _) =>
+        {
+            var selected = editor.Selection;
+            var value = SourceSelection(side.Numbers, side.Syntax.Select(line => line.PrefixLength).ToArray(), selected.StartLine, selected.StartColumn,
+                selected.EndLine, selected.EndColumn, selected.Text);
+            SelectionChanged?.Invoke(value.Original ? OriginalPath : syntaxPath, value.Selection);
+        };
         editor.WrapWidth = embedded ? double.PositiveInfinity : wrapWidth;
         editor.LineStyles = LineStyles();
         editor.StyleLines(side.Styles);
@@ -653,6 +695,23 @@ internal sealed partial class DiffView : Grid, IDisposable
             Resize();
         }
         return frame;
+    }
+
+    internal static (bool Original, EditorSelection? Selection) SourceSelection(IReadOnlyList<(int? Old, int? New)> numbers,
+        IReadOnlyList<int> prefixes, int startLine, int startColumn, int endLine, int endColumn, string text)
+    {
+        if (text.Length == 0 || startLine < 1 || startLine > numbers.Count) return (false, null);
+        var last = Math.Min(numbers.Count, endColumn == 1 && endLine > startLine ? endLine - 1 : endLine);
+        var rows = Enumerable.Range(startLine - 1, Math.Max(0, last - startLine + 1)).ToArray();
+        var original = rows.All(row => numbers[row].New is null);
+        var mapped = rows.Where(row => (original ? numbers[row].Old : numbers[row].New) is not null).ToArray();
+        if (mapped.Length == 0) return (original, null);
+        var first = mapped[0]; var final = mapped[^1];
+        var start = (original ? numbers[first].Old : numbers[first].New)!.Value;
+        var end = (original ? numbers[final].Old : numbers[final].New)!.Value;
+        return (original, new(start, first == startLine - 1 ? Math.Max(1, startColumn - prefixes[first]) : 1,
+            endColumn == 1 && endLine > startLine ? end + 1 : end,
+            endColumn == 1 && endLine > startLine ? 1 : Math.Max(1, endColumn - prefixes[final]), text));
     }
 
     private static int Gap(Hunk? previous, Hunk next) =>

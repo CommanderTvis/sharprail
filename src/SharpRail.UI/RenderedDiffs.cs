@@ -2,6 +2,7 @@ using Avalonia.Controls;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Client;
+using SharpRail.Plugins.Api.UI;
 using SharpRail.UI.Docking;
 using SharpRail.UI.Rendering;
 using SharpRail.UI.Resources;
@@ -22,6 +23,8 @@ public sealed partial class WorkbenchWindow
             described ? null : DiffChoices(tab, key, new(workspaceRoot, tab.Path, ResourceRegistry.InferredMime(tab.Path), true, null), null),
             tabViews.GetValueOrDefault(key)?.RendererId, id => WriteTabView(key, new(id)), pending: described,
             revert: DiffRevert(tab, key), canRevert: state.Supports(HostProtocol.ChangeWritePath), triage: triage, naturalHeight: naturalHeight, embedded: embedded);
+        var workspace = workspaceRoot;
+        view.SelectionChanged += (path, selection) => ReportDiffSelection(workspace, tab, path, selection);
         if (described) _ = DescribeDiffAsync(view, tab, key);
         return view;
     }
@@ -38,7 +41,7 @@ public sealed partial class WorkbenchWindow
                     DiffSide(tab.Path, sides.OriginalInfo, sides.Original, sides.OriginalRevision),
                     DiffSide(tab.Path, sides.ModifiedInfo, sides.Modified, sides.ModifiedRevision),
                     state is null || state.RendererId is null || state.RendererId == renderer.Id ? state?.ViewState : null,
-                    value => WriteTabView(key, new(renderer.Id, value))), linked.Token);
+                    value => WriteTabView(key, new(renderer.Id, value))) { OriginalPath = DiffView.OriginalFilePath(documents.GetValueOrDefault(key)?.Text ?? "", tab.Path) }, linked.Token);
                 linked.Token.ThrowIfCancellationRequested();
                 return content;
             }))];
@@ -76,14 +79,30 @@ public sealed partial class WorkbenchWindow
         var merge = RenderedDiffMerge;
         // The runs the reader expanded are the tab's view state for this renderer.
         var expanded = diff.ViewState as HashSet<string> ?? [];
+        var sourceLines = new List<((int Start, int End)? Old, (int Start, int End)? New)>();
         var (parsed, focus) = await Task.Run(() =>
         {
-            var merged = merge(original, modified, token);
+            var merged = merge == MarkdownDiff.Merge
+                ? MarkdownDiff.MergeWithSourceLines(original, modified, (oldLines, newLines) => sourceLines.Add((oldLines, newLines)), token)
+                : merge(original, modified, token);
             var document = MarkdownPreview.Parse(merged);
             return (document, DiffFocus.Create(original, merged, document, expanded, () => diff.SaveViewState(expanded), token));
         }, token);
         token.ThrowIfCancellationRequested();
-        return new MarkdownPreview(parsed, diff.Resource.Path, MarkdownContexts.For(host, Preferences, FollowLink, SpecLink()), renderDiagrams: false, focus, Frontmatter.Parse(modified), Frontmatter.Parse(original))
+        var preview = new MarkdownPreview(parsed, diff.Resource.Path, MarkdownContexts.For(host, Preferences, FollowLink, SpecLink()), renderDiagrams: false, focus, Frontmatter.Parse(modified), Frontmatter.Parse(original))
         { Name = "RenderedDiff" };
+        var workspace = diff.Resource.Workspace;
+        var tab = new DockTab(diff.TabId, "", "diff", diff.Resource.Path);
+        preview.SelectionChanged += _ =>
+        {
+            var text = preview.SelectedText;
+            var spans = preview.SelectedLines is { } lines
+                ? sourceLines.Skip(Math.Max(0, lines.Start - 1)).Take(lines.End - lines.Start + 1).ToArray() : [];
+            var originalOnly = spans.Length > 0 && spans.All(span => span.New is null);
+            var ranges = spans.Select(span => originalOnly ? span.Old : span.New).OfType<(int Start, int End)>().ToArray();
+            ReportDiffSelection(workspace, tab, originalOnly ? diff.OriginalPath ?? diff.Resource.Path : diff.Resource.Path, text.Length == 0 || ranges.Length == 0 ? null
+                : new(ranges.Min(range => range.Start), 1, ranges.Max(range => range.End) + 1, 1, text));
+        };
+        return preview;
     }
 }

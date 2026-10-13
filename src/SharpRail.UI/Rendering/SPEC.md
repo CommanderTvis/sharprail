@@ -258,3 +258,5 @@ commit rows in the scope menu append it to the short SHA and author.
 - The location strip's caption style (uppercase 10px text above a 22px value row within the 40px strip)
   is a window-local style in `WorkbenchWindow.axaml`; it moves into the typography vocabulary when that
   exists.
+
+Diff selections feed the shared editor event stream for Codex and Claude Code, including cached files in continuous Changes review. Source selections map displayed rows to the original or modified file lines and subtract unified-diff prefixes from columns; metadata and gap rows have no source selection. Deletion-only selections use the original path for renamed files. Rendered Markdown reports exact selected visible text and the whole source-block line bounds: mixed blocks use modified bounds, deletion-only blocks use original bounds. These bounds may enclose unchanged lines; they are not exact Markdown character positions. Replacing a diff body clears its previous selection.

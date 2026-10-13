@@ -297,3 +297,5 @@ transform is restricted to Swift and exercised by real keyword/comment/string sa
 
 Merman can be supplied through `MermaidRenderer.PlatformRender`, retaining the same source/options/SVG
 contract for a browser WASM instance. Native desktop rendering remains the default.
+
+Markdown diff merging can report the original and modified source-block ranges for every emitted merged line, without changing merged output. Unchanged and paired blocks retain both sides; deletion-only and insertion-only blocks retain their own side. Table ranges cover the source table block. Consumers use these ranges for read-only IDE selection context.
