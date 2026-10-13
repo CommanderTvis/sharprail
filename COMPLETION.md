@@ -27,7 +27,27 @@ substituting an easier behavior.
 | Publish and show the finished app; no Pi/AI or benchmarks | Canonical `artifacts/SharpRail.app`, published runtime checks, own-window native captures; implementation scope in `SPEC.md` | The current package is a working prototype, not yet proof that all preceding completion limits are resolved; macOS terminal execution and the Scintilla editor are separately in scope |
 | Android client of a remote host | `src/SharpRail.Android` and its `SPEC.md`; Debug and Release builds run on an Android 16 arm64 tablet emulator against `SharpRail.Host.Remote` (connect and auto-connect, workbench, menus, dialogs, project by host path, file tree, Markdown, Scintilla editor, live terminal, Settings, Disconnect, Back), recorded in `VALIDATION.md` | Done with limits: emulator only. Physical devices, phones, IMEs other than Gboard, accessibility, plugin UI beyond the default workbench, HTTPS and CI are unverified; cleartext HTTP, an unencrypted stored token, one window, no on-device tests, untrimmed JIT package |
 
+The remote transport migration uses protobuf WebSockets across desktop, browser and Android,
+including the normal embedded listener. Cancellation, multiplexing, bounded queues, errors,
+heartbeats and reconnect/replay are implemented and covered by focused checks. The browser's
+macOS Command+A/Command+V regression is covered by real Chromium input. Existing hosts using
+gRPC require an updated build/restart; the user's running host was left intact.
+
 Next work is bounded by these remaining gates:
+
+The browser client is implemented in `src/SharpRail.Browser`, with full shared-workbench parity as its
+contract and exclusively remote host adapters. Chromium acceptance covers WASM Scintilla editing,
+save conflicts, live Ghostty PTYs and reconnects, PDFium text/raster/Unicode/rotation/crop, Mermaid,
+modal settings, view-state persistence and external managed plugin UI/settings.
+The published bundle passed a Chromium smoke check. The consolidated gate and targeted
+continuations pass 120 of 122 named cases; the unchanged narrow diff-header and Spec Dialect
+failed-update assertions remain. A clean full regression gate remains open. Safari, Firefox,
+non-macOS browser keyboard/IME behavior, real notification permission and production HTTPS remain
+platform verification gates; they do not define a reduced browser feature set.
+
+Browser terminal batching is measured at 110.0 benchmark output FPS and 47.1 terminal redraws/s
+in the recorded Chromium setup. Native batched text matches the shared renderer pixel for pixel;
+120 FPS browser drawing remains unachieved. See `VALIDATION.md` for the profile and current gate failures.
 
 1. Auxiliary stack sizing, folded weights, spacers and viewport compression have
    source-library regression and native rendering evidence in `VALIDATION.md`.
@@ -140,3 +160,9 @@ Markdown virtualization is between top-level blocks, with full content retained 
 selection and Find; a single large list/table/code block and media storage remain
 unbounded internally. Native screen-reader and physical Android acceptance, packaging
 and a running-app review have not been performed for this change.
+
+The browser uses restty WebGL2 by default, with Skia only as an initialization fallback.
+Live input, clipboard text, resize, UTF-8 and reload/reattach checks pass. It reaches the
+60 Hz headless browser cadence, but desktop performance parity remains unproven.
+Shared-texture composition, full font fallback, clipboard images, full scrollback reads,
+high-contrast handling and overlapping in-window UI remain incomplete.

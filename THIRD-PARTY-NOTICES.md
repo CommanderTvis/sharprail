@@ -1,5 +1,12 @@
 # Asset provenance
 
+The browser terminal uses [restty](https://github.com/wiedymi/restty) 0.3.0,
+Copyright (c) 2026 Wiedy Mi, MIT, and its bundled text-shaper 0.1.28,
+Copyright (c) 2025 wiedymi, MIT. Their notices are in `licenses/Restty-MIT.txt` and
+`licenses/TextShaper-MIT.txt`. Restty includes Ghostty/libghostty-vt WASM (MIT;
+the Ghostty notice is in `src/Ghostty.Avalonia/Licenses`). The browser supplies the
+existing bundled JetBrains Mono font and does not fetch restty's CDN font defaults.
+
 The macOS terminal embeds Ghostty 1.2.3 (MIT), pinned to commit
 6d2dd585a5d87fa745d48188dd096ca6e63014d0. See licenses/Ghostty-MIT.txt.
 The build backports upstream's configuration-file loader via
@@ -64,13 +71,15 @@ JetBrains Mono Regular came from the reference's bundled font assets.
 Their SIL Open Font Licenses are in src/SharpRail.Plugins.UI.Kit/Assets/Fonts and are
 included in the published app's Resources directory.
 
-Markdown parsing uses Markdig (BSD-2-Clause). Avalonia, protobuf-net.Grpc,
-grpc-dotnet, and other NuGet dependencies retain their package licenses.
+Markdown parsing uses Markdig (BSD-2-Clause). Avalonia, protobuf-net, and other NuGet dependencies retain their package licenses.
 The spec dialect plugin parses YAML with YamlDotNet 18.1.0 (MIT);
 see licenses/YamlDotNet.txt.
 
 PDF Preview renders through PDFium 156.0.8076 from bblanchon.PDFium.macOS/Linux, and from
 bblanchon.PDFium.Android in the Android client.
+The browser client uses the same chromium/8076 release's official PDFium WASM distribution and
+Merman 0.7.0's WASM package. Their licenses and the project's dependency notices are included in the
+browser bundle under `vendor/`; native terminal/editor dependencies retain the licenses listed here.
 The PDFium license and the linked libraries' notices from the checksummed
 chromium/8076 release archive are collected in licenses/PDFium.txt.
 

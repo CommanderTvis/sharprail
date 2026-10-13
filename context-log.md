@@ -5324,3 +5324,156 @@ are removed. Changes are landed locally; nothing pushed.
 Created managed workspace-9 from local main for agent titles reverting to Terminal N. Catalog refreshes now prefer host-saved agent titles when reconciling mounted and retained workspace tabs. Projects resolves these titles for catalog-only terminals and refreshes those entries on title broadcasts. Numbering still follows the original catalog titles.
 
 Release build, touched-file formatting, whitespace and focused workspace-tools/layout checks pass. The Git-enabled four-lane gate and serial resume pass with no unfinished cases; the resource diff-row timeout passed on resume without code changes. Task logs and fixtures are cleaned. Changes are landed locally; no push, package or running-app replacement.
+
+
+## 2026-10-11 — Browser workbench on web-client
+
+Created managed workspace 3 on `web-client` for a full-parity remote-host-only browser client.
+Shared UI/XAML and all builtin UI halves compile for browser-wasm; native terminal/editor
+libraries share the runtime heap, and PDFium/Merman render through worker adapters. The
+standalone host optionally serves static browser assets and authenticated protobuf WebSocket
+calls beside HTTP/2. Host-side GitHub status and PNG clipboard upload keep native operations
+on the host. Browser window/dialog surfaces, platform shortcuts, notifications, session-token
+storage and local profile persistence supply the browser platform layer.
+
+Rebased onto local main through `0ffa4f5a`, retaining Tailscale token authentication and its
+plugin UI, Android terminal improvements and ignored-file metadata. Release builds, browser
+acceptance, the published-bundle smoke check and focused regression checks passed as recorded
+in VALIDATION.md. The full four-lane gate ended at ChangesDiffE2E's stale narrow-split expectation and the recorded
+Spec Dialect failed-update tree assertion. Existing verification results are retained rather than
+rerunning unchanged slices; `.bench/checks-last-run.txt` preserves unfinished shard ranges.
+The published bundle carries native, font and plugin notices. Own fixtures and temporary hosts
+are removed after verification. Work is uncommitted, with no push.
+
+
+## 2026-10-11 — Unified WebSocket host transport
+
+Replaced the remote gRPC stack with protobuf over the versioned `/rpc` WebSocket endpoint
+in workspace 3. Desktop, Android and browser clients share typed generated proxies and direct
+host dispatch. Embedded adapters remain direct. The transport supplies multiplexed calls,
+16-message receive windows, bounded frame/message/connection buffers, chunking, cancellation,
+remaining-duration deadlines, typed errors/trailers, heartbeats, reconnect and mutation replay.
+Tailscale authentication and credential revocation use the same endpoint. Host protocol 5
+requires an updated host; the running normal desktop app was not restarted or replaced.
+
+Corrected macOS browser detection for stock Command+A/Command+V and shared editor commands.
+Real Chromium acceptance exercises clipboard shortcuts rather than calling text setters.
+Build and check evidence is recorded in VALIDATION.md; this work remains uncommitted.
+
+Final verification: strict Release builds, Android Release (two PDFium packaging warnings),
+Chromium acceptance, normal published-bundle smoke and formatting pass. Across the consolidated
+gate and targeted continuations, 120/122 named cases pass; the unchanged diff-header and
+Spec Dialect retry assertions remain. Fixed the shutdown status expectation and made the
+multi-client helper wait for Git identity before choosing Project Home. Updated only the
+isolated browser preview host at port 57459, leaving the normal desktop app intact.
+
+Removed the browser-only window toolbar at the user's request. The browser restores one
+workbench and uses the full viewport. Updated acceptance checks retain dialog/modality and
+profile checks; Release build/publish, Chromium acceptance and published-bundle smoke pass.
+
+
+Browser terminal follow-up: colors were suppressed by NO_COLOR inherited from the agent's
+preview-host launch; restarted only our idle preview on port 57459 without it. Replaced silent
+holder output loss with bounded backpressure; focused host tests and browser colors/grid checks
+pass. Full gate failed in MarkdownDocumentE2E, codex-host and ChangeActionChecks (see VALIDATION).
+The user confirmed color/layout repair, then requested FPS profiling before transport work.
+Direct-WebSocket Chromium profiling shows ~60 redraws/sec but term-bench reports 3.5 FPS: 6,818
+roughly 1 KB UI dispatches wait 14.1 s during a 15 s sample, versus only 64 ms VT parsing.
+Render preparation costs 5.6 s and synchronous drawing 1.3 s; waits overlap this work.
+Batching output and coalescing redraws should be evaluated before an alternate transport.
+Profiling instrumentation removed; subsequent optimization results follow below.
+
+## 2026-10-13 — Terminal performance continuation
+
+Implemented bounded live UI read-ahead, 128 KiB host output coalescing at contiguous grid boundaries,
+and native WASM batches of existing Skia text-blob draws for plain ASCII rows. Complex/decorated
+rows keep shared rendering. ASCII blobs are font-owned; inactive hover updates avoid cell traversal.
+The final Chromium profile reports 110.0 benchmark output FPS and 47.1 terminal redraws/s, versus
+21.9 output FPS/about 20 redraws/s after UI batching alone. This does not establish 120 FPS drawing.
+Selective AOT and the raster atlas experiments were rejected; neither remains in production code.
+Release solution/browser builds, focused Skia and terminal-host checks pass; validation and the
+pixel-equivalence browser checks are recorded in VALIDATION.md. The earlier full-gate SpecsPanelE2E
+failure and interrupted remaining lanes still prevent claiming a clean full gate. Work is uncommitted.
+The normal published bundle and updated host are running at port 57459 (PID recorded in
+`.tools/browser-session/host.pid`), with the existing token and state. Browser reload picks up the
+changes. Final browser acceptance and direct deployed-bundle smoke pass; one initial smoke startup
+timeout remains recorded as a limitation. Temporary experiments and task scratch are removed.
+
+## 2026-10-13 — Restty WebGL2 trial
+
+User requested trying restty after renderer research. Added pinned restty 0.3.0 with
+its embedded text-shaper 0.1.28, notices, local JetBrains Mono and an opt-in browser
+backend at `?terminal=restty`. NativeControlHost embeds a separate canvas; this is not
+shared-texture composition. Existing managed host adapters retain shell ownership,
+ordered transport and output backpressure. Input/resize callbacks use the existing
+asynchronous JS-export event bridge; keyboard forwarding bypasses Avalonia consuming
+restty's window-level keyboard events. The default and read-only watching use Skia.
+
+Browser build/publish, touched formatting, JS syntax, focused restty acceptance and
+published default smoke passed. Published restty checks cover Command+V, live keyboard
+input, resize, UTF-8 split across chunks and host session survival across reload.
+Measured ~60.05 GPU-drawn frames/sec at 124×48/DPR1, matching the headless browser's
+60 Hz callbacks; benchmark output ~111 FPS. No proven speedup over the latest native-row
+Skia path or desktop Metal parity. See VALIDATION and Browser/SPEC for limits.
+Preview assets at port 57459 now include both the prior native-row optimization and
+restty; host PID/token/state are unchanged. Work remains uncommitted. Source check:
+`node tests/SharpRail.Browser.Checks/restty.mjs`; opt-in benchmark adds `--profile`.
+
+## 2026-10-13 — Default restty, Skia only on loading failure
+
+User required restty as default and Skia only if restty cannot load. BrowserTerminal
+now owns lazy bridge import, a 30-second initialization limit and fallback. Host errors
+do not trigger renderer switching. Removed the query gate and the unconditional Skia
+watching path; restty watches a holder's fixed grid without input or resize authority.
+Restty's ready-with-backend-none case is handled as initialization failure.
+
+Browser build/publish, formatting, focused failure-injection/sharing checks, full browser
+acceptance through the real Skia fallback, and published default smoke/restty checks pass.
+One initial reload timeout remains recorded in VALIDATION; later runs passed. Preview
+at port 57459 now defaults to restty; token and host state are unchanged. No commit/push.
+
+
+## 2026-10-13 — Rebase and restty modal backdrop
+
+web-client now rests on local main 2543bda0; all browser/WS work remains uncommitted.
+Recovery stash: 866daa1f7c249a4d755e278491159be70085e0db. New main terminal-file-link
+and prompt-image operations are retained in regenerated WS clients/dispatch.
+Modal dimming now also covers restty's DOM canvas, with pixel and restored-input
+coverage. Preview assets were republished at port 57459 without restarting its host.
+Release builds, focused checks, browser acceptance and published smoke pass. The
+four-lane gate plus an unchanged isolated workbench retry and serial continuation
+complete; startup-timeout and existing spec-link caveats are in VALIDATION.
+The reported receive-credit error and performance remain separate work.
+
+## 2026-10-13 — Land browser client and Codex tint fix
+
+Imported workspace-3 onto main with all 50 added source/license files, verified against
+its unchanged tracked diff and file bytes. Kept its active browser preview intact and
+reused its recorded final browser/transport/full-gate results. The transport is now
+protocol-5 WebSocket RPC, requiring updated remote hosts.
+
+The delegated Codex icon fix uses the shared SVG renderer's live theme brush instead
+of painting a color before attachment. Final main Release compilation, touched-file
+formatting, whitespace and focused Codex logic/WebSocket UI checks pass. Browser code
+and the icon fix are committed locally; no push or app replacement. The separate
+intermittent-tab investigation still needs an expanded-arrow observation or trigger.
+
+## 2026-10-13 — Markdown preview frontmatter editing
+
+Created managed workspace-10 from local main. Preview properties now edit the existing source draft,
+matching the fork's text fields, chips, mapping entries, key operations, shape conversion and
+status/type suggestions. Enter/blur commit and Escape cancels; Source, undo, Save and conflicts use
+the same buffer. Unsupported YAML and diffs stay read-only. Supported frontmatter is canonicalized
+without rewriting the prose. Folding, focus and uncommitted field input survive preview replacement.
+
+Final Release build, whole formatting, whitespace and focused frontmatter checks pass. Markdown,
+editor, design and conformance checks pass in the batch. The Git-enabled two-lane gate and two serial
+resumes remain incomplete under macOS EventStream startup failures: Markdown Find fixture opening
+and Changes review loading in the parallel run, then Markdown's live-edit watcher in each resume.
+The new conflict fixture now discards its dirty buffer before disposal. VALIDATION.md records the
+limits; keep `.bench/checks-last-run.txt` for follow-up. Other scratch logs and fixtures are cleaned.
+Changes remain uncommitted; no push, package or running-app replacement.
+
+## 2026-10-13 — Main landings
+
+Workspace-10 frontmatter editing is landed; combined Release/format/frontmatter checks pass. Terminal suppression, Rename, link context menus and Codex/Claude diff selections are landed with focused checks passing. Full gate remains blocked by EventStream watcher failures; see VALIDATION.md. Separate upstream branch tracks 5ab283a35 with native ports and recorded pending gaps. Nothing pushed.

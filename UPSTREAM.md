@@ -155,7 +155,7 @@ Commits are in chain order; the first ten are JetBrains commits the fork carries
 - `f4408d2a3` Previewing a file before you keep it is a setting: ported
 - `0d59b4878` The desktop window comes back to the port it had, and with it your tabs: skipped (desktop host port; SharpRail embeds its host)
 - `ec1ec6823` tests: a fixture open survives a neighbour's pick and a loaded machine: skipped (Playwright fixture timing and picker-pointer state; SharpRail checks use isolated fixtures)
-- `32f07e106` Frontmatter edits like Obsidian properties, above the rendered view: partial (read-only properties table with chips, folding and raw fallback; editing into a draft is missing because SharpRail Markdown tabs have no editable source)
+- `32f07e106` Frontmatter edits like Obsidian properties, above the rendered view: ported (editable preview properties, chips, folding, key operations, shape conversion and suggestions share the source draft; unsupported YAML and diffs remain read-only)
 - `b047c8f29` The spec tools reach any agent in a ThinkRail terminal, over MCP: partial (MCP protocol, per-terminal token, THINKRAIL_MCP_URL stamping and a loopback HTTP/1.1 route on both the remote host and the local terminal relay are ported; only spec_get and spec_grep are served, because SharpRail has no spec authoring or full graph yet, so spec_create/update/delete/graph/validate and grep's tag/dependsOn filters are missing; the carried mouse-mode guard, process tree and title changes have no SharpRail counterpart)
 - `25133aa27` Panes a resource carries: embedded, never a tab of their own: partial (Markdown Split view; visualization/blueprint companions are AI surfaces and skipped)
 - `76c3ec2f3` A terminal whose pty inherited a stale utmpx record no longer runs as the wrong user: ported
@@ -177,7 +177,7 @@ Commits are in chain order; the first ten are JetBrains commits the fork carries
 - `2a2739307` A workbench frame belongs to the project it was arranged in: skipped (needs a per-project frame stash in the persisted DockState, touching presets, validation and document pruning; deferred as too risky for this merge)
 - `bf7881065` A selection you can see in the dark theme: ported
 - `4496970ed` The projects rail's plus says what it does: already present (the Add project button already has its tooltip)
-- `155735756` A spec's own frontmatter is a properties table, not a raw block: ported (multi-line flow sequences and one-level mappings read as properties; read-only as above)
+- `155735756` A spec's own frontmatter is a properties table, not a raw block: ported (multi-line flow sequences and one-level mappings read as properties; editable preview properties now share the source draft)
 - `783b0b04e` An inline diagram zooms like the fullscreen one, and pans inside its box: ported
 - `d55683607` chore: bump TypeScript to 7.0.2 and migrate off the legacy compiler API: skipped (TS tooling)
 - `e597593d7` A spec is titled by its frontmatter, and its [[links]] go somewhere: ported

@@ -183,7 +183,7 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `clone-project.spec.ts` (fork) | clone repository | Not ported yet |
 | `gitless.spec.ts` (fork) | Changes and Review withheld for a plain folder or an unborn repository | Not ported yet |
 | `editor.spec.ts` | opens a file in a center Monaco tab, focuses on re-open, and closes | Ported (Markdown source is SharpRail's read-only source view; the ready placeholder omits chats) |
-| `editor.spec.ts` | hides YAML frontmatter in the rendered view but shows it in source | Ported (the prose is checked apart from the fork's properties block, whose values are text here rather than form fields) |
+| `editor.spec.ts` | hides YAML frontmatter in the rendered view but shows it in source | Ported (the prose is checked apart from the editable properties block) |
 | `editor.spec.ts` | opens a non-markdown file straight to Monaco with no rendered-view toggle | Ported (macOS Scintilla) |
 | `workspace-tabs.spec.ts` | editor tabs are scoped to the active workspace | Ported |
 | `workspace-tabs.spec.ts` | the selected side tool follows workspace switches | Ported |
@@ -262,10 +262,10 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `changes.spec.ts` (fork) | The diff header keeps its controls on a narrow pane: an unpinned diff opens inline there, a click pins Split | Ported with the native width rule: layout pins apply while wide enough; narrow panes hide Split and use inline |
 | `changes.spec.ts` (fork) | The rendered markdown diff carries the outline and the properties block | Ported (properties are diffed per key rather than through the text merge; the marks are the same ins/del runs) |
 | `changes.spec.ts` (fork) | A markdown diff drops to one column on a narrow pane like every other file | Covered by the width rule shared with source diffs; no separate case |
-| `frontmatter.spec.ts` (fork) | frontmatter renders as editable properties, and an edit lands in the draft | Partial: the properties render and fold; SharpRail Markdown tabs have no editable source, so there is no draft to edit |
-| `frontmatter.spec.ts` (fork) | list chips add and remove, and the block folds away | Partial: chips render and the block folds; add/remove is editing |
-| `frontmatter.spec.ts` (fork) | the type menu converts between text, sequence, and mapping | Excluded: editing |
-| `frontmatter.spec.ts` (fork) | a type property offers the spec vocabulary as suggestions | Excluded: editing |
+| `frontmatter.spec.ts` (fork) | frontmatter renders as editable properties, and an edit lands in the draft | Ported (shared source draft, dirty save point, undo/redo, Escape cancellation and Save) |
+| `frontmatter.spec.ts` (fork) | list chips add and remove, and the block folds away | Ported |
+| `frontmatter.spec.ts` (fork) | the type menu converts between text, sequence, and mapping | Ported (including per-entry mapping edits) |
+| `frontmatter.spec.ts` (fork) | a type property offers the spec vocabulary as suggestions | Ported |
 | `frontmatter.spec.ts` (fork) | a block the editor cannot speak renders read-only instead of guessing | Ported |
 | `spec-documents.spec.ts` (fork) | a spec is titled by its frontmatter and its [[links]] reach the spec they name | Ported |
 | `spec-documents.spec.ts` (fork) | ordinary markdown keeps its own first heading and leaves [[text]] alone | Ported |
