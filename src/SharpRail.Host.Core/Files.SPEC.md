@@ -83,12 +83,27 @@ the session's other mutations:
 
 - `create-file` / `create-folder` make an empty file or folder, plus any folders on the way, and refuse an
   existing path.
+- `copy` copies a file or directory inside the workspace, preserves Unix modes and empty directories,
+  rejects links anywhere in the source and refuses an existing target or a descendant of the source.
+  It stages beside the destination before installing the completed copy. Transfer staging entries are
+  hidden from listings and watcher invalidations, so partial transfers never enter the file tree.
 - `rename` moves within the workspace and refuses an existing target unless it differs only in case (a
   case-only rename on a case-insensitive disk).
 - `trash` moves the entry to the OS trash (`NSFileManager` on macOS, `gio trash` on Linux), so a mis-click
   is recoverable; `reveal` selects the entry in the file manager (`open -R`, `explorer /select,`, or the
   containing folder where no select verb exists). Both run on the host's computer.
 - None of them touches the workspace folder itself.
+
+## Client file transfers
+
+`ImportFilesAsync` accepts a workspace root, an optional destination folder and relative file/directory
+entries. The root must still be this session's workspace. A null destination stores prompt attachments
+in a unique private directory under host state; the response returns absolute host paths. Workspace
+imports refuse existing root names before staging and never follow symbolic links. Validated paths
+reject traversal, Git metadata, duplicates and ambiguous separators. Empty folders and arbitrary bytes
+are preserved. A transfer is bounded to 4096 entries and 64 MB in total. Cancellation or a refused
+installation removes staged and newly installed entries. The same operation serves local and remote clients.
+File actions may also pin their expected workspace to reject a switch before the mutation acquires its gate.
 
 ## External configuration files
 

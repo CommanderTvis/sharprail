@@ -115,7 +115,7 @@ public sealed partial class ProjectRpc(ProjectSessions sessions, IHostApplicatio
 
     public ValueTask<SaveFileReply> ApplyFileActionAsync(FileActionRequest request, CallContext context = default) => Execute(async () =>
     {
-        await Host(context).ApplyFileActionAsync(new(request.Kind, request.Path, request.To), context.CancellationToken);
+        await Host(context).ApplyFileActionAsync(new(request.Kind, request.Path, request.To) { WorkspaceRoot = request.WorkspaceRoot }, context.CancellationToken);
         return new SaveFileReply();
     });
 
@@ -181,6 +181,13 @@ public sealed partial class ProjectRpc(ProjectSessions sessions, IHostApplicatio
         var result = await host.ApplyWorkspaceActionAsync(new(request.Kind, request.ProjectRoot, request.Id, request.Path, request.Name, request.BaseBranch), token);
         return new WorkspaceActionReply { Workspace = result is null ? null : WorkspaceMessages.Map(result) };
     });
+
+    public ValueTask<FileTransferReply> ImportFilesAsync(FileTransferUpload request, CallContext context = default) => Replayed(context, request, async (host, token) =>
+        new FileTransferReply
+        {
+            Paths = (await host.ImportFilesAsync(new(request.WorkspaceRoot, request.Folder,
+            request.Entries.Select(entry => new FileTransferEntry(entry.Path, entry.IsDirectory, entry.Data)).ToArray()), token)).ToList()
+        });
 
     public ValueTask<DocumentReply> SavePromptImageAsync(PromptImageRequest request, CallContext context = default) => Replayed(context, request, async (host, token) =>
         new DocumentReply { Path = await host.SavePromptImageAsync(request.Data, token) });

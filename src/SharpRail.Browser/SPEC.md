@@ -84,3 +84,8 @@ must load the deployed bundle in a real browser and exercise host authentication
 and conflict handling, live terminal input/output and reconnection, PDF text/raster rendering, Mermaid,
 settings persistence, window/dialog interaction and builtin plugin surfaces. Compilation alone does not
 establish parity. Remaining verification is recorded in the repository's completion and validation records.
+
+The restty DOM surface forwards file drag events to its Avalonia container with window-relative
+coordinates. The shared terminal drop flow uploads browser-local bytes before invoking the active
+agent accessory. Restty's own input handlers do not process these drops. Forwarding listeners are
+removed with the surface.

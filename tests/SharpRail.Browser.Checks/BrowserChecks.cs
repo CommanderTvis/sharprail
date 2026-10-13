@@ -150,4 +150,26 @@ internal static partial class BrowserChecks
             .SelectMany(window => window.GetVisualDescendants().OfType<Button>()).Single(button => button.Name == name)
             .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent)));
     }
+    private static readonly List<string> droppedFiles = [];
+    private static bool acceptsFileDrops;
+
+    [JSExport]
+    public static async Task FileDropProbe(bool accepts)
+    {
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            acceptsFileDrops = accepts;
+            var terminal = Workbench.ActiveWindow!.GetVisualDescendants().OfType<SharpRail.UI.Terminal.TerminalView>().First();
+            if (terminal.Accessories.Children.Any(control => control.Name == "FileDropProbe")) return;
+            var receiver = new Border { Name = "FileDropProbe" };
+            receiver.SetValue(SharpRail.Plugins.UI.Kit.FileDrop.AcceptsProperty, () => acceptsFileDrops);
+            receiver.SetValue(SharpRail.Plugins.UI.Kit.FileDrop.AttachProperty, paths => droppedFiles.AddRange(paths));
+            terminal.Accessories.Children.Add(receiver);
+        });
+    }
+
+    [JSExport]
+    public static async Task<string> DroppedFiles() =>
+        await Dispatcher.UIThread.InvokeAsync(() => JsonSerializer.Serialize(droppedFiles));
+
 }

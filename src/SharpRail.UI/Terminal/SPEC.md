@@ -297,3 +297,13 @@ stale-link clearing and retained web-link hover.
 Browser composition defaults to restty; see [Browser](../../SharpRail.Browser/SPEC.md).
 Its initialization fallback uses the shared Skia backend over remote adapters and WASM libghostty-vt.
 In that fallback, pasted PNG images are uploaded to the host terminal service, and only the returned host path is typed.
+
+## Dropped attachments
+
+Plugin accessory controls advertise whether their agent accepts files and provide the prompt insertion
+callback through the kit's `FileDrop` attached properties. The workbench resolves tree payloads against
+their source workspace, shares native external files directly with a local agent, and uploads external
+bytes for remote/browser agents. Host paths from another workbench are refused. Files and folders may
+be dropped together; the plugin owns their syntax. The surface highlights accepted drops. Uploads show
+progress with Cancel. Completion checks the current workspace, accessory and terminal ownership again;
+a failed, exited, detached or watching terminal never accepts a drop or takes over implicitly.

@@ -185,6 +185,15 @@ Git-ignored Files rows remain openable and show a muted icon and chevron, a subt
   shows a later rejection beside the input. A created file opens as a kept tab and a created child expands
   its folder. Delete asks first, then moves the entry to the OS trash. Every action is
   `IProjectServices.ApplyFileActionAsync`; the tree re-lists after it, and the local watcher does too.
+- A mouse drag starts after a small threshold; a click still opens the file and the chevron still expands.
+  Dropping a tree entry onto a folder moves it there; Option on macOS or Ctrl elsewhere copies it.
+  A file row targets its containing folder; empty tree space targets the workspace root. The destination
+  is highlighted. Self and descendant destinations are refused. The source workspace is pinned across
+  switches, and another workbench's host paths are refused rather than interpreted on this host.
+- External file/folder drops copy their bytes through the host upload operation, including for remote
+  clients. An existing name reports an error without replacing it. Transfers show an inline Cancel
+  control; I/O stays off the dispatcher. Successful drops re-list loaded folders and expand the destination.
+  Local tree drags also advertise native file items for the desktop file manager.
 - An open file whose file is deleted on disk keeps its buffer and says so: its tab shows a `deleted` mark
   and a Scintilla editor a banner over the text. Only a missing file marks it (a local
   `FileNotFoundException`, a remote `NotFound`); any other failed read leaves the tab as it was, and a later

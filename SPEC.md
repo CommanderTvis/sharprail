@@ -232,6 +232,10 @@ in both List and Tree views; resizing preserves the gap. See [Panels.SPEC.md](sr
 Markdown diffs offer the reference's Source|Preview toggle: Preview shows one merged
 document with insertions and deletions marked and long unchanged runs collapsed, merged off the UI thread, cancelled when
 the file changes again, and replaced by an error placeholder if the merge fails.
+Files and folders can be dragged from the file tree into Codex or Claude prompts as attachments,
+or onto tree folders to move or copy. External drops copy into the workspace; remote clients
+upload their bytes to the host. Drops never submit a prompt or overwrite an existing path.
+
 Worktree changes on disk refresh Files, Specs, Changes, open diffs and open documents
 live; a write storm coalesces into a few refreshes. A clean editor tab reloads in place;
 one with unsaved edits keeps them and reports the conflict when saved.

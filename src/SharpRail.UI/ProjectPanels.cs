@@ -99,11 +99,12 @@ public sealed partial class WorkbenchWindow
 
     private Control FilesPanel()
     {
-        var panel = new Grid { Name = "FilesPanel", IsHitTestVisible = WorkspaceMounted && !switchingWorkspace };
+        var panel = new FilesPaneFrame { Name = "FilesPanel", IsHitTestVisible = WorkspaceMounted && !switchingWorkspace };
         var tree = new DrawnTree { Name = "FilesTree", Background = Ui.Sidebar, Margin = new Thickness(4, 12, 12, 12) };
         ScrollViewer.SetHorizontalScrollBarVisibility(tree, ScrollBarVisibility.Auto);
+        WireFileDragging(tree, panel);
         tree.SetRoots(FileEntries([], folderCache.GetValueOrDefault("") ?? [], tree));
-        Ui.Place(panel, tree);
+        Ui.Place(panel, tree, 1);
         return panel;
     }
 

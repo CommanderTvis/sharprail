@@ -240,7 +240,7 @@ The Codex builtin uses these controls without referencing app or host implementa
 
 ## Public surface
 
-`CommandKeys`, `DialogWindow`, `EditorFrame`, `FindBar`, `IDialogOwner`, `InterfaceZoom`, `LineWidths`, `RowActivation`, `DiffFocus`, `Frontmatter`, `FrontmatterBlock`, `FrontmatterProperty`, `MarkdownContext`, `MarkdownDiff`, `MarkdownDocumentView`, `MarkdownLink`, `MarkdownPreview`, `Outline`, `SpecIdentity`, `ScopedSetting`, `ScopedSettingShadow`, `ScopedSettingSource`, `SettingValueDialog`, `SettingValueDialogOptions`, `SvgAsset`, `Switch`, `SyntaxLine`, `ThemeManifest`, `Ui`, `ValueShape`, `ViewerLimits`, `ComparisonOptionView`, `MermaidDialog`, `MermaidRenderer`, `MermaidView`, `VisualizationArgs`, `VisualizationCard`, `ZoomGesture`.
+`CommandKeys`, `DialogWindow`, `EditorFrame`, `FileDrop`, `FindBar`, `IDialogOwner`, `InterfaceZoom`, `LineWidths`, `RowActivation`, `DiffFocus`, `Frontmatter`, `FrontmatterBlock`, `FrontmatterProperty`, `MarkdownContext`, `MarkdownDiff`, `MarkdownDocumentView`, `MarkdownLink`, `MarkdownPreview`, `Outline`, `SpecIdentity`, `ScopedSetting`, `ScopedSettingShadow`, `ScopedSettingSource`, `SettingValueDialog`, `SettingValueDialogOptions`, `SvgAsset`, `Switch`, `SyntaxLine`, `ThemeManifest`, `Ui`, `ValueShape`, `ViewerLimits`, `ComparisonOptionView`, `MermaidDialog`, `MermaidRenderer`, `MermaidView`, `VisualizationArgs`, `VisualizationCard`, `ZoomGesture`.
 
 ## Syntax highlighting
 
@@ -301,3 +301,7 @@ contract for a browser WASM instance. Native desktop rendering remains the defau
 Markdown diff merging can report the original and modified source-block ranges for every emitted merged line, without changing merged output. Unchanged and paired blocks retain both sides; deletion-only and insertion-only blocks retain their own side. Table ranges cover the source table block. Consumers use these ranges for read-only IDE selection context.
 
 Rendered Markdown diff merging aligns Mermaid fences as complete blocks. Unchanged diagrams appear once; changed diagrams retain separate Before/After sources, while added/removed diagrams retain the available side. Labels and fences preserve their own source-side ranges for IDE context. Native diagram rendering and error fallback are shared with normal Markdown preview.
+
+`FileDrop` provides attached acceptance and attachment callbacks on an agent accessory control.
+It owns no host or plugin state; the workbench passes resolved paths and the plugin formats the prompt.
+The drawn tree supports a threshold drag callback separately from row activation and a highlighted drop target.

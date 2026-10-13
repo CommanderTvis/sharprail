@@ -73,6 +73,19 @@ internal static class Program
             WebSocketFlowChecks.Run().GetAwaiter().GetResult();
             return;
         }
+        if (args.SequenceEqual(["--file-drop"]))
+        {
+            try
+            {
+                FileDropChecks.Host(root).GetAwaiter().GetResult();
+                AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+                SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+                FileDropChecks.Gestures();
+                FileDropChecks.WorkbenchDrops(root);
+            }
+            finally { Directory.Delete(root, true); }
+            return;
+        }
         if (args.SequenceEqual(["--project-host"]))
         {
             ProjectChecks.Run(root).GetAwaiter().GetResult();
@@ -706,6 +719,7 @@ internal static class Program
         Gate.Case("terminal-hosts", () => TerminalHostChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("workspace-tools", () => WorkspaceToolChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("agent-launch-origins", AgentLaunchChecks.RunHost);
+        Gate.Case("file-drop-host", () => FileDropChecks.Host(root).GetAwaiter().GetResult());
         Gate.Case("projects", () => ProjectChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("pull-requests", () => PullRequestChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("changes", () => ChangeChecks.Run(root).GetAwaiter().GetResult());
@@ -741,6 +755,8 @@ internal static class Program
         Gate.Case("design-roles", Design.RoleChecks.Run);
         Gate.Case("tailscale-ui", () => TailscaleChecks.RunUi(root));
         Gate.Case("plugin-ui", () => PluginUiChecks.Run(root));
+        Gate.Case("file-drop-ui", () => FileDropChecks.WorkbenchDrops(root));
+        Gate.Case("file-drop-gestures", FileDropChecks.Gestures);
         Gate.Case("file-actions", () => FileActionChecks.Run(root));
         Gate.Case("spec-dialect-ui", () => SpecDialectChecks.RunUi(Path.Combine(root, "upstream-e2e")));
         Gate.Case("blueprint-ui", () => BlueprintChecks.RunUi(root));

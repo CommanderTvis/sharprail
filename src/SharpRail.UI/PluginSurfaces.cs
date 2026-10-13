@@ -293,6 +293,7 @@ public sealed partial class WorkbenchWindow
 
     private void AttachPluginTerminal(Terminal.TerminalView terminal)
     {
+        if (!terminal.FileDropWired) { WireTerminalFileDrop(terminal); terminal.FileDropWired = true; }
         var tabKey = terminal.Launch.TabKey;
         var workspace = terminal.Launch.WorkspaceRoot;
         foreach (var child in terminal.Accessories.Children.Where(child => child.Name == "TerminalCompanions" ||

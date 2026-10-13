@@ -148,7 +148,7 @@ internal static class WorkspaceWatches
             };
             watcher.EnableRaisingEvents = true;
         }
-        Watch(root, true, path => !Path.GetRelativePath(root, path).Replace('\\', '/').Split('/').Any(part => part is ".git" or ".sharprail" or ".tools" or "node_modules" or ".DS_Store"), true);
+        Watch(root, true, path => !Path.GetRelativePath(root, path).Replace('\\', '/').Split('/').Any(part => part is ".git" or ".sharprail" or ".tools" or "node_modules" or ".DS_Store" || part.StartsWith(ProjectServices.FileTransferPrefix, StringComparison.Ordinal)), true);
         var (gitDirectory, commonDirectory) = ProjectServices.ResolveGitDirectories(root);
         if (gitDirectory is null) return;
         Watch(gitDirectory, false, path => Path.GetFileName(path) is "HEAD" or "index", false);

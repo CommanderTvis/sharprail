@@ -23,6 +23,7 @@ internal sealed class DrawnTreeEntry(string id, string text)
     internal bool Muted { get; set; }
     internal bool Italic { get; set; }
     internal bool Skeleton { get; set; }
+    internal bool DropTarget { get; set; }
     internal bool CanExpand { get; set; }
     internal bool Expanded { get; set; }
     internal int Depth { get; set; }
@@ -41,6 +42,7 @@ internal sealed class DrawnTree : ListBox
     internal IReadOnlyList<DrawnTreeEntry> Roots { get; private set; } = [];
     internal IReadOnlyList<DrawnTreeEntry> Rows => rows;
     internal bool SpecColors { get; init; }
+    internal Func<DrawnTreeEntry, PointerPressedEventArgs, Task>? Drag { get; set; }
 
     internal DrawnTree()
     {

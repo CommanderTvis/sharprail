@@ -12,6 +12,28 @@ public sealed class SaveFileRequest
 }
 
 [ProtoContract]
+public sealed class FileTransferEntryDto
+{
+    [ProtoMember(1)] public string Path { get; set; } = "";
+    [ProtoMember(2)] public bool IsDirectory { get; set; }
+    [ProtoMember(3)] public byte[] Data { get; set; } = [];
+}
+
+[ProtoContract]
+public sealed class FileTransferUpload
+{
+    [ProtoMember(1)] public string WorkspaceRoot { get; set; } = "";
+    [ProtoMember(2)] public string? Folder { get; set; }
+    [ProtoMember(3)] public List<FileTransferEntryDto> Entries { get; set; } = [];
+}
+
+[ProtoContract]
+public sealed class FileTransferReply
+{
+    [ProtoMember(1)] public List<string> Paths { get; set; } = [];
+}
+
+[ProtoContract]
 public sealed class PromptImageRequest
 {
     [ProtoMember(1)] public byte[] Data { get; set; } = [];
@@ -217,6 +239,7 @@ public sealed class WorkspaceFileChangesReply
 
 public partial interface IProjectRpc
 {
+    ValueTask<FileTransferReply> ImportFilesAsync(FileTransferUpload request, CallContext context = default);
     ValueTask<DocumentReply> SavePromptImageAsync(PromptImageRequest request, CallContext context = default);
     ValueTask<SaveFileReply> SaveFileAsync(SaveFileRequest request, CallContext context = default);
     ValueTask<WorkspaceReply> OpenProjectAsync(ProjectRequest request, CallContext context = default);
@@ -268,6 +291,7 @@ public sealed class DiffStatsReply
 [ProtoContract]
 public sealed class FileActionRequest
 {
+    [ProtoMember(4)] public string? WorkspaceRoot { get; set; }
     [ProtoMember(1)] public string Kind { get; set; } = "";
     [ProtoMember(2)] public string Path { get; set; } = "";
     [ProtoMember(3)] public string To { get; set; } = "";

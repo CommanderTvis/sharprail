@@ -11,6 +11,11 @@ public static class FileLimits
     public const int SaveMessageBytes = 2 * EditableBytes + 16 * 1024 * 1024;
 }
 
+/// <summary>One relative file or directory in a client upload; directories carry no bytes.</summary>
+public record FileTransferEntry(string Path, bool IsDirectory, byte[] Data);
+/// <summary>A bounded upload to a workspace folder, or a private attachment directory when Folder is null.</summary>
+public record FileTransferRequest(string WorkspaceRoot, string? Folder, IReadOnlyList<FileTransferEntry> Entries);
+
 public record FileSaveRequest(string WorkspaceRoot, string Path, string OriginalText, string Text);
 public record ProjectFile(string Path, string Name, bool IsDirectory, bool GitIgnored = false);
 public record SpecDocument(string Id, string Title, string Path, string Parent, string Type)
@@ -106,8 +111,12 @@ public record SearchHit(string Path, int Line, string Text);
 /// <summary>Hits in path then line order; <paramref name="Truncated"/> when the host stopped at its limit.</summary>
 public record SearchHits(IReadOnlyList<SearchHit> Hits, bool Truncated);
 public record GitAction(string Kind, string Path = "", string Branch = "", string BaseBranch = "HEAD");
-/// <summary>A change to one workspace path: create-file, create-folder, rename (to <see cref="To"/>), trash or reveal.</summary>
-public record FileAction(string Kind, string Path, string To = "");
+/// <summary>A change to one workspace path: create-file, create-folder, rename/copy (to <see cref="To"/>), trash or reveal.</summary>
+public record FileAction(string Kind, string Path, string To = "")
+{
+    /// <summary>When supplied, refuses the action if this session has switched workspaces.</summary>
+    public string? WorkspaceRoot { get; init; }
+}
 
 public sealed record GitHubAuthentication(bool Connected, string Detail);
 
@@ -122,6 +131,9 @@ public partial interface IProjectServices
     /// <summary>Stores a PNG prompt attachment in the host clipboard directory and returns its absolute path.</summary>
     ValueTask<string> SavePromptImageAsync(byte[] data, CancellationToken cancellationToken = default)
         => ValueTask.FromException<string>(new NotSupportedException("This host cannot store prompt images."));
+    /// <summary>Imports client bytes without overwriting existing entries; returns absolute host paths of the upload roots.</summary>
+    ValueTask<IReadOnlyList<string>> ImportFilesAsync(FileTransferRequest request, CancellationToken cancellationToken = default)
+        => ValueTask.FromException<IReadOnlyList<string>>(new NotSupportedException("This host cannot import files."));
     ValueTask SaveFileAsync(FileSaveRequest request, CancellationToken cancellationToken = default);
     ValueTask<FileDocument> ReadFileAsync(string relativePath, CancellationToken cancellationToken = default);
     ValueTask<IReadOnlyList<SpecDocument>> ListSpecsAsync(CancellationToken cancellationToken = default);

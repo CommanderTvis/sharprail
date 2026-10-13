@@ -132,3 +132,7 @@ connections by endpoint, client identity and heartbeat configuration. Concurrent
 those connections. Cancellation, deadlines, bounded queues and receive credits follow Protocol's contract.
 The channel owns mutation replay and domain error translation; typed generated proxies require no dynamic
 code generation in WASM. Terminal fault injection wraps the typed terminal interface.
+
+File imports map the same bounded byte/entry request through direct and remote adapters and return
+host paths. File actions preserve the optional originating workspace. Client paths are never sent
+as host source paths by the import API.

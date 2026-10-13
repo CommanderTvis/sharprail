@@ -187,3 +187,8 @@ calls as Unavailable; subscriptions reconnect through their owners and mutations
 Domain error metadata survives the transport. The backing buffers belong to their call and are released
 on consumption, completion or cancellation. Network clients and servers must both support this wire
 protocol; the old HTTP/2 gRPC wire format is not accepted.
+
+Client file transfers carry relative entry names, directory flags and raw byte arrays in a bounded
+unary upload. An optional folder distinguishes workspace imports from private attachments; replies
+return host paths. File actions also carry an optional expected workspace root. Older hosts refuse
+the new upload operation without a protocol-version change.

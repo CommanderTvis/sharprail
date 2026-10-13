@@ -31,7 +31,7 @@ internal static class BoundaryChecks
         [Android] = [Abstractions, Core, Client, Scintilla, Ghostty, UI, Api, ApiUi, Kit, "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex"],
         [Browser] = [Abstractions, Core, Client, Scintilla, Ghostty, UI, Api, ApiUi, Kit, "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex"],
         [Checks] = [Abstractions, Protocol, Core, Client, Remote, Scintilla, Ghostty, UI, Android, Api, ApiHost, ApiUi, Kit,
-            "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex", "SharpRail.PluginFixture.Host", "SharpRail.PluginFixture.UI"],
+            "SharpRail.Plugins.ClaudeCode", "SharpRail.Plugins.Codex", "SharpRail.Plugins.Agent.UI", "SharpRail.PluginFixture.Host", "SharpRail.PluginFixture.UI"],
         [Api] = [],
         [ApiHost] = [Api],
         [ApiUi] = [Api],

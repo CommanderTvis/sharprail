@@ -28,6 +28,7 @@ public sealed record TerminalTodo(string Content, TerminalTodoStatus Status, str
 public static class TerminalFacts
 {
     private const int CwdLabelMax = 40;
+    private static readonly System.Text.Json.JsonSerializerOptions AttachJson = new() { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
     /// <summary>A home-abbreviated directory whose middle, not its identifying end, is what a long path loses.</summary>
     public static string? CwdLabel(string? cwd)
@@ -51,6 +52,10 @@ public static class TerminalFacts
         if (string.IsNullOrEmpty(cwd)) return absolute;
         return absolute.StartsWith(cwd + "/", StringComparison.Ordinal) ? absolute[(cwd.Length + 1)..] : absolute;
     }
+
+    /// <summary>Quotes a file reference containing whitespace, quotes or control characters for prompt insertion.</summary>
+    public static string QuoteAttachPath(string path) => path.Any(c => char.IsWhiteSpace(c) || char.IsControl(c) || c is '\"' or '\\' or '\'')
+        ? System.Text.Json.JsonSerializer.Serialize(path, AttachJson) : path;
 
     /// <summary>Token counts with pi's compact thresholds: 999, 1.2k, 12k, 1.2M, 10M.</summary>
     public static string FormatTokens(long count) => count switch

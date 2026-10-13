@@ -313,6 +313,7 @@ internal sealed class E2eHost(IProjectServices inner) : IProjectServices
         if (gate is not null) await gate.Task.WaitAsync(ct);
         return document;
     }
+    public ValueTask<IReadOnlyList<string>> ImportFilesAsync(FileTransferRequest request, CancellationToken cancellationToken = default) => inner.ImportFilesAsync(request, cancellationToken);
     public ValueTask<string> SavePromptImageAsync(byte[] data, CancellationToken cancellationToken = default) => inner.SavePromptImageAsync(data, cancellationToken);
     public ValueTask SaveFileAsync(FileSaveRequest request, CancellationToken ct = default) => inner.SaveFileAsync(request, ct);
     public async ValueTask<WorkspaceInfo> OpenProjectAsync(string path, CancellationToken ct = default)

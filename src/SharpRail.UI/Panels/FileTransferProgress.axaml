@@ -1,0 +1,10 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:kit="using:SharpRail.Plugins.UI.Kit" x:Class="SharpRail.UI.Panels.FileTransferProgress"
+             IsVisible="False">
+  <Border Background="{x:Static kit:Ui.Elevated}" Padding="8,4">
+    <DockPanel>
+      <Button x:Name="CancelTransfer" DockPanel.Dock="Right" Content="Cancel" />
+      <TextBlock x:Name="TransferMessage" VerticalAlignment="Center" Foreground="{x:Static kit:Ui.Muted}" />
+    </DockPanel>
+  </Border>
+</UserControl>

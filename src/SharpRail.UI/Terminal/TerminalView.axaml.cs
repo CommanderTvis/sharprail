@@ -49,6 +49,12 @@ public sealed partial class TerminalView : UserControl, IDisposable
         Start(retrying: false);
     }
 
+    internal bool FileDropWired { get; set; }
+    internal bool FileDropActive
+    {
+        set => this.FindControl<Border>("FileDropHighlight")!.IsVisible = value;
+    }
+
     public ITerminalBackend? Backend { get; private set; }
     public string SessionId => launch.SessionId;
     public TerminalLaunch Launch => launch;

@@ -14,6 +14,7 @@ internal sealed class DrawnTreeLabel : Decorator
     private TextLayout? title, role;
     private double textWidth = -1;
     private bool selected;
+    private bool dropTarget;
     private double activationX;
     private Control? icon;
     private object? iconKey;
@@ -33,13 +34,36 @@ internal sealed class DrawnTreeLabel : Decorator
             Reset();
             Refresh();
         };
-        PointerPressed += (_, e) => activationX = e.GetPosition(this).X;
+        PointerPressedEventArgs? pressed = null;
+        Point start = default;
+        bool dragging = false;
+        PointerPressed += (_, e) =>
+        {
+            pressed = null;
+            activationX = e.GetPosition(this).X;
+            if (tree.Drag is not null && e.Pointer.Type != PointerType.Touch && e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && activationX >= Entry.Depth * 12 + 20)
+            { pressed = e; start = e.GetPosition(this); dragging = false; e.Pointer.Capture(this); }
+        };
+        PointerMoved += async (_, e) =>
+        {
+            if (pressed is null || tree.Drag is null || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed || Math.Abs(e.GetPosition(this).X - start.X) + Math.Abs(e.GetPosition(this).Y - start.Y) < 6) return;
+            var gesture = pressed; pressed = null; dragging = true;
+            try { await tree.Drag(Entry, gesture); }
+            finally { dragging = false; gesture.Pointer.Capture(null); }
+        };
+        PointerReleased += (_, e) =>
+        {
+            if (pressed is { } gesture && !dragging) Entry.Activate?.Invoke(gesture.ClickCount);
+            pressed = null;
+            if (ReferenceEquals(e.Pointer.Captured, this)) e.Pointer.Capture(null);
+        };
+        PointerCaptureLost += (_, _) => pressed = null;
         Tapped += (_, e) => activationX = e.GetPosition(this).X;
         RowActivation.OnActivate(this, _ => true, clicks =>
         {
             tree.SelectedItem = Entry;
             if (Entry.CanExpand && activationX < Entry.Depth * 12 + 20) tree.Expand(Entry, !Entry.Expanded);
-            else Entry.Activate?.Invoke(clicks);
+            else if (pressed is null && !dragging) Entry.Activate?.Invoke(clicks);
         });
         ContextRequested += (_, e) =>
         {
@@ -73,6 +97,7 @@ internal sealed class DrawnTreeLabel : Decorator
 
     internal void Refresh(bool forceIcon = false)
     {
+        if (dropTarget != Entry.DropTarget) { dropTarget = Entry.DropTarget; InvalidateVisual(); }
         var active = ReferenceEquals(tree.SelectedItem, Entry);
         var key = Entry.IconKey?.Invoke(active) ?? Entry;
         if (forceIcon || !Equals(iconKey, key) || (Entry.IconKey is null && selected != active))
@@ -137,6 +162,7 @@ internal sealed class DrawnTreeLabel : Decorator
     public override void Render(DrawingContext context)
     {
         context.FillRectangle(Brushes.Transparent, new Rect(Bounds.Size));
+        if (Entry.DropTarget) context.DrawRectangle(Ui.PrimarySubtle, new Pen(Ui.Accent), new Rect(Bounds.Size).Deflate(.5), 4, 4);
         if (Entry.Skeleton)
         {
             context.DrawRectangle(Ui.Hover, null, new Rect(4, 4, Math.Max(0, Bounds.Width - 8), 16), 4, 4);

@@ -13,6 +13,8 @@ public sealed partial class ProjectServices
         try
         {
             var currentRoot = root;
+            if (action.WorkspaceRoot is { } expected && !string.Equals(Path.GetFullPath(expected), currentRoot, StringComparison.Ordinal))
+                throw new IOException("The workspace changed before the files were dropped.");
             var path = Resolve(currentRoot, action.Path);
             var exists = File.Exists(path) || Directory.Exists(path);
             if (action.Kind is "create-file" or "create-folder")
@@ -27,6 +29,9 @@ public sealed partial class ProjectServices
             if (!exists) throw new FileNotFoundException($"{action.Path} no longer exists", action.Path);
             switch (action.Kind)
             {
+                case "copy":
+                    await CopyPathAsync(currentRoot, action.Path, action.To, cancellationToken);
+                    break;
                 case "rename":
                     var target = Resolve(currentRoot, action.To);
                     // Only a case-only rename may land on an existing entry: on a case-insensitive disk it is the same file.

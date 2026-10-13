@@ -17,6 +17,13 @@ internal static class RpcDispatch
                 await stream.Send(await service.GetGitHubAuthenticationAsync(request, context));
                 break;
             }
+            case "IProjectRpc/ImportFilesAsync":
+            {
+                var service = ActivatorUtilities.CreateInstance<ProjectRpc>(services);
+                var request = await ReadOne<FileTransferUpload>(stream);
+                await stream.Send(await service.ImportFilesAsync(request, context));
+                break;
+            }
             case "IProjectRpc/SavePromptImageAsync":
             {
                 var service = ActivatorUtilities.CreateInstance<ProjectRpc>(services);

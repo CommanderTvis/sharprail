@@ -51,6 +51,9 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
   (`PrResult.Action` is `created`, `updated`, `pushed`, `compare` or `authFailed`), and editor
   detection/launch. Every call is
   cancellable. Paths are workspace-relative.
+- `ImportFilesAsync` carries a pinned workspace, a destination folder (null for private prompt attachments)
+  and relative file/directory entries; it returns absolute host paths. See [host files](../SharpRail.Host.Core/Files.SPEC.md).
+  `FileAction.WorkspaceRoot` optionally pins a move/copy to its originating workspace.
 - `ListWorkspacesAsync` and `ApplyWorkspaceActionAsync` name their project or workspace explicitly rather
   than using the session's root, so a client can list and change any open project's workspaces. Kinds are
   `default`, `managed` and `external`; a record's id never changes. Results also reach every client
@@ -115,7 +118,7 @@ The public top-level types of the assembly, held to it in both directions by the
 
 `BranchCatalog`, `ChangeException`, `ChangeExpectation`, `ChangeFailure`, `ChangeIdentity`,
 `ChangeReceipt`, `ContentBytes`, `ContentMetadata`, `DiffSides`, `DiffStats`, `EditorInfo`,
-`ExistingWorktree`, `WorkspaceFileChanges`, `FileAction`, `FileDocument`, `FileEntry`, `FileLimits`, `FileSaveRequest`,
+`ExistingWorktree`, `WorkspaceFileChanges`, `FileAction`, `FileDocument`, `FileEntry`, `FileLimits`, `FileSaveRequest`, `FileTransferEntry`, `FileTransferRequest`,
 `GitAction`, `GitChange`, `GitCommit`, `GitHubAuthentication`, `GitSnapshot`, `HostErrorCode`, `HostException`,
 `HostHandshake`, `HostProtocol`, `HostSettings`, `HostState`, `HostStateChange`,
 `IPluginService`, `PluginCallRequest`, `PluginSubscription`, `SearchHit`, `SearchHits`,

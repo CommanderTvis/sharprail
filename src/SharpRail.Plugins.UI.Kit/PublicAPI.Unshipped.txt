@@ -473,3 +473,6 @@ SharpRail.Plugins.UI.Kit.Editor.EditorFrame.Highlight(string! path, System.Colle
 static SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.PlatformRender.set -> void
 static SharpRail.Plugins.UI.Kit.CommandKeys.Modifier.get -> Avalonia.Input.KeyModifiers
 static SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.RenderAsync(string! source, string! options, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.Result!>!
+SharpRail.Plugins.UI.Kit.FileDrop
+static readonly SharpRail.Plugins.UI.Kit.FileDrop.AcceptsProperty -> Avalonia.AttachedProperty<System.Func<bool>?>!
+static readonly SharpRail.Plugins.UI.Kit.FileDrop.AttachProperty -> Avalonia.AttachedProperty<System.Action<System.Collections.Generic.IReadOnlyList<string!>!>?>!

@@ -565,3 +565,7 @@ image previews and host attachment delivery. Workspace-tool checks verify image 
 adapters and first-title workspace naming without replacing manual or subsequent workspace names.
 
 Markdown Mermaid diff checks cover unchanged, changed, added/removed and nested fences, exact fence syntax, source-side ranges and shared renderer/error fallback. They run in the full gate and the focused `--markdown-tables` mode alongside structural Markdown diff checks.
+
+`--file-drop` covers direct/remote uploads, collision and containment refusals, copy/move, private
+attachments and cancellation, then headless drag thresholds and routed tree/agent drop behavior.
+The same host, gesture and UI cases join the full gate.

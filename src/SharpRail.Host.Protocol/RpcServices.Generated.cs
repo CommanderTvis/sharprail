@@ -16,6 +16,7 @@ public static class RpcServices
     private sealed class ProjectRpcClient(IRpcClient client) : IProjectRpc
     {
         public ValueTask<GitHubAuthenticationReply> GetGitHubAuthenticationAsync(ProjectRequest request, CallContext context = default) => client.Unary<ProjectRequest, GitHubAuthenticationReply>("IProjectRpc/GetGitHubAuthenticationAsync", request, context);
+        public ValueTask<FileTransferReply> ImportFilesAsync(FileTransferUpload request, CallContext context = default) => client.Unary<FileTransferUpload, FileTransferReply>("IProjectRpc/ImportFilesAsync", request, context);
         public ValueTask<DocumentReply> SavePromptImageAsync(PromptImageRequest request, CallContext context = default) => client.Unary<PromptImageRequest, DocumentReply>("IProjectRpc/SavePromptImageAsync", request, context);
         public ValueTask<SaveFileReply> SaveFileAsync(SaveFileRequest request, CallContext context = default) => client.Unary<SaveFileRequest, SaveFileReply>("IProjectRpc/SaveFileAsync", request, context);
         public ValueTask<WorkspaceReply> OpenProjectAsync(ProjectRequest request, CallContext context = default) => client.Unary<ProjectRequest, WorkspaceReply>("IProjectRpc/OpenProjectAsync", request, context);

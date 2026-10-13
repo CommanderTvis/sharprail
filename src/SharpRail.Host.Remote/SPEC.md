@@ -196,3 +196,7 @@ directly into the existing RPC adapters. Paired Tailscale credentials are rechec
 Tokens never travel in URLs. The desktop listener's endpoint and token work for every client.
 The standalone host can serve public browser assets from `SHARPRAIL_BROWSER_ROOT` on the same port,
 with COOP/COEP isolation headers. `SHARPRAIL_PORT` configures that single endpoint.
+
+File-transfer RPC maps entry names, directory flags and bytes to the host import operation, preserving
+the expected workspace and optional destination. The reply contains host paths. File actions preserve
+the expected workspace so a client switch cannot redirect a pending drop.

@@ -9,7 +9,7 @@ import { randomUUID } from 'node:crypto';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 process.env.PLAYWRIGHT_BROWSERS_PATH ??= path.join(root, '.tools/playwright');
 const { chromium } = await import('../../src/SharpRail.Browser/node_modules/playwright/index.mjs');
-const scratch = path.join(root, '.bench/restty-default/checks');
+const scratch = path.join(root, process.argv.includes('--file-drop') ? '.bench/file-drop/browser' : '.bench/restty-default/checks');
 const fixture = path.join(scratch, 'fixture');
 const token = randomUUID();
 const profile = process.argv.includes('--profile');
@@ -64,6 +64,35 @@ try {
   const term = page.locator('.sharprail-restty');
   const screen = () => page.evaluate(async () => (await import('./restty-bridge.js')).screen(document.querySelector('.sharprail-restty')));
   await until(screen, value => value.includes('fixture'), 'Host prompt did not reach restty');
+  if (process.argv.includes('--file-drop')) {
+    const invoke = (method, ...args) => page.evaluate(async ({ method, args }) => {
+      const exports = await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll');
+      return await exports.SharpRail.Browser.Checks.BrowserChecks[method](...args);
+    }, { method, args });
+    await invoke('FileDropProbe', true);
+    const drop = () => page.evaluate(() => {
+      const terminal = document.querySelector('.sharprail-restty');
+      const bounds = terminal.getBoundingClientRect();
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(new File(['browser dropped\0bytes 🚀'], 'client file.txt', { type: 'application/octet-stream' }));
+      Object.defineProperty(dataTransfer, 'effectAllowed', { value: 'copy' });
+      for (const type of ['dragenter', 'dragover', 'drop']) terminal.querySelector('canvas').dispatchEvent(new DragEvent(type, {
+        bubbles: true, cancelable: true, dataTransfer, clientX: bounds.left + 30, clientY: bounds.top + 30
+      }));
+    });
+    await drop();
+    await page.waitForTimeout(300);
+    const paths = await until(async () => JSON.parse(await invoke('DroppedFiles')), paths => paths.length === 1, 'Browser drop did not reach the agent accessory');
+    assert.ok(paths[0].startsWith(path.join(scratch, 'state/attachments') + path.sep));
+    assert.equal(path.basename(paths[0]), 'client file.txt');
+    assert.equal(await fs.readFile(paths[0], 'utf8'), 'browser dropped\0bytes 🚀');
+    await invoke('FileDropProbe', false);
+    await drop();
+    await page.waitForTimeout(300);
+    assert.equal(JSON.parse(await invoke('DroppedFiles')).length, 1);
+    assert.deepEqual(errors, []);
+    console.log('PASS browser file drops: restty DOM coordinates, client bytes uploaded to host, agent callback and inactive rejection');
+  } else {
   assert.equal(await term.getAttribute('data-backend'), 'webgl2');
   const command = async text => { await term.locator('canvas').click(); await page.keyboard.type(text); await page.keyboard.press('Enter'); };
   await command("printf '\\033[31m%s_%s\\033[0m\\n' RESTTY PASS");
@@ -202,6 +231,7 @@ try {
       await fallback.close();
       console.log(`PASS Skia fallback after restty ${failure} initialization failure`);
     }
+  }
   }
 } finally {
   await browser?.close();

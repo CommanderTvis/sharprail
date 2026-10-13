@@ -2,9 +2,11 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:rendering="using:SharpRail.Plugins.UI.Kit"
              x:Class="SharpRail.UI.Terminal.TerminalView"
+             Background="Transparent"
              FontFamily="{x:Static rendering:Ui.InterfaceFont}" Foreground="{x:Static rendering:Ui.TextBrush}">
   <!-- Plugin accessory rows sit below the surface; a plugin companion pane opens in an embedded split beside it. -->
   <Grid RowDefinitions="*,Auto,Auto" ColumnDefinitions="*,Auto,0">
+    <Border x:Name="FileDropHighlight" Grid.RowSpan="3" Grid.ColumnSpan="3" BorderBrush="{x:Static rendering:Ui.Accent}" BorderThickness="2" IsVisible="False" IsHitTestVisible="False" ZIndex="10" />
     <StackPanel x:Name="TerminalAccessories" Grid.Row="2" Grid.ColumnSpan="3" />
     <ContentControl x:Name="TerminalBody" Grid.Row="0" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch" />
     <GridSplitter x:Name="TerminalCompanionSplitter" Grid.Row="0" Grid.Column="1" Width="1" IsVisible="False"

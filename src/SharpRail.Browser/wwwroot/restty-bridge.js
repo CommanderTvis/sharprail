@@ -29,6 +29,27 @@ export async function initialize(element, id, themeJson) {
     if (forwarded.defaultPrevented) event.preventDefault();
     event.stopPropagation();
   });
+  state.dropListeners = [];
+  for (const type of ['dragenter', 'dragover', 'dragleave', 'drop']) {
+    const forward = event => {
+      const host = element.closest('.avalonia-container');
+      if (!host) return;
+      const bounds = host.getBoundingClientRect();
+      const forwarded = new DragEvent(type, {
+        dataTransfer: event.dataTransfer, clientX: event.clientX, clientY: event.clientY,
+        altKey: event.altKey, ctrlKey: event.ctrlKey, shiftKey: event.shiftKey, metaKey: event.metaKey
+      });
+      Object.defineProperties(forwarded, {
+        offsetX: { value: event.clientX - bounds.left },
+        offsetY: { value: event.clientY - bounds.top }
+      });
+      host.dispatchEvent(forwarded);
+      if (type === 'dragover' || type === 'drop') event.preventDefault();
+      event.stopPropagation();
+    };
+    element.addEventListener(type, forward, true);
+    state.dropListeners.push([type, forward]);
+  }
   const session = createResttyRuntimeSession();
   const wasm = await session.getWasm();
   if (state.disposed) return '80,24';
@@ -111,6 +132,7 @@ export function agentNewline(element, enabled) {
 }
 export function destroy(element) {
   const s = states.get(element);
+  for (const [type, listener] of s?.dropListeners ?? []) element.removeEventListener(type, listener, true);
   if (!s) return;
   s.disposed = true;
   s.observer?.disconnect();

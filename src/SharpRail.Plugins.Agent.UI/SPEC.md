@@ -23,7 +23,8 @@ the module owns no session, account or terminal state.
 - `Account` and `AccountSeverity` present account headings, rows, usage windows,
   reset times and reading timestamps. Account rows and usage windows use compiled XAML.
 - `TerminalFacts` presents directory and model facts, token usage, plan progress,
-  pickers, file attachment and the session IDE-context toggle.
+  pickers, file attachment and the session IDE-context toggle. File-reference quoting escapes control
+  characters so a dropped filename cannot submit or split the prompt.
 - `ManualLaunchNotice` is a compiled terminal notice explaining intentionally absent launcher
   additions and the workspace launcher alternative. Providers show it only for a known manual origin;
   independently configured hooks and MCP/IDE connections remain available.
