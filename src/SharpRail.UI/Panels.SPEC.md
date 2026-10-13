@@ -270,12 +270,12 @@ scroll position and expansion. A loaded snapshot stays visible while its replace
 ## Changes review
 
 A review tab owns one scope's ordered file list. Stacked mode supplies one outer scroll, sticky file
-headers, collapsible sections and lazy bodies; offscreen editors detach while their measured height,
+headers, bordered file cards separated by a 16 px gap, a compact end row, collapsible sections and lazy bodies; offscreen editors detach while their measured height,
 renderer choice and content remain cached. Generated and large files start collapsed. One file mode
 fills the pane with the active file and offers Previous/Next; switching modes retains viewed marks,
 kept keys, active path and collapse overrides. The layout preference belongs to the app profile and is
 shared by its windows. Scope snapshots and diff reads run in the background and reject superseded
-workspace, target and generation results; errors offer Retry, while a missing historical commit drops
+workspace, target and generation results. Switching tabs retains loaded bodies; file changes while hidden invalidate the review for its next attachment. Errors offer Retry, while a missing historical commit drops
 the list and offers Review all changes without repointing that tab.
 
 Sections reuse the resource registry and existing host-confirmed Revert/Undo path. The review toolbar
@@ -285,7 +285,7 @@ input anywhere in a section move the outer changeset. Markdown previews also gro
 other resource renderers retain a bounded viewport. Compact file headers truncate long paths, expose
 the full path in a tooltip and avoid repeating it in the embedded diff toolbar. Open as tab retains the independent
 file diff. Viewed, Keep and Mark all viewed retain the owning preview placement. Next unreviewed wraps;
-V toggles the active file, J advances to an unviewed file, and Alt+Up/Down steps files. Shortcuts belong
+Explicit navigation retains the selected file even when it cannot scroll to the top; header focus follows settled scrolling and sticky placement. V toggles the active file, J advances to an unviewed file, and Alt+Up/Down steps files. Shortcuts belong
 to the focused review and do not consume editor or text-entry input.
 
 Keep is review progress for mutable scopes, never a Git write. A removed/added-content hash survives

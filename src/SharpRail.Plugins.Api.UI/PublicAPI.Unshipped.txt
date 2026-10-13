@@ -397,6 +397,7 @@ SharpRail.Plugins.Api.UI.IPluginUIContext.ReadAssetAsync(string! path, System.Th
 SharpRail.Plugins.Api.UI.IPluginUIContext.ReadFileAsync(string! workspaceId, string! path, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<byte[]!>
 SharpRail.Plugins.Api.UI.IPluginUIContext.RequestAsync<TParams, TResult>(SharpRail.Plugins.Api.PluginMethod<TParams, TResult>! method, TParams parameters, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<TResult>
 SharpRail.Plugins.Api.UI.IPluginUIContext.RevealTool(string! workspaceId, string! tool) -> void
+SharpRail.Plugins.Api.UI.IPluginUIContext.OpenCommitChanges(string! workspaceId, string! sha) -> void
 SharpRail.Plugins.Api.UI.IPluginUIContext.SetDiffScope(string! workspaceId, SharpRail.Plugins.Api.UI.GitDiffScope! scope) -> void
 SharpRail.Plugins.Api.UI.IPluginUIContext.Settings<T>() -> T!
 SharpRail.Plugins.Api.UI.IPluginUIContext.SettingsSection(SharpRail.Plugins.Api.UI.SettingsSectionRegistration! section) -> void

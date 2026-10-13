@@ -5037,6 +5037,32 @@ were skipped. No packaged-app rebuild, native visual inspection or Android build
 
 The changes remain uncommitted in fix/workspace-starting-prompt.
 
+## Git graph continuous commit review (2026-10-11)
+
+Rebased main from f74094ca onto upstream df82616a, preserving the fork's plugin
+and UI changes through conflicts. The user confirmed View changes in the Git
+graph's right-click menu should use the continuous Changes view. It opens a kept
+commit-keyed tab through the plugin UI API, retaining the existing left-click
+sidebar behavior. Reopening the commit reuses the tab; first-parent and root
+comparisons use the existing host operation. Rebase integration updates the
+review XAML's kit namespace and the single diff-layout toggle.
+
+2026-10-11 Git graph commit review: main is rebased onto local upstream df82616a.
+Release build passes with zero warnings/errors; solution format verification and
+format verification of the subsequently adjusted input helpers pass. Focused
+Branch Graph, continuous Changes review and resource checks pass. Local/gRPC
+fixtures verify committed contents despite worktree edits, root and empty commits,
+kept-tab reuse and absent historical Keep/revert actions. The four-lane gate and
+serial resumes finish with an empty unfinished-case record. Resumes covered the
+previously recorded Specs preview/retry and Markdown document-open failures;
+the merged input helpers now distinguish hunk controls and await individual diff
+tabs before resource assertions. Optional upstream-clone fixtures were skipped.
+Spec validation retains the four pre-existing Branch Graph dangling links.
+No Android build, manual native appearance check, packaging or app restart.
+
+The feature, integration fixes, checks and these records remain uncommitted.
+Nothing was pushed. Task scratch and fixture files were removed after verification.
+
 ## Land workspace prompt and companion fixes (2026-10-11)
 
 2026-10-11 landing workspaces 4 and 10: the Start work prompt and prompt-derived
@@ -5266,3 +5292,10 @@ scratch and fixtures are removed. No commit, push, package or running-app replac
 ## Review diff scrolling (2026-10-12)
 
 Workspace-1 (`review-hunk-scrolling`) implements single-vertical-scroll stacked review for code and Markdown, compact file headers and unwrapped horizontal code scrolling. Focused review and editor/change-diff checks pass, as do the Release build, format verification and whitespace check. The Git-enabled four-lane full gate stalled in repeated UI dispatcher work and was interrupted; `.bench/checks-last-run.txt` preserves four shards at setup. A focused RenderedDiff translation also timed out at row opening alongside EventStream failures. Details are in `VALIDATION.md`. Changes are landed locally; no push, package or app replacement.
+
+
+## Changes review presentation (2026-10-13)
+
+Created managed workspace-4 from local main and, with user approval, copied the existing uncommitted Git Graph commit-review work as its baseline. Original checkout remains untouched. Review file cards now have borders, themed headers and a 16 px gap; the end marker no longer reserves a viewport. Tab attachment retains loaded diffs, while hidden file-change invalidations trigger a refresh on return. Explicit navigation holds selection near the bottom and waits for settled scrolling/sticky placement before focusing the header. Left-clicking Git Graph commits also opens their kept Changes review.
+
+Release build, whole formatting, focused review/Branch Graph checks and the Git-enabled full gate with serial resume pass. The parallel StartupChecks timeout recovered without a code change; no unfinished cases remain. Task scratch and check fixtures are removed. Changes are landed locally; no push or app replacement.

@@ -26,6 +26,7 @@ internal static class ChangesReviewChecks
         var repository = E2E.IsolatedGit.Repository(Path.Combine(root, "continuous-review"),
             ("a.txt", original), ("b.txt", "before\n"), ("large.lock", "base\n"));
         using var app = new E2E.E2eWorkspace(repository, openFiles: false);
+        app.Window.Activate();
         E2E.IsolatedGit.Run(repository, "add", "-A");
         E2E.IsolatedGit.Run(repository, "commit", "-m", "review fixture");
         File.WriteAllText(Path.Combine(repository, "a.txt"), changed);
@@ -70,7 +71,7 @@ internal static class ChangesReviewChecks
         app.Click(Action("ReviewMarkAll"));
         Until(() => Progress() == "3 of 3 reviewed");
         ClickRow(app, "a.txt");
-        Until(() => KeepButtons().Length == 2);
+        Until(() => KeepButtons().Length == 2 && Parts<Button>("ReviewFile").Any(button => Equals(button.Tag, "a.txt") && button.IsFocused));
         app.Window.KeyPress(Key.V, RawInputModifiers.None, PhysicalKey.V, null);
         app.Window.KeyRelease(Key.V, RawInputModifiers.None, PhysicalKey.V, null);
         Until(() => Progress() == "2 of 3 reviewed");
@@ -84,6 +85,8 @@ internal static class ChangesReviewChecks
         app.Window.Toasts.Items.Last(toast => toast.Action?.Label == "Undo").Action!.Invoke();
         Until(() => File.ReadAllText(Path.Combine(repository, "a.txt")).Contains("changed again", StringComparison.Ordinal));
         Until(() => KeepButtons().Length == 2);
+        app.Window.Height = 400;
+        Settle();
         var scroller = Parts<ScrollViewer>("ReviewScroll").Single();
         scroller.Offset = new Vector(0, 50);
         Until(() => Parts<Grid>("ReviewStickyHeader").Single().GetLogicalDescendants().OfType<Button>()
@@ -147,9 +150,26 @@ internal static class ChangesReviewChecks
             var header = pane.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "ReviewFile");
             Require(header.Bounds.Height == 32 && !pane.GetLogicalDescendants().OfType<Border>().Any(control => control.Name == "DiffPath" && control.IsVisible),
                 "File headers must stay compact without repeating the path.");
+            var end = pane.GetLogicalDescendants().OfType<Border>().Single(control => control.Name == "ReviewEnd");
+            Require(end.Bounds.Height < 60, "End of changes must remain a compact row.");
+            var frame = pane.GetLogicalDescendants().OfType<Border>().Single(control => control.Name == "ReviewSection");
+            Require(frame.BorderThickness == new Thickness(1) && frame.Parent is StackPanel { Spacing: 16 },
+                "Each changed file must have a border and a clear gap from its neighbors.");
+            var retained = pane.DiffFor("README.md");
+            window.Content = new TextBlock { Text = "Another tab" };
+            Settle();
+            window.Content = pane;
+            Settle();
+            Require(ReferenceEquals(retained, pane.DiffFor("README.md")) && ReferenceEquals(preview, Preview()),
+                "Returning to a review must retain its loaded diff and rendered Markdown.");
             window.Width = 600;
             Until(() => preview.Bounds.Width < 700);
             Require(preview.Extent.Height <= preview.Viewport.Height + 1, "Markdown must retain natural height after resizing.");
+            window.Content = new TextBlock { Text = "Another tab" };
+            _ = pane.RefreshAsync();
+            window.Content = pane;
+            Until(() => pane.DiffFor("README.md") is { } current && !ReferenceEquals(current, retained));
+            Require(!ReferenceEquals(preview, Preview()), "Changes while hidden must refresh the review on return.");
         }
         finally { window.Close(); }
     }

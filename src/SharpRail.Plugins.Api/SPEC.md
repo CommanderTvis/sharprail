@@ -720,7 +720,7 @@ to pi.
 | W15 | observe reconnection and workspace removal (`OnReconnect`, `OnWorkspaceRemoved`) | `SharedState.ConnectionChanged` and `HostSync` |
 | W16 | reveal a tool by id (`RevealTool`) | `LayoutSession.RestoreTool` is reachable only inside the workbench |
 | W17 | contribute a file-icon resolver, consulted wherever core renders a file (`FileIconSlot`) | `Ui.Icon("file")` and the tab icon switch; Files and Changes rows carry no file-type icon |
-| W18 | scope the Changes panel to a commit, the uncommitted tree, or a comparison target (`SetDiffScope`) | the scope is private to `GitPanels` |
+| W18 | scope the Changes panel (`SetDiffScope`) or open a kept continuous commit review (`OpenCommitChanges`) | the scope is private to `GitPanels` |
 | W19 | read a file under the manifest's declared `assets` directory (`ReadAssetAsync`) | a plugin with no assets throws rather than guessing a path |
 | W20 | ask for a desktop notification about a terminal that needs the user while the app is away (`NotifyAttention` with an `AttentionNotification`) | `Notify` is an in-window toast; nothing reaches a user who is elsewhere |
 | W21 | contribute an action to the context menu of a file and of lines selected in it (`FileAction` with a `FileActionRegistration`; the target names the workspace, path and one-based lines) | the Files row menu is fixed; the code editor and the Markdown preview have no menu a plugin can reach |

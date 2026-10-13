@@ -252,6 +252,11 @@ public interface IPluginUIContext
     /// <param name="scope">The scope.</param>
     void SetDiffScope(string workspaceId, GitDiffScope scope);
 
+    /// <summary>Opens a continuous review of one commit in the active workspace.</summary>
+    /// <param name="workspaceId">The workspace.</param>
+    /// <param name="sha">The full commit id.</param>
+    void OpenCommitChanges(string workspaceId, string sha);
+
     /// <summary>Reads a file under the manifest's assets directory through the host (W19).</summary>
     /// <param name="path">The path relative to the assets directory.</param>
     /// <param name="cancellationToken">Cancels the read.</param>

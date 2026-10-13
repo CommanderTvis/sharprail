@@ -243,6 +243,8 @@ a plugin deleted from disk, and a shared assembly in the plugin directory not lo
   window's watcher delivers its revisions and the plugin watch delivers nothing. A failure before readiness
   faults the call and a later call retries. A workbench composed without project sessions (headless
   fixtures) watches only mounted workspaces and completes at once.
+- `OpenCommitChanges` opens a kept, commit-keyed continuous review in the active workspace without
+  changing the Changes sidebar scope; mismatched workspaces are ignored.
 - Branch Graph exercises `SetDiffScope` with explicit commit ids. Changes uses the host's independent
   commit lookup rather than requiring the id to occur in its current comparison menu.
 

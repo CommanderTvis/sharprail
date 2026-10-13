@@ -20,6 +20,16 @@ public sealed partial class WorkbenchWindow
             "changes", Scope: scope, Comparison: file.Comparison);
     }
 
+    internal void OpenCommitChanges(string workspace, string sha)
+    {
+        if (workspace != workspaceRoot || !WorkspaceMounted) return;
+        var destination = AcceptNavigation(BeginNavigation());
+        if (destination is null) return;
+        var tab = new DockTab($"changes:commit:{sha}", "Changes · " + sha[..Math.Min(7, sha.Length)],
+            "changes", Scope: "commit", Comparison: sha);
+        Layout.Open(tab, true, destination);
+    }
+
     private void OpenChanges(GitChange change)
     {
         var request = BeginNavigation();

@@ -73,10 +73,12 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
     private CancellationTokenSource? reading;
     private long generation;
     private bool disposed;
+    private bool refreshPending = true;
     private bool updating;
     private bool queued;
     private bool noticeDismissed;
     private string? reveal;
+    private string? anchored;
 
     internal ChangesReviewPane(string label, ChangesReviewState state, bool mutable,
         Func<CancellationToken, Task<GitSnapshot>> read,
@@ -116,8 +118,8 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
         Wire("ReviewScaleSingle", () => Mode(true));
         Wire("ReviewScaleDismiss", () => { noticeDismissed = true; UpdateProgress(); });
         KeyDown += OnKey;
-        AddHandler(PointerWheelChangedEvent, (_, _) => reveal = null, Avalonia.Interactivity.RoutingStrategies.Tunnel);
-        AddHandler(PointerPressedEvent, (_, _) => reveal = null, Avalonia.Interactivity.RoutingStrategies.Tunnel);
+        AddHandler(PointerWheelChangedEvent, (_, _) => { reveal = null; anchored = null; }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
+        AddHandler(PointerPressedEvent, (_, _) => { reveal = null; anchored = null; }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         ShowNotice("Loading changes…");
     }
 
@@ -131,7 +133,12 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
-        _ = RefreshAsync();
+        if (refreshPending) _ = RefreshAsync();
+        else
+        {
+            reading?.Dispose(); reading = new();
+            QueueVisible();
+        }
     }
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
@@ -142,7 +149,9 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
 
     internal async Task RefreshAsync()
     {
-        if (disposed || VisualRoot is null) return;
+        if (disposed) return;
+        refreshPending = true;
+        if (VisualRoot is null) return;
         reading?.Cancel(); reading?.Dispose(); reading = new();
         var token = reading.Token;
         var stamp = ++generation;
@@ -150,6 +159,7 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
         {
             var snapshot = await read(token);
             if (disposed || token.IsCancellationRequested || stamp != generation) return;
+            refreshPending = false;
             var oldPaths = files.Keys.ToArray();
             files.Clear();
             foreach (var file in snapshot.Changes) files[file.Path] = file;
@@ -204,10 +214,10 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
     {
         if (scroll is not null) state.Offset = scroll.Offset.Y;
         ClearSections(); body.Children.Clear();
-        var rows = new StackPanel();
+        var rows = new StackPanel { Classes = { "review-sections" } };
         foreach (var file in files.Values.Where(file => !single() || file.Path == state.ActivePath))
         {
-            var header = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto,Auto"), MinHeight = 32, Background = Ui.Elevated };
+            var header = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto,Auto"), MinHeight = 32, Classes = { "review-header" } };
             var title = Ui.Button(file.Path + $"   +{file.Added} −{file.Removed}", () =>
             {
                 state.ActivePath = file.Path;
@@ -239,7 +249,7 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
             var content = new Grid();
             var container = new Grid { RowDefinitions = new RowDefinitions("32,*") };
             Ui.Place(container, header); Ui.Place(container, content, 1);
-            var frame = new Border { Name = "ReviewSection", Tag = file.Path, Child = container, BorderBrush = Ui.BorderBrush, BorderThickness = new Thickness(0, 0, 0, 1) };
+            var frame = new Border { Name = "ReviewSection", Tag = file.Path, Child = container, BorderBrush = Ui.BorderBrush, Classes = { "review-section" } };
             var section = new Section(file, frame, container, header, content, kept, viewed);
             if (single()) frame.VerticalAlignment = VerticalAlignment.Stretch;
             else if (!IsCollapsed(file)) content.MinHeight = Math.Min(20000, 232 + 40 * (file.Added + file.Removed));
@@ -253,7 +263,7 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
         }
         else
         {
-            var end = new Border { Name = "ReviewEnd", Padding = new Thickness(12), Child = Ui.Text($"End of changes · {files.Count} files", Ui.Hint, 12) };
+            var end = new Border { Name = "ReviewEnd", Classes = { "review-end" }, Child = Ui.Text($"End of changes · {files.Count} files", Ui.Hint, 12) };
             rows.Children.Add(end);
             scroll = new ScrollViewer { Name = "ReviewScroll", Content = rows };
             scroll.AddHandler(PointerWheelChangedEvent, (_, e) =>
@@ -269,7 +279,7 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
                 e.Handled = true;
             }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
             scroll.ScrollChanged += (_, _) => { state.Offset = scroll.Offset.Y; QueueVisible(); };
-            scroll.SizeChanged += (_, _) => { end.MinHeight = Math.Max(0, scroll.Bounds.Height - 32); QueueVisible(); };
+            scroll.SizeChanged += (_, _) => QueueVisible();
             rows.SizeChanged += (_, _) => QueueVisible();
             body.Children.Add(scroll);
             body.Children.Add(sticky);
@@ -309,7 +319,7 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
         }
         Pin(pin);
         PlaceReveal();
-        if (!revealing && active is not null && active != state.ActivePath) { state.ActivePath = active; changed(); }
+        if (!revealing && anchored is null && active is not null && active != state.ActivePath) { state.ActivePath = active; changed(); }
     }
 
     private async Task LoadAsync(Section section, long stamp, CancellationToken token)
@@ -390,7 +400,7 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
 
     internal void Reveal(string path)
     {
-        reveal = path;
+        reveal = anchored = path;
         if (!files.ContainsKey(path)) return;
         state.ActivePath = path; state.Collapsed[path] = false;
         if (single() || !sections.TryGetValue(path, out var section) || section.Body.MinHeight == 0 && section.View is null) Build();
@@ -405,7 +415,15 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
     {
         if (reveal is not { } path || sections.GetValueOrDefault(path) is not { } target) return;
         if (scroll is not null && target.Frame.TranslatePoint(default, scroll) is { } point)
-            scroll.Offset = new Vector(0, scroll.Offset.Y + point.Y);
+        {
+            var offset = Math.Clamp(scroll.Offset.Y + point.Y, 0, Math.Max(0, scroll.Extent.Height - scroll.Viewport.Height));
+            if (Math.Abs(offset - scroll.Offset.Y) > .5)
+            {
+                scroll.Offset = new Vector(0, offset);
+                QueueVisible();
+                return;
+            }
+        }
         if (target.View is null || target.View.Bounds.Height <= 0) return;
         target.Header.GetLogicalDescendants().OfType<Button>().FirstOrDefault()?.Focus();
         reveal = null;

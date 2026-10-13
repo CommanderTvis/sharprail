@@ -27,6 +27,9 @@ internal sealed partial class GraphCommitRow : Button
             if (ContextMenu is null)
             {
                 ContextMenu = (ContextMenu)((IDataTemplate)Resources["GraphMenuTemplate"]!).Build(null)!;
+                var changes = ContextMenu.Items.OfType<MenuItem>().Single(item => item.Name == "GraphViewChanges");
+                changes.Icon = Icon("file-code-line");
+                changes.Click += (_, _) => context.OpenCommitChanges(workspace(), Model.Commit.Sha);
                 var hash = ContextMenu.Items.OfType<MenuItem>().Single(item => item.Name == "GraphCopyHash");
                 var patch = ContextMenu.Items.OfType<MenuItem>().Single(item => item.Name == "GraphCopyPatch");
                 hash.Icon = Icon("git-commit-line");
@@ -37,7 +40,11 @@ internal sealed partial class GraphCommitRow : Button
             ContextMenu.Open(this);
             e.Handled = true;
         };
-        Click += (_, _) => context.SetDiffScope(workspace(), new CommitDiffScope(Model.Commit.Sha));
+        Click += (_, _) =>
+        {
+            context.SetDiffScope(workspace(), new CommitDiffScope(Model.Commit.Sha));
+            context.OpenCommitChanges(workspace(), Model.Commit.Sha);
+        };
         Update(model, drawn, shown, marks);
     }
 

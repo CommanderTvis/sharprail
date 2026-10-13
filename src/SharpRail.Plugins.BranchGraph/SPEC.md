@@ -67,9 +67,13 @@ only when requested, and keeps targeting the row's current commit after a refres
   Half-lines depend on actual parents/children; merges use identical quarter-circle turns.
 - A row shows subject, short hash, author, ref chips and worktree names. Text yields to the available rail width.
   Rows have 8 px horizontal padding so the first graph lane is inset from the pane edge.
-  Clicking a row calls `SetDiffScope` with the commit's full sha. Changes validates that commit with the
+  Clicking a row calls `SetDiffScope` with the commit's full sha and opens its kept Changes review tab. Changes validates that commit with the
   host's independent `GetCommitAsync`, even without a comparison target or beyond its 200-entry menu.
-- Right-click offers Copy commit hash and Copy patch to clipboard. Clipboard and patch failures notify
+- Right-click offers View changes, Copy commit hash and Copy patch to clipboard. View changes opens
+  a kept continuous review tab for that commit in the mounted workspace, reusing the same commit tab
+  on repeated invocation. It compares against the first parent (the empty tree for a root), including
+  an empty-state view for an empty commit, without changing the sidebar scope. Historical reviews
+  offer neither Keep nor revert actions. Clipboard and patch failures notify
   the user with the fork's messages.
 
 ## Checks and remaining gates
@@ -82,7 +86,9 @@ Set `SHARPRAIL_TEST_GIT_SOURCE` to the fork clone containing
 `refs/remotes/origin/claude-code-integration-plugin-api` for real Git checks. These fetch existing history
 and create refs/worktrees in an isolated fixture; they create no commits and never alter signing configuration.
 Local and gRPC host checks cover pagination, refs, worktrees, patches and errors. UI checks cover windowing,
-shared gutters, copying, Changes scope and paging through both host modes. Fresh committed fixtures
+shared gutters, copying, Changes scope and paging through both host modes. Independent local and
+gRPC fixtures cover View changes for multi-file, root and empty commits, kept-tab reuse, committed
+content despite worktree edits and the absence of historical Keep/revert actions. Fresh committed fixtures
 (isolated, unsigned) translate the fork's merge/orphan rendering (branch art only on the merge row, the
 orphan's `docs-site` chip) and gutter scenarios (one lane at the tip, widening on scroll into dated
 branches), and cover two windows on different projects (no re-read, Copy patch from the background

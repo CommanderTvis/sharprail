@@ -213,6 +213,10 @@ the version across a cut connection. rather than a copied feature check.
 
 ## Isolation contract
 
+Shared input helpers reacquire redrawn controls by row and control identity, including hunk keys
+when a review section contains several buttons with the same name. Double-clicking a Changes row
+waits for the individual file tab so resource checks cannot inspect the intermediate review section.
+
 Every run creates its fixture under `.bench/check-fixture-<guid>` and sets
 `GIT_CEILING_DIRECTORIES` so fixture Git discovery never climbs into the checkout.
 Each E2E case gets its own repository root and its own profile directory; no path
@@ -329,6 +333,8 @@ sidebar marks/navigation, bulk viewed progress, keyboard input, live edits, Reve
 ownership, historical scope immutability, compact headers, unwrapped horizontal code scrolling and
 outer-only vertical input over code and naturally sized Markdown previews through resizing. It runs through the ordinary UI gate over an isolated Git
 fixture; rendered captures are supporting evidence.
+
+Review regression coverage also checks compact end-marker sizing, bordered file spacing, retained Markdown diff bodies across attachment, and refresh after changes while hidden. Git Graph commit review coverage opens by left click through both host modes.
 
 ## Reconnect checks
 

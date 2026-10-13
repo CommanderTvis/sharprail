@@ -313,6 +313,8 @@ internal sealed class PluginUIContext : IPluginUIContext
 
     public void RevealTool(string workspaceId, string tool) => Workbench.ActiveWindow?.RevealToolFor(workspaceId, tool);
 
+    public void OpenCommitChanges(string workspaceId, string sha) => Workbench.ActiveWindow?.OpenCommitChanges(workspaceId, sha);
+
     public void SetDiffScope(string workspaceId, GitDiffScope scope) => Workbench.ActiveWindow?.SetDiffScope(workspaceId, scope);
 
     public async ValueTask<byte[]> ReadAssetAsync(string path, CancellationToken cancellationToken = default)

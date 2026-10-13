@@ -12,6 +12,19 @@ Git-source fixtures were skipped. Existing Git graph review edits remain
 uncommitted. No Android build, native appearance inspection, packaging or restart.
 Nothing was pushed.
 
+2026-10-11 Git graph commit review: main is rebased onto local upstream df82616a.
+Release build passes with zero warnings/errors; solution format verification and
+format verification of the subsequently adjusted input helpers pass. Focused
+Branch Graph, continuous Changes review and resource checks pass. Local/gRPC
+fixtures verify committed contents despite worktree edits, root and empty commits,
+kept-tab reuse and absent historical Keep/revert actions. The four-lane gate and
+serial resumes finish with an empty unfinished-case record. Resumes covered the
+previously recorded Specs preview/retry and Markdown document-open failures;
+the merged input helpers now distinguish hunk controls and await individual diff
+tabs before resource assertions. Optional upstream-clone fixtures were skipped.
+Spec validation retains the four pre-existing Branch Graph dangling links.
+No Android build, manual native appearance check, packaging or app restart.
+
 2026-10-11 visualization companion: added a close button and explicit clipping of
 both the companion frame and Mermaid pan/zoom surface. UI Kit Release compilation
 passes with zero warnings/errors; touched-file format verification and diff
@@ -2412,3 +2425,10 @@ In managed workspace-1, branch `review-hunk-scrolling`, stacked Changes review u
 The focused `ChangesReviewChecks` and editor, Changes diff translation checks pass, including outer-only scrolling, long-line horizontal scrolling, Markdown resizing and compact headers. Release solution build has zero warnings/errors; whole-solution format verification and `git diff --check` pass. A separate focused `RenderedDiffE2E` run timed out while clicking a change row, with macOS EventStream startup failures.
 
 The four-lane full gate was interrupted after 11 minutes without completing a lane. A process sample showed the lane UI threads repeating the same dispatcher stack. `.bench/checks-last-run.txt` retains four unfinished shards at setup; full-suite verification is incomplete. No app was packaged or replaced. Changes are landed locally; nothing was pushed.
+
+
+## Changes review presentation (2026-10-13)
+
+Managed workspace-4 retains loaded review bodies across tab switches and refreshes after changes while hidden. Stacked files have bordered cards, 16 px separation and themed headers; the end marker remains compact. Explicit navigation preserves the selected file near the bottom and focuses its header after scrolling and sticky placement settle. Git Graph left click selects a commit and opens its kept review tab; the existing context-menu action remains available.
+
+Release solution build passes with zero warnings/errors. Focused ChangesReviewChecks and Branch Graph local/remote checks pass, including renderer identity across attachment, hidden invalidation, layout dimensions, scrolling, keyboard navigation, commit contents, root/empty commits and tab reuse. Whole-solution formatting and whitespace checks pass. The Git-enabled four-lane gate stopped at StartupChecks; its serial --last-failed resume passes without source changes and leaves no unfinished cases. Design and conformance coverage ran in that gate. Headless evidence verifies layout and control retention; no native app replacement or package smoke check was run. Changes are landed locally; nothing pushed.

@@ -11,7 +11,7 @@ namespace SharpRail.Plugins.BranchGraph.UI;
 
 /// <summary>
 /// The Git Graph side tool: the project's branches drawn as commit history, lane-laid, paged and windowed. Clicking a
-/// commit scopes the Changes panel to it; right-clicking copies its hash or its patch. Nothing here changes a repository.
+/// commit scopes the Changes panel to it; right-clicking opens its changes or copies its hash or patch. Nothing here changes a repository.
 /// </summary>
 internal sealed partial class GraphPanel : UserControl
 {

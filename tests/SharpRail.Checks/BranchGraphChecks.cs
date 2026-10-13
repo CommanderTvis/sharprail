@@ -104,6 +104,8 @@ internal static class BranchGraphChecks
 
     internal static void RunUi(string root)
     {
+        CommitReviews(root, remote: false);
+        CommitReviews(root, remote: true);
         Fixtures(root);
         var repo = Repository(root);
         if (!Directory.Exists(Path.Combine(repo, ".git"))) return;
@@ -112,6 +114,64 @@ internal static class BranchGraphChecks
         using var plain = new E2eWorkspace(Path.Combine(root, "branch-graph", "plain"), profileRoot: Path.Combine(root, "branch-graph", "plain-profile"));
         E2eWorkspace.Until(() => plain.Workbench.PluginLoader.Registry.Active.Contains(BranchGraphPlugin.Id));
         Require(!plain.Window.Layout.Tools.Any(tool => tool.Id == Tool), "A Gitless workspace withholds the manifest's RequiresGit tool.");
+    }
+
+    private static void CommitReviews(string root, bool remote)
+    {
+        var mode = remote ? "remote" : "local";
+        var directory = Path.Combine(root, "graph-reviews-" + mode);
+        var repo = IsolatedGit.Repository(Path.Combine(directory, "repo"), ("a.txt", "before\n"), ("b.txt", "before\n"));
+        var seed = Git(repo, "rev-parse", "HEAD");
+        File.WriteAllText(Path.Combine(repo, "a.txt"), "committed a\n");
+        File.WriteAllText(Path.Combine(repo, "b.txt"), "committed b\n");
+        Git(repo, "add", "-A");
+        Git(repo, "commit", "-m", "change two files");
+        var changed = Git(repo, "rev-parse", "HEAD");
+        Git(repo, "commit", "--allow-empty", "-m", "empty commit");
+        File.WriteAllText(Path.Combine(repo, "a.txt"), "uncommitted content\n");
+        var server = remote ? RemoteServer.Create(repo, IPAddress.Loopback, 0, "graph-review", Path.Combine(directory, "state")) : null;
+        try
+        {
+            if (server is not null) Task.Run(() => server.StartAsync()).GetAwaiter().GetResult();
+            using var app = server is null ? new E2eWorkspace(repo, profileRoot: Path.Combine(directory, "profile"))
+                : new E2eWorkspace(new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single()),
+                    "graph-review", repo, Path.Combine(directory, "profile"), repo);
+            Open(app, repo);
+            app.Window.Activate();
+            E2eWorkspace.Until(() => ReferenceEquals(app.Workbench.ActiveWindow, app.Window) && Panel(app).Rows == 3);
+            SharpRail.UI.ChangesReviewPane? Review() => app.Window.GetLogicalDescendants().OfType<SharpRail.UI.ChangesReviewPane>().SingleOrDefault(pane => pane.IsEffectivelyVisible);
+            string[] Paths() => Review()?.GetLogicalDescendants().OfType<Border>().Where(control => control.Name == "ReviewSection")
+                .Select(control => (string)control.Tag!).Order().ToArray() ?? [];
+            void View(string subject)
+            {
+                app.Window.Layout.RestoreTool(Tool);
+                app.ContextAction(Row(Panel(app), subject), "View changes");
+            }
+            app.Click(Row(Panel(app), "change two files"));
+            E2eWorkspace.Until(() => Paths().SequenceEqual(["a.txt", "b.txt"]) &&
+                Review()!.GetLogicalDescendants().OfType<SharpRail.UI.Rendering.DiffView>().Count() == 2);
+            Require(app.Tabs.Single(tab => tab.Kind == "changes") is { Scope: "commit", Preview: false } tab && tab.Comparison == changed,
+                "View changes opens a kept review pinned to the clicked commit.");
+            var text = string.Join("\n", Review()!.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().Select(editor => editor.Text));
+            if (SharpRail.Scintilla.ScintillaEditor.IsSupported)
+                Require(text.Contains("committed a", StringComparison.Ordinal) && text.Contains("committed b", StringComparison.Ordinal) &&
+                    !text.Contains("uncommitted content", StringComparison.Ordinal), "The review shows the commit's contents, excluding working-tree edits.");
+            Require(!Review()!.GetLogicalDescendants().OfType<Button>().Any(button => button.Name is "DiffKeepBlock" or "DiffRevertBlock" or "DiffRevertFile"),
+                "Historical review offers no Keep or revert actions.");
+            View("change two files");
+            Require(app.Tabs.Count(tab => tab.Kind == "changes") == 1, "Reopening a commit reuses its review tab.");
+            View("seed");
+            E2eWorkspace.Until(() => Paths().SequenceEqual(new[] { "README.md", "a.txt", "b.txt" }.Order()));
+            Require(app.Tabs.Any(tab => tab.Kind == "changes" && tab.Comparison == seed), "A root commit opens its added files.");
+            View("empty commit");
+            E2eWorkspace.Until(() => Review()?.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "No changes in this scope.") == true);
+            Require(app.Tabs.Count(tab => tab.Kind == "changes") == 3, "Different commits keep independent review tabs, including empty commits.");
+            Console.WriteLine($"PASS branch graph {mode} commit reviews: contents, root, empty, tab reuse and historical actions");
+        }
+        finally
+        {
+            if (server is not null) Task.Run(async () => { await server.StopAsync(); await server.DisposeAsync(); }).GetAwaiter().GetResult();
+        }
     }
 
     private static void RunUi(string root, bool remote)
