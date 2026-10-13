@@ -36,6 +36,8 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
     public ClaudeTerminalAccessory(IPluginUIContext context, ClaudeCodeStore store, ClaudeGlyph glyph, ITerminalAccessoryApi terminal)
     {
         this.context = context; this.store = store; this.glyph = glyph; this.terminal = terminal;
+        SetValue(FileDrop.AcceptsProperty, () => RunsClaude);
+        SetValue(FileDrop.AttachProperty, paths => terminal.Write(string.Join(" ", paths.Select(path => "@" + TerminalFacts.QuoteAttachPath(TerminalFacts.AttachPath(path, terminal.WorkspaceId, State?.Cwd)))) + " "));
         Name = "ClaudeTerminalAccessory";
         Margin = new Thickness(8, 2);
         Spacing = 2;

@@ -224,6 +224,10 @@ do not establish these remaining requirements.
 
 ## Shared agent presentation
 
+File drops on an active, held Claude terminal insert `@path` references without submitting the prompt.
+Paths are relative to the agent's directory where possible and quoted when they contain whitespace or
+control characters. The workbench resolves host paths and uploads client-local files for remote sessions.
+
 Account and terminal fact, usage, plan, picker, attachment and IDE-toggle components
 come from `SharpRail.Plugins.Agent.UI`. The plugin adapts its own contract values and
 retains all provider state and commands; generic settings controls remain kit-owned.
