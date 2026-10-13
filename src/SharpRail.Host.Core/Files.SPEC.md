@@ -29,6 +29,13 @@ with direct local and streaming WebSocket RPC adapters. The UI consumes the same
 
 ## Reads
 
+Windows workspace containment rejects parent traversal using either accepted
+separator, NTFS alternate streams, and components with trailing dots or spaces.
+Workspace-relative file/search/spec paths use `/` on the wire and in the UI.
+File removal on Windows uses the system Recycle Bin with recycle-on-delete and
+early-failure flags; an unavailable recycle operation fails instead of falling
+back to a permanent delete. Shell recycling runs on a background STA thread.
+
 Listings mark Git-ignored entries without hiding them, using a NUL-delimited `git check-ignore` batch for each listed directory. Git decides nested patterns, negation, repository and global excludes, and tracked-file exceptions. Non-Git folders or Git failures remain readable without ignore marks; local and remote listings carry the same flag.
 
 - Every path goes through one containment rule (`ProjectServices.Contain`), shared by listings, reads,

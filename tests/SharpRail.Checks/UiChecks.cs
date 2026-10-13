@@ -82,6 +82,7 @@ internal static class UiChecks
     internal static void RunWorkspaceSuites(string root)
     {
         Gate.Case("ProjectsE2E", () => E2E.ProjectsE2E.Run(root));
+        Gate.Case("windows-ui", () => WindowsChecks.RunUi(root));
         Gate.Case("ProjectPickerE2E", () => E2E.ProjectPickerE2E.Run(root));
         Gate.Case("NewWorkspaceShortcutE2E", () => E2E.NewWorkspaceShortcutE2E.Run(root));
         Gate.Case("WorkspaceActionsE2E", () => E2E.WorkspaceActionsE2E.Run(root));

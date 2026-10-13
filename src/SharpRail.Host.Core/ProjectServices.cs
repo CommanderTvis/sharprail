@@ -32,7 +32,7 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
                 root = known.Root;
                 return new("Default workspace", new DirectoryInfo(root).Name, root) { ProjectRoot = known.ProjectRoot };
             }
-            try { candidate = (await GitRepository.RunAsync(candidate, cancellationToken, "rev-parse", "--show-toplevel")).TrimEnd('\r', '\n'); }
+            try { candidate = Path.GetFullPath((await GitRepository.RunAsync(candidate, cancellationToken, "rev-parse", "--show-toplevel")).TrimEnd('\r', '\n')); }
             catch (IOException) { }
             var projectRoot = candidate;
             if (File.Exists(Path.Combine(candidate, ".git")))
@@ -41,7 +41,7 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
                 {
                     var worktrees = await GitRepository.RunAsync(candidate, cancellationToken, "worktree", "list", "--porcelain", "-z");
                     var main = worktrees.Split('\0').FirstOrDefault(field => field.StartsWith("worktree ", StringComparison.Ordinal));
-                    if (main is not null) projectRoot = main[9..];
+                    if (main is not null) projectRoot = Path.GetFullPath(main[9..]);
                 }
                 catch (IOException) { }
             }
@@ -80,7 +80,7 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
             {
                 path = child; name += "/" + Path.GetFileName(child);
             }
-            files.Add(new(Path.GetRelativePath(currentRoot, path), name, isDirectory));
+            files.Add(new(Path.GetRelativePath(currentRoot, path).Replace(Path.DirectorySeparatorChar, '/'), name, isDirectory));
         }
         if (files.Count > 0)
         {

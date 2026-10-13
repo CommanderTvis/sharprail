@@ -37,7 +37,7 @@ their MCP identities. The host waits for shell shutdown before completing the pr
 
 ## Decisions
 
-- Shell selection: an existing `SHELL` wins, else `/bin/zsh` on macOS, else `/bin/sh`. It starts as a
+- POSIX shell selection: an existing `SHELL` wins, else `/bin/zsh` on macOS, else `/bin/sh`. It starts as a
   login shell (`-l`) in the workspace root, matching Terminal.app; the PTY supplies interactivity. The
   environment is the host's minus `SHARPRAIL_TOKEN`, with 256-colour/truecolour `TERM` and a UTF-8 locale
   when none is set. `USER` and `LOGNAME` are stamped from the uid: the PTY registers no utmpx record, so a
@@ -48,7 +48,7 @@ their MCP identities. The host waits for shell shutdown before completing the pr
   Claude Code plugin's `.mcp.json` expands, so an agent in the terminal reaches the spec tools of that
   terminal's workspace. `McpOwner(token)` resolves it to the workspace and tab; closing the session forgets
   the token. A shell
-  started with no endpoint has the variable removed rather than inheriting one. POSIX only; other platforms show an availability message.
+  started with no endpoint has the variable removed rather than inheriting one. This applies to POSIX and Windows shells.
 - A shell is keyed by a stable session id the client derives from workspace and tab, never by a
   connection or a view. Attach is get-or-create under one lock, so concurrent attaches never start two
   shells. A resume (`Offset >= 0`) never starts a shell: a session that no longer exists is an error.
@@ -99,6 +99,32 @@ their MCP identities. The host waits for shell shutdown before completing the pr
   exited. A missing workspace folder keeps its own message.
 - Killing sends SIGHUP to the shell's process group, then SIGKILL if it does not exit.
 - Not tmux: no extra dependency, no competing tab model.
+
+## Windows processes
+
+Windows 10 (1809+) / Windows 11 x64 uses ConPTY behind the same hosted-session
+interface as POSIX. PowerShell 7 (`pwsh.exe` on PATH) is preferred, with Windows
+PowerShell as fallback; an existing `SHELL` executable still overrides the choice.
+PowerShell receives `-NoLogo` and loads its normal profile; POSIX shells receive
+their login option. Executable paths are quoted using Windows argument rules.
+The Unicode environment block compares names case-insensitively and excludes
+the host token even when a plugin contributes a differently cased spelling.
+
+The shell is created suspended, assigned to a kill-on-close job, then resumed.
+Closing a terminal ends its entire job. A dedicated reader drains the output pipe
+while the wait thread closes ConPTY, including its final frame; the host reports
+exit only after output drains. Attachments, replay, bounded delivery, watching,
+takeover and catalog persistence are shared with the POSIX backend.
+
+Windows has no POSIX foreground process group: any live child of the shell means
+busy, including background jobs. Process ancestry for plugin workspace resolution
+comes from a Toolhelp snapshot. Current-directory discovery is unavailable, so
+terminal file links resolve absolute paths only; the initial workspace is not
+misreported as the shell's directory after a `cd`.
+
+ConPTY lifetime follows Microsoft's
+[pseudoconsole guidance](https://learn.microsoft.com/en-us/windows/console/creating-a-pseudoconsole-session),
+including draining output while closing the pseudoconsole.
 
 ## Plugin seams
 

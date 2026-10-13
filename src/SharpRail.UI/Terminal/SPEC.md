@@ -209,8 +209,12 @@ changed rows into retained Skia pixels and owns focus, clipboard, selection and 
 Option–Left/Right send ESC b/f for word navigation, matching Ghostty's bindings. The
 adapter attaches directly to `ITerminalService`, queues input in order, uses the
 arranged grid size and propagates exit/takeover to `TerminalView`. No relay child
-is needed. All paths currently require macOS native libraries; other platforms
-show an availability message.
+is needed. Windows x64 also builds the VT library and always selects Skia, for
+both local and remote hosts, even with a saved Metal preference. Its local host
+owns ConPTY sessions. Native Metal libraries remain macOS-only.
+
+Terminal file links are made workspace-relative using the host's path syntax,
+without interpreting a remote Windows or POSIX path through the client's filesystem.
 
 The Skia renderer reuses unchanged row pictures and framebuffer pixels, including
 when only the cursor moves. Theme, font, geometry, selection and preedit changes

@@ -40,6 +40,7 @@ public sealed partial class ScintillaEditor
     private void ScrollPixels(double pixels)
     {
         var height = LineHeight;
+        var previousSubLine = SubLine;
         var total = SubLine + pixels;
         var lines = (long)Math.Floor(total / height);
         var before = FirstVisibleLine;
@@ -47,7 +48,7 @@ public sealed partial class ScintillaEditor
         subLineTop = FirstVisibleLine;
         // An edge clamped the scroll, or the last line is fully shown: no partial line remains.
         subLine = FirstVisibleLine - before != lines || FirstVisibleLine >= MaxFirstLine() ? 0 : total - lines * height;
-        VerticalOffsetChanged?.Invoke(this, EventArgs.Empty);
+        if (FirstVisibleLine != before || subLine != previousSubLine) VerticalOffsetChanged?.Invoke(this, EventArgs.Empty);
     }
 
     /// <summary>The document line at the top and how far, in pixels, the view has scrolled into its wrapped rows.</summary>

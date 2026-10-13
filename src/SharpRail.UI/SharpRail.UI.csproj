@@ -29,14 +29,14 @@
     <AvaloniaResource Include="Assets/**" />
     <InternalsVisibleTo Include="SharpRail.Checks" />
   </ItemGroup>
-  <Target Name="BuildMermaid" BeforeTargets="PrepareForBuild">
+  <Target Name="BuildMermaid" BeforeTargets="PrepareForBuild" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
     <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/build-merman.sh&quot;" />
     <ItemGroup>
       <MermaidLibrary Include="../../.tools/merman/*SharpRailMermaid.*" />
       <Content Include="@(MermaidLibrary)" Link="%(MermaidLibrary.Filename)%(MermaidLibrary.Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     </ItemGroup>
   </Target>
-  <Target Name="BuildNotifications" BeforeTargets="PrepareForBuild">
+  <Target Name="BuildNotifications" BeforeTargets="PrepareForBuild" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
     <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/build-notifications.sh&quot;" />
     <ItemGroup>
       <NotificationsLibrary Include="../../.tools/notifications/*SharpRailNotifications.*" />

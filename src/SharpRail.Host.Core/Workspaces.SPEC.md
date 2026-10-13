@@ -23,6 +23,9 @@ project has exactly one `default` workspace whose root is the project folder its
 tree). A worktree the user attaches is recorded in place as `external`. Only a `managed` worktree, which
 SharpRail created, may be removed by it.
 
+Git-reported absolute worktree paths are normalized with the host's path rules before
+registry lookup or removal, including Windows drive paths emitted by Git with forward slashes.
+
 ## Boundary
 
 - Owns: opening a project or workspace root (`ProjectServices.OpenProjectAsync`), the registry

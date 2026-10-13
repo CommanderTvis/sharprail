@@ -28,7 +28,7 @@ public sealed partial class ScintillaEditor
     {
         base.OnKeyDown(e);
         if (disposed) return;
-        var commandModifier = OperatingSystem.IsBrowser() ? (Application.Current?.TryGetFeature(typeof(Avalonia.Platform.IPlatformSettings)) as Avalonia.Platform.IPlatformSettings)?.HotkeyConfiguration.CommandModifiers ?? KeyModifiers.Control : KeyModifiers.Meta;
+        var commandModifier = OperatingSystem.IsBrowser() ? (Application.Current?.TryGetFeature(typeof(Avalonia.Platform.IPlatformSettings)) as Avalonia.Platform.IPlatformSettings)?.HotkeyConfiguration.CommandModifiers ?? KeyModifiers.Control : OperatingSystem.IsWindows() ? KeyModifiers.Control : KeyModifiers.Meta;
         bool command = e.KeyModifiers.HasFlag(commandModifier);
         bool macCommands = commandModifier == KeyModifiers.Meta;
         bool shift = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
@@ -226,8 +226,13 @@ public sealed partial class ScintillaEditor
         // Trackpads report fractional deltas on both axes; carry remainders so slow
         // gestures still scroll and slight sideways drift does not swallow vertical motion.
         var delta = e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? new Vector(e.Delta.Y, 0) : e.Delta;
+        // A wheel pushed against an edge moves nothing; repainting for it only makes the view flicker.
+        var top = VerticalPixelOffset;
+        var left = document.Send(ScintillaMessage.GetXOffset);
         ScrollHorizontally(-delta.X * 40);
         if (delta.Y != 0) ScrollPixels(-delta.Y * 50);
-        InvalidateVisual(); inputClient.NotifyScrolled(); e.Handled = true;
+        e.Handled = true;
+        if (VerticalPixelOffset == top && document.Send(ScintillaMessage.GetXOffset) == left) return;
+        InvalidateVisual(); inputClient.NotifyScrolled();
     }
 }

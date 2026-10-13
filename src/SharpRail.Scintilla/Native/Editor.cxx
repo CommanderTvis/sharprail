@@ -74,7 +74,11 @@ template<typename F> intptr_t Guard(SkiaEditor *e,F f) noexcept {
     failed=false;activeWindow=e ? &e->window : nullptr;
     try { return f(); } catch (...) { failed=true;return 0; }
 }
+#ifdef _WIN32
+#define API extern "C" __declspec(dllexport)
+#else
 #define API extern "C" __attribute__((visibility("default")))
+#endif
 API void *sr_create(DrawCallback callback,void *context) noexcept { return reinterpret_cast<void *>(Guard(nullptr,[&] { return reinterpret_cast<intptr_t>(new SkiaEditor(callback,context)); })); }
 API int sr_failed() noexcept { return failed; }
 API void sr_destroy(SkiaEditor *e) noexcept { Guard(e,[&] { delete e;return 0; });activeWindow=nullptr; }

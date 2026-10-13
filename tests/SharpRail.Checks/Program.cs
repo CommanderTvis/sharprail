@@ -67,6 +67,19 @@ internal static class Program
             else DrawnRenderingChecks.Run();
             return;
         }
+        if (args.SequenceEqual(["--windows"]))
+        {
+            try
+            {
+                CheckOpenWorld();
+                WindowsChecks.RunHost(root).GetAwaiter().GetResult();
+                AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+                SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+                WindowsChecks.RunUi(root);
+            }
+            finally { Directory.Delete(root, true); }
+            return;
+        }
         if (args.SequenceEqual(["--browser"]) || args.SequenceEqual(["--transport"]))
         {
             BrowserTransportChecks.Run(root).GetAwaiter().GetResult();
@@ -717,6 +730,7 @@ internal static class Program
         Gate.Case("hosts", () => CheckHosts(root).GetAwaiter().GetResult());
         Gate.Case("terminal-links", () => TerminalFileLinkChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("terminal-hosts", () => TerminalHostChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("windows-host", () => WindowsChecks.RunHost(root).GetAwaiter().GetResult());
         Gate.Case("workspace-tools", () => WorkspaceToolChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("agent-launch-origins", AgentLaunchChecks.RunHost);
         Gate.Case("file-drop-host", () => FileDropChecks.Host(root).GetAwaiter().GetResult());

@@ -22,6 +22,12 @@
     <PackageReference Update="SkiaSharp" Version="4.148.0" />
     <PackageReference Update="HarfBuzzSharp" Version="14.2.1.301" />
   </ItemGroup>
+  <Target Name="BuildGhosttyWindows" BeforeTargets="PrepareForBuild;GetCopyToOutputDirectoryItems;GetCopyToPublishDirectoryItems" Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)/build-windows.ps1&quot; -RuntimeIdentifier &quot;$(RuntimeIdentifier)&quot; -Cache &quot;$(GhosttyNativeCache)&quot;" />
+    <ItemGroup>
+      <Content Include="$(GhosttyNativeCache)/win-x64/GhosttyAvaloniaVt.dll" Link="GhosttyAvaloniaVt.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
   <Target Name="BuildGhosttyNative" BeforeTargets="PrepareForBuild;GetCopyToOutputDirectoryItems;GetCopyToPublishDirectoryItems" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
     <Exec Command="sh &quot;$(MSBuildProjectDirectory)/build-native.sh&quot; &quot;$(RuntimeIdentifier)&quot; &quot;$(GhosttyNativeCache)&quot;" />
     <ItemGroup>

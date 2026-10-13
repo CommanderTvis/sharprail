@@ -21,4 +21,10 @@
   <Target Name="BuildScintillaNative" BeforeTargets="PrepareForBuild" Condition="'$(ScintillaArch)' != ''">
     <Exec Command="sh &quot;$(MSBuildProjectDirectory)/build-native.sh&quot; $(ScintillaArch) &quot;$(ScintillaNativeCache)&quot;" />
   </Target>
+  <Target Name="BuildScintillaWindows" BeforeTargets="PrepareForBuild;GetCopyToOutputDirectoryItems;GetCopyToPublishDirectoryItems" Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)/build-windows.ps1&quot; -RuntimeIdentifier &quot;$(RuntimeIdentifier)&quot; -Cache &quot;$(ScintillaNativeCache)&quot;" />
+    <ItemGroup>
+      <Content Include="$(ScintillaNativeCache)/win-x64/SharpRailScintillaNative.dll" Link="SharpRailScintillaNative.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    </ItemGroup>
+  </Target>
 </Project>

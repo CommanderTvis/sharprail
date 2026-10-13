@@ -13,6 +13,11 @@ Upstream: packages/server/src/changes/SPEC.md (revision: [UPSTREAM.md](../../UPS
 
 ## Responsibility
 
+Absolute paths returned by Git are normalized using the host's filesystem rules.
+On Windows this keeps Git's forward-slash worktree paths identical to the paths
+used for registry records, project opening and worktree removal. File paths inside
+a repository retain Git's `/` separators on every platform.
+
 Git plumbing for one workspace: the `git` runner, a worktree's changed files and per-file diff sides over
 a diff scope, the commit catalog for the scope menu, the branch catalog for the Create workspace dialog,
 and worktree listing. Exposed through `IProjectServices` (`GetGitAsync`, `ListCommitsAsync`,

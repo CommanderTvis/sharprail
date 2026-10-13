@@ -13,6 +13,9 @@ these surfaces are specified in [../Panels.SPEC.md](../Panels.SPEC.md).
 
 ## Boundary
 
+The terminal renderer chooser is visible only on macOS. Windows terminals use
+Skia, so Settings never offers an unavailable Metal renderer there.
+
 Settings › Highlighting imports a TextMate JSON grammar from a file or pasted text,
 with comma-separated filename patterns, and lists custom entries with Remove actions.
 Adding an existing scope replaces it. Validation and file reads run off the dispatcher;

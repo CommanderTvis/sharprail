@@ -210,6 +210,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         settings.Content = Ui.Icon("settings");
         settings.Click += (_, _) => ShowSettings();
         if (!OperatingSystem.IsMacOS()) { ToolTip.SetTip(settings, "Settings"); AutomationProperties.SetName(settings, "Settings"); }
+        if (OperatingSystem.IsWindows() && settings.Parent is Panel captionHost) AddCaptionButtons(captionHost);
         var frame = this.FindControl<Border>("WindowTitleBar")!;
         frame.PointerPressed += (_, e) =>
         {
@@ -219,6 +220,51 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             if (e.ClickCount == 2) TitleBarDoubleClicked();
             else BeginMoveDrag(e);
         };
+    }
+
+    /// <summary>
+    /// Windows draws no system title bar over the extended client area (<see cref="WindowDecorations.BorderOnly"/>
+    /// keeps the resize border), so the header carries its own minimize, maximize and close buttons.
+    /// </summary>
+    private void AddCaptionButtons(Panel host)
+    {
+        WindowDecorations = WindowDecorations.BorderOnly;
+        Button Caption(string glyph, string name, Action action, bool close = false)
+        {
+            var button = new Button
+            {
+                Width = 46,
+                Height = 48,
+                Padding = new Thickness(0),
+                CornerRadius = new CornerRadius(0),
+                Background = Brushes.Transparent,
+                BorderThickness = new Thickness(0),
+                HorizontalContentAlignment = HorizontalAlignment.Center,
+                VerticalContentAlignment = VerticalAlignment.Center,
+                Content = new TextBlock { Text = glyph, FontFamily = new FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets"), FontSize = 10 }
+            };
+            ToolTip.SetTip(button, name);
+            AutomationProperties.SetName(button, name);
+            button.Click += (_, _) => action();
+            if (close)
+            {
+                button.PointerEntered += (_, _) => button.Background = Brushes.Crimson;
+                button.PointerExited += (_, _) => button.Background = Brushes.Transparent;
+            }
+            return button;
+        }
+        var maximize = Caption("", "Maximize", () => WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized);
+        PropertyChanged += (_, e) =>
+        {
+            if (e.Property != WindowStateProperty) return;
+            var maximized = WindowState == WindowState.Maximized;
+            ((TextBlock)maximize.Content!).Text = maximized ? "" : "";
+            ToolTip.SetTip(maximize, maximized ? "Restore" : "Maximize");
+        };
+        host.Children.Add(new Border { Width = 8 });
+        host.Children.Add(Caption("", "Minimize", () => WindowState = WindowState.Minimized));
+        host.Children.Add(maximize);
+        host.Children.Add(Caption("", "Close", Close, close: true));
     }
 
     private void FillViewMenu(ContextMenu menu)
@@ -620,7 +666,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         var zoom = InterfaceZoom.Current;
         ExtendClientAreaTitleBarHeightHint = this.FindControl<Grid>("WorkbenchRoot")!.RowDefinitions[0].Height.Value * zoom;
         var lights = OperatingSystem.IsMacOS() && WindowState != WindowState.FullScreen;
-        this.FindControl<Grid>("MainHeader")!.Margin = new Thickness(lights ? 80 / zoom : 12, 0, 12, 0);
+        this.FindControl<Grid>("MainHeader")!.Margin = new Thickness(lights ? 80 / zoom : 12, 0, OperatingSystem.IsWindows() ? 0 : 12, 0);
     }
 
     /// <summary>Dims the workbench behind a modal, like the reference's overlay; the returned action removes it.</summary>

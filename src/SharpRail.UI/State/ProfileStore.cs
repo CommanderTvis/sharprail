@@ -27,7 +27,7 @@ public sealed class Preferences
     public double Zoom { get; set; } = 1;
     public bool ChangesSingle { get; set; }
     /// <summary>The local terminal renderer: composited Metal texture or Skia cells.</summary>
-    public string TerminalRenderer { get; set; } = Terminal.TerminalRenderers.Texture;
+    public string TerminalRenderer { get; set; } = OperatingSystem.IsWindows() ? Terminal.TerminalRenderers.Skia : Terminal.TerminalRenderers.Texture;
     /// <summary>A single click previews into the group's reusable slot; off, every open keeps its tab.</summary>
     public bool PreviewTabs { get; set; } = true;
     /// <summary>Centre tabs as a column beside the editor instead of a strip above it; only while the centre is one group.</summary>
@@ -156,7 +156,7 @@ public sealed class ProfileStore
             Data.BrowserTerminalPlacements ??= [];
             foreach (var entry in Data.GitSelections.ToArray())
             {
-                if (!Path.IsPathFullyQualified(entry.Key) || entry.Key.Contains('\0') || entry.Value is null)
+                if (!ValidPath(entry.Key) || entry.Value is null)
                 { Data.GitSelections.Remove(entry.Key); continue; }
                 var selection = entry.Value;
                 var commit = selection.Commit;
@@ -195,7 +195,7 @@ public sealed class ProfileStore
         }
     }
 
-    private static bool ValidPath(string? value) => !string.IsNullOrWhiteSpace(value) && !value.Contains('\0') && Path.IsPathFullyQualified(value);
+    private static bool ValidPath(string? value) => HostPaths.IsAbsolute(value);
 
     private static void NormalizeWindow(WindowProfile window)
     {

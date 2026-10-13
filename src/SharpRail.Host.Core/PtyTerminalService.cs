@@ -53,7 +53,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
 
     public PtyTerminalService(string? shell = null, string? recordingsDirectory = null, Func<int>? replayBytes = null)
     {
-        Posix.EnsureSupported();
+        if (!OperatingSystem.IsWindows()) Posix.EnsureSupported();
         this.shell = shell; this.replayBytes = replayBytes;
         clipboardDirectory = recordingsDirectory is null ? Path.Combine(Path.GetTempPath(), "sharprail-clipboard", Guid.NewGuid().ToString("N")) : Path.Combine(Path.GetDirectoryName(Path.GetFullPath(recordingsDirectory))!, "clipboard");
         catalog = new TerminalCatalogStore(recordingsDirectory);
@@ -133,7 +133,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         if (string.IsNullOrWhiteSpace(request.ClientId)) throw new ArgumentException("A terminal client id is required.", nameof(request));
         TerminalGrid.Require(request.Columns, request.Rows);
         var directory = Path.GetFullPath(request.WorkspaceRoot);
-        PtySession process;
+        ITerminalProcess process;
         Attachment attachment;
         TerminalRef? terminal;
         // Lookup and start happen under one lock so concurrent attaches never start two shells for a session.
@@ -174,7 +174,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
 
     public async ValueTask<IReadOnlyList<TerminalFileLink>> FindFileLinksAsync(string sessionId, string text, CancellationToken cancellationToken = default)
     {
-        PtySession? process;
+        ITerminalProcess? process;
         string? workspace;
         lock (gate) { process = sessions.GetValueOrDefault(sessionId)?.Process; workspace = roots.GetValueOrDefault(sessionId); }
         if (process is null || text.Length > TerminalFileLinks.MaxLineLength) return [];
@@ -267,6 +267,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
     // Linux reads /proc; macOS asks ps once rather than once per ancestor.
     private static Dictionary<int, int> ProcessParents()
     {
+        if (OperatingSystem.IsWindows()) return WindowsProcesses.Parents();
         var parents = new Dictionary<int, int>();
         try
         {
@@ -331,7 +332,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
 
     // The native reason, the executable path and the value of SHELL stay on the host: a client is told only
     // which choice failed and what to do about it.
-    private PtySession Start(TerminalAttachRequest request, string directory, string? mcpUrl, IReadOnlyDictionary<string, string>? contributed)
+    private ITerminalProcess Start(TerminalAttachRequest request, string directory, string? mcpUrl, IReadOnlyDictionary<string, string>? contributed)
     {
         var fromEnvironment = shell is null && ConfiguredShell() is not null;
         var program = shell ?? LoginShell();
@@ -339,6 +340,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         {
             // macOS execs the shell from a trampoline, so a shell that cannot run would otherwise look like one that exited.
             if (!Runnable(program)) throw new IOException("The shell is not an executable file.");
+            if (OperatingSystem.IsWindows()) return ConPtySession.Start(request.SessionId, program, directory, request.Columns, request.Rows, mcpUrl, contributed);
             return PtySession.Start(request.SessionId, program, directory, request.Columns, request.Rows, mcpUrl, contributed);
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
@@ -350,12 +352,12 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
     }
 
     private static bool Runnable(string program) =>
-        !OperatingSystem.IsWindows() && File.Exists(program) && (File.GetUnixFileMode(program) & (UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute)) != 0;
+        File.Exists(program) && (OperatingSystem.IsWindows() || (File.GetUnixFileMode(program) & (UnixFileMode.UserExecute | UnixFileMode.GroupExecute | UnixFileMode.OtherExecute)) != 0);
 
     private static string? ConfiguredShell() =>
         Environment.GetEnvironmentVariable("SHELL") is { } configured && !string.IsNullOrWhiteSpace(configured) && File.Exists(configured) ? configured : null;
 
-    private static string LoginShell() => ConfiguredShell() ?? (File.Exists("/bin/zsh") && Posix.Mac ? "/bin/zsh" : "/bin/sh");
+    private static string LoginShell() => ConfiguredShell() ?? (OperatingSystem.IsWindows() ? WindowsProcesses.DefaultShell() : File.Exists("/bin/zsh") && Posix.Mac ? "/bin/zsh" : "/bin/sh");
 
     private static readonly string[] ClaudeSessionMarkers =
     [
@@ -366,7 +368,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
 
     internal static string?[] ShellEnvironment(string? mcpUrl = null, IReadOnlyDictionary<string, string>? contributed = null)
     {
-        var variables = new SortedDictionary<string, string>(StringComparer.Ordinal);
+        var variables = new SortedDictionary<string, string>(OperatingSystem.IsWindows() ? StringComparer.OrdinalIgnoreCase : StringComparer.Ordinal);
         foreach (DictionaryEntry entry in Environment.GetEnvironmentVariables())
             variables[(string)entry.Key] = (string?)entry.Value ?? "";
         // The host's session token authorizes this process; it must not reach user shells.
@@ -392,13 +394,13 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         }
         // Plugin contributions come after core's own variables, and never re-expose the host's token.
         foreach (var (key, value) in contributed ?? new Dictionary<string, string>())
-            if (key.Length > 0 && key != "SHARPRAIL_TOKEN" && !key.Contains('=') && !key.Contains('\0') && !value.Contains('\0')) variables[key] = value;
+            if (key.Length > 0 && !key.Equals("SHARPRAIL_TOKEN", OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal) && !key.Contains('=') && !key.Contains('\0') && !value.Contains('\0')) variables[key] = value;
         return [.. variables.Select(pair => pair.Key + "=" + pair.Value), null];
     }
 }
 
 // The shell process behind a hosted terminal.
-internal sealed class PtySession : IAsyncDisposable
+internal sealed class PtySession : ITerminalProcess
 {
     private readonly int master;
     // Held open so macOS keeps output the shell wrote just before exiting.

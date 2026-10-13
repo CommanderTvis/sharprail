@@ -99,7 +99,7 @@ internal sealed class SpecIndex(string root)
     {
         var frontmatter = SpecFrontmatter.Parse(text) ?? [];
         string? Scalar(string key) => frontmatter.TryGetValue(key, out var values) && values.Length > 0 ? values[0] : null;
-        var relative = Path.GetRelativePath(root, path);
+        var relative = Path.GetRelativePath(root, path).Replace(Path.DirectorySeparatorChar, '/');
         if (Scalar("id") is null && Path.GetFileName(path) != "SPEC.md") return null;
         var first = text.AsSpan().TrimStart('﻿');
         var lineEnd = first.IndexOfAny('\r', '\n');

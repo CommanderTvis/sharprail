@@ -131,7 +131,7 @@ public sealed partial class ProjectServices
     private static async Task<string> MainWorktreeAsync(string currentRoot, CancellationToken cancellationToken)
     {
         var list = await GitRepository.RunAsync(currentRoot, cancellationToken, "worktree", "list", "--porcelain", "-z");
-        return list.Split('\0').First(field => field.StartsWith("worktree ", StringComparison.Ordinal))[9..];
+        return Path.GetFullPath(list.Split('\0').First(field => field.StartsWith("worktree ", StringComparison.Ordinal))[9..]);
     }
 
     /// <summary>Raised with a repository's common Git directory and a remote-tracking ref a fetch just moved.</summary>

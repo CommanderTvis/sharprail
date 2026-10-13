@@ -376,6 +376,7 @@ public sealed partial class SettingsWindow : Window
             }
         }
         var size = PageControl<NumericUpDown>(panel, "InterfaceSize");
+        CompactSteppers(size, 24);
         size.Value = (decimal)state.Preferences.FontSize;
         size.ValueChanged += (_, _) => { if (size.Value is not null) { state.Preferences.FontSize = (double)size.Value; Save(); } };
         foreach (var name in new[] { "ThemeModeChoices", "ThemeChoices", "SystemThemes" })
@@ -664,6 +665,26 @@ public sealed partial class SettingsWindow : Window
         window.Slot.Layout = layout.State; Save();
     }
 
+    // The spinner's template draws its own large chevrons; small muted ones of the app's icon set replace them.
+    private static void CompactSteppers(NumericUpDown input, double width)
+    {
+        input.TemplateApplied += (_, outer) =>
+        {
+            if (outer.NameScope.Find<ButtonSpinner>("PART_Spinner") is not { } spinner) return;
+            spinner.TemplateApplied += (_, inner) =>
+            {
+                foreach (var (name, up) in new[] { ("PART_IncreaseButton", true), ("PART_DecreaseButton", false) })
+                    if (inner.NameScope.Find<RepeatButton>(name) is { } step)
+                    {
+                        step.Width = width; step.MinWidth = 0; step.Padding = new Thickness(0);
+                        var icon = Ui.Icon("arrowDown", Ui.Muted, 10);
+                        if (up) icon.RenderTransform = new RotateTransform(180);
+                        step.Content = icon;
+                    }
+            };
+        };
+    }
+
     private Control Limit(string region, int value, Action<int> change)
     {
         var panel = new StackPanel { Spacing = 4 };
@@ -685,15 +706,7 @@ public sealed partial class SettingsWindow : Window
         };
         // A setting that rarely changes: the steppers stay small and muted, lighting only on hover. The spinner's
         // template sizes its buttons itself, so they are narrowed once it exists, leaving room for the digits.
-        input.TemplateApplied += (_, outer) =>
-        {
-            if (outer.NameScope.Find<ButtonSpinner>("PART_Spinner") is not { } spinner) return;
-            spinner.TemplateApplied += (_, inner) =>
-            {
-                foreach (var name in new[] { "PART_IncreaseButton", "PART_DecreaseButton" })
-                    if (inner.NameScope.Find<RepeatButton>(name) is { } step) { step.Width = 22; step.MinWidth = 0; step.Padding = new Thickness(4, 0); }
-            };
-        };
+        CompactSteppers(input, 22);
         AutomationProperties.SetName(input, "Maximum " + region + " groups");
         var save = Ui.Button("Save", () =>
         {
@@ -725,8 +738,8 @@ public sealed partial class SettingsWindow : Window
     private Control TerminalSettings()
     {
         var panel = Page("TerminalPage");
-        // Android terminals are always drawn by Skia, so there is nothing to choose.
-        PageControl<StackPanel>(panel, "TerminalRendererSection").IsVisible = !OperatingSystem.IsAndroid() && !OperatingSystem.IsBrowser();
+        // Metal is available only on macOS.
+        PageControl<StackPanel>(panel, "TerminalRendererSection").IsVisible = OperatingSystem.IsMacOS();
         var choices = PageControl<StackPanel>(panel, "TerminalRendererChoices");
         foreach (var (renderer, label, description) in new[]
         {

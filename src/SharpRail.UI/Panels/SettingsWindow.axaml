@@ -121,7 +121,10 @@
         </StackPanel>
         <TextBlock x:Name="LineWidthError" Text="Enter a whole number from 40 to 240." FontSize="12"
                    Foreground="{x:Static rendering:Ui.Danger}" IsVisible="False" />
-        <rendering:Switch x:Name="LineWidthBounded" Label="Limit lines to this width" />
+        <StackPanel Orientation="Horizontal" Spacing="12">
+          <rendering:Switch x:Name="LineWidthBounded" Label="Limit lines to this width" HorizontalAlignment="Left" VerticalAlignment="Center" />
+          <TextBlock Text="Limit lines to this width" Classes="settings-description" VerticalAlignment="Center" />
+        </StackPanel>
       </StackPanel>
     </DataTemplate>
     <DataTemplate x:Key="LayoutPage">
