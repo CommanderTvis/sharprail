@@ -4,6 +4,7 @@ using Avalonia.Controls.Documents;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.LogicalTree;
+using Avalonia.VisualTree;
 
 using static SharpRail.Checks.E2E.E2eWorkspace;
 
@@ -11,7 +12,7 @@ namespace SharpRail.Checks.E2E;
 
 /// <summary>
 /// The fork's Markdown document cases: frontmatter properties, spec titles and [[links]], the outline, the
-/// Split view and find. Frontmatter properties remain read-only; the source uses the normal file editor.
+/// Split view and find. Preview properties and source share the normal file editor draft.
 /// </summary>
 internal static class MarkdownDocumentE2E
 {
@@ -28,8 +29,7 @@ internal static class MarkdownDocumentE2E
 
     internal static void Run(string root)
     {
-        Properties(root);
-        Unreadable(root);
+        FrontmatterEditing(root);
         SpecDocuments(root);
         OrdinaryMarkdown(root);
         DiffLinks(root);
@@ -40,6 +40,14 @@ internal static class MarkdownDocumentE2E
         MarkdownFindE2E.Run(root);
         LiveEdits(root);
         Images(root);
+    }
+
+    internal static void FrontmatterEditing(string root)
+    {
+        FrontmatterRoundTrips();
+        Properties(root);
+        PropertyEdits(root);
+        Unreadable(root);
     }
 
     // An agent editing the open file reloads its view; the reader keeps their place and mode, as in the reference (#608).
@@ -92,15 +100,159 @@ internal static class MarkdownDocumentE2E
         using var app = OpenDocument(root, "frontmatter-properties", "props.md", "---\ntitle: Green talk\ntags:\n  - talk\n  - latex\n---\n\n# Notes\n");
         var preview = app.Find<MarkdownPreview>("MarkdownPreview");
         var block = All<Border>(preview, "FrontmatterProperties").Single();
-        Require(Text(All<Control>(block, "FrontmatterValue").First()) == "Green talk", "The title property must show its value.");
-        Require(All<Border>(block, "FrontmatterListItem").Count() == 2, "A block list must render one chip per item.");
+        Require(All<FrontmatterField>(block, "FrontmatterValue").First().GetLogicalDescendants().OfType<AutoCompleteBox>().Single().Text == "Green talk", "The title property must show its value.");
+        Require(All<FrontmatterChip>(block, "FrontmatterListItem").Count() == 2, "A block list must render one chip per item.");
         Require(preview.GetLogicalDescendants().OfType<Control>().All(control => control.Name != "SpecTitle"),
             "A title without a spec id and type is a property, not a spec title.");
         app.Click(All<Button>(block, "FrontmatterToggle").Single());
         Require(!All<Control>(block, "FrontmatterValue").Any(), "Folding must hide the properties.");
         app.Click(All<Button>(block, "FrontmatterToggle").Single());
         Require(All<Control>(block, "FrontmatterValue").Any(), "Unfolding must show the properties again.");
-        Console.WriteLine("PASS fork frontmatter.spec.ts: frontmatter renders as properties, list values as chips, and the block folds away (read-only)");
+        Console.WriteLine("PASS fork frontmatter.spec.ts: frontmatter renders as properties, list values as chips, and the block folds away");
+    }
+
+    private static void FrontmatterRoundTrips()
+    {
+        const string body = "\r\n# Body\n\n---\nLeave this exactly.\r\n";
+        var properties = new FrontmatterProperty[]
+        {
+            new("title", Text: "quotes \" and slash \\ and newline\n東京"),
+            new("tags", Items: ["one, two", "[brackets]", "a: b", "true"]),
+            new("empty-list", Items: []), new("empty-map", Entries: []),
+            new("map", Entries: [new("key", ""), new("other", "[not a list]")])
+        };
+        var edited = Frontmatter.WithProperties("---\r\ntitle: Before\r\n...\r\n" + body, properties);
+        var parsed = Frontmatter.Parse(edited)!;
+        Require(parsed.Readable && parsed.Properties.Count == properties.Length && edited.EndsWith(body, StringComparison.Ordinal),
+            "A properties edit preserves the body verbatim, including mixed line endings.");
+        for (var index = 0; index < properties.Length; index++)
+        {
+            var before = properties[index]; var after = parsed.Properties[index];
+            Require(before.Text == after.Text && (before.Items ?? []).SequenceEqual(after.Items ?? []) &&
+                (before.Entries ?? []).SequenceEqual(after.Entries ?? []) && Frontmatter.Shape(before) == Frontmatter.Shape(after),
+                "Values and empty shapes must round-trip without changing their meaning.");
+        }
+        Require(!Frontmatter.ValidKey("bad:key") && !Frontmatter.ValidKey("") && !Frontmatter.ValidKey(" bad") && Frontmatter.ValidKey("valid key-1"),
+            "Property names must use the key grammar the preview can read back.");
+        var list = new FrontmatterProperty("pairs", Items: ["a: one", "b: two"]);
+        Require(Frontmatter.Convert(Frontmatter.Convert(list, "Mapping"), "Sequence").Items!.SequenceEqual(list.Items!), "Mapping/sequence conversion must preserve unique pairs.");
+        Require(Frontmatter.Convert(new("duplicate", Items: ["a: one", "a: two"]), "Mapping").Entries!.Select(pair => pair.Key).SequenceEqual(["1", "2"]), "Duplicate pair keys use ordinal keys.");
+        foreach (var raw in new[] { "nested:\n  child:\n    deep: x", "title: |\n  words", "title: &anchor words", "title: *anchor", "tags: [*anchor]", "tags:\n  - [nested]", "map:\n  list: [nested]", "title: one\ntitle: two" })
+        {
+            var content = "---\n" + raw + "\n---\n# Body";
+            Require(Frontmatter.Parse(content) is { Readable: false } && Frontmatter.WithProperties(content, properties) == content,
+                "Unsupported YAML must never be rewritten by the properties editor.");
+        }
+        Console.WriteLine("PASS frontmatter serialization: exact body, quoting, empty shapes, conversions and unsupported YAML");
+    }
+
+    private static void PropertyEdits(string root)
+    {
+        const string original = "---\ntitle: Green talk\ntags: [talk, latex]\ntype: module-design\n---\n\n# Notes\n";
+        using var app = OpenDocument(root, "frontmatter-editing", "props.md", original);
+        FrontmatterEditor Editor() => app.Find<MarkdownPreview>("MarkdownPreview").GetLogicalDescendants().OfType<FrontmatterEditor>().Single();
+        void Edit(string name, string value, int index = 0, Key key = Key.Enter)
+        {
+            var field = All<FrontmatterField>(Editor(), name).ElementAt(index);
+            var input = field.GetVisualDescendants().OfType<TextBox>().First();
+            input.Focus(); input.SelectAll();
+            app.Window.KeyTextInput(value);
+            app.Window.KeyPress(key, RawInputModifiers.None, PhysicalKey.None, null);
+            app.Window.KeyRelease(key, RawInputModifiers.None, PhysicalKey.None, null);
+            Settle(250);
+            if (key == Key.Enter && name == "FrontmatterValue")
+                Require(!input.IsFocused, "Enter commits and blurs a scalar field, as in the fork.");
+        }
+        string Source() => app.Window.GetLogicalDescendants().OfType<MarkdownDocumentView>().Single().Source!
+            .GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().Single().Text;
+        Edit("FrontmatterValue", "Amber talk");
+        Require(Source().Contains("title: Amber talk", StringComparison.Ordinal) && File.ReadAllText(Path.Combine(app.Root, "props.md")) == original,
+            "A preview edit changes the unsaved source draft without writing disk.");
+        var source = app.Window.GetLogicalDescendants().OfType<MarkdownDocumentView>().Single().Source!
+            .GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().Single();
+        Require(source.IsModified, "Preview edits make the tab dirty.");
+        source.Undo(); Settle(250);
+        Require(source.Text == original && !source.IsModified, "Undo restores the original save point.");
+        source.Redo(); Settle(250);
+        Edit("FrontmatterValue", "Cancelled", key: Key.Escape);
+        Require(Source().Contains("title: Amber talk", StringComparison.Ordinal), "Escape cancels a field draft.");
+        var activeField = All<FrontmatterField>(Editor(), "FrontmatterValue").First().GetVisualDescendants().OfType<TextBox>().First();
+        activeField.Focus(); activeField.SelectAll(); app.Window.KeyTextInput("Pending blur");
+        var nextField = All<FrontmatterField>(Editor(), "FrontmatterValue").Last().GetVisualDescendants().OfType<TextBox>().First();
+        nextField.Focus(); nextField.SelectAll(); app.Window.KeyTextInput("Pending type draft");
+        Settle(250);
+        Require(nextField.IsFocused && Source().Contains("title: Pending blur", StringComparison.Ordinal),
+            $"Committing on blur must preserve focus on the next field through preview refresh: focus={nextField.IsFocused}, source={Source()}.");
+        Require(nextField.Text == "Pending type draft" && Frontmatter.Parse(Source())!.Properties.Single(property => property.Key == "type").Text == "module-design",
+            "A pending field draft must survive preview reattachment without being committed by it.");
+        app.Window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+        app.Window.KeyRelease(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+        Edit("FrontmatterValue", "Amber talk");
+        var blurField = All<FrontmatterField>(Editor(), "FrontmatterValue").First().GetVisualDescendants().OfType<TextBox>().First();
+        blurField.Focus(); blurField.SelectAll(); app.Window.KeyTextInput("Blur committed");
+        app.Click(All<Button>(app.Find<MarkdownPreview>("MarkdownPreview"), "FrontmatterToggle").Single());
+        Settle(250);
+        Require(Source().Contains("title: Blur committed", StringComparison.Ordinal) && !All<FrontmatterField>(Editor(), "FrontmatterValue").Any(),
+            "Blur commits and preview refresh retains folded properties.");
+        app.Click(All<Button>(app.Find<MarkdownPreview>("MarkdownPreview"), "FrontmatterToggle").Single());
+        Edit("FrontmatterValue", "Amber talk");
+        Edit("FrontmatterValue", "😀");
+        Edit("FrontmatterValue", "😁");
+        Require(Frontmatter.Parse(Source())!.Properties[0].Text == "😁", "Replacing emoji must keep UTF-16/UTF-8 boundaries intact.");
+        Edit("FrontmatterValue", "Amber talk");
+        Edit("FrontmatterListAdd", "beamer");
+        Require(All<FrontmatterChip>(Editor(), "FrontmatterListItem").Count() == 3 && All<FrontmatterField>(Editor(), "FrontmatterListAdd").Single().IsKeyboardFocusWithin,
+            "A list chip can be added while retaining focus to add the next chip.");
+        Edit("FrontmatterListAdd", "beamer");
+        Require(All<FrontmatterChip>(Editor(), "FrontmatterListItem").Count() == 4, "Duplicate chips retain separate occurrences.");
+        app.Click(All<FrontmatterChip>(Editor(), "FrontmatterListItem").Last().GetLogicalDescendants().OfType<Button>().Single()); Settle(250);
+        app.Click(All<FrontmatterChip>(Editor(), "FrontmatterListItem").First().GetLogicalDescendants().OfType<Button>().Single()); Settle(250);
+        Require(All<FrontmatterChip>(Editor(), "FrontmatterListItem").Count() == 2, "A list chip can be removed.");
+        Edit("FrontmatterKey", "type");
+        Require(Source().Contains("title: Amber talk", StringComparison.Ordinal), "Duplicate property keys are refused.");
+        Edit("FrontmatterKey", "bad:key");
+        Require(Source().Contains("title: Amber talk", StringComparison.Ordinal), "An invalid key rename must keep the original property.");
+        Edit("FrontmatterKey", "heading");
+        Require(Source().Contains("heading: Amber talk", StringComparison.Ordinal), "Properties can be renamed.");
+        var type = All<FrontmatterField>(Editor(), "FrontmatterValue").Last().GetLogicalDescendants().OfType<AutoCompleteBox>().Single();
+        Require(type.ItemsSource!.Cast<string>().Contains("task-spec"), "Type values offer the spec vocabulary without constraining text.");
+        void ConvertTo(string shape)
+        {
+            app.Click(All<Button>(Editor(), "FrontmatterType").First());
+            Settle();
+            var menu = All<Button>(Editor(), "FrontmatterType").First().ContextMenu!.Items.OfType<MenuItem>().Single(item => item.Name == "FrontmatterType" + shape);
+            menu.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
+            All<Button>(Editor(), "FrontmatterType").FirstOrDefault()?.ContextMenu?.Close();
+            Settle(250);
+        }
+        ConvertTo("Sequence");
+        Require(Frontmatter.Parse(Source())!.Properties[0].Items!.Single() == "Amber talk", "Text converts to one sequence item.");
+        ConvertTo("Mapping");
+        Require(Frontmatter.Parse(Source())!.Properties[0].Entries!.Single().Key == "1", "A sequence converts to ordinal mapping keys.");
+        Edit("FrontmatterMapValue", "Changed mapping");
+        app.Click(All<Button>(Editor(), "FrontmatterMapAdd").Single()); Settle(250);
+        Require(All<FrontmatterField>(Editor(), "FrontmatterMapKey").Count() == 2, "Mapping entries can be added.");
+        Edit("FrontmatterMapKey", "renamed");
+        Require(Source().Contains("renamed: Changed mapping", StringComparison.Ordinal), "Mapping keys and values can be edited.");
+        ConvertTo("Text");
+        Require(Frontmatter.Parse(Source())!.Properties[0].Text!.Contains("renamed: Changed mapping", StringComparison.Ordinal), "Mapping-to-text conversion exposes the structure.");
+        app.Click(All<Button>(Editor(), "FrontmatterAdd").Single()); Settle(250);
+        Require(Frontmatter.Parse(Source())!.Properties.Last().Key == "property", "Add property creates a unique empty field.");
+        app.Click(All<Button>(Editor(), "Remove").Last()); Settle(250);
+        app.Window.KeyPress(Key.S, Command, PhysicalKey.S, "s");
+        app.Window.KeyRelease(Key.S, Command, PhysicalKey.S, "s");
+        Until(() => File.ReadAllText(Path.Combine(app.Root, "props.md")) == Source());
+        Require(!source.IsModified && Source().EndsWith("\n\n# Notes\n", StringComparison.Ordinal), "Save writes the preview draft and preserves the prose.");
+        Edit("FrontmatterValue", "Unsaved conflict");
+        File.WriteAllText(Path.Combine(app.Root, "props.md"), "# External replacement\n");
+        Settle(250);
+        var save = ((SharpRail.UI.Editor.CodeDocumentView)app.Window.GetLogicalDescendants().OfType<MarkdownDocumentView>().Single().Source!).SaveAsync();
+        Until(() => save.IsCompleted);
+        Require(source.IsModified && Source().Contains("Unsaved conflict", StringComparison.Ordinal) && File.ReadAllText(Path.Combine(app.Root, "props.md")) == "# External replacement\n",
+            "A preview draft keeps the normal save conflict check and never overwrites external edits.");
+        ((SharpRail.UI.Editor.CodeDocumentView)app.Window.GetLogicalDescendants().OfType<MarkdownDocumentView>().Single().Source!).Discard();
+        Require(!source.IsModified, "The conflict fixture must close without leaving an unsaved-buffer dialog alive.");
+        Console.WriteLine("PASS fork frontmatter.spec.ts: editable drafts, undo, cancel, list chips, rename, type suggestions, shape conversion, mapping entries, add/remove and save");
     }
 
     private static void Unreadable(string root)

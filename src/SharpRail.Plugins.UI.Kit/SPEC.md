@@ -75,6 +75,11 @@ publish toggle automation changes without requesting another update.
   The document view accepts a lazy source-control factory so its owner can supply an editable buffer;
   `RefreshPreviewAsync` debounces and parses edits off the dispatcher, rejecting stale results.
   `PreviewChanged` lets the owner reconnect selection observers after replacement.
+  The app can enable preview frontmatter editing against its source buffer. Compiled property rows expose
+  text/sequence/mapping conversion, key and value edits, list chips, mapping entries and add/remove.
+  Supported edits canonicalize only the frontmatter; the body and its line endings remain intact.
+  Enter/blur commit and Escape cancels. Status/type suggestions are optional vocabulary, and unsupported
+  YAML or a rendered diff stays read-only. Preview refresh keeps folding and active property inputs.
   Split follows the source caret by default, keeping its rendered block visible with minimal scrolling.
   Nested blocks use the smallest visible source range; blank lines use the nearest block, folded details
   stay folded, and blocks taller than the viewport reveal their beginning. The toolbar’s Follow cursor

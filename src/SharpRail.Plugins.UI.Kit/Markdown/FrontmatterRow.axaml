@@ -1,0 +1,20 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="SharpRail.Plugins.UI.Kit.Markdown.FrontmatterRow">
+  <Grid ColumnDefinitions="Auto,160,*,Auto" Margin="0,2">
+    <Button x:Name="FrontmatterType" MinWidth="24" MinHeight="28" Padding="2"
+            ToolTip.Tip="Property type" VerticalAlignment="Top">
+      <Button.ContextMenu>
+        <ContextMenu>
+          <MenuItem x:Name="FrontmatterTypeText" Header="Text" />
+          <MenuItem x:Name="FrontmatterTypeSequence" Header="Sequence" />
+          <MenuItem x:Name="FrontmatterTypeMapping" Header="Mapping" />
+        </ContextMenu>
+      </Button.ContextMenu>
+    </Button>
+    <ContentControl x:Name="Key" Grid.Column="1" Margin="4,0,8,0" />
+    <ContentControl x:Name="Value" Grid.Column="2" />
+    <Button x:Name="Remove" Grid.Column="3" Content="×" Padding="4,2"
+            MinHeight="28" VerticalAlignment="Top" />
+  </Grid>
+</UserControl>

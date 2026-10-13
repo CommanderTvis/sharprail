@@ -1,0 +1,18 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:kit="using:SharpRail.Plugins.UI.Kit"
+             x:Class="SharpRail.Plugins.UI.Kit.Markdown.FrontmatterField">
+  <UserControl.Styles>
+    <Style Selector="AutoCompleteBox:pointerover">
+      <Setter Property="BorderBrush" Value="{x:Static kit:Ui.BorderBrush}" />
+    </Style>
+    <Style Selector="AutoCompleteBox:focus-within">
+      <Setter Property="BorderBrush" Value="{x:Static kit:Ui.Accent}" />
+    </Style>
+    <Style Selector="UserControl.muted AutoCompleteBox">
+      <Setter Property="Foreground" Value="{x:Static kit:Ui.Muted}" />
+    </Style>
+  </UserControl.Styles>
+  <AutoCompleteBox x:Name="Input" MinHeight="28" Padding="4,2" Background="Transparent" BorderBrush="Transparent"
+                   MinimumPrefixLength="0" FilterMode="Contains" />
+</UserControl>

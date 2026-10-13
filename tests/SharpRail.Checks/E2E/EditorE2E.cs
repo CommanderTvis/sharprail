@@ -98,7 +98,7 @@ internal static class EditorE2E
         var preview = app.Find<MarkdownPreview>("MarkdownPreview");
         Until(() => Text(preview).Contains("Goal", StringComparison.Ordinal));
         // The fork shows frontmatter as a properties block whose values are form fields, outside the page's text;
-        // here the read-only values are text, so the prose is checked without that block.
+        // the prose is checked without that block.
         var properties = preview.GetLogicalDescendants().OfType<Control>().Single(control => control.Name == "FrontmatterProperties");
         var prose = string.Join('\n', ((StackPanel)preview.Content!).Children.Where(block => block != properties).Select(Text));
         Require(!prose.Contains("goal-and-requirements", StringComparison.Ordinal) && !Text(preview).Contains("id: sample-root", StringComparison.Ordinal),

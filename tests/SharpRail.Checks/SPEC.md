@@ -300,6 +300,12 @@ symbolic link. The headless UI part checks how a byte diff is recognised and the
 
 ## Resource checks
 
+`--frontmatter` runs the preview-property translations independently; `--markdown` and the UI gate
+include them. Coverage follows text/sequence/mapping edits through the shared source draft, undo/redo,
+Enter/blur/Escape, folding and focus retention, chips, suggestions, unique property/mapping keys,
+conversion, Save and external-write conflicts. Serialization guards preserve the body verbatim and
+round-trip quoted Unicode values, punctuation and empty shapes; unsupported YAML stays read-only.
+
 `MarkdownTableDiffChecks.cs` (`-- --markdown-tables`, also in the default gate) checks added and removed
 Markdown tables, cell/header edits, row changes and differing column counts. It asserts both parsed table
 structure and native preview grids with marked cell text, including quoted tables, escaped pipes, empty

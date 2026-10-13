@@ -51,6 +51,8 @@ public static partial class Frontmatter
             if (!match.Success) return Unreadable();
             var key = match.Groups[1].Value.Trim();
             var after = match.Groups[2].Value;
+            if (properties.Any(property => property.Key == key)) return Unreadable();
+            if (after.Trim() == "{}") { properties.Add(new(key, Entries: [])); continue; }
             if (after.Trim().Length == 0)
             {
                 if (FlowSequence(body, index + 1, "") is { } flow)
@@ -64,7 +66,7 @@ public static partial class Frontmatter
                 for (; cursor < body.Length && ListItem().Match(body[cursor]) is { Success: true } item; cursor++)
                 {
                     var text = item.Groups[1].Value.Trim();
-                    if (!Quoted(text) && text.Contains(": ", StringComparison.Ordinal)) return Unreadable();
+                    if (Structured(text)) return Unreadable();
                     items.Add(Scalar(text));
                 }
                 if (items.Count > 0)
@@ -119,14 +121,16 @@ public static partial class Frontmatter
     private static bool Quoted(string text) => text.Length >= 2 && (text[0] == '"' && text[^1] == '"' || text[0] == '\'' && text[^1] == '\'');
 
     private static bool Structured(string scalar) =>
-        !Quoted(scalar) && (scalar.Contains(": ", StringComparison.Ordinal) || scalar.StartsWith('{') || scalar.StartsWith('&'));
+        !Quoted(scalar) && (scalar.Contains(": ", StringComparison.Ordinal) || scalar.StartsWith('{') || scalar.StartsWith('[') || scalar.StartsWith('&') || scalar.StartsWith('*') || scalar.StartsWith('|') || scalar.StartsWith('>'));
 
     private static string Scalar(string text)
     {
         var trimmed = text.Trim();
         if (!Quoted(trimmed)) return trimmed;
         var inner = trimmed[1..^1];
-        return trimmed[0] == '"' ? inner.Replace("\\\"", "\"", StringComparison.Ordinal) : inner.Replace("''", "'", StringComparison.Ordinal);
+        if (trimmed[0] != '"') return inner.Replace("''", "'", StringComparison.Ordinal);
+        try { return System.Text.Json.JsonSerializer.Deserialize<string>(trimmed) ?? ""; }
+        catch (System.Text.Json.JsonException) { return inner; }
     }
 
     private static List<string>? InlineList(string text)
@@ -134,8 +138,30 @@ public static partial class Frontmatter
         var trimmed = text.Trim();
         if (!trimmed.StartsWith('[') || !trimmed.EndsWith(']')) return null;
         var inner = trimmed[1..^1].Trim();
-        if (inner.Contains('[') || inner.Contains('{')) return null;
-        return inner.Length == 0 ? [] : inner.Split(',').Select(Scalar).ToList();
+        if (inner.Length == 0) return [];
+        var items = new List<string>();
+        var start = 0;
+        var quote = '\0';
+        for (var index = 0; index < inner.Length; index++)
+        {
+            var character = inner[index];
+            if (quote != '\0')
+            {
+                if (character == '\\' && quote == '"') { index++; continue; }
+                if (character == quote) quote = '\0';
+            }
+            else if (character is '\'' or '"') quote = character;
+            else if (character is '[' or '{') return null;
+            else if (character == ',')
+            {
+                if (Structured(inner[start..index].Trim())) return null;
+                items.Add(Scalar(inner[start..index])); start = index + 1;
+            }
+        }
+        if (quote != '\0') return null;
+        if (Structured(inner[start..].Trim())) return null;
+        items.Add(Scalar(inner[start..]));
+        return items;
     }
 
     // A flow sequence spread across lines (`key:`, then `[`, its items, `]`) reads as the same list.

@@ -5,6 +5,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.LogicalTree;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
+using Avalonia.Threading;
 
 using SharpRail.Plugins.UI.Kit.Editor;
 using SharpRail.Scintilla;
@@ -84,6 +85,32 @@ public sealed partial class MarkdownDocumentView : UserControl, IDisposable
         Show(Mode.Preview);
     }
 
+    private Action<string>? editFrontmatter;
+
+    internal void EnableFrontmatterEditing(Action<string> edit)
+    {
+        editFrontmatter = edit;
+        WireProperties();
+    }
+
+    private void WireProperties()
+    {
+        if (editFrontmatter is null) return;
+        preview.EditProperties(properties =>
+        {
+            var next = Frontmatter.WithProperties(sourceText, properties);
+            if (next == sourceText) return;
+            sourceText = next;
+            editFrontmatter(next);
+        });
+    }
+
+    internal Control EnsureSource()
+    {
+        if (source is null) CreateSource();
+        return source!;
+    }
+
     public Mode View => mode;
     public MarkdownPreview Preview => preview;
     /// <summary>The source control after Source or Split has been opened.</summary>
@@ -133,29 +160,7 @@ public sealed partial class MarkdownDocumentView : UserControl, IDisposable
         if (next == Mode.Split && Bounds.Width > 0 && Bounds.Width < 640) next = Mode.Preview;
         if (mode != next) find.Close();
         mode = next;
-        if (next != Mode.Preview && source is null)
-        {
-            if (sourceFactory is not null) source = sourceFactory(sourceText);
-            else if (ScintillaEditor.IsSupported)
-            {
-                var frame = new EditorFrame(sourceText, "MarkdownSource");
-                frame.Highlight(path);
-                frame.Editor.IsReadOnly = true;
-                frame.Editor.WrapWidth = context.SourceWrapWidth;
-                source = frame;
-            }
-            else source = new ScrollViewer
-            {
-                Name = "MarkdownSource",
-                Content = MarkdownPreview.Code(sourceText),
-                Margin = new Thickness(24),
-                HorizontalScrollBarVisibility = ScrollBarVisibility.Auto
-            };
-            Grid.SetColumn(source, 1);
-            body.Children.Add(source);
-            followedEditor = SourceEditor;
-            if (followedEditor is not null) followedEditor.SelectionChanged += SourceSelectionChanged;
-        }
+        if (next != Mode.Preview && source is null) CreateSource();
         var showSource = next != Mode.Preview;
         var showPreview = next != Mode.Source;
         body.ColumnDefinitions[1].Width = showSource ? new GridLength(1, GridUnitType.Star) : new GridLength(0);
@@ -168,6 +173,31 @@ public sealed partial class MarkdownDocumentView : UserControl, IDisposable
         Paint(previewButton, next == Mode.Preview);
         Paint(sourceButton, next == Mode.Source);
         Paint(splitButton, next == Mode.Split);
+    }
+
+    private void CreateSource()
+    {
+        if (sourceFactory is not null) source = sourceFactory(sourceText);
+        else if (ScintillaEditor.IsSupported)
+        {
+            var frame = new EditorFrame(sourceText, "MarkdownSource");
+            frame.Highlight(path);
+            frame.Editor.IsReadOnly = true;
+            frame.Editor.WrapWidth = context.SourceWrapWidth;
+            source = frame;
+        }
+        else source = new ScrollViewer
+        {
+            Name = "MarkdownSource",
+            Content = MarkdownPreview.Code(sourceText),
+            Margin = new Thickness(24),
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Auto
+        };
+        Grid.SetColumn(source, 1);
+        body.Children.Add(source);
+        followedEditor = SourceEditor;
+        if (followedEditor is not null) followedEditor.SelectionChanged += SourceSelectionChanged;
+        source.IsVisible = mode != Mode.Preview;
     }
 
     /// <summary>Updates the reading context and preview while retaining the owner's source control.</summary>
@@ -207,9 +237,13 @@ public sealed partial class MarkdownDocumentView : UserControl, IDisposable
     private void ReplacePreview(MarkdownPreview next, string text)
     {
         var state = State;
+        var focused = TopLevel.GetTopLevel(this)?.FocusManager?.GetFocusedElement() as Control;
+        var restoreFocus = focused is not null && preview.IsKeyboardFocusWithin;
+        next.RetainProperties(preview);
         preview.Dispose();
         body.Children.Remove(preview);
         preview = next;
+        if (next.GetLogicalDescendants().OfType<FrontmatterEditor>().Any() == false) WireProperties();
         Grid.SetColumn(preview, 3);
         body.Children.Add(preview);
         sourceText = text;
@@ -218,6 +252,11 @@ public sealed partial class MarkdownDocumentView : UserControl, IDisposable
         Outline.Fill(entries, preview, sourceText, RevealSource);
         Restore(state);
         PreviewChanged?.Invoke();
+        Dispatcher.UIThread.Post(() =>
+        {
+            if (restoreFocus && !disposed && ReferenceEquals(preview, next) && focused is not null && TopLevel.GetTopLevel(focused) is not null) focused.Focus();
+            next.FinishPropertiesRetention();
+        }, DispatcherPriority.Loaded);
         if (followedEditor?.IsKeyboardFocusWithin == true) RequestFollow();
     }
 

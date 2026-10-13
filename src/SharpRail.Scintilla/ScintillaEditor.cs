@@ -153,6 +153,15 @@ public sealed partial class ScintillaEditor : Control, IDisposable
     /// <summary>Display lines that one document line occupies after wrapping.</summary>
     public int WrapCount(int line) => checked((int)document.Send(ScintillaMessage.WrapCount, line));
     public void MarkSaved() { document.Send(ScintillaMessage.SetSavePoint); InvalidateVisual(); }
+    /// <summary>Replaces a UTF-16 range as one undoable edit without resetting the save point.</summary>
+    public void ReplaceRange(int start, int length, string text)
+    {
+        if (IsReadOnly) return;
+        SelectRange(start, length);
+        document.Replace(text);
+        Changed();
+    }
+
     public void Undo() { document.Send(ScintillaMessage.Undo); Changed(); }
     public void Redo() { document.Send(ScintillaMessage.Redo); Changed(); }
     public void SelectAll() { document.Send(ScintillaMessage.SelectAll); InvalidateVisual(); inputClient.Notify(); }

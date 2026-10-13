@@ -10,6 +10,32 @@ namespace SharpRail.Plugins.UI.Kit.Markdown;
 public sealed partial class MarkdownPreview
 {
     private readonly List<(MarkdownLink Button, string Id)> specLinks = [];
+    private Border? propertiesRows;
+    private Control? propertiesChevron;
+
+    internal void RetainProperties(MarkdownPreview previous)
+    {
+        if (propertiesRows is null || previous.propertiesRows is null) return;
+        propertiesRows.IsVisible = previous.propertiesRows.IsVisible;
+        if (propertiesChevron is not null) propertiesChevron.RenderTransform = propertiesRows.IsVisible ? null : new RotateTransform(-90);
+        if (previous.propertiesRows.Child is not FrontmatterEditor editor || editableBlock is not { Readable: true } block) return;
+        if (editor.Properties.Count != block.Properties.Count || editor.Properties.Where((property, index) => property.Key != block.Properties[index].Key || !Same(property, block.Properties[index])).Any()) return;
+        editor.SuppressBlur(true);
+        previous.propertiesRows.Child = null;
+        propertiesRows.Child = editor;
+    }
+    private FrontmatterBlock? editableBlock;
+
+    internal void FinishPropertiesRetention()
+    {
+        if (propertiesRows?.Child is FrontmatterEditor editor) editor.SuppressBlur(false);
+    }
+
+    internal void EditProperties(Action<IReadOnlyList<FrontmatterProperty>> commit)
+    {
+        if (editableBlock is not { Readable: true } block || propertiesRows is null) return;
+        propertiesRows.Child = new FrontmatterEditor(block, commit);
+    }
 
     private MarkdownLink LinkButton(string label, FontWeight weight, FontStyle style)
     {
@@ -92,7 +118,10 @@ public sealed partial class MarkdownPreview
                 Ui.Place(rows, row, index, 1);
             }
         }
+        propertiesRows = new Border { Child = rows };
+        if (previous is null) editableBlock = block;
         var chevron = Ui.Icon("arrowDown", Ui.Muted, 14);
+        propertiesChevron = chevron;
         var label = Ui.Text("Properties", Ui.Muted, 12);
         var header = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
         header.Children.Add(chevron); header.Children.Add(label);
@@ -107,12 +136,12 @@ public sealed partial class MarkdownPreview
         AutomationProperties.SetName(toggle, "Toggle properties");
         toggle.Click += (_, _) =>
         {
-            rows.IsVisible = !rows.IsVisible;
-            chevron.RenderTransform = rows.IsVisible ? null : new RotateTransform(-90);
+            propertiesRows.IsVisible = !propertiesRows.IsVisible;
+            chevron.RenderTransform = propertiesRows.IsVisible ? null : new RotateTransform(-90);
         };
         var panel = new StackPanel();
         panel.Children.Add(toggle);
-        panel.Children.Add(rows);
+        panel.Children.Add(propertiesRows);
         return new Border
         {
             Name = "FrontmatterProperties",

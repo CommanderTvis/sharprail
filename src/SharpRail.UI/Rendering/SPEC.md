@@ -87,8 +87,14 @@ since the kit has no theme of its own.
 - External edits reload the document without replacing its mode controls or switching the selected
   Source/Preview mode; both views show the new disk content.
 - A leading YAML frontmatter block renders as an Obsidian-style properties block at the top of the scrolling
-  document, never as a stray heading: key/value rows, list values as chips, collapsible. It is read-only,
-  with edits made through Source or Split. Top-level scalars, inline and multi-line flow
+  document, never as a stray heading: key/value rows, list values as chips, collapsible. With an editable
+  source buffer, Preview supports property add/rename/remove, text edits, list chip add/remove, one-level
+  mapping entry edits and conversion between text, sequence and mapping, matching the fork. Enter or blur
+  commits a field; Escape cancels it. `status` and `type` offer suggestions without constraining values.
+  Edits share Source's unsaved draft, undo, Save and conflict checks; preview refresh retains property focus
+  and folding. Editing canonicalizes the supported YAML block (including dropping comments), preserving
+  the Markdown body verbatim. Empty sequences and mappings retain their shape; duplicate keys are refused.
+  Rendered diffs and documents without an editable source remain read-only. Top-level scalars, inline and multi-line flow
   sequences, block lists of scalars and one-level mappings are readable; any other shape shows the raw block
   rather than a guess. The source view shows the YAML as written.
 - A document is a spec when its frontmatter carries an `id` and one of the spec graph's `type`s
@@ -239,7 +245,6 @@ commit rows in the scope menu append it to the short SHA and author.
 - A tooltip provider with tuned delay and a `wrapTrigger` for disabled controls.
 - A shared non-modal dialog panel with dialog/title semantics, Escape dismissal and focus return while
   surrounding controls remain interactive; `DialogWindow` supplies modal cards instead.
-- Editing frontmatter properties (add, rename, remove, value-type conversion) as a draft of the tab.
 - Painting every find match rather than selecting the current one.
 - A user-chosen code font and its ligatures across the editor, terminals, diagrams and code blocks.
 - Syntax highlighting for Markdown code blocks beyond the minimal keyword/string/comment tinting, and a

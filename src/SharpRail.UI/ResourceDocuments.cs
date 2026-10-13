@@ -28,6 +28,19 @@ public sealed partial class WorkbenchWindow
             View = view => new MarkdownPreviewBody(view, text =>
             {
                 var document = new MarkdownDocumentView(text, view.Resource.Path, MarkdownContexts.For(host, Preferences, FollowLink, SpecLink()), _ => CodeBody(view));
+                if (SharpRail.Scintilla.ScintillaEditor.IsSupported)
+                    document.EnableFrontmatterEditing(next =>
+                    {
+                        if (document.EnsureSource() is not CodeDocumentView code) return;
+                        var previous = code.Editor.Text;
+                        var prefix = 0;
+                        while (prefix < previous.Length && prefix < next.Length && previous[prefix] == next[prefix]) prefix++;
+                        if (prefix > 0 && prefix < previous.Length && char.IsLowSurrogate(previous[prefix]) && char.IsHighSurrogate(previous[prefix - 1])) prefix--;
+                        var suffix = 0;
+                        while (suffix < previous.Length - prefix && suffix < next.Length - prefix && previous[^(suffix + 1)] == next[^(suffix + 1)]) suffix++;
+                        if (suffix > 0 && suffix < previous.Length && char.IsLowSurrogate(previous[previous.Length - suffix]) && char.IsHighSurrogate(previous[previous.Length - suffix - 1])) suffix--;
+                        code.Editor.ReplaceRange(prefix, previous.Length - prefix - suffix, next.Substring(prefix, next.Length - prefix - suffix));
+                    });
                 void ObservePreview()
                 {
                     ReportSelections(document.Preview, new DockTab(view.TabId, Path.GetFileName(view.Resource.Path), "markdown", view.Resource.Path));
