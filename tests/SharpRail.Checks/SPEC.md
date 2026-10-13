@@ -540,6 +540,9 @@ peer identities over real HTTP/gRPC. It never reaches the developer's Tailscale 
 `MarkdownSelectionChecks` runs with `--drawn-rendering` and the default gate. It checks reverse
 and shrinking drags in a virtual document, source-line observers, offscreen Shift-click and
 Copy, plus rendered selection, inline/font invalidation and detach/remount under every theme.
+Mixed-height headings, paragraphs and styled code fences keep the scroll extent and requested
+offset stable across viewport realization; narrowing the preview reflows its geometry while
+retaining bounded mounted blocks.
 `--rendering-bench markdown-selection` measures 120 pointer updates with a source-line observer
 and headless Skia frame capture. `SHARPRAIL_BENCH_MARKDOWN` selects a source file; otherwise it
 uses a large generated document. It reports input/frame median and p95 plus allocated bytes,

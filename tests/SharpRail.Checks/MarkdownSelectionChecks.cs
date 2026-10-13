@@ -17,6 +17,7 @@ internal static class MarkdownSelectionChecks
 {
     internal static void Run()
     {
+        StableScrollExtent();
         VirtualDrag();
         ShapedSelection();
         Console.WriteLine("PASS large Markdown reverse/shrinking/offscreen selections, copy and shaped-text invalidation under every theme");
@@ -32,6 +33,44 @@ internal static class MarkdownSelectionChecks
         Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
         AvaloniaHeadlessPlatform.ForceRenderTimerTick();
         using var frame = window.CaptureRenderedFrame();
+    }
+
+    private static void StableScrollExtent()
+    {
+        var source = string.Join("\n\n", Enumerable.Range(0, 300).Select(index =>
+            index % 7 == 0 ? "```csharp\nvar value = 1;\n```" :
+            index % 3 == 0 ? "## Heading " + index : string.Join(" ", Enumerable.Repeat("Wrapped paragraph words.", index % 17 + 1))));
+        using var preview = new MarkdownPreview(source, "scroll.md",
+            new MarkdownContext((_, _) => ValueTask.FromResult<byte[]?>(null), _ => null, (_, _) => { }, 14, 78, true));
+        var window = new Window { Width = 600, Height = 400, Content = preview };
+        window.Show();
+        try
+        {
+            Frame(window);
+            var extent = preview.Extent.Height;
+            foreach (var fraction in new[] { .1, .4, .8, .95, .5, .0 })
+            {
+                var offset = (extent - preview.Viewport.Height) * fraction;
+                preview.Offset = new Vector(0, offset);
+                Frame(window);
+                Require(Math.Abs(preview.Extent.Height - extent) < 1,
+                    "Scrolling mixed-height Markdown must preserve the document extent and thumb size.");
+                Require(Math.Abs(preview.Offset.Y - offset) < 1,
+                    "Realizing Markdown blocks must not move the requested scroll offset.");
+                Require(preview.GetVisualDescendants().OfType<SelectableTextBlock>().Count() < 40,
+                    "Stable scrolling must retain viewport-only block mounting.");
+            }
+            window.Width = 400;
+            Frame(window);
+            Require(preview.Extent.Height > extent, "Narrowing Markdown remeasures wrapped block heights.");
+            extent = preview.Extent.Height;
+            preview.Offset = new Vector(0, extent - preview.Viewport.Height);
+            Frame(window);
+            Require(Math.Abs(preview.Extent.Height - extent) < 1 &&
+                preview.GetVisualDescendants().OfType<SelectableTextBlock>().Any(text => text.Inlines?.Text?.Contains("Wrapped paragraph", StringComparison.Ordinal) == true),
+                "After reflow, scrolling to the bottom preserves the new extent and realizes the final blocks.");
+        }
+        finally { window.Close(); window.Content = null; }
     }
 
     private static void VirtualDrag()

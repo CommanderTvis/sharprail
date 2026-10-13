@@ -540,6 +540,7 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
             source.Margin = new Thickness(0);
             failure.Children.Add(message); failure.Children.Add(source);
             holder.Child = failure;
+            (Content as MarkdownBlockList)?.ContentChanged();
             selectionCatalog = null;
             return;
         }
@@ -565,6 +566,7 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
         };
         var diagram = MermaidDialog.Inline(svg, new Size(picture.CullRect.Width, picture.CullRect.Height), fullscreen);
         holder.Child = diagram;
+        (Content as MarkdownBlockList)?.ContentChanged();
     }
 
     private async Task LoadImageAsync(Border holder, string url)
@@ -602,6 +604,7 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
             image.Bind(Image.MaxWidthProperty, new Binding("Bounds.Width")
             { RelativeSource = new RelativeSource(RelativeSourceMode.FindAncestor) { AncestorType = typeof(SelectableTextBlock) } });
             holder.Child = image;
+            (Content as MarkdownBlockList)?.ContentChanged();
         }
         catch (Exception error) when (error is IOException or HttpRequestException or OperationCanceledException or ArgumentException)
         {

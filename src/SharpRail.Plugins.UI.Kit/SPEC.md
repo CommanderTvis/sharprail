@@ -112,7 +112,12 @@ selection and expand/collapse providers. File operations and spec navigation rem
 owned by their respective modules.
 
 Markdown documents with more than 64 top-level blocks keep block content outside the
-mounted control tree and lay out only the viewport through a virtualizing panel. Detached
+mounted control tree and arrange only the viewport through a virtualizing panel. Block heights
+are measured at the current document width; scrolling does not revise estimated heights or
+change the document extent. Each block is briefly mounted for measurement so inherited styles
+and templates contribute their actual height, then offscreen text layouts are released. Cached
+sizes avoid whole-document text layout on scroll. Opening and width changes require one full
+measurement pass; completed images and diagrams invalidate the geometry. Detached
 document text releases its shaped-text layout cache. Content remains available to whole-document
 selection, source-line reporting and Find; anchors and search results realize their block before
 scrolling to text. Preview and rendered diffs share this path, including expanded unchanged blocks.

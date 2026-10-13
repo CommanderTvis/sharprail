@@ -37,15 +37,20 @@ internal sealed class DocumentText : SelectableTextBlock
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
-        shapedText?.Invalidate();
-        shapedText = null;
+        ReleaseLayout();
         foreach (var inline in watchedElements ?? []) inline.PropertyChanged -= InlinePropertyChanged;
         watchedElements = null;
         foreach (var collection in watchedCollections ?? []) collection.Invalidated -= InlineContentChanged;
         watchedCollections = null;
         inlineSubscriptionsDirty = true;
-        InvalidateTextLayout();
         base.OnDetachedFromVisualTree(e);
+    }
+
+    internal void ReleaseLayout()
+    {
+        shapedText?.Invalidate();
+        shapedText = null;
+        InvalidateTextLayout();
     }
 
     /// <summary>True while focus loss clears and this block restores its selection; the change is not a real one.</summary>

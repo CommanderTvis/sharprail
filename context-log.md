@@ -5299,3 +5299,21 @@ Workspace-1 (`review-hunk-scrolling`) implements single-vertical-scroll stacked 
 Created managed workspace-4 from local main and, with user approval, copied the existing uncommitted Git Graph commit-review work as its baseline. Original checkout remains untouched. Review file cards now have borders, themed headers and a 16 px gap; the end marker no longer reserves a viewport. Tab attachment retains loaded diffs, while hidden file-change invalidations trigger a refresh on return. Explicit navigation holds selection near the bottom and waits for settled scrolling/sticky placement before focusing the header. Left-clicking Git Graph commits also opens their kept Changes review.
 
 Release build, whole formatting, focused review/Branch Graph checks and the Git-enabled full gate with serial resume pass. The parallel StartupChecks timeout recovered without a code change; no unfinished cases remain. Task scratch and check fixtures are removed. Changes are landed locally; no push or app replacement.
+
+
+## Markdown scrollbar stability (2026-10-13)
+
+Managed workspace-6 replaces the large-preview panel's average-height estimates with cached,
+styled block measurements. Scrolling retains exact document geometry and mounts only viewport
+blocks. Offscreen document text releases its layout caches; width changes and completed media
+refresh the geometry. Preview and rendered diffs share the fix. Opening or resizing a large
+preview now requires one full block measurement pass; native latency was not measured.
+
+The Release solution build passes with zero warnings/errors. Focused drawn-rendering,
+Markdown and Markdown Find modes pass, including mixed-height paragraphs/headings/code fences,
+stable extent and offset, resize reflow, bounded mounting, selection, anchors and images.
+Whole-solution formatting and whitespace checks pass. The Git-enabled four-lane full gate
+stopped on a spec-link readiness assertion and an occluded Git Graph review row. Its serial
+--last-failed resume passes without behavioral source changes and clears all unfinished cases.
+No native/package verification or app replacement was performed. Scratch logs and fixtures
+are removed. Changes are landed locally; nothing pushed.

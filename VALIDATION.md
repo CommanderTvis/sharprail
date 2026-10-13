@@ -2432,3 +2432,21 @@ The four-lane full gate was interrupted after 11 minutes without completing a la
 Managed workspace-4 retains loaded review bodies across tab switches and refreshes after changes while hidden. Stacked files have bordered cards, 16 px separation and themed headers; the end marker remains compact. Explicit navigation preserves the selected file near the bottom and focuses its header after scrolling and sticky placement settle. Git Graph left click selects a commit and opens its kept review tab; the existing context-menu action remains available.
 
 Release solution build passes with zero warnings/errors. Focused ChangesReviewChecks and Branch Graph local/remote checks pass, including renderer identity across attachment, hidden invalidation, layout dimensions, scrolling, keyboard navigation, commit contents, root/empty commits and tab reuse. Whole-solution formatting and whitespace checks pass. The Git-enabled four-lane gate stopped at StartupChecks; its serial --last-failed resume passes without source changes and leaves no unfinished cases. Design and conformance coverage ran in that gate. Headless evidence verifies layout and control retention; no native app replacement or package smoke check was run. Changes are landed locally; nothing pushed.
+
+
+## Markdown scrollbar stability (2026-10-13)
+
+Managed workspace-6 replaces the large-preview panel's average-height estimates with cached,
+styled block measurements. Scrolling retains exact document geometry and mounts only viewport
+blocks. Offscreen document text releases its layout caches; width changes and completed media
+refresh the geometry. Preview and rendered diffs share the fix. Opening or resizing a large
+preview now requires one full block measurement pass; native latency was not measured.
+
+The Release solution build passes with zero warnings/errors. Focused drawn-rendering,
+Markdown and Markdown Find modes pass, including mixed-height paragraphs/headings/code fences,
+stable extent and offset, resize reflow, bounded mounting, selection, anchors and images.
+Whole-solution formatting and whitespace checks pass. The Git-enabled four-lane full gate
+stopped on a spec-link readiness assertion and an occluded Git Graph review row. Its serial
+--last-failed resume passes without behavioral source changes and clears all unfinished cases.
+No native/package verification or app replacement was performed. Scratch logs and fixtures
+are removed. Changes are landed locally; nothing pushed.
