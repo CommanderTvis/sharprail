@@ -14,6 +14,11 @@ Upstream: packages/server/src/persistence/SPEC.md (revision: [UPSTREAM.md](../..
 
 ## Responsibility
 
+The shared `vertical-tabs` and `tabs-in-projects` settings control the centre tab-strip mode for all clients.
+At local store construction, previously absent values take the embedded desktop profile's supplied fallback,
+otherwise false. Existing saved values always win, including false; migration persists only when values change.
+This startup migration does not depend on the profile's older `StateMigrated` marker.
+
 The state every client of one host shares: the open project list and recents, shared settings
 (appearance mode, fixed theme and system light/dark pair, file and Markdown line widths with their bound
 switches, the terminal replay size), the custom layout-preset catalog, workspace display labels, each workspace's

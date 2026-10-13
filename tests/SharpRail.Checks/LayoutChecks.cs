@@ -1,3 +1,4 @@
+using SharpRail.Host.Abstractions;
 using SharpRail.UI.Docking;
 
 namespace SharpRail.Checks;
@@ -36,6 +37,30 @@ internal static class LayoutChecks
 
     public static void Run()
     {
+        var browser = new LayoutSession();
+        browser.SwitchWorkspace("browser");
+        var browserCenter = browser.State.Center.Leaves().First();
+        var originalBottom = browser.State.Groups.Single(group => group.Region == "bottom").Id;
+        TerminalTab[] browserCatalog = [new("terminal:initial", "Terminal 1"), new("peer", "Peer")];
+        browser.ReconcileTerminals("browser", browserCatalog, new HashSet<string>());
+        browser.Reseat(originalBottom, "peer");
+        browser.ReconcileTerminals("browser", [.. browserCatalog, new("new-peer", "New peer")], new HashSet<string>(), center: true, repairBottom: true);
+        var browserView = browser.State.Workspaces["browser"];
+        Require(browserView.Documents[browserCenter].Count(tab => tab.Kind == "terminal") == 3 &&
+            browserView.Documents[originalBottom].All(tab => tab.Kind != "terminal"),
+            "The browser's legacy bottom terminals and newly shared terminals must appear in the center for Projects tabs.");
+        Require(browserView.Selected[browserCenter] == "peer", "Repair must keep the selected second legacy terminal visible.");
+        var deliberate = new LayoutSession();
+        deliberate.SwitchWorkspace("deliberate");
+        deliberate.Open(new("file", "File", "file", "file.txt"), true);
+        var deliberateCenter = deliberate.State.Center.Leaves().First();
+        var deliberateBottom = deliberate.State.Groups.Single(group => group.Region == "bottom").Id;
+        deliberate.ReconcileTerminals("deliberate", browserCatalog, new HashSet<string>(), center: true);
+        Require(deliberate.State.Workspaces["deliberate"].Documents[deliberateBottom].Any(tab => tab.Id == "terminal:initial"),
+            "Normal Projects-mode reconciliation must preserve deliberately placed visible bottom terminals.");
+        deliberate.ReconcileTerminals("deliberate", browserCatalog, new HashSet<string>(), center: true, repairBottom: true);
+        Require(deliberate.State.Workspaces["deliberate"].Selected[deliberateCenter] == "file",
+            "Browser repair must preserve an existing selected center document.");
         CheckTerminalTitles();
         CheckAuxiliaryRegions();
         CheckMixedResources();

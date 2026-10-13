@@ -94,7 +94,12 @@ public sealed partial class WorkbenchWindow
         foreach (var project in previous.Projects.Except(next.Projects)) ReleaseProjectDocuments(project);
         foreach (var removed in previous.Workspaces.Where(workspace => !next.Workspaces.Any(current => current.Path == workspace.Path)))
             ClearRetainedTools(removed.Path);
-        if (next.Settings != previous.Settings) RefreshAppearance();
+        if (next.Settings != previous.Settings)
+        {
+            RefreshAppearance();
+            ApplyTabLayout();
+            ApplyTerminalCatalog();
+        }
         if (!next.TerminalTitles.SequenceEqual(previous.TerminalTitles))
         {
             ApplyTerminalTitles(next);

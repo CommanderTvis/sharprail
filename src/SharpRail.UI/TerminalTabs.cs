@@ -130,9 +130,13 @@ public sealed partial class WorkbenchWindow
                 if (!catalog.Workspaces.TryGetValue(workspace, out var tabs)) continue;
                 var prefix = workspace + ":";
                 if (terminalWorkspaces.Add(workspace)) ready = workspace;
+                var center = workbench.TabsInProjects || Preferences.VerticalCenterTabs && Preferences.VerticalTabsInProjects;
+                var repair = center && workbench.FollowHostTerminalPlacement && state.Current.Settings.VerticalCenterTabs == true &&
+                    state.Current.Settings.VerticalTabsInProjects == true && profile.Data.BrowserTerminalPlacements.Add(workbench.Endpoint + "\n" + workspace);
                 Layout.ReconcileTerminals(workspace, tabs, reservingTerminals.Where(key => key.StartsWith(prefix, StringComparison.Ordinal))
-                    .Select(key => key[prefix.Length..]).ToHashSet(), workbench.TabsInProjects, state.Current.TerminalTitles
-                        .Where(title => title.Terminal.WorkspaceId == workspace).ToDictionary(title => title.Terminal.TabKey, title => title.Title));
+                    .Select(key => key[prefix.Length..]).ToHashSet(), center, state.Current.TerminalTitles
+                        .Where(title => title.Terminal.WorkspaceId == workspace).ToDictionary(title => title.Terminal.TabKey, title => title.Title), repair);
+                if (repair) SaveProfile();
             }
         }
         finally { applyingTerminalCatalog = false; }

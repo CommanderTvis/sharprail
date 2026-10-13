@@ -21,6 +21,10 @@ public sealed record HostSettings
     public bool NotificationsEnabled { get; init; } = true;
     /// <summary>Custom TextMate grammars and filename patterns, as a JSON array shared with clients.</summary>
     public string CustomHighlighting { get; init; } = "";
+    /// <summary>Whether centre tabs use a vertical strip; null keeps an older client's preference.</summary>
+    public bool? VerticalCenterTabs { get; init; }
+    /// <summary>Whether the vertical strip lives in Projects; null keeps an older client's preference.</summary>
+    public bool? VerticalTabsInProjects { get; init; }
 
     public const int DefaultTerminalReplayKb = 64;
     public const int MaxTerminalReplayKb = 1024;

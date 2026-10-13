@@ -42,11 +42,23 @@ internal static partial class BrowserChecks
             window.Title,
             window.ProjectRoot,
             window.IsActive,
+            window.Preferences.VerticalCenterTabs,
+            window.Preferences.VerticalTabsInProjects,
+            TerminalRegions = window.Layout.State.Workspaces.GetValueOrDefault(window.ProjectRoot)?.Documents
+                .Where(group => group.Value.Any(tab => tab.Kind == "terminal"))
+                .Select(group => window.Layout.State.Groups.First(item => item.Id == group.Key).Region).ToArray(),
             Plugins = Workbench.PluginRegistry.Active.ToArray(),
             Messages = window.GetVisualDescendants().OfType<TextBlock>().Where(text => text.IsVisible).Select(text => text.Text).ToArray(),
             Editors = window.GetVisualDescendants().OfType<ScintillaEditor>().Select(editor => new { editor.Text, editor.IsModified, Position = editor.TranslatePoint(default, window), Width = editor.Bounds.Width, Height = editor.Bounds.Height, editor.IsFocused, Recordings = typeof(ScintillaEditor).GetProperty("Recordings", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(editor) }).ToArray(),
             Terminals = window.GetVisualDescendants().OfType<GhosttySkiaView>().Select(terminal => new { Text = terminal.ReadScreen(), Position = terminal.TranslatePoint(default, window), Width = terminal.Bounds.Width, Height = terminal.Bounds.Height, terminal.IsFocused, terminal.Frames, Grid = terminal.Size, Frame = TerminalFrame(terminal) }).ToArray()
         }).ToArray()));
+    }
+
+    [JSExport]
+    public static async Task SetTabMode(bool vertical, bool inProjects)
+    {
+        await Workbench.State.ChangeAsync(HostStateChange.Setting("vertical-tabs", vertical.ToString()),
+            HostStateChange.Setting("tabs-in-projects", inProjects.ToString()));
     }
 
     private static unsafe object TerminalFrame(GhosttySkiaView terminal)

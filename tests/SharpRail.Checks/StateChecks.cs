@@ -35,6 +35,26 @@ internal static class StateChecks
 
     internal static async Task Run(string root)
     {
+        var migratedProfile = new SharpRail.UI.State.ProfileStore(Path.Combine(root, "tab-mode-migration"));
+        migratedProfile.Data.StateMigrated = true;
+        migratedProfile.Data.Preferences.VerticalCenterTabs = true;
+        migratedProfile.Data.Preferences.VerticalTabsInProjects = true;
+        // The state file already exists: the old all-fields migration must not need to run again.
+        Directory.CreateDirectory(migratedProfile.DirectoryPath);
+        File.WriteAllText(Path.Combine(migratedProfile.DirectoryPath, HostStateStore.FileName), "{\"Settings\":{}}\n");
+        var migratedStore = migratedProfile.OpenState();
+        Require(migratedStore.Current.Settings.VerticalCenterTabs == true && migratedStore.Current.Settings.VerticalTabsInProjects == true,
+            "An already migrated desktop profile must seed the host's previously unset tab mode.");
+        await migratedStore.ChangeAsync([HostStateChange.Setting("vertical-tabs", "false")]);
+        Require(migratedProfile.OpenState().Current.Settings.VerticalCenterTabs == false,
+            "Local fallback preferences must never overwrite a host's saved tab mode.");
+        var fallback = new SharpRail.UI.State.Preferences { VerticalCenterTabs = true, VerticalTabsInProjects = true };
+        using var olderSubscription = new SharpRail.UI.State.SharedState(new LocalStateAdapter(new HostStateStore(null)), fallback, new HostState());
+        Require(fallback.VerticalCenterTabs && fallback.VerticalTabsInProjects, "Older hosts must retain local tab-mode preferences.");
+        var browserPreferences = new SharpRail.UI.State.Preferences();
+        using var browserSubscription = new SharpRail.UI.State.SharedState(new LocalStateAdapter(migratedStore), browserPreferences, migratedStore.Current);
+        Require(!browserPreferences.VerticalCenterTabs && browserPreferences.VerticalTabsInProjects,
+            "A browser's fresh preferences must inherit both saved host tab-mode fields, including false.");
         var project = Path.Combine(root, "state-project");
         var other = Path.Combine(root, "state-other");
         Directory.CreateDirectory(project);
@@ -45,6 +65,7 @@ internal static class StateChecks
             HostStateChange.Setting("system-light", "light"), HostStateChange.Setting("system-dark", "high-contrast-dark"),
             HostStateChange.Setting("markdown-width", "80"), HostStateChange.Setting("file-bounded", "false"),
             HostStateChange.Setting("notifications", "false"),
+            HostStateChange.Setting("vertical-tabs", "true"), HostStateChange.Setting("tabs-in-projects", "false"),
             HostStateChange.Setting("custom-highlighting", """[{"Name":"Example","Scope":"source.example","Patterns":["*.example"],"Grammar":"{\"scopeName\":\"source.example\",\"patterns\":[]}"}]"""),
             HostStateChange.SavePreset("Mine", "{}"), HostStateChange.RenamePreset("Mine", "Renamed"),
             HostStateChange.OpenProject(project), HostStateChange.OpenProject(other), HostStateChange.CloseProject(other),

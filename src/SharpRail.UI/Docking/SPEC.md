@@ -287,9 +287,13 @@ viewport rather than treating a newly attached tab's transient geometry as offsc
 ## Vertical centre tabs and tab panes
 
 Ported from the fork's "Vertical tabs can live under their workspace in Projects". Settings › Layout
-("Editor tabs") holds four app preferences: `VerticalCenterTabs`, the column's `VerticalCenterTabsWidth` in
-pixels (120–480, default 200, clamped on load so it survives a window resize unchanged),
-`VerticalTabsInProjects` and `DefaultPaneDirection` (columns or rows). A change redraws every window.
+("Editor tabs") shares `VerticalCenterTabs` and `VerticalTabsInProjects` with every client of the host.
+The column's `VerticalCenterTabsWidth` remains a client preference in
+pixels (120–480, default 200, clamped on load so it survives a window resize unchanged).
+`DefaultPaneDirection` (columns or rows) also remains client-local. A mode change redraws every connected window.
+An embedded host seeds an unset mode from its existing desktop profile, including already migrated profiles;
+subsequent openings never overwrite a saved host mode. Hosts predating these fields retain client-local fallback.
+Catalog terminals arriving in Projects mode use the centre instead of the bottom region.
 
 - **The column.** With vertical tabs on, every centre group, including both halves of a split that already
   existed, draws its tabs as a column beside the editor with a draggable edge (`VerticalTabsResize_<group>`).

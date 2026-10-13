@@ -279,7 +279,8 @@ public sealed partial class SettingsWindow : Window
     /// <summary>Sends shared changes to the host; the view updates when the resulting snapshot arrives.</summary>
     private async void Share(params HostStateChange[] changes)
     {
-        try { await state.ChangeAsync(changes); error.IsVisible = false; }
+        try { await Task.Run(() => state.ChangeAsync(changes)); error.IsVisible = false; }
+        catch (OperationCanceledException) { }
         catch (Exception failure) when (failure is not OperationCanceledException)
         {
             error.Text = "The host could not save this change: " + failure.Message; error.IsVisible = true;
@@ -620,12 +621,14 @@ public sealed partial class SettingsWindow : Window
         vertical.IsCheckedChanged += (_, _) =>
         {
             if (state.Preferences.VerticalCenterTabs == (vertical.IsChecked == true)) return;
-            state.Preferences.VerticalCenterTabs = vertical.IsChecked == true; Save(); RenderTabs();
+            if (state.Current.Settings.VerticalCenterTabs is not null) Share(HostStateChange.Setting("vertical-tabs", (vertical.IsChecked == true).ToString()));
+            else { state.Preferences.VerticalCenterTabs = vertical.IsChecked == true; Save(); RenderTabs(); }
         };
         inProjects.IsCheckedChanged += (_, _) =>
         {
             if (state.Preferences.VerticalTabsInProjects == (inProjects.IsChecked == true)) return;
-            state.Preferences.VerticalTabsInProjects = inProjects.IsChecked == true; Save(); RenderTabs();
+            if (state.Current.Settings.VerticalTabsInProjects is not null) Share(HostStateChange.Setting("tabs-in-projects", (inProjects.IsChecked == true).ToString()));
+            else { state.Preferences.VerticalTabsInProjects = inProjects.IsChecked == true; Save(); RenderTabs(); }
         };
         var preview = PageControl<CheckBox>(panel, "PreviewTabs");
         preview.IsChecked = state.Preferences.PreviewTabs;

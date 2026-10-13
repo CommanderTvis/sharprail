@@ -100,7 +100,9 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
             MarkdownLineWidthBounded = !reply.Settings.MarkdownLineWidthUnbounded,
             TerminalReplayKb = reply.Settings.TerminalReplayKb,
             NotificationsEnabled = !reply.Settings.NotificationsDisabled,
-            CustomHighlighting = reply.Settings.CustomHighlighting
+            CustomHighlighting = reply.Settings.CustomHighlighting,
+            VerticalCenterTabs = reply.Settings.VerticalCenterTabs,
+            VerticalTabsInProjects = reply.Settings.VerticalTabsInProjects
         },
         Presets = reply.Presets.Select(preset => new LayoutPreset(preset.Name, preset.Layout)).ToArray(),
         Projects = reply.Projects.ToArray(),

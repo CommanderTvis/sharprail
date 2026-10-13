@@ -15,6 +15,11 @@ Upstream: packages/contracts/SPEC.md @ 4737df6d (CommanderTvis fork), the plugin
 
 ## Responsibility
 
+`HostSettings.VerticalCenterTabs` and `VerticalTabsInProjects` share the tab-strip mode between desktop,
+browser and other clients. Nullable fields distinguish older hosts, which leave local preferences intact.
+The corresponding setting keys are `vertical-tabs` and `tabs-in-projects`; pane arrangement and strip width
+are client-local. Local hosts seed missing values from desktop preferences, otherwise default to false.
+
 `HostSettings.CustomHighlighting` carries custom TextMate grammars and filename
 patterns as a JSON array. `HostStateChange.Setting("custom-highlighting", json)`
 replaces that collection through the host; clients never write the state file directly.

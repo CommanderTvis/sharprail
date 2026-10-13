@@ -63,7 +63,9 @@ public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime li
             MarkdownLineWidthUnbounded = !state.Settings.MarkdownLineWidthBounded,
             TerminalReplayKb = state.Settings.TerminalReplayKb,
             NotificationsDisabled = !state.Settings.NotificationsEnabled,
-            CustomHighlighting = state.Settings.CustomHighlighting
+            CustomHighlighting = state.Settings.CustomHighlighting,
+            VerticalCenterTabs = state.Settings.VerticalCenterTabs,
+            VerticalTabsInProjects = state.Settings.VerticalTabsInProjects
         },
         Presets = state.Presets.Select(preset => new PresetMessage { Name = preset.Name, Layout = preset.Layout }).ToList(),
         Projects = state.Projects.ToList(),

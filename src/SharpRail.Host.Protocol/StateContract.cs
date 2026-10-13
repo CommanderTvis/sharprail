@@ -34,6 +34,8 @@ public sealed class SettingsMessage
     [ProtoMember(9, IsRequired = true)] public int TerminalReplayKb { get; set; } = 64;
     [ProtoMember(10)] public bool NotificationsDisabled { get; set; }
     [ProtoMember(11)] public string CustomHighlighting { get; set; } = "";
+    [ProtoMember(12)] public bool? VerticalCenterTabs { get; set; }
+    [ProtoMember(13)] public bool? VerticalTabsInProjects { get; set; }
 }
 
 [ProtoContract]

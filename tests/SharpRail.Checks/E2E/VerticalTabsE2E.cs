@@ -171,7 +171,7 @@ internal static class VerticalTabsE2E
                 var inProjects = Control<CheckBox>(settings, "VerticalTabsInProjects");
                 Require(vertical.IsChecked == false && !inProjects.IsEnabled, "Vertical tabs start off, and their Projects home waits on them.");
                 vertical.IsChecked = true;
-                Until(() => inProjects.IsEnabled);
+                Until(() => Control<CheckBox>(settings, "VerticalTabsInProjects").IsEnabled);
             });
             Require(app.Window.Preferences.VerticalCenterTabs, "The switch changes the app preference.");
             var scroller = app.Find<ScrollViewer>("TabScroller_" + app.Center);

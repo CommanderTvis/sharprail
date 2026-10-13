@@ -118,6 +118,8 @@ public sealed class SharedState : IDisposable
         Preferences.FileLineWidthBounded = settings.FileLineWidthBounded;
         Preferences.MarkdownLineWidth = LineWidths.IsValid(settings.MarkdownLineWidth) ? settings.MarkdownLineWidth : LineWidths.MarkdownDefault;
         Preferences.MarkdownLineWidthBounded = settings.MarkdownLineWidthBounded;
+        if (settings.VerticalCenterTabs is { } vertical) Preferences.VerticalCenterTabs = vertical;
+        if (settings.VerticalTabsInProjects is { } inProjects) Preferences.VerticalTabsInProjects = inProjects;
         var presets = new Dictionary<string, DockState>();
         foreach (var preset in state.Presets)
         {

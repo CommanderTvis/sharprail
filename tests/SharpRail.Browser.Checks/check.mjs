@@ -134,6 +134,14 @@ try {
     finally { clearTimeout(timer); }
   };
   let windows = await until(snapshot, windows => windows[0]?.ProjectRoot === fixture && windows[0].Terminals[0]?.Text.includes('fixture'), 'The workbench did not restore its host terminal.');
+  await page.evaluate(() => check.SetTabMode(true, true));
+  windows = await until(snapshot, windows => windows[0]?.VerticalCenterTabs && windows[0]?.VerticalTabsInProjects &&
+    windows[0]?.TerminalRegions.length > 0 && windows[0].TerminalRegions.every(region => region === 'center') &&
+    windows[0].Terminals[0]?.Text.includes('fixture'), 'Host Projects mode did not repair the browser terminal placement.');
+  console.log('PASS shared host tab mode restores legacy browser bottom terminals into Projects/center');
+  await page.evaluate(() => check.SetTabMode(false, false));
+  await until(snapshot, windows => !windows[0]?.VerticalCenterTabs && !windows[0]?.VerticalTabsInProjects,
+    'A live host tab mode change did not reach the browser.');
   await page.evaluate(() => check.CheckTerminalDrawing());
   console.log('PASS batched terminal drawing matches the existing renderer pixel for pixel');
   const terminal = windows[0].Terminals[0];

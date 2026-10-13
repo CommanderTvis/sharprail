@@ -82,7 +82,7 @@ public sealed class BrowserSession() : IDisposable
         Func<IProjectServices> sessions = () => new RemoteProjectAdapter(address, token, connection);
         TerminalFactory factory = launch => new BrowserTerminal(launch, terminals);
         Endpoint = endpoint;
-        workbench = new Workbench(profile, state, factory, remote: true, sessions, plugins, catalog) { Endpoint = address.ToString(), ChangeHost = ChangeHost, Notifier = BrowserNotifier.Instance };
+        workbench = new Workbench(profile, state, factory, remote: true, sessions, plugins, catalog) { Endpoint = address.ToString(), ChangeHost = ChangeHost, Notifier = BrowserNotifier.Instance, FollowHostTerminalPlacement = true };
         workbench.WindowOpened += window => window.OpenLink = BrowserInterop.OpenLink;
         foreach (var entry in profile.Data.Windows.Take(1)) workbench.Open(entry, entry.LastProject).Show();
         // The workbench retries a dropped host by itself; one that stays away sends the user back to the

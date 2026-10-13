@@ -83,6 +83,8 @@ public sealed class Profile
     public Dictionary<string, string> PluginPreferences { get; set; } = [];
     /// <summary>Set once shared fields have moved to the local host's <c>state.json</c>.</summary>
     public bool StateMigrated { get; set; }
+    /// <summary>Host/workspace pairs whose legacy browser bottom-terminal placement has been repaired.</summary>
+    public HashSet<string> BrowserTerminalPlacements { get; set; } = [];
 
     // Fields of older profiles, read for migration and cleared once migrated.
     [JsonPropertyName("Layout"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public DockState? LegacyLayout { get; set; }
@@ -151,6 +153,7 @@ public sealed class ProfileStore
                     if (!ValidPath(entry.Key) || string.IsNullOrWhiteSpace(entry.Value) || entry.Value.Contains('\0'))
                         labels.Remove(entry.Key);
             Data.GitSelections ??= [];
+            Data.BrowserTerminalPlacements ??= [];
             foreach (var entry in Data.GitSelections.ToArray())
             {
                 if (!Path.IsPathFullyQualified(entry.Key) || entry.Key.Contains('\0') || entry.Value is null)
@@ -224,7 +227,8 @@ public sealed class ProfileStore
     /// </summary>
     public HostStateStore OpenState()
     {
-        var store = new HostStateStore(DirectoryPath, Data.StateMigrated ? null : MigratedState);
+        var store = new HostStateStore(DirectoryPath, Data.StateMigrated ? null : MigratedState,
+            Data.Preferences.VerticalCenterTabs, Data.Preferences.VerticalTabsInProjects);
         if (store.LastError is not null || Data.StateMigrated) return store;
         Data.StateMigrated = true;
         Data.LegacyProjects = null; Data.LegacyRecentProjects = null; Data.LegacyWorkspaceLabels = null;

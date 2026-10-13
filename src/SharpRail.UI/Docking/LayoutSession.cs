@@ -153,8 +153,10 @@ public sealed partial class LayoutSession
     /// revealing its region or taking focus; saved agent titles override catalog titles. Returns whether anything changed.
     /// With <paramref name="center"/>, for a window whose only tab list is the centre's, the last-focused centre
     /// group takes them instead, and with them the terminals of every hidden region.
+    /// <paramref name="repairBottom"/> also moves visible bottom terminals from a legacy browser profile,
+    /// preserving an existing centre selection, otherwise the selected terminal from the bottom.
     /// </summary>
-    public bool ReconcileTerminals(string workspace, IReadOnlyList<TerminalTab> catalog, IReadOnlySet<string> pending, bool center = false, IReadOnlyDictionary<string, string>? titles = null)
+    public bool ReconcileTerminals(string workspace, IReadOnlyList<TerminalTab> catalog, IReadOnlySet<string> pending, bool center = false, IReadOnlyDictionary<string, string>? titles = null, bool repairBottom = false)
     {
         if (!State.Workspaces.ContainsKey(workspace)) return false;
         var next = State.Copy();
@@ -182,13 +184,16 @@ public sealed partial class LayoutSession
         var leaves = next.Center.Leaves().ToArray();
         var focused = leaves.Contains(view.FocusedCenter) ? view.FocusedCenter : leaves[0];
         var target = center ? focused : bottoms.Contains(view.FocusedAuxiliary.GetValueOrDefault("bottom")) ? view.FocusedAuxiliary["bottom"] : bottoms.LastOrDefault() ?? focused;
+        var selectRepaired = repairBottom && !view.Selected.ContainsKey(target);
         if (center)
-            foreach (var group in next.Groups.Where(group => group.Region switch { "left" => !next.LeftVisible, "right" => !next.RightVisible, "bottom" => !next.BottomVisible, _ => false }))
+            foreach (var group in next.Groups.Where(group => group.Region switch { "left" => !next.LeftVisible, "right" => !next.RightVisible, "bottom" => repairBottom || !next.BottomVisible, _ => false }))
                 foreach (var tab in view.Documents.GetValueOrDefault(group.Id)?.Where(tab => tab.Kind == "terminal").ToArray() ?? [])
                 {
                     view.Documents[group.Id].Remove(tab); view.BeforeToolByTabId.Remove(tab.Id); changed = true;
-                    if (view.Selected.GetValueOrDefault(group.Id) == tab.Id) view.Selected.Remove(group.Id);
+                    var selected = view.Selected.GetValueOrDefault(group.Id) == tab.Id;
+                    if (selected) view.Selected.Remove(group.Id);
                     if (!view.Documents.TryGetValue(target, out var tabs)) view.Documents[target] = tabs = [];
+                    if (selectRepaired && selected) { view.Selected[target] = tab.Id; selectRepaired = false; }
                     tabs.Add(tab);
                 }
         foreach (var tab in catalog)

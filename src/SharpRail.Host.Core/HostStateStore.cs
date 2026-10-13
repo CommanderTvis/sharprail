@@ -70,7 +70,9 @@ public sealed partial class HostStateStore : IHostStateService
     public Func<string, IReadOnlyList<string>>? PluginDependents { get; set; }
 
     /// <summary>Opens the store; when the directory has no state file yet, <paramref name="seed"/> supplies migrated state.</summary>
-    public HostStateStore(string? directory, Func<HostState>? seed = null)
+    /// <param name="verticalCenterTabs">The embedded desktop profile's fallback for a previously unset tab mode.</param>
+    /// <param name="verticalTabsInProjects">The embedded desktop profile's fallback for a previously unset Projects tab home.</param>
+    public HostStateStore(string? directory, Func<HostState>? seed = null, bool? verticalCenterTabs = null, bool? verticalTabsInProjects = null)
     {
         path = directory is null ? null : Path.Combine(directory, FileName);
         HostState initial;
@@ -109,8 +111,16 @@ public sealed partial class HostStateStore : IHostStateService
             initial = new(); LastError = error.Message;
         }
         state = Normalize(initial);
+        state = state with
+        {
+            Settings = state.Settings with
+            {
+                VerticalCenterTabs = state.Settings.VerticalCenterTabs ?? verticalCenterTabs ?? false,
+                VerticalTabsInProjects = state.Settings.VerticalTabsInProjects ?? verticalTabsInProjects ?? false
+            }
+        };
         // Identities minted for a file that predates them are written at once, or they would change on the next launch.
-        if (path is not null && LastError is null && (!File.Exists(path) || !state.ProjectRecords.SequenceEqual(initial.ProjectRecords))) Save(state);
+        if (path is not null && LastError is null && (!File.Exists(path) || !state.ProjectRecords.SequenceEqual(initial.ProjectRecords) || state.Settings != initial.Settings)) Save(state);
         if (directory is not null)
             try { InstallationId = Installation.EnsureIn(directory); }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException) { LastError ??= error.Message; }
@@ -442,6 +452,8 @@ public sealed partial class HostStateStore : IHostStateService
                         => settings with { TerminalReplayKb = kb },
                     "notifications" when bool.TryParse(value, out var enabled) => settings with { NotificationsEnabled = enabled },
                     "custom-highlighting" when ValidHighlighting(value) => settings with { CustomHighlighting = value },
+                    "vertical-tabs" when bool.TryParse(value, out var vertical) => settings with { VerticalCenterTabs = vertical },
+                    "tabs-in-projects" when bool.TryParse(value, out var inProjects) => settings with { VerticalTabsInProjects = inProjects },
                     _ => throw new ArgumentException($"Invalid setting {key}.")
                 };
                 return settings == current.Settings ? current : current with { Settings = settings };
