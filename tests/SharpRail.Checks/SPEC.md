@@ -345,6 +345,9 @@ outer-only vertical input over code and naturally sized Markdown previews throug
 fixture; rendered captures are supporting evidence.
 
 Review regression coverage also checks compact end-marker sizing, bordered file spacing, retained Markdown diff bodies across attachment, and refresh after changes while hidden. Git Graph commit review coverage opens by left click through both host modes.
+`--review-retention` runs the watcher-independent retention subset: delayed hidden and visible refreshes
+keep existing content, source selection and scroll offset until fresh content arrives, while changed
+diffs still replace the body. Markdown coverage includes natural height, resizing and returning to a tab.
 
 ## Reconnect checks
 

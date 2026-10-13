@@ -72,6 +72,16 @@ public sealed partial class WorkbenchWindow
                     : await Task.Run(async () => await host.GetDiffAsync(change.Path, fileTab.Scope, target, token), token);
                 if (request != projectRequest || workspace != workspaceRoot || target != Target() || token.IsCancellationRequested) throw new OperationCanceledException();
                 documents[sectionKey] = new(change.Path, diff);
+                if (pane?.DiffFor(change.Path) is { } retained)
+                {
+                    if (retained.Identity is not null) await DescribeDiffAsync(retained, fileTab, sectionKey);
+                    if (token.IsCancellationRequested) throw new OperationCanceledException(token);
+                    if (ReferenceEquals(retained, pane.DiffFor(change.Path)))
+                    {
+                        retained.Update(diff);
+                        return retained;
+                    }
+                }
                 var view = DiffDocument(documents[sectionKey], fileTab, sectionKey, triage, natural, embedded: true);
                 return view;
             },

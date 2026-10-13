@@ -48,6 +48,7 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
         internal readonly CheckBox Viewed = viewed;
         internal DiffView? View;
         internal bool Loading;
+        internal bool Stale;
         internal bool Failed;
         internal double Height;
     }
@@ -76,6 +77,7 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
     private bool refreshPending = true;
     private bool updating;
     private bool queued;
+    private bool awaitingLayout;
     private bool noticeDismissed;
     private string? reveal;
     private string? anchored;
@@ -118,6 +120,12 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
         Wire("ReviewScaleSingle", () => Mode(true));
         Wire("ReviewScaleDismiss", () => { noticeDismissed = true; UpdateProgress(); });
         KeyDown += OnKey;
+        LayoutUpdated += (_, _) =>
+        {
+            if (!awaitingLayout || !IsArrangeValid) return;
+            awaitingLayout = false;
+            QueueVisible();
+        };
         AddHandler(PointerWheelChangedEvent, (_, _) => { reveal = null; anchored = null; }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         AddHandler(PointerPressedEvent, (_, _) => { reveal = null; anchored = null; }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
         ShowNotice("Loading changes…");
@@ -133,6 +141,7 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
+        awaitingLayout = true;
         if (refreshPending) _ = RefreshAsync();
         else
         {
@@ -178,7 +187,7 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
                 {
                     section.Change = files[section.Change.Path];
                     section.Failed = false;
-                    if (section.View is not null) Unmount(section);
+                    section.Stale = true;
                 }
                 QueueVisible();
             }
@@ -278,12 +287,13 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
                 scroll.Offset = new Vector(scroll.Offset.X, scroll.Offset.Y + e.Delta.Y);
                 e.Handled = true;
             }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
+            var offset = state.Offset;
             scroll.ScrollChanged += (_, _) => { state.Offset = scroll.Offset.Y; QueueVisible(); };
             scroll.SizeChanged += (_, _) => QueueVisible();
             rows.SizeChanged += (_, _) => QueueVisible();
             body.Children.Add(scroll);
             body.Children.Add(sticky);
-            Dispatcher.UIThread.Post(() => { if (!disposed && scroll is not null) { scroll.Offset = new Vector(0, state.Offset); QueueVisible(); } }, DispatcherPriority.Loaded);
+            Dispatcher.UIThread.Post(() => { if (!disposed && scroll is not null) { scroll.Offset = new Vector(0, offset); QueueVisible(); } }, DispatcherPriority.Loaded);
         }
         UpdateProgress(); QueueVisible();
     }
@@ -304,6 +314,11 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
     private void Visible()
     {
         if (disposed || VisualRoot is null || reading is null || reading.IsCancellationRequested) return;
+        if (!IsArrangeValid || scroll is not null && scroll.Viewport.Height <= 0)
+        {
+            awaitingLayout = true;
+            return;
+        }
         string? active = null;
         var revealing = reveal is not null;
         Section? pin = null;
@@ -314,7 +329,7 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
             if (scroll is not null && top < 0 && top + section.Frame.Bounds.Height > 32) pin = section;
             var visible = !IsCollapsed(section.Change) && (scroll is null ||
                 top < scroll.Bounds.Height * 2 && top + section.Frame.Bounds.Height > -scroll.Bounds.Height);
-            if (visible && section.View is null && !section.Loading && !section.Failed) _ = LoadAsync(section, generation, reading.Token);
+            if (visible && (section.View is null || section.Stale) && !section.Loading && !section.Failed) _ = LoadAsync(section, generation, reading.Token);
             else if (!visible && section.View is not null) Unmount(section);
         }
         Pin(pin);
@@ -325,8 +340,12 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
     private async Task LoadAsync(Section section, long stamp, CancellationToken token)
     {
         section.Loading = true;
-        section.Body.Children.Clear();
-        section.Body.Children.Add(Ui.Text("Loading diff…", Ui.Hint));
+        var retained = section.View;
+        if (retained is null)
+        {
+            section.Body.Children.Clear();
+            section.Body.Children.Add(Ui.Text("Loading diff…", Ui.Hint));
+        }
         try
         {
             DiffTriage? triage = mutable ? new(key => state.IsKept(section.Change.Path, key), (key, value, keys) =>
@@ -339,11 +358,20 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
                 UpdateProgress();
             }) : null;
             var view = await load(section.Change, !single(), triage, token);
-            if (disposed || token.IsCancellationRequested || stamp != generation || !ReferenceEquals(sections.GetValueOrDefault(section.Change.Path), section)) { view.Dispose(); return; }
+            if (disposed || token.IsCancellationRequested || stamp != generation || !ReferenceEquals(sections.GetValueOrDefault(section.Change.Path), section))
+            {
+                if (!ReferenceEquals(view, retained)) view.Dispose();
+                return;
+            }
+            section.Stale = false;
             section.View = view;
             view.SetPresentation(state.Split, state.IgnoreWhitespace);
-            section.Body.MinHeight = 0;
-            section.Body.Children.Clear(); section.Body.Children.Add(view);
+            if (!ReferenceEquals(view, retained))
+            {
+                retained?.Dispose();
+                section.Body.MinHeight = 0;
+                section.Body.Children.Clear(); section.Body.Children.Add(view);
+            }
             QueueVisible();
         }
         catch (OperationCanceledException) { }
@@ -351,6 +379,7 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
         {
             if (disposed || token.IsCancellationRequested || stamp != generation) return;
             section.Failed = true;
+            section.View?.Dispose(); section.View = null;
             section.Body.MinHeight = 80;
             var notice = new StackPanel { Spacing = 4, Margin = new Thickness(12) };
             notice.Children.Add(Ui.Text("Could not read diff: " + error.Message, Ui.Danger));

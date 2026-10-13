@@ -19,7 +19,7 @@ internal static class ChangesReviewChecks
     internal static void Run(string root)
     {
         ContentIdentity();
-        MarkdownScrolling();
+        Retention();
         var original = string.Join('\n', Enumerable.Range(1, 35).Select(index => "line " + index)) + "\n";
         var changed = original.Replace("line 2\n", "first change " + new string('x', 200) + "\n", StringComparison.Ordinal)
             .Replace("line 30\n", "last change\n", StringComparison.Ordinal);
@@ -122,6 +122,63 @@ internal static class ChangesReviewChecks
         Until(() => Review()!.DiffFor("untracked.txt")?.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>()
             .Any(editor => editor.Text.Contains("new untracked content", StringComparison.Ordinal)) == true);
         Console.WriteLine("PASS continuous Changes review: click grammar, lazy generated sections, Keep/viewed progress, presentation switches, navigator and historical scope");
+    }
+
+    internal static void Retention()
+    {
+        MarkdownScrolling();
+        const string original = "@@ -1,2 +1,2 @@\n before\n-old\n+new\n";
+        var state = new ChangesReviewState();
+        TaskCompletionSource<DiffView>? pending = null;
+        var loads = 0;
+        using var pane = new ChangesReviewPane("Changes", state, false,
+            _ => Task.FromResult(new GitSnapshot(true, "main", [new GitChange("a.txt", "M", " ", null, 1, 1)], [], [])),
+            (_, natural, _, token) =>
+            {
+                loads++;
+                return pending is null ? Task.FromResult(new DiffView(original, "a.txt", 800, naturalHeight: natural, embedded: true))
+                    : pending.Task.WaitAsync(token);
+            }, _ => { }, () => { }, () => { }, () => true, () => false, _ => { });
+        var window = new Window { Width = 800, Height = 200, Content = pane };
+        window.Show();
+        try
+        {
+            Until(() => pane.DiffFor("a.txt")?.Bounds.Height > 0);
+            var retained = pane.DiffFor("a.txt")!;
+            var editor = retained.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().Last();
+            editor.SelectRange(editor.Text.IndexOf("new", StringComparison.Ordinal), 3);
+            var scroll = pane.GetLogicalDescendants().OfType<ScrollViewer>().Single(view => view.Name == "ReviewScroll");
+            scroll.Offset = new Vector(0, 40);
+            Settle();
+            var offset = scroll.Offset.Y;
+            var previousLoads = loads;
+            window.Content = new TextBlock { Text = "Another tab" };
+            Settle();
+            _ = pane.RefreshAsync();
+            pending = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            window.Content = pane;
+            Until(() => loads > previousLoads);
+            Require(ReferenceEquals(retained, pane.DiffFor("a.txt")) && retained.IsEffectivelyVisible &&
+                !pane.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "Loading diff…"),
+                "Returning to a stale review must show its retained content while rereading the diff.");
+            Require(Math.Abs(scroll.Offset.Y - offset) < 1, "A pending review refresh must preserve the scrolled position.");
+            pending.SetResult(retained);
+            Settle();
+            Require(ReferenceEquals(editor, retained.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().Last()) && editor.Selection.Text == "new",
+                "An unchanged review must retain its editor and selection state.");
+            pending = new(TaskCreationOptions.RunContinuationsAsynchronously);
+            previousLoads = loads;
+            _ = pane.RefreshAsync();
+            Until(() => loads > previousLoads);
+            Require(ReferenceEquals(retained, pane.DiffFor("a.txt")), "A visible review refresh must retain its old body until replacement is ready.");
+            var replacement = new DiffView(original.Replace("+new", "+changed", StringComparison.Ordinal), "a.txt", 800, naturalHeight: true, embedded: true);
+            pending.SetResult(replacement);
+            Until(() => ReferenceEquals(replacement, pane.DiffFor("a.txt")));
+            Require(replacement.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().Any(view => view.Text.Contains("changed", StringComparison.Ordinal)),
+                "Fresh changed content must still replace the retained review.");
+            Console.WriteLine("PASS review tab retention: hidden/visible asynchronous refreshes, pending content, editor identity and scroll offset");
+        }
+        finally { window.Close(); }
     }
 
     private static void MarkdownScrolling()

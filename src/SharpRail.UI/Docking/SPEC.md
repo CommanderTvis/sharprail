@@ -253,6 +253,10 @@ does, so reordering and roving continue from the keyboard.
 Changes review tabs use the ordinary resource preview/keep placement, persisting only identity and
 scope. Body reads start when the mounted review requests them, outside layout hydration. Review progress
 belongs to the window state owner; see [State/SPEC.md](../State/SPEC.md).
+Returning to a continuous review keeps its loaded sections and scroll position visible while a pending
+refresh rereads changes. Identical diffs keep their editor controls and selection; changed rendered
+content uses the diff's existing in-place refresh. Lazy offscreen eviction waits for a valid laid-out
+viewport rather than treating a newly attached tab's transient geometry as offscreen.
 
 ## Not yet ported
 
