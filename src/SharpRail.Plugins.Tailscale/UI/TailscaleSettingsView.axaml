@@ -1,5 +1,13 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:kit="using:SharpRail.Plugins.UI.Kit" xmlns:local="using:SharpRail.Plugins.Tailscale.UI" x:Class="SharpRail.Plugins.Tailscale.UI.TailscaleSettingsView" x:ClassModifier="internal">
+  <UserControl.Styles>
+    <Style Selector="Button">
+      <Setter Property="MinHeight" Value="40" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="Padding" Value="12,8" />
+    </Style>
+  </UserControl.Styles>
   <StackPanel Spacing="12">
     <TextBlock Text="Tailscale pairing" FontWeight="SemiBold" Foreground="{x:Static kit:Ui.TextBrush}" />
     <TextBlock Text="Clients can find this host on your Tailscale network. Approve a new device only when its pairing code matches the code on that device." TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />

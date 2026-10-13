@@ -64,6 +64,10 @@ internal static class TailscaleChecks
         {
             _ = workbench.State.ChangeAsync(HostStateChange.PluginEnabled("tailscale", true));
             E2eWorkspace.Until(() => workbench.PluginRegistry.Active.Contains("tailscale"));
+            E2eWorkspace.Until(() => window.FindControl<TextBlock>("GestureToastMessage")!.Text?.Contains("Tailscale pairing approval requested", StringComparison.Ordinal) == true);
+            Require(!window.OwnedWindows.OfType<SettingsWindow>().Any() &&
+                window.FindControl<TextBlock>("GestureToastMessage")!.Text!.Contains(device.Code, StringComparison.Ordinal),
+                "An incoming pairing shows its identity and comparison code even when Settings is closed.");
             window.ShowSettings("plugin:tailscale:tailscale");
             E2eWorkspace.Until(() => window.OwnedWindows.OfType<SettingsWindow>().Any());
             var settings = window.OwnedWindows.OfType<SettingsWindow>().Single();
@@ -74,9 +78,11 @@ internal static class TailscaleChecks
             var qr = Find<TailscaleQrCodeView>("PairingQr");
             Require(qr.IsVisible && TailscaleLink.TryParse(qr.Text, out var qrHost) && qrHost == pending.HostName, "The host shows a credential-free pairing QR code.");
             var rows = Find<ItemsControl>("PairingPending").ItemsSource;
+            window.Notify(false, "Unrelated notification");
             fake.Push("tailscale", "status", pending);
             E2eWorkspace.Settle(50);
             Require(ReferenceEquals(rows, Find<ItemsControl>("PairingPending").ItemsSource), "Unchanged polling retains approval controls and pointer targets.");
+            Require(window.FindControl<TextBlock>("GestureToastMessage")!.Text == "Unrelated notification", "Repeated status polls do not repeat an approval popup.");
             var approved = pending with { Pending = [], Approved = [device] };
             fake.Replies["decide"] = approved;
             var approve = settings.GetLogicalDescendants().OfType<Button>().Single(button => Equals(button.Content, "Approve"));
@@ -89,12 +95,20 @@ internal static class TailscaleChecks
             settings.GetLogicalDescendants().OfType<Button>().Single(button => Equals(button.Content, "Revoke access")).Command!.Execute(null);
             E2eWorkspace.Until(() => fake.Calls.Any(call => call.Method == "revoke"));
             settings.Close();
-            E2eWorkspace.Until(() => fake.Subscriptions == 0);
+            E2eWorkspace.Until(() => fake.Subscriptions == 1);
+            Require(fake.Subscriptions == 1, "The activation subscription continues to surface approvals with Settings closed.");
+            var another = device with { Id = new string('b', 64), Code = "B2C3D4E5" };
+            fake.Push("tailscale", "status", pending with { Pending = [another], Approved = [] });
+            E2eWorkspace.Until(() => window.FindControl<TextBlock>("GestureToastMessage")!.Text?.Contains(another.Code, StringComparison.Ordinal) == true);
             var picker = new TailscaleConnectView(Path.Combine(directory, "client.json"));
             var pickerWindow = new Window { Content = picker, Width = 460, Height = 540 };
             try
             {
                 pickerWindow.Show();
+                Require(picker.FindControl<Button>("TailscalePair")!.MinHeight == 40 &&
+                    picker.FindControl<Button>("TailscalePair")!.HorizontalContentAlignment == Avalonia.Layout.HorizontalAlignment.Center &&
+                    picker.FindControl<Button>("TailscalePair")!.VerticalContentAlignment == Avalonia.Layout.VerticalAlignment.Center,
+                    "Pairing buttons share the Android connect action size and centered text.");
                 picker.FindControl<TextBox>("TailscaleHost")!.Text = "127.0.0.1";
                 picker.FindControl<Button>("TailscalePair")!.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
                 E2eWorkspace.Until(() => picker.FindControl<TextBlock>("TailscaleProgress")!.Text?.StartsWith("Could not pair", StringComparison.Ordinal) == true);
@@ -123,9 +137,16 @@ internal static class TailscaleChecks
         Require(registry.Request(token, "other-node", "impostor", "other") == "denied", "Remembered pairing is bound to its original node.");
         var restarted = new PairingRegistry(persisted, next => persisted = next);
         Require(restarted.Authenticate(token), "The grant survives host restart.");
+        var secondToken = TailscaleClient.NewPairing("host").Token;
+        restarted.Request(secondToken, "node", "renamed-phone", "me");
+        restarted.Decide(PairingRegistry.Hash(secondToken), true);
+        Require(restarted.Status("ready", "host").Approved.Count == 1 && restarted.Authenticate(token) && restarted.Authenticate(secondToken),
+            "A second approved client secret on the same verified node keeps existing sessions and displays one device.");
+        restarted = new PairingRegistry(persisted, next => persisted = next);
+        Require(restarted.Status("ready", "host").Approved.Count == 1, "Persisted duplicate device grants also display one device after restart.");
         Require(!JsonSerializer.Serialize(persisted).Contains(token, StringComparison.Ordinal), "Host state stores hashes, never client secrets.");
         restarted.Revoke(pending.Id);
-        Require(!restarted.Authenticate(token) && persisted.Count == 0, "Revocation removes the persisted grant.");
+        Require(!restarted.Authenticate(token) && !restarted.Authenticate(secondToken) && persisted.Count == 0, "Revoking the device removes every persisted grant for that node.");
         var expiring = TailscaleClient.NewPairing("host").Token;
         registry.Request(expiring, "node", "phone", "me");
         now = now.AddMinutes(3);
@@ -156,6 +177,12 @@ internal static class TailscaleChecks
         {
             try { await TailscaleClient.BootstrapAsync(host, CancellationToken.None); throw new Exception("Unsafe bootstrap address accepted: " + host); }
             catch (IOException) { }
+        }
+        try { await TailscaleClient.BootstrapAsync("sharprail-pairing-test.invalid", CancellationToken.None); throw new Exception("Unknown bootstrap hostname accepted."); }
+        catch (IOException error)
+        {
+            Require(error.InnerException is SocketException && error.Message.Contains("Turn on Tailscale", StringComparison.Ordinal) &&
+                error.Message.Contains("host name and MagicDNS", StringComparison.Ordinal), "DNS failures explain connection checks without asserting Tailscale is definitely off.");
         }
     }
 

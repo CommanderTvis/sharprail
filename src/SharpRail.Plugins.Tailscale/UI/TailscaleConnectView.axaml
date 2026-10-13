@@ -1,5 +1,13 @@
 <UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:kit="using:SharpRail.Plugins.UI.Kit" xmlns:local="using:SharpRail.Plugins.Tailscale" x:Class="SharpRail.Plugins.Tailscale.UI.TailscaleConnectView">
+  <UserControl.Styles>
+    <Style Selector="Button">
+      <Setter Property="MinHeight" Value="40" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+      <Setter Property="Padding" Value="12,8" />
+    </Style>
+  </UserControl.Styles>
   <StackPanel Spacing="12">
     <TextBlock Text="Connect over Tailscale" FontSize="20" />
     <TextBlock Text="Enable the Tailscale plugin on the host. Both devices must be connected to the same Tailscale network." TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />

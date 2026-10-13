@@ -26,7 +26,12 @@ public sealed class TailscaleClient : IDisposable
         if (!Uri.TryCreate("http://" + host.Trim() + ":" + TailscaleContract.DiscoveryPort, UriKind.Absolute, out var uri) ||
             uri.Host.Length == 0 || uri.UserInfo.Length > 0 || uri.AbsolutePath != "/" || uri.Query.Length > 0 || uri.Fragment.Length > 0)
             throw new IOException("Enter a Tailscale device name without a port or path.");
-        var addresses = await Dns.GetHostAddressesAsync(uri.Host, cancellationToken);
+        IPAddress[] addresses;
+        try { addresses = await Dns.GetHostAddressesAsync(uri.Host, cancellationToken); }
+        catch (System.Net.Sockets.SocketException error)
+        {
+            throw new IOException("Could not resolve the Tailscale host name. Turn on Tailscale on this device, check that both devices use the same Tailscale network, and check the host name and MagicDNS.", error);
+        }
         var ip = addresses.FirstOrDefault(address => address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork && TailscaleCli.IsTailnetAddress(address))
             ?? throw new IOException("This name does not resolve to a Tailscale address. Check Tailscale and MagicDNS.");
         return new UriBuilder("http", ip.ToString(), TailscaleContract.DiscoveryPort).Uri;

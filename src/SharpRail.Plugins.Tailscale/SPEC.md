@@ -24,7 +24,10 @@ Settings › Tailscale. Disabling the plugin stops bootstrap and invalidates its
 The desktop picker discovers online peers through `tailscale status --json`, probes at most 256 of them
 with eight concurrent requests, and lists only SharpRail hosts. Both clients also accept a MagicDNS host
 name. Android uses that name because another app cannot assume access to Tailscale's private peer list.
-It requires Tailscale routing and MagicDNS to be enabled for SharpRail. No tailnet API key, central registry,
+It requires Tailscale routing and MagicDNS to be enabled for SharpRail. Name-resolution failures explain
+how to turn on Tailscale, check the shared network, hostname and MagicDNS rather than showing raw socket
+errors or claiming a particular cause. Pairing and settings buttons use consistent 40-pixel minimum
+heights with horizontally and vertically centered text. No tailnet API key, central registry,
 Tailscale Serve configuration, DNS changes or installation of another VPN is needed.
 
 ## Pairing and authentication
@@ -36,11 +39,15 @@ HTTP client disables proxies and redirects. Tailscale supplies transport encrypt
 
 A new secret creates a request bound to the verified Tailscale node, with its device name and user identity.
 The host shows that identity and an eight-digit hexadecimal fingerprint; the client shows the same code.
-The user approves or declines it in Settings › Tailscale. Requests expire after two minutes, declined
+An activation-lifetime subscription shows a popup with the device identity, comparison code and
+instructions to open Settings › Tailscale even while Settings is closed. Repeated polls do not repeat
+the popup for the same pending request. The user approves or declines it in Settings › Tailscale. Requests expire after two minutes, declined
 requests cannot be recreated by polling, and pending requests and approved grants are bounded to 32 and
 128 respectively. Pairing never releases the host's master session token.
 
-Approval persists the hash of the client's secret and its node identity in plugin state. The client stores
+Approval persists the hash of the client's secret and its node identity in plugin state. Remembered
+devices are grouped by verified node identity, including existing persisted grants. Multiple approved
+client secrets on one node remain valid; revoking its single device row revokes every grant for that node. The client stores
 its own secret and host name in client-local `tailscale-client.json`, with user-only Unix permissions.
 An approved bootstrap returns the actual WebSocket RPC address and port; the client authenticates using its own
 secret. A remembered bootstrap secret cannot be used by another Tailscale node. The listener accepts

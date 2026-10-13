@@ -9,7 +9,7 @@ internal sealed record PendingDevice(ApprovedDevice Device, DateTimeOffset Expir
 internal sealed class PairingRegistry(IReadOnlyList<ApprovedDevice> restored, Action<IReadOnlyList<ApprovedDevice>> save, Func<DateTimeOffset>? clock = null)
 {
     private readonly object gate = new();
-    private readonly Dictionary<string, ApprovedDevice> approved = restored.ToDictionary(device => device.Hash);
+    private readonly Dictionary<string, ApprovedDevice> approved = restored.GroupBy(device => device.Hash).ToDictionary(group => group.Key, group => group.First());
     private readonly Dictionary<string, PendingDevice> pending = [];
     private DateTimeOffset Now => clock?.Invoke() ?? DateTimeOffset.UtcNow;
 
@@ -60,8 +60,10 @@ internal sealed class PairingRegistry(IReadOnlyList<ApprovedDevice> restored, Ac
     {
         lock (gate)
         {
-            save(approved.Values.Where(device => device.Hash != id).ToArray());
-            approved.Remove(id);
+            if (!approved.TryGetValue(id, out var revoked)) return;
+            var next = approved.Values.Where(device => device.NodeId != revoked.NodeId).ToArray();
+            save(next);
+            foreach (var key in approved.Values.Where(device => device.NodeId == revoked.NodeId).Select(device => device.Hash).ToArray()) approved.Remove(key);
         }
     }
 
@@ -70,7 +72,7 @@ internal sealed class PairingRegistry(IReadOnlyList<ApprovedDevice> restored, Ac
         lock (gate)
         {
             Expire();
-            return new(detail, hostName, pending.Values.Where(entry => !entry.Rejected).Select(entry => Display(entry.Device)).ToArray(), approved.Values.Select(Display).ToArray());
+            return new(detail, hostName, pending.Values.Where(entry => !entry.Rejected).Select(entry => Display(entry.Device)).ToArray(), approved.Values.GroupBy(device => device.NodeId).Select(group => Display(group.First())).ToArray());
         }
     }
 
