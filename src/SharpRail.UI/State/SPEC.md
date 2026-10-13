@@ -10,6 +10,11 @@ app preferences and one entry per window. `SharedState` is the app's one subscri
 state, read by every window. Neither owns rendering, and neither is a second authority over the other's
 values: host-owned values live in the host and are mirrored here only as the latest snapshot.
 
+Saved project and Git-selection paths belong to the host. Profile validation
+preserves absolute POSIX, Windows drive and UNC paths independently of the client
+OS. Fresh Windows profiles prefer Skia; terminal factories also select Skia for
+profiles carrying a Metal preference from another platform.
+
 ## Boundary
 
 - Owns: `Profile`, `Preferences`, `WindowProfile`, `GitSelection` and their normalization; atomic profile

@@ -61,7 +61,7 @@ public sealed partial class ProjectServices
                 {
                     if (Hidden(Path.GetFileName(entry))) continue;
                     if (Directory.Exists(entry)) pending.Push(entry);
-                    else found.Add(Path.GetRelativePath(currentRoot, entry));
+                    else found.Add(Path.GetRelativePath(currentRoot, entry).Replace(Path.DirectorySeparatorChar, '/'));
                 }
             }
             return found.Order(StringComparer.Ordinal);

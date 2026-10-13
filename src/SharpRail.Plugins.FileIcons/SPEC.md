@@ -16,6 +16,8 @@ them into `plugins/file-icons/assets/file-icons` for host asset serving and publ
 Run `.tools/dotnet/dotnet run src/SharpRail.Plugins.FileIcons/scripts/generate-file-icons.cs -- --check`
 to verify table and assets. Default mode regenerates both; --assets-only refuses a stale table.
 The build script serializes generation and caches its source fingerprint.
+Windows invokes the PowerShell wrapper over the same C# generator, pinned archive
+and committed table. No Unix shell is required for asset generation there.
 
 ## Rendering and boundary
 

@@ -15,6 +15,11 @@ Upstream: packages/server/src/host/SPEC.md (revision: [UPSTREAM.md](../../UPSTRE
 
 ## Responsibility
 
+Core runs on Windows x64 as well as macOS and Linux. Windows uses ConPTY through
+the host terminal service and the system Recycle Bin for file removal. Its
+workspace paths follow host filesystem rules; relative resource paths remain
+portable across client platforms.
+
 Custom highlighting is persisted host state. The `custom-highlighting` setting accepts
 an empty value or a JSON array of unique scopes, names, filename patterns and grammar
 JSON, bounded to 2 Mi characters in total, 64 entries, 512 Ki characters per grammar,

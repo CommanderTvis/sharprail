@@ -61,6 +61,7 @@ public sealed partial class ProjectServices
 
     private static void Trash(string path)
     {
+        if (OperatingSystem.IsWindows()) { WindowsTrash.Move(path); return; }
         if (OperatingSystem.IsMacOS()) { MacTrash.Move(path); return; }
         if (!OperatingSystem.IsLinux()) throw new PlatformNotSupportedException("Moving files to the trash is not supported on this platform.");
         using var process = Process.Start(new ProcessStartInfo("gio") { ArgumentList = { "trash", "--", path }, UseShellExecute = false, RedirectStandardError = true })

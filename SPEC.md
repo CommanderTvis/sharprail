@@ -53,7 +53,10 @@ must not prevent opening the workspace.
 
 ## Terminals
 
-Settings → Terminal chooses Metal texture (default) or Skia (fallback) rendering. All
+On macOS, Settings → Terminal chooses Metal texture (default) or Skia (fallback) rendering.
+The Windows 10/11 x64 desktop client uses Skia exclusively, with either an embedded
+host or a remote host. Standalone Windows hosts use the same service interfaces.
+Windows shells use ConPTY and a host-owned job object; see the host terminal contract. All
 integrations live in the reusable `Ghostty.Avalonia` project, with no SharpRail
 dependency. Changing the renderer rebuilds attached views on their existing host
 sessions and leaves displaced clients waiting for explicit Take it back.
@@ -72,7 +75,7 @@ Fallback does not change the saved renderer preference.
 Skia tabs use pinned libghostty-vt for emulation and input encoding and draw its
 cells, cursor and selection through Avalonia's Skia compositor. They attach to
 the host terminal service in-process; Avalonia handles input and clipboard.
-The native build currently supports macOS only. Image protocols, hyperlink
+The desktop native build supports macOS and Windows x64. Image protocols, hyperlink
 activation, cross-cell ligatures and terminal accessibility text are not provided
 by the Skia path.
 

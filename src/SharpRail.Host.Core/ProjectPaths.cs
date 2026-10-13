@@ -29,7 +29,7 @@ internal static class ProjectPaths
         try
         {
             var toplevel = (await GitRepository.RunAsync(directory, cancellationToken, "rev-parse", "--show-toplevel")).TrimEnd('\r', '\n');
-            return toplevel.Length > 0 ? toplevel : null;
+            return toplevel.Length > 0 ? Path.GetFullPath(toplevel) : null;
         }
         catch (IOException) { return null; }
     }

@@ -7,6 +7,11 @@ Upstream: apps/web/src/shell/locationBar/SPEC.md (revision: [UPSTREAM.md](../../
 
 ## Responsibility
 
+The Windows x64 desktop client supports embedded hosting and remote connections.
+Its native editor uses Ctrl-based editing shortcuts and its terminals always use
+Skia. Metal, the macOS notification bridge and native Mermaid build targets are
+not loaded or built on Windows; the existing unavailable-Mermaid view still applies.
+
 The Avalonia desktop client over the host abstractions. It composes one app-owned `Workbench`, opens
 every `WorkbenchWindow` from it, and renders layout-agnostic panels (Projects, Specs, Files, Changes,
 Review, documents, diffs, terminals) inside each window's docking frame. The same UI serves an in-process

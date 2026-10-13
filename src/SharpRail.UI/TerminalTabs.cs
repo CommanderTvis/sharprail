@@ -66,8 +66,7 @@ public sealed partial class WorkbenchWindow
             OpenFileLink = async link =>
             {
                 if (workspaceRoot != workspace || !WorkspaceMounted) return;
-                var relative = Path.GetRelativePath(workspace, link.Path);
-                var path = relative == ".." || relative.StartsWith("../", StringComparison.Ordinal) || Path.IsPathFullyQualified(relative) ? link.Path : relative;
+                var path = HostPaths.Relative(workspace, link.Path);
                 await OpenDocumentAsync(path, true, line: link.Line, raw: true, column: link.Column);
             }
         };

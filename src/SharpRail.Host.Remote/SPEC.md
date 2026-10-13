@@ -12,6 +12,10 @@ for every connection. It is both a standalone executable (`Program.cs`, a
 remote host on another machine) and an embeddable library (`RemoteServer`),
 used by remote deployments, the app's optional runtime listener and transport integration checks.
 
+Windows hosts compose the same terminal service and catalog as embedded Windows
+hosting, including recording persistence, MCP identities and plugin terminal seams.
+The platform choice belongs to Core's process backend, not to the wire protocol.
+
 ## Boundary
 
 - Owns `RemoteServer.cs` (server composition and authentication), `McpRoute.cs` (terminal MCP), the RPC

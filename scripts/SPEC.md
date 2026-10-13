@@ -42,6 +42,16 @@ versions, and editing sources are forbidden.
 
 ## Invariants
 
+Windows x64 uses `bootstrap.ps1` for the checkout-local SDK and
+`publish-windows.ps1` for self-contained ReadyToRun client/host output and
+`artifacts/SharpRail-win-x64.zip`. Published checks are staged alongside the
+unpacked package and excluded from the distribution zip. Publishing refuses to
+replace executables running from its output directory. `windows-native.ps1`
+provides checksummed downloads and exclusive file locks for the Windows native
+builds; both libraries retain their own build entry points and fingerprints.
+The Windows CI job runs the packaged `--windows` acceptance mode. Native build
+success on another platform does not count as Windows runtime verification.
+
 Native dependencies are pinned by exact revision or version and verified (Ghostty's
 commit hash, Merman's archive SHA-256) before use; an unexpected revision or
 checksum fails rather than builds. Downloads land in `.partial` locations and are
@@ -52,7 +62,7 @@ Native builds are idempotent and cheap on the no-op path: a fingerprint of the
 architecture, pinned version and the inputs (including the script itself) skips
 the work when nothing changed. Because MSBuild may invoke them from several
 referencing projects at once, each takes a directory lock under `.tools` released
-on exit or signal. They are no-ops off macOS, and the Ghostty build refuses a
+on exit or signal. The macOS scripts are no-ops off macOS, and the Ghostty build refuses a
 runtime identifier for a different architecture than the host. The Android builds run on macOS or Linux
 and accept only `arm64-v8a` and `x86_64`.
 

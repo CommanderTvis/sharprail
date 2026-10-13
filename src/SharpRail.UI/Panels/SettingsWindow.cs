@@ -722,8 +722,8 @@ public sealed partial class SettingsWindow : Window
     private Control TerminalSettings()
     {
         var panel = Page("TerminalPage");
-        // Android terminals are always drawn by Skia, so there is nothing to choose.
-        PageControl<StackPanel>(panel, "TerminalRendererSection").IsVisible = !OperatingSystem.IsAndroid() && !OperatingSystem.IsBrowser();
+        // Metal is available only on macOS.
+        PageControl<StackPanel>(panel, "TerminalRendererSection").IsVisible = OperatingSystem.IsMacOS();
         var choices = PageControl<StackPanel>(panel, "TerminalRendererChoices");
         foreach (var (renderer, label, description) in new[]
         {

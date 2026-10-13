@@ -16,6 +16,7 @@ internal static class Trash
         var home = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
         string directory, infoDirectory = "";
         if (Environment.GetEnvironmentVariable(OverrideVariable) is { Length: > 0 } custom) directory = custom;
+        else if (OperatingSystem.IsWindows()) { WindowsTrash.Move(path); return path; }
         else if (OperatingSystem.IsMacOS()) directory = Path.Combine(home, ".Trash");
         else if (OperatingSystem.IsLinux())
         {

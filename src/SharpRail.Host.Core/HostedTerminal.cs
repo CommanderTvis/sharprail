@@ -20,9 +20,9 @@ internal sealed class HostedTerminal
     private int? exitCode;
     private (int Columns, int Rows) grid;
 
-    internal PtySession Process { get; }
+    internal ITerminalProcess Process { get; }
 
-    internal HostedTerminal(PtySession process, int columns, int rows, byte[]? restored = null, int replayBytes = TerminalRecorder.SnapshotBytes)
+    internal HostedTerminal(ITerminalProcess process, int columns, int rows, byte[]? restored = null, int replayBytes = TerminalRecorder.SnapshotBytes)
     {
         Process = process;
         recorder = new(replayBytes);

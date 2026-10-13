@@ -11,9 +11,11 @@ public sealed partial class ProjectServices
     {
         var full = Path.GetFullPath(Path.Combine(currentRoot, path));
         var relative = Path.GetRelativePath(currentRoot, full);
-        if (relative == ".." || relative.StartsWith("../", StringComparison.Ordinal) || Path.IsPathRooted(relative))
+        if (relative == ".." || relative.StartsWith(".." + Path.DirectorySeparatorChar, StringComparison.Ordinal) || Path.IsPathRooted(relative))
             throw new UnauthorizedAccessException("The path is outside this workspace.");
         var segments = relative.Split(Path.DirectorySeparatorChar);
+        if (OperatingSystem.IsWindows() && segments.Any(segment => segment.Contains(':') || segment.EndsWith(' ') || segment is not ("." or "..") && segment.EndsWith('.')))
+            throw new UnauthorizedAccessException("Alternate streams and ambiguous Windows paths are not supported.");
         if (segments.Any(segment => segment.Equals(".git", StringComparison.OrdinalIgnoreCase)))
             throw new UnauthorizedAccessException(write ? "Git's own directory cannot be changed." : "Git's own directory cannot be read.");
         var check = currentRoot;

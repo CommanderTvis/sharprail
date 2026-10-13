@@ -142,7 +142,7 @@ public sealed partial class ProjectServices
     {
         if (string.IsNullOrWhiteSpace(requested)) throw new ArgumentException("An existing worktree path is required.");
         var wanted = Path.GetFullPath(requested);
-        try { wanted = (await GitRepository.RunAsync(wanted, cancellationToken, "rev-parse", "--show-toplevel")).TrimEnd('\r', '\n'); }
+        try { wanted = Path.GetFullPath((await GitRepository.RunAsync(wanted, cancellationToken, "rev-parse", "--show-toplevel")).TrimEnd('\r', '\n')); }
         catch (Exception error) when (error is IOException or System.ComponentModel.Win32Exception) { }
         if (wanted == project) return (await ListWorkspacesAsync(project, cancellationToken)).Workspaces.First(workspace => workspace.Kind == WorkspaceKinds.Default);
         using var gate = await registry.LockWorkspacesAsync(cancellationToken);

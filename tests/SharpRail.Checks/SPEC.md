@@ -13,6 +13,14 @@ contract, not that list.
 
 ## Execution model
 
+`--windows` checks portable shell quoting, cross-platform profile paths, workspace
+containment and local/remote Git worktrees on every desktop test host. On Windows
+it additionally exercises real ConPTY input, Unicode, geometry, replay and
+reconnect, watching, busy child processes, job cleanup, exit codes, file saves,
+Recycle Bin operations, native editor Ctrl shortcuts and Skia rendering. Those
+runtime cases must report a skip on other operating systems. The host and UI
+parts join the main gate as `windows-host` and `windows-ui`.
+
 `--drawn-rendering` covers viewport-bounded Markdown preview/diff controls, offscreen
 selection and source spans, Find and anchors, plus virtualized tree navigation,
 recycled row actions, bounded icon construction, provider invalidation and automation expansion.

@@ -47,3 +47,20 @@ jobs:
       - env:
           SHARPRAIL_CHECKS_JOB_SHARD: ${{ matrix.shard }}
         run: dotnet run --project tests/SharpRail.Checks -c Release ${{ matrix.mode != 'full' && format('-- --{0}', matrix.mode) || '' }}
+
+  windows:
+    runs-on: windows-2025
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./scripts/bootstrap.ps1
+      - run: ./scripts/publish-windows.ps1
+      - run: ./.tools/dotnet/dotnet.exe format SharpRail.slnx --verify-no-changes --no-restore
+      - env:
+          SHARPRAIL_REQUIRE_R2R: '1'
+        run: ./artifacts/windows/checks/SharpRail.Checks.exe --windows
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SharpRail-win-x64
+          path: artifacts/SharpRail-win-x64.zip
+          if-no-files-found: error
