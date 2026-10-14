@@ -508,8 +508,6 @@ disappearance shows.
 - In a rendered Markdown diff, a `<details>` whose body Markdown splits across blocks is not regrouped
   into one disclosure, and a list is compared item by item only when both documents have the same number
   of top-level lists (otherwise an item counts as changed when it carries a mark).
-- An explicit notice on a diff tab whose two sides became identical after its file left the change set;
-  the tab keeps its last content.
 - Live refresh for remote hosts.
 
 Settings › Host offers a dedicated Tailscale client instance; plugin-owned Settings › Tailscale shows

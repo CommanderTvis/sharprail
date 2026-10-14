@@ -222,6 +222,14 @@ internal static class ChangeActionChecks
         Require(FileRevert(app) is { IsVisible: true }, "A diff that has changes again offers Revert file again.");
         Console.WriteLine("PASS Revert file restores the original side, the emptied tab says so, and Undo brings the edit back");
 
+        // An out-of-band commit takes the file out of the change set; the open tab announces identical sides.
+        IsolatedGit.Run(app.Root, "commit", "-am", "out of band");
+        Until(() => Pane(app)!.GetLogicalDescendants().OfType<TextBlock>().Any(text => text is { Name: "DiffEmpty", Text: "No differences between the two sides." }) &&
+            FileRevert(app) is { IsVisible: false } && DiffTabs(app).Any(tab => tab.Path == "blocks.txt"));
+        IsolatedGit.Run(app.Root, "reset", "HEAD~1");
+        UntilDiff(app, text => text.Contains("moved under the view", StringComparison.Ordinal));
+        Console.WriteLine("PASS a diff whose file left the change set after an out-of-band commit says its sides are identical");
+
         OpenDiff(app, "new.txt");
         Until(() => FileRevert(app) is not null);
         Require(BlockReverts(app).Length == 0, "A file that is all added has no block to revert, only the file.");
