@@ -65,8 +65,8 @@ their MCP identities. The host waits for shell shutdown before completing the pr
   did not create; the remote reply marks the attachment detached in its first message.
 - A yielding attach that also asks to watch (`TerminalAttachRequest.Watch`) becomes a watcher where the plain
   yielding one returns detached (`ITerminalSession.Watching`). Any number of clients watch one session. A
-  watcher receives the same fresh snapshot as any new view and then every chunk the holder receives; its
-  input, resizes and kill are dropped without detaching it, it never completes `Detached`, and it stays a
+  watcher receives the same fresh snapshot as any new view, including recorded live alternate-screen
+  contents, and then every chunk the holder receives; its input, resizes and kill are dropped without detaching it, it never completes `Detached`, and it stays a
   watcher when the holder leaves or changes. The shell's exit reaches every watcher, and watching an exited
   session reports the exit after its final screen. `Grid` is the holder's grid as of the last chunk read; a
   resize with no output reaches a watcher as an empty chunk, a redraw nudge does not. A resume with `Watch`
@@ -154,10 +154,13 @@ including draining output while closing the pseudoconsole.
   screen (tracked as a stream, since a switch can split across reads), never a mode sequence itself,
   preceded by a reset and the last observed private modes other than mouse tracking. Resize events are
   never replayed. While the shell is live and a full-screen program is still on the alternate screen, the
-  snapshot is followed by that screen's mode and the program's mouse and alternate-scroll modes (1000,
-  1002, 1003, 1006, 1007), so a reattached view keeps wheel and pointer input. They never enter the
+  snapshot is followed by that screen's mode, its separately retained live output, and the program's
+  mouse and alternate-scroll modes (1000, 1002, 1003, 1006, 1007), so a reattached view keeps wheel and pointer input. They never enter the
   snapshot itself, and leaving the alternate screen forgets them: a later view must not inherit an exited
-  program's mouse tracking.
+  program's mouse tracking. Live alternate output obeys the same configured replay byte bound, drops
+  historical queries, and is discarded on leaving that screen; it is never persisted or revived into a new
+  shell. This is bounded byte replay, not an unbounded VT screen model: very long incremental sessions
+  can outlive retained history. Watching never triggers a resize/redraw or input in the holder.
 - Saved-screen snapshots omit cursor/status, device, keyboard, color, mode, geometry and capability
   queries. Repainting historical output must not send their replies into a new shell or corrupt its
   editable agent-resume command. The same filtering covers old recordings loaded from disk and both

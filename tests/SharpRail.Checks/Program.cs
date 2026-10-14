@@ -209,6 +209,11 @@ internal static class Program
             TerminalReplayChecks.Run();
             return;
         }
+        if (args.SequenceEqual(["--terminal-watch-replay"]))
+        {
+            TerminalHostChecks.Run(root, watchReplayOnly: true).GetAwaiter().GetResult();
+            return;
+        }
         if (args.SequenceEqual(["--terminals"]))
         {
             TerminalHostChecks.Run(root).GetAwaiter().GetResult();

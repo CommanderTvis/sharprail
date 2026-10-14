@@ -19,7 +19,7 @@ namespace SharpRail.Checks;
 // Host PTY sessions through the direct adapter and a real authenticated WebSocket RPC host.
 internal static partial class TerminalHostChecks
 {
-    public static async Task Run(string root)
+    public static async Task Run(string root, bool watchReplayOnly = false)
     {
         if (!OperatingSystem.IsMacOS() && !OperatingSystem.IsLinux())
         {
@@ -36,7 +36,7 @@ internal static partial class TerminalHostChecks
         Environment.SetEnvironmentVariable("ZDOTDIR", startup);
         // Without LOGNAME a login shell would ask getlogin(), which can read a stale utmpx record.
         Environment.SetEnvironmentVariable("LOGNAME", null);
-        try { await RunIsolated(root, workspace); }
+        try { await RunIsolated(root, workspace, watchReplayOnly); }
         finally
         {
             Environment.SetEnvironmentVariable("ZDOTDIR", previous);
@@ -44,8 +44,23 @@ internal static partial class TerminalHostChecks
         }
     }
 
-    private static async Task RunIsolated(string root, string workspace)
+    private static async Task RunIsolated(string root, string workspace, bool watchReplayOnly)
     {
+        if (watchReplayOnly)
+        {
+            await using var local = new PtyTerminalService();
+            await LiveInputModes(new LocalTerminalAdapter(local), workspace, "local");
+            await using var host = RemoteServer.Create(root, IPAddress.Loopback, 0, "watch-replay");
+            await host.StartAsync();
+            try
+            {
+                var endpoint = new Uri(host.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single());
+                using var remote = new RemoteTerminalAdapter(endpoint, "watch-replay");
+                await LiveInputModes(remote, workspace, "remote");
+            }
+            finally { await host.StopAsync(); }
+            return;
+        }
         TerminalReplayChecks.Run();
         await using (var local = new PtyTerminalService())
         {
@@ -576,11 +591,24 @@ internal static partial class TerminalHostChecks
         var id = mode + "-modes-" + Guid.NewGuid().ToString("N");
         var first = await terminals.AttachAsync(new(id, workspace, "window-a", 100, 30));
         var a = new Screen(first);
-        await a.Run("printf '\\033[?1049h\\033[?1000;1006h\\033[?1007hFULL_%s\\n' SCREEN; read -r _; printf '\\033[?1049lBACK_%s\\n' NORMAL");
+        await a.Run("printf '\\033[?1049h\\033[?1000;1006h\\033[?1007hFULL_%s\\n' SCREEN; read -r _; printf 'UPDATE_%s\\n' SCREEN; read -r _; printf '\\033[?1049lBACK_%s\\n' NORMAL");
         await a.WaitFor("FULL_SCREEN", mode);
+        await using var watcher = await terminals.AttachAsync(new(id, workspace, "watcher", 61, 17) { Yield = true, Watch = true });
+        Require(watcher.Watching && watcher.Grid == (100, 30) && !first.Detached.IsCompleted &&
+            Encoding.UTF8.GetString(watcher.Replay.Span).Contains("FULL_SCREEN", StringComparison.Ordinal),
+            $"{mode}: a read-only alternate-screen attach must show existing content without resizing or displacing its holder.");
+        var offset = watcher.Position;
+        await watcher.DisposeAsync();
+        await first.WriteAsync(Encoding.UTF8.GetBytes("\r"));
+        await a.WaitFor("UPDATE_SCREEN", mode);
+        await using var resumedWatcher = await terminals.AttachAsync(new(id, workspace, "watcher", 61, 17) { Yield = true, Watch = true, Offset = offset });
+        Require(resumedWatcher.Watching && !first.Detached.IsCompleted &&
+            Encoding.UTF8.GetString(resumedWatcher.Replay.Span).Contains("UPDATE_SCREEN", StringComparison.Ordinal) &&
+            !Encoding.UTF8.GetString(resumedWatcher.Replay.Span).Contains("FULL_SCREEN", StringComparison.Ordinal),
+            $"{mode}: an alternate watcher reconnect must receive only missed output and keep its read-only role.");
         var second = await terminals.AttachAsync(new(id, workspace, "window-b", 100, 30));
         var replay = Encoding.UTF8.GetString(second.Replay.Span);
-        Require(replay.EndsWith(modes, StringComparison.Ordinal), $"{mode}: a live reattach lost the full-screen input modes. Replay: {replay}");
+        Require(replay.Contains("FULL_SCREEN", StringComparison.Ordinal) && replay.Contains("\x1b[?1049h", StringComparison.Ordinal) && replay.EndsWith(modes[8..], StringComparison.Ordinal), $"{mode}: a live reattach lost the full-screen input modes. Replay: {replay}");
         var b = new Screen(second);
         await b.Run("");
         await b.WaitFor("BACK_NORMAL", mode);

@@ -106,7 +106,7 @@ internal sealed class HostedTerminal
         }
     }
 
-    private byte[] Fresh() => exitCode is null ? [.. recorder.Snapshot(), .. recorder.LiveModes()] : recorder.Snapshot();
+    private byte[] Fresh() => exitCode is null ? [.. recorder.Snapshot(), .. recorder.LiveScreen()] : recorder.Snapshot();
 
     // A view that already shows older output starts over: a full terminal reset, then the snapshot.
     private byte[] Reset() => [.. "\x1bc"u8, .. Fresh()];

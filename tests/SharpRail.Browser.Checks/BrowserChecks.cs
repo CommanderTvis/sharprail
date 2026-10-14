@@ -55,6 +55,69 @@ internal static partial class BrowserChecks
     }
 
     [JSExport]
+    public static async Task<string> CheckWatchedReplay()
+    {
+        var endpoint = BrowserSession.Current!.Endpoint!;
+        using var adapter = new SharpRail.Host.Client.RemoteTerminalAdapter(endpoint.Uri!, endpoint.Token);
+        var root = Workbench.ActiveWindow!.ProjectRoot;
+        var id = "browser-watched-replay-" + Guid.NewGuid().ToString("N");
+        await using var holder = await adapter.AttachAsync(new(id, root, "acceptance-holder", 100, 30));
+        using var reading = new CancellationTokenSource();
+        var recorded = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var output = Task.Run(async () =>
+        {
+            var text = new System.Text.StringBuilder();
+            try
+            {
+                await foreach (var bytes in holder.ReadAsync(reading.Token))
+                {
+                    text.Append(System.Text.Encoding.UTF8.GetString(bytes.Span));
+                    if (text.ToString().Contains("RECORDED_SCREEN", StringComparison.Ordinal)) recorded.TrySetResult();
+                }
+            }
+            catch (OperationCanceledException) when (reading.IsCancellationRequested) { }
+        });
+        BrowserTerminal? watching = null;
+        Window? window = null;
+        try
+        {
+            await holder.WriteAsync(System.Text.Encoding.UTF8.GetBytes("printf '\\033[?1049h\\033[2J\\033[HRECORDED_%s\\033[3;1HWorking 4' SCREEN; read -r _; printf '\\033[3;9H5UPDATE_%s' SCREEN; read -r _\r"));
+            await recorded.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                watching = new BrowserTerminal(new(root, id, "", "acceptance-watcher") { Yield = true, Watch = true }, adapter);
+                window = new Window { Width = 600, Height = 360, Content = watching.View };
+                window.Show(Workbench.ActiveWindow!);
+            });
+            await watching!.Started.WaitAsync(TimeSpan.FromSeconds(35));
+            await WaitFor("RECORDED_SCREEN");
+            if (!watching.Watching || holder.Detached.IsCompleted || holder.Grid != (100, 30))
+                throw new InvalidOperationException("Browser replay displaced or resized its holder.");
+            await holder.WriteAsync("\r"u8.ToArray());
+            await WaitFor("Working 5UPDATE_SCREEN");
+            return await Dispatcher.UIThread.InvokeAsync(() => JsonSerializer.Serialize(new { watching.Watching, Text = watching.ReadScreen(), Renderer = watching.GetVisualDescendants().Any(control => control.Name == "TerminalSkiaView") ? "skia" : "restty", Columns = holder.Grid.Columns, Rows = holder.Grid.Rows }));
+        }
+        finally
+        {
+            await Dispatcher.UIThread.InvokeAsync(() => { window?.Close(); watching?.Dispose(); });
+            reading.Cancel();
+            await output;
+            await adapter.CloseAsync(id);
+        }
+
+        async Task WaitFor(string marker)
+        {
+            var deadline = DateTime.UtcNow.AddSeconds(10);
+            while (DateTime.UtcNow < deadline)
+            {
+                if (await Dispatcher.UIThread.InvokeAsync(() => watching!.ReadScreen().Contains(marker, StringComparison.Ordinal))) return;
+                await Task.Delay(50);
+            }
+            throw new InvalidOperationException("Browser watcher did not show " + marker);
+        }
+    }
+
+    [JSExport]
     public static async Task SetTabMode(bool vertical, bool inProjects)
     {
         await Workbench.State.ChangeAsync(HostStateChange.Setting("vertical-tabs", vertical.ToString()),

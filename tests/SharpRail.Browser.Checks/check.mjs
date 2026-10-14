@@ -210,6 +210,12 @@ try {
   await page.keyboard.press('Escape');
   console.log('PASS browser external assembly loading, plugin UI activation and host settings persistence');
 
+  const watched = JSON.parse(await page.evaluate(() => check.CheckWatchedReplay()));
+  assert.equal(watched.Watching, true);
+  assert.equal(watched.Renderer, "skia");
+  assert.equal(watched.Columns, 100); assert.equal(watched.Rows, 30);
+  assert.match(watched.Text, /RECORDED_SCREEN/); assert.match(watched.Text, /Working 5UPDATE_SCREEN/);
+  console.log('PASS browser read-only alternate-screen replay before live cursor updates, without takeover or resize');
   assert.ok(await page.evaluate(() => JSON.parse(localStorage.getItem('sharprail:profile')).Windows.length > 0));
   assert.deepEqual(errors, []);
   console.log('PASS browser profile persistence');

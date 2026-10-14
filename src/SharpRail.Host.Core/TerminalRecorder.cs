@@ -18,6 +18,8 @@ internal sealed class TerminalRecorder(int snapshotBytes = TerminalRecorder.Snap
     private readonly SortedDictionary<int, bool> modes = [];
     private byte[] recorded = [];
     private int recordedLength;
+    private byte[] alternateOutput = [];
+    private int alternateLength;
     private byte[] carry = [];
     private int? alternate;
     private readonly SortedSet<int> input = [];
@@ -72,17 +74,22 @@ internal sealed class TerminalRecorder(int snapshotBytes = TerminalRecorder.Snap
         var reset = "\x1b[0m"u8;
         if (snapshot.StartsWith(reset)) snapshot = snapshot[reset.Length..];
         Consume(snapshot.ToArray());
+        alternate = null; alternateLength = 0; input.Clear();
     }
 
+    // Live alternate-screen output is separate from the durable main-screen recording. A watcher cannot
+    // ask the foreground program to redraw, so it must receive the existing alternate contents too.
     // The alternate screen and mouse/alternate-scroll modes of a full-screen program that is still on it.
     // A fresh view of a live shell needs them after the snapshot; they never enter the snapshot itself, so
     // an exited program's mouse tracking cannot outlive it.
-    internal byte[] LiveModes()
+    internal byte[] LiveScreen()
     {
         if (alternate is not { } screen) return [];
-        var modes = new StringBuilder($"\x1b[?{screen}h");
+        var modes = new StringBuilder();
         foreach (var mode in input) modes.Append($"\x1b[?{mode}h");
-        return Encoding.ASCII.GetBytes(modes.ToString());
+        return [.. Encoding.ASCII.GetBytes($"\x1b[?{screen}h"),
+            .. TerminalReplay.WithoutQueries(alternateOutput.AsSpan(0, alternateLength)),
+            .. Encoding.ASCII.GetBytes(modes.ToString())];
     }
 
     private void Retain(ReadOnlySpan<byte> chunk)
@@ -105,7 +112,8 @@ internal sealed class TerminalRecorder(int snapshotBytes = TerminalRecorder.Snap
             var end = index + 3;
             while (end < text.Length && (char.IsAsciiDigit((char)text[end]) || text[end] == ';')) end++;
             if (end >= text.Length || (text[end] != 'h' && text[end] != 'l')) { index += 3; continue; }
-            if (alternate is null) Append(text.AsSpan(cursor, index - cursor));
+            AppendScreen(text.AsSpan(cursor, index - cursor));
+            var previousAlternate = alternate;
             var enabled = text[end] == 'h';
             foreach (var part in Encoding.ASCII.GetString(text, index + 3, end - index - 3).Split(';'))
             {
@@ -113,17 +121,26 @@ internal sealed class TerminalRecorder(int snapshotBytes = TerminalRecorder.Snap
                 if (AlternateScreens.Contains(mode))
                 {
                     alternate = enabled ? mode : null;
+                    if (alternate != previousAlternate) alternateLength = 0;
                     if (!enabled) input.Clear();
                 }
                 else if (InputModes.Contains(mode)) { if (enabled) input.Add(mode); else input.Remove(mode); }
                 else if (Tracked.Contains(mode)) modes[mode] = enabled;
             }
+            if (alternate is not null && previousAlternate == alternate)
+                Append(ref alternateOutput, ref alternateLength, text.AsSpan(index, end + 1 - index));
             cursor = index = end + 1;
         }
-        if (alternate is null) Append(text.AsSpan(cursor));
+        AppendScreen(text.AsSpan(cursor));
     }
 
-    private void Append(ReadOnlySpan<byte> text)
+    private void AppendScreen(ReadOnlySpan<byte> text)
+    {
+        if (alternate is null) Append(ref recorded, ref recordedLength, text);
+        else Append(ref alternateOutput, ref alternateLength, text);
+    }
+
+    private void Append(ref byte[] recorded, ref int recordedLength, ReadOnlySpan<byte> text)
     {
         if (text.IsEmpty) return;
         if (recorded.Length < recordedLength + text.Length)

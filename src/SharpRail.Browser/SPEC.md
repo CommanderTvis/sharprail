@@ -40,7 +40,8 @@ both `MacIntel` and `macOS`, so standard fields, editors and terminal shortcuts 
 Pinned libghostty-vt and its existing bridge, Scintilla and SheenBidi compile into static WASM libraries
 linked into the managed runtime alongside matching Skia and HarfBuzz assets. Ghostty allocations use the
 runtime's allocator, including terminal pages, rather than growing an independent heap. Native draw callbacks use unmanaged function
-pointers. The browser retains the shared Skia terminal renderer as a loading fallback, with host-owned session lifetime and replay.
+pointers. The browser retains the shared Skia terminal renderer as a loading fallback, with host-owned session lifetime and replay. Read-only attachments receive recorded live alternate-screen
+contents before incremental output, without resizing, taking over, or sending input to the holder.
 Plain ASCII rows batch existing Skia text-blob calls inside native WASM, preserving glyph rasterisation,
 positions, colors and draw order while reducing managed/native transitions. Rows with a cursor,
 composition, complex text, selection, contrast correction, decorations or hovered links use the shared drawing path.

@@ -38,7 +38,54 @@ internal static class TerminalReplayChecks
         Require(Encoding.UTF8.GetString(restored.Snapshot()) == "\x1b[0m" + visible, "Old recordings must be filtered on restore too.");
         var otherQueries = "\x1bZ\x1b[>0c\x1b[?6n\x1b[?2026$p\x1b[>q\x1b[14t\x1b[18t\x1bP$qm\x1b\\\x1bP+q544e\x1b\\\x1b]4;0;?\x07\x1b]52;c;?\x07";
         Require(TerminalReplay.WithoutQueries(Encoding.UTF8.GetBytes(otherQueries)).Length == 0, "Capability, mode, geometry and clipboard queries must not replay.");
+        AlternateReplay();
         Console.WriteLine("PASS terminal replay: historical probes cannot type into a revived shell; split reads, old recordings, display content and live replies retained");
+    }
+
+    private static void AlternateReplay()
+    {
+        const string before = "main screen\r\n";
+        const string alternate = "\x1b[?1049h\x1b[2J\x1b[Hrecorded title\x1b[3;1HWorking 4\x1b[3;9H5\x1b[6n\x1b[?1000h";
+        var bytes = Encoding.UTF8.GetBytes(before + alternate);
+        for (var split = 0; split <= bytes.Length; split++)
+        {
+            var recorder = new TerminalRecorder();
+            recorder.Push(bytes.AsSpan(0, split));
+            recorder.Push(bytes.AsSpan(split));
+            var durable = recorder.Snapshot();
+            var live = recorder.LiveScreen();
+            Require(Encoding.UTF8.GetString(durable) == "\x1b[0m" + before, "Live alternate contents leaked into persisted recordings.");
+            Require(Encoding.UTF8.GetString(live).Contains("recorded title", StringComparison.Ordinal) &&
+                !Encoding.UTF8.GetString(live).Contains("\x1b[6n", StringComparison.Ordinal), "Alternate replay lost earlier content or retained a query at split " + split);
+            if (OperatingSystem.IsMacOS())
+            {
+                var replies = new List<byte>();
+                using var original = new Vt(80, 24, 100, _ => { });
+                using var watched = new Vt(80, 24, 100, data => replies.AddRange(data.ToArray()));
+                original.Write(bytes);
+                watched.Write(durable);
+                watched.Write(live);
+                Require(watched.ScreenText() == original.ScreenText() && watched.ScreenText().Contains("Working 5", StringComparison.Ordinal),
+                    "A fresh watcher must render the full existing alternate screen, including cursor-addressed updates.");
+                Require(replies.Count == 0, "An alternate replay must not answer historical queries.");
+            }
+            recorder.Push("\x1b[?1049lreturned\r\n"u8);
+            Require(recorder.LiveScreen().Length == 0 && !Encoding.UTF8.GetString(recorder.Snapshot()).Contains("recorded title", StringComparison.Ordinal),
+                "Leaving the alternate screen must forget its contents and input modes.");
+            recorder.Push("\x1b[?1049hnew screen"u8);
+            Require(!Encoding.UTF8.GetString(recorder.LiveScreen()).Contains("recorded title", StringComparison.Ordinal), "A later alternate session inherited old contents.");
+        }
+        var restored = new TerminalRecorder();
+        restored.Restore(bytes);
+        Require(restored.LiveScreen().Length == 0, "Old recordings must never revive an alternate program's screen or input modes.");
+        var bounded = new TerminalRecorder(32);
+        bounded.Push("\x1b[?1049h"u8);
+        bounded.Push(Encoding.UTF8.GetBytes(string.Concat(Enumerable.Repeat("bounded line\r\n", 100))));
+        Require(bounded.LiveScreen().Length <= 32 + 16, "Alternate recording must respect the configured replay bound.");
+        var off = new TerminalRecorder(0);
+        off.Push(bytes);
+        Require(off.Snapshot().Length == 0 && off.LiveScreen().Length == 0, "Replay Off must also disable alternate recordings.");
+        Console.WriteLine("PASS alternate replay: split modes, cursor updates, native VT screen parity, query filtering, durable hygiene, exit/reentry and bounds");
     }
 
     private static void Require(bool condition, string message)

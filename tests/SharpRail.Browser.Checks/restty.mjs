@@ -64,7 +64,32 @@ try {
   const term = page.locator('.sharprail-restty');
   const screen = () => page.evaluate(async () => (await import('./restty-bridge.js')).screen(document.querySelector('.sharprail-restty')));
   await until(screen, value => value.includes('fixture'), 'Host prompt did not reach restty');
-  if (process.argv.includes('--file-drop')) {
+  if (process.argv.includes('--watch-replay')) {
+    const replay = async () => JSON.parse(await page.evaluate(async () => {
+      const exports = await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll');
+      return await exports.SharpRail.Browser.Checks.BrowserChecks.CheckWatchedReplay();
+    }));
+    const watched = await replay();
+    assert.equal(watched.Watching, true);
+    assert.equal(watched.Renderer, "restty");
+    assert.equal(watched.Columns, 100); assert.equal(watched.Rows, 30);
+    assert.match(watched.Text, /RECORDED_SCREEN/); assert.match(watched.Text, /Working 5UPDATE_SCREEN/);
+    assert.deepEqual(errors, []);
+    console.log('PASS restty read-only recorded alternate screen and incremental updates without resize or takeover');
+    await page.evaluate(() => {
+      const original = HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext = function (kind, ...args) {
+        if (kind === 'webgl2' && this.closest('.sharprail-restty')) return null;
+        return original.call(this, kind, ...args);
+      };
+    });
+    const fallback = await replay();
+    assert.equal(fallback.Watching, true);
+    assert.equal(fallback.Renderer, "skia");
+    assert.match(fallback.Text, /RECORDED_SCREEN/); assert.match(fallback.Text, /Working 5UPDATE_SCREEN/);
+    assert.deepEqual(errors, []);
+    console.log('PASS Skia fallback read-only recorded alternate screen and incremental updates');
+  } else if (process.argv.includes('--file-drop')) {
     const invoke = (method, ...args) => page.evaluate(async ({ method, args }) => {
       const exports = await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll');
       return await exports.SharpRail.Browser.Checks.BrowserChecks[method](...args);
