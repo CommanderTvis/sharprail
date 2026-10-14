@@ -51,6 +51,11 @@ negotiated key encoding. Watched and exited terminals do not offer the bar.
 Switching to watching detaches the surface from the key-bar panel before moving it
 into the read-only scroll viewer.
 
+Android watched terminals fit their font to the pane between 10 and 13 device-independent
+pixels. Wide desktop grids may still need horizontal scrolling at the 10-pixel readability
+floor. Rotation and the holder's grid changes recalculate the fit without resizing the host
+terminal or taking ownership; active terminals keep their usual font.
+
 On Android, every terminal-tab removal asks for confirmation, including idle, exited,
 failed or unmounted terminals. Cancel keeps the tab and session; confirmation permits
 the requested close. Desktop terminals retain their foreground-process confirmation.
@@ -99,12 +104,16 @@ the requested close. Desktop terminals retain their foreground-process confirmat
   and wheel gestures; scrollback and selection need a take-over. A watch attach that finds nobody holding the
   session holds it, in the Skia renderer until the tab restarts. Changing the renderer in Settings leaves
   watchers alone.
+  The holder's grid is applied before parsing the initial replay, including alternate-screen
+  cursor positions outside the smaller client's viewport, so later incremental updates augment
+  the complete replay rather than a clipped initial screen.
 - A host that predates watching returns a watch attach detached: the body is then hidden and the same bar
   reads "This terminal is in use by another client." (or "This terminal is open somewhere else." for the
   previous holder) with the same button, which is the earlier behaviour.
 - Output goes to the holder and to every watcher. A fresh view receives a bounded snapshot of the main
-  screen, preceded by the observed private modes except mouse tracking and never containing the alternate
-  screen or a mode sequence, then the foreground program is nudged to redraw. A reconnecting client
+  screen, preceded by the observed private modes except mouse tracking. If the live shell is on the
+  alternate screen, the host also supplies its retained live output and modes; watchers do not require
+  the foreground program to redraw. A reconnecting client
   resumes from its last output position. Replay and the switch to live output are atomic, so nothing is
   shown twice.
 - Local Metal texture tabs use Ghostty's external I/O backend. The app-owned PTY service attaches

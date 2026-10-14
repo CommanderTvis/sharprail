@@ -69,7 +69,44 @@ internal static class SkiaOutputChecks
             }
         }
         WatchResize(root);
+        WatchReplay(root);
         Console.WriteLine("PASS Skia output: replay and live floods yield to input, disposal cancels the producer and draining, UTF-8 and final output precede exit");
+    }
+
+    private static void WatchReplay(string root)
+    {
+        var source = new OutputSession(false, watched: true, initialReplay: true);
+        using var backend = new SkiaTerminal(new(root, "watched-replay", root, "client"), source);
+        var window = new Window { Width = 360, Height = 240, Content = backend };
+        window.Show();
+        try
+        {
+            var deadline = Awake.Now.AddSeconds(10);
+            while (!backend.Exited.IsCompleted)
+            {
+                if (Awake.Now > deadline) throw new InvalidOperationException("Watched replay did not drain.");
+                Dispatcher.UIThread.RunJobs();
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                Thread.Sleep(1);
+            }
+            backend.Exited.GetAwaiter().GetResult();
+            var screen = backend.ReadScreen();
+            if (backend.Terminal.Size != new TerminalSize(132, 43) || !screen.Contains("REPLAY_RIGHT", StringComparison.Ordinal) ||
+                !screen.Contains("REPLAY_BOTTOM", StringComparison.Ordinal) || !screen.Contains("LIVE_DELTA", StringComparison.Ordinal))
+                throw new InvalidOperationException("Watcher lost initial screen cells outside its viewport: " + screen);
+            var width = backend.Terminal.Bounds.Width;
+            backend.FitWatchedFont();
+            if (backend.Terminal.FontSize != 10 || backend.Terminal.Bounds.Width >= width || backend.Terminal.Size != new TerminalSize(132, 43) ||
+                backend.ReadScreen() != screen || source.ResizeCount != 0 || source.WriteCount != 0)
+                throw new InvalidOperationException("Watched font fitting must reduce scrolling without changing screen, holder grid or ownership.");
+            window.Width = 1800;
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            window.UpdateLayout();
+            backend.FitWatchedFont();
+            if (backend.Terminal.FontSize != 13) throw new InvalidOperationException($"A wide watched pane must restore the readable default font: {backend.Bounds}, {backend.Terminal.Bounds}, {backend.Terminal.FontSize}.");
+        }
+        finally { window.Close(); }
     }
 
     private static void WatchResize(string root)
@@ -95,18 +132,21 @@ internal static class SkiaOutputChecks
         finally { window.Close(); }
     }
 
-    private sealed class OutputSession(bool live, bool watched = false) : ITerminalService, ITerminalSession
+    private sealed class OutputSession(bool live, bool watched = false, bool initialReplay = false) : ITerminalService, ITerminalSession
     {
         public string Id => "output-check";
         public bool Created => true;
         public bool Watching => watched;
-        public (int Columns, int Rows) Grid { get; private set; } = (80, 24);
+        public (int Columns, int Rows) Grid { get; private set; } = initialReplay ? (132, 43) : (80, 24);
         public long Position => 0;
         public TerminalPrefill? Prefill => null;
         public bool Disposed { get; private set; }
         private bool readStopped;
         public bool ReadStopped => Volatile.Read(ref readStopped);
-        public ReadOnlyMemory<byte> Replay { get; } = live || watched ? [] : Encoding.UTF8.GetBytes("\e[6n" + new string('r', 32 * 1024) + "\r\nREPLAY_END\r\n");
+        public ReadOnlyMemory<byte> Replay { get; } = initialReplay ? Encoding.UTF8.GetBytes("\e[?1049h\e[2J\e[1;121HREPLAY_RIGHT\e[43;1HREPLAY_BOTTOM") :
+            live || watched ? [] : Encoding.UTF8.GetBytes("\e[6n" + new string('r', 32 * 1024) + "\r\nREPLAY_END\r\n");
+        public int ResizeCount { get; private set; }
+        public int WriteCount { get; private set; }
         public Task<int> Exit => Task.FromResult(7);
         public Task Detached { get; } = new TaskCompletionSource().Task;
         public ValueTask<ITerminalSession> AttachAsync(TerminalAttachRequest request, CancellationToken cancellationToken = default) => ValueTask.FromResult<ITerminalSession>(this);
@@ -118,6 +158,11 @@ internal static class SkiaOutputChecks
             cancellationToken.ThrowIfCancellationRequested();
             if (watched)
             {
+                if (initialReplay)
+                {
+                    yield return "\e[2;1HLIVE_DELTA"u8.ToArray();
+                    yield break;
+                }
                 Grid = (10, 24);
                 yield return "\e[2J\e[HA\e[999CX"u8.ToArray();
                 yield break;
@@ -134,8 +179,8 @@ internal static class SkiaOutputChecks
             }
             finally { Volatile.Write(ref readStopped, true); }
         }
-        public ValueTask WriteAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
-        public ValueTask ResizeAsync(int columns, int rows, CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
+        public ValueTask WriteAsync(ReadOnlyMemory<byte> data, CancellationToken cancellationToken = default) { WriteCount++; return ValueTask.CompletedTask; }
+        public ValueTask ResizeAsync(int columns, int rows, CancellationToken cancellationToken = default) { ResizeCount++; return ValueTask.CompletedTask; }
         public ValueTask KillAsync(CancellationToken cancellationToken = default) => ValueTask.CompletedTask;
         public ValueTask DisposeAsync() { Disposed = true; return ValueTask.CompletedTask; }
     }

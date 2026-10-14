@@ -34,6 +34,7 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend
     {
         this.launch = launch; this.terminals = terminals;
         Focusable = true;
+        SizeChanged += (_, _) => { if (Watching && OperatingSystem.IsAndroid()) FitWatchedFont(); };
         try
         {
             terminal = new GhosttySkiaView
@@ -127,6 +128,20 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend
             HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto,
             VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto
         };
+        // Replay contains absolute cursor positions from the holder. Apply its grid before parsing any
+        // bytes, rather than waiting for the next layout pass on this client's smaller viewport.
+        terminal.UpdateLayout();
+        if (OperatingSystem.IsAndroid()) FitWatchedFont();
+    }
+
+    internal void FitWatchedFont()
+    {
+        if (!Watching || Bounds.Width <= 0 || terminal.Bounds.Width <= terminal.Padding.Left + terminal.Padding.Right) return;
+        var padding = terminal.Padding.Left + terminal.Padding.Right;
+        var size = Math.Clamp(terminal.FontSize * Math.Max(0, Bounds.Width - padding) / (terminal.Bounds.Width - padding), 10, 13);
+        if (Math.Abs(size - terminal.FontSize) < .05) return;
+        terminal.FontSize = size;
+        terminal.UpdateLayout();
     }
 
     private async Task Pump(ITerminalSession attached)
@@ -160,6 +175,7 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend
                                 grid = item.Grid;
                                 terminal.FixedGrid = new(grid.Columns, grid.Rows);
                                 terminal.UpdateLayout();
+                                if (OperatingSystem.IsAndroid()) FitWatchedFont();
                             }
                             terminal.Write(item.Data.Span);
                             received |= !item.Data.IsEmpty;
