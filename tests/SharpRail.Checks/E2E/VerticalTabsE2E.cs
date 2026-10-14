@@ -152,6 +152,11 @@ internal static class VerticalTabsE2E
                     .Where(border => border.Name == "ActiveWorkspaceTab" && border.IsVisible).ToArray();
                 Require(markers.Length == 1 && markers[0].GetLogicalAncestors().OfType<Grid>()
                     .Any(grid => grid.Name == "DockTab_" + tab), "Exactly the active tab carries the rail accent.");
+                var row = markers[0].GetLogicalAncestors().OfType<Grid>().First(grid => grid.Name == "DockTab_" + tab);
+                Until(() => row.Bounds.Height > 0 && markers[0].Bounds.Height > 0);
+                Require(markers[0].Bounds.Top > 0 && markers[0].Bounds.Bottom < row.Bounds.Height &&
+                    markers[0].Bounds.Right < row.Bounds.Width,
+                    "The active accent stays inside the row and clear of its rounded corners.");
             }
             app.Window.Layout.Focus(center); Check("markdown_README.md");
             app.Window.Layout.Focus(other); Check("file_notes.txt");

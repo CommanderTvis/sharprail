@@ -49,6 +49,7 @@ positions relative to tools. Tools are frame state: a group that shows Specs sho
 When center tabs live in Projects, only the active workspace's selected tab in its last-focused center
 group carries the accent marker. Per-group selected boxes and pane bubbles remain visible; focus changes
 move the marker without rebuilding tabs, and inactive workspace previews have no active marker.
+The Projects accent sits inside the tab row, clear of its rounded corners, rather than beside its edge.
 Switching workspace carries the previous view's tool selections into the next one, never its selected
 resource.
 The surface keeps its chrome mounted across a transition that leaves the frame unchanged, such as a

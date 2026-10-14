@@ -16,6 +16,9 @@
         </Transitions>
       </Setter>
     </Style>
+    <Style Selector="Border#ActiveWorkspaceTab">
+      <Setter Property="Margin" Value="4,8,4,8" />
+    </Style>
     <Style Selector="TextBlock.workspace-description">
       <Setter Property="TextWrapping" Value="Wrap" />
       <Setter Property="MaxLines" Value="3" />
