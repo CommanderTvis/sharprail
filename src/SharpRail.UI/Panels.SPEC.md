@@ -193,7 +193,9 @@ Git-ignored Files rows remain openable and show a muted icon and chevron, a subt
 - External file/folder drops copy their bytes through the host upload operation, including for remote
   clients. An existing name reports an error without replacing it. Transfers show an inline Cancel
   control; I/O stays off the dispatcher. Successful drops re-list loaded folders and expand the destination.
-  Local tree drags also advertise native file items for the desktop file manager.
+  Local tree drags also advertise native file items for the desktop file manager. The internal reference
+  and native file URL share one drag item, keeping macOS pasteboard items and drag images aligned.
+  Remote or unavailable local files expose relative-path text on that item instead of a client-local URL.
 - An open file whose file is deleted on disk keeps its buffer and says so: its tab shows a `deleted` mark
   and a Scintilla editor a banner over the text. Only a missing file marks it (a local
   `FileNotFoundException`, a remote `NotFound`); any other failed read leaves the tab as it was, and a later

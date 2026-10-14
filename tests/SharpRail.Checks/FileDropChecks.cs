@@ -98,8 +98,19 @@ internal static class FileDropChecks
     internal static void WorkbenchDrops(string root)
     {
         using var app = new E2eWorkspace(Path.Combine(root, "file-drop-ui"));
-        using var data = new DataTransfer();
-        data.Add(DataTransferItem.Create(WorkbenchWindow.WorkspaceFileFormat, new WorkbenchWindow.WorkspaceFileDrag(app.Workbench, app.Root, "notes.txt")));
+        var source = new WorkbenchWindow.WorkspaceFileDrag(app.Workbench, app.Root, "notes.txt");
+        var initialStorage = app.Window.StorageProvider.TryGetFileFromPathAsync(new Uri(Path.Combine(app.Root, "notes.txt")));
+        Until(() => initialStorage.IsCompleted);
+        var nativeFile = initialStorage.GetAwaiter().GetResult()!;
+        using var data = WorkbenchWindow.CreateWorkspaceFileData(source, nativeFile);
+        Require(data.Items.Count == 1 && ReferenceEquals(data.Items[0].TryGetValue(WorkbenchWindow.WorkspaceFileFormat), source)
+            && ReferenceEquals(data.Items[0].TryGetFile(), nativeFile) && data.TryGetFiles()!.Single().Path == nativeFile.Path,
+            "One local file must supply its internal reference and native file URL on the same drag item.");
+        using var remoteData = WorkbenchWindow.CreateWorkspaceFileData(source, null);
+        Require(remoteData.Items.Count == 1 && ReferenceEquals(remoteData.TryGetValue(WorkbenchWindow.WorkspaceFileFormat), source)
+            && remoteData.Items[0].Formats.Any(format => format.Kind != DataFormatKind.InProcess)
+            && remoteData.TryGetText() == "notes.txt" && !remoteData.Formats.Contains(DataFormat.File),
+            "Remote or unavailable local files need a native text representation without claiming a client-local file URL.");
         var folder = app.FileRow("styles");
         var over = new DragEventArgs(DragDrop.DragOverEvent, data, folder, new Point(60, 12), KeyModifiers.None);
         folder.RaiseEvent(over);
@@ -108,8 +119,7 @@ internal static class FileDropChecks
         Until(() => File.Exists(Path.Combine(app.Root, "styles", "notes.txt")));
         Require(!File.Exists(Path.Combine(app.Root, "notes.txt")), "The tree's routed drop must perform the move.");
         Until(() => !app.Window.GetVisualDescendants().OfType<SharpRail.UI.Panels.FileTransferProgress>().Any(progress => progress.Busy));
-        using var moved = new DataTransfer();
-        moved.Add(DataTransferItem.Create(WorkbenchWindow.WorkspaceFileFormat, new WorkbenchWindow.WorkspaceFileDrag(app.Workbench, app.Root, "styles/notes.txt")));
+        using var moved = WorkbenchWindow.CreateWorkspaceFileData(new(app.Workbench, app.Root, "styles/notes.txt"), null);
         folder = app.FileRow("themes");
         var copyModifier = OperatingSystem.IsMacOS() ? KeyModifiers.Alt : KeyModifiers.Control;
         over = new DragEventArgs(DragDrop.DragOverEvent, moved, folder, new Point(60, 12), copyModifier);

@@ -16,6 +16,18 @@ public sealed partial class WorkbenchWindow
     internal sealed record WorkspaceFileDrag(Workbench Owner, string Root, string Path);
     internal static readonly DataFormat<WorkspaceFileDrag> WorkspaceFileFormat = DataFormat.CreateInProcessFormat<WorkspaceFileDrag>("SharpRail.WorkspaceFile");
 
+    internal static DataTransfer CreateWorkspaceFileData(WorkspaceFileDrag source, IStorageItem? file)
+    {
+        var item = DataTransferItem.Create(WorkspaceFileFormat, source);
+        // macOS requires one pasteboard writer per drag image. Representations of
+        // the same file belong on one item, including a native format for remote drags.
+        if (file is not null) item.SetFile(file);
+        else item.SetText(source.Path);
+        var data = new DataTransfer();
+        data.Add(item);
+        return data;
+    }
+
     private static DrawnTreeEntry? DragEntry(object? source) => source is Control control
         ? control.GetVisualAncestors().Prepend(control).OfType<DrawnTreeLabel>().FirstOrDefault()?.Entry : null;
 
@@ -28,15 +40,14 @@ public sealed partial class WorkbenchWindow
             var root = workspaceRoot;
             try
             {
-                using var data = new DataTransfer();
-                data.Add(DataTransferItem.Create(WorkspaceFileFormat, new WorkspaceFileDrag(workbench, root, file.Path)));
+                IStorageItem? item = null;
                 if (!remote)
                 {
                     var uri = new Uri(Path.Combine(root, file.Path));
-                    IStorageItem? item = await Task.Run<IStorageItem?>(async () => file.IsDirectory ? await StorageProvider.TryGetFolderFromPathAsync(uri) : await StorageProvider.TryGetFileFromPathAsync(uri), lifetime.Token);
-                    if (item is not null) data.Add(DataTransferItem.CreateFile(item));
+                    item = await Task.Run<IStorageItem?>(async () => file.IsDirectory ? await StorageProvider.TryGetFolderFromPathAsync(uri) : await StorageProvider.TryGetFileFromPathAsync(uri), lifetime.Token);
                 }
                 if (root != workspaceRoot || switchingWorkspace) return;
+                using var data = CreateWorkspaceFileData(new(workbench, root, file.Path), item);
                 await DragDrop.DoDragDropAsync(pressed, data, DragDropEffects.Copy | DragDropEffects.Move);
             }
             catch (OperationCanceledException) { }
