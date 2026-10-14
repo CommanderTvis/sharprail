@@ -41,4 +41,8 @@ The native solution's `--browser` check exercises authentication, unary RPC, sub
 and runs browser acceptance checks against an isolated host. Build or publish again for deployment;
 normal bundles exclude the acceptance hooks.
 
+With the test-only bundle built, `node tests/SharpRail.Browser.Checks/restty.mjs --settings`
+checks Settings repaint stability, reopening, dismissal and terminal input recovery.
+`PROFILE_DPR=2` exercises the same journey at high pixel density.
+
 The acceptance runner also supports `SHARPRAIL_BROWSER_BUNDLE=/absolute/bundle/path node tests/SharpRail.Browser.Checks/check.mjs` for a normal deployment-bundle smoke check.

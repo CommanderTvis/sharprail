@@ -23,6 +23,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../tests/SharpRail.Browser.Checks/BrowserChecks.cs" Condition="'$(BrowserChecks)' == 'true'" />
+    <Compile Include="../../tests/SharpRail.Browser.Checks/BrowserChecks.Settings.cs" Condition="'$(BrowserChecks)' == 'true'" />
     <Compile Include="$(UiSources)**/*.cs" Exclude="$(UiSources)bin/**;$(UiSources)obj/**;$(UiSources)Program.cs;$(UiSources)Terminal/LoopbackTerminals.cs;$(UiSources)Panels/HostSettings.cs" LinkBase="UI" />
     <AvaloniaXaml Include="$(UiSources)**/*.axaml" Exclude="$(UiSources)bin/**;$(UiSources)obj/**" Link="%(RecursiveDir)%(Filename)%(Extension)" />
     <AvaloniaResource Include="$(UiSources)Assets/**" Link="Assets/%(RecursiveDir)%(Filename)%(Extension)" />

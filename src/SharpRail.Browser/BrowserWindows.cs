@@ -83,7 +83,8 @@ internal sealed class BrowserWindow : IWindowImpl
         id = BrowserInterop.CreateWindow();
         view = new AvaloniaView(id);
         var root = (TopLevel)typeof(AvaloniaView).GetProperty("TopLevel", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(view)!;
-        typeof(TopLevel).GetMethod("StopRendering", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(root, null);
+        var renderer = typeof(TopLevel).GetProperty("Renderer", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(root)!;
+        renderer.GetType().GetMethod("Stop")!.Invoke(renderer, null);
         surface = (ITopLevelImpl)typeof(TopLevel).GetProperty("PlatformImpl", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)!.GetValue(root)!;
         surface.Paint = null; surface.Resized = null; surface.ScalingChanged = null; surface.LostFocus = null;
         surface.TransparencyLevelChanged = null; surface.Closed = null;

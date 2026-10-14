@@ -75,7 +75,11 @@ the .NET SDK retains its own Emscripten toolchain.
 
 Avalonia browser surfaces back the workbench and owned dialogs. The workbench fills the browser
 viewport and restores one workbench from the saved profile; the browser adds no window selector
-or New/Close window toolbar. Browser focus drives the shared
+or New/Close window toolbar. Each canvas has one active renderer: the temporary embedded root that
+`AvaloniaView` creates is stopped directly before the shared `Window` takes over its surface.
+`TopLevel.StopRendering` only stops roots registered with the media context; `AvaloniaView` starts
+its renderer directly, so that method would leave a competing empty renderer on the canvas.
+Browser focus drives the shared
 notification gates; notification clicks return to the target terminal. Permission is requested from the
 existing Settings gesture. GitHub authentication is probed by the host, never by a browser-side process.
 
@@ -86,6 +90,14 @@ must load the deployed bundle in a real browser and exercise host authentication
 and conflict handling, live terminal input/output and reconnection, PDF text/raster rendering, Mermaid,
 settings persistence, window/dialog interaction and builtin plugin surfaces. Compilation alone does not
 establish parity. Remaining verification is recorded in the repository's completion and validation records.
+
+The focused `restty.mjs --settings` journey repaints the temporary embedded roots in magenta and checks
+that neither the workbench nor Settings shows those pixels, then reopens sections and checks terminal
+input after dismissal. Its emulated high-DPI variant exercises Avalonia's content-box fallback:
+Playwright's `deviceScaleFactor` changes `devicePixelRatio` but leaves `devicePixelContentBoxSize`
+unscaled ([Playwright #18591](https://github.com/microsoft/playwright/issues/18591)). Hiding that property
+in this test uses the supported fallback with coherent CSS and backing dimensions; production code is
+unchanged. This is emulated scaling coverage, not acceptance on a physical Retina display.
 
 The restty DOM surface forwards file drag events to its Avalonia container with window-relative
 coordinates. The shared terminal drop flow uploads browser-local bytes before invoking the active

@@ -9,7 +9,7 @@ import { randomUUID } from 'node:crypto';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 process.env.PLAYWRIGHT_BROWSERS_PATH ??= path.join(root, '.tools/playwright');
 const { chromium } = await import('../../src/SharpRail.Browser/node_modules/playwright/index.mjs');
-const scratch = path.join(root, process.argv.includes('--file-drop') ? '.bench/file-drop/browser' : '.bench/restty-default/checks');
+const scratch = path.join(root, process.argv.includes('--file-drop') ? '.bench/file-drop/browser' : process.argv.includes('--settings') ? '.bench/settings-flicker/checks' : '.bench/restty-default/checks');
 const fixture = path.join(scratch, 'fixture');
 const token = randomUUID();
 const profile = process.argv.includes('--profile');
@@ -45,6 +45,8 @@ try {
   browser = await chromium.launch({ channel: 'chromium', headless: true,
     args: process.env.PROFILE_UNCAPPED ? ['--disable-frame-rate-limit', '--disable-gpu-vsync'] : [] });
   const page = await browser.newPage({ viewport: { width: 1840, height: 1340 }, deviceScaleFactor: Number(process.env.PROFILE_DPR ?? 1) });
+  if (process.argv.includes('--settings') && Number(process.env.PROFILE_DPR ?? 1) !== 1)
+    await page.addInitScript(() => Object.defineProperty(ResizeObserverEntry.prototype, 'devicePixelContentBoxSize', { get: () => undefined }));
   const errors = []; page.on('pageerror', error => { errors.push(error.message); console.error(error.message); });
   page.on('console', message => { if (message.type() === 'error' && !message.text().includes('404')) { errors.push(message.text()); console.error(message.text()); } });
   await page.addInitScript(({ address, token, fixture }) => {
@@ -117,6 +119,43 @@ try {
     assert.equal(JSON.parse(await invoke('DroppedFiles')).length, 1);
     assert.deepEqual(errors, []);
     console.log('PASS browser file drops: restty DOM coordinates, client bytes uploaded to host, agent callback and inactive rejection');
+  } else if (process.argv.includes('--settings')) {
+    const invoke = (method, ...args) => page.evaluate(async ({ method, args }) => {
+      const exports = await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll');
+      return exports.SharpRail.Browser.Checks.BrowserChecks[method](...args);
+    }, { method, args });
+    for (const section of ['Appearance', 'Layout', 'Plugins']) {
+      await invoke('OpenSettings', section);
+      const dialog = page.locator('.sharprail-dialog');
+      await page.waitForFunction(() => document.querySelector('.sharprail-workbench').inert);
+      await until(() => dialog.boundingBox(), bounds => bounds?.height === page.viewportSize().height * .8, 'Settings did not finish sizing');
+      await invoke('RepaintEmbeddedRoots');
+      for (let frame = 0; frame < 4; frame++) {
+        await page.waitForTimeout(100);
+        assert.equal(await dialog.count(), 1);
+        assert.equal(await dialog.evaluate(element => element.style.visibility), 'visible');
+        const pixels = await page.screenshot();
+        const magenta = await page.evaluate(async data => {
+          const image = new Image(); image.src = 'data:image/png;base64,' + data; await image.decode();
+          const canvas = document.createElement('canvas'); canvas.width = image.width; canvas.height = image.height;
+          const context = canvas.getContext('2d'); context.drawImage(image, 0, 0);
+          const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+          let count = 0;
+          for (let i = 0; i < pixels.length; i += 4) if (pixels[i] === 255 && pixels[i + 1] === 0 && pixels[i + 2] === 255) count++;
+          return count;
+        }, pixels.toString('base64'));
+        assert.equal(magenta, 0, 'The temporary embedded renderer painted over a real window');
+      }
+      await invoke('ClickSettingsButton', 'SettingsClose');
+      await page.waitForFunction(() => !document.querySelector('.sharprail-workbench').inert);
+      assert.equal(await dialog.count(), 0);
+    }
+    await term.locator('canvas').click();
+    await page.keyboard.type("printf '%s_%s\\n' SETTINGS PASS");
+    await page.keyboard.press('Enter');
+    await until(screen, value => value.includes('SETTINGS_PASS'), 'Terminal input did not recover after Settings');
+    assert.deepEqual(errors, []);
+    console.log('PASS Settings stays painted through embedded-root repaints, reopen and close; terminal input recovers');
   } else {
   assert.equal(await term.getAttribute('data-backend'), 'webgl2');
   const command = async text => { await term.locator('canvas').click(); await page.keyboard.type(text); await page.keyboard.press('Enter'); };
