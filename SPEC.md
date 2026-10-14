@@ -127,6 +127,11 @@ integrations live in the reusable `Ghostty.Avalonia` project, with no SharpRail
 dependency. Changing the renderer rebuilds attached views on their existing host
 sessions and leaves displaced clients waiting for explicit Take it back.
 
+The nightly prerelease includes an unsigned Windows x64 ZIP with the desktop client
+and standalone host. A Windows runner builds the package and passes its packaged
+ReadyToRun `--windows` checks before the Windows, macOS and Android assets publish
+together. A failed package gate keeps the previous nightly release available.
+
 The reusable library retains its NSView control for consumers and benchmarks.
 SharpRail does not instantiate or offer NSView rendering.
 

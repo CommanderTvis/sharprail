@@ -69,8 +69,25 @@ jobs:
           if-no-files-found: error
           compression-level: 0
 
+  windows:
+    runs-on: windows-2025
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+      - run: ./scripts/bootstrap.ps1
+      - run: ./scripts/publish-windows.ps1
+      - env:
+          SHARPRAIL_REQUIRE_R2R: '1'
+        run: ./artifacts/windows/checks/SharpRail.Checks.exe --windows
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SharpRail-nightly-windows-x64
+          path: artifacts/SharpRail-win-x64.zip
+          if-no-files-found: error
+          compression-level: 0
+
   release:
-    needs: [dmg, apk]
+    needs: [dmg, apk, windows]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -87,7 +104,8 @@ jobs:
         run: |
           mv packages/*.dmg SharpRail-nightly.dmg
           mv packages/*.apk SharpRail-nightly.apk
+          mv packages/SharpRail-win-x64.zip SharpRail-nightly-win-x64.zip
           gh release delete nightly --cleanup-tag --yes || true
-          gh release create nightly SharpRail-nightly.dmg SharpRail-nightly.apk --prerelease --target "$GITHUB_SHA" \
+          gh release create nightly SharpRail-nightly.dmg SharpRail-nightly.apk SharpRail-nightly-win-x64.zip --prerelease --target "$GITHUB_SHA" \
             --title "Nightly $(date -u +%Y-%m-%d)" \
-            --notes "Built from ${GITHUB_SHA} on $(date -u +%Y-%m-%d). The disk image is for Apple silicon and is not notarized; the Android package is a client for a SharpRail host."
+            --notes "Built from ${GITHUB_SHA} on $(date -u +%Y-%m-%d). The disk image is for Apple silicon and is not notarized; the Android package is a client for a SharpRail host; the unsigned Windows x64 ZIP contains the desktop client and standalone host."

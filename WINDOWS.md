@@ -1,5 +1,12 @@
 # Windows host and desktop client
 
+The [nightly prerelease](https://github.com/CommanderTvis/sharprail/releases/tag/nightly)
+includes `SharpRail-nightly-win-x64.zip`, built on Windows and gated by the packaged
+`--windows` checks. Extract the ZIP and launch `client/SharpRail.UI.exe`; the
+standalone host is `host/SharpRail.Host.Remote.exe`. The package is unsigned.
+The nightly workflow publishes Windows, macOS and Android together only after all
+three builds pass, so a failed Windows gate leaves the previous nightly available.
+
 The Windows target is Windows 10 (1809 or later) / Windows 11, x64. Install Git for
 Windows and keep `git.exe` on PATH. The package includes .NET; source builds use
 the SDK pinned in `global.json`.
