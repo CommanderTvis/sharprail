@@ -4,7 +4,7 @@ type: module-design
 status: active
 title: Plugin UI kit — the shared controls
 parent: module-plugin-api
-tags: [ui, plugins, public-surface-checked]
+tags: [ui, plugins]
 ---
 
 # Plugin UI kit — the shared controls
@@ -40,23 +40,17 @@ layouts; the convenience constructor supplies the same contract from code. Progr
 publish toggle automation changes without requesting another update.
 
 - Owns, in `SharpRail.Plugins.UI.Kit`:
-  - `Ui`: the brush tokens (`Sidebar`, `Surface`, `Header`, `Elevated`, `TextBrush`, `Muted`, `Hint`, `Accent`,
-    `PrimaryFill`, `PrimaryFillHover`, `OnPrimary`, `DialogShadow`, `PrimarySubtle`, `PrimaryMuted`,
-    `BorderBrush`, `Hover`, `WorkspaceSurface`, `ControlHover`, `ControlDisabledText`,
-    `ControlDisabledBorder`, `PrimaryDisabled`, `TextSelection`, the status brushes and washes, the fades),
-    the interface and code fonts, `FontSize`, the applied `Theme` and `ThemeChanged`, `Apply(ThemeManifest)`
-    and `ApplyResources`, `Alpha`/`Over`, and the primitive factories `Icon`, `Text`, `Row`, `Button`,
-    `IconButton`, `Frame`, `Place`, `Menu`, plus `Segment` and `Chip` (below).
-  - `ThemeManifest`, the palette record a theme applies.
+  - Shared theme brushes, interface and code fonts, live theme updates, colour composition
+    and primitive controls. All consumers use the same palette and control factories.
   - `Switch`, the controlled boolean primitive with a compiled target/track/thumb template and
     native toggle automation. Browser transition/reduced-motion behavior and native appearance
     remain to be audited against the fork.
   - `DialogWindow` (compiled XAML card shared by every dialog), owned by a `Window` rather than a
     `WorkbenchWindow`. Choice toggles use an accent outline and subtle primary fill for selection,
     including while hovered or pressed, so selection stays distinct from pointer feedback.
-  - `FindBar`, `LineWidths`, `ViewerLimits`, `SvgAsset`.
-    Find searches rendered text blocks or a Scintilla buffer within the supplied scope, selects and
-    scrolls the current match, and restores the opening control's focus on Escape.
+  - Search and bounded document presentation. Find searches rendered text blocks or a Scintilla
+    buffer within the supplied scope, selects and scrolls the current match, and restores the
+    opening control's focus on Escape.
   - `Visualization.ZoomGesture` shares the fork's zoom bounds, toolbar step, Control/Command detection
     and bounded wheel delta math; Avalonia's upward-positive line delta is converted to pixels.
   - `ScopedSetting` provides configuration scope/source rows and their filter toolbar;
@@ -68,9 +62,7 @@ publish toggle automation changes without requesting another update.
     of offscreen SVGs. Different tints remain independent. Its original two-argument constructor
     remains available to compiled plugins.
   - `Assets/Icons` and `Assets/Fonts`, with their license files, as `avares://SharpRail.Plugins.UI.Kit/Assets/…`.
-- Owns, in `SharpRail.Plugins.UI.Kit.Markdown`: `MarkdownPreview`, `MarkdownDocumentView` (with its compiled
-  header), `MarkdownProperties`, `Frontmatter`, `MarkdownLink`, and `Outline` (the heading column, extracted
-  from `MarkdownDocumentView.FillOutline`, which `DiffView` also uses).
+- Owns Markdown preview and source views, frontmatter presentation, links and the heading outline.
   Markdown panes below 640 logical pixels hide Split and fall back from Split to Preview, including restored views.
   The document view accepts a lazy source-control factory so its owner can supply an editable buffer;
   `RefreshPreviewAsync` debounces and parses edits off the dispatcher, rejecting stale results.
@@ -94,8 +86,7 @@ publish toggle automation changes without requesting another update.
 - Owns, in `SharpRail.Plugins.UI.Kit.Visualization`: `MermaidRenderer` and `MermaidDialog` (inline and
   full-screen diagram rendering, pan and zoom). The full-screen viewer claims trackpad magnify gestures
   and clamps their scale through `ZoomGesture`.
-- Public surface: exactly the symbols in `PublicAPI.Unshipped.txt`, checked by
-  `Microsoft.CodeAnalysis.PublicApiAnalyzers` like the API assemblies.
+- Public API analyzers validate declarations against committed API baselines during compilation.
 - Allowed deps: Avalonia and Avalonia.Themes.Fluent, SkiaSharp, Markdig, Svg.Controls.Skia.Avalonia, and
   `SharpRail.Scintilla`. The Merman native library stays copied by the app's project; the kit binds it by name.
 - Forbidden: any `SharpRail.Host.*` project, `SharpRail.UI`, and the plugin API assemblies. A parameter or
@@ -239,10 +230,6 @@ remain verification gates in the Visualize plugin spec.
 The account presentation exposes labelled rows, provider-supplied severity and percentage usage,
 relative reset times and reading timestamps. Row and usage-window layouts are compiled XAML.
 The Codex builtin uses these controls without referencing app or host implementations.
-
-## Public surface
-
-`CommandKeys`, `DialogWindow`, `EditorFrame`, `FileDrop`, `FindBar`, `IDialogOwner`, `InterfaceZoom`, `LineWidths`, `RowActivation`, `DiffFocus`, `Frontmatter`, `FrontmatterBlock`, `FrontmatterProperty`, `MarkdownContext`, `MarkdownDiff`, `MarkdownDocumentView`, `MarkdownLink`, `MarkdownPreview`, `Outline`, `SpecIdentity`, `ScopedSetting`, `ScopedSettingShadow`, `ScopedSettingSource`, `SettingValueDialog`, `SettingValueDialogOptions`, `SvgAsset`, `Switch`, `SyntaxLine`, `ThemeManifest`, `Ui`, `ValueShape`, `ViewerLimits`, `ComparisonOptionView`, `MermaidDialog`, `MermaidRenderer`, `MermaidView`, `VisualizationArgs`, `VisualizationCard`, `ZoomGesture`.
 
 ## Syntax highlighting
 

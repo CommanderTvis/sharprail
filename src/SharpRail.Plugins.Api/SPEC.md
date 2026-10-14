@@ -6,7 +6,7 @@ title: Plugin API — the contract between the host, the app, and a plugin
 parent: architecture
 depends-on: [module-host-abstractions]
 references: [submodule-host-plugins, submodule-ui-plugins, module-plugin-ui-kit, submodule-host-terminals, submodule-host-state, submodule-ui-panels]
-tags: [plugins, public-surface-checked]
+tags: [plugins]
 ---
 
 # Plugin API — the contract between the host, the app, and a plugin
@@ -14,31 +14,37 @@ tags: [plugins, public-surface-checked]
 Upstream: packages/plugin-api/SPEC.md @ 4737df6d (CommanderTvis fork)
 Upstream: plugin-adoption.md @ 4737df6d (CommanderTvis fork)
 
-A SharpRail feature currently reaches through every layer to exist: a method on a host interface, its Core
-implementation, a wire contract, two adapters, an RPC class, a slice of `SharedState` or a window field, an arm
-in a panel switch, and a row in several closed lists (`DockState.ToolNames`, the tool icon switch, the Settings
-section list). This module is the contract that lets a feature live outside core instead. A plugin is a
-manifest plus a host half, a UI half, or both. It owns wire methods and channels under its own namespace, and
-can mount an HTTP route, stamp terminal environment, register MCP tools, observe host lifecycle, hold settings
-and persisted state, and contribute a bounded set of UI surfaces.
+Plugins add features to SharpRail without building them into every host and window. A plugin can
+provide host operations, terminal integrations, settings and UI surfaces. It has a manifest plus
+a host half, a UI half, or both. Builtin and separately installed plugins receive the same
+capabilities, and either can be enabled or disabled without restarting.
 
-A plugin is either builtin, a project in this repository referenced by the host and the app, or external,
-owned by someone else and installed by the user as a directory of assemblies. Both get the same capabilities.
-Every plugin can be turned on and off while the app runs, with no restart, which is a requirement rather than
-an optimisation and is why the runtimes are built around it from the start.
+```mermaid
+flowchart TB
+    Feature[Feature needs integration] --> Need{What does it need?}
+    Need -->|Only tools for an agent| Tool["Use the agent's own tools or MCP server"]
+    Need -->|Host services or terminal lifecycle| Host[Plugin host half]
+    Need -->|Workbench panels or commands| UI[Plugin UI half]
+    Host --> Both[Combine halves when the feature needs both]
+    UI --> Both
+```
 
-The API is unstable, gated on a single generation integer, with no compatibility promise. What follows fixes
-the boundary and the capability set. The builtin arrays start with the spec dialect; its Specs panel,
-graph and MCP tools exercise the same API as external plugins. A fixture plugin in the checks
-exercises the external path.
+The host half runs where the project files and shells live; the UI half runs in the app. A remote
+connection must preserve that boundary. The API defines what each half may do and how they
+communicate; it does not implement the runtimes themselves.
+
+Read [when to use a plugin](#when-something-should-be-a-plugin) and [stability](#stability) first.
+The remaining sections are the detailed authoring contract: names, capabilities, lifecycle and
+failure rules. Exact signatures belong in generated API documentation and analyzer baselines.
+The builtin Specs plugin and an external fixture exercise these same boundaries.
 
 ## Responsibility
 
-The three API assemblies are the contract a self-contained feature is written against so that it can live
-outside core. They contain types and a few identity helpers, and no runtime of their own. The runtimes live in
-the layers that own the seams, `SharpRail.Host.Core/Plugins` ([Plugins.SPEC.md](../SharpRail.Host.Core/Plugins.SPEC.md))
-and `SharpRail.UI/Plugins` ([Plugins/SPEC.md](../SharpRail.UI/Plugins/SPEC.md)), because only those may touch
-the host services, the PTY, the shared state, or the workbench.
+Three contract assemblies separate shared vocabulary, host capabilities and UI capabilities.
+They contain types and identity helpers, with no runtime of their own. The
+[host runtime](../SharpRail.Host.Core/Plugins.SPEC.md) and
+[UI runtime](../SharpRail.UI/Plugins/SPEC.md) connect those contracts to host services, shells,
+shared state and the workbench.
 
 ### When something should be a plugin
 
@@ -81,7 +87,7 @@ Two guarantees do hold. The wire stays versioned per plugin (`WireVersion`), bec
 ship independently. Persisted state stays readable across a generation change, because user data is not part
 of the API.
 
-### Recording the surface
+### API validation
 
 `TerminalAgentRecord.LaunchedByUi` is nullable launch provenance: true for a detected UI launch,
 false for a detected manual launch, null when unknown. Hosts persist and broadcast it, including over
@@ -89,13 +95,13 @@ WebSocket RPC. Providers determine it independently of optional prompts or MCP s
 retain it. Older state and hosts leave it unknown rather than mislabelling sessions.
 
 `TerminalAgentRecord.Model` and `Effort` retain the latest choices reported by the session for
-revival. Both persist and cross gRPC; an absent field in a later report preserves the known value
+revival. Both persist and cross WebSocket RPC; an absent field in a later report preserves the known value
 for that session. A new session does not inherit the previous session's choices.
 
 No stability promise is not the same as no accounting. Every change to the plugin-facing surface has to be
 visible in review.
 
-Each of the four plugin-facing assemblies (the three API entries and the UI kit) runs
+The plugin-facing API, UI kit and shared agent UI assemblies run
 `Microsoft.CodeAnalysis.PublicApiAnalyzers` against a committed `PublicAPI.Shipped.txt` /
 `PublicAPI.Unshipped.txt` pair listing every public symbol with its signature. Because warnings are errors, a
 public symbol missing from the listing (RS0016) or a listed symbol that no longer exists (RS0017) fails the
@@ -103,8 +109,9 @@ build. Since nothing is shipped under a compatibility promise, every entry lives
 `Shipped` stays empty. `dotnet format analyzers <project> --diagnostics RS0016` rewrites the listing after a
 deliberate change.
 
-The listing is a record, not a veto: the gate makes a change impossible to land silently, and the reviewer
-decides whether it is acceptable. One rule is written down for that judgement: removing a member, narrowing a
+Specs describe behavior and compatibility policy, not declarations. The API validator owns declaration
+accounting; Markdown is not compared to compiled types. The validator makes declaration changes
+visible in review; the reviewer decides whether a change is acceptable. One rule is written down for that judgement: removing a member, narrowing a
 parameter, or widening a return is a breaking change and has to come with a generation bump. The checks pin
 `PluginApi.Generation`'s value, so a breaking change fails them until someone bumps it deliberately.
 
@@ -113,19 +120,11 @@ parameter, or widening a return is a breaking change and has to come with a gene
 - Owns: the contract vocabulary. A plugin declares one `PluginContract` naming its methods, channels, settings
   type and wire version. These assemblies own that shape, the manifest and roster shapes, the naming rules
   below, the tool shape, and the two context interfaces.
-- Entries: three assemblies, with no reference between the host and UI entries.
-  - `SharpRail.Plugins.Api` (root) carries what both halves and both runtimes share: `PluginApi`,
-    `PluginIdentity`, `PluginManifest` and its parts, the contract vocabulary, `PluginJson`, the tool shape,
-    the roster and agent-record records, `HostProject`/`HostWorkspace`/`HostPlatform`,
-    `IPluginDependencyHandle` and `PluginCallException`.
-    `HostProject.WorktreesDirectory` supplies the host-owned location for new worktrees, including remote
-    hosts and custom state directories; plugins use it instead of deriving a path beside the checkout.
-  - `SharpRail.Plugins.Api.Host` carries `IPluginHostContext`, `PluginHostModule` and the types its members
-    use.
-  - `SharpRail.Plugins.Api.UI` carries `IPluginUIContext`, `PluginUIModule`, `IPluginEditors` and the UI
-    contribution types.
-- Public surface: exactly the symbols in each project's `PublicAPI.Unshipped.txt`; the names table below lists
-  the types.
+- Three assemblies separate shared vocabulary, host operations and UI contributions. Host and UI
+  entries do not reference each other. Shared vocabulary includes plugin identity, manifests,
+  methods, channels, settings, roster state, agent facts and project/workspace metadata.
+  Plugins obtain the new-worktree directory from the host, including remote hosts and custom state
+  directories, rather than deriving a path beside the checkout.
 - Allowed deps: the .NET base library for the root and host entries; the root entry, and Avalonia's `Control`
   types, for the UI entry.
 - Forbidden: any `SharpRail.Host.*` or `SharpRail.UI` project, ASP.NET Core, WebSocket RPC or protobuf types,
@@ -147,12 +146,9 @@ makes a missing comment (CS1591) a build error. This is the one deliberate excep
 this spec. The spec stays the design record and the source of every rule; the comments are its per-symbol
 reference, derived from it rather than duplicating its rationale. The kit is not enrolled in this rule.
 
-### Names
+### Contract boundaries
 
-| entry | types |
-| --- | --- |
-| `SharpRail.Plugins.Api` | `PluginApi`, `PluginIdentity`, `PluginManifest`, `PluginDependency`, `PluginPiBlock`, `PluginContributions`, `PluginSideToolContribution`, `PluginToolSide`, `PluginFileViewerContribution`, `PluginFileRead`, `PluginMethodSpec`, `PluginMethod<TParams, TResult>`, `PluginChannelSpec`, `PluginChannel<TPayload>`, `PluginChannelKind`, `PluginContract`, `IPluginDependencyHandle`, `PluginCallError`, `PluginCallException`, `PluginJson`, `TerminalRef`, `PluginToolContext`, `PluginToolResult`, `PluginToolDefinition`, `PluginTool<TParams>`, `PluginOrigin`, `PluginStatus`, `PluginRosterChannel`, `PluginRosterEntry`, `TerminalAgentRecord`, `HostProject`, `HostWorkspace`, `HostPlatform` |
-| `SharpRail.Plugins.Api.Host` | `IPluginLogger`, `PluginDisposer`, `PluginCall`, `TerminalEvent` (`TerminalSpawned`, `TerminalExited`, `TerminalClosed`, `TerminalAgentChanged`), `TerminalProcess`, `RevivePrefill`, `WorkspaceEvent` (`WorkspaceCreated`, `WorkspaceUpdated`, `WorkspaceRemoved`), `WorkspaceFilesChanged`, `GitRunOptions`, `GitRunFailure`, `GitRunResult`, `PluginHttpRequest`, `PluginHttpResponse`, `IPluginHostContext`, `PluginHostModule` |
+`IPluginLogger`, `PluginDisposer`, `PluginCall`, `TerminalEvent` (`TerminalSpawned`, `TerminalExited`, `TerminalClosed`, `TerminalAgentChanged`), `TerminalProcess`, `RevivePrefill`, `WorkspaceEvent` (`WorkspaceCreated`, `WorkspaceUpdated`, `WorkspaceRemoved`), `WorkspaceFilesChanged`, `GitRunOptions`, `GitRunFailure`, `GitRunResult`, `PluginHttpRequest`, `PluginHttpResponse`, `IPluginHostContext`, `PluginHostModule` |
 | `SharpRail.Plugins.Api.UI` | `IPluginUILogger`, `PluginDisposer`, `PluginAppSettings`, `TerminalTabInfo`, `PluginHostProjection`, `EditorKind`, `EditorRef`, `EditorSelection`, `EditorLifecycle`, `EditorEvent` (`EditorLifecycleEvent`, `EditorSelectionEvent`), `EditorOpenOptions`, `CompanionHost`, `TerminalKeyEncoding`, `ITerminalAccessoryApi`, `LauncherModel`, `LauncherCommandOptions`, `LauncherAvailability`, `AgentLauncher`, `FileIconKind`, `GitDiffScope` (`BranchDiffScope`, `UncommittedDiffScope`, `CommitDiffScope`, `PinnedDiffScope`), `TerminalOpenOptions`, `FilePickOptions`, `PluginNotificationKind`, `AttentionNotification`, `IPluginPreference`, `FileViewerProps`, `FileViewerRegistration`, `SettingsSectionRegistration`, `SideToolRegistration`, `CompanionRegistration`, `TabDecoration`, `TabRef` (`TerminalTabRef`, `ToolTabRef`, `FileTabRef`), `WorkspaceActionRegistration` (`WorkspaceScopedActionRegistration`, `ProjectScopedActionRegistration`), `TerminalAccessoryRegistration`, `IPluginEditors`, `IPluginUIContext`, `PluginUIModule` |
 
 `IPluginLogger` and `IPluginUILogger`, and the two `PluginDisposer` delegates, are declared independently with
@@ -830,7 +826,3 @@ agent extensions and skills, chat, and their capabilities (H11, H16, chat hosts,
 plugin exposes for text editing. The host checks current providers on every absolute file read or save; only
 active registrations count. This is an exact file allowlist, not directory access. Plugins own discovery; core
 owns reading, compare-and-swap saves, editor buffers, and restoration.
-
-## Public surface
-
-`PluginChannel`, `PluginMethod`, `PluginTool`, `HostPlatform`, `HostProject`, `HostWorkspace`, `IPluginDependencyHandle`, `PluginApi`, `PluginCallError`, `PluginCallException`, `PluginChannelKind`, `PluginChannelSpec`, `PluginContract`, `PluginContributions`, `PluginDependency`, `PluginFileRead`, `PluginFileViewerContribution`, `PluginIdentity`, `PluginJson`, `PluginManifest`, `PluginMethodSpec`, `PluginOrigin`, `PluginPiBlock`, `PluginRosterChannel`, `PluginRosterEntry`, `PluginSideToolContribution`, `PluginStatus`, `PluginToolContext`, `PluginToolDefinition`, `PluginToolResult`, `PluginToolSide`, `TerminalAgentRecord`, `TerminalRef`.

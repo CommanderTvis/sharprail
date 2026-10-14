@@ -5,7 +5,7 @@ status: active
 title: Agent UI — shared Codex and Claude Code components
 parent: module-plugin-api
 depends-on: [module-plugin-ui-kit]
-tags: [ui, plugins, public-surface-checked]
+tags: [ui, plugins]
 ---
 
 # Agent UI
@@ -46,7 +46,3 @@ The public surface is recorded in `PublicAPI.Unshipped.txt` and checked by
 Moving the components preserves control names, callbacks, formatting, theme brushes
 and compiled layouts. Release compilation checks both consumers and the public
 surface; `--codex` and `--claude-code` exercise the provider UI integrations.
-
-## Public surface
-
-`Account`, `AccountSeverity`, `AgentAttention`, `AgentAttentionReason`, `ManualLaunchNotice`, `TerminalFacts`, `TerminalTodo`, `TerminalTodoStatus`, `TokenUsage`.

@@ -299,7 +299,9 @@ arrangement isolation, locations and links, the workspace dialog's project picke
 translations; `-- --design --write` regenerates `src/SharpRail.Plugins.UI.Kit/Generated`
 from `src/SharpRail.UI/Rendering/Design`. Edit the authored design sources, not
 generated C#.
-`-- --conformance` runs the dependency-boundary and public-surface checks; `-- --runner` checks the runner itself.
+`-- --conformance` runs dependency-boundary checks; public API analyzers validate declarations during
+compilation against `PublicAPI.*.txt` baselines, never declaration lists in specs.
+`-- --runner` checks the runner itself.
 `-- --android` checks the Android client's host address parsing and remembered endpoint; the client itself needs a device (`scripts/android.sh run`).
 `-- --lanes N` (or `auto`) splits the argument-free gate across processes, `-- --last-failed` reruns what the last
 run left unfinished, `-- --list-cases` lists the gate and `-- --case A,B` runs named

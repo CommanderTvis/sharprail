@@ -1,4 +1,4 @@
-# SharpRail.UI — application and windows
+# The workbench — application and windows
 
 Upstream: apps/web/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
 Upstream: apps/desktop/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
@@ -7,66 +7,69 @@ Upstream: apps/web/src/shell/locationBar/SPEC.md (revision: [UPSTREAM.md](../../
 
 ## Responsibility
 
+The workbench is where you navigate projects, read documents, review changes and use terminals.
+Every window has its own arrangement and location. Windows share the host's projects, settings
+and shells, whether that host runs inside the app or on another machine.
+
 The Windows x64 desktop client supports embedded hosting and remote connections.
 Its native editor uses Ctrl-based editing shortcuts and its terminals always use
 Skia. Metal, the macOS notification bridge and native Mermaid build targets are
 not loaded or built on Windows; the existing unavailable-Mermaid view still applies.
 
-The Avalonia desktop client over the host abstractions. It composes one app-owned `Workbench`, opens
-every `WorkbenchWindow` from it, and renders layout-agnostic panels (Projects, Specs, Files, Changes,
-Review, documents, diffs, terminals) inside each window's docking frame. The same UI serves an in-process
-host and a remote one; which one is an adapter choice made once at composition, never a branch inside a
-panel or feature flow.
 
-## Boundary
+## Responsibilities and boundaries
 
-- Owns: application startup and shutdown (`Program.cs`, `App.cs`), the app-owned composition
-  (`Workbench.cs`), window chrome and the window title bar, global shortcuts, theme application, and the
-  integration of the docking engine with profile persistence, host state and panels.
-- Allowed dependencies: `SharpRail.Host.Abstractions`; `SharpRail.Host.Core` and `SharpRail.Host.Client`
-  to compose direct local calls or remote proxies; `SharpRail.Scintilla`; `Ghostty.Avalonia`; Avalonia.
-- Forbidden: host projects depending on the UI; panels reading the frame or knowing where they are placed;
-  a UI-private copy of host-owned state; a background daemon.
+The app owns startup, shutdown, window chrome, shortcuts, theme application and the connection
+between panels, saved layouts and host state. Panels supply content without knowing where the
+window places them. They use the same host operations in local and remote mode.
 
-## Internal modules
+The desktop app uses Avalonia, the Scintilla editor and Ghostty terminal controls. It composes the
+host through its abstractions, Core and client adapters. Host projects must never depend on the UI;
+the UI must never become a second authority for host-owned settings. No background daemon is required.
 
-| Directory | Owns | Spec |
+## Reading map
+
+| Concern | What the user experiences | Contract |
 | --- | --- | --- |
-| `Docking` | Frame/workspace-view model, pure transitions, rendering, drag/resize, tab chrome | [Docking/SPEC.md](Docking/SPEC.md) |
-| `State` | Profile persistence and the app's shared host-state subscription | [State/SPEC.md](State/SPEC.md) |
-| `Terminal` | Terminal tab body, Ghostty bridge, the relay mode | [Terminal/SPEC.md](Terminal/SPEC.md) |
-| `Panels` | Settings and shared dialogs | — |
-| `Rendering` | Markdown, diffs, Mermaid, themes and shared brushes | — |
-| `Editor` | The Scintilla-backed code document view | — |
-| `Resources` | The resource-renderer registry, the file pane and the format views | below |
-| `Plugins` | The app-side plugin runtime: registry, loader, `IPluginUIContext`, editor events | [Plugins/SPEC.md](Plugins/SPEC.md) |
-| `Notifications` | Away notifications: the collection window and gates, the notifier seam and the macOS channel | below |
+| Docking | Arrange tabs, split the center, resize and hide tools | [Docking](Docking/SPEC.md) |
+| State | Restore windows while sharing host settings | [State](State/SPEC.md) |
+| Terminals | Attach a view to a shell and recover from connection failures | [Terminals](Terminal/SPEC.md) |
+| Settings and dialogs | Configure the workbench and confirm actions | [Settings](Panels/SPEC.md) |
+| Documents | Read Markdown, inspect diffs and switch renderers | [Rendering](Rendering/SPEC.md) |
+| Plugins | Add panels, commands and document views | [UI plugins](Plugins/SPEC.md) |
 
-The shared controls (`Ui`, dialogs' card, Markdown, the editor frame, Mermaid) live in
-[`SharpRail.Plugins.UI.Kit`](../SharpRail.Plugins.UI.Kit/SPEC.md); `GlobalUsings.cs` imports its namespaces.
-`PluginSurfaces.cs` is the `WorkbenchWindow` partial where plugin contributions render and the window operations
-the plugin context binds to.
-
-Dependency rules: `Docking` never references panels, host services or persistence; the window injects
-content through a render callback. `State` references `Docking` only for the `DockState` type it persists.
-Nothing references `WorkbenchWindow` except the composition root and checks.
+Resource renderers and away notifications are described below. Shared controls, including dialogs,
+Markdown, editor frames and diagrams, belong to the [UI kit](../SharpRail.Plugins.UI.Kit/SPEC.md).
+The docking model has no dependency on panels, host services or persistence; the window supplies
+its content. Persistence knows only the layout data it saves. Application composition and checks
+are the only external consumers of the window implementation.
 
 ## Startup
 
-`Program.Main` dispatches `--terminal-relay` before Avalonia starts, so a relay child never builds a UI.
-Otherwise `App` resolves the endpoint (`SHARPRAIL_REMOTE`), the profile directory (`SHARPRAIL_PROFILE`,
-default `~/.sharprail`) and the initial root, opens the profile, migrates and opens the local host state,
-and composes one `Workbench`: the shared-state subscription, the terminal factory and a factory for
-per-window project sessions. It then opens one window per profile `Windows` entry, the first at the
-initial root and the rest at their own last location. Startup follows the root AGENTS.md performance
-rules: workspace switches render loading bodies and remembered document tabs before host routing
-begins. Resolve routing identity before restoring document bodies or starting terminals; render the
-mounted workspace before loading its file list, Git and watchers. Panel results fill progressively,
-reject superseded switches and preserve dock chrome. File loading does not hold the project-switch gate.
+Startup restores a usable window before expensive panel reads finish. It resolves the remote
+endpoint (`SHARPRAIL_REMOTE`), profile directory (`SHARPRAIL_PROFILE`, default `~/.sharprail`)
+and initial root, reads the profile, migrates local host state and composes the shared services.
+It opens one window per saved entry: the first at the initial root, the others at their remembered
+locations. Relay mode (`--terminal-relay`) bypasses the UI entirely.
+
+```mermaid
+flowchart TB
+    Profile[Read profile and compose services] --> Frame[Show window, loading bodies and remembered tabs]
+    Frame --> Route[Resolve project and workspace identity]
+    Route --> Documents[Restore visible documents and terminals]
+    Documents --> Mounted[Present the workspace]
+    Mounted --> Files[Load file list]
+    Mounted --> Git[Load Git panels]
+    Mounted --> Watch[Start change watchers]
+```
+
+Workspace switches follow the same ordering. Independent panel results fill progressively and
+must still belong to the current workspace before they appear. Deferred reads preserve dock chrome
+and do not hold the project-switch gate. Blocking work runs off the UI thread.
 
 ## Windows
 
-Every window comes from the one `Workbench`; there is no second process and no daemon. New window (header
+Every window comes from the same app-owned services; there is no second process and no daemon. New window (header
 menu, Mod+Shift+N) opens another window at the source window's Project Home with a fresh frame and the
 source's size. Each window is its own terminal client and its own project session, while windows share
 host state, the terminal host and the profile. Closing a window while others remain forgets its profile
@@ -74,9 +77,13 @@ entry; quitting keeps every entry so the next launch restores the same set.
 
 ## Window chrome
 
-The 48px header is the window's title bar. `WorkbenchWindow.axaml` extends the client area into the
-decorations so the native controls stay while the header provides the colour; on macOS the header leaves
-80px for the traffic lights. The Error status can be clicked for the actual operation failure and Retry (the pending restore or mounted workspace refresh). Subscription failures use the same surface while reconnecting automatically; a successful retry clears it. Healthy local status remains inert and remote Change host remains available.
+The 48px header is the window's title bar. It extends into the native decoration area,
+keeping the system window controls while providing the background colour; on macOS the header leaves
+80px for the traffic lights.
+
+The Error status can be clicked for the actual operation failure and Retry (the pending restore or
+mounted workspace refresh). Subscription failures use the same surface while reconnecting automatically;
+a successful retry clears it. Healthy local status remains inert and remote Change host remains available.
 The header shows the brand mark, the location bar, the connection state and
 Settings. While the embedded host also accepts socket connections, every window shows a green
 "Listening" mark in the top-right header with its endpoint in a tooltip. The mark follows listener
@@ -85,7 +92,7 @@ Pressing plain header content drags the window; buttons and text inputs in the h
 start a drag. In macOS full screen the traffic lights hide, so the header drops their inset and keeps only
 its ordinary 12px margin.
 
-The header covers the native strip, so the window handles a double-click on it itself (`WindowChrome.cs`).
+The header handles double-clicks according to the operating system preference.
 On macOS it reads `AppleActionOnDoubleClick` afresh on every double-click (`defaults read -g`, off the UI
 thread), so a changed System Settings choice applies without a restart: unset, `Maximize` and `Fill` zoom
 the window (a second double-click restores it), `Minimize` minimizes, anything else does nothing. A
@@ -94,11 +101,11 @@ Other platforms, and windows with no native handle, zoom.
 
 ## Application menu
 
-On macOS `ApplicationMenu` installs the native menu bar before the first window opens. The application
+On macOS the native menu bar is installed before the first window opens. The application
 menu keeps the platform's own items (Services, Hide, Hide Others, Show All, Quit); every window that opens,
 dialogs included, gets Edit (Undo, Redo, Cut, Copy, Paste, Delete, Select All) and Window (Minimize, Zoom,
 Close, Bring All to Front) with their conventional chords. Items call what their chords already reach, so
-a menu pick and a key press are one path and dispatch once: Close asks `AppCommands.Close` in a workbench
+a menu pick and a key press are one path and dispatch once: Close uses the normal tab-close action in a workbench
 window and closes any other window; an editing command acts on a focused text box directly and reaches
 every other focused control as its chord, because editors, terminals and selectable text implement those
 chords themselves. Delete has no chord and is never forwarded. The menu's Quit is the platform item and
@@ -107,7 +114,7 @@ first, runs the confirmation gesture. Other platforms have no menu bar and keep 
 
 ## Location bar
 
-`LocationBar.cs` renders the header's captioned segments — PROJECT, WORKSPACE, BRANCH — each an uppercase
+The location bar shows the header's captioned segments — PROJECT, WORKSPACE, BRANCH — each an uppercase
 10px caption above a 22px value pill, separated by 4px, with a hairline before every segment but the first.
 The caption/value stack has 6px of vertical breathing room; divided segments have 16px left and 12px
 right padding, and the first segment has 8px left padding. It owns no host
@@ -118,7 +125,7 @@ state: it shows what the window already knows and calls the same methods as the 
   project the segment reads `SharpRail` and the other two are absent.
 - WORKSPACE shows the active workspace's actions above Switch to (its siblings from the host's workspace
   registry, the rows of the Projects rail, with their branch when it differs from the name) and New
-  workspace with the Mod+N label. The actions are the Projects row's own (`AddWorkspaceActions`): Open in,
+  workspace with the Mod+N label. The actions are the same as in the Projects row: Open in,
   Copy path, Reveal in file manager, Rename for a managed workspace, and Remove worktree… or, for an
   attached one, Remove from SharpRail. At Project Home the pill reads `Project home` and offers only the
   switcher and creation.
@@ -136,20 +143,20 @@ state: it shows what the window already knows and calls the same methods as the 
 - BRANCH is present in a workspace of a Git repository. Outside the project folder the caption adds
   `· from <target>`, the workspace's current review target (the host's when it holds one), as the ready
   placeholder does; the Default workspace's caption is plain. The pill opens the branch card, which takes focus itself: the branch with Copy (a
-  transient notice confirms), and Compare to, which is the Changes panel's own picker (`ComparisonPicker`)
+  transient notice confirms), and Compare to, which is the Changes panel's own picker
   writing the same per-workspace selection and the same host review target, so the two can never disagree.
 - Pills and the rename input never start a window drag; captions, hairlines and the space between remain
   part of the title bar.
-- `LocationStrip` lays the segments out. As width shrinks the branch yields first, then the project; a
+- As width shrinks the branch yields first, then the project; a
   segment that would fall under 72px is dropped whole, and the workspace keeps what is left, so workspace
   identity stays visible at the minimum window width.
 
 ## Resource renderers
 
-`Resources/ResourceRegistry.cs` decides what draws a file or a diff body. A renderer declares what it
+The resource registry chooses how to display a file or a diff. A renderer declares what it
 matches (file-name globs, MIME type with a `type/*` wildcard, and whether the content is text) and its rank;
 a resource is described by its path and the host's content metadata, with the MIME type falling back to the
-extension when the host names none. `Resolve` returns the matching renderers that support the intent (view
+extension when the host names none. It offers the matching renderers that support the intent (view
 or diff) by descending rank, always ending in the required fallback: `sharprail/code` for text and
 `sharprail/binary` for bytes. A registry without the fallback for an intent throws rather than showing
 nothing. That ordered list is both the dispatch order and the document's view toggle; a single candidate

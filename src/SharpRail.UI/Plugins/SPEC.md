@@ -42,8 +42,8 @@ required scope is absent. Payloads that are themselves collections retain their 
   contribution kind, and the read selectors the workbench consumes) and the loader (the builtin array, the
   external assembly load and refusal path, the `IPluginUIContext` binding, the editor-event emitter, and the
   roster-to-activation reconciler).
-- Public surface: `PluginRegistry` and its selectors, `PluginIcons`, and `PluginLoader` (start, stop) for
-  `Workbench`; nothing else needs a plugin's internals.
+- The workbench reads registered contributions and icons and controls plugin loading through
+  the runtime boundary; it does not reach into individual plugins.
 - Forbidden: the registry reaching into the loader, `SharedState`, the host, or any window. Every live host or
   window edge is the loader's job, so the registry stays checkable with a fake roster and no app.
 

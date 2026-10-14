@@ -13,32 +13,46 @@ Upstream: packages/server/src/workspaces/SPEC.md (revision: [UPSTREAM.md](../../
 
 ## Responsibility
 
-A workspace is a Git worktree on its own branch — the anchor for files, changes and terminals. The host
-keeps a registry of them (`WorkspaceRecord`): a stable id, the project root, a kind, the worktree path, its
+A workspace is the working folder for files and terminals within a project. The Default workspace
+uses the project folder, which may be a plain folder or a Git repository. Additional workspaces
+are Git worktrees with their own branches and changes. The host keeps a registry of workspaces: a stable id, the project root, a kind, the worktree path, its
 branch and the base it is measured from. Its display label is decoupled from its branch: the label lives
-in host state (`HostState.WorkspaceLabels`), the branch in Git, and ordinary label renames never touch the branch. The first agent title of an unnamed generated managed workspace also supplies its branch slug.
+in shared host state, the branch in Git, and ordinary label renames never touch the branch.
+The first agent title of an unnamed generated managed workspace also supplies its branch slug.
 
 Two kinds are user-owned — SharpRail uses their folder but never renames, removes or reclaims them. Every
-project has exactly one `default` workspace whose root is the project folder itself (Git's main working
-tree). A worktree the user attaches is recorded in place as `external`. Only a `managed` worktree, which
+project has exactly one `default` workspace whose root is the project folder itself (the main working
+tree for a Git project). A worktree the user attaches is recorded in place as `external`. Only a `managed` worktree, which
 SharpRail created, may be removed by it.
 
 Git-reported absolute worktree paths are normalized with the host's path rules before
 registry lookup or removal, including Windows drive paths emitted by Git with forward slashes.
 
+```mermaid
+flowchart TB
+    Project[Project] --> Default[Default: project folder]
+    Project --> Managed[Managed: created by SharpRail]
+    Project --> External[External: attached existing worktree]
+    Default --> Protected[Folder remains user-owned]
+    External --> Protected
+    Managed --> Remove[SharpRail may remove the worktree]
+    Remove --> Branch[Branch remains in Git]
+```
+
+Removing a workspace and forgetting it are different: removal deletes a managed checkout;
+forgetting removes its row while leaving the checkout in place. The Default workspace permits neither.
+
 ## Boundary
 
-- Owns: opening a project or workspace root (`ProjectServices.OpenProjectAsync`), the registry
-  (`WorkspaceRegistry.cs`: `ListWorkspacesAsync`, `ApplyWorkspaceActionAsync` with `create`, `attach`,
-  `forget`, `remove`, `force-remove`, `reclaim`, `reserve-terminal` and `reveal`), the older worktree Git actions
-  (`ApplyGitActionAsync` with `create-worktree` / `remove-worktree`, which keep the registry in step) and
-  suggesting the next workspace (`ListBranchesAsync`).
-- The records are host state: `HostStateStore.ChangeWorkspaces` saves them in `state.json`, publishes the
-  snapshot and then the lifecycle events of the difference ([HostState.SPEC.md](HostState.SPEC.md)).
+- Owns opening project and workspace roots, listing registered and attachable worktrees, suggesting
+  new workspace names and branches, and create, attach, forget, remove, force-remove, reclaim, terminal-reservation
+  and reveal operations. Older Git worktree actions keep this same registry in step.
+- Registry changes persist in `state.json`, publish a complete snapshot, and then emit lifecycle
+  events for the difference. See [shared host state](HostState.SPEC.md).
 - Forbidden: moving a worktree directory, renaming an already named branch, mutating the Default workspace's checkout,
   and any Git or filesystem write into an external worktree.
 
-## Behavior
+## Terminal tools
 
 - The host exposes `workspace_create` over each authenticated terminal's MCP endpoint, independently
   of enabled plugins, for both local and remote hosts. It accepts a required task description, an
@@ -56,7 +70,7 @@ registry lookup or removal, including Windows drive paths emitted by Git with fo
   external, manually named and switched branches stay unchanged. Subsequent titles only change the tab.
   A missing or letterless title and unknown arguments are tool errors before any write.
 - `workspace_delete` (`path`) is the counterpart: it runs the registry's Remove for a managed workspace of
-  the calling terminal's project (`ProjectServices.DeleteWorkspaceAsync`), so the record leaves host state
+  the calling terminal's project (the registry Remove operation), so the record leaves host state
   in the same step as the checkout and every client's Projects updates at once, where a `git worktree
   remove` typed in the terminal is only noticed later. It never forces: Git's refusal of a dirty or locked
   checkout is the tool's error and nothing changes. The calling terminal's own workspace, the Default
@@ -66,6 +80,8 @@ registry lookup or removal, including Windows drive paths emitted by Git with fo
   of their own completed workspaces once work is preserved; other users' workspaces, dirty checkouts
   and active agents must be left alone. Agents reuse a workspace the user prepared for the task and
   create another only for additional isolation or parallel work. User-edited prompt appendixes remain user-owned.
+
+## Finding and opening workspaces
 
 - Workspace catalogs and Git snapshots omit checkout directories that no longer exist, even while Git
   retains their worktree metadata. Listing does not prune Git metadata or delete any files.
@@ -93,6 +109,8 @@ registry lookup or removal, including Windows drive paths emitted by Git with fo
   detached HEAD.
 - The same list call returns the worktrees that could still be attached: every linked worktree on disk
   that no record or open project represents; a detached one is listed without a branch.
+## Attaching and creating
+
 - Attach revalidates the path against Git's worktree list, refuses a detached HEAD, a path that is an
   open project and one recorded under another project, and is idempotent for the same project. It records
   an `external` workspace measured against the repository default and runs no Git or checkout mutation.
@@ -113,9 +131,13 @@ registry lookup or removal, including Windows drive paths emitted by Git with fo
 - A created worktree is seeded with a scratch directory, `.sharprail/context`, holding a self-ignoring
   `.gitignore` so it has no Git footprint. Seeding refuses a missing workspace root and symlinked path
   components, and never overwrites an existing ignore file. User-owned workspaces are not seeded.
+## Initial terminal
+
 - Every record first written by create, attach or the Default ensure carries `InitialTerminalPending`;
   `reserve-terminal` clears it once, persists and publishes. Adopted records and ones that predate the
   marker count as complete, so an upgrade cannot bring back a terminal the user closed.
+## Forgetting, removing and reclaiming
+
 - Forget drops the record of a managed or external workspace and keeps its worktree; the Default
   workspace refuses. Remove runs `git worktree remove` for a managed worktree, which refuses a dirty or
   locked one, and drops the record only when Git succeeded. Reclaim drops the record first and then runs
@@ -130,6 +152,8 @@ registry lookup or removal, including Windows drive paths emitted by Git with fo
   it to the previously selected one.
 - A record that leaves the registry loses its label in the same publish, so every window's rail converges
   on the broadcast rather than on per-window optimism.
+## Labels and external editors
+
 - Labels are display-only and may repeat; the branch beneath disambiguates. An empty label, or one equal
   to the directory name, restores the directory name. The Default workspace's label is fixed.
 - `OpenInEditorAsync` launches a detected editor only for a worktree of this project or a registered

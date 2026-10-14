@@ -34,9 +34,9 @@ presets belong to the UI.
 
 - Owns: `state.json` in the store's directory (none means memory only), `HostStateChange` application,
   normalization of loaded state, and the watcher channels.
-- Public surface: `GetStateAsync`, `ChangeAsync` (atomic batch), `WatchAsync`, `WatchLifecycleAsync`, plus
-  `ChangeWorkspaces`, `RecordWorkspaceBase`, `WorkspaceRemoved` (raised with the path of a workspace whose
-  record left the registry, so its terminals can end) and `LastError` for Core and the composer.
+- Supports reading snapshots, atomic batches of changes, and subscriptions to state and lifecycle
+  updates. Workspace removal notifies the composer so its terminals can end; persistence errors
+  remain available to the caller.
 - Forbidden: storing frame or view state, workspace resources or window identity; reading old layout
   snapshots.
 

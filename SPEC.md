@@ -1,4 +1,36 @@
-# SharpRail prototype contract
+# SharpRail product contract
+
+SharpRail is a workbench for desktop, Android and browsers: open a workspace, read its specs and files,
+review changes, and run tools in terminals. A workspace keeps a task's files, branch and terminals
+together.
+
+The desktop app can host work on its own machine or connect to a remote host. Android and browser
+clients connect to a remote host, where files, Git operations and terminal shells live. All clients
+use the same host operations. See the [Android](src/SharpRail.Android/SPEC.md) and
+[browser](src/SharpRail.Browser/SPEC.md) contracts.
+
+```mermaid
+flowchart LR
+    Project[Open a project] --> Home[Project Home]
+    Home --> Default[Work in the project folder]
+    Home --> Task[Create a workspace for a task]
+    Default --> Work[Read files and specs, review changes, use terminals]
+    Task --> Work
+```
+
+Read this contract by activity:
+
+- [Files, projects and settings](#files-projects-and-settings) describe everyday work.
+- [Git comparisons](#git-comparisons) explain what the change lists measure.
+- [Terminals](#terminals) describe shell ownership, reconnects and closing behavior.
+- [Layout](#layout-contract) and [shared state](#windows-and-shared-host-state) describe what moves or persists.
+- [Markdown](#markdown) describes reading documents and diagrams.
+- [Extensions](#runtime-and-managed-extensions) record runtime requirements and platform limits.
+
+The [architecture overview](ARCHITECTURE.md) explains ownership and boundaries. Linked module specs
+carry the detailed contracts; reading source code is not required to follow this document.
+
+## Design reference
 
 Reference: Thinkrail's apps/web/src/shell/layout/SPEC.md and its Balanced
 workspace, original-workspace.png, SettingsDialog, MarkdownPreview and project
@@ -15,6 +47,22 @@ the chat line measure. Upstream behavior that exists only for chat, or only for
 Monaco internals rather than editing itself, is not ported; where chat shares a
 layout with supported content, keep the layout contract and omit the chat surface.
 
+## Git comparisons
+
+Choose the question first; the list, counts and opened diffs must all answer that same question.
+
+```mermaid
+flowchart TB
+    Scope[Choose a comparison] --> Target[All changes against a target]
+    Scope --> Uncommitted[Uncommitted changes]
+    Scope --> Commit[One commit]
+    Target --> Base[Merge base of target and HEAD to working content]
+    Uncommitted --> Head[HEAD to working content]
+    Commit --> Parent[First parent to selected commit]
+```
+
+### Comparison baseline
+
 Explicit Git target comparisons measure the working tree from the merge base of
 the target and HEAD, including staged, unstaged and untracked files. Snapshot
 counts and opened diffs must use the same baseline; target-only commits must not
@@ -23,9 +71,13 @@ while invalid refs and failures resolving the comparison remain errors. Verify l
 WebSocket RPC parity using disposable clones of existing commits; no new commits or
 benchmark runs are needed for these regression fixtures.
 
+### Failures stay visible
+
 A genuine plain folder may report that it is not a Git repository. Corrupt Git
 metadata and probe/read failures must remain visible as errors, with Retry in
 Changes. Git failure must not prevent opening accessible workspace files.
+
+### Working changes and commit history
 
 Uncommitted includes staged, unstaged and untracked files. Its diff measures the
 current working content against HEAD, rather than only the index-to-working-tree
@@ -53,6 +105,20 @@ must not prevent opening the workspace.
 
 ## Terminals
 
+A terminal tab is a view of a host-owned shell. Switching workspace or closing a window does not
+end that shell while the host keeps running. Closing the terminal tab does.
+
+```mermaid
+flowchart TB
+    Shell[Host-owned shell] --> View[Attached terminal view]
+    View -->|Close window or lose connection| Detached[Shell remains available]
+    Detached -->|Attach again| View
+    View -->|Close terminal tab| Ended[Shell ends]
+    Shell -->|Natural exit or host stops| Ended
+```
+
+### Display and renderer choice
+
 On macOS, Settings → Terminal chooses Metal texture (default) or Skia (fallback) rendering.
 The Windows 10/11 x64 desktop client uses Skia exclusively, with either an embedded
 host or a remote host. Standalone Windows hosts use the same service interfaces.
@@ -79,6 +145,8 @@ The desktop native build supports macOS and Windows x64. Image protocols, hyperl
 activation, cross-cell ligatures and terminal accessibility text are not provided
 by the Skia path.
 
+### Local and remote connections
+
 Shells belong to the host, following upstream's terminal module. The host PTY
 (`posix_openpt`, `posix_spawn` of the user's login shell as a new session leader in
 the worktree) reports output, exit status and whether a foreground process is
@@ -94,6 +162,8 @@ private one-use file named by an environment variable (never argv), puts its
 terminal in raw mode, attaches over authenticated code-first WebSocket RPC streaming and
 forwards SIGWINCH resizes to the remote host. The
 relay reports the real exit code through a status file.
+
+### Reconnect and takeover
 
 Attaching replays recent output: a fresh view gets a bounded snapshot of the main
 screen (never the alternate screen or a mode sequence, preceded by the observed
@@ -111,6 +181,8 @@ saved tab layouts remain, and reopening starts fresh shells. A shell that exits 
 detached keeps its final output and exit status for the next attach. Local shells
 end when the app quits and remote shells when their host stops; restored tabs
 start new shells after a restart.
+
+### Opening, closing and clipboard
 
 Each new workspace opens one terminal, "Terminal 1", in its bottom group (a 30%
 bottom panel by default); closing it never brings it back, and a hidden bottom panel
@@ -193,7 +265,7 @@ Technical references checked on 2026-09-28:
 - [Mono interpreter configuration](https://learn.microsoft.com/en-us/dotnet/maui/macios/interpreter?view=net-maui-10.0).
 - [Apple App Store Review Guidelines](https://developer.apple.com/app-store/review/guidelines/), particularly 2.5.2 and 4.7.
 
-## Scope
+## Files, projects and settings
 
 Use compiled Avalonia XAML for static window layouts, reusable styles and
 templates where it fits. Keep runtime docking construction, host wiring,
@@ -210,6 +282,8 @@ An empty center group shows the workspace placeholder: default workspace or crea
 workspace, its branch, and what is scoped to it. A created workspace's “· from {base}”
 explains itself on hover: the ref the worktree was cut from is also the one its changes
 are measured against.
+
+### Projects and workspaces
 
 Projects: native directory picker and explicit host-path dialog (remote);
 recent/open project navigation; per-project workspace/worktree selection;
@@ -245,6 +319,8 @@ one with unsaved edits keeps them and reports the conflict when saved.
 Stage/unstage and create/remove worktrees are supported. Removal requires an
 explicit confirmation and Git refuses dirty, main or locked worktrees.
 No commits, pushes, Pi or AI integration.
+
+### Settings and appearance
 
 Settings: Thinkrail dialog proportions and styling, live appearance, separate file
 and Markdown line widths (draft inputs validated to 40–240 symbols and applied with
@@ -286,6 +362,8 @@ stays fixed. Bottom spans follow that live projection. Only the dragged side's
 ratio is committed, capped at 70% and below the opposite saved ratio's remaining
 space; untouched compression and viewport constraint adjustment remain local.
 
+### Dragging and resizing
+
 Pointer drag drafts do not mutate persistent state. Drop performs one legal
 move: strip insertion/join, center half split, side before/after group, bottom
 before/after group or hidden-region restore. Tools are auxiliary-only;
@@ -303,6 +381,8 @@ reserves no space; while dragging an eligible tool it exposes a 24px drop zone.
 That zone follows bottom alignment and excludes hidden side restore rails.
 Within its band it wins overlapping side targets and is the only active drop
 highlight; hidden side rails retain their lower corners.
+
+### Keyboard and tab navigation
 
 Keyboard/context menus provide selection, keep, close/hide, movement, split,
 new/remove/merge group, fold, visibility, alignment and resizing. Ctrl+F6 cycles
@@ -336,6 +416,13 @@ New window (header menu, Mod+Shift+N, unused upstream) opens another window at t
 current project's Home. Windows of one app share the app-owned host composition:
 one shared-state subscription, the terminal factory, and a project session per window.
 
+The optional builtin Tailscale plugin pairs clients without copying IP addresses, ports or session tokens.
+Desktop clients discover hosts by name; Android clients enter the host's MagicDNS name once. First-time
+pairing requires host approval and subsequent launches remember the device. See
+[Tailscale](src/SharpRail.Plugins.Tailscale/SPEC.md).
+
+### Shared values
+
 The host owns shared state: appearance mode, fixed theme and system pair, file and
 Markdown line widths, custom layout presets, workspace display labels, the open
 project list and recents, and workspace lifecycle. Every change goes to the host
@@ -350,6 +437,8 @@ Project Home with a notice; creation and renames update every rail. An inline
 rename left open keeps its draft across broadcasts, commits nothing when unchanged,
 and commits after a reconnect when submitted offline. A startup restore that fails
 while the host is unreachable keeps the remembered location and retries on reconnect.
+
+### Window preferences and restoration
 
 Each window keeps its own frame, default preset, group limits, bottom alignment and
 last location, as upstream's per-tab frontend state. `profile.json` stores them as
@@ -398,8 +487,3 @@ Build/format checks, R2R header + runtime assembly loading/code emission checks,
 published GUI smoke and reference screenshots at matching logical dimensions.
 Native typography/compositing differences must be measured and reported;
 do not declare pixel-perfect equivalence without comparison evidence.
-
-The optional builtin Tailscale plugin pairs clients without copying IP addresses, ports or session tokens.
-Desktop clients discover hosts by name; Android clients enter the host's MagicDNS name once. First-time
-pairing requires host approval and subsequent launches remember the device. See
-[Tailscale](src/SharpRail.Plugins.Tailscale/SPEC.md).

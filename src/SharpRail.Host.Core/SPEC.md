@@ -15,6 +15,23 @@ Upstream: packages/server/src/host/SPEC.md (revision: [UPSTREAM.md](../../UPSTRE
 
 ## Responsibility
 
+The host owns the work that continues independently of a window: files, Git, workspaces, shared
+settings and terminal shells. It is an embeddable library. Desktop windows call it directly;
+a remote server exposes the same services to connected clients. It knows nothing of the UI or
+its arrangement.
+
+```mermaid
+flowchart TB
+    Local[Local windows] --> Direct[Direct adapters]
+    Clients[Remote clients] --> Server[Authenticated server]
+    Direct --> Core[Host services]
+    Server --> Core
+    Core --> Files[Files and Git]
+    Core --> State[Shared settings and workspace registry]
+    Core --> Shells[Terminal shells]
+    Core --> Plugins[Plugin runtime]
+```
+
 Core runs on Windows x64 as well as macOS and Linux. Windows uses ConPTY through
 the host terminal service and the system Recycle Bin for file removal. Its
 workspace paths follow host filesystem rules; relative resource paths remain
@@ -27,62 +44,52 @@ and 32 filename patterns of 200 characters per entry. Scopes must agree with the
 grammar's `scopeName`; malformed values are rejected atomically. Core performs no
 tokenization and remains independent of the editor/UI.
 
-The host as an embeddable library: filesystem reads and saves, project and spec discovery, Git status,
-diffs and worktrees, shared host state, and host-owned PTY terminals. It implements the interfaces in
-`SharpRail.Host.Abstractions` and knows nothing of Avalonia, WebSocket RPC or the UI. The UI embeds it directly
-through `SharpRail.Host.Client`'s local adapters; `SharpRail.Host.Remote` serves the same instances over
-WebSocket RPC.
 
 ## Boundary
 
-- Owns: `WorkspaceHost`, `ProjectServices` (one client's project session), `HostStateStore`,
-  `PtyTerminalService` and its internals (`HostedTerminal`, `TerminalRecorder`, `PtySession`,
-  `Posix.cs`), `ChildProcess` (the bounded runner), `GitRepository`, `SpecCatalog` and `TerminalDevice` (raw mode and window size for the
-  relay).
-- Public surface: the Abstractions interfaces as implemented by those public classes; everything else is
-  `internal`.
+- Owns filesystem access, project sessions, shared state, Git operations, bounded child processes,
+  terminal sessions and their recorded output, and the raw-terminal support used by the relay.
+- Public operations follow the host abstraction contracts; implementation helpers stay internal.
 - Allowed deps: `SharpRail.Host.Abstractions`, `SharpRail.Plugins.Api.Host`, the .NET base library, the
   `git` executable and libc.
 - Forbidden: any UI, Avalonia, Protocol, Remote or Client reference; any AI/agent dependency.
 
-## Internal areas
+## Areas of responsibility
 
-| Area | Files | Spec |
+| Area | What it guarantees | Detailed contract |
 | --- | --- | --- |
-| Shared host state | `HostStateStore.cs` | [HostState.SPEC.md](HostState.SPEC.md) |
-| Workspaces and worktrees | `ProjectServices.cs`, `WorkspaceActions.cs`, `WorkspaceRegistry.cs`, `HostStateStore.Workspaces.cs` | [Workspaces.SPEC.md](Workspaces.SPEC.md) |
-| Git runner, status and diffs | `GitRepository.cs`, `ProjectServices.cs` | [Git.SPEC.md](Git.SPEC.md) |
-| Files | `ProjectServices.cs`, `ProjectFileSaving.cs`, `WorkspaceHost.cs` | [Files.SPEC.md](Files.SPEC.md) |
-| Specs | Builtin spec dialect plugin | [Specs.SPEC.md](Specs.SPEC.md) |
-| Terminals | `PtyTerminalService.cs`, `HostedTerminal.cs`, `TerminalRecorder.cs`, `TerminalDevice.cs`, `Posix.cs` | [Terminals.SPEC.md](Terminals.SPEC.md) |
-| Plugins | `Plugins/*.cs` | [Plugins.SPEC.md](Plugins.SPEC.md) |
+| Shared state | Clients converge on the same persisted values | [Shared host state](HostState.SPEC.md) |
+| Workspaces | Task folders have stable identities and safe lifecycle operations | [Workspaces](Workspaces.SPEC.md) |
+| Git | Change lists and diffs use consistent comparisons | [Git](Git.SPEC.md) |
+| Files | Reads and saves stay within the workspace boundary | [Files](Files.SPEC.md) |
+| Specs | The builtin dialect plugin owns indexing and spec tools | [Specs](Specs.SPEC.md) |
+| Terminals | Shells survive detached views and retain recent output | [Terminals](Terminals.SPEC.md) |
+| Plugins | Features register through explicit host integration points | [Plugins](Plugins.SPEC.md) |
 
-Edges between areas: `ProjectServices` publishes workspace membership into `HostStateStore` after it
-creates or removes a worktree (the only cross-area write), and every Git read goes through
-`GitRepository.RunAsync`. Terminals, specs and state depend on nothing else in Core. The plugin runtime
-reaches the others only through `PluginHostSeams`, built by the composer: it registers the namespace
-validator and dependents lookup on `HostStateStore`, the environment, lifecycle, revive and close hooks on
-`PtyTerminalService` (`IPluginTerminalSeams`), and hands `ProjectServices` its external-file delegate.
+Workspace creation and removal publish membership into shared state. Git reads use one runner.
+Terminals, specs and state remain independent of the other Core areas. The plugin runtime receives
+explicit integration points for settings validation, dependencies, terminal environment and lifecycle,
+and external-file reads; it does not reach into a window.
 
-## Composition
+## Starting and stopping the host
 
-There is no composition root inside Core. Two composers wire it:
+The desktop app composes one shared state store, terminal service and plugin runtime, plus a project
+session for each window. Its state defaults to `~/.sharprail`. Local terminal renderers call the
+terminal service directly. The separate loopback server supplies MCP and plugin routes, starting
+before the first shell or when a plugin first needs its URL.
 
-- `SharpRail.UI` composes one app-owned `Workbench`: a `HostStateStore` over `~/.sharprail`, a
-  `PtyTerminalService` shared by every window, a `PluginRuntime` over the same state directory, and one
-  `ProjectServices` per window, all behind local adapters. Both local terminal renderers call that service
-  directly in process; no local RPC server runs. The host's loopback HTTP/1.1 server (`LoopbackServer`, MCP
-  and plugin routes) starts before the first shell or when a plugin first asks for its URL.
-- `RemoteServer.Create` registers `WorkspaceHost`, a `HostStateStore` over `SHARPRAIL_STATE_DIR`, a
-  `ProjectSessions` cache that resolves each call's `ProjectServices` from the client's root header, and a
-  `PtyTerminalService` the host owns, then maps the five RPC services behind bearer-token authentication
-  and ends a removed workspace's terminals.
-  `ProjectSessions` cache that resolves each call's `ProjectServices` from the client's root header, a
-  `PtyTerminalService` the host owns and a `PluginRuntime` (plugins under `<stateDir>/plugins`), then maps
-  the five RPC services behind bearer-token authentication. Stopping it disposes the plugin runtime first.
+The remote server composes the same services under `SHARPRAIL_STATE_DIR`. Each request's root header
+selects its project session; bearer authentication protects the five RPC services. Workspace removal
+ends that workspace's shells. Server shutdown disposes the plugin runtime before the remaining host
+services. Changes flow back through state snapshots and terminal attachments, never UI callbacks.
 
-Features never reach back into their composer: pushes flow through `IHostStateService.WatchAsync` and
-terminal attachments, never through a UI callback.
+## Custom highlighting
+
+Highlighting definitions are shared settings, even though rendering belongs to the editor. The
+`custom-highlighting` value is empty or a JSON array with unique scopes, names, filename patterns
+and grammar JSON. Limits are 2 Mi characters total, 64 entries, 512 Ki characters per grammar, and
+32 filename patterns of 200 characters per entry. A scope must match its grammar's `scopeName`.
+Invalid input is rejected atomically; Core never tokenizes text.
 
 ## Get right
 

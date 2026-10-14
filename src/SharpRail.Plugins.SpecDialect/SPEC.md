@@ -10,16 +10,22 @@ depends-on: [module-plugin-api, module-plugin-ui-kit]
 Upstream: packages/plugin-spec-dialect/SPEC.md @ e8a751bd7 (CommanderTvis fork)
 Upstream: packages/spec-graph/{core,tools}/SPEC.md @ 0304a543e
 
+# Specs — browse and maintain a document graph
+
 ## Responsibility
 
-Owns the spec graph, its seven MCP tools, the Specs side tool and `spec:<id>` document links.
+Specs turns Markdown documents into a navigable map of a project. The Specs panel shows their
+parent hierarchy, while terminal tools can search, inspect and maintain their metadata. Documents
+remain ordinary files that can be read and edited without the plugin.
+
+The plugin owns the graph, seven MCP tools, the Specs side tool and `spec:<id>` document links.
 The plugin is builtin, enabled by default, has no plugin dependencies and uses wire version 1.
 Settings › Plugins › Specs can disable it on local or remote hosts. Disabling withdraws all
 seven MCP tools from listings and rejects new calls; re-enabling restores them. Projects
 without specs do not need a spec workflow.
-The graph is `plugin.spec-dialect.graph({ workspaceId })`; an unknown workspace fails.
-The host re-resolves workspace identity, requests a filesystem watch and caches one index per
-workspace. A removed workspace evicts its index. The wire title falls back to the node id.
+Graph reads name a workspace; unknown workspaces fail. The host resolves its current identity,
+watches its files and caches an index for it. Removing the workspace evicts that index. A spec
+without a title uses its id as the display title.
 
 ## Boundary
 
@@ -30,6 +36,15 @@ the plugin contributes all `spec_*` tools. Neither the panel nor the graph uses 
 host RPC, application store or core panel implementation.
 
 ## Spec files and graph
+
+```mermaid
+flowchart LR
+    Files[Markdown files in a workspace] --> Metadata[Read frontmatter]
+    Metadata --> Nodes[Specs identified by id and type]
+    Nodes --> Tree[Parent hierarchy in the Specs panel]
+    Nodes --> Links[Dependencies, references and implementation links]
+    Links --> Validate[Report missing targets, duplicate ids and parent cycles]
+```
 
 A spec has nonempty scalar `id` and `type` frontmatter fields. YAML supports flow/block lists,
 quoted values, BOM and CRLF; malformed frontmatter is ignored. Unknown types are accepted on
@@ -67,7 +82,20 @@ all dangling edges, duplicate ids and parent cycles.
 Schemas come from the typed parameter records; malformed arguments fail before the tool runs.
 Tools return text and structured details, and error outcomes carry `IsError`.
 
-## UI
+## Browsing and live refresh
+
+```mermaid
+flowchart TB
+    Open[Open a workspace or Project Home] --> Read[Read the spec graph]
+    Read -->|Specs found| Tree[Show the tree]
+    Read -->|No specs| Empty[Show No specs]
+    Read -->|Failure| Error[Show error and Retry]
+    Tree -->|Files change| Refresh[Read updated graph]
+    Refresh -->|Success| Tree
+    Refresh -->|Failure| Retain[Keep last good tree with error and Retry]
+    Retain -->|Retry| Refresh
+    Error -->|Retry| Read
+```
 
 Activation drives graph reads from the active workspace and filesystem revision, independently
 of whether the Specs panel is mounted. At Project Home it follows the context project's default
@@ -92,21 +120,22 @@ navigation target, title, role and active-file appearance; Left/Right collapse, 
 navigate hierarchy, and Enter keeps the selected spec. Role labels remain visible on the
 row's own hover or keyboard focus, with path and role also exposed to accessibility.
 
-The headless checks translate the fork's `specs-panel.spec.ts` through the real panel: the tree,
-role tags, editor tabs and specs added mid-session; a failed first read showing `Couldn't load
-specs.` and recovering on Retry; and a failed update keeping the previous tree under `Couldn't
-update specs.` until Retry. Failures are injected at the app's plugin service, where the fork
-injects them at its WebSocket.
-
 Pi registration and chat tool cards follow the repository's explicit Pi/chat exclusion.
 The terminal MCP tools implement the portable spec dialect without a Pi dependency.
 
-## Checks
+## Acceptance
 
-`SpecDialectChecks` covers host graph reads, workspace removal, local/WebSocket RPC parity, tree/store/sync,
-legacy layout migration, real-input plugin toggling, active-file selection and rail defaults.
-Cold Project Home checks cover local/gRPC graph loading and watched edits; the local check also
-opens a spec into the default workspace.
-`SpecToolChecks` translates the spec graph and tool contracts through the real runtime's MCP table,
-including all seven tools, authoring, malformed input, path safety, YAML preservation and validation.
-The preview, Markdown links, live refresh and docking suites exercise the moved panel in the workbench.
+Checks exercise the real plugin and panel, including local and remote hosts:
+
+- All seven tools obey the graph and authoring rules, reject unsafe paths and malformed input,
+  and preserve YAML comments, custom fields and document text.
+- Cold Project Home loads the default workspace's specs and follows watched edits; opening a spec
+  enters that workspace.
+- Click previews a spec; double click or Enter keeps it. Editor navigation updates selection,
+  and adding a spec during the session updates the tree.
+- A failed first read shows “Couldn't load specs.” and recovers on Retry. A failed update keeps the
+  previous tree under “Couldn't update specs.” until Retry succeeds.
+- Toggling the plugin updates its tools, links and rail defaults. Legacy layouts migrate, and
+  workspace removal clears cached state.
+
+Preview, Markdown-link, live-refresh and docking checks cover the panel in the wider workbench.

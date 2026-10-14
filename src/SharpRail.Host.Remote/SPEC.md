@@ -22,11 +22,8 @@ The platform choice belongs to Core's process backend, not to the wire protocol.
   adapters `WorkspaceRpc.cs`, `ProjectRpc.cs`, `StateRpc.cs`,
   `TerminalRpc.cs` and `TerminalCatalogRpc.cs` and `PluginRpc.cs`, `ProjectSessions.cs` (per-call workspace resolution) and
   `Program.cs` (environment-driven startup).
-- Public surface: `RemoteServer.Create(root, address, port, token,
-  stateDirectory?, terminals?, plugins?)` for a full host (`plugins` adjusts the
-  plugin runtime's seams, as the checks do) returns an unstarted `WebApplication`;
-  the embedder starts and stops it. `LoopbackServer` is public so the app's own host
-  composes the same server.
+- Embedders create an unstarted server and control its lifetime. They may supply terminal services
+  and plugin integration points. The app can compose the same loopback server for its own host.
 - `RemoteServer.CreateListener` borrows an embedded host's existing state, terminals and plugin runtime.
   `HostListener` serializes runtime Start/Stop, reports the bound endpoint, disposes failed starts and
   prevents restart after disposal. Neither path recreates or owns the borrowed services. Embedded

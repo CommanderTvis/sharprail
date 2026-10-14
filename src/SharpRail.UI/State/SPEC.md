@@ -1,14 +1,26 @@
-# State — profile and shared host state
+# State — what is shared and what is remembered
 
 Upstream: apps/web/src/store/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
 Upstream: apps/web/src/navigation/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
 
 ## Responsibility
 
-The client's two state owners. `ProfileStore` owns on-disk app state that belongs to this app install:
-app preferences and one entry per window. `SharedState` is the app's one subscription to its host's shared
-state, read by every window. Neither owns rendering, and neither is a second authority over the other's
-values: host-owned values live in the host and are mirrored here only as the latest snapshot.
+State has two owners. The host keeps values that every connected window should agree on. The app
+profile keeps preferences and window arrangements for this installation. Each app subscribes once
+to its host and gives all its windows the latest snapshot; that copy is never a second authority.
+
+For example, renaming a workspace updates every connected client's project list. Rearranging a
+window changes only that window. Choosing a terminal renderer affects this app, because another
+client may have different rendering capabilities.
+
+```mermaid
+flowchart TB
+    Change[User changes something] --> Kind{Who owns the value?}
+    Kind -->|Workspace label or shared setting| Host[Save through the host]
+    Host --> Broadcast[Complete snapshot to connected clients]
+    Kind -->|App preference or window layout| Profile[Save in this app profile]
+    Profile --> Local[Restore on this installation]
+```
 
 Saved project and Git-selection paths belong to the host. Profile validation
 preserves absolute POSIX, Windows drive and UNC paths independently of the client
@@ -26,29 +38,44 @@ profiles carrying a Metal preference from another platform.
 
 ## Ownership split
 
-Host state (`IHostStateService`, see Host.Abstractions `HostState.cs`) holds appearance mode, the fixed
+The [host state service](../../SharpRail.Host.Core/HostState.SPEC.md) holds appearance mode, the fixed
 theme and system pair, file and Markdown line widths with their bounded switches, custom layout presets,
 workspace display labels, the open project list and recents, and workspace lifecycle.
 The vertical tab mode and its placement in Projects also belong to the host. Existing embedded profiles
 seed previously absent values even after the older host-state migration. Local profile copies remain only
 as fallback for hosts that do not expose the nullable mode fields; column width and pane direction stay local.
 The browser profile records completed legacy bottom-terminal repairs by host endpoint and workspace.
-A window changes shared settings only through `SharedState.ChangeAsync` and updates when the resulting snapshot arrives, so every
+A window changes shared settings only through a request to the host and updates when the resulting
+snapshot arrives, so every
 window and client converges on the same values and a control keeps showing the host's value until then.
 There is no optimistic write, pending queue or rollback. A rejected change is reported in the window that
 made it.
 
 Profile state (`profile.json`) holds interface size, page zoom, hidden-files visibility, the terminal renderer,
 rail expansion, per-workspace
-Git target/scope/selected commit, and one `WindowProfile` per open window: its frame (`DockState`, which
-includes its workspace views), its default preset and its last location. Frame, default preset and group
-limits are window-local and never shared through the host; the host carries only the shared custom preset
-definitions.
+Git target/scope/selected commit, and one entry per open window: its frame (including its workspace
+views), its default preset and its last location. Frame, default preset and group limits are window-local
+and never shared through the host; the host carries only the shared custom preset definitions.
 
 The terminal renderer accepts `texture` and `skia` and defaults to Metal texture; legacy `native` and unknown values normalize to that
 default. It is app-local because rendering is a client capability, not host state.
 
 ## Shared-state subscription
+
+```mermaid
+sequenceDiagram
+    participant A as Window A
+    participant H as Host
+    participant B as Client B
+    B->>H: Subscribe or reconnect
+    H-->>B: Complete current snapshot
+    A->>H: Request a shared setting change
+    H->>H: Validate and persist
+    H-->>A: Complete updated snapshot
+    H-->>B: Complete updated snapshot
+```
+
+A rejected change reports an error to the requester instead of broadcasting a new value.
 
 Snapshots are complete. A client receives the current one on subscribe and again after every reconnect,
 which is how it rehydrates anything missed while disconnected; there is no event log to replay. Local
@@ -98,7 +125,7 @@ Plugins add two profile fields. `PluginPreferences` holds a UI half's client-loc
 ## Location
 
 A window's location (Welcome, Project Home or a workspace) is window-local intent, persisted in its
-`WindowProfile` and validated against host state before it changes what the window shows. Validation
+profile entry and validated against host state before it changes what the window shows. Validation
 waits for the host's snapshot rather than treating an empty or disconnected state as absence. Only a
 successful read that lacks the project or workspace falls back (workspace to Project Home, project to
 Welcome); a timeout or disconnect keeps the remembered location and retries after reconnect. Superseded
@@ -106,14 +133,14 @@ project opens are cancelled by a monotonic request counter so a late response ne
 location. Location is never shared between windows or clients; continuing elsewhere is an explicit action:
 a serialized link, described with the window's Back/Forward list in [../SPEC.md](../SPEC.md).
 
-A workspace that leaves the host's registry is tombstoned for the window's lifetime (`HostSync.cs`): its Git
+A workspace that leaves the host's registry is tombstoned for the window's lifetime: its Git
 selection, its place in the selection history and its view in the frame are dropped at once, an open of it
 that was still in flight lands on Project Home instead of entering it, and leaving it afterwards writes no
 selection back. The tombstone lifts when a workspace is registered at that path again.
 
 ## Tab view state
 
-Each file and diff tab has a `TabView`: the renderer it chose and that renderer's own view state. The
+Each file and diff tab remembers its chosen renderer and that renderer's view state. The
 window keeps them in memory by owning workspace and tab id, beside the loaded content and its metadata,
 and drops them when the tab closes; they are not written to the profile. Writes name the owning workspace,
 so a body that closes after a workspace switch still updates its own tab, and a write for a tab that no
@@ -135,7 +162,7 @@ app preference shared across windows; historical scopes remain read-only.
 
 ## Toasts
 
-`ToastQueue` is one window's transient notifications, oldest first; `Rendering/ToastStack` draws it. A toast
+Each window has its own queue of transient notifications, displayed oldest first. A toast
 has a variant (info, success, error), a message, an optional title, its own duration and at most one action
 (an Undo receipt). Without a duration, info and success end after five seconds and an error stays until
 dismissed. Pushing a notification identical to a visible actionless one returns that one instead of adding

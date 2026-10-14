@@ -4,7 +4,6 @@ type: module-design
 status: active
 title: Host abstractions — the public host surface
 parent: architecture
-tags: [public-surface-checked]
 ---
 
 # Host abstractions — the public host surface
@@ -32,12 +31,8 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
 
 ## Boundary
 
-- Owns: `IWorkspaceHost` (`IWorkspaceHost.cs`), `IProjectServices`
-  (`ProjectServices.cs`), `IHostStateService` with `HostState`, `HostSettings`, `LayoutPreset` and
-  `HostStateChange` (`HostState.cs`), the workspace registry records `WorkspaceRecord`, `WorkspaceAction`,
-  `WorkspaceCatalog` and `LifecycleEvent` (`WorkspaceRegistry.cs`), `ITerminalService` / `ITerminalSession` with
-  `TerminalAttachRequest`, `TerminalFileLink` and `TerminalGrid` (`TerminalServices.cs`), `ITerminalCatalogService` with
-  `TerminalTab` and `TerminalCatalog` (`TerminalCatalog.cs`), and `FileLimits`.
+- Owns the service contracts and domain records for workspace identity, project operations,
+  shared state, workspace lifecycle, terminal sessions and catalogs, and agreed file limits.
 - Allowed deps: the .NET base library and `SharpRail.Plugins.Api`, whose roster, agent-record and project
   records `HostState` and `IPluginService` share with plugins rather than mirror.
 - Forbidden: serialization attributes, WebSocket RPC, Avalonia, filesystem or process access, and any AI or agent
@@ -111,24 +106,12 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
 - `IProjectServices.GetDiffStatsAsync` has a default body answering null, so a test double or an older
   implementation simply offers no badge.
 
-## Public surface
+## API validation
 
-The public top-level types of the assembly, held to it in both directions by the conformance checks
-(a type added here is added to this list in the same change):
-
-`BranchCatalog`, `ChangeException`, `ChangeExpectation`, `ChangeFailure`, `ChangeIdentity`,
-`ChangeReceipt`, `ContentBytes`, `ContentMetadata`, `DiffSides`, `DiffStats`, `EditorInfo`,
-`ExistingWorktree`, `WorkspaceFileChanges`, `FileAction`, `FileDocument`, `FileEntry`, `FileLimits`, `FileSaveRequest`, `FileTransferEntry`, `FileTransferRequest`,
-`GitAction`, `GitChange`, `GitCommit`, `GitHubAuthentication`, `GitSnapshot`, `HostErrorCode`, `HostException`,
-`HostHandshake`, `HostProtocol`, `HostSettings`, `HostState`, `HostStateChange`,
-`IPluginService`, `PluginCallRequest`, `PluginSubscription`, `SearchHit`, `SearchHits`,
-`TerminalAgent`, `TerminalPrefill`, `TerminalTitle`, `IHostStateService`, `IProjectServices`, `ITerminalCatalogService`, `ITerminalService`,
-`ITerminalSession`, `IWorkspaceHost`, `LayoutPreset`, `LifecycleEvent`, `LineSpan`, `OpenReview`,
-`PrDraft`, `PrRequest`, `PrResult`, `ProjectFile`, `ProjectPathKind`, `ProjectRecord`,
-`RemoteBranch`, `RevertTarget`, `SpecDocument`, `SpecDuplicate`, `SpecEdge`, `SpecGraph`,
-`SpecLinks`, `TerminalAttachRequest`, `TerminalCatalog`, `TerminalFileLink`, `TerminalGrid`, `TerminalTab`,
-`WorkspaceAction`, `WorkspaceCatalog`, `WorkspaceInfo`, `WorkspaceKinds`, `WorkspaceRecord`,
-`WorktreeInfo`.
+The Public API analyzer checks public declarations against the committed `PublicAPI.Shipped.txt`
+and `PublicAPI.Unshipped.txt` baselines during compilation. Added, removed or changed signatures
+require a deliberate baseline update. This spec owns behavior and transport invariants, not a
+second list of declarations.
 
 ## Invariants
 

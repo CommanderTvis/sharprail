@@ -409,7 +409,6 @@ internal static class Program
         if (args.SequenceEqual(["--conformance"]))
         {
             BoundaryChecks.Run(root);
-            SurfaceChecks.Run(root);
             return;
         }
         if (args.SequenceEqual(["--android"]))
@@ -732,7 +731,6 @@ internal static class Program
         }
         Gate.Case("packaged-app", PackagedApp.Run);
         Gate.Case("boundaries", () => BoundaryChecks.Run(root));
-        Gate.Case("public-surface", () => SurfaceChecks.Run(root));
         Gate.Case("runner", () => RunnerChecks.Run(root));
         Gate.Case("layout", LayoutChecks.Run);
         Gate.Case("quit-confirmation", QuitConfirmationChecks.Run);

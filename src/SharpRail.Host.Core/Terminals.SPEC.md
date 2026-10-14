@@ -29,10 +29,9 @@ their MCP identities. The host waits for shell shutdown before completing the pr
   (`HostedTerminal`), the output recorder (`TerminalRecorder`), foreground-process detection and the
   recording store (`TerminalRecordingStore`, one file per hex session id in the optional recordings
   directory) and the catalog (`TerminalCatalogStore`, `catalog.json` in the same directory).
-- Public surface: `AttachAsync`, `IsBusyAsync`, `CloseAsync`, `DisposeAsync`; `OpenWorkspaceAsync`,
-  `ReserveAsync`, `CloseTabAsync`, `CloseWorkspaceAsync`, `WatchAsync`; `TerminalDevice` for the relay's
-  raw mode and window size. `MemoryTerminalCatalog` serves the catalog for terminals this process does not
-  run (a platform without PTYs, or terminals an embedder supplied).
+- Supports attaching to shells, checking foreground activity, closing sessions, and managing
+  workspace terminal catalogs and subscriptions. The relay can set raw mode and window size.
+  An in-memory catalog supports platforms without PTYs and embedder-supplied terminals.
 - Forbidden: UI and transport types. Output reaches clients only through the attachment they hold.
 
 ## Decisions

@@ -5,7 +5,7 @@ Upstream: e2e/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
 ## Responsibility
 
 The system gate for SharpRail's host/UI integration: boot real hosts (direct local
-and Kestrel gRPC remote), seed real Git and profile fixtures, drive the Avalonia
+and Kestrel WebSocket RPC remote), seed real Git and profile fixtures, drive the Avalonia
 workbench through real headless pointer and keyboard input, and leave nothing
 machine-global behind. `E2E.md` is the inventory of which upstream scenarios are
 translated and how browser concepts map to Avalonia; this spec holds the harness
@@ -75,13 +75,13 @@ refused grids and start guidance (`TerminalLimitChecks.cs`); a stalled reader an
 (`TerminalBackpressureChecks.cs`); and the terminal catalog, its storage, catalog-keyed revival and a
 removed worktree's shells (`TerminalCatalogChecks.cs`), including opening an empty workspace without
 reserving an initial terminal on either transport; and the host replay size with its Settings control
-(`TerminalReplayChecks.cs`). Yielding attach is checked locally and through gRPC in `TerminalHostChecks.cs`: a
+(`TerminalReplayChecks.cs`). Yielding attach is checked locally and through WebSocket RPC in `TerminalHostChecks.cs`: a
 held session keeps its client and grid, a free one is joined, and a plain attach takes over at its own size.
 Watching is checked beside it on both paths: a watcher gets the screen, live output and the holder's grid, its
 input, resize and kill change nothing, a watcher nobody reads holds back neither the shell nor the others and
 starts over from a reset and a fresh screen, a take-over swaps roles and grid, a resize alone reaches
 watchers, a watcher's resume replays only what it missed, and exit reaches every watcher.
-`E2E/SharedTerminalsE2E.cs` runs two remote clients of one real gRPC host, each with its own profile, connection
+`E2E/SharedTerminalsE2E.cs` runs two remote clients of one real WebSocket RPC host, each with its own profile, connection
 and grid: the second shows the first's terminals, a terminal opened in one arrives in the other without selection,
 focus or an attachment, closing in either removes it from both and from the catalog, a held terminal is shown
 live and read-only rather than taken, resized or typed into, Take over and Take it back move the shell and its
@@ -99,7 +99,7 @@ per-terminal replacement and coalescing, click routing to another project's work
 Settings switch. It never posts a real notification; on macOS it also loads the native bridge unbundled.
 `--terminal-replay` checks historical query filtering while retaining live terminal replies
 (`TerminalQueryReplayChecks.cs`).
-`--registry` runs one workspace-registry scenario through the direct and the gRPC adapter and requires the same
+`--registry` runs one workspace-registry scenario through the direct and the WebSocket RPC adapter and requires the same
 records, refusals and pushed lifecycle events from both, then the rail checks for attaching, forgetting,
 background project rows and removed-workspace cleanup.
 Force removal coverage requires explicit dirty-file approval, retains the branch, and preserves the
@@ -193,10 +193,9 @@ executable runs outside a checkout.
   XAML, are scanned for any mention of another project's root namespace, which covers using directives,
   aliases, static and global usings, qualified names and type forwarding. `bin`, `obj`, `artifacts` and
   dot-directories are excluded. Negative fixture trees go through the same scan as the repository.
-- The public-surface check enrols a spec by the `public-surface-checked` tag. An enrolled spec must keep a
-  `## Public surface` section of bare backticked identifiers and sit beside its project; the list must equal
-  the assembly's public top-level types in both directions. `src/SharpRail.Host.Abstractions/SPEC.md` is
-  enrolled. Unenrolled specs stay descriptive.
+- Public API analyzers guard declarations during compilation using committed API baselines.
+  Missing declarations and stale signatures fail the warnings-as-errors build. Specs describe
+  behavior and boundaries; the executable gate does not compare Markdown lists to assemblies.
 
 ## Packaged gate
 
@@ -217,7 +216,7 @@ Remoteness is an adapter choice, so shared behavior is proven through both
 composition roots: the same Core host behind `LocalHostAdapter` and behind a
 loopback `RemoteServer` with `RemoteHostAdapter` must return equal results,
 propagate cancellation, and reject a bad token as unauthenticated. Multi-client
-translations attach remote clients to one real gRPC host, and `E2E/CutProxy.cs`
+translations attach remote clients to one real WebSocket RPC host, and `E2E/CutProxy.cs`
 drops and restores a single client's connection to exercise reconnect. A new host
 operation adds its parity assertion here. The handshake checks cover local/remote equality, a rejected
 wrong token, a stub host without the method (version 0), the capability table, and clearing and refetching
@@ -303,7 +302,7 @@ and survives refresh. Modified files retain the width-based default.
 
 `ContentChecks.cs` (`-- --content`, also in the default run) covers the classifier (magic numbers, ASCII-only
 PDF byte-only, SVG and HTML flagged active, NUL and invalid UTF-8, LFS pointer), then the same fixture
-through the embedded host and a real gRPC host with equal results: byte-only diff sides empty with metadata
+through the embedded host and a real WebSocket RPC host with equal results: byte-only diff sides empty with metadata
 and a frozen original commit, no commit for a root commit or untracked file, a binary notice for an untracked
 byte-only diff, exact bytes for the commit, working tree and index, an original that survives the branch
 moving, and refusal of refs, abbreviations, unknown, tree and blob ids, path escape, missing paths and a
@@ -360,7 +359,7 @@ diffs still replace the body. Markdown coverage includes natural height, resizin
 ## Reconnect checks
 
 `ReconnectChecks.cs` (`-- --reconnect`, also in the default run) runs against the embedded host and real
-gRPC hosts. Named failures: a vanished commit is `HostErrorCode.UnknownCommit` with the same message from
+WebSocket RPC hosts. Named failures: a vanished commit is `HostErrorCode.UnknownCommit` with the same message from
 the snapshot, diff, diff-sides and byte reads of both hosts, an unnamed failure stays unnamed, and `NotGit`
 and `AlreadyOpen` survive the state service's transport from a host that refuses with them. Replay: a
 state change whose connection `CutProxy` drops in flight completes with the first run's reply or refusal
@@ -387,7 +386,7 @@ the cases.
 ## Git host checks
 
 `GitHostChecks.cs` (`-- --git-host`, also in the default run) runs one scenario list against the embedded
-host and a real gRPC host over twin fixtures (a bare origin and a clone one commit ahead on `feature`) and
+host and a real WebSocket RPC host over twin fixtures (a bare origin and a clone one commit ahead on `feature`) and
 requires equal logs. It covers the ref-shape table, and every door refusing option, range, reflog and
 revision syntax before Git runs, with refs unchanged afterwards and a crafted `origin/HEAD` skipped; the
 pinned scope (commits, working edits and untracked files from one commit, unmoved by a later commit,
@@ -409,11 +408,11 @@ file never replaced. It then covers project identity (ids and unique slugs minte
 close and reopen with `lastOpened` advancing, persisted, dropped when forgotten, minted for an older state
 file) and the `HostErrorCode.AlreadyOpen` refusal of an open project's linked worktree. `ProjectPathChecks.cs` in the
 same mode covers `~` and relative path resolution and equal path classification through the embedded host
-and a real gRPC host; `ProjectPickerE2E` adds the UI refusal of a missing folder and of a file in the notice dialog.
+and a real WebSocket RPC host; `ProjectPickerE2E` adds the UI refusal of a missing folder and of a file in the notice dialog.
 
 ## File read checks
 
-`ProjectChecks.cs` (`-- --files`) reads the same fixture through the embedded host and a real gRPC host:
+`ProjectChecks.cs` (`-- --files`) reads the same fixture through the embedded host and a real WebSocket RPC host:
 NUL-bearing and invalid UTF-8 files answered as empty text with metadata, other control characters kept
 as text, a PNG under another name returned as a picture and text named `.png` as text, `.git` refused for
 reads, listings, saves and byte reads in any letter case, and a missing leaf reported by the read rather
@@ -423,7 +422,7 @@ window error.
 `WatchChecks.cs` (`-- --watchers`, also in `--files` and the default run) covers the shared watchers:
 two subscriptions on one root sharing one set and both notified, a root deleted and recreated restarting
 the set once with a rescan to existing subscribers, release with the last subscriber, and the pre-warm
-pool through the embedded host and a real gRPC host: eight kept, the least recently warmed evicted,
+pool through the embedded host and a real WebSocket RPC host: eight kept, the least recently warmed evicted,
 re-warming, a subscription taking over a pre-warmed set and never being evicted, a vanished folder reaped
 and a relative path refused. `ProjectPathChecks.cs` checks that untracked line counts follow the shared
 classification.
@@ -435,7 +434,7 @@ quoted and commented scalars, flow and block lists, a `SPEC.md` without frontmat
 across a directory, a file and another directory, a parent ring, a dangling link and an ignored directory.
 It requires the winner chosen by the one-list sort, every link kind forwards and backwards, the three
 validation lists, parse and build counters that stay still for an unchanged workspace and move by one for
-one edited file, equal graphs through the embedded host and a real gRPC host, the durable-spec query
+one edited file, equal graphs through the embedded host and a real WebSocket RPC host, the durable-spec query
 ignoring a lone task spec and answering false for a missing folder, and the index dropped with its
 worktree. Authoring covers the path rule's refusals, create, an exact-text frontmatter update that keeps
 comments, CRLF, the byte order mark and the body, refused identity edits, and delete.
@@ -556,7 +555,7 @@ back and forward buttons are not asserted.
   terminal execution to a real shell, so developer tools cannot leak into isolated fixtures.
 
 `--tailscale` covers builtin Tailscale bootstrap, approved-token authentication and revocation using fake
-peer identities over real HTTP/gRPC. It never reaches the developer's Tailscale installation or tailnet.
+peer identities over real HTTP/WebSocket RPC. It never reaches the developer's Tailscale installation or tailnet.
 
 `MarkdownSelectionChecks` runs with `--drawn-rendering` and the default gate. It checks reverse
 and shrinking drags in a virtual document, source-line observers, offscreen Shift-click and

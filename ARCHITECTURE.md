@@ -5,152 +5,158 @@ status: active
 title: SharpRail — top-level architecture
 ---
 
-# SharpRail — top-level architecture
+# How SharpRail fits together
 
-Upstream: architecture.md (revision: [UPSTREAM.md](UPSTREAM.md))
-Upstream: architecture.md @ 4737df6d (CommanderTvis fork), Decision 17 and the plugin rings
+SharpRail brings projects, Git workspaces, files, specs, changes and terminals into a native
+workbench for desktop, Android and browsers. The desktop app can work on its own machine or connect to a
+remote host. Android and browser clients connect to a remote host, which owns their files, Git operations
+and shells. All clients use the same host operations; local desktop work does not require a background
+server.
 
-## Drivers
+This is the map of the system. Start with the [product contract](SPEC.md) for behavior, then
+follow the linked module specs for individual rules. Source-file navigation belongs in
+[the contributor guide](AGENTS.md). Upstream provenance is recorded in [UPSTREAM.md](UPSTREAM.md)
+(architecture.md, including the fork's plugin rings and Decision 17 at 4737df6d).
 
-SharpRail is a native C# port of ThinkRail's workbench: projects, Git worktree workspaces, files, specs,
-changes and terminals, without the agent. One Avalonia application composes a host either in process
-(direct calls, no sockets or serialization) or over authenticated WebSocket RPC to a remote host. The host is a
-library; remoteness is an adapter choice, never a mandatory local daemon.
+## Local and remote work
 
-## Topology — three rings
+The host owns projects, files, Git, shared settings and shells. The workbench displays them and
+handles interaction. A local adapter calls the host directly; a remote adapter carries the same
+operations over authenticated WebSocket RPC. Android and browser clients use the remote path only. See the
+[Android](src/SharpRail.Android/SPEC.md) and [browser](src/SharpRail.Browser/SPEC.md) contracts.
 
-- Host: `SharpRail.Host.Core` implements filesystem, project/spec discovery, Git, worktree, shared-state and
-  PTY terminal services behind the interfaces in `SharpRail.Host.Abstractions`. `SharpRail.Host.Remote`
-  serves them over Kestrel HTTP/1.1 WebSockets (`RemoteServer.Create`, started by its `Program.cs`).
-- The wire: `SharpRail.Host.Protocol` holds the typed protobuf service contracts and DTOs —
-  the only coupling between a remote client and host.
-- Client: `SharpRail.UI` (Avalonia workbench) consumes the abstractions through `SharpRail.Host.Client`,
-  whose `Local*Adapter`s call Core directly and whose `Remote*Adapter`s proxy over WebSocket RPC.
-  `SharpRail.Android` is the same workbench compiled for Android and composed with the remote adapters only:
-  it has no embedded host and connects to an endpoint a desktop app or `SharpRail.Host.Remote` serves
-  (`src/SharpRail.Android/SPEC.md`).
-  `SharpRail.Browser` compiles the same UI sources for WebAssembly and composes remote adapters only.
-  Browser WebSockets carry the existing protobuf contracts, including duplex streams, through direct
-  dispatch to the host adapters, shared with desktop and Android. Ghostty, Scintilla, SheenBidi, Skia, HarfBuzz and
-  Oniguruma share the managed WASM runtime; PDFium and Merman render in browser workers. Browser window
-  surfaces and storage adapt the platform, while filesystem, Git, processes and shells stay on the host
-  (`src/SharpRail.Browser/SPEC.md`).
-- Plugins: `SharpRail.Plugins.Api` (root, `.Host` and `.UI` entries) is the contract a plugin is written
-  against, so its methods, channels and UI contributions can live outside either ring. The host runtime
-  (`SharpRail.Host.Core/Plugins`) loads plugin host halves wherever the host runs; the app runtime
-  (`SharpRail.UI/Plugins`) loads UI halves. `SharpRail.Plugins.UI.Kit` is the control kit both the app and a
-  plugin's UI half build on, never a wire concern of its own.
-
-```
-SharpRail.UI              Avalonia app + workbench   ── depends on ─▶ Host.Core, Host.Client, Host.Remote (loopback server only), Plugins.Api.UI, Plugins.UI.Kit, Scintilla, Ghostty.Avalonia
-SharpRail.Android         Android client: UI sources + windowing ─ depends on ─▶ Host.Core, Host.Client, Plugins.Api.UI, Plugins.UI.Kit, Scintilla, Ghostty.Avalonia (not Host.Remote)
-SharpRail.Host.Client     local adapters + WebSocket RPC proxies ─ depends on ─▶ Host.Abstractions, Host.Protocol
-SharpRail.Host.Remote     Kestrel host + RPC adapters ── depends on ─▶ Host.Core, Host.Protocol
-SharpRail.Host.Core       host implementation        ── depends on ─▶ Host.Abstractions, Plugins.Api.Host
-SharpRail.Host.Protocol   wire contracts + DTOs
-SharpRail.Host.Abstractions  transport-independent interfaces + domain records ─ depends on ─▶ Plugins.Api
-SharpRail.Plugins.Api     plugin contract: manifest, contract vocabulary, roster, identity helpers
-SharpRail.Plugins.Api.Host  plugin host context ─ depends on ─▶ Plugins.Api
-SharpRail.Plugins.Api.UI  plugin UI context and contributions ─ depends on ─▶ Plugins.Api, Avalonia
-SharpRail.Plugins.UI.Kit  shared controls, Markdown, editor frame, diagrams ─ depends on ─▶ Scintilla, Avalonia
-SharpRail.Scintilla       self-contained editor control (references no SharpRail project)
-tests/SharpRail.Checks    executable checks; references UI and Remote to exercise both paths
+```mermaid
+flowchart TB
+    Desktop[Desktop workbench] --> Local[Direct calls in the app]
+    Local --> Embedded[Embedded host]
+    Desktop --> Remote[Authenticated WebSocket RPC]
+    Android[Android workbench] --> Remote
+    Browser[Browser workbench] --> Remote
+    Remote --> Served[Remote host or a desktop serving its host]
+    Embedded --> LocalWork[Local files, Git and shells]
+    Served --> RemoteWork[Files, Git and shells on the host machine]
 ```
 
-## Decisions
+A desktop app may serve its existing host while its own windows keep making direct calls.
+The optional loopback server serves terminal MCP and plugin routes; it does not carry ordinary
+local workspace or terminal traffic. Separate app processes have independent hosts and do not
+coordinate through a shared state directory.
 
-1. Client/host split. The host owns domain state; the UI renders it. Host projects never reference the
-   UI or Avalonia. The UI references Core to compose the embedded host, and Remote only to serve that host (the
-   loopback server and the Settings › Host listener).
-2. The host is a library; the launcher is thin. `SharpRail.UI/Program.cs` and `App.cs` compose one
-   app-owned `Workbench` (profile, shared-state subscription, terminal factory, per-window project session
-   factory); the remote `Program.cs` reads its root, bind address, port, token and state directory from
-   environment variables. An ordinary feature changes the abstraction, the Core implementation, both
-   adapters, the wire contract and the checks — never a launcher.
-3. One feature path across deployments. Local and remote are the same interface; checks verify
-   local/remote parity for every host operation. A second environment that cannot supply an operation earns
-   a narrow port in the owning service, not a global platform adapter.
-4. Transport endpoint is a parameter. Embedded mode uses direct adapters; a remote client names the
-   host's endpoint and token. Remote calls carry the workspace root the client opened
-   (`ProjectHeaders.Root`), so clients never share a current project and resume after reconnecting without
-   server-side sessions.
-5. UI = panels + shell. Panels (project rail, Files, Specs, Changes, editor/diff/Markdown documents,
-   terminals) never know their arrangement. Each window owns one persisted frame (`LayoutState`, applied
-   through `LayoutSession`, rendered by `DockSurface`) with a recursively split center and auxiliary
-   side/bottom groups; switching workspace changes only the projected workspace view, never the frame.
-   Another window never rearranges this one. Static layout/styles/templates live in compiled `.axaml`;
-   dynamic docking and host wiring live in C#.
-6. Workspaces are Git worktrees. Project (Git repository) → workspace (a worktree on its own branch) →
-   {files, changes, terminals}. Every project has one Default workspace whose root is the project's main
-   working tree; it is never removable. Created worktrees go to `<project>-worktrees/workspace-N`.
-7. Auth is a bearer token. The remote host requires `Authorization: Bearer <token>` on every call,
-   compared in constant time; network reach (for example Tailscale) is the deployment's concern.
-8. Hydrate-then-stream. A client never relies on having witnessed events: it reads current state, then
-   subscribes. `IHostStateService.WatchAsync` yields a complete snapshot first and after every change, and
-   remote clients resubscribe after a dropped transport, so a new window, a second client or a reconnect
-   rebuilds the same settings, presets, projects, recents, labels and workspace lists. Clients apply the
-   broadcast; they never write a local copy of host state.
-9. Domain state vs frontend-local frame. Domain state (shared settings, custom presets, project list and
-   recents, workspace labels and lifecycle, terminal sessions, Git) belongs to the host. The frame,
-   per-workspace document placement, selection, default preset, group limits, bottom alignment and last
-   location are per-window view state in `~/.sharprail/profile.json` (one `Windows` entry per window) and
-   never cross the wire. Only resource-free custom preset definitions are host-persisted. Closing a
-   document placement is local; closing a terminal tab ends its shell on the host.
-10. Dependencies pin exact versions, once. `Directory.Packages.props` pins shared package versions and
-    `global.json` selects the SDK; specs name the behavior they rely on rather than restating versions.
-11. Terminal = Ghostty. macOS tabs use libghostty's Metal textures composed by Avalonia or libghostty-vt
-    cells drawn with Skia. Local Metal uses an external I/O backend attached directly to the app-owned
-    PTY service: no relay, socket or RPC. Remote Metal runs a `--terminal-relay` child attached over WebSocket RPC.
-    Both retain host-owned shells; other platforms show an availability message.
-12. A shell belongs to a tab, and the host owns it. `PtyTerminalService` keys sessions by a stable id
-    derived from workspace and tab; attach is get-or-create and exclusive with takeover. Shells outlive
-    windows and client connections while the host runs, and end on tab close, natural exit or host stop.
-    Lifetime is bounded by reference, never by idle timers. tmux is not used.
-13. Host drift is detectable. The state service's handshake carries a protocol version (`HostProtocol.Current`,
-    SharpRail's own counter) so an independently shipped client can tell that its host is newer, older or
-    predates the handshake. A client treats a missing answer as unsupported and never guesses.
-14. Plugins are the extension boundary, builtin and external at parity. A feature that would otherwise reach
-    through every layer (a host method, its wire contract and adapters, a state slice, a panel switch arm)
-    instead lives behind `SharpRail.Plugins.Api`: a manifest plus a host half, a UI half, or both, each a .NET
-    assembly, loaded by `Host.Core/Plugins` and `UI/Plugins`. A builtin plugin is a project referenced by the
-    host and the app and listed in their builtin arrays; an external plugin is a directory a user installs
-    under `<stateDir>/plugins`, loaded into its own `AssemblyLoadContext` that shares the framework, Avalonia,
-    the API and the kit with the default context. Both declare the same manifest, get the same capabilities
-    and appear in the same roster. Every plugin can be turned on and off while the app runs, with no restart,
-    through one serialised reconciler per host and the same reconcile in the app. A host half runs wherever
-    the host runs, in process for the app's own host and inside a remote host otherwise; a UI half always
-    runs in the app, an external one read through the host. Plugin methods and channels are one generic call
-    and one generic stream, direct in process and JSON over WebSocket RPC. The API carries no compatibility promise; a
-    single generation integer, declared in the manifest and checked before load, is the whole contract, and a
-    mismatch is refused with a reason naming both generations. There is no sandbox: plugin code runs with the
-    privileges of the host or the app. Full contract: `src/SharpRail.Plugins.Api/SPEC.md`.
+Remote requests name the workspace they concern. Clients never share a mutable “current project,”
+and a reconnect does not require restoring a server-side project session. Every remote call needs
+a bearer token, compared in constant time. Network reachability is a deployment concern; the
+[Tailscale plugin](src/SharpRail.Plugins.Tailscale/SPEC.md) adds discovery and device approval.
 
-## Invariants
+## What is shared, and what stays on each client
 
-- Dependencies flow toward abstractions (Core → Abstractions; Client → Abstractions + Protocol; Remote →
-  Core + Protocol). No host project depends on the UI.
-- Domain records live in Abstractions; serialized DTOs live in Protocol. Both adapters stay consistent
-  with the public interface.
-- Shared contracts stay independent of host and UI implementations. A shared runtime policy must
-  have an explicit purpose in its owning spec rather than turning contracts into product logic.
-- The host holds the truth and clients hydrate from reads, then stream changes; the UI holds only view
-  state of its own.
-- Blocking I/O and Git run off the UI thread; startup mounts the routed workspace before loading
-  deferred panel data (see the startup rules in `AGENTS.md`).
-- Separate app processes do not coordinate: each composes its own host. Multi-client means the windows of
-  one process plus the clients of one remote host.
-- The host's session token never reaches user shells.
-- Plugins reference only the API assemblies, the kit and their declared dependencies' contracts, never a
-  `SharpRail.Host.*` project or `SharpRail.UI`; the host and UI API entries do not reference each other.
+A project is a folder on the host, optionally a Git repository. Its Default workspace uses that
+folder and cannot be removed. For Git projects, additional workspaces use separate worktrees and
+branches. Files and terminals belong to a workspace; Git changes are available when it is a
+repository. See [workspaces](src/SharpRail.Host.Core/Workspaces.SPEC.md).
 
-## Not yet ported
+```mermaid
+flowchart TB
+    Host[Host] --> Shared[Projects, workspace labels, settings and custom presets]
+    Host --> Sessions[Git and terminal sessions]
+    Shared --> A[Remote client A: desktop, Android or browser]
+    Shared --> B[Remote client B: desktop, Android or browser]
+    A --> ViewA[Own layout, documents, selection and location]
+    B --> ViewB[Own layout, documents, selection and location]
+```
 
-- Workspace-local review comments and CI status.
-- PDF page-pair diffs and sanitised HTML for byte-only content on a diff side. Bytes are fetched over WebSocket RPC
-  at an immutable commit (not HTTP routes); the host never executes content and the UI draws pixels only,
-  so repository script never runs.
-- A mobile shell projecting the same panels. The Android client shows the desktop workbench unchanged.
+Each remote client can be a desktop app, an Android app or a browser client, in any combination. Clients change
+shared values through the host and display the resulting broadcast. Every
+subscription starts with a complete snapshot; reconnecting gets another complete snapshot, so a
+client can recover without having witnessed earlier events. There is no second local authority
+over host-owned values.
 
-The optional builtin Tailscale plugin owns tailnet discovery and pre-connection device approval. Its
-injected serving bridge supplies approved-token authentication and embedded listener startup; the host
-remains transport-independent below Remote. See [the plugin contract](src/SharpRail.Plugins.Tailscale/SPEC.md).
+Each client keeps its window frame, document placement, selection, default preset, group limits,
+bottom alignment and last location in its own app profile. Only resource-free custom preset definitions
+are shared. Switching workspace changes its documents without rearranging the frame; rearranging
+one client does not rearrange another. See [state ownership](src/SharpRail.UI/State/SPEC.md).
+
+Panels do not know where they are placed. The shell arranges documents in a split center and tools
+in side or bottom groups. Static layouts and styles use compiled Avalonia XAML; dynamic docking and
+interaction use C#. Filesystem, Git and network work stays off the UI thread, and startup shows the
+routed workspace before filling deferred panels.
+
+## Shell lifetime
+
+The host owns each shell; a window only attaches a view to it. The stable session identity comes
+from the workspace and terminal tab. Attaching creates or resumes that session and may take it over
+from another client. Closing a view or losing a connection detaches; closing the terminal tab ends
+the shell. Natural exit and host shutdown also end it. There is no idle timeout or tmux dependency.
+
+On macOS, Ghostty supplies Metal textures or terminal cells drawn with Skia. Local terminals attach
+directly to the host in the app. A remote Metal view uses a relay child over WebSocket RPC. Other platforms
+show an availability message where a native renderer is unavailable. Host authentication tokens
+never reach user shells. See [terminal behavior](src/SharpRail.Host.Core/Terminals.SPEC.md).
+
+## Plugins extend the host and the workbench
+
+A plugin has a manifest and a host half, a UI half, or both. The host half runs beside the files and
+shells; the UI half runs in the client. This keeps provider protocols and optional features in their
+own modules. Builtin and external plugins use the same capabilities and appear in the same roster.
+
+```mermaid
+flowchart LR
+    Manifest[Plugin manifest] --> HostHalf[Host half]
+    Manifest --> UIHalf[UI half]
+    HostHalf --> Services[Host services and persisted state]
+    UIHalf --> Surfaces[Panels, commands and document views]
+    UIHalf <-->|Plugin methods and channels| HostHalf
+```
+
+Plugin calls and streams are direct in local mode and carry JSON over WebSocket RPC in remote mode. Each
+runtime serializes enable/disable changes so plugins can be switched without restarting. External
+plugins install under the host's state directory; their UI assemblies are read through the host.
+They load in separate assembly contexts while sharing the framework, Avalonia, API and UI kit.
+
+The API generation must match before loading. A refusal names both generations; no compatibility
+promise or sandbox is implied. Plugin code has the privileges of its host or app. The
+[plugin contract](src/SharpRail.Plugins.Api/SPEC.md) defines capabilities and author-facing details.
+
+## Implementation boundaries
+
+Solid arrows point from a consumer to its dependencies; dashed arrows show composition.
+
+```mermaid
+flowchart TB
+    Launchers["Launchers: read configuration and compose services only"]
+    App["Desktop app"]
+    Launchers -.-> App
+    Launchers -.-> Remote
+    App --> Client
+    App -->|Embed a host| Core
+    App -->|Serve a host| Remote
+    subgraph Host["Host layers: no Avalonia or UI dependency"]
+        Client["Client: local and remote adapters"]
+        Remote["Remote: authentication and serving"]
+        Core["Core: host behavior"]
+        subgraph Contracts["Contracts: no product logic, runtime policy needs owning-spec rationale"]
+            Abstractions["Abstractions: operations and domain records"]
+            Protocol["Protocol: wire contracts and records"]
+        end
+        Core --> Abstractions
+        Client --> Abstractions
+        Client --> Protocol
+        Remote --> Core
+        Remote --> Protocol
+    end
+```
+
+Module specs: [Abstractions](src/SharpRail.Host.Abstractions/SPEC.md),
+[Core](src/SharpRail.Host.Core/SPEC.md), [Protocol](src/SharpRail.Host.Protocol/SPEC.md),
+[Client](src/SharpRail.Host.Client/SPEC.md), [Remote](src/SharpRail.Host.Remote/SPEC.md),
+[Workbench](src/SharpRail.UI/SPEC.md), [Android](src/SharpRail.Android/SPEC.md),
+[Browser](src/SharpRail.Browser/SPEC.md).
+
+Checks verify local/remote parity. Platform-specific limitations belong at the affected service boundary.
+
+Plugin contracts stay independent of host and UI implementations. Plugins depend only on the API,
+the shared UI kit and declared dependencies' contracts. The API's host and UI entries never reference
+each other; the kit has no host dependency. Scintilla and Ghostty remain reusable controls.
+
+The host handshake exposes a protocol version so a client can detect a newer, older or unsupported
+host without guessing. Package versions and the SDK are pinned in the build configuration; specs
+state the behavior those dependencies must provide.

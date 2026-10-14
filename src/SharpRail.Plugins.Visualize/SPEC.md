@@ -64,9 +64,8 @@ Three projects under `Contract`, `Host` and `UI`: `SharpRail.Plugins.Visualize` 
   title follows the drawing. The pane renders the card interactively (the diagram fills the pane and pans and
   zooms in place) and reports the verdict back through `report` once per shown revision. A publish for another
   terminal of the same workspace leaves an open pane, and its zoom, alone.
-- Public surface: `VisualizeContract` (manifest, contract, methods, channel) and its records
-  (`TerminalVisualization`, `VisualizationsChanged`, `VisualizationsQuery`, `RenderReport`, `Ack`);
-  `VisualizeHost` and `VisualizeUI`, the two modules.
+- The plugin contract carries terminal visualizations, workspace updates and render reports
+  between its host and UI halves.
 - Allowed deps: the plugin API's root (contract), host (host half) and UI (UI half) entries, the UI kit
   (`Visualization`) and Avalonia in the UI half.
 - Forbidden: any other plugin, any `SharpRail.Host.*` or `SharpRail.UI` project.
