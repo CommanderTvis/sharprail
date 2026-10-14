@@ -5617,3 +5617,7 @@ Tailscale host transport teardown assertion before UI checks; see VALIDATION.md.
 ## 2026-10-14 — Drag crash and workspace/UI landings
 
 Signed and landed the macOS single-item drag payload fix, workspace-8 readable specs/current Host API analyzer baseline and workspace-23 stable Projects tabs. Also landed inset active markers and same-row Markdown Copy. Combined desktop/browser Release, whole formatting, conformance/path checks and main rail pass; source file-drop, vertical-tab and code-copy regression evidence is reused. VALIDATION.md records existing design/Tailscale/spec-graph blockers and native/runtime limits. Own workspaces24/25 removed with branches kept; workspaces8/23 retained. Nothing pushed or installed.
+
+## 2026-10-14 — Land Projects-only tabs and prepare Windows nightly
+
+Landed workspace-21 on main, preserving prior browser error/replay fixes, inset active markers and stable workspace tab geometry. Corrected legacy bottom migration to retain files/diffs and valid selections/panes; Release and WASM compiler gates, whole formatting, state, rail, Projects-tab and shared-terminal checks pass. Browser runtime acceptance and physical Android/native testing are not verified. Windows nightly workflow is landed; dispatch and actual release verification remain pending. User authorized push.

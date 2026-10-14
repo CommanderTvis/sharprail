@@ -14,7 +14,7 @@ WebSocket replies become held host-call responses; local mode uses direct C# cal
 AI chat is a non-goal (see `SPEC.md`): the initial upstream chat tab is omitted from
 document counts, chat-only cases are excluded, and mixed cases keep only their
 non-chat assertions.
-Every new workspace opens upstream's initial terminal, so terminal docking cases use it.
+Workspaces start empty. Terminal cases explicitly create the terminal tabs they exercise.
 Headless terminal tabs run real host PTY sessions (`/bin/sh`) and show their output as
 plain text; commands print split markers so an echoed command line never satisfies an
 output assertion. Delayed or failed `terminal.attach` replies become held or failing
@@ -70,7 +70,7 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `markdown-alerts.spec.ts` | renders GitHub-style alert callouts in the rendered markdown view | Ported |
 | `markdown-mermaid.spec.ts` | renders mermaid fences as diagrams in the rendered markdown view | Ported (with the fork's capped inline diagram: the box stays under 480 px, zoom enlarges the drawing, a drag pans it) |
 | `layout.spec.ts` | workbench strips and feature toolbars keep one-row geometry with ARIA tabs | Ported |
-| `layout.spec.ts` | overflow uses directional fades without changing tab-strip geometry | Ported |
+| `layout.spec.ts` | overflow uses directional fades without changing tab-strip geometry | Ported for side tool strips; document tabs live in Projects |
 | `layout.spec.ts` | auxiliary panel scrollbars stay quiet at rest and expose only clipped edges | Pending: relies on browser WebKit scrollbar pseudo-elements, hover-intent attributes and forced-colors media; Avalonia has no quiet-scroll cue surface to assert |
 | `layout.spec.ts` | ARIA tabs use roving keyboard focus, recover after close, and expose keyboard separators | Ported |
 | `layout.spec.ts` | outer side widths publish on pointer-up and restore after reload | Ported |
@@ -99,7 +99,7 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `layout.spec.ts` | local layout transitions with no gesture in progress never announce a canceled drag | Ported |
 | `layout.spec.ts` | a local transition during a side resize cancels the gesture and says so | Ported |
 | `layout.spec.ts` | a tab drag reveals every valid destination subtly, then emphasizes the one under the pointer | Diverges: tab strips are not framed; their tabs are the only strip targets |
-| `layout.spec.ts` | the hidden bottom drop zone wins overlapping terminal targets and reveals its frame group | Ported |
+| `layout.spec.ts` | the hidden bottom drop zone wins overlapping terminal targets and reveals its frame group | Excluded: bottom zone retired; explicit terminals use workspace tab groups |
 | `projects.spec.ts` | opens a git repo as a project via the directory picker | Ported |
 | `projects.spec.ts` | opens a project from an explicit host path | Ported |
 | `projects.spec.ts` | picker failure falls back to host-path entry on every host platform | Ported |
@@ -189,7 +189,7 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `workspace-tabs.spec.ts` | the selected side tool follows workspace switches | Ported |
 | `workspace-tabs.spec.ts` | switching workspaces re-targets the mounted workbench instead of remounting it | Ported |
 | `workspace-tabs.spec.ts` | a same-id terminal body remounts instead of carrying across workspaces | Ported |
-| `terminals.spec.ts` | a workspace opens a terminal automatically, rooted in the worktree, with working I/O | Ported |
+| `terminals.spec.ts` | a workspace opens a terminal automatically, rooted in the worktree, with working I/O | Ported with an explicit launch; automatic startup is excluded |
 | `terminals.spec.ts` | a shell start failure explains recovery and retries the same tab | Ported (failure text, preserved focus, disabled then focused Retry, same-tab recovery; SharpRail has no terminal Settings page to link; take-back is covered by the second-client row) |
 | `terminals.spec.ts` | xterm uses the shared quiet rail and directional curtains | Excluded: xterm.js scrollbar and CSS curtain styling; Ghostty draws its own native scrollback |
 | `terminals.spec.ts` | terminals are workspace-scoped and survive workspace switches | Ported |
@@ -215,20 +215,20 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `terminals.spec.ts` | a terminal that was hidden while it printed keeps its width | Excluded: xterm DOM rendering; Ghostty renders natively and keeps its grid while hidden |
 | `terminals.spec.ts` | terminal forwards pointer capture and Ctrl+T to a raw PTY | Ported as a host check (a live reattach replays the alternate screen and mouse modes); pointer forwarding is Ghostty's |
 | `terminals.spec.ts` | terminal sends alternate-scroll wheel gestures to the PTY | Ported as a host check (alternate scroll, mode 1007, is replayed with the mouse modes) |
-| `bottom-panel.spec.ts` | full-height panel-header actions stay square | Ported (no chat or side-group menu buttons; SharpRail shows a group's fold button once its region has several groups) |
-| `bottom-panel.spec.ts` | a new workspace starts with one accessible terminal group in a 30% bottom panel | Ported |
-| `bottom-panel.spec.ts` | a hidden local frame keeps the host terminal reserved without attaching until shown | Ported (the peer-client attach needs multi-client sync) |
-| `bottom-panel.spec.ts` | a completed initial-terminal handshake never recreates a terminal after explicit close | Ported (the tab is closed through the UI rather than a host request) |
-| `bottom-panel.spec.ts` | Mod+Shift+J works from xterm, preserves its PTY through hide and reload, and is modal-aware | Ported (survival across hide and across a reload into a new window of the same app; native Ghostty focus is covered by `--native-terminal`) |
-| `bottom-panel.spec.ts` | bottom height, all alignments, and keyboard resizing persist across reload | Ported |
-| `bottom-panel.spec.ts` | bottom alignments give excluded lower corners to the actual side panels | Ported |
-| `bottom-panel.spec.ts` | bottom alignments follow locally compressed side geometry at narrow widths | Ported |
-| `bottom-panel.spec.ts` | narrow side resizing persists only the side whose separator moved | Ported (each scenario starts from the default side widths at a 560-pixel viewport, where the compressed center still leaves room to move) |
-| `bottom-panel.spec.ts` | closing a final bottom resource retains its frame groups until explicit removal | Ported |
-| `bottom-panel.spec.ts` | bottom alignments follow side geometry while a resize gesture is in progress | Ported |
-| `bottom-panel.spec.ts` | bottom groups arrange left-to-right, resize, fold to 27px, restore, and enforce their own limit | Ported (the tool moves through Move to pane → bottom group) |
-| `bottom-panel.spec.ts` | a narrow viewport locally compresses bottom groups without rewriting their topology | Ported |
-| `bottom-panel.spec.ts` | bottom visibility and alignment stay local to each window and survive its reload | Ported (the peer is a second window with its own profile) |
+| `bottom-panel.spec.ts` | full-height panel-header actions stay square | Excluded: bottom zone retired; explicit terminals use workspace tab groups |
+| `bottom-panel.spec.ts` | a new workspace starts with one accessible terminal group in a 30% bottom panel | Excluded: bottom zone retired; explicit terminals use workspace tab groups |
+| `bottom-panel.spec.ts` | a hidden local frame keeps the host terminal reserved without attaching until shown | Excluded: bottom zone retired; explicit terminals use workspace tab groups |
+| `bottom-panel.spec.ts` | a completed initial-terminal handshake never recreates a terminal after explicit close | Excluded: bottom zone retired; explicit terminals use workspace tab groups |
+| `bottom-panel.spec.ts` | Mod+Shift+J works from xterm, preserves its PTY through hide and reload, and is modal-aware | Excluded: bottom zone retired; explicit terminals use workspace tab groups |
+| `bottom-panel.spec.ts` | bottom height, all alignments, and keyboard resizing persist across reload | Excluded: bottom zone retired; explicit terminals use workspace tab groups |
+| `bottom-panel.spec.ts` | bottom alignments give excluded lower corners to the actual side panels | Excluded: bottom zone retired; explicit terminals use workspace tab groups |
+| `bottom-panel.spec.ts` | bottom alignments follow locally compressed side geometry at narrow widths | Excluded: bottom zone retired; explicit terminals use workspace tab groups |
+| `bottom-panel.spec.ts` | narrow side resizing persists only the side whose separator moved | Ported without bottom alignment; pointer and keyboard resizing retain the untouched side |
+| `bottom-panel.spec.ts` | closing a final bottom resource retains its frame groups until explicit removal | Excluded: bottom zone retired; explicit terminals use workspace tab groups |
+| `bottom-panel.spec.ts` | bottom alignments follow side geometry while a resize gesture is in progress | Excluded: bottom zone retired; explicit terminals use workspace tab groups |
+| `bottom-panel.spec.ts` | bottom groups arrange left-to-right, resize, fold to 27px, restore, and enforce their own limit | Excluded: bottom zone retired; explicit terminals use workspace tab groups |
+| `bottom-panel.spec.ts` | a narrow viewport locally compresses bottom groups without rewriting their topology | Excluded: bottom zone retired; explicit terminals use workspace tab groups |
+| `bottom-panel.spec.ts` | bottom visibility and alignment stay local to each window and survive its reload | Excluded: bottom zone retired; explicit terminals use workspace tab groups |
 | `bottom-panel.spec.ts` | an old host layout stays inert while a pristine surface starts Balanced | Excluded: SharpRail never stored layouts on the host, so there is no legacy host layout to ignore |
 | `theme.spec.ts` | appearance switches a discovered theme and persists it across reload | Ported (Settings lists every bundled manifest) |
 | `theme.spec.ts` | system mode follows each client and retains its explicit pair | Ported (the application theme variant stands in for the emulated media query; also checks the pair after reload). The peer is a second gRPC client with its own settings copy; both share one process and so one device appearance, so the peer's light-device theme is checked by resolving its synced mode and pair |
@@ -331,3 +331,7 @@ client's connection where upstream routes a WebSocket. Separately launched local
 processes are independent by design, so no case runs two app processes. Terminal
 session sharing across clients remains pending with host-owned sessions.
 No benchmarks or Git commits are run.
+
+SharpRail regressions for the Projects-only tab model cover empty workspace startup, removal of legacy
+bottom frames, explicit terminal splits, Projects tab menus and pane grouping. These replace retired
+bottom-zone and alternate tab-mode behavior; they are additional coverage rather than upstream translations.
