@@ -5546,3 +5546,74 @@ Changes remain uncommitted; no push, deployment or running-app replacement.
 ## 2026-10-14 — Signed browser bugfix landings
 
 1Password signing resumed. Frontmatter, read-only alternate-screen replay and Error details/Retry fixes are committed on main. Workspace-20 Settings flicker fix is also landed; combined browser Release, touched format/JS/whitespace and main Settings regression pass. Earlier focused/desktop results are reused; VALIDATION.md records platform/deployment limits. Own workspaces18 and19 removed with branches kept; workspace20 retained. Nothing pushed or installed.
+
+## Source workspace-8 evidence before landing
+
+## Spec readability (2026-10-11)
+
+On docs/spec-readability, eight specs now lead with responsibilities and user-visible behavior,
+with reading maps and 14 new Mermaid diagrams. Architecture and module introductions replace
+source-file inventories with explanations and links to owning specs. Detailed API contracts,
+existing limits, upstream provenance and spec metadata remain. VALIDATION.md records diagram,
+link and whitespace checks plus the four existing Branch Graph dangling references. Changes
+are documentation-only and remain uncommitted in the dedicated workspace.
+
+Rebased docs/spec-readability onto local main at 6012f6b4 on 2026-10-12. The readability
+edits remain uncommitted. Kept main's new spec-tree rendering requirements, plugin session
+model/effort contract and prompt-derived naming wording, along with all incoming status records.
+Diagram sources are unchanged from the verified revision; existing rendering evidence is reused.
+Documentation link and whitespace checks pass. Inherited application changes were not rebuilt
+or retested for this documentation-only rebase.
+
+Rebased docs/spec-readability again onto local main at 82aaee69 on 2026-10-13. Preserved
+the new first-agent-title workspace naming rules and incoming status records alongside the
+readability edits. Diagram sources remain unchanged; their prior rendering checks are reused.
+Relative spec links and diff whitespace pass. Changes remain uncommitted; inherited application
+changes were not rebuilt or retested for this documentation-only rebase.
+
+Architecture clarification: the shared-state diagram now shows remote clients only, each either
+desktop or Android. Removed the stale mobile-shell backlog item: Android already uses phone pages
+with bottom navigation and retains the desktop frame on tablets. The revised diagram renders
+through Merman; architecture links and diff whitespace checks pass. Documentation only.
+
+## API validation replaces spec declaration lists (2026-10-13)
+
+Removed Public surface declaration inventories and their spec-enrollment tags, replaced remaining
+surface lists with responsibility descriptions, and removed the Markdown-to-assembly conformance
+check. Host Abstractions now uses the existing Public API analyzer with generated signature
+baselines; plugin API, UI kit and agent UI validation remains in place. Specs retain behavior,
+boundaries and compatibility policy. The contributor instructions reflect the new gate.
+
+Release solution build passes with zero warnings/errors. Touched-file format verification,
+conformance, relative Markdown paths and diff whitespace pass. A temporary missing method entry
+fails RS0016 and a stale type entry fails RS0017; restoring the baseline byte-for-byte passes.
+The four-lane full gate stopped at ChangeActionChecks while opening a diff; the serial last-failed
+resume passed without code changes and leaves no unfinished cases. Optional Git-source fixtures
+were skipped because SHARPRAIL_TEST_GIT_SOURCE was unset. No Android build, package or native
+appearance check. Task fixtures and logs were removed after recording these results.
+
+All work remains uncommitted on docs/spec-readability; nothing was pushed.
+
+The product contract and architecture introductions now name both desktop and Android clients,
+state that Android uses a remote host, and describe phone navigation versus the tablet layout.
+The Android spec link resolves and diff whitespace passes; diagrams and application code are unchanged.
+
+Rebased docs/spec-readability onto local main at 1d149510. Resolved spec conflicts while
+retaining the readability edits, declaration-list removal, incoming browser client, WebSocket RPC
+transport and all incoming status records. Updated the Host Abstractions API baseline for main's
+current signatures. Release solution build has zero warnings/errors; touched-file formatting,
+conformance, 23 Mermaid renders, 93 relative paths and diff whitespace checks pass. The full suite
+was not rerun; earlier gate evidence belongs to the earlier base. Changes remain uncommitted.
+
+## 2026-10-14 — Workspace switching tab geometry
+
+Workspace-23 aligns active/inactive Projects tab heights, typography and duplicate-name
+folder subtitles, retains outgoing tab controls during routing and adds a 120 ms workspace
+selection background fade. Final Release build, whole-solution formatting, whitespace,
+`--rail` and `--agent-marks` checks pass. One Git-enabled full gate stops in the unchanged
+Tailscale host transport teardown assertion before UI checks; see VALIDATION.md. Keep
+`.bench/checks-last-run.txt`; other task scratch is removed. Work is uncommitted and unpushed.
+
+## 2026-10-14 — Drag crash and workspace/UI landings
+
+Signed and landed the macOS single-item drag payload fix, workspace-8 readable specs/current Host API analyzer baseline and workspace-23 stable Projects tabs. Also landed inset active markers and same-row Markdown Copy. Combined desktop/browser Release, whole formatting, conformance/path checks and main rail pass; source file-drop, vertical-tab and code-copy regression evidence is reused. VALIDATION.md records existing design/Tailscale/spec-graph blockers and native/runtime limits. Own workspaces24/25 removed with branches kept; workspaces8/23 retained. Nothing pushed or installed.

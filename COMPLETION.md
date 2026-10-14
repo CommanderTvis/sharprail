@@ -177,3 +177,10 @@ Live input, clipboard text, resize, UTF-8 and reload/reattach checks pass. It re
 60 Hz headless browser cadence, but desktop performance parity remains unproven.
 Shared-texture composition, full font fallback, clipboard images, full scrollback reads,
 high-contrast handling and overlapping in-window UI remain incomplete.
+
+## Workspace switching verification limits (2026-10-14)
+
+Workspace-23's Projects tab sizing, held-routing retention and agent-preview checks pass,
+with a clean Release build and formatting. The Git-enabled full gate stops in the unchanged
+Tailscale host transport teardown assertion before the UI gate. Native visual animation,
+Android/browser runtime and packaged-app review remain unverified; see VALIDATION.md.

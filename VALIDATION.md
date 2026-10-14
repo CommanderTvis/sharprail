@@ -2885,3 +2885,74 @@ deployed-bundle acceptance is not claimed. Nothing committed, pushed or deployed
 Signed and landed the previously prepared frontmatter, watcher replay and connection-error fixes as separate commits, then landed workspace-20 Settings renderer ownership while preserving their overlapping specs/harness paths. Combined main BrowserChecks-enabled Release build passed with zero warnings/errors; the earlier combined desktop Release result is reused because workspace-20 changes browser-only sources. Main restty.mjs --settings passed Appearance/Layout/Plugins repaint, reopen/close and terminal input recovery; browser touched-file formatting, JavaScript syntax and whitespace checks passed. Source DPR2 and full browser acceptance results are reused for unchanged slices. Normal deployed-bundle startup and physical Retina/Safari/Firefox remain unverified as recorded above.
 
 Own finished workspaces18 and19 were checkpointed on their retained branches and removed through SharpRail after landing. Workspace-20 was not created by this session and is retained. Test hosts exited; nothing pushed, deployed or installed. The existing scripts/browser.sh executable-bit change remains untouched.
+
+## Source workspace-8 evidence before landing
+
+Rebased docs/spec-readability onto local main at 1d149510. Resolved spec conflicts while
+retaining the readability edits, declaration-list removal, incoming browser client, WebSocket RPC
+transport and all incoming status records. Updated the Host Abstractions API baseline for main's
+current signatures. Release solution build has zero warnings/errors; touched-file formatting,
+conformance, 23 Mermaid renders, 93 relative paths and diff whitespace checks pass. The full suite
+was not rerun; earlier gate evidence belongs to the earlier base. Changes remain uncommitted.
+
+## API validation replaces spec declaration lists (2026-10-13)
+
+Removed Public surface declaration inventories and their spec-enrollment tags, replaced remaining
+surface lists with responsibility descriptions, and removed the Markdown-to-assembly conformance
+check. Host Abstractions now uses the existing Public API analyzer with generated signature
+baselines; plugin API, UI kit and agent UI validation remains in place. Specs retain behavior,
+boundaries and compatibility policy. The contributor instructions reflect the new gate.
+
+Release solution build passes with zero warnings/errors. Touched-file format verification,
+conformance, relative Markdown paths and diff whitespace pass. A temporary missing method entry
+fails RS0016 and a stale type entry fails RS0017; restoring the baseline byte-for-byte passes.
+The four-lane full gate stopped at ChangeActionChecks while opening a diff; the serial last-failed
+resume passed without code changes and leaves no unfinished cases. Optional Git-source fixtures
+were skipped because SHARPRAIL_TEST_GIT_SOURCE was unset. No Android build, package or native
+appearance check. Task fixtures and logs were removed after recording these results.
+
+### Spec readability (2026-10-11)
+
+Follow-up: the architecture shared-state diagram now depicts remote desktop/Android clients.
+Its revised source renders through Merman; architecture links and whitespace checks pass.
+The obsolete mobile-shell backlog item was removed against the Android spec and existing phone layout.
+
+Documentation-only revision of eight specs: product contract, architecture, host core, workspaces,
+plugin API, spec dialect, workbench and client state. All 22 Mermaid fences in those files,
+including 14 new diagrams, render to valid SVG through SharpRail's Merman library with the
+resvg-safe pipeline. All 66 relative Markdown links resolve, including heading links; spec
+frontmatter is byte-identical to the branch base. Diff whitespace verification passes.
+The graph validator still reports four pre-existing Branch Graph links to missing ids:
+module-contracts, module-plugin-ui, module-server and module-web. Those links are unchanged.
+No application code changed; no build, executable suite or packaged-app verification was run.
+
+## 2026-10-14 — Stable Projects tabs during workspace switching
+
+Workspace-23 matches inactive Projects previews to active tab row heights and typography,
+including duplicate-name folder subtitles and preview italics. Routing retains the outgoing
+Projects tab controls until the destination is ready. Workspace selection backgrounds fade
+over 120 ms without animating row geometry.
+
+The final Release solution build passed with zero warnings/errors; whole-solution formatting
+verification and whitespace checks passed. LSP tools were unavailable in this session;
+the Release compiler supplied nullable and warnings-as-errors diagnostics.
+`--rail` passed plain/duplicate-name tab geometry,
+held routing to fresh and cached workspaces, cross-project navigation and the existing control,
+focus, menu and scroll retention checks. `--agent-marks` passed Codex/Claude decorations and
+unchanged inactive-preview retention.
+
+One Git-enabled full gate stopped in the unchanged Tailscale host transport check at
+`TailscaleChecks.cs:279`: “Stopping the plugin drops its authentication and listener.”
+That host-only failure occurs before the UI gate; no full-suite pass is claimed. Keep
+`.bench/checks-last-run.txt` for follow-up. Native visual animation and Android/browser runtime
+were not exercised. Changes remain uncommitted in workspace-23; nothing pushed or installed.
+
+## 2026-10-14 — Drag crash, workspace-8/23 and UI fixes landed
+
+The file drag source now supplies one transfer item with internal metadata and a native file representation. Remote/unavailable files use relative-path text, avoiding a zero-item native pasteboard or a false local file URL. Release, --file-drop payload/move/copy/attachment regressions, touched formatting and whitespace checks passed. Actual AppKit/Finder dragging remains manually unverified; the unrelated EventStream watcher failure was not changed.
+
+Landed workspace-8 spec readability and replaced declaration-list checks with the Host Abstractions Public API analyzer. Regenerated the baseline against current main, including shared tab settings and file-transfer/workspace additions; the final Release compiler accepts all current signatures. Main --conformance passed, 85 relative Markdown paths resolve, and the spec graph reports only the same four existing Branch Graph dangling links. Source Mermaid/negative-analyzer evidence above is reused for unchanged slices.
+
+Landed workspace-23 Projects preview sizing/subtitles, held-routing retention and background transition, preserving newer requirements during spec merges. Main --rail passed geometry, fresh/cached routing, cross-project navigation, control/focus/menu/scroll retention and removal. Source --agent-marks results are reused. The active marker is now inset inside rounded rows; all nine source --vertical-tabs cases pass final geometry across focused groups and pane members. Markdown Copy shares the code row; --markdown-code passed short/long code at 600/260 px, nonoverlap, horizontal scrolling and exact clipboard text.
+
+Final combined main Release solution and BrowserChecks-enabled WASM builds passed with zero warnings/errors. Whole-solution formatting and whitespace checks passed. Design checks report the pre-existing WorkbenchWindow.cs:256 Brushes.Crimson violation; the new margin follows the spacing scale and adds no design finding. The full gate was not repeated after the recorded unchanged Tailscale teardown failure in workspace-23, and no full-suite pass is claimed. Native visual animation, physical drag and Android/browser runtime for this batch remain unverified. Owned workspaces24 and25 were checkpointed on retained branches and removed through SharpRail; workspace8 and23 remain. Own main conformance/rail fixtures were removed. Nothing pushed or installed; scripts/browser.sh executable-bit change remains untouched.
