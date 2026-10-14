@@ -114,16 +114,18 @@ resting colour, `title.section` in `Ui.Muted`, brightening to `Ui.TextBrush` on 
 card is open (the pill's `open` class, which also gives it the selected fill). The chevron is hidden at rest
 and appears on hover, keyboard focus or while open. The project's initial sits in a neutral 16px tile
 (`Ui.Selected` fill, `Ui.Muted` `ui.caption` glyph), so the least important glyph is not the only coloured
-one. A caption fragment (`· from <target>`) uses the caption's own face, never a second typeface. It owns no
+one. While the active workspace is settled the Workspace caption adds `· settled` in the warning tone. A caption fragment (`· from <target>`) uses the caption's own face, never a second typeface. It owns no
 host state: it shows what the window already knows and calls the same methods as the panels.
 
 - PROJECT lists every open project with the current one checked, Project home (disabled while there) and
   Add project…, which is the Projects panel's picker. Choosing a project opens its Project Home. With no
   project the segment reads `SharpRail` and the other two are absent.
-- WORKSPACE shows the active workspace's actions above Switch to (its siblings from the host's workspace
-  registry, the rows of the Projects rail, with their branch when it differs from the name) and New
+- WORKSPACE shows the active workspace's actions above Switch to (its live siblings from the host's workspace
+  registry, most recently active first after Default, with their branch when it differs from the name, then
+  a `Settled · N` submenu of the shelf's rows with their reason chips; an older host keeps its registry
+  order and no shelf) and New
   workspace with the Mod+N label. The actions are the Projects row's own (`AddWorkspaceActions`): Open in,
-  Copy path, Reveal in file manager, Rename for a managed workspace, and Remove worktree… or, for an
+  Copy path, Reveal in file manager, Settle or Keep active for any but Default, Rename for a managed workspace, and Remove worktree… or, for an
   attached one, Remove from SharpRail. At Project Home the pill reads `Project home` and offers only the
   switcher and creation.
 - Removing a dirty managed worktree offers a second confirmation explaining that modified and
@@ -342,7 +344,7 @@ menu. Abrupt death relies on operating-system process cleanup; remote shells bel
   restores the last tree control, active row or first tree control. Home visibility and remembered width
   remain independent of the workspace frame.
 - Capability-gated Settle / Keep active in the shared workspace actions, a `Settled · N` submenu with
-  reason chips after live siblings, and a warning-tone `WORKSPACE · settled` caption for a settled
+  reason chips after live siblings, and a warning-tone `Workspace · settled` caption for a settled
   selection. The rail and switcher must consume the same partition, sort and 30-second clock; hosts
   without settling keep the legacy list. Default never settles. See [State/SPEC.md](State/SPEC.md) and
   [Panels.SPEC.md](Panels.SPEC.md) for the selection latch and shelf behaviour. Upstream's merged/closed

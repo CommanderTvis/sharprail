@@ -102,7 +102,8 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
             NotificationsEnabled = !reply.Settings.NotificationsDisabled,
             CustomHighlighting = reply.Settings.CustomHighlighting,
             VerticalCenterTabs = reply.Settings.VerticalCenterTabs,
-            VerticalTabsInProjects = reply.Settings.VerticalTabsInProjects
+            VerticalTabsInProjects = reply.Settings.VerticalTabsInProjects,
+            SettleIdleDays = reply.Settings.SettleIdleDays > 0 ? reply.Settings.SettleIdleDays : null
         },
         Presets = reply.Presets.Select(preset => new LayoutPreset(preset.Name, preset.Layout)).ToArray(),
         Projects = reply.Projects.ToArray(),

@@ -89,7 +89,10 @@
           </Border>
           <Border x:Name="WorkspaceSegment" Classes="location-segment" MaxWidth="460">
             <Grid RowDefinitions="14,20" VerticalAlignment="Center">
-              <TextBlock Classes="location-caption tr-text-metadata" Text="Workspace" />
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <TextBlock Classes="location-caption tr-text-metadata" Text="Workspace" />
+                <TextBlock x:Name="ScopeSettled" Classes="location-caption tr-text-metadata" Text="· settled" Foreground="{x:Static rendering:Ui.Warning}" IsVisible="False" />
+              </StackPanel>
               <Button x:Name="ScopeWorkspace" Grid.Row="1" Classes="location-pill tr-title-section">
                 <Grid ColumnDefinitions="*,Auto">
                   <TextBlock x:Name="WorkspaceLabel" Text="" Classes="header-label tr-title-section" />

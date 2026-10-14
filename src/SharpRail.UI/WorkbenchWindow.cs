@@ -115,6 +115,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         WireNavigation();
         WireEditorLifetime();
         WireHostSync();
+        WireSettling();
         WireTerminalCatalog();
         WirePlugins();
         ApplyAppearance();

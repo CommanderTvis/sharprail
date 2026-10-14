@@ -139,10 +139,28 @@ public sealed partial class WorkbenchWindow
             menu.Items.Add(new Separator());
         }
         menu.Items.Add(MenuLabel("Switch to"));
-        var others = worktrees.Where(tree => tree.Path != active?.Path).ToArray();
-        if (others.Length == 0)
+        // Live siblings most recently active first, then the shelf in a submenu: the rail's partition and clock.
+        var partition = PartitionOf(projectRoot, WorkspaceOrder.Recent);
+        var others = partition.Live.Where(tree => tree.Path != active?.Path).ToArray();
+        var settled = partition.Settled.Where(row => row.Workspace.Path != active?.Path).ToArray();
+        if (others.Length == 0 && settled.Length == 0)
             menu.Items.Add(new MenuItem { Header = gitLoading ? "Loading…" : "No other workspaces", IsEnabled = false });
-        foreach (var worktree in others)
+        foreach (var worktree in others) menu.Items.Add(SwitchOption(worktree, null));
+        if (settled.Length > 0)
+        {
+            var shelf = new MenuItem { Name = "ScopeWorkspaceSettled", Header = $"Settled · {settled.Length}" };
+            foreach (var row in settled) shelf.Items.Add(SwitchOption(row.Workspace, row));
+            menu.Items.Add(shelf);
+        }
+        menu.Items.Add(new Separator());
+        var create = Ui.Menu("New workspace", () => _ = CreateWorkspaceDialogAsync(), git.IsRepository);
+        create.Name = "ScopeWorkspaceNew"; create.Icon = Ui.Icon("add", null, 14);
+        create.InputGesture = new KeyGesture(Key.N, CommandKeys.Modifier);
+        menu.Items.Add(create);
+    }
+
+    private MenuItem SwitchOption(WorkspaceRecord worktree, SettledRow? settled)
+    {
         {
             var name = WorkspaceName(worktree.Path);
             var label = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { Ui.Text(name, Ui.TextBrush) } };
@@ -155,15 +173,17 @@ public sealed partial class WorkbenchWindow
                 Header = label,
                 Icon = Ui.Icon(worktree.Kind switch { WorkspaceKinds.Default => "homeFill", WorkspaceKinds.External => "folderOpen", _ => "gitBranch" }, null, 14)
             };
+            if (settled is not null)
+            {
+                var chip = Ui.Text(WorkspaceSettling.Chip(settled, SettlingClock()), settled.Reason == SettledReason.ByYou ? Ui.Warning : Ui.Hint, 11);
+                chip.VerticalAlignment = VerticalAlignment.Center;
+                ToolTip.SetTip(chip, WorkspaceSettling.Explanation(settled, SettlingClock()));
+                label.Children.Add(chip);
+            }
             item.Click += (_, _) => _ = OpenWorkspaceAsync(worktree.Path, false);
             AutomationProperties.SetName(item, name);
-            menu.Items.Add(item);
+            return item;
         }
-        menu.Items.Add(new Separator());
-        var create = Ui.Menu("New workspace", () => _ = CreateWorkspaceDialogAsync(), git.IsRepository);
-        create.Name = "ScopeWorkspaceNew"; create.Icon = Ui.Icon("add", null, 14);
-        create.InputGesture = new KeyGesture(Key.N, CommandKeys.Modifier);
-        menu.Items.Add(create);
     }
 
     private void SetBranch(string branch)

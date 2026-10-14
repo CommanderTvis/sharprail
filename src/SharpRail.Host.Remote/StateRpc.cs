@@ -65,7 +65,8 @@ public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime li
             NotificationsDisabled = !state.Settings.NotificationsEnabled,
             CustomHighlighting = state.Settings.CustomHighlighting,
             VerticalCenterTabs = state.Settings.VerticalCenterTabs,
-            VerticalTabsInProjects = state.Settings.VerticalTabsInProjects
+            VerticalTabsInProjects = state.Settings.VerticalTabsInProjects,
+            SettleIdleDays = state.Settings.SettleIdleDays ?? 0
         },
         Presets = state.Presets.Select(preset => new PresetMessage { Name = preset.Name, Layout = preset.Layout }).ToList(),
         Projects = state.Projects.ToList(),

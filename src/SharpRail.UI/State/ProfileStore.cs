@@ -85,6 +85,8 @@ public sealed class Profile
     public bool StateMigrated { get; set; }
     /// <summary>Host/workspace pairs whose legacy browser bottom-terminal placement has been repaired.</summary>
     public HashSet<string> BrowserTerminalPlacements { get; set; } = [];
+    /// <summary>Hosts, by endpoint, whose first automatic move to the Settled shelf has been announced.</summary>
+    public HashSet<string> SettledShelfNotices { get; set; } = [];
 
     // Fields of older profiles, read for migration and cleared once migrated.
     [JsonPropertyName("Layout"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public DockState? LegacyLayout { get; set; }
@@ -154,6 +156,7 @@ public sealed class ProfileStore
                         labels.Remove(entry.Key);
             Data.GitSelections ??= [];
             Data.BrowserTerminalPlacements ??= [];
+            Data.SettledShelfNotices ??= [];
             foreach (var entry in Data.GitSelections.ToArray())
             {
                 if (!ValidPath(entry.Key) || entry.Value is null)

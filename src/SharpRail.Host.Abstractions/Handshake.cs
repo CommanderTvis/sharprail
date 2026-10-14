@@ -9,10 +9,16 @@ namespace SharpRail.Host.Abstractions;
 /// </summary>
 public static class HostProtocol
 {
-    public const int Current = 5;
+    public const int Current = 6;
 
     /// <summary>All remote platforms use the multiplexed protobuf WebSocket protocol.</summary>
     public const int WebSocketTransport = 5;
+
+    /// <summary>
+    /// Workspace activity stamps, Settled/Keep active overrides with their actions, and the idle-day setting. Below
+    /// it a client keeps the host's flat workspace list and offers no shelf.
+    /// </summary>
+    public const int WorkspaceSettle = 6;
 
     /// <summary>Revert and undo of a change, and the SHA-256 on both diff sides they depend on.</summary>
     public const int ChangeWritePath = 2;

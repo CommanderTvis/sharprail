@@ -86,6 +86,7 @@ internal static class UiChecks
         Gate.Case("ProjectPickerE2E", () => E2E.ProjectPickerE2E.Run(root));
         Gate.Case("NewWorkspaceShortcutE2E", () => E2E.NewWorkspaceShortcutE2E.Run(root));
         Gate.Case("WorkspaceActionsE2E", () => E2E.WorkspaceActionsE2E.Run(root));
+        Gate.Case("SettledWorkspacesE2E", () => E2E.SettledWorkspacesE2E.Run(root));
         Gate.Case("WelcomeE2E", () => E2E.WelcomeE2E.Run(root));
         Gate.Case("SpecsPanelE2E", () => E2E.SpecsPanelE2E.Run(root));
         Gate.Case("DefaultWorkspaceE2E", () => E2E.DefaultWorkspaceE2E.Run(root));

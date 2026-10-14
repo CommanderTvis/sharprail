@@ -77,9 +77,11 @@ public sealed partial class SettingsWindow : Window
         close.Content = Ui.Icon("close");
         close.Click += (_, _) => Close();
         navigationList = this.FindControl<StackPanel>("SettingsNavigation")!;
-        foreach (var item in new[] { ("Appearance", "palette"), ("Highlighting", "fileText"), ("Line width", "fileText"), ("Layout", "layout"), ("Projects", "folderTab"), ("Terminal", "terminal"), ("Notifications", "alertInfo"), ("Host", "terminal"), ("GitHub", "gitBranch"), ("Plugins", "puzzle") })
+        foreach (var item in new[] { ("Appearance", "palette"), ("Highlighting", "fileText"), ("Line width", "fileText"), ("Layout", "layout"), ("Projects", "folderTab"), ("Workspaces", "gitBranch"), ("Terminal", "terminal"), ("Notifications", "alertInfo"), ("Host", "terminal"), ("GitHub", "gitBranch"), ("Plugins", "puzzle") })
             Navigation(this.FindControl<Button>("Settings_" + item.Item1.Replace(' ', '_'))!, item.Item1, Ui.Row(item.Item2, item.Item1));
         SyncPluginSections();
+        // Listed only for a host that settles workspaces; an older one has no idle window to set.
+        navigation["Workspaces"].IsVisible = state.SettlingSupported;
         window.Workbench.PluginRegistry.Changed += PluginsChanged;
 #if !ANDROID && !BROWSER
         if (window.Workbench.Listener is { } listener) listener.Changed += ListenerChanged;
@@ -176,6 +178,7 @@ public sealed partial class SettingsWindow : Window
         ["Line width"] = "Code and Markdown columns",
         ["Layout"] = "Presets, panes, file previews",
         ["Projects"] = "Recent projects",
+        ["Workspaces"] = "When idle workspaces settle",
         ["Terminal"] = OperatingSystem.IsAndroid() || OperatingSystem.IsBrowser() ? "Replayed output" : "Renderer, replayed output",
         ["Notifications"] = "When an agent needs you",
         ["Host"] = "The host this app works with",
@@ -231,6 +234,7 @@ public sealed partial class SettingsWindow : Window
             "Layout" => LayoutSettings(),
             "Projects" => ProjectSettings(),
             "Terminal" => TerminalSettings(),
+            "Workspaces" => WorkspaceSettings(),
             "Notifications" => NotificationSettings(),
             "Host" => ServingSettings(),
             "GitHub" => GitHubSettings(),
@@ -265,7 +269,7 @@ public sealed partial class SettingsWindow : Window
     {
         RequestedThemeVariant = (Owner as Window)?.RequestedThemeVariant;
         if (section == "Line width") foreach (var refresh in refreshers) refresh();
-        else if (section is "Appearance" or "Layout" or "Projects" || section == "Terminal" && previous.Settings.TerminalReplayKb != next.Settings.TerminalReplayKb) ShowSection(section);
+        else if (section is "Appearance" or "Layout" or "Projects" || section == "Workspaces" && previous.Settings.SettleIdleDays != next.Settings.SettleIdleDays || section == "Terminal" && previous.Settings.TerminalReplayKb != next.Settings.TerminalReplayKb) ShowSection(section);
         else if (section == "Notifications") foreach (var refresh in refreshers) refresh();
     }
 
@@ -768,6 +772,28 @@ public sealed partial class SettingsWindow : Window
             replay.Children.Add(Choice("TerminalReplay_" + kb, label, description, current == kb, () =>
             {
                 if (state.Current.Settings.TerminalReplayKb != kb) Share(HostStateChange.Setting("terminal-replay", kb.ToString(CultureInfo.InvariantCulture)));
+            }));
+        return panel;
+    }
+
+    private Control WorkspaceSettings()
+    {
+        var panel = Page("WorkspacesPage");
+        // Host state: the selection follows the host's broadcast. A host-configured value between the presets selects none.
+        var choices = PageControl<StackPanel>(panel, "SettleIdleChoices");
+        var current = state.Current.Settings.SettleIdleDays;
+        foreach (var (days, label, description) in new (int?, string, string)[]
+        {
+            (1, "1 day", "Only today's work stays live"),
+            (3, "3 days", "A few days"),
+            (HostSettings.DefaultSettleIdleDays, "7 days", "A week, so paused work survives a weekend (default)"),
+            (14, "14 days", "Two weeks"),
+            (null, "Never", "Only workspaces you settle move to the shelf")
+        })
+            choices.Children.Add(Choice("SettleIdle_" + (days?.ToString(CultureInfo.InvariantCulture) ?? "Never"), label, description, current == days, () =>
+            {
+                if (state.Current.Settings.SettleIdleDays != days)
+                    Share(HostStateChange.Setting("settle-idle-days", days?.ToString(CultureInfo.InvariantCulture) ?? "never"));
             }));
         return panel;
     }

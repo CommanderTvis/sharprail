@@ -36,6 +36,8 @@ public sealed class SettingsMessage
     [ProtoMember(11)] public string CustomHighlighting { get; set; } = "";
     [ProtoMember(12)] public bool? VerticalCenterTabs { get; set; }
     [ProtoMember(13)] public bool? VerticalTabsInProjects { get; set; }
+    /// <summary>Always written; zero means never settle. A host that predates settling leaves the default.</summary>
+    [ProtoMember(14, IsRequired = true)] public int SettleIdleDays { get; set; } = 7;
 }
 
 [ProtoContract]

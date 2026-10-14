@@ -16,12 +16,14 @@ public sealed partial class ProjectServices
         var paths = new HashSet<string>(StringComparer.Ordinal);
         var gate = new object();
         var rescan = false;
+        var gitChanged = false;
         var lastChange = DateTime.UtcNow;
         void Changed(string? path)
         {
             lock (gate)
             {
                 lastChange = DateTime.UtcNow;
+                if (path is null) gitChanged = true;
                 if (path is null || paths.Count >= 100) rescan = true;
                 else paths.Add(path);
             }
@@ -36,6 +38,8 @@ public sealed partial class ProjectServices
             if (common == commonDirectory && state?.Current.DiffBase(directory) == reference) signals.Writer.TryWrite(true);
         }
         BaseMoved += Moved;
+        // A watcher starting compares HEAD with what this host last saw, so a commit made while none ran still counts.
+        ObserveHead(directory);
         try
         {
             // Re-read after registration to cover changes between the initial listing and subscription.
@@ -51,12 +55,15 @@ public sealed partial class ProjectServices
                     if (DateTime.UtcNow - last >= TimeSpan.FromMilliseconds(250) || DateTime.UtcNow - started >= TimeSpan.FromSeconds(1)) break;
                 }
                 WorkspaceFileChanges change;
+                bool headMayMove;
                 lock (gate)
                 {
                     while (signals.Reader.TryRead(out _)) { }
                     change = new(paths.ToArray(), GitChanged: true, Rescan: rescan);
                     paths.Clear(); rescan = false;
+                    headMayMove = gitChanged; gitChanged = false;
                 }
+                if (headMayMove) ObserveHead(directory);
                 yield return change;
             }
         }
@@ -65,6 +72,11 @@ public sealed partial class ProjectServices
             BaseMoved -= Moved;
             subscription.Dispose();
         }
+    }
+
+    private void ObserveHead(string directory)
+    {
+        if (state is { } store) store.ObserveWorkspaceHead(directory);
     }
 
     internal static (string? GitDirectory, string? CommonDirectory) ResolveGitDirectories(string directory)

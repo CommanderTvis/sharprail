@@ -48,8 +48,21 @@ public sealed partial class HostStateStore : IHostStateService
     private HostState state;
     private readonly SemaphoreSlim changesGate = new(1, 1);
 
-    /// <summary>The host's terminals, ended when their project closes.</summary>
-    public PtyTerminalService? Terminals { get; set; }
+    /// <summary>The host's terminals, ended when their project closes; input they accept is activity in their workspace.</summary>
+    public PtyTerminalService? Terminals
+    {
+        get => terminals;
+        set
+        {
+            if (ReferenceEquals(terminals, value)) return;
+            if (terminals is not null) terminals.InputAccepted -= TerminalInput;
+            terminals = value;
+            if (value is not null) value.InputAccepted += TerminalInput;
+        }
+    }
+    private PtyTerminalService? terminals;
+
+    private void TerminalInput(string workspace) => RecordWorkspaceActivity(workspace);
 
     public string? LastError { get; private set; }
     /// <summary>Raised with the path of a workspace the host removed, so its other resources can end with it.</summary>
@@ -110,7 +123,7 @@ public sealed partial class HostStateStore : IHostStateService
         {
             initial = new(); LastError = error.Message;
         }
-        state = Normalize(initial);
+        state = BackfillActivity(Normalize(initial), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
         state = state with
         {
             Settings = state.Settings with
@@ -120,7 +133,8 @@ public sealed partial class HostStateStore : IHostStateService
             }
         };
         // Identities minted for a file that predates them are written at once, or they would change on the next launch.
-        if (path is not null && LastError is null && (!File.Exists(path) || !state.ProjectRecords.SequenceEqual(initial.ProjectRecords) || state.Settings != initial.Settings)) Save(state);
+        if (path is not null && LastError is null && (!File.Exists(path) || !state.ProjectRecords.SequenceEqual(initial.ProjectRecords) ||
+            state.Settings != initial.Settings || !state.Workspaces.SequenceEqual(initial.Workspaces))) Save(state);
         if (directory is not null)
             try { InstallationId = Installation.EnsureIn(directory); }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException) { LastError ??= error.Message; }
@@ -344,7 +358,8 @@ public sealed partial class HostStateStore : IHostStateService
                 FileLineWidth = Width(value.Settings.FileLineWidth),
                 MarkdownLineWidth = Width(value.Settings.MarkdownLineWidth),
                 TerminalReplayKb = Math.Clamp(value.Settings.TerminalReplayKb, 0, HostSettings.MaxTerminalReplayKb),
-                CustomHighlighting = ValidHighlighting(value.Settings.CustomHighlighting) ? value.Settings.CustomHighlighting : ""
+                CustomHighlighting = ValidHighlighting(value.Settings.CustomHighlighting) ? value.Settings.CustomHighlighting : "",
+                SettleIdleDays = value.Settings.SettleIdleDays is { } days ? Math.Clamp(days, 1, HostSettings.MaxSettleIdleDays) : null
             },
             Presets = value.Presets.Where(preset => preset is not null && ValidText(preset.Name) && preset.Layout is { Length: > 0 })
                 .DistinctBy(preset => preset.Name).ToArray(),
@@ -364,7 +379,8 @@ public sealed partial class HostStateStore : IHostStateService
             TerminalTitles = value.TerminalTitles.Where(title => title?.Terminal is { WorkspaceId: { } workspace, TabKey: { Length: > 0 } } && ValidPath(workspace) &&
                 !string.IsNullOrWhiteSpace(title.Title)).DistinctBy(title => title.Terminal).ToArray(),
             Platform = OperatingSystem.IsMacOS() ? HostPlatform.MacOS : OperatingSystem.IsWindows() ? HostPlatform.Windows : HostPlatform.Linux,
-            Workspaces = value.Workspaces.Where(ValidWorkspace).DistinctBy(workspace => workspace.Id).DistinctBy(workspace => workspace.Path).ToArray()
+            Workspaces = value.Workspaces.Where(ValidWorkspace).DistinctBy(workspace => workspace.Id).DistinctBy(workspace => workspace.Path)
+                .Select(NormalizeSettling).ToArray()
         };
         var records = (value.ProjectRecords ?? []).Where(record => record is not null && ValidPath(record.Path ?? "") &&
             ValidText(record.Id ?? "") && ValidText(record.Slug ?? "")).DistinctBy(record => record.Path).DistinctBy(record => record.Id).DistinctBy(record => record.Slug);
@@ -392,6 +408,12 @@ public sealed partial class HostStateStore : IHostStateService
         while (taken.Any(record => record.Slug == $"{name}-{suffix}")) suffix++;
         return $"{name}-{suffix}";
     }
+
+    // An override the host does not know, or one on the Default workspace, is dropped rather than shelving the row.
+    private static WorkspaceRecord NormalizeSettling(WorkspaceRecord workspace) =>
+        workspace.SettledOverride is SettledOverrides.Settled or SettledOverrides.Active && workspace.Kind != WorkspaceKinds.Default
+            ? workspace
+            : workspace.SettledOverride is null && workspace.SettledAt is null ? workspace : workspace with { SettledOverride = null, SettledAt = null };
 
     private static string Clean(string? value) => value is null || value.Contains('\0') ? "" : value.Trim();
 
@@ -453,6 +475,9 @@ public sealed partial class HostStateStore : IHostStateService
                     "notifications" when bool.TryParse(value, out var enabled) => settings with { NotificationsEnabled = enabled },
                     "custom-highlighting" when ValidHighlighting(value) => settings with { CustomHighlighting = value },
                     "vertical-tabs" when bool.TryParse(value, out var vertical) => settings with { VerticalCenterTabs = vertical },
+                    "settle-idle-days" when value is "" or "never" => settings with { SettleIdleDays = null },
+                    "settle-idle-days" when int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var days) && days is >= 1 and <= HostSettings.MaxSettleIdleDays
+                        => settings with { SettleIdleDays = days },
                     "tabs-in-projects" when bool.TryParse(value, out var inProjects) => settings with { VerticalTabsInProjects = inProjects },
                     _ => throw new ArgumentException($"Invalid setting {key}.")
                 };

@@ -14,6 +14,8 @@
     { "file": "Docking/DockGroups.cs", "value": "0, 0, 3, 0", "reason": "room for an italic preview title's glyph overhang inside the measured label box" },
     { "file": "Docking/DockGroups.cs", "value": "6, 0, 0, 0", "reason": "the close-button and modified-dot reserve in fixed-height tab chrome" },
     { "file": "ProjectRail.cs", "value": "7", "reason": "centres the 14-pixel Start work glyph in its 28-pixel button" },
+    { "file": "ProjectRail.cs", "value": "44, 0, 0, 0", "reason": "aligns Show more under the settled rows' labels, past the project indent and workspace glyph" },
+    { "file": "ProjectRail.cs", "value": "4, 4, 60, 4", "reason": "reserves the row's overlaid Settle and menu actions so the label never runs under them" },
     { "file": "Rendering/Switch.axaml", "value": "18,2,2,2", "reason": "checked thumb position inside the fixed-width switch track" }
   ]
 }

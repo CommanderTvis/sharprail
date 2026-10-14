@@ -69,6 +69,8 @@ public sealed partial class ProjectServices
         "remove" => await RemoveWorkspaceAsync(action.Id, false, cancellationToken),
         "force-remove" => await RemoveWorkspaceAsync(action.Id, false, cancellationToken, force: true),
         "reclaim" => await RemoveWorkspaceAsync(action.Id, true, cancellationToken),
+        "settle" => registry.SetSettledOverride(action.Id, SettledOverrides.Settled),
+        "unsettle" => registry.SetSettledOverride(action.Id, SettledOverrides.Active),
         "reserve-terminal" => ReserveTerminal(action.Id),
         "reveal" => Reveal(action.Path),
         _ => throw new ArgumentException("Unknown workspace action.")
