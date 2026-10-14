@@ -106,7 +106,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         Layout.Changed += UpdateActiveChangeRows;
         Layout.SelectionChanged += _ => UpdateActiveChangeRows();
         Layout.Focused += UpdateActiveChangeRows;
-        surface = new DockSurface(Layout, RenderContent) { CloseAlwaysShown = workbench.Touch, NestedHoverEnabled = !OperatingSystem.IsAndroid() };
+        surface = new DockSurface(Layout, RenderContent) { CloseAlwaysShown = workbench.Touch, ExplicitProjectTabOpen = workbench.Touch, NestedHoverEnabled = !OperatingSystem.IsAndroid() };
         if (workbench.Compact) WireDrawers();
         WireCenterTabs();
         Ui.Place(root, surface, 1);

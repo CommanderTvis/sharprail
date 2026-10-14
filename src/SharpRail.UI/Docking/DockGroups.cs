@@ -131,8 +131,8 @@ public sealed partial class DockSurface
             var pane = group.Region == "center" ? Session.PaneFor(group.Id, tab.Id) : null;
             var contents = new Grid
             {
-                ColumnDefinitions = new ColumnDefinitions("*,Auto"),
-                Height = vertical ? subtitle is null ? 36 : 44 : group.Folded ? 26 : 31,
+                ColumnDefinitions = new ColumnDefinitions(nested && ExplicitProjectTabOpen ? "*,Auto,Auto" : "*,Auto"),
+                Height = nested && ExplicitProjectTabOpen ? 48 : vertical ? subtitle is null ? 36 : 44 : group.Folded ? 26 : 31,
                 Margin = new Thickness(0, 0, tab.IsTool ? 0 : 4, 0)
             };
             var label = new Grid { ColumnDefinitions = new ColumnDefinitions("14,4,*,Auto,Auto") };
@@ -246,6 +246,20 @@ public sealed partial class DockSurface
             };
             button.Classes.Add("dock-tab-button");
             Ui.Place(contents, button);
+            if (nested && ExplicitProjectTabOpen)
+            {
+                // Leave the label to the Projects scroller; only an explicit action opens the tab.
+                button.IsHitTestVisible = false;
+                var open = Ui.IconButton("arrowRight", "Open " + Session.ToolTitle(tab), () =>
+                {
+                    SelectTab();
+                    if (Drawers) Session.Visible("left", false);
+                });
+                open.Name = "OpenProjectTab";
+                open.Tag = tab.Id;
+                open.Classes.Add("project-tab-open");
+                Ui.Place(contents, open, 0, 2);
+            }
             // Pointer events can arrive after a rebuild removed this group; a stale row is simply inactive.
             bool IsActive() => Session.State.Groups.Any(item => item.Id == group.Id) && Session.Selected(group.Id)?.Id == tab.Id;
             void UpdateBackground()

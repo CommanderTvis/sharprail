@@ -52,6 +52,7 @@ public sealed partial class DockSurface : Grid
     private readonly Canvas overlay = new() { IsHitTestVisible = false };
     /// <summary>A touch screen has no hover to reveal a tab's close button on, so it is always drawn.</summary>
     public bool CloseAlwaysShown { get; set; }
+    internal bool ExplicitProjectTabOpen { get; set; }
     internal bool NestedHoverEnabled { get; set; } = true;
 
     /// <summary>

@@ -150,7 +150,7 @@ public sealed partial class WorkbenchWindow
         ];
     }
 
-    private Button PreviewTab(string workspace, string? group, DockTab tab, bool selected, bool boxed, string? subtitle = null)
+    private Control PreviewTab(string workspace, string? group, DockTab tab, bool selected, bool boxed, string? subtitle = null)
     {
         var foreground = selected ? Ui.TextBrush : Ui.Muted;
         var row = new Grid { ColumnDefinitions = new ColumnDefinitions("14,4,*,Auto"), Margin = new Thickness(0, 0, 4, 0) };
@@ -193,13 +193,27 @@ public sealed partial class WorkbenchWindow
             rename.Name = "TerminalRename";
             button.ContextMenu = new ContextMenu { Items = { rename } };
         }
-        button.Click += (_, _) =>
+        void OpenTab()
         {
             if (group is null) { _ = RevealTerminalAsync(workspace, tab.Id); return; }
             Layout.SelectIn(workspace, group, tab.Id); _ = OpenWorkspaceAsync(workspace, false);
-        };
+        }
+        button.Click += (_, _) => OpenTab();
         AutomationProperties.SetName(button, tab.Title);
         ToolTip.SetTip(button, tab.Path.Length > 0 ? tab.Path : tab.Title);
+        if (workbench.Touch)
+        {
+            button.IsHitTestVisible = false;
+            button.Height = 48;
+            var open = Ui.IconButton("arrowRight", "Open " + tab.Title, OpenTab);
+            open.Name = "OpenProjectTab";
+            open.Tag = tab.Id;
+            open.Classes.Add("project-tab-open");
+            var frame = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), ContextMenu = button.ContextMenu };
+            Ui.Place(frame, button);
+            Ui.Place(frame, open, 0, 1);
+            return frame;
+        }
         return button;
     }
 }

@@ -147,7 +147,7 @@ public sealed partial class WorkbenchWindow
         Ui.Place(toolbar, open, 0, 1);
         Ui.Place(panel, toolbar);
         // The gutter belongs inside the scroller, beside the rows' trailing buttons.
-        projectsTree = new StackPanel { Spacing = 4, Margin = new Thickness(0, 0, 12, 0) };
+        projectsTree = new StackPanel { Name = "ProjectsTree", Spacing = 4, Margin = new Thickness(0, 0, 12, 0) };
         var trailing = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 2 };
         var add = Ui.IconButton("add", $"Start work ({Shortcut("N")})", () => _ = CreateWorkspaceDialogAsync());
         add.Name = "AddWorkspace";

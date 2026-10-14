@@ -274,6 +274,11 @@ viewport rather than treating a newly attached tab's transient geometry as offsc
 
 ## Tabs in Projects and tab groups
 
+On touch clients, including Android phones and tablets, tab labels leave gestures to the Projects scroller.
+Each live or retained tab has a 44-pixel Open button that selects its workspace and tab and returns
+to the current content page, including when that tab was already selected. Close actions and tab
+context menus remain available; normal desktop rows retain whole-row selection and dragging.
+
 Projects is the only home for centre tabs on every client. Restored tabs appear there while host
 routing is pending, using the saved active view until the host supplies its project/workspace rows.
 The live tab controls survive that transition. Hiding, folding or covering Projects

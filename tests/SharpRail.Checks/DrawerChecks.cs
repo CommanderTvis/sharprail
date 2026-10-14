@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Interactivity;
@@ -122,6 +123,32 @@ internal static class DrawerChecks
         Pump(() => Region("left").GetLogicalDescendants().OfType<SharpRail.UI.Docking.DockTabButton>().Any(), "The open document's tab must be listed in Projects.");
         Require(Region("left").GetLogicalDescendants().OfType<Button>().Where(button => button.Name == "CloseTab").All(close => close.Opacity == 1) &&
             Region("left").GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "CloseTab"), "A touch workbench must always draw a tab's close button.");
+        var group = layout.State.Center.Leaves().First();
+        var selected = layout.Selected(group)!.Id;
+        for (var index = 0; index < 24; index++)
+            layout.Open(new SharpRail.UI.Docking.DockTab("scroll-" + index, "Scrolling tab " + index, "file", "notes.txt"), keep: true, activate: false);
+        Dispatcher.UIThread.RunJobs();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        var labels = Region("left").GetLogicalDescendants().OfType<SharpRail.UI.Docking.DockTabButton>().ToArray();
+        Require(labels.All(label => !label.IsHitTestVisible), "Compact Projects tab labels must leave touch input to the scroller.");
+        var openTab = Region("left").GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "OpenProjectTab" && Equals(button.Tag, selected));
+        Require(openTab.Bounds.Width >= 44 && openTab.Bounds.Height >= 44, "Each compact tab needs a readable, reachable open action.");
+        var scroller = Region("left").GetLogicalDescendants().OfType<ScrollViewer>().Single(view => view.Content is StackPanel panel && panel.Name == "ProjectsTree");
+        var point = labels[1].TranslatePoint(new Point(70, 22), window)!.Value;
+        var projectsFinger = window.TouchBegin(point, Avalonia.Input.RawInputModifiers.None);
+        for (var step = 1; step <= 6; step++) window.TouchMove(projectsFinger, point - new Vector(0, step * 16), Avalonia.Input.RawInputModifiers.None);
+        window.TouchEnd(projectsFinger, point - new Vector(0, 96), Avalonia.Input.RawInputModifiers.None);
+        Dispatcher.UIThread.RunJobs();
+        Require(scroller.Offset.Y > 0 && layout.Selected(group)?.Id == selected && layout.State.LeftVisible,
+            "Dragging over tab labels must scroll Projects without selecting a tab or leaving the page.");
+        Click(openTab);
+        Require(!layout.State.LeftVisible && layout.Selected(group)?.Id == selected,
+            "The explicit open action must reveal even an already selected tab.");
+        Click(projects);
+        var other = Region("left").GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "OpenProjectTab" && Equals(button.Tag, "scroll-0"));
+        Click(other);
+        Require(!layout.State.LeftVisible && layout.Selected(group)?.Id == "scroll-0",
+            "Opening another tab must select it and leave Projects.");
         Click(current);
 
         var settings = new SettingsWindow(window, () => { });
