@@ -31,7 +31,7 @@ internal static class ThemeE2E
     private static void Catalogue()
     {
         var ids = Themes.All.Select(theme => theme.Id).ToArray();
-        Require(ids.SequenceEqual(["dark", "light", "high-contrast-dark", "high-contrast-light"]),
+        Require(ids.SequenceEqual(["dark", "light", "minimal-dark", "minimal-light", "high-contrast-dark", "high-contrast-light"]),
             "The catalogue must mirror the reference's bundled manifests in manifest order.");
         var dark = Themes.Exact("dark")!;
         var contrast = Themes.Exact("high-contrast-light")!;
