@@ -169,12 +169,13 @@ could not save this change: …” inline and re-renders from host state.
   Invalid drafts stay local with a range error; Escape restores the host value; Enter saves when valid. A
   broadcast updates an untouched field and the switch in place, but keeps an edited draft.
 - Layout lists Balanced, Focus, Review and the named custom presets. Custom save, rename and delete are shared
-  host state; the default preset and side/bottom group limits and bottom alignment are window-local. Each
+  host state; the default preset and side group limits are window-local. Each
   preset offers Set default and a confirmable “Apply now…”, which replaces this window's frame and preserves
   open documents and terminals across every workspace in the window; other windows are unaffected. Reset frame
   reapplies the default preset. The app-local “Preview files before keeping them” switch, on by default,
   controls the preview slot: off, every file or spec open keeps its own tab and no open waits out the
   double-click window.
+- Layout offers no tab-mode or bottom-zone settings: tabs always live in Projects.
 - Projects holds the shared project list with per-row removal.
 - Terminal chooses Metal texture (default) or Skia (fallback) as an app-local preference and reattaches
   attached terminal views in every window without ending their host shells. Below it, the host's replay

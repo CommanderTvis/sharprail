@@ -24,7 +24,7 @@ internal static class SharedTerminalsE2E
         Renderers(root);
     }
 
-    // The Android phone client: centre tabs live in Projects, a page of its own, and the bottom panel starts hidden.
+    // The Android phone client keeps Projects on its own page.
     private static void InProjects(string root)
     {
         var project = IsolatedGit.Repository(Path.Combine(root, "terminals-listed"));
@@ -34,7 +34,7 @@ internal static class SharedTerminalsE2E
         try
         {
             Until(() => a.Window.WorkspaceMounted);
-            var workspace = WorkspaceTabsE2E.CreateWorkspace(a, "workspace-1");
+            var workspace = CreateTerminalWorkspace(a, "workspace-1");
             var initial = TerminalTabs(a).Single();
             var first = Ready(a, initial);
             first.Run("echo LISTED_$((40+2))");
@@ -43,7 +43,7 @@ internal static class SharedTerminalsE2E
             Until(() => TerminalTabs(a).Length == 2);
             Ready(a, TerminalTabs(a)[1]);
 
-            b = new E2eWorkspace(host.Address, Token, project, project + "-phone-profile", project, terminals: host.Client(), tabsInProjects: true, compact: true,
+            b = new E2eWorkspace(host.Address, Token, project, project + "-phone-profile", project, terminals: host.Client(), compact: true,
                 prepare: profile => { profile.Data.Windows[0].Layout = DockState.Preset("focus"); profile.Data.Windows[0].DefaultPreset = "focus"; });
             Until(() => b.Window.WorkspaceMounted);
             b.Click(b.Find<Button>("PageProjects"));
@@ -57,7 +57,7 @@ internal static class SharedTerminalsE2E
             Until(() => b.Window.Layout.Selected(b.Window.Layout.State.Center.Leaves().First())?.Id == initial.Id && View(b, initial).IsWatching && !b.Window.Layout.State.LeftVisible);
             b.Click(b.Find<Button>("PageProjects"));
             Until(() => Strips(b).SequenceEqual(Ids(b)));
-            Require(!b.Window.Layout.State.BottomVisible && host.Host.Started.Count(request => request.SessionId == TerminalTab.SessionFor(workspace, initial.Id)) == 1,
+            Require(!b.Window.Layout.State.Groups.Any(legacyGroup => legacyGroup.Region == "bottom") && host.Host.Started.Count(request => request.SessionId == TerminalTab.SessionFor(workspace, initial.Id)) == 1,
                 "The terminal chosen in Projects must open in the centre, watched, without revealing the hidden bottom or starting another shell.");
             a.Click(a.Find<Button>("NewTerminal_" + bottom));
             Until(() => TerminalTabs(a).Length == 3 && Ids(b).SequenceEqual(Ids(a)) && Central(b) && Strips(b).SequenceEqual(Ids(b)));
@@ -73,10 +73,10 @@ internal static class SharedTerminalsE2E
         using var desktop = Client(host, project, "desktop", project, host.Client());
         Until(() => desktop.Window.WorkspaceMounted);
         using var phone = new E2eWorkspace(host.Address, Token, project, project + "-phone-profile", project,
-            terminals: host.Client(), tabsInProjects: true, compact: true);
+            terminals: host.Client(), compact: true);
         Until(() => phone.Window.WorkspaceMounted);
         phone.Click(phone.Find<Button>("PageProjects"));
-        var workspace = WorkspaceTabsE2E.CreateWorkspace(phone, "workspace-1");
+        var workspace = CreateTerminalWorkspace(phone, "workspace-1");
         var tab = TerminalTabs(phone).Single();
         var held = Ready(phone, tab);
         held.Run("echo PHONE_$((40+2))");
@@ -117,7 +117,7 @@ internal static class SharedTerminalsE2E
         try
         {
             Until(() => a.Window.WorkspaceMounted);
-            var workspace = WorkspaceTabsE2E.CreateWorkspace(a, "workspace-1");
+            var workspace = CreateTerminalWorkspace(a, "workspace-1");
             var initial = TerminalTabs(a).Single();
             Ready(a, initial).Run("echo METAL_$((40+2))");
             b = Client(host, project, "metal", workspace, metal);
@@ -160,9 +160,9 @@ internal static class SharedTerminalsE2E
         try
         {
             Until(() => a.Window.WorkspaceMounted);
-            var workspace = WorkspaceTabsE2E.CreateWorkspace(a, "workspace-1");
+            var workspace = CreateTerminalWorkspace(a, "workspace-1");
             var initial = TerminalTabs(a).Single();
-            Require(initial is { Id: TerminalTab.InitialKey, Title: TerminalTab.InitialTitle }, "A workspace's first terminal must have the key every client gives it.");
+            Require(initial.Title == TerminalTab.InitialTitle, "The first explicit terminal starts with the first number.");
             var first = Ready(a, initial);
             var held = View(a, initial);
             first.Run("TR_HELD=desk");
@@ -211,7 +211,7 @@ internal static class SharedTerminalsE2E
             Until(() => TerminalTabs(a).Length == 2 && TerminalTabs(b).Length == 2);
             CloseTab(a, TerminalTabs(a)[1]);
             Until(() => TerminalTabs(a).Length == 1 && TerminalTabs(b).Length == 1);
-            Require(!a.Window.OwnedWindows.Any() && Catalog(host, workspace).SequenceEqual([TerminalTab.InitialKey]),
+            Require(!a.Window.OwnedWindows.Any() && Catalog(host, workspace).SequenceEqual([initial.Id]),
                 "A terminal closed in one client must leave every client and the host's catalog without asking again.");
             Console.WriteLine("PASS shared terminals: closing a terminal in one client removes it from the other");
 

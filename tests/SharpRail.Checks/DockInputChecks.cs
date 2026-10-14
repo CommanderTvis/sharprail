@@ -78,38 +78,6 @@ internal static class DockInputChecks
                 "Add offers the current catalogue without duplicating already-placed singleton tools.");
             add.ContextMenu.Close();
         }
-        foreach (var (value, label) in new[]
-        {
-            ("center-left", "Below center and left"), ("center-right", "Below center and right"),
-            ("full", "Full width"), ("center", "Below center")
-        })
-        {
-            var alignment = Find<Button>("BottomAlignment");
-            var point = Bounds(alignment).Center;
-            window.MouseDown(point, MouseButton.Left); window.MouseUp(point, MouseButton.Left);
-            Dispatcher.UIThread.RunJobs();
-            Require(alignment.ContextMenu?.IsOpen == true, "Bottom alignment menu did not open from pointer input.");
-            var checkedItem = alignment.ContextMenu!.Items.OfType<MenuItem>().Single(item => item.IsChecked);
-            var check = checkedItem.GetVisualDescendants().OfType<ContentControl>().Single(control => control.Name == "PART_ToggleIconPresenter");
-            Require(checkedItem.Bounds.Height == 28 && Grid.GetColumn(check) == 4 && check.Width == 14 &&
-                check.Content is Border { Background: var color } && ReferenceEquals(color, Ui.Accent),
-                "Alignment menu must retain its radio state with a 14px primary check on the right of a 28px row.");
-            alignment.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, label))
-                .RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
-            alignment.ContextMenu.Close();
-            Require(window.Layout.State.BottomAlignment == value &&
-                new ProfileStore(root + "-dock-input").Data.Windows[0].Layout.BottomAlignment == value &&
-                Find<Button>("BottomAlignment").ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, label)).IsChecked,
-                "Bottom alignment did not update the layout, checked menu state and persisted profile.");
-        }
-        window.Layout.Fold(window.Layout.State.Groups.Single(group => group.Region == "bottom").Id);
-        var foldedAlignment = Find<Button>("BottomAlignment");
-        foldedAlignment.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-        foldedAlignment.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Hide bottom panel"))
-            .RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
-        foldedAlignment.ContextMenu.Close();
-        Require(!window.Layout.State.BottomVisible && !window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "BottomAlignment"),
-            "Folded bottom alignment menu failed to hide the region and its chrome.");
         window.Layout.ApplyPreset(DockState.Preset("balanced"));
         var projects = Find<Button>("Tab_projects");
         var projectsPoint = Bounds(projects).Center;
@@ -216,7 +184,7 @@ internal static class DockInputChecks
             window.Layout.Group(compactGroup.Id).Tools.Select(tab => tab.Id).SequenceEqual(new[] { DockState.SpecsTool, "files" }),
             "Corner-distance collision must create a compact pane's nearer neighboring group instead of always preferring its header.");
         window.Width = 1440;
-        foreach (var region in new[] { "left", "bottom" })
+        foreach (var region in new[] { "left" })
             foreach (var before in new[] { true, false })
             {
                 window.Layout.ApplyPreset(DockState.Preset("balanced"));
@@ -229,7 +197,6 @@ internal static class DockInputChecks
                 Require(groups.Length == 2 && groups[before ? 0 : 1].Tools.Any(tab => tab.Id == "review"),
                     $"Pointer {region} {(before ? "before" : "after")} insertion chose the wrong destination.");
             }
-        var bottomFixture = window.Layout.State.Copy();
         foreach (var region in new[] { "left", "right" })
             foreach (var before in new[] { true, false })
             {
@@ -263,62 +230,6 @@ internal static class DockInputChecks
                     window.Layout.Group(group.Id).Tools.Any(tab => tab.Id == source),
                     "Folded side margins and group limits must preserve joining without creating a neighbor.");
             }
-        window.Layout.ApplyPreset(bottomFixture);
-        var folded = window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "review"));
-        var fold = Find<Button>("FoldRestore_" + folded.Id);
-        var center = Bounds(fold).Center;
-        window.MouseDown(center, MouseButton.Left); window.MouseUp(center, MouseButton.Left); Dispatcher.UIThread.RunJobs();
-        var rail = Find<Button>("FoldRestore_" + folded.Id);
-        Require(window.Layout.Group(folded.Id).Folded && rail.IsFocused && Bounds(rail).Height == 27,
-            "Folded bottom rail did not preserve its compact axis and restore focus.");
-        var foldedLabel = (TextBlock)rail.Content!;
-        var labelCenter = foldedLabel.TranslatePoint(new Point(foldedLabel.Bounds.Width / 2, foldedLabel.Bounds.Height / 2), window)!.Value;
-        Require(Math.Abs(labelCenter.Y - Bounds(Find<Border>("FoldedDockGroup_" + folded.Id)).Center.Y) <= 1 &&
-            rail.BorderThickness == new Thickness(0) &&
-            rail.GetLogicalAncestors().OfType<LayoutTransformControl>().First().LayoutTransform is Avalonia.Media.RotateTransform { Angle: 90 },
-            $"Folded labels must read downward, be centered in the rail, and omit standalone button borders: label={labelCenter.Y}, rail={Bounds(Find<Border>("FoldedDockGroup_" + folded.Id)).Center.Y}, border={rail.BorderThickness}.");
-        var changesSource = window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "changes"));
-        window.Layout.Move("changes", changesSource.Id, folded.Id, window.Layout.Tabs(folded.Id).Count);
-        window.Layout.Select(folded.Id, "review");
-        window.Layout.Fold(folded.Id);
-        rail = Find<Button>("FoldRestore_" + folded.Id);
-        window.Layout.Select(folded.Id, "changes");
-        Require(((TextBlock)rail.Content!).Text == "Changes" &&
-            ReferenceEquals(rail, Find<Button>("FoldRestore_" + folded.Id)),
-            "Folded bottom selection did not update its existing restore label.");
-        window.Layout.Select(folded.Id, "review");
-        var target = Bounds(Find<Border>("FoldedDockGroup_" + folded.Id));
-        Drag("files", new Point(target.Right - 6, target.Bottom - 10));
-        Require(window.Layout.State.Groups.Count(group => group.Region == "bottom") == 3 &&
-            window.Layout.State.Groups.Last(group => group.Region == "bottom").Tools.Any(tab => tab.Id == "files"),
-            "The inner right half of a folded bottom pane must create a trailing group.");
-        window.Layout.ApplyPreset(DockState.Preset("balanced"));
-        var foldedBottom = window.Layout.State.Groups.Single(group => group.Region == "bottom");
-        window.Layout.Fold(foldedBottom.Id);
-        var foldedFrame = Bounds(Find<Border>("FoldedDockGroup_" + foldedBottom.Id));
-        var foldedPoint = new Point(foldedFrame.Left + 2, foldedFrame.Top + 16);
-        var filesPoint = Bounds(Find<Button>("Tab_files")).Center;
-        window.MouseDown(filesPoint, MouseButton.Left); window.MouseMove(foldedPoint);
-        var foldedHint = Find<DockSurface>("WorkspaceWorkbench").Children.OfType<Canvas>().Single().Children.OfType<Border>()
-            .Single(item => item.Width == foldedFrame.Width && item.Height == foldedFrame.Height);
-        Require(foldedHint.BorderThickness == new Thickness(0) && foldedHint.CornerRadius == new CornerRadius(0) &&
-            foldedHint.Background is Avalonia.Media.SolidColorBrush { Color.A: 51 },
-            "The whole folded bottom frame, including its alignment button, must show an active background-only hint.");
-        window.MouseUp(foldedPoint, MouseButton.Left); Dispatcher.UIThread.RunJobs();
-        Require(window.Layout.Group(foldedBottom.Id).Tools.Any(tab => tab.Id == "files") && !window.Layout.Group(foldedBottom.Id).Folded,
-            "Dropping over the folded alignment button must join and unfold that pane.");
-        foreach (var limited in new[] { false, true })
-        {
-            window.Layout.ApplyPreset(DockState.Preset("balanced"));
-            if (limited) window.Layout.Geometry(state => state.BottomLimit = 1);
-            var group = window.Layout.State.Groups.Single(item => item.Region == "bottom");
-            window.Layout.Fold(group.Id);
-            var frame = Bounds(Find<Border>("FoldedDockGroup_" + group.Id));
-            Drag("files", new Point(frame.Left + 6, frame.Center.Y));
-            var bottomGroups = window.Layout.State.Groups.Where(item => item.Region == "bottom").ToArray();
-            Require(bottomGroups.Length == (limited ? 1 : 2) && bottomGroups[0].Tools.Any(tab => tab.Id == "files"),
-                "Folded left-half drops must create before the pane, or join it when the group limit prevents creation.");
-        }
         window.Layout.ApplyPreset(DockState.Preset("balanced"));
         window.Layout.Geometry(state => state.SideLimit = 1);
         var left = window.Layout.State.Groups.Single(group => group.Region == "left");
@@ -369,43 +280,6 @@ internal static class DockInputChecks
         window.TouchMove(finger, new Point(-20, -20), RawInputModifiers.None);
         window.TouchEnd(finger, new Point(-20, -20), RawInputModifiers.None);
         Require(!surface.IsDragging && window.Layout.Epoch == epoch, "A cancelled touch drag must preserve placement.");
-        foreach (var alignment in new[] { "center-left", "center-right", "full" })
-        {
-            window.Layout.ApplyPreset(DockState.Preset("balanced"));
-            window.Layout.Geometry(state => state.BottomAlignment = alignment);
-            window.Layout.Visible("bottom", false);
-            var region = alignment == "center-right" ? "right" : "left";
-            var source = region == "left" ? "files" : "projects";
-            var targetGroup = window.Layout.State.Groups.Last(group => group.Region == region);
-            var body = Bounds(Find<Border>("DockBody_" + targetGroup.Id));
-            var destination = new Point(body.Center.X, body.Bottom - 8);
-            var sourceBounds = Bounds(Find<Button>("Tab_" + source));
-            var origin = new Point(sourceBounds.Left + 16, sourceBounds.Center.Y);
-            window.MouseDown(origin, MouseButton.Left); window.MouseMove(origin + new Vector(10, 10));
-            window.MouseMove(destination);
-            var highlights = surface.Children.OfType<Canvas>().Single().Children.OfType<Border>()
-                .Where(item => item.Background is Avalonia.Media.SolidColorBrush { Color.A: 51 }).ToArray();
-            Require(highlights.Length == 1 && highlights[0].Height == 24 && highlights[0].BorderThickness == new Thickness(0, 2, 0, 0),
-                "Hidden bottom collision must emphasize exactly one destination over an overlapping side creation target.");
-            window.MouseUp(destination, MouseButton.Left); Dispatcher.UIThread.RunJobs();
-            Require(window.Layout.State.BottomVisible &&
-                window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == source)).Region == "bottom",
-                "The hidden-bottom band did not win its overlapping side creation collision.");
-        }
-        foreach (var alignment in new[] { "center", "center-left", "center-right", "full" })
-            foreach (var region in new[] { "left", "right" })
-            {
-                window.Layout.ApplyPreset(DockState.Preset("balanced"));
-                window.Layout.Geometry(state => state.BottomAlignment = alignment);
-                window.Layout.Visible("bottom", false);
-                var source = region == "left" ? "files" : "projects";
-                window.Layout.Visible(region, false);
-                var hiddenRailBounds = Bounds(Find<Border>(region + "HiddenSideRail"));
-                Drag(source, new Point(hiddenRailBounds.Center.X, hiddenRailBounds.Bottom - 8));
-                Require(window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == source)).Region == region &&
-                    !window.Layout.State.BottomVisible,
-                    $"Hidden bottom drop zone stole the {region} restore rail's lower corner for {alignment} alignment.");
-            }
         foreach (var region in new[] { "left", "right" })
         {
             window.Layout.ApplyPreset(DockState.Preset("balanced"));
@@ -428,62 +302,54 @@ internal static class DockInputChecks
                 "Hidden side restore button did not reveal its region.");
         }
         window.Width = 1600; window.Height = 1000;
-        foreach (var alignment in new[] { "center", "full", "center-left", "center-right" })
-            foreach (var region in new[] { "left", "right" })
-            {
-                window.Layout.ApplyPreset(DockState.Preset("balanced"));
-                window.Layout.Geometry(state => state.BottomAlignment = alignment);
-                var handle = Find<ResizeHandle>(region + "Separator");
-                var frame = (Grid)handle.Parent!;
-                var start = Bounds(handle).Center;
-                var workbench = Find<DockSurface>("WorkspaceWorkbench");
-                var initial = region == "left" ? window.Layout.State.LeftWidth : window.Layout.State.RightWidth;
-                var untouched = region == "left" ? window.Layout.State.RightWidth : window.Layout.State.LeftWidth;
-                var epochBefore = window.Layout.Epoch;
-                var destination = start + new Vector((region == "left" ? 1 : -1) * (.65 - initial) * workbench.Bounds.Width, 0);
-                window.MouseDown(start, MouseButton.Left); window.MouseMove(destination);
-                Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
-                var pinned = alignment == (region == "left" ? "center-left" : "center-right");
-                var expectedActive = pinned ? 1 - untouched - .2 : .65;
-                var expectedNeighbor = pinned ? untouched : .15;
-                var activeColumn = region == "left" ? 0 : 4;
-                var neighborColumn = region == "left" ? 4 : 0;
-                Require(Math.Abs(frame.ColumnDefinitions[activeColumn].Width.Value - expectedActive) < .001 &&
-                    Math.Abs(frame.ColumnDefinitions[neighborColumn].Width.Value - expectedNeighbor) < .001 &&
-                    Math.Abs(frame.ColumnDefinitions[2].Width.Value - .2) < .001,
-                    $"Side resize did not project the reference's neighboring panes and minimum center for {alignment}/{region}.");
-                Require(window.Layout.Epoch == epochBefore && window.Layout.State.LeftWidth == .18 && window.Layout.State.RightWidth == .28,
-                    "Live neighbor compression persisted uncommitted widths.");
-                var bottom = Bounds(Find<Button>("BottomAlignment").GetLogicalAncestors().OfType<Grid>().First(grid => grid.Name?.StartsWith("GroupHeader_", StringComparison.Ordinal) == true)).Right;
-                var expectedRight = alignment is "full" or "center-right" ? Bounds(workbench).Right :
-                    Bounds(workbench).Right - frame.ColumnDefinitions[4].ActualWidth - 1;
-                Require(Math.Abs(bottom - expectedRight) <= 1,
-                    "Bottom alignment did not follow the compressed side's live span.");
-                window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null); Dispatcher.UIThread.RunJobs();
-                handle = Find<ResizeHandle>(region + "Separator");
-                Require(window.Layout.Epoch == epochBefore && Math.Abs(((Grid)handle.Parent!).ColumnDefinitions[activeColumn].Width.Value - initial) < .001,
-                    "Canceling side resize did not restore the original live geometry.");
-                start = Bounds(handle).Center;
-                destination = start + new Vector((region == "left" ? 1 : -1) * (.65 - initial) * workbench.Bounds.Width, 0);
-                window.MouseDown(start, MouseButton.Left); window.MouseMove(destination); window.MouseUp(destination, MouseButton.Left);
-                Dispatcher.UIThread.RunJobs();
-                Require(Math.Abs((region == "left" ? window.Layout.State.LeftWidth : window.Layout.State.RightWidth) - expectedActive) < .001 &&
-                    (region == "left" ? window.Layout.State.RightWidth : window.Layout.State.LeftWidth) == untouched,
-                    "A side separator committed the untouched neighbor's compressed width.");
-                var savedLeft = window.Layout.State.LeftWidth;
-                var savedRight = window.Layout.State.RightWidth;
-                var savedEpoch = window.Layout.Epoch;
-                window.Width = 800;
-                handle = Find<ResizeHandle>(region + "Separator");
-                var narrow = (Grid)handle.Parent!;
-                Require(Math.Abs(narrow.ColumnDefinitions[2].Width.Value - .4) < .001 &&
-                    window.Layout.State.LeftWidth == savedLeft && window.Layout.State.RightWidth == savedRight && window.Layout.Epoch == savedEpoch,
-                    "Narrow viewport compression rewrote the frame or lost the center minimum.");
-                window.Width = 1600;
-                handle = Find<ResizeHandle>(region + "Separator");
-                Require(Math.Abs(((Grid)handle.Parent!).ColumnDefinitions[2].Width.Value - .2) < .001 && window.Layout.Epoch == savedEpoch,
-                    "Widening the viewport did not restore the saved side projection.");
-            }
+        foreach (var region in new[] { "left", "right" })
+        {
+            window.Layout.ApplyPreset(DockState.Preset("balanced"));
+            var handle = Find<ResizeHandle>(region + "Separator");
+            var frame = (Grid)handle.Parent!;
+            var start = Bounds(handle).Center;
+            var workbench = Find<DockSurface>("WorkspaceWorkbench");
+            var initial = region == "left" ? window.Layout.State.LeftWidth : window.Layout.State.RightWidth;
+            var untouched = region == "left" ? window.Layout.State.RightWidth : window.Layout.State.LeftWidth;
+            var epochBefore = window.Layout.Epoch;
+            var destination = start + new Vector((region == "left" ? 1 : -1) * (.65 - initial) * workbench.Bounds.Width, 0);
+            window.MouseDown(start, MouseButton.Left); window.MouseMove(destination);
+            Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
+            var expectedActive = .65;
+            var expectedNeighbor = .15;
+            var activeColumn = region == "left" ? 0 : 4;
+            var neighborColumn = region == "left" ? 4 : 0;
+            Require(Math.Abs(frame.ColumnDefinitions[activeColumn].Width.Value - expectedActive) < .001 &&
+                Math.Abs(frame.ColumnDefinitions[neighborColumn].Width.Value - expectedNeighbor) < .001 &&
+                Math.Abs(frame.ColumnDefinitions[2].Width.Value - .2) < .001,
+                $"Side resize did not project the reference's neighboring panes and minimum center for {region}.");
+            Require(window.Layout.Epoch == epochBefore && window.Layout.State.LeftWidth == .18 && window.Layout.State.RightWidth == .28,
+                "Live neighbor compression persisted uncommitted widths.");
+            window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null); Dispatcher.UIThread.RunJobs();
+            handle = Find<ResizeHandle>(region + "Separator");
+            Require(window.Layout.Epoch == epochBefore && Math.Abs(((Grid)handle.Parent!).ColumnDefinitions[activeColumn].Width.Value - initial) < .001,
+                "Canceling side resize did not restore the original live geometry.");
+            start = Bounds(handle).Center;
+            destination = start + new Vector((region == "left" ? 1 : -1) * (.65 - initial) * workbench.Bounds.Width, 0);
+            window.MouseDown(start, MouseButton.Left); window.MouseMove(destination); window.MouseUp(destination, MouseButton.Left);
+            Dispatcher.UIThread.RunJobs();
+            Require(Math.Abs((region == "left" ? window.Layout.State.LeftWidth : window.Layout.State.RightWidth) - expectedActive) < .001 &&
+                (region == "left" ? window.Layout.State.RightWidth : window.Layout.State.LeftWidth) == untouched,
+                "A side separator committed the untouched neighbor's compressed width.");
+            var savedLeft = window.Layout.State.LeftWidth;
+            var savedRight = window.Layout.State.RightWidth;
+            var savedEpoch = window.Layout.Epoch;
+            window.Width = 800;
+            handle = Find<ResizeHandle>(region + "Separator");
+            var narrow = (Grid)handle.Parent!;
+            Require(Math.Abs(narrow.ColumnDefinitions[2].Width.Value - .4) < .001 &&
+                window.Layout.State.LeftWidth == savedLeft && window.Layout.State.RightWidth == savedRight && window.Layout.Epoch == savedEpoch,
+                "Narrow viewport compression rewrote the frame or lost the center minimum.");
+            window.Width = 1600;
+            handle = Find<ResizeHandle>(region + "Separator");
+            Require(Math.Abs(((Grid)handle.Parent!).ColumnDefinitions[2].Width.Value - .2) < .001 && window.Layout.Epoch == savedEpoch,
+                "Widening the viewport did not restore the saved side projection.");
+        }
         window.Layout.Visible("left", true);
         window.Layout.Visible("right", true);
         foreach (var region in new[] { "left", "right" })
@@ -505,30 +371,6 @@ internal static class DockInputChecks
                     "Side resize must snap to eight percent or collapse below four percent while retaining expanded width.");
             }
         window.Layout.ApplyPreset(DockState.Preset("balanced"));
-        foreach (var fraction in new[] { .75, .5, .25, 5d })
-        {
-            window.Layout.ApplyPreset(DockState.Preset("balanced"));
-            var bottomHandle = Find<ResizeHandle>("bottomSeparator");
-            var start = Bounds(bottomHandle).Center;
-            var height = Bounds(Find<DockSurface>("WorkspaceWorkbench")).Height;
-            var minimum = Math.Min(.7, 147 / height);
-            var initial = window.Layout.State.BottomHeight;
-            var requested = minimum * fraction;
-            var destination = start + new Vector(0, (initial - requested) * height);
-            window.MouseDown(start, MouseButton.Left); window.MouseMove(destination);
-            Require(window.Layout.State.BottomHeight == initial, "Bottom preview must not persist a draft height.");
-            window.MouseUp(destination, MouseButton.Left); Dispatcher.UIThread.RunJobs();
-            var visible = window.Layout.State.BottomVisible;
-            Require(visible == (fraction >= .5) && Math.Abs(window.Layout.State.BottomHeight -
-                    (visible ? Math.Clamp(requested, minimum, .7) : initial)) < .001,
-                "Bottom resize must snap to its 147px minimum, cap at 70%, or collapse while retaining expanded height.");
-            if (!visible)
-            {
-                window.KeyPress(Key.J, RawInputModifiers.Meta | RawInputModifiers.Shift, PhysicalKey.J, null);
-                Require(window.Layout.State.BottomVisible && window.Layout.State.BottomHeight == initial,
-                    "Restoring a collapsed bottom region must recover its expanded height.");
-            }
-        }
         window.Layout.ApplyPreset(DockState.Preset("balanced"));
         var separator = Find<ResizeHandle>("leftSeparator");
         Bounds(separator);
@@ -608,30 +450,6 @@ internal static class DockInputChecks
         Drag("probe", probe.Center);
         Require(window.Layout.Epoch == epoch, "No-op tab drop committed a transition.");
         window.Width = 1600; window.Height = 1000;
-        for (var index = 0; index < 8; index++)
-        {
-            var path = $"clipped-document-{index}.txt";
-            File.WriteAllText(Path.Combine(root, path), "Clipping fixture");
-            window.Layout.Open(new DockTab("clip" + index, path, "source", path), true, centerGroup);
-        }
-        var stripHeader = Find<Grid>("GroupHeader_" + centerGroup);
-        var stripScroll = stripHeader.GetLogicalDescendants().OfType<ScrollViewer>().Single();
-        stripScroll.Offset = new Vector(20, 0);
-        var clippedFrom = Bounds(Find<Button>("Tab_clip2")).Center;
-        var baseExtent = stripScroll.Extent.Width;
-        var clippedTo = Bounds(stripHeader).TopLeft + new Vector(2, 16);
-        window.MouseDown(clippedFrom, MouseButton.Left); window.MouseMove(clippedTo);
-        Require(Math.Abs(stripScroll.Extent.Width - baseExtent) < .01,
-            "Dragging must not add an append block to the strip's scrollable extent.");
-        Require(!surface.Children.OfType<Canvas>().Single().Children.OfType<Border>().Any(item =>
-            ReferenceEquals(item.Background, Ui.Accent)),
-            "An insertion boundary outside the scrolled viewport must be clipped, not moved to its edge.");
-        window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
-        window.MouseUp(clippedTo, MouseButton.Left);
-        Bounds(stripHeader);
-        Require(Math.Abs(stripScroll.Extent.Width - baseExtent) < .01,
-            "Cancelled dragging must restore the original tab-strip extent.");
-        for (var index = 0; index < 8; index++) window.Layout.Close(centerGroup, "clip" + index);
         epoch = window.Layout.Epoch;
         var section = Bounds(Find<Grid>("CenterPanel"));
         from = Bounds(Find<Button>("Tab_probe")).Center;
@@ -651,6 +469,7 @@ internal static class DockInputChecks
         Drag("probe", new Point(section.Right - 8, section.Bottom - 8));
         Require(window.Layout.Epoch == epoch && window.Layout.State.Center.Leaves().Count() == 1,
             "A center corner outside the reference split target must not accept a drop.");
+        window.MinWidth = 0; window.MinHeight = 0;
         foreach (var (width, height, allowed) in new[] { (640d, 360d, true), (639d, 359d, false) })
         {
             var panel = Find<Grid>("CenterPanel");
@@ -665,13 +484,13 @@ internal static class DockInputChecks
             Require(Math.Abs(section.Width - width) < .01 && Math.Abs(section.Height - height) < .01,
                 "Split boundary fixture did not reach the requested whole-pane dimensions.");
             var boundaryHeader = Find<Grid>("GroupHeader_" + centerGroup);
-            var menuPoint = new Point(Bounds(boundaryHeader).Right - 100, Bounds(boundaryHeader).Center.Y);
+            var menuPoint = Bounds(boundaryHeader).BottomRight - new Vector(2, 2);
             window.MouseDown(menuPoint, MouseButton.Right); window.MouseUp(menuPoint, MouseButton.Right);
             Dispatcher.UIThread.RunJobs();
             var splitItems = boundaryHeader.ContextMenu!.Items.OfType<MenuItem>()
                 .Where(item => Equals(item.Header, "New split right") || Equals(item.Header, "New split below")).ToArray();
             Require(boundaryHeader.ContextMenu.IsOpen && splitItems.Length == 2 && splitItems.All(item => item.IsEnabled == allowed),
-                "Split menus must use the reference's inclusive 640 by 360 whole-pane thresholds.");
+                $"Split menus must use the inclusive 640 by 360 whole-pane thresholds: pane={section.Size}, open={boundaryHeader.ContextMenu.IsOpen}, allowed={allowed}, items={string.Join(", ", splitItems.Select(item => $"{item.Header}={item.IsEnabled}"))}.");
             boundaryHeader.ContextMenu.Close();
             foreach (var destination in new[] { new Point(section.Right - 8, section.Center.Y),
                          new Point(section.Center.X, section.Bottom - 8) })
@@ -686,7 +505,7 @@ internal static class DockInputChecks
                 window.MouseUp(destination, MouseButton.Left);
             }
         }
-        window.Width = 900; window.Height = 440;
+        window.Width = 900; window.Height = 360;
         var centerBody = Bounds(Find<Border>("DockBody_" + centerGroup));
         var constrained = Bounds(Find<Grid>("CenterPanel"));
         Require(constrained.Width < 640 && constrained.Height < 360, "Minimum-size fixture was not constrained.");
@@ -722,6 +541,6 @@ internal static class DockInputChecks
         window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null); Dispatcher.UIThread.RunJobs();
         Require(!window.Layout.Group(foldedGroup.Id).Folded, "Keyboard restore did not expand the folded pane.");
         window.Close();
-        Console.WriteLine("PASS pointer side/bottom insertion, folded-bottom target, group limits, capture loss, outside cancellation and control names");
+        Console.WriteLine("PASS pointer side insertion, group limits, capture loss, outside cancellation and control names");
     }
 }

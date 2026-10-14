@@ -73,10 +73,6 @@ public sealed class Workbench : IDisposable
     public bool Touch { get; init; }
     /// <summary>Leaves this host for the screen that chooses one; set by a client that has such a screen.</summary>
     public Action? ChangeHost { get; init; }
-    /// <summary>Centre tabs always live in Projects, under their workspace, whatever the tab layout preferences say.</summary>
-    public bool TabsInProjects { get; init; }
-    /// <summary>Repairs terminals placed in the legacy browser's bottom region when the host uses Projects tabs.</summary>
-    public bool FollowHostTerminalPlacement { get; init; }
 #if !ANDROID && !BROWSER
     /// <summary>Optional serving for this app's embedded host, shared by every window.</summary>
     public Host.Remote.HostListener? Listener { get; init; }

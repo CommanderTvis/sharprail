@@ -184,14 +184,11 @@ start new shells after a restart.
 
 ### Opening, closing and clipboard
 
-Each new workspace opens one terminal, "Terminal 1", in its bottom group (a 30%
-bottom panel by default); closing it never brings it back, and a hidden bottom panel
-reserves it without starting a shell until shown. A shell that cannot start shows
-its reason and a Retry that restarts the same tab; an exited shell's tab says so.
-Closing a tab whose shell runs a foreground process asks first; an idle tab closes
-immediately. Mod+Shift+J toggles the bottom panel, including from a focused terminal.
-Terminals are independent per tab and survive workspace switches without a second
-shell.
+New workspaces start with no terminal. An explicit terminal or agent launch places its tab
+in a workspace tab group listed in Projects. A shell that cannot start shows its reason and
+Retry restarts that tab; an exited shell's tab says so. Closing a busy terminal asks first;
+an idle tab closes immediately. Terminals remain independent and survive workspace switches
+without a second shell. There is no bottom zone or bottom-toggle shortcut.
 
 Terminal background and foreground follow the workbench's surface and text
 colors, including live dark/light changes without restarting the shell. Command-V
@@ -325,7 +322,7 @@ No commits, pushes, Pi or AI integration.
 Settings: Thinkrail dialog proportions and styling, live appearance, separate file
 and Markdown line widths (draft inputs validated to 40–240 symbols and applied with
 Save or Enter), layout presets and limits,
-custom layout capture/reset, bottom alignment, and project preferences.
+custom layout capture/reset and project preferences.
 No inactive controls pretending to configure out-of-scope providers or chat.
 
 Themes: the reference's bundled `*.theme.json` manifests (Dark, Light, High Contrast
@@ -340,33 +337,26 @@ dialogs, Markdown, diffs, Mermaid diagrams, the Scintilla editor and Ghostty
 ## Layout contract
 
 One persisted frontend frame owns center topology, auxiliary groups, tool
-placement, side/bottom ratios, visibility/folds and restore targets. Workspace
+placement, side ratios, visibility/folds and restore targets. Workspace
 views own canonical document membership, order, preview slots and selection.
 Switching workspaces retains geometry. Removing/merging groups remaps every
 retained workspace; closing the final tab preserves empty groups.
 
-Balanced: left 18%, right 28% with Specs/Files above Changes/Review (1.25:1);
-bottom 30% below center. Center splits are binary, maximum four leaves,
+Balanced: left 18%, right 28% with Specs/Files above Changes/Review (1.25:1).
+Center splits are binary, maximum four leaves,
 320px minimum width/180px minimum height for interactive split/resize.
-Auxiliary groups default to six per side and three bottom, configurable 1–32.
+Auxiliary groups default to six per side, configurable 1–32.
 Auxiliary panel minimum extent is 120px; folded constraints use 27px divided
 by the whole stack extent, with separator space removed during projection. Expanded
 side regions have an 8% width minimum and snap closed below the 4% midpoint,
-retaining their last expanded width. Bottom minimum height includes the 120px
-body and 27px reference header allowance; resize snaps closed below half that
-minimum and preserves the expanded height for restoration. Bottom height
-maximum 70%, center/center+left/center+right/full alignment. Side resize projects
-through the alignment's outer and inner panel groups: center minimum can push
-neighboring panes in the same group, while a side outside the active inner group
-stays fixed. Bottom spans follow that live projection. Only the dragged side's
-ratio is committed, capped at 70% and below the opposite saved ratio's remaining
+retaining their last expanded width. Side resize projects through the left, center and right groups.
+Only the dragged side's ratio is committed, capped at 70% and below the opposite saved ratio's remaining
 space; untouched compression and viewport constraint adjustment remain local.
 
 ### Dragging and resizing
 
 Pointer drag drafts do not mutate persistent state. Drop performs one legal
-move: strip insertion/join, center half split, side before/after group, bottom
-before/after group or hidden-region restore. Tools are auxiliary-only;
+move: strip insertion/join, center half split, side before/after group or hidden-side restore. Tools are auxiliary-only;
 documents are center-only. Escape/lost capture/outside drop cancel; no duplicate
 resources, illegal previews or partial changes. Valid targets show accent hints
 and the hovered target shows the actual destination. Existing groups may stay empty.
@@ -376,17 +366,18 @@ reference's mean distance from the pointer to their four corners; only the
 winner is active. A disabled insertion target does not disable a legal enclosing
 header append. Drag eligibility is cached only for the current projection epoch;
 local changes and cancellation discard it.
-Resize hides sides below minimum and preserves restore size. Hidden bottom
-reserves no space; while dragging an eligible tool it exposes a 24px drop zone.
-That zone follows bottom alignment and excludes hidden side restore rails.
-Within its band it wins overlapping side targets and is the only active drop
-highlight; hidden side rails retain their lower corners.
+Resize hides sides below minimum and preserves restore size. The bottom zone is retired,
+including its automatic terminal, alignment controls, shortcut and hidden drop target. Older profiles
+move nonterminal document tabs from bottom groups into the center before validation; live terminal
+tabs return from the host catalog without starting a second shell.
+Centre tabs live only under their workspace in Projects; hiding Projects never adds editor tabs.
+Split groups retain their tab lists there, and new workspaces start with no terminal.
 
 ### Keyboard and tab navigation
 
 Keyboard/context menus provide selection, keep, close/hide, movement, split,
-new/remove/merge group, fold, visibility, alignment and resizing. Ctrl+F6 cycles
-visible groups. Mod+Shift+J toggles bottom. Tab headers are 32px, with active
+new/remove/merge group, fold, visibility and resizing. Ctrl+F6 cycles
+visible groups. Tool tab headers are 32px, with active
 accent underline, bounded widths, hidden horizontal scrollbars, active reveal
 and searchable overflow. Search appears only when the strip overflows, as a
 288px dropdown aligned to the magnifying-glass button, with title/icon rows,
@@ -440,7 +431,7 @@ while the host is unreachable keeps the remembered location and retries on recon
 
 ### Window preferences and restoration
 
-Each window keeps its own frame, default preset, group limits, bottom alignment and
+Each window keeps its own frame, default preset, group limits and
 last location, as upstream's per-tab frontend state. `profile.json` stores them as
 one `Windows` entry per open window, restored at launch; closing a window while
 others remain forgets its entry, quitting keeps every entry. Interface size, page zoom, hidden

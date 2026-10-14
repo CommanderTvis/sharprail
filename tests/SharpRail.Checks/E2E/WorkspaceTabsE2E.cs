@@ -31,10 +31,10 @@ internal static class WorkspaceTabsE2E
         using var app = new E2eWorkspace(root);
         var first = CreateWorkspace(app, "workspace-1");
         app.Open("README.md", true);
-        var bottom = app.Window.Layout.State.Groups.Single(group => group.Region == "bottom");
-        app.Click(app.Find<Button>("NewTerminal_" + bottom.Id));
-        Until(() => app.Window.Layout.Tabs(bottom.Id).Any(tab => tab.Kind == "terminal"));
-        var terminalCount = app.Window.Layout.Tabs(bottom.Id).Count(tab => tab.Kind == "terminal");
+        var terminalGroup = app.Window.Layout.Group(app.Center);
+        app.Click(app.Find<Button>("NewTerminal_" + terminalGroup.Id));
+        Until(() => app.Window.Layout.Tabs(terminalGroup.Id).Any(tab => tab.Kind == "terminal"));
+        var terminalCount = app.Window.Layout.Tabs(terminalGroup.Id).Count(tab => tab.Kind == "terminal");
         CreateWorkspace(app, "workspace-2");
         var names = new[] { "WorkspaceWorkbench", "CenterRegion", "AuxiliaryRegion_left" };
         var frames = names.Select(app.Find<Control>).ToArray();
@@ -46,7 +46,7 @@ internal static class WorkspaceTabsE2E
                 "Workspace switches must retain the mounted workbench, center region and left navigation region.");
         }
         Switch(app, first, "workspace-1");
-        Require(app.Tab("README.md").IsVisible && app.Window.Layout.Tabs(bottom.Id).Count(tab => tab.Kind == "terminal") == terminalCount,
+        Require(app.Tab("README.md").IsVisible && app.Window.Layout.Tabs(terminalGroup.Id).Count(tab => tab.Kind == "terminal") == terminalCount,
             "Retargeting the workbench must restore the first workspace's document and terminal tabs.");
         Mounted();
         Switch(app, root); Mounted();

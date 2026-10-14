@@ -18,7 +18,7 @@ supplied by the window through a content callback and never learn where they are
 
 - Owns: `DockState`, `DockGroup`, `CenterNode`, `WorkspaceView` and `DockTab`; validation
   (`LayoutSession.IsValid`); built-in presets; transitions and their atomic installation; the projection
-  from frame plus active view to rendered groups and tabs; side/bottom geometry; drop targeting; tab-strip
+  from frame plus active view to rendered groups and tabs; side geometry; drop targeting; tab-strip
   overflow and search; group and tab menus; the gesture-cancellation signal.
 - Forbidden: host calls, profile I/O, panel internals, domain resource lifetime, colour literals. Persisting
   the state belongs to the window's `WindowProfile` (see [State/SPEC.md](../State/SPEC.md)); ending a
@@ -39,8 +39,8 @@ groups' content, keeping every tab's chrome.
 ## State contract
 
 One frame belongs to a window, not to a workspace. `DockState` carries stable group ids, the center binary
-tree, left/right/bottom groups with weights and folds, side widths, bottom height and alignment, region
-visibility, singleton-tool placement, tool restore targets and the window's side/bottom group limits.
+tree, left/right groups with weights and folds, side widths, region
+visibility, singleton-tool placement, tool restore targets and the window's side group limits.
 
 `DockState.Workspaces` holds one `WorkspaceView` per visited workspace (keyed by workspace root, with
 Project Home keyed per project). A view carries document and terminal membership and order per frame
@@ -82,15 +82,12 @@ workspace first and the view goes once another is active.
 - Left/right: ordered vertical stacks. Expanded bodies keep a 120px minimum; folded groups take 27px and
   retain their weights. Dragging an outer separator below the 4% midpoint hides the side and keeps its
   last expanded width, which the full-height restore rail brings back.
-- Bottom: ordered left-to-right groups. Height starts at 30%, caps at 70%, and snaps closed below half its
-  minimum (120px body plus the 27px header). Hidden, it reserves no space and has no rail; while an
-  eligible tab is dragged a 24px drop zone appears over the span that bottom alignment selects, and
-  Mod+Shift+J restores it directly. Alignment is center, center+left, center+right or full; a side outside
-  the span owns its lower corner.
-- Side resize projects through the alignment's nested groups. Only the dragged side's ratio is committed;
+- There is no bottom zone, bottom alignment, resize handle, toggle shortcut or hidden-bottom drop target.
+  Older frames discard their bottom groups and their automatic terminal tabs on load.
+- Side resize projects through the left, center and right groups. Only the dragged side's ratio is committed;
   compressing an untouched neighbour and viewport constraint are local to the projection.
-- Limits: sides default to six groups each and bottom to three, each 1–32 and window-local. Existing
-  overages survive; creation is unavailable until below the limit, while reorder and joins stay legal.
+- Limits: sides default to six groups each, 1–32 and window-local. Existing overages survive;
+  creation is unavailable until below the limit, while reorder and joins stay legal.
 - Small viewports compress and clip locally; ratios and topology are never rewritten because the window is
   small.
 
@@ -122,7 +119,7 @@ A committed transition rebuilds chrome and re-mounts the same body instances the
 ## Arrangement and accessibility
 
 A tab drag paints exactly one result: strip insertion, center half split, side before/after
-group, bottom before/after group, or restoring a hidden region. Touch dragging requires a 500 ms hold
+group or restoring a hidden side. Touch dragging requires a 500 ms hold
 before movement; moving earlier cancels the draft so the Projects rail can scroll. Mouse dragging retains
 its immediate movement threshold. Only the pointer that pressed the tab may move or release its draft.
 Within a strip the tabs are the only visible
@@ -147,8 +144,7 @@ in place; opening its menu reads the current catalogue and excludes tools alread
 in the frame. A change to metadata of a displayed tool refreshes its chrome.
 
 Pointer is never the only path. Tab, group and header menus cover keep, close/hide, reorder, move to
-another group, directional splits, new pane before/after, remove group, fold, region visibility, bottom
-alignment and tool restore; Alt+Shift+Left/Right reorders, Left/Right/Home/End rove, Delete or Mod+W
+another group, directional splits, new pane before/after, remove group, fold, region visibility and tool restore; Alt+Shift+Left/Right reorders, Left/Right/Home/End rove, Delete or Mod+W
 closes, separators resize from the keyboard and Escape restores their origin. Ctrl+F6 cycles visible
 groups. Tab strips are 32px with an accent underline on the active tab, bounded widths, hidden scrollbars
 active reveal and edge fades only where clipped; a folded group's restore control is its focus endpoint; overflow search appears only while the strip is clipped, as a 288px dropdown under its
@@ -158,26 +154,25 @@ close glyph. An unfolded strip shows a terminal button (tooltip "New terminal in
 ## Presets
 
 Balanced, Focus and Review are built-in frame definitions (`DockState.Preset`). Balanced: left 18%,
-right 28% with Specs/Files over Changes/Review at 1.25:1, bottom 30% with one empty group. A workspace
+right 28% with Specs/Files over Changes/Review at 1.25:1. A workspace
 whose spec graph comes back empty opens that rail on Files instead: once per workspace, when the graph
 arrives, a group still on its seeded first tool Specs moves its selection to the next tool without taking
 focus. Specs stays docked, and anything the user selects afterwards is theirs. Focus hides
 every auxiliary region; Review splits the center vertically and swaps the right stacks. Custom presets use
 the same grammar, capture geometry, topology, tools, folds and empty slots but never workspace resources,
 and are shared through host state. Applying a preset replaces the frame and redistributes each view's
-documents across the new center leaves and terminals into the bottom group; tools a preset omits receive
+documents and explicit terminals across the new center leaves; tools a preset omits receive
 restore targets. The window's default preset is the Reset frame target and is never reapplied on
 workspace switch.
 
 ## Workspace switching
 
 Switching workspace changes resource contents and view attention, never frame topology, tool placement,
-geometry, folds, visibility or alignment. The dock chrome keeps its controls; only bodies swap, and bodies
+geometry, folds or visibility. The dock chrome keeps its controls; only bodies swap, and bodies
 are keyed by workspace and tab id so one workspace's terminal or editor never appears in another. A
-first visit creates its view and places one terminal, "Terminal 1", into the first bottom group, creating
-one when the limit allows; closing it never brings it back. With vertical tabs in Projects (or the
-client's forced Projects-tab mode), a first visit creates an empty view instead: no bottom terminal
-is placed or reserved. Explicit terminal and agent launches keep their normal placement.
+first visit creates an empty view without placing, reserving or starting a terminal.
+Terminals and agents start only through explicit launches.
+
 
 Previously mounted tool bodies remain visible while routing resolves. Workspace-scoped plugin tools and
 center actions return with their existing controls. Paired panes retain their frame and splitters when
@@ -202,19 +197,19 @@ returns to Project Home with a notice.
 Terminal tabs are workspace-view resources. The tab id names a host session derived from workspace root
 and tab id, so the session survives view rebuilds and other windows showing the same tab reattach to it. A
 terminal body is created only when its tab is selected in a visible, unfolded group; hidden tabs keep
-their session without a body, and a hidden bottom reserves the initial terminal without starting a shell
+their session without a body
 until shown. New terminal from a group lands in that group and reveals its region.
 
-Terminal tab context menus include Rename in horizontal, vertical and Projects strips. The name prompt
+Terminal tab context menus include Rename in Projects and side tool strips. The name prompt
 starts with the current title; cancellation, blank and unchanged names leave it alone. Accepted names
 persist in host state and broadcast to other windows, surviving terminal-catalog reconciliation.
 
 Terminal membership is the host's catalog, not a window's ([Terminal/SPEC.md](../Terminal/SPEC.md#shared-terminals)).
-A workspace's first terminal has the key `terminal:initial` in every window and client; a project's home, which is
-not a shared workspace, keeps a private one. `LayoutSession.ReconcileTerminals` makes a workspace view's terminal
+Explicit terminals have unique tab keys shared through the host catalog; the legacy key
+`terminal:initial` remains readable. `LayoutSession.ReconcileTerminals` makes a workspace view's terminal
 tabs those of the catalog, for the active view or a retained one: a tab the catalog lacks is removed without the
 removal veto (its shell was ended by whoever closed it), its group selecting the neighbour as a close does; a tab
-the view lacks is appended to the last-focused, else last, bottom group, else the last-focused centre group,
+the view lacks is appended to the last-focused centre group,
 without selecting it, revealing or unfolding its region, changing frame geometry or taking focus; titles follow
 the host's saved agent title when present, otherwise the catalog. Catalog refreshes cannot replace an agent
 title with its original numbered title, including retained inactive views and newly placed tabs. The view's next
@@ -233,16 +228,9 @@ workspaces the window has not opened. Choosing a listed terminal opens its works
 and reveals its group without taking the shell from its holder. Desktop clients keep
 their normal tab-strip placement; this list also exposes terminals in hidden regions.
 
-A window whose workbench keeps its tabs in Projects (`Workbench.TabsInProjects`, the Android client) has the
-centre's strips as its only tab list, so there reconciliation keeps terminals in the centre: a tab the view lacks
-is appended to the last-focused centre group, and the terminals of every hidden region, the initial one in a
-hidden bottom among them, move there too. An empty centre group shows the first of them, which starts or
-watches its shell. Terminals in a visible side or bottom region stay in its strip. Under every other workspace
-row Projects lists, after the retained centre tabs, the terminals that workspace has outside the centre and
-those in the host's catalog this window has not placed, as for a workspace it never opened
-(`WorkspaceTabsPreviewTerminals`); choosing one opens the workspace and selects the terminal once the catalog
-has placed it. Before this the phone listed only terminals created on it: the others sat in its hidden bottom
-group or, for a workspace not opened yet, in no view at all.
+Every client keeps centre tabs under their workspace in Projects. Catalog terminals arrive in the
+last-focused centre group; terminals in hidden side regions move there too. Other workspace rows also list shared terminals this window has not placed;
+choosing one opens its workspace and selects the terminal once reconciliation has placed it.
 
 A close request from the window (`LayoutSession.RequestClose`, driven by the app command owner) closes the
 selected (else first) tab of the keyboard-focused group, otherwise of the last-focused center group, through
@@ -267,8 +255,7 @@ viewport rather than treating a newly attached tab's transient geometry as offsc
   header with Hide; terminals retain named session tabs. Rails expose roving keyboard focus and pressed
   state, restore focus on fold/unfold, and remain navigation controls rather than resource close targets.
 - Separate tool and terminal panes. Joins, group merges, passive placement and preset remaps must use
-  the same compatibility rule; a displaced terminal chooses the nearest tool-free sibling, then bottom,
-  then center. Session selection itself recalls the terminal; no second terminal-recall authority is
+  the same compatibility rule; a displaced terminal chooses the nearest tool-free sibling, then center. Session selection itself recalls the terminal; no second terminal-recall authority is
   needed. Legacy mixed-order anchors are accepted and discarded. New terminal from a tool pane creates
   a compatible pane directly below; showing an empty region only offers creation and starts no process.
 - Rail entry halves join or reorder within a pane; cluster boundaries create adjacent panes. Explicit
@@ -285,27 +272,22 @@ viewport rather than treating a newly attached tab's transient geometry as offsc
 - Back/Forward navigation history over locations, and serializable deep links to a project, workspace or
   resource.
 
-## Vertical centre tabs and tab panes
+## Tabs in Projects and tab groups
 
-Ported from the fork's "Vertical tabs can live under their workspace in Projects". Settings › Layout
-("Editor tabs") shares `VerticalCenterTabs` and `VerticalTabsInProjects` with every client of the host.
-The column's `VerticalCenterTabsWidth` remains a client preference in
-pixels (120–480, default 200, clamped on load so it survives a window resize unchanged).
-`DefaultPaneDirection` (columns or rows) also remains client-local. A mode change redraws every connected window.
-An embedded host seeds an unset mode from its existing desktop profile, including already migrated profiles;
-subsequent openings never overwrite a saved host mode. Hosts predating these fields retain client-local fallback.
-Catalog terminals arriving in Projects mode use the centre instead of the bottom region.
+Projects is the only home for centre tabs on every client. Restored tabs appear there while host
+routing is pending, using the saved active view until the host supplies its project/workspace rows.
+The live tab controls survive that transition. Hiding, folding or covering Projects
+never adds a strip to the editor. Tab-mode and column-width settings are retired; legacy host
+and profile fields have no effect on placement. `DefaultPaneDirection` remains client-local.
+Centre groups can split right/below from their menu, or directionally by dragging a tab onto a
+body's split target. Each group's tabs stay in Projects. Interactive size limits still apply.
 
-- **The column.** With vertical tabs on, every centre group, including both halves of a split that already
-  existed, draws its tabs as a column beside the editor with a draggable edge (`VerticalTabsResize_<group>`).
-  The mode never flips: the centre cannot be split while it is on, so the split drop targets and the Split
-  menu items are not offered at all (a verb the mode removed is hidden, where one a limit blocks stays
-  disabled with its reason). Where the tabs are listed in Projects the group menu drops New split right and
-  New split below as well. The active marker is a left rule, insertion targets are the top and bottom
-  quarters of a row, and the start actions wrap in a row under the tabs. A basename shared by two open tabs
-  gets a second, dimmed line naming its folder (`./` for the workspace root, since tab paths are
-  workspace-relative); nothing else does.
-- **Panes.** `DockPane` is metadata on a centre group in the workspace view (`WorkspaceView.Panes`), never a
+Nested strips retain their centre group as keyboard owner; their containing tool panel cannot take
+Close Tab or group-navigation commands. Rows use an active marker, top/bottom insertion quarters and
+start actions below their tabs.
+Ambiguous basenames show their folder on a dimmed second line.
+
+- Panes: `DockPane` is metadata on a centre group in the workspace view (`WorkspaceView.Panes`), never a
   centre-tree node: two to four tabs of one group shown together, in columns or rows, with one weight each.
   `LayoutSession` re-derives panes after every mutation: a member closed or moved away leaves no membership,
   a pane below two members dissolves, and members are pulled into one contiguous run anchored where the first
@@ -315,16 +297,13 @@ Catalog terminals arriving in Projects mode use the centre instead of the bottom
   a drop that changes nothing is refused. Making a pane is a vertical-strip gesture: the band between a
   row's insertion quarters, or "Show beside/under <neighbour>" for the immediate neighbours in the tab menu.
   Managing one works in either orientation ("Move up/left in this group", "Stack this group" / "Put this
-  group in columns", "Show on its own"), and an existing pane keeps rendering together with vertical tabs
-  off. Selecting any member shows the whole pane; its dividers commit weights when a drag ends.
-- **Tabs in Projects.** With both preferences on and Projects on screen (`LayoutSession.IsToolShowing`: a
-  visible region, an unfolded group, and its shown tab), each centre group's strip renders nested under the
+  group in columns", "Show on its own"). Selecting any member shows the whole pane; its dividers commit weights when a drag ends.
+- Each centre group's strip renders nested under the
   active workspace's row in Projects and the centre keeps only its editor. Plain directories place
   those tabs directly beneath the directory name, without a workspace row. Nested rows highlight on hover,
   the selected one draws a rounded bordered box, and a pane is one bubble with a continuous left accent.
   Other workspaces list their retained tabs read-only under their rows; choosing one selects it there
-  (`SelectIn`) and switches to that workspace. When Projects is hidden, folded or behind another tool, the
-  strips come back to the centre as the ordinary column.
+  (`SelectIn`) and switches to that workspace.
 
 Inactive workspace previews refresh their plugin icons and badges when host agent identity
 changes, even when the active workspace's decorations are unchanged. Preview caching includes
@@ -339,8 +318,7 @@ Workspace selection backgrounds transition over 120 ms without animating row geo
 A compact workbench (`Workbench.Compact`, set by the Android client on phone-sized screens) sets
 `DockSurface.Drawers`. The frame model is unchanged; only its projection differs:
 
-- The centre and the bottom region keep the whole width. There are no collapsed side rails, no side
-  separators and no resizing of the bottom region.
+- The centre keeps the whole width. There are no collapsed side rails or side separators.
 - A visible left region is the Projects page: the Projects tool alone, over the whole workbench, with no
   tool tab strip. A visible right region is the Tools page: `DockDrawers.cs` lists every other side tool,
   whichever side group holds it, as a section header and shows one of them in the height the headers

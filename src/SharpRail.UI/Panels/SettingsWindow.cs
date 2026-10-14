@@ -574,30 +574,11 @@ public sealed partial class SettingsWindow : Window
         PageControl<ContentControl>(panel, "SavePreset").Content = savePreset;
         var limits = PageControl<StackPanel>(panel, "GroupLimits");
         limits.Children.Add(Limit("side", layout.State.SideLimit, value => layout.Geometry(state => state.SideLimit = value)));
-        limits.Children.Add(Limit("bottom", layout.State.BottomLimit, value => layout.Geometry(state => state.BottomLimit = value)));
-        var alignment = PageControl<ComboBox>(panel, "BottomAlignment");
-        alignment.ItemsSource = new[] { "center", "center-left", "center-right", "full" };
-        alignment.SelectedItem = layout.State.BottomAlignment;
-        alignment.SelectionChanged += (_, _) => { layout.Geometry(state => state.BottomAlignment = alignment.SelectedItem as string ?? "center"); Save(); };
-        var vertical = PageControl<CheckBox>(panel, "VerticalCenterTabs");
-        var inProjects = PageControl<CheckBox>(panel, "VerticalTabsInProjects");
         var directions = PageControl<StackPanel>(panel, "PaneDirections");
-        var directionLabel = PageControl<TextBlock>(panel, "PaneDirectionLabel");
         var directionDetail = PageControl<TextBlock>(panel, "PaneDirectionDetail");
-        // A workbench that keeps its tabs in Projects offers no other place for them.
-        var fixedTabs = window.Workbench.TabsInProjects;
-        PageControl<TextBlock>(panel, "EditorTabsLabel").IsVisible = PageControl<TextBlock>(panel, "EditorTabsDetail").IsVisible =
-            vertical.IsVisible = inProjects.IsVisible = !fixedTabs;
+        directionDetail.Text = "What a new pair looks like when two tabs are first shown together, from a tab's menu. A tab joining an existing group follows that group.";
         void RenderTabs()
         {
-            var on = fixedTabs || state.Preferences.VerticalCenterTabs;
-            vertical.IsChecked = on;
-            inProjects.IsChecked = state.Preferences.VerticalTabsInProjects;
-            inProjects.IsEnabled = on;
-            directionLabel.Foreground = on ? Ui.TextBrush : Ui.Hint;
-            directionDetail.Text = on
-                ? "What a new pair looks like when two tabs are first shown together, from a tab's menu. A tab joining a pane that already exists follows that pane."
-                : "Tabs are shown together only in the vertical strip, so this waits on the setting above.";
             directions.Children.Clear();
             foreach (var (direction, label) in new[] { ("horizontal", "Columns"), ("vertical", "Rows") })
             {
@@ -606,7 +587,6 @@ public sealed partial class SettingsWindow : Window
                 {
                     Name = "DefaultPane_" + direction,
                     Content = label,
-                    IsEnabled = on,
                     Padding = new Thickness(12, 4),
                     CornerRadius = new CornerRadius(4),
                     BorderThickness = new Thickness(1),
@@ -619,18 +599,6 @@ public sealed partial class SettingsWindow : Window
             }
         }
         RenderTabs();
-        vertical.IsCheckedChanged += (_, _) =>
-        {
-            if (state.Preferences.VerticalCenterTabs == (vertical.IsChecked == true)) return;
-            if (state.Current.Settings.VerticalCenterTabs is not null) Share(HostStateChange.Setting("vertical-tabs", (vertical.IsChecked == true).ToString()));
-            else { state.Preferences.VerticalCenterTabs = vertical.IsChecked == true; Save(); RenderTabs(); }
-        };
-        inProjects.IsCheckedChanged += (_, _) =>
-        {
-            if (state.Preferences.VerticalTabsInProjects == (inProjects.IsChecked == true)) return;
-            if (state.Current.Settings.VerticalTabsInProjects is not null) Share(HostStateChange.Setting("tabs-in-projects", (inProjects.IsChecked == true).ToString()));
-            else { state.Preferences.VerticalTabsInProjects = inProjects.IsChecked == true; Save(); RenderTabs(); }
-        };
         var preview = PageControl<CheckBox>(panel, "PreviewTabs");
         preview.IsChecked = state.Preferences.PreviewTabs;
         preview.IsCheckedChanged += (_, _) => { state.Preferences.PreviewTabs = preview.IsChecked == true; Save(); };
@@ -660,7 +628,6 @@ public sealed partial class SettingsWindow : Window
         if (!await Dialogs.Confirm(this, "Apply this layout?", "Open files, documents, and terminals are preserved, but their groups and proportions will be rearranged across every workspace in this window. Other windows are unaffected.", "Apply layout")) return;
         var preset = (state.Preferences.CustomPresets.GetValueOrDefault(name) ?? DockState.Preset(name)).Copy();
         preset.SideLimit = Math.Max(layout.State.SideLimit, Math.Max(preset.Groups.Count(group => group.Region == "left"), preset.Groups.Count(group => group.Region == "right")));
-        preset.BottomLimit = Math.Max(layout.State.BottomLimit, preset.Groups.Count(group => group.Region == "bottom"));
         layout.ApplyPreset(preset);
         window.Slot.Layout = layout.State; Save();
     }
@@ -688,7 +655,7 @@ public sealed partial class SettingsWindow : Window
     private Control Limit(string region, int value, Action<int> change)
     {
         var panel = new StackPanel { Spacing = 4 };
-        panel.Children.Add(Ui.Text(region == "side" ? "Side groups" : "Bottom groups", size: 12));
+        panel.Children.Add(Ui.Text("Side groups", size: 12));
         var input = new NumericUpDown
         {
             Name = "GroupLimit_" + region,

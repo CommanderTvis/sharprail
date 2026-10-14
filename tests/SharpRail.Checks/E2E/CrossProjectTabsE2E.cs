@@ -1,7 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 
-using SharpRail.UI.Panels;
 
 using static SharpRail.Checks.E2E.E2eWorkspace;
 using static SharpRail.Checks.E2E.WorkspaceFixture;
@@ -32,13 +31,6 @@ internal static class CrossProjectTabsE2E
         var split = app.Window.Layout.State.Center.Leaves().Single(group => group != center);
         Require(app.Window.Layout.Move("markdown:OTHER.md", center, split, 0), "OTHER.md moves into the second group.");
         app.Click(app.Find<Button>("Tab_projects"));
-        app.Click(app.Find<Button>("SettingsButton"));
-        Until(() => app.Window.OwnedWindows.OfType<SettingsWindow>().Any(window => window.IsVisible));
-        var settings = app.Window.OwnedWindows.OfType<SettingsWindow>().Single(window => window.IsVisible);
-        app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "Settings_Layout"));
-        settings.GetLogicalDescendants().OfType<CheckBox>().Single(box => box.Name == "VerticalCenterTabs").IsChecked = true;
-        settings.GetLogicalDescendants().OfType<CheckBox>().Single(box => box.Name == "VerticalTabsInProjects").IsChecked = true;
-        settings.Close(); Until(() => !settings.IsVisible);
         _ = app.Window.OpenProjectAsync(first);
         Until(() => app.Window.WorkspaceMounted && app.Window.ProjectRoot == first);
         Button Preview() => app.Window.GetLogicalDescendants().OfType<ContentControl>()

@@ -133,15 +133,14 @@ try {
     try { return await Promise.race([page.evaluate(async () => JSON.parse(await check.Snapshot())), new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Browser dispatcher stopped responding: ' + errors.join('; '))), 5000); })]); }
     finally { clearTimeout(timer); }
   };
-  let windows = await until(snapshot, windows => windows[0]?.ProjectRoot === fixture && windows[0].Terminals[0]?.Text.includes('fixture'), 'The workbench did not restore its host terminal.');
-  await page.evaluate(() => check.SetTabMode(true, true));
-  windows = await until(snapshot, windows => windows[0]?.VerticalCenterTabs && windows[0]?.VerticalTabsInProjects &&
-    windows[0]?.TerminalRegions.length > 0 && windows[0].TerminalRegions.every(region => region === 'center') &&
-    windows[0].Terminals[0]?.Text.includes('fixture'), 'Host Projects mode did not repair the browser terminal placement.');
-  console.log('PASS shared host tab mode restores legacy browser bottom terminals into Projects/center');
-  await page.evaluate(() => check.SetTabMode(false, false));
-  await until(snapshot, windows => !windows[0]?.VerticalCenterTabs && !windows[0]?.VerticalTabsInProjects,
-    'A live host tab mode change did not reach the browser.');
+  let windows = await until(snapshot, windows => windows[0]?.WorkspaceMounted && windows[0]?.ProjectRoot === fixture &&
+    windows[0]?.CatalogKnown && windows[0]?.ProjectsTabs, 'The workspace did not open with its tabs in Projects.');
+  assert.equal(windows[0].TerminalRegions.length, 0, 'A fresh browser workspace must not create a terminal.');
+  assert.equal(windows[0].BottomZones, 0, 'A browser workspace must not have a bottom zone.');
+  await page.evaluate(() => check.OpenTerminal());
+  windows = await until(snapshot, windows => windows[0]?.TerminalRegions.length === 1 && windows[0].TerminalRegions[0] === 'center' &&
+    windows[0].Terminals[0]?.Text.includes('fixture'), 'The explicit terminal did not open in its workspace tab group.');
+  console.log('PASS Projects-only browser tabs, empty startup and explicit terminal creation');
   await page.evaluate(() => check.CheckTerminalDrawing());
   console.log('PASS batched terminal drawing matches the existing renderer pixel for pixel');
   const terminal = windows[0].Terminals[0];

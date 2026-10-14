@@ -15,6 +15,7 @@ public sealed partial class LayoutSession
     public event Action? Focused;
     public LayoutSession(DockState? state = null)
     {
+        state?.RemoveBottomZone();
         State = state is not null && IsValid(state) ? state : DockState.Preset("balanced");
     }
 
@@ -117,27 +118,11 @@ public sealed partial class LayoutSession
         Changed?.Invoke();
     }
 
-    public void SwitchWorkspace(string path, bool initialTerminal = true) => Change(state =>
+    public void SwitchWorkspace(string path) => Change(state =>
     {
         var previous = Active(state);
-        var fresh = path.Length > 0 && !state.Workspaces.ContainsKey(path);
         state.ActiveWorkspace = path;
         var view = Active(state);
-        // A workspace opens one terminal once; closing it later never brings it back.
-        if (fresh && initialTerminal)
-        {
-            var bottom = state.Groups.FirstOrDefault(group => group.Region == "bottom");
-            if (bottom is null)
-            {
-                bottom = new DockGroup { Region = "bottom" };
-                PrepareAuxiliaryCreation(state, bottom); state.Groups.Add(bottom);
-            }
-            // A workspace's first terminal has the key every client gives it; a project's home is not a shared workspace.
-            var terminal = new DockTab(path.StartsWith("home:", StringComparison.Ordinal) ? "terminal:" + Guid.NewGuid().ToString("N") : TerminalTab.InitialKey,
-                "Terminal " + view.NextTerminalNumber++, "terminal");
-            view.Documents[bottom.Id] = [terminal];
-            view.Selected[bottom.Id] = terminal.Id;
-        }
         foreach (var group in state.Groups.Where(group => group.Region != "center"))
         {
             var selected = previous.Selected.GetValueOrDefault(group.Id) ?? group.Tools.FirstOrDefault()?.Id;
@@ -147,16 +132,10 @@ public sealed partial class LayoutSession
     });
 
     /// <summary>
-    /// Makes a workspace's terminal tabs those of the host's catalog. A tab the catalog lacks goes without
-    /// asking, unless its reservation is still <paramref name="pending"/>; one this view lacks lands in the
-    /// last-focused (else last) bottom group, else the last-focused centre group, without selecting it,
-    /// revealing its region or taking focus; saved agent titles override catalog titles. Returns whether anything changed.
-    /// With <paramref name="center"/>, for a window whose only tab list is the centre's, the last-focused centre
-    /// group takes them instead, and with them the terminals of every hidden region.
-    /// <paramref name="repairBottom"/> also moves visible bottom terminals from a legacy browser profile,
-    /// preserving an existing centre selection, otherwise the selected terminal from the bottom.
+    /// Makes terminal tabs follow the host catalog, placing new tabs in the last-focused center group
+    /// without taking selection or focus. Saved agent titles override catalog titles.
     /// </summary>
-    public bool ReconcileTerminals(string workspace, IReadOnlyList<TerminalTab> catalog, IReadOnlySet<string> pending, bool center = false, IReadOnlyDictionary<string, string>? titles = null, bool repairBottom = false)
+    public bool ReconcileTerminals(string workspace, IReadOnlyList<TerminalTab> catalog, IReadOnlySet<string> pending, IReadOnlyDictionary<string, string>? titles = null)
     {
         if (!State.Workspaces.ContainsKey(workspace)) return false;
         var next = State.Copy();
@@ -180,22 +159,17 @@ public sealed partial class LayoutSession
                 if (tabs[i].Kind == "terminal" && known.TryGetValue(tabs[i].Id, out var title) && tabs[i].Title != title) { tabs[i] = tabs[i] with { Title = title }; changed = true; }
         }
         var placed = view.Documents.Values.SelectMany(tabs => tabs).Select(tab => tab.Id).ToHashSet();
-        var bottoms = next.Groups.Where(group => group.Region == "bottom").Select(group => group.Id).ToArray();
         var leaves = next.Center.Leaves().ToArray();
         var focused = leaves.Contains(view.FocusedCenter) ? view.FocusedCenter : leaves[0];
-        var target = center ? focused : bottoms.Contains(view.FocusedAuxiliary.GetValueOrDefault("bottom")) ? view.FocusedAuxiliary["bottom"] : bottoms.LastOrDefault() ?? focused;
-        var selectRepaired = repairBottom && !view.Selected.ContainsKey(target);
-        if (center)
-            foreach (var group in next.Groups.Where(group => group.Region switch { "left" => !next.LeftVisible, "right" => !next.RightVisible, "bottom" => repairBottom || !next.BottomVisible, _ => false }))
-                foreach (var tab in view.Documents.GetValueOrDefault(group.Id)?.Where(tab => tab.Kind == "terminal").ToArray() ?? [])
-                {
-                    view.Documents[group.Id].Remove(tab); view.BeforeToolByTabId.Remove(tab.Id); changed = true;
-                    var selected = view.Selected.GetValueOrDefault(group.Id) == tab.Id;
-                    if (selected) view.Selected.Remove(group.Id);
-                    if (!view.Documents.TryGetValue(target, out var tabs)) view.Documents[target] = tabs = [];
-                    if (selectRepaired && selected) { view.Selected[target] = tab.Id; selectRepaired = false; }
-                    tabs.Add(tab);
-                }
+        var target = focused;
+        foreach (var group in next.Groups.Where(group => group.Region switch { "left" => !next.LeftVisible, "right" => !next.RightVisible, _ => false }))
+            foreach (var tab in view.Documents.GetValueOrDefault(group.Id)?.Where(tab => tab.Kind == "terminal").ToArray() ?? [])
+            {
+                view.Documents[group.Id].Remove(tab); view.BeforeToolByTabId.Remove(tab.Id); changed = true;
+                if (view.Selected.GetValueOrDefault(group.Id) == tab.Id) view.Selected.Remove(group.Id);
+                if (!view.Documents.TryGetValue(target, out var tabs)) view.Documents[target] = tabs = [];
+                tabs.Add(tab);
+            }
         foreach (var tab in catalog)
         {
             // New terminals here keep counting past every numbered title a peer already used.
@@ -299,7 +273,6 @@ public sealed partial class LayoutSession
         else view.FocusedAuxiliary[group.Region] = groupId;
         if (group.Region == "left") state.LeftVisible = true;
         if (group.Region == "right") state.RightVisible = true;
-        if (group.Region == "bottom") state.BottomVisible = true;
     });
 
     public void Close(string groupId, string tabId)
@@ -338,7 +311,7 @@ public sealed partial class LayoutSession
         var groupId = State.Groups.Any(item => item.Id == view.FocusedGroup) ? view.FocusedGroup : view.FocusedCenter;
         var group = State.Groups.FirstOrDefault(item => item.Id == groupId);
         if (group is null || group.Folded) return false;
-        var visible = group.Region switch { "left" => State.LeftVisible, "right" => State.RightVisible, "bottom" => State.BottomVisible, _ => true };
+        var visible = group.Region switch { "left" => State.LeftVisible, "right" => State.RightVisible, _ => true };
         if (!visible || Selected(groupId) is not { IsTool: false } tab) return false;
         Close(groupId, tab.Id);
         return true;
@@ -367,7 +340,7 @@ public sealed partial class LayoutSession
     public bool MoveToNewRegionGroup(string tabId, string source, string region, bool atStart)
         => Change(state =>
         {
-            if (region is not ("left" or "right" or "bottom")) throw new InvalidOperationException();
+            if (region is not ("left" or "right")) throw new InvalidOperationException();
             var groups = state.Groups.Where(group => group.Region == region).ToArray();
             if (groups.Length > 0)
                 MoveIn(state, tabId, source, atStart ? groups[0].Id : groups[^1].Id, 0, atStart ? "before" : "after");
@@ -381,11 +354,9 @@ public sealed partial class LayoutSession
 
     private static void MoveToRegionIn(DockState state, string tabId, string source, string region)
     {
-        if (region is not ("left" or "right" or "bottom")) throw new InvalidOperationException();
-        var remembered = Active(state).FocusedAuxiliary.GetValueOrDefault(region);
-        var group = state.Groups.FirstOrDefault(item => region == "bottom" && item.Region == region && item.Id == remembered)
-            ?? state.Groups.LastOrDefault(item => item.Region == region);
-        if (region != "bottom" && group is not null)
+        if (region is not ("left" or "right")) throw new InvalidOperationException();
+        var group = state.Groups.LastOrDefault(item => item.Region == region);
+        if (group is not null)
         {
             MoveIn(state, tabId, source, group.Id, 0, "after"); return;
         }
@@ -466,7 +437,6 @@ public sealed partial class LayoutSession
         if (to.Region == "center") view.FocusedCenter = destination;
         if (to.Region == "left") state.LeftVisible = true;
         if (to.Region == "right") state.RightVisible = true;
-        if (to.Region == "bottom") state.BottomVisible = true;
         to.Folded = false;
     }
 
@@ -563,14 +533,13 @@ public sealed partial class LayoutSession
         {
             if (group.Region == "left") state.LeftVisible = false;
             if (group.Region == "right") state.RightVisible = false;
-            if (group.Region == "bottom") state.BottomVisible = false;
         }
     });
 
     private static void PrepareAuxiliaryCreation(DockState state, DockGroup created)
     {
         var retained = state.Groups.Where(group => group.Region == created.Region).ToArray();
-        var limit = created.Region == "bottom" ? state.BottomLimit : state.SideLimit;
+        var limit = state.SideLimit;
         if (retained.Length >= limit) throw new InvalidOperationException();
         created.Weight = 1d / (retained.Length + 1);
         var total = retained.Sum(group => group.Weight);
@@ -596,7 +565,6 @@ public sealed partial class LayoutSession
     {
         if (region == "left") state.LeftVisible = visible;
         if (region == "right") state.RightVisible = visible;
-        if (region == "bottom") state.BottomVisible = visible;
     });
 
     public void RestoreTool(string id, string? target = null) => Change(state =>
@@ -618,7 +586,6 @@ public sealed partial class LayoutSession
         Active(state).Selected[group.Id] = id;
         if (group.Region == "left") state.LeftVisible = true;
         if (group.Region == "right") state.RightVisible = true;
-        if (group.Region == "bottom") state.BottomVisible = true;
     });
 
     public void Geometry(Action<DockState> mutation) => Change(mutation);
@@ -626,6 +593,7 @@ public sealed partial class LayoutSession
     public void ApplyPreset(DockState preset)
     {
         var next = preset.Copy();
+        next.RemoveBottomZone();
         next.ActiveWorkspace = State.ActiveWorkspace; next.Workspaces = State.Workspaces.ToDictionary(pair => pair.Key, pair => pair.Value.Copy());
         foreach (var view in next.Workspaces.Values)
         {
@@ -635,8 +603,7 @@ public sealed partial class LayoutSession
             var centerIndex = 0;
             for (var i = 0; i < documents.Length; i++)
             {
-                var target = documents[i].Kind == "terminal" ? next.Groups.FirstOrDefault(group => group.Region == "bottom")?.Id ?? leaves[0]
-                    : leaves[centerIndex++ % leaves.Length];
+                var target = leaves[centerIndex++ % leaves.Length];
                 if (!view.Documents.TryGetValue(target, out var list)) view.Documents[target] = list = [];
                 list.Add(documents[i] with { Preview = false });
             }
@@ -660,17 +627,15 @@ public sealed partial class LayoutSession
                 leaves.Distinct().Count() != leaves.Length || leaves.Any(id => !groups.Contains(id)) ||
                 state.Groups.Any(group => group.Region == "center" != leaves.Contains(group.Id)) ||
                 state.Groups.Any(group => string.IsNullOrWhiteSpace(group.Id) ||
-                    group.Region is not ("center" or "left" or "right" or "bottom") ||
+                    group.Region is not ("center" or "left" or "right") ||
                     !double.IsFinite(group.Weight) || group.Weight <= 0 || group.Region == "center" && group.Folded) ||
                 state.Groups.GroupBy(group => group.Region).Any(region => region.Count() > 32) ||
                 tools.Any(tab => !tab.IsTool || !DockState.IsToolId(tab.Id)) ||
                 tools.Select(tab => tab.Id).Distinct().Count() != tools.Length ||
                 state.Groups.Any(group => group.Region == "center" && group.Tools.Count > 0) ||
-                state.SideLimit is < 1 or > 32 || state.BottomLimit is < 1 or > 32 ||
-                !double.IsFinite(state.LeftWidth + state.RightWidth + state.BottomHeight) ||
-                state.LeftWidth is <= 0 or >= 1 || state.RightWidth is <= 0 or >= 1 ||
-                state.BottomHeight is <= 0 or > .7 ||
-                !new[] { "center", "center-left", "center-right", "full" }.Contains(state.BottomAlignment)) return false;
+                state.SideLimit is < 1 or > 32 ||
+                !double.IsFinite(state.LeftWidth + state.RightWidth) ||
+                state.LeftWidth is <= 0 or >= 1 || state.RightWidth is <= 0 or >= 1) return false;
             return state.Workspaces.Values.All(view =>
             {
                 var documents = view.Documents.Values.SelectMany(tabs => tabs).ToArray();

@@ -42,7 +42,7 @@ internal static class DrawerChecks
         var directory = Path.Combine(root, "drawers");
         Directory.CreateDirectory(directory);
         File.WriteAllText(Path.Combine(directory, "notes.txt"), "notes");
-        var window = new WorkbenchWindow(new ProjectServices(directory), directory, new ProfileStore(directory + "-profile"), E2E.E2eTerminals.Plain, compact: true, tabsInProjects: true);
+        var window = new WorkbenchWindow(new ProjectServices(directory), directory, new ProfileStore(directory + "-profile"), E2E.E2eTerminals.Plain, compact: true);
         window.Width = 400; window.Height = 800;
         window.Show();
         Pump(() => window.WorkspaceMounted, "The compact workspace did not mount.");
@@ -141,8 +141,8 @@ internal static class DrawerChecks
         settings.RaiseEvent(leave);
         Require(!leave.Handled, "Back on the list must be left to close Settings.");
         Click(Named<Button>(settings, "Settings_Layout"));
-        Require(!Named<CheckBox>(settings, "VerticalCenterTabs").IsVisible && !Named<CheckBox>(settings, "VerticalTabsInProjects").IsVisible &&
-            !Named<TextBlock>(settings, "EditorTabsLabel").IsVisible, "A workbench that keeps its tabs in Projects must not offer another place for them.");
+        Require(!settings.GetLogicalDescendants().OfType<Control>().Any(control => control.Name is "VerticalCenterTabs" or "VerticalTabsInProjects"),
+            "Layout must not offer retired tab modes.");
         Require(Named<Button>(settings, "DefaultPane_horizontal").IsEnabled, "Pane direction must stay available where tabs always live in Projects.");
         settings.Close();
         Click(current);

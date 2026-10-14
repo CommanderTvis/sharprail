@@ -3,7 +3,6 @@ using Avalonia.LogicalTree;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.Plugins.Api;
-using SharpRail.UI.Panels;
 
 using static SharpRail.Checks.E2E.E2eWorkspace;
 
@@ -14,14 +13,6 @@ internal static class AgentTabMarksE2E
     internal static void Run(string root)
     {
         using var app = new E2eWorkspace(Path.Combine(root, "agent-tab-marks"), openFiles: false);
-        app.Click(app.Find<Button>("SettingsButton"));
-        Until(() => app.Window.OwnedWindows.OfType<SettingsWindow>().Any(window => window.IsVisible));
-        var settings = app.Window.OwnedWindows.OfType<SettingsWindow>().Single();
-        app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "Settings_Layout"));
-        settings.GetLogicalDescendants().OfType<CheckBox>().Single(box => box.Name == "VerticalCenterTabs").IsChecked = true;
-        settings.GetLogicalDescendants().OfType<CheckBox>().Single(box => box.Name == "VerticalTabsInProjects").IsChecked = true;
-        settings.Close();
-        Settle();
         foreach (var plugin in new[] { "codex", "claude-code" })
         {
             app.State!.ChangeAsync([HostStateChange.PluginSettings(plugin, "{\"enabled\":true,\"command\":\"/usr/bin/false\"}")]).AsTask().GetAwaiter().GetResult();

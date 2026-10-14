@@ -65,8 +65,7 @@ internal sealed class E2eWorkspace : IDisposable
     /// A remote client of a real WebSocket RPC host at <paramref name="endpoint"/>, restoring <paramref name="startPath"/>;
     /// with <paramref name="plugins"/> it reaches the host's plugin runtime as the app does.
     /// </summary>
-    internal E2eWorkspace(Uri endpoint, string token, string root, string profileRoot, string startPath, bool plugins = true, E2eTerminals? terminals = null,
-        bool tabsInProjects = false, Action<ProfileStore>? prepare = null, bool compact = false)
+    internal E2eWorkspace(Uri endpoint, string token, string root, string profileRoot, string startPath, bool plugins = true, E2eTerminals? terminals = null, Action<ProfileStore>? prepare = null, bool compact = false)
     {
         Root = root;
         var profile = new ProfileStore(profileRoot);
@@ -80,7 +79,7 @@ internal sealed class E2eWorkspace : IDisposable
         var first = true;
         Workbench = new(profile, new SharedState(service, profile.Data.Preferences), Terminals.Factory, true,
             () => { if (!first) return new E2eHost(new RemoteProjectAdapter(endpoint, token)); first = false; return Host; }, remotePlugins, Terminals.Catalog)
-        { Endpoint = endpoint.ToString(), TabsInProjects = tabsInProjects, Compact = compact };
+        { Endpoint = endpoint.ToString(), Compact = compact };
         Window = Workbench.Open(profile.Data.Windows[0], startPath);
         Window.Width = 1352; Window.Height = 848;
         Window.Show();
@@ -88,8 +87,7 @@ internal sealed class E2eWorkspace : IDisposable
 
     internal E2eWorkspace(string root, bool openFiles = true, string? profileRoot = null, E2eTerminals? terminals = null, string? startPath = null,
         Action<E2eHost>? prepare = null, Func<IHostStateService, IHostStateService>? state = null,
-        Func<IPluginService, IPluginService>? plugins = null, bool serving = false, SharpRail.UI.Notifications.IDesktopNotifier? notifier = null,
-        bool tabsInProjects = false)
+        Func<IPluginService, IPluginService>? plugins = null, bool serving = false, SharpRail.UI.Notifications.IDesktopNotifier? notifier = null)
     {
         Root = root;
         Directory.CreateDirectory(root);
@@ -126,7 +124,6 @@ internal sealed class E2eWorkspace : IDisposable
         {
             Listener = serving ? new HostListener(root, State, Terminals.HostService, pluginRuntime) : null,
             Notifier = notifier,
-            TabsInProjects = tabsInProjects,
             NotificationWindow = TimeSpan.FromMilliseconds(150)
         };
         Window = Workbench.Open(profile.Data.Windows[0], startPath ?? root);

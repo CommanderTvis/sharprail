@@ -56,8 +56,8 @@ public sealed partial class DockSurface
             if (e.Key == Key.Escape && draft is not null) { CancelDrag(); e.Handled = true; }
             else if (e.Key == Key.F6 && e.KeyModifiers.HasFlag(KeyModifiers.Control))
             {
-                var visible = groupHeaders.Keys.OrderBy(id => Session.Group(id).Region == "bottom" ? 1 : 0)
-                    .ThenBy(id => RectOf(groupHeaders[id]).Top).ThenBy(id => RectOf(groupHeaders[id]).Left).ToArray();
+                var visible = groupHeaders.Keys
+                    .OrderBy(id => RectOf(groupHeaders[id]).Top).ThenBy(id => RectOf(groupHeaders[id]).Left).ToArray();
                 if (visible.Length == 0) return;
                 var active = Array.IndexOf(visible, Session.View.FocusedGroup);
                 var direction = e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? -1 : 1;
@@ -207,12 +207,10 @@ public sealed partial class DockSurface
                 }
                 continue;
             }
-            var header = RectOf(groupHeaders[group.Id]);
+            var header = group.Region == "center" ? bounds : RectOf(groupHeaders[group.Id]);
             var section = group.Folded ? bounds : new Rect(bounds.Left, header.Top, bounds.Width, bounds.Bottom - header.Top);
             if (group.Region == "center")
             {
-                // With vertical tabs on, the centre cannot be split: grouping is what that layout does instead.
-                if (CenterTabs?.Invoke() is { Vertical: true }) continue;
                 foreach (var edge in new[] { "left", "right", "top", "bottom" })
                 {
                     var horizontal = edge is "left" or "right";
@@ -233,22 +231,11 @@ public sealed partial class DockSurface
             foreach (var edge in new[] { "before", "after" })
             {
                 if (!Legal(site.Group, 0, edge)) continue;
-                var direction = group.Region == "bottom" ? edge == "before" ? "left" : "right" : edge == "before" ? "top" : "bottom";
+                var direction = edge == "before" ? "top" : "bottom";
                 var half = AuxiliaryTarget(section, direction);
                 if (half.Width <= 0 || half.Height <= 0) continue;
                 candidates.Add(new(new(site.Group, 0, edge, half), active => Hint(half, active)));
             }
-        }
-        if ((!Session.State.BottomVisible || !Session.State.Groups.Any(group => group.Region == "bottom")) && Legal("restore:bottom", 0))
-        {
-            var bounds = HiddenBottomBounds();
-            candidates.Add(new(new("", 0, "", bounds, "bottom"), active =>
-            {
-                var hint = Hint(bounds, active);
-                hint.CornerRadius = new CornerRadius(0);
-                hint.BorderThickness = new Thickness(0, active ? 2 : 1, 0, 0);
-                hint.BorderBrush = Ui.Accent;
-            }, true));
         }
         var winner = candidates.Where(candidate => candidate.Target.Bounds.Contains(point))
             .OrderByDescending(candidate => candidate.Priority)
@@ -302,21 +289,6 @@ public sealed partial class DockSurface
                 hint.BorderThickness = new Thickness(active ? 2 : 0);
             }));
         }
-    }
-
-    private Rect HiddenBottomBounds()
-    {
-        var centers = sites.Where(site => !site.Header && !site.Group.StartsWith("restore:", StringComparison.Ordinal) &&
-            Session.Group(site.Group).Region == "center").Select(site => RectOf(site.Control)).ToArray();
-        var leftRail = sites.FirstOrDefault(site => site.Group == "restore:left").Control;
-        var rightRail = sites.FirstOrDefault(site => site.Group == "restore:right").Control;
-        var left = leftRail is null ? 0 : RectOf(leftRail).Right;
-        var right = rightRail is null ? Bounds.Width : RectOf(rightRail).Left;
-        var x = centers.Length == 0 ? left : centers.Min(rect => rect.Left);
-        var end = centers.Length == 0 ? right : centers.Max(rect => rect.Right);
-        if (Session.State.BottomAlignment is "full" or "center-left") x = left;
-        if (Session.State.BottomAlignment is "full" or "center-right") end = right;
-        return new Rect(x, Bounds.Height - 24, Math.Max(0, end - x), 24);
     }
 
     private Border Hint(Rect rect, bool active, bool split = false)

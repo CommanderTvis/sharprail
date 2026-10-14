@@ -43,9 +43,8 @@ internal static class WindowGesturesE2E
         Require(!second.Window.Layout.State.LeftVisible && first.Window.Layout.State.LeftVisible &&
             surface.IsDragging && first.Window.Layout.Epoch == epoch && !first.Find<Border>("GestureToast").IsVisible && !first.Find<TextBlock>("WorkspaceError").IsVisible,
             $"A second window's layout transition must not cancel or rearrange the first window's drag: second left={second.Window.Layout.State.LeftVisible}, first left={first.Window.Layout.State.LeftVisible}, drag={surface.IsDragging}, epoch={first.Window.Layout.Epoch}/{epoch}, error={first.Find<TextBlock>("WorkspaceError").IsVisible}.");
-        var header = first.Find<Grid>("GroupHeader_" + first.Center);
         var body = first.Find<Border>("DockBody_" + first.Center);
-        var origin = header.TranslatePoint(default, first.Window)!.Value;
+        var origin = body.TranslatePoint(default, first.Window)!.Value;
         var height = body.TranslatePoint(new Point(0, body.Bounds.Height), first.Window)!.Value.Y - origin.Y;
         var target = new Point(origin.X + body.Bounds.Width * .9 - 4, origin.Y + height / 2);
         first.Window.MouseMove(target); Settle(); first.Window.MouseUp(target, MouseButton.Left); Settle();

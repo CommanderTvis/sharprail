@@ -22,6 +22,7 @@ public sealed partial class WorkbenchWindow
     private string railSignature = "";
     private StackPanel? projectsTree;
     private Grid? projectsPanel;
+    private StackPanel? pendingWorkspaceTabs;
     private bool ProjectsHoverEnabled => projectsPanel?.Classes.Contains("touch-projects") != true;
 
     internal static void ConfigureProjectsTouch(Grid panel, bool touch)
@@ -71,6 +72,26 @@ public sealed partial class WorkbenchWindow
             }
             ReconcileRailChildren(entry.Workspaces, rows);
         }
+        var active = Layout.State.ActiveWorkspace;
+        if (active.Length > 0 && !active.StartsWith("home:", StringComparison.Ordinal) &&
+            Layout.View.Documents.Values.Any(tabs => tabs.Count > 0) &&
+            !projectRailRows.Values.Any(entry => entry.Rows.ContainsKey(active)))
+        {
+            if (!Equals(pendingWorkspaceTabs?.Tag, active))
+            {
+                var tabs = WorkspaceTabsHost(active);
+                tabs.Margin = new Thickness(24, 0, 4, 4);
+                pendingWorkspaceTabs = new StackPanel
+                {
+                    Name = "PendingWorkspaceTabs",
+                    Tag = active,
+                    Spacing = 4,
+                    Children = { Ui.Text(Path.GetFileName(active), Ui.Muted, 12), tabs }
+                };
+            }
+            children.Add(pendingWorkspaceTabs!);
+        }
+        else pendingWorkspaceTabs = null;
         ReconcileRailChildren(projectsTree, children);
         foreach (var update in railSelection.Values) update();
         placeProjectTrailing?.Invoke();
@@ -110,6 +131,7 @@ public sealed partial class WorkbenchWindow
         railSignature = RailSignature();
         railStats.Clear();
         railSelection.Clear(); projectRailRows.Clear(); workspaceTabHosts.Clear(); workspaceTabPreviewSignatures.Clear();
+        pendingWorkspaceTabs = null;
         var panel = new Grid { Name = "ProjectsPanel", Margin = new Thickness(12, 12, 0, 12), RowDefinitions = new RowDefinitions("28,8,*") };
         projectsPanel = panel;
         ConfigureProjectsTouch(panel, OperatingSystem.IsAndroid());

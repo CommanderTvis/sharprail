@@ -10,13 +10,12 @@ using Avalonia.Threading;
 
 namespace SharpRail.UI.Docking;
 
-/// <summary>Where centre tabs render: <see cref="Vertical"/> as a column, in Projects when <see cref="Home"/> is <c>projects</c>.</summary>
-public sealed record CenterTabsMode(bool Vertical, double Width, string Home, string DefaultPaneDirection);
+/// <summary>The default arrangement when tabs in Projects are shown together.</summary>
+public sealed record CenterTabsMode(string DefaultPaneDirection);
 
 internal enum StripStyle
 {
     Horizontal,
-    Vertical,
     Nested
 }
 
@@ -33,10 +32,8 @@ public sealed partial class DockSurface : Grid
     public Func<DockTab, IBrush, Control?>? TabIcon { get; set; }
     /// <summary>Extra content after a tab's title, such as a badge.</summary>
     public Func<DockTab, Control?>? TabAdornment { get; set; }
-    /// <summary>How centre tabs render: as the ordinary strip, a column beside the editor, or nested in Projects.</summary>
+    /// <summary>The default arrangement for tabs shown together in Projects.</summary>
     public Func<CenterTabsMode>? CenterTabs { get; set; }
-    /// <summary>The vertical column's width after a resize, in pixels.</summary>
-    public Action<double>? CenterTabsWidthChanged { get; set; }
     /// <summary>Raised after a rebuild with the centre strips that belong in Projects, by centre group; empty otherwise.</summary>
     public event Action<IReadOnlyDictionary<string, Control>>? NestedStripsChanged;
     private readonly Dictionary<string, Control> nestedStrips = [];
@@ -50,7 +47,7 @@ public sealed partial class DockSurface : Grid
     private readonly List<(Control Control, string Group, bool Header)> sites = [];
     private readonly Grid shell = new();
     private readonly Border centerRegion = new() { Name = "CenterRegion" };
-    private readonly Dictionary<string, Border> auxiliaryRegions = new[] { "left", "right", "bottom" }
+    private readonly Dictionary<string, Border> auxiliaryRegions = new[] { "left", "right" }
         .ToDictionary(region => region, region => new Border { Name = "AuxiliaryRegion_" + region });
     private readonly Canvas overlay = new() { IsHitTestVisible = false };
     /// <summary>A touch screen has no hover to reveal a tab's close button on, so it is always drawn.</summary>
@@ -98,7 +95,6 @@ public sealed partial class DockSurface : Grid
         Session.SelectionChanged += group =>
         {
             var resizing = CancelForLayoutChange();
-            // Selecting another tool can hide Projects, which moves nested centre strips back to the column.
             if (!resizing && selectionUpdates.TryGetValue(group, out var update) && CenterTabs?.Invoke() == renderedMode) update();
             else Rebuild();
         };
@@ -155,54 +151,19 @@ public sealed partial class DockSurface : Grid
         var widths = new SideGeometry(state, Bounds.Width).Project();
         var left = state.LeftVisible && state.Groups.Any(group => group.Region == "left");
         var right = state.RightVisible && state.Groups.Any(group => group.Region == "right");
-        var bottom = state.BottomVisible && state.Groups.Any(group => group.Region == "bottom");
         shell.ColumnDefinitions.Add(new(left ? new GridLength(widths.Left, GridUnitType.Star) : new GridLength(28)));
         shell.ColumnDefinitions.Add(new(new GridLength(left ? 1 : 0)));
         shell.ColumnDefinitions.Add(new(new GridLength(Math.Max(double.Epsilon, widths.Center), GridUnitType.Star)));
         shell.ColumnDefinitions.Add(new(new GridLength(right ? 1 : 0)));
         shell.ColumnDefinitions.Add(new(right ? new GridLength(widths.Right, GridUnitType.Star) : new GridLength(28)));
-        shell.RowDefinitions.Add(new(new GridLength(bottom ? 1 - state.BottomHeight : 1, GridUnitType.Star)));
-        shell.RowDefinitions.Add(new(new GridLength(bottom ? 1 : 0)));
-        shell.RowDefinitions.Add(new(new GridLength(bottom ? state.BottomHeight : 0, GridUnitType.Star)));
-        var includeLeft = state.BottomAlignment is "full" or "center-left";
-        var includeRight = state.BottomAlignment is "full" or "center-right";
-        var start = includeLeft && left ? 0 : 2;
-        var end = includeRight && right ? 4 : 2;
+        shell.RowDefinitions.Add(new(new GridLength(1, GridUnitType.Star)));
         centerRegion.Child = BuildCenter(state.Center);
-        if (left) PlaceAuxiliary(BuildAuxiliary("left"), "left", 0, bottom && includeLeft ? 1 : 3);
+        if (left) PlaceAuxiliary(BuildAuxiliary("left"), "left", 0, 1);
         else PlaceRail("left", 0);
-        if (right) PlaceAuxiliary(BuildAuxiliary("right"), "right", 4, bottom && includeRight ? 1 : 3);
+        if (right) PlaceAuxiliary(BuildAuxiliary("right"), "right", 4, 1);
         else PlaceRail("right", 4);
-        if (left) OuterSeparator("left", 1, bottom && includeLeft ? 1 : 3);
-        if (right) OuterSeparator("right", 3, bottom && includeRight ? 1 : 3);
-        if (bottom)
-        {
-            var contents = BuildAuxiliary("bottom");
-            var region = auxiliaryRegions["bottom"];
-            region.Child = contents; region.IsVisible = true;
-            Grid.SetRow(region, 2); Grid.SetColumn(region, start); Grid.SetColumnSpan(region, end - start + 1);
-            var original = state.BottomHeight;
-            double MinimumHeight() => Math.Min(.7, 147 / Math.Max(1, Bounds.Height));
-            double Height(double delta)
-            {
-                var requested = Math.Round(original - delta / Math.Max(1, Bounds.Height), 12);
-                var minimum = MinimumHeight();
-                return requested < Math.Round(minimum / 2, 12) ? 0 : Math.Clamp(requested, minimum, .7);
-            }
-            var splitter = Separator(false,
-                delta => PreviewBottom(Height(delta)),
-                delta =>
-                {
-                    var height = Height(delta);
-                    if (height == 0) Session.Visible("bottom", false);
-                    else Session.Geometry(next => next.BottomHeight = height);
-                },
-                Rebuild);
-            splitter.ConfigureRange(() => (Session.State.BottomHeight, MinimumHeight(), .7),
-                value => Session.Geometry(next => next.BottomHeight = value));
-            splitter.Name = "bottomSeparator";
-            Ui.Place(shell, splitter, 1, start); Grid.SetColumnSpan(splitter, end - start + 1);
-        }
+        if (left) OuterSeparator("left", 1, 1);
+        if (right) OuterSeparator("right", 3, 1);
         renderedStructure = Structure();
         NestedStripsChanged?.Invoke(nestedStrips);
     }
@@ -210,30 +171,19 @@ public sealed partial class DockSurface : Grid
     private bool Side(string region) => (region == "left" ? Session.State.LeftVisible : Session.State.RightVisible) &&
         Session.State.Groups.Any(group => group.Region == region);
 
-    // The centre and bottom keep the whole width; a visible side lies over them at the edge it belongs to.
+    // A visible side overlays the centre on compact screens.
     private void RebuildDrawers(DockState state)
     {
-        var bottom = state.BottomVisible && state.Groups.Any(group => group.Region == "bottom");
         foreach (var width in new[] { 0d, 0, 1, 0, 0 }) shell.ColumnDefinitions.Add(new(new GridLength(width, width > 0 ? GridUnitType.Star : GridUnitType.Pixel)));
-        shell.RowDefinitions.Add(new(new GridLength(bottom ? 1 - state.BottomHeight : 1, GridUnitType.Star)));
-        shell.RowDefinitions.Add(new(new GridLength(bottom ? 1 : 0)));
-        shell.RowDefinitions.Add(new(new GridLength(bottom ? state.BottomHeight : 0, GridUnitType.Star)));
+        shell.RowDefinitions.Add(new(new GridLength(1, GridUnitType.Star)));
         centerRegion.Child = BuildCenter(state.Center);
         foreach (var region in new[] { "left", "right" })
         {
             if (!Side(region)) continue;
-            PlaceAuxiliary(region == "right" ? BuildSections() : BuildProjects(), region, 0, 3);
+            PlaceAuxiliary(region == "right" ? BuildSections() : BuildProjects(), region, 0, 1);
             var frame = auxiliaryRegions[region];
             Grid.SetColumnSpan(frame, 5);
             frame.ZIndex = 11; frame.Background = Ui.Sidebar;
-        }
-        if (bottom)
-        {
-            var region = auxiliaryRegions["bottom"];
-            region.Child = BuildAuxiliary("bottom"); region.IsVisible = true;
-            Grid.SetRow(region, 2); Grid.SetColumn(region, 2);
-            // A resize handle draws above its neighbours, and would above a side page too; a plain rule does not.
-            Ui.Place(shell, new Border { Name = "bottomRule", Background = Ui.BorderBrush }, 1, 2);
         }
         renderedStructure = Structure();
         NestedStripsChanged?.Invoke(nestedStrips);
@@ -368,12 +318,6 @@ public sealed partial class DockSurface : Grid
         shell.ColumnDefinitions[2].Width = new(Math.Max(double.Epsilon, widths.Center), GridUnitType.Star);
         if (Session.State.RightVisible && Session.State.Groups.Any(group => group.Region == "right"))
             shell.ColumnDefinitions[4].Width = new(widths.Right, GridUnitType.Star);
-    }
-
-    private void PreviewBottom(double ratio)
-    {
-        shell.RowDefinitions[0].Height = new(1 - ratio, GridUnitType.Star);
-        shell.RowDefinitions[2].Height = new(ratio, GridUnitType.Star);
     }
 
     private Control BuildCenter(CenterNode node)

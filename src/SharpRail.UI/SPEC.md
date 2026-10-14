@@ -199,8 +199,7 @@ including projects that are not currently open, so removed checkouts leave the P
 ## Global shortcuts
 
 The window handles app-wide chords before panels: Mod+O opens a project, Mod+N (and Mod+Alt+N) opens
-Start work, Mod+Shift+N opens a window, Mod+B toggles left, Mod+J toggles right, Mod+Shift+J
-toggles bottom (including from a focused terminal), Mod+Shift+F searches the workspace, and F5 refreshes.
+Start work, Mod+Shift+N opens a window, Mod+B toggles left, Mod+J toggles right, Mod+Shift+F searches the workspace, and F5 refreshes.
 The search is a dialog (`Panels/SearchDialog.cs`) rather than a panel, because it is a question asked and
 dismissed: one query over the active worktree, results grouped by file with one row per matching line, and
 a hit keeps its file open scrolled to that line. With no active workspace the chord does nothing. On macOS alone, Cmd+, (no other
@@ -301,7 +300,7 @@ adding only what a client alone knows: focus, a collection window, the system ch
   body, under an id per terminal so a later one replaces it. Several show one notification titled "SharpRail" that
   says "N terminals need your attention".
 - Activating a notification brings forward the window holding the tab, switches it to that workspace and
-  selects the tab (revealing a hidden bottom region). For several terminals it goes to the latest; the
+  selects its tab group. For several terminals it goes to the latest; the
   fork opens its session switcher there, which SharpRail does not have.
 - Delivery is behind `IDesktopNotifier`, which the composition root supplies (`Workbench.Notifier`) the way
   it supplies the terminal factory; a workbench without one, as in every headless check that does not
@@ -340,7 +339,7 @@ menu. Abrupt death relies on operating-system process cleanup; remote shells bel
 ## Not yet ported
 
 - Project Home's independent collapsible Projects pane with the workbench's shared 40px left tool
-  rail and plain Hide header. No right or bottom rail appears without a workspace. Mod+B and the rail
+  rail and plain Hide header. No right rail appears without a workspace. Mod+B and the rail
   toggle the same pane; hiding returns focus from the pane or separator to its rail control, and showing
   restores the last tree control, active row or first tree control. Home visibility and remembered width
   remain independent of the workspace frame.
@@ -378,3 +377,7 @@ The browser client compiles these shared sources and XAML, like Android, and com
 adapters. Desktop host-serving composition is excluded with `BROWSER`. Workbench behavior remains
 shared; browser surfaces, persistence and native WASM adapters belong to `../SharpRail.Browser/SPEC.md`.
 Settings reads GitHub authentication from the host; credentials and the `gh` process stay there.
+
+Restored tabs stay visible in Projects while host routing is pending, under an entry derived from the
+in-memory active view when the host has not yet listed that workspace. Resolving its project and
+workspace moves the same tab controls under their canonical row and does not block on file listing.

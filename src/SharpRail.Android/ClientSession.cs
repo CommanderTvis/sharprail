@@ -113,7 +113,7 @@ public sealed class ClientSession(string filesDirectory, bool compact) : IDispos
         Endpoint = endpoint;
         // Sideways scrolling is a chore under a finger: lines wrap at the screen's edge whatever the line width says.
         SharpRail.Scintilla.ScintillaEditor.WrapAlways = true;
-        workbench = new Workbench(profile, state, factory, remote: true, sessions, plugins, catalog) { Endpoint = address.ToString(), Compact = compact, TabsInProjects = true, Touch = true, ChangeHost = ChangeHost };
+        workbench = new Workbench(profile, state, factory, remote: true, sessions, plugins, catalog) { Endpoint = address.ToString(), Compact = compact, Touch = true, ChangeHost = ChangeHost };
         // The activity holds one workbench window; a profile never restores more.
         var slot = profile.Data.Windows[0];
         profile.Data.Windows.RemoveRange(1, profile.Data.Windows.Count - 1);

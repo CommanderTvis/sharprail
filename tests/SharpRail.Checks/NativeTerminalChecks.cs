@@ -38,7 +38,7 @@ internal static class NativeTerminalChecks
         File.WriteAllText(Path.Combine(fixture, ".git"), "gitdir: " + Path.Combine(fixture, "absent"));
         var profile = new ProfileStore(Path.Combine(fixture, ProfileDirectory));
         var layout = new LayoutSession(profile.Data.Windows[0].Layout);
-        // Opening the workspace provisions its initial terminal in the bottom group.
+        // Start with an empty workspace; the check explicitly opens its terminal.
         layout.SwitchWorkspace(fixture);
         profile.Data.Windows[0].Layout = layout.State;
         profile.Save();
@@ -98,22 +98,23 @@ internal static class NativeTerminalChecks
     private static async Task Check(WorkbenchWindow window, string root)
     {
         await Until(() => window.WorkspaceMounted);
-        var bottom = window.Layout.State.Groups.Single(group => group.Region == "bottom").Id;
+        var center = window.Layout.State.Center.Leaves().First();
+        window.Layout.NewTerminal(center);
         GhosttyTextureView? host = null;
         await Until(() => (host = window.GetVisualDescendants().OfType<GhosttyTextureView>().SingleOrDefault()) is not null && host.RetainedTextureCount != 0);
         var original = host!;
         Native.Activate(original);
         await Until(() => Native.Ready(original));
         await Task.Delay(1000);
-        var tab = window.Layout.Tabs(bottom).Single();
+        var tab = window.Layout.Tabs(center).Single();
         var button = window.GetVisualDescendants().OfType<Button>().Single(item => item.Name == "Tab_" + tab.Id.Replace(':', '_'));
         ((ISelectionItemProvider)ControlAutomationPeer.CreatePeerForElement(button)!).Select();
         await Until(() => Native.Focused(original));
-        Native.ToggleBottom(original);
-        await Until(() => !window.Layout.State.BottomVisible && !window.GetVisualDescendants().Contains(host));
-        window.Layout.Visible("bottom", true);
+        window.Layout.Open(new("fixture", "Fixture", "file", "README.md"), true);
+        await Until(() => !window.GetVisualDescendants().Contains(host));
+        window.Layout.Select(center, tab.Id);
         await Until(() => window.GetVisualDescendants().Contains(host));
-        if (host! != original) throw new InvalidOperationException("Hiding the bottom panel replaced the shell.");
+        if (host! != original) throw new InvalidOperationException("Switching tabs replaced the shell.");
         Button? shown = null;
         await Until(() => (shown = window.GetVisualDescendants().OfType<Button>().SingleOrDefault(item => item.Name == "Tab_" + tab.Id.Replace(':', '_'))) is not null);
         ((ISelectionItemProvider)ControlAutomationPeer.CreatePeerForElement(shown!)!).Select();
@@ -181,7 +182,7 @@ internal static class NativeTerminalChecks
         await Until(() => System.Text.RegularExpressions.Regex.IsMatch(Read(original), @"NATIVE_PID_\d+"));
         var processId = int.Parse(System.Text.RegularExpressions.Regex.Match(Read(original), @"NATIVE_PID_(\d+)").Groups[1].Value);
         var side = window.Layout.State.Groups.First(group => group.Region == "left").Id;
-        if (!window.Layout.Move(tab.Id, bottom, side, 0)) throw new InvalidOperationException("Terminal move refused.");
+        if (!window.Layout.Move(tab.Id, center, side, 0)) throw new InvalidOperationException("Terminal move refused.");
         await Until(() => window.GetVisualDescendants().Contains(host));
         if (host! != original) throw new InvalidOperationException("Moving a tab replaced the shell.");
         window.Layout.Fold(side);
@@ -193,9 +194,10 @@ internal static class NativeTerminalChecks
         var other = Path.Combine(root, "other"); Directory.CreateDirectory(other);
         File.WriteAllText(Path.Combine(other, ".git"), "gitdir: " + Path.Combine(other, "absent"));
         await window.OpenProjectAsync(other);
+        window.Layout.NewTerminal(center);
         GhosttyTextureView? initial = null;
         await Until(() => (initial = window.GetVisualDescendants().OfType<GhosttyTextureView>().SingleOrDefault()) is not null && initial.RetainedTextureCount != 0);
-        window.GetVisualDescendants().OfType<Button>().Single(item => item.Name == "NewTerminal_" + bottom)
+        window.GetVisualDescendants().OfType<Button>().Single(item => item.Name == "NewTerminal_" + center)
             .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
         GhosttyTextureView? second = null;
         await Until(() => (second = window.GetVisualDescendants().OfType<GhosttyTextureView>().SingleOrDefault()) is not null &&
@@ -353,7 +355,6 @@ internal static class NativeTerminalChecks
         internal static void Activate(GhosttyTextureView view) => ActivateNative(Content(view));
         internal static bool Ready(GhosttyTextureView view) => ReadyNative(Content(view));
         internal static void OptionBackspace(GhosttyTextureView view) => OptionBackspaceNative(Content(view));
-        internal static void ToggleBottom(GhosttyTextureView view) => ToggleBottomNative(Content(view));
         internal static void Click(GhosttyTextureView view, double x, double y)
         {
             var point = view.TranslatePoint(new Point(x, y), TopLevel.GetTopLevel(view)!)!.Value;
@@ -380,8 +381,6 @@ internal static class NativeTerminalChecks
         internal static extern string SelectLayout([MarshalAs(UnmanagedType.LPUTF8Str)] string identifier);
         [DllImport("TerminalEvents", EntryPoint = "sr_check_option_backspace")]
         private static extern void OptionBackspaceNative(nint view);
-        [DllImport("TerminalEvents", EntryPoint = "sr_check_toggle_bottom")]
-        private static extern void ToggleBottomNative(nint view);
         [DllImport("TerminalEvents", EntryPoint = "sr_check_click")]
         private static extern void ClickNative(nint view, double x, double y);
         [DllImport("TerminalEvents", EntryPoint = "sr_check_key")]

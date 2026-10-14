@@ -30,11 +30,11 @@ public sealed class Preferences
     public string TerminalRenderer { get; set; } = OperatingSystem.IsWindows() ? Terminal.TerminalRenderers.Skia : Terminal.TerminalRenderers.Texture;
     /// <summary>A single click previews into the group's reusable slot; off, every open keeps its tab.</summary>
     public bool PreviewTabs { get; set; } = true;
-    /// <summary>Centre tabs as a column beside the editor instead of a strip above it; only while the centre is one group.</summary>
+    /// <summary>Legacy tab-mode value retained for host/profile compatibility; placement is always in Projects.</summary>
     public bool VerticalCenterTabs { get; set; }
-    /// <summary>The vertical column's width in pixels, so it keeps its size when the window resizes.</summary>
+    /// <summary>Legacy tab-column width retained when reading older profiles.</summary>
     public double VerticalCenterTabsWidth { get; set; } = VerticalTabs.DefaultWidth;
-    /// <summary>With vertical tabs on, the column lives under its workspace's row in Projects.</summary>
+    /// <summary>Legacy Projects-mode value; tabs always live under their workspace.</summary>
     public bool VerticalTabsInProjects { get; set; }
     /// <summary>How two tabs first shown together are arranged: <c>horizontal</c> columns or <c>vertical</c> rows.</summary>
     public string DefaultPaneDirection { get; set; } = "horizontal";
@@ -83,8 +83,6 @@ public sealed class Profile
     public Dictionary<string, string> PluginPreferences { get; set; } = [];
     /// <summary>Set once shared fields have moved to the local host's <c>state.json</c>.</summary>
     public bool StateMigrated { get; set; }
-    /// <summary>Host/workspace pairs whose legacy browser bottom-terminal placement has been repaired.</summary>
-    public HashSet<string> BrowserTerminalPlacements { get; set; } = [];
 
     // Fields of older profiles, read for migration and cleared once migrated.
     [JsonPropertyName("Layout"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public DockState? LegacyLayout { get; set; }
@@ -153,7 +151,6 @@ public sealed class ProfileStore
                     if (!ValidPath(entry.Key) || string.IsNullOrWhiteSpace(entry.Value) || entry.Value.Contains('\0'))
                         labels.Remove(entry.Key);
             Data.GitSelections ??= [];
-            Data.BrowserTerminalPlacements ??= [];
             foreach (var entry in Data.GitSelections.ToArray())
             {
                 if (!ValidPath(entry.Key) || entry.Value is null)
@@ -184,7 +181,7 @@ public sealed class ProfileStore
             if (!LineWidths.IsValid(Data.Preferences.MarkdownLineWidth)) Data.Preferences.MarkdownLineWidth = LineWidths.MarkdownDefault;
             if (Data.Preferences.TerminalRenderer is not (Terminal.TerminalRenderers.Texture or Terminal.TerminalRenderers.Skia))
                 Data.Preferences.TerminalRenderer = Terminal.TerminalRenderers.Texture;
-            foreach (var preset in Data.Preferences.CustomPresets.Values) preset?.MigrateLegacyTools();
+            foreach (var preset in Data.Preferences.CustomPresets.Values) { preset?.MigrateLegacyTools(); preset?.RemoveBottomZone(); }
             foreach (var name in Data.Preferences.CustomPresets.Keys.Where(name => string.IsNullOrWhiteSpace(name) ||
                 !LayoutSession.IsValid(Data.Preferences.CustomPresets[name])).ToArray()) Data.Preferences.CustomPresets.Remove(name);
             NormalizeTheme(Data.Preferences);
@@ -200,6 +197,7 @@ public sealed class ProfileStore
     private static void NormalizeWindow(WindowProfile window)
     {
         window.Layout?.MigrateLegacyTools();
+        window.Layout?.RemoveBottomZone();
         if (!LayoutSession.IsValid(window.Layout!)) window.Layout = DockState.Preset("balanced");
         if (string.IsNullOrWhiteSpace(window.DefaultPreset)) window.DefaultPreset = "balanced";
         if (window.LastProject is null || window.LastProject.Length > 0 && !ValidPath(window.LastProject)) window.LastProject = "";

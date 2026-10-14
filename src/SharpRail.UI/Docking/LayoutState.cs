@@ -70,13 +70,9 @@ public sealed class DockState
     public string ActiveWorkspace { get; set; } = "";
     public bool LeftVisible { get; set; } = true;
     public bool RightVisible { get; set; } = true;
-    public bool BottomVisible { get; set; } = true;
     public double LeftWidth { get; set; } = .18;
     public double RightWidth { get; set; } = .28;
-    public double BottomHeight { get; set; } = .30;
-    public string BottomAlignment { get; set; } = "center";
     public int SideLimit { get; set; } = 6;
-    public int BottomLimit { get; set; } = 3;
     public DockState Copy() => new()
     {
         Center = Center.Copy(),
@@ -87,13 +83,9 @@ public sealed class DockState
         ActiveWorkspace = ActiveWorkspace,
         LeftVisible = LeftVisible,
         RightVisible = RightVisible,
-        BottomVisible = BottomVisible,
         LeftWidth = LeftWidth,
         RightWidth = RightWidth,
-        BottomHeight = BottomHeight,
-        BottomAlignment = BottomAlignment,
-        SideLimit = SideLimit,
-        BottomLimit = BottomLimit
+        SideLimit = SideLimit
     };
 
     public static readonly string[] ToolNames = ["projects", "files", "changes", "review"];
@@ -133,15 +125,69 @@ public sealed class DockState
         catch (NullReferenceException) { }
     }
 
+    /// <summary>Moves document tabs into the centre before discarding the retired bottom zone and its terminal placements.</summary>
+    public void RemoveBottomZone()
+    {
+        if (Groups is null || Workspaces is null) return;
+        var removed = Groups.Where(group => group is not null && group.Region == "bottom").Select(group => group.Id).ToList();
+        Groups.RemoveAll(group => group is not null && removed.Contains(group.Id));
+        var centers = Center?.Leaves().Where(id => Groups.Any(group => group?.Id == id && group.Region == "center")).ToList() ?? [];
+        foreach (var view in Workspaces.Values)
+        {
+            if (view?.Documents is null || view.Selected is null || view.Panes is null || view.FocusedAuxiliary is null) continue;
+            var target = centers.Contains(view.FocusedCenter) ? view.FocusedCenter : centers.FirstOrDefault();
+            var present = view.Documents.Where(pair => !removed.Contains(pair.Key)).SelectMany(pair => pair.Value).Select(tab => tab.Id).ToHashSet();
+            foreach (var id in removed)
+            {
+                if (view.Documents.Remove(id, out var tabs))
+                {
+                    var migrated = new HashSet<string>();
+                    foreach (var tab in tabs)
+                    {
+                        view.BeforeToolByTabId?.Remove(tab.Id);
+                        if (target is null || tab.IsTool || tab.Kind == "terminal" || !present.Add(tab.Id)) continue;
+                        if (!view.Documents.TryGetValue(target, out var documents)) view.Documents[target] = documents = [];
+                        documents.Add(tab);
+                        migrated.Add(tab.Id);
+                    }
+                    if (target is not null && migrated.Count > 0)
+                    {
+                        var documents = view.Documents[target];
+                        if (!documents.Any(tab => tab.Id == view.Selected.GetValueOrDefault(target)))
+                            view.Selected[target] = migrated.Contains(view.Selected.GetValueOrDefault(id) ?? "") ? view.Selected[id] : documents[0].Id;
+                        foreach (var pane in view.Panes.GetValueOrDefault(id) ?? [])
+                        {
+                            var members = pane.TabIds.Where(migrated.Contains).Distinct().ToList();
+                            if (members.Count < DockPane.MinMembers) continue;
+                            if (!view.Panes.TryGetValue(target, out var panes)) view.Panes[target] = panes = [];
+                            var copy = pane.Copy();
+                            copy.TabIds = members;
+                            if (members.Count != pane.TabIds.Count) copy.Weights = DockPane.Even(members.Count);
+                            panes.Add(copy);
+                        }
+                    }
+                }
+                view.Selected.Remove(id);
+                view.Panes.Remove(id);
+                if (view.FocusedGroup == id) view.FocusedGroup = target ?? "";
+            }
+            view.FocusedAuxiliary.Remove("bottom");
+        }
+        foreach (var tool in ToolRestore.Where(pair => removed.Contains(pair.Value)).Select(pair => pair.Key).ToArray())
+        {
+            ToolRestore.Remove(tool);
+            ToolRestorePositions.Remove(tool);
+        }
+    }
+
     public static DockState Preset(string name)
     {
         var center = new DockGroup();
         var left = new DockGroup { Region = "left", Tools = [Tool("projects")] };
         var top = new DockGroup { Region = "right", Tools = [Tool(SpecsTool), Tool("files")], Weight = 1.25 };
         var lower = new DockGroup { Region = "right", Tools = [Tool("changes"), Tool("review")] };
-        var bottom = new DockGroup { Region = "bottom" };
-        var state = new DockState { Center = new() { GroupId = center.Id }, Groups = [center, left, top, lower, bottom] };
-        if (name == "focus") state.LeftVisible = state.RightVisible = state.BottomVisible = false;
+        var state = new DockState { Center = new() { GroupId = center.Id }, Groups = [center, left, top, lower] };
+        if (name == "focus") state.LeftVisible = state.RightVisible = false;
         if (name == "review")
         {
             var secondary = new DockGroup();

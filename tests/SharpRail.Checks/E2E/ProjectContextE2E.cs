@@ -24,6 +24,7 @@ internal static class ProjectContextE2E
             ProjectName(app, app.Root).Background is Avalonia.Media.ISolidColorBrush { Color.A: 0 },
             "The selected project must highlight its whole row, not only its name.");
         var workspace = CreateWorkspaceViaDialog(app);
+        app.Window.Layout.NewTerminal(app.Center);
         Until(() => app.Terminals.StartedIn(workspace) > 0);
         var terminalViews = Controls(app).OfType<SharpRail.UI.Terminal.TerminalView>().ToArray();
         Require(terminalViews.Length > 0, "The workspace has a live terminal view before closing its project.");

@@ -3,7 +3,6 @@ using Avalonia.Controls;
 using Avalonia.LogicalTree;
 
 using SharpRail.Host.Abstractions;
-using SharpRail.UI.Panels;
 
 using static SharpRail.Checks.E2E.E2eWorkspace;
 using static SharpRail.Checks.E2E.WorkspaceFixture;
@@ -15,7 +14,7 @@ internal static class RailRetentionChecks
 {
     private static void TabGeometry(string root)
     {
-        using var app = new E2eWorkspace(Path.Combine(root, "rail-tab-geometry"), tabsInProjects: true);
+        using var app = new E2eWorkspace(Path.Combine(root, "rail-tab-geometry"));
         app.Open("README.md", true);
         app.Open("notes.txt", true);
         Directory.CreateDirectory(Path.Combine(app.Root, "folder"));
@@ -127,13 +126,6 @@ internal static class RailRetentionChecks
         Require(Controls(app).OfType<Button>().Single(button => button.Name == "AddWorkspace" && button.IsEffectivelyVisible).GetLogicalAncestors()
             .OfType<Border>().Any(border => Equals(border.Tag, app.Root)), "The open project's trailing controls follow the switch.");
         Console.WriteLine("PASS switching workspaces keeps the rail's rows");
-        app.Window.ShowSettings();
-        Until(() => app.Window.OwnedWindows.OfType<SettingsWindow>().Any());
-        var settings = app.Window.OwnedWindows.OfType<SettingsWindow>().Single();
-        app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "Settings_Layout"));
-        settings.GetLogicalDescendants().OfType<CheckBox>().Single(box => box.Name == "VerticalCenterTabs").IsChecked = true;
-        settings.GetLogicalDescendants().OfType<CheckBox>().Single(box => box.Name == "VerticalTabsInProjects").IsChecked = true;
-        settings.Close();
         app.Click(app.Find<Button>("Tab_projects"));
         Controls(app).OfType<ScrollViewer>().Single(item => item.Content is StackPanel && item.Parent is Grid { Name: "ProjectsPanel" }).MaxHeight = 110;
         Settle(300);

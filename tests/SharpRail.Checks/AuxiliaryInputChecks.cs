@@ -39,11 +39,10 @@ internal static class AuxiliaryInputChecks
             preset.Groups.RemoveAll(group => group.Region == region);
             for (var i = 0; i < count; i++)
                 preset.Groups.Add(new DockGroup { Region = region, Tools = i == 0 ? tools : [], Folded = folded(i), Weight = count == 3 ? new[] { .2, .3, .5 }[i] : 1d / count });
-            preset.BottomVisible = region == "bottom"; preset.BottomAlignment = "full";
-            preset.SideLimit = 32; preset.BottomLimit = 32;
+            preset.SideLimit = 32;
             window.Layout.ApplyPreset(preset);
         }
-        foreach (var region in new[] { "left", "right", "bottom" })
+        foreach (var region in new[] { "left", "right" })
             foreach (var foldedIndex in new[] { 0, 1 })
             {
                 Load(region, 3, i => i == foldedIndex);
@@ -92,7 +91,7 @@ internal static class AuxiliaryInputChecks
                 Require(persisted.Select(group => group.Weight).SequenceEqual(committed.Select(group => group.Weight)),
                     "Auxiliary resized weights did not persist.");
             }
-        foreach (var region in new[] { "left", "right", "bottom" })
+        foreach (var region in new[] { "left", "right" })
         {
             Load(region, 3, _ => true);
             var grid = Find<Grid>("AuxiliaryStack_" + region);
@@ -103,7 +102,7 @@ internal static class AuxiliaryInputChecks
                 "All-folded auxiliary panes must retain their trailing spacer and disable separators.");
         }
         window.Height = 540;
-        foreach (var region in new[] { "left", "right", "bottom" })
+        foreach (var region in new[] { "left", "right" })
             foreach (var allFolded in new[] { true, false })
             {
                 Load(region, 32, i => allFolded || i % 2 == 0);

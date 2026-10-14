@@ -2,8 +2,8 @@ namespace SharpRail.UI.Docking;
 
 /// <summary>
 /// Tabs of one centre group shown together as resizable panes instead of one at a time. It is metadata on the group
-/// rather than a node in the centre tree: with vertical tabs off, a pane's members stay ordinary tabs in the strip, so
-/// the tab list has to stay flat. A centre split means "both at once, always"; a pane means "one entry in the strip".
+/// rather than a node in the centre tree. Its members share one bubble in Projects and retain their flat tab order.
+/// A centre split shows both groups at once; a pane is one selectable group of tabs shown together.
 /// </summary>
 public sealed class DockPane
 {
@@ -49,7 +49,6 @@ public sealed partial class LayoutSession
     {
         "left" => State.LeftVisible,
         "right" => State.RightVisible,
-        "bottom" => State.BottomVisible,
         _ => false
     } && !group.Folded && Selected(group.Id) is { IsTool: true } shown && shown.Id == toolId);
 

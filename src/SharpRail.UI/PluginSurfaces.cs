@@ -392,8 +392,7 @@ public sealed partial class WorkbenchWindow
                 var pane = view.Panes.GetValueOrDefault(group)?.FirstOrDefault(candidate => candidate.TabIds.Contains(selected));
                 return new[] { selected }.Concat(pane?.TabIds ?? []).Where(id => tabs.Any(tab => tab.Id == id));
             }
-            var bottom = Layout.State.Groups.Where(group => group.Region == "bottom").SelectMany(group => ShownIn(group.Id));
-            var shown = ShownIn(view.FocusedCenter).Concat(bottom)
+            var shown = ShownIn(view.FocusedCenter)
                 .Concat(view.Documents.Keys.SelectMany(ShownIn)).Distinct().ToArray();
             yield return (workspace, tabs, shown);
         }
@@ -517,7 +516,7 @@ public sealed partial class WorkbenchWindow
         if (!WorkspaceMounted || atHome || workspace != workspaceRoot) return;
         // A terminal this window has not placed yet is shown once the host's catalog has brought it; where tabs live
         // in Projects that also moves it out of a hidden region, which must not be revealed for it meanwhile.
-        if (workbench.TabsInProjects && !terminalWorkspaces.Contains(workspace) ||
+        if (!terminalWorkspaces.Contains(workspace) ||
             Layout.State.Groups.FirstOrDefault(candidate => Layout.Tabs(candidate.Id).Any(tab => tab.Id == tabKey)) is not { } group)
         {
             awaitedTerminal = (workspace, tabKey);

@@ -70,14 +70,15 @@ subscription starts with a complete snapshot; reconnecting gets another complete
 client can recover without having witnessed earlier events. There is no second local authority
 over host-owned values.
 
-Each client keeps its window frame, document placement, selection, default preset, group limits,
-bottom alignment and last location in its own app profile. Only resource-free custom preset definitions
+Each client keeps its window frame, document placement, selection, default preset, group limits
+and last location in its own app profile. Only resource-free custom preset definitions
 are shared. Switching workspace changes its documents without rearranging the frame; rearranging
 one client does not rearrange another. See [state ownership](src/SharpRail.UI/State/SPEC.md).
 
 Panels do not know where they are placed. The shell arranges documents in a split center and tools
-in side or bottom groups. Static layouts and styles use compiled Avalonia XAML; dynamic docking and
-interaction use C#. Filesystem, Git and network work stays off the UI thread, and startup shows the
+in side groups. Center tab lists live only under their workspace in Projects, including when Projects
+is hidden; there is no bottom zone or alternate editor strip. Static layouts and styles use compiled
+Avalonia XAML; dynamic docking and interaction use C#. Filesystem, Git and network work stays off the UI thread, and startup shows the
 routed workspace before filling deferred panels.
 
 ## Shell lifetime

@@ -18,15 +18,15 @@ internal static class VerticalTabsE2E
     internal static void Run(string root)
     {
         var index = 0;
-        void Case(string title, Action<E2eWorkspace> test, bool tabsInProjects = false)
+        void Case(string title, Action<E2eWorkspace> test)
         {
-            using var app = new E2eWorkspace(Path.Combine(root, "vertical-" + index++), tabsInProjects: tabsInProjects);
+            using var app = new E2eWorkspace(Path.Combine(root, "vertical-" + index++));
             try { test(app); }
             catch (Exception error) { throw new InvalidOperationException("Fork layout.spec.ts: " + title, error); }
             Console.WriteLine("PASS fork layout.spec.ts: " + title);
         }
 
-        Case("forced Projects tab mode opens without an implicit terminal", app =>
+        Case("workspaces open without an implicit terminal", app =>
         {
             Until(() => app.Workbench.TerminalCatalog?.Workspaces.ContainsKey(app.Root) == true);
             Require(!app.Window.Preferences.VerticalCenterTabs &&
@@ -35,15 +35,10 @@ internal static class VerticalTabsE2E
                 "Forced Projects tab mode must open without a default terminal even when the desktop preferences are off.");
             app.Window.Layout.NewTerminal(app.Center);
             Until(() => app.Workbench.TerminalCatalog!.Workspaces[app.Root].Count == 1 && app.Terminals.StartedIn(app.Root) == 1);
-        }, tabsInProjects: true);
+        });
 
         Case("new workspaces in Projects tab mode have no implicit terminal and still allow explicit launches", app =>
         {
-            SetLayout(app, settings =>
-            {
-                Control<CheckBox>(settings, "VerticalCenterTabs").IsChecked = true;
-                Control<CheckBox>(settings, "VerticalTabsInProjects").IsChecked = true;
-            });
             var workspace = Path.Combine(app.Root, "new-workspace");
             Directory.CreateDirectory(workspace);
             var open = app.Window.OpenProjectAsync(workspace);
@@ -59,16 +54,6 @@ internal static class VerticalTabsE2E
                 "An explicit terminal still starts with the first terminal number.");
             var terminal = app.Window.Layout.Tabs(app.Center).Single(tab => tab.Kind == "terminal").Id;
 
-            SetLayout(app, settings => Control<CheckBox>(settings, "VerticalTabsInProjects").IsChecked = false);
-            var columnWorkspace = Path.Combine(app.Root, "column-workspace");
-            Directory.CreateDirectory(columnWorkspace);
-            open = app.Window.OpenProjectAsync(columnWorkspace);
-            Until(() => open.IsCompleted);
-            open.GetAwaiter().GetResult();
-            Until(() => app.Workbench.TerminalCatalog?.Workspaces.ContainsKey(columnWorkspace) == true);
-            Require(app.Workbench.TerminalCatalog!.Workspaces[columnWorkspace].Single().Key == Host.Abstractions.TerminalTab.InitialKey,
-                "Vertical tabs beside the editor retain the initial terminal behavior.");
-            SetLayout(app, settings => Control<CheckBox>(settings, "VerticalTabsInProjects").IsChecked = true);
             open = app.Window.OpenProjectAsync(workspace);
             Until(() => open.IsCompleted);
             open.GetAwaiter().GetResult();
@@ -79,11 +64,6 @@ internal static class VerticalTabsE2E
 
         Case("terminal Rename in Projects shares titles and cancellation leaves them alone", app =>
         {
-            SetLayout(app, settings =>
-            {
-                Control<CheckBox>(settings, "VerticalCenterTabs").IsChecked = true;
-                Control<CheckBox>(settings, "VerticalTabsInProjects").IsChecked = true;
-            });
             app.Click(app.Find<Button>("Tab_projects"));
             app.Window.Layout.NewTerminal(app.Center);
             var workspace = app.Window.WorkspaceRoot;
@@ -136,11 +116,6 @@ internal static class VerticalTabsE2E
         Case("Projects uniquely marks the active tab across center groups and pane members", app =>
         {
             app.Open("README.md", true); app.Open("notes.txt", true);
-            SetLayout(app, settings =>
-            {
-                Control<CheckBox>(settings, "VerticalCenterTabs").IsChecked = true;
-                Control<CheckBox>(settings, "VerticalTabsInProjects").IsChecked = true;
-            });
             app.Click(app.Find<Button>("Tab_projects"));
             var center = app.Center;
             Require(app.Window.Layout.NewGroup(center, "after"), "A second center group is created.");
@@ -167,50 +142,35 @@ internal static class VerticalTabsE2E
             app.Click(app.Tab("notes.txt")); Check("file_notes.txt");
         });
 
-        Case("vertical tabs are a setting, a resizable column beside the editor, with no centre split", app =>
+        Case("Projects is the only tab home and group splits remain available", app =>
         {
             app.Open("README.md", true); app.Open("notes.txt", true);
-            SetLayout(app, settings =>
-            {
-                var vertical = Control<CheckBox>(settings, "VerticalCenterTabs");
-                var inProjects = Control<CheckBox>(settings, "VerticalTabsInProjects");
-                Require(vertical.IsChecked == false && !inProjects.IsEnabled, "Vertical tabs start off, and their Projects home waits on them.");
-                vertical.IsChecked = true;
-                Until(() => Control<CheckBox>(settings, "VerticalTabsInProjects").IsEnabled);
-            });
-            Require(app.Window.Preferences.VerticalCenterTabs, "The switch changes the app preference.");
-            var scroller = app.Find<ScrollViewer>("TabScroller_" + app.Center);
-            var body = app.Find<Border>("DockBody_" + app.Center);
-            Until(() => scroller.Bounds.Width > 0);
-            var strip = scroller.TranslatePoint(default, app.Window)!.Value;
-            var editor = body.TranslatePoint(default, app.Window)!.Value;
-            Require(Math.Abs(scroller.Bounds.Width - VerticalTabs.DefaultWidth) <= 2 && strip.X < editor.X && Math.Abs(strip.Y - editor.Y) <= 1,
-                $"The column sits beside the editor at its default width, not above it: {scroller.Bounds}.");
-            var readme = app.Tab("README.md");
-            var notes = app.Tab("notes.txt");
-            Require(readme.TranslatePoint(default, app.Window)!.Value.Y < notes.TranslatePoint(default, app.Window)!.Value.Y,
-                "Tabs stack down the column.");
-
-            var handle = app.Find<ResizeHandle>("VerticalTabsResize_" + app.Center);
-            var start = handle.TranslatePoint(new Point(handle.Bounds.Width / 2, handle.Bounds.Height / 2), app.Window)!.Value;
-            app.Window.MouseMove(start); app.Window.MouseDown(start, MouseButton.Left);
-            app.Window.MouseMove(start + new Vector(60, 0)); app.Window.MouseUp(start + new Vector(60, 0), MouseButton.Left); Settle();
-            Require(Math.Abs(app.Window.Preferences.VerticalCenterTabsWidth - (VerticalTabs.DefaultWidth + 60)) <= 2,
-                $"Dragging the edge stores the column's width in pixels: {app.Window.Preferences.VerticalCenterTabsWidth}.");
-
-            app.Click(notes, mouseButton: MouseButton.Right);
-            var menu = notes.ContextMenu!;
+            SetLayout(app, settings => Require(!settings.GetLogicalDescendants().OfType<Control>().Any(control =>
+                control.Name is "VerticalCenterTabs" or "VerticalTabsInProjects" or "BottomAlignment"),
+                "Layout settings must not expose retired tab modes or bottom alignment."));
+            app.Click(app.Tab("notes.txt"), mouseButton: MouseButton.Right);
+            var menu = app.Tab("notes.txt").ContextMenu!;
             Until(() => menu.IsOpen);
-            var headers = menu.Items.OfType<MenuItem>().Select(item => item.Header as string).ToArray();
-            Require(!headers.Any(header => header?.StartsWith("Split", StringComparison.Ordinal) == true) && headers.Contains("Show beside README.md") &&
-                headers.Contains("Move up"), "The menu offers the neighbour to show beside and no split: " + string.Join(", ", headers));
+            Require(menu.Items.OfType<MenuItem>().Any(item => item.Header as string == "Split right"),
+                "Projects tabs must offer group splits.");
             menu.Close();
+            var center = app.Center;
+            Require(app.Window.Layout.Move("file:notes.txt", center, center, 0, "right"), "Splitting a group right must succeed.");
+            var other = app.Window.Layout.State.Center.Leaves().Single(group => group != center);
+            Require(app.Window.Layout.Tabs(other).Single().Path == "notes.txt" &&
+                app.Window.GetLogicalDescendants().OfType<StackPanel>().Single(panel => panel.Name == "CenterTabsInProjects")
+                    .GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "Tab_file_notes.txt"),
+                "The split keeps its tabs listed in Projects.");
+            Require(app.Tab("notes.txt").Focus() && app.Window.Layout.View.FocusedGroup == other,
+                "Focusing a Projects document tab must retain its center group's keyboard ownership.");
+            app.Window.KeyPress(Key.W, OperatingSystem.IsMacOS() ? RawInputModifiers.Meta : RawInputModifiers.Control, PhysicalKey.W, null);
+            Require(app.Window.Layout.Tabs(other).All(tab => tab.Path != "notes.txt"),
+                "Close Tab must close the focused Projects document rather than its surrounding tool group.");
         });
 
-        Case("two tabs shown together render as panes, survive turning vertical tabs off, and can be restacked and separated", app =>
+        Case("two tabs shown together render as panes and can be restacked and separated", app =>
         {
             app.Open("README.md", true); app.Open("notes.txt", true);
-            SetLayout(app, settings => Control<CheckBox>(settings, "VerticalCenterTabs").IsChecked = true);
             app.ContextAction(app.Tab("notes.txt"), "Show beside README.md");
             Until(() => app.Window.Layout.PaneFor(app.Center, "file:notes.txt") is not null);
             var pane = app.Find<Grid>("TabPane_" + app.Center);
@@ -224,18 +184,11 @@ internal static class VerticalTabsE2E
             refresh.GetAwaiter().GetResult();
             Require(ReferenceEquals(pane, app.Find<Grid>("TabPane_" + app.Center)) && detached == 0,
                 "A content refresh must retain the paired pane and its mounted member frames.");
-            Require(app.Find<Grid>("DockTab_file_notes.txt").GetLogicalDescendants().OfType<Border>().Any(border => border.Name == "PaneMarker"),
-                "Members carry a left accent in the column.");
+            Require(Equals(app.Find<Grid>("DockTab_file_notes.txt").Tag, "paned"),
+                "Projects keeps the members in one tab group.");
 
             app.ContextAction(app.Tab("notes.txt"), "Stack this group");
             Until(() => app.Window.Layout.PaneFor(app.Center, "file:notes.txt")?.Direction == "vertical");
-
-            SetLayout(app, settings => Control<CheckBox>(settings, "VerticalCenterTabs").IsChecked = false);
-            Until(() => !app.Window.Preferences.VerticalCenterTabs);
-            app.Click(app.Tab("README.md"));
-            Until(() => app.Window.GetLogicalDescendants().OfType<Grid>().Any(grid => grid.Name == "TabPane_" + app.Center));
-            Require(app.Window.GetLogicalDescendants().OfType<MenuItem>().All(item => item.Header as string != "Show beside notes.txt"),
-                "Making a pane is a vertical-strip gesture.");
 
             app.ContextAction(app.Tab("notes.txt"), "Show on its own");
             Until(() => app.Window.Layout.PaneFor(app.Center, "file:notes.txt") is null);
@@ -245,7 +198,6 @@ internal static class VerticalTabsE2E
         Case("dropping a tab on the middle of another shows them together", app =>
         {
             app.Open("README.md", true); app.Open("notes.txt", true);
-            SetLayout(app, settings => Control<CheckBox>(settings, "VerticalCenterTabs").IsChecked = true);
             var source = app.Tab("notes.txt");
             var target = app.Find<Grid>("DockTab_markdown_README.md");
             Settle(550);
@@ -263,7 +215,6 @@ internal static class VerticalTabsE2E
         Case("a basename two tabs share gets its folder on a second line", app =>
         {
             File.WriteAllText(Path.Combine(app.Root, "styles", "notes.txt"), "styles notes\n");
-            SetLayout(app, settings => Control<CheckBox>(settings, "VerticalCenterTabs").IsChecked = true);
             app.Open("notes.txt", true); app.Open("README.md", true);
             app.ExpandFolder("styles"); app.Open("styles/notes.txt", true);
             Until(() => app.Window.GetLogicalDescendants().OfType<TextBlock>().Count(text => text.Name == "TabSubtitle") == 2);
@@ -272,15 +223,10 @@ internal static class VerticalTabsE2E
                 "Only the ambiguous names carry their folder.");
         });
 
-        Case("the column can live in Projects under its workspace, and comes back when Projects is hidden", app =>
+        Case("tabs stay in Projects when its panel is hidden", app =>
         {
             app.Open("README.md", true);
             app.Click(app.Find<Button>("Tab_projects"));
-            SetLayout(app, settings =>
-            {
-                Control<CheckBox>(settings, "VerticalCenterTabs").IsChecked = true;
-                Control<CheckBox>(settings, "VerticalTabsInProjects").IsChecked = true;
-            });
             Until(() => app.Window.GetLogicalDescendants().OfType<StackPanel>().Any(panel => panel.Name == "CenterTabsInProjects" &&
                 panel.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "Tab_markdown_README.md")));
             var host = app.Window.GetLogicalDescendants().OfType<ContentControl>().Single(control => control.Name == "WorkspaceTabs" && Equals(control.Tag, app.Window.WorkspaceRoot));
@@ -299,8 +245,10 @@ internal static class VerticalTabsE2E
             Until(() => app.Window.Layout.Selected(app.Center)?.Path == "notes.txt");
 
             app.Window.Layout.Visible("left", false);
-            Until(() => app.Window.GetLogicalDescendants().OfType<ResizeHandle>().Any(handle => handle.Name == "VerticalTabsResize_" + app.Center));
-            Require(app.Find<ScrollViewer>("TabScroller_" + app.Center).Bounds.Width > 0, "With Projects hidden the column comes back to the centre.");
+            Require(!app.Window.GetLogicalDescendants().OfType<ResizeHandle>().Any(handle => handle.Name == "VerticalTabsResize_" + app.Center),
+                "Hiding Projects must not introduce a second tab home.");
+            app.Window.Layout.Visible("left", true);
+            Until(() => app.Window.GetLogicalDescendants().OfType<StackPanel>().Any(panel => panel.Name == "CenterTabsInProjects"));
         });
     }
 

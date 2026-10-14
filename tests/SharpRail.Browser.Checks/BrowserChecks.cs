@@ -5,6 +5,7 @@ using System.Reflection;
 
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.LogicalTree;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
@@ -42,8 +43,10 @@ internal static partial class BrowserChecks
             window.Title,
             window.ProjectRoot,
             window.IsActive,
-            window.Preferences.VerticalCenterTabs,
-            window.Preferences.VerticalTabsInProjects,
+            window.WorkspaceMounted,
+            CatalogKnown = Workbench.TerminalCatalog?.Workspaces.ContainsKey(window.WorkspaceRoot) == true,
+            ProjectsTabs = window.GetLogicalDescendants().OfType<StackPanel>().Any(panel => panel.Name == "CenterTabsInProjects"),
+            BottomZones = window.Layout.State.Groups.Count(group => group.Region == "bottom"),
             TerminalRegions = window.Layout.State.Workspaces.GetValueOrDefault(window.ProjectRoot)?.Documents
                 .Where(group => group.Value.Any(tab => tab.Kind == "terminal"))
                 .Select(group => window.Layout.State.Groups.First(item => item.Id == group.Key).Region).ToArray(),
@@ -118,10 +121,13 @@ internal static partial class BrowserChecks
     }
 
     [JSExport]
-    public static async Task SetTabMode(bool vertical, bool inProjects)
+        public static async Task OpenTerminal()
     {
-        await Workbench.State.ChangeAsync(HostStateChange.Setting("vertical-tabs", vertical.ToString()),
-            HostStateChange.Setting("tabs-in-projects", inProjects.ToString()));
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            var window = Workbench.ActiveWindow!;
+            window.Layout.NewTerminal(window.Layout.View.FocusedCenter);
+        });
     }
 
     private static unsafe object TerminalFrame(GhosttySkiaView terminal)

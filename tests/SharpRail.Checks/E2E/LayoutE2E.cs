@@ -41,12 +41,14 @@ internal static class LayoutE2E
         using var app = new E2eWorkspace(Path.Combine(root, "layout-fold-keeps-center"));
         app.Open("README.md", true);
         var center = app.Center;
-        var body = app.Find<Border>("DockBody_" + center).Child;
         var side = app.Window.Layout.State.Groups.First(group => group.Region == "right");
-        var terminalGroup = app.Window.Layout.State.Groups.First(group => group.Region == "bottom");
+        app.Window.Layout.NewGroup(center, "right");
+        var terminalGroup = app.Window.Layout.State.Groups.Single(group => group.Region == "center" && group.Id != center);
+        app.Window.Layout.NewTerminal(terminalGroup.Id);
         Control? Terminal() => app.Window.GetLogicalDescendants().OfType<Border>().SingleOrDefault(panel => panel.Name == "DockBody_" + terminalGroup.Id)?.Child;
-        var terminal = Terminal();
-        Require(body is not null && terminal is not null, "The fixture must mount a centre document and a terminal.");
+        var terminal = TerminalsE2E.View(app, app.Window.Layout.Tabs(terminalGroup.Id).Single(tab => tab.Kind == "terminal"));
+        var body = app.Find<Border>("DockBody_" + center).Child;
+        Require(body is not null && ReferenceEquals(Terminal(), terminal), "The fixture must mount a centre document and a terminal.");
         foreach (var folded in new[] { true, false })
         {
             app.Window.Layout.Fold(side.Id); Settle();
@@ -133,9 +135,9 @@ internal static class LayoutE2E
         }
         Start("README.md");
         var notes = app.Tab("notes.txt");
-        var after = notes.TranslatePoint(new Point(notes.Bounds.Width - 8, notes.Bounds.Height / 2), app.Window)!.Value;
+        var after = notes.TranslatePoint(new Point(notes.Bounds.Width / 2, notes.Bounds.Height - 2), app.Window)!.Value;
         app.Window.MouseMove(after); Settle();
-        Require(surface.Children.OfType<Canvas>().Single().Children.OfType<Border>().Any(hint => hint.Width == 2),
+        Require(surface.Children.OfType<Canvas>().Single().Children.OfType<Border>().Any(hint => hint.Height == 2),
             "The hovered reorder destination must display an insertion marker.");
         app.Window.MouseUp(after, MouseButton.Left); Settle();
         Require(app.Tabs.Select(tab => tab.Path).SequenceEqual(new[] { "notes.txt", "README.md" }),
@@ -143,8 +145,7 @@ internal static class LayoutE2E
 
         Start("notes.txt");
         var body = app.Find<Border>("DockBody_" + app.Center);
-        var header = app.Find<Grid>("GroupHeader_" + app.Center);
-        var origin = header.TranslatePoint(default, app.Window)!.Value;
+        var origin = body.TranslatePoint(default, app.Window)!.Value;
         var height = body.TranslatePoint(new Point(0, body.Bounds.Height), app.Window)!.Value.Y - origin.Y;
         var target = new Point(origin.X + body.Bounds.Width * .9 - 4, origin.Y + height / 2);
         var hints = surface.Children.OfType<Canvas>().Single().Children.OfType<Border>().ToArray();
@@ -175,11 +176,12 @@ internal static class LayoutE2E
             Require(app.Window.Bounds.Width == 390 && position.X >= 0 && position.X + workbench.Bounds.Width <= 390,
                 "The workbench must fit a 390-pixel viewport.");
             Require(app.Window.Layout.State.Center.Leaves().Count() == 2 &&
-                app.Window.Layout.State.Groups.Count(group => group.Region == "bottom") == 1 &&
+                app.Window.Layout.State.Groups.All(group => group.Region != "bottom") &&
                 System.Text.Json.JsonSerializer.Serialize(app.Window.Layout.State.Center) == topology,
-                "Viewport compression must preserve recursive topology and the bottom group.");
+                "Viewport compression must preserve recursive topology without a bottom zone.");
             var tab = app.Tab("README.md");
-            app.Click(tab, mouseButton: MouseButton.Right);
+            // Request the menu without a pointer hit on a row clipped by the narrow sidebar.
+            tab.RaiseEvent(new ContextRequestedEventArgs { RoutedEvent = Control.ContextRequestedEvent, Source = tab });
             Until(() => tab.ContextMenu!.IsOpen);
             Require(!tab.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Split right")).IsEnabled,
                 "A narrow pane must disable further horizontal splits.");
@@ -254,21 +256,21 @@ internal static class LayoutE2E
         bool bottom;
         using (var app = new E2eWorkspace(directory))
         {
-            bottom = app.Window.Layout.State.BottomVisible;
+            bottom = app.Window.Layout.State.Groups.Any(legacyGroup => legacyGroup.Region == "bottom");
             app.Window.KeyPress(Key.B, command, PhysicalKey.B, null); Settle();
             Require(!app.Window.Layout.State.LeftVisible && app.Find<Border>("leftHiddenSideRail").IsVisible,
                 "Mod+B must hide the left side and expose its restore rail.");
             app.Window.KeyPress(Key.J, command, PhysicalKey.J, null); Settle();
             Require(!app.Window.Layout.State.RightVisible && app.Find<Border>("rightHiddenSideRail").IsVisible &&
-                app.Window.Layout.State.BottomVisible == bottom, "Mod+J must hide the right side without changing the bottom.");
+                app.Window.Layout.State.Groups.Any(legacyGroup => legacyGroup.Region == "bottom") == bottom, "Mod+J must hide the right side without changing the bottom.");
         }
         using (var app = new E2eWorkspace(directory, openFiles: false))
         {
-            Require(!app.Window.Layout.State.LeftVisible && !app.Window.Layout.State.RightVisible && app.Window.Layout.State.BottomVisible == bottom,
+            Require(!app.Window.Layout.State.LeftVisible && !app.Window.Layout.State.RightVisible && app.Window.Layout.State.Groups.Any(legacyGroup => legacyGroup.Region == "bottom") == bottom,
                 "Hidden sides must survive window recreation.");
             app.Window.KeyPress(Key.B, command, PhysicalKey.B, null);
             app.Window.KeyPress(Key.J, command, PhysicalKey.J, null); Settle();
-            Require(app.Window.Layout.State.LeftVisible && app.Window.Layout.State.RightVisible && app.Window.Layout.State.BottomVisible == bottom,
+            Require(app.Window.Layout.State.LeftVisible && app.Window.Layout.State.RightVisible && app.Window.Layout.State.Groups.Any(legacyGroup => legacyGroup.Region == "bottom") == bottom,
                 "The same shortcuts must restore both sides and preserve the bottom.");
         }
         Console.WriteLine("PASS upstream layout.spec.ts: Mod+B and Mod+J hide and restore local sides without affecting bottom");
@@ -314,7 +316,7 @@ internal static class LayoutE2E
         var body = ControlAutomationPeer.CreatePeerForElement(app.Find<Border>("DockBody_" + app.Center))!;
         Require(body.GetAutomationControlType() == AutomationControlType.Pane &&
             ReferenceEquals(body.GetLabeledBy(), readmePeer), "The accessible pane must be labelled by its selected tab.");
-        app.Window.KeyPress(Key.Right, RawInputModifiers.None, PhysicalKey.ArrowRight, null);
+        app.Window.KeyPress(Key.Down, RawInputModifiers.None, PhysicalKey.ArrowDown, null);
         Until(() => app.Tab("notes.txt").IsFocused);
         Require(((ISelectionItemProvider)ControlAutomationPeer.CreatePeerForElement(app.Tab("notes.txt"))!).IsSelected,
             "Arrow navigation must select the focused tab.");
@@ -323,7 +325,7 @@ internal static class LayoutE2E
         Until(() => app.Tab("LINKS.md").IsFocused);
         Require(app.Tabs.Count == 2 && ((ISelectionItemProvider)ControlAutomationPeer.CreatePeerForElement(app.Tab("LINKS.md"))!).IsSelected,
             "Closing the focused tab must focus and select its successor.");
-        foreach (var name in new[] { "rightSeparator", "bottomSeparator" })
+        foreach (var name in new[] { "rightSeparator" })
         {
             var separator = app.Find<ResizeHandle>(name);
             var peer = ControlAutomationPeer.CreatePeerForElement(separator)!;
@@ -372,33 +374,31 @@ internal static class LayoutE2E
     {
         using var app = new E2eWorkspace(Path.Combine(root, "layout-overflow"));
         app.Window.Width = 800; app.Window.Height = 720;
-        foreach (var path in new[] { "README.md", "notes.txt", "ALERTS.md", "DIAGRAM.md", "LARGE.md", "LINKS.md" }) app.Open(path, true);
-        var scroll = app.Tab("README.md").GetLogicalAncestors().OfType<ScrollViewer>().First();
-        var group = app.Center;
+        var group = app.Window.Layout.State.Groups.First(item => item.Region == "right").Id;
+        foreach (var other in app.Window.Layout.State.Groups.Where(item => item.Id != group).ToArray())
+            foreach (var tab in other.Tools.ToArray())
+                Require(app.Window.Layout.Move(tab.Id, other.Id, group, app.Window.Layout.Tabs(group).Count), "Tools join the overflow fixture.");
+        var tabs = app.Window.Layout.Tabs(group).ToArray();
+        Button Tab(int index) => app.Find<Button>("Tab_" + tabs[index].Id.Replace(':', '_'));
+        var scroll = Tab(0).GetLogicalAncestors().OfType<ScrollViewer>().First();
         Require(scroll.Extent.Width > scroll.Viewport.Width && scroll.HorizontalScrollBarVisibility == ScrollBarVisibility.Hidden &&
-            scroll.VerticalScrollBarVisibility == ScrollBarVisibility.Disabled, "Overflowing tabs must scroll horizontally without visible scrollbars.");
-        void Geometry()
-        {
-            Require(Math.Abs(app.Find<Border>("TabStrip_" + group).Bounds.Height - 32) < .1 &&
-                Math.Abs(app.Tab("README.md").Bounds.Height - 28) < .1 && Math.Abs(app.Tab("LINKS.md").Bounds.Height - 28) < .1,
-                "Overflow must retain the upstream strip and selectable-tab heights.");
-        }
-        Geometry();
+            scroll.VerticalScrollBarVisibility == ScrollBarVisibility.Disabled, "Overflowing tool tabs scroll horizontally without visible scrollbars.");
+        Require(Math.Abs(app.Find<Border>("TabStrip_" + group).Bounds.Height - 32) < .1,
+            "Overflow retains the tool strip height.");
         scroll.Offset = new Vector(0, 0); Settle();
         Require(!app.Find<Border>("TabOverflowBefore_" + group).IsVisible && app.Find<Border>("TabOverflowAfter_" + group).IsVisible,
             "At the start only the trailing overflow fade may be visible.");
         scroll.Offset = new Vector((scroll.Extent.Width - scroll.Viewport.Width) / 2, 0); Settle();
         Require(app.Find<Border>("TabOverflowBefore_" + group).IsVisible && app.Find<Border>("TabOverflowAfter_" + group).IsVisible,
             "In the middle both overflow fades must be visible.");
-        app.Tab("README.md").Focus();
+        Tab(0).Focus();
         app.Window.KeyPress(Key.End, RawInputModifiers.None, PhysicalKey.End, null);
-        Until(() => app.Tab("LINKS.md").IsFocused); Settle();
-        var last = app.Tab("LINKS.md");
+        Until(() => Tab(tabs.Length - 1).IsFocused); Settle();
+        var last = Tab(tabs.Length - 1);
         var point = last.TranslatePoint(default, scroll)!.Value;
         Require(app.Find<Border>("TabOverflowBefore_" + group).IsVisible && !app.Find<Border>("TabOverflowAfter_" + group).IsVisible &&
             point.X >= 0 && point.X + last.Bounds.Width <= scroll.Viewport.Width + 1,
-            "Keyboard End must reveal the last tab and leave only the leading fade.");
-        Geometry();
-        Console.WriteLine("PASS upstream layout.spec.ts: overflow uses directional fades without changing tab-strip geometry");
+            "Keyboard End reveals the last tool tab and leaves only the leading fade.");
+        Console.WriteLine("PASS tool tab overflow: directional fades and keyboard reveal");
     }
 }

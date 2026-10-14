@@ -35,6 +35,50 @@ internal static class StateChecks
 
     internal static async Task Run(string root)
     {
+        var legacyFrame = new SharpRail.UI.Docking.LayoutSession();
+        legacyFrame.SwitchWorkspace(root);
+        legacyFrame.Open(new("kept", "Kept", "file", "kept.txt"), true);
+        var legacyBottom = new SharpRail.UI.Docking.DockGroup { Region = "bottom" };
+        legacyFrame.State.Groups.Add(legacyBottom);
+        legacyFrame.View.Documents[legacyBottom.Id] =
+        [
+            new("terminal:initial", "Terminal 1", "terminal"),
+            new("bottom-file", "Bottom file", "file", "bottom.txt"),
+            new("bottom-diff", "Bottom diff", "diff", "bottom.txt", Scope: "all", Comparison: "main"),
+            new("kept", "Duplicate", "file", "kept.txt")
+        ];
+        legacyFrame.View.Selected[legacyBottom.Id] = "bottom-diff";
+        legacyFrame.View.Panes[legacyBottom.Id] = [new() { Id = "old-pane", TabIds = ["bottom-file", "bottom-diff"], Weights = [.3, .7] }];
+        legacyFrame.State.ToolRestore["review"] = legacyBottom.Id;
+        legacyFrame.State.ToolRestorePositions["review"] = 0;
+        var profilePath = Path.Combine(root, "retired-bottom-profile");
+        Directory.CreateDirectory(profilePath);
+        File.WriteAllText(Path.Combine(profilePath, "profile.json"), System.Text.Json.JsonSerializer.Serialize(new
+        {
+            Windows = new[] { new { Layout = legacyFrame.State, LastProject = root } },
+            Preferences = new { CustomPresets = new Dictionary<string, SharpRail.UI.Docking.DockState> { ["Old layout"] = legacyFrame.State.Copy() } }
+        }));
+        var restored = new SharpRail.UI.State.ProfileStore(profilePath).Data;
+        foreach (var frame in new[] { restored.Windows[0].Layout, restored.Preferences.CustomPresets["Old layout"] })
+        {
+            var center = frame.Center.Leaves().First();
+            var view = frame.Workspaces[root];
+            Require(frame.Groups.All(group => group.Region != "bottom") && view.Documents.Values.SelectMany(tabs => tabs).Select(tab => tab.Id).SequenceEqual(["kept", "bottom-file", "bottom-diff"]),
+                "Loading an old window or preset must migrate bottom files and diffs without duplicate tabs or terminal placements.");
+            Require(view.Selected[center] == "kept" && view.Panes[center].Single().Weights.SequenceEqual([.3, .7]) && !frame.ToolRestore.ContainsKey("review"),
+                "Bottom migration must preserve centre selection and document panes without obsolete tool restore entries.");
+            var before = System.Text.Json.JsonSerializer.Serialize(frame);
+            frame.RemoveBottomZone();
+            Require(System.Text.Json.JsonSerializer.Serialize(frame) == before, "Bottom migration must be idempotent for windows and custom presets.");
+        }
+        var emptyCenter = legacyFrame.State.Copy();
+        var emptyView = emptyCenter.Workspaces[root];
+        var emptyCenterId = emptyCenter.Center.Leaves().First();
+        emptyView.Documents[emptyCenterId].Clear();
+        emptyView.Selected.Remove(emptyCenterId);
+        emptyCenter.RemoveBottomZone();
+        Require(emptyView.Selected[emptyCenterId] == "bottom-diff", "A migrated bottom document selection must survive when the centre has no selection.");
+
         var migratedProfile = new SharpRail.UI.State.ProfileStore(Path.Combine(root, "tab-mode-migration"));
         migratedProfile.Data.StateMigrated = true;
         migratedProfile.Data.Preferences.VerticalCenterTabs = true;

@@ -66,20 +66,19 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
     /// window. A host that registers workspaces passes the store it writes to, or the rail never hears of them.
     /// </summary>
     public WorkbenchWindow(IProjectServices host, string rootPath, ProfileStore profile, Terminal.TerminalFactory terminals, bool remote = false,
-        Host.Core.HostStateStore? state = null, ITerminalCatalogService? terminalTabs = null, bool compact = false,
-        bool tabsInProjects = false)
-        : this(Standalone(profile, terminals, remote, state, terminalTabs, compact, tabsInProjects), host, profile.Data.Windows[0], rootPath) => workbench.Attach(this);
+        Host.Core.HostStateStore? state = null, ITerminalCatalogService? terminalTabs = null, bool compact = false)
+        : this(Standalone(profile, terminals, remote, state, terminalTabs, compact), host, profile.Data.Windows[0], rootPath) => workbench.Attach(this);
 
     // As the app's own host does, a standalone window's host runs the builtin plugins in process.
     private static Workbench Standalone(ProfileStore profile, Terminal.TerminalFactory terminals, bool remote, Host.Core.HostStateStore? state,
-        ITerminalCatalogService? terminalTabs, bool compact, bool tabsInProjects)
+        ITerminalCatalogService? terminalTabs, bool compact)
     {
         var store = state ?? profile.OpenState();
         var plugins = new Host.Core.Plugins.PluginRuntime(new() { StateDirectory = null, State = store });
         plugins.Start();
         return new(profile, new SharedState(new Host.Client.LocalStateAdapter(store), profile.Data.Preferences, store.Current), terminals, remote, null,
             new Host.Client.LocalPluginAdapter(plugins), terminalTabs)
-        { OwnedHost = plugins, Compact = compact, TabsInProjects = tabsInProjects, Touch = compact };
+        { OwnedHost = plugins, Compact = compact, Touch = compact };
     }
 
     internal WorkbenchWindow(Workbench workbench, IProjectServices host, WindowProfile slot, string rootPath)
@@ -140,11 +139,9 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             else if (command && e.Key == Key.N) { _ = CreateWorkspaceDialogAsync(); e.Handled = true; }
             // Preferences' own chord on macOS; other platforms have no such convention to honour.
             else if (CommandKeys.Modifier == KeyModifiers.Meta && e.KeyModifiers == KeyModifiers.Meta && e.Key == Key.OemComma) { ShowSettings(); e.Handled = true; }
-            else if (command && e.Key == Key.J && e.KeyModifiers.HasFlag(KeyModifiers.Shift))
-            { Layout.Visible("bottom", !Layout.State.BottomVisible); e.Handled = true; }
             else if (command && e.Key == Key.B)
             { Layout.Visible("left", !Layout.State.LeftVisible); e.Handled = true; }
-            else if (command && e.Key == Key.J)
+            else if (command && e.Key == Key.J && !e.KeyModifiers.HasFlag(KeyModifiers.Shift))
             { Layout.Visible("right", !Layout.State.RightVisible); e.Handled = true; }
             else if (command && e.Key is Key.OemPlus or Key.Add) { Zoom(1); e.Handled = true; }
             else if (command && e.Key is Key.OemMinus or Key.Subtract) { Zoom(-1); e.Handled = true; }
@@ -282,9 +279,9 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
                 if (group is null) Layout.RestoreTool(tool);
                 else { Layout.Visible(group.Region, true); if (group.Folded) Layout.Fold(group.Id); Layout.Select(group.Id, tool); }
             }));
-        foreach (var region in new[] { "left", "right", "bottom" })
+        foreach (var region in new[] { "left", "right" })
             menu.Items.Add(Ui.Menu("Toggle " + region, () => Layout.Visible(region, region switch
-            { "left" => !Layout.State.LeftVisible, "right" => !Layout.State.RightVisible, _ => !Layout.State.BottomVisible })));
+            { "left" => !Layout.State.LeftVisible, _ => !Layout.State.RightVisible })));
         menu.Items.Add(Ui.Menu("Reset frame", () => Layout.ApplyPreset(DefaultPreset())));
         menu.Items.Add(new Separator());
         var window = Ui.Menu("New window", () => NewWindow(), workbench.CanOpenWindows);
@@ -313,6 +310,8 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         SetStatus("Loading");
         var target = home ? HomeKey(path) : path;
         if (Layout.State.Workspaces.ContainsKey(target)) Layout.SwitchWorkspace(target);
+        UpdateRailSelection();
+        PlaceWorkspaceTabs();
         surface.RefreshContents();
         surface.RefreshEmptyContents();
         try { await projectGate.WaitAsync(lifetime.Token); }
@@ -368,7 +367,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             WorkspaceMounted = true; restorePending = false;
             var resolvedTarget = home ? HomeKey(projectRoot) : workspaceRoot;
             if (Layout.State.ActiveWorkspace != resolvedTarget)
-                Layout.SwitchWorkspace(resolvedTarget, !(workbench.TabsInProjects || Preferences.VerticalCenterTabs && Preferences.VerticalTabsInProjects));
+                Layout.SwitchWorkspace(resolvedTarget);
             else
             {
                 surface.RefreshContents();

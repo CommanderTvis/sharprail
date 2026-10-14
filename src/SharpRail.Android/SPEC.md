@@ -76,9 +76,9 @@ Contract:
 - On a screen narrower than 600 dp the session composes the workbench as compact (`Workbench.Compact`):
   the workbench is one page at a time from a bar at the bottom, and Settings is a list of sections; see
   [Docking/SPEC.md](../SharpRail.UI/Docking/SPEC.md#phone-pages). Tablets keep the desktop frame.
-- On every Android screen centre tabs live in Projects, under their workspace (`Workbench.TabsInProjects`):
+- On every Android screen centre tabs live in Projects, under their workspace (as on every client):
   the centre shows no tab strip even while Projects is hidden, and Settings › Layout offers no other place
-  for them. A split centre still keeps a strip per group.
+  for them. Split groups list their tabs there too.
 - Any other window is a transparent, undimmed Android dialog with its own view, laid out in the area the
   system bars and soft keyboard leave visible. A window sized to its content (`SizeToContent` with height:
   every `DialogWindow`) is a sheet across the bottom of that area, at the height it asks for and at most

@@ -51,8 +51,7 @@ internal static class LayoutSettingsE2E
     {
         using var app = new E2eWorkspace(Path.Combine(root, "layout-settings-review"));
         app.Open("README.md", true); app.Open("notes.txt", true);
-        var bottom = app.Window.Layout.State.Groups.Single(group => group.Region == "bottom");
-        Require(app.Window.Layout.Tabs(bottom.Id).Single().Kind == "terminal", "The workspace must start with its initial bottom terminal.");
+        Require(app.Window.Layout.State.Groups.All(group => group.Region != "bottom"), "The workspace has no bottom zone.");
         var settings = Open(app);
         var limit = settings.GetLogicalDescendants().OfType<NumericUpDown>().Single(input => input.Name == "GroupLimit_side");
         settings.UpdateLayout();
@@ -64,7 +63,7 @@ internal static class LayoutSettingsE2E
         Require(settings.ActualThemeVariant == app.Window.ActualThemeVariant &&
             (settings.ActualThemeVariant != Avalonia.Styling.ThemeVariant.Dark || ink.R + ink.G + ink.B > 3 * 160),
             $"Settings takes its window's theme variant, so Fluent inputs stay legible ({settings.ActualThemeVariant} beside {app.Window.ActualThemeVariant}, {ink}).");
-        foreach (var region in new[] { "side", "bottom" })
+        foreach (var region in new[] { "side" })
         {
             settings.GetLogicalDescendants().OfType<NumericUpDown>().Single(input => input.Name == "GroupLimit_" + region).Value = region == "side" ? 3 : 2;
             app.Click(settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "SaveGroupLimit_" + region));
@@ -74,10 +73,10 @@ internal static class LayoutSettingsE2E
         Require(System.Text.Json.JsonSerializer.Serialize(app.Window.Layout.State) == before, "Canceling a preset must retain the exact frame and resources.");
         app.Click(PresetButton(settings, "review", "Apply now…")); Respond(app, settings, true);
         var state = app.Window.Layout.State;
-        Require(state.SideLimit == 3 && state.BottomLimit == 2 && state.Center.Leaves().Count() == 2 && state.Center.Axis == "vertical" &&
+        Require(state.SideLimit == 3 && state.Center.Leaves().Count() == 2 && state.Center.Axis == "vertical" &&
             state.Center.Leaves().SelectMany(app.Window.Layout.Tabs).Select(tab => tab.Path).Order().SequenceEqual(new[] { "README.md", "notes.txt" }.Order()) &&
             state.Groups.Count(group => group.Region == "left") == 1 && state.Groups.Count(group => group.Region == "right") == 2 &&
-            state.Groups.Where(group => group.Region == "bottom").SelectMany(group => app.Window.Layout.Tabs(group.Id)).Single().Title == "Terminal 1",
+            state.Groups.All(group => group.Region != "bottom"),
             "Review must preserve resources and install its vertical center and auxiliary topology.");
         settings.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null); Settle();
         Require(!settings.IsVisible, "Escape must close Settings after applying a preset.");
@@ -155,8 +154,8 @@ internal static class LayoutSettingsE2E
                 settings.Close();
             }
             SaveLimit(3);
-            var bottom = app.Window.Layout.State.Groups.Single(group => group.Region == "bottom");
-            var id = app.Window.Layout.Tabs(bottom.Id).Single(tab => tab.Kind == "terminal").Id;
+            app.Window.Layout.NewTerminal(app.Center);
+            var id = app.Window.Layout.Tabs(app.Center).Single(tab => tab.Kind == "terminal").Id;
             app.ContextAction(app.Find<Button>("Tab_" + id.Replace(':', '_')), "New right group at bottom");
             Require(app.Window.Layout.State.Groups.Count(group => group.Region == "right") == 3, "The saved limit must permit the third right group.");
             WorkspaceTabsE2E.CreateWorkspace(app, "workspace-1");
@@ -200,7 +199,7 @@ internal static class LayoutSettingsE2E
         Until(() => PresetRow(settings, "My renamed workbench") is not null && PresetRow(settings, "My workbench") is null);
         app.Click(PresetButton(settings, "My renamed workbench", "Set default"));
         Until(() => Equals(PresetRow(settings, "My renamed workbench")!.Tag, true));
-        foreach (var (region, value) in new[] { ("side", 7), ("bottom", 4) })
+        foreach (var (region, value) in new[] { ("side", 7) })
         {
             settings.GetLogicalDescendants().OfType<NumericUpDown>().Single(input => input.Name == "GroupLimit_" + region).Value = value;
             var save = settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "SaveGroupLimit_" + region);
@@ -216,8 +215,7 @@ internal static class LayoutSettingsE2E
         Until(() => PresetRow(peerSettings, "My renamed workbench") is not null);
         Require(!Equals(PresetRow(peerSettings, "My renamed workbench")!.Tag, true) && Equals(PresetRow(peerSettings, "balanced")!.Tag, true),
             "The custom preset synchronizes, but the default preset stays window-local.");
-        Require(peerSettings.GetLogicalDescendants().OfType<NumericUpDown>().Single(input => input.Name == "GroupLimit_side").Value == 6 &&
-            peer.Window.Layout.State.BottomLimit == 3, "Group limits stay window-local.");
+        Require(peerSettings.GetLogicalDescendants().OfType<NumericUpDown>().Single(input => input.Name == "GroupLimit_side").Value == 6, "Group limits stay window-local.");
 
         app.Click(PresetRow(settings, "My renamed workbench")!.GetLogicalDescendants().OfType<Button>()
             .Single(button => Avalonia.Automation.AutomationProperties.GetName(button) == "Delete My renamed workbench"));

@@ -232,14 +232,14 @@ internal static class ThemeE2E
         app.Open("README.md", true);
         app.Open("notes.txt");
         Require(app.Tabs.Count(tab => tab.Path is "README.md" or "notes.txt") == 2, "Two editor tabs must be open.");
-        var bottom = app.Window.Layout.State.Groups.Single(group => group.Region == "bottom");
-        // A workspace may already hold its initial terminal; add two more alongside it.
-        var initial = app.Window.Layout.Tabs(bottom.Id).Count(tab => tab.Kind == "terminal");
+        var terminalGroup = app.Window.Layout.Group(app.Center);
+        // Add two explicit terminals to the workspace group.
+        var initial = app.Window.Layout.Tabs(terminalGroup.Id).Count(tab => tab.Kind == "terminal");
         for (var count = 0; count < 2; count++)
         {
-            app.Click(app.Find<Button>("NewTerminal_" + bottom.Id));
+            app.Click(app.Find<Button>("NewTerminal_" + terminalGroup.Id));
             var expected = initial + count + 1;
-            Until(() => app.Window.Layout.Tabs(bottom.Id).Count(tab => tab.Kind == "terminal") == expected);
+            Until(() => app.Window.Layout.Tabs(terminalGroup.Id).Count(tab => tab.Kind == "terminal") == expected);
         }
         app.Window.MouseMove(new Point(app.Window.Bounds.Width - 2, app.Window.Bounds.Height - 2));
         Settle();
@@ -247,7 +247,7 @@ internal static class ThemeE2E
         var right = app.Window.Layout.State.Groups.First(group => group.Region == "right" && app.Window.Layout.Selected(group.Id) is not null);
         using var frame = app.Window.CaptureRenderedFrame()!;
         frame.Save(Path.Combine(Directory.GetCurrentDirectory(), ".bench", "theme-contrast-tabs.png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
-        foreach (var group in new[] { app.Center, right.Id, bottom.Id })
+        foreach (var group in new[] { app.Center, right.Id })
         {
             var chrome = app.Window.Layout.Tabs(group).Select(tab => app.Find<Grid>("DockTab_" + tab.Id.Replace(':', '_').Replace('/', '_'))).ToArray();
             var selected = chrome.Where(tab => Marker(tab).IsVisible).ToArray();
@@ -255,11 +255,11 @@ internal static class ThemeE2E
             var tab = selected[0];
             var marker = Marker(tab);
             var fill = ((ISolidColorBrush)tab.Children.OfType<Border>().First().Background!).Color;
-            Require(fill == highContrast["hover"] && ((ISolidColorBrush)marker.Background!).Color == highContrast["accent"] && marker.Bounds.Height == 2,
-                "A selected tab must keep the selected-control surface and a 2px primary edge marker.");
+            Require(fill == highContrast["hover"] && ((ISolidColorBrush)marker.Background!).Color == highContrast["accent"] && (group == app.Center ? marker.Bounds.Width == 2 : marker.Bounds.Height == 2),
+                $"A selected tab must keep its surface and 2px primary edge: group={group}, center={app.Center}, fill={fill}/{highContrast["hover"]}, marker={((ISolidColorBrush)marker.Background!).Color}/{highContrast["accent"]}, bounds={marker.Bounds}.");
             var scale = app.Window.RenderScaling;
             var middle = tab.TranslatePoint(new Point(tab.Bounds.Width / 2, 4), app.Window)!.Value;
-            var edge = marker.TranslatePoint(new Point(marker.Bounds.Width / 2, 1), app.Window)!.Value;
+            var edge = marker.TranslatePoint(new Point(marker.Bounds.Width / 2, marker.Bounds.Height / 2), app.Window)!.Value;
             Require(Pixel(frame, middle, scale) == highContrast["hover"] && Pixel(frame, edge, scale) == highContrast["accent"],
                 $"The selected tab in {group} must paint its surface and edge marker.");
         }
@@ -313,7 +313,7 @@ internal static class ThemeE2E
         Console.WriteLine("PASS Mermaid diagrams and Markdown tints re-theme under every bundled manifest");
     }
 
-    private static Border Marker(Grid tab) => tab.Children.OfType<Border>().Single(border => border.Height == 2);
+    private static Border Marker(Grid tab) => tab.Children.OfType<Border>().Single(border => border.Name == "ActiveWorkspaceTab" || border.Height == 2);
 
     private static Color Pixel(Avalonia.Media.Imaging.Bitmap frame, Point at, double scale)
     {

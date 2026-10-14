@@ -8,7 +8,6 @@ using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Media.Immutable;
-using Avalonia.Styling;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 
@@ -38,8 +37,7 @@ public sealed partial class DockSurface
         panel.GotFocus += (_, _) => Session.Focus(group.Id);
         var selected = Session.Selected(group.Id);
         var updates = new List<Action>();
-        var style = group.Region == "center" && !group.Folded && CenterTabs?.Invoke() is { Vertical: true } mode
-            ? mode.Home == "projects" ? StripStyle.Nested : StripStyle.Vertical : StripStyle.Horizontal;
+        var style = group.Region == "center" ? StripStyle.Nested : StripStyle.Horizontal;
         var headerFrame = BuildStrip(group, panel, selected, updates, style);
         var header = groupHeaders[group.Id];
         PlaceStrip(group, panel, headerFrame, style);
@@ -80,38 +78,6 @@ public sealed partial class DockSurface
             PlaceBody(panel, body, style);
             sites.Add((body, group.Id, false));
         }
-        else if (group.Region == "bottom")
-        {
-            var rail = Ui.Button(TitleOf(selected) ?? "Empty group", () => ToggleFold(group.Id));
-            rail.Name = "FoldRestore_" + group.Id;
-            rail.Height = 27; rail.ContextMenu = GroupMenu(group, panel);
-            rail.HorizontalAlignment = HorizontalAlignment.Stretch;
-            rail.HorizontalContentAlignment = HorizontalAlignment.Center;
-            rail.Padding = new Thickness(0);
-            rail.Background = Brushes.Transparent;
-            rail.BorderThickness = new Thickness(0);
-            rail.CornerRadius = new CornerRadius(0);
-            groupHeaders[group.Id] = rail;
-            selectionUpdates[group.Id] = () =>
-            {
-                var title = TitleOf(Session.Selected(group.Id)) ?? "Empty group";
-                ((TextBlock)rail.Content!).Text = title;
-                AutomationProperties.SetName(rail, title);
-            };
-            var rotated = new LayoutTransformControl { Child = rail, LayoutTransform = new RotateTransform(90), UseLayoutRounding = true };
-            Control foldedContent = rotated;
-            if (OwnsBottomAlignmentMenu(group))
-            {
-                var folded = new Grid { RowDefinitions = new RowDefinitions("32,*") };
-                Ui.Place(folded, BottomAlignmentButton());
-                Ui.Place(folded, rotated, 1);
-                foldedContent = folded;
-            }
-            var frame = Ui.Frame(foldedContent);
-            frame.Name = "FoldedDockGroup_" + group.Id;
-            sites.Add((frame, group.Id, false));
-            return frame;
-        }
         else sites.Add((panel, group.Id, false));
         return panel;
     }
@@ -128,6 +94,12 @@ public sealed partial class DockSurface
         };
         if (vertical) header.RowDefinitions = new RowDefinitions(nested ? "Auto,Auto" : "*,Auto");
         else header.ColumnDefinitions = new ColumnDefinitions("*,Auto");
+        if (nested)
+            header.GotFocus += (_, e) =>
+            {
+                Session.Focus(group.Id);
+                e.Handled = true;
+            };
         header.ContextMenu = GroupMenu(group, panel);
         AutomationProperties.SetName(header, GroupLabel(group) + " pane");
         var tabs = new DockTabStrip(Session, group.Id) { Orientation = vertical ? Orientation.Vertical : Orientation.Horizontal, Spacing = nested ? 2 : 0 };
@@ -254,12 +226,6 @@ public sealed partial class DockSurface
             void UpdateActiveMarker() => underline.IsVisible = Session.Selected(group.Id)?.Id == tab.Id &&
                 (!nested || Session.View.FocusedCenter == group.Id);
             activeUpdates.Add(UpdateActiveMarker);
-            if (vertical && !nested && pane is not null)
-            {
-                // A pane's members carry a left accent so the pairing is visible in the list.
-                var paned = new Border { Name = "PaneMarker", Width = 2, Background = Ui.Accent, HorizontalAlignment = HorizontalAlignment.Left, IsHitTestVisible = false };
-                Ui.Place(chrome, paned);
-            }
             void SelectTab() { Session.Select(group.Id, tab.Id); FocusGroup(group.Id, focusContent: true); }
             var button = new DockTabButton(tabs, tab.Id, SelectTab)
             {
@@ -291,6 +257,7 @@ public sealed partial class DockSurface
                 tabFrame.Background = IsActive() || NestedHoverEnabled && chrome.IsPointerOver ? Ui.Hover : Brushes.Transparent;
                 tabFrame.BorderBrush = IsActive() ? Ui.BorderBrush : Brushes.Transparent;
             }
+            UpdateBackground();
             chrome.PointerEntered += (_, _) => UpdateBackground();
             chrome.PointerExited += (_, _) => UpdateBackground();
             updates.Add(() =>
@@ -455,7 +422,6 @@ public sealed partial class DockSurface
             { scroll.Offset = new(scroll.Offset.X - e.Delta.Y * 45, 0); e.Handled = true; }
         };
         actions.Children.Add(overflow);
-        if (!group.Folded && OwnsBottomAlignmentMenu(group)) actions.Children.Add(BottomAlignmentButton());
         if (!group.Folded)
         {
             var terminal = Ui.IconButton("terminal", "New terminal in this group", () => { Session.NewTerminal(group.Id); FocusGroup(group.Id, focusContent: true); });
@@ -526,36 +492,13 @@ public sealed partial class DockSurface
         return subtitles;
     }
 
-    // The strip above the body, a resizable column beside it, or none here when it lives in Projects.
+    // Tool strips stay above their body; workspace strips live only in Projects.
     private void PlaceStrip(DockGroup group, Grid panel, Border strip, StripStyle style)
     {
         switch (style)
         {
             case StripStyle.Horizontal:
                 Ui.Place(panel, strip);
-                break;
-            case StripStyle.Vertical:
-                var width = VerticalTabs.ClampWidth(CenterTabs!().Width);
-                panel.RowDefinitions = new RowDefinitions("*");
-                panel.ColumnDefinitions = new ColumnDefinitions($"{width},0,*");
-                strip.BorderThickness = new Thickness(0, 0, 1, 0);
-                Ui.Place(panel, strip);
-                var column = panel.ColumnDefinitions[0];
-                var startWidth = width;
-                double Clamp(double delta) => VerticalTabs.ClampWidth(startWidth + delta);
-                var handle = Separator(true,
-                    delta => column.Width = new GridLength(Clamp(delta)),
-                    delta => { column.Width = new GridLength(Clamp(delta)); CenterTabsWidthChanged?.Invoke(Clamp(delta)); startWidth = Clamp(delta); },
-                    () => column.Width = new GridLength(startWidth));
-                handle.Name = "VerticalTabsResize_" + group.Id;
-                AutomationProperties.SetName(handle, "Resize the tab column");
-                handle.ConfigureRange(() => (column.ActualWidth / Math.Max(1, panel.Bounds.Width), VerticalTabs.MinWidth / Math.Max(1, panel.Bounds.Width),
-                    VerticalTabs.MaxWidth / Math.Max(1, panel.Bounds.Width)), value =>
-                    {
-                        var next = VerticalTabs.ClampWidth(value * panel.Bounds.Width);
-                        column.Width = new GridLength(next); startWidth = next; CenterTabsWidthChanged?.Invoke(next);
-                    });
-                Ui.Place(panel, handle, 0, 1);
                 break;
             case StripStyle.Nested:
                 panel.RowDefinitions = new RowDefinitions("*");
@@ -567,12 +510,10 @@ public sealed partial class DockSurface
     private static void PlaceBody(Grid panel, Control body, StripStyle style)
     {
         if (style == StripStyle.Horizontal) Ui.Place(panel, body, 1);
-        else if (style == StripStyle.Vertical) Ui.Place(panel, body, 0, 2);
         else Ui.Place(panel, body);
     }
 
-    // A selected pane member shows its whole pane, in either orientation: a pane made in the vertical strip keeps
-    // rendering its members together when the setting is off.
+    // Selecting a member shows its whole pane in the group's chosen orientation.
     private Control BodyFor(DockGroup group, DockTab selected)
     {
         if (group.Region != "center" || Session.PaneFor(group.Id, selected.Id) is not { } pane) return Adopt(renderContent(selected));
@@ -649,80 +590,6 @@ public sealed partial class DockSurface
     private string ToolIcon(DockTab tab) => tab.Kind == "terminal" ? "terminal" : tab.Kind is "diff" or "changes" ? "fileDiff" :
         tab.IsTool ? Session.Tool(tab.Id)?.Icon ?? "puzzle" : "fileText";
 
-    private bool OwnsBottomAlignmentMenu(DockGroup group)
-    {
-        var bottom = Session.State.Groups.Where(item => item.Region == "bottom").ToArray();
-        return group.Region == "bottom" && group.Id == (bottom.FirstOrDefault(item => !item.Folded) ?? bottom.FirstOrDefault())?.Id;
-    }
-
-    private Button BottomAlignmentButton()
-    {
-        var button = Ui.IconButton("moreHorizontal", "Bottom panel alignment", () => { });
-        button.Name = "BottomAlignment";
-        button.BorderBrush = Ui.Hover;
-        button.BorderThickness = new Thickness(1, 0, 0, 0);
-        var menu = new ContextMenu
-        {
-            Width = 224,
-            Placement = PlacementMode.BottomEdgeAlignedRight,
-            VerticalOffset = 4,
-            Background = Ui.Elevated,
-            BorderBrush = Ui.BorderBrush,
-            BorderThickness = new Thickness(1),
-            CornerRadius = new CornerRadius(6),
-            Padding = new Thickness(4),
-            FontFamily = Ui.InterfaceFont,
-            FontSize = 14,
-            FontWeight = Ui.InterfaceWeight,
-            Foreground = Ui.TextBrush
-        };
-        menu.Resources["MenuFlyoutScrollerMargin"] = new Thickness(0);
-        menu.Resources["MenuFlyoutItemBackgroundPointerOver"] = Ui.Hover;
-        menu.Resources["MenuFlyoutItemBackgroundPressed"] = Ui.Hover;
-        menu.Resources["MenuFlyoutItemForegroundPointerOver"] = Ui.TextBrush;
-        var rows = new Style(selector => selector.OfType<MenuItem>());
-        rows.Setters.Add(new Setter(Layoutable.HeightProperty, 28d));
-        rows.Setters.Add(new Setter(TemplatedControl.PaddingProperty, new Thickness(8, 4)));
-        rows.Setters.Add(new Setter(TemplatedControl.CornerRadiusProperty, new CornerRadius(4)));
-        rows.Setters.Add(new Setter(TemplatedControl.ForegroundProperty, Ui.TextBrush));
-        menu.Styles.Add(rows);
-        var check = new Style(selector => selector.OfType<MenuItem>().Class(":checked").Class(":radio")
-            .Template().OfType<ContentControl>().Name("PART_ToggleIconPresenter"));
-        check.Setters.Add(new Setter(Grid.ColumnProperty, 4));
-        check.Setters.Add(new Setter(Layoutable.MarginProperty, new Thickness(0)));
-        check.Setters.Add(new Setter(Layoutable.WidthProperty, 14d));
-        check.Setters.Add(new Setter(Layoutable.HeightProperty, 14d));
-        check.Setters.Add(new Setter(ContentControl.ContentProperty,
-            new Avalonia.Controls.Templates.FuncTemplate<Control>(() => Ui.Icon("check", Ui.Accent, 14))));
-        menu.Styles.Add(check);
-        foreach (var (value, label) in new[]
-        {
-            ("center", "Below center"), ("center-left", "Below center and left"),
-            ("center-right", "Below center and right"), ("full", "Full width")
-        })
-        {
-            var item = Ui.Menu(label, () => Session.Geometry(state => state.BottomAlignment = value));
-            item.ToggleType = MenuItemToggleType.Radio;
-            item.IsChecked = Session.State.BottomAlignment == value;
-            menu.Items.Add(item);
-        }
-        menu.Items.Add(new Separator
-        {
-            Height = 1,
-            MinHeight = 1,
-            Margin = new Thickness(-4, 4),
-            Background = Ui.BorderBrush,
-            Template = new Avalonia.Controls.Templates.FuncControlTemplate<Separator>((_, _) => new Border { Background = Ui.BorderBrush })
-        });
-        menu.Items.Add(Ui.Menu("Hide bottom panel", () => Session.Visible("bottom", false)));
-        button.ContextMenu = menu;
-        button.Click += (_, _) => menu.Open(button);
-        // Keyboard users land on the current alignment, as the reference's radio menu does.
-        menu.Opened += (_, _) => Dispatcher.UIThread.Post(() => menu.Items.OfType<MenuItem>().FirstOrDefault(item => item.IsChecked)?.Focus(),
-            DispatcherPriority.Loaded);
-        return button;
-    }
-
     private IEnumerable<DockToolInfo> HiddenTools(DockGroup group) => Session.Tools.Where(tool => tool.Region == group.Region &&
         !Session.State.Groups.Any(item => item.Tools.Any(tab => tab.Id == tool.Id)));
 
@@ -759,7 +626,7 @@ public sealed partial class DockSurface
         menu.Items.Add(RemoveGroupMenuItem(group));
         var members = Session.Tabs(group.Id);
         var position = members.ToList().FindIndex(item => item.Id == tab.Id);
-        var vertical = group.Region == "center" && CenterTabs?.Invoke() is { Vertical: true };
+        var vertical = group.Region == "center";
         var pane = group.Region == "center" ? Session.PaneFor(group.Id, tab.Id) : null;
         if (pane is not null)
         {
@@ -783,7 +650,7 @@ public sealed partial class DockSurface
             if (vertical)
             {
                 // The neighbours rather than every tab: twenty "show beside" rows is a menu nobody reads.
-                var defaultDirection = CenterTabs!().DefaultPaneDirection;
+                var defaultDirection = CenterTabs?.Invoke().DefaultPaneDirection ?? "horizontal";
                 foreach (var neighbour in new[] { position - 1, position + 1 }.Where(index => index >= 0 && index < members.Count).Select(index => members[index]))
                 {
                     if (neighbour.IsTool || pane?.TabIds.Contains(neighbour.Id) == true) continue;
@@ -811,36 +678,34 @@ public sealed partial class DockSurface
         menu.Items.Add(move);
         if (group.Region == "center")
         {
-            // With vertical tabs on the split verbs are not offered at all: the mode removed them, no limit did.
-            if (!vertical)
-                foreach (var edge in new[] { "left", "right", "top", "bottom" })
-                {
-                    var split = Ui.Menu("Split " + (edge switch { "top" => "up", "bottom" => "down", _ => edge }), () => Session.Move(tab.Id, group.Id, group.Id, 0, edge));
-                    menu.Opening += (_, _) => split.IsEnabled = CanCreate(group) &&
-                        (edge is "left" or "right" ? geometry.Bounds.Width >= 640 : geometry.Bounds.Height >= 360);
-                    menu.Items.Add(split);
-                }
+            foreach (var edge in new[] { "left", "right", "top", "bottom" })
+            {
+                var split = Ui.Menu("Split " + (edge switch { "top" => "up", "bottom" => "down", _ => edge }), () => Session.Move(tab.Id, group.Id, group.Id, 0, edge));
+                menu.Opening += (_, _) => split.IsEnabled = CanCreate(group) &&
+                    (edge is "left" or "right" ? geometry.Bounds.Width >= 640 : geometry.Bounds.Height >= 360);
+                menu.Items.Add(split);
+            }
         }
         else
         {
             foreach (var edge in new[] { "before", "after" })
             {
-                var direction = group.Region == "bottom" ? edge == "before" ? "left" : "right" : edge == "before" ? "above" : "below";
+                var direction = edge == "before" ? "above" : "below";
                 var split = Ui.Menu("New group " + direction, () => Session.Move(tab.Id, group.Id, group.Id, 0, edge));
                 menu.Opening += (_, _) => split.IsEnabled = Session.CanMove(tab.Id, group.Id, group.Id, 0, edge);
                 menu.Items.Add(split);
             }
         }
         if (tab.IsTool || tab.Kind == "terminal")
-            foreach (var region in new[] { "left", "right", "bottom" })
+            foreach (var region in new[] { "left", "right" })
                 foreach (var atStart in new[] { true, false })
                 {
-                    var direction = region == "bottom" ? atStart ? "left" : "right" : atStart ? "top" : "bottom";
+                    var direction = atStart ? "top" : "bottom";
                     var title = $"New {region} group at {direction}";
                     var create = Ui.Menu(title, () => Session.MoveToNewRegionGroup(tab.Id, group.Id, region, atStart));
                     menu.Opening += (_, _) =>
                     {
-                        var limit = region == "bottom" ? Session.State.BottomLimit : Session.State.SideLimit;
+                        var limit = Session.State.SideLimit;
                         create.IsEnabled = Session.State.Groups.Count(item => item.Region == region) < limit;
                         create.Header = title + (create.IsEnabled ? "" : $" — limited to {limit}");
                     };
@@ -852,14 +717,12 @@ public sealed partial class DockSurface
     private string GroupLabel(DockGroup group) => $"{group.Region}: {TitleOf(Session.Selected(group.Id)) ?? "Empty"}";
     private string? TitleOf(DockTab? tab) => tab is null ? null : Session.ToolTitle(tab);
     private bool CanCreate(DockGroup group) => Session.State.Groups.Count(item => item.Region == group.Region) <
-        (group.Region == "center" ? 4 : group.Region == "bottom" ? Session.State.BottomLimit : Session.State.SideLimit);
+        (group.Region == "center" ? 4 : Session.State.SideLimit);
 
     private ContextMenu GroupMenu(DockGroup group, Control geometry)
     {
         var menu = new ContextMenu();
-        // Tabs listed in Projects have no room for a second strip there, and grouping tabs does what a split would.
-        if (group.Region == "center" && CenterTabs?.Invoke() is { Home: "projects" }) { }
-        else if (group.Region == "center")
+        if (group.Region == "center")
         {
             var right = Ui.Menu("New split right", () => Session.NewGroup(group.Id, "right"));
             var below = Ui.Menu("New split below", () => Session.NewGroup(group.Id, "bottom"));

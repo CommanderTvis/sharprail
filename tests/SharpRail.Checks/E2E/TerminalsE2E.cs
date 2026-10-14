@@ -19,7 +19,7 @@ internal static class TerminalsE2E
     internal static void Run(string root)
     {
         using var git = new IsolatedGit(Path.Combine(root, "terminals-git"));
-        OpensAutomatically(root);
+        OpensExplicitly(root);
         StartFailure(root);
         WorkspaceScoped(root);
         MultipleTerminals(root);
@@ -35,6 +35,13 @@ internal static class TerminalsE2E
 
     private static E2eWorkspace Open(string root, string name) =>
         new(IsolatedGit.Repository(Path.Combine(root, name)), openFiles: false);
+
+    internal static string CreateTerminalWorkspace(E2eWorkspace app, string name)
+    {
+        var workspace = WorkspaceTabsE2E.CreateWorkspace(app, name);
+        app.Window.Layout.NewTerminal(app.Center);
+        return workspace;
+    }
 
     internal static DockTab[] TerminalTabs(E2eWorkspace app) =>
         app.Window.Layout.State.Groups.SelectMany(group => app.Window.Layout.Tabs(group.Id)).Where(tab => tab.Kind == "terminal").ToArray();
@@ -76,19 +83,19 @@ internal static class TerminalsE2E
 
     private static bool Busy(TerminalView view) => view.IsBusyAsync().AsTask().GetAwaiter().GetResult();
 
-    private static void OpensAutomatically(string root)
+    private static void OpensExplicitly(string root)
     {
         using var app = Open(root, "terminals-automatic");
-        var workspace = WorkspaceTabsE2E.CreateWorkspace(app, "workspace-1");
+        var workspace = CreateTerminalWorkspace(app, "workspace-1");
         var tabs = TerminalTabs(app);
-        Require(tabs.Length == 1, "A new workspace must open exactly one terminal tab.");
+        Require(tabs.Length == 1, "The explicit action must open exactly one terminal tab.");
         var terminal = Ready(app, tabs[0]);
         terminal.Run("printf 'BASE_%s\\n' \"$(basename \"$(pwd)\")\"");
         Expect(terminal, "BASE_workspace-1");
         terminal.Run("printf 'TR_%s\\n' MARKER_IO");
         Expect(terminal, "TR_MARKER_IO");
         Require(app.Terminals.StartedIn(workspace) == 1, "The workspace must start one shell in its worktree.");
-        Console.WriteLine("PASS upstream terminals.spec.ts: a workspace opens a terminal automatically, rooted in the worktree, with working I/O");
+        Console.WriteLine("PASS upstream terminals.spec.ts: an explicit terminal opens, rooted in the worktree, with working I/O");
     }
 
     private static void StartFailure(string root)
@@ -97,7 +104,7 @@ internal static class TerminalsE2E
         using var app = Open(root, "terminals-failure");
         app.Terminals.Fail(failure, 2);
         var held = app.Terminals.Hold();
-        WorkspaceTabsE2E.CreateWorkspace(app, "workspace-1");
+        CreateTerminalWorkspace(app, "workspace-1");
         var tab = TerminalTabs(app).Single();
         var view = View(app, tab);
         var focused = app.Find<Button>("Tab_changes");
@@ -136,11 +143,11 @@ internal static class TerminalsE2E
     private static void WorkspaceScoped(string root)
     {
         using var app = Open(root, "terminals-scoped");
-        var first = WorkspaceTabsE2E.CreateWorkspace(app, "workspace-1");
+        var first = CreateTerminalWorkspace(app, "workspace-1");
         var one = Ready(app, TerminalTabs(app).Single());
         one.Run("printf 'TR_%s\\n' WS1_BUFFER");
         Expect(one, "TR_WS1_BUFFER");
-        var second = WorkspaceTabsE2E.CreateWorkspace(app, "workspace-2");
+        var second = CreateTerminalWorkspace(app, "workspace-2");
         Require(TerminalTabs(app).Length == 1, "The second workspace must show only its own terminal.");
         var two = Ready(app, TerminalTabs(app).Single());
         Require(!ReferenceEquals(one, two) && !two.Text.Contains("TR_WS1_BUFFER", StringComparison.Ordinal),
@@ -156,7 +163,7 @@ internal static class TerminalsE2E
     private static void MultipleTerminals(string root)
     {
         using var app = Open(root, "terminals-multiple");
-        WorkspaceTabsE2E.CreateWorkspace(app, "workspace-1");
+        CreateTerminalWorkspace(app, "workspace-1");
         var firstTab = TerminalTabs(app).Single();
         var one = Ready(app, firstTab);
         var firstView = View(app, firstTab);
@@ -191,7 +198,7 @@ internal static class TerminalsE2E
     private static void CountsCharacters(string root)
     {
         using var app = Open(root, "terminals-characters");
-        WorkspaceTabsE2E.CreateWorkspace(app, "workspace-1");
+        CreateTerminalWorkspace(app, "workspace-1");
         var terminal = Ready(app, TerminalTabs(app).Single());
         terminal.Run("echo \"LEN=$(printf %s привет | wc -m | tr -d ' ')\"");
         Expect(terminal, "LEN=6\n");
@@ -205,7 +212,7 @@ internal static class TerminalsE2E
     private static void ProjectHomeTrip(string root)
     {
         using var app = Open(root, "terminals-home");
-        var workspace = WorkspaceTabsE2E.CreateWorkspace(app, "workspace-1");
+        var workspace = CreateTerminalWorkspace(app, "workspace-1");
         var tab = TerminalTabs(app).Single();
         var terminal = Ready(app, tab);
         terminal.Run("TR_SURVIVOR=alive");
@@ -225,7 +232,7 @@ internal static class TerminalsE2E
     private static void RapidReentry(string root)
     {
         using var app = Open(root, "terminals-reentry");
-        var workspace = WorkspaceTabsE2E.CreateWorkspace(app, "workspace-1");
+        var workspace = CreateTerminalWorkspace(app, "workspace-1");
         var tab = TerminalTabs(app).Single();
         var terminal = Ready(app, tab);
         terminal.Run("TR_SURVIVOR=alive");
@@ -248,7 +255,7 @@ internal static class TerminalsE2E
     private static void ShellExit(string root)
     {
         using var app = Open(root, "terminals-exit");
-        WorkspaceTabsE2E.CreateWorkspace(app, "workspace-1");
+        CreateTerminalWorkspace(app, "workspace-1");
         var tab = TerminalTabs(app).Single();
         var terminal = Ready(app, tab);
         var view = View(app, tab);
@@ -264,7 +271,7 @@ internal static class TerminalsE2E
     private static void BusyClose(string root)
     {
         using var app = Open(root, "terminals-busy-close");
-        WorkspaceTabsE2E.CreateWorkspace(app, "workspace-1");
+        CreateTerminalWorkspace(app, "workspace-1");
         var tab = TerminalTabs(app).Single();
         var terminal = Ready(app, tab);
         var view = View(app, tab);
@@ -288,7 +295,7 @@ internal static class TerminalsE2E
     private static void IdleClose(string root)
     {
         using var app = Open(root, "terminals-idle-close");
-        WorkspaceTabsE2E.CreateWorkspace(app, "workspace-1");
+        CreateTerminalWorkspace(app, "workspace-1");
         var first = TerminalTabs(app).Single();
         Ready(app, first);
         NewTerminal(app, GroupOf(app, first));
@@ -306,7 +313,7 @@ internal static class TerminalsE2E
     {
         using var app = Open(root, "terminals-touch-close");
         app.Window.ConfirmEveryTerminalClose = true;
-        WorkspaceTabsE2E.CreateWorkspace(app, "workspace-1");
+        CreateTerminalWorkspace(app, "workspace-1");
         var tab = TerminalTabs(app).Single();
         var terminal = Ready(app, tab);
         CloseTab(app, tab);

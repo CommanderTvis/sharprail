@@ -51,7 +51,19 @@ try {
   page.on('console', message => { if (message.type() === 'error' && !message.text().includes('404')) { errors.push(message.text()); console.error(message.text()); } });
   await page.addInitScript(({ address, token, fixture }) => {
     sessionStorage.setItem('sharprail:endpoint', JSON.stringify({ Address: address, Token: token }));
-    localStorage.setItem('sharprail:profile', JSON.stringify({ LastProject: fixture, Windows: [{ LastProject: fixture }] }));
+    // Restore an explicitly saved terminal; fresh workspaces no longer create one automatically.
+    const terminal = { Id: 'terminal:restty-check', Title: 'Terminal 1', Kind: 'terminal' };
+    const layout = {
+      Center: { GroupId: 'browser-center' },
+      Groups: [
+        { Id: 'browser-center', Region: 'center' },
+        { Id: 'browser-projects', Region: 'left', Tools: [{ Id: 'projects', Title: 'Projects', Kind: 'tool' }] },
+        { Id: 'browser-files', Region: 'right', Tools: [{ Id: 'files', Title: 'Files', Kind: 'tool' }] }
+      ],
+      Workspaces: { [fixture]: { Documents: { 'browser-center': [terminal] }, Selected: { 'browser-center': terminal.Id }, FocusedCenter: 'browser-center' } },
+      ActiveWorkspace: fixture
+    };
+    localStorage.setItem('sharprail:profile', JSON.stringify({ LastProject: fixture, Windows: [{ LastProject: fixture, Layout: layout }] }));
     globalThis.gpuFrames = 0; globalThis.animationFrames = 0; let dirty = false;
     const draw = WebGL2RenderingContext.prototype.drawArraysInstanced;
     WebGL2RenderingContext.prototype.drawArraysInstanced = function (...args) {

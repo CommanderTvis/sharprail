@@ -196,7 +196,8 @@ internal static class StartupChecks
             Require(!window.WorkspaceMounted && host.Requests.IsEmpty && !host.FilesStarted,
                 "Host routing must run before file or Git loading.");
             var tab = window.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "Tab_markdown_README.md");
-            Require(tab.Bounds.Width > 0 && window.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "Loading workspace…"),
+            Require(tab.Bounds.Width > 0 && tab.GetLogicalAncestors().OfType<ContentControl>().Any(control => control.Name == "WorkspaceTabs") &&
+                window.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "Loading workspace…"),
                 "The requested document tab and loading body must render while host routing is held.");
             host.OpenHold.SetResult();
             Pump(() => window.WorkspaceMounted && host.FilesStarted && host.Requests.Count == 1);

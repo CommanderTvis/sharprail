@@ -41,10 +41,11 @@ profiles carrying a Metal preference from another platform.
 The [host state service](../../SharpRail.Host.Core/HostState.SPEC.md) holds appearance mode, the fixed
 theme and system pair, file and Markdown line widths with their bounded switches, custom layout presets,
 workspace display labels, the open project list and recents, and workspace lifecycle.
-The vertical tab mode and its placement in Projects also belong to the host. Existing embedded profiles
-seed previously absent values even after the older host-state migration. Local profile copies remain only
-as fallback for hosts that do not expose the nullable mode fields; column width and pane direction stay local.
-The browser profile records completed legacy bottom-terminal repairs by host endpoint and workspace.
+Tabs always live in Projects; legacy host and profile tab-mode fields are retained for
+compatibility and do not select a layout. Pane direction remains client-local. Loading a
+window or custom preset removes its retired bottom zone before validating the remaining frame.
+Nonterminal document tabs from that zone move into the center; live terminal tabs return from
+the host catalog without starting a second shell.
 A window changes shared settings only through a request to the host and updates when the resulting
 snapshot arrives, so every
 window and client converges on the same values and a control keeps showing the host's value until then.

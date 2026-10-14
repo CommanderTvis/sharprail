@@ -235,13 +235,14 @@ internal static class MultiClientE2E
     {
         using var app = new E2eWorkspace(IsolatedGit.Repository(Path.Combine(directory, "sample-project")), openFiles: false);
         static int Terminals(E2eWorkspace app) => TerminalsE2E.TerminalTabs(app).Length;
+        app.Window.Layout.NewTerminal(app.Center);
         Until(() => Terminals(app) == 1);
         using var peer = app.NewWindow();
         peer.Click(Select(peer, app.Root));
         Until(() => peer.Window.WorkspaceMounted && !peer.Window.AtProjectHome && peer.Window.WorkspaceRoot == app.Root);
         Until(() => Terminals(peer) == 1);
-        var bottom = peer.Window.Layout.State.Groups.First(group => group.Region == "bottom" && peer.Window.Layout.Tabs(group.Id).Any(tab => tab.Kind == "terminal"));
-        peer.Click(peer.Find<Button>("NewTerminal_" + bottom.Id));
+        var terminalGroup = peer.Window.Layout.Group(peer.Center);
+        peer.Click(peer.Find<Button>("NewTerminal_" + terminalGroup.Id));
         Until(() => Terminals(peer) == 2);
         // Which terminals exist is shared; where they sit and which one a window shows is not.
         var first = TerminalsE2E.TerminalTabs(app)[0];

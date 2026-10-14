@@ -933,15 +933,15 @@ internal static class CodexE2E
         E2eWorkspace.Until(() => Equals(Ide().Tag, false));
         terminal.Send("\x03");
 
-        // Action required is accessible on the tab and its Projects entry.
+        // Action required is accessible on the single tab in Projects.
         var blocked = codex.Terminal();
         codex.Hook(blocked, new { hook_event_name = "PermissionRequest", session_id = "codex-status-test" });
         Control[] Badges() => [.. app.Window.GetLogicalDescendants().OfType<Control>().Where(item => item.Name == "TerminalCodexStatus" && item.IsEffectivelyVisible)];
-        E2eWorkspace.Until(() => Badges() is { Length: 2 } badges && badges.All(badge => Equals(badge.Tag, "blocked")));
+        E2eWorkspace.Until(() => Badges() is { Length: 1 } badges && badges.All(badge => Equals(badge.Tag, "blocked")));
         Require(Badges().All(badge => Equals(ToolTip.GetTip(badge), "Codex: Action required") && Avalonia.Automation.AutomationProperties.GetName(badge) == "Codex: Action required"),
-            "the tab and Projects badges name the status");
+            "the Projects tab badge names the status");
         codex.Hook(blocked, new { hook_event_name = "PostToolUse", session_id = "codex-status-test" });
-        E2eWorkspace.Until(() => Badges() is { Length: 2 } badges && badges.All(badge => Equals(badge.Tag, "running")));
+        E2eWorkspace.Until(() => Badges() is { Length: 1 } badges && badges.All(badge => Equals(badge.Tag, "running")));
 
         // A Codex terminal shows its session's token totals and plan from its rollout.
         var rollout = Path.Combine(root, "rollout.jsonl");

@@ -41,10 +41,9 @@ internal static class LayoutFrameE2E
     {
         using var app = new E2eWorkspace(Path.Combine(root, "layout-strips"));
         app.Open("README.md", true);
-        var bottom = app.Window.Layout.State.Groups.Single(group => group.Region == "bottom").Id;
-        Require(app.Window.Layout.Tabs(bottom).Single().Kind == "terminal", "The workspace must start with its initial bottom terminal.");
+        Require(app.Window.Layout.State.Groups.All(group => group.Region != "bottom"), "The workspace has no bottom zone.");
         var right = app.Window.Layout.State.Groups.First(group => group.Tools.Any(tab => tab.Id == "files")).Id;
-        foreach (var id in new[] { app.Center, right, bottom })
+        foreach (var id in new[] { right })
         {
             var strip = app.Find<Border>("TabStrip_" + id);
             Require(Math.Abs(strip.Bounds.Height - 32) < .1, "Every workbench tab strip must stay one 32-pixel row.");
@@ -69,9 +68,8 @@ internal static class LayoutFrameE2E
         Require(app.Find<Button>("Tab_files").GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "Files") &&
             !app.Find<Button>("Tab_files").GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text?.Contains("All files") == true),
             "The Files tool must be titled Files.");
-        Require(app.Find<Border>("TabStrip_" + app.Center).GetLogicalDescendants().OfType<Button>().Count(button => button.Name == "CloseTab") == 1 &&
-            app.Find<Border>("TabStrip_" + bottom).GetLogicalDescendants().OfType<Button>().Count(button => button.Name == "CloseTab") == 1,
-            "The document strip and the terminal strip must each offer one close button.");
+        Require(app.Find<Border>("TabStrip_" + app.Center).GetLogicalDescendants().OfType<Button>().Count(button => button.Name == "CloseTab") == 1,
+            "The document list must offer its close button.");
         app.Click(app.Find<Button>("Tab_changes"));
         var panel = app.Find<Grid>("ChangesPanel");
         var toolbar = panel.Children.OfType<Control>().Single(child => Grid.GetRow(child) == 0);
@@ -179,30 +177,8 @@ internal static class LayoutFrameE2E
         Until(() => app.Tabs[1].Path == "README.md");
 
         var overflow = app.Find<Button>("TabOverflow_" + app.Center);
-        Require(!overflow.IsVisible, "A wide window must not show tab search.");
         app.Window.Width = 620; Settle();
-        Until(() => overflow.IsVisible);
-        app.Click(overflow);
-        var flyout = (Flyout)overflow.Flyout!;
-        Until(() => flyout.IsOpen);
-        var content = (Control)flyout.Content!;
-        content.GetLogicalDescendants().OfType<TextBox>().Single(box => box.Name == "TabOverflowSearch").Text = "notes";
-        Settle();
-        var option = content.GetLogicalDescendants().OfType<ListBox>().Single().GetVisualDescendants().OfType<ListBoxItem>().Single();
-        app.Click(option, freshGesture: false);
-        Until(() => !flyout.IsOpen && app.Window.Layout.Selected(app.Center)?.Path == "notes.txt" && app.Tab("notes.txt").IsFocused);
-        app.Window.Width = 1352; Settle();
-        Until(() => !overflow.IsVisible);
-
-        app.Window.Width = 620; Settle();
-        Until(() => overflow.IsVisible);
-        app.Click(overflow); Until(() => overflow.Flyout is Flyout { IsOpen: true });
-        flyout = (Flyout)overflow.Flyout!;
-        app.Window.Width = 1352; Settle();
-        Until(() => !overflow.IsVisible && !flyout.IsOpen);
-        app.Window.Width = 620; Settle();
-        Until(() => overflow.IsVisible);
-        Require(!flyout.IsOpen, "Tab search must stay closed after its trigger was hidden and shown again.");
+        Require(!overflow.IsVisible, "Projects lists tabs vertically without a horizontal search trigger.");
         app.Window.Width = 1352; Settle();
 
         app.ContextAction(app.Tab("notes.txt"), "Split right");
@@ -245,12 +221,12 @@ internal static class LayoutFrameE2E
         app.Window.MouseUp(start + new Vector(-70, 0), MouseButton.Left); Settle();
         var resized = Width(app, "right");
         app.Window.KeyPress(Key.J, Command | RawInputModifiers.Shift, PhysicalKey.J, null); Settle();
-        Require(!app.Window.Layout.State.BottomVisible, "Mod+Shift+J must hide the bottom panel.");
+        Require(app.Window.Layout.State.Groups.All(group => group.Region != "bottom"), "The retired shortcut must not create a bottom zone.");
         WorkspaceTabsE2E.CreateWorkspace(app, "workspace-1");
-        Require(app.Tabs.Count == 0 && !app.Window.Layout.State.BottomVisible && Math.Abs(Width(app, "right") - resized) < 1,
+        Require(app.Tabs.Count == 0 && !app.Window.Layout.State.Groups.Any(legacyGroup => legacyGroup.Region == "bottom") && Math.Abs(Width(app, "right") - resized) < 1,
             "A new workspace must inherit the local frame without the first workspace's document tabs.");
         WorkspaceTabsE2E.Switch(app, app.Root);
-        Require(app.Tabs.Single().Path == "README.md" && !app.Window.Layout.State.BottomVisible && Math.Abs(Width(app, "right") - resized) < 1,
+        Require(app.Tabs.Single().Path == "README.md" && !app.Window.Layout.State.Groups.Any(legacyGroup => legacyGroup.Region == "bottom") && Math.Abs(Width(app, "right") - resized) < 1,
             "Returning must restore the document tab under the same local frame.");
         Console.WriteLine("PASS upstream layout.spec.ts: one local frame survives workspace switches while resource tabs stay workspace-specific");
     }

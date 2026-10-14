@@ -38,9 +38,8 @@ internal static class DropHintsE2E
 
     private static Rect Section(E2eWorkspace app, DockSurface surface)
     {
-        var header = Bounds(app.Find<Grid>("GroupHeader_" + app.Center), surface);
         var body = Bounds(app.Find<Border>("DockBody_" + app.Center), surface);
-        return new Rect(body.Left, header.Top, body.Width, body.Bottom - header.Top);
+        return body;
     }
 
     private static void Move(E2eWorkspace app, DockSurface surface, Point point)
@@ -83,38 +82,13 @@ internal static class DropHintsE2E
     private static void HiddenBottom(string root)
     {
         using var app = new E2eWorkspace(Path.Combine(root, "drop-hint-hidden-bottom"));
-        var bottom = app.Window.Layout.State.Groups.Single(group => group.Region == "bottom");
-        var terminal = app.Window.Layout.Tabs(bottom.Id).Single(tab => tab.Kind == "terminal");
-        var name = terminal.Id.Replace(':', '_');
-        var body = app.Find<Control>("TerminalSurface_" + name);
-        var tab = app.Find<Button>("Tab_" + name);
-        app.ContextAction(tab, "Move to pane");
-        var move = tab.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Move to pane"));
-        Until(() => move.IsSubMenuOpen);
-        app.Click(move.Items.OfType<MenuItem>().Single(item => ((string)item.Header!).StartsWith("center:", StringComparison.Ordinal)), freshGesture: false);
-        Until(() => app.Tabs.Any(tab => tab.Id == terminal.Id));
-        app.Find<Button>("Tab_" + name).Focus(); Settle();
-        var command = OperatingSystem.IsMacOS() ? RawInputModifiers.Meta : RawInputModifiers.Control;
-        app.Window.KeyPress(Key.J, command | RawInputModifiers.Shift, PhysicalKey.J, null);
-        app.Window.KeyRelease(Key.J, command | RawInputModifiers.Shift, PhysicalKey.J, null); Settle();
-        Require(!app.Window.Layout.State.BottomVisible, "The bottom shortcut must hide its empty frame group.");
+        app.Window.Layout.NewTerminal(app.Center);
+        var terminal = app.Window.Layout.Tabs(app.Center).Single(tab => tab.Kind == "terminal");
+        Start(app, app.Find<Button>("Tab_" + terminal.Id.Replace(':', '_')));
         var surface = app.Find<DockSurface>("WorkspaceWorkbench");
-        Start(app, app.Find<Button>("Tab_" + name));
-        var zone = Overlay(surface).Children.OfType<Border>().Single(hint => hint.Height == 24 && hint.BorderThickness == new Thickness(0, 1, 0, 0));
-        var zoneBounds = PaintedBounds(zone);
-        Require(Tint(zone.Background, 26), "The hidden-bottom target must initially display its subtle hint.");
-        var section = Section(app, surface);
-        var split = new Rect(section.Left + section.Width / 4, section.Bottom - 4 - section.Height / 5, section.Width / 2, section.Height / 5);
-        Require(split.Contains(zoneBounds.Center), "The chosen point must overlap a legal center-bottom split destination.");
-        Move(app, surface, zoneBounds.Center);
-        zone = Overlay(surface).Children.OfType<Border>().Single(hint => Same(PaintedBounds(hint), zoneBounds));
-        Require(zone.BorderThickness == new Thickness(0, 2, 0, 0) && Tint(zone.Background, 51),
-            "The hidden-bottom target must win the overlap and display its active state.");
-        app.Window.MouseUp(surface.TranslatePoint(zoneBounds.Center, app.Window)!.Value, MouseButton.Left); Settle();
-        Require(app.Window.Layout.State.BottomVisible && app.Window.Layout.State.Groups.Count(group => group.Region == "bottom") == 1 &&
-            app.Window.Layout.State.Center.Leaves().Count() == 1 && app.Window.Layout.Tabs(bottom.Id).Single().Id == terminal.Id &&
-            !app.Tabs.Any(tab => tab.Id == terminal.Id) && ReferenceEquals(body, app.Find<Control>("TerminalSurface_" + name)) && Overlay(surface).Children.Count == 0,
-            "The winning drop must reveal the retained bottom group and move the one terminal body without splitting the center.");
-        Console.WriteLine("PASS upstream layout.spec.ts: the hidden bottom drop zone wins overlapping terminal targets and reveals its frame group");
+        Require(!Overlay(surface).Children.OfType<Border>().Any(hint => hint.Height == 24 && hint.BorderThickness == new Thickness(0, 1, 0, 0)),
+            "Dragging a terminal must not offer a hidden bottom-zone target.");
+        app.Window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+        Console.WriteLine("PASS bottom-zone removal: no hidden bottom drop target");
     }
 }

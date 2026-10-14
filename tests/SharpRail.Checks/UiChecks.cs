@@ -423,19 +423,7 @@ internal static class UiChecks
         Require(projectsGroup.Tools.Any(tab => tab.Id == "files"), "Pointer drop did not join the pane.");
         Require(window.Layout.State.Groups.SelectMany(group => group.Tools).Count(tab => tab.Id == "files") == 1, "Pointer drop copied a tool.");
 
-        var bottomGroup = window.Layout.State.Groups.Single(group => group.Region == "bottom").Id;
-        foreach (var terminal in window.Layout.Tabs(bottomGroup).ToArray()) window.Layout.Close(bottomGroup, terminal.Id);
-        Pump(() => window.Layout.Tabs(bottomGroup).Count == 0, "Closing the idle initial terminal did not empty the bottom group.");
-        Require(window.Layout.RemoveGroup(bottomGroup), "Empty bottom group removal failed.");
-        window.Layout.Visible("bottom", true);
-        Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
-        source = Find<Button>(window, "Tab_files"); from = Center(window, source);
-        to = surface.TranslatePoint(new Point(surface.Bounds.Width / 2, surface.Bounds.Height - 8), window)!.Value;
-        window.MouseDown(from, MouseButton.Left); window.MouseMove(from + new Vector(10, 10));
-        window.MouseMove(to); window.MouseUp(to, MouseButton.Left); Dispatcher.UIThread.RunJobs();
-        Require(window.Layout.State.BottomVisible && window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "files")).Region == "bottom",
-            "Hidden bottom drop did not reveal and reuse a group.");
-
+        Click(window, Find<Button>(window, "Tab_projects"));
         window.UpdateLayout();
         source = Find<Button>(window, "Tab_markdown_README.md");
         var centerPanel = Find<Control>(window, "CenterPanel");

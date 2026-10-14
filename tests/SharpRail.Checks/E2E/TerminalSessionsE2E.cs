@@ -78,7 +78,7 @@ internal static class TerminalSessionsE2E
             string workspace;
             using (var app = Window(directory, terminals))
             {
-                workspace = WorkspaceTabsE2E.CreateWorkspace(app, "workspace-1");
+                workspace = CreateTerminalWorkspace(app, "workspace-1");
                 var terminal = Ready(app, TerminalTabs(app).Single());
                 terminal.Run("TR_RELOAD=survived");
                 terminal.Run("echo \"BEFORE=$TR_RELOAD\"");
@@ -108,7 +108,7 @@ internal static class TerminalSessionsE2E
             string workspace;
             using (var app = Window(directory, terminals))
             {
-                workspace = WorkspaceTabsE2E.CreateWorkspace(app, "workspace-1");
+                workspace = CreateTerminalWorkspace(app, "workspace-1");
                 var terminal = Ready(app, TerminalTabs(app).Single());
                 terminal.Run("(sleep 2; kill -9 $$) &");
                 terminal.Run("printf 'TR_%s\\n' BEFORE_DEATH");
@@ -129,7 +129,7 @@ internal static class TerminalSessionsE2E
                 // SharpRail keeps the exited tab; a new terminal is the way back to a live shell.
                 CloseTab(app, tab);
                 Until(() => TerminalTabs(app).Length == 0);
-                app.Click(app.Find<Button>("NewTerminal_" + app.Window.Layout.State.Groups.Single(group => group.Region == "bottom").Id));
+                app.Click(app.Find<Button>("NewTerminal_" + app.Center));
                 Until(() => TerminalTabs(app).Length == 1);
                 var fresh = Ready(app, TerminalTabs(app).Single());
                 fresh.Run("echo TR_REATTACH_$((7 * 6))");
@@ -178,9 +178,9 @@ internal static class TerminalSessionsE2E
         var directory = Repository(root, "terminals-addressed");
         using var host = new RemoteHost(directory);
         using var a = Window(directory, host.Client());
-        var first = WorkspaceTabsE2E.CreateWorkspace(a, "workspace-1");
+        var first = CreateTerminalWorkspace(a, "workspace-1");
         Ready(a, TerminalTabs(a).Single());
-        var second = WorkspaceTabsE2E.CreateWorkspace(a, "workspace-2");
+        var second = CreateTerminalWorkspace(a, "workspace-2");
         Ready(a, TerminalTabs(a).Single());
         WorkspaceTabsE2E.Switch(a, first, "workspace-1");
         var one = Ready(a, TerminalTabs(a).Single());
@@ -207,7 +207,7 @@ internal static class TerminalSessionsE2E
         try
         {
             using var app = Window(directory, host.Client(proxy.Address));
-            var workspace = WorkspaceTabsE2E.CreateWorkspace(app, "workspace-1");
+            var workspace = CreateTerminalWorkspace(app, "workspace-1");
             var terminal = Ready(app, TerminalTabs(app).Single());
             terminal.Run("TR_RECONNECT=survived");
             terminal.Run("echo \"BEFORE=$TR_RECONNECT\"");
@@ -231,10 +231,9 @@ internal static class TerminalSessionsE2E
         using var host = new RemoteHost(directory);
         var faults = new AttachFaults();
         using var app = Window(directory, host.Client(faults: faults));
-        Ready(app, TerminalTabs(app).Single());
         var before = faults.Calls;
         faults.DropNextReply = true;
-        var workspace = WorkspaceTabsE2E.CreateWorkspace(app, "workspace-1");
+        var workspace = CreateTerminalWorkspace(app, "workspace-1");
         var terminal = Ready(app, TerminalTabs(app).Single());
         terminal.Run("printf 'TR_%s\\n' REPLAYED_CREATE_WORKS");
         Expect(terminal, "TR_REPLAYED_CREATE_WORKS");
@@ -253,7 +252,7 @@ internal static class TerminalSessionsE2E
         try
         {
             using var app = Window(directory, host.Client(proxy.Address));
-            WorkspaceTabsE2E.CreateWorkspace(app, "workspace-1");
+            CreateTerminalWorkspace(app, "workspace-1");
             var tab = TerminalTabs(app).Single();
             var terminal = Ready(app, tab);
             var view = View(app, tab);
@@ -278,7 +277,7 @@ internal static class TerminalSessionsE2E
         var directory = Repository(root, "terminals-takeover");
         using var host = new RemoteHost(directory);
         using var a = Window(directory, host.Client());
-        var workspace = WorkspaceTabsE2E.CreateWorkspace(a, "workspace-1");
+        var workspace = CreateTerminalWorkspace(a, "workspace-1");
         var tab = TerminalTabs(a).Single();
         var first = Ready(a, tab);
         first.Run("TR_SHARED=yes");
@@ -314,7 +313,7 @@ internal static class TerminalSessionsE2E
         using var host = new RemoteHost(directory);
         var faults = new AttachFaults();
         using var a = Window(directory, host.Client(faults: faults));
-        var workspace = WorkspaceTabsE2E.CreateWorkspace(a, "workspace-1");
+        var workspace = CreateTerminalWorkspace(a, "workspace-1");
         var tab = TerminalTabs(a).Single();
         Ready(a, tab);
 

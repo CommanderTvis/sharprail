@@ -54,9 +54,6 @@ internal static class ProjectsE2E
         Require(app.Window.WorkspaceRoot == workspace && !app.Window.OwnedWindows.Any(), "Scrolling the Projects rail must not open a workspace menu or switch workspaces.");
         var surface = app.Window.GetLogicalDescendants().OfType<DockSurface>().Single();
         surface.NestedHoverEnabled = false;
-        app.Window.Preferences.VerticalCenterTabs = true;
-        app.Window.Preferences.VerticalTabsInProjects = true;
-        app.Window.ApplyTabLayout();
         var group = app.Window.Layout.State.Center.Leaves().First();
         app.Window.Layout.NewTerminal(group);
         var first = app.Window.Layout.Tabs(group).Single(tab => tab.Kind == "terminal");

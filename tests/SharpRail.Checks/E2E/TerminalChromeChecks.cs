@@ -21,13 +21,15 @@ internal static class TerminalChromeChecks
         RegionCommands(root);
         SideTerminal(root);
         using var app = new E2eWorkspace(Path.Combine(root, "terminal-chrome"));
-        var bottom = app.Window.Layout.State.Groups.Single(group => group.Region == "bottom");
-        app.Click(app.Find<Button>("NewTerminal_" + bottom.Id));
-        Until(() => app.Window.Layout.Tabs(bottom.Id).Count(tab => tab.Kind == "terminal") == 2);
-        var terminal = app.Window.Layout.Tabs(bottom.Id).Last();
-        Require(app.Window.Layout.Selected(bottom.Id)?.Id == terminal.Id && terminal.Title == "Terminal 2",
-            "The pane menu must add and select a second terminal beside the workspace's initial one.");
+        var terminalGroup = app.Window.Layout.Group(app.Center);
+        app.Window.Layout.NewTerminal(terminalGroup.Id);
+        app.Click(app.Find<Button>("NewTerminal_" + terminalGroup.Id));
+        Until(() => app.Window.Layout.Tabs(terminalGroup.Id).Count(tab => tab.Kind == "terminal") == 2);
+        var terminal = app.Window.Layout.Tabs(terminalGroup.Id).Last();
+        Require(app.Window.Layout.Selected(terminalGroup.Id)?.Id == terminal.Id && terminal.Title == "Terminal 2",
+            "The pane menu must add and select a second terminal beside the first explicit terminal.");
         var name = terminal.Id.Replace(':', '_');
+        Until(() => app.Window.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "TerminalSurface_" + name));
         var body = app.Find<Control>("TerminalSurface_" + name);
         var tab = app.Find<Button>("Tab_" + name);
         var side = app.Window.Layout.State.Groups.Single(group => group.Tools.Any(tool => tool.Id == DockState.SpecsTool));
@@ -51,9 +53,11 @@ internal static class TerminalChromeChecks
     private static void SideTerminal(string root)
     {
         using var app = new E2eWorkspace(Path.Combine(root, "terminal-side-group"));
-        var bottom = app.Window.Layout.State.Groups.Single(group => group.Region == "bottom");
-        var id = app.Window.Layout.Tabs(bottom.Id).Single(tab => tab.Kind == "terminal").Id;
+        var sourceGroup = app.Window.Layout.State.Groups.First(group => group.Region == "right");
+        app.Window.Layout.NewTerminal(sourceGroup.Id);
+        var id = app.Window.Layout.Tabs(sourceGroup.Id).Single(tab => tab.Kind == "terminal").Id;
         var name = id.Replace(':', '_');
+        Until(() => app.Window.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "TerminalSurface_" + name));
         var body = app.Find<Control>("TerminalSurface_" + name);
         var command = OperatingSystem.IsMacOS() ? RawInputModifiers.Meta : RawInputModifiers.Control;
         app.Window.KeyPress(Key.B, command, PhysicalKey.B, null); Settle();
@@ -105,17 +109,19 @@ internal static class TerminalChromeChecks
     private static void RegionCommands(string root)
     {
         using var app = new E2eWorkspace(Path.Combine(root, "terminal-region-commands"));
-        var bottom = app.Window.Layout.State.Groups.Single(group => group.Region == "bottom");
-        app.Click(app.Find<Button>("NewTerminal_" + bottom.Id));
-        Until(() => app.Window.Layout.Tabs(bottom.Id).Count(tab => tab.Kind == "terminal") == 2);
-        var id = app.Window.Layout.Tabs(bottom.Id).Last().Id;
+        var terminalGroup = app.Window.Layout.Group(app.Center);
+        app.Window.Layout.NewTerminal(terminalGroup.Id);
+        app.Click(app.Find<Button>("NewTerminal_" + terminalGroup.Id));
+        Until(() => app.Window.Layout.Tabs(terminalGroup.Id).Count(tab => tab.Kind == "terminal") == 2);
+        var id = app.Window.Layout.Tabs(terminalGroup.Id).Last().Id;
         var name = id.Replace(':', '_');
+        Until(() => app.Window.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "TerminalSurface_" + name));
         var body = app.Find<Control>("TerminalSurface_" + name);
-        foreach (var region in new[] { "left", "right", "bottom" })
+        foreach (var region in new[] { "left", "right" })
             foreach (var atStart in new[] { true, false })
             {
                 var count = app.Window.Layout.State.Groups.Count(group => group.Region == region);
-                var direction = region == "bottom" ? atStart ? "left" : "right" : atStart ? "top" : "bottom";
+                var direction = atStart ? "top" : "bottom";
                 app.ContextAction(app.Find<Button>("Tab_" + name), $"New {region} group at {direction}");
                 Until(() => app.Window.Layout.State.Groups.Count(group => group.Region == region) == count + 1);
                 var groups = app.Window.Layout.State.Groups.Where(group => group.Region == region).ToArray();
@@ -124,10 +130,12 @@ internal static class TerminalChromeChecks
                     ReferenceEquals(body, app.Find<Control>("TerminalSurface_" + name)),
                     "Region creation must insert at the chosen end and move the one terminal surface without copying it.");
             }
+        app.Window.Layout.Geometry(state => state.SideLimit = state.Groups.Count(group => group.Region == "right"));
         var tab = app.Find<Button>("Tab_" + name);
         app.Click(tab, mouseButton: MouseButton.Right); Until(() => tab.ContextMenu!.IsOpen);
-        Require(tab.ContextMenu!.Items.OfType<MenuItem>().Where(item => item.Header is string title && title.StartsWith("New bottom group", StringComparison.Ordinal))
-            .All(item => !item.IsEnabled && ((string)item.Header!).EndsWith(" — limited to 3", StringComparison.Ordinal)),
+        Require(tab.ContextMenu!.Items.OfType<MenuItem>().Where(item => item.Header is string title && title.StartsWith("New right group", StringComparison.Ordinal))
+            .All(item => !item.IsEnabled && ((string)item.Header!).EndsWith(" — limited to 4", StringComparison.Ordinal)) &&
+            !tab.ContextMenu.Items.OfType<MenuItem>().Any(item => item.Header is string title && title.StartsWith("New bottom group", StringComparison.Ordinal)),
             "Region creation must disable its commands and explain the configured group limit.");
         tab.ContextMenu.Close();
         Console.WriteLine("PASS terminal region-edge commands, retained surface identity and group limits");
@@ -157,9 +165,10 @@ internal static class TerminalChromeChecks
     private static void TabHover(string root)
     {
         using var app = new E2eWorkspace(Path.Combine(root, "tab-hover"));
-        var bottom = app.Window.Layout.State.Groups.Single(group => group.Region == "bottom");
-        var first = app.Window.Layout.Tabs(bottom.Id).Single();
-        app.Window.Layout.NewTerminal(bottom.Id); Settle();
+        var terminalGroup = app.Window.Layout.Group(app.Center);
+        app.Window.Layout.NewTerminal(terminalGroup.Id);
+        var first = app.Window.Layout.Tabs(terminalGroup.Id).Single();
+        app.Window.Layout.NewTerminal(terminalGroup.Id); Settle();
         var name = first.Id.Replace(':', '_');
         var chrome = app.Find<Grid>("DockTab_" + name);
         var frame = chrome.Children.OfType<Border>().First();
@@ -179,7 +188,7 @@ internal static class TerminalChromeChecks
             Require(ReferenceEquals(frame.Background, Ui.Hover) && close.Opacity == 1,
                 "Moving onto the close button must retain the whole-tab hover.");
             app.Window.MouseMove(new Point(2, 2)); Settle();
-            Require(ReferenceEquals(frame.Background, Ui.Elevated),
+            Require(ReferenceEquals(frame.Background, Avalonia.Media.Brushes.Transparent),
                 "Leaving an inactive tab must restore its normal background.");
         }
         Ui.Apply(original);

@@ -37,30 +37,30 @@ internal static class LayoutChecks
 
     public static void Run()
     {
-        var browser = new LayoutSession();
-        browser.SwitchWorkspace("browser");
-        var browserCenter = browser.State.Center.Leaves().First();
-        var originalBottom = browser.State.Groups.Single(group => group.Region == "bottom").Id;
-        TerminalTab[] browserCatalog = [new("terminal:initial", "Terminal 1"), new("peer", "Peer")];
-        browser.ReconcileTerminals("browser", browserCatalog, new HashSet<string>());
-        browser.Reseat(originalBottom, "peer");
-        browser.ReconcileTerminals("browser", [.. browserCatalog, new("new-peer", "New peer")], new HashSet<string>(), center: true, repairBottom: true);
-        var browserView = browser.State.Workspaces["browser"];
-        Require(browserView.Documents[browserCenter].Count(tab => tab.Kind == "terminal") == 3 &&
-            browserView.Documents[originalBottom].All(tab => tab.Kind != "terminal"),
-            "The browser's legacy bottom terminals and newly shared terminals must appear in the center for Projects tabs.");
-        Require(browserView.Selected[browserCenter] == "peer", "Repair must keep the selected second legacy terminal visible.");
-        var deliberate = new LayoutSession();
-        deliberate.SwitchWorkspace("deliberate");
-        deliberate.Open(new("file", "File", "file", "file.txt"), true);
-        var deliberateCenter = deliberate.State.Center.Leaves().First();
-        var deliberateBottom = deliberate.State.Groups.Single(group => group.Region == "bottom").Id;
-        deliberate.ReconcileTerminals("deliberate", browserCatalog, new HashSet<string>(), center: true);
-        Require(deliberate.State.Workspaces["deliberate"].Documents[deliberateBottom].Any(tab => tab.Id == "terminal:initial"),
-            "Normal Projects-mode reconciliation must preserve deliberately placed visible bottom terminals.");
-        deliberate.ReconcileTerminals("deliberate", browserCatalog, new HashSet<string>(), center: true, repairBottom: true);
-        Require(deliberate.State.Workspaces["deliberate"].Selected[deliberateCenter] == "file",
-            "Browser repair must preserve an existing selected center document.");
+        var empty = new LayoutSession();
+        empty.SwitchWorkspace("empty");
+        Require(empty.State.Groups.All(group => group.Region != "bottom") && empty.View.Documents.Count == 0,
+            "Opening a workspace must not create a bottom zone or an automatic terminal.");
+        var legacy = empty.State.Copy();
+        var legacyCenter = legacy.Center.Leaves().Single();
+        legacy.Workspaces["empty"].Documents[legacyCenter] = [new("kept", "Kept", "file", "kept.txt")];
+        var bottom = new DockGroup { Region = "bottom" };
+        legacy.Groups.Add(bottom);
+        legacy.Workspaces["empty"].Documents[bottom.Id] = [new("terminal:initial", "Terminal 1", "terminal")];
+        var restoredLegacy = new LayoutSession(legacy);
+        Require(restoredLegacy.State.Groups.All(group => group.Region != "bottom") && restoredLegacy.Tabs(legacyCenter).Single().Id == "kept",
+            "An older profile must discard the bottom zone and its automatic terminal while retaining document tabs.");
+        var center = empty.State.Center.Leaves().Single();
+        empty.Open(new("file", "File", "file", "file.txt"), true);
+        empty.ReconcileTerminals("empty", [new("peer", "Peer terminal")], new HashSet<string>());
+        Require(empty.Tabs(center).Any(tab => tab.Id == "peer") && empty.Selected(center)?.Id == "file",
+            "Shared terminals arrive in the center without replacing the selected document.");
+        var hiddenSide = empty.State.Groups.First(group => group.Region == "right").Id;
+        Require(empty.Move("peer", center, hiddenSide, 0), "A shared terminal can be placed in a side group.");
+        empty.Visible("right", false);
+        empty.ReconcileTerminals("empty", [new("peer", "Peer terminal")], new HashSet<string>());
+        Require(empty.Tabs(center).Any(tab => tab.Id == "peer") && empty.Tabs(hiddenSide).All(tab => tab.Id != "peer"),
+            "Projects must retain access to catalog terminals whose side region is hidden.");
         CheckTerminalTitles();
         CheckAuxiliaryRegions();
         CheckMixedResources();
@@ -111,8 +111,7 @@ internal static class LayoutChecks
         session.Geometry(state => state.SideLimit = 1);
         Require(!session.NewGroup(projects.Id, "after"), "Configured group limit ignored.");
         session.Geometry(state => state.SideLimit = 6);
-        session.Visible("bottom", false);
-        Require(session.MoveToRegion("files", projects.Id, "bottom") && session.State.BottomVisible, "Hidden bottom drop failed.");
+        Require(!session.MoveToRegion("files", projects.Id, "bottom"), "The retired bottom zone must reject drops.");
         Require(LayoutSession.IsValid(session.State), "Model invariants violated.");
         var malformed = session.State.Copy(); malformed.Center.Axis = "invalid";
         if (!malformed.Center.IsLeaf) Require(!LayoutSession.IsValid(malformed), "Invalid split orientation accepted.");
@@ -229,12 +228,13 @@ internal static class LayoutChecks
     {
         var session = new LayoutSession();
         session.SwitchWorkspace("one");
-        var bottom = session.State.Groups.Single(group => group.Region == "bottom").Id;
+        var center = session.State.Center.Leaves().Single();
+        session.NewTerminal(center);
         var side = session.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == DockState.SpecsTool)).Id;
-        var terminal = session.Tabs(bottom).Single();
-        Require(terminal is { Kind: "terminal", Title: "Terminal 1" } && session.Selected(bottom)?.Id == terminal.Id,
-            "A new workspace must open one selected terminal in its bottom group.");
-        Require(session.Move(terminal.Id, bottom, side, 0) && session.Tabs(side).Select(tab => tab.Id).SequenceEqual([terminal.Id, DockState.SpecsTool, "files"]),
+        var terminal = session.Tabs(center).Single();
+        Require(terminal is { Kind: "terminal", Title: "Terminal 1" } && session.Selected(center)?.Id == terminal.Id,
+            "An explicit terminal opens in the chosen group.");
+        Require(session.Move(terminal.Id, center, side, 0) && session.Tabs(side).Select(tab => tab.Id).SequenceEqual([terminal.Id, DockState.SpecsTool, "files"]),
             "Moving a terminal before a tool must preserve the mixed tab order.");
         Require(session.Move(terminal.Id, side, side, 3) && session.Tabs(side).Select(tab => tab.Id).SequenceEqual([DockState.SpecsTool, "files", terminal.Id]),
             "Moving an anchored terminal to the end must remove its old tool anchor.");
@@ -254,9 +254,8 @@ internal static class LayoutChecks
         restored.Select(side, terminal.Id); restored.Close(side, terminal.Id);
         Require(restored.Selected(side)?.Id == DockState.SpecsTool, "Closing a terminal must select its neighbor in the displayed order.");
         restored.NewTerminal(side); restored.ApplyPreset(DockState.Preset("review"));
-        Require(restored.State.Groups.Where(group => group.Region == "bottom").SelectMany(group => restored.Tabs(group.Id)).Any(tab => tab.Kind == "terminal") &&
-            !restored.State.Center.Leaves().SelectMany(restored.Tabs).Any(tab => tab.Kind == "terminal"),
-            "Applying a preset must preserve terminal resources in the bottom region.");
+        Require(restored.State.Center.Leaves().SelectMany(restored.Tabs).Any(tab => tab.Kind == "terminal"),
+            "Applying a preset must preserve explicit terminals in center groups.");
     }
 
     private static void CheckAuxiliaryRegions()
@@ -283,13 +282,7 @@ internal static class LayoutChecks
             session.State.Groups.Where(group => group.Region == "left").Take(2).Select(group => group.Id).SequenceEqual(retainedLeft) &&
             session.State.Groups.Last(group => group.Region == "left").Tools.Any(tab => tab.Id == "files"),
             "Hidden side drop must append a new group after all retained groups, regardless of prior focus.");
-        var bottom = session.State.Groups.Single(group => group.Region == "bottom");
-        Require(session.NewGroup(bottom.Id, "after"), "Second bottom group creation failed.");
-        session.Focus(bottom.Id); session.Focus(session.State.Center.Leaves().First());
-        source = session.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "files"));
-        session.Visible("bottom", false);
-        Require(session.MoveToRegion("files", source.Id, "bottom") && session.Group(bottom.Id).Tools.Any(tab => tab.Id == "files"),
-            "Hidden bottom drop must reuse its last focused group.");
-        Require(session.View.Copy().FocusedAuxiliary.GetValueOrDefault("bottom") == bottom.Id, "Copied workspace lost auxiliary attention.");
+        Require(!session.MoveToNewRegionGroup("files", session.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "files")).Id, "bottom", true),
+            "The retired bottom zone must reject new groups.");
     }
 }

@@ -153,8 +153,8 @@ again. The window half is `TerminalTabs.cs`; placement is `LayoutSession.Reconci
 
 ## Tab lifecycle
 
-A body is created only when its tab is selected in a visible, unfolded group, so hidden tabs and a hidden
-bottom panel do not start shells. A shell that cannot start shows its reason and a Retry that restarts the
+Workspaces start empty; explicit terminal and agent actions create terminal tabs in workspace groups.
+A body is created only when its tab is selected in a visible, unfolded group, so hidden tabs do not start shells. A shell that cannot start shows its reason and a Retry that restarts the
 same tab; an exited shell's tab says so with its exit code. A shell that exits while detached keeps its
 final output and status for the next attach. Removing a workspace's worktree ends every shell started in
 it: the composition root passes the host's removal signal to the terminal service, in the local app and
@@ -245,7 +245,7 @@ has no exposed point-to-link query and does not yet offer this action. Ordinary 
 
 Host checks cover attach idempotency, takeover and displaced-client rejection, watching, replay without the
 alternate screen or mouse modes, resume without duplication, busy detection and close. `--terminals` runs
-them with the terminal and bottom-panel translations over local and remote hosts. Native acceptance
+them with terminal translations and checks for empty startup and explicit tab-group placement over local and remote hosts. Native acceptance
 additionally requires live shell output with nonuniform pixels in Ghostty's IOSurface, keyboard input,
 resizing and disposal (`scripts/check-terminal.sh`, `--native-terminal`); headless docking checks alone do
 not establish terminal execution. `--ghostty-skia` verifies real rendered colours,

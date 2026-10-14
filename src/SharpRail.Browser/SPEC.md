@@ -26,11 +26,9 @@ deadlines, structured errors and mutation replay. See Host.Protocol's spec for w
 The Error indicator opens actual failure details and a Retry action for the current workspace restore or refresh; subscription failures remain visible while the automatic reconnect loop continues. Browser connection tokens are removed from displayed failure text. Successful connections retain Change host.
 The token is never included in a URL. The endpoint and token live in session storage; client-local view
 state lives in local storage. Shared settings and workspace lifecycle belong to the host.
-The horizontal/vertical tab mode and placement of vertical tabs in Projects follow the host, including live
-changes. Pane geometry, strip width, selection and open documents remain client-local. On the first Projects-mode
-catalog reconciliation for a host/workspace, a legacy browser profile moves its bottom terminals into the centre,
-retaining the selected terminal when the centre had no selection. A persisted host/workspace marker makes this
-repair happen once; later deliberate terminal placement is preserved. Older hosts keep the browser's local mode.
+Tabs live under their workspace in Projects on every client. Pane geometry, direction, selection and
+open documents remain client-local. Legacy tab-mode settings have no effect. Older browser frames drop
+their bottom zone and its automatic terminal before validation; the bottom placement repair marker is retired.
 
 The standalone host serves a built bundle from `SHARPRAIL_BROWSER_ROOT` on `SHARPRAIL_PORT`, including
 cross-origin isolation headers required by the threaded runtime. macOS browser platform detection accepts
