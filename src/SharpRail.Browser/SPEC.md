@@ -64,6 +64,28 @@ overlapping in-window UI still need parity work. Modal dialogs use the same them
 over the native terminal canvas as over the workbench, including nested dimming; closing
 the dialog restores the canvas without detaching or resizing its host terminal. Restty's internal runtime API is
 pinned; upgrades require repeating keyboard, resize, lifecycle and rendering checks.
+Disposal explicitly loses the acquired WebGL context after runtime teardown, including
+failed initialization; it never creates a context to dispose one. Restty 0.3.0's runtime
+teardown alone leaves its base graphics objects live. The focused
+`node tests/SharpRail.Browser.Checks/restty-lifecycle.mjs` check retains detached
+canvases and graphics handles through 48 open/close cycles, verifies real rendering,
+then checks context loss, invalid graphics objects and stopped drawing. It also covers
+idempotent close, disposal before or during initialization and failure after graphics
+allocation. Pass `--require-hardware` to reject software or unidentified terminal
+renderers. It requires the pinned
+browser dependencies, Chromium and the built browser vendor assets; an isolated
+workspace can set `SHARPRAIL_BROWSER_ASSETS_ROOT` to a checkout with those assets.
+CDP memory-infra dumps report GPU-process allocator bytes at cold, open and closed
+checkpoints and a warmed open/close pair, alongside the actual renderer. Explicit
+trace clock markers correlate each dump; missing or ambiguous samples fail the check.
+`--require-memory-return` additionally requires a positive warmed open allocation and
+GPU-process allocated bytes after close no greater than the warmed closed baseline,
+without a tolerance. Without that flag, the memory outcome is reported separately
+from the resource gate.
+These are browser/driver allocation
+measurements, not proof that physical GPU resident memory returns to the cold baseline;
+ANGLE and the compositor may retain caches. Resource checks and memory evidence must
+be reported separately, and a software renderer must not be called hardware validation.
 
 PDFium runs its pinned official WASM distribution in separate memory; the browser adapter returns the same
 page text, character boxes and BGRA rasters consumed by the shared viewer. Merman's pinned WASM package

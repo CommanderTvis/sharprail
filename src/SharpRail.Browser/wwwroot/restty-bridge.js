@@ -15,6 +15,15 @@ export async function initialize(element, id, themeJson) {
   const { createResttyRuntime, createResttyRuntimeSession } = await import('./vendor/restty/internal/runtime.js');
   if (state.disposed) return '80,24';
   const canvas = document.createElement('canvas');
+  // Retain the context actually acquired by Restty, including failed initialization.
+  // Do not acquire a new context from destroy: disposal may precede initialization.
+  const getContext = canvas.getContext.bind(canvas);
+  canvas.getContext = (kind, ...args) => {
+    if (state.disposed) return null;
+    const context = getContext(kind, ...args);
+    if (kind === 'webgl2') state.gl = context;
+    return context;
+  };
   canvas.tabIndex = 0;
   canvas.style.cssText = 'width:100%;height:100%;display:block;outline:none';
   const ime = document.createElement('textarea');
@@ -22,13 +31,18 @@ export async function initialize(element, id, themeJson) {
   ime.style.cssText = 'position:absolute;left:0;top:0;width:1px;height:1px;opacity:0;resize:none';
   element.append(canvas, ime);
   // Avalonia consumes bubbling keyboard events before restty's window listener.
-  for (const type of ['keydown', 'keyup']) element.addEventListener(type, event => {
-    const forwarded = new KeyboardEvent(type, event);
-    Object.defineProperty(forwarded, 'target', { value: event.target });
-    window.dispatchEvent(forwarded);
-    if (forwarded.defaultPrevented) event.preventDefault();
-    event.stopPropagation();
-  });
+  state.keyListeners = [];
+  for (const type of ['keydown', 'keyup']) {
+    const forward = event => {
+      const forwarded = new KeyboardEvent(type, event);
+      Object.defineProperty(forwarded, 'target', { value: event.target });
+      window.dispatchEvent(forwarded);
+      if (forwarded.defaultPrevented) event.preventDefault();
+      event.stopPropagation();
+    };
+    element.addEventListener(type, forward);
+    state.keyListeners.push([type, forward]);
+  }
   state.dropListeners = [];
   for (const type of ['dragenter', 'dragover', 'dragleave', 'drop']) {
     const forward = event => {
@@ -136,6 +150,13 @@ export function destroy(element) {
   if (!s) return;
   s.disposed = true;
   s.observer?.disconnect();
-  s.runtime?.lifecycle.destroy();
-  element.replaceChildren();
+  for (const [type, listener] of s.keyListeners ?? []) element.removeEventListener(type, listener);
+  if (s.newlineHandler) element.removeEventListener('keydown', s.newlineHandler, true);
+  try { s.runtime?.lifecycle.destroy(); }
+  finally {
+    // Restty 0.3.0 does not delete its base WebGL buffers, shaders or atlas.
+    // Context loss releases all graphics resources even if a detached canvas is retained.
+    if (s.gl && !s.gl.isContextLost()) s.gl.getExtension('WEBGL_lose_context')?.loseContext();
+    element.replaceChildren();
+  }
 }
