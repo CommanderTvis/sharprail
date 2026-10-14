@@ -19,10 +19,20 @@ workbench are 4 (row and icon gaps, label-over-field stacks), 8 (control groups,
 fields), 12 (panel insets such as the Projects, Files and Specs trees, the Changes toolbar and code frames)
 and 16/24 (settings pages, dialogs and document placeholders). A text button pads 12 by 4.
 
+## Layout roles
+
+Values that must stay equal across surfaces have names (upstream commit 1ab1b1e31). `spacing.json` lists
+them under `layout`, each a `size` or a rhythm `step` (a step must be on the scale), and the checks generate
+`LayoutRoles` in the kit from it: `TopbarRow` 40 (the header's location strip), `PanelHeaderRow` 28 (pane
+header strips and the width of their full-height actions), `PanelHeaderControl` 24 (a control inside a panel
+header), `PanelRow` 22 (side-pane tree and list rows), `PanelInset` 8 (tool-pane padding) and `TreeIndent` 8
+(one nesting level). XAML binds them with `{x:Static kit:LayoutRoles.PanelRow}`. Tree and drawn-tree rows
+take `PanelRow` as their minimum height; the remaining fixed 28/32px rows and headers move to the roles as
+their owners adopt them.
+
 ## Sizing is not rhythm
 
-Box sizes share the same unit but are layout constraints, not spacing steps: the 28px tree and rail rows,
-the 32px panel header row, 14px row icons, 16px chevrons, 20–32px icon buttons. They are free-form pixel
+Box sizes share the same unit but are layout constraints, not spacing steps: rail rows, panel header rows, 14px row icons, 16px chevrons, 20–32px icon buttons. They are free-form pixel
 values chosen for the box, and are not held to the scale. Corner radii (4 on rows and buttons, 6 on menus,
 8 on the Settings frame) and border thicknesses are geometry too.
 

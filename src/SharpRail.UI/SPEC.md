@@ -74,7 +74,7 @@ entry; quitting keeps every entry so the next launch restores the same set.
 
 ## Window chrome
 
-The 48px header is the window's title bar. `WorkbenchWindow.axaml` extends the client area into the
+The 40px header (`LayoutRoles.TopbarRow`) is the window's title bar. `WorkbenchWindow.axaml` extends the client area into the
 decorations so the native controls stay while the header provides the colour; on macOS the header leaves
 80px for the traffic lights. The header shows the brand mark, the location bar, the connection state and
 Settings. While the embedded host also accepts socket connections, every window shows a green
@@ -106,11 +106,16 @@ first, runs the confirmation gesture. Other platforms have no menu bar and keep 
 
 ## Location bar
 
-`LocationBar.cs` renders the header's captioned segments — PROJECT, WORKSPACE, BRANCH — each an uppercase
-10px caption above a 22px value pill, separated by 4px, with a hairline before every segment but the first.
-The caption/value stack has 6px of vertical breathing room; divided segments have 16px left and 12px
-right padding, and the first segment has 8px left padding. It owns no host
-state: it shows what the window already knows and calls the same methods as the panels.
+`LocationBar.cs` renders the header's captioned segments — Project, Workspace, Branch — each a 14px row
+holding a sentence-case `ui.metadata` caption (12px, `Ui.Hint`) centred over a 20px value pill. Segments
+carry no hairlines: an 8px inset plus the pills' own padding is the separation, because full-height rules
+read as a table and never line up with the tab strip's dividers. Every pill value is one style and one
+resting colour, `title.section` in `Ui.Muted`, brightening to `Ui.TextBrush` on hover or while its menu or
+card is open (the pill's `open` class, which also gives it the selected fill). The chevron is hidden at rest
+and appears on hover, keyboard focus or while open. The project's initial sits in a neutral 16px tile
+(`Ui.Selected` fill, `Ui.Muted` `ui.caption` glyph), so the least important glyph is not the only coloured
+one. A caption fragment (`· from <target>`) uses the caption's own face, never a second typeface. It owns no
+host state: it shows what the window already knows and calls the same methods as the panels.
 
 - PROJECT lists every open project with the current one checked, Project home (disabled while there) and
   Add project…, which is the Projects panel's picker. Choosing a project opens its Project Home. With no
@@ -137,8 +142,8 @@ state: it shows what the window already knows and calls the same methods as the 
   placeholder does; the Default workspace's caption is plain. The pill opens the branch card, which takes focus itself: the branch with Copy (a
   transient notice confirms), and Compare to, which is the Changes panel's own picker (`ComparisonPicker`)
   writing the same per-workspace selection and the same host review target, so the two can never disagree.
-- Pills and the rename input never start a window drag; captions, hairlines and the space between remain
-  part of the title bar.
+- Pills and the rename input never start a window drag; captions and the space between remain part of the
+  title bar.
 - `LocationStrip` lays the segments out. As width shrinks the branch yields first, then the project; a
   segment that would fall under 72px is dropped whole, and the workspace keeps what is left, so workspace
   identity stays visible at the minimum window width.

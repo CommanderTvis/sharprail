@@ -100,6 +100,7 @@ public sealed partial class WorkbenchWindow
         if (renameInHeader && renaming is not null && (atHome || renaming != workspaceRoot))
         { renaming = null; renameBox = null; renameCommitPending = false; }
         projectLabel.Text = projectRoot.Length == 0 ? "SharpRail" : DirectoryName(projectRoot);
+        this.FindControl<TextBlock>("ProjectInitial")!.Text = InitialOf(projectLabel.Text);
         workspaceLabel.Text = projectRoot.Length == 0 ? "" : atHome ? "Project home" : WorkspaceName(workspaceRoot);
         this.FindControl<Border>("WorkspaceSegment")!.IsVisible = projectRoot.Length > 0;
         var project = this.FindControl<Button>("ScopeProject")!;

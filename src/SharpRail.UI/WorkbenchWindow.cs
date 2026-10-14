@@ -234,7 +234,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             var button = new Button
             {
                 Width = 46,
-                Height = 48,
+                Height = LayoutRoles.TopbarRow,
                 Padding = new Thickness(0),
                 CornerRadius = new CornerRadius(0),
                 Background = Brushes.Transparent,
@@ -248,7 +248,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             button.Click += (_, _) => action();
             if (close)
             {
-                button.PointerEntered += (_, _) => button.Background = Brushes.Crimson;
+                button.PointerEntered += (_, _) => button.Background = Ui.Danger;
                 button.PointerExited += (_, _) => button.Background = Brushes.Transparent;
             }
             return button;

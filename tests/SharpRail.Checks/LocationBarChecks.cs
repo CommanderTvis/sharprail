@@ -31,7 +31,7 @@ internal static class LocationBarChecks
     {
         var button = app.Find<Button>(pill);
         app.Click(button);
-        Until(() => button.ContextMenu!.IsOpen);
+        Until(() => button.ContextMenu!.IsOpen && button.Classes.Contains("open"));
         return button.ContextMenu!;
     }
 
@@ -59,7 +59,13 @@ internal static class LocationBarChecks
             "Project Home names the project and reads Project home.");
         var captions = app.Find<SharpRail.UI.LocationStrip>("LocationBar").GetLogicalDescendants().OfType<TextBlock>()
             .Where(text => text.Classes.Contains("location-caption") && text.Name is null).Select(text => text.Text);
-        Require(captions.SequenceEqual(["PROJECT", "WORKSPACE", "BRANCH"]), "Each segment carries its uppercase caption.");
+        Require(captions.SequenceEqual(["Project", "Workspace", "Branch"]), "Each segment carries its sentence-case caption.");
+        Require(new[] { "ProjectSegment", "WorkspaceSegment", "BranchSegment" }.All(name => app.Find<Border>(name).BorderThickness == default),
+            "Segments are separated by space alone, without hairlines.");
+        Require(new[] { "ProjectChevron", "WorkspaceChevron", "BranchChevron" }.All(name => app.Find<ContentControl>(name).Opacity == 0),
+            "A pill's chevron is hidden at rest.");
+        Require(Label(app, "ProjectInitial") == "S" && app.Find<Button>("ScopeProject").Foreground == Ui.Muted && app.Find<Button>("ScopeWorkspace").FontSize == Typography.TitleSection.FontSize,
+            "The project tile shows the name's initial and every value rests muted in the section title style.");
 
         var projects = OpenMenu(app, "ScopeProject");
         var option = projects.Items.OfType<MenuItem>().Single(item => item.Name == "ScopeProjectOption");

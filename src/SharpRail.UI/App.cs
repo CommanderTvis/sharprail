@@ -24,6 +24,8 @@ public sealed partial class App : Application
         Ui.Apply(Themes.Resolve(Themes.DefaultId));
         Ui.ApplyResources(this);
         ControlStates.Apply(Resources);
+        // One style per typography role, so a control takes its type by class name.
+        Styles.Add(Typography.Styles());
         foreach (var state in new[] { "Selected", "SelectedPointerOver", "SelectedPressed" })
             Resources["TreeViewItemBackground" + state] = Ui.Selected;
         // The reference's 20px chevron slot. Fluent's template sets its 12px margins directly, which outranks styles.

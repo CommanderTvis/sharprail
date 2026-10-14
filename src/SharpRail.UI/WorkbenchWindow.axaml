@@ -5,7 +5,7 @@
         xmlns:notifications="using:SharpRail.UI.Rendering"
         x:Class="SharpRail.UI.WorkbenchWindow"
         Title="SharpRail" Width="1440" Height="920" MinWidth="390" MinHeight="540"
-        ExtendClientAreaToDecorationsHint="True" ExtendClientAreaTitleBarHeightHint="48"
+        ExtendClientAreaToDecorationsHint="True" ExtendClientAreaTitleBarHeightHint="{x:Static rendering:LayoutRoles.TopbarRow}"
         Background="{x:Static rendering:Ui.Workspace}" Foreground="{x:Static rendering:Ui.Muted}"
         FontFamily="{x:Static rendering:Ui.InterfaceFont}" FontWeight="370">
   <Window.Styles>
@@ -18,69 +18,98 @@
       <Setter Property="VerticalAlignment" Value="Center" />
       <Setter Property="TextTrimming" Value="CharacterEllipsis" />
     </Style>
+    <!-- Segments are separated by space alone: no hairlines, an 8px inset plus the pills' own padding. -->
     <Style Selector="Border.location-segment">
-      <Setter Property="BorderBrush" Value="{x:Static rendering:Ui.BorderBrush}" />
-      <Setter Property="BorderThickness" Value="1,0,0,0" />
-      <Setter Property="Padding" Value="16,0,12,0" />
+      <Setter Property="Padding" Value="8,0,0,0" />
       <Setter Property="ClipToBounds" Value="True" />
     </Style>
     <Style Selector="TextBlock.location-caption">
-      <Setter Property="FontSize" Value="10" />
-      <Setter Property="LineHeight" Value="13" />
       <Setter Property="Margin" Value="8,0,0,0" />
+      <Setter Property="VerticalAlignment" Value="Center" />
       <Setter Property="Foreground" Value="{x:Static rendering:Ui.Hint}" />
       <Setter Property="TextTrimming" Value="CharacterEllipsis" />
     </Style>
+    <!-- Every value rests muted in one style and brightens on hover or while its menu is open. -->
     <Style Selector="Button.location-pill">
-      <Setter Property="Height" Value="22" />
+      <Setter Property="Height" Value="20" />
       <Setter Property="Padding" Value="8,0" />
       <Setter Property="HorizontalAlignment" Value="Left" />
       <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{x:Static rendering:Ui.Muted}" />
       <Setter Property="BorderThickness" Value="0" />
       <Setter Property="CornerRadius" Value="4" />
     </Style>
+    <Style Selector="Button.location-pill:pointerover, Button.location-pill.open">
+      <Setter Property="Foreground" Value="{x:Static rendering:Ui.TextBrush}" />
+    </Style>
+    <Style Selector="Button.location-pill:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{x:Static rendering:Ui.Hover}" />
+      <Setter Property="Foreground" Value="{x:Static rendering:Ui.TextBrush}" />
+    </Style>
+    <Style Selector="Button.location-pill.open /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{x:Static rendering:Ui.Selected}" />
+      <Setter Property="Foreground" Value="{x:Static rendering:Ui.TextBrush}" />
+    </Style>
+    <!-- The chevron is hidden at rest and appears on hover, keyboard focus or while open. -->
+    <Style Selector="Button.location-pill ContentControl.location-chevron">
+      <Setter Property="Opacity" Value="0" />
+    </Style>
+    <Style Selector="Button.location-pill:pointerover ContentControl.location-chevron, Button.location-pill:focus-visible ContentControl.location-chevron, Button.location-pill.open ContentControl.location-chevron">
+      <Setter Property="Opacity" Value="1" />
+    </Style>
+    <Style Selector="Border.location-initial">
+      <Setter Property="Width" Value="16" />
+      <Setter Property="Height" Value="16" />
+      <Setter Property="CornerRadius" Value="4" />
+      <Setter Property="Background" Value="{x:Static rendering:Ui.Selected}" />
+      <Setter Property="Margin" Value="0,0,4,0" />
+    </Style>
   </Window.Styles>
   <LayoutTransformControl x:Name="ZoomRoot" LayoutTransform="{DynamicResource InterfaceZoom}">
-  <Grid x:Name="WorkbenchRoot" RowDefinitions="48,*,Auto,Auto">
+  <Grid x:Name="WorkbenchRoot" RowDefinitions="40,*,Auto,Auto">
     <Border x:Name="WindowTitleBar" Background="{x:Static rendering:Ui.Header}"
             BorderBrush="{x:Static rendering:Ui.BorderBrush}" BorderThickness="0,0,1,1">
       <Grid x:Name="MainHeader" ColumnDefinitions="36,*,Auto">
         <ContentControl x:Name="BrandIcon" />
         <local:LocationStrip x:Name="LocationBar" Grid.Column="1" ClipToBounds="True">
-          <Border x:Name="ProjectSegment" Classes="location-segment" MaxWidth="220" BorderThickness="0" Padding="8,0,12,0">
-            <Grid RowDefinitions="13,1,22" VerticalAlignment="Center">
-              <TextBlock Classes="location-caption" Text="PROJECT" />
-              <Button x:Name="ScopeProject" Grid.Row="2" Classes="location-pill">
-                <Grid ColumnDefinitions="*,Auto">
-                  <TextBlock x:Name="ProjectLabel" Text="…" Classes="header-label" Foreground="{x:Static rendering:Ui.TextBrush}" />
-                  <ContentControl x:Name="ProjectChevron" Grid.Column="1" Margin="4,0,0,0" />
+          <Border x:Name="ProjectSegment" Classes="location-segment" MaxWidth="220" Padding="0">
+            <Grid RowDefinitions="14,20" VerticalAlignment="Center">
+              <TextBlock Classes="location-caption tr-text-metadata" Text="Project" />
+              <Button x:Name="ScopeProject" Grid.Row="1" Classes="location-pill tr-title-section">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                  <Border Classes="location-initial">
+                    <TextBlock x:Name="ProjectInitial" Classes="tr-text-caption" Foreground="{x:Static rendering:Ui.Muted}"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                  </Border>
+                  <TextBlock x:Name="ProjectLabel" Grid.Column="1" Text="…" Classes="header-label tr-title-section" />
+                  <ContentControl x:Name="ProjectChevron" Grid.Column="2" Classes="location-chevron" Margin="4,0,0,0" />
                 </Grid>
               </Button>
             </Grid>
           </Border>
           <Border x:Name="WorkspaceSegment" Classes="location-segment" MaxWidth="460">
-            <Grid RowDefinitions="13,1,22" VerticalAlignment="Center">
-              <TextBlock Classes="location-caption" Text="WORKSPACE" />
-              <Button x:Name="ScopeWorkspace" Grid.Row="2" Classes="location-pill">
+            <Grid RowDefinitions="14,20" VerticalAlignment="Center">
+              <TextBlock Classes="location-caption tr-text-metadata" Text="Workspace" />
+              <Button x:Name="ScopeWorkspace" Grid.Row="1" Classes="location-pill tr-title-section">
                 <Grid ColumnDefinitions="*,Auto">
-                  <TextBlock x:Name="WorkspaceLabel" Text="" Classes="header-label" FontWeight="Medium" Foreground="{x:Static rendering:Ui.TextBrush}" />
-                  <ContentControl x:Name="WorkspaceChevron" Grid.Column="1" Margin="4,0,0,0" />
+                  <TextBlock x:Name="WorkspaceLabel" Text="" Classes="header-label tr-title-section" />
+                  <ContentControl x:Name="WorkspaceChevron" Grid.Column="1" Classes="location-chevron" Margin="4,0,0,0" />
                 </Grid>
               </Button>
-              <ContentControl x:Name="ScopeRename" Grid.Row="2" IsVisible="False" />
+              <ContentControl x:Name="ScopeRename" Grid.Row="1" IsVisible="False" />
             </Grid>
           </Border>
           <Border x:Name="BranchSegment" Classes="location-segment" MaxWidth="440" IsVisible="False">
-            <Grid RowDefinitions="13,1,22" VerticalAlignment="Center">
+            <Grid RowDefinitions="14,20" VerticalAlignment="Center">
               <StackPanel Orientation="Horizontal" Spacing="4">
-                <TextBlock Classes="location-caption" Text="BRANCH" />
-                <TextBlock x:Name="ScopeBase" Classes="location-caption" FontFamily="{x:Static rendering:Ui.CodeFont}" />
+                <TextBlock Classes="location-caption tr-text-metadata" Text="Branch" />
+                <TextBlock x:Name="ScopeBase" Classes="location-caption tr-text-metadata" Margin="0" />
               </StackPanel>
-              <Button x:Name="ScopeBranch" Grid.Row="2" Classes="location-pill">
+              <Button x:Name="ScopeBranch" Grid.Row="1" Classes="location-pill tr-title-section">
                 <Grid ColumnDefinitions="Auto,*,Auto">
                   <ContentControl x:Name="BranchIcon" Margin="0,0,4,0" />
-                  <TextBlock x:Name="BranchLabel" Grid.Column="1" Classes="header-label" FontFamily="{x:Static rendering:Ui.CodeFont}" />
-                  <ContentControl x:Name="BranchChevron" Grid.Column="2" Margin="4,0,0,0" />
+                  <TextBlock x:Name="BranchLabel" Grid.Column="1" Classes="header-label tr-title-section" />
+                  <ContentControl x:Name="BranchChevron" Grid.Column="2" Classes="location-chevron" Margin="4,0,0,0" />
                 </Grid>
               </Button>
             </Grid>

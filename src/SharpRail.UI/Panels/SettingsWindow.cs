@@ -197,7 +197,7 @@ public sealed partial class SettingsWindow : Window
             if (!SectionSummaries.TryGetValue(key, out var summary) || button.Content is not StackPanel row) continue;
             var name = row.Children.OfType<TextBlock>().First();
             row.Children.Remove(name);
-            name.FontSize = 15; name.Foreground = Ui.TextBrush;
+            Typography.Apply(name, Typography.TitleSection); name.Foreground = Ui.TextBrush;
             row.Children.Add(new StackPanel { Spacing = 2, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center, Children = { name, Ui.Text(summary, Ui.Muted, 12) } });
             row.Spacing = 16;
             button.Height = 60;

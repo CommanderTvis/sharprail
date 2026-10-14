@@ -476,3 +476,60 @@ static SharpRail.Plugins.UI.Kit.Visualization.MermaidRenderer.RenderAsync(string
 SharpRail.Plugins.UI.Kit.FileDrop
 static readonly SharpRail.Plugins.UI.Kit.FileDrop.AcceptsProperty -> Avalonia.AttachedProperty<System.Func<bool>?>!
 static readonly SharpRail.Plugins.UI.Kit.FileDrop.AttachProperty -> Avalonia.AttachedProperty<System.Action<System.Collections.Generic.IReadOnlyList<string!>!>?>!
+const SharpRail.Plugins.UI.Kit.LayoutRoles.PanelHeaderControl = 24 -> double
+const SharpRail.Plugins.UI.Kit.LayoutRoles.PanelHeaderRow = 28 -> double
+const SharpRail.Plugins.UI.Kit.LayoutRoles.PanelInset = 8 -> double
+const SharpRail.Plugins.UI.Kit.LayoutRoles.PanelRow = 22 -> double
+const SharpRail.Plugins.UI.Kit.LayoutRoles.TopbarRow = 40 -> double
+const SharpRail.Plugins.UI.Kit.LayoutRoles.TreeIndent = 8 -> double
+override SharpRail.Plugins.UI.Kit.TextRole.Equals(object? obj) -> bool
+override SharpRail.Plugins.UI.Kit.TextRole.GetHashCode() -> int
+override SharpRail.Plugins.UI.Kit.TextRole.ToString() -> string!
+SharpRail.Plugins.UI.Kit.LayoutRoles
+SharpRail.Plugins.UI.Kit.TextRole
+SharpRail.Plugins.UI.Kit.TextRole.<Clone>$() -> SharpRail.Plugins.UI.Kit.TextRole!
+SharpRail.Plugins.UI.Kit.TextRole.Class.get -> string!
+SharpRail.Plugins.UI.Kit.TextRole.Class.init -> void
+SharpRail.Plugins.UI.Kit.TextRole.Deconstruct(out string! Class, out Avalonia.Media.FontFamily! FontFamily, out double FontSize, out Avalonia.Media.FontWeight FontWeight, out double LineHeight, out double LetterSpacing, out bool Uppercase) -> void
+SharpRail.Plugins.UI.Kit.TextRole.Equals(SharpRail.Plugins.UI.Kit.TextRole? other) -> bool
+SharpRail.Plugins.UI.Kit.TextRole.FontFamily.get -> Avalonia.Media.FontFamily!
+SharpRail.Plugins.UI.Kit.TextRole.FontFamily.init -> void
+SharpRail.Plugins.UI.Kit.TextRole.FontSize.get -> double
+SharpRail.Plugins.UI.Kit.TextRole.FontSize.init -> void
+SharpRail.Plugins.UI.Kit.TextRole.FontWeight.get -> Avalonia.Media.FontWeight
+SharpRail.Plugins.UI.Kit.TextRole.FontWeight.init -> void
+SharpRail.Plugins.UI.Kit.TextRole.LetterSpacing.get -> double
+SharpRail.Plugins.UI.Kit.TextRole.LetterSpacing.init -> void
+SharpRail.Plugins.UI.Kit.TextRole.LineHeight.get -> double
+SharpRail.Plugins.UI.Kit.TextRole.LineHeight.init -> void
+SharpRail.Plugins.UI.Kit.TextRole.TextRole(string! Class, Avalonia.Media.FontFamily! FontFamily, double FontSize, Avalonia.Media.FontWeight FontWeight, double LineHeight, double LetterSpacing, bool Uppercase) -> void
+SharpRail.Plugins.UI.Kit.TextRole.Uppercase.get -> bool
+SharpRail.Plugins.UI.Kit.TextRole.Uppercase.init -> void
+SharpRail.Plugins.UI.Kit.Typography
+static readonly SharpRail.Plugins.UI.Kit.Typography.All -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.UI.Kit.TextRole!>!
+static readonly SharpRail.Plugins.UI.Kit.Typography.BodyReading -> SharpRail.Plugins.UI.Kit.TextRole!
+static readonly SharpRail.Plugins.UI.Kit.Typography.BrandHero -> SharpRail.Plugins.UI.Kit.TextRole!
+static readonly SharpRail.Plugins.UI.Kit.Typography.CodeDocument -> SharpRail.Plugins.UI.Kit.TextRole!
+static readonly SharpRail.Plugins.UI.Kit.Typography.CodeOtp -> SharpRail.Plugins.UI.Kit.TextRole!
+static readonly SharpRail.Plugins.UI.Kit.Typography.CodeText -> SharpRail.Plugins.UI.Kit.TextRole!
+static readonly SharpRail.Plugins.UI.Kit.Typography.CodeTextSmall -> SharpRail.Plugins.UI.Kit.TextRole!
+static readonly SharpRail.Plugins.UI.Kit.Typography.HeadingLg -> SharpRail.Plugins.UI.Kit.TextRole!
+static readonly SharpRail.Plugins.UI.Kit.Typography.HeadingMd -> SharpRail.Plugins.UI.Kit.TextRole!
+static readonly SharpRail.Plugins.UI.Kit.Typography.HeadingSm -> SharpRail.Plugins.UI.Kit.TextRole!
+static readonly SharpRail.Plugins.UI.Kit.Typography.HeadingXl -> SharpRail.Plugins.UI.Kit.TextRole!
+static readonly SharpRail.Plugins.UI.Kit.Typography.TitleCard -> SharpRail.Plugins.UI.Kit.TextRole!
+static readonly SharpRail.Plugins.UI.Kit.Typography.TitleCompact -> SharpRail.Plugins.UI.Kit.TextRole!
+static readonly SharpRail.Plugins.UI.Kit.Typography.TitleDialog -> SharpRail.Plugins.UI.Kit.TextRole!
+static readonly SharpRail.Plugins.UI.Kit.Typography.TitleEntity -> SharpRail.Plugins.UI.Kit.TextRole!
+static readonly SharpRail.Plugins.UI.Kit.Typography.TitleSection -> SharpRail.Plugins.UI.Kit.TextRole!
+static readonly SharpRail.Plugins.UI.Kit.Typography.UiAction -> SharpRail.Plugins.UI.Kit.TextRole!
+static readonly SharpRail.Plugins.UI.Kit.Typography.UiCaption -> SharpRail.Plugins.UI.Kit.TextRole!
+static readonly SharpRail.Plugins.UI.Kit.Typography.UiDefault -> SharpRail.Plugins.UI.Kit.TextRole!
+static readonly SharpRail.Plugins.UI.Kit.Typography.UiEmphasis -> SharpRail.Plugins.UI.Kit.TextRole!
+static readonly SharpRail.Plugins.UI.Kit.Typography.UiEyebrow -> SharpRail.Plugins.UI.Kit.TextRole!
+static readonly SharpRail.Plugins.UI.Kit.Typography.UiLabelPill -> SharpRail.Plugins.UI.Kit.TextRole!
+static readonly SharpRail.Plugins.UI.Kit.Typography.UiMetadata -> SharpRail.Plugins.UI.Kit.TextRole!
+static SharpRail.Plugins.UI.Kit.TextRole.operator !=(SharpRail.Plugins.UI.Kit.TextRole? left, SharpRail.Plugins.UI.Kit.TextRole? right) -> bool
+static SharpRail.Plugins.UI.Kit.TextRole.operator ==(SharpRail.Plugins.UI.Kit.TextRole? left, SharpRail.Plugins.UI.Kit.TextRole? right) -> bool
+static SharpRail.Plugins.UI.Kit.Typography.Apply<T>(T! control, SharpRail.Plugins.UI.Kit.TextRole! role) -> T!
+static SharpRail.Plugins.UI.Kit.Typography.Styles() -> Avalonia.Styling.Styles!

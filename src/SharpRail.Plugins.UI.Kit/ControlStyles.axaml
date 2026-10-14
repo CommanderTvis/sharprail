@@ -7,7 +7,7 @@
   <Style Selector="ListBox.drawn-tree ListBoxItem">
     <Setter Property="Padding" Value="0" />
     <Setter Property="Margin" Value="0" />
-    <Setter Property="MinHeight" Value="24" />
+    <Setter Property="MinHeight" Value="{x:Static kit:LayoutRoles.PanelRow}" />
     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
     <Setter Property="CornerRadius" Value="4" />
   </Style>

@@ -76,10 +76,12 @@ public sealed partial class WorkbenchWindow
             this.FindControl<ContentControl>(name)!.Content = Ui.Icon("arrowDown", Ui.Hint, 14);
         Switcher("ScopeProject", FillProjectSwitcher);
         Switcher("ScopeWorkspace", FillWorkspaceSwitcher);
-        branchCard.Opening += (_, _) => branchCard.Content = BranchCard();
+        var branch = this.FindControl<Button>("ScopeBranch")!;
+        branchCard.Opening += (_, _) => { branchCard.Content = BranchCard(); branch.Classes.Set("open", true); };
+        branchCard.Closed += (_, _) => branch.Classes.Set("open", false);
         // Focus lands on the card, not its first button, so opening it shows no tooltip.
         branchCard.Opened += (_, _) => (branchCard.Content as Control)?.Focus();
-        this.FindControl<Button>("ScopeBranch")!.Flyout = branchCard;
+        branch.Flyout = branchCard;
     }
 
     private void Switcher(string name, Action<ContextMenu> fill)
@@ -88,9 +90,16 @@ public sealed partial class WorkbenchWindow
         var menu = new ContextMenu { Name = name + "Menu", Placement = PlacementMode.BottomEdgeAlignedLeft, PlacementTarget = pill };
         void Fill() { menu.Items.Clear(); fill(menu); }
         menu.Opening += (_, _) => Fill();
+        // The pill stays lit, chevron shown, while its menu is open.
+        menu.Opened += (_, _) => pill.Classes.Set("open", true);
+        menu.Closed += (_, _) => pill.Classes.Set("open", false);
         pill.ContextMenu = menu;
         pill.Click += (_, _) => { Fill(); menu.Open(pill); };
     }
+
+    /// <summary>The project tile's glyph: the name's first letter or digit, in capitals.</summary>
+    private static string InitialOf(string name) =>
+        name.FirstOrDefault(char.IsLetterOrDigit) is var first && first != default ? char.ToUpperInvariant(first).ToString() : "";
 
     private static MenuItem MenuLabel(string text) => new() { Header = Ui.Text(text, Ui.Hint, 12), IsEnabled = false };
 
@@ -168,7 +177,7 @@ public sealed partial class WorkbenchWindow
         var branch = branchLabel.Text ?? "";
         this.FindControl<Border>("BranchSegment")!.IsVisible = projectRoot.Length > 0 && !atHome && branch.Length > 0;
         AutomationProperties.SetName(this.FindControl<Button>("ScopeBranch")!, "Branch " + branch);
-        // A managed workspace names what it was cut from; the Default workspace is plain "BRANCH".
+        // A managed workspace names what it was cut from; the Default workspace is plain "Branch".
         this.FindControl<TextBlock>("ScopeBase")!.Text = workspaceRoot != projectRoot && comparison.Length > 0 ? "· from " + comparison : "";
     }
 

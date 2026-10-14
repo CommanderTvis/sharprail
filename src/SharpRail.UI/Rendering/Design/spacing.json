@@ -1,6 +1,15 @@
 {
   "note": "The canonical rhythm scale. A step is its pixel value. This is a defined primitive set, not an inventory of use: adding a step is a design decision. `exceptions` is the closed list of measured geometry that is written as a margin or padding but is not rhythm; each names its file, the literal value and why. See SPACING.md.",
   "steps": [0, 2, 4, 8, 12, 16, 24, 32, 40, 64],
+  "layout": {
+    "note": "Named layout roles: values that must stay equal across surfaces. Generated/LayoutRoles.g.cs is produced from them; a role is either a size or a rhythm step, and a step role must be on the scale.",
+    "TopbarRow": { "value": 40, "kind": "size", "reason": "the window header's location strip" },
+    "PanelHeaderRow": { "value": 28, "kind": "size", "reason": "side-pane and tool-pane header strips and the width of their full-height actions" },
+    "PanelHeaderControl": { "value": 24, "kind": "size", "reason": "a control inside a panel header: the header row less 4" },
+    "PanelRow": { "value": 22, "kind": "size", "reason": "side-pane tree and list rows" },
+    "PanelInset": { "value": 8, "kind": "step", "reason": "tool-pane padding" },
+    "TreeIndent": { "value": 8, "kind": "step", "reason": "one tree nesting level" }
+  },
   "exceptions": [
     { "file": "Docking/DockGroups.cs", "value": "0, 0, 3, 0", "reason": "room for an italic preview title's glyph overhang inside the measured label box" },
     { "file": "Docking/DockGroups.cs", "value": "6, 0, 0, 0", "reason": "the close-button and modified-dot reserve in fixed-height tab chrome" },

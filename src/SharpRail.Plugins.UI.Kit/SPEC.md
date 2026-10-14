@@ -62,6 +62,10 @@ publish toggle automation changes without requesting another update.
     and `ApplyResources`, `Alpha`/`Over`, and the primitive factories `Icon`, `Text`, `Row`, `Button`,
     `IconButton`, `Frame`, `Place`, `Menu`, plus `Segment` and `Chip` (below).
   - `ThemeManifest`, the palette record a theme applies.
+  - `Typography` and `TextRole`, the semantic text styles generated from the app's
+    `Rendering/Design/typography.json` (one style class per role, added to the application's styles,
+    and `Typography.Apply` for controls built in C#), and `LayoutRoles`, the named layout values
+    generated from `spacing.json`. See the app's `Rendering/TYPOGRAPHY.md` and `SPACING.md`.
   - `Switch`, the controlled boolean primitive with a compiled target/track/thumb template and
     native toggle automation. Browser transition/reduced-motion behavior and native appearance
     remain to be audited against the fork.
@@ -254,7 +258,7 @@ The Codex builtin uses these controls without referencing app or host implementa
 
 ## Public surface
 
-`CommandKeys`, `DialogWindow`, `EditorFrame`, `FileDrop`, `FindBar`, `IDialogOwner`, `InterfaceZoom`, `LineWidths`, `RowActivation`, `DiffFocus`, `Frontmatter`, `FrontmatterBlock`, `FrontmatterProperty`, `MarkdownContext`, `MarkdownDiff`, `MarkdownDocumentView`, `MarkdownLink`, `MarkdownPreview`, `Outline`, `SpecIdentity`, `ScopedSetting`, `ScopedSettingShadow`, `ScopedSettingSource`, `SettingValueDialog`, `SettingValueDialogOptions`, `SvgAsset`, `Switch`, `SyntaxLine`, `ThemeManifest`, `Ui`, `ValueShape`, `ViewerLimits`, `ComparisonOptionView`, `MermaidDialog`, `MermaidRenderer`, `MermaidView`, `VisualizationArgs`, `VisualizationCard`, `ZoomGesture`.
+`CommandKeys`, `DialogWindow`, `EditorFrame`, `FileDrop`, `FindBar`, `IDialogOwner`, `InterfaceZoom`, `LayoutRoles`, `LineWidths`, `RowActivation`, `DiffFocus`, `Frontmatter`, `FrontmatterBlock`, `FrontmatterProperty`, `MarkdownContext`, `MarkdownDiff`, `MarkdownDocumentView`, `MarkdownLink`, `MarkdownPreview`, `Outline`, `SpecIdentity`, `ScopedSetting`, `ScopedSettingShadow`, `ScopedSettingSource`, `SettingValueDialog`, `SettingValueDialogOptions`, `SvgAsset`, `Switch`, `SyntaxLine`, `TextRole`, `ThemeManifest`, `Typography`, `Ui`, `ValueShape`, `ViewerLimits`, `ComparisonOptionView`, `MermaidDialog`, `MermaidRenderer`, `MermaidView`, `VisualizationArgs`, `VisualizationCard`, `ZoomGesture`.
 
 ## Syntax highlighting
 

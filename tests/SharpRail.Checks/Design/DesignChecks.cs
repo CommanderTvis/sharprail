@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 using SharpRail.UI.Rendering;
@@ -41,8 +42,10 @@ internal static partial class DesignChecks
         var sources = Sources(root);
         ColorUsage(DesignSources.LoadColors(root), sources, failures);
         SpacingUsage(root, sources, failures);
+        LayoutRoles(root, failures);
+        TypographyUsage(DesignSources.LoadTypography(root), sources, failures);
         if (failures.Count > 0) throw new InvalidOperationException("Design checks failed:\n" + string.Join("\n", failures));
-        Console.WriteLine("PASS generated design sources are current, colours are named only through roles and rhythm stays on the spacing scale");
+        Console.WriteLine("PASS generated design sources are current, colours are named only through roles and rhythm stays on the spacing scale, text takes its type from roles");
     }
 
     /// <summary>The UI project's hand-written XAML and C#, with comments blanked so prose may name a value.</summary>
@@ -136,6 +139,78 @@ internal static partial class DesignChecks
         foreach (var exception in exceptions.Except(used))
             failures.Add($"spacing.json: the exception for {exception.File} ({exception.Value}) matches nothing.");
     }
+
+    private static void LayoutRoles(string root, List<string> failures)
+    {
+        var (steps, _) = DesignSources.LoadSpacing(root);
+        foreach (var role in DesignSources.LoadLayout(root))
+        {
+            if (role.Kind is not ("size" or "step")) failures.Add($"spacing.json: layout role {role.Name} has the unknown kind {role.Kind}.");
+            if (role.Kind == "step" && !steps.Contains(role.Value)) failures.Add($"spacing.json: layout role {role.Name} is a step but {role.Value} is off the scale.");
+        }
+    }
+
+    /// <summary>
+    /// The typography source is well formed, and call sites take type from it: style classes name a role, literal sizes
+    /// and weights are primitives and a literal line height is a recorded exception.
+    /// </summary>
+    private static void TypographyUsage(DesignSources.Typography type, List<SourceFile> sources, List<string> failures)
+    {
+        var canonical = type.Styles.Where(style => style.Ref is null).ToArray();
+        foreach (var style in type.Styles)
+        {
+            if (style.Ref is not null)
+            {
+                if (style.Family + style.Size + style.Weight + style.Leading + style.Tracking + style.Transform != "")
+                    failures.Add($"typography.json: alias {style.Id} carries values beside its $ref.");
+                if (!canonical.Any(target => target.Id == style.Ref)) failures.Add($"typography.json: {style.Id} must alias a canonical style, not {style.Ref}.");
+                continue;
+            }
+            if (!type.Families.ContainsKey(style.Family)) failures.Add($"typography.json: {style.Id} names the unknown family {style.Family}.");
+            if (!type.Sizes.ContainsKey(style.Size)) failures.Add($"typography.json: {style.Id} names the unknown size {style.Size}.");
+            if (!type.Weights.ContainsKey(style.Weight)) failures.Add($"typography.json: {style.Id} names the unknown weight {style.Weight}.");
+            if (!type.Leadings.ContainsKey(style.Leading)) failures.Add($"typography.json: {style.Id} names the unknown line height {style.Leading}.");
+            if (!type.Trackings.ContainsKey(style.Tracking)) failures.Add($"typography.json: {style.Id} names the unknown letter spacing {style.Tracking}.");
+            if (style.Transform is not ("none" or "uppercase")) failures.Add($"typography.json: {style.Id} has the unknown transform {style.Transform}.");
+        }
+        foreach (var same in canonical.GroupBy(style => (style.Family, style.Size, style.Weight, style.Leading, style.Tracking, style.Transform)).Where(group => group.Count() > 1))
+            failures.Add($"typography.json: {string.Join(", ", same.Select(style => style.Id))} hold identical values; make all but one a $ref.");
+
+        var classes = type.Styles.Select(style => style.Class).ToHashSet();
+        var sizes = type.Sizes.Values.ToHashSet();
+        var weights = type.Weights.Values.ToHashSet();
+        var used = new HashSet<DesignSources.SpacingException>();
+        foreach (var source in sources)
+            for (var line = 0; line < source.Lines.Length; line++)
+            {
+                var text = source.Lines[line];
+                foreach (Match match in StyleClass().Matches(text))
+                    if (!classes.Contains(match.Value)) failures.Add($"{source.Path}:{line + 1}: {match.Value} names no typography role");
+                foreach (Match match in FontSizeLiteral().Matches(text))
+                    if (!sizes.Contains(double.Parse(match.Groups["value"].Value, CultureInfo.InvariantCulture)))
+                        failures.Add($"{source.Path}:{line + 1}: font size off the typography scale; use a role: {match.Value.Trim()}");
+                foreach (Match match in FontWeightLiteral().Matches(text))
+                    if (!weights.Contains(int.Parse(match.Groups["value"].Value, CultureInfo.InvariantCulture)))
+                        failures.Add($"{source.Path}:{line + 1}: font weight off the typography scale; use a role: {match.Value.Trim()}");
+                foreach (Match match in LineHeightLiteral().Matches(text))
+                {
+                    var exception = type.Exceptions.FirstOrDefault(entry => entry.File == source.Path && entry.Value == match.Groups["value"].Value);
+                    if (exception is null) failures.Add($"{source.Path}:{line + 1}: literal line height; use a role: {match.Value.Trim()}");
+                    else used.Add(exception);
+                }
+            }
+        foreach (var exception in type.Exceptions.Except(used))
+            failures.Add($"typography.json: the exception for {exception.File} ({exception.Value}) matches nothing.");
+    }
+
+    [GeneratedRegex(@"(?<![\w-])tr-[a-z]+(-[a-z]+)*\b")]
+    private static partial Regex StyleClass();
+    [GeneratedRegex(@"\bFontSize\s*=\s*""?(?<value>\d+(\.\d+)?)\b(?!\s*[*/+-])|Property=""FontSize""\s+Value=""(?<value>\d+(\.\d+)?)""")]
+    private static partial Regex FontSizeLiteral();
+    [GeneratedRegex(@"\bFontWeight\s*=\s*""?\(?(FontWeight\)\s*)?(?<value>\d+)\b|Property=""FontWeight""\s+Value=""(?<value>\d+)""|\(FontWeight\)\s*(?<value>\d+)")]
+    private static partial Regex FontWeightLiteral();
+    [GeneratedRegex(@"\bLineHeight\s*=\s*""?(?<value>\d+(\.\d+)?)\b(?!\s*[*/+-])|Property=""LineHeight""\s+Value=""(?<value>\d+(\.\d+)?)""")]
+    private static partial Regex LineHeightLiteral();
 
     [GeneratedRegex(@"\b(Spacing|RowSpacing|ColumnSpacing|Margin|Padding)\s*=\s*(new\s*(Thickness)?\s*\((?<value>[^()]*)\)|(?<value>-?[\d.]+)\b)")]
     private static partial Regex SpacingCode();

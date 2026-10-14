@@ -13,7 +13,8 @@ The dependency-light shared layer every workbench surface builds on: the theme b
 factories in `Ui`, the native Markdown document renderer, the diff viewer, Mermaid rendering and small
 helpers. It references no workbench, docking or host-state code, so any panel, dialog or the Settings window
 can use it without a cycle. Theme catalogue and colour roles have their own documents:
-[Themes.SPEC.md](Themes.SPEC.md), [COLOR.md](COLOR.md) and [SPACING.md](SPACING.md).
+[Themes.SPEC.md](Themes.SPEC.md), [COLOR.md](COLOR.md), [SPACING.md](SPACING.md) and
+[TYPOGRAPHY.md](TYPOGRAPHY.md).
 
 ## Where the code lives
 
@@ -252,11 +253,8 @@ commit rows in the scope menu append it to the short SHA and author.
   grammars, bounded caching and ordered replies; its worker/fallback machinery is web-specific. Any native
   equivalent must keep expensive highlighting off the dispatcher and reject stale results.
 - Swipe-to-dismiss on toasts, and pausing a toast's timer while the pointer or focus is on it.
-- A single authored typography vocabulary with generated roles and a build-time adoption check spanning
-  every shared primitive and app surface. Fonts and sizes currently live in `Ui` and individual controls;
-  extending shared UI must not create a second type system.
-- The location strip's caption style (uppercase 10px text above a 22px value row within the 40px strip)
-  is a window-local style in `WorkbenchWindow.axaml`; it moves into the typography vocabulary when that
-  exists.
+- Full typography adoption. [TYPOGRAPHY.md](TYPOGRAPHY.md) is the one vocabulary and the design gate holds
+  literal sizes, weights and line heights to it, but most controls still write a size on the scale
+  (`Ui.Text(text, brush, 12)`) rather than naming a role; they move to roles as they are touched.
 
 Diff selections feed the shared editor event stream for Codex and Claude Code, including cached files in continuous Changes review. Source selections map displayed rows to the original or modified file lines and subtract unified-diff prefixes from columns; metadata and gap rows have no source selection. Deletion-only selections use the original path for renamed files. Rendered Markdown reports exact selected visible text and the whole source-block line bounds: mixed blocks use modified bounds, deletion-only blocks use original bounds. These bounds may enclose unchanged lines; they are not exact Markdown character positions. Replacing a diff body clears its previous selection.
