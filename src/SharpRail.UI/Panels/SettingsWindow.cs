@@ -67,12 +67,25 @@ public sealed partial class SettingsWindow : Window
         Name = "SettingsWindow";
         AvaloniaXamlLoader.Load(this);
         body = this.FindControl<ContentControl>("SettingsBody")!;
-        Opened += (_, _) =>
+        if (!OperatingSystem.IsAndroid())
         {
             var zoom = InterfaceZoom.Current;
             MinWidth *= zoom; MinHeight *= zoom; Width *= zoom;
-            if (Owner is Window owner) Height = Math.Max(MinHeight, owner.Bounds.Height * .8);
-        };
+            Height = Math.Max(MinHeight, window.Bounds.Height * .8);
+#if !ANDROID && !BROWSER
+            if (window.Screens.ScreenFromWindow(window) is { } screen)
+            {
+                var scale = screen.Scaling;
+                var ownerBounds = new Rect(window.Position.X / scale, window.Position.Y / scale, window.Bounds.Width, window.Bounds.Height);
+                var area = screen.WorkingArea;
+                var bounds = FitBounds(ownerBounds, new Rect(area.X / scale, area.Y / scale, area.Width / scale, area.Height / scale), zoom);
+                MinWidth = Math.Min(MinWidth, bounds.Width); MinHeight = Math.Min(MinHeight, bounds.Height);
+                Width = bounds.Width; Height = bounds.Height;
+                WindowStartupLocation = WindowStartupLocation.Manual;
+                Position = new PixelPoint((int)Math.Round(bounds.X * scale), (int)Math.Round(bounds.Y * scale));
+            }
+#endif
+        }
         var close = this.FindControl<Button>("SettingsClose")!;
         close.Content = Ui.Icon("close");
         close.Click += (_, _) => Close();
@@ -94,6 +107,14 @@ public sealed partial class SettingsWindow : Window
     }
 
     public string Section => section;
+
+    internal static Rect FitBounds(Rect owner, Rect available, double zoom)
+    {
+        var width = Math.Min(832 * zoom, available.Width);
+        var height = Math.Min(Math.Max(440 * zoom, owner.Height * .8), available.Height);
+        return new Rect(Math.Clamp(owner.X + (owner.Width - width) / 2, available.X, available.Right - width),
+            Math.Clamp(owner.Y + (owner.Height - height) / 2, available.Y, available.Bottom - height), width, height);
+    }
 
     private void Navigation(Button button, string key, StackPanel content)
     {
