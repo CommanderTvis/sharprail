@@ -675,6 +675,13 @@ internal static class Program
             E2E.MarkdownDocumentE2E.FrontmatterEditing(Path.Combine(root, "upstream-e2e"));
             return;
         }
+        if (args.SequenceEqual(["--markdown-code"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            MarkdownSelectionChecks.CodeCopyLayout();
+            return;
+        }
         if (args.SequenceEqual(["--markdown"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();

@@ -294,3 +294,6 @@ Rendered Markdown diff merging aligns Mermaid fences as complete blocks. Unchang
 `FileDrop` provides attached acceptance and attachment callbacks on an agent accessory control.
 It owns no host or plugin state; the workbench passes resolved paths and the plugin formats the prompt.
 The drawn tree supports a threshold drag callback separately from row activation and a highlighted drop target.
+
+Markdown code blocks place Copy beside the source without a separate header row.
+The source scrolls horizontally in its own column so long lines never overlap Copy.

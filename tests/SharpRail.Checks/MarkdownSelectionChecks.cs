@@ -17,10 +17,45 @@ internal static class MarkdownSelectionChecks
 {
     internal static void Run()
     {
+        CodeCopyLayout();
         StableScrollExtent();
         VirtualDrag();
         ShapedSelection();
         Console.WriteLine("PASS large Markdown reverse/shrinking/offscreen selections, copy and shaped-text invalidation under every theme");
+    }
+
+    internal static void CodeCopyLayout()
+    {
+        foreach (var width in new[] { 600, 260 })
+            foreach (var source in new[] { "sh scripts/dev.sh", new string('x', 200) })
+            {
+                using var preview = new MarkdownPreview("```sh\n" + source + "\n```", "code.md",
+                    new MarkdownContext((_, _) => ValueTask.FromResult<byte[]?>(null), _ => null, (_, _) => { }, 14, 78, true));
+                var window = new Window { Width = width, Height = 300, Content = preview };
+                window.Show();
+                try
+                {
+                    Frame(window);
+                    var copy = preview.GetVisualDescendants().OfType<Button>().Single(button =>
+                        button.GetVisualDescendants().OfType<TextBlock>().Any(label => label.Text == "Copy"));
+                    var text = preview.GetVisualDescendants().OfType<SelectableTextBlock>().Single();
+                    var viewport = text.GetVisualAncestors().OfType<ScrollViewer>().First();
+                    var textOrigin = text.TranslatePoint(default, preview)!.Value;
+                    var copyOrigin = copy.TranslatePoint(default, preview)!.Value;
+                    var viewportOrigin = viewport.TranslatePoint(default, preview)!.Value;
+                    Require(Math.Abs(textOrigin.Y - copyOrigin.Y) < 1, "Copy must not create a row above fenced source.");
+                    Require(viewportOrigin.X + viewport.Bounds.Width <= copyOrigin.X,
+                        "Long source stays outside the Copy button at narrow widths.");
+                    if (source.Length > 100)
+                        Require(viewport.Extent.Width > viewport.Viewport.Width, "Long source remains horizontally scrollable.");
+                    copy.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+                    Dispatcher.UIThread.RunJobs();
+                    Require(window.Clipboard!.TryGetTextAsync().GetAwaiter().GetResult() == source,
+                        "Copy retains the exact fenced source.");
+                }
+                finally { window.Close(); }
+            }
+        Console.WriteLine("PASS Markdown fenced Copy shares the source row, avoids long-line overlap and preserves clipboard text");
     }
 
     private static void Require(bool condition, string message)

@@ -565,6 +565,9 @@ Copy, plus rendered selection, inline/font invalidation and detach/remount under
 Mixed-height headings, paragraphs and styled code fences keep the scroll extent and requested
 offset stable across viewport realization; narrowing the preview reflows its geometry while
 retaining bounded mounted blocks.
+`--markdown-code` isolates fenced-code Copy geometry at wide/narrow widths and with
+long first lines, horizontal scrolling and exact clipboard content. It also runs with
+`--drawn-rendering` and the default gate.
 `--rendering-bench markdown-selection` measures 120 pointer updates with a source-line observer
 and headless Skia frame capture. `SHARPRAIL_BENCH_MARKDOWN` selects a source file; otherwise it
 uses a large generated document. It reports input/frame median and p95 plus allocated bytes,

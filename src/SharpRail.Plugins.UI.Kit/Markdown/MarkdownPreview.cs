@@ -488,11 +488,13 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
     private Border CodeFrame(string text)
     {
         var source = Code(text);
-        var codeBody = new StackPanel { Spacing = 8 };
+        var codeBody = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
         var copy = Ui.Button("Copy", () => _ = CopyAsync(text), "check");
-        copy.HorizontalAlignment = HorizontalAlignment.Right;
-        codeBody.Children.Add(copy);
+        copy.VerticalAlignment = VerticalAlignment.Top;
+        copy.Margin = new Thickness(8, 0, 0, 0);
+        Grid.SetColumn(copy, 1);
         codeBody.Children.Add(new ScrollViewer { Content = source, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto });
+        codeBody.Children.Add(copy);
         return new Border
         {
             Child = codeBody,
