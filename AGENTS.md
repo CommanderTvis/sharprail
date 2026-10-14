@@ -27,14 +27,14 @@ and nullable/warnings-as-errors gate.
 | `src/SharpRail.Host.Abstractions` | Transport-independent host interfaces and domain records consumed by the UI. |
 | `src/SharpRail.Host.Core` | Filesystem, project/spec discovery, Git, worktree and PTY terminal implementations (`Posix.cs` holds the libc interop). No Avalonia, Pi or AI dependency. |
 | `src/SharpRail.Host.Core/Plugins` | The host's plugin runtime (`PluginRuntime` implements `IPluginService`): discovery of `<stateDir>/plugins` and `PluginPaths`, manifest intake, load contexts, registry, reconciler, dispatch, settings namespaces and MCP tools, composed from `PluginHostSeams`. |
-| `src/SharpRail.Host.Protocol` | Code-first protobuf-net.Grpc service contracts and wire DTOs. |
-| `src/SharpRail.Host.Remote` | Kestrel HTTP/2 host, authentication and RPC adapters delegating to Core. |
-| `src/SharpRail.Host.Client` | Direct local adapters and gRPC remote proxies implementing the same host abstractions. Embedded mode uses no sockets or serialization. |
+| `src/SharpRail.Host.Protocol` | Typed service contracts, protobuf wire DTOs and reconnectable WebSocket RPC peers; generated client services come from `scripts/generate-rpc.py`. |
+| `src/SharpRail.Host.Remote` | Kestrel HTTP/WebSocket host, authentication and RPC adapters delegating to Core; `WebSocketRpc.cs` and generated dispatch route typed host calls. |
+| `src/SharpRail.Host.Client` | Direct local adapters and WebSocket RPC remote proxies implementing the same host abstractions. Embedded mode uses no sockets or serialization. |
 | `src/SharpRail.Plugins.Api` | The plugin contract, types and identity helpers only: manifest, contract vocabulary, roster, `PluginJson`. `SharpRail.Plugins.Api.Host` and `SharpRail.Plugins.Api.UI` carry the host and UI contexts and never reference each other. Every public symbol is documented and listed in `PublicAPI.Unshipped.txt`; `PluginApi.Generation` is pinned by the checks. |
 | `src/SharpRail.Plugins.UI.Kit` | Controls shared by the app and plugin UI halves: `Ui` brushes, fonts and primitives, `DialogWindow`, Markdown, the Scintilla editor frame and Mermaid diagrams. References no `SharpRail.Host.*` project, `SharpRail.UI` or plugin API. |
 | `src/SharpRail.Plugins.Agent.Skills` | The workflow skills both agent plugins ship, adapted from the fork's `packages/pi-thinkrail-workflow/skills`: one folder per skill, text only, no project. The Claude Code and Codex host projects each stage these files as their own assets. |
 | `src/SharpRail.Plugins.Agent.UI` | Shared account, usage, terminal facts, manual-launch notices and attention wording for Codex and Claude Code. Depends on the UI kit and Avalonia, not a host, provider or plugin API. |
-| `src/SharpRail.Plugins.*` builtin folders | SpecDialect, Blueprint, ClaudeCode, Discord, PdfPreview, BranchGraph, Visualize, FileIcons and Codex. Each owns its contract, applicable Host/UI halves, assets, license and `SPEC.md`. |
+| `src/SharpRail.Plugins.*` builtin folders | SpecDialect, Blueprint, ClaudeCode, Discord, PdfPreview, BranchGraph, Visualize, FileIcons, Codex and Tailscale. Each owns its contract, applicable Host/UI halves, assets, license and `SPEC.md`. |
 | `src/SharpRail.Scintilla` | Self-contained Avalonia editor control: Scintilla with a Skia surface, HarfBuzz shaping and SheenBidi layout. Its `README.md` documents the API, native build and limits. It references no SharpRail project. |
 | `src/SharpRail.UI` | Avalonia application entry point and workbench. `WorkbenchWindow` partial files coordinate navigation, projects and Git panels. |
 | `src/SharpRail.UI/Docking` | Persisted frame/workspace layout model, transitions, geometry, pointer/keyboard gestures, tab chrome and search popover. |
@@ -47,10 +47,15 @@ and nullable/warnings-as-errors gate.
 | `src/SharpRail.UI/Notifications` | Away notifications for terminals whose agent needs the user: the collection window and gates (`AttentionNotifications`), the injected `IDesktopNotifier` and the macOS channel over `Native/Notifications.m`. |
 | `src/SharpRail.UI/Assets` | The bundled theme manifests; the icons and fonts, with their licenses, live in the kit's `Assets`. |
 | `src/SharpRail.Android` | The Android client: the UI's sources compiled for Android as a client of a remote host, with the windowing layer (`Windowing/`), the connect screen and the remembered endpoint. Not in `SharpRail.slnx`; its `SPEC.md` holds the composition rules and limits. |
+| `src/SharpRail.Browser` | Browser WASM client compiling the shared workbench sources with `BROWSER`, browser windowing, connection handling and Restty terminals; its `SPEC.md` and `README.md` describe the client and serving requirements. Built separately from `SharpRail.slnx`. |
 | `src/Ghostty.Avalonia` | Independent Ghostty controls: hosted AppKit/Metal, Metal textures composed by Avalonia, and libghostty-vt drawn by Skia; native bridges, build script and licenses. Its README documents reuse and limits. |
 | `tests/SharpRail.Checks` | Executable checks for host transports, runtime extensibility, layout, UI and Git/worktree integration. `E2E/` translates upstream scenarios using real headless Avalonia input. |
 | `scripts/dev.sh` | Builds and runs the app from source in one step (`SHARPRAIL_PROFILE` keeps a separate profile). |
-| `scripts/bootstrap.sh` | Installs the checkout's local .NET SDK. |
+| `scripts/bootstrap.sh` / `scripts/bootstrap.ps1` | Install the checkout's pinned local .NET SDK on Unix / Windows. |
+| `scripts/README.md` | Script invocations, prerequisites, environment variables and output locations. |
+| `scripts/browser.sh` | Builds, publishes, checks or serves the browser client and remote host (`run`); default browser serving address is `http://localhost:54123`, authenticated with `SHARPRAIL_TOKEN`. |
+| `scripts/host.sh` | Builds and runs only the remote host, printing a connection URI and QR code. |
+| `scripts/publish-windows.ps1` | Builds and publishes self-contained Windows x64 client, host and checks to `artifacts/windows`; packages client and host as `artifacts/SharpRail-win-x64.zip`. `WINDOWS.md` records runtime requirements and limits. |
 | `src/Ghostty.Avalonia/build-native.sh` | Builds pinned libghostty and libghostty-vt bridges on the target macOS architecture, using checkout-local tools and caches. |
 | `scripts/build-merman.sh` | Downloads Merman's pinned, checksummed macOS xcframework and links its C ABI into `.tools/merman/libSharpRailMermaid.dylib`. The kit's `Visualization/MermaidRenderer.cs` renders SVG through it off the UI thread; Svg.Skia displays it. Other platforms show the source with an unavailability message. |
 | `scripts/build-notifications.sh` | Compiles the User Notifications bridge into `.tools/notifications/libSharpRailNotifications.dylib`; the UI build runs it and copies the library beside the app. |
@@ -61,6 +66,11 @@ and nullable/warnings-as-errors gate.
 | `scripts/android.sh` | Builds the Android client (`build`), installs and starts it on the connected device or emulator (`run`), or writes the Release package to `artifacts/android/SharpRail.apk` (`apk`). Needs `ANDROID_HOME` and a JDK 17 or 21 in `JAVA_HOME`; signs with the key in `SHARPRAIL_ANDROID_KEYSTORE` when set; installs the `android` workload into `.tools/dotnet`. |
 | `scripts/android-ndk.sh` | Installs the pinned Android NDK under `.tools/android-ndk` and prints its path; `build-android.sh` in `src/Ghostty.Avalonia` and `src/SharpRail.Scintilla` build the Android terminal and editor libraries with it. |
 | `.bench` | Ignored disposable fixtures, verification logs and own-window captures. Its name does not authorize benchmarks. |
+
+The nightly workflow builds macOS DMG, Android APK and Windows x64 ZIP packages at
+03:00 UTC or by manual dispatch. Windows packaging requires the packaged ReadyToRun
+`--windows` gate before the three assets publish together. Verify the actual workflow
+run and release assets before reporting a nightly deployed or runtime-verified.
 
 ## Scratch files
 
@@ -111,8 +121,16 @@ remote clients; starting or stopping it never moves local adapters onto RPC.
 `LoopbackServer` supplies terminal-authenticated MCP routes and plugin routes,
 starts lazily on first use and must be accessed off the UI thread.
 `WorkbenchWindow` owns one window's workbench; `DockSurface` renders and handles docking,
-while `LayoutSession` applies transitions to `LayoutState`. `ProfileStore` owns
-on-disk app state. Keep these responsibilities separate when adding interactions.
+while `LayoutSession` applies transitions to `LayoutState`. Center document and
+terminal tabs live in Projects on desktop, Android and browser; left/right tool
+strips remain. The bottom docking zone and alternate center tab strips are removed.
+Legacy profile and preset migration drops bottom terminal/tool placements and moves
+nonterminal bottom documents into a surviving center group. Old tab-mode settings
+remain readable for compatibility but no longer choose placement. New workspaces
+do not create terminals implicitly; launch them explicitly.
+Android tab labels leave touch gestures to the Projects scroller; each tab's explicit
+Open button selects it and reveals its content. Keep those actions separate from scrolling.
+`ProfileStore` owns on-disk app state. Keep these responsibilities separate when adding interactions.
 Settings, custom presets, workspace labels, the project list/recents and workspace
 lifecycle are host state (`IHostStateService`): change them through the host and
 update UI when the broadcast arrives (`HostSync.cs`), never by writing a local copy.
@@ -133,7 +151,12 @@ socket, serialization or RPC in the terminal data path, including fallback to Sk
 The separate loopback serves MCP and plugin routes. Remote Metal tabs run the
 `--terminal-relay` child attached to their remote host. Shells outlive their windows while the host runs.
 Skia tabs attach directly to the same host service and draw through `GhosttySkiaView`.
-Both native builds currently require macOS; other platforms show an availability message. `WorkbenchWindow`
+Read-only Skia views apply the holder's grid before initial replay. Android watched
+fonts fit between 10 and 13 DIP without resizing or taking ownership of that terminal.
+Metal requires macOS. Windows and Android use native libghostty-vt with Skia;
+browser terminals use Restty. Windows builds use the pinned native toolchain from
+`scripts/windows-native.ps1` and the terminal/editor projects' `build-windows.ps1`
+scripts. `WorkbenchWindow`
 takes its terminal factory from the composition root; headless checks pass one that
 runs host PTY sessions as plain text. Disposing a renderer detaches its client;
 closing a terminal tab ends its host session. The host owns shell lifetime and
@@ -175,14 +198,14 @@ references Abstractions and Protocol; Remote references Core and Protocol. The U
 references Core and Client to compose either direct local calls or remote proxies,
 the Scintilla editor control, which it supplies with theme colours and fonts, and
 Ghostty.Avalonia. The UI also references Remote for its MCP/plugin loopback and
-optional gRPC listener; embedded workspace operations still use direct adapters.
+optional WebSocket RPC listener; embedded workspace operations still use direct adapters.
 Checks reference the UI and Remote to exercise both paths. Do not introduce a UI
 dependency into the host projects. Plugins (`src/SharpRail.Plugins.Api/SPEC.md`) reference only the API assemblies, the
 kit and their dependencies' contracts; external plugins install under `<stateDir>/plugins/<id>/` with a
 `sharprail-plugin.json` manifest.
 
 The Android client (`src/SharpRail.Android`) is a client only: no embedded host, PTY or relay, just the
-remote adapters against a host's gRPC endpoint. It compiles the sources of `src/SharpRail.UI` under the same
+remote adapters against a host's authenticated WebSocket RPC endpoint. It compiles the sources of `src/SharpRail.UI` under the same
 assembly name instead of referencing the project, because the UI's host-serving half needs Remote and
 ASP.NET Core. Every shared UI source must therefore stay compilable for Android: desktop-only host-serving
 code goes under `#if !ANDROID` or into a file the Android project excludes (`Program.cs`,
@@ -191,6 +214,14 @@ by the project's `Windowing/` over Avalonia 12.1.3 internals: a window sized to 
 bottom sheet and any other owned window as a full-screen page. Shared code keeps opening windows as on
 desktop; only their Android look (the kit's sheet card, Settings without its card frame) is special-cased.
 Recheck that layer on any Avalonia version change.
+
+The browser client also compiles the shared UI sources under `SharpRail.UI`, with
+`BROWSER` and its own windowing, serving/settings and terminal adapters. It uses
+WebSocket RPC without an embedded host or PTY. Shared desktop-only code must also
+exclude browser builds; use `#if !ANDROID && !BROWSER` where appropriate. Browser
+WASM compilation and browser acceptance are separate from the desktop solution
+build and checks. `scripts/browser.sh` provisions the threaded WASM workload and
+stages the required native WASM libraries and browser assets.
 
 `SPEC.md` defines the product contract; `COMPLETION.md` records unfinished gates;
 `E2E.md` inventories upstream translations; `VALIDATION.md` records verified
@@ -202,8 +233,8 @@ SharpRail tracks two upstreams, one per branch, both in the checkout at
 API, its builtin plugins and the fork's general improvements. The `upstream` branch ports
 JetBrains ThinkRail (remote `upstream`, branch `main`) and is maintained separately in its
 own worktree; do not carry changes between the two lines by hand. On `main`, port the
-fork's Plugin API and plugin UI almost verbatim, changing only what the transport (gRPC
-instead of WebSocket) and the framework (Avalonia/.NET instead of React/Bun) force;
+fork's Plugin API and plugin UI almost verbatim, changing only what the typed host
+transport and the framework (Avalonia/.NET instead of React/Bun) force;
 provider-specific IDE, hook and MCP protocols remain plugin-owned. pi and embedded
 AI chat stay out of scope. Commits follow the fork's shape; see "Commit organization".
 Module `SPEC.md`/`*.SPEC.md` files and `ARCHITECTURE.md` are adapted from upstream specs;
@@ -271,7 +302,18 @@ runs. Spend it deliberately:
   signing prompt during checks is a harness bug, not a reason to wait for the developer.
 
 Run checks with `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release`;
-`-- --terminals` runs host terminals, terminal/bottom-panel translations and Skia renderer checks.
+`-- --terminals` runs host terminals, terminal translations and Skia renderer checks.
+`-- --vertical-tabs` covers the Projects-only tab projection and interactions;
+`-- --rail` covers retained Projects controls and geometry; `-- --state` covers
+host state and profile/preset migration. `-- --file-drop` covers workspace file
+drag representations, transfers and attachment gestures.
+`-- --connection-errors` checks connection failure details and retry.
+`-- --windows` runs the Windows host, desktop and native renderer checks on Windows.
+Browser acceptance runs separately with `sh scripts/browser.sh check`; its
+Playwright tests are in `tests/SharpRail.Browser.Checks`.
+`node tests/SharpRail.Browser.Checks/restty-lifecycle.mjs --require-hardware --require-memory-return`
+checks repeated Restty teardown and Chromium-reported GPU allocations against a warmed
+baseline. It needs built browser vendor assets; this is not a physical GPU residency measurement.
 `-- --ghostty-skia` runs focused Skia input, pixel, PTY and renderer Settings checks.
 `-- --native-texture` checks GPU texture composition, input and local/remote renderer switching in a real macOS window.
 `-- --sync` runs the multi-window and multi-client translations.
@@ -328,7 +370,10 @@ solution build or the executable gate. Report checks actually run and anything
 blocked; do not describe unrun checks as passed.
 Generated packages live under `artifacts/`; keep one latest canonical app package.
 `artifacts/ui`, `artifacts/host` and `artifacts/checks` contain published executables;
-`artifacts/SharpRail.app` is the macOS bundle. `.tools`, `bin` and `obj` are local
+`artifacts/SharpRail.app` is the macOS bundle. Windows publishes to
+`artifacts/windows/{client,host,checks}` and `artifacts/SharpRail-win-x64.zip`;
+browser publishing writes `artifacts/browser` and Android packaging writes
+`artifacts/android/SharpRail.apk`. `.tools`, `bin` and `obj` are local
 tooling/build output, not source. `licenses/` and `THIRD-PARTY-NOTICES.md` document
 redistributed dependencies and assets.
 
