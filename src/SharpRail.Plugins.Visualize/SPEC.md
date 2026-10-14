@@ -113,5 +113,4 @@ availability predicate has no unmount of its own.
 
 Remaining before marking the port complete: deterministic remount render cancellation (the view cancels its
 render on detach, but no check holds a render in flight), a terminal shown in two windows at once, native
-appearance, published output and the full suite. The companion initially opens at 360 px rather than the fork's
-45% share of the host.
+appearance, published output and the full suite.

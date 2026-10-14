@@ -26,7 +26,7 @@ row of buttons above the accessories. `ITerminalBackend.Write` types into the sh
 `sr_terminal_input` and `sr_terminal_read`, and the checks' headless backend writes to its PTY session and reads its
 plain-text view. An accessory's `BufferTail` is the last lines of that text.
 
-The companion starts 360 px wide; its content fills the column as the user drags the splitter.
+The companion starts at 45% of the terminal's width, as in the fork; its content fills the column as the user drags the splitter.
 Closing it returns the whole column to the terminal, and reopening restores the width for that view.
 The column owns the width so a fixed-width child cannot leave unused space around a clipped drawing.
 

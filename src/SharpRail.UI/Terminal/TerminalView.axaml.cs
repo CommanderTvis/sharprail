@@ -21,7 +21,8 @@ public sealed partial class TerminalView : UserControl, IDisposable
     private readonly TextBlock exitNotice;
     private readonly ContentControl companion;
     private readonly GridSplitter companionSplitter;
-    private GridLength companionWidth = new(360);
+    // 45% of the view beside a 1* terminal column.
+    private GridLength companionWidth = new(45.0 / 55, GridUnitType.Star);
     private int generation;
     private bool disposed;
     private bool agentNewline;
@@ -70,8 +71,12 @@ public sealed partial class TerminalView : UserControl, IDisposable
             var visible = value is not null;
             if (visible != companion.IsVisible)
             {
-                var column = ((Grid)companion.Parent!).ColumnDefinitions[2];
-                if (!visible) companionWidth = column.Width;
+                var columns = ((Grid)companion.Parent!).ColumnDefinitions;
+                var column = columns[2];
+                // The first opening takes 45%; afterwards the width the user left is restored in pixels.
+                if (!visible && column.ActualWidth > 0) companionWidth = new(column.ActualWidth);
+                // A splitter drag rescales both star columns; the terminal's is reset to 1* so it owns the rest.
+                columns[0].Width = new GridLength(1, GridUnitType.Star);
                 column.Width = visible ? companionWidth : new GridLength(0);
             }
             companion.Content = value;
