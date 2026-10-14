@@ -67,7 +67,9 @@ internal static class RailRetentionChecks
         Until(() => Active(app, first) && app.Window.ProjectRoot == app.Root && app.Find<TextBlock>("BranchLabel").Text is { Length: > 0 });
         Settle(800);
         var back = Rows(app);
-        Require(back.Count == settled.Count && back.Zip(settled).All(pair => ReferenceEquals(pair.First, pair.Second)) && reattached == 0,
+        // The other project opened at its Project Home, whose own Projects pane hosts the same panel; coming back
+        // moves that one panel into the frame again (one reattachment) without rebuilding its rows.
+        Require(back.Count == settled.Count && back.Zip(settled).All(pair => ReferenceEquals(pair.First, pair.Second)) && reattached <= 1,
             "Switching to another project's workspace keeps the rail and its rows instead of rebuilding them.");
         Require(Controls(app).OfType<Button>().Single(button => button.Name == "AddWorkspace" && button.IsEffectivelyVisible).GetLogicalAncestors()
             .OfType<Border>().Any(border => Equals(border.Tag, app.Root)), "The open project's trailing controls follow the switch.");
@@ -79,7 +81,7 @@ internal static class RailRetentionChecks
         settings.GetLogicalDescendants().OfType<CheckBox>().Single(box => box.Name == "VerticalCenterTabs").IsChecked = true;
         settings.GetLogicalDescendants().OfType<CheckBox>().Single(box => box.Name == "VerticalTabsInProjects").IsChecked = true;
         settings.Close();
-        app.Click(app.Find<Button>("Tab_projects"));
+        app.ShowTool("projects");
         Controls(app).OfType<ScrollViewer>().Single(item => item.Content is StackPanel && item.Parent is Grid { Name: "ProjectsPanel" }).MaxHeight = 110;
         Settle(300);
         var retained = RailControls(app);
@@ -150,7 +152,9 @@ internal static class RailRetentionChecks
             held.SetResult();
             Until(() => !WorktreePaths(app).Contains(removed));
             Settle(300);
-            Require(retained.All(control => Controls(app).Contains(control)) && detached == 0,
+            // Removing the active workspace with no earlier one lands on Project Home, whose own Projects pane takes the
+            // one Projects panel: it moves there whole, so its controls detach once but none is replaced.
+            Require(retained.All(control => Controls(app).Contains(control)) && (detached == 0 || app.Window.AtProjectHome),
                 "Removing a workspace must detach only that workspace's row and tab host.");
             Require(menu.IsOpen, "Removing another workspace must preserve the surviving menu.");
             Require(ReferenceEquals(app.Window.FocusManager?.GetFocusedElement(), focused),

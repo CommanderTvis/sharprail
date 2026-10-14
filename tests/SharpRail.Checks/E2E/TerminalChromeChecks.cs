@@ -30,17 +30,24 @@ internal static class TerminalChromeChecks
         var name = terminal.Id.Replace(':', '_');
         var body = app.Find<Control>("TerminalSurface_" + name);
         var tab = app.Find<Button>("Tab_" + name);
-        var side = app.Window.Layout.State.Groups.Single(group => group.Tools.Any(tool => tool.Id == DockState.SpecsTool));
+        // Tools and terminals use separate panes, so the terminal moves to an empty right pane, which the menu names.
+        var specs = app.Window.Layout.State.Groups.Single(group => group.Tools.Any(tool => tool.Id == DockState.SpecsTool));
+        Require(app.Window.Layout.NewGroup(specs.Id, "after"), "An empty right pane could not be created.");
+        Settle();
+        var side = app.Window.Layout.State.Groups.Single(group => group.Region == "right" && group.Tools.Count == 0);
+        tab = app.Find<Button>("Tab_" + name);
         var menu = tab.ContextMenu!;
         app.ContextAction(tab, "Move to pane");
         var move = menu.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Move to pane"));
         Until(() => move.IsSubMenuOpen);
-        app.Click(move.Items.OfType<MenuItem>().Single(item => Equals(item.Header, side.Region + ": " + app.Window.Layout.Selected(side.Id)!.Title)), freshGesture: false);
+        Require(!move.Items.OfType<MenuItem>().Any(item => item.IsVisible && Equals(item.Header, "right pane (Specs, Files)")),
+            "A terminal must not be offered a tool pane.");
+        app.Click(move.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "right pane (empty)")), freshGesture: false);
         Until(() => app.Window.Layout.Tabs(side.Id).Any(item => item.Id == terminal.Id));
         Require(ReferenceEquals(body, app.Find<Control>("TerminalSurface_" + name)), "Moving a terminal must retain its one surface.");
-        app.Click(app.Find<Button>("FoldRestore_" + side.Id));
+        app.Click(app.Find<Button>("HidePane_" + side.Id));
         Require(!body.GetVisualAncestors().Contains(app.Window), "A folded pane must not present its terminal surface.");
-        app.Click(app.Find<Button>("FoldRestore_" + side.Id));
+        app.Click(app.Find<Button>("RailPane_" + side.Id));
         Until(() => body.GetVisualAncestors().Contains(app.Window));
         app.ContextAction(app.Find<Button>("Tab_" + name), "Close");
         Require(!app.Window.Layout.State.Workspaces.Values.SelectMany(view => view.Documents.Values).SelectMany(tabs => tabs).Any(item => item.Id == terminal.Id),
@@ -57,7 +64,7 @@ internal static class TerminalChromeChecks
         var body = app.Find<Control>("TerminalSurface_" + name);
         var command = OperatingSystem.IsMacOS() ? RawInputModifiers.Meta : RawInputModifiers.Control;
         app.Window.KeyPress(Key.B, command, PhysicalKey.B, null); Settle();
-        var rail = app.Find<Border>("leftHiddenSideRail");
+        var rail = app.Find<Border>("leftRail");
         Require(rail.IsVisible, "Hiding the left side must expose its drop rail.");
         var terminal = app.Find<Button>("Tab_" + name);
         var start = terminal.TranslatePoint(new Point(24, terminal.Bounds.Height / 2), app.Window)!.Value;
@@ -84,16 +91,18 @@ internal static class TerminalChromeChecks
         app.Window.MouseDown(handlePoint, MouseButton.Left); app.Window.MouseMove(handlePoint + new Vector(0, 80));
         app.Window.MouseUp(handlePoint + new Vector(0, 80), MouseButton.Left); Settle();
         Require(Height(projects) > before + 40, "Resizing the side stack must enlarge Projects.");
-        app.Click(app.Find<Button>("FoldRestore_" + terminalGroup));
-        Require(app.Window.Layout.Group(terminalGroup).Folded && Math.Abs(Height(terminalGroup) - 27) < .5 && !body.GetVisualAncestors().Contains(app.Window),
-            "Folding must reduce the terminal group to 27 pixels and remove its body from the visible tree.");
-        app.Find<Button>("FoldRestore_" + terminalGroup).Focus();
+        bool Folded(string group) => app.Window.Layout.Group(group).Folded &&
+            !app.Window.GetLogicalDescendants().OfType<Grid>().Any(grid => grid.Name == "GroupHeader_" + group);
+        app.Click(app.Find<Button>("HidePane_" + terminalGroup));
+        Require(Folded(terminalGroup) && !body.GetVisualAncestors().Contains(app.Window),
+            "Folding must leave the terminal pane only on its rail and remove its body from the visible tree.");
+        app.Find<Button>("RailPane_" + terminalGroup).Focus();
         app.Window.KeyPress(Key.Space, RawInputModifiers.None, PhysicalKey.Space, null);
         app.Window.KeyRelease(Key.Space, RawInputModifiers.None, PhysicalKey.Space, null); Settle();
         Require(!app.Window.Layout.Group(terminalGroup).Folded && ReferenceEquals(body, app.Find<Control>("TerminalSurface_" + name)), "Space must restore the same terminal body.");
-        foreach (var group in new[] { projects, terminalGroup }) app.Click(app.Find<Button>("FoldRestore_" + group));
-        Require(new[] { projects, terminalGroup }.All(group => app.Window.Layout.Group(group).Folded && Math.Abs(Height(group) - 27) < .5), "Both side groups must fold independently to 27 pixels.");
-        foreach (var group in new[] { projects, terminalGroup }) app.Click(app.Find<Button>("FoldRestore_" + group));
+        foreach (var group in new[] { projects, terminalGroup }) app.Click(app.Find<Button>("HidePane_" + group));
+        Require(new[] { projects, terminalGroup }.All(Folded), "Both side groups must fold independently onto the rail.");
+        foreach (var entry in new[] { "Tab_projects", "RailPane_" + terminalGroup }) app.Click(app.Find<Button>(entry));
         Require(ReferenceEquals(body, app.Find<Control>("TerminalSurface_" + name)), "Restoring both groups must retain the terminal body.");
         app.ContextAction(app.Find<Button>("Tab_files"), "New left group at bottom");
         Require(app.Window.Layout.State.Groups.Count(group => group.Region == "left") == 3 &&
@@ -136,7 +145,9 @@ internal static class TerminalChromeChecks
     private static void TabTooltip(string root)
     {
         using var app = new E2eWorkspace(Path.Combine(root, "tab-tooltip"));
-        var tab = app.Find<Button>("Tab_plugin_spec-dialect_specs");
+        // Side tools sit on rails now, whose tooltips open away from their edge; a strip's tab keeps its tooltip below.
+        app.Open("README.md", true);
+        var tab = app.Tab("README.md");
         var tip = (ToolTip)ToolTip.GetTip(tab)!;
         var bottom = tab.TranslatePoint(new Point(tab.Bounds.Width / 2, tab.Bounds.Height), app.Window)!.Value;
         app.Window.MouseMove(bottom - new Vector(0, 2));
@@ -195,15 +206,24 @@ internal static class TerminalChromeChecks
         using var app = new E2eWorkspace(Path.Combine(root, "terminal-side-menu"));
         var side = app.Window.Layout.State.Groups.First(group => group.Region == "right");
         Require(!app.Window.Layout.Tabs(side.Id).Any(tab => tab.Kind == "terminal"), "The Specs group must start without a terminal.");
-        Require(!app.Find<Button>("NewTerminal_" + side.Id).IsVisible, "The Specs view must not show a terminal opener.");
-        app.Window.Layout.NewTerminal(side.Id);
-        app.Click(app.Find<Button>("NewTerminal_" + side.Id));
-        Until(() => app.Window.Layout.Tabs(side.Id).Count(tab => tab.Kind == "terminal") == 2);
-        Require(!app.Window.Layout.State.Center.Leaves().SelectMany(app.Window.Layout.Tabs).Any(tab => tab.Kind == "terminal"),
-            "The side menu must create a terminal in its own group.");
+        Require(!app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "NewTerminal_" + side.Id),
+            "The Specs view must not show a terminal opener.");
+        // Tools and terminals use separate panes: New terminal from a tool pane opens a terminal pane directly below it.
+        var add = app.Find<Button>("AddToGroup_" + side.Id);
+        app.Click(add); Until(() => add.ContextMenu!.IsOpen);
+        add.ContextMenu!.Items.OfType<MenuItem>().Single(item => item.Name == "NewTerminalBelow_" + side.Id).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
+        add.ContextMenu.Close();
+        var right = app.Window.Layout.State.Groups.Where(group => group.Region == "right").ToList();
+        var below = right[right.FindIndex(group => group.Id == side.Id) + 1];
+        Until(() => app.Window.Layout.Tabs(below.Id).Count(tab => tab.Kind == "terminal") == 1);
+        app.Click(app.Find<Button>("NewTerminal_" + below.Id));
+        Until(() => app.Window.Layout.Tabs(below.Id).Count(tab => tab.Kind == "terminal") == 2);
+        Require(!app.Window.Layout.State.Center.Leaves().SelectMany(app.Window.Layout.Tabs).Any(tab => tab.Kind == "terminal") &&
+            app.Window.Layout.Tabs(side.Id).All(tab => tab.IsTool),
+            "The side menu must create terminals in a terminal pane of its own side.");
         app.ContextAction(app.Find<Button>("Tab_projects"), "Close");
         app.ContextAction(app.Find<Button>("Tab_changes"), "Close");
-        var add = app.Find<Button>("AddToGroup_" + side.Id);
+        add = app.Find<Button>("AddToGroup_" + side.Id);
         app.Click(add); Until(() => add.ContextMenu!.IsOpen);
         var entries = add.ContextMenu!.Items.OfType<MenuItem>().ToArray();
         Require(entries.Any(item => Equals(item.Header, "Show Changes")) && !entries.Any(item => Equals(item.Header, "Show Projects")),

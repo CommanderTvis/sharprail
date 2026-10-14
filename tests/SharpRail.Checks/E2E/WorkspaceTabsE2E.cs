@@ -107,7 +107,7 @@ internal static class WorkspaceTabsE2E
         using var app = new E2eWorkspace(root);
         var first = CreateWorkspace(app, "workspace-1");
         Require(app.Tabs.Count == 0, "A new workspace must have no document tabs; AI tabs are excluded.");
-        app.Click(app.Find<Button>("Tab_files")); app.Open("README.md", true);
+        app.ShowTool("files"); app.Open("README.md", true);
         Require(app.Tabs.Count == 1, "Opening a kept document must add one tab.");
         CreateWorkspace(app, "workspace-2");
         Require(app.Tabs.Count == 0 && !app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "Tab_markdown_README.md"),
@@ -131,13 +131,13 @@ internal static class WorkspaceTabsE2E
         var move = menu.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Move to pane"));
         Until(() => move.IsSubMenuOpen);
         app.Click(move.Items.OfType<MenuItem>().Single(item => Equals(item.Header, specs.Region + ": " + app.Window.Layout.Selected(specs.Id)!.Title)), freshGesture: false);
-        app.Click(app.Find<Button>("Tab_projects"));
+        app.ShowTool("projects");
         Require(Selected(app, "projects"), "Moving Projects must leave it selected in the Specs group.");
         Switch(app, second, "workspace-2");
         Require(Selected(app, "projects"), "Selected side tools must follow a workspace switch.");
         Switch(app, root);
         Require(Selected(app, "projects"), "Selected side tools must follow the return to the default workspace.");
-        app.Click(app.Find<Button>("Tab_review"));
+        app.ShowTool("review");
         Require(Selected(app, "review"), "Review must become the selected tool.");
         Switch(app, first, "workspace-1");
         Require(Selected(app, "projects") && Selected(app, "review"), "Both side groups must retain their selected tools across switches.");

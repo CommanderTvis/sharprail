@@ -68,7 +68,7 @@ internal static class LayoutE2E
         var group = app.Window.Layout.State.Groups.Single(item => item.Tools.Any(tool => tool.Id == DockState.SpecsTool));
         Until(() => app.Window.Layout.Selected(group.Id)?.Id == "files");
         Require(app.Window.Layout.Tabs(group.Id).Any(tab => tab.Id == DockState.SpecsTool), "Specs must stay docked and one click away.");
-        app.Click(app.Find<Button>("Tab_plugin_spec-dialect_specs")); Settle();
+        app.ShowTool("plugin:spec-dialect:specs"); Settle();
         Require(app.Window.Layout.Selected(group.Id)?.Id == DockState.SpecsTool, "A later choice of Specs must be the user's to keep.");
         Console.WriteLine("PASS upstream layout.spec.ts: a project with no specs opens its rail on Files, not on the empty Specs panel");
     }
@@ -88,17 +88,29 @@ internal static class LayoutE2E
         {
             Settle(550);
             var changes = app.Window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "changes"));
-            var header = app.Find<Grid>("GroupHeader_" + changes.Id);
-            var origin = header.TranslatePoint(default, app.Window)!.Value;
-            var body = changes.Folded ? null : app.Find<Border>("DockBody_" + changes.Id);
-            var panelHeight = body is null ? 27 : body.TranslatePoint(new Point(0, body.Bounds.Height), app.Window)!.Value.Y - origin.Y;
-            var targetHeight = panelHeight / 2 - 4;
-            var target = new Point(origin.X + header.Bounds.Width / 2,
-                origin.Y + (before ? 4 + targetHeight / 2 : panelHeight / 2 + targetHeight / 2));
+            Point target;
+            var targetHeight = 100d;
+            if (changes.Folded)
+            {
+                // A folded pane lives on its rail: the cluster boundary before it creates a pane there.
+                var index = app.Window.Layout.State.Groups.Where(group => group.Region == "right").ToList().IndexOf(changes);
+                var zone = app.Find<Border>($"RailBoundary_right_{(before ? index : index + 1)}");
+                target = zone.TranslatePoint(new Point(zone.Bounds.Width / 2, zone.Bounds.Height / 2), app.Window)!.Value;
+            }
+            else
+            {
+                var header = app.Find<Grid>("GroupHeader_" + changes.Id);
+                var origin = header.TranslatePoint(default, app.Window)!.Value;
+                var body = app.Find<Border>("DockBody_" + changes.Id);
+                var panelHeight = body.TranslatePoint(new Point(0, body.Bounds.Height), app.Window)!.Value.Y - origin.Y;
+                targetHeight = panelHeight / 2 - 4;
+                target = new Point(origin.X + header.Bounds.Width / 2,
+                    origin.Y + (before ? 4 + targetHeight / 2 : panelHeight / 2 + targetHeight / 2));
+            }
             var tab = app.Find<Button>("Tab_files");
-            var start = tab.TranslatePoint(new Point(24, tab.Bounds.Height / 2), app.Window)!.Value;
+            var start = tab.TranslatePoint(new Point(tab.Bounds.Width / 2, tab.Bounds.Height / 2), app.Window)!.Value;
             app.Window.MouseMove(start); app.Window.MouseDown(start, MouseButton.Left);
-            app.Window.MouseMove(start + new Vector(12, 8)); Settle();
+            app.Window.MouseMove(start + new Vector(-12, 8)); Settle();
             Require(app.Find<DockSurface>("WorkspaceWorkbench").IsDragging, "Side split input must start a drag.");
             if (!changes.Folded) Require(targetHeight > 40, "Unfolded side split destinations must span more than a narrow edge.");
             app.Window.MouseMove(target); Settle(); app.Window.MouseUp(target, MouseButton.Left); Settle();
@@ -108,9 +120,9 @@ internal static class LayoutE2E
         Drop(false);
         Require(Order().SequenceEqual(new[] { DockState.SpecsTool, "empty", "changes", "files" }), "Dropping below Changes must retain the emptied source group.");
         var changesId = app.Window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "changes")).Id;
-        app.Find<Button>("FoldRestore_" + changesId).Focus();
+        app.Find<Button>("HidePane_" + changesId).Focus();
         app.Window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null); Settle();
-        Require(app.Window.Layout.Group(changesId).Folded, "Enter must fold the Changes group.");
+        Require(app.Window.Layout.Group(changesId).Folded, "Enter on Hide must fold the Changes group.");
         Drop(true);
         Require(Order().SequenceEqual(new[] { DockState.SpecsTool, "empty", "files", "changes", "empty" }) && app.Window.Layout.Group(changesId).Folded,
             "A folded group's split destination must insert Files above it and preserve its folded state.");
@@ -256,10 +268,10 @@ internal static class LayoutE2E
         {
             bottom = app.Window.Layout.State.BottomVisible;
             app.Window.KeyPress(Key.B, command, PhysicalKey.B, null); Settle();
-            Require(!app.Window.Layout.State.LeftVisible && app.Find<Border>("leftHiddenSideRail").IsVisible,
-                "Mod+B must hide the left side and expose its restore rail.");
+            Require(!app.Window.Layout.State.LeftVisible && app.Find<Border>("leftRail").IsVisible,
+                "Mod+B must hide the left side and keep its rail.");
             app.Window.KeyPress(Key.J, command, PhysicalKey.J, null); Settle();
-            Require(!app.Window.Layout.State.RightVisible && app.Find<Border>("rightHiddenSideRail").IsVisible &&
+            Require(!app.Window.Layout.State.RightVisible && app.Find<Border>("rightRail").IsVisible &&
                 app.Window.Layout.State.BottomVisible == bottom, "Mod+J must hide the right side without changing the bottom.");
         }
         using (var app = new E2eWorkspace(directory, openFiles: false))

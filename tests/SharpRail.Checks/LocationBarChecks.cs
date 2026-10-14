@@ -146,7 +146,7 @@ internal static class LocationBarChecks
         using var app = OpenFixtureProject(directory);
         Git(app.Root, "branch", "compare-target");
         Switch(app, app.Root);
-        app.Click(app.Find<Button>("Tab_changes"));
+        app.ShowTool("changes");
         Until(() => Buttons(app).Any(button => button.Name == "ChangesBranch"));
         var pill = app.Find<Button>("ScopeBranch");
         var flyout = (Flyout)pill.Flyout!;

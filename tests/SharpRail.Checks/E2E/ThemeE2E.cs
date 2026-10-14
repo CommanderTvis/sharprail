@@ -244,10 +244,10 @@ internal static class ThemeE2E
         app.Window.MouseMove(new Point(app.Window.Bounds.Width - 2, app.Window.Bounds.Height - 2));
         Settle();
 
-        var right = app.Window.Layout.State.Groups.First(group => group.Region == "right" && app.Window.Layout.Selected(group.Id) is not null);
         using var frame = app.Window.CaptureRenderedFrame()!;
         frame.Save(Path.Combine(Directory.GetCurrentDirectory(), ".bench", "theme-contrast-tabs.png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
-        foreach (var group in new[] { app.Center, right.Id, bottom.Id })
+        // Side tool panes show a title header rather than tab chrome, so only tabbed groups are measured.
+        foreach (var group in new[] { app.Center, bottom.Id })
         {
             var chrome = app.Window.Layout.Tabs(group).Select(tab => app.Find<Grid>("DockTab_" + tab.Id.Replace(':', '_').Replace('/', '_'))).ToArray();
             var selected = chrome.Where(tab => Marker(tab).IsVisible).ToArray();

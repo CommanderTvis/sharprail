@@ -12,8 +12,8 @@ internal sealed class SideGeometry
 
     public SideGeometry(DockState state, double width)
     {
-        left = state.LeftVisible && state.Groups.Any(group => group.Region == "left");
-        right = state.RightVisible && state.Groups.Any(group => group.Region == "right");
+        left = Shown(state, "left");
+        right = Shown(state, "right");
         outerLeft = left && state.BottomAlignment is not ("full" or "center-left");
         outerRight = right && state.BottomAlignment is not ("full" or "center-right");
         leftTarget = left ? state.LeftWidth : 0;
@@ -29,6 +29,10 @@ internal sealed class SideGeometry
         outerCollapsible = [.. outerLeft ? new[] { true } : [], false, .. outerRight ? new[] { true } : []];
         outer = Validate(outer, outerMinimums, outerCollapsible);
     }
+
+    /// <summary>Whether a side takes width: visible, with at least one unfolded pane. Folded panes live only on its rail.</summary>
+    public static bool Shown(DockState state, string side) => (side == "left" ? state.LeftVisible : state.RightVisible) &&
+        state.Groups.Any(group => group.Region == side && !group.Folded);
 
     public (double Left, double Center, double Right) Project() => Project(outer, null);
 

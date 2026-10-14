@@ -82,6 +82,8 @@ public sealed partial class DockSurface : Grid
     public DockSurface(LayoutSession session, Func<DockTab?, Control> renderContent)
     {
         Name = "WorkspaceWorkbench"; Session = session; this.renderContent = renderContent;
+        ColumnDefinitions = new ColumnDefinitions($"{RailWidth},*,{RailWidth}");
+        Grid.SetColumn(shell, 1); Grid.SetColumnSpan(overlay, 3);
         Children.Add(shell); Children.Add(overlay);
         Grid.SetColumn(centerRegion, 2); shell.Children.Add(centerRegion);
         foreach (var region in auxiliaryRegions.Values) shell.Children.Add(region);
@@ -90,7 +92,7 @@ public sealed partial class DockSurface : Grid
         {
             if (Drawers) return;
             if (!shell.GetLogicalDescendants().OfType<ResizeHandle>().Any(handle => handle.IsActive))
-                PreviewSides(new SideGeometry(Session.State, Bounds.Width).Project());
+                PreviewSides(new SideGeometry(GeometryState(), ShellWidth).Project());
         };
         Session.Changed += () => { CancelForLayoutChange(); if (!Retarget()) Rebuild(); };
         Session.ToolsChanged += RefreshTools;
@@ -99,7 +101,7 @@ public sealed partial class DockSurface : Grid
         {
             var resizing = CancelForLayoutChange();
             // Selecting another tool can hide Projects, which moves nested centre strips back to the column.
-            if (!resizing && selectionUpdates.TryGetValue(group, out var update) && CenterTabs?.Invoke() == renderedMode) update();
+            if (!resizing && selectionUpdates.TryGetValue(group, out var update) && CenterTabs?.Invoke() == renderedMode) { update(); RebuildRails(); }
             else Rebuild();
         };
         Rebuild();
@@ -122,7 +124,11 @@ public sealed partial class DockSurface : Grid
         renderedTools = Session.Tools;
         if (Session.State.Groups.SelectMany(group => Session.Tabs(group.Id)).Where(tab => tab.IsTool)
             .Any(tab => !Equals(previous.FirstOrDefault(tool => tool.Id == tab.Id), Session.Tool(tab.Id)))) Rebuild();
-        else foreach (var update in catalogUpdates) update();
+        else
+        {
+            foreach (var update in catalogUpdates) update();
+            RebuildRails(force: true);
+        }
     }
 
     public void Rebuild()
@@ -151,16 +157,18 @@ public sealed partial class DockSurface : Grid
         }
         shell.RowDefinitions.Clear(); shell.ColumnDefinitions.Clear();
         var state = Session.State;
-        if (Drawers) { RebuildDrawers(state); slide?.Invoke(); return; }
-        var widths = new SideGeometry(state, Bounds.Width).Project();
-        var left = state.LeftVisible && state.Groups.Any(group => group.Region == "left");
-        var right = state.RightVisible && state.Groups.Any(group => group.Region == "right");
-        var bottom = state.BottomVisible && state.Groups.Any(group => group.Region == "bottom");
-        shell.ColumnDefinitions.Add(new(left ? new GridLength(widths.Left, GridUnitType.Star) : new GridLength(28)));
+        if (Drawers) { RebuildDrawers(state); RebuildRails(); slide?.Invoke(); return; }
+        var geometry = GeometryState();
+        var widths = new SideGeometry(geometry, ShellWidth).Project();
+        // A side whose panes are all folded keeps only its rail, like a hidden one.
+        var left = SideGeometry.Shown(geometry, "left");
+        var right = SideGeometry.Shown(geometry, "right");
+        var bottom = geometry.BottomVisible && geometry.Groups.Any(group => group.Region == "bottom");
+        shell.ColumnDefinitions.Add(new(left ? new GridLength(widths.Left, GridUnitType.Star) : new GridLength(0)));
         shell.ColumnDefinitions.Add(new(new GridLength(left ? 1 : 0)));
         shell.ColumnDefinitions.Add(new(new GridLength(Math.Max(double.Epsilon, widths.Center), GridUnitType.Star)));
         shell.ColumnDefinitions.Add(new(new GridLength(right ? 1 : 0)));
-        shell.ColumnDefinitions.Add(new(right ? new GridLength(widths.Right, GridUnitType.Star) : new GridLength(28)));
+        shell.ColumnDefinitions.Add(new(right ? new GridLength(widths.Right, GridUnitType.Star) : new GridLength(0)));
         shell.RowDefinitions.Add(new(new GridLength(bottom ? 1 - state.BottomHeight : 1, GridUnitType.Star)));
         shell.RowDefinitions.Add(new(new GridLength(bottom ? 1 : 0)));
         shell.RowDefinitions.Add(new(new GridLength(bottom ? state.BottomHeight : 0, GridUnitType.Star)));
@@ -169,10 +177,8 @@ public sealed partial class DockSurface : Grid
         var start = includeLeft && left ? 0 : 2;
         var end = includeRight && right ? 4 : 2;
         centerRegion.Child = BuildCenter(state.Center);
-        if (left) PlaceAuxiliary(BuildAuxiliary("left"), "left", 0, bottom && includeLeft ? 1 : 3);
-        else PlaceRail("left", 0);
+        if (left) PlaceAuxiliary(Home ? BuildHomePane() : BuildAuxiliary("left"), "left", 0, bottom && includeLeft ? 1 : 3);
         if (right) PlaceAuxiliary(BuildAuxiliary("right"), "right", 4, bottom && includeRight ? 1 : 3);
-        else PlaceRail("right", 4);
         if (left) OuterSeparator("left", 1, bottom && includeLeft ? 1 : 3);
         if (right) OuterSeparator("right", 3, bottom && includeRight ? 1 : 3);
         if (bottom)
@@ -203,6 +209,7 @@ public sealed partial class DockSurface : Grid
             splitter.Name = "bottomSeparator";
             Ui.Place(shell, splitter, 1, start); Grid.SetColumnSpan(splitter, end - start + 1);
         }
+        RebuildRails();
         renderedStructure = Structure();
         NestedStripsChanged?.Invoke(nestedStrips);
     }
@@ -248,6 +255,7 @@ public sealed partial class DockSurface : Grid
         foreach (var (id, built) in builtGroups.ToArray())
             if (GroupSignature(id) == built.Signature) selectionUpdates[id]();
             else RebuildGroup(Session.Group(id), built);
+        RebuildRails();
         NestedStripsChanged?.Invoke(nestedStrips);
         return true;
     }
@@ -256,7 +264,7 @@ public sealed partial class DockSurface : Grid
     {
         var structure = Session.State.Copy();
         structure.Workspaces = []; structure.ActiveWorkspace = "";
-        return JsonSerializer.Serialize(structure);
+        return (Home ? "home:" : "") + JsonSerializer.Serialize(structure);
     }
 
     // Selection is left out: an unchanged group applies it through its selection update.
@@ -302,37 +310,12 @@ public sealed partial class DockSurface : Grid
         Grid.SetRow(frame, 0); Grid.SetColumn(frame, column); Grid.SetRowSpan(frame, span);
     }
 
-    private void PlaceRail(string region, int column)
-    {
-        var button = Ui.IconButton(region == "left" ? "layoutLeft" : "layoutRight", $"Show {region} side", () => Session.Visible(region, true));
-        button.Name = region + "RestoreRail";
-        button.Width = 24; button.Height = 24; button.Padding = new(0); button.CornerRadius = new(4);
-        button.VerticalAlignment = VerticalAlignment.Top;
-        button.HorizontalAlignment = HorizontalAlignment.Center;
-        ((Border)button.Content!).Width = 14; ((Border)button.Content!).Height = 14;
-        button.IsEnabled = Session.State.Groups.Any(group => group.Region == region);
-        var rail = new Border
-        {
-            Name = region + "HiddenSideRail",
-            Background = Ui.Sidebar,
-            Padding = new Thickness(0, 4),
-            BorderBrush = Ui.BorderBrush,
-            BorderThickness = region == "left" ? new Thickness(0, 0, 1, 0) : new Thickness(1, 0, 0, 0),
-            Child = button
-        };
-        ToolTip.SetTip(button, button.IsEnabled ? $"Show {region} side" : $"No {region} groups to show");
-        PlaceAuxiliary(rail, region, column, 3);
-        sites.Add((rail, "restore:" + region, false));
-    }
-
     private void OuterSeparator(string region, int column, int span)
     {
         var direction = region == "left" ? 1 : -1;
-        SideGeometry Geometry() => new(Session.State, Bounds.Width);
+        SideGeometry Geometry() => new(GeometryState(), ShellWidth);
         double Width((double Left, double Center, double Right) geometry) => region == "left" ? geometry.Left : geometry.Right;
-        double Extent() => Math.Max(1, Bounds.Width -
-            (Session.State.LeftVisible && Session.State.Groups.Any(group => group.Region == "left") ? 0 : 28) -
-            (Session.State.RightVisible && Session.State.Groups.Any(group => group.Region == "right") ? 0 : 28));
+        double Extent() => Math.Max(1, ShellWidth);
         var splitter = Separator(true,
             delta => PreviewSides(Geometry().Resize(region, delta / Extent())),
             delta => CommitSideWidth(region, Width(Geometry().Resize(region, delta / Extent()))), Rebuild);
@@ -340,7 +323,7 @@ public sealed partial class DockSurface : Grid
         splitter.ConfigureRange(() =>
         {
             var value = Width(Geometry().Project());
-            var opposite = region == "left" ? Session.State.RightWidth : Session.State.LeftWidth;
+            var opposite = region == "left" ? GeometryState().RightWidth : GeometryState().LeftWidth;
             var maximum = Math.Min(Math.Min(.7, 1 - opposite - 1e-6), Width(Geometry().Resize(region, direction)));
             return maximum < .08 ? (value, value, value) : (value, .08, maximum);
         }, value => CommitSideWidth(region, value));
@@ -349,24 +332,28 @@ public sealed partial class DockSurface : Grid
 
     private void CommitSideWidth(string region, double width)
     {
-        if (width <= double.Epsilon) { Session.Visible(region, false); return; }
-        var opposite = region == "left" ? Session.State.RightWidth : Session.State.LeftWidth;
+        // At Project Home the left side is its own Projects pane, whose width and visibility are its own.
+        var home = Home && region == "left";
+        if (width <= double.Epsilon) { if (home) Session.HomeProjects(false); else Session.Visible(region, false); return; }
+        var opposite = region == "left" ? GeometryState().RightWidth : GeometryState().LeftWidth;
         var available = Math.Max(double.Epsilon, 1 - opposite);
         var maximum = Math.Max(double.Epsilon, Math.Min(.7, available - Math.Min(1e-6, available / 2)));
         Session.Geometry(state =>
         {
             var value = Math.Clamp(width, Math.Min(.08, maximum), maximum);
-            if (region == "left") state.LeftWidth = value; else state.RightWidth = value;
+            if (home) state.HomeProjectsWidth = value;
+            else if (region == "left") state.LeftWidth = value;
+            else state.RightWidth = value;
         });
     }
 
     private void PreviewSides((double Left, double Center, double Right) widths)
     {
         if (shell.ColumnDefinitions.Count != 5 || Drawers) return;
-        if (Session.State.LeftVisible && Session.State.Groups.Any(group => group.Region == "left"))
+        if (SideGeometry.Shown(GeometryState(), "left"))
             shell.ColumnDefinitions[0].Width = new(widths.Left, GridUnitType.Star);
         shell.ColumnDefinitions[2].Width = new(Math.Max(double.Epsilon, widths.Center), GridUnitType.Star);
-        if (Session.State.RightVisible && Session.State.Groups.Any(group => group.Region == "right"))
+        if (SideGeometry.Shown(GeometryState(), "right"))
             shell.ColumnDefinitions[4].Width = new(widths.Right, GridUnitType.Star);
     }
 
@@ -440,6 +427,7 @@ public sealed partial class DockSurface : Grid
 
     private void FlushRefresh()
     {
+        if (railsPending) Dispatcher.UIThread.Post(() => { if (railsPending) RebuildRails(force: true); });
         if (rebuildPending) Dispatcher.UIThread.Post(() =>
         {
             if (!rebuildPending) return;

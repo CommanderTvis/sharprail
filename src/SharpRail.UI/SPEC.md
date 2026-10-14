@@ -198,7 +198,7 @@ including projects that are not currently open, so removed checkouts leave the P
 ## Global shortcuts
 
 The window handles app-wide chords before panels: Mod+O opens a project, Mod+N (and Mod+Alt+N) opens
-Start work, Mod+Shift+N opens a window, Mod+B toggles left, Mod+J toggles right, Mod+Shift+J
+Start work, Mod+Shift+N opens a window, Mod+B toggles left (at Project Home, its Projects pane), Mod+J toggles right, Mod+Shift+J
 toggles bottom (including from a focused terminal), Mod+Shift+F searches the workspace, and F5 refreshes.
 The search is a dialog (`Panels/SearchDialog.cs`) rather than a panel, because it is a question asked and
 dismissed: one query over the active worktree, results grouped by file with one row per matching line, and
@@ -336,13 +336,21 @@ menu. Abrupt death relies on operating-system process cleanup; remote shells bel
   snapshot and branch listing. New refreshes cancel superseded reads; updates retain the diff pane,
   scope, display mode and rendered scroll position without changing the docking layout.
 
+## Project Home
+
+Project Home shows its own collapsible Projects pane beside Welcome in place of the frame's left side
+([Docking/SPEC.md](Docking/SPEC.md#project-home)): the workbench's 40px left rail with one Projects
+entry and the plain pane header with Hide. No bottom region appears without a workspace, and Project
+Home reserves no terminal. Unlike upstream, the frame's right side stays, because the spec dialect's
+Specs tool reads the project at its home. Mod+B, the rail entry and Hide toggle the same pane;
+hiding moves focus to the rail entry and showing focuses the pane's header. Its visibility and width
+(`DockState.HomeProjectsVisible`, `HomeProjectsWidth`) are window-local and independent of the
+workspace frame's left side.
+
 ## Not yet ported
 
-- Project Home's independent collapsible Projects pane with the workbench's shared 40px left tool
-  rail and plain Hide header. No right or bottom rail appears without a workspace. Mod+B and the rail
-  toggle the same pane; hiding returns focus from the pane or separator to its rail control, and showing
-  restores the last tree control, active row or first tree control. Home visibility and remembered width
-  remain independent of the workspace frame.
+- Showing Project Home's Projects pane restores focus to the pane header, not yet to the last tree
+  control, active row or first tree control inside it.
 - Capability-gated Settle / Keep active in the shared workspace actions, a `Settled · N` submenu with
   reason chips after live siblings, and a warning-tone `Workspace · settled` caption for a settled
   selection. The rail and switcher must consume the same partition, sort and 30-second clock; hosts

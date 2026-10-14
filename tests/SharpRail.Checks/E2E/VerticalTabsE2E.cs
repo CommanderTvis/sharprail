@@ -84,7 +84,7 @@ internal static class VerticalTabsE2E
                 Control<CheckBox>(settings, "VerticalCenterTabs").IsChecked = true;
                 Control<CheckBox>(settings, "VerticalTabsInProjects").IsChecked = true;
             });
-            app.Click(app.Find<Button>("Tab_projects"));
+            app.ShowTool("projects");
             app.Window.Layout.NewTerminal(app.Center);
             var workspace = app.Window.WorkspaceRoot;
             var terminal = app.Tabs.Last(tab => tab.Kind == "terminal");
@@ -141,7 +141,7 @@ internal static class VerticalTabsE2E
                 Control<CheckBox>(settings, "VerticalCenterTabs").IsChecked = true;
                 Control<CheckBox>(settings, "VerticalTabsInProjects").IsChecked = true;
             });
-            app.Click(app.Find<Button>("Tab_projects"));
+            app.ShowTool("projects");
             var center = app.Center;
             Require(app.Window.Layout.NewGroup(center, "after"), "A second center group is created.");
             var other = app.Window.Layout.State.Center.Leaves().Single(group => group != center);
@@ -270,7 +270,7 @@ internal static class VerticalTabsE2E
         Case("the column can live in Projects under its workspace, and comes back when Projects is hidden", app =>
         {
             app.Open("README.md", true);
-            app.Click(app.Find<Button>("Tab_projects"));
+            app.ShowTool("projects");
             SetLayout(app, settings =>
             {
                 Control<CheckBox>(settings, "VerticalCenterTabs").IsChecked = true;

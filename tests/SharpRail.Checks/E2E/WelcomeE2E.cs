@@ -110,7 +110,7 @@ internal static class WelcomeE2E
         settings.GetLogicalDescendants().OfType<CheckBox>().Single(box => box.Name == "VerticalCenterTabs").IsChecked = true;
         settings.GetLogicalDescendants().OfType<CheckBox>().Single(box => box.Name == "VerticalTabsInProjects").IsChecked = true;
         settings.Close(); Until(() => !settings.IsVisible);
-        app.Click(app.Find<Button>("Tab_projects"));
+        app.ShowTool("projects");
         _ = app.Workbench.State.ChangeAsync(SharpRail.Host.Abstractions.HostStateChange.PluginEnabled("codex", true));
         var rail = app.Window.GetLogicalDescendants().OfType<ContentControl>()
             .Single(host => host.Name == "WorkspaceTabs" && Equals(host.Tag, plain));

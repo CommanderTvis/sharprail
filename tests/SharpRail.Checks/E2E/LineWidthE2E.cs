@@ -35,7 +35,7 @@ internal static class LineWidthE2E
         File.WriteAllText(Path.Combine(directory, "LONG_LINE.txt"), "changed " + longLine);
         var refresh = app.Window.RefreshAsync();
         Until(() => refresh.IsCompleted); refresh.GetAwaiter().GetResult();
-        app.Click(app.Find<Button>("Tab_changes"));
+        app.ShowTool("changes");
         Until(() => app.Find<Control>("ChangesPanel").GetLogicalDescendants().OfType<Button>()
             .Any(button => AutomationProperties.GetName(button) == "LONG_LINE.txt"));
         app.Click(app.Find<Control>("ChangesPanel").GetLogicalDescendants().OfType<Button>()

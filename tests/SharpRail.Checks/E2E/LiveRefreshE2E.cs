@@ -50,14 +50,14 @@ internal static class LiveRefreshE2E
     {
         var (app, worktree) = OpenSample(root, "live-panels", source);
         using var _ = app;
-        app.Click(app.Find<Button>("Tab_plugin_spec-dialect_specs"));
+        app.ShowTool("plugin:spec-dialect:specs");
         Until(() => HasSpec(app, "Sample Project"));
         Directory.CreateDirectory(Path.Combine(worktree, "module-live"));
         File.WriteAllText(Path.Combine(worktree, "module-live", "SPEC.md"),
             "---\nid: sample-live\ntype: module-design\ntitle: Live Module\nparent: sample-root\n---\n\n## Responsibility\n\nWritten on disk mid-session by the e2e suite.\n");
         Until(() => HasSpec(app, "Live Module"));
 
-        app.Click(app.Find<Button>("Tab_files"));
+        app.ShowTool("files");
         Until(() => HasFile(app, "README.md"));
         File.WriteAllText(Path.Combine(worktree, "fresh-file.txt"), "hello\n");
         Until(() => HasFile(app, "fresh-file.txt"));
@@ -83,7 +83,7 @@ internal static class LiveRefreshE2E
         Until(() => !Paths(app).Contains("README.md"));
         PickScope(app, "All changes");
 
-        app.Click(app.Find<Button>("Tab_files"));
+        app.ShowTool("files");
         app.Click(app.FileRow("README.md"), twice: true);
         Until(() => PreviewText(app).Contains("edited twice by e2e", StringComparison.Ordinal));
         ShowChanges(app);
@@ -119,7 +119,7 @@ internal static class LiveRefreshE2E
     {
         var (app, worktree) = OpenSample(root, "live-storm", source);
         using var _ = app;
-        app.Click(app.Find<Button>("Tab_files"));
+        app.ShowTool("files");
         Until(() => HasFile(app, "README.md"));
         Settle(1200);
         var before = app.Window.WatchRefreshes;
@@ -156,7 +156,7 @@ internal static class LiveRefreshE2E
         using var _ = app;
         var path = Path.Combine(worktree, "live.txt");
         File.WriteAllText(path, "first version\n");
-        app.Click(app.Find<Button>("Tab_files"));
+        app.ShowTool("files");
         Until(() => HasFile(app, "live.txt"));
         app.Click(app.FileRow("live.txt"), twice: true);
         Until(() => app.Window.GetLogicalDescendants().OfType<ScintillaEditor>().Any(editor => editor.IsEffectivelyVisible && editor.Text.Contains("first version", StringComparison.Ordinal)));

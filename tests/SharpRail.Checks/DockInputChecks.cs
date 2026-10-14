@@ -24,6 +24,76 @@ internal static class DockInputChecks
         if (!value) throw new InvalidOperationException(message);
     }
 
+    // Upstream layout SPEC "Auxiliary presentation and recall" and Project Home's own Projects pane.
+    private static void RailChecks(WorkbenchWindow window, Func<string, Control> find)
+    {
+        T Find<T>(string name) where T : Control => (T)find(name);
+        var command = OperatingSystem.IsMacOS() ? RawInputModifiers.Meta : RawInputModifiers.Control;
+        void Pump(Func<bool> done, string message)
+        {
+            var until = Awake.Now.AddSeconds(15);
+            while (!done() && Awake.Now < until)
+            {
+                using var stop = new CancellationTokenSource(10);
+                Dispatcher.UIThread.MainLoop(stop.Token); window.UpdateLayout();
+            }
+            Require(done(), message);
+        }
+        IFocusManager Focus() => TopLevel.GetTopLevel(window)!.FocusManager!;
+        window.Layout.ApplyPreset(DockState.Preset("balanced"));
+        var right = window.Layout.State.Groups.Where(group => group.Region == "right").ToArray();
+        var rail = Find<StackPanel>("rightRailEntries");
+        var clusters = rail.Children.OfType<StackPanel>().ToArray();
+        Require(clusters.Select(cluster => cluster.Name).SequenceEqual(right.Select(group => "RailCluster_" + group.Id)) &&
+            clusters[0].GetLogicalDescendants().OfType<Button>().Select(button => button.Name).SequenceEqual(new[] { "Tab_plugin_spec-dialect_specs", "Tab_files" }) &&
+            rail.GetLogicalDescendants().OfType<Button>().Count(button => Equals(button.Tag, "pressed")) == right.Length,
+            "The rail must mirror its panes as separated clusters, with exactly one pressed entry per expanded pane.");
+        window.Layout.Close(right[1].Id, "review");
+        var unplaced = Find<Button>("RailUnplaced_review");
+        Require(unplaced.Content is Border { Background: var dimmed } && ReferenceEquals(dimmed, Ui.Hint) && Find<StackPanel>("rightRailEntries").Children.IndexOf(unplaced.GetLogicalAncestors().OfType<Grid>().First()) >
+            Find<StackPanel>("rightRailEntries").Children.IndexOf(Find<StackPanel>("RailCluster_" + right[1].Id)),
+            "A tool placed nowhere must sit dimmed in a trailing cluster.");
+        unplaced.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Pump(() => window.Layout.Group(right[1].Id).Tools.Any(tab => tab.Id == "review") && window.Layout.Selected(right[1].Id)?.Id == "review",
+            "Activating an unplaced tool must restore it to its recorded pane.");
+        var files = Find<Button>("Tab_files");
+        files.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Pump(() => window.Layout.Selected(right[0].Id)?.Id == "files" && Equals(Find<Button>("Tab_files").Tag, "pressed"),
+            "An unpressed entry must select its tool in its pane.");
+        Find<Button>("Tab_files").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Pump(() => window.Layout.Group(right[0].Id).Folded && Find<Button>("Tab_files").IsFocused &&
+            !window.GetLogicalDescendants().OfType<Grid>().Any(grid => grid.Name == "GroupHeader_" + right[0].Id),
+            "The pressed entry must fold its pane, which keeps no interior strip, and focus must stay on the entry.");
+        Find<Button>("Tab_files").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Pump(() => !window.Layout.Group(right[0].Id).Folded && Find<Grid>("GroupHeader_" + right[0].Id).IsFocused,
+            "Unfolding through the rail must return focus to the pane.");
+
+        // Mod+B hides the left side onto its rail and brings it back with focus in the pane.
+        Find<Grid>("GroupHeader_" + window.Layout.State.Groups.Single(group => group.Region == "left").Id).Focus();
+        window.KeyPress(Key.B, command, PhysicalKey.B, null);
+        Pump(() => !window.Layout.State.LeftVisible && Find<Button>("Tab_projects").IsFocused, "Mod+B must hide the left side and focus its rail entry.");
+        window.KeyPress(Key.B, command, PhysicalKey.B, null);
+        Pump(() => window.Layout.State.LeftVisible && Focus().GetFocusedElement() is Grid { Name: var name } && name!.StartsWith("GroupHeader_", StringComparison.Ordinal),
+            "Mod+B must show the left side again and focus its pane.");
+
+        // Project Home has its own Projects pane: the same rail entry and Hide, its own visibility, and Mod+B.
+        var home = window.OpenProjectHomeAsync(window.ProjectRoot);
+        Pump(() => home.IsCompleted && window.AtProjectHome && window.GetLogicalDescendants().Any(item => item is Grid { Name: "HomeProjectsPane" }),
+            "Project Home must show its own Projects pane.");
+        Require(!window.GetLogicalDescendants().Any(item => item is Grid { Name: "AuxiliaryStack_bottom" or "AuxiliaryStack_left" }) &&
+            Find<StackPanel>("leftRailEntries").GetLogicalDescendants().OfType<Button>().Select(button => button.Name).SequenceEqual(new[] { "Tab_projects" }) &&
+            Equals(Find<Button>("Tab_projects").Tag, "pressed") && window.Layout.View.Documents.Values.All(tabs => tabs.Count == 0),
+            "Project Home shows its own Projects pane and rail entry instead of the frame's left side and bottom, and starts no terminal.");
+        var leftVisible = window.Layout.State.LeftVisible;
+        Find<Button>("HidePane_home").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Pump(() => !window.Layout.State.HomeProjectsVisible && !window.GetLogicalDescendants().Any(item => item is Grid { Name: "HomeProjectsPane" }) &&
+            Find<Button>("Tab_projects").IsFocused && window.Layout.State.LeftVisible == leftVisible,
+            "Hide must collapse Project Home's pane onto its rail without touching the workspace frame.");
+        window.KeyPress(Key.B, command, PhysicalKey.B, null);
+        Pump(() => window.Layout.State.HomeProjectsVisible && Find<Grid>("HomeProjectsHeader").IsFocused, "Mod+B must restore Project Home's pane and focus it.");
+        Console.WriteLine("PASS edge rails mirror panes, fold/unfold focus, unplaced tools, Mod+B and Project Home's Projects pane");
+    }
+
     internal static void Run(string root)
     {
         var window = new WorkbenchWindow(new ProjectServices(root), root, new ProfileStore(root + "-dock-input"), E2E.E2eTerminals.Plain);
@@ -55,27 +125,30 @@ internal static class DockInputChecks
         Require(terminalButtons == window.Layout.State.Groups.Count(group => !group.Folded && window.Layout.Selected(group.Id)?.IsTool != true),
             "Only resource and empty views must offer terminal creation.");
         var projectsGroup = window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "projects")).Id;
-        Require(!Find<Button>("NewTerminal_" + projectsGroup).IsVisible, "Projects must not show a terminal opener.");
+        Require(!window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "NewTerminal_" + projectsGroup) &&
+            window.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "PaneTitle" && text.Text == "Projects") && Find<Button>("HidePane_" + projectsGroup).IsVisible,
+            "A tool pane shows a plain title header with Hide and no terminal opener.");
         window.Layout.NewTerminal(projectsGroup);
-        var terminalTab = window.Layout.Selected(projectsGroup)!;
-        Require(Find<Button>("NewTerminal_" + projectsGroup).IsVisible, "A terminal in a side group must offer terminal creation.");
-        window.Layout.Select(projectsGroup, "projects");
-        Require(!Find<Button>("NewTerminal_" + projectsGroup).IsVisible, "Selecting Projects in a mixed group must hide terminal creation.");
-        window.Layout.Select(projectsGroup, terminalTab.Id);
-        Require(Find<Button>("NewTerminal_" + projectsGroup).IsVisible, "Selecting a terminal in a mixed group must restore terminal creation.");
-        window.Layout.Close(projectsGroup, terminalTab.Id);
+        var terminalPane = window.Layout.View.FocusedGroup;
+        var leftPanes = window.Layout.State.Groups.Where(group => group.Region == "left").Select(group => group.Id).ToList();
+        Require(terminalPane != projectsGroup && leftPanes.IndexOf(terminalPane) == leftPanes.IndexOf(projectsGroup) + 1 &&
+            Find<Button>("NewTerminal_" + terminalPane).IsVisible && window.Layout.Tabs(projectsGroup).All(tab => tab.IsTool),
+            "New terminal from a tool pane must create a terminal pane directly below it.");
+        window.Layout.Close(terminalPane, window.Layout.Selected(terminalPane)!.Id);
+        Require(window.Layout.RemoveGroup(terminalPane), "The emptied terminal pane must merge back.");
         foreach (var group in window.Layout.State.Groups.Where(group => !group.Folded && group.Region is "left" or "right"))
         {
             var add = Find<Button>("AddToGroup_" + group.Id);
             IEnumerable<DockToolInfo> Hidden() => window.Layout.Tools.Where(tool => tool.Region == group.Region &&
                 !window.Layout.State.Groups.Any(pane => pane.Tools.Any(tab => tab.Id == tool.Id)));
-            Require(add.IsVisible == Hidden().Any(), "Add is visible exactly when this side has an unplaced tool.");
+            Require(add.IsVisible == (group.Tools.Count > 0 || Hidden().Any()), "Add is visible when it has a tool to show or a terminal pane to create.");
             if (!add.IsVisible) continue;
             add.ContextMenu!.Open(add);
             Dispatcher.UIThread.RunJobs();
-            Require(add.ContextMenu.Items.OfType<MenuItem>().Select(item => item.Name)
-                .SequenceEqual(Hidden().Select(tool => "ShowTool_" + tool.Id.Replace(':', '_'))),
-                "Add offers the current catalogue without duplicating already-placed singleton tools.");
+            Require(add.ContextMenu.Items.OfType<MenuItem>().Select(item => item.Name).Where(name => name?.StartsWith("ShowTool_", StringComparison.Ordinal) == true)
+                .SequenceEqual(Hidden().Select(tool => "ShowTool_" + tool.Id.Replace(':', '_'))) &&
+                add.ContextMenu.Items.OfType<MenuItem>().Any(item => item.Name == "NewTerminalBelow_" + group.Id) == group.Tools.Count > 0,
+                "Add offers the current catalogue without duplicating already-placed singleton tools, and a tool pane a terminal pane below.");
             add.ContextMenu.Close();
         }
         foreach (var (value, label) in new[]
@@ -150,16 +223,16 @@ internal static class DockInputChecks
         window.MouseDown(projectsPoint, MouseButton.Right); window.MouseUp(projectsPoint, MouseButton.Right);
         Dispatcher.UIThread.RunJobs();
         Require(projects.ContextMenu!.IsOpen && projects.ContextMenu.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Move to pane"))
-            .Items.OfType<MenuItem>().Any(item => Equals(item.Header, "right: Files")),
-            "Move menu retained a destination's old selected-tab label.");
+            .Items.OfType<MenuItem>().Any(item => Equals(item.Header, "right pane (Specs, Files)")),
+            "Move menu must name a destination pane by its contents.");
         projects.ContextMenu.Close();
         var insertionFrom = Bounds(Find<Button>("Tab_files")).Center;
         var insertionTo = Bounds(Find<Button>("Tab_projects")).TopLeft + new Vector(16, 16);
         window.MouseDown(insertionFrom, MouseButton.Left); window.MouseMove(insertionTo);
         var insertionHints = Find<DockSurface>("WorkspaceWorkbench").Children.OfType<Canvas>().Single().Children.OfType<Border>().ToArray();
-        Require(insertionHints.Any(item => item.Width == 2 && item.BorderThickness == new Thickness(0) &&
+        Require(insertionHints.Any(item => item.Height == 2 && item.BorderThickness == new Thickness(0) &&
             item.CornerRadius == new CornerRadius(0) && ReferenceEquals(item.Background, Ui.Accent)),
-            "Tab insertion must show a solid square 2px primary line, not a pane drop rectangle.");
+            "Rail entry insertion must show a solid square 2px primary line, not a pane drop rectangle.");
         window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
         window.MouseUp(insertionTo, MouseButton.Left);
         var projectsPane = window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "projects"));
@@ -171,16 +244,15 @@ internal static class DockInputChecks
         var headerInSurface = new Rect(window.TranslatePoint(projectsHeader.TopLeft, dockSurface)!.Value, projectsHeader.Size).Inflate(1);
         var appendHints = dockSurface.Children.OfType<Canvas>().Single().Children.OfType<Border>()
             .Where(item => headerInSurface.Contains(new Rect(Canvas.GetLeft(item), Canvas.GetTop(item), item.Width, item.Height))).ToArray();
-        Require(appendHints.Length == 1 && appendHints[0].Width == 2 && ReferenceEquals(appendHints[0].Background, Ui.Accent) &&
-            !appendHints.Any(item => item.Width >= projectsHeader.Width || item.Width == 20),
-            $"Empty strip space must show only the insertion line after the last tab, with no strip frame or append block: {string.Join("; ", appendHints.Select(item => $"{Canvas.GetLeft(item)},{Canvas.GetTop(item)} {item.Width}x{item.Height} bg={item.Background}"))} header={projectsHeader}.");
+        Require(appendHints.Length == 1 && Math.Abs(appendHints[0].Width - projectsHeader.Width) < 2 && appendHints[0].BorderThickness == new Thickness(2),
+            $"A tool pane's header is one join target outlined as a whole: {string.Join("; ", appendHints.Select(item => $"{Canvas.GetLeft(item)},{Canvas.GetTop(item)} {item.Width}x{item.Height} bg={item.Background}"))} header={projectsHeader}.");
         window.MouseUp(appendPoint, MouseButton.Left); Dispatcher.UIThread.RunJobs();
-        Require(window.Layout.Group(projectsPane.Id).Tools.Last().Id == "files", "Dropping on trailing header space did not append the tool.");
+        Require(window.Layout.Group(projectsPane.Id).Tools.Last().Id == "files", $"Dropping on trailing header space did not append the tool: {string.Join(" | ", window.Layout.State.Groups.Select(g => g.Region + ":" + string.Join(",", window.Layout.Tabs(g.Id).Select(t => t.Id))))} pane={projectsPane.Id}");
         var dragCount = 0;
         void Drag(string tab, Point to)
         {
             var source = Bounds(Find<Button>("Tab_" + tab.Replace(':', '_')));
-            var from = new Point(source.Left + (dragCount++ % 2 == 0 ? 16 : 36), source.Center.Y);
+            var from = new Point(source.Center.X + (dragCount++ % 2 == 0 ? -4 : 4), source.Center.Y);
             window.MouseDown(from, MouseButton.Left); window.MouseMove(from + new Vector(10, 10));
             Require(Find<DockSurface>("WorkspaceWorkbench").IsDragging, "Pointer input did not start a drag draft.");
             window.MouseMove(to); window.MouseUp(to, MouseButton.Left); Dispatcher.UIThread.RunJobs();
@@ -189,10 +261,14 @@ internal static class DockInputChecks
         window.Layout.ApplyPreset(DockState.Preset("balanced"));
         var fallbackGroup = window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == DockState.SpecsTool));
         var fallbackTab = Bounds(Find<Button>("Tab_plugin_spec-dialect_specs"));
-        Drag(DockState.SpecsTool, new Point(fallbackTab.Left + 16, fallbackTab.Center.Y));
+        var fallbackEpoch = window.Layout.Epoch;
+        Drag(DockState.SpecsTool, new Point(fallbackTab.Center.X, fallbackTab.Top + 4));
+        Require(window.Layout.Epoch == fallbackEpoch && window.Layout.Group(fallbackGroup.Id).Tools.Select(tab => tab.Id).SequenceEqual(new[] { DockState.SpecsTool, "files" }),
+            "A rail entry's own insertion halves are no-ops that paint and commit nothing.");
+        Drag(DockState.SpecsTool, new Point(Bounds(Find<Button>("Tab_files")).Center.X, Bounds(Find<Button>("Tab_files")).Bottom - 4));
         Require(window.Layout.Group(fallbackGroup.Id).Tools.Select(tab => tab.Id).SequenceEqual(new[] { "files", DockState.SpecsTool }) &&
             window.Layout.State.Groups.Count(group => group.Region == "right") == 2,
-            "A disabled self-insertion target must fall back to the legal enclosing header append rather than creating a neighboring group.");
+            "An entry's lower half must reorder within its pane without creating a neighbouring group.");
         window.Width = 2200; window.Height = 920;
         window.Layout.ApplyPreset(DockState.Preset("balanced"));
         window.Layout.Geometry(state =>
@@ -207,8 +283,7 @@ internal static class DockInputChecks
         window.MouseMove(compactHeader.Center);
         var compactHighlights = Find<DockSurface>("WorkspaceWorkbench").Children.OfType<Canvas>().Single().Children.OfType<Border>()
             .Where(item => item.Background is Avalonia.Media.SolidColorBrush { Color.A: 51 }).ToArray();
-        Require(compactHighlights.Length == 1 && compactHighlights[0].Height > 32 &&
-            compactHighlights[0].Width < compactHeader.Width,
+        Require(compactHighlights.Length == 1 && compactHighlights[0].Height > 32 && compactHighlights[0].Width < compactHeader.Width,
             "Overlapping compact-pane targets must emphasize the nearer creation target rather than the entire header.");
         window.MouseUp(compactHeader.Center, MouseButton.Left); Dispatcher.UIThread.RunJobs();
         Require(window.Layout.State.Groups.Where(group => group.Region == "right").First().Tools.Single().Id == "projects" &&
@@ -230,6 +305,7 @@ internal static class DockInputChecks
                     $"Pointer {region} {(before ? "before" : "after")} insertion chose the wrong destination.");
             }
         var bottomFixture = window.Layout.State.Copy();
+        // A folded side pane lives only on its rail: its cluster boundaries create neighbours, its entries join it.
         foreach (var region in new[] { "left", "right" })
             foreach (var before in new[] { true, false })
             {
@@ -237,14 +313,15 @@ internal static class DockInputChecks
                 var group = window.Layout.State.Groups.First(item => item.Region == region);
                 var originalCount = window.Layout.State.Groups.Count(item => item.Region == region);
                 var source = window.Layout.State.Groups.First(item => item.Region != region && item.Tools.Count > 0).Tools[0].Id;
-                window.Layout.Fold(group.Id);
-                var header = Find<Grid>("GroupHeader_" + group.Id);
-                var frame = Bounds((Grid)header.Parent!.Parent!);
-                Drag(source, new Point(frame.Center.X, before ? frame.Top + 6 : frame.Bottom - 6));
+                window.Layout.HidePane(group.Id);
+                Require(!window.GetLogicalDescendants().OfType<Grid>().Any(item => item.Name == "GroupHeader_" + group.Id),
+                    "A folded side pane must occupy no interior strip.");
+                var zone = Bounds(Find<Border>($"RailBoundary_{region}_{(before ? 0 : 1)}"));
+                Drag(source, zone.Center);
                 var groups = window.Layout.State.Groups.Where(item => item.Region == region).ToArray();
                 Require(groups.Length == originalCount + 1 && groups[before ? 0 : 1].Tools.Any(tab => tab.Id == source) &&
                     window.Layout.Group(group.Id).Folded,
-                    "Folded side creation must insert a neighbor while preserving the folded destination.");
+                    "A rail boundary must insert a neighbour while preserving the folded pane.");
             }
         foreach (var region in new[] { "left", "right" })
             foreach (var limited in new[] { false, true })
@@ -255,13 +332,18 @@ internal static class DockInputChecks
                 var group = window.Layout.State.Groups.First(item => item.Region == region);
                 var originalCount = window.Layout.State.Groups.Count(item => item.Region == region);
                 var source = window.Layout.State.Groups.First(item => item.Region != region && item.Tools.Count > 0).Tools[0].Id;
-                window.Layout.Fold(group.Id);
-                var header = Find<Grid>("GroupHeader_" + group.Id);
-                var frame = Bounds((Grid)header.Parent!.Parent!);
-                Drag(source, limited ? new Point(frame.Center.X, frame.Top + 6) : new Point(frame.Left + 2, frame.Center.Y));
+                window.Layout.HidePane(group.Id);
+                var entry = Bounds(Find<Button>("Tab_" + group.Tools[0].Id.Replace(':', '_')));
+                if (limited)
+                {
+                    var epochBefore = window.Layout.Epoch;
+                    Drag(source, Bounds(Find<Border>($"RailBoundary_{region}_0")).Center);
+                    Require(window.Layout.Epoch == epochBefore, "A boundary beyond the group limit must accept nothing.");
+                }
+                Drag(source, new Point(entry.Center.X, entry.Bottom - 4));
                 Require(window.Layout.State.Groups.Count(item => item.Region == region) == originalCount &&
-                    window.Layout.Group(group.Id).Tools.Any(tab => tab.Id == source),
-                    "Folded side margins and group limits must preserve joining without creating a neighbor.");
+                    window.Layout.Group(group.Id).Tools.Any(tab => tab.Id == source) && !window.Layout.Group(group.Id).Folded,
+                    "Dropping on a folded pane's entry must join it and unfold it in the same transition.");
             }
         window.Layout.ApplyPreset(bottomFixture);
         var folded = window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "review"));
@@ -294,10 +376,13 @@ internal static class DockInputChecks
             "The inner right half of a folded bottom pane must create a trailing group.");
         window.Layout.ApplyPreset(DockState.Preset("balanced"));
         var foldedBottom = window.Layout.State.Groups.Single(group => group.Region == "bottom");
+        // The bottom pane shows the workspace's terminal, so only another terminal may join it.
+        window.Layout.NewTerminal(window.Layout.State.Center.Leaves().Single());
+        var joiningTerminal = window.Layout.View.Selected[window.Layout.State.Center.Leaves().Single()];
         window.Layout.Fold(foldedBottom.Id);
         var foldedFrame = Bounds(Find<Border>("FoldedDockGroup_" + foldedBottom.Id));
         var foldedPoint = new Point(foldedFrame.Left + 2, foldedFrame.Top + 16);
-        var filesPoint = Bounds(Find<Button>("Tab_files")).Center;
+        var filesPoint = Bounds(Find<Button>("Tab_" + joiningTerminal.Replace(':', '_'))).Center;
         window.MouseDown(filesPoint, MouseButton.Left); window.MouseMove(foldedPoint);
         var foldedHint = Find<DockSurface>("WorkspaceWorkbench").Children.OfType<Canvas>().Single().Children.OfType<Border>()
             .Single(item => item.Width == foldedFrame.Width && item.Height == foldedFrame.Height);
@@ -305,7 +390,7 @@ internal static class DockInputChecks
             foldedHint.Background is Avalonia.Media.SolidColorBrush { Color.A: 51 },
             "The whole folded bottom frame, including its alignment button, must show an active background-only hint.");
         window.MouseUp(foldedPoint, MouseButton.Left); Dispatcher.UIThread.RunJobs();
-        Require(window.Layout.Group(foldedBottom.Id).Tools.Any(tab => tab.Id == "files") && !window.Layout.Group(foldedBottom.Id).Folded,
+        Require(window.Layout.Tabs(foldedBottom.Id).Any(tab => tab.Id == joiningTerminal) && !window.Layout.Group(foldedBottom.Id).Folded,
             "Dropping over the folded alignment button must join and unfold that pane.");
         foreach (var limited in new[] { false, true })
         {
@@ -316,8 +401,8 @@ internal static class DockInputChecks
             var frame = Bounds(Find<Border>("FoldedDockGroup_" + group.Id));
             Drag("files", new Point(frame.Left + 6, frame.Center.Y));
             var bottomGroups = window.Layout.State.Groups.Where(item => item.Region == "bottom").ToArray();
-            Require(bottomGroups.Length == (limited ? 1 : 2) && bottomGroups[0].Tools.Any(tab => tab.Id == "files"),
-                "Folded left-half drops must create before the pane, or join it when the group limit prevents creation.");
+            Require(bottomGroups.Length == (limited ? 1 : 2) && bottomGroups[0].Tools.Any(tab => tab.Id == "files") != limited,
+                "Folded left-half drops must create before the pane; at the group limit a tool cannot join a terminal pane.");
         }
         window.Layout.ApplyPreset(DockState.Preset("balanced"));
         window.Layout.Geometry(state => state.SideLimit = 1);
@@ -327,7 +412,7 @@ internal static class DockInputChecks
         Drag("review", new Point(bounds.Center.X, bounds.Top + 20));
         Require(window.Layout.Epoch == epoch && window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "review")).Region == "right",
             "Side limit rejected target still committed a pointer drop.");
-        Require(AutomationProperties.GetName(Find<Button>("FoldRestore_" + window.Layout.State.Groups.First(group => group.Region == "right").Id)) == "Fold pane",
+        Require(AutomationProperties.GetName(Find<Button>("HidePane_" + window.Layout.State.Groups.First(group => group.Region == "right").Id)) == "Hide",
             "Icon-only pane control has no accessible name.");
         window.Layout.ApplyPreset(DockState.Preset("balanced"));
         var surface = Find<DockSurface>("WorkspaceWorkbench");
@@ -400,7 +485,7 @@ internal static class DockInputChecks
                 window.Layout.Visible("bottom", false);
                 var source = region == "left" ? "files" : "projects";
                 window.Layout.Visible(region, false);
-                var hiddenRailBounds = Bounds(Find<Border>(region + "HiddenSideRail"));
+                var hiddenRailBounds = Bounds(Find<Border>(region + "Rail"));
                 Drag(source, new Point(hiddenRailBounds.Center.X, hiddenRailBounds.Bottom - 8));
                 Require(window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == source)).Region == region &&
                     !window.Layout.State.BottomVisible,
@@ -411,23 +496,24 @@ internal static class DockInputChecks
             window.Layout.ApplyPreset(DockState.Preset("balanced"));
             var tab = window.Layout.State.Groups.First(group => group.Region != region && group.Tools.Count > 0).Tools[0].Id;
             window.Layout.Visible(region, false);
-            var hiddenRail = Find<Border>(region + "HiddenSideRail");
-            var restoreButton = Find<Button>(region + "RestoreRail");
-            Require(Bounds(hiddenRail).Width == 28 && Bounds(hiddenRail).Height == Bounds(surface).Height &&
-                restoreButton.Bounds.Size == new Size(24, 24) && ((Border)restoreButton.Content!).Bounds.Size == new Size(14, 14),
-                "Hidden side rail must expose the reference's full-height 28px strip and 24px restore button with a 14px icon.");
-            var destination = Bounds(Find<Button>(region + "RestoreRail")).Center;
+            var hiddenRail = Find<Border>(region + "Rail");
+            var firstEntry = hiddenRail.GetLogicalDescendants().OfType<Button>().First();
+            Require(Bounds(hiddenRail).Width == 40 && Bounds(hiddenRail).Height == Bounds(surface).Height &&
+                firstEntry.Bounds.Size == new Size(32, 32) && !hiddenRail.GetLogicalDescendants().OfType<Button>().Any(button => Equals(button.Tag, "pressed")),
+                "A hidden side keeps its full-height 40px rail with 32px entries, none of them pressed.");
+            var destination = new Point(Bounds(hiddenRail).Center.X, Bounds(hiddenRail).Bottom - 40);
             Drag(tab, destination);
             Require((region == "left" ? window.Layout.State.LeftVisible : window.Layout.State.RightVisible) &&
                 window.Layout.State.Groups.Single(group => group.Tools.Any(item => item.Id == tab)).Region == region,
                 "Hidden-side drop did not restore its destination region.");
             window.Layout.Visible(region, false);
-            destination = Bounds(Find<Button>(region + "RestoreRail")).Center;
+            destination = Bounds(Find<Border>(region + "Rail").GetLogicalDescendants().OfType<Button>().First()).Center;
             window.MouseDown(destination, MouseButton.Left); window.MouseUp(destination, MouseButton.Left);
             Require(region == "left" ? window.Layout.State.LeftVisible : window.Layout.State.RightVisible,
-                "Hidden side restore button did not reveal its region.");
+                "A hidden side's rail entry did not reveal its region.");
         }
-        window.Width = 1600; window.Height = 1000;
+        // The two 40px rails sit outside the frame's ratios, so the frame here is 1600px wide.
+        window.Width = 1680; window.Height = 1000;
         foreach (var alignment in new[] { "center", "full", "center-left", "center-right" })
             foreach (var region in new[] { "left", "right" })
             {
@@ -440,7 +526,7 @@ internal static class DockInputChecks
                 var initial = region == "left" ? window.Layout.State.LeftWidth : window.Layout.State.RightWidth;
                 var untouched = region == "left" ? window.Layout.State.RightWidth : window.Layout.State.LeftWidth;
                 var epochBefore = window.Layout.Epoch;
-                var destination = start + new Vector((region == "left" ? 1 : -1) * (.65 - initial) * workbench.Bounds.Width, 0);
+                var destination = start + new Vector((region == "left" ? 1 : -1) * (.65 - initial) * (workbench.Bounds.Width - 80), 0);
                 window.MouseDown(start, MouseButton.Left); window.MouseMove(destination);
                 Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
                 var pinned = alignment == (region == "left" ? "center-left" : "center-right");
@@ -455,8 +541,8 @@ internal static class DockInputChecks
                 Require(window.Layout.Epoch == epochBefore && window.Layout.State.LeftWidth == .18 && window.Layout.State.RightWidth == .28,
                     "Live neighbor compression persisted uncommitted widths.");
                 var bottom = Bounds(Find<Button>("BottomAlignment").GetLogicalAncestors().OfType<Grid>().First(grid => grid.Name?.StartsWith("GroupHeader_", StringComparison.Ordinal) == true)).Right;
-                var expectedRight = alignment is "full" or "center-right" ? Bounds(workbench).Right :
-                    Bounds(workbench).Right - frame.ColumnDefinitions[4].ActualWidth - 1;
+                var expectedRight = alignment is "full" or "center-right" ? Bounds(workbench).Right - 40 :
+                    Bounds(workbench).Right - 40 - frame.ColumnDefinitions[4].ActualWidth - 1;
                 Require(Math.Abs(bottom - expectedRight) <= 1,
                     "Bottom alignment did not follow the compressed side's live span.");
                 window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null); Dispatcher.UIThread.RunJobs();
@@ -464,7 +550,7 @@ internal static class DockInputChecks
                 Require(window.Layout.Epoch == epochBefore && Math.Abs(((Grid)handle.Parent!).ColumnDefinitions[activeColumn].Width.Value - initial) < .001,
                     "Canceling side resize did not restore the original live geometry.");
                 start = Bounds(handle).Center;
-                destination = start + new Vector((region == "left" ? 1 : -1) * (.65 - initial) * workbench.Bounds.Width, 0);
+                destination = start + new Vector((region == "left" ? 1 : -1) * (.65 - initial) * (workbench.Bounds.Width - 80), 0);
                 window.MouseDown(start, MouseButton.Left); window.MouseMove(destination); window.MouseUp(destination, MouseButton.Left);
                 Dispatcher.UIThread.RunJobs();
                 Require(Math.Abs((region == "left" ? window.Layout.State.LeftWidth : window.Layout.State.RightWidth) - expectedActive) < .001 &&
@@ -473,13 +559,13 @@ internal static class DockInputChecks
                 var savedLeft = window.Layout.State.LeftWidth;
                 var savedRight = window.Layout.State.RightWidth;
                 var savedEpoch = window.Layout.Epoch;
-                window.Width = 800;
+                window.Width = 880;
                 handle = Find<ResizeHandle>(region + "Separator");
                 var narrow = (Grid)handle.Parent!;
                 Require(Math.Abs(narrow.ColumnDefinitions[2].Width.Value - .4) < .001 &&
                     window.Layout.State.LeftWidth == savedLeft && window.Layout.State.RightWidth == savedRight && window.Layout.Epoch == savedEpoch,
                     "Narrow viewport compression rewrote the frame or lost the center minimum.");
-                window.Width = 1600;
+                window.Width = 1680;
                 handle = Find<ResizeHandle>(region + "Separator");
                 Require(Math.Abs(((Grid)handle.Parent!).ColumnDefinitions[2].Width.Value - .2) < .001 && window.Layout.Epoch == savedEpoch,
                     "Widening the viewport did not restore the saved side projection.");
@@ -493,7 +579,7 @@ internal static class DockInputChecks
                 var handle = Find<ResizeHandle>(region + "Separator");
                 var start = Bounds(handle).Center;
                 var initial = region == "left" ? window.Layout.State.LeftWidth : window.Layout.State.RightWidth;
-                var workbenchWidth = Bounds(Find<DockSurface>("WorkspaceWorkbench")).Width;
+                var workbenchWidth = Bounds(Find<DockSurface>("WorkspaceWorkbench")).Width - 80;
                 var destination = start + new Vector((region == "left" ? 1 : -1) * (requested - initial) * workbenchWidth, 0);
                 window.MouseDown(start, MouseButton.Left); window.MouseMove(destination);
                 Require((region == "left" ? window.Layout.State.LeftWidth : window.Layout.State.RightWidth) == initial,
@@ -585,7 +671,7 @@ internal static class DockInputChecks
             var outer = Find<ResizeHandle>("leftSeparator");
             var outerRange = (IRangeValueProvider)ControlAutomationPeer.CreatePeerForElement(outer)!;
             var workbench = Find<DockSurface>("WorkspaceWorkbench");
-            Require(Math.Abs(outerRange.Maximum - Math.Min(.7, Math.Min(1 - window.Layout.State.RightWidth - 1e-6, 1 - 320 / workbench.Bounds.Width)) * 100) < .001,
+            Require(Math.Abs(outerRange.Maximum - Math.Min(.7, Math.Min(1 - window.Layout.State.RightWidth - 1e-6, 1 - 320 / (workbench.Bounds.Width - 80))) * 100) < .001,
                 "Nested center topology must not increase the outer separator's reserved center width.");
             var dimension = horizontal ? splitFrame.Bounds.Width : splitFrame.Bounds.Height;
             var firstExtent = horizontal ? splitFrame.ColumnDefinitions[0].ActualWidth : splitFrame.RowDefinitions[0].ActualHeight;
@@ -717,10 +803,11 @@ internal static class DockInputChecks
         {
             window.KeyPress(Key.F6, RawInputModifiers.Control, PhysicalKey.F6, null); Dispatcher.UIThread.RunJobs();
         }
-        Require(window.Layout.View.FocusedGroup == foldedGroup.Id && Find<Button>("FoldRestore_" + foldedGroup.Id).IsFocused,
-            "Group traversal did not focus the folded pane's restore control.");
+        Require(window.Layout.View.FocusedGroup == foldedGroup.Id && Find<Button>("Tab_" + window.Layout.Selected(foldedGroup.Id)!.Id.Replace(':', '_')).IsFocused,
+            "Group traversal did not focus the folded pane's rail entry.");
         window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null); Dispatcher.UIThread.RunJobs();
         Require(!window.Layout.Group(foldedGroup.Id).Folded, "Keyboard restore did not expand the folded pane.");
+        RailChecks(window, Find<Control>);
         window.Close();
         Console.WriteLine("PASS pointer side/bottom insertion, folded-bottom target, group limits, capture loss, outside cancellation and control names");
     }

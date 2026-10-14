@@ -94,7 +94,7 @@ internal static class ShellChecks
         var workspace = WorkspaceFixture.CreateWorkspaceViaDialog(app);
         for (var index = 0; index < 40; index++)
             IsolatedGit.Run(workspace, "commit", "--allow-empty", "-m", $"commit {index} " + string.Concat(Enumerable.Repeat("with a long subject ", 8)));
-        app.Click(app.Find<Button>("Tab_changes"));
+        app.ShowTool("changes");
         _ = app.Window.RefreshAsync();
         Button Scope() => WorkspaceFixture.Buttons(app).Single(button => button.Name == "ChangesScope");
         MenuItem[] Commits() => Scope().ContextMenu!.Items.OfType<MenuItem>().Where(item => item.Name?.StartsWith("ChangesCommit_", StringComparison.Ordinal) == true).ToArray();
@@ -166,7 +166,7 @@ internal static class ShellChecks
         Require(window.Location == new WindowLocation(root, removed), "A workspace without a selected file is a workspace location.");
         app.Click(WorkspaceFixture.Select(app, root));
         Until(() => WorkspaceFixture.Active(app, root));
-        app.Click(app.Find<Button>("Tab_files"));
+        app.ShowTool("files");
         app.Open("README.md", true); app.Open("notes.txt", true);
         Require(window.Location == new WindowLocation(root, root, "notes.txt"), "The selected file is part of the location.");
         var link = window.Location.Serialize();

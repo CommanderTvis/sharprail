@@ -144,7 +144,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             else if (command && e.Key == Key.J && e.KeyModifiers.HasFlag(KeyModifiers.Shift))
             { Layout.Visible("bottom", !Layout.State.BottomVisible); e.Handled = true; }
             else if (command && e.Key == Key.B)
-            { Layout.Visible("left", !Layout.State.LeftVisible); e.Handled = true; }
+            { surface.ToggleLeft(); e.Handled = true; }
             else if (command && e.Key == Key.J)
             { Layout.Visible("right", !Layout.State.RightVisible); e.Handled = true; }
             else if (command && e.Key is Key.OemPlus or Key.Add) { Zoom(1); e.Handled = true; }

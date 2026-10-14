@@ -102,13 +102,13 @@ internal static class BottomPanelE2E
             $"Panel-header action {control.Name} must be a 32-pixel square.");
         var right = app.Window.Layout.State.Groups.First(group => group.Region == "right").Id;
         var bottom = Groups(app).Single().Id;
-        foreach (var name in new[] { "NewTerminal_" + app.Center, "NewTerminal_" + bottom, "FoldRestore_" + right, "BottomAlignment" })
+        foreach (var name in new[] { "NewTerminal_" + app.Center, "NewTerminal_" + bottom, "HidePane_" + right, "BottomAlignment" })
             Square(app.Find<Button>(name));
         var terminal = TerminalTabs(app).Single();
         app.ContextAction(app.Find<Button>("Tab_" + terminal.Id.Replace(':', '_')), "New bottom group at right");
         Until(() => Groups(app).Length == 2);
         foreach (var group in Groups(app)) Square(app.Find<Button>("FoldRestore_" + group.Id));
-        app.Click(app.Find<Button>("Tab_files"));
+        app.ShowTool("files");
         foreach (var name in new[] { "README.md", "notes.txt", "LINKS.md" }) app.Open(name, true);
         app.Window.Width = 620; Settle();
         Until(() => app.Find<Button>("TabOverflow_" + app.Center).IsVisible);
@@ -136,15 +136,17 @@ internal static class BottomPanelE2E
         Require(separator.GetAutomationControlType() == AutomationControlType.Separator && separator.GetName() == "Horizontal pane separator",
             "The bottom resize handle must be a horizontal separator.");
         Until(() => Math.Abs(Height(app) / Workbench(app).Bounds.Height - .3) < .05);
-        app.Find<Button>("Tab_changes").Focus();
+        // A tool pane's focus endpoint is its plain header.
+        var changesHeader = "GroupHeader_" + app.Window.Layout.State.Groups.Single(group => group.Tools.Any(tool => tool.Id == "changes")).Id;
+        app.Find<Grid>(changesHeader).Focus();
         Press(Key.F6, PhysicalKey.F6, RawInputModifiers.Control, app.Window);
         Until(() => button.IsFocused);
         Press(Key.F6, PhysicalKey.F6, RawInputModifiers.Control | RawInputModifiers.Shift, app.Window);
-        Until(() => app.Find<Button>("Tab_changes").IsFocused);
+        Until(() => app.Find<Grid>(changesHeader).IsFocused);
         Require(!app.Window.Layout.Tools.Any(tool => tool.Id == "plugin:branch-graph:graph"), "Git-dependent tools wait for deferred Git discovery.");
         gitReady!.SetResult();
         Until(() => app.Window.Layout.Tools.Any(tool => tool.Id == "plugin:branch-graph:graph"));
-        Until(() => app.Find<Button>("Tab_changes").IsFocused);
+        Until(() => app.Find<Grid>(changesHeader).IsFocused);
         Console.WriteLine("PASS upstream bottom-panel.spec.ts: a new workspace starts with one accessible terminal group in a 30% bottom panel");
     }
 
@@ -362,7 +364,8 @@ internal static class BottomPanelE2E
             app.Window.Layout.Geometry(state => (state.LeftWidth, state.RightWidth) = (.18, .28));
             Align(app, alignment);
             var before = Durable();
-            app.Window.Width = 560; Settle();
+            // 560px of frame between the two 40px edge rails.
+            app.Window.Width = 640; Settle();
             Until(() => Math.Max(Math.Abs(Local().Left - before.Left), Math.Abs(Local().Right - before.Right)) > .0001);
             var handle = app.Find<ResizeHandle>(side + "Separator");
             if (keyboard)
@@ -434,8 +437,11 @@ internal static class BottomPanelE2E
         app.ContextAction(changes, "Move to pane");
         var move = changes.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Move to pane"));
         Until(() => move.IsSubMenuOpen);
-        app.Click(move.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "bottom: Terminal 1")), freshGesture: false);
-        Until(() => Titles(0) == "Terminal 1,Changes");
+        // Tools and terminals use separate panes: the terminal's pane is not offered, the remaining tool pane is.
+        Require(!move.Items.OfType<MenuItem>().Any(item => item.IsVisible && Equals(item.Header, "bottom pane (Terminal 1)")),
+            "A tool must not be offered a pane that shows terminals.");
+        app.Click(move.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "right pane (Review)")), freshGesture: false);
+        Until(() => Titles(1) == "" && Titles(0) == "Terminal 1");
         Require(Groups(app).Length == 2, "Moving the tool out must retain its emptied group.");
         app.Click(app.Find<Button>("RemoveGroup_" + Groups(app)[1].Id));
         Until(() => Groups(app).Length == 1);

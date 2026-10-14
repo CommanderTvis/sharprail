@@ -55,8 +55,8 @@ internal static class DrawerChecks
             "A compact window must move between its pages, Settings included, from the bar at the bottom.");
         Require(Grid.GetRow(Named<Border>(window, "PageBar")) > Grid.GetRow(Named<Control>(window, "WorkspaceWorkbench")), "The page bar must sit below the workbench.");
         Require(!layout.State.LeftVisible && !layout.State.RightVisible, "A compact window must start on its current page.");
-        Require(!window.GetLogicalDescendants().OfType<Border>().Any(border => border.Name is "leftHiddenSideRail" or "rightHiddenSideRail"),
-            "A compact window must not keep the collapsed side rails.");
+        Require(!window.GetLogicalDescendants().OfType<Border>().Any(border => border.Name is "leftRail" or "rightRail"),
+            "A compact window must not keep the side edge rails.");
         Require(!Named<Button>(window, "ConnectionButton").IsHitTestVisible, "A workbench with no host to change must keep its connection status inert.");
 
         Click(projects);

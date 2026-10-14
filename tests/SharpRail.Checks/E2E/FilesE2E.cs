@@ -21,7 +21,7 @@ internal static class FilesE2E
         var workspace = CreateWorkspaceViaDialog(app);
         Directory.CreateDirectory(Path.Combine(workspace, "compact", "only", "here"));
         File.WriteAllText(Path.Combine(workspace, "compact", "only", "here", "leaf.txt"), "leaf\n");
-        app.Click(app.Find<Button>("Tab_files"));
+        app.ShowTool("files");
         app.FileRow("README.md");
         DrawnTreeEntry? Node(string name, bool directory) => app.Find<DrawnTree>("FilesTree").Rows
             .SingleOrDefault(node => node.Tag is ProjectFile file && file.Name == name && file.IsDirectory == directory);

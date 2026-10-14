@@ -171,7 +171,7 @@ internal static class EditorWorkbenchChecks
         app.Window.Width = 1800;
         File.WriteAllText(Path.Combine(directory, "big.txt"), string.Concat(Enumerable.Range(0, lines).Select(index => $"changed line {index} {Wide}\n")));
         Await(app.Window.RefreshAsync());
-        app.Click(app.Find<Button>("Tab_changes"));
+        app.ShowTool("changes");
         Button Row() => app.Find<Control>("ChangesPanel").GetLogicalDescendants().OfType<Button>()
             .Single(button => Avalonia.Automation.AutomationProperties.GetName(button) == "big.txt");
         Pump(() => app.Find<Control>("ChangesPanel").GetLogicalDescendants().OfType<Button>()

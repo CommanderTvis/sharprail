@@ -91,7 +91,7 @@ internal static class DropHintsE2E
         app.ContextAction(tab, "Move to pane");
         var move = tab.ContextMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Move to pane"));
         Until(() => move.IsSubMenuOpen);
-        app.Click(move.Items.OfType<MenuItem>().Single(item => ((string)item.Header!).StartsWith("center:", StringComparison.Ordinal)), freshGesture: false);
+        app.Click(move.Items.OfType<MenuItem>().Single(item => ((string)item.Header!).StartsWith("center pane", StringComparison.Ordinal)), freshGesture: false);
         Until(() => app.Tabs.Any(tab => tab.Id == terminal.Id));
         app.Find<Button>("Tab_" + name).Focus(); Settle();
         var command = OperatingSystem.IsMacOS() ? RawInputModifiers.Meta : RawInputModifiers.Control;
