@@ -2846,3 +2846,42 @@ changes are uncommitted and have not been pushed.
 ## 2026-10-13 — Workspace-15 and workspace-13 landed on main
 
 Landed file drag/drop and Windows host/client support, retaining the browser shared tab-mode fix. Plugin-specific Claude Code, File Icons and Codex changes remain separate commits. Corrected the Windows caption button formatting reported by the source worktree. Combined main Release build passed with zero warnings/errors; whole-solution formatting and whitespace verification passed; portable --windows, --file-drop and all nine --vertical-tabs cases passed. Source browser/native cross-build and editor/Skia/conformance/design results are reused for unchanged slices. Windows runtime/package execution, physical Finder/live-agent drops and final browser startup acceptance remain unverified as recorded above. The full gate was not repeated after the recorded automatic-terminal fixture failure. Nothing pushed or installed; the existing scripts/browser.sh executable-bit change is preserved.
+
+## 2026-10-14 — Frontmatter duplication in rendered diffs
+
+Focused Markdown diff rendering skips the YAML block already represented by Properties, retaining block indices and source mappings. Release solution build passed with zero warnings/errors; touched formatting and whitespace checks passed. --markdown-tables passed unchanged visible/expanded metadata, changed-property marks and following prose source-line checks alongside tables and Mermaid. All five --live-diffs workbench scenarios passed, including unchanged-frontmatter body edits and subsequent changed properties. Full suite was not repeated. Owned fixtures were removed; scripts/browser.sh permission change remains untouched. Nothing pushed or installed.
+
+## 2026-10-14 — Browser watching and connection errors
+
+Prepared live alternate-screen replay for fresh/read-only terminal viewers and reconnects. Live alternate output remains separately byte-bounded; persisted recordings retain only main-screen history and cannot revive alternate modes. Historical queries are filtered. --terminal-replay passed native VT screen equality, split controls, query filtering, bounds and revival hygiene; --terminal-watch-replay passed local/remote attachment and reconnect without resizing/takeover. Actual Chromium Restty and forced Skia watcher acceptance passed. A later unchanged browser run stalled before startup and was stopped; no full acceptance pass is claimed for that rerun. Extremely long incremental alternate sessions can exceed the configured replay history bound.
+
+Clicking Error opens actual failure details and Retry through the existing restore/refresh path. Subscription failures reach the indicator, cancellation does not invent an error, and browser tokens and their URI-encoded forms are redacted. --connection-errors passed details, retry cleanup, original exception delivery and disposal cancellation.
+
+Combined main Release solution and BrowserChecks-enabled WASM builds passed with zero warnings/errors. Source-workspace focused results are reused for unchanged slices. Browser test-file formatting retains pre-existing imports, loop indentation and final-newline findings; new helper has no reported formatting findings. No full gate or installed-app replacement. All three fixes, including frontmatter, are staged/uncommitted in main because 1Password signing awaited manual unlock and the attempt was interrupted under the presence-check rule. Workspaces18 and19 are retained until signed preservation; their owned test hosts and scratch evidence are cleaned. Nothing pushed.
+
+## 2026-10-14 — Browser Settings renderer ownership
+
+`fix-browser-settings-flicker` stops the temporary AvaloniaView renderer directly before a shared
+Window takes over its canvas. AvaloniaView starts that renderer outside MediaContext's top-level
+registry, so the former TopLevel.StopRendering call did not disable its competing composition target.
+The focused Chromium Settings journey passes at DPR 1 and emulated DPR 2: Appearance, Layout and
+Plugins remain visible while the temporary roots are repainted in magenta, close/reopen works and
+terminal input recovers. The full browser `check.mjs` acceptance passes, including connection-field
+shortcuts, shared tab mode, pixel equivalence, editor save/conflict, PTY reconnect, PDF/Mermaid,
+modal Settings, external plugin settings and profile persistence. A 1280×900 capture was inspected.
+
+The emulated high-DPI test uses Avalonia's content-box sizing fallback because Playwright reports
+devicePixelRatio 2 with a 100-device-pixel box for a 100-CSS-pixel element; see the module spec's
+Playwright reference. Physical Retina, Safari and Firefox acceptance remain unrun.
+Release solution, normal browser and test-only browser builds pass with zero warnings/errors. The unchanged desktop
+source slice reuses its existing gate limits; the full .NET suite was not repeated. Browser C# formatting,
+JavaScript syntax and diff whitespace checks cover the touched files. LSP tools are unavailable.
+The repaint export compiles only in test builds. The normal-bundle smoke was interrupted after
+stalling before runtime readiness, consistent with the previously recorded browser startup limit;
+deployed-bundle acceptance is not claimed. Nothing committed, pushed or deployed.
+
+## 2026-10-14 — Verified bugfix and workspace-20 landing
+
+Signed and landed the previously prepared frontmatter, watcher replay and connection-error fixes as separate commits, then landed workspace-20 Settings renderer ownership while preserving their overlapping specs/harness paths. Combined main BrowserChecks-enabled Release build passed with zero warnings/errors; the earlier combined desktop Release result is reused because workspace-20 changes browser-only sources. Main restty.mjs --settings passed Appearance/Layout/Plugins repaint, reopen/close and terminal input recovery; browser touched-file formatting, JavaScript syntax and whitespace checks passed. Source DPR2 and full browser acceptance results are reused for unchanged slices. Normal deployed-bundle startup and physical Retina/Safari/Firefox remain unverified as recorded above.
+
+Own finished workspaces18 and19 were checkpointed on their retained branches and removed through SharpRail after landing. Workspace-20 was not created by this session and is retained. Test hosts exited; nothing pushed, deployed or installed. The existing scripts/browser.sh executable-bit change remains untouched.

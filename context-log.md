@@ -5523,3 +5523,26 @@ WINDOWS.md and VALIDATION.md. Work is uncommitted and unpushed.
 ## 2026-10-13 — Workspace landings
 
 Landed workspace-15 file drag/drop and captured workspace-13 Windows commits on main, preserving shared browser tab mode and plugin commit boundaries. Combined Release, portable Windows, file-drop and nine vertical-tab checks pass. Windows execution and physical/live-agent drops remain unverified; prior browser boot and full-gate limits remain recorded. Source workspaces are retained. Nothing pushed or installed.
+
+## 2026-10-14 — Rendered diff frontmatter
+
+Unchanged frontmatter no longer repeats as a code block below Properties in focused diffs. Source ranges and changed-property rendering are preserved. Release, touched formatting, --markdown-tables and all five --live-diffs scenarios pass. See VALIDATION.md. Nothing pushed or installed. Browser alternate-screen replay and connection-error details are being handled separately in workspaces18 and19.
+
+## 2026-10-14 — Three bugfixes ready for signed landing
+
+Frontmatter duplication, live alternate-screen watcher replay and clickable Error details/Retry are integrated in main working tree. Combined Release desktop and browser builds pass; focused Markdown/live-diff, recorder/local-remote/browser-watcher and connection-error checks pass. VALIDATION.md records bounded replay and browser startup/format limits. 1Password signing waited for presence, so the attempt was stopped without bypassing it. Main remains uncommitted; sourceworkspaces18 and19 remain preserved. Nothing pushed or installed.
+
+## 2026-10-14 — Browser Settings flicker
+
+Created `fix-browser-settings-flicker` from main in workspace-20 after the user's report.
+Stopped AvaloniaView's temporary renderer directly; its old TopLevel.StopRendering call only
+affected registered roots and left a competing blank renderer active on the real window's canvas.
+Focused Settings repaint/reopen/dismissal/input checks pass at normal and emulated 2× density,
+and the full test-bundle Chromium browser acceptance passes. Normal-bundle smoke still stalls
+before runtime readiness. See VALIDATION.md for physical-platform limits
+and the test-only high-DPI sizing fallback. The spec and README record the contract and check mode.
+Changes remain uncommitted; no push, deployment or running-app replacement.
+
+## 2026-10-14 — Signed browser bugfix landings
+
+1Password signing resumed. Frontmatter, read-only alternate-screen replay and Error details/Retry fixes are committed on main. Workspace-20 Settings flicker fix is also landed; combined browser Release, touched format/JS/whitespace and main Settings regression pass. Earlier focused/desktop results are reused; VALIDATION.md records platform/deployment limits. Own workspaces18 and19 removed with branches kept; workspace20 retained. Nothing pushed or installed.
