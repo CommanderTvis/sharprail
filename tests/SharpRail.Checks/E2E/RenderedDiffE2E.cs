@@ -221,8 +221,15 @@ internal static class RenderedDiffE2E
     {
         var (app, worktree) = OpenSample(root, "rendered-properties", source);
         using var _ = app;
-        File.WriteAllText(Path.Combine(worktree, "SPEC.md"), "---\nid: sample-root\nstatus: active\n---\n\n## Goal\n\nshipped\n");
+        var original = File.ReadAllText(Path.Combine(worktree, "SPEC.md"));
+        File.WriteAllText(Path.Combine(worktree, "SPEC.md"), original.Replace("A throwaway fixture project.", "Updated fixture prose.", StringComparison.Ordinal));
         OpenDiff(app, "SPEC.md");
+        Until(() => Marked(app, "ins").Contains("Updated", StringComparison.Ordinal));
+        Require(Rendered(app)!.GetLogicalDescendants().OfType<Control>().Count(control => control.Name == "FrontmatterProperties") == 1 &&
+            !Rendered(app)!.GetLogicalDescendants().OfType<SelectableTextBlock>().Any(text => text.Text?.Contains("id: sample-root", StringComparison.Ordinal) == true),
+            "Unchanged frontmatter appears once as properties, never again as a code block in focused context.");
+        File.WriteAllText(Path.Combine(worktree, "SPEC.md"), "---\nid: sample-root\nstatus: active\n---\n\n## Goal\n\nshipped\n");
+        Until(() => Marked(app, "ins").Contains("shipped", StringComparison.Ordinal));
         Until(() => Rendered(app) is { } rendered && Find<Border>(rendered, "FrontmatterProperties") is not null);
         var properties = Find<Border>(Rendered(app)!, "FrontmatterProperties")!;
         Require(Runs(properties).Any(run => run.Text == "sample-root" && !run.Classes.Contains("ins") && !run.Classes.Contains("del")),

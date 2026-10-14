@@ -80,6 +80,8 @@ publish toggle automation changes without requesting another update.
   Supported edits canonicalize only the frontmatter; the body and its line endings remain intact.
   Enter/blur commit and Escape cancels. Status/type suggestions are optional vocabulary, and unsupported
   YAML or a rendered diff stays read-only. Preview refresh keeps folding and active property inputs.
+  Rendered diff context and expanded unchanged runs omit the YAML source block already represented by
+  Properties, keeping following prose source ranges intact.
   Split follows the source caret by default, keeping its rendered block visible with minimal scrolling.
   Nested blocks use the smallest visible source range; blank lines use the nearest block, folded details
   stay folded, and blocks taller than the viewport reveal their beginning. The toolbar’s Follow cursor

@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 
+using Markdig.Extensions.Yaml;
 using Markdig.Syntax;
 
 namespace SharpRail.Plugins.UI.Kit.Markdown;
@@ -99,7 +100,7 @@ public sealed partial class MarkdownPreview
         }
         foreach (var (start, count, hidden) in DiffFocus.Segments(focus.Blocks))
         {
-            IEnumerable<Control> Shown() => Enumerable.Range(start, count).Select(index =>
+            IEnumerable<Control> Shown() => Enumerable.Range(start, count).Where(index => Document[index] is not YamlFrontMatterBlock).Select(index =>
                 Sourced(Document[index] is ListBlock list && focus.Items.TryGetValue(index, out var items) ? FocusedList(list, items, index, focus, live) : Render(Document[index]), Document[index]));
             if (!hidden) { body.Children.AddRange(Shown()); continue; }
             var heading = Enumerable.Range(start, count).Select(index => Document[index]).OfType<HeadingBlock>().LastOrDefault();

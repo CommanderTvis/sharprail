@@ -17,6 +17,7 @@ internal static class MarkdownTableDiffChecks
     internal static void Run()
     {
         SelectionSources();
+        FrontmatterContext();
         Check("", Table, 1, 3, "ins", "Codex");
         Check(Table, "", 1, 3, "del", "Codex");
         Check(Table, Table.Replace("Edit code", "Review code", StringComparison.Ordinal), 1, 3, "ins", "Review");
@@ -66,6 +67,38 @@ internal static class MarkdownTableDiffChecks
         Require(DiffView.OriginalFilePath("--- a/old name.md\n+++ b/new name.md\n", "new name.md") == "old name.md", "A renamed deletion uses the original path.");
         Require(DiffView.OriginalFilePath("--- \"a/caf\\303\\251\\told.md\"\n+++ b/new.md\n", "new.md") == "caf\u00e9\told.md",
             "A C-quoted renamed original decodes Git's octal UTF-8 and escaped tab.");
+    }
+
+    private static void FrontmatterContext()
+    {
+        const string metadata = "---\nid: architecture\ntype: architecture-design\nstatus: active\ntitle: Architecture\n---\n\n";
+        var before = metadata + "# Architecture\n\nOld prose.\n";
+        var after = metadata + "# Architecture\n\nNew prose.\n";
+        var context = new MarkdownContext((_, _) => ValueTask.FromResult<byte[]?>(null), _ => null, (_, _) => { }, 14, 100, true);
+        foreach (var modified in new[] { after, before, after.Replace("status: active", "status: complete", StringComparison.Ordinal) })
+        {
+            var sources = new List<((int Start, int End)? Old, (int Start, int End)? New)>();
+            var merged = MarkdownDiff.MergeWithSourceLines(before, modified, (oldLines, newLines) => sources.Add((oldLines, newLines)));
+            var document = MarkdownPreview.Parse(merged);
+            // b0 exercises expansion of an entirely unchanged document, as well as visible hunk context.
+            var focus = DiffFocus.Create(before, merged, document, new HashSet<string> { "b0" });
+            using var preview = new MarkdownPreview(document, "ARCHITECTURE.md", context, focus: focus,
+                frontmatter: Frontmatter.Parse(modified), previousFrontmatter: Frontmatter.Parse(before));
+            Require(preview.GetLogicalDescendants().OfType<Control>().Count(control => control.Name == "FrontmatterProperties") == 1,
+                "Focused frontmatter keeps one properties block.");
+            Require(!preview.GetLogicalDescendants().OfType<SelectableTextBlock>().Any(text => text.Text?.Contains("id: architecture", StringComparison.Ordinal) == true),
+                "Visible context and expanded unchanged blocks never repeat raw frontmatter.");
+            var prose = preview.GetLogicalDescendants().OfType<SelectableTextBlock>().Single(text =>
+                string.Concat(text.Inlines?.OfType<Run>().Select(run => run.Text) ?? []).Contains("prose.", StringComparison.Ordinal));
+            prose.SelectionStart = 0;
+            prose.SelectionEnd = string.Concat(prose.Inlines!.OfType<Run>().Select(run => run.Text)).Length;
+            Require(preview.SelectedLines is { } selected && sources[selected.Start - 1].New == (10, 10),
+                "Skipping metadata preserves the following prose's modified source line.");
+            if (modified.Contains("status: complete", StringComparison.Ordinal))
+                Require(preview.GetLogicalDescendants().OfType<SelectableTextBlock>().SelectMany(text => text.Inlines?.OfType<Run>() ?? [])
+                    .Any(run => run.Text == "complete" && run.Classes.Contains("ins")), "Changed frontmatter still carries property insertion marks.");
+        }
+        Console.WriteLine("PASS Markdown diff frontmatter: one properties block in visible/expanded context, changed values and following prose source lines");
     }
 
     private static void Check(string before, string after, int tableCount, int rowCount, string mark, string markedText)
