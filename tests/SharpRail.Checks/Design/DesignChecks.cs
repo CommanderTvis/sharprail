@@ -81,7 +81,8 @@ internal static partial class DesignChecks
 
     // Ui computes tints and compositing; Themes decodes the palette's hex.
     // A QR code is dark on white under every theme, or a camera does not read it.
-    private static readonly string[] ColorOwners = ["Rendering/Ui.cs", "Rendering/Themes.cs", "Panels/QrCodeView.cs"];
+    // Quiet scroll curtains are an opacity mask: alpha only, never a painted colour.
+    private static readonly string[] ColorOwners = ["Rendering/Ui.cs", "Rendering/Themes.cs", "Panels/QrCodeView.cs", "Rendering/QuietScroll.cs"];
 
     private static void ColorUsage(DesignSources.Colors colors, List<SourceFile> sources, List<string> failures)
     {

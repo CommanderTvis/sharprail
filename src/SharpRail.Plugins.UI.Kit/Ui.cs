@@ -51,6 +51,10 @@ public static partial class Ui
         var source = new Uri("avares://SharpRail.Plugins.UI.Kit/ControlStyles.axaml");
         if (!app.Styles.OfType<StyleInclude>().Any(style => style.Source == source))
             app.Styles.Add(new StyleInclude(source) { Source = source });
+        // High contrast keeps a 2px resting hairline thumb; other themes hide it until the viewer shows intent.
+        app.Resources["QuietScrollThumbRest"] = Theme.IsHighContrast ? Hint : Brushes.Transparent;
+        app.Resources["QuietScrollThumbInset"] = new Thickness(Theme.IsHighContrast ? 2 : 0);
+        QuietScroll.Install();
         foreach (var state in new[] { "", "PointerOver", "Pressed", "Disabled" })
         {
             var disabled = state == "Disabled";

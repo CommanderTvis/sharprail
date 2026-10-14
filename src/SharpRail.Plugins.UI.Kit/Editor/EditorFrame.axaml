@@ -1,5 +1,6 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:kit="using:SharpRail.Plugins.UI.Kit"
              x:Class="SharpRail.Plugins.UI.Kit.Editor.EditorFrame">
   <!-- Dock separators take 3.5px of each neighbouring pane for their hit area; keep the
        auto-hiding scrollbars clear of it so the pointer can reach them at the pane edge. -->
@@ -9,6 +10,10 @@
     </Style>
     <Style Selector="ScrollBar.editor[Orientation=Horizontal]">
       <Setter Property="Margin" Value="0,0,0,4" />
+    </Style>
+    <!-- The editor's bars sit outside a ScrollViewer, so the frame's hover is their scrolling intent. -->
+    <Style Selector="Grid:pointerover > ScrollBar.editor">
+      <Setter Property="Foreground" Value="{x:Static kit:Ui.BorderBrush}" />
     </Style>
   </UserControl.Styles>
   <Grid>
