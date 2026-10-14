@@ -27,6 +27,7 @@ internal static class ShellChecks
         Menu(Path.Combine(root, "shell-menu"));
         Chrome(Path.Combine(root, "shell-chrome"));
         RegionErrors();
+        RunConnectionErrors(root);
         ArrangementIsolation(Path.Combine(root, "shell-isolation"));
         Navigation(Path.Combine(root, "shell-navigation"));
         ProjectPicker(Path.Combine(root, "shell-project-picker"));
@@ -349,6 +350,65 @@ internal static class ShellChecks
     private sealed class FailingLayout : Control
     {
         protected override Size MeasureOverride(Size availableSize) => throw new InvalidOperationException("measure failed");
+    }
+
+    internal static void RunConnectionErrors(string root)
+    {
+        ConnectionErrors(Path.Combine(root, "connection-errors"));
+        SubscriptionErrors();
+    }
+
+    private static void SubscriptionErrors()
+    {
+        var service = new FailingSubscription();
+        var subscription = new SharedState(service, new Preferences()) { RetryDelay = TimeSpan.FromSeconds(10) };
+        Exception? received = null;
+        subscription.ConnectionFailed += failure => received = failure;
+        subscription.Start();
+        Dispatcher.UIThread.RunJobs();
+        Require(ReferenceEquals(received, service.Failure), "The real subscription failure reaches the status surface.");
+        subscription.Dispose();
+        Dispatcher.UIThread.RunJobs();
+        Require(ReferenceEquals(received, service.Failure), "Disposal cancellation does not replace the reported failure.");
+    }
+
+    private sealed class FailingSubscription : SharpRail.Host.Abstractions.IHostStateService
+    {
+        public Exception Failure { get; } = new IOException("WebSocket host subscription disconnected");
+        public ValueTask<SharpRail.Host.Abstractions.HostHandshake> GetHandshakeAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public ValueTask<SharpRail.Host.Abstractions.HostState> GetStateAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public ValueTask<SharpRail.Host.Abstractions.HostState> ChangeAsync(IReadOnlyList<SharpRail.Host.Abstractions.HostStateChange> changes, CancellationToken cancellationToken = default) => throw new NotSupportedException();
+        public async IAsyncEnumerable<SharpRail.Host.Abstractions.HostState> WatchAsync([System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            await Task.CompletedTask;
+            if (!cancellationToken.IsCancellationRequested) throw Failure;
+            yield break;
+        }
+        public IAsyncEnumerable<SharpRail.Host.Abstractions.LifecycleEvent> WatchLifecycleAsync(CancellationToken cancellationToken = default) => throw new NotSupportedException();
+    }
+
+    private static void ConnectionErrors(string directory)
+    {
+        using var app = WorkspaceFixture.OpenFixtureProject(directory);
+        var button = app.Find<Button>("ConnectionButton");
+        Require(!button.IsHitTestVisible, "A healthy local status stays inert.");
+        app.Window.Report(new IOException("Host replied: permission denied for notes.txt"));
+        Require(button.IsHitTestVisible, "An error can be opened without hover.");
+        app.Click(button);
+        var menu = button.ContextMenu;
+        Require(menu is not null, "The status exposes its error menu.");
+        var details = menu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Error details…"));
+        details.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+        Until(() => app.Window.OwnedWindows.Any());
+        var dialog = app.Window.OwnedWindows.Single();
+        Require(dialog.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "Host replied: permission denied for notes.txt"),
+            "The details display the actual failure without inventing a connectivity cause.");
+        dialog.Close();
+        var retry = menu.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Retry"));
+        retry.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+        Until(() => !app.Find<TextBlock>("WorkspaceError").IsVisible);
+        Require(!button.IsHitTestVisible, "A successful retry clears the error action.");
+        Console.WriteLine("PASS shell: error details and retry are accessible without hover");
     }
 
     private static void RegionErrors()

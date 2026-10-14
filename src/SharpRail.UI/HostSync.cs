@@ -44,8 +44,9 @@ public sealed partial class WorkbenchWindow
         hydratedGeneration = Math.Max(1, state.Generation);
         state.Changed += SharedStateChanged;
         state.ConnectionChanged += ConnectionChanged;
+        state.ConnectionFailed += Report;
         state.HandshakeChanged += HandshakeChanged;
-        Closed += (_, _) => { state.Changed -= SharedStateChanged; state.ConnectionChanged -= ConnectionChanged; state.HandshakeChanged -= HandshakeChanged; };
+        Closed += (_, _) => { state.Changed -= SharedStateChanged; state.ConnectionChanged -= ConnectionChanged; state.ConnectionFailed -= Report; state.HandshakeChanged -= HandshakeChanged; };
 #if !ANDROID && !BROWSER
         if (workbench.Listener is { } listener)
         {

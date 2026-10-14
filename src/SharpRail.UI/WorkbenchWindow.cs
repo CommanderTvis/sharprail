@@ -193,19 +193,24 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         header.ContextMenu = view;
         WireLocationBar();
         this.FindControl<ContentControl>("BrandIcon")!.Content = Ui.Icon("brand", Ui.Accent, 28);
-        if (workbench.ChangeHost is { } changeHost)
+        var connection = this.FindControl<Button>("ConnectionButton")!;
+        connection.Click += (_, _) =>
         {
-            // A client of a chosen host names it from its connection status and leaves it from there.
-            var connection = this.FindControl<Button>("ConnectionButton")!;
-            connection.IsHitTestVisible = true;
-            connection.Click += (_, _) =>
+            var menu = new ContextMenu();
+            if (status.Text == "Error" && errorText.Text is { } problem)
             {
-                var menu = new ContextMenu();
+                menu.Items.Add(Ui.Menu("Error details…", () => _ = Dialogs.Notice(this, "Host operation failed", problem)));
+                menu.Items.Add(Ui.Menu("Retry", () => { if (restorePending) _ = StartAsync(); else _ = RefreshAsync(); }));
+            }
+            if (workbench.ChangeHost is { } changeHost)
+            {
                 menu.Items.Add(Ui.Menu(workbench.Endpoint, () => { }, enabled: false));
                 menu.Items.Add(Ui.Menu("Change host…", changeHost));
-                menu.Open(connection);
-            };
-        }
+            }
+            connection.ContextMenu = menu;
+            menu.Open(connection);
+        };
+        connection.IsHitTestVisible = workbench.ChangeHost is not null;
         var settings = this.FindControl<Button>("SettingsButton")!;
         settings.Content = Ui.Icon("settings");
         settings.Click += (_, _) => ShowSettings();
@@ -558,13 +563,18 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
     private void ShowReady()
     {
         if (remote) SetStatus("Remote");
-        else statusDot.IsVisible = status.IsVisible = false;
+        else
+        {
+            statusDot.IsVisible = status.IsVisible = false;
+            this.FindControl<Button>("ConnectionButton")!.IsHitTestVisible = workbench.ChangeHost is not null;
+        }
     }
 
     /// <summary>A status with a <paramref name="problem"/> turns the dot to the danger colour and says what went wrong on hover.</summary>
     private void SetStatus(string text, string? problem = null)
     {
         status.Text = text;
+        this.FindControl<Button>("ConnectionButton")!.IsHitTestVisible = problem is not null || workbench.ChangeHost is not null;
         statusDot.Foreground = problem is null ? Ui.Success : Ui.Danger;
         ToolTip.SetTip(status, problem);
         ToolTip.SetTip(statusDot, problem);
@@ -596,9 +606,10 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         { if (request == projectRequest) Report(error); }
     }
 
-    private void Report(Exception error)
+    internal void Report(Exception error)
     {
-        errorText.Text = error.Message; errorText.IsVisible = true; SetStatus("Error", error.Message);
+        var problem = workbench.RedactError(error.Message);
+        errorText.Text = problem; errorText.IsVisible = true; SetStatus("Error", problem);
         Console.Error.WriteLine(error);
     }
 

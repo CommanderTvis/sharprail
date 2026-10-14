@@ -300,6 +300,14 @@ internal static class Program
             Console.WriteLine("PASS quit and close command checks");
             return;
         }
+        if (args.SequenceEqual(["--connection-errors"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            ShellChecks.RunConnectionErrors(Path.Combine(root, "upstream-e2e"));
+            Console.WriteLine("PASS connection error details and retry");
+            return;
+        }
         if (args.SequenceEqual(["--shell"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();

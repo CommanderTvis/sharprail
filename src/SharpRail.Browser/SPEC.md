@@ -23,6 +23,7 @@ implementation of the workbench and no reduced browser feature set.
 Browser, desktop and Android share the protobuf WebSocket RPC transport at the host's normal endpoint.
 Calls dispatch directly to host adapters with multiplexing, receive-credit flow control, cancellation,
 deadlines, structured errors and mutation replay. See Host.Protocol's spec for wire limits and lifetime.
+The Error indicator opens actual failure details and a Retry action for the current workspace restore or refresh; subscription failures remain visible while the automatic reconnect loop continues. Browser connection tokens are removed from displayed failure text. Successful connections retain Change host.
 The token is never included in a URL. The endpoint and token live in session storage; client-local view
 state lives in local storage. Shared settings and workspace lifecycle belong to the host.
 The horizontal/vertical tab mode and placement of vertical tabs in Projects follow the host, including live

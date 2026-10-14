@@ -76,7 +76,8 @@ entry; quitting keeps every entry so the next launch restores the same set.
 
 The 48px header is the window's title bar. `WorkbenchWindow.axaml` extends the client area into the
 decorations so the native controls stay while the header provides the colour; on macOS the header leaves
-80px for the traffic lights. The header shows the brand mark, the location bar, the connection state and
+80px for the traffic lights. The Error status can be clicked for the actual operation failure and Retry (the pending restore or mounted workspace refresh). Subscription failures use the same surface while reconnecting automatically; a successful retry clears it. Healthy local status remains inert and remote Change host remains available.
+The header shows the brand mark, the location bar, the connection state and
 Settings. While the embedded host also accepts socket connections, every window shows a green
 "Listening" mark in the top-right header with its endpoint in a tooltip. The mark follows listener
 start/stop immediately and is hidden when serving is off.

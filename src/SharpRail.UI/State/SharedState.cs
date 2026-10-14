@@ -39,6 +39,8 @@ public sealed class SharedState : IDisposable
     public event Action<HostState, HostState>? Changed;
     /// <summary>Raised on the UI thread when the subscription drops or is re-established.</summary>
     public event Action<bool>? ConnectionChanged;
+    /// <summary>The subscription failure, raised on the UI thread before retrying.</summary>
+    public event Action<Exception>? ConnectionFailed;
 
     /// <summary>The connected host's handshake; null until it answers and again after the connection drops.</summary>
     public HostHandshake? Handshake { get; private set; }
@@ -77,7 +79,7 @@ public sealed class SharedState : IDisposable
                 }
             }
             catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { return; }
-            catch (Exception error) { Console.Error.WriteLine("Host state subscription dropped: " + error.Message); }
+            catch (Exception error) { ConnectionFailed?.Invoke(error); Console.Error.WriteLine("Host state subscription dropped: " + error.Message); }
             if (Connected) { Connection.Report(false); SetHandshake(null); ConnectionChanged?.Invoke(false); }
             try { await Task.Delay(RetryDelay, lifetime.Token); }
             catch (OperationCanceledException) { return; }

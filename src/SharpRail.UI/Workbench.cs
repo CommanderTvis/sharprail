@@ -98,6 +98,8 @@ public sealed class Workbench : IDisposable
     public bool Focused => windows.Any(window => window.IsActive || window.OwnedWindows.Any(owned => owned.IsActive));
     /// <summary>Qualifies client-local plugin preferences, so two hosts' plugins never share one.</summary>
     public string Endpoint { get; init; } = "local";
+    /// <summary>Removes connection credentials before a failure is displayed.</summary>
+    public Func<string, string> RedactError { get; init; } = message => message;
     /// <summary>The window plugins act on: the last one activated, else the first open.</summary>
     public WorkbenchWindow? ActiveWindow => activeWindow is { } window && windows.Contains(window) ? window : windows.FirstOrDefault();
     /// <summary>Raised on the UI thread when anything a plugin's host projection reads may have changed.</summary>
