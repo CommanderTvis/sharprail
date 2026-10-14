@@ -175,25 +175,31 @@ inspected and refreshed after prior approval; a new installation requires the of
 
 ## Workflow skills
 
-The marketplace plugin carries six skills in its `skills/` directory, which Claude Code discovers
-from an installed plugin: `writing-specs`, `setting-up-a-project`, `importing-a-codebase`,
-`starting-a-new-project`, `shipping-a-pr` with its phase documents, and `add-highlighting`.
+The marketplace plugin carries ten skills in its `skills/` directory, which Claude Code discovers
+from an installed plugin: `choosing-a-workflow`, `brainstorming` with its bug-branch and
+spec-amendment documents, `asking-user-questions`, `spec-graph`, `writing-specs`,
+`setting-up-a-project`, `importing-a-codebase`, `starting-a-new-project`, `shipping-a-pr` with its
+phase documents, and `add-highlighting`.
 The highlighting skill prepares importable TextMate JSON grammars and filename patterns
-for Settings › Highlighting without modifying SharpRail's state files. The other five are the fork's
-`packages/pi-thinkrail-workflow/skills` at `3b7c7d589`; the fork ships them to pi only, so delivery to
+for Settings › Highlighting without modifying SharpRail's state files. Five more are the fork's
+`packages/pi-thinkrail-workflow/skills` at `3b7c7d589`; the routing, brainstorming and question skills
+are JetBrains ThinkRail's at `be06fb019` (its design interview with the bug branch, explicit rejected
+alternatives and promotion into durable specs), and `spec-graph` is its `packages/spec-graph` skill.
+Upstream ships them to pi only, so delivery to
 this CLI is SharpRail's own. Their single source is `src/SharpRail.Plugins.Agent.Skills`, staged into
 the plugin at build and shared with the Codex plugin; neither plugin references the other.
 
 The text differs from the fork's only where pi's was untrue here: the app is SharpRail, pi's
-`ask_user_question`, `edit`, `web_search` and `fetch_content` become the session's own means, the
-unported skills (`brainstorming`, `asking-user-questions`, `choosing-a-workflow`, the spec-graph skill)
-are no longer named, and working files go to `.sharprail/context` where a workspace has it, else a
-temporary directory outside the repository. The four spec skills follow the prompt's rule: their
+`ask_user_question`, `read`, `edit`, `web_search` and `fetch_content` become the session's own means
+(a question tool when the CLI has one, else a numbered plain message), the router names no
+skill-authoring skill, the task-spec lives at `.sharprail/context/TASK-<slug>.md`, and working files go to `.sharprail/context` where a workspace has it, else a
+temporary directory outside the repository. The spec, routing and brainstorming skills follow the prompt's rule: their
 descriptions offer them only when the user asks for specs or the project keeps a spec graph, and the
 dispatcher stops when the `spec_*` tools are absent.
 
 The plugin is enabled at user scope, so every Claude Code session sees the skills, not only those
-SharpRail starts. Adding them raised the plugin version to 0.4.0; that is what brings an approved
+SharpRail starts. Adding them raised the plugin version to 0.4.0, and adding the routing, brainstorming, question and spec-graph
+skills to 0.5.0; that is what brings an approved
 installation's cached copy forward. A change to any skill needs another version raise for the same reason.
 
 ## Verification and remaining gates

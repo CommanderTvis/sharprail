@@ -443,7 +443,7 @@ internal static class ClaudeCodeChecks
     {
         var assets = Path.Combine(AppContext.BaseDirectory, "plugins", ClaudeCodeContract.Id, "assets");
         var skills = Path.Combine(assets, "marketplace", "claude-plugin", "skills");
-        string[] names = ["add-highlighting", "importing-a-codebase", "setting-up-a-project", "shipping-a-pr", "starting-a-new-project", "writing-specs"];
+        string[] names = ["add-highlighting", "asking-user-questions", "brainstorming", "choosing-a-workflow", "importing-a-codebase", "setting-up-a-project", "shipping-a-pr", "spec-graph", "starting-a-new-project", "writing-specs"];
         Require(Directory.GetDirectories(skills).Select(Path.GetFileName).Order().SequenceEqual(names), "The plugin ships the ported workflow skills and custom highlighting skill.");
         foreach (var name in names)
         {
@@ -455,8 +455,10 @@ internal static class ClaudeCodeChecks
         }
         Require(new[] { "body.md", "checks.md", "creating.md", "review-comments.md", "screenshots.md", "syncing.md" }.All(file => File.Exists(Path.Combine(skills, "shipping-a-pr", file))),
             "Shipping a PR carries its phase documents.");
+        Require(new[] { "amending-specs.md", "fixing-a-bug.md" }.All(file => File.Exists(Path.Combine(skills, "brainstorming", file))),
+            "Brainstorming carries its bug branch and spec amendment documents.");
         var text = string.Concat(Directory.GetFiles(skills, "*.md", SearchOption.AllDirectories).Select(File.ReadAllText));
-        Require(!new[] { "thinkrail", "ask_user_question", "asking-user-questions", "brainstorming", "choosing-a-workflow", "todo_", "set_title", "request_review", "web_search" }
+        Require(!new[] { "thinkrail", "ask_user_question", "todo_", "set_title", "request_review", "web_search" }
             .Any(absent => text.Contains(absent, StringComparison.OrdinalIgnoreCase)), "The skills name no tool or skill these sessions lack.");
 
         // An installation approved at the previous version: registered, staged and cached without skills.
