@@ -60,6 +60,8 @@ public sealed partial class WorkbenchWindow
 
     private void PlaceWorkspaceTabs()
     {
+        // Keep the outgoing rail intact while the centre mounts its loading view.
+        if (switchingWorkspace) return;
         var inProjects = CenterTabsModeNow().Home == "projects";
         foreach (var (workspace, host) in workspaceTabHosts)
         {
@@ -109,17 +111,18 @@ public sealed partial class WorkbenchWindow
             if (tabs.Count == 0) continue;
             var section = new StackPanel { Name = "WorkspaceTabsPreviewGroup", Tag = group, Spacing = 2 };
             var selected = view.Selected.GetValueOrDefault(group) ?? tabs[0].Id;
+            var subtitles = DockSurface.AmbiguousSubtitles(tabs);
             var panes = view.Panes.GetValueOrDefault(group) ?? [];
             foreach (var tab in tabs)
             {
                 var pane = panes.FirstOrDefault(candidate => candidate.TabIds.Contains(tab.Id));
                 if (pane is not null && pane.TabIds[0] != tab.Id) continue;
-                if (pane is null) { section.Children.Add(PreviewTab(workspace, group, tab, tab.Id == selected, boxed: true)); continue; }
+                if (pane is null) { section.Children.Add(PreviewTab(workspace, group, tab, tab.Id == selected, boxed: true, subtitles.GetValueOrDefault(tab.Id))); continue; }
                 // A pane's members sit in one bubble, boxed together when one of them is selected.
                 var members = pane.TabIds.Select(id => tabs.FirstOrDefault(item => item.Id == id)).OfType<DockTab>().ToArray();
                 var active = members.Any(member => member.Id == selected);
                 var bubble = new StackPanel { Spacing = 2 };
-                foreach (var member in members) bubble.Children.Add(PreviewTab(workspace, group, member, member.Id == selected, boxed: false));
+                foreach (var member in members) bubble.Children.Add(PreviewTab(workspace, group, member, member.Id == selected, boxed: false, subtitles.GetValueOrDefault(member.Id)));
                 section.Children.Add(new Border
                 {
                     Name = "WorkspaceTabsPreviewPane",
@@ -155,14 +158,23 @@ public sealed partial class WorkbenchWindow
         ];
     }
 
-    private Button PreviewTab(string workspace, string? group, DockTab tab, bool selected, bool boxed)
+    private Button PreviewTab(string workspace, string? group, DockTab tab, bool selected, bool boxed, string? subtitle = null)
     {
         var foreground = selected ? Ui.TextBrush : Ui.Muted;
-        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("14,4,*,Auto") };
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("14,4,*,Auto"), Margin = new Thickness(0, 0, 4, 0) };
         Ui.Place(row, TabIcon(tab, foreground, workspace) ?? Ui.Icon(tab.Kind == "terminal" ? "terminal" : tab.Kind == "diff" ? "fileDiff" : "fileText", foreground, 14));
-        var title = Ui.Text(tab.Title, foreground, 13);
+        var title = Ui.Text(tab.Title, foreground, 14);
+        title.LineHeight = 20;
+        title.FontStyle = tab.Preview ? Avalonia.Media.FontStyle.Italic : Avalonia.Media.FontStyle.Normal;
         title.TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis;
-        Ui.Place(row, title, 0, 2);
+        if (subtitle is null) Ui.Place(row, title, 0, 2);
+        else
+        {
+            var folder = Ui.Text(subtitle, Ui.Hint, 12);
+            folder.Name = "TabSubtitle";
+            folder.TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis;
+            Ui.Place(row, new StackPanel { VerticalAlignment = VerticalAlignment.Center, Children = { title, folder } }, 0, 2);
+        }
         if (TabAdornment(tab, workspace) is { } adornment)
         {
             adornment.Margin = new Thickness(4, 0, 0, 0);
@@ -174,7 +186,8 @@ public sealed partial class WorkbenchWindow
             Name = "WorkspaceTabPreview",
             Tag = tab.Id,
             Content = row,
-            Padding = new Thickness(8, 4),
+            Height = (subtitle is null ? 36 : 44) + (boxed ? 2 : 0),
+            Padding = new Thickness(8, 0, 24, 0),
             CornerRadius = new CornerRadius(6),
             BorderThickness = new Thickness(boxed ? 1 : 0),
             BorderBrush = selected && boxed ? Ui.BorderBrush : Avalonia.Media.Brushes.Transparent,

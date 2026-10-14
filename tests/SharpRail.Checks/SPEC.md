@@ -53,6 +53,8 @@ the headless UI checks with every upstream translation. Named modes
 of that same code, never separate coverage; anything they run is also in the full
 run. `--agent-marks` covers Codex and Claude terminal icons in inactive Projects
 previews, identity arrival/removal, retained rows and switching into and out of the workspace.
+`--rail` also holds workspace routing open to verify retained Projects tab controls and compares
+active and inactive row heights, including duplicate-name folder subtitles and cached-workspace returns.
 `--agent-launches` covers POSIX process origin, command-scoped UI markers with additions disabled,
 replacement processes between polls, and persistent manual-launch notices in both provider UIs.
 UI launches and unknown origins show no manual notice; hook updates and local/remote state retain origin.

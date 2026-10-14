@@ -9,6 +9,13 @@
         Background="{x:Static rendering:Ui.Workspace}" Foreground="{x:Static rendering:Ui.Muted}"
         FontFamily="{x:Static rendering:Ui.InterfaceFont}" FontWeight="370">
   <Window.Styles>
+    <Style Selector="Button#WorkspaceSelect">
+      <Setter Property="Transitions">
+        <Transitions>
+          <BrushTransition Property="Background" Duration="0:0:0.12" />
+        </Transitions>
+      </Setter>
+    </Style>
     <Style Selector="TextBlock.workspace-description">
       <Setter Property="TextWrapping" Value="Wrap" />
       <Setter Property="MaxLines" Value="3" />

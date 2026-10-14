@@ -13,8 +13,63 @@ namespace SharpRail.Checks.E2E;
 /// <summary>Switching between one project's workspaces restyles the rail in place instead of rebuilding its rows.</summary>
 internal static class RailRetentionChecks
 {
+    private static void TabGeometry(string root)
+    {
+        using var app = new E2eWorkspace(Path.Combine(root, "rail-tab-geometry"), tabsInProjects: true);
+        app.Open("README.md", true);
+        app.Open("notes.txt", true);
+        Directory.CreateDirectory(Path.Combine(app.Root, "folder"));
+        File.WriteAllText(Path.Combine(app.Root, "folder", "notes.txt"), "duplicate-name fixture");
+        app.Window.Layout.Open(new("file:folder/notes.txt", "notes.txt", "file", "folder/notes.txt"), true);
+        app.Click(app.Find<Button>("Tab_projects"));
+        var original = app.Window.WorkspaceRoot;
+        ContentControl Host() => app.Window.GetLogicalDescendants().OfType<ContentControl>()
+            .Single(control => control.Name == "WorkspaceTabs" && Equals(control.Tag, original));
+        var host = Host();
+        var outgoing = host.Content;
+        var rail = app.Find<Grid>("ProjectsPanel");
+        var row = app.Find<Grid>("DockTab_file_notes.txt");
+        Settle();
+        var height = row.Bounds.Height;
+        var plainHeight = app.Find<Grid>("DockTab_markdown_README.md").Bounds.Height;
+        Require(height > 0, "The active tab must be laid out before comparing its preview.");
+        var other = Path.Combine(app.Root, "other-project");
+        Directory.CreateDirectory(other);
+        var gate = app.Host.HoldOpen();
+        var opening = app.Window.OpenProjectAsync(other);
+        Settle();
+        Require(!opening.IsCompleted && ReferenceEquals(host.Content, outgoing) && ReferenceEquals(app.Find<Grid>("ProjectsPanel"), rail),
+            "Routing must leave the outgoing Projects rows mounted until the destination is resolved.");
+        gate.SetResult();
+        Until(() => opening.IsCompleted && app.Window.WorkspaceMounted && app.Window.WorkspaceRoot == other);
+        opening.GetAwaiter().GetResult();
+        Settle();
+        var preview = host.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "WorkspaceTabPreview" && Equals(button.Tag, "file:notes.txt"));
+        Require(Math.Abs(preview.Bounds.Height - height) < .1 && ReferenceEquals(Host(), host) && ReferenceEquals(app.Find<Grid>("ProjectsPanel"), rail),
+            "An inactive tab must retain its row height and the Projects pane and workspace host must survive switching.");
+        var plain = host.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "WorkspaceTabPreview" && Equals(button.Tag, "markdown:README.md"));
+        Require(Math.Abs(plain.Bounds.Height - plainHeight) < .1 &&
+            host.GetLogicalDescendants().OfType<TextBlock>().Where(text => text.Name == "TabSubtitle").Select(text => text.Text).ToHashSet().SetEquals(["./", "folder"]),
+            "Plain rows and duplicate-name folder subtitles must match the active strip in inactive previews.");
+        var retained = app.Window.GetLogicalDescendants().OfType<ContentControl>().Where(control => control.Name == "WorkspaceTabs")
+            .ToDictionary(control => control, control => control.Content);
+        gate = app.Host.HoldOpen();
+        opening = app.Window.OpenProjectAsync(original);
+        Settle();
+        Require(!opening.IsCompleted && retained.All(pair => ReferenceEquals(pair.Key.Content, pair.Value)),
+            "Routing to a retained workspace must not place its live strips under the workspace being left.");
+        gate.SetResult();
+        Until(() => opening.IsCompleted && app.Window.WorkspaceMounted && app.Window.WorkspaceRoot == original);
+        opening.GetAwaiter().GetResult();
+        Settle();
+        Require(Math.Abs(app.Find<Grid>("DockTab_file_notes.txt").Bounds.Height - height) < .1,
+            "Returning to a workspace must preserve its tab height.");
+        Console.WriteLine("PASS Projects tab geometry and retained routing views");
+    }
+
     internal static void Run(string root)
     {
+        TabGeometry(root);
         using var git = new IsolatedGit(Path.Combine(root, "rail-retention-git"));
         using var app = OpenFixtureProject(Path.Combine(root, "rail-retention"));
         var first = CreateWorkspaceViaDialog(app);

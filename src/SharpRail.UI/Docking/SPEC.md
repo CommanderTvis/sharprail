@@ -328,6 +328,10 @@ Catalog terminals arriving in Projects mode use the centre instead of the bottom
 Inactive workspace previews refresh their plugin icons and badges when host agent identity
 changes, even when the active workspace's decorations are unchanged. Preview caching includes
 decoration results, so unchanged rows stay mounted and Codex/Claude marks follow workspace switches.
+Active and inactive Projects tabs use the same row heights, title typography and duplicate-name
+folder subtitles. While routing a workspace switch, Projects retains its outgoing rows until the
+destination identity and strips are ready; intermediate centre loading views never replace its tabs.
+Workspace selection backgrounds transition over 120 ms without animating row geometry.
 
 ## Phone pages
 

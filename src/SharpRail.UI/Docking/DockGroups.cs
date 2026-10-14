@@ -516,7 +516,7 @@ public sealed partial class DockSurface
         return headerFrame;
     }
     // Only a basename shared by two open tabs earns a second line naming its folder; a folder on every row is noise.
-    private static Dictionary<string, string> AmbiguousSubtitles(IReadOnlyList<DockTab> tabs)
+    internal static Dictionary<string, string> AmbiguousSubtitles(IReadOnlyList<DockTab> tabs)
     {
         var subtitles = new Dictionary<string, string>();
         foreach (var sharing in tabs.GroupBy(tab => tab.Title).Where(group => group.Count() > 1))
