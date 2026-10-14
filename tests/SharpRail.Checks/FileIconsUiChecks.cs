@@ -54,7 +54,7 @@ internal static partial class FileIconsChecks
                 using var app = server is null ? new E2eWorkspace(workspace)
                     : new E2eWorkspace(new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single()), "icons", workspace, workspace + "-profile", workspace);
                 Until(() => app.Window.WorkspaceMounted && app.Workbench.PluginLoader.Registry.Active.Contains("file-icons"));
-                app.Click(app.Find<Button>("Tab_files"));
+                app.ShowTool("files");
                 Require(app.Window.Layout.State.Groups.Where(group => group.Tools.Any(tab => tab.Id == "files")).All(group => app.Window.Layout.Selected(group.Id)?.Id == "files"),
                     "Clicking Files selects its rail tab before checking icons.");
                 Scenario(app, source is not null);
@@ -185,7 +185,7 @@ internal static partial class FileIconsChecks
             var refresh = app.Window.RefreshAsync();
             Until(() => refresh.IsCompleted);
             refresh.GetAwaiter().GetResult();
-            app.Click(app.Find<Button>("Tab_changes"));
+            app.ShowTool("changes");
             Until(() => app.Window.GetLogicalDescendants().OfType<Control>().Any(control => Equals(control.Tag, "asset:file-icons/python.svg")));
             Loaded(app.Window, "python");
             app.Click(app.Find<ToggleButton>("ChangesTree"));
@@ -194,7 +194,7 @@ internal static partial class FileIconsChecks
         }
         else Console.WriteLine("SKIP file-icons change rows: set SHARPRAIL_TEST_GIT_SOURCE to an existing fork clone.");
 
-        app.Click(app.Find<Button>("Tab_files"));
+        app.ShowTool("files");
         var disabling = app.Workbench.State.ChangeAsync(HostStateChange.PluginEnabled("file-icons", false));
         Until(() => disabling.IsCompleted && !app.Workbench.PluginLoader.Registry.Active.Contains("file-icons"));
         disabling.GetAwaiter().GetResult();

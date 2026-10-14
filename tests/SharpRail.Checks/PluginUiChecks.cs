@@ -325,7 +325,7 @@ internal static class PluginUiChecks
             if (remote)
             {
                 E2eWorkspace.Until(() => app.Window.WorkspaceMounted);
-                app.Click(app.Find<Button>("Tab_files"));
+                app.ShowTool("files");
             }
             FixtureScenario(app, plugins);
         }
