@@ -127,7 +127,7 @@ public sealed partial class GhosttyTextureView
             if (length >= 0)
             {
                 contextClick = true;
-                ShowClipboardMenu(length > 0 ? Encoding.UTF8.GetString(buffer, 0, length) : null);
+                ShowClipboardMenu(length > 0 ? Encoding.UTF8.GetString(buffer, 0, length) : null, length == 0 ? ContextFileLink(point) : null);
                 e.Handled = true;
                 return;
             }

@@ -230,6 +230,16 @@ owns ConPTY sessions. Native Metal libraries remain macOS-only.
 Terminal file links are made workspace-relative using the host's path syntax,
 without interpreting a remote Windows or POSIX path through the client's filesystem.
 
+Metal and Skia also resolve standalone hexadecimal commit ids (4–64 digits) against the terminal's
+workspace repository. Only a unique existing commit becomes a link; URLs and existing files take
+precedence, and missing, ambiguous, noncommit and gitless targets remain plain text. Lookup uses
+the targeted host commit operation in a separate workspace session off the dispatcher, never a
+history catalog. Modifier-click and the terminal's Open link context action revalidate the target
+and open the existing kept continuous Changes tab for that commit. Hover results are bounded to
+16 logical lines for one second and reject superseded requests. Leaving the workspace or closing
+the renderer prevents stale navigation. Restty's canvas runtime has no custom link-provider seam;
+these commit links apply to the browser's Skia fallback, not its Restty renderer.
+
 The Skia renderer reuses unchanged row pictures and framebuffer pixels, including
 when only the cursor moves. Theme, font, geometry, selection and preedit changes
 must invalidate affected rows. Cached native text blobs batch compatible ASCII

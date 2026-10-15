@@ -146,6 +146,16 @@ public sealed partial class GhosttySkiaView
         Redraw(false);
     }
 
+    private unsafe Task<TerminalContextLink?> ContextFileLink(Point point)
+    {
+        linkPointer = point;
+        var modifiers = linkModifiers;
+        linkModifiers = LinkModifier;
+        if (vt.Snapshot(out last)) UpdateLinks(last);
+        linkModifiers = modifiers;
+        return FileHover.ResolveContext();
+    }
+
     private async Task OpenFileAsync(TerminalLink link)
     {
         try { await FileHover.Activate(link); }

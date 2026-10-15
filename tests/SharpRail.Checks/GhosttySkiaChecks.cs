@@ -195,6 +195,13 @@ internal static class GhosttySkiaChecks
             Require(opened[0].Line == 12 && opened[0].Column == 3, "file click lost source coordinates.");
             window.KeyRelease(Key.LWin, RawInputModifiers.None, PhysicalKey.MetaLeft, null); Pump();
             Require(view.Cursor?.ToString() != "Hand", "file hover survived modifier release.");
+            window.MouseDown(point, MouseButton.Right); window.MouseUp(point, MouseButton.Right); Pump();
+            Until(() => view.ClipboardMenu?.Items.OfType<MenuItem>().Any(item => Equals(item.Header, "Open link")) == true, "resolved target context menu without modifier");
+            var contextOpen = view.ClipboardMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Open link"));
+            view.ClipboardMenu.Close(); Pump();
+            contextOpen.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(MenuItem.ClickEvent));
+            Until(() => opened.Count == 2, "captured context target navigation after menu closes");
+            Require(opened[1] == opened[0], "Context-menu navigation changed the resolved target.");
             view.Write("\r\e[2Kmissing.cs"u8); Pump();
             window.KeyPress(Key.LWin, RawInputModifiers.Meta, PhysicalKey.MetaLeft, null); Pump();
             Require(view.Cursor?.ToString() != "Hand", "changed output kept stale file link.");

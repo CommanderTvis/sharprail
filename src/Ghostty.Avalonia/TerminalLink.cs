@@ -3,11 +3,14 @@ namespace Ghostty.Avalonia;
 /// <summary>A host-resolved file reference, with UTF-16 offsets and one-based source coordinates.</summary>
 public sealed record TerminalLink(int Start, int Length, string Path, int Line, int Column, bool IsDirectory);
 
+internal sealed record TerminalContextLink(TerminalLink Link, Func<Task> Activate);
+
 internal sealed class TerminalLinkHover(Action changed) : IDisposable
 {
     internal Func<string, CancellationToken, Task<IReadOnlyList<TerminalLink>>>? Resolve;
     internal Func<TerminalLink, Task>? Open;
     private CancellationTokenSource? pending;
+    private CancellationTokenSource? contextPending;
     private string? text;
     private int offset = -1;
     private IReadOnlyList<TerminalLink> links = [];
@@ -52,6 +55,33 @@ internal sealed class TerminalLinkHover(Action changed) : IDisposable
         finally { call.Dispose(); }
     }
 
+    internal async Task<TerminalContextLink?> ResolveContext()
+    {
+        contextPending?.Cancel();
+        if (disposed || text is not { } value || Resolve is not { } resolve || Open is not { } open) return null;
+        var index = offset;
+        using var call = new CancellationTokenSource();
+        contextPending = call;
+        try
+        {
+            var links = await Task.Run(() => resolve(value, call.Token), call.Token);
+            if (disposed || call.IsCancellationRequested || contextPending != call) return null;
+            var link = links.FirstOrDefault(link => index >= link.Start && index < link.Start + link.Length);
+            return link is null ? null : new(link, async () =>
+            {
+                if (disposed) return;
+                try
+                {
+                    var current = await Task.Run(() => resolve(value, CancellationToken.None));
+                    if (!disposed && current.Contains(link)) await open(link);
+                }
+                catch (Exception) { }
+            });
+        }
+        catch (Exception) { return null; }
+        finally { if (contextPending == call) contextPending = null; }
+    }
+
     internal async Task Activate(TerminalLink link)
     {
         if (disposed || text is not { } current || Resolve is null || Open is null) return;
@@ -62,6 +92,6 @@ internal sealed class TerminalLinkHover(Action changed) : IDisposable
 
     public void Dispose()
     {
-        disposed = true; pending?.Cancel(); pending = null; cache.Clear(); links = [];
+        disposed = true; contextPending?.Cancel(); contextPending = null; pending?.Cancel(); pending = null; cache.Clear(); links = [];
     }
 }

@@ -62,7 +62,17 @@ public sealed partial class GhosttyTextureView
         Cursor = new Cursor(StandardCursorType.Hand);
     }
 
-    private void ShowClipboardMenu(string? url)
+    private Task<TerminalContextLink?> ContextFileLink(Point point)
+    {
+        linkPointer = point;
+        var modifiers = linkModifiers;
+        linkModifiers = LinkModifier;
+        RefreshFileLink();
+        linkModifiers = modifiers;
+        return FileHover.ResolveContext();
+    }
+
+    private async void ShowClipboardMenu(string? url, Task<TerminalContextLink?>? lookup = null)
     {
         ClipboardMenu = new ContextMenu();
         if (url is not null)
@@ -82,7 +92,15 @@ public sealed partial class GhosttyTextureView
             item.Click += (_, _) => { if (!disposed) Native.Action(terminal.Handle, action); };
             ClipboardMenu.Items.Add(item);
         }
-        ClipboardMenu.Open(this);
+        var menu = ClipboardMenu;
+        menu.Open(this);
+        if (url is null && lookup is not null && await lookup is { } resolved && !disposed && ReferenceEquals(ClipboardMenu, menu) && menu.IsOpen)
+        {
+            var open = new MenuItem { Header = "Open link", Tag = resolved.Link.Path };
+            open.Click += async (_, _) => await resolved.Activate();
+            menu.Items.Insert(0, new Separator());
+            menu.Items.Insert(0, open);
+        }
     }
 
     private async Task OpenFileAsync(TerminalLink link)

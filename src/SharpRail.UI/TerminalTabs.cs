@@ -63,13 +63,31 @@ public sealed partial class WorkbenchWindow
         {
             TabKey = tabId,
             Yield = !ownTerminals.Remove(workspace + ":" + tabId),
+            ResolveCommitLinks = (text, token) => ResolveTerminalCommits(workspace, text, token),
             OpenFileLink = async link =>
             {
-                if (workspaceRoot != workspace || !WorkspaceMounted) return;
+                if (workspaceRoot != workspace || !WorkspaceMounted || atHome) return;
+                if (TerminalCommitLinks.Commit(link) is { } sha) { OpenCommitChanges(workspace, sha); return; }
                 var path = HostPaths.Relative(workspace, link.Path);
                 await OpenDocumentAsync(path, true, line: link.Line, raw: true, column: link.Column);
             }
         };
+
+    private Task<IReadOnlyList<Ghostty.Avalonia.TerminalLink>> ResolveTerminalCommits(string workspace, string text, CancellationToken token)
+        => Task.Run(async () =>
+        {
+            if (workspaceRoot != workspace || !WorkspaceMounted || atHome) return (IReadOnlyList<Ghostty.Avalonia.TerminalLink>)[];
+            var request = projectRequest;
+            var project = workbench.NewSession();
+            try
+            {
+                if (project is not null) await project.OpenProjectAsync(workspace, token);
+                var links = await TerminalCommitLinks.Resolve(project ?? host, text, token);
+                token.ThrowIfCancellationRequested();
+                return workspaceRoot == workspace && WorkspaceMounted && !atHome && request == projectRequest ? links : [];
+            }
+            finally { (project as IDisposable)?.Dispose(); }
+        }, token);
 
     private static async Task TypeWhenStartedAsync(TerminalView terminal, string command)
     {

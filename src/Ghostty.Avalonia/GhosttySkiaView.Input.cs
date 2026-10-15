@@ -267,7 +267,8 @@ public sealed partial class GhosttySkiaView
         if (button == 2)
         {
             contextClick = true;
-            ShowClipboardMenu(UrlAt(e.GetPosition(this)));
+            var url = UrlAt(e.GetPosition(this));
+            ShowClipboardMenu(url, url is null ? ContextFileLink(e.GetPosition(this)) : null);
             return;
         }
         if (button != 1) return;
@@ -394,7 +395,7 @@ public sealed partial class GhosttySkiaView
     private bool contextClick;
     internal ContextMenu? ClipboardMenu { get; private set; }
 
-    private void ShowClipboardMenu(string? url = null)
+    private async void ShowClipboardMenu(string? url = null, Task<TerminalContextLink?>? lookup = null)
     {
         var copy = new MenuItem { Header = "Copy", IsEnabled = SelectedText.Length > 0 };
         copy.Click += (_, _) => _ = ClipboardAsync(false);
@@ -411,7 +412,15 @@ public sealed partial class GhosttySkiaView
             ClipboardMenu.Items.Add(new Separator());
         }
         ClipboardMenu.Items.Add(copy); ClipboardMenu.Items.Add(paste); ClipboardMenu.Items.Add(all);
-        ClipboardMenu.Open(this);
+        var menu = ClipboardMenu;
+        menu.Open(this);
+        if (url is null && lookup is not null && await lookup is { } resolved && !disposed && ReferenceEquals(ClipboardMenu, menu) && menu.IsOpen)
+        {
+            var open = new MenuItem { Header = "Open link", Tag = resolved.Link.Path };
+            open.Click += async (_, _) => await resolved.Activate();
+            menu.Items.Insert(0, new Separator());
+            menu.Items.Insert(0, open);
+        }
     }
 
     protected override void OnPointerWheelChanged(PointerWheelEventArgs e)

@@ -8,6 +8,7 @@ namespace SharpRail.UI.Terminal;
 public sealed record TerminalLaunch(string WorkspaceRoot, string SessionId, string ClipboardDirectory, string ClientId)
 {
     public Func<Ghostty.Avalonia.TerminalLink, Task>? OpenFileLink { get; init; }
+    public Func<string, CancellationToken, Task<IReadOnlyList<Ghostty.Avalonia.TerminalLink>>>? ResolveCommitLinks { get; init; }
     // The tab's layout id; with the workspace root it is the TerminalRef plugins see.
     public string TabKey { get; init; } = "";
     // Attach only when no other client holds the session; a tab created here, or taken over, attaches plainly.
