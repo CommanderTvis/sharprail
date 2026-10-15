@@ -309,7 +309,9 @@ internal static class BranchGraphChecks
         var opening = app.Window.OpenProjectAsync(project);
         E2eWorkspace.Until(() => opening.IsCompleted);
         opening.GetAwaiter().GetResult();
+        E2eWorkspace.Until(() => app.Window.Layout.Tools.Any(tool => tool.Id == Tool));
         app.Window.Layout.RestoreTool(Tool);
+        app.ShowTool(Tool);
         E2eWorkspace.Until(() => app.Window.GetLogicalDescendants().OfType<GraphPanel>().Any(panel => panel.IsEffectivelyVisible && panel.ProjectId == project));
     }
 

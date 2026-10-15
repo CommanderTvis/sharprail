@@ -69,7 +69,7 @@ public sealed partial class WorkbenchWindow
     // The composed catalog: core's tools stay owned by the layout; plugin tools follow the roster, withheld without Git when they need it.
     private void SyncPluginTools()
     {
-        Layout.SetGitAvailable(git.IsRepository);
+        if (!gitLoading) Layout.SetGitAvailable(git.IsRepository || gitError is not null);
         var openMenu = surface.GetLogicalDescendants().OfType<Control>().Select(control => control.ContextMenu).FirstOrDefault(menu => menu?.IsOpen == true);
         if (openMenu is not null)
         {

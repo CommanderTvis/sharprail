@@ -30,7 +30,8 @@ internal static class GestureCancellationE2E
 
     private static void QuietTransitions(string root)
     {
-        using var app = new E2eWorkspace(Path.Combine(root, "gesture-quiet-transitions"));
+        var directory = Path.Combine(root, "gesture-quiet-transitions");
+        using var app = new E2eWorkspace(directory, prepare: _ => WorkspaceTabsE2E.Git(directory, "init", "-q", "-b", "main"));
         var before = app.Find<Grid>("AuxiliaryStack_right").Bounds.Width;
         var (_, start) = StartResize(app);
         app.Window.MouseUp(start + new Vector(-60, 0), MouseButton.Left); Settle();

@@ -43,10 +43,11 @@ internal static class DrawerChecks
         var directory = Path.Combine(root, "drawers");
         Directory.CreateDirectory(directory);
         File.WriteAllText(Path.Combine(directory, "notes.txt"), "notes");
+        E2E.IsolatedGit.Run(directory, "init", "-q", "-b", "main");
         var window = new WorkbenchWindow(new ProjectServices(directory), directory, new ProfileStore(directory + "-profile"), E2E.E2eTerminals.Plain, compact: true);
         window.Width = 400; window.Height = 800;
         window.Show();
-        Pump(() => window.WorkspaceMounted, "The compact workspace did not mount.");
+        Pump(() => window.WorkspaceMounted && window.Layout.Tools.Any(tool => tool.Id == "changes"), "The compact Git workspace did not mount.");
         var layout = window.Layout;
         var projects = Named<Button>(window, "PageProjects");
         var current = Named<Button>(window, "PageCurrent");

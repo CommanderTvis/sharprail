@@ -118,11 +118,15 @@ internal static class DockInputChecks
 
     internal static void Run(string root)
     {
+        root = E2E.IsolatedGit.Repository(Path.Combine(root, "dock-input-project"),
+            ("README.md", File.ReadAllText(Path.Combine(root, "README.md"))),
+            ("SPEC.md", File.ReadAllText(Path.Combine(root, "SPEC.md"))),
+            ("hello.txt", File.ReadAllText(Path.Combine(root, "hello.txt"))));
         var window = new WorkbenchWindow(new ProjectServices(root), root, new ProfileStore(root + "-dock-input"), E2E.E2eTerminals.Plain);
         window.Show();
         var deadline = Awake.Now.AddSeconds(15);
-        while (!window.WorkspaceMounted && Awake.Now < deadline) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(1); }
-        Require(window.WorkspaceMounted, "Dock input workspace did not mount.");
+        while ((!window.WorkspaceMounted || !window.Layout.Tools.Any(tool => tool.Id == "changes")) && Awake.Now < deadline) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(1); }
+        Require(window.WorkspaceMounted && window.Layout.Tools.Any(tool => tool.Id == "changes"), "Dock input Git workspace did not mount.");
         T Find<T>(string name) where T : Control
         {
             Dispatcher.UIThread.RunJobs(); window.UpdateLayout();

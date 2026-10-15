@@ -39,7 +39,8 @@ internal static class LayoutFrameE2E
 
     private static void StripGeometry(string root)
     {
-        using var app = new E2eWorkspace(Path.Combine(root, "layout-strips"));
+        var directory = Path.Combine(root, "layout-strips");
+        using var app = new E2eWorkspace(directory, prepare: _ => WorkspaceTabsE2E.Git(directory, "init", "-q", "-b", "main"));
         app.Open("README.md", true);
         Require(app.Window.Layout.State.Groups.All(group => group.Region != "bottom"), "The workspace has no bottom zone.");
         var right = app.Window.Layout.State.Groups.First(group => group.Tools.Any(tab => tab.Id == "files")).Id;

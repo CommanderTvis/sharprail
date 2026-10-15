@@ -21,7 +21,8 @@ internal static class TerminalChromeChecks
         TabHover(root);
         RegionCommands(root);
         SideTerminal(root);
-        using var app = new E2eWorkspace(Path.Combine(root, "terminal-chrome"));
+        var directory = Path.Combine(root, "terminal-chrome");
+        using var app = new E2eWorkspace(directory, prepare: _ => WorkspaceTabsE2E.Git(directory, "init", "-q", "-b", "main"));
         var terminalGroup = app.Window.Layout.Group(app.Center);
         app.Window.Layout.NewTerminal(terminalGroup.Id);
         app.Click(app.Find<Button>("NewTerminal_" + terminalGroup.Id));
@@ -225,7 +226,8 @@ internal static class TerminalChromeChecks
 
     private static void SideMenu(string root)
     {
-        using var app = new E2eWorkspace(Path.Combine(root, "terminal-side-menu"));
+        var directory = Path.Combine(root, "terminal-side-menu");
+        using var app = new E2eWorkspace(directory, prepare: _ => WorkspaceTabsE2E.Git(directory, "init", "-q", "-b", "main"));
         var side = app.Window.Layout.State.Groups.First(group => group.Region == "right");
         Require(!app.Window.Layout.Tabs(side.Id).Any(tab => tab.Kind == "terminal"), "The Specs group must start without a terminal.");
         Require(!app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "NewTerminal_" + side.Id),

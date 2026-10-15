@@ -121,7 +121,6 @@ internal static class UiChecks
         foreach (var weight in new[] { Ui.InterfaceWeight, FontWeight.Normal, FontWeight.Medium, FontWeight.SemiBold })
             Require(FontManager.Current.TryGetGlyphTypeface(new Typeface(Ui.InterfaceFont, weight: weight), out var face) && face.Weight == weight,
                 $"Bundled Geist face {weight} fell back to a different weight.");
-        var store = new ProfileStore(Path.Combine(root, ".profile"));
         var host = new LocalProjectAdapter(new ProjectServices(root));
         Gate.Case("SelectionChecks", () => SelectionChecks.Run(host));
         if (translations)
@@ -159,7 +158,7 @@ internal static class UiChecks
             Gate.Case("LayoutE2E", () => E2E.LayoutE2E.Run(Path.Combine(root, "upstream-e2e")));
             Gate.Case("VerticalTabsE2E", () => E2E.VerticalTabsE2E.Run(Path.Combine(root, "upstream-e2e")));
         }
-        Gate.Case("workbench", () => Workbench(root, store, host));
+        Gate.Case("workbench", () => Workbench(root));
         Gate.Case("NavigationChecks", () => NavigationChecks.Run(root));
         Gate.Case("StartupChecks", () => StartupChecks.Run(root));
         Gate.Case("terminal-commit-navigation", () => TerminalCommitLinkChecks.RunUi(root));
@@ -174,8 +173,14 @@ internal static class UiChecks
         Console.WriteLine("PASS tabs, Markdown, pointer drag/cancel/drop, settings persistence, project and frame restoration");
     }
 
-    private static void Workbench(string root, ProfileStore store, LocalProjectAdapter host)
+    private static void Workbench(string root)
     {
+        root = E2E.IsolatedGit.Repository(Path.Combine(root, "workbench-project"),
+            ("README.md", File.ReadAllText(Path.Combine(root, "README.md"))),
+            ("hello.txt", File.ReadAllText(Path.Combine(root, "hello.txt"))));
+        Directory.CreateDirectory(Path.Combine(root, "src"));
+        var store = new ProfileStore(Path.Combine(root, ".profile"));
+        var host = new LocalProjectAdapter(new ProjectServices(root));
         using (var frontmatterPreview = new MarkdownPreview("---\nid: private-metadata\ntitle: Internal title\n---\n\n# Visible heading\n\nVisible paragraph.",
             "metadata.md", MarkdownContexts.For(host, store.Data.Preferences, (_, _) => { })))
         {
@@ -237,7 +242,7 @@ internal static class UiChecks
         var window = new WorkbenchWindow(host, root, store, E2E.E2eTerminals.Plain);
         window.Width = 1352; window.Height = 848;
         window.Show();
-        Pump(() => window.WorkspaceMounted, "Workspace did not mount.");
+        Pump(() => window.WorkspaceMounted && window.Layout.Tools.Any(tool => tool.Id == "changes"), "The Git workspace did not mount.");
         Pump(() => window.GetLogicalDescendants().OfType<DrawnTree>().Any(tree => tree.Name == "SpecsTree"), "The spec dialect's Specs panel did not mount.");
         Pump(() => Find<DrawnTree>(window, "SpecsTree").Roots.Any(item => Equals(item.Tag, "SPEC.md") &&
             item.Children.Any(child => Equals(child.Tag, "src/SPEC.md"))), "Spec hierarchy did not render.");
@@ -338,8 +343,8 @@ internal static class UiChecks
         var paragraphText = (SelectableTextBlock)markdownBody.Children[1];
         Require(headingText.FontSize == 24 && headingText.LineHeight == 30 &&
             headingFrame.Margin.Bottom == 12 && paragraphText.Margin.Top == 0 &&
-            Math.Abs(paragraphText.LineHeight - store.Data.Preferences.FontSize * 1.6) < .001,
-            "Markdown heading typography or adjacent block spacing differs from the reference.");
+            double.IsNaN(paragraphText.LineHeight),
+            "Markdown heading typography, adjacent spacing or natural linked-paragraph height differs from the reference.");
         var tabPoint = Center(window, Find<Button>(window, "Tab_markdown_README.md"));
         for (var click = 0; click < 2; click++)
         {

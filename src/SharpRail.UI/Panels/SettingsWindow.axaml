@@ -41,7 +41,7 @@
       </Grid>
     </DataTemplate>
     <DataTemplate x:Key="HostPage">
-      <StackPanel Spacing="20">
+      <StackPanel Spacing="24">
         <Border x:Name="HostConnectSection" Padding="16" CornerRadius="4" BorderThickness="1" BorderBrush="{x:Static rendering:Ui.BorderBrush}">
           <StackPanel Spacing="8">
             <TextBlock Text="Connect to another host" Classes="settings-heading" />

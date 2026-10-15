@@ -77,7 +77,8 @@ internal static class LayoutE2E
 
     private static void SideSplitTargets(string root)
     {
-        using var app = new E2eWorkspace(Path.Combine(root, "layout-side-splits"));
+        var directory = Path.Combine(root, "layout-side-splits");
+        using var app = new E2eWorkspace(directory, prepare: _ => WorkspaceTabsE2E.Git(directory, "init", "-q", "-b", "main"));
         var files = app.Find<Button>("Tab_files");
         app.Click(files, mouseButton: MouseButton.Right); Until(() => files.ContextMenu!.IsOpen);
         foreach (var title in new[] { "New group above", "New group below" })
