@@ -14,6 +14,87 @@ namespace SharpRail.Checks.E2E;
 
 internal static class FilesE2E
 {
+    internal static void Transfers(string root)
+    {
+        using var app = new E2eWorkspace(Path.Combine(root, "file-actions"));
+        var source = Path.Combine(app.Root, "source");
+        Directory.CreateDirectory(Path.Combine(source, "nested", "empty"));
+        File.WriteAllText(Path.Combine(source, "top.txt"), "top");
+        byte[] bytes = [0, 255, 1, 42];
+        File.WriteAllBytes(Path.Combine(source, "nested", "data.bin"), bytes);
+        Node(app, "source");
+        foreach (var path in new[] { "notes.txt", "source" })
+        {
+            var menu = OpenMenu(app, path);
+            Require(Equals(Entry(menu, "FileNodeMove").Header, "Move…") && Equals(Entry(menu, "FileNodeCopy").Header, "Copy…"),
+                "Both files and directories must offer explicit Move and Copy actions.");
+            menu.Close();
+        }
+        Choose(app, "notes.txt", "FileNodeCopy");
+        var dialog = Dialog(app);
+        var input = Named<TextBox>(dialog, "PathNameInput");
+        Until(() => input.IsFocused);
+        Require(input.SelectionStart == 0 && input.SelectionEnd == input.Text!.Length &&
+            Named<TextBlock>(dialog, "DialogExplanation").Text!.Contains("relative to this workspace", StringComparison.Ordinal),
+            "Transfers select the whole destination path and explain that it is workspace-relative.");
+        input.Text = "cancelled.txt";
+        Cancel(dialog);
+        Require(!File.Exists(Path.Combine(app.Root, "cancelled.txt")) && File.Exists(Path.Combine(app.Root, "notes.txt")), "Canceling the destination dialog must not copy or move anything.");
+
+        Transfer("notes.txt", "copied.txt", copy: true);
+        Require(File.ReadAllText(Path.Combine(app.Root, "copied.txt")) == File.ReadAllText(Path.Combine(app.Root, "notes.txt")), "Copy must preserve the source and file contents.");
+        Transfer("copied.txt", "destination/inner/moved.txt", copy: false);
+        Require(!File.Exists(Path.Combine(app.Root, "copied.txt")) && File.ReadAllText(Path.Combine(app.Root, "destination", "inner", "moved.txt")) == File.ReadAllText(Path.Combine(app.Root, "notes.txt")), "Move must remove its old path and preserve bytes at the destination.");
+        Node(app, "destination/inner/moved.txt");
+        Transfer("source", "folder-copy", copy: true);
+        Require(Directory.Exists(source) && File.ReadAllBytes(Path.Combine(app.Root, "folder-copy", "nested", "data.bin")).SequenceEqual(bytes) && Directory.Exists(Path.Combine(app.Root, "folder-copy", "nested", "empty")), "Folder copy must retain its source, nested binary bytes and empty folders.");
+        Transfer("folder-copy", "folder-moved", copy: false);
+        Require(!Directory.Exists(Path.Combine(app.Root, "folder-copy")) && File.ReadAllBytes(Path.Combine(app.Root, "folder-moved", "nested", "data.bin")).SequenceEqual(bytes), "Folder move must relocate the complete tree.");
+
+        Choose(app, "source", "FileNodeMove");
+        dialog = Dialog(app);
+        input = Named<TextBox>(dialog, "PathNameInput");
+        var confirm = Named<Button>(dialog, "PathNameConfirm");
+        var error = Named<TextBlock>(dialog, "PathNameError");
+        Require(!confirm.IsEnabled, "Moving an entry to itself must not be confirmable.");
+        input.Text = "source/child";
+        app.Click(confirm);
+        Until(() => error.IsVisible && error.Text!.Contains("outside the source", StringComparison.Ordinal));
+        Require(!Directory.Exists(Path.Combine(source, "child")), "A refused descendant move must not create directories inside its source.");
+        input.Text = "../escape";
+        Until(() => !confirm.IsEnabled);
+        input.Text = "README.md";
+        Until(() => !confirm.IsEnabled && error.Text!.Contains("already exists", StringComparison.Ordinal));
+        Cancel(dialog);
+
+        Choose(app, "notes.txt", "FileNodeCopy");
+        dialog = Dialog(app);
+        input = Named<TextBox>(dialog, "PathNameInput");
+        confirm = Named<Button>(dialog, "PathNameConfirm");
+        error = Named<TextBlock>(dialog, "PathNameError");
+        input.Text = "late-collision.txt";
+        File.WriteAllText(Path.Combine(app.Root, "late-collision.txt"), "keep existing");
+        app.Click(confirm);
+        Until(() => error.IsVisible && error.Text!.Contains("already exists", StringComparison.Ordinal));
+        Require(File.ReadAllText(Path.Combine(app.Root, "late-collision.txt")) == "keep existing" && File.Exists(Path.Combine(app.Root, "notes.txt")), "A late host collision must keep both destination and source, with the dialog available for correction.");
+        Cancel(dialog);
+        Console.WriteLine("PASS file-tree Move/Copy actions: files, folders, contents, cancellation, self/descendant paths and non-overwriting collisions");
+
+        void Cancel(Window modal)
+        {
+            app.Click(modal.GetLogicalDescendants().OfType<Button>().Single(button => button.Content is TextBlock { Text: "Cancel" }));
+            Until(() => !app.Window.OwnedWindows.Any());
+        }
+        void Transfer(string from, string to, bool copy)
+        {
+            Choose(app, from, copy ? "FileNodeCopy" : "FileNodeMove");
+            var modal = Dialog(app);
+            Named<TextBox>(modal, "PathNameInput").Text = to;
+            app.Click(Named<Button>(modal, "PathNameConfirm"));
+            Until(() => !app.Window.OwnedWindows.Any());
+        }
+    }
+
     internal static void Run(string root)
     {
         using var git = new IsolatedGit(Path.Combine(root, "files-git"));

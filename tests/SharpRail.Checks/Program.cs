@@ -86,6 +86,13 @@ internal static class Program
             WebSocketFlowChecks.Run().GetAwaiter().GetResult();
             return;
         }
+        if (args.SequenceEqual(["--file-transfer-actions"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            E2E.FilesE2E.Transfers(root);
+            return;
+        }
         if (args.SequenceEqual(["--file-drop"]))
         {
             try

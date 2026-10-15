@@ -112,11 +112,16 @@ public static class Dialogs
     /// cannot be confirmed; the dialog stays open while <paramref name="submit"/> runs and shows its failure.
     /// </summary>
     public static async Task PathName(Window owner, string title, string initial, string confirmLabel,
-        Func<string, bool> exists, Func<string, Task> submit)
+        Func<string, bool> exists, Func<string, Task> submit, string? explanation = null, bool selectStem = true)
     {
         var window = Create(title, 520);
+        if (explanation is not null)
+        {
+            var description = window.FindControl<TextBlock>("DialogExplanation")!;
+            description.Text = explanation; description.IsVisible = true;
+        }
         var panel = window.FindControl<StackPanel>("DialogFields")!;
-        var input = new TextBox { Name = "PathNameInput", Text = initial, PlaceholderText = "Name" };
+        var input = new TextBox { Name = "PathNameInput", Text = initial, PlaceholderText = selectStem ? "Name" : "Destination path" };
         var error = Ui.Text("", Ui.Danger, 12);
         error.Name = "PathNameError"; error.IsVisible = false; error.TextWrapping = Avalonia.Media.TextWrapping.Wrap;
         panel.Children.Add(input); panel.Children.Add(error);
@@ -154,7 +159,7 @@ public static class Dialogs
             // A rename selects the stem, so typing replaces the name and keeps the extension.
             var dot = initial.LastIndexOf('.');
             input.SelectionStart = 0;
-            input.SelectionEnd = dot > 0 ? dot : initial.Length;
+            input.SelectionEnd = selectStem && dot > 0 ? dot : initial.Length;
         };
         await window.ShowDialog(owner);
     }

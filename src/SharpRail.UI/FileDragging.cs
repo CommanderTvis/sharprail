@@ -107,11 +107,13 @@ public sealed partial class WorkbenchWindow
         });
     }
 
-    internal static bool CanDropPath(string path, string folder)
+    internal static bool CanDropPath(string path, string folder) => CanTransferPath(path, Path.Combine(folder, Path.GetFileName(path)));
+
+    internal static bool CanTransferPath(string path, string target)
     {
-        var target = Path.Combine(folder, Path.GetFileName(path));
+        path = path.Replace('\\', '/'); target = target.Replace('\\', '/');
         var comparison = OperatingSystem.IsMacOS() || OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal;
-        return !target.Equals(path, comparison) && !target.StartsWith(path + Path.DirectorySeparatorChar, comparison);
+        return !target.Equals(path, comparison) && !target.StartsWith(path + "/", comparison);
     }
 
     internal void WireTerminalFileDrop(TerminalView terminal)

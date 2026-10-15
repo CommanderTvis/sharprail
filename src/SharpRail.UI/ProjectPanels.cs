@@ -181,6 +181,8 @@ public sealed partial class WorkbenchWindow
         Add(RevealLabel, "FileNodeReveal", () => _ = FileActionAsync(new("reveal", file.Path)), "folderOpen");
         Add("Copy absolute path", "FileNodeCopyPath", () => _ = CopyTextAsync(Path.Combine(workspaceRoot, file.Path)));
         Add("Rename…", "FileNodeRename", () => _ = RenamePathAsync(file));
+        Add("Move…", "FileNodeMove", () => _ = TransferPathAsync(file, false));
+        Add("Copy…", "FileNodeCopy", () => _ = TransferPathAsync(file, true));
         Add(file.IsDirectory ? "Delete folder" : "Delete file", "FileNodeDelete", () => _ = TrashPathAsync(file), "trash");
         var offered = FileActionItems(new(workspaceRoot, file.Path, file.IsDirectory));
         if (offered.Count > 0)
@@ -229,6 +231,33 @@ public sealed partial class WorkbenchWindow
                 await host.ApplyFileActionAsync(new("rename", file.Path, Target(name)), lifetime.Token);
                 await RefreshFilesAsync(projectRequest);
             });
+    }
+
+    private async Task TransferPathAsync(ProjectFile file, bool copy)
+    {
+        var workspace = workspaceRoot;
+        var request = projectRequest;
+        static string Target(string path) => path.Replace('\\', Path.DirectorySeparatorChar).Replace('/', Path.DirectorySeparatorChar);
+        await Dialogs.PathName(this, (copy ? "Copy " : "Move ") + Path.GetFileName(file.Path), file.Path, copy ? "Copy" : "Move",
+            path => folderCache.Values.Any(entries => PathListed(entries, Target(path))), async path =>
+            {
+                if (workspace != workspaceRoot || request != projectRequest) throw new IOException("The workspace changed. Close this dialog and try again.");
+                var target = Target(path);
+                if (!CanTransferPath(file.Path, target)) throw new IOException("Choose a destination outside the source file or folder.");
+                await Task.Run(async () => await host.ApplyFileActionAsync(new(copy ? "copy" : "rename", file.Path, target) { WorkspaceRoot = workspace }, lifetime.Token), lifetime.Token);
+                if (workspace != workspaceRoot || request != projectRequest) return;
+                var parents = new List<string>();
+                for (var parent = Path.GetDirectoryName(target); !string.IsNullOrEmpty(parent); parent = Path.GetDirectoryName(parent))
+                {
+                    parents.Add(parent); expandedFolders.Add(parent);
+                }
+                await RefreshFilesAsync(request, parents);
+                if (workspace != workspaceRoot || request != projectRequest) return;
+                if (toolContent.GetValueOrDefault("files")?.FindControl<DrawnTree>("FilesTree") is { } tree)
+                    foreach (var parent in parents.AsEnumerable().Reverse())
+                        if (tree.Rows.FirstOrDefault(entry => entry.Tag is ProjectFile folder && folder.IsDirectory && folder.Path == parent) is { } entry)
+                            tree.Expand(entry, true);
+            }, explanation: "Destination path relative to this workspace. Existing files and folders are not replaced.", selectStem: false);
     }
 
     private async Task TrashPathAsync(ProjectFile file)

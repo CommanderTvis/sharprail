@@ -209,6 +209,8 @@ internal static class FileDropChecks
             window.MouseUp(new Point(130, 12), MouseButton.Left);
             Require(dragged == 1 && activated == 1, "Dragging begins after a threshold without opening the file.");
             Require(!WorkbenchWindow.CanDropPath("src", "src/nested") && !WorkbenchWindow.CanDropPath("src/file", "src") && WorkbenchWindow.CanDropPath("src/file", "other"), "Self and descendant destinations are rejected.");
+            Require(WorkbenchWindow.CanTransferPath("src/file", "src/copy") && !WorkbenchWindow.CanTransferPath("src\\folder", "src/folder/child"),
+                "An explicit destination can change the name, while mixed path separators must not bypass descendant rejection.");
             var quoted = TerminalFacts.QuoteAttachPath("folder/é file with space\n.txt");
             Require(quoted.StartsWith('"') && quoted.Contains('é') && !quoted.Contains('\n') && quoted.EndsWith('"'), "Unsafe prompt path characters must be quoted without literal newlines.");
         }
