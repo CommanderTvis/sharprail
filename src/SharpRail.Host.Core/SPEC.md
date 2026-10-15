@@ -37,6 +37,14 @@ the host terminal service and the system Recycle Bin for file removal. Its
 workspace paths follow host filesystem rules; relative resource paths remain
 portable across client platforms.
 
+ConPTY children explicitly use null standard handles with `STARTF_USESTDHANDLES`,
+so Windows connects their I/O to the pseudoconsole rather than duplicating a
+console host's redirected standard handles. This also applies when the standalone
+host or packaged checks run with captured output. The packaged Windows gate must
+observe the PowerShell prompt and command results through the terminal service;
+printing them to the parent process is not successful terminal output. Runtime
+acceptance remains gated by the Windows runner, not a macOS build.
+
 Custom highlighting is persisted host state. The `custom-highlighting` setting accepts
 an empty value or a JSON array of unique scopes, names, filename patterns and grammar
 JSON, bounded to 2 Mi characters in total, 64 entries, 512 Ki characters per grammar,

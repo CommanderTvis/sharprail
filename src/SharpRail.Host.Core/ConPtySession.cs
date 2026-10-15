@@ -54,7 +54,8 @@ internal sealed class ConPtySession : ITerminalProcess
             Check(Native.InitializeProcThreadAttributeList(attributes, 1, 0, ref bytes));
             attributesReady = true;
             Check(Native.UpdateProcThreadAttribute(attributes, 0, 0x20016, console, (nuint)IntPtr.Size, 0, 0));
-            var startup = new Native.StartupInfoEx { Startup = new() { Size = Marshal.SizeOf<Native.StartupInfoEx>() }, Attributes = attributes };
+            // Null standard handles with STARTF_USESTDHANDLES prevent redirected parent I/O from escaping the pseudoconsole.
+            var startup = new Native.StartupInfoEx { Startup = new() { Size = Marshal.SizeOf<Native.StartupInfoEx>(), Flags = 0x100 }, Attributes = attributes };
             environment = Marshal.StringToHGlobalUni(string.Join('\0', PtyTerminalService.ShellEnvironment(mcpUrl, contributed).OfType<string>()) + "\0\0");
             Check(Native.CreateProcess(shell, new StringBuilder(CommandLine(shell)), 0, 0, false,
                 0x00080000 | 0x00000400 | 0x00000004, environment, directory, ref startup, out var info));
