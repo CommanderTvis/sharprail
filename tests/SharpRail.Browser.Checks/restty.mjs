@@ -44,13 +44,13 @@ try {
   let hostError = ''; host.stderr.on('data', data => { hostError += data; });
   await until(async () => { try { return await fetch(address); } catch { if (host.exitCode !== null) throw new Error(hostError); } }, r => r?.ok, 'Host did not start');
   browser = await chromium.launch({ channel: 'chromium', headless: true,
-    args: process.env.PROFILE_UNCAPPED ? ['--disable-frame-rate-limit', '--disable-gpu-vsync'] : [] });
-  const page = await browser.newPage({ viewport: process.argv.includes('--wheel') ? { width: 1500, height: 900 } : { width: 1840, height: 1340 }, deviceScaleFactor: Number(process.env.PROFILE_DPR ?? 1) });
-  if (process.argv.includes('--settings') && Number(process.env.PROFILE_DPR ?? 1) !== 1)
-    await page.addInitScript(() => Object.defineProperty(ResizeObserverEntry.prototype, 'devicePixelContentBoxSize', { get: () => undefined }));
+    args: [ ...(process.env.PROFILE_UNCAPPED ? ['--disable-frame-rate-limit', '--disable-gpu-vsync'] : []),
+      ...(process.argv.includes('--settings') ? ['--force-device-scale-factor=' + Number(process.env.PROFILE_DPR ?? 1)] : []) ] });
+  const page = await browser.newPage({ viewport: process.argv.includes('--wheel') ? { width: 1500, height: 900 } : { width: Number(process.env.SETTINGS_WIDTH ?? 1840), height: Number(process.env.SETTINGS_HEIGHT ?? 1340) }, deviceScaleFactor: Number(process.env.PROFILE_DPR ?? 1) });
+  if (process.argv.includes('--settings')) page.setDefaultTimeout(30000);
   const errors = []; page.on('pageerror', error => { errors.push(error.message); console.error(error.message); });
   page.on('console', message => { if (message.type() === 'error' && !message.text().includes('404')) { errors.push(message.text()); console.error(message.text()); } });
-  await page.addInitScript(({ address, token, fixture }) => {
+  await page.addInitScript(({ address, token, fixture, zoom }) => {
     sessionStorage.setItem('sharprail:endpoint', JSON.stringify({ Address: address, Token: token }));
     // Restore an explicitly saved terminal; fresh workspaces no longer create one automatically.
     const terminal = { Id: 'terminal:restty-check', Title: 'Terminal 1', Kind: 'terminal' };
@@ -64,7 +64,7 @@ try {
       Workspaces: { [fixture]: { Documents: { 'browser-center': [terminal] }, Selected: { 'browser-center': terminal.Id }, FocusedCenter: 'browser-center' } },
       ActiveWorkspace: fixture
     };
-    localStorage.setItem('sharprail:profile', JSON.stringify({ LastProject: fixture, Windows: [{ LastProject: fixture, Layout: layout }] }));
+    localStorage.setItem('sharprail:profile', JSON.stringify({ Preferences: { Zoom: zoom }, LastProject: fixture, Windows: [{ LastProject: fixture, Layout: layout }] }));
     globalThis.gpuFrames = 0; globalThis.animationFrames = 0; let dirty = false;
     const draw = WebGL2RenderingContext.prototype.drawArraysInstanced;
     WebGL2RenderingContext.prototype.drawArraysInstanced = function (...args) {
@@ -73,7 +73,7 @@ try {
     };
     const tick = () => { globalThis.animationFrames++; if (dirty) { globalThis.gpuFrames++; dirty = false; } requestAnimationFrame(tick); };
     requestAnimationFrame(tick);
-  }, { address, token, fixture });
+  }, { address, token, fixture, zoom: Number(process.env.SETTINGS_ZOOM ?? 1) });
   await page.goto(address);
   await page.waitForFunction(() => [...document.querySelectorAll('.sharprail-restty')].some(element => element.dataset.ready === 'true' && element.querySelector('canvas') && element.checkVisibility()), {}, { timeout: 90000 });
   const term = page.locator('.sharprail-restty:has(canvas):visible').first();
@@ -231,8 +231,21 @@ try {
       const exports = await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll');
       return exports.SharpRail.Browser.Checks.BrowserChecks[method](...args);
     }, { method, args });
+    const geometry = async () => JSON.parse(await invoke('SettingsGeometry'));
+    const viewport = page.viewportSize();
+    const fillsViewport = value => Math.abs(value.Width - page.viewportSize().width) < 1 && Math.abs(value.Height - page.viewportSize().height) < 1;
+    await until(geometry, fillsViewport, 'The workbench retained its constructor size instead of the browser viewport');
+    const canvas = await page.locator('.sharprail-workbench > canvas').evaluate(element => ({ width: element.width, height: element.height }));
+    assert.equal(canvas.width, Math.round(viewport.width * Number(process.env.PROFILE_DPR ?? 1)));
+    assert.equal(canvas.height, Math.round(viewport.height * Number(process.env.PROFILE_DPR ?? 1)));
+    await invoke('RequestWorkbenchSize', 1441, 921);
+    await until(geometry, fillsViewport, 'A window size request left the workbench smaller than its CSS viewport');
     for (const section of ['Appearance', 'Layout', 'Plugins']) {
-      await invoke('OpenSettings', section);
+      if (section === 'Appearance') {
+        const { Gear } = await geometry();
+        assert.ok(Gear.X + Gear.Width > viewport.width - 64 * Number(process.env.SETTINGS_ZOOM ?? 1), 'The real Settings gear must stay at the viewport edge');
+        await page.mouse.click(Gear.X + Gear.Width / 2, Gear.Y + Gear.Height / 2);
+      } else await invoke('OpenSettings', section);
       const dialog = page.locator('.sharprail-dialog');
       await page.waitForFunction(() => document.querySelector('.sharprail-workbench').inert);
       await until(() => dialog.boundingBox(), bounds => bounds?.height === page.viewportSize().height * .8, 'Settings did not finish sizing');
@@ -240,6 +253,9 @@ try {
       for (let frame = 0; frame < 4; frame++) {
         await page.waitForTimeout(100);
         assert.equal(await dialog.count(), 1);
+        const stable = await dialog.boundingBox();
+        assert.equal(stable.width, Math.min(832 * Number(process.env.SETTINGS_ZOOM ?? 1), viewport.width), 'Settings width oscillated during repaint');
+        assert.equal(stable.height, viewport.height * .8, 'Settings height oscillated during repaint');
         assert.equal(await dialog.evaluate(element => element.style.visibility), 'visible');
         const pixels = await page.screenshot();
         const magenta = await page.evaluate(async data => {
@@ -253,7 +269,12 @@ try {
         }, pixels.toString('base64'));
         assert.equal(magenta, 0, 'The temporary embedded renderer painted over a real window');
       }
-      await invoke('ClickSettingsButton', 'SettingsClose');
+      const shape = await geometry();
+      assert.equal(shape.Dialogs.length, 1);
+      const bounds = await dialog.boundingBox();
+      assert.ok(Math.abs(shape.Dialogs[0].Width - bounds.width) < 1 && Math.abs(shape.Dialogs[0].Height - bounds.height) < 1, 'Settings logical and CSS sizes must agree');
+      const { Close } = shape.Dialogs[0];
+      await page.mouse.click(bounds.x + Close.X + Close.Width / 2, bounds.y + Close.Y + Close.Height / 2);
       await page.waitForFunction(() => !document.querySelector('.sharprail-workbench').inert);
       assert.equal(await dialog.count(), 0);
     }
@@ -262,7 +283,7 @@ try {
     await page.keyboard.press('Enter');
     await until(screen, value => value.includes('SETTINGS_PASS'), 'Terminal input did not recover after Settings');
     assert.deepEqual(errors, []);
-    console.log('PASS Settings stays painted through embedded-root repaints, reopen and close; terminal input recovers');
+    console.log('PASS Settings uses the actual viewport and native DPR, opens by real gear click, stays painted through embedded-root repaints and closes by pointer; terminal input recovers');
   } else {
   assert.equal(await term.getAttribute('data-backend'), 'webgl2');
   const command = async text => { await term.locator('canvas').click(); await page.keyboard.type(text); await page.keyboard.press('Enter'); };

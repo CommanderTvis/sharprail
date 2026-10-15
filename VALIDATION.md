@@ -3168,3 +3168,9 @@ Actual Chromium reproduced the platform-unavailable error before the fix. The fo
 ## 2026-10-15 — Browser terminal wheel ownership
 
 Restty surfaces stop wheel events from bubbling into Avalonia while retaining native scrolling and the terminal's own handlers. The listener is removed on teardown. Actual Chromium checks passed writable scrollback, a second read-only client's scrollback, returning to Projects scrolling, and listener removal without preventing the default wheel action. The original bridge fails the same read-only regression. Browser WASM and host Release builds, JavaScript syntax, configured formatting and whitespace passed.
+
+## 2026-10-15 — Browser Settings resize stability
+
+The browser window adapter now synchronizes the workbench with its actual CSS viewport after ownership/show/size requests. Owned dialogs report current CSS dimensions instead of feeding stale asynchronous backing-surface sizes into another resize request. This removes the reproduced Settings size oscillation while preserving renderer ownership protection.
+
+Actual Chromium checks passed at 1840×1340 with native DPR2 and 2560×1600 with DPR1 and interface zoom1.25: initial viewport/backing pixels, saved-size recovery, real gear/Close clicks, three Settings sections stable across repaint stress and terminal input recovery. Desktop Release and final browser WASM builds passed with zero warnings/errors; touched formatting, JavaScript syntax and whitespace passed. Physical Safari/Android and full-suite acceptance were not run. Integration retained the independent wheel-test viewport branch.

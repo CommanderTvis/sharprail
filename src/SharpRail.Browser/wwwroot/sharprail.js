@@ -68,6 +68,8 @@ export function placeWindow(id, width, height, dialog, shown) {
   element.style.height = dialog ? `${Math.min(height, innerHeight)}px` : '100%';
   element.style.visibility = shown ? 'visible' : 'hidden';
 }
+export function windowWidth(id) { return document.getElementById(id).getBoundingClientRect().width; }
+export function windowHeight(id) { return document.getElementById(id).getBoundingClientRect().height; }
 export function removeWindow(id) { document.getElementById(id)?.remove(); }
 export function activateWindow(id) {
   const element = document.getElementById(id);

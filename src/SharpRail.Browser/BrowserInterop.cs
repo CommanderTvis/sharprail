@@ -21,6 +21,10 @@ internal static partial class BrowserInterop
     internal static partial string CreateWindow();
     [JSImport("placeWindow", "sharprail")]
     internal static partial void PlaceWindow(string id, double width, double height, bool dialog, bool shown);
+    [JSImport("windowWidth", "sharprail")]
+    internal static partial double WindowWidth(string id);
+    [JSImport("windowHeight", "sharprail")]
+    internal static partial double WindowHeight(string id);
     [JSImport("removeWindow", "sharprail")]
     internal static partial void RemoveWindow(string id);
     [JSImport("activateWindow", "sharprail")]

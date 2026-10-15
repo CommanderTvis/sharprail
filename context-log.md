@@ -5757,3 +5757,5 @@ Release and actual browser WASM builds passed with zero warnings/errors; touched
 2026-10-15: Fixed missing browser Markdown Mermaid by using MermaidRenderer.RenderAsync rather than the native-only synchronous path. Actual browser restoration/open/reload/diff and error regressions passed, as did native visualization checks and Release builds. No renderer setup-order or worker changes were needed.
 
 2026-10-15: Kept browser terminal wheel events within their DOM surface to prevent stale Avalonia pointer targeting from scrolling Projects. Writable/read-only and return-to-Projects browser regressions passed; listener teardown is checked.
+
+2026-10-15: Fixed stale browser viewport ownership sizing and Settings resize oscillation by reconciling root viewport size and reading current owned-dialog CSS dimensions. Real-pointer browser acceptance passed at native DPR2 and large-screen zoom; see VALIDATION.md.

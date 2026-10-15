@@ -10,6 +10,7 @@ using Avalonia.Input.Raw;
 using Avalonia.Platform;
 using Avalonia.Platform.Surfaces;
 using Avalonia.Rendering.Composition;
+using Avalonia.Threading;
 
 namespace SharpRail.UI.Browser;
 
@@ -75,6 +76,8 @@ internal sealed class BrowserWindow : IWindowImpl
     private readonly AvaloniaView view;
     private readonly ITopLevelImpl surface;
     private bool shown, dialog, disposed;
+    private bool resizeQueued;
+    private Action<Size, WindowResizeReason>? resized;
     private Size requested = new(1200, 800);
 
     public BrowserWindow(BrowserWindows windows)
@@ -97,6 +100,7 @@ internal sealed class BrowserWindow : IWindowImpl
         Window = window;
         BrowserInterop.SetWorkbench(id, window is WorkbenchWindow);
         BrowserInterop.PlaceWindow(id, requested.Width, requested.Height, dialog, shown);
+        QueueWorkbenchSize();
     }
     public double DesktopScaling => surface.DesktopScaling;
     public IPlatformHandle? Handle => surface.Handle;
@@ -107,7 +111,15 @@ internal sealed class BrowserWindow : IWindowImpl
     public AcrylicPlatformCompensationLevels AcrylicCompensationLevels => surface.AcrylicCompensationLevels;
     public Action<RawInputEventArgs>? Input { get => surface.Input; set => surface.Input = value; }
     public Action<Rect>? Paint { get => surface.Paint; set => surface.Paint = value; }
-    public Action<Size, WindowResizeReason>? Resized { get => surface.Resized; set => surface.Resized = value; }
+    public Action<Size, WindowResizeReason>? Resized
+    {
+        get => resized;
+        set
+        {
+            resized = value;
+            surface.Resized = value is null ? null : (size, reason) => resized?.Invoke(dialog ? ClientSize : size, reason);
+        }
+    }
     public Action<double>? ScalingChanged { get => surface.ScalingChanged; set => surface.ScalingChanged = value; }
     public Action<WindowTransparencyLevel>? TransparencyLevelChanged { get; set; }
     public Action? LostFocus { get => surface.LostFocus; set => surface.LostFocus = value; }
@@ -119,7 +131,8 @@ internal sealed class BrowserWindow : IWindowImpl
     public Action? GotInputWhenDisabled { get; set; }
     public Func<WindowCloseReason, bool>? Closing { get; set; }
     public Action<bool>? ExtendClientAreaToDecorationsChanged { get; set; }
-    public Size ClientSize => surface.ClientSize;
+    // CSS resizing is asynchronous; layout must not feed the old surface size back into Resize.
+    public Size ClientSize => dialog ? new(BrowserInterop.WindowWidth(id), BrowserInterop.WindowHeight(id)) : surface.ClientSize;
     public Size? FrameSize => null;
     public Size MaxAutoSizeHint => new(1920, 1080);
     public PixelPoint Position => default;
@@ -142,6 +155,7 @@ internal sealed class BrowserWindow : IWindowImpl
     {
         dialog |= isDialog; shown = true;
         BrowserInterop.PlaceWindow(id, requested.Width, requested.Height, dialog, true);
+        QueueWorkbenchSize();
         if (activate) Activate();
     }
     public void Hide() { shown = false; BrowserInterop.PlaceWindow(id, requested.Width, requested.Height, dialog, false); }
@@ -151,7 +165,22 @@ internal sealed class BrowserWindow : IWindowImpl
     {
         requested = size;
         BrowserInterop.PlaceWindow(id, size.Width, size.Height, dialog, shown);
+        QueueWorkbenchSize();
     }
+    private void QueueWorkbenchSize()
+    {
+        if (resizeQueued || Window is not WorkbenchWindow) return;
+        resizeQueued = true;
+        Dispatcher.UIThread.Post(() =>
+        {
+            resizeQueued = false;
+            if (disposed || !shown || Window is not WorkbenchWindow) return;
+            var actual = new Size(BrowserInterop.WindowWidth(id), BrowserInterop.WindowHeight(id));
+            if (actual.Width > 0 && actual.Height > 0 && Window.ClientSize != actual)
+                Resized?.Invoke(actual, WindowResizeReason.Unspecified);
+        }, DispatcherPriority.Loaded);
+    }
+
     public void SetTitle(string? title) => BrowserInterop.SetTitle(id, title ?? "SharpRail");
     public void SetEnabled(bool enabled) => BrowserInterop.EnableWindow(id, enabled);
     public void SetWindowDecorations(WindowDecorations enabled) { }

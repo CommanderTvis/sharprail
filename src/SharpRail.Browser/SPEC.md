@@ -99,7 +99,11 @@ archives. A pinned current Binaryen accepts the target features emitted by the p
 the .NET SDK retains its own Emscripten toolchain.
 
 Avalonia browser surfaces back the workbench and owned dialogs. The workbench fills the browser
-viewport and restores one workbench from the saved profile; the browser adds no window selector
+viewport and restores one workbench from the saved profile. Its logical size follows the actual browser
+surface even when the first resize arrives before Window ownership or a saved/constructor size is
+reapplied without changing CSS. Window requests cannot leave the workbench smaller than its viewport.
+Owned dialogs use their current CSS extent for logical size and resize notifications; delayed surface
+observations cannot feed an old viewport size back into dialog layout. The browser adds no window selector
 or New/Close window toolbar. Each canvas has one active renderer: the temporary embedded root that
 `AvaloniaView` creates is stopped directly before the shared `Window` takes over its surface.
 `TopLevel.StopRendering` only stops roots registered with the media context; `AvaloniaView` starts
