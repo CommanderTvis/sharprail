@@ -201,7 +201,7 @@ internal sealed partial class PdfPreview : UserControl
             {
                 var previous = shown[index].Image.Source as Bitmap;
                 shown[index].Image.Source = new Bitmap(PixelFormat.Bgra8888, AlphaFormat.Premul, handle.AddrOfPinnedObject(),
-                    new PixelSize(raster.Width, raster.Height), new Vector(96 * density, 96 * density), raster.Stride);
+                    new PixelSize(raster.Width, raster.Height), new Vector(96, 96), raster.Stride);
                 previous?.Dispose();
             }
             finally { handle.Free(); }

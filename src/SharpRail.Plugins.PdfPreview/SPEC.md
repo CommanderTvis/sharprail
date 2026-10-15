@@ -71,6 +71,9 @@ not shift the selection geometry.
 - `PdfPage` (canvas plus pdf.js `TextLayer`) becomes a bordered page box holding an `Image` of the rasterized page
   and a `PdfTextLayer` over it. The image is rasterized at the zoom times the window's render scaling, so a page is
   sharp on a Retina display, which is the reason to render rather than scale a finished image.
+  Raster dimensions carry the backing density; bitmap metadata stays at 96 DPI so Avalonia's image
+  source rectangle addresses the full pixel buffer. The explicit page bounds supply the logical size.
+  Encoding the backing density in both places crops the raster on high-DPI displays.
 - The text layer is a control rather than positioned spans: it keeps each character's box in points from the top
   left, scales them by its own width, selects by dragging (the character under the pointer, or the nearest one, so
   a drag from the margin still selects), paints the selection as a 40% wash of the kit's `TextSelection`, and copies
@@ -102,6 +105,8 @@ not shift the selection geometry.
 `tests/SharpRail.Checks/PdfPreviewChecks.cs`, run by the full suite, `-- --plugins` and `-- --pdf-preview`, with the fork's
 minimal one-page fixture generated with correct offsets for each text:
 
+- drawn portrait pages at 1× and 2× backing density: all four corner landmarks remain visible on both
+  pages during reduced zoom and after raster replacement; image and selection bounds stay aligned;
 - the engine: page size and text, a character's box from the top left, rasterizing at a scale, and a non-PDF
   refused with a reason;
 - the fork's `pdf-preview.spec.ts` through embedded and real WebSocket RPC hosts: the page rasterizes, zooming in rasterizes it

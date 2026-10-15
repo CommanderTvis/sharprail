@@ -1,4 +1,5 @@
 using System.Net;
+using System.Runtime.InteropServices;
 using System.Text;
 
 using Avalonia;
@@ -34,7 +35,7 @@ internal static class PdfPreviewChecks
     // The fork's e2e fixture: one 200x120pt page with one line of Helvetica, offsets computed for the text given.
     internal static byte[] MinimalPdf(string text = "ThinkRail PDF") => PagesPdf([text]);
 
-    private static byte[] PagesPdf(string[] texts, int rotation = 0, string? cropBox = null, bool unicode = false)
+    private static byte[] PagesPdf(string[] texts, int rotation = 0, string? cropBox = null, bool unicode = false, bool landmarks = false)
     {
         List<string> objects =
         [
@@ -44,8 +45,9 @@ internal static class PdfPreviewChecks
         foreach (var text in texts)
         {
             var content = $"BT /F1 18 Tf 20 60 Td ({text}) Tj ET";
+            if (landmarks) content += " 1 0 0 rg 20 20 20 20 re f 560 20 20 20 re f 20 760 20 20 re f 560 760 20 20 re f";
             var page = objects.Count + 1;
-            objects.Add($"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 120] /Rotate {rotation} {(cropBox is null ? "" : "/CropBox [" + cropBox + "]")} /Contents {page + 1} 0 R /Resources << /Font << /F1 {page + 2} 0 R >> >> >>");
+            objects.Add($"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {(landmarks ? "600 800" : "200 120")}] /Rotate {rotation} {(cropBox is null ? "" : "/CropBox [" + cropBox + "]")} /Contents {page + 1} 0 R /Resources << /Font << /F1 {page + 2} 0 R >> >> >>");
             objects.Add($"<< /Length {content.Length} >>\nstream\n{content}\nendstream");
             objects.Add($"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica {(unicode ? $"/ToUnicode {3 + texts.Length * 3} 0 R" : "")} >>");
         }
@@ -71,11 +73,72 @@ internal static class PdfPreviewChecks
     internal static void Run(string root)
     {
         Engine();
+        PageGeometry(root, 1);
+        PageGeometry(root, 2);
         UnicodeSelection();
         DragScrolling();
         EndToEnd(Path.Combine(root, "pdf-preview-local"), remote: false);
         EndToEnd(Path.Combine(root, "pdf-preview-remote"), remote: true);
         DelayedWatch(root);
+    }
+
+    private static void PageGeometry(string root, double density)
+    {
+        var workspace = Path.Combine(root, $"pdf-geometry-{density}");
+        Directory.CreateDirectory(workspace);
+        var bytes = PagesPdf(["Portrait page", "Second portrait"], landmarks: true);
+        File.WriteAllBytes(Path.Combine(workspace, "portrait.pdf"), bytes);
+        using var app = new E2eWorkspace(workspace);
+        app.Window.SetRenderScaling(density);
+        app.Window.Width = 1000;
+        app.Window.Height = 1100;
+        app.Open("portrait.pdf", keep: true);
+        E2eWorkspace.Until(() => app.Window.GetLogicalDescendants().OfType<Image>().Count(image => image.Name == "PdfPage" && image.Source is Bitmap) == 2);
+        var preview = app.Window.GetLogicalDescendants().OfType<PdfPreview>().Single();
+        var renders = preview.Renders;
+        app.Click(Find<Button>(app.Window, "PdfZoomOut"), freshGesture: false);
+        app.Click(Find<Button>(app.Window, "PdfZoomOut"), freshGesture: false);
+        app.Click(Find<Button>(app.Window, "PdfZoomOut"), freshGesture: false);
+        CheckPage();
+        E2eWorkspace.Until(() => preview.Renders > renders && app.Window.GetLogicalDescendants().OfType<Image>()
+            .Where(image => image.Name == "PdfPage").All(image => image.Source is Bitmap bitmap && bitmap.PixelSize.Width == (int)Math.Ceiling(600 * preview.Scale * density)));
+        CheckPage();
+        Console.WriteLine($"PASS PDF page geometry at {density}x DPI: complete portrait rasters and selection alignment during and after reduced zoom");
+
+        void CheckPage()
+        {
+            app.Window.UpdateLayout();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            var images = app.Window.GetLogicalDescendants().OfType<Image>().Where(image => image.Name == "PdfPage").ToArray();
+            foreach (var image in images)
+            {
+                var surface = (Grid)image.Parent!;
+                var box = (Border)surface.Parent!;
+                var text = surface.Children.OfType<PdfTextLayer>().Single();
+                Require(Math.Abs(surface.Bounds.Width - (box.Bounds.Width - 2)) < 1.1 && Math.Abs(surface.Bounds.Height - (box.Bounds.Height - 2)) < 1.1 &&
+                    image.Bounds == text.Bounds && Math.Abs(image.Bounds.Width - surface.Bounds.Width) < 1.1 && Math.Abs(image.Bounds.Height - surface.Bounds.Height) < 1.1,
+                    $"PDF raster and selection fit the page interior at {preview.Scale}: box={box.Bounds}, surface={surface.Bounds}, image={image.Bounds}, text={text.Bounds}.");
+                image.BringIntoView();
+                app.Window.UpdateLayout();
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                var origin = image.TranslatePoint(default, app.Window)!.Value;
+                using var frame = app.Window.CaptureRenderedFrame()!;
+                Require(frame.PixelSize.Width == (int)(app.Window.Bounds.Width * density), "The captured frame uses physical pixels at the requested DPI.");
+                var pixels = new byte[frame.PixelSize.Width * frame.PixelSize.Height * 4];
+                var pinned = GCHandle.Alloc(pixels, GCHandleType.Pinned);
+                try { frame.CopyPixels(new PixelRect(frame.PixelSize), pinned.AddrOfPinnedObject(), pixels.Length, frame.PixelSize.Width * 4); }
+                finally { pinned.Free(); }
+                var red = frame.Format == Avalonia.Platform.PixelFormat.Rgba8888 ? 0 : 2;
+                var blue = 2 - red;
+                foreach (var point in new[] { new Point(30, 30), new Point(570, 30), new Point(30, 770), new Point(570, 770) })
+                {
+                    var at = origin + new Vector(point.X / 600 * image.Bounds.Width, point.Y / 800 * image.Bounds.Height);
+                    var offset = ((int)(at.Y * density) * frame.PixelSize.Width + (int)(at.X * density)) * 4;
+                    Require(pixels[offset + red] > 220 && pixels[offset + 1] < 40 && pixels[offset + blue] < 40,
+                        $"The complete page's corner marker at {point} remains visible at {preview.Scale} and {density}x DPI: RGB={pixels[offset + red]},{pixels[offset + 1]},{pixels[offset + blue]}.");
+                }
+            }
+        }
     }
 
     private static void DelayedWatch(string root)
