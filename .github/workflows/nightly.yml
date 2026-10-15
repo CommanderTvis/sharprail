@@ -79,7 +79,27 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - run: ./scripts/bootstrap.ps1
+      # Native build scripts still validate their source fingerprints before reusing either DLL.
+      - uses: actions/cache/restore@v4
+        id: windows-native
+        with:
+          path: |
+            src/Ghostty.Avalonia/obj/native/win-x64/GhosttyAvaloniaVt.dll
+            src/Ghostty.Avalonia/obj/native/win-x64/fingerprint
+            src/SharpRail.Scintilla/obj/native/win-x64/SharpRailScintillaNative.dll
+            src/SharpRail.Scintilla/obj/native/win-x64/fingerprint
+          key: windows-native-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.gitattributes', 'global.json', 'Directory.Build.props', 'Directory.Packages.props', 'scripts/windows-native.ps1', 'src/Ghostty.Avalonia/build-windows.ps1', 'src/Ghostty.Avalonia/Native/GhosttyVt.c', 'src/Ghostty.Avalonia/Native/GhosttyClipboardStub.c', 'src/SharpRail.Scintilla/build-windows.ps1', 'src/SharpRail.Scintilla/Native/*.h', 'src/SharpRail.Scintilla/Native/*.cxx', 'src/SharpRail.Scintilla/Native/*.patch') }}
       - run: ./scripts/publish-windows.ps1
+      # Save validated native outputs even when the subsequent packaged runtime gate fails.
+      - uses: actions/cache/save@v4
+        if: steps.windows-native.outputs.cache-hit != 'true'
+        with:
+          path: |
+            src/Ghostty.Avalonia/obj/native/win-x64/GhosttyAvaloniaVt.dll
+            src/Ghostty.Avalonia/obj/native/win-x64/fingerprint
+            src/SharpRail.Scintilla/obj/native/win-x64/SharpRailScintillaNative.dll
+            src/SharpRail.Scintilla/obj/native/win-x64/fingerprint
+          key: ${{ steps.windows-native.outputs.cache-primary-key }}
       - env:
           SHARPRAIL_REQUIRE_R2R: '1'
         run: ./artifacts/windows/checks/SharpRail.Checks.exe --windows
