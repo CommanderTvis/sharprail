@@ -163,6 +163,8 @@ internal static class UiChecks
         Gate.Case("NavigationChecks", () => NavigationChecks.Run(root));
         Gate.Case("StartupChecks", () => StartupChecks.Run(root));
         Gate.Case("terminal-commit-navigation", () => TerminalCommitLinkChecks.RunUi(root));
+        Gate.Case("vector-icons", IconChecks.Run);
+        Gate.Case("host-settings-icon", () => IconChecks.HostSettings(root));
         Gate.Case("DockInputChecks", () => DockInputChecks.Run(root));
         Gate.Case("AppCommandChecks", () => AppCommandChecks.Run(root));
         Gate.Case("AuxiliaryInputChecks", () => AuxiliaryInputChecks.Run(root));

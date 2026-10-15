@@ -57,10 +57,11 @@ The four theme manifests in src/SharpRail.UI/Assets/Themes are copied unchanged
 from Thinkrail's apps/web/src/themes/bundled (Apache 2.0;
 licenses/Thinkrail-Apache-2.0.txt).
 
-PNG icons in src/SharpRail.Plugins.UI.Kit/Assets/Icons came from that prototype's @remixicon/react 4.9.0 assets.
-The collapse/expand vertical and horizontal ellipsis, fullscreen, subtract,
-arrow-go-back and puzzle-2-line (the plugin fallback) icons use the same package's original
-vector paths.
+Core SVG icons in src/SharpRail.Plugins.UI.Kit/Assets/Icons use the original paths from
+@remixicon/react 4.9.0, including the server glyph for Host settings. The alias map is
+Assets/Icons/sources.json. The custom file-diff SVG comes from ThinkRail's
+apps/web/public/custom-icons/file-diff-line.svg (Apache-2.0). The prototype's brand.png
+remains a raster asset because its original vector source is unavailable.
 See licenses/RemixIcon.txt for Remix Icon License 1.0.
 Branch Graph's bundled commit and code-file SVG menu glyphs use the same 4.9.0 release and license.
 
@@ -132,7 +133,7 @@ The QR code in Settings › Host is generated with QRCoder 1.8.0 (MIT); see lice
 The Android client reads it through Google Play services' code scanner
 (Xamarin.GooglePlayServices.Code.Scanner 116.1.0.17 bindings, MIT, over Google's ML Kit code scanner,
 which is covered by the Android Software Development Kit License and runs inside Play services); the
-two QR icons come from the same Remix Icon set as the other PNG icons.
+two QR icons come from the same Remix Icon set as the other SVG glyphs.
 Syntax highlighting uses TextMateSharp and TextMateSharp.Grammars 2.0.4 (MIT),
 with their Onigwrap 1.0.11 / Oniguruma native dependency. The engine licence is
 in licenses/TextMateSharp-MIT.txt; native dependency notices and licences are in

@@ -1,3 +1,5 @@
+using System.Xml.Linq;
+
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -24,7 +26,7 @@ public static partial class Ui
     public static readonly FontFamily InterfaceFont = new("avares://SharpRail.Plugins.UI.Kit/Assets/Fonts#Geist");
     public const FontWeight InterfaceWeight = (FontWeight)370;
     public static readonly FontFamily CodeFont = new("avares://SharpRail.Plugins.UI.Kit/Assets/Fonts#JetBrains Mono");
-    private static readonly Dictionary<string, Bitmap> Icons = [];
+    private static readonly Dictionary<string, IBrush> Icons = [];
 
     /// <summary>The applied manifest. Consumers that paint outside these brushes rebuild on <see cref="ThemeChanged"/>. The kit has no
     /// default: the app applies one before anything reads it.</summary>
@@ -125,18 +127,27 @@ public static partial class Ui
 
     public static Control Icon(string name, IBrush? color = null, double size = 16)
     {
-        if (!Icons.TryGetValue(name, out var bitmap))
+        if (!Icons.TryGetValue(name, out var mask))
         {
-            using var stream = AssetLoader.Open(new Uri($"avares://SharpRail.Plugins.UI.Kit/Assets/Icons/{name}.png"));
-            bitmap = new Bitmap(stream);
-            Icons[name] = bitmap;
+            using var stream = AssetLoader.Open(new Uri($"avares://SharpRail.Plugins.UI.Kit/Assets/Icons/{name}.{(name == "brand" ? "png" : "svg")}"));
+            if (name == "brand") mask = new ImageBrush(new Bitmap(stream));
+            else
+            {
+                var svg = XDocument.Load(stream).Root!;
+                var drawing = new DrawingGroup();
+                drawing.Children.Add(new GeometryDrawing { Brush = Brushes.Transparent, Geometry = new RectangleGeometry(new Rect(0, 0, 24, 24)) });
+                foreach (var path in svg.Elements().Where(element => element.Name.LocalName == "path"))
+                    drawing.Children.Add(new GeometryDrawing { Brush = Brushes.White, Geometry = Geometry.Parse("F1 " + path.Attribute("d")!.Value) });
+                mask = new DrawingBrush { Drawing = drawing, Stretch = Stretch.Fill };
+            }
+            Icons[name] = mask;
         }
         return new Border
         {
             Width = size,
             Height = size,
             Background = color ?? Muted,
-            OpacityMask = new ImageBrush(bitmap),
+            OpacityMask = mask,
             VerticalAlignment = VerticalAlignment.Center
         };
     }

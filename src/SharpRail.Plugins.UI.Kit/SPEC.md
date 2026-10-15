@@ -76,6 +76,10 @@ publish toggle automation changes without requesting another update.
     detach releases it. This avoids repeated parsing during tree scrolling without retaining a cache
     of offscreen SVGs. Different tints remain independent. Its original two-argument constructor
     remains available to compiled plugins.
+  - Core glyphs use original Remix SVG paths as shared vector masks with a full 24×24 viewbox.
+    `Ui.Icon` retains its Border and live Background tint, so geometry stays sharp at fractional sizes
+    and display scales without caching raster or tint variants. The cache holds only bundled geometry,
+    never mounted controls. The prototype brand mark remains raster until its original vector is available.
   - `Assets/Icons` and `Assets/Fonts`, with their license files, as `avares://SharpRail.Plugins.UI.Kit/Assets/…`.
 - Owns Markdown preview and source views, frontmatter presentation, links and the heading outline.
   Markdown panes below 640 logical pixels hide Split and fall back from Split to Preview, including restored views.

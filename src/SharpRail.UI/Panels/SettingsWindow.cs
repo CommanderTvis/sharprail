@@ -90,7 +90,7 @@ public sealed partial class SettingsWindow : Window
         close.Content = Ui.Icon("close");
         close.Click += (_, _) => Close();
         navigationList = this.FindControl<StackPanel>("SettingsNavigation")!;
-        foreach (var item in new[] { ("Appearance", "palette"), ("Highlighting", "fileText"), ("Line width", "fileText"), ("Layout", "layout"), ("Projects", "folderTab"), ("Workspaces", "gitBranch"), ("Terminal", "terminal"), ("Notifications", "alertInfo"), ("Host", "terminal"), ("GitHub", "gitBranch"), ("Plugins", "puzzle") })
+        foreach (var item in new[] { ("Appearance", "palette"), ("Highlighting", "fileText"), ("Line width", "fileText"), ("Layout", "layout"), ("Projects", "folderTab"), ("Workspaces", "gitBranch"), ("Terminal", "terminal"), ("Notifications", "alertInfo"), ("Host", "server"), ("GitHub", "gitBranch"), ("Plugins", "puzzle") })
             Navigation(this.FindControl<Button>("Settings_" + item.Item1.Replace(' ', '_'))!, item.Item1, Ui.Row(item.Item2, item.Item1));
         SyncPluginSections();
         // Listed only for a host that settles workspaces; an older one has no idle window to set.
