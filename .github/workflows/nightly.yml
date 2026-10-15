@@ -72,6 +72,10 @@ jobs:
   windows:
     runs-on: windows-2025
     timeout-minutes: 90
+    defaults:
+      run:
+        # Native MSBuild targets invoke Windows PowerShell; keep its module path consistent.
+        shell: powershell
     steps:
       - uses: actions/checkout@v7
       - run: ./scripts/bootstrap.ps1
