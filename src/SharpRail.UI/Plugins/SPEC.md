@@ -141,10 +141,12 @@ it changes, never for the initial value.
 - Side tools (W5): the tool body switch in `WorkbenchWindow` falls through to the registry for a `plugin:` id:
   the registered control inside a per-plugin host control, or a dormant placeholder ("*label* is off", with
   the manifest icon and a button to open Settings › Plugins). `LayoutSession.IsValid` accepts `plugin:` ids;
-  name, icon, default side and the reveal menus read the composed catalog. A `RequiresGit` tool is withheld in a
-  workspace without Git history, like Changes and Review. When deferred Git discovery changes the
+  name, icon, default side and the reveal menus read the composed catalog. Git-required tools follow the
+  workspace capability policy in `submodule-ui-panels`, including restored tabs and direct reveal requests.
+  When deferred Git discovery changes the
   catalog, rebuilding the dock retains keyboard focus on the equivalent named control. An open dock
-  menu defers that catalog refresh until it closes, then the window applies the latest catalog.
+  menu defers roster catalog refresh until it closes, then the window applies the latest catalog. Repository
+  capability changes apply immediately, so an already-open menu cannot activate a newly unavailable tool.
 - File actions (W21) are read from the registry as a context menu opens, so labels and availability are current:
   after a separator in a Files row's menu, as the code editor's whole menu (it opens only when one is offered),
   and beside Copy in the Markdown preview's. The editor and the preview pass the one-based source lines of the

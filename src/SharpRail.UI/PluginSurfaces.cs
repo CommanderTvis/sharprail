@@ -69,6 +69,7 @@ public sealed partial class WorkbenchWindow
     // The composed catalog: core's tools stay owned by the layout; plugin tools follow the roster, withheld without Git when they need it.
     private void SyncPluginTools()
     {
+        Layout.SetGitAvailable(git.IsRepository);
         var openMenu = surface.GetLogicalDescendants().OfType<Control>().Select(control => control.ContextMenu).FirstOrDefault(menu => menu?.IsOpen == true);
         if (openMenu is not null)
         {
@@ -84,8 +85,8 @@ public sealed partial class WorkbenchWindow
                 }
             }
         }
-        else KeepingFocus(() => Layout.SetExtraTools([.. Plugins.ToolCatalog.Where(tool => !tool.RequiresGit || git.IsRepository)
-            .Select(tool => new DockToolInfo(tool.Id, tool.Label, PluginIcons.Glyph(tool.Icon), tool.DefaultSide == PluginToolSide.Left ? "left" : "right"))]));
+        else KeepingFocus(() => Layout.SetExtraTools([.. Plugins.ToolCatalog
+            .Select(tool => new DockToolInfo(tool.Id, tool.Label, PluginIcons.Glyph(tool.Icon), tool.DefaultSide == PluginToolSide.Left ? "left" : "right", tool.RequiresGit))]));
         InvalidatePluginTools();
     }
 
@@ -548,7 +549,7 @@ public sealed partial class WorkbenchWindow
 
     internal void RevealToolFor(string workspace, string tool)
     {
-        if (workspace != workspaceRoot) return;
+        if (workspace != workspaceRoot || !Layout.IsToolAvailable(tool)) return;
         var group = Layout.State.Groups.FirstOrDefault(item => item.Tools.Any(tab => tab.Id == tool));
         if (group is null) Layout.RestoreTool(tool);
         else { Layout.Visible(group.Region, true); if (group.Folded) Layout.Fold(group.Id); Layout.Select(group.Id, tool); }

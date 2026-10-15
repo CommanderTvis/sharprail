@@ -117,10 +117,8 @@ public sealed partial class DockSurface : Grid
 
     private void RefreshTools()
     {
-        var previous = renderedTools;
         renderedTools = Session.Tools;
-        if (Session.State.Groups.SelectMany(group => Session.Tabs(group.Id)).Where(tab => tab.IsTool)
-            .Any(tab => !Equals(previous.FirstOrDefault(tool => tool.Id == tab.Id), Session.Tool(tab.Id)))) Rebuild();
+        if (!Retarget()) Rebuild();
         else
         {
             foreach (var update in catalogUpdates) update();
@@ -218,8 +216,11 @@ public sealed partial class DockSurface : Grid
     }
 
     // Selection is left out: an unchanged group applies it through its selection update.
-    private string GroupSignature(string id) =>
-        JsonSerializer.Serialize(new { Tabs = Session.Tabs(id), Panes = Session.View.Panes.GetValueOrDefault(id) });
+    private string GroupSignature(string id)
+    {
+        var tabs = Session.Tabs(id);
+        return JsonSerializer.Serialize(new { Tabs = tabs, Tools = tabs.Where(tab => tab.IsTool).Select(tab => Session.Tool(tab.Id)), Panes = Session.View.Panes.GetValueOrDefault(id) });
+    }
 
     private Control BuildTrackedGroup(DockGroup group)
     {

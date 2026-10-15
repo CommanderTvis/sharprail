@@ -128,8 +128,11 @@ public sealed partial class DockSurface
             var cluster = new StackPanel { Name = "RailCluster_" + group.Id, Spacing = 2 };
             entries.Children.Add(cluster);
             if (group.Tools.Count > 0)
+            {
                 for (var position = 0; position < group.Tools.Count; position++)
-                    cluster.Children.Add(Entry(group, group.Tools[position], position, buttons));
+                    if (Session.IsToolAvailable(group.Tools[position].Id))
+                        cluster.Children.Add(Entry(group, group.Tools[position], position, buttons));
+            }
             else cluster.Children.Add(Entry(group, null, 0, buttons));
         }
         Boundary(groups.Length, false);

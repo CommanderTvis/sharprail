@@ -99,6 +99,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         WireBranchList();
         WireHeader();
         Layout = new(slot.Layout);
+        Layout.SetGitAvailable(false);
         FillViewMenu(this.FindControl<Grid>("MainHeader")!.ContextMenu!);
         Layout.Navigating += group => AdvanceNavigation(group);
         Layout.Focused += () => { slot.Layout = Layout.State; SaveProfile(); };
@@ -346,6 +347,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             UpdateScopeLabels();
             SetBranch("");
             git = sameProject ? new(git.IsRepository, "", [], git.Worktrees, git.Branches) : new(false, "", [], [], []);
+            Layout.SetGitAvailable(git.IsRepository);
             gitLoading = true; gitError = null;
             RestoreGitSelection();
             if (!sameProject) { folderCache.Clear(); expandedFolders.Clear(); }

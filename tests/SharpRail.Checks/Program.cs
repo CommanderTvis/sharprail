@@ -459,6 +459,13 @@ internal static class Program
             Console.WriteLine("PASS plugin checks");
             return;
         }
+        if (args.SequenceEqual(["--gitless-panes"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            GitlessPaneChecks.Run(root);
+            return;
+        }
         if (args.SequenceEqual(["--branch-graph"]))
         {
             BranchGraphChecks.RunHostAsync(root).GetAwaiter().GetResult();

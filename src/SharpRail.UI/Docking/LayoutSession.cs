@@ -28,12 +28,22 @@ public sealed partial class LayoutSession
             "files" => "file",
             "changes" => "fileDiff",
             _ => "discuss"
-        }, DockState.ToolRegion(id)))
+        }, DockState.ToolRegion(id), id is "changes" or "review"))
     ];
     private IReadOnlyList<DockToolInfo> tools = CoreTools;
 
     /// <summary>Every tool this layout can name and restore: core's, then the extra ones the workbench composes in.</summary>
-    public IReadOnlyList<DockToolInfo> Tools => tools;
+    public IReadOnlyList<DockToolInfo> Tools => [.. tools.Where(tool => IsToolAvailable(tool.Id))];
+    private bool gitAvailable = true;
+    public bool IsToolAvailable(string id) => gitAvailable || tools.FirstOrDefault(tool => tool.Id == id)?.RequiresGit != true;
+
+    public void SetGitAvailable(bool available)
+    {
+        if (gitAvailable == available) return;
+        gitAvailable = available;
+        ToolsChanged?.Invoke();
+        Changed?.Invoke();
+    }
     public event Action? ToolsChanged;
 
     /// <summary>Replaces the composed tools after core's; a tab naming a tool absent from the list keeps its slot.</summary>
@@ -42,15 +52,16 @@ public sealed partial class LayoutSession
         if (tools.Skip(CoreTools.Count).SequenceEqual(extra)) return;
         tools = [.. CoreTools, .. extra];
         ToolsChanged?.Invoke();
+        Changed?.Invoke();
     }
 
-    public DockToolInfo? Tool(string id) => tools.FirstOrDefault(tool => tool.Id == id);
+    public DockToolInfo? Tool(string id) => Tools.FirstOrDefault(tool => tool.Id == id);
     public string ToolTitle(DockTab tab) => tab.IsTool ? Tool(tab.Id)?.Title ?? tab.Title : tab.Title;
     private string ToolRegion(string id) => Tool(id)?.Region ?? DockState.ToolRegion(id);
 
     public WorkspaceView View => State.Workspaces.GetValueOrDefault(State.ActiveWorkspace) ?? new();
     public DockGroup Group(string id) => State.Groups.Single(group => group.Id == id);
-    public IReadOnlyList<DockTab> Tabs(string groupId) => ProjectTabs(State, groupId);
+    public IReadOnlyList<DockTab> Tabs(string groupId) => [.. ProjectTabs(State, groupId).Where(tab => !tab.IsTool || IsToolAvailable(tab.Id))];
 
     private static DockTab[] ProjectTabs(DockState state, string groupId) =>
         ProjectTabs(state, state.Workspaces.GetValueOrDefault(state.ActiveWorkspace) ?? new(), groupId);
@@ -191,10 +202,14 @@ public sealed partial class LayoutSession
     }
 
     /// <summary>Moves what a group opens on without navigating or taking focus.</summary>
-    public void Reseat(string groupId, string tabId) => Change(state => Active(state).Selected[groupId] = tabId, groupId);
+    public void Reseat(string groupId, string tabId)
+    {
+        if (IsToolAvailable(tabId)) Change(state => Active(state).Selected[groupId] = tabId, groupId);
+    }
 
     public void Select(string groupId, string tabId)
     {
+        if (!IsToolAvailable(tabId)) return;
         Navigating?.Invoke(groupId);
         if (Selected(groupId)?.Id == tabId)
         {
@@ -213,6 +228,7 @@ public sealed partial class LayoutSession
 
     public void Open(DockTab tab, bool keep, string? groupId = null, bool claimPreview = false, bool activate = true)
     {
+        if (tab.IsTool && !IsToolAvailable(tab.Id)) return;
         Change(state =>
         {
             var view = Active(state);
@@ -680,6 +696,7 @@ public sealed partial class LayoutSession
 
     public void RestoreTool(string id, string? target = null) => Change(state =>
     {
+        if (!IsToolAvailable(id)) return;
         if (state.Groups.Any(group => group.Tools.Any(tab => tab.Id == id))) return;
         target ??= state.ToolRestore.GetValueOrDefault(id);
         var view = Active(state);

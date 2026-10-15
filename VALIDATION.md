@@ -3104,3 +3104,9 @@ Broader --native-texture stopped at an unchanged theme-color assertion (captured
 ## 2026-10-15 — Plugin pane icons
 
 Pane headers, selection refreshes and unplaced rail entries now use the existing plugin-aware icon resolver with the builtin glyph fallback, so asset-backed plugin icons no longer degrade to the puzzle glyph. Release build passed with zero warnings/errors; DockInputChecks (including new initial/refresh/fallback/unplaced regression), plugin-ui, touched formatting and whitespace checks passed. Existing plugin icon contract is unchanged. Main reuses byte-identical verified sources.
+
+## 2026-10-15 — Git-only pane availability
+
+Plain folders cannot open Changes, Review or plugin tools marked RequiresGit through catalogs, rails, direct selection/open/reveal/restore or saved-layout projections. Saved placements and selections are retained for return to a Git workspace. Empty/unborn Git repositories remain eligible. Catalog changes selectively retarget affected groups so Projects rows retain identity during switches.
+
+Release solution build passed with zero warnings/errors, touched formatting and whitespace passed. New --gitless-panes checks (including direct actions, preset restoration, repository transitions and two windows), existing layout and six rail journeys passed. Android/browser compilation was not run for this shared-UI delta. Spec validation reported four existing BranchGraph dangling links; no graph structure changed.

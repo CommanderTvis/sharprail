@@ -161,7 +161,12 @@ workspace's start-actions row.
 
 A plugin's side tool (`plugin:<id>:<tool>`) renders its registered control while the plugin is active and
 otherwise a placeholder, “*label* is off” with the tool's icon and an Open Settings › Plugins action, in the same
-tab; a `RequiresGit` tool is withheld from the catalog in a workspace without Git history. Files rows, Changes
+tab. Git-only pane availability follows the current workspace's repository capability: Changes, Review and
+plugin tools declaring `RequiresGit` (including Git Graph) are withheld from reveal menus, rail entries and
+rendered pane tabs in plain folders. Direct reveal and restore requests cannot activate them, and saved
+layouts and preset resets obey the same policy. Saved placements and selections remain intact for returning
+to a Git workspace. An initialized repository with no commits still has this capability; Files, Specs,
+terminals and agent panes do not require it. Files rows, Changes
 rows and the diff path chip take a file icon from an active plugin's file-icon slot (W17), and the Changes scope
 can be set by a plugin (W18): uncommitted, one commit, the comparison target, or a pinned base.
 
