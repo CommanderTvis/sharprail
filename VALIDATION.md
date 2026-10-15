@@ -3164,3 +3164,7 @@ Release build, vector-icons, host-settings-icon, ThemeE2E, design, design-roles 
 Markdown preview and rendered diffs now call the asynchronous platform renderer, allowing the existing browser Mermaid worker to render diagrams instead of attempting the unavailable native library. SVG parsing stays off the dispatcher; cancellation and superseded-theme guards remain.
 
 Actual Chromium reproduced the platform-unavailable error before the fix. The focused browser journey now passes initial restored tabs, normal opening, invalid syntax, saved-tab reload and rendered Markdown diffs. Browser WASM and desktop Release builds passed with zero warnings/errors; native --visualize (including Markdown Mermaid), touched formatting, JavaScript syntax and whitespace passed.
+
+## 2026-10-15 — Browser terminal wheel ownership
+
+Restty surfaces stop wheel events from bubbling into Avalonia while retaining native scrolling and the terminal's own handlers. The listener is removed on teardown. Actual Chromium checks passed writable scrollback, a second read-only client's scrollback, returning to Projects scrolling, and listener removal without preventing the default wheel action. The original bridge fails the same read-only regression. Browser WASM and host Release builds, JavaScript syntax, configured formatting and whitespace passed.

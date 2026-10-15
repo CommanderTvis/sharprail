@@ -45,6 +45,8 @@ internal static partial class BrowserChecks
             window.IsActive,
             window.WorkspaceMounted,
             CatalogKnown = Workbench.TerminalCatalog?.Workspaces.ContainsKey(window.WorkspaceRoot) == true,
+            ProjectsScroll = window.GetVisualDescendants().OfType<ScrollViewer>().Where(scroll => scroll.Content is StackPanel { Name: "ProjectsTree" })
+                .Select(scroll => new { Offset = scroll.Offset.Y, Extent = scroll.Extent.Height, Viewport = scroll.Viewport.Height, Position = scroll.TranslatePoint(default, window), Width = scroll.Bounds.Width, Height = scroll.Bounds.Height }).SingleOrDefault(),
             ProjectsTabs = window.GetLogicalDescendants().OfType<StackPanel>().Any(panel => panel.Name == "CenterTabsInProjects"),
             BottomZones = window.Layout.State.Groups.Count(group => group.Region == "bottom"),
             TerminalRegions = window.Layout.State.Workspaces.GetValueOrDefault(window.ProjectRoot)?.Documents
@@ -55,6 +57,17 @@ internal static partial class BrowserChecks
             Editors = window.GetVisualDescendants().OfType<ScintillaEditor>().Select(editor => new { editor.Text, editor.IsModified, Position = editor.TranslatePoint(default, window), Width = editor.Bounds.Width, Height = editor.Bounds.Height, editor.IsFocused, Recordings = typeof(ScintillaEditor).GetProperty("Recordings", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(editor) }).ToArray(),
             Terminals = window.GetVisualDescendants().OfType<GhosttySkiaView>().Select(terminal => new { Text = terminal.ReadScreen(), Position = terminal.TranslatePoint(default, window), Width = terminal.Bounds.Width, Height = terminal.Bounds.Height, terminal.IsFocused, terminal.Frames, Grid = terminal.Size, Frame = TerminalFrame(terminal) }).ToArray()
         }).ToArray()));
+    }
+
+    [JSExport]
+    public static async Task PrepareWheelFixture()
+    {
+        await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            var tree = Workbench.ActiveWindow!.GetVisualDescendants().OfType<StackPanel>().Single(panel => panel.Name == "ProjectsTree");
+            tree.MinHeight = 3000;
+            tree.Background = Avalonia.Media.Brushes.Transparent;
+        });
     }
 
     [JSExport]

@@ -5755,3 +5755,5 @@ Release and actual browser WASM builds passed with zero warnings/errors; touched
 2026-10-15: Replaced standard raster icon masks with original upstream SVG geometry; Host settings now uses a server icon. Release and focused vector, theme, design and settings checks passed; see VALIDATION.md. Brand artwork remains its original asset.
 
 2026-10-15: Fixed missing browser Markdown Mermaid by using MermaidRenderer.RenderAsync rather than the native-only synchronous path. Actual browser restoration/open/reload/diff and error regressions passed, as did native visualization checks and Release builds. No renderer setup-order or worker changes were needed.
+
+2026-10-15: Kept browser terminal wheel events within their DOM surface to prevent stale Avalonia pointer targeting from scrolling Projects. Writable/read-only and return-to-Projects browser regressions passed; listener teardown is checked.

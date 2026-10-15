@@ -9,11 +9,12 @@ import { randomUUID } from 'node:crypto';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 process.env.PLAYWRIGHT_BROWSERS_PATH ??= path.join(root, '.tools/playwright');
 const { chromium } = await import('../../src/SharpRail.Browser/node_modules/playwright/index.mjs');
-const scratch = path.join(root, process.argv.includes('--file-drop') ? '.bench/file-drop/browser' : process.argv.includes('--settings') ? '.bench/settings-flicker/checks' : '.bench/restty-default/checks');
+const scratch = path.join(root, process.argv.includes('--wheel') ? '.bench/terminal-wheel/checks' : process.argv.includes('--file-drop') ? '.bench/file-drop/browser' : process.argv.includes('--settings') ? '.bench/settings-flicker/checks' : '.bench/restty-default/checks');
 const fixture = path.join(scratch, 'fixture');
 const token = randomUUID();
 const profile = process.argv.includes('--profile');
 let host, browser;
+const wheelDeadline = process.argv.includes('--wheel') ? setTimeout(() => { void browser?.close(); }, 90000) : null;
 async function until(get, predicate, description) {
   const deadline = Date.now() + 30000;
   while (Date.now() < deadline) {
@@ -44,7 +45,7 @@ try {
   await until(async () => { try { return await fetch(address); } catch { if (host.exitCode !== null) throw new Error(hostError); } }, r => r?.ok, 'Host did not start');
   browser = await chromium.launch({ channel: 'chromium', headless: true,
     args: process.env.PROFILE_UNCAPPED ? ['--disable-frame-rate-limit', '--disable-gpu-vsync'] : [] });
-  const page = await browser.newPage({ viewport: { width: 1840, height: 1340 }, deviceScaleFactor: Number(process.env.PROFILE_DPR ?? 1) });
+  const page = await browser.newPage({ viewport: process.argv.includes('--wheel') ? { width: 1500, height: 900 } : { width: 1840, height: 1340 }, deviceScaleFactor: Number(process.env.PROFILE_DPR ?? 1) });
   if (process.argv.includes('--settings') && Number(process.env.PROFILE_DPR ?? 1) !== 1)
     await page.addInitScript(() => Object.defineProperty(ResizeObserverEntry.prototype, 'devicePixelContentBoxSize', { get: () => undefined }));
   const errors = []; page.on('pageerror', error => { errors.push(error.message); console.error(error.message); });
@@ -74,9 +75,12 @@ try {
     requestAnimationFrame(tick);
   }, { address, token, fixture });
   await page.goto(address);
-  await page.waitForFunction(() => document.querySelector('.sharprail-restty')?.dataset.ready === 'true', {}, { timeout: 90000 });
-  const term = page.locator('.sharprail-restty');
-  const screen = () => page.evaluate(async () => (await import('./restty-bridge.js')).screen(document.querySelector('.sharprail-restty')));
+  await page.waitForFunction(() => [...document.querySelectorAll('.sharprail-restty')].some(element => element.dataset.ready === 'true' && element.querySelector('canvas') && element.checkVisibility()), {}, { timeout: 90000 });
+  const term = page.locator('.sharprail-restty:has(canvas):visible').first();
+  const screen = () => page.evaluate(async () => {
+    const element = [...document.querySelectorAll('.sharprail-restty')].find(element => element.querySelector('canvas') && element.checkVisibility());
+    return element ? (await import('./restty-bridge.js')).screen(element) : '';
+  });
   await until(screen, value => value.includes('fixture'), 'Host prompt did not reach restty');
   if (process.argv.includes('--watch-replay')) {
     const replay = async () => JSON.parse(await page.evaluate(async () => {
@@ -103,6 +107,97 @@ try {
     assert.match(fallback.Text, /RECORDED_SCREEN/); assert.match(fallback.Text, /Working 5UPDATE_SCREEN/);
     assert.deepEqual(errors, []);
     console.log('PASS Skia fallback read-only recorded alternate screen and incremental updates');
+  } else if (process.argv.includes('--wheel')) {
+    console.log('Wheel client mounted');
+    const snapshot = client => client.evaluate(async () => {
+      const exports = await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll');
+      return JSON.parse(await exports.SharpRail.Browser.Checks.BrowserChecks.Snapshot())[0].ProjectsScroll;
+    });
+    const prepare = client => client.evaluate(async () => {
+      const exports = await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll');
+      await exports.SharpRail.Browser.Checks.BrowserChecks.PrepareWheelFixture();
+    });
+    const feed = client => client.evaluate(async () => {
+      const bridge = await import('./restty-bridge.js');
+      bridge.output([...document.querySelectorAll('.sharprail-restty')].find(element => element.querySelector('canvas') && element.checkVisibility()), new TextEncoder().encode('\x1b[?25l' + Array.from({ length: 300 }, (_, index) => 'WHEEL_ROW_' + String(index).padStart(3, '0')).join('\r\n') + '\r\n'));
+    });
+    await prepare(page);
+    const projects = await until(() => snapshot(page), value => value && value.Extent > value.Viewport + 300, 'Projects fixture did not overflow');
+    const sidebar = { x: projects.Position.X + projects.Width / 2, y: projects.Position.Y + Math.min(projects.Height / 2, 350) };
+    await page.mouse.move(sidebar.x, sidebar.y);
+    await page.mouse.wheel(0, 300);
+    await until(() => snapshot(page), value => value.Offset > projects.Offset, 'Projects did not scroll under its own pointer');
+    await feed(page);
+    await until(screen, value => value.includes('WHEEL_ROW_299'), 'Scrollback fixture did not render');
+    const bounds = await term.boundingBox();
+    await page.mouse.move(bounds.x + bounds.width / 2, bounds.y + bounds.height / 2);
+    await page.waitForTimeout(300);
+    const sidebarBeforeTerminal = await snapshot(page);
+    const before = await term.screenshot();
+    await page.mouse.wheel(0, -500);
+    await page.waitForTimeout(300);
+    assert.equal((await snapshot(page)).Offset, sidebarBeforeTerminal.Offset, 'Writable terminal wheel leaked into Projects');
+    assert.notDeepEqual(await term.screenshot(), before, 'Writable terminal viewport did not scroll');
+    await page.mouse.move(sidebar.x, sidebar.y);
+    const beforeReturn = await snapshot(page);
+    await page.mouse.wheel(0, beforeReturn.Offset > 100 ? -200 : 200);
+    await until(() => snapshot(page), value => value.Offset !== beforeReturn.Offset, 'Returning to Projects did not restore sidebar scrolling');
+
+    console.log('PASS writable terminal wheel stays local and Projects scrolls again on return');
+    const watcher = await browser.newPage({ viewport: { width: 1200, height: 650 } });
+    await watcher.addInitScript(({ address, token, fixture }) => {
+      sessionStorage.setItem('sharprail:endpoint', JSON.stringify({ Address: address, Token: token }));
+      localStorage.setItem('sharprail:profile', JSON.stringify({ LastProject: fixture, Windows: [{ LastProject: fixture }] }));
+    }, { address, token, fixture });
+    await watcher.goto(address);
+    await watcher.waitForFunction(() => [...document.querySelectorAll('.sharprail-restty')].some(element => element.dataset.watching === 'true' && element.querySelector('canvas') && element.checkVisibility()), {}, { timeout: 60000 });
+    const watched = watcher.locator('.sharprail-restty:has(canvas):visible').first();
+    await until(() => watcher.evaluate(async () => (await import('./restty-bridge.js')).screen([...document.querySelectorAll('.sharprail-restty')].find(element => element.querySelector('canvas') && element.checkVisibility()))), value => value.includes('fixture'), 'Read-only terminal replay did not complete');
+    await prepare(watcher);
+    await feed(watcher);
+    const watcherProjects = await until(() => snapshot(watcher), value => value && value.Extent > value.Viewport + 300, 'Watched Projects fixture did not overflow');
+    const watcherSidebar = { x: watcherProjects.Position.X + watcherProjects.Width / 2, y: watcherProjects.Position.Y + Math.min(watcherProjects.Height / 2, 250) };
+    await watcher.mouse.move(watcherSidebar.x, watcherSidebar.y);
+    await watcher.mouse.wheel(0, 200);
+    const watchedSidebarAfter = await until(() => snapshot(watcher), value => value.Offset > watcherProjects.Offset, 'Watched sidebar did not scroll');
+    const overflow = await until(() => watched.evaluate(element => {
+      const scroller = [...element.querySelectorAll('*'), element].find(child => /auto|scroll/.test(getComputedStyle(child).overflowY) && child.scrollHeight > child.clientHeight + 100);
+      return scroller ? { height: scroller.clientHeight, scroll: scroller.scrollHeight, top: scroller.scrollTop } : null;
+    }), value => value && value.top > 100, 'Watched terminal replay did not create scrollback');
+    const watchedBounds = await watched.boundingBox();
+    await watcher.mouse.move(watchedBounds.x + watchedBounds.width / 2, watchedBounds.y + watchedBounds.height / 2);
+    await watcher.mouse.wheel(0, -250);
+    await watcher.waitForTimeout(150);
+    assert.equal((await snapshot(watcher)).Offset, watchedSidebarAfter.Offset, 'Read-only terminal wheel leaked into Projects');
+    await until(() => watched.evaluate(element => {
+      const scroller = [...element.querySelectorAll('*'), element].find(child => /auto|scroll/.test(getComputedStyle(child).overflowY) && child.scrollHeight > child.clientHeight + 100);
+      return scroller?.scrollTop;
+    }), value => value < overflow.top, 'Read-only terminal scrollback did not scroll');
+    assert.equal((await snapshot(watcher)).Offset, watchedSidebarAfter.Offset, 'Read-only terminal wheel leaked into Projects');
+    await watcher.mouse.move(watcherSidebar.x, watcherSidebar.y);
+    const watchedBeforeReturn = await snapshot(watcher);
+    await watcher.mouse.wheel(0, watchedBeforeReturn.Offset > 100 ? -200 : 200);
+    await until(() => snapshot(watcher), value => value.Offset !== watchedBeforeReturn.Offset, 'Returning from read-only terminal did not restore sidebar scrolling');
+    await watcher.close();
+    console.log('PASS read-only terminal wheel stays local and Projects scrolls again on return');
+    await page.evaluate(async () => {
+      const bridge = await import('./restty-bridge.js');
+      const parent = document.createElement('div');
+      parent.style.cssText = 'position:fixed;left:-1000px;top:-1000px;width:320px;height:180px';
+      const element = bridge.create(); parent.append(element); document.body.append(parent);
+      let bubbled = 0; parent.addEventListener('wheel', () => bubbled++);
+      try {
+        await bridge.initialize(element, -1, JSON.stringify({ raw: {}, colors: { background: { r: 0, g: 0, b: 0 }, foreground: { r: 255, g: 255, b: 255 }, palette: [] } }));
+        const event = new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: 10 });
+        element.dispatchEvent(event);
+        if (bubbled || event.defaultPrevented) throw new Error('Terminal wheel ownership must contain bubbling without cancelling native scrolling');
+        bridge.destroy(element);
+        element.dispatchEvent(new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: 10 }));
+        if (bubbled !== 1) throw new Error('Terminal wheel listener survived disposal');
+      } finally { bridge.destroy(element); parent.remove(); }
+    });
+    assert.deepEqual(errors, []);
+    console.log('PASS browser terminal wheel stays local to writable scrollback and read-only overflow, with Projects scrolling restored on return and ownership removed on dispose');
   } else if (process.argv.includes('--file-drop')) {
     const invoke = (method, ...args) => page.evaluate(async ({ method, args }) => {
       const exports = await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll');
@@ -310,6 +405,7 @@ try {
   }
   }
 } finally {
+  clearTimeout(wheelDeadline);
   await browser?.close();
   if (host && host.exitCode === null && host.signalCode === null) { const stopped = once(host, 'exit'); host.kill('SIGINT'); await stopped; }
   await fs.rm(scratch, { recursive: true, force: true });

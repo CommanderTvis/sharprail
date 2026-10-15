@@ -56,6 +56,11 @@ decoding preserves split characters at the restty string-input boundary. Its can
 is hosted by Avalonia's native-control surface, not imported as a shared GPU texture.
 Read-only shared terminals also use restty, retain the holder's grid and follow its
 ordered resize notifications without sending input, terminal replies or resizes.
+Wheel events stay inside the terminal's DOM surface after its canvas handlers run, while native
+scrolling remains enabled for read-only scrollback. They never reach Avalonia with a stale pointer
+target from Projects; moving back to Projects restores its normal wheel scrolling. The terminal's
+wheel ownership listener is removed during disposal. The focused `restty.mjs --wheel` check covers
+writable and read-only scrollback, returning to Projects and listener teardown.
 Skia is selected only when restty's bridge, module, fonts, WASM or GPU initialization
 fails or exceeds the 30-second loading limit. Host attachment and stream errors do
 not select another renderer. There is no query-string or settings override to Skia.

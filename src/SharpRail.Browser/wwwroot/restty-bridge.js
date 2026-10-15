@@ -30,6 +30,8 @@ export async function initialize(element, id, themeJson) {
   ime.setAttribute('aria-label', 'Terminal input');
   ime.style.cssText = 'position:absolute;left:0;top:0;width:1px;height:1px;opacity:0;resize:none';
   element.append(canvas, ime);
+  state.wheelHandler = event => event.stopPropagation();
+  element.addEventListener('wheel', state.wheelHandler, { passive: true });
   // Avalonia consumes bubbling keyboard events before restty's window listener.
   state.keyListeners = [];
   for (const type of ['keydown', 'keyup']) {
@@ -159,6 +161,7 @@ export function destroy(element) {
   s.observer?.disconnect();
   for (const [type, listener] of s.keyListeners ?? []) element.removeEventListener(type, listener);
   if (s.newlineHandler) element.removeEventListener('keydown', s.newlineHandler, true);
+  if (s.wheelHandler) element.removeEventListener('wheel', s.wheelHandler);
   try { s.runtime?.lifecycle.destroy(); }
   finally {
     // Restty 0.3.0 does not delete its base WebGL buffers, shaders or atlas.
