@@ -89,7 +89,12 @@ public sealed partial class GhosttyTextureView
         foreach (var (title, action) in new[] { ("Copy", "copy_to_clipboard"), ("Paste", "paste_from_clipboard"), ("Select All", "select_all") })
         {
             var item = new MenuItem { Header = title };
-            item.Click += (_, _) => { if (!disposed) Native.Action(terminal.Handle, action); };
+            item.Click += (_, _) =>
+            {
+                if (disposed) return;
+                if (action == "paste_from_clipboard") UserInput?.Invoke(this, EventArgs.Empty);
+                Native.Action(terminal.Handle, action);
+            };
             ClipboardMenu.Items.Add(item);
         }
         var menu = ClipboardMenu;

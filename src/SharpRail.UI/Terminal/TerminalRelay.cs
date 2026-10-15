@@ -22,6 +22,7 @@ public static class TerminalRelay
     public const string ConnectionVariable = "SHARPRAIL_TERMINAL_RELAY";
     // Prefixes the status file of a shell that exited; any other status is a start failure.
     internal const string ExitStatus = "exit:";
+    internal const string PrefillReadySuffix = ".resume-ready";
     // The status of a relay whose session another window or client took over.
     internal const string DetachedStatus = "detached";
     // The status of a relay whose yielding attach found the session held by another client.
@@ -104,9 +105,11 @@ public static class TerminalRelay
                 {
                     output.Write(chunk.Span);
                     output.Flush();
-                    if (prefill is not null && chunk.Length > 0)
+                    if (prefill is not null && chunk.Length > 0 && !session.Watching)
                     {
                         await session.WriteAsync(Encoding.UTF8.GetBytes(prefill.Text + (prefill.Submit ? "\r" : "")));
+                        if (TerminalResumeHint.IsOffer(prefill) && !session.Watching)
+                            await MarkPrefillReady(connection.StatusPath);
                         prefill = null;
                     }
                 }
@@ -127,7 +130,20 @@ public static class TerminalRelay
                 Report(output, message);
                 return 1;
             }
+            finally { ClearPrefillReady(connection.StatusPath); }
         }
+    }
+
+    private static async Task MarkPrefillReady(string status)
+    {
+        try { await File.WriteAllTextAsync(status + PrefillReadySuffix, "ready"); }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
+    }
+
+    private static void ClearPrefillReady(string status)
+    {
+        try { File.Delete(status + PrefillReadySuffix); }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
     }
 
     private static void Pump(ITerminalSession session)

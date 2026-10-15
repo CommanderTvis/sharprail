@@ -137,7 +137,14 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
     public void FocusTerminal() => Focus();
 
     private void Reply(ReadOnlySpan<byte> data) => Input?.Invoke(this, data.ToArray());
-    private void Send(ReadOnlySpan<byte> data) { if (!data.IsEmpty) Input?.Invoke(this, data.ToArray()); }
+    /// <summary>User input, excluding automatic terminal-query replies.</summary>
+    public event EventHandler? UserInput;
+    private void Send(ReadOnlySpan<byte> data)
+    {
+        if (data.IsEmpty) return;
+        UserInput?.Invoke(this, EventArgs.Empty);
+        Input?.Invoke(this, data.ToArray());
+    }
 
     private void Redraw(bool snapshot = true)
     {

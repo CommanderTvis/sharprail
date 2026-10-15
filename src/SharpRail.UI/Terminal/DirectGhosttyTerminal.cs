@@ -12,14 +12,14 @@ using SharpRail.UI.Rendering;
 namespace SharpRail.UI.Terminal;
 
 [SupportedOSPlatform("macos")]
-internal sealed class DirectGhosttyTerminal : Border, ITerminalBackend
+internal sealed class DirectGhosttyTerminal : Border, ITerminalBackend, ITerminalResumeHint
 {
     private readonly TerminalLaunch launch;
     private readonly ITerminalService terminals;
     private readonly GhosttyExternalIo io = new();
     private readonly CancellationTokenSource lifetime = new();
-    private readonly Channel<(ReadOnlyMemory<byte> Data, TerminalSize? Size)> input =
-        Channel.CreateUnbounded<(ReadOnlyMemory<byte>, TerminalSize?)>(new() { SingleReader = true });
+    private readonly Channel<(ReadOnlyMemory<byte> Data, TerminalSize? Size, TaskCompletionSource? Sent)> input =
+        Channel.CreateUnbounded<(ReadOnlyMemory<byte>, TerminalSize?, TaskCompletionSource?)>(new() { SingleReader = true });
     private readonly TaskCompletionSource<int> exited = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TaskCompletionSource detached = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private GhosttyTextureView? texture;
@@ -35,12 +35,13 @@ internal sealed class DirectGhosttyTerminal : Border, ITerminalBackend
         this.launch = launch;
         this.terminals = terminals;
         Focusable = true;
-        io.Input += (_, data) => input.Writer.TryWrite((data, null));
-        io.GridResized += (_, size) => input.Writer.TryWrite((default, size));
+        io.Input += (_, data) => input.Writer.TryWrite((data, null, null));
+        io.GridResized += (_, size) => input.Writer.TryWrite((default, size, null));
         Started = StartAsync();
     }
 
     public Control View => this;
+    public TerminalResumeHint ResumeHint { get; } = new();
     public Task Started { get; }
     public Task<int> Exited => exited.Task;
     public Task Detached => detached.Task;
@@ -49,8 +50,9 @@ internal sealed class DirectGhosttyTerminal : Border, ITerminalBackend
 
     public void Write(string data)
     {
+        if (data.Length > 0) ResumeHint.Dismiss();
         if (fallback is not null) fallback.Write(data);
-        else input.Writer.TryWrite((System.Text.Encoding.UTF8.GetBytes(data), null));
+        else input.Writer.TryWrite((System.Text.Encoding.UTF8.GetBytes(data), null, null));
     }
 
     public void SetAgentNewline(bool enabled)
@@ -83,6 +85,7 @@ internal sealed class DirectGhosttyTerminal : Border, ITerminalBackend
             OpenFileLink = launch.OpenFileLink
         };
         texture.OperationFailed += TextureFailed;
+        texture.UserInput += (_, _) => ResumeHint.Dismiss();
         Child = texture;
         Ui.ThemeChanged += UpdateColors;
         await texture.Ready.WaitAsync(lifetime.Token);
@@ -125,7 +128,10 @@ internal sealed class DirectGhosttyTerminal : Border, ITerminalBackend
                 view.WriteOutput(data.Span);
                 if (prefill is not null && data.Length > 0)
                 {
-                    input.Writer.TryWrite((System.Text.Encoding.UTF8.GetBytes(prefill.Text + (prefill.Submit ? "\r" : "")), null));
+                    var sent = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                    input.Writer.TryWrite((System.Text.Encoding.UTF8.GetBytes(prefill.Text + (prefill.Submit ? "\r" : "")), null, sent));
+                    await sent.Task.WaitAsync(lifetime.Token);
+                    ResumeHint.Delivered(prefill);
                     prefill = null;
                 }
             }
@@ -145,6 +151,7 @@ internal sealed class DirectGhosttyTerminal : Border, ITerminalBackend
             {
                 if (item.Size is { } size) await attached.ResizeAsync(size.Columns, size.Rows, lifetime.Token);
                 else await attached.WriteAsync(item.Data, lifetime.Token);
+                item.Sent?.TrySetResult();
             }
         }
         catch (Exception) when (lifetime.IsCancellationRequested) { }
@@ -188,7 +195,7 @@ internal sealed class DirectGhosttyTerminal : Border, ITerminalBackend
             catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
         }
         ObjectDisposedException.ThrowIf(disposed, this);
-        fallback = new SkiaTerminal(launch, terminals);
+        fallback = new SkiaTerminal(launch, terminals, ResumeHint);
         fallback.SetAgentNewline(agentNewline);
         Child = fallback.View;
         await fallback.Started;
@@ -225,6 +232,7 @@ internal sealed class DirectGhosttyTerminal : Border, ITerminalBackend
     {
         if (disposed) return;
         disposed = true;
+        ResumeHint.Dismiss();
         lifetime.Cancel();
         input.Writer.TryComplete();
         Ui.ThemeChanged -= UpdateColors;

@@ -218,6 +218,13 @@ internal static class Program
             EditorWorkbenchChecks.FileLinkPosition(root);
             return;
         }
+        if (args.SequenceEqual(["--terminal-resume-hint"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            TerminalResumeHintChecks.Run();
+            return;
+        }
         if (args.SequenceEqual(["--terminal-replay"]))
         {
             TerminalReplayChecks.Run();

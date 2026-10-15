@@ -15,7 +15,7 @@ using SharpRail.UI.Terminal;
 namespace SharpRail.UI.Browser;
 
 // GPU canvas surface; shared-texture composition is not implemented yet.
-internal sealed class ResttyTerminal : NativeControlHost, ITerminalBackend
+internal sealed class ResttyTerminal : NativeControlHost, ITerminalBackend, ITerminalResumeHint
 {
     private static readonly Dictionary<int, ResttyTerminal> instances = [];
     private static int nextId;
@@ -26,7 +26,7 @@ internal sealed class ResttyTerminal : NativeControlHost, ITerminalBackend
     private readonly TaskCompletionSource ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TaskCompletionSource<int> exited = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TaskCompletionSource detached = new(TaskCreationOptions.RunContinuationsAsynchronously);
-    private readonly Channel<(string? Text, int Columns, int Rows)> input = Channel.CreateUnbounded<(string?, int, int)>(new() { SingleReader = true });
+    private readonly Channel<(string? Text, int Columns, int Rows, bool Offer)> input = Channel.CreateUnbounded<(string?, int, int, bool)>(new() { SingleReader = true });
     private ITerminalSession? session;
     private JSObject? element;
     private int columns = 80, rows = 24;
@@ -40,10 +40,13 @@ internal sealed class ResttyTerminal : NativeControlHost, ITerminalBackend
         instances.Add(id, this);
         Name = "TerminalResttyView";
         Ui.ThemeChanged += UpdateColors;
+        ResumeHint.Changed += UpdateResumeHint;
         Started = Start();
     }
 
     public Control View => this;
+    public TerminalResumeHint ResumeHint { get; } = new();
+    public bool NativeResumeHint => true;
     public Task Started { get; }
     internal Task RendererReady => ready.Task;
     public Task<int> Exited => exited.Task;
@@ -80,7 +83,7 @@ internal sealed class ResttyTerminal : NativeControlHost, ITerminalBackend
     {
         columns = width;
         rows = height;
-        if (session is { Watching: false }) input.Writer.TryWrite((null, width, height));
+        if (session is { Watching: false }) input.Writer.TryWrite((null, width, height, false));
     }
 
     internal static void Event(string json)
@@ -88,7 +91,8 @@ internal sealed class ResttyTerminal : NativeControlHost, ITerminalBackend
         using var message = JsonDocument.Parse(json);
         var value = message.RootElement;
         if (!instances.TryGetValue(value.GetProperty("id").GetInt32(), out var terminal)) return;
-        if (value.TryGetProperty("text", out var text)) terminal.Write(text.GetString()!);
+        if (value.TryGetProperty("activity", out _)) { if (!terminal.Watching) terminal.ResumeHint.Dismiss(); }
+        else if (value.TryGetProperty("text", out var text)) terminal.QueueInput(text.GetString()!);
         else terminal.Resize(value.GetProperty("columns").GetInt32(), value.GetProperty("rows").GetInt32());
     }
 
@@ -138,7 +142,7 @@ internal sealed class ResttyTerminal : NativeControlHost, ITerminalBackend
                 await Output(data);
                 if (prefill is not null && !data.IsEmpty)
                 {
-                    Write(prefill.Text + (prefill.Submit ? "\r" : ""));
+                    QueueInput(prefill.Text + (prefill.Submit ? "\r" : ""), TerminalResumeHint.IsOffer(prefill));
                     prefill = null;
                 }
             }
@@ -154,7 +158,11 @@ internal sealed class ResttyTerminal : NativeControlHost, ITerminalBackend
         try
         {
             await foreach (var item in input.Reader.ReadAllAsync(lifetime.Token))
-                if (item.Text is { } text) await session!.WriteAsync(Encoding.UTF8.GetBytes(text), lifetime.Token);
+                if (item.Text is { } text)
+                {
+                    await session!.WriteAsync(Encoding.UTF8.GetBytes(text), lifetime.Token);
+                    if (item.Offer) ResumeHint.Offer();
+                }
                 else await session!.ResizeAsync(item.Columns, item.Rows, lifetime.Token);
         }
         catch (Exception) when (lifetime.IsCancellationRequested) { }
@@ -179,11 +187,22 @@ internal sealed class ResttyTerminal : NativeControlHost, ITerminalBackend
             }
         });
     }
-    private void UpdateColors() { if (element is not null) ResttyInterop.Theme(element, ThemeJson()); }
+    private void UpdateResumeHint() => Dispatcher.UIThread.Post(() =>
+    {
+        if (disposed || element is null) return;
+        static string Css(Avalonia.Media.Color color) => FormattableString.Invariant($"rgba({color.R},{color.G},{color.B},{color.A / 255d})");
+        ResttyInterop.ResumeHint(element, ResumeHint.Visible ? "Press Enter to resume this tab’s previous session." : "", Css(Ui.Elevated.Color), Css(Ui.Muted.Color));
+    });
+    private void UpdateColors()
+    {
+        if (element is not null) ResttyInterop.Theme(element, ThemeJson());
+        UpdateResumeHint();
+    }
     public ValueTask<bool> IsBusyAsync() => terminals.IsBusyAsync(launch.SessionId);
     public ValueTask CloseAsync() => terminals.CloseAsync(launch.SessionId);
     public void FocusTerminal() { if (element is not null && !Watching) ResttyInterop.Focus(element); }
-    public void Write(string data) { if (!disposed && !Watching) input.Writer.TryWrite((data, 0, 0)); }
+    private void QueueInput(string data, bool offer = false) { if (!disposed && !Watching) input.Writer.TryWrite((data, 0, 0, offer)); }
+    public void Write(string data) { if (data.Length > 0) ResumeHint.Dismiss(); QueueInput(data); }
     public string ReadScreen() => element is null ? "" : ResttyInterop.Screen(element);
     public void SetAgentNewline(bool enabled)
     {
@@ -194,6 +213,8 @@ internal sealed class ResttyTerminal : NativeControlHost, ITerminalBackend
     {
         if (disposed) return;
         disposed = true;
+        ResumeHint.Dismiss();
+        ResumeHint.Changed -= UpdateResumeHint;
         instances.Remove(id);
         Ui.ThemeChanged -= UpdateColors;
         lifetime.Cancel();
@@ -205,6 +226,8 @@ internal sealed class ResttyTerminal : NativeControlHost, ITerminalBackend
 
 internal static partial class ResttyInterop
 {
+    [JSImport("resumeHint", "restty-bridge")]
+    internal static partial void ResumeHint(JSObject element, string text, string background, string foreground);
     [JSImport("watch", "restty-bridge")]
     internal static partial void Watch(JSObject element, int columns, int rows);
     [JSImport("create", "restty-bridge")]

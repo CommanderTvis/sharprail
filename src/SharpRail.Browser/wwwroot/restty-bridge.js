@@ -34,6 +34,8 @@ export async function initialize(element, id, themeJson) {
   state.keyListeners = [];
   for (const type of ['keydown', 'keyup']) {
     const forward = event => {
+      if (type === 'keydown' && !state.watching && !['Shift', 'Control', 'Alt', 'Meta'].includes(event.key))
+        terminalEvent({ id, activity: true });
       const forwarded = new KeyboardEvent(type, event);
       Object.defineProperty(forwarded, 'target', { value: event.target });
       window.dispatchEvent(forwarded);
@@ -42,6 +44,11 @@ export async function initialize(element, id, themeJson) {
     };
     element.addEventListener(type, forward);
     state.keyListeners.push([type, forward]);
+  }
+  for (const type of ['input', 'paste']) {
+    const activity = () => { if (!state.watching) terminalEvent({ id, activity: true }); };
+    element.addEventListener(type, activity);
+    state.keyListeners.push([type, activity]);
   }
   state.dropListeners = [];
   for (const type of ['dragenter', 'dragover', 'dragleave', 'drop']) {
@@ -159,4 +166,17 @@ export function destroy(element) {
     if (s.gl && !s.gl.isContextLost()) s.gl.getExtension('WEBGL_lose_context')?.loseContext();
     element.replaceChildren();
   }
+}
+
+export function resumeHint(element, text, background, foreground) {
+  const state = states.get(element);
+  if (!state || state.disposed) return;
+  if (!text) { state.resumeHint?.remove(); state.resumeHint = null; return; }
+  const hint = state.resumeHint ||= document.createElement('div');
+  hint.setAttribute('role', 'status');
+  hint.textContent = text;
+  hint.style.cssText = 'position:absolute;right:12px;top:12px;max-width:calc(100% - 24px);box-sizing:border-box;padding:4px 8px;border-radius:4px;pointer-events:none;font:12px/1.4 system-ui,sans-serif;z-index:1';
+  hint.style.background = background;
+  hint.style.color = foreground;
+  if (!hint.parentNode) element.append(hint);
 }

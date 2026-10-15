@@ -43,6 +43,8 @@ public sealed partial class GhosttyTextureView
     {
         base.OnKeyDown(e);
         if (disposed || e.Handled) return;
+        if (e.Key is not (Key.LeftShift or Key.RightShift or Key.LeftCtrl or Key.RightCtrl or Key.LeftAlt or Key.RightAlt or Key.LWin or Key.RWin))
+            UserInput?.Invoke(this, EventArgs.Empty);
         RefreshLinkModifiers(e.KeyModifiers);
         pendingTextKey = null;
         if (e.KeyModifiers == KeyModifiers.Meta && e.Key is Key.C or Key.V)
@@ -84,6 +86,7 @@ public sealed partial class GhosttyTextureView
     {
         base.OnTextInput(e);
         if (disposed || string.IsNullOrEmpty(e.Text)) return;
+        UserInput?.Invoke(this, EventArgs.Empty);
         Native.Preedit(terminal.Handle, null);
         if (pendingTextKey is { } code)
             Native.Key(terminal.Handle, 1, code, Vt.Mods(pendingTextModifiers),

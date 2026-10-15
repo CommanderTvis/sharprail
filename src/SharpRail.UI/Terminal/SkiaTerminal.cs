@@ -16,7 +16,7 @@ namespace SharpRail.UI.Terminal;
 // The Skia renderer: libghostty-vt in the app, attached straight to the host session without a relay. It is
 // also every renderer's view of a terminal another client holds: the holder's grid at its real size, scrolled
 // from the top-left when the pane is smaller, taking no input and answering no terminal query.
-internal sealed class SkiaTerminal : Border, ITerminalBackend
+internal sealed class SkiaTerminal : Border, ITerminalBackend, ITerminalResumeHint
 {
     private readonly TaskCompletionSource<int> exited = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TaskCompletionSource detached = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -30,8 +30,9 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend
     private ITerminalSession? session;
     private bool disposed;
 
-    internal SkiaTerminal(TerminalLaunch launch, ITerminalService terminals)
+    internal SkiaTerminal(TerminalLaunch launch, ITerminalService terminals, TerminalResumeHint? resumeHint = null)
     {
+        ResumeHint = resumeHint ?? new();
         this.launch = launch; this.terminals = terminals;
         Focusable = true;
         SizeChanged += (_, _) => { if (Watching && OperatingSystem.IsAndroid()) FitWatchedFont(); };
@@ -53,6 +54,7 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend
             throw new TerminalStartException("The Skia terminal renderer is not available on this platform.");
         }
         terminal.Input += (_, data) => { if (!Watching) input.Writer.TryWrite(data); };
+        terminal.UserInput += (_, _) => ResumeHint.Dismiss();
         terminal.GridResized += (_, size) => { if (session is { Watching: false } attached) _ = Resize(attached, size); };
         terminal.LayoutUpdated += Arranged;
         if (OperatingSystem.IsAndroid())
@@ -71,6 +73,7 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend
     }
 
     public Control View => this;
+    public TerminalResumeHint ResumeHint { get; }
     public Task Started { get; }
     public Task<int> Exited => exited.Task;
     public Task Detached => detached.Task;
@@ -183,9 +186,10 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend
                             if (bytes >= 256 * 1024 || Stopwatch.GetElapsedTime(started).TotalMilliseconds >= 2) break;
                         }
                     }, DispatcherPriority.Background);
-                    if (prefill is not null && received)
+                    if (prefill is not null && received && !Watching)
                     {
                         await attached.WriteAsync(System.Text.Encoding.UTF8.GetBytes(prefill.Text + (prefill.Submit ? "\r" : "")), lifetime.Token);
+                        ResumeHint.Delivered(prefill);
                         prefill = null;
                     }
                 }
@@ -268,7 +272,7 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend
 
     public void FocusTerminal() => terminal.FocusTerminal();
 
-    public void Write(string data) { if (!Watching) input.Writer.TryWrite(System.Text.Encoding.UTF8.GetBytes(data)); }
+    public void Write(string data) { if (!Watching) { if (data.Length > 0) ResumeHint.Dismiss(); input.Writer.TryWrite(System.Text.Encoding.UTF8.GetBytes(data)); } }
 
     public string ReadScreen() => terminal.ReadScreen();
 
@@ -284,6 +288,7 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend
     {
         if (disposed) return;
         disposed = true;
+        ResumeHint.Dismiss();
         Ui.ThemeChanged -= UpdateColors;
         lifetime.Cancel();
         input.Writer.TryComplete();

@@ -56,7 +56,9 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
     public void WriteOutput(ReadOnlySpan<byte> data) => terminal.WriteOutput(data);
     public TerminalColors Colors { get => terminal.Colors; set => terminal.Colors = value; }
     public string ReadScreen() => terminal.ReadScreen();
-    public void Type(string text) => terminal.Type(text);
+    /// <summary>User input, excluding automatic terminal-query replies.</summary>
+    public event EventHandler? UserInput;
+    public void Type(string text) { if (text.Length > 0) UserInput?.Invoke(this, EventArgs.Empty); terminal.Type(text); }
     /// <inheritdoc cref="GhosttyView.AgentNewline"/>
     public bool AgentNewline { get; set; }
     public void FocusTerminal() => Focus();

@@ -10,7 +10,7 @@ namespace SharpRail.UI.Terminal;
 
 // Ghostty's Metal renderer, composed as a texture; its child is the relay.
 [SupportedOSPlatform("macos")]
-internal sealed class GhosttyTerminal : Border, ITerminalBackend
+internal sealed class GhosttyTerminal : Border, ITerminalBackend, ITerminalResumeHint
 {
     private readonly TaskCompletionSource<int> exited = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly TaskCompletionSource detached = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -22,6 +22,7 @@ internal sealed class GhosttyTerminal : Border, ITerminalBackend
     private bool switching;
     private string? statusPath, connectionPath;
     private bool disposed;
+    private readonly CancellationTokenSource lifetime = new();
     private bool agentNewline;
 
     // The relay attaches to the host session; exit status and takeover come back through its status file,
@@ -34,6 +35,7 @@ internal sealed class GhosttyTerminal : Border, ITerminalBackend
     }
 
     public Control View => this;
+    public TerminalResumeHint ResumeHint { get; } = new();
     public Task Started { get; }
     public Task<int> Exited => exited.Task;
     public Task Detached => detached.Task;
@@ -65,6 +67,8 @@ internal sealed class GhosttyTerminal : Border, ITerminalBackend
             };
             texture.Exited += (_, code) => Ended(code);
             texture.OperationFailed += TextureFailed;
+            texture.UserInput += (_, _) => ResumeHint.Dismiss();
+            _ = Task.Run(ObservePrefill);
             Child = texture;
             Ui.ThemeChanged += UpdateColors;
             await texture.Ready;
@@ -73,6 +77,19 @@ internal sealed class GhosttyTerminal : Border, ITerminalBackend
         {
             await UseSkia();
         }
+    }
+
+    private async Task ObservePrefill()
+    {
+        try
+        {
+            while (!lifetime.IsCancellationRequested && !switching && !exited.Task.IsCompleted && !detached.Task.IsCompleted)
+            {
+                if (File.Exists(statusPath + TerminalRelay.PrefillReadySuffix)) ResumeHint.Offer();
+                await Task.Delay(100, lifetime.Token);
+            }
+        }
+        catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
     }
 
     private async void TextureFailed(object? sender, Exception error)
@@ -93,7 +110,7 @@ internal sealed class GhosttyTerminal : Border, ITerminalBackend
         texture?.Dispose();
         texture = null;
         DeleteRelayFiles();
-        fallback = new SkiaTerminal(launch, connection!.Terminals);
+        fallback = new SkiaTerminal(launch, connection!.Terminals, ResumeHint);
         fallback.SetAgentNewline(agentNewline);
         Child = fallback.View;
         await fallback.Started;
@@ -143,6 +160,8 @@ internal sealed class GhosttyTerminal : Border, ITerminalBackend
     {
         if (disposed) return;
         disposed = true;
+        ResumeHint.Dismiss();
+        lifetime.Cancel();
         Ui.ThemeChanged -= UpdateColors;
         texture?.Dispose();
         fallback?.Dispose();
@@ -151,7 +170,7 @@ internal sealed class GhosttyTerminal : Border, ITerminalBackend
 
     private void DeleteRelayFiles()
     {
-        foreach (var path in new[] { connectionPath, statusPath })
+        foreach (var path in new[] { connectionPath, statusPath, statusPath is null ? null : statusPath + TerminalRelay.PrefillReadySuffix })
             if (path is not null) File.Delete(path);
     }
 
@@ -163,6 +182,7 @@ internal sealed class GhosttyTerminal : Border, ITerminalBackend
 
     public void Write(string data)
     {
+        if (data.Length > 0) ResumeHint.Dismiss();
         if (texture is not null) texture.Type(data);
         else fallback?.Write(data);
     }

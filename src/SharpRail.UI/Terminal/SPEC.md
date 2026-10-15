@@ -43,6 +43,22 @@ Saved host agent titles take precedence over catalog titles in these lists too.
 Choosing one reveals its tab and watches another client's live shell without taking
 it over. Centre file-tab previews still follow the client's tabs-in-Projects setting.
 
+## Session revival hint
+
+A backend that acknowledges writing an offered, non-submitted revival prefill shows “Press Enter to
+resume this tab’s previous session.” as a noninteractive overlay. It does not submit the command,
+change the terminal grid or move focus. Ordinary pasted text, submitted prefills and read-only watchers
+never create it. User input or cancellation, detaching the view, exit and disposal dismiss it; late
+write acknowledgements cannot bring it back after input. Automatic terminal-query replies are not
+user input. The hint remains generic: plugins own revival commands and policy.
+
+The optional client-side state is shared through renderer fallback. Remote Metal communicates only
+prefill readiness through a sidecar beside its private relay status; the UI reads it in the background,
+without adding a host operation or exposing command text. Browser DOM input is distinguished from
+terminal transport replies for the same reason. Its DOM surface carries the same noninteractive
+overlay so a native-control layer cannot cover the hint. Failure to write the optional relay readiness
+sidecar never replaces a working terminal with an error.
+
 ## Android touch keys
 
 Android's Skia terminal includes a two-row key bar for Esc, Tab, one-shot Ctrl and Alt,

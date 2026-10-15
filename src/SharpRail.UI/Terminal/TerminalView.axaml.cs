@@ -19,6 +19,8 @@ public sealed partial class TerminalView : UserControl, IDisposable
     private readonly TextBlock detachedText;
     private readonly Button takeBack;
     private readonly TextBlock exitNotice;
+    private readonly Control resumeHint;
+    private Action? releaseHint;
     private readonly ContentControl companion;
     private readonly GridSplitter companionSplitter;
     // 45% of the view beside a 1* terminal column.
@@ -41,6 +43,7 @@ public sealed partial class TerminalView : UserControl, IDisposable
         detachedText = this.FindControl<TextBlock>("TerminalDetachedText")!;
         takeBack = this.FindControl<Button>("TerminalTakeBack")!;
         exitNotice = this.FindControl<TextBlock>("TerminalExited")!;
+        resumeHint = this.FindControl<Control>("TerminalResumeHint")!;
         Accessories = this.FindControl<StackPanel>("TerminalAccessories")!;
         companion = this.FindControl<ContentControl>("TerminalCompanion")!;
         companionSplitter = this.FindControl<GridSplitter>("TerminalCompanionSplitter")!;
@@ -128,6 +131,7 @@ public sealed partial class TerminalView : UserControl, IDisposable
     {
         if (disposed) return;
         var current = ++generation;
+        releaseHint?.Invoke(); releaseHint = null; resumeHint.IsVisible = false;
         Backend?.Dispose(); Backend = null; body.Content = null;
         retry.IsEnabled = false; takeBack.IsEnabled = false;
         exitNotice.IsVisible = false;
@@ -137,11 +141,25 @@ public sealed partial class TerminalView : UserControl, IDisposable
         {
             backend = factory(takeOver ? launch with { Yield = false } : watch ? launch with { Yield = true, Watch = true } : launch);
             Backend = backend;
+            Action? updateHint = null;
+            if (backend is ITerminalResumeHint source)
+            {
+                void Update() => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+                {
+                    if (current == generation && ReferenceEquals(Backend, backend))
+                        resumeHint.IsVisible = !source.NativeResumeHint && source.ResumeHint.Visible && backend.Started.IsCompletedSuccessfully &&
+                            !backend.Watching && !IsExited && !IsDetached && !IsFailed;
+                });
+                source.ResumeHint.Changed += Update;
+                releaseHint = () => source.ResumeHint.Changed -= Update;
+                updateHint = Update;
+            }
             body.Content = backend.View;
             failure.IsVisible = false;
             detachedNotice.IsVisible = false; body.IsVisible = true;
             await backend.Started;
             if (current != generation) return;
+            updateHint?.Invoke();
             backend.SetAgentNewline(agentNewline);
             if (backend.Watching)
             {
@@ -151,6 +169,7 @@ public sealed partial class TerminalView : UserControl, IDisposable
             else if (retrying) backend.FocusTerminal();
             await Task.WhenAny(backend.Exited, backend.Detached);
             if (current != generation) return;
+            resumeHint.IsVisible = false;
             if (backend.Detached.IsCompleted)
             {
                 // Taken over, or held elsewhere when a renderer that cannot watch attached: watch it from now on,
@@ -175,6 +194,7 @@ public sealed partial class TerminalView : UserControl, IDisposable
         catch (Exception error)
         {
             if (current != generation) return;
+            resumeHint.IsVisible = false;
             backend?.Dispose();
             Backend = null; body.Content = null;
             body.IsVisible = true; detachedNotice.IsVisible = false;
@@ -206,6 +226,14 @@ public sealed partial class TerminalView : UserControl, IDisposable
     {
         if (disposed) return;
         disposed = true; generation++;
+        releaseHint?.Invoke(); releaseHint = null; resumeHint.IsVisible = false;
         Backend?.Dispose(); Backend = null;
+    }
+
+    protected override void OnDetachedFromVisualTree(Avalonia.VisualTreeAttachmentEventArgs e)
+    {
+        if (Backend is ITerminalResumeHint source) source.ResumeHint.Dismiss();
+        resumeHint.IsVisible = false;
+        base.OnDetachedFromVisualTree(e);
     }
 }
