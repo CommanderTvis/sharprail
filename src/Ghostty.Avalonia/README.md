@@ -140,6 +140,13 @@ and disposal release old sources. Native leases keep their source alive even
 if the view is disposed during a draw. Avalonia must use a Metal-backed Skia
 context; other backends fail explicitly. The Skia cell control is the fallback.
 
+When the three-target swap chain catches up to the latest completed texture,
+Ghostty's encoding worker waits for a replacement before reusing it. The compositor
+can keep acquiring the completed frame throughout that interval, including redraws
+caused by wheel input at the scrollback boundary. It never waits for this handoff.
+GPU failure and disposal release a waiting producer; outstanding GPU-read leases
+still protect their textures until returned.
+
 Supply `GhosttyLaunch.ExternalIo` to use an existing PTY without starting a Ghostty child.
 `GhosttyExternalIo.Input` and `GridResized` run on Ghostty's I/O thread; enqueue
 work and return without reentering the surface. Input bytes are already copied;
@@ -189,6 +196,10 @@ In SharpRail, `--ghostty-skia` runs focused real-pixel/input and host PTY checks
 `--native-texture` checks a real Metal-backed Avalonia window: imported pixels,
 theme, overlays, clipping, input, clipboard, resize, remounting and local/remote
 shell retention when switching between texture and Skia rendering.
+`--native-scroll` isolates the completed-texture handoff and bottom-edge scrolling
+checks in a real Metal window, including ordinary upward scrolling and return to
+the bottom. The handoff check forces target reuse while the compositor acquires
+the previous completed texture, and checks lease, failure and disposal wakeups.
 
 ## Skia rendering design
 

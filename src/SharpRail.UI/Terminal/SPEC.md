@@ -212,6 +212,11 @@ this favors bounded memory and explicit ownership over maximum GPU overlap.
 The latest completed target and in-flight readers remain bounded by Ghostty's
 three render targets. Resize, remount and disposal must release old targets. The native Ghostty build preserves enlarged scrollback
 page allocations when recycling them, without reducing retained history limits.
+Reusing the latest target must leave a completed frame available to the compositor
+until another target completes. Only Ghostty's encoding worker waits for that
+replacement; compositor acquisition stays nonblocking. GPU failures and disposal
+wake the producer, while outstanding read leases remain protected. Scrolling down
+at the bottom must not expose blank terminal frames or disable ordinary scrolling.
 
 In Skia mode, libghostty-vt owns terminal state and input encoding; Avalonia draws
 changed rows into retained Skia pixels and owns focus, clipboard, selection and composition input. On macOS,
@@ -264,6 +269,10 @@ scrollback, resize, a real host shell surviving a renderer restart, and a watchi
 `--native-texture` requires real imported pixels with theme changes, Avalonia
 overlays and parent clipping, native keyboard/clipboard input, Retina resize,
 remounting and texture/Skia switches retaining local and remote shells.
+`--native-scroll` isolates native target-reuse/lease and failure/disposal handoffs,
+then exercises fractional downward wheel input at the bottom in a real Metal
+window. Draws retain a completed texture, the screen stays unchanged, ordinary
+upward scrolling still moves the viewport and downward scrolling returns it.
 `--native-direct` runs the local direct and remote session checks independently of renderer pixel probes.
 It verifies zero local HTTP requests, shell retention, input, resize, takeover and exit.
 `--texture-fallback` forces software composition and requires automatic Skia

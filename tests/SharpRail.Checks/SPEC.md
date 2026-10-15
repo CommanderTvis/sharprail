@@ -127,6 +127,10 @@ rendering and verifies automatic Skia fallback with retained local/remote sessio
 clipboard, Ctrl-C and exit independently of the texture pixel probes. An HTTP
 diagnostic subscriber requires zero requests for the local path and a nonzero
 count for the remote control case. Metal checks must not silently fall back to Skia.
+`--native-scroll` forces completed-texture handoff overlap, read-lease protection,
+GPU failure/recovery and disposal wakeups. In a real Metal window, fractional
+downward wheel events at the bottom preserve texture availability and rendered
+pixels; upward scrolling changes the viewport and downward scrolling restores it.
 `--terminal-relay` lets the checks binary act as the relay child that tabs launch.
 
 `--design` is the design-system gate described in `src/SharpRail.UI/Rendering/COLOR.md`: it reads the UI

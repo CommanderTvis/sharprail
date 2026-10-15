@@ -5691,3 +5691,11 @@ Main matches the verified integration code, except that the public API baseline 
 Long link labels inside inline controls could wrap over several lines while their paragraph retained a fixed single-line height, overlapping following changed/unchanged prose. Markdown and inline-HTML link paragraphs now use natural line metrics, matching the existing inline-image treatment. Link targets, complete labels, selection and insertion/deletion decoration are retained.
 
 The new --markdown-link-layout regression passed 20 width/font/content combinations, checking actual label bounds against surrounding text ranges, paragraph containment, navigation, complete selection and diff colors/strikethrough. Release solution build passed with zero warnings/errors. Existing --markdown and drawn-rendering checks passed. Touched-file format and whitespace verification passed. Main reuses the verified byte-identical source. No full gate or physical-device/browser-runtime verification was repeated for this small renderer change.
+
+## 2026-10-15 — Metal bottom-scroll frame handoff
+
+Fixed a texture-reuse race: Ghostty previously cleared its latest completed frame before rendering a replacement, so pointer/wheel redraws could acquire no texture and paint a blank. The producer now waits for replacement publication while the completed texture remains readable; compositor acquisition stays nonblocking. GPU-error/recovery, disposal wakeups and outstanding read leases remain safe.
+
+Release solution build passed with zero warnings/errors; touched C# formatting and whitespace passed. The deterministic handoff regression fails against the previous native bridge and passes with the fix. Real-window --native-scroll passed on Apple M4 Pro: retained-frame/lease/failure/recovery/stop cases, 300 fractional down-scroll events at the bottom with zero unavailable draws and identical viewport pixels, upward scrolling and pixel-exact return.
+
+Broader --native-texture stopped at an unchanged theme-color assertion (captured RGB 27/51/83 versus expected 18/52/86); --native-direct stopped at its unchanged initial renderer-creation wait. Neither complete native gate nor local/remote parity is claimed. Physical trackpad/video reproduction and the full suite were not run. Main reuses the verified byte-identical source/native-build evidence.

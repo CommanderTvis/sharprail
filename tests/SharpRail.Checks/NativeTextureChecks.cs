@@ -35,6 +35,7 @@ internal static class NativeTextureChecks
     private static bool clipboardCheck;
     private static bool directCheck;
     private static bool fileLinkCheck;
+    private static bool scrollCheck;
     private const string Title = "SharpRail Ghostty texture check";
 
     public static void Run(string[] args)
@@ -45,6 +46,7 @@ internal static class NativeTextureChecks
         clipboardCheck = args.Contains("--native-osc52");
         directCheck = args.Contains("--native-direct");
         fileLinkCheck = args.Contains("--native-file-links");
+        scrollCheck = args.Contains("--native-scroll");
         AppBuilder.Configure<TextureApplication>().UsePlatformDetect()
             .With(new AvaloniaNativePlatformOptions { RenderingMode = [fallbackCheck ? AvaloniaNativeRenderingMode.Software : AvaloniaNativeRenderingMode.Metal] })
             .StartWithClassicDesktopLifetime(args);
@@ -63,13 +65,14 @@ internal static class NativeTextureChecks
                 try
                 {
                     if (!OperatingSystem.IsMacOS()) throw new PlatformNotSupportedException();
-                    if (fileLinkCheck) await CheckFileLinks(window);
+                    if (scrollCheck) await CheckScrollBoundary(window);
+                    else if (fileLinkCheck) await CheckFileLinks(window);
                     else if (directCheck) await CheckSessions(window);
                     else if (clipboardCheck) { Osc52Checks.RunSkia(); await CheckOsc52(window); await CheckSessions(window); }
                     else if (skiaCheck) await CheckSkia(window);
                     else
                     {
-                        if (!fallbackCheck) { await CheckOsc52(window); await Check(window); }
+                        if (!fallbackCheck) { await CheckScrollBoundary(window); await CheckOsc52(window); await Check(window); }
                         await CheckSessions(window);
                         if (!fallbackCheck) await CheckNativeLibrary(window);
                     }
@@ -439,6 +442,69 @@ internal static class NativeTextureChecks
         Console.WriteLine("PASS direct texture: bounded sources through repeated resize and repaint, final-frame pixels, remount and disposal with a repaint queued");
     }
 
+    [SupportedOSPlatform("macos")]
+    private static async Task CheckScrollBoundary(Window window)
+    {
+        using var terminal = new GhosttyTextureView(new GhosttyLaunch(Directory.GetCurrentDirectory(), ExternalIo: new GhosttyExternalIo()));
+        window.Content = terminal;
+        window.Show();
+        await terminal.Ready.WaitAsync(TimeSpan.FromSeconds(20));
+        var handoffError = await Task.Run(() =>
+        {
+            var library = NativeLibrary.Load(Path.Combine(AppContext.BaseDirectory, "libGhosttyAvaloniaView.dylib"));
+            try { return Native.Handoff(library); }
+            finally { NativeLibrary.Free(library); }
+        });
+        Require(handoffError == 0, Marshal.PtrToStringUTF8(handoffError) ?? "Texture handoff failed.");
+        Console.WriteLine("PASS native texture handoff: completed frame remains readable during target reuse; replacement, GPU failure and stop release the producer");
+        terminal.WriteOutput(System.Text.Encoding.UTF8.GetBytes("\e[?25l" + string.Concat(Enumerable.Range(0, 200).Select(i => $"SCROLL_LINE_{i}\r\n"))));
+        await Until(() => terminal.ReadScreen().Contains("SCROLL_LINE_199", StringComparison.Ordinal), "Scrollback fixture did not reach its bottom.");
+        await Task.Delay(250);
+        var bottom = terminal.ReadScreen();
+        var native = Native.Content(Title);
+        async Task<SKColor[]> Capture()
+        {
+            var directory = Path.Combine(".bench", "native-scroll-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(directory);
+            var capturePath = Path.Combine(directory, "frame.png");
+            try
+            {
+                var capture = new ProcessStartInfo("/usr/sbin/screencapture") { UseShellExecute = false };
+                foreach (var argument in new[] { "-x", "-o", "-l", Native.WindowNumber(native).ToString(), capturePath }) capture.ArgumentList.Add(argument);
+                using var process = Process.Start(capture)!;
+                await process.WaitForExitAsync();
+                Require(process.ExitCode == 0, "Scroll viewport capture failed.");
+                using var bitmap = SKBitmap.Decode(capturePath);
+                return bitmap.Pixels;
+            }
+            finally { Directory.Delete(directory, true); }
+        }
+        var bottomPixels = await Capture();
+        var unavailable = terminal.UnavailableFrames;
+        var frames = terminal.Frames;
+        var pointer = new Pointer(93, PointerType.Mouse, true);
+        for (var i = 0; i < 300; i++)
+        {
+            terminal.RaiseEvent(new PointerWheelEventArgs(terminal, pointer, terminal, new Point(100, 100),
+                (ulong)i, new PointerPointProperties(), KeyModifiers.None, new Vector(0, -.2)));
+            await Task.Delay(2);
+        }
+        await Until(() => terminal.Frames > frames, "Bottom-edge wheel input did not exercise texture composition.");
+        Require(terminal.ReadScreen() == bottom, "Downward scrolling at the bottom changed terminal contents.");
+        Require(terminal.UnavailableFrames == unavailable, "Bottom-edge scrolling exposed a draw without a completed texture.");
+        Require(terminal.RetainedTextureCount is > 0 and <= 3, "Bottom-edge scrolling accumulated source textures.");
+        Require((await Capture()).SequenceEqual(bottomPixels), "Bottom-edge scrolling changed the rendered viewport.");
+        terminal.RaiseEvent(new PointerWheelEventArgs(terminal, pointer, terminal, new Point(100, 100),
+            301, new PointerPointProperties(), KeyModifiers.None, new Vector(0, 3)));
+        await Task.Delay(250);
+        Require(!(await Capture()).SequenceEqual(bottomPixels), "Ordinary upward scrolling stopped working.");
+        terminal.RaiseEvent(new PointerWheelEventArgs(terminal, pointer, terminal, new Point(100, 100),
+            302, new PointerPointProperties(), KeyModifiers.None, new Vector(0, -100)));
+        await Task.Delay(250);
+        Require((await Capture()).SequenceEqual(bottomPixels), "Downward scrolling did not return to the bottom.");
+        Console.WriteLine("PASS bottom-edge scrolling: fractional wheel input preserves screen contents and completed texture availability");
+    }
+
     private static void Type(nint view, string text)
     {
         Native.Activate(view);
@@ -601,6 +667,7 @@ internal static class NativeTextureChecks
 
     private static class Native
     {
+        [DllImport("TerminalEvents", EntryPoint = "sr_texture_handoff")] internal static extern nint Handoff(nint library);
         [DllImport("TerminalEvents", EntryPoint = "sr_check_mutable_input")] internal static extern void MutableInput(nint view);
         [DllImport("TerminalEvents", EntryPoint = "sr_check_paste")] internal static extern void Paste(nint view, int format);
         [DllImport("TerminalEvents", EntryPoint = "sr_check_toggle_bottom")] internal static extern void ToggleBottom(nint view);

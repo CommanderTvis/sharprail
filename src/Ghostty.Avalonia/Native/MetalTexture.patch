@@ -27,6 +27,17 @@
      const buffer = opts.queue.msgSend(
          objc.Object,
          objc.sel("commandBuffer"),
+@@ -91,5 +97,10 @@
+         };
+     }
++    if (health != .healthy) {
++        const layer = block.renderer.api.layer.layer;
++        if (layer.msgSend(bool, "respondsToSelector:", .{objc.sel("gavTextureRenderFailed")}))
++            layer.msgSend(void, "gavTextureRenderFailed", .{});
++    }
+ 
+     block.renderer.frameCompleted(health);
+ }
 --- a/src/renderer/metal/Target.zig
 +++ b/src/renderer/metal/Target.zig
 @@ -74,7 +74,7 @@

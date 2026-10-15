@@ -25,6 +25,7 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
     private nint source;
     private TopLevel? topLevel;
     private int notificationPending;
+    private int unavailableFrames;
     private bool active;
     private bool disposed;
 
@@ -44,6 +45,7 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
     public event EventHandler<int>? Exited;
     public event EventHandler<Exception>? OperationFailed;
     public int Frames { get; private set; }
+    internal int UnavailableFrames => Volatile.Read(ref unavailableFrames);
     internal int RetainedTextureCount
     {
         get { lock (frameLock) return source == 0 ? 0 : Native.RetainedCount(source); }
@@ -91,7 +93,7 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
             if (!active || disposed) return;
             texture = Native.Acquire(source, out width, out height, out lease);
         }
-        if (texture == 0) return;
+        if (texture == 0) { Interlocked.Increment(ref unavailableFrames); return; }
         try
         {
             if (context.TryGetFeature<ISkiaSharpApiLeaseFeature>() is not { } feature)

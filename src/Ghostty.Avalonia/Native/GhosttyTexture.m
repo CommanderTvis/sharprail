@@ -9,6 +9,7 @@
 @property(nonatomic, strong) id<MTLTexture> latest;
 @property(nonatomic, assign) gav_texture_callback callback;
 @property(nonatomic, assign) BOOL stopped;
+@property(nonatomic, assign) BOOL replacementFailed;
 @end
 @implementation GAVTextureFrames
 @end
@@ -25,6 +26,7 @@ static char framesKey;
 @interface CALayer (GAVTextureOutput)
 - (BOOL)gavPresentTexture:(id<MTLTexture>)texture;
 - (void)gavWillRenderTexture:(id<MTLTexture>)texture;
+- (void)gavTextureRenderFailed;
 @end
 
 @implementation CALayer (GAVTextureOutput)
@@ -34,6 +36,8 @@ static char framesKey;
     [frames.condition lock];
     if (!frames.stopped) {
         frames.latest = texture;
+        frames.replacementFailed = NO;
+        [frames.condition broadcast];
         if (frames.callback) frames.callback();
     }
     [frames.condition unlock];
@@ -43,9 +47,25 @@ static char framesKey;
     GAVTextureFrames *frames = objc_getAssociatedObject(self, &framesKey);
     if (!frames) return;
     [frames.condition lock];
+    // The three-target swap chain may catch up to the last completed target while
+    // later submissions are still on the GPU. Keep that frame available to Skia
+    // until a replacement completes; clearing it would expose a blank draw on
+    // pointer/wheel invalidations. Only Ghostty's encoding worker waits here.
+    while (!frames.stopped && !frames.replacementFailed && frames.latest == texture) [frames.condition wait];
     if (frames.latest == texture) frames.latest = nil;
     // A reader returns its lease only after Skia's submitted GPU work completes.
     while ([frames.readers containsObject:texture]) [frames.condition wait];
+    [frames.condition unlock];
+}
+- (void)gavTextureRenderFailed {
+    GAVTextureFrames *frames = objc_getAssociatedObject(self, &framesKey);
+    if (!frames) return;
+    [frames.condition lock];
+    // Failed submissions cannot supply the replacement a writer is waiting for.
+    // Let that writer invalidate only its own target; a newer completed frame
+    // must survive a late failure callback from an earlier submission.
+    frames.replacementFailed = YES;
+    [frames.condition broadcast];
     [frames.condition unlock];
 }
 @end
@@ -107,6 +127,7 @@ void gav_texture_stop(void *pointer) {
     frames.stopped = YES;
     frames.callback = NULL;
     frames.latest = nil;
+    [frames.condition broadcast];
     [frames.condition unlock];
 }
 
