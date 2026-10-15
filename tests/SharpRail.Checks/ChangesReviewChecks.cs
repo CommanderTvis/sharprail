@@ -18,6 +18,7 @@ internal static class ChangesReviewChecks
 {
     internal static void Run(string root)
     {
+        Presentation();
         ContentIdentity();
         Retention();
         var original = string.Join('\n', Enumerable.Range(1, 35).Select(index => "line " + index)) + "\n";
@@ -122,6 +123,102 @@ internal static class ChangesReviewChecks
         Until(() => Review()!.DiffFor("untracked.txt")?.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>()
             .Any(editor => editor.Text.Contains("new untracked content", StringComparison.Ordinal)) == true);
         Console.WriteLine("PASS continuous Changes review: click grammar, lazy generated sections, Keep/viewed progress, presentation switches, navigator and historical scope");
+    }
+
+    internal static void Presentation()
+    {
+        const string diff = "@@ -1,2 +1,2 @@\n context\n-before source\n+after source\n";
+        var context = new SharpRail.Plugins.UI.Kit.Markdown.MarkdownContext((_, _) => ValueTask.FromResult<byte[]?>(null), _ => null, (_, _) => { }, 14, 100, true);
+        var files = new[] { "README.md", "notes.md", "code.cs" }.Select(path => new GitChange(path, "M", " ", null, 1, 1)).ToArray();
+        var choices = new Dictionary<string, string>();
+        var state = new ChangesReviewState { ActivePath = "README.md" };
+        var single = true;
+        using var pane = new ChangesReviewPane("Changes", state, false,
+            _ => Task.FromResult(new GitSnapshot(true, "main", files, [], [])),
+            (file, natural, _, _) => Task.FromResult(new DiffView(diff, file.Path, 800,
+                file.Path.EndsWith(".md", StringComparison.Ordinal) ? [new DiffChoice("markdown", "Preview", _ =>
+                    Task.FromResult<Control?>(new SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview("Changed **paragraph**", file.Path, context))), DiffChoice.Source] : [DiffChoice.Source],
+                selected: choices.GetValueOrDefault(file.Path), selectedChanged: choice => choices[file.Path] = choice,
+                naturalHeight: natural, embedded: true)),
+            _ => { }, () => { }, () => { }, () => true, () => single, value => single = value);
+        var window = new Window { Width = 1000, Height = 700, Content = pane };
+        window.Show();
+        try
+        {
+            Control Scope() => pane;
+            Button Button(string name, Control? scope = null) => (scope ?? Scope()).GetLogicalDescendants().OfType<Button>().Single(button => button.Name == name);
+            void Click(string name, Control? scope = null)
+            {
+                var button = Button(name, scope);
+                Until(() => button.Bounds.Width > 0 && button.IsEffectivelyVisible);
+                var point = button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), window)!.Value;
+                window.MouseDown(point, MouseButton.Left); window.MouseUp(point, MouseButton.Left);
+                Settle();
+            }
+            bool Controls() => Button("ReviewSplit").IsVisible && Button("ReviewInline").IsVisible && Button("ReviewWhitespace").IsVisible;
+            void Split(DiffView view)
+            {
+                var editors = view.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().ToArray();
+                Require(editors.Length == 2, "Split Source must create two editors instead of a unified patch.");
+                var old = editors.Single(editor => editor.Name == "DiffOldText");
+                var next = editors.Single(editor => editor.Name == "DiffNewText");
+                Until(() => old.Bounds.Width > 0 && next.Bounds.Width > 0);
+                Require(old.Text.Contains("before source", StringComparison.Ordinal) && !old.Text.Contains("after source", StringComparison.Ordinal) &&
+                    next.Text.Contains("after source", StringComparison.Ordinal) && !next.Text.Contains("before source", StringComparison.Ordinal) &&
+                    old.TranslatePoint(new Point(old.Bounds.Width, 0), window)!.Value.X <= next.TranslatePoint(default, window)!.Value.X,
+                    "Split places only the old source on the left and only the new source on the right.");
+            }
+            void Inline(string path)
+            {
+                Until(() => pane.DiffFor(path)?.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().SingleOrDefault() is { Name: "DiffInlineText" });
+                var editor = pane.DiffFor(path)!.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().Single();
+                Require(editor.Text.Contains("before source", StringComparison.Ordinal) && editor.Text.Contains("after source", StringComparison.Ordinal),
+                    "Inline Source contains both changes in one source editor.");
+            }
+            Until(() => pane.DiffFor("README.md")?.IsRendered == true);
+            Require(!Controls(), "Preview-only review must not offer source layout or whitespace controls.");
+            Click("DiffView_code", pane.DiffFor("README.md"));
+            Until(Controls); Split(pane.DiffFor("README.md")!);
+            window.Width = 560; Settle(); Split(pane.DiffFor("README.md")!);
+            Require(((Avalonia.Controls.Primitives.ToggleButton)Button("ReviewSplit")).IsChecked == true,
+                "A review's explicit Split choice must describe the actual source layout after resizing.");
+            Click("ReviewInline"); Inline("README.md");
+            Click("DiffView_markdown", pane.DiffFor("README.md")); Require(!Controls(), "Returning to Preview hides irrelevant source controls.");
+            Click("DiffView_code", pane.DiffFor("README.md")); Inline("README.md");
+            Click("ReviewNext"); Until(() => pane.DiffFor("notes.md")?.IsRendered == true); Require(!Controls(), "One-file Preview is independent of a previous Source file.");
+            Click("ReviewNext"); Inline("code.cs"); Require(Controls(), "One-file Source retains the review's Inline preference.");
+            Click("ReviewPrevious"); Until(() => pane.DiffFor("notes.md")?.IsRendered == true);
+            Click("ReviewPrevious"); Inline("README.md");
+            Require(choices["README.md"] == DiffChoice.Source.Id, "File navigation retains the selected Markdown Source view.");
+            window.Width = 1000;
+            Click("DiffView_markdown", pane.DiffFor("README.md"));
+            Click("ReviewStacked"); Until(() => pane.DiffFor("code.cs") is not null && Controls());
+            Require(pane.DiffFor("README.md")!.IsRendered && !pane.DiffFor("code.cs")!.IsRendered,
+                "Mixed stacked review offers source controls without changing Markdown Preview.");
+            var preview = pane.DiffFor("README.md")!.GetLogicalDescendants().OfType<SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview>().Single();
+            Click("ReviewSplit"); Split(pane.DiffFor("code.cs")!);
+            Require(ReferenceEquals(preview, pane.DiffFor("README.md")!.GetLogicalDescendants().OfType<SharpRail.Plugins.UI.Kit.Markdown.MarkdownPreview>().Single()),
+                "Source layout changes leave the rendered Markdown control and its state intact.");
+            window.Height = 180;
+            var scroll = pane.GetLogicalDescendants().OfType<ScrollViewer>().Single(view => view.Name == "ReviewScroll");
+            scroll.Offset = default;
+            Until(() => pane.DiffFor("code.cs") is null);
+            Require(Controls(), "Scrolling a known Source section offscreen must not change the review toolbar.");
+            window.Height = 700;
+            using var standalone = new DiffView(diff, "README.md", 800,
+                [new DiffChoice("markdown", "Preview", _ => Task.FromResult<Control?>(new TextBlock { Text = "Rendered Markdown" })), DiffChoice.Source]);
+            window.Content = standalone;
+            Until(() => standalone.Bounds.Width > 0);
+            Require(!Button("DiffSplit", standalone).IsVisible, "Standalone Preview has no source-layout toggle.");
+            Click("DiffView_code", standalone);
+            Require(Button("DiffSplit", standalone).IsVisible, "Standalone Markdown Source offers its source-layout toggle.");
+            Split(standalone);
+            Click("DiffSplit", standalone);
+            Require(standalone.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().Single().Name == "DiffInlineText",
+                "Standalone Markdown Source switches to a real inline editor.");
+            Console.WriteLine("PASS review controls: Preview-only, real Source inline/split geometry, resize, file-mode retention and mixed stacked review");
+        }
+        finally { window.Close(); }
     }
 
     internal static void Retention()

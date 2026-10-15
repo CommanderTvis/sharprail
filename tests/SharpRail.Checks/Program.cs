@@ -383,6 +383,13 @@ internal static class Program
             ChangeActionChecks.Run(Path.Combine(root, "change-actions"));
             return;
         }
+        if (args.SequenceEqual(["--review-presentation"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            ChangesReviewChecks.Presentation();
+            return;
+        }
         if (args.SequenceEqual(["--review-retention"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();

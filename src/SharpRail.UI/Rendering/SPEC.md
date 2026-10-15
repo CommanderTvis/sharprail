@@ -152,21 +152,25 @@ unavailability message. Rendered Markdown diffs render unchanged Mermaid fences 
 
 ## Diffs
 
-- Changes review applies its split and whitespace settings through the diff's existing toggles;
-  inline presentation is the side-by-side toggle's off state.
+- Changes review offers split, inline and whitespace controls only when its current file scope contains
+  a Source view. Preview-only review hides them; Stacked versus One file is independent. Offscreen
+  Source sections retain their mode so scrolling alone does not change the toolbar. The review's chosen
+  layout drives real inline or before/after source editors, including after resizing, and survives
+  file navigation and Preview/Source switches. Changing source layout leaves rendered previews intact.
 Large rendered Markdown previews and diffs share the UI kit's block virtualization,
 including whole-document selection/search and offscreen anchor realization; see the
 [kit contract](../../SharpRail.Plugins.UI.Kit/SPEC.md#reaches-replaced-by-parameters).
 
 - `DiffView` shows a path chip, a hide-whitespace toggle, a copy button (copies the diff text; no clipboard
-  is a silent no-op) and either one side-by-side toggle (source diffs: on splits, off shows the diff inline) or `Source | Rendered` (Markdown diffs,
-  rendered by default like Markdown files; choosing Source is remembered per tab). Until the user clicks
+  is a silent no-op), a side-by-side toggle when showing source (on splits, off shows the diff inline),
+  and `Source | Preview` when a rendered alternative exists (Markdown renders by default;
+  choosing Source is remembered per tab). Until the user clicks
   the toggle, a pane whose halves would each hold fewer than 40 code columns opens inline and a wider
   one splits, re-derived live on resize. Added and deleted files default to inline at every width,
   avoiding an empty comparison pane; the default is re-evaluated when the diff refreshes. The toggle
   always shows the effective view, and a click pins it
   for that tab while wide enough. Narrow panes hide the toggle and use inline even after a pinned split.
-  A Markdown diff's Source view has no segment and always follows the width rule. Source
+  Markdown Source uses the same toggle and width rule outside continuous Changes review. Source
   lines wrap at the file line width. Upstream's diffs stopped honouring that width when they moved off the
   editor component to a diff library that scrolls horizontally; SharpRail's source diffs are still editors,
   so they keep wrapping.

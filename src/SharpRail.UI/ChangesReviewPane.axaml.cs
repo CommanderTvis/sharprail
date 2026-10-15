@@ -51,6 +51,7 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
         internal bool Stale;
         internal bool Failed;
         internal double Height;
+        internal bool SourcePresentation;
     }
 
     private readonly ChangesReviewState state;
@@ -365,7 +366,14 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
             }
             section.Stale = false;
             section.View = view;
+            if (!ReferenceEquals(view, retained)) view.ViewChanged += () =>
+            {
+                section.SourcePresentation = view.HasSourcePresentation;
+                UpdatePresentationControls();
+            };
             view.SetPresentation(state.Split, state.IgnoreWhitespace);
+            section.SourcePresentation = view.HasSourcePresentation;
+            UpdatePresentationControls();
             if (!ReferenceEquals(view, retained))
             {
                 retained?.Dispose();
@@ -480,9 +488,16 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
             this.FindControl<ToggleButton>("ReviewSplit")!.IsChecked = state.Split;
             this.FindControl<ToggleButton>("ReviewInline")!.IsChecked = !state.Split;
             this.FindControl<ToggleButton>("ReviewWhitespace")!.IsChecked = state.IgnoreWhitespace;
+            UpdatePresentationControls();
             this.FindControl<WrapPanel>("ReviewScaleNotice")!.IsVisible = !single() && files.Count > 50 && !noticeDismissed;
         }
         finally { updating = false; }
+    }
+    private void UpdatePresentationControls()
+    {
+        var source = sections.Values.Any(section => section.SourcePresentation && !IsCollapsed(section.Change));
+        foreach (var name in new[] { "ReviewSplit", "ReviewInline", "ReviewWhitespace" })
+            this.FindControl<ToggleButton>(name)!.IsVisible = source;
     }
     private void Mode(bool value) { setSingle(value); Build(); Reveal(state.ActivePath ?? ""); }
     private void Presentation(bool split, bool whitespace)

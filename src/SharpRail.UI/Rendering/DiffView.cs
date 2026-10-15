@@ -48,6 +48,7 @@ internal sealed partial class DiffView : Grid, IDisposable
     private readonly List<EditorFrame> frames = [];
     private bool disposed;
     private bool layoutPinned;
+    private bool externalPresentation;
     private bool singleSided;
     private string text;
     private readonly DiffTriage? triage;
@@ -56,6 +57,8 @@ internal sealed partial class DiffView : Grid, IDisposable
     private IReadOnlyDictionary<RevertTarget, string> contentKeys = new Dictionary<RevertTarget, string>();
     private readonly string syntaxPath;
     internal event Action<string, EditorSelection?>? SelectionChanged;
+    internal event Action? ViewChanged;
+    internal bool HasSourcePresentation => !pending && !IsRendered && ScintillaEditor.IsSupported;
     internal string OriginalPath => OriginalFilePath(text, syntaxPath);
 
     internal static string OriginalFilePath(string diff, string fallback)
@@ -98,7 +101,7 @@ internal sealed partial class DiffView : Grid, IDisposable
 
     /// <summary>
     /// A diff tab's pane. <paramref name="choices"/> are the resource renderers that match the file, in rank order,
-    /// and become the view toggle; a tab with only the source diff offers one side-by-side toggle instead. A choice that
+    /// and become the view toggle; source views also offer one side-by-side toggle. A choice that
     /// renders null cannot show this content, and the next one takes over. A <paramref name="pending"/> pane waits
     /// for <see cref="SetChoices"/> before it draws anything.
     /// A diff whose modified side is the worktree passes <paramref name="revert"/>, which never throws: the header
@@ -173,12 +176,12 @@ internal sealed partial class DiffView : Grid, IDisposable
         split.IsChecked = !singleSided;
         split.Click += (_, _) => { layoutPinned = true; Render(); };
         // Until the user flips the toggle, the layout follows the pane width, and the toggle shows the effective view.
-        // A Markdown source diff has no segment to pick with, so it always follows.
         SizeChanged += (_, args) =>
         {
             if (!ScintillaEditor.IsSupported || args.NewSize.Width <= 0) return;
+            if (externalPresentation) return;
             var narrow = (args.NewSize.Width / 2 - SideChrome) < LineWidths.Code(MinimumSplitColumns);
-            split.IsVisible = !narrow && this.choices.Count == 1 && !IsRendered;
+            split.IsVisible = !embedded && !narrow && !IsRendered;
             if (layoutPinned && !narrow) return;
             var sideBySide = !narrow && !singleSided;
             if (sideBySide == (split.IsChecked == true)) return;
@@ -194,9 +197,10 @@ internal sealed partial class DiffView : Grid, IDisposable
 
     internal void SetPresentation(bool sideBySide, bool ignoreWhitespace)
     {
+        externalPresentation = layoutPinned = true;
         if (split.IsChecked == sideBySide && whitespace.IsChecked == ignoreWhitespace) return;
         split.IsChecked = sideBySide; whitespace.IsChecked = ignoreWhitespace;
-        Render();
+        if (!IsRendered) Render();
     }
 
     /// <summary>Whether the host can take a revert now; the controls go while it cannot and return in place.</summary>
@@ -496,14 +500,14 @@ internal sealed partial class DiffView : Grid, IDisposable
     private void Render()
     {
         Check();
-        if (Bounds.Width > 0 && (Bounds.Width / 2 - SideChrome) < LineWidths.Code(MinimumSplitColumns))
+        if (!externalPresentation && Bounds.Width > 0 && (Bounds.Width / 2 - SideChrome) < LineWidths.Code(MinimumSplitColumns))
             split.IsChecked = false;
-        // The source view of a file with other views is always side by side; the editor needs its native library.
-        split.IsVisible = !embedded && choices.Count == 1 && !IsRendered && ScintillaEditor.IsSupported
+        split.IsVisible = !embedded && !IsRendered && ScintillaEditor.IsSupported
             && (Bounds.Width / 2 - SideChrome) >= LineWidths.Code(MinimumSplitColumns);
         whitespace.IsVisible = !embedded && !IsRendered && ScintillaEditor.IsSupported;
         copy.IsVisible = choices.Any(choice => choice.Render is null);
         outline.IsVisible = IsRendered;
+        ViewChanged?.Invoke();
         // Identical sides leave nothing to restore.
         if (revertFile is not null) revertFile.IsVisible = canRevert && !string.IsNullOrWhiteSpace(text);
         if (pending) { ShowBody(Placeholder("DiffLoading", "Loading…", Ui.Muted)); return; }
