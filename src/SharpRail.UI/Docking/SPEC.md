@@ -50,6 +50,8 @@ When center tabs live in Projects, only the active workspace's selected tab in i
 group carries the accent marker. Per-group selected boxes and pane bubbles remain visible; focus changes
 move the marker without rebuilding tabs, and inactive workspace previews have no active marker.
 The Projects accent sits inside the tab row, clear of its rounded corners, rather than beside its edge.
+That same focused tab has a theme-derived accent wash, distinct from the neutral workspace and
+per-group selection fills. Pane members retain individual active-tab emphasis inside their shared bubble.
 Switching workspace carries the previous view's tool selections into the next one, never its selected
 resource.
 The surface keeps its chrome mounted across a transition that leaves the frame unchanged, such as a

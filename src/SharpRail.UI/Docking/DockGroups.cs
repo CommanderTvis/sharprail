@@ -226,7 +226,7 @@ public sealed partial class DockSurface
             Ui.Place(chrome, underline);
             void UpdateActiveMarker() => underline.IsVisible = Session.Selected(group.Id)?.Id == tab.Id &&
                 (!nested || Session.View.FocusedCenter == group.Id);
-            activeUpdates.Add(UpdateActiveMarker);
+            activeUpdates.Add(() => { UpdateActiveMarker(); UpdateBackground(); });
             void SelectTab() { Session.Select(group.Id, tab.Id); FocusGroup(group.Id, focusContent: true); }
             var button = new DockTabButton(tabs, tab.Id, SelectTab)
             {
@@ -268,8 +268,10 @@ public sealed partial class DockSurface
                 if (!nested) { tabFrame.Background = IsActive() || chrome.IsPointerOver ? Ui.Hover : Ui.Elevated; return; }
                 // Nested rows react to hover lightly; only the selected one draws a rounded, bordered box. A pane's
                 // bubble does that for all its members together.
+                tabFrame.Classes.Set("project-tab-current", underline.IsVisible);
+                if (underline.IsVisible) tabFrame.ClearValue(Border.BackgroundProperty);
+                else tabFrame.Background = !inBubble && (IsActive() || NestedHoverEnabled && chrome.IsPointerOver) ? Ui.Hover : Brushes.Transparent;
                 if (inBubble) return;
-                tabFrame.Background = IsActive() || NestedHoverEnabled && chrome.IsPointerOver ? Ui.Hover : Brushes.Transparent;
                 tabFrame.BorderBrush = IsActive() ? Ui.BorderBrush : Brushes.Transparent;
             }
             UpdateBackground();

@@ -3110,3 +3110,9 @@ Pane headers, selection refreshes and unplaced rail entries now use the existing
 Plain folders cannot open Changes, Review or plugin tools marked RequiresGit through catalogs, rails, direct selection/open/reveal/restore or saved-layout projections. Saved placements and selections are retained for return to a Git workspace. Empty/unborn Git repositories remain eligible. Catalog changes selectively retarget affected groups so Projects rows retain identity during switches.
 
 Release solution build passed with zero warnings/errors, touched formatting and whitespace passed. New --gitless-panes checks (including direct actions, preset restoration, repository transitions and two windows), existing layout and six rail journeys passed. Android/browser compilation was not run for this shared-UI delta. Spec validation reported four existing BranchGraph dangling links; no graph structure changed.
+
+## 2026-10-15 — Distinct active Projects tab
+
+The focused Projects tab and pane member use a theme-aware accent wash, distinct from neutral selected-workspace and inactive-group selections. The existing edge marker and geometry remain intact; focus changes repaint the fill as well as the marker.
+
+Release build passed with zero warnings/errors; all nine vertical-tab journeys, ThemeE2E (including rendered high-contrast pixels), design guards, touched formatting and whitespace passed. Normal-text contrast measured 8.76–12.21:1 over the active wash in all six bundled themes. Main reuses the verified source delta. Android/browser runtime checks were not run.

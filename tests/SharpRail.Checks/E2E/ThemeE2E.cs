@@ -254,12 +254,12 @@ internal static class ThemeE2E
             var tab = selected[0];
             var marker = Marker(tab);
             var fill = ((ISolidColorBrush)tab.Children.OfType<Border>().First().Background!).Color;
-            Require(fill == highContrast["hover"] && ((ISolidColorBrush)marker.Background!).Color == highContrast["accent"] && (group == app.Center ? marker.Bounds.Width == 2 : marker.Bounds.Height == 2),
+            Require(fill == Ui.PrimarySoft.Color && ((ISolidColorBrush)marker.Background!).Color == highContrast["accent"] && (group == app.Center ? marker.Bounds.Width == 2 : marker.Bounds.Height == 2),
                 $"A selected tab must keep its surface and 2px primary edge: group={group}, center={app.Center}, fill={fill}/{highContrast["hover"]}, marker={((ISolidColorBrush)marker.Background!).Color}/{highContrast["accent"]}, bounds={marker.Bounds}.");
             var scale = app.Window.RenderScaling;
             var middle = tab.TranslatePoint(new Point(tab.Bounds.Width / 2, 4), app.Window)!.Value;
             var edge = marker.TranslatePoint(new Point(marker.Bounds.Width / 2, marker.Bounds.Height / 2), app.Window)!.Value;
-            Require(Pixel(frame, middle, scale) == highContrast["hover"] && Pixel(frame, edge, scale) == highContrast["accent"],
+            Require(Pixel(frame, middle, scale) == Ui.Over(Ui.PrimarySoft.Color, Ui.Sidebar.Color) && Pixel(frame, edge, scale) == highContrast["accent"],
                 $"The selected tab in {group} must paint its surface and edge marker.");
         }
         settings = Open(app);

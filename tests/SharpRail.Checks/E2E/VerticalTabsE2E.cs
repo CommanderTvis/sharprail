@@ -5,6 +5,7 @@ using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.VisualTree;
 
+using SharpRail.Plugins.UI.Kit;
 using SharpRail.UI.Docking;
 using SharpRail.UI.Panels;
 
@@ -128,6 +129,12 @@ internal static class VerticalTabsE2E
                 Require(markers.Length == 1 && markers[0].GetLogicalAncestors().OfType<Grid>()
                     .Any(grid => grid.Name == "DockTab_" + tab), "Exactly the active tab carries the rail accent.");
                 var row = markers[0].GetLogicalAncestors().OfType<Grid>().First(grid => grid.Name == "DockTab_" + tab);
+                var fill = row.Children.OfType<Border>().First().Background;
+                Require(ReferenceEquals(fill, Ui.PrimarySoft) && !ReferenceEquals(fill, Ui.Selected),
+                    "The focused Projects tab uses the accent wash instead of the neutral workspace selection.");
+                Require(app.Window.GetLogicalDescendants().OfType<Border>().Count(border =>
+                    border.Classes.Contains("project-tab-current")) == 1,
+                    "Focus changes leave only one Projects tab with the active background, including pane members.");
                 Until(() => row.Bounds.Height > 0 && markers[0].Bounds.Height > 0);
                 Require(markers[0].Bounds.Top > 0 && markers[0].Bounds.Bottom < row.Bounds.Height &&
                     markers[0].Bounds.Right < row.Bounds.Width,
