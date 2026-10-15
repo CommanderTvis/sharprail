@@ -20,6 +20,9 @@ reconnect, watching, busy child processes, job cleanup, exit codes, file saves,
 Recycle Bin operations, native editor Ctrl shortcuts and Skia rendering. Those
 runtime cases must report a skip on other operating systems. The host and UI
 parts join the main gate as `windows-host` and `windows-ui`.
+The ConPTY fixture waits for the rendered PowerShell prompt and flushes terminal
+query replies before sending its first command. Reader failures propagate, and
+timeouts include the current screen and a bounded tail of raw output.
 
 `--drawn-rendering` covers viewport-bounded Markdown preview/diff controls, offscreen
 selection and source spans, Find and anchors, plus virtualized tree navigation,

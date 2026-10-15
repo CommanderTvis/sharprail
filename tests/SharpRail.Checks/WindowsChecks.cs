@@ -89,7 +89,7 @@ internal static class WindowsChecks
         var id = "windows-" + mode;
         await using var first = await terminals.AttachAsync(new(id, workspace, "holder", 120, 40) { TabKey = id });
         var screen = new Screen(first);
-        await screen.Ready.WaitAsync(TimeSpan.FromSeconds(30));
+        await screen.Ready;
         await screen.Command("Write-Output ('READY_' + 'λ😀')");
         await screen.Contains("READY_λ😀");
         await screen.Command("Write-Output ('PID_' + $PID); Write-Output ('CWD_' + ((Get-Location).Path -eq '" + workspace.Replace("'", "''", StringComparison.Ordinal) + "')); Write-Output ('TOKEN_' + [string]::IsNullOrEmpty($env:SHARPRAIL_TOKEN))");
@@ -233,41 +233,83 @@ internal static class WindowsChecks
     {
         private readonly ITerminalSession session;
         private readonly StringBuilder text = new();
+        private readonly StringBuilder raw = new();
+        private Exception? readerError;
         private readonly TaskCompletionSource ready = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        internal Task Ready => ready.Task;
+        internal Task Ready => WaitForPrompt();
         private string Text { get { lock (text) return text.ToString(); } }
+
+        private async Task WaitForPrompt()
+        {
+            try { await ready.Task.WaitAsync(TimeSpan.FromSeconds(30)); }
+            catch (Exception error)
+            {
+                lock (text) throw new InvalidOperationException("PowerShell prompt missing.\nScreen: " + text + "\nRaw output: " + raw, error);
+            }
+        }
 
         internal Screen(ITerminalSession session)
         {
             this.session = session;
-            text.Append(Encoding.UTF8.GetString(session.Replay.Span));
             _ = Task.Run(async () =>
             {
                 var replies = new List<byte[]>();
                 using var vt = new Vt(session.Grid.Columns, session.Grid.Rows, 4000, bytes => replies.Add(bytes.ToArray()));
-                vt.Write(session.Replay.Span);
                 try
                 {
+                    vt.Write(session.Replay.Span);
+                    await Update(session.Replay);
                     await foreach (var chunk in session.ReadAsync())
                     {
                         vt.Resize(session.Grid.Columns, session.Grid.Rows, 8, 16);
                         vt.Write(chunk.Span);
-                        lock (text) { text.Clear(); text.Append(vt.ScreenText()); }
-                        ready.TrySetResult();
-                        foreach (var reply in replies) await session.WriteAsync(reply);
-                        replies.Clear();
+                        await Update(chunk);
                     }
                 }
-                catch (Exception error) when (error is IOException or ObjectDisposedException || session.Exit.IsFaulted || session.Detached.IsCompleted) { }
+                catch (Exception error)
+                {
+                    lock (text) readerError = error;
+                    ready.TrySetException(error);
+                }
+
+                async Task Update(ReadOnlyMemory<byte> bytes)
+                {
+                    lock (text)
+                    {
+                        text.Clear(); text.Append(vt.ScreenText());
+                        raw.Append(Encoding.UTF8.GetString(bytes.Span));
+                        if (raw.Length > 8192) raw.Remove(0, raw.Length - 8192);
+                    }
+                    foreach (var reply in replies) await session.WriteAsync(reply);
+                    replies.Clear();
+                    if (Regex.IsMatch(Text, @"(?m)^PS [^\r\n]*> *$")) ready.TrySetResult();
+                }
             });
         }
 
         internal Task Command(string value) => session.WriteAsync(Encoding.UTF8.GetBytes(value + "\r")).AsTask();
-        internal Task Contains(string value) => Until(() => Task.FromResult(Text.Contains(value, StringComparison.Ordinal)), "Terminal output missing: " + value);
+        internal Task Contains(string value) => Wait(() => Text.Contains(value, StringComparison.Ordinal), "Terminal output missing: " + value);
         internal async Task<string> Match(string expression)
         {
-            await Until(() => Task.FromResult(Regex.IsMatch(Text, expression)), "Terminal output missing: " + expression);
+            await Wait(() => Regex.IsMatch(Text, expression), "Terminal output missing: " + expression);
             return Regex.Match(Text, expression).Groups[1].Value;
+        }
+
+        private async Task Wait(Func<bool> condition, string message)
+        {
+            try
+            {
+                await Until(() =>
+                {
+                    lock (text)
+                        if (readerError is { } error) throw new IOException("Terminal output reader failed.", error);
+                    return Task.FromResult(condition());
+                }, message);
+            }
+            catch (Exception error)
+            {
+                lock (text) throw new InvalidOperationException(message + "\nScreen: " + text + "\nRaw output: " + raw, error);
+            }
         }
     }
 }
