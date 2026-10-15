@@ -79,7 +79,7 @@ var source = $$"""
     {{Entries(Lower("fileExtensions"))}}    }.ToFrozenDictionary();
     }
 
-    """;
+    """.ReplaceLineEndings("\n");
 
 if ((check || assetsOnly) && (!File.Exists(tablePath) || File.ReadAllText(tablePath).ReplaceLineEndings("\n") != source))
 {
