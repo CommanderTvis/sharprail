@@ -201,6 +201,13 @@
     </DataTemplate>
   </Window.Resources>
   <Window.Styles>
+    <Style Selector="NumericUpDown.compact-number">
+      <Setter Property="Padding" Value="8,0" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="NumericUpDown.compact-number /template/ ButtonSpinner#PART_Spinner, NumericUpDown.compact-number /template/ TextBox#PART_TextBox">
+      <Setter Property="MinHeight" Value="0" />
+    </Style>
     <Style Selector="TextBlock.settings-label, TextBlock.settings-heading">
       <Setter Property="Foreground" Value="{x:Static rendering:Ui.TextBrush}" />
       <Setter Property="FontSize" Value="14" />

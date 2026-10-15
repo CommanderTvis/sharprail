@@ -684,6 +684,7 @@ public sealed partial class SettingsWindow : Window
         var input = new NumericUpDown
         {
             Name = "GroupLimit_" + region,
+            Classes = { "compact-number" },
             Minimum = 1,
             Maximum = 32,
             Value = value,

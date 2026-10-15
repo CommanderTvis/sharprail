@@ -11,6 +11,9 @@ dialog card (`DialogWindow.axaml` / `.cs`) with its factory `Dialogs`, the Start
 styles live in compiled `.axaml`; C# fills content and wires host interaction. The workbench panels that open
 these surfaces are specified in [../Panels.SPEC.md](../Panels.SPEC.md).
 
+Compact numeric settings retain a complete outline and vertically centered content; their nested
+Fluent template controls fit the compact height instead of clipping at the default input minimum.
+
 ## Boundary
 
 The terminal renderer chooser is visible only on macOS. Windows terminals use

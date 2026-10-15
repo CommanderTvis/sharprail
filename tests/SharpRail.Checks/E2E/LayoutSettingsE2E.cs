@@ -59,6 +59,23 @@ internal static class LayoutSettingsE2E
         var digits = limit.GetVisualDescendants().OfType<TextBox>().Single();
         Require(steps.Length == 2 && steps.All(step => step.Bounds.Width == 22) && digits.Bounds.Width >= 36,
             $"A group limit leaves its digits room beside two narrow steppers ({digits.Bounds.Width} beside {string.Join(", ", steps.Select(step => step.Bounds.Width))}).");
+        var spinner = limit.GetVisualDescendants().OfType<ButtonSpinner>().Single();
+        var outline = spinner.GetVisualDescendants().OfType<Border>().First(border => border.BorderThickness == limit.BorderThickness);
+        var outlineOrigin = outline.TranslatePoint(default, limit)!.Value;
+        Require(outlineOrigin.Y >= 0 && outlineOrigin.Y + outline.Bounds.Height <= limit.Bounds.Height && digits.Bounds.Height <= limit.Bounds.Height,
+            $"A compact number input must contain its complete outline and digits (input {limit.Bounds.Height}, outline {outlineOrigin.Y} + {outline.Bounds.Height}, digits {digits.Bounds.Height}).");
+        var increase = steps.Single(step => step.Name == "PART_IncreaseButton");
+        var decrease = steps.Single(step => step.Name == "PART_DecreaseButton");
+        var original = limit.Value;
+        app.Click(increase);
+        Require(limit.Value == original + 1, "The compact increase stepper must remain clickable.");
+        app.Click(decrease);
+        Require(limit.Value == original, "The compact decrease stepper must remain clickable.");
+        limit.Value = limit.Minimum; Settle();
+        Require(!decrease.IsEnabled && increase.IsEnabled, "The minimum disables only the decrease stepper.");
+        limit.Value = limit.Maximum; Settle();
+        Require(!increase.IsEnabled && decrease.IsEnabled, "The maximum disables only the increase stepper.");
+        limit.Value = original;
         var ink = (digits.Foreground as Avalonia.Media.ISolidColorBrush)?.Color ?? default;
         Require(settings.ActualThemeVariant == app.Window.ActualThemeVariant &&
             (settings.ActualThemeVariant != Avalonia.Styling.ThemeVariant.Dark || ink.R + ink.G + ink.B > 3 * 160),

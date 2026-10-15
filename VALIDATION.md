@@ -3116,3 +3116,9 @@ Release solution build passed with zero warnings/errors, touched formatting and 
 The focused Projects tab and pane member use a theme-aware accent wash, distinct from neutral selected-workspace and inactive-group selections. The existing edge marker and geometry remain intact; focus changes repaint the fill as well as the marker.
 
 Release build passed with zero warnings/errors; all nine vertical-tab journeys, ThemeE2E (including rendered high-contrast pixels), design guards, touched formatting and whitespace passed. Normal-text contrast measured 8.76–12.21:1 over the active wash in all six bundled themes. Main reuses the verified source delta. Android/browser runtime checks were not run.
+
+## 2026-10-15 — Compact numeric input outline
+
+Settings group-limit inputs retain their 28-DIP compact size while their nested Fluent spinner and text box now fit that height. Previously the inner 32-DIP minimum positioned the outline at Y=-2, clipping its horizontal borders. Scoped compiled styles preserve the existing template, state handling and stepper actions.
+
+Release build passed with zero warnings/errors; touched formatting and whitespace passed. LayoutSettingsE2E passed the outline-containment regression, increment/decrement interaction and disabled min/max states, plus existing non-Git journeys. Its Git-backed GrandfatheredLimit case skipped because SHARPRAIL_TEST_GIT_SOURCE was unset; no pass is claimed for it. Main reuses byte-identical verified changes.
