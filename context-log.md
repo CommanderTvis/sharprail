@@ -5784,3 +5784,20 @@ Release and actual browser WASM builds passed with zero warnings/errors; touched
 2026-10-15: Consolidated upstream provenance and the porting/acceptance backlog into UPSTREAM.md. Removed the separate gap and validation ledgers after moving unique durable measurements, limitations and acceptance facts into owning specs. Documentation checks preserved 125 gap IDs and eight acceptance tasks, resolved 199 local paths/anchors and found no references to the removed files. Spec validation still reports four pre-existing Branch Graph findings; no runtime checks were rerun for this documentation-only change.
 
 2026-10-15: Finished the browser prose rendering investigation with Release-only selective hybrid WASM AOT for Avalonia.Base/CoreLib; exact Markdown extents and managed reflection/plugin loading are preserved. The 646 KB focused prose first-frame check improved from 13.33s to 0.88s; the final normal published-bundle smoke painted restored prose in 2.05s and passed Mermaid, Settings and external typed-JSON plugin loading without test hooks. Actual Publish verified byte-identical preservation of 251 managed assemblies and strict AOT policy guards; Release solution/browser builds, focused prose/Mermaid/Settings, syntax and formatting passed. One normal startup timeout and one Settings RPC cancellation passed unchanged on retry and remain transient observations. Runtime grows from 11.61 MB to 37.90 MB raw; measured gzip/Brotli sizes are not currently served by the standalone host. See the browser spec for policy and limits.
+
+## 2026-10-15 — Integrated source gate and Git fixture repairs
+
+Kept Git error/Retry reachable after a failed initial probe and retained capability while a probe is
+pending; a successful plain-folder result still withholds Git panes. Repaired Git-pane fixtures to use
+isolated repositories and wait for capability, updated the linked-paragraph height expectation to its
+existing natural layout, and moved Host-card spacing onto the design scale.
+
+Workspace-48 completed the 139-case source gate in aggregate (110 + 12 + 3 + 5 + 6 + 3), resuming only
+unfinished cases after focused repairs. Release, touched formatting and affected focused checks passed.
+The existing caught change-row reconciliation index exception remains a follow-up; package and
+physical-platform acceptance remain separate. Later browser prose/AOT and Windows-script changes were
+outside this source tree. No commit or push was made by this verification task.
+
+2026-10-15: Final combined Release build passed with zero warnings/errors after applying the verified source-gate repairs and two Windows CRLF fixes. Nightly runs 38732881044 and 38734561839 did not publish Windows: the first failed nested PowerShell module lookup (fixed and pushed as d0db7eda); the second reached native builds but failed CRLF handling in Scintilla patches and FileIcons generation. Their prepared fixes passed LF patch application and LF/CRLF generator regressions. Commit/push was stopped when the normal 1Password signing process did not respond; no signing bypass was used. Pending integration/Windows changes remain staged in Default and preserved in workspaces 48/4. Browser AOT commit 4645706d is local and not yet pushed. Finished task workspaces were removed, 19 merged local branches deleted, and five stale worktree records pruned; user-owned workspaces and unique checkpoint branches were kept.
+
+2026-10-15: Presence returned and normal 1Password signing succeeded. The verified Windows LF/native-patch and FileIcons-generation repairs, Git failed-probe/pending capability repair, Host design spacing and aligned UI fixtures are now signed on main. The combined Release build and 139-case aggregate source verification are reused without rerunning unchanged slices. Windows release acceptance still requires the next actual nightly run; Move/Copy dialog expansion remains at the pending UX-design questions.

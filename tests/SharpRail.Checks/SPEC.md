@@ -613,3 +613,13 @@ the canonical running application. Current unresolved acceptance is consolidated
 Spec validation at that integration reported four existing Branch Graph links to absent upstream IDs
 (module-contracts, module-plugin-ui, module-server, module-web). This is a recorded graph finding,
 not a reason to treat later validation as automatically green or to weaken the validator.
+
+The later 2026-10-15 workspace-48 source integration completed all 139 registered cases in aggregate:
+110 from the initial four-lane gate, then 12, 3, 5, 6 and 3 from serial unfinished-case resumes.
+Focused checks covered each repaired fixture and the final Git-probe and Host-settings deltas; the
+desktop Release compiler and touched-file formatting also passed. This was not an uninterrupted
+full pass. Proven Gitless fixtures remain Gitless; fixtures exercising Git panes initialize their own
+repositories and wait for Git capability before interacting. A pre-existing caught change-row
+reconciliation index exception was observed during rendered-diff checks and remains unresolved.
+This source result does not establish packaged, browser, Android-device, native-GPU or Windows-runtime
+acceptance, and predates the separately integrated browser prose/AOT and Windows-script changes.
