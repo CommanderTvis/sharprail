@@ -77,7 +77,7 @@ internal static class Program
                 SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
                 WindowsChecks.RunUi(root);
             }
-            finally { Directory.Delete(root, true); }
+            finally { E2E.IsolatedGit.DeleteFixture(root); }
             return;
         }
         if (args.SequenceEqual(["--browser"]) || args.SequenceEqual(["--transport"]))

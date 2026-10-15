@@ -241,7 +241,10 @@ may fall back to `~/.sharprail` or the developer's real profile or host state.
 `E2E/IsolatedGit.cs` gives fixture repositories, and every Git process the app
 starts, a private global configuration with a throwaway identity and signing off,
 restoring the environment afterwards; seeded authorship never depends on the
-developer's Git config. Cases that need a probe to degrade (for example `gh`) empty
+developer's Git config. Startup-isolation and Windows-gate cleanup clear read-only
+bits on files inside their disposable fixtures before deleting them, since Git
+objects are read-only on Windows. Enumeration includes hidden and system files
+but does not traverse reparse points. Cases that need a probe to degrade (for example `gh`) empty
 `PATH` for that case only. Pull-request checks retain only their fixture's Git
 executable when testing a missing `gh`, excluding system directories even if
 the runner has GitHub CLI installed; the original path is restored on failure too.

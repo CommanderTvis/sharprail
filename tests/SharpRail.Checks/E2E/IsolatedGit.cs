@@ -33,7 +33,27 @@ internal sealed class IsolatedGit : IDisposable
         Require(Run(repository, "config", "--get", "commit.gpgsign").Trim() == "false" &&
             Run(repository, "log", "-1", "--format=%an %G?").Trim() == "SharpRail Checks N",
             "A fixture commit is unsigned and made by the checks identity.");
-        Directory.Delete(repository, true);
+        DeleteFixture(repository);
+    }
+
+    internal static void DeleteFixture(string directory)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            var options = new EnumerationOptions
+            {
+                RecurseSubdirectories = true,
+                AttributesToSkip = FileAttributes.ReparsePoint,
+                IgnoreInaccessible = false
+            };
+            foreach (var file in Directory.EnumerateFiles(directory, "*", options))
+            {
+                var attributes = File.GetAttributes(file);
+                if ((attributes & FileAttributes.ReadOnly) != 0)
+                    File.SetAttributes(file, attributes & ~FileAttributes.ReadOnly);
+            }
+        }
+        Directory.Delete(directory, true);
     }
 
     private static void Isolate(string directory)
