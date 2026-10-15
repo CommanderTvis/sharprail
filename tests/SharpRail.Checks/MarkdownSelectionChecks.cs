@@ -17,11 +17,77 @@ internal static class MarkdownSelectionChecks
 {
     internal static void Run()
     {
+        LinkDiffLayout();
         CodeCopyLayout();
         StableScrollExtent();
         VirtualDrag();
         ShapedSelection();
         Console.WriteLine("PASS large Markdown reverse/shrinking/offscreen selections, copy and shaped-text invalidation under every theme");
+    }
+
+    internal static void LinkDiffLayout()
+    {
+        const string url = "https://github.com/CommanderTvis/sharprail/blob/324D8E9Daea0a0c0c05903d023455363f39688b/src/SharpRail.Browser/README.md";
+        var before = "SharpRail is a [browser client](target.md) and I am writing this article in it. Avalonia draws the controls.";
+        var after = "SharpRail is at [" + url + "](target.md). Avalonia workbench, Android and browser clients keep files, Git and terminals together.";
+        foreach (var width in new[] { 300, 600 })
+            foreach (var size in new[] { 14d, 24d })
+                foreach (var source in new[] { after, MarkdownDiff.Merge(before, after), MarkdownDiff.Merge("", after), MarkdownDiff.Merge(after, ""), "<p>Before <a href=\"target.md\">" + url + "</a> after the long link, with more prose that wraps onto following lines.</p>" })
+                {
+                    var navigated = false;
+                    using var preview = new MarkdownPreview(source, "README.md",
+                        new MarkdownContext((_, _) => ValueTask.FromResult<byte[]?>(null), _ => null,
+                            (path, _) => navigated = path == "target.md", size, 100, false));
+                    var window = new Window { Width = width, Height = 900, Content = preview };
+                    window.Show();
+                    try
+                    {
+                        Frame(window);
+                        var paragraph = preview.GetVisualDescendants().OfType<SelectableTextBlock>().Single();
+                        var links = paragraph.Inlines!.OfType<InlineUIContainer>().Select(inline => inline.Child).OfType<MarkdownLink>().ToArray();
+                        Require(links.Length > 0, "The long label remains a clickable link.");
+                        foreach (var link in links)
+                        {
+                            var label = (TextBlock)link.Content!;
+                            Require(label.TextLayout.TextLines.Count > 1, "The fixture must wrap the long link rather than hide or trim it.");
+                            var bounds = new Rect(label.TranslatePoint(default, paragraph)!.Value, label.Bounds.Size);
+                            Require(bounds.Bottom <= paragraph.Bounds.Height + 1, "A wrapped link stays inside its paragraph.");
+                            var position = 0;
+                            foreach (var inline in paragraph.Inlines!)
+                            {
+                                if (inline is Run run)
+                                {
+                                    foreach (var rectangle in paragraph.TextLayout.HitTestTextRange(position, run.Text?.Length ?? 0))
+                                    {
+                                        var intersection = bounds.Intersect(rectangle);
+                                        Require(intersection.Width < 1 || intersection.Height < 1,
+                                            "A wrapped link never overlaps surrounding insertion, deletion or unchanged prose.");
+                                    }
+                                    position += run.Text?.Length ?? 0;
+                                }
+                                else if (inline is InlineUIContainer) position++;
+                            }
+                            link.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+                            Require(navigated, "Wrapped links retain their navigation target.");
+                        }
+                        if (source.StartsWith("<ins>", StringComparison.Ordinal) || source.StartsWith("<del>", StringComparison.Ordinal))
+                        {
+                            var label = (TextBlock)links.Single().Content!;
+                            var inserted = source.StartsWith("<ins>", StringComparison.Ordinal);
+                            Require(label.Classes.Contains(inserted ? "ins" : "del") && Equals(label.Foreground, inserted ? Ui.Success : Ui.Danger) &&
+                                Equals(label.Background, inserted ? Ui.SuccessWash : Ui.DangerWash), "Links retain the diff foreground and background.");
+                            if (!inserted) Require(label.TextDecorations == Avalonia.Media.TextDecorations.Strikethrough, "Deleted links retain their strikethrough.");
+                        }
+                        if (!source.StartsWith("<p>", StringComparison.Ordinal))
+                        {
+                            paragraph.SelectionStart = 0;
+                            paragraph.SelectionEnd = paragraph.Inlines!.Text!.Length;
+                            Require(preview.SelectedText.Contains(url, StringComparison.Ordinal), "Selection retains the complete wrapped link label.");
+                        }
+                    }
+                    finally { window.Close(); }
+                }
+        Console.WriteLine("PASS Markdown long links wrap without overlapping normal/HTML/diff prose, retain marks, navigation and selection");
     }
 
     internal static void CodeCopyLayout()

@@ -164,6 +164,9 @@ Themes that replace the selected foreground keep Avalonia's existing styled-sele
   preview's context menu, shown beside Copy, and with none the text keeps its own menu.
 - Inline links, including spec links, inherit rendered diff insertion/deletion colors and backgrounds;
   deleted links and links inside Markdown strikethrough carry the strike decoration.
+  Paragraphs reserve the full height of wrapped link labels, including inline HTML links, so long
+  URLs cannot overlap following unchanged, inserted or deleted prose. Labels stay readable, clickable
+  and selectable at narrow widths and larger font sizes.
 - Paragraphs containing Markdown images or inline HTML images reserve the full image height,
   including inside table cells, rather than clipping pictures to a fixed text line height.
 - Rendered Markdown diffs align pipe tables as complete blocks, then compare their rows and cell text.

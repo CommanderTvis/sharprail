@@ -565,6 +565,10 @@ Copy, plus rendered selection, inline/font invalidation and detach/remount under
 Mixed-height headings, paragraphs and styled code fences keep the scroll extent and requested
 offset stable across viewport realization; narrowing the preview reflows its geometry while
 retaining bounded mounted blocks.
+`--markdown-link-layout` isolates long-link geometry at narrow/wide widths and normal/larger fonts.
+It covers normal Markdown, mixed and whole-link insert/delete diffs, and inline HTML, rejecting
+intersection with surrounding text while retaining navigation, selection and diff decoration.
+It also runs with `--drawn-rendering` and the default gate.
 `--markdown-code` isolates fenced-code Copy geometry at wide/narrow widths and with
 long first lines, horizontal scrolling and exact clipboard content. It also runs with
 `--drawn-rendering` and the default gate.

@@ -126,6 +126,7 @@ public sealed partial class MarkdownPreview
                     ToolTip.SetTip(button, url);
                     button.Click += (_, _) => Follow(url);
                     Inlines().Add(new InlineUIContainer(button));
+                    paragraph!.ClearValue(TextBlock.LineHeightProperty);
                 }
                 else Inlines().Add(new Run(text)
                 {
