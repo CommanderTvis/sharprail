@@ -5759,3 +5759,5 @@ Release and actual browser WASM builds passed with zero warnings/errors; touched
 2026-10-15: Kept browser terminal wheel events within their DOM surface to prevent stale Avalonia pointer targeting from scrolling Projects. Writable/read-only and return-to-Projects browser regressions passed; listener teardown is checked.
 
 2026-10-15: Fixed stale browser viewport ownership sizing and Settings resize oscillation by reconciling root viewport size and reading current owned-dialog CSS dimensions. Real-pointer browser acceptance passed at native DPR2 and large-screen zoom; see VALIDATION.md.
+
+2026-10-15: Host settings separates Connect to another host from Share this app as a host in bordered cards. Browser/Android current-host views use Connected host. Release solution, browser WASM and Android compilation passed with zero warnings/errors; focused serving checks verified card geometry, remote/unavailable states and unchanged listener lifecycle. Touched formatting passed; no physical-device or full-suite claim.

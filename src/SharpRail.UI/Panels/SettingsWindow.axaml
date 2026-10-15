@@ -41,32 +41,42 @@
       </Grid>
     </DataTemplate>
     <DataTemplate x:Key="HostPage">
-      <StackPanel Spacing="8">
-        <TextBlock Text="Host" Classes="settings-heading" />
-        <Button x:Name="HostTailscaleConnect" Content="Connect to a Tailscale host" HorizontalAlignment="Left" />
-        <TextBlock x:Name="HostDescription" Text="Let other SharpRail clients connect to this running app. They share its projects, settings, plugins and terminals." Classes="settings-description" />
-        <StackPanel x:Name="HostControls" Spacing="8">
-          <TextBlock Text="Bind address" Classes="settings-label" />
-          <TextBox x:Name="HostAddress" MaxWidth="360" HorizontalAlignment="Left" />
-          <TextBlock Text="127.0.0.1 accepts connections from this computer. Use a network address to accept other computers." Classes="settings-description" />
-          <TextBlock Text="Port" Classes="settings-label" />
-          <TextBox x:Name="HostPort" Width="120" HorizontalAlignment="Left" />
-          <TextBlock Text="Use 0 to choose an available port." Classes="settings-description" />
-          <TextBlock Text="Session token" Classes="settings-label" />
-          <TextBox x:Name="HostToken" PasswordChar="●" MaxWidth="360" HorizontalAlignment="Left" />
-          <TextBlock Text="Clients use this token to connect. Serving stays off until you start it, and stops when the app quits." Classes="settings-description" />
-          <TextBlock x:Name="HostStatus" TextWrapping="Wrap" />
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <Button x:Name="HostToggle" Content="Start listening" />
-            <Button x:Name="HostCopyEndpoint" Content="Copy endpoint" />
-            <Button x:Name="HostCopyToken" Content="Copy token" />
-            <Button x:Name="HostShowCode" ToolTip.Tip="Show a QR code to connect a phone" AutomationProperties.Name="Show a QR code to connect a phone" />
+      <StackPanel Spacing="20">
+        <Border x:Name="HostConnectSection" Padding="16" CornerRadius="4" BorderThickness="1" BorderBrush="{x:Static rendering:Ui.BorderBrush}">
+          <StackPanel Spacing="8">
+            <TextBlock Text="Connect to another host" Classes="settings-heading" />
+            <TextBlock Text="Use another computer’s projects and terminals by connecting to its SharpRail host over Tailscale." Classes="settings-description" />
+            <Button x:Name="HostTailscaleConnect" Content="Connect to a Tailscale host" HorizontalAlignment="Left" />
           </StackPanel>
-          <StackPanel x:Name="HostCode" Spacing="8" IsVisible="False" HorizontalAlignment="Left">
-            <local:QrCodeView x:Name="HostCodeImage" Width="240" Height="240" HorizontalAlignment="Left" />
-            <TextBlock x:Name="HostCodeDetail" MaxWidth="360" Classes="settings-description" />
+        </Border>
+        <Border x:Name="HostShareSection" Padding="16" CornerRadius="4" BorderThickness="1" BorderBrush="{x:Static rendering:Ui.BorderBrush}">
+          <StackPanel Spacing="8">
+            <TextBlock x:Name="HostShareHeading" Text="Share this app as a host" Classes="settings-heading" />
+            <TextBlock x:Name="HostDescription" Text="Let other SharpRail clients connect to this running app. They share its projects, settings, plugins and terminals." Classes="settings-description" />
+            <StackPanel x:Name="HostControls" Spacing="8">
+              <TextBlock Text="Bind address" Classes="settings-label" />
+              <TextBox x:Name="HostAddress" MaxWidth="360" HorizontalAlignment="Left" />
+              <TextBlock Text="127.0.0.1 accepts connections from this computer. Use a network address to accept other computers." Classes="settings-description" />
+              <TextBlock Text="Port" Classes="settings-label" />
+              <TextBox x:Name="HostPort" Width="120" HorizontalAlignment="Left" />
+              <TextBlock Text="Use 0 to choose an available port." Classes="settings-description" />
+              <TextBlock Text="Session token" Classes="settings-label" />
+              <TextBox x:Name="HostToken" PasswordChar="●" MaxWidth="360" HorizontalAlignment="Left" />
+              <TextBlock Text="Clients use this token to connect. Serving stays off until you start it, and stops when the app quits." Classes="settings-description" />
+              <TextBlock x:Name="HostStatus" TextWrapping="Wrap" />
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button x:Name="HostToggle" Content="Start listening" />
+                <Button x:Name="HostCopyEndpoint" Content="Copy endpoint" />
+                <Button x:Name="HostCopyToken" Content="Copy token" />
+                <Button x:Name="HostShowCode" ToolTip.Tip="Show a QR code to connect a phone" AutomationProperties.Name="Show a QR code to connect a phone" />
+              </StackPanel>
+              <StackPanel x:Name="HostCode" Spacing="8" IsVisible="False" HorizontalAlignment="Left">
+                <local:QrCodeView x:Name="HostCodeImage" Width="240" Height="240" HorizontalAlignment="Left" />
+                <TextBlock x:Name="HostCodeDetail" MaxWidth="360" Classes="settings-description" />
+              </StackPanel>
+            </StackPanel>
           </StackPanel>
-        </StackPanel>
+        </Border>
       </StackPanel>
     </DataTemplate>
     <DataTemplate x:Key="AppearancePage">

@@ -10,6 +10,8 @@ public sealed partial class SettingsWindow
     private Control ServingSettings()
     {
         var page = Page("HostPage");
+        PageControl<Border>(page, "HostConnectSection").IsVisible = false;
+        PageControl<TextBlock>(page, "HostShareHeading").Text = "Connected host";
         var controls = PageControl<StackPanel>(page, "HostControls");
         controls.Children.Clear();
         PageControl<TextBlock>(page, "HostDescription").Text = BrowserSession.Current?.Endpoint is { Uri: { } address }
