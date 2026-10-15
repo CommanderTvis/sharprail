@@ -140,7 +140,7 @@ public sealed partial class DockSurface
             foreach (var tool in unplaced)
             {
                 // Dimmed: drawn in the hint role rather than the muted one of placed entries.
-                var button = RailButton("RailUnplaced_" + tool.Id.Replace(':', '_'), Ui.Icon(tool.Icon, Ui.Hint, 16), tool.Title + " (not placed)", false, region);
+                var button = RailButton("RailUnplaced_" + tool.Id.Replace(':', '_'), TabIcon?.Invoke(DockState.Tool(tool.Id), Ui.Hint) ?? Ui.Icon(tool.Icon, Ui.Hint, 16), tool.Title + " (not placed)", false, region);
                 button.Click += (_, _) =>
                 {
                     Session.RestoreTool(tool.Id);
@@ -393,7 +393,7 @@ public sealed partial class DockSurface
     private Border BuildToolHeader(DockGroup group, Grid panel, List<Action> updates)
     {
         var selected = Session.Selected(group.Id)!;
-        var icon = new ContentControl { Width = 14, Height = 14, Content = Ui.Icon(ToolIcon(selected), Ui.TextBrush, 14) };
+        var icon = new ContentControl { Width = 14, Height = 14, Content = TabIcon?.Invoke(selected, Ui.TextBrush) ?? Ui.Icon(ToolIcon(selected), Ui.TextBrush, 14) };
         var frame = PaneHeader("GroupHeader_" + group.Id, icon, Session.ToolTitle(selected), out var label, out var actions);
         frame.Name = "TabStrip_" + group.Id;
         var header = (Grid)frame.Child!;
@@ -412,7 +412,7 @@ public sealed partial class DockSurface
         {
             if (!Session.State.Groups.Any(item => item.Id == group.Id) || Session.Selected(group.Id) is not { } current) return;
             label.Text = Session.ToolTitle(current);
-            icon.Content = Ui.Icon(ToolIcon(current), Ui.TextBrush, 14);
+            icon.Content = TabIcon?.Invoke(current, Ui.TextBrush) ?? Ui.Icon(ToolIcon(current), Ui.TextBrush, 14);
             caption.ContextMenu = TabMenu(Session.Group(group.Id), current, panel);
             AutomationProperties.SetName(header, Session.ToolTitle(current) + " pane");
         });

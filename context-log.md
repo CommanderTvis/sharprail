@@ -5699,3 +5699,7 @@ Fixed a texture-reuse race: Ghostty previously cleared its latest completed fram
 Release solution build passed with zero warnings/errors; touched C# formatting and whitespace passed. The deterministic handoff regression fails against the previous native bridge and passes with the fix. Real-window --native-scroll passed on Apple M4 Pro: retained-frame/lease/failure/recovery/stop cases, 300 fractional down-scroll events at the bottom with zero unavailable draws and identical viewport pixels, upward scrolling and pixel-exact return.
 
 Broader --native-texture stopped at an unchanged theme-color assertion (captured RGB 27/51/83 versus expected 18/52/86); --native-direct stopped at its unchanged initial renderer-creation wait. Neither complete native gate nor local/remote parity is claimed. Physical trackpad/video reproduction and the full suite were not run. Main reuses the verified byte-identical source/native-build evidence.
+
+## 2026-10-15 — Plugin pane icons
+
+Pane headers, selection refreshes and unplaced rail entries now use the existing plugin-aware icon resolver with the builtin glyph fallback, so asset-backed plugin icons no longer degrade to the puzzle glyph. Release build passed with zero warnings/errors; DockInputChecks (including new initial/refresh/fallback/unplaced regression), plugin-ui, touched formatting and whitespace checks passed. Existing plugin icon contract is unchanged. Main reuses byte-identical verified sources.

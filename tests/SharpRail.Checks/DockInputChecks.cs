@@ -42,6 +42,28 @@ internal static class DockInputChecks
         IFocusManager Focus() => TopLevel.GetTopLevel(window)!.FocusManager!;
         window.Layout.ApplyPreset(DockState.Preset("balanced"));
         var right = window.Layout.State.Groups.Where(group => group.Region == "right").ToArray();
+        var surface = window.GetLogicalDescendants().OfType<DockSurface>().Single();
+        var resolveIcon = surface.TabIcon;
+        surface.TabIcon = (tab, brush) => tab.Id == "files" ? null : new Border { Tag = "resolved:" + tab.Id };
+        surface.Rebuild();
+        ContentControl HeaderIcon() => Find<Grid>("GroupHeader_" + right[0].Id).GetLogicalDescendants().OfType<ContentControl>()
+            .Single(control => control.Width == 14 && control.Height == 14);
+        Require(HeaderIcon().Content is Border { Tag: "resolved:plugin:spec-dialect:specs" },
+            "The initial pane header must use the same plugin-aware icon resolver as its rail entry.");
+        Find<Button>("Tab_files").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Pump(() => window.Layout.Selected(right[0].Id)?.Id == "files", "Select the built-in Files tool.");
+        Require(HeaderIcon().Content is Control fallback && !Equals(fallback.Tag, "resolved:files"),
+            "A null custom icon must keep the built-in pane glyph.");
+        Find<Button>("Tab_plugin_spec-dialect_specs").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Pump(() => HeaderIcon().Content is Border { Tag: "resolved:plugin:spec-dialect:specs" },
+            "Switching tools must refresh the pane header through the plugin-aware icon resolver.");
+        window.Layout.Close(right[1].Id, "review");
+        Require(Find<Button>("RailUnplaced_review").GetLogicalDescendants().OfType<Border>().Any(border => Equals(border.Tag, "resolved:review")),
+            "Unplaced tools must use the same custom icon resolver.");
+        surface.TabIcon = resolveIcon;
+        surface.Rebuild();
+        window.Layout.RestoreTool("review");
+
         var rail = Find<StackPanel>("rightRailEntries");
         var clusters = rail.Children.OfType<StackPanel>().ToArray();
         Require(clusters.Select(cluster => cluster.Name).SequenceEqual(right.Select(group => "RailCluster_" + group.Id)) &&
