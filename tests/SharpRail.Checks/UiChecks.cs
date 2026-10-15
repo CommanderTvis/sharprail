@@ -85,6 +85,7 @@ internal static class UiChecks
         Gate.Case("ProjectsE2E", () => E2E.ProjectsE2E.Run(root));
         Gate.Case("windows-ui", () => WindowsChecks.RunUi(root));
         Gate.Case("gitless-panes", () => GitlessPaneChecks.Run(root));
+        Gate.Case("settings-touch", () => SettingsTouchChecks.Run(root));
         Gate.Case("ProjectPickerE2E", () => E2E.ProjectPickerE2E.Run(root));
         Gate.Case("NewWorkspaceShortcutE2E", () => E2E.NewWorkspaceShortcutE2E.Run(root));
         Gate.Case("WorkspaceActionsE2E", () => E2E.WorkspaceActionsE2E.Run(root));

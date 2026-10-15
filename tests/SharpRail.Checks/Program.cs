@@ -466,6 +466,13 @@ internal static class Program
             GitlessPaneChecks.Run(root);
             return;
         }
+        if (args.SequenceEqual(["--settings-touch"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            SettingsTouchChecks.Run(root);
+            return;
+        }
         if (args.SequenceEqual(["--branch-graph"]))
         {
             BranchGraphChecks.RunHostAsync(root).GetAwaiter().GetResult();

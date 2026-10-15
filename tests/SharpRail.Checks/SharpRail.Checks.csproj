@@ -8,6 +8,7 @@
     <PackageReference Include="Avalonia.Headless" />
     <!-- The Android client builds only with the Android workload; its platform-free endpoint is checked here. -->
     <Compile Include="../../src/SharpRail.Android/HostEndpoint.cs" Link="Android/HostEndpoint.cs" />
+    <Compile Include="../../src/SharpRail.Android/TouchClicks.cs" Link="Android/TouchClicks.cs" />
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
     <Using Include="SharpRail.Plugins.UI.Kit" />
     <Using Include="SharpRail.Plugins.UI.Kit.Editor" />

@@ -3122,3 +3122,9 @@ Release build passed with zero warnings/errors; all nine vertical-tab journeys, 
 Settings group-limit inputs retain their 28-DIP compact size while their nested Fluent spinner and text box now fit that height. Previously the inner 32-DIP minimum positioned the outline at Y=-2, clipping its horizontal borders. Scoped compiled styles preserve the existing template, state handling and stepper actions.
 
 Release build passed with zero warnings/errors; touched formatting and whitespace passed. LayoutSettingsE2E passed the outline-containment regression, increment/decrement interaction and disabled min/max states, plus existing non-Git journeys. Its Git-backed GrandfatheredLimit case skipped because SHARPRAIL_TEST_GIT_SOURCE was unset; no pass is claimed for it. Main reuses byte-identical verified changes.
+
+## 2026-10-15 — Android Settings immediate touch scrolling
+
+Touch drags starting over Settings buttons transfer capture to the enclosing ScrollContentPresenter instead of clearing capture and cancelling its pending scroll recognizer. Moving starts scrolling without a hold; release taps still activate controls and completed drags do not. Non-scrolling drag-cancellation and desktop mouse behavior are retained.
+
+The real Settings first-motion regression failed before the fix and passes after it. Final --settings-touch passed navigation-label, page-choice and plain-text drag starts, no accidental activation, stationary tap, mouse activation and header-close drag-away/return cancellation. Desktop Release and Android Release Compile (SDKman21) passed with zero warnings/errors. Touched formatting and whitespace passed. Physical-device testing/APK installation and the full suite were not run.

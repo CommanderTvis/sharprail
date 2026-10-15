@@ -158,7 +158,10 @@ The host is any SharpRail WebSocket RPC endpoint: a desktop app listening from S
 - The header's connection status opens a menu naming the host with Change host…, which returns to the
   connect screen with the endpoint still filled in and remembered (`Workbench.ChangeHost`).
 - Touch rules the client adds: a button stops being pressed once the finger has moved 12 px, so a scroll
-  or flick that ends on it does not click (`TouchClicks`); tree rows open on a tap, not a press
+  or flick that ends on it does not click (`TouchClicks`). Inside a scroller, cancellation hands capture to
+  its scroll presenter so the pending scroll recognizer survives; clearing capture outright also canceled
+  scrolling. Settings navigation and page content scroll on the first movement past the gesture threshold,
+  without a hold. A tap activates on release, and mouse input retains desktop behavior. Tree rows open on a tap, not a press
   (`RowActivation` in the kit); and the terminal and the editor take text, and so raise the keyboard, only
   after a tap in them, never because focus reached them.
 - Editors wrap at the screen's edge whatever the shared line width says (`ScintillaEditor.WrapAlways`),

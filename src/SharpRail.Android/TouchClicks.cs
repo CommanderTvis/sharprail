@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Presenters;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
@@ -14,18 +15,25 @@ internal static class TouchClicks
 {
     private const double Slop = 12;
 
-    public static void Install()
+    public static IDisposable Install()
     {
         Point? pressed = null;
-        InputElement.PointerPressedEvent.AddClassHandler<TopLevel>((top, e) =>
+        var down = InputElement.PointerPressedEvent.AddClassHandler<TopLevel>((top, e) =>
             pressed = e.Pointer.Type == PointerType.Touch ? e.GetPosition(top) : null, RoutingStrategies.Tunnel, handledEventsToo: true);
-        InputElement.PointerMovedEvent.AddClassHandler<TopLevel>((top, e) =>
+        var move = InputElement.PointerMovedEvent.AddClassHandler<TopLevel>((top, e) =>
         {
             if (pressed is not { } start || e.Pointer.Type != PointerType.Touch) return;
             var moved = e.GetPosition(top) - start;
             if (Math.Abs(moved.X) < Slop && Math.Abs(moved.Y) < Slop) return;
             pressed = null;
-            if ((e.Pointer.Captured as Visual)?.FindAncestorOfType<Button>(includeSelf: true) is not null) e.Pointer.Capture(null);
+            if ((e.Pointer.Captured as Visual)?.FindAncestorOfType<Button>(includeSelf: true) is { } button)
+                e.Pointer.Capture(button.FindAncestorOfType<ScrollContentPresenter>());
         }, RoutingStrategies.Tunnel, handledEventsToo: true);
+        return new Subscription(down, move);
+    }
+
+    private sealed class Subscription(IDisposable down, IDisposable move) : IDisposable
+    {
+        public void Dispose() { down.Dispose(); move.Dispose(); }
     }
 }
