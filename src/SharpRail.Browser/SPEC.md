@@ -110,6 +110,9 @@ must load the deployed bundle in a real browser and exercise host authentication
 and conflict handling, live terminal input/output and reconnection, PDF text/raster rendering, Mermaid,
 settings persistence, window/dialog interaction and builtin plugin surfaces. Compilation alone does not
 establish parity. Remaining verification is recorded in the repository's completion and validation records.
+The focused `mermaid.mjs` journey checks actual Markdown diagram controls on initial restoration, normal
+opening, reload and rendered diffs, including invalid-syntax errors; a successful direct worker SVG call
+alone does not establish that the workbench displays the diagram.
 
 The focused `restty.mjs --settings` journey repaints the temporary embedded roots in magenta and checks
 that neither the workbench nor Settings shows those pixels, then reopens sections and checks terminal

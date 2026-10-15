@@ -521,12 +521,8 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
         SvgSource? svg = null;
         try
         {
-            result = await Task.Run(() =>
-            {
-                var rendered = MermaidRenderer.Render(text, options);
-                if (rendered.Svg is not null) svg = SvgSource.LoadFromSvg(rendered.Svg);
-                return rendered;
-            }, lifetime.Token);
+            result = await MermaidRenderer.RenderAsync(text, options, lifetime.Token);
+            if (result.Svg is { } sourceSvg) svg = await Task.Run(() => SvgSource.LoadFromSvg(sourceSvg), lifetime.Token);
         }
         catch (OperationCanceledException) { return; }
         if (lifetime.IsCancellationRequested || theme != diagramTheme) { svg?.Dispose(); return; }

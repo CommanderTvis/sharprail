@@ -3158,3 +3158,9 @@ Release and actual browser WASM builds passed with zero warnings/errors; touched
 Standard workbench icons now use the original Remix Icon 4.9.0 SVG paths and the upstream custom file-diff path, rendered as cached vector masks. Source mappings and licenses are recorded with the assets. Host settings uses the server icon.
 
 Release build, vector-icons, host-settings-icon, ThemeE2E, design, design-roles and touched formatting passed. All 67 aliases were checked against original geometry at multiple sizes and 1×/2×/3× scales, including tint changes and control disposal. Physical Retina/device acceptance was not run.
+
+## 2026-10-15 — Browser Markdown Mermaid rendering
+
+Markdown preview and rendered diffs now call the asynchronous platform renderer, allowing the existing browser Mermaid worker to render diagrams instead of attempting the unavailable native library. SVG parsing stays off the dispatcher; cancellation and superseded-theme guards remain.
+
+Actual Chromium reproduced the platform-unavailable error before the fix. The focused browser journey now passes initial restored tabs, normal opening, invalid syntax, saved-tab reload and rendered Markdown diffs. Browser WASM and desktop Release builds passed with zero warnings/errors; native --visualize (including Markdown Mermaid), touched formatting, JavaScript syntax and whitespace passed.
