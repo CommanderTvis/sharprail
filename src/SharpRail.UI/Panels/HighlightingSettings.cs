@@ -79,7 +79,7 @@ public sealed partial class SettingsWindow
         void Failed(Exception failure) { message.Text = failure.Message; message.IsVisible = true; }
         list.Children.Clear();
         var definitions = CustomHighlighting.Current;
-        if (definitions.Length == 0) list.Children.Add(Ui.Text("No custom grammars added.", Ui.Muted));
+        if (definitions.Length == 0) list.Children.Add(Ui.Text("No added", Ui.Muted));
         foreach (var definition in definitions)
         {
             var row = Page("HighlightingGrammarRow");
