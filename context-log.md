@@ -4,6 +4,25 @@ Start with the final section, “Session handoff — 2026-10-02, user requested 
 Earlier dated entries are historical; current AGENTS.md and the latest handoff take precedence,
 including terminal/editor scope and verification evidence.
 
+## Verification record migration
+
+The historical entries above retain their dated outcomes, failures and publication limits. References
+to the former validation ledger now lead here because that separate file is retired; they do not
+assert that its old package, process, pending workspace or check result is current. Durable facts
+and measurements now live in the [browser](src/SharpRail.Browser/SPEC.md#recorded-rendering-evidence),
+[native terminal](src/SharpRail.UI/Terminal/SPEC.md#recorded-native-measurements-and-acceptance),
+[UI kit](src/SharpRail.Plugins.UI.Kit/SPEC.md#recorded-large-document-measurement-limits),
+[Android](src/SharpRail.Android/SPEC.md#validation), [rendering](src/SharpRail.UI/Rendering/SPEC.md#native-visual-acceptance-limits)
+and [checks](tests/SharpRail.Checks/SPEC.md#recorded-verification-scope) specs. The [Codex recovery caveat](src/SharpRail.Plugins.Codex/SPEC.md)
+remains unresolved. Upstream provenance, current porting differences and outstanding acceptance
+are consolidated in [UPSTREAM.md](UPSTREAM.md#current-porting-gaps). The previous ledger remains
+recoverable from Git history; chronological build logs and superseded implementation claims are
+not a second current contract.
+
+2026-10-15: Consolidated upstream tracking and the porting inventory, removed the separate validation
+ledger after preserving unique durable facts in owning specs, and updated documentation references.
+This documentation-only change introduces no new runtime acceptance or performance measurement.
+
 ## Historical prototype goal — 2026-09-28
 
 Goal remains active. Functional prototype exists, but full screenshot and tiny
@@ -194,7 +213,7 @@ Current app PID75573/window103371 renders 1352x848 logical with isolated review
 profile .sharprail/geometry-review and reference project root. User has switched
 Changes to Review in this instance; preserve their live state. GUI error log is
 empty. Window-only .bench/prototype-empty.png refreshed to current tab chrome.
-Added VALIDATION.md with requirement/evidence matrix and explicit remaining gates.
+Added [historical verification ledger](#verification-record-migration) with requirement/evidence matrix and explicit remaining gates.
 No complete claim. Next audit should address remaining input placements and
 accessibility, then native Markdown/Settings fidelity. A private-source targeted
 CGEventPostToPid keyboard probe did not open Settings; no global input fallback.
@@ -209,7 +228,7 @@ restoration. Full Release checks with existing Git source PASS; format PASS.
 Capture-loss fixture initially assumed presets reset tool placement; they retain
 moved tools, so corrected test snapshots source group instead. No product defect.
 Latest source changes not published yet. App PID75573 revalidated running; keep
-user state intact and avoid overwriting live bundle. VALIDATION.md updated.
+user state intact and avoid overwriting live bundle. [historical verification ledger](#verification-record-migration) updated.
 Remaining: separator automation values, no-op/minimum pointer rejection, exact
 native Markdown/Settings control/typography comparison; then publish current
 source and leave finished app running. No benchmarks, commits, pushes or agents.
@@ -2222,16 +2241,16 @@ Integration follow-up: initial Release49771 and published32747 failed on hidden-
 
 User reported tab hover paints label only. Suppressed Fluent label hover in App.axaml and painted outer frame including close slot. First hover Release93970 exposed PointerExited arriving after removal of the old pane; removed session lookup from pointer events, deriving active appearance from existing underline. Added dark/light label/close/exit and layout-under-hover regression. Old published7186 terminated143 after lifecycle fix superseded it. Final lifecycle Release39258 and R2R published80812 remain running, each with unique .bench/ghostty-integration/hover-lifecycle-*.log. Format13458 and publish65746 pass; canonical app currently PID30104/window117726. Need inspect final own-window capture and record suite exit codes before final. Full goal active.
 
-Final integration + hover verification: Release39258 and published80812 both EXIT0, each passes all39 translated upstream cases plus host/Git/UI/restoration/open-world checks. Logs .bench/ghostty-integration/hover-lifecycle-release.log and hover-lifecycle-published.log. Format13458 EXIT0; publish65746 EXIT0; strict/deep codesign and git diff --check pass. No live check writers remain. Final canonical app remains PID30104/window117726; .bench/ghostty-integration/hover-lifecycle-native.png captured and inspected (user-created Terminal12 visible). Source ghostty worktree still clean at522d81e. All ten new files match source exactly. AGENTS.md updated with full structure and terminal paths; VALIDATION.md current evidence refreshed. Native Avalonia Ctrl-C first-run timeout/retry limitation retained. Changes uncommitted, no benchmarks/pushes/sibling edits. Full prototype goal remains active.
+Final integration + hover verification: Release39258 and published80812 both EXIT0, each passes all39 translated upstream cases plus host/Git/UI/restoration/open-world checks. Logs .bench/ghostty-integration/hover-lifecycle-release.log and hover-lifecycle-published.log. Format13458 EXIT0; publish65746 EXIT0; strict/deep codesign and git diff --check pass. No live check writers remain. Final canonical app remains PID30104/window117726; .bench/ghostty-integration/hover-lifecycle-native.png captured and inspected (user-created Terminal12 visible). Source ghostty worktree still clean at522d81e. All ten new files match source exactly. AGENTS.md updated with full structure and terminal paths; [historical verification ledger](#verification-record-migration) current evidence refreshed. Native Avalonia Ctrl-C first-run timeout/retry limitation retained. Changes uncommitted, no benchmarks/pushes/sibling edits. Full prototype goal remains active.
 
 
 ### Lightweight commit catalogs — 2026-09-29 (verification in progress)
 
 Previous goal turn classified progress: integrated all Ghostty files, docs and verified hover. Next concrete gap: restoring commit selection fetched full working snapshot solely for catalog. Added mandatory IProjectServices.ListCommitsAsync across Core/Local/gRPC contracts+adapters, reused existing capped/sanitized git log helper in snapshots. UI restoration now uses lightweight call. All three test host decorators delegate new API. ProjectChecks compares local/remote catalogs to snapshot; temporarily corrupts disposable fixture index, proves catalog still works and full snapshot fails, restores index in finally. Also unresolved-range empty list and canceled empty-range semantics checked. SPEC.md acceptance added. New host tests pass. Format64560 EXIT0; checks publish13714, UI54712, host73603 EXIT0. Release45904 live (.bench/commit-catalog-release.log); R2R published81986 live (.bench/commit-catalog-published-checks.log). Re-poll these handles, do not restart or overwrite logs.
 
-IMPORTANT: canonical app PID30104 has live user terminal: login30566 -> zsh30568 -> Codex30643 (verified ps comm names, no private args). Do NOT terminate it merely to refresh package; obtain permission after verification and prepare reviewable result, or wait for user to close it. Canonical artifacts/SharpRail.app still previous hover-lifecycle package. artifacts/ui, host, checks now contain commit-catalog update, built without touching bundle. Preserve distinction in VALIDATION.md/final. Full goal remains active; live Git membership/rewrite fallback and remaining fidelity/tests unfinished. No benchmarks/agents/commits/pushes.
+IMPORTANT: canonical app PID30104 has live user terminal: login30566 -> zsh30568 -> Codex30643 (verified ps comm names, no private args). Do NOT terminate it merely to refresh package; obtain permission after verification and prepare reviewable result, or wait for user to close it. Canonical artifacts/SharpRail.app still previous hover-lifecycle package. artifacts/ui, host, checks now contain commit-catalog update, built without touching bundle. Preserve distinction in [historical verification ledger](#verification-record-migration)/final. Full goal remains active; live Git membership/rewrite fallback and remaining fidelity/tests unfinished. No benchmarks/agents/commits/pushes.
 
-Lightweight catalog final: Release45904 EXIT0, R2R published81986 EXIT0, each all39 translated upstream cases; no live check writers remain. Logs commit-catalog-release.log and commit-catalog-published-checks.log. Format, UI/host/checks publishes and git diff --check pass. Signed internal stage .bench/package-stage-k2zhrbdn/SharpRail.app verifies deep/strict; path also .bench/commit-catalog-staging-path.txt. Canonical bundle unchanged and app30104 + Codex30643 still live. Async user question asks Keep my session running vs Restart SharpRail; permission is required because restarting ends this actual user process, not a hypothetical risk. Do not install/stop while answer pending; continue independent goal work. VALIDATION.md distinguishes staged source from running older package; AGENTS.md and completion evidence updated. Full goal remains active; no benchmarks/commits/pushes.
+Lightweight catalog final: Release45904 EXIT0, R2R published81986 EXIT0, each all39 translated upstream cases; no live check writers remain. Logs commit-catalog-release.log and commit-catalog-published-checks.log. Format, UI/host/checks publishes and git diff --check pass. Signed internal stage .bench/package-stage-k2zhrbdn/SharpRail.app verifies deep/strict; path also .bench/commit-catalog-staging-path.txt. Canonical bundle unchanged and app30104 + Codex30643 still live. Async user question asks Keep my session running vs Restart SharpRail; permission is required because restarting ends this actual user process, not a hypothetical risk. Do not install/stop while answer pending; continue independent goal work. [historical verification ledger](#verification-record-migration) distinguishes staged source from running older package; AGENTS.md and completion evidence updated. Full goal remains active; no benchmarks/commits/pushes.
 
 ### macOS Scintilla / Skia editor integration — 2026-09-28
 
@@ -2249,7 +2268,7 @@ Focused Release and published R2R checks pass, including local/remote saving and
 workbench dirty/save/error behavior. Native arm64/x64 builds and strict native
 syntax checks pass. Full no-Git suite passes; full Git-enabled run fails at
 ChangesE2E.cs:29, reproduced on untouched HEAD in .bench/scintilla-baseline.
-Evidence is detailed in the latest VALIDATION.md section. Broader prototype goal
+Evidence is detailed in the latest [historical verification ledger](#verification-record-migration) section. Broader prototype goal
 is not declared complete. Syntax lexers, completion, full IME preedit,
 accessibility text providers and complex-script shaping remain first-port limits.
 
@@ -2399,7 +2418,7 @@ to the product). The same harness executable is used with old/new libraries.
 `analyze.mjs` writes summary.json; `report.mjs` writes report.html after both
 batches finish. Final source/binary hashes are in fingerprints.json.
 Pending: finish both batches, generate/report measured results, final solution
-build/format/diff checks and append final evidence to VALIDATION.md and here.
+build/format/diff checks and append final evidence to [historical verification ledger](#verification-record-migration) and here.
 No commits, pushes, publication or agents. Preserve all existing unrelated work.
 
 Completed final measurements and verification. AC-powered `matched-two-slot`
@@ -2413,7 +2432,7 @@ runs: settled footprint 3358.12/367.19 MiB; 10 s after disposal 3131.81/130.41 M
 after diagnostic GC 3129.88/128.59 MiB. Thus ~89% lower flood RAM and ~96% lower
 retained RAM after disposal. Patched NSView settled/disposed: 251.10/100.52 MiB.
 Normal texture RAM is not substantially reduced. Full report and summary are
-`.bench/ghostty-texture-optimization/report.html` and `summary.json`; VALIDATION.md
+`.bench/ghostty-texture-optimization/report.html` and `summary.json`; [historical verification ledger](#verification-record-migration)
 records the method, limits and checks. Both final batches stayed on AC without
 new swap-outs or thermal warnings. The earlier interrupted/provisional batches
 are excluded. Native texture (final two slots), native probe, Skia, 183 selected
@@ -2438,7 +2457,7 @@ and shared active Avalonia queue keep41 blocks. Sharing Ghostty queue stalls
 completion (sample saved), rejected. Thus avoiding exporter copy alone won't
 necessarily recover68 MiB; source ownership and snapshot path both need redesign.
 Original latency/CPU/RAM benchmark remains authoritative; instrumented memory
-varies and includes profiling overhead. Detailed method/limits in VALIDATION.md
+varies and includes profiling overhead. Detailed method/limits in [historical verification ledger](#verification-record-migration)
 and report.html. Final ordinary texture profile948 composition updates; harness
 build0 warnings/errors. No pending processes, commits, pushes or publication.
 
@@ -2531,7 +2550,7 @@ CPU18.8% versus pooled15.2%; latency median24.5/p9530.5ms versus pooled29.7/35.8
 and NSView13.3/20.5. Idle settled166.6mean is variable, not used for active claim.
 Final evidence final-report.html/final-summary.json under .bench/ghostty-direct-texture;
 final-report.mjs validates workloads/power and regenerates them. Earlier report.mjs
-is pilot-only; do not replace final results with it. VALIDATION.md updated.
+is pilot-only; do not replace final results with it. [historical verification ledger](#verification-record-migration) updated.
 No remaining foreground gate; goal complete. No source changes this resumption,
 no commit/push/publication, no benchmark processes left running.
 
@@ -2553,7 +2572,7 @@ capture now waits for GPU draw and polls presentation; temporary GPU pixel
 diagnostics confirmed correct blend and were removed. Source hash matches original.
 Broader --native-terminal workbench rerun still stops at explicit active/focus
 gate; don't claim it passed. Other checkout GUI process was observed and left
-untouched. Detailed logs and limitations in VALIDATION.md. Ready for authorized
+untouched. Detailed logs and limitations in [historical verification ledger](#verification-record-migration). Ready for authorized
 signed commit and push to origin/upstream; never bypass 1Password presence.
 
 ### Live terminal reports — 2026-10-01
@@ -2811,7 +2830,7 @@ is an app preference. Owning specs and interaction checks were updated.
 
 Release source gate passed through a four-lane run and serial last-failed repairs;
 the runner has no unfinished cases. Focused review coverage also passes for
-untracked content. See VALIDATION.md for evidence. Changes are uncommitted;
+untracked content. See [historical verification ledger](#verification-record-migration) for evidence. Changes are uncommitted;
 no push, packaging, or app restart was requested.
 
 ### Plugin API — 2026-10-01
@@ -3985,7 +4004,7 @@ Live handle explicitly48218; all earlier full/PDF/smoke/format handles terminal.
 Objective remains the complete fork Plugin API and all nine builtin plugin ports on main:
 SpecDialect, Blueprint, Claude Code, Discord, PDF Preview, Branch Graph, Visualize, File Icons,
 and Codex. Pi and bundled AI chat are excluded by project instructions. The port is NOT complete.
-Read AGENTS.md, gotchas.md, COMPLETION.md, VALIDATION.md and each owning plugin SPEC.md before
+Read AGENTS.md, gotchas.md, COMPLETION.md, [historical verification ledger](#verification-record-migration) and each owning plugin SPEC.md before
 continuing. Preserve the large recovered uncommitted implementation, untracked plugin directories,
 and the user's AGENTS.md changes. No commits or pushes were made in this session. Mirror the fork's
 commit shape when commits are authorized: general improvements, API, then one per builtin.
@@ -4673,7 +4692,7 @@ host, with its own windowing layer over Avalonia 12.1.3 internals, a connect scr
 It is outside `SharpRail.slnx`. Build and run with `scripts/android.sh`; the terminal and editor libraries
 cross-build with the NDK from `scripts/android-ndk.sh`. Shared UI sources must stay compilable for Android
 (`#if !ANDROID` or an excluded file for host-serving code). Design, limits and evidence are in
-`src/SharpRail.Android/SPEC.md` and the 2026-10-10 section of `VALIDATION.md`: emulator only.
+`src/SharpRail.Android/SPEC.md` and the 2026-10-10 section of [historical verification ledger](#verification-record-migration): emulator only.
 
 Open: physical devices, phone ergonomics beyond the first frame, other IMEs, accessibility, HTTPS, CI,
 on-device tests, a release keystore, packaging `licenses/` into the APK, trimming.
@@ -4685,7 +4704,7 @@ cell content. Added/removed tables, changed headers/cells and row changes remain
 column counts retain both table layouts. The kit and rendering specs record the contract. The new
 `-- --markdown-tables` checks join the default gate and fail against the original merger.
 Release build, touched-file formatting, focused table/resource/rendered-diff checks and the full
-117-case six-lane gate pass. Evidence is recorded in VALIDATION.md; scratch files were cleaned.
+117-case six-lane gate pass. Evidence is recorded in [historical verification ledger](#verification-record-migration); scratch files were cleaned.
 Changes remain uncommitted. No push, publication or running-app restart.
 
 The user authorized committing the fix into main and removing its workspace and branch. The pending
@@ -4772,7 +4791,7 @@ prompts, persistence, edits and local/gRPC recovery. The owning spec records the
 Release build, touched-file format verification and --blueprint pass. The isolated full gate
 completes across its first run and --last-failed resume after the known Spec Dialect tree
 assertion passed alone. After the concurrent Claude changes landed on main, the Release
-rebuild and whole-solution formatting pass there too. VALIDATION.md records optional skips.
+rebuild and whole-solution formatting pass there too. [historical verification ledger](#verification-record-migration) records optional skips.
 The user authorized commit and push to main. Implementation and status records use separate
 signed commits without rewriting published history. No publication or app restart. Task
 scratch and the verification workspace were removed.
@@ -4861,7 +4880,7 @@ Tailscale peer list. No Tailscale binary or SDK is redistributed.
 
 Desktop and Android Release builds, formatting and focused checks pass. The full
 gate completes across the initial run and --last-failed resume after two existing
-document-opening timeouts passed in isolation. VALIDATION.md records warnings,
+document-opening timeouts passed in isolation. [historical verification ledger](#verification-record-migration) records warnings,
 optional skips and unverified physical pairing. The module spec remains draft;
 changes are committed. The user authorized fast-forwarding main, removing the task
 worktree and pushing main. No publication or running-app restart.
@@ -4948,7 +4967,7 @@ checks pass. Full-gate coverage plus named resumes reaches 117/118 cases; the
 workspace's old base still hits the editor reattachment style-length error. The
 separate fix is already on main as 5f10a42c; main's history was rewritten during
 this task, so this workspace's base was left intact. File Icons and Specs Retry
-assertions from the resume pass alone without code changes. See VALIDATION.md for
+assertions from the resume pass alone without code changes. See [historical verification ledger](#verification-record-migration) for
 limits. Updated instructions require reusing these results rather than rerunning
 unchanged slices. Task fixtures and logs are removed, with checks-last-run.txt
 retained. The user subsequently authorized landing on main, deleting the task workspace and
@@ -5095,7 +5114,7 @@ Scintilla caret-line API documentation are updated.
 Release build, formatting, cursor-follow and selection regressions, and the focused
 Markdown Find retry pass. The full gate and serial resume remain blocked by the
 unmodified Review test click helper; the initial gate also hit the resource diff
-helper. See VALIDATION.md for exact checks and limits. Keep checks-last-run.txt for
+helper. See [historical verification ledger](#verification-record-migration) for exact checks and limits. Keep checks-last-run.txt for
 resuming after those independent failures are addressed. Two one-line build
 prerequisites already present in the original checkout are included here (the
 removed inline toggle reference and the Review pane's kit namespace). No commit,
@@ -5114,7 +5133,7 @@ external targets use the existing external-file lifecycle, scoped to the termina
 Release build, whole-solution formatting, focused file-link/editor checks and the native Metal check
 pass. Full-gate continuations complete 119/121 cases; commit-scope fixture and narrow diff-header
 failures reproduce and remain open. Markdown, Specs and PDF transient failures pass on retries.
-See VALIDATION.md for commands and limits. Scratch fixtures/logs are cleaned, with the unresolved-case
+See [historical verification ledger](#verification-record-migration) for commands and limits. Scratch fixtures/logs are cleaned, with the unresolved-case
 record retained. No commit, push, packaged rebuild, Android check or app replacement. Keep this
 workspace for review; the original checkout's changes were not touched.
 
@@ -5156,7 +5175,7 @@ drawn and menus are lazy. The owning specs and regression checks are updated.
 
 Release build, whole-solution format verification, focused checks and the four-lane
 gate plus serial resume pass, including optional Git fixtures. The unfinished-case
-record is empty. [VALIDATION.md](VALIDATION.md) records the before/after measurements:
+record is empty. [historical verification ledger](#verification-record-migration) records the before/after measurements:
 large memory/mount reductions for documents and trees, faster graph scrolling, but
 higher Files scrolling costs and no demonstrated graph resident-memory improvement.
 Large single Markdown blocks/media and native screen-reader/Android acceptance remain
@@ -5171,7 +5190,7 @@ share parsed sources by asset and tint until the last user detaches. The 2,000-f
 fixture allocates 29.21 MB over 120 steps instead of 75.74 MB (about 61% less).
 Three fresh-process runs report p95 5.53–6.64 ms, versus the earlier 9.19 ms sample;
 the mixed-file fixture reports 7.84 ms. Method, memory variation and limitations are
-recorded in [VALIDATION.md](VALIDATION.md).
+recorded in [historical verification ledger](#verification-record-migration).
 
 Release build, formatting, focused checks and the four-lane full gate plus serial
 resume pass; no unfinished cases remain. Checks now cover bounded icon construction,
@@ -5216,7 +5235,7 @@ Release build pass with zero warnings/errors; the actual source build stays
 blocked. The four-lane full gate and its serial resume remain incomplete:
 watching/navigation failures pass on resume, which later hits a Markdown image
 document open timeout. ChangesReviewChecks reproduces alone in the unchanged
-click helper's ambiguous control lookup. See VALIDATION.md for exact limits.
+click helper's ambiguous control lookup. See [historical verification ledger](#verification-record-migration) for exact limits.
 The unfinished runner record is retained at .bench/checks-last-run.txt; task
 scratch and overlays are removed. No package, Android build, real provider
 session or app restart. Changes remain uncommitted; no push was requested.
@@ -5237,7 +5256,7 @@ with the fix, including diagram fit and comparison reflow.
 
 Release build, whole-solution formatting and `--visualize` pass. The full gate
 and serial resume remain incomplete at the unchanged Markdown image-document
-opening timeout; details are in VALIDATION.md. Task fixtures and logs were
+opening timeout; details are in [historical verification ledger](#verification-record-migration). Task fixtures and logs were
 removed, retaining the runner's resume record. Changes remain uncommitted in
 the new workspace; nothing was pushed or packaged.
 
@@ -5255,7 +5274,7 @@ cleanup; replacement selection foregrounds retain the existing layout behavior.
 The actual 19-million-character fixture improves from 81.06 to 7.96 ms median and
 103.13 to 21.53 ms p95 pointer updates. Allocation falls from 19,926.43 to 149.55 MB
 over 120 updates. The final initial press takes 15.24 ms. These are headless Skia
-measurements, with method and limitations recorded in VALIDATION.md.
+measurements, with method and limitations recorded in [historical verification ledger](#verification-record-migration).
 
 Release rebuild, whole formatting, affected focused checks and the Git-enabled full
 gate with serial resumes pass; no unfinished cases remain. Changes loading/opening
@@ -5284,14 +5303,14 @@ manual names, Default/external workspaces and subsequent labels are kept.
 
 Release build and formatting pass. Focused dialog, local/remote workspace tools,
 Codex and Claude Code checks pass, as do design and conformance. The four-lane full
-gate remains incomplete at watcher/live refresh and diff cases; VALIDATION.md records
+gate remains incomplete at watcher/live refresh and diff cases; [historical verification ledger](#verification-record-migration) records
 the exact limits. Keep `.bench/checks-last-run.txt` for a future repair run. Other task
 scratch and fixtures are removed. No commit, push, package or running-app replacement.
 
 
 ## Review diff scrolling (2026-10-12)
 
-Workspace-1 (`review-hunk-scrolling`) implements single-vertical-scroll stacked review for code and Markdown, compact file headers and unwrapped horizontal code scrolling. Focused review and editor/change-diff checks pass, as do the Release build, format verification and whitespace check. The Git-enabled four-lane full gate stalled in repeated UI dispatcher work and was interrupted; `.bench/checks-last-run.txt` preserves four shards at setup. A focused RenderedDiff translation also timed out at row opening alongside EventStream failures. Details are in `VALIDATION.md`. Changes are landed locally; no push, package or app replacement.
+Workspace-1 (`review-hunk-scrolling`) implements single-vertical-scroll stacked review for code and Markdown, compact file headers and unwrapped horizontal code scrolling. Focused review and editor/change-diff checks pass, as do the Release build, format verification and whitespace check. The Git-enabled four-lane full gate stalled in repeated UI dispatcher work and was interrupted; `.bench/checks-last-run.txt` preserves four shards at setup. A focused RenderedDiff translation also timed out at row opening alongside EventStream failures. Details are in [historical verification ledger](#verification-record-migration). Changes are landed locally; no push, package or app replacement.
 
 
 ## Changes review presentation (2026-10-13)
@@ -5339,7 +5358,7 @@ storage and local profile persistence supply the browser platform layer.
 Rebased onto local main through `0ffa4f5a`, retaining Tailscale token authentication and its
 plugin UI, Android terminal improvements and ignored-file metadata. Release builds, browser
 acceptance, the published-bundle smoke check and focused regression checks passed as recorded
-in VALIDATION.md. The full four-lane gate ended at ChangesDiffE2E's stale narrow-split expectation and the recorded
+in [historical verification ledger](#verification-record-migration). The full four-lane gate ended at ChangesDiffE2E's stale narrow-split expectation and the recorded
 Spec Dialect failed-update tree assertion. Existing verification results are retained rather than
 rerunning unchanged slices; `.bench/checks-last-run.txt` preserves unfinished shard ranges.
 The published bundle carries native, font and plugin notices. Own fixtures and temporary hosts
@@ -5358,7 +5377,7 @@ requires an updated host; the running normal desktop app was not restarted or re
 
 Corrected macOS browser detection for stock Command+A/Command+V and shared editor commands.
 Real Chromium acceptance exercises clipboard shortcuts rather than calling text setters.
-Build and check evidence is recorded in VALIDATION.md; this work remains uncommitted.
+Build and check evidence is recorded in [historical verification ledger](#verification-record-migration); this work remains uncommitted.
 
 Final verification: strict Release builds, Android Release (two PDFium packaging warnings),
 Chromium acceptance, normal published-bundle smoke and formatting pass. Across the consolidated
@@ -5392,7 +5411,7 @@ The final Chromium profile reports 110.0 benchmark output FPS and 47.1 terminal 
 21.9 output FPS/about 20 redraws/s after UI batching alone. This does not establish 120 FPS drawing.
 Selective AOT and the raster atlas experiments were rejected; neither remains in production code.
 Release solution/browser builds, focused Skia and terminal-host checks pass; validation and the
-pixel-equivalence browser checks are recorded in VALIDATION.md. The earlier full-gate SpecsPanelE2E
+pixel-equivalence browser checks are recorded in [historical verification ledger](#verification-record-migration). The earlier full-gate SpecsPanelE2E
 failure and interrupted remaining lanes still prevent claiming a clean full gate. Work is uncommitted.
 The normal published bundle and updated host are running at port 57459 (PID recorded in
 `.tools/browser-session/host.pid`), with the existing token and state. Browser reload picks up the
@@ -5470,17 +5489,17 @@ Final Release build, whole formatting, whitespace and focused frontmatter checks
 editor, design and conformance checks pass in the batch. The Git-enabled two-lane gate and two serial
 resumes remain incomplete under macOS EventStream startup failures: Markdown Find fixture opening
 and Changes review loading in the parallel run, then Markdown's live-edit watcher in each resume.
-The new conflict fixture now discards its dirty buffer before disposal. VALIDATION.md records the
+The new conflict fixture now discards its dirty buffer before disposal. [historical verification ledger](#verification-record-migration) records the
 limits; keep `.bench/checks-last-run.txt` for follow-up. Other scratch logs and fixtures are cleaned.
 Changes remain uncommitted; no push, package or running-app replacement.
 
 ## 2026-10-13 — Main landings
 
-Workspace-10 frontmatter editing is landed; combined Release/format/frontmatter checks pass. Terminal suppression, Rename, link context menus and Codex/Claude diff selections are landed with focused checks passing. Full gate remains blocked by EventStream watcher failures; see VALIDATION.md. Separate upstream branch tracks 5ab283a35 with native ports and recorded pending gaps. Nothing pushed.
+Workspace-10 frontmatter editing is landed; combined Release/format/frontmatter checks pass. Terminal suppression, Rename, link context menus and Codex/Claude diff selections are landed with focused checks passing. Full gate remains blocked by EventStream watcher failures; see [historical verification ledger](#verification-record-migration). Separate upstream branch tracks 5ab283a35 with native ports and recorded pending gaps. Nothing pushed.
 
 ## 2026-10-13 — Dirty workspace deletion confirmation
 
-Added a second, explicit Delete anyway confirmation after dirty worktree removal fails. Cancellation preserves files; successful single-force Git removal keeps the branch and drops the row. Host direct/remote and lifecycle UI regression checks pass; broader registry UI checks remain blocked by native watcher startup. See VALIDATION.md.
+Added a second, explicit Delete anyway confirmation after dirty worktree removal fails. Cancellation preserves files; successful single-force Git removal keeps the branch and drops the row. Host direct/remote and lifecycle UI regression checks pass; broader registry UI checks remain blocked by native watcher startup. See [historical verification ledger](#verification-record-migration).
 
 ## 2026-10-13 — Scripts reference and Tailscale pairing
 
@@ -5492,7 +5511,7 @@ Mermaid diff blocks render once when unchanged, with Before/After when changed. 
 
 ## 2026-10-13 — Browser terminal layout
 
-Share vertical/Projects tab mode through host state and repair legacy browser bottom placement once, preserving client pane geometry and later deliberate terminal placement. Existing profile values seed upgraded hosts; older hosts retain local fallback. Release desktop/browser builds, formatting, state/layout and nine vertical-tab cases pass. Earlier browser acceptance passed; final reruns stalled before Chromium app startup. See VALIDATION.md for the exact limit. No push or running-app replacement.
+Share vertical/Projects tab mode through host state and repair legacy browser bottom placement once, preserving client pane geometry and later deliberate terminal placement. Existing profile values seed upgraded hosts; older hosts retain local fallback. Release desktop/browser builds, formatting, state/layout and nine vertical-tab cases pass. Earlier browser acceptance passed; final reruns stalled before Chromium app startup. See [historical verification ledger](#verification-record-migration) for the exact limit. No push or running-app replacement.
 
 ## 2026-10-13 — File drag and drop
 
@@ -5506,7 +5525,7 @@ Native browser terminal DOM drops forward window-relative coordinates into Avalo
 Release solution/browser builds, formatting, focused file-drop checks, Chromium uploads,
 conformance and design checks pass. The full gate and continuation stop in the unchanged
 phone-to-desktop terminal fixture's automatic-terminal expectation, incompatible with
-Projects-mode suppression. Keep `.bench/checks-last-run.txt`; VALIDATION.md records evidence
+Projects-mode suppression. Keep `.bench/checks-last-run.txt`; [historical verification ledger](#verification-record-migration) records evidence
 and manual/native limits. Other scratch data is cleaned. Work remains uncommitted in
 workspace-15; nothing pushed or installed.
 
@@ -5518,7 +5537,7 @@ PowerShell packaging and Windows CI. Release, formatting, portable Windows check
 macOS editor/Skia and conformance checks pass. The terminal suite stops at an unchanged
 phone-to-desktop fixture expecting a suppressed automatic terminal; full gate not run.
 Actual Windows ConPTY, Recycle Bin, UI and packaged execution remain pending. See
-WINDOWS.md and VALIDATION.md. Work is uncommitted and unpushed.
+WINDOWS.md and [historical verification ledger](#verification-record-migration). Work is uncommitted and unpushed.
 
 ## 2026-10-13 — Workspace landings
 
@@ -5526,11 +5545,11 @@ Landed workspace-15 file drag/drop and captured workspace-13 Windows commits on 
 
 ## 2026-10-14 — Rendered diff frontmatter
 
-Unchanged frontmatter no longer repeats as a code block below Properties in focused diffs. Source ranges and changed-property rendering are preserved. Release, touched formatting, --markdown-tables and all five --live-diffs scenarios pass. See VALIDATION.md. Nothing pushed or installed. Browser alternate-screen replay and connection-error details are being handled separately in workspaces18 and19.
+Unchanged frontmatter no longer repeats as a code block below Properties in focused diffs. Source ranges and changed-property rendering are preserved. Release, touched formatting, --markdown-tables and all five --live-diffs scenarios pass. See [historical verification ledger](#verification-record-migration). Nothing pushed or installed. Browser alternate-screen replay and connection-error details are being handled separately in workspaces18 and19.
 
 ## 2026-10-14 — Three bugfixes ready for signed landing
 
-Frontmatter duplication, live alternate-screen watcher replay and clickable Error details/Retry are integrated in main working tree. Combined Release desktop and browser builds pass; focused Markdown/live-diff, recorder/local-remote/browser-watcher and connection-error checks pass. VALIDATION.md records bounded replay and browser startup/format limits. 1Password signing waited for presence, so the attempt was stopped without bypassing it. Main remains uncommitted; sourceworkspaces18 and19 remain preserved. Nothing pushed or installed.
+Frontmatter duplication, live alternate-screen watcher replay and clickable Error details/Retry are integrated in main working tree. Combined Release desktop and browser builds pass; focused Markdown/live-diff, recorder/local-remote/browser-watcher and connection-error checks pass. [historical verification ledger](#verification-record-migration) records bounded replay and browser startup/format limits. 1Password signing waited for presence, so the attempt was stopped without bypassing it. Main remains uncommitted; sourceworkspaces18 and19 remain preserved. Nothing pushed or installed.
 
 ## 2026-10-14 — Browser Settings flicker
 
@@ -5539,13 +5558,13 @@ Stopped AvaloniaView's temporary renderer directly; its old TopLevel.StopRenderi
 affected registered roots and left a competing blank renderer active on the real window's canvas.
 Focused Settings repaint/reopen/dismissal/input checks pass at normal and emulated 2× density,
 and the full test-bundle Chromium browser acceptance passes. Normal-bundle smoke still stalls
-before runtime readiness. See VALIDATION.md for physical-platform limits
+before runtime readiness. See [historical verification ledger](#verification-record-migration) for physical-platform limits
 and the test-only high-DPI sizing fallback. The spec and README record the contract and check mode.
 Changes remain uncommitted; no push, deployment or running-app replacement.
 
 ## 2026-10-14 — Signed browser bugfix landings
 
-1Password signing resumed. Frontmatter, read-only alternate-screen replay and Error details/Retry fixes are committed on main. Workspace-20 Settings flicker fix is also landed; combined browser Release, touched format/JS/whitespace and main Settings regression pass. Earlier focused/desktop results are reused; VALIDATION.md records platform/deployment limits. Own workspaces18 and19 removed with branches kept; workspace20 retained. Nothing pushed or installed.
+1Password signing resumed. Frontmatter, read-only alternate-screen replay and Error details/Retry fixes are committed on main. Workspace-20 Settings flicker fix is also landed; combined browser Release, touched format/JS/whitespace and main Settings regression pass. Earlier focused/desktop results are reused; [historical verification ledger](#verification-record-migration) records platform/deployment limits. Own workspaces18 and19 removed with branches kept; workspace20 retained. Nothing pushed or installed.
 
 ## Source workspace-8 evidence before landing
 
@@ -5554,7 +5573,7 @@ Changes remain uncommitted; no push, deployment or running-app replacement.
 On docs/spec-readability, eight specs now lead with responsibilities and user-visible behavior,
 with reading maps and 14 new Mermaid diagrams. Architecture and module introductions replace
 source-file inventories with explanations and links to owning specs. Detailed API contracts,
-existing limits, upstream provenance and spec metadata remain. VALIDATION.md records diagram,
+existing limits, upstream provenance and spec metadata remain. [historical verification ledger](#verification-record-migration) records diagram,
 link and whitespace checks plus the four existing Branch Graph dangling references. Changes
 are documentation-only and remain uncommitted in the dedicated workspace.
 
@@ -5611,12 +5630,12 @@ Workspace-23 aligns active/inactive Projects tab heights, typography and duplica
 folder subtitles, retains outgoing tab controls during routing and adds a 120 ms workspace
 selection background fade. Final Release build, whole-solution formatting, whitespace,
 `--rail` and `--agent-marks` checks pass. One Git-enabled full gate stops in the unchanged
-Tailscale host transport teardown assertion before UI checks; see VALIDATION.md. Keep
+Tailscale host transport teardown assertion before UI checks; see [historical verification ledger](#verification-record-migration). Keep
 `.bench/checks-last-run.txt`; other task scratch is removed. Work is uncommitted and unpushed.
 
 ## 2026-10-14 — Drag crash and workspace/UI landings
 
-Signed and landed the macOS single-item drag payload fix, workspace-8 readable specs/current Host API analyzer baseline and workspace-23 stable Projects tabs. Also landed inset active markers and same-row Markdown Copy. Combined desktop/browser Release, whole formatting, conformance/path checks and main rail pass; source file-drop, vertical-tab and code-copy regression evidence is reused. VALIDATION.md records existing design/Tailscale/spec-graph blockers and native/runtime limits. Own workspaces24/25 removed with branches kept; workspaces8/23 retained. Nothing pushed or installed.
+Signed and landed the macOS single-item drag payload fix, workspace-8 readable specs/current Host API analyzer baseline and workspace-23 stable Projects tabs. Also landed inset active markers and same-row Markdown Copy. Combined desktop/browser Release, whole formatting, conformance/path checks and main rail pass; source file-drop, vertical-tab and code-copy regression evidence is reused. [historical verification ledger](#verification-record-migration) records existing design/Tailscale/spec-graph blockers and native/runtime limits. Own workspaces24/25 removed with branches kept; workspaces8/23 retained. Nothing pushed or installed.
 
 ## 2026-10-14 — Land Projects-only tabs and prepare Windows nightly
 
@@ -5624,19 +5643,19 @@ Landed workspace-21 on main, preserving prior browser error/replay fixes, inset 
 
 ## 2026-10-14 — Android usability and Settings placement awaiting presence
 
-Integrated workspace-27 watched-grid-before-replay and readable 10–13 DIP Android fitting, workspace-28 explicit touch Open buttons/scroller-safe labels, workspace-29 actualized AGENTS.md and workspace-30 Settings sizing before centering/work-area containment. Combined main desktop/WASM Release and whole formatting pass. Source Android package/managed compilation and focused Skia, shell, Projects-tab and Settings geometry checks pass; device/browser/native appearance remain unverified. One full gate timed out in RenderedDiffE2E; the isolated case passes unchanged. Remaining lanes were interrupted, so no complete gate is claimed. See VALIDATION.md.
+Integrated workspace-27 watched-grid-before-replay and readable 10–13 DIP Android fitting, workspace-28 explicit touch Open buttons/scroller-safe labels, workspace-29 actualized AGENTS.md and workspace-30 Settings sizing before centering/work-area containment. Combined main desktop/WASM Release and whole formatting pass. Source Android package/managed compilation and focused Skia, shell, Projects-tab and Settings geometry checks pass; device/browser/native appearance remain unverified. One full gate timed out in RenderedDiffE2E; the isolated case passes unchanged. Remaining lanes were interrupted, so no complete gate is claimed. See [historical verification ledger](#verification-record-migration).
 
 SSH push hung and was stopped under the 1Password presence requirement. Main HEAD is 676e2d6f with Projects-only tabs and the Windows nightly workflow committed; latest fixes/docs are staged and uncommitted. Do not retry signing/push until the user is present and unlocks. Then preserve separate task commits and a status tip, push main under existing authorization, dispatch Nightly and verify the actual Windows gate and release asset before claiming deployment. Keep own workspaces8/27/28/29/30 until their work is preserved; source20 and21 changes are landed and their checkouts are deletion candidates. scripts/browser.sh remains user-owned and unstaged.
 
 ## 2026-10-14 — Restty GPU teardown measured in a new workspace-20
 
-The old workspace-20 checkout was removed and its path reused for the GPU lifecycle task; the new workspace-20 must be kept. Found that Restty 0.3.0 Destroy leaves its base context and 12 graphics objects valid. Added explicit acquired-context loss in bridge teardown plus keyboard cleanup. The negative original bridge fails; fixed source passes 48 actual Apple M4 Pro/ANGLE Metal cycles, cancellation/failure teardown and strict allocated-byte return. Chromium GPU allocator grows from warmed 98,971,019 bytes to 110,530,955 while open and returns to 98,971,019 after close. Physical GPU residency and full workbench path remain unverified; see VALIDATION.md for allocator categories and test scope. JavaScript syntax/whitespace pass, no redundant compiler/full suite. Main staged the unchanged verified patch; commit/push still waits on the 1Password presence check. No raw traces or scratch retained.
+The old workspace-20 checkout was removed and its path reused for the GPU lifecycle task; the new workspace-20 must be kept. Found that Restty 0.3.0 Destroy leaves its base context and 12 graphics objects valid. Added explicit acquired-context loss in bridge teardown plus keyboard cleanup. The negative original bridge fails; fixed source passes 48 actual Apple M4 Pro/ANGLE Metal cycles, cancellation/failure teardown and strict allocated-byte return. Chromium GPU allocator grows from warmed 98,971,019 bytes to 110,530,955 while open and returns to 98,971,019 after close. Physical GPU residency and full workbench path remain unverified; see [historical verification ledger](#verification-record-migration) for allocator categories and test scope. JavaScript syntax/whitespace pass, no redundant compiler/full suite. Main staged the unchanged verified patch; commit/push still waits on the 1Password presence check. No raw traces or scratch retained.
 
 ## 2026-10-14 — ThinkRail gap inventory
 
 Created `audit-thinkrail-gaps` from main at `16138700b2fbf86d845ad76a133dacb7d6ab1d5c`.
 Fetched JetBrains upstream/main to `be06fb01927e8386e3aec215bbcdb1a312ec66fa` and recorded it
-as latest researched/tracked, preserving the prior synced revision. PORTING-GAPS.md contains
+as latest researched/tracked, preserving the prior synced revision. [porting inventory](UPSTREAM.md#current-porting-gaps) contains
 134 status-labelled applicable entries and dispositions for applicable commits in the
 22-commit range. Chat/pi-only backlog items and the stale-notes section are removed;
 CLI integration and shared workbench gaps remain. COMPLETION.md no longer duplicates
@@ -5650,7 +5669,7 @@ and is recorded separately as an unresolved acceptance issue.
 
 Reviewed all 25 Verify inventory entries with three read-only subagents. Reclassified
 six rows with confirmed implementation gaps and narrowed the remaining 19 acceptance
-claims. PORTING-GAPS.md contains the per-entry findings; VALIDATION.md records
+claims. [porting inventory](UPSTREAM.md#current-porting-gaps) contains the per-entry findings; [historical verification ledger](#verification-record-migration) records
 evidence. The unchanged baseline is built/published/tested only in managed workspace-22
 so other work stays isolated. Release, formatting and isolated app signature pass;
 the four-lane packaged gate with upstream Git fixtures is incomplete after a plugin
@@ -5658,13 +5677,13 @@ settings-observer timeout, unfinished terminal checks and a stalled lane. Thirte
 of fifteen unreached audit cases pass in named packaged continuations; Codex host
 recovery fails its process-count fixture and Blueprint UI exits unfinished. The
 Codex fixture logs no first-attempt requests, so product process-reuse failure is
-not established. Detailed evidence and exact acceptance limits are in VALIDATION.md
-and PORTING-GAPS.md. Workspace-22 is disposable and removed after verification.
+not established. Detailed evidence and exact acceptance limits are in [historical verification ledger](#verification-record-migration)
+and [porting inventory](UPSTREAM.md#current-porting-gaps). Workspace-22 is disposable and removed after verification.
 No product code, commits, pushes, primary package replacement or external posts.
 
 ## 2026-10-14 — Acceptance backlog consolidation
 
-PORTING-GAPS.md now keeps implementation differences separate from eight consolidated
+[porting inventory](UPSTREAM.md#current-porting-gaps) now keeps implementation differences separate from eight consolidated
 acceptance tasks. Removed ten redundant implementation/acceptance rows and retained
 their unresolved checks under explicit failed/incomplete or not-run outcomes. The
 browser Settings fix remains missing from this baseline. Prior verification is reused;
@@ -5752,12 +5771,14 @@ A noninteractive overlay explains that Enter resumes the previous session after 
 
 Release and actual browser WASM builds passed with zero warnings/errors; touched formatting, JavaScript syntax and whitespace passed. New real Skia attachment/input regressions and whole GhosttySkiaChecks passed, including blocked/late acknowledgement, excluded plain/submitted/empty/watching sessions, input/query distinction, exactly-one Enter and disposal. A real Chromium/Restty check passed visible overlay, unchanged focus/grid, query handling, Enter forwarding, read-only suppression and listener cleanup. The existing TerminalChrome SideMenu fixture stopped at its expectation of Changes in a gitless workspace (line247); that fixture is unrelated and unchanged. Local/remote Metal GUI/relay runtime and physical Android acceptance remain unverified.
 
-2026-10-15: Replaced standard raster icon masks with original upstream SVG geometry; Host settings now uses a server icon. Release and focused vector, theme, design and settings checks passed; see VALIDATION.md. Brand artwork remains its original asset.
+2026-10-15: Replaced standard raster icon masks with original upstream SVG geometry; Host settings now uses a server icon. Release and focused vector, theme, design and settings checks passed; see [historical verification ledger](#verification-record-migration). Brand artwork remains its original asset.
 
 2026-10-15: Fixed missing browser Markdown Mermaid by using MermaidRenderer.RenderAsync rather than the native-only synchronous path. Actual browser restoration/open/reload/diff and error regressions passed, as did native visualization checks and Release builds. No renderer setup-order or worker changes were needed.
 
 2026-10-15: Kept browser terminal wheel events within their DOM surface to prevent stale Avalonia pointer targeting from scrolling Projects. Writable/read-only and return-to-Projects browser regressions passed; listener teardown is checked.
 
-2026-10-15: Fixed stale browser viewport ownership sizing and Settings resize oscillation by reconciling root viewport size and reading current owned-dialog CSS dimensions. Real-pointer browser acceptance passed at native DPR2 and large-screen zoom; see VALIDATION.md.
+2026-10-15: Fixed stale browser viewport ownership sizing and Settings resize oscillation by reconciling root viewport size and reading current owned-dialog CSS dimensions. Real-pointer browser acceptance passed at native DPR2 and large-screen zoom; see [browser rendering evidence](src/SharpRail.Browser/SPEC.md#recorded-rendering-evidence).
 
 2026-10-15: Host settings separates Connect to another host from Share this app as a host in bordered cards. Browser/Android current-host views use Connected host. Release solution, browser WASM and Android compilation passed with zero warnings/errors; focused serving checks verified card geometry, remote/unavailable states and unchanged listener lifecycle. Touched formatting passed; no physical-device or full-suite claim.
+
+2026-10-15: Consolidated upstream provenance and the porting/acceptance backlog into UPSTREAM.md. Removed the separate gap and validation ledgers after moving unique durable measurements, limitations and acceptance facts into owning specs. Documentation checks preserved 125 gap IDs and eight acceptance tasks, resolved 199 local paths/anchors and found no references to the removed files. Spec validation still reports four pre-existing Branch Graph findings; no runtime checks were rerun for this documentation-only change.

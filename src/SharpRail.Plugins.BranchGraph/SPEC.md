@@ -98,3 +98,7 @@ ref refresh with retained focus/menu, disable into a dormant tool tab, re-enable
 
 Still required for the full port: in-flight lifecycle races,
 native appearance, published output and full-suite verification.
+The user-requested 2026-10-11 headless 2,000-commit surface comparison reduced retained managed
+memory from 11.53 to 7.33 decimal MB, but process-resident memory increased from 140.90 to 167.40 MB.
+One baseline and one final sample, with other workspace activity, do not establish overall graph RAM
+reduction, whole-app savings or native presentation latency.

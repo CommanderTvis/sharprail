@@ -323,3 +323,21 @@ The drawn tree supports a threshold drag callback separately from row activation
 
 Markdown code blocks place Copy beside the source without a separate header row.
 The source scrolls horizontally in its own column so long lines never overlap Copy.
+
+## Recorded large-document measurement limits
+
+User-requested 2026-10-11 headless Skia measurements of 2,000-item surfaces showed that virtualization
+moves work from construction to scrolling; they are not whole-app RAM or native presentation results.
+The Files follow-up reduced allocations over 120 scroll steps from a historical 75.74 MB sample to a
+29.21 MB median across three fresh processes (29.19–29.21 MB), still above the fully prebuilt tree's
+3.60 MB. Its scroll-step p95 changed from 9.19 ms to a 6.14 ms median (5.53–6.64 ms). Those are not
+interleaved controlled trials.
+
+The 2026-10-12 selection comparison used a 19,000,000-character document, 1,795 selectable blocks,
+one mounted midpoint paragraph, an 800×600 headless window and 120 pointer updates with source-line
+observation and captured frames. Both versions produced 120 selection notifications and the same
+245-character final selection. Pointer median/p95 changed from 81.06/103.13 ms to 7.96/21.53 ms;
+allocation over the updates changed from 19,926.43 to 149.55 decimal MB. One baseline and one final
+fresh-process run establish a directional improvement for that fixture, not current browser speed,
+whole-app memory or native latency. Parsing, retained content and long-paragraph reflow remain
+proportional to document size; later exact-height scrolling changes were not part of these measurements.

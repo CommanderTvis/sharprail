@@ -118,7 +118,9 @@ A Release browser build, the strict desktop solution build and relevant checks m
 must load the deployed bundle in a real browser and exercise host authentication, editable source save
 and conflict handling, live terminal input/output and reconnection, PDF text/raster rendering, Mermaid,
 settings persistence, window/dialog interaction and builtin plugin surfaces. Compilation alone does not
-establish parity. Remaining verification is recorded in the repository's completion and validation records.
+establish parity. Remaining cross-platform acceptance is tracked in [UPSTREAM.md](../../UPSTREAM.md#outstanding-acceptance-work).
+Recorded Chromium passes do not establish Safari/Firefox, non-macOS keyboard/IME behavior, real
+notification permission, production HTTPS/proxies or physical Retina acceptance.
 The focused `mermaid.mjs` journey checks actual Markdown diagram controls on initial restoration, normal
 opening, reload and rendered diffs, including invalid-syntax errors; a successful direct worker SVG call
 alone does not establish that the workbench displays the diagram.
@@ -135,3 +137,38 @@ The restty DOM surface forwards file drag events to its Avalonia container with 
 coordinates. The shared terminal drop flow uploads browser-local bytes before invoking the active
 agent accessory. Restty's own input handlers do not process these drops. Forwarding listeners are
 removed with the surface.
+
+## Recorded rendering evidence
+
+The 2026-10-11 Chromium acceptance used an isolated real host and WASM controls for source save/
+conflicts, live PTY reconnect, PDF Unicode/rotation/crop/pixels, Mermaid workers, modal settings and
+external managed UI assembly/settings persistence. A separate normal-published-bundle smoke passed
+with test hooks absent. These dated runs do not verify every later shared-UI delta.
+
+The 2026-10-14 focused lifecycle probe passed 48 real Restty open/close cycles on Apple M4 Pro /
+ANGLE Metal while retaining detached canvases and graphics handles. Chromium memory-infra reported:
+
+| Checkpoint | GPU-process total bytes | ANGLE Metal bytes | Shared-image bytes |
+| --- | ---: | ---: | ---: |
+| Warm closed baseline, cycle 24 | 98,971,019 | 41,926,656 | 55,104,256 |
+| Open, cycle 48 | 110,530,955 | 48,463,872 | 58,816,256 |
+| Closed, cycle 48 | 98,971,019 | 41,926,656 | 55,104,256 |
+
+These allocator categories overlap and must not be summed. The strict gate observed positive open
+allocation and exact return to the warmed closed baseline; it did not measure physical GPU residency,
+other drivers/engines or the full workbench lifecycle. Before explicit context loss, the pinned runtime
+left its context and 12 graphics objects valid after teardown; the original bridge failed this probe.
+
+The recorded 2026-10-13 headless Chromium Restty sample at 124×48 cells and DPR 1 counted 781 GPU-draw
+frames in 13.006 seconds (60.05/s), matching the animation callbacks. The workload reported 111 output
+FPS. Output throughput, GPU draw cadence and physical presentation are different measurements: this
+sample proves neither 120 Hz presentation nor parity with desktop Metal. Earlier native-row Skia
+measurements likewise reached about 60 redraws/s. These dated samples are not current performance
+budgets or evidence that a transport change improves presentation.
+
+Actual Chromium regression coverage on 2026-10-15 includes restored and reopened Markdown Mermaid,
+invalid syntax, rendered diffs, writable/read-only terminal wheel ownership, listener teardown and
+Settings viewport stability. Settings passed at 1840×1340 with native DPR 2 and 2560×1600 with DPR 1
+and interface zoom 1.25. Test-build and emulated scaling passes remain distinct from normal-bundle
+and physical-browser acceptance; intermittent startup/reload failures observed in earlier checks
+were not established as resolved by the rendering fixes.

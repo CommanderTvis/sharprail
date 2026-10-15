@@ -219,9 +219,12 @@ user value) and both `claude-launcher.spec.ts` cases through the real launcher, 
 agent fallback, default, kitty and modifyOtherKeys input bytes. Hook scripts have
 their own shell checks. The integrated `--plugins` runner includes these checks.
 
+The 2026-10-10 narrow surface-selector check verified the hidden horizontal scrollbar and scrolling
+to Account headlessly. It did not check the packaged app or native narrow-pane appearance.
+
 Still required for the full port: complete source-by-source parity audit, the remaining IDE action
-and failure cases, the pane-driven halves of the configuration cases (composer dialogs, narrow-pane
-scrolling, source links after unsaved edits, account/usage and the MCP health row), the review
+and failure cases, the pane-driven halves of the configuration cases (composer dialogs and their narrow-pane
+layout, source links after unsaved edits, account/usage and the MCP health row), the review
 round trip over MCP, the terminal facts cases, terminal picker and sealing
 input behavior, a real macOS notification seen and clicked in the signed bundle (the checks stop
 at the notifier seam), compiled static pane/dialog layouts, remote

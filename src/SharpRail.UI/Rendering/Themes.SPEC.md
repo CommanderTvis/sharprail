@@ -122,3 +122,7 @@ ever arrive, the seam is a validated registration path in front of the same cata
   (`ThemeManifest.Syntax`), but code surfaces still pick their own colours. Upstream keeps one syntax scope map for both Markdown code blocks and the file editor: the
   editor resolves it to concrete colours after each swap, and a colour it cannot resolve is omitted so the
   editor's own default stays usable rather than painting a wrong one.
+
+The 2026-10-15 focused-tab accent-wash regression measured normal-text contrast of 8.76–12.21:1
+across all six bundled themes and checked rendered high-contrast pixels. This is automated palette/
+rendering evidence, not physical-device, native-animation or full screenshot acceptance.

@@ -172,3 +172,9 @@ retains all provider state and commands; generic settings controls remain kit-ow
 Start work passes host image paths through the launcher options to `--image`, shell-quoted separately from the prompt. The first agent task title names an untouched generated managed workspace through `set_title`.
 
 IDE snapshots include selected diff files as read-only editor context. Continuous Changes uses the selected file within its owner tab; source-side paths, ranges and selected text are retained while the terminal has focus, and closing the owner forgets them. An empty Changes review does not invent a file context.
+
+The 2026-10-14 packaged malformed-response recovery check expected two child processes but observed
+one. Inspection found one successful initialize/account-read sequence and no requests from the first
+rejected attempt; the fixture discarded its initial exception and used a one-second connection timeout.
+This leaves recovery verification unresolved: it does not establish that a malformed-response process
+was reused. A later source-gate pass does not replace this packaged acceptance.

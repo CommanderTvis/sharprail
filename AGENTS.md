@@ -79,9 +79,9 @@ subdirectory and remove it when the task finishes, including after failed checks
 Do not accumulate historical logs, captures, copied source trees, build/publish
 outputs, dependency caches or archives there. Temporary packaged-check staging is
 allowed only for the duration of its run; `check-packaged.sh` cleans it on exit.
-Reuse or replace current evidence instead of creating numbered copies. Record
-verification outcomes in the existing
-status documents; retain scratch evidence only when the user explicitly asks,
+Reuse or replace current evidence instead of creating numbered copies. Record durable verification
+facts and limits in owning module specs, and dated task outcomes in context-log.md. Retain scratch
+evidence only when the user explicitly asks,
 and remove it once it is no longer needed. Preserve files used by active tasks
 and `.bench/checks-last-run.txt` while it is needed for `--last-failed`. Check
 fixture directories also need cleanup after their processes exit; the runner does
@@ -223,9 +223,10 @@ WASM compilation and browser acceptance are separate from the desktop solution
 build and checks. `scripts/browser.sh` provisions the threaded WASM workload and
 stages the required native WASM libraries and browser assets.
 
-`SPEC.md` defines the product contract; `COMPLETION.md` records unfinished gates;
-`E2E.md` inventories upstream translations; `VALIDATION.md` records verified
-evidence. Read the relevant module specs and the latest relevant entries in
+`SPEC.md` defines the product contract; `COMPLETION.md` records completion criteria and
+`UPSTREAM.md` owns upstream provenance and the current implementation/acceptance backlog;
+`E2E.md` inventories upstream translations; owning module specs record durable verification facts
+and their scope. Read the relevant module specs and the latest relevant entries in
 `context-log.md` for continuation state; read `gotchas.md` if it is present.
 SharpRail tracks two upstreams, one per branch, both in the checkout at
 `/Users/commandertvis/IdeaProjects/thinkrail`. `main` ports CommanderTvis's fork
@@ -258,7 +259,7 @@ reviewed, ported or extracted on its own:
    registration files (`SharpRail.slnx`, project references, both `BuiltinPlugins.cs`, the
    check runner).
 
-Status records (`COMPLETION.md`, `VALIDATION.md`, `E2E.md`, `UPSTREAM.md`, `context-log.md`,
+Status records (`COMPLETION.md`, `E2E.md`, `UPSTREAM.md`, `context-log.md`,
 notices) sit in one commit at the tip.
 
 - Amend, don't append. A fix to something that already exists goes into the commit that owns

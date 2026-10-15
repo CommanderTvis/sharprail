@@ -321,6 +321,10 @@ adding only what a client alone knows: focus, a collection window, the system ch
 - Multi-client is accepted, as in the fork: focus is client-local, so one event may notify in several
   connected apps.
 
+Automated notification checks inject a recording notifier and do not post a real system notification.
+A signed-app away notification and click-to-correct-window/terminal journey remain native acceptance;
+headless gate passes do not establish OS permission or delivery.
+
 ## Lifecycle
 
 Quitting marks the workbench as shutting down so closing windows keep their profile entries, disposes the

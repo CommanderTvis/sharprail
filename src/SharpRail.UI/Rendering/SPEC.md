@@ -262,3 +262,13 @@ commit rows in the scope menu append it to the short SHA and author.
   (`Ui.Text(text, brush, 12)`) rather than naming a role; they move to roles as they are touched.
 
 Diff selections feed the shared editor event stream for Codex and Claude Code, including cached files in continuous Changes review. Source selections map displayed rows to the original or modified file lines and subtract unified-diff prefixes from columns; metadata and gap rows have no source selection. Deletion-only selections use the original path for renamed files. Rendered Markdown reports exact selected visible text and the whole source-block line bounds: mixed blocks use modified bounds, deletion-only blocks use original bounds. These bounds may enclose unchanged lines; they are not exact Markdown character positions. Replacing a diff body clears its previous selection.
+
+## Native visual acceptance limits
+
+The earlier 1352×848 logical / 2× comparison matched sampled frame separator positions and palette,
+not the entire screenshot. Matching Geist faces still left about one physical pixel of glyph-boundary
+difference in the sampled Projects label. Those dated measurements do not close current typography,
+controls, menus, docking animation or representative-document fidelity. Native comparisons need matched
+content, dimensions and scale; a rendered or accessibility capture proves only what it observes.
+Headless rendering, platform compilation and functional checks do not establish native IME, screen-reader
+or physical-device acceptance. See the current [acceptance inventory](../../../UPSTREAM.md#outstanding-acceptance-work).

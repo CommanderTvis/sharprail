@@ -237,7 +237,13 @@ start of the Release package was about 2.3 s there. On a phone-sized emulator (1
 was checked for the connect screen, connecting, and the first frame: a fresh profile on a screen narrower
 than 600 dp starts on the centre-only `focus` preset, with the panels behind their toggles.
 
-Not verified: physical devices, working in the workbench on a phone beyond its first frame, input methods other than Gboard, TalkBack and other
+The Release package also installed and showed the connect screen on a Pixel 8 (Android 17); that
+limited observation does not establish physical-device workbench acceptance. Later phone-emulator
+checks exercised the bottom navigation, Projects and Tools pages, Settings sections and Back behavior.
+The 2026-10-15 immediate Settings-drag fix passed real shared-control headless touch input and Android
+managed Release compilation; no physical-device interaction or APK installation was repeated for it.
+
+Not verified: physical-device workbench use, input methods other than Gboard, TalkBack and other
 accessibility services, plugin UI beyond what the default workbench shows, HTTPS endpoints and CI.
 
 ## Tailscale pairing

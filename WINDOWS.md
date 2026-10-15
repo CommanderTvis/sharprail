@@ -81,4 +81,7 @@ discovery, which the Windows backend does not provide. Unix-only agent process
 discovery and the Codex Unix IDE socket retain their existing platform limits.
 
 Cross-compilation and macOS checks do not establish Windows runtime acceptance.
-See `VALIDATION.md` for checks actually executed and outstanding Windows gates.
+The [terminal contract](src/SharpRail.Host.Core/Terminals.SPEC.md#windows-verification-scope) records
+what the source checks established. Packaged Windows execution and manual desktop input/IME acceptance
+remain distinct; outstanding platform work is tracked in
+[UPSTREAM.md](UPSTREAM.md#outstanding-acceptance-work).

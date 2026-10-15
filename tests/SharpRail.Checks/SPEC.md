@@ -589,3 +589,27 @@ Markdown Mermaid diff checks cover unchanged, changed, added/removed and nested 
 `--file-drop` covers direct/remote uploads, collision and containment refusals, copy/move, private
 attachments and cancellation, then headless drag thresholds and routed tree/agent drop behavior.
 The same host, gesture and UI cases join the full gate.
+
+## Recorded verification scope
+
+A pass belongs to the tested source tree, runtime, adapter and fixture. Compiling Android or WASM is
+not device/browser acceptance; a source check is not a packaged check. Reused byte-identical slices
+retain their existing evidence, but interrupted lanes and skipped platform branches never count as
+passes. Record new durable scope or limits in the owning spec and dated task outcomes in context-log.md;
+keep translated-case coverage in E2E.md and current cross-module gates in UPSTREAM.md.
+
+The 2026-10-15 workspace-13 integration completed all 131 catalog cases in aggregate, reusing completed
+cases and running failed/unfinished cases after interrupted lanes. It was not one uninterrupted full
+gate. The final shared focus/startup changes received a desktop Release build and focused checks;
+Android and browser compilation had passed before that final delta and were not repeated for it.
+
+That source result does not close the distinct 2026-10-14 packaged audit: its settings observer timed
+out, terminal/lane work was interrupted, Blueprint UI ended unfinished and Codex recovery failed.
+Thirteen targeted packaged continuation cases passed; a clean complete packaged gate was not obtained.
+The isolated package passed ReadyToRun/file-identity and strict/deep signature checks without replacing
+the canonical running application. Current unresolved acceptance is consolidated in
+[UPSTREAM.md](../../UPSTREAM.md#outstanding-acceptance-work).
+
+Spec validation at that integration reported four existing Branch Graph links to absent upstream IDs
+(module-contracts, module-plugin-ui, module-server, module-web). This is a recorded graph finding,
+not a reason to treat later validation as automatically green or to weaken the validator.

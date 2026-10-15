@@ -302,3 +302,12 @@ Those external-file admissions expire when the terminal session closes or the ho
 The terminal service accepts bounded PNG clipboard uploads for an existing session and writes a unique
 file under the host profile clipboard directory with private permissions. The response is a host path;
 browser-local files are never offered to host shells.
+
+## Windows verification scope
+
+The 2026-10-13 macOS verification cross-built x64 PE terminal/editor libraries and checked their
+Windows OS/UCRT imports, PowerShell parsing and portable quoting, path/profile and local/remote Git
+fixtures. It did not execute ConPTY, Recycle Bin or native Windows UI branches. An actual Windows
+packaged --windows run is required for those branches; it remains distinct from manual clipboard,
+IME, editor and desktop-client acceptance. Cross-compilation is not runtime proof. Current platform
+acceptance tasks are tracked in [UPSTREAM.md](../../UPSTREAM.md#outstanding-acceptance-work).
