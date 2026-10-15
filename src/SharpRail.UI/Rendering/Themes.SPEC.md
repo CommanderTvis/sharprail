@@ -19,6 +19,13 @@ optional light/dark pair (`IHostStateService` settings `theme`, `theme-mode`, `s
 and same-appearance fallback. Adding a theme means adding one `Assets/Themes/*.theme.json` file and
 rebuilding: no code, contract, style or check changes.
 
+Six manifests ship: the standard Dark and Light (the configured default and its pair), Minimal Dark and
+Minimal Light (quiet neutral surfaces, a restrained green accent and a neutral `bubbleAccent`, sharing the
+standard pair's syntax and terminal palettes), and the two High Contrast palettes with their stricter
+accessibility contract. Minimal is a palette a user picks in Appearance and nothing more: every theme
+renders the same roles. What a palette cannot express through the manifest keys is a product decision for
+all themes, not a theme.
+
 ## Boundary
 
 - Owns the manifest contract (`ThemeManifest`), the bundled set under `Assets/Themes`, catalogue
@@ -58,7 +65,8 @@ every bundled manifest ships them equal: a role can only vary between themes if 
 it. `accent` is the foreground, ring, border and tint source. The primary button's opaque fill is
 independent: `accentSolid` at rest, `accentHover` on hover, and `onAccent` as the label on both. A palette
 can change solid controls without changing every accent tint; pinning the fill outside the palette would
-make it the one control a theme cannot restyle. Every theme renders the same fills, borders and roles;
+make it the one control a theme cannot restyle. The Minimal palettes align their resting fill with their
+accent, while the standard Light keeps its brighter, independently tuned solid fill. Every theme renders the same fills, borders and roles;
 components never branch on theme identity or contrast metadata to remove them.
 
 A manifest must also be legible, not merely complete. The design checks hold every bundled manifest to
@@ -110,10 +118,6 @@ ever arrive, the seam is a validated registration path in front of the same cata
 
 ## Not yet ported
 
-- Minimal Dark and Minimal Light palettes: quiet neutral surfaces, restrained green accents and neutral
-  bubble accents, sharing the standard pair's syntax and terminal palettes. The native catalogue still
-  ships four manifests. Upstream's standard Light now uses an independently tuned `accentSolid`; the
-  native Light manifest retains its existing primary fill.
 - Consumption of the manifest's `syntax` palette; `Themes.Parse` validates and carries it
   (`ThemeManifest.Syntax`), but code surfaces still pick their own colours. Upstream keeps one syntax scope map for both Markdown code blocks and the file editor: the
   editor resolves it to concrete colours after each swap, and a colour it cannot resolve is omitted so the

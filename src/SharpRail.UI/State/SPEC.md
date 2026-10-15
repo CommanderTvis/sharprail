@@ -104,6 +104,24 @@ After each (re)connect the subscription asks the host for its handshake in the b
 the version is cleared when the connection drops, and an answer from a superseded connection is discarded.
 A window that sees a protocol version other than its own logs it and shows a non-blocking notice.
 
+## Workspace partition
+
+`WorkspaceSettling.Partition` is the one pure derivation of a project's rows into live rows and the Settled
+shelf, used by the Projects rail, the header's Switch to menu and its `Workspace · settled` caption so they
+never disagree. The caller supplies the clock, the host's `SettleIdleDays` and the active-selection latch.
+Rules in order: Default is live; `SettledOverride` `settled` settles (reason by you) and `active` keeps live,
+both beating the latch; the latched active workspace is live; a row idle longer than the window settles
+(reason idle); otherwise live. `Created` order (the rail) is newest created first; `Recent` order (the
+switcher) is newest activity first with newest created breaking ties; Default leads either way.
+
+A window re-evaluates on a 30-second clock. The latch is decided when the window lands on a different
+workspace: live then means it stays live while you are in it, however long it idles; settled then means it
+stays on the shelf. Landing again on the same workspace keeps the decision, and a broadcast that advances
+the active row's `LastActiveAt` re-arms the latch. `SharedState.SettlingSupported` keeps the last answered
+handshake's verdict through a dropped connection, so the shelf does not flatten while reconnecting; below
+`HostProtocol.WorkspaceSettle` the partition returns the host's flat list and ignores stale fields. Shelf
+disclosure and paging are per-window and not persisted.
+
 ## Profile persistence
 
 Loading is defensive: unreadable files yield a fresh profile with the error kept in `LastError`; missing
@@ -179,17 +197,6 @@ it. The queue is never persisted or shared between windows.
 - A shared keyboard gate for shell commands and review's plain-letter shortcuts: an open modal owns
   keyboard input, and text-entry controls keep their letters. Review shortcuts must not intercept editor
   typing or terminal input.
-- One shared, pure workspace partition for the Projects rail and location switcher, driven by host
-  activity, settle overrides and the shared idle-days setting. Default stays live; explicit Settled or
-  Keep active wins over the active-selection latch. A workspace selected while live stays live as time
-  passes; opening an already settled workspace reveals it without moving it, and reselecting the same
-  workspace preserves the latch. New activity re-arms it. Idle settling uses a caller-provided clock,
-  refreshed every 30 seconds. AI work and unread-result guards are outside SharpRail's scope.
-- Recent activity (default), Created and Name sorting with Default pinned first, persisted as a
-  client-local profile preference. Shelf disclosure and paging are per-window transient state and start
-  collapsed. A future settle capability must retain the last completed handshake's verdict through a
-  transient disconnect and preserve the legacy list when a host does not support it, ignoring stale
-  persisted settle fields.
 - Routing the window's gesture notification (layout-cancelled drags, removed workspaces, protocol mismatch,
   a vanished commit) and its error line through the toast queue; they keep their own single surfaces, so
   those messages are neither coalesced nor capped.

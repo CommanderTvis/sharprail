@@ -15,7 +15,12 @@ public sealed partial class WorkbenchWindow
     private sealed record ProjectRailRow(Border Header, StackPanel Workspaces)
     {
         public Dictionary<string, (Control? Row, ContentControl Tabs)> Rows { get; } = [];
+        public Button? Shelf { get; set; }
+        public Button? More { get; set; }
     }
+
+    // The settled rows of every project as the rail last derived them, read by each row's update.
+    private readonly Dictionary<string, SettledRow> railSettled = [];
 
     private readonly Dictionary<string, Action> railSelection = [];
     private readonly Dictionary<string, ProjectRailRow> projectRailRows = [];
@@ -44,6 +49,7 @@ public sealed partial class WorkbenchWindow
             projectRailRows.Remove(project);
         }
         var children = new List<Control>();
+        railSettled.Clear();
         foreach (var project in state.Current.Projects)
         {
             if (!projectRailRows.TryGetValue(project, out var entry))
@@ -59,7 +65,10 @@ public sealed partial class WorkbenchWindow
             { entry.Rows.Remove(path); ForgetWorkspaceRow(path); }
             var rows = new List<Control>();
             var showWorkspaces = HasWorkspaceRows(project, trees);
-            foreach (var worktree in trees)
+            // Live rows newest created first, then the Settled shelf; an older host keeps its own flat order.
+            var partition = PartitionOf(project);
+            foreach (var row in partition.Settled) railSettled[row.Workspace.Path] = row;
+            void Add(WorkspaceRecord worktree)
             {
                 if (!entry.Rows.TryGetValue(worktree.Path, out var pair))
                     pair = (null, WorkspaceTabsHost(worktree.Path));
@@ -69,6 +78,23 @@ public sealed partial class WorkbenchWindow
                 entry.Rows[worktree.Path] = pair;
                 if (pair.Row is not null) rows.Add(pair.Row);
                 rows.Add(pair.Tabs);
+            }
+            foreach (var worktree in partition.Live) Add(worktree);
+            if (showWorkspaces && partition.Settled.Count > 0)
+            {
+                var expanded = expandedShelves.Contains(project);
+                rows.Add(entry.Shelf ??= ShelfHeader(project));
+                entry.Shelf.Content = ShelfLabel(expanded, partition.Settled.Count);
+                if (expanded)
+                {
+                    var shown = ShownSettled(project);
+                    foreach (var row in partition.Settled.Take(shown)) Add(row.Workspace);
+                    if (partition.Settled.Count > shown)
+                    {
+                        rows.Add(entry.More ??= ShelfMore(project));
+                        entry.More.Content = Ui.Text($"Show {Math.Min(WorkspaceSettling.ShelfMore, partition.Settled.Count - shown)} more", Ui.Hint, 12);
+                    }
+                }
             }
             ReconcileRailChildren(entry.Workspaces, rows);
         }
@@ -95,6 +121,51 @@ public sealed partial class WorkbenchWindow
         ReconcileRailChildren(projectsTree, children);
         foreach (var update in railSelection.Values) update();
         placeProjectTrailing?.Invoke();
+    }
+
+    private Button ShelfHeader(string project)
+    {
+        var header = new Button
+        {
+            Name = "SettledShelf",
+            Tag = project,
+            Margin = new Thickness(24, 4, 0, 0),
+            Padding = new Thickness(4, 2),
+            Background = Avalonia.Media.Brushes.Transparent,
+            BorderThickness = new(0),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            HorizontalContentAlignment = HorizontalAlignment.Left
+        };
+        header.Click += (_, _) =>
+        {
+            if (!expandedShelves.Remove(project)) expandedShelves.Add(project);
+            UpdateRailSelection();
+        };
+        return header;
+    }
+
+    private static StackPanel ShelfLabel(bool expanded, int count)
+    {
+        var label = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
+        label.Children.Add(Ui.Icon(expanded ? "arrowDown" : "arrowRight", Ui.Hint, 12));
+        label.Children.Add(Ui.Text($"Settled · {count}", Ui.Hint, 12));
+        AutomationProperties.SetName(label, $"Settled, {count} {(count == 1 ? "workspace" : "workspaces")}");
+        return label;
+    }
+
+    private Button ShelfMore(string project)
+    {
+        var more = new Button
+        {
+            Name = "SettledShelfMore",
+            Tag = project,
+            Margin = new Thickness(44, 0, 0, 0),
+            Padding = new Thickness(4, 2),
+            Background = Avalonia.Media.Brushes.Transparent,
+            BorderThickness = new(0)
+        };
+        more.Click += (_, _) => { shownSettled[project] = ShownSettled(project) + WorkspaceSettling.ShelfMore; UpdateRailSelection(); };
+        return more;
     }
 
     private void RefreshRailWorkspace(string path)
@@ -173,10 +244,12 @@ public sealed partial class WorkbenchWindow
         var row = new Grid { Name = "ProjectRow", ColumnDefinitions = new ColumnDefinitions("16,4,*,Auto,Auto"), Height = 28, Margin = new Thickness(4, 0), Background = Avalonia.Media.Brushes.Transparent, Tag = project };
         var highlight = new Border { Name = "ProjectHighlight", Tag = project, Child = row };
         highlight.Classes.Add("project-row");
-        var collapsed = profile.Data.CollapsedProjects.Contains(project);
+        var collapsed = Collapsed(project);
         var toggle = Ui.IconButton(collapsed ? "arrowRight" : "arrowDown", collapsed ? "Expand project" : "Collapse project", () =>
         {
-            if (!profile.Data.CollapsedProjects.Add(project)) { profile.Data.CollapsedProjects.Remove(project); _ = SyncWorkspacesAsync(project); }
+            // A revealed project shows expanded, so its toggle collapses it and ends the reveal.
+            if (revealedProject == project) { revealedProject = null; profile.Data.CollapsedProjects.Add(project); }
+            else if (!profile.Data.CollapsedProjects.Add(project)) { profile.Data.CollapsedProjects.Remove(project); _ = SyncWorkspacesAsync(project); }
             SaveProfile(); UpdateRailSelection();
         });
         toggle.Name = "ProjectExpand"; toggle.Tag = project;
@@ -201,7 +274,7 @@ public sealed partial class WorkbenchWindow
             highlight.Classes.Set("active", project == projectRoot && (atHome || plain));
             ((Border)folder).Background = project == projectRoot ? Ui.Accent : Ui.Muted;
             name.Foreground = project == projectRoot ? Ui.TextBrush : Ui.Muted;
-            var folded = profile.Data.CollapsedProjects.Contains(project);
+            var folded = Collapsed(project);
             if (folded != collapsed) toggle.Content = Ui.Icon(folded ? "arrowRight" : "arrowDown");
             collapsed = folded;
             var count = RailWorkspaces(project).Count(tree => tree.Kind != WorkspaceKinds.Default);
@@ -228,7 +301,7 @@ public sealed partial class WorkbenchWindow
 
     private void RefreshProjectWorkspaces()
     {
-        foreach (var project in state.Current.Projects.Where(project => !profile.Data.CollapsedProjects.Contains(project)))
+        foreach (var project in state.Current.Projects.Where(project => !Collapsed(project)))
             _ = SyncWorkspacesAsync(project);
     }
 
@@ -284,7 +357,22 @@ public sealed partial class WorkbenchWindow
         var labels = new StackPanel();
         var label = Ui.Text(name, color); label.LineHeight = 17.5; label.Name = "WorkspaceName";
         label.Classes.Add("workspace-description");
-        labels.Children.Add(label);
+        // A settled row is slim: its name and the reason it is on the shelf.
+        var chipText = Ui.Text("", Ui.Hint, 11);
+        var chip = new Border
+        {
+            Name = "WorkspaceSettledChip",
+            Child = chipText,
+            BorderBrush = Ui.BorderBrush,
+            BorderThickness = new(1),
+            CornerRadius = new(4),
+            Padding = new(4, 0),
+            Margin = new(8, 0, 0, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+            IsVisible = false
+        };
+        labels.Children.Add(new DockPanel { Children = { chip, label } });
+        DockPanel.SetDock(chip, Dock.Right);
         var added = Ui.Text("", Ui.Success, 12);
         var removed = Ui.Text("", Ui.Danger, 12);
         var totals = new StackPanel { Name = "WorkspaceDiffStats", Orientation = Orientation.Horizontal, Spacing = 4, Children = { added, removed } };
@@ -304,7 +392,16 @@ public sealed partial class WorkbenchWindow
         // A branch that moves under its checkout is redrawn in place: the row keeps its focus and pointer target.
         void ShowBranch()
         {
+            var settled = railSettled.GetValueOrDefault(worktree.Path);
+            chip.IsVisible = settled is not null;
+            if (settled is not null)
+            {
+                chipText.Text = WorkspaceSettling.Chip(settled, SettlingClock());
+                chipText.Foreground = chip.BorderBrush = settled.Reason == SettledReason.ByYou ? Ui.Warning : Ui.Hint;
+                ToolTip.SetTip(chip, WorkspaceSettling.Explanation(settled, SettlingClock()));
+            }
             var text = removingWorkspaces.Contains(worktree.Path) ? "Removing…"
+                : settled is not null ? ""
                 : RailWorkspaces(worktree.ProjectRoot).FirstOrDefault(workspace => workspace.Path == worktree.Path)?.Branch ?? worktree.Branch;
             branch.Text = text;
             var twoLines = text.Length > 0;
@@ -323,13 +420,14 @@ public sealed partial class WorkbenchWindow
             Tag = worktree.Path,
             Content = contents,
             Background = active ? Ui.Selected : Avalonia.Media.Brushes.Transparent,
-            Padding = new Thickness(4, 4, 32, 4),
+            Padding = new Thickness(4, 4, 60, 4),
             MinHeight = 28,
             CornerRadius = new(4),
             BorderThickness = new(0),
             HorizontalAlignment = HorizontalAlignment.Stretch,
             HorizontalContentAlignment = HorizontalAlignment.Stretch
         };
+        Action? refreshSettle = null;
         railSelection["workspace:" + worktree.Path] = () =>
         {
             var selected = !atHome && worktree.Path == workspaceRoot;
@@ -341,6 +439,7 @@ public sealed partial class WorkbenchWindow
             button.IsEnabled = !removingWorkspaces.Contains(worktree.Path);
             contents.Opacity = button.IsEnabled ? 1 : 0.5;
             ShowBranch();
+            refreshSettle?.Invoke();
         };
         AutomationProperties.SetName(button, name);
         ToolTip.SetTip(button, worktree.Path);
@@ -360,11 +459,38 @@ public sealed partial class WorkbenchWindow
         };
         AutomationProperties.SetName(kebab, "Workspace actions");
         ToolTip.SetTip(kebab, "Workspace actions");
-        var item = new Grid { Name = "WorkspaceItem", Tag = worktree.Path, Margin = new Thickness(24, 0, 0, 0), ColumnDefinitions = new ColumnDefinitions("*,Auto"), Background = Avalonia.Media.Brushes.Transparent };
+        var item = new Grid { Name = "WorkspaceItem", Tag = worktree.Path, Margin = new Thickness(24, 0, 0, 0), ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto"), Background = Avalonia.Media.Brushes.Transparent };
+        // Settle on a live row, Keep active on a settled one, beside the kebab; never on Default or an older host.
+        var settle = new Button
+        {
+            Name = "WorkspaceSettleToggle",
+            Tag = worktree.Path,
+            Width = 24,
+            Height = 24,
+            Padding = new(0),
+            Opacity = 0,
+            Background = Avalonia.Media.Brushes.Transparent,
+            BorderThickness = new(0),
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        void ShowSettle()
+        {
+            var settled = railSettled.ContainsKey(worktree.Path);
+            settle.IsVisible = SettlingSupported && worktree.Kind != WorkspaceKinds.Default && worktree.Id.Length > 0;
+            settle.Content = Ui.Icon(settled ? "arrowGoBack" : "check", null, 14);
+            var tip = settled ? "Keep active" : "Settle";
+            ToolTip.SetTip(settle, tip); AutomationProperties.SetName(settle, tip);
+        }
+        refreshSettle = ShowSettle;
+        settle.Click += (_, _) =>
+        {
+            var current = state.Current.Workspaces.FirstOrDefault(workspace => workspace.Id == worktree.Id);
+            if (current is not null && button.IsEnabled) _ = SetSettledAsync(current, !railSettled.ContainsKey(worktree.Path));
+        };
         var menu = WorkspaceActions(worktree, kebab);
         button.ContextMenu = menu;
         kebab.Click += (_, _) => { if (button.IsEnabled) menu.Open(button); };
-        void Reveal() => kebab.Opacity = ProjectsHoverEnabled && button.IsEnabled && (item.IsPointerOver || item.IsKeyboardFocusWithin || menu.IsOpen) ? 1 : 0;
+        void Reveal() => settle.Opacity = kebab.Opacity = ProjectsHoverEnabled && button.IsEnabled && (item.IsPointerOver || item.IsKeyboardFocusWithin || menu.IsOpen) ? 1 : 0;
         item.PointerEntered += (_, _) => { Reveal(); if (ProjectsHoverEnabled) Prewarm(worktree.Path); };
         item.PointerExited += (_, _) => Reveal();
         item.GotFocus += (_, _) => { Reveal(); if (ProjectsHoverEnabled) Prewarm(worktree.Path); };
@@ -373,8 +499,10 @@ public sealed partial class WorkbenchWindow
         menu.Closed += (_, _) => Reveal();
         var main = renaming == worktree.Path && !renameInHeader ? RenameBox(new Thickness(4, 0, 32, 0), 28) : button;
         Ui.Place(item, main);
-        Grid.SetColumnSpan(main, 2);
-        Ui.Place(item, kebab, 0, 1);
+        Grid.SetColumnSpan(main, 3);
+        ShowSettle();
+        Ui.Place(item, settle, 0, 1);
+        Ui.Place(item, kebab, 0, 2);
         return item;
     }
 

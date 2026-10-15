@@ -43,6 +43,8 @@ public sealed partial class HostStateStore
         {
             // Each project's Default workspace leads its rows, as every client lists them.
             var next = change(state.Workspaces).Where(ValidWorkspace).OrderBy(workspace => workspace.Kind != WorkspaceKinds.Default).ToArray();
+            // A record first persisted here is live by construction: it is stamped as it is created or discovered.
+            next = BackfillActivity(state with { Workspaces = next }, Clock()).Workspaces.ToArray();
             if (next.SequenceEqual(state.Workspaces)) return state.Workspaces;
             var paths = next.Select(workspace => workspace.Path).ToHashSet();
             removed = state.Workspaces.Select(workspace => workspace.Path).Where(path => !paths.Contains(path)).ToArray();

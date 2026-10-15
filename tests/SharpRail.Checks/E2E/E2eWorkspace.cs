@@ -131,7 +131,7 @@ internal sealed class E2eWorkspace : IDisposable
         Window.Show();
         if (startPath is not null) return;
         Until(() => Window.WorkspaceMounted);
-        if (openFiles) Click(Find<Button>("Tab_files"));
+        if (openFiles) ShowTool("files");
     }
 
     internal static void Require(bool value, string message)
@@ -163,6 +163,16 @@ internal sealed class E2eWorkspace : IDisposable
     {
         Dispatcher.UIThread.RunJobs(); Window.UpdateLayout();
         return Window.GetLogicalDescendants().OfType<T>().Single(item => item.Name == name);
+    }
+
+    /// <summary>Shows a side tool through its rail entry; the entry already pressed would fold its pane instead, so it is left alone.</summary>
+    internal void ShowTool(string id)
+    {
+        // Settle first, as a fresh click does: a restore still landing may select the tool meanwhile.
+        Window.MouseMove(new Point(Window.Bounds.Width - 2, Window.Bounds.Height - 2));
+        Settle(550);
+        var entry = Find<Button>("Tab_" + id.Replace(':', '_'));
+        if (!Equals(entry.Tag, "pressed")) Click(entry, freshGesture: false);
     }
 
     internal Button Tab(string path) => Find<Button>("Tab_" + (path.EndsWith(".txt", StringComparison.Ordinal) ? "file_" : "markdown_") + path.Replace('/', '_'));

@@ -74,7 +74,7 @@ internal static class ChangesFixture
         return worktree;
     }
 
-    internal static void ShowChanges(E2eWorkspace app) => app.Click(app.Find<Button>("Tab_changes"));
+    internal static void ShowChanges(E2eWorkspace app) => app.ShowTool("changes");
 
     internal static Border[] Frames(E2eWorkspace app) => app.Find<Control>("ChangesPanel").GetLogicalDescendants().OfType<Border>()
         .Where(border => border.Classes.Contains("change-row")).ToArray();

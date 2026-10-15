@@ -79,11 +79,12 @@ invitation and bundled AI chat are excluded by the SharpRail product contract.
   also recognizes the injected header before hooks report. The Context pane lists the file with a
   **launch flag** chip. Revival strips the generated override and reapplies the current setting once;
   changing the setting never affects a running session. Windows keeps the launcher prompt alone.
-- Workflow skills: activation copies `writing-specs`, `setting-up-a-project`, `importing-a-codebase`,
-  `starting-a-new-project`, `shipping-a-pr` and `add-highlighting` to `$CODEX_HOME/skills/<name>/`, where Codex discovers a
+- Workflow skills: activation copies `choosing-a-workflow`, `brainstorming`, `asking-user-questions`, `spec-graph`,
+  `writing-specs`, `setting-up-a-project`, `importing-a-codebase`, `starting-a-new-project`, `shipping-a-pr`
+  and `add-highlighting` to `$CODEX_HOME/skills/<name>/`, where Codex discovers a
   user's skills; there is no session-scoped skill root to point a launch at, so every Codex session sees
-  them while the plugin is active. The text is the fork's `packages/pi-thinkrail-workflow/skills` as
-  adapted in `src/SharpRail.Plugins.Agent.Skills`, the one source shared with Claude Code (see that
+  them while the plugin is active. The text is the fork's `packages/pi-thinkrail-workflow/skills` and JetBrains ThinkRail's
+  workflow and spec-graph skills as adapted in `src/SharpRail.Plugins.Agent.Skills`, the one source shared with Claude Code (see that
   plugin's spec for the adaptation); the fork ships skills to pi only. `<stateDir>/codex/skills.sharprail-default`
   holds a SHA-256 stamp per installed file. A file matching its stamp is SharpRail's: refreshed when the
   shipped text changes, restored when missing, removed when no longer shipped. An edited file is the

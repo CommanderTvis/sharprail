@@ -152,6 +152,9 @@ internal static class VisualizeE2E
             window.MouseMove(start); window.MouseDown(start, MouseButton.Left); window.MouseMove(end); window.MouseUp(end, MouseButton.Left);
             Settle();
         }
+        var initialCompanion = terminal.GetLogicalDescendants().OfType<ContentControl>().Single(control => control.Name == "TerminalCompanion").Bounds.Width;
+        Require(Math.Abs(initialCompanion - (terminal.Bounds.Width - splitter.Bounds.Width) * 0.45) < 1,
+            $"The companion first opens at the fork's 45% share of the terminal: {initialCompanion} of {terminal.Bounds.Width}.");
         var initialWidth = viewer.Bounds.Width;
         ResizeCompanion(-120);
         Require(Math.Abs(viewer.Bounds.Width - initialWidth - 120) < 1,

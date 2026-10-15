@@ -25,7 +25,11 @@ public sealed record HostSettings
     public bool? VerticalCenterTabs { get; init; }
     /// <summary>Whether the vertical strip lives in Projects; null keeps an older client's preference.</summary>
     public bool? VerticalTabsInProjects { get; init; }
+    /// <summary>Days without activity after which a workspace settles onto its project's shelf; null never settles.</summary>
+    public int? SettleIdleDays { get; init; } = DefaultSettleIdleDays;
 
+    public const int DefaultSettleIdleDays = 7;
+    public const int MaxSettleIdleDays = 365;
     public const int DefaultTerminalReplayKb = 64;
     public const int MaxTerminalReplayKb = 1024;
 }

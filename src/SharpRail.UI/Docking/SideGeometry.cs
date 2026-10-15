@@ -11,8 +11,8 @@ internal sealed class SideGeometry
 
     public SideGeometry(DockState state, double width)
     {
-        left = state.LeftVisible && state.Groups.Any(group => group.Region == "left");
-        right = state.RightVisible && state.Groups.Any(group => group.Region == "right");
+        left = Shown(state, "left");
+        right = Shown(state, "right");
         var leftTarget = left ? state.LeftWidth : 0;
         var rightTarget = right ? state.RightWidth : 0;
         var centerMinimum = Math.Min(1 - (left ? .08 : 0) - (right ? .08 : 0), width > 0 ? 320 / width : .1);
@@ -24,6 +24,10 @@ internal sealed class SideGeometry
     }
 
     public (double Left, double Center, double Right) Project() => Project(sizes);
+
+    /// <summary>Folded panes live only on the side rail and take no interior width.</summary>
+    public static bool Shown(DockState state, string side) => (side == "left" ? state.LeftVisible : state.RightVisible) &&
+        state.Groups.Any(group => group.Region == side && !group.Folded);
 
     public (double Left, double Center, double Right) Resize(string side, double delta) =>
         Project(PanelProjection.Adjust(sizes, constraints, side == "left" ? 0 : sizes.Length - 2, delta));

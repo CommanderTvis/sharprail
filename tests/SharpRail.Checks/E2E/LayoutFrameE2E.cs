@@ -43,34 +43,21 @@ internal static class LayoutFrameE2E
         app.Open("README.md", true);
         Require(app.Window.Layout.State.Groups.All(group => group.Region != "bottom"), "The workspace has no bottom zone.");
         var right = app.Window.Layout.State.Groups.First(group => group.Tools.Any(tab => tab.Id == "files")).Id;
-        foreach (var id in new[] { right })
-        {
-            var strip = app.Find<Border>("TabStrip_" + id);
-            Require(Math.Abs(strip.Bounds.Height - 32) < .1, "Every workbench tab strip must stay one 32-pixel row.");
-            var scroll = strip.GetLogicalDescendants().OfType<ScrollViewer>().Single();
-            Require(ControlAutomationPeer.CreatePeerForElement((Control)scroll.Content!)!.GetAutomationControlType() == AutomationControlType.Tab &&
-                scroll.HorizontalScrollBarVisibility == ScrollBarVisibility.Hidden && scroll.VerticalScrollBarVisibility == ScrollBarVisibility.Disabled,
-                "Each strip must expose one tab list that scrolls horizontally without scrollbars.");
-            Require(!strip.GetLogicalDescendants().OfType<Button>().Any(button => AutomationProperties.GetName(button)?.StartsWith("Scroll tabs", StringComparison.Ordinal) == true),
-                "Tab strips must not add scroll buttons.");
-            var tabs = strip.GetLogicalDescendants().OfType<Button>().Where(button => button.Name?.StartsWith("Tab_", StringComparison.Ordinal) == true).ToArray();
-            var selected = tabs.Where(tab => Item(tab).IsSelected).ToArray();
-            Require(selected.Length == 1, "Each strip must expose exactly one selected tab.");
-            var body = ControlAutomationPeer.CreatePeerForElement(app.Find<Border>("DockBody_" + id))!;
-            Require(body.GetAutomationControlType() == AutomationControlType.Pane && ReferenceEquals(body.GetLabeledBy(), ControlAutomationPeer.CreatePeerForElement(selected[0])),
-                "The selected tab must label its pane.");
-        }
+        Require(Math.Abs(app.Find<Border>("TabStrip_" + right).Bounds.Height - 32) < .1 &&
+            !app.Find<Border>("TabStrip_" + right).GetLogicalDescendants().OfType<ScrollViewer>().Any(),
+            "A side tool pane's header must be one 32-pixel row without a tab list.");
         foreach (var tool in DockState.ToolNames.Append(DockState.SpecsTool))
         {
-            var wrapper = app.Find<Button>("Tab_" + tool.Replace(':', '_')).GetLogicalAncestors().OfType<Grid>().First(item => item.Name?.StartsWith("DockTab_", StringComparison.Ordinal) == true);
-            Require(!wrapper.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "CloseTab"), "Tool tabs must not offer a close button.");
+            var entry = app.Find<Button>("Tab_" + tool.Replace(':', '_'));
+            Require(!entry.GetLogicalAncestors().OfType<Grid>().First().GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "CloseTab"),
+                "Tool rail entries must not offer a close button.");
         }
-        Require(app.Find<Button>("Tab_files").GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "Files") &&
-            !app.Find<Button>("Tab_files").GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text?.Contains("All files") == true),
+        Require(AutomationProperties.GetName(app.Find<Button>("Tab_files")) == "Files" &&
+            app.Window.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "PaneTitle" && text.Text == "Files"),
             "The Files tool must be titled Files.");
-        Require(app.Find<Border>("TabStrip_" + app.Center).GetLogicalDescendants().OfType<Button>().Count(button => button.Name == "CloseTab") == 1,
+        Require(app.Find<Button>("Tab_markdown_README.md").GetLogicalAncestors().OfType<Grid>().First().GetLogicalDescendants().OfType<Button>().Count(button => button.Name == "CloseTab") == 1,
             "The document list must offer its close button.");
-        app.Click(app.Find<Button>("Tab_changes"));
+        app.ShowTool("changes");
         var panel = app.Find<Grid>("ChangesPanel");
         var toolbar = panel.Children.OfType<Control>().Single(child => Grid.GetRow(child) == 0);
         Require(Math.Abs(toolbar.Bounds.Height - 32) < .1 && toolbar.GetLogicalDescendants().OfType<ToggleButton>().All(toggle => toggle.Bounds.Height <= 32) &&
@@ -100,20 +87,20 @@ internal static class LayoutFrameE2E
         {
             left = Width(app, "left"); right = Width(app, "right");
             DragSideClosed(app, "left");
-            Require(!app.Window.Layout.State.LeftVisible && app.Find<Border>("leftHiddenSideRail").IsVisible &&
+            Require(!app.Window.Layout.State.LeftVisible && app.Find<Border>("leftRail").IsVisible &&
                 !app.Window.GetLogicalDescendants().OfType<Grid>().Any(grid => grid.Name == "AuxiliaryStack_left"),
                 "Dragging the left separator to the edge must hide the left side and expose its rail.");
             DragSideClosed(app, "right");
-            Require(!app.Window.Layout.State.RightVisible && app.Find<Border>("rightHiddenSideRail").IsVisible &&
+            Require(!app.Window.Layout.State.RightVisible && app.Find<Border>("rightRail").IsVisible &&
                 !app.Window.GetLogicalDescendants().OfType<Grid>().Any(grid => grid.Name == "AuxiliaryStack_right"),
                 "Dragging the right separator to the edge must hide the right side and expose its rail.");
         }
         using (var app = new E2eWorkspace(directory, openFiles: false))
         {
-            Require(app.Find<Border>("leftHiddenSideRail").IsVisible && app.Find<Border>("rightHiddenSideRail").IsVisible,
+            Require(app.Find<Border>("leftRail").IsVisible && app.Find<Border>("rightRail").IsVisible,
                 "Both hidden sides must survive window recreation.");
-            app.Click(app.Find<Button>("leftRestoreRail")); Settle();
-            app.Click(app.Find<Button>("rightRestoreRail")); Settle();
+            app.Click(app.Find<Border>("leftRail").GetLogicalDescendants().OfType<Button>().First()); Settle();
+            app.Click(app.Find<Border>("rightRail").GetLogicalDescendants().OfType<Button>().First()); Settle();
             Require(Math.Abs(Width(app, "left") - left) < 24 && Math.Abs(Width(app, "right") - right) < 24,
                 "Restoring the hidden sides must recover their previous widths.");
         }
@@ -155,11 +142,11 @@ internal static class LayoutFrameE2E
         var left = state().Groups.Single(group => group.Region == "left").Id;
         var header = app.Find<Grid>("GroupHeader_" + left);
         var menu = header.ContextMenu!;
-        var tab = app.Find<Button>("Tab_projects").GetLogicalAncestors().OfType<Grid>().First(item => item.Name?.StartsWith("DockTab_", StringComparison.Ordinal) == true);
-        RightClickAt(app, header, new Point(tab.TranslatePoint(default, header)!.Value.X + tab.Bounds.Width + 12, header.Bounds.Height / 2), menu);
+        // The blank part of a tool pane's header, between its title and its actions, opens the pane menu.
+        RightClickAt(app, header, new Point(header.Bounds.Width - 100, header.Bounds.Height / 2), menu);
         Choose(app, menu, "Hide left region");
-        Until(() => !state().LeftVisible && app.Find<Border>("leftHiddenSideRail").IsVisible);
-        app.Click(app.Find<Button>("leftRestoreRail"));
+        Until(() => !state().LeftVisible && app.Find<Border>("leftRail").IsVisible);
+        app.Click(app.Find<Button>("Tab_projects"));
         Until(() => state().LeftVisible && app.Find<Grid>("AuxiliaryStack_left").IsVisible);
 
         app.ContextAction(app.Find<Button>("Tab_files"), "Close");
@@ -170,7 +157,7 @@ internal static class LayoutFrameE2E
         Until(() => !state().Groups.Any(group => group.Tools.Any(tab => tab.Id == DockState.SpecsTool)));
         ShowTool(app, DockState.SpecsTool);
 
-        app.Click(app.Find<Button>("Tab_files"));
+        app.ShowTool("files");
         app.Open("README.md", true); app.Open("notes.txt", true); app.Open("LINKS.md", true);
         app.Tab("README.md").Focus();
         app.Window.KeyPress(Key.Right, RawInputModifiers.Alt | RawInputModifiers.Shift, PhysicalKey.ArrowRight, null);
@@ -204,7 +191,9 @@ internal static class LayoutFrameE2E
         Require(state().Center.Leaves().Count() == 3, "Closing the last tab must leave the empty group in place.");
         app.Click(app.Find<Button>("RemoveGroup_" + linksGroup));
         Until(() => state().Center.Leaves().Count() == 2);
-        Until(() => TabFocused(app));
+        Until(() => app.Window.Layout.View.FocusedGroup == app.Window.Layout.View.FocusedCenter &&
+            app.Window.Layout.Selected(app.Window.Layout.View.FocusedCenter) is { } selected &&
+            app.Find<Button>("Tab_" + selected.Id.Replace(':', '_').Replace('/', '_')).IsFocused);
         Console.WriteLine("PASS upstream layout.spec.ts: keyboard and menu commands reorder, search, recursively split, and explicitly remove empty groups");
     }
 

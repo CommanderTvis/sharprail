@@ -62,9 +62,9 @@ internal static class DefaultWorkspaceE2E
         Require(ready.Contains("DEFAULT WORKSPACE", StringComparison.Ordinal) && ready.Contains("sample-project", StringComparison.Ordinal) &&
             ready.Contains("run directly in your project folder", StringComparison.Ordinal) && !ready.Contains("from ", StringComparison.Ordinal),
             "The Default workspace receipt must describe the project folder without a base.");
-        app.Click(app.Find<Button>("Tab_files"));
+        app.ShowTool("files");
         app.FileRow("README.md");
-        app.Click(app.Find<Button>("Tab_changes"));
+        app.ShowTool("changes");
         Until(() => Text(app.Find<Control>("ChangesPanel")).Contains("Working tree clean", StringComparison.Ordinal));
         Console.WriteLine("PASS upstream default-workspace.spec.ts: the Welcome fork's “Work in project folder” enters the Default workspace — the project folder itself");
     }

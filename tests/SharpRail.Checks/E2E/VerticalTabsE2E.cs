@@ -64,7 +64,7 @@ internal static class VerticalTabsE2E
 
         Case("terminal Rename in Projects shares titles and cancellation leaves them alone", app =>
         {
-            app.Click(app.Find<Button>("Tab_projects"));
+            app.ShowTool("projects");
             app.Window.Layout.NewTerminal(app.Center);
             var workspace = app.Window.WorkspaceRoot;
             var terminal = app.Tabs.Last(tab => tab.Kind == "terminal");
@@ -116,7 +116,7 @@ internal static class VerticalTabsE2E
         Case("Projects uniquely marks the active tab across center groups and pane members", app =>
         {
             app.Open("README.md", true); app.Open("notes.txt", true);
-            app.Click(app.Find<Button>("Tab_projects"));
+            app.ShowTool("projects");
             var center = app.Center;
             Require(app.Window.Layout.NewGroup(center, "after"), "A second center group is created.");
             var other = app.Window.Layout.State.Center.Leaves().Single(group => group != center);
@@ -226,7 +226,7 @@ internal static class VerticalTabsE2E
         Case("tabs stay in Projects when its panel is hidden", app =>
         {
             app.Open("README.md", true);
-            app.Click(app.Find<Button>("Tab_projects"));
+            app.ShowTool("projects");
             Until(() => app.Window.GetLogicalDescendants().OfType<StackPanel>().Any(panel => panel.Name == "CenterTabsInProjects" &&
                 panel.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "Tab_markdown_README.md")));
             var host = app.Window.GetLogicalDescendants().OfType<ContentControl>().Single(control => control.Name == "WorkspaceTabs" && Equals(control.Tag, app.Window.WorkspaceRoot));

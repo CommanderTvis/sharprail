@@ -79,12 +79,14 @@ workspace first and the view goes once another is active.
 - Auxiliary eligibility: Projects, Specs, Files, Changes and Review are singleton tools, auxiliary-only.
   Documents are center-only. Terminals may sit in the center or any auxiliary region. Hiding a tool keeps its
   restore group and position; Show restores it there and selects it.
-- Left/right: ordered vertical stacks. Expanded bodies keep a 120px minimum; folded groups take 27px and
-  retain their weights. Dragging an outer separator below the 4% midpoint hides the side and keeps its
-  last expanded width, which the full-height restore rail brings back.
-- There is no bottom zone, bottom alignment, resize handle, toggle shortcut or hidden-bottom drop target.
-  Older frames discard their bottom groups and their automatic terminal tabs on load.
-- Side resize projects through the left, center and right groups. Only the dragged side's ratio is committed;
+- Tools and terminals never share a pane ([Panes](#tool-and-terminal-panes)).
+- Left/right: ordered vertical stacks beside persistent 40px edge rails ([Rails](#edge-rails)). Expanded
+  bodies keep a 120px minimum; a folded pane occupies nothing inside the stack, keeps its weight and lives
+  only on its rail. A side with no expanded pane takes no width. Dragging an outer separator below the 4%
+  midpoint hides the side and keeps its last expanded width; the rail brings it back. Saved widths stay
+  ratios of the frame between the rails.
+- There is no bottom zone, alignment, resize handle or toggle shortcut. Legacy frames migrate nonterminal bottom documents to center and discard bottom terminal placements.
+- Side resize projects through left, center and right groups. Only the dragged side ratio is committed;
   compressing an untouched neighbour and viewport constraint are local to the projection.
 - Limits: sides default to six groups each, 1–32 and window-local. Existing overages survive;
   creation is unavailable until below the limit, while reorder and joins stay legal.
@@ -149,7 +151,65 @@ closes, separators resize from the keyboard and Escape restores their origin. Ct
 groups. Tab strips are 32px with an accent underline on the active tab, bounded widths, hidden scrollbars
 active reveal and edge fades only where clipped; a folded group's restore control is its focus endpoint; overflow search appears only while the strip is clipped, as a 288px dropdown under its
 button with path-aware filtering and keyboard selection (`TabSearch.axaml`). Singleton tools have no inline
-close glyph. An unfolded strip shows a terminal button (tooltip "New terminal in this group") when empty or when a resource tab is selected. Selecting a tool such as Projects hides it, including in mixed groups. A side strip also shows an add menu of its hidden tools when any exist.
+close glyph. An unfolded strip shows a terminal button (tooltip "New terminal in this group") when empty or when a resource tab is selected. A side strip also shows an add menu of its hidden tools when any exist; side tool panes use the plain header of [Edge rails](#edge-rails).
+
+## Tool and terminal panes
+
+A group holding tools is a tool pane; terminals live only in tool-free groups (`DockState.CanJoin`). Joining a
+tool into a pane that shows terminals, or a terminal into a tool pane, is unavailable, so the drop paints
+nothing and the menu does not offer it; creating a new pane is always fine. Removing a center group returns keyboard focus to the surviving center group, including when its action
+was invoked from the strip nested in Projects. Removing a pane merges its tabs
+into the nearest sibling (previous, then next) that can take them all, else Remove is unavailable.
+
+Every transition normalizes retained workspace views with the same rule (`DockState.SeparatePanes`): a
+terminal whose pane became a tool pane (a tool joined it from another workspace, or a preset placed tools
+there) moves to its region's nearest tool-free pane, then the last-focused centre group (`TerminalTarget`),
+selecting and unfolding nothing. Passive catalog placement and preset remaps use the same compatibility
+predicate; a workspace opens without an implicit terminal. A persisted layout that still
+has a mixed pane migrates the same way when it is loaded (`MigrateLegacyTools`), and the mixed-order anchors
+(`WorkspaceView.BeforeToolByTabId`) are accepted and discarded.
+
+New terminal from a tool pane ("New terminal pane below" in its add menu) creates a tool-free pane directly
+below it and places the terminal there; a terminal or empty pane adds to itself. Showing an empty region only
+offers creation: nothing starts a shell until a terminal tab is selected in a visible pane.
+
+## Edge rails
+
+The left and right sides have persistent 40px rails (`DockRails.cs`), present whether the side is shown,
+hidden or all folded. A rail mirrors its region's panes: one cluster per group in order, separated by a
+hairline; a tool pane has one entry per tool, a terminal or empty pane one entry; tools placed nowhere form a
+trailing dimmed cluster, and activating one restores it to its recorded target. Exactly one entry per expanded
+pane is pressed (its frame carries the selected fill and an accent edge) and none in a folded or hidden one.
+Activating an unpressed entry reveals the region, unfolds its pane and selects it in one transition
+(`LayoutSession.ActivateEntry`); activating the pressed one folds its pane. Entries are pressed (toggle)
+buttons in a single-tab-stop toolbar: arrows and Home/End rove, Enter/Space activates, Delete removes a tool
+from its pane as its menu's Close does; a terminal pane's entry navigates and never closes a session. An
+unchanged projection keeps the rail controls mounted.
+
+A side tool pane shows a plain 32px header instead of a tab strip: the selected tool's icon and title, which is
+a drag handle for that tool, then an add menu (hidden tools of that side, New terminal pane below) and Hide.
+Terminal and empty side panes keep their strip with Hide in place of the fold button. Hide folds the pane onto
+its rail and moves focus to its entry; unfolding from the rail returns focus to the pane. A folded pane's rail
+entry is its focus endpoint for Ctrl+F6. Mod+B hides or shows the left side the same way.
+
+On a rail, an entry's upper and lower halves insert before or after it in its pane (reorder, or join from
+anywhere), and each cluster boundary (rail start, between clusters, rail end) creates a pane at that index
+(`MoveToNewGroupAt`). Both paint only when legal: a boundary needs room under the limit and is refused as an
+exact-position no-op for a pane's only tab, and a join obeys the pane rule. A hidden or folded side's rail is a
+broad drop target that reveals the side. Explicit drops reveal and unfold their destination in the same
+transition; passive reconciliation keeps folds. Menus name a pane by its contents (`Move to right pane
+(Changes, Review)`, at most three names then +N, `(empty)`) and offer only destinations that can take the tab.
+
+## Project Home
+
+A window at a project's home (`home:` view) replaces the frame's left side and drops its bottom: its left
+rail holds one Projects entry, the pane beside Welcome shows the Projects tool under a plain header with Hide,
+and the left separator resizes it. Its visibility and width are `DockState.HomeProjectsVisible` and
+`HomeProjectsWidth`, independent of the frame's left side; Mod+B, the entry and Hide toggle it, and the side
+geometry reads them through `GeometryState`. The frame's right side and its rail stay, since the Specs tool
+works at Project Home (upstream shows no right rail there). Project Home places no initial terminal. Moving
+between Project Home and a workspace reparents the one Projects panel between the two hosts without
+rebuilding it.
 
 ## Presets
 
@@ -198,7 +258,7 @@ Terminal tabs are workspace-view resources. The tab id names a host session deri
 and tab id, so the session survives view rebuilds and other windows showing the same tab reattach to it. A
 terminal body is created only when its tab is selected in a visible, unfolded group; hidden tabs keep
 their session without a body
-until shown. New terminal from a group lands in that group and reveals its region.
+until shown. New terminal from a group lands in that group and reveals its region; from a tool pane it lands in a new tool-free pane directly below.
 
 Terminal tab context menus include Rename in Projects and side tool strips. The name prompt
 starts with the current title; cancellation, blank and unchanged names leave it alone. Accepted names
@@ -249,18 +309,6 @@ viewport rather than treating a newly attached tab's transient geometry as offsc
 
 ## Not yet ported
 
-- Persistent auxiliary edge rails whose separated icon clusters mirror frame groups, including hidden
-  and folded panes and dimmed unplaced tools. Selecting an unpressed entry reveals its pane; selecting
-  the pressed entry folds it. Folded panes occupy no interior strip. Tools use a plain draggable title
-  header with Hide; terminals retain named session tabs. Rails expose roving keyboard focus and pressed
-  state, restore focus on fold/unfold, and remain navigation controls rather than resource close targets.
-- Separate tool and terminal panes. Joins, group merges, passive placement and preset remaps must use
-  the same compatibility rule; a displaced terminal chooses the nearest tool-free sibling, then center. Session selection itself recalls the terminal; no second terminal-recall authority is
-  needed. Legacy mixed-order anchors are accepted and discarded. New terminal from a tool pane creates
-  a compatible pane directly below; showing an empty region only offers creation and starts no process.
-- Rail entry halves join or reorder within a pane; cluster boundaries create adjacent panes. Explicit
-  drops reveal and unfold their destination atomically, while passive reconciliation preserves folds.
-  Menus name panes by their contents and omit commands that cannot apply to the selected resource.
 - Keeping panel groups and mounted bodies in place through fold, visibility and topology changes,
   applying committed geometry without rebuilding surviving chrome. Workspace identity must fence
   pending focus, drag and resize work even when both workspaces use the same tab id; an invalidated

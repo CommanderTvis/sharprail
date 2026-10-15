@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Avalonia.LogicalTree;
 
 using SharpRail.UI.Docking;
 
@@ -36,11 +37,11 @@ internal static class GestureCancellationE2E
         Require(app.Find<Grid>("AuxiliaryStack_right").Bounds.Width > before + 30,
             "The completed resize must commit its larger width.");
         var files = app.Window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "files")).Id;
-        app.Click(app.Find<Button>("FoldRestore_" + files));
+        app.Click(app.Find<Button>("HidePane_" + files));
         Require(app.Window.Layout.Group(files).Folded, "The Files group must fold.");
-        app.Click(app.Find<Button>("FoldRestore_" + files));
+        app.Click(app.Find<Button>("Tab_" + app.Window.Layout.Selected(files)!.Id.Replace(':', '_')));
         Require(!app.Window.Layout.Group(files).Folded, "The Files group must unfold.");
-        app.Click(app.Find<Button>("Tab_changes"));
+        app.ShowTool("changes");
         var changes = app.Window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "changes")).Id;
         Require(app.Window.Layout.Selected(changes)?.Id == "changes" && !app.Find<Border>("GestureToast").IsVisible,
             "Ordinary transitions after a committed gesture must never announce a cancellation.");
@@ -69,7 +70,7 @@ internal static class GestureCancellationE2E
         app.Window.Width = 1352; Settle();
         app.Click(app.Find<Button>("DismissGestureToast"));
         Require(!app.Find<Border>("GestureToast").IsVisible, "Dismiss must hide the cancellation notification.");
-        app.Click(app.Find<Button>("rightRestoreRail"));
+        app.Click(app.Find<Border>("rightRail").GetLogicalDescendants().OfType<Button>().First());
         var (_, nextStart) = StartResize(app);
         app.Window.KeyPress(Key.J, command, PhysicalKey.J, null);
         app.Window.KeyRelease(Key.J, command, PhysicalKey.J, null); Settle();

@@ -11,7 +11,7 @@ public sealed partial class DockSurface
 {
     private sealed record DragDraft(string Tab, string Source, Point Origin, long Epoch, IPointer Pointer, long ReadyAt);
     /// <summary>A drop: an insertion, a new group at an edge, a hidden region, or (with <see cref="PaneWith"/>) sharing a pane with that tab.</summary>
-    private sealed record DropTarget(string Group, int Index, string Edge, Rect Bounds, string Region = "", string PaneWith = "", string Direction = "");
+    private sealed record DropTarget(string Group, int Index, string Edge, Rect Bounds, string Region = "", string PaneWith = "", string Direction = "", int Boundary = -1);
     private sealed record DropSite(DropTarget Target, Action<bool> Paint, bool Priority = false);
     private readonly Dictionary<(string Group, int Index, string Edge), bool> dropValidity = [];
     private DragDraft? draft;
@@ -44,7 +44,8 @@ public sealed partial class DockSurface
             CancelDrag();
             if (origin is not null && destination is not null && origin.Epoch == Session.Epoch)
             {
-                if (destination.PaneWith.Length > 0) Session.GroupTabs(destination.Group, origin.Tab, destination.PaneWith, destination.Direction);
+                if (destination.Boundary >= 0) Session.MoveToNewGroupAt(origin.Tab, origin.Source, destination.Region, destination.Boundary);
+                else if (destination.PaneWith.Length > 0) Session.GroupTabs(destination.Group, origin.Tab, destination.PaneWith, destination.Direction);
                 else if (destination.Region.Length > 0) Session.MoveToRegion(origin.Tab, origin.Source, destination.Region);
                 else Session.Move(origin.Tab, origin.Source, destination.Group, destination.Index, destination.Edge);
             }
@@ -56,8 +57,11 @@ public sealed partial class DockSurface
             if (e.Key == Key.Escape && draft is not null) { CancelDrag(); e.Handled = true; }
             else if (e.Key == Key.F6 && e.KeyModifiers.HasFlag(KeyModifiers.Control))
             {
-                var visible = groupHeaders.Keys
-                    .OrderBy(id => RectOf(groupHeaders[id]).Top).ThenBy(id => RectOf(groupHeaders[id]).Left).ToArray();
+                // A folded side pane is visited through its rail entry, its focus endpoint.
+                var endpoints = new Dictionary<string, Control>(groupHeaders);
+                foreach (var (group, entry) in railEntries)
+                    if (Session.State.Groups.FirstOrDefault(item => item.Id == group) is { Folded: true }) endpoints[group] = entry;
+                var visible = endpoints.Keys.OrderBy(id => RectOf(endpoints[id]).Top).ThenBy(id => RectOf(endpoints[id]).Left).ToArray();
                 if (visible.Length == 0) return;
                 var active = Array.IndexOf(visible, Session.View.FocusedGroup);
                 var direction = e.KeyModifiers.HasFlag(KeyModifiers.Shift) ? -1 : 1;
@@ -164,11 +168,13 @@ public sealed partial class DockSurface
                 var tabArea = new Rect(bounds.TopLeft, new Size(((Grid)site.Control).ColumnDefinitions[0].ActualWidth, bounds.Height));
                 // Tabs are the only visible strip targets. The rest of the strip still appends, but it shows the
                 // same insertion line after the last tab instead of a strip-wide frame; only an empty strip is framed.
-                if (Legal(site.Group, members.Count))
+                // A tool pane's plain header lists no tabs; it appends after the pane's tools.
+                var append = members.Count > 0 ? members.Count : Session.Tabs(site.Group).Count;
+                if (Legal(site.Group, append))
                 {
                     var lastTab = members.Count > 0 ? RectOf(members[^1].Control) : default;
                     var endMarker = new Rect(lastTab.Right - 2, bounds.Top, 2, bounds.Height).Intersect(tabArea);
-                    candidates.Add(new(new(site.Group, members.Count, "", bounds), active =>
+                    candidates.Add(new(new(site.Group, append, "", bounds), active =>
                     {
                         if (members.Count > 0)
                         {
@@ -236,6 +242,42 @@ public sealed partial class DockSurface
                 if (half.Width <= 0 || half.Height <= 0) continue;
                 candidates.Add(new(new(site.Group, 0, edge, half), active => Hint(half, active)));
             }
+        }
+        // Rails: an entry's halves insert into its pane, and each cluster boundary creates a pane there.
+        foreach (var site in railSites)
+        {
+            var bounds = RectOf(site.Control);
+            if (bounds.Width <= 0 || bounds.Height <= 0) continue;
+            if (site.Boundary >= 0)
+            {
+                var key = ("boundary:" + site.Region, site.Boundary, "");
+                if (!dropValidity.TryGetValue(key, out var valid))
+                    dropValidity[key] = valid = Session.CanMoveToNewGroupAt(draft.Tab, draft.Source, site.Region, site.Boundary);
+                if (!valid) continue;
+                var line = new Rect(bounds.Left + 4, bounds.Center.Y - 1, Math.Max(0, bounds.Width - 8), 2);
+                candidates.Add(new(new("", 0, "", bounds, site.Region, Boundary: site.Boundary), active =>
+                {
+                    var marker = Hint(active ? line : bounds, active);
+                    marker.CornerRadius = new CornerRadius(0);
+                    if (active) { marker.Background = Ui.Accent; marker.BorderThickness = new Thickness(0); }
+                }));
+                continue;
+            }
+            if (!Legal(site.Group, site.Index)) continue;
+            if (!site.Half)
+            {
+                candidates.Add(new(new(site.Group, site.Index, "", bounds), active => Hint(bounds, active)));
+                continue;
+            }
+            // An entry's halves insert before or after it in its pane, shown as the strip's 2px line turned sideways.
+            var zone = new Rect(bounds.Left, site.After ? bounds.Center.Y : bounds.Top, bounds.Width, bounds.Height / 2);
+            var insertion = new Rect(bounds.Left, site.After ? bounds.Bottom - 1 : bounds.Top - 1, bounds.Width, 2);
+            candidates.Add(new(new(site.Group, site.Index, "", zone), active =>
+            {
+                if (!active) return;
+                var marker = Hint(insertion, true);
+                marker.Background = Ui.Accent; marker.BorderThickness = new Thickness(0); marker.CornerRadius = new CornerRadius(0);
+            }));
         }
         var winner = candidates.Where(candidate => candidate.Target.Bounds.Contains(point))
             .OrderByDescending(candidate => candidate.Priority)

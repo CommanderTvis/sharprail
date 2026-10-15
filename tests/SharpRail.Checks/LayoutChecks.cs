@@ -55,15 +55,16 @@ internal static class LayoutChecks
         empty.ReconcileTerminals("empty", [new("peer", "Peer terminal")], new HashSet<string>());
         Require(empty.Tabs(center).Any(tab => tab.Id == "peer") && empty.Selected(center)?.Id == "file",
             "Shared terminals arrive in the center without replacing the selected document.");
-        var hiddenSide = empty.State.Groups.First(group => group.Region == "right").Id;
-        Require(empty.Move("peer", center, hiddenSide, 0), "A shared terminal can be placed in a side group.");
+        var toolSide = empty.State.Groups.First(group => group.Region == "right").Id;
+        Require(empty.Move("peer", center, toolSide, 0, "after"), "A shared terminal can create its own side pane.");
+        var hiddenSide = empty.View.Documents.Single(pair => pair.Value.Any(tab => tab.Id == "peer")).Key;
         empty.Visible("right", false);
         empty.ReconcileTerminals("empty", [new("peer", "Peer terminal")], new HashSet<string>());
         Require(empty.Tabs(center).Any(tab => tab.Id == "peer") && empty.Tabs(hiddenSide).All(tab => tab.Id != "peer"),
             "Projects must retain access to catalog terminals whose side region is hidden.");
         CheckTerminalTitles();
         CheckAuxiliaryRegions();
-        CheckMixedResources();
+        CheckSeparatePanes();
         CheckPanes();
         var session = new LayoutSession();
         session.SwitchWorkspace("one");
@@ -224,38 +225,99 @@ internal static class LayoutChecks
         Console.WriteLine("PASS fork model.test.ts tab panes: grouping, contiguity, member drops, joining, preview, exclusivity, closing, persistence; isToolShowing");
     }
 
-    private static void CheckMixedResources()
+    // Upstream layout SPEC "Tools and terminals never share a pane", rail activation and boundary drops.
+    private static void CheckSeparatePanes()
     {
         var session = new LayoutSession();
         session.SwitchWorkspace("one");
-        var center = session.State.Center.Leaves().Single();
-        session.NewTerminal(center);
+        var bottom = session.State.Center.Leaves().Single();
+        session.NewTerminal(bottom);
         var side = session.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == DockState.SpecsTool)).Id;
-        var terminal = session.Tabs(center).Single();
-        Require(terminal is { Kind: "terminal", Title: "Terminal 1" } && session.Selected(center)?.Id == terminal.Id,
-            "An explicit terminal opens in the chosen group.");
-        Require(session.Move(terminal.Id, center, side, 0) && session.Tabs(side).Select(tab => tab.Id).SequenceEqual([terminal.Id, DockState.SpecsTool, "files"]),
-            "Moving a terminal before a tool must preserve the mixed tab order.");
-        Require(session.Move(terminal.Id, side, side, 3) && session.Tabs(side).Select(tab => tab.Id).SequenceEqual([DockState.SpecsTool, "files", terminal.Id]),
-            "Moving an anchored terminal to the end must remove its old tool anchor.");
-        Require(session.Move(terminal.Id, side, side, 0), "Moving a terminal back before the first tool failed.");
-        Require(session.Move(DockState.SpecsTool, side, side, 3) && session.Tabs(side).Select(tab => tab.Id).SequenceEqual([terminal.Id, "files", DockState.SpecsTool]),
-            "Moving a tool must preserve the terminal's displayed position and retarget its anchor.");
-        Require(session.Move(DockState.SpecsTool, side, side, 1), "Restoring tool order around a terminal failed.");
-        session.Close(side, DockState.SpecsTool);
-        Require(session.Tabs(side).Select(tab => tab.Id).SequenceEqual([terminal.Id, "files"]), "Hiding a tool must preserve the terminal's displayed position.");
-        session.RestoreTool(DockState.SpecsTool);
-        Require(session.Tabs(side).Select(tab => tab.Id).SequenceEqual([terminal.Id, DockState.SpecsTool, "files"]), "Revealing a tool must restore its mixed-strip position.");
+        var lower = session.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "changes")).Id;
+        var terminal = session.Tabs(bottom).Single();
+        Require(terminal is { Kind: "terminal", Title: "Terminal 1" } && session.Selected(bottom)?.Id == terminal.Id,
+            "An explicit terminal must open selected in its center group.");
+        var epoch = session.Epoch;
+        Require(!session.Move(terminal.Id, bottom, side, 0) && !session.CanMove(terminal.Id, bottom, side, 0) && session.Epoch == epoch,
+            "A terminal must not join a tool pane.");
+        Require(!session.Move(DockState.SpecsTool, side, bottom, 0) && session.Epoch == epoch, "A tool must not join a pane that shows terminals.");
+        Require(session.Move(terminal.Id, bottom, side, 0, "after") && session.State.Groups.Where(group => group.Region == "right").Count() == 3,
+            "A terminal may always create its own pane beside a tool pane.");
+        var created = session.State.Workspaces["one"].Documents.Single(pair => pair.Value.Any(tab => tab.Id == terminal.Id)).Key;
+        Require(created != side && session.Group(created).Tools.Count == 0, "The new pane must be tool-free.");
+        Require(!session.CanRemoveGroup(created), "A terminal pane between tool panes has no sibling that can take it.");
+
+        // A persisted mixed pane migrates: its terminal moves to the nearest tool-free sibling and old anchors go.
+        var legacy = session.State.Copy();
+        legacy.Workspaces["one"].Documents[created].Clear();
+        legacy.Workspaces["one"].Documents[lower] = [terminal];
+        legacy.Workspaces["one"].BeforeToolByTabId[terminal.Id] = "changes";
+        Require(!LayoutSession.IsValid(legacy), "A mixed tool and terminal pane must be invalid.");
+        var migrated = new LayoutSession(System.Text.Json.JsonSerializer.Deserialize<DockState>(System.Text.Json.JsonSerializer.Serialize(legacy)));
+        Require(migrated.State.Workspaces["one"].Documents[created].Single().Id == terminal.Id &&
+            migrated.State.Workspaces["one"].BeforeToolByTabId.Count == 0 && migrated.State.Groups.Count == legacy.Groups.Count,
+            "Migration must move a mixed pane's terminal to its nearest tool-free sibling and drop mixed-order anchors.");
+
+        // New terminal from a tool pane creates a compatible pane directly below it.
+        session.NewTerminal(lower);
+        var right = session.State.Groups.Where(group => group.Region == "right").ToList();
+        var below = right[right.FindIndex(group => group.Id == lower) + 1];
+        Require(below.Tools.Count == 0 && session.Tabs(below.Id).Single().Kind == "terminal" && session.View.FocusedGroup == below.Id &&
+            session.Tabs(lower).All(tab => tab.IsTool), "New terminal from a tool pane must create a tool-free pane directly below.");
+
+        // A tool joining a pane that shows terminals in another workspace displaces them there deterministically.
+        session.Close(created, terminal.Id);
         session.SwitchWorkspace("two");
-        Require(session.Tabs(side).Select(tab => tab.Id).SequenceEqual([DockState.SpecsTool, "files"]), "A terminal must not leak into another workspace's tool strip.");
+        session.NewTerminal(created);
+        var twoTerminal = session.Tabs(created).Single(tab => tab.Kind == "terminal");
+        var twoTarget = session.State.TerminalTarget(session.View, session.Group(created));
         session.SwitchWorkspace("one");
-        var restored = new LayoutSession(System.Text.Json.JsonSerializer.Deserialize<DockState>(System.Text.Json.JsonSerializer.Serialize(session.State)));
-        Require(restored.Tabs(side).Select(tab => tab.Id).SequenceEqual([terminal.Id, DockState.SpecsTool, "files"]), "Persisted mixed tab order was lost.");
-        restored.Select(side, terminal.Id); restored.Close(side, terminal.Id);
-        Require(restored.Selected(side)?.Id == DockState.SpecsTool, "Closing a terminal must select its neighbor in the displayed order.");
-        restored.NewTerminal(side); restored.ApplyPreset(DockState.Preset("review"));
-        Require(restored.State.Center.Leaves().SelectMany(restored.Tabs).Any(tab => tab.Kind == "terminal"),
-            "Applying a preset must preserve explicit terminals in center groups.");
+        Require(session.Tabs(created).Count == 0 && session.Move("files", side, created, 0), "A tool must join a pane that shows no terminals here.");
+        var two = session.State.Workspaces["two"];
+        Require(!two.Documents.ContainsKey(created) && two.Documents[twoTarget].Any(tab => tab.Id == twoTerminal.Id),
+            "A terminal whose pane became a tool pane must move to a surviving tool-free pane.");
+        Require(session.Group(created).Folded == false && LayoutSession.IsValid(session.State), "Displacement must keep the layout valid.");
+
+        // Passive placement uses the same rule and never unfolds.
+        session.HidePane(below.Id);
+        session.Focus(created);
+        session.ReconcileTerminals("one", [new("terminal:initial", "Terminal 1"), new("peer", "Peer")], new HashSet<string>());
+        var peer = session.State.Workspaces["one"].Documents.Single(pair => pair.Value.Any(tab => tab.Id == "peer")).Key;
+        Require(session.Group(peer).Tools.Count == 0 && session.Group(below.Id).Folded, "Catalog terminals must land in a tool-free pane without unfolding.");
+
+        // Rail entries: an unpressed entry reveals, unfolds and selects at once; the pressed one folds its pane.
+        session.Visible("right", false);
+        epoch = session.Epoch;
+        Require(!session.ActivateEntry(lower, "review") && session.Epoch == epoch + 1 && session.State.RightVisible &&
+            !session.Group(lower).Folded && session.Selected(lower)?.Id == "review", "An unpressed rail entry must reveal and select in one transition.");
+        Require(session.ActivateEntry(lower, "review") && session.Group(lower).Folded, "The pressed rail entry must fold its pane.");
+        Require(!session.ActivateEntry(lower, "changes") && !session.Group(lower).Folded && session.Selected(lower)?.Id == "changes",
+            "Another entry of a folded pane must unfold it and select itself.");
+        Require(!session.ActivateEntry(below.Id, null) && !session.Group(below.Id).Folded, "A terminal pane's entry must unfold it.");
+
+        // Cluster boundaries create a pane at that index; a pane's only tab beside itself is a no-op.
+        var first = session.State.Groups.First(group => group.Region == "right");
+        Require(!session.CanMoveToNewGroupAt("review", lower, "right", -1), "A boundary outside the rail must be refused.");
+        session.HidePane(first.Id);
+        Require(session.MoveToNewGroupAt("review", lower, "right", 0) &&
+            session.State.Groups.First(group => group.Region == "right").Tools.Single().Id == "review", "A boundary drop must create a pane at its index.");
+        var alone = session.State.Groups.First(group => group.Region == "right");
+        Require(!session.CanMoveToNewGroupAt("review", alone.Id, "right", 0) && !session.CanMoveToNewGroupAt("review", alone.Id, "right", 1),
+            "Moving a pane's only tab to its own boundaries must be refused.");
+        Require(session.Move("review", alone.Id, first.Id, 0) && !session.Group(first.Id).Folded,
+            "An explicit drop must unfold its destination in the same transition.");
+
+        // Project Home reserves no terminal and keeps its own Projects pane state.
+        session.SwitchWorkspace("home:/project");
+        Require(session.View.Documents.Values.All(tabs => tabs.Count == 0), "Project Home must not reserve a terminal.");
+        session.HomeProjects(false);
+        var copy = session.State.Copy();
+        Require(!copy.HomeProjectsVisible && copy.LeftVisible && LayoutSession.IsValid(copy), "Project Home's Projects pane must be independent of the left side.");
+        Require(LayoutSession.IsValid(session.State), "Model invariants violated.");
+        session.ApplyPreset(DockState.Preset("review"));
+        Require(session.State.Workspaces["one"].Documents.Where(pair => session.Group(pair.Key).Tools.Count > 0).All(pair => pair.Value.Count == 0),
+            "A preset must map terminals into tool-free panes.");
+        Console.WriteLine("PASS separate tool and terminal panes, rail activation, boundary drops and Project Home pane");
     }
 
     private static void CheckAuxiliaryRegions()

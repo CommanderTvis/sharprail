@@ -65,6 +65,24 @@ specified in [Panels/SPEC.md](Panels/SPEC.md); shared controls and document rend
   workspace (the project folder itself) is pinned first with a home icon, an attached external worktree has
   an open-folder icon and a managed one the branch glyph. The active workspace's icon and name use the accent.
   Until the host has listed the shown project, its folder alone stands in as the Default row.
+- On a host that serves settling (`HostProtocol.WorkspaceSettle`) an expanded project lists its live rows
+  after Default newest created first (the registry reversed, never re-sorted by activity, so rows stay put
+  while you work), then a `Settled · N` disclosure, collapsed by default and held per window, whose open body
+  lists settled rows ten at a time with a Show 25 more row. A settled row is slim: name only, with a reason
+  chip (`by you` in the warning tone, `idle 8d` / `idle 2w` / `idle 3mo` in the hint tone) whose tooltip has
+  the long form. The partition comes from `WorkspaceSettling.Partition` (see `State/SPEC.md`) and is
+  re-derived on the window's 30-second clock, redrawing only when it changed. Live rows offer Settle and
+  settled ones Keep active, as a hover/focus check or back-arrow button beside the kebab and in the shared
+  workspace menu (`AddWorkspaceActions`); Default offers neither. Settling never touches disk. An older host
+  keeps its flat registry order with no shelf, chips or settle actions.
+- Opening a settled workspace leaves it on the shelf, expands the shelf and pages it far enough to show the
+  row, once per selection. The first automatic move (idle rows only, never ones settled by hand) is announced
+  once per host endpoint after the count has held still for two seconds: an info toast "Moved N quiet
+  workspaces to Settled" that names the rules and offers Show, which expands those projects and shelves; the
+  profile remembers it (`SettledShelfNotices`).
+- Landing on a workspace of another project, or mounting the first one, shows that project expanded on top
+  of the persisted collapsed set, which it leaves untouched; collapsing it ends the reveal, and it is not
+  forced open again until the window lands in another project. Project Home reveals nothing.
 - The window asks the host to list a project (ensuring its Default workspace and re-reading branches) when
   it mounts a project it has not listed yet, on Refresh, and when the user expands a project row. The rail
   redraws from the broadcast, never from that call's result. The rail is rebuilt only when a row is added,
@@ -468,21 +486,10 @@ disappearance shows.
 
 ## Not yet ported
 
-- The Settled shelf: a sort row above live workspaces, a collapsed `Settled · N` disclosure and slim
-  name-only settled rows with reason chips and tooltips, initially ten rows with Show 25 more. Selecting
-  a settled workspace expands and pages its shelf to reveal it. Settle and Keep active belong to the
-  shared row/header actions, with hover actions and the same context menus; Default never settles.
-  This is list organisation only: it never deletes files, and offers no bulk removal. The shelf and
-  sorting must appear only when the host supports settling. AI activity guards are outside scope.
-- A client-local, host-qualified first-automatic-move notice: after automatic settled counts remain
-  stable for two seconds, announce “Moved N quiet workspaces to Settled”, explain the rules and offer
-  Show to expand the affected projects and shelves. Manually settled rows do not count; remember the
-  notice in the profile rather than browser storage. Activity-based settling is in scope; upstream's
-  pull-request-driven automatic settling and shared review snapshot are excluded from this sync.
-- Acceptance coverage for the shelf remains unported: Settle / Keep active roundtrips converge across
-  windows, the first-move notice appears once and Show reveals affected rows, unsupported hosts retain
-  their legacy order, the idle setting survives restart, and selection/reselection preserves the live
-  latch without moving an opened settled row.
+- Settled-shelf guards for a row whose agent is working or has an unread result: agent state is plugin-owned,
+  so such a row settles by the idle rule like any other, and its Settle action stays enabled.
+- Settled-shelf acceptance across two windows or clients: Settle and Keep active converge through the
+  broadcast, but no check drives two windows at once.
 - Scroll-offset restoration across file/diff renderer detach and attach for delayed content. An
   offset that the new scroller cannot yet hold stays pending until content grows or the user scrolls;
   switching away first saves that pending offset rather than the temporary clamped value. The rendered
@@ -492,8 +499,6 @@ disappearance shows.
 - In pull request setup guidance: a Run action that executes a command in a new workspace terminal, git's
   own error text for a push that could not authenticate (the host reports only that it did) with the
   host-key hint derived from it, and host-platform commands for a remote host.
-- Revealing the active workspace's project on mount: rail expansion is the persisted collapsed set, so
-  every project starts expanded and a collapsed one stays collapsed when it is entered.
 - A shared searchable branch combobox for the comparison target; the Changes pill uses a tree menu:
   Local contains branch path folders, Remote contains configured remote names and branch path folders.
   Leaves display the final path segment, retain the full ref for selection and tooltips, and mark the
@@ -510,8 +515,6 @@ disappearance shows.
 - In a rendered Markdown diff, a `<details>` whose body Markdown splits across blocks is not regrouped
   into one disclosure, and a list is compared item by item only when both documents have the same number
   of top-level lists (otherwise an item counts as changed when it carries a mark).
-- An explicit notice on a diff tab whose two sides became identical after its file left the change set;
-  the tab keeps its last content.
 - Live refresh for remote hosts.
 
 Settings › Host offers a dedicated Tailscale client instance; plugin-owned Settings › Tailscale shows

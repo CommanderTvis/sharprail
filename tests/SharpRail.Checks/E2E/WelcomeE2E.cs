@@ -103,7 +103,7 @@ internal static class WelcomeE2E
             Text(Named<Button>(dialog, "WsCreate")) == "Start", "Folder mode must offer Start without branch or name fields.");
         app.Click(Named<Button>(dialog, "WsCreate"));
         Until(() => !app.Window.AtProjectHome && app.Window.WorkspaceRoot == plain && !app.Window.OwnedWindows.Any());
-        app.Click(app.Find<Button>("Tab_projects"));
+        app.ShowTool("projects");
         _ = app.Workbench.State.ChangeAsync(SharpRail.Host.Abstractions.HostStateChange.PluginEnabled("codex", true));
         var rail = app.Window.GetLogicalDescendants().OfType<ContentControl>()
             .Single(host => host.Name == "WorkspaceTabs" && Equals(host.Tag, plain));

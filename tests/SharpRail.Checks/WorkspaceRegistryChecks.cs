@@ -56,7 +56,122 @@ internal static class WorkspaceRegistryChecks
                 string.Join('\n', localLog.Zip(remoteLog).Where(pair => pair.First != pair.Second).Select(pair => pair.First + "\n  <>  " + pair.Second)));
         }
         finally { await server.StopAsync(); }
+        await Settling(Path.Combine(directory, "settling"));
         Console.WriteLine("PASS workspace registry: ids, kinds, attach, names, no-track, pending marker, folder truth, reclaim, scratch directory and pushed lifecycle at local/remote parity");
+    }
+
+    /// <summary>
+    /// Settled workspaces' host facts: overrides through both adapters, Default refused, the idle-day setting, activity
+    /// clearing overrides and coalescing, HEAD moves across watcher restarts, terminal input and the upgrade backfill.
+    /// </summary>
+    private static async Task Settling(string directory)
+    {
+        async Task<List<string>> Scenario(IProjectServices host, IHostStateService state, string root)
+        {
+            var log = new List<string>();
+            var repo = IsolatedGit.Repository(Path.Combine(root, "project"));
+            await state.ChangeAsync([HostStateChange.OpenProject(repo)]);
+            var catalog = await host.ListWorkspacesAsync(repo);
+            var created = (await host.ApplyWorkspaceActionAsync(WorkspaceAction.Create(repo, "Quiet")))!;
+            var listed = (await state.GetStateAsync()).Workspaces.Single(workspace => workspace.Id == created.Id);
+            Require(listed.LastActiveAt is > 0 && listed.SettledOverride is null && catalog.Workspaces[0].LastActiveAt is > 0,
+                "A created workspace and the Default are stamped live by construction.");
+            var settled = (await host.ApplyWorkspaceActionAsync(WorkspaceAction.Settle(created.Id)))!;
+            log.Add($"settle {settled.SettledOverride} {settled.SettledAt is > 0}");
+            var mirrored = (await state.GetStateAsync()).Workspaces.Single(workspace => workspace.Id == created.Id);
+            Require(mirrored.SettledOverride == SettledOverrides.Settled && mirrored.SettledAt == settled.SettledAt, "Host state carries the override and its stamp.");
+            log.Add($"keep {(await host.ApplyWorkspaceActionAsync(WorkspaceAction.Unsettle(created.Id)))!.SettledOverride}");
+            log.Add(await Refused(() => host.ApplyWorkspaceActionAsync(WorkspaceAction.Settle(catalog.Workspaces[0].Id)), "The Default workspace settled."));
+            log.Add(await Refused(() => host.ApplyWorkspaceActionAsync(WorkspaceAction.Unsettle(catalog.Workspaces[0].Id)), "The Default workspace was pinned."));
+            Require((await state.GetStateAsync()).Settings.SettleIdleDays == HostSettings.DefaultSettleIdleDays, "The idle window defaults to a week.");
+            await state.ChangeAsync([HostStateChange.Setting("settle-idle-days", "never")]);
+            log.Add($"never {(await state.GetStateAsync()).Settings.SettleIdleDays?.ToString() ?? "null"}");
+            await state.ChangeAsync([HostStateChange.Setting("settle-idle-days", "3")]);
+            log.Add($"three {(await state.GetStateAsync()).Settings.SettleIdleDays}");
+            try { await state.ChangeAsync([HostStateChange.Setting("settle-idle-days", "0")]); log.Add("zero accepted"); }
+            catch (Exception error) when (error is ArgumentException or SharpRail.Host.Protocol.RpcException) { log.Add("zero refused"); }
+            return log;
+        }
+        var store = new HostStateStore(Path.Combine(directory, "local-state"));
+        var local = await Scenario(new LocalProjectAdapter(new ProjectServices(directory, store)), new LocalStateAdapter(store), Path.Combine(directory, "local"));
+        var remoteState = Path.Combine(directory, "remote-state");
+        await using (var server = RemoteServer.Create(directory, IPAddress.Loopback, 0, "settling-test", remoteState))
+        {
+            await server.StartAsync();
+            try
+            {
+                var address = new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single());
+                using var remote = new RemoteProjectAdapter(address, "settling-test");
+                using var remoteService = new RemoteStateAdapter(address, "settling-test");
+                Require((await remoteService.GetHandshakeAsync()).Supports(HostProtocol.WorkspaceSettle), "A current host advertises settling.");
+                var remoteLog = await Scenario(remote, remoteService, Path.Combine(directory, "remote"));
+                Require(local.SequenceEqual(remoteLog), "Local and remote settling differ:\n" + string.Join("\n", local) + "\n  <>\n" + string.Join("\n", remoteLog));
+            }
+            finally { await server.StopAsync(); }
+        }
+        Require(local[0] == "settle settled True" && local[1] == "keep active" && local[2].Contains("never settles") && local[4] == "never null" &&
+            local[5] == "three 3" && local[6] == "zero refused", "Settling scenario: " + string.Join(" | ", local));
+
+        // Real activity clears an override and is coalesced otherwise; the clock is the store's.
+        var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + 10L * 24 * 60 * 60 * 1000;
+        store.Clock = () => now;
+        var quiet = store.Current.Workspaces.Single(workspace => workspace.Kind == WorkspaceKinds.Managed);
+        await new LocalProjectAdapter(new ProjectServices(directory, store)).ApplyWorkspaceActionAsync(WorkspaceAction.Settle(quiet.Id));
+        store.RecordWorkspaceActivity(quiet.Path);
+        var cleared = store.Current.Workspaces.Single(workspace => workspace.Id == quiet.Id);
+        Require(cleared is { SettledOverride: null, SettledAt: null } && cleared.LastActiveAt == now, "Activity supersedes an explicit park.");
+        var revision = store.Current.Revision;
+        now += 30_000;
+        store.RecordWorkspaceActivity(quiet.Path);
+        Require(store.Current.Revision == revision, "Activity within a minute of the stored stamp writes nothing.");
+        now += 60_000;
+        store.RecordWorkspaceActivity(quiet.Path);
+        Require(store.Current.Workspaces.Single(workspace => workspace.Id == quiet.Id).LastActiveAt == now, "Activity after the coalescing window is stamped.");
+
+        // HEAD: the first observation seeds; a move, even while no watcher ran, is activity.
+        now += 120_000;
+        store.ObserveWorkspaceHead(quiet.Path);
+        Require(store.Current.Workspaces.Single(workspace => workspace.Id == quiet.Id).LastActiveAt == now - 120_000, "Seeding HEAD is not activity.");
+        File.WriteAllText(Path.Combine(quiet.Path, "work.txt"), "work\n");
+        Git(quiet.Path, "add", "work.txt");
+        Git(quiet.Path, "commit", "-m", "work");
+        store.ObserveWorkspaceHead(quiet.Path);
+        Require(store.Current.Workspaces.Single(workspace => workspace.Id == quiet.Id).LastActiveAt == now, "A moved HEAD is activity.");
+        now += 120_000;
+        store.ObserveWorkspaceHead(quiet.Path);
+        Require(store.Current.Workspaces.Single(workspace => workspace.Id == quiet.Id).LastActiveAt == now - 120_000, "An unchanged HEAD is not activity.");
+
+        // Accepted terminal input is activity in the terminal's workspace.
+        now += 120_000;
+        await using (var terminals = new PtyTerminalService())
+        {
+            store.Terminals = terminals;
+            await using var shell = await terminals.AttachAsync(new("settling-input", quiet.Path, "settling-client", 80, 24));
+            await shell.WriteAsync("\n"u8.ToArray());
+            Require(store.Current.Workspaces.Single(workspace => workspace.Id == quiet.Id).LastActiveAt == now, "Accepted terminal input is activity.");
+            store.Terminals = null;
+        }
+
+        // An upgraded registry without stamps backfills from the worktree's .git file, and a missing folder gets now.
+        var legacy = Path.Combine(directory, "legacy-state");
+        Directory.CreateDirectory(legacy);
+        var marker = new DateTimeOffset(File.GetLastWriteTimeUtc(Path.Combine(quiet.Path, ".git"))).ToUnixTimeMilliseconds();
+        var gone = Path.Combine(directory, "gone");
+        File.WriteAllText(Path.Combine(legacy, HostStateStore.FileName), System.Text.Json.JsonSerializer.Serialize(new
+        {
+            Workspaces = new object[]
+            {
+                new { Id = "a", ProjectRoot = quiet.ProjectRoot, Kind = WorkspaceKinds.Managed, Path = quiet.Path, Branch = quiet.Branch, BaseBranch = quiet.BaseBranch },
+                new { Id = "b", ProjectRoot = quiet.ProjectRoot, Kind = WorkspaceKinds.Managed, Path = gone, Branch = "gone", BaseBranch = "main" },
+                new { Id = "c", ProjectRoot = quiet.ProjectRoot, Kind = WorkspaceKinds.Default, Path = quiet.ProjectRoot, Branch = "main", BaseBranch = "main", SettledOverride = "settled" }
+            }
+        }));
+        var before = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var upgraded = new HostStateStore(legacy).Current.Workspaces;
+        Require(upgraded.Single(workspace => workspace.Id == "a").LastActiveAt == marker && upgraded.Single(workspace => workspace.Id == "b").LastActiveAt >= before &&
+            upgraded.Single(workspace => workspace.Id == "c").SettledOverride is null, "Backfill reads the worktree's .git time, degrades to now, and Default never carries an override.");
+        Require(new HostStateStore(legacy).Current.Workspaces.Single(workspace => workspace.Id == "a").LastActiveAt == marker, "The backfill is persisted once.");
+        Console.WriteLine("PASS settled workspaces: overrides, Default refusal, idle setting at local/remote parity; activity, coalescing, HEAD, terminal input and backfill");
     }
 
     private static string Describe(IEnumerable<WorkspaceRecord> workspaces, string root) => string.Join(" | ", workspaces.Select(workspace =>

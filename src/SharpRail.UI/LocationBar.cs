@@ -76,10 +76,12 @@ public sealed partial class WorkbenchWindow
             this.FindControl<ContentControl>(name)!.Content = Ui.Icon("arrowDown", Ui.Hint, 14);
         Switcher("ScopeProject", FillProjectSwitcher);
         Switcher("ScopeWorkspace", FillWorkspaceSwitcher);
-        branchCard.Opening += (_, _) => branchCard.Content = BranchCard();
+        var branch = this.FindControl<Button>("ScopeBranch")!;
+        branchCard.Opening += (_, _) => { branchCard.Content = BranchCard(); branch.Classes.Set("open", true); };
+        branchCard.Closed += (_, _) => branch.Classes.Set("open", false);
         // Focus lands on the card, not its first button, so opening it shows no tooltip.
         branchCard.Opened += (_, _) => (branchCard.Content as Control)?.Focus();
-        this.FindControl<Button>("ScopeBranch")!.Flyout = branchCard;
+        branch.Flyout = branchCard;
     }
 
     private void Switcher(string name, Action<ContextMenu> fill)
@@ -88,9 +90,16 @@ public sealed partial class WorkbenchWindow
         var menu = new ContextMenu { Name = name + "Menu", Placement = PlacementMode.BottomEdgeAlignedLeft, PlacementTarget = pill };
         void Fill() { menu.Items.Clear(); fill(menu); }
         menu.Opening += (_, _) => Fill();
+        // The pill stays lit, chevron shown, while its menu is open.
+        menu.Opened += (_, _) => pill.Classes.Set("open", true);
+        menu.Closed += (_, _) => pill.Classes.Set("open", false);
         pill.ContextMenu = menu;
         pill.Click += (_, _) => { Fill(); menu.Open(pill); };
     }
+
+    /// <summary>The project tile's glyph: the name's first letter or digit, in capitals.</summary>
+    private static string InitialOf(string name) =>
+        name.FirstOrDefault(char.IsLetterOrDigit) is var first && first != default ? char.ToUpperInvariant(first).ToString() : "";
 
     private static MenuItem MenuLabel(string text) => new() { Header = Ui.Text(text, Ui.Hint, 12), IsEnabled = false };
 
@@ -130,10 +139,28 @@ public sealed partial class WorkbenchWindow
             menu.Items.Add(new Separator());
         }
         menu.Items.Add(MenuLabel("Switch to"));
-        var others = worktrees.Where(tree => tree.Path != active?.Path).ToArray();
-        if (others.Length == 0)
+        // Live siblings most recently active first, then the shelf in a submenu: the rail's partition and clock.
+        var partition = PartitionOf(projectRoot, WorkspaceOrder.Recent);
+        var others = partition.Live.Where(tree => tree.Path != active?.Path).ToArray();
+        var settled = partition.Settled.Where(row => row.Workspace.Path != active?.Path).ToArray();
+        if (others.Length == 0 && settled.Length == 0)
             menu.Items.Add(new MenuItem { Header = gitLoading ? "Loading…" : "No other workspaces", IsEnabled = false });
-        foreach (var worktree in others)
+        foreach (var worktree in others) menu.Items.Add(SwitchOption(worktree, null));
+        if (settled.Length > 0)
+        {
+            var shelf = new MenuItem { Name = "ScopeWorkspaceSettled", Header = $"Settled · {settled.Length}" };
+            foreach (var row in settled) shelf.Items.Add(SwitchOption(row.Workspace, row));
+            menu.Items.Add(shelf);
+        }
+        menu.Items.Add(new Separator());
+        var create = Ui.Menu("New workspace", () => _ = CreateWorkspaceDialogAsync(), git.IsRepository);
+        create.Name = "ScopeWorkspaceNew"; create.Icon = Ui.Icon("add", null, 14);
+        create.InputGesture = new KeyGesture(Key.N, CommandKeys.Modifier);
+        menu.Items.Add(create);
+    }
+
+    private MenuItem SwitchOption(WorkspaceRecord worktree, SettledRow? settled)
+    {
         {
             var name = WorkspaceName(worktree.Path);
             var label = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { Ui.Text(name, Ui.TextBrush) } };
@@ -146,15 +173,17 @@ public sealed partial class WorkbenchWindow
                 Header = label,
                 Icon = Ui.Icon(worktree.Kind switch { WorkspaceKinds.Default => "homeFill", WorkspaceKinds.External => "folderOpen", _ => "gitBranch" }, null, 14)
             };
+            if (settled is not null)
+            {
+                var chip = Ui.Text(WorkspaceSettling.Chip(settled, SettlingClock()), settled.Reason == SettledReason.ByYou ? Ui.Warning : Ui.Hint, 11);
+                chip.VerticalAlignment = VerticalAlignment.Center;
+                ToolTip.SetTip(chip, WorkspaceSettling.Explanation(settled, SettlingClock()));
+                label.Children.Add(chip);
+            }
             item.Click += (_, _) => _ = OpenWorkspaceAsync(worktree.Path, false);
             AutomationProperties.SetName(item, name);
-            menu.Items.Add(item);
+            return item;
         }
-        menu.Items.Add(new Separator());
-        var create = Ui.Menu("New workspace", () => _ = CreateWorkspaceDialogAsync(), git.IsRepository);
-        create.Name = "ScopeWorkspaceNew"; create.Icon = Ui.Icon("add", null, 14);
-        create.InputGesture = new KeyGesture(Key.N, CommandKeys.Modifier);
-        menu.Items.Add(create);
     }
 
     private void SetBranch(string branch)
@@ -168,7 +197,7 @@ public sealed partial class WorkbenchWindow
         var branch = branchLabel.Text ?? "";
         this.FindControl<Border>("BranchSegment")!.IsVisible = projectRoot.Length > 0 && !atHome && branch.Length > 0;
         AutomationProperties.SetName(this.FindControl<Button>("ScopeBranch")!, "Branch " + branch);
-        // A managed workspace names what it was cut from; the Default workspace is plain "BRANCH".
+        // A managed workspace names what it was cut from; the Default workspace is plain "Branch".
         this.FindControl<TextBlock>("ScopeBase")!.Text = workspaceRoot != projectRoot && comparison.Length > 0 ? "· from " + comparison : "";
     }
 

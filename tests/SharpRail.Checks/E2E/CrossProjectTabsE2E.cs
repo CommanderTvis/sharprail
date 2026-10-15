@@ -30,7 +30,7 @@ internal static class CrossProjectTabsE2E
         Require(app.Window.Layout.NewGroup(center, "after"), "A second centre group is created.");
         var split = app.Window.Layout.State.Center.Leaves().Single(group => group != center);
         Require(app.Window.Layout.Move("markdown:OTHER.md", center, split, 0), "OTHER.md moves into the second group.");
-        app.Click(app.Find<Button>("Tab_projects"));
+        app.ShowTool("projects");
         _ = app.Window.OpenProjectAsync(first);
         Until(() => app.Window.WorkspaceMounted && app.Window.ProjectRoot == first);
         Button Preview() => app.Window.GetLogicalDescendants().OfType<ContentControl>()

@@ -53,8 +53,14 @@ internal static class SpecToolChecks
         await Fails("spec_create", new { path = "another.md", id = "module-design", type = "module-design", title = "Duplicate" }, "already in use");
         await Fails("spec_create", new { path = "empty.md", id = "", type = "module-design", title = "Empty" }, "non-empty");
         await Fails("spec_create", new { path = "type.md", id = "invalid", type = "invalid-type", title = "Invalid" }, "Invalid arguments");
-        foreach (var path in new[] { "../escape.md", "/absolute.md", "wrong.txt", ".git/spec.md", "node_modules/spec.md", "DiSt/spec.md", " " })
+        foreach (var path in new[] { "../escape.md", "/absolute.md", "wrong.txt", ".git/spec.md", "node_modules/spec.md", "DiSt/spec.md", " ", ".claude/spec.md", ".superpowers/spec.md", ".gsd/spec.md", ".mockups/spec.md", ".playwright-mcp/spec.md" })
             await Fails("spec_create", new { path, id = "unsafe", type = "module-design", title = "Unsafe" }, "Error:");
+        foreach (var scratch in new[] { ".claude", ".superpowers", ".gsd", ".mockups", ".playwright-mcp" })
+        {
+            Directory.CreateDirectory(Path.Combine(project, scratch, "plans"));
+            await File.WriteAllTextAsync(Path.Combine(project, scratch, "plans", "plan.md"), "---\nid: scratch-plan\ntype: module-design\ntitle: Scratch\n---\n");
+        }
+        await Fails("spec_get", new { id = "scratch-plan" }, "No spec");
         var outside = Path.Combine(root, "outside-spec-tools");
         Directory.CreateDirectory(outside);
         Directory.CreateSymbolicLink(Path.Combine(project, "linked"), outside);

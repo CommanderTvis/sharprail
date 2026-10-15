@@ -3,7 +3,7 @@ namespace SharpRail.Plugins.SpecDialect;
 /// <summary>A worktree's spec files. Every read checks file stamps; unchanged files reuse their parsed frontmatter.</summary>
 internal sealed class SpecIndex(string root)
 {
-    private static readonly HashSet<string> Excluded = new(StringComparer.Ordinal) { ".git", "node_modules", "dist", "build" };
+    private static readonly HashSet<string> Excluded = new(StringComparer.Ordinal) { ".git", "node_modules", "dist", "build", ".claude", ".superpowers", ".gsd", ".mockups", ".playwright-mcp" };
     private readonly Dictionary<string, (long Ticks, long Size, SpecFile? File)> cache = new(StringComparer.Ordinal);
     private readonly SemaphoreSlim gate = new(1);
     private IReadOnlyList<SpecFile> snapshot = [];

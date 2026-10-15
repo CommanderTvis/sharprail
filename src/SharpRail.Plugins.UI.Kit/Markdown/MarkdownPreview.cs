@@ -221,9 +221,7 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
                 foreach (var paragraph in callout.Children) paragraph.Margin = new Thickness(0, 4);
                 var alertTitle = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Margin = new Thickness(0, 0, 0, 4) };
                 alertTitle.Children.Add(Ui.Icon(iconName, color, 16));
-                var alertLabel = Ui.Text(char.ToUpperInvariant(kind[0]) + kind[1..], color, 14);
-                alertLabel.FontWeight = FontWeight.SemiBold;
-                alertLabel.LineHeight = 17.5;
+                var alertLabel = Typography.Apply(Ui.Text(char.ToUpperInvariant(kind[0]) + kind[1..], color), Typography.TitleDialog);
                 alertTitle.Children.Add(alertLabel);
                 callout.Children.Insert(0, alertTitle);
                 callout.Children[^1].Margin = new Thickness(0, 4, 0, 0);
@@ -652,10 +650,10 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
         var block = new DocumentText
         {
             FontFamily = Ui.CodeFont,
-            FontSize = 13,
+            FontSize = Typography.CodeDocument.FontSize,
             Foreground = Ui.TextBrush,
             TextWrapping = TextWrapping.NoWrap,
-            LineHeight = 21
+            LineHeight = Typography.CodeDocument.LineHeight
         };
         var lines = text.Split('\n');
         for (var index = 0; index < lines.Length; index++)

@@ -151,7 +151,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
             var prefill = terminal is not null ? RevivePrefill?.Invoke(terminal) : null;
             pending.Remove(request.SessionId, out var restored);
             var replay = Math.Clamp(replayBytes?.Invoke() ?? TerminalRecorder.SnapshotBytes, 0, TerminalRecorder.MaxSnapshotBytes);
-            var hosted = new HostedTerminal(process, request.Columns, request.Rows, restored, replay);
+            var hosted = new HostedTerminal(process, request.Columns, request.Rows, restored, replay) { InputAccepted = () => InputAccepted?.Invoke(directory) };
             sessions.Add(request.SessionId, hosted);
             directories[request.SessionId] = directory;
             roots[request.SessionId] = directory;
@@ -227,6 +227,12 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
             .Select(entry => entry.Key).Distinct().ToArray();
         foreach (var id in ids) await CloseAsync(id);
     }
+
+    /// <summary>
+    /// Raised with the workspace root of a shell that accepted a client's input. A watcher's ignored write, output and
+    /// merely attaching are not input.
+    /// </summary>
+    public event Action<string>? InputAccepted;
 
     public string Token(TerminalRef terminal)
     {

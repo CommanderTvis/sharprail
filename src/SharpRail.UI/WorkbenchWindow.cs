@@ -114,6 +114,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         WireNavigation();
         WireEditorLifetime();
         WireHostSync();
+        WireSettling();
         WireTerminalCatalog();
         WirePlugins();
         ApplyAppearance();
@@ -140,7 +141,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             // Preferences' own chord on macOS; other platforms have no such convention to honour.
             else if (CommandKeys.Modifier == KeyModifiers.Meta && e.KeyModifiers == KeyModifiers.Meta && e.Key == Key.OemComma) { ShowSettings(); e.Handled = true; }
             else if (command && e.Key == Key.B)
-            { Layout.Visible("left", !Layout.State.LeftVisible); e.Handled = true; }
+            { surface.ToggleLeft(); e.Handled = true; }
             else if (command && e.Key == Key.J && !e.KeyModifiers.HasFlag(KeyModifiers.Shift))
             { Layout.Visible("right", !Layout.State.RightVisible); e.Handled = true; }
             else if (command && e.Key is Key.OemPlus or Key.Add) { Zoom(1); e.Handled = true; }
@@ -236,7 +237,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             var button = new Button
             {
                 Width = 46,
-                Height = 48,
+                Height = LayoutRoles.TopbarRow,
                 Padding = new Thickness(0),
                 CornerRadius = new CornerRadius(0),
                 Background = Brushes.Transparent,
@@ -250,7 +251,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             button.Click += (_, _) => action();
             if (close)
             {
-                button.PointerEntered += (_, _) => button.Background = Brushes.Crimson;
+                button.PointerEntered += (_, _) => button.Background = Ui.Danger;
                 button.PointerExited += (_, _) => button.Background = Brushes.Transparent;
             }
             return button;

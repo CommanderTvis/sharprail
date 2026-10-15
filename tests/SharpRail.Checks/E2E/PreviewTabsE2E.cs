@@ -88,7 +88,7 @@ internal static class PreviewTabsE2E
         });
         Case("the Specs panel shares the one slot, and closing the preview tab releases it", app =>
         {
-            app.Open("README.md", true); app.Open("notes.txt"); app.Click(app.Find<Button>("Tab_plugin_spec-dialect_specs"));
+            app.Open("README.md", true); app.Open("notes.txt"); app.ShowTool("plugin:spec-dialect:specs");
             Until(() => app.Window.GetLogicalDescendants().OfType<DrawnTree>().Any(tree => tree.Name == "SpecsTree"));
             var tree = app.Find<DrawnTree>("SpecsTree"); Until(() => tree.Items.Count > 0);
             app.Click(TreeRow(tree, "SPEC.md"));
@@ -97,7 +97,7 @@ internal static class PreviewTabsE2E
             app.Click(app.Tab("SPEC.md").GetLogicalAncestors().OfType<Grid>().First(grid => grid.Name?.StartsWith("DockTab_", StringComparison.Ordinal) == true)
                 .GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "CloseTab"));
             Require(app.Tabs.Count == 1, "Closing the preview must release its slot.");
-            app.Click(app.Find<Button>("Tab_files")); app.Open("notes.txt");
+            app.ShowTool("files"); app.Open("notes.txt");
             Require(app.Tabs.Count == 2 && app.Tabs[1].Path == "notes.txt" && app.Tabs[1].Preview, "Browsing must refill the released preview slot.");
         });
     }

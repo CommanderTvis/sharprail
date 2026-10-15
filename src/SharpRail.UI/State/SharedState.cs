@@ -46,6 +46,12 @@ public sealed class SharedState : IDisposable
     public HostHandshake? Handshake { get; private set; }
     /// <summary>Whether the connected host serves a feature introduced at that protocol version; false until its handshake answers.</summary>
     public bool Supports(int introducedAt) => HostCapabilities.Supports(Handshake?.ProtocolVersion, introducedAt);
+    /// <summary>
+    /// Whether the last host that answered a handshake serves settled workspaces. A dropped connection keeps the verdict,
+    /// so reconnecting does not flatten the shelf and back; only a later handshake changes it.
+    /// </summary>
+    public bool SettlingSupported => lastHandshake?.Supports(HostProtocol.WorkspaceSettle) == true;
+    private HostHandshake? lastHandshake;
     /// <summary>Raised on the UI thread when <see cref="Handshake"/> is set or cleared.</summary>
     public event Action<HostHandshake?>? HandshakeChanged;
     private int handshakeGeneration;
@@ -91,6 +97,7 @@ public sealed class SharedState : IDisposable
         handshakeGeneration++;
         if (Handshake == value) return;
         Handshake = value;
+        lastHandshake = value ?? lastHandshake;
         HandshakeChanged?.Invoke(value);
     }
 
@@ -101,7 +108,7 @@ public sealed class SharedState : IDisposable
         try
         {
             var handshake = await Task.Run(async () => await service.GetHandshakeAsync(lifetime.Token), lifetime.Token);
-            if (generation == handshakeGeneration && Connected) { Handshake = handshake; HandshakeChanged?.Invoke(handshake); }
+            if (generation == handshakeGeneration && Connected) { Handshake = lastHandshake = handshake; HandshakeChanged?.Invoke(handshake); }
         }
         catch (OperationCanceledException) { }
         catch (Exception error) { Console.Error.WriteLine("Host handshake failed: " + error.Message); }

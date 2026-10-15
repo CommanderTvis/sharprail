@@ -73,6 +73,9 @@ public sealed class DockState
     public double LeftWidth { get; set; } = .18;
     public double RightWidth { get; set; } = .28;
     public int SideLimit { get; set; } = 6;
+    /// <summary>Project Home's own Projects pane: shown or hidden, and its width, independent of the workspace frame's left side.</summary>
+    public bool HomeProjectsVisible { get; set; } = true;
+    public double HomeProjectsWidth { get; set; } = .22;
     public DockState Copy() => new()
     {
         Center = Center.Copy(),
@@ -85,7 +88,9 @@ public sealed class DockState
         RightVisible = RightVisible,
         LeftWidth = LeftWidth,
         RightWidth = RightWidth,
-        SideLimit = SideLimit
+        SideLimit = SideLimit,
+        HomeProjectsVisible = HomeProjectsVisible,
+        HomeProjectsWidth = HomeProjectsWidth
     };
 
     public static readonly string[] ToolNames = ["projects", "files", "changes", "review"];
@@ -102,9 +107,14 @@ public sealed class DockState
     /// <summary>Core's tools and any <c>plugin:&lt;id&gt;:&lt;tool&gt;</c>, so a tab from a plugin since removed keeps its slot.</summary>
     public static bool IsToolId(string id) => ToolNames.Contains(id) || PluginIdentity.ParseToolId(id) is not null;
 
-    /// <summary>Renames tool ids that moved out of core wherever a persisted layout names them; a malformed layout is left to validation.</summary>
+    /// <summary>
+    /// Renames tool ids that moved out of core wherever a persisted layout names them, and separates the mixed
+    /// tool and terminal panes older layouts allowed (<see cref="SeparatePanes"/>); a malformed layout is left to validation.
+    /// </summary>
     public void MigrateLegacyTools()
     {
+        try { SeparatePanes(); }
+        catch (Exception error) when (error is NullReferenceException or InvalidOperationException or ArgumentException) { }
         static string Rename(string id) => LegacyToolIds.GetValueOrDefault(id) ?? id;
         try
         {
@@ -177,6 +187,51 @@ public sealed class DockState
         {
             ToolRestore.Remove(tool);
             ToolRestorePositions.Remove(tool);
+        }
+    }
+
+    /// <summary>Whether an auxiliary group may hold <paramref name="tab"/>: tools and terminals never share a pane.</summary>
+    public bool CanJoin(WorkspaceView view, DockGroup group, DockTab tab) => group.Region == "center" || (tab.IsTool
+        ? (view.Documents.GetValueOrDefault(group.Id)?.Count ?? 0) == 0
+        : group.Tools.Count == 0);
+
+    /// <summary>
+    /// Where a terminal goes that may not stay near <paramref name="near"/>: the same region's nearest tool-free
+    /// pane, then the last-focused centre group.
+    /// </summary>
+    public string TerminalTarget(WorkspaceView view, DockGroup? near)
+    {
+        if (near is not null && near.Region != "center")
+        {
+            var regional = Groups.Where(group => group.Region == near.Region).ToList();
+            var origin = regional.IndexOf(near);
+            var sibling = regional.Where(group => group.Id != near.Id && group.Tools.Count == 0)
+                .OrderBy(group => Math.Abs(regional.IndexOf(group) - origin)).ThenBy(group => regional.IndexOf(group)).FirstOrDefault();
+            if (sibling is not null) return sibling.Id;
+        }
+        var leaves = Center.Leaves().ToArray();
+        return leaves.Contains(view.FocusedCenter) ? view.FocusedCenter : leaves[0];
+    }
+
+    /// <summary>
+    /// Moves every workspace view's terminals out of tool panes to <see cref="TerminalTarget"/>, keeping their order,
+    /// selecting nothing and unfolding nothing, and discards the mixed-order anchors that only a mixed pane needed.
+    /// </summary>
+    public void SeparatePanes()
+    {
+        foreach (var view in Workspaces.Values)
+        {
+            view.BeforeToolByTabId.Clear();
+            foreach (var group in Groups.Where(group => group.Region != "center" && group.Tools.Count > 0))
+            {
+                if (!view.Documents.TryGetValue(group.Id, out var tabs)) continue;
+                view.Documents.Remove(group.Id);
+                if (tabs.Count == 0) continue;
+                var target = TerminalTarget(view, group);
+                if (!view.Documents.TryGetValue(target, out var destination)) view.Documents[target] = destination = [];
+                destination.AddRange(tabs.Select(tab => tab with { Preview = false }));
+                if (!group.Tools.Any(tool => tool.Id == view.Selected.GetValueOrDefault(group.Id))) view.Selected.Remove(group.Id);
+            }
         }
     }
 

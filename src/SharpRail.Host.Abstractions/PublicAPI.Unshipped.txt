@@ -4,7 +4,7 @@ const SharpRail.Host.Abstractions.FileLimits.PreviewBytes = 8388608 -> int
 const SharpRail.Host.Abstractions.FileLimits.ReadMessageBytes = 83886080 -> int
 const SharpRail.Host.Abstractions.FileLimits.SaveMessageBytes = 150994944 -> int
 const SharpRail.Host.Abstractions.HostProtocol.ChangeWritePath = 2 -> int
-const SharpRail.Host.Abstractions.HostProtocol.Current = 5 -> int
+const SharpRail.Host.Abstractions.HostProtocol.Current = 6 -> int
 const SharpRail.Host.Abstractions.HostProtocol.RequestReplay = 3 -> int
 const SharpRail.Host.Abstractions.HostProtocol.WebSocketTransport = 5 -> int
 const SharpRail.Host.Abstractions.HostSettings.DefaultTerminalReplayKb = 64 -> int
@@ -1312,3 +1312,19 @@ virtual SharpRail.Host.Abstractions.WorktreeInfo.<Clone>$() -> SharpRail.Host.Ab
 virtual SharpRail.Host.Abstractions.WorktreeInfo.EqualityContract.get -> System.Type!
 virtual SharpRail.Host.Abstractions.WorktreeInfo.Equals(SharpRail.Host.Abstractions.WorktreeInfo? other) -> bool
 virtual SharpRail.Host.Abstractions.WorktreeInfo.PrintMembers(System.Text.StringBuilder! builder) -> bool
+SharpRail.Host.Abstractions.HostSettings.SettleIdleDays.get -> int?
+SharpRail.Host.Abstractions.HostSettings.SettleIdleDays.init -> void
+SharpRail.Host.Abstractions.SettledOverrides
+SharpRail.Host.Abstractions.WorkspaceRecord.LastActiveAt.get -> long?
+SharpRail.Host.Abstractions.WorkspaceRecord.LastActiveAt.init -> void
+SharpRail.Host.Abstractions.WorkspaceRecord.SettledAt.get -> long?
+SharpRail.Host.Abstractions.WorkspaceRecord.SettledAt.init -> void
+SharpRail.Host.Abstractions.WorkspaceRecord.SettledOverride.get -> string?
+SharpRail.Host.Abstractions.WorkspaceRecord.SettledOverride.init -> void
+const SharpRail.Host.Abstractions.HostProtocol.WorkspaceSettle = 6 -> int
+const SharpRail.Host.Abstractions.HostSettings.DefaultSettleIdleDays = 7 -> int
+const SharpRail.Host.Abstractions.HostSettings.MaxSettleIdleDays = 365 -> int
+const SharpRail.Host.Abstractions.SettledOverrides.Active = "active" -> string!
+const SharpRail.Host.Abstractions.SettledOverrides.Settled = "settled" -> string!
+static SharpRail.Host.Abstractions.WorkspaceAction.Settle(string! id) -> SharpRail.Host.Abstractions.WorkspaceAction!
+static SharpRail.Host.Abstractions.WorkspaceAction.Unsettle(string! id) -> SharpRail.Host.Abstractions.WorkspaceAction!

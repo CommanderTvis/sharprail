@@ -209,7 +209,7 @@ internal static class PdfPreviewChecks
                 : new E2eWorkspace(new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single()),
                     "pdf-ui", workspace, Path.Combine(root, "profile"), workspace);
             E2eWorkspace.Until(() => app.Window.WorkspaceMounted);
-            if (remote) app.Click(app.Find<Button>("Tab_files"));
+            if (remote) app.ShowTool("files");
             EndToEnd(app, target);
             Console.WriteLine($"PASS PDF preview {(remote ? "remote" : "local")} host lifecycle and live file revisions");
         }

@@ -84,7 +84,7 @@ internal static class ReconnectE2E
             state.Connection.Changed += () => changes.Add((state.Connection.Status, state.Generation));
             Until(() => app.Window.WorkspaceMounted && state.Connected);
             Require(state.Generation == 1 && state.Connection.Status == HostConnectionStatus.Connected, "The first connection is generation 1.");
-            app.Click(app.Find<Button>("Tab_files"));
+            app.ShowTool("files");
             Until(() => HasFile(app, "README.md"));
             Until(() => state.Handshake is not null);
             Require(state.Supports(HostProtocol.ChangeWritePath) && !state.Supports(HostProtocol.Current + 1), "A connected host serves the features up to its version.");

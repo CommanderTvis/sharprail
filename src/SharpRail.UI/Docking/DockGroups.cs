@@ -38,7 +38,8 @@ public sealed partial class DockSurface
         var selected = Session.Selected(group.Id);
         var updates = new List<Action>();
         var style = group.Region == "center" ? StripStyle.Nested : StripStyle.Horizontal;
-        var headerFrame = BuildStrip(group, panel, selected, updates, style);
+        var headerFrame = group.Region is "left" or "right" && group.Tools.Count > 0 && selected is { IsTool: true }
+            ? BuildToolHeader(group, panel, updates) : BuildStrip(group, panel, selected, updates, style);
         var header = groupHeaders[group.Id];
         PlaceStrip(group, panel, headerFrame, style);
         if (!group.Folded) sites.Add((header, group.Id, true));
@@ -474,13 +475,8 @@ public sealed partial class DockSurface
                 Available();
             }
         }
-        if (group.Region != "center" && (group.Folded || Session.State.Groups.Count(item => item.Region == group.Region) > 1))
-        {
-            var fold = Ui.IconButton(group.Folded ? "expandVertical" : "collapseVertical", group.Folded ? "Expand pane" : "Fold pane", () => ToggleFold(group.Id));
-            fold.Name = "FoldRestore_" + group.Id;
-            actions.Children.Add(fold);
-            if (group.Folded) groupHeaders[group.Id] = fold;
-        }
+        // A side pane hides onto its rail.
+        if (group.Region is "left" or "right") actions.Children.Add(HideButton("HidePane_" + group.Id, () => HidePane(group.Id)));
         // Like the reference, the strip offers Remove group only where it can act; the menu keeps the disabled reason.
         if (Session.Tabs(group.Id).Count == 0 && RemoveGroupMenuItem(group).IsEnabled)
         {
@@ -604,8 +600,9 @@ public sealed partial class DockSurface
     private string ToolIcon(DockTab tab) => tab.Kind == "terminal" ? "terminal" : tab.Kind is "diff" or "changes" ? "fileDiff" :
         tab.IsTool ? Session.Tool(tab.Id)?.Icon ?? "puzzle" : "fileText";
 
-    private IEnumerable<DockToolInfo> HiddenTools(DockGroup group) => Session.Tools.Where(tool => tool.Region == group.Region &&
-        !Session.State.Groups.Any(item => item.Tools.Any(tab => tab.Id == tool.Id)));
+    // Tools and terminals never share a pane, so a pane showing terminals offers no tools.
+    private IEnumerable<DockToolInfo> HiddenTools(DockGroup group) => (Session.View.Documents.GetValueOrDefault(group.Id)?.Count ?? 0) > 0 ? [] :
+        Session.Tools.Where(tool => tool.Region == group.Region && !Session.State.Groups.Any(item => item.Tools.Any(tab => tab.Id == tool.Id)));
 
     private ContextMenu AddMenu(DockGroup group)
     {
@@ -618,6 +615,12 @@ public sealed partial class DockSurface
                 var item = Ui.Menu("Show " + tool.Title, () => Session.RestoreTool(tool.Id, group.Id));
                 item.Name = "ShowTool_" + tool.Id.Replace(':', '_');
                 menu.Items.Add(item);
+            }
+            if (Session.State.Groups.FirstOrDefault(item => item.Id == group.Id) is { Tools.Count: > 0 } tools)
+            {
+                var below = Ui.Menu("New terminal pane below", () => { Session.NewTerminal(tools.Id); FocusGroup(Session.View.FocusedGroup, focusContent: true); }, CanCreate(tools));
+                below.Name = "NewTerminalBelow_" + group.Id;
+                menu.Items.Add(below);
             }
         }
         Fill();
@@ -685,8 +688,14 @@ public sealed partial class DockSurface
         var move = new MenuItem { Header = "Move to pane" };
         foreach (var destination in Session.State.Groups.Where(item => (tab.Kind == "terminal" || (item.Region == "center") != tab.IsTool) && item.Id != group.Id))
         {
-            var target = Ui.Menu(GroupLabel(destination), () => Session.Move(tab.Id, group.Id, destination.Id, Session.Tabs(destination.Id).Count));
-            menu.Opening += (_, _) => target.Header = GroupLabel(Session.Group(destination.Id));
+            var target = Ui.Menu(PaneName(destination), () => Session.Move(tab.Id, group.Id, destination.Id, Session.Tabs(destination.Id).Count));
+            // Panes are named by their contents, and a pane that cannot take this tab is not offered.
+            menu.Opening += (_, _) =>
+            {
+                var live = Session.State.Groups.FirstOrDefault(item => item.Id == destination.Id);
+                target.IsVisible = live is not null && Session.CanMove(tab.Id, group.Id, live.Id, Session.Tabs(live.Id).Count);
+                if (live is not null) target.Header = PaneName(live);
+            };
             move.Items.Add(target);
         }
         menu.Items.Add(move);
@@ -728,6 +737,14 @@ public sealed partial class DockSurface
         return menu;
     }
 
+    // "Move to right pane (Changes, Review)": at most three names, then +N; "(empty)" when it has none.
+    private string PaneName(DockGroup group)
+    {
+        var names = Session.Tabs(group.Id).Select(Session.ToolTitle).ToArray();
+        var contents = names.Length == 0 ? "empty" : string.Join(", ", names.Take(3)) + (names.Length > 3 ? $" +{names.Length - 3}" : "");
+        return $"{group.Region} pane ({contents})";
+    }
+
     private string GroupLabel(DockGroup group) => $"{group.Region}: {TitleOf(Session.Selected(group.Id)) ?? "Empty"}";
     private string? TitleOf(DockTab? tab) => tab is null ? null : Session.ToolTitle(tab);
     private bool CanCreate(DockGroup group) => Session.State.Groups.Count(item => item.Region == group.Region) <
@@ -751,7 +768,8 @@ public sealed partial class DockSurface
         {
             menu.Items.Add(Ui.Menu("New pane before", () => Session.NewGroup(group.Id, "before"), CanCreate(group)));
             menu.Items.Add(Ui.Menu("New pane after", () => Session.NewGroup(group.Id, "after"), CanCreate(group)));
-            menu.Items.Add(Ui.Menu(group.Folded ? "Expand" : "Fold", () => ToggleFold(group.Id)));
+            if (!group.Folded) menu.Items.Add(Ui.Menu("Hide pane", () => HidePane(group.Id)));
+            else menu.Items.Add(Ui.Menu("Show pane", () => ActivateEntry(group.Id, null)));
             menu.Items.Add(Ui.Menu("Hide " + group.Region + " region", () => Session.Visible(group.Region, false)));
         }
         menu.Items.Add(RemoveGroupMenuItem(group));
@@ -759,12 +777,12 @@ public sealed partial class DockSurface
     }
 
     private MenuItem RemoveGroupMenuItem(DockGroup group) => Ui.Menu("Remove group", () => RemoveGroup(group.Id),
-        group.Region == "center" ? Session.State.Center.Leaves().Count() > 1 :
-            Session.State.Groups.Count(item => item.Region == group.Region) > 1 || group.Tools.Count == 0);
+        group.Region == "center" ? Session.State.Center.Leaves().Count() > 1 : Session.CanRemoveGroup(group.Id));
 
     private void RemoveGroup(string id)
     {
-        if (Session.RemoveGroup(id)) FocusGroup(Session.View.FocusedGroup);
+        var center = Session.State.Groups.Any(group => group.Id == id && group.Region == "center");
+        if (Session.RemoveGroup(id)) FocusGroup(center ? Session.View.FocusedCenter : Session.View.FocusedGroup);
     }
 
     private void ToggleFold(string id)
@@ -786,7 +804,11 @@ public sealed partial class DockSurface
     {
         if (!Session.State.Groups.Any(group => group.Id == id)) return;
         if (Session.View.FocusedGroup != id) Session.Focus(id);
-        if (Session.Group(id).Folded) { groupHeaders.GetValueOrDefault(id)?.Focus(); return; }
+        // A folded pane, or one on a hidden side, is reached through its rail entry.
+        var group = Session.Group(id);
+        if (group.Region is "left" or "right" && (group.Folded || !Session.RegionVisible(group.Region)) && railEntries.TryGetValue(id, out var entry))
+        { entry.Focus(); return; }
+        if (group.Folded) { groupHeaders.GetValueOrDefault(id)?.Focus(); return; }
         var selected = Session.Selected(id);
         if (focusContent && selected?.Kind == "terminal" &&
             contentHosts.FirstOrDefault(body => body.Name == "DockBody_" + id)?.Child is Terminal.TerminalView terminal)
@@ -798,7 +820,9 @@ public sealed partial class DockSurface
         {
             var target = tabs.FirstOrDefault(item => item.Tab == selected.Id).Control;
             target?.BringIntoView();
-            target?.GetLogicalDescendants().OfType<DockTabButton>().Single().Focus();
+            // A tool pane's header has no tabs; it takes focus itself.
+            if (target is null) groupHeaders.GetValueOrDefault(id)?.Focus();
+            else target.GetLogicalDescendants().OfType<DockTabButton>().Single().Focus();
         }
         else groupHeaders.GetValueOrDefault(id)?.Focus();
     }, DispatcherPriority.Loaded);

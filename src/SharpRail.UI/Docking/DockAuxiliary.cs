@@ -8,7 +8,8 @@ public sealed partial class DockSurface
 {
     private Control BuildAuxiliary(string region)
     {
-        var groups = Session.State.Groups.Where(group => group.Region == region).ToArray();
+        // A side's folded panes occupy nothing inside it; their rail entries restore them.
+        var groups = Session.State.Groups.Where(group => group.Region == region && !group.Folded).ToArray();
         var grid = new Grid { Name = "AuxiliaryStack_" + region, ClipToBounds = true, UseLayoutRounding = false };
         var handles = new List<ResizeHandle>();
         double Extent() => grid.Bounds.Height;

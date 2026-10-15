@@ -27,8 +27,17 @@ internal static class ProjectsE2E
             ExpectExpansion(app, false);
         }
         using (var app = new E2eWorkspace(directory, openFiles: false))
+        {
+            // The persisted collapse survives, but the mounted workspace's project is revealed on top of it.
+            Require(app.Window.Workbench.Profile.Data.CollapsedProjects.Contains(app.Window.ProjectRoot), "The collapse persists across window recreation.");
+            ExpectExpansion(app, true);
+            // A collapse made after the reveal is respected through later rail updates.
+            app.Click(app.Find<Button>("ProjectExpand"));
             ExpectExpansion(app, false);
-        Console.WriteLine("PASS upstream projects.spec.ts: rail expansion is per-browser view state that survives a reload");
+            app.Window.RefreshSettling(force: true);
+            ExpectExpansion(app, false);
+        }
+        Console.WriteLine("PASS upstream projects.spec.ts: rail expansion is per-browser view state that survives a reload, with the active workspace's project revealed over it");
         TouchHover(root);
     }
 

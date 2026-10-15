@@ -4,6 +4,10 @@ The goal remains active. Passing functional checks does not prove the complete
 visual and docking contract. This ledger preserves the original scope and
 identifies the evidence still needed before declaring completion.
 
+The current cross-module gap backlog is [PORTING-GAPS.md](PORTING-GAPS.md). This document
+keeps completion criteria and milestone evidence; module specs keep the contracts.
+Current implementation and acceptance gaps are tracked in the inventory rather than duplicated here.
+
 On `main` the authoritative upstream is [CommanderTvis/thinkrail:claude-code-integration-plugin-api](https://github.com/CommanderTvis/thinkrail/tree/claude-code-integration-plugin-api), which is [JetBrains/thinkrail:main](https://github.com/JetBrains/thinkrail/tree/main) plus the fork; the `upstream` branch tracks JetBrains alone (see `UPSTREAM.md`).
 Reference authorities are `SPEC.md`, Thinkrail's
 `apps/web/src/shell/layout/SPEC.md`, its actual `Workbench.tsx`/`model.ts`,
@@ -33,7 +37,7 @@ heartbeats and reconnect/replay are implemented and covered by focused checks. T
 macOS Command+A/Command+V regression is covered by real Chromium input. Existing hosts using
 WebSocket RPC require an updated build/restart; the user's running host was left intact.
 
-Next work is bounded by these remaining gates:
+Browser milestone evidence:
 
 The browser client is implemented in `src/SharpRail.Browser`, with full shared-workbench parity as its
 contract and exclusively remote host adapters. Chromium acceptance covers WASM Scintilla editing,
@@ -49,16 +53,8 @@ Browser terminal batching is measured at 110.0 benchmark output FPS and 47.1 ter
 in the recorded Chromium setup. Native batched text matches the shared renderer pixel for pixel;
 120 FPS browser drawing remains unachieved. See `VALIDATION.md` for the profile and current gate failures.
 
-1. Auxiliary stack sizing, folded weights, spacers and viewport compression have
-   source-library regression and native rendering evidence in `VALIDATION.md`.
-   Preserve those checks during the remaining audit.
-2. Finish the requirement-by-requirement docking and keyboard/menu audit; add
-   observable regressions for concrete gaps rather than counting existing tests.
-3. Compare representative native panels, dialogs, Markdown and menus at matching
-   dimensions/content; resolve the recorded typography and control differences.
-4. Re-run the applicable checks, publish the canonical package, verify its
-   signature/runtime and inspect it running after the final changes. Only then
-   evaluate the full goal for completion.
+The current docking, visual comparison and final-package gates are listed in
+[PORTING-GAPS.md](PORTING-GAPS.md#outstanding-acceptance-work).
 
 MacOS Scintilla/Skia integration is now a separately authorized scope extension.
 Its architecture and remaining editor limits are recorded in
@@ -73,63 +69,13 @@ Its architecture and remaining editor limits are recorded in
 
 ## Plugin API
 
-The Plugin API is merged: the host runtime, its seams and the wire (`src/SharpRail.Host.Core/Plugins`, the
-local and remote plugin adapters), the app side (the UI kit, the registry and loader in `src/SharpRail.UI/Plugins`,
-the shell's contribution points and Settings › Plugins) and the composition in `App.cs`. `--plugins` checks
-both halves, and the fork's `e2e/plugins/fixture/external-plugin.spec.ts` runs with the fixture plugin installed
-from disk, once through the in-process runtime and once through a remote host over WebSocket RPC. Open:
-
-- `WorkspaceUpdated` fires on relabelling only, not on a branch switch, and plugin routes serve no static
-  assets (see `Plugins.SPEC.md`, Not yet ported).
-- Not ported on the UI side: Scintilla selection events (the control exposes none),
-  faint-cell blanking in terminal accessories. `WatchWorkspaceAsync` now prepares watches beyond the
-  workspaces a window has open; its native multi-window behaviour is unverified.
-- Branch Graph now exercises `SetDiffScope` through local and WebSocket RPC windows with an independent host commit
-  lookup. Blueprint and Claude Code exercise companions, launchers and terminal decorations; remaining
-  fidelity gates are in their owning specs.
-- The spec dialect builtin now owns the Specs panel, graph and seven MCP tools. The remaining eight
-  builtin plugin ports are in progress; the recovered Claude worktrees contain partial implementations.
-  Blueprint is now registered with its host, companion, author opener and editable properties/controls.
-  Its focused runtime and headless checks pass, including WebSocket RPC parity and fork source-span stamping.
-  The fork's start-dialog, Claude-gate, takeover and author-recovery cases are translated (see `E2E.md`); the brief
-  streaming `@agent` run, the remaining blueprint-watch steps, a native fidelity review against the fork's
-  `assets/screenshots/blueprint.png` and full-suite gates remain before calling it complete.
-  Claude Code is now registered with its configuration pane, launcher, settings, accessory and IDE events.
-  Isolated host, authenticated IDE round trip and headless checks pass, with both launcher cases and the host halves of the
-  configuration mutation cases translated; `E2E.md` records the pane-driven, review and terminal-facts cases still pending.
-  Its owning spec lists pending protocol cases, notification, input,
-  layout, remote and complete verification gates. The fork itself answers IDE openDiff with
-  `diffShown: false`; that behavior is preserved rather than expanded.
-  Discord is now registered with the fork's presence decisions, Unix IPC client, settings and SVG mark.
-  Its local/remote settings, WebSocket RPC and IPC framing/lifecycle checks pass; native appearance,
-  published output and full-suite gates must be verified before closing its port.
-  PDF Preview is registered with rendering, selection, zoom and live local/remote refresh; its owning spec records
-  the remaining fidelity/verification gates. Selection across visible and offscreen pages,
-  clipboard/Select All, native Unicode extraction and rotated/cropped text geometry pass focused checks.
-  Branch Graph is registered with history/patch methods and a windowed side tool. Its focused local/remote
-  checks pass, including compiled row/menu templates, ref-update focus/menu retention and disable/remount;
-  remaining lifecycle and visual cases, published output and full gates are open.
-  Visualize is registered with its MCP tool, session persistence and live diagram/comparison companion.
-  Focused local/WebSocket RPC host and UI checks pass, including comparison contents/columns, drag panning, a second
-  terminal and disable/re-enable; remount render cancellation, one terminal in two windows, native,
-  published and full-suite gates remain open. File Icons is registered with generated assets and local/WebSocket RPC
-  tree, tab, Changes, theme, resize and fallback checks. Native/published app/full-suite gates remain open.
-  Codex is registered with configuration, account/models, launcher/revive, hooks, rollout facts and IDE IPC.
-  Focused logic and real WebSocket RPC UI checks pass; source fidelity, multi-window editor lists,
-  process-group, native/published/full gates remain open.
-
-All nine builtin plugins pass the combined published checks in
-`.bench/plugins-published-plugin-checks-2.log`. Native terminal probes and local/remote Avalonia paths
-pass, and the canonical package passes deep/strict signature verification with plugin assets under
-Resources. These close the recorded functional packaging and terminal checks; plugin-specific native
-appearance, complete source fidelity and the latest full repository runs remain open. Codex's settings,
-pane header/navigation, configuration rows, notices and terminal accessories are compiled XAML.
-
-On 2026-10-02 the latest source passed the full repository gate with Git fixtures
-(`.bench/final-full-checks.log`, exit 0) and format verification (`.bench/final-format.log`).
-Still open: rebuilding and publishing the canonical package from this source, deep signature,
-R2R and published-check verification of it, native GUI review of every plugin's appearance and
-input, native multi-window lifecycle, and the per-plugin fidelity gates in their owning specs.
+The Plugin API and all nine original builtins are registered. Functional host,
+local/remote UI and packaging checks are recorded in [VALIDATION.md](VALIDATION.md);
+translated scenarios are recorded in [E2E.md](E2E.md). Current plugin differences are tracked in
+[PORTING-GAPS.md](PORTING-GAPS.md#fork-plugin-differences-and-acceptance-gaps),
+with [acceptance tasks](PORTING-GAPS.md#outstanding-acceptance-work) consolidated separately,
+with contracts in the owning module specs. Historical milestone evidence does not
+close the current source-fidelity, native appearance or final-package gates.
 
 ## Tailscale pairing completion limits (2026-10-11)
 

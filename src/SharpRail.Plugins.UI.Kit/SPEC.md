@@ -28,6 +28,20 @@ as primary buttons: retain the manifest foreground when readable, otherwise use 
 black or white against both normal and hovered fills. Button factory labels and icons follow the
 control foreground. Disabled controls use the shared disabled colors.
 
+## Quiet scrollbars
+
+Adapted from upstream `apps/web/src/components/SPEC.md` (`QuietScrollArea`, `styles/global.css`). The same
+stylesheet replaces Fluent's scrollbar presentation for every `ScrollBar` in the app and its plugins: a 6px
+transparent track with no arrow buttons, a thumb that is transparent at rest, the border colour while its
+`ScrollViewer` carries intent, and the muted text colour under the pointer or while dragged. Intent is
+pointer hover, keyboard focus within, or scrolling with a 700 ms grace period (`QuietScroll` adds the
+`quiet-scroll-intent` class); an ancestor's intent never reveals a nested viewer's bars, because each
+selector reaches only its own template's bars. The editor frame's bars, which sit outside a viewer, take
+the frame's hover as intent. High contrast themes keep a 2px resting hairline in the hint colour. Clipped
+directions of every viewer fade through pointer-transparent 16px edge curtains, an opacity mask on the
+content presenter so the fade reveals whichever surface lies beneath without a per-surface colour; when
+both axes are clipped only the vertical curtains show. Terminals keep Ghostty's own scrollbar.
+
 ## Boundary
 
 The fork's shared `Switch` exposes a label and controlled checked state without visible On/Off text.
@@ -42,6 +56,7 @@ publish toggle automation changes without requesting another update.
 - Owns, in `SharpRail.Plugins.UI.Kit`:
   - Shared theme brushes, interface and code fonts, live theme updates, colour composition
     and primitive controls. All consumers use the same palette and control factories.
+  - Semantic typography and layout roles are generated from the app’s authored design files.
   - `Switch`, the controlled boolean primitive with a compiled target/track/thumb template and
     native toggle automation. Browser transition/reduced-motion behavior and native appearance
     remain to be audited against the fork.
@@ -231,6 +246,7 @@ The account presentation exposes labelled rows, provider-supplied severity and p
 relative reset times and reading timestamps. Row and usage-window layouts are compiled XAML.
 The Codex builtin uses these controls without referencing app or host implementations.
 
+  - Semantic typography and layout roles are generated from the app’s authored design files.
 ## Syntax highlighting
 
 Editor horizontal scrolling is clamped to the rendered text extent. Soft wrap resets

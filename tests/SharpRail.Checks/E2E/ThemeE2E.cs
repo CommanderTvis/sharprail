@@ -31,7 +31,7 @@ internal static class ThemeE2E
     private static void Catalogue()
     {
         var ids = Themes.All.Select(theme => theme.Id).ToArray();
-        Require(ids.SequenceEqual(["dark", "light", "high-contrast-dark", "high-contrast-light"]),
+        Require(ids.SequenceEqual(["dark", "light", "minimal-dark", "minimal-light", "high-contrast-dark", "high-contrast-light"]),
             "The catalogue must mirror the reference's bundled manifests in manifest order.");
         var dark = Themes.Exact("dark")!;
         var contrast = Themes.Exact("high-contrast-light")!;
@@ -244,10 +244,9 @@ internal static class ThemeE2E
         app.Window.MouseMove(new Point(app.Window.Bounds.Width - 2, app.Window.Bounds.Height - 2));
         Settle();
 
-        var right = app.Window.Layout.State.Groups.First(group => group.Region == "right" && app.Window.Layout.Selected(group.Id) is not null);
         using var frame = app.Window.CaptureRenderedFrame()!;
         frame.Save(Path.Combine(Directory.GetCurrentDirectory(), ".bench", "theme-contrast-tabs.png"), Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
-        foreach (var group in new[] { app.Center, right.Id })
+        foreach (var group in new[] { app.Center })
         {
             var chrome = app.Window.Layout.Tabs(group).Select(tab => app.Find<Grid>("DockTab_" + tab.Id.Replace(':', '_').Replace('/', '_'))).ToArray();
             var selected = chrome.Where(tab => Marker(tab).IsVisible).ToArray();

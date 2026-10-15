@@ -76,7 +76,7 @@ internal static class ReloadNavigationE2E
     {
         var app = OpenFixtureProject(directory);
         DefaultWorkspaceE2E.EnterDefaultWorkspace(app);
-        app.Click(app.Find<Button>("Tab_files"));
+        app.ShowTool("files");
         app.Open("README.md");
         Require(app.Tabs.Count(tab => tab.Kind is "markdown" or "file") == 1, "One file tab must be open.");
         using (app = Reload(app))

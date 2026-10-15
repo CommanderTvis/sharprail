@@ -51,7 +51,9 @@ quoted values, BOM and CRLF; malformed frontmatter is ignored. Unknown types are
 reads. In a Git worktree the candidates are the Markdown files Git does not ignore, tracked or
 untracked (`git ls-files --cached --others --exclude-standard`), so ignored fixtures and build
 output never enter the graph; a folder without Git is walked instead. Either way symlinks are
-not followed, `.git`, `node_modules`, `dist` and `build` are skipped, and entries sort together
+not followed, `.git`, `node_modules`, `dist` and `build` are skipped, as are the scratch
+directories other assistants keep in a project (`.claude`, `.superpowers`, `.gsd`, `.mockups`,
+`.playwright-mcp`), whose plans carry spec-shaped frontmatter, and entries sort together
 by NFC-normalized name, then exact name. The first file with an id wins the graph node;
 validation retains all duplicate paths. A file is cached by modification time and size as its
 frontmatter values only; grep and edits read its text from disk. Every read discovers

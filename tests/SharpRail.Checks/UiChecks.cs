@@ -1,4 +1,5 @@
 using Avalonia;
+using Avalonia.Automation;
 using Avalonia.Automation.Peers;
 using Avalonia.Automation.Provider;
 using Avalonia.Controls;
@@ -86,6 +87,7 @@ internal static class UiChecks
         Gate.Case("ProjectPickerE2E", () => E2E.ProjectPickerE2E.Run(root));
         Gate.Case("NewWorkspaceShortcutE2E", () => E2E.NewWorkspaceShortcutE2E.Run(root));
         Gate.Case("WorkspaceActionsE2E", () => E2E.WorkspaceActionsE2E.Run(root));
+        Gate.Case("SettledWorkspacesE2E", () => E2E.SettledWorkspacesE2E.Run(root));
         Gate.Case("WelcomeE2E", () => E2E.WelcomeE2E.Run(root));
         Gate.Case("SpecsPanelE2E", () => E2E.SpecsPanelE2E.Run(root));
         Gate.Case("DefaultWorkspaceE2E", () => E2E.DefaultWorkspaceE2E.Run(root));
@@ -254,9 +256,9 @@ internal static class UiChecks
         Require(Find<Control>(window, "ProjectsPanel").Bounds.Width > 200, "Projects geometry differs.");
         Require(Find<Control>(window, "ChangesPanel").Bounds.Width > 300, "Changes geometry differs.");
         var projectTab = Find<Button>(window, "Tab_projects");
-        var projectLabel = projectTab.GetLogicalDescendants().OfType<TextBlock>().Single(text => text.Text == "Projects");
-        Require(projectLabel.TranslatePoint(default, projectTab)!.Value.X == 26 && projectLabel.FontWeight == Ui.InterfaceWeight,
-            "Tab icon spacing or text weight differs from the reference.");
+        var projectLabel = window.GetLogicalDescendants().OfType<TextBlock>().Single(text => text.Name == "PaneTitle" && text.Text == "Projects");
+        Require(projectTab.Bounds.Size == new Size(32, 32) && projectLabel.FontWeight == Ui.InterfaceWeight,
+            "A tool's rail entry or its pane title differs from the reference.");
         {
             var pressPoint = projectTab.TranslatePoint(new Point(projectTab.Bounds.Width / 2, projectTab.Bounds.Height / 2), window)!.Value;
             window.MouseDown(pressPoint, MouseButton.Left); Dispatcher.UIThread.RunJobs();
@@ -264,7 +266,8 @@ internal static class UiChecks
             var pressed = projectTab.Classes.Contains(":pressed");
             var tinted = presenter.Background is ISolidColorBrush { Color.A: > 0 };
             var scaled = projectTab.RenderTransform is { Value.IsIdentity: false };
-            window.MouseUp(pressPoint, MouseButton.Left); Dispatcher.UIThread.RunJobs();
+            // Released away from the entry, so the pressed (shown) entry does not fold its pane.
+            window.MouseUp(pressPoint + new Vector(0, 400), MouseButton.Left); Dispatcher.UIThread.RunJobs();
             Require(pressed && !tinted && !scaled, $"Holding a tab must neither tint nor shrink it: pressed={pressed} background={presenter.Background} transform={projectTab.RenderTransform}.");
         }
         Require(Find<Grid>(window, "ProjectRow").Bounds.Height == 28,
@@ -281,7 +284,9 @@ internal static class UiChecks
         var specNode = Find<DrawnTree>(window, "SpecsTree").Roots.Single(item => Equals(item.Tag, "SPEC.md"));
         var child = specNode.Children.Single(item => Equals(item.Tag, "src/SPEC.md"));
         Require(child.Text == "Architecture · components", "Spec titles must compact spaced em dashes to middle dots.");
-        Click(window, Find<Button>(window, "Tab_plugin_spec-dialect_specs")); window.UpdateLayout();
+        // The entry already pressed would fold its pane.
+        if (!Equals(Find<Button>(window, "Tab_plugin_spec-dialect_specs").Tag, "pressed")) Click(window, Find<Button>(window, "Tab_plugin_spec-dialect_specs"));
+        window.UpdateLayout();
         var specHeader = E2E.E2eWorkspace.TreeRow(Find<DrawnTree>(window, "SpecsTree"), specNode.Id);
         Require(!specHeader.RoleVisible && specNode.Role == "PRODUCT GOAL", "Spec type must initially be hidden.");
         window.MouseMove(Center(window, specHeader)); Dispatcher.UIThread.RunJobs();
@@ -290,20 +295,16 @@ internal static class UiChecks
         Pump(() => window.Layout.State.Workspaces[root].Documents.Values.SelectMany(tabs => tabs)
             .Any(tab => tab.Path == "SPEC.md" && tab.Preview), "Single-clicking a spec did not preview its Markdown.");
 
+        // Rail entries are a toolbar's pressed buttons: toggling the unpressed one shows its tool.
         var filesPeer = ControlAutomationPeer.CreatePeerForElement(Find<Button>(window, "Tab_files"))!;
-        Require(filesPeer.GetAutomationControlType() == AutomationControlType.TabItem && filesPeer.GetName() == "Files",
-            "Tool tab lacks accessible identity.");
-        var filesSelection = (ISelectionItemProvider)filesPeer;
-        Require(!filesSelection.IsSelected && !filesSelection.SelectionContainer!.CanSelectMultiple &&
-            filesSelection.SelectionContainer.IsSelectionRequired, "Tab selection contract differs from the pane.");
-        filesSelection.Select();
+        Require(filesPeer.GetAutomationControlType() == AutomationControlType.Button && filesPeer.GetName() == "Files" &&
+            ((IToggleProvider)filesPeer).ToggleState == ToggleState.Off, "A tool's rail entry lacks accessible identity or pressed state.");
+        ((IToggleProvider)filesPeer).Toggle();
         Dispatcher.UIThread.RunJobs();
         filesPeer = ControlAutomationPeer.CreatePeerForElement(Find<Button>(window, "Tab_files"))!;
-        filesSelection = (ISelectionItemProvider)filesPeer;
-        Require(filesSelection.IsSelected && filesSelection.SelectionContainer!.GetSelection().Single() == filesPeer,
-            "Accessible selection did not update canonical tab state.");
-        Click(window, Find<Button>(window, "Tab_files"));
-        Require(window.Layout.State.Groups.Any(group => window.Layout.Selected(group.Id)?.Id == "files"), "Tab click failed.");
+        Require(((IToggleProvider)filesPeer).ToggleState == ToggleState.On &&
+            window.Layout.State.Groups.Any(group => window.Layout.Selected(group.Id)?.Id == "files"),
+            "Activating a rail entry did not show its tool and press it.");
         Require(Find<DrawnTree>(window, "FilesTree").Items.Count >= 3, "File tree is empty.");
         var filesTree = Find<DrawnTree>(window, "FilesTree");
         var readmeNode = filesTree.Rows.Single(item => item.Tag is SharpRail.Host.Abstractions.ProjectFile { Path: "README.md" });
@@ -373,19 +374,21 @@ internal static class UiChecks
         Capture(window, ".bench/prototype-markdown.png");
 
         var filesGroup = window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "files")).Id;
-        Click(window, Find<Button>(window, "FoldRestore_" + filesGroup));
-        var restore = Find<Button>(window, "FoldRestore_" + filesGroup);
-        var foldedRegion = window.Layout.Group(filesGroup).Region;
-        var foldedStack = restore.GetLogicalAncestors().OfType<Grid>().First(grid => grid.Name == "AuxiliaryStack_" + foldedRegion);
-        var separators = window.Layout.State.Groups.Count(group => group.Region == foldedRegion) - 1;
-        var foldedHeight = 27 * (foldedStack.Bounds.Height - separators) / foldedStack.Bounds.Height;
-        Require(window.Layout.Group(filesGroup).Folded && restore.IsFocused &&
-            Math.Abs(restore.GetLogicalAncestors().OfType<Grid>().First(grid => grid.Name == "DockGroup").Bounds.Height - foldedHeight) < .01,
-            "Side folding did not retain compact geometry and keyboard focus.");
+        // Hide folds the pane onto its rail: it keeps no interior strip and focus moves to its pressed entry's place.
+        Click(window, Find<Button>(window, "HidePane_" + filesGroup));
+        var restore = Find<Button>(window, "Tab_files");
+        Require(window.Layout.Group(filesGroup).Folded && restore.IsFocused && restore.Tag is null &&
+            !window.GetLogicalDescendants().OfType<Grid>().Any(grid => grid.Name == "GroupHeader_" + filesGroup),
+            "Hiding a side pane must fold it onto its rail, move focus to its entry and keep no interior strip.");
         window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
         Dispatcher.UIThread.RunJobs();
-        Require(!window.Layout.Group(filesGroup).Folded && Find<Button>(window, "Tab_files").IsFocused,
-            "Keyboard expansion did not restore selected-tab focus.");
+        Require(!window.Layout.Group(filesGroup).Folded && Find<Grid>(window, "GroupHeader_" + filesGroup).IsFocused &&
+            Equals(Find<Button>(window, "Tab_files").Tag, "pressed"),
+            "Keyboard activation of the entry did not unfold its pane and return focus to it.");
+        window.KeyPress(Key.Down, RawInputModifiers.None, PhysicalKey.ArrowDown, null);
+        Find<Button>(window, "Tab_files").Focus();
+        window.KeyPress(Key.Up, RawInputModifiers.None, PhysicalKey.ArrowUp, null); Dispatcher.UIThread.RunJobs();
+        Require(Find<Button>(window, "Tab_plugin_spec-dialect_specs").IsFocused, "Arrow keys must rove between a rail's entries.");
         var originalFocus = window.Layout.View.FocusedGroup;
         window.KeyPress(Key.F6, RawInputModifiers.Control, PhysicalKey.F6, null); Dispatcher.UIThread.RunJobs();
         window.KeyPress(Key.F6, RawInputModifiers.Control | RawInputModifiers.Shift, PhysicalKey.F6, null); Dispatcher.UIThread.RunJobs();

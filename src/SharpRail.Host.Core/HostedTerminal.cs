@@ -22,6 +22,9 @@ internal sealed class HostedTerminal
 
     internal ITerminalProcess Process { get; }
 
+    /// <summary>Raised after the shell accepted input from the attachment that drives it.</summary>
+    internal Action? InputAccepted { get; init; }
+
     internal HostedTerminal(ITerminalProcess process, int columns, int rows, byte[]? restored = null, int replayBytes = TerminalRecorder.SnapshotBytes)
     {
         Process = process;
@@ -159,7 +162,9 @@ internal sealed class HostedTerminal
 
     internal async ValueTask WriteAsync(Attachment attachment, ReadOnlyMemory<byte> data, CancellationToken cancellationToken)
     {
-        if (Drives(attachment)) await Process.WriteAsync(data, cancellationToken);
+        if (!Drives(attachment)) return;
+        await Process.WriteAsync(data, cancellationToken);
+        InputAccepted?.Invoke();
     }
 
     internal void Resize(Attachment attachment, int columns, int rows)

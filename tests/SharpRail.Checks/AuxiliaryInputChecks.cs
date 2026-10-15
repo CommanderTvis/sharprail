@@ -23,7 +23,7 @@ internal static class AuxiliaryInputChecks
     {
         var profilePath = root + "-auxiliary-input";
         var window = new WorkbenchWindow(new ProjectServices(root), root, new ProfileStore(profilePath), E2E.E2eTerminals.Plain);
-        window.Show(); window.Width = 1600; window.Height = 1000 + window.FindControl<Grid>("WorkbenchRoot")!.RowDefinitions[0].Height.Value;
+        window.Show(); window.Width = 1600 + 2 * DockSurface.RailWidth; window.Height = 1000 + window.FindControl<Grid>("WorkbenchRoot")!.RowDefinitions[0].Height.Value;
         var deadline = Awake.Now.AddSeconds(15);
         while (!window.WorkspaceMounted && Awake.Now < deadline) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(1); }
         Require(window.WorkspaceMounted, "Auxiliary resize workspace did not mount.");
@@ -42,85 +42,38 @@ internal static class AuxiliaryInputChecks
             preset.SideLimit = 32;
             window.Layout.ApplyPreset(preset);
         }
+        // A folded side pane occupies nothing: the stack projects only the expanded panes' saved weights.
         foreach (var region in new[] { "left", "right" })
             foreach (var foldedIndex in new[] { 0, 1 })
             {
                 Load(region, 3, i => i == foldedIndex);
-                var horizontal = region == "bottom";
                 var grid = Find<Grid>("AuxiliaryStack_" + region);
-                var extent = horizontal ? grid.Bounds.Width : grid.Bounds.Height;
-                Require(extent == (horizontal ? 1600 : 1000), "Reference auxiliary fixture has the wrong extent.");
-                var expected = (horizontal, foldedIndex) switch
-                {
-                    (false, 0) => new[] { .027, .368405078597, .604594921403 },
-                    (false, 1) => new[] { .285242090784, .027, .687757909216 },
-                    (true, 0) => new[] { .016875, .371036247131, .612088752869 },
-                    _ => new[] { .285653334786, .016875, .697471665214 }
-                };
-                double Fraction(int i) => (horizontal ? grid.ColumnDefinitions[i * 2].Width.Value : grid.RowDefinitions[i * 2].Height.Value) / (extent - 2);
-                for (var i = 0; i < 3; i++)
-                    Require(Math.Abs(Fraction(i) - expected[i]) < 1e-8,
-                        $"Auxiliary projection differs from the reference library for {region}/{foldedIndex}/{i}.");
+                var weights = new[] { .2, .3, .5 }.Where((_, i) => i != foldedIndex).ToArray();
+                Require(grid.RowDefinitions.Count == 3 && Enumerable.Range(0, 2).All(i =>
+                        Math.Abs(grid.RowDefinitions[i * 2].Height.Value / (grid.Bounds.Height - 1) - weights[i] / weights.Sum()) < 1e-8),
+                    $"A folded side pane must take no interior space: {region}/{foldedIndex}.");
                 var groups = window.Layout.State.Groups.Where(group => group.Region == region).ToArray();
-                var saved = groups.Select(group => group.Weight).ToArray();
-                var epoch = window.Layout.Epoch;
-                var name = "AuxiliarySeparator_" + groups[1].Id + "_" + groups[2].Id;
-                var handle = Find<ResizeHandle>(name);
-                Require(handle.IsEnabled, "A separator beside a folded pane must remain usable when two expanded panes can resize.");
+                var expanded = groups.Where((_, i) => i != foldedIndex).ToArray();
+                var handle = Find<ResizeHandle>("AuxiliarySeparator_" + expanded[0].Id + "_" + expanded[1].Id);
                 var origin = handle.TranslatePoint(new Point(handle.Bounds.Width / 2, handle.Bounds.Height / 2), window)!.Value;
-                var destination = origin + (horizontal ? new Vector(extent * .1, 0) : new Vector(0, extent * .1));
-                window.MouseDown(origin, MouseButton.Left); window.MouseMove(destination);
-                Require(handle.IsActive && window.Layout.Epoch == epoch && groups.Select(group => group.Weight).SequenceEqual(saved),
-                    "Auxiliary resize draft persisted pane weights.");
-                for (var i = 0; i < 3; i++)
-                    Require(Math.Abs(Fraction(i) - expected[i] - (i == foldedIndex ? 0 : i == 2 ? -.1 : .1)) < 1e-8,
-                        "Auxiliary resize did not transfer space across its fixed folded pane.");
-                window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
-                window.MouseUp(destination, MouseButton.Left);
-                Require(window.Layout.Epoch == epoch, "Canceling an auxiliary resize changed saved geometry.");
-                handle = Find<ResizeHandle>(name);
-                origin = handle.TranslatePoint(new Point(handle.Bounds.Width / 2, handle.Bounds.Height / 2), window)!.Value;
-                destination = origin + (horizontal ? new Vector(extent * .1, 0) : new Vector(0, extent * .1));
+                var destination = origin + new Vector(0, grid.Bounds.Height * .1);
                 window.MouseDown(origin, MouseButton.Left); window.MouseMove(destination); window.MouseUp(destination, MouseButton.Left);
                 Dispatcher.UIThread.RunJobs();
                 var committed = window.Layout.State.Groups.Where(group => group.Region == region).ToArray();
-                Require(committed[foldedIndex].Weight == saved[foldedIndex] && Math.Abs(committed.Sum(group => group.Weight) - 1) < 1e-8 &&
-                    committed[foldedIndex == 0 ? 1 : 0].Weight > saved[foldedIndex == 0 ? 1 : 0] && committed[2].Weight < saved[2],
-                    "Auxiliary resize did not preserve folded weights while committing expanded proportions.");
-                var persisted = new ProfileStore(profilePath).Data.Windows[0].Layout.Groups.Where(group => group.Region == region).ToArray();
-                Require(persisted.Select(group => group.Weight).SequenceEqual(committed.Select(group => group.Weight)),
-                    "Auxiliary resized weights did not persist.");
+                Require(committed[foldedIndex].Weight == groups[foldedIndex].Weight && Math.Abs(committed.Sum(group => group.Weight) - 1) < 1e-8 &&
+                    committed.First(group => group.Id == expanded[0].Id).Weight > expanded[0].Weight,
+                    "Side resize must keep a folded pane's weight while committing the expanded proportions.");
+                Require(Find<Button>("RailPane_" + groups[1].Id) is var entry && Equals(entry.Tag, foldedIndex == 1 ? null : "pressed"),
+                    "A folded pane's rail entry must not be pressed; an expanded one's must be.");
             }
         foreach (var region in new[] { "left", "right" })
         {
             Load(region, 3, _ => true);
-            var grid = Find<Grid>("AuxiliaryStack_" + region);
-            var extent = region == "bottom" ? grid.Bounds.Width : grid.Bounds.Height;
-            var spacer = region == "bottom" ? grid.ColumnDefinitions[^1].Width.Value : grid.RowDefinitions[^1].Height.Value;
-            Require(Math.Abs(spacer / (extent - 2) - (1 - 81 / extent)) < 1e-8 &&
-                grid.GetLogicalDescendants().OfType<ResizeHandle>().All(handle => !handle.IsEnabled),
-                "All-folded auxiliary panes must retain their trailing spacer and disable separators.");
+            Require(!window.GetLogicalDescendants().OfType<Grid>().Any(grid => grid.Name == "AuxiliaryStack_" + region) &&
+                window.Layout.State.Groups.Where(group => group.Region == region).All(group => Find<Button>(group.Tools.Count > 0 ? "Tab_" + group.Tools[0].Id.Replace(':', '_') : "RailPane_" + group.Id).Tag is null),
+                "An all-folded side keeps only its rail, with no entry pressed.");
         }
-        window.Height = 540;
-        foreach (var region in new[] { "left", "right" })
-            foreach (var allFolded in new[] { true, false })
-            {
-                Load(region, 32, i => allFolded || i % 2 == 0);
-                var grid = Find<Grid>("AuxiliaryStack_" + region);
-                var extent = region == "bottom" ? grid.Bounds.Width : grid.Bounds.Height;
-                if (region == "bottom") window.Width = 800;
-                grid = Find<Grid>("AuxiliaryStack_" + region);
-                extent = region == "bottom" ? grid.Bounds.Width : grid.Bounds.Height;
-                Require(grid.GetLogicalDescendants().OfType<ResizeHandle>().All(handle => !handle.IsEnabled),
-                    "Auxiliary separators must be disabled when the viewport cannot satisfy expanded minima.");
-                var sizes = region == "bottom" ? grid.ColumnDefinitions.Where((_, i) => i % 2 == 0).Select(column => column.ActualWidth) :
-                    grid.RowDefinitions.Where((_, i) => i % 2 == 0).Select(row => row.ActualHeight);
-                Require(Math.Abs(sizes.Sum() + 31 - extent) <= 1 && sizes.All(size => size >= 0 && size <= 27),
-                    $"Narrow auxiliary projection overflowed: {region}, folded={allFolded}, extent={extent}, sum={sizes.Sum()}, min={sizes.Min()}, max={sizes.Max()}.");
-                Require(window.Layout.State.Groups.Where(group => group.Region == region).All(group => group.Weight == 1d / 32),
-                    "Viewport compression rewrote saved auxiliary weights.");
-            }
         window.Close();
-        Console.WriteLine("PASS auxiliary source projection, folded-neighbor resizing, persistence, spacer and narrow viewport compression");
+        Console.WriteLine("PASS auxiliary expanded projection, folded-neighbor resizing and persistent rail entries");
     }
 }

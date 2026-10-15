@@ -103,20 +103,23 @@ internal static class NavigationChecks
         window.MouseMove(point); window.MouseDown(point, MouseButton.Left); window.MouseUp(point, MouseButton.Left);
         Dispatcher.UIThread.RunJobs();
         Require(window.Layout.Tabs(primary).All(tab => tab.Id != selectedId), "Inline close did not remove the selected tab.");
-        CheckToolOverflow(window);
+        CheckTerminalOverflow(window);
         window.Close();
         Console.WriteLine("PASS delayed navigation: reselect, independent panes, close, removed group and newer open");
     }
 
-    private static void CheckToolOverflow(WorkbenchWindow window)
+    private static void CheckTerminalOverflow(WorkbenchWindow window)
     {
-        var tools = window.Layout.State.Groups.First(group => group.Region == "right").Id;
-        foreach (var source in window.Layout.State.Groups.Where(group => group.Id != tools).ToArray())
-            foreach (var tab in source.Tools.ToArray())
-                Require(window.Layout.Move(tab.Id, source.Id, tools, window.Layout.Tabs(tools).Count), "Tools join the overflow fixture.");
-        window.Layout.Select(tools, "files");
+        var anchor = window.Layout.State.Groups.First(group => group.Region == "right").Id;
+        Require(window.Layout.NewGroup(anchor, "after"), "The overflow fixture needs a separate right terminal pane.");
+        var terminals = window.Layout.State.Groups.Single(group => group.Region == "right" && group.Tools.Count == 0).Id;
+        Require(window.Layout.Group(terminals).Region == "right" && window.Layout.Group(terminals).Tools.Count == 0,
+            "The overflow fixture must not mix terminal tabs with tools.");
+        for (var index = 0; index < 8; index++) window.Layout.NewTerminal(terminals);
+        var selected = window.Layout.Tabs(terminals)[2];
+        window.Layout.Select(terminals, selected.Id);
         Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
-        var overflow = window.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "TabOverflow_" + tools);
+        var overflow = window.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "TabOverflow_" + terminals);
         Require(overflow.IsVisible, "Clipped tab strip did not reveal overflow search.");
         var point = overflow.TranslatePoint(new Point(overflow.Bounds.Width / 2, overflow.Bounds.Height / 2), window)!.Value;
         window.MouseDown(point, MouseButton.Left); window.MouseUp(point, MouseButton.Left); Dispatcher.UIThread.RunJobs();
@@ -129,7 +132,7 @@ internal static class NavigationChecks
         var placeholder = search.GetVisualDescendants().OfType<TextBlock>().Single(item => item.IsVisible && item.Text == "Find an open tab…");
         Require(placeholder.Opacity == 1 && placeholder.Foreground is SolidColorBrush placeholderBrush && placeholderBrush.Color == Ui.Muted.Color,
             $"Dropdown placeholder must use the reference's muted text: {placeholder.Name}, opacity={placeholder.Opacity}, foreground={placeholder.Foreground}.");
-        search.Text = "Files";
+        search.Text = selected.Title;
         Dispatcher.UIThread.RunJobs();
         var results = content.GetLogicalDescendants().OfType<ListBox>().Single(item => item.Name == "TabOverflowResults");
         popup.UpdateLayout();
@@ -137,12 +140,12 @@ internal static class NavigationChecks
         var presenter = selectedRow.GetVisualDescendants().OfType<ContentPresenter>().First(item => item.Name == "PART_ContentPresenter");
         Require(presenter.Background is SolidColorBrush background && background.Color == Ui.Hover.Color,
             "The dropdown selected row must use the reference's muted background.");
-        Require(results.ItemCount == 1 && (results.SelectedItem as SharpRail.UI.Docking.DockTab)?.Id == "files",
+        Require(results.ItemCount == 1 && (results.SelectedItem as SharpRail.UI.Docking.DockTab)?.Id == selected.Id,
             $"Overflow filter mismatch: {results.ItemCount} results, selected {results.SelectedItem}.");
         popup.KeyPress(Key.Down, RawInputModifiers.None, PhysicalKey.ArrowDown, null);
         popup.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null); Dispatcher.UIThread.RunJobs();
-        Require(!flyout.IsOpen && window.Layout.Selected(tools)?.Id == "files",
-            $"Keyboard overflow mismatch: open={flyout.IsOpen}, selected={window.Layout.Selected(tools)?.Id}.");
+        Require(!flyout.IsOpen && window.Layout.Selected(terminals)?.Id == selected.Id,
+            $"Keyboard overflow mismatch: open={flyout.IsOpen}, selected={window.Layout.Selected(terminals)?.Id}.");
         point = overflow.TranslatePoint(new Point(16, 16), window)!.Value;
         window.MouseDown(point, MouseButton.Left); window.MouseUp(point, MouseButton.Left); Dispatcher.UIThread.RunJobs();
         flyout = (Flyout)overflow.Flyout!; content = (Control)flyout.Content!;

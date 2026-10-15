@@ -70,7 +70,7 @@ internal static class LayoutE2E
         var group = app.Window.Layout.State.Groups.Single(item => item.Tools.Any(tool => tool.Id == DockState.SpecsTool));
         Until(() => app.Window.Layout.Selected(group.Id)?.Id == "files");
         Require(app.Window.Layout.Tabs(group.Id).Any(tab => tab.Id == DockState.SpecsTool), "Specs must stay docked and one click away.");
-        app.Click(app.Find<Button>("Tab_plugin_spec-dialect_specs")); Settle();
+        app.ShowTool("plugin:spec-dialect:specs"); Settle();
         Require(app.Window.Layout.Selected(group.Id)?.Id == DockState.SpecsTool, "A later choice of Specs must be the user's to keep.");
         Console.WriteLine("PASS upstream layout.spec.ts: a project with no specs opens its rail on Files, not on the empty Specs panel");
     }
@@ -90,17 +90,29 @@ internal static class LayoutE2E
         {
             Settle(550);
             var changes = app.Window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "changes"));
-            var header = app.Find<Grid>("GroupHeader_" + changes.Id);
-            var origin = header.TranslatePoint(default, app.Window)!.Value;
-            var body = changes.Folded ? null : app.Find<Border>("DockBody_" + changes.Id);
-            var panelHeight = body is null ? 27 : body.TranslatePoint(new Point(0, body.Bounds.Height), app.Window)!.Value.Y - origin.Y;
-            var targetHeight = panelHeight / 2 - 4;
-            var target = new Point(origin.X + header.Bounds.Width / 2,
-                origin.Y + (before ? 4 + targetHeight / 2 : panelHeight / 2 + targetHeight / 2));
+            Point target;
+            var targetHeight = 100d;
+            if (changes.Folded)
+            {
+                // A folded pane lives on its rail: the cluster boundary before it creates a pane there.
+                var index = app.Window.Layout.State.Groups.Where(group => group.Region == "right").ToList().IndexOf(changes);
+                var zone = app.Find<Border>($"RailBoundary_right_{(before ? index : index + 1)}");
+                target = zone.TranslatePoint(new Point(zone.Bounds.Width / 2, zone.Bounds.Height / 2), app.Window)!.Value;
+            }
+            else
+            {
+                var header = app.Find<Grid>("GroupHeader_" + changes.Id);
+                var origin = header.TranslatePoint(default, app.Window)!.Value;
+                var body = app.Find<Border>("DockBody_" + changes.Id);
+                var panelHeight = body.TranslatePoint(new Point(0, body.Bounds.Height), app.Window)!.Value.Y - origin.Y;
+                targetHeight = panelHeight / 2 - 4;
+                target = new Point(origin.X + header.Bounds.Width / 2,
+                    origin.Y + (before ? 4 + targetHeight / 2 : panelHeight / 2 + targetHeight / 2));
+            }
             var tab = app.Find<Button>("Tab_files");
-            var start = tab.TranslatePoint(new Point(24, tab.Bounds.Height / 2), app.Window)!.Value;
+            var start = tab.TranslatePoint(new Point(tab.Bounds.Width / 2, tab.Bounds.Height / 2), app.Window)!.Value;
             app.Window.MouseMove(start); app.Window.MouseDown(start, MouseButton.Left);
-            app.Window.MouseMove(start + new Vector(12, 8)); Settle();
+            app.Window.MouseMove(start + new Vector(-12, 8)); Settle();
             Require(app.Find<DockSurface>("WorkspaceWorkbench").IsDragging, "Side split input must start a drag.");
             if (!changes.Folded) Require(targetHeight > 40, "Unfolded side split destinations must span more than a narrow edge.");
             app.Window.MouseMove(target); Settle(); app.Window.MouseUp(target, MouseButton.Left); Settle();
@@ -110,9 +122,9 @@ internal static class LayoutE2E
         Drop(false);
         Require(Order().SequenceEqual(new[] { DockState.SpecsTool, "empty", "changes", "files" }), "Dropping below Changes must retain the emptied source group.");
         var changesId = app.Window.Layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "changes")).Id;
-        app.Find<Button>("FoldRestore_" + changesId).Focus();
+        app.Find<Button>("HidePane_" + changesId).Focus();
         app.Window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null); Settle();
-        Require(app.Window.Layout.Group(changesId).Folded, "Enter must fold the Changes group.");
+        Require(app.Window.Layout.Group(changesId).Folded, "Enter on Hide must fold the Changes group.");
         Drop(true);
         Require(Order().SequenceEqual(new[] { DockState.SpecsTool, "empty", "files", "changes", "empty" }) && app.Window.Layout.Group(changesId).Folded,
             "A folded group's split destination must insert Files above it and preserve its folded state.");
@@ -258,10 +270,10 @@ internal static class LayoutE2E
         {
             bottom = app.Window.Layout.State.Groups.Any(legacyGroup => legacyGroup.Region == "bottom");
             app.Window.KeyPress(Key.B, command, PhysicalKey.B, null); Settle();
-            Require(!app.Window.Layout.State.LeftVisible && app.Find<Border>("leftHiddenSideRail").IsVisible,
-                "Mod+B must hide the left side and expose its restore rail.");
+            Require(!app.Window.Layout.State.LeftVisible && app.Find<Border>("leftRail").IsVisible,
+                "Mod+B must hide the left side and keep its rail.");
             app.Window.KeyPress(Key.J, command, PhysicalKey.J, null); Settle();
-            Require(!app.Window.Layout.State.RightVisible && app.Find<Border>("rightHiddenSideRail").IsVisible &&
+            Require(!app.Window.Layout.State.RightVisible && app.Find<Border>("rightRail").IsVisible &&
                 app.Window.Layout.State.Groups.Any(legacyGroup => legacyGroup.Region == "bottom") == bottom, "Mod+J must hide the right side without changing the bottom.");
         }
         using (var app = new E2eWorkspace(directory, openFiles: false))
@@ -370,21 +382,24 @@ internal static class LayoutE2E
         Console.WriteLine("PASS upstream layout.spec.ts: outer side widths publish on pointer-up and restore after reload");
     }
 
-    private static void OverflowFades(string root)
+    internal static void OverflowFades(string root)
     {
         using var app = new E2eWorkspace(Path.Combine(root, "layout-overflow"));
         app.Window.Width = 800; app.Window.Height = 720;
-        var group = app.Window.Layout.State.Groups.First(item => item.Region == "right").Id;
-        foreach (var other in app.Window.Layout.State.Groups.Where(item => item.Id != group).ToArray())
-            foreach (var tab in other.Tools.ToArray())
-                Require(app.Window.Layout.Move(tab.Id, other.Id, group, app.Window.Layout.Tabs(group).Count), "Tools join the overflow fixture.");
+        // The terminal strip must fit one complete tab while still overflowing as a whole.
+        app.Window.Layout.Geometry(state => state.RightWidth = .45);
+        var tools = app.Window.Layout.State.Groups.First(item => item.Region == "right").Id;
+        app.Window.Layout.NewTerminal(tools);
+        var group = app.Window.Layout.View.FocusedGroup;
+        for (var index = 1; index < 6; index++) app.Window.Layout.NewTerminal(group);
+        Settle();
         var tabs = app.Window.Layout.Tabs(group).ToArray();
         Button Tab(int index) => app.Find<Button>("Tab_" + tabs[index].Id.Replace(':', '_'));
         var scroll = Tab(0).GetLogicalAncestors().OfType<ScrollViewer>().First();
         Require(scroll.Extent.Width > scroll.Viewport.Width && scroll.HorizontalScrollBarVisibility == ScrollBarVisibility.Hidden &&
-            scroll.VerticalScrollBarVisibility == ScrollBarVisibility.Disabled, "Overflowing tool tabs scroll horizontally without visible scrollbars.");
+            scroll.VerticalScrollBarVisibility == ScrollBarVisibility.Disabled, "Overflowing terminal tabs scroll horizontally without visible scrollbars.");
         Require(Math.Abs(app.Find<Border>("TabStrip_" + group).Bounds.Height - 32) < .1,
-            "Overflow retains the tool strip height.");
+            "Overflow retains the terminal strip height.");
         scroll.Offset = new Vector(0, 0); Settle();
         Require(!app.Find<Border>("TabOverflowBefore_" + group).IsVisible && app.Find<Border>("TabOverflowAfter_" + group).IsVisible,
             "At the start only the trailing overflow fade may be visible.");
@@ -398,7 +413,7 @@ internal static class LayoutE2E
         var point = last.TranslatePoint(default, scroll)!.Value;
         Require(app.Find<Border>("TabOverflowBefore_" + group).IsVisible && !app.Find<Border>("TabOverflowAfter_" + group).IsVisible &&
             point.X >= 0 && point.X + last.Bounds.Width <= scroll.Viewport.Width + 1,
-            "Keyboard End reveals the last tool tab and leaves only the leading fade.");
-        Console.WriteLine("PASS tool tab overflow: directional fades and keyboard reveal");
+            $"Keyboard End reveals the last terminal tab and leaves only the leading fade: x={point.X}, width={last.Bounds.Width}, viewport={scroll.Viewport.Width}, offset={scroll.Offset.X}, extent={scroll.Extent.Width}, before={app.Find<Border>("TabOverflowBefore_" + group).IsVisible}, after={app.Find<Border>("TabOverflowAfter_" + group).IsVisible}.");
+        Console.WriteLine("PASS terminal tab overflow: directional fades and keyboard reveal");
     }
 }

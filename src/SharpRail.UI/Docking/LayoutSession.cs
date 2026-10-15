@@ -16,6 +16,7 @@ public sealed partial class LayoutSession
     public LayoutSession(DockState? state = null)
     {
         state?.RemoveBottomZone();
+        state?.MigrateLegacyTools();
         State = state is not null && IsValid(state) ? state : DockState.Preset("balanced");
     }
 
@@ -82,6 +83,7 @@ public sealed partial class LayoutSession
         var candidate = State.Copy();
         try { mutation(candidate); }
         catch (InvalidOperationException) { return false; }
+        candidate.SeparatePanes();
         NormalizePanes(candidate);
         if (!IsValid(candidate)) return false;
         if (CanRemoveDocument is not null)
@@ -180,6 +182,7 @@ public sealed partial class LayoutSession
             tabs.Add(new DockTab(tab.Key, known[tab.Key], "terminal")); changed = true;
         }
         if (!changed) return false;
+        next.SeparatePanes();
         NormalizePanes(next);
         if (!IsValid(next)) return false;
         State = next; Epoch++;
@@ -261,10 +264,18 @@ public sealed partial class LayoutSession
         if (index >= 0) docs![index] = docs[index] with { Preview = false };
     });
 
+    /// <summary>Adds a terminal to a group; from a tool pane it creates a tool-free pane directly below and places it there.</summary>
     public void NewTerminal(string groupId, string? id = null) => Change(state =>
     {
         var group = state.Groups.Single(item => item.Id == groupId);
         var view = Active(state);
+        if (group.Region != "center" && group.Tools.Count > 0)
+        {
+            var below = new DockGroup { Region = group.Region };
+            PrepareAuxiliaryCreation(state, below);
+            state.Groups.Insert(state.Groups.IndexOf(group) + 1, below);
+            group = below; groupId = below.Id;
+        }
         if (!view.Documents.TryGetValue(groupId, out var tabs)) view.Documents[groupId] = tabs = [];
         var tab = new DockTab(id ?? "terminal:" + Guid.NewGuid().ToString("N"), "Terminal " + view.NextTerminalNumber++, "terminal");
         tabs.Add(tab); group.Folded = false;
@@ -355,16 +366,18 @@ public sealed partial class LayoutSession
     private static void MoveToRegionIn(DockState state, string tabId, string source, string region)
     {
         if (region is not ("left" or "right")) throw new InvalidOperationException();
+        var view = Active(state);
+        var tab = ProjectTabs(state, source).FirstOrDefault(item => item.Id == tabId) ?? throw new InvalidOperationException();
         var group = state.Groups.LastOrDefault(item => item.Region == region);
-        if (group is not null)
+        if (group is not null && state.CanJoin(view, group, tab))
         {
             MoveIn(state, tabId, source, group.Id, 0, "after"); return;
         }
-        if (group is null)
+        if (group is null || !state.CanJoin(view, group, tab))
         {
             group = new() { Region = region }; PrepareAuxiliaryCreation(state, group); state.Groups.Add(group);
         }
-        MoveIn(state, tabId, source, group.Id, group.Tools.Count, "");
+        MoveIn(state, tabId, source, group.Id, ProjectTabs(state, group.Id).Length, "");
     }
 
     private static void MoveIn(DockState state, string id, string source, string destination, int index, string edge)
@@ -393,6 +406,8 @@ public sealed partial class LayoutSession
             if (!state.Groups.Contains(created)) state.Groups.Add(created);
             to = created; destination = created.Id; index = 0;
         }
+        // Tools and terminals never share a pane.
+        if (!state.CanJoin(view, to, tab)) throw new InvalidOperationException();
         if (tab.IsTool)
         {
             var sourceOrder = ProjectTabs(state, source).ToList();
@@ -487,7 +502,9 @@ public sealed partial class LayoutSession
         }
     });
 
-    public bool RemoveGroup(string id) => Change(state =>
+    public bool RemoveGroup(string id) => Change(state => RemoveGroupIn(state, id));
+
+    private static void RemoveGroupIn(DockState state, string id)
     {
         var group = state.Groups.Single(item => item.Id == id);
         var candidates = state.Groups.Where(item => item.Region == group.Region && item.Id != id).ToArray();
@@ -496,8 +513,12 @@ public sealed partial class LayoutSession
         var position = Array.IndexOf(regional, group);
         var leaves = state.Center.Leaves().ToArray();
         var centerPosition = Array.IndexOf(leaves, id);
+        // An auxiliary pane merges into the nearest sibling (previous, then next) that can take all its tabs.
+        bool Takes(DockGroup sibling) => (group.Tools.Count == 0 || state.Workspaces.Values.All(view => (view.Documents.GetValueOrDefault(sibling.Id)?.Count ?? 0) == 0)) &&
+            (sibling.Tools.Count == 0 || state.Workspaces.Values.All(view => (view.Documents.GetValueOrDefault(id)?.Count ?? 0) == 0));
         var target = group.Region == "center" ? state.Groups.Single(item => item.Id == leaves[centerPosition > 0 ? centerPosition - 1 : 1]) :
-            candidates.Length == 0 ? null : regional[position > 0 ? position - 1 : 1];
+            new[] { position - 1, position + 1 }.Where(index => index >= 0 && index < regional.Length).Select(index => regional[index]).FirstOrDefault(Takes);
+        if (target is null && candidates.Length > 0) throw new InvalidOperationException();
         if (target is not null)
         {
             target.Tools.AddRange(group.Tools);
@@ -534,7 +555,7 @@ public sealed partial class LayoutSession
             if (group.Region == "left") state.LeftVisible = false;
             if (group.Region == "right") state.RightVisible = false;
         }
-    });
+    }
 
     private static void PrepareAuxiliaryCreation(DockState state, DockGroup created)
     {
@@ -555,6 +576,96 @@ public sealed partial class LayoutSession
         node.First = first; node.Second = second; return node;
     }
 
+    /// <summary>Whether <see cref="RemoveGroup"/> would succeed.</summary>
+    public bool CanRemoveGroup(string id) => Try(state => RemoveGroupIn(state, id));
+
+    private bool Try(Action<DockState> mutation)
+    {
+        var candidate = State.Copy();
+        try { mutation(candidate); candidate.SeparatePanes(); return IsValid(candidate); }
+        catch (InvalidOperationException) { return false; }
+    }
+
+    /// <summary>Hides an auxiliary pane: it folds, keeping its weight, and its rail entries restore it.</summary>
+    public void HidePane(string id) => Change(state =>
+    {
+        var group = state.Groups.Single(item => item.Id == id);
+        if (group.Region == "center" || group.Folded) throw new InvalidOperationException();
+        group.Folded = true;
+    });
+
+    /// <summary>
+    /// Activates a rail entry of a group: <paramref name="tabId"/> (a tool), or the group itself for a terminal or empty
+    /// pane. The entry already shown folds its pane; any other reveals the region, unfolds the pane and selects it, in one
+    /// transition. Returns whether the pane folded.
+    /// </summary>
+    public bool ActivateEntry(string groupId, string? tabId)
+    {
+        var group = Group(groupId);
+        if (group.Region == "center") return false;
+        var shown = RegionVisible(group.Region) && !group.Folded;
+        if (shown && (tabId is null || Selected(groupId)?.Id == tabId))
+        {
+            HidePane(groupId);
+            return true;
+        }
+        // Within a pane already shown this is an ordinary selection, which swaps only that pane's body.
+        if (shown && tabId is not null) { Select(groupId, tabId); return false; }
+        Navigating?.Invoke(groupId);
+        Change(state =>
+        {
+            var target = state.Groups.Single(item => item.Id == groupId);
+            var view = Active(state);
+            target.Folded = false;
+            Reveal(state, target.Region);
+            if (tabId is not null) view.Selected[groupId] = tabId;
+            view.FocusedGroup = groupId; view.FocusedAuxiliary[target.Region] = groupId;
+        });
+        return false;
+    }
+
+    public bool RegionVisible(string region) => region switch
+    {
+        "left" => State.LeftVisible,
+        "right" => State.RightVisible,
+        _ => true
+    };
+
+    private static void Reveal(DockState state, string region)
+    {
+        if (region == "left") state.LeftVisible = true;
+        if (region == "right") state.RightVisible = true;
+    }
+
+    /// <summary>Whether <see cref="MoveToNewGroupAt"/> would succeed.</summary>
+    public bool CanMoveToNewGroupAt(string tabId, string source, string region, int boundary) =>
+        Try(state => MoveToNewGroupAtIn(state, tabId, source, region, boundary));
+
+    /// <summary>
+    /// Moves a tab into a new pane created at a cluster boundary of a region's rail: before its
+    /// <paramref name="boundary"/>-th group, or after the last. Moving a pane's only tab next to itself is refused.
+    /// </summary>
+    public bool MoveToNewGroupAt(string tabId, string source, string region, int boundary) =>
+        Change(state => MoveToNewGroupAtIn(state, tabId, source, region, boundary));
+
+    private static void MoveToNewGroupAtIn(DockState state, string tabId, string source, string region, int boundary)
+    {
+        if (region is not ("left" or "right")) throw new InvalidOperationException();
+        var regional = state.Groups.Where(group => group.Region == region).ToList();
+        if (boundary < 0 || boundary > regional.Count) throw new InvalidOperationException();
+        var from = state.Groups.Single(group => group.Id == source);
+        var at = regional.IndexOf(from);
+        if (at >= 0 && ProjectTabs(state, source).Length == 1 && (boundary == at || boundary == at + 1)) throw new InvalidOperationException();
+        var created = new DockGroup { Region = region };
+        PrepareAuxiliaryCreation(state, created);
+        state.Groups.Insert(boundary < regional.Count ? state.Groups.IndexOf(regional[boundary]) :
+            regional.Count > 0 ? state.Groups.IndexOf(regional[^1]) + 1 : state.Groups.Count, created);
+        MoveIn(state, tabId, source, created.Id, 0, "");
+    }
+
+    /// <summary>Shows or hides Project Home's Projects pane, which keeps its own visibility and width.</summary>
+    public void HomeProjects(bool visible) => Change(state => state.HomeProjectsVisible = visible);
+
     public void Fold(string id) => Change(state =>
     {
         var group = state.Groups.Single(item => item.Id == id);
@@ -571,10 +682,25 @@ public sealed partial class LayoutSession
     {
         if (state.Groups.Any(group => group.Tools.Any(tab => tab.Id == id))) return;
         target ??= state.ToolRestore.GetValueOrDefault(id);
+        var view = Active(state);
+        var tool = DockState.Tool(id);
         var group = state.Groups.FirstOrDefault(item => item.Id == target && item.Region != "center");
+        if (group is not null && !state.CanJoin(view, group, tool))
+        {
+            // The recorded pane shows terminals now: the tool gets a pane of its own beside it, when the limit allows.
+            var beside = new DockGroup { Region = group.Region };
+            try
+            {
+                PrepareAuxiliaryCreation(state, beside);
+                state.Groups.Insert(state.Groups.IndexOf(group) + 1, beside);
+                group = beside;
+            }
+            catch (InvalidOperationException) { }
+        }
         if (group is null)
         {
-            group = state.Groups.FirstOrDefault(item => item.Region == ToolRegion(id));
+            group = state.Groups.FirstOrDefault(item => item.Region == ToolRegion(id) && state.CanJoin(view, item, tool))
+                ?? state.Groups.FirstOrDefault(item => item.Region == ToolRegion(id));
             if (group is null) { group = new() { Region = ToolRegion(id) }; state.Groups.Add(group); }
         }
         var order = ProjectTabs(state, group.Id).ToList();
@@ -611,6 +737,7 @@ public sealed partial class LayoutSession
         }
         foreach (var tool in tools.Select(tool => tool.Id))
             if (!next.Groups.Any(group => group.Tools.Any(tab => tab.Id == tool))) next.ToolRestore[tool] = "";
+        next.SeparatePanes();
         if (!IsValid(next)) return;
         State = next; Epoch++; Changed?.Invoke();
     }
@@ -635,10 +762,13 @@ public sealed partial class LayoutSession
                 state.Groups.Any(group => group.Region == "center" && group.Tools.Count > 0) ||
                 state.SideLimit is < 1 or > 32 ||
                 !double.IsFinite(state.LeftWidth + state.RightWidth) ||
-                state.LeftWidth is <= 0 or >= 1 || state.RightWidth is <= 0 or >= 1) return false;
+                state.LeftWidth is <= 0 or >= 1 || state.RightWidth is <= 0 or >= 1 || state.HomeProjectsWidth is <= 0 or >= 1) return false;
             return state.Workspaces.Values.All(view =>
             {
                 var documents = view.Documents.Values.SelectMany(tabs => tabs).ToArray();
+                // Tools and terminals never share a pane.
+                if (state.Groups.Any(group => group.Region != "center" && group.Tools.Count > 0 && (view.Documents.GetValueOrDefault(group.Id)?.Count ?? 0) > 0))
+                    return false;
                 return view.BeforeToolByTabId is not null && documents.Select(tab => tab.Id).Distinct().Count() == documents.Length &&
                     documents.All(tab => !tab.IsTool) && view.Documents.All(pair =>
                         groups.Contains(pair.Key) && (leaves.Contains(pair.Key) ? pair.Value.Count(tab => tab.Preview) <= 1 :

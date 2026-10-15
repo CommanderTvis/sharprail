@@ -50,7 +50,7 @@ internal static class EditorE2E
             ("LONG_LINE.txt", LongLine + "\n"));
         var app = new E2eWorkspace(directory, openFiles: false);
         WorkspaceTabsE2E.CreateWorkspace(app, "workspace-1");
-        app.Click(app.Find<Button>("Tab_files"));
+        app.ShowTool("files");
         return app;
     }
 

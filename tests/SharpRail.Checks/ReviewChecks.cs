@@ -96,7 +96,7 @@ internal static class ReviewChecks
         var links = new List<string>();
         app.Window.OpenLink = links.Add;
         Until(() => app.Find<TextBlock>("BranchLabel").Text == "feature");
-        app.Click(app.Find<Button>("Tab_review"));
+        app.ShowTool("review");
         Until(() => PrLabel(app) == "Open PR" && Log().Any(line => line.StartsWith("pr list", StringComparison.Ordinal)));
         Require(Maybe<Button>(app, "ReviewPrChip") is null && Maybe<Button>(app, "ReviewOpenDraftPr") is not null,
             "Without an open pull request the panel offers Open PR and Open draft PR and no chip.");

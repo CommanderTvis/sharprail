@@ -46,7 +46,7 @@ internal static class BottomPanelE2E
             foreach (var keyboard in new[] { false, true })
             {
                 app.Window.Width = 1200; app.Window.Height = 844; Settle();
-                app.Window.Layout.Geometry(state => (state.LeftWidth, state.RightWidth) = (.18, .28));
+                app.Window.Layout.Geometry(state => (state.LeftWidth, state.RightWidth) = (.2, .28));
                 var before = Durable();
                 app.Window.Width = 560; Settle();
                 var handle = app.Find<ResizeHandle>(side + "Separator");
@@ -58,14 +58,15 @@ internal static class BottomPanelE2E
                 else
                 {
                     var start = handle.TranslatePoint(new Point(handle.Bounds.Width / 2, handle.Bounds.Height / 2), app.Window)!.Value;
-                    var target = start + new Vector(side == "left" ? -20 : 20, 0);
+                    // The compressed left pane is at its minimum; grow it rather than crossing its collapse threshold.
+                    var target = start + new Vector(20, 0);
                     app.Window.MouseMove(start); app.Window.MouseDown(start, MouseButton.Left);
                     app.Window.MouseMove(target); app.Window.MouseUp(target, MouseButton.Left); Settle();
                 }
                 app.Window.Width = 1200; Settle();
                 var after = Durable();
                 Require(Math.Abs((side == "left" ? after.Left : after.Right) - (side == "left" ? before.Left : before.Right)) > .001,
-                    $"Resizing the {side} side at a narrow width must persist that side.");
+                    $"Resizing the {side} side at a narrow width must persist that side ({(keyboard ? "keyboard" : "pointer")}).");
                 Require(Math.Abs((side == "left" ? after.Right : after.Left) - (side == "left" ? before.Right : before.Left)) < .005,
                     "Resizing one side must not persist its compressed neighbour.");
             }

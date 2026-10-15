@@ -137,7 +137,7 @@ expressions, a case toggle, a glob filter and replace.
 
 ## Settings
 
-A modal two-pane window: a section rail (Appearance, Line width, Layout, Projects, Terminal, Notifications, Host, GitHub, Plugins, then each
+A modal two-pane window: a section rail (Appearance, Line width, Layout, Projects, Workspaces, Terminal, Notifications, Host, GitHub, Plugins, then each
 active plugin's own sections in registration order) and a scrolling
 content pane. Escape and the close button dismiss. It first opens on Appearance and afterwards on the section it was last left on in that window, the way a
 Preferences window returns where it was left; it is sized to 80% of the owner's height before opening.
@@ -183,6 +183,10 @@ could not save this change: …” inline and re-renders from host state.
   attached terminal views in every window without ending their host shells. Below it, the host's replay
   size (Off, 16 KB, 64 KB, 256 KB, 1 MB) is shared state: a click sends the change and the selection moves
   when the broadcast arrives.
+- Workspaces, listed only for a host that serves settling, is one card group "Settle idle workspaces after":
+  1 / 3 / 7 (default) / 14 days / Never over the host's shared `settle-idle-days`, following the broadcast;
+  a host-configured value between the presets selects no card. Its copy names what counts as activity and
+  what never settles.
 - Notifications is the fork's `NotificationsSettings`: one "Enable notifications" switch over the host's
   shared `notifications` setting (default on), following the broadcast rather than the click. Turning it
   on also asks the system for notification permission, while the user is present. The line below says the

@@ -377,7 +377,7 @@ internal static class SpecDialectChecks
         var home = app.Window.OpenProjectHomeAsync(root);
         E2eWorkspace.Until(() => home.IsCompleted && app.Window.AtProjectHome && app.Window.WorkspaceMounted);
         home.GetAwaiter().GetResult();
-        app.Click(app.Find<Button>("Tab_plugin_spec-dialect_specs"));
+        app.ShowTool("plugin:spec-dialect:specs");
         E2eWorkspace.Until(() => SpecRow(app, "SPEC.md") is not null && !Skeleton(app));
         Require(reads!.Reads > 0 && !SpecsError(app).IsVisible, "A cold Project Home loads the project's specs without entering a workspace.");
         WriteSpec(root, "home.md", "id: home-module\ntype: module-design\ntitle: Home Module\nparent: sample-root");
@@ -405,7 +405,7 @@ internal static class SpecDialectChecks
             var home = app.Window.OpenProjectHomeAsync(project);
             E2eWorkspace.Until(() => home.IsCompleted && app.Window.AtProjectHome && app.Window.WorkspaceMounted);
             home.GetAwaiter().GetResult();
-            app.Click(app.Find<Button>("Tab_plugin_spec-dialect_specs"));
+            app.ShowTool("plugin:spec-dialect:specs");
             E2eWorkspace.Until(() => SpecRow(app, "SPEC.md") is not null && !Skeleton(app));
             WriteSpec(project, "remote.md", "id: remote-module\ntype: module-design\ntitle: Remote Module\nparent: remote-home");
             E2eWorkspace.Until(() => SpecRow(app, "remote.md") is not null);
@@ -419,7 +419,7 @@ internal static class SpecDialectChecks
     {
         using var app = new E2eWorkspace(root, openFiles: false, prepare: _ => WriteSpec(root, "module-a/SPEC.md",
             "id: sample-module\ntype: module-design\ntitle: Sample Module\nparent: sample-root"));
-        app.Click(app.Find<Button>("Tab_plugin_spec-dialect_specs"));
+        app.ShowTool("plugin:spec-dialect:specs");
         E2eWorkspace.Until(() => SpecRow(app, "SPEC.md") is not null && SpecRow(app, "module-a/SPEC.md") is not null);
         var rootRow = SpecRow(app, "SPEC.md")!;
         var child = SpecRow(app, "module-a/SPEC.md")!;
@@ -460,7 +460,7 @@ internal static class SpecDialectChecks
         using var app = new E2eWorkspace(root, openFiles: false,
             prepare: _ => WriteSpec(root, "module-a/SPEC.md", "id: sample-module\ntype: module-design\ntitle: Sample Module\nparent: sample-root"),
             plugins: inner => failure = new OneGraphFailure(inner) { Failures = int.MaxValue });
-        app.Click(app.Find<Button>("Tab_plugin_spec-dialect_specs"));
+        app.ShowTool("plugin:spec-dialect:specs");
         E2eWorkspace.Until(() => SpecsError(app).IsVisible);
         Require(ErrorText(app).Contains("Couldn't load specs.", StringComparison.Ordinal) && SpecRow(app, "SPEC.md") is null && !Skeleton(app),
             "A failed first read says it couldn't load, with no tree and no skeleton rows.");
@@ -479,7 +479,7 @@ internal static class SpecDialectChecks
         using var app = new E2eWorkspace(root, openFiles: false,
             prepare: _ => WriteSpec(root, "module-a/SPEC.md", "id: sample-module\ntype: module-design\ntitle: Sample Module\nparent: sample-root"),
             plugins: inner => failure = new OneGraphFailure(inner));
-        app.Click(app.Find<Button>("Tab_plugin_spec-dialect_specs"));
+        app.ShowTool("plugin:spec-dialect:specs");
         E2eWorkspace.Until(() => SpecRow(app, "SPEC.md") is not null);
         failure!.Failures = int.MaxValue;
         E2eWorkspace.Until(() => Volatile.Read(ref failure.Pending) == 0);
@@ -505,8 +505,7 @@ internal static class SpecDialectChecks
     {
         using var app = new E2eWorkspace(root, openFiles: false, prepare: _ => File.WriteAllText(Path.Combine(root, "module.md"),
             "---\nid: sample-module\ntype: module-design\ntitle: Sample Module\nparent: sample-root\n---\n\nPart of [[sample-root]].\n"));
-        var tab = app.Find<Button>("Tab_plugin_spec-dialect_specs");
-        app.Click(tab);
+        app.ShowTool(DockState.SpecsTool);
         E2eWorkspace.Until(() => HasTree(app));
         var tree = app.Find<DrawnTree>("SpecsTree");
         app.Click(E2eWorkspace.TreeRow(tree, "module.md"));
@@ -514,7 +513,7 @@ internal static class SpecDialectChecks
         app.Click(E2eWorkspace.TreeRow(tree, "SPEC.md"));
         E2eWorkspace.Until(() => tree.SelectedItem is DrawnTreeEntry { Tag: "SPEC.md" });
         Require(ReferenceEquals(tree, app.Find<DrawnTree>("SpecsTree")), "An editor selection changes the active Specs row without remounting the panel.");
-        app.Click(app.Find<Button>("Tab_files"));
+        app.ShowTool("files");
         app.Open("module.md", true);
         Button Link() => app.Window.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "SpecLink");
         E2eWorkspace.Until(() => Link().IsEnabled);
@@ -522,7 +521,7 @@ internal static class SpecDialectChecks
         void Enable(bool enabled) => _ = app.Workbench.State.ChangeAsync(HostStateChange.PluginEnabled(SpecDialectContract.Id, enabled));
         Enable(false);
         E2eWorkspace.Until(() => !app.Workbench.PluginRegistry.Active.Contains(SpecDialectContract.Id));
-        app.Click(app.Find<Button>("Tab_plugin_spec-dialect_specs"));
+        app.ShowTool("plugin:spec-dialect:specs");
         E2eWorkspace.Until(() => app.Window.GetLogicalDescendants().OfType<StackPanel>().Any(panel => panel.Name == "PluginToolDormant" &&
             panel.Children.OfType<TextBlock>().Any(text => text.Text == "Specs is off")));
         E2eWorkspace.Until(() => !Link().IsEnabled);

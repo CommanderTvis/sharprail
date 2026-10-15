@@ -53,8 +53,9 @@ public sealed partial class WorkbenchWindow
 
     private void PlaceWorkspaceTabs()
     {
-        // Keep the outgoing rail intact while the centre mounts its loading view.
-        if (switchingWorkspace) return;
+        // Keep the outgoing rail intact while another workspace mounts. At startup there is no
+        // outgoing workspace, so plugin refreshes must mount their current strips immediately.
+        if (switchingWorkspace && workspaceRoot.Length > 0) return;
         foreach (var (workspace, host) in workspaceTabHosts)
         {
             if (workspace == Layout.State.ActiveWorkspace && !workspace.StartsWith("home:", StringComparison.Ordinal))

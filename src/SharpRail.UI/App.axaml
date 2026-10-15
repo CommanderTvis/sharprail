@@ -140,7 +140,7 @@
       <Setter Property="Foreground" Value="{x:Static rendering:Ui.Hint}" />
     </Style>
     <Style Selector="TreeViewItem">
-      <Setter Property="MinHeight" Value="28" />
+      <Setter Property="MinHeight" Value="{x:Static rendering:LayoutRoles.PanelRow}" />
     </Style>
   </Application.Styles>
 </Application>

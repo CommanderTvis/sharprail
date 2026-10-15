@@ -83,6 +83,8 @@ public sealed class Profile
     public Dictionary<string, string> PluginPreferences { get; set; } = [];
     /// <summary>Set once shared fields have moved to the local host's <c>state.json</c>.</summary>
     public bool StateMigrated { get; set; }
+    /// <summary>Hosts, by endpoint, whose first automatic move to the Settled shelf has been announced.</summary>
+    public HashSet<string> SettledShelfNotices { get; set; } = [];
 
     // Fields of older profiles, read for migration and cleared once migrated.
     [JsonPropertyName("Layout"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] public DockState? LegacyLayout { get; set; }
@@ -151,6 +153,7 @@ public sealed class ProfileStore
                     if (!ValidPath(entry.Key) || string.IsNullOrWhiteSpace(entry.Value) || entry.Value.Contains('\0'))
                         labels.Remove(entry.Key);
             Data.GitSelections ??= [];
+            Data.SettledShelfNotices ??= [];
             foreach (var entry in Data.GitSelections.ToArray())
             {
                 if (!ValidPath(entry.Key) || entry.Value is null)

@@ -1,0 +1,53 @@
+{
+  "note": "The typography vocabulary: primitives, then semantic styles that name one primitive per property or alias another canonical style with $ref. Generated/Ui.Typography.g.cs is produced from it by the checks executable's --design --write mode. `exceptions` is the closed list of literal line heights outside a role, each with its file, value and reason. See TYPOGRAPHY.md.",
+  "fontFamilies": {
+    "interface": "InterfaceFont",
+    "code": "CodeFont"
+  },
+  "fontWeights": { "light": 370, "regular": 400, "medium": 500, "semibold": 600 },
+  "fontSizes": { "s10": 10, "s11": 11, "s12": 12, "s13": 13, "s14": 14, "s16": 16, "s18": 18, "s20": 20, "s24": 24, "s44": 44 },
+  "lineHeights": { "compact": 1.25, "metadata": 1.25, "ui": 1.3, "code": 1.4, "relaxed": 1.4, "default": 1.3, "reading": 1.45 },
+  "letterSpacings": { "normal": 0, "loose": 0.02, "wide": 0.05, "widest": 0.1 },
+  "textStyles": {
+    "brand": {
+      "hero": { "fontFamily": "interface", "fontSize": "s44", "fontWeight": "regular", "lineHeight": "compact", "letterSpacing": "normal", "textTransform": "none" }
+    },
+    "heading": {
+      "xl": { "fontFamily": "interface", "fontSize": "s24", "fontWeight": "semibold", "lineHeight": "compact", "letterSpacing": "normal", "textTransform": "none" },
+      "lg": { "fontFamily": "interface", "fontSize": "s20", "fontWeight": "semibold", "lineHeight": "compact", "letterSpacing": "normal", "textTransform": "none" },
+      "md": { "fontFamily": "interface", "fontSize": "s18", "fontWeight": "semibold", "lineHeight": "compact", "letterSpacing": "normal", "textTransform": "none" },
+      "sm": { "fontFamily": "interface", "fontSize": "s16", "fontWeight": "semibold", "lineHeight": "compact", "letterSpacing": "normal", "textTransform": "none" }
+    },
+    "title": {
+      "dialog": { "fontFamily": "interface", "fontSize": "s14", "fontWeight": "semibold", "lineHeight": "compact", "letterSpacing": "normal", "textTransform": "none" },
+      "card": { "$ref": "title.dialog" },
+      "section": { "fontFamily": "interface", "fontSize": "s14", "fontWeight": "medium", "lineHeight": "default", "letterSpacing": "normal", "textTransform": "none" },
+      "compact": { "fontFamily": "interface", "fontSize": "s12", "fontWeight": "medium", "lineHeight": "default", "letterSpacing": "normal", "textTransform": "none" },
+      "entity": { "$ref": "body.reading" }
+    },
+    "ui": {
+      "default": { "fontFamily": "interface", "fontSize": "s14", "fontWeight": "light", "lineHeight": "ui", "letterSpacing": "normal", "textTransform": "none" },
+      "metadata": { "fontFamily": "interface", "fontSize": "s12", "fontWeight": "light", "lineHeight": "metadata", "letterSpacing": "normal", "textTransform": "none" },
+      "eyebrow": { "fontFamily": "interface", "fontSize": "s12", "fontWeight": "medium", "lineHeight": "relaxed", "letterSpacing": "loose", "textTransform": "uppercase" },
+      "labelPill": { "$ref": "ui.eyebrow" },
+      "caption": { "fontFamily": "interface", "fontSize": "s10", "fontWeight": "medium", "lineHeight": "compact", "letterSpacing": "wide", "textTransform": "uppercase" },
+      "action": { "$ref": "title.compact" },
+      "emphasis": { "$ref": "title.compact" }
+    },
+    "body": {
+      "reading": { "fontFamily": "interface", "fontSize": "s14", "fontWeight": "light", "lineHeight": "reading", "letterSpacing": "normal", "textTransform": "none" }
+    },
+    "code": {
+      "text": { "fontFamily": "code", "fontSize": "s13", "fontWeight": "regular", "lineHeight": "relaxed", "letterSpacing": "normal", "textTransform": "none" },
+      "document": { "fontFamily": "code", "fontSize": "s13", "fontWeight": "regular", "lineHeight": "code", "letterSpacing": "normal", "textTransform": "none" },
+      "otp": { "fontFamily": "code", "fontSize": "s18", "fontWeight": "regular", "lineHeight": "metadata", "letterSpacing": "widest", "textTransform": "none" },
+      "textSmall": { "fontFamily": "code", "fontSize": "s11", "fontWeight": "regular", "lineHeight": "code", "letterSpacing": "normal", "textTransform": "none" }
+    }
+  },
+  "exceptions": [
+    { "file": "ProjectRail.cs", "value": "17.5", "reason": "the workspace row's name keeps the rail's measured row height until the rail adopts a role" },
+    { "file": "ProjectRail.cs", "value": "15", "reason": "the workspace row's branch line, ui.metadata's line box written out until the rail adopts a role" },
+    { "file": "CenterTabsInProjects.cs", "value": "20", "reason": "inactive workspace tab titles use the same measured line box as active Projects tabs" },
+    { "file": "Docking/DockGroups.cs", "value": "20", "reason": "a tab title's line box fills its fixed-height tab chrome" }
+  ]
+}

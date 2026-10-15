@@ -5621,3 +5621,67 @@ Signed and landed the macOS single-item drag payload fix, workspace-8 readable s
 ## 2026-10-14 — Land Projects-only tabs and prepare Windows nightly
 
 Landed workspace-21 on main, preserving prior browser error/replay fixes, inset active markers and stable workspace tab geometry. Corrected legacy bottom migration to retain files/diffs and valid selections/panes; Release and WASM compiler gates, whole formatting, state, rail, Projects-tab and shared-terminal checks pass. Browser runtime acceptance and physical Android/native testing are not verified. Windows nightly workflow is landed; dispatch and actual release verification remain pending. User authorized push.
+
+## 2026-10-14 — Android usability and Settings placement awaiting presence
+
+Integrated workspace-27 watched-grid-before-replay and readable 10–13 DIP Android fitting, workspace-28 explicit touch Open buttons/scroller-safe labels, workspace-29 actualized AGENTS.md and workspace-30 Settings sizing before centering/work-area containment. Combined main desktop/WASM Release and whole formatting pass. Source Android package/managed compilation and focused Skia, shell, Projects-tab and Settings geometry checks pass; device/browser/native appearance remain unverified. One full gate timed out in RenderedDiffE2E; the isolated case passes unchanged. Remaining lanes were interrupted, so no complete gate is claimed. See VALIDATION.md.
+
+SSH push hung and was stopped under the 1Password presence requirement. Main HEAD is 676e2d6f with Projects-only tabs and the Windows nightly workflow committed; latest fixes/docs are staged and uncommitted. Do not retry signing/push until the user is present and unlocks. Then preserve separate task commits and a status tip, push main under existing authorization, dispatch Nightly and verify the actual Windows gate and release asset before claiming deployment. Keep own workspaces8/27/28/29/30 until their work is preserved; source20 and21 changes are landed and their checkouts are deletion candidates. scripts/browser.sh remains user-owned and unstaged.
+
+## 2026-10-14 — Restty GPU teardown measured in a new workspace-20
+
+The old workspace-20 checkout was removed and its path reused for the GPU lifecycle task; the new workspace-20 must be kept. Found that Restty 0.3.0 Destroy leaves its base context and 12 graphics objects valid. Added explicit acquired-context loss in bridge teardown plus keyboard cleanup. The negative original bridge fails; fixed source passes 48 actual Apple M4 Pro/ANGLE Metal cycles, cancellation/failure teardown and strict allocated-byte return. Chromium GPU allocator grows from warmed 98,971,019 bytes to 110,530,955 while open and returns to 98,971,019 after close. Physical GPU residency and full workbench path remain unverified; see VALIDATION.md for allocator categories and test scope. JavaScript syntax/whitespace pass, no redundant compiler/full suite. Main staged the unchanged verified patch; commit/push still waits on the 1Password presence check. No raw traces or scratch retained.
+
+## 2026-10-14 — ThinkRail gap inventory
+
+Created `audit-thinkrail-gaps` from main at `16138700b2fbf86d845ad76a133dacb7d6ab1d5c`.
+Fetched JetBrains upstream/main to `be06fb01927e8386e3aec215bbcdb1a312ec66fa` and recorded it
+as latest researched/tracked, preserving the prior synced revision. PORTING-GAPS.md contains
+134 status-labelled applicable entries and dispositions for applicable commits in the
+22-commit range. Chat/pi-only backlog items and the stale-notes section are removed;
+CLI integration and shared workbench gaps remain. COMPLETION.md no longer duplicates
+the plugin backlog; UPSTREAM.md keeps historical port decisions rather than current tasks. COMPLETION.md links the dated inventory.
+Documentation whitespace, local source links and unique inventory ids pass verification;
+no source code, build, executable gate, commit or push. The original checkout's browser
+script change is untouched. Browser Settings instability was reported during the audit
+and is recorded separately as an unresolved acceptance issue.
+
+## 2026-10-14 — Verify-entry audit
+
+Reviewed all 25 Verify inventory entries with three read-only subagents. Reclassified
+six rows with confirmed implementation gaps and narrowed the remaining 19 acceptance
+claims. PORTING-GAPS.md contains the per-entry findings; VALIDATION.md records
+evidence. The unchanged baseline is built/published/tested only in managed workspace-22
+so other work stays isolated. Release, formatting and isolated app signature pass;
+the four-lane packaged gate with upstream Git fixtures is incomplete after a plugin
+settings-observer timeout, unfinished terminal checks and a stalled lane. Thirteen
+of fifteen unreached audit cases pass in named packaged continuations; Codex host
+recovery fails its process-count fixture and Blueprint UI exits unfinished. The
+Codex fixture logs no first-attempt requests, so product process-reuse failure is
+not established. Detailed evidence and exact acceptance limits are in VALIDATION.md
+and PORTING-GAPS.md. Workspace-22 is disposable and removed after verification.
+No product code, commits, pushes, primary package replacement or external posts.
+
+## 2026-10-14 — Acceptance backlog consolidation
+
+PORTING-GAPS.md now keeps implementation differences separate from eight consolidated
+acceptance tasks. Removed ten redundant implementation/acceptance rows and retained
+their unresolved checks under explicit failed/incomplete or not-run outcomes. The
+browser Settings fix remains missing from this baseline. Prior verification is reused;
+no new checks, benchmark, commits or push.
+
+## Workspace-13 integration prepared — 2026-10-15
+
+Source audit-thinkrail-gaps at 98e7776036bab31358fa90ea09501f5ef1b5f6a4 is merged without a commit on main, preserving its ten source commits and the newer Projects-only, Android, Settings and Restty fixes. Integration code matches workspace-31 staged tree 6f4dd92223d45dfa91fbc40dfd5eb010e4fb11f7 except the Host.Abstractions API baseline retains the original line order with the identical declaration set. Main Release build passed with zero warnings/errors after that metadata normalization. Integration Release, browser WASM Release, Android Compile, formatting and focused checks passed.
+
+The full gate is incomplete: stale WorkspaceTabs and narrow BottomPanel fixtures were corrected and their focused cases passed. Continuation of the remaining named cases stopped on LayoutFrameE2E.Commands: TabFocused timed out after removing an empty center group. Do not treat interrupted lanes as passed. Physical Android, browser runtime and packaged acceptance remain unverified.
+
+Normal signed merge commit failed with a 1Password agent error and failed to write commit object. Signing was not bypassed; no workspace-13 commit or push occurred. The conflict-free merge and source/current audit documents remain staged, and the user-owned scripts/browser.sh executable-bit change remains unstaged. Keep source workspace-13 and integration workspace-31 until the failure and signing block are resolved.
+
+## Workspace-13 landing verified — 2026-10-15
+
+The workspace-13 source merge was signed successfully after the user returned. Its ten source commits remain ancestors of main. Follow-up integration fixes restore keyboard focus to the surviving center tab when removing a center group, and mount refreshed startup strips when there is no outgoing workspace. The existing requested-tab identity assertion remains intact; overflow and deferred-Git fixtures now exercise current terminal panes and an explicit active document.
+
+Final integration tree 5b93098e3a9132ed5ca5718caae5ce57a41ec1d4 passed the Release solution build with zero warnings/errors. All 131 catalog cases passed in aggregate, reusing completed cases and running only failed or unfinished cases after the interrupted lane runs; this was not one uninterrupted full-suite invocation. The final 14-case continuation passed with exit 0. Focused LayoutE2E, StartupChecks and NavigationChecks passed after their fixes. Browser WASM Release and Android managed compilation passed before the final shared-UI focus/startup changes; those platform compilations and physical-device/runtime acceptance were not repeated for the final delta. Formatting and whitespace verification cover the touched files.
+
+Main matches the verified integration code, except that the public API baseline retains its existing declaration order with the same symbol set; a main Release build passed after that metadata normalization. The user-owned scripts/browser.sh executable-bit change remains unstaged. Source workspace-13 is retained. No push is included in this landing.

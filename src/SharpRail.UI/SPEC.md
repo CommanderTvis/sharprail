@@ -77,11 +77,9 @@ entry; quitting keeps every entry so the next launch restores the same set.
 
 ## Window chrome
 
-The 48px header is the window's title bar. It extends into the native decoration area,
-keeping the system window controls while providing the background colour; on macOS the header leaves
-80px for the traffic lights.
-
-The Error status can be clicked for the actual operation failure and Retry (the pending restore or
+The 40px header (`LayoutRoles.TopbarRow`) is the window's title bar. `WorkbenchWindow.axaml` extends the client area into the
+decorations so the native controls stay while the header provides the colour; on macOS the header leaves
+80px for the traffic lights. The Error status can be clicked for the actual operation failure and Retry (the pending restore or
 mounted workspace refresh). Subscription failures use the same surface while reconnecting automatically;
 a successful retry clears it. Healthy local status remains inert and remote Change host remains available.
 The header shows the brand mark, the location bar, the connection state and
@@ -114,19 +112,26 @@ first, runs the confirmation gesture. Other platforms have no menu bar and keep 
 
 ## Location bar
 
-The location bar shows the header's captioned segments — PROJECT, WORKSPACE, BRANCH — each an uppercase
-10px caption above a 22px value pill, separated by 4px, with a hairline before every segment but the first.
-The caption/value stack has 6px of vertical breathing room; divided segments have 16px left and 12px
-right padding, and the first segment has 8px left padding. It owns no host
-state: it shows what the window already knows and calls the same methods as the panels.
+`LocationBar.cs` renders the header's captioned segments — Project, Workspace, Branch — each a 14px row
+holding a sentence-case `ui.metadata` caption (12px, `Ui.Hint`) centred over a 20px value pill. Segments
+carry no hairlines: an 8px inset plus the pills' own padding is the separation, because full-height rules
+read as a table and never line up with the tab strip's dividers. Every pill value is one style and one
+resting colour, `title.section` in `Ui.Muted`, brightening to `Ui.TextBrush` on hover or while its menu or
+card is open (the pill's `open` class, which also gives it the selected fill). The chevron is hidden at rest
+and appears on hover, keyboard focus or while open. The project's initial sits in a neutral 16px tile
+(`Ui.Selected` fill, `Ui.Muted` `ui.caption` glyph), so the least important glyph is not the only coloured
+one. While the active workspace is settled the Workspace caption adds `· settled` in the warning tone. A caption fragment (`· from <target>`) uses the caption's own face, never a second typeface. It owns no
+host state: it shows what the window already knows and calls the same methods as the panels.
 
 - PROJECT lists every open project with the current one checked, Project home (disabled while there) and
   Add project…, which is the Projects panel's picker. Choosing a project opens its Project Home. With no
   project the segment reads `SharpRail` and the other two are absent.
-- WORKSPACE shows the active workspace's actions above Switch to (its siblings from the host's workspace
-  registry, the rows of the Projects rail, with their branch when it differs from the name) and New
-  workspace with the Mod+N label. The actions are the same as in the Projects row: Open in,
-  Copy path, Reveal in file manager, Rename for a managed workspace, and Remove worktree… or, for an
+- WORKSPACE shows the active workspace's actions above Switch to (its live siblings from the host's workspace
+  registry, most recently active first after Default, with their branch when it differs from the name, then
+  a `Settled · N` submenu of the shelf's rows with their reason chips; an older host keeps its registry
+  order and no shelf) and New
+  workspace with the Mod+N label. The actions are the Projects row's own (`AddWorkspaceActions`): Open in,
+  Copy path, Reveal in file manager, Settle or Keep active for any but Default, Rename for a managed workspace, and Remove worktree… or, for an
   attached one, Remove from SharpRail. At Project Home the pill reads `Project home` and offers only the
   switcher and creation.
 - Removing a dirty managed worktree offers a second confirmation explaining that modified and
@@ -145,9 +150,9 @@ state: it shows what the window already knows and calls the same methods as the 
   placeholder does; the Default workspace's caption is plain. The pill opens the branch card, which takes focus itself: the branch with Copy (a
   transient notice confirms), and Compare to, which is the Changes panel's own picker
   writing the same per-workspace selection and the same host review target, so the two can never disagree.
-- Pills and the rename input never start a window drag; captions, hairlines and the space between remain
-  part of the title bar.
-- As width shrinks the branch yields first, then the project; a
+- Pills and the rename input never start a window drag; captions and the space between remain part of the
+  title bar.
+- `LocationStrip` lays the segments out. As width shrinks the branch yields first, then the project; a
   segment that would fall under 72px is dropped whole, and the workspace keeps what is left, so workspace
   identity stays visible at the minimum window width.
 
@@ -199,7 +204,7 @@ including projects that are not currently open, so removed checkouts leave the P
 ## Global shortcuts
 
 The window handles app-wide chords before panels: Mod+O opens a project, Mod+N (and Mod+Alt+N) opens
-Start work, Mod+Shift+N opens a window, Mod+B toggles left, Mod+J toggles right, Mod+Shift+F searches the workspace, and F5 refreshes.
+Start work, Mod+Shift+N opens a window, Mod+B toggles left (at Project Home, its Projects pane), Mod+J toggles right, Mod+Shift+F searches the workspace, and F5 refreshes.
 The search is a dialog (`Panels/SearchDialog.cs`) rather than a panel, because it is a question asked and
 dismissed: one query over the active worktree, results grouped by file with one row per matching line, and
 a hit keeps its file open scrolled to that line. With no active workspace the chord does nothing. On macOS alone, Cmd+, (no other
@@ -336,19 +341,22 @@ menu. Abrupt death relies on operating-system process cleanup; remote shells bel
   snapshot and branch listing. New refreshes cancel superseded reads; updates retain the diff pane,
   scope, display mode and rendered scroll position without changing the docking layout.
 
+## Project Home
+
+Project Home shows its own collapsible Projects pane beside Welcome in place of the frame's left side
+([Docking/SPEC.md](Docking/SPEC.md#project-home)): the workbench's 40px left rail with one Projects
+entry and the plain pane header with Hide. No bottom region appears without a workspace, and Project
+Home reserves no terminal. Unlike upstream, the frame's right side stays, because the spec dialect's
+Specs tool reads the project at its home. Mod+B, the rail entry and Hide toggle the same pane;
+hiding moves focus to the rail entry and showing focuses the pane's header. Its visibility and width
+(`DockState.HomeProjectsVisible`, `HomeProjectsWidth`) are window-local and independent of the
+workspace frame's left side.
+
 ## Not yet ported
 
-- Project Home's independent collapsible Projects pane with the workbench's shared 40px left tool
-  rail and plain Hide header. No right rail appears without a workspace. Mod+B and the rail
-  toggle the same pane; hiding returns focus from the pane or separator to its rail control, and showing
-  restores the last tree control, active row or first tree control. Home visibility and remembered width
-  remain independent of the workspace frame.
-- Capability-gated Settle / Keep active in the shared workspace actions, a `Settled · N` submenu with
-  reason chips after live siblings, and a warning-tone `WORKSPACE · settled` caption for a settled
-  selection. The rail and switcher must consume the same partition, sort and 30-second clock; hosts
-  without settling keep the legacy list. Default never settles. See [State/SPEC.md](State/SPEC.md) and
-  [Panels.SPEC.md](Panels.SPEC.md) for the selection latch and shelf behaviour. Upstream's merged/closed
-  pull-request chips and host review-snapshot arbitration are excluded from this sync.
+- Showing Project Home's Projects pane restores focus to the pane header, not yet to the last tree
+  control, active row or first tree control inside it.
+- Upstream merged/closed pull-request chips and host review-snapshot arbitration are not included in the Settled shelf.
 - Away notifications off macOS, reading the system's permission state (a denied permission drops
   notifications silently; Settings only points at the system's settings), and the fork's chooser when
   several terminals ask at once.

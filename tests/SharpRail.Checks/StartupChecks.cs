@@ -74,7 +74,8 @@ internal static class StartupChecks
         Require(first.Token.IsCancellationRequested && window.WorkspaceRoot == other && window.WorkspaceMounted,
             "A pending Git refresh blocked project switching or escaped cancellation.");
         var second = host.Requests.Last();
-        var tab = window.GetLogicalDescendants().OfType<Button>().First(button => button.Name?.StartsWith("Tab_", StringComparison.Ordinal) == true);
+        Await(window.OpenDocumentAsync("hello.txt", true));
+        var tab = window.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "Tab_file_hello.txt");
         tab.Focus();
         second.Result.SetResult(new(true, "new-branch", [], [], []));
         Pump(() => Branch(window) == "new-branch");

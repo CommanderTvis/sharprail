@@ -160,6 +160,13 @@
         <StackPanel x:Name="TerminalReplayChoices" Spacing="8" />
       </StackPanel>
     </DataTemplate>
+    <DataTemplate x:Key="WorkspacesPage">
+      <StackPanel Spacing="8">
+        <TextBlock Text="Settle idle workspaces after" Classes="settings-heading" />
+        <TextBlock Text="A workspace with no terminal input and no commit, pull or checkout for this long moves to its project's Settled shelf. Selecting or viewing a workspace is not activity. The Default workspace, a workspace you are in and one you chose to keep active never settle. Settling changes nothing on disk. Shared by every client of this host." Classes="settings-description" TextWrapping="Wrap" />
+        <StackPanel x:Name="SettleIdleChoices" Spacing="8" />
+      </StackPanel>
+    </DataTemplate>
     <DataTemplate x:Key="NotificationsPage">
       <StackPanel Spacing="8">
         <TextBlock Text="Notifications" Classes="settings-heading" />
@@ -264,6 +271,7 @@
               <Button x:Name="Settings_Line_width" Classes="settings-navigation" />
               <Button x:Name="Settings_Layout" Classes="settings-navigation" />
               <Button x:Name="Settings_Projects" Classes="settings-navigation" />
+              <Button x:Name="Settings_Workspaces" Classes="settings-navigation" />
               <Button x:Name="Settings_Terminal" Classes="settings-navigation" />
               <Button x:Name="Settings_Notifications" Classes="settings-navigation" />
               <Button x:Name="Settings_Host" Classes="settings-navigation" />

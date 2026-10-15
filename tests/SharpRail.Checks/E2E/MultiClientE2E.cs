@@ -251,11 +251,11 @@ internal static class MultiClientE2E
         Require(app.Window.Layout.State.Groups.Single(group => app.Window.Layout.Tabs(group.Id).Any(tab => tab.Id == first.Id)) is { } shown &&
             app.Window.Layout.Selected(shown.Id)?.Id == first.Id, "A terminal opened in one window must arrive in another without becoming the tab it shows.");
 
-        app.Click(app.Find<Button>("Tab_files"));
+        app.ShowTool("files");
         app.Open("README.md", keep: true);
         Require(!peer.Window.Layout.State.Workspaces.Values.SelectMany(view => view.Documents.Values).SelectMany(tabs => tabs).Any(tab => tab.Path == "README.md"),
             "A file opened in one window must not appear in another.");
-        peer.Click(peer.Find<Button>("Tab_files"));
+        peer.ShowTool("files");
         peer.Open("README.md", keep: true);
         peer.Click(peer.Find<Control>("DockTab_markdown_README.md").GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "CloseTab"));
         Until(() => !peer.Tabs.Any(tab => tab.Path == "README.md"));

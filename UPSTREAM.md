@@ -28,6 +28,16 @@ Synced commit (`main`): specs follow JetBrains `f7cca7bfb0b1d0543eb9898c52d28df5
 (2026-10-11), inherited from the `upstream` branch, which `main` is rebased onto. Fork code
 porting is recorded by fork commit title in "Fork port log" below.
 
+Latest tracked JetBrains commit (research, not a completed port or spec sync):
+`be06fb01927e8386e3aec215bbcdb1a312ec66fa` (2026-10-14), "feat(web): list newest workspaces
+first in the projects panel (#725)". Verified by fetching `upstream/main` from
+JetBrains/thinkrail on 2026-10-14. The range after the synced `f7cca7bfb` contains
+22 newer commits. [PORTING-GAPS.md](PORTING-GAPS.md) is the current backlog of applicable changes,
+older unported behavior, supported Codex/Claude workflows and remaining
+acceptance gates against `main` at `16138700b2fbf86d845ad76a133dacb7d6ab1d5c`.
+The synced revision above remains unchanged; this research does not claim that the
+new specifications or implementations have been ported.
+
 Latest tracked fork commit: `281bda97b2840c92e9046092d56b81286c4cea4a` ("The fork describes itself:
 what it adds, how to run it, how its history moves"), the tip of `claude-code-integration-plugin-api`
 verified against GitHub on 2026-10-09. Fork port coverage remains recorded by title below.
@@ -123,7 +133,9 @@ and session switcher have no counterpart.
 
 ## Fork port log
 
-Fork commits seen while porting `main`, by title, with what happened to each. Hashes are from
+Historical fork port decisions, by title, with what happened at each recorded pass.
+Current gaps are consolidated in [PORTING-GAPS.md](PORTING-GAPS.md); skipped chat/pi
+commits below document exclusions, not pending work. Hashes are from
 the fork chain as fetched on the date given and will not match after a force-push.
 
 Out of scope for every pass: pi, AI chat, CLI, website/analytics, desktop update flow, Electron-

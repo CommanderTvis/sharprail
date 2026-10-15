@@ -7,7 +7,7 @@
   <Style Selector="ListBox.drawn-tree ListBoxItem">
     <Setter Property="Padding" Value="0" />
     <Setter Property="Margin" Value="0" />
-    <Setter Property="MinHeight" Value="24" />
+    <Setter Property="MinHeight" Value="{x:Static kit:LayoutRoles.PanelRow}" />
     <Setter Property="HorizontalContentAlignment" Value="Stretch" />
     <Setter Property="CornerRadius" Value="4" />
   </Style>
@@ -90,5 +90,77 @@
   <Style Selector="ToggleButton:checked:disabled /template/ ContentPresenter#PART_ContentPresenter">
     <Setter Property="Background" Value="{x:Static kit:Ui.Sidebar}" />
     <Setter Property="BorderBrush" Value="{x:Static kit:Ui.ControlDisabledBorder}" />
+  </Style>
+  <!-- Quiet scrollbars (see SPEC.md): a 6px transparent track whose thumb is invisible at rest, the border colour
+       while its scroll viewer carries intent (hover, focus, recent scrolling) and muted under the pointer or a drag.
+       QuietScroll supplies the intent class and the edge curtains; the resting thumb and inset are theme resources. -->
+  <Styles.Resources>
+    <ControlTheme x:Key="QuietScrollPageButton" TargetType="RepeatButton">
+      <Setter Property="Focusable" Value="False" />
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Border Background="Transparent" />
+        </ControlTemplate>
+      </Setter>
+    </ControlTheme>
+    <ControlTheme x:Key="QuietScrollThumb" TargetType="Thumb">
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Border Background="{TemplateBinding Background}" CornerRadius="3" />
+        </ControlTemplate>
+      </Setter>
+    </ControlTheme>
+    <ControlTheme x:Key="{x:Type ScrollBar}" TargetType="ScrollBar">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Foreground" Value="{DynamicResource QuietScrollThumbRest}" />
+      <Setter Property="Cursor" Value="Arrow" />
+      <Setter Property="Template">
+        <ControlTemplate>
+          <Border Background="{TemplateBinding Background}">
+            <Track Name="PART_Track" Minimum="{TemplateBinding Minimum}" Maximum="{TemplateBinding Maximum}"
+                   Value="{TemplateBinding Value, Mode=TwoWay}" ViewportSize="{TemplateBinding ViewportSize}"
+                   Orientation="{TemplateBinding Orientation}"
+                   DeferThumbDrag="{TemplateBinding ScrollViewer.IsDeferredScrollingEnabled}">
+              <Track.DecreaseButton>
+                <RepeatButton Name="PART_PageUpButton" Theme="{StaticResource QuietScrollPageButton}" />
+              </Track.DecreaseButton>
+              <Track.IncreaseButton>
+                <RepeatButton Name="PART_PageDownButton" Theme="{StaticResource QuietScrollPageButton}" />
+              </Track.IncreaseButton>
+              <Thumb Name="thumb" Theme="{StaticResource QuietScrollThumb}" Background="{TemplateBinding Foreground}"
+                     Margin="{DynamicResource QuietScrollThumbInset}" />
+            </Track>
+          </Border>
+        </ControlTemplate>
+      </Setter>
+      <Style Selector="^[Orientation=Vertical]">
+        <Setter Property="Width" Value="6" />
+      </Style>
+      <Style Selector="^[Orientation=Vertical] /template/ Track#PART_Track">
+        <Setter Property="IsDirectionReversed" Value="True" />
+      </Style>
+      <Style Selector="^[Orientation=Horizontal]">
+        <Setter Property="Height" Value="6" />
+      </Style>
+      <Style Selector="^ /template/ Thumb#thumb">
+        <Setter Property="Transitions">
+          <Transitions>
+            <BrushTransition Property="Background" Duration="0:0:0.15" />
+          </Transitions>
+        </Setter>
+      </Style>
+      <Style Selector="^:pointerover /template/ Thumb#thumb, ^ /template/ Thumb#thumb:pressed">
+        <Setter Property="Margin" Value="0" />
+      </Style>
+      <Style Selector="^ /template/ Thumb#thumb:pointerover, ^ /template/ Thumb#thumb:pressed">
+        <Setter Property="Background" Value="{x:Static kit:Ui.Muted}" />
+      </Style>
+    </ControlTheme>
+  </Styles.Resources>
+  <Style Selector="ScrollViewer:pointerover /template/ ScrollBar, ScrollViewer:focus-within /template/ ScrollBar, ScrollViewer.quiet-scroll-intent /template/ ScrollBar, ScrollBar:pointerover">
+    <Setter Property="Foreground" Value="{x:Static kit:Ui.BorderBrush}" />
+  </Style>
+  <Style Selector="ScrollViewer:pointerover /template/ ScrollBar /template/ Thumb#thumb, ScrollViewer:focus-within /template/ ScrollBar /template/ Thumb#thumb, ScrollViewer.quiet-scroll-intent /template/ ScrollBar /template/ Thumb#thumb">
+    <Setter Property="Margin" Value="0" />
   </Style>
 </Styles>

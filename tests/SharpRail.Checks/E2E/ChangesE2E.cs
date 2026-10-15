@@ -31,7 +31,7 @@ internal static class ChangesE2E
         File.WriteAllText(Path.Combine(workspace, "docs", "guides", "notes.md"), "one\ntwo\nthree\n");
         var refresh = app.Window.RefreshAsync();
         Until(() => refresh.IsCompleted); refresh.GetAwaiter().GetResult();
-        app.Click(app.Find<Button>("Tab_changes"));
+        app.ShowTool("changes");
         Until(() => app.Find<Control>("ChangesPanel").GetLogicalDescendants().OfType<Button>()
             .Any(button => AutomationProperties.GetName(button) == "docs/guides/notes.md"));
         Require(app.Find<ToggleButton>("ChangesList").IsChecked == true, "Changes must start in List view.");
@@ -51,7 +51,7 @@ internal static class ChangesE2E
         app.Click(row, twice: true);
         Until(() => app.Tabs.Count(tab => tab.Kind == "diff") == 1);
         ChangesFixture.UntilDiff(app, text => text.Contains("three", StringComparison.Ordinal));
-        app.Click(app.Find<Button>("Tab_files")); app.Click(app.Find<Button>("Tab_changes"));
+        app.ShowTool("files"); app.ShowTool("changes");
         Require(app.Find<ToggleButton>("ChangesTree").IsChecked == true, "The selected tree view must survive tool navigation.");
         Console.WriteLine("PASS upstream changes.spec.ts: Changes has a List|Tree toggle; Tree groups files into folders with +/- counts");
         ActionMenus(root, source);
@@ -67,7 +67,7 @@ internal static class ChangesE2E
         File.WriteAllText(Path.Combine(workspace, "docs", "notes.md"), "one\ntwo\n");
         var refresh = app.Window.RefreshAsync();
         Until(() => refresh.IsCompleted); refresh.GetAwaiter().GetResult();
-        app.Click(app.Find<Button>("Tab_changes"));
+        app.ShowTool("changes");
         Button Row() => app.Find<Control>("ChangesPanel").GetLogicalDescendants().OfType<Button>()
             .Single(button => AutomationProperties.GetName(button) == "docs/notes.md");
         Until(() => app.Find<Control>("ChangesPanel").GetLogicalDescendants().OfType<Button>()
@@ -109,17 +109,17 @@ internal static class ChangesE2E
         Directory.Move(marker, saved);
         File.WriteAllText(marker, "gitdir: " + directory + "-missing-admin");
         using var app = new E2eWorkspace(directory);
-        app.Click(app.Find<Button>("Tab_changes"));
+        app.ShowTool("changes");
         Until(() => app.Window.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "ChangesError"));
         // Git's wording differs by version; its detail always names the broken repository folder.
         Require(Text(app.Find<Control>("ChangesPanel")).Contains("fatal:", StringComparison.Ordinal) &&
             Text(app.Find<Control>("ChangesPanel")).Contains(directory, StringComparison.Ordinal) &&
             !Text(app.Find<Control>("ChangesPanel")).Contains("Working tree clean", StringComparison.Ordinal),
             "Corrupt Git metadata must show its read error rather than an empty change set.");
-        app.Click(app.Find<Button>("Tab_files")); app.Open("README.md", true);
+        app.ShowTool("files"); app.Open("README.md", true);
         Require(app.Tabs.Any(tab => tab.Path == "README.md"), "Git probe failure must not prevent opening workspace files.");
         File.Delete(marker); Directory.Move(saved, marker);
-        app.Click(app.Find<Button>("Tab_changes"));
+        app.ShowTool("changes");
         app.Click(app.Find<Button>("ChangesRetry"));
         Until(() => app.Find<Control>("ChangesPanel").GetLogicalDescendants().OfType<Button>()
             .Any(button => AutomationProperties.GetName(button) == "README.md"));

@@ -100,6 +100,7 @@ public sealed partial class WorkbenchWindow
         if (renameInHeader && renaming is not null && (atHome || renaming != workspaceRoot))
         { renaming = null; renameBox = null; renameCommitPending = false; }
         projectLabel.Text = projectRoot.Length == 0 ? "SharpRail" : DirectoryName(projectRoot);
+        this.FindControl<TextBlock>("ProjectInitial")!.Text = InitialOf(projectLabel.Text);
         workspaceLabel.Text = projectRoot.Length == 0 ? "" : atHome ? "Project home" : WorkspaceName(workspaceRoot);
         this.FindControl<Border>("WorkspaceSegment")!.IsVisible = projectRoot.Length > 0;
         var project = this.FindControl<Button>("ScopeProject")!;
@@ -111,6 +112,7 @@ public sealed partial class WorkbenchWindow
         workspace.IsVisible = !editing; input.IsVisible = editing;
         if (!editing) input.Content = null;
         else input.Content ??= RenameBox(new Thickness(0), 22);
+        UpdateSettledCaption();
         UpdateBranchSegment();
     }
 
@@ -524,6 +526,7 @@ public sealed partial class WorkbenchWindow
         reveal.Name = "WorkspaceReveal";
         menu.Items.Add(reveal);
         if (worktree.Kind == WorkspaceKinds.Default) return openIn;
+        if (SettleMenuItem(worktree) is { } settle) menu.Items.Add(settle);
         // An attached worktree is the user's: SharpRail neither renames nor removes it, it only stops listing it.
         if (worktree.Kind == WorkspaceKinds.Managed)
         {
