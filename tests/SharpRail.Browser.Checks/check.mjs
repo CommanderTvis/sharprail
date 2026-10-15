@@ -60,7 +60,12 @@ try {
   await fs.writeFile(path.join(fixture, 'hello.txt'), 'Browser editor fixture\n');
   await fs.writeFile(path.join(fixture, 'diagram.md'), '# Browser\n\n```mermaid\nflowchart LR\nA[Browser] --> B[Host]\n```\n');
   await fs.writeFile(path.join(fixture, 'sample.pdf'), pdfFixture());
+  if (process.env.SHARPRAIL_BROWSER_BUNDLE) {
+    const prose = '# Plain prose benchmark\n\n' + Array.from({ length: 1024 }, (_, index) => 'Paragraph ' + index + '. ' + Array(5).fill('A readable paragraph explains the behavior of a workspace, its files, and the controls used to navigate between documents.').join(' ')).join('\n\n');
+    await fs.writeFile(path.join(fixture, 'prose.md'), prose.replace('\n\n', '\n\n' + String.fromCharCode(96).repeat(3) + 'mermaid\nflowchart LR\nA[AotDiagram] --> B[Browser]\n' + String.fromCharCode(96).repeat(3) + '\n\n'));
+  }
   await fs.cp(path.join(root, 'tests/SharpRail.Checks/bin/Release/net10.0/plugin-fixture/fixture'), path.join(scratch, 'state/plugins/fixture'), { recursive: true });
+  if (process.env.SHARPRAIL_BROWSER_BUNDLE) await fs.writeFile(path.join(scratch, 'state/state.json'), JSON.stringify({ PluginSettings: { fixture: { enabled: true } } }));
   const browserPort = await port();
   const address = `http://127.0.0.1:${browserPort}`;
   host = spawn(path.join(root, '.tools/dotnet/dotnet'), ['src/SharpRail.Host.Remote/bin/Release/net10.0/SharpRail.Host.Remote.dll'], {
@@ -72,10 +77,23 @@ try {
   await until(async () => { try { return await fetch(address); } catch { if (host.exitCode !== null) throw new Error(hostError); } }, response => response?.ok, 'Browser host did not start.');
   browser = await chromium.launch({ channel: 'chromium', headless: true });
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  let publishedPluginRequest = false, publishedPluginReply = false, proseDeliveredAt;
+  page.on('websocket', socket => {
+    socket.on('framesent', ({ payload }) => {
+      const text = Buffer.from(payload).toString('utf8');
+      if (text.includes('fixture') && text.includes('counter')) publishedPluginRequest = true;
+    });
+    socket.on('framereceived', ({ payload }) => {
+      const text = Buffer.from(payload).toString('utf8');
+      if (text.includes('# Plain prose benchmark')) proseDeliveredAt ??= performance.now();
+      if (text.includes(fixture) && text.includes('\"value\":0')) publishedPluginReply = true;
+    });
+  });
   // The shared Skia pixel/input suite exercises the actual loading fallback.
   // Default restty and its failure paths are covered by restty.mjs.
   if (!process.env.SHARPRAIL_BROWSER_BUNDLE) await page.route('**/vendor/restty/**', route => route.abort());
   const errors = []; page.on('pageerror', error => errors.push(error.message));
+  page.on('response', response => { if (response.status() >= 400) console.error('HTTP ' + response.status() + ': ' + response.url()); });
   page.on('console', message => { if (message.type() === 'error') console.error(message.text().slice(0, 2000)); });
   const sockets = new Set(); let disconnected = false;
   await page.routeWebSocket('**/rpc', route => {
@@ -86,7 +104,23 @@ try {
   });
   await page.addInitScript(({ address, token, fixture, deployment }) => {
     if (deployment) sessionStorage.setItem('sharprail:endpoint', JSON.stringify({ Address: address, Token: token }));
+    if (deployment) {
+      const tab = { Id: 'file:prose.md', Title: 'prose.md', Kind: 'file', Path: 'prose.md' };
+      const layout = { Center: { GroupId: 'center' }, Groups: [
+        { Id: 'center', Region: 'center' },
+        { Id: 'projects', Region: 'left', Tools: [{ Id: 'projects', Title: 'Projects', Kind: 'tool' }] },
+        { Id: 'fixture', Region: 'right', Tools: [{ Id: 'plugin:fixture:board', Title: 'Fixture board', Kind: 'tool' }] }
+      ], ActiveWorkspace: fixture, Workspaces: { [fixture]: { Documents: { center: [tab] }, Selected: { center: tab.Id, fixture: 'plugin:fixture:board' }, FocusedCenter: 'center' } } };
+      localStorage.setItem('sharprail:profile', JSON.stringify({ LastProject: fixture, Windows: [{ LastProject: fixture, Layout: layout }] }));
+      const OriginalWorker = globalThis.Worker;
+      globalThis.Worker = class extends OriginalWorker {
+        constructor(...args) { super(...args); this.addEventListener('message', ({ data }) => {
+          if (typeof data?.result === 'string' && data.result.includes('AotDiagram')) globalThis.publishedMermaid = true;
+        }); }
+      };
+    } else {
     if (!localStorage.getItem('sharprail:profile')) localStorage.setItem('sharprail:profile', JSON.stringify({ LastProject: fixture, Windows: [{ LastProject: fixture }] }));
+    }
   }, { address, token, fixture, deployment: !!process.env.SHARPRAIL_BROWSER_BUNDLE });
   await page.goto(address);
   await page.waitForFunction(() => globalThis.getDotnetRuntime?.(0)?.getAssemblyExports);
@@ -101,8 +135,37 @@ try {
     assert.equal(await page.locator('#window-bar').count(), 0);
     assert.equal(await page.locator('.sharprail-workbench').evaluate(element => element.getBoundingClientRect().top), 0);
     assert.match(await page.evaluate(async () => (await import('./sharprail.js')).renderMermaid('flowchart LR\nA[Published] --> B[Host]', '{}')), /<svg.*Published/s);
+    await until(() => Promise.resolve(publishedPluginRequest && publishedPluginReply), Boolean, 'The normal bundle did not mount the external managed plugin and complete its typed JSON request');
+    await page.waitForFunction(() => globalThis.publishedMermaid === true);
+    await until(async () => {
+      const pixels = await page.screenshot({ clip: { x: 450, y: 400, width: 250, height: 300 } });
+      return await page.evaluate(async data => {
+        const image = new Image(); image.src = 'data:image/png;base64,' + data; await image.decode();
+        const canvas = document.createElement('canvas'); canvas.width = image.width; canvas.height = image.height;
+        const context = canvas.getContext('2d'); context.drawImage(image, 0, 0);
+        const values = context.getImageData(0, 0, canvas.width, canvas.height).data;
+        let textRows = 0;
+        for (let y = 0; y < canvas.height; y++) {
+          const edge = (y * canvas.width + canvas.width - 1) * 4; let ink = 0;
+          for (let x = 0; x < canvas.width - 1; x++) {
+            const offset = (y * canvas.width + x) * 4;
+            if (Math.abs(values[offset] - values[edge]) + Math.abs(values[offset + 1] - values[edge + 1]) + Math.abs(values[offset + 2] - values[edge + 2]) > 180) ink++;
+          }
+          if (ink > 6) textRows++;
+        }
+        return textRows;
+      }, pixels.toString('base64'));
+    }, rows => rows > 80, 'The published restored prose preview did not paint its body text');
+    assert.ok(proseDeliveredAt, 'The normal bundle must read the restored prose document');
+    console.log('Published prose data-to-paint: ' + (performance.now() - proseDeliveredAt).toFixed(0) + ' ms');
+    await page.mouse.click(1255, 35);
+    await page.waitForFunction(() => document.querySelector('.sharprail-workbench').inert);
+    await page.waitForFunction(() => [...document.querySelectorAll('.sharprail-dialog')].some(dialog => dialog.style.visibility === 'visible'));
+    assert.equal(await page.locator('.sharprail-dialog:visible').count(), 1);
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => !document.querySelector('.sharprail-workbench').inert);
     assert.deepEqual(errors, []);
-    console.log('PASS published browser bundle, full-viewport workbench, worker rendering and excluded test hooks');
+    console.log('PASS published browser prose/Mermaid/Settings, external managed plugin JSON, full viewport and excluded test hooks');
   } else {
   await page.evaluate(async () => { const exports = await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll'); globalThis.check = exports.SharpRail.Browser.Checks.BrowserChecks; });
   const command = process.platform === 'darwin' ? 'Meta' : 'Control';

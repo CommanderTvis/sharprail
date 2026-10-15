@@ -48,6 +48,28 @@ The native path also scans cells, resolves ordinary/inverse/faint colors and dra
 so the managed interpreter does not process each cell of a common ASCII row. Browser checks
 compare the batched and shared paths pixel for pixel. Runtime-loaded plugins remain supported;
 the browser keeps its untrimmed managed runtime.
+
+Release Build and Publish use hybrid WASM AOT for Avalonia.Base and System.Private.CoreLib
+(and their shared generic instances); other assemblies remain interpreted. This is not NativeAOT.
+Debug remains interpreted; SharpRailBrowserAot=false explicitly opts out for diagnostics. The pinned
+SDK requires the linker pipeline for Publish, but every resolved managed assembly is rooted and
+uses copy mode, with IL stripping disabled. A mandatory SHA-256 comparison verifies every linked
+assembly against its original bytes. JSON reflection and runtime-loaded managed plugins remain enabled.
+Copy mode still performs trim analysis, so only this browser copy-only configuration disables the
+trim analyzer and linker trim-analysis warnings; ordinary warnings and referenced-project analyzers
+remain enabled. Build guards reject trimming, IL stripping, disabled reflection or a non-hybrid runtime,
+and verify both selected and compiled AOT assembly sets. SDK upgrades must retain these guarantees.
+
+The opt-in restty.mjs --prose journey measures a 646,081-character, 1,025-block Markdown document
+with a 3-second first-frame budget. It checks every block has an exact measured size, bounds mounted
+controls and preserves the exact scroll extent while scrolling. On the measured Chromium/macOS
+run, first frame fell from 13.33 seconds interpreted to 0.88 seconds with selective AOT; the extent
+remained 128,067 DIP. This is a focused local acceptance result, not a cross-device latency guarantee.
+Normal published-bundle acceptance also opens restored prose and Mermaid, Settings and an external
+managed plugin performing a typed JSON round trip; test-only exports must be absent.
+The measured native runtime is 37,902,293 bytes, versus 11,605,717 interpreted. Gzip level 9 yields
+11,398,782 bytes and Brotli quality 11 yields 7,923,255 bytes; these are compression measurements,
+not served transfer sizes. The standalone host currently serves raw assets without response compression.
 Clipboard images are uploaded to the host before their path is pasted into a shell.
 
 The default terminal uses restty 0.3.0 with WebGL2. It

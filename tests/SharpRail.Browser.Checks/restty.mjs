@@ -226,6 +226,41 @@ try {
     assert.equal(JSON.parse(await invoke('DroppedFiles')).length, 1);
     assert.deepEqual(errors, []);
     console.log('PASS browser file drops: restty DOM coordinates, client bytes uploaded to host, agent callback and inactive rejection');
+  } else if (process.argv.includes('--prose')) {
+    const invoke = (method, ...args) => page.evaluate(async ({ method, args }) => {
+      const exports = await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll');
+      return await exports.SharpRail.Browser.Checks.BrowserChecks[method](...args);
+    }, { method, args });
+    const frame = () => page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+    try {
+      for (const paragraphs of [64, 256, 1024]) {
+        const started = performance.now();
+        const measurement = JSON.parse(await invoke('MeasureProse', paragraphs));
+        await frame();
+        measurement.ToFrameMs = performance.now() - started;
+        const initial = JSON.parse(await invoke('ProseState'));
+        assert.equal(measurement.DynamicCode, true, 'Hybrid AOT must retain interpreted managed code support');
+        assert.equal(measurement.JsonReflection, true, 'Browser JSON reflection must remain enabled');
+        assert.equal(initial.MeasuredBlocks, paragraphs + 1, 'Every block must have an exact measured height');
+        assert.ok(initial.MountedBlocks < 40, 'Only viewport blocks should remain mounted');
+        assert.ok(initial.Extent > initial.Viewport);
+        if (paragraphs === 1024) {
+          assert.equal(measurement.Characters, 646081);
+          assert.ok(measurement.ToFrameMs < 3000, '646 KB prose first-frame budget exceeded: ' + measurement.ToFrameMs + ' ms');
+        }
+        for (const fraction of [.25, .8, 1, .5, 0]) {
+          await invoke('ScrollProse', fraction); await frame();
+          const state = JSON.parse(await invoke('ProseState'));
+          assert.ok(Math.abs(state.Extent - initial.Extent) < 1, 'Realization changed the exact scroll extent');
+          assert.ok(Math.abs(state.Offset - (initial.Extent - initial.Viewport) * fraction) < 1, 'Realization moved the requested offset');
+          assert.equal(state.MeasuredBlocks, paragraphs + 1);
+          assert.ok(state.MountedBlocks < 40);
+        }
+        console.log('PROSE', JSON.stringify({ ...measurement, ...initial }));
+      }
+    } finally { await invoke('RestoreProse'); }
+    assert.deepEqual(errors, []);
+    console.log('PASS exact browser prose layout, scrolling and 646 KB first-frame budget');
   } else if (process.argv.includes('--settings')) {
     const invoke = (method, ...args) => page.evaluate(async ({ method, args }) => {
       const exports = await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll');

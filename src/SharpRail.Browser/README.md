@@ -46,3 +46,18 @@ checks Settings repaint stability, reopening, dismissal and terminal input recov
 `PROFILE_DPR=2` exercises the same journey at high pixel density.
 
 The acceptance runner also supports `SHARPRAIL_BROWSER_BUNDLE=/absolute/bundle/path node tests/SharpRail.Browser.Checks/check.mjs` for a normal deployment-bundle smoke check.
+
+Release Build and Publish use selective hybrid WASM AOT for the layout/runtime hot paths.
+The first native compilation takes longer; later builds reuse its cache. Managed assemblies,
+reflection and dynamically loaded plugins are preserved. Debug remains interpreted. For an
+interpreted diagnostic build, use
+`.tools/dotnet/dotnet build src/SharpRail.Browser -c Release -p:SharpRailBrowserAot=false`.
+
+The measured native runtime grows from 11.61 MB interpreted to 37.90 MB with selective AOT.
+Gzip level 9 produces 11.40 MB and Brotli quality 11 produces 7.92 MB, but the standalone host
+currently serves the raw files without response compression. These are runtime-file sizes,
+not total bundle sizes. Account for the larger cold download when deploying.
+
+After building the test-only bundle, `node tests/SharpRail.Browser.Checks/restty.mjs --prose`
+checks the 646 KB prose first-frame budget and exact scroll extents. This optional performance
+journey is separate from ordinary browser acceptance.

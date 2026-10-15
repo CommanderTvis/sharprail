@@ -35,6 +35,10 @@ port. `SHARPRAIL_ROOT` defaults to this checkout and `SHARPRAIL_STATE_DIR` defau
 to `~/.sharprail/host`. Stop the foreground server with Ctrl+C.
 
 `browser.sh` defaults to `build`; `SHARPRAIL_CONFIGURATION` defaults to Release.
+Release uses selective hybrid WASM AOT with preserved managed assemblies and reflection;
+Debug remains interpreted. Initial native compilation is slower and the runtime download is
+larger. See the [browser README](../src/SharpRail.Browser/README.md) for measured sizes,
+the interpreted diagnostic override and the optional prose performance journey.
 It bootstraps the SDK and installs the `wasm-experimental` workload when the
 multithreaded browser runtime pack is missing. Browser builds require Node/npm,
 `uv`, Git and the supported macOS or Linux build hosts listed below.

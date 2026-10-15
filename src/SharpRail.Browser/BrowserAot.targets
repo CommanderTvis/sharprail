@@ -1,0 +1,34 @@
+<Project>
+  <Target Name="ValidateBrowserAotPolicy" BeforeTargets="PrepareForBuild" Condition="'$(SharpRailBrowserAot)' == 'true'">
+    <Error Condition="'$(RunAOTCompilation)' != 'true' or '$(RunAOTCompilationAfterBuild)' != 'true'" Text="Browser selective AOT must apply consistently to Build and Publish." />
+    <Error Condition="'$(PublishAot)' == 'true' or '$(AOTMode)' != 'LLVMOnlyInterp'" Text="Browser selective AOT requires the hybrid managed runtime." />
+    <Error Condition="'$(PublishTrimmed)' != 'true' or '$(TrimMode)' != 'copy' or '$(WasmStripILAfterAOT)' != 'false'" Text="Browser selective AOT must preserve managed assemblies and IL." />
+    <Error Condition="'$(JsonSerializerIsReflectionEnabledByDefault)' != 'true'" Text="Browser selective AOT requires JSON reflection." />
+  </Target>
+  <Target Name="KeepBrowserManagedAssemblies" BeforeTargets="PrepareForILLink" DependsOnTargets="_ComputeManagedAssemblyToLink" Condition="'$(SharpRailBrowserAot)' == 'true'">
+    <ItemGroup>
+      <TrimmerRootAssembly Include="@(ManagedAssemblyToLink->'%(Filename)')" RootMode="all" />
+      <ManagedAssemblyToLink Update="@(ManagedAssemblyToLink)" TrimMode="copy" />
+    </ItemGroup>
+    <WriteLinesToFile File="$(IntermediateOutputPath)browser-preserved-assemblies.txt" Lines="@(ManagedAssemblyToLink->'%(Identity)|$(IntermediateLinkDir)%(Filename)%(Extension)')" Overwrite="true" WriteOnlyWhenDifferent="true" />
+  </Target>
+  <Target Name="VerifyBrowserManagedAssemblies" AfterTargets="ILLink" Condition="'$(SharpRailBrowserAot)' == 'true'">
+    <Exec Command="node &quot;$(MSBuildProjectDirectory)/verify-preserved-assemblies.mjs&quot; &quot;$(IntermediateOutputPath)browser-preserved-assemblies.txt&quot;" />
+  </Target>
+  <Target Name="SelectBrowserAotAssemblies" BeforeTargets="_WasmAotCompileApp" Condition="'$(SharpRailBrowserAot)' == 'true'">
+    <ItemGroup>
+      <_WasmAssembliesInternal Update="@(_WasmAssembliesInternal)" Condition="'%(Filename)' != 'Avalonia.Base' and '%(Filename)' != 'System.Private.CoreLib'">
+        <AOT_InternalForceToInterpret>true</AOT_InternalForceToInterpret>
+      </_WasmAssembliesInternal>
+      <BrowserAotAssembly Include="@(_WasmAssembliesInternal)" Condition="'%(Filename)' == 'Avalonia.Base' or '%(Filename)' == 'System.Private.CoreLib'" />
+    </ItemGroup>
+    <Error Condition="@(BrowserAotAssembly->Count()) != 2" Text="The pinned browser AOT policy requires Avalonia.Base and System.Private.CoreLib." />
+  </Target>
+  <Target Name="VerifyBrowserAotAssemblies" AfterTargets="_WasmAotCompileApp" Condition="'$(SharpRailBrowserAot)' == 'true'">
+    <ItemGroup>
+      <BrowserCompiledAotAssembly Include="@(_BitcodeFile)" Condition="'%(Filename)' == 'Avalonia.Base.dll' or '%(Filename)' == 'System.Private.CoreLib.dll'" />
+      <BrowserUnexpectedAotAssembly Include="@(_BitcodeFile)" Condition="'%(Filename)' != 'Avalonia.Base.dll' and '%(Filename)' != 'System.Private.CoreLib.dll' and '%(Filename)' != 'aot-instances.dll'" />
+    </ItemGroup>
+    <Error Condition="@(BrowserCompiledAotAssembly->Count()) != 2 or @(BrowserUnexpectedAotAssembly->Count()) != 0" Text="The pinned browser SDK must compile only Avalonia.Base, System.Private.CoreLib and shared generic instances." />
+  </Target>
+</Project>

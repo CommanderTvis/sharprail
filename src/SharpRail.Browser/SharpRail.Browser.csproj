@@ -11,6 +11,19 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <BrowserBinaryen>$(MSBuildProjectDirectory)/../../.tools/wasm-native/binaryen</BrowserBinaryen>
     <EmccFlags>$(EmccFlags) -Wno-version-check</EmccFlags>
+    <SharpRailBrowserAot Condition="'$(SharpRailBrowserAot)' == '' and '$(Configuration)' == 'Release'">true</SharpRailBrowserAot>
+    <SharpRailBrowserAot Condition="'$(SharpRailBrowserAot)' == ''">false</SharpRailBrowserAot>
+    <RunAOTCompilation>$(SharpRailBrowserAot)</RunAOTCompilation>
+    <RunAOTCompilationAfterBuild>$(SharpRailBrowserAot)</RunAOTCompilationAfterBuild>
+    <PublishTrimmed Condition="'$(SharpRailBrowserAot)' == 'true'">true</PublishTrimmed>
+    <TrimMode>copy</TrimMode>
+    <IsTrimmable>false</IsTrimmable>
+    <EnableTrimAnalyzer Condition="'$(SharpRailBrowserAot)' == 'true' and '$(TrimMode)' == 'copy'">false</EnableTrimAnalyzer>
+    <SuppressTrimAnalysisWarnings Condition="'$(SharpRailBrowserAot)' == 'true' and '$(TrimMode)' == 'copy'">true</SuppressTrimAnalysisWarnings>
+    <TrimmerRemoveSymbols>false</TrimmerRemoveSymbols>
+    <WasmStripILAfterAOT>false</WasmStripILAfterAOT>
+    <AOTMode>LLVMOnlyInterp</AOTMode>
+    <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
     <WasmBuildNative>true</WasmBuildNative>
     <WasmEnableThreads>true</WasmEnableThreads>
     <WasmGenerateAppBundle>true</WasmGenerateAppBundle>
@@ -24,6 +37,7 @@
   <ItemGroup>
     <Compile Include="../../tests/SharpRail.Browser.Checks/BrowserChecks.cs" Condition="'$(BrowserChecks)' == 'true'" />
     <Compile Include="../../tests/SharpRail.Browser.Checks/BrowserChecks.Settings.cs" Condition="'$(BrowserChecks)' == 'true'" />
+    <Compile Include="../../tests/SharpRail.Browser.Checks/BrowserChecks.Prose.cs" Condition="'$(BrowserChecks)' == 'true'" />
     <Compile Include="../../tests/SharpRail.Browser.Checks/BrowserChecks.Mermaid.cs" Condition="'$(BrowserChecks)' == 'true'" />
     <Compile Include="$(UiSources)**/*.cs" Exclude="$(UiSources)bin/**;$(UiSources)obj/**;$(UiSources)Program.cs;$(UiSources)Terminal/LoopbackTerminals.cs;$(UiSources)Panels/HostSettings.cs" LinkBase="UI" />
     <AvaloniaXaml Include="$(UiSources)**/*.axaml" Exclude="$(UiSources)bin/**;$(UiSources)obj/**" Link="%(RecursiveDir)%(Filename)%(Extension)" />
@@ -66,6 +80,7 @@
     <NativeFileReference Include="../../.tools/wasm-native/GhosttyAvaloniaVt.a" />
     <NativeFileReference Include="../../.tools/wasm-native/SharpRail.Scintilla.a" />
   </ItemGroup>
+  <Import Project="BrowserAot.targets" />
   <Target Name="BuildBrowserNative" BeforeTargets="PrepareForBuild">
     <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/browser-binaryen.sh&quot;" />
     <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/wasm-native.sh&quot;" />
