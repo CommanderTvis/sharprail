@@ -10,8 +10,6 @@ using SharpRail.Plugins.Codex;
 using SharpRail.Plugins.Codex.UI;
 using SharpRail.Plugins.Discord;
 using SharpRail.Plugins.Discord.UI;
-using SharpRail.Plugins.FileIcons;
-using SharpRail.Plugins.FileIcons.UI;
 using SharpRail.Plugins.PdfPreview;
 using SharpRail.Plugins.PdfPreview.UI;
 using SharpRail.Plugins.SpecDialect;
@@ -34,7 +32,6 @@ public static class BuiltinPlugins
         (PdfPreviewPlugin.Manifest, () => new PdfPreviewUI()),
         (BranchGraphPlugin.Manifest, () => new BranchGraphUI()),
         (VisualizeContract.Manifest, () => new VisualizeUI()),
-        (FileIconsManifest.Manifest, () => new FileIconsUI()),
         (CodexManifest.Manifest, () => new CodexUI()),
         (TailscaleContract.Manifest, () => new TailscaleUI())
     ];

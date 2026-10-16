@@ -82,6 +82,7 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
   (a commit named by a scope or revision no longer resolves), `NotGit` or `AlreadyOpen` (the two
   project-open refusals). It derives from `IOException`, so a caller that handles none of them sees an
   ordinary failure. Both adapters deliver the same type and message.
+- The core file-type icon setting is enabled by default and independent of the plugin roster. Protocol version 7 (`HostProtocol.FileTypeIcons`) introduces its shared toggle; older hosts do not accept that setting.
 - `IHostStateService` is the shared state of one host. `GetStateAsync` reads, `ChangeAsync` applies a
   batch atomically and returns the published snapshot, and `WatchAsync` yields the current snapshot and
   then every later one. Snapshots are complete and carry a `Revision`, so a client that missed events

@@ -310,7 +310,7 @@ public sealed partial class WorkbenchWindow
         var filename = Ui.Text(label[(separator + 1)..], color);
         filename.Classes.Add("change-path-base");
         Ui.Place(path, filename, 0, 1);
-        if (Plugins.FileIcon(change.Path, SharpRail.Plugins.Api.UI.FileIconKind.File) is not null)
+        if (FileIconAnswer(change.Path) is not null)
         {
             path.ColumnDefinitions.Insert(0, new ColumnDefinition(GridLength.Auto));
             Grid.SetColumn(directory, 1); Grid.SetColumn(filename, 2);
@@ -374,7 +374,7 @@ public sealed partial class WorkbenchWindow
         button.ContextMenu.Items.Add(Ui.Menu("Unstage file", () => _ = GitActionAsync(new("unstage", change.Path)), canStage && change.IndexStatus is not (" " or "?")));
         var wrapper = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
         Ui.Place(wrapper, button); Ui.Place(wrapper, actions, 0, 1);
-        var frame = new Border { Child = wrapper, Tag = new ChangeFrameKey(change, label, canStage, Plugins.FileIcon(change.Path, SharpRail.Plugins.Api.UI.FileIconKind.File)) };
+        var frame = new Border { Child = wrapper, Tag = new ChangeFrameKey(change, label, canStage, FileIconAnswer(change.Path)) };
         frame.Classes.Add("change-row");
         changeFrames.Add((frame, change));
         frame.Classes.Set("active", IsActiveDiff(change));

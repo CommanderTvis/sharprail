@@ -18,6 +18,10 @@ of `SharpRail.UI/Rendering` so a plugin can render UI without reaching into the 
 catalogue, workbench or panels. The app uses the same controls from here; there is one copy. In this commit
 the project is created empty with this spec, and the controls move into it as listed below.
 
+## Core file icons
+
+[File-type icons](FileIcons/SPEC.md) are bundled here for every app client; the host holds only their shared enabled setting. They require no builtin plugin or asset RPC.
+
 ## Shared control states
 
 `ControlStyles.axaml` and `Ui.ApplyResources` own button, toggle and checkbox states for the entire app

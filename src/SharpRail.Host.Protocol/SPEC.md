@@ -131,6 +131,7 @@ project: local adapters call Core directly, with no serialization.
 - Credentials never ride a DTO: authentication is the `authorization` metadata,
   owned by the transport.
 
+- Settings carry the core file-type icon switch as an additive disabled flag, so an omitted field keeps the default enabled. Protocol version 7 gates writes to hosts that understand the new setting; local and remote adapters preserve the same value.
 - The state service answers `Handshake` with the protocol and build versions. The request carries the
   caller's own version (0 when unknown); the host records nothing from it yet. Existing member numbers
   never change; a host without the method answers `Unimplemented`.

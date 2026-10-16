@@ -97,6 +97,8 @@
           <Button x:Name="SystemTheme_dark_trigger" Classes="theme-trigger" />
           <TextBlock x:Name="SystemTheme_dark_fallback" Classes="theme-fallback" />
         </StackPanel>
+        <rendering:Switch x:Name="FileTypeIconsEnabled" Label="File type icons" HorizontalAlignment="Left" />
+        <TextBlock Text="Show file-type icons in Files, tabs and Changes. Shared by every client of this host." Classes="settings-description" />
         <TextBlock Text="Interface font size" Classes="settings-label" />
         <NumericUpDown x:Name="InterfaceSize" Minimum="10" Maximum="24" Increment="1" Width="150" HorizontalAlignment="Left" />
         <TextBlock Text="Geist for the interface · JetBrains Mono for code" FontSize="12" Foreground="{x:Static rendering:Ui.Hint}" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />

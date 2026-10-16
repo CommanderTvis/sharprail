@@ -7,6 +7,8 @@ namespace SharpRail.Host.Abstractions;
 /// <summary>Settings every client of one host shares. Empty or zero values mean the client's default.</summary>
 public sealed record HostSettings
 {
+    /// <summary>Whether clients use the bundled file-type icons instead of generic file glyphs.</summary>
+    public bool FileTypeIconsEnabled { get; init; } = true;
     public string Theme { get; init; } = "";
     public string ThemeMode { get; init; } = "fixed";
     public string SystemLight { get; init; } = "";

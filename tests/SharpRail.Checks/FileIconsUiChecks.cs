@@ -16,8 +16,10 @@ using SharpRail.Checks.E2E;
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Remote;
 using SharpRail.Plugins.UI.Kit;
+using SharpRail.UI;
 using SharpRail.UI.Docking;
-using SharpRail.UI.Plugins;
+using SharpRail.UI.Panels;
+using SharpRail.UI.Rendering;
 
 using static SharpRail.Checks.E2E.E2eWorkspace;
 
@@ -53,7 +55,7 @@ internal static partial class FileIconsChecks
                 if (server is not null) Task.Run(() => server.StartAsync()).GetAwaiter().GetResult();
                 using var app = server is null ? new E2eWorkspace(workspace)
                     : new E2eWorkspace(new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single()), "icons", workspace, workspace + "-profile", workspace);
-                Until(() => app.Window.WorkspaceMounted && app.Workbench.PluginLoader.Registry.Active.Contains("file-icons"));
+                Until(() => app.Window.WorkspaceMounted);
                 app.ShowTool("files");
                 Require(app.Window.Layout.State.Groups.Where(group => group.Tools.Any(tab => tab.Id == "files")).All(group => app.Window.Layout.Selected(group.Id)?.Id == "files"),
                     "Clicking Files selects its rail tab before checking icons.");
@@ -73,7 +75,7 @@ internal static partial class FileIconsChecks
         TaskCompletionSource? gitReady = null;
         var directory = IsolatedGit.Repository(Path.Combine(root, "file-icons-deferred-click"));
         using var app = new E2eWorkspace(directory, openFiles: false, prepare: host => gitReady = host.HoldGit());
-        Until(() => app.Workbench.PluginLoader.Registry.Active.Contains("file-icons"));
+        Until(() => app.Window.WorkspaceMounted);
         var button = app.Find<Button>("Tab_files");
         app.Window.UpdateLayout();
         button.BringIntoView();
@@ -90,10 +92,10 @@ internal static partial class FileIconsChecks
     }
 
     private static Control Asset(Control scope, string name) => scope.GetLogicalDescendants().OfType<Control>()
-        .Single(control => control.Name == "PluginAssetIcon" && Equals(control.Tag, $"asset:file-icons/{name}.svg"));
+        .Single(control => control.Name == "FileTypeIcon" && Equals(control.Tag, $"file-type:{name}"));
 
     private static void Loaded(Control scope, string name) => Until(() => scope.GetLogicalDescendants().OfType<Control>()
-        .Any(control => control.Name == "PluginAssetIcon" && Equals(control.Tag, $"asset:file-icons/{name}.svg") &&
+        .Any(control => control.Name == "FileTypeIcon" && Equals(control.Tag, $"file-type:{name}") &&
             control.GetLogicalDescendants().OfType<SvgAsset>().Any(svg => svg.Source is not null && svg.IsEffectivelyVisible)));
 
     private static byte[] Raster(E2eWorkspace app, Control icon) => Raster(app.Window, icon);
@@ -186,7 +188,7 @@ internal static partial class FileIconsChecks
             Until(() => refresh.IsCompleted);
             refresh.GetAwaiter().GetResult();
             app.ShowTool("changes");
-            Until(() => app.Window.GetLogicalDescendants().OfType<Control>().Any(control => Equals(control.Tag, "asset:file-icons/python.svg")));
+            Until(() => app.Window.GetLogicalDescendants().OfType<Control>().Any(control => Equals(control.Tag, "file-type:python")));
             Loaded(app.Window, "python");
             app.Click(app.Find<ToggleButton>("ChangesTree"));
             Until(() => app.Window.GetLogicalDescendants().OfType<TreeView>().Any(tree => tree.Name == "ChangesTree"));
@@ -195,22 +197,27 @@ internal static partial class FileIconsChecks
         else Console.WriteLine("SKIP file-icons change rows: set SHARPRAIL_TEST_GIT_SOURCE to an existing fork clone.");
 
         app.ShowTool("files");
-        var disabling = app.Workbench.State.ChangeAsync(HostStateChange.PluginEnabled("file-icons", false));
-        Until(() => disabling.IsCompleted && !app.Workbench.PluginLoader.Registry.Active.Contains("file-icons"));
-        disabling.GetAwaiter().GetResult();
-        Until(() => !app.FileRow("README.md").GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "PluginAssetIcon"));
+        app.Window.ShowSettings("Appearance");
+        Until(() => app.Window.OwnedWindows.OfType<SettingsWindow>().Any());
+        var settings = app.Window.OwnedWindows.OfType<SettingsWindow>().Single();
+        Switch Toggle() => settings.GetLogicalDescendants().OfType<Switch>().Single(control => control.Name == "FileTypeIconsEnabled");
+        Until(() => Toggle().IsEnabled);
+        Require(Toggle().IsChecked, "Appearance shows core file-type icons on by default.");
+        app.Click(Toggle(), freshGesture: false);
+        Until(() => !app.Workbench.State.Current.Settings.FileTypeIconsEnabled && !Toggle().IsChecked);
+        Until(() => !app.FileRow("README.md").GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "FileTypeIcon"));
         Require(app.FileRow("README.md").GetLogicalDescendants().OfType<Control>().Any(control => Equals(control.Tag, "file") && control.IsEffectivelyVisible),
             "Disabling File Icons restores core's plain file glyph.");
-        var enabling = app.Workbench.State.ChangeAsync(HostStateChange.PluginEnabled("file-icons", true));
-        Until(() => enabling.IsCompleted && app.Workbench.PluginLoader.Registry.Active.Contains("file-icons"));
-        enabling.GetAwaiter().GetResult();
+        app.Click(Toggle(), freshGesture: false);
+        Until(() => app.Workbench.State.Current.Settings.FileTypeIconsEnabled && Toggle().IsChecked);
+        settings.Close();
         Loaded(app.FileRow("README.md"), "readme");
         Loaded(app.Tab("README.md"), "readme");
     }
 
     private static void TwoTone(E2eWorkspace app)
     {
-        var icon = PluginIcons.Resolve("asset:file-icons/python.svg", app.Workbench.PluginLoader.Registry.Entry("file-icons"), Brushes.White, 96);
+        var icon = WorkbenchWindow.CoreFileIcon("python", Brushes.White, 96);
         var window = new Window { Width = 96, Height = 96, Background = Brushes.Black, Content = icon };
         window.Show();
         try
@@ -232,23 +239,21 @@ internal static partial class FileIconsChecks
     private static void UnavailableAssets(string root)
     {
         using var app = new E2eWorkspace(Path.Combine(root, "file-icons-fallback"));
-        Until(() => app.Workbench.PluginLoader.Registry.Active.Contains("file-icons"));
-        var read = PluginIcons.ReadAsset;
-        try
+        Until(() => app.Window.WorkspaceMounted);
+        foreach (var malformed in new[] { false, true })
         {
-            foreach (var malformed in new[] { false, true })
+            var icon = malformed ? new AssetIcon("malformed", "file", null, 14) : WorkbenchWindow.CoreFileIcon("missing-icon");
+            if (malformed) ((AssetIcon)icon).Show(System.Text.Encoding.UTF8.GetBytes("not an SVG"), Brushes.White, 14);
+            var window = new Window { Width = 80, Height = 80, Content = icon };
+            window.Show();
+            try
             {
-                PluginIcons.ReadAsset = (_, _, _) => Task.FromResult<byte[]?>(malformed ? System.Text.Encoding.UTF8.GetBytes("not an SVG") : null);
-                var icon = PluginIcons.Resolve("asset:file-icons/fallback-" + Guid.NewGuid() + ".svg", app.Workbench.PluginLoader.Registry.Entry("file-icons"), size: 14, fallbackGlyph: "file");
-                var window = new Window { Width = 80, Height = 80, Content = icon };
-                window.Show();
                 Settle(100);
                 Require(icon.GetLogicalDescendants().OfType<Control>().Any(control => Equals(control.Tag, "file") && control.IsEffectivelyVisible),
                     "Missing and malformed SVG assets draw the plain file glyph rather than an empty slot.");
-                window.Close();
             }
+            finally { window.Close(); }
         }
-        finally { PluginIcons.ReadAsset = read; }
-        Console.WriteLine("PASS file-icons asset fallback: missing and malformed SVGs retain the file glyph");
+        Console.WriteLine("PASS core file-icons asset fallback: missing and malformed SVGs retain the file glyph");
     }
 }

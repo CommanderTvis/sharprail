@@ -9,7 +9,10 @@ namespace SharpRail.Host.Abstractions;
 /// </summary>
 public static class HostProtocol
 {
-    public const int Current = 6;
+    public const int Current = 7;
+
+    /// <summary>The core file-type icon setting, shared independently of the plugin roster.</summary>
+    public const int FileTypeIcons = 7;
 
     /// <summary>All remote platforms use the multiplexed protobuf WebSocket protocol.</summary>
     public const int WebSocketTransport = 5;

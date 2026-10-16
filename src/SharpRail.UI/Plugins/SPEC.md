@@ -181,7 +181,7 @@ it changes, never for the initial value.
 - Editor events (W12) are fed by the Scintilla editor (open, close, activate, save, selection) and the Markdown
   preview (selection).
 - File icons (W17) are consulted for tabs, Files rows, Changes rows and the diff header's path chip; core's
-  generic glyph is the fallback.
+  bundled file-type icon or generic glyph is the fallback.
 
 ## Settings › Plugins
 
@@ -221,8 +221,7 @@ a plugin deleted from disk, and a shared assembly in the plugin directory not lo
 - Viewer tabs use the kind `viewer` (`viewer:<path>`). The open path consults `FileViewer` before core's kinds, and
   a registration's `Open` may take the open over; core's image and Markdown handling stays in the open path rather
   than registering under `core`, which keeps the existing behaviour for every file no plugin claims.
-- File icons (W17) replace core's glyph in tabs and Files rows; Changes rows and the diff path chip gain an icon only
-  when a plugin answers, so their layout is unchanged otherwise.
+- File icons (W17) override core's bundled file-type icons in tabs and Files rows. Changes rows gain an icon when either a plugin or the enabled core set answers.
 - Workspace actions follow New terminal in every center group's tab strip, as the fork's `renderCenterActions`
   does; project actions render beside Create workspace on Project Home.
 - Terminal projections include filesystem workspaces only. Synthetic Project Home layout keys do not
@@ -261,9 +260,7 @@ drawing controls are compiled XAML; no app dependency is introduced into the plu
 - Editor selections from the Scintilla editor: the control exposes no selection event yet. The Markdown preview and
   `ReportSelection` report selections; a preview selection's lines are counted within the selected text.
 
-File Icons occupies the file icon slot only for files. Its cached asset bytes feed a compiled icon frame
-that retains a plain file glyph until a valid SVG is available. Missing and malformed assets preserve
-that fallback. Theme changes recolour existing controls; resizing retains tab icon controls.
+The bundled file-type icon set is [core UI functionality](../../SharpRail.Plugins.UI.Kit/FileIcons/SPEC.md), not a builtin plugin. External file-icon slots still override it; plugin asset icons retain their fallback glyph until a valid SVG is available.
 
 ## Tailscale before connection
 

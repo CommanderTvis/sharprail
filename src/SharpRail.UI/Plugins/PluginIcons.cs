@@ -3,6 +3,7 @@ using Avalonia.Media;
 using Avalonia.Threading;
 
 using SharpRail.Plugins.Api;
+using SharpRail.UI.Rendering;
 
 namespace SharpRail.UI.Plugins;
 

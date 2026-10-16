@@ -203,19 +203,19 @@ public sealed partial class WorkbenchWindow
             return PluginIcons.Resolve(decorated, Plugins.Entry(decoration.PluginId), brush, 14);
         if (tab.IsTool && Plugins.Tool(tab.Id) is { } tool)
             return PluginIcons.Resolve(tool.Icon, Plugins.Entry(tool.PluginId), brush, 14);
-        if (tab.Path.Length > 0 && !tab.IsTool && Plugins.FileIcon(tab.Path, FileIconKind.File) is { } icon)
-            return PluginIcons.Resolve(icon.Icon, Plugins.Entry(icon.PluginId), brush, 14, "file");
+        if (tab.Path.Length > 0 && !tab.IsTool && FileIconAnswer(tab.Path) is { } icon)
+            return ResolveFileIcon(icon, brush);
         return null;
     }
 
     private object FileTreeIconKey(ProjectFile file) =>
-        (Plugins.FileIcon(file.Path, file.IsDirectory ? FileIconKind.Directory : FileIconKind.File), file.IsDirectory, file.GitIgnored);
+        (FileIconAnswer(file.Path, file.IsDirectory), file.IsDirectory, file.GitIgnored);
 
-    /// <summary>The icon a plugin's file-icon slot answers for a path, else core's glyph.</summary>
+    /// <summary>A custom icon, bundled file-type icon, or generic glyph for the path.</summary>
     private Control FileIcon(string path, bool directory, string glyph, IBrush? color = null)
     {
-        if (Plugins.FileIcon(path, directory ? FileIconKind.Directory : FileIconKind.File) is { } icon)
-            return PluginIcons.Resolve(icon.Icon, Plugins.Entry(icon.PluginId), color, 14, "file");
+        if (FileIconAnswer(path, directory) is { } icon)
+            return ResolveFileIcon(icon, color);
         var fallback = Ui.Icon(directory ? glyph : "file", color, 14);
         fallback.Tag = directory ? glyph : "file";
         return fallback;
@@ -240,7 +240,7 @@ public sealed partial class WorkbenchWindow
     private string TabDecorationSignature(DockTab tab, string? workspace = null)
     {
         var decoration = Decoration(tab, workspace);
-        var icon = tab.IsTool ? Plugins.Tool(tab.Id)?.Icon : tab.Path.Length > 0 ? Plugins.FileIcon(tab.Path, FileIconKind.File)?.Icon : null;
+        var icon = tab.IsTool ? Plugins.Tool(tab.Id)?.Icon : tab.Path.Length > 0 ? FileIconAnswer(tab.Path)?.Icon : null;
         return decoration is null && icon is null ? "" : $"{tab.Id}\t{decoration?.PluginId}\t{decoration?.Decoration.Icon}\t{decoration?.Decoration.Adornment is not null}\t{icon}";
     }
 

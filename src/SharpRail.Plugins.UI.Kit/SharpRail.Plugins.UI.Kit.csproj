@@ -16,4 +16,12 @@
     <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
     <AvaloniaResource Include="Assets/**" />
   </ItemGroup>
+  <Target Name="GenerateFileIcons" BeforeTargets="AssignTargetPaths">
+    <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/build-file-icons.sh&quot;" Condition="'$(OS)' != 'Windows_NT'" />
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)/../../scripts/build-file-icons.ps1&quot;" Condition="'$(OS)' == 'Windows_NT'" />
+    <ItemGroup>
+      <FileIconsSvg Include="../../.tools/file-icons/assets/file-icons/*.svg" />
+      <EmbeddedResource Include="@(FileIconsSvg)" LogicalName="SharpRail.Plugins.UI.Kit.FileIcons.%(FileIconsSvg.Filename)%(FileIconsSvg.Extension)" />
+    </ItemGroup>
+  </Target>
 </Project>

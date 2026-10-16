@@ -54,7 +54,7 @@ public sealed partial class SettingsWindow : Window
         });
         Closed += (_, _) =>
         {
-            lifetime.Cancel(); Ui.ThemeChanged -= SystemThemeChanged; state.Changed -= SharedChanged;
+            lifetime.Cancel(); Ui.ThemeChanged -= SystemThemeChanged; state.Changed -= SharedChanged; state.HandshakeChanged -= CapabilitiesChanged;
             window.Workbench.PluginRegistry.Changed -= PluginsChanged;
             SharpRail.Plugins.UI.Kit.Editor.CustomHighlighting.Changed -= HighlightingChanged;
 #if !ANDROID && !BROWSER
@@ -64,6 +64,7 @@ public sealed partial class SettingsWindow : Window
         Ui.ThemeChanged += SystemThemeChanged;
         SharpRail.Plugins.UI.Kit.Editor.CustomHighlighting.Changed += HighlightingChanged;
         state.Changed += SharedChanged;
+        state.HandshakeChanged += CapabilitiesChanged;
         Name = "SettingsWindow";
         AvaloniaXamlLoader.Load(this);
         body = this.FindControl<ContentControl>("SettingsBody")!;
@@ -195,7 +196,7 @@ public sealed partial class SettingsWindow : Window
 
     private static readonly Dictionary<string, string> SectionSummaries = new()
     {
-        ["Appearance"] = "Theme, interface font size",
+        ["Appearance"] = "Theme, file icons, interface font size",
         ["Line width"] = "Code and Markdown columns",
         ["Layout"] = "Presets, panes, file previews",
         ["Projects"] = "Recent projects",
@@ -284,6 +285,11 @@ public sealed partial class SettingsWindow : Window
     private void SystemThemeChanged()
     {
         if (section == "Appearance" && state.Preferences.ThemeMode == "system") ShowSection(section);
+    }
+
+    private void CapabilitiesChanged(HostHandshake? handshake)
+    {
+        if (section == "Appearance") foreach (var refresh in refreshers) refresh();
     }
 
     private void SharedChanged(HostState previous, HostState next)
@@ -400,6 +406,15 @@ public sealed partial class SettingsWindow : Window
                 });
             }
         }
+        var fileIcons = PageControl<Switch>(panel, "FileTypeIconsEnabled");
+        fileIcons.IsChecked = state.Current.Settings.FileTypeIconsEnabled;
+        fileIcons.IsEnabled = state.Supports(HostProtocol.FileTypeIcons);
+        fileIcons.CheckedChange += on => Share(HostStateChange.Setting("file-type-icons", on ? "true" : "false"));
+        refreshers.Add(() =>
+        {
+            fileIcons.IsChecked = state.Current.Settings.FileTypeIconsEnabled;
+            fileIcons.IsEnabled = state.Supports(HostProtocol.FileTypeIcons);
+        });
         var size = PageControl<NumericUpDown>(panel, "InterfaceSize");
         CompactSteppers(size, 24);
         size.Value = (decimal)state.Preferences.FontSize;

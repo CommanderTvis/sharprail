@@ -23,7 +23,7 @@ public sealed partial class WorkbenchWindow
 
     private GitPanelProjection CurrentGitProjection() => new(git, gitBranches, scopeCommits ?? [], comparison, changeScope, selectedCommit,
         changeTree, gitLoading, gitError, string.Join("\n", git.Changes.Select(change =>
-            Plugins.FileIcon(change.Path, SharpRail.Plugins.Api.UI.FileIconKind.File) is { } icon ? $"{icon.PluginId}\t{icon.Icon}" : "")));
+            FileIconAnswer(change.Path) is { } icon ? $"{icon.PluginId}\t{icon.Icon}" : "")));
 
     private void ReconcileChangesPanel()
     {

@@ -93,6 +93,8 @@ services. Changes flow back through state snapshots and terminal attachments, ne
 
 ## Custom highlighting
 
+The core file-type icon switch is shared host state. Loading older state migrates the former file-icons plugin enabled choice unless an explicit core setting exists, then removes the obsolete plugin namespace. No icon assets or file-icon plugin run in the host.
+
 Highlighting definitions are shared settings, even though rendering belongs to the editor. The
 `custom-highlighting` value is empty or a JSON array with unique scopes, names, filename patterns
 and grammar JSON. Limits are 2 Mi characters total, 64 entries, 512 Ki characters per grammar, and

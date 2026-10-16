@@ -72,11 +72,13 @@ The Android client uses the same projects and agent sessions as the desktop host
 Scan the QR code from the Android connect screen to use the desktop host’s
 projects, plugins and terminals.
 
+File-type icons are built in. Turn them on or off in Settings › Appearance.
+
 ## Plugins
 
 Plugins add tools to the workbench and connect terminal agents to the workspace.
 Turn them on or off in Settings › Plugins without restarting the app. SharpRail
-ships these nine:
+ships these plugins:
 
 | Plugin | What it helps you do |
 | --- | --- |
@@ -87,7 +89,6 @@ ships these nine:
 | Git Graph | See branches, commits and worktrees together in a history graph. |
 | Visualize | Let a terminal agent show a Mermaid diagram or compare options in a companion pane, then update that view as the discussion develops. |
 | PDF Preview | Read PDFs alongside your code, with selectable text, zoom and refresh when the file changes. |
-| File Icons | Recognize file types in the tree with Material Icon Theme icons. |
 | Discord | Optionally share the project and file you have open through Discord Rich Presence. |
 
 Claude Code, Codex and Discord start disabled; enable the ones you want. The agent

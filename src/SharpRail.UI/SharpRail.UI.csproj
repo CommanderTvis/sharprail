@@ -18,7 +18,6 @@
     <ProjectReference Include="../SharpRail.Plugins.BranchGraph/UI/SharpRail.Plugins.BranchGraph.UI.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.Visualize/UI/SharpRail.Plugins.Visualize.UI.csproj" />
     <ProjectReference Include="../SharpRail.Plugins.Codex/UI/SharpRail.Plugins.Codex.UI.csproj" />
-    <ProjectReference Include="../SharpRail.Plugins.FileIcons/UI/SharpRail.Plugins.FileIcons.UI.csproj" />
     <PackageReference Include="Avalonia" />
     <PackageReference Include="Avalonia.Desktop" />
     <PackageReference Include="Avalonia.Themes.Fluent" />

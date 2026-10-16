@@ -98,7 +98,13 @@ public sealed partial class WorkbenchWindow
             ClearRetainedTools(removed.Path);
         if (next.Settings != previous.Settings)
         {
-            RefreshAppearance();
+            if (next.Settings with { FileTypeIconsEnabled = previous.Settings.FileTypeIconsEnabled } != previous.Settings) RefreshAppearance();
+            if (next.Settings.FileTypeIconsEnabled != previous.Settings.FileTypeIconsEnabled)
+            {
+                RefreshFileIcons();
+                RefreshDecorations();
+                RefreshGitPanels();
+            }
             ApplyTabLayout();
             ApplyTerminalCatalog();
         }

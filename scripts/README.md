@@ -6,6 +6,10 @@ location; the benchmark expects the repository root as its working directory.
 Builds use the checkout-local `.tools/dotnet/dotnet`. Initial setup and native or
 browser builds can download tools and dependencies into `.tools`.
 
+## File icon assets
+
+The UI kit build invokes `build-file-icons.sh` or `build-file-icons.ps1` to generate the pinned, checksummed Material Icon Theme SVGs and embed them locally. `.tools/dotnet/dotnet run scripts/generate-file-icons.cs -- --check` checks the committed mapping and generated assets; omit `--check` to regenerate them. Outputs stay under `.tools/file-icons`.
+
 ## Start the app or a server
 
 ### Desktop

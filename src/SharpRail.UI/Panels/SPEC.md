@@ -140,6 +140,8 @@ expressions, a case toggle, a glob filter and replace.
 
 ## Settings
 
+Appearance includes a shared File type icons switch, enabled by default. It controls the core bundled icon set independently of Settings › Plugins.
+
 A modal two-pane window: a section rail (Appearance, Line width, Layout, Projects, Workspaces, Terminal, Notifications, Host, GitHub, Plugins, then each
 active plugin's own sections in registration order) and a scrolling
 content pane. Escape and the close button dismiss. It first opens on Appearance and afterwards on the section it was last left on in that window, the way a

@@ -89,6 +89,7 @@ public sealed partial class HostStateStore : IHostStateService
     {
         path = directory is null ? null : Path.Combine(directory, FileName);
         HostState initial;
+        var fileIconsConfigured = false;
         try
         {
             if (path is not null && File.Exists(path))
@@ -96,8 +97,11 @@ public sealed partial class HostStateStore : IHostStateService
                 var text = File.ReadAllText(path);
                 var stored = JsonSerializer.Deserialize<Stored>(text, Json) ?? new();
                 if (JsonNode.Parse(text)?[nameof(Stored.Settings)] is JsonObject settings)
+                {
+                    fileIconsConfigured = settings.ContainsKey(nameof(HostSettings.FileTypeIconsEnabled));
                     foreach (var (name, value) in settings)
                         if (!KnownSettings.Contains(name)) unknownSettings[name] = value?.DeepClone();
+                }
                 initial = new()
                 {
                     Settings = stored.Settings ?? new(),
@@ -123,7 +127,17 @@ public sealed partial class HostStateStore : IHostStateService
         {
             initial = new(); LastError = error.Message;
         }
-        state = BackfillActivity(Normalize(initial), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+        var migrated = initial;
+        if (initial.PluginSettings.TryGetValue("file-icons", out var legacyIcons))
+        {
+            var enabled = legacyIcons.ValueKind != JsonValueKind.Object || !legacyIcons.TryGetProperty("enabled", out var legacyEnabled) || legacyEnabled.ValueKind != JsonValueKind.False;
+            migrated = initial with
+            {
+                Settings = fileIconsConfigured ? initial.Settings : initial.Settings with { FileTypeIconsEnabled = enabled },
+                PluginSettings = initial.PluginSettings.Where(entry => entry.Key != "file-icons").ToDictionary()
+            };
+        }
+        state = BackfillActivity(Normalize(migrated), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
         state = state with
         {
             Settings = state.Settings with
@@ -134,7 +148,7 @@ public sealed partial class HostStateStore : IHostStateService
         };
         // Identities minted for a file that predates them are written at once, or they would change on the next launch.
         if (path is not null && LastError is null && (!File.Exists(path) || !state.ProjectRecords.SequenceEqual(initial.ProjectRecords) ||
-            state.Settings != initial.Settings || !state.Workspaces.SequenceEqual(initial.Workspaces))) Save(state);
+            state.Settings != initial.Settings || state.PluginSettings.Count != initial.PluginSettings.Count || !state.Workspaces.SequenceEqual(initial.Workspaces))) Save(state);
         if (directory is not null)
             try { InstallationId = Installation.EnsureIn(directory); }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException) { LastError ??= error.Message; }
@@ -472,6 +486,7 @@ public sealed partial class HostStateStore : IHostStateService
                     "markdown-bounded" when bool.TryParse(value, out var bounded) => settings with { MarkdownLineWidthBounded = bounded },
                     "terminal-replay" when int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var kb) && kb <= HostSettings.MaxTerminalReplayKb
                         => settings with { TerminalReplayKb = kb },
+                    "file-type-icons" when bool.TryParse(value, out var icons) => settings with { FileTypeIconsEnabled = icons },
                     "notifications" when bool.TryParse(value, out var enabled) => settings with { NotificationsEnabled = enabled },
                     "custom-highlighting" when ValidHighlighting(value) => settings with { CustomHighlighting = value },
                     "vertical-tabs" when bool.TryParse(value, out var vertical) => settings with { VerticalCenterTabs = vertical },

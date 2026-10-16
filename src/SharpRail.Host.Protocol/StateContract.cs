@@ -32,6 +32,7 @@ public sealed class SettingsMessage
     [ProtoMember(8)] public bool MarkdownLineWidthUnbounded { get; set; }
     /// <summary>Always written, so zero (no replay) differs from a host that predates the setting.</summary>
     [ProtoMember(9, IsRequired = true)] public int TerminalReplayKb { get; set; } = 64;
+    [ProtoMember(15)] public bool FileTypeIconsDisabled { get; set; }
     [ProtoMember(10)] public bool NotificationsDisabled { get; set; }
     [ProtoMember(11)] public string CustomHighlighting { get; set; } = "";
     [ProtoMember(12)] public bool? VerticalCenterTabs { get; set; }

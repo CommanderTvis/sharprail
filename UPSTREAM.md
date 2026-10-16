@@ -58,7 +58,7 @@ verified against GitHub on 2026-10-09. Fork port coverage remains recorded by ti
 | `packages/plugin-pdf-preview/SPEC.md` | `src/SharpRail.Plugins.PdfPreview/SPEC.md` |
 | `packages/plugin-branch-graph/SPEC.md` | `src/SharpRail.Plugins.BranchGraph/SPEC.md` |
 | `packages/plugin-visualize/SPEC.md` | `src/SharpRail.Plugins.Visualize/SPEC.md` |
-| `packages/plugin-file-icons/SPEC.md` | `src/SharpRail.Plugins.FileIcons/SPEC.md` |
+| `packages/plugin-file-icons/SPEC.md` | `src/SharpRail.Plugins.UI.Kit/FileIcons/SPEC.md` |
 | `packages/plugin-codex/SPEC.md`, `packages/plugin-codex/host/ideBridge/SPEC.md` | `src/SharpRail.Plugins.Codex/SPEC.md` |
 | `packages/server/src/{terminal,subprocess}/SPEC.md` | `src/SharpRail.Host.Core/Terminals.SPEC.md`, `src/SharpRail.UI/Terminal/SPEC.md` |
 | `packages/contracts/SPEC.md` | `src/SharpRail.Host.Protocol/SPEC.md` |

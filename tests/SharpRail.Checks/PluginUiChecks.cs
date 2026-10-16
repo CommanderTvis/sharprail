@@ -340,8 +340,8 @@ internal static class PluginUiChecks
     {
         var window = app.Window;
         var loader = app.Workbench.PluginLoader;
-        var disableIcons = app.Workbench.State.ChangeAsync(HostStateChange.PluginEnabled("file-icons", false));
-        E2eWorkspace.Until(() => disableIcons.IsCompleted && !loader.Registry.Active.Contains("file-icons"));
+        var disableIcons = app.Workbench.State.ChangeAsync(HostStateChange.Setting("file-type-icons", "false"));
+        E2eWorkspace.Until(() => disableIcons.IsCompleted && !app.Workbench.State.Current.Settings.FileTypeIconsEnabled);
         disableIcons.GetAwaiter().GetResult();
         // The fixture and its refused/removable copies join the builtin plugins.
         E2eWorkspace.Until(() => loader.Registry.Roster.Count(entry => entry.Origin == PluginOrigin.External) == 3);

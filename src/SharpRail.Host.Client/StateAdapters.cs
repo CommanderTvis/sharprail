@@ -99,6 +99,7 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
             MarkdownLineWidth = reply.Settings.MarkdownLineWidth,
             MarkdownLineWidthBounded = !reply.Settings.MarkdownLineWidthUnbounded,
             TerminalReplayKb = reply.Settings.TerminalReplayKb,
+            FileTypeIconsEnabled = !reply.Settings.FileTypeIconsDisabled,
             NotificationsEnabled = !reply.Settings.NotificationsDisabled,
             CustomHighlighting = reply.Settings.CustomHighlighting,
             VerticalCenterTabs = reply.Settings.VerticalCenterTabs,

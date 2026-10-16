@@ -1,0 +1,36 @@
+# Core file-type icons
+
+Ports the filename rules and artwork from fork `packages/plugin-file-icons` at `40678fd30`
+into the app's shared UI kit. File icons are core functionality, enabled by default, independent
+of plugin activation or the host's asset service. Every client carries the same embedded SVGs;
+rendering a remote workspace requires no icon RPCs. Directories keep the core folder glyph.
+
+Whole lowercase filenames win over extensions; the longest matching extension wins. Unknown
+files use the material file icon. The committed table contains 2,127 filenames and 1,348 extensions.
+The app caches embedded bytes and uses the shared SVG renderer to preserve theme changes, the
+45%-opacity secondary colour and retained controls during resizing. Missing or malformed assets
+retain the generic file glyph.
+
+Material Icon Theme is pinned to 5.38.1 by a checksummed npm archive. The generator in
+`scripts/generate-file-icons.cs` recolours fills, strokes and stops to currentColor, preserves
+pale accents, flattens gradients and removes definitions. All 1,251 generated fork SVGs remain
+byte-identical. Generated assets belong in ignored `.tools/file-icons/assets/file-icons` and are
+embedded by the kit build, rather than copied into a plugin directory. The Unix and PowerShell
+build wrappers serialize generation and cache its source fingerprint. Run
+`.tools/dotnet/dotnet run scripts/generate-file-icons.cs -- --check` to verify the table and assets.
+
+Settings › Appearance exposes the shared host setting. Turning it off restores generic file
+glyphs in Files and document tabs and removes core file-type icons from Changes. Custom plugin
+icon slots remain an override; this setting controls only the bundled icon set. The former
+`file-icons` plugin is absent from both builtin rosters and project references. Host state migrates
+its old enabled choice once, removes that namespace, and gives an explicit new setting precedence.
+
+`--file-icons` covers filename precedence, embedded assets, migration, absence from the plugin
+roster, local/remote UI icons, rendered colours, theme changes, resize retention and disable/re-enable.
+The state checks cover setting parity and broadcasts through local and WebSocket adapters.
+
+The 2026-10-16 macOS acceptance passed the Release solution build, file-icon and shared-state
+checks, dependency boundaries and plugin UI integration, and all 139 source cases with two lanes.
+The Release browser WASM build also passed with AOT disabled. An initial four-lane resource-view
+click timed out; the unchanged resource case passed alone and in the final two-lane gate. These
+checks do not establish physical Android or Windows runtime acceptance.
