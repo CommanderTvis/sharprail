@@ -21,9 +21,14 @@ public sealed partial class App : Application
     {
         StartupPhases.Mark("app-initialize-start");
         AvaloniaXamlLoader.Load(this);
+#if !ANDROID && !BROWSER
+        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop && desktop.Args?.Contains("--tailscale", StringComparer.Ordinal) != true)
+            PrepareStartup();
+#endif
         // The kit has no theme of its own; the catalogue's default applies until a window resolves the host's.
-        Ui.Apply(Themes.Resolve(Themes.DefaultId));
-        Ui.ApplyResources(this);
+        var theme = Themes.Resolve(Themes.DefaultId);
+        if (ReferenceEquals(Ui.Theme, theme)) Ui.ApplyResources(this);
+        else Ui.Apply(theme);
         ControlStates.Apply(Resources);
         // One style per typography role, so a control takes its type by class name.
         Styles.Add(Typography.Styles());
@@ -77,8 +82,25 @@ public sealed partial class App : Application
     private static string TailscaleClientDirectory() => Path.Combine(Environment.GetEnvironmentVariable("SHARPRAIL_PROFILE") ??
         Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".sharprail"), "tailscale-client");
 
-    private void StartDesktop(IClassicDesktopStyleApplicationLifetime desktop, TailscaleConnection? chosen)
+    private static Task<DesktopStartup>? startup;
+
+    internal static void PrepareStartup()
     {
+        if (startup is not null) return;
+        // Legacy profile migration can derive a theme pair. Prime the asset-backed catalogue on the
+        // dispatcher before starting that worker; Avalonia's assembly asset cache is not concurrent.
+        _ = Themes.All;
+        startup = Task.Run(() => PrepareDesktop(null));
+    }
+
+    private sealed record DesktopStartup(string? Endpoint, string Token, string InitialRoot, ProfileStore Profile, HostStateStore Local, bool Remote,
+        HostConnection Connection, IHostStateService StateService, RemoteTerminalAdapter? RemoteTerminals, PtyTerminalService? LocalTerminals,
+        SharpRail.Host.Remote.LoopbackServer? Loopback, SharpRail.Host.Core.Plugins.PluginRuntime? Runtime, SharpRail.Host.Remote.HostListener? Listener,
+        RemotePluginAdapter? RemotePlugins, IPluginService Plugins, Func<IProjectServices> Sessions, RemoteTerminalCatalogAdapter? RemoteCatalog, ITerminalCatalogService? Catalog);
+
+    private static DesktopStartup PrepareDesktop(TailscaleConnection? chosen)
+    {
+        StartupPhases.Mark("desktop-prepare-start");
         var endpoint = chosen?.Address ?? Environment.GetEnvironmentVariable("SHARPRAIL_REMOTE");
         var initialRoot = Environment.GetEnvironmentVariable("SHARPRAIL_ROOT") ?? (chosen is null ? Directory.GetCurrentDirectory() : "");
         var profileDirectory = chosen is null ? Environment.GetEnvironmentVariable("SHARPRAIL_PROFILE") : TailscaleClientDirectory();
@@ -90,7 +112,6 @@ public sealed partial class App : Application
         // Every window's project session is the same client of the host as the state subscription.
         var connection = new HostConnection();
         IHostStateService stateService = remote ? new RemoteStateAdapter(new Uri(endpoint!), token, connection) : new LocalStateAdapter(local);
-        var state = new SharedState(stateService, profile.Data.Preferences, remote ? null : local.Current, connection);
         var remoteTerminals = remote ? new RemoteTerminalAdapter(new Uri(endpoint!), token) : null;
         // Local sessions belong to the app's host: they survive their windows and end when the app quits.
         var localTerminals = remoteTerminals is null ? new PtyTerminalService(recordingsDirectory: Path.Combine(profile.DirectoryPath, "terminals"),
@@ -118,14 +139,23 @@ public sealed partial class App : Application
         Func<IProjectServices> sessions = remote
             ? () => new RemoteProjectAdapter(new Uri(endpoint!), token, connection)
             : () => new LocalProjectAdapter(new ProjectServices(initialRoot, local, runtime!.AllowsExternalFile));
+        // Which terminal tabs exist is the host's to say, so every window and every other client shows the same ones.
+        var remoteCatalog = remote ? new RemoteTerminalCatalogAdapter(new Uri(endpoint!), token) : null;
+        ITerminalCatalogService? catalog = remoteCatalog is not null ? remoteCatalog : localTerminals is not null ? new LocalTerminalCatalogAdapter(localTerminals) : null;
+        StartupPhases.Mark("desktop-prepare-end");
+        return new(endpoint, token, initialRoot, profile, local, remote, connection, stateService, remoteTerminals, localTerminals, loopback, runtime, listener, remotePlugins, plugins, sessions, remoteCatalog, catalog);
+    }
+
+    private void StartDesktop(IClassicDesktopStyleApplicationLifetime desktop, TailscaleConnection? chosen)
+    {
+        var prepared = chosen is null && startup is not null ? startup.GetAwaiter().GetResult() : PrepareDesktop(chosen);
+        var (endpoint, token, initialRoot, profile, local, remote, connection, stateService, remoteTerminals, localTerminals, loopback, runtime, listener, remotePlugins, plugins, sessions, remoteCatalog, catalog) = prepared;
+        var state = new SharedState(stateService, profile.Data.Preferences, remote ? null : local.Current, connection);
         string Renderer() => profile.Data.Preferences.TerminalRenderer;
         Terminals = remoteTerminals is not null
             ? TerminalBackends.Ghostty(new RemoteTerminalConnection(new Uri(endpoint!), token, remoteTerminals), Renderer)
             : localTerminals is not null ? TerminalBackends.Ghostty(new LoopbackTerminals(new LocalTerminalAdapter(localTerminals), loopback!), Renderer)
             : launch => TerminalBackends.Unavailable("Embedded terminals currently require macOS.");
-        // Which terminal tabs exist is the host's to say, so every window and every other client shows the same ones.
-        var remoteCatalog = remote ? new RemoteTerminalCatalogAdapter(new Uri(endpoint!), token) : null;
-        ITerminalCatalogService? catalog = remoteCatalog is not null ? remoteCatalog : localTerminals is not null ? new LocalTerminalCatalogAdapter(localTerminals) : null;
         var workbench = new Workbench(profile, state, Terminals, remote, sessions, plugins, catalog)
         {
             Endpoint = remote ? endpoint! : "local",

@@ -88,7 +88,8 @@ public sealed class PluginLoader : IDisposable
         try { await previous; }
         catch (Exception error) { Console.Error.WriteLine("Plugin reconcile failed: " + error); }
         if (stopped) return;
-        await Dispatcher.UIThread.InvokeAsync(ReconcileAsync);
+        // Queue even when already on the dispatcher: activating UI halves must not extend window construction.
+        await Dispatcher.UIThread.InvokeAsync(ReconcileAsync, DispatcherPriority.Background);
     }
 
     private async Task ReconcileAsync()

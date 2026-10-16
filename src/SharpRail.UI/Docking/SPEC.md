@@ -14,6 +14,10 @@ atomic transitions over it (`LayoutSession`), and its rendering, resize, drag an
 (`DockSurface` and its partial files). It renders containers; panels, documents and terminals are
 supplied by the window through a content callback and never learn where they are placed.
 
+The surface can defer its first build until the composing window has configured tab projection and
+callbacks. The workbench uses that path to avoid constructing and discarding a preliminary dock;
+independent callers keep the default immediate build.
+
 ## Boundary
 
 - Owns: `DockState`, `DockGroup`, `CenterNode`, `WorkspaceView` and `DockTab`; validation

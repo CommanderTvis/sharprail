@@ -86,6 +86,10 @@ it changes, never for the initial value.
 
 ## The loader
 
+UI reconciliation is queued at background dispatcher priority, including when startup schedules it
+from the UI thread. Activating UI halves must not run inline inside workbench construction. Manifest
+and roster registration still precede reconciliation, preserving dormant tools and eventual activation.
+
 - Builtin UI halves are a literal array in `BuiltinPlugins.cs`: a manifest and a factory for its
   `PluginUIModule` per plugin, including Spec Dialect, Blueprint, Claude Code, Discord and PDF Preview. The manifests are registered before any roster arrives,
   so a persisted `plugin:<id>:<tool>` tab renders its placeholder with the right label and icon.

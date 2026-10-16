@@ -77,7 +77,7 @@ public sealed partial class DockSurface : Grid
         Action[] Modified, Action[] Catalog, Action[] CenterActions);
     private long previewGesture;
     internal void InvalidatePreviewKeep() => previewGesture++;
-    public DockSurface(LayoutSession session, Func<DockTab?, Control> renderContent)
+    public DockSurface(LayoutSession session, Func<DockTab?, Control> renderContent, bool build = true)
     {
         Name = "WorkspaceWorkbench"; Session = session; this.renderContent = renderContent;
         ColumnDefinitions = new ColumnDefinitions($"{RailWidth},*,{RailWidth}");
@@ -101,7 +101,7 @@ public sealed partial class DockSurface : Grid
             if (!resizing && selectionUpdates.TryGetValue(group, out var update) && CenterTabs?.Invoke() == renderedMode) { update(); RebuildRails(); }
             else Rebuild();
         };
-        Rebuild();
+        if (build) Rebuild();
     }
 
     private bool CancelForLayoutChange()

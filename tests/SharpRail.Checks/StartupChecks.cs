@@ -36,6 +36,7 @@ internal static class StartupChecks
     internal static void Run(string root)
     {
         PaneRetentionChecks.Run(root);
+        DeferredInitialPanes(root);
         DeferredWorkspaceSwitch(root);
         RetainedFiles(root);
         DeferredDocumentChrome(root);
@@ -95,6 +96,37 @@ internal static class StartupChecks
             "Git failure made an accessible workspace unusable.");
         window.Close();
         Console.WriteLine("PASS usable fresh/restored startup with pending Git, cancellation, project switching, stale results and Git failure");
+    }
+
+    private static void DeferredInitialPanes(string root)
+    {
+        var profile = new ProfileStore(Path.Combine(root, ".initial-panes-profile"));
+        var layout = new LayoutSession(profile.Data.Windows[0].Layout);
+        layout.SwitchWorkspace(root);
+        var files = layout.State.Groups.Single(group => group.Tools.Any(tab => tab.Id == "files"));
+        layout.Select(files.Id, "files");
+        profile.Data.Windows[0].Layout = layout.State;
+        var host = new DelayedGitHost(root) { OpenHold = new(TaskCreationOptions.RunContinuationsAsynchronously) };
+        var window = new WorkbenchWindow(host, root, profile, E2eTerminals.Plain);
+        try
+        {
+            Require(window.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "ProjectsPanel"),
+                "Initial construction must retain useful Projects navigation.");
+            Require(!window.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "FilesTree"),
+                "Initial construction must not create a Files pane that routing will discard.");
+            window.Show();
+            Pump(() => host.OpenStarted);
+            Require(!window.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "FilesTree"),
+                "Held workspace routing must defer the Files body.");
+            host.OpenHold.SetResult();
+            Pump(() => window.WorkspaceMounted && window.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "FilesTree"));
+        }
+        finally
+        {
+            window.Close(); host.OpenHold.TrySetResult();
+            foreach (var request in host.Requests) request.Result.TrySetResult(new(false, "", [], [], []));
+        }
+        Console.WriteLine("PASS useful initial Projects navigation and deferred Files body through held routing");
     }
 
     private static void RetainedFiles(string root)

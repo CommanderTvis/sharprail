@@ -59,6 +59,27 @@ and initial root, reads the profile, migrates local host state and composes the 
 It opens one window per saved entry: the first at the initial root, the others at their remembered
 locations. Relay mode (`--terminal-relay`) bypasses the UI entirely.
 
+Desktop profile migration and host/plugin composition start on a worker immediately after Avalonia
+installs its asset loader, overlapping native windowing, Skia and application resource initialization. Only the completed composition is handed
+to the UI thread; shared-state observation, terminal renderer factories and all controls remain there.
+Plugin discovery/reconciliation is not awaited before opening the window. Tailscale selection prepares
+its chosen connection separately. Android and browser retain their client-owned startup paths.
+
+The initial dock is built once with its Projects tab projection already configured. Projects navigation
+and remembered tab chrome are available while routing; other tool bodies wait for the workspace to mount,
+so opening it does not create and immediately discard their controls. Hidden/inactive bodies retain their
+existing demand-driven lifetime. Header View menus populate on opening. Applying the default theme writes
+application resources once, while initializing another Application still receives its own resources.
+
+The 2026-10-16 source acceptance passed Release compilation with zero warnings/errors, touched-file
+formatting, focused startup, synchronization, shell/header and design/theme checks. All 139 gate cases
+passed in aggregate (128 + isolated resource case + 6 + 4), retaining optional upstream-clone Git and
+other-platform skips. A resource-row click timeout passed unchanged alone. Discord's missing compiled
+XAML required rebuilding its unchanged UI project before the final four cases. Standalone `--plugins`
+still stops on the existing launcher assertion that expects StackPanel where Projects uses WrapPanel.
+Native startup/content/readiness/RAM comparison remains pending AC power; headless results do not
+establish a first-window performance improvement or native presentation acceptance.
+
 ```mermaid
 flowchart TB
     Profile[Read profile and compose services] --> Frame[Show window, loading bodies and remembered tabs]

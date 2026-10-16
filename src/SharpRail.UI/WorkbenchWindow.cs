@@ -83,10 +83,12 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
 
     internal WorkbenchWindow(Workbench workbench, IProjectServices host, WindowProfile slot, string rootPath)
     {
+        StartupPhases.Mark("window-constructor-entered");
         this.workbench = workbench; this.host = host; this.slot = slot; profile = workbench.Profile; state = workbench.State;
         initialRoot = rootPath; remote = workbench.Remote; terminals = workbench.Terminals;
         FontSize = Ui.FontSize;
         AvaloniaXamlLoader.Load(this);
+        StartupPhases.Mark("window-xaml-loaded");
         root = this.FindControl<Grid>("WorkbenchRoot")!;
         projectLabel = this.FindControl<TextBlock>("ProjectLabel")!;
         workspaceLabel = this.FindControl<TextBlock>("WorkspaceLabel")!;
@@ -100,16 +102,16 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         WireHeader();
         Layout = new(slot.Layout);
         Layout.SetGitAvailable(false);
-        FillViewMenu(this.FindControl<Grid>("MainHeader")!.ContextMenu!);
         Layout.Navigating += group => AdvanceNavigation(group);
         Layout.Focused += () => { slot.Layout = Layout.State; SaveProfile(); };
         Layout.Changed += () => { slot.Layout = Layout.State; SaveProfile(); TrackTerminalTabs(); PruneDocuments(); };
         Layout.Changed += UpdateActiveChangeRows;
         Layout.SelectionChanged += _ => UpdateActiveChangeRows();
         Layout.Focused += UpdateActiveChangeRows;
-        surface = new DockSurface(Layout, RenderContent) { CloseAlwaysShown = workbench.Touch, ExplicitProjectTabOpen = workbench.Touch, NestedHoverEnabled = !OperatingSystem.IsAndroid() };
+        surface = new DockSurface(Layout, RenderContent, build: false) { CloseAlwaysShown = workbench.Touch, ExplicitProjectTabOpen = workbench.Touch, NestedHoverEnabled = !OperatingSystem.IsAndroid() };
         if (workbench.Compact) WireDrawers();
         WireCenterTabs();
+        StartupPhases.Mark("window-dock-built");
         Ui.Place(root, surface, 1);
         WireGestureNotification();
         WireNavigation();
@@ -461,6 +463,8 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         }
         if (tab.IsTool)
         {
+            // Projects is useful while routing; other panes would be discarded as soon as the workspace mounts.
+            if (!WorkspaceMounted && tab.Id != "projects") return Ui.Text("Loading workspace…");
             if (!toolContent.TryGetValue(tab.Id, out var content))
             {
                 content = tab.Id switch

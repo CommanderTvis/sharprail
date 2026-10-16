@@ -13,6 +13,14 @@ internal static class Program
         var builder = AppBuilder.Configure<App>().UsePlatformDetect()
             .With(new AvaloniaNativePlatformOptions { RenderingMode = [AvaloniaNativeRenderingMode.Metal, AvaloniaNativeRenderingMode.OpenGl, AvaloniaNativeRenderingMode.Software] })
             .LogToTrace();
+        // The profile and embedded host need the asset loader, but none of native windowing or Skia.
+        // Start them as soon as runtime platform services exist, overlapping the remaining UI bootstrap.
+        if (!args.Contains("--tailscale", StringComparer.Ordinal) && builder.RuntimePlatformServicesInitializer is { } platform)
+            builder.UseRuntimePlatformSubsystem(() =>
+            {
+                platform();
+                App.PrepareStartup();
+            }, builder.RuntimePlatformServicesName ?? "");
         StartupPhases.Instrument(builder);
         builder.StartWithClassicDesktopLifetime(args);
     }

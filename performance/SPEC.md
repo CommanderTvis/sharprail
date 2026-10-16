@@ -71,6 +71,54 @@ envelope includes OS/process launch, runtime loading and entry preparation; it i
 Skia platform initialization excludes native work deferred to window creation and drawing. Existing
 v1 measurements remain readable, but are not compatible baselines for the extra instrumentation.
 
+Additional opt-in diagnostic marks identify desktop preparation (which may overlap application resource
+initialization), entry into the window constructor, compiled XAML completion and the first configured
+dock build. The constructor-entry envelope includes native base construction and managed field
+initializers; it is not pure WindowServer or native time. These supplementary marks do not redefine
+the v2 first-window, first-content, layout, readiness or memory sampling contract.
+
+## ReadyToRun tuning research (2026-10-16)
+
+The first-window candidate retains the original clean 7e3753b0 publish under
+`artifacts/performance/baseline-build` in its review workspace. Both SDK and runtime provenance are
+10.0.401 / runtimepack.Microsoft.NETCore.App.Runtime.osx-arm64/10.0.12. Actual power checks remained on
+battery, so no before/after benchmark launch, timing, initial RAM or comparison report was produced.
+The original baseline Discord UI assembly lacked compiled XAML; a later targeted rebuild restored it
+without source changes. A controlled comparison must produce a consistently built clean baseline or
+explicitly retain that binary difference as a confound. The preserved baseline has not been rewritten.
+
+No tuning option below has been enabled or benchmarked by the first-window source changes. The current
+publish contract remains self-contained, non-composite ReadyToRun with tiered compilation/PGO; NativeAOT
+is excluded. Any future experiment needs separate binary provenance and the same startup/content/readiness/
+RAM contract, plus restored documents, plugins and sustained-use acceptance.
+
+- Composite R2R permits broader optimization and precompilation, at a cost in file size and publish time.
+  Microsoft's recommendation focuses on Linux startup or disabled tiering, so this is not an established
+  macOS improvement. Distribution also couples the composite assemblies. Selective
+  `PublishReadyToRunExclude` can reduce image size/loading cost for cold assemblies, trading that for JIT
+  work on first use. Keep plugin first-use latency in any comparison.
+  [Official R2R deployment documentation](https://learn.microsoft.com/en-us/dotnet/core/deploying/ready-to-run).
+- Static startup PGO can convert a representative diagnostic trace into MIBC optimization data and feed
+  it into Crossgen2. The design names `ReadyToRunOptimizationData`, but the installed 10.0.401 SDK
+  actually consumes the `PublishReadyToRunPgoFiles` item and runtime-pack MIBC data. A future experiment
+  must verify compiler inputs rather than copying the older property blindly. This requires a separately instrumented training run; the
+  current headline samples and generic sampling trace are not automatically a suitable profile. The
+  official design describes building dotnet-pgo from the runtime repository and supports merging profiles.
+  Training must include embedded/remote, restored documents and plugin scenarios to avoid specializing
+  only for the tiny fixture. Profile freshness and trace/assembly matching become build inputs.
+  [Official dotnet-pgo design](https://github.com/dotnet/runtime/blob/main/docs/design/features/dotnet-pgo.md).
+  [SDK Crossgen targets](https://github.com/dotnet/sdk/blob/v10.0.401/src/Tasks/Microsoft.NET.Build.Tasks/targets/Microsoft.NET.CrossGen.targets).
+- Crossgen2 exposes size/speed preferences, partial images, method/file layout and instruction-set choices.
+  These are compiler options, not evidence that a generic `OptimizationPreference` property improves
+  R2R. Version-pin and inspect the deployed compiler before proposing them; smaller images may reduce
+  paging but increase JIT/first-use cost, and host-specific instruction sets constrain distribution.
+  The installed SDK exposes `PublishReadyToRunCrossgen2ExtraArgs`, but no extra argument is used here.
+  [Official Crossgen2 options](https://github.com/dotnet/runtime/blob/main/src/coreclr/tools/aot/crossgen2/Crossgen2RootCommand.cs).
+- Tiered compilation replaces hot R2R methods later, and dynamic PGO affects those JIT tiers. Existing
+  tiering/PGO/quick-loop JIT settings are already enabled. Changing them would be an independent runtime
+  experiment with startup, CPU and sustained-throughput tradeoffs, rather than a missing R2R switch.
+  [Official compilation configuration](https://learn.microsoft.com/en-us/dotnet/core/runtime-config/compilation).
+
 The 2026-10-16 v2 AC batch succeeded in all 22 attempts (one excluded warm-up and ten measured
 launches per mode). Embedded UI launch to first observed window was 454.9 ± 34.9 ms. Paired phases
 were loader/managed entry 43.3 ms, Avalonia bootstrap 82.6 ms, resources/theme 40.4 ms, framework

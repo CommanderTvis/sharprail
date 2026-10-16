@@ -13,6 +13,10 @@ contract, not that list.
 
 ## Execution model
 
+Startup checks retain useful Projects navigation before showing the window, withhold Files controls
+through held initial host routing, and require the selected Files body after mounting. Existing held
+document/Git cases cover retained dock chrome, focus, cancellation and stale workspace results.
+
 `--windows` checks portable shell quoting, cross-platform profile paths, workspace
 containment and local/remote Git worktrees on every desktop test host. On Windows
 it additionally exercises real ConPTY input, Unicode, geometry, replay and
