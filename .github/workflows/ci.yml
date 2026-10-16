@@ -51,6 +51,9 @@ jobs:
   windows:
     runs-on: windows-2025
     timeout-minutes: 60
+    defaults:
+      run:
+        shell: powershell
     steps:
       - uses: actions/checkout@v7
       - run: ./scripts/bootstrap.ps1
