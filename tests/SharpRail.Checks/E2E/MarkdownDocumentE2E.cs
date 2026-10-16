@@ -100,8 +100,12 @@ internal static class MarkdownDocumentE2E
         using var app = OpenDocument(root, "frontmatter-properties", "props.md", "---\ntitle: Green talk\ntags:\n  - talk\n  - latex\n---\n\n# Notes\n");
         var preview = app.Find<MarkdownPreview>("MarkdownPreview");
         var block = All<Border>(preview, "FrontmatterProperties").Single();
-        Require(All<FrontmatterField>(block, "FrontmatterValue").First().GetLogicalDescendants().OfType<AutoCompleteBox>().Single().Text == "Green talk", "The title property must show its value.");
-        Require(All<FrontmatterChip>(block, "FrontmatterListItem").Count() == 2, "A block list must render one chip per item.");
+        if (SharpRail.Scintilla.ScintillaEditor.IsSupported)
+            Require(All<FrontmatterField>(block, "FrontmatterValue").First().GetLogicalDescendants().OfType<AutoCompleteBox>().Single().Text == "Green talk", "The title property must show its value.");
+        else
+            Require(Text(block).Contains("Green talk", StringComparison.Ordinal) && !All<FrontmatterField>(block, "FrontmatterValue").Any(),
+                "Without a source editor, properties must show their values read-only.");
+        Require(All<Control>(block, "FrontmatterListItem").Count() == 2, "A block list must render one chip per item.");
         Require(preview.GetLogicalDescendants().OfType<Control>().All(control => control.Name != "SpecTitle"),
             "A title without a spec id and type is a property, not a spec title.");
         app.Click(All<Button>(block, "FrontmatterToggle").Single());
@@ -150,6 +154,16 @@ internal static class MarkdownDocumentE2E
     {
         const string original = "---\ntitle: Green talk\ntags: [talk, latex]\ntype: module-design\n---\n\n# Notes\n";
         using var app = OpenDocument(root, "frontmatter-editing", "props.md", original);
+        if (!SharpRail.Scintilla.ScintillaEditor.IsSupported)
+        {
+            var preview = app.Find<MarkdownPreview>("MarkdownPreview");
+            Require(!preview.GetLogicalDescendants().OfType<FrontmatterEditor>().Any() &&
+                Text(preview).Contains("Green talk", StringComparison.Ordinal) &&
+                File.ReadAllText(Path.Combine(app.Root, "props.md")) == original,
+                "Platforms without a source editor keep frontmatter read-only and leave the original file unchanged.");
+            Console.WriteLine("PASS frontmatter read-only fallback without a native source editor; native draft/undo/save checks require a supported editor platform");
+            return;
+        }
         FrontmatterEditor Editor() => app.Find<MarkdownPreview>("MarkdownPreview").GetLogicalDescendants().OfType<FrontmatterEditor>().Single();
         void Edit(string name, string value, int index = 0, Key key = Key.Enter)
         {

@@ -42,12 +42,14 @@ internal static partial class TerminalHostChecks
         var session = await terminals.AttachAsync(new(id, workspace, "client", 100, 30));
         try
         {
-            await session.WriteAsync(Encoding.UTF8.GetBytes($"head -c {flood} /dev/zero | tr '\\0' '\\176'; printf 'FLOOD_%s\\n' DONE\r"));
+            await session.WriteAsync(Encoding.UTF8.GetBytes($"printf 'FLOOD_%s\\n' BEGIN; head -c {flood} /dev/zero | tr '\\0' '\\176'; printf 'FLOOD_%s\\n' DONE\r"));
             await Until(async () => await terminals.IsBusyAsync(id), mode + " flood started");
             await Task.Delay(1000);
             Require(await terminals.IsBusyAsync(id), $"{mode}: the producer must pause while its holder is not reading.");
             var text = new StringBuilder();
             long received = 0;
+            var started = false;
+            var finished = false;
             var position = session.Position;
             using var limit = new CancellationTokenSource(TimeSpan.FromMinutes(2));
             var reader = session.ReadAsync(limit.Token).GetAsyncEnumerator();
@@ -60,8 +62,20 @@ internal static partial class TerminalHostChecks
                         $"{mode}: an output batch's position does not match its byte count.");
                     position = session.Position;
                     var chunk = Encoding.UTF8.GetString(reader.Current.Span);
-                    received += chunk.Count(letter => letter == '~');
-                    text.Append(chunk.Replace("~", "", StringComparison.Ordinal));
+                    text.Append(chunk);
+                    var start = 0;
+                    if (!started && text.ToString().IndexOf("FLOOD_BEGIN", StringComparison.Ordinal) is var begin && begin >= 0)
+                    {
+                        started = true;
+                        start = begin + "FLOOD_BEGIN".Length;
+                    }
+                    if (started && !finished)
+                    {
+                        var end = text.ToString().IndexOf("FLOOD_DONE", start, StringComparison.Ordinal);
+                        finished = end >= 0;
+                        received += text.ToString(start, (finished ? end : text.Length) - start).Count(letter => letter == '~');
+                        text.Replace("~", "");
+                    }
                 }
             }
             await ReadUntil("FLOOD_DONE");
