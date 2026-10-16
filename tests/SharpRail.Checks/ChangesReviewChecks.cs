@@ -16,11 +16,21 @@ namespace SharpRail.Checks;
 
 internal static class ChangesReviewChecks
 {
+    private static Control SourceControl(DiffView view) =>
+        view.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().LastOrDefault() as Control
+        ?? view.GetLogicalDescendants().OfType<SelectableTextBlock>().Last();
+
+    private static string SourceText(DiffView view) => SharpRail.Scintilla.ScintillaEditor.IsSupported
+        ? string.Join('\n', view.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().Select(editor => editor.Text))
+        : E2E.E2eWorkspace.MarkdownSourceText(view);
+
     internal static void Run(string root)
     {
         Presentation();
         ContentIdentity();
         Retention();
+        PortableReview();
+        if (!SharpRail.Scintilla.ScintillaEditor.IsSupported) return;
         var original = string.Join('\n', Enumerable.Range(1, 35).Select(index => "line " + index)) + "\n";
         var changed = original.Replace("line 2\n", "first change " + new string('x', 200) + "\n", StringComparison.Ordinal)
             .Replace("line 30\n", "last change\n", StringComparison.Ordinal);
@@ -178,6 +188,23 @@ internal static class ChangesReviewChecks
             Until(() => pane.DiffFor("README.md")?.IsRendered == true);
             Require(!Controls(), "Preview-only review must not offer source layout or whitespace controls.");
             Click("DiffView_code", pane.DiffFor("README.md"));
+            if (!SharpRail.Scintilla.ScintillaEditor.IsSupported)
+            {
+                Until(() => pane.DiffFor("README.md") is { IsRendered: false });
+                Require(!Controls() && SourceText(pane.DiffFor("README.md")!).Contains("before source", StringComparison.Ordinal) &&
+                    SourceText(pane.DiffFor("README.md")!).Contains("after source", StringComparison.Ordinal),
+                    "Without a native editor, Source must show the complete patch without unusable layout controls.");
+                window.Width = 560; Settle();
+                Require(!Controls(), "Resizing must not reveal unsupported source controls.");
+                Click("ReviewNext"); Until(() => pane.DiffFor("notes.md")?.IsRendered == true);
+                Click("ReviewPrevious"); Until(() => pane.DiffFor("README.md") is { IsRendered: false });
+                Require(choices["README.md"] == DiffChoice.Source.Id && !Controls(), "Portable Source selection survives file navigation.");
+                Click("DiffView_markdown", pane.DiffFor("README.md"));
+                Until(() => pane.DiffFor("README.md")?.IsRendered == true);
+                Require(!Controls(), "Returning to Preview keeps unsupported controls hidden.");
+                Console.WriteLine("PASS review controls without native editor: full patch fallback, hidden unsupported controls, resize, navigation and Preview/Source retention");
+                return;
+            }
             Until(Controls); Split(pane.DiffFor("README.md")!);
             window.Width = 560; Settle(); Split(pane.DiffFor("README.md")!);
             Require(((Avalonia.Controls.Primitives.ToggleButton)Button("ReviewSplit")).IsChecked == true,
@@ -242,8 +269,9 @@ internal static class ChangesReviewChecks
         {
             Until(() => pane.DiffFor("a.txt")?.Bounds.Height > 0);
             var retained = pane.DiffFor("a.txt")!;
-            var editor = retained.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().Last();
-            editor.SelectRange(editor.Text.IndexOf("new", StringComparison.Ordinal), 3);
+            var source = SourceControl(retained);
+            var editor = source as SharpRail.Scintilla.ScintillaEditor;
+            editor?.SelectRange(editor.Text.IndexOf("new", StringComparison.Ordinal), 3);
             var scroll = pane.GetLogicalDescendants().OfType<ScrollViewer>().Single(view => view.Name == "ReviewScroll");
             scroll.Offset = new Vector(0, 40);
             Settle();
@@ -261,7 +289,7 @@ internal static class ChangesReviewChecks
             Require(Math.Abs(scroll.Offset.Y - offset) < 1, "A pending review refresh must preserve the scrolled position.");
             pending.SetResult(retained);
             Settle();
-            Require(ReferenceEquals(editor, retained.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().Last()) && editor.Selection.Text == "new",
+            Require(ReferenceEquals(source, SourceControl(retained)) && SourceText(retained).Contains("new", StringComparison.Ordinal) && (editor is null || editor.Selection.Text == "new"),
                 "An unchanged review must retain its editor and selection state.");
             pending = new(TaskCreationOptions.RunContinuationsAsynchronously);
             previousLoads = loads;
@@ -271,9 +299,45 @@ internal static class ChangesReviewChecks
             var replacement = new DiffView(original.Replace("+new", "+changed", StringComparison.Ordinal), "a.txt", 800, naturalHeight: true, embedded: true);
             pending.SetResult(replacement);
             Until(() => ReferenceEquals(replacement, pane.DiffFor("a.txt")));
-            Require(replacement.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().Any(view => view.Text.Contains("changed", StringComparison.Ordinal)),
+            Require(SourceText(replacement).Contains("changed", StringComparison.Ordinal),
                 "Fresh changed content must still replace the retained review.");
             Console.WriteLine("PASS review tab retention: hidden/visible asynchronous refreshes, pending content, editor identity and scroll offset");
+        }
+        finally { window.Close(); }
+    }
+
+    private static void PortableReview()
+    {
+        var state = new ChangesReviewState { ActivePath = "a.txt" };
+        var single = false;
+        using var pane = new ChangesReviewPane("Changes", state, false,
+            _ => Task.FromResult(new GitSnapshot(true, "main", [new GitChange("a.txt", "M", " ", null, 1, 1), new GitChange("b.txt", "M", " ", null, 1, 1)], [], [])),
+            (file, natural, _, _) => Task.FromResult(new DiffView("@@ -1 +1 @@\n-before " + file.Path + "\n+after " + file.Path + "\n", file.Path, 800, naturalHeight: natural, embedded: true)),
+            _ => { }, () => { }, () => { }, () => true, () => single, value => single = value);
+        var window = new Window { Width = 900, Height = 700, Content = pane };
+        window.Show();
+        try
+        {
+            Button Action(string name) => pane.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == name);
+            void Click(string name)
+            {
+                var button = Action(name);
+                Until(() => button.IsEffectivelyVisible && button.Bounds.Width > 0);
+                var point = button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), window)!.Value;
+                window.MouseDown(point, MouseButton.Left); window.MouseUp(point, MouseButton.Left); Settle();
+            }
+            Until(() => pane.DiffFor("a.txt")?.Bounds.Height > 0 && pane.DiffFor("b.txt")?.Bounds.Height > 0);
+            Require(SourceText(pane.DiffFor("a.txt")!).Contains("after a.txt", StringComparison.Ordinal) &&
+                SourceText(pane.DiffFor("b.txt")!).Contains("before b.txt", StringComparison.Ordinal),
+                "Portable stacked review must render each file's complete patch.");
+            Click("ReviewSingle");
+            Until(() => pane.DiffFor("a.txt") is not null && pane.DiffFor("b.txt") is null);
+            Click("ReviewNext"); Until(() => pane.DiffFor("b.txt") is not null && pane.DiffFor("a.txt") is null);
+            Click("ReviewPrevious"); Until(() => pane.DiffFor("a.txt") is not null);
+            Click("ReviewMarkAll"); Require(state.Viewed.SetEquals(["a.txt", "b.txt"]), "Portable review must retain bulk viewed progress.");
+            Click("ReviewStacked"); Until(() => pane.DiffFor("a.txt") is not null && pane.DiffFor("b.txt") is not null);
+            Require(state.Viewed.SetEquals(["a.txt", "b.txt"]), "Portable layout changes must preserve viewed progress.");
+            Console.WriteLine("PASS portable continuous review: complete patches, stacked/one-file navigation and viewed progress; native hunk actions and editor input run on editor-supported platforms");
         }
         finally { window.Close(); }
     }

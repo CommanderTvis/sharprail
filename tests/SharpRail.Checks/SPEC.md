@@ -372,6 +372,13 @@ sidebar marks/navigation, bulk viewed progress, keyboard input, live edits, Reve
 ownership, historical scope immutability, compact headers, unwrapped horizontal code scrolling and
 outer-only vertical input over code and naturally sized Markdown previews through resizing. It runs through the ordinary UI gate over an isolated Git
 fixture; rendered captures are supporting evidence.
+On platforms without Scintilla, the same case verifies complete read-only patches,
+Preview/Source selection and navigation, hidden unsupported source controls, resizing,
+stacked/one-file navigation and bulk viewed progress. Async retention verifies source
+control identity, text replacement and scroll on both renderers; editor selection,
+hunk actions and editor input remain assertions on editor-supported platforms.
+The focused `--case ChangesReviewChecks` passed on macOS after this portable coverage
+was added; actual Linux fallback execution remains the CI runner's acceptance check.
 
 Review regression coverage also checks compact end-marker sizing, bordered file spacing, retained Markdown diff bodies across attachment, and refresh after changes while hidden. Git Graph commit review coverage opens by left click through both host modes.
 `--review-retention` runs the watcher-independent retention subset: delayed hidden and visible refreshes
