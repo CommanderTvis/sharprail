@@ -78,6 +78,11 @@ OSC 52 checks use a private AppKit pasteboard and scripted read confirmation,
 restoring both after each case. `--ghostty-skia` covers fragmented ST/BEL writes,
 Unicode, selection destinations, malformed/cancelled data, embedded NULs, large
 and empty payloads, approved/denied reads, repeated permission and terminal reset.
+`--terminal-resume-hint` exercises the real overlay and offer state with a portable backend,
+including delayed acknowledgements, input, query replies and teardown. Supported native platforms
+add the same scenarios through Skia's actual keyboard/VT path; Linux retains the portable checks.
+Backpressure fixtures count exact payload bytes between output sentinels, excluding shell prompts.
+
 `--terminals` also covers terminal revival: local and remote restarts, close, failed spawn, mode hygiene and store limits;
 refused grids and start guidance (`TerminalLimitChecks.cs`); a stalled reader and a silent connection
 (`TerminalBackpressureChecks.cs`); and the terminal catalog, its storage, catalog-keyed revival and a
@@ -330,6 +335,8 @@ include them. Coverage follows text/sequence/mapping edits through the shared so
 Enter/blur/Escape, folding and focus retention, chips, suggestions, unique property/mapping keys,
 conversion, Save and external-write conflicts. Serialization guards preserve the body verbatim and
 round-trip quoted Unicode values, punctuation and empty shapes; unsupported YAML stays read-only.
+Platforms without the native source editor assert read-only values, chips, folding and file
+immutability; supported platforms retain the full editing, undo and save checks.
 
 `MarkdownTableDiffChecks.cs` (`-- --markdown-tables`, also in the default gate) checks added and removed
 Markdown tables, cell/header edits, row changes and differing column counts. It asserts both parsed table
