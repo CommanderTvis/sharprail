@@ -153,7 +153,11 @@ A read of a file that is gone throws `FileNotFoundException` (a remote client ge
   stay intact, and conflict-checked saves prevent overwriting an agent's version on disk.
 - Watchers heal. A subscription or pre-warm that finds the root replaced by another directory (its
   creation time changed, the portable stand-in for upstream's inode) restarts the set in place, keeps
-  the subscribers and sends them a rescan; a watcher error does the same while the root still exists.
+  the subscribers and sends them a rescan. Watcher errors, including synchronous startup errors,
+  defer recovery off the native callback stack. One pending retry per workspace backs off from 250 ms
+  to 30 seconds; duplicate errors cannot multiply retries, and a stable 30 seconds resets the backoff.
+  Retries preserve subscriptions and request a rescan, while last-unsubscribe, forgetting and pool
+  eviction cancel recovery. Stale callbacks cannot recreate a removed or replaced watcher set.
 - `PrewarmWorkspaceAsync` starts the watchers of a workspace a client is about to open, which the
   workbench asks for when a workspace row is pointed at or focused. Watchers without a subscriber form a
   pool of at most eight, the least recently warmed evicted first; a subscription takes one over instead

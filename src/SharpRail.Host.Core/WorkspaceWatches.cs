@@ -9,9 +9,14 @@ internal static class WorkspaceWatches
 {
     internal const int PrewarmLimit = 8;
 
-    private sealed class Entry(string root)
+    private sealed class Entry(string root, Action<FileSystemWatcher, Action<Exception>>? startWatcher = null)
     {
         public string Root { get; } = root;
+        public Action<FileSystemWatcher, Action<Exception>>? StartWatcher { get; } = startWatcher;
+        public Timer? Retry { get; set; }
+        public int Failures { get; set; }
+        public bool Failed { get; set; }
+        public long StartedAt { get; set; }
         public List<Action<string?>> Subscribers { get; } = [];
         public List<FileSystemWatcher> Watchers { get; set; } = [];
         public DateTime Identity { get; set; }
@@ -33,11 +38,11 @@ internal static class WorkspaceWatches
     private static long clock;
 
     /// <summary>Calls <paramref name="changed"/> with a workspace-relative path, or null when everything must be re-read.</summary>
-    internal static IDisposable Subscribe(string root, Action<string?> changed)
+    internal static IDisposable Subscribe(string root, Action<string?> changed, Action<FileSystemWatcher, Action<Exception>>? startWatcher = null)
     {
         lock (Gate)
         {
-            var entry = Ensure(root);
+            var entry = Ensure(root, startWatcher);
             entry.Subscribers.Add(changed);
             return new Subscription(entry, changed);
         }
@@ -73,23 +78,23 @@ internal static class WorkspaceWatches
         lock (Gate) return Entries.TryGetValue(root, out var entry) ? (entry.Subscribers.Count, entry.Generation) : null;
     }
 
-    private static Entry Ensure(string root)
+    private static Entry Ensure(string root, Action<FileSystemWatcher, Action<Exception>>? startWatcher = null)
     {
         Reap();
         if (Entries.TryGetValue(root, out var entry))
         {
             // The same path can become another directory (a worktree removed and created again); its watchers follow the old one.
-            if (entry.Identity != Identity(root)) Restart(entry);
+            if (entry.Retry is null && entry.Identity != Identity(root)) Restart(entry);
             return entry;
         }
-        entry = new(root);
+        entry = new(root, startWatcher);
+        Entries[root] = entry;
         try { Start(entry); }
         catch
         {
-            foreach (var watcher in entry.Watchers) watcher.Dispose();
+            Remove(entry);
             throw;
         }
-        Entries[root] = entry;
         return entry;
     }
 
@@ -101,6 +106,8 @@ internal static class WorkspaceWatches
     private static void Remove(Entry entry)
     {
         Entries.Remove(entry.Root);
+        entry.Retry?.Dispose();
+        entry.Retry = null;
         foreach (var watcher in entry.Watchers) watcher.Dispose();
         entry.Watchers = [];
     }
@@ -112,23 +119,49 @@ internal static class WorkspaceWatches
         try { Start(entry); }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException)
         {
-            // Without watchers the workspace is read on demand; the next subscription or pre-warm tries again.
-            Console.Error.WriteLine($"Could not restart the watcher for {entry.Root}: {error.Message}");
-            entry.Identity = default;
+            Failed(entry, error);
         }
         Notify(entry, null);
     }
 
+    private static void Failed(Entry entry, Exception error)
+    {
+        if (entry.Failed) return;
+        entry.Failed = true;
+        if (Environment.TickCount64 - entry.StartedAt >= 30_000) entry.Failures = 0;
+        entry.Identity = default;
+        Console.Error.WriteLine($"Workspace watcher error for {entry.Root}: {error.Message}");
+        var delay = TimeSpan.FromMilliseconds(Math.Min(30_000, 250 * Math.Pow(2, Math.Min(entry.Failures++, 7))));
+        entry.Retry = new Timer(_ =>
+        {
+            lock (Gate)
+            {
+                if (Entries.GetValueOrDefault(entry.Root) != entry) return;
+                entry.Retry?.Dispose();
+                entry.Retry = null;
+                try { Start(entry); }
+                catch (Exception retryError) when (retryError is IOException or UnauthorizedAccessException or ArgumentException)
+                {
+                    Failed(entry, retryError);
+                }
+            }
+            Notify(entry, null);
+        }, null, delay, Timeout.InfiniteTimeSpan);
+    }
+
     private static void Start(Entry entry)
     {
-        foreach (var watcher in entry.Watchers) watcher.Dispose();
+        var previous = entry.Watchers;
         entry.Watchers = [];
+        foreach (var watcher in previous) watcher.Dispose();
+        entry.Failed = false;
+        entry.StartedAt = Environment.TickCount64;
         var root = entry.Root;
         entry.Identity = Identity(root);
         entry.Generation++;
         void Watch(string path, bool recursive, Func<string, bool> relevant, bool workspace)
         {
-            if (!Directory.Exists(path)) return;
+            if (entry.Failed || !Directory.Exists(path)) return;
             var watcher = new FileSystemWatcher(path) { IncludeSubdirectories = recursive, InternalBufferSize = 64 * 1024 };
             entry.Watchers.Add(watcher);
             void Raise(string fullPath)
@@ -139,21 +172,30 @@ internal static class WorkspaceWatches
             watcher.Changed += (_, e) => Raise(e.FullPath);
             watcher.Deleted += (_, e) => Raise(e.FullPath);
             watcher.Renamed += (_, e) => { Raise(e.OldFullPath); Raise(e.FullPath); };
-            watcher.Error += (_, e) =>
+            void Error(Exception error)
             {
-                Console.Error.WriteLine("Workspace watcher error: " + e.GetException().Message);
                 lock (Gate)
-                    if (Entries.GetValueOrDefault(root) == entry && entry.Watchers.Contains(watcher) && Directory.Exists(root)) { Restart(entry); return; }
-                Notify(entry, null);
-            };
-            watcher.EnableRaisingEvents = true;
+                    if (Entries.GetValueOrDefault(root) == entry && entry.Watchers.Contains(watcher)) Failed(entry, error);
+            }
+            watcher.Error += (_, e) => Error(e.GetException());
+            try
+            {
+                if (entry.StartWatcher is { } start) start(watcher, Error);
+                else watcher.EnableRaisingEvents = true;
+            }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException)
+            {
+                Error(error);
+            }
         }
         Watch(root, true, path => !Path.GetRelativePath(root, path).Replace('\\', '/').Split('/').Any(part => part is ".git" or ".sharprail" or ".tools" or "node_modules" or ".DS_Store" || part.StartsWith(ProjectServices.FileTransferPrefix, StringComparison.Ordinal)), true);
         var (gitDirectory, commonDirectory) = ProjectServices.ResolveGitDirectories(root);
-        if (gitDirectory is null) return;
-        Watch(gitDirectory, false, path => Path.GetFileName(path) is "HEAD" or "index", false);
-        Watch(commonDirectory!, false, path => Path.GetFileName(path) == "packed-refs", false);
-        Watch(Path.Combine(commonDirectory!, "refs"), true, _ => true, false);
+        if (gitDirectory is not null)
+        {
+            Watch(gitDirectory, false, path => Path.GetFileName(path) is "HEAD" or "index", false);
+            Watch(commonDirectory!, false, path => Path.GetFileName(path) == "packed-refs", false);
+            Watch(Path.Combine(commonDirectory!, "refs"), true, _ => true, false);
+        }
     }
 
     private static void Notify(Entry entry, string? path)

@@ -27,8 +27,71 @@ internal static class WatchChecks
         throw new InvalidOperationException("The watch stream ended.");
     }
 
+    private static async Task StartupFailures(string root)
+    {
+        var workspace = Path.Combine(root, "watch-start-failure");
+        Directory.CreateDirectory(workspace);
+        var attempts = new List<long>();
+        var depth = 0;
+        var maximumDepth = 0;
+        var recovering = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var restarted = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var changed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Action<Exception>? lateError = null;
+        void Start(FileSystemWatcher watcher, Action<Exception> error)
+        {
+            maximumDepth = Math.Max(maximumDepth, ++depth);
+            attempts.Add(Environment.TickCount64);
+            lateError = error;
+            try
+            {
+                if (attempts.Count <= 3)
+                {
+                    if (attempts.Count == 2) throw new IOException("Simulated thrown startup failure");
+                    error(new IOException("Simulated synchronous FSEventStream startup failure"));
+                    error(new IOException("Duplicate startup error"));
+                }
+                else
+                {
+                    watcher.EnableRaisingEvents = true;
+                    if (attempts.Count == 4) recovering.TrySetResult();
+                    else restarted.TrySetResult();
+                }
+            }
+            finally { depth--; }
+        }
+        using (WorkspaceWatches.Subscribe(workspace, path =>
+        {
+            if (path == "recovered.txt") changed.TrySetResult();
+        }, Start))
+        {
+            Require(attempts.Count == 1 && maximumDepth == 1, "A synchronous startup error must return without restarting on its stack.");
+            await recovering.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            Require(attempts.Count == 4 && maximumDepth == 1, "Persistent startup failures must recover without recursive callbacks or duplicate retries.");
+            Require(attempts[1] - attempts[0] >= 200 && attempts[2] - attempts[1] >= 400 && attempts[3] - attempts[2] >= 800,
+                "Consecutive failures must back off, rather than spin on a worker thread.");
+            Require(WorkspaceWatches.Inspect(workspace) == (1, 4), "Recovery must preserve the original subscription.");
+            File.WriteAllText(Path.Combine(workspace, "recovered.txt"), "watched after failure");
+            await changed.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            lateError!(new IOException("Runtime error after a successful start"));
+            await restarted.Task.WaitAsync(TimeSpan.FromSeconds(10));
+            Require(WorkspaceWatches.Inspect(workspace) == (1, 5), "An already active watcher must also recover without losing its subscription.");
+            lateError!(new IOException("Failure immediately before unsubscribe"));
+        }
+        var stoppedAt = attempts.Count;
+        lateError!(new IOException("Late callback after disposal"));
+        await Task.Delay(4300);
+        Require(attempts.Count == stoppedAt && WorkspaceWatches.Inspect(workspace) is null,
+            "Unsubscribing must cancel queued recovery, and late callbacks must not resurrect a removed entry.");
+        using var replacement = WorkspaceWatches.Subscribe(workspace, _ => { });
+        lateError!(new IOException("Old watcher callback after replacement"));
+        Require(WorkspaceWatches.Inspect(workspace) == (1, 1), "An old callback must not affect a replacement entry for the same path.");
+        Console.WriteLine("PASS synchronous watcher errors: bounded deferred backoff, recovery, preserved subscription and cancellation");
+    }
+
     internal static async Task Run(string root)
     {
+        await StartupFailures(root);
         var workspace = Path.Combine(root, "watch-shared");
         Directory.CreateDirectory(workspace);
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
