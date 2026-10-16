@@ -385,6 +385,12 @@ Review regression coverage also checks compact end-marker sizing, bordered file 
 keep existing content, source selection and scroll offset until fresh content arrives, while changed
 diffs still replace the body. Markdown coverage includes natural height, resizing and returning to a tab.
 
+Dock input startup pumps the headless main loop and layout while awaiting the Git
+workspace, because startup crosses animation frames before its Git probe. The same
+15-second bound and mounted workspace/Changes-tool assertions remain; draining
+only dispatcher jobs does not advance those frames. The focused `DockInputChecks`
+case passed on macOS with this pump; Linux acceptance is the CI job.
+
 ## Reconnect checks
 
 `ReconnectChecks.cs` (`-- --reconnect`, also in the default run) runs against the embedded host and real

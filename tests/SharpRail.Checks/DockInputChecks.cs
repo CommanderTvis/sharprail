@@ -125,7 +125,12 @@ internal static class DockInputChecks
         var window = new WorkbenchWindow(new ProjectServices(root), root, new ProfileStore(root + "-dock-input"), E2E.E2eTerminals.Plain);
         window.Show();
         var deadline = Awake.Now.AddSeconds(15);
-        while ((!window.WorkspaceMounted || !window.Layout.Tools.Any(tool => tool.Id == "changes")) && Awake.Now < deadline) { Dispatcher.UIThread.RunJobs(); Thread.Sleep(1); }
+        while ((!window.WorkspaceMounted || !window.Layout.Tools.Any(tool => tool.Id == "changes")) && Awake.Now < deadline)
+        {
+            // Workspace startup crosses an animation frame before probing Git; draining jobs alone cannot render it.
+            using var stop = new CancellationTokenSource(10);
+            Dispatcher.UIThread.MainLoop(stop.Token); window.UpdateLayout();
+        }
         Require(window.WorkspaceMounted && window.Layout.Tools.Any(tool => tool.Id == "changes"), "Dock input Git workspace did not mount.");
         T Find<T>(string name) where T : Control
         {
