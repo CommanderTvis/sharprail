@@ -32,6 +32,9 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
     private string? drivingWhat;
     private string signature = "";
     private IDisposable? watch;
+    private bool attached;
+    private CancellationTokenSource? modelDiscovery;
+    private long discoveryGeneration;
 
     public ClaudeTerminalAccessory(IPluginUIContext context, ClaudeCodeStore store, ClaudeGlyph glyph, ITerminalAccessoryApi terminal)
     {
@@ -52,12 +55,15 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
         Children.Add(line);
         AttachedToVisualTree += (_, _) =>
         {
+            attached = true;
             store.Changed += StoreChanged;
             watch ??= context.WatchHost(host => (Agent(host)?.Kind, Agent(host)?.LaunchedByUi), (_, _) => Refresh());
             Refresh();
         };
         DetachedFromVisualTree += (_, _) =>
         {
+            attached = false;
+            CancelModelDiscovery();
             store.Changed -= StoreChanged;
             watch?.Dispose();
             watch = null;
@@ -92,6 +98,7 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
     private void Refresh()
     {
         var claude = RunsClaude;
+        if (!claude) CancelModelDiscovery();
         launchNotice.IsVisible = claude && Agent(context.Host())?.LaunchedByUi == false;
         offer.Visible = claude;
         terminal.SetKeyEncoding(claude ? TerminalKeyEncoding.AgentNewline : TerminalKeyEncoding.Default);
@@ -157,12 +164,75 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
         return [note];
     }
 
-    private IReadOnlyList<Control> ModelItems() => DraftNote() ?? [.. ClaudeLaunch.Models.Select(model =>
+    private void CancelModelDiscovery()
     {
-        var item = new MenuItem { Name = "TerminalModel_" + model.Id, Header = model.Label, Icon = glyph.Create(14) };
-        item.Click += (_, _) => Drive("model", model.Id, ModelPicker.DriveAsync);
-        return (Control)item;
-    })];
+        if (modelDiscovery is not { } discovery) return;
+        modelDiscovery = null;
+        discoveryGeneration++;
+        discovery.Cancel();
+        drivingWhat = null;
+    }
+
+    private IReadOnlyList<Control> ModelItems()
+    {
+        if (DraftNote() is { } draft) return draft;
+        var loading = new MenuItem { Header = "Reading Claude Code's models…", IsEnabled = false };
+        if (drivingWhat is not null) { loading.Header = "Wait for the current picker"; return [loading]; }
+        if (!attached || !RunsClaude) { loading.Header = "Claude Code is no longer active"; return [loading]; }
+        drivingWhat = "model";
+        var discovery = modelDiscovery = new CancellationTokenSource();
+        var generation = ++discoveryGeneration;
+        var token = discovery.Token;
+        bool Current() => attached && generation == discoveryGeneration && ReferenceEquals(modelDiscovery, discovery) && RunsClaude;
+        var io = new PickerIo(
+            data => Dispatcher.UIThread.Invoke(() =>
+            {
+                if (data == "\u001b" && !Current()) return;
+                if (!Current()) throw new OperationCanceledException(token);
+                token.ThrowIfCancellationRequested();
+                terminal.Write(data);
+            }),
+            omitFaint => Dispatcher.UIThread.Invoke(() =>
+            {
+                if (!Current()) throw new OperationCanceledException(token);
+                return terminal.BufferTail(PickerTailLines, omitFaint);
+            }), delay => Task.Delay(delay, token));
+        _ = Task.Run(async () =>
+        {
+            IReadOnlyList<string> models = [];
+            string? failure = null;
+            try { (_, models) = await ModelPicker.DiscoverAsync(io); }
+            catch (OperationCanceledException) { }
+            catch (Exception error) { failure = error.Message; }
+            Dispatcher.UIThread.Post(() =>
+            {
+                var current = Current();
+                if (ReferenceEquals(modelDiscovery, discovery))
+                {
+                    modelDiscovery = null;
+                    drivingWhat = null;
+                }
+                discovery.Dispose();
+                if (!current) return;
+                Refresh();
+                if (loading.Parent is not ContextMenu menu || !menu.IsOpen) return;
+                if (models.Count == 0)
+                {
+                    loading.Header = "Couldn't read models — open /model at Claude's prompt";
+                    if (failure is not null) ToolTip.SetTip(loading, failure);
+                    return;
+                }
+                menu.Items.Clear();
+                foreach (var model in models)
+                {
+                    var item = new MenuItem { Header = model, Icon = glyph.Create(14) };
+                    item.Click += (_, _) => { if (attached && RunsClaude) Drive("model", model, ModelPicker.DriveAsync); };
+                    menu.Items.Add(item);
+                }
+            });
+        });
+        return [loading];
+    }
 
     private IReadOnlyList<Control> EffortItems() => DraftNote() ?? [.. EffortPicker.Levels.Select(level =>
     {

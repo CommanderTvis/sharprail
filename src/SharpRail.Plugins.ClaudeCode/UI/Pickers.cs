@@ -21,10 +21,10 @@ internal static partial class ModelPicker
     internal static readonly TimeSpan Poll = TimeSpan.FromMilliseconds(150);
     private const int OpenPolls = 24;
     private const int MovePolls = 8;
-    private const int MaxSteps = 12;
+    private const int MaxSteps = 128;
     private const int ConfirmPolls = 8;
 
-    [GeneratedRegex(@"^\s*❯\s*\d+\.\s+(.+?)(?:\s{2}.*)?$")]
+    [GeneratedRegex(@"^\s*❯\s*(\d+)\.\s+(.+?)(?:\s{2}.*)?$")]
     private static partial Regex HighlightedRow();
 
     [GeneratedRegex(@"^\s*❯\s?(.*)$")]
@@ -55,7 +55,7 @@ internal static partial class ModelPicker
     {
         for (var index = lines.Count - 1; index >= 0; index--)
             if (HighlightedRow().Match(lines[index]) is { Success: true } match)
-                return match.Groups[1].Value.Replace("✔", "", StringComparison.Ordinal).Trim();
+                return CleanLabel(match.Groups[2].Value);
         return null;
     }
 
@@ -92,6 +92,53 @@ internal static partial class ModelPicker
         }
     }
 
+    /// <summary>Reads the live session's complete picker without changing its model or saved default.</summary>
+    public static async Task<(PickerOutcome Outcome, IReadOnlyList<string> Models)> DiscoverAsync(PickerIo io)
+    {
+        if (ComposerDraft(io.ReadLines(true)) is not null) return (PickerOutcome.Draft, []);
+        io.Write("/model");
+        await io.Delay(EnterDelay);
+        io.Write("\r");
+        try
+        {
+            string? label = null;
+            for (var poll = 0; poll < OpenPolls && label is null; poll++)
+            {
+                await io.Delay(Poll);
+                label = PickerHighlight(io.ReadLines(false));
+            }
+            if (label is null) return (PickerOutcome.NoPicker, []);
+            var rows = new Dictionary<int, string>();
+            foreach (var direction in new[] { "\u001b[A", "\u001b[B" })
+            {
+                var seen = new HashSet<int>();
+                for (var step = 0; step < MaxSteps; step++)
+                {
+                    var selected = io.ReadLines(false).Select(line => HighlightedRow().Match(line)).LastOrDefault(row => row.Success);
+                    if (selected is null) return (PickerOutcome.NoPicker, []);
+                    var number = int.Parse(selected.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+                    if (!seen.Add(number)) break;
+                    rows[number] = CleanLabel(selected.Groups[2].Value);
+                    var before = label;
+                    io.Write(direction);
+                    for (var poll = 0; poll < MovePolls && label == before; poll++)
+                    {
+                        await io.Delay(Poll);
+                        label = PickerHighlight(io.ReadLines(false));
+                    }
+                    if (label == before) break;
+                    if (step == MaxSteps - 1) return (PickerOutcome.NotFound, []);
+                }
+            }
+            if (rows.Count > 0 && rows.Keys.Min() == 1 && rows.Keys.Max() == rows.Count)
+                return (PickerOutcome.Switched, rows.OrderBy(row => row.Key).Select(row => row.Value).ToArray());
+            return (PickerOutcome.NotFound, []);
+        }
+        finally { io.Write("\u001b"); }
+    }
+
+    private static string CleanLabel(string label) => label.Replace("✔", "", StringComparison.Ordinal).Replace("✓", "", StringComparison.Ordinal).Trim();
+
     public static async Task<PickerOutcome> DriveAsync(PickerIo io, string model)
     {
         // A slash command only opens the picker at the start of an empty line.
@@ -110,8 +157,11 @@ internal static partial class ModelPicker
             io.Write("\u001b");
             return PickerOutcome.NoPicker;
         }
-        for (var step = 0; step < MaxSteps; step++)
+        var direction = "\u001b[B";
+        var visited = new HashSet<string>();
+        for (var step = 0; step < MaxSteps * 2; step++)
         {
+            if (label is null || !visited.Add(label)) break;
             if (HighlightNamesModel(label, model))
             {
                 io.Write("s");
@@ -119,11 +169,17 @@ internal static partial class ModelPicker
                 return PickerOutcome.Switched;
             }
             var before = label;
-            io.Write("\u001b[B");
+            io.Write(direction);
             for (var poll = 0; poll < MovePolls && label == before; poll++)
             {
                 await io.Delay(Poll);
                 label = PickerHighlight(io.ReadLines(false));
+            }
+            if (label == before)
+            {
+                if (direction == "\u001b[A") break;
+                direction = "\u001b[A";
+                visited.Clear();
             }
         }
         io.Write("\u001b");

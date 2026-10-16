@@ -160,7 +160,13 @@ Each workspace retains its pane and selected surface. An unchanged configuration
 preserves the body, scope and surface controls, including local input and scroll state.
 The generic launcher supplies a fresh Claude SVG icon through its owning asset reader for
 consumer plugins, at the requested size and theme tint.
-The four model aliases are opus/fable/sonnet/haiku. Launch flags use shell syntax appropriate to the
+New-launch presets retain the four model aliases opus/fable/sonnet/haiku. The running terminal model
+menu instead reads that session's live `/model` picker on demand, including Default and versioned
+or custom choices beyond the visible rows. Discovery cancels the CLI picker without choosing or
+saving a default; selection matches the exact discovered label and uses the session-only switch.
+Unsent drafts and concurrent drives block discovery; unavailable or incomplete lists show an
+explanation rather than fabricated choices. Detaching the accessory or losing the Claude agent
+cancels discovery; delayed reads, keys and completions cannot act on a later attachment. Launch flags use shell syntax appropriate to the
 host, with agent view disabled by default and the host's prompt file first. Caller prompts stack
 independently. The settings switches affect app-started sessions, not commands the user types.
 
@@ -218,6 +224,11 @@ through a recording CLI, connectors parsed from `claude mcp list`, a local overr
 user value) and both `claude-launcher.spec.ts` cases through the real launcher, menu and settings. The native terminal probe checks
 agent fallback, default, kitty and modifyOtherKeys input bytes. Hook scripts have
 their own shell checks. The integrated `--plugins` runner includes these checks.
+
+The model-picker regressions simulate wrapping and clamped lists longer than the visible viewport,
+starting in the middle, with Default, distinct releases from the same family and custom choices.
+They verify complete discovery, cancellation without a selection/default write, exact-release
+selection and draft preservation. They do not establish appearance or timing against a live CLI.
 
 The 2026-10-10 narrow surface-selector check verified the hidden horizontal scrollbar and scrolling
 to Account headlessly. It did not check the packaged app or native narrow-pane appearance.

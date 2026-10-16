@@ -431,7 +431,7 @@ internal static class ClaudeCodeChecks
         Require(Directory.GetFiles(Path.Combine(Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR")!, "ide"), "*.lock").Length == 0 &&
             terminals.EnvironmentContributor!(terminal).Count == 0, "Disabling removes IDE discovery and terminal contributions.");
         Transcripts(directory);
-        Pickers();
+        await Pickers();
         Console.WriteLine("PASS Claude Code host: disabled lifecycle, configuration provenance, reviewed writes, token status, spending and revive");
     }
 
@@ -692,7 +692,7 @@ internal static class ClaudeCodeChecks
         Console.WriteLine("PASS Claude Code IDE: token authorization, initialization, catalogue, zero-based selection, addressed action replies and file references");
     }
 
-    private static void Pickers()
+    private static async Task Pickers()
     {
         Require(ModelPicker.ComposerDraft(["❯ fix the build"]) == "fix the build", "Typed text at Claude's prompt is a draft.");
         foreach (var placeholder in new[]
@@ -701,7 +701,54 @@ internal static class ClaudeCodeChecks
             "Press up to select a queued message, then Enter to edit it", "Press Enter to edit the selected message, or up again for history", "Message @reviewer…"
         })
             Require(ModelPicker.ComposerDraft(["❯ " + placeholder]) is null, $"Claude's empty-prompt placeholder is not a draft: {placeholder}");
-        Console.WriteLine("PASS Claude Code pickers: empty-prompt placeholders are not drafts");
+        var offered = new[] { "Default (recommended)", "Opus 5.5", "Fable 5.1", "Sonnet 5.5", "Haiku 5.5", "Haiku 4.5", "Sonnet 5", "Opus 5", "Fable 5", "Opus 4.8", "Future 9", "Custom 10", "Custom 11", "Custom 12" };
+        foreach (var wraps in new[] { false, true })
+        {
+            var current = 8;
+            var open = false;
+            var writes = new List<string>();
+            var io = new PickerIo(key =>
+            {
+                writes.Add(key);
+                if (key == "/model") open = true;
+                else if (key == "\u001b") open = false;
+                else if (key == "\u001b[A") current = wraps ? (current + offered.Length - 1) % offered.Length : Math.Max(0, current - 1);
+                else if (key == "\u001b[B") current = wraps ? (current + 1) % offered.Length : Math.Min(offered.Length - 1, current + 1);
+            }, _ => open ? [$"❯ {current + 1}. {offered[current]}" + (current == 0 ? " ✓" : "")] : ["❯ "], _ => Task.CompletedTask);
+            var discovered = await ModelPicker.DiscoverAsync(io);
+            Require(discovered.Models.SequenceEqual(offered) && !open && !writes.Contains("s") && writes.Count(key => key == "\r") == 1,
+                "The active picker supplies every version and Default across scrolling, without selecting or saving a model.");
+            writes.Clear();
+            Require(await ModelPicker.DriveAsync(io, "Haiku 4.5") == PickerOutcome.Switched && current == 5 && writes.Contains("s"),
+                "A versioned choice selects that exact release rather than the family alias.");
+        }
+        Require(ModelPicker.HighlightNamesModel("Haiku 4.5", "Haiku 4.5") && !ModelPicker.HighlightNamesModel("Haiku 5.5", "Haiku 4.5"),
+            "Versioned model labels cannot match a different release.");
+        var touched = false;
+        var draftIo = new PickerIo(_ => touched = true, _ => ["❯ unsent prompt"], _ => Task.CompletedTask);
+        Require((await ModelPicker.DiscoverAsync(draftIo)).Outcome == PickerOutcome.Draft && !touched,
+            "Reading model choices never overwrites an unsent draft.");
+        foreach (var cancelAfter in new[] { 1, 2 })
+        {
+            using var cancellation = new CancellationTokenSource();
+            var writes = new List<string>();
+            var delays = 0;
+            var io = new PickerIo(key =>
+            {
+                if (key == "\u001b" && cancellation.IsCancellationRequested) return;
+                cancellation.Token.ThrowIfCancellationRequested();
+                writes.Add(key);
+            }, _ => writes.Contains("\r") ? ["❯ 1. Default (recommended)"] : ["❯ "], _ =>
+            {
+                if (++delays == cancelAfter) cancellation.Cancel();
+                return Task.Delay(TimeSpan.Zero, cancellation.Token);
+            });
+            try { await ModelPicker.DiscoverAsync(io); throw new InvalidOperationException("Canceled discovery must stop."); }
+            catch (OperationCanceledException) when (cancellation.IsCancellationRequested) { }
+            Require(writes.SequenceEqual(cancelAfter == 1 ? ["/model"] : new[] { "/model", "\r" }),
+                "Canceled discovery sends no subsequent Enter, navigation, selection or escape to an inactive terminal.");
+        }
+        Console.WriteLine("PASS Claude Code pickers: live paginated model lists, exact versions, draft safety and empty-prompt placeholders");
     }
 
     private static void Transcripts(string directory)
