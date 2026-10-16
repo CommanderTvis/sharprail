@@ -17,7 +17,10 @@ contract, not that list.
 containment and local/remote Git worktrees on every desktop test host. On Windows
 it additionally exercises real ConPTY input, Unicode, geometry, replay and
 reconnect, watching, busy child processes, job cleanup, exit codes, file saves,
-Recycle Bin operations, native editor Ctrl shortcuts and Skia rendering. Those
+Recycle Bin operations, native editor Ctrl shortcuts and Skia rendering. The editor
+checks Unicode selection replacement separately from undoing a single insertion
+back to its clean save point; Scintilla's scalar input coalescing does not promise
+one undo action for a whole multi-character text-input event. Those
 runtime cases must report a skip on other operating systems. The host and UI
 parts join the main gate as `windows-host` and `windows-ui`.
 The ConPTY fixture waits for the rendered PowerShell prompt and flushes terminal

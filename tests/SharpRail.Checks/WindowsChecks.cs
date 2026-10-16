@@ -193,9 +193,12 @@ internal static class WindowsChecks
             window.KeyRelease(Key.A, RawInputModifiers.Control, PhysicalKey.A, "a");
             window.KeyTextInput("edited λ😀"); Pump();
             Require(editor.Text == "edited λ😀", "Ctrl+A and Unicode input did not edit the document.");
+            editor.Text = "alpha\r\nλ😀";
+            window.KeyTextInput("!"); Pump();
+            Require(editor.Text == "!alpha\r\nλ😀" && editor.IsModified, "Text input did not edit the clean document.");
             window.KeyPress(Key.Z, RawInputModifiers.Control, PhysicalKey.Z, "z");
             window.KeyRelease(Key.Z, RawInputModifiers.Control, PhysicalKey.Z, "z"); Pump();
-            Require(editor.Text == "alpha\r\nλ😀", "Ctrl+Z did not restore the original document.");
+            Require(editor.Text == "alpha\r\nλ😀" && !editor.IsModified, "Ctrl+Z did not restore the original document and save point.");
             using var view = new GhosttySkiaView { Typeface = EditorChecks.Font };
             window.Content = view; Pump();
             view.Write(Encoding.UTF8.GetBytes("Windows λ😀\r\n\e[31mred\e[0m")); Pump();
