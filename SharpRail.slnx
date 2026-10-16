@@ -47,4 +47,7 @@
     <Project Path="tests/SharpRail.PluginFixture/SharpRail.PluginFixture.Host.csproj" />
     <Project Path="tests/SharpRail.PluginFixture.UI/SharpRail.PluginFixture.UI.csproj" />
   </Folder>
+  <Folder Name="/performance/">
+    <Project Path="performance/SharpRail.Performance/SharpRail.Performance.csproj" />
+  </Folder>
 </Solution>

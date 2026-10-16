@@ -22,6 +22,7 @@ jobs:
       - run: dotnet restore SharpRail.slnx
       - run: dotnet format SharpRail.slnx --verify-no-changes --no-restore
       - run: dotnet build SharpRail.slnx -c Release --no-restore
+      - run: dotnet run --no-build --project performance/SharpRail.Performance -c Release -- self-test
 
   smoke:
     needs: build

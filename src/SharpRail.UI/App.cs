@@ -19,6 +19,7 @@ public sealed partial class App : Application
 {
     public override void Initialize()
     {
+        StartupPhases.Mark("app-initialize-start");
         AvaloniaXamlLoader.Load(this);
         // The kit has no theme of its own; the catalogue's default applies until a window resolves the host's.
         Ui.Apply(Themes.Resolve(Themes.DefaultId));
@@ -41,6 +42,7 @@ public sealed partial class App : Application
         {
             if (window.Owner is Window owner) window.RequestedThemeVariant = owner.RequestedThemeVariant;
         });
+        StartupPhases.Mark("app-initialize-end");
     }
 
     // Creates terminal tabs for every window of this app, all attached to the app's one terminal host.
@@ -48,6 +50,7 @@ public sealed partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+        StartupPhases.Mark("framework-ready");
 #if !ANDROID && !BROWSER
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
@@ -129,6 +132,7 @@ public sealed partial class App : Application
             Listener = listener,
             Notifier = OperatingSystem.IsMacOS() ? Notifications.MacNotifier.Create() : null
         };
+        StartupPhases.Mark("app-services-created");
         if (OperatingSystem.IsMacOS()) ApplicationMenu.Install(this, workbench.Commands);
         foreach (var slot in profile.Data.Windows.ToArray())
         {

@@ -127,16 +127,28 @@ public sealed partial class WorkbenchWindow
             try { listed[folder] = await Task.Run(async () => await host.ListFilesAsync(folder, lifetime.Token), lifetime.Token); }
             catch (OperationCanceledException) { return; }
             catch (Exception error) when (folder.Length > 0 && error is IOException or UnauthorizedAccessException) { }
-            catch (Exception error) { if (request == projectRequest) Report(error); return; }
+            catch (Exception error)
+            {
+                if (request == projectRequest)
+                {
+                    startupMilestones?.Complete(request, "files", error.Message);
+                    Report(error);
+                }
+                return;
+            }
         }
         if (request != projectRequest || !WorkspaceMounted) return;
         if (toolContent.GetValueOrDefault("files") is { } panel) panel.IsHitTestVisible = true;
         if (listed.Count == folderCache.Count && listed.All(entry => folderCache.TryGetValue(entry.Key, out var current) && current.SequenceEqual(entry.Value)))
+        {
+            startupMilestones?.Complete(request, "files");
             return;
+        }
         foreach (var folder in folders) folderCache.Remove(folder);
         foreach (var entry in listed) folderCache[entry.Key] = entry.Value;
         expandedFolders.RemoveWhere(folder => !folderCache.ContainsKey(folder));
         ReconcileFilesPanel();
+        startupMilestones?.Complete(request, "files");
     }
 
     private async Task ReloadOpenDocumentsAsync(long request, IReadOnlyCollection<string> paths)

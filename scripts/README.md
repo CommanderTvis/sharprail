@@ -152,3 +152,5 @@ The available focused modes and verification rules are documented in
 
 Keep `.bench` scratch outputs disposable; record needed evidence in the status
 documents and remove scratch files when the task finishes.
+
+For repeatable macOS startup and physical-footprint measurements, use the [.NET performance toolkit](../performance/README.md). The older `benchmark.mjs` measures RSS with a different sampling anchor and should not be mixed into those reports.

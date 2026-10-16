@@ -120,7 +120,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         WirePlugins();
         ApplyAppearance();
         ActualThemeVariantChanged += (_, _) => ApplyTheme();
-        Opened += async (_, _) => await StartAsync();
+        Opened += async (_, _) => { StartupPhases.Mark("window-opened"); await StartAsync(); };
         Activated += (_, _) => { if (WorkspaceMounted) RefreshProjectWorkspaces(); };
         Closed += (_, _) =>
         {
@@ -305,6 +305,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         RememberGitSelection();
         var previous = WorkspaceMounted ? (atHome ? "" : workspaceRoot) : null;
         var request = ++projectRequest; WorkspaceMounted = false;
+        startupMilestones?.Begin(request);
         gitRefresh?.Cancel(); StopWatching();
         switchingWorkspace = true;
         foreach (var (id, control) in toolContent)
@@ -389,6 +390,11 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 UpdateLayout();
+                if (startupMilestones?.Matches(request) == true)
+                {
+                    startupMilestones.Emit("workspace-layout");
+                    _ = RecordFirstContentAsync(request);
+                }
                 Console.WriteLine($"SHARPRAIL_WORKSPACE_LAYOUT {DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}");
                 Console.WriteLine($"SHARPRAIL_TREE logical={this.GetLogicalDescendants().Distinct().Count()}");
             }, DispatcherPriority.Loaded);

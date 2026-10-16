@@ -7,10 +7,13 @@ internal static class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        StartupPhases.Mark("managed-entry");
         if (args is [Terminal.TerminalRelay.Argument]) Environment.Exit(Terminal.TerminalRelay.Run());
         Console.WriteLine($"SHARPRAIL_MAIN {DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}");
-        AppBuilder.Configure<App>().UsePlatformDetect()
+        var builder = AppBuilder.Configure<App>().UsePlatformDetect()
             .With(new AvaloniaNativePlatformOptions { RenderingMode = [AvaloniaNativeRenderingMode.Metal, AvaloniaNativeRenderingMode.OpenGl, AvaloniaNativeRenderingMode.Software] })
-            .LogToTrace().StartWithClassicDesktopLifetime(args);
+            .LogToTrace();
+        StartupPhases.Instrument(builder);
+        builder.StartWithClassicDesktopLifetime(args);
     }
 }

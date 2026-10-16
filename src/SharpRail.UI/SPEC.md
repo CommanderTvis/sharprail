@@ -19,6 +19,13 @@ not loaded or built on Windows; the existing unavailable-Mermaid view still appl
 
 ## Responsibilities and boundaries
 
+With `SHARPRAIL_PERFORMANCE=1`, the first workspace open emits monotonic startup milestones
+as `SHARPRAIL_PERF` JSON lines. Layout is distinct from initial file and Git data completion;
+`workspace-ready` covers those two refreshes, excludes background statistics and spec scans,
+and reports errors rather than treating a failed refresh as successful readiness. First content
+rendering records a composition batch completed on the render thread, not physical screen
+presentation. These observations do not await or serialize the normal progressive startup.
+
 The app owns startup, shutdown, window chrome, shortcuts, theme application and the connection
 between panels, saved layouts and host state. Panels supply content without knowing where the
 window places them. They use the same host operations in local and remote mode.
@@ -397,3 +404,10 @@ Settings reads GitHub authentication from the host; credentials and the `gh` pro
 Restored tabs stay visible in Projects while host routing is pending, under an entry derived from the
 in-memory active view when the host has not yet listed that workspace. Resolving its project and
 workspace moves the same tab controls under their canonical row and does not block on file listing.
+
+Opt-in startup attribution buffers timestamps before JSON output begins: managed entry, the original
+Avalonia subsystem initialization callbacks, app resources, host/profile/plugin composition and
+window creation/opening. Wrapping the callbacks preserves their order and arguments; ordinary runs
+do not install wrappers. The existing workspace markers flush early timestamps after capturing
+their own timestamp. These are elapsed phase boundaries, not a claim that all Skia/GPU work happens
+during platform initialization. The performance module owns their reporting and measurement contract.

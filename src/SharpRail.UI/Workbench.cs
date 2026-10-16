@@ -112,8 +112,13 @@ public sealed class Workbench : IDisposable
     public event Action<WorkbenchWindow>? WindowOpened;
 
     /// <summary>Opens a window for a profile entry, starting at <paramref name="root"/> when given.</summary>
-    public WorkbenchWindow Open(WindowProfile slot, string root) =>
-        Attach(new WorkbenchWindow(this, sessions?.Invoke() ?? throw new InvalidOperationException("This workbench cannot open windows."), slot, root));
+    public WorkbenchWindow Open(WindowProfile slot, string root)
+    {
+        StartupPhases.Mark("window-create-start");
+        var window = new WorkbenchWindow(this, sessions?.Invoke() ?? throw new InvalidOperationException("This workbench cannot open windows."), slot, root);
+        StartupPhases.Mark("window-create-end");
+        return Attach(window);
+    }
 
     internal WorkbenchWindow Attach(WorkbenchWindow window)
     {

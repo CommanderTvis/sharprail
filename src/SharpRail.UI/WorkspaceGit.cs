@@ -69,6 +69,7 @@ public sealed partial class WorkbenchWindow
             if (readyBranch is not null) readyBranch.Text = ReadyBranchText();
             gitLoading = false; gitError = null;
             RefreshGitPanels();
+            startupMilestones?.Complete(request, "git");
             _ = RefreshWorkspaceStatsAsync(request);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
@@ -82,6 +83,7 @@ public sealed partial class WorkbenchWindow
         {
             if (token.IsCancellationRequested || request != projectRequest || selectedComparison != comparison || selectedScope != changeScope || commit?.Sha != selectedCommit?.Sha) return;
             gitLoading = false; gitError = "Git could not be loaded: " + error.Message;
+            startupMilestones?.Complete(request, "git", error.Message);
             RefreshGitPanels();
             Console.Error.WriteLine(error);
         }
