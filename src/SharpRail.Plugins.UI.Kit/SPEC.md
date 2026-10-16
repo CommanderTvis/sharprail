@@ -80,6 +80,8 @@ publish toggle automation changes without requesting another update.
     `Ui.Icon` retains its Border and live Background tint, so geometry stays sharp at fractional sizes
     and display scales without caching raster or tint variants. The cache holds only bundled geometry,
     never mounted controls. The prototype brand mark remains raster until its original vector is available.
+    Workbench tree expanders use the same original chevron mask, rotated when expanded, in their
+    existing compact slot; stock Fluent's thin stretched chevrons do not substitute for the icon set.
   - `Assets/Icons` and `Assets/Fonts`, with their license files, as `avares://SharpRail.Plugins.UI.Kit/Assets/…`.
 - Owns Markdown preview and source views, frontmatter presentation, links and the heading outline.
   Markdown panes below 640 logical pixels hide Split and fall back from Split to Preview, including restored views.

@@ -1,6 +1,9 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.LogicalTree;
+using Avalonia.Media;
+using Avalonia.VisualTree;
 
 using SharpRail.Host.Abstractions;
 
@@ -68,6 +71,7 @@ internal static class RailRetentionChecks
 
     internal static void Run(string root)
     {
+        TreeChevrons();
         TabGeometry(root);
         using var git = new IsolatedGit(Path.Combine(root, "rail-retention-git"));
         using var app = OpenFixtureProject(Path.Combine(root, "rail-retention"));
@@ -164,6 +168,33 @@ internal static class RailRetentionChecks
         Publish([other]);
         Until(() => !Controls(app).Any(control => control.Name == "WorkspaceItem" && Equals(control.Tag, stale)));
         Console.WriteLine("PASS deleted workspaces leave an inactive project's rail after activation and host catalog broadcasts");
+    }
+
+    private static void TreeChevrons()
+    {
+        var item = new TreeViewItem { Header = "Folder", ItemsSource = new[] { "Child" } };
+        var window = new Window { Width = 240, Height = 160, Content = new TreeView { ItemsSource = new[] { item } } };
+        window.Show();
+        try
+        {
+            Settle();
+            var toggle = item.GetVisualDescendants().OfType<ToggleButton>().Single(control => control.Name == "PART_ExpandCollapseChevron");
+            var glyph = toggle.GetVisualDescendants().OfType<Border>().Single(control => control.Name == "TreeChevron");
+            Require(glyph.OpacityMask is DrawingBrush && toggle.Width == 16 && toggle.Height == 16,
+                "Tree expanders must use the shared SVG vector mask with its full viewbox, not Fluent's narrow polygon.");
+            var slot = item.GetVisualDescendants().OfType<Panel>().Single(control => control.Name == "PART_ExpandCollapseChevronContainer");
+            Require(slot.Margin.Left + toggle.Width + slot.Margin.Right == 20, "Vector expanders must retain the compact 20 DIP tree slot.");
+            toggle.IsChecked = true;
+            Settle();
+            Require(item.IsExpanded && glyph.RenderTransform is RotateTransform { Angle: 90 }, "Expanding a tree must rotate its shared glyph down and keep the toggle wired to the tree.");
+            toggle.IsChecked = false;
+            item.Classes.Add("gitignored");
+            Settle();
+            Require(!item.IsExpanded && glyph.RenderTransform is not RotateTransform { Angle: 90 } && ReferenceEquals(glyph.Background, SharpRail.Plugins.UI.Kit.Ui.Hint),
+                "Collapsed ignored rows must restore the right-pointing vector and preserve their muted tint.");
+        }
+        finally { window.Close(); }
+        Console.WriteLine("PASS shared vector tree chevrons, expansion, tint and compact slot");
     }
 
     private static Control[] RailControls(E2eWorkspace app) => Controls(app).Where(control => control.Name is

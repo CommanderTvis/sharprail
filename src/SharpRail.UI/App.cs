@@ -26,12 +26,13 @@ public sealed partial class App : Application
         ControlStates.Apply(Resources);
         // One style per typography role, so a control takes its type by class name.
         Styles.Add(Typography.Styles());
+        Resources["TreeChevronMask"] = ((Border)Ui.Icon("arrowRight")).OpacityMask;
         foreach (var state in new[] { "Selected", "SelectedPointerOver", "SelectedPressed" })
             Resources["TreeViewItemBackground" + state] = Ui.Selected;
         // The reference's 20px chevron slot. Fluent's template sets its 12px margins directly, which outranks styles.
         TemplatedControl.TemplateAppliedEvent.AddClassHandler<TreeViewItem>((_, e) =>
         {
-            if (e.NameScope.Find<Panel>("PART_ExpandCollapseChevronContainer") is { } chevron) chevron.Margin = new Thickness(4, 0);
+            if (e.NameScope.Find<Panel>("PART_ExpandCollapseChevronContainer") is { } chevron) chevron.Margin = new Thickness(2, 0);
         });
         // A window does not inherit its owner's theme variant, and Fluent colours every stock control from it: a dialog,
         // Settings or plugin window would otherwise follow the OS appearance instead of the theme. Workbench windows

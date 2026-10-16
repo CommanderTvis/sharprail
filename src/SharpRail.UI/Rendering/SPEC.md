@@ -33,9 +33,8 @@ since the kit has no theme of its own.
   the interface font size, and the primitive factories: `Icon`, `Text`, `Row`, `Button`, `IconButton`,
   `Frame`, `Menu` and `Place`. These play the role of upstream's shared primitives; a panel composes them
   rather than restyling Fluent controls ad hoc.
-- `Icon` renders a bundled PNG from `Assets/Icons` as an opacity mask over a brush, so a glyph sizes with
-  its box and colours with a brush exactly like text. This is the counterpart of upstream's `CustomIcon`
-  mask and Remix icon set; the bitmaps are cached per name.
+- `Icon` uses the shared vector masks described by [the kit's icon contract](../../SharpRail.Plugins.UI.Kit/SPEC.md),
+  so glyphs scale with their box and take their colour from a live brush.
 - `MarkdownPreview` renders Markdown natively through Markdig into Avalonia controls. `Frontmatter` reads properties and spec identity; `FindBar` searches rendered documents. The `Preview | Source`
   header of a Markdown file is the resource pane's view toggle ([../SPEC.md](../SPEC.md)).
 - `DiffView` is a diff tab's pane: its slim header, the source diff it draws itself, and the other views
