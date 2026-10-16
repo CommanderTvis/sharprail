@@ -77,9 +77,42 @@ dock build. The constructor-entry envelope includes native base construction and
 initializers; it is not pure WindowServer or native time. These supplementary marks do not redefine
 the v2 first-window, first-content, layout, readiness or memory sampling contract.
 
+## Matched AC acceptance (2026-10-17)
+
+The 2026-10-17 matched AC comparison completed 44/44 successful attempts: one excluded warm-up and
+ten measured launches per embedded/remote mode and build. Both clean source publishes (7e3753b0 and
+ac98d2c8) used SDK 10.0.401, runtime 10.0.12, osx-arm64, self-contained non-composite ReadyToRun and
+the identical runnable toolkit/signed fixture. Both were rebuilt consistently with compiled Discord
+XAML present; the earlier inconsistent baseline was preserved and excluded. Every pre/post-launch
+power observation was AC. No outlier was removed.
+
+Embedded first-window time was 461.0 ± 13.6 → 434.9 ± 13.4 ms (−5.7%); first-content was
+550.6 ± 8.5 → 536.1 ± 12.5 ms and workspace-ready 804.4 ± 22.9 → 774.3 ± 16.5 ms. Remote
+user-launch first-window time was 663.8 ± 7.0 → 639.9 ± 23.4 ms (−3.6%), including fresh host
+startup; UI-only time was 454.5 ± 6.2 → 423.2 ± 11.1 ms (−6.9%). Remote total first-content
+was 764.7 ± 11.5 → 746.3 ± 27.9 ms and workspace-ready 1035.3 ± 24.6 → 989.7 ± 31.7 ms.
+These are means ± sample SD, n=10 per mode/build. Initial physical-footprint means increased:
+embedded 237.4 ± 8.9 → 239.0 ± 7.4 MiB; remote combined UI/host trees 327.3 ± 9.1 →
+329.4 ± 9.5 MiB (both about +0.7%). The experiment shows no RAM reduction.
+
+The largest elapsed-phase change was main-thread profile/host setup (−47.6 ms embedded, −30.0 ms
+remote). Bootstrap increased by 12.6/15.8 ms while resources decreased by 12.0/11.8 ms; moved work
+and concurrency change these intervals' contents. Construction was effectively unchanged
+(−1.1/+0.1 ms). Embedded showing/OS observation increased by 24.3 ms; remote decreased by 3.8 ms.
+The preparation worker's separately drawn span overlaps the sequential checkpoints and is not added
+to them. These boundaries do not establish pure CPU, total native/Skia/GPU cost or exact presentation.
+
+The standalone comparison and unchanged raw observations remain in review workspace-21 under
+`artifacts/performance/ac-comparison`, `ac-baseline-measured` and `ac-candidate-measured`; matched
+binary archives and manifest hashes are retained alongside them. Actual Chromium rendering at
+1280/1440 px passed eight SVG charts, unclipped labels, no page overflow, no script errors or external
+requests, and embedded raw-data downloads. Batches ran serially on the shared development Mac with
+warm filesystem caches, without randomized ordering, CPU affinity or desktop/thermal isolation.
+Differences are descriptive, not a significance test or large-project/restored-session acceptance.
+
 ## ReadyToRun tuning research (2026-10-16)
 
-The first-window candidate retains the original clean 7e3753b0 publish under
+The initial 2026-10-16 first-window candidate retains the original clean 7e3753b0 publish under
 `artifacts/performance/baseline-build` in its review workspace. Both SDK and runtime provenance are
 10.0.401 / runtimepack.Microsoft.NETCore.App.Runtime.osx-arm64/10.0.12. Actual power checks remained on
 battery, so no before/after benchmark launch, timing, initial RAM or comparison report was produced.
