@@ -63,6 +63,7 @@ internal sealed class GhosttyTerminal : Border, ITerminalBackend, ITerminalResum
                 Colors = TerminalTheme.Colors(),
                 AgentNewline = agentNewline,
                 ResolveFileLinks = (text, token) => TerminalFileLinks.Resolve(remote.Terminals, launch, text, token),
+                ResolveHighlightedLinks = launch.ResolveCommitLinks,
                 OpenFileLink = launch.OpenFileLink
             };
             texture.Exited += (_, code) => Ended(code);

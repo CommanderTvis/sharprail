@@ -163,6 +163,43 @@ internal static class GhosttySkiaChecks
         finally { window.Close(); Pump(); }
     }
 
+    internal static void CheckPersistentHighlights()
+    {
+        using var view = new GhosttySkiaView { Typeface = EditorChecks.Font, FontSize = 14 };
+        var window = new Window { Width = 240, Height = 160, Content = view };
+        window.Show(); Pump();
+        try
+        {
+            view.Write("\e[?25lcommit abcdef12 and deadbeef"u8); Pump();
+            using var plain = window.CaptureRenderedFrame()!;
+            var calls = 0;
+            view.ResolveHighlightedLinks = (text, token) =>
+            {
+                Require(!Dispatcher.UIThread.CheckAccess(), "visible-link resolution ran on the dispatcher.");
+                Interlocked.Increment(ref calls);
+                var start = text.IndexOf("abcdef12", StringComparison.Ordinal);
+                return Task.FromResult<IReadOnlyList<TerminalLink>>(start < 0 ? [] : [new(start, 8, "validated-commit", 1, 1, false)]);
+            };
+            view.Write("\r"u8); Pump();
+            Until(() =>
+            {
+                using var frame = window.CaptureRenderedFrame()!;
+                return calls > 0 && !Pixels(plain).SequenceEqual(Pixels(frame));
+            }, "persistent link highlight without modifier or pointer");
+            using var underlined = window.CaptureRenderedFrame()!;
+            Require(!Pixels(plain).SequenceEqual(Pixels(underlined)), "validated commit did not gain visible underlines without hover.");
+            var resolvedCalls = calls;
+            view.Write("\r"u8); Pump();
+            Require(calls == resolvedCalls, "unchanged visible text bypassed the highlight cache.");
+            view.ResolveHighlightedLinks = null;
+            view.Write("\r"u8); Pump();
+            using var cleared = window.CaptureRenderedFrame()!;
+            Require(Pixels(plain).SequenceEqual(Pixels(cleared)), "removing resolved highlights left stale pixels.");
+            Console.WriteLine("PASS visible terminal links: background lookup, no-modifier pixels, bounded cache reuse and stale underline removal");
+        }
+        finally { window.Close(); Pump(); }
+    }
+
     internal static void CheckFileLinks()
     {
         using var view = new GhosttySkiaView { Typeface = EditorChecks.Font, FontSize = 14 };

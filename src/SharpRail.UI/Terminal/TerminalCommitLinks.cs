@@ -12,6 +12,8 @@ internal static class TerminalCommitLinks
     private static readonly Regex Hashes = new(@"(?<![\w])[0-9a-fA-F]{4,64}(?![\w])", RegexOptions.CultureInvariant);
     private static readonly Regex Urls = new(@"[a-zA-Z][a-zA-Z0-9+.-]*://\S+", RegexOptions.CultureInvariant);
 
+    internal static bool HasCandidates(string text) => text.Length <= 16384 && Hashes.IsMatch(text);
+
     internal static string? Commit(TerminalLink link) => link.Path.StartsWith(Prefix, StringComparison.Ordinal) ? link.Path[Prefix.Length..] : null;
 
     internal static async Task<IReadOnlyList<TerminalLink>> Resolve(IProjectServices project, string text, CancellationToken token)

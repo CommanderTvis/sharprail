@@ -475,6 +475,7 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         blink.Stop();
+        highlights?.Clear();
         base.OnDetachedFromVisualTree(e);
     }
 
@@ -483,6 +484,7 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
         if (disposed) return;
         disposed = true;
         fileHover?.Dispose();
+        highlights?.Dispose();
         blink.Stop();
         vt.Dispose();
         fonts?.Dispose();

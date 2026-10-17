@@ -77,6 +77,7 @@ public sealed partial class WorkbenchWindow
         => Task.Run(async () =>
         {
             if (workspaceRoot != workspace || !WorkspaceMounted || atHome) return (IReadOnlyList<Ghostty.Avalonia.TerminalLink>)[];
+            if (!TerminalCommitLinks.HasCandidates(text)) return (IReadOnlyList<Ghostty.Avalonia.TerminalLink>)[];
             var request = projectRequest;
             var project = workbench.NewSession();
             try

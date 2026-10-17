@@ -85,8 +85,37 @@ internal static class TerminalCommitLinkChecks
         File.Delete(path);
     }
 
+    private static void CheckStaleHighlights()
+    {
+        var first = new TaskCompletionSource<IReadOnlyList<TerminalLink>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var calls = 0;
+        using var highlights = new TerminalLinkHighlights(() => { });
+        var latest = new TerminalLink(0, 3, "latest", 1, 1, false);
+        highlights.Resolve = (text, token) =>
+        {
+            Interlocked.Increment(ref calls);
+            return text == "old" ? first.Task : Task.FromResult<IReadOnlyList<TerminalLink>>([latest]);
+        };
+        highlights.Update("old");
+        E2eWorkspace.Until(() => calls == 1);
+        highlights.Update("new");
+        E2eWorkspace.Until(() => highlights.Update("new").Count == 1);
+        first.SetResult([new(0, 3, "old", 1, 1, false)]);
+        E2eWorkspace.Settle(150);
+        Require(highlights.Update("new").Single() == latest, "Late visible-link resolution replaced the newer viewport.");
+        Require(calls == 2, "A resolved viewport must reuse its bounded highlight cache.");
+        highlights.Clear();
+        Require(highlights.Update("new").Count == 0, "Detaching must discard cached visible links.");
+        highlights.Dispose();
+        E2eWorkspace.Settle(150);
+        Require(highlights.Update("new").Count == 0, "Disposal must prevent late highlight publication.");
+        Console.WriteLine("PASS terminal commit highlights reject superseded output and disposal, and clear cached links on detach");
+    }
+
     internal static void RunUi(string root)
     {
+        GhosttySkiaChecks.CheckPersistentHighlights();
+        CheckStaleHighlights();
         var repo = IsolatedGit.Repository(Path.Combine(root, "terminal-commit-navigation"));
         var sha = IsolatedGit.Run(repo, "rev-parse", "HEAD").Trim();
         TerminalLaunch? captured = null;

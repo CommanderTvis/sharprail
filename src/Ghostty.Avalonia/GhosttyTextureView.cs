@@ -37,6 +37,14 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
         source = Native.Enable(terminal.Handle);
         terminal.Exited += (_, code) => Exited?.Invoke(this, code);
         frameReady = NotifyFrame;
+        highlightTimer.Tick += (_, _) =>
+        {
+            if (!highlightDirty) return;
+            highlightDirty = false;
+            var previous = highlightUnderlines.ToArray();
+            RefreshHighlights();
+            if (!previous.SequenceEqual(highlightUnderlines)) InvalidateVisual();
+        };
         AddHandler(TextInputMethodClientRequestedEvent, (_, e) => e.Client = InputMethod);
     }
 
@@ -71,6 +79,8 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
         if (topLevel is not null) topLevel.ScalingChanged += ScalingChanged;
         Resize();
         lock (frameLock) active = true;
+        highlightDirty = true;
+        if (highlights?.Resolve is not null) highlightTimer.Start();
         Native.Notify(source, frameReady);
         Native.Visible(terminal.Handle, true);
         InvalidateVisual();
@@ -82,7 +92,7 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
         Dispatcher.UIThread.Post(() =>
         {
             Interlocked.Exchange(ref notificationPending, 0);
-            if (active && !disposed) { RefreshFileLink(); InvalidateVisual(); }
+            if (active && !disposed) { highlightDirty = true; RefreshFileLink(); InvalidateVisual(); }
         });
     }
 
@@ -135,6 +145,9 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
     private void Fail(Exception error)
     {
         if (disposed || !active) return;
+        highlightTimer.Stop();
+        highlights?.Clear();
+        highlightUnderlines.Clear();
         lock (frameLock) active = false;
         Native.Notify(source, null);
         ready.TrySetException(error);
@@ -158,6 +171,7 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
     public override void Render(DrawingContext context)
     {
         context.Custom(new TextureOperation(this, new Rect(Bounds.Size)));
+        foreach (var line in highlightUnderlines) context.FillRectangle(new SolidColorBrush(Colors.Foreground), line);
         foreach (var line in fileUnderlines) context.FillRectangle(new SolidColorBrush(Colors.Foreground), line);
     }
 
@@ -172,6 +186,9 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
+        highlightTimer.Stop();
+        highlights?.Clear();
+        highlightUnderlines.Clear();
         lock (frameLock) active = false;
         if (!disposed) Native.Notify(source, null);
         if (topLevel is not null) topLevel.ScalingChanged -= ScalingChanged;
@@ -187,6 +204,8 @@ public sealed partial class GhosttyTextureView : Control, IDisposable
             if (disposed) return;
             disposed = true;
             fileHover?.Dispose();
+            highlights?.Dispose();
+            highlightTimer.Stop();
             active = false;
             Native.Stop(source);
             Native.Release(source);

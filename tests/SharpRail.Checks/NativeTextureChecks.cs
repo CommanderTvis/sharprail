@@ -165,8 +165,46 @@ internal static class NativeTextureChecks
         Require(terminal.ClipboardMenu.IsOpen && terminal.ClipboardMenu.Items.OfType<MenuItem>().All(item => !Equals(item.Header, "Open link")),
             "Shift bypass must offer clipboard actions without a link on plain text.");
         terminal.ClipboardMenu.Close();
+        Move(KeyModifiers.None);
+        terminal.WriteOutput("\e[2J\e[H\e[?25lcommit abcdef12 and deadbeef"u8);
+        await Task.Delay(300);
+        var plain = await CaptureHighlights();
+        terminal.ResolveHighlightedLinks = (text, token) =>
+        {
+            Require(!Dispatcher.UIThread.CheckAccess(), "Metal visible-link lookup ran on the dispatcher.");
+            var start = text.IndexOf("abcdef12", StringComparison.Ordinal);
+            return Task.FromResult<IReadOnlyList<TerminalLink>>(start < 0 ? [] : [new(start, 8, "validated-commit", 1, 1, false)]);
+        };
+        var highlighted = false;
+        for (var attempt = 0; attempt < 30 && !highlighted; attempt++)
+        {
+            await Task.Delay(100);
+            highlighted = !(await CaptureHighlights()).SequenceEqual(plain);
+        }
+        Require(highlighted, "Metal must underline resolved visible commits without modifier-hover.");
+        terminal.ResolveHighlightedLinks = null;
+        await Task.Delay(300);
+        Require((await CaptureHighlights()).SequenceEqual(plain), "Disabling Metal highlights left stale underlines.");
         window.Content = null;
-        Console.WriteLine("PASS native Metal file hover, Unicode, soft wrapping, click coordinates and stale-link clearing");
+        Console.WriteLine("PASS native Metal file hover, Unicode, soft wrapping, click coordinates, persistent highlight pixels and stale-link clearing");
+
+        async Task<SKColor[]> CaptureHighlights()
+        {
+            var directory = Path.Combine(".bench", "native-commit-highlight-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(directory);
+            var capturePath = Path.GetFullPath(Path.Combine(directory, "frame.png"));
+            try
+            {
+                var capture = new ProcessStartInfo("/usr/sbin/screencapture") { UseShellExecute = false };
+                foreach (var argument in new[] { "-x", "-o", "-l", Native.WindowNumber(Native.Content(Title)).ToString(), capturePath }) capture.ArgumentList.Add(argument);
+                using var process = Process.Start(capture)!;
+                await process.WaitForExitAsync();
+                Require(process.ExitCode == 0, "Own-window commit highlight capture failed.");
+                using var bitmap = SKBitmap.Decode(capturePath);
+                return bitmap.Pixels;
+            }
+            finally { Directory.Delete(directory, true); }
+        }
     }
 
     [SupportedOSPlatform("macos")]

@@ -11,6 +11,11 @@ public sealed partial class GhosttySkiaView
 {
     private TerminalLinkHover? fileHover;
     private TerminalLinkHover FileHover => fileHover ??= new(() => Redraw(false));
+    private TerminalLinkHighlights? highlights;
+    private TerminalLinkHighlights Highlights => highlights ??= new(() => Redraw(false));
+    /// <summary>Resolves references to underline throughout the visible terminal, without requiring hover.</summary>
+    public Func<string, CancellationToken, Task<IReadOnlyList<TerminalLink>>>? ResolveHighlightedLinks
+    { get => Highlights.Resolve; set { Highlights.Clear(); Highlights.Resolve = value; Redraw(false); } }
     private TerminalLink? pressedFile;
     /// <summary>Resolves file references off the dispatcher, on the terminal's host.</summary>
     public Func<string, CancellationToken, Task<IReadOnlyList<TerminalLink>>>? ResolveFileLinks
@@ -75,6 +80,27 @@ public sealed partial class GhosttySkiaView
     private unsafe void UpdateLinks(Frame frame)
     {
         var hadLinks = linkCells.Count != 0;
+        var visibleText = new StringBuilder();
+        var visiblePositions = new List<int>();
+        if (highlights?.Resolve is not null)
+            for (var row = 0; row < frame.Rows && visibleText.Length < 16000; row++)
+            {
+                for (var column = 0; column < frame.Columns; column++)
+                {
+                    var index = row * frame.Columns + column;
+                    var cell = frame.Cells[index];
+                    if (cell.Wide >= 2) continue;
+                    if (cell.Length == 0) { visibleText.Append(' '); visiblePositions.Add(index); }
+                    for (var i = 0; i < cell.Length; i++)
+                    {
+                        var code = frame.Text[cell.Text + i];
+                        var value = code == 0 ? " " : char.ConvertFromUtf32((int)code);
+                        visibleText.Append(value);
+                        foreach (var unused in value) visiblePositions.Add(index);
+                    }
+                }
+                if (frame.Cells[row * frame.Columns].RowWrapped == 0) { visibleText.Append('\n'); visiblePositions.Add(-1); }
+            }
         linkCells.Clear();
         hoveredUrl = null;
         var fileText = (string?)null;
@@ -123,6 +149,10 @@ public sealed partial class GhosttySkiaView
                 linkCells.Add(index);
                 if (frame.Cells[index].Wide == 1 && index + 1 < frame.Columns * frame.Rows) linkCells.Add(index + 1);
             }
+        if (highlights?.Resolve is not null)
+            foreach (var link in Highlights.Update(visibleText.ToString()))
+                foreach (var index in visiblePositions.Skip(link.Start).Take(link.Length).Where(index => index >= 0))
+                    linkCells.Add(index);
         if (hadLinks || linkCells.Count != 0)
             for (var i = 0; i < frame.Columns * frame.Rows; i++)
                 frame.Cells[i].Flags = (frame.Cells[i].Flags & ~CellFlags.LinkHover) | (linkCells.Contains(i) ? CellFlags.LinkHover : 0);

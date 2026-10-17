@@ -5,6 +5,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
+using Avalonia.Threading;
 
 namespace Ghostty.Avalonia;
 
@@ -12,6 +13,57 @@ public sealed partial class GhosttyTextureView
 {
     private TerminalLinkHover? fileHover;
     private TerminalLinkHover FileHover => fileHover ??= new(() => { RefreshFileLink(); InvalidateVisual(); });
+    private TerminalLinkHighlights? highlights;
+    private bool highlightDirty = true;
+    private readonly DispatcherTimer highlightTimer = new() { Interval = TimeSpan.FromMilliseconds(200) };
+    private readonly List<Rect> highlightUnderlines = [];
+    /// <summary>Resolves references to underline throughout the visible terminal, without requiring hover.</summary>
+    public Func<string, CancellationToken, Task<IReadOnlyList<TerminalLink>>>? ResolveHighlightedLinks
+    {
+        get => highlights?.Resolve;
+        set
+        {
+            highlights ??= new(() => { RefreshHighlights(); InvalidateVisual(); });
+            highlights.Clear();
+            highlights.Resolve = value;
+            highlightUnderlines.Clear();
+            highlightDirty = true;
+            if (active && value is not null) highlightTimer.Start();
+            else highlightTimer.Stop();
+            InvalidateVisual();
+        }
+    }
+
+    private void RefreshHighlights()
+    {
+        highlightUnderlines.Clear();
+        if (!active || disposed || highlights?.Resolve is null || Bounds.Width <= 0 || Bounds.Height <= 0) return;
+        var scalars = new uint[16384];
+        var cells = new uint[scalars.Length];
+        var info = new double[6];
+        if (ReadLinkLine(terminal.Handle, Bounds.Width / 2, Bounds.Height / 2, scalars, cells, (nuint)scalars.Length, info) == 0 || info[2] <= 0 || info[3] <= 0) return;
+        var text = new StringBuilder();
+        var positions = new List<Rect>();
+        var rows = Size.Rows;
+        for (var row = 0; row < rows && text.Length < 16000;)
+        {
+            var count = (int)ReadLinkLine(terminal.Handle, info[4] + info[2] / 2, info[5] + (row + 0.5) * info[3], scalars, cells, (nuint)scalars.Length, info);
+            if (count == 0) break;
+            for (var i = 0; i < count; i++)
+            {
+                var value = char.ConvertFromUtf32((int)scalars[i]);
+                text.Append(value);
+                var cell = (int)cells[i];
+                var bounds = new Rect(info[4] + cell % (int)info[0] * info[2], info[5] + (cell / (int)info[0] + 1) * info[3] - 2, info[2], 1);
+                foreach (var unused in value) positions.Add(bounds);
+            }
+            text.Append('\n'); positions.Add(default);
+            row = (int)cells[count - 1] / (int)info[0] + 1;
+        }
+        foreach (var link in highlights.Update(text.ToString()))
+            highlightUnderlines.AddRange(positions.Skip(link.Start).Take(link.Length).Where(bounds => bounds.Width > 0).Distinct());
+    }
+
     private TerminalLink? pressedFile;
     private Point filePressPoint;
     private KeyModifiers linkModifiers;

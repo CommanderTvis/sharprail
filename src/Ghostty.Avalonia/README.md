@@ -270,3 +270,5 @@ existence check. HTTP(S) and the other native URL schemes retain their native ac
 Browser builds link libghostty-vt and the existing C bridge into WASM. The bridge uses the Emscripten
 allocator to share the managed runtime heap. `GhosttySkiaView.SaveClipboardImage` can store PNG bytes
 on a remote host and paste the returned shell path instead of writing a client-local file.
+
+Both renderers also accept `ResolveHighlightedLinks` for background resolution of visible references. Valid ranges are underlined independently of hover; the host still supplies navigation through the ordinary file-link callbacks. Resolution is debounced, bounded, cancelled on detach/disposal, and never runs on the UI thread.

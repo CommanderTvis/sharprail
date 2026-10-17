@@ -46,6 +46,7 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend, ITerminalResumeHi
                 SaveClipboardImage = OperatingSystem.IsBrowser() ? bytes => terminals.SaveClipboardImageAsync(launch.SessionId, bytes, lifetime.Token).AsTask() : null,
                 Name = "TerminalSkiaView",
                 ResolveFileLinks = (text, token) => TerminalFileLinks.Resolve(terminals, launch, text, token),
+                ResolveHighlightedLinks = launch.ResolveCommitLinks,
                 OpenFileLink = launch.OpenFileLink
             };
         }
