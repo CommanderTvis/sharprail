@@ -22,11 +22,15 @@ CLI and requires an active connection. Missing CLI, disconnected Tailscale and p
 Settings › Tailscale. Disabling the plugin stops bootstrap and invalidates its grants for serving.
 
 The desktop picker discovers online peers through `tailscale status --json`, probes at most 256 of them
-with eight concurrent requests, and lists only SharpRail hosts. Both clients also accept a MagicDNS host
-name. Android uses that name because another app cannot assume access to Tailscale's private peer list.
-It requires Tailscale routing and MagicDNS to be enabled for SharpRail. Name-resolution failures explain
-how to turn on Tailscale, check the shared network, hostname and MagicDNS rather than showing raw socket
-errors or claiming a particular cause. Pairing and settings buttons use consistent 40-pixel minimum
+with eight concurrent requests, and lists only SharpRail hosts. Android owns an embedded userspace
+Tailscale node instead of reading another application's private peer list. It signs in through the system
+browser, retains its identity in app-private storage, enumerates online IPv4 peers from its own netmap and
+probes the same bootstrap endpoints. No separate Tailscale Android application, system VPN or OS MagicDNS
+configuration is required. The Android adapter supplies ConnectivityManager snapshots through Tailscale's supported interface hook,
+avoiding restricted raw netlink enumeration and updating the same node on network changes.
+The shared picker accepts an injected client network for HTTP, name resolution
+and peer enumeration; desktop keeps its installed-CLI implementation. Embedded discovery returns numeric
+peer addresses so choosing a host never depends on system DNS. Pairing and settings buttons use consistent 40-pixel minimum
 heights with horizontally and vertically centered text. No tailnet API key, central registry,
 Tailscale Serve configuration, DNS changes or installation of another VPN is needed.
 
@@ -35,7 +39,8 @@ Tailscale Serve configuration, DNS changes or installation of another VPN is nee
 Bootstrap verifies the request's real source address through `tailscale whois --json`; forwarded headers
 are ignored. Only the Tailscale address ranges are eligible. Discovery returns the host name alone. A
 client generates a random 256-bit secret and sends it only to a directly resolved tailnet address; the
-HTTP client disables proxies and redirects. Tailscale supplies transport encryption.
+HTTP client disables redirects. Desktop disables proxies; Android explicitly uses only its authenticated
+loopback SOCKS5 proxy, whose dialer is the embedded Tailscale node. Tailscale supplies transport encryption.
 
 A new secret creates a request bound to the verified Tailscale node, with its device name and user identity.
 The host shows that identity and an eight-digit hexadecimal fingerprint; the client shows the same code.
@@ -71,7 +76,16 @@ if that instance is still running. The standalone host reuses its configured lis
 bind address to be reachable through Tailscale. No local adapter is moved onto RPC.
 
 Desktop Settings › Host opens a dedicated client instance; `--tailscale` opens the picker directly. The
-Android connect screen offers Tailscale alongside manual entry and QR scanning. Remembered pairings
+Android connect screen offers Tailscale alongside manual entry and QR scanning. It opens browser sign-in
+only after an explicit action, then discovers hosts automatically. Administrator device approval, pending
+authentication, missing browser and connection errors remain visible with retry and sign-out controls.
+Sign-out logs the node out and forgets the matching SharpRail pairing and remembered endpoint token.
+Automatic startup restoration reconnects the remembered host, while opening the picker explicitly keeps
+host selection and sign-out available instead of immediately reopening that host.
+The app closes the node on session disposal without deleting identity; backgrounding retains it, and
+returning to the foreground resumes status polling and existing RPC reconnection. Both pairing HTTP and
+every RPC adapter use this node: RPC handlers are registered for the approved endpoint before channels
+are created and removed after adapters close. Manual connections keep ordinary network routing. Remembered pairings
 bootstrap again on client launch, so host port changes need no manual editing. Disconnecting on Android also forgets that pairing secret. Existing manual and QR
 connections keep their current behavior. A live workbench keeps the existing reconnect behavior; after
 a host restart changes its listening port, reopening the picker refreshes the endpoint.
@@ -85,7 +99,10 @@ authentication callback and stops any listener it owns before returning.
 `--tailscale` exercises registry expiry and limits, node binding, credential secrecy and persistence,
 actual HTTP discovery and approval against a fake Tailscale identity provider, embedded WebSocket RPC startup,
 local/remote status parity, authenticated calls, revocation and plugin teardown. Fixtures never call the
-user's Tailscale daemon. Desktop and Android device-to-device operation requires manual verification.
+user's Tailscale daemon. `--android` also checks embedded state reuse, netmap validation and real
+authenticated SOCKS5 HTTP probing against a local fake proxy; `--transport` checks endpoint-scoped
+WebSocket handler routing, reconnect and disposal. The native bridge has isolated Go tests for its
+operation and proxy lifetimes. Desktop and Android device-to-device operation requires manual verification.
 
 The Tailscale settings page displays a credential-free `sharprail://tailscale?host=…`
 QR code for its hostname. Android's existing Scan QR code action opens Tailscale
@@ -95,3 +112,9 @@ The code contains no token or WebSocket RPC port. Existing manual-host QR codes 
 The plugin list and settings navigation use the official Tailscale nine-dot SVG icon,
 staged as a host-served plugin asset. Its fill follows the theme; geometry and opacity
 are preserved. Source and trademark attribution are recorded in NOTICE.md.
+Android's embedded bridge initializes Tailscale's supported log directory under
+app-private node storage, with mode 0700; it does not assume HOME or XDG paths exist.
+Library log uploads are disabled. A synchronous native panic is converted into a
+credential-free error at the C ABI boundary; it is not a substitute for preventing
+background-goroutine failures. The Android module's verification section records the
+actual emulator auth milestone and the remaining real-account acceptance boundary.

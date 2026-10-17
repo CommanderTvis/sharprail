@@ -1,0 +1,10 @@
+This component embeds Tailscale (https://github.com/tailscale/tailscale),
+version v1.104.1, copyright Tailscale Inc. and contributors, BSD-3-Clause.
+Its license is reproduced in TAILSCALE-LICENSE.
+
+It is compiled with the Go standard library, copyright The Go Authors,
+BSD-3-Clause. The build copies the Go license to GO-LICENSE in the output.
+
+The locked module graph in go.mod and go.sum includes third-party code.
+The build copies upstream LICENSE, COPYING and NOTICE files from module roots
+into the output's licenses directory for distribution alongside the library.

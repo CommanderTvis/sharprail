@@ -25,6 +25,7 @@ internal static class BrowserTransportChecks
             using var invoker = new RpcChannel(new Uri(addresses[0]));
             using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             var context = new CallContext(new CallOptions(new Metadata { { "authorization", "Bearer browser-check" } }, cancellationToken: timeout.Token));
+            await RpcTransportChecks.Run(new Uri(addresses[0]), context);
             var states = invoker.CreateService<IStateRpc>();
             var hello = await states.HandshakeAsync(new(), context);
             Require(hello.ProtocolVersion > 0, "The browser transport must preserve unary protobuf replies.");

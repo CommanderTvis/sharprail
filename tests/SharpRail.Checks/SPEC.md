@@ -799,4 +799,11 @@ Global JVM provider checks cover deterministic legacy migration, explicit global
 
 The project language-autostart checks cover persisted project scope, direct/remote snapshot parity, concurrent and warm starts, stopped/failed recovery, and managed-launch ordering before terminal attachment. The headless checkbox interaction verifies immediate host persistence.
 
+The Android client checks exercise the platform-free embedded Tailscale controller
+with a fake native ABI and a real authenticated SOCKS5 server: persistent node reuse,
+netmap-only name resolution, eligible-peer probing, credentials on the proxy protocol
+rather than host HTTP, logout and teardown. RPC transport checks use a real WebSocket
+server to verify endpoint-specific private routing, reconnect, route replacement and
+owned-handler disposal. These fixtures require neither a real tailnet nor account login.
+
 The Git UI fixture waits for the exact remembered commit row after switching back to a workspace; mounting its frame alone does not mean its deferred commit catalog has reconciled.

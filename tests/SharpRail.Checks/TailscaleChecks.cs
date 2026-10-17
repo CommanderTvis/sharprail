@@ -116,6 +116,27 @@ internal static class TailscaleChecks
                     "Invalid hosts leave the picker usable and never save credentials.");
             }
             finally { pickerWindow.Close(); }
+            var rememberedPath = Path.Combine(directory, "remembered-picker.json");
+            var rememberedPairing = TailscaleClient.NewPairing("saved.tailnet.ts.net");
+            TailscaleClient.Save(rememberedPath, rememberedPairing);
+            var privateNetwork = new PickerNetwork();
+            var choose = new TailscaleConnectView(rememberedPath, network: privateNetwork, restorePairing: false);
+            TailscaleConnection? chosen = null;
+            choose.Connected += connection => chosen = connection;
+            var chooseWindow = new Window { Content = choose, Width = 460, Height = 540 };
+            try
+            {
+                chooseWindow.Show();
+                E2eWorkspace.Until(() => choose.FindControl<TextBlock>("TailscaleProgress")!.Text?.StartsWith("No hosts found", StringComparison.Ordinal) == true);
+                Require(privateNetwork.BootstrapCalls == 0 && chosen is null &&
+                    choose.FindControl<TextBox>("TailscaleHost")!.Text == rememberedPairing.Host,
+                    "Opening the host chooser must permit changing host or signing out instead of immediately reconnecting the remembered host.");
+                choose.FindControl<Button>("TailscalePair")!.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+                E2eWorkspace.Until(() => chosen is not null);
+                Require(privateNetwork.BootstrapCalls == 1 && chosen!.Token == rememberedPairing.Token,
+                    "Explicitly connecting the remembered host reuses its own approved pairing secret through the injected network.");
+            }
+            finally { chooseWindow.Close(); }
         }
         finally { window.Close(); }
         Console.WriteLine("PASS Tailscale UI: bootstrap picker, approval identity/code, RPC commands, retained rows and subscription teardown");
@@ -195,6 +216,18 @@ internal static class TailscaleChecks
             Tokens.Add(request.Headers.GetValues("X-SharpRail-Pairing").Single());
             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = JsonContent.Create(reply(Tokens.Count), options: PluginJson.Options) });
         }
+    }
+
+    private sealed class PickerNetwork : ITailscaleClientNetwork
+    {
+        public int BootstrapCalls;
+        public HttpMessageHandler CreateHandler() => new PairingHandler(_ => new("approved", "http://100.70.1.2:54123/"));
+        public Task<Uri> BootstrapAsync(string host, CancellationToken cancellationToken)
+        {
+            BootstrapCalls++;
+            return Task.FromResult(new Uri("http://100.70.1.2:54124/"));
+        }
+        public Task<IReadOnlyList<TailscalePeer>> PeersAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<TailscalePeer>>([]);
     }
 
     private static async Task ClientPolling()

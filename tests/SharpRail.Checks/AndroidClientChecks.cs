@@ -43,6 +43,8 @@ internal static class AndroidClientChecks
         Require(HostEndpoint.Load(directory) is null, "A damaged record must read as no remembered host.");
         HostEndpoint.Forget(directory);
         Require(!File.Exists(Path.Combine(directory, "host.json")), "Forgetting must remove the record.");
+        EmbeddedTailscaleChecks.Run(root).GetAwaiter().GetResult();
+        EmbeddedTailscaleRpcChecks.Run(root).GetAwaiter().GetResult();
         Console.WriteLine("PASS Android client: host addresses parse with the default port, connect links round-trip and the endpoint is remembered");
     }
 }

@@ -191,3 +191,9 @@ and do not imply publisher endorsement.
 Plugins settings reuses the bundled Claude and Discord mark silhouettes with their brand colors.
 Their original provenance and licensing remain those of the bundled plugin assets; this
 presentation does not imply affiliation with either vendor.
+
+The Android client embeds Tailscale v1.104.1 (`tsnet`, BSD-3-Clause) and its Go
+runtime. Source, pinned module checksums and the Tailscale license are under
+`src/SharpRail.Android/Tailscale.Native`. The native build stages the Go license
+and module license notices into the APK's `assets/licenses/tailscale` directory.
+Tailscale is a trademark of Tailscale Inc.; this integration does not imply endorsement.

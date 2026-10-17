@@ -117,3 +117,8 @@ behavior, but they need the compiled assemblies and negative fixtures, so they l
 `--no-build` is requested, compiles the checks' native interposer with warnings as errors, and scopes
 DYLD injection to its own checks process. It rejects an existing injection and cleans its fixtures
 and generated library on exit. It never modifies a running app or measures global pool occupancy.
+
+The Android native build also stages a pinned Tailscale userspace node through
+`build-tailscale-android.sh` for both packaged ABIs, with checksum-verified local Go,
+the checkout NDK and module checksums. The resulting native library and dependency
+license notices are included in the APK; no global Go installation is modified.

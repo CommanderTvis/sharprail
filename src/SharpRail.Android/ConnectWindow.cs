@@ -23,14 +23,19 @@ public sealed partial class ConnectWindow : Window
     private readonly Button scan;
     private CancellationTokenSource? attempt;
     private bool abandoned;
+    private bool closed;
+    private bool completed;
     private readonly string? tailscaleStatePath;
+    private readonly EmbeddedTailscaleNetwork? tailscaleNetwork;
+    internal bool UsesEmbeddedTailscale { get; private set; }
 
     /// <summary>Raised once the host answered with the entered token.</summary>
     public event Action<HostEndpoint>? Connected;
 
-    public ConnectWindow(HostEndpoint? remembered, string? tailscaleStatePath = null)
+    internal ConnectWindow(HostEndpoint? remembered, string? tailscaleStatePath = null, EmbeddedTailscaleNetwork? tailscaleNetwork = null)
     {
         this.tailscaleStatePath = tailscaleStatePath;
+        this.tailscaleNetwork = tailscaleNetwork;
         // Stock controls and the system bars take their colours from the variant, which follows the app's theme.
         RequestedThemeVariant = Ui.Theme.IsLight ? ThemeVariant.Light : ThemeVariant.Dark;
         AvaloniaXamlLoader.Load(this);
@@ -62,7 +67,7 @@ public sealed partial class ConnectWindow : Window
             this.FindControl<Button>("ConnectManualBack")!.IsVisible = false;
         };
         submit.Click += (_, _) => { if (attempt is null) _ = ConnectAsync(); else Abandon(); };
-        Closed += (_, _) => Abandon();
+        Closed += (_, _) => { closed = true; Abandon(); };
         Refresh();
     }
 
@@ -73,15 +78,21 @@ public sealed partial class ConnectWindow : Window
     {
         var pairing = tailscaleStatePath is null ? null : await Task.Run(() => TailscaleClient.Load(tailscaleStatePath));
         if (!IsVisible) return;
-        if (pairing is not null && pairing.Token == token.Text) ShowTailscale();
+        if (pairing is not null && pairing.Token == token.Text) ShowTailscale(autoConnect: true);
         else await ConnectAsync();
     }
 
-    private void ShowTailscale(string? initialHost = null)
+    private void ShowTailscale(string? initialHost = null, bool autoConnect = false)
     {
-        if (tailscaleStatePath is null) return;
-        var view = new TailscaleConnectView(tailscaleStatePath, initialHost);
-        view.Connected += next => Connected?.Invoke(new(next.Address, next.Token));
+        if (tailscaleStatePath is null || closed) return;
+        Abandon();
+        if (tailscaleNetwork is null) return;
+        var view = new EmbeddedTailscaleView(tailscaleNetwork, tailscaleStatePath, initialHost, autoConnect);
+        view.SignedOut += () => token.Text = "";
+        view.Connected += next =>
+        {
+            Complete(new(next.Address, next.Token), embedded: true);
+        };
         this.FindControl<StackPanel>("ConnectManual")!.IsVisible = false;
         this.FindControl<Button>("ConnectTailscale")!.IsVisible = false;
         this.FindControl<ContentControl>("ConnectTailscaleBody")!.Content = view;
@@ -99,6 +110,7 @@ public sealed partial class ConnectWindow : Window
     private async Task ConnectAsync()
     {
         if (attempt is not null) return;
+        UsesEmbeddedTailscale = false;
         var endpoint = new HostEndpoint(address.Text?.Trim() ?? "", token.Text?.Trim() ?? "");
         error.IsVisible = false;
         if (endpoint.Uri is not { } uri) { Fail("Enter the host's address, like 192.168.1.20:54123."); return; }
@@ -127,7 +139,15 @@ public sealed partial class ConnectWindow : Window
         Refresh();
         if (abandoned) return;
         if (failure is not null) Fail(failure);
-        else Connected?.Invoke(endpoint);
+        else Complete(endpoint, embedded: false);
+    }
+
+    private void Complete(HostEndpoint endpoint, bool embedded)
+    {
+        if (closed || completed || !IsVisible) return;
+        completed = true;
+        UsesEmbeddedTailscale = embedded;
+        Connected?.Invoke(endpoint);
     }
 
     /// <summary>Shows why the app is back on this screen, such as a host that stopped answering.</summary>

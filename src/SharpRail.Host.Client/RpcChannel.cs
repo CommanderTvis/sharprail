@@ -10,18 +10,19 @@ namespace SharpRail.Host.Client;
 /// <summary>Typed host calls over a shared, reconnectable WebSocket connection.</summary>
 public sealed class RpcChannel : IRpcClient, IDisposable
 {
-    private static readonly Dictionary<string, Connection> connections = [];
-    private readonly string key;
+    private static readonly Dictionary<(string Address, RpcTransports.Registration? Transport), Connection> connections = [];
+    private readonly (string Address, RpcTransports.Registration? Transport) key;
     private readonly Connection connection;
     private readonly HostConnection? host;
     private int disposed;
     public RpcChannel(Uri address, HostConnection? host = null, TimeSpan? keepAlive = null)
     {
         this.host = host;
-        key = address.AbsoluteUri + "|" + (host?.ClientId ?? "") + "|" + keepAlive;
+        var transport = RpcTransports.Find(address);
+        key = (address.AbsoluteUri + "|" + (host?.ClientId ?? "") + "|" + keepAlive, transport);
         lock (connections)
         {
-            if (!connections.TryGetValue(key, out connection!)) connections[key] = connection = new(address, keepAlive);
+            if (!connections.TryGetValue(key, out connection!)) connections[key] = connection = new(address, keepAlive, transport);
             connection.Users++;
         }
     }
@@ -114,7 +115,7 @@ public sealed class RpcChannel : IRpcClient, IDisposable
             connection.Dispose();
         }
     }
-    private sealed class Connection(Uri address, TimeSpan? keepAlive)
+    private sealed class Connection(Uri address, TimeSpan? keepAlive, RpcTransports.Registration? transport)
     {
         private readonly SemaphoreSlim gate = new(1, 1);
         private readonly CancellationTokenSource lifetime = new();
@@ -148,6 +149,11 @@ public sealed class RpcChannel : IRpcClient, IDisposable
                         }
                         };
                         http = new HttpMessageInvoker(handler);
+                        await socket.ConnectAsync(uri, http, linked.Token);
+                    }
+                    else if (transport is not null)
+                    {
+                        http = new HttpMessageInvoker(transport.CreateHandler());
                         await socket.ConnectAsync(uri, http, linked.Token);
                     }
                     else await socket.ConnectAsync(uri, linked.Token);

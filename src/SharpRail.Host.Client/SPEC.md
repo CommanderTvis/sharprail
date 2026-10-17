@@ -176,3 +176,11 @@ Language adapters preserve project-root metadata and pagination identically for 
 
 
 ContextAsync uses the same host implementation through off-dispatcher direct calls and generated WebSocket RPC. State mapping preserves enabled Context workspaces; a missing older-host method is unavailable. Native provisioning, authentication and indexing remain on the workspace host.
+
+`RpcTransports.RegisterTransport` scopes a fresh HTTP handler factory to an exact endpoint, normalizing
+HTTP/WebSocket schemes. It supports private userspace network routes without process-global proxy
+settings. Pool identity includes the registration, preventing ordinary or replacement routes from sharing
+a private connection. Every reconnect creates a new handler; failed attempts and final connection teardown
+dispose it. Registration disposal affects new channels; existing channels retain their selected route
+until disposed. Duplicate active registrations are rejected. Unix sockets and browser-default sockets
+retain their existing path; custom registrations are unavailable in browser builds.

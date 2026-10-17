@@ -8,6 +8,9 @@ namespace SharpRail.Plugins.Tailscale.UI;
 public sealed partial class TailscaleConnectView : UserControl
 {
     private readonly string statePath;
+    private readonly Func<TailscaleClient> createClient;
+    private readonly bool embedded;
+    private readonly bool restorePairing;
     private readonly TextBox host;
     private readonly TextBlock progress;
     private readonly Button pair;
@@ -25,9 +28,12 @@ public sealed partial class TailscaleConnectView : UserControl
     [System.Obsolete("Construct TailscaleConnectView with its arguments.", true)]
     public TailscaleConnectView() => throw new System.NotSupportedException("TailscaleConnectView needs its constructor arguments.");
 
-    public TailscaleConnectView(string statePath, string? initialHost = null)
+    public TailscaleConnectView(string statePath, string? initialHost = null, ITailscaleClientNetwork? network = null, bool restorePairing = true)
     {
         this.statePath = statePath;
+        this.restorePairing = restorePairing;
+        embedded = network is not null;
+        createClient = network is null ? () => new TailscaleClient() : () => new TailscaleClient(network);
         AvaloniaXamlLoader.Load(this);
         host = this.FindControl<TextBox>("TailscaleHost")!;
         scannedHost = !string.IsNullOrWhiteSpace(initialHost);
@@ -37,7 +43,7 @@ public sealed partial class TailscaleConnectView : UserControl
         discover = this.FindControl<Button>("TailscaleDiscover")!;
         cancel = this.FindControl<Button>("TailscaleCancel")!;
         hosts = this.FindControl<ComboBox>("TailscaleHosts")!;
-        discover.IsVisible = !OperatingSystem.IsAndroid();
+        discover.IsVisible = network is not null || !OperatingSystem.IsAndroid();
         pair.Click += (_, _) => _ = PairAsync();
         discover.Click += (_, _) => _ = DiscoverAsync();
         cancel.Click += (_, _) => attempt?.Cancel();
@@ -56,8 +62,10 @@ public sealed partial class TailscaleConnectView : UserControl
         else if (remembered is { } saved && string.IsNullOrWhiteSpace(host.Text))
         {
             host.Text = saved.Host;
-            await PairAsync();
+            if (restorePairing) await PairAsync();
+            else if (embedded) await DiscoverAsync();
         }
+        else if (embedded) await DiscoverAsync();
     }
 
     private void Busy(bool busy)
@@ -75,7 +83,7 @@ public sealed partial class TailscaleConnectView : UserControl
         progress.Text = "Looking for SharpRail hosts…";
         try
         {
-            using var client = new TailscaleClient();
+            using var client = createClient();
             var found = await Task.Run(() => client.DiscoverAsync(current.Token));
             if (current.IsCancellationRequested) return;
             hosts.ItemsSource = found;
@@ -95,13 +103,15 @@ public sealed partial class TailscaleConnectView : UserControl
         Busy(true);
         try
         {
-            using var client = new TailscaleClient();
+            using var client = createClient();
             var connection = await Task.Run(() => client.PairAsync(pairing, text => Dispatcher.UIThread.Post(() =>
             {
                 if (attempt == current) progress.Text = text;
             }), current.Token));
             current.Token.ThrowIfCancellationRequested();
-            await Task.Run(() => TailscaleClient.Save(statePath, pairing), current.Token);
+            await Task.Run(() => TailscaleClient.Save(statePath, pairing, current.Token), current.Token);
+            current.Token.ThrowIfCancellationRequested();
+            if (TopLevel.GetTopLevel(this) is null || attempt != current) return;
             remembered = pairing;
             Connected?.Invoke(connection);
         }

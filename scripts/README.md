@@ -245,3 +245,11 @@ accept them. --context and --context-ui run synthetic provisioning/runtime/trans
 UI fixtures without a JetBrains account or cloud indexing. They include Node-based
 command/MCP fixtures on macOS/Linux; no expensive real-provider corpus joins the gate.
 A real authenticated Context smoke test remains a separate, user-authorized action.
+
+### Android embedded Tailscale
+
+`sh scripts/build-tailscale-android.sh [arm64-v8a|x86_64]` builds the app-private
+userspace node using checksum-pinned Go and the checkout's Android NDK. It stages
+`libSharpRailTailscale.so` and dependency licenses under `.tools/tailscale-android/<abi>`.
+The Android build invokes it for both packaged ABIs. The NDK is the one `scripts/mise run bootstrap:android` links as `.tools/android-ndk`. See the [bridge README](../src/SharpRail.Android/Tailscale.Native/README.md)
+for its ABI and native tests; no system Go installation or separate Android VPN app is required.

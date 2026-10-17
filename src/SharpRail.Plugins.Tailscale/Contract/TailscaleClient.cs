@@ -10,15 +10,22 @@ namespace SharpRail.Plugins.Tailscale;
 /// <summary>The client-local bootstrap, usable before any host plugin context exists.</summary>
 public sealed class TailscaleClient : IDisposable
 {
+    private static readonly object pairingFiles = new();
     private readonly HttpClient http;
     private readonly Func<string, CancellationToken, Task<Uri>> bootstrap;
+    private readonly Func<CancellationToken, Task<IReadOnlyList<TailscalePeer>>> peers;
 
     public TailscaleClient() : this(new SocketsHttpHandler { AllowAutoRedirect = false, UseProxy = false }, BootstrapAsync) { }
 
-    internal TailscaleClient(HttpMessageHandler handler, Func<string, CancellationToken, Task<Uri>> bootstrap)
+    /// <summary>Uses a client-owned embedded network rather than the system Tailscale installation.</summary>
+    public TailscaleClient(ITailscaleClientNetwork network) : this(network.CreateHandler(), network.BootstrapAsync, network.PeersAsync) { }
+
+    internal TailscaleClient(HttpMessageHandler handler, Func<string, CancellationToken, Task<Uri>> bootstrap,
+        Func<CancellationToken, Task<IReadOnlyList<TailscalePeer>>>? peers = null)
     {
         http = new(handler) { Timeout = TimeSpan.FromSeconds(10), MaxResponseContentBufferSize = 16 * 1024 };
         this.bootstrap = bootstrap;
+        this.peers = peers ?? TailscaleCli.PeersAsync;
     }
 
     internal static async Task<Uri> BootstrapAsync(string host, CancellationToken cancellationToken)
@@ -39,7 +46,7 @@ public sealed class TailscaleClient : IDisposable
 
     public async Task<IReadOnlyList<TailscalePeer>> DiscoverAsync(CancellationToken cancellationToken)
     {
-        var peers = await TailscaleCli.PeersAsync(cancellationToken);
+        var peers = (await this.peers(cancellationToken)).Take(256).ToArray();
         using var slots = new SemaphoreSlim(8);
         var results = await Task.WhenAll(peers.Select(async peer =>
         {
@@ -52,7 +59,7 @@ public sealed class TailscaleClient : IDisposable
                 using var reply = await http.GetAsync(new Uri(uri, "sharprail"), timeout.Token);
                 reply.EnsureSuccessStatusCode();
                 var info = await reply.Content.ReadFromJsonAsync<TailscaleHostInfo>(PluginJson.Options, timeout.Token);
-                return info is null ? null : new TailscalePeer(info.Name, peer.Name);
+                return info is null ? null : new TailscalePeer(info.Name, peer.Address);
             }
             catch (Exception error) when (error is IOException or HttpRequestException or OperationCanceledException or JsonException) { return null; }
             finally { slots.Release(); }
@@ -96,21 +103,26 @@ public sealed class TailscaleClient : IDisposable
 
     public static void Forget(string path, string token)
     {
-        if (Load(path)?.Token == token) File.Delete(path);
+        lock (pairingFiles)
+            if (Load(path)?.Token == token) File.Delete(path);
     }
 
-    public static void Save(string path, TailscaleRemembered pairing)
+    public static void Save(string path, TailscaleRemembered pairing, CancellationToken cancellationToken = default)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
-        var temporary = path + ".tmp-" + Guid.NewGuid().ToString("N");
-        try
+        lock (pairingFiles)
         {
-            var options = new FileStreamOptions { Mode = FileMode.CreateNew, Access = FileAccess.Write };
-            if (!OperatingSystem.IsWindows()) options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
-            using (var stream = new FileStream(temporary, options)) JsonSerializer.Serialize(stream, pairing, PluginJson.Options);
-            File.Move(temporary, path, overwrite: true);
+            cancellationToken.ThrowIfCancellationRequested();
+            Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
+            var temporary = path + ".tmp-" + Guid.NewGuid().ToString("N");
+            try
+            {
+                var options = new FileStreamOptions { Mode = FileMode.CreateNew, Access = FileAccess.Write };
+                if (!OperatingSystem.IsWindows()) options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+                using (var stream = new FileStream(temporary, options)) JsonSerializer.Serialize(stream, pairing, PluginJson.Options);
+                File.Move(temporary, path, overwrite: true);
+            }
+            finally { File.Delete(temporary); }
         }
-        finally { File.Delete(temporary); }
     }
 
     public void Dispose() => http.Dispose();

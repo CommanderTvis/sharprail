@@ -16,7 +16,11 @@ public sealed class ClientSession(string filesDirectory, bool compact) : IDispos
 {
     private readonly string directory = Path.Combine(filesDirectory, ".sharprail");
     private readonly List<IDisposable> adapters = [];
+    private readonly EmbeddedTailscaleNetwork tailscale = new(Path.Combine(filesDirectory, ".sharprail", "tailscale-node"), networkSnapshot: AndroidTailscalePlatform.Snapshot);
+    private AndroidTailscalePlatform? networkMonitor;
+    private IDisposable? tailscaleRoute;
     private Workbench? workbench;
+    private ConnectWindow? connecting;
     private DispatcherTimer? watch;
     private int unreachable;
 
@@ -42,6 +46,7 @@ public sealed class ClientSession(string filesDirectory, bool compact) : IDispos
     public void Start()
     {
         Current = this;
+        networkMonitor = new(tailscale);
         var remembered = HostEndpoint.Load(directory);
         var connect = ShowConnect(remembered);
         if (remembered is { Token.Length: > 0, Uri: not null }) connect.ConnectNow();
@@ -74,9 +79,14 @@ public sealed class ClientSession(string filesDirectory, bool compact) : IDispos
 
     private ConnectWindow ShowConnect(HostEndpoint? remembered)
     {
-        var connect = new ConnectWindow(remembered, Path.Combine(directory, "tailscale-client.json"));
+        var connect = new ConnectWindow(remembered, Path.Combine(directory, "tailscale-client.json"), tailscale);
+        connecting = connect;
         connect.Connected += endpoint =>
         {
+            if (disposed || connecting != connect || !connect.IsVisible) return;
+            connecting = null;
+            if (connect.UsesEmbeddedTailscale)
+                tailscaleRoute = RpcTransports.RegisterTransport(endpoint.Uri!, tailscale.CreateHandler);
             endpoint.Save(directory);
             // One window fills the activity at a time: the connect screen leaves before the workbench is created.
             connect.Close();
@@ -135,6 +145,8 @@ public sealed class ClientSession(string filesDirectory, bool compact) : IDispos
 
     private void Close()
     {
+        connecting?.Close();
+        connecting = null;
         watch?.Stop();
         watch = null;
         Endpoint = null;
@@ -146,12 +158,17 @@ public sealed class ClientSession(string filesDirectory, bool compact) : IDispos
         workbench = null;
         foreach (var adapter in adapters) adapter.Dispose();
         adapters.Clear();
+        tailscaleRoute?.Dispose();
+        tailscaleRoute = null;
     }
 
     public void Dispose()
     {
         disposed = true;
         Close();
+        networkMonitor?.Dispose();
+        networkMonitor = null;
+        _ = tailscale.DisposeAsync();
         if (Current == this) Current = null;
     }
 }

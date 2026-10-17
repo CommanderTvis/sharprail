@@ -7,7 +7,7 @@ No upstream counterpart: the reference has no Android client.
 The Android application: the workbench of `SharpRail.UI` compiled for Android and composed as a client of a
 host that runs elsewhere. It owns the application and activity entry points, the windowing layer Avalonia's
 Android backend lacks, the connect screen, the remembered host endpoint and the packaging of the native
-terminal, editor and PDF libraries. It adds no workbench behaviour of its own; the one screen it contributes
+terminal, editor, PDF and embedded Tailscale libraries. It adds no workbench behaviour of its own; the one screen it contributes
 is the connect screen, and the one page it replaces is Settings › Host.
 
 ## Boundary
@@ -180,10 +180,11 @@ profile) and the endpoint.
 | --- | --- | --- |
 | `libGhosttyAvaloniaVt.so` | libghostty-vt at the commit pinned in `src/Ghostty.Avalonia/build-native.sh`, behind the Skia control's C shim | `src/Ghostty.Avalonia/build-android.sh` |
 | `libSharpRail.Scintilla.so` | The patched Scintilla and SheenBidi sources of the desktop build, with libc++ linked statically | `src/SharpRail.Scintilla/build-android.sh` |
+| `libSharpRailTailscale.so` | pinned Tailscale `tsnet` behind the app-private C ABI | `scripts/build-tailscale-android.sh` |
 | `libpdfium.so` | `bblanchon.PDFium.Android`, pinned with the desktop PDFium packages | NuGet |
 
-The `BuildNativeLibraries` target runs both scripts for `arm64-v8a` and `x86_64` before every build and adds
-their outputs as `AndroidNativeLibrary` items. Both use the NDK r27d that `scripts/mise run bootstrap:android` installs
+The `BuildNativeLibraries` target runs the native scripts (Tailscale, Ghostty, Scintilla) for `arm64-v8a` and `x86_64` before every build and adds
+their outputs as `AndroidNativeLibrary` items. All use the NDK r27d that `scripts/mise run bootstrap:android` installs
 under `.tools/android-ndk`, target API 24 and align segments to 16 KB pages. The Ghostty library lands in the
 shared cache `.tools/ghostty-avalonia/android/<abi>`, the Scintilla library in
 `src/SharpRail.Scintilla/obj/native/android/<abi>`. PDF Preview's desktop PDFium packages are referenced with
@@ -224,7 +225,7 @@ package carries the SDK's default signature.
 - One workbench window. New window is not adapted to Android.
 - No automated on-device tests; the headless checks cover the shared touch and soft-keyboard input only.
 - The Release package is about 84 MB, untrimmed, with unreachable desktop code inside.
-- `licenses/` and the notices are not packaged into the APK.
+- Existing desktop `licenses/` notices are not packaged; the embedded Tailscale/Go dependency notices are included as Android assets.
 
 ## Validation
 
@@ -249,8 +250,22 @@ accessibility services, plugin UI beyond what the default workbench shows, HTTPS
 ## Tailscale pairing
 
 The connect screen can mount the builtin [Tailscale picker](../SharpRail.Plugins.Tailscale/SPEC.md). Android
-uses a MagicDNS host name instead of enumerating another app's private peer list. Pairing handles approval
-and remembers its own token. Launching a remembered Tailscale connection bootstraps again to obtain the
+runs its own embedded userspace Tailscale node, with a separate tailnet device identity in app-private
+`tailscale-node` storage. A system browser handles Tailscale sign-in; no OAuth implementation, embedded
+web view, Tailscale application or system VPN interface is needed. The embedded native netmap supplies
+online peers and address resolution. Discovery probes only eligible numeric tailnet IPv4 addresses,
+then the existing pairing flow handles host approval and remembers its own token. A pinned Go/C bridge
+provides finite local API calls, status/authentication notifications and a credential-protected IPv4
+loopback SOCKS5 listener backed by `tsnet.Server.Dial`. Android restricts raw netlink interface
+enumeration, so the bridge uses Tailscale's supported interface-getter hook. `ConnectivityManager`
+supplies the active link's addresses, index, MTU and default route before node startup and on network
+changes; updates notify the existing native monitor. Offline snapshots are empty rather than errors. Pairing HTTP and WebSocket RPC use explicit managed
+HTTP handlers over this proxy; ordinary sockets are never assumed to route through the embedded node.
+The approved endpoint's disposable RPC route is registered before creating adapters and removed after
+closing them. Proxy credentials are never persisted, displayed or logged. Browser login URLs are restricted
+to HTTPS Tailscale domains. The node stays alive across connect-screen/workbench changes and backgrounding;
+activity/session disposal stops it while retaining identity. Sign-out revokes login and clears matching
+pairing and endpoint tokens. Cancellation stops UI polling and pairing, without revoking node identity. Launching a remembered Tailscale connection bootstraps again to obtain the
 host's current port. Manual entry and QR scanning remain available. Desktop picker window source and XAML
 are excluded from the linked UI sources.
 
@@ -258,3 +273,27 @@ The Tailscale settings page displays a credential-free `sharprail://tailscale?ho
 QR code for its hostname. Android's existing Scan QR code action opens Tailscale
 pairing with that hostname and starts the usual comparison-code/host-approval flow.
 The code contains no token or WebSocket RPC port. Existing manual-host QR codes still work.
+
+The native bridge pins Tailscale and Go versions/checksums in its source/build script, compiles both
+packaged ABIs for API 24 with the checkout NDK and stages dependency licenses. Its README documents
+the C ABI and standalone native checks. No real-account authentication is performed by automated tests.
+
+Embedded Tailscale verification on 2026-10-18: Release solution compilation and
+focused Android/Tailscale/transport checks passed. All 142 source gate cases passed
+in aggregate; the final picker and combined routing additions passed their focused checks.
+The combined fixture carries discovery, pending approval, pairing and a real authenticated
+WebSocket RPC handshake through the same credential-checked SOCKS5 proxy. Both native ABI builds and Go
+race checks passed, including native lifecycle, authenticated proxy teardown,
+Android interface snapshots, private log-directory initialization without HOME/XDG,
+and synchronous panic-to-error handling. The APK contains the exact native outputs
+and dependency notices; native LOAD segments and APK alignment support 16 KB pages.
+
+A fresh Android 16 arm64 emulator, without a Tailscale application, ran the Release
+APK through embedded-node startup, the explicit browser-login action and loading
+Tailscale's login page in Chrome. Returning to SharpRail retained pending sign-in;
+Wi-Fi/mobile transitions, a confirmed interval with no active network, and cold
+process relaunch did not crash. No real account credentials were entered. Actual
+account enrollment, authenticated identity reuse, real-tailnet discovery/host approval
+and workbench RPC over that tailnet still require a user's sign-in/device check;
+the automated transport checks establish the routing seams rather than that acceptance.
+Physical Android devices and the x64 Android runtime were not exercised for this change.
