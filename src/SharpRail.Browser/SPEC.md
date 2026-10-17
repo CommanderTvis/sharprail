@@ -24,6 +24,14 @@ Browser, desktop and Android share the protobuf WebSocket RPC transport at the h
 Calls dispatch directly to host adapters with multiplexing, receive-credit flow control, cancellation,
 deadlines, structured errors and mutation replay. See Host.Protocol's spec for wire limits and lifetime.
 The Error indicator opens actual failure details and a Retry action for the current workspace restore or refresh; subscription failures remain visible while the automatic reconnect loop continues. Browser connection tokens are removed from displayed failure text. Successful connections retain Change host.
+For loopback hosts, the connect form permits a blank token and requests approval in the desktop
+app. It shows pending/cancel, denial, expiry and unsupported-host states; manual tokens remain
+available. The app approval names the page’s actual Origin and describes access to projects, files,
+settings, plugins and terminals. The browser stores its temporary credential only in session storage,
+separate from the visible token field. Reload/reconnect reuses it; listener restart or revocation
+rejects it and immediately returns the user to requesting approval when the state subscription
+reports authentication rejection. Ordinary transport outages retain the existing reconnect behavior. Nonloopback hosts still require a token.
+
 The token is never included in a URL. The endpoint and token live in session storage; client-local view
 state lives in local storage. Shared settings and workspace lifecycle belong to the host.
 Tabs live under their workspace in Projects on every client. Pane geometry, direction, selection and
@@ -68,9 +76,51 @@ remained 128,067 DIP. This is a focused local acceptance result, not a cross-dev
 Normal published-bundle acceptance also opens restored prose and Mermaid, Settings and an external
 managed plugin performing a typed JSON round trip; test-only exports must be absent.
 The measured native runtime is 37,902,293 bytes, versus 11,605,717 interpreted. Gzip level 9 yields
-11,398,782 bytes and Brotli quality 11 yields 7,923,255 bytes; these are compression measurements,
-not served transfer sizes. The standalone host currently serves raw assets without response compression.
-Clipboard images are uploaded to the host before their path is pasted into a shell.
+11,398,782 bytes and Brotli quality 11 yields 7,923,255 bytes; these are historical runtime-only
+compression measurements. Clipboard images are uploaded to the host before their path is pasted into a shell.
+
+### Build and transfer settings
+
+The 2026-10-16 inspection of SDK 10.0.401/runtime 10.0.12 found Release already selected by
+`browser.sh` for build, run, publish and checks. Selective hybrid AOT, preserved IL/reflection,
+SIMD, WASM exception handling and threads remain enabled. The SDK uses native compile `-Oz`,
+Release link `-O2`, native stripping and wasm-opt; the pinned native terminal uses ReleaseFast
+and native C/C++ bridges use `-O2`. Those compiler policies are retained. The standalone
+`host.sh` launcher now also defaults to Release, with the existing configuration override.
+
+This project uses the plain WASM SDK rather than the Blazor static-web-assets pipeline.
+Release Build and Publish generate Brotli quality 11 and gzip level 9 sidecars for compressible
+runtime and vendor assets through `scripts/browser-compress.mjs`. Files below 1 KiB and
+representations that would grow use identity. SHA-256 keyed compressed bytes under
+`.tools/browser-compression` survive SDK bundle regeneration; complete sidecars and cache entries
+are published by atomic rename. The original
+bundle remains deployable. Compression adds bundling CPU time and disk space, avoiding
+compression CPU on every request. The standalone host negotiates fresh sidecars at original
+URLs, preserving MIME types, COOP/COEP, HEAD and conditional caching with encoding variation.
+Other deployment servers must implement equivalent sidecar serving. Managed assembly preservation,
+selective AOT and runtime plugin loading retain their existing policies. Unfingerprinted assets
+retain normal conditional caching.
+
+The 2026-10-16 macOS Release Publish verified byte-identical preservation of 249 managed
+assemblies. Its 606 compressed sidecars all decoded exactly and were smaller than their
+originals. Compressible assets totalled 110,753,169 bytes raw, 26,688,394 with Brotli and
+35,531,646 with gzip, including identity fallbacks; these totals include assets that startup
+may not request. The native runtime alone was 37,902,293 bytes raw, 7,929,623 Brotli and
+11,398,774 gzip. Recreating both runtime sidecars from the populated content cache took 94 ms
+locally; first-time quality 11 compression remains substantially slower.
+
+The normal published-bundle Chromium smoke confirmed actual Brotli runtime responses and passed
+restored prose/Mermaid, Settings, external managed plugin UI with typed JSON, full viewport and
+excluded test hooks. Prose data-to-paint was 2,025 ms in that focused run, not a controlled
+before/after startup comparison. The bundler regression covers cache reuse across regeneration,
+changed inputs and small-file fallback; host checks cover decoded bytes, MIME types, isolation,
+quality negotiation/rejection, HEAD, conditional caching, stale/missing sidecars and direct URLs.
+Release solution compilation and touched C# formatting passed with zero compiler warnings/errors.
+The 139-case source gate completed in aggregate: the two-lane run stopped at an unchanged
+StartupChecks Git-error-placeholder timeout, which passed in isolation and on --last-failed;
+no unfinished cases remained. No controlled cold-start speedup or other-platform runtime
+acceptance is claimed. LSP tools were unavailable; spec validation retained the four existing
+Branch Graph dangling links.
 
 The default terminal uses restty 0.3.0 with WebGL2. It
 uses the existing host adapter, session lifetime and ordered output; streaming UTF-8
@@ -83,6 +133,17 @@ scrolling remains enabled for read-only scrollback. They never reach Avalonia wi
 target from Projects; moving back to Projects restores its normal wheel scrolling. The terminal's
 wheel ownership listener is removed during disposal. The focused `restty.mjs --wheel` check covers
 writable and read-only scrollback, returning to Projects and listener teardown.
+Pointer offsets, including coalesced samples, use the owning Avalonia container's CSS coordinates;
+terminal-relative offsets must never hover or click Projects. Movement bubbles to update managed
+hover, while primary presses/releases and cancellation remain native. Otherwise Avalonia's implicit
+window capture takes the release away from Restty, leaving selection attached to later pointer motion.
+The canvas captures its primary press so release outside it also ends the drag; native scrollbar
+capture is preserved. A completed selection stays fixed until a plain click clears it. A client-local
+focus notification focuses the owning terminal pane without passing a press to managed capture.
+Secondary-button routing and terminal application mouse reports retain their existing behavior.
+The listeners are removed during disposal. `restty.mjs --hover` checks real hover, pane focus, input,
+selection and pen coordinates; `PROFILE_DPR=2` covers emulated doubled pixel density. The independent
+`selection.mjs` regression exercises native capture and selection without requiring WASM app startup.
 Skia is selected only when restty's bridge, module, fonts, WASM or GPU initialization
 fails or exceeds the 30-second loading limit. Host attachment and stream errors do
 not select another renderer. There is no query-string or settings override to Skia.
@@ -194,3 +255,22 @@ Settings viewport stability. Settings passed at 1840×1340 with native DPR 2 and
 and interface zoom 1.25. Test-build and emulated scaling passes remain distinct from normal-bundle
 and physical-browser acceptance; intermittent startup/reload failures observed in earlier checks
 were not established as resolved by the rendering fixes.
+
+The 2026-10-17 local approval journey exercised actual browser Origin, app Allow/Deny, pending
+cancellation, temporary session-storage credentials, reload without another prompt, Settings
+revocation, listener-restart expiry and the remote-host token requirement. Complete journeys passed
+in bundled Chromium and installed Chrome. Repeated bundled-Chromium runs also intermittently
+stalled before a canvas appeared after reload; these passes do not establish that the earlier
+startup/reload instability is resolved. `local-approval.mjs` accepts `SHARPRAIL_BROWSER_CHANNEL`
+for checking another installed Playwright browser channel; its default remains bundled Chromium.
+
+The 2026-10-17 terminal-pointer repair passed actual rail-to-terminal hover, terminal click/PTY input,
+return-to-rail hover and coalesced pen-coordinate checks at DPR 1 and emulated DPR 2. A separate
+real DOM probe reproduced the old canvas-relative offsets and verified corrected window-relative
+coordinates for writable/read-only surfaces at a nonzero window origin, plus listener disposal.
+Release browser Build/Publish, new C# hook formatting, JS/shell syntax and exact Brotli-decoded
+live serving passed. Writable-terminal wheel isolation/return passed; the complete `--wheel` run
+remains unverified for this delta because its second read-only client stalled before startup.
+The check runner now bounds browser shutdown and accepts `SHARPRAIL_BROWSER_CHANNEL` for
+installed-channel diagnosis, with bundled Chromium still the default. These checks do not resolve
+the previously recorded WASM startup instability or establish other-engine/physical-DPI acceptance.

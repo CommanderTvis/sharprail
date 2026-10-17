@@ -59,9 +59,25 @@ public sealed partial class SettingsWindow
         address.Text = listener.Address.ToString();
         port.Text = listener.Port.ToString(CultureInfo.InvariantCulture);
         token.Text = listener.Token;
+        var browsers = PageControl<StackPanel>(page, "HostBrowsers");
+        string[] browserOrigins = [];
         var busy = false;
         void Refresh()
         {
+            var origins = listener.BrowserConnections?.Origins.ToArray() ?? [];
+            PageControl<TextBlock>(page, "HostBrowsersEmpty").IsVisible = origins.Length == 0;
+            if (!browserOrigins.SequenceEqual(origins))
+            {
+                browserOrigins = origins;
+                browsers.Children.Clear();
+                foreach (var origin in origins)
+                {
+                    var row = Page("LocalBrowserConnectionRow");
+                    PageControl<TextBlock>(row, "LocalBrowserConnectionOrigin").Text = origin;
+                    PageControl<Button>(row, "LocalBrowserRevoke").Click += (_, _) => listener.BrowserConnections?.Revoke(origin);
+                    browsers.Children.Add(row);
+                }
+            }
             var running = listener.Endpoint is not null;
             address.IsEnabled = port.IsEnabled = token.IsEnabled = !running && !busy;
             toggle.IsEnabled = !busy;

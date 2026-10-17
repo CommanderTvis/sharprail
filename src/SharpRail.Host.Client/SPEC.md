@@ -136,3 +136,10 @@ code generation in WASM. Terminal fault injection wraps the typed terminal inter
 File imports map the same bounded byte/entry request through direct and remote adapters and return
 host paths. File actions preserve the optional originating workspace. Client paths are never sent
 as host source paths by the import API.
+
+
+`LocalBrowserApprovalClient` owns the optional loopback browser consent bootstrap. It validates
+literal loopback HTTP(S) targets without DNS lookup, posts using the browser-provided Origin,
+consumes the Protocol JSON reply and returns only the temporary credential to the UI. HTTP
+rejections retain their status codes for connect-screen guidance. The caller owns cancellation
+and the approval deadline; no shorter HttpClient timeout interrupts the two-minute app prompt.

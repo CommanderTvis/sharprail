@@ -26,9 +26,19 @@ Open `http://localhost:54123` and enter the token. `SHARPRAIL_PORT` controls the
 `SHARPRAIL_BIND` defaults to loopback. The host owns its files, Git, plugin processes, PTYs and shared state.
 
 To connect to the normal desktop app, enable its host listener in Settings and use that listener's
-address and session token in the browser connection form. The browser assets can be served separately;
+address in the browser connection form. When the browser page and host both use loopback addresses, leave the token blank and
+confirm the displayed browser origin in the app’s Allow/Deny prompt. The browser remembers
+that approval for its session; Settings › Host can revoke it, and stopping/restarting the listener
+expires it. Nonlocal connections and standalone hosts still use a session token. The browser assets can be served separately;
 the host address is independent of the page address. Both ends must use host protocol 5 or newer:
 an already-running build with the old gRPC listener needs updating and restarting first.
+
+After a test-only Release browser build, `node tests/SharpRail.Browser.Checks/local-approval.mjs`
+checks the real browser’s blank-token consent, deny/cancel/allow, reload, revocation, restart and
+remote-token behavior against an isolated embedded app. Build the solution first for its
+headless app fixture. The focused command
+`.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release -- --local-browser-approval`
+covers the host boundary and headless app approval/Settings interactions.
 
 A deployment must support WebSocket upgrades at `/rpc` and preserve `Cross-Origin-Opener-Policy:
 same-origin` and `Cross-Origin-Embedder-Policy: require-corp`. Use HTTPS outside loopback for browser
@@ -54,9 +64,16 @@ interpreted diagnostic build, use
 `.tools/dotnet/dotnet build src/SharpRail.Browser -c Release -p:SharpRailBrowserAot=false`.
 
 The measured native runtime grows from 11.61 MB interpreted to 37.90 MB with selective AOT.
-Gzip level 9 produces 11.40 MB and Brotli quality 11 produces 7.92 MB, but the standalone host
-currently serves the raw files without response compression. These are runtime-file sizes,
-not total bundle sizes. Account for the larger cold download when deploying.
+Gzip level 9 produces 11.40 MB and Brotli quality 11 produces 7.92 MB.
+Release bundles now include precompressed `.br` and `.gz` sidecars. The standalone host
+negotiates these at the original URLs using `Accept-Encoding`, retaining the original MIME type,
+COOP/COEP headers and conditional caching. Uncompressed bundles and clients remain supported.
+These historical measurements cover the runtime file, not the total bundle or startup latency.
+Compression runs after Release Build and Publish, including `browser.sh run`; unchanged sidecars
+are reused from a content-addressed cache under `.tools/browser-compression`, even when the SDK
+regenerates the bundle. Quality 11 Brotli adds initial bundling time and disk space, with no request-time
+compression work. Separate static servers must configure sidecar negotiation themselves.
+Run `node tests/SharpRail.Browser.Checks/compression.mjs` for the bundler regression checks.
 
 After building the test-only bundle, `node tests/SharpRail.Browser.Checks/restty.mjs --prose`
 checks the 646 KB prose first-frame budget and exact scroll extents. This optional performance

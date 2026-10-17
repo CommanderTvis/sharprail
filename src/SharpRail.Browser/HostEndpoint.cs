@@ -1,12 +1,17 @@
 using System.Text.Json;
 
+using SharpRail.Host.Client;
+
 namespace SharpRail.UI.Browser;
 
 /// <summary>The host this client connects to: what the connect screen asks for and the app remembers.</summary>
-public sealed record HostEndpoint(string Address, string Token)
+public sealed record HostEndpoint(string Address, string Token, bool LocalApproval = false)
 {
     /// <summary>The host's browser endpoint.</summary>
     public Uri? Uri => Parse(Address);
+
+    /// <summary>Only literal loopback addresses and localhost can request app approval.</summary>
+    public static bool IsLocal(Uri? uri) => LocalBrowserApprovalClient.IsLoopback(uri);
 
     public static Uri? Parse(string address)
     {

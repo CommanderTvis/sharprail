@@ -30,6 +30,34 @@ export async function initialize(element, id, themeJson) {
   ime.setAttribute('aria-label', 'Terminal input');
   ime.style.cssText = 'position:absolute;left:0;top:0;width:1px;height:1px;opacity:0;resize:none';
   element.append(canvas, ime);
+  // Native pointer ownership is defined in SPEC.md.
+  state.pointerListeners = [];
+  for (const type of ['pointermove', 'pointerdown', 'pointerup', 'pointercancel']) {
+    const translate = event => {
+      const host = element.closest('.avalonia-container');
+      if (!host) return;
+      const bounds = host.getBoundingClientRect();
+      const normalize = sample => {
+        Object.defineProperties(sample, {
+          offsetX: { configurable: true, value: sample.clientX - bounds.left },
+          offsetY: { configurable: true, value: sample.clientY - bounds.top }
+        });
+        return sample;
+      };
+      normalize(event);
+      if (event.getCoalescedEvents) {
+        const samples = event.getCoalescedEvents().map(normalize);
+        Object.defineProperty(event, 'getCoalescedEvents', { configurable: true, value: () => samples });
+      }
+      if (type === 'pointerdown' && event.button === 0) {
+        terminalEvent({ id, focus: true });
+        if (event.target === canvas) canvas.setPointerCapture(event.pointerId);
+      }
+      if (type === 'pointercancel' || (type !== 'pointermove' && event.button === 0)) event.stopPropagation();
+    };
+    element.addEventListener(type, translate);
+    state.pointerListeners.push([type, translate]);
+  }
   state.wheelHandler = event => event.stopPropagation();
   element.addEventListener('wheel', state.wheelHandler, { passive: true });
   // Avalonia consumes bubbling keyboard events before restty's window listener.
@@ -159,6 +187,7 @@ export function destroy(element) {
   if (!s) return;
   s.disposed = true;
   s.observer?.disconnect();
+  for (const [type, listener] of s.pointerListeners ?? []) element.removeEventListener(type, listener);
   for (const [type, listener] of s.keyListeners ?? []) element.removeEventListener(type, listener);
   if (s.newlineHandler) element.removeEventListener('keydown', s.newlineHandler, true);
   if (s.wheelHandler) element.removeEventListener('wheel', s.wheelHandler);

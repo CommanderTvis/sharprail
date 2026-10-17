@@ -41,7 +41,9 @@ to `~/.sharprail/host`. Stop the foreground server with Ctrl+C.
 `browser.sh` defaults to `build`; `SHARPRAIL_CONFIGURATION` defaults to Release.
 Release uses selective hybrid WASM AOT with preserved managed assemblies and reflection;
 Debug remains interpreted. Initial native compilation is slower and the runtime download is
-larger. See the [browser README](../src/SharpRail.Browser/README.md) for measured sizes,
+larger before compression. Release Build/Publish precompress browser assets as Brotli and gzip;
+the standalone host negotiates sidecars without request-time compression. See the
+[browser README](../src/SharpRail.Browser/README.md) for measured sizes,
 the interpreted diagnostic override and the optional prose performance journey.
 It bootstraps the SDK and installs the `wasm-experimental` workload when the
 multithreaded browser runtime pack is missing. Browser builds require Node/npm,
@@ -51,7 +53,7 @@ multithreaded browser runtime pack is missing. Browser builds require Node/npm,
 | --- | --- |
 | `sh scripts/browser.sh build` | Build into `src/SharpRail.Browser/bin/<configuration>/net10.0-browser/AppBundle`. |
 | `sh scripts/browser.sh publish` | Publish the browser bundle into `artifacts/browser`. |
-| `sh scripts/browser.sh check` | Build the host and browser test bundle, install Playwright Chromium into `.tools/playwright`, and run `tests/SharpRail.Browser.Checks/check.mjs`. |
+| `sh scripts/browser.sh check` | Build the desktop check harness (including the host) and browser test bundle, install Chromium, and run native selection, browser acceptance, local approval and terminal hover. |
 
 ### Remote host for desktop or Android clients
 
@@ -59,11 +61,11 @@ multithreaded browser runtime pack is missing. Browser builds require Node/npm,
 SHARPRAIL_ROOT='/absolute/project/path' sh scripts/host.sh
 ```
 
-Builds and launches only the remote host in Debug by default. It binds to
+Builds and launches only the remote host in Release by default. It binds to
 `0.0.0.0:54123` and prints a connection URI and QR code containing the session
 token. The token is generated when `SHARPRAIL_TOKEN` is unset. Set
 `SHARPRAIL_CONNECT_HOST` to override the advertised hostname/IP (without a port),
-`SHARPRAIL_PORT` to change the port, or `SHARPRAIL_CONFIGURATION` to select Release.
+`SHARPRAIL_PORT` to change the port, or `SHARPRAIL_CONFIGURATION=Debug` for a diagnostic build.
 The default advertised address is the first active non-loopback IPv4 address.
 `SHARPRAIL_STATE_DIR` defaults to `~/.sharprail/host`. Stop with Ctrl+C.
 

@@ -11,14 +11,16 @@
         <ContentControl x:Name="ConnectBrand" HorizontalAlignment="Left" />
         <TextBlock Text="Connect to a host" FontSize="24" />
         <TextBlock TextWrapping="Wrap" Foreground="{x:Static rendering:Ui.Muted}"
-                   Text="This app is a client of a running SharpRail. Enter the host’s address and session token." />
+                   Text="Connect to a running SharpRail host. Local browsers can request approval in the app." />
       </StackPanel>
       <StackPanel Spacing="8">
         <TextBlock Text="Host address" Foreground="{x:Static rendering:Ui.Muted}" />
         <TextBox x:Name="ConnectAddress" PlaceholderText="localhost:54123" />
         <TextBlock Text="Session token" Foreground="{x:Static rendering:Ui.Muted}" />
         <TextBox x:Name="ConnectToken" PasswordChar="●" />
+        <TextBlock x:Name="ConnectLocalHint" Text="Leave the token blank to request approval in SharpRail." TextWrapping="Wrap" Foreground="{x:Static rendering:Ui.Muted}" />
       </StackPanel>
+      <TextBlock x:Name="ConnectProgress" IsVisible="False" Text="Confirm this connection in the SharpRail app. The request expires in two minutes." TextWrapping="Wrap" Foreground="{x:Static rendering:Ui.Muted}" />
       <TextBlock x:Name="ConnectError" IsVisible="False" TextWrapping="Wrap" Foreground="{x:Static rendering:Ui.Danger}" />
       <Button x:Name="ConnectSubmit" Classes="primary" Content="Connect" Height="40" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center" />
       <Button x:Name="ConnectScan" Height="40" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" />

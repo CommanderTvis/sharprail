@@ -48,7 +48,7 @@ The platform choice belongs to Core's process backend, not to the wire protocol.
 loopback is an explicit opt-in via `SHARPRAIL_BIND`.
 
 `scripts/host.sh` builds and launches only this host, binding to `0.0.0.0`.
-It uses `SHARPRAIL_TOKEN` or generates a fresh session token, and prints a terminal
+It defaults to Release and uses `SHARPRAIL_TOKEN` or generates a fresh session token, and prints a terminal
 QR code and `sharprail://connect?host=…&token=…` link for the Android client.
 The advertised address is the first active non-loopback IPv4 address; set
 `SHARPRAIL_CONNECT_HOST` to override its hostname/IP. The port, root, state directory
@@ -197,7 +197,44 @@ directly into the existing RPC adapters. Paired Tailscale credentials are rechec
 Tokens never travel in URLs. The desktop listener's endpoint and token work for every client.
 The standalone host can serve public browser assets from `SHARPRAIL_BROWSER_ROOT` on the same port,
 with COOP/COEP isolation headers. `SHARPRAIL_PORT` configures that single endpoint.
+`BrowserAssets` negotiates precompressed Brotli/gzip sidecars for GET/HEAD using Accept-Encoding
+quality values, with Brotli preferred at equal quality. Content types describe the original asset;
+Vary: Accept-Encoding and representation-specific static-file ETags preserve cache correctness.
+Missing/stale sidecars fall back to identity, or 406 when identity is explicitly forbidden.
+Default documents retain negotiation; direct sidecar URLs return 404. Compression applies only
+to public static assets, never RPC. No request-time compression is performed.
 
 File-transfer RPC maps entry names, directory flags and bytes to the host import operation, preserving
 the expected workspace and optional destination. The reply contains host paths. File actions preserve
 the expected workspace so a client switch cannot redirect a pending drop.
+
+
+## Local browser approval
+
+An embedded app listener offers POST `/browser/connect` to loopback browser origins. Both TCP
+endpoints and the HTTP Host must be loopback; the Origin must be a canonical HTTP(S) loopback
+origin. Missing/null, nonlocal and malformed origins are rejected before any prompt or CORS
+permission. OPTIONS preflight returns only the validated origin and never asks for consent.
+Standalone servers without an app window retain token authentication and offer no approval endpoint.
+
+`HostListener` owns one `LocalBrowserConnections` generation per Start/Stop. The app supplies an
+asynchronous consent callback; no window or handler means deny. One request can await consent
+at a time, requests expire after two minutes, denials have a short cooldown, and grants are bounded
+to 32 per listener. Cancellation, timeout or stopping the listener dismisses the prompt and issues
+no credential. The response is no-store and returns a newly generated 256-bit credential, never
+the listener’s master token.
+
+Every approved credential is bound to the exact browser Origin and loopback transport on each
+RPC call. It can reconnect during the browser session. In-memory origins are listed in the local
+Host settings, where Revoke access invalidates all sessions from that origin. Existing subscriptions
+are cancelled within the existing one-second credential recheck interval; new calls fail immediately.
+Stopping/restarting the listener forgets grants and rejects old credentials. Manual master-token
+and Tailscale authentication retain their existing behavior. Approval is transport bootstrap rather
+than a new host domain operation, so the typed RPC contract and protocol version are unchanged.
+
+The 2026-10-17 focused transport checks cover loopback addresses without DNS trust, Host/Origin
+validation before prompting, exact-origin CORS, pending-request exclusion, denial cooldown, client
+cancellation (including a callback that ignores cancellation), real authenticated WebSocket calls,
+wrong/missing origins, master-token compatibility, active-call revocation and restart expiry.
+Headless app checks additionally exercise the compiled consent dialog, Deny focus/Escape, browser
+cancellation, Settings revocation and dismissal when the listener stops.

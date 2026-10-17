@@ -12,11 +12,15 @@ case "${1:-build}" in
     build) "$dotnet" build src/SharpRail.Browser -c "$configuration" -m:2;;
     publish) "$dotnet" publish src/SharpRail.Browser -c "$configuration" -m:2 -p:WasmAppDir="$root/artifacts/browser";;
     check)
-        "$dotnet" build src/SharpRail.Host.Remote -c "$configuration" -m:2
+        node tests/SharpRail.Browser.Checks/compression.mjs
+        "$dotnet" build tests/SharpRail.Checks -c "$configuration" -m:2
         "$dotnet" build src/SharpRail.Browser -c "$configuration" -m:2 -p:BrowserChecks=true
         export PLAYWRIGHT_BROWSERS_PATH="$root/.tools/playwright"
         (cd src/SharpRail.Browser && npm exec -- playwright install chromium)
+        node tests/SharpRail.Browser.Checks/selection.mjs
         node tests/SharpRail.Browser.Checks/check.mjs
+        node tests/SharpRail.Browser.Checks/local-approval.mjs
+        node tests/SharpRail.Browser.Checks/restty.mjs --hover
         ;;
     run)
         : "${SHARPRAIL_TOKEN:?Set SHARPRAIL_TOKEN to the host session token.}"

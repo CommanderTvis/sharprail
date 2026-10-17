@@ -1,0 +1,14 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:kit="using:SharpRail.Plugins.UI.Kit"
+             x:Class="SharpRail.UI.Panels.LocalBrowserApprovalFields">
+  <StackPanel Spacing="16">
+    <SelectableTextBlock x:Name="LocalBrowserOrigin" TextWrapping="Wrap" />
+    <TextBlock Text="Allow this browser to access this app’s projects, files, settings, plugins and terminals? Access lasts until you revoke it or stop listening."
+               Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
+    <StackPanel Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+      <Button x:Name="LocalBrowserDeny" Content="Deny" IsCancel="True" />
+      <Button x:Name="LocalBrowserAllow" Content="Allow" Classes="primary" />
+    </StackPanel>
+  </StackPanel>
+</UserControl>

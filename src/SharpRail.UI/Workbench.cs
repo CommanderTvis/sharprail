@@ -75,7 +75,15 @@ public sealed class Workbench : IDisposable
     public Action? ChangeHost { get; init; }
 #if !ANDROID && !BROWSER
     /// <summary>Optional serving for this app's embedded host, shared by every window.</summary>
-    public Host.Remote.HostListener? Listener { get; init; }
+    public Host.Remote.HostListener? Listener
+    {
+        get;
+        init
+        {
+            field = value;
+            if (value is not null) value.ConfirmLocalBrowserConnection = (origin, ct) => Panels.LocalBrowserApprovalFields.Confirm(this, origin, ct);
+        }
+    }
 #endif
     /// <summary>The host's plugin runtime; null for a workbench composed without one.</summary>
     public IPluginService? Plugins { get; }

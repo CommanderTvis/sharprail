@@ -537,3 +537,14 @@ disappearance shows.
 Settings › Host offers a dedicated Tailscale client instance; plugin-owned Settings › Tailscale shows
 verified pairing requests and remembered-device revocation. See
 [Tailscale](../SharpRail.Plugins.Tailscale/SPEC.md).
+
+
+### Local browser connection consent
+
+A local browser can request access without copying a session token. The owning app presents
+Allow/Deny with the exact requesting Origin and the scope of access. Deny has initial keyboard
+focus; Escape, closing the prompt, browser cancellation and listener shutdown never grant access.
+The prompt uses the compiled local-browser fields inside the shared dialog frame and is owned
+by the current app window or its visible dialog. Settings › Host lists approved origins and offers
+Revoke access; credentials are never displayed there. This is ephemeral listener management,
+not a persistent host setting or a remote-client approval surface.

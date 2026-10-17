@@ -16,6 +16,7 @@ internal static class BrowserTransportChecks
 {
     public static async Task Run(string root)
     {
+        await BrowserAssetsChecks.Run(root);
         await using var app = RemoteServer.Create(root, IPAddress.Loopback, 0, "browser-check", stateDirectory: Path.Combine(root, "browser-transport-state"));
         await app.StartAsync();
         try

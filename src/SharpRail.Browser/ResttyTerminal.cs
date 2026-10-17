@@ -7,6 +7,7 @@ using Avalonia.Browser;
 using Avalonia.Controls;
 using Avalonia.Platform;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.UI.Rendering;
@@ -91,7 +92,8 @@ internal sealed class ResttyTerminal : NativeControlHost, ITerminalBackend, ITer
         using var message = JsonDocument.Parse(json);
         var value = message.RootElement;
         if (!instances.TryGetValue(value.GetProperty("id").GetInt32(), out var terminal)) return;
-        if (value.TryGetProperty("activity", out _)) { if (!terminal.Watching) terminal.ResumeHint.Dismiss(); }
+        if (value.TryGetProperty("focus", out _)) terminal.FindAncestorOfType<TerminalView>()?.Focus();
+        else if (value.TryGetProperty("activity", out _)) { if (!terminal.Watching) terminal.ResumeHint.Dismiss(); }
         else if (value.TryGetProperty("text", out var text)) terminal.QueueInput(text.GetString()!);
         else terminal.Resize(value.GetProperty("columns").GetInt32(), value.GetProperty("rows").GetInt32());
     }

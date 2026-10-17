@@ -9,7 +9,7 @@ namespace SharpRail.Host.Remote;
 /// <summary>Authenticated WebSocket dispatch directly into the existing host adapters.</summary>
 public static class WebSocketRpc
 {
-    public static void Map(WebApplication app, string token, Func<string, bool>? authenticate = null, Action<CallContext>? observe = null)
+    public static void Map(WebApplication app, string token, Func<string, bool>? authenticate = null, Action<CallContext>? observe = null, LocalBrowserConnections? browsers = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(token);
         app.UseWebSockets();
@@ -25,7 +25,8 @@ public static class WebSocketRpc
                 var authorization = open.Headers.GetValueOrDefault("authorization", "");
                 var master = CryptographicOperations.FixedTimeEquals(expected, SHA256.HashData(Encoding.UTF8.GetBytes(authorization)));
                 var credential = authorization.StartsWith("Bearer ", StringComparison.Ordinal) ? authorization[7..] : "";
-                if (!master && authenticate?.Invoke(credential) != true)
+                bool Approved() => authenticate?.Invoke(credential) == true || browsers?.Authenticate(credential, context) == true;
+                if (!master && !Approved())
                     throw new RpcException(new(StatusCode.Unauthenticated, "The host rejected the session token."));
                 using var watching = CancellationTokenSource.CreateLinkedTokenSource(stream.Token);
                 var revocation = master ? Task.CompletedTask : Watch();
@@ -38,7 +39,7 @@ public static class WebSocketRpc
                         while (true)
                         {
                             await Task.Delay(TimeSpan.FromSeconds(1), watching.Token);
-                            if (authenticate?.Invoke(credential) == true) continue;
+                            if (Approved()) continue;
                             stream.Fail(new RpcException(new(StatusCode.Unauthenticated, "The host credential was revoked.")));
                             return;
                         }

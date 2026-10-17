@@ -53,6 +53,11 @@ public sealed class HostListener(string root, HostStateStore state, ITerminalSer
         };
     }
 
+    /// <summary>Requests consent in the owning app; absent a handler, browser approval is denied.</summary>
+    public Func<string, CancellationToken, Task<bool>>? ConfirmLocalBrowserConnection { get; set; }
+    /// <summary>Ephemeral local browser grants for the current listener, or null while stopped.</summary>
+    public LocalBrowserConnections? BrowserConnections { get; private set; }
+
     public IPAddress Address { get; private set; } = IPAddress.Loopback;
     public int Port { get; private set; } = 54123;
     public string Token { get; private set; } = Convert.ToHexStringLower(RandomNumberGenerator.GetBytes(32));
@@ -68,18 +73,24 @@ public sealed class HostListener(string root, HostStateStore state, ITerminalSer
         {
             ObjectDisposedException.ThrowIf(disposed, this);
             if (server is not null) throw new InvalidOperationException("The host is already listening.");
-            var candidate = RemoteServer.CreateListener(root, address, port, token, state, terminals, plugins, tailscale);
+            var browsers = new LocalBrowserConnections((origin, ct) => ConfirmLocalBrowserConnection?.Invoke(origin, ct) ?? Task.FromResult(false));
+            browsers.Changed += BrowserConnectionsChanged;
+            WebApplication? candidate = null;
             try
             {
+                candidate = RemoteServer.CreateListener(root, address, port, token, state, terminals, plugins, tailscale, browsers);
                 await candidate.StartAsync(cancellationToken);
                 var listening = candidate.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single();
                 server = candidate;
+                BrowserConnections = browsers;
                 Address = address; Port = new Uri(listening).Port; Token = token;
                 Volatile.Write(ref endpoint, new Uri(listening));
             }
             catch
             {
-                await candidate.DisposeAsync();
+                if (candidate is not null) await candidate.DisposeAsync();
+                browsers.Changed -= BrowserConnectionsChanged;
+                browsers.Dispose();
                 throw;
             }
         }
@@ -96,6 +107,8 @@ public sealed class HostListener(string root, HostStateStore state, ITerminalSer
         Changed?.Invoke();
     }, cancellationToken);
 
+    private void BrowserConnectionsChanged() => Changed?.Invoke();
+
     private async Task StopCore()
     {
         if (server is not { } active) return;
@@ -104,6 +117,12 @@ public sealed class HostListener(string root, HostStateStore state, ITerminalSer
         {
             await active.DisposeAsync();
             server = null;
+            if (BrowserConnections is { } browsers)
+            {
+                browsers.Changed -= BrowserConnectionsChanged;
+                browsers.Dispose();
+                BrowserConnections = null;
+            }
             Volatile.Write(ref endpoint, null);
         }
     }

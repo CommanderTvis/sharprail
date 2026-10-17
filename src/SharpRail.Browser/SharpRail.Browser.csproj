@@ -36,6 +36,8 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="../../tests/SharpRail.Browser.Checks/BrowserChecks.cs" Condition="'$(BrowserChecks)' == 'true'" />
+    <Compile Include="../../tests/SharpRail.Browser.Checks/BrowserChecks.LocalApproval.cs" Condition="'$(BrowserChecks)' == 'true'" />
+    <Compile Include="../../tests/SharpRail.Browser.Checks/BrowserChecks.Pointer.cs" Condition="'$(BrowserChecks)' == 'true'" />
     <Compile Include="../../tests/SharpRail.Browser.Checks/BrowserChecks.Settings.cs" Condition="'$(BrowserChecks)' == 'true'" />
     <Compile Include="../../tests/SharpRail.Browser.Checks/BrowserChecks.Prose.cs" Condition="'$(BrowserChecks)' == 'true'" />
     <Compile Include="../../tests/SharpRail.Browser.Checks/BrowserChecks.Mermaid.cs" Condition="'$(BrowserChecks)' == 'true'" />
@@ -79,6 +81,9 @@
     <NativeFileReference Include="../../.tools/wasm-native/SharpRail.Scintilla.a" />
   </ItemGroup>
   <Import Project="BrowserAot.targets" />
+  <Target Name="CompressBrowserBundle" AfterTargets="_WasmBuildAppCore" Condition="'$(Configuration)' == 'Release' and '$(WasmGenerateAppBundle)' == 'true'">
+    <Exec Command="node &quot;$(MSBuildProjectDirectory)/../../scripts/browser-compress.mjs&quot; &quot;$(WasmAppDir)&quot;" />
+  </Target>
   <Target Name="BuildBrowserNative" BeforeTargets="PrepareForBuild">
     <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/browser-binaryen.sh&quot;" />
     <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/wasm-native.sh&quot;" />

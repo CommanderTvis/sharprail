@@ -193,3 +193,9 @@ Client file transfers carry relative entry names, directory flags and raw byte a
 unary upload. An optional folder distinguishes workspace imports from private attachments; replies
 return host paths. File actions also carry an optional expected workspace root. Older hosts refuse
 the new upload operation without a protocol-version change.
+
+
+The optional loopback browser approval bootstrap uses JSON `LocalBrowserApprovalReply` for a
+temporary origin-bound credential. It is separate from typed WebSocket RPC and introduces no
+new RPC operation or protocol-version requirement; hosts without app approval remain usable
+with the existing manually supplied token. See Remote’s spec for the consent and validation boundary.

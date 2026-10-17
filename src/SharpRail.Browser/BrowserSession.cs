@@ -40,16 +40,14 @@ public sealed class BrowserSession() : IDisposable
         if (Endpoint is not { } endpoint) return;
         var forgotten = endpoint with { Token = "" };
         forgotten.Save(directory);
-        Close();
-        ShowConnect(forgotten);
+        ReturnToConnect(forgotten);
     }
 
     /// <summary>Returns to the connect screen with this host still filled in and remembered.</summary>
     public void ChangeHost()
     {
         if (Endpoint is not { } endpoint) return;
-        Close();
-        ShowConnect(endpoint);
+        ReturnToConnect(endpoint);
     }
 
     private ConnectWindow ShowConnect(HostEndpoint? remembered)
@@ -57,12 +55,28 @@ public sealed class BrowserSession() : IDisposable
         var connect = new ConnectWindow(remembered);
         connect.Connected += endpoint =>
         {
-            endpoint.Save(directory);
-            connect.Close();
-            Open(endpoint);
+            try
+            {
+                endpoint.Save(directory);
+                Open(endpoint);
+                connect.Close();
+            }
+            catch (Exception fault)
+            {
+                Close();
+                connect.Report("The workbench could not open: " + fault.Message);
+                Console.Error.WriteLine(fault);
+            }
         };
         connect.Show();
         return connect;
+    }
+
+    private void ReturnToConnect(HostEndpoint endpoint, string? message = null)
+    {
+        var connect = ShowConnect(endpoint);
+        Close();
+        if (message is not null) connect.Report(message);
     }
 
     private void Open(HostEndpoint endpoint)
@@ -79,6 +93,17 @@ public sealed class BrowserSession() : IDisposable
         var catalog = new RemoteTerminalCatalogAdapter(address, token);
         adapters.AddRange([states, terminals, plugins, catalog]);
         var state = new SharedState(states, profile.Data.Preferences, null, connection);
+        state.ConnectionFailed += fault =>
+        {
+            if (!endpoint.LocalApproval || !RemoteErrors.IsUnauthenticated(fault)) return;
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (disposed || !ReferenceEquals(workbench?.State, state)) return;
+                var forgotten = endpoint with { Token = "", LocalApproval = false };
+                forgotten.Save(directory);
+                ReturnToConnect(forgotten, "Browser access expired or was revoked. Connect again to request approval in SharpRail.");
+            });
+        };
         Func<IProjectServices> sessions = () => new RemoteProjectAdapter(address, token, connection);
         TerminalFactory factory = launch => new BrowserTerminal(launch, terminals);
         Endpoint = endpoint;
@@ -94,8 +119,7 @@ public sealed class BrowserSession() : IDisposable
         {
             unreachable = state.Connected || !BrowserInterop.IsVisible() ? 0 : unreachable + 1;
             if (unreachable < LostAfterSeconds) return;
-            Close();
-            ShowConnect(endpoint).Report("The host at " + address.Authority + " stopped answering.");
+            ReturnToConnect(endpoint, "The host at " + address.Authority + " stopped answering.");
         };
         watch.Start();
     }

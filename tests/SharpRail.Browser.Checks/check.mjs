@@ -77,6 +77,10 @@ try {
   await until(async () => { try { return await fetch(address); } catch { if (host.exitCode !== null) throw new Error(hostError); } }, response => response?.ok, 'Browser host did not start.');
   browser = await chromium.launch({ channel: 'chromium', headless: true });
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  let brotliRuntime = false;
+  page.on('response', response => {
+    if (response.url().includes('/_framework/') && response.url().endsWith('.wasm') && response.headers()['content-encoding'] === 'br') brotliRuntime = true;
+  });
   let publishedPluginRequest = false, publishedPluginReply = false, proseDeliveredAt;
   page.on('websocket', socket => {
     socket.on('framesent', ({ payload }) => {
@@ -165,7 +169,8 @@ try {
     await page.keyboard.press('Escape');
     await page.waitForFunction(() => !document.querySelector('.sharprail-workbench').inert);
     assert.deepEqual(errors, []);
-    console.log('PASS published browser prose/Mermaid/Settings, external managed plugin JSON, full viewport and excluded test hooks');
+    assert.ok(brotliRuntime, 'The published runtime must load through negotiated Brotli compression.');
+    console.log('PASS Brotli runtime, published browser prose/Mermaid/Settings, external managed plugin JSON, full viewport and excluded test hooks');
   } else {
   await page.evaluate(async () => { const exports = await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll'); globalThis.check = exports.SharpRail.Browser.Checks.BrowserChecks; });
   const command = process.platform === 'darwin' ? 'Meta' : 'Control';

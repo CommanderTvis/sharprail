@@ -9,12 +9,13 @@ import { randomUUID } from 'node:crypto';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 process.env.PLAYWRIGHT_BROWSERS_PATH ??= path.join(root, '.tools/playwright');
 const { chromium } = await import('../../src/SharpRail.Browser/node_modules/playwright/index.mjs');
-const scratch = path.join(root, process.argv.includes('--wheel') ? '.bench/terminal-wheel/checks' : process.argv.includes('--file-drop') ? '.bench/file-drop/browser' : process.argv.includes('--settings') ? '.bench/settings-flicker/checks' : '.bench/restty-default/checks');
+const scratch = path.join(root, process.argv.includes('--hover') ? '.bench/terminal-hover/checks' : process.argv.includes('--wheel') ? '.bench/terminal-wheel/checks' : process.argv.includes('--file-drop') ? '.bench/file-drop/browser' : process.argv.includes('--settings') ? '.bench/settings-flicker/checks' : '.bench/restty-default/checks');
 const fixture = path.join(scratch, 'fixture');
+const bundle = path.resolve(process.env.SHARPRAIL_BROWSER_BUNDLE ?? path.join(root, 'src/SharpRail.Browser/bin/Release/net10.0-browser/AppBundle'));
 const token = randomUUID();
 const profile = process.argv.includes('--profile');
-let host, browser;
-const wheelDeadline = process.argv.includes('--wheel') ? setTimeout(() => { void browser?.close(); }, 90000) : null;
+let host, browser, browserServer;
+const interactionDeadline = process.argv.includes('--wheel') || process.argv.includes('--hover') ? setTimeout(() => { void browserServer?.kill().catch(() => {}); }, 90000) : null;
 async function until(get, predicate, description) {
   const deadline = Date.now() + 30000;
   while (Date.now() < deadline) {
@@ -39,14 +40,24 @@ try {
   host = spawn(path.join(root, '.tools/dotnet/dotnet'), [path.join(root, 'src/SharpRail.Host.Remote/bin/Release/net10.0/SharpRail.Host.Remote.dll')], {
     cwd: fixture, stdio: ['ignore', 'ignore', 'pipe'], env: { ...process.env, NO_COLOR: '', DOTNET_HOSTBUILDER__RELOADCONFIGONCHANGE: 'false',
       SHARPRAIL_ROOT: fixture, SHARPRAIL_STATE_DIR: path.join(scratch, 'state'), SHARPRAIL_TOKEN: token, SHARPRAIL_PORT: String(port),
-      SHARPRAIL_BROWSER_ROOT: process.env.SHARPRAIL_BROWSER_BUNDLE ?? path.join(root, 'src/SharpRail.Browser/bin/Release/net10.0-browser/AppBundle') }
+      SHARPRAIL_BROWSER_ROOT: bundle }
   });
   let hostError = ''; host.stderr.on('data', data => { hostError += data; });
   await until(async () => { try { return await fetch(address); } catch { if (host.exitCode !== null) throw new Error(hostError); } }, r => r?.ok, 'Host did not start');
-  browser = await chromium.launch({ channel: 'chromium', headless: true,
+  browserServer = await chromium.launchServer({ channel: process.env.SHARPRAIL_BROWSER_CHANNEL ?? 'chromium', headless: true,
     args: [ ...(process.env.PROFILE_UNCAPPED ? ['--disable-frame-rate-limit', '--disable-gpu-vsync'] : []),
       ...(process.argv.includes('--settings') ? ['--force-device-scale-factor=' + Number(process.env.PROFILE_DPR ?? 1)] : []) ] });
+  browser = await chromium.connect(browserServer.wsEndpoint());
   const page = await browser.newPage({ viewport: process.argv.includes('--wheel') ? { width: 1500, height: 900 } : { width: Number(process.env.SETTINGS_WIDTH ?? 1840), height: Number(process.env.SETTINGS_HEIGHT ?? 1340) }, deviceScaleFactor: Number(process.env.PROFILE_DPR ?? 1) });
+  if (process.argv.includes('--hover')) {
+    const source = await fs.readFile(path.join(bundle, 'restty-bridge.js'), 'utf8');
+    assert(source.includes('state.runtime = createResttyRuntime({'));
+    await page.route('**/restty-bridge.js', route => route.fulfill({ contentType: 'text/javascript',
+      body: source.replace('state.runtime = createResttyRuntime({', 'state.runtime = globalThis.selectionRuntime = createResttyRuntime({') }));
+    await page.addInitScript(() => Object.defineProperty(navigator, 'clipboard', {
+      configurable: true, value: { writeText: async text => globalThis.selectedText = text }
+    }));
+  }
   if (process.argv.includes('--settings')) page.setDefaultTimeout(30000);
   const errors = []; page.on('pageerror', error => { errors.push(error.message); console.error(error.message); });
   page.on('console', message => { if (message.type() === 'error' && !message.text().includes('404')) { errors.push(message.text()); console.error(message.text()); } });
@@ -107,6 +118,72 @@ try {
     assert.match(fallback.Text, /RECORDED_SCREEN/); assert.match(fallback.Text, /Working 5UPDATE_SCREEN/);
     assert.deepEqual(errors, []);
     console.log('PASS Skia fallback read-only recorded alternate screen and incremental updates');
+  } else if (process.argv.includes('--hover')) {
+    const pointer = () => page.evaluate(async () => {
+      const exports = await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll');
+      return JSON.parse(await exports.SharpRail.Browser.Checks.BrowserChecks.PointerSnapshot());
+    });
+    const projects = await page.evaluate(async () => {
+      const exports = await getDotnetRuntime(0).getAssemblyExports('SharpRail.UI.dll');
+      return JSON.parse(await exports.SharpRail.Browser.Checks.BrowserChecks.Snapshot())[0].ProjectsScroll;
+    });
+    const bounds = await term.boundingBox();
+    const rail = { x: projects.Position.X + projects.Width / 2, y: projects.Position.Y + 60 };
+    await page.mouse.move(rail.x, rail.y);
+    await until(pointer, value => value.Projects, 'Projects did not react to its own pointer');
+    // Without translation this first canvas point aliases the known hovered rail point.
+    const points = [{ x: bounds.x + rail.x, y: bounds.y + rail.y },
+      ...[12, bounds.width / 2, bounds.width - 12].map(x => ({ x: bounds.x + x, y: bounds.y + 150 }))];
+    for (const point of points) {
+      await page.mouse.move(point.x, point.y);
+      await until(pointer, value => !value.Projects, 'Terminal hover incorrectly reached Projects');
+    }
+    await page.mouse.click(bounds.x + 20, bounds.y + 150);
+    await until(pointer, value => value.TerminalFocused, 'A native terminal click must focus its managed pane');
+    await page.keyboard.type("printf '%s_%s\\n' HOVER INPUT_OK"); await page.keyboard.press('Enter');
+    await until(screen, value => value.includes('HOVER_INPUT_OK'), 'Terminal click and input did not survive pointer translation');
+    const selected = () => page.evaluate(async () => {
+      globalThis.selectedText = '';
+      const active = await selectionRuntime.interaction.copySelectionToClipboard();
+      return { active, text: selectedText };
+    });
+    await page.mouse.move(bounds.x + 25, bounds.y + 12); await page.mouse.down();
+    await page.mouse.move(bounds.x + 155, bounds.y + 12, { steps: 8 }); await page.mouse.up();
+    const released = await selected();
+    assert(released.active && released.text, 'Dragging must select terminal text');
+    await page.mouse.move(bounds.x + 250, bounds.y + 70);
+    assert.deepEqual(await selected(), released, 'Released terminal selection must not follow the pointer');
+    await page.mouse.click(bounds.x + 300, bounds.y + 100);
+    assert.deepEqual(await selected(), { active: false, text: '' }, 'Clicking the terminal must clear selection');
+    await page.mouse.move(bounds.x + 25, bounds.y + 12); await page.mouse.down();
+    await page.mouse.move(bounds.x + 155, bounds.y + 12, { steps: 5 });
+    await page.mouse.move(bounds.x + bounds.width + 20, bounds.y + 12); await page.mouse.up();
+    const outside = await selected();
+    assert(outside.active && outside.text);
+    await page.mouse.move(bounds.x + 250, bounds.y + 70);
+    assert.deepEqual(await selected(), outside, 'Release outside the canvas must also end selection');
+    const coalesced = await term.evaluate(element => {
+      const host = element.closest('.avalonia-container');
+      const bounds = host.getBoundingClientRect();
+      const terminal = element.getBoundingClientRect();
+      const x = terminal.left + 40, y = terminal.top + 80;
+      const sample = new PointerEvent('pointermove', { clientX: x - 4, clientY: y - 2, pressure: 0.5 });
+      const event = new PointerEvent('pointermove', { bubbles: true, clientX: x, clientY: y, pointerType: 'pen', pointerId: 91, pressure: 0.5 });
+      Object.defineProperty(event, 'getCoalescedEvents', { configurable: true, value: () => [sample] });
+      let actual;
+      host.addEventListener('pointermove', event => {
+        actual = { x: event.offsetX, y: event.offsetY, type: event.pointerType, pressure: event.pressure,
+          samples: event.getCoalescedEvents().map(sample => [sample.offsetX, sample.offsetY, sample.pressure]) };
+      }, { once: true });
+      element.querySelector('canvas').dispatchEvent(event);
+      return { actual, expected: { x: x - bounds.left, y: y - bounds.top, type: 'pen', pressure: 0.5,
+        samples: [[x - 4 - bounds.left, y - 2 - bounds.top, 0.5]] } };
+    });
+    assert.deepEqual(coalesced.actual, coalesced.expected, 'Coalesced pen input must retain pressure and window-relative coordinates');
+    await page.mouse.move(rail.x, rail.y);
+    await until(pointer, value => value.Projects, 'Projects hover did not resume on return');
+    assert.deepEqual(errors, []);
+    console.log('PASS terminal hover, managed pane focus, input, selection release/click-clear/outside capture and return to Projects');
   } else if (process.argv.includes('--wheel')) {
     console.log('Wheel client mounted');
     const snapshot = client => client.evaluate(async () => {
@@ -183,15 +260,27 @@ try {
     await page.evaluate(async () => {
       const bridge = await import('./restty-bridge.js');
       const parent = document.createElement('div');
+      parent.className = 'avalonia-container';
       parent.style.cssText = 'position:fixed;left:-1000px;top:-1000px;width:320px;height:180px';
       const element = bridge.create(); parent.append(element); document.body.append(parent);
       let bubbled = 0; parent.addEventListener('wheel', () => bubbled++);
+      const pointerOffsets = [];
+      parent.addEventListener('pointermove', event => pointerOffsets.push(event.offsetX));
+      const move = () => {
+        const event = new PointerEvent('pointermove', { bubbles: true, clientX: 30, clientY: 40 });
+        Object.defineProperty(event, 'offsetX', { configurable: true, value: 3 });
+        element.dispatchEvent(event);
+      };
       try {
         await bridge.initialize(element, -1, JSON.stringify({ raw: {}, colors: { background: { r: 0, g: 0, b: 0 }, foreground: { r: 255, g: 255, b: 255 }, palette: [] } }));
+        move();
+        if (pointerOffsets[0] !== 30 - parent.getBoundingClientRect().left) throw new Error('Native pointer was not translated before bubbling');
         const event = new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: 10 });
         element.dispatchEvent(event);
         if (bubbled || event.defaultPrevented) throw new Error('Terminal wheel ownership must contain bubbling without cancelling native scrolling');
         bridge.destroy(element);
+        move();
+        if (pointerOffsets[1] !== 3) throw new Error('Disposed terminal retained its pointer translation listener');
         element.dispatchEvent(new WheelEvent('wheel', { bubbles: true, cancelable: true, deltaY: 10 }));
         if (bubbled !== 1) throw new Error('Terminal wheel listener survived disposal');
       } finally { bridge.destroy(element); parent.remove(); }
@@ -461,8 +550,11 @@ try {
   }
   }
 } finally {
-  clearTimeout(wheelDeadline);
-  await browser?.close();
+  clearTimeout(interactionDeadline);
+  let closeTimer;
+  await Promise.race([browser?.close().catch(() => {}), new Promise(resolve => { closeTimer = setTimeout(resolve, 5000); })]);
+  clearTimeout(closeTimer);
+  await browserServer?.kill().catch(() => {});
   if (host && host.exitCode === null && host.signalCode === null) { const stopped = once(host, 'exit'); host.kill('SIGINT'); await stopped; }
   await fs.rm(scratch, { recursive: true, force: true });
 }

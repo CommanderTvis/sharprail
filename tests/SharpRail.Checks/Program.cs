@@ -698,6 +698,21 @@ internal static class Program
             E2E.SwitchLatencyChecks.Run(Path.Combine(root, "upstream-e2e"));
             return;
         }
+        if (args.SequenceEqual(["--local-browser-fixture"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            E2E.LocalBrowserApprovalFixture.Run(root);
+            return;
+        }
+        if (args.SequenceEqual(["--local-browser-approval"]))
+        {
+            LocalBrowserConnectionChecks.RunHost(root).GetAwaiter().GetResult();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            E2E.LocalBrowserApprovalE2E.Run(root);
+            return;
+        }
         if (args.SequenceEqual(["--serving"]))
         {
             HostListenerChecks.Run(root).GetAwaiter().GetResult();
@@ -829,6 +844,7 @@ internal static class Program
         Gate.Case("project-paths", () => ProjectPathChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("specs", () => SpecChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("tailscale", () => TailscaleChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("local-browser-approval", () => LocalBrowserConnectionChecks.RunHost(root).GetAwaiter().GetResult());
         Gate.Case("host-listener", () => HostListenerChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("plugin-host", () => PluginHostChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("spec-dialect", () => SpecDialectChecks.Run(root).GetAwaiter().GetResult());

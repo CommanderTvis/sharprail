@@ -115,6 +115,10 @@ The header shows the brand mark, the location bar, the connection state and
 Settings. While the embedded host also accepts socket connections, every window shows a green
 "Listening" mark in the top-right header with its endpoint in a tooltip. The mark follows listener
 start/stop immediately and is hidden when serving is off.
+The local workbench supplies the listener’s browser-consent callback. A loopback browser can
+request access without copying the master token; Allow/Deny shows the actual origin in an
+app-owned dialog and focuses Deny. Settings › Host lists and revokes approved origins. Grants
+last for one listener generation; a remote workbench cannot approve another host’s connections.
 Pressing plain header content drags the window; buttons and text inputs in the header never
 start a drag. In macOS full screen the traffic lights hide, so the header drops their inset and keeps only
 its ordinary 12px margin.

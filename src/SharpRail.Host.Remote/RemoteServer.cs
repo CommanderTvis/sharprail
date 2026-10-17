@@ -3,8 +3,6 @@ using System.Security.Cryptography;
 using System.Text;
 
 using Microsoft.AspNetCore.Server.Kestrel.Core;
-using Microsoft.AspNetCore.StaticFiles;
-using Microsoft.Extensions.FileProviders;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Core;
@@ -42,20 +40,7 @@ public static class RemoteServer
         builder.Services.AddSingleton<RequestReplayCache>();
         builder.Services.AddSingleton(services => services.GetRequiredService<ITerminalService>() as ITerminalCatalogService ?? new MemoryTerminalCatalog());
         var app = builder.Build();
-        if (browserRoot is not null)
-        {
-            var files = new PhysicalFileProvider(Path.GetFullPath(browserRoot));
-            app.Use(async (context, next) =>
-            {
-                context.Response.Headers["Cross-Origin-Opener-Policy"] = "same-origin";
-                context.Response.Headers["Cross-Origin-Embedder-Policy"] = "require-corp";
-                await next(context);
-            });
-            app.UseDefaultFiles(new DefaultFilesOptions { FileProvider = files });
-            var contentTypes = new FileExtensionContentTypeProvider();
-            foreach (var extension in new[] { ".dll", ".pdb", ".dat", ".blat", ".symbols" }) contentTypes.Mappings[extension] = "application/octet-stream";
-            app.UseStaticFiles(new StaticFileOptions { FileProvider = files, ContentTypeProvider = contentTypes });
-        }
+        if (browserRoot is not null) BrowserAssets.Map(app, browserRoot);
         Map(app, token, tailscale);
         tailscale.EnsureListening = (tailnetAddress, _) =>
         {
@@ -87,7 +72,7 @@ public static class RemoteServer
     /// <summary>Exposes an existing host. Stopping or disposing this listener never disposes the supplied
     /// state, terminals or plugins; their owner continues to serve direct local calls.</summary>
     public static WebApplication CreateListener(string root, IPAddress address, int port, string token,
-        HostStateStore state, ITerminalService? terminals, PluginRuntime plugins, TailscaleServing? tailscale = null)
+        HostStateStore state, ITerminalService? terminals, PluginRuntime plugins, TailscaleServing? tailscale = null, LocalBrowserConnections? browsers = null)
     {
         if (string.IsNullOrWhiteSpace(token)) throw new ArgumentException("A host session token is required.", nameof(token));
         var builder = Builder(address, port, embedded: true);
@@ -101,7 +86,8 @@ public static class RemoteServer
         builder.Services.AddSingleton(plugins);
         builder.Services.AddSingleton(new ProjectSessions(root, state, plugins.AllowsExternalFile));
         var app = builder.Build();
-        Map(app, token, tailscale);
+        browsers?.Map(app);
+        Map(app, token, tailscale, browsers);
         return app;
     }
 
@@ -121,9 +107,9 @@ public static class RemoteServer
         return builder;
     }
 
-    private static void Map(WebApplication app, string token, TailscaleServing? tailscale)
+    private static void Map(WebApplication app, string token, TailscaleServing? tailscale, LocalBrowserConnections? browsers = null)
     {
-        WebSocketRpc.Map(app, token, tailscale?.Authenticate);
+        WebSocketRpc.Map(app, token, tailscale?.Authenticate, browsers: browsers);
     }
 
     private sealed class ListenerLifetime : IHostLifetime

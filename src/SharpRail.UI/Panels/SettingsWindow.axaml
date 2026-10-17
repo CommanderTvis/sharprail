@@ -40,6 +40,12 @@
         <Button x:Name="HighlightingRemove" Grid.Column="1" Content="Remove" VerticalAlignment="Center" />
       </Grid>
     </DataTemplate>
+    <DataTemplate x:Key="LocalBrowserConnectionRow">
+      <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+        <TextBlock x:Name="LocalBrowserConnectionOrigin" VerticalAlignment="Center" TextWrapping="Wrap" />
+        <Button x:Name="LocalBrowserRevoke" Grid.Column="1" Content="Revoke access" />
+      </Grid>
+    </DataTemplate>
     <DataTemplate x:Key="HostPage">
       <StackPanel Spacing="24">
         <Border x:Name="HostConnectSection" Padding="16" CornerRadius="4" BorderThickness="1" BorderBrush="{x:Static rendering:Ui.BorderBrush}">
@@ -70,6 +76,10 @@
                 <Button x:Name="HostCopyToken" Content="Copy token" />
                 <Button x:Name="HostShowCode" ToolTip.Tip="Show a QR code to connect a phone" AutomationProperties.Name="Show a QR code to connect a phone" />
               </StackPanel>
+              <TextBlock Text="Local browser access" Classes="settings-label" Margin="0,8,0,0" />
+              <TextBlock Text="Browsers on this computer can request approval in the app without copying a token. Stopping the listener revokes their access." Classes="settings-description" />
+              <TextBlock x:Name="HostBrowsersEmpty" Text="No approved browsers." Classes="settings-description" />
+              <StackPanel x:Name="HostBrowsers" Spacing="8" />
               <StackPanel x:Name="HostCode" Spacing="8" IsVisible="False" HorizontalAlignment="Left">
                 <local:QrCodeView x:Name="HostCodeImage" Width="240" Height="240" HorizontalAlignment="Left" />
                 <TextBlock x:Name="HostCodeDetail" MaxWidth="360" Classes="settings-description" />
