@@ -384,3 +384,5 @@ and pixel-exact return, plus lease/failure/recovery/stop cases. That pass did no
 --native-texture theme-color assertion or --native-direct initial renderer-creation wait. Physical
 trackpad/video reproduction and complete current local/remote native parity remain separate gates.
 Physical IME and accessibility acceptance cannot be inferred from synthetic input or pixel checks.
+
+Validated commit underlines on unchanged visible lines survive asynchronous viewport refreshes and scrolling, with offsets remapped to those lines. Changed lines discard old highlights immediately; detach clears retained results.

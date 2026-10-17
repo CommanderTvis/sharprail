@@ -104,6 +104,10 @@ internal static class TerminalCommitLinkChecks
         E2eWorkspace.Settle(150);
         Require(highlights.Update("new").Single() == latest, "Late visible-link resolution replaced the newer viewport.");
         Require(calls == 2, "A resolved viewport must reuse its bounded highlight cache.");
+        Require(highlights.Update("prefix\nnew\noutput").Single().Start == 7,
+            "Appending output or shifting unchanged lines must retain validated underlines during resolution.");
+        Require(highlights.Update("prefix\nnewer\noutput").Count == 0,
+            "Changed lines must not retain stale underline positions.");
         highlights.Clear();
         Require(highlights.Update("new").Count == 0, "Detaching must discard cached visible links.");
         highlights.Dispose();
