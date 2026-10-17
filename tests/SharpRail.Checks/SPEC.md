@@ -675,3 +675,5 @@ across gitless reads/removal and real isolated Git-host lifecycles, including me
 the argument-free managed gate; no production native interposition is enabled by these checks.
 
 Fake-agent child processes recognize their fixture marker alongside launcher-supplied options, including `--plugin-dir`, so they never enter the check gate recursively.
+
+Git UI fixtures wait for deferred scope reconciliation and Git-required tool availability before interacting; mounting the workspace alone does not establish optional Git-pane readiness. Commit-catalog isolation assertions still apply after reconciliation.

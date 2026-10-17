@@ -200,6 +200,7 @@ internal static class BranchGraphChecks
         var repo = app.Root;
         var window = app.Window;
         E2eWorkspace.Until(() => app.Workbench.PluginLoader.Registry.Active.Contains(BranchGraphPlugin.Id));
+        E2eWorkspace.Until(() => window.Layout.Tools.Any(tool => tool.Id == Tool));
         window.Layout.RestoreTool(Tool);
         E2eWorkspace.Until(() => window.GetLogicalDescendants().OfType<GraphPanel>().Any(panel => panel.IsEffectivelyVisible && panel.Rows > 0));
         var panel = window.GetLogicalDescendants().OfType<GraphPanel>().Single();

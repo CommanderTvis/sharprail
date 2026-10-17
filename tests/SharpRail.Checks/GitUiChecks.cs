@@ -187,8 +187,8 @@ internal static class GitUiChecks
         Pump(() => window.WorkspaceRoot == worktree && window.WorkspaceMounted &&
             Buttons(window).Any(button => Equals(ToolTip.GetTip(button), root) && button.ContextMenu is not null));
         var main = Buttons(window).Single(button => Equals(ToolTip.GetTip(button), root) && button.ContextMenu is not null);
-        Require(Action(Named("ChangesScope"), "All changes").IsChecked &&
-            !Named("ChangesScope").ContextMenu!.Items.OfType<MenuItem>().Any(item => item.Name?.StartsWith("ChangesCommit_", StringComparison.Ordinal) == true),
+        Pump(() => Action(Named("ChangesScope"), "All changes").IsChecked);
+        Require(!Named("ChangesScope").ContextMenu!.Items.OfType<MenuItem>().Any(item => item.Name?.StartsWith("ChangesCommit_", StringComparison.Ordinal) == true),
             "A new workspace inherited the previous workspace's commit selection or catalog.");
         Require(!main.ContextMenu!.Items.OfType<MenuItem>().Any(item => Equals(item.Header, "Remove worktree…")), "Main worktree removal was offered.");
         Click(window, main); Pump(() => window.WorkspaceRoot == root && window.WorkspaceMounted &&
