@@ -94,6 +94,7 @@ publish toggle automation changes without requesting another update.
   `PreviewChanged` lets the owner reconnect selection observers after replacement.
   The app can enable preview frontmatter editing against its source buffer. Compiled property rows expose
   text/sequence/mapping conversion, key and value edits, list chips, mapping entries and add/remove.
+  List chips and the Add field share a vertical centre within each wrapped row.
   Supported edits canonicalize only the frontmatter; the body and its line endings remain intact.
   Enter/blur commit and Escape cancels. Status/type suggestions are optional vocabulary, and unsupported
   YAML or a rendered diff stays read-only. Preview refresh keeps folding and active property inputs.

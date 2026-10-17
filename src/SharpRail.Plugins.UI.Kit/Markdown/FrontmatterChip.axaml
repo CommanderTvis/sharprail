@@ -1,7 +1,8 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:kit="using:SharpRail.Plugins.UI.Kit"
-             x:Class="SharpRail.Plugins.UI.Kit.Markdown.FrontmatterChip">
+             x:Class="SharpRail.Plugins.UI.Kit.Markdown.FrontmatterChip"
+             VerticalAlignment="Center">
   <Border Background="{x:Static kit:Ui.ControlFill}" CornerRadius="16" Padding="8,2" Margin="0,2,4,2">
     <Grid ColumnDefinitions="*,Auto">
       <TextBlock x:Name="Label" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />

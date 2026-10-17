@@ -1,8 +1,12 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:kit="using:SharpRail.Plugins.UI.Kit"
-             x:Class="SharpRail.Plugins.UI.Kit.Markdown.FrontmatterField">
+             x:Class="SharpRail.Plugins.UI.Kit.Markdown.FrontmatterField"
+             VerticalAlignment="Center">
   <UserControl.Styles>
+    <Style Selector="AutoCompleteBox /template/ TextBox">
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
     <Style Selector="AutoCompleteBox:pointerover">
       <Setter Property="BorderBrush" Value="{x:Static kit:Ui.BorderBrush}" />
     </Style>
