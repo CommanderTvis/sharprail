@@ -310,11 +310,12 @@ public sealed partial class WorkbenchWindow
         var filename = Ui.Text(label[(separator + 1)..], color);
         filename.Classes.Add("change-path-base");
         Ui.Place(path, filename, 0, 1);
+        Control? leadingIcon = null;
         if (FileIconAnswer(change.Path) is not null)
         {
             path.ColumnDefinitions.Insert(0, new ColumnDefinition(GridLength.Auto));
             Grid.SetColumn(directory, 1); Grid.SetColumn(filename, 2);
-            var icon = FileIcon(change.Path, false, "fileText", color);
+            var icon = leadingIcon = FileIcon(change.Path, false, "fileText", color);
             icon.Margin = new Thickness(0, 0, 4, 0);
             Ui.Place(path, icon);
         }
@@ -327,7 +328,7 @@ public sealed partial class WorkbenchWindow
         row.SizeChanged += (_, _) =>
         {
             path.MaxWidth = Math.Max(0, row.Bounds.Width - numbers.DesiredSize.Width - 8);
-            filename.MaxWidth = path.MaxWidth;
+            filename.MaxWidth = Math.Max(0, path.MaxWidth - (leadingIcon?.DesiredSize.Width ?? 0));
         };
         var button = new Button
         {

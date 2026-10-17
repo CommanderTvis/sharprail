@@ -433,3 +433,5 @@ window creation/opening. Wrapping the callbacks preserves their order and argume
 do not install wrappers. The existing workspace markers flush early timestamps after capturing
 their own timestamp. These are elapsed phase boundaries, not a claim that all Skia/GPU work happens
 during platform initialization. The performance module owns their reporting and measurement contract.
+
+Change-row basenames reserve the file icon width before truncating, keeping the label inside its path column at narrow pane widths.
