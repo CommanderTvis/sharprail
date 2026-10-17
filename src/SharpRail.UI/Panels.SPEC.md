@@ -200,7 +200,7 @@ Git-ignored Files rows remain openable and show a muted icon and chevron, a subt
   folders and scroll position. Listings reconcile rows by relative path and entry kind; unchanged rows
   stay mounted and only added, removed or renamed entries change. File contents do not affect row identity.
 - Each row has its own context menu: New file…, New folder…, separator, Reveal in Finder (Show in Explorer
-  on Windows, Open containing folder elsewhere), Copy absolute path, Rename…, Move…, Copy…, and Delete file / Delete
+  on Windows, Open containing folder elsewhere), Copy path (relative to the workspace root), Copy absolute path, Rename…, Move…, Copy…, and Delete file / Delete
   folder. New creates inside a folder row and beside a file row (a compact chain's row stands for its
   deepest folder); a typed `a/b.md` is a path. Rename selects the stem, so typing keeps the extension.
   One name dialog (`Dialogs.PathName`) takes the name: a name already listed in the destination shows an
