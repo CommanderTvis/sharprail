@@ -175,6 +175,27 @@ internal static partial class ResourceChecks
     {
         Require(JsonModel.Parse("{\"a\":1}") is { Document: not null, Dialect: false } && JsonModel.Parse("{// c\n\"a\":1,}") is { Document: not null, Dialect: true } &&
             JsonModel.Parse("{oops") is { Document: null, Error: not null }, "Strict JSON, the JSONC dialect and invalid text are told apart.");
+        static TreeViewItem Root(string json) => ((TreeView)JsonViews.View(new(new("w", "config.json", "application/json", true, null),
+            "json", new ResourceContent.Text(json, ""), null, _ => { }))).Items.OfType<TreeViewItem>().Single();
+        var nested = Root("""{"mcpServers":{"server":{"command":"node","args":["server.js"]}}}""");
+        var servers = nested.Items.OfType<TreeViewItem>().Single();
+        var server = servers.Items.OfType<TreeViewItem>().Single();
+        Require(nested.IsExpanded && servers.IsExpanded && server.IsExpanded && server.Items.Count == 2,
+            "Nested configuration opens through server values on first render.");
+        var args = server.Items.OfType<TreeViewItem>().Last();
+        Require(!args.IsExpanded && args.Items.Count == 1, "Deeper containers retain lazy placeholders.");
+        args.IsExpanded = true;
+        Require(args.Items.Count == 1 && args.Items.OfType<TreeViewItem>().Single().Header is TextBlock,
+            "Manual expansion still populates deeper values.");
+        servers.IsExpanded = false;
+        servers.IsExpanded = true;
+        Require(ReferenceEquals(server, servers.Items.OfType<TreeViewItem>().Single()), "Collapse and reopen retain the built children.");
+        var wide = Root("{\"items\":[" + string.Join(',', Enumerable.Repeat("{\"nested\":{\"value\":1}}", 500)) + "]}");
+        var items = wide.Items.OfType<TreeViewItem>().Single();
+        Require(!items.IsExpanded && items.Items.Count == 1, "Wide nested containers stay lazy within the initial expansion budget.");
+        items.IsExpanded = true;
+        Require(items.Items.Count == 500 && items.Items.OfType<TreeViewItem>().All(item => !item.IsExpanded),
+            "Manual expansion of a wide container builds only its immediate children.");
         using var before = System.Text.Json.JsonDocument.Parse("""{"name":"x","keep":[1,2],"items":[{"id":1,"v":"a"},{"id":2,"v":"b"},{"id":3,"v":"c"}],"gone":true,"n":{"deep":1}}""");
         using var after = System.Text.Json.JsonDocument.Parse("""{"n":{"deep":2},"name":"x","keep":[1,2],"items":[{"id":1,"v":"a"},{"id":3,"v":"C"},{"id":4,"v":"d"}],"new":null}""");
         var changes = JsonModel.Changes(JsonModel.Diff("", before.RootElement, after.RootElement)).Select(change => change.Pointer + "=" + change.Kind).Order(StringComparer.Ordinal).ToArray();

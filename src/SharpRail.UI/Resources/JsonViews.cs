@@ -157,9 +157,29 @@ internal static class JsonViews
         if (parsed.Document is not { } document) return Notice("JsonInvalid", "Invalid JSON — " + parsed.Error, Ui.Danger);
         var tree = new TreeView { Name = "JsonTree", Margin = new Thickness(12, 8), Background = Brushes.Transparent };
         var root = Item(null, document.RootElement);
-        root.IsExpanded = true;
+        ExpandInitially(root, document.RootElement);
         tree.Items.Add(root);
         return parsed.Dialect ? WithNotice("JsonDialect", "Parsed as JSONC: comments and trailing commas are ignored.", tree) : tree;
+    }
+
+    private static void ExpandInitially(TreeViewItem root, JsonElement value)
+    {
+        var pending = new Queue<(TreeViewItem Item, JsonElement Value, int Depth)>();
+        pending.Enqueue((root, value, 0));
+        var remaining = 200;
+        while (pending.TryDequeue(out var node))
+        {
+            if (node.Depth >= 3 || node.Value.ValueKind is not (JsonValueKind.Object or JsonValueKind.Array)) continue;
+            var count = node.Value.ValueKind == JsonValueKind.Object ? node.Value.GetPropertyCount() : node.Value.GetArrayLength();
+            if (node.Depth > 0 && count > remaining) continue;
+            remaining -= Math.Min(count, MaxChildren);
+            node.Item.IsExpanded = true;
+            var values = node.Value.ValueKind == JsonValueKind.Object
+                ? node.Value.EnumerateObject().Select(member => member.Value)
+                : node.Value.EnumerateArray();
+            foreach (var (child, childValue) in node.Item.Items.OfType<TreeViewItem>().Zip(values))
+                pending.Enqueue((child, childValue, node.Depth + 1));
+        }
     }
 
     internal static Task<Control?> DiffAsync(ResourceDiff diff, CancellationToken token)

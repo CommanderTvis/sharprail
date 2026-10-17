@@ -360,7 +360,10 @@ AI turn receipts, review guides and agent send actions are excluded from this po
     delimiters, doubled quotes and line breaks stay inside their cell. A diff aligns rows by their raw
     text; a run of removals replaced by as many additions is shown as changed rows with the changed cells
     marked old → new.
-  - JSON and JSONC as a tree built as nodes open. Text that only parses with comments or trailing commas
+  - JSON and JSONC as a tree built as nodes open. The first three container levels open initially
+    so small nested configurations expose their values immediately; a shared 200-child budget
+    bounds automatic expansion beyond the root. Wider and deeper nodes stay lazy and can be
+    opened manually; the root retains its existing 2,000-member display limit. Text that only parses with comments or trailing commas
     carries a JSONC notice; text that does not parse shows the parser's message instead of a tree. A diff
     is structural: members by key regardless of order, array elements by identity (`id`, `key` or `name`,
     otherwise the whole value), showing added, removed and changed nodes with a count of the unchanged
