@@ -32,6 +32,7 @@ internal sealed class ActivationTables(long id)
     public ImmutableList<Action<JsonElement>> SettingsObservers { get; set; } = [];
     // Dependency subscriptions and workspace watches, released when the activation ends.
     public ImmutableList<IDisposable> Resources { get; set; } = [];
+    public Dictionary<string, (string Project, IDisposable Lease)> WorkspaceWatches { get; } = new(StringComparer.Ordinal);
     public Lock Registration { get; } = new();
 
     public void Enter()

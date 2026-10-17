@@ -32,6 +32,14 @@ public sealed partial class PluginRuntime
 
     private static string DirectoryName(string path) => Path.GetFileName(path.TrimEnd(Path.DirectorySeparatorChar)) is { Length: > 0 } name ? name : path;
 
+    // Registry removal is a lossless lifecycle edge; the shared-state stream intentionally coalesces snapshots.
+    private void ReleaseWorkspaceWatch(string path)
+    {
+        foreach (var (entry, tables) in Active())
+            lock (tables.Registration)
+                if (tables.WorkspaceWatches.Remove(path, out var watch)) Guard(entry.Id, watch.Lease.Dispose);
+    }
+
     // The host publishes a project's workspace list after creating or removing one, and labels on rename.
     private async Task WorkspaceEventsAsync(HostState previous, HostState state)
     {
@@ -49,8 +57,17 @@ public sealed partial class PluginRuntime
                 !events.Any(change => change is WorkspaceRemoved { Id: var id } && id == path) &&
                 await WorkspaceAsync(path, lifetime.Token) is { } workspace)
                 events.Add(new WorkspaceUpdated(workspace));
-        foreach (var change in events)
-            foreach (var (entry, tables) in Active())
+        foreach (var (entry, tables) in Active())
+        {
+            lock (tables.Registration)
+                foreach (var (id, watch) in tables.WorkspaceWatches.ToArray())
+                    if (!state.Projects.Contains(watch.Project) || events.Any(change => change is WorkspaceRemoved removed && removed.Id == id))
+                    {
+                        tables.WorkspaceWatches.Remove(id);
+                        Guard(entry.Id, watch.Lease.Dispose);
+                    }
+            foreach (var change in events)
                 foreach (var observer in tables.WorkspaceObservers) Guard(entry.Id, () => observer(change));
+        }
     }
 }

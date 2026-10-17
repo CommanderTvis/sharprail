@@ -116,13 +116,23 @@ internal sealed class PluginHostContext(PluginRuntime runtime, PluginEntry entry
     public async ValueTask WatchWorkspaceAsync(string id, CancellationToken cancellationToken = default)
     {
         if (!Live) return;
-        if (await runtime.WorkspaceAsync(id, cancellationToken) is null) throw new ArgumentException($"There is no workspace {id}.", nameof(id));
-        var watch = new WorkspaceFileWatcher(id, batch =>
+        var requestedState = runtime.Seams.State.Current;
+        var workspace = await runtime.WorkspaceAsync(id, cancellationToken) ?? throw new ArgumentException($"There is no workspace {id}.", nameof(id));
+        cancellationToken.ThrowIfCancellationRequested();
+        // Admission and teardown use the same lock: repeated reads and concurrent callers own one lease.
+        Register(table =>
         {
-            if (!Live) return;
-            foreach (var observer in tables.FileObservers) runtime.Guard(Id, () => observer(batch));
+            var current = runtime.Seams.State.Current;
+            if (!current.Projects.Contains(workspace.ProjectId) ||
+                requestedState.Workspaces.Any(candidate => candidate.Path == id) && !current.Workspaces.Any(candidate => candidate.Path == id)) return;
+            if (table.WorkspaceWatches.ContainsKey(id)) return;
+            var watch = new WorkspaceFileWatcher(workspace.Path, $"plugin:{Id}:activation:{tables.Id}", batch =>
+            {
+                if (!Live) return;
+                foreach (var observer in tables.FileObservers) runtime.Guard(Id, () => observer(batch));
+            });
+            table.WorkspaceWatches.Add(id, (workspace.ProjectId, watch));
         });
-        if (!Register(table => table.Resources = table.Resources.Add(watch))) watch.Dispose();
     }
 
     public void OnWorkspace(Action<WorkspaceEvent> handler) => Register(table => table.WorkspaceObservers = table.WorkspaceObservers.Add(handler));

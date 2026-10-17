@@ -159,3 +159,12 @@ Keep `.bench` scratch outputs disposable; record needed evidence in the status
 documents and remove scratch files when the task finishes.
 
 For repeatable macOS startup and physical-footprint measurements, use the [.NET performance toolkit](../performance/README.md). The older `benchmark.mjs` measures RSS with a different sampling anchor and should not be mixed into those reports.
+
+### Native FSEvents hygiene (macOS)
+
+`sh scripts/check-fsevents.sh` builds Release, then runs real Specs/Blueprint repeated reads, RPC
+reconnects and real Git-host teardown (including metadata/refs watchers) under a test-only FSEventStream interposer. `--no-build` reuses built checks.
+It proves interception first and fails if stream allocations grow or do not return to baseline.
+Generated native code and fixtures are scoped to the subprocess scratch tree and cleaned on exit;
+no injection is applied to a user app. See Host Core's `Files.SPEC.md` for registry/EventPipe diagnostics
+and the distinction between logical leases, managed watcher instances and native stream counts.

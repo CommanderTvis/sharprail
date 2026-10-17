@@ -169,3 +169,9 @@ presets belong to the UI.
 The first agent title may fill an unnamed generated managed workspace label through the workspace
 tool. The write checks under the state lock that no manual label arrived in the meantime; manual
 labels always take precedence. The workspace tool owns the corresponding initial branch rename.
+
+Host-state stream channel waits continue without capturing their caller's synchronization context.
+A plugin runtime may register its observer synchronously before activation, then cancel/drain it while
+a UI thread is synchronously tearing down a window; host observation must not wait for that UI thread.
+The watcher hygiene context regression checks activation, state updates and cancellation from a
+recording synchronization context without requiring a blocked dispatcher to make progress.

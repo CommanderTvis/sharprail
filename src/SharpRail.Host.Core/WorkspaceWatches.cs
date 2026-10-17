@@ -5,7 +5,7 @@ namespace SharpRail.Host.Core;
 /// rebuilt when its root was replaced by another directory or its watcher failed, released with its last
 /// subscriber, and may be started ahead of the first subscriber from a bounded pre-warm pool.
 /// </summary>
-internal static class WorkspaceWatches
+internal static partial class WorkspaceWatches
 {
     internal const int PrewarmLimit = 8;
 
@@ -17,40 +17,53 @@ internal static class WorkspaceWatches
         public int Failures { get; set; }
         public bool Failed { get; set; }
         public long StartedAt { get; set; }
-        public List<Action<string?>> Subscribers { get; } = [];
+        public Dictionary<long, (string Owner, Action<string?> Changed)> Subscribers { get; } = [];
         public List<FileSystemWatcher> Watchers { get; set; } = [];
+        public HashSet<FileSystemWatcher> Enabled { get; } = [];
+        public Dictionary<FileSystemWatcher, long> Identities { get; } = [];
         public DateTime Identity { get; set; }
         public int Generation { get; set; }
         public long Warmed { get; set; }
     }
 
-    private sealed class Subscription(Entry entry, Action<string?> changed) : IDisposable
+    private sealed class Subscription(Entry entry, long id) : IDisposable
     {
         public void Dispose()
         {
             lock (Gate)
-                if (entry.Subscribers.Remove(changed) && entry.Subscribers.Count == 0) Remove(entry);
+                if (entry.Subscribers.Remove(id, out var subscription))
+                {
+                    WatcherTelemetry.Log.Lease("release", entry.Root, id, subscription.Owner);
+                    if (entry.Subscribers.Count == 0) Remove(entry);
+                }
         }
     }
 
     private static readonly Lock Gate = new();
     private static readonly Dictionary<string, Entry> Entries = new(StringComparer.Ordinal);
     private static long clock;
+    private static long leaseId;
+    private static long created;
+    private static long disposed;
 
     /// <summary>Calls <paramref name="changed"/> with a workspace-relative path, or null when everything must be re-read.</summary>
-    internal static IDisposable Subscribe(string root, Action<string?> changed, Action<FileSystemWatcher, Action<Exception>>? startWatcher = null)
+    internal static IDisposable Subscribe(string root, Action<string?> changed, Action<FileSystemWatcher, Action<Exception>>? startWatcher = null, string owner = "project-stream")
     {
+        root = Normalize(root);
         lock (Gate)
         {
             var entry = Ensure(root, startWatcher);
-            entry.Subscribers.Add(changed);
-            return new Subscription(entry, changed);
+            var id = ++leaseId;
+            entry.Subscribers.Add(id, (owner, changed));
+            WatcherTelemetry.Log.Lease("acquire", root, id, owner);
+            return new Subscription(entry, id);
         }
     }
 
     /// <summary>Starts watching a workspace a client is about to open. The pool keeps the most recent few without subscribers.</summary>
     internal static void Prewarm(string root)
     {
+        root = Normalize(root);
         lock (Gate)
         {
             if (!Directory.Exists(root)) { Reap(); return; }
@@ -68,6 +81,7 @@ internal static class WorkspaceWatches
     /// <summary>Drops a pre-warmed watcher of a workspace that is gone; one with subscribers ends with them.</summary>
     internal static void Forget(string root)
     {
+        root = Normalize(root);
         lock (Gate)
             if (Entries.TryGetValue(root, out var entry) && entry.Subscribers.Count == 0) Remove(entry);
     }
@@ -75,6 +89,7 @@ internal static class WorkspaceWatches
     /// <summary>Subscribers and how many times the root's watchers were started, or null when it is not watched.</summary>
     internal static (int Subscribers, int Generation)? Inspect(string root)
     {
+        root = Normalize(root);
         lock (Gate) return Entries.TryGetValue(root, out var entry) ? (entry.Subscribers.Count, entry.Generation) : null;
     }
 
@@ -108,8 +123,19 @@ internal static class WorkspaceWatches
         Entries.Remove(entry.Root);
         entry.Retry?.Dispose();
         entry.Retry = null;
-        foreach (var watcher in entry.Watchers) watcher.Dispose();
+        foreach (var watcher in entry.Watchers) Release(entry, watcher);
         entry.Watchers = [];
+    }
+
+    private static string Normalize(string root) => Path.TrimEndingDirectorySeparator(Posix.RealPath(ProjectPaths.Resolve(root)) ?? ProjectPaths.Resolve(root));
+
+    private static void Release(Entry entry, FileSystemWatcher watcher)
+    {
+        watcher.Dispose();
+        entry.Enabled.Remove(watcher);
+        entry.Identities.Remove(watcher, out var id);
+        disposed++;
+        WatcherTelemetry.Log.Watcher("dispose", entry.Root, watcher.Path, entry.Generation, id);
     }
 
     private static DateTime Identity(string root) => Directory.GetCreationTimeUtc(root);
@@ -128,6 +154,7 @@ internal static class WorkspaceWatches
     {
         if (entry.Failed) return;
         entry.Failed = true;
+        WatcherTelemetry.Log.Watcher("failed", entry.Root, "", entry.Generation, 0);
         if (Environment.TickCount64 - entry.StartedAt >= 30_000) entry.Failures = 0;
         entry.Identity = default;
         Console.Error.WriteLine($"Workspace watcher error for {entry.Root}: {error.Message}");
@@ -153,7 +180,7 @@ internal static class WorkspaceWatches
     {
         var previous = entry.Watchers;
         entry.Watchers = [];
-        foreach (var watcher in previous) watcher.Dispose();
+        foreach (var watcher in previous) Release(entry, watcher);
         entry.Failed = false;
         entry.StartedAt = Environment.TickCount64;
         var root = entry.Root;
@@ -164,6 +191,9 @@ internal static class WorkspaceWatches
             if (entry.Failed || !Directory.Exists(path)) return;
             var watcher = new FileSystemWatcher(path) { IncludeSubdirectories = recursive, InternalBufferSize = 64 * 1024 };
             entry.Watchers.Add(watcher);
+            var id = ++created;
+            entry.Identities.Add(watcher, id);
+            WatcherTelemetry.Log.Watcher("allocate", root, watcher.Path, entry.Generation, id);
             void Raise(string fullPath)
             {
                 if (relevant(fullPath)) Notify(entry, workspace ? Path.GetRelativePath(root, fullPath).Replace('\\', '/') : null);
@@ -175,13 +205,22 @@ internal static class WorkspaceWatches
             void Error(Exception error)
             {
                 lock (Gate)
-                    if (Entries.GetValueOrDefault(root) == entry && entry.Watchers.Contains(watcher)) Failed(entry, error);
+                    if (Entries.GetValueOrDefault(root) == entry && entry.Watchers.Contains(watcher))
+                    {
+                        entry.Enabled.Remove(watcher);
+                        Failed(entry, error);
+                    }
             }
             watcher.Error += (_, e) => Error(e.GetException());
             try
             {
                 if (entry.StartWatcher is { } start) start(watcher, Error);
                 else watcher.EnableRaisingEvents = true;
+                if (!entry.Failed && watcher.EnableRaisingEvents)
+                {
+                    entry.Enabled.Add(watcher);
+                    WatcherTelemetry.Log.Watcher("enabled", root, watcher.Path, entry.Generation, id);
+                }
             }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException)
             {
@@ -201,7 +240,7 @@ internal static class WorkspaceWatches
     private static void Notify(Entry entry, string? path)
     {
         Action<string?>[] subscribers;
-        lock (Gate) subscribers = entry.Subscribers.ToArray();
+        lock (Gate) subscribers = entry.Subscribers.Values.Select(subscription => subscription.Changed).ToArray();
         foreach (var subscriber in subscribers) subscriber(path);
     }
 }

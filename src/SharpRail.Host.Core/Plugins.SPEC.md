@@ -42,7 +42,7 @@ implemented here and never redeclared.
 | `PluginRegistry.cs` | entries, activation tables with the drain counter, topological order, contract intake |
 | `PluginDiscovery.cs` | manifest intake and the scan of plugin roots |
 | `PluginLoadContext.cs` | the external host half's load context, keyed by directory and content hash |
-| `WorkspaceFileWatcher.cs` | one activation's coalescing watch of a workspace (`OnFilesChanged`) |
+| `WorkspaceFileWatcher.cs` | one activation's coalescing lease on the shared workspace watcher pool (`OnFilesChanged`); idempotent admission, released on removal, project close and deactivation |
 | `BuiltinPlugins.cs` | Spec Dialect, Blueprint, Claude Code and Discord host halves; PDF Preview's UI-only manifest |
 
 The runtime runs where the host runs: in the app's process for its own host, inside `SharpRail.Host.Remote` for a
@@ -250,3 +250,11 @@ The builtin factory accepts the Tailscale plugin's serving bridge from compositi
 bootstrap pairing and grants; Core only constructs it alongside the other builtins. Ordinary plugin
 contexts and external module loading gain no transport dependency. See
 [Tailscale](../SharpRail.Plugins.Tailscale/SPEC.md).
+
+Workspace watch admission and release share the activation registration lock. Requests recheck project
+and removed-workspace membership after asynchronous lookup, so close/deactivation cannot admit a stale
+lease. The runtime registers its state stream and consumes its initial snapshot before activation starts;
+an immediate close/disable cannot be lost as the observer's first snapshot. Both the host-state channel
+producer and plugin observer continue without the starting synchronization context, so UI-owned startup
+and synchronous window teardown never make host cancellation depend on a blocked UI dispatcher. See `Files.SPEC.md` for
+process registry counters, exact lease/instance IDs and the macOS native FSEvents lifetime check.

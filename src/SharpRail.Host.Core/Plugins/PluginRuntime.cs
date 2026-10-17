@@ -58,6 +58,10 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
             terminals.RevivePrefill = Prefill;
             terminals.SessionClosed = OnSessionClosed;
         }
+        // Register and consume the initial state synchronously before activation can admit watches.
+        // Starting this on the pool can miss a close/disable that becomes its first snapshot.
+        Seams.State.WorkspaceRemoved += ReleaseWorkspaceWatch;
+        watching = WatchStateAsync();
         started = Task.Run(async () =>
         {
             await passes.WaitAsync();
@@ -65,7 +69,6 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
             finally { passes.Release(); }
             await Schedule();
         });
-        watching = Task.Run(WatchStateAsync);
         return started;
     }
 
@@ -424,6 +427,11 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
     {
         if (!await tables.DrainAsync(Seams.DrainTimeout))
             Log(id, "warn", $"plugin {id} still had calls in flight after {Seams.DrainTimeout.TotalMilliseconds} ms", null);
+        lock (tables.Registration)
+        {
+            foreach (var watch in tables.WorkspaceWatches.Values) Guard(id, watch.Lease.Dispose);
+            tables.WorkspaceWatches.Clear();
+        }
         foreach (var resource in tables.Resources) Guard(id, resource.Dispose);
         if (!dispose || tables.Disposer is not { } disposer) return;
         try
@@ -510,7 +518,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
         HostState? previous = null;
         try
         {
-            await foreach (var state in Seams.State.WatchAsync(lifetime.Token))
+            await foreach (var state in Seams.State.WatchAsync(lifetime.Token).ConfigureAwait(false))
             {
                 if (previous is not null)
                 {
@@ -846,6 +854,7 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         if (Interlocked.Exchange(ref disposed, 1) != 0) return;
+        Seams.State.WorkspaceRemoved -= ReleaseWorkspaceWatch;
         // A pass wedged in a plugin's activation must not hold shutdown hostage.
         var held = await passes.WaitAsync(Seams.DrainTimeout + Seams.DisposeTimeout);
         try

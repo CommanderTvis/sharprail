@@ -10,37 +10,32 @@ internal sealed class WorkspaceFileWatcher : IDisposable
 {
     private const int BatchLimit = 512;
     private static readonly TimeSpan Quiet = TimeSpan.FromMilliseconds(150);
-    private readonly FileSystemWatcher watcher;
+    private readonly IDisposable watcher;
     private readonly Action<WorkspaceFilesChanged> deliver;
     private readonly string root;
     private readonly Lock gate = new();
     private readonly Timer flush;
     private SortedSet<string> pending = new(StringComparer.Ordinal);
     private bool truncated;
+    private bool disposed;
 
-    public WorkspaceFileWatcher(string root, Action<WorkspaceFilesChanged> deliver)
+    public WorkspaceFileWatcher(string root, string owner, Action<WorkspaceFilesChanged> deliver)
     {
         this.root = root; this.deliver = deliver;
         flush = new Timer(_ => Flush());
-        watcher = new FileSystemWatcher(root) { IncludeSubdirectories = true, NotifyFilter = NotifyFilters.FileName | NotifyFilters.DirectoryName | NotifyFilters.LastWrite | NotifyFilters.Size };
-        watcher.Changed += (_, change) => Record(change.FullPath);
-        watcher.Created += (_, change) => Record(change.FullPath);
-        watcher.Deleted += (_, change) => Record(change.FullPath);
-        watcher.Renamed += (_, change) => { Record(change.OldFullPath); Record(change.FullPath); };
-        watcher.Error += (_, _) => { lock (gate) truncated = true; flush.Change(Quiet, Timeout.InfiniteTimeSpan); };
-        watcher.EnableRaisingEvents = true;
+        try { watcher = WorkspaceWatches.Subscribe(root, Record, owner: owner); }
+        catch { flush.Dispose(); throw; }
     }
 
-    private void Record(string path)
+    private void Record(string? relative)
     {
-        var relative = Path.GetRelativePath(root, path).Replace(Path.DirectorySeparatorChar, '/');
-        if (relative is ".git" || relative.StartsWith(".git/", StringComparison.Ordinal)) return;
         lock (gate)
         {
-            if (pending.Count < BatchLimit) pending.Add(relative);
-            else truncated = true;
+            if (disposed) return;
+            if (relative is null || pending.Count >= BatchLimit) truncated = true;
+            else pending.Add(relative);
+            flush.Change(Quiet, Timeout.InfiniteTimeSpan);
         }
-        flush.Change(Quiet, Timeout.InfiniteTimeSpan);
     }
 
     private void Flush()
@@ -49,7 +44,7 @@ internal sealed class WorkspaceFileWatcher : IDisposable
         bool overflowed;
         lock (gate)
         {
-            if (pending.Count == 0 && !truncated) return;
+            if (disposed || pending.Count == 0 && !truncated) return;
             (batch, pending, overflowed, truncated) = (pending, new(StringComparer.Ordinal), truncated, false);
         }
         deliver(new(root, batch.ToArray(), overflowed));
@@ -57,7 +52,13 @@ internal sealed class WorkspaceFileWatcher : IDisposable
 
     public void Dispose()
     {
+        lock (gate)
+        {
+            if (disposed) return;
+            disposed = true;
+            pending.Clear();
+            flush.Dispose();
+        }
         watcher.Dispose();
-        flush.Dispose();
     }
 }

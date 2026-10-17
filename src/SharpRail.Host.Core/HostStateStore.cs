@@ -297,7 +297,7 @@ public sealed partial class HostStateStore : IHostStateService
         lock (gate) { watchers.Add(channel); channel.Writer.TryWrite(state); }
         try
         {
-            while (await channel.Reader.WaitToReadAsync(cancellationToken))
+            while (await channel.Reader.WaitToReadAsync(cancellationToken).ConfigureAwait(false))
             {
                 // Snapshots are complete; a slow watcher only needs the latest.
                 var latest = default(HostState);

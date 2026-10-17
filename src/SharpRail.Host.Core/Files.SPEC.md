@@ -166,6 +166,71 @@ A read of a file that is gone throws `FileNotFoundException` (a remote client ge
 - A watcher that cannot start degrades to read-on-demand with a logged reason; Git failure never blocks
   opening files.
 
+## Watcher hygiene and diagnostics
+
+All host-owned `FileSystemWatcher` instances are admitted through `WorkspaceWatches`; plugin activations
+hold named logical leases on that same pool instead of creating independent recursive watchers. A
+canonical absolute root (including trailing separator and filesystem-resolved aliases) identifies a
+single watcher set. Repeated/concurrent Specs graph and Blueprint reads acquire at most one lease per
+activation and workspace. Activation teardown, workspace removal and project close release those leases;
+a stale admission completing after teardown or removal must not revive a removed watch. An open plugin
+activation may intentionally retain a workspace lease until one of those boundaries, independently of
+whether a window currently displays it. Registry removal uses the host's lossless removal event rather
+than relying only on the coalescing shared-state snapshots; adding/removing a workspace within one
+snapshot interval must still release its lease.
+
+The opt-in `SharpRail-WorkspaceWatchers` EventSource records watcher allocation/enabling/failure/disposal
+with root, watched path and generation, and logical lease acquisition/release with activation owner and
+lease ID. Enabling it emits catch-up snapshots of retained roots, paths and owners. Its polling counters
+are `allocated-watchers`, `enabled-watchers`, `logical-subscriptions`, `idle-roots`, `pending-retries`,
+`created-watchers` and `disposed-watchers`. These count managed instances in this host process, not native
+FSEventStreams or the system-wide FSEvents pool. Failed instances remain allocated until deferred recovery
+or last-release. Successful starts are tracked per instance: a failed set may still contain other enabled
+watchers. Every snapshot satisfies
+`created - disposed == allocated`. Counts from separate host processes must be collected separately.
+The framework-owned configuration reload watchers created by `RemoteServer.Builder` and
+`LoopbackServer` (`McpRoute.cs`) are outside this registry; the embedded listener already disables
+configuration reload. Browser serving also owns a `PhysicalFileProvider` (static serving makes no
+explicit `Watch` request). Registry gauges therefore do not represent every managed watcher in the
+process. The native probe below includes intercepted framework streams too.
+
+From the repository root, use the performance toolkit's pinned local tools:
+
+```sh
+watcher_pid=12345 # replace with the host process ID
+mkdir -p artifacts
+(cd performance && ../.tools/dotnet/dotnet tool restore)
+(cd performance && ../.tools/dotnet/dotnet tool run dotnet-counters -- monitor --process-id "$watcher_pid" --counters SharpRail-WorkspaceWatchers)
+(cd performance && ../.tools/dotnet/dotnet tool run dotnet-trace -- collect --process-id "$watcher_pid" --providers SharpRail-WorkspaceWatchers --output ../artifacts/watchers.nettrace)
+sh scripts/check-fsevents.sh
+```
+
+The last command builds Release and compiles a test-only macOS dyld interposer, injecting it only into
+its own checks subprocess. `--no-build` reuses a previously built checks executable. Its scratch tree
+and generated dylib are removed on exit. It first proves interception with a known enabled watcher,
+then compares actual live/running FSEventStreams across repeated reads, client reconnects and three
+real Git-host shutdown/disposal cycles, including metadata/refs watchers. The separate gitless
+managed plateau case still asserts one workspace watcher. Create/retain/release accounting is separate from start/stop/
+invalidate state; a failed start still owns an allocated stream until release. Unknown operations or
+a probe capacity overflow fail the test instead of silently undercounting. The fixed probe table has
+4096 slots and retains no released stream history. These are intercepted public API streams in the
+owned subprocess, not a measurement of the kernel's global pool or other host processes. The probe
+is neither linked into production nor an app setting.
+
+Lease events and catch-up snapshots identify activation owners and exact lease IDs; watcher events
+and snapshots identify instance IDs, paths and generations. Counters retain scalar lifetime totals,
+not historical paths/owners; polling does not allocate whole registry snapshots. A legitimate idle
+pre-warm contributes an allocated instance with zero subscriptions; a failed set can retain instances
+and one retry until recovery/disposal. Inspect all these dimensions before diagnosing a leak.
+
+`--watcher-hygiene` verifies repeated/concurrent real Specs and Blueprint reads, shared client leases,
+activation owners, disable, project close/reopen and host-runtime teardown against baseline counts.
+`--watchers` covers failed synchronous starts, replacement, backoff and cancellation of pending recovery.
+The native check on macOS also covers framework-host start/stop/dispose and RPC reconnection; its control
+watcher must prove actual API interception before native counts are accepted.
+The pre-warm cap remains eight idle roots; logical subscription count never substitutes for underlying
+watcher count when checking resource return.
+
 ## Not yet ported
 
 - A watcher-start notification for the workspace activity lifecycle, before repository-metadata events
@@ -183,3 +248,12 @@ files; it does not relax containment for arbitrary client paths. See [Terminals.
 Prompt attachments use `SavePromptImageAsync`: bounded PNG bytes are saved under the host state's
 clipboard directory, returning an absolute host path. Local calls run off the dispatcher; remote calls
 carry the bytes and return the same host path, never a client-local file path.
+
+Verified on macOS arm64: the test-only native probe observed 22 created/22 released streams, peak six,
+and returned to zero live/running streams after the separate gitless plateau/removal case and three
+real Git-host lifecycles with 24 RPC reconnects. Each Git host admitted four enabled managed instances
+(workspace, Git metadata and refs) and four additional live/running native streams; repeated reads and
+reconnects did not allocate more. A known enabled FileSystemWatcher proved interception; there were
+zero failed native starts and zero untracked operations. The earlier 13-created/13-released, peak-three
+fixture was gitless and did not prove native metadata watcher lifetime. These scoped subprocess checks
+include framework-created streams, not global pool availability or resources of a running user host.

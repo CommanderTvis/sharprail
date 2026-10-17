@@ -102,3 +102,8 @@ The dependency-boundary check and the public-surface check are repository gates 
 behavior, but they need the compiled assemblies and negative fixtures, so they live in the checks executable
 (`-- --conformance`, also in the argument-free gate) and are specified in
 [the checks spec](../tests/SharpRail.Checks/SPEC.md#conformance). No script duplicates them.
+
+`check-fsevents.sh` is a macOS-only functional resource-lifetime check. It builds strict Release unless
+`--no-build` is requested, compiles the checks' native interposer with warnings as errors, and scopes
+DYLD injection to its own checks process. It rejects an existing injection and cleans its fixtures
+and generated library on exit. It never modifies a running app or measures global pool occupancy.

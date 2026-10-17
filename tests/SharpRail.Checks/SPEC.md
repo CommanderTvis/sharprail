@@ -666,3 +666,10 @@ repositories and wait for Git capability before interacting. A pre-existing caug
 reconciliation index exception was observed during rendered-diff checks and remains unresolved.
 This source result does not establish packaged, browser, Android-device, native-GPU or Windows-runtime
 acceptance, and predates the separately integrated browser prose/AOT and Windows-script changes.
+
+Watcher hygiene: `--watcher-hygiene` exercises real Specs/Blueprint concurrent and repeated reads, canonical-root sharing, owner accounting, plugin disable, project close/reopen, runtime teardown and startup synchronization-context isolation. `--watchers` covers native-start failure/backoff/replacement lifecycle. Accounting distinguishes managed allocations, enabled sets, logical leases, idle roots and retries; it is not an OS FSEvents allocation measurement.
+
+`--native-fsevents` requires `scripts/check-fsevents.sh` and its scoped test-only DYLD interposer.
+It proves interception with a control watcher and checks native allocation/start/stop/release balance
+across gitless reads/removal and real isolated Git-host lifecycles, including metadata/refs and framework-created streams. It is deliberately outside
+the argument-free managed gate; no production native interposition is enabled by these checks.

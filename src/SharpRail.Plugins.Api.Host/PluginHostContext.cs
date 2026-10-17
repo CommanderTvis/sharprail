@@ -130,7 +130,8 @@ public interface IPluginHostContext
     /// <returns>The workspace, or <see langword="null"/> when it does not exist.</returns>
     ValueTask<HostWorkspace?> WorkspaceAsync(string id, CancellationToken cancellationToken = default);
 
-    /// <summary>Starts watching a workspace's files for this activation, feeding <see cref="OnFilesChanged"/> (H12).</summary>
+    /// <summary>Starts watching a workspace's files for this activation, feeding <see cref="OnFilesChanged"/> (H12).
+    /// Repeated/concurrent requests share one lease; workspace removal, project close or activation teardown releases it.</summary>
     /// <param name="id">The workspace id.</param>
     /// <param name="cancellationToken">Cancels starting the watch.</param>
     /// <returns>Completes when the watch is running.</returns>

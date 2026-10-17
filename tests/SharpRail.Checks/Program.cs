@@ -292,6 +292,16 @@ internal static class Program
             E2E.WelcomeE2E.Run(Path.Combine(root, "upstream-e2e"));
             return;
         }
+        if (args.SequenceEqual(["--native-fsevents"]))
+        {
+            NativeFSEventsChecks.Run(root).GetAwaiter().GetResult();
+            return;
+        }
+        if (args.SequenceEqual(["--watcher-hygiene"]))
+        {
+            WatcherHygieneChecks.Run(root).GetAwaiter().GetResult();
+            return;
+        }
         if (args.SequenceEqual(["--watchers"]))
         {
             WatchChecks.Run(root).GetAwaiter().GetResult();
@@ -812,6 +822,7 @@ internal static class Program
         Gate.Case("process", () => ProcessChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("git-host", () => GitHostChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("registry", () => WorkspaceRegistryChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("watcher-hygiene", () => WatcherHygieneChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("watchers", () => WatchChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("reconnect", () => ReconnectChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("host-state", () => StateStoreChecks.Run(root).GetAwaiter().GetResult());

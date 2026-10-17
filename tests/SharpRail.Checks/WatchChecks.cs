@@ -65,6 +65,10 @@ internal static class WatchChecks
             if (path == "recovered.txt") changed.TrySetResult();
         }, Start))
         {
+            var failed = WorkspaceWatches.Accounting();
+            var failedRoot = failed.Roots.Single(entry => entry.Root == workspace);
+            Require(failed.Created - failed.Disposed == failed.Allocated && failedRoot is { Failed: true, RetryPending: true, EnabledWatchers: 0 } && failedRoot.AllocatedPaths.Count == 1,
+                "A failed startup must account for its retained managed instance and one retry, without claiming an enabled native watch.");
             Require(attempts.Count == 1 && maximumDepth == 1, "A synchronous startup error must return without restarting on its stack.");
             await recovering.Task.WaitAsync(TimeSpan.FromSeconds(10));
             Require(attempts.Count == 4 && maximumDepth == 1, "Persistent startup failures must recover without recursive callbacks or duplicate retries.");
@@ -78,6 +82,9 @@ internal static class WatchChecks
             Require(WorkspaceWatches.Inspect(workspace) == (1, 5), "An already active watcher must also recover without losing its subscription.");
             lateError!(new IOException("Failure immediately before unsubscribe"));
         }
+        var released = WorkspaceWatches.Accounting();
+        Require(released.Created - released.Disposed == released.Allocated && released.Roots.All(entry => entry.Root != workspace),
+            "Disposal during queued recovery must release every failed/replaced managed instance and its retry.");
         var stoppedAt = attempts.Count;
         lateError!(new IOException("Late callback after disposal"));
         await Task.Delay(4300);
