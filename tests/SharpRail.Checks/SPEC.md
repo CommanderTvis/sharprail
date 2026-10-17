@@ -677,3 +677,5 @@ the argument-free managed gate; no production native interposition is enabled by
 Fake-agent child processes recognize their fixture marker alongside launcher-supplied options, including `--plugin-dir`, so they never enter the check gate recursively.
 
 Git UI fixtures wait for deferred scope reconciliation and Git-required tool availability before interacting; mounting the workspace alone does not establish optional Git-pane readiness. Commit-catalog isolation assertions still apply after reconciliation.
+
+The settings-refresh case checks that terminal-title broadcasts retain Appearance, Layout and Projects page instances while relevant appearance changes still reconcile. The browser Settings journey repeats the check over actual RPC while monitoring visibility and geometry.

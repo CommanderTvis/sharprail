@@ -234,3 +234,7 @@ while asked for, and hides it again when listening stops, because the code is th
 on every interface is named by the computer's first network address; one on loopback says it cannot be
 reached from another device.
 
+
+Settings retain their mounted page through unrelated host-state broadcasts, including terminal titles and agent activity. Changes to settings, shared presets or the project list still reconcile the affected controls; background activity must not repeatedly replace an open page or lose its input state.
+
+The 2026-10-18 regression reproduced Appearance page replacement on a terminal-title broadcast before the guard, then passed for Appearance, Layout and Projects while preserving refresh on a real appearance change. Actual Chrome Settings/RPC journeys passed at 1840×1340/DPR1 and 1437×907 with 125% interface zoom/DPR2, including repeated broadcasts, stable dialog geometry/visibility, pointer dismissal and recovered terminal input. These passes do not establish Safari/Firefox or physical Retina acceptance.

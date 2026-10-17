@@ -10,6 +10,7 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 
 using SharpRail.UI.Browser;
+using SharpRail.Host.Abstractions;
 
 namespace SharpRail.Browser.Checks;
 
@@ -54,6 +55,29 @@ internal static partial class BrowserChecks
                 }).ToArray()
             });
         });
+    }
+
+    [JSExport]
+    public static async Task<bool> SettingsRetainPageOnHostUpdate()
+    {
+        var snapshot = await Dispatcher.UIThread.InvokeAsync(() =>
+        {
+            var window = BrowserSession.Current!.Workbench!.ActiveWindow!;
+            var dialog = window.OwnedWindows.Single();
+            var body = dialog.GetVisualDescendants().OfType<ContentControl>().Single(control => control.Name == "SettingsBody");
+            return (Window: window, Body: body, Content: body.Content);
+        });
+        var title = "Settings activity " + Guid.NewGuid().ToString("N");
+        await snapshot.Window.Workbench.State.ChangeAsync(HostStateChange.TitleTerminal(new(snapshot.Window.WorkspaceRoot, "terminal:restty-check"), title));
+        for (var attempt = 0; attempt < 200; attempt++)
+        {
+            var result = await Dispatcher.UIThread.InvokeAsync(() =>
+                snapshot.Window.Workbench.State.Current.TerminalTitles.Any(item => item.Title == title)
+                    ? (bool?)ReferenceEquals(snapshot.Body.Content, snapshot.Content) : null);
+            if (result is { } retained) return retained;
+            await Task.Delay(25);
+        }
+        throw new TimeoutException("Terminal title broadcast did not arrive.");
     }
 
     [JSExport]

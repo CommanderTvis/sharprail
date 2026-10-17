@@ -294,6 +294,8 @@ public sealed partial class SettingsWindow : Window
 
     private void SharedChanged(HostState previous, HostState next)
     {
+        // Terminal activity and other clients' workspace updates must not replace the open page.
+        if (previous.Settings == next.Settings && previous.Presets.SequenceEqual(next.Presets) && previous.Projects.SequenceEqual(next.Projects)) return;
         RequestedThemeVariant = (Owner as Window)?.RequestedThemeVariant;
         if (section == "Line width") foreach (var refresh in refreshers) refresh();
         else if (section is "Appearance" or "Layout" or "Projects" || section == "Workspaces" && previous.Settings.SettleIdleDays != next.Settings.SettleIdleDays || section == "Terminal" && previous.Settings.TerminalReplayKb != next.Settings.TerminalReplayKb) ShowSection(section);

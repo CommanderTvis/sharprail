@@ -274,3 +274,7 @@ remains unverified for this delta because its second read-only client stalled be
 The check runner now bounds browser shutdown and accepts `SHARPRAIL_BROWSER_CHANNEL` for
 installed-channel diagnosis, with bundled Chromium still the default. These checks do not resolve
 the previously recorded WASM startup instability or establish other-engine/physical-DPI acceptance.
+
+The Settings browser journey includes terminal-title broadcasts while the dialog is open, retaining the mounted page and checking stable visibility/geometry over multiple seconds. Fractional CSS sizes permit subpixel rounding rather than requiring exact decimal equality.
+
+On 2026-10-18 the Settings activity journey passed in installed Chrome at 1840×1340/DPR1 and 1437×907 with 125% interface zoom/DPR2. A bundled Chromium attempt stalled before reaching Settings; the previously recorded WASM startup instability remains outside this fix. The 143-case source gate completed in aggregate after unchanged Layout/Visualize timeouts passed in the serial resume.

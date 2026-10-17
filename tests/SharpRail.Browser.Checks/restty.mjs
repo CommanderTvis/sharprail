@@ -58,7 +58,23 @@ try {
       configurable: true, value: { writeText: async text => globalThis.selectedText = text }
     }));
   }
-  if (process.argv.includes('--settings')) page.setDefaultTimeout(30000);
+  if (process.argv.includes('--settings')) {
+    page.setDefaultTimeout(30000);
+    await page.addInitScript(() => {
+      globalThis.settingsTransitions = [];
+      new MutationObserver(records => {
+        for (const record of records) {
+          if (record.type === 'attributes' && record.target.classList?.contains('sharprail-dialog')) {
+            const element = record.target;
+            const bounds = element.getBoundingClientRect();
+            const value = { id: element.id, visible: element.style.visibility, width: bounds.width, height: bounds.height };
+            const previous = globalThis.settingsTransitions.at(-1);
+            if (JSON.stringify(value) !== JSON.stringify(previous)) globalThis.settingsTransitions.push(value);
+          }
+        }
+      }).observe(document, { subtree: true, attributes: true, attributeFilter: ['style', 'class'] });
+    });
+  }
   const errors = []; page.on('pageerror', error => { errors.push(error.message); console.error(error.message); });
   page.on('console', message => { if (message.type() === 'error' && !message.text().includes('404')) { errors.push(message.text()); console.error(message.text()); } });
   await page.addInitScript(({ address, token, fixture, zoom }) => {
@@ -372,14 +388,16 @@ try {
       } else await invoke('OpenSettings', section);
       const dialog = page.locator('.sharprail-dialog');
       await page.waitForFunction(() => document.querySelector('.sharprail-workbench').inert);
-      await until(() => dialog.boundingBox(), bounds => bounds?.height === page.viewportSize().height * .8, 'Settings did not finish sizing');
+      await until(() => dialog.boundingBox(), bounds => bounds && Math.abs(bounds.height - page.viewportSize().height * .8) < 1, 'Settings did not finish sizing');
+      assert.equal(await invoke('SettingsRetainPageOnHostUpdate'), true, 'An unrelated host update rebuilt the open Settings page');
       await invoke('RepaintEmbeddedRoots');
-      for (let frame = 0; frame < 4; frame++) {
+      for (let frame = 0; frame < 30; frame++) {
+        if (frame % 6 === 0) assert.equal(await invoke('SettingsRetainPageOnHostUpdate'), true, 'Live host activity replaced Settings controls');
         await page.waitForTimeout(100);
         assert.equal(await dialog.count(), 1);
         const stable = await dialog.boundingBox();
         assert.equal(stable.width, Math.min(832 * Number(process.env.SETTINGS_ZOOM ?? 1), viewport.width), 'Settings width oscillated during repaint');
-        assert.equal(stable.height, viewport.height * .8, 'Settings height oscillated during repaint');
+        assert.ok(Math.abs(stable.height - viewport.height * .8) < 1, 'Settings height oscillated during repaint');
         assert.equal(await dialog.evaluate(element => element.style.visibility), 'visible');
         const pixels = await page.screenshot();
         const magenta = await page.evaluate(async data => {
@@ -393,6 +411,7 @@ try {
         }, pixels.toString('base64'));
         assert.equal(magenta, 0, 'The temporary embedded renderer painted over a real window');
       }
+      console.log('SETTINGS_TRANSITIONS', JSON.stringify(await page.evaluate(() => globalThis.settingsTransitions)));
       const shape = await geometry();
       assert.equal(shape.Dialogs.length, 1);
       const bounds = await dialog.boundingBox();
