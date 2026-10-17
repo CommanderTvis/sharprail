@@ -2,6 +2,11 @@ using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 
 using Ghostty.Avalonia;
@@ -139,13 +144,40 @@ internal static class TerminalCommitLinkChecks
             var resolution = launch.ResolveCommitLinks!(sha[..8], default);
             E2eWorkspace.Until(() => resolution.IsCompleted);
             var link = resolution.GetAwaiter().GetResult().Single();
-            var open = launch.OpenFileLink!(link);
-            E2eWorkspace.Until(() => open.IsCompleted);
-            open.GetAwaiter().GetResult();
+            using (var view = new GhosttySkiaView
+            {
+                Typeface = EditorChecks.Font,
+                FontSize = 14,
+                ResolveFileLinks = launch.ResolveCommitLinks,
+                OpenFileLink = launch.OpenFileLink,
+                ResolveHighlightedLinks = launch.ResolveCommitLinks
+            })
+            {
+                var terminalWindow = new Window { Width = 300, Height = 160, Content = view };
+                terminalWindow.Show();
+                try
+                {
+                    view.Write(Encoding.UTF8.GetBytes(sha[..8]));
+                    E2eWorkspace.Settle(150);
+                    var cw = (view.Bounds.Width - view.Padding.Left - view.Padding.Right) / view.Size.Columns;
+                    var ch = (view.Bounds.Height - view.Padding.Top - view.Padding.Bottom) / view.Size.Rows;
+                    var point = new Point(view.Padding.Left + cw * 1.5, view.Padding.Top + ch * 0.5);
+                    terminalWindow.MouseDown(point, MouseButton.Right);
+                    terminalWindow.MouseUp(point, MouseButton.Right);
+                    E2eWorkspace.Until(() => view.ClipboardMenu?.Items.OfType<MenuItem>().Any(item => Equals(item.Header, "Open link")) == true);
+                    var item = view.ClipboardMenu!.Items.OfType<MenuItem>().Single(item => Equals(item.Header, "Open link"));
+                    Require(Equals(item.Tag, link.Path), "Right-click without Command must resolve the canonical commit target.");
+                    view.ClipboardMenu.Close();
+                    item.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+                    E2eWorkspace.Until(() => window.Layout.Tabs(window.Layout.View.FocusedCenter)
+                        .Any(tab => tab.Kind == "changes" && tab.Scope == "commit" && tab.Comparison == sha));
+                }
+                finally { terminalWindow.Close(); }
+            }
             Require(window.Layout.Tabs(window.Layout.View.FocusedCenter).Any(tab => tab.Kind == "changes" && tab.Scope == "commit" && tab.Comparison == sha),
                 "Activating a terminal hash must open the existing commit Changes tab, not an editor file or external URI.");
             var before = window.Layout.Tabs(window.Layout.View.FocusedCenter).Count;
-            open = launch.OpenFileLink(link);
+            var open = launch.OpenFileLink!(link);
             E2eWorkspace.Until(() => open.IsCompleted);
             Require(window.Layout.Tabs(window.Layout.View.FocusedCenter).Count == before, "Opening a commit again must reuse its kept Changes tab.");
             var home = window.OpenProjectHomeAsync(repo);
@@ -154,7 +186,7 @@ internal static class TerminalCommitLinkChecks
             resolution = launch.ResolveCommitLinks(sha, default);
             E2eWorkspace.Until(() => resolution.IsCompleted);
             Require(resolution.GetAwaiter().GetResult().Count == 0, "An inactive workspace's terminal must not resolve navigation links.");
-            Console.WriteLine("PASS terminal commit activation opens and reuses committed Changes, and rejects inactive workspace results");
+            Console.WriteLine("PASS terminal commit right-click without Command opens and reuses committed Changes, and rejects inactive workspace results");
         }
         finally { window.Close(); Dispatcher.UIThread.RunJobs(); }
     }

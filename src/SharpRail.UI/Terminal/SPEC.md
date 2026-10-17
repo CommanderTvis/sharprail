@@ -254,7 +254,7 @@ history catalog. Existing commits are persistently underlined throughout the vis
 without requiring a modifier or pointer hover. Visible-text lookups are debounced off-thread and
 bounded to 32 cached viewport texts (30 seconds for positive results, one second for empty results);
 Metal scans dirty viewports at most five times per second. Output changes, detach and disposal reject
-superseded work. Modifier-click and the terminal's Open link context action revalidate the target
+superseded work. Modifier-click and the terminal's Open link context action (right-click without Command/Ctrl) revalidate the target
 and open the existing kept continuous Changes tab for that commit. Hover results are bounded to
 16 logical lines for one second and reject superseded requests. Leaving the workspace or closing
 the renderer prevents stale navigation. Restty's canvas runtime has no custom link-provider seam;
