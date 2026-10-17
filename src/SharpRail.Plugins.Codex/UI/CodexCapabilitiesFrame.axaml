@@ -13,7 +13,7 @@
   <StackPanel x:Name="Servers" />
   <Border Padding="8,4" BorderBrush="{x:Static kit:Ui.BorderBrush}" BorderThickness="0,0,0,1">
     <StackPanel Spacing="2">
-      <TextBlock Text="thinkrail" FontFamily="{x:Static kit:Ui.CodeFont}" FontSize="12" Foreground="{x:Static kit:Ui.TextBrush}" />
+      <TextBlock Text="sharprail" FontFamily="{x:Static kit:Ui.CodeFont}" FontSize="12" Foreground="{x:Static kit:Ui.TextBrush}" />
       <TextBlock Text="SharpRail's own MCP server, added to every session the launcher starts unless turned off in Settings."
                  FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" TextTrimming="None" />
     </StackPanel>

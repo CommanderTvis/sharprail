@@ -29,6 +29,9 @@ invitation and bundled AI chat are excluded by the SharpRail product contract.
   facts carry actual token counts and update_plan records. Nested agents preserve the outer record.
 - Launch and editable revival preserve quoting and supported options, refresh terminal MCP ownership
   and apply permission defaults. IDE slash commands submit Enter separately after 250ms.
+  The embedded MCP server is registered as `sharprail`, matching Claude Code and the protocol identity.
+  Revival replaces launcher-owned overrides under both the current name and legacy `thinkrail`;
+  the existing `THINKRAIL_MCP_URL` environment contract remains compatible with running shells.
   Launcher MCP configuration always approves `set_title`, `spec_get`, `spec_graph`, `spec_grep`,
   `spec_validate` and `blueprint_check` for that session. Revival refreshes these overrides without
   accumulating them; disabling launcher MCP drops them. Other tools retain their configured policy.

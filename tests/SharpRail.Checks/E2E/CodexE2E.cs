@@ -689,10 +689,10 @@ internal static class CodexE2E
     {
         string[] tools = ["set_title", "spec_get", "spec_graph", "spec_grep", "spec_validate", "blueprint_check"];
         var count = 2 + tools.Length * 2;
-        Require(args.Length >= count && args[0] == "-c" && args[1].StartsWith("mcp_servers.thinkrail.url=", StringComparison.Ordinal),
+        Require(args.Length >= count && args[0] == "-c" && args[1].StartsWith("mcp_servers.sharprail.url=", StringComparison.Ordinal),
             "launcher MCP URL: " + string.Join(" | ", args));
         for (var index = 0; index < tools.Length; index++)
-            Require(args[2 + index * 2] == "-c" && args[3 + index * 2] == $"mcp_servers.thinkrail.tools.{tools[index]}.approval_mode=\"approve\"",
+            Require(args[2 + index * 2] == "-c" && args[3 + index * 2] == $"mcp_servers.sharprail.tools.{tools[index]}.approval_mode=\"approve\"",
                 "launcher always allows " + tools[index]);
         return args[count..];
     }

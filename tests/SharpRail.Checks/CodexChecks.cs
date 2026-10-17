@@ -474,6 +474,8 @@ internal static class CodexChecks
         Equal(Command("codex", null, mcp: true, windows: true), "codex resume --last", "Windows has no MCP override");
         var refreshed = Command("codex -c 'mcp_servers.thinkrail.url=\"http://old\"'", null, mcp: true);
         Equal(refreshed, CodexLaunch.Line("codex", new(true, false) { Resume = true }), "a stale MCP override is replaced");
+        Equal(Command("codex -c 'mcp_servers.sharprail.url=\"http://old\"' -c 'mcp_servers.thinkrail.tools.set_title.approval_mode=\"approve\"'", null, mcp: true),
+            refreshed, "revival replaces both current and legacy launcher-owned overrides");
         Equal(Command(refreshed ?? "", null, mcp: true), refreshed, "repeated revival does not accumulate overrides");
         Equal(Command(refreshed ?? "", null), "codex resume --last", "turning MCP off drops it");
         Equal(Command("codex -c 'mcp_servers.thinkrail.tools.spec_create.approval_mode=\"prompt\"'", null),

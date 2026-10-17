@@ -106,7 +106,7 @@ public static partial class CodexResume
     [GeneratedRegex(@"^\w+=")]
     private static partial Regex Assignment();
 
-    [GeneratedRegex("""^['"]?mcp_servers\.thinkrail\.(?:url|tools\.(?:set_title|spec_get|spec_graph|spec_grep|spec_validate|blueprint_check)\.approval_mode)=""")]
+    [GeneratedRegex("""^['"]?mcp_servers\.(?:sharprail|thinkrail)\.(?:url|tools\.(?:set_title|spec_get|spec_graph|spec_grep|spec_validate|blueprint_check)\.approval_mode)=""")]
     private static partial Regex McpOverride();
 
     [GeneratedRegex("""^['"]?developer_instructions=""")]

@@ -50,13 +50,13 @@ public static partial class CodexLaunch
     private static string ConfigArg(string key, string value) => "-c " + ShellQuote(key + "=" + JsonSerializer.Serialize(value, Json));
 
     // The MCP URL is minted per terminal by core, so it is left for the shell to expand.
-    public const string McpOverride = "-c \"mcp_servers.thinkrail.url=\\\"$THINKRAIL_MCP_URL\\\"\"" +
-        " -c 'mcp_servers.thinkrail.tools.set_title.approval_mode=\"approve\"'" +
-        " -c 'mcp_servers.thinkrail.tools.spec_get.approval_mode=\"approve\"'" +
-        " -c 'mcp_servers.thinkrail.tools.spec_graph.approval_mode=\"approve\"'" +
-        " -c 'mcp_servers.thinkrail.tools.spec_grep.approval_mode=\"approve\"'" +
-        " -c 'mcp_servers.thinkrail.tools.spec_validate.approval_mode=\"approve\"'" +
-        " -c 'mcp_servers.thinkrail.tools.blueprint_check.approval_mode=\"approve\"'";
+    public const string McpOverride = "-c \"mcp_servers.sharprail.url=\\\"$THINKRAIL_MCP_URL\\\"\"" +
+        " -c 'mcp_servers.sharprail.tools.set_title.approval_mode=\"approve\"'" +
+        " -c 'mcp_servers.sharprail.tools.spec_get.approval_mode=\"approve\"'" +
+        " -c 'mcp_servers.sharprail.tools.spec_graph.approval_mode=\"approve\"'" +
+        " -c 'mcp_servers.sharprail.tools.spec_grep.approval_mode=\"approve\"'" +
+        " -c 'mcp_servers.sharprail.tools.spec_validate.approval_mode=\"approve\"'" +
+        " -c 'mcp_servers.sharprail.tools.blueprint_check.approval_mode=\"approve\"'";
 
     public static string Line(string command, CodexLaunchOptions options)
     {
