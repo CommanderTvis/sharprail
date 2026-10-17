@@ -324,6 +324,17 @@ internal static class PdfPreviewChecks
         Require(preview.Scale > 1 && preview.Scale < 1.2 && viewport.Offset == scrollBefore, "Control-wheel zooms by a bounded step and consumes scrolling.");
         window.MouseWheel(wheelPoint, new Vector(0, -1), RawInputModifiers.Meta);
         Require(Math.Abs(preview.Scale - 1) < 0.001, "Command-wheel reverses the same zoom step.");
+        var appZoom = window.Preferences.Zoom;
+        foreach (var pinchTarget in new Control[] { Find<Image>(window, "PdfPage"), Find<Border>(window, "PdfToolbar") })
+        {
+            var pinch = new PointerDeltaEventArgs(InputElement.PointerTouchPadGestureMagnifyEvent, pinchTarget,
+                new Pointer(Pointer.GetNextFreeId(), PointerType.Mouse, true), window, default, 0,
+                new PointerPointProperties(), KeyModifiers.None, new Vector(0.2, 0));
+            var pdfZoom = preview.Scale;
+            pinchTarget.RaiseEvent(pinch);
+            Require(pinch.Handled && Math.Abs(preview.Scale - pdfZoom * 1.2) < 0.001 && window.Preferences.Zoom == appZoom,
+                "Pinch over PDF content and toolbar must zoom only the PDF, leaving app zoom unchanged.");
+        }
         for (var index = 0; index < 20; index++) app.Click(Find<Button>(window, "PdfZoomIn"), freshGesture: false);
         Require(preview.Scale == 6, "Toolbar zoom is capped at 600%.");
         for (var index = 0; index < 45; index++) app.Click(Find<Button>(window, "PdfZoomOut"), freshGesture: false);

@@ -81,7 +81,7 @@ not shift the selection geometry.
   (`PointerTouchPadGestureMagnify`) zoom continuously, clamped by `ZoomGesture.Clamp`. These come from the kit's
   `Visualization.ZoomGesture`, the counterpart of the fork kit's `zoomGesture` (`clampZoomScale`,
   `zoomScaleForWheel`, `isZoomGesture`, `ZOOM_SCALE_STEP`), added to the kit with this plugin since SharpRail's kit
-  had no shared zoom math.
+  had no shared zoom math. The preview claims bubbling pinch gestures over its pages and toolbar so they never change application zoom.
 - The live scale stretches the pixels rasterized last; the pages are rasterized again once the scale holds still
   for 120 ms (`PDF_RASTER_SETTLE_MS`), so a continuous pinch never asks for a render per event. A rasterization
   superseded by a newer read or zoom is dropped rather than shown.

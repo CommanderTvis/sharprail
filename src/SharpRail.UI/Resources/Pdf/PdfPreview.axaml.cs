@@ -64,11 +64,11 @@ internal sealed partial class PdfPreview : UserControl, IResourceBody
             e.Handled = true;
             ZoomTo(ZoomGesture.ForWheel(scale, e.Delta.Y));
         }, RoutingStrategies.Tunnel);
-        scroll.AddHandler(PointerTouchPadGestureMagnifyEvent, (_, e) =>
+        AddHandler(PointerTouchPadGestureMagnifyEvent, (_, e) =>
         {
             e.Handled = true;
             ZoomTo(scale * (1 + e.Delta.X));
-        }, RoutingStrategies.Tunnel);
+        });
         AttachedToVisualTree += (_, _) =>
         {
             // A compiler rewriting the file is the reason this pane exists: the file's own revision, not the
