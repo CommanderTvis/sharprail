@@ -798,3 +798,5 @@ status followed by unavailable inspection, and native viewport centering of a de
 Global JVM provider checks cover deterministic legacy migration, explicit global precedence, direct/remote state parity, competing-session suspension across workspaces, retained provider settings, installation-specific consent and Settings broadcast refresh.
 
 The project language-autostart checks cover persisted project scope, direct/remote snapshot parity, concurrent and warm starts, stopped/failed recovery, and managed-launch ordering before terminal attachment. The headless checkbox interaction verifies immediate host persistence.
+
+The Git UI fixture waits for the exact remembered commit row after switching back to a workspace; mounting its frame alone does not mean its deferred commit catalog has reconciled.

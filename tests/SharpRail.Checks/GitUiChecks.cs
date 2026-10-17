@@ -194,7 +194,8 @@ internal static class GitUiChecks
         Click(window, main); Pump(() => window.WorkspaceRoot == root && window.WorkspaceMounted &&
             Buttons(window).Any(button => Equals(ToolTip.GetTip(button), worktree)));
         Button Linked() => Buttons(window).Single(button => Equals(ToolTip.GetTip(button), worktree));
-        Pump(() => Commit().IsChecked);
+        Pump(() => Named("ChangesScope").ContextMenu!.Items.OfType<MenuItem>().Any(item =>
+            item.Name == "ChangesCommit_" + commitId && item.IsChecked));
         Require(Action(Named("ChangesBranch"), "sharprail-fork").IsChecked, "Returning to a workspace lost its target and commit selection.");
         Invoke(Action(Linked(), "Remove worktree…"));
         var confirmation = window.OwnedWindows.Single(item => item.Title == "Remove worktree?");
