@@ -52,6 +52,12 @@ public sealed partial class WorkbenchWindow
             }),
             Diff = RenderMergedAsync
         });
+        registry.Register(new("sharprail/pdf", "PDF", new(Glob: ["*.pdf"]), 120)
+        {
+            View = view => new Resources.Pdf.PdfPreview(
+                token => workbench.ReadWorkspaceFileAsync(view.Resource.Workspace, view.Resource.Path, token),
+                handler => workbench.ObserveFileRevision(view.Resource.Workspace, view.Resource.Path, handler))
+        });
         return registry;
     }
 

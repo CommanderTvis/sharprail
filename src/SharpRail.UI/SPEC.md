@@ -43,6 +43,7 @@ the UI must never become a second authority for host-owned settings. No backgrou
 | Terminals | Attach a view to a shell and recover from connection failures | [Terminals](Terminal/SPEC.md) |
 | Settings and dialogs | Configure the workbench and confirm actions | [Settings](Panels/SPEC.md) |
 | Documents | Read Markdown, inspect diffs and switch renderers | [Rendering](Rendering/SPEC.md) |
+| PDF files | Read, select, zoom and reload PDF pages | [Core PDF preview](Resources/Pdf/SPEC.md) |
 | Plugins | Add panels, commands and document views | [UI plugins](Plugins/SPEC.md) |
 
 Resource renderers and away notifications are described below. Shared controls, including dialogs,
@@ -205,7 +206,7 @@ draw that content: its toggle is disabled and the next candidate takes over with
 choice.
 
 `BundledRenderers` registers the format views that need nothing from the window (image, vector, table,
-JSON tree, notebook, Git LFS pointer, byte card); `WorkbenchWindow` registers code and Markdown, which need
+JSON tree, notebook, Git LFS pointer, byte card); `WorkbenchWindow` registers code, Markdown and [PDF](Resources/Pdf/SPEC.md), which need
 its editing and navigation wiring (`ResourceDocuments.cs`, `RenderedDiffs.cs`). The views themselves are
 listed in [Panels.SPEC.md](Panels.SPEC.md). A text diff is described by its path; a diff Git reports as
 binary, or one that may hold an LFS pointer, waits for the host's side metadata before choosing.

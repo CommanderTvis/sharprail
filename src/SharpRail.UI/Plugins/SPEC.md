@@ -91,7 +91,7 @@ from the UI thread. Activating UI halves must not run inline inside workbench co
 and roster registration still precede reconciliation, preserving dormant tools and eventual activation.
 
 - Builtin UI halves are a literal array in `BuiltinPlugins.cs`: a manifest and a factory for its
-  `PluginUIModule` per plugin, including Spec Dialect, Blueprint, Claude Code, Discord and PDF Preview. The manifests are registered before any roster arrives,
+  `PluginUIModule` per plugin, including Spec Dialect, Blueprint, Claude Code and Discord. The manifests are registered before any roster arrives,
   so a persisted `plugin:<id>:<tool>` tab renders its placeholder with the right label and icon.
 - An external UI half loads through the host: `IPluginService.ReadFileAsync(id, entry.Ui)` returns the entry
   assembly's bytes, which load into a `PluginLoadContext` keyed by plugin id and content hash. The context

@@ -43,12 +43,14 @@
     "WarningWash": { "role": "feedback-warning-subtle", "from": "warning", "alpha": "wash" },
     "Danger": { "role": "feedback-error", "from": "danger" },
     "DangerWash": { "role": "feedback-error-subtle", "from": "danger", "alpha": "wash" },
+    "PdfSelection": { "role": "pdf-selection-bg", "from": "selection", "alpha": "muted" },
     "TextSelection": { "role": "selection-bg", "from": "selection" },
     "SelectionText": { "role": "selection-text", "from": "selectionForeground", "kind": "color" },
     "EditorSelection": { "role": "editor-selection-bg", "from": "editorSelection", "kind": "color" },
     "EditorSelectionText": { "role": "editor-selection-text", "from": "editorSelectionForeground", "kind": "color" }
   },
   "effects": {
+    "PdfPaper": { "note": "PDF page paper remains white independently of the workbench theme", "dark": "#ffffffff", "light": "#ffffffff" },
     "Overlay": { "note": "the scrim behind a modal", "dark": "#00000080", "light": "#00000080" },
     "DifferenceBase": { "note": "the zero of a pixel difference behind an image diff; it is data, so every theme shows black", "dark": "#000000ff", "light": "#000000ff" },
     "PopoverShadow": { "note": "upstream shadow-md: transient notifications", "dark": "#00000059", "light": "#0000001f" },

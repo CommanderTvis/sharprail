@@ -375,7 +375,9 @@ AI turn receipts, review guides and agent send actions are excluded from this po
     shows added, removed and edited cells with a count of the unchanged ones.
   - A Git LFS pointer as a card with the object's size and id prefix and the `git lfs pull` hint; a diff
     shows the old and new pointer.
-  - Any other bytes, including PDF, as a card with media type, byte length and SHA-256 prefix and Save a
+  - PDF files through the [core PDF preview](Resources/Pdf/SPEC.md), with selectable text, zoom and live reload.
+    The byte card remains an alternative; PDF diffs use one byte card per side.
+  - Any other bytes as a card with media type, byte length and SHA-256 prefix and Save a
     copy…, which writes the bytes the card describes to a place the user picks. A byte diff shows one such
     card per side.
 - Raw HTML in a rendered Markdown document is read, never run (`MarkdownPreview.Html.cs`). `<img>` loads
@@ -521,7 +523,7 @@ disappearance shows.
 - The full review surface: per-file accordion, comment lifecycle, selection-triggered commenting in
   editors and rendered previews, tab review flags and send actions.
 - Chat deep links into Changes and Specs.
-- PDF pages and page-pair diffs: no PDF renderer is referenced, so a PDF shows the byte card.
+- PDF page-pair diffs; PDF file preview is available in core.
 - A sanitised HTML preview: HTML opens as source only.
 - Moved array elements in a JSON diff (they show as removed and added), free picture zoom and panning by
   gesture, and review anchors on any format view.

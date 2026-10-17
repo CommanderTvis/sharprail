@@ -10,7 +10,6 @@ using SharpRail.Plugins.Codex;
 using SharpRail.Plugins.Codex.Host;
 using SharpRail.Plugins.Discord;
 using SharpRail.Plugins.Discord.Host;
-using SharpRail.Plugins.PdfPreview;
 using SharpRail.Plugins.SpecDialect;
 using SharpRail.Plugins.Tailscale;
 using SharpRail.Plugins.Tailscale.Host;
@@ -30,7 +29,6 @@ public static class BuiltinPlugins
         (BlueprintContract.Manifest, new BlueprintHost()),
         (ClaudeCodeManifest.Manifest, new ClaudeCodeHost()),
         (DiscordPlugin.Manifest, new DiscordHost()),
-        (PdfPreviewPlugin.Manifest, null),
         (BranchGraphPlugin.Manifest, new BranchGraphHost()),
         (VisualizeContract.Manifest, new VisualizeHost()),
         (CodexManifest.Manifest, new CodexHost()),

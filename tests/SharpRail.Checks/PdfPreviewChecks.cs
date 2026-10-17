@@ -17,12 +17,11 @@ using Microsoft.Extensions.DependencyInjection;
 
 using SharpRail.Checks.E2E;
 using SharpRail.Host.Remote;
-using SharpRail.Plugins.PdfPreview.UI;
-using SharpRail.UI.Panels;
+using SharpRail.UI.Resources.Pdf;
 
 namespace SharpRail.Checks;
 
-// The PDF preview builtin plugin: PDFium reading and rasterizing the fork's minimal PDF, and the fork's
+// Core PDF preview: PDFium reading and rasterizing the fork's minimal PDF, and the fork's
 // pdf-preview e2e (render, zoom re-rasterizing larger, selectable text, no Markdown chrome, following the file's
 // bytes through a rewrite and a rename, the reload button) against the app with its in-process host.
 internal static class PdfPreviewChecks
@@ -80,6 +79,20 @@ internal static class PdfPreviewChecks
         EndToEnd(Path.Combine(root, "pdf-preview-local"), remote: false);
         EndToEnd(Path.Combine(root, "pdf-preview-remote"), remote: true);
         DelayedWatch(root);
+        LegacyTab(root);
+    }
+
+    private static void LegacyTab(string root)
+    {
+        var workspace = Path.Combine(root, "pdf-legacy-tab");
+        Directory.CreateDirectory(workspace);
+        File.WriteAllBytes(Path.Combine(workspace, "legacy.pdf"), MinimalPdf());
+        using var app = new E2eWorkspace(workspace);
+        app.Window.Layout.Open(new("viewer:legacy.pdf", "legacy.pdf", "viewer", "legacy.pdf"), keep: true);
+        E2eWorkspace.Until(() => Has(app.Window, "PdfPage") && RasterWidth(app.Window) > 0);
+        Require(app.Window.GetLogicalDescendants().OfType<SharpRail.UI.Resources.ResourcePane>().Single().Selected == "sharprail/pdf",
+            "A persisted plugin-era viewer tab restores through the core PDF renderer.");
+        Console.WriteLine("PASS persisted PDF viewer tabs restore into core preview");
     }
 
     private static void PageGeometry(string root, double density)
@@ -286,11 +299,11 @@ internal static class PdfPreviewChecks
     {
         var window = app.Window;
         var loader = app.Workbench.PluginLoader;
-        E2eWorkspace.Until(() => loader.Registry.Active.Contains("pdf-preview"));
+        Require(!loader.Registry.Active.Contains("pdf-preview"), "PDF is core functionality, absent from the plugin roster.");
 
         // A PDF renders through PDFium, and zooming rasterizes it again, larger.
         app.Open("sample.pdf", keep: true);
-        E2eWorkspace.Until(() => app.Tabs.Any(tab => tab.Kind == "viewer" && tab.Path == "sample.pdf"));
+        E2eWorkspace.Until(() => app.Tabs.Any(tab => tab.Kind == "file" && tab.Path == "sample.pdf"));
         E2eWorkspace.Until(() => Has(window, "PdfPage") && RasterWidth(window) > 0);
         var before = RasterWidth(window);
         Require(Find<TextBlock>(window, "PdfZoomLevel").Text == "100%" && Find<TextBlock>(window, "PdfPageCount").Text == "1 page", "The toolbar starts at 100% and counts the page.");
@@ -397,17 +410,16 @@ internal static class PdfPreviewChecks
         E2eWorkspace.Until(() => unicodeCopy.IsCompleted);
         Require(unicodeCopy.GetAwaiter().GetResult() == "🚀é", "The native PDF's astral character and accent survive selection and clipboard copying.");
 
-        // With the plugin off, its viewer tab offers the file as text, and a PDF opens as text.
-        window.ShowSettings("Plugins");
-        E2eWorkspace.Until(() => window.OwnedWindows.OfType<SettingsWindow>().Any());
-        var settings = window.OwnedWindows.OfType<SettingsWindow>().Single();
-        Find<ToggleSwitch>(Find<Border>(settings, "PluginRow_pdf-preview"), "PluginToggle").IsChecked = false;
-        E2eWorkspace.Until(() => !loader.Registry.Active.Contains("pdf-preview"));
-        settings.Close();
-        E2eWorkspace.Until(() => !window.OwnedWindows.Any());
-        E2eWorkspace.Until(() => Has(window, "FileViewerGone"));
+        var pane = window.GetLogicalDescendants().OfType<SharpRail.UI.Resources.ResourcePane>().Single();
+        Require(pane.Candidates.Contains("sharprail/pdf") && pane.Candidates.Contains("sharprail/binary"),
+            "Core PDF preview retains the binary fallback as a renderer choice.");
+        pane.Select("sharprail/binary");
+        Require(pane.Selected == "sharprail/binary", "The binary fallback can be selected.");
+        pane.Select("sharprail/pdf");
+        E2eWorkspace.Until(() => Has(window, "PdfPage"));
         app.Open("other.pdf", keep: true);
         E2eWorkspace.Until(() => app.Tabs.Any(tab => tab.Kind == "file" && tab.Path == "other.pdf"));
-        Console.WriteLine("PASS PDF preview plugin end to end: render, zoom re-rasterizing, selectable text, live rewrite and rename, reload, off opens as text");
+        E2eWorkspace.Until(() => Has(window, "PdfPage"));
+        Console.WriteLine("PASS core PDF preview end to end: render, zoom, selection, live revisions, retry and binary fallback");
     }
 }

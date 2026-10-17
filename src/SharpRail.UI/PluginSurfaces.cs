@@ -261,6 +261,9 @@ public sealed partial class WorkbenchWindow
     private Control ViewerContent(DockTab tab, string key, FileDocument? document)
     {
         var viewer = Plugins.FileViewer(tab.Path);
+        // Profiles made before PDF became a core renderer retain viewer-kind tabs.
+        if (viewer is null && Path.GetExtension(tab.Path).Equals(".pdf", StringComparison.OrdinalIgnoreCase) && document is not null)
+            return FileBody(document, tab, key);
         viewerMounts[key] = viewer?.Registration;
         if (viewer is null)
         {

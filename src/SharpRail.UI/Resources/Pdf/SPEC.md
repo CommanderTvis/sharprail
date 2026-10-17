@@ -1,15 +1,14 @@
 ---
-id: module-plugin-pdf-preview
-type: module-design
+id: submodule-core-pdf-preview
+type: submodule-design
 status: active
-title: PDF Preview — PDF viewing as a UI-only builtin plugin
-parent: module-plugin-api
-depends-on: [module-plugin-api, module-plugin-ui-kit]
-references: [submodule-ui-plugins]
-tags: [plugins]
+title: PDF Preview — core PDF resource viewing
+depends-on: [module-plugin-ui-kit]
+references: [submodule-ui-panels]
+tags: [ui, resources]
 ---
 
-# PDF Preview — PDF viewing as a UI-only builtin plugin
+# PDF Preview — core PDF resource viewing
 
 Upstream: packages/plugin-pdf-preview/SPEC.md @ ab23be7cf (CommanderTvis fork)
 
@@ -17,30 +16,24 @@ Upstream: packages/plugin-pdf-preview/SPEC.md @ ab23be7cf (CommanderTvis fork)
 
 Renders `.pdf` files opened from the Files tree or anywhere else a file opens: each page rasterized at the zoom it
 is shown at, a selectable text layer over it, its own toolbar (page count, zoom level, Reload from disk, zoom out,
-zoom in, reset), pinch and Command- or Control-wheel zoom, and a reload whenever the file's bytes change. It ships
-`EnabledByDefault = true`. SharpRail had no PDF viewer in core, so nothing moved out of it.
+zoom in, reset), pinch and Command- or Control-wheel zoom, and a reload whenever the file's bytes change. It is always available as a core resource renderer, independent of plugin enablement.
 
-## Projects
+## Core composition
 
-| Project | Holds |
-| --- | --- |
-| `Contract/SharpRail.Plugins.PdfPreview` | `PdfPreviewPlugin.Manifest` only: the plugin has no methods, channels or settings |
-| `UI/SharpRail.Plugins.PdfPreview.UI` | `PdfPreviewUI` (the `PluginUIModule`), `PdfPreview` (the viewer, compiled XAML), `PdfTextLayer`, `PdfEngine` (PDFium) |
+`SharpRail.UI/Resources/Pdf` owns the viewer, compiled XAML, selection layer and PDFium engine.
+The resource registry offers PDF preview ahead of the binary file card. Ordinary file tabs and
+persisted legacy PDF viewer tabs use this same registry. No PDF plugin manifest, module, contract
+or assembly remains. External file viewers retain their existing override behavior.
 
-## UI only, no host half
+The workbench supplies byte reads and file-revision observation directly. These use the same
+embedded/remote host services and shared revision stream as other documents; the viewer creates
+no independent filesystem watcher. PDF retry, reload, raster disposal and detach behavior remain.
+The browser supplies its existing PDFium WASM adapter from the core namespace; Android retains its
+native PDFium package. File icons remain core UI-kit assets, controlled by Appearance.
 
-The manifest declares no `Host`: the plugin needs no method, channel or settings namespace, and reads a file's
-bytes through the UI context (`ReadFileAsync`, W14) the way the fork read them over the worktree's `/files/` route.
-`Host.Core/Plugins/BuiltinPlugins.cs` lists the manifest with no module, which makes it a manifest-only builtin
-(see `Plugins.SPEC.md`): active at once, with an empty wire surface, toggled like any other plugin.
-
-The manifest's `Contributes.FileViewers` declares `extensions: ["pdf"]` with read strategy `None`, so the open path
-knows the extension before the UI half loads and never reads a PDF's bytes as text. The UI half registers one
-`FileViewer` with no `Matches` predicate: the declaration is enough for the registry to route `.pdf` here.
-
-With the plugin off, an open `.pdf` viewer tab shows core's "viewer is off" placeholder offering to open the file as
-text, and a `.pdf` opened afresh is an ordinary text tab: the open path's fallthrough once no viewer claims the
-extension. That is the intended dormant behaviour.
+Acceptance requires existing local/remote raster, geometry, Unicode selection, zoom and live-file
+checks to pass without enabling a plugin; PDF must be absent from the plugin roster, its binary
+fallback must remain selectable, and old viewer-kind tabs must restore into the core preview.
 
 ## Rendering: PDFium, not pdf.js, PDFKit or a native view
 
@@ -60,7 +53,7 @@ browser, so the choice is between macOS's PDFKit and a managed binding to a cros
 
 PDFium is not thread-safe: every call runs under one lock, on a background thread. A document is opened from the
 file's bytes for each read or rasterization and closed in the same call, so no native handle outlives it and a
-closed tab leaks nothing; the bytes stay in the viewer for the next zoom. Where the native library is absent
+closed tab retains no native PDF document handle; the bytes stay in the viewer for the next zoom. Where the native library is absent
 (Windows), the viewer says rendering is not available on this platform.
 The viewer releases replaced raster bitmaps, cancels reads on detach and reloads when mounted again.
 Text and character boxes are indexed together from PDFium's Unicode values so omitted characters do
@@ -113,8 +106,7 @@ minimal one-page fixture generated with correct offsets for each text:
   larger and reset returns to 100%, a pointer drag across the line selects "ThinkRail PDF", the toolbar shows and
   no Markdown chrome does; a rewrite, a delete-and-rename and a Reload each show the new text without reopening the
   tab;
-- the fork commit's dormant rule: turned off in Settings › Plugins, the open tab offers the file as text and another
-  `.pdf` opens as text.
+- PDF remains available independently of the plugin roster; the resource toggle offers the binary file card.
 - a held file-watch subscription: render the original PDF, rewrite before watching starts, then
   release registration and show the fresh bytes without another edit or Reload gesture.
 
@@ -124,8 +116,25 @@ Selection across visible pages, clipboard copying, Unicode selection boundaries 
 geometry have checks, as do drag autoscroll and native Unicode extraction from a PDF ToUnicode map.
 The toolbar and retry layout use compiled XAML. Control/Command-wheel, ordinary scrolling and
 toolbar zoom bounds have checks. Trackpad magnify and load-race checks, native appearance,
-published output and full-suite verification remain open.
+full packaged-output and full-suite verification remain open.
 
 The browser supplies the same pinned PDFium release as a separate WASM instance through `PdfPlatform`.
 Its adapter returns the viewer's existing page text, character rectangles and premultiplied BGRA rasters,
-including crop and rotation transforms. The shared viewer keeps selection, search, zoom and navigation.
+including crop and rotation transforms. The shared viewer keeps selection and zoom behavior.
+
+## Core migration verification
+
+The core renderer passes the existing PDF-focused checks through embedded and real WebSocket hosts,
+including 1×/2× page geometry, selection, zoom, retry, live rewrites and watch-readiness races.
+A plugin-era `viewer` tab restores into the core PDF renderer, which is absent from the plugin roster;
+the binary fallback remains selectable. Dependency-boundary, core file-icon and document-body checks
+pass. Clone-dependent Git document scenarios were skipped without an upstream fixture source.
+
+The desktop solution builds in Release with nullable/warnings-as-errors enabled; existing Avalonia
+URI-constructor warnings remain visible. Browser and Android managed `Compile` targets pass with their
+real project references and shared XAML; this is not WASM AOT, browser acceptance or physical-device
+verification. A macOS framework-dependent publish contains a loadable, initializable `libpdfium.dylib`
+and no former PDF plugin assemblies. PDFium notices remain in `licenses/PDFium.txt`, copied by the
+existing package scripts; complete canonical-package and Windows runtime verification are separate.
+
+PDF paper is an invariant white design effect; selection uses the theme selection colour at 40% alpha. Toolbar padding follows the shared spacing scale.

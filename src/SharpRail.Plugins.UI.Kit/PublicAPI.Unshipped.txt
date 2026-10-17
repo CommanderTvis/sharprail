@@ -533,3 +533,5 @@ static SharpRail.Plugins.UI.Kit.TextRole.operator !=(SharpRail.Plugins.UI.Kit.Te
 static SharpRail.Plugins.UI.Kit.TextRole.operator ==(SharpRail.Plugins.UI.Kit.TextRole? left, SharpRail.Plugins.UI.Kit.TextRole? right) -> bool
 static SharpRail.Plugins.UI.Kit.Typography.Apply<T>(T! control, SharpRail.Plugins.UI.Kit.TextRole! role) -> T!
 static SharpRail.Plugins.UI.Kit.Typography.Styles() -> Avalonia.Styling.Styles!
+static readonly SharpRail.Plugins.UI.Kit.Ui.PdfPaper -> Avalonia.Media.SolidColorBrush!
+static readonly SharpRail.Plugins.UI.Kit.Ui.PdfSelection -> Avalonia.Media.SolidColorBrush!

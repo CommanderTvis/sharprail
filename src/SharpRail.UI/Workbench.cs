@@ -213,6 +213,21 @@ public sealed class Workbench : IDisposable
 
     public int FileRevision(string workspace, string path) => fileRevisions.GetValueOrDefault((workspace, path));
 
+    internal IDisposable ObserveFileRevision(string workspace, string path, Action<int> handler)
+    {
+        TrackRevision(workspace, path);
+        var last = FileRevision(workspace, path);
+        void Changed()
+        {
+            var revision = FileRevision(workspace, path);
+            if (revision == last) return;
+            last = revision;
+            handler(revision);
+        }
+        RevisionsChanged += Changed;
+        return new Plugins.EditorEvents.Subscription(() => RevisionsChanged -= Changed);
+    }
+
     /// <summary>Advances the revisions of changed files in a watched workspace.</summary>
     internal void BumpRevisions(string workspace, IEnumerable<string> paths)
     {

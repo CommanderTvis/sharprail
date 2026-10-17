@@ -258,19 +258,8 @@ internal sealed class PluginUIContext : IPluginUIContext
 
     public int FileRevision(string workspaceId, string path) => Workbench.FileRevision(workspaceId, path);
 
-    public IDisposable ObserveFileRevision(string workspaceId, string path, Action<int> handler)
-    {
-        Workbench.TrackRevision(workspaceId, path);
-        var last = FileRevision(workspaceId, path);
-        void Changed()
-        {
-            var revision = FileRevision(workspaceId, path);
-            if (revision == last) return;
-            last = revision; handler(revision);
-        }
-        Workbench.RevisionsChanged += Changed;
-        return Track(Disposable(() => Workbench.RevisionsChanged -= Changed));
-    }
+    public IDisposable ObserveFileRevision(string workspaceId, string path, Action<int> handler) =>
+        Track(Workbench.ObserveFileRevision(workspaceId, path, handler));
 
     public async ValueTask WatchWorkspaceAsync(string workspaceId)
     {

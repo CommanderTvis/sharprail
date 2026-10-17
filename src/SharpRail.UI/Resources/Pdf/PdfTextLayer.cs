@@ -8,7 +8,7 @@ using Avalonia.VisualTree;
 
 using SharpRail.Plugins.UI.Kit;
 
-namespace SharpRail.Plugins.PdfPreview.UI;
+namespace SharpRail.UI.Resources.Pdf;
 
 /// <summary>
 /// The page's text over its rasterized image: the image is a picture of the page, so the text a reader selects and
@@ -142,7 +142,7 @@ internal sealed class PdfTextLayer : Control
         if (start < 0) return;
         var scale = Scale;
         // The boxes cover the page's own glyphs, so the theme's selection is laid over them as a 40% wash.
-        var wash = new SolidColorBrush(Ui.Alpha(Ui.TextSelection.Color, 40));
+        var wash = Ui.PdfSelection;
         for (var index = start; index <= end; index++)
         {
             var box = page.Boxes[index];

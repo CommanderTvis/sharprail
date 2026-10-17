@@ -43,10 +43,12 @@ public static partial class Ui
     public static readonly SolidColorBrush WarningWash = new();
     public static readonly SolidColorBrush Danger = new();
     public static readonly SolidColorBrush DangerWash = new();
+    public static readonly SolidColorBrush PdfSelection = new();
     public static readonly SolidColorBrush TextSelection = new();
     public static Color? SelectionText { get; private set; }
     public static Color EditorSelection { get; private set; }
     public static Color? EditorSelectionText { get; private set; }
+    public static readonly SolidColorBrush PdfPaper = new();
     public static readonly SolidColorBrush Overlay = new();
     public static readonly SolidColorBrush DifferenceBase = new();
     public static readonly SolidColorBrush PopoverShadow = new();
@@ -89,10 +91,12 @@ public static partial class Ui
         WarningWash.Color = Alpha(theme["warning"], 12);
         Danger.Color = theme["danger"];
         DangerWash.Color = Alpha(theme["danger"], 12);
+        PdfSelection.Color = Alpha(theme["selection"], 40);
         TextSelection.Color = theme["selection"];
         SelectionText = theme.Colors["selectionForeground"];
         EditorSelection = theme["editorSelection"];
         EditorSelectionText = theme.Colors["editorSelectionForeground"];
+        PdfPaper.Color = Color.FromUInt32(0xffffffff);
         Overlay.Color = Color.FromUInt32(0x80000000);
         DifferenceBase.Color = Color.FromUInt32(0xff000000);
         PopoverShadow.Color = theme.IsLight ? Color.FromUInt32(0x1f000000) : Color.FromUInt32(0x59000000);

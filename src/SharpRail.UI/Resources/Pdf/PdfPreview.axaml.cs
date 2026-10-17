@@ -10,22 +10,21 @@ using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using Avalonia.Threading;
 
-using SharpRail.Plugins.Api.UI;
 using SharpRail.Plugins.UI.Kit;
 using SharpRail.Plugins.UI.Kit.Visualization;
 
-namespace SharpRail.Plugins.PdfPreview.UI;
+namespace SharpRail.UI.Resources.Pdf;
 
 /// <summary>
 /// A PDF file's pages, rasterized by PDFium at the zoom they are shown at so text stays sharp, with a selectable text
 /// layer over each page, its own toolbar, pinch and Command-wheel zoom, and a reload whenever the file's bytes change.
 /// </summary>
-internal sealed partial class PdfPreview : UserControl
+internal sealed partial class PdfPreview : UserControl, IResourceBody
 {
     // How long the scale has to hold still before the pages are drawn again at it.
     private static readonly TimeSpan RasterSettle = TimeSpan.FromMilliseconds(120);
-    private readonly IPluginUIContext context;
-    private readonly FileViewerProps props;
+    private readonly Func<CancellationToken, Task<byte[]>> read;
+    private readonly Func<Action<int>, IDisposable> observe;
     private readonly TextBlock pageCount, zoomLevel, loadingText, errorText;
     private readonly StackPanel pages, error;
     private readonly Border toolbar;
@@ -38,10 +37,10 @@ internal sealed partial class PdfPreview : UserControl
     private double scale = 1;
     private int renders;
 
-    public PdfPreview(IPluginUIContext context, FileViewerProps props)
+    public PdfPreview(Func<CancellationToken, Task<byte[]>> read, Func<Action<int>, IDisposable> observe)
     {
-        this.context = context;
-        this.props = props;
+        this.read = read;
+        this.observe = observe;
         AvaloniaXamlLoader.Load(this);
         pageCount = this.FindControl<TextBlock>("PdfPageCount")!;
         zoomLevel = this.FindControl<TextBlock>("PdfZoomLevel")!;
@@ -74,7 +73,7 @@ internal sealed partial class PdfPreview : UserControl
         {
             // A compiler rewriting the file is the reason this pane exists: the file's own revision, not the
             // workspace's, so a build writing a dozen other files beside it does not redraw an unchanged document.
-            revisionWatch ??= context.ObserveFileRevision(props.WorkspaceId, props.Path, _ => Load());
+            revisionWatch ??= observe(_ => Load());
             if (bytes is null && (loading is null || loading.IsCancellationRequested)) Load();
         };
         DetachedFromVisualTree += (_, _) =>
@@ -89,6 +88,11 @@ internal sealed partial class PdfPreview : UserControl
     }
 
     /// <summary>How many times the pages have been rasterized, for the checks.</summary>
+    public object? ViewState => null;
+
+    // The shared revision subscription reloads bytes while preserving zoom and selection controls.
+    public bool Reload(ResourceContent content) => true;
+
     internal int Renders => renders;
     internal double Scale => scale;
 
@@ -120,7 +124,7 @@ internal sealed partial class PdfPreview : UserControl
         loadingText.IsVisible = shown.Count == 0;
         try
         {
-            var read = await context.ReadFileAsync(props.WorkspaceId, props.Path, cancel.Token);
+            var read = await this.read(cancel.Token);
             var parsed = await PdfEngine.ReadAsync(read, cancel.Token);
             if (cancel.IsCancellationRequested) return;
             bytes = read;
@@ -174,7 +178,7 @@ internal sealed partial class PdfPreview : UserControl
             {
                 Width = page.Width * scale,
                 Height = page.Height * scale,
-                Background = Brushes.White,
+                Background = Ui.PdfPaper,
                 BorderBrush = Ui.BorderBrush,
                 BorderThickness = new Thickness(1),
                 ClipToBounds = true,

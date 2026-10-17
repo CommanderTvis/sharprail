@@ -2,7 +2,7 @@ using System.Text;
 
 using Avalonia;
 
-namespace SharpRail.Plugins.PdfPreview.UI;
+namespace SharpRail.UI.Resources.Pdf;
 
 internal sealed class PdfSelection
 {

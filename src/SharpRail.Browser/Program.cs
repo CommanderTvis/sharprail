@@ -4,7 +4,7 @@ using System.Text.Json;
 using Avalonia;
 using Avalonia.Browser;
 
-using SharpRail.Plugins.PdfPreview.UI;
+using SharpRail.UI.Resources.Pdf;
 using SharpRail.Plugins.UI.Kit.Visualization;
 using SharpRail.UI;
 using SharpRail.UI.Browser;

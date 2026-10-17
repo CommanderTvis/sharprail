@@ -3,7 +3,7 @@ using System.Text;
 
 using Avalonia;
 
-namespace SharpRail.Plugins.PdfPreview.UI;
+namespace SharpRail.UI.Resources.Pdf;
 
 /// <summary>A page's size in points, its text, and each character's box in points from the top-left corner.</summary>
 internal sealed record PdfPage(double Width, double Height, string Text, IReadOnlyList<Rect> Boxes);

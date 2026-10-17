@@ -43,7 +43,7 @@ implemented here and never redeclared.
 | `PluginDiscovery.cs` | manifest intake and the scan of plugin roots |
 | `PluginLoadContext.cs` | the external host half's load context, keyed by directory and content hash |
 | `WorkspaceFileWatcher.cs` | one activation's coalescing lease on the shared workspace watcher pool (`OnFilesChanged`); idempotent admission, released on removal, project close and deactivation |
-| `BuiltinPlugins.cs` | Spec Dialect, Blueprint, Claude Code and Discord host halves; PDF Preview's UI-only manifest |
+| `BuiltinPlugins.cs` | Builtin plugin manifests and their optional host modules; PDF preview and file icons are core functionality |
 
 The runtime runs where the host runs: in the app's process for its own host, inside `SharpRail.Host.Remote` for a
 remote host. A remote client never runs a host half.
