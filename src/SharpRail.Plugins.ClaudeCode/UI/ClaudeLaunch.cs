@@ -72,7 +72,7 @@ internal static partial class ClaudeLaunch
             model is { Length: > 0 } && !HasOption(args, "--model") ? "--model " + ShellQuotePath(model) : "",
             effort is { Length: > 0 } && !HasOption(args, "--effort") ? "--effort " + ShellQuotePath(effort) : ""
         }.Where(part => part.Length > 0));
-        var line = LaunchCommand(command, string.Join(' ', new[] { promptFile, defaults, args }.Where(part => part.Length > 0)));
+        var line = LaunchCommand(command, string.Join(' ', new[] { promptFile, "--plugin-dir " + EnvironmentReference(ClaudeCodeContract.PluginDirectoryVariable, platform, windowsShell), defaults, args }.Where(part => part.Length > 0)));
         if (disableAgentView) line = WithLaunchEnvironment(line, platform, windowsShell);
         return !Windows(platform) && line.Length > 0 ? "SHARPRAIL_UI_LAUNCH=claude " + line : line;
     }

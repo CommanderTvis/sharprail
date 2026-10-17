@@ -86,8 +86,8 @@ and marketplaces with provenance, disabled sources and discovery problems.
 Every mutation is composed, scoped to user/project/local, planned as a diff, reviewed and then
 applied with the plan's content hash. Changing scope invalidates its preview; stale files require a
 new review. Source links expose only discovered files and reveal JSON key paths in current editor
-contents. CLI plugin/marketplace changes show the exact command before execution. Merely enabling
-the SharpRail plugin does not approve a fresh Claude hook installation.
+contents. CLI plugin/marketplace changes show the exact command before execution. SharpRail’s own integration
+is loaded only for app-started Claude processes through `--plugin-dir`; activation never installs or updates it in Claude’s user settings.
 
 ## Status and recovery
 
@@ -152,7 +152,7 @@ nothing to stand on yet. `getDiagnostics` and `executeCode` are not offered.
 
 UI contributions are the Context/Settings/Capabilities/Account pane, compiled settings section,
 workspace launcher, generic `claude` launcher, status tab decorations and one terminal accessory
-combining install offer, facts, model/effort pickers, plan, tokens, attach and session `/ide` switch.
+combining facts, model/effort pickers, plan, tokens, attach and session `/ide` switch.
 Tab marks refresh as soon as the host identifies or clears Claude in a terminal, without switching
 tabs or reopening a pane. The host agent record remains the source of truth for terminal identity.
 The surface selector scrolls horizontally when narrow without a visible scrollbar or extra header height.
@@ -175,14 +175,18 @@ modifyOtherKeys mode 2 is negotiated. Ghostty handles negotiated protocols itsel
 agent identity restores its normal encoding; the request survives terminal startup and retry.
 Host-state updates retain the accessory mount so an open picker keeps its control identity.
 
-The marketplace contains its hook plugin and MCP declaration. Reports POST rather than emitting
-OSC 777, which unrelated terminals interpret as user notifications. Installed cached versions are
-inspected and refreshed after prior approval; a new installation requires the offer's confirmation.
+The bundled plugin contains hooks, skills and the MCP declaration. Every launcher command receives
+`--plugin-dir` using a host-provided directory, even when the prompt appendix is disabled. Revived
+sessions use the current build’s directory, replacing an old SharpRail-owned path while preserving
+other plugin directories. Paths are quoted for the launcher’s shell. There is no install/update
+prompt, marketplace registration, user-settings edit or background cache maintenance for this
+integration. Existing user-installed copies are not removed. Reports POST rather than emitting
+OSC 777, which unrelated terminals interpret as user notifications.
 
 ## Workflow skills
 
-The marketplace plugin carries ten skills in its `skills/` directory, which Claude Code discovers
-from an installed plugin: `choosing-a-workflow`, `brainstorming` with its bug-branch and
+The bundled plugin carries ten skills in its `skills/` directory, which Claude Code discovers
+from the process-local plugin: `choosing-a-workflow`, `brainstorming` with its bug-branch and
 spec-amendment documents, `asking-user-questions`, `spec-graph`, `writing-specs`,
 `setting-up-a-project`, `importing-a-codebase`, `starting-a-new-project`, `shipping-a-pr` with its
 phase documents, and `add-highlighting`.
@@ -203,16 +207,15 @@ temporary directory outside the repository. The spec, routing and brainstorming 
 descriptions offer them only when the user asks for specs or the project keeps a spec graph, and the
 dispatcher stops when the `spec_*` tools are absent.
 
-The plugin is enabled at user scope, so every Claude Code session sees the skills, not only those
-SharpRail starts. Adding them raised the plugin version to 0.4.0, and adding the routing, brainstorming, question and spec-graph
-skills to 0.5.0; that is what brings an approved
-installation's cached copy forward. A change to any skill needs another version raise for the same reason.
+The skills are available to Claude processes launched by SharpRail through the bundled directory;
+manual Claude invocations receive them only when independently configured. Loading the directory
+uses this build’s assets directly, without a separate installed-cache version refresh.
 
 ## Verification and remaining gates
 
 `--claude-code` checks isolated host enable/disable, configuration provenance, review without writes,
 stale preview refusal, preservation, token routes, session identity, spending, continuation Stop,
-revive, client folding, the shipped skills' shape and their arrival in an installation approved one version earlier, a real authenticated WebSocket IDE initialization/catalogue/zero-based selection/action
+revive, client folding, the shipped skills' shape, direct plugin arguments and revival path replacement, a real authenticated WebSocket IDE initialization/catalogue/zero-based selection/action
 round trip addressed to one app client, the tab tools' reply words, a file reference reaching only its workspace's session, and headless configuration/launcher/settings lifecycle,
 agent newline mode removal and retained accessory identity. `--notifications` drives the real UI half
 with injected status pushes and a recording notifier: blocked, done and failed notify while unfocused;

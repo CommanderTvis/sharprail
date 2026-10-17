@@ -39,7 +39,8 @@ internal static class ClaudeCodeChecks
             foreach (var (name, path) in new Dictionary<string, string>
             {
                 ["CLAUDE_CONFIG_DIR"] = Path.Combine(directory, "claude-home"),
-                ["SHARPRAIL_STATE_DIR"] = Path.Combine(directory, "state")
+                ["SHARPRAIL_STATE_DIR"] = Path.Combine(directory, "state"),
+                [ClaudeCodeContract.PluginDirectoryVariable] = Path.Combine(AppContext.BaseDirectory, "plugins", ClaudeCodeContract.Id, "assets", "marketplace", "claude-plugin")
             })
             {
                 previous[name] = Environment.GetEnvironmentVariable(name);
@@ -221,18 +222,19 @@ internal static class ClaudeCodeChecks
         Settings(new { enabled = true, command = fake });
         E2eWorkspace.Until(() => Named(app.Window, "NewClaude").Count > 0);
         Require(ToolTip.GetTip(Named(app.Window, "NewClaude")[0]) is string tip && tip.StartsWith("Start Claude Code", StringComparison.Ordinal), "The launcher says what it starts.");
-        Require(Named(app.Window, "NewClaude").All(launcher => launcher.GetVisualAncestors().OfType<StackPanel>().Any(row =>
+        Require(Named(app.Window, "NewClaude").All(launcher => launcher.GetVisualAncestors().OfType<Panel>().Any(row =>
                 row.Children.Any(child => child.Name?.StartsWith("NewTerminal_", StringComparison.Ordinal) == true)) &&
-            !launcher.GetVisualAncestors().Any(ancestor => ancestor.Name == "WorkspacePlaceholder")),
-            "Workspace actions follow New terminal in the center tab strip, not the empty workspace view.");
+            launcher.GetVisualAncestors().Any(ancestor => ancestor.Name == "WorkspaceTabs")),
+            "Workspace actions follow New terminal under their workspace in Projects.");
 
         int Terminals() => app.Window.Layout.State.Groups.Sum(group => app.Window.Layout.Tabs(group.Id).Count(tab => tab.Kind == "terminal"));
         string[] Launch(string preset, Action? choose = null)
         {
             File.Delete(log);
             var before = Terminals();
-            var button = (Button)Named(app.Window, "NewClaude")[0];
-            app.Click(button, mouseButton: MouseButton.Right);
+            E2eWorkspace.Settle(550);
+            var button = (Button)Named(app.Window, "NewClaude").First(control => control.IsEffectivelyVisible);
+            app.Click(button, freshGesture: false, mouseButton: MouseButton.Right);
             var menu = button.ContextMenu!;
             E2eWorkspace.Until(() => menu.IsOpen);
             var items = menu.Items.OfType<MenuItem>().ToDictionary(item => item.Name!);
@@ -260,12 +262,12 @@ internal static class ClaudeCodeChecks
             "With the agent-view switch off the line is the plain command: " + string.Join(" ", haiku));
         Settings(new { enabled = true, command = fake, disableAgentView = false, appendSystemPrompt = false });
         var sonnet = Launch("model-sonnet");
-        Require(sonnet.SequenceEqual(["agent-view=", "--model", "sonnet"]), "Without the prompt file the session starts on Claude's own: " + string.Join(" ", sonnet));
+        Require(sonnet.SequenceEqual(["agent-view=", "--plugin-dir", Path.Combine(AppContext.BaseDirectory, "plugins", ClaudeCodeContract.Id, "assets", "marketplace", "claude-plugin"), "--model", "sonnet"]), "Disabling the prompt appendix retains the directly loaded plugin: " + string.Join(" ", sonnet));
         Require(Launch("continue")[^1] == "--continue", "Continue passes the per-run flag.");
         Settings(new { enabled = true, command = fake, disableAgentView = false, appendSystemPrompt = false, model = "opus", effort = "high" });
-        Require(Launch("continue").SequenceEqual(["agent-view=", "--model", "opus", "--effort", "high", "--continue"]),
+        Require(Launch("continue").SequenceEqual(["agent-view=", "--plugin-dir", Path.Combine(AppContext.BaseDirectory, "plugins", ClaudeCodeContract.Id, "assets", "marketplace", "claude-plugin"), "--model", "opus", "--effort", "high", "--continue"]),
             "The SharpRail defaults reach the shell for a new launch.");
-        Require(Launch("model-haiku").SequenceEqual(["agent-view=", "--effort", "high", "--model", "haiku"]),
+        Require(Launch("model-haiku").SequenceEqual(["agent-view=", "--plugin-dir", Path.Combine(AppContext.BaseDirectory, "plugins", ClaudeCodeContract.Id, "assets", "marketplace", "claude-plugin"), "--effort", "high", "--model", "haiku"]),
             "A per-launch model replaces the saved model without duplicating flags.");
         // Any flags at all: typed into a dialog, they follow the prompt file like a preset's.
         var custom = Launch("custom", () =>
@@ -395,7 +397,9 @@ internal static class ClaudeCodeChecks
                 "Applying the approved preview preserves unrelated settings.");
         var variables = terminals.EnvironmentContributor!(terminal);
         Require(variables[ClaudeCodeContract.StatusUrlVariable].EndsWith("/plugin/claude-code/status/claude-fixture-token", StringComparison.Ordinal) &&
-            File.Exists(variables[ClaudeCodeContract.PromptFileVariable]), "The shell receives its own token-bound status route and the host's prompt file.");
+            File.Exists(variables[ClaudeCodeContract.PromptFileVariable]) &&
+            File.Exists(Path.Combine(variables[ClaudeCodeContract.PluginDirectoryVariable], ".claude-plugin", "plugin.json")),
+            "The shell receives its token-bound status route, prompt file and bundled plugin directory.");
         var transcript = Path.Combine(directory, "session.jsonl");
         File.WriteAllText(transcript, "{\"type\":\"assistant\",\"message\":{\"id\":\"turn\",\"usage\":{\"input_tokens\":5,\"output_tokens\":2}}}\n");
         async Task<int> Report(string token, string body, string method = "POST") =>
@@ -425,7 +429,7 @@ internal static class ClaudeCodeChecks
             "A Claude terminal with no surviving transcript gets the fork's continue offer.");
         await IdeProtocol(runtime, project);
         await ConfigCases(runtime, state, project, directory);
-        await Skills(directory);
+        await Skills();
         await state.ChangeAsync([HostStateChange.PluginEnabled("claude-code", false)]);
         await runtime.Schedule();
         Require(Directory.GetFiles(Path.Combine(Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR")!, "ide"), "*.lock").Length == 0 &&
@@ -436,10 +440,9 @@ internal static class ClaudeCodeChecks
     }
 
     /// <summary>
-    /// The workflow skills ship inside the marketplace plugin, in a shape both CLIs accept, and reach an installation
-    /// the user approved before they existed through the version refresh.
+    /// The workflow skills ship inside the directly loaded plugin, in a shape both CLIs accept.
     /// </summary>
-    private static async Task Skills(string directory)
+    private static Task Skills()
     {
         var assets = Path.Combine(AppContext.BaseDirectory, "plugins", ClaudeCodeContract.Id, "assets");
         var skills = Path.Combine(assets, "marketplace", "claude-plugin", "skills");
@@ -461,39 +464,17 @@ internal static class ClaudeCodeChecks
         Require(!new[] { "thinkrail", "ask_user_question", "todo_", "set_title", "request_review", "web_search" }
             .Any(absent => text.Contains(absent, StringComparison.OrdinalIgnoreCase)), "The skills name no tool or skill these sessions lack.");
 
-        // An installation approved at the previous version: registered, staged and cached without skills.
-        var plugin = new HookPlugin(assets);
-        var home = Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR")!;
-        var staged = Path.Combine(plugin.PluginRoot, ".claude-plugin", "plugin.json");
-        Directory.CreateDirectory(Path.GetDirectoryName(staged)!);
-        File.WriteAllText(staged, "{\"name\":\"sharprail\",\"version\":\"0.3.0\"}");
-        Directory.CreateDirectory(Path.Combine(home, "plugins"));
-        File.WriteAllText(Path.Combine(home, "settings.json"), JsonSerializer.Serialize(new Dictionary<string, object>
-        {
-            ["enabledPlugins"] = new Dictionary<string, bool> { [HookPlugin.PluginId] = true },
-            ["extraKnownMarketplaces"] = new Dictionary<string, object>
-            {
-                [HookPlugin.MarketplaceName] = new { source = new { source = "directory", path = plugin.MarketplaceRoot }, sharprailVersion = "0.3.0" }
-            }
-        }));
-        File.WriteAllText(Path.Combine(home, "plugins", "known_marketplaces.json"), JsonSerializer.Serialize(new Dictionary<string, object>
-        {
-            [HookPlugin.MarketplaceName] = new { source = new { source = "directory", path = plugin.MarketplaceRoot } }
-        }));
-        File.WriteAllText(Path.Combine(home, "plugins", "installed_plugins.json"), JsonSerializer.Serialize(new
-        {
-            plugins = new Dictionary<string, object> { [HookPlugin.PluginId] = new[] { new { scope = "user", version = "0.3.0" } } }
-        }));
-        var fake = Path.Combine(directory, "fake-claude-refresh");
-        var log = Path.Combine(directory, "claude-refresh.log");
-        File.WriteAllText(fake, $"#!/bin/sh\necho \"$@\" >> '{log}'\n");
-        if (!OperatingSystem.IsWindows()) File.SetUnixFileMode(fake, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
-        Require(plugin.ShippedVersion() != "0.3.0" && plugin.Status(fake).State == HookPluginState.Outdated, "The version that added skills makes an earlier installation outdated.");
-        await plugin.StatusMaintainedAsync(fake);
-        Require(File.ReadAllText(staged).Contains(plugin.ShippedVersion(), StringComparison.Ordinal) &&
-            names.All(name => File.Exists(Path.Combine(plugin.PluginRoot, "skills", name, "SKILL.md"))), "The refresh stages the skills where Claude Code's marketplace points.");
-        Require(File.ReadAllText(log) == $"plugin marketplace update {HookPlugin.MarketplaceName}\nplugin update {HookPlugin.PluginId} --scope user\n",
-            "An approved installation is brought to the shipped version with Claude's own update commands.");
+        const string sessionId = "11111111-2222-3333-4444-555555555555";
+        const string pluginDirectory = "/Applications/Sharp Rail.app/plugins/claude-code/assets/marketplace/claude-plugin";
+        var command = "claude --plugin-dir /old app/plugins/claude-code/assets/marketplace/claude-plugin --model opus";
+        var resumed = AgentResume.ResumeCommand(command, sessionId, pluginDirectory: pluginDirectory)!;
+        Require(resumed.Contains("--plugin-dir '" + pluginDirectory + "'", StringComparison.Ordinal) &&
+            !resumed.Contains("/old app", StringComparison.Ordinal) && resumed.EndsWith("--resume " + sessionId, StringComparison.Ordinal),
+            "Revival replaces the bundled plugin path with the current build's quoted directory.");
+        var custom = AgentResume.ContinueCommand("claude --plugin-dir /custom/plugin", pluginDirectory: pluginDirectory)!;
+        Require(custom.Contains("--plugin-dir /custom/plugin", StringComparison.Ordinal) && custom.EndsWith("--continue", StringComparison.Ordinal),
+            "Revival preserves independently selected plugin directories.");
+        return Task.CompletedTask;
     }
 
     /// <summary>

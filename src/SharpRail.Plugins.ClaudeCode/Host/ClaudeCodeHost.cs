@@ -28,7 +28,6 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
     // Not a terminal tab id, so it can never be a real tab's key.
     private const string McpListProbeTabKey = "claude-config-mcp-probe";
 
-    private readonly HookPlugin hookPlugin = new(context.AssetsDirectory);
     private readonly ConcurrentDictionary<string, PluginCall> clientForWorkspace = new();
     private readonly ConcurrentDictionary<TerminalRef, int> claudePidOfTab = new();
     private readonly ConcurrentDictionary<TerminalRef, string> transcriptOfTab = new();
@@ -99,8 +98,6 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
         context.Method(ClaudeCodeContract.Account, async (p, _, _) => await ClaudeAccountReader.ReadAsync(Command(), p.Refresh == true));
         context.Method(ClaudeCodeContract.SystemPromptGet, (_, _, _) => Done(new SystemPromptFile(SystemPrompt.FilePath(), SystemPrompt.Edited())));
         context.Method(ClaudeCodeContract.SystemPromptReset, (_, _, _) => Done(new SystemPromptFile(SystemPrompt.Write(reset: true), false)));
-        context.Method(ClaudeCodeContract.PluginStatus, async (_, _, _) => await hookPlugin.StatusMaintainedAsync(Command()));
-        context.Method(ClaudeCodeContract.InstallPlugin, async (_, _, _) => await hookPlugin.InstallAsync(Command()));
         context.Method(ClaudeCodeContract.PluginUninstallPlan, (p, _, _) => Done(new CommandPlan(ClaudeCommands.PluginUninstall(Command(), p.Name, p.Scope))));
         context.Method(ClaudeCodeContract.PluginUninstall, async (p, _, ct) =>
             await ClaudeCommands.UninstallAsync(Command(), p.Name, p.Scope, (await KnownScopeAsync(p.WorkspaceId, p.TabKey, ct)).Root));
@@ -192,7 +189,11 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
 
         context.TerminalEnvironment(terminal =>
         {
-            var environment = new Dictionary<string, string> { [ClaudeCodeContract.PromptFileVariable] = SystemPrompt.FilePath() };
+            var environment = new Dictionary<string, string>
+            {
+                [ClaudeCodeContract.PromptFileVariable] = SystemPrompt.FilePath(),
+                [ClaudeCodeContract.PluginDirectoryVariable] = HookPluginDirectory
+            };
             if (context.Projects().FirstOrDefault(project => project.Path == ProjectOf(terminal.WorkspaceId)) is { } project)
                 environment[ClaudeCodeContract.WorktreesVariable] = project.WorktreesDirectory;
             try { environment[ClaudeCodeContract.StatusUrlVariable] = $"{context.PublicBaseUrl()}/status/{context.TerminalToken(terminal)}"; }
@@ -246,7 +247,7 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
         {
             if (record.Kind != "claude") return null;
             var sessionId = record.SessionId is { } id && AgentResume.SessionExists(terminal.WorkspaceId, id) ? id : null;
-            var offer = sessionId is not null ? AgentResume.ResumeCommand(record.Command, sessionId, record.Model, record.Effort) : AgentResume.ContinueCommand(record.Command, record.Model, record.Effort);
+            var offer = sessionId is not null ? AgentResume.ResumeCommand(record.Command, sessionId, record.Model, record.Effort, HookPluginDirectory) : AgentResume.ContinueCommand(record.Command, record.Model, record.Effort, HookPluginDirectory);
             if (offer is null || OperatingSystem.IsWindows()) return offer is null ? null : new RevivePrefill(offer);
             // A revival is SharpRail's own launch, whatever started the session it resumes. The command comes from the
             // process table, which holds no environment, so the agent-view setting is applied again rather than carried.
@@ -254,6 +255,9 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
             return new RevivePrefill("SHARPRAIL_UI_LAUNCH=claude " + agentView + offer);
         });
     }
+
+    private string HookPluginDirectory => Path.Combine(context.AssetsDirectory ??
+        Path.Combine(AppContext.BaseDirectory, "plugins", ClaudeCodeContract.Id, "assets"), "marketplace", "claude-plugin");
 
     private string? ProjectOf(string workspaceId)
     {

@@ -13,8 +13,7 @@ using SharpRail.Plugins.UI.Kit;
 namespace SharpRail.Plugins.ClaudeCode.UI;
 
 /// <summary>
-/// The terminal accessory row, one component with two jobs since a plugin has one accessory slot: the offer to install
-/// SharpRail's hook plugin, and, while the tab runs Claude, its facts (directory, model and effort pickers, token usage,
+/// The terminal accessory row: while the tab runs Claude, its facts (directory, model and effort pickers, token usage,
 /// plan), the IDE context switch and the attach button.
 /// </summary>
 internal sealed class ClaudeTerminalAccessory : StackPanel
@@ -25,7 +24,6 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
     private readonly ClaudeCodeStore store;
     private readonly ClaudeGlyph glyph;
     private readonly ITerminalAccessoryApi terminal;
-    private readonly ClaudeInstallOffer offer;
     private readonly ManualLaunchNotice launchNotice = new();
     private readonly WrapPanel facts = new() { Name = "TerminalAgentFacts", Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
     private readonly TextBlock driving = new() { Name = "TerminalDrivingNotice", IsVisible = false, FontSize = 11 };
@@ -44,8 +42,6 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
         Name = "ClaudeTerminalAccessory";
         Margin = new Thickness(8, 2);
         Spacing = 2;
-        offer = new ClaudeInstallOffer(context);
-        Children.Add(offer);
         Children.Add(launchNotice);
         var line = new DockPanel();
         driving.Foreground = Ui.Muted;
@@ -100,7 +96,6 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
         var claude = RunsClaude;
         if (!claude) CancelModelDiscovery();
         launchNotice.IsVisible = claude && Agent(context.Host())?.LaunchedByUi == false;
-        offer.Visible = claude;
         terminal.SetKeyEncoding(claude ? TerminalKeyEncoding.AgentNewline : TerminalKeyEncoding.Default);
         if (claude && store.IdeContext(terminal.WorkspaceId, terminal.TabKey) is null) store.SetIdeContext(terminal.WorkspaceId, terminal.TabKey, true);
         var state = State;
@@ -275,126 +270,6 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
                 Refresh();
             });
         });
-    }
-}
-
-/// <summary>
-/// The offer to install, or bring up to date, SharpRail's own Claude Code hook plugin, shown on a Claude terminal while
-/// the registration is absent or outdated. A dismissal lasts for this app run.
-/// </summary>
-internal sealed class ClaudeInstallOffer : Border
-{
-    private static bool dismissed;
-    private readonly IPluginUIContext context;
-    private HookPluginStatus? status;
-    private bool visible;
-    private bool busy;
-    private bool asked;
-
-    public ClaudeInstallOffer(IPluginUIContext context)
-    {
-        this.context = context;
-        Name = "ClaudePluginChip";
-        IsVisible = false;
-        Background = Ui.Elevated;
-        BorderBrush = Ui.BorderBrush;
-        BorderThickness = new Thickness(1);
-        CornerRadius = new CornerRadius(6);
-        Padding = new Thickness(8, 4);
-    }
-
-    public bool Visible
-    {
-        set
-        {
-            visible = value;
-            if (visible && !dismissed && !asked) Ask();
-            Render();
-        }
-    }
-
-    private void Ask()
-    {
-        asked = true;
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                var result = await context.RequestAsync(ClaudeCodeContract.PluginStatus, new NoParams());
-                Dispatcher.UIThread.Post(() => { status = result; Render(); });
-            }
-            catch (Exception error) when (error is not OperationCanceledException) { }
-        });
-    }
-
-    private void Render()
-    {
-        // Unknown means the settings could not be read: offering an install that cannot be reasoned about would be a guess.
-        IsVisible = visible && !dismissed && status is { State: HookPluginState.Absent or HookPluginState.Outdated };
-        if (!IsVisible || status is null) return;
-        Tag = status.State;
-        var updating = status.State == HookPluginState.Outdated;
-        var row = new DockPanel();
-        var dismiss = Ui.IconButton("close", "Dismiss", () => { dismissed = true; Render(); });
-        dismiss.Name = "ClaudePluginDismiss";
-        dismiss.Width = dismiss.Height = 22;
-        dismiss.Padding = new Thickness(4);
-        DockPanel.SetDock(dismiss, Dock.Right);
-        row.Children.Add(dismiss);
-        var install = ClaudeParts.Primary(Ui.Button(updating ? "Update" : "Enable", () => _ = Install(updating)));
-        install.Name = "ClaudePluginInstall";
-        install.IsEnabled = !busy;
-        install.Margin = new Thickness(8, 0);
-        install.VerticalAlignment = VerticalAlignment.Top;
-        DockPanel.SetDock(install, Dock.Right);
-        row.Children.Add(install);
-        var icon = Ui.Icon("sparkling", Ui.Accent, 14);
-        icon.VerticalAlignment = VerticalAlignment.Top;
-        icon.Margin = new Thickness(0, 2, 8, 0);
-        DockPanel.SetDock(icon, Dock.Left);
-        row.Children.Add(icon);
-        var text = new StackPanel { Spacing = 2 };
-        text.Children.Add(ClaudeParts.Wrapped(updating ? $"Update SharpRail's Claude Code plugin to v{status.AvailableVersion}?" : "Show Claude Code's status in the tab?", Ui.TextBrush, 13));
-        text.Children.Add(ClaudeParts.Wrapped(updating
-            ? $"Installed v{status.InstalledVersion}. Updating rewrites one entry in your Claude settings and runs Claude's own plugin update."
-            : "Adds live running / needs-you / done status and notifications. Edits your user-level Claude settings, installs the plugin through Claude's own CLI, and keeps both current from then on."));
-        if (status.PendingChange is { } change)
-        {
-            var pending = ClaudeParts.Code(change, Ui.Hint, 11);
-            ToolTip.SetTip(pending, change);
-            text.Children.Add(pending);
-        }
-        row.Children.Add(text);
-        Child = row;
-    }
-
-    private async Task Install(bool updating)
-    {
-        busy = true;
-        Render();
-        try
-        {
-            var result = await context.RequestAsync(ClaudeCodeContract.InstallPlugin, new NoParams());
-            status = result;
-            if (result.State == HookPluginState.Enabled)
-            {
-                dismissed = true;
-                context.Notify(PluginNotificationKind.Info, updating ? "Plugin updated" : "Plugin enabled", "Restart Claude Code in this terminal to pick it up.");
-            }
-            // Settings that could not be read are left alone; otherwise they were written and Claude Code's own install refused.
-            else context.Notify(PluginNotificationKind.Error, updating ? "Couldn't update the plugin" : "Couldn't enable the plugin",
-                result.State == HookPluginState.Unknown ? "Your Claude settings could not be read, so they were not changed."
-                    : result.Problem ?? "Claude Code did not install it; your Claude settings name it, and SharpRail will try again on the next activation.");
-        }
-        catch (Exception error) when (error is not OperationCanceledException)
-        {
-            context.Notify(PluginNotificationKind.Error, "Couldn't enable the plugin", ClaudeParts.ErrorText(error));
-        }
-        finally
-        {
-            busy = false;
-            Render();
-        }
     }
 }
 

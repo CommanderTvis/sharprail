@@ -44,7 +44,7 @@ internal static class AgentLaunchChecks
                 }
                 finally { if (!process.HasExited) process.Kill(); process.WaitForExit(); }
             }
-            var noLeak = new ProcessStartInfo("/bin/sh", ["-c", marked.Replace(invocation + " --fake-agent-launch", "/usr/bin/true", StringComparison.Ordinal)
+            var noLeak = new ProcessStartInfo("/bin/sh", ["-c", marked.Replace(invocation, "/usr/bin/true", StringComparison.Ordinal)
                 + "; test \"${SHARPRAIL_UI_LAUNCH-unset}\" = unset"])
             { UseShellExecute = false };
             noLeak.Environment.Remove("SHARPRAIL_UI_LAUNCH");

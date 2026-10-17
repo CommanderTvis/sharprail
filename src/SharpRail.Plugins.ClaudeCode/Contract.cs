@@ -90,15 +90,6 @@ public sealed record ClaudeConfigSnapshot(
     // Every key Claude Code documents, so a key can be added without already appearing in a file.
     IReadOnlyList<string> KnownSettingKeys);
 
-public enum HookPluginState { Enabled, Outdated, Absent, Unknown }
-
-/// <summary>Whether SharpRail's own Claude Code hook plugin is registered and current in Claude's cache.</summary>
-public sealed record HookPluginStatus(HookPluginState State, string AvailableVersion, string? InstalledVersion = null, string? PendingChange = null)
-{
-    /// <summary>Why the last install or update stopped short, in Claude Code's own words.</summary>
-    public string? Problem { get; init; }
-}
-
 [JsonPolymorphic(TypeDiscriminatorPropertyName = "kind")]
 [JsonDerivedType(typeof(AddMarketplace), "add")]
 [JsonDerivedType(typeof(RemoveMarketplace), "remove")]
@@ -367,6 +358,9 @@ public static class ClaudeCodeContract
     /// <summary>Names the host's system prompt file in every terminal; the launch line refers to it.</summary>
     public const string PromptFileVariable = "SHARPRAIL_CLAUDE_PROMPT_FILE";
 
+    /// <summary>The bundled Claude plugin directory on the terminal host.</summary>
+    public const string PluginDirectoryVariable = "SHARPRAIL_CLAUDE_PLUGIN_DIR";
+
     /// <summary>Names the folder SharpRail creates this project's worktrees in, in every terminal.</summary>
     public const string WorktreesVariable = "SHARPRAIL_WORKTREES_DIR";
 
@@ -378,8 +372,6 @@ public static class ClaudeCodeContract
     public static readonly PluginMethod<NoParams, SystemPromptFile> SystemPromptGet = new("systemPromptGet");
     /// <summary>Writes SharpRail's own text over the user's edits.</summary>
     public static readonly PluginMethod<NoParams, SystemPromptFile> SystemPromptReset = new("systemPromptReset");
-    public static readonly PluginMethod<NoParams, HookPluginStatus> PluginStatus = new("pluginStatus");
-    public static readonly PluginMethod<NoParams, HookPluginStatus> InstallPlugin = new("installPlugin");
     public static readonly PluginMethod<PluginUninstallPlanParams, CommandPlan> PluginUninstallPlan = new("pluginUninstallPlan");
     public static readonly PluginMethod<PluginUninstallParams, CommandOutput> PluginUninstall = new("pluginUninstall");
     public static readonly PluginMethod<PluginMovePlanParams, CommandsPlan> PluginMovePlan = new("pluginMovePlan");
@@ -402,7 +394,7 @@ public static class ClaudeCodeContract
     public static readonly PluginChannel<IdeActionRequest> IdeAction = PluginChannel<IdeActionRequest>.Event("ideAction");
 
     public static readonly PluginContract Contract = PluginContract.Create<ClaudeCodeSettings>(Id, 2,
-        [ConfigGet, Account, SystemPromptGet, SystemPromptReset, PluginStatus, InstallPlugin, PluginUninstallPlan, PluginUninstall, PluginMovePlan, PluginMove,
+        [ConfigGet, Account, SystemPromptGet, SystemPromptReset, PluginUninstallPlan, PluginUninstall, PluginMovePlan, PluginMove,
             MarketplacePlan, MarketplaceRun, McpList, ReadFile, WriteFile, PlanEdit, ApplyEdit, SelectionChanged, DocumentClosed,
             AtMention, ActionReply, StatusSnapshot],
         [Status, IdeAction]);

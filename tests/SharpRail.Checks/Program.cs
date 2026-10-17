@@ -30,7 +30,7 @@ internal static class Program
     internal static void Checks(string[] args)
     {
         if (args.SequenceEqual(["--native-editor-find"])) { NativeEditorFindChecks.Run(args); return; }
-        if (args.SequenceEqual(["--fake-agent-launch"])) { Thread.Sleep(30_000); return; }
+        if (args.Contains("--fake-agent-launch")) { Thread.Sleep(30_000); return; }
         E2E.IsolatedGit.ForProcess();
         if (args.Length > 0 && E2E.CodexE2E.Fake(args[0], args[1..]) is { } fixtureExit) { Environment.Exit(fixtureExit); return; }
         if (!args.Contains("--terminal-relay")) E2E.IsolatedGit.CheckIsolation();

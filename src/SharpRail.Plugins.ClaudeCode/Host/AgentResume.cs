@@ -21,18 +21,18 @@ internal static partial class AgentResume
     /// <c>--continue</c> from a previous restore; both are dropped rather than appended to, and every other choice the
     /// user made is kept in place.
     /// </summary>
-    public static string? ResumeCommand(string command, string sessionId, string? model = null, string? effort = null) =>
-        IsSessionId(sessionId) && Invocation(command, model, effort) is { } kept ? $"{kept} --resume {sessionId}" : null;
+    public static string? ResumeCommand(string command, string sessionId, string? model = null, string? effort = null, string? pluginDirectory = null) =>
+        IsSessionId(sessionId) && Invocation(command, model, effort, pluginDirectory) is { } kept ? $"{kept} --resume {sessionId}" : null;
 
     /// <summary>The same invocation asked to pick up the latest conversation in its directory itself.</summary>
-    public static string? ContinueCommand(string command, string? model = null, string? effort = null) => Invocation(command, model, effort) is { } kept ? $"{kept} --continue" : null;
+    public static string? ContinueCommand(string command, string? model = null, string? effort = null, string? pluginDirectory = null) => Invocation(command, model, effort, pluginDirectory) is { } kept ? $"{kept} --continue" : null;
 
     /// <summary>
     /// The executable and its flags, nothing else: a positional prompt is dropped, because the command comes from the
     /// process table unquoted and a resumed session must not be handed the opening prompt again. A word after a flag is
     /// kept as that flag's value unless the flag is known to take none.
     /// </summary>
-    private static string? Invocation(string command, string? model, string? effort)
+    private static string? Invocation(string command, string? model, string? effort, string? pluginDirectory)
     {
         var words = command.Trim().Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
         if (words.Length == 0) return null;
@@ -41,6 +41,27 @@ internal static partial class AgentResume
         {
             var word = words[index];
             if (word == "--") break;
+            if (pluginDirectory is not null && word.Split('=', 2)[0] == "--plugin-dir")
+            {
+                var inline = word.IndexOf('=');
+                var candidate = inline >= 0 ? word[(inline + 1)..] : "";
+                var end = inline >= 0 ? index : index + 1;
+                var removed = false;
+                for (; end < words.Length; end++)
+                {
+                    if (end != index)
+                    {
+                        if (words[end].StartsWith('-')) break;
+                        candidate = candidate.Length == 0 ? words[end] : candidate + " " + words[end];
+                    }
+                    var path = candidate.Trim('\'', '"').Replace('\\', '/');
+                    if (path == pluginDirectory.Replace('\\', '/') ||
+                        path.EndsWith("/plugins/claude-code/assets/marketplace/claude-plugin", StringComparison.Ordinal) ||
+                        path.EndsWith("/.sharprail/claude-code/marketplace/claude-plugin", StringComparison.Ordinal))
+                    { index = end; removed = true; break; }
+                }
+                if (removed) continue;
+            }
             if (ContinueFlags.Contains(word)) continue;
             if (ResumeFlags.Contains(word))
             {
@@ -61,6 +82,7 @@ internal static partial class AgentResume
         }
         if (model is { Length: > 0 }) kept.Add("--model " + Quote(model));
         if (effort is { Length: > 0 }) kept.Add("--effort " + Quote(effort));
+        if (pluginDirectory is not null) kept.Add("--plugin-dir " + Quote(pluginDirectory));
         return string.Join(' ', kept);
     }
 

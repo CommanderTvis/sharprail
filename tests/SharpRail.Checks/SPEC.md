@@ -673,3 +673,5 @@ Watcher hygiene: `--watcher-hygiene` exercises real Specs/Blueprint concurrent a
 It proves interception with a control watcher and checks native allocation/start/stop/release balance
 across gitless reads/removal and real isolated Git-host lifecycles, including metadata/refs and framework-created streams. It is deliberately outside
 the argument-free managed gate; no production native interposition is enabled by these checks.
+
+Fake-agent child processes recognize their fixture marker alongside launcher-supplied options, including `--plugin-dir`, so they never enter the check gate recursively.
