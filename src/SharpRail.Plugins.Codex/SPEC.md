@@ -181,3 +181,5 @@ one. Inspection found one successful initialize/account-read sequence and no req
 rejected attempt; the fixture discarded its initial exception and used a one-second connection timeout.
 This leaves recovery verification unresolved: it does not establish that a malformed-response process
 was reused. A later source-gate pass does not replace this packaged acceptance.
+
+Context labels delimit the active tab name with quotation marks, including the no-session fallback, so it is distinct from the explanatory sentence.

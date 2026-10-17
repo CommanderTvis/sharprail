@@ -258,3 +258,5 @@ retains all provider state and commands; generic settings controls remain kit-ow
 Start work includes host image paths in the opening prompt with instructions to read the attached image files. The first agent task title names an untouched generated managed workspace through `set_title`.
 
 Source and rendered diff selections use the same selection notifications as file editors, including continuous Changes review. Activating a different document clears the former current selection; closing a diff or review forgets its selected file. Original-side source selections are not replaced with working-tree contents.
+
+Context labels delimit the active tab name with quotation marks, including the no-session fallback, so it is distinct from the explanatory sentence.

@@ -184,7 +184,7 @@ internal sealed class ClaudeConfigPanel : DockPanel
         scopeBlock.Tag = session is not null ? "session" : "workspace";
         if (session is not null)
         {
-            scopeBlock.Children.Add(Ui.Text($"Context of Claude in tab {session.Title}", Ui.Muted, 13));
+            scopeBlock.Children.Add(Ui.Text($"Context of Claude in tab “{session.Title}”", Ui.Muted, 13));
             var cwd = ClaudeParts.Code(TerminalFacts.CwdLabel(snapshot?.Root) ?? "…");
             cwd.Name = "ClaudeConfigScopeCwd";
             ToolTip.SetTip(cwd, snapshot?.Root ?? "Reading the directory…");
@@ -192,7 +192,7 @@ internal sealed class ClaudeConfigPanel : DockPanel
         }
         else
         {
-            scopeBlock.Children.Add(Ui.Text(activeTab is not null ? $"No Claude in tab {activeTab.Title}" : "No terminal open", Ui.Muted, 13));
+            scopeBlock.Children.Add(Ui.Text(activeTab is not null ? $"No Claude in tab “{activeTab.Title}”" : "No terminal open", Ui.Muted, 13));
             scopeBlock.Children.Add(Ui.Text("Showing what a new session here would load", Ui.Hint, 12));
         }
     }

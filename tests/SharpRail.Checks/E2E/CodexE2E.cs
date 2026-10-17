@@ -674,7 +674,7 @@ internal static class CodexE2E
         app.Window.Layout.GroupTabs(app.Center, terminal.Id, "file:notes.txt", "horizontal");
         app.Window.Layout.Select(app.Center, "file:notes.txt");
         E2eWorkspace.Until(() => Has(panel, "CodexLaunchFlagChip") &&
-            One<TextBlock>(panel, "CodexConfigScopeHeading").Text == "Context of Codex in tab " + terminal.Title);
+            One<TextBlock>(panel, "CodexConfigScopeHeading").Text == "Context of Codex in tab “" + terminal.Title + "”");
         Require(app.Window.Layout.Selected(app.Center)?.Id == "file:notes.txt", "Codex context follows a visible terminal beside the selected editor.");
         File.WriteAllText(Path.Combine(app.Root, "other.txt"), "another editor");
         app.Window.Layout.Open(new("file:other.txt", "other.txt", "file", "other.txt"), true, app.Center);

@@ -157,7 +157,7 @@ public static class CodexPanel
             scope.Tag = session is not null ? "session" : "workspace";
             if (session is not null)
             {
-                scopeHeading.Text = $"Context of Codex in tab {session.Title}";
+                scopeHeading.Text = $"Context of Codex in tab “{session.Title}”";
                 scopeDetail.Text = TerminalFacts.CwdLabel(snapshot?.Root) ?? "…";
                 scopeDetail.FontFamily = Ui.CodeFont;
                 scopeDetail.Foreground = Ui.Muted;
@@ -165,7 +165,7 @@ public static class CodexPanel
             }
             else
             {
-                scopeHeading.Text = activeTab is not null ? $"No Codex in tab {activeTab.Title}" : "No terminal open";
+                scopeHeading.Text = activeTab is not null ? $"No Codex in tab “{activeTab.Title}”" : "No terminal open";
                 scopeDetail.Text = "Showing what a new session here would load";
                 scopeDetail.ClearValue(TextBlock.FontFamilyProperty);
                 scopeDetail.Foreground = Ui.Hint;
