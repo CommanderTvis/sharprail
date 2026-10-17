@@ -130,6 +130,8 @@ shells surviving listener stop/restart. Headless Settings
 coverage starts/stops serving across two app windows, applies remote state changes, retains local
 controls and sessions, validates drafts, and keeps serving alive when Settings closes. Both run in
 the full gate; serving configuration and secrets remain session-local.
+`--native-editor-find` delivers AppKit key events through a real macOS window and its Edit menu,
+covering Command+F in code and Markdown Source/Split, match navigation, focus, typing and undo.
 `--markdown-find` covers Source and Split search, UTF-16 selection, match navigation, pane isolation,
 overlay input, unsaved buffers and Escape focus; the same regressions run in `--markdown` and the full suite.
 `--native-osc52` runs those checks plus real Metal shell output and encoded read

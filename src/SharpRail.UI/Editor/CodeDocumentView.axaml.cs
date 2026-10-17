@@ -1,11 +1,12 @@
 using Avalonia.Controls;
+using Avalonia.Markup.Xaml;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.Scintilla;
 
 namespace SharpRail.UI.Editor;
 
-internal sealed class CodeDocumentView : UserControl, IDisposable
+internal sealed partial class CodeDocumentView : UserControl, IDisposable
 {
     private readonly IProjectServices host;
     private readonly string workspace;
@@ -24,8 +25,9 @@ internal sealed class CodeDocumentView : UserControl, IDisposable
     internal bool DeletedOnDisk { get => deletedBanner.IsVisible; set => deletedBanner.IsVisible = value; }
 
     internal CodeDocumentView(FileDocument file, string workspace, IProjectServices host,
-        Action changed, Action<string> saved, Action modifiedChanged, Action<Exception> report)
+        Action changed, Action<string> saved, Action modifiedChanged, Action<Exception> report, bool find = true)
     {
+        AvaloniaXamlLoader.Load(this);
         this.host = host; this.workspace = workspace; path = file.Path;
         original = file.Text; this.saved = saved; this.modifiedChanged = modifiedChanged; this.report = report;
         var frame = new EditorFrame(file.Text, "CodeEditor");
@@ -41,11 +43,14 @@ internal sealed class CodeDocumentView : UserControl, IDisposable
             Padding = new Avalonia.Thickness(8, 4),
             Child = Ui.Text("This file was deleted on disk. What you see is the last version the tab read.", Ui.TextBrush, 12)
         };
-        var layout = new DockPanel();
-        DockPanel.SetDock(deletedBanner, Dock.Top);
-        layout.Children.Add(deletedBanner);
-        layout.Children.Add(frame);
-        Content = layout;
+        this.FindControl<ContentControl>("DeletedBannerBody")!.Content = deletedBanner;
+        this.FindControl<ContentControl>("CodeEditorBody")!.Content = frame;
+        if (find)
+        {
+            var bar = new FindBar(() => Editor);
+            this.FindControl<ContentControl>("CodeFindBody")!.Content = bar;
+            bar.Attach(this);
+        }
         Editor.TextChanged += (_, _) => { UpdateModified(); if (Editor.IsModified && !reloading) changed(); };
         Editor.OperationFailed += (_, error) => report(error);
     }

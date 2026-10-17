@@ -215,3 +215,15 @@ void sr_check_toggle_bottom(void *pointer) {
             characters:@"J" charactersIgnoringModifiers:@"j" isARepeat:NO keyCode:38]];
     }
 }
+
+// Goes through AppKit's key-equivalent dispatch before Avalonia's focused editor.
+void sr_check_command(void *pointer, const char *text, unsigned short keyCode) {
+    NSView *view = (__bridge NSView *)pointer;
+    NSString *characters = [NSString stringWithUTF8String:text];
+    for (NSNumber *type in @[@(NSEventTypeKeyDown), @(NSEventTypeKeyUp)]) {
+        [NSApp sendEvent:[NSEvent keyEventWithType:type.integerValue location:NSZeroPoint
+            modifierFlags:NSEventModifierFlagCommand timestamp:NSProcessInfo.processInfo.systemUptime
+            windowNumber:view.window.windowNumber context:nil characters:characters
+            charactersIgnoringModifiers:characters isARepeat:NO keyCode:keyCode]];
+    }
+}

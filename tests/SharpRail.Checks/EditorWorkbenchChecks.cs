@@ -80,6 +80,17 @@ internal static class EditorWorkbenchChecks
         {
             Await(window.OpenDocumentAsync("first.cs")); window.UpdateLayout();
             var editor = Editor(window); editor.Focus();
+            window.KeyPress(Key.F, RawInputModifiers.Meta, PhysicalKey.F, "f");
+            window.KeyRelease(Key.F, RawInputModifiers.Meta, PhysicalKey.F, "f");
+            var findInput = window.GetLogicalDescendants().OfType<TextBox>().Single(box => box.Name == "FindInput");
+            Require(findInput.IsFocused, "Command+F in a file editor must focus Find.");
+            findInput.Text = "First";
+            Dispatcher.UIThread.RunJobs();
+            Require(editor.Selection.Text == "First" && !editor.IsModified, "File Find must select without editing.");
+            window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+            window.KeyRelease(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+            Require(editor.IsFocused, "Closing file Find must restore the editor focus.");
+            editor.SelectRange(0, 0);
             window.KeyTextInput("// edited\n"); Dispatcher.UIThread.RunJobs();
             Require(editor.IsFocused, "Keeping an edited preview lost keyboard focus.");
             window.KeyTextInput("// continued typing\n"); Dispatcher.UIThread.RunJobs();

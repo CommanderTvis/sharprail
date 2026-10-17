@@ -14,7 +14,7 @@ public sealed partial class WorkbenchWindow
 
     private double FileWrapWidth => LineWidths.File(Preferences.FileLineWidth, Preferences.FileLineWidthBounded);
 
-    private CodeDocumentView CodeDocument(FileDocument document, string tabId, string key)
+    private CodeDocumentView CodeDocument(FileDocument document, string tabId, string key, bool find)
     {
         var view = new CodeDocumentView(document, workspaceRoot, host, () =>
         {
@@ -26,7 +26,7 @@ public sealed partial class WorkbenchWindow
                 Layout.Keep(group.Id, tabId);
                 if (focused) editor!.Focus();
             }
-        }, text => { documents[key] = document with { Text = text }; EmitSaved(key); }, surface.RefreshModified, Report);
+        }, text => { documents[key] = document with { Text = text }; EmitSaved(key); }, surface.RefreshModified, Report, find);
         view.Editor.WrapWidth = FileWrapWidth;
         view.DeletedOnDisk = deletedDocuments.Contains(key);
         ReportSelections(view.Editor, new DockTab(tabId, Path.GetFileName(document.Path), "file", document.Path));

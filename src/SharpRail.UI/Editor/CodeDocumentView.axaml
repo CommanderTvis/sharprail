@@ -1,0 +1,11 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="SharpRail.UI.Editor.CodeDocumentView">
+  <DockPanel>
+    <ContentControl x:Name="DeletedBannerBody" DockPanel.Dock="Top" />
+    <Grid>
+      <ContentControl x:Name="CodeEditorBody" />
+      <ContentControl x:Name="CodeFindBody" ZIndex="1" />
+    </Grid>
+  </DockPanel>
+</UserControl>

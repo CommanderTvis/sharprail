@@ -119,6 +119,9 @@ since the kit has no theme of its own.
   find searches the focused pane once; a single bar stays above both panes. Escape restores focus to
   the control that opened find, retaining a source match for editing. Switching modes dismisses find.
   Source ranges use UTF-16 offsets and are converted to Scintilla's UTF-8 positions without editing text.
+- Standalone file editors use the same Find bar over their current editable buffer. Command+F on macOS
+  opens and focuses it through normal keyboard routing; Escape restores the selected match for editing.
+  Markdown owns its single bar above Source/Split rather than adding another inside the file editor.
 - The document skin owns typography and the reading measure: headings at 24/20/18/16 against the interface
   body size, section spacing, bordered tables, blockquotes, task lists and GitHub-style alert callouts with
   their own icons. The column is capped at the Markdown line width (default 78 symbols, measured in the

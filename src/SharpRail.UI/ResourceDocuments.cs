@@ -109,7 +109,7 @@ public sealed partial class WorkbenchWindow
         var hasPreview = view.TabId.StartsWith("markdown:", StringComparison.Ordinal) && document.Text.Length <= ViewerLimits.RenderedMarkdown;
         if (!SharpRail.Scintilla.ScintillaEditor.IsSupported)
             return new PlainSourceBody(document.Text) { Name = hasPreview ? "MarkdownSource" : null };
-        var code = CodeDocument(document, view.TabId, key);
+        var code = CodeDocument(document, view.TabId, key, !hasPreview);
         if (hasPreview)
         {
             code.Editor.Name = "MarkdownSource";
