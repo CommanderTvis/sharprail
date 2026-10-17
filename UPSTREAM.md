@@ -55,7 +55,7 @@ verified against GitHub on 2026-10-09. Fork port coverage remains recorded by ti
 | `packages/server/src/spec/SPEC.md` | `src/SharpRail.Host.Core/Specs.SPEC.md` |
 | `packages/plugin-spec-dialect/SPEC.md`, `packages/spec-graph/{core,tools}/SPEC.md` | `src/SharpRail.Plugins.SpecDialect/SPEC.md` |
 | `packages/plugin-discord/SPEC.md` | `src/SharpRail.Plugins.Discord/SPEC.md` |
-| `packages/plugin-pdf-preview/SPEC.md` | `src/SharpRail.Plugins.PdfPreview/SPEC.md` |
+| `packages/plugin-pdf-preview/SPEC.md` | `src/SharpRail.UI/Resources/Pdf/SPEC.md` |
 | `packages/plugin-branch-graph/SPEC.md` | `src/SharpRail.Plugins.BranchGraph/SPEC.md` |
 | `packages/plugin-visualize/SPEC.md` | `src/SharpRail.Plugins.Visualize/SPEC.md` |
 | `packages/plugin-file-icons/SPEC.md` | `src/SharpRail.Plugins.UI.Kit/FileIcons/SPEC.md` |
@@ -468,7 +468,7 @@ Authorities: upstream [location bar](https://github.com/JetBrains/thinkrail/blob
 
 ### Rendering and resource gaps
 
-Authorities: upstream [resource registry](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/apps/web/src/resources/SPEC.md), [rich panels](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/apps/web/src/panels/SPEC.md), [themes](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/apps/web/src/themes/SPEC.md); SharpRail [registry](src/SharpRail.UI/Resources/ResourceRegistry.cs), [Rendering](src/SharpRail.UI/Rendering/SPEC.md), [Themes](src/SharpRail.UI/Rendering/Themes.SPEC.md), [PDF plugin](src/SharpRail.Plugins.PdfPreview/SPEC.md), [Scintilla limits](src/SharpRail.Scintilla/README.md#limits).
+Authorities: upstream [resource registry](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/apps/web/src/resources/SPEC.md), [rich panels](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/apps/web/src/panels/SPEC.md), [themes](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/apps/web/src/themes/SPEC.md); SharpRail [registry](src/SharpRail.UI/Resources/ResourceRegistry.cs), [Rendering](src/SharpRail.UI/Rendering/SPEC.md), [Themes](src/SharpRail.UI/Rendering/Themes.SPEC.md), [Core PDF preview](src/SharpRail.UI/Resources/Pdf/SPEC.md), [Scintilla limits](src/SharpRail.Scintilla/README.md#limits).
 
 | ID | Status | Gap |
 | --- | --- | --- |
@@ -484,8 +484,8 @@ Authorities: upstream [resource registry](https://github.com/JetBrains/thinkrail
 | U12 | Partial | Workspace-search Markdown hit opens and flashes the matching rendered block. Navigation exists; block flash does not. |
 | U13 | Missing | Registry advertises phone support, anchor geometry, copy/layout/whitespace and natural/bounded height per renderer. Current registry primarily declares matching/rank and view/diff factories. |
 | U14 | Missing | Sanitized HTML preview and 2-up HTML diff. HTML currently opens as source; notebook HTML output also lacks the upstream sandboxed rich presentation. |
-| U15 | Missing | PDF page-pair diffs, synchronized page sequence and 2-up/swipe/onion/difference comparison. PDF file preview exists through the plugin. |
-| U16 | Partial | PDF viewport render window with two-page overscan, cancellation/release of offscreen canvases, page/zoom state restoration and page-region review focus. Current plugin rasterizes a full page set and has no review geometry. |
+| U15 | Missing | PDF page-pair diffs, synchronized page sequence and 2-up/swipe/onion/difference comparison. PDF file preview is core functionality. |
+| U16 | Partial | PDF viewport render window with two-page overscan, cancellation/release of offscreen canvases, page/zoom state restoration and page-region review focus. Current core preview rasterizes a full page set and has no review geometry. |
 | U17 | Partial | Free image zoom/pan gestures and intrinsic-space region selections. Fit/natural/button zoom and four visual diff modes already exist. |
 | U18 | Partial | JSON array move detection and stable object hashes. Native alignment presents moves as removed/added. JSON/JSONC trees themselves exist. |
 | U19 | Partial | Notebook source-language treatment, rich HTML outputs and structural review/selection parity. Notebook view/diff exists; full upstream output and authoring contract does not. |
