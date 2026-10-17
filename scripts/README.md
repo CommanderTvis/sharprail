@@ -112,8 +112,9 @@ sh scripts/check-packaged.sh
 sh scripts/dmg.sh
 ```
 
-`publish.sh [runtime-identifier]` publishes self-contained Release ReadyToRun
-outputs into `artifacts/ui`, `artifacts/host` and `artifacts/checks`. For
+`publish.sh [runtime-identifier]` publishes self-contained Release composite ReadyToRun
+UI/host outputs into `artifacts/ui` and `artifacts/host`, with non-composite R2R
+checks in `artifacts/checks` for staging beside the shipped UI. For
 `osx-arm64` or `osx-x64`, it also assembles and ad-hoc signs
 `artifacts/SharpRail.app`. `DOTNET` overrides the dotnet executable; this script
 does not bootstrap it. Publishing removes the previous outputs and app bundle,

@@ -14,14 +14,5 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 mkdir -p "$stage"
 cp -R "$bundle" "$stage/"
-for item in artifacts/checks/*; do
-  staged="$stage/SharpRail.app/Contents/MacOS/$(basename "$item")"
-  if [ ! -e "$staged" ]; then
-    cp -R "$item" "$staged"
-  else
-    # The remote host the checks start needs newer framework assemblies than the app ships. The
-    # gate itself refuses any replacement that is not a newer version of the same assembly.
-    case "$item" in *.dll) cmp -s "$item" "$staged" || cp "$item" "$staged" ;; esac
-  fi
-done
+artifacts/checks/SharpRail.Checks --stage-packaged artifacts/checks "$stage/SharpRail.app/Contents/MacOS"
 SHARPRAIL_REQUIRE_R2R=1 SHARPRAIL_PACKAGED_APP="$PWD/$bundle" "$stage/SharpRail.app/Contents/MacOS/SharpRail.Checks" "$@"

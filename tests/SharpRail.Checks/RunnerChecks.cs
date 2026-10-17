@@ -58,7 +58,7 @@ internal static class RunnerChecks
         File.WriteAllText(Path.Combine(staged, "SharpRail.Checks.dll"), "SharpRail.Checks 1.0");
         string[] loaded = [Path.Combine(staged, "SharpRail.UI.dll")];
         // A fixture assembly is its name and version in text.
-        static AssemblyName? Identity(string file) => File.ReadAllText(file).Split(' ') is [var name, var version] && Version.TryParse(version, out var parsed) ? new(name) { Version = parsed } : null;
+        static AssemblyName? Identity(string file) => File.ReadAllText(file).Split(' ') is [var name, var version, ..] && Version.TryParse(version, out var parsed) ? new(name) { Version = parsed } : null;
         void Stage(string name, string text) => File.WriteAllText(Path.Combine(staged, name), text);
         void Rejects(string message, IEnumerable<string>? assemblies = null)
         {
@@ -67,6 +67,18 @@ internal static class RunnerChecks
             throw new InvalidOperationException(message);
         }
         Require(PackagedApp.Verify(shipped, staged, loaded, Identity) is { Identical: 3, Superseded.Count: 0 }, "A stage holding the bundle's own files must pass.");
+        var checks = Path.Combine(directory, "checks");
+        Directory.CreateDirectory(checks);
+        File.WriteAllText(Path.Combine(checks, "SharpRail.UI.dll"), "SharpRail.UI 2.0 checks-component");
+        File.WriteAllText(Path.Combine(checks, "Framework.Abstractions.dll"), "Framework.Abstractions 8.0 checks-component");
+        File.WriteAllText(Path.Combine(checks, "SharpRail.Checks.r2r.dll"), "composite native image");
+        PackagedApp.AddCheckFiles(checks, staged, Identity);
+        Require(PackagedApp.Verify(shipped, staged, loaded, Identity) is { Identical: 3, Superseded.Count: 0 } &&
+            File.Exists(Path.Combine(staged, "SharpRail.Checks.r2r.dll")), "Staging must preserve shipped product and same-version framework bytes while adding the checks' composite image.");
+        File.WriteAllText(Path.Combine(checks, "Framework.Abstractions.dll"), "Framework.Abstractions 10.0");
+        PackagedApp.AddCheckFiles(checks, staged, Identity);
+        Require(PackagedApp.Verify(shipped, staged, loaded, Identity) is { Identical: 2, Superseded: ["Framework.Abstractions.dll"] },
+            "Staging must retain the permitted newer-framework replacement.");
         Rejects("A product assembly loaded from elsewhere must fail.", [Path.Combine(directory, "elsewhere", "SharpRail.UI.dll")]);
         Rejects("An assembly the bundle does not ship must not count as the product.", [Path.Combine(staged, "SharpRail.Checks.dll")]);
         Stage("Framework.Abstractions.dll", "Framework.Abstractions 10.0");

@@ -7,9 +7,11 @@ rid="${1:-osx-arm64}"
 # downgraded timestamp) would otherwise survive into the package.
 rm -rf artifacts/ui artifacts/host artifacts/checks artifacts/SharpRail.app
 "$dotnet_cmd" publish src/SharpRail.UI -c Release -r "$rid" --self-contained true \
-  -p:PublishReadyToRun=true -p:PublishReadyToRunComposite=false -o artifacts/ui
+  -p:PublishReadyToRun=true -p:PublishReadyToRunComposite=true -o artifacts/ui
 "$dotnet_cmd" publish src/SharpRail.Host.Remote -c Release -r "$rid" --self-contained true \
-  -p:PublishReadyToRun=true -p:PublishReadyToRunComposite=false -o artifacts/host
+  -p:PublishReadyToRun=true -p:PublishReadyToRunComposite=true -o artifacts/host
+# The packaged gate combines checks with the UI's shipped components. A separate
+# composite would assume its own version-bubble layouts; keep this harness versionable.
 "$dotnet_cmd" publish tests/SharpRail.Checks -c Release -r "$rid" --self-contained true \
   -p:PublishReadyToRun=true -p:PublishReadyToRunComposite=false -o artifacts/checks
 # The fixture plugin builds straight into the checks' build output; the plugin checks install it from beside the executable.

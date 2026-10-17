@@ -1,6 +1,6 @@
 # macOS startup and initial RAM
 
-This toolkit publishes a separate Release/ReadyToRun app and host, launches a reproducible
+This toolkit publishes a separate Release/composite ReadyToRun app and host, launches a reproducible
 workspace with isolated state, measures startup and RAM, and writes raw observations plus an offline
 HTML report. It does not replace `artifacts/SharpRail.app` or use your normal SharpRail profile.
 

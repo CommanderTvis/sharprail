@@ -120,8 +120,8 @@ The original baseline Discord UI assembly lacked compiled XAML; a later targeted
 without source changes. A controlled comparison must produce a consistently built clean baseline or
 explicitly retain that binary difference as a confound. The preserved baseline has not been rewritten.
 
-No tuning option below has been enabled or benchmarked by the first-window source changes. The current
-publish contract remains self-contained, non-composite ReadyToRun with tiered compilation/PGO; NativeAOT
+No tuning option below has been enabled or benchmarked by the first-window source changes. The initial
+publish contract was self-contained, non-composite ReadyToRun with tiered compilation/PGO; NativeAOT
 is excluded. Any future experiment needs separate binary provenance and the same startup/content/readiness/
 RAM contract, plus restored documents, plugins and sustained-use acceptance.
 
@@ -165,3 +165,41 @@ next profiling targets. Actual Chromium rendering verified both phase charts wit
 clipped SVG labels or page overflow. A preceding batch interrupted by a switch to battery is retained
 separately and excluded, along with the incompatible v1 baseline. Published runtime lookup appends
 the deps suffix to dotted executable names rather than replacing their final name component.
+
+## Composite ReadyToRun default (2026-10-17)
+
+The shared build properties default to composite when not explicitly overridden.
+Desktop macOS and Windows publishers and the profiling publisher now explicitly use
+`PublishReadyToRun=true` and `PublishReadyToRunComposite=true` for UI/host outputs.
+The macOS packaged test harness remains non-composite R2R so its code can use shipped
+component layouts when staged beside the UI; separately compiled composite groups cannot
+be treated as interchangeable assembly sets. Windows checks retain their own composite set.
+Tiered compilation and
+tiered PGO remain enabled; trimming and NativeAOT remain disabled. Normal source builds
+are unchanged. The measured startup/footprint tradeoff motivated this explicit choice.
+
+The isolated follow-up used the same experimental source, SDK 10.0.401/runtime 10.0.12,
+osx-arm64 and embedded fresh-profile fixture as the earlier non-composite/NativeAOT runs.
+One warm-up plus ten measured AC launches all succeeded. Means ± sample SD for
+non-composite → composite: first window 463.1 ± 22.8 → 401.8 ± 32.6 ms; first content
+560.7 ± 53.6 → 441.2 ± 43.6 ms; initial workspace ready 767.6 ± 29.8 → 715.8 ± 42.2 ms;
+physical footprint five seconds later 236.3 ± 8.6 → 321.8 ± 6.0 MiB. Earlier NativeAOT
+was 217.0 ± 12.7 ms / 163.5 ± 0.6 MiB, with unresolved compatibility limits.
+Composite's native image was 171,883,008 bytes. Logical app bundle size rose 245.7 →
+309.4 MiB. Comparisons are descriptive: runs were not contemporaneous or randomized.
+
+The experiment included generated serializer adaptations that are not applied to main.
+A legacy partial-settings regression, unresolved AOT/trim diagnostics, unsupported
+dynamic external plugins under NativeAOT and EventStream startup failures limit that
+experiment's acceptance. It is not a production NativeAOT candidate. The standalone
+three-way report, raw observations, binary hashes and diagnostic evidence are preserved
+in the main checkout's ignored `artifacts/performance/composite-comparison` and adjacent
+measurement directories before deleting the NativeAOT experiment workspace/branch.
+Production source and defaults must be verified separately from those experimental binaries.
+
+Production composite UI/host publishing and the versionable macOS harness passed the packaged
+gate: 139 cases across two lanes, with `SHARPRAIL_TEST_GIT_SOURCE` enabled. The strict Release
+build and touched formatting passed. MSBuild evaluation confirmed composite/tiering/PGO defaults
+are true and the harness override is false. The default property was added after the gate with
+unchanged effective explicit publish flags; the final compiler/property checks cover that addition.
+Windows runtime acceptance was not run on macOS.

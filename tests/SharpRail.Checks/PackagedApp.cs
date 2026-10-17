@@ -16,6 +16,28 @@ internal static class PackagedApp
 {
     internal const string Variable = "SHARPRAIL_PACKAGED_APP";
 
+    internal static void AddCheckFiles(string source, string destination, Func<string, AssemblyName?>? identity = null)
+    {
+        identity ??= file => { try { return AssemblyName.GetAssemblyName(file); } catch (BadImageFormatException) { return null; } };
+        foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
+        {
+            var name = Path.GetRelativePath(source, file);
+            var staged = Path.Combine(destination, name);
+            if (File.Exists(staged))
+            {
+                // Composite component headers differ between publishes even at the same assembly version.
+                // Keep shipped bytes unless the existing newer-framework exception applies.
+                if (!name.EndsWith(".dll", StringComparison.Ordinal) || name.StartsWith("SharpRail.", StringComparison.Ordinal) ||
+                    name.StartsWith("Ghostty.", StringComparison.Ordinal) ||
+                    identity(staged) is not { Name: { } packaged, Version: { } version } ||
+                    identity(file) is not { Name: { } replacement, Version: { } newer } ||
+                    packaged != replacement || newer <= version) continue;
+            }
+            Directory.CreateDirectory(Path.GetDirectoryName(staged)!);
+            File.Copy(file, staged, true);
+        }
+    }
+
     internal static void Run()
     {
         if (Environment.GetEnvironmentVariable(Variable) is not { Length: > 0 } bundle) return;

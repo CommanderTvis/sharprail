@@ -230,6 +230,14 @@ the app ships, and one process can load only one of each, so those are replaced 
 rather than counted. A product assembly that differs, an older or different assembly, or any other changed
 or missing file fails. Each lane starts its own hosts in-process, so packaged lanes share no artifact host.
 Arguments pass through, so lanes, shards, named cases and the repair loop apply; the stage is removed on exit.
+Staging preserves shipped composite components even when the checks' corresponding assemblies
+have the same version but different ReadyToRun headers. The checks executable adds missing files
+and replaces only newer versions of the same non-product assembly. The macOS checks themselves
+remain non-composite R2R: mixing two composite version bubbles failed in headless
+render-timer initialization in the full packaged gate. Windows checks use only their own
+published component set and remain composite. Same-version
+framework components and product assemblies remain the shipped bytes; verification is not relaxed.
+Runner fixtures cover these staging choices alongside the existing rejection cases.
 
 ## Adapter parity
 

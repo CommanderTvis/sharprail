@@ -62,6 +62,7 @@ internal static class Runner
     [STAThread]
     public static int Main(string[] args)
     {
+        if (args is ["--stage-packaged", var source, var destination]) { PackagedApp.AddCheckFiles(source, destination); return 0; }
         if (args.Contains("--terminal-relay")) { Program.Checks(args); return 0; }
         if (args.SequenceEqual(["--tree-fixture"])) return RunnerChecks.TreeFixture();
         if (args.SequenceEqual(["--tree-fixture-leaf"])) return RunnerChecks.TreeFixtureLeaf();

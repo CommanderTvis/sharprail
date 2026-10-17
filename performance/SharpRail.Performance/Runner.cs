@@ -32,7 +32,7 @@ internal sealed partial class Runner(string root, string dotnet)
         foreach (var (project, output) in new[] { ("src/SharpRail.UI", "SharpRail.app/Contents/MacOS"), ("src/SharpRail.Host.Remote", "host") })
         {
             Console.WriteLine("Publishing " + project);
-            var outputText = await Commands.Run(dotnet, ["publish", project, "-c", "Release", "-r", rid, "--self-contained", "true", "-p:PublishReadyToRun=true", "-p:PublishReadyToRunComposite=false", "-o", Path.Combine(BuildDirectory, output)], root);
+            var outputText = await Commands.Run(dotnet, ["publish", project, "-c", "Release", "-r", rid, "--self-contained", "true", "-p:PublishReadyToRun=true", "-p:PublishReadyToRunComposite=true", "-o", Path.Combine(BuildDirectory, output)], root);
             File.WriteAllText(Path.Combine(BuildDirectory, Path.GetFileName(project) + ".publish.log"), outputText);
         }
         File.WriteAllText(Path.Combine(BuildDirectory, "SharpRail.app/Contents/Info.plist"), """
