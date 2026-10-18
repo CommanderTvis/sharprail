@@ -1,9 +1,9 @@
 # The workbench — application and windows
 
-Upstream: apps/web/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
-Upstream: apps/desktop/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
-Upstream: apps/web/src/resources/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
-Upstream: apps/web/src/shell/locationBar/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
+Upstream: apps/web/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
+Upstream: apps/desktop/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
+Upstream: apps/web/src/resources/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
+Upstream: apps/web/src/shell/locationBar/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
 
 ## Responsibility
 

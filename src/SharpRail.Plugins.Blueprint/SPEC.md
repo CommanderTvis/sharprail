@@ -154,4 +154,4 @@ error and releases the pending opening so a second file-open can retry exactly o
 Codex coverage checks the author choice, opening prompts, persisted identity, reader-edit
 delivery and fresh/recorded-session recovery through local and WebSocket RPC hosts.
 Run with `--blueprint`; the plugin and full runners also include these checks.
-Remaining acceptance gaps are tracked in `COMPLETION.md`.
+Remaining acceptance gaps are tracked in [STATUS.md](../../STATUS.md#completion-criteria).

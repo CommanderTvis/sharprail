@@ -1,11 +1,11 @@
 # Rendering: shared controls, document rendering and helpers
 
-Upstream: apps/web/src/components/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
-Upstream: packages/ui/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
-Upstream: apps/web/src/lib/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
-Upstream: apps/web/src/resources/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
-Typography contract: apps/web/src/styles/TYPOGRAPHY.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
-Markdown source contract: apps/web/src/panels/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
+Upstream: apps/web/src/components/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
+Upstream: packages/ui/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
+Upstream: apps/web/src/lib/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
+Upstream: apps/web/src/resources/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
+Typography contract: apps/web/src/styles/TYPOGRAPHY.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
+Markdown source contract: apps/web/src/panels/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
 
 ## Responsibility
 
@@ -286,4 +286,4 @@ difference in the sampled Projects label. Those dated measurements do not close 
 controls, menus, docking animation or representative-document fidelity. Native comparisons need matched
 content, dimensions and scale; a rendered or accessibility capture proves only what it observes.
 Headless rendering, platform compilation and functional checks do not establish native IME, screen-reader
-or physical-device acceptance. See the current [acceptance inventory](../../../UPSTREAM.md#outstanding-acceptance-work).
+or physical-device acceptance. See the current [acceptance inventory](../../../STATUS.md#outstanding-acceptance-work).

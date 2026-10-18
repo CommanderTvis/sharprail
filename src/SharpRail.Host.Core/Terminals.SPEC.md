@@ -8,8 +8,8 @@ parent: module-host-core
 
 # Terminals — host-owned PTY sessions
 
-Upstream: packages/server/src/terminal/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
-Upstream: packages/server/src/subprocess/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
+Upstream: packages/server/src/terminal/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
+Upstream: packages/server/src/subprocess/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
 
 ## Responsibility
 
@@ -310,4 +310,4 @@ Windows OS/UCRT imports, PowerShell parsing and portable quoting, path/profile a
 fixtures. It did not execute ConPTY, Recycle Bin or native Windows UI branches. An actual Windows
 packaged --windows run is required for those branches; it remains distinct from manual clipboard,
 IME, editor and desktop-client acceptance. Cross-compilation is not runtime proof. Current platform
-acceptance tasks are tracked in [UPSTREAM.md](../../UPSTREAM.md#outstanding-acceptance-work).
+acceptance tasks are tracked in [STATUS.md](../../STATUS.md#outstanding-acceptance-work).

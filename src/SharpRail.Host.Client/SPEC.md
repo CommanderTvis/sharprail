@@ -1,6 +1,6 @@
 # Host client adapters
 
-Upstream: apps/web/src/transport/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
+Upstream: apps/web/src/transport/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
 
 ## Responsibility
 

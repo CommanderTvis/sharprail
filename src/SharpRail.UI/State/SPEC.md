@@ -1,7 +1,7 @@
 # State — what is shared and what is remembered
 
-Upstream: apps/web/src/store/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
-Upstream: apps/web/src/navigation/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
+Upstream: apps/web/src/store/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
+Upstream: apps/web/src/navigation/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
 
 ## Responsibility
 

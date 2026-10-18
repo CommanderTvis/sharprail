@@ -1,13 +1,13 @@
 # Headless checks and E2E translations
 
-Upstream: e2e/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
+Upstream: e2e/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
 
 ## Responsibility
 
 The system gate for SharpRail's host/UI integration: boot real hosts (direct local
 and Kestrel WebSocket RPC remote), seed real Git and profile fixtures, drive the Avalonia
 workbench through real headless pointer and keyboard input, and leave nothing
-machine-global behind. `E2E.md` is the inventory of which upstream scenarios are
+machine-global behind. `STATUS.md` (E2E porting inventory) is the inventory of which upstream scenarios are
 translated and how browser concepts map to Avalonia; this spec holds the harness
 contract, not that list.
 
@@ -312,7 +312,7 @@ well past ten seconds. Wait bounds in the headless checks read `Awake.Now`, a cl
 while the machine sleeps, so a suspended run does not resume with every wait already expired. Before handoff, every app-affecting change runs
 the full argument-free gate, with `SHARPRAIL_TEST_GIT_SOURCE` set when Git or
 layout history is affected, and formatting verification. Translated upstream
-coverage stays recorded in `E2E.md`, separate from SharpRail-only regression checks.
+coverage stays recorded in `STATUS.md`, separate from SharpRail-only regression checks.
 Skia terminal checks render real pixels and encode real headless input, verify
 a host PTY surviving a view restart, and exercise Settings choice persistence.
 Incremental rendering must match a full repaint after erasure, cursor movement
@@ -639,7 +639,7 @@ A pass belongs to the tested source tree, runtime, adapter and fixture. Compilin
 not device/browser acceptance; a source check is not a packaged check. Reused byte-identical slices
 retain their existing evidence, but interrupted lanes and skipped platform branches never count as
 passes. Record new durable scope or limits in the owning spec and dated task outcomes in context-log.md;
-keep translated-case coverage in E2E.md and current cross-module gates in UPSTREAM.md.
+keep translated-case coverage and current cross-module gates in STATUS.md.
 
 The 2026-10-15 workspace-13 integration completed all 131 catalog cases in aggregate, reusing completed
 cases and running failed/unfinished cases after interrupted lanes. It was not one uninterrupted full
@@ -651,7 +651,7 @@ out, terminal/lane work was interrupted, Blueprint UI ended unfinished and Codex
 Thirteen targeted packaged continuation cases passed; a clean complete packaged gate was not obtained.
 The isolated package passed ReadyToRun/file-identity and strict/deep signature checks without replacing
 the canonical running application. Current unresolved acceptance is consolidated in
-[UPSTREAM.md](../../UPSTREAM.md#outstanding-acceptance-work).
+[STATUS.md](../../STATUS.md#outstanding-acceptance-work).
 
 Spec validation at that integration reported four existing Branch Graph links to absent upstream IDs
 (module-contracts, module-plugin-ui, module-server, module-web). This is a recorded graph finding,

@@ -8,8 +8,8 @@ parent: module-host-core
 
 # Git — runner, scopes, status and diffs
 
-Upstream: packages/server/src/git/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
-Upstream: packages/server/src/changes/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
+Upstream: packages/server/src/git/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
+Upstream: packages/server/src/changes/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
 
 ## Responsibility
 

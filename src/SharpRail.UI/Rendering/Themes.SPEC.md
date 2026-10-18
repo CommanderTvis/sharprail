@@ -7,7 +7,7 @@ title: Themes
 
 # Themes: bundled manifest catalogue and application
 
-Upstream: apps/web/src/themes/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
+Upstream: apps/web/src/themes/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
 
 ## Responsibility
 

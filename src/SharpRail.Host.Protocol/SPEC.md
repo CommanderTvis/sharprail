@@ -1,6 +1,6 @@
 # Host wire contracts
 
-Upstream: packages/contracts/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
+Upstream: packages/contracts/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
 
 ## Responsibility
 

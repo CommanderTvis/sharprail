@@ -1,6 +1,6 @@
 # Typography system
 
-Upstream: apps/web/src/styles/TYPOGRAPHY.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
+Upstream: apps/web/src/styles/TYPOGRAPHY.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
 
 `Rendering/Design/typography.json` is the single authored source of typography. Families, weights, sizes,
 line heights, letter spacings and the semantic text styles all live there; the C# the kit ships

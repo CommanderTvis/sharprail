@@ -87,4 +87,4 @@ Cross-compilation and macOS checks do not establish Windows runtime acceptance.
 The [terminal contract](src/SharpRail.Host.Core/Terminals.SPEC.md#windows-verification-scope) records
 what the source checks established. Packaged Windows execution and manual desktop input/IME acceptance
 remain distinct; outstanding platform work is tracked in
-[UPSTREAM.md](UPSTREAM.md#outstanding-acceptance-work).
+[STATUS.md](STATUS.md#outstanding-acceptance-work).

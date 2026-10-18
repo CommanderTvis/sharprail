@@ -8,9 +8,9 @@ parent: module-host-core
 
 # Files — workspace reads, saves and change notification
 
-Upstream: packages/server/src/fs/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
-Upstream: packages/server/src/watch/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
-Upstream: packages/server/src/trash/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
+Upstream: packages/server/src/fs/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
+Upstream: packages/server/src/watch/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
+Upstream: packages/server/src/trash/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
 
 ## Responsibility
 

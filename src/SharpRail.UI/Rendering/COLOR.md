@@ -1,6 +1,6 @@
 # Colour system
 
-Upstream: apps/web/src/styles/COLOR.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
+Upstream: apps/web/src/styles/COLOR.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
 
 Colour arrives in two layers, and a control may only ever name the second one.
 

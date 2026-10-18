@@ -1,11 +1,11 @@
 # Docking — window-local workbench frame
 
-Upstream: apps/web/src/shell/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
-Upstream: apps/web/src/shell/layout/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
-Upstream: apps/web/src/shell/layoutIntents/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
-Upstream: apps/web/src/shell/layoutState/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
-Upstream: apps/web/src/shell/terminalReconciliation/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
-Upstream: apps/web/src/navigation/SPEC.md (revision: [UPSTREAM.md](../../../UPSTREAM.md))
+Upstream: apps/web/src/shell/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
+Upstream: apps/web/src/shell/layout/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
+Upstream: apps/web/src/shell/layoutIntents/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
+Upstream: apps/web/src/shell/layoutState/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
+Upstream: apps/web/src/shell/terminalReconciliation/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
+Upstream: apps/web/src/navigation/SPEC.md (revision: [STATUS.md](../../../STATUS.md#upstream-tracking))
 
 ## Responsibility
 

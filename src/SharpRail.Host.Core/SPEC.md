@@ -9,9 +9,9 @@ depends-on: [module-host-abstractions]
 
 # Host core
 
-Upstream: packages/shared/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
-Upstream: packages/server/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
-Upstream: packages/server/src/host/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
+Upstream: packages/shared/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
+Upstream: packages/server/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
+Upstream: packages/server/src/host/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
 
 ## Responsibility
 

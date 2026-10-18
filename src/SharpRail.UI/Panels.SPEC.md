@@ -7,8 +7,8 @@ title: Workbench panels
 
 # Workbench panels: Projects, Files, Specs, Changes, Review and Welcome
 
-Upstream: apps/web/src/panels/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
-Changes-row truncation and Markdown source contract: apps/web/src/panels/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
+Upstream: apps/web/src/panels/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
+Changes-row truncation and Markdown source contract: apps/web/src/panels/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
 
 ## Responsibility
 

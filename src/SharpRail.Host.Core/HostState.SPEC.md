@@ -8,9 +8,9 @@ parent: module-host-core
 
 # Host state — projects, settings and persistence
 
-Upstream: packages/server/src/projects/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
-Upstream: packages/server/src/settings/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
-Upstream: packages/server/src/persistence/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
+Upstream: packages/server/src/projects/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
+Upstream: packages/server/src/settings/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
+Upstream: packages/server/src/persistence/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
 
 ## Responsibility
 

@@ -8,8 +8,8 @@ parent: architecture
 
 # Host abstractions — the public host surface
 
-Upstream: packages/shared/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
-Upstream: packages/server/src/host/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
+Upstream: packages/shared/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
+Upstream: packages/server/src/host/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
 Upstream: packages/contracts/SPEC.md @ 4737df6d (CommanderTvis fork), the plugin roster and agent record
 
 ## Responsibility

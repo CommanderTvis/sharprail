@@ -201,7 +201,7 @@ A Release browser build, the strict desktop solution build and relevant checks m
 must load the deployed bundle in a real browser and exercise host authentication, editable source save
 and conflict handling, live terminal input/output and reconnection, PDF text/raster rendering, Mermaid,
 settings persistence, window/dialog interaction and builtin plugin surfaces. Compilation alone does not
-establish parity. Remaining cross-platform acceptance is tracked in [UPSTREAM.md](../../UPSTREAM.md#outstanding-acceptance-work).
+establish parity. Remaining cross-platform acceptance is tracked in [STATUS.md](../../STATUS.md#outstanding-acceptance-work).
 Recorded Chromium passes do not establish Safari/Firefox, non-macOS keyboard/IME behavior, real
 notification permission, production HTTPS/proxies or physical Retina acceptance.
 The focused `mermaid.mjs` journey checks actual Markdown diagram controls on initial restoration, normal

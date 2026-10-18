@@ -15,7 +15,7 @@ and measurements now live in the [browser](src/SharpRail.Browser/SPEC.md#recorde
 [Android](src/SharpRail.Android/SPEC.md#validation), [rendering](src/SharpRail.UI/Rendering/SPEC.md#native-visual-acceptance-limits)
 and [checks](tests/SharpRail.Checks/SPEC.md#recorded-verification-scope) specs. The [Codex recovery caveat](src/SharpRail.Plugins.Codex/SPEC.md)
 remains unresolved. Upstream provenance, current porting differences and outstanding acceptance
-are consolidated in [UPSTREAM.md](UPSTREAM.md#current-porting-gaps). The previous ledger remains
+are consolidated in [STATUS.md](STATUS.md#current-porting-gaps). The previous ledger remains
 recoverable from Git history; chronological build logs and superseded implementation claims are
 not a second current contract.
 
@@ -1193,7 +1193,7 @@ Canonical48184/session89221 alreadyexited, pgrepabsent/sessionexit0 beforepublis
 Latestcanonical52834/session77539 referenceRoot/published-stable-tabs running,
 ownID110304 capturedcollision-published-window.png. Logicaltree298 reflectscurrent
 profile/livecontent, notfailedworkspace (mountedlogpresent). No benchmarks, agents,
-commits/push orversionedbundles. SPEC/VALIDATION updated. NewCOMPLETION.md finite
+commits/push orversionedbundles. SPEC/VALIDATION updated. New completion ledger (now STATUS.md, Completion criteria) finite
 ledgerpreservesfullscope andexplicitpendinggates. GoalACTIVE. NextsourceauditAuxiliary
 stackweights/foldedspacer/narrowviewportprojection (Workbench1858/2270). Source side
 minSideBody120 actuallywholePanelconstraint, noextra27headeraddedthere unlikebottom
@@ -1278,7 +1278,7 @@ published yet, no native selection capture/regression added yet. Canonical63236
 session28223 still previousreviewfixespkg, revalidate before overwrite. GoalACTIVE.
 
 2026-09-28 authorized upstream E2E translation is now IN SCOPE. Source remains
-[JetBrains/thinkrail:main](https://github.com/JetBrains/thinkrail/tree/main). Added E2E.md with per-case
+[JetBrains/thinkrail:main](https://github.com/JetBrains/thinkrail/tree/main). Added STATUS.md (E2E porting inventory) with per-case
 inventory for preview/Markdown/layout/projects/workspaces/theme/width/settings/
 changes/chrome, honest Pending statuses and explicit editor/terminal/AI exclusions.
 Added tests/SharpRail.Checks/E2E/{E2eWorkspace,PreviewTabsE2E,MarkdownLinksE2E,
@@ -1314,7 +1314,7 @@ pending; corrected source docking audit and full screenshot parity remain gates.
 Eighteen translated cases pass: eight preview-tab, two Markdown-link, one
 Markdown-callout/source, six layout cases and one project-rail persistence case.
 The complete remaining inventory
-is in E2E.md; it is not complete. Markdown source controls now use compiled XAML
+is in STATUS.md (E2E porting inventory); it is not complete. Markdown source controls now use compiled XAML
 and create the read-only source view lazily. Tab geometry, overflow fades and
 accessible pane labels have regression coverage.
 
@@ -1344,7 +1344,7 @@ Canonical launch was attempted via open and directly; direct startup log
 No canonical process remains running. Avalonia issue 18895 describes this error
 with unavailable displays; do not infer the machine's exact display condition.
 No benchmarks, agents, commits or pushes. The goal remains active. Next: continue
-remaining 62 real upstream cases in E2E.md, with workspace selection and project
+remaining 62 real upstream cases in STATUS.md (E2E porting inventory), with workspace selection and project
 navigation good bounded candidates; native proof awaits GUI availability.
 
 ### Workspace-switching E2E continuation
@@ -1372,7 +1372,7 @@ Next substantial gap is terminal chrome: LayoutState only supports file/markdown
 resources in center groups; no terminal placeholder tabs/actions exist. This blocks
 many real upstream docking cases and mounted-workbench identity case. Do not mark
 those cases excluded simply because their terminal execution is a non-goal.
-E2E.md now has 20 ported, 60 pending, 5 functional/AI exclusions. Native launch last
+STATUS.md (E2E porting inventory) now has 20 ported, 60 pending, 5 functional/AI exclusions. Native launch last
 failed with RenderTimer -6661; no new GUI availability evidence. Goal remains active.
 Direct platform availability inspection now confirms CGGetActiveDisplayList count=0
 and CVDisplayLinkCreateWithActiveCGDisplays=-6661 (main display ID=3). Do not infer
@@ -1482,7 +1482,7 @@ Translated the complete upstream terminal side-group interaction case with a
 menu-created nonfunctional terminal fixture. Real pointer drag into a hidden left
 side, one terminal body, both region counts, resize +80 enlarging Projects >40,
 27px folding, Space restore, both folded and restored, and Files context move all
-pass. E2E.md explicitly documents fixture adaptation; initial terminal provisioning
+pass. STATUS.md (E2E porting inventory) explicitly documents fixture adaptation; initial terminal provisioning
 remains pending and is not established by this case. A failed Space check was a
 missing key-up in the harness: Headless KeyPress is only key-down. KeyRelease fixes
 that without changing application keyboard behavior.
@@ -2821,7 +2821,7 @@ Temporary runner restored. Changes uncommitted; no publication or restart.
 
 # Continuous Changes review — 2026-10-11
 
-Ported the scope review UI from upstream `f7cca7b` and advanced `UPSTREAM.md`;
+Ported the scope review UI from upstream `f7cca7b` and advanced `STATUS.md` (Upstream tracking);
 Git graph and AI integrations remain outside this task. Single click browses the
 scope review, double click keeps an individual diff. Review supports lazy stacked
 sections, One file mode, sticky headers, Keep/viewed progress, navigation and the
@@ -2858,7 +2858,7 @@ pushes), and the fork's `external-plugin.spec.ts` end to end through the real ho
 `plugins: true` (in-process runtime from the profile directory, as in `App.cs`) and a `RemoteServer` reached through
 `RemotePluginAdapter`. Merging exposed one bug: the remote adapter surfaced a caller-cancelled call or subscription as
 `RpcException(Cancelled)`, which the UI logged as a dropped channel; it now throws `OperationCanceledException` as
-the local path does. `-- --plugins` runs the plugin checks alone. Open items are in `COMPLETION.md` (Plugin API).
+the local path does. `-- --plugins` runs the plugin checks alone. Open items are in `STATUS.md` (Completion criteria) (Plugin API).
 
 ### Fork builtin plugin continuation — Codex, 2026-10-01
 
@@ -4004,7 +4004,7 @@ Live handle explicitly48218; all earlier full/PDF/smoke/format handles terminal.
 Objective remains the complete fork Plugin API and all nine builtin plugin ports on main:
 SpecDialect, Blueprint, Claude Code, Discord, PDF Preview, Branch Graph, Visualize, File Icons,
 and Codex. Pi and bundled AI chat are excluded by project instructions. The port is NOT complete.
-Read AGENTS.md, gotchas.md, COMPLETION.md, [historical verification ledger](#verification-record-migration) and each owning plugin SPEC.md before
+Read AGENTS.md, gotchas.md, STATUS.md (Completion criteria), [historical verification ledger](#verification-record-migration) and each owning plugin SPEC.md before
 continuing. Preserve the large recovered uncommitted implementation, untracked plugin directories,
 and the user's AGENTS.md changes. No commits or pushes were made in this session. Mirror the fork's
 commit shape when commits are authorized: general improvements, API, then one per builtin.
@@ -4061,7 +4061,7 @@ Explicit `WatchWorkspaceAsync` watching is now implemented in the UI plugin cont
 a completed task). Nothing was committed, pushed or published. Remaining: publish the canonical package
 from this source (check for a live app first), verify signature/R2R/published checks, review native GUI
 appearance/input of all nine plugins and native multi-window lifecycle, and the per-plugin fidelity gates
-in the owning specs and COMPLETION.md. Commits await the user, in the fork's shape.
+in the owning specs and STATUS.md (Completion criteria). Commits await the user, in the fork's shape.
 
 ## Rail fixes — 2026-10-06
 
@@ -5655,11 +5655,11 @@ The old workspace-20 checkout was removed and its path reused for the GPU lifecy
 
 Created `audit-thinkrail-gaps` from main at `16138700b2fbf86d845ad76a133dacb7d6ab1d5c`.
 Fetched JetBrains upstream/main to `be06fb01927e8386e3aec215bbcdb1a312ec66fa` and recorded it
-as latest researched/tracked, preserving the prior synced revision. [porting inventory](UPSTREAM.md#current-porting-gaps) contains
+as latest researched/tracked, preserving the prior synced revision. [porting inventory](STATUS.md#current-porting-gaps) contains
 134 status-labelled applicable entries and dispositions for applicable commits in the
 22-commit range. Chat/pi-only backlog items and the stale-notes section are removed;
-CLI integration and shared workbench gaps remain. COMPLETION.md no longer duplicates
-the plugin backlog; UPSTREAM.md keeps historical port decisions rather than current tasks. COMPLETION.md links the dated inventory.
+CLI integration and shared workbench gaps remain. STATUS.md (Completion criteria) no longer duplicates
+the plugin backlog; STATUS.md (Upstream tracking) keeps historical port decisions rather than current tasks. STATUS.md (Completion criteria) links the dated inventory.
 Documentation whitespace, local source links and unique inventory ids pass verification;
 no source code, build, executable gate, commit or push. The original checkout's browser
 script change is untouched. Browser Settings instability was reported during the audit
@@ -5669,7 +5669,7 @@ and is recorded separately as an unresolved acceptance issue.
 
 Reviewed all 25 Verify inventory entries with three read-only subagents. Reclassified
 six rows with confirmed implementation gaps and narrowed the remaining 19 acceptance
-claims. [porting inventory](UPSTREAM.md#current-porting-gaps) contains the per-entry findings; [historical verification ledger](#verification-record-migration) records
+claims. [porting inventory](STATUS.md#current-porting-gaps) contains the per-entry findings; [historical verification ledger](#verification-record-migration) records
 evidence. The unchanged baseline is built/published/tested only in managed workspace-22
 so other work stays isolated. Release, formatting and isolated app signature pass;
 the four-lane packaged gate with upstream Git fixtures is incomplete after a plugin
@@ -5678,12 +5678,12 @@ of fifteen unreached audit cases pass in named packaged continuations; Codex hos
 recovery fails its process-count fixture and Blueprint UI exits unfinished. The
 Codex fixture logs no first-attempt requests, so product process-reuse failure is
 not established. Detailed evidence and exact acceptance limits are in [historical verification ledger](#verification-record-migration)
-and [porting inventory](UPSTREAM.md#current-porting-gaps). Workspace-22 is disposable and removed after verification.
+and [porting inventory](STATUS.md#current-porting-gaps). Workspace-22 is disposable and removed after verification.
 No product code, commits, pushes, primary package replacement or external posts.
 
 ## 2026-10-14 — Acceptance backlog consolidation
 
-[porting inventory](UPSTREAM.md#current-porting-gaps) now keeps implementation differences separate from eight consolidated
+[porting inventory](STATUS.md#current-porting-gaps) now keeps implementation differences separate from eight consolidated
 acceptance tasks. Removed ten redundant implementation/acceptance rows and retained
 their unresolved checks under explicit failed/incomplete or not-run outcomes. The
 browser Settings fix remains missing from this baseline. Prior verification is reused;
@@ -5781,7 +5781,7 @@ Release and actual browser WASM builds passed with zero warnings/errors; touched
 
 2026-10-15: Host settings separates Connect to another host from Share this app as a host in bordered cards. Browser/Android current-host views use Connected host. Release solution, browser WASM and Android compilation passed with zero warnings/errors; focused serving checks verified card geometry, remote/unavailable states and unchanged listener lifecycle. Touched formatting passed; no physical-device or full-suite claim.
 
-2026-10-15: Consolidated upstream provenance and the porting/acceptance backlog into UPSTREAM.md. Removed the separate gap and validation ledgers after moving unique durable measurements, limitations and acceptance facts into owning specs. Documentation checks preserved 125 gap IDs and eight acceptance tasks, resolved 199 local paths/anchors and found no references to the removed files. Spec validation still reports four pre-existing Branch Graph findings; no runtime checks were rerun for this documentation-only change.
+2026-10-15: Consolidated upstream provenance and the porting/acceptance backlog into STATUS.md (Upstream tracking). Removed the separate gap and validation ledgers after moving unique durable measurements, limitations and acceptance facts into owning specs. Documentation checks preserved 125 gap IDs and eight acceptance tasks, resolved 199 local paths/anchors and found no references to the removed files. Spec validation still reports four pre-existing Branch Graph findings; no runtime checks were rerun for this documentation-only change.
 
 2026-10-15: Finished the browser prose rendering investigation with Release-only selective hybrid WASM AOT for Avalonia.Base/CoreLib; exact Markdown extents and managed reflection/plugin loading are preserved. The 646 KB focused prose first-frame check improved from 13.33s to 0.88s; the final normal published-bundle smoke painted restored prose in 2.05s and passed Mermaid, Settings and external typed-JSON plugin loading without test hooks. Actual Publish verified byte-identical preservation of 251 managed assemblies and strict AOT policy guards; Release solution/browser builds, focused prose/Mermaid/Settings, syntax and formatting passed. One normal startup timeout and one Settings RPC cancellation passed unchanged on retry and remain transient observations. Runtime grows from 11.61 MB to 37.90 MB raw; measured gzip/Brotli sizes are not currently served by the standalone host. See the browser spec for policy and limits.
 
@@ -6735,3 +6735,15 @@ availability assertion; no unrelated navigation edits or full suite were made. N
 picker interaction and Android/browser runtime acceptance remain unverified; existing
 AVLN3001 warnings remain visible. The signing presence check did not respond; the
 commit was canceled after waiting, leaving the complete task staged and unpushed.
+
+2026-10-18: Merged the completion ledger, upstream tracking and E2E inventory into `STATUS.md` (sections
+Completion criteria, Upstream tracking, E2E porting inventory and Backlog) and updated every reference and link,
+so entries above that name the former files mean the matching `STATUS.md` section. Advanced the recorded sync:
+`main` now follows the fork tip `30a81cab5`, rebased onto JetBrains `3bee4f164` (35 commits after the previous
+`f7cca7bfb`); the applicable spec deltas were ported as "Not yet ported" entries in the UI, Panels, Docking,
+Rendering and Host.Core specs and the new gaps S01, S02, U26 and U27 were recorded. `ARCHITECTURE.md` and the
+contracts needed no port (AI and MCP only). The `upstream` branch is still synced to `5ab283a35` and needs its
+own pass. The E2E refresh listed the added and removed upstream cases and the suites the inventory never had;
+no scenario was ported because the relevant ones need unported behavior (Ctrl+, on Windows and Linux, the diff
+guard). No C# changed; no build or check ran, and the conformance gate does not read these documents.
+Fork titles from the 2026-10-01 pass that are no longer separate fork commits are listed in Upstream tracking.

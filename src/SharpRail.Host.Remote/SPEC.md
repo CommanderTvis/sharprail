@@ -1,7 +1,7 @@
 # Remote host server
 
-Upstream: packages/server/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
-Upstream: packages/server/src/auth/SPEC.md (revision: [UPSTREAM.md](../../UPSTREAM.md))
+Upstream: packages/server/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
+Upstream: packages/server/src/auth/SPEC.md (revision: [STATUS.md](../../STATUS.md#upstream-tracking))
 Upstream: packages/server/src/mcp/SPEC.md @ b047c8f2 (CommanderTvis fork)
 
 ## Responsibility

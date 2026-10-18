@@ -1,6 +1,6 @@
 # Repository scripts
 
-Upstream: scripts/SPEC.md (revision: [UPSTREAM.md](../UPSTREAM.md))
+Upstream: scripts/SPEC.md (revision: [STATUS.md](../STATUS.md#upstream-tracking))
 
 ## Responsibility
 
