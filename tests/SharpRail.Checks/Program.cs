@@ -424,6 +424,11 @@ internal static class Program
             E2E.ChangesScopeE2E.Run(Path.Combine(root, "upstream-e2e"));
             return;
         }
+        if (args.SequenceEqual(["--workspace-clone"]))
+        {
+            WorkspaceCloneChecks.Run(root).GetAwaiter().GetResult();
+            return;
+        }
         if (args.SequenceEqual(["--process"]))
         {
             ProcessChecks.Run(root).GetAwaiter().GetResult();
@@ -889,6 +894,7 @@ internal static class Program
         Gate.Case("state", () => StateChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("file-saving", () => FileSavingChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("process", () => ProcessChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("workspace-clone", () => WorkspaceCloneChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("git-host", () => GitHostChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("registry", () => WorkspaceRegistryChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("watcher-hygiene", () => WatcherHygieneChecks.Run(root).GetAwaiter().GetResult());

@@ -131,6 +131,14 @@ forgetting removes its row while leaving the checkout in place. The Default work
 - A created worktree is seeded with a scratch directory, `.sharprail/context`, holding a self-ignoring
   `.gitignore` so it has no Git footprint. Seeding refuses a missing workspace root and symlinked path
   components, and never overwrites an existing ignore file. User-owned workspaces are not seeded.
+- After a managed create the Default workspace's untracked build state is cloned in the background
+  (`WorkspaceClone`): directories named `.tools`, `obj` or `bin` that Git lists as entirely ignored
+  (one `ls-files --others --ignored --directory` call, so `node_modules` and the like are never walked)
+  are copied with macOS `clonefile(2)` (`CLONE_NOFOLLOW`, symlinks stay links; APFS copy-on-write, one
+  syscall per tree). Nothing tracked is read, existing target paths are never replaced, and every
+  refusal (non-APFS, another volume, other platforms, Git errors) is silent: creation never waits on
+  or fails because of it. Measured: a 200 MB file clones in about 3 ms with no data copied. Savings
+  exist only at creation; clones diverge as either side rewrites files. Check mode `--workspace-clone`.
 ## Initial terminal
 
 - Every record first written by create, attach or the Default ensure carries `InitialTerminalPending`;

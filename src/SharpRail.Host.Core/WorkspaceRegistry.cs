@@ -114,6 +114,8 @@ public sealed partial class ProjectServices
         if (!string.IsNullOrWhiteSpace(baseBranch) && baseBranch.Trim() != "HEAD") registry.RecordWorkspaceBase(path, chosen);
         registry.ChangeWorkspaces(current => current.Where(known => known.Path != path).Append(workspace));
         registry.StartWorkspaceLanguages(path);
+        // Off the create's critical path: the workspace is usable now, and the clone only ever adds paths that are still absent.
+        if (path != project) _ = Task.Run(() => WorkspaceClone.CloneBuildStateAsync(project, path, CancellationToken.None));
         return workspace;
     }
 
