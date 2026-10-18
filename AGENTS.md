@@ -17,7 +17,8 @@ the user asks; preserve the configured commit-signing presence check.
 `SharpRail.slnx` contains the .NET 10 C# solution. `Directory.Build.props` enables
 nullable checking, warnings as errors, optimizations and tiered PGO while keeping
 NativeAOT and trimming disabled. `Directory.Packages.props` pins shared package
-versions; `global.json` selects the SDK and must name the version `mise.toml` pins. Toolchains are
+versions and each project's committed `packages.lock.json` pins the resolved graph (nuget.org only, locked restore
+through mise; change packages with `scripts/mise run restore:update`; the Android and Browser projects are not locked); `global.json` selects the SDK and must name the version `mise.toml` pins. Toolchains are
 managed by mise (`mise.toml`, `mise.lock`): run `scripts/mise run bootstrap` once; it installs the pins into
 the store shared by all checkouts (`~/.sharprail/tools`, or `SHARPRAIL_TOOLS`) and links them into `.tools`
 (`.tools/dotnet` is the SDK, so `.tools/dotnet/dotnet` still works). Every entry point is a task

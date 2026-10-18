@@ -105,6 +105,28 @@ changed. The recipes (`build-merman.sh`, `build-notifications.sh`, `wasm-native.
 `scripts/mise x --`, which supplies the pins in `[env]`; they are not entry points. macOS native builds
 need clang, the Xcode command-line tools and, for libghostty, the Metal toolchain.
 
+### NuGet packages
+
+Packages are locked: every project commits a `packages.lock.json` (direct and transitive versions with content
+hashes), `nuget.org` is the only feed (`nuget.config`, with `<clear />` and a source mapping), and mise tasks
+restore in locked mode (`RestoreLockedMode` in `mise.toml` `[env]`), so drift fails with NU1004 and a changed package
+with NU1403. `scripts/mise run restore:update` is the one task that rewrites the locks: run it after changing a
+`PackageReference` or a version in `Directory.Packages.props` and commit the locks with the change. Plain `dotnet`
+outside mise is not locked and updates the files itself. The locks list `osx-arm64;osx-x64;win-x64;win-arm64`
+(`RuntimeIdentifiers` in `Directory.Build.props`); because a `-r` restore changes the project's RID list, the package
+tasks restore once without `-r` (with `SelfContained` and `PublishReadyToRun`, which also fetches runtime and
+Crossgen packs) and publish with `--no-restore`. Do the same for any new `-r` publish.
+
+Excluded from locking (`RestorePackagesWithLockFile=false`, reason in the project file): `SharpRail.Android` and
+`SharpRail.Browser`, whose restores resolve workload packs and per-RID runtime packs from the installed workload
+manifest. `benchmarks/` and any project outside `SharpRail.slnx` are locked too if restored; do not commit stray locks
+you did not mean to.
+
+Audit: `NuGetAudit` covers all packages, transitive included, at moderate severity and above. Advisories (NU1901 to
+NU1904) are warnings in builds, so a new advisory cannot break an unrelated build such as the nightly; the CI `build`
+job runs `scripts/mise run audit`, which restores with them as errors. To resolve one, bump the package and run
+`restore:update`.
+
 `fetch-git.sh` checks out a source pinned by commit; archives are pinned by checksum in `mise.toml`.
 `browser-assets.mjs` (the browser project's `StageBrowserAssets` target, rerun when `pnpm-lock.yaml`, the PDFium pin or a licence changes) stages the browser renderer assets, fonts and licenses into
 `src/SharpRail.Browser/wwwroot/vendor`.
