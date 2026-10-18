@@ -80,6 +80,7 @@ public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime li
         Labels = state.WorkspaceLabels.Select(entry => new LabelMessage { Path = entry.Key, Label = entry.Value }).ToList(),
         ContextWorkspaces = state.ContextWorkspaces.ToList(),
         WorkspaceLanguages = state.WorkspaceLanguages.Select(entry => new WorkspaceRefMessage { Path = entry.Key, Reference = entry.Value }).ToList(),
+        ProjectLanguageAutostart = state.ProjectLanguageAutostart.Select(entry => new WorkspaceRefMessage { Path = entry.Key, Reference = entry.Value }).ToList(),
         Bases = state.WorkspaceBases.Select(entry => new WorkspaceRefMessage { Path = entry.Key, Reference = entry.Value }).ToList(),
         DiffBases = state.WorkspaceDiffBases.Select(entry => new WorkspaceRefMessage { Path = entry.Key, Reference = entry.Value }).ToList(),
         Workspaces = state.Workspaces.Select(WorkspaceMessages.Map).ToList(),

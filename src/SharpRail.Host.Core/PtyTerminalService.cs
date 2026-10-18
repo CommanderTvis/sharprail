@@ -43,6 +43,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
     public Func<TerminalRef, IReadOnlyDictionary<string, string>>? EnvironmentContributor { get; set; }
     public Action<TerminalEvent>? Lifecycle { get; set; }
     public Func<TerminalRef, TerminalPrefill?>? RevivePrefill { get; set; }
+    internal Func<string, CancellationToken, ValueTask>? PrepareRevival { get; set; }
     public Action<string, TerminalRef?>? SessionClosed { get; set; }
 
     // A null shell runs the user's login shell. With a recordings directory, the catalog is kept there, the last
@@ -126,7 +127,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
     public static string SessionFor(TerminalRef terminal) =>
         Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(terminal.WorkspaceId + "\n" + terminal.TabKey)).AsSpan(0, 16));
 
-    public ValueTask<ITerminalSession> AttachAsync(TerminalAttachRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<ITerminalSession> AttachAsync(TerminalAttachRequest request, CancellationToken cancellationToken = default)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (string.IsNullOrWhiteSpace(request.SessionId)) throw new ArgumentException("A terminal session id is required.", nameof(request));
@@ -141,7 +142,7 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         {
             ObjectDisposedException.ThrowIf(disposed, this);
             if (!string.IsNullOrEmpty(request.TabKey)) terminals.TryAdd(request.SessionId, new(directory, request.TabKey));
-            if (sessions.TryGetValue(request.SessionId, out var existing)) return ValueTask.FromResult<ITerminalSession>(existing.Attach(request, created: false));
+            if (sessions.TryGetValue(request.SessionId, out var existing)) return existing.Attach(request, created: false);
             if (request.Resume) throw new IOException("The terminal session no longer exists.");
             if (!Directory.Exists(directory)) throw new DirectoryNotFoundException($"The workspace folder {directory} does not exist.");
             terminal = terminals.GetValueOrDefault(request.SessionId);
@@ -160,10 +161,11 @@ public sealed class PtyTerminalService : ITerminalService, ITerminalCatalogServi
         if (terminal is not null && Lifecycle is { } lifecycle)
         {
             lifecycle(new TerminalSpawned(terminal, process.Pid));
-            process.Exit.ContinueWith(exit => lifecycle(new TerminalExited(terminal, exit.Result)),
+            _ = process.Exit.ContinueWith(exit => lifecycle(new TerminalExited(terminal, exit.Result)),
                 CancellationToken.None, TaskContinuationOptions.OnlyOnRanToCompletion, TaskScheduler.Default);
         }
-        return ValueTask.FromResult<ITerminalSession>(attachment);
+        if (attachment.Prefill is not null && PrepareRevival is { } prepare) await prepare(directory, cancellationToken);
+        return attachment;
     }
 
     public ValueTask<bool> IsBusyAsync(string sessionId, CancellationToken cancellationToken = default)

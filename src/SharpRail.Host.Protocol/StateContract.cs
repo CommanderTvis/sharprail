@@ -94,6 +94,7 @@ public sealed class StateReply
     [ProtoMember(15)] public List<PluginRosterMessage> Plugins { get; set; } = [];
     [ProtoMember(16)] public List<TerminalAgentMessage> TerminalAgents { get; set; } = [];
     [ProtoMember(19)] public List<string> ContextWorkspaces { get; set; } = [];
+    [ProtoMember(20)] public List<WorkspaceRefMessage> ProjectLanguageAutostart { get; set; } = [];
     [ProtoMember(18)] public List<WorkspaceRefMessage> WorkspaceLanguages { get; set; } = [];
     [ProtoMember(17)] public List<TerminalTitleMessage> TerminalTitles { get; set; } = [];
     // Empty when the host does not report its platform.

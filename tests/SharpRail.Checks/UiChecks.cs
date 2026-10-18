@@ -90,6 +90,7 @@ internal static class UiChecks
         Gate.Case("settings-touch", () => SettingsTouchChecks.Run(root));
         Gate.Case("global-jvm-provider-ui", () => GlobalJvmProviderChecks.RunUi(root));
         Gate.Case("settings-refresh", () => SettingsRefreshChecks.Run(root));
+        Gate.Case("project-language-autostart-ui", () => ProjectLanguageAutostartChecks.RunUi(root));
         Gate.Case("project-panes", () => ProjectPaneChecks.RunUi(root));
         Gate.Case("ProjectPickerE2E", () => E2E.ProjectPickerE2E.Run(root));
         Gate.Case("NewWorkspaceShortcutE2E", () => E2E.NewWorkspaceShortcutE2E.Run(root));

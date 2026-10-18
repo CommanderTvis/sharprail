@@ -516,3 +516,20 @@ and the fixed IntelliJ importer selector. The broader language UI mode stopped o
 empty-navigation availability assertion before the settings cases. No full suite, native picker
 interaction, Android runtime or new all-provider semantic acceptance was run. Existing AVLN3001
 runtime-loader warnings remain visible.
+
+
+## Project startup choices
+
+Project language-server autostart selections are host state, shared by all clients and workspaces
+of that project. The per-server configuration view saves its project checkbox immediately,
+independently of workspace configuration and manual Start/Stop. Existing workspace autostart
+inheritance remains separate; a project selection never changes that workspace setting.
+
+Managed command launches and restored agent prefills request selected server startup in the
+launching workspace before delivering the agent command. Warm language sessions are reused,
+concurrent requests cannot duplicate a start, and failed or stopped sessions are retried on the
+next launch. Startup is initiated before the agent; installation and indexing can finish later.
+A failed or disabled provider stays visible in the language pane and does not prevent launching
+an agent. Arbitrary agent commands manually typed into a shell have no prelaunch integration.
+
+2026-10-18 verification: Release compilation and focused direct/remote regressions cover project preference persistence, sibling-workspace sharing, project isolation, concurrent starts, warm PID reuse, failed/stopped recovery, unchanged workspace autostart, and revival prefill ordering. Headless controls cover managed-command preparation before terminal attachment and immediate project checkbox persistence. Real provider provisioning and browser/Android runtime were not exercised by this change.

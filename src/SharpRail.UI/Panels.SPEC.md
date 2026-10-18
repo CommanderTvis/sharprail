@@ -552,3 +552,5 @@ not a persistent host setting or a remote-client approval surface.
 Plugins settings preserves colored plugin assets. Claude and Discord use their brand colors in this listing; neutral marks use the current text foreground. This presentation does not change plugin activation or other workbench icons.
 
 The Java/Kotlin provider selector applies to every project on the connected host, and open Settings follows shared changes without replacing its page. Provider-specific project JDK, installation and importer configuration remain workspace-scoped.
+
+Each language-server configuration view also offers a project-wide start-before-agent checkbox. It saves immediately and does not alter workspace settings; see [language services](../SharpRail.Host.Core/Language/SPEC.md).

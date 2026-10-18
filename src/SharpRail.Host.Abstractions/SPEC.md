@@ -207,3 +207,5 @@ Language results advertise full semantic-color capability through SemanticColori
 
 AirContextHidden is a host-shared presentation preference; it does not change
 workspace Context enablement, consent or process lifetime. Its wire field is additive.
+
+Project language-server autostart choices belong to host state; [language services](../SharpRail.Host.Core/Language/SPEC.md) define their scope and launch behavior.

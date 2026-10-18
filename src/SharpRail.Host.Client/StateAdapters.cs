@@ -117,6 +117,7 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
         WorkspaceLabels = reply.Labels.ToDictionary(label => label.Path, label => label.Label),
         ContextWorkspaces = reply.ContextWorkspaces.ToArray(),
         WorkspaceLanguages = reply.WorkspaceLanguages.ToDictionary(entry => entry.Path, entry => entry.Reference),
+        ProjectLanguageAutostart = reply.ProjectLanguageAutostart.ToDictionary(entry => entry.Path, entry => entry.Reference),
         WorkspaceBases = reply.Bases.ToDictionary(entry => entry.Path, entry => entry.Reference),
         WorkspaceDiffBases = reply.DiffBases.ToDictionary(entry => entry.Path, entry => entry.Reference),
         Workspaces = reply.Workspaces.Select(WorkspaceMessages.Map).ToArray(),

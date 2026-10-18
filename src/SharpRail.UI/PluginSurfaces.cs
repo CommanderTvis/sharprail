@@ -511,6 +511,11 @@ public sealed partial class WorkbenchWindow
 
     internal async Task<string> OpenPluginTerminalAsync(string workspace, TerminalOpenOptions options)
     {
+        if (options.Command is not null)
+        {
+            try { await Host.LanguageAsync(new(workspace, Operation: "prepareAgent")); }
+            catch (Exception error) { System.Diagnostics.Trace.WriteLine("Language server startup: " + error.Message); }
+        }
         if (!WorkspaceMounted || workspace != workspaceRoot) await OpenWorkspaceAsync(workspace, false);
         var tabKey = options.TabKey ?? "terminal:" + Guid.NewGuid().ToString("N");
         var existing = Layout.State.Groups.FirstOrDefault(group => Layout.Tabs(group.Id).Any(tab => tab.Id == tabKey));

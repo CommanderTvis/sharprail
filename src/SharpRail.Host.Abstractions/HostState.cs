@@ -70,6 +70,8 @@ public sealed record HostState
     public IReadOnlyList<string> ContextWorkspaces { get; init; } = [];
     /// <summary>Workspace path to JSON server configuration map; independent after creation.</summary>
     public IReadOnlyDictionary<string, string> WorkspaceLanguages { get; init; } = new Dictionary<string, string>();
+    /// <summary>Project root to JSON server-id array started before managed agent launches.</summary>
+    public IReadOnlyDictionary<string, string> ProjectLanguageAutostart { get; init; } = new Dictionary<string, string>();
     public IReadOnlyDictionary<string, string> WorkspaceLabels { get; init; } = new Dictionary<string, string>();
     /// <summary>The ref each workspace was created from, recorded by the host and never changed by a client.</summary>
     public IReadOnlyDictionary<string, string> WorkspaceBases { get; init; } = new Dictionary<string, string>();

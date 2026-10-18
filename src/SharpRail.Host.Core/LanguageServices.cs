@@ -44,6 +44,8 @@ public sealed partial class ProjectServices
         => state is null ? ValueTask.FromResult(new LanguageResult("unavailable", "This host has no language service storage."))
             : request.Operation is "javaKotlinProvider" or "setJavaKotlinProvider"
                 ? state.JavaKotlinProviderAsync(request, cancellationToken)
+            : request.Operation is "projectAutostart" or "setProjectAutostart" or "prepareAgent"
+                ? state.ProjectLanguageAutostartAsync(request, cancellationToken)
                 : state.Languages.ExecuteAsync(request, cancellationToken);
 }
 

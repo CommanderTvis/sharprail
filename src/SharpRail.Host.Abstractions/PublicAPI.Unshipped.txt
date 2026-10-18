@@ -1687,3 +1687,6 @@ SharpRail.Host.Abstractions.HostSettings.AirContextHidden.init -> void
 
 SharpRail.Host.Abstractions.HostSettings.JavaKotlinProvider.get -> string!
 SharpRail.Host.Abstractions.HostSettings.JavaKotlinProvider.init -> void
+
+SharpRail.Host.Abstractions.HostState.ProjectLanguageAutostart.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+SharpRail.Host.Abstractions.HostState.ProjectLanguageAutostart.init -> void

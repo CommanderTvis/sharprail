@@ -29,6 +29,7 @@ public sealed partial class HostStateStore : IHostStateService
         public List<ProjectRecord> ProjectRecords { get; set; } = [];
         public List<string> ContextWorkspaces { get; set; } = [];
         public Dictionary<string, string> WorkspaceLanguages { get; set; } = [];
+        public Dictionary<string, string> ProjectLanguageAutostart { get; set; } = [];
         public Dictionary<string, string> WorkspaceLabels { get; set; } = [];
         public Dictionary<string, string> WorkspaceBases { get; set; } = [];
         public Dictionary<string, string> WorkspaceDiffBases { get; set; } = [];
@@ -57,9 +58,22 @@ public sealed partial class HostStateStore : IHostStateService
         set
         {
             if (ReferenceEquals(terminals, value)) return;
-            if (terminals is not null) terminals.InputAccepted -= TerminalInput;
+            if (terminals is not null)
+            {
+                terminals.InputAccepted -= TerminalInput;
+                terminals.PrepareRevival = null;
+            }
             terminals = value;
-            if (value is not null) value.InputAccepted += TerminalInput;
+            if (value is not null)
+            {
+                value.InputAccepted += TerminalInput;
+                value.PrepareRevival = async (workspace, token) =>
+                {
+                    try { await ProjectLanguageAutostartAsync(new(workspace, Operation: "prepareAgent"), token); }
+                    catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
+                    catch (Exception error) { System.Diagnostics.Trace.WriteLine("Language server startup: " + error.Message); }
+                };
+            }
         }
     }
     private PtyTerminalService? terminals;
@@ -113,6 +127,7 @@ public sealed partial class HostStateStore : IHostStateService
                     RecentProjects = stored.RecentProjects ?? [],
                     ProjectRecords = stored.ProjectRecords ?? [],
                     WorkspaceLanguages = stored.WorkspaceLanguages ?? [],
+                    ProjectLanguageAutostart = stored.ProjectLanguageAutostart ?? [],
                     ContextWorkspaces = stored.ContextWorkspaces ?? [],
                     WorkspaceLabels = stored.WorkspaceLabels ?? [],
                     WorkspaceBases = stored.WorkspaceBases ?? [],
@@ -350,6 +365,7 @@ public sealed partial class HostStateStore : IHostStateService
                 RecentProjects = snapshot.RecentProjects.ToList(),
                 ProjectRecords = snapshot.ProjectRecords.ToList(),
                 WorkspaceLanguages = snapshot.WorkspaceLanguages.ToDictionary(),
+                ProjectLanguageAutostart = snapshot.ProjectLanguageAutostart.ToDictionary(),
                 ContextWorkspaces = snapshot.ContextWorkspaces.ToList(),
                 WorkspaceLabels = snapshot.WorkspaceLabels.ToDictionary(),
                 WorkspaceBases = snapshot.WorkspaceBases.ToDictionary(),

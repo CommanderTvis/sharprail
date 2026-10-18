@@ -61,6 +61,7 @@
         <ComboBox x:Name="IntelliJBuildTool" HorizontalAlignment="Stretch" />
         <TextBlock Text="Terms: JetBrains LSP Extension Public EAP Agreement, version 1.0 (July 31, 2026). Internal evaluation only; ends at the earliest vendor-defined EAP termination. Terms acceptance is not an activation credential and cannot extend a build’s lifetime." TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
       </StackPanel>
+      <CheckBox x:Name="ProjectAutoStart" Content="Start before first agent in this project" ToolTip.Tip="Applies to every workspace of this project. Startup is requested before the agent runs; installation and indexing may continue afterward." />
       <CheckBox x:Name="AutoStart" Content="Start in new workspaces" ToolTip.Tip="New workspaces copy Default’s settings once, then remain independent." />
       <StackPanel x:Name="ClangOptions" Spacing="8">
         <TextBlock Text="Include directories on workspace host" />

@@ -36,6 +36,7 @@ internal sealed partial class LanguageConfigurationView : UserControl
             await SaveAsync(true, forceReview: true);
         };
         Find<CheckBox>("AutoStart").IsEnabled = true;
+        Find<CheckBox>("ProjectAutoStart").Click += async (_, _) => await SaveProjectAutostartAsync();
         Find<Button>("RestartConfiguration").IsEnabled = true;
         foreach (var name in new[] { "IntelliJInstallation", "IntelliJProjectJdk" })
             Find<TextBox>(name).TextChanged += (_, _) => { if (!loading) dirty = true; };
@@ -57,9 +58,47 @@ internal sealed partial class LanguageConfigurationView : UserControl
         AttachedToVisualTree += (_, _) => lifetime = new();
         DetachedFromVisualTree += (_, _) => { lifetime?.Cancel(); lifetime?.Dispose(); lifetime = null; };
         Load();
-        AttachedToVisualTree += async (_, _) => await LoadFieldsAsync();
+        AttachedToVisualTree += async (_, _) =>
+        {
+            await LoadFieldsAsync();
+            await RefreshProjectAutostartAsync();
+        };
         foreach (var name in new[] { "InitializationOptions", "ServerSettings" })
             Find<TextBox>(name).TextChanged += (_, _) => { if (!loading) RefreshFields(); };
+    }
+
+    private async Task RefreshProjectAutostartAsync()
+    {
+        if (lifetime is not { } current) return;
+        try
+        {
+            var result = await host.LanguageAsync(new(workspace, Operation: "projectAutostart"), current.Token);
+            if (lifetime == current && result.State == "ready")
+                Find<CheckBox>("ProjectAutoStart").IsChecked = JsonSerializer.Deserialize<string[]>(result.Configuration)?.Contains(server.Id) == true;
+        }
+        catch (OperationCanceledException) when (current.IsCancellationRequested) { }
+        catch (Exception error) { if (lifetime == current) Find<TextBlock>("ConfigurationMessage").Text = error.Message; }
+    }
+
+    private async Task SaveProjectAutostartAsync()
+    {
+        if (lifetime is not { } current) return;
+        var checkbox = Find<CheckBox>("ProjectAutoStart");
+        checkbox.IsEnabled = false;
+        try
+        {
+            await host.LanguageAsync(new(workspace, Operation: "setProjectAutostart", Server: server.Id,
+                Configuration: (checkbox.IsChecked == true).ToString()), current.Token);
+        }
+        catch (OperationCanceledException) when (current.IsCancellationRequested) { }
+        catch (Exception error)
+        {
+            if (lifetime == current) Find<TextBlock>("ConfigurationMessage").Text = error.Message;
+        }
+        finally
+        {
+            if (lifetime == current) { await RefreshProjectAutostartAsync(); checkbox.IsEnabled = true; }
+        }
     }
 
     internal LanguageSettingsWindow? SettingsWindow { get; private set; }
