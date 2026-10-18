@@ -77,11 +77,16 @@ package manifests. Missing prerequisites and unsupported platform archives remai
 
 Storage is `<stateDir>/language`: `servers/<id>/<version>` for installations, `cache` for reusable
 data, and `workspaces/<root-hash>` for exclusive server state. gopls uses its supported `GOPLSCACHE`
-for content-addressed index reuse. Metals shares Coursier artifacts; Kotlin retains its own supported
-shared-index behavior. JDT's `-data` is exclusive to a workspace. Other servers retain their native
-cache behavior: LSP supplies no portable index-sharing API, and sharing mutable databases or
-rewriting branch paths would give incorrect results. clangd's optional external index remains a
-server configuration, with its documented mount-point mapping.
+for content-addressed semantic-index reuse. Dart can use an explicitly supplied shared analysis cache.
+clangd only shares semantic data through an explicitly mounted external index; its ordinary background
+index is workspace-local. Kotlin's native RocksDB index and Metals' `SqlSharedIndices` may reuse
+immutable imported/library data, but require their real Gradle/Maven or BSP prerequisites before a
+probe can assert that behavior. Metals' `COURSIER_CACHE` is dependency artifacts, never semantic-index
+evidence. JDT's `-data`, IntelliJ's system path and the remaining provider state are workspace or
+process scoped. LSP itself supplies no portable index-sharing API, and sharing mutable databases or
+rewriting branch paths would give incorrect results. The opt-in integration inventory classifies every
+catalog provider and records the exact native probes; package downloads and compiler artifacts never
+count as semantic reuse.
 
 Host administrators may set `<stateDir>/language/servers.json`, keyed by catalog id, with
 `command` and an `arguments` array to override a launcher, `managed: true` to prefer the pinned

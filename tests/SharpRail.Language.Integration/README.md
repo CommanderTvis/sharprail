@@ -68,3 +68,24 @@ is confined to the opt-in runner. Providers' production responses retain their
 reported freshness and project coverage.
 
 See [RESULTS.md](RESULTS.md) for the recorded run and explicit coverage limits.
+
+## Shared semantic caches
+
+`node tests/SharpRail.Language.Integration/shared-cache.mjs --inventory` classifies all
+18 catalog servers before a cache claim is made. It distinguishes a semantic index from
+downloads, compiler artifacts and process memory. The native opt-in probes use two Git
+worktrees on different branches, warm one workspace, restart in the other and compare
+cache records against an independently cold run. They also prove branch diagnostics and
+post-edit invalidation. Run one or more with:
+
+```sh
+node tests/SharpRail.Language.Integration/shared-cache.mjs --server go,dart
+```
+
+The probes require an already built Release host. Dart additionally requires
+`SHARPRAIL_LSP_COMMAND_DART` to name the exact provider executable. Kotlin and Metals
+are deliberately marked `manual`: their native shared-index stores require a compatible
+imported Gradle/Maven or BSP project respectively, and a package download or Coursier
+artifact must never turn them into a passing semantic-cache result. clangd is also
+`manual`: the shipped 23.1.0 background-index run resolves a common external header but
+logs a fresh branch shard build, so it cannot currently prove a cross-workspace hit.

@@ -1,0 +1,23 @@
+{
+  "purpose": "Classify native data shared by two workspaces. A package download, a compiler artifact, or an in-memory program is never semantic-index reuse.",
+  "servers": [
+    { "id": "typescript", "kind": "process-local", "reason": "The TypeScript language service keeps its project program in the server process." },
+    { "id": "python", "kind": "process-local", "reason": "Pyright's analysis program is process-local; its package cache is not an index shared by projects." },
+    { "id": "php", "kind": "process-local", "reason": "Intelephense global storage is provider storage, but no stable cross-workspace semantic-index contract is exposed." },
+    { "id": "css", "kind": "process-local", "reason": "VS Code CSS language service builds stylesheet state in the server process." },
+    { "id": "shell", "kind": "process-local", "reason": "bash-language-server has no documented persistent semantic index." },
+    { "id": "csharp", "kind": "process-local", "reason": "Roslyn project state is process-local; NuGet and SDK artifacts are dependency inputs, not shared solution indexes." },
+    { "id": "clangd", "serverVersion": "23.1.0", "kind": "conditional-semantic", "reason": "clangd may mount a separately built external index. The normal background index is workspace-local. The shipped 23.1.0 background-index probe resolved the common header but logged a fresh branch-B shard build, so it does not prove a cross-workspace cache hit.", "probe": "manual", "probeStatus": "blocked" },
+    { "id": "java", "kind": "workspace-exclusive", "reason": "JDT LS receives its own -data directory for every workspace." },
+    { "id": "kotlin", "serverVersion": "263.6379.0", "kind": "conditional-semantic", "reason": "The shipped Kotlin Language Server's native RocksDB index can share immutable library/project data. It needs a compatible JVM server runtime and a real imported Gradle/Maven project before an opt-in probe can assert records.", "probe": "manual", "probeStatus": "not-run" },
+    { "id": "intellij", "kind": "workspace-exclusive", "reason": "SharpRail creates and disposes an isolated IntelliJ system path for every workspace." },
+    { "id": "ruby", "kind": "process-local", "reason": "Ruby LSP does not expose a durable cross-workspace semantic-index contract." },
+    { "id": "go", "kind": "semantic-shared", "reason": "gopls supports GOPLSCACHE, a content-addressed semantic cache shared by workspaces.", "probe": "native" },
+    { "id": "rust", "kind": "workspace-exclusive", "reason": "rust-analyzer's project graph and analysis database are workspace/session state; Cargo caches are dependency artifacts." },
+    { "id": "scala", "serverVersion": "1.6.9", "kind": "conditional-semantic", "reason": "The shipped Metals 1.6.9 SqlSharedIndices may reuse the immutable JDK src.zip hierarchy. Coursier cache sharing only proves dependency artifacts and is excluded from semantic reuse.", "probe": "manual", "probeStatus": "not-run" },
+    { "id": "r", "kind": "process-local", "reason": "languageserver does not expose a durable cross-workspace semantic-index contract." },
+    { "id": "powershell", "kind": "process-local", "reason": "PowerShell Editor Services keeps script analysis in its session; module downloads are not semantic indexes." },
+    { "id": "swift", "kind": "workspace-exclusive", "reason": "SourceKit-LSP indexes and build products belong to the package/build workspace." },
+    { "id": "dart", "kind": "semantic-shared", "reason": "Dart Analysis Server can use a supplied shared analysis cache. The opt-in probe supplies one identical cache path to both workspaces.", "probe": "native" }
+  ]
+}
