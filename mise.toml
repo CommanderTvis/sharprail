@@ -43,6 +43,9 @@ url = "https://github.com/Tehreer/SheenBidi/archive/refs/tags/v3.0.0.tar.gz"
 checksum = "sha256:86c56014034739ba39a24c23eb00323b0bf6f737354f665786015fca842af786"
 
 [env]
+# NuGet restores in locked mode: each project's packages.lock.json (versions and content hashes) must match, else
+# NU1004/NU1403. `mise run restore:update` is the one task that may change the locks.
+RestoreLockedMode = "true"
 # Pinned Ghostty revisions, fetched by commit by the recipes that build them, with the Zig each builds with
 # (a version listed under [tools], linked as .tools/zig-<version>).
 GHOSTTY_VIEW_COMMIT = "6d2dd585a5d87fa745d48188dd096ca6e63014d0" # v1.2.3
@@ -105,10 +108,23 @@ run = ".tools/dotnet/dotnet build SharpRail.slnx -c Release"
 run_windows = ".tools\\dotnet\\dotnet.exe build SharpRail.slnx -c Release"
 
 [tasks.restore]
-description = "Restore the solution's packages"
+description = "Restore the solution's packages in locked mode (packages.lock.json, nuget.org only)"
 depends = ["bootstrap"]
 run = ".tools/dotnet/dotnet restore SharpRail.slnx"
 run_windows = ".tools\\dotnet\\dotnet.exe restore SharpRail.slnx"
+
+[tasks."restore:update"]
+description = "Re-resolve packages and rewrite the packages.lock.json files; use after changing a package version or reference, then commit the locks"
+depends = ["bootstrap"]
+env = { RestoreLockedMode = "false" }
+run = ".tools/dotnet/dotnet restore SharpRail.slnx --force-evaluate"
+run_windows = ".tools\\dotnet\\dotnet.exe restore SharpRail.slnx --force-evaluate"
+
+[tasks.audit]
+description = "Fail on any known vulnerability (moderate or above, transitive included) in the locked packages"
+depends = ["bootstrap"]
+run = ".tools/dotnet/dotnet restore SharpRail.slnx --force -p:WarningsNotAsErrors="
+run_windows = ".tools\\dotnet\\dotnet.exe restore SharpRail.slnx --force -p:WarningsNotAsErrors="
 
 [tasks.format]
 description = "Verify formatting as CI does; pass --include with touched files to scope it"

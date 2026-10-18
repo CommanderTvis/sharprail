@@ -13,8 +13,11 @@ if (Test-Path $output) { Remove-Item $output -Recurse -Force }
 Push-Location $root
 try {
     Invoke-Native $dotnet @('build', 'SharpRail.slnx', '-c', 'Release')
+    # One locked restore (packages.lock.json lists every shipped RID) that also fetches the runtime and Crossgen packs;
+    # the publishes reuse it, since a `-r` restore would not match the lock's RuntimeIdentifiers.
+    Invoke-Native $dotnet @('restore', 'SharpRail.slnx', '-p:SelfContained=true', '-p:PublishReadyToRun=true')
     foreach ($target in @(@('src/SharpRail.UI', 'client'), @('src/SharpRail.Host.Remote', 'host'), @('tests/SharpRail.Checks', 'checks'))) {
-        Invoke-Native $dotnet @('publish', $target[0], '-c', 'Release', '-r', $RuntimeIdentifier, '--self-contained', 'true',
+        Invoke-Native $dotnet @('publish', $target[0], '-c', 'Release', '-r', $RuntimeIdentifier, '--self-contained', 'true', '--no-restore',
             '-p:PublishReadyToRun=true', '-p:PublishReadyToRunComposite=true', '-o', (Join-Path $output $target[1]))
     }
     Copy-Item 'tests/SharpRail.Checks/bin/Release/net10.0/plugin-fixture' (Join-Path $output 'checks/plugin-fixture') -Recurse

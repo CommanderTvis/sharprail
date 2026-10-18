@@ -7,13 +7,16 @@ rid="${1:-osx-arm64}"
 # Publish copies only newer files; stale outputs (for example a native library from a
 # downgraded timestamp) would otherwise survive into the package.
 rm -rf artifacts/ui artifacts/host artifacts/checks artifacts/SharpRail.app
-"$dotnet_cmd" publish src/SharpRail.UI -c Release -r "$rid" --self-contained true \
+# One locked restore (packages.lock.json lists every shipped RID) that also fetches the runtime and Crossgen packs;
+# the publishes below reuse it, since a `-r` restore would not match the lock's RuntimeIdentifiers.
+"$dotnet_cmd" restore SharpRail.slnx -p:SelfContained=true -p:PublishReadyToRun=true
+"$dotnet_cmd" publish src/SharpRail.UI -c Release -r "$rid" --self-contained true --no-restore \
   -p:PublishReadyToRun=true -p:PublishReadyToRunComposite=true -o artifacts/ui
-"$dotnet_cmd" publish src/SharpRail.Host.Remote -c Release -r "$rid" --self-contained true \
+"$dotnet_cmd" publish src/SharpRail.Host.Remote -c Release -r "$rid" --self-contained true --no-restore \
   -p:PublishReadyToRun=true -p:PublishReadyToRunComposite=true -o artifacts/host
 # The packaged gate combines checks with the UI's shipped components. A separate
 # composite would assume its own version-bubble layouts; keep this harness versionable.
-"$dotnet_cmd" publish tests/SharpRail.Checks -c Release -r "$rid" --self-contained true \
+"$dotnet_cmd" publish tests/SharpRail.Checks -c Release -r "$rid" --self-contained true --no-restore \
   -p:PublishReadyToRun=true -p:PublishReadyToRunComposite=false -o artifacts/checks
 # The fixture plugin builds straight into the checks' build output; the plugin checks install it from beside the executable.
 cp -R tests/SharpRail.Checks/bin/Release/net10.0/plugin-fixture artifacts/checks/

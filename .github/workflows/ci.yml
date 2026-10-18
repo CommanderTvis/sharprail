@@ -25,6 +25,7 @@ jobs:
           path: ~/.sharprail/tools
           key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock') }}
       - run: sh scripts/mise run restore
+      - run: sh scripts/mise run audit
       - run: sh scripts/mise run format
       - run: sh scripts/mise run build
       - run: sh scripts/mise run perf -- self-test
