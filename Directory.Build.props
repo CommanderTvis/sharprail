@@ -18,6 +18,26 @@
     <!-- Recipes that need the manifest's pins ([env] in mise.toml, tools) run under the checkout's pinned mise. -->
     <MiseRun Condition="'$(OS)' != 'Windows_NT'">sh &quot;$(MSBuildThisFileDirectory)scripts/mise&quot; x --</MiseRun>
     <MiseRun Condition="'$(OS)' == 'Windows_NT'">&quot;$(MSBuildThisFileDirectory)scripts\mise.cmd&quot; x --</MiseRun>
+    <!--
+      NuGet restore is reproducible and checksum-verified: every project commits a packages.lock.json (direct and
+      transitive versions with their content hashes), and mise tasks and CI restore in locked mode (RestoreLockedMode
+      in mise.toml [env]), which fails on any drift (NU1004) or changed package content (NU1403). Change locks with
+      `scripts/mise run restore:update`. The lock holds one target per RuntimeIdentifiers entry, so the RIDs the
+      packages publish with are listed here and a `publish -r <rid>` restore stays inside the lock.
+      EXCLUDED from locking (RestorePackagesWithLockFile=false in their project file, each with its reason there):
+      SharpRail.Android and SharpRail.Browser, whose restores resolve workload packs and per-RID runtime packs.
+    -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <RuntimeIdentifiers Condition="'$(RuntimeIdentifiers)' == ''">osx-arm64;osx-x64;win-x64;win-arm64</RuntimeIdentifiers>
+    <!--
+      Audit: advisories are always reported (all packages, moderate and above) but stay warnings, so a new advisory
+      cannot break a nightly build that did not change; CI treats them as errors only through the dedicated
+      `scripts/mise run audit` task.
+    -->
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>moderate</NuGetAuditLevel>
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1901;NU1902;NU1903;NU1904</WarningsNotAsErrors>
   </PropertyGroup>
   <ItemGroup>
     <RuntimeHostConfigurationOption Include="System.Runtime.TieredCompilation" Value="true" />

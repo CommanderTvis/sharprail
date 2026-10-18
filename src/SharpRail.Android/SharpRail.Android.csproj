@@ -4,6 +4,8 @@
     It compiles the UI's sources rather than referencing its project, whose host-serving half needs ASP.NET Core.
   -->
   <PropertyGroup>
+    <!-- Not locked: the android restore resolves workload packs and per-RID Android runtime packs from the installed workload manifest, outside nuget.org's lockable graph. -->
+    <RestorePackagesWithLockFile>false</RestorePackagesWithLockFile>
     <TargetFramework>net10.0-android</TargetFramework>
     <OutputType>Exe</OutputType>
     <AssemblyName>SharpRail.UI</AssemblyName>
