@@ -150,6 +150,13 @@ internal static class Program
             LanguageChecks.SettingsChecks(root);
             return;
         }
+        if (args.SequenceEqual(["--lsp-icons"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            LanguageChecks.ProviderIconsUi();
+            return;
+        }
         if (args.SequenceEqual(["--lsp-ui"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();

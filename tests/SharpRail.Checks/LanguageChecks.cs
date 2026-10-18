@@ -893,8 +893,12 @@ internal static class LanguageChecks
         Console.WriteLine("PASS read-only source-JAR navigation: exact URI, owner, pagination, complete text and no workspace file read");
     }
 
-    private static void ProviderIconsUi()
+    internal static void ProviderIconsUi()
     {
+        using (var png = Avalonia.Platform.AssetLoader.Open(new Uri("avares://SharpRail.UI/Assets/LanguageIcons/csharp-provider.png")))
+        using (var bitmap = SkiaSharp.SKBitmap.Decode(png))
+            Require(bitmap.GetPixel(0, 0).Alpha == 0 && bitmap.GetPixel(bitmap.Width - 1, bitmap.Height - 1).Alpha == 0,
+                "Roslyn provider artwork must have a transparent background.");
         var original = Ui.Theme;
         var icons = LanguageServers.Catalog.Select(server => SharpRail.UI.Panels.LanguageServerIconConverter.Create(server.Id)).ToArray();
         var panel = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 8, Margin = new Thickness(8) };
@@ -909,6 +913,9 @@ internal static class LanguageChecks
                 Ui.Apply(SharpRail.UI.Rendering.Themes.Resolve(name));
                 window.Background = Ui.Workspace;
                 E2E.E2eWorkspace.Until(() => icons.All(icon => icon.GetVisualDescendants().OfType<Image>().SingleOrDefault()?.Source is not null));
+                var roslyn = icons.Single(icon => Equals(icon.Tag, "language:csharp"));
+                Require(roslyn.GetVisualDescendants().OfType<Image>().Single().Source is Avalonia.Media.Imaging.Bitmap,
+                    "Roslyn must use its supplied provider bitmap rather than a generic language mark.");
                 var intellij = icons.Single(icon => Equals(icon.Tag, "language:intellij"));
                 var image = intellij.GetVisualDescendants().OfType<SvgAsset>().Single();
                 Require(previous is null || !ReferenceEquals(previous, image.Source), "IntelliJ's vector mark did not follow the theme foreground.");
@@ -920,7 +927,7 @@ internal static class LanguageChecks
                 "An unknown provider lost its generic vector fallback.");
         }
         finally { window.Close(); Ui.Apply(original); }
-        Console.WriteLine("PASS every LSP provider has a rendered Material language/IntelliJ vector mark with dark/light theme tinting");
+        Console.WriteLine("PASS every language provider renders its publisher mark in dark/light themes, including transparent Roslyn artwork");
     }
 
     internal static void CaptureLsp(Avalonia.Controls.Window window, string name)

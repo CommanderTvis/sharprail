@@ -29,7 +29,7 @@ internal sealed class LanguageServerIconConverter : IValueConverter
     {
         var provider = server switch
         {
-            "python" or "ruby" or "scala" or "php" or "shell" => server + "-provider.png",
+            "python" or "ruby" or "scala" or "php" or "shell" or "csharp" => server + "-provider.png",
             "clangd" or "rust" => server + "-provider.svg",
             _ => ""
         };
