@@ -26,7 +26,12 @@ internal static partial class AirContextChecks
         WorkflowRuntime? latest = null;
         fixtures.Value.Consent = directory => new(directory, http, bundle);
         fixtures.Value.Runtime = (path, log, _) => { Interlocked.Increment(ref created); return Task.FromResult<IContextRuntime>(latest = new(path, log)); };
-        await using var rig = await Rig.Open(workspace, Path.Combine(storage, "state"), remote: false);
+        await using var rig = await Rig.Open(workspace, Path.Combine(storage, "state"), remote: false, activate: false);
+        // A fresh profile: the plugin is off, so nothing is served, said or shown until the user turns it on.
+        Require((await rig.Plugins.ListAsync()).Single(entry => entry.Id == AirContextContract.Id).Status == PluginStatus.Disabled, "A fresh profile started Air Context.");
+        Require(rig.Tools(workspace).Count == 0 && rig.Runtime.ToolGuidanceSections().Count == 0, "A fresh profile served Air Context tools or instructions.");
+        Require(!SharpRail.Plugins.ClaudeCode.Host.SystemPrompt.Compose(rig.Runtime.ToolGuidanceSections()).Contains("Air Context", StringComparison.Ordinal), "A fresh profile mentioned Air Context in the instructions.");
+        await rig.Enable(true);
         var review = await rig.Consent(new());
         await rig.Consent(new("acceptAndDownload", review.ArtifactId, review.TermsSha256));
         Require((await rig.Workspace(workspace, "enable")).Enabled, "Enabling the workspace failed.");
@@ -71,9 +76,17 @@ internal static partial class AirContextChecks
     /// <summary>The state an installation had before Air Context became a plugin moves with it: consent, enablement and hiding.</summary>
     internal static async Task Migration(string root)
     {
+        // A fresh profile gets the default (off), with no entry written.
+        var fresh = Path.Combine(root, "air-context-migration", "fresh");
+        Directory.CreateDirectory(fresh);
+        File.WriteAllText(Path.Combine(fresh, HostStateStore.FileName), new JsonObject { ["Settings"] = new JsonObject { ["Theme"] = "kept" }, ["ContextWorkspaces"] = new JsonArray() }.ToJsonString());
+        Require(!new HostStateStore(fresh).Current.PluginSettings.ContainsKey(AirContextContract.Id), "A profile that never used Air Context got an explicit setting.");
+        await using (var rig = await Rig.Open(fresh, fresh, remote: false, activate: false))
+            Require((await rig.Plugins.ListAsync()).Single(entry => entry.Id == AirContextContract.Id).Status == PluginStatus.Disabled, "A fresh profile started Air Context.");
+
         foreach (var hidden in new[] { true, false })
         {
-            var directory = Path.Combine(root, "air-context-migration", hidden ? "hidden" : "shown");
+            var directory = Path.Combine(root, "air-context-migration", hidden ? "hidden" : "used");
             var workspace = Path.Combine(directory, "workspace"); Directory.CreateDirectory(workspace);
             using var handler = new Handler(_ => Task.FromResult("fixture"u8.ToArray()));
             using var http = new HttpClient(handler);
@@ -89,8 +102,8 @@ internal static partial class AirContextChecks
             }.ToJsonString());
 
             var store = new HostStateStore(directory);
-            var disabled = store.Current.PluginSettings.TryGetValue(AirContextContract.Id, out var entry) && entry.TryGetProperty("enabled", out var flag) && !flag.GetBoolean();
-            Require(disabled == hidden && (hidden || !store.Current.PluginSettings.ContainsKey(AirContextContract.Id)), "Hiding Air Context did not become the plugin being disabled (or showing it left a setting).");
+            var has = store.Current.PluginSettings.TryGetValue(AirContextContract.Id, out var entry) && entry.TryGetProperty("enabled", out var flag);
+            Require(has && entry.GetProperty("enabled").GetBoolean() == !hidden, "A hidden profile must be explicitly disabled and a used one explicitly enabled.");
             Require(store.Current.Settings.Theme == "kept", "The migration lost another setting.");
             var text = File.ReadAllText(Path.Combine(directory, HostStateStore.FileName));
             Require(!text.Contains("AirContextHidden", StringComparison.Ordinal) && !text.Contains("ContextWorkspaces", StringComparison.Ordinal), "The old keys stayed in the state file.");
@@ -102,17 +115,16 @@ internal static partial class AirContextChecks
             Require(status.State == "downloaded" && Path.GetFileName(status.Installation) == Path.GetFileName(accepted.Installation), "The download did not survive the move.");
             Require((await moved.ReviewAsync(default)).AcceptedAtUtc == accepted.AcceptedAtUtc, "The user's acknowledgement did not survive the move.");
 
-            // A second start neither migrates again nor forces the plugin off after the user turned it on.
+            // A second start neither migrates again nor overrides what the user chose since.
             if (hidden) await store.ChangeAsync([HostStateChange.PluginEnabled(AirContextContract.Id, true)]);
             var reopened = new HostStateStore(directory);
-            Require(reopened.Current.PluginSettings.TryGetValue(AirContextContract.Id, out var again) == hidden && (!hidden || again.GetProperty("enabled").GetBoolean()),
-                "Reopening re-ran the migration.");
+            Require(reopened.Current.PluginSettings[AirContextContract.Id].GetProperty("enabled").GetBoolean(), "Reopening re-ran the migration.");
 
             using var fixtures = new Fixtures();
             fixtures.Value.Consent = path => new(path, http, bundle);
             await using var rig = await Rig.Open(workspace, directory, remote: false);
             Require((await rig.Consent(new("status"))).State == "downloaded" && (await rig.Workspace(workspace)).Enabled, "The plugin did not see the migrated consent and enablement.");
         }
-        Console.WriteLine("PASS Air Context migration: hidden becomes disabled once, consent receipt, download and enabled workspaces move into the plugin's state");
+        Console.WriteLine("PASS Air Context migration: fresh stays off, used becomes enabled, hidden becomes disabled once; consent receipt, download and enabled workspaces move into the plugin's state");
     }
 }

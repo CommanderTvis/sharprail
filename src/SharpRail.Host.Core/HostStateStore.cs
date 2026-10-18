@@ -166,8 +166,14 @@ public sealed partial class HostStateStore : IHostStateService
         var hadHiddenKey = unknownSettings.Remove("AirContextHidden", out var hiddenNode);
         var airContextHidden = hiddenNode is JsonValue hiddenValue && hiddenValue.TryGetValue<bool>(out var hidden) && hidden;
         var airContextLegacy = legacyContextWorkspaces is not null || hadHiddenKey;
-        if (airContextHidden && !(migrated.PluginSettings.TryGetValue(AirContextContract.Id, out var airSettings) && airSettings.ValueKind == JsonValueKind.Object && airSettings.TryGetProperty("enabled", out _)))
-            migrated = migrated with { PluginSettings = new Dictionary<string, JsonElement>(migrated.PluginSettings) { [AirContextContract.Id] = JsonSerializer.SerializeToElement(new { enabled = false }) } };
+        // The plugin ships disabled. A profile that used Air Context (an enabled workspace, a receipt or a download) and did not hide it
+        // gets it enabled explicitly; a hidden one is disabled explicitly; an explicit value already in the file wins over both.
+        var usedAirContext = (legacyContextWorkspaces ?? []).Any(ValidPath) ||
+            directory is not null && Directory.Exists(Path.Combine(directory, AirContextMigration.LegacyDirectory)) &&
+            Directory.EnumerateFiles(Path.Combine(directory, AirContextMigration.LegacyDirectory), "*", SearchOption.AllDirectories).Any();
+        var airExplicit = migrated.PluginSettings.TryGetValue(AirContextContract.Id, out var airSettings) && airSettings.ValueKind == JsonValueKind.Object && airSettings.TryGetProperty("enabled", out _);
+        if (!airExplicit && (airContextHidden || usedAirContext))
+            migrated = migrated with { PluginSettings = new Dictionary<string, JsonElement>(migrated.PluginSettings) { [AirContextContract.Id] = JsonSerializer.SerializeToElement(new { enabled = !airContextHidden }) } };
         if (directory is not null && (legacyContextWorkspaces is not null || Directory.Exists(Path.Combine(directory, AirContextMigration.LegacyDirectory))))
         {
             try { AirContextMigration.Migrate(directory, [.. (legacyContextWorkspaces ?? []).Where(ValidPath).Distinct().Order(StringComparer.Ordinal)]); }

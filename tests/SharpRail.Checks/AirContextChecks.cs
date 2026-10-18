@@ -126,7 +126,7 @@ internal static partial class AirContextChecks
             StateDirectory = stateDirectory; Runtime = runtime; State = state; Plugins = plugins; this.server = server; Endpoint = endpoint; this.adapters = adapters;
         }
 
-        internal static async Task<Rig> Open(string workspace, string stateDirectory, bool remote)
+        internal static async Task<Rig> Open(string workspace, string stateDirectory, bool remote, bool activate = true)
         {
             Directory.CreateDirectory(stateDirectory);
             Rig rig;
@@ -145,7 +145,11 @@ internal static partial class AirContextChecks
                 await runtime.Start();
                 rig = new(stateDirectory, runtime, state, new LocalPluginAdapter(runtime), null, null, null);
             }
-            await rig.UntilAsync(async () => (await rig.Plugins.ListAsync()).Any(entry => entry is { Id: AirContextContract.Id, Status: PluginStatus.Active }), "the plugin to activate");
+            if (activate)
+            {
+                await rig.Enable(true);
+                await rig.UntilAsync(async () => (await rig.Plugins.ListAsync()).Any(entry => entry is { Id: AirContextContract.Id, Status: PluginStatus.Active }), "the plugin to activate");
+            }
             return rig;
         }
 
@@ -228,7 +232,7 @@ internal static partial class AirContextChecks
         using var fixtures = new Fixtures();
         fixtures.Value.Consent = directory => new(directory, http, bundle);
         using var app = new E2E.E2eWorkspace(storage);
-        E2E.E2eWorkspace.Until(() => app.Window.WorkspaceMounted && app.Workbench.PluginLoader.Registry.Active.Contains(AirContextContract.Id));
+        TurnOn(app);
         Reveal(app);
         var owner = app.Window;
         T Find<T>(Window window, string name) where T : Control => window.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
@@ -290,6 +294,16 @@ internal static partial class AirContextChecks
         }
         finally { dialog.Close(); }
         Console.WriteLine("PASS Context consent window: unchecked default, cancel without download, explicit accept/download and visible completion");
+    }
+
+    /// <summary>A fresh profile shows nothing of Air Context; the user turns the plugin on in Settings › Plugins.</summary>
+    private static void TurnOn(E2E.E2eWorkspace app)
+    {
+        E2E.E2eWorkspace.Until(() => app.Window.WorkspaceMounted);
+        Require(!app.Workbench.PluginLoader.Registry.Active.Contains(AirContextContract.Id) && app.Window.Layout.Tools.All(tool => tool.Id != Tool), "Air Context was on in a fresh profile.");
+        var change = Task.Run(async () => { await app.State!.ChangeAsync([HostStateChange.PluginEnabled(AirContextContract.Id, true)]); await app.PluginRuntime!.Schedule(); });
+        E2E.E2eWorkspace.Until(() => change.IsCompleted); change.GetAwaiter().GetResult();
+        E2E.E2eWorkspace.Until(() => app.Workbench.PluginLoader.Registry.Active.Contains(AirContextContract.Id));
     }
 
     private const string Tool = "plugin:air-context:context";

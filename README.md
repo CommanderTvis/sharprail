@@ -92,7 +92,7 @@ ships these plugins:
 | PDF Preview | Read PDFs alongside your code, with selectable text, zoom and refresh when the file changes. |
 | Discord | Optionally share the project and file you have open through Discord Rich Presence. |
 
-Claude Code, Codex and Discord start disabled; enable the ones you want. The agent
+Claude Code, Codex, Air Context and Discord start disabled; enable the ones you want. The agent
 plugins integrate the external command-line tools, which must be installed on the
 machine running the workspace. They bring agent sessions into the workbench without
 adding a separate chat UI. Android includes the builtin plugin interfaces, although

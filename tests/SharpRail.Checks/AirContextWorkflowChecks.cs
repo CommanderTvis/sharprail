@@ -151,7 +151,7 @@ internal static partial class AirContextChecks
         using var app = new E2E.E2eWorkspace(storage);
         var window = app.Window;
         void Await(Task task) { E2E.E2eWorkspace.Until(() => task.IsCompleted); task.GetAwaiter().GetResult(); }
-        E2E.E2eWorkspace.Until(() => window.WorkspaceMounted && app.Workbench.PluginLoader.Registry.Active.Contains(AirContextContract.Id));
+        TurnOn(app);
         var plugins = app.PluginRuntime!;
         T Find<T>(Window owner, string name) where T : Control => owner.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
         void Button(Window owner, string name) => Find<Button>(owner, name).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));

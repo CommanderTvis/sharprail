@@ -200,7 +200,6 @@ that distinction and do not infer package ownership or complete imports from eit
 Language results advertise full semantic-color capability through SemanticColoring. Tokens preserve space-separated modifier names from the server legend; empty defaults keep providers without semantic tokens compatible. The editor can distinguish lexical-only and semantic-capable running providers without retrieving tokens first.
 
 Air Context is a builtin plugin ([module](../SharpRail.Plugins.AirContext/SPEC.md)): its consent, workspace operations, enabled-workspace list and
-visibility left the typed project services and the host state at protocol 8 (`HostProtocol.AirContextPlugin`). Hiding it is the plugin
-being disabled in Settings › Plugins; opening a state file that still carries the old keys migrates them once.
+visibility left the typed project services and the host state at protocol 8 (`HostProtocol.AirContextPlugin`). The plugin ships disabled; opening a state file that still carries the old keys migrates them once (hidden disables it, a profile that used it enables it).
 
 Project language-server autostart choices belong to host state; [language services](../SharpRail.Host.Core/Language/SPEC.md) define their scope and launch behavior.

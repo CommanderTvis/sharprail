@@ -16,7 +16,7 @@ Code Intelligence page.
 
 ## Plugin shape
 
-The plugin id is `air-context`. It ships enabled, which does nothing by itself: the CLI is not downloaded, no terms are read from the
+The plugin id is `air-context`. It ships disabled, like Air Governance. Enabled, it still does nothing by itself: the CLI is not downloaded, no terms are read from the
 network and no workspace is indexed until the user acts in the plugin's pane. Settings › Plugins is the only switch for the plugin as a
 whole. Disabled, the plugin serves no tools, contributes no instructions to agent sessions, shows no pane, accepts no consent calls,
 makes no network requests and starts no process; disabling stops running indexing and searches through the activation's disposer, and
@@ -29,8 +29,9 @@ per-workspace controls, the consent window and the logs window. Wire types are i
 State lives in the plugin's own files (H14, H19): the enabled workspaces in `plugin-state/air-context/workspaces.json` and the CLI
 storage (agreement receipts and the downloaded executable) in `plugin-state/air-context/files`. The user's consent cannot be inferred
 from the executable's presence. Host state versions before protocol 8 kept both in the core; opening such a state file moves the
-directory and the list once (`AirContextMigration`), turns the old "hide Air Context" setting into the plugin being disabled unless
-the plugin already has an enabled flag, and removes the old keys in the same save.
+directory and the list once (`AirContextMigration`), sets the plugin explicitly: disabled when the old "hide Air Context" setting was on, enabled when the profile had used Air Context (an
+enabled workspace, a consent receipt or a downloaded CLI) and did not hide it, and untouched (so disabled by default) for a fresh profile; an
+enabled flag the plugin already has always wins, and removes the old keys in the same save.
 
 The paragraph advertising the tools to agents is the plugin's tool guidance and appears in the Claude Code and Codex instructions
 only while the plugin is enabled. The Codex launch line still preapproves the three tool names, whether or not the plugin is on.
