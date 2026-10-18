@@ -12,7 +12,7 @@ The optional `--profile` runs `term-bench --duration 15 --fps 120` and records b
 draw cadence separately from the benchmark's output FPS under `artifacts/terminal-profile`.
 
 Build with `scripts/mise run browser build`. The script installs the checkout-local .NET WebAssembly workload;
-native toolchains and source archives stay under `.tools`. Node/npm and uv are required. The deployable
+native toolchains and source archives stay under `.tools`. Node, pnpm and uv come from `mise.browser.toml`; JavaScript dependencies are pinned by `pnpm-lock.yaml` and PDFium by checksum there, and both are inputs of the asset-staging target. The deployable
 files are in `src/SharpRail.Browser/bin/Release/net10.0-browser/AppBundle`.
 
 To serve it with a standalone host:

@@ -31,6 +31,39 @@ url = "https://github.com/WebAssembly/binaryen/releases/download/version_131/bin
 checksum = "sha256:d209fadd8a894bdaf3bd3612a23c32a0af184d2f4a979b8c789e6e4f6a4de883"
 url = "https://github.com/WebAssembly/binaryen/releases/download/version_131/binaryen-version_131-x86_64-macos.tar.gz"
 
+[[tools."http:pdfium-wasm"]]
+version = "chromium-8076"
+backend = "http:pdfium-wasm"
+specifiers = ["chromium-8076"]
+
+[tools."http:pdfium-wasm"."platforms.linux-arm64"]
+checksum = "sha256:f0e18e471c0f40e769ff796a7a03955835f9782be4fd119c15349cc91b458f21"
+url = "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/8076/pdfium-wasm.tgz"
+
+[tools."http:pdfium-wasm"."platforms.linux-arm64-musl"]
+checksum = "sha256:f0e18e471c0f40e769ff796a7a03955835f9782be4fd119c15349cc91b458f21"
+url = "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/8076/pdfium-wasm.tgz"
+
+[tools."http:pdfium-wasm"."platforms.linux-x64"]
+checksum = "sha256:f0e18e471c0f40e769ff796a7a03955835f9782be4fd119c15349cc91b458f21"
+url = "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/8076/pdfium-wasm.tgz"
+
+[tools."http:pdfium-wasm"."platforms.linux-x64-musl"]
+checksum = "sha256:f0e18e471c0f40e769ff796a7a03955835f9782be4fd119c15349cc91b458f21"
+url = "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/8076/pdfium-wasm.tgz"
+
+[tools."http:pdfium-wasm"."platforms.macos-arm64"]
+checksum = "sha256:f0e18e471c0f40e769ff796a7a03955835f9782be4fd119c15349cc91b458f21"
+url = "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/8076/pdfium-wasm.tgz"
+
+[tools."http:pdfium-wasm"."platforms.macos-x64"]
+checksum = "sha256:f0e18e471c0f40e769ff796a7a03955835f9782be4fd119c15349cc91b458f21"
+url = "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/8076/pdfium-wasm.tgz"
+
+[tools."http:pdfium-wasm"."platforms.windows-x64"]
+checksum = "sha256:f0e18e471c0f40e769ff796a7a03955835f9782be4fd119c15349cc91b458f21"
+url = "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/8076/pdfium-wasm.tgz"
+
 [[tools.node]]
 version = "24.11.0"
 backend = "core:node"

@@ -1,0 +1,58 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      '@mermanjs/web':
+        specifier: 0.7.0
+        version: 0.7.0
+      restty:
+        specifier: 0.3.0
+        version: 0.3.0
+    devDependencies:
+      playwright:
+        specifier: 1.64.0
+        version: 1.64.0
+
+packages:
+
+  '@mermanjs/web@0.7.0':
+    resolution: {integrity: sha512-wZv2jvxBRnK+SxMo+9oKA1fFkHTfVCi2+IhLtYd1hRwxrEaFoRnt05teaM9m+NdUESOUxQJaZ/63lIU4XfwUcw==}
+
+  playwright-core@1.64.0:
+    resolution: {integrity: sha512-T9r+MZkTECl2+oUcZ26YgZzTrYidTsIhYYkJix+6iDOymOb1FB2RLLSOxRGnZGv5DStt+aduIVbt+E8WygXYpg==}
+    engines: {node: '>=20'}
+    hasBin: true
+
+  playwright@1.64.0:
+    resolution: {integrity: sha512-kVzTnYFYEyQ9RGzBjNCd2+yEqWmVbxl3AHPynv3qQ6JTjv4a+kwRcnqQwIpuP3NnrnIrE/Q6wWAIAvMfIE2/Yg==}
+    engines: {node: '>=20'}
+    hasBin: true
+
+  restty@0.3.0:
+    resolution: {integrity: sha512-ppNLeZRnJHmGMCJKHYkYzphi1DUSLWqiZbPHOOv0KT1j5wp2yfLDMXjQQmNgqb4evYhItab0D72HpYhdbNY6Fw==}
+    engines: {bun: '>=1.2.0'}
+
+  text-shaper@0.1.28:
+    resolution: {integrity: sha512-uwm6+tkgYJ4hsTV0wZVHkZeoXR1/mthLxDiJvfU9o/FiibNinpFRC8PAMTNx8SaOjaK/5ZjDG1XAkPbKlIe2Jg==}
+
+snapshots:
+
+  '@mermanjs/web@0.7.0': {}
+
+  playwright-core@1.64.0: {}
+
+  playwright@1.64.0:
+    dependencies:
+      playwright-core: 1.64.0
+
+  restty@0.3.0:
+    dependencies:
+      text-shaper: 0.1.28
+
+  text-shaper@0.1.28: {}

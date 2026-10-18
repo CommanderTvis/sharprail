@@ -23,3 +23,9 @@ checksum = "sha256:b5bf1f0eaf17c63ee588ff7a5954dc8f6ce2c26989051c66f24dfe9ece3e4
 [tools."http:binaryen".platforms.linux-arm64]
 url = "https://github.com/WebAssembly/binaryen/releases/download/version_131/binaryen-version_131-aarch64-linux.tar.gz"
 checksum = "sha256:ba991f677edd9a21d2bc96c0144bc8ac5b112d4d98a3eb266e075e22e557df2a"
+
+# PDFium's WASM build, staged into the browser's vendor assets.
+[tools."http:pdfium-wasm"]
+version = "chromium-8076"
+url = "https://github.com/bblanchon/pdfium-binaries/releases/download/chromium/8076/pdfium-wasm.tgz"
+checksum = "sha256:f0e18e471c0f40e769ff796a7a03955835f9782be4fd119c15349cc91b458f21"

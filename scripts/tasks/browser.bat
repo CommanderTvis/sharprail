@@ -25,7 +25,7 @@ if /i "%ACTION%"=="check" (
   "%DOTNET%" build src\SharpRail.Browser -c %CONFIG% -m:2 -p:BrowserChecks=true || exit /b 1
   set "PLAYWRIGHT_BROWSERS_PATH=%ROOT%\.tools\playwright"
   pushd src\SharpRail.Browser
-  call npm exec -- playwright install chromium
+  call pnpm exec playwright install chromium
   set "INSTALLED=!errorlevel!"
   popd
   if not "!INSTALLED!"=="0" exit /b 1

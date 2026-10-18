@@ -92,8 +92,16 @@
     <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/mise&quot; run bootstrap:browser" />
     <Exec EnvironmentVariables="MISE_ENV=browser" Command="$(MiseRun) sh &quot;$(MSBuildProjectDirectory)/../../scripts/wasm-native.sh&quot;" />
   </Target>
-  <Target Name="IncludeBrowserAssets" BeforeTargets="PrepareForBuild" DependsOnTargets="BuildBrowserNative">
-    <Exec Command="node &quot;$(MSBuildProjectDirectory)/../../scripts/browser-assets.mjs&quot;" />
+  <!-- The vendored assets come from the pnpm lockfile, the PDFium pin and the licence files. -->
+  <ItemGroup>
+    <BrowserAssetSource Include="pnpm-lock.yaml;package.json;../../scripts/browser-assets.mjs;../../mise.browser.lock;../../THIRD-PARTY-NOTICES.md;../../licenses/**;licenses/**;../Ghostty.Avalonia/Licenses/**;../SharpRail.Scintilla/Licenses/**;../*/NOTICE.md" />
+  </ItemGroup>
+  <Target Name="StageBrowserAssets" BeforeTargets="PrepareForBuild" DependsOnTargets="BuildBrowserNative"
+          Inputs="@(BrowserAssetSource)" Outputs="wwwroot/vendor/PDFium-LICENSE">
+    <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/mise&quot; run bootstrap:browser" />
+    <Exec EnvironmentVariables="MISE_ENV=browser" Command="$(MiseRun) node &quot;$(MSBuildProjectDirectory)/../../scripts/browser-assets.mjs&quot;" />
+  </Target>
+  <Target Name="IncludeBrowserAssets" BeforeTargets="PrepareForBuild" DependsOnTargets="StageBrowserAssets">
     <ItemGroup>
       <BrowserAsset Include="wwwroot/**/*" />
       <WasmExtraFilesToDeploy Include="@(BrowserAsset)" TargetPath="%(BrowserAsset.RecursiveDir)%(BrowserAsset.Filename)%(BrowserAsset.Extension)" />

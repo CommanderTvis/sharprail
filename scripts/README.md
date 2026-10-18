@@ -106,7 +106,7 @@ changed. The recipes (`build-merman.sh`, `build-notifications.sh`, `wasm-native.
 need clang, the Xcode command-line tools and, for libghostty, the Metal toolchain.
 
 `fetch-git.sh` checks out a source pinned by commit; archives are pinned by checksum in `mise.toml`.
-`browser-assets.mjs` stages the browser renderer assets, fonts and licenses into
+`browser-assets.mjs` (the browser project's `StageBrowserAssets` target, rerun when `pnpm-lock.yaml`, the PDFium pin or a licence changes) stages the browser renderer assets, fonts and licenses into
 `src/SharpRail.Browser/wwwroot/vendor`.
 
 ## Android

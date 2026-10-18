@@ -95,7 +95,7 @@ description = "Install Node, pnpm, uv and Binaryen into the shared store and lin
 env = { MISE_ENV = "browser" }
 run = [
   '"{{mise_bin}}" install',
-  'sh scripts/link-tools.sh "{{mise_bin}}" node=node pnpm=pnpm uv=uv binaryen=http:binaryen',
+  'sh scripts/link-tools.sh "{{mise_bin}}" node=node pnpm=pnpm uv=uv binaryen=http:binaryen pdfium-wasm=http:pdfium-wasm',
 ]
 
 [tasks.build]

@@ -14,7 +14,7 @@ case "${1:-build}" in
         "$dotnet" build tests/SharpRail.Checks -c "$configuration" -m:2
         "$dotnet" build src/SharpRail.Browser -c "$configuration" -m:2 -p:BrowserChecks=true
         export PLAYWRIGHT_BROWSERS_PATH="$root/.tools/playwright"
-        (cd src/SharpRail.Browser && npm exec -- playwright install chromium)
+        (cd src/SharpRail.Browser && pnpm exec playwright install chromium)
         node tests/SharpRail.Browser.Checks/selection.mjs
         node tests/SharpRail.Browser.Checks/check.mjs
         node tests/SharpRail.Browser.Checks/local-approval.mjs
