@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
 
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.UI;
@@ -8,8 +9,11 @@ using SharpRail.Plugins.UI.Kit;
 namespace SharpRail.Plugins.AirGovernance.UI;
 
 /// <summary>
-/// Settings › Air Governance. The source and the agent switches are plugin settings; pressing a button is the
-/// only thing that runs Central, and the pane shows the exact command shape new launches will get.
+/// Settings › Air Governance. The source and the agent switches are plugin settings. Only the local, read-only
+/// sign-in status check runs automatically (on open, on window activation at most every <see cref="Throttle"/>,
+/// after sign-in and sign-out, and every <see cref="PollInterval"/> for at most <see cref="PollLimit"/> while a
+/// sign-in is awaited, only while the pane is attached and visible); every other action is a button. The pane
+/// shows the exact command shape new launches will get.
 /// </summary>
 internal sealed partial class AirSettingsView : UserControl
 {
@@ -24,6 +28,19 @@ internal sealed partial class AirSettingsView : UserControl
     private AirStatus? status;
     private bool applying;
     private bool busy;
+    private bool checking;
+    private long generation;
+    private DateTime lastCheck = DateTime.MinValue;
+    private DispatcherTimer? poll;
+    private DateTime pollEnd;
+    private Window? hostWindow;
+
+    /// <summary>Least time between automatic checks on window activation.</summary>
+    internal static TimeSpan Throttle { get; set; } = TimeSpan.FromSeconds(15);
+    /// <summary>Time between checks while a sign-in is awaited.</summary>
+    internal static TimeSpan PollInterval { get; set; } = TimeSpan.FromSeconds(5);
+    /// <summary>How long a sign-in is awaited before polling stops.</summary>
+    internal static TimeSpan PollLimit { get; set; } = TimeSpan.FromMinutes(3);
 
     public AirSettingsView(IPluginUIContext context)
     {
@@ -42,7 +59,7 @@ internal sealed partial class AirSettingsView : UserControl
         central.IsCheckedChanged += (_, _) => { if (!applying && central.IsChecked == true) Save(Settings with { Source = AirSources.Central }); };
         claudeCode.IsCheckedChanged += (_, _) => { if (!applying) Save(Settings with { ClaudeCode = claudeCode.IsChecked == true }); };
         codex.IsCheckedChanged += (_, _) => { if (!applying) Save(Settings with { Codex = codex.IsChecked == true }); };
-        check.Click += (_, _) => _ = RefreshAsync(true);
+        check.Click += (_, _) => _ = CheckAsync(true);
         signIn.Click += (_, _) => _ = RunAsync(AirGovernanceContract.SignIn);
         signOut.Click += (_, _) => _ = RunAsync(AirGovernanceContract.SignOut);
         startProxy.Click += (_, _) => _ = RunAsync(AirGovernanceContract.StartProxy);
@@ -53,11 +70,20 @@ internal sealed partial class AirSettingsView : UserControl
         AttachedToVisualTree += (_, _) =>
         {
             if (observers.Count > 0) return;
+            generation++;
+            hostWindow = TopLevel.GetTopLevel(this) as Window;
+            if (hostWindow is not null) hostWindow.Activated += Activated;
+            _ = CheckAsync(true);
             observers.Add(context.OnSettings<AirSettings>(next => { ApplySettings(next); _ = RefreshAsync(false); }));
             observers.Add(context.Subscribe(AirGovernanceContract.Changed, next => { status = next; Render(); }, new AirStatusParams()));
         };
         DetachedFromVisualTree += (_, _) =>
         {
+            generation++;
+            StopPolling();
+            if (hostWindow is not null) hostWindow.Activated -= Activated;
+            hostWindow = null;
+            checking = false;
             foreach (var observer in observers) observer.Dispose();
             observers.Clear();
         };
@@ -88,6 +114,47 @@ internal sealed partial class AirSettingsView : UserControl
         }
     }
 
+    private void Activated(object? sender, EventArgs e) => OnActivated();
+
+    /// <summary>Window activation: a throttled automatic check.</summary>
+    internal void OnActivated() => _ = CheckAsync(false);
+
+    /// <summary>
+    /// The automatic, read-only sign-in check. Never overlaps another, is dropped when the pane detached meanwhile,
+    /// and without <paramref name="force"/> runs at most once per <see cref="Throttle"/>.
+    /// </summary>
+    private async Task CheckAsync(bool force)
+    {
+        if (checking || observers.Count == 0 || !IsEffectivelyVisible || (!force && DateTime.UtcNow - lastCheck < Throttle)) return;
+        checking = true; lastCheck = DateTime.UtcNow;
+        var mine = generation;
+        Render();
+        try
+        {
+            var next = await context.RequestAsync(AirGovernanceContract.Status, new AirStatusParams(true));
+            if (mine != generation) return;
+            status = next;
+            if (next.Central.Auth == "connected") StopPolling();
+        }
+        catch (PluginCallException error) { if (mine == generation) result.Text = error.Message; }
+        finally { if (mine == generation) { checking = false; lastCheck = DateTime.UtcNow; Render(); } }
+    }
+
+    private void StartPolling()
+    {
+        StopPolling();
+        pollEnd = DateTime.UtcNow + PollLimit;
+        poll = new DispatcherTimer { Interval = PollInterval };
+        poll.Tick += (_, _) =>
+        {
+            if (DateTime.UtcNow >= pollEnd || observers.Count == 0) { StopPolling(); return; }
+            _ = CheckAsync(true);
+        };
+        poll.Start();
+    }
+
+    private void StopPolling() { poll?.Stop(); poll = null; }
+
     private async Task RefreshAsync(bool probe)
     {
         try { status = await context.RequestAsync(AirGovernanceContract.Status, new AirStatusParams(probe)); Render(); }
@@ -97,14 +164,21 @@ internal sealed partial class AirSettingsView : UserControl
     private async Task RunAsync(PluginMethod<AirActionParams, AirOutcome> method)
     {
         busy = true; Render();
+        var mine = generation;
+        var automatic = method == AirGovernanceContract.SignIn || method == AirGovernanceContract.SignOut;
+        if (method == AirGovernanceContract.SignOut) StopPolling();
         try
         {
             var outcome = await context.RequestAsync(method, new AirActionParams());
+            if (mine != generation) return;
             status = outcome.Status;
             result.Text = outcome.Message;
         }
-        catch (PluginCallException error) { result.Text = error.Message; }
-        finally { busy = false; Render(); }
+        catch (PluginCallException error) { if (mine == generation) result.Text = error.Message; automatic = false; }
+        finally { if (mine == generation) { busy = false; Render(); } }
+        if (!automatic || mine != generation) return;
+        await CheckAsync(true);
+        if (method == AirGovernanceContract.SignIn && status?.Central.Auth != "connected" && status?.Central.State is "supported" or "outdated") StartPolling();
     }
 
     private async Task ListAccessAsync()
@@ -145,14 +219,15 @@ internal sealed partial class AirSettingsView : UserControl
         await ListAccessAsync();
     }
 
-    internal static string CentralLine(AirCentral central) => central.State switch
+    internal static string CentralLine(AirCentral central, bool checking = false) => central.State switch
     {
         "absent" => "Central is not installed on this host.",
         "outdated" => $"Central {central.Version} is older than the minimum this plugin supports.",
         "malformed-version" => "This Central's version could not be verified. Reinstall it, then recheck.",
         "probe-failed" => "Central could not be verified right now. Check its installation, then recheck.",
-        _ => $"Central {central.Version} at {central.Path}" + central.Auth switch
+        _ => $"Central {central.Version} at {central.Path}" + (checking ? " · checking sign-in…" : central.Auth) switch
         {
+            " · checking sign-in…" => " · checking sign-in…",
             "connected" => " · signed in",
             "signed-out" => " · signed out",
             _ => " · sign-in not checked"
@@ -164,7 +239,7 @@ internal sealed partial class AirSettingsView : UserControl
         var current = status;
         var working = busy || current?.Busy == true;
         if (current is null) { Toggle(false, working); return; }
-        centralLine.Text = CentralLine(current.Central);
+        centralLine.Text = CentralLine(current.Central, checking);
         install.IsVisible = current.Central.State == "absent";
         installCommand.Text = current.Central.InstallCommand;
         startProxy.IsVisible = current.Central.Proxy == "stopped";
@@ -182,7 +257,7 @@ internal sealed partial class AirSettingsView : UserControl
     {
         var idle = !working;
         var central = status?.Central;
-        check.IsEnabled = idle && central is { State: "supported" or "outdated" };
+        check.IsEnabled = idle && !checking && central is { State: "supported" or "outdated" };
         signIn.IsEnabled = idle && central is { State: "supported" or "outdated" } && central.Auth != "connected";
         signOut.IsEnabled = idle && central is { State: "supported" or "outdated" } && central.Auth != "signed-out";
         startProxy.IsEnabled = update.IsEnabled = idle;

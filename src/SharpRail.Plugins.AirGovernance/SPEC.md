@@ -58,8 +58,14 @@ malformed and probe-failed distinguished); `central status` (15 s) is read only 
 and only a positively observed `not connected` or `stopped` sets a flag. Output is capped at 16 KiB, timeouts kill
 the process tree, stderr is discarded.
 
-Opening the pane runs `central --version` only. Everything else is an explicit button: Check sign-in
-(`status`), Sign in (`login`, browser, waits 1.5 s for a fast failure), Sign out (`logout`), Start proxy
+Only the local, read-only sign-in status check runs automatically: `central --version` then `central status`,
+never `login`, never a browser, never the OAuth or Cloud endpoints. The pane runs it when it opens, on window
+activation (at most once per 15 s), after Sign in and Sign out, and, while a sign-in is awaited after Sign in, every
+5 s for at most 3 minutes, stopping once signed in, on Sign out, or when the pane closes. Checks never overlap, run
+off the UI thread in the host half under the 5 s and 15 s bounds, drop results arriving after the pane closed, and
+do not run while the pane is not attached and visible or the plugin is disabled (nothing then runs Central at all).
+The pane shows checking, signed in, signed out (Sign in enabled, Sign out disabled), not found, outdated and
+error states. Everything else is an explicit button: Check sign-in (the same check, immediately), Sign in (`login`, browser, waits 1.5 s for a fast failure), Sign out (`logout`), Start proxy
 (`proxy start`), Update Central (`update --install`), List access sources (below) and Switch (`access <id>`,
 then `proxy restart`; a failed restart is a warning). A missing CLI shows the platform install command from
 central-cli.labs.jb.gg as text; the plugin never runs it.

@@ -3,6 +3,7 @@ using System.Text.Json;
 
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
+using Avalonia.Threading;
 
 using SharpRail.Checks.E2E;
 using SharpRail.Host.Abstractions;
@@ -129,6 +130,7 @@ internal static class AirGovernanceChecks
         if (Directory.Exists(directory)) Directory.Delete(directory, true);
         await Detection(Path.Combine(directory, "detect"));
         Contributions();
+        await AutomaticCheck(Path.Combine(directory, "automatic"));
         await Untouched(Path.Combine(directory, "untouched"));
         await Launches(Path.Combine(directory, "launches"));
         await Failures(Path.Combine(directory, "failures"));
@@ -190,6 +192,21 @@ internal static class AirGovernanceChecks
     private static string[] Snapshot(Fixture fixture) => [.. Directory.EnumerateFiles(fixture.Home, "*", SearchOption.AllDirectories)
         .Where(file => !file.Contains(".central-stub", StringComparison.Ordinal)).Order(StringComparer.Ordinal)
         .Select(file => file + "|" + Convert.ToHexString(File.ReadAllBytes(file)) + "|" + File.GetLastWriteTimeUtc(file).Ticks)];
+
+    // The automatic check is StatusAsync(probe): only --version and status run, no secret reaches the status.
+    private static async Task AutomaticCheck(string directory)
+    {
+        using var fixture = new Fixture(directory);
+        fixture.Tokens("needs-login");
+        using var runtime = Runtime(fixture, new() { Source = AirSources.Central });
+        var first = await Task.WhenAll(Enumerable.Range(0, 4).Select(_ => runtime.StatusAsync(true, default)));
+        Require(first.All(status => status.Central.Auth == "signed-out"), "The automatic check reports signed out.");
+        fixture.Tokens("");
+        var flipped = await runtime.StatusAsync(true, default);
+        Require(flipped.Central.Auth == "connected", "After the fixture signs in, the next check reports signed in.");
+        Require(fixture.Log.All(line => line is "--version" or "status") && !JsonSerializer.Serialize(first.Concat([flipped])).Contains(Sentinel, StringComparison.Ordinal),
+            "The automatic check runs only --version and status (never login, export or access) and leaks nothing: " + string.Join("|", fixture.Log));
+    }
 
     private static async Task Untouched(string directory)
     {
@@ -518,6 +535,34 @@ internal static class AirGovernanceChecks
             settings.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "AirSwitchAccess").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             E2eWorkspace.Until(() => fake.Calls.Any(call => call.Method == "switch-access"));
             Require(fake.Calls.Last(call => call.Method == "switch-access").Params is AirSwitchParams { SourceId: "license:l" }, "Switching sends the opaque id.");
+
+            // Automatic checks: once on open, throttled on activation, polled while a sign-in is awaited, never listing.
+            int Probes() => fake.Calls.Count(call => call.Method == "status" && call.Params is AirStatusParams { Probe: true });
+            var view = settings.GetLogicalDescendants().OfType<AirSettingsView>().Single();
+            Require(Probes() >= 1 && fake.Calls.All(call => call.Method is "status" or "access-sources" or "switch-access"), "Opening the pane checked sign-in on its own.");
+            var before = Probes();
+            view.OnActivated(); view.OnActivated();
+            Dispatcher.UIThread.RunJobs(); System.Threading.Thread.Sleep(200); Dispatcher.UIThread.RunJobs();
+            Require(Probes() == before, "Activation inside the throttle window runs no check.");
+            var throttle = AirSettingsView.Throttle; var interval = AirSettingsView.PollInterval;
+            AirSettingsView.Throttle = TimeSpan.Zero; AirSettingsView.PollInterval = TimeSpan.FromMilliseconds(100);
+            try
+            {
+                view.OnActivated();
+                E2eWorkspace.Until(() => Probes() == before + 1);
+                fake.Replies["status"] = Status("supported", "signed-out", AirSources.Central);
+                fake.Replies["sign-in"] = new AirOutcome(true, "Complete sign-in in the browser.", Status("supported", "unknown", AirSources.Central));
+                Find<Button>("AirSignIn").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+                E2eWorkspace.Until(() => Probes() >= before + 4);
+                Require(Find<TextBlock>("AirCentralLine").Text!.Contains("signed out", StringComparison.Ordinal) && Find<Button>("AirSignIn").IsEnabled && !Find<Button>("AirSignOut").IsEnabled,
+                    "While a sign-in is awaited the pane polls and shows signed out.");
+                fake.Replies["status"] = Status("supported", "connected", AirSources.Central);
+                E2eWorkspace.Until(() => Find<TextBlock>("AirCentralLine").Text!.Contains("signed in", StringComparison.Ordinal));
+                var settled = Probes();
+                System.Threading.Thread.Sleep(500); Dispatcher.UIThread.RunJobs();
+                Require(Probes() == settled, "Polling stops once signed in.");
+            }
+            finally { AirSettingsView.Throttle = throttle; AirSettingsView.PollInterval = interval; }
 
             fake.Replies["status"] = Status("supported", "signed-out", AirSources.Central);
             Find<Button>("AirCheck").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));

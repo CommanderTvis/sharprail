@@ -7,7 +7,7 @@ namespace SharpRail.Plugins.AirGovernance.Host;
 /// The plugin's behaviour apart from the host context: detecting Central and the actions the user triggers on it
 /// (sign in and out, start the proxy, update, list and switch the AI access source). The plugin never edits an
 /// agent's configuration: governed launches are `central run` in the command line, built by the agent's own plugin.
-/// Nothing here runs except from a method the user triggered, and no Central output is stored or forwarded.
+/// Central runs only from a status check (the read-only `central status`, which the pane repeats automatically) or a method the user triggered, and no Central output is stored or forwarded.
 /// </summary>
 internal sealed class AirGovernanceRuntime : IDisposable
 {
@@ -15,6 +15,7 @@ internal sealed class AirGovernanceRuntime : IDisposable
     private readonly Func<AirSettings> settings;
     private readonly Action<AirStatus> publish;
     private readonly SemaphoreSlim gate = new(1, 1);
+    private readonly SemaphoreSlim probeGate = new(1, 1);
     private readonly CancellationTokenSource lifetime = new();
     private readonly List<Process> logins = [];
     private (string Auth, string Proxy) observed = ("unknown", "unknown");
@@ -35,8 +36,13 @@ internal sealed class AirGovernanceRuntime : IDisposable
         var central = await cli.InspectAsync(cancellationToken);
         if (probe && central.Path is not null && central.State is "supported" or "outdated")
         {
-            observed = await cli.ProbeAsync(central.Path, cancellationToken);
-            detail = null;
+            await probeGate.WaitAsync(cancellationToken);
+            try
+            {
+                observed = await cli.ProbeAsync(central.Path, cancellationToken);
+                detail = null;
+            }
+            finally { probeGate.Release(); }
         }
         return Build(central);
     }
