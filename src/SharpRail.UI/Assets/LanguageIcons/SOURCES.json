@@ -47,5 +47,12 @@
     "source": "https://raw.githubusercontent.com/rust-lang/rust-analyzer/70e0c46be740a471bcc95f2be290f4bbfdcffd87/assets/logo-square.svg",
     "sha256": "00a6824c792cdbfc5fb70af52dfa8992ea0224e8a4f2fed1df3ef3b317834fd8",
     "license": "licenses/lsp-icon-rust-LICENSE-MIT.txt; licenses/lsp-icon-rust-LICENSE-APACHE.txt"
+  },
+  {
+    "server": "csharp",
+    "file": "csharp-provider.png",
+    "source": "https://raw.githubusercontent.com/dotnet/vscode-csharp/def2fb9627bd0d6399e4d9b533fc31bc2fd95977/images/csharpIcon.png",
+    "sha256": "6f3c3283c922fe61789f5c9f210e31ac7ba7c5214437756bdcc5b3763c31d788",
+    "license": "licenses/lsp-icon-csharp.txt"
   }
 ]
