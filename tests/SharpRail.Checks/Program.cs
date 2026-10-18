@@ -233,6 +233,7 @@ internal static class Program
         if (args.SequenceEqual(["--agent-launches"]))
         {
             AgentLaunchChecks.RunHost();
+            AgentLaunchContributionChecks.Run();
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             AgentLaunchChecks.RunUi(root);
@@ -886,6 +887,7 @@ internal static class Program
         Gate.Case("windows-host", () => WindowsChecks.RunHost(root).GetAwaiter().GetResult());
         Gate.Case("workspace-tools", () => WorkspaceToolChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("agent-launch-origins", AgentLaunchChecks.RunHost);
+        Gate.Case("agent-launch-contributions", AgentLaunchContributionChecks.Run);
         Gate.Case("file-drop-host", () => FileDropChecks.Host(root).GetAwaiter().GetResult());
         Gate.Case("projects", () => ProjectChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("pull-requests", () => PullRequestChecks.Run(root).GetAwaiter().GetResult());

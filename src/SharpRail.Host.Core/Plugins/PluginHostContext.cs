@@ -88,6 +88,10 @@ internal sealed class PluginHostContext(PluginRuntime runtime, PluginEntry entry
     public void TerminalEnvironment(Func<TerminalRef, IReadOnlyDictionary<string, string>> contributor) =>
         Register(table => table.Environment = table.Environment.Add(contributor));
 
+    public void AgentLaunch(Func<string, AgentLaunchContribution?> contributor) => Register(table => table.LaunchContributors = table.LaunchContributors.Add(contributor));
+
+    public IReadOnlyList<AgentLaunchContribution> AgentLaunchContributions(string agentId) => runtime.LaunchContributions(agentId);
+
     public string TerminalToken(TerminalRef terminal) => TerminalSeams.Token(terminal);
 
     public TerminalRef? TerminalForToken(string token) => TerminalSeams.ForToken(token);

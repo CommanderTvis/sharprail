@@ -707,3 +707,5 @@ virtual SharpRail.Plugins.Api.UI.WorkspaceActionRegistration.PrintMembers(System
 
 SharpRail.Plugins.Api.UI.LauncherCommandOptions.Images.get -> System.Collections.Generic.IReadOnlyList<string!>!
 SharpRail.Plugins.Api.UI.LauncherCommandOptions.Images.init -> void
+SharpRail.Plugins.Api.UI.IPluginUIContext.AgentLaunch(System.Func<string!, SharpRail.Plugins.Api.AgentLaunchContribution?>! contributor) -> void
+SharpRail.Plugins.Api.UI.IPluginUIContext.AgentLaunchContributions(string! agentId) -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.AgentLaunchContribution!>!

@@ -26,6 +26,7 @@ internal sealed class ActivationTables(long id)
     public ImmutableList<Func<TerminalRef, IReadOnlyDictionary<string, string>>> Environment { get; set; } = [];
     public ImmutableList<Func<string, IReadOnlyList<string>>> ExternalFiles { get; set; } = [];
     public ImmutableList<Action<TerminalEvent>> TerminalObservers { get; set; } = [];
+    public ImmutableList<Func<string, AgentLaunchContribution?>> LaunchContributors { get; set; } = [];
     public ImmutableList<Func<TerminalRef, TerminalAgentRecord, RevivePrefill?>> ReviveHooks { get; set; } = [];
     public ImmutableList<Action<WorkspaceEvent>> WorkspaceObservers { get; set; } = [];
     public ImmutableList<Action<WorkspaceFilesChanged>> FileObservers { get; set; } = [];

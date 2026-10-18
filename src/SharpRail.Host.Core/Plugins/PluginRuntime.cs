@@ -811,6 +811,15 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
         return variables;
     }
 
+    internal IReadOnlyList<AgentLaunchContribution> LaunchContributions(string agentId)
+    {
+        var result = new List<AgentLaunchContribution>();
+        foreach (var (entry, tables) in Active())
+            foreach (var contributor in tables.LaunchContributors)
+                Guard(entry.Id, () => { if (contributor(agentId) is { } contribution) result.Add(contribution); });
+        return result;
+    }
+
     private void OnTerminal(TerminalEvent change)
     {
         foreach (var (entry, tables) in Active())

@@ -665,6 +665,7 @@ set is closed.
 | H14 | read and write namespaced JSON state under the state directory (`ReadState`, `WriteState`) | `HostStateStore`'s file is private to it |
 | H15 | a logger, its own assets directory, activation and a disposer awaited on a toggle (`Log`, `AssetsDirectory`) | none |
 | H17 | run Git in a project or workspace through the host's bounded runner (`GitAsync`) | `GitRepository`'s runner is internal to `Host.Core` |
+| H18 | contribute to another plugin's agent launch on the host, and read the active plugins' contributions: a wrapper or replacement command, variables and extra arguments, applied with `AgentLaunchComposition.Apply` (`AgentLaunch`, `AgentLaunchContributions`) | the agent plugins build their revive commands from the recorded process command alone |
 | — | expose exact absolute files outside the worktree for core text editing (`ExternalFiles`) | file reads and saves are confined to the workspace |
 
 H11 (send text to an agent session) and H16 (contribute agent extensions and skills) are not ported: SharpRail
@@ -721,6 +722,7 @@ to pi.
 | W19 | read a file under the manifest's declared `assets` directory (`ReadAssetAsync`) | a plugin with no assets throws rather than guessing a path |
 | W20 | ask for a desktop notification about a terminal that needs the user while the app is away (`NotifyAttention` with an `AttentionNotification`) | `Notify` is an in-window toast; nothing reaches a user who is elsewhere |
 | W21 | contribute an action to the context menu of a file and of lines selected in it (`FileAction` with a `FileActionRegistration`; the target names the workspace, path and one-based lines) | the Files row menu is fixed; the code editor and the Markdown preview have no menu a plugin can reach |
+| W22 | the UI-side twin of H18: contribute to and read agent launch contributions, so every launcher, start action and resume of an agent applies them (`AgentLaunch`, `AgentLaunchContributions`) | the agent plugins build their launch lines from their own settings alone |
 
 W21 has no counterpart in the fork either: its panels' menus are closed. The label callback is the predicate, so
 an action can be withheld per target and worded for what it would act on; core reads it as each menu opens.
@@ -833,3 +835,20 @@ concurrent calls. Its lease shares the host's workspace watcher set with other p
 workspace removal, project close and activation teardown release it. A late lookup cannot admit a
 lease after those lifecycle boundaries. Diagnostics distinguish logical activation leases from the
 underlying managed watcher instances; native FSEvents lifetime is checked separately on macOS.
+
+## Agent launch contributions (H18, W22)
+
+`AgentLaunchContribution` is what one plugin adds to another plugin's agent launch: `Wrapper` words, whether they
+`ReplacesExecutable`, `Environment` variables and extra `Arguments`. Contributors register per context and are asked
+for an agent id (the launcher id: `claude`, `codex`); registrations belong to the activation, so a disabled plugin
+contributes nothing and the next launch is unchanged. The agent's own plugin owns the command line and applies the
+active contributions with `AgentLaunchComposition.Apply` where it builds one: the launcher, its start action and
+right-click flags, the Create-workspace and Project Home starts (which call `TerminalCommand`), and the host's revive
+offer. Running terminals keep the command they were started with.
+
+Rules, all in `Apply`: contributions are ordered by plugin activation, outermost first. A line whose executable is not
+the agent's own (a custom command line) is returned unchanged. Wrappers that do not replace the executable come first;
+only the first replacing contribution applies and sits innermost (later replacers are ignored); arguments follow in
+order; for a variable the first contribution wins and `SHARPRAIL_` and `THINKRAIL_` names, invalid names and any
+variable for a Windows shell are dropped. Every word is one literal word, quoted for the target shell (single quotes
+on POSIX, double quotes on Windows); a contribution containing a word that cannot be quoted safely is skipped whole.

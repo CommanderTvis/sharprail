@@ -234,6 +234,10 @@ internal sealed class PluginUIContext : IPluginUIContext
                 window.FocusCompanion(host, Id, kind);
     }
 
+    public void AgentLaunch(Func<string, AgentLaunchContribution?> contributor) { Guard(); Registry.AddLaunchContributor(Id, contributor); }
+
+    public IReadOnlyList<AgentLaunchContribution> AgentLaunchContributions(string agentId) => Registry.LaunchContributions(agentId);
+
     public IReadOnlyList<AgentLauncher> Launchers() => Registry.LauncherList;
 
     public IDisposable OnLaunchersChanged(Action<IReadOnlyList<AgentLauncher>> handler)

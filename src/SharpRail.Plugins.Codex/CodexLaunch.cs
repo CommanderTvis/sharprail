@@ -27,6 +27,8 @@ public sealed record CodexLaunchOptions(bool Mcp, bool Windows)
     public bool Resume { get; init; }
     public string? ResumeSessionId { get; init; }
     public CodexLaunchPreset? Preset { get; init; }
+    /// <summary>Other plugins' launch contributions, applied to the executable word.</summary>
+    public IReadOnlyList<SharpRail.Plugins.Api.AgentLaunchContribution> Contributions { get; init; } = [];
 }
 
 /// <summary>The launch line, shared by the launcher and the host's revive prefill.</summary>
@@ -66,7 +68,8 @@ public static partial class CodexLaunch
 
     public static string Line(string command, CodexLaunchOptions options)
     {
-        var parts = new List<string> { command.Trim() is { Length: > 0 } trimmed ? trimmed : "codex" };
+        var executable = command.Trim() is { Length: > 0 } trimmed ? trimmed : "codex";
+        var parts = new List<string> { options.Contributions.Count > 0 ? SharpRail.Plugins.Api.AgentLaunchComposition.Apply(executable, "codex", options.Contributions, options.Windows) : executable };
         if (options.Resume) parts.AddRange(["resume", options.ResumeSessionId is { Length: > 0 } id ? ShellQuote(id) : "--last"]);
         else if (options.Preset?.Subcommand is { } subcommand) parts.Add(subcommand);
         if (options.Mcp && !options.Windows) parts.Add(McpOverride);

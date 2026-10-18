@@ -248,6 +248,8 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
             if (record.Kind != "claude") return null;
             var sessionId = record.SessionId is { } id && AgentResume.SessionExists(terminal.WorkspaceId, id) ? id : null;
             var offer = sessionId is not null ? AgentResume.ResumeCommand(record.Command, sessionId, record.Model, record.Effort, HookPluginDirectory) : AgentResume.ContinueCommand(record.Command, record.Model, record.Effort, HookPluginDirectory);
+            if (offer is not null && context.AgentLaunchContributions("claude") is { Count: > 0 } contributions)
+                offer = AgentLaunchComposition.Apply(offer, "claude", contributions, OperatingSystem.IsWindows());
             if (offer is null || OperatingSystem.IsWindows()) return offer is null ? null : new RevivePrefill(offer);
             // A revival is SharpRail's own launch, whatever started the session it resumes. The command comes from the
             // process table, which holds no environment, so the agent-view setting is applied again rather than carried.

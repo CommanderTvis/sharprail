@@ -303,3 +303,11 @@ Air Context prompt guidance explains meaning-based code discovery and directs ag
 use it proactively as the first step for unfamiliar behavior whenever workspace-enabled.
 Disabled or unready indexing falls back to LSP and targeted text search without blocking;
 user-only enablement/sign-in and current-draft limitations remain explicit.
+
+## Launch contributions
+
+Other plugins may contribute a wrapper, variables or arguments to this agent's launch (Plugin API W22 and H18). The
+launcher, its start action and right-click flags, the Create-workspace and Project Home starts, and the host's revive
+offer all pass the executable word of the command through `AgentLaunchComposition.Apply` for agent id `claude`, so a
+contribution reaches every new or revived terminal. A custom command that is not the `claude` executable is never
+rewritten, and a disabled contributor changes nothing.

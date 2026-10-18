@@ -42,6 +42,10 @@ internal static partial class ClaudeLaunch
         return windowsShell == "cmd" ? $"set \"{AgentViewVariable}=true\" && {line}" : $"$env:{AgentViewVariable}='true'; {line}";
     }
 
+    /// <summary>Other plugins' launch contributions (a wrapper, variables, arguments) applied to the configured command; a custom command that is not <c>claude</c> is left alone.</summary>
+    public static string Contribute(string command, IReadOnlyList<AgentLaunchContribution>? contributions, HostPlatform? platform) =>
+        contributions is { Count: > 0 } ? AgentLaunchComposition.Apply(command.Trim(), "claude", contributions, Windows(platform)) : command;
+
     public static string LaunchCommand(string command, string args = "")
     {
         var head = command.Trim();
@@ -64,7 +68,8 @@ internal static partial class ClaudeLaunch
     /// <c>--teleport</c>, then the caller's arguments, then the agent-view prefix unless the setting turned it off.
     /// </summary>
     public static string SessionCommand(string command, string args, bool disableAgentView = true, bool appendSystemPrompt = true,
-        HostPlatform? platform = null, string? windowsShell = null, string? model = null, string? effort = null)
+        HostPlatform? platform = null, string? windowsShell = null, string? model = null, string? effort = null,
+        IReadOnlyList<AgentLaunchContribution>? contributions = null)
     {
         var promptFile = appendSystemPrompt ? $"--append-system-prompt-file {EnvironmentReference(ClaudeCodeContract.PromptFileVariable, platform, windowsShell)}" : "";
         var defaults = string.Join(' ', new[]
@@ -72,7 +77,7 @@ internal static partial class ClaudeLaunch
             model is { Length: > 0 } && !HasOption(args, "--model") ? "--model " + ShellQuotePath(model) : "",
             effort is { Length: > 0 } && !HasOption(args, "--effort") ? "--effort " + ShellQuotePath(effort) : ""
         }.Where(part => part.Length > 0));
-        var line = LaunchCommand(command, string.Join(' ', new[] { promptFile, "--plugin-dir " + EnvironmentReference(ClaudeCodeContract.PluginDirectoryVariable, platform, windowsShell), defaults, args }.Where(part => part.Length > 0)));
+        var line = LaunchCommand(Contribute(command, contributions, platform), string.Join(' ', new[] { promptFile, "--plugin-dir " + EnvironmentReference(ClaudeCodeContract.PluginDirectoryVariable, platform, windowsShell), defaults, args }.Where(part => part.Length > 0)));
         if (disableAgentView) line = WithLaunchEnvironment(line, platform, windowsShell);
         return !Windows(platform) && line.Length > 0 ? "SHARPRAIL_UI_LAUNCH=claude " + line : line;
     }

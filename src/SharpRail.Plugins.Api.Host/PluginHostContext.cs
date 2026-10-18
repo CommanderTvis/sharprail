@@ -72,6 +72,22 @@ public interface IPluginHostContext
     /// <param name="contributor">Called with the spawning terminal; returns variables to add.</param>
     void TerminalEnvironment(Func<TerminalRef, IReadOnlyDictionary<string, string>> contributor);
 
+    /// <summary>
+    /// Contributes to the launch of another plugin's agent, such as a wrapper command, environment variables or extra
+    /// arguments, applied wherever that plugin builds a command line on the host, such as a revive offer (H18).
+    /// Contributions are active only while this plugin is.
+    /// </summary>
+    /// <param name="contributor">Called with the agent's id (for example <c>claude</c> or <c>codex</c>); returns its contribution or <see langword="null"/>.</param>
+    void AgentLaunch(Func<string, AgentLaunchContribution?> contributor);
+
+    /// <summary>
+    /// The contributions of every active plugin for an agent, in plugin activation order, for the agent's own plugin to
+    /// apply with <see cref="AgentLaunchComposition.Apply"/> (H18).
+    /// </summary>
+    /// <param name="agentId">The agent's id.</param>
+    /// <returns>The contributions, outermost first.</returns>
+    IReadOnlyList<AgentLaunchContribution> AgentLaunchContributions(string agentId);
+
     /// <summary>Mints, or returns the existing, opaque identity token for a terminal (H6).</summary>
     /// <param name="terminal">The terminal.</param>
     /// <returns>The token, valid until the terminal closes.</returns>

@@ -30,6 +30,7 @@ public sealed class CodexUI : PluginUIModule
             UiLaunch = true,
             AppendSystemPrompt = settings.AppendSystemPrompt,
             Mcp = settings.Mcp,
+            Contributions = context.AgentLaunchContributions(CodexManifest.Id),
             Windows = context.Host().HostPlatform == HostPlatform.Windows
         });
     }

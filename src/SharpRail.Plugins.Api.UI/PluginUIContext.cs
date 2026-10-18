@@ -150,6 +150,19 @@ public interface IPluginUIContext
     /// <param name="launcher">The launcher.</param>
     void Launcher(AgentLauncher launcher);
 
+    /// <summary>
+    /// Contributes to the launch of another plugin's agent: a wrapper command, environment variables or extra arguments
+    /// (W22). The agent's plugin applies them with <see cref="AgentLaunchComposition.Apply"/> wherever it builds a
+    /// command line, so they reach every launcher, start action and resume. Active only while this plugin is.
+    /// </summary>
+    /// <param name="contributor">Called with the launcher id (for example <c>claude</c> or <c>codex</c>); returns its contribution or <see langword="null"/>.</param>
+    void AgentLaunch(Func<string, AgentLaunchContribution?> contributor);
+
+    /// <summary>The contributions of every active plugin for an agent, in plugin activation order, outermost first (W22).</summary>
+    /// <param name="agentId">The agent's launcher id.</param>
+    /// <returns>The contributions.</returns>
+    IReadOnlyList<AgentLaunchContribution> AgentLaunchContributions(string agentId);
+
     /// <summary>Lists every registered launcher, across plugins (W9).</summary>
     /// <returns>The launchers, in registration order.</returns>
     IReadOnlyList<AgentLauncher> Launchers();

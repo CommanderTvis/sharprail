@@ -58,6 +58,7 @@ public sealed class PluginRegistry
     public IReadOnlyList<PluginFileViewer> FileViewers { get; private set; } = [];
     public IReadOnlyList<PluginRow<Func<TabRef, TabDecoration?>>> TabDecorators { get; private set; } = [];
     public IReadOnlyList<PluginRow<AgentLauncher>> Launchers { get; private set; } = [];
+    public IReadOnlyList<PluginRow<Func<string, AgentLaunchContribution?>>> LaunchContributors { get; private set; } = [];
     public IReadOnlyList<PluginRow<WorkspaceScopedActionRegistration>> WorkspaceActions { get; private set; } = [];
     public IReadOnlyList<PluginRow<ProjectScopedActionRegistration>> ProjectActions { get; private set; } = [];
     public IReadOnlyList<PluginRow<TerminalAccessoryRegistration>> TerminalAccessories { get; private set; } = [];
@@ -106,6 +107,21 @@ public sealed class PluginRegistry
     public void AddDocumentLinkSlot(string pluginId, Func<string, string, string?> value) { DocumentLinkSlots = [.. DocumentLinkSlots, new(pluginId, value)]; Raise(PluginTables.DocumentLinkSlots); }
     public void AddFileAction(string pluginId, FileActionRegistration value) { FileActions = [.. FileActions, new(pluginId, value)]; Raise(PluginTables.FileActions); }
 
+    public void AddLaunchContributor(string pluginId, Func<string, AgentLaunchContribution?> value) { LaunchContributors = [.. LaunchContributors, new(pluginId, value)]; Raise(PluginTables.Predicates); }
+
+    /// <summary>The active plugins' contributions for an agent, in registration order; a throwing contributor adds nothing.</summary>
+    public IReadOnlyList<AgentLaunchContribution> LaunchContributions(string agentId)
+    {
+        var result = new List<AgentLaunchContribution>();
+        foreach (var row in LaunchContributors)
+        {
+            if (!active.Contains(row.PluginId)) continue;
+            try { if (row.Value(agentId) is { } contribution) result.Add(contribution); }
+            catch (Exception error) when (error is not OperationCanceledException) { }
+        }
+        return result;
+    }
+
     public void AddLauncher(string pluginId, AgentLauncher value)
     {
         Launchers = [.. Launchers, new(pluginId, value)];
@@ -130,6 +146,7 @@ public sealed class PluginRegistry
         FileViewers = Drop(FileViewers, row => row.PluginId, PluginTables.FileViewers);
         TabDecorators = Drop(TabDecorators, row => row.PluginId, PluginTables.TabDecorators);
         Launchers = Drop(Launchers, row => row.PluginId, PluginTables.Launchers);
+        LaunchContributors = Drop(LaunchContributors, row => row.PluginId, PluginTables.Predicates);
         WorkspaceActions = Drop(WorkspaceActions, row => row.PluginId, PluginTables.WorkspaceActions);
         ProjectActions = Drop(ProjectActions, row => row.PluginId, PluginTables.ProjectActions);
         TerminalAccessories = Drop(TerminalAccessories, row => row.PluginId, PluginTables.TerminalAccessories);

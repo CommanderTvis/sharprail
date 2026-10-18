@@ -361,3 +361,22 @@ static SharpRail.Plugins.Api.TerminalAgentRecord.operator !=(SharpRail.Plugins.A
 static SharpRail.Plugins.Api.TerminalAgentRecord.operator ==(SharpRail.Plugins.Api.TerminalAgentRecord? left, SharpRail.Plugins.Api.TerminalAgentRecord? right) -> bool
 static SharpRail.Plugins.Api.TerminalRef.operator !=(SharpRail.Plugins.Api.TerminalRef? left, SharpRail.Plugins.Api.TerminalRef? right) -> bool
 static SharpRail.Plugins.Api.TerminalRef.operator ==(SharpRail.Plugins.Api.TerminalRef? left, SharpRail.Plugins.Api.TerminalRef? right) -> bool
+SharpRail.Plugins.Api.AgentLaunchComposition
+SharpRail.Plugins.Api.AgentLaunchContribution
+SharpRail.Plugins.Api.AgentLaunchContribution.<Clone>$() -> SharpRail.Plugins.Api.AgentLaunchContribution!
+SharpRail.Plugins.Api.AgentLaunchContribution.AgentLaunchContribution() -> void
+SharpRail.Plugins.Api.AgentLaunchContribution.Arguments.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Plugins.Api.AgentLaunchContribution.Arguments.init -> void
+SharpRail.Plugins.Api.AgentLaunchContribution.Environment.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+SharpRail.Plugins.Api.AgentLaunchContribution.Environment.init -> void
+SharpRail.Plugins.Api.AgentLaunchContribution.Equals(SharpRail.Plugins.Api.AgentLaunchContribution? other) -> bool
+SharpRail.Plugins.Api.AgentLaunchContribution.ReplacesExecutable.get -> bool
+SharpRail.Plugins.Api.AgentLaunchContribution.ReplacesExecutable.init -> void
+SharpRail.Plugins.Api.AgentLaunchContribution.Wrapper.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Plugins.Api.AgentLaunchContribution.Wrapper.init -> void
+override SharpRail.Plugins.Api.AgentLaunchContribution.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.AgentLaunchContribution.GetHashCode() -> int
+override SharpRail.Plugins.Api.AgentLaunchContribution.ToString() -> string!
+static SharpRail.Plugins.Api.AgentLaunchComposition.Apply(string! commandLine, string! executable, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.AgentLaunchContribution!>! contributions, bool windows = false) -> string!
+static SharpRail.Plugins.Api.AgentLaunchContribution.operator !=(SharpRail.Plugins.Api.AgentLaunchContribution? left, SharpRail.Plugins.Api.AgentLaunchContribution? right) -> bool
+static SharpRail.Plugins.Api.AgentLaunchContribution.operator ==(SharpRail.Plugins.Api.AgentLaunchContribution? left, SharpRail.Plugins.Api.AgentLaunchContribution? right) -> bool

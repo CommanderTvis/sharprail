@@ -52,7 +52,8 @@ public sealed class ClaudeCodeUI : PluginUIModule
                 parts.Add(ClaudeLaunch.ShellQuotePath(string.Join("\n\n", new[] { options.InitialPrompt }
                     .Concat(options.Images.Select(path => "Read the attached image: " + path)).Where(text => !string.IsNullOrWhiteSpace(text)))));
             return ClaudeLaunch.SessionCommand(command, string.Join(' ', parts), settings.DisableAgentView,
-                settings.AppendSystemPrompt, context.Host().HostPlatform, model: options.Model is null ? settings.Model : null, effort: settings.Effort);
+                settings.AppendSystemPrompt, context.Host().HostPlatform, model: options.Model is null ? settings.Model : null, effort: settings.Effort,
+                contributions: context.AgentLaunchContributions("claude"));
         }, () => new(true))
         { CreateIcon = glyph.Create, Models = () => [.. ClaudeLaunch.Models.Select(model => new LauncherModel(model.Id, model.Label, "asset:claude.svg"))] });
         context.WorkspaceAction(new WorkspaceScopedActionRegistration("claude-launch",

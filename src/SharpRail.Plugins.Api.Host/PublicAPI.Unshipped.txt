@@ -289,3 +289,5 @@ virtual SharpRail.Plugins.Api.Host.TerminalEvent.PrintMembers(System.Text.String
 virtual SharpRail.Plugins.Api.Host.WorkspaceEvent.EqualityContract.get -> System.Type!
 virtual SharpRail.Plugins.Api.Host.WorkspaceEvent.Equals(SharpRail.Plugins.Api.Host.WorkspaceEvent? other) -> bool
 virtual SharpRail.Plugins.Api.Host.WorkspaceEvent.PrintMembers(System.Text.StringBuilder! builder) -> bool
+SharpRail.Plugins.Api.Host.IPluginHostContext.AgentLaunch(System.Func<string!, SharpRail.Plugins.Api.AgentLaunchContribution?>! contributor) -> void
+SharpRail.Plugins.Api.Host.IPluginHostContext.AgentLaunchContributions(string! agentId) -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.AgentLaunchContribution!>!

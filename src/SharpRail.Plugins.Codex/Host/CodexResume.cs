@@ -84,7 +84,8 @@ public static partial class CodexResume
 
     /// <summary>The revive command, or null when the configured command cannot be rebuilt without damaging it.</summary>
     public static string? Command(string command, string? sessionId, bool mcp, bool windows, string? permissionMode, string? home = null,
-        bool appendSystemPrompt = false, bool uiLaunch = false, string? model = null, string? effort = null)
+        bool appendSystemPrompt = false, bool uiLaunch = false, string? model = null, string? effort = null,
+        IReadOnlyList<SharpRail.Plugins.Api.AgentLaunchContribution>? contributions = null)
     {
         if (Invocation(command, model, effort) is not { } invocation) return null;
         return CodexLaunch.Line(invocation, new(mcp, windows)
@@ -94,6 +95,7 @@ public static partial class CodexResume
             PermissionMode = permissionMode,
             Model = model,
             Effort = effort,
+            Contributions = contributions ?? [],
             Resume = true,
             ResumeSessionId = sessionId is not null && SessionExists(sessionId, home) ? sessionId : null
         });
