@@ -8,6 +8,9 @@ namespace SharpRail.Plugins.AirGovernance.Host;
 /// <summary>Where the host looks for Central and the agents' configuration; checks point it at a fixture home.</summary>
 internal sealed record AirEnvironment(string Home, string SearchPath, string? ClaudeDirectory = null, string? CodexDirectory = null)
 {
+    /// <summary>Checks only: loopback endpoints standing in for the fixed production table. Nothing outside the checks sets it.</summary>
+    internal AirAccessEndpoints? TestEndpoints { get; init; }
+
     public static AirEnvironment Current() => new(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
         Environment.GetEnvironmentVariable("PATH") ?? "",
         Environment.GetEnvironmentVariable("CLAUDE_CONFIG_DIR"), Environment.GetEnvironmentVariable("CODEX_HOME"));
@@ -71,8 +74,11 @@ internal sealed partial class AirCentralCli(AirEnvironment environment)
     {
         var start = new ProcessStartInfo(executable)
         {
-            RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true,
-            UseShellExecute = false, CreateNoWindow = true
+            RedirectStandardInput = true,
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
         };
         foreach (var argument in arguments) start.ArgumentList.Add(argument);
         start.Environment["HOME"] = Environment.Home;
@@ -191,27 +197,4 @@ internal sealed partial class AirCentralCli(AirEnvironment environment)
     private static partial Regex SelectionId();
 
     public static bool IsSelectionId(string value) => SelectionId().Match(value) is { Success: true } match && match.Value == value;
-
-    /// <summary>
-    /// Reads <c>central access</c> listings: one source per line carrying the opaque selection id the fork's
-    /// access feature uses (<c>workspace:org:ws</c> or <c>license:id</c>). The rest of the line is the display name,
-    /// the one Central-derived text shown to the user, stripped of control characters and bounded.
-    /// </summary>
-    public static IReadOnlyList<AirAccessSource> ParseAccess(string output)
-    {
-        var sources = new List<AirAccessSource>();
-        foreach (var raw in Ansi().Replace(output, "").Split('\n'))
-        {
-            if (SelectionId().Match(raw) is not { Success: true } match) continue;
-            var current = Regex.IsMatch(raw, @"(^\s*[*>●✓])|\(current\)|\[current\]|\bcurrent\b", RegexOptions.IgnoreCase);
-            var name = SelectionId().Replace(raw, " ");
-            name = Regex.Replace(name, @"[*>●✓]|\(current\)|\[current\]|\bcurrent\b", " ", RegexOptions.IgnoreCase);
-            name = new string([.. name.Where(character => !char.IsControl(character))]);
-            name = Regex.Replace(name, @"\s+", " ").Trim(' ', '-', ':', '|', '·', '(', ')');
-            if (name.Length > 80) name = name[..80];
-            if (sources.Any(source => source.Id == match.Value)) continue;
-            sources.Add(new(match.Value, name.Length == 0 ? match.Value : name, current));
-        }
-        return sources;
-    }
 }

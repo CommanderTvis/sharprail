@@ -47,7 +47,8 @@ is never rewritten and so is not governed; the pane says so. Running terminals k
 rather than silently starting an ungoverned agent. The pane shows the exact command shape each agent will get.
 
 Central chooses its own AI access source and proxy; `central access <id>` (switch, then `central proxy restart`)
-stays the way to change it, as in the fork.
+stays the way to change it, as in the fork. The pane states persistently that switching affects every app using the
+host OS user's Central.
 
 ## Detection and actions
 
@@ -59,15 +60,44 @@ the process tree, stderr is discarded.
 
 Opening the pane runs `central --version` only. Everything else is an explicit button: Check sign-in
 (`status`), Sign in (`login`, browser, waits 1.5 s for a fast failure), Sign out (`logout`), Start proxy
-(`proxy start`), Update Central (`update --install`), List access sources (`access`) and Switch (`access <id>`,
+(`proxy start`), Update Central (`update --install`), List access sources (below) and Switch (`access <id>`,
 then `proxy restart`; a failed restart is a warning). A missing CLI shows the platform install command from
 central-cli.labs.jb.gg as text; the plugin never runs it.
 
+## Listing access sources
+
+`central access` output is not parsed. Listing follows JetBrains/thinkrail#708 and runs only on the List button:
+`central login export` (16 KiB, 15 s) yields a version-1 `central-<base64url>` envelope with `environment`,
+`refresh_token` and the current `ai_access` selection. The refresh token is exchanged (`client_id=central-cli`) at
+the fixed OAuth endpoint of that environment and the access token is sent to JetBrains Cloud's
+`user-management/api/ai-access-options`. Only `prod` and `staging` are known; both endpoint pairs are a fixed HTTPS
+table in the host half, so nothing in the envelope or a response can name a host. Enabled workspaces and licences give
+the selection ids (`workspace:<org>:<ws>`, `license:<id>`) and display names; the exported selection gives the
+current marker.
+
+Everything fails closed with a specific pane message: no export (signed out), a malformed envelope, an unknown
+environment (nothing is sent), a redirect (never followed), any HTTP error, a response over 64 KiB, a malformed token
+or options response, a timeout (15 s), and a refresh token that differs from the exported one. Only a well-formed
+empty list says Central listed no selectable sources. The envelope and endpoint are internal interfaces of Central
+and JetBrains Cloud, not a documented listing contract, and may need updating when they change. Tokens stay in
+locals and byte buffers that are cleared after use (strings from the JSON reader cannot be cleared and are dropped
+for collection); nothing is logged, stored, thrown or sent to the pane. Listing runs one at a time.
+
+Compatibility risk (from #708): listing refreshes Central's credential independently of Central. If the OAuth server
+rotates the refresh token and revokes the original, rejecting the replacement does not undo that server-side change;
+Central would keep an invalid credential and every app sharing its session could be signed out. This is conditional,
+not a reproduced failure: #708's live check on 2026-10-13 with Central 1.13.0 saw two exchanges return the identical
+refresh token (RFC 6749 section 6 permits rotation). A Central-owned authenticated listing operation or a supported
+credential synchronisation contract would remove the assumption.
+
+Switches serialise behind the action gate; a request for the source queued last shares that switch, any other source
+queues its own, so A, B, A runs in order and ends on A.
+
 ## Untrusted output
 
-Central's output is data. Only the version, the sign-in and proxy verdicts, exit codes (as fixed messages) and
-access-source display names reach the pane; names are the one Central-derived text shown (as in the fork), stripped
-of control characters and capped at 80 characters. Selection ids must match `workspace:<id>[:<id>]` or
+Central's output and the endpoint responses are data. Only the version, the sign-in and proxy verdicts, exit codes and
+failure reasons (as fixed messages) and access-source display names reach the pane; names are the one derived text
+shown (as in the fork), stripped of control characters and capped at 80 characters. Selection ids must match `workspace:<id>[:<id>]` or
 `license:<id>` before they are passed back as an argument. The plugin stores and logs no credentials, tokens or
 Central output, and never passes `--accept-tos`.
 
@@ -79,12 +109,16 @@ replies. Mutating calls are serialised and publish a busy status on the `status`
 ## Verification and limits
 
 `--air-governance` runs the host and pane checks against a fake `central` modelled on the fork's fixture (version,
-status rows, access, proxy, login, update) plus a `run` that records its argv, under a throwaway home: detection,
+status rows, `login export`, access switching, proxy, login, update) plus a `run` that records its argv, under a throwaway home: detection,
 the contributions per source and toggle, the Claude and Codex launch lines executed by a real shell so prompts with
 quotes and `$(...)` arrive as single arguments, a fake HOME whose `.claude`, `.codex`, `CLAUDE_CONFIG_DIR` and
 `CODEX_HOME` stay byte- and time-identical across every action and source switch, failures, access switching, the
 host seam over plugin RPC (including disable) and the pane and real launchers through headless input.
-Not verified against the real CLI: the exact `central status` and `central access` output formats, that
+The listing runs against a loopback fake of the OAuth server and Cloud (a checks-only endpoint override that production
+code never sets): success with the current marker, signed out, unknown environment, redirect, malformed and oversized
+responses, rotation, secrets absent from every surfaced string, switching with proxy-restart failure and A, B, A.
+Not verified against the real CLI or production endpoints (never called from checks): the live envelope and endpoint,
+the exact `central status` output format, that
 `central run <agent> -- <args>` forwards SharpRail's prompt, plugin-dir and MCP arguments and environment to the agent
 unchanged, how `central run` picks the access source, and the ToS prompt of `central access`. The parsers follow the
 fork's.

@@ -114,17 +114,44 @@ internal sealed class AirGovernanceRuntime : IDisposable
         return (ok, ok ? "Central was updated." : message);
     });
 
+    private readonly SemaphoreSlim listing = new(1, 1);
+    private readonly object switchLock = new();
+    private (string Id, Task<AirOutcome> Task)? latestSwitch;
+
+    /// <summary>
+    /// Lists the sources through the signed-in session (see <see cref="AirAccessLister"/>), one listing at a time
+    /// so two requests never refresh the same credential concurrently. Runs only from the user's button.
+    /// </summary>
     public async Task<AirAccessList> AccessSourcesAsync(CancellationToken cancellationToken)
     {
         var central = await cli.InspectAsync(cancellationToken);
         if (central.State != "supported") return new([], "Central is not available.");
-        var result = await cli.RunAsync(central.Path!, ["access"], AirCentralCli.StatusTimeout, true, cancellationToken);
-        if (result is not { Outcome: "exited", ExitCode: 0 }) return new([], "Central could not list AI access sources. If it asks for terms, run `central access` once in a terminal.");
-        var sources = AirCentralCli.ParseAccess(result.Stdout);
-        return new(sources, sources.Count == 0 ? "Central listed no selectable AI access sources." : null);
+        await listing.WaitAsync(cancellationToken);
+        try
+        {
+            var result = await AirAccessLister.ListAsync(cli, central.Path!, cancellationToken);
+            if (result.Sources is not { } sources) return new([], result.Failure);
+            return new(sources, sources.Count == 0 ? "Central listed no selectable AI access sources." : null);
+        }
+        finally { listing.Release(); }
     }
 
-    public Task<AirOutcome> SwitchAccessAsync(string id) => ExclusiveAsync(async cancellationToken =>
+    /// <summary>
+    /// Switches serialise behind the gate. A request for the source already queued last shares that switch; any other
+    /// source queues its own, so A, B, A runs all three in order and ends on A.
+    /// </summary>
+    public Task<AirOutcome> SwitchAccessAsync(string id)
+    {
+        lock (switchLock)
+        {
+            if (latestSwitch is { } last && last.Id == id && !last.Task.IsCompleted) return last.Task;
+            var task = SwitchCoreAsync(id);
+            latestSwitch = (id, task);
+            return task;
+        }
+    }
+
+    private Task<AirOutcome> SwitchCoreAsync(string id) => ExclusiveAsync(async cancellationToken =>
     {
         if (!AirCentralCli.IsSelectionId(id)) return (false, "That is not an AI access source id.");
         var central = await cli.InspectAsync(cancellationToken);

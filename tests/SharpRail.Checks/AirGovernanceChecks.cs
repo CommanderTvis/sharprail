@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json;
 
 using Avalonia.Controls;
@@ -53,6 +54,7 @@ internal static class AirGovernanceChecks
         access)
           has access-error && exit 17
           if [ -n "${2:-}" ]; then
+            has slow-access && sleep 0.4
             echo "$2" > "$stub/access"; exit 0
           fi
           current=$(cat "$stub/access" 2>/dev/null || echo workspace:org-1:ws-1)
@@ -67,7 +69,12 @@ internal static class AirGovernanceChecks
           restart) has proxy-restart-error && exit 15; drop proxy-stopped ;;
           stop) add proxy-stopped ;;
           esac ;;
-        login) has login-error && exit 12; if has slow-login; then sleep 3; fi; drop needs-login ;;
+        login)
+          if [ "${2:-}" = export ]; then
+            if has needs-login || [ ! -f "$stub/export" ]; then exit 9; fi
+            cat "$stub/export"; exit 0
+          fi
+          has login-error && exit 12; if has slow-login; then sleep 3; fi; drop needs-login ;;
         logout) add needs-login ;;
         update) has update-error && exit 13; drop outdated ;;
         run)
@@ -137,9 +144,6 @@ internal static class AirGovernanceChecks
         Require(AirCentralCli.ParseStatus("\u001b[1mAuth      \u001b[m \u001b[31mnot connected\u001b[m\n\u001b[1mProxy     \u001b[m stopped\n") == ("signed-out", "stopped") &&
             AirCentralCli.ParseStatus("Auth      Someone\nProxy     running on port 1\n") == ("connected", "running") && AirCentralCli.ParseStatus("noise") == ("unknown", "unknown"),
             "Only the Auth and Proxy rows count, and unknown never sets a flag.");
-        var sources = AirCentralCli.ParseAccess("* workspace:o-1:w-1  Team \u001b[1mone\u001b[m\u0007\n  license:l-2  Personal (current)\n  nonsense  E2E\nworkspace:o-1:w-1 dup\n");
-        Require(sources.Count == 2 && sources[0] is { Id: "workspace:o-1:w-1", Name: "Team one", Current: true } && sources[1] is { Id: "license:l-2", Name: "Personal", Current: true },
-            "Access listings keep opaque ids and sanitized names only: " + string.Join("|", sources));
         Require(AirCentralCli.IsSelectionId("license:abc-1") && !AirCentralCli.IsSelectionId("license:a b") && !AirCentralCli.IsSelectionId("--help") && !AirCentralCli.IsSelectionId("workspace:a:b:c"),
             "Only well-formed selection ids reach `central access`.");
     }
@@ -196,7 +200,7 @@ internal static class AirGovernanceChecks
         {
             using var runtime = Runtime(fixture, new() { Source = source });
             await runtime.StatusAsync(true, default);
-            await runtime.SignInAsync(); await runtime.SignOutAsync(); await runtime.StartProxyAsync(); await runtime.AccessSourcesAsync(default); await runtime.SwitchAccessAsync("license:lic-9");
+            await runtime.SignInAsync(); await runtime.SignOutAsync(); await runtime.StartProxyAsync(); await runtime.SwitchAccessAsync("license:lic-9");
             Require(AirLaunch.Contribution(new() { Source = source }, "claude", fixture.Central) is null == (source == AirSources.Direct), "Switching sources only changes contributions.");
         }
         Require(Snapshot(fixture).SequenceEqual(before) && Directory.EnumerateDirectories(fixture.Home, "*", SearchOption.AllDirectories).Where(path => !path.Contains(".central-stub", StringComparison.Ordinal)).Order(StringComparer.Ordinal).SequenceEqual(dirs),
@@ -261,23 +265,158 @@ internal static class AirGovernanceChecks
         Require(status.Source == AirSources.Central && status.Agents.All(agent => agent.Launch is not null) && !JsonSerializer.Serialize(status).Contains(Sentinel, StringComparison.Ordinal), "Status shows the launch shapes and no Central output.");
     }
 
+    private const string RefreshSecret = "SECRET-REFRESH-TOKEN-1f9";
+    private const string AccessSecret = "SECRET-ACCESS-TOKEN-7c2";
+
+    private static string Envelope(string environment = "prod", string? refresh = RefreshSecret, string? current = "ws") =>
+        "central-" + System.Buffers.Text.Base64Url.EncodeToString(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(new Dictionary<string, object?>
+        {
+            ["version"] = 1,
+            ["environment"] = environment,
+            ["refresh_token"] = refresh,
+            ["ai_access"] = current == "ws" ? new { type = "workspace", org_id = "org-1", workspace_id = "ws-1" } : new { type = "license", license_id = "lic-9" }
+        })));
+
+    private const string Options = """
+        {"aiAccessOptions":[
+          {"type":"workspace","orgId":"org-1","workspaceId":"ws-1","workspaceName":"Team\u0007 workspace","aiAccessEnabled":true},
+          {"type":"license","licenseId":"lic-9","licenseName":"Personal licence","aiAccessEnabled":true},
+          {"type":"license","licenseId":"lic-off","licenseName":"Disabled","aiAccessEnabled":false}]}
+        """;
+
+    /// <summary>A loopback HTTP endpoint standing in for the OAuth server and Cloud; the production table is never contacted.</summary>
+    private sealed class FakeEndpoint : IDisposable
+    {
+        private readonly System.Net.HttpListener listener = new();
+        internal List<string> Requests { get; } = [];
+        internal string? TokenBody, Authorization;
+        internal Func<(int Status, string Body, string? Location)> Token = () => (200, $"{{\"access_token\":\"{AccessSecret}\",\"refresh_token\":\"{RefreshSecret}\"}}", null);
+        internal Func<(int Status, string Body, string? Location)> Access = () => (200, Options, null);
+
+        internal FakeEndpoint()
+        {
+            var probe = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0); probe.Start();
+            var port = ((System.Net.IPEndPoint)probe.LocalEndpoint).Port; probe.Stop();
+            Prefix = $"http://127.0.0.1:{port}/";
+            listener.Prefixes.Add(Prefix); listener.Start();
+            _ = Task.Run(async () =>
+            {
+                while (listener.IsListening)
+                {
+                    System.Net.HttpListenerContext context;
+                    try { context = await listener.GetContextAsync(); } catch (Exception) { return; }
+                    var token = context.Request.Url!.AbsolutePath == "/token";
+                    Requests.Add(context.Request.HttpMethod + " " + context.Request.Url.AbsolutePath);
+                    if (token) { using var reader = new StreamReader(context.Request.InputStream); TokenBody = await reader.ReadToEndAsync(); }
+                    else Authorization = context.Request.Headers["Authorization"];
+                    var (status, body, location) = token ? Token() : Access();
+                    context.Response.StatusCode = status;
+                    if (location is not null) context.Response.Headers["Location"] = location;
+                    var bytes = Encoding.UTF8.GetBytes(body);
+                    await context.Response.OutputStream.WriteAsync(bytes);
+                    context.Response.Close();
+                }
+            });
+        }
+
+        internal string Prefix { get; }
+        internal AirAccessEndpoints Endpoints => new(new(Prefix + "token"), new(Prefix + "options"));
+        public void Dispose() => listener.Close();
+    }
+
     private static async Task Access(string directory)
     {
+        var table = AirAccessEndpoints.For("prod")!;
+        var staging = AirAccessEndpoints.For("staging")!;
+        Require(AirAccessEndpoints.For("dev") is null && AirAccessEndpoints.For("") is null && new[] { table, staging }.All(known => known.Token.Scheme == "https" && known.Options.Scheme == "https") &&
+            table.Token.Host == "oauth.account.jetbrains.com" && table.Options.Host == "api.jetbrains.cloud" && staging.Options.Host == "api.stgn.jetbrains.cloud",
+            "Production endpoints are a fixed HTTPS table keyed by the environment name, nothing the envelope can name.");
+
         using var fixture = new Fixture(directory);
-        using var runtime = Runtime(fixture, new());
+        using var endpoint = new FakeEndpoint();
+        var environment = fixture.Environment with { TestEndpoints = endpoint.Endpoints };
+        var surfaced = new List<string>();
+        var published = new List<AirStatus>();
+        using var runtime = new AirGovernanceRuntime(environment, () => new(), status => published.Add(status));
+        void Export(string text) { Directory.CreateDirectory(Path.GetDirectoryName(fixture.StubFile("export"))!); File.WriteAllText(fixture.StubFile("export"), text + "\n"); }
+        async Task<AirAccessList> List() { var list = await runtime.AccessSourcesAsync(default); surfaced.Add(JsonSerializer.Serialize(list)); return list; }
+
+        // Success: enabled sources only, the current one from the exported selection, names sanitized.
+        Export(Envelope());
         var before = fixture.Log.Length;
-        var sources = await runtime.AccessSourcesAsync(default);
-        Require(sources.Sources.Count == 2 && sources.Sources.Single(source => source.Current).Id == "workspace:org-1:ws-1" && sources.Sources.All(source => !source.Name.Contains(Sentinel, StringComparison.Ordinal)), "Access sources list names and the current one only.");
-        Require(fixture.Log.Length == before + 2 && fixture.Log[^1] == "access", "Listing runs only `central access`.");
+        var sources = await List();
+        Require(sources.Detail is null && sources.Sources.Count == 2 && sources.Sources[0] is { Id: "workspace:org-1:ws-1", Name: "Team workspace", Current: true } && sources.Sources[1] is { Id: "license:lic-9", Current: false },
+            "Listing reads the AI access options endpoint: " + JsonSerializer.Serialize(sources));
+        Require(fixture.Log.Skip(before).All(line => line is "--version" or "login export") && fixture.Log.Contains("login export"), "Listing runs `login export`, not `central access`.");
+        Require(endpoint.TokenBody == $"grant_type=refresh_token&client_id=central-cli&refresh_token={RefreshSecret}" && endpoint.Authorization == "Bearer " + AccessSecret && endpoint.Requests.SequenceEqual(["POST /token", "GET /options"]),
+            "The refresh token is exchanged once and the access token is sent only to the options endpoint.");
+        Export(Envelope(current: "license"));
+        Require((await List()).Sources.Single(source => source.Current).Id == "license:lic-9", "The current marker follows the exported selection.");
+
+        // Genuine empty list keeps the old message.
+        endpoint.Access = () => (200, "{\"aiAccessOptions\":[]}", null);
+        var empty = await List();
+        Require(empty.Sources.Count == 0 && empty.Detail == "Central listed no selectable AI access sources.", "Only a genuinely empty list says there are no selectable sources.");
+        endpoint.Access = () => (200, Options, null);
+
+        async Task Refused(string name, string expected, int requests)
+        {
+            endpoint.Requests.Clear();
+            var list = await List();
+            Require(list.Sources.Count == 0 && list.Detail is not null && list.Detail.Contains(expected, StringComparison.Ordinal) && !list.Detail.Contains("no selectable", StringComparison.Ordinal) && endpoint.Requests.Count == requests,
+                $"{name}: expected '{expected}' after {requests} requests, got '{list.Detail}' after {endpoint.Requests.Count}.");
+        }
+
+        fixture.Tokens("needs-login");
+        await Refused("Signed out", "no signed-in session", 0);
+        fixture.Tokens("");
+        File.Delete(fixture.StubFile("export"));
+        await Refused("Export fails", "no signed-in session", 0);
+        Export("not an envelope"); await Refused("Garbage export", "not in the expected format", 0);
+        Export("central-" + System.Buffers.Text.Base64Url.EncodeToString("[]"u8)); await Refused("Wrong shape", "not in the expected format", 0);
+        Export(Envelope(refresh: null)); await Refused("No refresh token", "not in the expected format", 0);
+        Export(Envelope(environment: "dev")); await Refused("Unknown environment", "unknown environment", 0);
+        Export(Envelope());
+        endpoint.Token = () => (302, "", "http://127.0.0.1:1/elsewhere"); await Refused("Token redirect", "redirected", 1);
+        endpoint.Token = () => (200, $"{{\"access_token\":\"{AccessSecret}\"}}", null);
+        endpoint.Access = () => (302, "", "http://127.0.0.1:1/elsewhere"); await Refused("Options redirect", "redirected", 2);
+        endpoint.Access = () => (200, "{\"aiAccessOptions\":{}}", null); await Refused("Malformed options", "unexpected list", 2);
+        endpoint.Access = () => (200, "{\"aiAccessOptions\":[{\"type\":\"license\",\"licenseId\":\"a b\",\"licenseName\":\"x\",\"aiAccessEnabled\":true}]}", null); await Refused("Bad id", "unexpected list", 2);
+        endpoint.Access = () => (200, "not json", null); await Refused("Not JSON", "unexpected list", 2);
+        endpoint.Access = () => (500, "boom " + RefreshSecret, null); await Refused("Endpoint error", "HTTP 500", 2);
+        endpoint.Access = () => (200, new string(' ', AirAccessLister.MaxResponse + 10) + Options, null); await Refused("Oversized", "too large", 2);
+        endpoint.Access = () => (200, Options, null);
+        endpoint.Token = () => (401, "{}", null); await Refused("Rejected session", "rejected", 1);
+        endpoint.Token = () => (200, "{\"refresh_token\":\"x\"}", null); await Refused("No access token", "unexpected token", 1);
+        endpoint.Token = () => (200, $"{{\"access_token\":\"{AccessSecret}\",\"refresh_token\":\"ROTATED-{RefreshSecret}\"}}", null); await Refused("Rotation", "rotated", 1);
+        Require(endpoint.Requests.All(request => request != "GET /options"), "A rotated refresh token stops before the options request.");
+
+        // Nothing surfaced carries a secret.
+        var everything = string.Concat(surfaced) + JsonSerializer.Serialize(published) + string.Join("\n", fixture.Log);
+        Require(!everything.Contains("SECRET-", StringComparison.Ordinal) && !everything.Contains("ROTATED-", StringComparison.Ordinal) && !Snapshot(fixture).Any(line => line.Contains(Convert.ToHexString(Encoding.UTF8.GetBytes(RefreshSecret)), StringComparison.Ordinal)),
+            "No token appears in any listing, status or logged argument.");
+
+        // Switching: central access <id>, then the proxy restart, reported separately.
         var switched = await runtime.SwitchAccessAsync("license:lic-9");
-        Require(switched.Ok && File.ReadAllText(fixture.StubFile("access")).Trim() == "license:lic-9" && fixture.Log.Contains("proxy restart") &&
-            (await runtime.AccessSourcesAsync(default)).Sources.Single(source => source.Current).Id == "license:lic-9", "Switching selects the source and restarts the proxy.");
+        Require(switched.Ok && File.ReadAllText(fixture.StubFile("access")).Trim() == "license:lic-9" && fixture.Log.Contains("proxy restart"), "Switching selects the source and restarts the proxy.");
         fixture.Tokens("proxy-restart-error");
         var warned = await runtime.SwitchAccessAsync("workspace:org-1:ws-1");
         Require(warned.Ok && warned.Message.Contains("could not be restarted", StringComparison.Ordinal), "A proxy that will not restart is a warning, as in the fork.");
         Require(!(await runtime.SwitchAccessAsync("--accept-tos")).Ok && fixture.Log.All(line => !line.Contains("--accept-tos", StringComparison.Ordinal)), "Anything that is not a selection id never reaches Central.");
         fixture.Tokens("access-error");
-        Require(!(await runtime.SwitchAccessAsync("license:lic-9")).Ok && (await runtime.AccessSourcesAsync(default)).Sources.Count == 0, "Failing access calls return failure and no sources.");
+        Require(!(await runtime.SwitchAccessAsync("license:lic-9")).Ok, "A failing switch returns failure.");
+
+        // Serialisation: distinct sources queue in order, a repeat of the latest queued source shares its switch, A, B, A ends on A.
+        fixture.Tokens("slow-access");
+        File.Delete(fixture.StubFile("log"));
+        var first = runtime.SwitchAccessAsync("license:lic-9");
+        var second = runtime.SwitchAccessAsync("workspace:org-1:ws-1");
+        var third = runtime.SwitchAccessAsync("license:lic-9");
+        var shared = runtime.SwitchAccessAsync("license:lic-9");
+        await Task.WhenAll(first, second, third, shared);
+        Require(ReferenceEquals(third, shared) && !ReferenceEquals(first, third), "Only a request for the latest queued source is shared.");
+        Require(fixture.Log.Where(line => line.StartsWith("access ", StringComparison.Ordinal)).SequenceEqual(["access license:lic-9", "access workspace:org-1:ws-1", "access license:lic-9"]) &&
+            File.ReadAllText(fixture.StubFile("access")).Trim() == "license:lic-9", "Switches run one at a time and A, B, A is preserved: " + string.Join("|", fixture.Log));
     }
 
     private sealed class Recorder(Action<IPluginHostContext> activated) : PluginHostModule
