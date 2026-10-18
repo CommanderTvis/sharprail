@@ -87,11 +87,11 @@ A project may carry a `.sharprail/` directory in its root. It holds only configu
 sharing with the team and editing by hand or by an agent: which ignored paths new workspaces copy, the
 project's language-server choices and the like. It never holds state: which panes or documents are
 open, selections, locations, caches, logs and per-machine values (host paths, consent, tokens) belong
-to the client profile or the host state, not to the project. Files in it are small, versioned,
-tolerant of unknown keys and written atomically; a malformed file is reported and never blocks
+to the client profile or the host state, not to the project. Files in it are TOML (comments allowed, so users and agents can annotate them), small, versioned,
+tolerant of unknown keys and written atomically through a comment-preserving editor; a malformed file is reported and never blocks
 startup. Formats grow compatibly (new optional keys). An incompatible change is a last resort: the
 newer SharpRail reads the old file once, migrates its content into a new file with a version suffix
-(`language.json` becomes `language_v2.json`) and leaves the old file untouched, so a teammate on an
+(`language.toml` becomes `language_v2.toml`) and leaves the old file untouched, so a teammate on an
 older SharpRail keeps working from the file it understands. Migration happens only on an explicit
 write, never merely by opening a project, and the newer reader prefers the highest version present. The directory carries no `.gitignore` of its own: a project that does not want to commit it
 excludes it locally through `.git/info/exclude`, which SharpRail offers to do.
