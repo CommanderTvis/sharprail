@@ -191,7 +191,7 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
             {
                 if (!Current()) throw new OperationCanceledException(token);
                 return terminal.BufferTail(PickerTailLines, omitFaint);
-            }), delay => Task.Delay(delay, token));
+            }), delay => Task.Delay(delay, token), terminal.HoldInput);
         _ = Task.Run(async () =>
         {
             IReadOnlyList<string> models = [];
@@ -244,7 +244,7 @@ internal sealed class ClaudeTerminalAccessory : StackPanel
         var io = new PickerIo(
             data => Dispatcher.UIThread.Invoke(() => terminal.Write(data)),
             omitFaint => Dispatcher.UIThread.Invoke(() => terminal.BufferTail(PickerTailLines, omitFaint)),
-            Task.Delay);
+            Task.Delay, terminal.HoldInput);
         _ = Task.Run(async () =>
         {
             PickerOutcome? outcome = null;

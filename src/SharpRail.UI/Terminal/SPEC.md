@@ -26,6 +26,17 @@ row of buttons above the accessories. `ITerminalBackend.Write` types into the sh
 `sr_terminal_input` and `sr_terminal_read`, and the checks' headless backend writes to its PTY session and reads its
 plain-text view. An accessory's `BufferTail` is the last lines of that text.
 
+An accessory that types a command into an agent (a slash command, a picker drive) takes `HoldInput()` first and
+disposes the handle in a `finally` when the entry is complete, submitted included. While a hold is in force
+`TerminalView` swallows the user's key, composed-text and non-primary pointer events on the way down (tunnelling
+handlers, so every renderer is covered and none sees them) and shows "Input paused while SharpRail types…" in the
+corner. Keys typed meanwhile are dropped, not queued: replaying them after the command would type into whatever the
+agent shows next. The driver's own `Write` is unaffected. Holds nest and a handle disposes once. A hold also ends by
+itself when the terminal restarts, its shell exits, the view is disposed (closing the tab) and after 30 seconds, so a
+driver that never returns cannot leave the terminal locked. Switching to another tab or workspace leaves the hold
+with the driven terminal: the driver either finishes or cancels (Claude Code cancels), and either way releases it.
+`--terminal-resume-hint` covers the lifecycle against a real `TerminalView`.
+
 The companion starts at 45% of the terminal's width, as in the fork; its content fills the column as the user drags the splitter.
 Closing it returns the whole column to the terminal, and reopening restores the width for that view.
 The column owns the width so a fixed-width child cannot leave unused space around a clipped drawing.

@@ -24,6 +24,7 @@ public sealed class CodexTerminalFacts : ContentControl
     {
         public void Write(string data) => terminal.Write(data);
         public Task DelayAsync(TimeSpan delay) => Task.Delay(delay);
+        public IDisposable HoldInput() => terminal.HoldInput();
         public IReadOnlyList<string> ReadLines(bool omitFaint = false) => terminal.BufferTail(PickerTailLines, omitFaint);
     }
 

@@ -190,6 +190,15 @@ public interface ITerminalAccessoryApi
     /// <returns>The lines, oldest first.</returns>
     IReadOnlyList<string> BufferTail(int lines, bool omitFaint = false);
 
+    /// <summary>
+    /// Holds the user's keys, text and paste out of the terminal until the handle is disposed, so a command the plugin
+    /// is typing is not interleaved with theirs. Keystrokes during a hold are dropped, not queued; <see cref="Write"/>
+    /// is unaffected. A hold ends by itself after thirty seconds, when the terminal restarts or its shell exits, and when
+    /// the tab closes. Holds nest; dispose the handle in a <c>finally</c>.
+    /// </summary>
+    /// <returns>The handle that ends the hold.</returns>
+    IDisposable HoldInput();
+
     /// <summary>Sets how typed keys are encoded.</summary>
     /// <param name="encoding">The encoding.</param>
     void SetKeyEncoding(TerminalKeyEncoding encoding);

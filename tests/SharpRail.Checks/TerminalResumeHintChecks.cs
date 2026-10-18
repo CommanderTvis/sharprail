@@ -20,6 +20,7 @@ internal static class TerminalResumeHintChecks
     internal static void Run()
     {
         Run(false);
+        InputHold();
         if (OperatingSystem.IsMacOS() || OperatingSystem.IsWindows()) Run(true);
         else Console.WriteLine("SKIP native resume-hint input: libghostty-vt is unavailable on this platform; portable overlay checks passed.");
     }
@@ -81,6 +82,60 @@ internal static class TerminalResumeHintChecks
             Require(!fixture.Hint.IsVisible, "Editing, cancel, detach and disposal dismiss the offered-command hint.");
         }
         Console.WriteLine($"PASS {(native ? "native" : "portable")} terminal resume hint: actual offered-write acknowledgement, no auto-submit/focus/grid changes, query replies, exactly-once Enter, late acknowledgement, edits/cancel/detach and read-only exclusion");
+    }
+
+    // A plugin typing a command into an agent holds the user's keys out of the terminal; every way out lets go.
+    private static void InputHold()
+    {
+        using (var fixture = new Fixture(false, null))
+        {
+            var seen = 0;
+            fixture.Backend.View.KeyDown += (_, _) => seen++;
+            var indicator = fixture.View.GetLogicalDescendants().OfType<Control>().Single(control => control.Name == "TerminalInputHeld");
+            void Press(Key key = Key.A) { fixture.Window.KeyPress(key, RawInputModifiers.None, PhysicalKey.A, null); fixture.Window.KeyRelease(key, RawInputModifiers.None, PhysicalKey.A, null); Settle(); }
+            fixture.Backend.FocusTerminal(); Settle();
+            Press();
+            Require(seen == 1 && !fixture.View.InputHeld && !indicator.IsVisible, "Keys reach the terminal when nothing holds it.");
+            var first = fixture.View.HoldInput();
+            var second = fixture.View.HoldInput();
+            Settle();
+            Press();
+            Require(fixture.View.InputHeld && seen == 1 && indicator.IsVisible, "A held terminal drops the user's keys and says so.");
+            fixture.View.Write("driven");
+            Require(fixture.Session.Text.Contains("driven", StringComparison.Ordinal), "A hold never blocks the driver's own writes.");
+            first.Dispose(); first.Dispose(); Settle();
+            Require(fixture.View.InputHeld, "Holds nest: one handle ending leaves the other in force, and disposing twice counts once.");
+            second.Dispose(); Settle();
+            Press();
+            Require(!fixture.View.InputHeld && seen == 2 && !indicator.IsVisible, "Ending the last hold returns the keyboard.");
+
+            var restarted = fixture.View.HoldInput();
+            fixture.View.Restart(); Settle();
+            Require(!fixture.View.InputHeld, "Restarting the terminal ends a hold, so a driver that never returns cannot leave it locked.");
+            restarted.Dispose(); Settle();
+            Require(!fixture.View.InputHeld, "A stale handle disposed after a restart does not release a later hold.");
+            var later = fixture.View.HoldInput();
+            restarted.Dispose();
+            Require(fixture.View.InputHeld, "A handle from before a restart leaves a later hold alone.");
+            later.Dispose();
+
+            var saved = TerminalView.MaxInputHold;
+            TerminalView.MaxInputHold = TimeSpan.FromMilliseconds(100);
+            try
+            {
+                var lapsed = fixture.View.HoldInput();
+                Until(() => !fixture.View.InputHeld);
+                Require(!fixture.View.InputHeld, "A hold ends by itself when its driver never disposes it.");
+                lapsed.Dispose();
+            }
+            finally { TerminalView.MaxInputHold = saved; }
+
+            var disposing = fixture.View.HoldInput();
+            fixture.View.Dispose(); Settle();
+            Require(!fixture.View.InputHeld, "Closing the tab ends a hold.");
+            disposing.Dispose();
+        }
+        Console.WriteLine("PASS terminal input hold: keys dropped during a driven entry, writes unaffected, nesting, restart, time limit and close release it");
     }
 
     private sealed class Fixture : IDisposable

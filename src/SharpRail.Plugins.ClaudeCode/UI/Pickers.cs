@@ -6,7 +6,18 @@ namespace SharpRail.Plugins.ClaudeCode.UI;
 /// <param name="Write">Types into the terminal.</param>
 /// <param name="ReadLines">The buffer's last lines; with <c>true</c>, faint text (a placeholder or suggestion) left out.</param>
 /// <param name="Delay">Waits between keystrokes and polls.</param>
-internal sealed record PickerIo(Action<string> Write, Func<bool, IReadOnlyList<string>> ReadLines, Func<TimeSpan, Task> Delay);
+/// <param name="Hold">Holds the user's keys out of the terminal until the handle is disposed; null holds nothing.</param>
+internal sealed record PickerIo(Action<string> Write, Func<bool, IReadOnlyList<string>> ReadLines, Func<TimeSpan, Task> Delay, Func<IDisposable>? Hold = null)
+{
+    /// <summary>Holds the user's keys out of the terminal for a driven entry; dispose it when the entry is done or fails.</summary>
+    public IDisposable HoldInput() => Hold?.Invoke() ?? NoHold.Instance;
+
+    private sealed class NoHold : IDisposable
+    {
+        public static readonly NoHold Instance = new();
+        public void Dispose() { }
+    }
+}
 
 internal enum PickerOutcome { Switched, NoPicker, NotFound, Draft }
 
@@ -95,6 +106,7 @@ internal static partial class ModelPicker
     /// <summary>Reads the live session's complete picker without changing its model or saved default.</summary>
     public static async Task<(PickerOutcome Outcome, IReadOnlyList<string> Models)> DiscoverAsync(PickerIo io)
     {
+        using var hold = io.HoldInput();
         if (ComposerDraft(io.ReadLines(true)) is not null) return (PickerOutcome.Draft, []);
         io.Write("/model");
         await io.Delay(EnterDelay);
@@ -141,6 +153,7 @@ internal static partial class ModelPicker
 
     public static async Task<PickerOutcome> DriveAsync(PickerIo io, string model)
     {
+        using var hold = io.HoldInput();
         // A slash command only opens the picker at the start of an empty line.
         if (ComposerDraft(io.ReadLines(true)) is not null) return PickerOutcome.Draft;
         io.Write("/model");
@@ -237,6 +250,7 @@ internal static class EffortPicker
     {
         var target = Levels.ToList().IndexOf(level);
         if (target == -1) return PickerOutcome.NotFound;
+        using var hold = io.HoldInput();
         if (ModelPicker.ComposerDraft(io.ReadLines(true)) is not null) return PickerOutcome.Draft;
         io.Write("/effort");
         await io.Delay(EnterDelay);

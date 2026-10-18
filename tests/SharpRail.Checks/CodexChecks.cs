@@ -1197,8 +1197,25 @@ internal static class CodexChecks
 
         public Task DelayAsync(TimeSpan delay) => Task.CompletedTask;
 
+        public int Held;
+        public int Holds;
+        public bool HeldAtFirstWrite;
+
+        public IDisposable HoldInput()
+        {
+            Held++; Holds++;
+            return new Release(this);
+        }
+
+        private sealed class Release(FakeTui tui) : IDisposable
+        {
+            private bool done;
+            public void Dispose() { if (!done) { done = true; tui.Held--; } }
+        }
+
         public void Write(string data)
         {
+            if (Written.Count == 0) HeldAtFirstWrite = Held > 0;
             Written.Add(data);
             if (view == "composer")
             {
@@ -1220,6 +1237,17 @@ internal static class CodexChecks
             else if (data == "s" && view == "effort") { Outcome = $"Model changed to {Outcome} effort {highlighted} for this session only"; view = "composer"; }
             if (view == "composer") typed = "";
         }
+    }
+
+    private sealed class FailingTui : ICodexTerminalIo
+    {
+        public int Held;
+        public CancellationTokenSource? Cancel;
+        public void Write(string data) { if (Cancel is null) throw new IOException("the terminal went away"); }
+        public Task DelayAsync(TimeSpan delay) { Cancel?.Cancel(); return Task.Delay(delay, Cancel?.Token ?? default); }
+        public IReadOnlyList<string> ReadLines(bool omitFaint = false) => ["› "];
+        public IDisposable HoldInput() { Held++; return new Hold(this); }
+        private sealed class Hold(FailingTui tui) : IDisposable { public void Dispose() => tui.Held--; }
     }
 
     private static async Task ModelPicker()
@@ -1252,6 +1280,23 @@ internal static class CodexChecks
         var drafted = new FakeTui(draft: "half a thought");
         Equal(await CodexModelPicker.DriveAsync(drafted, "gpt-5.6-sol"), CodexModelPickerOutcome.Draft, "a draft is left alone");
         Equal(drafted.Written.Count, 0, "nothing was typed");
+
+        // The driven entry holds the user's keys out of the terminal from before its first byte to after its last,
+        // and lets go on every way out.
+        Require(efforts.HeldAtFirstWrite && efforts.Holds >= 1 && efforts.Held == 0, "a driven switch holds input before typing and releases it when done");
+        Require(absent.Held == 0 && old.Held == 0 && drafted.Held == 0, "input is released after not-found, no-session-key and draft outcomes");
+        var submitted = new FakeTui();
+        await CodexModelPicker.SubmitAsync(submitted, "/ide on");
+        Require(submitted.HeldAtFirstWrite && submitted.Held == 0 && submitted.Written.SequenceEqual(["/ide on", "\r"]), "a submitted command is held until its Enter is written");
+        var failing = new FailingTui();
+        try { await CodexModelPicker.DriveAsync(failing, "gpt-5.6-sol"); throw new InvalidOperationException("a failing terminal must throw"); }
+        catch (IOException) { }
+        Equal(failing.Held, 0, "input is released when the terminal fails mid-entry");
+        using var cancelled = new CancellationTokenSource();
+        var cancelling = new FailingTui { Cancel = cancelled };
+        try { await CodexModelPicker.SubmitAsync(cancelling, "/ide on"); throw new InvalidOperationException("a cancelled wait must throw"); }
+        catch (OperationCanceledException) { }
+        Equal(cancelling.Held, 0, "input is released when the entry is cancelled");
     }
 
     private static void EditorProjection()

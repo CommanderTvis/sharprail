@@ -9,6 +9,8 @@ public interface ICodexTerminalIo
     Task DelayAsync(TimeSpan delay);
     /// <summary>The screen's tail; <paramref name="omitFaint"/> drops a placeholder or suggestion, drawn faint.</summary>
     IReadOnlyList<string> ReadLines(bool omitFaint = false);
+    /// <summary>Holds the user's keys out of the terminal until disposed, so a driven entry is not interleaved with them.</summary>
+    IDisposable HoldInput();
 }
 
 public enum CodexModelPickerOutcome
@@ -36,6 +38,7 @@ public static partial class CodexModelPicker
     /// <summary>Writes the command, waits for Codex's paste-burst handling to settle, then writes Enter separately.</summary>
     public static async Task SubmitAsync(ICodexTerminalIo io, string command)
     {
+        using var hold = io.HoldInput();
         io.Write(command);
         await io.DelayAsync(TimeSpan.FromMilliseconds(250));
         io.Write("\r");
@@ -112,6 +115,7 @@ public static partial class CodexModelPicker
 
     public static async Task<CodexModelPickerOutcome> DriveAsync(ICodexTerminalIo io, string model)
     {
+        using var hold = io.HoldInput();
         if (ComposerDraft(io.ReadLines(omitFaint: true)) is not null) return CodexModelPickerOutcome.Draft;
         await SubmitAsync(io, "/model");
         string? label = null;

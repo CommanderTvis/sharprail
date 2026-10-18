@@ -134,6 +134,9 @@ MCP targets/source links. Configuration value cells, row actions, the trust line
 accessory row (model chip, slots for the kit's usage/plan/IDE/attach chips and the driving status) are
 compiled frames too; the kit's shared setting rows and chips stay kit-owned. Settings observers restart on remount, with host changes both while detached and after
 reattachment covered by WebSocket RPC checks.
+The accessory's driven entries (`/ide on|off`, the `/model` picker) hold the user's keys out of the terminal until
+the command has been typed and submitted, or the drive gives up, throws or is cancelled; keys typed meanwhile are
+dropped. `--codex` covers the release on every outcome through a fake TUI.
 The earlier descendant snapshot teardown passed its resistant-child regression. Its replacement
 uses a private POSIX process group, with new leader-crash and immediate-stop regression cases.
 The .NET build and focused account/configuration/IDE/UI checks pass with that replacement, including

@@ -164,7 +164,9 @@ New-launch presets retain the four model aliases opus/fable/sonnet/haiku. The ru
 menu instead reads that session's live `/model` picker on demand, including Default and versioned
 or custom choices beyond the visible rows. Discovery cancels the CLI picker without choosing or
 saving a default; selection matches the exact discovered label and uses the session-only switch.
-Unsent drafts and concurrent drives block discovery; unavailable or incomplete lists show an
+Every drive (discovery, model, effort) holds the user's keys out of the terminal from its first
+keystroke to its last, released on success, failure, cancellation and exit, so typing cannot interleave with it;
+keys typed during the hold are dropped. Unsent drafts and concurrent drives block discovery; unavailable or incomplete lists show an
 explanation rather than fabricated choices. Detaching the accessory or losing the Claude agent
 cancels discovery; delayed reads, keys and completions cannot act on a later attachment. Launch flags use shell syntax appropriate to the
 host, with agent view disabled by default and the host's prompt file first. Caller prompts stack

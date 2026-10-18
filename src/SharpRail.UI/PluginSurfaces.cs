@@ -378,6 +378,8 @@ public sealed partial class WorkbenchWindow
             return all.Length <= lines ? all : all[^lines..];
         }
 
+        public IDisposable HoldInput() => terminal.HoldInput();
+
         public void SetKeyEncoding(TerminalKeyEncoding encoding) => terminal.SetAgentNewline(encoding == TerminalKeyEncoding.AgentNewline);
     }
 

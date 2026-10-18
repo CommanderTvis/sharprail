@@ -38,5 +38,11 @@
       <TextBlock Foreground="{x:Static rendering:Ui.Muted}" FontSize="12" TextWrapping="Wrap"
                  Text="Press Enter to resume this tab’s previous session." />
     </Border>
+    <!-- While a plugin types a command into the agent, the user's keys are held back. -->
+    <Border x:Name="TerminalInputHeld" Grid.Row="0" IsVisible="False" Margin="12" Padding="8,4"
+            HorizontalAlignment="Right" VerticalAlignment="Bottom" CornerRadius="4"
+            Background="{x:Static rendering:Ui.Elevated}" IsHitTestVisible="False">
+      <TextBlock Foreground="{x:Static rendering:Ui.Muted}" FontSize="12" Text="Input paused while SharpRail types…" />
+    </Border>
   </Grid>
 </UserControl>

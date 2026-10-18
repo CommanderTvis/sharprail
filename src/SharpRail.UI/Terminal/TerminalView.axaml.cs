@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Markup.Xaml;
 
 namespace SharpRail.UI.Terminal;
@@ -20,6 +21,9 @@ public sealed partial class TerminalView : UserControl, IDisposable
     private readonly Button takeBack;
     private readonly TextBlock exitNotice;
     private readonly Control resumeHint;
+    private readonly Control inputHeld;
+    private int inputHolds;
+    private int holdEpoch;
     private Action? releaseHint;
     private readonly ContentControl companion;
     private readonly GridSplitter companionSplitter;
@@ -44,13 +48,78 @@ public sealed partial class TerminalView : UserControl, IDisposable
         takeBack = this.FindControl<Button>("TerminalTakeBack")!;
         exitNotice = this.FindControl<TextBlock>("TerminalExited")!;
         resumeHint = this.FindControl<Control>("TerminalResumeHint")!;
+        inputHeld = this.FindControl<Control>("TerminalInputHeld")!;
         Accessories = this.FindControl<StackPanel>("TerminalAccessories")!;
         companion = this.FindControl<ContentControl>("TerminalCompanion")!;
         companionSplitter = this.FindControl<GridSplitter>("TerminalCompanionSplitter")!;
         retry.Click += (_, _) => Start(retrying: true);
         takeBack.Click += (_, _) => Start(retrying: true, takeOver: true);
         Focusable = true;
+        // Held input never reaches a renderer: keys, composed text and the pointer's paste and menu buttons are
+        // swallowed on the way down, so a driven command cannot be interleaved with the user's typing.
+        AddHandler(KeyDownEvent, DropWhileHeld, RoutingStrategies.Tunnel);
+        AddHandler(KeyUpEvent, DropWhileHeld, RoutingStrategies.Tunnel);
+        AddHandler(TextInputEvent, DropWhileHeld, RoutingStrategies.Tunnel);
+        AddHandler(PointerPressedEvent, (_, e) =>
+        {
+            if (InputHeld && !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) e.Handled = true;
+        }, RoutingStrategies.Tunnel);
         Start(retrying: false);
+    }
+
+    /// <summary>The longest one hold lasts, so a driver that never returns cannot lock the terminal for good.</summary>
+    internal static TimeSpan MaxInputHold = TimeSpan.FromSeconds(30);
+
+    /// <summary>True while a driven entry holds the user's keyboard out of the terminal.</summary>
+    public bool InputHeld => Volatile.Read(ref inputHolds) > 0;
+
+    private void DropWhileHeld(object? sender, RoutedEventArgs e)
+    {
+        if (InputHeld) e.Handled = true;
+    }
+
+    /// <summary>
+    /// Holds the user's keys, text and paste out of the terminal until the returned handle is disposed, so a plugin typing
+    /// a command is not interleaved with them; what the user types meanwhile is dropped, not queued. Programmatic writes
+    /// are unaffected. Holds nest. Each ends by itself after <see cref="MaxInputHold"/>, when the terminal restarts or
+    /// its shell exits, and when the view is disposed. Callable from any thread.
+    /// </summary>
+    public IDisposable HoldInput() => new InputHold(this);
+
+    private void ReleaseAllHolds()
+    {
+        Interlocked.Increment(ref holdEpoch);
+        Interlocked.Exchange(ref inputHolds, 0);
+        ShowInputHeld();
+    }
+
+    private void ShowInputHeld() => Avalonia.Threading.Dispatcher.UIThread.Post(() => inputHeld.IsVisible = InputHeld && !disposed);
+
+    private sealed class InputHold : IDisposable
+    {
+        private readonly TerminalView view;
+        private readonly CancellationTokenSource expiry = new();
+        private int released;
+        private readonly int epoch;
+
+        public InputHold(TerminalView view)
+        {
+            this.view = view;
+            epoch = Volatile.Read(ref view.holdEpoch);
+            Interlocked.Increment(ref view.inputHolds);
+            view.ShowInputHeld();
+            _ = Task.Delay(MaxInputHold, expiry.Token).ContinueWith(_ => Dispose(), TaskContinuationOptions.OnlyOnRanToCompletion);
+        }
+
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref released, 1) != 0) return;
+            expiry.Cancel();
+            expiry.Dispose();
+            // A reset already zeroed the count this hold added to.
+            if (epoch == Volatile.Read(ref view.holdEpoch)) Interlocked.Decrement(ref view.inputHolds);
+            view.ShowInputHeld();
+        }
     }
 
     internal bool FileDropWired { get; set; }
@@ -95,6 +164,7 @@ public sealed partial class TerminalView : UserControl, IDisposable
 
     /// <summary>The surface's screen and scrollback as text, oldest line first.</summary>
     public string ReadScreen() => Backend is { } backend && backend.Started.IsCompletedSuccessfully ? backend.ReadScreen() : "";
+
     public void SetAgentNewline(bool enabled)
     {
         agentNewline = enabled;
@@ -131,6 +201,7 @@ public sealed partial class TerminalView : UserControl, IDisposable
     {
         if (disposed) return;
         var current = ++generation;
+        ReleaseAllHolds();
         releaseHint?.Invoke(); releaseHint = null; resumeHint.IsVisible = false;
         Backend?.Dispose(); Backend = null; body.Content = null;
         retry.IsEnabled = false; takeBack.IsEnabled = false;
@@ -186,6 +257,7 @@ public sealed partial class TerminalView : UserControl, IDisposable
                 return;
             }
             var code = await backend.Exited;
+            ReleaseAllHolds();
             detachedNotice.IsVisible = false;
             exitNotice.Text = $"[process exited with code {code}]";
             exitNotice.IsVisible = true;
@@ -226,6 +298,7 @@ public sealed partial class TerminalView : UserControl, IDisposable
     {
         if (disposed) return;
         disposed = true; generation++;
+        ReleaseAllHolds();
         releaseHint?.Invoke(); releaseHint = null; resumeHint.IsVisible = false;
         Backend?.Dispose(); Backend = null;
     }

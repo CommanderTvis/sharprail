@@ -680,6 +680,12 @@ internal static class ClaudeCodeChecks
         Console.WriteLine("PASS Claude Code IDE: token authorization, initialization, catalogue, zero-based selection, addressed action replies and file references");
     }
 
+    private sealed class Release(Action release) : IDisposable
+    {
+        private bool done;
+        public void Dispose() { if (!done) { done = true; release(); } }
+    }
+
     private static async Task Pickers()
     {
         Require(ModelPicker.ComposerDraft(["❯ fix the build"]) == "fix the build", "Typed text at Claude's prompt is a draft.");
@@ -736,6 +742,34 @@ internal static class ClaudeCodeChecks
             Require(writes.SequenceEqual(cancelAfter == 1 ? ["/model"] : new[] { "/model", "\r" }),
                 "Canceled discovery sends no subsequent Enter, navigation, selection or escape to an inactive terminal.");
         }
+        // The driven entry holds the user's keys out of the terminal for its whole run and lets go on every way out.
+        var held = 0;
+        var heldWhenTyping = new List<bool>();
+        IDisposable Hold() { held++; return new Release(() => held--); }
+        var lifecycleOpen = false;
+        var lifecycle = new PickerIo(key => { heldWhenTyping.Add(held > 0); if (key == "/model") lifecycleOpen = true; },
+            _ => lifecycleOpen ? ["❯ 1. Default (recommended)"] : ["❯ "], _ => Task.CompletedTask, Hold);
+        await ModelPicker.DiscoverAsync(lifecycle);
+        Require(held == 0 && heldWhenTyping.Count > 0 && heldWhenTyping.All(typed => typed), "Discovery holds input for every key it types and releases it afterwards.");
+        heldWhenTyping.Clear();
+        await ModelPicker.DriveAsync(lifecycle, "Default (recommended)");
+        await EffortPicker.DriveAsync(lifecycle, "high");
+        Require(held == 0, "Switching a model or effort releases input when it ends, by switch or by giving up.");
+        var draftHeld = 0;
+        var drafted = new PickerIo(_ => { }, _ => ["❯ unsent prompt"], _ => Task.CompletedTask, () => { draftHeld++; return new Release(() => draftHeld--); });
+        await ModelPicker.DriveAsync(drafted, "Default (recommended)");
+        Require(draftHeld == 0, "A draft outcome releases input.");
+        var failingHeld = 0;
+        var failing = new PickerIo(_ => throw new IOException("gone"), _ => ["❯ "], _ => Task.CompletedTask, () => { failingHeld++; return new Release(() => failingHeld--); });
+        try { await ModelPicker.DiscoverAsync(failing); throw new InvalidOperationException("A failing terminal must throw."); }
+        catch (IOException) { }
+        Require(failingHeld == 0, "A terminal that fails mid-entry releases input.");
+        using var canceled = new CancellationTokenSource();
+        var cancelHeld = 0;
+        var canceling = new PickerIo(_ => { }, _ => ["❯ "], _ => { canceled.Cancel(); return Task.Delay(TimeSpan.Zero, canceled.Token); }, () => { cancelHeld++; return new Release(() => cancelHeld--); });
+        try { await ModelPicker.DiscoverAsync(canceling); }
+        catch (OperationCanceledException) { }
+        Require(cancelHeld == 0, "A cancelled entry releases input.");
         Console.WriteLine("PASS Claude Code pickers: live paginated model lists, exact versions, draft safety and empty-prompt placeholders");
     }
 
