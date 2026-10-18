@@ -56,16 +56,16 @@ required; Zig and native sources are downloaded into checkout caches with pinned
 hashes/revisions. No Visual Studio C++ installation is needed.
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/bootstrap.ps1
+scripts\mise.cmd run bootstrap
 .\.tools\dotnet\dotnet.exe build SharpRail.slnx -c Release
 .\.tools\dotnet\dotnet.exe format SharpRail.slnx --verify-no-changes --no-restore
 .\.tools\dotnet\dotnet.exe run --project tests/SharpRail.Checks -c Release --no-build -- --windows
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/publish-windows.ps1
+scripts\mise.cmd run package:windows
 ```
 
 The package is `artifacts/SharpRail-win-x64.zip`; unpacked client, host and checks
 are under `artifacts/windows`. On a Windows ARM64 machine run
-`scripts/publish-windows.ps1 -RuntimeIdentifier win-arm64` for `artifacts/SharpRail-win-arm64.zip` and
+`scripts\mise.cmd run package:windows -- -RuntimeIdentifier win-arm64` for `artifacts/SharpRail-win-arm64.zip` and
 `artifacts/windows-arm64`; the bootstrap SDK and Zig compiler match the host, and native caches are per RID.
 The ARM64 package has not been exercised by a CI run yet. Stop executables running from that directory before
 publishing again. CI builds the package on Windows and runs its `--windows` checks.

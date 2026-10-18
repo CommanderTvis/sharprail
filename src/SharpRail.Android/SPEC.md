@@ -183,7 +183,7 @@ profile) and the endpoint.
 | `libpdfium.so` | `bblanchon.PDFium.Android`, pinned with the desktop PDFium packages | NuGet |
 
 The `BuildNativeLibraries` target runs both scripts for `arm64-v8a` and `x86_64` before every build and adds
-their outputs as `AndroidNativeLibrary` items. Both use the NDK r27d that `scripts/android-ndk.sh` installs
+their outputs as `AndroidNativeLibrary` items. Both use the NDK r27d that `scripts/mise run bootstrap:android` installs
 under `.tools/android-ndk`, target API 24 and align segments to 16 KB pages. The Ghostty library lands in the
 shared cache `.tools/ghostty-avalonia/android/<abi>`, the Scintilla library in
 `src/SharpRail.Scintilla/obj/native/android/<abi>`. PDF Preview's desktop PDFium packages are referenced with
@@ -209,9 +209,9 @@ selection and deliberate taps retain their feedback and behavior.
 
 ## Build
 
-`scripts/android.sh [build|run|apk]` is the entry point (see [scripts/SPEC.md](../../scripts/SPEC.md)). It
+`scripts/mise run android [build|run|apk]` is the entry point (see [scripts/SPEC.md](../../scripts/SPEC.md)). It
 needs the Android SDK in `ANDROID_HOME` and a JDK 17 or 21 in `JAVA_HOME`, and installs the `android` workload
-into `.tools/dotnet` when missing. `build` and `run` use Debug unless `SHARPRAIL_CONFIGURATION` says
+into the shared SDK when missing. `build` and `run` use Debug unless `SHARPRAIL_CONFIGURATION` says
 otherwise; `run` also installs on the connected device or emulator and launches the app. `apk` builds Release
 and copies the signed package to `artifacts/android/SharpRail.apk`. No release keystore is configured, so the
 package carries the SDK's default signature.

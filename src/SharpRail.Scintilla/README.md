@@ -91,7 +91,7 @@ output and publish directories of every project that references this one.
 ### Android
 
 `build-android.sh <arm64-v8a|x86_64> [cache directory]` compiles the same patched sources with
-the NDK from `scripts/android-ndk.sh` into `<cache>/android/<abi>/libSharpRail.Scintilla.so`
+the NDK from `scripts/mise run bootstrap:android` into `<cache>/android/<abi>/libSharpRail.Scintilla.so`
 (API 24, static libc++, 16 KB pages, only the `sr_*` entry points exported). The bridge draws
 through callbacks into SkiaSharp, so it links no Skia. `dotnet build` does not run it: the
 Android app runs it per ABI and packages the result as an `AndroidNativeLibrary`.

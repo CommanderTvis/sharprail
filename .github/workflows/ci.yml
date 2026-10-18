@@ -6,6 +6,10 @@ on:
   pull_request:
   workflow_dispatch:
 
+env:
+  # Every tool must come from mise.lock, with its checksum.
+  MISE_LOCKED: '1'
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -16,13 +20,14 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-dotnet@v6
+      - uses: actions/cache@v4
         with:
-          global-json-file: global.json
-      - run: dotnet restore SharpRail.slnx
-      - run: dotnet format SharpRail.slnx --verify-no-changes --no-restore
-      - run: dotnet build SharpRail.slnx -c Release --no-restore
-      - run: dotnet run --no-build --project performance/SharpRail.Performance -c Release -- self-test
+          path: ~/.sharprail/tools
+          key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock') }}
+      - run: sh scripts/mise run restore
+      - run: sh scripts/mise run format
+      - run: sh scripts/mise run build
+      - run: sh scripts/mise run perf -- self-test
 
   smoke:
     needs: build
@@ -38,16 +43,17 @@ jobs:
           - { mode: full, shard: 3/3 }
     steps:
       - uses: actions/checkout@v7
-      - uses: actions/setup-dotnet@v6
+      - uses: actions/cache@v4
         with:
-          global-json-file: global.json
+          path: ~/.sharprail/tools
+          key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock') }}
       - run: |
           git config --global user.name CI
           git config --global user.email ci@example.invalid
           git config --global init.defaultBranch main
       - env:
           SHARPRAIL_CHECKS_JOB_SHARD: ${{ matrix.shard }}
-        run: dotnet run --project tests/SharpRail.Checks -c Release ${{ matrix.mode != 'full' && format('-- --{0}', matrix.mode) || '' }}
+        run: sh scripts/mise run check ${{ matrix.mode != 'full' && format('-- --{0}', matrix.mode) || '' }}
 
   windows:
     runs-on: windows-2025
@@ -57,12 +63,13 @@ jobs:
         shell: powershell
     steps:
       - uses: actions/checkout@v7
-      - run: ./scripts/bootstrap.ps1
-      - run: ./scripts/publish-windows.ps1
-      - run: ./.tools/dotnet/dotnet.exe format SharpRail.slnx --verify-no-changes --no-restore
-      - env:
-          SHARPRAIL_REQUIRE_R2R: '1'
-        run: ./artifacts/windows/checks/SharpRail.Checks.exe --windows
+      - uses: actions/cache@v4
+        with:
+          path: ~\.sharprail\tools
+          key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock') }}
+      - run: ./scripts/mise.cmd run package:windows -- -RuntimeIdentifier win-x64
+      - run: ./scripts/mise.cmd run format
+      - run: ./scripts/mise.cmd run check:packaged -- -RuntimeIdentifier win-x64 --windows
       - uses: actions/upload-artifact@v4
         with:
           name: SharpRail-win-x64

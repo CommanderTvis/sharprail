@@ -82,11 +82,11 @@ compression measurements. Clipboard images are uploaded to the host before their
 ### Build and transfer settings
 
 The 2026-10-16 inspection of SDK 10.0.401/runtime 10.0.12 found Release already selected by
-`browser.sh` for build, run, publish and checks. Selective hybrid AOT, preserved IL/reflection,
+the `browser` task for build, run, publish and checks. Selective hybrid AOT, preserved IL/reflection,
 SIMD, WASM exception handling and threads remain enabled. The SDK uses native compile `-Oz`,
 Release link `-O2`, native stripping and wasm-opt; the pinned native terminal uses ReleaseFast
 and native C/C++ bridges use `-O2`. Those compiler policies are retained. The standalone
-`host.sh` launcher now also defaults to Release, with the existing configuration override.
+`host` task now also defaults to Release, with the existing configuration override.
 
 This project uses the plain WASM SDK rather than the Blazor static-web-assets pipeline.
 Release Build and Publish generate Brotli quality 11 and gzip level 9 sidecars for compressible

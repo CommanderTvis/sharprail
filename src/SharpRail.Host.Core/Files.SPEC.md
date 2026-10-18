@@ -202,7 +202,7 @@ mkdir -p artifacts
 (cd performance && ../.tools/dotnet/dotnet tool restore)
 (cd performance && ../.tools/dotnet/dotnet tool run dotnet-counters -- monitor --process-id "$watcher_pid" --counters SharpRail-WorkspaceWatchers)
 (cd performance && ../.tools/dotnet/dotnet tool run dotnet-trace -- collect --process-id "$watcher_pid" --providers SharpRail-WorkspaceWatchers --output ../artifacts/watchers.nettrace)
-sh scripts/check-fsevents.sh
+scripts/mise run check:fsevents
 ```
 
 The last command builds Release and compiles a test-only macOS dyld interposer, injecting it only into

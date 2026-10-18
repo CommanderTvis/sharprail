@@ -222,7 +222,7 @@ executable runs outside a checkout.
 
 ## Packaged gate
 
-`scripts/check-packaged.sh` runs the gate against `artifacts/SharpRail.app`: it stages a copy of the bundle
+`scripts/mise run check:packaged` runs the gate against `artifacts/SharpRail.app`: it stages a copy of the bundle
 under `.bench`, adds from `artifacts/checks` the files the bundle does not ship, and starts the checks from
 the bundle's own directory with `SHARPRAIL_REQUIRE_R2R=1` and `SHARPRAIL_PACKAGED_APP`. Under that variable
 the gate's first case requires each file the bundle ships to sit byte-identical beside the running checks and
@@ -322,7 +322,7 @@ and final output (including split UTF-8) to precede exit. `--native-skia` verifi
 the GPU framebuffer, incremental pixels, theme parity, Retina resize and disposal
 in a real macOS window, capturing only that window.
 Window moving, zooming, platform dialogs, native Metal Ghostty rendering and final visual
-verification remain native checks (`scripts/check-terminal.sh`,
+verification remain native checks (`scripts/mise run check:terminal`,
 `--native-terminal`, own-window captures) because the headless platform cannot
 prove them. Screenshots are evidence, never the assertion.
 Disclosure-anchor probes place the entire header below any sticky breadcrumb before asserting its
@@ -669,7 +669,7 @@ acceptance, and predates the separately integrated browser prose/AOT and Windows
 
 Watcher hygiene: `--watcher-hygiene` exercises real Specs/Blueprint concurrent and repeated reads, canonical-root sharing, owner accounting, plugin disable, project close/reopen, runtime teardown and startup synchronization-context isolation. `--watchers` covers native-start failure/backoff/replacement lifecycle. Accounting distinguishes managed allocations, enabled sets, logical leases, idle roots and retries; it is not an OS FSEvents allocation measurement.
 
-`--native-fsevents` requires `scripts/check-fsevents.sh` and its scoped test-only DYLD interposer.
+`--native-fsevents` requires `scripts/mise run check:fsevents` and its scoped test-only DYLD interposer.
 It proves interception with a control watcher and checks native allocation/start/stop/release balance
 across gitless reads/removal and real isolated Git-host lifecycles, including metadata/refs and framework-created streams. It is deliberately outside
 the argument-free managed gate; no production native interposition is enabled by these checks.

@@ -1,21 +1,20 @@
 # Repository scripts
 
-Run the examples from the repository root. Use `sh scripts/<name>.sh` so the
-executable bit is not required. Shell scripts resolve the checkout from their own
-location; the benchmark expects the repository root as its working directory.
-Builds use the checkout-local `.tools/dotnet/dotnet`. Initial setup and native or
-browser builds can download tools and dependencies into `.tools`.
+Run the examples from the repository root. Everything is a mise task: `scripts/mise run <task>`
+(`scripts\mise.cmd` on Windows); the files in `scripts/tasks` are what the tasks run and are not entry
+points. Builds use the .NET SDK linked at `.tools/dotnet`. The first task downloads the pinned toolchain
+(see Toolchain below).
 
 ## File icon assets
 
-The UI kit build invokes `build-file-icons.sh` or `build-file-icons.ps1` to generate the pinned, checksummed Material Icon Theme SVGs and embed them locally. `.tools/dotnet/dotnet run scripts/generate-file-icons.cs -- --check` checks the committed mapping and generated assets; omit `--check` to regenerate them. Outputs stay under `.tools/file-icons`.
+The UI kit's `BuildFileIcons` target (a skipped build when the generator and table are unchanged) runs `build-file-icons.sh` or `build-file-icons.ps1` to generate the pinned, checksummed Material Icon Theme SVGs and embed them locally. `.tools/dotnet/dotnet run scripts/generate-file-icons.cs -- --check` checks the committed mapping and generated assets; omit `--check` to regenerate them. Outputs stay under `.tools/file-icons`.
 
 ## Start the app or a server
 
 ### Desktop
 
 ```sh
-sh scripts/dev.sh
+scripts/mise run dev
 ```
 
 Builds and runs the desktop app in Debug by default, bootstrapping the SDK if
@@ -29,7 +28,7 @@ The script clears inherited Claude Code session identity before launch.
 ```sh
 SHARPRAIL_TOKEN='your-session-token' \
 SHARPRAIL_ROOT='/absolute/project/path' \
-sh scripts/browser.sh run
+scripts/mise run browser run
 ```
 
 Builds the browser client and remote host, then serves the client at
@@ -38,27 +37,27 @@ Builds the browser client and remote host, then serves the client at
 port. `SHARPRAIL_ROOT` defaults to this checkout and `SHARPRAIL_STATE_DIR` defaults
 to `~/.sharprail/host`. Stop the foreground server with Ctrl+C.
 
-`browser.sh` defaults to `build`; `SHARPRAIL_CONFIGURATION` defaults to Release.
+The `browser` task defaults to `build`; `SHARPRAIL_CONFIGURATION` defaults to Release.
 Release uses selective hybrid WASM AOT with preserved managed assemblies and reflection;
 Debug remains interpreted. Initial native compilation is slower and the runtime download is
 larger before compression. Release Build/Publish precompress browser assets as Brotli and gzip;
 the standalone host negotiates sidecars without request-time compression. See the
 [browser README](../src/SharpRail.Browser/README.md) for measured sizes,
 the interpreted diagnostic override and the optional prose performance journey.
-It bootstraps the SDK and installs the `wasm-experimental` workload when the
-multithreaded browser runtime pack is missing. Browser builds require Node/npm,
-`uv`, Git and the supported macOS or Linux build hosts listed below.
+It installs the `wasm-experimental` workload when the
+multithreaded browser runtime pack is missing. Browser builds install Node, pnpm, uv and
+Binaryen through `bootstrap:browser`, and need Git and a macOS or Linux build host.
 
 | Command | Purpose and output |
 | --- | --- |
-| `sh scripts/browser.sh build` | Build into `src/SharpRail.Browser/bin/<configuration>/net10.0-browser/AppBundle`. |
-| `sh scripts/browser.sh publish` | Publish the browser bundle into `artifacts/browser`. |
-| `sh scripts/browser.sh check` | Build the desktop check harness (including the host) and browser test bundle, install Chromium, and run native selection, browser acceptance, local approval and terminal hover. |
+| `scripts/mise run browser build` | Build into `src/SharpRail.Browser/bin/<configuration>/net10.0-browser/AppBundle`. |
+| `scripts/mise run browser publish` | Publish the browser bundle into `artifacts/browser`. |
+| `scripts/mise run browser check` | Build the desktop check harness (including the host) and browser test bundle, install Chromium, and run native selection, browser acceptance, local approval and terminal hover. |
 
 ### Remote host for desktop or Android clients
 
 ```sh
-SHARPRAIL_ROOT='/absolute/project/path' sh scripts/host.sh
+SHARPRAIL_ROOT='/absolute/project/path' scripts/mise run host
 ```
 
 Builds and launches only the remote host in Release by default. It binds to
@@ -69,36 +68,58 @@ token. The token is generated when `SHARPRAIL_TOKEN` is unset. Set
 The default advertised address is the first active non-loopback IPv4 address.
 `SHARPRAIL_STATE_DIR` defaults to `~/.sharprail/host`. Stop with Ctrl+C.
 
-## SDK and native dependencies
+## Toolchain: mise
 
-These are normally invoked by the build or launch scripts. macOS native builds
-need clang and the Xcode command-line tools.
+Every command goes through `scripts/mise` (`scripts\mise.cmd` on Windows), a checksum-pinned release of
+[mise](https://mise.jdx.dev) that downloads itself on first use and ignores your own mise configuration.
+`scripts/mise tasks` lists the tasks, `scripts/mise run targets` prints the artifact matrix (which
+native libraries, terminal renderer, publish task and package each target has).
 
-| Script | Invocation and behavior |
-| --- | --- |
-| `bootstrap.sh` | `sh scripts/bootstrap.sh` installs the pinned .NET SDK into `.tools/dotnet`, without changing PATH. |
-| `build-merman.sh` | `sh scripts/build-merman.sh` downloads the pinned, checksummed Merman xcframework and links `.tools/merman/libSharpRailMermaid.dylib`. No-op outside macOS. |
-| `build-notifications.sh` | `sh scripts/build-notifications.sh` compiles the macOS User Notifications bridge into `.tools/notifications/libSharpRailNotifications.dylib`. No-op outside macOS. |
-| `android-ndk.sh` | `sh scripts/android-ndk.sh` installs pinned NDK r27d under `.tools/android-ndk` and prints its path. Supports macOS and Linux; archive checksum verification is macOS-only. |
-| `browser-binaryen.sh` | `sh scripts/browser-binaryen.sh` installs pinned, checksummed Binaryen into `.tools/wasm-native/binaryen`. Supports macOS arm64/x86_64 and Linux aarch64/x86_64. |
-| `wasm-native.sh` | `sh scripts/wasm-native.sh` builds Ghostty VT and Scintilla static WASM libraries into `.tools/wasm-native`. Requires checkout-local Emscripten packs from the WASM workload, `uv`, and the same build hosts as Binaryen; downloads pinned native sources and Zig. Invoked by the browser project. |
-| `browser-assets.mjs` | `node scripts/browser-assets.mjs` stages browser renderer assets, fonts and licenses into `src/SharpRail.Browser/wwwroot/vendor`. Runs `npm ci --ignore-scripts` when dependencies are missing and downloads checksummed PDFium into `.tools/pdfium-web`. Invoked by the browser project. |
+`mise.toml` is the manifest: the .NET SDK (`global.json` must name the same version), both Zig toolchains,
+Merman, the Scintilla and SheenBidi sources, and the pinned Ghostty commits; `mise.android.toml` pins the
+NDK and `mise.browser.toml` Node, pnpm, uv and Binaryen. `mise.lock`, `mise.android.lock` and
+`mise.browser.lock` record the resolved version and SHA-256 of every archive for every platform and are
+committed (`scripts/mise lock` refreshes them; CI sets `MISE_LOCKED=1`, which refuses anything not in them).
+The .NET SDK is the one tool the lock cannot checksum (mise's dotnet tool installs it with Microsoft's
+installer); `global.json` pins its version.
 
-Ghostty and Scintilla's platform build scripts live in their respective
-`src/Ghostty.Avalonia` and `src/SharpRail.Scintilla` directories, rather than here.
+Tools install into a store shared by every checkout, `~/.sharprail/tools` (`%USERPROFILE%\.sharprail\tools`;
+set `SHARPRAIL_TOOLS` to move it), one directory per version, so checkouts at the same pin share one copy and
+a version bump leaves older checkouts valid. mise installs into a temporary directory and renames it, under its
+own lock, so concurrent bootstraps are safe. `scripts/mise run bootstrap` (also `bootstrap:android` and
+`bootstrap:browser`; the builds and tasks that need them run them) links the installs into `.tools`
+(`.tools/dotnet`, `.tools/zig-0.14.1`, `.tools/merman`, ...). Installs other than the SDK are made read-only; a
+real directory at a link's place from an older layout is renamed `<name>.local-<time>`, not deleted. The SDK
+stays writable because `dotnet workload install` adds packs to it; those installs are serialised with a lock
+(`scripts/tasks/workload.sh`).
+
+Caches written during builds: Zig's global package cache is shared in the store
+(`ZIG_GLOBAL_CACHE_DIR`; Zig locks it per entry, so concurrent builds are its designed use), while the
+per-build caches, patched sources, objects and libraries stay per checkout (`.tools/ghostty-avalonia`,
+`obj/native`, `.tools/wasm-native`) because they embed absolute paths. NuGet's cache is NuGet's own.
+
+Native libraries are MSBuild targets in the project that owns them, with their sources, recipe and
+lockfile as inputs: `scripts/mise run build` (or any `dotnet build`) rebuilds a library only when one
+changed. The recipes (`build-merman.sh`, `build-notifications.sh`, `wasm-native.sh`, and the
+`build-native`, `build-android` and `build-windows` scripts beside Ghostty and Scintilla) are run by those targets under
+`scripts/mise x --`, which supplies the pins in `[env]`; they are not entry points. macOS native builds
+need clang, the Xcode command-line tools and, for libghostty, the Metal toolchain.
+
+`fetch-git.sh` checks out a source pinned by commit; archives are pinned by checksum in `mise.toml`.
+`browser-assets.mjs` stages the browser renderer assets, fonts and licenses into
+`src/SharpRail.Browser/wwwroot/vendor`.
 
 ## Android
 
 Set `ANDROID_HOME` to an installed Android SDK (default:
 `~/Library/Android/sdk`) and `JAVA_HOME` to a JDK 17 or 21 managed by sdkman.
-Do not use a Homebrew JDK. The script bootstraps .NET, installs its Android
-workload when missing, and installs the pinned NDK.
+Do not use a Homebrew JDK. The task installs the .NET Android workload when missing and the pinned NDK.
 
 | Command | Purpose and output |
 | --- | --- |
-| `sh scripts/android.sh build` | Build the client; this is the default mode. Configuration defaults to Debug and can be set with `SHARPRAIL_CONFIGURATION`. |
-| `sh scripts/android.sh run` | Build, install on the connected device/emulator with adb, and launch `dev.thinkrail.sharprail`. |
-| `sh scripts/android.sh apk` | Build Release and copy the signed package to `artifacts/android/SharpRail.apk`. |
+| `scripts/mise run android build` | Build the client; this is the default mode. Configuration defaults to Debug and can be set with `SHARPRAIL_CONFIGURATION`. |
+| `scripts/mise run android run` | Build, install on the connected device/emulator with adb, and launch `dev.thinkrail.sharprail`. |
+| `scripts/mise run package:android` | Build Release and copy the signed package to `artifacts/android/SharpRail.apk`. |
 
 Set `SHARPRAIL_ANDROID_KEYSTORE`, `SHARPRAIL_ANDROID_KEY_ALIAS` and
 `SHARPRAIL_ANDROID_KEY_PASSWORD` to sign with your own keystore. The password is
@@ -108,38 +129,36 @@ machine's debug key.
 ## Packaging and checks
 
 ```sh
-sh scripts/bootstrap.sh       # if the checkout-local SDK is missing
-sh scripts/publish.sh         # defaults to osx-arm64
-sh scripts/check-packaged.sh
-sh scripts/dmg.sh
+scripts/mise run package:macos        # defaults to osx-arm64; osx-x64 as an argument
+scripts/mise run check:packaged
+scripts/mise run dmg
 ```
 
-`publish.sh [runtime-identifier]` publishes self-contained Release composite ReadyToRun
+`package:macos` publishes self-contained Release composite ReadyToRun
 UI/host outputs into `artifacts/ui` and `artifacts/host`, with non-composite R2R
-checks in `artifacts/checks` for staging beside the shipped UI. For
-`osx-arm64` or `osx-x64`, it also assembles and ad-hoc signs
-`artifacts/SharpRail.app`. `DOTNET` overrides the dotnet executable; this script
-does not bootstrap it. Publishing removes the previous outputs and app bundle,
+checks in `artifacts/checks` for staging beside the shipped UI. It also assembles and
+ad-hoc signs `artifacts/SharpRail.app`. Publishing removes the previous outputs and app bundle,
 so stop any app using that bundle before replacing it.
 
-`check-packaged.sh [check arguments...]` requires the published app and checks.
+`check:packaged [-- check arguments...]` requires the published app and checks.
 It stages a copy under `.bench`, requires ReadyToRun output, forwards arguments
 to the checks executable, and cleans the staging directory on exit. For example:
 
 ```sh
-sh scripts/check-packaged.sh --terminals
+scripts/mise run check:packaged -- --terminals
 ```
 
-`publish-windows.ps1 [-RuntimeIdentifier win-x64|win-arm64]` (PowerShell, on Windows) publishes the
+`scripts\mise.cmd run package:windows -- -RuntimeIdentifier win-x64|win-arm64` (on Windows) publishes the
 self-contained client, host and checks to `artifacts/windows` (x64, default) or `artifacts/windows-arm64`
 and packages `artifacts/SharpRail-<rid>.zip`. Build the ARM64 package on a Windows ARM64 machine: the
-bootstrap SDK, Zig compiler and native cache (`obj/native/<rid>`) follow the host and runtime identifier.
+SDK, Zig compiler and native cache (`obj/native/<rid>`) follow the host and runtime identifier.
+`scripts\mise.cmd run check:packaged -- -RuntimeIdentifier <rid> --windows` runs the packaged Windows gate.
 
-`dmg.sh [output-path]` requires macOS and the existing app bundle. It creates a
+`dmg [output-path]` requires macOS and the existing app bundle. It creates a
 compressed disk image with an Applications shortcut, defaulting to
 `artifacts/SharpRail.dmg`; it replaces an existing image at the chosen path.
 
-`sh scripts/check-terminal.sh` builds the native Ghostty bridge and a macOS
+`check:terminal` builds the native Ghostty bridge and a macOS
 shell/Metal probe at `.bench/terminal-check`, then runs the probe. It requires
 the macOS native build tools and a graphical session. It is separate from the
 managed check suite.
@@ -157,8 +176,8 @@ The available focused modes and verification rules are documented in
 
 | File | Invocation and purpose |
 | --- | --- |
-| `generate-rpc.py` | `uv run --no-project python scripts/generate-rpc.py` regenerates `src/SharpRail.Host.Protocol/RpcServices.Generated.cs` and `src/SharpRail.Host.Remote/RpcDispatch.Generated.cs` from `*Contract.cs`. It edits tracked source; review and format the generated diff. |
-| `host-link.cs` | `.tools/dotnet/dotnet run --file scripts/host-link.cs` prints the connection URI and QR code using `SHARPRAIL_TOKEN`, `SHARPRAIL_PORT` and optional `SHARPRAIL_CONNECT_HOST`. Used by `host.sh`; restores QRCoder as a file-based app dependency. |
+| `generate-rpc.py` | `scripts/mise run rpc` regenerates `src/SharpRail.Host.Protocol/RpcServices.Generated.cs` and `src/SharpRail.Host.Remote/RpcDispatch.Generated.cs` from `*Contract.cs`. It edits tracked source; review and format the generated diff. |
+| `host-link.cs` | `.tools/dotnet/dotnet run --file scripts/host-link.cs` prints the connection URI and QR code using `SHARPRAIL_TOKEN`, `SHARPRAIL_PORT` and optional `SHARPRAIL_CONNECT_HOST`. Used by the `host` task; restores QRCoder as a file-based app dependency. |
 | `benchmark.mjs` | `node scripts/benchmark.mjs [embedded\|remote] [rounds] [workspace]` measures published app startup and process-tree RSS. Defaults: embedded, 10 rounds, current directory. Requires macOS, AC power, Node, clang and published artifacts; run only when measurement is requested. Writes `.bench/results-<mode>-<timestamp>.json` and compiles the helper below. |
 | `window-probe.m` | Native CoreGraphics helper compiled by the benchmark as `.bench/window-probe`; reports when CoreGraphics first lists a normal window at least 300 × 200 for a process ID. Not a standalone build/launch entry point. |
 
@@ -169,7 +188,7 @@ For repeatable macOS startup and physical-footprint measurements, use the [.NET 
 
 ### Native FSEvents hygiene (macOS)
 
-`sh scripts/check-fsevents.sh` builds Release, then runs real Specs/Blueprint repeated reads, RPC
+`scripts/mise run check:fsevents` builds Release, then runs real Specs/Blueprint repeated reads, RPC
 reconnects and real Git-host teardown (including metadata/refs watchers) under a test-only FSEventStream interposer. `--no-build` reuses built checks.
 It proves interception first and fails if stream allocations grow or do not return to baseline.
 Generated native code and fixtures are scoped to the subprocess scratch tree and cleaned on exit;

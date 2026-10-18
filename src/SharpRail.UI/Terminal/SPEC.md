@@ -291,7 +291,7 @@ Host checks cover attach idempotency, takeover and displaced-client rejection, w
 alternate screen or mouse modes, resume without duplication, busy detection and close. `--terminals` runs
 them with terminal translations and checks for empty startup and explicit tab-group placement over local and remote hosts. Native acceptance
 additionally requires live shell output with nonuniform pixels in Ghostty's IOSurface, keyboard input,
-resizing and disposal (`scripts/check-terminal.sh`, `--native-terminal`); headless docking checks alone do
+resizing and disposal (`scripts/mise run check:terminal`, `--native-terminal`); headless docking checks alone do
 not establish terminal execution. `--ghostty-skia` verifies real rendered colours,
 wide/combining text, keyboard and SGR mouse press/release, paste, selection,
 scrollback, resize, a real host shell surviving a renderer restart, and a watching view of a held shell

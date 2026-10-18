@@ -17,10 +17,13 @@ the user asks; preserve the configured commit-signing presence check.
 `SharpRail.slnx` contains the .NET 10 C# solution. `Directory.Build.props` enables
 nullable checking, warnings as errors, optimizations and tiered PGO while keeping
 NativeAOT and trimming disabled. `Directory.Packages.props` pins shared package
-versions; `global.json` selects the SDK. Use `.tools/dotnet/dotnet` for this checkout
-and `scripts/bootstrap.sh` if it is missing. Build with
-`.tools/dotnet/dotnet build SharpRail.slnx -c Release`; this is also the compiler
-and nullable/warnings-as-errors gate.
+versions; `global.json` selects the SDK and must name the version `mise.toml` pins. Toolchains are
+managed by mise (`mise.toml`, `mise.lock`): run `scripts/mise run bootstrap` once; it installs the pins into
+the store shared by all checkouts (`~/.sharprail/tools`, or `SHARPRAIL_TOOLS`) and links them into `.tools`
+(`.tools/dotnet` is the SDK, so `.tools/dotnet/dotnet` still works). Every entry point is a task
+(`scripts/mise tasks`). Build with `scripts/mise run build` (`.tools/dotnet/dotnet build SharpRail.slnx -c Release`);
+this is also the compiler and nullable/warnings-as-errors gate, and it builds every native library whose
+inputs changed, none otherwise. Store installs other than the SDK are read-only; `scripts/mise.cmd` is the Windows entry.
 
 | Path | Responsibility |
 | --- | --- |
@@ -50,21 +53,14 @@ and nullable/warnings-as-errors gate.
 | `src/SharpRail.Browser` | Browser WASM client compiling the shared workbench sources with `BROWSER`, browser windowing, connection handling and Restty terminals; its `SPEC.md` and `README.md` describe the client and serving requirements. Built separately from `SharpRail.slnx`. |
 | `src/Ghostty.Avalonia` | Independent Ghostty controls: hosted AppKit/Metal, Metal textures composed by Avalonia, and libghostty-vt drawn by Skia; native bridges, build script and licenses. Its README documents reuse and limits. |
 | `tests/SharpRail.Checks` | Executable checks for host transports, runtime extensibility, layout, UI and Git/worktree integration. `E2E/` translates upstream scenarios using real headless Avalonia input. |
-| `scripts/dev.sh` | Builds and runs the app from source in one step (`SHARPRAIL_PROFILE` keeps a separate profile). |
-| `scripts/bootstrap.sh` / `scripts/bootstrap.ps1` | Install the checkout's pinned local .NET SDK on Unix / Windows. |
+| `mise.toml`, `mise.android.toml`, `mise.browser.toml` and their `.lock` files | The single toolchain manifest: the .NET SDK, Zig, Merman, the Scintilla and SheenBidi sources, the Android NDK, Binaryen, Node, pnpm and uv with per-platform archive checksums (`mise lock`), the pinned Ghostty commits and every task. The artifact matrix (target, native libraries, terminal renderer, publish task, package) is its header comment; `scripts/mise run targets` prints it. |
+| `scripts/mise`, `scripts/mise.cmd`, `scripts/mise-pinned`, `scripts/mise-pinned.cmd` | The entry point for every toolchain command (`scripts/mise run <task>`). It runs the checksum-pinned mise against the tool store shared by all checkouts and ignores the user's own mise configuration. |
+| `scripts/tasks` | What the mise tasks run: `dev`, `host`, `package-macos`, `dmg`, `package-windows`, `android`, `browser`, `check-packaged`, `check-terminal`, `check-fsevents`, `workload`. Do not run them directly. |
+| `scripts/link-tools.sh` / `.ps1`, `scripts/fetch-git.sh` | Link the store's installs into `.tools` (the `bootstrap` tasks run them); fetch a source pinned by Git commit. |
 | `scripts/README.md` | Script invocations, prerequisites, environment variables and output locations. |
-| `scripts/browser.sh` | Builds, publishes, checks or serves the browser client and remote host (`run`); default browser serving address is `http://localhost:54123`, authenticated with `SHARPRAIL_TOKEN`. |
-| `scripts/host.sh` | Builds and runs only the remote host, printing a connection URI and QR code. |
-| `scripts/publish-windows.ps1` | Builds and publishes self-contained Windows client, host and checks for `win-x64` (default; `artifacts/windows`, `artifacts/SharpRail-win-x64.zip`) or `win-arm64` (`-RuntimeIdentifier win-arm64`, on a Windows ARM64 host; `artifacts/windows-arm64`, `artifacts/SharpRail-win-arm64.zip`). `WINDOWS.md` records runtime requirements and limits. |
 | `src/Ghostty.Avalonia/build-native.sh` | Builds pinned libghostty and libghostty-vt bridges on the target macOS architecture, using checkout-local tools and caches. |
-| `scripts/build-merman.sh` | Downloads Merman's pinned, checksummed macOS xcframework and links its C ABI into `.tools/merman/libSharpRailMermaid.dylib`. The kit's `Visualization/MermaidRenderer.cs` renders SVG through it off the UI thread; Svg.Skia displays it. Other platforms show the source with an unavailability message. |
-| `scripts/build-notifications.sh` | Compiles the User Notifications bridge into `.tools/notifications/libSharpRailNotifications.dylib`; the UI build runs it and copies the library beside the app. |
-| `scripts/check-terminal.sh` | Runs the native shell/Metal probe; the checks executable's `--native-terminal` mode exercises Avalonia integration. |
-| `scripts/check-packaged.sh` | Runs the check gate from a staged copy of `artifacts/SharpRail.app`, so the files under test are the packaged ones. |
-| `scripts/publish.sh` | Publishes composite R2R UI/host and versionable R2R packaged checks; refreshes and signs the canonical `artifacts/SharpRail.app`. Check for a live app process before replacing it. |
-| `scripts/dmg.sh` | Packs `artifacts/SharpRail.app` into `artifacts/SharpRail.dmg` (or the path given) with an Applications shortcut. `.github/workflows/nightly.yml` runs it and `android.sh apk` at 03:00 UTC, keeps both packages as workflow artifacts and replaces the `nightly` prerelease with them. |
-| `scripts/android.sh` | Builds the Android client (`build`), installs and starts it on the connected device or emulator (`run`), or writes the Release package to `artifacts/android/SharpRail.apk` (`apk`). Needs `ANDROID_HOME` and a JDK 17 or 21 in `JAVA_HOME`; signs with the key in `SHARPRAIL_ANDROID_KEYSTORE` when set; installs the `android` workload into `.tools/dotnet`. |
-| `scripts/android-ndk.sh` | Installs the pinned Android NDK under `.tools/android-ndk` and prints its path; `build-android.sh` in `src/Ghostty.Avalonia` and `src/SharpRail.Scintilla` build the Android terminal and editor libraries with it. |
+| `scripts/build-merman.sh` | Links the xcframework mise installs (`.tools/merman`) into `src/SharpRail.UI/obj/native/libSharpRailMermaid.dylib`. The kit's `Visualization/MermaidRenderer.cs` renders SVG through it off the UI thread; Svg.Skia displays it. Other platforms show the source with an unavailability message. |
+| `scripts/build-notifications.sh` | Compiles the User Notifications bridge into `src/SharpRail.UI/obj/native/libSharpRailNotifications.dylib`; the UI project's target runs it when `Native/Notifications.m` changes and copies the library beside the app. |
 | `.bench` | Ignored disposable fixtures, verification logs and own-window captures. Its name does not authorize benchmarks. |
 
 The nightly workflow builds macOS DMG, Android APK and Windows x64 and ARM64 ZIP packages at
@@ -220,7 +216,7 @@ The browser client also compiles the shared UI sources under `SharpRail.UI`, wit
 WebSocket RPC without an embedded host or PTY. Shared desktop-only code must also
 exclude browser builds; use `#if !ANDROID && !BROWSER` where appropriate. Browser
 WASM compilation and browser acceptance are separate from the desktop solution
-build and checks. `scripts/browser.sh` provisions the threaded WASM workload and
+build and checks. `scripts/mise run browser` provisions the threaded WASM workload and
 stages the required native WASM libraries and browser assets.
 
 `SPEC.md` defines the product contract; `COMPLETION.md` records completion criteria and
@@ -310,7 +306,7 @@ host state and profile/preset migration. `-- --file-drop` covers workspace file
 drag representations, transfers and attachment gestures.
 `-- --connection-errors` checks connection failure details and retry.
 `-- --windows` runs the Windows host, desktop and native renderer checks on Windows.
-Browser acceptance runs separately with `sh scripts/browser.sh check`; its
+Browser acceptance runs separately with `scripts/mise run browser check`; its
 Playwright tests are in `tests/SharpRail.Browser.Checks`.
 `node tests/SharpRail.Browser.Checks/restty-lifecycle.mjs --require-hardware --require-memory-return`
 checks repeated Restty teardown and Chromium-reported GPU allocations against a warmed
@@ -345,7 +341,7 @@ generated C#.
 `-- --conformance` runs dependency-boundary checks; public API analyzers validate declarations during
 compilation against `PublicAPI.*.txt` baselines, never declaration lists in specs.
 `-- --runner` checks the runner itself.
-`-- --android` checks the Android client's host address parsing and remembered endpoint; the client itself needs a device (`scripts/android.sh run`).
+`-- --android` checks the Android client's host address parsing and remembered endpoint; the client itself needs a device (`scripts/mise run android run`).
 `-- --lanes N` (or `auto`) splits the argument-free gate across processes, `-- --last-failed` reruns what the last
 run left unfinished, `-- --list-cases` lists the gate and `-- --case A,B` runs named
 cases. Lane/shard options apply to the argument-free gate (optionally narrowed by

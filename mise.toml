@@ -53,6 +53,23 @@ GHOSTTY_VT_ZIG = "0.16.0"
 # checkouts share one; the per-build caches stay beside each checkout's outputs.
 ZIG_GLOBAL_CACHE_DIR = "{{ env.SHARPRAIL_TOOLS }}/zig-cache"
 
+# ARTIFACT MATRIX (printed by `scripts/mise run targets`; the one place that says what ships where)
+#
+# target         built on          native libraries (MSBuild targets in the owning project)                   terminal                    publish task                 package
+# macos-arm64    macOS arm64       libGhosttyAvaloniaView, libGhosttyAvaloniaVt, libSharpRail.Scintilla,       Ghostty Metal texture       package:macos osx-arm64      artifacts/SharpRail.app, dmg task -> .dmg
+#                                  libSharpRailMermaid, libSharpRailNotifications                              (Skia fallback)
+# macos-x64      macOS x64         as macos-arm64 for x86_64                                                   as macos-arm64              package:macos osx-x64        artifacts/SharpRail.app
+# windows-x64    Windows x64       GhosttyAvaloniaVt.dll, SharpRailScintillaNative.dll                          libghostty-vt on Skia       package:windows win-x64      artifacts/SharpRail-win-x64.zip
+# windows-arm64  Windows ARM64     as windows-x64 for win-arm64 (builds natively on an ARM64 host)              libghostty-vt on Skia       package:windows win-arm64    artifacts/SharpRail-win-arm64.zip
+# android        macOS or Linux    libGhosttyAvaloniaVt.so, libSharpRail.Scintilla.so (arm64-v8a, x86_64)      libghostty-vt on Skia       package:android              artifacts/android/SharpRail.apk
+# browser        macOS or Linux    GhosttyAvaloniaVt.a, SharpRail.Scintilla.a (WASM) + Restty/Merman/PDFium    Restty                      package:browser              artifacts/browser
+# END MATRIX
+
+[tasks.targets]
+description = "Print the artifact matrix: target, native libraries, terminal renderer, publish task"
+run = "sed -n '/^# ARTIFACT MATRIX/,/^# END MATRIX/p' mise.toml"
+run_windows = "powershell -NoProfile -Command \"Get-Content mise.toml | Select-String -Pattern '^# ' | ForEach-Object { $_.Line }\""
+
 [tasks.bootstrap]
 quiet = true
 description = "Install the pinned toolchain into the shared store and link it into .tools"

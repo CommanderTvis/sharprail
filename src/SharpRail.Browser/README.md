@@ -11,14 +11,14 @@ Run `node tests/SharpRail.Browser.Checks/restty.mjs` after a browser build to ch
 The optional `--profile` runs `term-bench --duration 15 --fps 120` and records browser
 draw cadence separately from the benchmark's output FPS under `artifacts/terminal-profile`.
 
-Build with `sh scripts/browser.sh build`. The script installs the checkout-local .NET WebAssembly workload;
+Build with `scripts/mise run browser build`. The script installs the checkout-local .NET WebAssembly workload;
 native toolchains and source archives stay under `.tools`. Node/npm and uv are required. The deployable
 files are in `src/SharpRail.Browser/bin/Release/net10.0-browser/AppBundle`.
 
 To serve it with a standalone host:
 
 ```sh
-SHARPRAIL_TOKEN='<session token>' SHARPRAIL_ROOT='/absolute/project/path' sh scripts/browser.sh run
+SHARPRAIL_TOKEN='<session token>' SHARPRAIL_ROOT='/absolute/project/path' scripts/mise run browser run
 ```
 
 Open `http://localhost:54123` and enter the token. `SHARPRAIL_PORT` controls the shared endpoint
@@ -45,9 +45,9 @@ same-origin` and `Cross-Origin-Embedder-Policy: require-corp`. Use HTTPS outside
 clipboard and notification APIs. The browser keeps its token in session storage and view state in local
 storage; Disconnect clears the token. No token is put into a URL.
 
-`sh scripts/browser.sh publish` produces deployment assets under `artifacts/browser`.
+`scripts/mise run browser publish` produces deployment assets under `artifacts/browser`.
 The native solution's `--browser` check exercises authentication, unary RPC, subscriptions and duplex PTYs.
-`sh scripts/browser.sh check` builds a test-only browser bundle, installs Chromium under `.tools/playwright`
+`scripts/mise run browser check` builds a test-only browser bundle, installs Chromium under `.tools/playwright`
 and runs browser acceptance checks against an isolated host. Build or publish again for deployment;
 normal bundles exclude the acceptance hooks.
 
@@ -69,7 +69,7 @@ Release bundles now include precompressed `.br` and `.gz` sidecars. The standalo
 negotiates these at the original URLs using `Accept-Encoding`, retaining the original MIME type,
 COOP/COEP headers and conditional caching. Uncompressed bundles and clients remain supported.
 These historical measurements cover the runtime file, not the total bundle or startup latency.
-Compression runs after Release Build and Publish, including `browser.sh run`; unchanged sidecars
+Compression runs after Release Build and Publish, including the `browser` task's `run`; unchanged sidecars
 are reused from a content-addressed cache under `.tools/browser-compression`, even when the SDK
 regenerates the bundle. Quality 11 Brotli adds initial bundling time and disk space, with no request-time
 compression work. Separate static servers must configure sidecar negotiation themselves.

@@ -140,14 +140,14 @@ Ghostty 1.2.3, Zig 0.14.1, Scintilla, SheenBidi and Merman into `.tools`. No ins
 Ghostty application is required.
 
 ```sh
-scripts/bootstrap.sh
+scripts/mise run bootstrap
 .tools/dotnet/dotnet run --project src/SharpRail.UI -c Release
 ```
 
 To build the ReadyToRun macOS app bundle:
 
 ```sh
-scripts/publish.sh
+scripts/mise run package:macos
 open artifacts/SharpRail.app
 ```
 
@@ -179,7 +179,7 @@ Renderer benchmark sources and reproduction commands are in
 ```
 
 `-- --editor`, `-- --terminals`, `-- --ghostty-skia`, `-- --sync` and `-- --workspaces` run focused
-subsets. `sh scripts/check-terminal.sh`, `-- --native-terminal` and `-- --native-texture` exercise real
+subsets. `scripts/mise run check:terminal`, `-- --native-terminal` and `-- --native-texture` exercise real
 Ghostty windows and open test windows. Set `SHARPRAIL_TEST_GIT_SOURCE` to a Thinkrail
 clone to include the Git fixtures. See `src/SharpRail.Scintilla/README.md` for the
 editor control's architecture and limits.
@@ -213,8 +213,8 @@ stay on a host it connects to. It needs the Android SDK (`ANDROID_HOME`) and a J
 the script installs the .NET `android` workload and the pinned NDK into `.tools`.
 
 ```sh
-scripts/android.sh run   # build, install on the connected device or emulator, and start
-scripts/android.sh apk   # Release package at artifacts/android/SharpRail.apk
+scripts/mise run android run   # build, install on the connected device or emulator, and start
+scripts/mise run android apk   # Release package at artifacts/android/SharpRail.apk
 ```
 
 On the computer, start listening on an address the device can reach: Settings › Host in the desktop app, or

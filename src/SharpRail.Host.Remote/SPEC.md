@@ -47,7 +47,7 @@ The platform choice belongs to Core's process backend, not to the wire protocol.
 <unix ms>` once listening, for launchers and checks to wait on. Binding beyond
 loopback is an explicit opt-in via `SHARPRAIL_BIND`.
 
-`scripts/host.sh` builds and launches only this host, binding to `0.0.0.0`.
+`scripts/mise run host` builds and launches only this host, binding to `0.0.0.0`.
 It defaults to Release and uses `SHARPRAIL_TOKEN` or generates a fresh session token, and prints a terminal
 QR code and `sharprail://connect?host=…&token=…` link for the Android client.
 The advertised address is the first active non-loopback IPv4 address; set

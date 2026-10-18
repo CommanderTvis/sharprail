@@ -41,7 +41,7 @@ The native view uses Ghostty 1.2.3; the VT library uses unreleased Ghostty commi
 
 `build-android.sh <arm64-v8a|x86_64> [cache-directory]` cross-builds the same pinned
 VT source for Android API 24 with the NDK from `ANDROID_NDK_HOME` (in SharpRail,
-`scripts/android-ndk.sh`), from macOS or Linux. It writes
+`scripts/mise run bootstrap:android`), from macOS or Linux. It writes
 `android/<abi>/libGhosttyAvaloniaVt.so` into the cache, 16 KB page aligned and
 depending only on bionic. Package it for its ABI, for example as an
 `AndroidNativeLibrary` item; the runtime loads it from the APK by name. Android has
@@ -192,7 +192,7 @@ Metal also resolves OSC 8 label targets; Skia retains its existing HTTP(S)-text 
 
 In SharpRail, `--ghostty-skia` runs focused real-pixel/input and host PTY checks;
 `--terminals` additionally checks local/remote host behavior and terminal docking.
-`scripts/check-terminal.sh` and `--native-terminal` cover the native Metal path.
+`scripts/mise run check:terminal` and `--native-terminal` cover the native Metal path.
 `--native-texture` checks a real Metal-backed Avalonia window: imported pixels,
 theme, overlays, clipping, input, clipboard, resize, remounting and local/remote
 shell retention when switching between texture and Skia rendering.

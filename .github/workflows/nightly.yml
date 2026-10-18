@@ -8,6 +8,10 @@ on:
 permissions:
   contents: read
 
+env:
+  # Every tool must come from mise.lock, with its checksum.
+  MISE_LOCKED: '1'
+
 concurrency:
   group: nightly
   cancel-in-progress: true
@@ -22,16 +26,19 @@ jobs:
         run: echo "name=SharpRail-nightly-$(date -u +%Y%m%d)-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
       # build-native.sh archives libghostty with Homebrew's llvm-ar.
       - run: brew install llvm
-      - run: sh scripts/bootstrap.sh
+      - uses: actions/cache@v4
+        with:
+          path: ~/.sharprail/tools
+          key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock', 'mise.android.toml', 'mise.android.lock') }}
       # The terminal library's build fetches its dependencies over git, which drops connections now and then;
       # what it has fetched stays cached, so another attempt carries on from there.
       - run: |
           for attempt in 1 2 3; do
-            sh scripts/publish.sh osx-arm64 && exit 0
+            sh scripts/mise run package:macos osx-arm64 && exit 0
             sleep 30
           done
           exit 1
-      - run: sh scripts/dmg.sh "artifacts/${{ steps.stamp.outputs.name }}.dmg"
+      - run: sh scripts/mise run dmg "artifacts/${{ steps.stamp.outputs.name }}.dmg"
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.stamp.outputs.name }}-macos-arm64
@@ -46,6 +53,10 @@ jobs:
       - uses: actions/checkout@v7
       - id: stamp
         run: echo "name=SharpRail-nightly-$(date -u +%Y%m%d)-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.sharprail/tools
+          key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock', 'mise.android.toml', 'mise.android.lock') }}
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -60,7 +71,7 @@ jobs:
           SHARPRAIL_ANDROID_KEYSTORE: ${{ runner.temp }}/nightly.keystore
           SHARPRAIL_ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           SHARPRAIL_ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: sh scripts/android.sh apk
+        run: sh scripts/mise run package:android
       - run: mv artifacts/android/SharpRail.apk "artifacts/android/${{ steps.stamp.outputs.name }}.apk"
       - uses: actions/upload-artifact@v4
         with:
@@ -78,7 +89,10 @@ jobs:
         shell: powershell
     steps:
       - uses: actions/checkout@v7
-      - run: ./scripts/bootstrap.ps1
+      - uses: actions/cache@v4
+        with:
+          path: ~\.sharprail\tools
+          key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock', 'mise.android.toml', 'mise.android.lock') }}
       # Native build scripts still validate their source fingerprints before reusing either DLL.
       - uses: actions/cache/restore@v4
         id: windows-native
@@ -89,7 +103,7 @@ jobs:
             src/SharpRail.Scintilla/obj/native/win-x64/SharpRailScintillaNative.dll
             src/SharpRail.Scintilla/obj/native/win-x64/fingerprint
           key: windows-native-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.gitattributes', 'global.json', 'Directory.Build.props', 'Directory.Packages.props', 'scripts/windows-native.ps1', 'src/Ghostty.Avalonia/build-windows.ps1', 'src/Ghostty.Avalonia/Native/GhosttyVt.c', 'src/Ghostty.Avalonia/Native/GhosttyClipboardStub.c', 'src/SharpRail.Scintilla/build-windows.ps1', 'src/SharpRail.Scintilla/Native/*.h', 'src/SharpRail.Scintilla/Native/*.cxx', 'src/SharpRail.Scintilla/Native/*.patch') }}
-      - run: ./scripts/publish-windows.ps1
+      - run: ./scripts/mise.cmd run package:windows -- -RuntimeIdentifier win-x64
       # Save validated native outputs even when the subsequent packaged runtime gate fails.
       - uses: actions/cache/save@v4
         if: steps.windows-native.outputs.cache-hit != 'true'
@@ -100,9 +114,7 @@ jobs:
             src/SharpRail.Scintilla/obj/native/win-x64/SharpRailScintillaNative.dll
             src/SharpRail.Scintilla/obj/native/win-x64/fingerprint
           key: ${{ steps.windows-native.outputs.cache-primary-key }}
-      - env:
-          SHARPRAIL_REQUIRE_R2R: '1'
-        run: ./artifacts/windows/checks/SharpRail.Checks.exe --windows
+      - run: ./scripts/mise.cmd run check:packaged -- -RuntimeIdentifier win-x64 --windows
       - uses: actions/upload-artifact@v4
         with:
           name: SharpRail-nightly-windows-x64
@@ -119,7 +131,10 @@ jobs:
         shell: powershell
     steps:
       - uses: actions/checkout@v7
-      - run: ./scripts/bootstrap.ps1
+      - uses: actions/cache@v4
+        with:
+          path: ~\.sharprail\tools
+          key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock', 'mise.android.toml', 'mise.android.lock') }}
       # Native build scripts still validate their source fingerprints before reusing either DLL.
       - uses: actions/cache/restore@v4
         id: windows-native
@@ -130,7 +145,7 @@ jobs:
             src/SharpRail.Scintilla/obj/native/win-arm64/SharpRailScintillaNative.dll
             src/SharpRail.Scintilla/obj/native/win-arm64/fingerprint
           key: windows-native-arm64-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.gitattributes', 'global.json', 'Directory.Build.props', 'Directory.Packages.props', 'scripts/windows-native.ps1', 'src/Ghostty.Avalonia/build-windows.ps1', 'src/Ghostty.Avalonia/Native/GhosttyVt.c', 'src/Ghostty.Avalonia/Native/GhosttyClipboardStub.c', 'src/SharpRail.Scintilla/build-windows.ps1', 'src/SharpRail.Scintilla/Native/*.h', 'src/SharpRail.Scintilla/Native/*.cxx', 'src/SharpRail.Scintilla/Native/*.patch') }}
-      - run: ./scripts/publish-windows.ps1 -RuntimeIdentifier win-arm64
+      - run: ./scripts/mise.cmd run package:windows -- -RuntimeIdentifier win-arm64
       # Save validated native outputs even when the subsequent packaged runtime gate fails.
       - uses: actions/cache/save@v4
         if: steps.windows-native.outputs.cache-hit != 'true'
@@ -141,9 +156,7 @@ jobs:
             src/SharpRail.Scintilla/obj/native/win-arm64/SharpRailScintillaNative.dll
             src/SharpRail.Scintilla/obj/native/win-arm64/fingerprint
           key: ${{ steps.windows-native.outputs.cache-primary-key }}
-      - env:
-          SHARPRAIL_REQUIRE_R2R: '1'
-        run: ./artifacts/windows-arm64/checks/SharpRail.Checks.exe --windows
+      - run: ./scripts/mise.cmd run check:packaged -- -RuntimeIdentifier win-arm64 --windows
       - uses: actions/upload-artifact@v4
         with:
           name: SharpRail-nightly-windows-arm64

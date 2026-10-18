@@ -31,7 +31,7 @@ Home, where upstream's `openFixtureProject` lands. A reload closes the window an
 a new one on the same profile; the profile's last location stands in for the URL route.
 Native shell execution, Metal presentation, Mod+Shift+J from a focused Ghostty view and
 remote Ghostty tabs relayed to a gRPC host PTY have separate checks in
-`scripts/check-terminal.sh` and `SharpRail.Checks --native-terminal`.
+`scripts/mise run check:terminal` and `SharpRail.Checks --native-terminal`.
 The upstream one-pixel PNG has an invalid IDAT checksum and truncated compressed
 data. Its translated fixture uses a valid one-pixel PNG because Skia rejects the
 original; the image-loading assertion remains intact.
