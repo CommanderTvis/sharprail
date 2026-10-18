@@ -31,18 +31,19 @@
   </ItemGroup>
   <PropertyGroup>
     <MermaidLibrary>$(MSBuildProjectDirectory)/obj/native/libSharpRailMermaid.dylib</MermaidLibrary>
+    <NotificationsLibrary>$(MSBuildProjectDirectory)/obj/native/libSharpRailNotifications.dylib</NotificationsLibrary>
   </PropertyGroup>
-  <Target Name="BuildMermaid" BeforeTargets="PrepareForBuild" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+  <ItemGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+    <Content Include="$(MermaidLibrary)" Link="libSharpRailMermaid.dylib" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+    <Content Include="$(NotificationsLibrary)" Link="libSharpRailNotifications.dylib" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <!-- Native libraries are MSBuild targets: they rebuild when an input is newer than the output, and only then. -->
+  <Target Name="BuildMermaid" BeforeTargets="PrepareForBuild" Condition="$([MSBuild]::IsOSPlatform('OSX'))"
+          Inputs="$(MSBuildProjectDirectory)/../../scripts/build-merman.sh;$(MSBuildProjectDirectory)/../../mise.lock" Outputs="$(MermaidLibrary)">
     <Exec Command="$(MiseRun) sh &quot;$(MSBuildProjectDirectory)/../../scripts/build-merman.sh&quot; &quot;$(MermaidLibrary)&quot;" />
-    <ItemGroup>
-      <Content Include="$(MermaidLibrary)" Link="libSharpRailMermaid.dylib" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    </ItemGroup>
   </Target>
-  <Target Name="BuildNotifications" BeforeTargets="PrepareForBuild" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
-    <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/build-notifications.sh&quot;" />
-    <ItemGroup>
-      <NotificationsLibrary Include="../../.tools/notifications/*SharpRailNotifications.*" />
-      <Content Include="@(NotificationsLibrary)" Link="%(NotificationsLibrary.Filename)%(NotificationsLibrary.Extension)" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    </ItemGroup>
+  <Target Name="BuildNotifications" BeforeTargets="PrepareForBuild" Condition="$([MSBuild]::IsOSPlatform('OSX'))"
+          Inputs="$(MSBuildProjectDirectory)/Native/Notifications.m;$(MSBuildProjectDirectory)/../../scripts/build-notifications.sh" Outputs="$(NotificationsLibrary)">
+    <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/build-notifications.sh&quot; &quot;$(NotificationsLibrary)&quot;" />
   </Target>
 </Project>

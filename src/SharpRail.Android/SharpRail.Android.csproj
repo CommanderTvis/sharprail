@@ -75,17 +75,17 @@
     <Publicize Include="Avalonia.Android:Avalonia.Android.AvaloniaView.Dispose" />
   </ItemGroup>
   <!-- The terminal state and editor libraries, built with the checkout's NDK for each packaged ABI. -->
-  <Target Name="BuildNativeLibraries" BeforeTargets="BeforeBuild">
-    <ItemGroup>
-      <NativeAbi Include="arm64-v8a;x86_64" />
-    </ItemGroup>
+  <ItemGroup>
+    <NativeAbi Include="arm64-v8a;x86_64" />
+    <AndroidNativeSource Include="../Ghostty.Avalonia/Native/GhosttyVt.c;../Ghostty.Avalonia/build-android.sh;../SharpRail.Scintilla/Native/*;../SharpRail.Scintilla/build-android.sh;../../mise.lock;../../mise.android.lock" />
+    <AndroidNativeLibrary Include="$(GhosttyNativeCache)/android/%(NativeAbi.Identity)/libGhosttyAvaloniaVt.so" Abi="%(NativeAbi.Identity)" />
+    <AndroidNativeLibrary Include="$(MSBuildProjectDirectory)/../SharpRail.Scintilla/obj/native/android/%(NativeAbi.Identity)/libSharpRail.Scintilla.so" Abi="%(NativeAbi.Identity)" />
+  </ItemGroup>
+  <Target Name="BuildNativeLibraries" BeforeTargets="BeforeBuild"
+          Inputs="@(AndroidNativeSource)" Outputs="@(AndroidNativeLibrary)">
     <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/mise&quot; run bootstrap:android" />
     <Exec Command="$(MiseRun) sh &quot;$(MSBuildProjectDirectory)/../Ghostty.Avalonia/build-android.sh&quot; %(NativeAbi.Identity) &quot;$(GhosttyNativeCache)&quot;" />
     <Exec Command="$(MiseRun) sh &quot;$(MSBuildProjectDirectory)/../SharpRail.Scintilla/build-android.sh&quot; %(NativeAbi.Identity)" />
-    <ItemGroup>
-      <AndroidNativeLibrary Include="$(GhosttyNativeCache)/android/%(NativeAbi.Identity)/libGhosttyAvaloniaVt.so" Abi="%(NativeAbi.Identity)" />
-      <AndroidNativeLibrary Include="$(MSBuildProjectDirectory)/../SharpRail.Scintilla/obj/native/android/%(NativeAbi.Identity)/libSharpRail.Scintilla.so" Abi="%(NativeAbi.Identity)" />
-    </ItemGroup>
   </Target>
   <!-- Avalonia's reference assemblies make its platform interfaces unimplementable; the implementation assemblies do not. -->
   <Target Name="UseAvaloniaImplementationAssemblies" AfterTargets="ResolveAssemblyReferences" BeforeTargets="PublicizeAssemblies">

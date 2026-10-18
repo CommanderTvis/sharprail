@@ -132,3 +132,5 @@ if ! fresh vt libGhosttyAvaloniaVt.dylib "$vt_fingerprint"; then
     -install_name @rpath/libGhosttyAvaloniaVt.dylib -o "$cache/libGhosttyAvaloniaVt.dylib"
   printf '%s\n' "$vt_fingerprint" > "$cache/vt.fingerprint"
 fi
+# Whichever library was already current is not rebuilt; touching both tells MSBuild this run is done.
+touch "$cache/libGhosttyAvaloniaView.dylib" "$cache/libGhosttyAvaloniaVt.dylib"

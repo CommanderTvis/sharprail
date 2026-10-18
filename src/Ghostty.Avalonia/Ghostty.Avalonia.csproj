@@ -22,19 +22,30 @@
     <PackageReference Update="SkiaSharp" Version="4.148.0" />
     <PackageReference Update="HarfBuzzSharp" Version="14.2.1.301" />
   </ItemGroup>
-  <Target Name="BuildGhosttyWindows" BeforeTargets="PrepareForBuild;GetCopyToOutputDirectoryItems;GetCopyToPublishDirectoryItems" Condition="$([MSBuild]::IsOSPlatform('Windows'))">
-    <PropertyGroup>
-      <GhosttyWindowsRid Condition="$(RuntimeIdentifier.StartsWith('win-'))">$(RuntimeIdentifier)</GhosttyWindowsRid>
-      <GhosttyWindowsRid Condition="'$(GhosttyWindowsRid)' == '' and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == 'Arm64'">win-arm64</GhosttyWindowsRid>
-      <GhosttyWindowsRid Condition="'$(GhosttyWindowsRid)' == ''">win-x64</GhosttyWindowsRid>
-    </PropertyGroup>
+  <ItemGroup>
+    <GhosttyNativeSource Include="$(MSBuildProjectDirectory)/Native/*" Exclude="$(MSBuildProjectDirectory)/Native/terminal-check.m;$(MSBuildProjectDirectory)/Native/Wasm.patch" />
+  </ItemGroup>
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+    <GhosttyWindowsRid Condition="$(RuntimeIdentifier.StartsWith('win-'))">$(RuntimeIdentifier)</GhosttyWindowsRid>
+    <GhosttyWindowsRid Condition="'$(GhosttyWindowsRid)' == '' and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == 'Arm64'">win-arm64</GhosttyWindowsRid>
+    <GhosttyWindowsRid Condition="'$(GhosttyWindowsRid)' == ''">win-x64</GhosttyWindowsRid>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(GhosttyWindowsRid)' != ''">
+    <Content Include="$(GhosttyNativeCache)/$(GhosttyWindowsRid)/GhosttyAvaloniaVt.dll" Link="GhosttyAvaloniaVt.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <!-- Native libraries are MSBuild targets: they rebuild when a source, the recipe or the lockfile is newer than the output. -->
+  <Target Name="BuildGhosttyWindows" BeforeTargets="PrepareForBuild;GetCopyToOutputDirectoryItems;GetCopyToPublishDirectoryItems" Condition="'$(GhosttyWindowsRid)' != ''"
+          Inputs="@(GhosttyNativeSource);$(MSBuildProjectDirectory)/build-windows.ps1;$(MSBuildThisFileDirectory)../../scripts/windows-native.ps1;$(MSBuildThisFileDirectory)../../mise.lock"
+          Outputs="$(GhosttyNativeCache)/$(GhosttyWindowsRid)/GhosttyAvaloniaVt.dll">
     <Exec Command="$(MiseRun) powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)/build-windows.ps1&quot; -RuntimeIdentifier &quot;$(RuntimeIdentifier)&quot; -Cache &quot;$(GhosttyNativeCache)&quot;" />
-    <ItemGroup>
-      <Content Include="$(GhosttyNativeCache)/$(GhosttyWindowsRid)/GhosttyAvaloniaVt.dll" Link="GhosttyAvaloniaVt.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    </ItemGroup>
   </Target>
-  <Target Name="BuildGhosttyNative" BeforeTargets="PrepareForBuild;GetCopyToOutputDirectoryItems;GetCopyToPublishDirectoryItems" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+  <Target Name="BuildGhosttyNative" BeforeTargets="PrepareForBuild;GetCopyToOutputDirectoryItems;GetCopyToPublishDirectoryItems" Condition="$([MSBuild]::IsOSPlatform('OSX'))"
+          Inputs="@(GhosttyNativeSource);$(MSBuildProjectDirectory)/build-native.sh;$(MSBuildThisFileDirectory)../../mise.toml;$(MSBuildThisFileDirectory)../../mise.lock"
+          Outputs="$(GhosttyNativeCache)/libGhosttyAvaloniaView.dylib;$(GhosttyNativeCache)/libGhosttyAvaloniaVt.dylib">
     <Exec Command="$(MiseRun) sh &quot;$(MSBuildProjectDirectory)/build-native.sh&quot; &quot;$(RuntimeIdentifier)&quot; &quot;$(GhosttyNativeCache)&quot;" />
+  </Target>
+  <!-- Declared apart from the build so that an up-to-date build still packages the libraries. -->
+  <Target Name="IncludeGhosttyNative" DependsOnTargets="BuildGhosttyNative" BeforeTargets="PrepareForBuild;GetCopyToOutputDirectoryItems;GetCopyToPublishDirectoryItems" Condition="$([MSBuild]::IsOSPlatform('OSX'))">
     <ItemGroup>
       <GhosttyResources Include="$(GhosttyNativeCache)/resources/**/*" />
       <Content Include="$(GhosttyNativeCache)/libGhosttyAvaloniaView.dylib" Link="libGhosttyAvaloniaView.dylib" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />

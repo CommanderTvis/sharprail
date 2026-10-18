@@ -16,11 +16,18 @@
     <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
     <AvaloniaResource Include="Assets/**" />
   </ItemGroup>
-  <Target Name="GenerateFileIcons" BeforeTargets="AssignTargetPaths">
+  <PropertyGroup>
+    <FileIconsDirectory>$(MSBuildProjectDirectory)/../../.tools/file-icons/assets/file-icons</FileIconsDirectory>
+  </PropertyGroup>
+  <Target Name="BuildFileIcons" BeforeTargets="AssignTargetPaths"
+          Inputs="$(MSBuildProjectDirectory)/../../scripts/generate-file-icons.cs;$(MSBuildProjectDirectory)/../../scripts/build-file-icons.sh;$(MSBuildProjectDirectory)/../../scripts/build-file-icons.ps1;$(MSBuildProjectDirectory)/FileIcons/FileIconTable.g.cs"
+          Outputs="$(FileIconsDirectory)/file.svg">
     <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/build-file-icons.sh&quot;" Condition="'$(OS)' != 'Windows_NT'" />
     <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)/../../scripts/build-file-icons.ps1&quot;" Condition="'$(OS)' == 'Windows_NT'" />
+  </Target>
+  <Target Name="EmbedFileIcons" AfterTargets="BuildFileIcons" BeforeTargets="AssignTargetPaths" DependsOnTargets="BuildFileIcons">
     <ItemGroup>
-      <FileIconsSvg Include="../../.tools/file-icons/assets/file-icons/*.svg" />
+      <FileIconsSvg Include="$(FileIconsDirectory)/*.svg" />
       <EmbeddedResource Include="@(FileIconsSvg)" LogicalName="SharpRail.Plugins.UI.Kit.FileIcons.%(FileIconsSvg.Filename)%(FileIconsSvg.Extension)" />
     </ItemGroup>
   </Target>

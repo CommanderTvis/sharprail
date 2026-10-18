@@ -10,6 +10,9 @@
     <PackageReference Include="HarfBuzzSharp" />
     <InternalsVisibleTo Include="SharpRail.Checks" />
   </ItemGroup>
+  <ItemGroup>
+    <ScintillaNativeSource Include="$(MSBuildProjectDirectory)/Native/*" />
+  </ItemGroup>
   <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
     <ScintillaArch Condition="'$(NETCoreSdkRuntimeIdentifier)' == 'osx-x64'">x86_64</ScintillaArch>
     <ScintillaArch Condition="'$(ScintillaArch)' == '' or '$(RuntimeIdentifier)' == 'osx-arm64'">arm64</ScintillaArch>
@@ -18,18 +21,22 @@
   <ItemGroup Condition="'$(ScintillaArch)' != ''">
     <Content Include="$(ScintillaNativeCache)/$(ScintillaArch)/libSharpRail.Scintilla.dylib" Link="libSharpRail.Scintilla.dylib" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>
-  <Target Name="BuildScintillaNative" BeforeTargets="PrepareForBuild" Condition="'$(ScintillaArch)' != ''">
+  <Target Name="BuildScintillaNative" BeforeTargets="PrepareForBuild" Condition="'$(ScintillaArch)' != ''"
+          Inputs="@(ScintillaNativeSource);$(MSBuildProjectDirectory)/build-native.sh;$(MSBuildThisFileDirectory)../../mise.lock"
+          Outputs="$(ScintillaNativeCache)/$(ScintillaArch)/libSharpRail.Scintilla.dylib">
     <Exec Command="$(MiseRun) sh &quot;$(MSBuildProjectDirectory)/build-native.sh&quot; $(ScintillaArch) &quot;$(ScintillaNativeCache)&quot;" />
   </Target>
-  <Target Name="BuildScintillaWindows" BeforeTargets="PrepareForBuild;GetCopyToOutputDirectoryItems;GetCopyToPublishDirectoryItems" Condition="$([MSBuild]::IsOSPlatform('Windows'))">
-    <PropertyGroup>
-      <ScintillaWindowsRid Condition="$(RuntimeIdentifier.StartsWith('win-'))">$(RuntimeIdentifier)</ScintillaWindowsRid>
-      <ScintillaWindowsRid Condition="'$(ScintillaWindowsRid)' == '' and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == 'Arm64'">win-arm64</ScintillaWindowsRid>
-      <ScintillaWindowsRid Condition="'$(ScintillaWindowsRid)' == ''">win-x64</ScintillaWindowsRid>
-    </PropertyGroup>
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
+    <ScintillaWindowsRid Condition="$(RuntimeIdentifier.StartsWith('win-'))">$(RuntimeIdentifier)</ScintillaWindowsRid>
+    <ScintillaWindowsRid Condition="'$(ScintillaWindowsRid)' == '' and $([System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture) == 'Arm64'">win-arm64</ScintillaWindowsRid>
+    <ScintillaWindowsRid Condition="'$(ScintillaWindowsRid)' == ''">win-x64</ScintillaWindowsRid>
+  </PropertyGroup>
+  <ItemGroup Condition="'$(ScintillaWindowsRid)' != ''">
+    <Content Include="$(ScintillaNativeCache)/$(ScintillaWindowsRid)/SharpRailScintillaNative.dll" Link="SharpRailScintillaNative.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <Target Name="BuildScintillaWindows" BeforeTargets="PrepareForBuild;GetCopyToOutputDirectoryItems;GetCopyToPublishDirectoryItems" Condition="'$(ScintillaWindowsRid)' != ''"
+          Inputs="@(ScintillaNativeSource);$(MSBuildProjectDirectory)/build-windows.ps1;$(MSBuildThisFileDirectory)../../scripts/windows-native.ps1;$(MSBuildThisFileDirectory)../../mise.lock"
+          Outputs="$(ScintillaNativeCache)/$(ScintillaWindowsRid)/SharpRailScintillaNative.dll">
     <Exec Command="$(MiseRun) powershell -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildProjectDirectory)/build-windows.ps1&quot; -RuntimeIdentifier &quot;$(RuntimeIdentifier)&quot; -Cache &quot;$(ScintillaNativeCache)&quot;" />
-    <ItemGroup>
-      <Content Include="$(ScintillaNativeCache)/$(ScintillaWindowsRid)/SharpRailScintillaNative.dll" Link="SharpRailScintillaNative.dll" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
-    </ItemGroup>
   </Target>
 </Project>

@@ -84,9 +84,15 @@
   <Target Name="CompressBrowserBundle" AfterTargets="_WasmBuildAppCore" Condition="'$(Configuration)' == 'Release' and '$(WasmGenerateAppBundle)' == 'true'">
     <Exec Command="node &quot;$(MSBuildProjectDirectory)/../../scripts/browser-compress.mjs&quot; &quot;$(WasmAppDir)&quot;" />
   </Target>
-  <Target Name="BuildBrowserNative" BeforeTargets="PrepareForBuild">
+  <ItemGroup>
+    <WasmNativeSource Include="../Ghostty.Avalonia/Native/GhosttyVt.c;../Ghostty.Avalonia/Native/Wasm.patch;../SharpRail.Scintilla/Native/*;../../scripts/wasm-native.sh;../../mise.lock;../../mise.browser.lock" />
+  </ItemGroup>
+  <Target Name="BuildBrowserNative" BeforeTargets="PrepareForBuild"
+          Inputs="@(WasmNativeSource)" Outputs="../../.tools/wasm-native/GhosttyAvaloniaVt.a;../../.tools/wasm-native/SharpRail.Scintilla.a">
     <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/mise&quot; run bootstrap:browser" />
     <Exec EnvironmentVariables="MISE_ENV=browser" Command="$(MiseRun) sh &quot;$(MSBuildProjectDirectory)/../../scripts/wasm-native.sh&quot;" />
+  </Target>
+  <Target Name="IncludeBrowserAssets" BeforeTargets="PrepareForBuild" DependsOnTargets="BuildBrowserNative">
     <Exec Command="node &quot;$(MSBuildProjectDirectory)/../../scripts/browser-assets.mjs&quot;" />
     <ItemGroup>
       <BrowserAsset Include="wwwroot/**/*" />

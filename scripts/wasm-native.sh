@@ -1,4 +1,6 @@
 #!/bin/sh
+# Builds the WASM static libraries (libghostty-vt and the editor bridge). The browser project's BuildBrowserNative target
+# decides when it runs: when a source, this script or the lockfile is newer than the libraries.
 set -eu
 cd "$(dirname "$0")/.."
 root="$PWD"
@@ -36,8 +38,6 @@ if [ ! -d "$source" ]; then
     mv "$source.partial" "$source"
 fi
 [ "$(git -C "$source" rev-parse HEAD)" = "$vt_commit" ] || { echo 'Unexpected Ghostty source revision.' >&2; exit 1; }
-fingerprint="$(cat src/Ghostty.Avalonia/Native/GhosttyVt.c src/Ghostty.Avalonia/Native/Wasm.patch src/SharpRail.Scintilla/Native/* scripts/wasm-native.sh | shasum -a 256) $sdk $vt_commit"
-if [ "$(cat "$cache/fingerprint" 2>/dev/null)" = "$fingerprint" ] && [ -f "$cache/GhosttyAvaloniaVt.a" ] && [ -f "$cache/SharpRail.Scintilla.a" ]; then exit 0; fi
 (cd "$source" && "$zig/zig" build --cache-dir "$cache/zig-cache" --prefix "$cache/ghostty" -Demit-lib-vt -Dtarget=wasm32-freestanding -Dcpu=mvp+simd128+mutable_globals+sign_ext+nontrapping_fptoint+atomics+bulk_memory -Doptimize=ReleaseFast -Dstrip=true)
 emcc -pthread -O2 -DGHOSTTY_STATIC -I "$source/include" -c src/Ghostty.Avalonia/Native/GhosttyVt.c -o "$cache/GhosttyVt.o"
 cp "$cache/ghostty/lib/libghostty-vt.a" "$cache/GhosttyAvaloniaVt.a"
@@ -66,4 +66,3 @@ for file in "$patched"/src/*.cxx "$root"/src/SharpRail.Scintilla/Native/*.cxx; d
     emcc -pthread -DPTRDIFF_DOESNT_ALIAS_INT -x c++ -std=c++17 -O2 -DNDEBUG -fwasm-exceptions -I "$patched/include" -I "$patched/src" -I "$bidi/Headers" -c "$file" -o "$cache/editor/$name.o"
 done
 emar rcs "$cache/SharpRail.Scintilla.a" "$cache/editor"/*.o
-printf '%s\n' "$fingerprint" > "$cache/fingerprint"
