@@ -144,7 +144,12 @@ public sealed class SharedState : IDisposable
         Preferences.CustomPresets = presets;
     }
 
-    public static string Serialize(DockState layout) => JsonSerializer.Serialize(layout);
+    public static string Serialize(DockState layout)
+    {
+        var preset = layout.Copy();
+        preset.ActiveProject = ""; preset.DefaultProjectPanes = null; preset.ProjectPanes.Clear();
+        return JsonSerializer.Serialize(preset);
+    }
 
     public void Dispose() => lifetime.Cancel();
 }

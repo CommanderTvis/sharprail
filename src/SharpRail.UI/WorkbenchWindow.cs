@@ -372,8 +372,8 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
             switchingWorkspace = false;
             WorkspaceMounted = true; restorePending = false;
             var resolvedTarget = home ? HomeKey(projectRoot) : workspaceRoot;
-            if (Layout.State.ActiveWorkspace != resolvedTarget)
-                Layout.SwitchWorkspace(resolvedTarget);
+            if (Layout.State.ActiveWorkspace != resolvedTarget || Layout.State.ActiveProject != projectRoot)
+                Layout.SwitchWorkspace(resolvedTarget, projectRoot);
             else
             {
                 surface.RefreshContents();

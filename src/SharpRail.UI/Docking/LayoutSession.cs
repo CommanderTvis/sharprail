@@ -97,6 +97,7 @@ public sealed partial class LayoutSession
         catch (InvalidOperationException) { return false; }
         candidate.SeparatePanes();
         NormalizePanes(candidate);
+        RememberProjectPanes(candidate);
         if (!IsValid(candidate)) return false;
         if (CanRemoveDocument is not null)
         {
@@ -132,15 +133,17 @@ public sealed partial class LayoutSession
         Changed?.Invoke();
     }
 
-    public void SwitchWorkspace(string path) => Change(state =>
+    public void SwitchWorkspace(string path, string? project = null) => Change(state =>
     {
         var previous = Active(state);
+        var sameProject = project is null || state.ActiveProject == project;
         state.ActiveWorkspace = path;
         var view = Active(state);
+        if (project is not null) SwitchProjectPanes(state, project, previous);
         foreach (var group in state.Groups.Where(group => group.Region != "center"))
         {
             var selected = previous.Selected.GetValueOrDefault(group.Id) ?? group.Tools.FirstOrDefault()?.Id;
-            if (selected is not null && group.Tools.Any(tab => tab.Id == selected)) view.Selected[group.Id] = selected;
+            if (sameProject && selected is not null && group.Tools.Any(tab => tab.Id == selected)) view.Selected[group.Id] = selected;
         }
         if (!state.Center.Leaves().Contains(view.FocusedCenter)) view.FocusedCenter = state.Center.Leaves().First();
     });
@@ -306,26 +309,33 @@ public sealed partial class LayoutSession
     public void Close(string groupId, string tabId)
     {
         Navigating?.Invoke(groupId);
-        Change(state =>
+        Change(state => CloseIn(state, groupId, tabId));
+    }
+
+    private static void CloseIn(DockState state, string groupId, string tabId)
+    {
+        var group = state.Groups.Single(item => item.Id == groupId);
+        var view = Active(state);
+        var before = ProjectTabs(state, groupId).ToList();
+        var position = before.FindIndex(tab => tab.Id == tabId);
+        var selected = view.Selected.GetValueOrDefault(groupId) ?? before.FirstOrDefault()?.Id;
+        if (group.Tools.Any(tab => tab.Id == tabId))
         {
-            var group = state.Groups.Single(item => item.Id == groupId);
-            var view = Active(state);
-            var before = ProjectTabs(state, groupId).ToList();
-            var position = before.FindIndex(tab => tab.Id == tabId);
-            var selected = view.Selected.GetValueOrDefault(groupId) ?? before.FirstOrDefault()?.Id;
-            if (group.Tools.Any(tab => tab.Id == tabId))
-            {
-                state.ToolRestorePositions[tabId] = position;
-                group.Tools.RemoveAll(tab => tab.Id == tabId); state.ToolRestore[tabId] = groupId;
-                AnchorResources(view, before.Where(tab => tab.Id != tabId).ToArray());
-            }
-            else view.Documents.GetValueOrDefault(groupId)?.RemoveAll(tab => tab.Id == tabId);
-            view.BeforeToolByTabId.Remove(tabId);
-            if (selected != tabId) return;
-            var remaining = before.Where(tab => tab.Id != tabId).ToArray();
-            if (remaining.Length == 0) view.Selected.Remove(groupId);
-            else view.Selected[groupId] = remaining[Math.Clamp(position, 0, remaining.Length - 1)].Id;
-        });
+            var restorePosition = position;
+            if (state.DefaultProjectPanes is not null)
+                foreach (var closed in state.ToolRestore.Where(pair => pair.Value == groupId && pair.Key != tabId)
+                    .Select(pair => state.ToolRestorePositions.GetValueOrDefault(pair.Key)).Order())
+                    if (closed <= restorePosition) restorePosition++;
+            state.ToolRestorePositions[tabId] = restorePosition;
+            group.Tools.RemoveAll(tab => tab.Id == tabId); state.ToolRestore[tabId] = groupId;
+            AnchorResources(view, before.Where(tab => tab.Id != tabId).ToArray());
+        }
+        else view.Documents.GetValueOrDefault(groupId)?.RemoveAll(tab => tab.Id == tabId);
+        view.BeforeToolByTabId.Remove(tabId);
+        if (selected != tabId) return;
+        var remaining = before.Where(tab => tab.Id != tabId).ToArray();
+        if (remaining.Length == 0) view.Selected.Remove(groupId);
+        else view.Selected[groupId] = remaining[Math.Clamp(position, 0, remaining.Length - 1)].Id;
     }
 
     /// <summary>
@@ -697,7 +707,11 @@ public sealed partial class LayoutSession
 
     public void RestoreTool(string id, string? target = null) => Change(state =>
     {
-        if (!IsToolAvailable(id)) return;
+        if (IsToolAvailable(id)) RestoreToolIn(state, id, target);
+    });
+
+    private void RestoreToolIn(DockState state, string id, string? target = null)
+    {
         if (state.Groups.Any(group => group.Tools.Any(tab => tab.Id == id))) return;
         target ??= state.ToolRestore.GetValueOrDefault(id);
         var view = Active(state);
@@ -722,7 +736,11 @@ public sealed partial class LayoutSession
             if (group is null) { group = new() { Region = ToolRegion(id) }; state.Groups.Add(group); }
         }
         var order = ProjectTabs(state, group.Id).ToList();
-        order.Insert(Math.Clamp(state.ToolRestorePositions.GetValueOrDefault(id, order.Count), 0, order.Count),
+        var position = state.ToolRestorePositions.GetValueOrDefault(id, order.Count);
+        if (state.DefaultProjectPanes is not null)
+            position -= state.ToolRestore.Count(pair => pair.Value == group.Id && pair.Key != id &&
+                state.ToolRestorePositions.GetValueOrDefault(pair.Key) < position);
+        order.Insert(Math.Clamp(position, 0, order.Count),
             new DockTab(id, Tool(id)?.Title ?? DockState.Tool(id).Title, "tool"));
         group.Tools = order.Where(tab => tab.IsTool).ToList();
         AnchorResources(Active(state), order);
@@ -730,7 +748,7 @@ public sealed partial class LayoutSession
         Active(state).Selected[group.Id] = id;
         if (group.Region == "left") state.LeftVisible = true;
         if (group.Region == "right") state.RightVisible = true;
-    });
+    }
 
     public void Geometry(Action<DockState> mutation) => Change(mutation);
 
@@ -738,6 +756,9 @@ public sealed partial class LayoutSession
     {
         var next = preset.Copy();
         next.RemoveBottomZone();
+        next.ActiveProject = State.ActiveProject;
+        next.DefaultProjectPanes = CaptureProjectPanes(next);
+        next.ProjectPanes = State.ProjectPanes.ToDictionary(pair => pair.Key, pair => pair.Value.Copy());
         next.ActiveWorkspace = State.ActiveWorkspace; next.Workspaces = State.Workspaces.ToDictionary(pair => pair.Key, pair => pair.Value.Copy());
         foreach (var view in next.Workspaces.Values)
         {
@@ -756,6 +777,7 @@ public sealed partial class LayoutSession
         foreach (var tool in tools.Select(tool => tool.Id))
             if (!next.Groups.Any(group => group.Tools.Any(tab => tab.Id == tool))) next.ToolRestore[tool] = "";
         next.SeparatePanes();
+        RememberProjectPanes(next);
         if (!IsValid(next)) return;
         State = next; Epoch++; Changed?.Invoke();
     }
@@ -768,6 +790,9 @@ public sealed partial class LayoutSession
             var leaves = state.Center.Leaves().ToArray();
             var groups = state.Groups.Select(group => group.Id).ToHashSet();
             var tools = state.Groups.SelectMany(group => group.Tools).ToArray();
+            if (state.ActiveProject is null || state.ProjectPanes is null ||
+                state.ProjectPanes.Any(pair => pair.Value is null || !ValidProjectPanes(pair.Value)) ||
+                state.DefaultProjectPanes is { } defaults && !ValidProjectPanes(defaults)) return false;
             if (state.Schema != 1 || state.ToolRestorePositions is null || groups.Count != state.Groups.Count || leaves.Length is < 1 or > 4 ||
                 leaves.Distinct().Count() != leaves.Length || leaves.Any(id => !groups.Contains(id)) ||
                 state.Groups.Any(group => group.Region == "center" != leaves.Contains(group.Id)) ||

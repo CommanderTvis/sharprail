@@ -59,9 +59,28 @@ public sealed class WorkspaceView
     };
 }
 
+/// <summary>The tools and visibility one project remembers within the window's shared frame.</summary>
+public sealed class ProjectPaneState
+{
+    public List<string> OpenTools { get; set; } = [];
+    public HashSet<string> FoldedGroups { get; set; } = [];
+    public Dictionary<string, string> SelectedTools { get; set; } = [];
+    public bool LeftVisible { get; set; } = true;
+    public bool RightVisible { get; set; } = true;
+    public bool HomeProjectsVisible { get; set; } = true;
+    public ProjectPaneState Copy() => new()
+    {
+        OpenTools = [.. OpenTools], FoldedGroups = [.. FoldedGroups], SelectedTools = new(SelectedTools),
+        LeftVisible = LeftVisible, RightVisible = RightVisible, HomeProjectsVisible = HomeProjectsVisible
+    };
+}
+
 public sealed class DockState
 {
     public int Schema { get; set; } = 1;
+    public string ActiveProject { get; set; } = "";
+    public ProjectPaneState? DefaultProjectPanes { get; set; }
+    public Dictionary<string, ProjectPaneState> ProjectPanes { get; set; } = [];
     public CenterNode Center { get; set; } = new();
     public List<DockGroup> Groups { get; set; } = [];
     public Dictionary<string, WorkspaceView> Workspaces { get; set; } = [];
@@ -78,6 +97,9 @@ public sealed class DockState
     public double HomeProjectsWidth { get; set; } = .22;
     public DockState Copy() => new()
     {
+        ActiveProject = ActiveProject,
+        DefaultProjectPanes = DefaultProjectPanes?.Copy(),
+        ProjectPanes = ProjectPanes.ToDictionary(pair => pair.Key, pair => pair.Value.Copy()),
         Center = Center.Copy(),
         Groups = Groups.Select(group => group.Copy()).ToList(),
         Workspaces = Workspaces.ToDictionary(pair => pair.Key, pair => pair.Value.Copy()),
@@ -126,6 +148,11 @@ public sealed class DockState
             {
                 if (ToolRestore.Remove(legacy, out var group)) ToolRestore[renamed] = group;
                 if (ToolRestorePositions.Remove(legacy, out var position)) ToolRestorePositions[renamed] = position;
+            }
+            foreach (var panes in ProjectPanes.Values.Concat(DefaultProjectPanes is { } defaults ? [defaults] : []))
+            {
+                panes.OpenTools = panes.OpenTools.Select(Rename).Distinct().ToList();
+                foreach (var key in panes.SelectedTools.Keys.ToArray()) panes.SelectedTools[key] = Rename(panes.SelectedTools[key]);
             }
             foreach (var view in Workspaces.Values)
                 foreach (var map in new[] { view.Selected, view.BeforeToolByTabId })

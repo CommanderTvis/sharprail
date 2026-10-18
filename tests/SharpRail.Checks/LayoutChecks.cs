@@ -62,6 +62,7 @@ internal static class LayoutChecks
         empty.ReconcileTerminals("empty", [new("peer", "Peer terminal")], new HashSet<string>());
         Require(empty.Tabs(center).Any(tab => tab.Id == "peer") && empty.Tabs(hiddenSide).All(tab => tab.Id != "peer"),
             "Projects must retain access to catalog terminals whose side region is hidden.");
+        ProjectPaneChecks.Model();
         CheckTerminalTitles();
         CheckAuxiliaryRegions();
         CheckSeparatePanes();

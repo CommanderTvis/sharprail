@@ -88,7 +88,7 @@ public sealed partial class WorkbenchWindow
         SetBranch("");
         status.Text = remote ? "Remote" : "Connected";
         ShowReady();
-        Layout.SwitchWorkspace("");
+        Layout.SwitchWorkspace("", "");
         surface.RefreshCenterActions();
         surface.RefreshContents();
         LocationChanged?.Invoke();
