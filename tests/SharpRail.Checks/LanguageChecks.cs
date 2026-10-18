@@ -34,6 +34,7 @@ internal static class LanguageChecks
         {
             await IntelliJChecks.Distribution(root);
             ProjectModelPolicies(root);
+            LanguageOptionChecks.Run();
             await LanguageProjectChecks.Routing(root);
             await ProjectInitialization(root);
             var boundedLog = new LanguageLog();
@@ -950,6 +951,13 @@ internal static class LanguageChecks
             rail.SelectedItem = "python";
             Require(Find<TextBlock>("LspServerHeading").Text == "python", "Server rail did not navigate.");
             Require(Find<TextBlock>("LspImplementation").Text == "Pyright · Microsoft", "Settings hid the implementation provider.");
+            E2E.E2eWorkspace.Until(() => Find<WrapPanel>("LspProviderLinks").IsVisible && Find<Button>("LspProviderRepository").Tag is Uri repository && repository.AbsoluteUri.Contains("microsoft/pyright", StringComparison.Ordinal));
+            foreach (var provider in LanguageServers.Catalog)
+            {
+                rail.SelectedItem = provider.Id;
+                var metadata = JsonNode.Parse(LanguageConfigurationCatalog.Read(provider.Id).Configuration)!;
+                E2E.E2eWorkspace.Until(() => Find<WrapPanel>("LspProviderLinks").IsVisible && Find<Button>("LspProviderRepository").Tag is Uri repository && repository.AbsoluteUri == metadata["repository"]!.ToString());
+            }
             rail.SelectedItem = "java";
             Require(Find<TextBlock>("LspImplementation").Text!.Contains("Eclipse JDT Language Server", StringComparison.Ordinal), "Java implementation is unclear.");
             rail.SelectedItem = "typescript";
@@ -1121,7 +1129,8 @@ internal static class LanguageChecks
             var beforeInvalid = state.Current.WorkspaceLanguages.GetValueOrDefault(root);
             Config<Button>("SaveConfiguration").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             Require(state.Current.WorkspaceLanguages.GetValueOrDefault(root) == beforeInvalid && Config<TextBlock>("ConfigurationMessage").Text!.Contains("Correct invalid", StringComparison.Ordinal), "Invalid named setting was silently saved as its previous value.");
-            memory.Value = "4096";
+            memory.Number = 4096;
+            Require(configurationView.GetLogicalDescendants().OfType<NumericUpDown>().Any(input => input.IsVisible), "Integer settings must have a visible numeric control.");
             Require(JsonNode.Parse(Config<TextBox>("InitializationOptions").Text!)!["maxTsServerMemory"]!.GetValue<int>() == 4096, "Named setting did not write a typed integer.");
             Config<TextBox>("InitializationOptions").Text = "{\"fixture\":\"pane saved\"}";
             Config<Button>("SaveConfiguration").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
@@ -1242,7 +1251,7 @@ internal static class LanguageChecks
             Provider<ComboBox>("JvmProvider").SelectedIndex = 1;
             Provider<Button>("ApplyJvmProvider").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             E2E.E2eWorkspace.Until(() => state.Current.Settings.JavaKotlinProvider == "intellij" && Provider<ComboBox>("JvmProvider").IsEnabled);
-            IJ<TextBox>("IntelliJBuildTool").Text = "gradle";
+            IJ<ComboBox>("IntelliJBuildTool").SelectedItem = "gradle";
             IJ<TextBox>("IntelliJProjectJdk").Text = "/host/project-jdk";
             IJ<Button>("SaveConfiguration").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             E2E.E2eWorkspace.Until(() => state.Current.WorkspaceLanguages[root].Contains("gradle", StringComparison.Ordinal) && IJ<Button>("SaveConfiguration").IsEnabled);

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 using Avalonia.Controls;
 
@@ -41,6 +42,12 @@ public sealed partial class SettingsWindow
             catch (Exception failure) { message.Foreground = Ui.Danger; message.Text = failure.Message; }
             finally { feature.IsChecked = state.Current.Settings.LspEnabled; feature.IsEnabled = true; }
         };
+        var website = PageControl<Button>(panel, "LspProviderWebsite");
+        var repository = PageControl<Button>(panel, "LspProviderRepository");
+        var links = PageControl<WrapPanel>(panel, "LspProviderLinks");
+        website.Click += LanguageProviderLinks.Open;
+        repository.Click += LanguageProviderLinks.Open;
+        var schemas = new Dictionary<string, JsonNode>();
         LanguageServerState[] catalog = [];
         void Load()
         {
@@ -61,6 +68,25 @@ public sealed partial class SettingsWindow
             PageControl<TextBlock>(panel, "LspVersion").Text = server.Version == "toolchain"
                 ? "Version: supplied by the host SDK" : "Pinned managed version: " + server.Version;
             message.Text = "";
+            links.IsVisible = false;
+            _ = LoadLinks(id);
+        }
+        async Task LoadLinks(string id)
+        {
+            try
+            {
+                if (!schemas.TryGetValue(id, out var schema))
+                {
+                    var result = await window.Host.LanguageAsync(new(window.WorkspaceRoot, Operation: "configurationSchema", Server: id), lifetime.Token);
+                    if (result.State != "ready" || result.Configuration.Length == 0) return;
+                    schema = JsonNode.Parse(result.Configuration)!;
+                    schemas[id] = schema;
+                }
+                if (!lifetime.IsCancellationRequested && selector.SelectedItem is string selected && selected == id)
+                    LanguageProviderLinks.Apply(schema, website, repository, links);
+            }
+            catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
+            catch (Exception failure) { if (!lifetime.IsCancellationRequested && selector.SelectedItem is string selected && selected == id) message.Text = "Provider links unavailable: " + failure.Message; }
         }
         void ArgumentControls()
         {

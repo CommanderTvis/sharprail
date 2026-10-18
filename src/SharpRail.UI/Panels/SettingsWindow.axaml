@@ -42,6 +42,10 @@
             <TextBlock x:Name="LspServerHeading" Classes="settings-heading" />
             <TextBlock x:Name="LspImplementation" TextWrapping="Wrap" />
             <TextBlock x:Name="LspVersion" Classes="settings-description" />
+            <WrapPanel x:Name="LspProviderLinks" IsVisible="False">
+              <Button x:Name="LspProviderWebsite" Content="Website ↗" Classes="link" Margin="0,0,16,0" />
+              <Button x:Name="LspProviderRepository" Content="Source repository ↗" Classes="link" />
+            </WrapPanel>
             <CheckBox x:Name="LspEnabled" Content="Allow this server to start" />
             <CheckBox x:Name="LspManaged" Content="Prefer the managed installation over PATH" />
             <TextBlock Text="The default implementation is shown above. PATH installations and executable overrides can differ; pinned versions describe managed installations, not running processes." Classes="settings-description" />

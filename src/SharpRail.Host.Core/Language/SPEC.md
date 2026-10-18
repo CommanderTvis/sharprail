@@ -498,3 +498,21 @@ protocol fixture and native Scintilla italic set/reset behavior; real IntelliJ
 typography and authenticated Context indexing were not exercised.
 
 2026-10-18 global-provider verification: Release and focused local/remote migration, global routing, two-project process teardown, consent, persistence and Settings broadcast checks pass. Existing host language and language Settings/editor setup checks pass. The broader language UI mode stops earlier in the unchanged empty-navigation assertion about unavailable analysis; real provider compatibility and browser/Android runtime were not rechecked.
+
+Named configuration controls distinguish host file/folder paths, path arrays, patterns, argument
+arrays, nullable booleans, numeric limits and enumerated strings. The [provider type research](CONFIGURATION.md)
+records the exposed fields and primary sources for all catalog providers. Unset and explicit empty
+values are distinct; Rust feature arrays and its `all` alternative remain distinct. Structured
+values and unknown choice strings survive form refresh and unrelated edits through advanced JSON.
+File selection is additive for lists. Native browsing is limited to an embedded desktop host; remote,
+browser and Android clients edit explicitly labeled host paths without accessing their local filesystem.
+Settings provider pages and workspace configuration expose the same HTTPS project/documentation links;
+proprietary providers link to documentation/client sources rather than claiming public server source.
+
+2026-10-18 typed-input verification: Release compilation, browser shared-source compilation,
+scoped formatting, language host/local-WebSocket checks and focused settings UI checks passed.
+The settings checks visit upstream links for all 18 providers and exercise nullable numeric entry
+and the fixed IntelliJ importer selector. The broader language UI mode stopped on an unrelated
+empty-navigation availability assertion before the settings cases. No full suite, native picker
+interaction, Android runtime or new all-provider semantic acceptance was run. Existing AVLN3001
+runtime-loader warnings remain visible.

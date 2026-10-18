@@ -6713,3 +6713,25 @@ untracked files matched their preserved blobs; tracked differences from the pres
 work are limited to incoming main paths. Release, --lsp-settings and settings-refresh
 checks passed. The temporary stash was removed after restoration verification.
 No commit or push was made.
+
+
+## 2026-10-18 — typed language settings and upstream links
+
+Workspace `ui/typed-language-server-settings` researches all 18 catalog providers and
+52 exposed named settings plus clangd/IntelliJ launch fields against official sources.
+The evidence and type inventory live in `src/SharpRail.Host.Core/Language/CONFIGURATION.md`.
+Host path controls distinguish files/folders and append selections to path lists; remote,
+browser and Android clients keep host-path text entry. Numeric settings use nullable
+numeric controls; importer/enumerated options use choices while open-ended commands
+retain custom text. Explicit empty lists, false/zero values, Rust's all-features union
+and structured Java library JSON survive without flattening or default coercion. Main
+Settings provider pages expose upstream links for every server through the same HTTPS
+metadata as workspace configuration.
+
+Release desktop and browser shared-source compilation, scoped format verification,
+whitespace checks, focused language host/local-WebSocket and settings UI checks passed.
+The broad language UI mode stopped before settings on an untouched empty-navigation
+availability assertion; no unrelated navigation edits or full suite were made. Native
+picker interaction and Android/browser runtime acceptance remain unverified; existing
+AVLN3001 warnings remain visible. The signing presence check did not respond; the
+commit was canceled after waiting, leaving the complete task staged and unpushed.

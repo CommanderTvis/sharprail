@@ -4,6 +4,7 @@
              x:Class="SharpRail.UI.Panels.LanguageConfigurationView"
              Foreground="{x:Static kit:Ui.TextBrush}" FontSize="12">
   <UserControl.Styles>
+    <Style Selector="UserControl.host-path-entry-only Button.host-path-picker"><Setter Property="IsVisible" Value="False" /></Style>
     <Style Selector="Expander">
       <Setter Property="MinHeight" Value="0" />
       <Setter Property="Padding" Value="0" />
@@ -47,21 +48,33 @@
         <Button x:Name="ReviewIntelliJTerms" Content="Review agreement and start IntelliJ…" HorizontalAlignment="Left" ToolTip.Tip="Saves settings and reviews the agreement before starting. Select the Java / Kotlin provider in Settings → LSP." />
         <TextBlock x:Name="IntelliJTermsStatus" Text="Setup checks existing acceptance; changed terms require your acknowledgement." TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
         <TextBlock Text="Installation directory on the workspace host" />
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
         <TextBox x:Name="IntelliJInstallation" PlaceholderText="Optional absolute path; blank downloads the managed server" />
+          <Button Grid.Column="1" Classes="host-path-picker" Content="Browse…" Tag="IntelliJInstallation" Click="BrowseFieldClicked" VerticalAlignment="Top" />
+        </Grid>
         <TextBlock Text="Project JDK on the workspace host" />
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
         <TextBox x:Name="IntelliJProjectJdk" PlaceholderText="Absolute JDK path; separate from the server’s bundled runtime" />
+          <Button Grid.Column="1" Classes="host-path-picker" Content="Browse…" Tag="IntelliJProjectJdk" Click="BrowseFieldClicked" VerticalAlignment="Top" />
+        </Grid>
         <TextBlock Text="Build importer" />
-        <TextBox x:Name="IntelliJBuildTool" PlaceholderText="Automatic, or maven / gradle / bazel / jps" />
+        <ComboBox x:Name="IntelliJBuildTool" HorizontalAlignment="Stretch" />
         <TextBlock Text="Terms: JetBrains LSP Extension Public EAP Agreement, version 1.0 (July 31, 2026). Internal evaluation only; ends at the earliest vendor-defined EAP termination. Terms acceptance is not an activation credential and cannot extend a build’s lifetime." TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
       </StackPanel>
       <CheckBox x:Name="AutoStart" Content="Start in new workspaces" ToolTip.Tip="New workspaces copy Default’s settings once, then remain independent." />
       <StackPanel x:Name="ClangOptions" Spacing="8">
-        <TextBlock Text="Include directories" />
-        <TextBox x:Name="IncludePaths" AcceptsReturn="True" MinHeight="32" TextWrapping="Wrap" PlaceholderText="One path per line" ToolTip.Tip="Paths may be relative to this workspace or absolute." />
+        <TextBlock Text="Include directories on workspace host" />
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+        <TextBox x:Name="IncludePaths" AcceptsReturn="True" MinHeight="32" TextWrapping="Wrap" PlaceholderText="One host folder per line; relative to workspace or absolute" ToolTip.Tip="Paths may be relative to this workspace or absolute." />
+          <Button Grid.Column="1" Classes="host-path-picker" Content="Browse…" Tag="IncludePaths" Click="BrowseFieldClicked" VerticalAlignment="Top" />
+        </Grid>
         <TextBlock Text="Fallback compiler flags" />
         <TextBox x:Name="CompilerFlags" AcceptsReturn="True" MinHeight="32" TextWrapping="Wrap" PlaceholderText="One flag per line" ToolTip.Tip="For example: -fobjc-arc. Used only when a file has no compile command; use a compilation database for per-file flags." />
-        <TextBlock Text="Compilation database" />
-        <TextBox x:Name="CompilationDatabase" PlaceholderText="Automatic discovery" />
+        <TextBlock Text="Compilation database directory on workspace host" />
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
+        <TextBox x:Name="CompilationDatabase" PlaceholderText="Folder containing compile_commands.json; blank discovers automatically" />
+          <Button Grid.Column="1" Classes="host-path-picker" Content="Browse…" Tag="CompilationDatabase" Click="BrowseFieldClicked" VerticalAlignment="Top" />
+        </Grid>
       </StackPanel>
       <StackPanel Spacing="8" Margin="0,8,0,0">
         <TextBlock x:Name="ProviderName" FontWeight="SemiBold" TextWrapping="Wrap" />
@@ -84,8 +97,18 @@
           <DataTemplate x:CompileBindings="False">
             <StackPanel Spacing="8" Margin="0,0,0,12">
               <TextBlock Text="{Binding Label}" TextWrapping="Wrap" ToolTip.Tip="{Binding Help}" />
+              <TextBlock IsVisible="{Binding Multiline}" Text="One item per line. Clear the input for an empty list; use the button below for server defaults." FontSize="11" TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
+              <TextBlock IsVisible="{Binding HasPath}" Text="Path on the workspace host" FontSize="11" Foreground="{x:Static kit:Ui.Muted}" />
+              <TextBlock IsVisible="{Binding CustomJson}" Text="Custom JSON value — edit in Arguments and JSON, or reset to use this control." TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
               <TextBox IsVisible="{Binding IsText}" Text="{Binding Value, Mode=TwoWay}" AcceptsReturn="{Binding Multiline}" TextWrapping="Wrap" PlaceholderText="Server default" />
+              <NumericUpDown IsVisible="{Binding IsNumber}" Value="{Binding Number, Mode=TwoWay}" Minimum="{Binding Minimum}" Maximum="2147483647" Increment="1" FormatString="0" PlaceholderText="Server default" HorizontalAlignment="Stretch" />
               <ComboBox IsVisible="{Binding IsChoice}" ItemsSource="{Binding Choices}" SelectedItem="{Binding Value, Mode=TwoWay}" HorizontalAlignment="Stretch" />
+              <CheckBox IsVisible="{Binding IsFeatures}" Content="All Cargo features" IsChecked="{Binding AllFeatures, Mode=TwoWay}" />
+              <WrapPanel>
+                <Button IsVisible="{Binding FilePath}" Classes="host-path-picker" Content="Choose file…" Click="BrowseFieldClicked" Margin="0,0,8,0" />
+                <Button IsVisible="{Binding FolderPath}" Classes="host-path-picker" Content="Choose folder…" Tag="folder" Click="BrowseFieldClicked" Margin="0,0,8,0" />
+                <Button IsEnabled="{Binding HasOverride}" Content="Use server default" Click="ResetFieldClicked" />
+              </WrapPanel>
             </StackPanel>
           </DataTemplate>
         </ItemsControl.ItemTemplate>

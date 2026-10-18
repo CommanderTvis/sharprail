@@ -20,12 +20,14 @@ internal sealed partial class LanguageConfigurationView : UserControl
     private bool saving;
     private readonly Dictionary<string, string?> loadedText = [];
     private bool? loadedAutoStart;
+    private string? loadedBuildTool;
     private bool? loadedDefaultArguments;
 
     internal LanguageConfigurationView(IProjectServices host, string workspace, LanguageServerState server)
     {
         this.host = host; this.workspace = workspace; this.server = server;
         AvaloniaXamlLoader.Load(this);
+        Classes.Set("host-path-entry-only", !CanBrowseHostPaths(host));
         Find<TextBlock>("ConfigurationScope").Text = "This workspace only";
         ToolTip.SetTip(Find<TextBlock>("ConfigurationScope"), workspace);
         Find<StackPanel>("IntelliJOptions").IsVisible = server.Id == "intellij";
@@ -35,8 +37,10 @@ internal sealed partial class LanguageConfigurationView : UserControl
         };
         Find<CheckBox>("AutoStart").IsEnabled = true;
         Find<Button>("RestartConfiguration").IsEnabled = true;
-        foreach (var name in new[] { "IntelliJInstallation", "IntelliJProjectJdk", "IntelliJBuildTool" })
+        foreach (var name in new[] { "IntelliJInstallation", "IntelliJProjectJdk" })
             Find<TextBox>(name).TextChanged += (_, _) => { if (!loading) dirty = true; };
+        Find<ComboBox>("IntelliJBuildTool").ItemsSource = new[] { "Automatic", "maven", "gradle", "bazel", "jps" };
+        Find<ComboBox>("IntelliJBuildTool").SelectionChanged += (_, _) => { if (!loading) dirty = true; };
         Find<StackPanel>("ClangOptions").IsVisible = server.Id == "clangd";
         foreach (var name in new[] { "Arguments", "IncludePaths", "CompilerFlags", "CompilationDatabase", "InitializationOptions", "ServerSettings" })
             Find<TextBox>(name).TextChanged += (_, _) => { if (!loading) dirty = true; };
@@ -94,6 +98,7 @@ internal sealed partial class LanguageConfigurationView : UserControl
     {
         if (next == server) { if (!dirty && !saving) ShowState(); return; }
         dirty = invalidFields.Count > 0 || loadedText.Any(item => Find<TextBox>(item.Key).Text != item.Value) ||
+            Find<ComboBox>("IntelliJBuildTool").SelectedItem?.ToString() != loadedBuildTool ||
             Find<CheckBox>("AutoStart").IsChecked != loadedAutoStart ||
             Find<CheckBox>("DefaultArguments").IsChecked != loadedDefaultArguments;
         var changed = server.Configuration != next.Configuration;
@@ -113,7 +118,7 @@ internal sealed partial class LanguageConfigurationView : UserControl
             Find<TextBlock>("IntelliJTermsStatus").Text = "Setup checks the selected installation’s agreement. Existing acceptance is reused; changed terms require acknowledgement.";
             Find<TextBox>("IntelliJInstallation").Text = options["installationPath"]?.GetValue<string>() ?? "";
             Find<TextBox>("IntelliJProjectJdk").Text = options["projectJdk"]?.GetValue<string>() ?? "";
-            Find<TextBox>("IntelliJBuildTool").Text = options["buildTool"]?.GetValue<string>() ?? "";
+            Find<ComboBox>("IntelliJBuildTool").SelectedItem = options["buildTool"]?.GetValue<string>() is { Length: > 0 } importer ? importer : "Automatic";
             Find<CheckBox>("AutoStart").IsChecked = options["autoStart"]?.GetValue<bool>() ?? false;
             Find<CheckBox>("DefaultArguments").IsChecked = options["arguments"] is null;
             Find<TextBox>("Arguments").Text = ReadLines("arguments");
@@ -122,8 +127,9 @@ internal sealed partial class LanguageConfigurationView : UserControl
             Find<TextBox>("CompilationDatabase").Text = options["compilationDatabasePath"]?.GetValue<string>() ?? "";
             Find<TextBox>("InitializationOptions").Text = Pretty(options["initializationOptions"]?.ToJsonString() ?? "{}");
             Find<TextBox>("ServerSettings").Text = Pretty(options["settings"]?.ToJsonString() ?? "{}");
-            foreach (var name in new[] { "Arguments", "IncludePaths", "CompilerFlags", "CompilationDatabase", "InitializationOptions", "ServerSettings", "IntelliJInstallation", "IntelliJProjectJdk", "IntelliJBuildTool" })
+            foreach (var name in new[] { "Arguments", "IncludePaths", "CompilerFlags", "CompilationDatabase", "InitializationOptions", "ServerSettings", "IntelliJInstallation", "IntelliJProjectJdk" })
                 loadedText[name] = Find<TextBox>(name).Text;
+            loadedBuildTool = Find<ComboBox>("IntelliJBuildTool").SelectedItem?.ToString();
             loadedAutoStart = Find<CheckBox>("AutoStart").IsChecked;
             loadedDefaultArguments = Find<CheckBox>("DefaultArguments").IsChecked;
             dirty = false;
@@ -174,7 +180,7 @@ internal sealed partial class LanguageConfigurationView : UserControl
             {
                 installationPath = Find<TextBox>("IntelliJInstallation").Text ?? "",
                 projectJdk = Find<TextBox>("IntelliJProjectJdk").Text ?? "",
-                buildTool = Find<TextBox>("IntelliJBuildTool").Text ?? "",
+                buildTool = Find<ComboBox>("IntelliJBuildTool").SelectedItem?.ToString() is { } selectedImporter && selectedImporter != "Automatic" ? selectedImporter : "",
                 autoStart = Find<CheckBox>("AutoStart").IsChecked == true,
                 arguments = Find<CheckBox>("DefaultArguments").IsChecked == true ? null : Lines("Arguments"),
                 initializationOptions = JsonSerializer.Deserialize<JsonElement>(Find<TextBox>("InitializationOptions").Text ?? "{}"),
