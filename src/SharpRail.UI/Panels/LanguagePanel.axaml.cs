@@ -55,12 +55,13 @@ internal sealed partial class LanguagePanel : UserControl
     private readonly HashSet<string> added = [];
     private readonly HashSet<string> expanded = [];
 
-    internal LanguagePanel(IProjectServices host, string workspace, Func<LanguageItem, Task> navigate, SharpRail.UI.State.SharedState? state = null)
+    internal LanguagePanel(IProjectServices host, string workspace, Func<LanguageItem, Task> navigate, SharpRail.UI.State.SharedState? state = null, SharpRail.UI.Plugins.PluginRegistry? plugins = null)
     {
         this.host = host; this.workspace = workspace; this.navigate = navigate;
         AvaloniaXamlLoader.Load(this);
         Name = "LspPanel";
         this.FindControl<TextBlock>("Workspace")!.Text = workspace;
+        if (plugins is not null) this.FindControl<StackPanel>("PaneBody")!.Children.Add(new SharpRail.UI.Plugins.PluginSlot(plugins, SharpRail.Plugins.Api.UI.UiSlots.WorkspaceLanguages, workspace));
         var servers = this.FindControl<ListBox>("Servers")!;
         servers.ContextRequested += ServerContextRequested;
         servers.Tapped += async (_, e) =>

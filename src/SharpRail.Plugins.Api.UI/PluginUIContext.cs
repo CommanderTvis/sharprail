@@ -50,7 +50,7 @@ public interface IPluginEditors
 }
 
 /// <summary>
-/// The context passed to <see cref="PluginUIModule.Activate"/>: the closed set of UI capabilities (W1–W21 in the
+/// The context passed to <see cref="PluginUIModule.Activate"/>: the closed set of UI capabilities (W1–W23 in the
 /// module spec, without chat). Registrations are accepted only while <c>Activate</c> runs, so a plugin's whole
 /// surface exists when it returns and the runtime can remove it by plugin id; every registration is unmounted
 /// when the plugin is disabled. Calls arrive and callbacks run on the UI thread.
@@ -179,6 +179,17 @@ public interface IPluginUIContext
     /// <summary>Contributes an action to the context menus of files and of lines selected in them (W21).</summary>
     /// <param name="action">The action.</param>
     void FileAction(FileActionRegistration action);
+
+    /// <summary>Opens Settings on one of core's pages in the active window (W23).</summary>
+    /// <param name="page">The page, one of the <see cref="UiPages"/> ids.</param>
+    void OpenSettings(string page);
+
+    /// <summary>
+    /// Contributes a section to a named place in one of core's own pages (W23). The section exists only while the
+    /// plugin is enabled: a disabled plugin leaves no section and no placeholder.
+    /// </summary>
+    /// <param name="section">The section.</param>
+    void SlotSection(SlotSectionRegistration section);
 
     /// <summary>Contributes a terminal accessory row (W11).</summary>
     /// <param name="registration">The accessory.</param>

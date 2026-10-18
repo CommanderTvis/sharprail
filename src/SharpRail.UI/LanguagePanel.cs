@@ -11,6 +11,6 @@ public sealed partial class WorkbenchWindow
         {
             if (workspaceRoot == workspace && WorkspaceMounted)
                 await OpenLanguageDocumentAsync(location, true);
-        }, Workbench.State);
+        }, Workbench.State, Workbench.PluginRegistry);
     }
 }

@@ -105,6 +105,7 @@ public sealed partial class SettingsWindow
             catch (OperationCanceledException) { }
             finally { save.IsEnabled = true; }
         };
+        if (panel is StackPanel body) body.Children.Add(new SharpRail.UI.Plugins.PluginSlot(window.Workbench.PluginRegistry, SharpRail.Plugins.Api.UI.UiSlots.CodeIntelligenceSettings, window.WorkspaceRoot));
         _ = LoadCatalog();
         return panel;
 

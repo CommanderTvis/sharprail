@@ -156,3 +156,25 @@ public sealed record AgentLauncher(string Id, string Label, string Icon, Func<La
     /// <summary>The models the launcher offers, read when its picker opens; <see langword="null"/> when it offers no choice.</summary>
     public Func<IReadOnlyList<LauncherModel>>? Models { get; init; }
 }
+
+/// <summary>The named places in core's own pages where plugins may contribute a section (W23).</summary>
+public static class UiSlots
+{
+    /// <summary>The bottom of Settings › Code Intelligence; the section is created for the window's current workspace.</summary>
+    public const string CodeIntelligenceSettings = "core:code-intelligence-settings";
+
+    /// <summary>The bottom of the workspace's Language servers pane; the section is created for that pane's workspace.</summary>
+    public const string WorkspaceLanguages = "core:workspace-languages";
+}
+
+/// <summary>The core Settings pages a plugin may open (W23).</summary>
+public static class UiPages
+{
+    /// <summary>Settings › Code Intelligence.</summary>
+    public const string CodeIntelligence = "Code Intelligence";
+}
+
+/// <summary>Contributes a section to a named place in one of core's pages (W23).</summary>
+/// <param name="Slot">The place, one of the <see cref="UiSlots"/> ids.</param>
+/// <param name="Create">Creates the section's control for a workspace id, or <see langword="null"/> when the page has none; a new control each time the section is shown.</param>
+public sealed record SlotSectionRegistration(string Slot, Func<string?, Control> Create);

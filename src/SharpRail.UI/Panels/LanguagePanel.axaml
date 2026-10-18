@@ -18,7 +18,7 @@
     <local:LanguageServerNameConverter x:Key="LanguageName" />
   </UserControl.Resources>
   <ScrollViewer x:Name="PaneScroll" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-  <StackPanel Margin="16" Spacing="8">
+  <StackPanel x:Name="PaneBody" Margin="16" Spacing="8">
     <TextBlock x:Name="Workspace" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
     <StackPanel x:Name="LanguageServersSection" Spacing="8">
       <TextBlock Text="Language servers" FontSize="16" FontWeight="SemiBold" />

@@ -725,7 +725,12 @@ to pi.
 | W19 | read a file under the manifest's declared `assets` directory (`ReadAssetAsync`) | a plugin with no assets throws rather than guessing a path |
 | W20 | ask for a desktop notification about a terminal that needs the user while the app is away (`NotifyAttention` with an `AttentionNotification`) | `Notify` is an in-window toast; nothing reaches a user who is elsewhere |
 | W21 | contribute an action to the context menu of a file and of lines selected in it (`FileAction` with a `FileActionRegistration`; the target names the workspace, path and one-based lines) | the Files row menu is fixed; the code editor and the Markdown preview have no menu a plugin can reach |
+| W23 | contribute a section to a named place in one of core's own pages (`SlotSection` with a `SlotSectionRegistration`; places are the `UiSlots` ids `core:code-intelligence-settings` and `core:workspace-languages`, created with the page's workspace id), and open a core Settings page (`OpenSettings`, `UiPages`) | the pages are closed; a plugin's own Settings section (W4) is a separate page, not part of Code Intelligence |
 | W22 | the UI-side twin of H18: contribute to and read agent launch contributions, so every launcher, start action and resume of an agent applies them (`AgentLaunch`, `AgentLaunchContributions`) | the agent plugins build their launch lines from their own settings alone |
+
+W23 has no counterpart in the fork. A slot section exists only while its plugin is enabled: core's `PluginSlot` follows the
+registry, so a disabled plugin leaves no section and no placeholder, and enabling adds it without reopening the page. Core
+rebuilds a section only when the set of contributing registrations changes.
 
 W21 has no counterpart in the fork either: its panels' menus are closed. The label callback is the predicate, so
 an action can be withheld per target and worded for what it would act on; core reads it as each menu opens.

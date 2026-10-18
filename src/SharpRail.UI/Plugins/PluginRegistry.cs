@@ -32,8 +32,9 @@ public enum PluginTables
     FileIconSlots = 1 << 12,
     DocumentLinkSlots = 1 << 13,
     FileActions = 1 << 14,
+    SlotSections = 1 << 15,
     Contributions = SideTools | SettingsSections | Companions | FileViewers | TabDecorators | Launchers | WorkspaceActions |
-        ProjectActions | TerminalAccessories | FileIconSlots | DocumentLinkSlots | FileActions,
+        ProjectActions | TerminalAccessories | FileIconSlots | DocumentLinkSlots | FileActions | SlotSections,
     // Registrations whose result a predicate decides; Invalidate re-evaluates them.
     Predicates = Companions | TabDecorators | Launchers | FileIconSlots | DocumentLinkSlots
 }
@@ -65,6 +66,7 @@ public sealed class PluginRegistry
     public IReadOnlyList<PluginRow<Func<string, FileIconKind, string?>>> FileIconSlots { get; private set; } = [];
     public IReadOnlyList<PluginRow<Func<string, string, string?>>> DocumentLinkSlots { get; private set; } = [];
     public IReadOnlyList<PluginRow<FileActionRegistration>> FileActions { get; private set; } = [];
+    public IReadOnlyList<PluginRow<SlotSectionRegistration>> SlotSections { get; private set; } = [];
 
     /// <summary>Plugin-declared side tools in roster order, then builtin manifests the roster has not listed yet.</summary>
     public IReadOnlyList<PluginToolEntry> ToolCatalog { get; private set; } = [];
@@ -105,6 +107,7 @@ public sealed class PluginRegistry
     public void AddTerminalAccessory(string pluginId, TerminalAccessoryRegistration value) { TerminalAccessories = [.. TerminalAccessories, new(pluginId, value)]; Raise(PluginTables.TerminalAccessories); }
     public void AddFileIconSlot(string pluginId, Func<string, FileIconKind, string?> value) { FileIconSlots = [.. FileIconSlots, new(pluginId, value)]; Raise(PluginTables.FileIconSlots); }
     public void AddDocumentLinkSlot(string pluginId, Func<string, string, string?> value) { DocumentLinkSlots = [.. DocumentLinkSlots, new(pluginId, value)]; Raise(PluginTables.DocumentLinkSlots); }
+    public void AddSlotSection(string pluginId, SlotSectionRegistration value) { SlotSections = [.. SlotSections, new(pluginId, value)]; Raise(PluginTables.SlotSections); }
     public void AddFileAction(string pluginId, FileActionRegistration value) { FileActions = [.. FileActions, new(pluginId, value)]; Raise(PluginTables.FileActions); }
 
     public void AddLaunchContributor(string pluginId, Func<string, AgentLaunchContribution?> value) { LaunchContributors = [.. LaunchContributors, new(pluginId, value)]; Raise(PluginTables.Predicates); }
@@ -153,6 +156,7 @@ public sealed class PluginRegistry
         FileIconSlots = Drop(FileIconSlots, row => row.PluginId, PluginTables.FileIconSlots);
         DocumentLinkSlots = Drop(DocumentLinkSlots, row => row.PluginId, PluginTables.DocumentLinkSlots);
         FileActions = Drop(FileActions, row => row.PluginId, PluginTables.FileActions);
+        SlotSections = Drop(SlotSections, row => row.PluginId, PluginTables.SlotSections);
         if (touched == PluginTables.None) return;
         if (touched.HasFlag(PluginTables.Launchers)) LauncherList = [.. Launchers.Select(row => row.Value)];
         ToolCatalog = BuildToolCatalog();
@@ -206,6 +210,10 @@ public sealed class PluginRegistry
             if (Safely(() => row.Value(workspaceId, target)) is { } path) return path;
         return null;
     }
+
+    /// <summary>The sections active plugins contribute to a named place, in registration order.</summary>
+    public IReadOnlyList<PluginRow<SlotSectionRegistration>> SlotSectionsFor(string slot) =>
+        [.. SlotSections.Where(row => row.Value.Slot == slot && active.Contains(row.PluginId))];
 
     /// <summary>The file actions offered for a target, in registration order, each with the label it gave.</summary>
     public IReadOnlyList<(string PluginId, FileActionRegistration Action, string Label)> FileActionsFor(FileActionTarget target)

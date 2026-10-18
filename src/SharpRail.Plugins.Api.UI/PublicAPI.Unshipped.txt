@@ -704,8 +704,28 @@ virtual SharpRail.Plugins.Api.UI.TabRef.PrintMembers(System.Text.StringBuilder! 
 virtual SharpRail.Plugins.Api.UI.WorkspaceActionRegistration.EqualityContract.get -> System.Type!
 virtual SharpRail.Plugins.Api.UI.WorkspaceActionRegistration.Equals(SharpRail.Plugins.Api.UI.WorkspaceActionRegistration? other) -> bool
 virtual SharpRail.Plugins.Api.UI.WorkspaceActionRegistration.PrintMembers(System.Text.StringBuilder! builder) -> bool
-
 SharpRail.Plugins.Api.UI.LauncherCommandOptions.Images.get -> System.Collections.Generic.IReadOnlyList<string!>!
 SharpRail.Plugins.Api.UI.LauncherCommandOptions.Images.init -> void
 SharpRail.Plugins.Api.UI.IPluginUIContext.AgentLaunch(System.Func<string!, SharpRail.Plugins.Api.AgentLaunchContribution?>! contributor) -> void
 SharpRail.Plugins.Api.UI.IPluginUIContext.AgentLaunchContributions(string! agentId) -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.AgentLaunchContribution!>!
+SharpRail.Plugins.Api.UI.IPluginUIContext.OpenSettings(string! page) -> void
+SharpRail.Plugins.Api.UI.IPluginUIContext.SlotSection(SharpRail.Plugins.Api.UI.SlotSectionRegistration! section) -> void
+SharpRail.Plugins.Api.UI.SlotSectionRegistration
+SharpRail.Plugins.Api.UI.SlotSectionRegistration.<Clone>$() -> SharpRail.Plugins.Api.UI.SlotSectionRegistration!
+SharpRail.Plugins.Api.UI.SlotSectionRegistration.Create.get -> System.Func<string?, Avalonia.Controls.Control!>!
+SharpRail.Plugins.Api.UI.SlotSectionRegistration.Create.init -> void
+SharpRail.Plugins.Api.UI.SlotSectionRegistration.Deconstruct(out string! Slot, out System.Func<string?, Avalonia.Controls.Control!>! Create) -> void
+SharpRail.Plugins.Api.UI.SlotSectionRegistration.Equals(SharpRail.Plugins.Api.UI.SlotSectionRegistration? other) -> bool
+SharpRail.Plugins.Api.UI.SlotSectionRegistration.Slot.get -> string!
+SharpRail.Plugins.Api.UI.SlotSectionRegistration.Slot.init -> void
+SharpRail.Plugins.Api.UI.SlotSectionRegistration.SlotSectionRegistration(string! Slot, System.Func<string?, Avalonia.Controls.Control!>! Create) -> void
+SharpRail.Plugins.Api.UI.UiPages
+SharpRail.Plugins.Api.UI.UiSlots
+const SharpRail.Plugins.Api.UI.UiPages.CodeIntelligence = "Code Intelligence" -> string!
+const SharpRail.Plugins.Api.UI.UiSlots.CodeIntelligenceSettings = "core:code-intelligence-settings" -> string!
+const SharpRail.Plugins.Api.UI.UiSlots.WorkspaceLanguages = "core:workspace-languages" -> string!
+override SharpRail.Plugins.Api.UI.SlotSectionRegistration.Equals(object? obj) -> bool
+override SharpRail.Plugins.Api.UI.SlotSectionRegistration.GetHashCode() -> int
+override SharpRail.Plugins.Api.UI.SlotSectionRegistration.ToString() -> string!
+static SharpRail.Plugins.Api.UI.SlotSectionRegistration.operator !=(SharpRail.Plugins.Api.UI.SlotSectionRegistration? left, SharpRail.Plugins.Api.UI.SlotSectionRegistration? right) -> bool
+static SharpRail.Plugins.Api.UI.SlotSectionRegistration.operator ==(SharpRail.Plugins.Api.UI.SlotSectionRegistration? left, SharpRail.Plugins.Api.UI.SlotSectionRegistration? right) -> bool
