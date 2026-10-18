@@ -205,7 +205,7 @@ Agent guidance explains discovering language servers and explicitly starting eac
 System instructions prefer LSP over grep for available semantic navigation, advertise hover,
 qualified symbol outlines/body reads and paged source excerpts, and prefer edited-file diagnostic
 scans. Text search remains available for strings, configuration, unknown owners and incomplete
-or unsupported semantic results; delegated agents receive the workspace and LSP guidance.
+or unsupported semantic results; delegated agents are told to write the workspace path, the `workspace` rule and the LSP guidance into the subagent's brief (a subagent inherits the MCP connection, not the prompt). Agents start any language server a task needs without asking, unless language services are disabled.
 
 The system prompt advertises workspace LSP configuration inspection, save and targeted restart,
 including library settings and clangd compiler configuration. Saved configuration is visible in

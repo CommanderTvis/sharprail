@@ -265,8 +265,9 @@ Context labels delimit the active tab name with quotation marks, including the n
 
 The prompt appendix directs navigation and post-edit inspection through `lsp_navigate` and
 `lsp_diagnostics`, with `lsp_status` for initialization and recovery. Calls identify the edited
-workspace explicitly; delegated agents receive their own workspace path and these instructions
-even when they inherit the parent's MCP connection. Partial or unavailable inspection is reported.
+workspace explicitly. A subagent inherits the parent's MCP connection but not the prompt, and an LSP call
+without `workspace` routes to the parent's workspace, so the prompt tells the parent to write the subagent's
+workspace path, the `workspace` rule and the navigation/diagnostics/status guidance into its brief. Agents start any language server a task needs without asking, unless language services are disabled. Partial or unavailable inspection is reported.
 
 Capabilities explicitly lists `lsp_navigate`, `lsp_diagnostics` and `lsp_status`, their workspace/subagent
 routing, and the LSP management pane. It identifies the bundled Claude plugin MCP declaration as the
