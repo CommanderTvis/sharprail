@@ -1,3 +1,5 @@
+using SharpRail.Plugins.AirGovernance;
+using SharpRail.Plugins.AirGovernance.UI;
 using SharpRail.Plugins.Api;
 using SharpRail.Plugins.Api.UI;
 using SharpRail.Plugins.Blueprint;
@@ -30,6 +32,7 @@ public static class BuiltinPlugins
         (BranchGraphPlugin.Manifest, () => new BranchGraphUI()),
         (VisualizeContract.Manifest, () => new VisualizeUI()),
         (CodexManifest.Manifest, () => new CodexUI()),
+        (AirGovernanceContract.Manifest, () => new AirGovernanceUI()),
         (TailscaleContract.Manifest, () => new TailscaleUI())
     ];
 }

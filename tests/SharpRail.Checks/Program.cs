@@ -858,6 +858,14 @@ internal static class Program
             Console.WriteLine("PASS Changes checks");
             return;
         }
+        if (args.SequenceEqual(["--air-governance"]))
+        {
+            AirGovernanceChecks.Run(root).GetAwaiter().GetResult();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            AirGovernanceChecks.RunUi(root);
+            return;
+        }
         if (args.SequenceEqual(["--tailscale"]))
         {
             TailscaleChecks.Run(root).GetAwaiter().GetResult();
@@ -905,6 +913,7 @@ internal static class Program
         Gate.Case("host-state", () => StateStoreChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("project-paths", () => ProjectPathChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("specs", () => SpecChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("air-governance", () => AirGovernanceChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("tailscale", () => TailscaleChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("local-browser-approval", () => LocalBrowserConnectionChecks.RunHost(root).GetAwaiter().GetResult());
         Gate.Case("host-listener", () => HostListenerChecks.Run(root).GetAwaiter().GetResult());
@@ -926,6 +935,7 @@ internal static class Program
         Gate.Case("design", () => Design.DesignChecks.Run(write: false));
         Gate.Case("design-roles", Design.RoleChecks.Run);
         Gate.Case("tailscale-ui", () => TailscaleChecks.RunUi(root));
+        Gate.Case("air-governance-ui", () => AirGovernanceChecks.RunUi(root));
         Gate.Case("plugin-ui", () => PluginUiChecks.Run(root));
         Gate.Case("file-drop-ui", () => FileDropChecks.WorkbenchDrops(root));
         Gate.Case("file-drop-gestures", FileDropChecks.Gestures);

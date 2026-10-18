@@ -7,6 +7,9 @@
     <Project Path="src/SharpRail.Host.Protocol/SharpRail.Host.Protocol.csproj" />
     <Project Path="src/SharpRail.Host.Remote/SharpRail.Host.Remote.csproj" />
     <Project Path="src/SharpRail.Plugins.Agent.UI/SharpRail.Plugins.Agent.UI.csproj" />
+    <Project Path="src/SharpRail.Plugins.AirGovernance/Contract/SharpRail.Plugins.AirGovernance.csproj" />
+    <Project Path="src/SharpRail.Plugins.AirGovernance/Host/SharpRail.Plugins.AirGovernance.Host.csproj" />
+    <Project Path="src/SharpRail.Plugins.AirGovernance/UI/SharpRail.Plugins.AirGovernance.UI.csproj" />
     <Project Path="src/SharpRail.Plugins.Api/SharpRail.Plugins.Api.csproj" />
     <Project Path="src/SharpRail.Plugins.Api.Host/SharpRail.Plugins.Api.Host.csproj" />
     <Project Path="src/SharpRail.Plugins.Api.UI/SharpRail.Plugins.Api.UI.csproj" />

@@ -8,6 +8,19 @@
           "SharpRail.Plugins.Api": "[1.0.0, )"
         }
       },
+      "sharprail.plugins.airgovernance": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.airgovernance.host": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.AirGovernance": "[1.0.0, )",
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
+        }
+      },
       "sharprail.plugins.api": {
         "type": "Project"
       },

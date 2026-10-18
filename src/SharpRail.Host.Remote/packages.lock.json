@@ -33,6 +33,7 @@
         "type": "Project",
         "dependencies": {
           "SharpRail.Host.Abstractions": "[1.0.0, )",
+          "SharpRail.Plugins.AirGovernance.Host": "[1.0.0, )",
           "SharpRail.Plugins.Api.Host": "[1.0.0, )",
           "SharpRail.Plugins.Blueprint.Host": "[1.0.0, )",
           "SharpRail.Plugins.BranchGraph.Host": "[1.0.0, )",
@@ -48,6 +49,19 @@
         "type": "Project",
         "dependencies": {
           "protobuf-net": "[2.4.8, )"
+        }
+      },
+      "sharprail.plugins.airgovernance": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.Api": "[1.0.0, )"
+        }
+      },
+      "sharprail.plugins.airgovernance.host": {
+        "type": "Project",
+        "dependencies": {
+          "SharpRail.Plugins.AirGovernance": "[1.0.0, )",
+          "SharpRail.Plugins.Api.Host": "[1.0.0, )"
         }
       },
       "sharprail.plugins.api": {

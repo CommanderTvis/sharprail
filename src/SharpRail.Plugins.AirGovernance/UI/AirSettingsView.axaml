@@ -1,0 +1,55 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:kit="using:SharpRail.Plugins.UI.Kit"
+             x:Class="SharpRail.Plugins.AirGovernance.UI.AirSettingsView"
+             x:ClassModifier="internal">
+  <UserControl.Styles>
+    <Style Selector="Button">
+      <Setter Property="MinHeight" Value="36" />
+      <Setter Property="HorizontalContentAlignment" Value="Center" />
+      <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+  </UserControl.Styles>
+  <StackPanel Spacing="16">
+    <TextBlock Text="Air governance" FontSize="14" FontWeight="SemiBold" Foreground="{x:Static kit:Ui.TextBrush}" />
+    <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.Muted}"
+               Text="Choose where Codex and Claude Code get their AI: their own accounts, or JetBrains AI governed through your Central CLI. The choice changes only the command that starts each new agent terminal; no agent configuration file is touched, and nothing runs Central until you press a button here." />
+    <TextBlock x:Name="AirCentralLine" TextWrapping="Wrap" Text="Checking Central…" />
+    <StackPanel x:Name="AirInstall" Spacing="4" IsVisible="False">
+      <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" Text="Install the JetBrains Central CLI (central) yourself, then recheck:" />
+      <TextBox x:Name="AirInstallCommand" IsReadOnly="True" FontFamily="{x:Static kit:Ui.CodeFont}" />
+    </StackPanel>
+    <WrapPanel Orientation="Horizontal">
+      <Button x:Name="AirCheck" Content="Check sign-in" Margin="0,0,8,8" />
+      <Button x:Name="AirSignIn" Content="Sign in" Margin="0,0,8,8" />
+      <Button x:Name="AirSignOut" Content="Sign out" Margin="0,0,8,8" />
+      <Button x:Name="AirStartProxy" Content="Start proxy" Margin="0,0,8,8" IsVisible="False" />
+      <Button x:Name="AirUpdate" Content="Update Central" Margin="0,0,8,8" IsVisible="False" />
+    </WrapPanel>
+    <StackPanel Spacing="6">
+      <TextBlock Text="AI source" Foreground="{x:Static kit:Ui.TextBrush}" />
+      <RadioButton x:Name="AirSourceDirect" GroupName="AirSource" Content="Each agent's own account" />
+      <TextBlock Margin="28,0,0,0" TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" Text="Codex and Claude Code sign in and bill as you configured them. Central stays out of the way." />
+      <RadioButton x:Name="AirSourceCentral" GroupName="AirSource" Content="JetBrains AI through Central" />
+      <TextBlock Margin="28,0,0,0" TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" Text="The agents below are routed through JetBrains Air and its governance. Applies to terminals started after you choose it; running sessions keep the command they started with." />
+    </StackPanel>
+    <StackPanel Spacing="4">
+      <TextBlock Text="Agents" Foreground="{x:Static kit:Ui.TextBrush}" />
+      <CheckBox x:Name="AirAgentClaudeCode" Content="Claude Code" />
+      <CheckBox x:Name="AirAgentCodex" Content="Codex" />
+    </StackPanel>
+    <StackPanel Spacing="6">
+      <TextBlock Text="What new launches will run" Foreground="{x:Static kit:Ui.TextBrush}" />
+      <TextBlock x:Name="AirLaunches" TextWrapping="Wrap" FontFamily="{x:Static kit:Ui.CodeFont}" Foreground="{x:Static kit:Ui.TextBrush}" />
+      <TextBlock x:Name="AirLaunchNote" TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" />
+      <TextBlock x:Name="AirResult" TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" />
+    </StackPanel>
+    <StackPanel Spacing="6">
+      <TextBlock Text="JetBrains AI access source" Foreground="{x:Static kit:Ui.TextBrush}" />
+      <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" Text="Which organization, workspace or licence Central bills. Listing asks your Central CLI; switching restarts its proxy." />
+      <Button x:Name="AirListAccess" Content="List access sources" HorizontalAlignment="Left" />
+      <StackPanel x:Name="AirAccessSources" Spacing="4" />
+      <TextBlock x:Name="AirAccessNote" TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" />
+    </StackPanel>
+  </StackPanel>
+</UserControl>
