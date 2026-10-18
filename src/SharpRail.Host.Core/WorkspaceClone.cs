@@ -1,17 +1,19 @@
 using System.Runtime.InteropServices;
+using System.Text;
+using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
+
+using Tomlyn;
 
 namespace SharpRail.Host.Core;
 
 /// <summary>
-/// Warm-start for a created workspace: copy-on-write clones of the Default workspace's untracked build state, so the
-/// new worktree begins with an incremental build instead of a cold one. Best effort in every respect: no volume,
+/// Warm-start for a created workspace: copy-on-write clones of the ignored paths the project lists in its
+/// <c>.sharprail/workspace.toml</c> (dependencies, build caches), so the new worktree starts warm instead of cold. Best effort in every respect: no volume,
 /// platform or filesystem that cannot clone, and no failure, ever reaches the caller.
 /// </summary>
 internal static class WorkspaceClone
 {
-    /// <summary>Directory names cloned wherever Git reports them as an entirely ignored, untracked directory.</summary>
-    internal static readonly string[] BuildDirectoryNames = [".tools", "obj", "bin"];
-
     private const uint NoFollow = 1;
 
     [DllImport("libc", EntryPoint = "clonefile", SetLastError = true)]
@@ -31,32 +33,111 @@ internal static class WorkspaceClone
         catch (Exception error) when (error is DllNotFoundException or EntryPointNotFoundException) { return false; }
     }
 
+    /// <summary>Where a project states what its created workspaces start with, relative to the project root.</summary>
+    internal const string ConfigPath = ".sharprail/workspace.toml";
+
+    private const int ConfigLimit = ProjectToml.MaximumBytes;
+
     /// <summary>
-    /// Clones the Default workspace's build-state directories into <paramref name="target"/> and returns the relative
-    /// paths cloned. Discovery is one Git call that reports ignored directories without descending into them (so a
-    /// <c>node_modules</c> is one entry, not a walk); only entries named in <see cref="BuildDirectoryNames"/> qualify, and
-    /// Git lists a directory as a unit only when nothing in it is tracked. Existing targets are never replaced.
+    /// The project's clone rules, in TOML: <c>version = 1</c> and a <c>[clone]</c> table with <c>include</c> and <c>exclude</c>
+    /// string arrays. Patterns are slash-separated, relative to the project root: <c>*</c> and <c>?</c> stay inside one path
+    /// segment, <c>**</c> spans segments, a pattern without <c>/</c> matches that name at any depth and one with <c>/</c> is
+    /// anchored at the root. A missing file means nothing is cloned; unknown keys are ignored. The host only reads this file.
     /// </summary>
-    internal static async Task<IReadOnlyList<string>> CloneBuildStateAsync(string source, string target, CancellationToken cancellationToken,
-        Func<string, string, bool>? clone = null)
+    internal sealed record Rules(IReadOnlyList<Regex> Include, IReadOnlyList<Regex> Exclude)
+    {
+        internal static readonly Rules None = new([], []);
+
+        internal bool Selects(string relative) => Include.Any(rule => rule.IsMatch(relative)) && !Exclude.Any(rule => rule.IsMatch(relative));
+    }
+
+    /// <summary>Reads the source checkout's rules; a malformed or newer-versioned file yields no rules and a diagnostic, never an exception.</summary>
+    internal static Rules ReadRules(string source, Action<string>? report = null)
+    {
+        var path = Path.Combine(source, ".sharprail", "workspace.toml");
+        try
+        {
+            var info = new FileInfo(path);
+            if (!info.Exists || info.LinkTarget is not null) return Rules.None;
+            if (info.Length > ConfigLimit) { report?.Invoke($"{ConfigPath} is larger than {ConfigLimit} bytes; ignored."); return Rules.None; }
+            var root = ProjectToml.Parse(File.ReadAllText(path));
+            if (ProjectToml.VersionOf(root) != 1)
+            { report?.Invoke($"{ConfigPath} needs version = 1; ignored."); return Rules.None; }
+            if (root["clone"] is not { } clone) return Rules.None;
+            if (clone is not JsonObject table) { report?.Invoke($"{ConfigPath}: [clone] must be a table; ignored."); return Rules.None; }
+            return new Rules(Patterns(table, "include", report), Patterns(table, "exclude", report));
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or TomlException or InvalidOperationException)
+        {
+            report?.Invoke($"{ConfigPath} is unreadable ({error.Message}); ignored.");
+            return Rules.None;
+        }
+    }
+
+    private static List<Regex> Patterns(JsonObject clone, string name, Action<string>? report)
+    {
+        var rules = new List<Regex>();
+        if (!clone.TryGetPropertyValue(name, out var list)) return rules;
+        if (list is not JsonArray array) { report?.Invoke($"{ConfigPath}: {name} must be an array; ignored."); return rules; }
+        foreach (var item in array)
+        {
+            var pattern = item is JsonValue value && value.TryGetValue<string>(out var text) ? text.Trim().TrimEnd('/') : "";
+            if (pattern.Length == 0 || pattern.StartsWith('/') || pattern.Contains('\\') || pattern.Split('/').Any(part => part is ".." or "." or "" or ".git"))
+            { report?.Invoke($"{ConfigPath}: skipped invalid pattern {item}."); continue; }
+            rules.Add(Glob(pattern));
+        }
+        return rules;
+    }
+
+    private static Regex Glob(string pattern)
+    {
+        var text = new StringBuilder(pattern.Contains('/') ? "^" : "^(?:.*/)?");
+        for (var index = 0; index < pattern.Length; index++)
+        {
+            var character = pattern[index];
+            if (character == '*' && index + 1 < pattern.Length && pattern[index + 1] == '*')
+            {
+                index++;
+                if (index + 1 < pattern.Length && pattern[index + 1] == '/') { index++; text.Append("(?:.*/)?"); }
+                else text.Append(".*");
+            }
+            else if (character == '*') text.Append("[^/]*");
+            else if (character == '?') text.Append("[^/]");
+            else text.Append(Regex.Escape(character.ToString()));
+        }
+        return new Regex(text.Append('$').ToString(), RegexOptions.CultureInvariant);
+    }
+
+    /// <summary>
+    /// Clones the paths the source project's <see cref="ConfigPath"/> includes into <paramref name="target"/> and returns the
+    /// relative paths cloned; without that file nothing is. Discovery is one Git call that reports ignored paths without
+    /// descending into them (so a <c>node_modules</c> is one entry, not a walk); only entries the rules select qualify, and
+    /// Git lists a directory as a unit only when nothing in it is tracked, so tracked content is never cloned. Existing
+    /// targets are never replaced.
+    /// </summary>
+    internal static async Task<IReadOnlyList<string>> CloneConfiguredAsync(string source, string target, CancellationToken cancellationToken,
+        Func<string, string, bool>? clone = null, Action<string>? report = null)
     {
         if (clone is null && !Supported) return [];
         clone ??= TryClone;
         var cloned = new List<string>();
         try
         {
+            var rules = await Task.Run(() => ReadRules(source, report), cancellationToken);
+            if (rules.Include.Count == 0) return cloned;
             var listing = await GitRepository.RunAsync(source, cancellationToken, "ls-files", "--others", "--ignored", "--exclude-standard", "--directory", "-z");
             foreach (var entry in listing.Split('\0', StringSplitOptions.RemoveEmptyEntries))
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                if (!entry.EndsWith('/')) continue;
                 var relative = entry.TrimEnd('/');
-                if (!BuildDirectoryNames.Contains(relative.Split('/')[^1]) || relative.StartsWith(".git/", StringComparison.Ordinal)) continue;
+                if (relative == ".git" || relative.StartsWith(".git/", StringComparison.Ordinal) || !rules.Selects(relative)) continue;
                 var from = Path.Combine(source, relative);
                 var to = Path.Combine(target, relative);
                 var parent = Path.GetDirectoryName(to)!;
                 // The target's parent comes from the checkout; a path that already exists there (even a dangling link) is left alone.
-                if (!Directory.Exists(parent) || Path.Exists(to) || new FileInfo(to).LinkTarget is not null || !Directory.Exists(from)) continue;
+                if (!Directory.Exists(parent) || Path.Exists(to) || new FileInfo(to).LinkTarget is not null) continue;
+                var info = new FileInfo(from);
+                if (info.LinkTarget is not null || !(entry.EndsWith('/') ? Directory.Exists(from) : info.Exists)) continue;
                 if (clone(from, to)) cloned.Add(relative);
             }
         }

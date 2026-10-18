@@ -61,6 +61,8 @@ SharpRail.Plugins.Api.HostProject.Name.get -> string!
 SharpRail.Plugins.Api.HostProject.Name.init -> void
 SharpRail.Plugins.Api.HostProject.Path.get -> string!
 SharpRail.Plugins.Api.HostProject.Path.init -> void
+SharpRail.Plugins.Api.HostProject.ScratchDirectory.get -> string!
+SharpRail.Plugins.Api.HostProject.ScratchDirectory.init -> void
 SharpRail.Plugins.Api.HostProject.WorktreesDirectory.get -> string!
 SharpRail.Plugins.Api.HostProject.WorktreesDirectory.init -> void
 SharpRail.Plugins.Api.HostWorkspace

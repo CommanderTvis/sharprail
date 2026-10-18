@@ -365,13 +365,14 @@ internal static class CodexChecks
             var start = new ProcessStartInfo("/bin/sh", ["-c", line]) { RedirectStandardOutput = true, RedirectStandardError = true, UseShellExecute = false };
             start.Environment[CodexLaunch.PromptJsonVariable] = JsonSerializer.Serialize(instructions);
             start.Environment["THINKRAIL_CODEX_STATUS_URL"] = "http://localhost/status/token";
+            start.Environment[CodexLaunch.ScratchVariable] = "/scratch probe";
             using var process = Process.Start(start)!;
             var output = process.StandardOutput.ReadToEnd();
             process.WaitForExit();
             Require(process.ExitCode == 0, "the launch line runs: " + process.StandardError.ReadToEnd());
             var parts = output.Split('\0');
-            Require(parts.Length == 3 && parts[0] == "-c", "one -c override: " + output.Replace('\0', '|'));
-            return ((string)CodexConfig.Parse(parts[1])["developer_instructions"]!, parts[2], line);
+            Require(parts.Length == (append ? 5 : 3) && parts[0] == "-c" && (!append || parts[2] == "--add-dir" && parts[3] == "/scratch probe"), "one -c override and the scratch grant: " + output.Replace('\0', '|'));
+            return ((string)CodexConfig.Parse(parts[1])["developer_instructions"]!, parts[^1], line);
         }
 
         var plain = Run(null);

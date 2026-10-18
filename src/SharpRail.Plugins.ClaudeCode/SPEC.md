@@ -36,6 +36,7 @@ authorization and available subagent tools.
 It also asks the agent to title its terminal's tab through the host's `set_title` when the task is clear;
 the first title also names an untouched generated managed workspace; manual names are preserved. Cleanup goes through the host's `workspace_delete`
 rather than `git worktree remove`, so Projects follows immediately.
+The appendix also documents the project's `.sharprail/workspace.toml` (schema, root-relative patterns, edit it when adding a shareable dependency or cache directory, effective for workspaces created afterwards).
 The appendix permits `shipping-a-pr` only when the user's prompt indicates pull-request work;
 a request to commit and/or push alone does not trigger the skill.
 
@@ -205,7 +206,8 @@ the plugin at build and shared with the Codex plugin; neither plugin references 
 The text differs from the fork's only where pi's was untrue here: the app is SharpRail, pi's
 `ask_user_question`, `read`, `edit`, `web_search` and `fetch_content` become the session's own means
 (a question tool when the CLI has one, else a numbered plain message), the router names no
-skill-authoring skill, the task-spec lives at `.sharprail/context/TASK-<slug>.md`, and working files go to `.sharprail/context` where a workspace has it, else a
+skill-authoring skill, the task-spec lives at `TASK-<slug>.md` in the repository root (untracked, deleted when the task lands; `spec_create` stays inside the project), and working files go to `$SHARPRAIL_SCRATCH_DIR`
+(`SHARPRAIL_SCRATCH_DIR`, the workspace's directory under `<state>/scratch/<project>/`, created by the host, set in every terminal and passed to the session as `--add-dir`), else a
 temporary directory outside the repository. The spec, routing and brainstorming skills follow the prompt's rule: their
 descriptions offer them only when the user asks for specs or the project keeps a spec graph, and the
 dispatcher stops when the `spec_*` tools are absent.
@@ -291,6 +293,10 @@ or unsupported semantic results; delegated agents receive the workspace and LSP 
 The system prompt advertises workspace LSP configuration inspection, save and targeted restart,
 including library settings and clangd compiler configuration. Saved configuration is visible in
 the workspace LSP pane and copied independently from Default for new workspaces.
+
+A separate paragraph of the system prompt documents the project's `.sharprail/language.toml` (portable
+server options shared through the project; see the [language services](../SharpRail.Host.Core/Language/SPEC.md#project-language-file)
+spec): agents edit it directly, keep comments and unknown keys, and put no host paths or secrets in it.
 
 Agent LSP guidance prefers qualified outline queries over guessed positions, dependency scope and
 bounded source retrieval with the returned URI/source provider. Reuse warm sessions and poll import

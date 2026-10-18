@@ -27,6 +27,14 @@ public sealed partial class HostStateStore
 {
     internal string WorkspaceLanguage(string workspace, string server)
     {
+        var local = LocalLanguage(workspace, server);
+        var project = ProjectOfWorkspace(workspace);
+        return project is not null && ProjectLanguage(project).Servers.TryGetValue(server, out var portable)
+            ? ProjectLanguageFile.Merge(local, portable) : local;
+    }
+
+    private string LocalLanguage(string workspace, string server)
+    {
         lock (gate)
         {
             var settings = state.WorkspaceLanguages.GetValueOrDefault(workspace) ?? "{}";
@@ -53,11 +61,15 @@ public sealed partial class HostStateStore
     internal void SaveWorkspaceLanguage(string workspace, string server, string configuration)
     {
         var validated = WorkspaceLanguageConfiguration.Serialize(WorkspaceLanguageConfiguration.Parse(configuration, server));
+        var project = ProjectOfWorkspace(workspace);
+        if (project is not null && ProjectLanguage(project).Servers.TryGetValue(server, out var portable))
+            validated = ProjectLanguageFile.Localize(LocalLanguage(workspace, server), validated, portable);
         lock (gate)
         {
             var configurations = state.WorkspaceLanguages.ToDictionary();
             var servers = System.Text.Json.Nodes.JsonNode.Parse(configurations.GetValueOrDefault(workspace) ?? "{}")!.AsObject();
-            servers[server] = System.Text.Json.Nodes.JsonNode.Parse(validated);
+            if (validated == "{}" && project is not null && ProjectLanguage(project).Servers.ContainsKey(server)) servers.Remove(server);
+            else servers[server] = System.Text.Json.Nodes.JsonNode.Parse(validated);
             configurations[workspace] = servers.ToJsonString();
             Publish(state with { WorkspaceLanguages = configurations }, persist: true);
         }

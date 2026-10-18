@@ -8,6 +8,10 @@ not switch the terminal. Use `workspace_delete` for finished workspaces you
 created, after preserving their work and leaving the checkout. Keep Default,
 workspaces you did not create and workspaces with active agents.
 
+New workspaces clone the git-ignored paths listed in the committed `.sharprail/workspace.toml`
+(schema in `src/SharpRail.Host.Core/Workspaces.SPEC.md`); add an entry for a dependency or
+build-cache directory worth sharing.
+
 Inspect Git status before editing and leave other tasks' changes alone. Do not
 change Git configuration to work around a concurrent operation. Never push unless
 the user asks; preserve the configured commit-signing presence check.
@@ -45,7 +49,7 @@ inputs changed, none otherwise. Store installs other than the SDK are read-only;
 | `src/SharpRail.UI/Panels` | Settings and shared dialogs, including compiled XAML frames and page templates. |
 | `src/SharpRail.UI/Rendering` | The theme catalogue, diffs and the bindings of the kit's Markdown views to a workspace's host (`MarkdownContexts`). |
 | `src/SharpRail.UI/Resources` | Resource-renderer registry, the file pane with its view toggle, and the format views (image, SVG, table, JSON, notebook, LFS and byte cards). |
-| `src/SharpRail.UI/State` | Profile persistence and migration (`ProfileStore`: app preferences and one entry per window) and the app's shared-state subscription (`SharedState`). Default user state belongs in `~/.sharprail`, not project directories. |
+| `src/SharpRail.UI/State` | Profile persistence and migration (`ProfileStore`: app preferences and one entry per window) and the app's shared-state subscription (`SharedState`). Default user state belongs in `~/.sharprail`, not project directories. Shareable project configuration is the exception and lives in the project's `.sharprail/` as TOML (`language.toml`: see `src/SharpRail.Host.Core/Language/SPEC.md`). |
 | `src/SharpRail.UI/Plugins` | The app's plugin runtime: the contribution registry the workbench reads, the builtin UI array, external UI assembly loading through the host, `IPluginUIContext` and the roster reconciler. Settings › Plugins is `Panels/PluginsSettings.cs`. |
 | `src/SharpRail.UI/Terminal` | Terminal tab body (`TerminalView`: start failure/retry, exit notice), the Ghostty native-control bridge for local and relayed remote sessions, and the `--terminal-relay` mode. |
 | `src/SharpRail.UI/Notifications` | Away notifications for terminals whose agent needs the user: the collection window and gates (`AttentionNotifications`), the injected `IDesktopNotifier` and the macOS channel over `Native/Notifications.m`. |

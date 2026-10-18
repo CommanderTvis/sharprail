@@ -5,6 +5,7 @@ for all 18 catalog entries, plus SharpRail's provider-specific launch fields. It
 claim to expose every upstream option. Settings are optional: unset uses server defaults,
 while `false`, `0`, empty strings and empty arrays remain explicit values where supported.
 The schema is UI metadata over the existing initialization/settings JSON, not a new store.
+The portable subset of these settings may also be shared through the project's `.sharprail/language.toml`; its values validate against this typed catalog (see the language SPEC, "Project language file").
 
 `I` means initialization options and `S` means workspace settings. Paths refer to the
 workspace host, regardless of the client. Native pickers are available only to a local

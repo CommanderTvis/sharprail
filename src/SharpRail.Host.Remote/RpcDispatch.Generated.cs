@@ -227,6 +227,20 @@ internal static class RpcDispatch
                 await stream.Send(await service.GetDiffStatsAsync(request, context));
                 break;
             }
+            case "IProjectRpc/GetSharprailDirectoryAsync":
+            {
+                var service = ActivatorUtilities.CreateInstance<ProjectRpc>(services);
+                var request = await ReadOne<ProjectRequest>(stream);
+                await stream.Send(await service.GetSharprailDirectoryAsync(request, context));
+                break;
+            }
+            case "IProjectRpc/ExcludeSharprailDirectoryAsync":
+            {
+                var service = ActivatorUtilities.CreateInstance<ProjectRpc>(services);
+                var request = await ReadOne<ProjectRequest>(stream);
+                await stream.Send(await service.ExcludeSharprailDirectoryAsync(request, context));
+                break;
+            }
             case "IProjectRpc/ListWorkspacesAsync":
             {
                 var service = ActivatorUtilities.CreateInstance<ProjectRpc>(services);

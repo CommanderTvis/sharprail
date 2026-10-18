@@ -23,7 +23,7 @@ Screenshots never enter the PR's file tree. Push them as an orphan ref and refer
 URLs:
 
 ```bash
-SCRATCH=.sharprail/context   # or the temporary directory chosen as <scratch>
+SCRATCH="$SHARPRAIL_SCRATCH_DIR"   # or the temporary directory chosen as <scratch>
 TREE_INPUT=""
 for f in "$SCRATCH"/pr-shots/*.png; do
   sha=$(git hash-object -w "$f")

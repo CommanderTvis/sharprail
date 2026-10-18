@@ -533,3 +533,52 @@ A failed or disabled provider stays visible in the language pane and does not pr
 an agent. Arbitrary agent commands manually typed into a shell have no prelaunch integration.
 
 2026-10-18 verification: Release compilation and focused direct/remote regressions cover project preference persistence, sibling-workspace sharing, project isolation, concurrent starts, warm PID reuse, failed/stopped recovery, unchanged workspace autostart, and revival prefill ordering. Headless controls cover managed-command preparation before terminal attachment and immediate project checkbox persistence. Real provider provisioning and browser/Android runtime were not exercised by this change.
+
+## Project language file
+
+`.sharprail/language.toml` in the project root (the Default checkout, so every workspace and every
+client of the project agrees; a remote host reads its own copy) holds the project's portable
+language-server choices, committed and edited by the team and agents. The directory holds only
+shareable configuration: SharpRail writes nothing else into it and never creates a `.gitignore`
+there. Nothing is written until Settings > Code Intelligence saves with "Share with the project"
+checked; opening a project, saving workspace-local settings and agent `configure` never create it.
+
+```toml
+version = 1                        # required; the file's format version
+
+[servers.python]                   # one table per catalog server id
+autoStart = true
+[servers.python.settings.python.analysis]
+typeCheckingMode = "strict"
+```
+
+Per server the portable keys are `autoStart`, `arguments`, `buildTool`, `compilationDatabasePath`,
+`compilerFlags`, `includePaths`, `initializationOptions` and `settings`, exactly the option names and
+types of workspace configuration. Values validate through the same parser and the typed option
+catalog (`configurationSchema`): a wrong type or choice, an unknown server id or an option that
+belongs to another server ignores that server's entry with a diagnostic. `installationPath`,
+`projectJdk`, `useForJavaAndKotlin`, the global Java/Kotlin provider, launcher command overrides and
+terms consent are host-specific and stay in host state; they are ignored with a diagnostic if found
+in the file. Do not put secrets or absolute host paths in it; `${workspaceFolder}` expands as in
+workspace configuration. TOML `null` does not exist, so the file cannot hold JSON nulls.
+
+Precedence is per option key: a key stored in host state for the workspace wins, any other portable
+key comes from the file, then defaults. A legacy host-state entry holds every key, so existing
+configuration keeps working unchanged and the file only fills what the host never stored. Local
+changes (agent `configure`, Start/Stop) store only keys that differ from the file. An explicit
+shared save writes the portable keys to the file and drops them from the project's workspace entries
+(host-specific keys stay). Project autostart is the host list when one exists, otherwise the servers
+with `autoStart = true`; the first local change starts from the file's choices.
+
+The host reads the file lazily off the UI thread, watches it and publishes its status
+(`HostState.ProjectLanguageFiles`: path, existence, stamp, configured servers, diagnostics) so
+every client and the pane refresh. Edits apply to running servers at their next start (the pane
+shows restart required). A malformed, oversized or unsupported-version file is a diagnostic, never
+a failure of language services or startup, and is never overwritten.
+
+Saves edit the file's syntax tree (Tomlyn 2.10.1): comments, layout, ordering and unknown keys survive,
+only the saved server's managed keys are replaced and a new server's table is appended. The result is
+re-read and compared with the intended content before an atomic replace. Format growth is compatible
+(new optional keys, tolerated and preserved). An incompatible change would ship as `language_v2.toml`,
+created only by an explicit write; the older file stays untouched, readers prefer the highest version
+they understand and this version reports newer files it does not read.

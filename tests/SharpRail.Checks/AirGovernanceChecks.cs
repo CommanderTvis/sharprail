@@ -215,7 +215,7 @@ internal static class AirGovernanceChecks
         Require(claudeShape.StartsWith("SHARPRAIL_UI_LAUNCH=claude " + fixture.Central + " run claude-code -- ", StringComparison.Ordinal), "Claude's line keeps SharpRail's marker outermost: " + claudeShape);
         Require(codexShape == fixture.Central + " run codex -- 'it'\\''s \"q\" $(touch injected)'", "Codex's line: " + codexShape);
         var direct = SharpRail.Plugins.ClaudeCode.UI.ClaudeLaunch.SessionCommand("claude", "x", false, false, contributions: []);
-        Require(direct == "SHARPRAIL_UI_LAUNCH=claude claude --plugin-dir \"$" + SharpRail.Plugins.ClaudeCode.ClaudeCodeContract.PluginDirectoryVariable + "\" x", "Direct leaves Claude's line as before: " + direct);
+        Require(direct == "SHARPRAIL_UI_LAUNCH=claude claude --plugin-dir \"$" + SharpRail.Plugins.ClaudeCode.ClaudeCodeContract.PluginDirectoryVariable + "\" --add-dir \"$" + SharpRail.Plugins.ClaudeCode.ClaudeCodeContract.ScratchVariable + "\" x", "Direct leaves Claude's line as before: " + direct);
         foreach (var line in new[] { claudeShape, codexShape })
         {
             var start = new System.Diagnostics.ProcessStartInfo("/bin/sh") { RedirectStandardOutput = true, RedirectStandardError = true, WorkingDirectory = directory };

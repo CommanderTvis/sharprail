@@ -363,6 +363,8 @@ public static class ClaudeCodeContract
 
     /// <summary>Names the folder SharpRail creates this project's worktrees in, in every terminal.</summary>
     public const string WorktreesVariable = "SHARPRAIL_WORKTREES_DIR";
+    /// <summary>The workspace's host-owned scratch directory, outside the project, set in every terminal and granted to the session with <c>--add-dir</c>.</summary>
+    public const string ScratchVariable = "SHARPRAIL_SCRATCH_DIR";
 
     /// <summary>Where the hook plugin posts its reports: this plugin's status route, with the terminal's token.</summary>
     public const string StatusUrlVariable = "SHARPRAIL_AGENT_STATUS_URL";

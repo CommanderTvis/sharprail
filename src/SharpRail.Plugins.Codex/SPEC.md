@@ -48,6 +48,7 @@ invitation and bundled AI chat are excluded by the SharpRail product contract.
   It also asks the agent to title its terminal's tab through the host's `set_title` when the task is clear;
   the first title also names an untouched generated managed workspace; manual names are preserved. Cleanup goes through the host's `workspace_delete`
   rather than `git worktree remove`, so Projects follows immediately.
+  The appendix also documents the project's `.sharprail/workspace.toml` (schema, root-relative patterns, edit it when adding a shareable dependency or cache directory, effective for workspaces created afterwards).
   The appendix permits `shipping-a-pr` only when the user's prompt indicates pull-request work;
   a request to commit and/or push alone does not trigger the skill.
 - POSIX UI launches carry the command-scoped `SHARPRAIL_UI_LAUNCH=codex` marker even when MCP and
@@ -74,7 +75,9 @@ invitation and bundled AI chat are excluded by the SharpRail product contract.
   is edited. Spec tools are suggested only when available and the project uses a spec graph;
   projects without specs require no spec workflow or unsolicited spec creation.
   The file describes SharpRail's tools and the project's
-  worktree folder (`SHARPRAIL_WORKTREES_DIR`), like Claude Code's appended system prompt. Each terminal
+  worktree folder (`SHARPRAIL_WORKTREES_DIR`), like Claude Code's appended system prompt. Prompted launches also pass
+  `--add-dir "$SHARPRAIL_SCRATCH_DIR"`: the workspace's host-side scratch directory (`<state>/scratch/<project>/<workspace>`,
+  created by the host, nothing inside the project) stays writable under Codex's workspace-write sandbox. Each terminal
   gets the file's text as the JSON string `SHARPRAIL_CODEX_PROMPT_JSON`, which the launch line expands
   into Codex's additional `developer_instructions`; a launcher-supplied prompt continues the same
   string rather than adding a second override. Only these launches tag their inherited status URL with
@@ -217,6 +220,10 @@ or unsupported semantic results; delegated agents are told to write the workspac
 The system prompt advertises workspace LSP configuration inspection, save and targeted restart,
 including library settings and clangd compiler configuration. Saved configuration is visible in
 the workspace LSP pane and copied independently from Default for new workspaces.
+
+A separate paragraph of the system prompt documents the project's `.sharprail/language.toml` (portable
+server options shared through the project; see the [language services](../SharpRail.Host.Core/Language/SPEC.md#project-language-file)
+spec): agents edit it directly, keep comments and unknown keys, and put no host paths or secrets in it.
 
 Agent LSP guidance prefers qualified outline queries over guessed positions, dependency scope and
 bounded source retrieval with the returned URI/source provider. Reuse warm sessions and poll import

@@ -139,6 +139,15 @@ public sealed partial class ProjectRpc(ProjectSessions sessions, IHostApplicatio
         return new DiffStatsReply { Added = stats.Added, Removed = stats.Removed };
     });
 
+    public ValueTask<SharprailDirectoryReply> GetSharprailDirectoryAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>
+        Map(await Host(context).GetSharprailDirectoryAsync(context.CancellationToken)));
+
+    public ValueTask<SharprailDirectoryReply> ExcludeSharprailDirectoryAsync(ProjectRequest request, CallContext context = default)
+        => Replayed(context, request, async (host, token) => Map(await host.ExcludeSharprailDirectoryAsync(token)));
+
+    private static SharprailDirectoryReply Map(SharprailDirectoryStatus status) =>
+        new() { Exists = status.Exists, Tracked = status.Tracked, Ignored = status.Ignored, Written = status.Written, Detail = status.Detail };
+
     public ValueTask<OpenReviewReply> GetOpenReviewAsync(OpenReviewRequest request, CallContext context = default) => Execute(async () =>
         await Host(context).GetOpenReviewAsync(request.Fresh, context.CancellationToken) is { } review
             ? new OpenReviewReply { Found = true, Number = review.Number, Url = review.Url, Provider = review.Provider, UnpushedCommits = review.UnpushedCommits, BehindCommits = review.BehindCommits }

@@ -29,10 +29,10 @@ description: "Use before implementing a feature, a change in behavior, or a bug 
    change touches whose *why* is not recorded — it becomes a question in step 6.
 2. **Scope check.** If the request bundles independent product decisions or subsystems, separate
    them rather than blending unrelated decisions into one task-spec.
-3. **Open a task-spec.** `spec_create` a `task-spec` at **`.sharprail/context/TASK-<slug>.md`** (id,
-   title, status: draft, parent: the nearest relevant module). The directory is self-ignored in the
-   workspaces SharpRail creates; elsewhere make sure the file stays out of commits. It is the one
-   temporary design artifact; update it as answers land.
+3. **Open a task-spec.** `spec_create` a `task-spec` at **`TASK-<slug>.md`** in the repository root (id,
+   title, status: draft, parent: the nearest relevant module). `spec_create` paths must stay inside the project, and
+   SharpRail keeps nothing of its own there, so the file is untracked: never stage or commit it, and delete it when the
+   task lands. It is the one temporary design artifact; update it as answers land.
 4. **Bug?** When the request reports something that behaves wrongly, follow `fixing-a-bug.md` now;
    it returns here at step 5 (the "bug" is really a feature) or step 8.
 5. **Product phase.** Interview what the change is for before how to build it: why it is needed,

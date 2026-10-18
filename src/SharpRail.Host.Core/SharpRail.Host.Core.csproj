@@ -14,6 +14,9 @@
     <ProjectReference Include="../SharpRail.Plugins.AirContext/Host/SharpRail.Plugins.AirContext.Host.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Tomlyn" />
+  </ItemGroup>
+  <ItemGroup>
     <Content Include="../../licenses/intellij-lsp.nvim.LICENSE.txt" Link="licenses/intellij-lsp.nvim.LICENSE.txt" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     <Content Include="../../licenses/intellij-lsp.nvim.NOTICE.md" Link="licenses/intellij-lsp.nvim.NOTICE.md" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
   </ItemGroup>

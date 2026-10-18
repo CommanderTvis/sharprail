@@ -100,6 +100,8 @@ presets belong to the UI.
   are dropped with the label when the workspace's record leaves the registry, and entries with an invalid
   path or ref are dropped on load. The creation base is kept apart from the record's `BaseBranch`, which
   always names a branch: a workspace cut from `HEAD` has a `BaseBranch` and no review target.
+- `SharprailExcludeDeclined` (`sharprail-exclude-declined`) lists absolute project roots whose user chose to keep an
+  untracked `.sharprail` in the repository; it is persisted, idempotent and sorted, and invalid paths are dropped on load.
 
 ## Settings and presets
 

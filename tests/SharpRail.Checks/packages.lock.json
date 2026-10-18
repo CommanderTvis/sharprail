@@ -271,7 +271,8 @@
           "SharpRail.Plugins.Discord.Host": "[1.0.0, )",
           "SharpRail.Plugins.SpecDialect.Host": "[1.0.0, )",
           "SharpRail.Plugins.Tailscale.Host": "[1.0.0, )",
-          "SharpRail.Plugins.Visualize.Host": "[1.0.0, )"
+          "SharpRail.Plugins.Visualize.Host": "[1.0.0, )",
+          "Tomlyn": "[2.10.1, )"
         }
       },
       "sharprail.host.protocol": {

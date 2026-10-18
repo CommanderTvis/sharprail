@@ -5,8 +5,9 @@ const SharpRail.Host.Abstractions.FileLimits.ReadMessageBytes = 83886080 -> int
 const SharpRail.Host.Abstractions.FileLimits.SaveMessageBytes = 150994944 -> int
 const SharpRail.Host.Abstractions.HostProtocol.ChangeWritePath = 2 -> int
 const SharpRail.Host.Abstractions.HostProtocol.AirContextPlugin = 8 -> int
-const SharpRail.Host.Abstractions.HostProtocol.Current = 8 -> int
+const SharpRail.Host.Abstractions.HostProtocol.Current = 9 -> int
 const SharpRail.Host.Abstractions.HostProtocol.RequestReplay = 3 -> int
+const SharpRail.Host.Abstractions.HostProtocol.SharprailExclude = 9 -> int
 const SharpRail.Host.Abstractions.HostProtocol.WebSocketTransport = 5 -> int
 const SharpRail.Host.Abstractions.HostSettings.DefaultTerminalReplayKb = 64 -> int
 const SharpRail.Host.Abstractions.HostSettings.MaxTerminalReplayKb = 1024 -> int
@@ -147,6 +148,9 @@ override SharpRail.Host.Abstractions.SearchHit.ToString() -> string!
 override SharpRail.Host.Abstractions.SearchHits.Equals(object? obj) -> bool
 override SharpRail.Host.Abstractions.SearchHits.GetHashCode() -> int
 override SharpRail.Host.Abstractions.SearchHits.ToString() -> string!
+override SharpRail.Host.Abstractions.SharprailDirectoryStatus.Equals(object? obj) -> bool
+override SharpRail.Host.Abstractions.SharprailDirectoryStatus.GetHashCode() -> int
+override SharpRail.Host.Abstractions.SharprailDirectoryStatus.ToString() -> string!
 override SharpRail.Host.Abstractions.SpecDocument.Equals(object? obj) -> bool
 override SharpRail.Host.Abstractions.SpecDocument.GetHashCode() -> int
 override SharpRail.Host.Abstractions.SpecDocument.ToString() -> string!
@@ -533,6 +537,8 @@ SharpRail.Host.Abstractions.HostState.Revision.get -> long
 SharpRail.Host.Abstractions.HostState.Revision.init -> void
 SharpRail.Host.Abstractions.HostState.Settings.get -> SharpRail.Host.Abstractions.HostSettings!
 SharpRail.Host.Abstractions.HostState.Settings.init -> void
+SharpRail.Host.Abstractions.HostState.SharprailExcludeDeclined.get -> System.Collections.Generic.IReadOnlyList<string!>!
+SharpRail.Host.Abstractions.HostState.SharprailExcludeDeclined.init -> void
 SharpRail.Host.Abstractions.HostState.TerminalAgents.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.TerminalAgent!>!
 SharpRail.Host.Abstractions.HostState.TerminalAgents.init -> void
 SharpRail.Host.Abstractions.HostState.TerminalTitles.get -> System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.TerminalTitle!>!
@@ -576,6 +582,7 @@ SharpRail.Host.Abstractions.IProjectServices.ApplyGitActionAsync(SharpRail.Host.
 SharpRail.Host.Abstractions.IProjectServices.ApplyWorkspaceActionAsync(SharpRail.Host.Abstractions.WorkspaceAction! action, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Host.Abstractions.WorkspaceRecord?>
 SharpRail.Host.Abstractions.IProjectServices.CloneProjectAsync(string! url, string! parentPath, string! name, int? depth = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<string!>
 SharpRail.Host.Abstractions.IProjectServices.CreateProjectAsync(string! parentPath, string! name, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<string!>
+SharpRail.Host.Abstractions.IProjectServices.ExcludeSharprailDirectoryAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Host.Abstractions.SharprailDirectoryStatus!>
 SharpRail.Host.Abstractions.IProjectServices.GetCommitAsync(string! sha, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Host.Abstractions.GitCommit?>
 SharpRail.Host.Abstractions.IProjectServices.GetDiffAsync(string! path, string! scope, string! comparisonBranch = "", System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<string!>
 SharpRail.Host.Abstractions.IProjectServices.GetDiffSidesAsync(string! path, string! scope, string! comparisonBranch = "", System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Host.Abstractions.DiffSides!>
@@ -583,6 +590,7 @@ SharpRail.Host.Abstractions.IProjectServices.GetDiffStatsAsync(string! workspace
 SharpRail.Host.Abstractions.IProjectServices.GetGitAsync(string! comparisonBranch = "", System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken), string! scope = "all") -> System.Threading.Tasks.ValueTask<SharpRail.Host.Abstractions.GitSnapshot!>
 SharpRail.Host.Abstractions.IProjectServices.GetGitHubAuthenticationAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Host.Abstractions.GitHubAuthentication!>
 SharpRail.Host.Abstractions.IProjectServices.GetOpenReviewAsync(bool fresh, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Host.Abstractions.OpenReview?>
+SharpRail.Host.Abstractions.IProjectServices.GetSharprailDirectoryAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Host.Abstractions.SharprailDirectoryStatus!>
 SharpRail.Host.Abstractions.IProjectServices.GetSpecGraphAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Host.Abstractions.SpecGraph!>
 SharpRail.Host.Abstractions.IProjectServices.HasDurableSpecsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<bool>
 SharpRail.Host.Abstractions.IProjectServices.ImportFilesAsync(SharpRail.Host.Abstractions.FileTransferRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<System.Collections.Generic.IReadOnlyList<string!>!>
@@ -807,6 +815,22 @@ SharpRail.Host.Abstractions.SearchHits.SearchHits(SharpRail.Host.Abstractions.Se
 SharpRail.Host.Abstractions.SearchHits.SearchHits(System.Collections.Generic.IReadOnlyList<SharpRail.Host.Abstractions.SearchHit!>! Hits, bool Truncated) -> void
 SharpRail.Host.Abstractions.SearchHits.Truncated.get -> bool
 SharpRail.Host.Abstractions.SearchHits.Truncated.init -> void
+SharpRail.Host.Abstractions.SharprailDirectoryStatus
+SharpRail.Host.Abstractions.SharprailDirectoryStatus.<Clone>$() -> SharpRail.Host.Abstractions.SharprailDirectoryStatus!
+SharpRail.Host.Abstractions.SharprailDirectoryStatus.CanExclude.get -> bool
+SharpRail.Host.Abstractions.SharprailDirectoryStatus.Deconstruct(out bool Exists, out bool Tracked, out bool Ignored, out bool Written, out string! Detail) -> void
+SharpRail.Host.Abstractions.SharprailDirectoryStatus.Detail.get -> string!
+SharpRail.Host.Abstractions.SharprailDirectoryStatus.Detail.init -> void
+SharpRail.Host.Abstractions.SharprailDirectoryStatus.Equals(SharpRail.Host.Abstractions.SharprailDirectoryStatus? other) -> bool
+SharpRail.Host.Abstractions.SharprailDirectoryStatus.Exists.get -> bool
+SharpRail.Host.Abstractions.SharprailDirectoryStatus.Exists.init -> void
+SharpRail.Host.Abstractions.SharprailDirectoryStatus.Ignored.get -> bool
+SharpRail.Host.Abstractions.SharprailDirectoryStatus.Ignored.init -> void
+SharpRail.Host.Abstractions.SharprailDirectoryStatus.SharprailDirectoryStatus(bool Exists, bool Tracked, bool Ignored, bool Written = false, string! Detail = "") -> void
+SharpRail.Host.Abstractions.SharprailDirectoryStatus.Tracked.get -> bool
+SharpRail.Host.Abstractions.SharprailDirectoryStatus.Tracked.init -> void
+SharpRail.Host.Abstractions.SharprailDirectoryStatus.Written.get -> bool
+SharpRail.Host.Abstractions.SharprailDirectoryStatus.Written.init -> void
 SharpRail.Host.Abstractions.SpecDocument
 SharpRail.Host.Abstractions.SpecDocument.Deconstruct(out string! Id, out string! Title, out string! Path, out string! Parent, out string! Type) -> void
 SharpRail.Host.Abstractions.SpecDocument.Id.get -> string!
@@ -1075,6 +1099,7 @@ static SharpRail.Host.Abstractions.HostSettings.operator ==(SharpRail.Host.Abstr
 static SharpRail.Host.Abstractions.HostState.operator !=(SharpRail.Host.Abstractions.HostState? left, SharpRail.Host.Abstractions.HostState? right) -> bool
 static SharpRail.Host.Abstractions.HostState.operator ==(SharpRail.Host.Abstractions.HostState? left, SharpRail.Host.Abstractions.HostState? right) -> bool
 static SharpRail.Host.Abstractions.HostStateChange.CloseProject(string! path) -> SharpRail.Host.Abstractions.HostStateChange!
+static SharpRail.Host.Abstractions.HostStateChange.DeclineSharprailExclude(string! projectRoot) -> SharpRail.Host.Abstractions.HostStateChange!
 static SharpRail.Host.Abstractions.HostStateChange.DeletePreset(string! name) -> SharpRail.Host.Abstractions.HostStateChange!
 static SharpRail.Host.Abstractions.HostStateChange.DiffBase(string! path, string! reference) -> SharpRail.Host.Abstractions.HostStateChange!
 static SharpRail.Host.Abstractions.HostStateChange.ForgetProject(string! path) -> SharpRail.Host.Abstractions.HostStateChange!
@@ -1119,6 +1144,8 @@ static SharpRail.Host.Abstractions.SearchHit.operator !=(SharpRail.Host.Abstract
 static SharpRail.Host.Abstractions.SearchHit.operator ==(SharpRail.Host.Abstractions.SearchHit? left, SharpRail.Host.Abstractions.SearchHit? right) -> bool
 static SharpRail.Host.Abstractions.SearchHits.operator !=(SharpRail.Host.Abstractions.SearchHits? left, SharpRail.Host.Abstractions.SearchHits? right) -> bool
 static SharpRail.Host.Abstractions.SearchHits.operator ==(SharpRail.Host.Abstractions.SearchHits? left, SharpRail.Host.Abstractions.SearchHits? right) -> bool
+static SharpRail.Host.Abstractions.SharprailDirectoryStatus.operator !=(SharpRail.Host.Abstractions.SharprailDirectoryStatus? left, SharpRail.Host.Abstractions.SharprailDirectoryStatus? right) -> bool
+static SharpRail.Host.Abstractions.SharprailDirectoryStatus.operator ==(SharpRail.Host.Abstractions.SharprailDirectoryStatus? left, SharpRail.Host.Abstractions.SharprailDirectoryStatus? right) -> bool
 static SharpRail.Host.Abstractions.SpecDocument.operator !=(SharpRail.Host.Abstractions.SpecDocument? left, SharpRail.Host.Abstractions.SpecDocument? right) -> bool
 static SharpRail.Host.Abstractions.SpecDocument.operator ==(SharpRail.Host.Abstractions.SpecDocument? left, SharpRail.Host.Abstractions.SpecDocument? right) -> bool
 static SharpRail.Host.Abstractions.SpecDuplicate.operator !=(SharpRail.Host.Abstractions.SpecDuplicate? left, SharpRail.Host.Abstractions.SpecDuplicate? right) -> bool
@@ -1603,3 +1630,5 @@ SharpRail.Host.Abstractions.HostSettings.JavaKotlinProvider.init -> void
 
 SharpRail.Host.Abstractions.HostState.ProjectLanguageAutostart.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
 SharpRail.Host.Abstractions.HostState.ProjectLanguageAutostart.init -> void
+SharpRail.Host.Abstractions.HostState.ProjectLanguageFiles.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+SharpRail.Host.Abstractions.HostState.ProjectLanguageFiles.init -> void

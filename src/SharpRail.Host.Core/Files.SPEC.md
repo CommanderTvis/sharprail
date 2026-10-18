@@ -128,6 +128,8 @@ A read of a file that is gone throws `FileNotFoundException` (a remote client ge
 - `IProjectServices.WatchFilesAsync` owns watchers for the workspace captured when enumeration starts.
   Its first empty batch confirms registration and requests a rescan. Each subscriber disposes its watchers on cancellation.
   Local and remote windows consume the same stream; no initial scan or Git snapshot is required.
+- Watchers skip `.git`, `.tools`, `node_modules` and everything inside `.sharprail`, but report the `.sharprail`
+  directory entry itself, so a new project config directory refreshes Git (see Panels.SPEC.md).
 - Host batches settle for 50 ms, cap pending paths at 4096 and request a rescan on overflow or watcher error.
   Reconnection invalidates open documents to recover changes missed while disconnected.
 - The notification is an invalidation nudge, not data: the workbench re-reads through the same host

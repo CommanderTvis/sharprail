@@ -99,6 +99,17 @@ on: `diff --shortstat` from the merge base of the review target and the workspac
 counted. Only a worktree of the session's project is answered; a failed read is an error and the row
 shows no badge. A client of a host without the call gets null.
 
+`GetSharprailDirectoryAsync()` reports whether the session's workspace root holds a `.sharprail`
+directory, whether Git tracks anything in it (`ls-files`) and whether the ignore rules already cover it
+(`check-ignore`, so `.gitignore`, `info/exclude` and the user's excludes file all count; comments and
+text never do). `ExcludeSharprailDirectoryAsync()` appends `/.sharprail/` to `info/exclude` in the common
+Git directory (`rev-parse --git-common-dir`), so every workspace of the project is covered and linked
+worktrees never get their own copy. It keeps the file's text and line endings, adds a missing final
+newline, creates `info/`, writes through a temporary file moved into place, serialises appends within the
+host and does nothing, with a `Detail` saying why, when the directory is absent, tracked (excluding would
+have no effect) or already ignored. It never touches `.gitignore`. A client of a host without either call
+gets an absent directory, or an unsupported-operation failure for the exclusion.
+
 Every fetch of a remote-tracking ref (`FetchRemoteAsync`: the default-base prefetch and workspace
 creation) compares the ref's commit before and after and reports whether it moved, also when the fetch
 failed after the ref had advanced. A move raises `BaseMoved` with the repository's common Git directory;

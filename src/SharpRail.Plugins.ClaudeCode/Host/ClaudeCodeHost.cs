@@ -201,7 +201,15 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
                 [ClaudeCodeContract.PluginDirectoryVariable] = HookPluginDirectory
             };
             if (context.Projects().FirstOrDefault(project => project.Path == ProjectOf(terminal.WorkspaceId)) is { } project)
+            {
                 environment[ClaudeCodeContract.WorktreesVariable] = project.WorktreesDirectory;
+                if (project.ScratchDirectory.Length > 0 && Path.GetFileName(terminal.WorkspaceId.TrimEnd('/', '\\')) is { Length: > 0 } leaf)
+                {
+                    var scratch = Path.Combine(project.ScratchDirectory, leaf);
+                    try { Directory.CreateDirectory(scratch); environment[ClaudeCodeContract.ScratchVariable] = scratch; }
+                    catch (Exception error) when (error is IOException or UnauthorizedAccessException) { context.Log.Warn("could not create the scratch directory: " + error.Message); }
+                }
+            }
             try { environment[ClaudeCodeContract.StatusUrlVariable] = $"{context.PublicBaseUrl()}/status/{context.TerminalToken(terminal)}"; }
             catch (InvalidOperationException) { }
             if (bridge?.Port is { } port) environment[IdeBridge.IdeBridge.SsePortVariable] = port.ToString(System.Globalization.CultureInfo.InvariantCulture);

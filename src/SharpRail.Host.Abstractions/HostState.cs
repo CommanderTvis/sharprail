@@ -68,6 +68,14 @@ public sealed record HostState
     public IReadOnlyDictionary<string, string> WorkspaceLanguages { get; init; } = new Dictionary<string, string>();
     /// <summary>Project root to JSON server-id array started before managed agent launches.</summary>
     public IReadOnlyDictionary<string, string> ProjectLanguageAutostart { get; init; } = new Dictionary<string, string>();
+    /// <summary>
+    /// Project root to the JSON status of its <c>.sharprail/language.toml</c> as the host last read it: path, whether it
+    /// exists, a stamp that changes with every edit, the server ids it configures and diagnostics for what was ignored.
+    /// Derived by the host, never persisted; absent until the project's language configuration was first used.
+    /// </summary>
+    public IReadOnlyDictionary<string, string> ProjectLanguageFiles { get; init; } = new Dictionary<string, string>();
+    /// <summary>Project roots whose user chose to keep an untracked <c>.sharprail</c> directory in the repository; they are not asked again.</summary>
+    public IReadOnlyList<string> SharprailExcludeDeclined { get; init; } = [];
     public IReadOnlyDictionary<string, string> WorkspaceLabels { get; init; } = new Dictionary<string, string>();
     /// <summary>The ref each workspace was created from, recorded by the host and never changed by a client.</summary>
     public IReadOnlyDictionary<string, string> WorkspaceBases { get; init; } = new Dictionary<string, string>();
@@ -111,6 +119,8 @@ public sealed record HostStateChange(string Kind, string Key = "", string Value 
     public static HostStateChange Label(string path, string label) => new("workspace-label", path, label);
     /// <summary>Re-points a workspace's review target; an empty ref, or its creation base, restores that base.</summary>
     public static HostStateChange DiffBase(string path, string reference) => new("workspace-diff-base", path, reference);
+    /// <summary>Remembers that a project keeps its <c>.sharprail</c> directory in the repository, so it is not offered a local exclusion again.</summary>
+    public static HostStateChange DeclineSharprailExclude(string projectRoot) => new("sharprail-exclude-declined", projectRoot);
     /// <summary>Persists the title of a terminal tab for every client.</summary>
     public static HostStateChange TitleTerminal(TerminalRef terminal, string title) => new("terminal-title", JsonSerializer.Serialize(terminal), title);
     public static HostStateChange OpenProject(string path) => new("project-open", path);

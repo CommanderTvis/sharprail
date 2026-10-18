@@ -71,6 +71,7 @@ public sealed partial class WorkbenchWindow
             RefreshGitPanels();
             startupMilestones?.Complete(request, "git");
             _ = RefreshWorkspaceStatsAsync(request);
+            ConsiderSharprailExclude(request, snapshot);
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
         catch (SharpRail.Host.Abstractions.HostException error) when (error.Code == SharpRail.Host.Abstractions.HostErrorCode.UnknownCommit && commit is not null)

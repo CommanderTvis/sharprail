@@ -180,7 +180,15 @@ public sealed class CodexHost : PluginHostModule
             };
             var projectId = workspaces.TryGetValue(terminal.WorkspaceId, out var workspace) ? workspace.ProjectId : null;
             if (context.Projects().FirstOrDefault(project => project.Id == projectId || project.Path == terminal.WorkspaceId) is { } project)
+            {
                 environment[CodexLaunch.WorktreesVariable] = project.WorktreesDirectory;
+                if (project.ScratchDirectory.Length > 0 && Path.GetFileName(terminal.WorkspaceId.TrimEnd('/', '\\')) is { Length: > 0 } leaf)
+                {
+                    var scratch = Path.Combine(project.ScratchDirectory, leaf);
+                    try { Directory.CreateDirectory(scratch); environment[CodexLaunch.ScratchVariable] = scratch; }
+                    catch (Exception error) when (error is IOException or UnauthorizedAccessException) { context.Log.Warn("could not create the scratch directory: " + error.Message); }
+                }
+            }
             return environment;
         });
 

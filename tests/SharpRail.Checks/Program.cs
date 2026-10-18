@@ -128,6 +128,11 @@ internal static class Program
             AirContextChecks.Ui(root);
             return;
         }
+        if (args.SequenceEqual(["--project-language-file"]))
+        {
+            ProjectLanguageFileChecks.Run(root).GetAwaiter().GetResult();
+            return;
+        }
         if (args.SequenceEqual(["--context"]))
         {
             AirContextChecks.Run(root).GetAwaiter().GetResult();
@@ -425,6 +430,14 @@ internal static class Program
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             E2E.ChangesScopeE2E.Run(Path.Combine(root, "upstream-e2e"));
+            return;
+        }
+        if (args.SequenceEqual(["--sharprail-exclude"]))
+        {
+            SharprailExcludeChecks.Host(root).GetAwaiter().GetResult();
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            SharprailExcludeChecks.Ui(root);
             return;
         }
         if (args.SequenceEqual(["--workspace-clone"]))
@@ -890,6 +903,7 @@ internal static class Program
         Gate.Case("air-context-migration", () => AirContextChecks.Migration(root).GetAwaiter().GetResult());
         Gate.Case("global-jvm-provider", () => GlobalJvmProviderChecks.Run(root).GetAwaiter().GetResult());
 
+        Gate.Case("project-language-file", () => ProjectLanguageFileChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("project-language-autostart", () => ProjectLanguageAutostartChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("language-services", () => LanguageChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("hosts", () => CheckHosts(root).GetAwaiter().GetResult());
@@ -910,6 +924,7 @@ internal static class Program
         Gate.Case("process", () => ProcessChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("workspace-clone", () => WorkspaceCloneChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("git-host", () => GitHostChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("sharprail-exclude", () => SharprailExcludeChecks.Host(root).GetAwaiter().GetResult());
         Gate.Case("registry", () => WorkspaceRegistryChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("watcher-hygiene", () => WatcherHygieneChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("watchers", () => WatchChecks.Run(root).GetAwaiter().GetResult());

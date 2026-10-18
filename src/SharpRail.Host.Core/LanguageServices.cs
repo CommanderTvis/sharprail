@@ -29,6 +29,7 @@ public sealed partial class HostStateStore
     /// <summary>Ends this host's language processes on shutdown; listeners do not own them.</summary>
     public async ValueTask StopLanguagesAsync()
     {
+        StopLanguageFileWatchers();
         if (languages is { } service) await service.DisposeAsync();
     }
 }
@@ -43,6 +44,8 @@ public sealed partial class ProjectServices
         => state is null ? ValueTask.FromResult(new LanguageResult("unavailable", "This host has no language service storage."))
             : request.Operation is "javaKotlinProvider" or "setJavaKotlinProvider"
                 ? state.JavaKotlinProviderAsync(request, cancellationToken)
+            : request.Operation is "projectLanguageFile" or "saveProjectLanguageFile"
+                ? state.ProjectLanguageFileAsync(request, cancellationToken)
             : request.Operation is "projectAutostart" or "setProjectAutostart" or "prepareAgent"
                 ? state.ProjectLanguageAutostartAsync(request, cancellationToken)
                 : state.Languages.ExecuteAsync(request, cancellationToken);

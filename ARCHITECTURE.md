@@ -93,7 +93,8 @@ startup. Formats grow compatibly (new optional keys). An incompatible change is 
 newer SharpRail reads the old file once, migrates its content into a new file with a version suffix
 (`language.toml` becomes `language_v2.toml`) and leaves the old file untouched, so a teammate on an
 older SharpRail keeps working from the file it understands. Migration happens only on an explicit
-write, never merely by opening a project, and the newer reader prefers the highest version present. The directory carries no `.gitignore` of its own: a project that does not want to commit it
+write, never merely by opening a project, and the newer reader prefers the highest version present. SharpRail creates nothing else in it: agent scratch space (PR drafts, screenshots) lives under the host's state directory
+(`<state>/scratch/<project>/<workspace>`). The directory carries no `.gitignore` of its own: a project that does not want to commit it
 excludes it locally through `.git/info/exclude`, which SharpRail offers to do.
 
 ## Shell lifetime

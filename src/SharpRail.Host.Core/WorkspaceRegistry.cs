@@ -7,8 +7,6 @@ namespace SharpRail.Host.Core;
 /// <summary>The workspace registry: which worktrees of a project are workspaces, and who owns them.</summary>
 public sealed partial class ProjectServices
 {
-    /// <summary>Per-workspace scratch space that stays out of Git through its own ignore file.</summary>
-    public const string ScratchDirectory = ".sharprail/context";
     private const int NameLimit = 60;
     private const string Detached = "detached HEAD";
 
@@ -107,7 +105,6 @@ public sealed partial class ProjectServices
         await GitRepository.RunAsync(project, cancellationToken, "rev-parse", "--verify", "--end-of-options", start + "^{commit}");
         // Without --no-track a remote base would become the branch's upstream, aiming its pushes at the base.
         await GitRepository.RunAsync(project, cancellationToken, "worktree", "add", "--no-track", "-b", branch, "--", path, start);
-        EnsureScratchDirectory(path);
         var workspace = new WorkspaceRecord(NewId(), project, WorkspaceKinds.Managed, path, branch, chosen) { InitialTerminalPending = true };
         if (label is not null) await registry.ChangeAsync([HostStateChange.Label(path, label)], cancellationToken);
         // HEAD is wherever the project stood, not a target a later reader could resolve to the same commit.
@@ -115,7 +112,7 @@ public sealed partial class ProjectServices
         registry.ChangeWorkspaces(current => current.Where(known => known.Path != path).Append(workspace));
         registry.StartWorkspaceLanguages(path);
         // Off the create's critical path: the workspace is usable now, and the clone only ever adds paths that are still absent.
-        if (path != project) _ = Task.Run(() => WorkspaceClone.CloneBuildStateAsync(project, path, CancellationToken.None));
+        if (path != project) _ = Task.Run(() => WorkspaceClone.CloneConfiguredAsync(project, path, CancellationToken.None, report: message => System.Diagnostics.Trace.TraceWarning(message)));
         return workspace;
     }
 
@@ -257,27 +254,6 @@ public sealed partial class ProjectServices
         if (workspace is null || workspace.Branch == branch) return;
         var baseBranch = workspace.Kind == WorkspaceKinds.Default ? await DefaultBaseAsync(path, cancellationToken) : workspace.BaseBranch;
         registry.ChangeWorkspaces(current => current.Select(known => known.Path == path ? known with { Branch = branch, BaseBranch = baseBranch } : known));
-    }
-
-    /// <summary>Seeds the scratch directory; an existing ignore file is the user's and is left alone.</summary>
-    public static void EnsureScratchDirectory(string workspaceRoot)
-    {
-        if (!Directory.Exists(workspaceRoot)) throw new DirectoryNotFoundException($"Workspace directory is missing: {workspaceRoot}");
-        var directory = workspaceRoot;
-        foreach (var part in ScratchDirectory.Split('/'))
-        {
-            directory = Path.Combine(directory, part);
-            var entry = new DirectoryInfo(directory);
-            // Never followed: a checkout must not redirect the seed outside the workspace.
-            if (entry.LinkTarget is not null || File.Exists(directory)) throw new IOException($"Refusing to seed the scratch directory: not a real directory: {directory}");
-            if (!entry.Exists) Directory.CreateDirectory(directory);
-        }
-        try
-        {
-            using var ignore = new FileStream(Path.Combine(directory, ".gitignore"), FileMode.CreateNew, FileAccess.Write);
-            ignore.Write("*\n"u8);
-        }
-        catch (IOException) when (new FileInfo(Path.Combine(directory, ".gitignore")) is { Exists: true } or { LinkTarget: not null }) { }
     }
 
     private static string NewId() => Guid.NewGuid().ToString("N");

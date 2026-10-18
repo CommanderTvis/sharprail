@@ -272,8 +272,20 @@ public partial interface IProjectRpc
     ValueTask<EditorsReply> ListEditorsAsync(ProjectRequest request, CallContext context = default);
     ValueTask<SaveFileReply> OpenInEditorAsync(OpenInEditorRequest request, CallContext context = default);
     ValueTask<DiffStatsReply> GetDiffStatsAsync(DiffStatsRequest request, CallContext context = default);
+    ValueTask<SharprailDirectoryReply> GetSharprailDirectoryAsync(ProjectRequest request, CallContext context = default);
+    ValueTask<SharprailDirectoryReply> ExcludeSharprailDirectoryAsync(ProjectRequest request, CallContext context = default);
     ValueTask<WorkspaceCatalogReply> ListWorkspacesAsync(WorkspaceCatalogRequest request, CallContext context = default);
     ValueTask<WorkspaceActionReply> ApplyWorkspaceActionAsync(WorkspaceActionRequest request, CallContext context = default);
+}
+
+[ProtoContract]
+public sealed class SharprailDirectoryReply
+{
+    [ProtoMember(1)] public bool Exists { get; set; }
+    [ProtoMember(2)] public bool Tracked { get; set; }
+    [ProtoMember(3)] public bool Ignored { get; set; }
+    [ProtoMember(4)] public bool Written { get; set; }
+    [ProtoMember(5)] public string Detail { get; set; } = "";
 }
 
 [ProtoContract]

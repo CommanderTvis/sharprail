@@ -268,12 +268,12 @@ internal static class WorkspaceRegistryChecks
         Require(named is { Kind: WorkspaceKinds.Managed, Branch: "fix-login-flow", BaseBranch: "main", InitialTerminalPending: true } &&
             named.Path == Path.Combine(worktrees, "fix-login-flow") && (await state.GetStateAsync()).WorkspaceLabels[named.Path] == "Fix Login Flow!",
             "A named workspace keeps its name as the label and cuts a kebab branch.");
-        var scratch = Path.Combine(named.Path, ".sharprail", "context");
-        Require(File.ReadAllText(Path.Combine(scratch, ".gitignore")) == "*\n" && Git(named.Path, "status", "--porcelain").Length == 0,
-            "A created workspace has a scratch directory with no Git footprint.");
-        File.WriteAllText(Path.Combine(scratch, ".gitignore"), "kept\n");
-        ProjectServices.EnsureScratchDirectory(named.Path);
-        Require(File.ReadAllText(Path.Combine(scratch, ".gitignore")) == "kept\n", "Seeding never overwrites an existing ignore file.");
+        Require(!Directory.Exists(Path.Combine(named.Path, ".sharprail")) && Git(named.Path, "status", "--porcelain").Length == 0,
+            "A created workspace has no .sharprail directory, no inner .gitignore and no Git footprint.");
+        var scratch = WorktreePaths.WorkspaceScratchDirectory(repo, named.Path, Path.Combine(root, "state-probe"));
+        Require(scratch.StartsWith(Path.GetFullPath(Path.Combine(root, "state-probe")) + Path.DirectorySeparatorChar, StringComparison.Ordinal) && !scratch.StartsWith(named.Path, StringComparison.Ordinal) &&
+            Path.GetFileName(scratch) == "fix-login-flow" && scratch.Contains(Path.DirectorySeparatorChar + "scratch" + Path.DirectorySeparatorChar),
+            "A workspace's scratch directory resolves under the state directory, outside the project.");
         Git(repo, "branch", "fix-login-flow-2");
         Require((await host.ApplyWorkspaceActionAsync(WorkspaceAction.Create(repo, "Fix login flow")))!.Branch == "fix-login-flow-3",
             "A taken branch or directory name moves on to the next free suffix.");

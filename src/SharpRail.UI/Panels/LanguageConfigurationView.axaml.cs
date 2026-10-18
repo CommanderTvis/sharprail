@@ -62,6 +62,7 @@ internal sealed partial class LanguageConfigurationView : UserControl
         {
             await LoadFieldsAsync();
             await RefreshProjectAutostartAsync();
+            await RefreshProjectFileAsync();
         };
         foreach (var name in new[] { "InitializationOptions", "ServerSettings" })
             Find<TextBox>(name).TextChanged += (_, _) => { if (!loading) RefreshFields(); };
@@ -78,6 +79,30 @@ internal sealed partial class LanguageConfigurationView : UserControl
         }
         catch (OperationCanceledException) when (current.IsCancellationRequested) { }
         catch (Exception error) { if (lifetime == current) Find<TextBlock>("ConfigurationMessage").Text = error.Message; }
+    }
+
+    /// <summary>Shows where the values come from: the project file, a local override, or neither.</summary>
+    internal async Task RefreshProjectFileAsync()
+    {
+        if (lifetime is not { } current) return;
+        try
+        {
+            var result = await Task.Run(async () => await host.LanguageAsync(new(workspace, Operation: "projectLanguageFile", Server: server.Id), current.Token), current.Token);
+            if (lifetime != current || result.State != "ready") return;
+            var status = JsonSerializer.Deserialize<JsonElement>(result.Configuration);
+            var origin = status.GetProperty("origin").GetString();
+            var diagnostics = status.GetProperty("diagnostics").EnumerateArray().Select(item => item.GetString()).ToArray();
+            var share = Find<CheckBox>("ShareWithProject");
+            if (!dirty) share.IsChecked = origin == "file";
+            Find<TextBlock>("ProjectFileNote").Text = (origin switch
+            {
+                "file" => "Values come from " + status.GetProperty("path").GetString() + ".",
+                "local" => "This workspace overrides the project file with local values.",
+                _ => "No project file entry for this server."
+            }) + (diagnostics.Length > 0 ? " " + string.Join(" ", diagnostics) : "");
+        }
+        catch (OperationCanceledException) when (current.IsCancellationRequested) { }
+        catch (Exception) { /* The note is informational. */ }
     }
 
     private async Task SaveProjectAutostartAsync()
@@ -129,6 +154,8 @@ internal sealed partial class LanguageConfigurationView : UserControl
         catch (OperationCanceledException) when (current.IsCancellationRequested) { }
         catch (Exception error) { if (lifetime == current) Find<TextBlock>("ConfigurationMessage").Text = error.Message; }
     }
+
+    internal async Task ReloadAsync() { await RefreshSavedAsync(false); await RefreshProjectFileAsync(); }
 
     internal void UpdateSavedConfiguration(string configuration) => Update(server with { Configuration = configuration });
 
@@ -230,14 +257,24 @@ internal sealed partial class LanguageConfigurationView : UserControl
             };
             var token = current.Token;
             var reviewBeforeRestart = restart && server.Id == "intellij" && !acceptanceReviewed;
-            var request = new LanguageRequest(workspace, Operation: restart && !reviewBeforeRestart ? "restart" : "configure", Server: server.Id, Configuration: JsonSerializer.Serialize(options, Json));
-            var result = await Task.Run(async () => await host.LanguageAsync(request, token), token);
+            var share = Find<CheckBox>("ShareWithProject").IsChecked == true;
+            var serialized = JsonSerializer.Serialize(options, Json);
+            if (share)
+            {
+                var shared = await Task.Run(async () => await host.LanguageAsync(new(workspace, Operation: "saveProjectLanguageFile", Server: server.Id, Configuration: serialized), token), token);
+                if (lifetime != current) return;
+                if (shared.State != "ready") { Find<TextBlock>("ConfigurationMessage").Text = shared.Detail; return; }
+            }
+            var request = new LanguageRequest(workspace, Operation: restart && !reviewBeforeRestart ? "restart" : "configure", Server: server.Id,
+                Configuration: share ? null : serialized);
+            var result = await Task.Run(async () => share && request.Operation == "configure" ? new LanguageResult("ready") : await host.LanguageAsync(request, token), token);
             if (lifetime != current) return;
             if (result.State is "error" or "disabled" or "unavailable" or "requiresAcceptance" or "expired") { Find<TextBlock>("ConfigurationMessage").Text = result.Detail; return; }
             var saved = await Task.Run(async () => await host.LanguageAsync(new(workspace, Operation: "configuration", Server: server.Id), token), token);
             if (lifetime != current) return;
             server = server with { Configuration = saved.Configuration, ActiveConfiguration = saved.ActiveConfiguration };
             Load();
+            await RefreshProjectFileAsync();
             if (restart && !reviewBeforeRestart) Find<TextBlock>("ConfigurationMessage").Text = result.State + ": " + result.Detail;
             if (reviewBeforeRestart && SettingsWindow is { } owner)
             {

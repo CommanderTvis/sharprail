@@ -100,6 +100,9 @@ public sealed record HostProject(string Id, string Name, string Path)
 {
     /// <summary>The host-owned directory for this project's new worktrees, populated by host contexts.</summary>
     public string WorktreesDirectory { get; init; } = "";
+
+    /// <summary>The host-owned scratch directory for this project's workspaces, one subdirectory per workspace named like its root directory; populated by host contexts.</summary>
+    public string ScratchDirectory { get; init; } = "";
 }
 
 /// <summary>A workspace (a Git worktree of a project, or the project folder itself), as a plugin sees it.</summary>

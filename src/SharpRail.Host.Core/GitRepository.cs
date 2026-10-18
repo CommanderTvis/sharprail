@@ -148,6 +148,32 @@ internal static class GitRepository
         internal int ExitCode { get; } = exitCode;
     }
 
+    /// <summary>The repository's shared Git directory, which every linked worktree resolves to; null outside a repository.</summary>
+    internal static async Task<string?> CommonDirectoryAsync(string root, CancellationToken ct)
+    {
+        try
+        {
+            var path = (await RunAsync(root, ct, "rev-parse", "--git-common-dir")).TrimEnd('\r', '\n');
+            return path.Length == 0 ? null : Path.GetFullPath(path, root);
+        }
+        catch (GitException) { return null; }
+    }
+
+    /// <summary>Whether Git tracks anything at or under <paramref name="path"/>, a root-relative file or directory.</summary>
+    internal static async Task<bool> IsTrackedAsync(string root, string path, CancellationToken ct) =>
+        (await RunAsync(root, ct, "ls-files", "-z", "--", path)).Length > 0;
+
+    /// <summary>Whether the ignore rules (.gitignore files, info/exclude and the user's excludes file) cover <paramref name="path"/>.</summary>
+    internal static async Task<bool> IsIgnoredAsync(string root, string path, CancellationToken ct)
+    {
+        // check-ignore refuses --literal-pathspecs, which every other call sets, so it runs without it.
+        ChildProcess.Result result;
+        try { result = await ChildProcess.RunAsync("git", root, ["-c", "core.quotepath=false", "check-ignore", "-q", "--", path], Budget, ct, Prompts); }
+        catch (ChildProcess.ExpiredException error) { throw new GitException(-1, TimeoutMessage(error, ["check-ignore"])); }
+        // Exit 1 is "not ignored"; anything else is a real failure.
+        return result.ExitCode switch { 0 => true, 1 => false, _ => throw new GitException(result.ExitCode, Bounded(result.Error)) };
+    }
+
     internal static async Task<string> ComparisonBaseAsync(string root, string comparison, CancellationToken ct)
     {
         var target = (await RunAsync(root, ct, "rev-parse", "--verify", "--end-of-options", GitRefs.Require(comparison) + "^{commit}")).Trim();

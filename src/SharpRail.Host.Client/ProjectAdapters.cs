@@ -36,6 +36,8 @@ public sealed partial class LocalProjectAdapter(IProjectServices host) : IProjec
     public ValueTask ApplyFileActionAsync(FileAction action, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.ApplyFileActionAsync(action, cancellationToken));
     public ValueTask<BranchCatalog> ListBranchesAsync(bool fetchDefault, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.ListBranchesAsync(fetchDefault, cancellationToken));
     public ValueTask<DiffStats?> GetDiffStatsAsync(string workspacePath, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.GetDiffStatsAsync(workspacePath, cancellationToken));
+    public ValueTask<SharprailDirectoryStatus> GetSharprailDirectoryAsync(CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.GetSharprailDirectoryAsync(cancellationToken));
+    public ValueTask<SharprailDirectoryStatus> ExcludeSharprailDirectoryAsync(CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.ExcludeSharprailDirectoryAsync(cancellationToken));
     public ValueTask<IReadOnlyList<EditorInfo>> ListEditorsAsync(CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.ListEditorsAsync(cancellationToken));
     public ValueTask OpenInEditorAsync(string editorId, string worktreePath, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.OpenInEditorAsync(editorId, worktreePath, cancellationToken));
     public ValueTask<ContentBytes> ReadContentBytesAsync(string path, string? revision, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.ReadContentBytesAsync(path, revision, cancellationToken));
@@ -222,6 +224,18 @@ public sealed partial class RemoteProjectAdapter : IProjectServices, IDisposable
         // A host that predates the totals has no badge to offer.
         catch (RpcException error) when (error.StatusCode == StatusCode.Unimplemented) { return null; }
     }
+
+    public async ValueTask<SharprailDirectoryStatus> GetSharprailDirectoryAsync(CancellationToken cancellationToken = default)
+    {
+        try { return Map(await service.GetSharprailDirectoryAsync(new(), Context(cancellationToken))); }
+        // A host that predates the operation has no directory to offer.
+        catch (RpcException error) when (error.StatusCode == StatusCode.Unimplemented) { return new(false, false, false); }
+    }
+
+    public async ValueTask<SharprailDirectoryStatus> ExcludeSharprailDirectoryAsync(CancellationToken cancellationToken = default)
+        => Map(await service.ExcludeSharprailDirectoryAsync(new(), Context(cancellationToken)));
+
+    private static SharprailDirectoryStatus Map(SharprailDirectoryReply reply) => new(reply.Exists, reply.Tracked, reply.Ignored, reply.Written, reply.Detail);
 
     public async ValueTask<OpenReview?> GetOpenReviewAsync(bool fresh, CancellationToken cancellationToken = default)
     {

@@ -80,22 +80,31 @@ public sealed class ToastStack : StackPanel
         text.Children.Add(message);
         var content = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto,24"), Margin = new Thickness(12) };
         Ui.Place(content, text);
-        if (toast.Action is { } action)
+        Button ActionButton(string name, ToastAction action, Thickness margin)
         {
             var invoke = new Button
             {
-                Name = "ToastAction",
+                Name = name,
                 Content = Ui.Text(action.Label, Ui.Accent),
                 Padding = new Thickness(8, 2),
-                Margin = new Thickness(8, -2, 0, 0),
+                Margin = margin,
                 Background = Brushes.Transparent,
                 BorderThickness = new Thickness(0),
                 CornerRadius = new CornerRadius(4),
                 VerticalAlignment = VerticalAlignment.Top
             };
             invoke.Click += (_, _) => { queue?.Dismiss(toast.Id); action.Invoke(); };
-            Ui.Place(content, invoke, 0, 1);
+            return invoke;
         }
+        if (toast.Action is { } action && toast.Secondary is { } secondary)
+        {
+            // Two long labels do not fit beside the message, so they share a row beneath it.
+            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Margin = new Thickness(-8, 0, 0, 0) };
+            row.Children.Add(ActionButton("ToastAction", action, new Thickness(0)));
+            row.Children.Add(ActionButton("ToastSecondaryAction", secondary, new Thickness(0)));
+            text.Children.Add(row);
+        }
+        else if (toast.Action is { } single) Ui.Place(content, ActionButton("ToastAction", single, new Thickness(8, -2, 0, 0)), 0, 1);
         var dismiss = new Button
         {
             Name = "ToastDismiss",

@@ -373,6 +373,11 @@ public sealed partial class WorkbenchWindow
         var canStage = selectedCommit is null && (comparison.Length == 0 || changeScope is "Uncommitted" or "Staged");
         button.ContextMenu.Items.Add(Ui.Menu("Stage file", () => _ = GitActionAsync(new("stage", change.Path)), canStage && change.WorktreeStatus != " "));
         button.ContextMenu.Items.Add(Ui.Menu("Unstage file", () => _ = GitActionAsync(new("unstage", change.Path)), canStage && change.IndexStatus is not (" " or "?")));
+        if (CanExcludeSharprail(change))
+        {
+            button.ContextMenu.Items.Add(new Separator());
+            button.ContextMenu.Items.Add(Ui.Menu("Exclude locally (.git/info/exclude)", () => _ = ExcludeSharprailAsync(projectRequest)));
+        }
         var wrapper = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") };
         Ui.Place(wrapper, button); Ui.Place(wrapper, actions, 0, 1);
         var frame = new Border { Child = wrapper, Tag = new ChangeFrameKey(change, label, canStage, FileIconAnswer(change.Path)) };

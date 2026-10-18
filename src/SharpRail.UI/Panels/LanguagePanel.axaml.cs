@@ -90,10 +90,11 @@ internal sealed partial class LanguagePanel : UserControl
         {
             if (!Dispatcher.UIThread.CheckAccess()) { Dispatcher.UIThread.Post(() => ConfigurationChanged(previous, next)); return; }
             var saved = next.WorkspaceLanguages.GetValueOrDefault(workspace) ?? "{}";
-            if (saved == (previous.WorkspaceLanguages.GetValueOrDefault(workspace) ?? "{}")) return;
-            var values = System.Text.Json.Nodes.JsonNode.Parse(saved);
-            foreach (var (id, view) in configurations)
-                view.UpdateSavedConfiguration(values?[id]?.ToJsonString() ?? "{}");
+            var project = next.Workspaces.FirstOrDefault(item => item.Path == workspace)?.ProjectRoot ?? workspace;
+            var fileChanged = next.ProjectLanguageFiles.GetValueOrDefault(project) != previous.ProjectLanguageFiles.GetValueOrDefault(project);
+            if (saved == (previous.WorkspaceLanguages.GetValueOrDefault(workspace) ?? "{}") && !fileChanged) return;
+            // Effective values merge host state with the project file, so ask the host rather than reading the local copy.
+            foreach (var view in configurations.Values) _ = view.ReloadAsync();
             _ = RunAsync("servers");
         }
         AttachedToVisualTree += (_, _) => { lifetime = new(); if (state is not null) state.Changed += ConfigurationChanged; timer.Start(); _ = RunAsync("servers"); };

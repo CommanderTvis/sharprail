@@ -106,6 +106,10 @@ interchangeable adapter choices. Wire DTOs live in `SharpRail.Host.Protocol`, im
 
 - `IProjectServices.GetDiffStatsAsync` has a default body answering null, so a test double or an older
   implementation simply offers no badge.
+- `IProjectServices.GetSharprailDirectoryAsync`/`ExcludeSharprailDirectoryAsync` (protocol 9,
+  `HostProtocol.SharprailExclude`) answer a `SharprailDirectoryStatus`; the first defaults to an absent
+  directory. `HostState.SharprailExcludeDeclined` lists the project roots whose user chose to keep an
+  untracked `.sharprail` in the repository (`HostStateChange.DeclineSharprailExclude`), so no client asks again.
 
 ## API validation
 

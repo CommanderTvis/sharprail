@@ -26,6 +26,8 @@ namespace SharpRail.Checks;
 
 internal static class ClaudeCodeChecks
 {
+    private static readonly string ScratchProbe = Path.Combine(Path.GetTempPath(), "sharprail-scratch-probe");
+
     private static void Require(bool condition, string message)
     {
         if (!condition) throw new InvalidOperationException(message);
@@ -40,6 +42,7 @@ internal static class ClaudeCodeChecks
             {
                 ["CLAUDE_CONFIG_DIR"] = Path.Combine(directory, "claude-home"),
                 ["SHARPRAIL_STATE_DIR"] = Path.Combine(directory, "state"),
+                [ClaudeCodeContract.ScratchVariable] = ScratchProbe,
                 [ClaudeCodeContract.PluginDirectoryVariable] = Path.Combine(AppContext.BaseDirectory, "plugins", ClaudeCodeContract.Id, "assets", "marketplace", "claude-plugin")
             })
             {
@@ -269,12 +272,12 @@ internal static class ClaudeCodeChecks
             "With the agent-view switch off the line is the plain command: " + string.Join(" ", haiku));
         Settings(new { enabled = true, command = fake, disableAgentView = false, appendSystemPrompt = false });
         var sonnet = Launch("model-sonnet");
-        Require(sonnet.SequenceEqual(["agent-view=", "--plugin-dir", Path.Combine(AppContext.BaseDirectory, "plugins", ClaudeCodeContract.Id, "assets", "marketplace", "claude-plugin"), "--model", "sonnet"]), "Disabling the prompt appendix retains the directly loaded plugin: " + string.Join(" ", sonnet));
+        Require(sonnet.SequenceEqual(["agent-view=", "--plugin-dir", Path.Combine(AppContext.BaseDirectory, "plugins", ClaudeCodeContract.Id, "assets", "marketplace", "claude-plugin"), "--add-dir", ScratchProbe, "--model", "sonnet"]), "Disabling the prompt appendix retains the directly loaded plugin: " + string.Join(" ", sonnet));
         Require(Launch("continue")[^1] == "--continue", "Continue passes the per-run flag.");
         Settings(new { enabled = true, command = fake, disableAgentView = false, appendSystemPrompt = false, model = "opus", effort = "high" });
-        Require(Launch("continue").SequenceEqual(["agent-view=", "--plugin-dir", Path.Combine(AppContext.BaseDirectory, "plugins", ClaudeCodeContract.Id, "assets", "marketplace", "claude-plugin"), "--model", "opus", "--effort", "high", "--continue"]),
+        Require(Launch("continue").SequenceEqual(["agent-view=", "--plugin-dir", Path.Combine(AppContext.BaseDirectory, "plugins", ClaudeCodeContract.Id, "assets", "marketplace", "claude-plugin"), "--add-dir", ScratchProbe, "--model", "opus", "--effort", "high", "--continue"]),
             "The SharpRail defaults reach the shell for a new launch.");
-        Require(Launch("model-haiku").SequenceEqual(["agent-view=", "--plugin-dir", Path.Combine(AppContext.BaseDirectory, "plugins", ClaudeCodeContract.Id, "assets", "marketplace", "claude-plugin"), "--effort", "high", "--model", "haiku"]),
+        Require(Launch("model-haiku").SequenceEqual(["agent-view=", "--plugin-dir", Path.Combine(AppContext.BaseDirectory, "plugins", ClaudeCodeContract.Id, "assets", "marketplace", "claude-plugin"), "--add-dir", ScratchProbe, "--effort", "high", "--model", "haiku"]),
             "A per-launch model replaces the saved model without duplicating flags.");
         // Any flags at all: typed into a dialog, they follow the prompt file like a preset's.
         var custom = Launch("custom", () =>

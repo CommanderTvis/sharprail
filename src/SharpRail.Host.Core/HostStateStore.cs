@@ -32,6 +32,7 @@ public sealed partial class HostStateStore : IHostStateService
         // Air Context's enabled workspaces, as the file kept them before it became a plugin; read once to migrate, never written.
         [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
         public List<string>? ContextWorkspaces { get; set; }
+        public List<string> SharprailExcludeDeclined { get; set; } = [];
         public Dictionary<string, string> WorkspaceLanguages { get; set; } = [];
         public Dictionary<string, string> ProjectLanguageAutostart { get; set; } = [];
         public Dictionary<string, string> WorkspaceLabels { get; set; } = [];
@@ -133,6 +134,7 @@ public sealed partial class HostStateStore : IHostStateService
                     ProjectRecords = stored.ProjectRecords ?? [],
                     WorkspaceLanguages = stored.WorkspaceLanguages ?? [],
                     ProjectLanguageAutostart = stored.ProjectLanguageAutostart ?? [],
+                    SharprailExcludeDeclined = stored.SharprailExcludeDeclined ?? [],
                     WorkspaceLabels = stored.WorkspaceLabels ?? [],
                     WorkspaceBases = stored.WorkspaceBases ?? [],
                     WorkspaceDiffBases = stored.WorkspaceDiffBases ?? [],
@@ -383,6 +385,7 @@ public sealed partial class HostStateStore : IHostStateService
                 ProjectRecords = snapshot.ProjectRecords.ToList(),
                 WorkspaceLanguages = snapshot.WorkspaceLanguages.ToDictionary(),
                 ProjectLanguageAutostart = snapshot.ProjectLanguageAutostart.ToDictionary(),
+                SharprailExcludeDeclined = snapshot.SharprailExcludeDeclined.ToList(),
                 WorkspaceLabels = snapshot.WorkspaceLabels.ToDictionary(),
                 WorkspaceBases = snapshot.WorkspaceBases.ToDictionary(),
                 WorkspaceDiffBases = snapshot.WorkspaceDiffBases.ToDictionary(),
@@ -414,6 +417,7 @@ public sealed partial class HostStateStore : IHostStateService
         var normalized = value with
         {
             Revision = 0,
+            SharprailExcludeDeclined = value.SharprailExcludeDeclined.Where(item => item is not null && ValidPath(item)).Distinct().Order(StringComparer.Ordinal).ToArray(),
             Settings = value.Settings with
             {
                 ThemeMode = value.Settings.ThemeMode is "system" ? "system" : "fixed",
@@ -585,6 +589,9 @@ public sealed partial class HostStateStore : IHostStateService
                 else if (targets.GetValueOrDefault(key) == GitRefs.Require(value)) return current;
                 else targets[key] = value;
                 return current with { WorkspaceDiffBases = targets };
+            case "sharprail-exclude-declined":
+                if (!ValidPath(key)) throw new ArgumentException("Invalid project path.");
+                return current.SharprailExcludeDeclined.Contains(key) ? current : current with { SharprailExcludeDeclined = [.. current.SharprailExcludeDeclined, key] };
             case "project-open":
                 if (!ValidPath(key)) throw new ArgumentException("Invalid project path.");
                 if (current.Projects.Contains(key) && !current.RecentProjects.Contains(key)) return current;

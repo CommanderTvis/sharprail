@@ -38,6 +38,8 @@ public static partial class CodexLaunch
     public const string PromptJsonVariable = "SHARPRAIL_CODEX_PROMPT_JSON";
     /// <summary>The folder SharpRail lists a project's workspaces from, set in every terminal of a project.</summary>
     public const string WorktreesVariable = "SHARPRAIL_WORKTREES_DIR";
+    /// <summary>The workspace's host-owned scratch directory, outside the project, set in every terminal and granted to the session with <c>--add-dir</c>.</summary>
+    public const string ScratchVariable = "SHARPRAIL_SCRATCH_DIR";
     /// <summary>A command-scoped marker distinguishing UI launches from commands typed into a terminal.</summary>
     public const string UiLaunchPrefix = "SHARPRAIL_UI_LAUNCH=codex";
     /// <summary>Tags the inherited status URL, so the first hook report says the session got SharpRail's instructions.</summary>
@@ -90,6 +92,7 @@ public static partial class CodexLaunch
                 : $"\"developer_instructions=${PromptJsonVariable}\""));
         }
         else if (options.SystemPrompt is { Length: > 0 } system) parts.Add(ConfigArg("developer_instructions", system));
+        if (append) parts.Add($"--add-dir \"${ScratchVariable}\"");
         foreach (var image in options.Images) parts.AddRange(["--image", ShellQuote(image)]);
         if (options.InitialPrompt is { Length: > 0 } prompt && !options.Resume)
         {

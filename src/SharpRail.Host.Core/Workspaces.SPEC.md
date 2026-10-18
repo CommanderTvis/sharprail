@@ -128,17 +128,33 @@ forgetting removes its row while leaving the checkout in place. The Default work
   numeric suffix; without a name the workspace takes the next `workspace-N`. The location is
   `<main worktree>-worktrees/<branch>`. Removal keeps the branch, so both must be free. The record's base
   is creation provenance — the picked ref, or the project's current branch when none was picked.
-- A created worktree is seeded with a scratch directory, `.sharprail/context`, holding a self-ignoring
-  `.gitignore` so it has no Git footprint. Seeding refuses a missing workspace root and symlinked path
-  components, and never overwrites an existing ignore file. User-owned workspaces are not seeded.
-- After a managed create the Default workspace's untracked build state is cloned in the background
-  (`WorkspaceClone`): directories named `.tools`, `obj` or `bin` that Git lists as entirely ignored
-  (one `ls-files --others --ignored --directory` call, so `node_modules` and the like are never walked)
-  are copied with macOS `clonefile(2)` (`CLONE_NOFOLLOW`, symlinks stay links; APFS copy-on-write, one
-  syscall per tree). Nothing tracked is read, existing target paths are never replaced, and every
-  refusal (non-APFS, another volume, other platforms, Git errors) is silent: creation never waits on
-  or fails because of it. Measured: a 200 MB file clones in about 3 ms with no data copied. Savings
-  exist only at creation; clones diverge as either side rewrites files. Check mode `--workspace-clone`.
+- A created worktree gets no files: SharpRail creates nothing in a project's `.sharprail` except the committed
+  configuration it writes on an explicit save. Agent scratch space (PR bodies, screenshots) lives in the host's state
+  directory, `<state>/scratch/<project>-<hash>/<workspace directory name>` (`WorktreePaths.WorkspaceScratchDirectory`), created
+  by the agent plugins when a terminal starts, exported as `SHARPRAIL_SCRATCH_DIR` and passed to Claude Code and Codex
+  with `--add-dir`.
+- After a managed create the project's configured ignored paths are cloned in the background
+  (`WorkspaceClone`). The rules live in the project's own committed, user- and agent-editable
+  `.sharprail/workspace.toml`, read from the source (Default) checkout at creation time (TOML via
+  Tomlyn, 64 KiB cap): `version = 1` and a `[clone]` table with `include` and `exclude` string arrays.
+  Unknown keys are ignored, so the format grows only by new optional keys; an incompatible change would
+  ship as a new file (`workspace_v2.toml`) that the newer SharpRail migrates into only on an explicit
+  write, leaving the old file untouched, and readers prefer the highest version they understand. The
+  host only reads this file: it writes nothing into `.sharprail/` and never creates a `.gitignore`
+  there (the directory holds shareable configuration only; projects that keep it out of Git use
+  `.git/info/exclude`). Patterns are slash-separated, root-relative globs: `*` and `?` stay in one
+  segment, `**` spans segments, a pattern without `/` matches that name at any depth, one with `/` is
+  anchored at the root; `exclude` wins over `include`; absolute, `..` and `.git` patterns are skipped.
+  Without the file (or with a malformed, unversioned or unsupported one) nothing is cloned; a bad file
+  yields a trace warning, never a failed create. Candidates come from one
+  `ls-files --others --ignored --directory` call, so only entirely ignored, untracked directories and
+  ignored files qualify (`node_modules` is one entry, never walked, and a directory holding tracked
+  files never appears). Matches are copied with macOS `clonefile(2)` (`CLONE_NOFOLLOW`, symlinks stay
+  links; APFS copy-on-write, one syscall per tree). Existing target paths are never replaced and every
+  refusal (non-APFS, another volume, other platforms, Git errors) is silent: creation never waits on or
+  fails because of it. Savings exist only at creation; edits to the file affect later workspaces only.
+  The SharpRail repo lists `.tools`, `**/obj` and `**/bin`. Check mode `--workspace-clone`.
+
 ## Initial terminal
 
 - Every record first written by create, attach or the Default ensure carries `InitialTerminalPending`;

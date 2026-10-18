@@ -9,7 +9,10 @@ public sealed partial class PluginRuntime
 {
     internal IReadOnlyList<HostProject> Projects() =>
         Seams.State.Current.Projects.Select(path => new HostProject(path, DirectoryName(path), path)
-        { WorktreesDirectory = WorktreePaths.ProjectDirectory(path, (Seams.State as HostStateStore)?.DirectoryPath ?? Seams.StateDirectory) }).ToArray();
+        {
+            WorktreesDirectory = WorktreePaths.ProjectDirectory(path, (Seams.State as HostStateStore)?.DirectoryPath ?? Seams.StateDirectory),
+            ScratchDirectory = WorktreePaths.ScratchDirectory(path, (Seams.State as HostStateStore)?.DirectoryPath ?? Seams.StateDirectory)
+        }).ToArray();
 
     internal async ValueTask<IReadOnlyList<HostWorkspace>> WorkspacesAsync(string? projectId, CancellationToken cancellationToken)
     {

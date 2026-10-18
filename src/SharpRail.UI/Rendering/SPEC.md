@@ -43,7 +43,8 @@ since the kit has no theme of its own.
 - `MermaidRenderer` / `MermaidDialog` render fenced Mermaid through Merman's native library and show the
   full-screen viewer.
 - `ToastStack` draws a `State/ToastQueue` as stacked cards above the window's bottom-right corner: a
-  variant stripe (accent, success or danger), optional title, wrapped message, the toast's one action and a
+  variant stripe (accent, success or danger), optional title, wrapped message, the toast's one action (or its two,
+  on a row under the message) and a
   Dismiss button. Cards are kept by toast id, so a push or dismissal never restarts another toast's timer;
   an error card is announced assertively, the others politely.
 - `LineWidths` converts symbol-count line widths to logical pixels, like CSS `ch` units.

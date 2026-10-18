@@ -306,6 +306,14 @@ scroll position and expansion. A loaded snapshot stays visible while its replace
   Tab identity includes scope and commit, so changing the sidebar scope leaves existing tabs alone.
   Changing the comparison target re-points branch reviews and individual diffs. Sidebar highlighting
   follows the focused review's active section, and viewed files carry a check and dimmed path in List and Tree.
+- An untracked `.sharprail` path (host protocol 8) adds Exclude locally (.git/info/exclude) to its row menu.
+  When a Git refresh first lists `.sharprail` as untracked in a workspace, the window asks the host
+  (`GetSharprailDirectoryAsync`, off the UI thread, dropped if the workspace changed) and, if it is neither
+  tracked nor ignored and the project has not declined, raises one toast per workspace and window offering
+  Add to .git/info/exclude or Keep it in the repo. Keep records `HostState.SharprailExcludeDeclined` for the
+  project (every window and client stops asking); closing the toast records nothing. The action excludes in
+  the shared `info/exclude`, never `.gitignore`, then refreshes Git. The host watcher reports the
+  `.sharprail` directory entry itself so its appearance refreshes the panel; nothing inside it is watched.
 - Rendering of the diff itself is `Rendering/DiffView` (see Rendering/SPEC.md).
 
 ## Changes review
