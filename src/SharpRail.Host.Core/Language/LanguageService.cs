@@ -10,6 +10,7 @@ namespace SharpRail.Host.Core.Language;
 public sealed partial class LanguageService : IAsyncDisposable
 {
     private readonly object startGate = new();
+    internal Func<bool>? GlobalIntelliJProvider { get; init; }
     private readonly ConcurrentDictionary<string, Entry> entries = new();
     private readonly ConcurrentDictionary<string, LanguageLog> logs = new();
     private readonly ConcurrentDictionary<string, bool> stopped = new();
@@ -124,7 +125,7 @@ public sealed partial class LanguageService : IAsyncDisposable
                 if (saveConfiguration is null) throw new InvalidOperationException("Workspace configuration storage is unavailable.");
                 var priorOptions = WorkspaceLanguageConfiguration.Parse(configuration(workspace, selectedServer.Id), selectedServer.Id);
                 saveConfiguration(workspace, selectedServer.Id, WorkspaceLanguageConfiguration.Serialize(parsed));
-                if (selectedServer.Id == "intellij" && priorOptions.UseForJavaAndKotlin != parsed.UseForJavaAndKotlin)
+                if (GlobalIntelliJProvider is null && selectedServer.Id == "intellij" && priorOptions.UseForJavaAndKotlin != parsed.UseForJavaAndKotlin)
                     await SwitchJvmProviderAsync(workspace, parsed.UseForJavaAndKotlin, CancellationToken.None);
             }
             if (request.Operation != "restart")
@@ -187,9 +188,9 @@ public sealed partial class LanguageService : IAsyncDisposable
         if (request.Operation != "stop" && request.Operation != "close")
         {
             if (server.Id == "intellij" && !UsesIntelliJ(workspace))
-                return new("disabled", "Select IntelliJ for Java and Kotlin in this workspace’s settings before starting it.", server.Id, request.Version) { Freshness = "unavailable" };
+                return new("disabled", "Select IntelliJ for Java and Kotlin in the host settings before starting it.", server.Id, request.Version) { Freshness = "unavailable" };
             if (server.Id is "java" or "kotlin" && UsesIntelliJ(workspace))
-                return new("disabled", "IntelliJ is selected for Java and Kotlin in this workspace. Clear that choice in IntelliJ workspace settings to use existing providers.", server.Id, request.Version) { Freshness = "unavailable" };
+                return new("disabled", "IntelliJ is selected for Java and Kotlin on this host. Change the host provider choice to use existing providers.", server.Id, request.Version) { Freshness = "unavailable" };
         }
         var key = workspace + "\0" + server.Id;
         if (saveConfiguration is not null && (request.Operation == "stop" || request.Operation == "retry" && request.Configuration is null))
@@ -355,12 +356,18 @@ public sealed partial class LanguageService : IAsyncDisposable
         return new(enabled() ? "ready" : "disabled", enabled() ? "Available language servers; detected languages are listed first." : "Language services are disabled. Workspace settings remain available.") { Servers = rows };
     }
 
-    private bool UsesIntelliJ(string workspace) => WorkspaceLanguageConfiguration.Parse(configuration(workspace, "intellij"), "intellij").UseForJavaAndKotlin;
+    private bool UsesIntelliJ(string workspace) => GlobalIntelliJProvider?.Invoke() ?? WorkspaceLanguageConfiguration.Parse(configuration(workspace, "intellij"), "intellij").UseForJavaAndKotlin;
 
     private LanguageServer? Detect(string workspace, string path)
     {
         var server = LanguageServers.Detect(path);
         return server?.Id is "java" or "kotlin" && UsesIntelliJ(workspace) ? LanguageServers.Catalog.Single(item => item.Id == "intellij") : server;
+    }
+
+    internal async Task SwitchJvmProviderAsync(bool useIntelliJ, CancellationToken token)
+    {
+        var workspaces = entries.Keys.Concat(drafts.Keys).Select(key => key.Split('\0')[0]).Distinct().ToArray();
+        foreach (var workspace in workspaces) await SwitchJvmProviderAsync(workspace, useIntelliJ, token);
     }
 
     private async Task SwitchJvmProviderAsync(string workspace, bool useIntelliJ, CancellationToken token)

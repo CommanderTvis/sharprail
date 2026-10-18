@@ -863,6 +863,7 @@ internal static class Program
         Gate.Case("websocket-flow", () => WebSocketFlowChecks.Run().GetAwaiter().GetResult());
         Gate.Case("browser-transport", () => BrowserTransportChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("context-consent", () => ContextChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("global-jvm-provider", () => GlobalJvmProviderChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("language-services", () => LanguageChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("hosts", () => CheckHosts(root).GetAwaiter().GetResult());
         Gate.Case("terminal-commit-links", () => TerminalCommitLinkChecks.Run(root).GetAwaiter().GetResult());

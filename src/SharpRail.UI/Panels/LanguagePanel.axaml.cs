@@ -248,9 +248,9 @@ internal sealed partial class LanguagePanel : UserControl
             var token = current.Token;
             if (operation == "retry" && !acceptanceReviewed && (target ?? selected) is { Id: "intellij" } intellij)
             {
-                var saved = await host.LanguageAsync(new(workspace, Operation: "configuration", Server: "intellij"), token);
+                var saved = await host.LanguageAsync(new(workspace, Operation: "javaKotlinProvider"), token);
                 if (current != lifetime || token.IsCancellationRequested) return;
-                if (JsonNode.Parse(saved.Configuration)?["useForJavaAndKotlin"]?.GetValue<bool>() != true)
+                if (saved.Configuration != "intellij")
                 {
                     SetStatus("Select IntelliJ in Settings → LSP → Java / Kotlin provider, then choose Apply.");
                     return;

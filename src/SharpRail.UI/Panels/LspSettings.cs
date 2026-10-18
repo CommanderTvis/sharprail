@@ -11,7 +11,8 @@ public sealed partial class SettingsWindow
     private Control LspSettings()
     {
         var panel = Page("LspPage");
-        PageControl<ContentControl>(panel, "JvmProviderSettings").Content = new LanguageProviderView(window.Host, window.WorkspaceRoot);
+        var provider = new LanguageProviderView(window.Host, window.WorkspaceRoot);
+        PageControl<ContentControl>(panel, "JvmProviderSettings").Content = provider;
         var showContext = PageControl<CheckBox>(panel, "ShowAirContext");
         showContext.IsChecked = !state.Current.Settings.AirContextHidden;
         showContext.Click += async (_, _) =>
@@ -43,6 +44,7 @@ public sealed partial class SettingsWindow
         LanguageServerState[] catalog = [];
         void Load()
         {
+            provider.UpdateProvider(state.Current.Settings.JavaKotlinProvider);
             showContext.IsChecked = !state.Current.Settings.AirContextHidden;
             feature.IsChecked = state.Current.Settings.LspEnabled;
             if (selector.SelectedItem is not string id) return;

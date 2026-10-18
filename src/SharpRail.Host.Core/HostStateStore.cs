@@ -152,6 +152,7 @@ public sealed partial class HostStateStore : IHostStateService
             }
         };
         OpenLanguageMetadata();
+        MigrateJavaKotlinProvider();
         // Identities minted for a file that predates them are written at once, or they would change on the next launch.
         if (path is not null && LastError is null && (!File.Exists(path) || !state.ProjectRecords.SequenceEqual(initial.ProjectRecords) ||
             state.Settings != initial.Settings || state.PluginSettings.Count != initial.PluginSettings.Count || !state.Workspaces.SequenceEqual(initial.Workspaces))) Save(state);
@@ -226,6 +227,8 @@ public sealed partial class HostStateStore : IHostStateService
             }
             if (previous.Settings.LspEnabled && !next.Settings.LspEnabled && languages is { } languageService)
                 await languageService.SuspendAsync();
+            if (previous.Settings.JavaKotlinProvider != next.Settings.JavaKotlinProvider && languages is { } jvmLanguages)
+                await jvmLanguages.SwitchJvmProviderAsync(next.Settings.JavaKotlinProvider == "intellij", CancellationToken.None);
             return next;
         }
         finally { changesGate.Release(); }
@@ -506,6 +509,7 @@ public sealed partial class HostStateStore : IHostStateService
                     "file-type-icons" when bool.TryParse(value, out var icons) => settings with { FileTypeIconsEnabled = icons },
                     "air-context-hidden" when bool.TryParse(value, out var airContextHidden) => settings with { AirContextHidden = airContextHidden },
                     "lsp-enabled" when bool.TryParse(value, out var lspEnabled) => settings with { LspEnabled = lspEnabled },
+                    "java-kotlin-provider" when value is "standard" or "intellij" => settings with { JavaKotlinProvider = value },
                     "notifications" when bool.TryParse(value, out var enabled) => settings with { NotificationsEnabled = enabled },
                     _ when key.StartsWith("language-server:", StringComparison.Ordinal) => settings with { LanguageServers = SetLanguageServer(settings.LanguageServers, key[16..], value) },
                     "custom-highlighting" when ValidHighlighting(value) => settings with { CustomHighlighting = value },

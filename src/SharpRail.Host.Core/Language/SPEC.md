@@ -246,12 +246,18 @@ are fixture-verified only; no catalog-wide semantic-index completeness claim is 
 
 ## Optional IntelliJ Java/Kotlin provider
 
-`intellij` is a separate explicit workspace choice serving Java and Kotlin together. The existing
-`java` (JDT) and `kotlin` providers remain defaults. `useForJavaAndKotlin` in IntelliJ workspace
-configuration selects exclusive routing; selecting it suspends competing sessions while retaining
-drafts and their saved settings. Clearing it restores their routing. Selection, optional absolute
-host `installationPath`, absolute `projectJdk` and `buildTool` persist through ordinary host metadata
-and Default inheritance. The project JDK is distinct from the distribution's bundled JBR.
+The host-global Java/Kotlin provider choice selects either `intellij` serving both languages or
+standard `java` (JDT) and `kotlin` providers for every project and client. Switching suspends competing
+sessions across all active workspaces while retaining drafts and saved provider settings; it does
+not start replacement servers. Explicit global selection overrides legacy workspace flags. On first
+migration, unanimous explicit legacy choices are preserved; missing or conflicting choices select
+standard providers to avoid broadening an optional evaluation provider's execution implicitly.
+Legacy `useForJavaAndKotlin` values remain readable but cannot override the host's choice.
+
+Optional absolute host `installationPath`, absolute `projectJdk` and `buildTool` remain workspace
+configuration, persisted through ordinary host metadata and Default inheritance. The project JDK
+is distinct from the distribution's bundled JBR. Global selection never bypasses installation-specific
+terms acknowledgement, including when another workspace first uses the selected provider.
 
 The provider follows JetBrains' official Neovim client approach, explicitly approved on 2026-10-16:
 user EULA acknowledgement, an unmodified native server over stdio, and vendor-enforced build
@@ -490,3 +496,5 @@ diagnostics for 32 edited C# files, including a final current three-file refresh
 with no errors or warnings. Semantic modifier typography was checked using the
 protocol fixture and native Scintilla italic set/reset behavior; real IntelliJ
 typography and authenticated Context indexing were not exercised.
+
+2026-10-18 global-provider verification: Release and focused local/remote migration, global routing, two-project process teardown, consent, persistence and Settings broadcast checks pass. Existing host language and language Settings/editor setup checks pass. The broader language UI mode stops earlier in the unchanged empty-navigation assertion about unavailable analysis; real provider compatibility and browser/Android runtime were not rechecked.

@@ -23,6 +23,8 @@ public sealed record HostSettings
     public bool NotificationsEnabled { get; init; } = true;
     /// <summary>Whether editor and agent language services are enabled on this host.</summary>
     public bool LspEnabled { get; init; } = true;
+    /// <summary>Host-wide Java/Kotlin provider: standard or intellij; empty migrates legacy workspace choices.</summary>
+    public string JavaKotlinProvider { get; init; } = "";
     /// <summary>Whether clients hide Air Context controls without changing workspace indexing.</summary>
     public bool AirContextHidden { get; init; }
     /// <summary>Host-wide launcher overrides keyed by language-server id, stored as JSON.</summary>

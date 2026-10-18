@@ -88,6 +88,7 @@ internal static class UiChecks
         Gate.Case("windows-ui", () => WindowsChecks.RunUi(root));
         Gate.Case("gitless-panes", () => GitlessPaneChecks.Run(root));
         Gate.Case("settings-touch", () => SettingsTouchChecks.Run(root));
+        Gate.Case("global-jvm-provider-ui", () => GlobalJvmProviderChecks.RunUi(root));
         Gate.Case("settings-refresh", () => SettingsRefreshChecks.Run(root));
         Gate.Case("project-panes", () => ProjectPaneChecks.RunUi(root));
         Gate.Case("ProjectPickerE2E", () => E2E.ProjectPickerE2E.Run(root));

@@ -3,8 +3,8 @@ using System.IO.Compression;
 using System.Net;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json.Nodes;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Core.Language;
@@ -33,6 +33,7 @@ internal static class IntelliJChecks
             return result;
         }
         Require((await host.LanguageAsync(new(workspace, Operation: "retry", Server: "intellij"))).State == "disabled", "An unselected IntelliJ provider could compete with JVM defaults.");
+        await host.LanguageAsync(new(workspace, Operation: "setJavaKotlinProvider", Configuration: "intellij"));
         var java = await host.LanguageAsync(new(workspace, Operation: "configuration", Server: "java"));
         var kotlin = await host.LanguageAsync(new(workspace, Operation: "configuration", Server: "kotlin"));
         var saved = await host.LanguageAsync(new(workspace, Operation: "configure", Server: "intellij", Configuration: """{"useForJavaAndKotlin":true,"buildTool":"gradle","settings":{"license":{"active":true}}}"""));
@@ -53,6 +54,7 @@ internal static class IntelliJChecks
             (await host.LanguageAsync(new(workspace, Operation: "configuration", Server: "kotlin"))).Configuration == kotlin.Configuration, "Provider selection changed existing JVM settings.");
         if (!OperatingSystem.IsWindows()) await Lifecycle(host, Path.Combine(workspace, ".tools", "intellij-lifecycle"));
         await host.LanguageAsync(new(workspace, Operation: "configure", Server: "intellij", Configuration: "{}"));
+        await host.LanguageAsync(new(workspace, Operation: "setJavaKotlinProvider", Configuration: "standard"));
         rows = await host.LanguageAsync(new(workspace, Operation: "servers"));
         Require(rows.Servers.Single(server => server.Id == "java").State == "idle" && rows.Servers.Single(server => server.Id == "kotlin").State == "idle", "Opt-out did not restore existing providers.");
         Console.WriteLine("PASS IntelliJ local/remote exclusive routing, persisted configuration, explicit fallback and explicit acknowledgement gate");

@@ -161,9 +161,9 @@ internal sealed partial class LanguageConfigurationView : UserControl
             var selected = false;
             if (server.Id == "intellij")
             {
-                var currentOptions = await Task.Run(async () => await host.LanguageAsync(new(workspace, Operation: "configuration", Server: "intellij"), current.Token), current.Token);
+                var currentOptions = await Task.Run(async () => await host.LanguageAsync(new(workspace, Operation: "javaKotlinProvider"), current.Token), current.Token);
                 if (lifetime != current) return;
-                selected = JsonNode.Parse(string.IsNullOrEmpty(currentOptions.Configuration) ? "{}" : currentOptions.Configuration)?["useForJavaAndKotlin"]?.GetValue<bool>() == true;
+                selected = currentOptions.Configuration == "intellij";
             }
             if (restart && server.Id == "intellij" && !selected)
             {
@@ -172,7 +172,6 @@ internal sealed partial class LanguageConfigurationView : UserControl
             }
             var options = new
             {
-                useForJavaAndKotlin = selected,
                 installationPath = Find<TextBox>("IntelliJInstallation").Text ?? "",
                 projectJdk = Find<TextBox>("IntelliJProjectJdk").Text ?? "",
                 buildTool = Find<TextBox>("IntelliJBuildTool").Text ?? "",
@@ -197,7 +196,7 @@ internal sealed partial class LanguageConfigurationView : UserControl
             if (restart && !reviewBeforeRestart) Find<TextBlock>("ConfigurationMessage").Text = result.State + ": " + result.Detail;
             if (reviewBeforeRestart && SettingsWindow is { } owner)
             {
-                if (!options.useForJavaAndKotlin)
+                if (!selected)
                 {
                     Find<TextBlock>("ConfigurationMessage").Text = "Select IntelliJ for Java and Kotlin before starting it.";
                     return;

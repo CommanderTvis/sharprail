@@ -1241,12 +1241,12 @@ internal static class LanguageChecks
             E2E.E2eWorkspace.Until(() => Provider<ComboBox>("JvmProvider").SelectedIndex >= 0);
             Provider<ComboBox>("JvmProvider").SelectedIndex = 1;
             Provider<Button>("ApplyJvmProvider").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
-            E2E.E2eWorkspace.Until(() => JsonNode.Parse(state.Current.WorkspaceLanguages[root])?["intellij"]?["useForJavaAndKotlin"]?.GetValue<bool>() == true && Provider<ComboBox>("JvmProvider").IsEnabled);
+            E2E.E2eWorkspace.Until(() => state.Current.Settings.JavaKotlinProvider == "intellij" && Provider<ComboBox>("JvmProvider").IsEnabled);
             IJ<TextBox>("IntelliJBuildTool").Text = "gradle";
             IJ<TextBox>("IntelliJProjectJdk").Text = "/host/project-jdk";
             IJ<Button>("SaveConfiguration").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             E2E.E2eWorkspace.Until(() => state.Current.WorkspaceLanguages[root].Contains("gradle", StringComparison.Ordinal) && IJ<Button>("SaveConfiguration").IsEnabled);
-            Require(IJ<Button>("RestartConfiguration").IsEnabled && JsonNode.Parse(state.Current.WorkspaceLanguages[root])!["intellij"]!["useForJavaAndKotlin"]!.GetValue<bool>(), "Saving lost the review/start action or provider selection.");
+            Require(IJ<Button>("RestartConfiguration").IsEnabled && state.Current.Settings.JavaKotlinProvider == "intellij", "Saving lost the review/start action or provider selection.");
             var termsInstallation = IntelliJTermsChecks.Installation(Path.Combine(root, ".tools", "ui-terms"));
             IJ<TextBox>("IntelliJInstallation").Text = termsInstallation;
             IJ<Button>("SaveConfiguration").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
@@ -1286,7 +1286,7 @@ internal static class LanguageChecks
             E2E.E2eWorkspace.Until(() => IJ<Button>("RestartConfiguration").IsEnabled && IJ<TextBlock>("ConfigurationMessage").Text!.Length > 0);
             try { E2E.E2eWorkspace.Until(() => IJ<TextBlock>("ConfigurationMessage").Text!.Contains("intellij-server", StringComparison.OrdinalIgnoreCase)); }
             catch (Exception error) { throw new InvalidOperationException("Startup message: " + IJ<TextBlock>("ConfigurationMessage").Text, error); }
-            Require(JsonNode.Parse(state.Current.WorkspaceLanguages[root])!["intellij"]!["useForJavaAndKotlin"]!.GetValue<bool>(), "Setup did not persist IntelliJ provider selection.");
+            Require(state.Current.Settings.JavaKotlinProvider == "intellij", "Setup did not persist IntelliJ provider selection.");
             ReviewTerms();
             termsWindow = intellijWindow.OwnedWindows.OfType<SharpRail.UI.Panels.IntelliJTermsWindow>().Single();
             E2E.E2eWorkspace.Until(() => termsWindow.Result?.Accepted == true);
@@ -1314,7 +1314,7 @@ internal static class LanguageChecks
             CaptureLsp(intellijWindow, "intellij-configuration");
             Provider<ComboBox>("JvmProvider").SelectedIndex = 0;
             Provider<Button>("ApplyJvmProvider").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
-            E2E.E2eWorkspace.Until(() => IJ<Button>("SaveConfiguration").IsEnabled && JsonNode.Parse(state.Current.WorkspaceLanguages[root])!["intellij"]!["useForJavaAndKotlin"]!.GetValue<bool>() == false);
+            E2E.E2eWorkspace.Until(() => IJ<Button>("SaveConfiguration").IsEnabled && state.Current.Settings.JavaKotlinProvider == "standard");
             providerWindow.Close();
             intellijWindow.Close();
             Console.WriteLine("PASS IntelliJ workspace configuration window, explicit review/start actions, saved selection/JDK/importer and explicit opt-out");

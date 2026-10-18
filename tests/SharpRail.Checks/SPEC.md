@@ -787,3 +787,5 @@ and verify that the pane has no Workspace Problems action.
 
 Focused LSP settings/editor checks verify C# lexical fallback after a semantic-ready
 status followed by unavailable inspection, and native viewport centering of a declaration.
+
+Global JVM provider checks cover deterministic legacy migration, explicit global precedence, direct/remote state parity, competing-session suspension across workspaces, retained provider settings, installation-specific consent and Settings broadcast refresh.

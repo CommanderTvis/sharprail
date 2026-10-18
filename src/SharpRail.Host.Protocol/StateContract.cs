@@ -36,6 +36,7 @@ public sealed class SettingsMessage
     [ProtoMember(10)] public bool NotificationsDisabled { get; set; }
     [ProtoMember(16), System.ComponentModel.DefaultValue(true)] public bool LspEnabled { get; set; } = true;
     [ProtoMember(18)] public bool AirContextHidden { get; set; }
+    [ProtoMember(19)] public string JavaKotlinProvider { get; set; } = "";
     [ProtoMember(17)] public string LanguageServers { get; set; } = "";
     [ProtoMember(11)] public string CustomHighlighting { get; set; } = "";
     [ProtoMember(12)] public bool? VerticalCenterTabs { get; set; }

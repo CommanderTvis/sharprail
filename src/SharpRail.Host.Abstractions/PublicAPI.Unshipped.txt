@@ -1684,3 +1684,6 @@ SharpRail.Host.Abstractions.LanguageResult.SemanticColoring.init -> void
 
 SharpRail.Host.Abstractions.HostSettings.AirContextHidden.get -> bool
 SharpRail.Host.Abstractions.HostSettings.AirContextHidden.init -> void
+
+SharpRail.Host.Abstractions.HostSettings.JavaKotlinProvider.get -> string!
+SharpRail.Host.Abstractions.HostSettings.JavaKotlinProvider.init -> void

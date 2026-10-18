@@ -18,7 +18,8 @@ public sealed partial class HostStateStore
             {
                 if (languages is not null) return languages;
                 languages = new(Path.Combine(DirectoryPath ?? Path.Combine(Path.GetTempPath(), "sharprail-languages"), "language"),
-                    () => DirectoryPath is not null && Current.Settings.LspEnabled && Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE") != "1", () => Current.Settings.LanguageServers, WorkspaceLanguage, SaveWorkspaceLanguage);
+                    () => DirectoryPath is not null && Current.Settings.LspEnabled && Environment.GetEnvironmentVariable("SHARPRAIL_LSP_DISABLE") != "1", () => Current.Settings.LanguageServers, WorkspaceLanguage, SaveWorkspaceLanguage)
+                { GlobalIntelliJProvider = () => Current.Settings.JavaKotlinProvider == "intellij" };
                 WorkspaceRemoved += workspace => _ = languages.CloseWorkspaceAsync(workspace);
                 return languages;
             }
@@ -41,7 +42,9 @@ public sealed partial class ProjectServices
 
     public ValueTask<LanguageResult> LanguageAsync(LanguageRequest request, CancellationToken cancellationToken = default)
         => state is null ? ValueTask.FromResult(new LanguageResult("unavailable", "This host has no language service storage."))
-            : state.Languages.ExecuteAsync(request, cancellationToken);
+            : request.Operation is "javaKotlinProvider" or "setJavaKotlinProvider"
+                ? state.JavaKotlinProviderAsync(request, cancellationToken)
+                : state.Languages.ExecuteAsync(request, cancellationToken);
 }
 
 public static class LanguageMcpTools
@@ -66,7 +69,7 @@ public static class LanguageMcpTools
                   "operation":{"type":"string","enum":["diagnostics","hover","definition","typeDefinition","implementation","references","source","symbolBody","symbols","workspaceSymbols","status","retry","restart","stop","configurationSchema","configuration","configure","logs","servers","catalog"]},
                   "server":{"type":"string","description":"Source server id for dependency URI reads/navigation, or catalog id for path-free lifecycle operations. Start each needed language explicitly before a mixed-language diagnostic scan."},
                   "configuration":{"type":"object","description":"Complete workspace configuration to save (configure/restart only); omitted fields reset to defaults. Read operation=configuration first to preserve existing values. No source files are changed.","properties":{
-                    "useForJavaAndKotlin":{"type":"boolean","description":"IntelliJ only: exclusive Java/Kotlin selection for this workspace. Requires the user to accept the installation EULA in SharpRail before execution."},
+                    "useForJavaAndKotlin":{"type":"boolean","description":"Legacy workspace selection, retained for migration only. The host-global Java/Kotlin provider choice in Settings is authoritative."},
                     "installationPath":{"type":"string","description":"IntelliJ only: absolute user-managed installation directory on the host."},
                     "projectJdk":{"type":"string","description":"IntelliJ only: absolute project JDK on host, separate from bundled server runtime."},
                     "buildTool":{"type":"string","enum":["","maven","gradle","bazel","jps"]},
