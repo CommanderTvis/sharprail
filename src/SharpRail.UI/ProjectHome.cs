@@ -393,7 +393,11 @@ public sealed partial class WorkbenchWindow
                 if (choice.Launcher is { } launcher)
                 {
                     var baseline = choice.DefaultCommand ?? "";
-                    var generated = launcher.TerminalCommand(new() { InitialPrompt = choice.InitialPrompt, Images = images });
+                    // Agents often skip the system prompt's titling rule on a first task; the opening prompt states it so the generated workspace gets named.
+                    var opening = !choice.InProjectFolder && !string.IsNullOrWhiteSpace(choice.InitialPrompt)
+                        ? choice.InitialPrompt + "\n\nFirst, if the task is clear, call the SharpRail `set_title` MCP tool (load it with ToolSearch if it is deferred) with a 3-6 word title; this names the workspace."
+                        : choice.InitialPrompt;
+                    var generated = launcher.TerminalCommand(new() { InitialPrompt = opening, Images = images });
                     command = string.IsNullOrWhiteSpace(command) || command == baseline ? generated : command + (generated.StartsWith(baseline, StringComparison.Ordinal)
                         ? generated[baseline.Length..] : throw new InvalidOperationException("This launcher cannot attach a prompt to an edited command."));
                 }
