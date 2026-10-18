@@ -1,11 +1,9 @@
 @echo off
-rem Builds, publishes, checks or runs the browser client (the Windows counterpart of browser.sh):
-rem   browser.bat [build|run|publish|check]
+rem Builds, publishes, checks or runs the browser client (`scripts\mise run browser [build|run|publish|check]`):
 setlocal EnableDelayedExpansion
-cd /d "%~dp0.."
+cd /d "%~dp0..\.."
 set "ROOT=%CD%"
 set "DOTNET=%ROOT%\.tools\dotnet\dotnet.exe"
-if not exist "%DOTNET%" call "%~dp0bootstrap.bat" || exit /b 1
 if not exist ".tools\dotnet\packs\Microsoft.NETCore.App.Runtime.Mono.multithread.browser-wasm" (
   "%DOTNET%" workload install wasm-experimental --skip-manifest-update || exit /b 1
 )

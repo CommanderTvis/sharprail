@@ -1,9 +1,9 @@
 #!/bin/sh
-# Test-process-only native FSEvents accounting; never inject into a user application.
+# `scripts/mise run check:fsevents`. Test-process-only native FSEvents accounting; never inject into a user application.
 set -eu
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 [ "$(uname -s)" = Darwin ] || { echo 'FSEvents checks require macOS.' >&2; exit 1; }
-case "${1:-}" in ''|--no-build) ;; *) echo 'Usage: check-fsevents.sh [--no-build]' >&2; exit 1 ;; esac
+case "${1:-}" in ''|--no-build) ;; *) echo 'Usage: scripts/mise run check:fsevents [-- --no-build]' >&2; exit 1 ;; esac
 [ -z "${DYLD_INSERT_LIBRARIES:-}" ] || { echo 'Run without an existing DYLD_INSERT_LIBRARIES injection.' >&2; exit 1; }
 root="$PWD"
 if [ "${1:-}" != --no-build ]; then .tools/dotnet/dotnet build SharpRail.slnx -c Release; fi

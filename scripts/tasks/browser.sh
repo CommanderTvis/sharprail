@@ -1,12 +1,10 @@
 #!/bin/sh
 set -eu
-cd "$(dirname "$0")/.."
+# `scripts/mise run browser [build|run|publish|check]`.
+cd "$(dirname "$0")/../.."
 root="$PWD"
 dotnet="$root/.tools/dotnet/dotnet"
-[ -x "$dotnet" ] || sh scripts/bootstrap.sh
-if [ ! -d .tools/dotnet/packs/Microsoft.NETCore.App.Runtime.Mono.multithread.browser-wasm ]; then
-    "$dotnet" workload install wasm-experimental --skip-manifest-update
-fi
+sh scripts/tasks/workload.sh wasm-experimental Microsoft.NETCore.App.Runtime.Mono.multithread.browser-wasm --skip-manifest-update
 configuration="${SHARPRAIL_CONFIGURATION:-Release}"
 case "${1:-build}" in
     build) "$dotnet" build src/SharpRail.Browser -c "$configuration" -m:2;;
@@ -30,5 +28,5 @@ case "${1:-build}" in
         export SHARPRAIL_BROWSER_ROOT="$root/src/SharpRail.Browser/bin/$configuration/net10.0-browser/AppBundle"
         exec "$dotnet" run --no-build --project src/SharpRail.Host.Remote -c "$configuration"
         ;;
-    *) echo 'Usage: scripts/browser.sh [build|run|publish|check]' >&2; exit 1;;
+    *) echo 'Usage: scripts/mise run browser [build|run|publish|check]' >&2; exit 1;;
 esac

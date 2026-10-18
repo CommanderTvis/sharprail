@@ -1,11 +1,11 @@
 #!/bin/sh
-# Packs artifacts/SharpRail.app (from publish.sh) into a disk image with the usual Applications shortcut.
-# `dmg.sh <path>` chooses the image; the default is artifacts/SharpRail.dmg.
+# `scripts/mise run dmg [path]`: packs artifacts/SharpRail.app (from package:macos) into a disk image with the usual Applications shortcut.
+# The path argument chooses the image; the default is artifacts/SharpRail.dmg.
 set -eu
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 bundle=artifacts/SharpRail.app
 image="${1:-artifacts/SharpRail.dmg}"
-[ -d "$bundle" ] || { echo "No $bundle; run scripts/publish.sh first." >&2; exit 1; }
+[ -d "$bundle" ] || { echo "No $bundle; run scripts/mise run package:macos first." >&2; exit 1; }
 staging="$(mktemp -d)"
 trap 'rm -rf "$staging"' EXIT HUP INT TERM
 # ditto keeps the bundle's symlinks and signature intact.

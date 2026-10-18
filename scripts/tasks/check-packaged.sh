@@ -1,11 +1,11 @@
 #!/bin/sh
-# Runs the check gate against the packaged app. The checks are staged beside a copy of the
+# `scripts/mise run check:packaged [-- args]`: runs the check gate against the packaged app. The checks are staged beside a copy of the
 # bundle's own files, so every product file under test is the one that ships.
 set -eu
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/../.."
 bundle=artifacts/SharpRail.app
 if [ ! -d "$bundle/Contents/MacOS" ] || [ ! -x artifacts/checks/SharpRail.Checks ]; then
-  echo "No packaged app to check: run scripts/publish.sh first." >&2
+  echo "No packaged app to check: run scripts/mise run package:macos first." >&2
   exit 1
 fi
 stage=".bench/packaged-$$"

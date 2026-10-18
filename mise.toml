@@ -54,6 +54,7 @@ GHOSTTY_VT_ZIG = "0.16.0"
 ZIG_GLOBAL_CACHE_DIR = "{{ env.SHARPRAIL_TOOLS }}/zig-cache"
 
 [tasks.bootstrap]
+quiet = true
 description = "Install the pinned toolchain into the shared store and link it into .tools"
 run = [
   '"{{mise_bin}}" install dotnet zig http:merman http:scintilla http:sheenbidi',
@@ -79,3 +80,99 @@ run = [
   '"{{mise_bin}}" install',
   'sh scripts/link-tools.sh "{{mise_bin}}" node=node pnpm=pnpm uv=uv binaryen=http:binaryen',
 ]
+
+[tasks.build]
+description = "Release build of SharpRail.slnx: the compiler gate, and every native library that is out of date"
+depends = ["bootstrap"]
+run = ".tools/dotnet/dotnet build SharpRail.slnx -c Release"
+run_windows = ".tools\\dotnet\\dotnet.exe build SharpRail.slnx -c Release"
+
+[tasks.restore]
+description = "Restore the solution's packages"
+depends = ["bootstrap"]
+run = ".tools/dotnet/dotnet restore SharpRail.slnx"
+run_windows = ".tools\\dotnet\\dotnet.exe restore SharpRail.slnx"
+
+[tasks.format]
+description = "Verify formatting as CI does; pass --include with touched files to scope it"
+depends = ["bootstrap"]
+run = ".tools/dotnet/dotnet format SharpRail.slnx --verify-no-changes --no-restore"
+run_windows = ".tools\\dotnet\\dotnet.exe format SharpRail.slnx --verify-no-changes --no-restore"
+
+[tasks.check]
+description = "Run the checks executable (mise run check -- --terminals, --case A,B ...)"
+depends = ["bootstrap"]
+run = ".tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release --"
+run_windows = ".tools\\dotnet\\dotnet.exe run --project tests/SharpRail.Checks -c Release --"
+
+[tasks.perf]
+description = "Run the profiling harness (mise run perf -- self-test)"
+depends = ["bootstrap"]
+run = "sh performance/run.sh"
+
+[tasks.rpc]
+description = "Regenerate the typed RPC clients and dispatch from the host contracts"
+run = "uv run --no-project python scripts/generate-rpc.py"
+
+[tasks.dev]
+description = "Build the desktop app from source and run it (SHARPRAIL_PROFILE, SHARPRAIL_ROOT, SHARPRAIL_CONFIGURATION)"
+depends = ["bootstrap"]
+run = "sh scripts/tasks/dev.sh"
+run_windows = "scripts\\tasks\\dev.bat"
+
+[tasks.host]
+description = "Run only the remote host and print its connection QR code (SHARPRAIL_CONNECT_HOST)"
+depends = ["bootstrap"]
+run = "sh scripts/tasks/host.sh"
+run_windows = "scripts\\tasks\\host.bat"
+
+[tasks."package:macos"]
+description = "Publish the app, host and checks and build artifacts/SharpRail.app (osx-arm64 by default, or osx-x64)"
+depends = ["bootstrap"]
+run = "sh scripts/tasks/package-macos.sh"
+
+[tasks.dmg]
+description = "Pack artifacts/SharpRail.app into a disk image (path argument optional)"
+run = "sh scripts/tasks/dmg.sh"
+
+[tasks."package:windows"]
+description = "Publish the Windows client, host and checks and zip them (-RuntimeIdentifier win-x64 or win-arm64)"
+depends = ["bootstrap"]
+run_windows = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/tasks/package-windows.ps1"
+run = "echo 'Windows packages are built on Windows.' >&2; exit 1"
+
+[tasks."package:android"]
+description = "Build the signed Release Android package into artifacts/android/SharpRail.apk"
+depends = ["bootstrap"]
+run = "sh scripts/tasks/android.sh apk"
+
+[tasks.android]
+description = "Build, install and start the Android client (build|run|apk)"
+depends = ["bootstrap"]
+run = "sh scripts/tasks/android.sh"
+
+[tasks."package:browser"]
+description = "Publish the browser client into artifacts/browser"
+depends = ["bootstrap"]
+run = "sh scripts/tasks/browser.sh publish"
+
+[tasks.browser]
+description = "Build, run, publish or check the browser client (build|run|publish|check)"
+depends = ["bootstrap"]
+run = "sh scripts/tasks/browser.sh"
+run_windows = "scripts\\tasks\\browser.bat"
+
+[tasks."check:packaged"]
+description = "Run the check gate from the published package (macOS bundle, or -RuntimeIdentifier on Windows)"
+run = "sh scripts/tasks/check-packaged.sh"
+run_windows = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/tasks/check-packaged.ps1"
+
+[tasks."check:terminal"]
+description = "Build the Ghostty libraries and run the native shell/Metal probe (macOS)"
+depends = ["bootstrap"]
+run = "sh scripts/tasks/check-terminal.sh"
+
+[tasks."check:fsevents"]
+description = "Run the FSEvents resource-lifetime check with the checks' interposer (macOS)"
+depends = ["bootstrap"]
+run = "sh scripts/tasks/check-fsevents.sh"

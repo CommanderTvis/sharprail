@@ -1,6 +1,7 @@
 #!/bin/sh
 set -eu
-cd "$(dirname "$0")/.."
+# `scripts/mise run check:terminal`: builds the Ghostty libraries and runs the native shell/Metal probe.
+cd "$(dirname "$0")/../.."
 cache="$PWD/.tools/ghostty-avalonia"
 sh src/Ghostty.Avalonia/build-native.sh '' "$cache"
 mkdir -p .bench

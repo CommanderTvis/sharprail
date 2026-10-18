@@ -1,10 +1,9 @@
 @echo off
-rem Builds SharpRail from source and starts it (the Windows counterpart of dev.sh).
+rem Builds SharpRail from source and starts it (`scripts\mise run dev`; the Windows counterpart of dev.sh).
 rem The app is a GUI executable, so it is started detached and no console window stays open for it.
 rem SHARPRAIL_PROFILE keeps a separate profile; SHARPRAIL_CONFIGURATION defaults to Debug. Arguments go to the app.
 setlocal
-cd /d "%~dp0.."
-if not exist ".tools\dotnet\dotnet.exe" call "%~dp0bootstrap.bat" || exit /b 1
+cd /d "%~dp0..\.."
 set "DOTNET_ROOT=%CD%\.tools\dotnet"
 if not defined SHARPRAIL_ROOT set "SHARPRAIL_ROOT=%CD%"
 if not defined SHARPRAIL_CONFIGURATION set "SHARPRAIL_CONFIGURATION=Debug"

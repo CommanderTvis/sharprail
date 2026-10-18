@@ -1,9 +1,8 @@
 #!/bin/sh
-# Launches only the remote host; scan the terminal QR code with the Android client.
+# `scripts/mise run host`: launches only the remote host; scan the terminal QR code with the Android client.
 # SHARPRAIL_CONNECT_HOST overrides the advertised hostname/IP (without a port).
 set -eu
-cd "$(dirname "$0")/.."
-[ -x .tools/dotnet/dotnet ] || sh scripts/bootstrap.sh
+cd "$(dirname "$0")/../.."
 export DOTNET_ROOT="$PWD/.tools/dotnet"
 export SHARPRAIL_ROOT="${SHARPRAIL_ROOT:-$PWD}"
 export SHARPRAIL_BIND=0.0.0.0
