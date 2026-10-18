@@ -175,27 +175,42 @@ internal static partial class ResourceChecks
     {
         Require(JsonModel.Parse("{\"a\":1}") is { Document: not null, Dialect: false } && JsonModel.Parse("{// c\n\"a\":1,}") is { Document: not null, Dialect: true } &&
             JsonModel.Parse("{oops") is { Document: null, Error: not null }, "Strict JSON, the JSONC dialect and invalid text are told apart.");
-        static TreeViewItem Root(string json) => ((TreeView)JsonViews.View(new(new("w", "config.json", "application/json", true, null),
-            "json", new ResourceContent.Text(json, ""), null, _ => { }))).Items.OfType<TreeViewItem>().Single();
+        static TreeViewItem Root(string json) => ((Avalonia.Controls.Control)JsonViews.View(new(new("w", "config.json", "application/json", true, null),
+            "json", new ResourceContent.Text(json, ""), null, _ => { }))).GetLogicalDescendants().OfType<TreeView>().Single().Items.OfType<TreeViewItem>().Single();
         var nested = Root("""{"mcpServers":{"server":{"command":"node","args":["server.js"]}}}""");
         var servers = nested.Items.OfType<TreeViewItem>().Single();
         var server = servers.Items.OfType<TreeViewItem>().Single();
         Require(nested.IsExpanded && servers.IsExpanded && server.IsExpanded && server.Items.Count == 2,
             "Nested configuration opens through server values on first render.");
         var args = server.Items.OfType<TreeViewItem>().Last();
-        Require(!args.IsExpanded && args.Items.Count == 1, "Deeper containers retain lazy placeholders.");
-        args.IsExpanded = true;
-        Require(args.Items.Count == 1 && args.Items.OfType<TreeViewItem>().Single().Header is TextBlock,
-            "Manual expansion still populates deeper values.");
+        Require(args.IsExpanded && args.Items.OfType<TreeViewItem>().Single().Header is TextBlock, "Deeper containers are expanded by default too.");
         servers.IsExpanded = false;
         servers.IsExpanded = true;
         Require(ReferenceEquals(server, servers.Items.OfType<TreeViewItem>().Single()), "Collapse and reopen retain the built children.");
         var wide = Root("{\"items\":[" + string.Join(',', Enumerable.Repeat("{\"nested\":{\"value\":1}}", 500)) + "]}");
         var items = wide.Items.OfType<TreeViewItem>().Single();
-        Require(!items.IsExpanded && items.Items.Count == 1, "Wide nested containers stay lazy within the initial expansion budget.");
-        items.IsExpanded = true;
-        Require(items.Items.Count == 500 && items.Items.OfType<TreeViewItem>().All(item => !item.IsExpanded),
-            "Manual expansion of a wide container builds only its immediate children.");
+        Require(items.IsExpanded && items.Items.Count == 500 && items.Items.OfType<TreeViewItem>().All(item => item.IsExpanded), "A wide document within the budget opens completely.");
+        var huge = System.Diagnostics.Stopwatch.StartNew();
+        var vast = Root("{\"items\":[" + string.Join(',', Enumerable.Repeat("{\"a\":{\"b\":{\"c\":1}}}", 1800)) + "]}");
+        var opened = 0;
+        for (var queue = new Queue<TreeViewItem>([vast]); queue.TryDequeue(out var node);)
+            if (node.IsExpanded) { opened++; foreach (var child in node.Items.OfType<TreeViewItem>()) queue.Enqueue(child); }
+        Require(opened > 100 && opened <= JsonViews.ExpandBudget + 1 && vast.Items.OfType<TreeViewItem>().Single().Items.OfType<TreeViewItem>().Any(item => !item.IsExpanded) && huge.Elapsed < TimeSpan.FromSeconds(5),
+            "A huge document stays within the expansion budget and builds quickly: " + opened + " open, " + huge.ElapsedMilliseconds + " ms.");
+        JsonViews.JsonTreeState? saved = null;
+        static TreeViewItem Open(string json, object? state, Action<object?> save, out Avalonia.Controls.Control body)
+        {
+            body = JsonViews.View(new(new("w", "config.json", "application/json", true, null), "json", new ResourceContent.Text(json, ""), state, save));
+            return body.GetLogicalDescendants().OfType<TreeView>().Single().Items.OfType<TreeViewItem>().Single();
+        }
+        var text = """{"a":{"b":{"c":1}},"d":[1]}""";
+        var kept = Open(text, null, state => saved = state as JsonViews.JsonTreeState, out var held);
+        kept.Items.OfType<TreeViewItem>().First().IsExpanded = false;
+        Require(saved is { Count: 1 }, "A manual collapse is reported as view state.");
+        Require(((IResourceBody)held).Reload(new ResourceContent.Text("""{"a":{"b":{"c":2}},"d":[1,2]}""", "")) &&
+            held.GetLogicalDescendants().OfType<TreeView>().Single().Items.OfType<TreeViewItem>().Single().Items.OfType<TreeViewItem>().First() is { IsExpanded: false },
+            "A reload keeps what the user collapsed.");
+        Require(Open(text, saved, _ => { }, out _).Items.OfType<TreeViewItem>().First() is { IsExpanded: false }, "Restored view state collapses the same node on a new view.");
         using var before = System.Text.Json.JsonDocument.Parse("""{"name":"x","keep":[1,2],"items":[{"id":1,"v":"a"},{"id":2,"v":"b"},{"id":3,"v":"c"}],"gone":true,"n":{"deep":1}}""");
         using var after = System.Text.Json.JsonDocument.Parse("""{"n":{"deep":2},"name":"x","keep":[1,2],"items":[{"id":1,"v":"a"},{"id":3,"v":"C"},{"id":4,"v":"d"}],"new":null}""");
         var changes = JsonModel.Changes(JsonModel.Diff("", before.RootElement, after.RootElement)).Select(change => change.Pointer + "=" + change.Kind).Order(StringComparer.Ordinal).ToArray();

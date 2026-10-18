@@ -151,34 +151,95 @@ internal static class JsonViews
 {
     private const int MaxChildren = 2000;
 
+    /// <summary>Automatic expansion stops when this many nodes have been opened; the rest stay one click away.</summary>
+    internal const int ExpandBudget = 2000;
+
     internal static Control View(ResourceView view)
     {
-        var parsed = JsonModel.Parse((view.Content as ResourceContent.Text)?.Value ?? "");
-        if (parsed.Document is not { } document) return Notice("JsonInvalid", "Invalid JSON — " + parsed.Error, Ui.Danger);
-        var tree = new TreeView { Name = "JsonTree", Margin = new Thickness(12, 8), Background = Brushes.Transparent };
-        var root = Item(null, document.RootElement);
-        ExpandInitially(root, document.RootElement);
-        tree.Items.Add(root);
-        return parsed.Dialect ? WithNotice("JsonDialect", "Parsed as JSONC: comments and trailing commas are ignored.", tree) : tree;
+        var overrides = view.ViewState as JsonTreeState ?? new();
+        var body = JsonTreeBody.Create(view.Content, overrides, view.SaveViewState);
+        return body ?? Notice("JsonInvalid", "Invalid JSON — " + JsonModel.Parse((view.Content as ResourceContent.Text)?.Value ?? "").Error, Ui.Danger);
     }
 
+    /// <summary>The nodes a user opened or closed by hand, by JSON pointer; they win over the automatic expansion.</summary>
+    internal sealed class JsonTreeState : Dictionary<string, bool>;
+
+    /// <summary>The tree of a JSON file. A reload rebuilds it and replays the user's own expansion changes.</summary>
+    private sealed class JsonTreeBody : Decorator, IResourceBody, IDisposable
+    {
+        private readonly JsonTreeState overrides;
+        private readonly Action<object?> save;
+        private JsonDocument? document;
+        private bool applying;
+
+        private JsonTreeBody(JsonTreeState overrides, Action<object?> save) { this.overrides = overrides; this.save = save; }
+
+        internal static JsonTreeBody? Create(ResourceContent content, JsonTreeState overrides, Action<object?> save)
+        {
+            var body = new JsonTreeBody(overrides, save);
+            return body.Load(content) ? body : null;
+        }
+
+        public object? ViewState => overrides;
+
+        public bool Reload(ResourceContent content) => Load(content);
+
+        public void Dispose() => document?.Dispose();
+
+        private bool Load(ResourceContent content)
+        {
+            var parsed = JsonModel.Parse((content as ResourceContent.Text)?.Value ?? "");
+            if (parsed.Document is not { } next) return false;
+            document?.Dispose();
+            document = next;
+            applying = true;
+            try
+            {
+                var tree = new TreeView { Name = "JsonTree", Margin = new Thickness(12, 8), Background = Brushes.Transparent };
+                var root = Item(null, next.RootElement, "", Toggled);
+                ExpandInitially(root, next.RootElement);
+                Replay(root);
+                tree.Items.Add(root);
+                Child = parsed.Dialect ? WithNotice("JsonDialect", "Parsed as JSONC: comments and trailing commas are ignored.", tree) : tree;
+            }
+            finally { applying = false; }
+            return true;
+        }
+
+        private void Toggled(string path, bool expanded)
+        {
+            if (applying) return;
+            overrides[path] = expanded;
+            save(overrides);
+        }
+
+        // Opening a node builds its children, so replaying walks only what the user's choices or the defaults opened.
+        private void Replay(TreeViewItem item)
+        {
+            if (item.Tag is string path && overrides.TryGetValue(path, out var expanded)) item.IsExpanded = expanded;
+            if (!item.IsExpanded) return;
+            foreach (var child in item.Items.OfType<TreeViewItem>()) Replay(child);
+        }
+    }
+
+    // Breadth first: open every container while the budget lasts. A node whose members would overrun it stays closed.
     private static void ExpandInitially(TreeViewItem root, JsonElement value)
     {
-        var pending = new Queue<(TreeViewItem Item, JsonElement Value, int Depth)>();
-        pending.Enqueue((root, value, 0));
-        var remaining = 200;
+        var pending = new Queue<(TreeViewItem Item, JsonElement Value, bool IsRoot)>();
+        pending.Enqueue((root, value, true));
+        var remaining = ExpandBudget;
         while (pending.TryDequeue(out var node))
         {
-            if (node.Depth >= 3 || node.Value.ValueKind is not (JsonValueKind.Object or JsonValueKind.Array)) continue;
+            if (node.Value.ValueKind is not (JsonValueKind.Object or JsonValueKind.Array)) continue;
             var count = node.Value.ValueKind == JsonValueKind.Object ? node.Value.GetPropertyCount() : node.Value.GetArrayLength();
-            if (node.Depth > 0 && count > remaining) continue;
+            if (count == 0 || (!node.IsRoot && count > remaining)) continue;
             remaining -= Math.Min(count, MaxChildren);
             node.Item.IsExpanded = true;
             var values = node.Value.ValueKind == JsonValueKind.Object
                 ? node.Value.EnumerateObject().Select(member => member.Value)
                 : node.Value.EnumerateArray();
             foreach (var (child, childValue) in node.Item.Items.OfType<TreeViewItem>().Zip(values))
-                pending.Enqueue((child, childValue, node.Depth + 1));
+                pending.Enqueue((child, childValue, false));
         }
     }
 
@@ -241,16 +302,18 @@ internal static class JsonViews
     }
 
     // Children are built when a node first opens, so a large document costs only what is looked at.
-    private static TreeViewItem Item(string? key, JsonElement value)
+    private static TreeViewItem Item(string? key, JsonElement value, string path = "", Action<string, bool>? toggled = null)
     {
         var container = value.ValueKind is JsonValueKind.Object or JsonValueKind.Array;
-        var item = new TreeViewItem { Header = Label(key, JsonModel.Preview(value), container ? Ui.Muted : Ui.Accent) };
+        var item = new TreeViewItem { Tag = path, Header = Label(key, JsonModel.Preview(value), container ? Ui.Muted : Ui.Accent) };
         if (!container || JsonModel.Preview(value) is "{0}" or "[0]") return item;
         item.Items.Add(new TreeViewItem());
         var built = false;
         item.PropertyChanged += (_, change) =>
         {
-            if (change.Property != TreeViewItem.IsExpandedProperty || !item.IsExpanded || built) return;
+            if (change.Property != TreeViewItem.IsExpandedProperty) return;
+            toggled?.Invoke(path, item.IsExpanded);
+            if (!item.IsExpanded || built) return;
             built = true;
             item.Items.Clear();
             var children = value.ValueKind == JsonValueKind.Object
@@ -260,7 +323,7 @@ internal static class JsonViews
             foreach (var (name, child) in children)
             {
                 if (count++ == MaxChildren) { item.Items.Add(new TreeViewItem { Header = Ui.Text("… more members are shown in Source", Ui.Hint, 12) }); break; }
-                item.Items.Add(Item(name, child));
+                item.Items.Add(Item(name, child, path + "/" + name.Replace("~", "~0").Replace("/", "~1"), toggled));
             }
         };
         return item;
