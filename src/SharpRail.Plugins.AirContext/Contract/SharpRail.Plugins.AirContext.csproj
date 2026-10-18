@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup><ProjectReference Include="../../SharpRail.Plugins.Api/SharpRail.Plugins.Api.csproj" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="SharpRail.Checks" /></ItemGroup>
+</Project>

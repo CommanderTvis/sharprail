@@ -227,9 +227,9 @@ available; license acceptance is not. See
 for direct launch instructions and the explicitly opt-in, pinned-project tool-call
 matrix. Expensive real-server scenarios are excluded from the full check suite.
 
-The explicit headless MCP host also exposes context_search, context_status and
-context_index for its fixed workspace. Enablement and vendor terms must first be
-handled by the actual user through Code Intelligence; agent tools cannot enable or
+The explicit headless MCP host also exposes the tools of the enabled plugins for its fixed workspace,
+including Air Context's context_search, context_status and context_index. Enablement and vendor terms must first be
+handled by the actual user in the Air Context pane; agent tools cannot enable or
 accept them. --context and --context-ui run synthetic provisioning/runtime/transport/
 UI fixtures without a JetBrains account or cloud indexing. They include Node-based
 command/MCP fixtures on macOS/Linux; no expensive real-provider corpus joins the gate.

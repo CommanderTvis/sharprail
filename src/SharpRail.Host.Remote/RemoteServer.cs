@@ -42,7 +42,7 @@ public static class RemoteServer
         var app = builder.Build();
         if (browserRoot is not null) BrowserAssets.Map(app, browserRoot);
         Map(app, token, tailscale);
-        if (headlessLanguageMcp) HeadlessLanguageMcp.Map(app, state, root, token);
+        if (headlessLanguageMcp) HeadlessLanguageMcp.Map(app, state, runtime, root, token);
         tailscale.EnsureListening = (tailnetAddress, _) =>
         {
             if (!address.Equals(IPAddress.Any) && !address.Equals(IPAddress.IPv6Any) && address.ToString() != tailnetAddress)

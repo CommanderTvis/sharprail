@@ -15,8 +15,6 @@ public static class RpcServices
     });
     private sealed class ProjectRpcClient(IRpcClient client) : IProjectRpc
     {
-        public ValueTask<ContextConsentReply> ContextConsentAsync(ContextConsentRequestDto request, CallContext context = default) => client.Unary<ContextConsentRequestDto, ContextConsentReply>("IProjectRpc/ContextConsentAsync", request, context);
-        public ValueTask<ContextReply> ContextAsync(ContextRequestDto request, CallContext context = default) => client.Unary<ContextRequestDto, ContextReply>("IProjectRpc/ContextAsync", request, context);
         public ValueTask<GitHubAuthenticationReply> GetGitHubAuthenticationAsync(ProjectRequest request, CallContext context = default) => client.Unary<ProjectRequest, GitHubAuthenticationReply>("IProjectRpc/GetGitHubAuthenticationAsync", request, context);
         public ValueTask<LanguageReply> LanguageAsync(LanguageRequestDto request, CallContext context = default) => client.Unary<LanguageRequestDto, LanguageReply>("IProjectRpc/LanguageAsync", request, context);
         public ValueTask<IntelliJTermsReply> IntelliJTermsAsync(IntelliJTermsRequestDto request, CallContext context = default) => client.Unary<IntelliJTermsRequestDto, IntelliJTermsReply>("IProjectRpc/IntelliJTermsAsync", request, context);

@@ -223,16 +223,14 @@ bounded source retrieval with the returned URI/source provider. Reuse warm sessi
 readiness; retain text-search fallbacks for incomplete or unsupported semantic results.
 
 
-SharpRail prompt appendices advertise context_search for unfamiliar code, context_status/index for readiness and refresh, and LSP for known symbols/current drafts. Launch commands preapprove these three workspace-gated tools through the terminal-local MCP override; global Codex configuration is unchanged. Capabilities describes explicit workspace cloud enablement. Core triggers indexing only for recognized UI-launched agents.
+SharpRail prompt appendices carry the tool guidance enabled plugins contribute (Air Context's context_search/status/index paragraph while that plugin is enabled), then LSP for known symbols/current drafts. Launch commands preapprove the three Air Context tools through the terminal-local MCP override whether or not the plugin is enabled, since the override names tools and the plugin may be turned on later; global Codex configuration is unchanged. The Air Context plugin triggers indexing only for recognized UI-launched agents.
 
 Revival removes and regenerates the three Context approval overrides with the existing SharpRail MCP flags, so repeated resumes cannot accumulate them.
 
 Generated MCP flags use shell continuation lines below the canonical PTY input limit, preserving individual overrides. Revival recognizes those standalone continuations; initial agent launch does not depend on the shell entering raw input mode first.
 
-Air Context prompt guidance explains meaning-based code discovery and directs agents to
-use it proactively as the first step for unfamiliar behavior whenever workspace-enabled.
-Disabled or unready indexing falls back to LSP and targeted text search without blocking;
-user-only enablement/sign-in and current-draft limitations remain explicit.
+The prompt file is composed from the template and the enabled plugins' tool guidance (H20) on activation and for every terminal the plugin
+starts, so a plugin turned off leaves nothing in it; an edited file is the user's and is left alone. The Air Context paragraph is the plugin's own.
 
 ## Launch contributions
 

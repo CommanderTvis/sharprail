@@ -9,7 +9,13 @@ namespace SharpRail.Host.Abstractions;
 /// </summary>
 public static class HostProtocol
 {
-    public const int Current = 7;
+    public const int Current = 8;
+
+    /// <summary>
+    /// Air Context is a plugin: its visibility switch and enabled workspaces left the host state and its operations left the
+    /// typed project services, so a client below this version still reads and calls them where they were.
+    /// </summary>
+    public const int AirContextPlugin = 8;
 
     /// <summary>The core file-type icon setting, shared independently of the plugin roster.</summary>
     public const int FileTypeIcons = 7;

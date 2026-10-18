@@ -14,15 +14,6 @@ public sealed partial class SettingsWindow
         var panel = Page("LspPage");
         var provider = new LanguageProviderView(window.Host, window.WorkspaceRoot);
         PageControl<ContentControl>(panel, "JvmProviderSettings").Content = provider;
-        var showContext = PageControl<CheckBox>(panel, "ShowAirContext");
-        showContext.IsChecked = !state.Current.Settings.AirContextHidden;
-        showContext.Click += async (_, _) =>
-        {
-            showContext.IsEnabled = false;
-            try { await state.ChangeAsync(HostStateChange.Setting("air-context-hidden", (showContext.IsChecked != true).ToString())); }
-            catch (Exception failure) { PageControl<TextBlock>(panel, "LspMessage").Text = failure.Message; }
-            finally { showContext.IsChecked = !state.Current.Settings.AirContextHidden; showContext.IsEnabled = true; }
-        };
         var selector = PageControl<ListBox>(panel, "LspServer");
         var enabled = PageControl<CheckBox>(panel, "LspEnabled");
         var managed = PageControl<CheckBox>(panel, "LspManaged");
@@ -52,7 +43,6 @@ public sealed partial class SettingsWindow
         void Load()
         {
             provider.UpdateProvider(state.Current.Settings.JavaKotlinProvider);
-            showContext.IsChecked = !state.Current.Settings.AirContextHidden;
             feature.IsChecked = state.Current.Settings.LspEnabled;
             if (selector.SelectedItem is not string id) return;
             PageControl<TextBlock>(panel, "LspServerHeading").Text = id;

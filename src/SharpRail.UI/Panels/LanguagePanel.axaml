@@ -88,26 +88,6 @@
       <Button x:Name="Refresh" Content="Refresh" Margin="0,0,8,8" />
     </WrapPanel>
     </StackPanel>
-    <Border x:Name="AirContextContainer" BorderBrush="{x:Static kit:Ui.BorderBrush}" BorderThickness="0,1,0,0" Margin="0,16,0,0" Padding="0,16,0,0">
-    <StackPanel x:Name="AirContextSection" Spacing="8">
-      <StackPanel Orientation="Horizontal" Spacing="8">
-        <ContentControl x:Name="ContextBrand" VerticalAlignment="Center" />
-        <TextBlock Text="Air Context" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
-      </StackPanel>
-      <TextBlock Text="Semantic code discovery for this workspace. Cloud indexing requires explicit enablement." FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
-      <WrapPanel Orientation="Horizontal">
-        <Button x:Name="ContextSetup" Content="Review terms and download…" HorizontalAlignment="Left" Click="ContextSetupClicked" Margin="0,0,8,8" />
-        <Button x:Name="ContextLogs" Content="Logs…" Click="ContextLogsClicked" Margin="0,0,0,8" />
-      </WrapPanel>
-      <CheckBox x:Name="ContextEnabled" Content="Enable for this workspace" Click="ContextEnableClicked" />
-      <TextBlock x:Name="ContextState" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
-      <WrapPanel x:Name="ContextControls" Orientation="Horizontal" IsVisible="False">
-        <Button x:Name="ContextLogin" Content="Sign in…" Click="ContextLoginClicked" Margin="0,0,8,8" />
-        <Button x:Name="ContextIndex" Content="Index now" Click="ContextIndexClicked" Margin="0,0,8,8" />
-        <Button x:Name="ContextStop" Content="Stop" Click="ContextStopClicked" Margin="0,0,8,8" />
-      </WrapPanel>
-    </StackPanel>
-    </Border>
   </StackPanel>
   </ScrollViewer>
 </UserControl>

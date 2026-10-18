@@ -589,7 +589,7 @@ Downloading alone still does not execute or index anything.
 
 Language configuration presents implementation, publisher, pinned managed version and managed
 provisioning source on separate lines. The source is not a claim about an overridden runtime.
-Code Intelligence uses readable Context status labels and an Air Context heading with the unmodified Air product icon. Complete, unmodified IntelliJ product artwork
+Complete, unmodified IntelliJ product artwork
 replaces the cropped motif. Provider artwork retains its supplied colors/proportions. Language fallback icons use the original colored Material Icon Theme assets.
 Module folders show only a small square corner marker, without adjacent provider icons; ordinary
 folders keep their existing icon width. Tooltips identify the build file and service in plain
@@ -606,9 +606,8 @@ Semantic-provider imports leave the editor readable as plain text until coloring
 
 Code Intelligence prefers provider-specific artwork where verified, falling back to colored language icons. Plugins settings preserves multicolor assets and uses brand colors for Claude and Discord; neutral glyphs follow the text foreground.
 
-Code Intelligence separates Language servers and Air Context into their own labeled sections
-with a divider. AI configuration guidance and server refresh belong only to Language servers;
-Air's cloud enablement, installation and indexing controls belong only to Air Context.
+Code Intelligence holds only Language servers; AI configuration guidance and server refresh belong to it. Air Context's cloud
+enablement, installation and indexing controls belong to the Air Context plugin's own side tool.
 Provider settings expose HTTPS website and repository links from host catalog metadata;
 when both destinations match (ignoring a trailing slash), only the repository link appears.
 IntelliJ identifies its public client repository, and Intelephense its documentation repository,
@@ -628,8 +627,7 @@ LSP configuration window headings show only the language/provider display name.
 Suggested-file links in Code Intelligence open the detected workspace file in the
 editor without starting or expanding its language server.
 
-Settings → Code Intelligence can hide the Air Context section without changing indexing or consent.
-The visibility preference is shared host state and updates connected clients.
+Air Context is hidden by turning the plugin off in Settings › Plugins; Code Intelligence has no switch for it.
 
 The LSP pane manages servers and does not offer workspace inspection results.
 Editor and agent diagnostic operations remain available independently.

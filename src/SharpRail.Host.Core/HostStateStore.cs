@@ -6,6 +6,8 @@ using System.Text.RegularExpressions;
 using System.Threading.Channels;
 
 using SharpRail.Host.Abstractions;
+using SharpRail.Plugins.AirContext;
+using SharpRail.Plugins.AirContext.Host;
 using SharpRail.Plugins.Api;
 
 namespace SharpRail.Host.Core;
@@ -27,7 +29,9 @@ public sealed partial class HostStateStore : IHostStateService
         public List<string> Projects { get; set; } = [];
         public List<string> RecentProjects { get; set; } = [];
         public List<ProjectRecord> ProjectRecords { get; set; } = [];
-        public List<string> ContextWorkspaces { get; set; } = [];
+        // Air Context's enabled workspaces, as the file kept them before it became a plugin; read once to migrate, never written.
+        [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+        public List<string>? ContextWorkspaces { get; set; }
         public Dictionary<string, string> WorkspaceLanguages { get; set; } = [];
         public Dictionary<string, string> ProjectLanguageAutostart { get; set; } = [];
         public Dictionary<string, string> WorkspaceLabels { get; set; } = [];
@@ -77,7 +81,6 @@ public sealed partial class HostStateStore : IHostStateService
         }
     }
     private PtyTerminalService? terminals;
-    private readonly HashSet<TerminalRef> contextAgentLaunches = [];
 
     private void TerminalInput(string workspace) => RecordWorkspaceActivity(workspace);
 
@@ -107,12 +110,14 @@ public sealed partial class HostStateStore : IHostStateService
         path = directory is null ? null : Path.Combine(directory, FileName);
         HostState initial;
         var fileIconsConfigured = false;
+        List<string>? legacyContextWorkspaces = null;
         try
         {
             if (path is not null && File.Exists(path))
             {
                 var text = File.ReadAllText(path);
                 var stored = JsonSerializer.Deserialize<Stored>(text, Json) ?? new();
+                legacyContextWorkspaces = stored.ContextWorkspaces;
                 if (JsonNode.Parse(text)?[nameof(Stored.Settings)] is JsonObject settings)
                 {
                     fileIconsConfigured = settings.ContainsKey(nameof(HostSettings.FileTypeIconsEnabled));
@@ -128,7 +133,6 @@ public sealed partial class HostStateStore : IHostStateService
                     ProjectRecords = stored.ProjectRecords ?? [],
                     WorkspaceLanguages = stored.WorkspaceLanguages ?? [],
                     ProjectLanguageAutostart = stored.ProjectLanguageAutostart ?? [],
-                    ContextWorkspaces = stored.ContextWorkspaces ?? [],
                     WorkspaceLabels = stored.WorkspaceLabels ?? [],
                     WorkspaceBases = stored.WorkspaceBases ?? [],
                     WorkspaceDiffBases = stored.WorkspaceDiffBases ?? [],
@@ -157,6 +161,18 @@ public sealed partial class HostStateStore : IHostStateService
                 PluginSettings = initial.PluginSettings.Where(entry => entry.Key != "file-icons").ToDictionary()
             };
         }
+        // Air Context became a plugin (protocol 8). Hiding it is now the plugin being disabled; the workspaces the user enabled
+        // and the CLI's storage move into the plugin's own state. The old keys leave the file in the same save, so this runs once.
+        var hadHiddenKey = unknownSettings.Remove("AirContextHidden", out var hiddenNode);
+        var airContextHidden = hiddenNode is JsonValue hiddenValue && hiddenValue.TryGetValue<bool>(out var hidden) && hidden;
+        var airContextLegacy = legacyContextWorkspaces is not null || hadHiddenKey;
+        if (airContextHidden && !(migrated.PluginSettings.TryGetValue(AirContextContract.Id, out var airSettings) && airSettings.ValueKind == JsonValueKind.Object && airSettings.TryGetProperty("enabled", out _)))
+            migrated = migrated with { PluginSettings = new Dictionary<string, JsonElement>(migrated.PluginSettings) { [AirContextContract.Id] = JsonSerializer.SerializeToElement(new { enabled = false }) } };
+        if (directory is not null && (legacyContextWorkspaces is not null || Directory.Exists(Path.Combine(directory, AirContextMigration.LegacyDirectory))))
+        {
+            try { AirContextMigration.Migrate(directory, [.. (legacyContextWorkspaces ?? []).Where(ValidPath).Distinct().Order(StringComparer.Ordinal)]); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { LastError = error.Message; }
+        }
         state = BackfillActivity(Normalize(migrated), DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
         state = state with
         {
@@ -170,7 +186,7 @@ public sealed partial class HostStateStore : IHostStateService
         MigrateJavaKotlinProvider();
         // Identities minted for a file that predates them are written at once, or they would change on the next launch.
         if (path is not null && LastError is null && (!File.Exists(path) || !state.ProjectRecords.SequenceEqual(initial.ProjectRecords) ||
-            state.Settings != initial.Settings || state.PluginSettings.Count != initial.PluginSettings.Count || !state.Workspaces.SequenceEqual(initial.Workspaces))) Save(state);
+            state.Settings != initial.Settings || airContextLegacy || state.PluginSettings.Count != initial.PluginSettings.Count || !state.Workspaces.SequenceEqual(initial.Workspaces))) Save(state);
         if (directory is not null)
             try { InstallationId = Installation.EnsureIn(directory); }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException) { LastError ??= error.Message; }
@@ -269,11 +285,7 @@ public sealed partial class HostStateStore : IHostStateService
         {
             var agents = state.TerminalAgents.Where(agent => agent.Terminal != terminal).ToList();
             if (record is not null) agents.Add(new(terminal, record));
-            var launched = record?.LaunchedByUi == true && record.Kind is "codex" or "claude";
-            if (!launched) contextAgentLaunches.Remove(terminal);
-            var startContext = launched && contextAgentLaunches.Add(terminal);
             if (!agents.SequenceEqual(state.TerminalAgents)) Publish(state with { TerminalAgents = agents }, persist: true);
-            if (startContext && state.ContextWorkspaces.Contains(terminal.WorkspaceId)) _ = Contexts.AgentStartedAsync(terminal.WorkspaceId);
         }
     }
 
@@ -283,7 +295,6 @@ public sealed partial class HostStateStore : IHostStateService
         lock (gate)
         {
             var removed = state.TerminalAgents.Where(agent => closed(agent.Terminal)).Select(agent => agent.Terminal).ToArray();
-            foreach (var terminal in removed) contextAgentLaunches.Remove(terminal);
             if (removed.Length > 0) Publish(state with { TerminalAgents = state.TerminalAgents.Where(agent => !closed(agent.Terminal)).ToArray() }, persist: true);
             return removed;
         }
@@ -366,7 +377,6 @@ public sealed partial class HostStateStore : IHostStateService
                 ProjectRecords = snapshot.ProjectRecords.ToList(),
                 WorkspaceLanguages = snapshot.WorkspaceLanguages.ToDictionary(),
                 ProjectLanguageAutostart = snapshot.ProjectLanguageAutostart.ToDictionary(),
-                ContextWorkspaces = snapshot.ContextWorkspaces.ToList(),
                 WorkspaceLabels = snapshot.WorkspaceLabels.ToDictionary(),
                 WorkspaceBases = snapshot.WorkspaceBases.ToDictionary(),
                 WorkspaceDiffBases = snapshot.WorkspaceDiffBases.ToDictionary(),
@@ -398,7 +408,6 @@ public sealed partial class HostStateStore : IHostStateService
         var normalized = value with
         {
             Revision = 0,
-            ContextWorkspaces = value.ContextWorkspaces.Where(ValidPath).Distinct().Order(StringComparer.Ordinal).ToArray(),
             Settings = value.Settings with
             {
                 ThemeMode = value.Settings.ThemeMode is "system" ? "system" : "fixed",
@@ -523,7 +532,6 @@ public sealed partial class HostStateStore : IHostStateService
                     "terminal-replay" when int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var kb) && kb <= HostSettings.MaxTerminalReplayKb
                         => settings with { TerminalReplayKb = kb },
                     "file-type-icons" when bool.TryParse(value, out var icons) => settings with { FileTypeIconsEnabled = icons },
-                    "air-context-hidden" when bool.TryParse(value, out var airContextHidden) => settings with { AirContextHidden = airContextHidden },
                     "lsp-enabled" when bool.TryParse(value, out var lspEnabled) => settings with { LspEnabled = lspEnabled },
                     "java-kotlin-provider" when value is "standard" or "intellij" => settings with { JavaKotlinProvider = value },
                     "notifications" when bool.TryParse(value, out var enabled) => settings with { NotificationsEnabled = enabled },

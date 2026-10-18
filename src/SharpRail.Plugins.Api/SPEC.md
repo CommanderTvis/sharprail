@@ -683,7 +683,7 @@ re-deriving those would reintroduce the loop that rule prevents.
 
 Several things are deliberately absent. There is no whole-host-state read, since no feature reads core's or a
 sibling's namespace once settings are namespaced, and reading a sibling's namespace directly would bypass the
-declared-dependency rule. There is no raw host state-directory path, since H14 covers persistence and H18 is a plugin's own
+declared-dependency rule. There is no raw host state-directory path, since H14 covers persistence and H19 is a plugin's own
 file directory. There are no
 dialog, process, or filesystem wrappers, no generic event bus, and no core agent-kind framework.
 

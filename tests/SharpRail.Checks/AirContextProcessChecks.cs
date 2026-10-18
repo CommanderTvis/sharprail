@@ -1,11 +1,12 @@
 using System.Collections.Concurrent;
 using System.Text.Json.Nodes;
 
-using SharpRail.Host.Core.Context;
+using SharpRail.Plugins.AirContext;
+using SharpRail.Plugins.AirContext.Host;
 
 namespace SharpRail.Checks;
 
-internal static partial class ContextChecks
+internal static partial class AirContextChecks
 {
     private static async Task NativeWorkflowAsync(string root)
     {

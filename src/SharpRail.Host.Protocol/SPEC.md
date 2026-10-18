@@ -236,9 +236,7 @@ Context consent uses a typed project RPC operation with reviewed artifact/text h
 LanguageReply field 16 carries project-root DTOs (root, manifest, server, kind, state, detail). Existing operation/offset/limit fields carry projects discovery without new RPC methods. Context status uses the existing consent operation without fetching terms or recording acceptance.
 
 
-ContextAsync adds typed workspace/lifecycle/query/path/limit requests and state/detail/enabled/output/user-login-command replies. StateReply field 19 carries enabled Context workspaces; protobuf defaults preserve older clients. User-control commands are authenticated project RPC only, never an agent MCP operation.
-
 LanguageReply field 17 carries semantic-color capability; LanguageItemDto field 12 carries semantic modifier names. Both are additive with false/empty defaults and are mapped by direct and WebSocket adapters. Existing RPC operations and protocol version remain unchanged.
 
-AirContextHidden is a host-shared presentation preference; it does not change
-workspace Context enablement, consent or process lifetime. Its wire field is additive.
+Air Context is a plugin (protocol 8): the Context RPC service, `SettingsReply` field 18 (its visibility) and `StateReply` field 19 (its enabled
+workspaces) are retired and their numbers are not reused. Its operations are the plugin's own methods over the generic plugin call.

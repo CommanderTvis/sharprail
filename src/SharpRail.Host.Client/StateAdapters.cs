@@ -107,7 +107,6 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
             SettleIdleDays = reply.Settings.SettleIdleDays > 0 ? reply.Settings.SettleIdleDays : null,
             LanguageServers = reply.Settings.LanguageServers,
             JavaKotlinProvider = reply.Settings.JavaKotlinProvider,
-            AirContextHidden = reply.Settings.AirContextHidden,
             LspEnabled = reply.Settings.LspEnabled
         },
         Presets = reply.Presets.Select(preset => new LayoutPreset(preset.Name, preset.Layout)).ToArray(),
@@ -115,7 +114,6 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
         RecentProjects = reply.RecentProjects.ToArray(),
         ProjectRecords = reply.ProjectRecords.Select(record => new ProjectRecord(record.Id, record.Path, record.Slug, record.LastOpened)).ToArray(),
         WorkspaceLabels = reply.Labels.ToDictionary(label => label.Path, label => label.Label),
-        ContextWorkspaces = reply.ContextWorkspaces.ToArray(),
         WorkspaceLanguages = reply.WorkspaceLanguages.ToDictionary(entry => entry.Path, entry => entry.Reference),
         ProjectLanguageAutostart = reply.ProjectLanguageAutostart.ToDictionary(entry => entry.Path, entry => entry.Reference),
         WorkspaceBases = reply.Bases.ToDictionary(entry => entry.Path, entry => entry.Reference),

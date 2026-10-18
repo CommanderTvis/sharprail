@@ -25,8 +25,6 @@ public sealed record HostSettings
     public bool LspEnabled { get; init; } = true;
     /// <summary>Host-wide Java/Kotlin provider: standard or intellij; empty migrates legacy workspace choices.</summary>
     public string JavaKotlinProvider { get; init; } = "";
-    /// <summary>Whether clients hide Air Context controls without changing workspace indexing.</summary>
-    public bool AirContextHidden { get; init; }
     /// <summary>Host-wide launcher overrides keyed by language-server id, stored as JSON.</summary>
     public string LanguageServers { get; init; } = "";
     /// <summary>Custom TextMate grammars and filename patterns, as a JSON array shared with clients.</summary>
@@ -66,8 +64,6 @@ public sealed record HostState
     public IReadOnlyList<string> RecentProjects { get; init; } = [];
     /// <summary>One record per open or recent project, in no particular order.</summary>
     public IReadOnlyList<ProjectRecord> ProjectRecords { get; init; } = [];
-    /// <summary>Workspaces whose users explicitly enabled Context cloud indexing; new workspaces do not inherit consent.</summary>
-    public IReadOnlyList<string> ContextWorkspaces { get; init; } = [];
     /// <summary>Workspace path to JSON server configuration map; independent after creation.</summary>
     public IReadOnlyDictionary<string, string> WorkspaceLanguages { get; init; } = new Dictionary<string, string>();
     /// <summary>Project root to JSON server-id array started before managed agent launches.</summary>

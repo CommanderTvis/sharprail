@@ -10,20 +10,6 @@ internal static class RpcDispatch
         var context = stream.Context(open.Method);
         switch (open.Method)
         {
-            case "IProjectRpc/ContextConsentAsync":
-            {
-                var service = ActivatorUtilities.CreateInstance<ProjectRpc>(services);
-                var request = await ReadOne<ContextConsentRequestDto>(stream);
-                await stream.Send(await service.ContextConsentAsync(request, context));
-                break;
-            }
-            case "IProjectRpc/ContextAsync":
-            {
-                var service = ActivatorUtilities.CreateInstance<ProjectRpc>(services);
-                var request = await ReadOne<ContextRequestDto>(stream);
-                await stream.Send(await service.ContextAsync(request, context));
-                break;
-            }
             case "IProjectRpc/GetGitHubAuthenticationAsync":
             {
                 var service = ActivatorUtilities.CreateInstance<ProjectRpc>(services);

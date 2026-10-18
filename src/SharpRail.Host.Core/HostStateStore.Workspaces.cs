@@ -57,7 +57,6 @@ public sealed partial class HostStateStore
                 result = result with
                 {
                     WorkspaceLanguages = Without(result.WorkspaceLanguages, gone),
-                    ContextWorkspaces = result.ContextWorkspaces.Where(workspace => workspace != gone).ToArray(),
                     WorkspaceLabels = Without(result.WorkspaceLabels, gone),
                     WorkspaceBases = Without(result.WorkspaceBases, gone),
                     WorkspaceDiffBases = Without(result.WorkspaceDiffBases, gone)

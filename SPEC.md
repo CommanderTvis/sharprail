@@ -495,9 +495,9 @@ explicitly target the directory they are editing. The detailed contract is
 [Workspace language services](src/SharpRail.Host.Core/Language/SPEC.md).
 
 
-Code Intelligence optionally exposes JetBrains Context semantic discovery through
+The Air Context plugin optionally exposes JetBrains Context semantic discovery through
 SharpRail's own tools. Explicit per-workspace cloud enablement precedes automatic
 SharpRail agent-launch indexing; login/cache remain vendor-managed and shared. No
 global agent installer/hooks or global watcher controls are used. Known-symbol and
-dirty-buffer work remains with LSP. [Host Context](src/SharpRail.Host.Core/Context/SPEC.md)
+dirty-buffer work remains with LSP. [Air Context](src/SharpRail.Plugins.AirContext/SPEC.md)
 records current artifact, consent, lifecycle and verification limits.

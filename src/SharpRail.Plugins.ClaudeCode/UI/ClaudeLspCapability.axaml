@@ -6,7 +6,6 @@
   <StackPanel Spacing="2">
     <TextBlock Text="SharpRail Code Intelligence · MCP" FontSize="13" Foreground="{x:Static kit:Ui.TextBrush}" />
     <TextBlock Text="lsp_navigate · lsp_diagnostics · lsp_status" FontSize="12" Foreground="{x:Static kit:Ui.TextBrush}" TextWrapping="Wrap" />
-    <TextBlock Text="Context: context_search · context_status · context_index. Enable cloud indexing for this workspace in Code Intelligence first." FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
     <TextBlock Text="Provided through the bundled SharpRail Claude plugin's MCP connection. Install and enable that plugin in Claude Code Settings, then restart the session."
                FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
     <TextBlock Text="Your agent can fix missing libraries, configure this workspace’s LSP settings and restart its language servers. Navigation and inspections are also available. Subagents must pass their own workspace path."

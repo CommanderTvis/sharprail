@@ -1,28 +1,31 @@
-using System.Net;
 using System.Diagnostics;
+using System.Net;
 using System.Security.Cryptography;
 using System.Text.Json.Nodes;
 
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Input;
-using Avalonia.VisualTree;
-using Avalonia.LogicalTree;
 using Avalonia.Headless;
+using Avalonia.Input;
+using Avalonia.LogicalTree;
+using Avalonia.VisualTree;
 
 using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.Extensions.DependencyInjection;
 
 using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core;
 using SharpRail.Host.Client;
+using SharpRail.Host.Core;
+using SharpRail.Host.Core.Plugins;
 using SharpRail.Host.Remote;
-using SharpRail.Host.Core.Context;
+using SharpRail.Plugins.AirContext;
+using SharpRail.Plugins.AirContext.Host;
+using SharpRail.Plugins.Api;
 
 namespace SharpRail.Checks;
 
-internal static partial class ContextChecks
+internal static partial class AirContextChecks
 {
     internal static async Task Run(string root)
     {
@@ -107,34 +110,109 @@ internal static partial class ContextChecks
         finally { if (Directory.Exists(storage)) Directory.Delete(storage, true); }
     }
 
+    /// <summary>One composition of the plugin: the embedded runtime, or a WebSocket RPC host, on a state directory.</summary>
+    private sealed class Rig : IAsyncDisposable
+    {
+        private readonly Microsoft.AspNetCore.Builder.WebApplication? server;
+        private readonly IDisposable? adapters;
+        internal PluginRuntime Runtime { get; }
+        internal HostStateStore State { get; }
+        internal IPluginService Plugins { get; }
+        internal Uri? Endpoint { get; }
+        internal string StateDirectory { get; }
+
+        private Rig(string stateDirectory, PluginRuntime runtime, HostStateStore state, IPluginService plugins, Microsoft.AspNetCore.Builder.WebApplication? server, Uri? endpoint, IDisposable? adapters)
+        {
+            StateDirectory = stateDirectory; Runtime = runtime; State = state; Plugins = plugins; this.server = server; Endpoint = endpoint; this.adapters = adapters;
+        }
+
+        internal static async Task<Rig> Open(string workspace, string stateDirectory, bool remote)
+        {
+            Directory.CreateDirectory(stateDirectory);
+            Rig rig;
+            if (remote)
+            {
+                var server = RemoteServer.Create(workspace, IPAddress.Loopback, 0, "context-fixture", stateDirectory, headlessLanguageMcp: true);
+                await server.StartAsync();
+                var endpoint = new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single());
+                var plugins = new RemotePluginAdapter(endpoint, "context-fixture");
+                rig = new(stateDirectory, server.Services.GetRequiredService<PluginRuntime>(), (HostStateStore)server.Services.GetRequiredService<IHostStateService>(), plugins, server, endpoint, plugins);
+            }
+            else
+            {
+                var state = new HostStateStore(stateDirectory);
+                var runtime = new PluginRuntime(new PluginHostSeams { StateDirectory = stateDirectory, State = state, Builtins = [(AirContextContract.Manifest, new AirContextHost())] });
+                await runtime.Start();
+                rig = new(stateDirectory, runtime, state, new LocalPluginAdapter(runtime), null, null, null);
+            }
+            await rig.UntilAsync(async () => (await rig.Plugins.ListAsync()).Any(entry => entry is { Id: AirContextContract.Id, Status: PluginStatus.Active }), "the plugin to activate");
+            return rig;
+        }
+
+        internal async Task UntilAsync(Func<Task<bool>> condition, string what)
+        {
+            var deadline = DateTime.UtcNow.AddSeconds(20);
+            while (!await condition())
+            {
+                if (DateTime.UtcNow > deadline) throw new TimeoutException("Timed out waiting for " + what);
+                await Task.Delay(10);
+            }
+        }
+
+        internal async Task<T> Call<TParams, T>(PluginMethod<TParams, T> method, TParams parameters) =>
+            PluginJson.Convert<T>(await Plugins.CallAsync(new(AirContextContract.Id, method.Name, parameters, "client")));
+
+        internal Task<ContextOutcome> Workspace(string workspace, string operation = "status") => Call(AirContextContract.Workspace, new ContextCall(workspace, operation));
+
+        internal Task<ContextConsentResult> Consent(ContextConsentRequest request) => Call(AirContextContract.Consent, request);
+
+        internal IReadOnlyList<McpServer.McpTool> Tools(string workspace) =>
+            [.. Runtime.McpTools(new TerminalRef(workspace, "context-agent"), workspace).Where(tool => tool.Name.StartsWith("context_", StringComparison.Ordinal))];
+
+        internal async Task Enable(bool enabled)
+        {
+            await State.ChangeAsync([HostStateChange.PluginEnabled(AirContextContract.Id, enabled)]);
+            await Runtime.Schedule();
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            adapters?.Dispose();
+            if (server is not null) { await server.StopAsync(); await server.DisposeAsync(); }
+            else await Runtime.DisposeAsync();
+        }
+    }
+
+    /// <summary>Puts the fixtures in the plugin's place until disposed.</summary>
+    private sealed class Fixtures : IDisposable
+    {
+        private readonly AirContextHost.Fixtures? previous = AirContextHost.Override;
+        internal AirContextHost.Fixtures Value { get; } = new();
+        internal Fixtures() => AirContextHost.Override = Value;
+        public void Dispose() => AirContextHost.Override = previous;
+    }
+
     private static async Task TransportAsync(string storage, ContextBundle bundle, byte[] bytes)
     {
         foreach (var remote in new[] { false, true })
         {
             var stateDirectory = Path.Combine(storage, remote ? "remote" : "local");
-            await using var server = remote ? RemoteServer.Create(storage, IPAddress.Loopback, 0, "context-fixture", stateDirectory,
-                plugins: seams => seams with { Builtins = [] }, headlessLanguageMcp: true) : null;
-            if (server is not null) await server.StartAsync();
-            var state = server is null ? new HostStateStore(stateDirectory) : (HostStateStore)server.Services.GetRequiredService<IHostStateService>();
             using var handler = new Handler(_ => Task.FromResult(bytes));
             using var http = new HttpClient(handler);
-            state.ContextConsentOverride = new(Path.Combine(stateDirectory, "context"), http, bundle);
-            using var proxy = server is null ? null : new RemoteProjectAdapter(new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single()), "context-fixture");
-            IProjectServices host = proxy ?? (IProjectServices)new LocalProjectAdapter(new ProjectServices(storage, state));
-            try
-            {
-                Require(!LanguageMcpTools.Create(state, storage).Any(tool => tool.Name.Contains("consent", StringComparison.OrdinalIgnoreCase) || tool.Name.Contains("accept", StringComparison.OrdinalIgnoreCase)), "Agent MCP exposed a consent action.");
-                var review = await host.ContextConsentAsync(new());
-                Require(review.State == "requiresAcceptance" && handler.Requests == 0, "Terms review downloaded a Context binary.");
-                var missing = await host.ContextConsentAsync(new("download", review.ArtifactId, review.TermsSha256));
-                Require(missing.State == "requiresAcceptance" && handler.Requests == 0, "Download without consent bypassed the host guard.");
-                var accepted = await host.ContextConsentAsync(new("acceptAndDownload", review.ArtifactId, review.TermsSha256));
-                Require(accepted.State == "downloaded" && handler.Requests == 1 && File.Exists(accepted.Installation), "UI consent/download transport failed.");
-                Require((await host.ContextConsentAsync(new())).AcceptedAtUtc == accepted.AcceptedAtUtc, "Transport lost persisted consent.");
-                var endpoint = server is null ? null : new Uri(server.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.Single());
-                await WorkflowTransportAsync(host, state, storage, stateDirectory, endpoint);
-            }
-            finally { if (server is null) await state.StopLanguagesAsync(); }
+            using var fixtures = new Fixtures();
+            fixtures.Value.Consent = directory => new(directory, http, bundle);
+            await using var rig = await Rig.Open(storage, stateDirectory, remote);
+            Require(!rig.Tools(storage).Any(tool => tool.Name.Contains("consent", StringComparison.OrdinalIgnoreCase) || tool.Name.Contains("accept", StringComparison.OrdinalIgnoreCase)),
+                "Agent MCP exposed a consent action.");
+            var review = await rig.Consent(new());
+            Require(review.State == "requiresAcceptance" && handler.Requests == 0, "Terms review downloaded a Context binary.");
+            var missing = await rig.Consent(new("download", review.ArtifactId, review.TermsSha256));
+            Require(missing.State == "requiresAcceptance" && handler.Requests == 0, "Download without consent bypassed the host guard.");
+            var accepted = await rig.Consent(new("acceptAndDownload", review.ArtifactId, review.TermsSha256));
+            Require(accepted.State == "downloaded" && handler.Requests == 1 && File.Exists(accepted.Installation), "UI consent/download transport failed.");
+            Require(accepted.Installation.StartsWith(Path.Combine(stateDirectory, "plugin-state", AirContextContract.Id, "files"), StringComparison.Ordinal), "The CLI was stored outside the plugin's own directory: " + accepted.Installation);
+            Require((await rig.Consent(new())).AcceptedAtUtc == accepted.AcceptedAtUtc, "Transport lost persisted consent.");
+            await WorkflowTransportAsync(rig, fixtures, storage);
         }
         Console.WriteLine("PASS Context consent direct/WebSocket parity, review without download, explicit acceptance and persisted acknowledgement");
     }
@@ -147,33 +225,29 @@ internal static partial class ContextChecks
         using var http = new HttpClient(handler);
         var bundle = new ContextBundle("fixture-ui", "fixture", new("https://download.jetbrains.com/fixture"),
             Convert.ToHexStringLower(SHA256.HashData("synthetic fixture executable"u8)));
-        var state = new HostStateStore(Path.Combine(storage, "state"));
-        state.ContextConsentOverride = new(Path.Combine(storage, "context"), http, bundle);
-        var host = new LocalProjectAdapter(new ProjectServices(root, state));
+        using var fixtures = new Fixtures();
+        fixtures.Value.Consent = directory => new(directory, http, bundle);
+        using var app = new E2E.E2eWorkspace(storage);
+        E2E.E2eWorkspace.Until(() => app.Window.WorkspaceMounted && app.Workbench.PluginLoader.Registry.Active.Contains(AirContextContract.Id));
+        Reveal(app);
+        var owner = app.Window;
         T Find<T>(Window window, string name) where T : Control => window.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
         void Click(Button button) => button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
-        var owner = new Window { Width = 560, Height = 520, Content = new SharpRail.UI.Panels.LanguagePanel(host, root, _ => Task.CompletedTask) };
-        owner.Show();
+        E2E.E2eWorkspace.Until(() => owner.GetLogicalDescendants().OfType<Button>().Any(control => control.Name == "ContextSetup"));
         Click(Find<Button>(owner, "ContextSetup"));
-        E2E.E2eWorkspace.Until(() => owner.OwnedWindows.OfType<SharpRail.UI.Panels.ContextConsentWindow>().Any());
-        var canceled = owner.OwnedWindows.OfType<SharpRail.UI.Panels.ContextConsentWindow>().Single();
+        E2E.E2eWorkspace.Until(() => owner.OwnedWindows.OfType<SharpRail.Plugins.AirContext.UI.ConsentWindow>().Any());
+        var canceled = owner.OwnedWindows.OfType<SharpRail.Plugins.AirContext.UI.ConsentWindow>().Single();
         E2E.E2eWorkspace.Until(() => Find<CheckBox>(canceled, "ConsentCheck").IsEnabled);
         Require(Find<CheckBox>(canceled, "ConsentCheck").IsChecked == false && !Find<Button>(canceled, "ConsentDownload").IsEnabled && handler.Requests == 0,
             "Context consent default was accepted or downloaded.");
         Click(Find<Button>(canceled, "ConsentClose"));
         Require(handler.Requests == 0, "Closing consent downloaded the CLI.");
         Click(Find<Button>(owner, "ContextSetup"));
-        E2E.E2eWorkspace.Until(() => owner.OwnedWindows.OfType<SharpRail.UI.Panels.ContextConsentWindow>().Any());
-        var dialog = owner.OwnedWindows.OfType<SharpRail.UI.Panels.ContextConsentWindow>().Single();
+        E2E.E2eWorkspace.Until(() => owner.OwnedWindows.OfType<SharpRail.Plugins.AirContext.UI.ConsentWindow>().Any());
+        var dialog = owner.OwnedWindows.OfType<SharpRail.Plugins.AirContext.UI.ConsentWindow>().Single();
         try
         {
             E2E.E2eWorkspace.Until(() => Find<CheckBox>(dialog, "ConsentCheck").IsEnabled);
-            if (Environment.GetEnvironmentVariable("SHARPRAIL_CONTEXT_CAPTURE") == "1")
-            {
-                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-                using var frame = dialog.CaptureRenderedFrame();
-                frame!.Save(".bench/context-consent/form.png", Avalonia.Media.Imaging.PngBitmapEncoderOptions.Default);
-            }
             dialog.Width = 520; dialog.Height = 620; dialog.UpdateLayout();
             Avalonia.Threading.Dispatcher.UIThread.RunJobs();
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
@@ -197,14 +271,42 @@ internal static partial class ContextChecks
             Click(Find<Button>(dialog, "ConsentClose"));
             E2E.E2eWorkspace.Until(() => Find<Button>(owner, "ContextSetup").IsEnabled);
             Click(Find<Button>(owner, "ContextSetup"));
-            E2E.E2eWorkspace.Until(() => owner.OwnedWindows.OfType<SharpRail.UI.Panels.ContextConsentWindow>().Any());
-            var reopened = owner.OwnedWindows.OfType<SharpRail.UI.Panels.ContextConsentWindow>().Single();
+            E2E.E2eWorkspace.Until(() => owner.OwnedWindows.OfType<SharpRail.Plugins.AirContext.UI.ConsentWindow>().Any());
+            var reopened = owner.OwnedWindows.OfType<SharpRail.Plugins.AirContext.UI.ConsentWindow>().Single();
             E2E.E2eWorkspace.Until(() => Equals(Find<Button>(reopened, "ConsentClose").Content, "Done"));
             Require(!Find<Button>(reopened, "ConsentDownload").IsVisible && handler.Requests == 1, "Reopening offered or repeated an unnecessary download.");
             reopened.Close();
+            // Settings › Plugins is the one switch: with the plugin off its pane is gone, with no placeholder or prompt in its place.
+            void Switch(bool enabled)
+            {
+                var change = Task.Run(async () => { await app.State!.ChangeAsync([HostStateChange.PluginEnabled(AirContextContract.Id, enabled)]); await app.PluginRuntime!.Schedule(); });
+                E2E.E2eWorkspace.Until(() => change.IsCompleted); change.GetAwaiter().GetResult();
+            }
+            Switch(false);
+            E2E.E2eWorkspace.Until(() => app.Window.Layout.Tools.All(tool => tool.Id != Tool) && !owner.GetLogicalDescendants().OfType<Control>().Any(control => control.Name is "ContextSetup" or "ContextEnabled" or "AirContextPane"));
+            Require(owner.OwnedWindows.Count == 0, "A disabled plugin left a window open.");
+            Switch(true);
+            E2E.E2eWorkspace.Until(() => app.Window.Layout.Tools.Any(tool => tool.Id == Tool));
         }
-        finally { dialog.Close(); owner.Close(); state.StopLanguagesAsync().AsTask().GetAwaiter().GetResult(); }
+        finally { dialog.Close(); }
         Console.WriteLine("PASS Context consent window: unchecked default, cancel without download, explicit accept/download and visible completion");
+    }
+
+    private const string Tool = "plugin:air-context:context";
+
+    private static void Reveal(E2E.E2eWorkspace app)
+    {
+        E2E.E2eWorkspace.Until(() => app.Window.Layout.Tools.Any(tool => tool.Id == Tool));
+        app.Window.Layout.RestoreTool(Tool);
+        E2E.E2eWorkspace.Until(() => app.Window.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "AirContextPane"));
+    }
+
+
+    private static async Task<PluginCallException> Fails(Func<Task> call)
+    {
+        try { await call(); }
+        catch (PluginCallException error) { return error; }
+        throw new InvalidOperationException("The call did not fail.");
     }
 
     private static void Require(bool condition, string message) { if (!condition) throw new InvalidOperationException(message); }

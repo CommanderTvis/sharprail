@@ -1,9 +1,8 @@
 using System.Collections.Concurrent;
 
-using SharpRail.Host.Abstractions;
-using SharpRail.Host.Core.Language;
+using SharpRail.Plugins.AirContext;
 
-namespace SharpRail.Host.Core.Context;
+namespace SharpRail.Plugins.AirContext.Host;
 
 internal interface IContextRuntime : IAsyncDisposable
 {
@@ -27,7 +26,7 @@ internal sealed class ContextService(Func<string, bool> enabled, Func<string, Ac
         internal volatile string Detail = "Launch a SharpRail agent or choose Index now.";
     }
     private readonly ConcurrentDictionary<string, Entry> entries = new(StringComparer.Ordinal);
-    private readonly ConcurrentDictionary<string, LanguageLog> logs = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, ContextLog> logs = new(StringComparer.Ordinal);
     private int disposed;
     private readonly CancellationTokenSource lifetime = new();
 
@@ -38,15 +37,15 @@ internal sealed class ContextService(Func<string, bool> enabled, Func<string, Ac
             throw new ArgumentException("Context requires an existing absolute workspace.");
         var workspace = Path.TrimEndingDirectorySeparator(Path.GetFullPath(request.Workspace));
         if (Volatile.Read(ref disposed) != 0) return new("stopped", "The host is shutting down.");
-        if (request.Operation == "logs") return new("ready", "Context output for this workspace.", enabled(workspace), logs.GetOrAdd(workspace, _ => new()).Read("context").Detail);
+        if (request.Operation == "logs") return new("ready", "Context output for this workspace.", enabled(workspace), logs.GetOrAdd(workspace, _ => new()).Read());
         if (request.Operation == "stop") { await CloseWorkspaceAsync(workspace); return new("stopped", "SharpRail-owned Context processes stopped.", enabled(workspace)); }
-        if (!enabled(workspace)) return new("disabled", "Enable JetBrains Context for this workspace in Code Intelligence. Indexing sends source chunks to JetBrains.");
+        if (!enabled(workspace)) return new("disabled", "Enable JetBrains Context for this workspace in the Air Context pane. Indexing sends source chunks to JetBrains.");
         if (request.Operation == "status")
             return entries.TryGetValue(workspace, out var known) ? new(known.State, known.Detail, true) : new("idle", "Launch a SharpRail agent or choose Index now.", true);
         if (request.Operation is not ("search" or "index" or "refresh" or "login")) throw new ArgumentException("Unknown Context operation.");
         if (request.Limit is < 1 or > 100 || request.Query.Length > 8000) throw new ArgumentException("Context query limit is 100 results and 8,000 characters.");
         if (request.Operation == "search" && string.IsNullOrWhiteSpace(request.Query)) throw new ArgumentException("A semantic search query is required.");
-        var relative = request.Path.Length == 0 ? "." : Path.GetRelativePath(workspace, ProjectServices.Contain(workspace, request.Path)).Replace('\\', '/');
+        var relative = request.Path.Length == 0 ? "." : Path.GetRelativePath(workspace, Containment.Contain(workspace, request.Path)).Replace('\\', '/');
         var entry = entries.GetOrAdd(workspace, _ => new(lifetime.Token));
         using var operation = CancellationTokenSource.CreateLinkedTokenSource(token, entry.Token);
         var operationToken = operation.Token;
@@ -73,7 +72,7 @@ internal sealed class ContextService(Func<string, bool> enabled, Func<string, Ac
             entry.State = "ready"; entry.Detail = "Search completed. Provider output describes index coverage and matching locations.";
             return new("ready", entry.Detail, true, data);
         }
-        catch (ContextConsentRequiredException) { return Failure(entry, "requiresAcceptance", "Review the current Context terms in Code Intelligence before running the CLI."); }
+        catch (ContextConsentRequiredException) { return Failure(entry, "requiresAcceptance", "Review the current Context terms in the Air Context pane before running the CLI."); }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { throw; }
         catch (OperationCanceledException) when (entry.Token.IsCancellationRequested) { return new("stopped", "SharpRail-owned Context processes stopped.", enabled(workspace)); }
         catch (OperationCanceledException) { return Failure(entry, "error", "Context operation timed out. Retry or view this workspace's logs."); }
@@ -103,7 +102,7 @@ internal sealed class ContextService(Func<string, bool> enabled, Func<string, Ac
             entry.State = "ready"; entry.Detail = "Index command completed. Search or vendor status reports availability and coverage.";
         }
         catch (OperationCanceledException) when (entry.Stop.IsCancellationRequested) { entry.State = "stopped"; entry.Detail = "Indexing stopped."; }
-        catch (ContextConsentRequiredException) { Failure(entry, "requiresAcceptance", "Review the current Context terms in Code Intelligence."); }
+        catch (ContextConsentRequiredException) { Failure(entry, "requiresAcceptance", "Review the current Context terms in the Air Context pane."); }
         catch (Exception error)
         {
             var detail = ContextOutput.Sanitize(error.Message);

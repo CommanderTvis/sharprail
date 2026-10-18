@@ -779,7 +779,7 @@ real terms, authenticates or indexes source. Real Context compatibility is unver
 Language fixtures cover semantic capability/modifier parity across transports, native italic set/reset, plain-first semantic startup without a loading prompt, compact empty navigation, external-source tab adornment, uniform provider icons and Java/Kotlin routing selected outside IntelliJ settings. Terms and launch fixtures remain synthetic.
 
 The focused `--lsp-settings` mode covers Settings placement, workspace provider
-selection, Air Context visibility persistence and the existing server configuration UI.
+selection, the absence of any Air Context switch and the existing server configuration UI.
 
 The focused LSP settings checks also exercise editor menu visibility through idle,
 ready, stopped, disabled, unsupported, unavailable and initializing server states,

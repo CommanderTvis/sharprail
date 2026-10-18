@@ -1,12 +1,39 @@
 ---
-id: module-host-context
+id: module-plugin-air-context
 type: module-design
 status: draft
-title: Workspace semantic Context search
-parent: module-host-core
+title: Air Context — semantic code search through the JetBrains Context CLI, as a builtin plugin
+parent: module-plugin-api
+depends-on: [module-plugin-api, module-plugin-ui-kit]
+references: [submodule-host-plugins, submodule-ui-plugins]
+tags: [plugins, air-context]
 ---
 
-# Workspace Context integration
+# Air Context — workspace semantic search
+
+No upstream counterpart. Original SharpRail builtin plugin; before it was a plugin the same code lived in the host core and the
+Code Intelligence page.
+
+## Plugin shape
+
+The plugin id is `air-context`. It ships enabled, which does nothing by itself: the CLI is not downloaded, no terms are read from the
+network and no workspace is indexed until the user acts in the plugin's pane. Settings › Plugins is the only switch for the plugin as a
+whole. Disabled, the plugin serves no tools, contributes no instructions to agent sessions, shows no pane, accepts no consent calls,
+makes no network requests and starts no process; disabling stops running indexing and searches through the activation's disposer, and
+the user's workspace enablement and consent survive for when it is enabled again.
+
+The host half (`Host/`) registers three methods and a channel (`consent`, `workspace`, `changed`), the agent tools, one tool-guidance
+item (H20) and observers of terminal agent changes and workspace removal. The UI half (`UI/`) is one side tool, `context`, holding the
+per-workspace controls, the consent window and the logs window. Wire types are in `Contract/`.
+
+State lives in the plugin's own files (H14, H19): the enabled workspaces in `plugin-state/air-context/workspaces.json` and the CLI
+storage (agreement receipts and the downloaded executable) in `plugin-state/air-context/files`. The user's consent cannot be inferred
+from the executable's presence. Host state versions before protocol 8 kept both in the core; opening such a state file moves the
+directory and the list once (`AirContextMigration`), turns the old "hide Air Context" setting into the plugin being disabled unless
+the plugin already has an enabled flag, and removes the old keys in the same save.
+
+The paragraph advertising the tools to agents is the plugin's tool guidance and appears in the Claude Code and Codex instructions
+only while the plugin is enabled. The Codex launch line still preapproves the three tool names, whether or not the plugin is on.
 
 SharpRail optionally runs the unmodified JetBrains Context CLI on the workspace host.
 It downloads pinned 0.9.16.1161 macOS/Linux ARM64/x64 binaries directly from JetBrains,
@@ -18,15 +45,15 @@ are protocol/product references; the public repository is not the CLI source.
 
 ## Explicit user controls
 
-The existing agreement form binds actual-user acknowledgement to the pinned artifact
+The agreement form binds actual-user acknowledgement to the pinned artifact
 identity and current combined CLI EAP/AI terms hash. A download does not run the CLI or
 enable indexing. Current terms and an unconditional full executable digest are checked
 before every fresh native execution; display-only digest caching never authorizes it.
 Changed terms, missing acknowledgement, corrupt binaries or unavailable validation
 fail closed. No agent operation records consent or enables a workspace.
 
-Context enablement is a host-owned, persisted list of absolute workspace paths, shared
-through state broadcasts and typed local/WebSocket adapters. The UI explicitly explains
+Context enablement is a persisted list of absolute workspace paths owned by the plugin's host half, changed only by the plugin's
+user-interface methods and published on its `changed` channel to every client. The UI explicitly explains
 cloud processing and automatic indexing on SharpRail agent launch. New workspaces do
 not inherit this permission. Disabling cancels owned requests/indexing and disposes the
 workspace runtime. Removing a workspace also drops its retained in-memory logs.
@@ -42,7 +69,7 @@ JetBrains identity/cache. The workspace confirmation discloses that distinction.
 
 ## Runtime and agent workflow
 
-First recognition of a SharpRail UI-launched Codex/Claude process requests background
+First recognition of a SharpRail UI-launched Codex/Claude process (a terminal agent change the plugin observes) requests background
 indexing only for an enabled workspace. A per-host launch set handles restored records
 without retriggering on model/status updates. Each workspace deduplicates in-flight
 index jobs. The native indexer receives the fixed absolute project path and JSON output;
@@ -50,7 +77,7 @@ the CLI owns native/distributed indexing locks. Jobs have a 30-minute bound and 
 through their owned cancellation/process tree. Other hosts' or users' processes are
 never killed or globally stopped. The native watch daemon is not started or controlled.
 
-SharpRail's terminal-authenticated namespace and explicit headless MCP route expose:
+SharpRail's terminal-authenticated namespace and explicit headless MCP route expose, while the plugin is enabled:
 
 - context_search: descriptive semantic discovery, an optional contained path filter
   and bounded output. It cannot choose another workspace or an arbitrary upstream tool.
@@ -75,17 +102,18 @@ Only SharpRail-launched Codex commands receive Context tool approval overrides.
 
 Logs are bounded, workspace-scoped and redacted before retention, including JSON secret
 fields, bearer headers and URL queries. Search text/results are not persisted as logs.
-UI teardown closes views, not host indexing; host shutdown closes Context with language
-services. Direct and remote clients use the same host-owned implementation.
+UI teardown closes views, not host indexing; disabling the plugin or host shutdown ends the activation, which stops owned indexing and
+processes. Direct and remote clients use the same host-owned implementation through the generic plugin call.
 
 ## Verification limits
 
-Focused fixtures exercise host enablement persistence, direct/WebSocket state and RPC,
-launch-triggered indexing, restored launches, deduplication, namespace routing, path
-rejection, controlled login recovery, in-flight cancellation, progress/redaction,
-command arguments, schema adaptation, reconnect and teardown. Node/fake executables
-never accept JetBrains terms, authenticate or index real source. Expensive real-provider
-corpora remain opt-in and are not added to the full gate.
+Focused fixtures (`--context`, `--context-ui`, the `context-consent`, `air-context-lifecycle` and `air-context-migration` gate cases)
+exercise consent persistence, direct and WebSocket plugin calls, launch-triggered indexing, restored launches, deduplication,
+tool scoping, path rejection, controlled login recovery, in-flight cancellation, progress/redaction, command arguments, schema
+adaptation, reconnect and teardown; that disabling the plugin removes its tools, its instructions and its pane, stops indexing and
+makes agent launches a no-op with no network or process activity; and the migration of consent, enablement and the hidden flag.
+Node/fake executables never accept JetBrains terms, authenticate or index real source. Expensive real-provider corpora remain opt-in
+and are not added to the full gate.
 
 Current native 0.9.16.1161 help/config/MCP startup were inspected in a sandbox denying
 network and writes outside task scratch after confirming the user's existing artifact
@@ -93,18 +121,4 @@ receipt and publisher checksum. The signed-out MCP startup requires login. No re
 login, cloud upload, indexing or authenticated search has been executed by the agent.
 A signed-in smoke test and opaque vendor cache/watcher behavior remain unverified;
 fixture results do not establish those guarantees or completely private credentials.
-
-
-## 2026-10-17 verification
-
-Release build and whitespace verification for 35 touched C# files pass. Focused
-Context/core/UI, LSP UI, design, state, agent-launches and Codex checks pass. Production
-MCP/Roslyn reports current diagnostics for all 35 edited C# files, with 222
-informational/hint diagnostics and no errors or warnings. AXAML has compiler/UI
-coverage; browser/Android native acceptance and signed-in vendor search remain untested.
-The 144-case gate completed after a terminal focus assertion failed in a concurrent
-lane, then passed its focused rerun and last-failed continuation without code changes.
-The separate --claude-code mode passes host/UI checks but retains an existing launcher
-assertion for the removed center tab strip. The Release build retains three existing
-Avalonia URI-loader warnings. Existing spec validation has four BranchGraph dangling
-links; it does not validate this workspace's new spec through the Default-bound tool.
+The sign-in terminal tab opens under the plugin's tab key without the "Air Context sign-in" title the core pane used to set.

@@ -3,7 +3,7 @@ using System.Text;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
-namespace SharpRail.Host.Core.Context;
+namespace SharpRail.Plugins.AirContext.Host;
 
 internal static partial class ContextOutput
 {
@@ -146,4 +146,4 @@ internal sealed class ContextRuntime(string executable, string workspace, Action
     }
 }
 
-internal sealed class ContextLoginRequiredException() : IOException("JetBrains Context requires login. Choose Sign in in Code Intelligence.");
+internal sealed class ContextLoginRequiredException() : IOException("JetBrains Context requires login. Choose Sign in in the Air Context pane.");

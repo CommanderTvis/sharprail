@@ -2,21 +2,21 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Markup.Xaml;
 
-using SharpRail.Host.Abstractions;
+using SharpRail.Plugins.Api.UI;
 
-namespace SharpRail.UI.Panels;
+namespace SharpRail.Plugins.AirContext.UI;
 
-internal sealed partial class ContextConsentWindow : Window
+internal sealed partial class ConsentWindow : Window
 {
-    private readonly IProjectServices host;
+    private readonly IPluginUIContext context;
     private readonly CancellationTokenSource lifetime = new();
     private bool busy;
     private ContextConsentResult? result;
     internal event Action<ContextConsentResult>? Updated;
 
-    internal ContextConsentWindow(IProjectServices host)
+    internal ConsentWindow(IPluginUIContext context)
     {
-        this.host = host;
+        this.context = context;
         AvaloniaXamlLoader.Load(this);
         Title = "Air Context · Consent";
         Find<TextBlock>("ConsentHeading").PointerPressed += (_, e) => { if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) BeginMoveDrag(e); };
@@ -54,7 +54,7 @@ internal sealed partial class ContextConsentWindow : Window
         try
         {
             var request = new ContextConsentRequest(operation, result?.ArtifactId ?? "", result?.TermsSha256 ?? "");
-            var next = await host.ContextConsentAsync(request, lifetime.Token);
+            var next = await context.RequestAsync(AirContextContract.Consent, request, lifetime.Token);
             if (lifetime.IsCancellationRequested) return;
             result = next;
             Updated?.Invoke(next);

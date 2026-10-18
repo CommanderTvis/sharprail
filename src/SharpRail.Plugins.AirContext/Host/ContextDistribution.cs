@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 
-namespace SharpRail.Host.Core.Context;
+namespace SharpRail.Plugins.AirContext.Host;
 
 internal sealed record ContextBundle(string Version, string Platform, Uri Url, string Sha256);
 

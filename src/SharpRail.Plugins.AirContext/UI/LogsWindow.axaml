@@ -1,0 +1,29 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:kit="using:SharpRail.Plugins.UI.Kit"
+        x:Class="SharpRail.Plugins.AirContext.UI.LogsWindow" x:ClassModifier="internal"
+        Width="800" Height="480" MinWidth="400" MinHeight="240"
+        WindowStartupLocation="CenterOwner" WindowDecorations="None" ShowInTaskbar="False"
+        Background="Transparent" TransparencyLevelHint="Transparent"
+        TransparencyBackgroundFallback="{x:Static kit:Ui.Elevated}"
+        Foreground="{x:Static kit:Ui.TextBrush}" FontFamily="{x:Static kit:Ui.InterfaceFont}" FontSize="14">
+  <Border x:Name="LogCard" Margin="24" Padding="16" CornerRadius="8" BorderThickness="1"
+          Background="{x:Static kit:Ui.Elevated}" BorderBrush="{x:Static kit:Ui.BorderBrush}">
+  <Grid RowDefinitions="Auto,Auto,*,Auto">
+    <TextBlock x:Name="LogHeading" FontWeight="SemiBold" Margin="0,0,0,8" />
+    <TextBlock Grid.Row="1" x:Name="LogWorkspace" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" Margin="0,0,0,8" />
+    <TextBox Grid.Row="2" x:Name="ServerOutput" IsReadOnly="True" AcceptsReturn="True"
+             FontFamily="{x:Static kit:Ui.CodeFont}" FontSize="12" TextWrapping="NoWrap"
+             ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Auto"
+             AutomationProperties.Name="Air Context output" />
+    <Grid Grid.Row="3" ColumnDefinitions="*,Auto" Margin="0,8,0,0">
+      <TextBlock x:Name="LogStatus" Text="Reading logs…" TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" VerticalAlignment="Center" />
+      <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" Margin="8,0,0,0">
+        <Button x:Name="CopyLogs" Content="Copy" />
+        <Button x:Name="RefreshLogs" Content="Refresh" />
+        <Button x:Name="CloseLogs" Content="Close" />
+      </StackPanel>
+    </Grid>
+  </Grid>
+  </Border>
+</Window>

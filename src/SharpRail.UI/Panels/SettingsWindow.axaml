@@ -18,8 +18,6 @@
         <TextBlock Text="Shared by all workspaces and clients of this host. Per-server changes apply on the next Start / Retry." Classes="settings-description" />
         <CheckBox x:Name="LspFeatureEnabled" Content="Enable LSP" />
         <TextBlock Text="Turning this off stops all language servers and disables editor and agent language features. Saved server configurations are kept." Classes="settings-description" />
-        <CheckBox x:Name="ShowAirContext" Content="Show Air Context in Code Intelligence" />
-        <TextBlock Text="Hiding the section does not stop indexing or change workspace enablement." Classes="settings-description" />
         <ContentControl x:Name="JvmProviderSettings" Margin="0,8" />
         <Grid ColumnDefinitions="128,*" Margin="0,8,0,8">
           <Border BorderBrush="{x:Static rendering:Ui.BorderBrush}" BorderThickness="0,0,1,0" Padding="0,0,8,0">

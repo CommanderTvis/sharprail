@@ -44,50 +44,6 @@ internal sealed partial class LanguagePanel : UserControl
         };
         public override string ToString() => LanguageServerNameConverter.Display(Server.Id);
     }
-    private ContextConsentWindow? contextWindow;
-    private bool checkingContext;
-    private void ApplyContextState(ContextConsentResult result)
-    {
-        var button = this.FindControl<Button>("ContextSetup")!;
-        button.Content = result.State == "downloaded" ? "View installation…" : result.State == "repair" ? "Repair Context CLI…" : "Review terms and download…";
-        ToolTip.SetTip(button, result.Detail);
-        button.IsEnabled = contextWindow is null;
-    }
-
-    private async Task RefreshContextAsync()
-    {
-        if (checkingContext || lifetime is not { } current || contextWindow is not null) return;
-        checkingContext = true;
-        try
-        {
-            var result = await host.ContextConsentAsync(new("status"), current.Token);
-            if (lifetime == current && !current.IsCancellationRequested && contextWindow is null) ApplyContextState(result);
-        }
-        catch (OperationCanceledException) when (current.IsCancellationRequested) { }
-        catch (Exception error) { if (lifetime == current) ToolTip.SetTip(this.FindControl<Button>("ContextSetup")!, error.Message); }
-        finally { checkingContext = false; }
-    }
-
-    private void ContextSetupClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-    {
-        if (contextWindow is not null || TopLevel.GetTopLevel(this) is not Window owner) return;
-        contextWindow = new ContextConsentWindow(host);
-        contextWindow.Updated += result =>
-        {
-            ApplyContextState(result);
-            if (result.State == "downloaded" && contextFailure?.State == "requiresAcceptance") contextFailure = null;
-        };
-        this.FindControl<Button>("ContextSetup")!.IsEnabled = false;
-        contextWindow.Closed += async (_, _) =>
-        {
-            contextWindow = null;
-            this.FindControl<Button>("ContextSetup")!.IsEnabled = true;
-            await RefreshContextAsync();
-            await RefreshContextWorkspaceAsync();
-        };
-        contextWindow.Show(owner);
-    }
-
     private readonly IProjectServices host;
     private readonly string workspace;
     private readonly Func<LanguageItem, Task> navigate;
@@ -99,9 +55,9 @@ internal sealed partial class LanguagePanel : UserControl
     private readonly HashSet<string> added = [];
     private readonly HashSet<string> expanded = [];
 
-    internal LanguagePanel(IProjectServices host, string workspace, Func<LanguageItem, Task> navigate, SharpRail.UI.State.SharedState? state = null, Func<string, Task>? contextLogin = null)
+    internal LanguagePanel(IProjectServices host, string workspace, Func<LanguageItem, Task> navigate, SharpRail.UI.State.SharedState? state = null)
     {
-        this.host = host; this.workspace = workspace; this.navigate = navigate; this.contextLogin = contextLogin;
+        this.host = host; this.workspace = workspace; this.navigate = navigate;
         AvaloniaXamlLoader.Load(this);
         Name = "LspPanel";
         this.FindControl<TextBlock>("Workspace")!.Text = workspace;
@@ -129,12 +85,10 @@ internal sealed partial class LanguagePanel : UserControl
             add.SelectedIndex = -1;
         };
         this.FindControl<Button>("Refresh")!.Click += async (_, _) => await RunAsync("servers");
-        timer.Tick += async (_, _) => { if (IsEffectivelyVisible) { await RunAsync("servers"); await RefreshContextAsync(); await RefreshContextWorkspaceAsync(); } };
+        timer.Tick += async (_, _) => { if (IsEffectivelyVisible) { await RunAsync("servers"); } };
         void ConfigurationChanged(HostState previous, HostState next)
         {
             if (!Dispatcher.UIThread.CheckAccess()) { Dispatcher.UIThread.Post(() => ConfigurationChanged(previous, next)); return; }
-            this.FindControl<Border>("AirContextContainer")!.IsVisible = !next.Settings.AirContextHidden;
-            if (next.ContextWorkspaces.Contains(workspace) != previous.ContextWorkspaces.Contains(workspace)) _ = RefreshContextWorkspaceAsync();
             var saved = next.WorkspaceLanguages.GetValueOrDefault(workspace) ?? "{}";
             if (saved == (previous.WorkspaceLanguages.GetValueOrDefault(workspace) ?? "{}")) return;
             var values = System.Text.Json.Nodes.JsonNode.Parse(saved);
@@ -142,10 +96,8 @@ internal sealed partial class LanguagePanel : UserControl
                 view.UpdateSavedConfiguration(values?[id]?.ToJsonString() ?? "{}");
             _ = RunAsync("servers");
         }
-        this.FindControl<Border>("AirContextContainer")!.IsVisible = state?.Current.Settings.AirContextHidden != true;
-        this.FindControl<ContentControl>("ContextBrand")!.Content = LanguageServerIconConverter.CreateAirIcon();
-        AttachedToVisualTree += (_, _) => { lifetime = new(); if (state is not null) state.Changed += ConfigurationChanged; timer.Start(); _ = RunAsync("servers"); _ = RefreshContextAsync(); _ = RefreshContextWorkspaceAsync(); };
-        DetachedFromVisualTree += (_, _) => { if (state is not null) state.Changed -= ConfigurationChanged; foreach (var view in configurations.Values) view.SettingsWindow?.Close(); timer.Stop(); contextWindow?.Close(); contextLogs?.Close(); lifetime?.Cancel(); lifetime?.Dispose(); lifetime = null; };
+        AttachedToVisualTree += (_, _) => { lifetime = new(); if (state is not null) state.Changed += ConfigurationChanged; timer.Start(); _ = RunAsync("servers"); };
+        DetachedFromVisualTree += (_, _) => { if (state is not null) state.Changed -= ConfigurationChanged; foreach (var view in configurations.Values) view.SettingsWindow?.Close(); timer.Stop(); lifetime?.Cancel(); lifetime?.Dispose(); lifetime = null; };
     }
 
     private void SetStatus(string text)

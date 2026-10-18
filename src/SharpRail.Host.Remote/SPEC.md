@@ -278,7 +278,7 @@ no license-acceptance operation. Malformed JSON receives a JSON-RPC parse error.
 Context consent is authenticated project RPC only, delegating review and explicit accept/download to Core. Terminal MCP exposes no acceptance operation; its credentials cannot implicitly acknowledge agreements. Downloads stay on the host.
 
 
-Language RPC maps detected project roots and provenance; lsp_status supports operation projects with bounded pagination. It starts no servers. Context consent RPC also supports local-only installation status and cannot infer user acceptance from an installed binary.
+Language RPC maps detected project roots and provenance; lsp_status supports operation projects with bounded pagination. It starts no servers.
 
 
-Context RPC delegates typed workspace operations to Core. The terminal-authenticated namespace and explicit headless MCP route include context_search/status/index, bound to the calling workspace. They cannot accept terms, enable workspaces, sign in or select arbitrary native tools. Logs and outputs remain bounded; lifecycle processes belong to the host, not the listener.
+The explicit headless MCP route serves the language tools and the tools of the enabled plugins for its fixed workspace, read per request so a plugin turned off stops serving at once. Air Context's tools (context_search/status/index) are the plugin's, bound to the calling workspace; see its [module](../SharpRail.Plugins.AirContext/SPEC.md).

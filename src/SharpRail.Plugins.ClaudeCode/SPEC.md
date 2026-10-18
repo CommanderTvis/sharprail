@@ -297,12 +297,7 @@ bounded source retrieval with the returned URI/source provider. Reuse warm sessi
 readiness; retain text-search fallbacks for incomplete or unsupported semantic results.
 
 
-The prompt appendix advertises workspace-gated context_search/status/index through the existing SharpRail MCP connection, then LSP for known symbols/current drafts. Capabilities describes explicit cloud enablement. No jbcontext global Claude setup/hooks/skills are installed; host agent recognition triggers indexing only after workspace enablement.
-
-Air Context prompt guidance explains meaning-based code discovery and directs agents to
-use it proactively as the first step for unfamiliar behavior whenever workspace-enabled.
-Disabled or unready indexing falls back to LSP and targeted text search without blocking;
-user-only enablement/sign-in and current-draft limitations remain explicit.
+The prompt appendix carries the tool guidance enabled plugins contribute (H20; Air Context's context_search/status/index paragraph while that plugin is enabled), then LSP for known symbols/current drafts. The file is composed on activation and for every terminal the plugin starts, so a plugin turned off leaves nothing in it; an edited file is the user's and is left alone. No jbcontext global Claude setup/hooks/skills are installed; the Air Context plugin triggers indexing only after workspace enablement.
 
 ## Launch contributions
 

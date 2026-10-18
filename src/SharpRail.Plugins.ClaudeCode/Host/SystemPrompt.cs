@@ -14,9 +14,7 @@ internal static class SystemPrompt
 
         Prefer available SharpRail MCP tools; disabled plugins may hide tools:
 
-        {{tool-guidance}}- Air Context (`jbcontext`) provides semantic code discovery: it finds code by meaning and behavior, even when you do not know the symbol names or exact wording. Use `context_search` as the default first step for unfamiliar code, feature locations, and cross-cutting behavior whenever this workspace has it enabled; do not wait for the user to ask for it. Check `context_status` when readiness is unknown. If disabled, unavailable, or not ready, continue with LSP and targeted text search rather than blocking. Use descriptive queries, inspect the returned locations, then use LSP for exact symbols and relationships. Use text search for literal strings and configuration, and supplement incomplete semantic results as needed. `context_status` reports login/index readiness; `context_index` refreshes an already-enabled workspace. Use these SharpRail tools instead of running the global jbcontext installer or changing agent hooks/configuration. Only the user can enable cloud indexing or sign in. Unsaved code is not guaranteed indexed; use the editor/LSP for current drafts.
-
-        - `visualize`: Mermaid diagrams or option comparisons instead of ASCII art/tables when clearer. Each call replaces the live view.
+        {{tool-guidance}}- `visualize`: Mermaid diagrams or option comparisons instead of ASCII art/tables when clearer. Each call replaces the live view.
         - If this project uses a spec graph and the `spec_*` tools are available, use them to read and maintain affected specs. Projects without specs need no spec workflow; do not create specs unless asked.
         - `blueprint_check`: verify SharpRail's rendered view after writing or rewriting BLUEPRINT.md.
 

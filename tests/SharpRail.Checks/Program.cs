@@ -125,12 +125,14 @@ internal static class Program
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
-            ContextChecks.Ui(root);
+            AirContextChecks.Ui(root);
             return;
         }
         if (args.SequenceEqual(["--context"]))
         {
-            ContextChecks.Run(root).GetAwaiter().GetResult();
+            AirContextChecks.Run(root).GetAwaiter().GetResult();
+            AirContextChecks.Lifecycle(root).GetAwaiter().GetResult();
+            AirContextChecks.Migration(root).GetAwaiter().GetResult();
             return;
         }
         if (args.SequenceEqual(["--lsp-real-csharp"]))
@@ -883,7 +885,9 @@ internal static class Program
         Gate.Case("open-world", CheckOpenWorld);
         Gate.Case("websocket-flow", () => WebSocketFlowChecks.Run().GetAwaiter().GetResult());
         Gate.Case("browser-transport", () => BrowserTransportChecks.Run(root).GetAwaiter().GetResult());
-        Gate.Case("context-consent", () => ContextChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("context-consent", () => AirContextChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("air-context-lifecycle", () => AirContextChecks.Lifecycle(root).GetAwaiter().GetResult());
+        Gate.Case("air-context-migration", () => AirContextChecks.Migration(root).GetAwaiter().GetResult());
         Gate.Case("global-jvm-provider", () => GlobalJvmProviderChecks.Run(root).GetAwaiter().GetResult());
 
         Gate.Case("project-language-autostart", () => ProjectLanguageAutostartChecks.Run(root).GetAwaiter().GetResult());

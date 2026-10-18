@@ -70,7 +70,6 @@ public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime li
             SettleIdleDays = state.Settings.SettleIdleDays ?? 0,
             LanguageServers = state.Settings.LanguageServers,
             JavaKotlinProvider = state.Settings.JavaKotlinProvider,
-            AirContextHidden = state.Settings.AirContextHidden,
             LspEnabled = state.Settings.LspEnabled
         },
         Presets = state.Presets.Select(preset => new PresetMessage { Name = preset.Name, Layout = preset.Layout }).ToList(),
@@ -78,7 +77,6 @@ public sealed class StateRpc(IHostStateService host, IHostApplicationLifetime li
         RecentProjects = state.RecentProjects.ToList(),
         ProjectRecords = state.ProjectRecords.Select(record => new ProjectRecordMessage { Id = record.Id, Path = record.Path, Slug = record.Slug, LastOpened = record.LastOpened }).ToList(),
         Labels = state.WorkspaceLabels.Select(entry => new LabelMessage { Path = entry.Key, Label = entry.Value }).ToList(),
-        ContextWorkspaces = state.ContextWorkspaces.ToList(),
         WorkspaceLanguages = state.WorkspaceLanguages.Select(entry => new WorkspaceRefMessage { Path = entry.Key, Reference = entry.Value }).ToList(),
         ProjectLanguageAutostart = state.ProjectLanguageAutostart.Select(entry => new WorkspaceRefMessage { Path = entry.Key, Reference = entry.Value }).ToList(),
         Bases = state.WorkspaceBases.Select(entry => new WorkspaceRefMessage { Path = entry.Key, Reference = entry.Value }).ToList(),

@@ -3,7 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
-namespace SharpRail.Host.Core.Context;
+namespace SharpRail.Plugins.AirContext.Host;
 
 internal sealed class ContextMcpConnection : IAsyncDisposable
 {

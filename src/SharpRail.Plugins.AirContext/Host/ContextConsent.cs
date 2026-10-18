@@ -4,9 +4,9 @@ using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
-using SharpRail.Host.Abstractions;
+using SharpRail.Plugins.AirContext;
 
-namespace SharpRail.Host.Core.Context;
+namespace SharpRail.Plugins.AirContext.Host;
 
 internal sealed class ContextConsent(string storage, HttpClient http, ContextBundle bundle)
 {
@@ -125,7 +125,7 @@ internal sealed class ContextConsent(string storage, HttpClient http, ContextBun
         var installation = await VerifiedInstallationAsync(token);
         var exists = File.Exists(ContextDistribution.Installation(storage, bundle));
         return new(installation is not null ? "downloaded" : exists ? "repair" : "notInstalled",
-            installation is not null ? "CLI downloaded and verified. Workspace indexing is controlled separately in Code Intelligence." : exists ? "The CLI failed integrity verification. Download again to repair it." : "CLI not downloaded.",
+            installation is not null ? "CLI downloaded and verified. Workspace indexing is controlled separately in the Air Context pane." : exists ? "The CLI failed integrity verification. Download again to repair it." : "CLI not downloaded.",
             bundle.Version, Identity(bundle), Installation: installation ?? "");
     }
 
@@ -134,7 +134,7 @@ internal sealed class ContextConsent(string storage, HttpClient http, ContextBun
         await RequireAsync(token);
         var executable = ContextDistribution.Installation(storage, bundle);
         if (!await ContextDistribution.MatchesAsync(executable, bundle.Sha256, token))
-            throw new IOException("Context CLI integrity verification failed. Repair the installation in Code Intelligence before running it.");
+            throw new IOException("Context CLI integrity verification failed. Repair the installation in the Air Context pane before running it.");
     }
 
     internal async Task RequireAsync(CancellationToken token)

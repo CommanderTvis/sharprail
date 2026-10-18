@@ -35,6 +35,9 @@
     <Project Path="src/SharpRail.Plugins.Visualize/Contract/SharpRail.Plugins.Visualize.csproj" />
     <Project Path="src/SharpRail.Plugins.Visualize/Host/SharpRail.Plugins.Visualize.Host.csproj" />
     <Project Path="src/SharpRail.Plugins.Visualize/UI/SharpRail.Plugins.Visualize.UI.csproj" />
+    <Project Path="src/SharpRail.Plugins.AirContext/Contract/SharpRail.Plugins.AirContext.csproj" />
+    <Project Path="src/SharpRail.Plugins.AirContext/Host/SharpRail.Plugins.AirContext.Host.csproj" />
+    <Project Path="src/SharpRail.Plugins.AirContext/UI/SharpRail.Plugins.AirContext.UI.csproj" />
     <Project Path="src/SharpRail.Plugins.Tailscale/Contract/SharpRail.Plugins.Tailscale.csproj" />
     <Project Path="src/SharpRail.Plugins.Tailscale/Host/SharpRail.Plugins.Tailscale.Host.csproj" />
     <Project Path="src/SharpRail.Plugins.Tailscale/UI/SharpRail.Plugins.Tailscale.UI.csproj" />

@@ -87,6 +87,7 @@ ships these plugins:
 | Specs | Browse a project’s spec graph and give terminal agents tools to read and maintain it. Projects without specs need no spec workflow. |
 | Blueprint | Work through design choices in an interactive `BLUEPRINT.md`; a Claude Code or Codex author reconciles the document when you change a choice. |
 | Git Graph | See branches, commits and worktrees together in a history graph. |
+| Air Context | Optionally let terminal agents search a workspace by meaning through JetBrains Air Context; indexing sends source to JetBrains and is enabled per workspace by you. |
 | Visualize | Let a terminal agent show a Mermaid diagram or compare options in a companion pane, then update that view as the discussion develops. |
 | PDF Preview | Read PDFs alongside your code, with selectable text, zoom and refresh when the file changes. |
 | Discord | Optionally share the project and file you have open through Discord Rich Presence. |

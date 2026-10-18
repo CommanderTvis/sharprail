@@ -35,7 +35,7 @@ public sealed class SettingsMessage
     [ProtoMember(15)] public bool FileTypeIconsDisabled { get; set; }
     [ProtoMember(10)] public bool NotificationsDisabled { get; set; }
     [ProtoMember(16), System.ComponentModel.DefaultValue(true)] public bool LspEnabled { get; set; } = true;
-    [ProtoMember(18)] public bool AirContextHidden { get; set; }
+    // Member 18 carried Air Context's visibility until it became a plugin (protocol 8); the number is retired.
     [ProtoMember(19)] public string JavaKotlinProvider { get; set; } = "";
     [ProtoMember(17)] public string LanguageServers { get; set; } = "";
     [ProtoMember(11)] public string CustomHighlighting { get; set; } = "";
@@ -93,7 +93,7 @@ public sealed class StateReply
     [ProtoMember(14)] public List<string> PluginPaths { get; set; } = [];
     [ProtoMember(15)] public List<PluginRosterMessage> Plugins { get; set; } = [];
     [ProtoMember(16)] public List<TerminalAgentMessage> TerminalAgents { get; set; } = [];
-    [ProtoMember(19)] public List<string> ContextWorkspaces { get; set; } = [];
+    // Member 19 carried Air Context's enabled workspaces until it became a plugin (protocol 8); the number is retired.
     [ProtoMember(20)] public List<WorkspaceRefMessage> ProjectLanguageAutostart { get; set; } = [];
     [ProtoMember(18)] public List<WorkspaceRefMessage> WorkspaceLanguages { get; set; } = [];
     [ProtoMember(17)] public List<TerminalTitleMessage> TerminalTitles { get; set; } = [];

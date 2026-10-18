@@ -4,7 +4,8 @@ const SharpRail.Host.Abstractions.FileLimits.PreviewBytes = 8388608 -> int
 const SharpRail.Host.Abstractions.FileLimits.ReadMessageBytes = 83886080 -> int
 const SharpRail.Host.Abstractions.FileLimits.SaveMessageBytes = 150994944 -> int
 const SharpRail.Host.Abstractions.HostProtocol.ChangeWritePath = 2 -> int
-const SharpRail.Host.Abstractions.HostProtocol.Current = 7 -> int
+const SharpRail.Host.Abstractions.HostProtocol.AirContextPlugin = 8 -> int
+const SharpRail.Host.Abstractions.HostProtocol.Current = 8 -> int
 const SharpRail.Host.Abstractions.HostProtocol.RequestReplay = 3 -> int
 const SharpRail.Host.Abstractions.HostProtocol.WebSocketTransport = 5 -> int
 const SharpRail.Host.Abstractions.HostSettings.DefaultTerminalReplayKb = 64 -> int
@@ -1565,49 +1566,6 @@ static SharpRail.Host.Abstractions.IntelliJTermsResult.operator ==(SharpRail.Hos
 static SharpRail.Host.Abstractions.IntelliJTermsResult.operator !=(SharpRail.Host.Abstractions.IntelliJTermsResult? left, SharpRail.Host.Abstractions.IntelliJTermsResult? right) -> bool
 SharpRail.Host.Abstractions.IProjectServices.IntelliJTermsAsync(SharpRail.Host.Abstractions.IntelliJTermsRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Host.Abstractions.IntelliJTermsResult!>
 
-SharpRail.Host.Abstractions.ContextConsentResult.State.get -> string!
-SharpRail.Host.Abstractions.ContextConsentRequest.ArtifactId.get -> string!
-SharpRail.Host.Abstractions.ContextConsentResult.State.init -> void
-SharpRail.Host.Abstractions.ContextConsentRequest.ArtifactId.init -> void
-SharpRail.Host.Abstractions.ContextConsentRequest.TermsSha256.get -> string!
-SharpRail.Host.Abstractions.ContextConsentResult.ArtifactId.get -> string!
-SharpRail.Host.Abstractions.ContextConsentResult.Version.get -> string!
-SharpRail.Host.Abstractions.ContextConsentResult.Version.init -> void
-SharpRail.Host.Abstractions.ContextConsentResult.TermsSha256.get -> string!
-SharpRail.Host.Abstractions.ContextConsentResult.TermsSha256.init -> void
-SharpRail.Host.Abstractions.ContextConsentResult.Text.get -> string!
-SharpRail.Host.Abstractions.ContextConsentRequest.Operation.get -> string!
-SharpRail.Host.Abstractions.ContextConsentRequest.Operation.init -> void
-SharpRail.Host.Abstractions.ContextConsentRequest.TermsSha256.init -> void
-SharpRail.Host.Abstractions.ContextConsentResult.Text.init -> void
-SharpRail.Host.Abstractions.ContextConsentResult.AcceptedAtUtc.get -> string!
-SharpRail.Host.Abstractions.ContextConsentResult.AcceptedAtUtc.init -> void
-SharpRail.Host.Abstractions.ContextConsentResult.Installation.get -> string!
-SharpRail.Host.Abstractions.ContextConsentResult.Detail.get -> string!
-SharpRail.Host.Abstractions.ContextConsentResult.Detail.init -> void
-SharpRail.Host.Abstractions.ContextConsentResult.Installation.init -> void
-SharpRail.Host.Abstractions.ContextConsentResult
-override SharpRail.Host.Abstractions.ContextConsentResult.ToString() -> string!
-static SharpRail.Host.Abstractions.ContextConsentResult.operator !=(SharpRail.Host.Abstractions.ContextConsentResult? left, SharpRail.Host.Abstractions.ContextConsentResult? right) -> bool
-static SharpRail.Host.Abstractions.ContextConsentResult.operator ==(SharpRail.Host.Abstractions.ContextConsentResult? left, SharpRail.Host.Abstractions.ContextConsentResult? right) -> bool
-override SharpRail.Host.Abstractions.ContextConsentResult.GetHashCode() -> int
-override SharpRail.Host.Abstractions.ContextConsentResult.Equals(object? obj) -> bool
-SharpRail.Host.Abstractions.ContextConsentResult.Equals(SharpRail.Host.Abstractions.ContextConsentResult? other) -> bool
-SharpRail.Host.Abstractions.ContextConsentResult.<Clone>$() -> SharpRail.Host.Abstractions.ContextConsentResult!
-SharpRail.Host.Abstractions.ContextConsentResult.Deconstruct(out string! State, out string! Detail, out string! Version, out string! ArtifactId, out string! TermsSha256, out string! Text, out string! AcceptedAtUtc, out string! Installation) -> void
-SharpRail.Host.Abstractions.ContextConsentRequest
-override SharpRail.Host.Abstractions.ContextConsentRequest.ToString() -> string!
-static SharpRail.Host.Abstractions.ContextConsentRequest.operator !=(SharpRail.Host.Abstractions.ContextConsentRequest? left, SharpRail.Host.Abstractions.ContextConsentRequest? right) -> bool
-static SharpRail.Host.Abstractions.ContextConsentRequest.operator ==(SharpRail.Host.Abstractions.ContextConsentRequest? left, SharpRail.Host.Abstractions.ContextConsentRequest? right) -> bool
-override SharpRail.Host.Abstractions.ContextConsentRequest.GetHashCode() -> int
-override SharpRail.Host.Abstractions.ContextConsentRequest.Equals(object? obj) -> bool
-SharpRail.Host.Abstractions.ContextConsentRequest.Equals(SharpRail.Host.Abstractions.ContextConsentRequest? other) -> bool
-SharpRail.Host.Abstractions.ContextConsentRequest.<Clone>$() -> SharpRail.Host.Abstractions.ContextConsentRequest!
-SharpRail.Host.Abstractions.ContextConsentRequest.Deconstruct(out string! Operation, out string! ArtifactId, out string! TermsSha256) -> void
-SharpRail.Host.Abstractions.ContextConsentResult.ArtifactId.init -> void
-SharpRail.Host.Abstractions.ContextConsentRequest.ContextConsentRequest(string! Operation = "review", string! ArtifactId = "", string! TermsSha256 = "") -> void
-SharpRail.Host.Abstractions.ContextConsentResult.ContextConsentResult(string! State, string! Detail = "", string! Version = "", string! ArtifactId = "", string! TermsSha256 = "", string! Text = "", string! AcceptedAtUtc = "", string! Installation = "") -> void
-SharpRail.Host.Abstractions.IProjectServices.ContextConsentAsync(SharpRail.Host.Abstractions.ContextConsentRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Host.Abstractions.ContextConsentResult!>
 SharpRail.Host.Abstractions.LanguageProject.Root.get -> string!
 SharpRail.Host.Abstractions.LanguageProject.Root.init -> void
 SharpRail.Host.Abstractions.LanguageProject.Server.get -> string!
@@ -1632,49 +1590,6 @@ override SharpRail.Host.Abstractions.LanguageProject.Equals(object? obj) -> bool
 SharpRail.Host.Abstractions.LanguageProject.Equals(SharpRail.Host.Abstractions.LanguageProject? other) -> bool
 SharpRail.Host.Abstractions.LanguageProject.<Clone>$() -> SharpRail.Host.Abstractions.LanguageProject!
 SharpRail.Host.Abstractions.LanguageProject.Deconstruct(out string! Root, out string! Manifest, out string! Server, out string! Kind, out string! State, out string! Detail) -> void
-SharpRail.Host.Abstractions.ContextRequest.Workspace.get -> string!
-SharpRail.Host.Abstractions.ContextRequest.Query.get -> string!
-SharpRail.Host.Abstractions.ContextRequest.Limit.get -> int
-SharpRail.Host.Abstractions.ContextRequest.Path.get -> string!
-SharpRail.Host.Abstractions.ContextResult.State.get -> string!
-SharpRail.Host.Abstractions.ContextResult.Enabled.get -> bool
-SharpRail.Host.Abstractions.ContextRequest.Operation.get -> string!
-SharpRail.Host.Abstractions.ContextRequest.Workspace.init -> void
-SharpRail.Host.Abstractions.ContextResult.Command.get -> string!
-SharpRail.Host.Abstractions.ContextResult.State.init -> void
-SharpRail.Host.Abstractions.ContextRequest.Limit.init -> void
-SharpRail.Host.Abstractions.ContextRequest.Operation.init -> void
-SharpRail.Host.Abstractions.ContextRequest.Path.init -> void
-SharpRail.Host.Abstractions.ContextRequest.Query.init -> void
-SharpRail.Host.Abstractions.ContextResult.Command.init -> void
-SharpRail.Host.Abstractions.ContextResult.Detail.get -> string!
-SharpRail.Host.Abstractions.ContextResult.Data.get -> string!
-SharpRail.Host.Abstractions.ContextResult.Detail.init -> void
-SharpRail.Host.Abstractions.ContextResult.ContextResult(string! State, string! Detail = "", bool Enabled = false, string! Data = "", string! Command = "") -> void
-SharpRail.Host.Abstractions.ContextResult.Data.init -> void
-SharpRail.Host.Abstractions.ContextRequest.ContextRequest(string! Workspace, string! Operation = "status", string! Query = "", string! Path = "", int Limit = 20) -> void
-SharpRail.Host.Abstractions.IProjectServices.ContextAsync(SharpRail.Host.Abstractions.ContextRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Host.Abstractions.ContextResult!>
-SharpRail.Host.Abstractions.ContextResult.Enabled.init -> void
-SharpRail.Host.Abstractions.HostState.ContextWorkspaces.init -> void
-SharpRail.Host.Abstractions.HostState.ContextWorkspaces.get -> System.Collections.Generic.IReadOnlyList<string!>!
-SharpRail.Host.Abstractions.ContextResult
-override SharpRail.Host.Abstractions.ContextResult.ToString() -> string!
-static SharpRail.Host.Abstractions.ContextResult.operator !=(SharpRail.Host.Abstractions.ContextResult? left, SharpRail.Host.Abstractions.ContextResult? right) -> bool
-static SharpRail.Host.Abstractions.ContextResult.operator ==(SharpRail.Host.Abstractions.ContextResult? left, SharpRail.Host.Abstractions.ContextResult? right) -> bool
-override SharpRail.Host.Abstractions.ContextResult.GetHashCode() -> int
-override SharpRail.Host.Abstractions.ContextResult.Equals(object? obj) -> bool
-SharpRail.Host.Abstractions.ContextResult.Equals(SharpRail.Host.Abstractions.ContextResult? other) -> bool
-SharpRail.Host.Abstractions.ContextResult.<Clone>$() -> SharpRail.Host.Abstractions.ContextResult!
-SharpRail.Host.Abstractions.ContextResult.Deconstruct(out string! State, out string! Detail, out bool Enabled, out string! Data, out string! Command) -> void
-SharpRail.Host.Abstractions.ContextRequest
-override SharpRail.Host.Abstractions.ContextRequest.ToString() -> string!
-static SharpRail.Host.Abstractions.ContextRequest.operator !=(SharpRail.Host.Abstractions.ContextRequest? left, SharpRail.Host.Abstractions.ContextRequest? right) -> bool
-static SharpRail.Host.Abstractions.ContextRequest.operator ==(SharpRail.Host.Abstractions.ContextRequest? left, SharpRail.Host.Abstractions.ContextRequest? right) -> bool
-override SharpRail.Host.Abstractions.ContextRequest.GetHashCode() -> int
-override SharpRail.Host.Abstractions.ContextRequest.Equals(object? obj) -> bool
-SharpRail.Host.Abstractions.ContextRequest.Equals(SharpRail.Host.Abstractions.ContextRequest? other) -> bool
-SharpRail.Host.Abstractions.ContextRequest.<Clone>$() -> SharpRail.Host.Abstractions.ContextRequest!
-SharpRail.Host.Abstractions.ContextRequest.Deconstruct(out string! Workspace, out string! Operation, out string! Query, out string! Path, out int Limit) -> void
 
 SharpRail.Host.Abstractions.LanguageItem.Modifiers.get -> string!
 SharpRail.Host.Abstractions.LanguageItem.Modifiers.init -> void
@@ -1682,8 +1597,6 @@ SharpRail.Host.Abstractions.LanguageItem.Modifiers.init -> void
 SharpRail.Host.Abstractions.LanguageResult.SemanticColoring.get -> bool
 SharpRail.Host.Abstractions.LanguageResult.SemanticColoring.init -> void
 
-SharpRail.Host.Abstractions.HostSettings.AirContextHidden.get -> bool
-SharpRail.Host.Abstractions.HostSettings.AirContextHidden.init -> void
 
 SharpRail.Host.Abstractions.HostSettings.JavaKotlinProvider.get -> string!
 SharpRail.Host.Abstractions.HostSettings.JavaKotlinProvider.init -> void

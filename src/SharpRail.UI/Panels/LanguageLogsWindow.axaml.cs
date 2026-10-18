@@ -14,16 +14,15 @@ internal sealed partial class LanguageLogsWindow : Window
     private readonly IProjectServices host;
     private readonly string workspace;
     private readonly string server;
-    private readonly bool context;
     private readonly CancellationTokenSource lifetime = new();
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(2) };
     private bool busy;
 
-    internal LanguageLogsWindow(IProjectServices host, string workspace, string server, bool context = false)
+    internal LanguageLogsWindow(IProjectServices host, string workspace, string server)
     {
-        this.host = host; this.workspace = workspace; this.server = server; this.context = context;
+        this.host = host; this.workspace = workspace; this.server = server;
         AvaloniaXamlLoader.Load(this);
-        Title = context ? "JetBrains Context · Logs" : server + " · LSP logs";
+        Title = server + " · LSP logs";
         var heading = this.FindControl<TextBlock>("LogHeading")!;
         heading.Text = Title;
         heading.PointerPressed += (_, e) =>
@@ -61,12 +60,7 @@ internal sealed partial class LanguageLogsWindow : Window
         var token = lifetime.Token;
         try
         {
-            var result = await Task.Run(async () =>
-            {
-                if (!context) return await host.LanguageAsync(new(workspace, Operation: "logs", Server: server), token);
-                var output = await host.ContextAsync(new(workspace, "logs"), token);
-                return new LanguageResult(output.State, output.Data);
-            }, token);
+            var result = await Task.Run(async () => await host.LanguageAsync(new(workspace, Operation: "logs", Server: server), token), token);
             if (token.IsCancellationRequested) return;
             var output = this.FindControl<TextBox>("ServerOutput")!;
             if (output.Text != result.Detail) output.Text = result.Detail;

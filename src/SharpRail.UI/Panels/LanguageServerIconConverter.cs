@@ -13,10 +13,6 @@ internal sealed class LanguageServerIconConverter : IValueConverter
     private static readonly Lazy<byte[]> IntelliJ = new(() => ReadBrand("intellij-idea.svg"));
 
     private static readonly Dictionary<string, Bitmap> Bitmaps = [];
-    private static readonly Lazy<byte[]> Air = new(() => ReadBrand("air.svg"));
-
-    internal static Control CreateAirIcon() => new SvgAsset(Air.Value, 24);
-
     private static byte[] ReadBrand(string name)
     {
         using var stream = Avalonia.Platform.AssetLoader.Open(new Uri("avares://SharpRail.UI/Assets/Brands/" + name));

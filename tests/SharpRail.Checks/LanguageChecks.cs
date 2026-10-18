@@ -262,9 +262,6 @@ internal static class LanguageChecks
             var batchDraft = await host.LanguageAsync(new(root, Operation: "diagnostics", Paths: ["code.ts"]));
             Require(batchDraft.Diagnostics.Single().Text == "broken" && batchDraft.Files.Single().Detail.Contains("unsaved", StringComparison.Ordinal), "Batch lost dirty draft provenance.");
             var pid = JsonNode.Parse(await File.ReadAllTextAsync(Path.Combine(root, ".tools", "initialize.json")))!["pid"]!.GetValue<int>();
-            await settingsHost.ChangeAsync([HostStateChange.Setting("air-context-hidden", "true")]);
-            Require((await settingsHost.GetStateAsync()).Settings.AirContextHidden && new HostStateStore(stateDirectory).Current.Settings.AirContextHidden,
-                "Air Context visibility did not persist across transports.");
             await settingsHost.ChangeAsync([HostStateChange.Setting("lsp-enabled", "false")]);
             Require(!(await settingsHost.GetStateAsync()).Settings.LspEnabled && !new HostStateStore(stateDirectory).Current.Settings.LspEnabled,
                 "Master LSP setting did not persist across transports.");
@@ -949,10 +946,8 @@ internal static class LanguageChecks
         {
             E2E.E2eWorkspace.Until(() => Find<Avalonia.Controls.ListBox>("LspServer").ItemCount == LanguageServers.Catalog.Length);
             Require(Find<ComboBox>("JvmProvider") is not null, "Settings omitted workspace provider selection.");
-            var showContext = Find<CheckBox>("ShowAirContext");
-            showContext.IsChecked = false;
-            showContext.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
-            E2E.E2eWorkspace.Until(() => app.Window.Workbench.State.Current.Settings.AirContextHidden);
+            Require(!settings.GetLogicalDescendants().OfType<CheckBox>().Any(control => control.Name == "ShowAirContext"),
+                "Code Intelligence still offers an Air Context switch; the plugin is turned off in Settings › Plugins.");
             var rail = Find<Avalonia.Controls.ListBox>("LspServer");
             Require(!settings.GetLogicalDescendants().OfType<ComboBox>().Any(control => control.Name == "LspServer"), "Server settings must use navigation, not a dropdown.");
             rail.SelectedItem = "python";

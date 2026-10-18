@@ -30,7 +30,6 @@ public sealed partial class HostStateStore
     public async ValueTask StopLanguagesAsync()
     {
         if (languages is { } service) await service.DisposeAsync();
-        if (contexts is { } contextService) await contextService.DisposeAsync();
     }
 }
 

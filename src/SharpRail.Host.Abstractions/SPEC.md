@@ -190,13 +190,7 @@ Body and Truncated indicates continuation. Symbol-selected navigation uses Query
 qualified outline name; ambiguous results retain candidates rather than guessing a cursor.
 
 
-ContextConsentAsync is a user-interface-only review/accept-and-download contract. Results carry the host-selected artifact identity, reviewed text/hash and acknowledgement timestamp. It grants no indexing enablement or CLI execution; see the host core Context consent boundary.
-
-
-The read-only projects language operation returns LanguageProject roots with manifest, provider, kind, detected state and provenance. Pagination uses existing total/truncated fields. Detected roots do not assert imported module membership. Context consent also supports local-only status, independent of legal acknowledgement.
-
-
-ContextRequest/ContextResult carry workspace-scoped lifecycle/search operations and bounded output. Enable/disable/login are user controls; agent tools expose only search/status/index. HostState.ContextWorkspaces persists explicit cloud enablement, independently of language configuration and without inheritance. Credentials and user-control commands never enter shared state.
+The read-only projects language operation returns LanguageProject roots with manifest, provider, kind, detected state and provenance. Pagination uses existing total/truncated fields. Detected roots do not assert imported module membership.
 
 
 LanguageProject directory metadata records its provenance: detected build definitions carry a
@@ -205,7 +199,8 @@ that distinction and do not infer package ownership or complete imports from eit
 
 Language results advertise full semantic-color capability through SemanticColoring. Tokens preserve space-separated modifier names from the server legend; empty defaults keep providers without semantic tokens compatible. The editor can distinguish lexical-only and semantic-capable running providers without retrieving tokens first.
 
-AirContextHidden is a host-shared presentation preference; it does not change
-workspace Context enablement, consent or process lifetime. Its wire field is additive.
+Air Context is a builtin plugin ([module](../SharpRail.Plugins.AirContext/SPEC.md)): its consent, workspace operations, enabled-workspace list and
+visibility left the typed project services and the host state at protocol 8 (`HostProtocol.AirContextPlugin`). Hiding it is the plugin
+being disabled in Settings › Plugins; opening a state file that still carries the old keys migrates them once.
 
 Project language-server autostart choices belong to host state; [language services](../SharpRail.Host.Core/Language/SPEC.md) define their scope and launch behavior.

@@ -38,7 +38,7 @@ inputs changed, none otherwise. Store installs other than the SDK are read-only;
 | `src/SharpRail.Plugins.UI.Kit` | Controls shared by the app and plugin UI halves: `Ui` brushes, fonts and primitives, `DialogWindow`, Markdown, the Scintilla editor frame and Mermaid diagrams. References no `SharpRail.Host.*` project, `SharpRail.UI` or plugin API. |
 | `src/SharpRail.Plugins.Agent.Skills` | The workflow skills both agent plugins ship, adapted from the fork's `packages/pi-thinkrail-workflow/skills`: one folder per skill, text only, no project. The Claude Code and Codex host projects each stage these files as their own assets. |
 | `src/SharpRail.Plugins.Agent.UI` | Shared account, usage, terminal facts, manual-launch notices and attention wording for Codex and Claude Code. Depends on the UI kit and Avalonia, not a host, provider or plugin API. |
-| `src/SharpRail.Plugins.*` builtin folders | SpecDialect, Blueprint, ClaudeCode, Discord, BranchGraph, Visualize, Codex, Air Governance and Tailscale. Each owns its contract, applicable Host/UI halves, assets, license and `SPEC.md`. |
+| `src/SharpRail.Plugins.*` builtin folders | SpecDialect, Blueprint, ClaudeCode, Discord, BranchGraph, Visualize, Codex, Air Governance, Air Context and Tailscale. Each owns its contract, applicable Host/UI halves, assets, license and `SPEC.md`. |
 | `src/SharpRail.Scintilla` | Self-contained Avalonia editor control: Scintilla with a Skia surface, HarfBuzz shaping and SheenBidi layout. Its `README.md` documents the API, native build and limits. It references no SharpRail project. |
 | `src/SharpRail.UI` | Avalonia application entry point and workbench. `WorkbenchWindow` partial files coordinate navigation, projects and Git panels. |
 | `src/SharpRail.UI/Docking` | Persisted frame/workspace layout model, transitions, geometry, pointer/keyboard gestures, tab chrome and search popover. |
@@ -251,7 +251,7 @@ reviewed, ported or extracted on its own:
    with no plugins. Where general and API changes reference each other too closely to build
    apart, they share one commit and its message says so.
 3. One commit per builtin plugin, in the fork's order: spec dialect, Blueprint, Claude Code,
-   Discord, Branch Graph, Visualize, Codex. File-type icons are core UI kit assets with a shared Appearance setting; PDF preview is a core resource renderer. A plugin's commit carries
+   Discord, Branch Graph, Visualize, Codex, then SharpRail's own Air Context. File-type icons are core UI kit assets with a shared Appearance setting; PDF preview is a core resource renderer. A plugin's commit carries
    its project folder, its checks, its license and package entries, and its own lines in shared
    registration files (`SharpRail.slnx`, project references, both `BuiltinPlugins.cs`, the
    check runner).
