@@ -328,6 +328,10 @@ Current gaps are consolidated in [Current porting gaps](#current-porting-gaps); 
 commits below document exclusions, not pending work. Hashes are from
 the fork chain as fetched on the date given and will not match after a force-push.
 
+2026-10-18 additions after that pass (original SharpRail work, recorded for completeness):
+- Air Governance: original builtin plugin adapted from the fork's `jbcentral` and JetBrainsAiCard on the fork's `central-access-api` branch (a separate branch from `claude-code-integration-plugin-api`), with per-launch `central run` wrapping of Claude Code and Codex in place of the fork's pi extension. It rests on the agent launch seam (Plugin API H18/W22). Checks: `--air-governance`; gate cases `air-governance` and `air-governance-ui`.
+- Air Context: the semantic code search moved out of the host into a builtin plugin, switched only through Settings › Plugins and disabled by default, using the plugin state directory and tool guidance handles (Plugin API H19/H20). Checks: `--context`.
+
 Out of scope for every pass: pi, AI chat, CLI, website/analytics, desktop update flow, Electron-
 and browser-only mechanics with no Avalonia counterpart.
 
