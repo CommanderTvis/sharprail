@@ -615,7 +615,7 @@ IntelliJ identifies its public client repository, and Intelephense its documenta
 without implying the proprietary servers are open source. Activation opens the system browser.
 
 Language server labels name both language and implementation, with uniformly sized 24px provider icons.
-Java/Kotlin provider routing is chosen in Settings → LSP for the current workspace, outside individual server settings.
+Java/Kotlin provider routing is chosen in Settings → Code Intelligence for the current workspace, outside individual server settings.
 Apply merges only that choice into the latest saved IntelliJ configuration and does not execute it
 or acknowledge terms. Settings saves preserve the latest provider choice even with local edits.
 External source tabs carry an arrow marker and tooltip in active/inactive workspace projections.
@@ -628,7 +628,7 @@ LSP configuration window headings show only the language/provider display name.
 Suggested-file links in Code Intelligence open the detected workspace file in the
 editor without starting or expanding its language server.
 
-Settings → LSP can hide the Air Context section without changing indexing or consent.
+Settings → Code Intelligence can hide the Air Context section without changing indexing or consent.
 The visibility preference is shared host state and updates connected clients.
 
 The LSP pane manages servers and does not offer workspace inspection results.

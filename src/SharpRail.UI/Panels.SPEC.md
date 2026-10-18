@@ -554,3 +554,5 @@ Plugins settings preserves colored plugin assets. Claude and Discord use their b
 The Java/Kotlin provider selector applies to every project on the connected host, and open Settings follows shared changes without replacing its page. Provider-specific project JDK, installation and importer configuration remain workspace-scoped.
 
 Each language-server configuration view also offers a project-wide start-before-agent checkbox. It saves immediately and does not alter workspace settings; see [language services](../SharpRail.Host.Core/Language/SPEC.md).
+
+Settings names its language-service category “Code Intelligence”. Server rows abbreviate “Language Server” and “LSP” to “LS” in display names and convey runtime status only with the left-hand vector mark or spinner, with a status tooltip and accessible name. Error and configuration details and actions remain visible. Protocol names, server identifiers and acquisition metadata retain their original spelling.

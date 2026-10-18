@@ -51,8 +51,8 @@
             <Path Name="ServerBootSpinner" Classes.booting="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
                   Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"
                   Data="M 8,1 A 7,7 0 1 1 1,8" Stroke="{x:Static kit:Ui.Muted}" StrokeThickness="1.5"
-                  RenderTransformOrigin="50%,50%" AutomationProperties.Name="Language server starting" />
-            <ContentControl Name="ServerStatusIcon" IsVisible="{Binding ShowStatusIcon}" Content="{Binding Icon}" Margin="0,0,8,0" VerticalAlignment="Center" />
+                  RenderTransformOrigin="50%,50%" AutomationProperties.Name="{Binding StatusDescription}" ToolTip.Tip="{Binding StatusDescription}" />
+            <ContentControl Name="ServerStatusIcon" AutomationProperties.Name="{Binding StatusDescription}" ToolTip.Tip="{Binding StatusDescription}" IsVisible="{Binding ShowStatusIcon}" Content="{Binding Icon}" Margin="0,0,8,0" VerticalAlignment="Center" />
             <ContentControl Grid.Column="1" Name="ServerLanguageIcon" Content="{Binding Server.Id, Converter={StaticResource LanguageMark}}" Margin="0,0,8,0" VerticalAlignment="Center" />
             <TextBlock Grid.Column="2" Name="ServerTitle" Text="{Binding}" TextWrapping="Wrap" VerticalAlignment="Center" />
             <Button Grid.Column="3" Name="ServerSettingsAction" Content="{Binding SettingsIcon}" Click="SettingsClicked"

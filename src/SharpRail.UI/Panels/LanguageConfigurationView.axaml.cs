@@ -182,7 +182,7 @@ internal sealed partial class LanguageConfigurationView : UserControl
     {
         var pending = server.ActiveConfiguration.Length > 0 && server.Configuration != server.ActiveConfiguration;
         Find<Expander>("ConfigurationExpander").Header = pending ? "Workspace settings · restart needed" : "Workspace settings";
-        Find<TextBlock>("ConfigurationMessage").Text = server.State is "error" or "expired" or "disabled" ? server.Detail : pending ? "Saved settings differ from the running server. Restart to apply them." : server.Id == "intellij" ? "Review the agreement and start IntelliJ after choosing it in Settings → LSP." : "Applies on next start.";
+        Find<TextBlock>("ConfigurationMessage").Text = server.State is "error" or "expired" or "disabled" ? server.Detail : pending ? "Saved settings differ from the running server. Restart to apply them." : server.Id == "intellij" ? "Review the agreement and start IntelliJ after choosing it in Settings → Code Intelligence." : "Applies on next start.";
         Find<Expander>("ActiveConfigurationExpander").IsVisible = server.ActiveConfiguration.Length > 0;
         Find<TextBlock>("ActiveConfiguration").Text = server.ActiveConfiguration.Length > 0 ? Pretty(server.ActiveConfiguration) : "";
     }
@@ -212,7 +212,7 @@ internal sealed partial class LanguageConfigurationView : UserControl
             }
             if (restart && server.Id == "intellij" && !selected)
             {
-                Find<TextBlock>("ConfigurationMessage").Text = "Select IntelliJ as the Java / Kotlin provider in Settings → LSP before starting it.";
+                Find<TextBlock>("ConfigurationMessage").Text = "Select IntelliJ as the Java / Kotlin provider in Settings → Code Intelligence before starting it.";
                 return;
             }
             var options = new

@@ -367,7 +367,7 @@ is disabled. Values map to the same persisted initialization/settings JSON; ther
 is no second configuration store. Empty fields retain provider defaults. Custom
 executables and SDK-bundled servers may differ from catalog controls. The settings
 window preserves unknown JSON properties and rejects invalid typed edits before
-saving. Remote clients obtain these schemas from the workspace host. Managed provisioning source is included as descriptive metadata, not proof of the active executable’s origin. Configuration windows separate implementation, publisher, version and source into distinct lines, pair the source with a vector download mark, and explain that managed versions are pinned for configuration-structure compatibility. SDK toolchains and custom/PATH binaries are explicitly distinguished. Startup rows animate a vector spinner only while installing or initializing.
+saving. Remote clients obtain these schemas from the workspace host. Managed provisioning source is included as descriptive metadata, not proof of the active executable’s origin. Configuration windows separate implementation, publisher, version and source into distinct lines, label the source “Source” and pair it with the matching bundled Material Icon Theme registry or toolchain mark (a generic package mark for unknown sources), and explain that managed versions are pinned for configuration-structure compatibility. SDK toolchains and custom/PATH binaries are explicitly distinguished. Startup rows animate a vector spinner only while installing or initializing.
 
 IntelliJ and JetBrains Kotlin send `projects` as an array; legacy empty objects are
 normalized, other object/scalar shapes are rejected. Project JDK precedence is an

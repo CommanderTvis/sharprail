@@ -33,7 +33,9 @@ internal sealed partial class LanguageConfigurationView
             LanguageProviderLinks.Apply(schema, Find<Button>("ProviderWebsite"), Find<Button>("ProviderRepository"), Find<WrapPanel>("ProviderLinks"));
             var version = schema["version"]?.ToString() ?? server.Version;
             Find<TextBlock>("ProviderVersion").Text = version == "toolchain" ? "Version: supplied by the installed SDK" : "Managed version: " + version + " (pinned)";
-            Find<TextBlock>("ProviderSource").Text = (version == "toolchain" ? "Binary source: " : "Managed source: ") + (schema["source"]?.ToString() ?? "Not reported by this host");
+            var source = schema["source"]?.ToString() ?? "Not reported by this host";
+            Find<TextBlock>("ProviderSource").Text = "Source: " + source;
+            Find<ContentControl>("ProviderSourceIcon").Content = LanguageSourceIcon.Create(source);
             Find<TextBlock>("ProviderSettingsHelp").Text = result.Detail;
             optionFields = (schema["fields"]?.AsArray() ?? []).Select(field => new LanguageOptionField(field!, FieldChanged, CanBrowseHostPaths(host))).ToArray();
             Find<ItemsControl>("ProviderFields").ItemsSource = optionFields;

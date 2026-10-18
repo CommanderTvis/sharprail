@@ -942,7 +942,7 @@ internal static class LanguageChecks
     private static void SettingsUi(string fixture)
     {
         using var app = new E2E.E2eWorkspace(Path.Combine(fixture, "lsp-settings"), openFiles: false);
-        var settings = new SharpRail.UI.Panels.SettingsWindow(app.Window, () => { }, section: "LSP");
+        var settings = new SharpRail.UI.Panels.SettingsWindow(app.Window, () => { }, section: "Code Intelligence");
         settings.Show(app.Window);
         T Find<T>(string name) where T : Avalonia.Controls.Control => settings.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
         try
@@ -1101,6 +1101,7 @@ internal static class LanguageChecks
             T Find<T>(string name) where T : Avalonia.Controls.Control => Avalonia.Controls.ControlExtensions.FindControl<T>(pane, name)!;
             void Click(string name) => Find<Avalonia.Controls.Button>(name).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));
             var servers = Find<Avalonia.Controls.ListBox>("Servers");
+            string? RowStatus(int index) => Avalonia.Automation.AutomationProperties.GetName(((ListBoxItem)servers.ContainerFromIndex(index)!).GetLogicalDescendants().OfType<ContentControl>().Single(control => control.Name == "ServerStatusIcon"));
             E2E.E2eWorkspace.Until(() => servers.ItemCount == 1 && Find<ComboBox>("AddServer").ItemCount == LanguageServers.Catalog.Length - 1);
             var firstRow = (ListBoxItem)servers.ContainerFromIndex(0)!;
             var compactHeight = firstRow.Bounds.Height;
@@ -1130,6 +1131,11 @@ internal static class LanguageChecks
             E2E.E2eWorkspace.Until(() => settingsWindow.IsVisible);
             Require(firstRow.Bounds.Height <= compactHeight + 2, "Settings popup expanded the server row.");
             E2E.E2eWorkspace.Until(() => Config<ItemsControl>("ProviderFields").ItemsSource is SharpRail.UI.Panels.LanguageOptionField[] { Length: > 0 });
+            Require(Config<TextBlock>("ProviderSource").Text!.StartsWith("Source: npm registry", StringComparison.Ordinal), "Provider source label must be concise and preserve registry details.");
+            Require(Config<ContentControl>("ProviderSourceIcon").Content is Control { Tag: "file-type:npm" }, "npm source must use its bundled Material icon.");
+            Require(serverTitle.Text == SharpRail.UI.Panels.LanguageServerNameConverter.Display("typescript"), "Server title must omit inline runtime status.");
+            var statusMark = firstRow.GetLogicalDescendants().OfType<ContentControl>().Single(control => control.Name == "ServerStatusIcon");
+            Require(!string.IsNullOrWhiteSpace(Avalonia.Automation.AutomationProperties.GetName(statusMark)), "Icon-only server status must remain accessible.");
             var fields = (SharpRail.UI.Panels.LanguageOptionField[])Config<ItemsControl>("ProviderFields").ItemsSource!;
             var memory = fields.Single(field => field.Path == "maxTsServerMemory");
             memory.Value = "not a number";
@@ -1173,7 +1179,7 @@ internal static class LanguageChecks
             settingsWindow.Close();
             Find<ComboBox>("AddServer").SelectedItem = "python";
             E2E.E2eWorkspace.Until(() => servers.ItemCount == 2);
-            Require(servers.Items[1]!.ToString() == "Python (Pyright) · idle", "Adding a server should expose its row without installing it.");
+            Require(servers.Items[1]!.ToString() == "Python (Pyright)" && RowStatus(1) == "idle", "Adding a server should expose its row without installing it.");
             Require(pane.GetLogicalDescendants().OfType<Avalonia.Controls.ContentControl>().Any(control => control.Name == "ServerStatusIcon" && control.Content is Avalonia.Controls.Border { OpacityMask: not null }),
                 "Server status icons were not rendered.");
             Require(servers.Bounds.Height < 260 &&
@@ -1196,8 +1202,8 @@ internal static class LanguageChecks
             }
             servers.SelectedIndex = 1;
             ServerAction(0, "Stop");
-            E2E.E2eWorkspace.Until(() => servers.Items[0]!.ToString()!.Contains("stopped", StringComparison.Ordinal));
-            Require(servers.Items[1]!.ToString()!.Contains("idle", StringComparison.Ordinal), "Context menu targeted the previously selected server.");
+            E2E.E2eWorkspace.Until(() => RowStatus(0) == "stopped");
+            Require(RowStatus(1) == "idle", "Context menu targeted the previously selected server.");
             servers.SelectedIndex = 1;
             var stoppedRow = (ListBoxItem)servers.ContainerFromIndex(0)!;
             Require(stoppedRow.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "Start ▷"),
@@ -1205,16 +1211,16 @@ internal static class LanguageChecks
             var startPoint = stoppedRow.TranslatePoint(new Avalonia.Point(40, 12), window)!.Value;
             window.MouseDown(startPoint, Avalonia.Input.MouseButton.Left);
             window.MouseUp(startPoint, Avalonia.Input.MouseButton.Left);
-            E2E.E2eWorkspace.Until(() => servers.Items[0]!.ToString()!.Contains("ready", StringComparison.Ordinal));
+            E2E.E2eWorkspace.Until(() => RowStatus(0) == "ready");
             Require(!pane.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "Inspect"), "LSP pane retained Workspace Problems.");
             navigated = null;
             ((ListBoxItem)servers.ContainerFromIndex(0)!).GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "ServerSourceAction").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             E2E.E2eWorkspace.Until(() => navigated is not null);
             Require(File.Exists(Path.Combine(root, navigated!.Path)) && navigated.Line == 0, "Suggested file link failed to navigate.");
-            var pythonIndex = Enumerable.Range(0, servers.ItemCount).Single(index => servers.Items[index]!.ToString()!.StartsWith("Python (Pyright) ·", StringComparison.Ordinal));
+            var pythonIndex = Enumerable.Range(0, servers.ItemCount).Single(index => servers.Items[index]!.ToString()!.StartsWith("Python (Pyright)", StringComparison.Ordinal));
             servers.SelectedIndex = pythonIndex;
             servers.RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Avalonia.Input.Key.Enter });
-            E2E.E2eWorkspace.Until(() => servers.Items[pythonIndex]!.ToString()!.Contains("error", StringComparison.Ordinal));
+            E2E.E2eWorkspace.Until(() => RowStatus(pythonIndex) == "error");
             servers.SelectedIndex = 0;
             var failedRow = (Avalonia.Controls.ListBoxItem)servers.ContainerFromIndex(pythonIndex)!;
             Require(failedRow.GetLogicalDescendants().OfType<Avalonia.Controls.TextBlock>().Any(text => text.Name == "ServerDetail" &&
@@ -1240,8 +1246,8 @@ internal static class LanguageChecks
             logsWindow.Close();
             CaptureLsp(window, "pane");
             Find<ComboBox>("AddServer").SelectedItem = "intellij";
-            E2E.E2eWorkspace.Until(() => servers.Items.Cast<object>().Any(item => item.ToString()!.StartsWith("Java / Kotlin (IntelliJ) ·", StringComparison.Ordinal)));
-            var intellijIndex = Enumerable.Range(0, servers.ItemCount).Single(index => servers.Items[index]!.ToString()!.StartsWith("Java / Kotlin (IntelliJ) ·", StringComparison.Ordinal));
+            E2E.E2eWorkspace.Until(() => servers.Items.Cast<object>().Any(item => item.ToString()!.StartsWith("Java / Kotlin (IntelliJ)", StringComparison.Ordinal)));
+            var intellijIndex = Enumerable.Range(0, servers.ItemCount).Single(index => servers.Items[index]!.ToString()!.StartsWith("Java / Kotlin (IntelliJ)", StringComparison.Ordinal));
             var intellijRow = (ListBoxItem)servers.ContainerFromIndex(intellijIndex)!;
             Require(intellijRow.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "Start ▷"), "IntelliJ lacked an explicit start/review action.");
             intellijRow.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "ServerSettingsAction").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));

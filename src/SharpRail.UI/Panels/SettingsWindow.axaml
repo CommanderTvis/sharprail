@@ -350,7 +350,7 @@
             <StackPanel x:Name="SettingsNavigation" Spacing="2" Margin="12">
               <Button x:Name="Settings_Appearance" Classes="settings-navigation" />
               <Button x:Name="Settings_Highlighting" Classes="settings-navigation" />
-              <Button x:Name="Settings_LSP" Classes="settings-navigation" />
+              <Button x:Name="Settings_Code_Intelligence" Classes="settings-navigation" />
               <Button x:Name="Settings_Line_width" Classes="settings-navigation" />
               <Button x:Name="Settings_Layout" Classes="settings-navigation" />
               <Button x:Name="Settings_Projects" Classes="settings-navigation" />

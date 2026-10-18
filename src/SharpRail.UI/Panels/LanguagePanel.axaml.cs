@@ -36,7 +36,13 @@ internal sealed partial class LanguagePanel : UserControl
             "error" or "unavailable" or "actionRequired" or "requiresAcceptance" or "expired" => "alertWarning",
             _ => "checkboxBlankCircle"
         }, Server.State == "ready" ? Ui.Success : Server.State == "error" ? Ui.Danger : Ui.Muted);
-        public override string ToString() => $"{LanguageServerNameConverter.Display(Server.Id)} · {(Server.State == "requiresAcceptance" ? "accept EULA" : Server.State == "actionRequired" ? "needs configuration" : Server.State)}";
+        public string StatusDescription => Server.State switch
+        {
+            "requiresAcceptance" => "Accept EULA",
+            "actionRequired" => "Needs configuration",
+            _ => Server.State
+        };
+        public override string ToString() => LanguageServerNameConverter.Display(Server.Id);
     }
     private ContextConsentWindow? contextWindow;
     private bool checkingContext;
@@ -252,7 +258,7 @@ internal sealed partial class LanguagePanel : UserControl
                 if (current != lifetime || token.IsCancellationRequested) return;
                 if (saved.Configuration != "intellij")
                 {
-                    SetStatus("Select IntelliJ in Settings → LSP → Java / Kotlin provider, then choose Apply.");
+                    SetStatus("Select IntelliJ in Settings → Code Intelligence → Java / Kotlin provider, then choose Apply.");
                     return;
                 }
                 var acknowledgement = await host.IntelliJTermsAsync(new(workspace), token);

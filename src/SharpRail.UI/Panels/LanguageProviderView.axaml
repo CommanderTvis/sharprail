@@ -2,7 +2,7 @@
     <StackPanel x:Name="JvmProviderSection" Spacing="4">
       <TextBlock Text="Java / Kotlin provider · all projects on this host" FontWeight="SemiBold" />
       <ComboBox x:Name="JvmProvider" HorizontalAlignment="Stretch" SelectionChanged="ProviderChoiceChanged">
-        <ComboBoxItem Content="Eclipse JDT + Kotlin Language Server" />
+        <ComboBoxItem Content="Eclipse JDT + Kotlin LS" />
         <ComboBoxItem Content="IntelliJ for Java and Kotlin" />
       </ComboBox>
       <Button x:Name="ApplyJvmProvider" Content="Apply" HorizontalAlignment="Left" IsEnabled="False" Click="ApplyJvmProviderClicked" />
