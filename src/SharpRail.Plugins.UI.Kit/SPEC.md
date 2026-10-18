@@ -276,7 +276,12 @@ Git attributes have a dedicated grammar for paths, macros, attribute flags and a
 Standalone patches use the bundled diff grammar with distinct inserted/deleted colours. Unknown files
 stay plain. The tokenizer consumes source and returns UTF-8 style indices independently
 of the editor; Scintilla applies the ranges without changing text, selections or undo.
-Scope categories map to the applied manifest's syntax palette.
+Scope categories map to the applied manifest's syntax palette. Property and key scopes
+(`support.type.property-name*`, `variable.other.property*`) take the property colour, ahead of the
+generic `support.type` type colour, so TOML, JSON and CSS keys and TOML table names are not coloured
+as types. `--syntax` tokenizes a mise.toml-like sample (quoted table segment, inline table, string
+arrays, literal and multi-line strings, escapes, numbers, booleans, dates, comments, array tables)
+and asserts the role of each token and that keys, strings and comments differ in the dark and light themes.
 
 Grammar loading and tokenization run off the dispatcher. Each document caches line
 text and incoming/outgoing tokenizer state, so unchanged lines with unchanged incoming

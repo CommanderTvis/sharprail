@@ -78,6 +78,7 @@ internal static class SyntaxHighlightChecks
             Require(TextMateHighlighter.Detect(sample.Path) is not null && styles.Any(style => style != 0), $"No highlighting for {sample.Path}.");
             Require(styles.Length == Encoding.UTF8.GetByteCount(sample.Text), $"Wrong byte coverage for {sample.Path}.");
         }
+        Toml(highlighter);
         var swift = "// comment\nlet message = \"hello\"";
         const string attributes = "*.txt text eol=lf\n[attr]binary -diff -text";
         var attributeStyles = highlighter.Highlight(attributes, ".gitattributes", null, default);
@@ -119,6 +120,31 @@ internal static class SyntaxHighlightChecks
         try { highlighter.Highlight(text, "a.cs", null, cancelled.Token); throw new InvalidOperationException("Cancelled highlighting ran."); }
         catch (OperationCanceledException) { }
         Require(highlighter.Highlight(new string('x', TextMateHighlighter.MaximumCharacters + 1), "a.cs", null, default).All(style => style == 0), "Large file highlighting is unbounded.");
+    }
+
+    private static void Toml(TextMateHighlighter highlighter)
+    {
+        const string text = "# comment\n[tasks.\"restore:update\"]\ndescription = \"Tab\\there\"\ndepends = [\"bootstrap\", 'literal']\n" +
+            "env = { RestoreLockedMode = \"false\", Other = 'xyz' }\nrun = 'C:\\path'\ncount = 42\nratio = 1.5\nenabled = true\n" +
+            "when = 1979-05-27T07:32:00Z\nmulti = \"\"\"\nfirst line\nsecond\"\"\"\nraw = '''\nraw line\n'''\n" +
+            "list = [\n  \"one\",\n  \"two\"\n]\n[[bin.items]]\nname = \"last\"\n";
+        var styles = highlighter.Highlight(text, "mise.toml", null, default);
+        void Is(string role, params string[] fragments)
+        {
+            foreach (var fragment in fragments)
+                Require(At(styles, text, fragment) == Role(role), $"TOML '{fragment}' should be {role}, was {TextMateHighlighter.Roles[At(styles, text, fragment)]}.");
+        }
+        Is("comment", "comment");
+        Is("property", "tasks", "\"restore:update\"", "description", "depends", "env", "RestoreLockedMode", "Other", "run =", "bin", "items", "name");
+        Is("string", "Tab", "\"bootstrap\"", "literal", "false", "xyz", "C:", "first line", "second", "raw line", "one", "two", "last");
+        Is("number", "42", "1.5");
+        Is("constant", "true", "1979-05-27", "\\t");
+        foreach (var id in new[] { "dark", "light" })
+        {
+            var syntax = Themes.Resolve(id).Syntax;
+            Require(syntax["property"] != syntax["string"] && syntax["property"] != syntax["type"] && syntax["string"] != syntax["comment"],
+                $"TOML keys, strings and comments share a colour in {id}.");
+        }
     }
 
     private static int NativeStyle(ScintillaEditor editor, string fragment)
