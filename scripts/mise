@@ -13,4 +13,15 @@ export SHARPRAIL_TOOLS="$store"
 export MISE_DATA_DIR="$store" MISE_CACHE_DIR="$store/cache" MISE_STATE_DIR="$store/state"
 export MISE_TRUSTED_CONFIG_PATHS="$root${MISE_TRUSTED_CONFIG_PATHS:+:$MISE_TRUSTED_CONFIG_PATHS}"
 export MISE_IGNORED_CONFIG_PATHS="$HOME/.config/mise${MISE_IGNORED_CONFIG_PATHS:+:$MISE_IGNORED_CONFIG_PATHS}"
+# The pinned mise downloads itself on first use; concurrent first runs would replace the binary under one another,
+# so the first call is serialised (a lock older than two minutes is stale).
+lock="$store/bootstrap.lock"
+until mkdir "$lock" 2>/dev/null; do
+  [ -z "$(find "$lock" -maxdepth 0 -mmin +2 2>/dev/null)" ] || rmdir "$lock" 2>/dev/null || true
+  sleep 1
+done
+trap 'rmdir "$lock" 2>/dev/null || true' EXIT HUP INT TERM
+"$root/scripts/mise-pinned" --version >/dev/null 2>&1
+rmdir "$lock" 2>/dev/null || true
+trap - EXIT HUP INT TERM
 exec "$root/scripts/mise-pinned" "$@"
