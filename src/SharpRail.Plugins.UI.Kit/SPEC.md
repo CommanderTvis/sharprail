@@ -237,7 +237,7 @@ observes half a palette. That makes the brush names, and the manifest colour key
 
 ## Get right
 
-- `Ui.Icon` caches one bitmap per name and draws it as an opacity mask over a brush, so a glyph sizes with its
+- `Ui.Icon` caches original SVG geometry per standard icon name and draws it as an opacity mask over a brush, so a glyph sizes with its
   box and colours with a brush exactly like text; the icon set includes `puzzle`, the plugin fallback glyph.
 - Moving a type keeps its behaviour: the Markdown, editor and diagram rules in `Rendering/SPEC.md` apply
   unchanged, and that spec points here for where the code lives.
@@ -348,3 +348,28 @@ allocation over the updates changed from 19,926.43 to 149.55 decimal MB. One bas
 fresh-process run establish a directional improvement for that fixture, not current browser speed,
 whole-app memory or native latency. Parsing, retained content and long-paragraph reflow remain
 proportional to document size; later exact-height scrolling changes were not part of these measurements.
+
+## Semantic editor colors
+
+`EditorFrame.ApplySemanticTokensAsync` converts zero-based UTF-16 `SemanticToken` spans to UTF-8
+style bytes off the dispatcher. Semantic colors use the theme palette; syntax and theme refreshes
+preserve semantic precedence. Edits, detach and disposal invalidate old tokens. The kit knows no
+host or language-server protocol.
+
+When supported semantic tokens arrive, semantic roles override TextMate colors only on their
+reported spans. Uncovered spans retain syntax colors, including keywords, comments and literals;
+sparse server responses must not erase lexical highlighting. Empty/unsupported tokens, edits and stopped
+servers retain or restore TextMate fallback. Subsequent syntax refreshes cannot overwrite semantics.
+
+
+Initial syntax highlighting exposes a completion signal and keeps the editor body hidden until
+its first pass finishes or reports a failure. Attached editors reuse completed syntax styles
+for unchanged text; identical semantic responses do not restyle the document. Cached syntax
+and semantic bytes survive temporary detachment, while in-flight results remain version-gated.
+Tree row icon layout measures the supplied control's width so adjacent provider marks do not
+overlap labels; standard icons retain their original spacing.
+
+EditorFrame.DeferSyntaxColors holds lexical style application while a semantic pass is pending; it retains native style bytes until a replacement is ready. SemanticToken.Italic selects a matching italic palette without changing the semantic color role. Diff line palettes retain their existing bounds.
+
+Static-member italic styling follows the FONT_TYPE=2 defaults in IntelliJ Community's
+[default color schemes](https://github.com/JetBrains/intellij-community/blob/master/platform/platform-resources/src/DefaultColorSchemesManager.xml).

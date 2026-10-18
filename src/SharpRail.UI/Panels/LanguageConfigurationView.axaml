@@ -1,0 +1,119 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:kit="using:SharpRail.Plugins.UI.Kit"
+             x:Class="SharpRail.UI.Panels.LanguageConfigurationView"
+             Foreground="{x:Static kit:Ui.TextBrush}" FontSize="12">
+  <UserControl.Styles>
+    <Style Selector="Expander">
+      <Setter Property="MinHeight" Value="0" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Template">
+        <ControlTemplate>
+          <StackPanel>
+            <ToggleButton IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                          HorizontalAlignment="Stretch" HorizontalContentAlignment="Left"
+                          Background="Transparent" BorderThickness="0" Padding="0,4" MinHeight="0">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Path Data="M 2,4 L 6,8 L 10,4" Width="12" Height="12"
+                      Stroke="{x:Static kit:Ui.TextBrush}" StrokeThickness="1.5"
+                      VerticalAlignment="Center" />
+                <ContentPresenter Content="{TemplateBinding Header}" VerticalAlignment="Center" />
+              </StackPanel>
+            </ToggleButton>
+            <ContentPresenter Content="{TemplateBinding Content}" IsVisible="{TemplateBinding IsExpanded}" />
+          </StackPanel>
+        </ControlTemplate>
+      </Setter>
+    </Style>
+    <Style Selector="Expander#ConfigurationExpander">
+      <Setter Property="Template">
+        <ControlTemplate>
+          <ContentPresenter Content="{TemplateBinding Content}" IsVisible="{TemplateBinding IsExpanded}" />
+        </ControlTemplate>
+      </Setter>
+    </Style>
+    <Style Selector="TextBox"><Setter Property="Padding" Value="8,4" /><Setter Property="MinHeight" Value="28" /></Style>
+    <Style Selector="Button"><Setter Property="Padding" Value="8,4" /><Setter Property="MinHeight" Value="0" /></Style>
+    <Style Selector="CheckBox"><Setter Property="MinHeight" Value="0" /></Style>
+  </UserControl.Styles>
+  <Grid RowDefinitions="*,Auto">
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Top" HorizontalContentAlignment="Stretch" Padding="0,0,8,0">
+  <Expander x:Name="ConfigurationExpander" VerticalAlignment="Top" Header="Workspace settings" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+    <StackPanel Spacing="8" Margin="0,8,0,4">
+      <TextBlock x:Name="ConfigurationScope" TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" FontSize="12" />
+      <StackPanel x:Name="IntelliJOptions" Spacing="8" IsVisible="False">
+        <TextBlock Text="IntelliJ Java and Kotlin · evaluation provider" FontWeight="SemiBold" TextWrapping="Wrap" />
+        <TextBlock Text="Uses JetBrains’ standalone server for Java and Kotlin. Download or select an installation, then review and accept its EULA before starting. The current build is evaluation-only EAP; JetBrains enforces its validity." TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
+        <Button x:Name="ReviewIntelliJTerms" Content="Review agreement and start IntelliJ…" HorizontalAlignment="Left" ToolTip.Tip="Saves settings and reviews the agreement before starting. Select the Java / Kotlin provider in Settings → LSP." />
+        <TextBlock x:Name="IntelliJTermsStatus" Text="Setup checks existing acceptance; changed terms require your acknowledgement." TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
+        <TextBlock Text="Installation directory on the workspace host" />
+        <TextBox x:Name="IntelliJInstallation" PlaceholderText="Optional absolute path; blank downloads the managed server" />
+        <TextBlock Text="Project JDK on the workspace host" />
+        <TextBox x:Name="IntelliJProjectJdk" PlaceholderText="Absolute JDK path; separate from the server’s bundled runtime" />
+        <TextBlock Text="Build importer" />
+        <TextBox x:Name="IntelliJBuildTool" PlaceholderText="Automatic, or maven / gradle / bazel / jps" />
+        <TextBlock Text="Terms: JetBrains LSP Extension Public EAP Agreement, version 1.0 (July 31, 2026). Internal evaluation only; ends at the earliest vendor-defined EAP termination. Terms acceptance is not an activation credential and cannot extend a build’s lifetime." TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
+      </StackPanel>
+      <CheckBox x:Name="AutoStart" Content="Start in new workspaces" ToolTip.Tip="New workspaces copy Default’s settings once, then remain independent." />
+      <StackPanel x:Name="ClangOptions" Spacing="8">
+        <TextBlock Text="Include directories" />
+        <TextBox x:Name="IncludePaths" AcceptsReturn="True" MinHeight="32" TextWrapping="Wrap" PlaceholderText="One path per line" ToolTip.Tip="Paths may be relative to this workspace or absolute." />
+        <TextBlock Text="Fallback compiler flags" />
+        <TextBox x:Name="CompilerFlags" AcceptsReturn="True" MinHeight="32" TextWrapping="Wrap" PlaceholderText="One flag per line" ToolTip.Tip="For example: -fobjc-arc. Used only when a file has no compile command; use a compilation database for per-file flags." />
+        <TextBlock Text="Compilation database" />
+        <TextBox x:Name="CompilationDatabase" PlaceholderText="Automatic discovery" />
+      </StackPanel>
+      <StackPanel Spacing="8" Margin="0,8,0,0">
+        <TextBlock x:Name="ProviderName" FontWeight="SemiBold" TextWrapping="Wrap" />
+        <TextBlock x:Name="ProviderPublisher" TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
+        <WrapPanel x:Name="ProviderLinks" IsVisible="False">
+          <Button x:Name="ProviderWebsite" Content="Website ↗" Classes="link" Click="ProviderLinkClicked" Margin="0,0,16,0" />
+          <Button x:Name="ProviderRepository" Content="Source repository ↗" Classes="link" Click="ProviderLinkClicked" />
+        </WrapPanel>
+        <TextBlock x:Name="ProviderVersion" TextWrapping="Wrap" />
+        <Grid ColumnDefinitions="16,*" ColumnSpacing="8">
+          <Path Width="16" Height="16" VerticalAlignment="Top" Margin="0,2,0,0"
+                Data="M 8,1 L 8,10 M 4,6 L 8,10 L 12,6 M 2,11 L 2,15 L 14,15 L 14,11"
+                Stroke="{x:Static kit:Ui.Muted}" StrokeThickness="1.5" />
+          <TextBlock Grid.Column="1" x:Name="ProviderSource" TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
+        </Grid>
+      </StackPanel>
+      <TextBlock x:Name="ProviderSettingsHelp" TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
+      <ItemsControl x:Name="ProviderFields">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:CompileBindings="False">
+            <StackPanel Spacing="8" Margin="0,0,0,12">
+              <TextBlock Text="{Binding Label}" TextWrapping="Wrap" ToolTip.Tip="{Binding Help}" />
+              <TextBox IsVisible="{Binding IsText}" Text="{Binding Value, Mode=TwoWay}" AcceptsReturn="{Binding Multiline}" TextWrapping="Wrap" PlaceholderText="Server default" />
+              <ComboBox IsVisible="{Binding IsChoice}" ItemsSource="{Binding Choices}" SelectedItem="{Binding Value, Mode=TwoWay}" HorizontalAlignment="Stretch" />
+            </StackPanel>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+      <Expander x:Name="AdvancedConfigurationExpander" Header="Arguments and JSON" ToolTip.Tip="Use server-specific keys for libraries. ${workspaceFolder} expands to this workspace. Saving replaces this server’s workspace configuration." HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+        <StackPanel Spacing="8">
+          <CheckBox x:Name="DefaultArguments" Content="Default arguments" />
+          <TextBox x:Name="Arguments" AcceptsReturn="True" MinHeight="32" TextWrapping="Wrap" PlaceholderText="One server argument per line" />
+          <TextBlock Text="Initialization options (JSON object)" />
+          <TextBox x:Name="InitializationOptions" AcceptsReturn="True" MinHeight="48" TextWrapping="Wrap" />
+          <TextBlock Text="Workspace settings (JSON object)" />
+          <TextBox x:Name="ServerSettings" AcceptsReturn="True" MinHeight="48" TextWrapping="Wrap" />
+        </StackPanel>
+      </Expander>
+      <Expander x:Name="ActiveConfigurationExpander" Header="Active configuration" HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch">
+        <TextBlock x:Name="ActiveConfiguration" TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" />
+      </Expander>
+    </StackPanel>
+  </Expander>
+  </ScrollViewer>
+  <StackPanel Grid.Row="1" Spacing="8" Margin="0,16,0,0">
+      <TextBlock x:Name="ConfigurationMessage" TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" />
+      <WrapPanel HorizontalAlignment="Right">
+        <Button x:Name="SaveConfiguration" Content="Save" Margin="0,0,8,8" />
+        <Button x:Name="RestartConfiguration" Content="Save and restart" Margin="0,0,8,8" />
+        <Button x:Name="ReloadConfiguration" Content="Reload saved" Margin="0,0,8,8" />
+        <Button x:Name="CloseConfiguration" Content="Close" Margin="0,0,0,8" />
+      </WrapPanel>
+  </StackPanel>
+  </Grid>
+</UserControl>

@@ -3,7 +3,11 @@ using Avalonia.Media;
 namespace SharpRail.Scintilla;
 
 /// <summary>A whole-line style: the text colour and an optional opaque band behind the line.</summary>
-public sealed record ScintillaLineStyle(Color Foreground, Color? Background = null);
+public sealed record ScintillaLineStyle(Color Foreground, Color? Background = null)
+{
+    /// <summary>Whether this style uses an italic face.</summary>
+    public bool Italic { get; init; }
+}
 
 public sealed partial class ScintillaEditor
 {
@@ -91,6 +95,7 @@ public sealed partial class ScintillaEditor
         {
             // A style background with end-of-line fill reaches every drawing path, including tabs and wrapped
             // sublines, which a background marker misses in the bidirectional layout.
+            document.Send(ScintillaMessage.StyleSetItalic, index + 1, lineStyles[index].Italic ? 1 : 0);
             document.Send(ScintillaMessage.StyleSetFore, index + 1, (nint)rgb(lineStyles[index].Foreground));
             if (lineStyles[index].Background is not { } background) continue;
             document.Send(ScintillaMessage.StyleSetBack, index + 1, (nint)rgb(background));

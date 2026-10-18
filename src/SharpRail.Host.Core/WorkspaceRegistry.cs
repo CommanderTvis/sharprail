@@ -113,6 +113,7 @@ public sealed partial class ProjectServices
         // HEAD is wherever the project stood, not a target a later reader could resolve to the same commit.
         if (!string.IsNullOrWhiteSpace(baseBranch) && baseBranch.Trim() != "HEAD") registry.RecordWorkspaceBase(path, chosen);
         registry.ChangeWorkspaces(current => current.Where(known => known.Path != path).Append(workspace));
+        registry.StartWorkspaceLanguages(path);
         return workspace;
     }
 

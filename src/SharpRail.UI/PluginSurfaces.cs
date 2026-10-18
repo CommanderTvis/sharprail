@@ -192,8 +192,16 @@ public sealed partial class WorkbenchWindow
     private (string PluginId, TabDecoration Decoration)? Decoration(DockTab tab, string? workspace = null) =>
         Plugins.TabDecorators.Count == 0 ? null : Plugins.Decorate(TabRef(tab, workspace));
 
-    private Control? TabAdornment(DockTab tab, string? workspace = null) =>
-        Decoration(tab, workspace) is { Decoration.Adornment: { } adornment } decoration ? Mount(decoration.PluginId, adornment) : null;
+    private Control? TabAdornment(DockTab tab, string? workspace = null)
+    {
+        var plugin = Decoration(tab, workspace) is { Decoration.Adornment: { } adornment } decoration ? Mount(decoration.PluginId, adornment) : null;
+        if (tab.Kind != "file" || !ExternalSource(tab.Path, workspace ?? workspaceRoot)) return plugin;
+        var mark = Ui.Text("↗", Ui.Muted, 12);
+        mark.Name = "ExternalSourceMark";
+        ToolTip.SetTip(mark, "Outside workspace");
+        if (plugin is null) return mark;
+        return new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 4, Children = { plugin, mark } };
+    }
 
     private Control? TabIcon(DockTab tab, IBrush brush) => TabIcon(tab, brush, null);
 
@@ -293,6 +301,7 @@ public sealed partial class WorkbenchWindow
 
     // A viewer with read strategy None never has its text read.
     private async Task<FileDocument> ReadForKindAsync(string path, string kind, CancellationToken token) =>
+        IsDependencySource(path) ? await ReadDependencySourceAsync(path, token) :
         kind == "viewer" && Plugins.FileViewer(path)?.Read == PluginFileRead.None ? new FileDocument(path, "") : await host.ReadFileAsync(path, token);
 
     private void AttachPluginTerminal(Terminal.TerminalView terminal)

@@ -363,6 +363,7 @@ internal static class BranchGraphChecks
 
         using var first = new E2eWorkspace(merges, profileRoot: Path.Combine(directory, "profile"));
         E2eWorkspace.Until(() => first.Window.WorkspaceMounted && first.Workbench.PluginLoader.Registry.Active.Contains(BranchGraphPlugin.Id));
+        E2eWorkspace.Until(() => first.Window.Layout.Tool(Tool) is not null);
         first.Window.Layout.RestoreTool(Tool);
         E2eWorkspace.Until(() => first.Window.GetLogicalDescendants().OfType<GraphPanel>().Any(panel => panel.IsEffectivelyVisible && panel.Rows == 4));
         var graph = Panel(first);

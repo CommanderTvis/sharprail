@@ -11,6 +11,55 @@
         Foreground="{x:Static rendering:Ui.TextBrush}"
         FontFamily="{x:Static rendering:Ui.InterfaceFont}" FontSize="14" FontWeight="370">
   <Window.Resources>
+    <local:LanguageServerIconConverter x:Key="LanguageMark" />
+    <DataTemplate x:Key="LspPage">
+      <StackPanel Spacing="8">
+        <TextBlock Text="Language servers" Classes="settings-heading" />
+        <TextBlock Text="Shared by all workspaces and clients of this host. Per-server changes apply on the next Start / Retry." Classes="settings-description" />
+        <CheckBox x:Name="LspFeatureEnabled" Content="Enable LSP" />
+        <TextBlock Text="Turning this off stops all language servers and disables editor and agent language features. Saved server configurations are kept." Classes="settings-description" />
+        <CheckBox x:Name="ShowAirContext" Content="Show Air Context in Code Intelligence" />
+        <TextBlock Text="Hiding the section does not stop indexing or change workspace enablement." Classes="settings-description" />
+        <ContentControl x:Name="JvmProviderSettings" Margin="0,8" />
+        <Grid ColumnDefinitions="128,*" Margin="0,8,0,8">
+          <Border BorderBrush="{x:Static rendering:Ui.BorderBrush}" BorderThickness="0,0,1,0" Padding="0,0,8,0">
+            <ListBox x:Name="LspServer" Background="Transparent" BorderThickness="0" VerticalAlignment="Top" AutoScrollToSelectedItem="False"
+                     ScrollViewer.VerticalScrollBarVisibility="Disabled" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     AutomationProperties.Name="Language server settings">
+              <ListBox.Styles><Style Selector="ListBoxItem"><Setter Property="MinHeight" Value="0" /><Setter Property="Padding" Value="8,4" /></Style></ListBox.Styles>
+              <ListBox.ItemsPanel><ItemsPanelTemplate><StackPanel /></ItemsPanelTemplate></ListBox.ItemsPanel>
+              <ListBox.ItemTemplate>
+                <DataTemplate x:CompileBindings="False">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <ContentControl Name="SettingsLanguageIcon" Content="{Binding Converter={StaticResource LanguageMark}}" />
+                    <TextBlock Text="{Binding}" VerticalAlignment="Center" />
+                  </StackPanel>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </Border>
+          <StackPanel Grid.Column="1" Spacing="8" Margin="16,0,0,0">
+            <TextBlock x:Name="LspServerHeading" Classes="settings-heading" />
+            <TextBlock x:Name="LspImplementation" TextWrapping="Wrap" />
+            <TextBlock x:Name="LspVersion" Classes="settings-description" />
+            <CheckBox x:Name="LspEnabled" Content="Allow this server to start" />
+            <CheckBox x:Name="LspManaged" Content="Prefer the managed installation over PATH" />
+            <TextBlock Text="The default implementation is shown above. PATH installations and executable overrides can differ; pinned versions describe managed installations, not running processes." Classes="settings-description" />
+            <TextBlock Text="Executable override" Classes="settings-label" />
+            <TextBox x:Name="LspCommand" PlaceholderText="Automatic" />
+            <CheckBox x:Name="LspDefaultArguments" Content="Use default arguments" />
+            <TextBlock Text="Executable override arguments (one per line)" Classes="settings-label" />
+            <TextBox x:Name="LspArguments" AcceptsReturn="True" MinHeight="80" TextWrapping="Wrap" />
+            <TextBlock Text="Set an executable override to customize its arguments. With default arguments turned off, an empty list passes no arguments. An executable override takes precedence over the managed installation. Saving replaces any file-based override for this server." Classes="settings-description" />
+            <Button x:Name="LspSave" Content="Save server settings" HorizontalAlignment="Left" />
+            <TextBlock x:Name="LspMessage" TextWrapping="Wrap" />
+          </StackPanel>
+        </Grid>
+        <TextBlock Text="Host storage" Classes="settings-label" Margin="0,16,0,0" />
+        <TextBlock x:Name="LspStorage" Classes="settings-description" />
+        <TextBlock Text="Installations and supported caches are reused across workspaces. Use the Code Intelligence pane to start, stop or retry servers. Diagnostic scans never install servers." Classes="settings-description" />
+      </StackPanel>
+    </DataTemplate>
     <DataTemplate x:Key="HighlightingPage">
       <StackPanel Spacing="8">
         <TextBlock Text="Syntax highlighting" Classes="settings-heading" />
@@ -297,6 +346,7 @@
             <StackPanel x:Name="SettingsNavigation" Spacing="2" Margin="12">
               <Button x:Name="Settings_Appearance" Classes="settings-navigation" />
               <Button x:Name="Settings_Highlighting" Classes="settings-navigation" />
+              <Button x:Name="Settings_LSP" Classes="settings-navigation" />
               <Button x:Name="Settings_Line_width" Classes="settings-navigation" />
               <Button x:Name="Settings_Layout" Classes="settings-navigation" />
               <Button x:Name="Settings_Projects" Classes="settings-navigation" />

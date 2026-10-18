@@ -65,8 +65,12 @@ public sealed partial class ScintillaEditor : Control, IDisposable
     /// <summary>Creates an editor; the caller keeps ownership of <paramref name="typeface"/>, which defaults to Menlo (the system monospace font on Android).</summary>
     public ScintillaEditor(string text = "", SKTypeface? typeface = null)
     {
+        diagnosticHoverTimer.Tick += ShowDiagnosticHover;
+        ScrollChanged += (_, _) => HideDiagnosticHover();
+
         Focusable = true; ClipToBounds = true; Cursor = new Cursor(StandardCursorType.Ibeam);
         document = new(text, typeface ?? DefaultTypeface);
+        HideDiagnosticHover(); diagnosticMessages = [];
         revision = document.Revision;
         defaultRightMargin = document.Send(ScintillaMessage.GetMarginRight);
         inputClient = new(this);
@@ -212,6 +216,7 @@ public sealed partial class ScintillaEditor : Control, IDisposable
     {
         InvalidateVisual(); inputClient.Notify();
         if (revision == document.Revision) return;
+        HideDiagnosticHover(); diagnosticMessages = [];
         revision = document.Revision;
         document.Send(ScintillaMessage.SetScrollWidth, 1);
         TextChanged?.Invoke(this, EventArgs.Empty);
@@ -323,11 +328,12 @@ public sealed partial class ScintillaEditor : Control, IDisposable
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     { base.OnAttachedToVisualTree(e); TextSizeChanged += TextSized; InvalidateVisual(); }
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
-    { TextSizeChanged -= TextSized; timer.Stop(); base.OnDetachedFromVisualTree(e); }
+    { HideDiagnosticHover(); TextSizeChanged -= TextSized; timer.Stop(); base.OnDetachedFromVisualTree(e); }
 
     public void Dispose()
     {
         if (disposed) return;
+        HideDiagnosticHover(); diagnosticHoverTimer.Tick -= ShowDiagnosticHover;
         disposed = true; Disposed?.Invoke(this, EventArgs.Empty); timer.Stop(); idle.Stop(); document.Dispose();
     }
 

@@ -25,6 +25,8 @@ public sealed partial class WorkbenchWindow
         return files.Select(file =>
         {
             var entry = retained.TryGetValue(file.Path, out var old) && Equals(old.Tag, file) ? old : FileNode(file, tree);
+            entry.Tip = ProjectFileTip(file);
+            entry.Help = file.Path + (entry.Tip is { Length: > 0 } tip ? " · " + tip : "");
             if (file.IsDirectory)
             {
                 if (folderCache.TryGetValue(file.Path, out var children)) entry.Children = FileEntries(entry.Children, children, tree);

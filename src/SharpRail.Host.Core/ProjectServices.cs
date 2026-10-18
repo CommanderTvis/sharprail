@@ -113,7 +113,8 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
     public async ValueTask<FileDocument> ReadFileAsync(string relativePath, CancellationToken cancellationToken = default)
     {
         var currentRoot = root;
-        var path = External(currentRoot, relativePath) ?? Resolve(currentRoot, relativePath);
+        var dependency = state?.AllowsLanguageFile(currentRoot, relativePath) == true;
+        var path = dependency ? relativePath : External(currentRoot, relativePath) ?? Resolve(currentRoot, relativePath);
         var length = new FileInfo(path).Length;
         if (Path.GetExtension(path).ToLowerInvariant() is ".md" or ".markdown" && length > FileLimits.PreviewBytes)
             throw new IOException($"Previews are limited to files under {FileLimits.PreviewBytes >> 20} MiB.");
@@ -124,7 +125,7 @@ public sealed partial class ProjectServices(string initialRoot, HostStateStore? 
         var info = ContentClassifier.Classify(bytes, relativePath);
         if (!info.IsText)
             return new(relativePath, "", RasterMedia.Contains(info.MediaType ?? "") && bytes.Length <= FileLimits.PreviewBytes ? bytes : null) { Info = info };
-        return new(relativePath, ContentInfo.Decode(bytes)) { Info = info };
+        return new(relativePath, ContentInfo.Decode(bytes)) { Info = info, ReadOnly = dependency };
     }
 
     public async ValueTask<GitSnapshot> GetGitAsync(string comparisonBranch = "", CancellationToken cancellationToken = default, string scope = "all")

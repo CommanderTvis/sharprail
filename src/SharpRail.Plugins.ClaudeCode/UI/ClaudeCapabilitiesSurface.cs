@@ -54,9 +54,10 @@ internal sealed class ClaudeCapabilitiesSurface(ClaudeConfigPanel pane, IReadOnl
             }
             adding.Children.Add(buttons);
             list.Children.Add(new Border { BorderBrush = Ui.BorderBrush, BorderThickness = new Thickness(0, 0, 0, 1), Child = adding });
+            list.Children.Add(new ClaudeLspCapability());
             if (capabilities.Count == 0)
             {
-                var none = Ui.Text("Nothing grants Claude extra abilities here.", Ui.Muted, 13);
+                var none = Ui.Text("No additional capabilities are configured here.", Ui.Muted, 13);
                 none.Margin = new Thickness(8);
                 list.Children.Add(none);
             }

@@ -151,3 +151,22 @@ Invalid input is rejected atomically; Core never tokenizes text.
 
 GitHub authentication status is a project service operation performed by the host through `gh auth
 status`, with cancellation and a bounded timeout. The response contains status text, never credentials.
+
+## Language services
+
+The host owns [workspace language services](Language/SPEC.md): server provisioning, process lifetime,
+LSP framing, draft synchronization, navigation, semantic tokens and diagnostic freshness. Host state
+shares these sessions across project adapters and terminal MCP, and ends them on workspace removal
+or shutdown. No language process runs in a client UI or requires a local RPC hop.
+
+## Workspace Context integration
+
+The host owns [optional Context search](Context/SPEC.md): consent-guarded pinned
+provisioning, explicit workspace enablement, automatic SharpRail agent-launch indexing,
+managed processes/logs and workspace-bound semantic MCP tools. Local and remote clients
+share the implementation. No global agent setup or vendor watcher controls are invoked.
+The module spec records account/cache sharing, current artifact assumptions and the
+limits of fixture versus real authenticated compatibility verification.
+
+The `air-context-hidden` host setting controls client pane visibility only; Context
+workspace enablement and process management remain independent.

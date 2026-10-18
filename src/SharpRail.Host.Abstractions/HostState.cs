@@ -21,6 +21,12 @@ public sealed record HostSettings
     public int TerminalReplayKb { get; init; } = DefaultTerminalReplayKb;
     /// <summary>Whether clients raise desktop notifications when a terminal's agent needs the user while they are away.</summary>
     public bool NotificationsEnabled { get; init; } = true;
+    /// <summary>Whether editor and agent language services are enabled on this host.</summary>
+    public bool LspEnabled { get; init; } = true;
+    /// <summary>Whether clients hide Air Context controls without changing workspace indexing.</summary>
+    public bool AirContextHidden { get; init; }
+    /// <summary>Host-wide launcher overrides keyed by language-server id, stored as JSON.</summary>
+    public string LanguageServers { get; init; } = "";
     /// <summary>Custom TextMate grammars and filename patterns, as a JSON array shared with clients.</summary>
     public string CustomHighlighting { get; init; } = "";
     /// <summary>Whether centre tabs use a vertical strip; null keeps an older client's preference.</summary>
@@ -58,6 +64,10 @@ public sealed record HostState
     public IReadOnlyList<string> RecentProjects { get; init; } = [];
     /// <summary>One record per open or recent project, in no particular order.</summary>
     public IReadOnlyList<ProjectRecord> ProjectRecords { get; init; } = [];
+    /// <summary>Workspaces whose users explicitly enabled Context cloud indexing; new workspaces do not inherit consent.</summary>
+    public IReadOnlyList<string> ContextWorkspaces { get; init; } = [];
+    /// <summary>Workspace path to JSON server configuration map; independent after creation.</summary>
+    public IReadOnlyDictionary<string, string> WorkspaceLanguages { get; init; } = new Dictionary<string, string>();
     public IReadOnlyDictionary<string, string> WorkspaceLabels { get; init; } = new Dictionary<string, string>();
     /// <summary>The ref each workspace was created from, recorded by the host and never changed by a client.</summary>
     public IReadOnlyDictionary<string, string> WorkspaceBases { get; init; } = new Dictionary<string, string>();

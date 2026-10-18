@@ -316,7 +316,7 @@ lifetime's normal shutdown, so any window can drive it. Explicit menu or operati
 (`QuitNow`) and never enters the gesture.
 
 Close is Command-W on macOS and Ctrl+W or Ctrl+F4 elsewhere, with Ctrl+W kept by a focused terminal. It
-dismisses an open popup first, and a modal handles the chord itself, so the workbench behind it never sees
+dismisses an open window first, and a modal handles the chord itself, so the workbench behind it never sees
 it; otherwise it asks the layout to close the selected (else first) tab of the keyboard-focused group, or
 the last-focused center group, through the normal close path including the busy-terminal confirmation. A
 tool, folded group or hidden region is no target. It never closes a window. Quit and close letter chords
@@ -439,3 +439,208 @@ their own timestamp. These are elapsed phase boundaries, not a claim that all Sk
 during platform initialization. The performance module owns their reporting and measurement contract.
 
 Change-row basenames reserve the file icon width before truncating, keeping the label inside its path column at narrow pane widths.
+
+## Language intelligence
+
+Code documents offer definition (F12), type definition, implementation and references (Shift+F12),
+document symbols, workspace symbol search and a Problems list. Result locations open the file at
+the reported position, including read-only dependencies. Static controls live in compiled XAML.
+
+Declaration and usages interactions follow IntelliJ's public GotoTargetHandler and
+ShowUsagesAction patterns: a single declaration navigates directly; multiple declarations
+open a caret-anchored chooser. Usages remain in a chooser even for one match. Rows group by
+actual source file, with muted directory, per-file count, aligned line numbers and monospace,
+syntax-colored snippets whose exact returned range is emphasized. No inferred class/module
+groups are shown. Type-to-filter searches loaded results without another server request;
+Enter navigates the selected result identity, Up/Down selects and Escape returns to the editor.
+The footer identifies the selected full path and position. Empty/filter/searching states,
+coverage and truncation remain explicit. Scope changes rerun semantic search; popup width and
+height are bounded by the owner window. Dismissal cancels pending navigation, and background
+inspection does not replace an open chooser's status. Cmd/Ctrl+B and Alt+F7 complement F12 and
+Shift+F12. Workspace-symbol query text remains a separate server-side search on Enter.
+
+Verified 2026-10-17: focused LSP UI checks exercise unopened-file rows, navigation after
+filtering, empty filtering, scope changes, neutral syntax previews and narrow-window sizing.
+The 142-case four-lane gate passed. A final switch to the shared platform command modifier
+was Release-built and rechecked with the focused mode; the unchanged broader gate was not
+repeated. Roslyn reports current coverage for both edited C# files, with no errors/warnings.
+Browser/Android compilation and real GUI acceptance remain unverified for this UI change.
+
+Interaction references (independent Avalonia implementation, no copied JetBrains assets):
+https://github.com/JetBrains/intellij-community/blob/master/platform/lang-impl/src/com/intellij/codeInsight/navigation/GotoTargetHandler.java
+https://github.com/JetBrains/intellij-community/blob/master/platform/lang-impl/src/com/intellij/find/actions/ShowUsagesAction.java
+
+Visible editors refresh language analysis in the background, synchronize unsaved drafts, reject
+results after a newer edit, and release drafts on close. Semantic roles replace syntax colors when available, and diagnostic
+indicators preserve text, selection and undo history. Missing semantic support keeps TextMate colors.
+The management pane and code context menu expose installation/indexing state, diagnostic freshness,
+errors, Retry and Stop without blocking input.
+
+The Code Intelligence tool is available in the dock tool catalog. Its workspace-scoped pane lists detected, manually added and active
+servers; a dropdown adds other supported servers without starting them. Start/Retry and Stop live in each server row’s
+right-click menu and target that row. Refresh works without an open editor. Workspace Problems shows freshness and coverage and opens diagnostic locations. Background
+polling starts no servers, cancels on detach and rejects results from a previous mount.
+
+LSP provider identity uses the bundled Material Icon Theme vectors in server rows, add-server
+choices and the Settings rail. Language marks use the theme foreground, independently of
+health/status glyphs and the file-tree icon preference. IntelliJ uses the bundled IntelliJ
+brand motif without its folder outline, normalized to a compact square and recolored through
+the same theme-aware SVG renderer. Unknown provider IDs retain a generic code glyph; an empty
+picker renders only its placeholder. Asset generation and MIT notices remain unchanged.
+
+The Code Intelligence pane uses one outer scroll viewer; server and problem lists expand with their contents.
+All supported servers can be added without detected files. Detection text explicitly names the
+file that suggested the server, and status icons accompany text labels. Workspace Problems never
+starts or installs servers. Editor LSP commands live in the code context menu, with no persistent
+toolbar. References and multi-location navigation open a caret-anchored, dismissible usages popup
+with file/line and source previews; Enter opens a location, Escape closes it. It displays up to 200
+results and states when more were returned. F12 and Shift+F12 remain available.
+
+LSP server rows are compact by default, showing status and a detection hint. Left click or
+Enter/Space starts idle or stopped servers and retries failed or unavailable servers; the row
+shows Start or Retry beside its status. For other states, activation expands or collapses details
+and managed version, with a disclosure arrow. Right-click retains Start/Retry and Stop. Errors and
+installation progress always wrap inside their own row, even when unselected. There is no detached selected-server detail block below the list.
+Settings > LSP uses a server navigation rail beside the configuration form for each server’s
+enablement, managed-install preference, executable and argument overrides. A host-wide Enable LSP
+checkbox immediately stops running servers and blocks editor and agent language requests while off;
+server configuration remains available and preserved. Settings are host-wide and update from host broadcasts. Per-server changes take effect
+on the next start/retry; saving never installs or starts a server. The page shows host storage
+and the catalog version and remains available without an active workspace.
+
+LSP Settings names the default implementation and its provider for every catalog entry. Pinned managed versions are distinguished from SDK versions and are not presented as detected running versions; executable overrides may use another implementation.
+
+Language result popups display the host's total count and indicate when only the first page
+is displayed, including navigation responses truncated before they reach the UI.
+
+Each LSP header places a workspace settings gear beside its lifecycle action. The gear opens an owned settings window with the server and workspace identified in its header. The editor shows the
+start choice, server arguments, initialization options, and workspace JSON settings; clangd also
+has include directory, fallback compiler flag and compilation database fields. Save persists
+without starting; Save and restart applies the settings to that workspace server. The row indicates
+when restart is needed; the settings window exposes the active configuration snapshot. Polling preserves unsaved
+form edits and reports conflicting saved changes. Configuration controls never activate the row's
+left-click start action. New workspaces copy Default settings once, then diverge independently.
+
+
+Each server row offers View logs in its context menu; failed rows also show an inline View logs action beside the error details. A workspace/server-labeled, resizable log window uses the app’s elevated dialog card and an in-app draggable heading without native window decorations. It shows live, selectable output with Copy, Refresh and Close. Reading logs runs off the UI thread and never starts the server.
+
+
+The Code Intelligence pane prominently explains that agents can configure this workspace’s language servers, fix missing libraries/include paths, and restart them. The same capability is described in Codex and Claude’s Capabilities views, alongside navigation and inspections.
+
+LSP workspace-settings disclosure headers use a vector chevron vertically centered with the label, independent of font glyph baselines.
+
+The LSP server gear opens workspace configuration in an owned settings window with a vertically scrollable form and fixed action footer; settings never expand the server row. Unsaved drafts survive closing and reopening the settings window. Host-state broadcasts update saved configuration immediately, including agent-written arguments; dirty drafts retain an explicit external-change conflict message.
+
+Opening LSP workspace settings and Reload saved explicitly fetch the host’s current configuration. Cached inventory is not authoritative for saved values. Agent updates from another host instance appear on the next inventory refresh; same-host updates arrive through the state subscription immediately. Independent app hosts still have independent running servers.
+
+Diagnostic squiggles retain severity/source/message text and show it after a short mouse hover. Hit testing uses UTF-8 editor coordinates and excludes blank space; edits, scrolling, pointer exit and detachment dismiss old messages. Selected LSP rows use a neutral surface and normal text colors instead of a saturated accent fill. Navigation/inspection result rows separate location/diagnostic text from monospace source snippets, whose TextMate syntax roles follow theme changes.
+
+The optional IntelliJ Java/Kotlin workspace settings expose exclusive provider selection, host
+installation, project JDK and importer. Existing providers remain defaults. Start offers download
+and exact EULA review when needed; only explicit user acknowledgement permits native launch.
+Saving configuration does not accept terms. The owned agreement window shows exact installation
+text, build/artifact/digest identity, unchecked consent and an explicit Accept action. Cancel records
+nothing; changed terms reset acknowledgement. Settings provide a single Set up and start action:
+it selects IntelliJ for this workspace and saves the displayed settings. Current host-confirmed acknowledgement starts directly; missing or changed acknowledgement opens the agreement.
+Accept and start continues directly into launch; an already accepted installation instead offers
+Start IntelliJ without another acknowledgement. Closing either view never starts the server.
+Startup progress and failures remain visible, including repeated identical failures after retry.
+Saved acceptance appears checked and read-only, with an explicit Start action; new or changed terms remain unchecked until the user acknowledges them. Server-reported expiry
+is shown inline with logs and requires an authorized newer build or selection of existing providers.
+The language module owns artifact and licensing limitations; no paid-license support is claimed.
+
+Workspace LSP configuration windows load version-labelled named controls from the
+host's `configurationSchema` operation. Typed values update the existing advanced
+JSON while preserving unknown properties, and invalid numeric edits block save.
+They use the same workspace persistence, live updates and restart actions as raw
+JSON configuration; schemas are not bundled into remote clients. Custom servers
+and SDK-dependent versions are visibly distinguished from catalog guarantees.
+
+The Code Intelligence pane offers JetBrains Context terms review in a separate owned, resizable window. It displays the pinned artifact, all three current legal documents and a cloud-processing notice. Consent starts unchecked; Cancel/close downloads nothing. Accept and download persists the host acknowledgement and shows verified completion in the same window, with Done as its closing action, without starting the CLI or enabling indexing. The pane reads local installation status without fetching terms: a verified binary changes its action to View installation; an invalid binary offers repair. Status digest caching is for display only. Reopening a verified, acknowledged installation shows Done and hides Download; a missing/damaged binary retains the explicit download/repair flow. Changed terms clear consent for a fresh review. Reload recovers from fetch/download failures.
+
+
+## Language project folders
+
+Files marks detected project/build roots with a small vector provider/language badge
+at the bottom-right of the existing folder icon. Multiple providers at one root use
+a generic code badge; tooltips and accessibility help list providers, build definitions
+and explicitly unconfirmed import status. Existing icon customizations stay underneath.
+There is no separate Modules pane. Providers without a build-root concept receive no
+fabricated module marker. Inventory rows retain compact runtime/import progress;
+long resolution descriptions and manifest lists remain in analysis coverage.
+
+Discovery is asynchronous and starts no servers. Files refreshes project metadata
+with workspace/file changes, keeps expanded folders and rejects cancelled/stale workspace
+responses. Folder context menus use the nearest root for each provider and open the
+existing workspace-scoped configuration window, labelled with its scope. They also offer
+the detected build definitions as editable documents. These actions do not automatically
+rewrite Gradle/Maven/MSBuild models or claim native module configuration/import controls.
+
+
+Code Intelligence also provides workspace-scoped Context enablement, sign-in, Index now,
+Stop and Logs. Cloud enablement uses an explicit confirmation describing source upload,
+automatic SharpRail agent-launch indexing and reuse of the CLI's JetBrains login/cache.
+New workspaces stay disabled. Login opens a named SharpRail-owned host terminal; no
+credentials pass through UI configuration. Context controls are compact when disabled.
+Host state broadcasts/polling reconcile enablement and runtime state; errors and login
+requirements remain inline. Logs use the owned log window and remain workspace-scoped.
+Downloading alone still does not execute or index anything.
+
+
+Language configuration presents implementation, publisher, pinned managed version and managed
+provisioning source on separate lines. The source is not a claim about an overridden runtime.
+Code Intelligence uses readable Context status labels and an Air Context heading with the unmodified Air product icon. Complete, unmodified IntelliJ product artwork
+replaces the cropped motif. Provider artwork retains its supplied colors/proportions. Language fallback icons use the original colored Material Icon Theme assets.
+Module folders show only a small square corner marker, without adjacent provider icons; ordinary
+folders keep their existing icon width. Tooltips identify the build file and service in plain
+language, omitting redundant detection/provenance lines. Build marks represent detected definitions; supported running providers may additionally report source roots. Neither implies confirmed package ownership.
+
+Language navigation preserves dependency URIs and their source-server identity. JAR/JDK sources
+are loaded through the host's existing session-authorized, paginated source operation and open
+read-only; they never enter workspace filesystem reads. Unrestorable ended-session locations
+ask for fresh navigation. TextMate-only documents wait for their first lexical pass. An initialized semantic provider is identified through status metadata; its editor is revealed uncolored before semantic retrieval, then applies the combined semantic/lexical pass. Starting providers also show plain text. There is no preparation message or syntax-reveal button. Completed native styles remain during pending semantic refreshes; exceptions retain the existing fallback/error path.
+
+Visible Files panels refresh provider directory metadata periodically; identical metadata does not rebuild tree rows or disturb open menus.
+
+Semantic-provider imports leave the editor readable as plain text until coloring is available; no coloring escape-hatch control is shown.
+
+Code Intelligence prefers provider-specific artwork where verified, falling back to colored language icons. Plugins settings preserves multicolor assets and uses brand colors for Claude and Discord; neutral glyphs follow the text foreground.
+
+Code Intelligence separates Language servers and Air Context into their own labeled sections
+with a divider. AI configuration guidance and server refresh belong only to Language servers;
+Air's cloud enablement, installation and indexing controls belong only to Air Context.
+Provider settings expose HTTPS website and repository links from host catalog metadata;
+when both destinations match (ignoring a trailing slash), only the repository link appears.
+IntelliJ identifies its public client repository, and Intelephense its documentation repository,
+without implying the proprietary servers are open source. Activation opens the system browser.
+
+Language server labels name both language and implementation, with uniformly sized 24px provider icons.
+Java/Kotlin provider routing is chosen in Settings → LSP for the current workspace, outside individual server settings.
+Apply merges only that choice into the latest saved IntelliJ configuration and does not execute it
+or acknowledge terms. Settings saves preserve the latest provider choice even with local edits.
+External source tabs carry an arrow marker and tooltip in active/inactive workspace projections.
+Empty navigation results use a compact message without a filter/list/footer; larger result sets
+use a bounded chooser, with filtering available automatically for larger sets or by typing.
+Semantic static members, enum members and explicitly identified extension methods use italics.
+
+LSP configuration window headings show only the language/provider display name.
+
+Suggested-file links in Code Intelligence open the detected workspace file in the
+editor without starting or expanding its language server.
+
+Settings → LSP can hide the Air Context section without changing indexing or consent.
+The visibility preference is shared host state and updates connected clients.
+
+The LSP pane manages servers and does not offer workspace inspection results.
+Editor and agent diagnostic operations remain available independently.
+
+Editor context menus check the file-specific running server before exposing language
+commands. Idle, stopped, disabled, unavailable and unsupported files have no LSP
+actions; status lookup does not start a server. Initializing sessions retain actions.
+
+Successful server discovery has no redundant status caption. Transient status and
+action/error feedback use the same secondary typography as the section description.
+
+Failed or unavailable semantic inspections restore TextMate coloring, including
+external C# sources already revealed as plain text. Positioned document navigation
+centers its target in visible display lines rather than leaving it at the viewport edge.

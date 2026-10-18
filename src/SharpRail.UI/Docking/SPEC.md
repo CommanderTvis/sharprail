@@ -400,3 +400,6 @@ A compact workbench (`Workbench.Compact`, set by the Android client on phone-siz
   when another item is chosen.
 
 `DrawerChecks` (in `-- --shell`) covers this headlessly. Dragging tabs between regions is not offered here.
+
+Core includes the Code Intelligence tool (`lsp`, right by default), restored and moved through the same tool catalog
+and persisted frame as Files and Changes. Existing presets retain their current selected tools.

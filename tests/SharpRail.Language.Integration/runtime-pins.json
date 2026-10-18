@@ -1,0 +1,10 @@
+{
+  "platform": "darwin-arm64",
+  "sources": ["https://go.dev/dl/?mode=json", "https://api.github.com/repos/coursier/coursier/releases/tags/v2.1.26", "https://api.github.com/repos/PowerShell/PowerShell/releases/tags/v7.6.7", "https://storage.googleapis.com/dart-archive/channels/stable/release/3.13.5/sdk/dartsdk-macos-arm64-release.zip.sha256sum"],
+  "runtimes": [
+    {"id":"go", "version":"1.27.2", "url":"https://go.dev/dl/go1.27.2.darwin-arm64.tar.gz", "sha256":"76812b213b1b2302c978d28fa52fa92d541704b9e7d9d5db8002c50e4018c4c5", "format":"tar", "bin":"go/bin"},
+    {"id":"coursier", "version":"2.1.26", "url":"https://github.com/coursier/coursier/releases/download/v2.1.26/cs-aarch64-apple-darwin.gz", "sha256":"8e4d36aa2565276f262af073f0999399e4c2f920f2fe436bb0ae67665eb505e9", "format":"gzip", "bin":"."},
+    {"id":"pwsh", "version":"7.6.7", "url":"https://github.com/PowerShell/PowerShell/releases/download/v7.6.7/powershell-7.6.7-osx-arm64.tar.gz", "sha256":"50dde99bb066adacbb9a748182d09eb9beff25119dc3b12e85c84b6b6b1c5da9", "format":"tar", "bin":"."},
+    {"id":"dart", "version":"3.13.5", "url":"https://storage.googleapis.com/dart-archive/channels/stable/release/3.13.5/sdk/dartsdk-macos-arm64-release.zip", "sha256":"9dfe7d6f2558816c2a978aff6c80e8a4509c6cb726c0702a616c64d286f60e88", "format":"zip", "bin":"dart-sdk/bin"}
+  ]
+}

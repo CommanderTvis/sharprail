@@ -140,3 +140,70 @@ carry the bytes and return the same host path, never a client-local file path.
 
 Project services expose host-side GitHub authentication status. Terminal services accept a bounded PNG
 clipboard upload for a session and return its host-visible path; unsupported hosts report unavailability.
+
+## Language queries
+
+`LanguageRequest` carries an explicit workspace, document identity/version and optional editor draft;
+positions are zero-based UTF-16. `LanguageResult` carries server state, navigation locations, semantic
+tokens and diagnostics with explicit freshness and coverage. `FileDocument.ReadOnly` marks exposed
+language-server dependency files. Hosts without language support return unavailable rather than
+pretending an empty diagnostic result is current.
+
+The `servers` operation returns `LanguageServerState` rows without starting or provisioning any server.
+Rows include the representative source path, state, details and managed version for workspace controls.
+
+`LanguageRequest.Server` optionally selects a catalog server for path-free status, retry or stop.
+Inventory rows with an empty path mean no source file was detected.
+
+Diagnostic requests accept `Scope` (`files` or `workspace`) and `Paths` for an explicit file set.
+`LanguageFileResult` rows in `LanguageResult.Files` report checked/pending/skipped/error state,
+freshness and detail per selected file. Empty or partial coverage never establishes a clean scan.
+
+`HostSettings.LanguageServers` carries host-wide launcher configuration as JSON.
+`LanguageServerOptions` describes next-start enablement, managed preference, command and arguments.
+The host-wide `catalog` language operation requires no workspace and starts no processes.
+
+Host settings include host-wide LSP enablement, defaulting to enabled. Disabling it stops
+active language sessions while preserving per-server configuration.
+
+Language catalog server details identify their default implementation/provider; workspace inventory details continue to describe runtime state.
+
+Language requests carry navigation offset/limit. Results carry total/truncated pagination,
+and locations may carry bounded source previews, selected symbol bodies and per-item truncation.
+Hover and symbolBody are read-only operations; body ranges use zero-based UTF-16 coordinates.
+
+Language requests carry optional workspace configuration for save/restart. Results and server
+rows distinguish saved configuration from the active process snapshot. Workspace language options
+include start choices, server arguments, initialization and workspace settings, plus clangd build
+configuration. Host state exposes each workspace's independent configuration map.
+
+
+The language request operation logs returns bounded per-workspace server output in LanguageResult.Detail with Truncated indicating omitted history; it requires an explicit server id and never starts a process.
+
+
+The dedicated IntelliJ terms-review/acknowledgement operation is a user-interface host contract, separate from agent language operations. Review can prepare the managed distribution on the host without execution. It returns exact terms, artifact/version/digest identity and recorded status; acknowledgement is not entitlement.
+
+Language source retrieval reuses LanguageRequest/LanguageResult without a wire-shape change.
+Path may be an exact virtual URI returned by the selected workspace session; Server identifies its
+source provider. Source Offset and Total count UTF-16 characters, Locations contains one bounded
+Body and Truncated indicates continuation. Symbol-selected navigation uses Query as an exact
+qualified outline name; ambiguous results retain candidates rather than guessing a cursor.
+
+
+ContextConsentAsync is a user-interface-only review/accept-and-download contract. Results carry the host-selected artifact identity, reviewed text/hash and acknowledgement timestamp. It grants no indexing enablement or CLI execution; see the host core Context consent boundary.
+
+
+The read-only projects language operation returns LanguageProject roots with manifest, provider, kind, detected state and provenance. Pagination uses existing total/truncated fields. Detected roots do not assert imported module membership. Context consent also supports local-only status, independent of legal acknowledgement.
+
+
+ContextRequest/ContextResult carry workspace-scoped lifecycle/search operations and bounded output. Enable/disable/login are user controls; agent tools expose only search/status/index. HostState.ContextWorkspaces persists explicit cloud enablement, independently of language configuration and without inheritance. Credentials and user-control commands never enter shared state.
+
+
+LanguageProject directory metadata records its provenance: detected build definitions carry a
+manifest, while provider-reported directory roles may have no build file. Consumers preserve
+that distinction and do not infer package ownership or complete imports from either form.
+
+Language results advertise full semantic-color capability through SemanticColoring. Tokens preserve space-separated modifier names from the server legend; empty defaults keep providers without semantic tokens compatible. The editor can distinguish lexical-only and semantic-capable running providers without retrieving tokens first.
+
+AirContextHidden is a host-shared presentation preference; it does not change
+workspace Context enablement, consent or process lifetime. Its wire field is additive.

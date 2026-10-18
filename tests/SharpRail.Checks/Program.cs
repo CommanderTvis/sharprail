@@ -31,6 +31,7 @@ internal static class Program
     {
         if (args.SequenceEqual(["--native-editor-find"])) { NativeEditorFindChecks.Run(args); return; }
         if (args.Contains("--fake-agent-launch")) { Thread.Sleep(30_000); return; }
+        Environment.SetEnvironmentVariable("SHARPRAIL_LSP_DISABLE", "1");
         E2E.IsolatedGit.ForProcess();
         if (args.Length > 0 && E2E.CodexE2E.Fake(args[0], args[1..]) is { } fixtureExit) { Environment.Exit(fixtureExit); return; }
         if (!args.Contains("--terminal-relay")) E2E.IsolatedGit.CheckIsolation();
@@ -118,6 +119,47 @@ internal static class Program
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             WorkspaceToolChecks.RunUi(root);
+            return;
+        }
+        if (args.SequenceEqual(["--context-ui"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            ContextChecks.Ui(root);
+            return;
+        }
+        if (args.SequenceEqual(["--context"]))
+        {
+            ContextChecks.Run(root).GetAwaiter().GetResult();
+            return;
+        }
+        if (args.SequenceEqual(["--lsp-real-csharp"]))
+        {
+            LanguageChecks.RealCSharp(root).GetAwaiter().GetResult();
+            return;
+        }
+        if (args.SequenceEqual(["--lsp-real"]))
+        {
+            LanguageChecks.Real(root).GetAwaiter().GetResult();
+            return;
+        }
+        if (args.SequenceEqual(["--lsp-settings"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            LanguageChecks.SettingsChecks(root);
+            return;
+        }
+        if (args.SequenceEqual(["--lsp-ui"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            LanguageChecks.UiChecks(root);
+            return;
+        }
+        if (args.SequenceEqual(["--lsp"]))
+        {
+            LanguageChecks.Run(root).GetAwaiter().GetResult();
             return;
         }
         if (args.SequenceEqual(["--syntax"]))
@@ -820,6 +862,8 @@ internal static class Program
         Gate.Case("open-world", CheckOpenWorld);
         Gate.Case("websocket-flow", () => WebSocketFlowChecks.Run().GetAwaiter().GetResult());
         Gate.Case("browser-transport", () => BrowserTransportChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("context-consent", () => ContextChecks.Run(root).GetAwaiter().GetResult());
+        Gate.Case("language-services", () => LanguageChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("hosts", () => CheckHosts(root).GetAwaiter().GetResult());
         Gate.Case("terminal-commit-links", () => TerminalCommitLinkChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("terminal-links", () => TerminalFileLinkChecks.Run(root).GetAwaiter().GetResult());

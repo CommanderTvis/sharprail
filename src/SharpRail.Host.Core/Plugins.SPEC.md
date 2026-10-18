@@ -88,6 +88,14 @@ caller: a caller mid-pass gets the in-flight task, and a pending flag guarantees
 task completes, so a caller's own settings change is reflected by the time its await returns. A settings change
 from any client schedules a run; it never acts inline.
 
+## Workspace watch ownership
+
+Repeated/concurrent reads own one activation lease per workspace. The shared workspace
+watch registry owns native streams, startup-failure recovery and accounting. Project/workspace
+removal and activation teardown release those leases. See Files.SPEC.md for the registry,
+native FSEvents verification and the focused watcher hygiene checks. This ownership supersedes
+the earlier per-activation native-watcher implementation and its duplicate resource fixture.
+
 ## Activation ids, drain, and the bounded disposer
 
 Only one activation exists per plugin at a time. Activation ids come from one monotonic counter, and every

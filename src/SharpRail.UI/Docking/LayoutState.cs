@@ -93,7 +93,7 @@ public sealed class DockState
         HomeProjectsWidth = HomeProjectsWidth
     };
 
-    public static readonly string[] ToolNames = ["projects", "files", "changes", "review"];
+    public static readonly string[] ToolNames = ["projects", "files", "changes", "review", "lsp"];
     /// <summary>The spec dialect plugin's Specs tool, which the presets seat first in the right rail.</summary>
     public const string SpecsTool = "plugin:spec-dialect:specs";
     /// <summary>Core tool ids that moved into a plugin, and the plugin tool id a persisted layout reads them as.</summary>
@@ -101,7 +101,7 @@ public sealed class DockState
     public static DockTab Tool(string id)
     {
         var name = PluginIdentity.ParseToolId(id)?.Tool ?? id;
-        return new(id, char.ToUpperInvariant(name[0]) + name[1..], "tool");
+        return new(id, id == "lsp" ? "Code Intelligence" : char.ToUpperInvariant(name[0]) + name[1..], "tool");
     }
     public static string ToolRegion(string id) => id == "projects" ? "left" : "right";
     /// <summary>Core's tools and any <c>plugin:&lt;id&gt;:&lt;tool&gt;</c>, so a tab from a plugin since removed keeps its slot.</summary>

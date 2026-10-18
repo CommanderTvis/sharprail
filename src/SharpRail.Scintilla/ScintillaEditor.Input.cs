@@ -159,6 +159,7 @@ public sealed partial class ScintillaEditor
     }
     protected override void OnPointerPressed(PointerPressedEventArgs e)
     {
+        HideDiagnosticHover();
         base.OnPointerPressed(e);
         if (disposed || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
         // A finger scrolls by dragging, so it places the caret only once it lifts without having moved.
@@ -166,7 +167,14 @@ public sealed partial class ScintillaEditor
         Focus(); draggingSelection = true; e.Pointer.Capture(this); Mouse(e, 0);
     }
     protected override void OnPointerMoved(PointerEventArgs e)
-    { base.OnPointerMoved(e); if (!disposed && e.Pointer.Type != PointerType.Touch && e.Pointer.Captured == this) Mouse(e, 1); }
+    {
+        base.OnPointerMoved(e);
+        if (disposed || e.Pointer.Type == PointerType.Touch) return;
+        if (e.Pointer.Captured == this) { HideDiagnosticHover(); Mouse(e, 1); }
+        else HoverDiagnostic(e.GetPosition(this));
+    }
+    protected override void OnPointerExited(PointerEventArgs e)
+    { HideDiagnosticHover(); base.OnPointerExited(e); }
     protected override void OnPointerReleased(PointerReleasedEventArgs e)
     {
         base.OnPointerReleased(e);
@@ -221,6 +229,7 @@ public sealed partial class ScintillaEditor
     }
     protected override void OnPointerWheelChanged(PointerWheelEventArgs e)
     {
+        HideDiagnosticHover();
         base.OnPointerWheelChanged(e);
         if (disposed) return;
         // Trackpads report fractional deltas on both axes; carry remainders so slow

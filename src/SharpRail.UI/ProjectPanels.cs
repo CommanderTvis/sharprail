@@ -7,6 +7,7 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Platform.Storage;
 using Avalonia.VisualTree;
+using Avalonia.Threading;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.UI.Panels;
@@ -102,6 +103,14 @@ public sealed partial class WorkbenchWindow
         var panel = new FilesPaneFrame { Name = "FilesPanel", IsHitTestVisible = WorkspaceMounted && !switchingWorkspace };
         var tree = new DrawnTree { Name = "FilesTree", Background = Ui.Sidebar, Margin = new Thickness(4, 12, 12, 12) };
         ScrollViewer.SetHorizontalScrollBarVisibility(tree, ScrollBarVisibility.Auto);
+        var directoryTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(15) };
+        directoryTimer.Tick += (_, _) =>
+        {
+            if (panel.IsEffectivelyVisible && WorkspaceMounted && fileProjectRefresh is null)
+                _ = RefreshFileProjectsAsync(projectRequest, false);
+        };
+        panel.AttachedToVisualTree += (_, _) => directoryTimer.Start();
+        panel.DetachedFromVisualTree += (_, _) => directoryTimer.Stop();
         WireFileDragging(tree, panel);
         tree.SetRoots(FileEntries([], folderCache.GetValueOrDefault("") ?? [], tree));
         Ui.Place(panel, tree, 1);
@@ -114,12 +123,12 @@ public sealed partial class WorkbenchWindow
         {
             Tag = file,
             Help = file.Path,
-            Tip = file.GitIgnored ? "Ignored by git" : null,
+            Tip = ProjectFileTip(file),
             Muted = file.GitIgnored,
             Italic = file.GitIgnored,
             CanExpand = file.IsDirectory,
-            IconKey = _ => FileTreeIconKey(file),
-            Icon = _ => FileIcon(file.Path, file.IsDirectory, file.IsDirectory ? "folder" : "fileText", file.GitIgnored ? Ui.Hint : null)
+            IconKey = _ => ProjectFileIconKey(file),
+            Icon = _ => ProjectFileIcon(file)
         };
         entry.Menu = () => FileActions(file, () => tree.Expand(entry, true));
         if (file.IsDirectory)
@@ -185,6 +194,7 @@ public sealed partial class WorkbenchWindow
         Add("Move…", "FileNodeMove", () => _ = TransferPathAsync(file, false));
         Add("Copy…", "FileNodeCopy", () => _ = TransferPathAsync(file, true));
         Add(file.IsDirectory ? "Delete folder" : "Delete file", "FileNodeDelete", () => _ = TrashPathAsync(file), "trash");
+        ProjectFileActions(menu, file);
         var offered = FileActionItems(new(workspaceRoot, file.Path, file.IsDirectory));
         if (offered.Count > 0)
         {

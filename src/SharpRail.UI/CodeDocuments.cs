@@ -11,6 +11,32 @@ namespace SharpRail.UI;
 public sealed partial class WorkbenchWindow
 {
     private bool askingToSave, closeConfirmed;
+    private readonly Dictionary<string, string> dependencySourceServers = [];
+
+    private static bool IsDependencySource(string path) => Uri.TryCreate(path, UriKind.Absolute, out var uri) && !uri.IsFile;
+
+    internal async Task OpenLanguageDocumentAsync(LanguageItem item, bool keep = false)
+    {
+        if (IsDependencySource(item.Path)) dependencySourceServers[workspaceRoot + "\0" + item.Path] = item.Source;
+        await OpenDocumentAsync(item.Path, keep, line: item.Line + 1, column: item.Column + 1);
+    }
+
+    private async Task<FileDocument> ReadDependencySourceAsync(string path, CancellationToken token)
+    {
+        var sourceServer = dependencySourceServers.GetValueOrDefault(workspaceRoot + "\0" + path) ?? "";
+        if (sourceServer.Length == 0) throw new IOException("Reopen this dependency from Go to declaration or Find usages in the current language-server session.");
+        var text = new System.Text.StringBuilder();
+        while (true)
+        {
+            var result = await host.LanguageAsync(new(workspaceRoot, path, "source", Server: sourceServer, Offset: text.Length), token);
+            if (result.State != "ready" || result.Locations.Count != 1) throw new IOException(result.Detail);
+            var body = result.Locations[0].Body;
+            if (body.Length == 0 && result.Truncated) throw new IOException("The language server returned no source continuation.");
+            if (text.Length + body.Length > 1_048_576) throw new IOException("Dependency source exceeds the 1 Mi character limit.");
+            text.Append(body);
+            if (!result.Truncated) return new(path, text.ToString()) { ReadOnly = true };
+        }
+    }
 
     private double FileWrapWidth => LineWidths.File(Preferences.FileLineWidth, Preferences.FileLineWidthBounded);
 
@@ -27,10 +53,15 @@ public sealed partial class WorkbenchWindow
                 if (focused) editor!.Focus();
             }
         }, text => { documents[key] = document with { Text = text }; EmitSaved(key); }, surface.RefreshModified, Report, find);
+        view.LanguageSourceServer = document.ReadOnly && IsDependencySource(document.Path) ? dependencySourceServers.GetValueOrDefault(workspaceRoot + "\0" + document.Path) ?? "" : "";
         view.Editor.WrapWidth = FileWrapWidth;
         view.DeletedOnDisk = deletedDocuments.Contains(key);
         ReportSelections(view.Editor, new DockTab(tabId, Path.GetFileName(document.Path), "file", document.Path));
         OfferFileActions(view.Editor, document.Path);
+        if (view.Editor.ContextMenu is { } menu) view.AddLanguageMenu(menu);
+        var workspace = workspaceRoot;
+        view.NavigateLanguage = item => workspaceRoot == workspace
+            ? OpenLanguageDocumentAsync(item) : Task.CompletedTask;
         return view;
     }
 

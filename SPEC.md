@@ -483,3 +483,21 @@ Build/format checks, R2R header + runtime assembly loading/code emission checks,
 published GUI smoke and reference screenshots at matching logical dimensions.
 Native typography/compositing differences must be measured and reported;
 do not declare pixel-perfect equivalence without comparison evidence.
+
+
+
+## Language intelligence
+
+Workspace language servers provide navigation, semantic highlighting and inspections in the code
+editor and through agent MCP tools. Servers provision on demand on the host, reuse supported caches
+across workspaces, and keep branch-specific drafts and diagnostics isolated. Agents and subagents
+explicitly target the directory they are editing. The detailed contract is
+[Workspace language services](src/SharpRail.Host.Core/Language/SPEC.md).
+
+
+Code Intelligence optionally exposes JetBrains Context semantic discovery through
+SharpRail's own tools. Explicit per-workspace cloud enablement precedes automatic
+SharpRail agent-launch indexing; login/cache remain vendor-managed and shared. No
+global agent installer/hooks or global watcher controls are used. Known-symbol and
+dirty-buffer work remains with LSP. [Host Context](src/SharpRail.Host.Core/Context/SPEC.md)
+records current artifact, consent, lifecycle and verification limits.

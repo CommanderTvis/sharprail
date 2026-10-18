@@ -1,0 +1,12 @@
+<UserControl xmlns="https://github.com/avaloniaui" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:kit="using:SharpRail.Plugins.UI.Kit" x:Class="SharpRail.UI.Panels.LanguageProviderView">
+    <StackPanel x:Name="JvmProviderSection" Spacing="4">
+      <TextBlock Text="Java / Kotlin provider · current workspace" FontWeight="SemiBold" />
+      <ComboBox x:Name="JvmProvider" HorizontalAlignment="Stretch" SelectionChanged="ProviderChoiceChanged">
+        <ComboBoxItem Content="Eclipse JDT + Kotlin Language Server" />
+        <ComboBoxItem Content="IntelliJ for Java and Kotlin" />
+      </ComboBox>
+      <Button x:Name="ApplyJvmProvider" Content="Apply" HorizontalAlignment="Left" IsEnabled="False" Click="ApplyJvmProviderClicked" />
+      <TextBlock Text="Only the selected providers handle Java and Kotlin. Existing settings are preserved." FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
+      <TextBlock x:Name="JvmProviderMessage" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
+    </StackPanel>
+</UserControl>

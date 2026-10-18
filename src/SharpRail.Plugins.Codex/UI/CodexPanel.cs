@@ -250,6 +250,11 @@ public static class CodexPanel
         Control CapabilitiesSurface(CodexConfigSnapshot current)
         {
             var frame = new CodexCapabilitiesFrame();
+            frame.FindControl<TextBlock>("LspAvailability")!.Text = context.Host().HostPlatform == HostPlatform.Windows
+                ? "Automatic LSP MCP launch wiring is unavailable on Windows."
+                : context.Settings<CodexSettings>().Mcp
+                ? "LSP MCP is included in new SharpRail launches."
+                : "LSP MCP is off for new launches. Enable MCP in Codex Settings.";
             frame.FindControl<ContentControl>("HooksAction")!.Content = current.HooksInstalled
                 ? ScopedSetting.ScopeChip("user")
                 : ScopedSetting.RowAction("CodexInstallHooks", "Install",

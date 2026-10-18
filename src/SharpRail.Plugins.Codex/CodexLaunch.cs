@@ -55,8 +55,14 @@ public static partial class CodexLaunch
         " -c 'mcp_servers.sharprail.tools.spec_get.approval_mode=\"approve\"'" +
         " -c 'mcp_servers.sharprail.tools.spec_graph.approval_mode=\"approve\"'" +
         " -c 'mcp_servers.sharprail.tools.spec_grep.approval_mode=\"approve\"'" +
-        " -c 'mcp_servers.sharprail.tools.spec_validate.approval_mode=\"approve\"'" +
-        " -c 'mcp_servers.sharprail.tools.blueprint_check.approval_mode=\"approve\"'";
+        " \\\n -c 'mcp_servers.sharprail.tools.spec_validate.approval_mode=\"approve\"'" +
+        " -c 'mcp_servers.sharprail.tools.blueprint_check.approval_mode=\"approve\"'" +
+        " -c 'mcp_servers.sharprail.tools.lsp_navigate.approval_mode=\"approve\"'" +
+        " -c 'mcp_servers.sharprail.tools.lsp_diagnostics.approval_mode=\"approve\"'" +
+        " \\\n -c 'mcp_servers.sharprail.tools.lsp_status.approval_mode=\"approve\"'" +
+        " -c 'mcp_servers.sharprail.tools.context_search.approval_mode=\"approve\"'" +
+        " -c 'mcp_servers.sharprail.tools.context_status.approval_mode=\"approve\"'" +
+        " -c 'mcp_servers.sharprail.tools.context_index.approval_mode=\"approve\"'";
 
     public static string Line(string command, CodexLaunchOptions options)
     {

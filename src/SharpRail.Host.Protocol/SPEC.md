@@ -199,3 +199,46 @@ The optional loopback browser approval bootstrap uses JSON `LocalBrowserApproval
 temporary origin-bound credential. It is separate from typed WebSocket RPC and introduces no
 new RPC operation or protocol-version requirement; hosts without app approval remain usable
 with the existing manually supplied token. See Remote’s spec for the consent and validation boundary.
+
+## Language queries
+
+`LanguageAsync` carries its workspace explicitly in a typed request, independent of the adapter's
+currently opened project. DTOs preserve draft identity/version, UTF-16 ranges, server state,
+freshness and coverage. `DocumentReply.ReadOnly` preserves dependency navigation's read-only status.
+
+Language replies carry server inventory rows (id, representative path, state, detail and managed version)
+for management without starting processes; older hosts may return an empty inventory.
+
+Language request field 11 carries an optional server id for path-free lifecycle operations.
+
+Language request fields 12 and 13 carry diagnostic scope and selected paths. Reply field 11
+carries per-file path, state, freshness and detail, preserving partial coverage across transports.
+
+Host settings fields 15 and 16 carry language-server launcher configuration and LSP enablement; fields 12–14 retain tab and settling settings. Server-specific setting
+changes and broadcasts retain the same behavior through local and remote adapters.
+
+Host settings carry LSP enablement with an explicit true default, preserving false across
+protobuf serialization and compatibility with settings that omit the field.
+
+Language wire DTOs carry navigation offset/limit (default 200), total/truncated results and
+location preview/body/truncation fields. Older callers retain the default page size.
+
+Language RPC preserves workspace configuration requests and saved/active snapshots on replies
+and server rows. Host state snapshots carry workspace language metadata, including remote clients.
+
+
+IntelliJ terms review/explicit acknowledgement has a dedicated typed request/reply RPC, including expected artifact/EULA identities. It is not an operation on agent-exposed language requests.
+
+
+Context consent uses a typed project RPC operation with reviewed artifact/text hashes and an acknowledgement timestamp. It is independent of terminal-authenticated MCP and preserves the same explicit consent boundary as direct clients. Older servers may return unimplemented, surfaced as unavailable.
+
+
+LanguageReply field 16 carries project-root DTOs (root, manifest, server, kind, state, detail). Existing operation/offset/limit fields carry projects discovery without new RPC methods. Context status uses the existing consent operation without fetching terms or recording acceptance.
+
+
+ContextAsync adds typed workspace/lifecycle/query/path/limit requests and state/detail/enabled/output/user-login-command replies. StateReply field 19 carries enabled Context workspaces; protobuf defaults preserve older clients. User-control commands are authenticated project RPC only, never an agent MCP operation.
+
+LanguageReply field 17 carries semantic-color capability; LanguageItemDto field 12 carries semantic modifier names. Both are additive with false/empty defaults and are mapped by direct and WebSocket adapters. Existing RPC operations and protocol version remain unchanged.
+
+AirContextHidden is a host-shared presentation preference; it does not change
+workspace Context enablement, consent or process lifetime. Its wire field is additive.

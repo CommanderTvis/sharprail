@@ -1,5 +1,6 @@
 using System.Text;
 
+using Avalonia.Controls;
 using Avalonia.Threading;
 
 using SharpRail.Scintilla;
@@ -17,6 +18,26 @@ public sealed partial class EditorFrame
     private byte[]? syntaxStyles;
     private bool syntaxAttached, syntaxDisposed;
     private int syntaxVersion;
+    private string? highlightedText;
+    private readonly TaskCompletionSource firstHighlight = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    /// <summary>Completes after the first syntax pass or its reported failure, before revealing the editor.</summary>
+    public Task HighlightingReady => firstHighlight.Task;
+
+    private bool deferSyntaxColors;
+
+    /// <summary>Holds lexical style application until semantic tokens arrive, preserving existing native styles while results are pending.</summary>
+    public bool DeferSyntaxColors
+    {
+        get => deferSyntaxColors;
+        set { deferSyntaxColors = value; ApplySyntaxTheme(); }
+    }
+
+    private void RevealHighlighting()
+    {
+        this.FindControl<Avalonia.Controls.ContentControl>("EditorBody")!.Opacity = 1;
+        firstHighlight.TrySetResult();
+    }
 
     /// <summary>Enables background TextMate highlighting, optionally projecting diff rows and their whole-line styles.</summary>
     public void Highlight(string path, IReadOnlyList<SyntaxLine>? lines = null, IReadOnlyList<int>? lineStyles = null)
@@ -26,14 +47,16 @@ public sealed partial class EditorFrame
         if (lineStyles is not null) ArgumentOutOfRangeException.ThrowIfGreaterThan(Editor.LineStyles.Count, 11);
         if (lines is not null && lines.Any(line => line.PrefixLength < 0))
             throw new ArgumentException("Source prefix length cannot be negative.", nameof(lines));
+        if (!deferSyntaxColors && !firstHighlight.Task.IsCompleted) this.FindControl<Avalonia.Controls.ContentControl>("EditorBody")!.Opacity = 0;
         syntaxPath = path;
         syntaxLines = lines?.ToArray();
         syntaxLineStyles = lineStyles?.ToArray();
         syntaxStyles = null;
+        semanticStyles = null;
         RequestSyntax();
     }
 
-    private void SyntaxChanged(object? sender, EventArgs e) { syntaxStyles = null; RequestSyntax(); }
+    private void SyntaxChanged(object? sender, EventArgs e) { semanticStyles = null; syntaxStyles = null; RequestSyntax(); }
     private void GrammarChanged() { syntaxStyles = null; RequestSyntax(); }
 
     private async void RequestSyntax()
@@ -45,10 +68,17 @@ public sealed partial class EditorFrame
         var token = cancellation.Token;
         var version = ++syntaxVersion;
         var text = Editor.Text;
+        if (syntaxStyles is not null && highlightedText == text)
+        {
+            ApplySyntaxTheme(); RevealHighlighting();
+            syntaxCancellation = null; cancellation.Dispose();
+            return;
+        }
         if (text.Length > TextMateHighlighter.MaximumCharacters)
         {
             if (syntaxLineStyles is null) Editor.ClearTextStyles();
             else Editor.StyleLines(syntaxLineStyles);
+            RevealHighlighting();
             syntaxCancellation = null;
             cancellation.Dispose();
             return;
@@ -90,8 +120,8 @@ public sealed partial class EditorFrame
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 if (token.IsCancellationRequested || !syntaxAttached || version != syntaxVersion) return;
-                syntaxStyles = styles;
-                ApplySyntaxTheme();
+                syntaxStyles = styles; highlightedText = text;
+                ApplySyntaxTheme(); RevealHighlighting();
             });
         }
         catch (OperationCanceledException) when (token.IsCancellationRequested) { }
@@ -100,7 +130,10 @@ public sealed partial class EditorFrame
             await Dispatcher.UIThread.InvokeAsync(() =>
             {
                 if (!token.IsCancellationRequested && syntaxAttached && version == syntaxVersion)
+                {
+                    Editor.ClearTextStyles(); RevealHighlighting();
                     Editor.ReportOperationFailure(error);
+                }
             });
         }
         finally
@@ -122,7 +155,13 @@ public sealed partial class EditorFrame
 
     private void ApplySyntaxTheme()
     {
-        if (syntaxDisposed || syntaxStyles is null) return;
+        if (syntaxStyles is not null && highlightedText != Editor.Text)
+        {
+            syntaxStyles = null;
+            if (!deferSyntaxColors) this.FindControl<ContentControl>("EditorBody")!.Opacity = 0;
+        }
+        if (semanticStyles is not null && semanticText != Editor.Text) semanticStyles = null;
+        if (syntaxDisposed || (deferSyntaxColors && semanticStyles is null) || (syntaxStyles is null && semanticStyles is null)) return;
         var palette = new List<ScintillaLineStyle>();
         for (var kind = -1; kind < (syntaxLineStyles is null ? 0 : Editor.LineStyles.Count); kind++)
         {
@@ -134,7 +173,16 @@ public sealed partial class EditorFrame
                 palette.Add(new(foreground, line?.Background));
             }
         }
-        Editor.StyleText(syntaxStyles, palette);
+        if (semanticStyles is not null && syntaxLineStyles is null)
+            palette.AddRange(palette.ToArray().Select(style => style with { Italic = true }));
+        var styles = syntaxStyles ?? new byte[semanticStyles!.Length];
+        if (semanticStyles is { } semantic && semantic.Length == styles.Length && syntaxLineStyles is null)
+        {
+            styles = (byte[])styles.Clone();
+            for (var index = 0; index < styles.Length; index++)
+                if (semantic[index] != byte.MaxValue) styles[index] = semantic[index];
+        }
+        Editor.StyleText(styles, palette);
     }
 
     private void AttachSyntax()
@@ -147,8 +195,8 @@ public sealed partial class EditorFrame
 
     private void DetachSyntax()
     {
+        if (syntaxDisposed) firstHighlight.TrySetResult();
         syntaxAttached = false;
-        syntaxStyles = null;
         syntaxVersion++;
         syntaxCancellation?.Cancel();
         Editor.TextChanged -= SyntaxChanged;

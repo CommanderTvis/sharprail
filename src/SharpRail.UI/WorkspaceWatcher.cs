@@ -142,6 +142,7 @@ public sealed partial class WorkbenchWindow
         if (listed.Count == folderCache.Count && listed.All(entry => folderCache.TryGetValue(entry.Key, out var current) && current.SequenceEqual(entry.Value)))
         {
             startupMilestones?.Complete(request, "files");
+            _ = RefreshFileProjectsAsync(request, false);
             return;
         }
         foreach (var folder in folders) folderCache.Remove(folder);
@@ -149,6 +150,7 @@ public sealed partial class WorkbenchWindow
         expandedFolders.RemoveWhere(folder => !folderCache.ContainsKey(folder));
         ReconcileFilesPanel();
         startupMilestones?.Complete(request, "files");
+        _ = RefreshFileProjectsAsync(request, true);
     }
 
     private async Task ReloadOpenDocumentsAsync(long request, IReadOnlyCollection<string> paths)

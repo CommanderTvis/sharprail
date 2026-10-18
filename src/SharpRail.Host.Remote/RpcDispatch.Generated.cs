@@ -10,11 +10,39 @@ internal static class RpcDispatch
         var context = stream.Context(open.Method);
         switch (open.Method)
         {
+            case "IProjectRpc/ContextConsentAsync":
+            {
+                var service = ActivatorUtilities.CreateInstance<ProjectRpc>(services);
+                var request = await ReadOne<ContextConsentRequestDto>(stream);
+                await stream.Send(await service.ContextConsentAsync(request, context));
+                break;
+            }
+            case "IProjectRpc/ContextAsync":
+            {
+                var service = ActivatorUtilities.CreateInstance<ProjectRpc>(services);
+                var request = await ReadOne<ContextRequestDto>(stream);
+                await stream.Send(await service.ContextAsync(request, context));
+                break;
+            }
             case "IProjectRpc/GetGitHubAuthenticationAsync":
             {
                 var service = ActivatorUtilities.CreateInstance<ProjectRpc>(services);
                 var request = await ReadOne<ProjectRequest>(stream);
                 await stream.Send(await service.GetGitHubAuthenticationAsync(request, context));
+                break;
+            }
+            case "IProjectRpc/LanguageAsync":
+            {
+                var service = ActivatorUtilities.CreateInstance<ProjectRpc>(services);
+                var request = await ReadOne<LanguageRequestDto>(stream);
+                await stream.Send(await service.LanguageAsync(request, context));
+                break;
+            }
+            case "IProjectRpc/IntelliJTermsAsync":
+            {
+                var service = ActivatorUtilities.CreateInstance<ProjectRpc>(services);
+                var request = await ReadOne<IntelliJTermsRequestDto>(stream);
+                await stream.Send(await service.IntelliJTermsAsync(request, context));
                 break;
             }
             case "IProjectRpc/ImportFilesAsync":

@@ -473,6 +473,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
                     "files" => FilesPanel(),
                     "changes" => ChangesPanel(),
                     "review" => ReviewPanel(),
+                    "lsp" => LanguagePanel(),
                     _ => PluginTool(tab.Id)
                 };
                 toolContent[tab.Id] = content;
@@ -563,6 +564,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
                             if (end < 0) end = text.Length;
                             if (end > offset && text[end - 1] == '\r') end--;
                             code.Editor.SelectRange(offset + Math.Min(column - 1, end - offset), 0);
+                            code.Editor.CenterLine(Math.Max(0, line - 1));
                         }
                         else code.Editor.ScrollToLine(Math.Max(0, line - 4));
                     }

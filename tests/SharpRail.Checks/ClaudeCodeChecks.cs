@@ -128,6 +128,13 @@ internal static class ClaudeCodeChecks
         app.Window.Layout.RestoreTool(ClaudeCodeManifest.ConfigTool);
         E2eWorkspace.Until(() => app.Window.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "ClaudeConfigPanel"));
         E2eWorkspace.Until(() => app.Window.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "ClaudeContextTotal"));
+        app.Click(app.Window.GetLogicalDescendants().OfType<Button>().Single(control => control.Name == "ClaudeSurface_capabilities"));
+        E2eWorkspace.Until(() => app.Window.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "ClaudeLspCapability"));
+        var lsp = app.Window.GetLogicalDescendants().OfType<Control>().Single(control => control.Name == "ClaudeLspCapability");
+        var lspText = string.Join(" ", lsp.GetLogicalDescendants().OfType<TextBlock>().Select(text => text.Text));
+        Require(new[] { "lsp_navigate", "lsp_diagnostics", "lsp_status" }.All(name => lspText.Contains(name, StringComparison.Ordinal)),
+            "Claude capabilities must name all three LSP MCP tools.");
+        app.Click(app.Window.GetLogicalDescendants().OfType<Button>().Single(control => control.Name == "ClaudeSurface_context"));
         var contextButton = app.Window.GetLogicalDescendants().OfType<Control>().Single(control => control.Name == "ClaudeSurface_context");
         var tabStrip = contextButton.GetVisualAncestors().OfType<ScrollViewer>().First();
         tabStrip.Width = 180;

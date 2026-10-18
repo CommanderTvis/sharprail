@@ -103,7 +103,7 @@ public sealed class PluginsSettings : StackPanel
     private Border Row(PluginRosterEntry entry, IReadOnlyList<PluginRosterEntry> roster)
     {
         var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"), ColumnSpacing = 12 };
-        var icon = PluginIcons.Resolve(entry.Icon, entry, Ui.Muted, 16);
+        var icon = PluginIcons.ResolveSettings(entry);
         icon.VerticalAlignment = VerticalAlignment.Top;
         icon.Margin = new Thickness(0, 2, 0, 0);
         Ui.Place(grid, icon);

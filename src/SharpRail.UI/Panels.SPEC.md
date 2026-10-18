@@ -548,3 +548,5 @@ The prompt uses the compiled local-browser fields inside the shared dialog frame
 by the current app window or its visible dialog. Settings › Host lists approved origins and offers
 Revoke access; credentials are never displayed there. This is ephemeral listener management,
 not a persistent host setting or a remote-client approval surface.
+
+Plugins settings preserves colored plugin assets. Claude and Discord use their brand colors in this listing; neutral marks use the current text foreground. This presentation does not change plugin activation or other workbench icons.

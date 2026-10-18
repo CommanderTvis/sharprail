@@ -9,6 +9,9 @@ namespace SharpRail.Scintilla;
 
 public sealed partial class ScintillaEditor
 {
+    /// <summary>The caret rectangle in editor coordinates, for anchored completion and navigation popups.</summary>
+    public Rect CaretBounds => inputClient.CursorRectangle;
+
     internal TextInputMethodClient InputMethodClient => inputClient;
     /// <summary>Whether the input method sees the caret line's neighbours too, as Android's does.</summary>
     internal bool InputSpansNeighbours { get => inputClient.Neighbours; set => inputClient.Neighbours = value; }

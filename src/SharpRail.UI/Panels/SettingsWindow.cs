@@ -91,7 +91,7 @@ public sealed partial class SettingsWindow : Window
         close.Content = Ui.Icon("close");
         close.Click += (_, _) => Close();
         navigationList = this.FindControl<StackPanel>("SettingsNavigation")!;
-        foreach (var item in new[] { ("Appearance", "palette"), ("Highlighting", "fileText"), ("Line width", "fileText"), ("Layout", "layout"), ("Projects", "folderTab"), ("Workspaces", "gitBranch"), ("Terminal", "terminal"), ("Notifications", "alertInfo"), ("Host", "server"), ("GitHub", "gitBranch"), ("Plugins", "puzzle") })
+        foreach (var item in new[] { ("Appearance", "palette"), ("Highlighting", "fileText"), ("LSP", "code"), ("Line width", "fileText"), ("Layout", "layout"), ("Projects", "folderTab"), ("Workspaces", "gitBranch"), ("Terminal", "terminal"), ("Notifications", "alertInfo"), ("Host", "server"), ("GitHub", "gitBranch"), ("Plugins", "puzzle") })
             Navigation(this.FindControl<Button>("Settings_" + item.Item1.Replace(' ', '_'))!, item.Item1, Ui.Row(item.Item2, item.Item1));
         SyncPluginSections();
         // Listed only for a host that settles workspaces; an older one has no idle window to set.
@@ -197,6 +197,7 @@ public sealed partial class SettingsWindow : Window
     private static readonly Dictionary<string, string> SectionSummaries = new()
     {
         ["Appearance"] = "Theme, file icons, interface font size",
+        ["LSP"] = "Language servers and launchers",
         ["Line width"] = "Code and Markdown columns",
         ["Layout"] = "Presets, panes, file previews",
         ["Projects"] = "Recent projects",
@@ -253,6 +254,7 @@ public sealed partial class SettingsWindow : Window
         {
             "Line width" => LineWidth(),
             "Highlighting" => HighlightingSettings(),
+            "LSP" => LspSettings(),
             "Layout" => LayoutSettings(),
             "Projects" => ProjectSettings(),
             "Terminal" => TerminalSettings(),
@@ -297,7 +299,8 @@ public sealed partial class SettingsWindow : Window
         // Terminal activity and other clients' workspace updates must not replace the open page.
         if (previous.Settings == next.Settings && previous.Presets.SequenceEqual(next.Presets) && previous.Projects.SequenceEqual(next.Projects)) return;
         RequestedThemeVariant = (Owner as Window)?.RequestedThemeVariant;
-        if (section == "Line width") foreach (var refresh in refreshers) refresh();
+        if (section == "LSP" && (previous.Settings.LanguageServers != next.Settings.LanguageServers || previous.Settings.LspEnabled != next.Settings.LspEnabled || previous.Settings.AirContextHidden != next.Settings.AirContextHidden)) foreach (var refresh in refreshers) refresh();
+        else if (section == "Line width") foreach (var refresh in refreshers) refresh();
         else if (section is "Appearance" or "Layout" or "Projects" || section == "Workspaces" && previous.Settings.SettleIdleDays != next.Settings.SettleIdleDays || section == "Terminal" && previous.Settings.TerminalReplayKb != next.Settings.TerminalReplayKb) ShowSection(section);
         else if (section == "Notifications") foreach (var refresh in refreshers) refresh();
     }

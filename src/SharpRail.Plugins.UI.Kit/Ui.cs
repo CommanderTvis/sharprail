@@ -152,6 +152,8 @@ public static partial class Ui
         };
     }
 
+    internal static IBrush SyntaxBrush(string role) => new SolidColorBrush(Theme.Syntax.GetValueOrDefault(role, TextBrush.Color));
+
     public static double FontSize { get; set; } = 14;
     public static TextBlock Text(string text, IBrush? color = null, double? size = null) => new()
     {

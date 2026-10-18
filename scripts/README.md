@@ -170,3 +170,21 @@ It proves interception first and fails if stream allocations grow or do not retu
 Generated native code and fixtures are scoped to the subprocess scratch tree and cleaned on exit;
 no injection is applied to a user app. See Host Core's `Files.SPEC.md` for registry/EventPipe diagnostics
 and the distinction between logical leases, managed watcher instances and native stream counts.
+
+### Headless language MCP and real-project validation
+
+Set `SHARPRAIL_HEADLESS_MCP=1` with the standalone host's existing root, state,
+bind/port and token environment variables to enable bearer-authenticated POST
+`/mcp` without a terminal or graphical app. The production language tools are
+available; license acceptance is not. See
+[`tests/SharpRail.Language.Integration/README.md`](../tests/SharpRail.Language.Integration/README.md)
+for direct launch instructions and the explicitly opt-in, pinned-project tool-call
+matrix. Expensive real-server scenarios are excluded from the full check suite.
+
+The explicit headless MCP host also exposes context_search, context_status and
+context_index for its fixed workspace. Enablement and vendor terms must first be
+handled by the actual user through Code Intelligence; agent tools cannot enable or
+accept them. --context and --context-ui run synthetic provisioning/runtime/transport/
+UI fixtures without a JetBrains account or cloud indexing. They include Node-based
+command/MCP fixtures on macOS/Linux; no expensive real-provider corpus joins the gate.
+A real authenticated Context smoke test remains a separate, user-authorized action.

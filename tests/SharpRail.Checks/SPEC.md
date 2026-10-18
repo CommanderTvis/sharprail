@@ -679,3 +679,111 @@ Fake-agent child processes recognize their fixture marker alongside launcher-sup
 Git UI fixtures wait for deferred scope reconciliation and Git-required tool availability before interacting; mounting the workspace alone does not establish optional Git-pane readiness. Commit-catalog isolation assertions still apply after reconciliation.
 
 The settings-refresh case checks that terminal-title broadcasts retain Appearance, Layout and Projects page instances while relevant appearance changes still reconcile. The browser Settings journey repeats the check over actual RPC while monitoring visibility and geometry.
+
+## Language services
+
+`--lsp` exercises a real stdio fixture process through local and WebSocket adapters: initialization
+roots, draft/version isolation, navigation, tokens, diagnostics, cancellation, MCP and process failure.
+`--lsp-ui` checks native editor token overlays, Unicode squiggles and stale/detached results. Both join
+the normal gate. `--lsp-real` explicitly exercises managed TypeScript installation and installed
+Pyright/clangd against intentional type errors; it needs network/toolchains and stays outside the gate.
+Ordinary fixtures disable server provisioning.
+
+Language checks also verify inventory without provisioning, local/remote server states, actual terminal-
+authenticated HTTP MCP listing/calls for Codex and Claude, and the LSP pane row-context stop/restart/Problems flow, including right-clicking an unselected server.
+The provider UI checks assert all three tool names appear in their Capabilities surfaces.
+
+Language regressions cover manual startup without sources, passive Problems queries, full-catalog
+inventory, whole-pane scrolling, explicit detection wording, context-menu commands and usages popup
+preview/Escape behavior. Semantic checks verify replacement of TextMate-only colors.
+
+Language regressions exercise explicit edited-file and project diagnostic scans across both
+adapters: unopened files, refreshed disk edits, dirty draft provenance, ignored files, unavailable
+servers, unsupported/missing files, containment and per-file coverage. Both agent MCP connections
+expose `paths`/`scope` and accept file-list requests.
+
+LSP checks cover disabled-server startup, persisted launcher overrides over both transports,
+Settings-category save and cross-client refresh, and unselected rows displaying wrapping errors.
+Optional `SHARPRAIL_LSP_CAPTURE=1` captures the pane and Settings page for visual inspection.
+
+LSP checks also cover the settings navigation rail, global disable persistence and remote parity,
+process termination and dirty-draft restoration, compact row disclosure by pointer/keyboard, and
+adding undetected servers without starting them.
+
+TypeScript provisioning checks distinguish standalone PATH launchers from bundled compiler
+installations, including symlinks. Real-server checks use automatic selection without a
+workspace TypeScript dependency and verify diagnostics, navigation and semantic tokens.
+
+LSP checks verify implementation/provider metadata through local and remote catalogs and Settings. Both terminal-authenticated Codex and Claude MCP endpoints discover implementations, start a second language without UI interaction, navigate TypeScript and Python independently, and return both diagnostic sets in a single mixed-language scan.
+
+LSP retrieval regressions cover local/remote paging totals and qualified nested outlines,
+exact/enclosing symbol-body ranges, Unicode, dirty drafts, bounded bodies, source excerpts,
+large reference pages, hover, and compact diagnostic output that retains partial coverage.
+Both authenticated agent endpoints retrieve hover and selected bodies. Real TypeScript checks
+exercise declaration excerpts, inferred type information, outlines and symbol bodies.
+
+LSP checks cover workspace configuration persistence and transport parity, independent Default
+inheritance, initialization path expansion, saved/active snapshots, agent save/restart, pane editing,
+and left-click/keyboard start. Real-server checks verify clangd include configuration removes a
+missing-library diagnostic after restart.
+
+
+LSP checks cover bounded log retention and agent output, non-starting log reads, stderr and server messages through local/remote adapters, logs after stop and failed startup, server-header settings alignment, and opening a failed server’s log viewer from its row.
+
+
+Language regressions exercise server-initiated workspace/configuration requests for missing Boolean/enum values, explicit nulls and typed false/zero/string values. The LSP pane is also restored through the unplaced tool rail in a non-Git workspace.
+
+
+LSP status icons use the shared vector factory; the vector-icon checks cover antialiasing at compact and enlarged sizes.
+
+Language persistence checks emulate an older build rewriting state.json without LSP metadata, reopen the store, and verify saved settings survive. A second host then saves a compilation database and the live first host must observe it; both local and WebSocket paths cover this behavior.
+
+Project-resolution checks cover native manifest policies for every catalog server, ignored dependency
+directories, nested Go/Rust setup, Metals import settings and Roslyn restore/readiness ordering.
+Local and WebSocket fixtures verify file/dependency scopes, paging totals and explicit unsupported
+module scope. Optional real-server modes exercise unopened TypeScript alias imports, Python imports,
+clangd compilation-database references and include-path restart. The Roslyn mode covers an unopened
+dependent project and references across the actual SharpRail solution. These checks do not establish
+live compatibility or complete indexing for every catalog provider.
+
+IntelliJ provisioning uses synthetic ZIP/tar artifacts and fake HTTP responses only: checksum failure,
+path/link attacks, concurrent reuse, cancellation cleanup, changed terms, distinct workspace/process
+cache paths and launch construction. Host checks cover local/WebSocket exclusive Java/Kotlin routing,
+selection persistence, existing-provider preservation, explicit fallback and blocked executable
+overrides/agent acceptance. UI checks cover the owned settings window, setup saving the displayed provider selection, acceptance followed by startup, existing-acceptance Start, cancellation without startup, and repeated launch-failure visibility. Unix native fake-server checks cover accepted launch, Java/Kotlin dirty buffers, exit-7 invalidation and no automatic restart or deletion of user installations.
+No fixture accepts JetBrains terms, executes its server or establishes real entitlement validity.
+
+
+Synthetic IntelliJ EULA fixtures cover exact bytes, unchecked/default-false consent, Cancel without records, direct/WebSocket persistence and reopening, changed terms/build/binary, corrupt-record recovery and atomic failure cleanup. UI input checks cover changed-during-review acknowledgement and the owned full-text window. No real JetBrains terms are accepted.
+
+Agent code-intelligence fixtures cover qualified symbol selection after dirty edits, overload
+ambiguity/paging, unopened-file references, dependency scopes, exact IntelliJ JAR/JDK URI retrieval,
+bounded source continuation, unsupported schemes, workspace/process grant isolation and warm
+process reuse through direct and WebSocket adapters. MCP schema checks keep configuration fields
+out of navigation/diagnostics. These fixtures do not establish real JetBrains compatibility or
+measured token/productivity improvements.
+
+The language fixtures additionally check authenticated terminal-free MCP discovery,
+provider-version schemas over local/WebSocket adapters, typed setting edits and
+invalid-value save refusal, SDKMAN project JDK precedence, IntelliJ projects array
+normalization/importer JDK fields, and PowerShell session-file isolation from host
+metadata. The networked real-project matrix in `tests/SharpRail.Language.Integration`
+is explicitly separate and must never be registered through `Gate.Case`.
+
+`--context` (also the inexpensive context-consent gate case) exercises only fake executable bytes, fake HTTP and a local Node stdio
+server: authorization before I/O, pinned download integrity, concurrent provisioning,
+corruption repair, cancellation cleanup, MCP initialization, workspace roots and owned
+process cancellation. It neither downloads the proprietary Context CLI nor accepts
+real terms, authenticates or indexes source. Real Context compatibility is unverified. The consent fixtures additionally cover host receipt persistence, changed terms/builds, missing/stale UI identities, MCP exclusion, direct/WebSocket parity and no binary download during review. `--context-ui` and the context-consent-ui gate case cover the pane entry, unchecked default, cancellation and explicit download completion using only synthetic agreements.
+
+Language fixtures cover semantic capability/modifier parity across transports, native italic set/reset, plain-first semantic startup without a loading prompt, compact empty navigation, external-source tab adornment, uniform provider icons and Java/Kotlin routing selected outside IntelliJ settings. Terms and launch fixtures remain synthetic.
+
+The focused `--lsp-settings` mode covers Settings placement, workspace provider
+selection, Air Context visibility persistence and the existing server configuration UI.
+
+The focused LSP settings checks also exercise editor menu visibility through idle,
+ready, stopped, disabled, unsupported, unavailable and initializing server states,
+and verify that the pane has no Workspace Problems action.
+
+Focused LSP settings/editor checks verify C# lexical fallback after a semantic-ready
+status followed by unavailable inspection, and native viewport centering of a declaration.

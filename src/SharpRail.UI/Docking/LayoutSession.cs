@@ -27,6 +27,7 @@ public sealed partial class LayoutSession
             "projects" => "folderTab",
             "files" => "file",
             "changes" => "fileDiff",
+            "lsp" => "code",
             _ => "discuss"
         }, DockState.ToolRegion(id), id is "changes" or "review"))
     ];

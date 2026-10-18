@@ -85,6 +85,15 @@ public sealed partial class ScintillaEditor
         InvalidateVisual(); inputClient.NotifyScrolled();
     }
 
+    /// <summary>Centers a zero-based document line in the viewport, accounting for wrapped display lines.</summary>
+    public void CenterLine(int line)
+    {
+        if (disposed) return;
+        var target = document.Send(ScintillaMessage.VisibleFromDocLine, Math.Clamp(line, 0, (int)document.Send(ScintillaMessage.GetLineCount) - 1));
+        var visible = document.Send(ScintillaMessage.LinesOnScreen);
+        ScrollToLine(Math.Max(0, target - visible / 2));
+    }
+
     public void ScrollToLine(double line)
     {
         if (disposed) return;

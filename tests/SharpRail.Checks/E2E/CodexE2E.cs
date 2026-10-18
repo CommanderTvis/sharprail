@@ -486,6 +486,8 @@ internal static class CodexE2E
             One<Border>(Server(), "ScopeChip").Tag as string == "user", "configured MCP capability has its target and scope");
         Require(Equals(ToolTip.GetTip(One<Button>(Server(), "SourcePath")), config), "the capability's source path has the full tooltip");
         Require(Texts(panel).Contains("added to every session", StringComparison.Ordinal), "the launcher's own MCP explanation remains visible");
+        Require(new[] { "lsp_navigate", "lsp_diagnostics", "lsp_status" }.All(name => Texts(panel).Contains(name, StringComparison.Ordinal)),
+            "Codex capabilities must name all three LSP MCP tools.");
         codex.App.Click(One<Button>(Hooks(), "CodexInstallHooks"));
         E2eWorkspace.Until(() => !Has(panel, "CodexInstallHooks") && Texts(Hooks()).Contains("Installed; waiting", StringComparison.Ordinal));
         Require(One<Border>(Hooks(), "ScopeChip").Tag as string == "user" && Has(panel, "CodexConfigProblem"), "installed hooks retain the trust warning and user scope");
@@ -687,7 +689,7 @@ internal static class CodexE2E
 
     private static string[] WithoutLauncherMcp(string[] args)
     {
-        string[] tools = ["set_title", "spec_get", "spec_graph", "spec_grep", "spec_validate", "blueprint_check"];
+        string[] tools = ["set_title", "spec_get", "spec_graph", "spec_grep", "spec_validate", "blueprint_check", "lsp_navigate", "lsp_diagnostics", "lsp_status", "context_search", "context_status", "context_index"];
         var count = 2 + tools.Length * 2;
         Require(args.Length >= count && args[0] == "-c" && args[1].StartsWith("mcp_servers.sharprail.url=", StringComparison.Ordinal),
             "launcher MCP URL: " + string.Join(" | ", args));

@@ -127,3 +127,18 @@ pane's edge even with no wrap width, for screens where sideways scrolling is a c
 The browser links the same editor and SheenBidi into WASM through `scripts/wasm-native.sh`. Its native
 draw callback uses an unmanaged function pointer; managed rendering and editing behavior stay shared.
 WASM requires `PTRDIFF_DOESNT_ALIAS_INT` when building Scintilla template instantiations.
+
+### Diagnostics
+
+`SetDiagnostics` replaces diagnostic squiggles using UTF-8 byte offsets and lengths; severity 1–4
+selects error, warning, information or hint. The caller supplies colors and performs coordinate
+conversion. Underlines do not modify source text or undo history.
+
+`CaretBounds` exposes the caret rectangle in editor coordinates for anchored navigation popups.
+
+Diagnostic underlines may carry optional message text. Hover shows messages for overlapping byte ranges in severity order; pointer exit, editing, scrolling and detach/dispose clear the tooltip. Hit testing accounts for fractional vertical scrolling and excludes blank space beyond text.
+
+Text and whole-line palettes support an optional Italic style flag. Native font styles are explicitly set/reset when palettes apply, preserving text and undo state.
+
+`CenterLine` centers a zero-based document line using its wrapped display-line position
+and current viewport height; ordinary selection still only ensures caret visibility.

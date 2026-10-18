@@ -33,7 +33,7 @@ invitation and bundled AI chat are excluded by the SharpRail product contract.
   Revival replaces launcher-owned overrides under both the current name and legacy `thinkrail`;
   the existing `THINKRAIL_MCP_URL` environment contract remains compatible with running shells.
   Launcher MCP configuration always approves `set_title`, `spec_get`, `spec_graph`, `spec_grep`,
-  `spec_validate` and `blueprint_check` for that session. Revival refreshes these overrides without
+  `spec_validate`, `blueprint_check`, `lsp_navigate`, `lsp_diagnostics` and `lsp_status` for that session. Revival refreshes these overrides without
   accumulating them; disabling launcher MCP drops them. Other tools retain their configured policy.
   The launcher's right-click menu offers With custom arguments: Start passes the typed shell arguments
   to this run, Cancel starts nothing, and the last submitted arguments are prefilled during this app session.
@@ -183,3 +183,46 @@ This leaves recovery verification unresolved: it does not establish that a malfo
 was reused. A later source-gate pass does not replace this packaged acceptance.
 
 Context labels delimit the active tab name with quotation marks, including the no-session fallback, so it is distinct from the explanatory sentence.
+
+## Language tools
+
+The prompt appendix directs navigation and post-edit inspection through `lsp_navigate` and
+`lsp_diagnostics`, with `lsp_status` for initialization and recovery. Every call carries the edited
+workspace, including delegated agents inheriting the parent's MCP connection. Delegation passes
+that path and the inspection instructions. Launch and revival approve these three tools for the session.
+
+Capabilities explicitly lists `lsp_navigate`, `lsp_diagnostics` and `lsp_status` under the injected
+thinkrail MCP server, states whether new-launch MCP is enabled, and explains workspace/subagent routing.
+Its guidance follows the [workbench’s LSP configuration guidance](../SharpRail.UI/SPEC.md#language-intelligence).
+The Windows launcher limitation is explicit; this description does not claim a live connection.
+
+Agent instructions request `lsp_diagnostics` with `paths` for every edited file or
+`scope: "workspace"` for project source files, including unopened files. Agents must inspect
+per-file checked/pending/skipped/error coverage; scans use running servers only.
+
+Agent guidance explains discovering language servers and explicitly starting each needed server through MCP before mixed-language diagnostic scans, while respecting disabled settings.
+
+System instructions prefer LSP over grep for available semantic navigation, advertise hover,
+qualified symbol outlines/body reads and paged source excerpts, and prefer edited-file diagnostic
+scans. Text search remains available for strings, configuration, unknown owners and incomplete
+or unsupported semantic results; delegated agents receive the workspace and LSP guidance.
+
+The system prompt advertises workspace LSP configuration inspection, save and targeted restart,
+including library settings and clangd compiler configuration. Saved configuration is visible in
+the workspace LSP pane and copied independently from Default for new workspaces.
+
+Agent LSP guidance prefers qualified outline queries over guessed positions, dependency scope and
+bounded source retrieval with the returned URI/source provider. Reuse warm sessions and poll import
+readiness; retain text-search fallbacks for incomplete or unsupported semantic results.
+
+
+SharpRail prompt appendices advertise context_search for unfamiliar code, context_status/index for readiness and refresh, and LSP for known symbols/current drafts. Launch commands preapprove these three workspace-gated tools through the terminal-local MCP override; global Codex configuration is unchanged. Capabilities describes explicit workspace cloud enablement. Core triggers indexing only for recognized UI-launched agents.
+
+Revival removes and regenerates the three Context approval overrides with the existing SharpRail MCP flags, so repeated resumes cannot accumulate them.
+
+Generated MCP flags use shell continuation lines below the canonical PTY input limit, preserving individual overrides. Revival recognizes those standalone continuations; initial agent launch does not depend on the shell entering raw input mode first.
+
+Air Context prompt guidance explains meaning-based code discovery and directs agents to
+use it proactively as the first step for unfamiliar behavior whenever workspace-enabled.
+Disabled or unready indexing falls back to LSP and targeted text search without blocking;
+user-only enablement/sign-in and current-draft limitations remain explicit.

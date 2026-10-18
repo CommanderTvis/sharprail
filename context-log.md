@@ -5839,3 +5839,877 @@ outside this source tree. No commit or push was made by this verification task.
 2026-10-18: Landed Settings page-retention fix in 7bf19a15: unrelated host broadcasts (including terminal titles/agent activity) no longer rebuild the open page when settings, presets and projects are unchanged. The before-check reproduced Appearance replacement; focused retention/touch checks passed with the guard, including relevant-setting refresh. Release solution/browser builds, touched formatting/JS syntax and actual Chrome Settings/RPC activity journeys passed at normal size and 125% zoom/DPR2 fractional geometry. The 143-case Settings source gate completed in aggregate: initial Layout/Visualize timeouts passed unchanged in serial --last-failed, leaving no unfinished cases. Bundled Chromium startup stalled before Settings in one run; no Safari/Firefox/physical Retina or WASM-startup fix is claimed. Main differs from the verified Settings branch only by separately verified cosmetic tab-name quotes (e5c3cbe1), status and verification documentation; the combined main Release build passed. Existing :54125 preview still serves workspace-22, not the freshly tested bundle.
 
 2026-10-18: Quoted active-tab names in Codex and Claude context labels, including no-session wording. Release compilation, touched formatting and focused Codex/Claude UI checks passed. Removed 12 unused branches with no unique changes relative to main (including cherry-picked equivalents), then the completed Settings branch after landing/removing own workspace-21: 13 branches total. Branches with unique commits and every checked-out/active workspace were preserved. No HybridCLR/IL2CPP branch or SharpRail workspace label exists. The Android embedded-Tailscale task remains active in workspace-13. Nothing pushed.
+
+## 2026-10-13 — Workspace LSP support
+
+Created managed workspace-11 on `lsp-support`. Added host-owned language sessions,
+pinned on-demand provisioning for a twenty-language catalog, supported shared caches
+with per-workspace mutable state, local/WebSocket contracts, navigation, semantic
+overlays and Problems/squiggles. Terminal MCP exposes diagnostics, navigation and
+status; Codex and Claude instructions carry explicit workspace routing into subagents.
+Dirty drafts, freshness, cancellation, stop/retry and read-only dependency navigation
+are covered by focused fixtures. The owning language spec documents prerequisites,
+coverage and index-sharing limits.
+
+Release/format and focused checks pass; real TypeScript, Pyright and clangd checks
+pass. The Git-enabled full gate and unchanged serial continuation remain incomplete
+at existing shared-terminal/startup checks; exact failures and unverified platform
+coverage are recorded in src/SharpRail.Host.Core/Language/SPEC.md. Keep the unfinished-case record for follow-up;
+other task scratch is removed. Work is uncommitted, with no push or app replacement.
+
+## 2026-10-13 — LSP management pane and visible agent tools
+
+Continued workspace-11 after rebasing onto main `1a95052e`. Added the core LSP dock
+tool with non-starting server inventory, Start/Retry, Stop, Refresh and navigable
+workspace Problems. Codex and Claude Capabilities explicitly name all three language
+tools and explain how their MCP connection is supplied. HTTP fixtures verify the
+terminal-authenticated route for both agents; local/WebSocket and pane lifecycle checks
+pass, as do provider UI, design and conformance modes. Final Release/format checks pass.
+
+The four-lane full gate stopped on rendered-diff and shared-terminal checks and an
+outdated default-tool assumption. The latter now restores catalog tools explicitly;
+the targeted LayoutE2E run passes, including mounting LSP from the workbench. Remaining
+full-gate limits are in src/SharpRail.Host.Core/Language/SPEC.md. Keep `.bench/checks-last-run.txt` for continuation;
+other scratch is removed. No commit, push, package or app replacement.
+
+## 2026-10-14 — LSP pane scrolling, manual servers and usages popup
+
+Continued workspace-11. Replaced nested list scrolling with one pane scroll area,
+listed all supported servers with status icons, and clarified which file suggested
+a server. Lifecycle requests select server ids independently of source detection.
+Workspace Problems only queries initialized sessions. Moved the editor footer actions
+to the code context menu; references/multiple results use a caret-anchored popup with
+file/line previews and keyboard navigation/dismissal. Semantic colors replace TextMate
+when supplied; missing/empty tokens keep syntax fallback. Scintilla exposes caret bounds.
+
+Final Release/format and focused host/UI, syntax, editor, design and conformance checks
+pass. Full-gate lanes 3 and 4 complete, while rendered-diff/change-action cases time out
+opening diff rows. Exact limits are in src/SharpRail.Host.Core/Language/SPEC.md. Preserve the unfinished-case
+record; other task scratch is cleaned. Work remains uncommitted with no app replacement.
+
+## 2026-10-14 — LSP lifecycle actions on server rows
+
+Moved Start/Retry and Stop from the lower buttons into each server row’s right-click
+menu. The action captures the clicked server independently of the previous selection.
+Release build, touched-file formatting, LSP UI and design checks pass; existing
+full-gate limits remain recorded in src/SharpRail.Host.Core/Language/SPEC.md. Work is uncommitted.
+
+## 2026-10-14 — Agent edited-file and project diagnostic scans
+
+Added diagnostic scope/paths and per-file coverage through abstractions, RPC and both
+adapters. MCP accepts explicit edited files or a workspace source scan (its default),
+including unopened files; no server is installed or started. Project enumeration respects
+Git ignores; explicit selections validate containment and may include ignored files.
+Requests synchronize disk edits or preserve dirty drafts. Push-only results wait briefly
+and retain pending/unversioned coverage. Agent instructions describe both request forms.
+
+Release, formatting, focused LSP and conformance pass. The full four-lane gate passes
+lanes 1/3 (including LSP host/editor), but shared-terminal PhoneToDesktop and file-icon
+Raster fail in lanes 2/4. Exact evidence is in src/SharpRail.Host.Core/Language/SPEC.md. No unrelated fixes, commit,
+package or app replacement. Scratch is cleaned; the unfinished-case record is retained.
+
+## 2026-10-14 — LSP inline errors and Settings category
+
+Server errors/status, detection reason and managed version now render inside each list
+row, with wrapping and error tint. Removed the selected-server detail block; row RMB
+lifecycle actions and one outer scroller remain. Settings > LSP edits host-wide per-server
+enablement, managed preference and executable/argument overrides. Server-specific host-state
+updates merge atomically, persist and broadcast; active sessions retain their launcher until
+next start/retry. Untouched servers keep legacy servers.json fallback. Catalog retrieval is
+workspace-free and starts no servers.
+
+Release, focused host/UI, design and conformance checks pass. Headless pane and Settings
+captures were visually inspected. Latest full-suite limits remain in src/SharpRail.Host.Core/Language/SPEC.md; no
+new full run, Android/native capture, package or app replacement. Changes are uncommitted.
+
+Final UI audit: inline unselected-row errors, one pane scroller, row context lifecycle actions
+and the LSP Settings category are verified by focused checks and rendered captures. Argument
+overrides explicitly require a custom executable; automatic launchers disable those controls.
+The final Release build and formatting verification pass. Task fixtures and captures are cleaned.
+
+2026-10-14 LSP rail, compact disclosure and TypeScript provisioning (workspace-11):
+Settings uses a compact server rail and a persisted host-wide enable switch. Disabling
+stops processes and blocks requests while retaining configuration and dirty drafts.
+The pane lists detected/added/active servers, offers the remainder in an add dropdown,
+uses compact rows with left-click/Enter/Space disclosure, and keeps errors inline.
+Actions have pane padding. Rendered pane and Settings captures were inspected.
+
+Release build (zero warnings/errors), focused host/UI, design and conformance checks
+pass. Real TypeScript, Python and clangd checks pass. Automatic TypeScript selection
+now falls back to the managed compiler/server pair when a PATH launcher has no compiler
+in its package or workspace ancestry; explicit executable overrides remain authoritative.
+The real TypeScript check uses automatic selection in a workspace without TypeScript
+and verifies diagnostics, navigation and semantic tokens. Existing full-gate failures
+below remain unresolved; no additional full run, Android build, package or app replacement.
+Changes remain uncommitted.
+
+2026-10-14 LSP implementation identity and multi-language agents (workspace-11):
+Settings names each default language-server implementation/provider and distinguishes
+pinned managed versions from SDK/runtime versions. Catalog metadata comes from the host.
+MCP adds catalog/inventory operations and explicit server-id startup/status. Codex and
+Claude guidance explains starting the languages needed for mixed-language scans without
+UI interaction; diagnostic scans remain non-provisioning and disabled settings apply.
+
+Release build, touched-file formatting, focused --lsp and --lsp-ui, design and conformance pass.
+Both authenticated agent endpoints discover implementations, start Python alongside
+TypeScript, navigate both independently and collect mixed-file diagnostics with coverage.
+Settings capture was inspected. No additional full gate, real-server provisioning, Android
+build, package or app replacement; previous full-gate failures remain recorded below.
+Changes are uncommitted.
+
+2026-10-14 high-priority agent LSP retrieval (workspace-11): navigation now includes
+bounded source excerpts and stable per-server paging/counts; hover exposes types/signatures;
+qualified outlines and exact/enclosing symbol-body retrieval preserve full UTF-16 ranges.
+Dirty drafts supply current content. Large bodies and unavailable source are explicit.
+MCP omits unrelated empty fields and bounds displayed diagnostics while preserving aggregate
+checked/pending/skipped/error coverage, freshness and continuation metadata. Codex and Claude
+system prompts explicitly prefer semantic LSP operations over grep when available, advertise
+outline/body/hover retrieval and prefer edited-file diagnostics; text-search fallback remains.
+
+Release build (zero warnings/errors), touched-file format verification, whitespace, focused
+--lsp and --lsp-ui pass. Local/remote and both terminal-authenticated agent connections cover
+paging, nested bodies, dirty source, Unicode, hover and mixed-language diagnostics. Real
+TypeScript validates excerpts, hover, outlines and bodies; Python and clangd checks also pass.
+The Git-enabled four-lane full gate completes lanes 1, 3 and 4. Lane 2 stops at the previously
+recorded SharedTerminalsE2E.PhoneToDesktop line 80 (empty Single), inside TerminalsE2E.
+The full gate is not green; its unfinished-case record is retained. The earlier FileIcons
+failure did not recur in this run. No Android build, package or app replacement was performed.
+Changes remain uncommitted. Temporary test fixtures/captures/logs are cleaned.
+
+## 2026-10-14 workspace LSP configuration and left-click start (workspace-11)
+
+LSP rows now start idle/stopped servers or retry errors on left click and Enter/Space, with
+visible Start/Retry text; running rows still expand details. Right-click retains lifecycle actions.
+Agents can inspect workspace configuration and the active snapshot, save a complete configuration
+without starting, or save/restart one server. Options cover server arguments, initialization JSON,
+workspace settings, and clangd include directories/fallback compiler flags/compilation database.
+The LSP pane edits these values inline, preserves unsaved edits through polling, exposes active
+settings and restart-needed state, and keeps configured servers visible without detected sources
+and while globally disabled. New managed workspaces copy Default's configuration/start choices
+once and start inherited enabled servers in the background; edits and removal stay independent.
+
+Release build passed with zero warnings/errors. Focused LSP host checks passed for local/remote
+persistence, real workspace creation and automatic startup, path expansion, independent edits,
+removal, and both terminal-authenticated agents' configuration/restart. Real TypeScript/Python/
+clangd checks passed, including a missing clangd header resolved by restarting with a relative
+include directory. UI checks passed for left-click/keyboard start, settings save/reload, active
+snapshot visibility, and preservation of pending edits. Rendered pane configuration was inspected.
+Final Release build and touched-file formatting verification passed. Conformance checks passed.
+The final focused host run passed, including preserving an explicitly false inheritance choice
+when restarting with supplied settings. The resumed named cases `language-editor`, `design`,
+`file-actions`, `DiscordChecks-RunUi`, `codex-ui`, and `visualize-ui` all passed. The full four-lane
+run passed lane 3; lane 1 stopped on form spacing that was corrected and verified by the resumed
+design/tail cases; lane 4's Visualize remount timeout passed in the isolated resume. Lane 2 still
+fails the previously recorded `SharedTerminalsE2E.PhoneToDesktop` empty `Single()` at line 80.
+The full gate is therefore not green. No unrelated terminal fix, app replacement, commit or push
+was performed. Task scratch files were removed; the remaining terminal failure is retained for
+`--last-failed`.
+
+
+2026-10-14 — Compact LSP pane follow-up: removed the add-server dropdown border; replaced framed settings expanders with compact disclosures, reduced input heights, shortened labels, moved help/workspace paths to tooltips, and let configuration span the available row width. Release build (zero warnings/errors), touched C# formatting verification, LSP UI checks, final language-editor/design checks and whitespace verification passed. No full-gate rerun for this UI-only change; previous shared-terminal gate limitation remains. Changes remain uncommitted.
+
+
+2026-10-14 — Workspace LSP logs and settings positioning (workspace-11): moved workspace configuration access to a gear aligned with the server header, keeping the editor below the row only while open. Added inline View logs for errors and a View logs row-menu action for every server; the workspace/server-labeled viewer updates live and supports Copy/Refresh. Host logs retain the newest 32 Ki characters through stop/retry, including launch command/workspace, stderr, server messages, startup errors and observed exit codes. lsp_status operation=logs exposes the newest 12,000 characters with truncation metadata, without provisioning; logs remain readable while LSP is disabled. Release build passed with zero warnings/errors. Touched C# formatting verification, local/remote LSP checks (including exit code 7, non-starting reads, retained logs and bounded output), settings-action alignment, log-viewer UI checks and design checks passed. The final four-lane full gate passed lanes 1, 3 and 4; lane 2 stopped at the previously recorded SharedTerminalsE2E.PhoneToDesktop line 80 empty Single() failure. Public-surface checks passed. Changes are uncommitted; no running-app replacement or publication. Task fixtures/captures/logs cleaned; checks-last-run.txt retained.
+
+
+2026-10-15 — LSP log window chrome: removed native window decorations and taskbar registration; the log viewer now uses the app’s elevated, bordered dialog card with an in-app draggable server heading and Close/Esc. Verified the rendered log-viewer capture. Release build passed with zero warnings/errors; touched C# formatting verification, language-editor/LSP UI checks, design checks and whitespace verification passed. Reused the prior backend/full-gate evidence for this UI-only change; the known shared-terminal full-gate failure remains. Changes are uncommitted, and the running app was not replaced. Task fixtures/captures/logs cleaned.
+
+
+## 2026-10-15 — LSP rebase and Roslyn configuration crash
+
+Rebased lsp-support’s uncommitted feature onto main snapshot 1696f031, incorporating concurrent main updates through that commit. Resolved 17 initial conflicts and later append-only status conflicts, regenerated the RPC clients/dispatch to retain both file uploads and language requests, and preserved main’s tool rails, workspace settings and public-API analyzer conventions. LSP launcher/enablement wire fields moved to 15/16 to avoid main’s established 12–14 tab/settling fields. The compiler baseline contains the added language API. All 31 initially untracked feature files remain present; source changes among those are limited to the configuration fix, its owning spec and regression checks. Changes remain unstaged and uncommitted; original pre-rebase stash 6a43f99d60c47888803c89f7ce4052b3eb6a02e2 is retained. No commit, push or running-app replacement.
+
+Fixed workspace/configuration responses that substituted {} for missing/null scalar values. Roslyn/Razor now receives null and applies its defaults, while configured false, zero and strings retain their types. The real installed Roslyn/Razor server started against workspace-11, returned 20 symbols from src/SharpRail.Host.Abstractions/LanguageServices.cs, remained ready afterward and logged neither the JsonValue crash nor {} parse failures. The isolated probe and its server state were task-local and are cleaned.
+
+Verification: final Release solution build on 1696f031 passed with zero warnings/errors. Formatting verification passed for all changed C# files before the final two main-only integrations; their unchanged LSP slices reuse those results. Whitespace/conflict-marker checks pass on the final tree. Local/remote LSP checks, configuration regression, shared state, workspace registry, LSP editor/pane/settings/tool-rail and design checks passed. Real C# validation and unchanged focused results are reused across main-only updates. Browser/Android compilation and runtime were not run for this batch.
+
+The one four-lane full run at 6013d2eb passed the LSP host/UI cases, but stopped at DockInputChecks (line 292), TerminalChromeChecks.SideMenu (line 247), ChangesE2E.ProbeFailure (line 112), and LayoutE2E/GestureCancellationE2E.QuietTransitions (line 44). These fixtures look up a missing Git-only Changes rail entry in non-repository workspaces. The focused broader LayoutE2E run hit the same condition; the new LSP-specific non-Git rail restoration check passes. No full-suite pass is claimed, and the full gate was not repeated for the unchanged LSP slices in the final main-only updates. checks-last-run.txt retains the unfinished positions. Task fixtures, captures and logs are cleaned.
+
+
+## 2026-10-15 — Smooth status icons and agent-configuration guidance
+
+Workspace-11 fixes jagged status-circle rendering by enabling high-quality sampling in the shared bitmap-mask icon factory. Existing assets, sizes and tint brushes are retained. Actual pixel comparisons at 14, 18 and 24 DIP distinguish the factory output from nearest-neighbor sampling and verify more blended edge pixels. The paired icon capture was visually inspected, with the smooth factory icon beside the jagged reference.
+
+The LSP pane now has a compact accent-bordered callout explaining that agents can configure this workspace, fix missing libraries/include paths and restart its server. Codex and Claude capability descriptions advertise the same capability. The pane capture was inspected. The kit, workbench, provider and checks specs record the changes; temporary task notes are retired. Spec tools were bound to a different checkout, so task notes were kept locally; no durable graph links/frontmatter changed.
+
+Release solution build passed with zero warnings/errors. Touched C# formatting verification, whitespace verification, pixel comparisons, LSP editor/pane/settings/tool-rail checks, design checks, Claude UI and Codex UI/E2E checks passed. One full four-lane gate ran: lane 2 passed; lanes 1, 3 and 4 stopped at the already recorded LayoutE2E, TerminalChromeChecks and ChangesE2E missing-Changes-entry fixture failures. The full run passed the new icon pixel check and LSP UI cases before those unrelated failures. No full-suite pass is claimed; checks-last-run.txt retains the unfinished positions. Task captures, fixture directories and logs are cleaned. Source remains uncommitted; no push or running-app replacement.
+
+
+## 2026-10-15 — LSP rebase onto main 6d42a59a
+
+Rebased workspace-11 onto main snapshot 6d42a59a, preserving the uncommitted LSP work and its backup stash. Resolved settings and documentation conflicts, kept main's vector icon renderer and removed the superseded bitmap-sampling regression in favor of the shared vector checks. Kept main's verification-ledger removal and recorded LSP verification scope in the owning language spec. All backed-up untracked files are present.
+
+Release solution build passed with zero warnings/errors. LSP editor, pane, settings, tool-rail and vector-icon cases passed. Design checks stop at main's existing SettingsWindow.axaml line 81 Spacing=20 off-scale value; no unrelated styling change was made. Full gate was not repeated; its prior Git-only Changes fixture failures remain unresolved. No commit, push or app replacement.
+
+
+## 2026-10-15 — Compact LSP settings popup and agent updates
+
+Moved workspace LSP configuration from inline server rows to a bounded scrollable gear popup. Replaced the baseline-dependent disclosure glyph with a centered vector chevron. Cached drafts survive dismissal; row reconciliation keeps the popup anchor mounted during saves. Workspace host-state broadcasts update open saved settings immediately, including agent arguments; actual form-value comparison distinguishes edits from delayed textbox notifications. Existing host persistence remains authoritative.
+
+Release build passed without warnings/errors. Focused language host parity/persistence checks and final language-editor UI checks passed, including compact row geometry, popup saving/dismissal, host-broadcast agent argument updates and persisted workspace metadata, followed by server restart. Full gate was not repeated; prior unrelated fixture/design failures remain recorded. Browser/Android and manual native popup appearance were not verified. Changes remain uncommitted; no push or running-app replacement.
+
+
+## 2026-10-15 — Main integration and owned LSP settings window
+
+Rebased workspace-11 onto main 0ac1e39d, resolving two append-only documentation conflicts. All pre-rebase new LSP files were byte-identical immediately after restore; the backup stash remains available. The combined Release build passed. The merged layout fixture needed Files reselected after mounting LSP, because main now checks the visible Files heading.
+
+Following UI feedback, replaced the settings flyout with a real owned window using app chrome: named server/workspace heading, padded form aligned at the top, vertical-only scrolling, and fixed Save/Restart/Reload/Close actions. Closing retains drafts and frees the view for reopening; workspace detachment closes the window. Host metadata broadcasts continue updating agent-saved settings immediately. The expanded rendered window was inspected, revealing and then fixing an unwanted centered form gap. Final focused language-editor checks pass, including form/footer geometry and persisted agent argument visibility. The prior combined focused run also passed design checks. No native interactive, browser or Android acceptance is claimed; no app replacement, commit or push.
+
+Final integrated LayoutE2E passed after explicitly reselecting Files in the fixture. Touched C# formatting and whitespace checks passed; no full gate was run for this rebase/window refinement. Temporary captures and fixtures were removed after inspection.
+
+
+## 2026-10-15 — Preserve agent LSP configuration across host instances
+
+Investigated the empty settings shown after an agent configured clangd. Two running app processes (Default checkout and workspace-11) use the same ~/.sharprail profile and separate MCP hosts. The on-disk state had no WorkspaceLanguages field, and the live LSP host returned an empty saved clangd configuration. This is consistent with an older host rewriting shared state without the new field; existing lost values cannot be recovered from the current host. No running app was stopped, replaced or reconfigured.
+
+Persisted workspace/server LSP settings in atomic host-owned language metadata records, projected through the existing host-state API. Existing metadata migrates; removal/inheritance update their own records. Language reads refresh saved values from those records, while active configurations remain specific to each host’s running server. Opening settings and Reload saved explicitly fetch current host values instead of trusting cached inventory.
+
+Release build, touched formatting/whitespace, focused local/WebSocket persistence and LSP UI checks pass. Regressions remove the LSP field from fixture state.json, reopen and preserve settings, then save a compilation database through another host and observe it live. The full four-lane run passed language host and editor/pane cases, but lanes 1–3 stopped at FilesE2E, file-transfer-actions and RenderedDiffE2E timeouts with repeated filesystem EventStream startup errors. No full-suite pass is claimed. Platform/device/package acceptance was not run. Changes remain uncommitted.
+
+The completed broader run also stopped lane 4 in BranchGraphChecks-RunUi at Scenario line 204. Final unfinished cases are FilesE2E, file-transfer-actions, RenderedDiffE2E and BranchGraphChecks-RunUi; checks-last-run.txt is retained. The run passed design and LSP host/editor checks. All task-owned fixtures/captures were cleaned after processes exited.
+
+
+## 2026-10-15 — Diagnostic hover and readable LSP results
+
+Diagnostic ranges now preserve formatted severity/source/message text and show it on hover, clearing stale hovers on edits, scroll and pointer exit. Selected server/results rows use neutral backgrounds with ordinary text colors. Result rows separate locations and diagnostic messages from monospace TextMate-colored source snippets, refreshed with the theme. Real headless pointer tests verify Unicode diagnostic hover and blank-space dismissal; result tests verify monospace/comment color and neutral selected-row colors. Release build and focused language-editor/design checks pass; selected-row and code-preview renders were inspected. Work continues on the separately reported project-resolution/index-scope defect.
+
+
+## 2026-10-15 — Native project import and reference scopes
+
+Reproduced Roslyn returning only document-local references before project initialization. The host
+now supplies SDK PATH and explicit project auto-loading, handles project restore requests and waits
+for project initialization. Native progress, import prompts and restore failures prevent a successful
+navigation response from hiding unfinished setup. Catalog-specific manifest policies configure
+nested Go/Rust projects, isolated JDT configuration and Metals import; they describe native resolution
+limits rather than constructing a replacement module graph.
+
+User approved workspace-default search with file/dependency scopes and module scope only when
+reliable ownership exists. Removed nearest-manifest-folder filtering: no current adapter exposes
+semantic module ownership, so explicit module requests report unsupported and the popup omits it.
+Scope filters run before totals/paging; dependency scope preserves native external locations.
+
+Release build and touched C# whitespace verification passed. Focused local/WebSocket and editor
+checks passed. Real TypeScript alias imports, Python imports and clangd compilation-database
+references found unopened files; clangd include-path restart resolved missing-library diagnostics.
+Real Roslyn found an unopened dependent project on the first ready query and FileDrop references
+across five files in SharpRail without opening editors. Other providers were not live-tested.
+
+The four-lane broader gate passed LSP cases but failed at FilesE2E, ExternalWorkspaceE2E, projects
+and watchers amid repeated filesystem EventStream failures; its incomplete-case record is retained.
+Final UI-only scope-target refinement and popup switching checks passed. No browser/Android or packaged
+acceptance, commit, push or running-app replacement. IntelliJ-provider research remains a separate
+pending design; this batch does not accept terms or execute that server.
+No LSP diagnostics MCP tool was exposed in this session, so an all-edited-files LSP inspection is
+not claimed. Compiler and native-server fixture checks provide the verification described above.
+Task-owned resolution probes, captures and identified completed fixture directories were cleaned.
+
+
+## 2026-10-15 — Optional IntelliJ provider behind an unavailable authorization boundary
+
+Added an explicit `intellij` catalog/configuration choice for Java and Kotlin together, preserving
+JDT/Kotlin defaults. Workspace selection routes both languages exclusively, suspends competing
+sessions, retains dirty drafts and saved provider settings, and supports explicit opt-out. Requests
+and inventory reconcile selection observed from other hosts. Project JDK, importer and optional
+host installation path persist in existing workspace metadata. The owned settings window explains
+availability, permits saving configuration and keeps startup/restart disabled. Its render was inspected.
+MCP/local/WebSocket use the same host gate and metadata; configuration cannot accept terms or
+assert entitlement. Diagnostic scans return the blocker instead of a retry-start instruction.
+
+Official client revision 9cfad18005470e4187090013e08f92ec9e437219 still catalogs 263.6379.0. All six
+pinned hashes matched JetBrains CDN checksum files. The macOS ARM research archive hash matched
+and its exact EULA was reviewed without execution. It is evaluation-only EAP, not a production or
+subscription authorization. No supported authoritative build/GA/revocation or paid/offline lifecycle
+mechanism was established. Managed provisioning, custom overrides and user installations remain
+unavailable; no acceptance/activation endpoint, grace period or hidden unlock was added. Concrete
+vendor clarification needed before enablement is recorded in the language spec. The research
+archive was deleted; no server binaries or proprietary agreement text are shipped. Apache client
+attribution and license are retained and copied into host build/publish output.
+
+Independent archive/launch components have fixture coverage for ZIP/tar integrity, traversal and
+escaping links, product/version/launcher/terms validation, concurrent installation reuse, cancellation
+cleanup, changed terms and isolated cache paths. Synthetic protocol tests cover Java/Kotlin document
+IDs, standard initialization, dirty diagnostics and stale versions. Host fixtures cover direct/remote
+routing, saved settings, opt-out, blocked overrides and preserving/closing dirty drafts through an
+external host’s selection change. Real IntelliJ compatibility, user acceptance persistence and
+live entitlement transitions remain unverified and blocked; fake checks do not establish them.
+
+Release build, focused host/UI checks, touched formatting and design checks passed. The full broader gate passed 141 cases across four lanes. No LSP diagnostic MCP tool was exposed in this session;
+an all-edited-files LSP scan is not claimed. No Android/browser, packaged acceptance or running-app
+replacement, commit, push or external message. Earlier unfinished workspace changes were preserved.
+
+Final compatibility checks passed with real TypeScript, Python, clangd and Roslyn after the
+initialization change, including unopened-file references and the SharpRail solution. These are
+existing-provider checks, not IntelliJ smoke acceptance. Task-owned research archive, UI captures
+and identified completed fixture directories were removed after processes exited.
+
+
+## 2026-10-15 — Explicit IntelliJ EULA acknowledgement
+
+IntelliJ workspace settings now open a real owned agreement window showing the selected host
+installation's complete EULA, build, installation fingerprint and full EULA SHA-256. An unchecked
+acknowledgement plus explicit Accept is required. Cancel records nothing; changing terms while
+reviewing refreshes the text and resets consent. Accepted status/timestamp remain visible.
+
+Dedicated authenticated UI RPC/local adapters re-read the host installation and atomically store
+acknowledgement outside workspace-inherited configuration. Records bind canonical path, full file
+tree fingerprint, build and exact EULA digest; no agreement text or credentials are stored. Changed
+terms/build/binary require fresh acknowledgement; corrupt records can be explicitly acknowledged
+again. MCP and ordinary configuration expose no acceptance action. Command construction now requires
+a matching saved record rather than an arbitrary hash. Acceptance never establishes entitlement: the
+existing unavailable JetBrains execution gate remains independent, and no real terms were accepted.
+
+Release build passed with zero warnings/errors. Synthetic local/WebSocket checks passed for exact
+UTF-8/CRLF bytes, persistence/reopening, changed terms/build/binary, corrupt records, failed atomic
+writes and agent exclusion. Headless UI checks passed for unchecked consent, Cancel, changed-during-
+review handling and explicit acceptance; the rendered owned dialog was inspected. Formatting and
+design checks passed. The full 141-case four-lane gate passed; the final acknowledgement-required
+command guard then passed focused host checks and Release compilation. Existing native-provider
+smoke results are unchanged and reused. No actual JetBrains compatibility/activation/entitlement
+acceptance, all-edited-files LSP scan (tool unavailable), browser/Android or packaged acceptance is
+claimed. No commit, push, external message or running-app replacement.
+
+
+## 2026-10-16 — IntelliJ official-client launch with explicit EULA
+
+The user explicitly replaced the earlier independent entitlement/revocation requirements with the
+official Neovim client's approach. IntelliJ is now an opt-in Java/Kotlin evaluation provider rather
+than unconditionally unavailable. The published catalog was rechecked and still selects 263.6379.0
+with the same six pinned hashes. Exact artifact terms still govern use; paid activation, offline
+entitlements and independent revocation verification are not claimed.
+
+Start and Save and restart display a real agreement window while preparing the distribution on the
+workspace host. Explicit unchecked consent plus Accept and start is required for a new or changed
+installation. Standalone review records acknowledgement without execution. Agents can configure
+and restart an accepted provider, but cannot accept terms through MCP or ordinary settings. An
+unselected IntelliJ provider cannot compete with the existing JVM providers. Accepted launches use
+the native launcher, isolated workspace/process cache, stdio and the actual EULA SHA-256 prefix.
+Executable overrides and reserved argument overrides cannot bypass this path.
+
+Vendor exit 7 produces an expired state during startup, draft restoration and requests; workspace
+Problems propagates expiry and editor diagnostics/semantic overlays are invalidated. Polling and
+idle eviction cannot restart a retained expired session. Expired managed artifacts are marked and
+deleted, and the same pinned artifact cannot be downloaded again automatically. User installations
+are never deleted. The server remains responsible for its validity enforcement.
+
+Release build passed with zero warnings/errors, touched whitespace verification passed, focused
+host/UI checks passed, and the full gate passed all 141 cases across four lanes. Synthetic terms and
+fake native processes verify local/WebSocket launch, Java/Kotlin dirty buffers, acceptance changes,
+expiry and no automatic restart. Rendered settings and agreement windows were inspected. No actual
+JetBrains EULA was accepted or real server executed; real compatibility and entitlement behavior
+remain unverified. No LSP MCP tool was available for the requested edited-files scan. No browser,
+Android or packaged acceptance, commit, push, external post or running-app replacement.
+
+The user also asked about IDEA's MCP server. Current JetBrains documentation describes a bundled
+IDE integration exposing inspections, project models, builds, refactoring and debugging. It is
+separate from this standalone LSP adapter and SharpRail's existing MCP facade. No standalone
+JetBrains MCP distribution or supported independent headless MCP launch was established or added.
+
+
+## 2026-10-16 — IntelliJ setup continues into startup
+
+Replaced the settings-only EULA review dead end with Set up and start IntelliJ. It saves
+the displayed settings, explicitly selects IntelliJ for this workspace, and opens exact terms.
+Accept and start launches after acknowledgement; existing acceptance offers Start IntelliJ.
+Closing does not launch. Repeated identical startup failures remain visible instead of leaving
+stale Installing text. Other Java/Kotlin provider settings are preserved.
+
+Release build and touched-file whitespace verification passed. Focused LSP UI checks passed
+with synthetic agreements, changed terms, cancellation, initial and repeated startup failure,
+and already-accepted explicit start; rendered windows were inspected. The full four-lane gate
+ran: three lanes passed, one stopped at EditorWorkbenchChecks.LargeDiff when its tool lookup
+found no matching control. That case passed when rerun alone; the full gate is not claimed green.
+No real JetBrains launch or terms acceptance, edited-file LSP scan (tool unavailable), app
+replacement, commit or push. Verification fixtures and captures were removed.
+
+
+## 2026-10-16 — Saved IntelliJ consent is visibly checked
+
+Previously accepted agreements now display checked, read-only consent and wording directing
+the user to Start IntelliJ. Fresh or changed terms remain unchecked and require explicit input.
+Release build (zero warnings/errors), touched whitespace verification and focused LSP UI checks
+passed, including saved-consent rendering and changed-term reset. Broader results from the same
+setup-flow batch are unchanged; no second full gate or real JetBrains execution was performed.
+
+
+## 2026-10-16 — LSP workspace rebased onto main
+
+Advanced lsp-support to main 4a963d9d, preserving all uncommitted tracked and untracked
+LSP work through temporary stashes. Shared files merged cleanly; no new commits or push.
+LSP rail/header icons already resolve code.svg through Ui.Icon's shared DrawingBrush geometry,
+not text or raster glyphs. Vector icon checks passed; no duplicate icon implementation added.
+Release build passed with zero warnings/errors, and auto-merged C# whitespace verification passed.
+The full 141-case four-lane gate passed on aba3c034. Main advanced during that run; the final
+4a963d9d tree-chevron update was incorporated, rebuilt and passed focused rail checks without
+repeating unchanged suites. Focused watcher and Claude Code checks also passed after their main
+updates. No running-app replacement; task backups, captures and fixtures removed after preservation
+verification.
+
+
+## 2026-10-16 — Agent code intelligence after Netflix/JetBrains research
+
+Implemented the agreed read-only agent scope in workspace-11. Navigation preserves exact virtual
+dependency URIs; IntelliJ JAR/JDK sources use its public decompile command with workspace/process
+provenance, bounded read-only text and explicit unavailable states. Qualified outline queries
+resolve current selection ranges after buffer synchronization, rejecting ambiguity rather than
+inventing positions. Separate MCP schemas remove repeated lifecycle/configuration fields from
+navigation/diagnostics; both agent prompts teach dependency reads, symbol queries and warm-session
+reuse. Status includes freshness/coverage, and idle eviction preserves active imports/indexing.
+No new daemon, IDE bridge, provider substitution or licensing change was introduced.
+
+Research: https://blog.jetbrains.com/ai/2026/10/how-netflix-made-ai-coding-agents-more-efficient/
+and intellij-lsp.nvim revision 9cfad18005470e4187090013e08f92ec9e437219 (decompiler.lua).
+Reported article gains are not SharpRail measurements; symbol-oriented APIs are forward-looking
+in that article. Existing EULA, artifact and execution controls remain unchanged.
+
+Release build (zero warnings/errors), touched-file whitespace verification, focused language
+checks and full 141-case/four-lane gate passed. Fixtures verify local/remote behavior and MCP
+contracts, not real IntelliJ compatibility. Upstream Git scenarios skipped without
+SHARPRAIL_TEST_GIT_SOURCE. LSP diagnostics for edited files were unavailable because this session
+exposed no LSP MCP tools. No real JetBrains execution, terms acceptance, app replacement, commit
+or push. Task-owned logs and fixtures removed; older task artifacts preserved.
+
+
+## 2026-10-16 — Headless language validation and usable provider settings
+
+Implemented in workspace-11 without committing, pushing or replacing the running app.
+An explicit SHARPRAIL_HEADLESS_MCP host option exposes production language MCP tools
+through bearer-authenticated POST /mcp without an AI terminal. It exposes no terms
+acceptance. The opt-in Node corpus pins 18 real repositories and is not part of Gate.Case
+or the full suite. Reports distinguish symbols/diagnostics from cross-file references.
+Named version-labelled configuration fields use existing workspace persistence and
+local/remote transport; advanced JSON and unknown settings survive edits.
+
+IntelliJ/Kotlin initialization normalizes a legacy empty projects object to an array,
+rejects incompatible shapes and supplies public importer java-home separately from
+analysis defaultSdk. SDKMAN/workspace JDK selection replaces accidental Kotlin-bundled
+Homebrew project JDK selection; logs state provenance without asserting it caused the
+reported import failure. Real detekt import needed SDKMAN Java 21 for Gradle 8; Java 25
+was incompatible. IntelliJ still requires actual user acceptance and was not run.
+Other real-run fixes cover PowerShell LogLevel, provider session-file exclusion from
+workspace metadata, Ruby cold initialization, harmless Metals warning prompts, and R
+package load/version verification before considering an installation ready.
+
+17 providers passed real corpus checks; 13 proved cross-file references. R, PowerShell,
+shell and CSS passed document-level symbols and diagnostics only. IntelliJ was blocked
+at the user acceptance gate. R used a workspace-local extracted CRAN 4.6.1 runtime with
+launcher/linker paths relocated for native package builds, not a system install. Swift
+and Dart remain host-SDK servers; the validation Dart SDK was 3.13.5. Named settings
+are curated public options, not exhaustive certification of every exact-release key.
+Durable matrix and limitations: tests/SharpRail.Language.Integration/RESULTS.md.
+
+Release build, focused --lsp and --lsp-ui, touched-file whitespace, Node syntax and
+18-scenario manifest rejection checks passed. Current LSP diagnostics covered 82 changed
+C# files, with the final three edits rescanned; no errors/warnings. XAML was compiler
+covered; no Markdown/JSON LSP coverage is claimed. The full four-lane gate failed in
+MarkdownDocumentE2E; isolated resume also timed out opening LARGE.md. Other completed
+lanes passed. The final R guard then passed Release/focused checks; the full gate was
+not repeated on unchanged UI slices. This broader failure remains unresolved.
+
+
+## 2026-10-17 — LSP workspace rebased onto main
+
+Rebased workspace-11/lsp-support onto a8abf30f, preserving 68 modified tracked files
+and 56 untracked files from the pre-rebase stash. Resolved six textual conflicts by
+retaining both core file-icon/startup changes and LSP settings, APIs and documentation.
+The remote LSP check caught a semantic protobuf collision: FileTypeIconsDisabled
+retains main's field 15, and uncommitted LanguageServers now uses field 17.
+The broader gate found one off-scale spacing value in the provider settings template;
+changed it from 6 to 8. No other implementation changes were needed.
+
+Final Release build passed with zero warnings/errors. Resolved C# formatting and
+focused --lsp / --lsp-ui checks passed. The four-lane gate completed in aggregate:
+all but design passed first, then --last-failed passed after the spacing correction.
+The earlier MarkdownDocumentE2E timeout did not recur. Expensive real-provider corpus
+results were reused. Original pre-rebase state remains in stash 923f56be3c5d840228f7f5ead236404d7d4814b1;
+all restored work is unstaged/uncommitted. No commit, push or app replacement.
+
+
+## 2026-10-17 — IntelliJ native watcher failure on Rell diagnosed
+
+The reported FileWatcher.createWatcher failure precedes Gradle import. Reproduced
+with IntelliJ 263.6379.0 on macOS ARM64 in an empty task-owned directory with import
+explicitly disabled and SDKMAN Java 21. Verified the existing actual-user acceptance
+against the full artifact fingerprint/build/EULA before running; no terms acceptance
+or installation changes. The server returned initialize error -32803 with the same
+recursive-scans message. Concurrent macOS fseventsd entries (11:25:30.934 and later)
+state “too many clients in system (limit 1024)”, with client registration error 22.
+JetBrains public fswatcher source maps the message to FSEventStreamStart returning false:
+https://github.com/JetBrains/fswatcher/blob/main/src/backend/macos/fs_event_stream.rs
+Apple documents that failure and its caller-owned scan fallback:
+https://developer.apple.com/documentation/coreservices/1448000-fseventstreamstart
+
+Immediate blocker is system-wide FSEvents exhaustion, independent of Rell dependencies.
+The processes holding the slots were not established. No supported server-side polling
+switch was found in the official client launch/configuration references; no guessed
+JVM flags or proprietary binary modifications. No Rell files, global settings, running
+apps or macOS services were changed. Recovery needs freed slots or an explicitly
+authorized daemon restart, then a real-server retry. Native probe process and scratch
+removed. This diagnosis changes no product code and requires no compiler/test rerun.
+
+
+## 2026-10-17 — FSEvents exhaustion attributed to duplicate plugin watches
+
+Live managed-heap samples identified the dominant owners: the Default debug host
+(PID 64832) retained 872 plugin WorkspaceFileWatchers, 914 FileSystemWatchers and
+512 native RunningInstances; the LSP debug host (PID 99648) retained 551, 580 and
+457 respectively. A later Default-host sample grew to 940 / 982 / 512. macOS also
+logged its per-process limit of 512 for PID 64832. Heap collection used the .NET 10
+lossy buffering fallback, so these are observed samples rather than a certified
+system-wide census. They establish retained allocations and growth without relying
+on inferred native counts alone.
+
+SpecDialect GraphAsync and Blueprint Get/Open repeat WatchWorkspaceAsync during
+ordinary reads. The host allocated a new activation-owned watcher for every call,
+retaining all of them until plugin teardown. Native .NET startup can emit Error
+without throwing, so failed native starts were also registered as running. Fixed
+idempotent admission under the activation registration lock; failed throws or
+synchronous Error callbacks dispose timer/watcher and permit retry. Contract and
+per-activation delivery are unchanged. The owning Plugins.SPEC.md records ownership.
+
+Regression failed before the fix (100 concurrent reads allocated 100 watchers), then
+passed after it, including startup failure/retry and disposal. Final Release build
+and touched whitespace verification passed. Real local/WebSocket file streams passed.
+All five edited C# files had current diagnostics with no errors or warnings before
+the final test-gate scheduling wrapper change; that final wrapper is compiler-covered.
+The full gate did not pass: LayoutE2E failed a pointer side-resize assertion, and the
+new post-UI async fixture deadlocked on the Avalonia context. Terminated only that
+owned stuck check child; moved its invocation to Task.Run and verified the named case
+successfully after UI initialization. No full-green claim; remaining gate state is
+preserved for later verification.
+
+During investigation the LSP debug host exited independently. Without restarting
+fseventsd, a native FSEventStreamStart probe then succeeded, and the real IntelliJ
+263.6379.0 server initialized successfully on an empty controlled workspace with
+Gradle import explicitly disabled. Revalidated the complete existing artifact
+fingerprint/build/EULA acceptance; no new acknowledgement. This verifies native
+initialization, not Rell import/indexing or the full IntelliJ corpus scenario.
+The remaining old Default debug host still requires an ordinary restart with the
+fixed build to release its retained watchers. No apps/services were restarted or
+replaced by this task. Task-owned heap snapshots, tools, probes and scratch removed.
+No commit or push.
+
+
+## 2026-10-17 — IDEA-style declaration and usages choosers
+
+Inspected JetBrains intellij-community GotoTargetHandler and ShowUsagesAction as public
+interaction references. Independently implemented compact file groups, aligned line numbers,
+syntax-colored snippets with exact range emphasis, type-to-filter, selected-file position,
+empty/searching states and bounded popup geometry. Result identity survives filtering, Enter
+navigates it, Escape returns focus and cancels pending work. Background inspections leave an
+open chooser's status alone. Single declarations still jump directly. Cmd/Ctrl+B (shared host/
+browser modifier) and Alt+F7 complement existing F12/Shift+F12. Actual provider ranges and
+paths drive grouping; no inferred module/class ownership. Owning UI spec records the contract.
+
+Release and touched-file whitespace verification pass. The focused --lsp-ui mode passes,
+including unopened-file usage filtering/navigation and narrow owner-window sizing. Full gate
+passed 142 cases across four lanes, including the prior plugin-watch resource regression;
+this replaces the earlier unfinished full-gate result. After that gate, the final shared-key
+modifier adjustment was compiler/format/focused-UI checked without rerunning unchanged broad
+slices. Headless production MCP/Roslyn checked both edited C# files with absolute workspace,
+current coverage and no errors or warnings; remaining diagnostics are informational/hints.
+No expensive real-provider corpus was added to or run by the normal gate. Browser/Android
+builds and real GUI acceptance were not run. Task-owned diagnostic host, captures and fixture
+scratch cleaned. No commit, push or running-app replacement.
+
+The separate semantic rename/refactoring draft still awaits the earlier full-scope versus
+rename-first choice and dirty-buffer/transaction UX agreement required by the user's AGENTS
+instructions. This turn's explicit added navigation UX request was implemented independently;
+no source-mutating MCP/editor operation or new prompt claim is advertised yet.
+
+## 2026-10-17 — LSP workspace rebased onto main caa86a2f
+
+Rebased lsp-support/workspace-11 from a8abf30f onto main caa86a2f (eight commits),
+preserving the uncommitted LSP work. Pre-rebase snapshot retained as stash
+d5adee84f8676e385b8ba6607d3187832779ee21; restored changes remain unstaged.
+Resolved twelve overlapping/add-add paths. Main’s standalone Find composition and
+core PDF changes coexist with the LSP editor/menu/semantic additions. Main’s pooled
+workspace-watch implementation supersedes the earlier per-activation native watcher
+fix: retained its close/removal ownership and telemetry, removed only the obsolete
+PluginWatcherResourceChecks fixture/mode/gate, and kept main’s stronger watcher lifecycle
+and native-start tests. The snapshot retains that older fixture for recovery.
+All other original task files are present; byte differences are the expected main/merge
+intersections. No conflict markers or unmerged index entries remain.
+
+Final Release build, touched-merge whitespace verification, --lsp-ui and --editor pass.
+The combined full gate passes 142 cases across four lanes, including watcher hygiene.
+Headless production MCP/Roslyn checks all four merged/auto-merged C# files with the absolute
+workspace path, current 4/4 coverage and no errors or warnings (63 informational/hint
+diagnostics). No expensive real-language corpus, packaged publish, browser/Android build
+or real GUI/native FSEvents interposer run was performed for this rebase. Task-owned
+scratch and fixtures cleaned; no commit, push, running-app replacement or Git configuration
+change. Main was still caa86a2f at final verification.
+
+## 2026-10-17 — LSP provider marks and embedded Context groundwork
+
+Workspace-11 adds compact Material language vectors to LSP rows, add-server choices
+and the settings rail. The IntelliJ mark uses the existing embedded motif without
+its folder silhouette and follows the foreground tint. Health icons remain separate.
+All 18 provider marks render in actual dark/light UI fixtures; the empty picker has
+no stray icon. Captures were inspected. No new artwork or generated asset changes.
+
+The existing IntelliJ expiry fixture exposed a startup race: a terminal failure state
+could be published before its startup task completed and return default pending
+freshness. Expired and acceptance-required startup responses now immediately return
+unavailable freshness. The existing expiry/lifecycle checks pass.
+
+The user selected per-workspace Context enablement with automatic indexing on a
+SharpRail agent launch. Public JetBrains sources identify CLI 0.9.16.1161 and its
+published artifact checksums. The internal downloader pins macOS/Linux ARM64/x64,
+requires download authorization before I/O, validates integrity and safely repairs or
+cancels installations. The internal stdio adapter supplies one workspace root and
+forwards code_search, with bounded frames/time and owned-child cancellation. Fake
+HTTP/executable/MCP checks pass through --context. These are foundations only: no
+Context user interface, login, launch trigger or SharpRail tool registration exists.
+
+No new proprietary CLI was downloaded or executed. The actual user's acknowledgement
+of the Context CLI EAP agreement and applicable linked AI terms remains pending in
+the async question; choosing indexing behavior does not accept those terms. The
+agreement treats download as acceptance. Existing 0.9.13.860 native help was inspected
+with writes/network denied; its MCP process reported signed out under a private
+runtime home. This is limited isolation evidence, not verification of current CLI
+authentication, watcher ownership, cloud indexing or outside-session isolation.
+Do not run the stock setup-agent/updater or modify global agent configuration.
+
+Release build passes with three existing Avalonia URI-loader warnings and no errors.
+Touched C# whitespace checks, --lsp-ui, --design and --context pass. All four initial
+full-gate failures pass in isolation after the expiry fix. Resuming the unfinished
+gate stops at EditorWorkbenchChecks.LargeDiff because the fixture cannot find its
+Changes tab; no full-suite pass is claimed. checks-last-run.txt retains unfinished
+positions. Production headless MCP/Roslyn reports current coverage without errors or
+warnings for the icon converter and four new/changed backend/test files; the large
+LanguageChecks.cs diagnostics request times out, despite its passing compiler and
+focused checks. AXAML is compiler/UI checked, without LSP diagnostic coverage.
+No real Context compatibility test, commit, push or running-app replacement.
+
+## 2026-10-17 — Consent guarding Context provisioning
+
+Workspace-11 adds LSP pane > JetBrains Context > Review terms and download, opening
+an owned, resizable window. It reads the public Context CLI EAP and both applicable
+AI agreement documents, preserves their link targets in readable text, and shows
+build/platform, artifact URL/checksum and combined reviewed-text SHA-256. Consent
+starts unchecked. Explicit Accept and download persists the host acknowledgement,
+then provisions the pinned binary without execution or indexing. Existing consent
+is visibly checked with its timestamp and requires an explicit Download CLI action.
+Closing downloads nothing; cancellation propagates to the host operation. Changed
+terms or artifact identities require fresh review. Dark-theme terms text has an
+explicit foreground role; a rendered capture was visually inspected.
+
+The old installer authorization boolean is removed. Every installer entry validates
+a persisted exact artifact/text receipt, including cached reuse and after waiting
+for the installation lease. The user-only typed project operation has matching direct
+and WebSocket adapters; terminal MCP exposes no acceptance action. Current CLI
+0.9.16.1161 remains pinned. No real agreement was accepted and no real CLI downloaded
+or executed. Login, private-state/watcher isolation, automatic indexing and agent
+proxy registration remain outside this completed consent change and unverified.
+
+Release build, touched C# whitespace checks, --context, --context-ui, --design and
+--lsp-ui pass. The full gate passes 144 cases across four lanes, including both new
+consent cases. Synthetic fixtures cover persisted receipts, missing consent, changed
+terms/builds, no binary I/O during review, SHA integrity, cancellation/concurrency,
+direct/WebSocket parity, the pane entry, closing without download and a real checkbox
+pointer click after resizing to 520 DIP. Production headless MCP/Roslyn reports
+current diagnostics for all 14 edited/generated C# files without errors or warnings
+(44 informational/hint diagnostics). AXAML is compiler/UI checked, without LSP
+coverage. The Release build reports the three existing Avalonia URI-loader warnings.
+Spec validation still reports the four pre-existing BranchGraph dangling links.
+Task-owned scratch and exited fixtures cleaned. No commit, push, global agent setup
+or running-app replacement.
+
+## 2026-10-17 — Code Intelligence pane name
+
+The pane combining language servers and JetBrains Context is named Code Intelligence.
+The canonical tool title supplies headers, tooltips, accessibility labels and restore
+menus, including existing layouts. Its stable lsp identity and pane placements remain
+compatible. Settings guidance and owning UI/docking specs use the new pane name.
+Release build, touched C# whitespace verification and focused --lsp-ui checks pass.
+Headless production MCP/Roslyn diagnostics are current for both edited C# files with
+no errors or warnings. The preceding 144-case full gate is reused for this label-only
+change; it was not rerun. Task scratch/fixtures cleaned; no commit, push or app replacement.
+
+
+## 2026-10-17 — Setup completion and project folders in Files
+
+Context shows Done after a verified download; the pane becomes View installation and
+reopening hides the download action. Local-only status uses a display digest cache;
+current terms and full installer integrity remain independently guarded. Missing or
+corrupt binaries offer repair. IntelliJ row Start and settings Restart skip the form
+only after host-confirmed existing acceptance; explicit Review still opens it.
+
+Files replaces the proposed Modules pane with compact vector provider/language badges
+on detected build roots, provenance tooltips and nearest-root folder actions. Menus
+open workspace-scoped LSP settings or the detected build definitions, without automatic
+build-file edits. A bounded host projects operation preserves paging, JVM selection,
+local/remote parity and workspace isolation; it starts no servers. Detected build
+definitions are not provider-confirmed imported module graphs. Inventory progress
+no longer appends the entire resolution/manifest description.
+
+Release build, scoped whitespace verification, Context/core/UI, LSP/core/UI and design
+checks pass. Local and WebSocket folder checks cover multiple providers, normal folders,
+configuration scope, build navigation and workspace switching. Rendered badges were
+visually inspected. Production MCP/Roslyn reports current coverage for 25/25 edited C#
+files; all 322 diagnostics were retrieved across three pages, with no errors/warnings.
+AXAML has compiler/UI coverage, not LSP coverage. The 144-case gate completed with one
+StartupChecks timeout; its focused rerun and last-failed continuation pass. The build
+retains three existing Avalonia loader warnings. Spec validation retains four existing
+BranchGraph dangling links. No real server compatibility/indexing claims, terms
+acceptance by the agent, commit, push or running-app replacement.
+
+
+## 2026-10-17 — Complete embedded Context search workflow
+
+Code Intelligence now provides explicit workspace cloud enablement, interactive user
+sign-in, status, index/stop controls and bounded redacted logs. Enabled workspaces
+index automatically on first SharpRail agent launch; restored launches work, model
+updates do not duplicate indexing, and new workspaces never inherit cloud permission.
+The host owns cancellation and process lifetime. Native index/status use fixed absolute
+workspace paths; search uses one warm root-bound stdio connection and discovered
+code_search schema. Terminal-authenticated and headless MCP expose context_search,
+context_status and context_index, with no agent consent/login/enable controls. Agent
+appendices advertise semantic discovery followed by targeted reads and LSP navigation.
+
+Current terms and a full publisher digest guard each fresh native execution. The CLI
+shares existing JetBrains login/cache, explicitly disclosed in the workspace form;
+the scope question remains unanswered. No unsupported isolation, global agent setup,
+watcher control, credential persistence or cloud indexing by this agent. Native help
+and login-gated MCP startup were researched under network/write denial after verifying
+the user's existing receipt. Real signed-in search/indexing remains unverified.
+
+Longer Codex approval arguments exposed cooked-PTY line truncation; canonical shell
+continuations preserve argv and resume strips/recreates only owned approvals. Fixture
+native launch and resume pass. Release build, scoped whitespace, Context/core/UI,
+LSP UI, design, state, launch and Codex checks pass. Roslyn covers all 35 edited C#
+files current, 222 informational/hint diagnostics, no errors/warnings. The 144-case
+gate completed after one concurrent terminal-focus failure, a passing focused rerun
+and passing last-failed continuation, with no source fix. Separate --claude-code
+retains a pre-existing launcher assertion about removed center tabs, after host/UI
+checks pass. Three existing Avalonia build warnings and four existing BranchGraph
+spec links remain. No browser/Android acceptance, commit, push or app replacement.
+
+2026-10-17 — Provider details and stable editor coloring (workspace-11): split the
+language-server identity, publisher, pinned version and managed download source into
+readable rows, explaining configuration compatibility. Added boot progress spinners,
+full-size folder provider marks, plain-language tooltips/status and official unmodified
+JetBrains/IntelliJ assets with attribution. Sparse semantic tokens now preserve lexical
+keywords/comments outside their spans. Code waits for initial coloring, retains unchanged
+styles across detach and offers explicit syntax-only reveal during lengthy imports.
+Dependency JAR/JDK navigation preserves the authorized URI and opens paged source read-only.
+
+JDT LS's advertised java.project.listSourcePaths supplies bounded workspace-contained
+source-root annotations; stopped sessions contribute none. Files refreshes only while
+visible and avoids reconciling unchanged metadata. No verified standalone IntelliJ
+package/directory classification feed was found; package/test/generated labels remain
+unimplemented rather than inferred. Fixtures establish adapter behavior, not native
+IntelliJ/JDT compatibility. Focused LSP host/UI, syntax, Context UI and design checks pass.
+Native Roslyn checked all 23 edited C# files current across 11 diagnostic pages: 310
+informational/hint diagnostics, no errors or warnings. Browser/Android runtime and real
+IntelliJ/JDT smoke tests were not run. Rebased onto local main b61c6de1, combining Codex's
+sharprail MCP namespace with LSP/Context approvals and preserving all pending work.
+Rebased Release build and focused Codex checks pass; no commit, push or app replacement.
+
+Final rebased verification: Release compilation and 26-file scoped formatting pass.
+The complete source gate finished in aggregate: one concurrent resource diff-row click
+timed out, then passed unchanged in the serial --last-failed continuation, with no
+unfinished cases. Focused Codex host/UI checks pass on the merged launch behavior.
+Roslyn additionally checked the three conflict-resolved C# files current: five
+informational/hint diagnostics, no errors/warnings. No new native IntelliJ/JDT,
+Context cloud, browser or Android compatibility claim. Task scratch was cleaned;
+all implementation remains uncommitted and nothing was pushed.
+
+2026-10-18 — Code Intelligence presentation (workspace-11): Files now marks project
+folders with only a small corner square; removed adjacent provider icons and redundant
+provenance tooltip lines. The pane separates Language servers (including agent setup
+advice, server inventory and Problems) from Air Context with explicit headings and a
+divider. Air Context uses the unmodified product icon from the official Air blog,
+without the JetBrains company wordmark. Its consent/install/sign-in UI uses the new
+product name while preserving JetBrains agreement text and cloud enablement boundaries.
+
+Provider rows prefer pinned publisher artwork for Pyright, Intelephense, clangd, Bash
+Language Server, Ruby LSP, rust-analyzer and Metals, falling back to original colored
+Material Icon Theme v5.38.1 language assets. Source revisions/digests and licenses are
+retained. Plugin settings uses brand colors for Claude/Discord and preserves other
+asset colors. Provider settings now link to public websites and repositories, explicitly
+labeling IntelliJ's client and Intelephense's documentation repositories. All 36 catalog
+links returned HTTP 200 after correcting Roslyn's stale README link to its package page.
+
+Release, 13-file formatting, focused LSP host/UI, Context UI, plugin UI and design checks
+pass. A preview-syntax assertion passed unchanged on retry. Native Roslyn covered all
+13 edited C# files current, all six pages retrieved: 159 informational/hint diagnostics,
+no errors/warnings. Captures confirm compact folder marks, colored icons in both themes
+and separated pane sections. No browser/Android runtime acceptance, real JetBrains
+execution or cloud indexing was performed. Full-gate completion is recorded below.
+
+
+### 2026-10-18 — Code intelligence UI follow-up
+
+Provider labels now name language and server, with consistently sized colored icons.
+The workspace Java/Kotlin provider chooser sits outside IntelliJ settings and preserves
+server configuration. TextMate-only files wait for lexical styling; semantic-capable
+files show plain text followed by combined semantic styling, without a loading button.
+Semantic capability and modifier flags cross both transports; static members and enum
+constants support native italic styling. External-source tabs carry an arrow marker.
+Empty declaration results collapse to a compact message; error results retain their
+status, and useful result lists keep filtering and keyboard navigation.
+
+Release build, touched-file formatting, focused language host/UI, syntax, Context,
+plugin UI, design, conformance and Branch Graph checks passed. Native Roslyn checked
+32 unique edited C# files across the batch; final three-file refresh was current,
+with 139 hints/informational diagnostics and no errors or warnings. The broad gate
+completed through serial --last-failed continuation after concurrent UI timing failures.
+Two fixture waits now wait for the actual syntax styling/tool readiness prerequisites;
+production Branch Graph behavior is unchanged. Git-source-dependent cases were skipped
+because SHARPRAIL_TEST_GIT_SOURCE was unset. No browser/Android runtime acceptance,
+real IntelliJ typography acceptance or authenticated cloud indexing was performed.
+
+
+### 2026-10-18 — LSP settings placement and Air Context visibility
+
+Moved workspace Java/Kotlin provider selection from Code Intelligence into Settings →
+LSP, outside individual provider properties. Settings can hide Air Context from the
+pane without changing consent, indexing enablement or tool availability. The preference
+persists as host state and maps through direct/WebSocket adapters.
+
+Release build, touched-file formatting, focused --lsp-settings and --lsp checks passed.
+The focused settings mode checks selection and saved configuration preservation; the
+host mode checks visibility persistence locally and remotely. The broader --lsp-ui
+mode failed twice at the pre-existing unavailable empty-declaration assertion, before
+reaching settings; that unrelated behavior was left unchanged.
+
+
+### 2026-10-18 — LSP pane and editor action cleanup
+
+Removed Workspace Problems, its prompt and pane-only inspection results/handlers
+from Code Intelligence. Editor and agent diagnostics remain. Editor menus now query
+file-specific status before adding language commands, with no startup request; closed
+or replaced menu requests cannot add stale actions. Stopped/idle/disabled/unsupported
+files retain only ordinary file actions.
+
+Release build and focused --lsp-settings checks passed, including running-state
+transitions, editor diagnostics, provider/consent flows, server actions and file-link
+navigation. Formatting passed after removing a final newline per repository policy.
+The broader --lsp-ui issue recorded above was not rerun for this change.
+
+
+### 2026-10-18 — External source coloring and declaration positioning
+
+Terminal semantic inspection failure now releases deferred TextMate colors even if
+plain text was already revealed. This fixes the external C# fallback path. Explicit
+line/column navigation selects then centers the declaration using wrapped display lines.
+The LSP pane also drops its redundant successful-discovery caption; remaining transient
+feedback matches the description typography. Outside-source tooltips now say Outside
+workspace.
+
+Release build, touched-file formatting and --lsp-settings checks passed. The regression
+fixture verifies native keyword styling for read-only external C# after unavailable
+semantic inspection, and a line-100 target near viewport center. Existing editor,
+provider, consent and pane action checks passed in that focused mode. No real Roslyn
+decompilation session or broader gate was run for this follow-up.
+
+
+### 2026-10-18 — Rebase LSP workspace onto main
+
+Rebased lsp-support onto local main eee7bfd0 and restored all uncommitted feature work.
+Four append-only documentation conflicts retain both sets of additions. All 113
+untracked files matched their preserved blobs; tracked differences from the preserved
+work are limited to incoming main paths. Release, --lsp-settings and settings-refresh
+checks passed. The temporary stash was removed after restoration verification.
+No commit or push was made.

@@ -1,0 +1,12 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:kit="using:SharpRail.Plugins.UI.Kit"
+             x:Class="SharpRail.UI.Panels.ProjectFolderIcon" Width="14" Height="14" IsHitTestVisible="False">
+  <Grid>
+    <Grid Width="14" Height="14" VerticalAlignment="Center">
+      <ContentControl x:Name="FolderIcon" />
+      <Border Width="5" Height="5" HorizontalAlignment="Right" VerticalAlignment="Bottom"
+              Background="{x:Static kit:Ui.Accent}" BorderBrush="{x:Static kit:Ui.Sidebar}" BorderThickness="1" />
+    </Grid>
+  </Grid>
+</UserControl>

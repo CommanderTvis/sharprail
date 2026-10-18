@@ -143,3 +143,33 @@ literal loopback HTTP(S) targets without DNS lookup, posts using the browser-pro
 consumes the Protocol JSON reply and returns only the temporary credential to the UI. HTTP
 rejections retain their status codes for connect-screen guidance. The caller owns cancellation
 and the approval deadline; no shorter HttpClient timeout interrupts the two-minute app prompt.
+
+## Language queries
+
+Local language requests run off the dispatcher. Remote requests preserve the explicit workspace and
+map caller cancellation back to `OperationCanceledException`; the current project cannot retarget
+an in-flight request. Diagnostic freshness, coverage and dependency-file read-only state survive both paths.
+
+Language server inventory maps identically through local and WebSocket adapters for the LSP pane.
+
+Diagnostic scope, selected paths and per-file coverage map identically through both adapters.
+
+Host-wide LSP launcher settings round-trip in the shared host settings snapshot.
+
+Language adapters preserve offset/limit, total/truncated metadata and source preview/body
+fields identically across direct and remote calls.
+
+Local and remote language adapters preserve workspace configuration, restart requests, and saved
+versus active snapshots. State adapters retain workspace language metadata in every snapshot.
+
+
+IntelliJ terms review prepares the managed distribution when needed on the workspace host, through direct/off-dispatcher or typed WebSocket adapters. The remote request allows 15 minutes for download and artifact verification; cancellation reaches the host. Clients never read installation files locally, and older hosts report the operation unavailable.
+
+
+Context consent follows the standard project adapters: direct calls run off the dispatcher, remote calls carry exact reviewed identities and cancellation over typed RPC. Consent and installation live on the selected host; clients do not persist a local replacement receipt.
+
+
+Language adapters preserve project-root metadata and pagination identically for direct/WebSocket clients. Context local-only installation status uses the existing typed consent operation; it never implies acknowledgement.
+
+
+ContextAsync uses the same host implementation through off-dispatcher direct calls and generated WebSocket RPC. State mapping preserves enabled Context workspaces; a missing older-host method is unavailable. Native provisioning, authentication and indexing remain on the workspace host.

@@ -18,7 +18,7 @@ public static class RemoteServer
     /// The host owns its terminals unless the caller supplies and owns them. External plugins install under
     /// <c>&lt;stateDirectory&gt;/plugins</c>; <paramref name="plugins"/> adjusts the runtime's seams, as checks do.</summary>
     public static WebApplication Create(string root, IPAddress address, int port, string token, string? stateDirectory = null, ITerminalService? terminals = null,
-        Func<PluginHostSeams, PluginHostSeams>? plugins = null, string? browserRoot = null)
+        Func<PluginHostSeams, PluginHostSeams>? plugins = null, string? browserRoot = null, bool headlessLanguageMcp = false)
     {
         if (string.IsNullOrWhiteSpace(token)) throw new ArgumentException("A host session token is required.", nameof(token));
         var builder = Builder(address, port);
@@ -42,6 +42,7 @@ public static class RemoteServer
         var app = builder.Build();
         if (browserRoot is not null) BrowserAssets.Map(app, browserRoot);
         Map(app, token, tailscale);
+        if (headlessLanguageMcp) HeadlessLanguageMcp.Map(app, state, root, token);
         tailscale.EnsureListening = (tailnetAddress, _) =>
         {
             if (!address.Equals(IPAddress.Any) && !address.Equals(IPAddress.IPv6Any) && address.ToString() != tailnetAddress)
@@ -64,6 +65,7 @@ public static class RemoteServer
             {
                 await runtime.DisposeAsync();
                 await loopback.DisposeAsync();
+                await state.StopLanguagesAsync();
             }).GetAwaiter().GetResult();
         });
         return app;

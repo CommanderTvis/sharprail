@@ -49,10 +49,16 @@ internal static class LayoutFrameE2E
             "A side tool pane's header must be one 32-pixel row without a tab list.");
         foreach (var tool in DockState.ToolNames.Append(DockState.SpecsTool))
         {
+            if (tool == "lsp")
+            {
+                app.Window.Layout.RestoreTool(tool);
+                Until(() => app.Window.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "LspPanel"));
+            }
             var entry = app.Find<Button>("Tab_" + tool.Replace(':', '_'));
             Require(!entry.GetLogicalAncestors().OfType<Grid>().First().GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "CloseTab"),
                 "Tool rail entries must not offer a close button.");
         }
+        app.Click(app.Find<Button>("Tab_files"));
         Require(AutomationProperties.GetName(app.Find<Button>("Tab_files")) == "Files" &&
             app.Window.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "PaneTitle" && text.Text == "Files"),
             "The Files tool must be titled Files.");

@@ -1,0 +1,113 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:kit="using:SharpRail.Plugins.UI.Kit"
+             xmlns:local="using:SharpRail.UI.Panels"
+             x:Class="SharpRail.UI.Panels.LanguagePanel">
+  <UserControl.Styles>
+    <Style Selector="Path.booting">
+      <Style.Animations>
+        <Animation Duration="0:0:1" IterationCount="Infinite">
+          <KeyFrame Cue="0%"><Setter Property="RotateTransform.Angle" Value="0" /></KeyFrame>
+          <KeyFrame Cue="100%"><Setter Property="RotateTransform.Angle" Value="360" /></KeyFrame>
+        </Animation>
+      </Style.Animations>
+    </Style>
+  </UserControl.Styles>
+  <UserControl.Resources>
+    <local:LanguageServerIconConverter x:Key="LanguageMark" />
+    <local:LanguageServerNameConverter x:Key="LanguageName" />
+  </UserControl.Resources>
+  <ScrollViewer x:Name="PaneScroll" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+  <StackPanel Margin="16" Spacing="8">
+    <TextBlock x:Name="Workspace" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
+    <StackPanel x:Name="LanguageServersSection" Spacing="8">
+      <TextBlock Text="Language servers" FontSize="16" FontWeight="SemiBold" />
+      <TextBlock Text="Diagnostics, navigation and refactoring for your project." FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
+    <TextBlock x:Name="Status" Text="Reading language servers…" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" Margin="0,4" />
+    <Border x:Name="AgentLspGuidance" Background="{x:Static kit:Ui.Elevated}" BorderBrush="{x:Static kit:Ui.Accent}" BorderThickness="2,0,0,0" Padding="8">
+      <StackPanel Spacing="4">
+        <TextBlock Text="Let your AI agent configure language servers" FontWeight="SemiBold" TextWrapping="Wrap" />
+        <TextBlock Text="Missing libraries or include paths? Ask your agent to configure this workspace and restart its language server."
+                   FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
+      </StackPanel>
+    </Border>
+    <ListBox x:Name="Servers" ScrollViewer.HorizontalScrollBarVisibility="Disabled" ScrollViewer.VerticalScrollBarVisibility="Disabled">
+      <ListBox.Styles>
+        <Style Selector="ListBoxItem"><Setter Property="HorizontalContentAlignment" Value="Stretch" /></Style>
+        <Style Selector="ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter, ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter, ListBoxItem:selected:pressed /template/ ContentPresenter#PART_ContentPresenter">
+          <Setter Property="Background" Value="{x:Static kit:Ui.Hover}" />
+          <Setter Property="Foreground" Value="{x:Static kit:Ui.TextBrush}" />
+
+        </Style>
+        <Style Selector="ListBoxItem:selected Border#ServerRowSurface">
+          <Setter Property="BorderBrush" Value="{x:Static kit:Ui.Accent}" />
+        </Style>
+      </ListBox.Styles>
+      <ListBox.ItemsPanel><ItemsPanelTemplate><StackPanel /></ItemsPanelTemplate></ListBox.ItemsPanel>
+      <ListBox.ItemTemplate>
+        <DataTemplate x:CompileBindings="False">
+          <Border Name="ServerRowSurface" BorderBrush="Transparent" BorderThickness="2,0,0,0" Padding="8,0,0,0">
+          <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto" RowDefinitions="Auto,Auto,Auto">
+            <Path Name="ServerBootSpinner" Classes.booting="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
+                  Width="16" Height="16" Margin="0,0,8,0" VerticalAlignment="Center"
+                  Data="M 8,1 A 7,7 0 1 1 1,8" Stroke="{x:Static kit:Ui.Muted}" StrokeThickness="1.5"
+                  RenderTransformOrigin="50%,50%" AutomationProperties.Name="Language server starting" />
+            <ContentControl Name="ServerStatusIcon" IsVisible="{Binding ShowStatusIcon}" Content="{Binding Icon}" Margin="0,0,8,0" VerticalAlignment="Center" />
+            <ContentControl Grid.Column="1" Name="ServerLanguageIcon" Content="{Binding Server.Id, Converter={StaticResource LanguageMark}}" Margin="0,0,8,0" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="2" Name="ServerTitle" Text="{Binding}" TextWrapping="Wrap" VerticalAlignment="Center" />
+            <Button Grid.Column="3" Name="ServerSettingsAction" Content="{Binding SettingsIcon}" Click="SettingsClicked"
+                    ToolTip.Tip="{Binding SettingsTooltip}" AutomationProperties.Name="Workspace settings"
+                    Classes="quiet" Background="Transparent" BorderThickness="0" Padding="4" MinHeight="0" Margin="8,0,0,0" />
+            <TextBlock Grid.Column="4" Text="{Binding Disclosure}" Margin="8,0,0,0" Foreground="{x:Static kit:Ui.Muted}" VerticalAlignment="Center" />
+            <StackPanel Grid.Row="1" Grid.Column="2" Grid.ColumnSpan="3" Spacing="4">
+              <TextBlock Name="ServerDetail" IsVisible="{Binding ShowDetail}" Text="{Binding Server.Detail}" Foreground="{Binding DetailBrush}" TextWrapping="Wrap" />
+              <Button Name="ServerLogsAction" Content="View logs" Classes="link" HorizontalAlignment="Left"
+                      IsVisible="{Binding ShowLogs}" Click="LogsClicked" />
+              <Button Name="ServerSourceAction" IsVisible="{Binding HasSource}" Classes="link" Click="SourceClicked"
+                      HorizontalAlignment="Left" HorizontalContentAlignment="Left" ToolTip.Tip="Open file in editor">
+                <TextBlock Text="{Binding Detection}" FontSize="12" TextWrapping="Wrap" />
+              </Button>
+              <TextBlock Name="ServerVersion" IsVisible="{Binding Expanded}" Text="{Binding Version}" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
+            </StackPanel>
+          </Grid>
+          </Border>
+        </DataTemplate>
+      </ListBox.ItemTemplate>
+    </ListBox>
+    <ComboBox x:Name="AddServer" PlaceholderText="Add language server…" HorizontalAlignment="Stretch" BorderThickness="0" Background="Transparent">
+      <ComboBox.ItemTemplate>
+        <DataTemplate x:CompileBindings="False">
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <ContentControl Content="{Binding Converter={StaticResource LanguageMark}}" />
+            <TextBlock Text="{Binding Converter={StaticResource LanguageName}}" VerticalAlignment="Center" />
+          </StackPanel>
+        </DataTemplate>
+      </ComboBox.ItemTemplate>
+    </ComboBox>
+    <WrapPanel Margin="0,8,0,0">
+      <Button x:Name="Refresh" Content="Refresh" Margin="0,0,8,8" />
+    </WrapPanel>
+    </StackPanel>
+    <Border x:Name="AirContextContainer" BorderBrush="{x:Static kit:Ui.BorderBrush}" BorderThickness="0,1,0,0" Margin="0,16,0,0" Padding="0,16,0,0">
+    <StackPanel x:Name="AirContextSection" Spacing="8">
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <ContentControl x:Name="ContextBrand" VerticalAlignment="Center" />
+        <TextBlock Text="Air Context" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
+      </StackPanel>
+      <TextBlock Text="Semantic code discovery for this workspace. Cloud indexing requires explicit enablement." FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
+      <WrapPanel Orientation="Horizontal">
+        <Button x:Name="ContextSetup" Content="Review terms and download…" HorizontalAlignment="Left" Click="ContextSetupClicked" Margin="0,0,8,8" />
+        <Button x:Name="ContextLogs" Content="Logs…" Click="ContextLogsClicked" Margin="0,0,0,8" />
+      </WrapPanel>
+      <CheckBox x:Name="ContextEnabled" Content="Enable for this workspace" Click="ContextEnableClicked" />
+      <TextBlock x:Name="ContextState" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
+      <WrapPanel x:Name="ContextControls" Orientation="Horizontal" IsVisible="False">
+        <Button x:Name="ContextLogin" Content="Sign in…" Click="ContextLoginClicked" Margin="0,0,8,8" />
+        <Button x:Name="ContextIndex" Content="Index now" Click="ContextIndexClicked" Margin="0,0,8,8" />
+        <Button x:Name="ContextStop" Content="Stop" Click="ContextStopClicked" Margin="0,0,8,8" />
+      </WrapPanel>
+    </StackPanel>
+    </Border>
+  </StackPanel>
+  </ScrollViewer>
+</UserControl>

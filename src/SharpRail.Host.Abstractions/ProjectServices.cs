@@ -36,6 +36,7 @@ public record ContentMetadata(string? Sha256, long? ByteLength, bool IsText, str
 public record FileDocument(string Path, string Text, byte[]? ImageData = null)
 {
     public ContentMetadata? Info { get; init; }
+    public bool ReadOnly { get; init; }
 }
 /// <summary>Changed workspace-relative paths, Git metadata changes and a request to refresh after lost filesystem events.</summary>
 public record WorkspaceFileChanges(IReadOnlyList<string> Paths, bool GitChanged = false, bool Rescan = false);

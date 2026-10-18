@@ -81,6 +81,18 @@ public static class PluginIcons
         ["puzzle-line"] = Fallback
     };
 
+    internal static Control ResolveSettings(PluginRosterEntry entry)
+    {
+        var brand = entry.Id switch { "claude-code" => "claude", "discord" => "discord", _ => "" };
+        if (brand.Length == 0) return Resolve(entry.Icon, entry, Ui.TextBrush, 16);
+        using var input = Avalonia.Platform.AssetLoader.Open(new Uri("avares://SharpRail.UI/Assets/Brands/" + brand + ".svg"));
+        using var buffer = new MemoryStream();
+        input.CopyTo(buffer);
+        var icon = new AssetIcon("plugin-brand:" + entry.Id, Fallback, Ui.TextBrush, 16);
+        icon.Show(buffer.ToArray(), Ui.TextBrush, 16);
+        return icon;
+    }
+
     /// <summary>Reads a plugin asset; the loader binds it to the host's plugin file read.</summary>
     public static Func<string, string, CancellationToken, Task<byte[]?>>? ReadAsset { get; set; }
 

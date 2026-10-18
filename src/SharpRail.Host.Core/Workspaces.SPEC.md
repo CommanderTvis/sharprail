@@ -201,3 +201,8 @@ forgetting removes its row while leaving the checkout in place. The Default work
   each window's layout, and the marker is only kept and cleared by the host.
 - Seeding the scratch directory of a user-owned workspace when a session starts there.
 - Prefetching a picked non-default base from the creation dialog, off the create's critical path.
+
+New workspace records copy their project's Default workspace language configuration once into
+independent host metadata. Managed workspace creation starts copied AutoStart servers in the
+background without delaying creation. Later Default edits do not alter existing workspaces;
+removal drops their configuration. Diagnostics and server listing never trigger these starts.

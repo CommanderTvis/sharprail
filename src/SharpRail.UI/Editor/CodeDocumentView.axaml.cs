@@ -30,29 +30,24 @@ internal sealed partial class CodeDocumentView : UserControl, IDisposable
         AvaloniaXamlLoader.Load(this);
         this.host = host; this.workspace = workspace; path = file.Path;
         original = file.Text; this.saved = saved; this.modifiedChanged = modifiedChanged; this.report = report;
-        var frame = new EditorFrame(file.Text, "CodeEditor");
+        frame = new EditorFrame(file.Text, "CodeEditor") { DeferSyntaxColors = true };
         frame.Highlight(file.Path);
+        frame.Opacity = 0;
         Editor = frame.Editor;
-        deletedBanner = new Border
-        {
-            Name = "FileDeletedOnDisk",
-            IsVisible = false,
-            Background = Ui.Elevated,
-            BorderBrush = Ui.Danger,
-            BorderThickness = new Avalonia.Thickness(0, 0, 0, 1),
-            Padding = new Avalonia.Thickness(8, 4),
-            Child = Ui.Text("This file was deleted on disk. What you see is the last version the tab read.", Ui.TextBrush, 12)
-        };
-        this.FindControl<ContentControl>("DeletedBannerBody")!.Content = deletedBanner;
-        this.FindControl<ContentControl>("CodeEditorBody")!.Content = frame;
+        Editor.IsReadOnly = file.ReadOnly;
+        deletedBanner = this.FindControl<Border>("FileDeletedOnDisk")!;
+        deletedBanner.Background = Ui.Elevated; deletedBanner.BorderBrush = Ui.Danger;
+        this.FindControl<ContentControl>("CodeBody")!.Content = frame;
         if (find)
         {
             var bar = new FindBar(() => Editor);
             this.FindControl<ContentControl>("CodeFindBody")!.Content = bar;
             bar.Attach(this);
         }
+
         Editor.TextChanged += (_, _) => { UpdateModified(); if (Editor.IsModified && !reloading) changed(); };
         Editor.OperationFailed += (_, error) => report(error);
+        WireLanguage();
     }
 
     internal async Task SaveAsync()
@@ -99,5 +94,5 @@ internal sealed partial class CodeDocumentView : UserControl, IDisposable
         modifiedChanged();
     }
 
-    public void Dispose() { if (disposed) return; disposed = true; Editor.Dispose(); }
+    public void Dispose() { if (disposed) return; disposed = true; StopLanguage(); Editor.Dispose(); }
 }

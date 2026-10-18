@@ -257,3 +257,7 @@ reconnects did not allocate more. A known enabled FileSystemWatcher proved inter
 zero failed native starts and zero untracked operations. The earlier 13-created/13-released, peak-three
 fixture was gitless and did not prove native metadata watcher lifetime. These scoped subprocess checks
 include framework-created streams, not global pool availability or resources of a running user host.
+
+Language-server navigation exposes exact dependency files for reading and marks them read-only in
+the returned document. This does not authorize writes or arbitrary external reads. The exposure is
+scoped to the workspace that requested navigation and ends when that workspace closes.

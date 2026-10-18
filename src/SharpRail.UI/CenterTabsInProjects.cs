@@ -151,11 +151,27 @@ public sealed partial class WorkbenchWindow
         ];
     }
 
+    private static bool ExternalSource(string path, string workspace)
+    {
+        if (Uri.TryCreate(path, UriKind.Absolute, out var uri))
+        {
+            if (!uri.IsFile) return true;
+            path = uri.LocalPath;
+        }
+        var normalized = path.Replace('\\', '/');
+        if (normalized.StartsWith("../", StringComparison.Ordinal)) return true;
+        var windowsPath = normalized.Length > 2 && char.IsLetter(normalized[0]) && normalized[1] == ':' && normalized[2] == '/';
+        if (!Path.IsPathRooted(path) && !windowsPath) return false;
+        var root = workspace.Replace('\\', '/').TrimEnd('/');
+        return !normalized.StartsWith(root + "/", OperatingSystem.IsWindows() || windowsPath ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal) && normalized != root;
+    }
+
     private Control PreviewTab(string workspace, string? group, DockTab tab, bool selected, bool boxed, string? subtitle = null)
     {
         var foreground = selected ? Ui.TextBrush : Ui.Muted;
         var row = new Grid { ColumnDefinitions = new ColumnDefinitions("14,4,*,Auto"), Margin = new Thickness(0, 0, 4, 0) };
         Ui.Place(row, TabIcon(tab, foreground, workspace) ?? Ui.Icon(tab.Kind == "terminal" ? "terminal" : tab.Kind == "diff" ? "fileDiff" : "fileText", foreground, 14));
+        var external = tab.Kind == "file" && ExternalSource(tab.Path, workspace);
         var title = Ui.Text(tab.Title, foreground, 14);
         title.LineHeight = 20;
         title.FontStyle = tab.Preview ? Avalonia.Media.FontStyle.Italic : Avalonia.Media.FontStyle.Normal;
@@ -201,7 +217,7 @@ public sealed partial class WorkbenchWindow
         }
         button.Click += (_, _) => OpenTab();
         AutomationProperties.SetName(button, tab.Title);
-        ToolTip.SetTip(button, tab.Path.Length > 0 ? tab.Path : tab.Title);
+        ToolTip.SetTip(button, (external ? "Outside workspace\n" : "") + (tab.Path.Length > 0 ? tab.Path : tab.Title));
         if (workbench.Touch)
         {
             button.IsHitTestVisible = false;

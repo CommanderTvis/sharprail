@@ -82,6 +82,8 @@ internal static class UiChecks
 
     internal static void RunWorkspaceSuites(string root)
     {
+        Gate.Case("context-consent-ui", () => ContextChecks.Ui(root));
+        Gate.Case("language-editor", () => LanguageChecks.UiChecks(root));
         Gate.Case("ProjectsE2E", () => E2E.ProjectsE2E.Run(root));
         Gate.Case("windows-ui", () => WindowsChecks.RunUi(root));
         Gate.Case("gitless-panes", () => GitlessPaneChecks.Run(root));

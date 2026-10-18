@@ -48,10 +48,16 @@ public sealed partial class HostStateStore
             if (next.SequenceEqual(state.Workspaces)) return state.Workspaces;
             var paths = next.Select(workspace => workspace.Path).ToHashSet();
             removed = state.Workspaces.Select(workspace => workspace.Path).Where(path => !paths.Contains(path)).ToArray();
-            var result = state with { Workspaces = next };
+            var configurations = state.WorkspaceLanguages.ToDictionary();
+            foreach (var added in next.Where(workspace => !state.Workspaces.Any(known => known.Path == workspace.Path)))
+                if (added.Kind != WorkspaceKinds.Default && !configurations.ContainsKey(added.Path))
+                    configurations[added.Path] = configurations.GetValueOrDefault(added.ProjectRoot) ?? "{}";
+            var result = state with { Workspaces = next, WorkspaceLanguages = configurations };
             foreach (var gone in removed)
                 result = result with
                 {
+                    WorkspaceLanguages = Without(result.WorkspaceLanguages, gone),
+                    ContextWorkspaces = result.ContextWorkspaces.Where(workspace => workspace != gone).ToArray(),
                     WorkspaceLabels = Without(result.WorkspaceLabels, gone),
                     WorkspaceBases = Without(result.WorkspaceBases, gone),
                     WorkspaceDiffBases = Without(result.WorkspaceDiffBases, gone)

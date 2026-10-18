@@ -39,6 +39,33 @@ WebSocket RPC require an updated build/restart; the user's running host was left
 
 Browser milestone evidence:
 
+LSP inline error rows and the host-wide LSP Settings category pass focused host/UI,
+design and conformance checks, with headless visual inspection. Native/Android appearance
+is unverified; the previous full-gate terminal and file-icon failures remain open.
+
+Explicit agent file-list/project diagnostic scans now pass local/remote and MCP checks.
+The latest full gate passes lanes 1 and 3 but stops in shared-terminal PhoneToDesktop
+and file-icon raster checks; see the newest src/SharpRail.Host.Core/Language/SPEC.md entry for exact failures.
+
+The 2026-10-14 LSP revisions pass focused checks for full-catalog startup, passive
+Problems queries, whole-pane scrolling, status icons, context-menu usages popups and
+semantic replacement. The latest full gate is incomplete at diff-opening waits in
+RenderedDiffE2E and ChangeActionChecks; lanes 3 and 4 complete. See src/SharpRail.Host.Core/Language/SPEC.md.
+
+Workspace LSP support has host/local/WebSocket and editor regression coverage, plus
+real TypeScript, Pyright and clangd checks. The remaining catalog installation recipes
+need live verification on their supported hosts; SDK-dependent servers require the
+documented prerequisites. Shared indexes use only server-supported cache mechanisms,
+with mutable analysis isolated by workspace. The full regression gate remains
+incomplete at shared-terminal creation and startup timing checks (see src/SharpRail.Host.Core/Language/SPEC.md).
+Android/browser compilation and native appearance of the new editor controls remain
+unverified.
+
+The LSP management pane and explicit Codex/Claude capability entries have focused
+host, terminal-authenticated MCP, editor and workbench mounting coverage. The later
+four-lane gate remains incomplete at rendered-diff and shared-terminal checks; its
+catalog-tool fixture assumption was corrected and passes the targeted layout run.
+
 The browser client is implemented in `src/SharpRail.Browser`, with full shared-workbench parity as its
 contract and exclusively remote host adapters. Chromium acceptance covers WASM Scintilla editing,
 save conflicts, live Ghostty PTYs and reconnects, PDFium text/raster/Unicode/rotation/crop, Mermaid,
@@ -112,3 +139,14 @@ headless cadence does not establish desktop performance parity.
 
 Focused Projects retention and geometry checks do not establish native animation or physical-client
 acceptance. Current cross-module gates remain in the [acceptance inventory](UPSTREAM.md#outstanding-acceptance-work).
+
+## Language intelligence acceptance
+
+Language services and agent workspace configuration are implemented. Focused host/UI and real-server checks pass; full-gate Git-only Changes fixture failures and platform acceptance limits remain recorded in the language and checks specs.
+
+
+Optional JetBrains Context has a consent-guarded, workspace-aware indexing/search
+workflow and SharpRail agent tools. Fixture, local/remote, UI and lifecycle checks
+pass; the final broad gate completed with a terminal-focus retry. Real authenticated
+cloud search is unverified. Existing vendor login/cache is shared and disclosed;
+fully private vendor state is not established and that scope decision remains pending.

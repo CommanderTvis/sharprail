@@ -44,6 +44,8 @@ public static partial class CodexResume
         while (offset < command.Length)
         {
             if (char.IsWhiteSpace(command[offset])) { offset++; continue; }
+            if (command.AsSpan(offset).StartsWith("\\\n", StringComparison.Ordinal)) { offset += 2; continue; }
+            if (command.AsSpan(offset).StartsWith("\\\r\n", StringComparison.Ordinal)) { offset += 3; continue; }
             var match = Word().Match(command, offset);
             if (!match.Success || match.Index != offset) return null;
             tokens.Add(match.Value);
@@ -106,7 +108,7 @@ public static partial class CodexResume
     [GeneratedRegex(@"^\w+=")]
     private static partial Regex Assignment();
 
-    [GeneratedRegex("""^['"]?mcp_servers\.(?:sharprail|thinkrail)\.(?:url|tools\.(?:set_title|spec_get|spec_graph|spec_grep|spec_validate|blueprint_check)\.approval_mode)=""")]
+    [GeneratedRegex("""^['"]?mcp_servers\.(?:sharprail|thinkrail)\.(?:url|tools\.(?:set_title|spec_get|spec_graph|spec_grep|spec_validate|blueprint_check|lsp_navigate|lsp_diagnostics|lsp_status|context_search|context_status|context_index)\.approval_mode)=""")]
     private static partial Regex McpOverride();
 
     [GeneratedRegex("""^['"]?developer_instructions=""")]

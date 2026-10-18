@@ -39,6 +39,7 @@ public sealed partial class ScintillaEditor
         for (var index = 0; index < textStyles.Count; index++)
         {
             var style = FirstTextStyle + index;
+            document.Send(ScintillaMessage.StyleSetItalic, style, textStyles[index].Italic ? 1 : 0);
             document.Send(ScintillaMessage.StyleSetFore, style, (nint)rgb(textStyles[index].Foreground));
             if (textStyles[index].Background is not { } background) continue;
             document.Send(ScintillaMessage.StyleSetBack, style, (nint)rgb(background));

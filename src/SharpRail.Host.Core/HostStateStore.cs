@@ -27,6 +27,8 @@ public sealed partial class HostStateStore : IHostStateService
         public List<string> Projects { get; set; } = [];
         public List<string> RecentProjects { get; set; } = [];
         public List<ProjectRecord> ProjectRecords { get; set; } = [];
+        public List<string> ContextWorkspaces { get; set; } = [];
+        public Dictionary<string, string> WorkspaceLanguages { get; set; } = [];
         public Dictionary<string, string> WorkspaceLabels { get; set; } = [];
         public Dictionary<string, string> WorkspaceBases { get; set; } = [];
         public Dictionary<string, string> WorkspaceDiffBases { get; set; } = [];
@@ -61,6 +63,7 @@ public sealed partial class HostStateStore : IHostStateService
         }
     }
     private PtyTerminalService? terminals;
+    private readonly HashSet<TerminalRef> contextAgentLaunches = [];
 
     private void TerminalInput(string workspace) => RecordWorkspaceActivity(workspace);
 
@@ -109,6 +112,8 @@ public sealed partial class HostStateStore : IHostStateService
                     Projects = stored.Projects ?? [],
                     RecentProjects = stored.RecentProjects ?? [],
                     ProjectRecords = stored.ProjectRecords ?? [],
+                    WorkspaceLanguages = stored.WorkspaceLanguages ?? [],
+                    ContextWorkspaces = stored.ContextWorkspaces ?? [],
                     WorkspaceLabels = stored.WorkspaceLabels ?? [],
                     WorkspaceBases = stored.WorkspaceBases ?? [],
                     WorkspaceDiffBases = stored.WorkspaceDiffBases ?? [],
@@ -146,6 +151,7 @@ public sealed partial class HostStateStore : IHostStateService
                 VerticalTabsInProjects = state.Settings.VerticalTabsInProjects ?? verticalTabsInProjects ?? false
             }
         };
+        OpenLanguageMetadata();
         // Identities minted for a file that predates them are written at once, or they would change on the next launch.
         if (path is not null && LastError is null && (!File.Exists(path) || !state.ProjectRecords.SequenceEqual(initial.ProjectRecords) ||
             state.Settings != initial.Settings || state.PluginSettings.Count != initial.PluginSettings.Count || !state.Workspaces.SequenceEqual(initial.Workspaces))) Save(state);
@@ -216,8 +222,11 @@ public sealed partial class HostStateStore : IHostStateService
                 if (next.Settings.ThemeMode != "fixed" && changes.Any(change => change is { Kind: "setting", Key: "theme" }) &&
                     !changes.Any(change => change is { Kind: "setting", Key: "theme-mode" }))
                     next = next with { Settings = next.Settings with { ThemeMode = "fixed" } };
-                return Visible(Publish(next, persist: true));
+                next = Visible(Publish(next, persist: true));
             }
+            if (previous.Settings.LspEnabled && !next.Settings.LspEnabled && languages is { } languageService)
+                await languageService.SuspendAsync();
+            return next;
         }
         finally { changesGate.Release(); }
     }
@@ -242,8 +251,11 @@ public sealed partial class HostStateStore : IHostStateService
         {
             var agents = state.TerminalAgents.Where(agent => agent.Terminal != terminal).ToList();
             if (record is not null) agents.Add(new(terminal, record));
-            if (agents.SequenceEqual(state.TerminalAgents)) return;
-            Publish(state with { TerminalAgents = agents }, persist: true);
+            var launched = record?.LaunchedByUi == true && record.Kind is "codex" or "claude";
+            if (!launched) contextAgentLaunches.Remove(terminal);
+            var startContext = launched && contextAgentLaunches.Add(terminal);
+            if (!agents.SequenceEqual(state.TerminalAgents)) Publish(state with { TerminalAgents = agents }, persist: true);
+            if (startContext && state.ContextWorkspaces.Contains(terminal.WorkspaceId)) _ = Contexts.AgentStartedAsync(terminal.WorkspaceId);
         }
     }
 
@@ -253,6 +265,7 @@ public sealed partial class HostStateStore : IHostStateService
         lock (gate)
         {
             var removed = state.TerminalAgents.Where(agent => closed(agent.Terminal)).Select(agent => agent.Terminal).ToArray();
+            foreach (var terminal in removed) contextAgentLaunches.Remove(terminal);
             if (removed.Length > 0) Publish(state with { TerminalAgents = state.TerminalAgents.Where(agent => !closed(agent.Terminal)).ToArray() }, persist: true);
             return removed;
         }
@@ -312,6 +325,7 @@ public sealed partial class HostStateStore : IHostStateService
     {
         if (ReferenceEquals(next, state)) return state;
         var previous = state;
+        if (persist) PersistLanguageMetadata(previous.WorkspaceLanguages, next.WorkspaceLanguages);
         state = next with { Revision = state.Revision + 1 };
         if (persist) Save(state);
         foreach (var watcher in watchers) watcher.Writer.TryWrite(state);
@@ -332,6 +346,8 @@ public sealed partial class HostStateStore : IHostStateService
                 Projects = snapshot.Projects.ToList(),
                 RecentProjects = snapshot.RecentProjects.ToList(),
                 ProjectRecords = snapshot.ProjectRecords.ToList(),
+                WorkspaceLanguages = snapshot.WorkspaceLanguages.ToDictionary(),
+                ContextWorkspaces = snapshot.ContextWorkspaces.ToList(),
                 WorkspaceLabels = snapshot.WorkspaceLabels.ToDictionary(),
                 WorkspaceBases = snapshot.WorkspaceBases.ToDictionary(),
                 WorkspaceDiffBases = snapshot.WorkspaceDiffBases.ToDictionary(),
@@ -363,6 +379,7 @@ public sealed partial class HostStateStore : IHostStateService
         var normalized = value with
         {
             Revision = 0,
+            ContextWorkspaces = value.ContextWorkspaces.Where(ValidPath).Distinct().Order(StringComparer.Ordinal).ToArray(),
             Settings = value.Settings with
             {
                 ThemeMode = value.Settings.ThemeMode is "system" ? "system" : "fixed",
@@ -487,7 +504,10 @@ public sealed partial class HostStateStore : IHostStateService
                     "terminal-replay" when int.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var kb) && kb <= HostSettings.MaxTerminalReplayKb
                         => settings with { TerminalReplayKb = kb },
                     "file-type-icons" when bool.TryParse(value, out var icons) => settings with { FileTypeIconsEnabled = icons },
+                    "air-context-hidden" when bool.TryParse(value, out var airContextHidden) => settings with { AirContextHidden = airContextHidden },
+                    "lsp-enabled" when bool.TryParse(value, out var lspEnabled) => settings with { LspEnabled = lspEnabled },
                     "notifications" when bool.TryParse(value, out var enabled) => settings with { NotificationsEnabled = enabled },
+                    _ when key.StartsWith("language-server:", StringComparison.Ordinal) => settings with { LanguageServers = SetLanguageServer(settings.LanguageServers, key[16..], value) },
                     "custom-highlighting" when ValidHighlighting(value) => settings with { CustomHighlighting = value },
                     "vertical-tabs" when bool.TryParse(value, out var vertical) => settings with { VerticalCenterTabs = vertical },
                     "settle-idle-days" when value is "" or "never" => settings with { SettleIdleDays = null },

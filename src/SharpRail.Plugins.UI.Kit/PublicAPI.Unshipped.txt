@@ -535,3 +535,30 @@ static SharpRail.Plugins.UI.Kit.Typography.Apply<T>(T! control, SharpRail.Plugin
 static SharpRail.Plugins.UI.Kit.Typography.Styles() -> Avalonia.Styling.Styles!
 static readonly SharpRail.Plugins.UI.Kit.Ui.PdfPaper -> Avalonia.Media.SolidColorBrush!
 static readonly SharpRail.Plugins.UI.Kit.Ui.PdfSelection -> Avalonia.Media.SolidColorBrush!
+
+override SharpRail.Plugins.UI.Kit.Editor.SemanticToken.Equals(object? obj) -> bool
+override SharpRail.Plugins.UI.Kit.Editor.SemanticToken.GetHashCode() -> int
+override SharpRail.Plugins.UI.Kit.Editor.SemanticToken.ToString() -> string!
+SharpRail.Plugins.UI.Kit.Editor.EditorFrame.ApplySemanticTokensAsync(string! text, System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.UI.Kit.Editor.SemanticToken!>! tokens) -> System.Threading.Tasks.Task!
+SharpRail.Plugins.UI.Kit.Editor.SemanticToken
+SharpRail.Plugins.UI.Kit.Editor.SemanticToken.<Clone>$() -> SharpRail.Plugins.UI.Kit.Editor.SemanticToken!
+SharpRail.Plugins.UI.Kit.Editor.SemanticToken.Column.get -> int
+SharpRail.Plugins.UI.Kit.Editor.SemanticToken.Column.init -> void
+SharpRail.Plugins.UI.Kit.Editor.SemanticToken.Deconstruct(out int Line, out int Column, out int Length, out string! Type) -> void
+SharpRail.Plugins.UI.Kit.Editor.SemanticToken.Equals(SharpRail.Plugins.UI.Kit.Editor.SemanticToken? other) -> bool
+SharpRail.Plugins.UI.Kit.Editor.SemanticToken.Length.get -> int
+SharpRail.Plugins.UI.Kit.Editor.SemanticToken.Length.init -> void
+SharpRail.Plugins.UI.Kit.Editor.SemanticToken.Line.get -> int
+SharpRail.Plugins.UI.Kit.Editor.SemanticToken.Line.init -> void
+SharpRail.Plugins.UI.Kit.Editor.SemanticToken.SemanticToken(int Line, int Column, int Length, string! Type) -> void
+SharpRail.Plugins.UI.Kit.Editor.SemanticToken.Type.get -> string!
+SharpRail.Plugins.UI.Kit.Editor.SemanticToken.Type.init -> void
+static SharpRail.Plugins.UI.Kit.Editor.SemanticToken.operator !=(SharpRail.Plugins.UI.Kit.Editor.SemanticToken? left, SharpRail.Plugins.UI.Kit.Editor.SemanticToken? right) -> bool
+static SharpRail.Plugins.UI.Kit.Editor.SemanticToken.operator ==(SharpRail.Plugins.UI.Kit.Editor.SemanticToken? left, SharpRail.Plugins.UI.Kit.Editor.SemanticToken? right) -> bool
+SharpRail.Plugins.UI.Kit.Editor.EditorFrame.HighlightingReady.get -> System.Threading.Tasks.Task!
+
+SharpRail.Plugins.UI.Kit.Editor.EditorFrame.DeferSyntaxColors.get -> bool
+SharpRail.Plugins.UI.Kit.Editor.EditorFrame.DeferSyntaxColors.set -> void
+
+SharpRail.Plugins.UI.Kit.Editor.SemanticToken.Italic.get -> bool
+SharpRail.Plugins.UI.Kit.Editor.SemanticToken.Italic.init -> void

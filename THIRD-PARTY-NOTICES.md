@@ -151,3 +151,40 @@ Git ignore highlighting uses TextMateSharp.Grammars' bundled source.ignore gramm
   editors/vscode/toml.tmLanguage.json (MIT; licenses/TomlGrammar.txt).
 - Fish: bmalehorn/vscode-fish, commit 0741d59ecf3d2aa018543747874eb8f34c655612,
   syntaxes/fish.tmLanguage.json (MIT; licenses/FishGrammar.txt).
+
+The optional IntelliJ language-service adapter uses published catalog metadata and protocol
+conventions from [JetBrains/intellij-lsp.nvim](https://github.com/JetBrains/intellij-lsp.nvim),
+revision 9cfad18005470e4187090013e08f92ec9e437219, Copyright 2026 JetBrains s.r.o., Apache 2.0.
+SharpRail independently implements these conventions in C#; no Neovim runtime is included.
+See `licenses/intellij-lsp.nvim.LICENSE.txt` and `licenses/intellij-lsp.nvim.NOTICE.md`.
+The proprietary JetBrains server is a separate product and is not bundled or licensed by this notice.
+
+
+Optional JetBrains Context uses an unmodified, separately downloaded proprietary CLI.
+SharpRail ships its adapter only; no Context binary or proprietary source is bundled.
+The actual user must accept the selected artifact's applicable CLI EAP and AI terms.
+Public integration documentation at https://github.com/JetBrains/context is a protocol
+reference, not a license to redistribute the CLI.
+
+
+The IntelliJ IDEA product icon is an unmodified asset
+from https://www.jetbrains.com/company/brand/ and its published downloads. Used to identify
+SharpRail's integrations under the JetBrains Brand Guidelines, not as SharpRail branding.
+Copyright © 2026 JetBrains s.r.o. IntelliJ IDEA and the IntelliJ IDEA logo are trademarks of JetBrains s.r.o.
+
+Code Intelligence language icons preserve the original colors of Material Icon Theme v5.38.1
+(the same pinned MIT-licensed source as the core file icons).
+
+The unmodified Air product icon is from JetBrains’ Air blog:
+https://blog.jetbrains.com/wp-content/uploads/2026/02/logo.svg
+Copyright © 2026 JetBrains s.r.o. Air and the Air logo are trademarks of JetBrains s.r.o.
+Used to identify Air Context; https://www.jetbrains.com/air/context/.
+
+Provider-specific icons are unmodified assets from the publishers’ repositories.
+Assets/LanguageIcons/SOURCES.json records pinned source revisions and SHA-256 digests;
+licenses/lsp-icon-* retain their applicable repository licenses. These identify integrations
+and do not imply publisher endorsement.
+
+Plugins settings reuses the bundled Claude and Discord mark silhouettes with their brand colors.
+Their original provenance and licensing remain those of the bundled plugin assets; this
+presentation does not imply affiliation with either vendor.

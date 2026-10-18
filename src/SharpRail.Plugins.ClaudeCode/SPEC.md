@@ -260,3 +260,42 @@ Start work includes host image paths in the opening prompt with instructions to 
 Source and rendered diff selections use the same selection notifications as file editors, including continuous Changes review. Activating a different document clears the former current selection; closing a diff or review forgets its selected file. Original-side source selections are not replaced with working-tree contents.
 
 Context labels delimit the active tab name with quotation marks, including the no-session fallback, so it is distinct from the explanatory sentence.
+
+## Language tools
+
+The prompt appendix directs navigation and post-edit inspection through `lsp_navigate` and
+`lsp_diagnostics`, with `lsp_status` for initialization and recovery. Calls identify the edited
+workspace explicitly; delegated agents receive their own workspace path and these instructions
+even when they inherit the parent's MCP connection. Partial or unavailable inspection is reported.
+
+Capabilities explicitly lists `lsp_navigate`, `lsp_diagnostics` and `lsp_status`, their workspace/subagent
+routing, and the LSP management pane. It identifies the bundled Claude plugin MCP declaration as the
+connection source and explains installation/enabling rather than claiming an unchecked live connection.
+Its configuration guidance follows the [workbench](../SharpRail.UI/SPEC.md#language-intelligence).
+
+Agent instructions request `lsp_diagnostics` with `paths` for every edited file or
+`scope: "workspace"` for project source files, including unopened files. Agents must inspect
+per-file checked/pending/skipped/error coverage; scans use running servers only.
+
+Agent guidance explains discovering language servers and explicitly starting each needed server through MCP before mixed-language diagnostic scans, while respecting disabled settings.
+
+System instructions prefer LSP over grep for available semantic navigation, advertise hover,
+qualified symbol outlines/body reads and paged source excerpts, and prefer edited-file diagnostic
+scans. Text search remains available for strings, configuration, unknown owners and incomplete
+or unsupported semantic results; delegated agents receive the workspace and LSP guidance.
+
+The system prompt advertises workspace LSP configuration inspection, save and targeted restart,
+including library settings and clangd compiler configuration. Saved configuration is visible in
+the workspace LSP pane and copied independently from Default for new workspaces.
+
+Agent LSP guidance prefers qualified outline queries over guessed positions, dependency scope and
+bounded source retrieval with the returned URI/source provider. Reuse warm sessions and poll import
+readiness; retain text-search fallbacks for incomplete or unsupported semantic results.
+
+
+The prompt appendix advertises workspace-gated context_search/status/index through the existing SharpRail MCP connection, then LSP for known symbols/current drafts. Capabilities describes explicit cloud enablement. No jbcontext global Claude setup/hooks/skills are installed; host agent recognition triggers indexing only after workspace enablement.
+
+Air Context prompt guidance explains meaning-based code discovery and directs agents to
+use it proactively as the first step for unfamiliar behavior whenever workspace-enabled.
+Disabled or unready indexing falls back to LSP and targeted text search without blocking;
+user-only enablement/sign-in and current-draft limitations remain explicit.

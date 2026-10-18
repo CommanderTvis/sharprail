@@ -293,6 +293,11 @@ internal sealed class E2eWorkspace : IDisposable
 
 internal sealed class E2eHost(IProjectServices inner) : IProjectServices
 {
+    public ValueTask<ContextResult> ContextAsync(ContextRequest request, CancellationToken cancellationToken = default) => inner.ContextAsync(request, cancellationToken);
+    public ValueTask<ContextConsentResult> ContextConsentAsync(ContextConsentRequest request, CancellationToken cancellationToken = default) => inner.ContextConsentAsync(request, cancellationToken);
+    internal Func<LanguageRequest, LanguageResult?>? LanguageReply { get; set; }
+    public ValueTask<LanguageResult> LanguageAsync(LanguageRequest request, CancellationToken cancellationToken = default) =>
+        LanguageReply?.Invoke(request) is { } result ? ValueTask.FromResult(result) : inner.LanguageAsync(request, cancellationToken);
     private TaskCompletionSource? watchGate;
     internal TaskCompletionSource HoldWatch() => watchGate = new(TaskCreationOptions.RunContinuationsAsynchronously);
     public async IAsyncEnumerable<WorkspaceFileChanges> WatchFilesAsync([System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken = default)

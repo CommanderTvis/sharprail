@@ -1,0 +1,1084 @@
+{
+  "cases": [
+    {
+      "server": "typescript",
+      "repository": "microsoft/TypeScript",
+      "revision": "c63de15a992d37f0d6cec03ac7631872838602cb",
+      "extensions": [
+        ".ts"
+      ],
+      "path": "src/compiler/parser.ts",
+      "runtime": "node",
+      "minimumSourceFiles": 25,
+      "calls": [
+        {
+          "tool": "lsp_status",
+          "arguments": {
+            "operation": "retry",
+            "server": "typescript"
+          }
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "symbols",
+            "path": "src/compiler/parser.ts",
+            "limit": 50
+          },
+          "assert": "locations"
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "references",
+            "path": "src/compiler/parser.ts",
+            "query": "createSourceFile",
+            "limit": 200
+          },
+          "assert": "crossFile"
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "hover",
+            "path": "src/compiler/parser.ts",
+            "line": 0,
+            "column": 0
+          },
+          "assert": "protocol"
+        },
+        {
+          "tool": "lsp_diagnostics",
+          "arguments": {
+            "paths": [
+              "src/compiler/parser.ts"
+            ]
+          },
+          "assert": "checked"
+        }
+      ],
+      "coverage": "cross-file references and document diagnostics"
+    },
+    {
+      "server": "python",
+      "repository": "pallets/flask",
+      "revision": "d086db856be187255b8ec61ef409357393020f32",
+      "extensions": [
+        ".py"
+      ],
+      "path": "src/flask/app.py",
+      "runtime": "uv",
+      "minimumSourceFiles": 25,
+      "calls": [
+        {
+          "tool": "lsp_status",
+          "arguments": {
+            "operation": "retry",
+            "server": "python"
+          }
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "symbols",
+            "path": "src/flask/app.py",
+            "limit": 50
+          },
+          "assert": "locations"
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "references",
+            "path": "src/flask/app.py",
+            "query": "Flask",
+            "limit": 200
+          },
+          "assert": "crossFile"
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "hover",
+            "path": "src/flask/app.py",
+            "line": 0,
+            "column": 0
+          },
+          "assert": "protocol"
+        },
+        {
+          "tool": "lsp_diagnostics",
+          "arguments": {
+            "paths": [
+              "src/flask/app.py"
+            ]
+          },
+          "assert": "checked"
+        }
+      ],
+      "coverage": "cross-file references and document diagnostics"
+    },
+    {
+      "server": "csharp",
+      "repository": "Humanizr/Humanizer",
+      "revision": "90f0cb1d7427635f38b46350bb1dc5fca2164f2d",
+      "extensions": [
+        ".cs"
+      ],
+      "path": "src/Humanizer/InflectorExtensions.cs",
+      "runtime": "dotnet",
+      "minimumSourceFiles": 25,
+      "calls": [
+        {
+          "tool": "lsp_status",
+          "arguments": {
+            "operation": "retry",
+            "server": "csharp"
+          }
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "symbols",
+            "path": "src/Humanizer/InflectorExtensions.cs",
+            "limit": 50
+          },
+          "assert": "locations"
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "references",
+            "path": "src/Humanizer/InflectorExtensions.cs",
+            "query": "Humanizer/InflectorExtensions/Pascalize(string) : string",
+            "limit": 200
+          },
+          "assert": "crossFile"
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "hover",
+            "path": "src/Humanizer/InflectorExtensions.cs",
+            "line": 0,
+            "column": 0
+          },
+          "assert": "protocol"
+        },
+        {
+          "tool": "lsp_diagnostics",
+          "arguments": {
+            "paths": [
+              "src/Humanizer/InflectorExtensions.cs"
+            ]
+          },
+          "assert": "checked"
+        }
+      ],
+      "coverage": "cross-file references and document diagnostics"
+    },
+    {
+      "server": "clangd",
+      "repository": "libuv/libuv",
+      "revision": "5152db2cbfeb5582e9c27c5ea1dba2cd9e10759b",
+      "extensions": [
+        ".c",
+        ".cpp",
+        ".m"
+      ],
+      "path": "src/unix/core.c",
+      "runtime": "clang",
+      "minimumSourceFiles": 25,
+      "calls": [
+        {
+          "tool": "lsp_status",
+          "arguments": {
+            "operation": "retry",
+            "server": "clangd"
+          }
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "symbols",
+            "path": "src/unix/core.c",
+            "limit": 50
+          },
+          "assert": "locations"
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "references",
+            "path": "src/unix/core.c",
+            "query": "uv_run",
+            "limit": 200
+          },
+          "assert": "crossFile"
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "hover",
+            "path": "src/unix/core.c",
+            "line": 0,
+            "column": 0
+          },
+          "assert": "protocol"
+        },
+        {
+          "tool": "lsp_diagnostics",
+          "arguments": {
+            "paths": [
+              "src/unix/core.c"
+            ]
+          },
+          "assert": "checked"
+        }
+      ],
+      "prepare": [
+        [
+          "uvx",
+          "cmake",
+          "-S",
+          ".",
+          "-B",
+          "build",
+          "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"
+        ]
+      ],
+      "coverage": "cross-file references and document diagnostics"
+    },
+    {
+      "server": "java",
+      "repository": "google/guava",
+      "revision": "dea4984457cdce41842d3bec8d04fb469e776981",
+      "extensions": [
+        ".java"
+      ],
+      "path": "guava/src/com/google/common/collect/ImmutableList.java",
+      "runtime": "java",
+      "minimumSourceFiles": 25,
+      "calls": [
+        {
+          "tool": "lsp_status",
+          "arguments": {
+            "operation": "retry",
+            "server": "java"
+          }
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "symbols",
+            "path": "guava/src/com/google/common/collect/ImmutableList.java",
+            "limit": 50
+          },
+          "assert": "locations"
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "references",
+            "path": "guava/src/com/google/common/collect/ImmutableList.java",
+            "query": "ImmutableList<E>",
+            "limit": 200
+          },
+          "assert": "crossFile"
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "hover",
+            "path": "guava/src/com/google/common/collect/ImmutableList.java",
+            "line": 0,
+            "column": 0
+          },
+          "assert": "protocol"
+        },
+        {
+          "tool": "lsp_diagnostics",
+          "arguments": {
+            "paths": [
+              "guava/src/com/google/common/collect/ImmutableList.java"
+            ]
+          },
+          "assert": "checked"
+        }
+      ],
+      "coverage": "cross-file references and document diagnostics"
+    },
+    {
+      "server": "kotlin",
+      "repository": "detekt/detekt",
+      "revision": "046263730eb5368cb344489ac36543294e8e87bd",
+      "extensions": [
+        ".kt"
+      ],
+      "path": "detekt-api/src/main/kotlin/io/gitlab/arturbosch/detekt/api/Rule.kt",
+      "runtime": "java",
+      "minimumSourceFiles": 25,
+      "calls": [
+        {
+          "tool": "lsp_status",
+          "arguments": {
+            "operation": "retry",
+            "server": "kotlin"
+          }
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "symbols",
+            "path": "detekt-api/src/main/kotlin/io/gitlab/arturbosch/detekt/api/Rule.kt",
+            "limit": 50
+          },
+          "assert": "locations"
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "references",
+            "path": "detekt-api/src/main/kotlin/io/gitlab/arturbosch/detekt/api/Rule.kt",
+            "query": "Rule",
+            "limit": 200
+          },
+          "assert": "crossFile"
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "hover",
+            "path": "detekt-api/src/main/kotlin/io/gitlab/arturbosch/detekt/api/Rule.kt",
+            "line": 0,
+            "column": 0
+          },
+          "assert": "protocol"
+        },
+        {
+          "tool": "lsp_diagnostics",
+          "arguments": {
+            "paths": [
+              "detekt-api/src/main/kotlin/io/gitlab/arturbosch/detekt/api/Rule.kt"
+            ]
+          },
+          "assert": "checked"
+        }
+      ],
+      "coverage": "cross-file references and document diagnostics"
+    },
+    {
+      "server": "intellij",
+      "repository": "detekt/detekt",
+      "revision": "046263730eb5368cb344489ac36543294e8e87bd",
+      "extensions": [
+        ".kt"
+      ],
+      "path": "detekt-api/src/main/kotlin/io/gitlab/arturbosch/detekt/api/Rule.kt",
+      "runtime": "java",
+      "minimumSourceFiles": 25,
+      "calls": [
+        {
+          "tool": "lsp_status",
+          "arguments": {
+            "operation": "retry",
+            "server": "intellij"
+          }
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "symbols",
+            "path": "detekt-api/src/main/kotlin/io/gitlab/arturbosch/detekt/api/Rule.kt",
+            "limit": 50
+          },
+          "assert": "locations"
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "references",
+            "path": "detekt-api/src/main/kotlin/io/gitlab/arturbosch/detekt/api/Rule.kt",
+            "query": "Rule",
+            "limit": 200
+          },
+          "assert": "crossFile"
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "hover",
+            "path": "detekt-api/src/main/kotlin/io/gitlab/arturbosch/detekt/api/Rule.kt",
+            "line": 0,
+            "column": 0
+          },
+          "assert": "protocol"
+        },
+        {
+          "tool": "lsp_diagnostics",
+          "arguments": {
+            "paths": [
+              "detekt-api/src/main/kotlin/io/gitlab/arturbosch/detekt/api/Rule.kt"
+            ]
+          },
+          "assert": "checked"
+        }
+      ],
+      "configuration": {
+        "useForJavaAndKotlin": true
+      },
+      "coverage": "cross-file references and document diagnostics"
+    },
+    {
+      "server": "go",
+      "repository": "spf13/cobra",
+      "revision": "adbc8813901bba65827259daa8e22ff94ec1f30e",
+      "extensions": [
+        ".go"
+      ],
+      "path": "command.go",
+      "runtime": "go",
+      "minimumSourceFiles": 25,
+      "calls": [
+        {
+          "tool": "lsp_status",
+          "arguments": {
+            "operation": "retry",
+            "server": "go"
+          }
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "symbols",
+            "path": "command.go",
+            "limit": 50
+          },
+          "assert": "locations"
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "references",
+            "path": "command.go",
+            "query": "Command",
+            "limit": 200
+          },
+          "assert": "crossFile"
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "hover",
+            "path": "command.go",
+            "line": 0,
+            "column": 0
+          },
+          "assert": "protocol"
+        },
+        {
+          "tool": "lsp_diagnostics",
+          "arguments": {
+            "paths": [
+              "command.go"
+            ]
+          },
+          "assert": "checked"
+        }
+      ],
+      "coverage": "cross-file references and document diagnostics"
+    },
+    {
+      "server": "rust",
+      "repository": "BurntSushi/ripgrep",
+      "revision": "3fce3b5bb0236da2df6d99672afb8a719642eca7",
+      "extensions": [
+        ".rs"
+      ],
+      "path": "crates/core/main.rs",
+      "runtime": "cargo",
+      "minimumSourceFiles": 25,
+      "calls": [
+        {
+          "tool": "lsp_status",
+          "arguments": {
+            "operation": "retry",
+            "server": "rust"
+          }
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "symbols",
+            "path": "crates/core/main.rs",
+            "limit": 50
+          },
+          "assert": "locations"
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "references",
+            "path": "crates/core/flags/lowargs.rs",
+            "limit": 200
+          },
+          "anchor": {
+            "text": "pub(crate) struct LowArgs",
+            "identifier": "LowArgs"
+          },
+          "assert": "crossFile"
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "hover",
+            "path": "crates/core/main.rs",
+            "line": 0,
+            "column": 0
+          },
+          "assert": "protocol"
+        },
+        {
+          "tool": "lsp_diagnostics",
+          "arguments": {
+            "paths": [
+              "crates/core/main.rs"
+            ]
+          },
+          "assert": "checked"
+        }
+      ],
+      "coverage": "cross-file references and document diagnostics"
+    },
+    {
+      "server": "ruby",
+      "repository": "rubocop/rubocop",
+      "revision": "b0c7560a95b3d64d29fefcaa6d5de9058c491fd1",
+      "extensions": [
+        ".rb"
+      ],
+      "path": "lib/rubocop/cop/base.rb",
+      "runtime": "ruby",
+      "minimumSourceFiles": 25,
+      "calls": [
+        {
+          "tool": "lsp_status",
+          "arguments": {
+            "operation": "retry",
+            "server": "ruby"
+          }
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "symbols",
+            "path": "lib/rubocop/cop/base.rb",
+            "limit": 50
+          },
+          "assert": "locations"
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "references",
+            "path": "lib/rubocop/cop/base.rb",
+            "limit": 200
+          },
+          "anchor": {
+            "text": "class Base #",
+            "identifier": "Base"
+          },
+          "assert": "crossFile"
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "hover",
+            "path": "lib/rubocop/cop/base.rb",
+            "line": 0,
+            "column": 0
+          },
+          "assert": "protocol"
+        },
+        {
+          "tool": "lsp_diagnostics",
+          "arguments": {
+            "paths": [
+              "lib/rubocop/cop/base.rb"
+            ]
+          },
+          "assert": "checked"
+        }
+      ],
+      "coverage": "cross-file references and document diagnostics",
+      "prepare": [
+        [
+          "bundle",
+          "install",
+          "--jobs",
+          "4"
+        ]
+      ]
+    },
+    {
+      "server": "scala",
+      "repository": "scalameta/scalameta",
+      "revision": "156ff187370e39f6b181a9fc3c2ab00782cf0394",
+      "extensions": [
+        ".scala"
+      ],
+      "path": "scalameta/trees2/shared/src/main/scala/scala/meta/Trees.scala",
+      "runtime": "cs",
+      "minimumSourceFiles": 25,
+      "calls": [
+        {
+          "tool": "lsp_status",
+          "arguments": {
+            "operation": "retry",
+            "server": "scala"
+          }
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "symbols",
+            "path": "scalameta/trees2/shared/src/main/scala/scala/meta/Trees.scala",
+            "limit": 50
+          },
+          "assert": "locations"
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "references",
+            "path": "scalameta/trees2/shared/src/main/scala/scala/meta/Trees.scala",
+            "limit": 200
+          },
+          "anchor": {
+            "text": "trait Tree extends",
+            "identifier": "Tree"
+          },
+          "assert": "crossFile"
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "hover",
+            "path": "scalameta/trees2/shared/src/main/scala/scala/meta/Trees.scala",
+            "line": 0,
+            "column": 0
+          },
+          "assert": "protocol"
+        },
+        {
+          "tool": "lsp_diagnostics",
+          "arguments": {
+            "paths": [
+              "scalameta/trees2/shared/src/main/scala/scala/meta/Trees.scala"
+            ]
+          },
+          "assert": "checked"
+        }
+      ],
+      "coverage": "cross-file references and document diagnostics",
+      "diagnosticProbe": "\nobject SharpRailInvalidProbe { val broken = }\n"
+    },
+    {
+      "server": "php",
+      "repository": "laravel/framework",
+      "revision": "86864f3dcf81ae4a4ad6abfe2fd4b6174fc8298f",
+      "extensions": [
+        ".php"
+      ],
+      "path": "src/Illuminate/Container/Container.php",
+      "runtime": "node",
+      "minimumSourceFiles": 25,
+      "calls": [
+        {
+          "tool": "lsp_status",
+          "arguments": {
+            "operation": "retry",
+            "server": "php"
+          }
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "symbols",
+            "path": "src/Illuminate/Container/Container.php",
+            "limit": 50
+          },
+          "assert": "locations"
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "references",
+            "path": "src/Illuminate/Container/Container.php",
+            "query": "Container",
+            "limit": 200
+          },
+          "assert": "crossFile"
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "hover",
+            "path": "src/Illuminate/Container/Container.php",
+            "line": 0,
+            "column": 0
+          },
+          "assert": "protocol"
+        },
+        {
+          "tool": "lsp_diagnostics",
+          "arguments": {
+            "paths": [
+              "src/Illuminate/Container/Container.php"
+            ]
+          },
+          "assert": "checked"
+        }
+      ],
+      "coverage": "cross-file references and document diagnostics"
+    },
+    {
+      "server": "r",
+      "repository": "tidyverse/dplyr",
+      "revision": "d5e94e7fa8fd4a5f79c1a707d1842216bb4c691f",
+      "extensions": [
+        ".R"
+      ],
+      "path": "R/mutate.R",
+      "runtime": "Rscript",
+      "minimumSourceFiles": 25,
+      "calls": [
+        {
+          "tool": "lsp_status",
+          "arguments": {
+            "operation": "retry",
+            "server": "r"
+          }
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "symbols",
+            "path": "R/mutate.R",
+            "limit": 50
+          },
+          "assert": "locations"
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "hover",
+            "path": "R/mutate.R",
+            "line": 0,
+            "column": 0
+          },
+          "assert": "protocol"
+        },
+        {
+          "tool": "lsp_diagnostics",
+          "arguments": {
+            "paths": [
+              "R/mutate.R"
+            ]
+          },
+          "assert": "checked"
+        }
+      ],
+      "coverage": "document symbols and diagnostics; project-wide references not asserted"
+    },
+    {
+      "server": "powershell",
+      "repository": "PowerShell/PowerShellGet",
+      "revision": "a2dac8e74603f7c9eec4a54c5e23459531751b0d",
+      "extensions": [
+        ".ps1",
+        ".psm1"
+      ],
+      "path": "src/PowerShellGet.psm1",
+      "runtime": "pwsh",
+      "minimumSourceFiles": 25,
+      "calls": [
+        {
+          "tool": "lsp_status",
+          "arguments": {
+            "operation": "retry",
+            "server": "powershell"
+          }
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "symbols",
+            "path": "src/PowerShellGet.psm1",
+            "limit": 50
+          },
+          "assert": "locations"
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "hover",
+            "path": "src/PowerShellGet.psm1",
+            "line": 0,
+            "column": 0
+          },
+          "assert": "protocol"
+        },
+        {
+          "tool": "lsp_diagnostics",
+          "arguments": {
+            "paths": [
+              "src/PowerShellGet.psm1"
+            ]
+          },
+          "assert": "checked"
+        }
+      ],
+      "coverage": "document symbols and diagnostics; project-wide references not asserted",
+      "diagnosticProbe": "\nfunction SharpRailInvalidProbe {\n"
+    },
+    {
+      "server": "shell",
+      "repository": "git/git",
+      "revision": "c44beea485f0f2feaf460e2ac87fdd5608d63cf0",
+      "extensions": [
+        ".sh"
+      ],
+      "path": "t/test-lib.sh",
+      "runtime": "node",
+      "minimumSourceFiles": 25,
+      "calls": [
+        {
+          "tool": "lsp_status",
+          "arguments": {
+            "operation": "retry",
+            "server": "shell"
+          }
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "symbols",
+            "path": "t/test-lib.sh",
+            "limit": 50
+          },
+          "assert": "locations"
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "hover",
+            "path": "t/test-lib.sh",
+            "line": 0,
+            "column": 0
+          },
+          "assert": "protocol"
+        },
+        {
+          "tool": "lsp_diagnostics",
+          "arguments": {
+            "paths": [
+              "t/test-lib.sh"
+            ]
+          },
+          "assert": "checked"
+        }
+      ],
+      "coverage": "document symbols and diagnostics; project-wide references not asserted"
+    },
+    {
+      "server": "css",
+      "repository": "twbs/bootstrap",
+      "revision": "cc127d888efbca82ec829cbb0733d8908f00f8c8",
+      "extensions": [
+        ".scss",
+        ".css"
+      ],
+      "path": "site/src/scss/_variables.scss",
+      "runtime": "node",
+      "minimumSourceFiles": 25,
+      "calls": [
+        {
+          "tool": "lsp_status",
+          "arguments": {
+            "operation": "retry",
+            "server": "css"
+          }
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "symbols",
+            "path": "site/src/scss/_variables.scss",
+            "limit": 50
+          },
+          "assert": "locations"
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "hover",
+            "path": "site/src/scss/_variables.scss",
+            "line": 0,
+            "column": 0
+          },
+          "assert": "protocol"
+        },
+        {
+          "tool": "lsp_diagnostics",
+          "arguments": {
+            "paths": [
+              "site/src/scss/_variables.scss"
+            ]
+          },
+          "assert": "checked"
+        }
+      ],
+      "coverage": "document symbols and diagnostics; project-wide references not asserted"
+    },
+    {
+      "server": "swift",
+      "repository": "apple/swift-nio",
+      "revision": "fcc5b9c153796efebae619a9bd5b3905d8841f17",
+      "extensions": [
+        ".swift"
+      ],
+      "path": "Sources/NIOCore/Channel.swift",
+      "runtime": "swift",
+      "minimumSourceFiles": 25,
+      "calls": [
+        {
+          "tool": "lsp_status",
+          "arguments": {
+            "operation": "retry",
+            "server": "swift"
+          }
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "symbols",
+            "path": "Sources/NIOCore/Channel.swift",
+            "limit": 50
+          },
+          "assert": "locations"
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "references",
+            "path": "Sources/NIOCore/Channel.swift",
+            "limit": 200
+          },
+          "assert": "crossFile",
+          "anchor": {
+            "text": "public protocol Channel:",
+            "identifier": "Channel"
+          }
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "hover",
+            "path": "Sources/NIOCore/Channel.swift",
+            "line": 0,
+            "column": 0
+          },
+          "assert": "protocol"
+        },
+        {
+          "tool": "lsp_diagnostics",
+          "arguments": {
+            "paths": [
+              "Sources/NIOCore/Channel.swift"
+            ]
+          },
+          "assert": "checked"
+        }
+      ],
+      "prepare": [
+        [
+          "swift",
+          "build",
+          "--disable-dependency-cache"
+        ]
+      ],
+      "coverage": "cross-file references and document diagnostics"
+    },
+    {
+      "server": "dart",
+      "repository": "dart-lang/http",
+      "revision": "6e91ce3e73ab079114de3684367318287b08d893",
+      "extensions": [
+        ".dart"
+      ],
+      "path": "pkgs/http/lib/src/client.dart",
+      "runtime": "dart",
+      "minimumSourceFiles": 25,
+      "calls": [
+        {
+          "tool": "lsp_status",
+          "arguments": {
+            "operation": "retry",
+            "server": "dart"
+          }
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "symbols",
+            "path": "pkgs/http/lib/src/client.dart",
+            "limit": 50
+          },
+          "assert": "locations"
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "references",
+            "path": "pkgs/http/lib/src/client.dart",
+            "query": "Client",
+            "limit": 200
+          },
+          "assert": "crossFile"
+        },
+        {
+          "tool": "lsp_navigate",
+          "arguments": {
+            "operation": "hover",
+            "path": "pkgs/http/lib/src/client.dart",
+            "line": 0,
+            "column": 0
+          },
+          "assert": "protocol"
+        },
+        {
+          "tool": "lsp_diagnostics",
+          "arguments": {
+            "paths": [
+              "pkgs/http/lib/src/client.dart"
+            ]
+          },
+          "assert": "checked"
+        }
+      ],
+      "prepare": [
+        {
+          "cwd": "pkgs/http",
+          "command": [
+            "dart",
+            "pub",
+            "get"
+          ]
+        }
+      ],
+      "coverage": "cross-file references and document diagnostics",
+      "diagnosticProbe": "\nvoid sharpRailInvalidProbe( {\n"
+    }
+  ]
+}

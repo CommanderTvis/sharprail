@@ -187,6 +187,7 @@ public sealed partial class App : Application
                 if (runtime is not null) await runtime.DisposeAsync();
                 if (loopback is not null) await loopback.DisposeAsync();
                 if (localTerminals is not null) await localTerminals.DisposeAsync();
+                if (local is not null) await local.StopLanguagesAsync();
             }).GetAwaiter().GetResult();
         };
     }

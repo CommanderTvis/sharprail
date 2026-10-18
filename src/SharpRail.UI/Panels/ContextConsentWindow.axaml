@@ -1,0 +1,28 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:kit="using:SharpRail.Plugins.UI.Kit"
+        x:Class="SharpRail.UI.Panels.ContextConsentWindow"
+        Width="760" Height="680" MinWidth="480" MinHeight="440"
+        WindowStartupLocation="CenterOwner" WindowDecorations="None" ShowInTaskbar="False"
+        Background="{x:Static kit:Ui.Elevated}" Foreground="{x:Static kit:Ui.TextBrush}"
+        FontFamily="{x:Static kit:Ui.InterfaceFont}" FontSize="14">
+  <Border Padding="24" BorderThickness="1" BorderBrush="{x:Static kit:Ui.BorderBrush}">
+    <Grid RowDefinitions="Auto,Auto,Auto,*,Auto,Auto,Auto">
+      <TextBlock x:Name="ConsentHeading" Text="Air Context · Review before download" FontSize="18" FontWeight="SemiBold" Margin="0,0,0,8" />
+      <TextBlock Grid.Row="1" x:Name="ConsentIdentity" Text="Loading current JetBrains terms. No CLI is being downloaded…" TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" Margin="0,0,0,8" />
+      <TextBlock Grid.Row="2" Text="Downloading the CLI accepts JetBrains’ EAP agreement and applicable AI terms. Context indexing sends source chunks to JetBrains’ cloud. This action only downloads the CLI; it does not start it or enable indexing."
+                 TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" Margin="0,0,0,16" />
+      <TextBox Grid.Row="3" x:Name="ConsentText" Foreground="{x:Static kit:Ui.TextBrush}" IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
+               ScrollViewer.VerticalScrollBarVisibility="Auto" ScrollViewer.HorizontalScrollBarVisibility="Disabled" AutomationProperties.Name="Air Context and AI agreements" />
+      <CheckBox Grid.Row="4" x:Name="ConsentCheck" IsChecked="False" IsEnabled="False" Margin="0,16,0,8">
+        <TextBlock Text="I have read and accept the Context CLI EAP agreement and the AI terms applicable to me, for the artifact shown above." TextWrapping="Wrap" />
+      </CheckBox>
+      <TextBlock Grid.Row="5" x:Name="ConsentStatus" TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" Margin="0,0,0,8" />
+      <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+        <Button x:Name="ConsentReload" Content="Reload terms" />
+        <Button x:Name="ConsentDownload" Content="Accept and download" IsEnabled="False" />
+        <Button x:Name="ConsentClose" Content="Cancel" />
+      </StackPanel>
+    </Grid>
+  </Border>
+</Window>

@@ -136,12 +136,15 @@ internal sealed class DrawnTreeLabel : Decorator
         base.OnDetachedFromVisualTree(e);
     }
 
+    private double IconWidth => Math.Max(14, icon?.DesiredSize.Width ?? 14);
+    private double TextOffset => 28 + IconWidth;
+
     protected override Size MeasureOverride(Size availableSize)
     {
-        icon?.Measure(new Size(14, 14));
-        var width = tree.SpecColors ? Math.Max(1, availableSize.Width - Entry.Depth * 12 - 42) : double.PositiveInfinity;
+        icon?.Measure(new Size(double.PositiveInfinity, Height));
+        var width = tree.SpecColors ? Math.Max(1, availableSize.Width - Entry.Depth * 12 - TextOffset) : double.PositiveInfinity;
         if (title is not null && textWidth == width && (role is not null) == RoleVisible)
-            return new Size(Entry.Depth * 12 + 42 + title.Width + (role is null ? 0 : role.Width + 8), Height);
+            return new Size(Entry.Depth * 12 + TextOffset + title.Width + (role is null ? 0 : role.Width + 8), Height);
         title?.Dispose(); role?.Dispose();
         var face = new Typeface(Ui.InterfaceFont, Entry.Italic ? FontStyle.Italic : FontStyle.Normal, Ui.InterfaceWeight);
         role = RoleVisible
@@ -150,12 +153,12 @@ internal sealed class DrawnTreeLabel : Decorator
         title = new TextLayout(Entry.Text, face, Ui.FontSize,
             Entry.Muted ? Ui.Hint : tree.SpecColors && !selected ? Ui.Muted : Ui.TextBrush,
             textTrimming: TextTrimming.CharacterEllipsis, maxWidth: Math.Max(1, width - (role is null ? 0 : role.Width + 8)), maxLines: 1);
-        return new Size(Entry.Depth * 12 + 42 + title.Width + (role is null ? 0 : role.Width + 8), Height);
+        return new Size(Entry.Depth * 12 + TextOffset + title.Width + (role is null ? 0 : role.Width + 8), Height);
     }
 
     protected override Size ArrangeOverride(Size finalSize)
     {
-        icon?.Arrange(new Rect(Entry.Depth * 12 + 24, (finalSize.Height - 14) / 2, 14, 14));
+        if (icon is not null) icon.Arrange(new Rect(Entry.Depth * 12 + 24, (finalSize.Height - icon.DesiredSize.Height) / 2, IconWidth, icon.DesiredSize.Height));
         return finalSize;
     }
 
@@ -186,7 +189,7 @@ internal sealed class DrawnTreeLabel : Decorator
                 context.DrawLine(pen, new(x + 9, 12), new(x + 6, 15));
             }
         }
-        title.Draw(context, new Point(x + 42, (Bounds.Height - title.Height) / 2));
-        role?.Draw(context, new Point(Math.Max(x + 42 + title.Width + 8, Bounds.Width - role.Width), (Bounds.Height - role.Height) / 2));
+        title.Draw(context, new Point(x + TextOffset, (Bounds.Height - title.Height) / 2));
+        role?.Draw(context, new Point(Math.Max(x + TextOffset + title.Width + 8, Bounds.Width - role.Width), (Bounds.Height - role.Height) / 2));
     }
 }

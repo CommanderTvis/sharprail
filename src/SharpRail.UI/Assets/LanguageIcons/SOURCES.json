@@ -1,0 +1,51 @@
+[
+  {
+    "server": "python",
+    "file": "python-provider.png",
+    "source": "https://raw.githubusercontent.com/microsoft/pyright/a437ed124b03a62457632a4ed1ecefe43eb100bb/packages/vscode-pyright/images/pyright-icon.png",
+    "sha256": "385ab1e4e463635ef201739bdf1deb600fe6779110e9d716dca51de6ddc69468",
+    "license": "licenses/lsp-icon-python.txt"
+  },
+  {
+    "server": "clangd",
+    "file": "clangd-provider.svg",
+    "source": "https://raw.githubusercontent.com/clangd/clangd/d50e969811b0e511091b7f01b5e6d0d5c17a6044/logo/logo.svg",
+    "sha256": "7cdb3b5727bdf4988ba646bd9941a0425bb05141534357f07521d63ef03ef919",
+    "license": "licenses/lsp-icon-clangd.txt"
+  },
+  {
+    "server": "ruby",
+    "file": "ruby-provider.png",
+    "source": "https://raw.githubusercontent.com/Shopify/ruby-lsp/f16b5986c0d02c8d4e0a5e370079fd7f902d2a6d/vscode/icon.png",
+    "sha256": "5419977424572c2e2054c41804bd64d029371350a4b6a883b8c9111fd0af3a1e",
+    "license": "licenses/lsp-icon-ruby.txt"
+  },
+  {
+    "server": "scala",
+    "file": "scala-provider.png",
+    "source": "https://raw.githubusercontent.com/scalameta/metals-vscode/19c1a93b381b61e13a5d51e94ed05e9384893547/images/logo.png",
+    "sha256": "d641d2e08476cfa3039409e5bd2b1e7c29f592c2125d88dd5df8084662bd9ac8",
+    "license": "licenses/lsp-icon-scala.txt"
+  },
+  {
+    "server": "php",
+    "file": "php-provider.png",
+    "source": "https://raw.githubusercontent.com/bmewburn/vscode-intelephense/8935a6dba162b36ea22137baa14934544ea7cd43/images/elephpant.png",
+    "sha256": "cda2d99bd8afdeead09cb6fb8806f954304860e54f5b9057b4d2d811c3087833",
+    "license": "licenses/lsp-icon-php.txt"
+  },
+  {
+    "server": "shell",
+    "file": "shell-provider.png",
+    "source": "https://raw.githubusercontent.com/bash-lsp/bash-language-server/b5e8da98a4f3bff3f0dd939bf4a3430e8ac85ef3/vscode-client/assets/bash-logo.png",
+    "sha256": "aca04193ba0bcdfbf145bb0501a8142fb42ddbf0547978387e59872afd9e2936",
+    "license": "licenses/lsp-icon-shell.txt"
+  },
+  {
+    "server": "rust",
+    "file": "rust-provider.svg",
+    "source": "https://raw.githubusercontent.com/rust-lang/rust-analyzer/70e0c46be740a471bcc95f2be290f4bbfdcffd87/assets/logo-square.svg",
+    "sha256": "00a6824c792cdbfc5fb70af52dfa8992ea0224e8a4f2fed1df3ef3b317834fd8",
+    "license": "licenses/lsp-icon-rust-LICENSE-MIT.txt; licenses/lsp-icon-rust-LICENSE-APACHE.txt"
+  }
+]

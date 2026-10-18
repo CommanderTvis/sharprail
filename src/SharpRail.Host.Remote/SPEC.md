@@ -238,3 +238,47 @@ cancellation (including a callback that ignores cancellation), real authenticate
 wrong/missing origins, master-token compatibility, active-call revocation and restart expiry.
 Headless app checks additionally exercise the compiled consent dialog, Deny focus/Escape, browser
 cancellation, Settings revocation and dismissal when the listener stops.
+
+## Language queries
+
+The project RPC maps typed language queries to the host-owned service. Terminal-authenticated MCP
+also exposes navigation, diagnostics and status; workspace overrides are restricted to the terminal's
+Git project. Host shutdown ends language processes, while stopping an embedded listener leaves them alive.
+
+The terminal-authenticated MCP route exposes the three core LSP tools to both Codex and Claude tokens,
+independently of enabled SharpRail plugins. Claude CLI discovery uses its bundled plugin declaration.
+
+Language RPC carries explicit diagnostic scopes, file sets and per-file coverage. Agent MCP
+diagnostics defaults to a project source scan; `paths` selects edited files and `path` selects one.
+These scans use running servers only and never provision or restart them.
+
+Host settings broadcasts include LSP launcher choices; the language catalog is a workspace-free
+read for Settings and does not start or install a process.
+
+Language RPC maps paged navigation, hover and selected symbol bodies including source excerpts
+and truncation metadata. Terminal MCP exposes the same host operations in compact, bounded
+responses with explicit diagnostic coverage and continuation metadata.
+
+Language RPC and terminal-authenticated MCP expose workspace configuration read/save/restart,
+including initialization options, server settings and clangd include/compiler/database options.
+MCP configuration mutations remain scoped to the terminal's project workspaces. State RPC exposes
+persisted workspace configuration to connected clients.
+
+
+The authenticated project RPC carries user-interface IntelliJ terms review/acknowledgement separately from LSP MCP. Server-side identity checks and storage stay on the host; no agent acceptance tool is exported.
+
+The standalone host may explicitly enable `SHARPRAIL_HEADLESS_MCP=1` to expose
+POST `/mcp` with the production language tools and the configured root as default
+workspace, without a GUI, terminal or agent. It requires the host bearer token
+using constant-time digest comparison. This grants host-level workspace access;
+it is not a terminal-scoped credential. The route is absent by default and offers
+no license-acceptance operation. Malformed JSON receives a JSON-RPC parse error.
+
+
+Context consent is authenticated project RPC only, delegating review and explicit accept/download to Core. Terminal MCP exposes no acceptance operation; its credentials cannot implicitly acknowledge agreements. Downloads stay on the host.
+
+
+Language RPC maps detected project roots and provenance; lsp_status supports operation projects with bounded pagination. It starts no servers. Context consent RPC also supports local-only installation status and cannot infer user acceptance from an installed binary.
+
+
+Context RPC delegates typed workspace operations to Core. The terminal-authenticated namespace and explicit headless MCP route include context_search/status/index, bound to the calling workspace. They cannot accept terms, enable workspaces, sign in or select arbitrary native tools. Logs and outputs remain bounded; lifecycle processes belong to the host, not the listener.

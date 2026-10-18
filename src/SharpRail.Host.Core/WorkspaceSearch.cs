@@ -42,7 +42,7 @@ public sealed partial class ProjectServices
     }
 
     /// <summary>Tracked and untracked-but-not-ignored files; a folder without Git has nothing ignored.</summary>
-    private static async Task<IEnumerable<string>> SearchablePathsAsync(string currentRoot, CancellationToken cancellationToken)
+    internal static async Task<IEnumerable<string>> SearchablePathsAsync(string currentRoot, CancellationToken cancellationToken)
     {
         try
         {
