@@ -91,7 +91,7 @@ public static partial class Ui
         WarningWash.Color = Alpha(theme["warning"], 12);
         Danger.Color = theme["danger"];
         DangerWash.Color = Alpha(theme["danger"], 12);
-        PdfSelection.Color = Alpha(theme["selection"], 40);
+        PdfSelection.Color = Alpha(theme["accent"], 40);
         TextSelection.Color = theme["selection"];
         SelectionText = theme.Colors["selectionForeground"];
         EditorSelection = theme["editorSelection"];

@@ -43,7 +43,7 @@
     "WarningWash": { "role": "feedback-warning-subtle", "from": "warning", "alpha": "wash" },
     "Danger": { "role": "feedback-error", "from": "danger" },
     "DangerWash": { "role": "feedback-error-subtle", "from": "danger", "alpha": "wash" },
-    "PdfSelection": { "role": "pdf-selection-bg", "from": "selection", "alpha": "muted" },
+    "PdfSelection": { "role": "pdf-selection-bg", "from": "accent", "alpha": "muted" },
     "TextSelection": { "role": "selection-bg", "from": "selection" },
     "SelectionText": { "role": "selection-text", "from": "selectionForeground", "kind": "color" },
     "EditorSelection": { "role": "editor-selection-bg", "from": "editorSelection", "kind": "color" },

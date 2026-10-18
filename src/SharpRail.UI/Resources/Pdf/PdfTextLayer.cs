@@ -141,7 +141,7 @@ internal sealed class PdfTextLayer : Control
         var (start, end) = selection.Range(this);
         if (start < 0) return;
         var scale = Scale;
-        // The boxes cover the page's own glyphs, so the theme's selection is laid over them as a 40% wash.
+        // The boxes cover the page's own glyphs, so the accent is laid over them as a 40% wash (the theme's selection is too translucent on white paper).
         var wash = Ui.PdfSelection;
         for (var index = start; index <= end; index++)
         {
