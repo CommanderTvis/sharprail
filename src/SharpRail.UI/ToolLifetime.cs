@@ -51,7 +51,7 @@ public sealed partial class WorkbenchWindow
             }
         var pluginId = PluginIdentity.ParseToolId(toolId)!.Value.PluginId;
         var workspace = workspaceRoot;
-        var mount = registration is null ? DormantTool(toolId, pluginId) : Mount(pluginId, () => registration.Create(workspace));
+        var mount = registration is null ? DormantTool() : Mount(pluginId, () => registration.Create(workspace));
         cachedTools[key] = new(projectRoot, registration, mount);
         return mount;
     }

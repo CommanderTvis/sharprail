@@ -521,15 +521,15 @@ internal static class SpecDialectChecks
         void Enable(bool enabled) => _ = app.Workbench.State.ChangeAsync(HostStateChange.PluginEnabled(SpecDialectContract.Id, enabled));
         Enable(false);
         E2eWorkspace.Until(() => !app.Workbench.PluginRegistry.Active.Contains(SpecDialectContract.Id));
-        app.ShowTool("plugin:spec-dialect:specs");
-        E2eWorkspace.Until(() => app.Window.GetLogicalDescendants().OfType<StackPanel>().Any(panel => panel.Name == "PluginToolDormant" &&
-            panel.Children.OfType<TextBlock>().Any(text => text.Text == "Specs is off")));
+        E2eWorkspace.Until(() => app.Window.GetLogicalDescendants().OfType<Control>().All(control => control.Name is not ("Tab_plugin_spec-dialect_specs" or "PluginToolDormant")));
         E2eWorkspace.Until(() => !Link().IsEnabled);
 
         Enable(true);
+        E2eWorkspace.Until(() => app.Window.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "Tab_plugin_spec-dialect_specs"));
+        app.ShowTool("plugin:spec-dialect:specs");
         E2eWorkspace.Until(() => HasTree(app));
         E2eWorkspace.Until(() => Link().IsEnabled);
-        Console.WriteLine("PASS fork plugins/spec-dialect/hot-toggle.spec.ts: disabling turns the Specs tab into the dormant placeholder and its spec links off; re-enabling brings both back");
+        Console.WriteLine("PASS fork plugins/spec-dialect/hot-toggle.spec.ts: disabling hides the Specs tab and its spec links off; re-enabling brings both back");
     }
 
     private static void OffRailMovesOn(string root)
@@ -541,7 +541,8 @@ internal static class SpecDialectChecks
         using var app = new E2eWorkspace(root, openFiles: false, profileRoot: profile);
         var group = app.Window.Layout.State.Groups.Single(item => item.Tools.Any(tool => tool.Id == DockState.SpecsTool));
         E2eWorkspace.Until(() => app.Window.Layout.Selected(group.Id)?.Id == "files");
-        Require(app.Window.Layout.Tabs(group.Id).Any(tab => tab.Id == DockState.SpecsTool), "The dormant Specs tab keeps its slot.");
+        Require(app.Window.Layout.Tabs(group.Id).All(tab => tab.Id != DockState.SpecsTool) && app.Window.Layout.State.Groups.Single(item => item.Id == group.Id).Tools.Any(tool => tool.Id == DockState.SpecsTool),
+            "The disabled Specs tab is hidden but keeps its slot.");
         Console.WriteLine("PASS fork shell railDefault: a rail seeded on a plugin tool that is off opens on the next tab");
     }
 }

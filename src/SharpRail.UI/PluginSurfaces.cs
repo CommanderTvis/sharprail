@@ -86,7 +86,7 @@ public sealed partial class WorkbenchWindow
             }
         }
         else KeepingFocus(() => Layout.SetExtraTools([.. Plugins.ToolCatalog
-            .Select(tool => new DockToolInfo(tool.Id, tool.Label, PluginIcons.Glyph(tool.Icon), tool.DefaultSide == PluginToolSide.Left ? "left" : "right", tool.RequiresGit))]));
+            .Select(tool => new DockToolInfo(tool.Id, tool.Label, PluginIcons.Glyph(tool.Icon), tool.DefaultSide == PluginToolSide.Left ? "left" : "right", tool.RequiresGit, tool.Dormant))]));
         InvalidatePluginTools();
     }
 
@@ -117,11 +117,12 @@ public sealed partial class WorkbenchWindow
         var seeded = new List<(string Group, string Tool, SideToolRegistration? Live)>();
         foreach (var group in Layout.State.Groups.Where(group => group.Region != "center"))
         {
-            if (Layout.Selected(group.Id) is not { IsTool: true } selected || PluginIdentity.ParseToolId(selected.Id) is not { } parsed) continue;
-            var live = LiveTool(selected.Id);
+            // The stored selection, not the shown one: a hidden (disabled) plugin tool is still what the rail was seeded with.
+            if (StoredTool(group.Id) is not { } selectedId || PluginIdentity.ParseToolId(selectedId) is not { } parsed) continue;
+            var live = LiveTool(selectedId);
             // Until the roster arrives and an active plugin's UI half mounts, its answer is not known yet.
             if (live is null && workbench.Plugins is not null && (Plugins.Roster.Count == 0 || Plugins.Entry(parsed.PluginId)?.Status == PluginStatus.Active)) return;
-            seeded.Add((group.Id, selected.Id, live));
+            seeded.Add((group.Id, selectedId, live));
         }
         railAsking.Add(workspace);
         try
@@ -129,7 +130,7 @@ public sealed partial class WorkbenchWindow
             foreach (var (group, tool, live) in seeded)
             {
                 if (live is not null && await RailDefaultAsync(live, workspace)) continue;
-                if (workspace != workspaceRoot || atHome || Layout.State.Groups.All(item => item.Id != group) || Layout.Selected(group)?.Id != tool) continue;
+                if (workspace != workspaceRoot || atHome || Layout.State.Groups.All(item => item.Id != group) || StoredTool(group) != tool) continue;
                 if (Layout.Tabs(group).FirstOrDefault(tab => tab.Id != tool) is { } next) Layout.Reseat(group, next.Id);
             }
             if (workspace == workspaceRoot) railAnswered.Add(workspace);
@@ -137,6 +138,9 @@ public sealed partial class WorkbenchWindow
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
         finally { railAsking.Remove(workspace); }
     }
+
+    private string? StoredTool(string group) =>
+        (Layout.View.Selected.GetValueOrDefault(group) ?? Layout.Selected(group)?.Id) is { } id && DockState.IsToolId(id) ? id : null;
 
     private async Task<bool> RailDefaultAsync(SideToolRegistration registration, string workspace)
     {
@@ -149,23 +153,8 @@ public sealed partial class WorkbenchWindow
         }
     }
 
-    private Control DormantTool(string toolId, string pluginId)
-    {
-        var tool = Plugins.Tool(toolId);
-        var label = tool?.Label ?? Plugins.Label(pluginId);
-        var panel = new StackPanel { Name = "PluginToolDormant", Spacing = 12, Margin = new Thickness(16), HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-        var icon = PluginIcons.Resolve(tool?.Icon ?? Plugins.Entry(pluginId)?.Icon, Plugins.Entry(pluginId), Ui.Muted, 24);
-        icon.HorizontalAlignment = HorizontalAlignment.Center;
-        panel.Children.Add(icon);
-        var text = Ui.Text(label + " is off");
-        text.HorizontalAlignment = HorizontalAlignment.Center;
-        panel.Children.Add(text);
-        var open = Ui.Button("Open Settings › Plugins", () => ShowSettings("Plugins"));
-        open.Name = "PluginToolOpenSettings";
-        open.HorizontalAlignment = HorizontalAlignment.Center;
-        panel.Children.Add(open);
-        return panel;
-    }
+    // Only the gap before an active plugin's tool mounts: a disabled plugin's tool has no tab, so nothing is drawn for it.
+    private static Control DormantTool() => new Border { Name = "PluginToolDormant" };
 
     /// <summary>The host control one plugin contribution renders in; a throwing factory shows its failure instead of breaking the window.</summary>
     internal static Control Mount(string pluginId, Func<Control> create)

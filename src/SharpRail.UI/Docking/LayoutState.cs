@@ -3,7 +3,7 @@ using SharpRail.Plugins.Api;
 namespace SharpRail.UI.Docking;
 
 /// <summary>A side tool the layout can name, show and restore: one of core's, or one the workbench composes in.</summary>
-public sealed record DockToolInfo(string Id, string Title, string Icon, string Region, bool RequiresGit = false);
+public sealed record DockToolInfo(string Id, string Title, string Icon, string Region, bool RequiresGit = false, bool Hidden = false);
 
 public sealed record DockTab(string Id, string Title, string Kind, string Path = "", bool Preview = false, string Scope = "", string Comparison = "")
 {

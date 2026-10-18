@@ -1,4 +1,5 @@
 using SharpRail.Host.Abstractions;
+using SharpRail.Plugins.Api;
 
 namespace SharpRail.UI.Docking;
 
@@ -36,7 +37,12 @@ public sealed partial class LayoutSession
     /// <summary>Every tool this layout can name and restore: core's, then the extra ones the workbench composes in.</summary>
     public IReadOnlyList<DockToolInfo> Tools => [.. tools.Where(tool => IsToolAvailable(tool.Id))];
     private bool gitAvailable = true;
-    public bool IsToolAvailable(string id) => gitAvailable || tools.FirstOrDefault(tool => tool.Id == id)?.RequiresGit != true;
+    // A plugin's tool is shown only while its plugin offers it: a hidden or unknown one keeps its saved slot but has no tab, strip entry or drawer.
+    public bool IsToolAvailable(string id) => tools.FirstOrDefault(tool => tool.Id == id) is { } known
+        ? !known.Hidden && (gitAvailable || !known.RequiresGit)
+        : !catalogKnown || PluginIdentity.ParseToolId(id) is null;
+    // False until the workbench has composed any plugin tool, so a saved plugin tab is not dropped from the layout before the catalog arrives.
+    private bool catalogKnown;
 
     public void SetGitAvailable(bool available)
     {
@@ -52,6 +58,7 @@ public sealed partial class LayoutSession
     {
         if (tools.Skip(CoreTools.Count).SequenceEqual(extra)) return;
         tools = [.. CoreTools, .. extra];
+        catalogKnown |= extra.Count > 0;
         ToolsChanged?.Invoke();
         Changed?.Invoke();
     }

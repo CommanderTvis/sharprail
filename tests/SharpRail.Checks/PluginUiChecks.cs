@@ -359,11 +359,12 @@ internal static class PluginUiChecks
             "A refused row names the plugin's generation and the host's: " + Texts(refusedRow));
         settings.Close();
 
-        // A persisted plugin tool renders its dormant placeholder, with the manifest's label, until the plugin is on.
+        // A tool of a disabled plugin has no tab, strip entry or placeholder until the plugin is on.
         window.Layout.RestoreTool("plugin:fixture:board");
-        E2eWorkspace.Until(() => Has(window, "PluginToolDormant"));
-        var tab = Find<Button>(window, "Tab_plugin_fixture_board");
-        Require(Texts(Find<StackPanel>(window, "PluginToolDormant")).Contains("Fixture board is off", StringComparison.Ordinal), "The placeholder names the tool.");
+        Require(!window.Layout.IsToolAvailable("plugin:fixture:board") && window.Layout.Tool("plugin:fixture:board") is null &&
+            window.Layout.State.Groups.All(group => window.Layout.Tabs(group.Id).All(item => item.Id != "plugin:fixture:board")),
+            "A disabled plugin's tool is unavailable and listed in no group.");
+        Require(!Has(window, "Tab_plugin_fixture_board") && !Has(window, "PluginToolDormant") && !Has(window, "PluginToolOpenSettings"), "A disabled plugin's tool draws nothing.");
         var assemblies = AppDomain.CurrentDomain.GetAssemblies().Count(assembly => assembly.GetName().Name == "SharpRail.Plugins.Api");
 
         // Enabling from Settings › Plugins mounts the UI half read from disk through the host.
@@ -385,8 +386,9 @@ internal static class PluginUiChecks
         app.Click(Find<Button>(settings, "FixtureGreet"), freshGesture: false);
         E2eWorkspace.Until(() => Find<TextBlock>(settings, "FixtureGreeting").Text == "hey");
         settings.Close();
+        window.Layout.RestoreTool("plugin:fixture:board");
         E2eWorkspace.Until(() => Has(window, "FixtureBoard"));
-        Require(ReferenceEquals(Find<Button>(window, "Tab_plugin_fixture_board"), tab), "Turning live must keep the tool's tab instance.");
+        Require(Has(window, "Tab_plugin_fixture_board"), "Enabling the plugin brings its tool tab back in its saved place.");
         var fixtureAssembly = AppDomain.CurrentDomain.GetAssemblies().Single(assembly => assembly.GetName().Name == "SharpRail.PluginFixture.UI");
         Require(AssemblyLoadContext.GetLoadContext(fixtureAssembly) != AssemblyLoadContext.Default, "The external UI half loads into its own context.");
         Require(AppDomain.CurrentDomain.GetAssemblies().Count(assembly => assembly.GetName().Name == "SharpRail.Plugins.Api") == assemblies,
@@ -428,8 +430,9 @@ internal static class PluginUiChecks
             Gone(loader.Registry.WorkspaceActions) && Gone(loader.Registry.TerminalAccessories) && Gone(loader.Registry.FileIconSlots),
             "Disabling must drop every registration of the plugin.");
         E2eWorkspace.Until(() => !Has(window, "FixtureAccessory") && !Has(window, "FixtureViewer"));
-        window.Layout.Select(window.Layout.State.Groups.First(group => group.Tools.Any(item => item.Id == "plugin:fixture:board")).Id, "plugin:fixture:board");
-        E2eWorkspace.Until(() => Has(window, "PluginToolDormant"));
+        E2eWorkspace.Until(() => !Has(window, "Tab_plugin_fixture_board") && !Has(window, "FixtureBoard"));
+        Require(!Has(window, "PluginToolDormant") && window.Layout.State.Groups.Any(group => group.Tools.Any(item => item.Id == "plugin:fixture:board")),
+            "Disabling hides the tool without a placeholder and keeps its slot.");
         var disabled = false;
         try { Task.Run(() => app.Workbench.Plugins!.CallAsync(new("fixture", "echo", new { text = "hi" }, loader.ClientKey)).AsTask()).GetAwaiter().GetResult(); }
         catch (PluginCallException error) when (error.Error == PluginCallError.Disabled) { disabled = true; }

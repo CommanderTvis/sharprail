@@ -227,7 +227,7 @@ names and enum values, unknown members refused).
 | field | meaning |
 | --- | --- |
 | `id` | the namespace for every name above; for an external plugin it must equal its directory name |
-| `label` | shown in the roster, Settings › Plugins, and a dormant tool placeholder |
+| `label` | shown in the roster and Settings › Plugins |
 | `description` | optional one sentence, shown under the label in Settings |
 | `icon` | a Remix Icon name, or `asset:<path>` naming an SVG under `assets`; an unknown name falls back to a generic glyph, which keeps the icons-only invariant without admitting arbitrary drawing |
 | `version` | the plugin's own version, informational |
@@ -419,8 +419,8 @@ executable code would reload on every partial write.
 
 UI activation runs from the app's plugin runtime once the workbench has its host. Each plugin whose roster row
 is active and whose wire version matches is loaded, from the builtin array or through the host, and activated.
-Manifests from the roster are always known, so a persisted `plugin:<id>:<tool>` tab can render "*label* is off"
-with the correct label and icon before any assembly loads.
+Manifests from the roster are always known, so the tool catalog knows every plugin tool, active or not, and a disabled plugin's tool can be hidden
+without its saved slot being lost.
 
 ```mermaid
 flowchart TB
@@ -546,8 +546,9 @@ sequenceDiagram
 
 ### Open resources when a plugin leaves
 
-A side tool tab keeps its place in the layout and renders the dormant placeholder, so the frame is not
-rearranged by a toggle and the tab is live again when the plugin returns. A companion pane collapses. A file tab
+A side tool tab of a disabled plugin is hidden everywhere (strip entry, tab, drawer section, catalog menu) and no
+placeholder is drawn. It keeps its saved place in the layout, so the frame is not rearranged by a toggle and the tab
+returns in that place when the plugin is enabled again. A companion pane collapses. A file tab
 whose viewer has gone shows a placeholder offering to open the file as text, because a viewer with a read
 strategy of none never had its content read. A request already in flight to a departing plugin fails with the
 disabled error, which the runtime treats as expected during teardown rather than surfacing it as a failure.
@@ -739,7 +740,7 @@ The fork's chat parts are not ported: chat companion hosts, `openChat`, tool ren
 Some contributions are excluded. There is no state-slice contribution, since a plugin owns its own state.
 There are no plugin centre-tab kinds. There are no layout-mode, drop-target, context-menu, or group-metadata
 contributions, because layout modes stay in the app. Viewer and decoration ordering is registration order,
-first non-null wins. A dormant plugin's tool tab keeps its slot. No layout-arrangement verb is offered at all
+first non-null wins. A disabled plugin's tool tab is hidden but keeps its slot. No layout-arrangement verb is offered at all
 (architecture Decision 5). W3 is a read projection rather than the app's state: no raw file-change map, which W14
 covers, and no actions bag.
 
@@ -806,7 +807,7 @@ Client-local preferences live in the profile under an endpoint-qualified key. Co
 per-window view state (architecture Decision 9). Nothing plugin-local crosses the wire.
 
 Persisted layout tolerates unknown values. Tool-id validation accepts the `plugin:` pattern, and a tab naming a
-tool from a plugin the user has since removed keeps its slot as a dormant placeholder rather than invalidating
+tool from a plugin the user has since removed keeps its slot, hidden, rather than invalidating
 the layout.
 
 ## Out of scope
