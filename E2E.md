@@ -1,6 +1,8 @@
 # Upstream E2E translation
 
-Authoritative source: [JetBrains/thinkrail:main — e2e](https://github.com/JetBrains/thinkrail/tree/main/e2e).
+Authoritative source on `main`: the e2e folder of [CommanderTvis/thinkrail:claude-code-integration-plugin-api](https://github.com/CommanderTvis/thinkrail/tree/claude-code-integration-plugin-api),
+which is JetBrains plus the fork (`UPSTREAM.md` records the synced commits); the `upstream` branch translates
+[JetBrains/thinkrail:main — e2e](https://github.com/JetBrains/thinkrail/tree/main/e2e) alone.
 
 Tests drive real Avalonia pointer/keyboard input and host calls in a headless window.
 Each case gets an isolated repository fixture and profile. Native macOS checks remain
@@ -89,7 +91,7 @@ Existing host/layout checks provide additional coverage but are not counted as t
 | `layout.spec.ts` | applying the Review preset preserves resources and installs its vertical center topology | Ported |
 | `layout.spec.ts` | the local default preset drives an explicit frame reset | Ported |
 | `layout.spec.ts` | custom presets synchronize while defaults and group limits remain window-local | Ported (the peer is a second window of the app; save, rename, set default, limits and delete) |
-| `layout.spec.ts` | Layout settings controls keep their container-preset max-widths | Ported |
+| `layout.spec.ts` | Layout settings controls keep their container-preset max-widths | Ported; the case left upstream's suite by 2026-10-18 (the Settings redesign), so the translation is now additional coverage |
 | `layout.spec.ts` | an accepted side-group overage is grandfathered without allowing further growth | Ported |
 | `layout.spec.ts` | a narrow viewport compresses locally without rewriting recursive topology | Ported |
 | `layout.spec.ts` | frontend windows keep chat and file placement independent | Ported for file placement and terminal selection across two windows of the app (a terminal opened in one arrives in the other unselected, since terminal membership is the host's catalog); the chat-tab and closed-chat history assertions are excluded (AI chat is a non-goal) |
@@ -335,3 +337,55 @@ No benchmarks or Git commits are run.
 SharpRail regressions for the Projects-only tab model cover empty workspace startup, removal of legacy
 bottom frames, explicit terminal splits, Projects tab menus and pane grouping. These replace retired
 bottom-zone and alternate tab-mode behavior; they are additional coverage rather than upstream translations.
+
+## Refresh, 2026-10-18
+
+Compared the previously synced JetBrains `f7cca7bfb` with the fork tip `30a81cab5` (JetBrains `3bee4f164` plus
+78 fork commits) in the read-only checkout; no fetch was run. Test titles were extracted from
+`e2e/**/*.spec.ts` at each ref and compared. In the JetBrains range 45 case titles were added and 10 removed
+or renamed; the fork's own suites did not change. Existing translations were checked against
+`tests/SharpRail.Checks` (`Gate.Case` names and `upstream <suite>` markers); `--list-cases` of the only
+published checks executable lacks recent cases, so the sources were used. No new scenario was ported: each
+relevant one needs behavior that is not implemented yet (the cases would only fail), and the toolchain was not
+built in this refresh.
+
+Relevant to SharpRail and not yet translated (backlog):
+
+| Suite | Upstream case | Status |
+| --- | --- | --- |
+| `close-quit-shortcuts.spec.ts` | native open-settings opens Settings, keeps it as is, and yields to other dialogs | Partial: `SettingsGitHubE2E` drives Cmd+, and `AppCommandChecks` a modal shielding Mod+W; an already-open Settings keeping its section and the tooltip chord are not asserted. |
+| `close-quit-shortcuts.spec.ts` | Windows Ctrl+, opens Settings, from a terminal too; Shift+Comma does not | Backlog (S02): blocked by the missing chord. `SettingsGitHubE2E` currently asserts that Ctrl+, stays unbound on every platform and must be inverted with the feature. |
+| `close-quit-shortcuts.spec.ts` | the browser binds no Settings shortcut | Backlog with S02 (browser acceptance, `tests/SharpRail.Browser.Checks`). |
+| `changes.spec.ts` | large diffs render virtualized and wide rewrites wait behind a notice | Backlog (U27): needs the changed-line guard decision. |
+| `changes.spec.ts` | a large source diff in the stacked review renders virtualized in a bounded viewport | Backlog (U27). |
+| `changes.spec.ts` | a small edit in a large stacked file stays virtualized when context expands | Backlog (U27). |
+| `layout.spec.ts` | resize hit areas leave the preceding panel's scrollbar edge alone | Backlog: Docking "Not yet ported". |
+| `tool-rails.spec.ts` | rail clusters include unplaced tools, boundary drops create panes, and tools never join a terminal pane (renamed from "rail clusters mirror the panes ...") | Backlog: Checks "Not yet ported" (tool-rail journeys). |
+| `settings-model-context.spec.ts` | custom budgets save on Enter, validate the 272K–1M range and keep unrelated config | Excluded: AI model context. The rename records the auto-save pattern SharpRail lacks (S01). |
+
+Added or renamed upstream cases that are excluded (AI, pi, MCP or chat; nothing to translate):
+`attention-background-work.live.spec.ts` (2), `chat-plan.spec.ts` (5 added, 2 removed: the TODO rail and the plan
+page), `extensions-settings.spec.ts` (2), `mcp-settings.spec.ts` (6), `mcp-tool-cards.spec.ts` (3),
+`new-workspace.spec.ts` (project trust for subagent definitions), `plan-ask.spec.ts` (1),
+`plan-review.spec.ts` (4 added, 4 renamed: Session became Now, Start review became Check it),
+`session-state.spec.ts` (4 added, 1 removed: unread results clear when seen), `skills-switches.spec.ts` (1),
+`visualize.live.spec.ts` (1), `welcome.spec.ts` (the trust notice) and the `tool-rails.spec.ts` plan rail entry
+cases (2). `review.spec.ts` gained three Pierre selection and virtualized-window cases (web diff engine
+mechanics); review authoring itself is not implemented (R01–R08), so they stay pending with it.
+
+Upstream suites that have no row in the inventory above. Most are chat or AI suites and are excluded as a group:
+the `chat-*`, `composer-*`, `history-*`, `message-actions`, `model-picker`, `templates-*`, `subagent*`,
+`skills-*`, `provider-*`, `00-jbcentral*`, `analytics-consent`, `ask-user-question*`, `agent-*`, `mcp-*`,
+`plan-*`, `session-*`, `todos-plan.live`, `tool-cards.live`, `turn-divider.live`, `workflows/*` and the other
+`*.live.spec.ts` suites, `shard-runner` and `perf/*` (Playwright harness). The rest, with what was found:
+
+| Suite | Status |
+| --- | --- |
+| `tool-rails.spec.ts`, `rail-layout-regressions.spec.ts`, `project-home-chrome.spec.ts` | Pending translations, recorded in the checks contract's "Not yet ported". `RailRetentionChecks` is separate regression coverage. |
+| `close-quit-shortcuts.spec.ts` | Partial: the quit and close cases are covered by `QuitConfirmationChecks` and `AppCommandChecks`, which are SharpRail checks rather than 1:1 translations; the Settings chord cases are listed above. |
+| `settled-shelf.spec.ts`, `topbar-location.spec.ts` | Covered in spirit by `SettledWorkspacesE2E` and `ShellChecks`/`TopbarChromeE2E`; no per-case mapping is recorded, so the cases are not claimed as ported. |
+| `changes-review.spec.ts`, `changes-review-drafts.spec.ts`, `changes-review-turn.spec.ts`, `review.spec.ts`, `phone-review.spec.ts` | Continuous Changes review is covered by `ChangesReviewChecks`; review authoring, drafts, turn scopes and phone review are not implemented (R01–R10). |
+| `typography.spec.ts` | Replaced by the `--design` guards; no 1:1 translation. |
+| `editor-save.spec.ts`, `new-project.spec.ts`, `terminal-links.spec.ts`, `tab-switch-latency.spec.ts`, `visualize.spec.ts` | Related checks exist (`FileSavingChecks`, `CreateProjectChecks`, the `terminal-links` case, `SwitchLatencyChecks`, `VisualizeE2E`); the first four are not mapped per case. |
+| `custom-icons`, `fonts`, `host`, `shell`, `feedback`, `privacy`, `error-boundary`, `port-block`, `terminal-images`, `project-layout`, `activity-breadcrumbs`, `tool-file-links` | No translation located. `activity-breadcrumbs` and `tool-file-links` are chat surfaces (excluded); `feedback` and `privacy` are product telemetry and feedback surfaces (excluded); `port-block` and `host` are the web server's own harness; the others are unassessed backlog. |
+| `plugins/codex/*`, `plugins/spec-dialect/*` | Plugin suites; see the plugin rows below and the plugin checks. |
