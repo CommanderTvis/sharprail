@@ -1,5 +1,7 @@
 using System.Text.RegularExpressions;
 
+using SharpRail.Plugins.Agent.UI;
+
 namespace SharpRail.Plugins.Codex.UI;
 
 /// <summary>How the terminal accessory drives Codex: what it types, how long it waits, and what the screen shows.</summary>
@@ -33,7 +35,14 @@ public static partial class CodexModelPicker
     private const int MovePolls = 8;
     private const int MaxSteps = 16;
     private const string AllModels = "All models";
-    private static readonly HashSet<string> Placeholders = ["Ask Codex to do anything", "Ask a follow-up question"];
+    // What Codex's empty composer shows (its example prompts and the follow-up line), drawn faint. A renderer that sees
+    // cell styling never reads them; the rest recognise them by wording, so an unlisted new example is the one gap.
+    private static readonly HashSet<string> Placeholders = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Ask Codex to do anything", "Ask a follow-up question", "Implement {feature}", "Find and fix a bug in @filename",
+        "Explain this codebase", "Summarize recent commits", "Use /skills to list available skills", "Write tests for @filename",
+        "Improve documentation in @filename", "Run /review on my current changes"
+    };
 
     /// <summary>Writes the command, waits for Codex's paste-burst handling to settle, then writes Enter separately.</summary>
     public static async Task SubmitAsync(ICodexTerminalIo io, string command)
@@ -44,20 +53,9 @@ public static partial class CodexModelPicker
         io.Write("\r");
     }
 
-    /// <summary>What the user has typed at Codex's composer; null when it is empty or showing its placeholder.</summary>
-    public static string? ComposerDraft(IReadOnlyList<string> lines)
-    {
-        for (var index = lines.Count - 1; index >= 0; index--)
-        {
-            var line = lines[index];
-            if (HighlightedRow().IsMatch(line)) return null;
-            var match = ComposerLine().Match(line);
-            if (!match.Success) continue;
-            var text = match.Groups[1].Value.Trim();
-            return text.Length > 0 && !Placeholders.Contains(text) ? text : null;
-        }
-        return null;
-    }
+    /// <summary>What the user has typed at Codex's composer; null when it is empty or showing a placeholder or hint.</summary>
+    public static string? ComposerDraft(IReadOnlyList<string> lines) =>
+        PromptComposer.Draft(lines, "›", HighlightedRow(), text => Placeholders.Contains(text.TrimEnd('…', '.')) || Placeholders.Contains(text));
 
     public static string? PickerHighlight(IReadOnlyList<string> lines)
     {
@@ -152,9 +150,6 @@ public static partial class CodexModelPicker
 
     [GeneratedRegex(@"^\s*›\s+\d+\.\s+(.+?)(?:\s\((?:current|default)\))?(?:\s{2,}.*)?\s*$")]
     private static partial Regex HighlightedRow();
-
-    [GeneratedRegex(@"^\s*›\s?(.*)$")]
-    private static partial Regex ComposerLine();
 
     [GeneratedRegex(@"\s+")]
     private static partial Regex Whitespace();

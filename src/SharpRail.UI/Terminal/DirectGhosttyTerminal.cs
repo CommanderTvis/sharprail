@@ -64,6 +64,9 @@ internal sealed class DirectGhosttyTerminal : Border, ITerminalBackend, ITermina
 
     public string ReadScreen() => fallback?.ReadScreen() ?? texture?.ReadScreen() ?? "";
 
+    // Only the Skia fallback sees cell styling; the native texture's text read is plain.
+    public string ReadScreen(bool omitFaint) => fallback?.ReadScreen(omitFaint) ?? texture?.ReadScreen() ?? "";
+
     private async Task StartAsync()
     {
         try { await StartTexture(); }

@@ -695,6 +695,20 @@ internal static class ClaudeCodeChecks
             "Press up to select a queued message, then Enter to edit it", "Press Enter to edit the selected message, or up again for history", "Message @reviewer…"
         })
             Require(ModelPicker.ComposerDraft(["❯ " + placeholder]) is null, $"Claude's empty-prompt placeholder is not a draft: {placeholder}");
+        foreach (var placeholder in new[]
+        {
+            "Press up to edit queued messages", "Press Esc twice to clear", "Press ↑ to edit queued messages", "Press ctrl+c again to exit", "Press up or down to browse history",
+            "? for shortcuts", "/ for commands", "Type a message…", "Type to queue a message", "Enter to send, Esc to cancel", "Shift+Tab to cycle modes"
+        })
+            Require(ModelPicker.ComposerDraft(["❯ " + placeholder]) is null, $"Hint wording of a known kind is not a draft: {placeholder}");
+        Require(ModelPicker.ComposerDraft(["❯\u00a0Press up to edit queued messages"]) is null, "A no-break space after the glyph does not turn a placeholder into a draft.");
+        Require(ModelPicker.ComposerDraft(["│ ❯ Press up to edit queued messages                  │"]) is null, "A placeholder inside the prompt box is not a draft.");
+        Require(ModelPicker.ComposerDraft(["│ ❯ fix the build        │"]) == "fix the build", "Typed text inside the prompt box is a draft without the box edge.");
+        Require(ModelPicker.ComposerDraft(["❯ Press the button to submit the form"]) == "Press the button to submit the form", "A draft that merely starts with Press is still a draft.");
+        Require(ModelPicker.ComposerDraft(["❯ Try this: rename foo"]) == "Try this: rename foo", "A draft that starts with Try but not a quoted suggestion is still a draft.");
+        Require(ModelPicker.ComposerDraft(["❯ first line of a long message", "  second line", "──────────"]) == "first line of a long message", "A multi-line draft is reported by its first line.");
+        Require(ModelPicker.ComposerDraft(["❯ ", "  Press up to edit queued messages"]) is null, "A hint on its own line below an empty prompt is not a draft.");
+        Require(ModelPicker.ComposerDraft(["❯ fix it", "❯ 1. Opus"]) is null, "An open picker is not a draft.");
         var offered = new[] { "Default (recommended)", "Opus 5.5", "Fable 5.1", "Sonnet 5.5", "Haiku 5.5", "Haiku 4.5", "Sonnet 5", "Opus 5", "Fable 5", "Opus 4.8", "Future 9", "Custom 10", "Custom 11", "Custom 12" };
         foreach (var wraps in new[] { false, true })
         {

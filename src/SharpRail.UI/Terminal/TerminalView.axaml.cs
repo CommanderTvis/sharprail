@@ -165,6 +165,8 @@ public sealed partial class TerminalView : UserControl, IDisposable
     /// <summary>The surface's screen and scrollback as text, oldest line first.</summary>
     public string ReadScreen() => Backend is { } backend && backend.Started.IsCompletedSuccessfully ? backend.ReadScreen() : "";
 
+    /// <summary>The screen as <see cref="ReadScreen()"/> with faint cells blanked where the renderer knows them; see <see cref="ITerminalBackend.ReadScreen(bool)"/>.</summary>
+    public string ReadScreen(bool omitFaint) => Backend is { } backend && backend.Started.IsCompletedSuccessfully ? backend.ReadScreen(omitFaint) : "";
     public void SetAgentNewline(bool enabled)
     {
         agentNewline = enabled;

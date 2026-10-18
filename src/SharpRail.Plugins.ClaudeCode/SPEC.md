@@ -164,6 +164,7 @@ New-launch presets retain the four model aliases opus/fable/sonnet/haiku. The ru
 menu instead reads that session's live `/model` picker on demand, including Default and versioned
 or custom choices beyond the visible rows. Discovery cancels the CLI picker without choosing or
 saving a default; selection matches the exact discovered label and uses the session-only switch.
+The empty-prompt guard goes through the kit's `PromptComposer`; only `Message @agent…` is Claude-specific.
 Every drive (discovery, model, effort) holds the user's keys out of the terminal from its first
 keystroke to its last, released on success, failure, cancellation and exit, so typing cannot interleave with it;
 keys typed during the hold are dropped. Unsent drafts and concurrent drives block discovery; unavailable or incomplete lists show an

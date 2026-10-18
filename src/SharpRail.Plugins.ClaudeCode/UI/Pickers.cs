@@ -1,5 +1,7 @@
 using System.Text.RegularExpressions;
 
+using SharpRail.Plugins.Agent.UI;
+
 namespace SharpRail.Plugins.ClaudeCode.UI;
 
 /// <summary>How a picker drive reaches the terminal: write keys, read the buffer's tail, wait.</summary>
@@ -38,29 +40,17 @@ internal static partial class ModelPicker
     [GeneratedRegex(@"^\s*❯\s*(\d+)\.\s+(.+?)(?:\s{2}.*)?$")]
     private static partial Regex HighlightedRow();
 
-    [GeneratedRegex(@"^\s*❯\s?(.*)$")]
-    private static partial Regex ComposerLine();
-
-    // What Claude Code draws in an empty composer: a suggestion, its queued-message hints, or the agent being messaged.
-    [GeneratedRegex("^(?:Try \"|Press (?:up|Enter) to (?:edit|select) |Message @.+…$)")]
+    // What only Claude Code draws in an empty prompt, beside the hints every agent shares (PromptComposer.IsHint): the
+    // agent being messaged. Hints are drawn faint, so a renderer that sees cell styling never gets this far.
+    [GeneratedRegex(@"^Message @.+(?:…|\.\.\.)$")]
     private static partial Regex ComposerPlaceholder();
 
     [GeneratedRegex(@"Switch model\?|Change effort level\?")]
     private static partial Regex ConfirmPrompt();
 
-    /// <summary>What the user has typed at Claude Code's prompt, read off its composer line; null when it is empty.</summary>
-    public static string? ComposerDraft(IReadOnlyList<string> lines)
-    {
-        for (var index = lines.Count - 1; index >= 0; index--)
-        {
-            var line = lines[index];
-            if (HighlightedRow().IsMatch(line)) return null;
-            if (ComposerLine().Match(line) is not { Success: true } match) continue;
-            var text = match.Groups[1].Value.Trim();
-            return text.Length > 0 && !ComposerPlaceholder().IsMatch(text) ? text : null;
-        }
-        return null;
-    }
+    /// <summary>What the user has typed at Claude Code's prompt, read off its composer line; null when it is empty or shows a hint.</summary>
+    public static string? ComposerDraft(IReadOnlyList<string> lines) =>
+        PromptComposer.Draft(lines, "❯", HighlightedRow(), text => ComposerPlaceholder().IsMatch(text));
 
     public static string? PickerHighlight(IReadOnlyList<string> lines)
     {

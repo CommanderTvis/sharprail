@@ -186,7 +186,7 @@ public interface ITerminalAccessoryApi
 
     /// <summary>Reads the last lines of the terminal's screen and scrollback.</summary>
     /// <param name="lines">How many lines to read.</param>
-    /// <param name="omitFaint">Blanks faint cells: the placeholders and suggestions a TUI draws in its input line.</param>
+    /// <param name="omitFaint">Blanks faint cells: the placeholders and suggestions a TUI draws in its input line. Honoured by renderers that see cell styling (Skia); the native texture renderer answers with plain text, so callers must also recognise known placeholder wording.</param>
     /// <returns>The lines, oldest first.</returns>
     IReadOnlyList<string> BufferTail(int lines, bool omitFaint = false);
 

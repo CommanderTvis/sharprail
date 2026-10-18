@@ -1258,6 +1258,15 @@ internal static class CodexChecks
         Equal(CodexModelPicker.ComposerDraft(["› Ask Codex to do anything"]), null, "the placeholder is not a draft");
         Equal(CodexModelPicker.ComposerDraft(["› Ask a follow-up question"]), null, "the follow-up placeholder is not a draft");
         Equal(CodexModelPicker.ComposerDraft(["› fix the build"]), "fix the build", "typed text is a draft");
+        foreach (var placeholder in new[]
+        {
+            "Implement {feature}", "Find and fix a bug in @filename", "Explain this codebase", "Summarize recent commits", "Use /skills to list available skills",
+            "Write tests for @filename", "Improve documentation in @filename", "Run /review on my current changes", "Press Enter to send"
+        })
+            Equal(CodexModelPicker.ComposerDraft(["› " + placeholder]), null, $"Codex's example prompt is not a draft: {placeholder}");
+        Equal(CodexModelPicker.ComposerDraft(["›\u00a0Ask Codex to do anything"]), null, "a no-break space after the glyph keeps the placeholder a placeholder");
+        Equal(CodexModelPicker.ComposerDraft(["› explain this codebase to me"]), "explain this codebase to me", "a draft that begins with an example's words is a draft");
+        Equal(CodexModelPicker.ComposerDraft(["› first line", "  second line"]), "first line", "a multi-line draft is a draft");
         Require(CodexModelPicker.HighlightNamesModel("GPT-5.6 Luna", "gpt-5.6-luna") && CodexModelPicker.HighlightNamesModel("GPT-6-Astra", "gpt-6-astra") &&
             !CodexModelPicker.HighlightNamesModel("GPT-5.6 Sol", "gpt-5.6-luna"), "a display name names its slug");
 

@@ -36,6 +36,17 @@ the module owns no session, account or terminal state.
   the body or "Open the terminal for details." It returns text only; the provider decides
   when to ask and hands the result to the plugin API.
 
+`PromptComposer` decides whether an agent's prompt holds typed text, for the guards that refuse to drive a slash
+command over a draft ("Send or clear what you typed first"). It reads the line after the agent's prompt glyph
+(tolerating a box edge and no-break spaces) and returns null for an empty prompt, an open picker, the agent's own
+placeholders and any hint of a kind every agent shows: a key to press (`Press up to edit queued messages`, `Press
+Esc twice to clear`), a quoted suggestion (`Try "…"`), `? for shortcuts`, `/ for commands`, `Type a message`. Hints
+are matched by family, not whole sentence, so a new wording of an existing kind needs no release; a draft that merely
+starts with `Press` or `Try` is still a draft. The primary defence is cell styling: where the renderer can blank faint
+cells (`BufferTail(omitFaint: true)` on Skia) hints never reach this text at all, whatever they say. Only the glyph
+line is read, so a multi-line draft is reported by its first line and one whose first line is empty is not seen.
+The cursor position is not available from text, which is why the styling rule carries the cursor case.
+
 Generic scoped settings and value composers remain in the general UI kit.
 Provider protocols, configuration, launch behavior and state remain plugin-owned.
 The public surface is recorded in `PublicAPI.Unshipped.txt` and checked by

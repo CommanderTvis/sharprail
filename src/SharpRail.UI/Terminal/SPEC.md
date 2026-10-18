@@ -26,6 +26,14 @@ row of buttons above the accessories. `ITerminalBackend.Write` types into the sh
 `sr_terminal_input` and `sr_terminal_read`, and the checks' headless backend writes to its PTY session and reads its
 plain-text view. An accessory's `BufferTail` is the last lines of that text.
 
+`BufferTail(lines, omitFaint: true)` reads `ITerminalBackend.ReadScreen(true)`. The Skia renderer answers from the
+visible rows' cells (`GhosttySkiaView.ReadViewport`, no scrollback) with faint cells blanked, plus an inverse cell
+directly before a faint one, which is the agent's own cursor drawn on a placeholder's first glyph. Faint is
+treated as hint whatever it says: agents do not draw typed text faint. The texture renderer, the browser and the
+default interface implementation return plain text. Until now the argument was ignored everywhere. The checks feed
+the SGR sequences agents emit (2 faint, 7 inverse) through a real `GhosttySkiaView`; they were not captured from
+a live Claude Code or Codex session.
+
 An accessory that types a command into an agent (a slash command, a picker drive) takes `HoldInput()` first and
 disposes the handle in a `finally` when the entry is complete, submitted included. While a hold is in force
 `TerminalView` swallows the user's key, composed-text and non-primary pointer events on the way down (tunnelling
@@ -327,8 +335,9 @@ fallback while preserving the local/remote shell and its exit status.
   [Terminals.SPEC.md](../../SharpRail.Host.Core/Terminals.SPEC.md#not-yet-ported)).
 - `TerminalKeyEncoding.AgentNewline`: the bridge has no key-encoding switch, so `SetKeyEncoding` is a no-op and
   Shift+Return keeps Ghostty's own encoding.
-- Faint-cell blanking in `BufferTail(omitFaint: true)`: libghostty's text read carries no cell attributes, so faint
-  placeholders are returned as text.
+- Faint-cell blanking in `BufferTail(omitFaint: true)` for the Metal texture renderer: its text read is plain, so
+  faint placeholders come back as text and the draft guards recognise them by wording instead (see
+  [Agent.UI](../SharpRail.Plugins.Agent.UI/SPEC.md)). The Skia renderer does blank them (below).
 
 ## File references
 

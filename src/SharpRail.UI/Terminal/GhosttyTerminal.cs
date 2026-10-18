@@ -190,6 +190,9 @@ internal sealed class GhosttyTerminal : Border, ITerminalBackend, ITerminalResum
 
     public string ReadScreen() => texture?.ReadScreen() ?? fallback?.ReadScreen() ?? "";
 
+    // Only the Skia fallback sees cell styling; the native texture's text read is plain.
+    public string ReadScreen(bool omitFaint) => texture?.ReadScreen() ?? fallback?.ReadScreen(omitFaint) ?? "";
+
     public void SetAgentNewline(bool enabled)
     {
         agentNewline = enabled;

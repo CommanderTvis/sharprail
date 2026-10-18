@@ -374,7 +374,7 @@ public sealed partial class WorkbenchWindow
 
         public IReadOnlyList<string> BufferTail(int lines, bool omitFaint = false)
         {
-            var all = terminal.ReadScreen().Replace("\r", "").TrimEnd('\n').Split('\n');
+            var all = (omitFaint ? terminal.ReadScreen(true) : terminal.ReadScreen()).Replace("\r", "").TrimEnd('\n').Split('\n');
             return all.Length <= lines ? all : all[^lines..];
         }
 

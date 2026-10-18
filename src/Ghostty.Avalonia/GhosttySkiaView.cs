@@ -129,6 +129,33 @@ public sealed partial class GhosttySkiaView : Control, IDisposable
     /// <summary>The screen and scrollback as plain text.</summary>
     public string ReadScreen() => vt.ScreenText();
 
+    /// <summary>
+    /// The visible rows as text, one line per row, without scrollback; with <paramref name="omitFaint"/> the cells drawn
+    /// faint are blanked, which is how agents draw placeholders and suggestions in their input line. An inverse cell directly before a faint one is
+    /// the agent's own cursor on the placeholder's first glyph and is blanked with it.
+    /// </summary>
+    public unsafe string ReadViewport(bool omitFaint)
+    {
+        if (!vt.Snapshot(out var frame)) return "";
+        var builder = new System.Text.StringBuilder();
+        for (var y = 0; y < frame.Rows; y++)
+        {
+            var line = new System.Text.StringBuilder();
+            for (var x = 0; x < frame.Columns; x++)
+            {
+                var cell = frame.Cells[y * frame.Columns + x];
+                if (cell.Wide is 2 or 3) continue;
+                // Agents draw their own cursor as an inverse cell on the placeholder's first glyph, the rest of it faint.
+                var cursorOverHint = omitFaint && (cell.Flags & CellFlags.Inverse) != 0 && x + 1 < frame.Columns &&
+                    (frame.Cells[y * frame.Columns + x + 1].Flags & CellFlags.Faint) != 0 && frame.Cells[y * frame.Columns + x + 1].Length > 0;
+                if (cell.Length == 0 || (omitFaint && ((cell.Flags & CellFlags.Faint) != 0 || cursorOverHint)) || (cell.Flags & CellFlags.Invisible) != 0) { line.Append(' '); continue; }
+                line.Append(CellFonts.Grapheme(new ReadOnlySpan<uint>(frame.Text + cell.Text, cell.Length)));
+            }
+            builder.Append(line.ToString().TrimEnd()).Append('\n');
+        }
+        return builder.ToString();
+    }
+
     /// <summary>Shift+Enter sends ESC CR, the newline agents read, unless the program negotiated a keyboard protocol.</summary>
     public bool AgentNewline { get; set; }
     public string SelectedText => vt.SelectionText();

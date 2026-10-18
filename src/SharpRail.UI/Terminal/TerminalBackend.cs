@@ -43,6 +43,9 @@ public interface ITerminalBackend : IDisposable
     void Write(string data);
     // The screen and scrollback as plain text.
     string ReadScreen();
+    // The visible screen with faint cells (an agent's placeholder or suggestion) blanked. Renderers that cannot see
+    // cell styling answer with the plain text, so callers still match known placeholder wording.
+    string ReadScreen(bool omitFaint) => ReadScreen();
     // Agent Shift+Enter fallback; negotiated keyboard protocols remain the renderer's own.
     void SetAgentNewline(bool enabled);
 }

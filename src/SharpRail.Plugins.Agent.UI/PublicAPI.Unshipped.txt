@@ -69,3 +69,6 @@ static SharpRail.Plugins.Agent.UI.Account.ResetLabel(System.DateTimeOffset at) -
 static SharpRail.Plugins.Agent.UI.Account.Row(string! label, string! value) -> Avalonia.Controls.Control!
 static SharpRail.Plugins.Agent.UI.Account.UsageWindow(string! id, string! label, double percent, System.DateTimeOffset? resetsAt, string! namePrefix, SharpRail.Plugins.Agent.UI.AccountSeverity severity = SharpRail.Plugins.Agent.UI.AccountSeverity.Normal) -> Avalonia.Controls.Control!
 static SharpRail.Plugins.Agent.UI.TerminalFacts.QuoteAttachPath(string! path) -> string!
+SharpRail.Plugins.Agent.UI.PromptComposer
+static SharpRail.Plugins.Agent.UI.PromptComposer.Draft(System.Collections.Generic.IReadOnlyList<string!>! lines, string! glyph, System.Text.RegularExpressions.Regex! pickerRow, System.Func<string!, bool>! isPlaceholder) -> string?
+static SharpRail.Plugins.Agent.UI.PromptComposer.IsHint(string! text) -> bool

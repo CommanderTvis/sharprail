@@ -134,6 +134,10 @@ MCP targets/source links. Configuration value cells, row actions, the trust line
 accessory row (model chip, slots for the kit's usage/plan/IDE/attach chips and the driving status) are
 compiled frames too; the kit's shared setting rows and chips stay kit-owned. Settings observers restart on remount, with host changes both while detached and after
 reattachment covered by WebSocket RPC checks.
+The draft guard shares the kit's `PromptComposer`; Codex's own example prompts (`Explain this codebase`, `Write tests
+for @filename`, …) and its follow-up line are matched case-insensitively as placeholders. The list follows Codex's
+rotating examples as remembered, not read from a live build, so an unlisted new example is the one wording the
+Metal renderer can mistake for a draft; Skia drops it as faint text.
 The accessory's driven entries (`/ide on|off`, the `/model` picker) hold the user's keys out of the terminal until
 the command has been typed and submitted, or the drive gives up, throws or is cancelled; keys typed meanwhile are
 dropped. `--codex` covers the release on every outcome through a fake TUI.

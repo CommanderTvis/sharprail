@@ -54,6 +54,7 @@ internal static class GhosttySkiaChecks
     {
         if (!OperatingSystem.IsMacOS()) { Console.WriteLine("SKIP Skia terminal renderer (libghostty-vt is built on macOS)"); return; }
         CheckClusters();
+        CheckPlaceholderCells();
         CheckUrls();
         CheckUrlHover();
         CheckLinkContextMenu();
@@ -69,6 +70,40 @@ internal static class GhosttySkiaChecks
         CheckRendererSetting(root);
         TerminalHostChecks.ReplaySetting(root);
         Console.WriteLine("PASS Skia terminal renderer: libghostty-vt cells, colours, wide/combining text, box drawing, cursor, keyboard and mouse encoding, paste, selection, scrollback, resize, touch and soft-keyboard input, and a host PTY session that survives a renderer restart");
+    }
+
+    // An agent's empty prompt draws its hint faint, with its own cursor as an inverse cell on the hint's first glyph. The
+    // viewport read blanks both, so only typed text is left for the draft guard. The attributes are the SGR the agents
+    // emit (2 faint, 7 inverse), not captured from a live session.
+    private static void CheckPlaceholderCells()
+    {
+        const string Faint = "\e[2m", Inverse = "\e[7m", Reset = "\e[0m";
+        string Screen(string content)
+        {
+            using var view = new GhosttySkiaView();
+            view.Write(Encoding.UTF8.GetBytes(content));
+            return view.ReadViewport(omitFaint: true);
+        }
+        string[] Lines(string screen) => screen.Split('\n');
+        string? Claude(string content) => SharpRail.Plugins.ClaudeCode.UI.ModelPicker.ComposerDraft(Lines(Screen(content)));
+        string? Codex(string content) => SharpRail.Plugins.Codex.UI.CodexModelPicker.ComposerDraft(Lines(Screen(content)));
+
+        Require(Claude($"previous output\r\n❯ {Inverse}P{Reset}{Faint}ress up to edit queued messages{Reset}") is null, "a faint placeholder with a drawn cursor is not a draft");
+        Require(Claude($"❯ {Faint}Some hint nobody listed{Reset}") is null, "an unlisted faint hint is not a draft");
+        Require(Claude($"❯ {Inverse} {Reset}{Faint}Try \"fix the build\"{Reset}") is null, "a space cursor before a faint suggestion is not a draft");
+        Require(Claude("❯ fix the build") == "fix the build", "typed text is a draft");
+        Require(Claude($"❯ fix the build{Inverse} {Reset}") == "fix the build", "typed text with the cursor after it is a draft");
+        Require(Claude($"❯ fix the {Inverse}b{Reset}uild") == "fix the build", "typed text with the cursor inside it is a draft");
+        Require(Claude($"❯ fix the build {Faint}(tab to accept a suggestion){Reset}") == "fix the build", "typed text beside a faint suggestion is a draft without the suggestion");
+        Require(Claude("❯ first line\r\n  second line") == "first line", "a multi-line draft is a draft");
+        Require(Codex($"› {Inverse}A{Reset}{Faint}sk Codex to do anything{Reset}") is null, "Codex's faint placeholder is not a draft");
+        Require(Codex($"› {Faint}A hint Codex adds later{Reset}") is null, "an unlisted faint Codex hint is not a draft");
+        Require(Codex("› fix the build") == "fix the build", "typed text at Codex's prompt is a draft");
+        // Decision: faint text is never counted as typed, whatever it says; agents do not draw typed text faint.
+        Require(Claude($"❯ {Faint}typed but dim{Reset}") is null, "text drawn faint is a hint, even if the user typed it");
+        using var plain = new GhosttySkiaView();
+        plain.Write(Encoding.UTF8.GetBytes($"❯ {Faint}hint{Reset}"));
+        Require(plain.ReadViewport(omitFaint: false).Contains("hint", StringComparison.Ordinal), "without omitFaint the hint stays in the read");
     }
 
     private static void CheckUrls()

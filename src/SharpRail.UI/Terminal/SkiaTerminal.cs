@@ -277,6 +277,8 @@ internal sealed class SkiaTerminal : Border, ITerminalBackend, ITerminalResumeHi
 
     public string ReadScreen() => terminal.ReadScreen();
 
+    public string ReadScreen(bool omitFaint) => omitFaint ? terminal.ReadViewport(omitFaint: true) : terminal.ReadScreen();
+
     public void SetAgentNewline(bool enabled) => terminal.AgentNewline = enabled;
 
     protected override void OnGotFocus(FocusChangedEventArgs e)
