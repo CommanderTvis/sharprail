@@ -219,11 +219,18 @@ could not save this change: …” inline and re-renders from host state.
 
 ## Not yet ported
 
-- A capability-gated Workspaces settings section with Settle idle workspaces after: 1, 3, 7 (default),
-  14 days or Never. Changes are shared host settings and converge through the broadcast; a valid
-  non-preset value leaves all cards unselected. The copy must explain which activity resets the idle
-  timer and which workspaces stay live, using SharpRail's supported activity sources rather than AI
-  or pull-request rules.
+- The fork's Settings redesign (Settings redesign, #710). The rail is not grouped into Agent, Interface and
+  System, and pages keep their own control shapes rather than shared row, group, segmented-control and notice
+  primitives. Free-text values (Line width) keep an explicit Save instead of the one auto-save pattern: Enter
+  or blur saves a valid, changed value once, an invalid draft stays visible with its range message and is
+  never sent, and Escape reverts the draft before it dismisses the window. Appearance has no Theme mode
+  (System, Light, Dark) and Contrast (Default, High) controls with the specific theme behind a collapsed
+  disclosure, and the editor line width is not a group of Appearance. Layout does not mark the card whose
+  geometry matches the live frame as applied (derived by comparison, never stored, with its Apply disabled),
+  mark the default beyond its button label (no Fallback state when the stored default is gone, no tooltip saying Reset uses it and that it is per window), offer an Add new layout card that
+  captures the live frame, keep the group limits auto-saved in a collapsed Advanced disclosure, or put Apply
+  now and Reset to default behind one confirmation. Terminal replay size reads as Scrollback, a host value
+  that is not a preset selects none, and Notifications has no permission notices.
 - A Windows shell picker.
 - Keeping the Create workspace dialog open to retry after a rejected creation; the dialog has closed by
   then and the failure is a toast.

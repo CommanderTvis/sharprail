@@ -512,6 +512,9 @@ disappearance shows.
   switching away first saves that pending offset rather than the temporary clamped value. The rendered
   Markdown view and its source save their position in the tab's renderer view state; the pending-offset
   rule and the other views are not ported.
+- The Changes tree shows a folder's `+N −M` aggregate only while the folder is collapsed (an expanded folder's
+  children already carry the counts); the folder rows always show it. Project and Changes tree rows also still
+  use a fixed 28px height rather than the 22px side-pane row role the fork's tree rows share.
 - CI status beside the pull request chip; it has no upstream source.
 - In pull request setup guidance: a Run action that executes a command in a new workspace terminal, git's
   own error text for a push that could not authenticate (the host reports only that it did) with the

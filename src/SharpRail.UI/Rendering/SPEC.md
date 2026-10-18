@@ -258,6 +258,19 @@ commit rows in the scope menu append it to the short SHA and author.
   manifest-driven syntax palette. Upstream now highlights chat fences off the main thread with lazy
   grammars, bounded caching and ordered replies; its worker/fallback machinery is web-specific. Any native
   equivalent must keep expensive highlighting off the dispatcher and reject stale results.
+- The fork's single notice look (its NOTIFICATIONS design, #730). Toasts and inline notices share a neutral
+  elevated fill whatever the severity; severity is only the one-pixel muted border and the icon colour, with
+  one line glyph per info, success, warning and error, and a fourth `warning` severity next to the existing
+  three. Body text keeps the default colour. A notice is a single row (icon, message, actions) or, when it has a
+  secondary line or can wrap, a content row over a right-aligned action row; toasts always use the latter.
+  Actions are small outline buttons, a secondary one ghost, never filled or coloured. SharpRail's toasts still
+  draw a coloured variant stripe, and its inline error text is not a notice.
+- A guard for expensive source diffs and a natural-versus-bounded height contract. The fork waits behind a
+  "too expensive to show automatically" notice with Show diff anyway (and Open file where an editable side
+  exists) above 2000 changed lines or when its order-sensitive check cannot finish in time, never guards a
+  one-sided diff, and gives a stacked section over 1000 source lines (counting unchanged context) a bounded
+  viewport and a virtualized body (`boundedDiff: "large"`, next to `"always"`). SharpRail has no changed-line
+  guard; whether its native diff needs one is a measurement to take.
 - Swipe-to-dismiss on toasts, and pausing a toast's timer while the pointer or focus is on it.
 - Full typography adoption. [TYPOGRAPHY.md](TYPOGRAPHY.md) is the one vocabulary and the design gate holds
   literal sizes, weights and line heights to it, but most controls still write a size on the scale

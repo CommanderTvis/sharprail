@@ -138,7 +138,12 @@ Invalid input is rejected atomically; Core never tokenizes text.
   completeness from user-directory markers; prepend inherited entries absent from the login result so
   activated environments retain precedence. Use a bounded probe with a non-interactive retry and leave
   the inherited `PATH` untouched on failure.
-- Import the remaining login-shell environment once at startup for GUI-launched hosts without `TERM`.
+- Import the remaining login-shell environment once at startup for GUI-launched hosts without `TERM`, and only for
+  a launcher that opts in (the fork's `resolveShellEnv: true`, passed by its dev, CLI and desktop launchers). An
+  embedder or test that does not opt in keeps the environment it was given: with the import on by default a
+  test process copied the developer's login environment, provider API keys included, and later suites spent
+  real tokens. SharpRail's launchers would opt in the same way, and the host should read `${VAR}` references in
+  configuration the user copies from vendor docs from the imported environment.
   Reuse the `PATH` probe: a marker-delimited, NUL-separated environment ignores shell startup chatter,
   with interactive login first and a login-only retry. Existing process variables win; exclude `PATH`,
   `PWD`, `OLDPWD`, `SHLVL`, `_` and SharpRail's own `SHARPRAIL_*` controls. Imported exports become

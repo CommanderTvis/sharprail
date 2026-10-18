@@ -242,7 +242,7 @@ The search is a dialog (`Panels/SearchDialog.cs`) rather than a panel, because i
 dismissed: one query over the active worktree, results grouped by file with one row per matching line, and
 a hit keeps its file open scrolled to that line. With no active workspace the chord does nothing. On macOS alone, Cmd+, (no other
 modifier) opens Settings, the Preferences chord every Mac app has; Windows and Linux have no such convention,
-so Ctrl+, stays free for whatever else wants it. A modal dialog already open receives the chord instead.
+so Ctrl+, stays free for whatever else wants it (the fork now binds it there; see Not yet ported). A modal dialog already open receives the chord instead.
 Arrangement commands beyond these belong to the docking menus and keyboard handling in `Docking`.
 
 Mod+= (or Mod++), Mod+- and Mod+0 zoom the whole interface like a browser's page zoom: they step one
@@ -405,6 +405,10 @@ workspace frame's left side.
   request surface lives in the Review panel only. The card has no separate Based on row.
 - A registered URL scheme for location links (they are opened only by `--link` at launch), and a remote
   host cannot confirm that a workspace folder still exists before a history step opens it.
+- Ctrl+, opening Settings on Windows and Linux, from a terminal too and not with Shift held (a layout whose comma
+  key types another character does not match); an already-open Settings keeps its section and drafts, another
+  modal keeps the keyboard, and the Settings control's tooltip advertises the chord only where it is bound.
+  macOS keeps its Cmd+, chord and the browser binds none.
 - Native role items in the Edit menu. Avalonia's menu model has no AppKit role selectors, so the items
   are app commands: editing in native panels (the folder picker's path field) is not served by them, and
   there is no About item.

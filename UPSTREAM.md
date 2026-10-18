@@ -24,23 +24,23 @@ one commit, and each builtin plugin as its own commit.
 The `sync-upstream-specs` skill (`.claude/skills/sync-upstream-specs/SKILL.md`) pulls later
 changes for the current branch and advances its synced commit.
 
-Synced commit (`main`): specs follow JetBrains `f7cca7bfb0b1d0543eb9898c52d28df5a784eb09`
-(2026-10-11), inherited from the `upstream` branch, which `main` is rebased onto. Fork code
-porting is recorded by fork commit title in "Fork port log" below.
+Synced commit (`main`): specs follow the fork's `30a81cab5` ("The fork describes itself: what it adds, how to
+run it, how its history moves", 2026-09-14 authored; refs read locally on 2026-10-18), which now sits on JetBrains
+`3bee4f16454515674c5548cb96ed46c57c2a4956` (2026-10-16), "fix(web): stack the history search overlay above
+transcript controls (#748)". The previous synced commit was JetBrains `f7cca7bfb0b1d0543eb9898c52d28df5a784eb09`
+(2026-10-11). Fork code porting is recorded by fork commit title in "Fork port log" below.
 
-Latest tracked JetBrains commit (research, not a completed port or spec sync):
-`be06fb01927e8386e3aec215bbcdb1a312ec66fa` (2026-10-14), "feat(web): list newest workspaces
-first in the projects panel (#725)". Verified by fetching `upstream/main` from
-JetBrains/thinkrail on 2026-10-14. The range after the synced `f7cca7bfb` contains
-22 newer commits. [Current porting gaps](#current-porting-gaps) records applicable changes, older unported behavior,
-supported Codex/Claude workflows and remaining acceptance gates. The dated comparison
-baseline there is provenance, not the current implementation revision.
-The synced revision above remains unchanged; this research does not claim that the
-new specifications or implementations have been ported.
+Latest tracked JetBrains commit: the same `3bee4f164` (`upstream/main` as present in the checkout on 2026-10-18;
+nothing was fetched). The range after `f7cca7bfb` is 35 commits (22 of them listed in [Current porting
+gaps](#current-porting-gaps) from the earlier research up to `be06fb019`). The separate `upstream` branch is
+synced to `5ab283a35` (2026-10-13) and still needs its own pass for the commits after it; do not carry them over by
+hand.
 
-Latest tracked fork commit: `281bda97b2840c92e9046092d56b81286c4cea4a` ("The fork describes itself:
-what it adds, how to run it, how its history moves"), the tip of `claude-code-integration-plugin-api`
-verified against GitHub on 2026-10-09. Fork port coverage remains recorded by title below.
+Latest tracked fork commit: `30a81cab56e98a541d2dfa61bf3bfbd9318bbfb8`, the tip of
+`origin/claude-code-integration-plugin-api` in the checkout. The previously recorded tip `281bda97` carries the same
+title: the fork chain was rebased onto `3bee4f164` (78 fork commits above it). The fork-owned specs
+(`packages/plugin-*`, `plugin-adoption.md`, `packages/server/src/plugins`, `apps/web/src/plugins`) are
+byte-identical between the two tips, so the rebase moved no fork behavior.
 
 ## Mapping
 
@@ -73,6 +73,7 @@ verified against GitHub on 2026-10-09. Fork port coverage remains recorded by ti
 | `apps/web/src/themes/SPEC.md` | `src/SharpRail.UI/Rendering/Themes.SPEC.md` |
 | `apps/web/src/styles/COLOR.md` | `src/SharpRail.UI/Rendering/COLOR.md` |
 | `apps/web/src/styles/SPACING.md` | `src/SharpRail.UI/Rendering/SPACING.md` |
+| `apps/web/src/styles/NOTIFICATIONS.md` | `src/SharpRail.UI/Rendering/SPEC.md` (toast and notice look; its "Not yet ported") |
 | `e2e/SPEC.md` | `tests/SharpRail.Checks/SPEC.md` |
 | `scripts/SPEC.md` | `scripts/SPEC.md` |
 | `packages/plugin-api/SPEC.md`, `plugin-adoption.md` (fork) | `src/SharpRail.Plugins.Api/SPEC.md` |
@@ -88,6 +89,33 @@ analytics, GitHub/PR review, desktop updates, web-only tooling): every other ups
 `SPEC.md`. A new upstream spec is triaged into one of the two lists on the next sync.
 
 ## Latest sync triage
+
+Compared the previously synced `f7cca7bfb` with the fork tip `30a81cab5` on 2026-10-18 (113 commits: 35 JetBrains,
+through #748, and 78 fork). The refs are those present in the read-only checkout; nothing was fetched. Spec triage
+covered the 62 files changed in the JetBrains range (specs and style documents). Applicable deltas are in the mapped destinations:
+
+- UI: Ctrl+, opening Settings on Windows and Linux (macOS Cmd+, was already ported), under UI "Not yet ported".
+- Panels (Settings): the redesign (#710) with grouped rail, shared row primitives, auto-save inputs, Appearance
+  mode and contrast controls, Layout applied/default marks, Add new layout, Advanced limits and one confirmation;
+  the Changes tree's folder counts shown only while collapsed (#735); tree rows at the shared 22px role.
+- Docking: resize handles that keep the preceding panel's scrollbar usable (#736 and the UI kit handle change).
+- Rendering: the neutral notice and toast look with a warning severity (#730), and the large-diff guard,
+  virtualization and bounded stacked sections (#731).
+- Host: the login-shell environment import is opt-in for launchers (#714), with its post-mortem.
+
+Already ported or inherent to SharpRail earlier, so only recorded here: the calm captioned location bar (#712),
+newest-created-first rail with a recency switcher (#725, #713), 28px panel headers, 22px rows and the named layout
+roles (#703), OS-level window focus for notification suppression (#705).
+Not tracked (AI, pi or web-only): MCP management, tool cards and status (#691-#695, mcp specs), the TODO list
+rail and plan page (#706), project trust (#690), extension on/off (#709), background-work attention and
+read-when-seen unread (#716, #728), restored chats and model visibility (#685, #745), pi 1.2.0 and the npm scope
+(#723, #734), the loader redesign (#727; SharpRail has no working badge until A17), Pierre and WebKit selection
+fixes, the typography line-height scale and radius tokens (web-only CSS), `architecture.md` and
+`packages/contracts` (AI/MCP only), `e2e/SPEC.md` and `e2e/workflows` (AI/MCP scenarios plus Playwright details),
+and the new `agent/mcp`, `chat/tools/mcp` and `mcp` specs. `ARCHITECTURE.md` needed no port.
+The fork-only specs and plugin documents did not change.
+
+## Previous sync triage (2026-10-11)
 
 Compared the previously tracked revision with the requested commit
 `f7cca7bfb0b1d0543eb9898c52d28df5a784eb09`: six commits, through the continuous
@@ -327,6 +355,22 @@ Two of its features were missing here and are now ported:
   sit indented behind a rule directly below Settings › Plugins instead of after the core sections.
 - `1e4449a2a` A repository URL becomes a project: see its entry in the port log above.
 
+## Fork refresh, 2026-10-18
+
+The fork's `claude-code-integration-plugin-api` (local ref `30a81cab5`, title unchanged) was rebased onto
+JetBrains `3bee4f164`. Compared by title with the chain recorded at `281bda97` (83 titles, base `68bb83747`), the
+current chain has 78. Absent now, because they are no longer separate fork commits:
+
+- "Chats survive a provider switch when their saved model is unavailable" (JetBrains took it as #685/#740) and
+  "Settings answer to Command+, on macOS" (JetBrains #747, which adds Ctrl+, on Windows and Linux): the macOS
+  half stays ported; the Windows and Linux chord is recorded in UI "Not yet ported".
+- "A file in the tree can be deleted, into the trash, after asking", "A project with no specs opens its rail on
+  Files" and "An issue number in a comment stops being painted as a colour": not in the current chain and not
+  found in `upstream/main` by title. SharpRail keeps its existing ports; whether the fork dropped or folded them
+  was not established from the local refs.
+
+No fork-only commit was added. Everything else is as logged above.
+
 ## Current porting gaps
 
 This is the cross-module inventory of applicable ThinkRail implementation differences and
@@ -380,7 +424,17 @@ Applicable commits below are linked to their immutable source diffs. Chat/pi-onl
 | [ffc934fa4](https://github.com/JetBrains/thinkrail/commit/ffc934fa4) | Background work keeps running treatment; seen results clear owner-wide unread state. No equivalent SharpRail lifecycle/read watermark across clients. |
 | [be06fb019](https://github.com/JetBrains/thinkrail/commit/be06fb019) | Rail workspaces newest-created-first with Default pinned, switcher still recent-activity-first. The rail now pins Default and reverses registry creation order; the switcher orders by activity. |
 
-The researched range contains 22 newer commits; this table lists only applicable changes.
+| [4ab88b522](https://github.com/JetBrains/thinkrail/commit/4ab88b522) | Folder diff counts in the Changes tree only while collapsed. Not ported; see Panels "Not yet ported". |
+| [b664b9cd7](https://github.com/JetBrains/thinkrail/commit/b664b9cd7) | Resize handles leave the preceding panel's scrollbar edge usable. Not ported; see Docking "Not yet ported". |
+| [fdebc5c4e](https://github.com/JetBrains/thinkrail/commit/fdebc5c4e) | Virtualized file and diff views that load large files; guard for wide rewrites. Web-engine mechanics are excluded; the changed-line guard and the bounded stacked section are recorded as U27. |
+| [a746cf3dd](https://github.com/JetBrains/thinkrail/commit/a746cf3dd) | Settings redesign. Recorded as S01. |
+| [55666a7db](https://github.com/JetBrains/thinkrail/commit/55666a7db) | One notice and toast look across the app. Recorded as U26. |
+| [e67317aee](https://github.com/JetBrains/thinkrail/commit/e67317aee) | Settings opens with Cmd+, on macOS and Ctrl+, on Windows and Linux. macOS was already ported; the other chord is S02. |
+| [5c7b83c8b](https://github.com/JetBrains/thinkrail/commit/5c7b83c8b) | Loader redesign of the working badge. Moot until the workspace rollup badge exists (A17). |
+
+The researched range contains 22 commits after `f7cca7bfb`; the remaining 13 up to `3bee4f164` were triaged on
+2026-10-18 and only the applicable ones are listed (the rest are AI, pi or MCP: #706, #727 content, #728, #730's
+chat parts, #744, #745, #748 and the pi package commits).
 
 ### Agent workflow gaps for Codex and Claude Code
 
@@ -496,13 +550,24 @@ Authorities: upstream [resource registry](https://github.com/JetBrains/thinkrail
 | U24 | Partial | Editor text input exists, but full IME preedit, an accessibility text provider, touch selection handles and a copy menu are absent, confirmed by [Scintilla limits](src/SharpRail.Scintilla/README.md#limits). These are implementation gaps, followed by platform acceptance; completion/LSP workstation features are not automatically upstream requirements. |
 | U25 | Partial | Native AppKit Edit role items work inside native picker fields, plus About. Current Avalonia menu uses app commands instead. |
 
+### Settings and notice gaps
+
+Authorities: JetBrains [panels](https://github.com/JetBrains/thinkrail/blob/3bee4f16454515674c5548cb96ed46c57c2a4956/apps/web/src/panels/SPEC.md), [shell](https://github.com/JetBrains/thinkrail/blob/3bee4f16454515674c5548cb96ed46c57c2a4956/apps/web/src/shell/SPEC.md) and [notices](https://github.com/JetBrains/thinkrail/blob/3bee4f16454515674c5548cb96ed46c57c2a4956/apps/web/src/styles/NOTIFICATIONS.md); SharpRail [Settings](src/SharpRail.UI/Panels/SPEC.md), [UI](src/SharpRail.UI/SPEC.md) and [Rendering](src/SharpRail.UI/Rendering/SPEC.md).
+
+| ID | Status | Gap |
+| --- | --- | --- |
+| S01 | Partial | Settings redesign: grouped rail, shared row primitives, the one auto-save input pattern with Escape reverting the draft, Appearance mode and contrast controls, Layout applied and default marks, Add new layout, collapsed Advanced limits and one confirmation. Section content mostly exists; the shapes do not. |
+| S02 | Missing | Ctrl+, opens Settings on Windows and Linux (not from Shift+Comma, an already-open Settings stays as it is, the tooltip names the chord only where bound). |
+| U26 | Missing | Neutral notice and toast fill with severity only in the border and icon, a warning severity and the single-row or two-row layouts. SharpRail toasts keep the variant stripe. |
+| U27 | Decision | A changed-line guard for expensive diffs and a bounded, virtualized stacked section above a line threshold. Measure the native diff before adopting the web thresholds (2000 changed lines, 1000 source lines). |
+
 ### Host and transport gaps
 
 Authorities: upstream [shared environment](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/packages/shared/SPEC.md), [host](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/packages/server/src/host/SPEC.md), [logging](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/packages/server/src/log/SPEC.md), [watchers](https://github.com/JetBrains/thinkrail/blob/be06fb01927e8386e3aec215bbcdb1a312ec66fa/packages/server/src/watch/SPEC.md); SharpRail [Core](src/SharpRail.Host.Core/SPEC.md), [Files](src/SharpRail.Host.Core/Files.SPEC.md), [Git](src/SharpRail.Host.Core/Git.SPEC.md), [Client](src/SharpRail.Host.Client/SPEC.md), [Remote](src/SharpRail.Host.Remote/SPEC.md), [protocol counter](src/SharpRail.Host.Abstractions/Handshake.cs).
 
 | ID | Status | Gap |
 | --- | --- | --- |
-| H01 | Missing | Bounded login-shell PATH/SSH_AUTH_SOCK repair and environment import for opted-in GUI launchers, inherited-value precedence, noisy-probe parsing, retry and excluded control/history variables. Terminal login-shell spawning alone does not fix the host's own child environment. |
+| H01 | Missing | Bounded login-shell PATH/SSH_AUTH_SOCK repair and environment import for opted-in GUI launchers (the import is now opt-in at boot, #714), inherited-value precedence, noisy-probe parsing, retry and excluded control/history variables. Terminal login-shell spawning alone does not fix the host's own child environment. |
 | H02 | Missing | Structured leveled rotating host logs and crash report under state directory. Console diagnostics are not this persistent support surface. |
 | H03 | Partial | One bounded idempotent graceful shutdown path awaited by every launcher, signal handling and in-flight work drain. Existing disposers are not evidence of the entire upstream contract. |
 | H04 | Missing | Retrying recursive teardown and automatic first-free-port selection for launchers. Explicit listener configuration is a different contract. |

@@ -323,6 +323,8 @@ viewport rather than treating a newly attached tab's transient geometry as offsc
   attention and singleton-tool fan-out together. Body-local review state must invalidate only that body,
   preserving sibling chrome and bodies during review progress writes.
 - Dropping a removed workspace's view from the frame and ending its terminals.
+- Resize handles that paint a one-pixel line at their leading edge and extend their hit area only into the
+  following panel, so the preceding panel's trailing scrollbar stays usable.
 - Back/Forward navigation history over locations, and serializable deep links to a project, workspace or
   resource.
 
