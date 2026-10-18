@@ -14,17 +14,18 @@ try {
     $library = Join-Path $out 'SharpRailScintillaNative.dll'
     if ((Test-Path $library) -and (Test-Path $stamp) -and (Get-Content $stamp -Raw).Trim() -eq $fingerprint) { return }
     $zig = Get-WindowsZig
-    Get-VerifiedArchive 'https://www.scintilla.org/scintilla567.tgz' (Join-Path $Cache 'scintilla567.tgz') `
-        '19e4476706750056f86ca70974810e4a5b08e73477e13f7d9fae78243606f6a7' (Join-Path $Cache 'scintilla-5.6.7')
-    Get-VerifiedArchive 'https://github.com/Tehreer/SheenBidi/archive/refs/tags/v3.0.0.tar.gz' (Join-Path $Cache 'sheenbidi-3.0.0.tgz') `
-        '86c56014034739ba39a24c23eb00323b0bf6f737354f665786015fca842af786' (Join-Path $Cache 'sheenbidi-3.0.0')
+    # Pinned and checksummed in mise.toml; scripts\mise run bootstrap links them into .tools.
+    $scintilla = Join-Path $PSScriptRoot '../../.tools/scintilla'
+    $bidi = Join-Path $PSScriptRoot '../../.tools/sheenbidi'
+    if (!(Test-Path "$scintilla/src") -or !(Test-Path "$bidi/Source")) { throw 'Run scripts\mise run bootstrap first.' }
     $source = Join-Path $Cache 'windows-scintilla-patched'
     if (Test-Path $source) { Remove-Item $source -Recurse -Force }
-    Copy-Item (Join-Path $Cache 'scintilla-5.6.7') $source -Recurse
+    Copy-Item $scintilla $source -Recurse
+    # The store is read-only on Unix; keep the copy writable for the patch either way.
+    Get-ChildItem $source -Recurse -File | ForEach-Object { $_.IsReadOnly = $false }
     Push-Location $source
     try { Invoke-Native git @('apply', '--no-index', '--unsafe-paths', "$PSScriptRoot/Native/EditView.patch") }
     finally { Pop-Location }
-    $bidi = Join-Path $Cache 'sheenbidi-3.0.0'
     $flags = @('-target', $target, '-O2', '-DNDEBUG', '-fvisibility=hidden')
     $objects = @((Join-Path $out 'SheenBidi.o'))
     Invoke-Native $zig (@('cc', '-std=c99') + $flags + @('-DSB_CONFIG_UNITY', '-I', "$bidi/Headers", '-I', "$bidi/Source", '-c', "$bidi/Source/SheenBidi.c", '-o', $objects[0]))

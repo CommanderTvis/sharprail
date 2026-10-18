@@ -79,8 +79,9 @@
     <ItemGroup>
       <NativeAbi Include="arm64-v8a;x86_64" />
     </ItemGroup>
-    <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../Ghostty.Avalonia/build-android.sh&quot; %(NativeAbi.Identity) &quot;$(GhosttyNativeCache)&quot;" />
-    <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../SharpRail.Scintilla/build-android.sh&quot; %(NativeAbi.Identity)" />
+    <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/mise&quot; run bootstrap:android" />
+    <Exec Command="$(MiseRun) sh &quot;$(MSBuildProjectDirectory)/../Ghostty.Avalonia/build-android.sh&quot; %(NativeAbi.Identity) &quot;$(GhosttyNativeCache)&quot;" />
+    <Exec Command="$(MiseRun) sh &quot;$(MSBuildProjectDirectory)/../SharpRail.Scintilla/build-android.sh&quot; %(NativeAbi.Identity)" />
     <ItemGroup>
       <AndroidNativeLibrary Include="$(GhosttyNativeCache)/android/%(NativeAbi.Identity)/libGhosttyAvaloniaVt.so" Abi="%(NativeAbi.Identity)" />
       <AndroidNativeLibrary Include="$(MSBuildProjectDirectory)/../SharpRail.Scintilla/obj/native/android/%(NativeAbi.Identity)/libSharpRail.Scintilla.so" Abi="%(NativeAbi.Identity)" />

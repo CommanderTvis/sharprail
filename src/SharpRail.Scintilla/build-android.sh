@@ -1,6 +1,6 @@
 #!/bin/sh
 # Builds libSharpRail.Scintilla.so for Android from the same pinned sources as build-native.sh,
-# with the NDK that scripts/android-ndk.sh installs. Usage: build-android.sh <arm64-v8a|x86_64> [cache directory]
+# with the NDK that `scripts/mise run bootstrap:android` links as .tools/android-ndk. Usage: build-android.sh <arm64-v8a|x86_64> [cache directory]
 set -eu
 cd "$(dirname "$0")"
 abi="${1:-}"
@@ -12,27 +12,12 @@ esac
 cache="${2:-obj/native}"
 mkdir -p "$cache"
 case "$(uname -s)" in Darwin) host=darwin-x86_64;; Linux) host=linux-x86_64;; *) echo 'The Android NDK needs macOS or Linux.' >&2; exit 1;; esac
-bin="$(sh ../../scripts/android-ndk.sh)/toolchains/llvm/prebuilt/$host/bin"
+bin="${ANDROID_NDK_HOME:-../../.tools/android-ndk}/toolchains/llvm/prebuilt/$host/bin"
 api=24
 
-# Downloads a pinned archive and unpacks it once.
-fetch() {
-    archive="$cache/$2"; target="$cache/$4"
-    if [ ! -f "$archive" ]; then
-        curl -fL --retry 3 "$1" -o "$archive.tmp"
-        mv "$archive.tmp" "$archive"
-    fi
-    printf '%s  %s\n' "$3" "$archive" | shasum -a 256 -c - >/dev/null
-    if [ ! -d "$target" ]; then
-        rm -rf "$target.partial"; mkdir -p "$target.partial"
-        tar -xzf "$archive" -C "$target.partial" --strip-components=1
-        mv "$target.partial" "$target"
-    fi
-}
-fetch https://www.scintilla.org/scintilla567.tgz scintilla567.tgz \
-    19e4476706750056f86ca70974810e4a5b08e73477e13f7d9fae78243606f6a7 scintilla-5.6.7
-fetch https://github.com/Tehreer/SheenBidi/archive/refs/tags/v3.0.0.tar.gz sheenbidi-3.0.0.tgz \
-    86c56014034739ba39a24c23eb00323b0bf6f737354f665786015fca842af786 sheenbidi-3.0.0
+# The Scintilla and SheenBidi sources are pinned and checksummed in mise.toml and linked by `scripts/mise run bootstrap`.
+scintilla=../../.tools/scintilla; bidi=../../.tools/sheenbidi
+[ -d "$scintilla/src" ] && [ -d "$bidi/Source" ] || { echo 'Run scripts/mise run bootstrap first.' >&2; exit 1; }
 
 # The patched tree is shared with build-native.sh, which owns the desktop objects; a changed patch
 # rebuilds it, and the fingerprint kept beside the Android objects rebuilds those.
@@ -41,7 +26,8 @@ out="$cache/android/$abi"
 fingerprint="$(shasum -a 256 Native/EditView.patch | cut -d' ' -f1)"
 if [ "$(cat "$source/.patch" 2>/dev/null)" != "$fingerprint" ]; then
     rm -rf "$source" "$source.partial"
-    cp -R "$cache/scintilla-5.6.7" "$source.partial"
+    cp -R "$scintilla/." "$source.partial"
+    chmod -R u+w "$source.partial"
     patch -s -p1 -d "$source.partial" < Native/EditView.patch
     echo "$fingerprint" > "$source.partial/.patch"
     mv "$source.partial" "$source"
@@ -51,7 +37,6 @@ if [ "$(cat "$out/.patch" 2>/dev/null)" != "$fingerprint" ]; then
     echo "$fingerprint" > "$out/.patch"
 fi
 
-bidi="$cache/sheenbidi-3.0.0"
 flags="-O2 -DNDEBUG -fPIC -fvisibility=hidden"
 [ -f "$out/SheenBidi.o" ] ||
     "$bin/$triple$api-clang" -std=c99 $flags -DSB_CONFIG_UNITY -I "$bidi/Headers" -I "$bidi/Source" -c "$bidi/Source/SheenBidi.c" -o "$out/SheenBidi.o"

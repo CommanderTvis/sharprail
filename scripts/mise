@@ -1,0 +1,16 @@
+#!/bin/sh
+# Entry point for every toolchain command: `scripts/mise run <task>`, `scripts/mise install`, `scripts/mise x -- <cmd>`.
+# It runs the mise release pinned (with checksums) in mise-pinned, against the tool store shared by all
+# checkouts: SHARPRAIL_TOOLS, default ~/.sharprail/tools. The checkout's mise.toml and mise.lock decide what is
+# installed there; the user's own mise configuration is ignored.
+set -eu
+root="$(cd "$(dirname "$0")/.." && pwd)"
+store="${SHARPRAIL_TOOLS:-$HOME/.sharprail/tools}"
+mkdir -p "$store"
+# mise's dotnet tool would adopt an SDK that DOTNET_ROOT points at (another checkout's, say) instead of installing the pin.
+unset DOTNET_ROOT DOTNET_ROOT_ARM64 DOTNET_ROOT_X64
+export SHARPRAIL_TOOLS="$store"
+export MISE_DATA_DIR="$store" MISE_CACHE_DIR="$store/cache" MISE_STATE_DIR="$store/state"
+export MISE_TRUSTED_CONFIG_PATHS="$root${MISE_TRUSTED_CONFIG_PATHS:+:$MISE_TRUSTED_CONFIG_PATHS}"
+export MISE_IGNORED_CONFIG_PATHS="$HOME/.config/mise${MISE_IGNORED_CONFIG_PATHS:+:$MISE_IGNORED_CONFIG_PATHS}"
+exec "$root/scripts/mise-pinned" "$@"

@@ -11,13 +11,14 @@ project="$PWD"
 cache="${2:-$project/obj/native}"
 mkdir -p "$cache"
 cache="$(cd "$cache" && pwd -P)"
-view_commit=6d2dd585a5d87fa745d48188dd096ca6e63014d0 # v1.2.3
-view_zig=0.14.1
-# libghostty-vt's C API for terminal and render state is unreleased; pin the main commit it was built against.
-vt_commit=59c2dc032aba42aa5064bf206cc27286add3e9d8
-vt_zig=0.16.0
+# The pins live in mise.toml's [env]; run this through `scripts/mise x --` (the MSBuild targets do). libghostty-vt's C API
+# for terminal and render state is unreleased, so its commit is a main commit rather than a release.
+view_commit="${GHOSTTY_VIEW_COMMIT:?Run through scripts/mise x -- (see mise.toml).}"
+view_zig="$GHOSTTY_VIEW_ZIG"
+vt_commit="$GHOSTTY_VT_COMMIT"
+vt_zig="$GHOSTTY_VT_ZIG"
 arch="$(uname -m)"
-case "$arch" in arm64) zig_arch=aarch64; rid_arch=arm64 ;; x86_64) zig_arch=x86_64; rid_arch=x64 ;; *) exit 1 ;; esac
+case "$arch" in arm64) rid_arch=arm64 ;; x86_64) rid_arch=x64 ;; *) exit 1 ;; esac
 case "${1:-}" in
   ''|"osx-$rid_arch") ;;
   *) echo 'The Ghostty libraries must be built on their target macOS architecture.' >&2; exit 1 ;;
@@ -26,27 +27,16 @@ esac
 while ! mkdir "$cache/build.lock" 2>/dev/null; do sleep 1; done
 trap 'rmdir "$cache/build.lock"' EXIT HUP INT TERM
 
-# Download into scratch locations so an interrupted run never leaves a partial tool behind.
+# The Zig toolchains are installed by `scripts/mise run bootstrap` and linked as .tools/zig-<version>.
 zig_path() {
-  dir="$cache/zig-$zig_arch-macos-$1"
-  if ! "$dir/zig" version >/dev/null 2>&1; then
-    rm -rf "$dir" "$cache/zig.partial"
-    mkdir "$cache/zig.partial"
-    curl -fL --retry 3 "https://ziglang.org/download/$1/zig-$zig_arch-macos-$1.tar.xz" -o "$cache/zig.partial/zig.tar.xz"
-    tar -xf "$cache/zig.partial/zig.tar.xz" -C "$cache/zig.partial"
-    mv "$cache/zig.partial/zig-$zig_arch-macos-$1" "$dir"
-    rm -rf "$cache/zig.partial"
-  fi
-  printf '%s\n' "$dir/zig"
+  [ -x "$project/../../.tools/zig-$1/zig" ] || { echo "No Zig $1 in .tools; run scripts/mise run bootstrap." >&2; exit 1; }
+  printf '%s\n' "$project/../../.tools/zig-$1/zig"
 }
 checkout() {
   dir="$cache/$1"
   if [ "$(git -C "$dir" rev-parse HEAD 2>/dev/null)" != "$2" ]; then
     rm -rf "$dir" "$dir.partial"
-    git init -q "$dir.partial"
-    git -C "$dir.partial" fetch -q --depth 1 https://github.com/ghostty-org/ghostty.git "$2"
-    git -C "$dir.partial" checkout -q FETCH_HEAD
-    [ "$(git -C "$dir.partial" rev-parse HEAD)" = "$2" ] || { echo 'Unexpected Ghostty source revision' >&2; exit 1; }
+    sh "$project/../../scripts/fetch-git.sh" "$dir.partial" https://github.com/ghostty-org/ghostty.git "$2"
     mv "$dir.partial" "$dir"
   fi
 }

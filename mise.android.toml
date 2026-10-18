@@ -1,0 +1,17 @@
+# Loaded with MISE_ENV=android (the bootstrap:android task): the NDK the Android client's native libraries are
+# built with, kept out of the default install because it is large.
+[settings]
+lockfile = true
+
+[tools."http:android-ndk"]
+version = "r27d"
+os = ["macos", "linux"]
+[tools."http:android-ndk".platforms.macos-arm64]
+url = "https://dl.google.com/android/repository/android-ndk-r27d-darwin.zip"
+checksum = "sha256:e69092f9d2bfa5d1199039980a14eb91c03cc971ab5c6968fc08a8e6b84e7bb7"
+[tools."http:android-ndk".platforms.macos-x64]
+url = "https://dl.google.com/android/repository/android-ndk-r27d-darwin.zip"
+checksum = "sha256:e69092f9d2bfa5d1199039980a14eb91c03cc971ab5c6968fc08a8e6b84e7bb7"
+[tools."http:android-ndk".platforms.linux-x64]
+url = "https://dl.google.com/android/repository/android-ndk-r27d-linux.zip"
+checksum = "sha256:601246087a682d1944e1e16dd85bc6e49560fe8b6d61255be2829178c8ed15d9"

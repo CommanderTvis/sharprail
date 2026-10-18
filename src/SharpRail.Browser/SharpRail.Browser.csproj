@@ -9,7 +9,7 @@
     <DefineConstants Condition="'$(BrowserChecks)' == 'true'">$(DefineConstants);BROWSER_CHECKS</DefineConstants>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <BrowserBinaryen>$(MSBuildProjectDirectory)/../../.tools/wasm-native/binaryen</BrowserBinaryen>
+    <BrowserBinaryen>$(MSBuildProjectDirectory)/../../.tools/binaryen</BrowserBinaryen>
     <EmccFlags>$(EmccFlags) -Wno-version-check</EmccFlags>
     <SharpRailBrowserAot Condition="'$(SharpRailBrowserAot)' == '' and '$(Configuration)' == 'Release'">true</SharpRailBrowserAot>
     <SharpRailBrowserAot Condition="'$(SharpRailBrowserAot)' == ''">false</SharpRailBrowserAot>
@@ -85,8 +85,8 @@
     <Exec Command="node &quot;$(MSBuildProjectDirectory)/../../scripts/browser-compress.mjs&quot; &quot;$(WasmAppDir)&quot;" />
   </Target>
   <Target Name="BuildBrowserNative" BeforeTargets="PrepareForBuild">
-    <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/browser-binaryen.sh&quot;" />
-    <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/wasm-native.sh&quot;" />
+    <Exec Command="sh &quot;$(MSBuildProjectDirectory)/../../scripts/mise&quot; run bootstrap:browser" />
+    <Exec EnvironmentVariables="MISE_ENV=browser" Command="$(MiseRun) sh &quot;$(MSBuildProjectDirectory)/../../scripts/wasm-native.sh&quot;" />
     <Exec Command="node &quot;$(MSBuildProjectDirectory)/../../scripts/browser-assets.mjs&quot;" />
     <ItemGroup>
       <BrowserAsset Include="wwwroot/**/*" />

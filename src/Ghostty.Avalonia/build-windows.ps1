@@ -8,7 +8,8 @@ $buildLock = Enter-NativeBuild $Cache
 try {
     $out = Join-Path $Cache $RuntimeIdentifier
     New-Item -ItemType Directory $out -Force | Out-Null
-    $commit = '59c2dc032aba42aa5064bf206cc27286add3e9d8'
+    $commit = $env:GHOSTTY_VT_COMMIT
+    if (!$commit) { throw 'Run through scripts\mise x -- (see mise.toml).' }
     $fingerprint = $commit + $target + (Get-NativeFingerprint @($PSCommandPath, "$PSScriptRoot/../../scripts/windows-native.ps1", "$PSScriptRoot/Native/GhosttyVt.c", "$PSScriptRoot/Native/GhosttyClipboardStub.c"))
     $stamp = Join-Path $out 'fingerprint'
     $library = Join-Path $out 'GhosttyAvaloniaVt.dll'

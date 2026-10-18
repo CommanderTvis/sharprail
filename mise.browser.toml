@@ -1,0 +1,25 @@
+# Loaded with MISE_ENV=browser (the bootstrap:browser task): the toolchain of the WASM client.
+[settings]
+lockfile = true
+
+[tools]
+node = "24.11.0"
+pnpm = "10.20.0"
+uv = "0.9.5"
+
+# Binaryen for the browser build's wasm-opt.
+[tools."http:binaryen"]
+version = "131"
+os = ["macos", "linux"]
+[tools."http:binaryen".platforms.macos-arm64]
+url = "https://github.com/WebAssembly/binaryen/releases/download/version_131/binaryen-version_131-arm64-macos.tar.gz"
+checksum = "sha256:e441b48dc22163d209b4f05e44dc7210909b01237642b6c9ae48fd710a3ef83e"
+[tools."http:binaryen".platforms.macos-x64]
+url = "https://github.com/WebAssembly/binaryen/releases/download/version_131/binaryen-version_131-x86_64-macos.tar.gz"
+checksum = "sha256:d209fadd8a894bdaf3bd3612a23c32a0af184d2f4a979b8c789e6e4f6a4de883"
+[tools."http:binaryen".platforms.linux-x64]
+url = "https://github.com/WebAssembly/binaryen/releases/download/version_131/binaryen-version_131-x86_64-linux.tar.gz"
+checksum = "sha256:b5bf1f0eaf17c63ee588ff7a5954dc8f6ce2c26989051c66f24dfe9ece3e46db"
+[tools."http:binaryen".platforms.linux-arm64]
+url = "https://github.com/WebAssembly/binaryen/releases/download/version_131/binaryen-version_131-aarch64-linux.tar.gz"
+checksum = "sha256:ba991f677edd9a21d2bc96c0144bc8ac5b112d4d98a3eb266e075e22e557df2a"

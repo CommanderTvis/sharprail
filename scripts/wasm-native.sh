@@ -25,33 +25,13 @@ export FROZEN_CACHE=False
 emcc() { uv run --no-project --python "$python" "$sdk/emscripten/emcc.py" "$@"; }
 emar() { uv run --no-project --python "$python" "$sdk/emscripten/emar.py" "$@"; }
 
-fetch() {
-    archive="$cache/$2"
-    if [ ! -f "$archive" ]; then curl -fL --retry 3 "$1" -o "$archive.partial"; mv "$archive.partial" "$archive"; fi
-    printf '%s  %s\n' "$3" "$archive" | shasum -a 256 -c - >/dev/null
-    if [ ! -d "$cache/$4" ]; then
-        mkdir -p "$cache/$4.partial"
-        tar -xzf "$archive" -C "$cache/$4.partial" --strip-components=1
-        mv "$cache/$4.partial" "$cache/$4"
-    fi
-}
-
-vt_commit="$(sed -n 's/^vt_commit=//p' src/Ghostty.Avalonia/build-native.sh)"
-vt_zig="$(sed -n 's/^vt_zig=//p' src/Ghostty.Avalonia/build-native.sh)"
-zig="$root/.tools/ghostty-avalonia/zig-$zig_host-$vt_zig"
-if [ ! -f "$zig/zig" ]; then
-    mkdir -p "$cache/zig.partial"
-    curl -fL --retry 3 "https://ziglang.org/download/$vt_zig/zig-$zig_host-$vt_zig.tar.xz" -o "$cache/zig.partial/zig.tar.xz"
-    tar -xf "$cache/zig.partial/zig.tar.xz" -C "$cache/zig.partial"
-    mkdir -p "$(dirname "$zig")"
-    mv "$cache/zig.partial/zig-$zig_host-$vt_zig" "$zig"
-fi
+vt_commit="${GHOSTTY_VT_COMMIT:?Run through scripts/mise x -- (see mise.toml).}"
+zig="$root/.tools/zig-$GHOSTTY_VT_ZIG"
+[ -x "$zig/zig" ] || { echo "No Zig $GHOSTTY_VT_ZIG in .tools; run scripts/mise run bootstrap." >&2; exit 1; }
 patch_hash="$(shasum -a 256 src/Ghostty.Avalonia/Native/Wasm.patch | cut -c1-16)"
 source="$cache/ghostty-$vt_commit-$patch_hash"
 if [ ! -d "$source" ]; then
-    git init -q "$source.partial"
-    git -C "$source.partial" fetch -q --depth 1 https://github.com/ghostty-org/ghostty.git "$vt_commit"
-    git -C "$source.partial" checkout -q FETCH_HEAD
+    sh scripts/fetch-git.sh "$source.partial" https://github.com/ghostty-org/ghostty.git "$vt_commit"
     patch -s -p1 -d "$source.partial" < src/Ghostty.Avalonia/Native/Wasm.patch
     mv "$source.partial" "$source"
 fi
@@ -63,22 +43,20 @@ emcc -pthread -O2 -DGHOSTTY_STATIC -I "$source/include" -c src/Ghostty.Avalonia/
 cp "$cache/ghostty/lib/libghostty-vt.a" "$cache/GhosttyAvaloniaVt.a"
 emar r "$cache/GhosttyAvaloniaVt.a" "$cache/GhosttyVt.o"
 
-fetch https://www.scintilla.org/scintilla567.tgz scintilla567.tgz \
-    19e4476706750056f86ca70974810e4a5b08e73477e13f7d9fae78243606f6a7 scintilla-5.6.7
-fetch https://github.com/Tehreer/SheenBidi/archive/refs/tags/v3.0.0.tar.gz sheenbidi-3.0.0.tgz \
-    86c56014034739ba39a24c23eb00323b0bf6f737354f665786015fca842af786 sheenbidi-3.0.0
+scintilla="$root/.tools/scintilla"
+bidi="$root/.tools/sheenbidi"
 patched="$cache/scintilla-patched"
 patch_hash="$(shasum -a 256 src/SharpRail.Scintilla/Native/EditView.patch)"
 if [ "$(cat "$patched/.patch" 2>/dev/null)" != "$patch_hash" ]; then
     # Each patch revision has its own source directory; existing build inputs stay intact.
     patched="$cache/scintilla-$(printf '%s' "$patch_hash" | cut -c1-16)"
     if [ ! -d "$patched" ]; then
-        cp -R "$cache/scintilla-5.6.7" "$patched"
+        cp -R "$scintilla/." "$patched"
+        chmod -R u+w "$patched"
         patch -s -p1 -d "$patched" < src/SharpRail.Scintilla/Native/EditView.patch
         printf '%s\n' "$patch_hash" > "$patched/.patch"
     fi
 fi
-bidi="$cache/sheenbidi-3.0.0"
 mkdir -p "$cache/editor"
 emcc -pthread -O2 -DSB_CONFIG_UNITY -I "$bidi/Headers" -I "$bidi/Source" -c "$bidi/Source/SheenBidi.c" -o "$cache/editor/SheenBidi.o"
 for file in "$patched"/src/*.cxx "$root"/src/SharpRail.Scintilla/Native/*.cxx; do

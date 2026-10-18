@@ -1,0 +1,81 @@
+# The toolchain manifest of this checkout. `scripts/mise run bootstrap` installs the pins below into the tool store
+# shared by all checkouts (SHARPRAIL_TOOLS, default ~/.sharprail/tools) and links them into .tools; mise.lock holds
+# the resolved versions and archive checksums of every platform and is committed. The Android NDK
+# (mise.android.toml) and the browser toolchain (mise.browser.toml) have their own files and locks so that the
+# default install stays small. Pinned here as well: the .NET SDK (global.json must name the same version) and the
+# Ghostty commits. Whatever mise cannot express stays in the recipe that builds it, which reads its pin from [env].
+min_version = "2026.10.13"
+
+[settings]
+lockfile = true
+
+[tools]
+dotnet = "10.0.401"
+# libghostty (the macOS view) builds with 0.14.1, libghostty-vt with 0.16.0.
+zig = ["0.14.1", "0.16.0"]
+
+# mise's core Zig has no Windows ARM64 build, so the Windows natives use this archive on both architectures.
+[tools."http:zig-windows"]
+version = "0.16.0"
+os = ["windows"]
+[tools."http:zig-windows".platforms.windows-x64]
+url = "https://ziglang.org/download/0.16.0/zig-x86_64-windows-0.16.0.zip"
+checksum = "sha256:68659eb5f1e4eb1437a722f1dd889c5a322c9954607f5edcf337bc3684a75a7e"
+[tools."http:zig-windows".platforms.windows-arm64]
+url = "https://ziglang.org/download/0.16.0/zig-aarch64-windows-0.16.0.zip"
+checksum = "sha256:aee38316ee4111717900f45dd3130145c39289e105541d737eb8c5ed653c78ef"
+
+# Merman's release publishes its C ABI for Apple platforms as a static xcframework; the UI links it into a dylib.
+[tools."http:merman"]
+version = "0.7.0"
+os = ["macos"]
+url = "https://github.com/Latias94/merman/releases/download/v0.7.0/Merman.xcframework-v0.7.0.zip"
+checksum = "sha256:29a46ea5da99bad60888581073e88345ce370366a4855b4e2996355a7d0e880b"
+
+# Sources of the editor bridge (desktop, Android and WASM builds).
+[tools."http:scintilla"]
+version = "5.6.7"
+url = "https://www.scintilla.org/scintilla567.tgz"
+checksum = "sha256:19e4476706750056f86ca70974810e4a5b08e73477e13f7d9fae78243606f6a7"
+[tools."http:sheenbidi"]
+version = "3.0.0"
+url = "https://github.com/Tehreer/SheenBidi/archive/refs/tags/v3.0.0.tar.gz"
+checksum = "sha256:86c56014034739ba39a24c23eb00323b0bf6f737354f665786015fca842af786"
+
+[env]
+# Pinned Ghostty revisions, fetched by commit by the recipes that build them, with the Zig each builds with
+# (a version listed under [tools], linked as .tools/zig-<version>).
+GHOSTTY_VIEW_COMMIT = "6d2dd585a5d87fa745d48188dd096ca6e63014d0" # v1.2.3
+GHOSTTY_VIEW_ZIG = "0.14.1"
+GHOSTTY_VT_COMMIT = "59c2dc032aba42aa5064bf206cc27286add3e9d8"
+GHOSTTY_VT_ZIG = "0.16.0"
+# Zig's global cache (fetched package sources, compiled helpers) is content-addressed and locks per entry, so
+# checkouts share one; the per-build caches stay beside each checkout's outputs.
+ZIG_GLOBAL_CACHE_DIR = "{{ env.SHARPRAIL_TOOLS }}/zig-cache"
+
+[tasks.bootstrap]
+description = "Install the pinned toolchain into the shared store and link it into .tools"
+run = [
+  '"{{mise_bin}}" install dotnet zig http:merman http:scintilla http:sheenbidi',
+  'sh scripts/link-tools.sh "{{mise_bin}}" dotnet=dotnet zig-0.14.1=zig@0.14.1 zig-0.16.0=zig@0.16.0 merman=http:merman scintilla=http:scintilla sheenbidi=http:sheenbidi',
+]
+run_windows = [
+  '"{{mise_bin}}" install dotnet http:zig-windows http:scintilla http:sheenbidi',
+  'powershell -NoProfile -ExecutionPolicy Bypass -File scripts/link-tools.ps1 "{{mise_bin}}" dotnet=dotnet zig-windows=http:zig-windows scintilla=http:scintilla sheenbidi=http:sheenbidi',
+]
+
+[tasks."bootstrap:android"]
+description = "Install the Android NDK into the shared store and link it into .tools"
+env = { MISE_ENV = "android" }
+run = [
+  '"{{mise_bin}}" install http:android-ndk',
+  'sh scripts/link-tools.sh "{{mise_bin}}" android-ndk=http:android-ndk',
+]
+
+[tasks."bootstrap:browser"]
+description = "Install Node, pnpm, uv and Binaryen into the shared store and link them into .tools"
+env = { MISE_ENV = "browser" }
+run = [
+  '"{{mise_bin}}" install',
+  'sh scripts/link-tools.sh "{{mise_bin}}" node=node pnpm=pnpm uv=uv binaryen=http:binaryen',
+]
