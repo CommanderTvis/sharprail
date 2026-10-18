@@ -77,7 +77,11 @@ public sealed class NewWorkspaceDialog
         description.IsVisible = true;
         fields.Children.Add(description);
 
-        fields.Children.Add(ProjectPicker(projects));
+        var sourcePickers = new WrapPanel { Orientation = Orientation.Horizontal };
+        var projectPicker = ProjectPicker(projects);
+        projectPicker.Margin = new Thickness(0, 0, 8, 0);
+        sourcePickers.Children.Add(projectPicker);
+        fields.Children.Add(sourcePickers);
 
         branchLabel = Ui.Text("", Ui.TextBrush);
         var pickerContent = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
@@ -112,7 +116,7 @@ public sealed class NewWorkspaceDialog
         var flyout = new Flyout { Content = list, Placement = PlacementMode.BottomEdgeAlignedLeft };
         branchPicker.Flyout = flyout;
         flyout.Opened += (_, _) => { search.Text = ""; RenderOptions(); search.Focus(); };
-        fields.Children.Add(branchPicker);
+        sourcePickers.Children.Add(branchPicker);
         currentBranch = Ui.Text("", Ui.TextBrush);
         currentBranch.Name = "WsCurrentBranch";
         fields.Children.Add(currentBranch);
@@ -195,6 +199,9 @@ public sealed class NewWorkspaceDialog
             launcher = choice;
             openTerminal = terminal || choice is not null;
             command.IsVisible = openTerminal;
+            var commandLabel = promptFields.FindControl<TextBlock>("WsCommandLabel")!;
+            commandLabel.IsVisible = openTerminal;
+            commandLabel.Text = choice is null ? "Terminal command" : $"{choice.Label} command and arguments";
             defaultCommand = choice?.TerminalCommand(new()) ?? "";
             command.Text = openTerminal ? commands.GetValueOrDefault(choice?.Id ?? "terminal") ?? defaultCommand : "";
             promptFields.FindControl<WrapPanel>("WsImages")!.IsEnabled = choice is not null;

@@ -95,7 +95,9 @@ expressions, a case toggle, a glob filter and replace.
   project session, so the window does not move and the base returns to that project's default; a project
   whose branches cannot be read is reported and leaves the dialog where it was. Submitting for another
   project opens its Project Home first, then creates or enters the workspace there.
-- Worktree mode shows the project and a base-branch trigger reading “From {base}”. Its flyout is a searchable
+- Worktree mode shows the project and a base-branch trigger reading “From {base}” on one row,
+  wrapping on narrow screens. The starting command has a visible label naming the selected agent
+  and its arguments, or Terminal command for a plain shell. The base-branch flyout is a searchable
   list grouped Local, then Remote with one subgroup per remote whose rows show the branch name without the
   remote; the full ref stays each row's identity and automation name. The host's default base is marked
   `default`. Enter in the search picks the first match, Escape returns to the trigger.
