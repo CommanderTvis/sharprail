@@ -197,15 +197,35 @@ public interface IPluginHostContext
 
     /// <summary>
     /// Contributes one list item to the guidance on SharpRail's MCP tools that agent plugins put in the
-    /// instructions of sessions they launch (H20). It is offered only while the plugin is enabled, so a disabled
-    /// plugin leaves no trace in the instructions.
+    /// instructions of sessions they launch (H20), for every agent. It is a <see cref="PromptContribution"/> with
+    /// <see cref="PromptPlacement.ToolList"/> and a generated identifier. It is offered only while the plugin is
+    /// enabled, so a disabled plugin leaves no trace in the instructions.
     /// </summary>
     /// <param name="text">The item's text, without a leading list marker. It describes the plugin's tools and when to use them.</param>
     void ToolGuidance(string text);
 
     /// <summary>
+    /// Contributes text to the instructions agent plugins give sessions (H20). It is offered only while the plugin
+    /// is enabled, and only while its <see cref="PromptContribution.When"/> holds.
+    /// </summary>
+    /// <param name="contribution">The contribution.</param>
+    /// <exception cref="ArgumentException">The identifier is malformed or already registered by this plugin, or the text is empty, too long or has control characters.</exception>
+    void Prompt(PromptContribution contribution);
+
+    /// <summary>
+    /// Lists the texts the host and every enabled plugin contribute for one agent and placement (H20): the host's own
+    /// first, then the plugins' by order hint and activation order, leaving out those whose condition does not hold. An
+    /// agent plugin reads it when it composes the instructions of a session.
+    /// </summary>
+    /// <param name="agent">The agent plugin id.</param>
+    /// <param name="placement">Which texts to list.</param>
+    /// <returns>The texts, without list markers.</returns>
+    IReadOnlyList<string> PromptTexts(string agent, PromptPlacement placement);
+
+    /// <summary>
     /// Lists the guidance every enabled plugin contributed with <see cref="ToolGuidance"/> (H20), in activation
-    /// order. An agent plugin reads it when it composes the instructions of a session.
+    /// order. It is <see cref="PromptTexts"/> for every agent with <see cref="PromptPlacement.ToolList"/>; an agent
+    /// plugin should call that with its own id instead.
     /// </summary>
     /// <returns>The items, without list markers.</returns>
     IReadOnlyList<string> ToolGuidanceSections();

@@ -756,8 +756,48 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
 
     // Tools
 
-    /// <summary>The tool guidance every active plugin contributed, in activation order.</summary>
-    internal IReadOnlyList<string> ToolGuidanceSections() => [.. Active().SelectMany(active => active.Tables.Guidance)];
+    // Prompt contributions
+
+    /// <summary>The list items contributed for every agent.</summary>
+    internal IReadOnlyList<string> ToolGuidanceSections() => PromptTexts("", PromptPlacement.ToolList);
+
+    /// <summary>Checks a contribution's identifier and text against the bounds the API documents.</summary>
+    internal static void CheckPrompt(PromptContribution contribution)
+    {
+        var id = contribution.Id;
+        if (string.IsNullOrEmpty(id) || id.Length > 64 || !id.All(c => c is >= 'a' and <= 'z' or >= '0' and <= '9' or '.' or '-' or '_'))
+            throw new ArgumentException("a prompt contribution's id is 1 to 64 lower-case letters, digits, '.', '-' or '_'", nameof(contribution));
+        CheckPromptText(contribution.Text);
+    }
+
+    internal static string CheckPromptText(string? text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) throw new ArgumentException("prompt text is empty", nameof(text));
+        if (text.Length > PromptContribution.MaxTextLength) throw new ArgumentException($"prompt text is longer than {PromptContribution.MaxTextLength} characters", nameof(text));
+        if (text.Any(c => char.IsControl(c) && c is not ('\n' or '\t'))) throw new ArgumentException("prompt text has control characters", nameof(text));
+        return text;
+    }
+
+    /// <summary>
+    /// The texts for one agent and placement: the host's own first, then every active plugin's by order hint and
+    /// activation order, without those whose condition is false. An empty <paramref name="agent"/> matches every agent
+    /// contribution but none addressed to one agent.
+    /// </summary>
+    internal IReadOnlyList<string> PromptTexts(string agent, PromptPlacement placement)
+    {
+        bool Applies(PromptContribution item, string owner)
+        {
+            if (item.Placement != placement || item.Agent is { } target && target != agent) return false;
+            if (item.When is null) return true;
+            var holds = false;
+            Guard(owner, () => holds = item.When());
+            return holds;
+        }
+        var core = CorePrompt.Contributions(() => Seams.State.Current.Settings.LspEnabled).Where(item => Applies(item, "host"));
+        var plugins = Active().SelectMany(active => active.Tables.Prompts.Select(item => (active.Entry.Id, item)))
+            .Where(pair => Applies(pair.item, pair.Id)).OrderBy(pair => pair.item.Order);
+        return [.. core.Select(item => item.Text), .. plugins.Select(pair => pair.item.Text)];
+    }
 
     internal string? ToolClash(string name, ActivationTables self)
     {

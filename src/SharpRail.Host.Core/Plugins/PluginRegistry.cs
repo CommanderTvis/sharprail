@@ -30,7 +30,7 @@ internal sealed class ActivationTables(long id)
     public ImmutableList<Func<TerminalRef, TerminalAgentRecord, RevivePrefill?>> ReviveHooks { get; set; } = [];
     public ImmutableList<Action<WorkspaceEvent>> WorkspaceObservers { get; set; } = [];
     public ImmutableList<Action<WorkspaceFilesChanged>> FileObservers { get; set; } = [];
-    public ImmutableList<string> Guidance { get; set; } = [];
+    public ImmutableList<PromptContribution> Prompts { get; set; } = [];
     public ImmutableList<Action<JsonElement>> SettingsObservers { get; set; } = [];
     // Dependency subscriptions and workspace watches, released when the activation ends.
     public ImmutableList<IDisposable> Resources { get; set; } = [];

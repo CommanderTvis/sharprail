@@ -30,15 +30,15 @@ internal static partial class AirContextChecks
         // A fresh profile: the plugin is off, so nothing is served, said or shown until the user turns it on.
         Require((await rig.Plugins.ListAsync()).Single(entry => entry.Id == AirContextContract.Id).Status == PluginStatus.Disabled, "A fresh profile started Air Context.");
         Require(rig.Tools(workspace).Count == 0 && rig.Runtime.ToolGuidanceSections().Count == 0, "A fresh profile served Air Context tools or instructions.");
-        Require(!SharpRail.Plugins.ClaudeCode.Host.SystemPrompt.Compose(rig.Runtime.ToolGuidanceSections()).Contains("Air Context", StringComparison.Ordinal), "A fresh profile mentioned Air Context in the instructions.");
+        Require(!SharpRail.Plugins.ClaudeCode.Host.SystemPrompt.Compose(rig.Runtime.ToolGuidanceSections(), []).Contains("Air Context", StringComparison.Ordinal), "A fresh profile mentioned Air Context in the instructions.");
         await rig.Enable(true);
         var review = await rig.Consent(new());
         await rig.Consent(new("acceptAndDownload", review.ArtifactId, review.TermsSha256));
         Require((await rig.Workspace(workspace, "enable")).Enabled, "Enabling the workspace failed.");
 
         var terminal = new TerminalRef(workspace, "lifecycle");
-        string Claude(IReadOnlyList<string> guidance) => SharpRail.Plugins.ClaudeCode.Host.SystemPrompt.Compose(guidance);
-        string Codex(IReadOnlyList<string> guidance) => SharpRail.Plugins.Codex.Host.CodexSystemPrompt.Compose(guidance);
+        string Claude(IReadOnlyList<string> guidance) => SharpRail.Plugins.ClaudeCode.Host.SystemPrompt.Compose(guidance, []);
+        string Codex(IReadOnlyList<string> guidance) => SharpRail.Plugins.Codex.Host.CodexSystemPrompt.Compose(guidance, []);
         Require(rig.Tools(workspace).Select(tool => tool.Name).Order().SequenceEqual(ToolNames), "The enabled plugin did not serve its tools.");
         var guidance = rig.Runtime.ToolGuidanceSections();
         Require(guidance.Count == 1 && Claude(guidance).Contains("`context_search`", StringComparison.Ordinal) && Codex(guidance).Contains("Air Context (`jbcontext`)", StringComparison.Ordinal),

@@ -138,3 +138,54 @@ public sealed record PluginHttpResponse(int Status)
     /// <summary>Additional response headers.</summary>
     public IReadOnlyDictionary<string, string> Headers { get; init; } = new Dictionary<string, string>();
 }
+
+/// <summary>Where an agent plugin puts a <see cref="PromptContribution"/> in the instructions of a session (H20).</summary>
+public enum PromptPlacement
+{
+    /// <summary>A list item in the guidance on SharpRail's MCP tools, ahead of the host's own text.</summary>
+    ToolList,
+
+    /// <summary>A block of text after the host's own text.</summary>
+    Section,
+}
+
+/// <summary>
+/// Text a plugin adds to the instructions agent plugins give sessions (H20). The text is data: it is bounded in size
+/// and carries no control characters other than line feeds and tabs, and is placed as written.
+/// </summary>
+public sealed class PromptContribution
+{
+    /// <summary>The largest text, in characters.</summary>
+    public const int MaxTextLength = 16_000;
+
+    /// <summary>
+    /// The contribution's stable identifier within its plugin: lower-case letters, digits, <c>.</c>, <c>-</c> and
+    /// <c>_</c>, at most 64 characters. Registering an identifier twice in one activation is an error.
+    /// </summary>
+    public required string Id { get; init; }
+
+    /// <summary>The text. A <see cref="PromptPlacement.ToolList"/> item is written without a list marker.</summary>
+    public required string Text { get; init; }
+
+    /// <summary>Where the text goes. The default is <see cref="PromptPlacement.ToolList"/>.</summary>
+    public PromptPlacement Placement { get; init; } = PromptPlacement.ToolList;
+
+    /// <summary>
+    /// The agent plugin id the text is for, such as <c>claude-code</c> or <c>codex</c>, or <see langword="null"/>
+    /// for every agent.
+    /// </summary>
+    public string? Agent { get; init; }
+
+    /// <summary>
+    /// The order hint. Contributions are placed by ascending hint, those with the same hint in activation order. The
+    /// host's own text always comes first.
+    /// </summary>
+    public int Order { get; init; }
+
+    /// <summary>
+    /// A condition evaluated each time instructions are composed, which is on every activation of an agent plugin and
+    /// for every terminal it starts; the text is left out while it returns <see langword="false"/>. It must be quick and
+    /// must not throw (a throw leaves the text out). <see langword="null"/> always includes the text.
+    /// </summary>
+    public Func<bool>? When { get; init; }
+}

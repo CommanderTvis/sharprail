@@ -167,7 +167,20 @@ internal sealed class PluginHostContext(PluginRuntime runtime, PluginEntry entry
 
     public string? StateDirectory => runtime.Seams.StateDirectory is { } directory ? Path.Combine(directory, "plugin-state", Id, "files") : null;
 
-    public void ToolGuidance(string text) => Register(table => table.Guidance = table.Guidance.Add(text));
+    public void ToolGuidance(string text) => Register(table => table.Prompts = table.Prompts.Add(new PromptContribution { Id = "tool-guidance-" + table.Prompts.Count, Text = PluginRuntime.CheckPromptText(text) }));
+
+    public void Prompt(PromptContribution contribution)
+    {
+        PluginRuntime.CheckPrompt(contribution);
+        lock (tables.Registration)
+        {
+            if (tables.Prompts.Any(existing => existing.Id == contribution.Id))
+                throw new ArgumentException($"plugin {Id} registers prompt contribution \"{contribution.Id}\" twice", nameof(contribution));
+        }
+        Register(table => table.Prompts = table.Prompts.Add(contribution));
+    }
+
+    public IReadOnlyList<string> PromptTexts(string agent, PromptPlacement placement) => runtime.PromptTexts(agent, placement);
 
     public IReadOnlyList<string> ToolGuidanceSections() => runtime.ToolGuidanceSections();
 

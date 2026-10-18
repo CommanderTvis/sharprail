@@ -160,6 +160,8 @@ internal static class PluginHostChecks
         await Settings(Path.Combine(directory, "settings"));
         await Tools(Path.Combine(directory, "tools"));
         await Guidance(Path.Combine(directory, "guidance"));
+        await PromptContributions(Path.Combine(directory, "prompt-contributions"));
+        await PromptChecks.Run(Path.Combine(directory, "prompts"));
         await Shutdown(Path.Combine(directory, "shutdown"));
         await External(Path.Combine(directory, "external"));
         await ExternalFiles(Path.Combine(directory, "external-files"));
@@ -579,6 +581,46 @@ internal static class PluginHostChecks
         await composed.Enable("guiding");
         Require(composed.Runtime.ToolGuidanceSections().Count == 1, "Enabling it again restores the guidance without duplicating it.");
         Console.WriteLine("PASS plugin tool guidance: contributed while enabled, absent when disabled, read across plugins; own file directory under the state directory");
+    }
+
+    private static async Task PromptContributions(string directory)
+    {
+        var conditional = true;
+        var first = new Module(Contract("first", Say), context =>
+        {
+            context.Prompt(new PromptContribution { Id = "late", Text = "late", Order = 5 });
+            context.Prompt(new PromptContribution { Id = "early", Text = "early", Order = -5 });
+            context.Prompt(new PromptContribution { Id = "claude-only", Text = "claude only", Agent = "claude-code" });
+            context.Prompt(new PromptContribution { Id = "gated", Text = "gated", Placement = PromptPlacement.Section, When = () => conditional });
+            context.Prompt(new PromptContribution { Id = "throws", Text = "throws", Placement = PromptPlacement.Section, When = () => throw new InvalidOperationException("no") });
+            foreach (var bad in new[] { new PromptContribution { Id = "late", Text = "again" }, new PromptContribution { Id = "Bad Id", Text = "x" },
+                new PromptContribution { Id = "empty", Text = " " }, new PromptContribution { Id = "control", Text = "a\u001b[31mb" },
+                new PromptContribution { Id = "long", Text = new string('x', PromptContribution.MaxTextLength + 1) } })
+            {
+                var refused = false;
+                try { context.Prompt(bad); } catch (ArgumentException) { refused = true; }
+                Require(refused, "A malformed or duplicate prompt contribution is refused: " + bad.Id);
+            }
+            return ValueTask.FromResult<PluginDisposer?>(null);
+        });
+        var second = new Module(Contract("second", Other), context =>
+        {
+            context.Prompt(new PromptContribution { Id = "late", Text = "second late", Order = 5 });
+            return ValueTask.FromResult<PluginDisposer?>(null);
+        });
+        await using var composed = await Compose(directory, [(Manifest("first"), first), (Manifest("second"), second)]);
+        await composed.Enable("first");
+        await composed.Enable("second");
+        Require(composed.Runtime.PromptTexts("claude-code", PromptPlacement.ToolList).SequenceEqual(["early", "claude only", "late", "second late"]),
+            "Items are ordered by hint then activation, and an agent-addressed one reaches only that agent: " + string.Join("|", composed.Runtime.PromptTexts("claude-code", PromptPlacement.ToolList)));
+        Require(composed.Runtime.PromptTexts("codex", PromptPlacement.ToolList).SequenceEqual(["early", "late", "second late"]), "Another agent does not see an addressed item.");
+        Require(composed.Runtime.PromptTexts("codex", PromptPlacement.Section).Any(text => text == "gated"), "A condition that holds includes the text.");
+        conditional = false;
+        Require(!composed.Runtime.PromptTexts("codex", PromptPlacement.Section).Contains("gated") && !composed.Runtime.PromptTexts("codex", PromptPlacement.Section).Contains("throws"),
+            "A condition is evaluated at composition time, and one that throws leaves the text out.");
+        await composed.Enable("first", false);
+        Require(composed.Runtime.PromptTexts("claude-code", PromptPlacement.ToolList).SequenceEqual(["second late"]), "Contributions end with the activation.");
+        Console.WriteLine("PASS prompt contributions: ordering, agent filter, conditions, validation, bound to the activation");
     }
 
     private static async Task Shutdown(string directory)

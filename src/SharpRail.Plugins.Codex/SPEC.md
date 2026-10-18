@@ -225,6 +225,8 @@ A separate paragraph of the system prompt documents the project's `.sharprail/la
 server options shared through the project; see the [language services](../SharpRail.Host.Core/Language/SPEC.md#project-language-file)
 spec): agents edit it directly, keep comments and unknown keys, and put no host paths or secrets in it.
 
+The instruction text is composed from the host's and the enabled plugins' prompt contributions (Plugin API H20, `PromptTexts`): the plugins' tool items ahead of the text above, and sections after it. The Code Intelligence paragraphs (`lsp_*` tools and `.sharprail/language.toml`) are the host's own text, contributed by the host as a section after this file's text only while language services are enabled. The file is rewritten on activation and for each started terminal, so toggling a plugin or that setting reaches the next terminal; an edited file is left alone.
+
 Agent LSP guidance prefers qualified outline queries over guessed positions, dependency scope and
 bounded source retrieval with the returned URI/source provider. Reuse warm sessions and poll import
 readiness; retain text-search fallbacks for incomplete or unsupported semantic results.

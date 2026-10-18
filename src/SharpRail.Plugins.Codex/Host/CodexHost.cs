@@ -110,7 +110,7 @@ public sealed class CodexHost : PluginHostModule
         context.Method(CodexContract.SystemPromptGet, (_, _, _) =>
             ValueTask.FromResult(new CodexSystemPromptFile(CodexSystemPrompt.FilePath(), CodexSystemPrompt.Edited())));
         context.Method(CodexContract.SystemPromptReset, (_, _, _) =>
-            ValueTask.FromResult(new CodexSystemPromptFile(CodexSystemPrompt.Write(context.ToolGuidanceSections(), reset: true), false)));
+            ValueTask.FromResult(new CodexSystemPromptFile(CodexSystemPrompt.Write(context.PromptTexts(CodexManifest.Id, PromptPlacement.ToolList), context.PromptTexts(CodexManifest.Id, PromptPlacement.Section), reset: true), false)));
         context.Method(CodexContract.StatusSnapshot, (parameters, _, _) => ValueTask.FromResult(statuses.Snapshot(parameters.WorkspaceId)));
 
         context.Route((request, _) =>
@@ -163,7 +163,7 @@ public sealed class CodexHost : PluginHostModule
 
         void WritePrompt()
         {
-            try { CodexSystemPrompt.Write(context.ToolGuidanceSections()); }
+            try { CodexSystemPrompt.Write(context.PromptTexts(CodexManifest.Id, PromptPlacement.ToolList), context.PromptTexts(CodexManifest.Id, PromptPlacement.Section)); }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
         }
         WritePrompt();
