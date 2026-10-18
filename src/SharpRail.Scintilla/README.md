@@ -5,7 +5,7 @@ is shaped with HarfBuzz and ordered with the Unicode Bidirectional Algorithm
 (SheenBidi 3.0.0), so emoji sequences, combining marks, ligatures, complex scripts
 and mixed right-to-left text lay out, hit-test and edit correctly. It depends only on
 Avalonia, Avalonia.Skia, SkiaSharp and HarfBuzzSharp, and runs on macOS arm64/x64 and
-Windows x64 and Android arm64-v8a/x86_64; `ScintillaEditor.IsSupported` says whether the platform has it.
+Windows x64/ARM64 and Android arm64-v8a/x86_64; `ScintillaEditor.IsSupported` says whether the platform has it.
 
 Windows builds invoke `build-windows.ps1`, using pinned Zig, Scintilla and SheenBidi
 sources. The DLL is `SharpRailScintillaNative.dll`, distinct from the managed

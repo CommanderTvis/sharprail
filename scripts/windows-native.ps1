@@ -7,6 +7,20 @@ function Invoke-Native([string] $Executable, [string[]] $Arguments) {
     if ($LASTEXITCODE -ne 0) { throw "$Executable failed with exit code $LASTEXITCODE" }
 }
 
+# The Windows runtime identifier of a native build: the requested one, or the host's architecture when none is given.
+function Resolve-WindowsRuntime([string] $RuntimeIdentifier) {
+    if ($RuntimeIdentifier -eq '') {
+        $RuntimeIdentifier = if ([Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq [Runtime.InteropServices.Architecture]::Arm64) { 'win-arm64' } else { 'win-x64' }
+    }
+    if ($RuntimeIdentifier -notin @('win-x64', 'win-arm64')) { throw "Windows natives support win-x64 and win-arm64 only, not $RuntimeIdentifier." }
+    return $RuntimeIdentifier
+}
+
+function Get-ZigWindowsTarget([string] $RuntimeIdentifier) {
+    if ($RuntimeIdentifier -eq 'win-arm64') { return 'aarch64-windows-gnu' }
+    return 'x86_64-windows-gnu'
+}
+
 function Get-VerifiedArchive([string] $Url, [string] $Archive, [string] $Hash, [string] $Destination) {
     if (!(Test-Path $Archive)) {
         Invoke-WebRequest -UseBasicParsing $Url -OutFile "$Archive.partial"
@@ -27,19 +41,23 @@ function Get-WindowsZig {
     New-Item -ItemType Directory $toolRoot -Force | Out-Null
     $toolLock = Enter-NativeBuild $toolRoot
     try {
-        $directory = Join-Path $toolRoot 'zig-x86_64-windows-0.16.0'
+        # Zig cross-compiles, so the compiler matches the host and the target is chosen per build.
+        $hostArch = if ([Runtime.InteropServices.RuntimeInformation]::OSArchitecture -eq [Runtime.InteropServices.Architecture]::Arm64) { 'aarch64' } else { 'x86_64' }
+        $hash = if ($hostArch -eq 'aarch64') { 'aee38316ee4111717900f45dd3130145c39289e105541d737eb8c5ed653c78ef' } else { '68659eb5f1e4eb1437a722f1dd889c5a322c9954607f5edcf337bc3684a75a7e' }
+        $name = "zig-$hostArch-windows-0.16.0"
+        $directory = Join-Path $toolRoot $name
         $executable = Join-Path $directory 'zig.exe'
         if (!(Test-Path $executable)) {
-            $archive = Join-Path $toolRoot 'zig-0.16.0.zip'
+            $archive = Join-Path $toolRoot "$name.zip"
             if (!(Test-Path $archive)) {
-                Invoke-WebRequest -UseBasicParsing 'https://ziglang.org/download/0.16.0/zig-x86_64-windows-0.16.0.zip' -OutFile "$archive.partial"
+                Invoke-WebRequest -UseBasicParsing "https://ziglang.org/download/0.16.0/$name.zip" -OutFile "$archive.partial"
                 Move-Item "$archive.partial" $archive -Force
             }
-            if ((Get-FileHash $archive -Algorithm SHA256).Hash -ne '68659eb5f1e4eb1437a722f1dd889c5a322c9954607f5edcf337bc3684a75a7e') { throw 'Zig checksum mismatch' }
+            if ((Get-FileHash $archive -Algorithm SHA256).Hash -ne $hash) { throw 'Zig checksum mismatch' }
             $partial = Join-Path $toolRoot 'zig.partial'
             if (Test-Path $partial) { Remove-Item $partial -Recurse -Force }
             Expand-Archive $archive $partial
-            Move-Item (Join-Path $partial 'zig-x86_64-windows-0.16.0') $directory
+            Move-Item (Join-Path $partial $name) $directory
             Remove-Item $partial -Recurse -Force
         }
         return [IO.Path]::GetFullPath($executable)

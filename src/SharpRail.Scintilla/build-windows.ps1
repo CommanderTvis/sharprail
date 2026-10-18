@@ -1,14 +1,15 @@
 param([string] $RuntimeIdentifier = '', [string] $Cache = "$PSScriptRoot/obj/native")
 $ErrorActionPreference = 'Stop'
-if ($RuntimeIdentifier -notin @('', 'win-x64')) { throw 'The Windows editor supports win-x64 only.' }
 . "$PSScriptRoot/../../scripts/windows-native.ps1"
+$RuntimeIdentifier = Resolve-WindowsRuntime $RuntimeIdentifier
+$target = Get-ZigWindowsTarget $RuntimeIdentifier
 $Cache = [IO.Path]::GetFullPath($Cache)
 $buildLock = Enter-NativeBuild $Cache
 try {
-    $out = Join-Path $Cache 'win-x64'
+    $out = Join-Path $Cache $RuntimeIdentifier
     New-Item -ItemType Directory $out -Force | Out-Null
     $native = @(Get-ChildItem "$PSScriptRoot/Native" -File | Where-Object { $_.Extension -in @('.h', '.cxx', '.patch') } | ForEach-Object { $_.FullName })
-    $fingerprint = Get-NativeFingerprint ($native + @($PSCommandPath, "$PSScriptRoot/../../scripts/windows-native.ps1"))
+    $fingerprint = $target + (Get-NativeFingerprint ($native + @($PSCommandPath, "$PSScriptRoot/../../scripts/windows-native.ps1")))
     $stamp = Join-Path $out 'fingerprint'
     $library = Join-Path $out 'SharpRailScintillaNative.dll'
     if ((Test-Path $library) -and (Test-Path $stamp) -and (Get-Content $stamp -Raw).Trim() -eq $fingerprint) { return }
@@ -24,7 +25,7 @@ try {
     try { Invoke-Native git @('apply', '--no-index', '--unsafe-paths', "$PSScriptRoot/Native/EditView.patch") }
     finally { Pop-Location }
     $bidi = Join-Path $Cache 'sheenbidi-3.0.0'
-    $flags = @('-target', 'x86_64-windows-gnu', '-O2', '-DNDEBUG', '-fvisibility=hidden')
+    $flags = @('-target', $target, '-O2', '-DNDEBUG', '-fvisibility=hidden')
     $objects = @((Join-Path $out 'SheenBidi.o'))
     Invoke-Native $zig (@('cc', '-std=c99') + $flags + @('-DSB_CONFIG_UNITY', '-I', "$bidi/Headers", '-I', "$bidi/Source", '-c', "$bidi/Source/SheenBidi.c", '-o', $objects[0]))
     $files = @(Get-ChildItem "$source/src/*.cxx" | Where-Object { $_.Name -notin @('AutoComplete.cxx', 'CallTip.cxx', 'ScintillaBase.cxx') }) + @(Get-ChildItem "$PSScriptRoot/Native/*.cxx")
@@ -35,7 +36,7 @@ try {
         Invoke-Native $zig (@('c++', '-std=c++17') + $flags + @('-I', "$source/include", '-I', "$source/src", '-I', "$bidi/Headers", '-c', $file.FullName, '-o', $object))
         $objects += $object
     }
-    Invoke-Native $zig (@('c++', '-target', 'x86_64-windows-gnu', '-shared', '-static-libstdc++') + $objects + @('-o', $library))
+    Invoke-Native $zig (@('c++', '-target', $target, '-shared', '-static-libstdc++') + $objects + @('-o', $library))
     Set-Content $stamp $fingerprint
 }
 finally { $buildLock.Dispose() }

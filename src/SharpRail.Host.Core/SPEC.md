@@ -32,7 +32,7 @@ flowchart TB
     Core --> Plugins[Plugin runtime]
 ```
 
-Core runs on Windows x64 as well as macOS and Linux. Windows uses ConPTY through
+Core runs on Windows x64 and ARM64 as well as macOS and Linux. Windows uses ConPTY through
 the host terminal service and the system Recycle Bin for file removal. Its
 workspace paths follow host filesystem rules; relative resource paths remain
 portable across client platforms.

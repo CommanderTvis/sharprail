@@ -101,7 +101,7 @@ their MCP identities. The host waits for shell shutdown before completing the pr
 
 ## Windows processes
 
-Windows 10 (1809+) / Windows 11 x64 uses ConPTY behind the same hosted-session
+Windows 10 (1809+) / Windows 11 x64 or ARM64 uses ConPTY behind the same hosted-session
 interface as POSIX. PowerShell 7 (`pwsh.exe` on PATH) is preferred, with Windows
 PowerShell as fallback; an existing `SHELL` executable still overrides the choice.
 PowerShell receives `-NoLogo` and loads its normal profile; POSIX shells receive

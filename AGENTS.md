@@ -55,7 +55,7 @@ and nullable/warnings-as-errors gate.
 | `scripts/README.md` | Script invocations, prerequisites, environment variables and output locations. |
 | `scripts/browser.sh` | Builds, publishes, checks or serves the browser client and remote host (`run`); default browser serving address is `http://localhost:54123`, authenticated with `SHARPRAIL_TOKEN`. |
 | `scripts/host.sh` | Builds and runs only the remote host, printing a connection URI and QR code. |
-| `scripts/publish-windows.ps1` | Builds and publishes self-contained Windows x64 client, host and checks to `artifacts/windows`; packages client and host as `artifacts/SharpRail-win-x64.zip`. `WINDOWS.md` records runtime requirements and limits. |
+| `scripts/publish-windows.ps1` | Builds and publishes self-contained Windows client, host and checks for `win-x64` (default; `artifacts/windows`, `artifacts/SharpRail-win-x64.zip`) or `win-arm64` (`-RuntimeIdentifier win-arm64`, on a Windows ARM64 host; `artifacts/windows-arm64`, `artifacts/SharpRail-win-arm64.zip`). `WINDOWS.md` records runtime requirements and limits. |
 | `src/Ghostty.Avalonia/build-native.sh` | Builds pinned libghostty and libghostty-vt bridges on the target macOS architecture, using checkout-local tools and caches. |
 | `scripts/build-merman.sh` | Downloads Merman's pinned, checksummed macOS xcframework and links its C ABI into `.tools/merman/libSharpRailMermaid.dylib`. The kit's `Visualization/MermaidRenderer.cs` renders SVG through it off the UI thread; Svg.Skia displays it. Other platforms show the source with an unavailability message. |
 | `scripts/build-notifications.sh` | Compiles the User Notifications bridge into `.tools/notifications/libSharpRailNotifications.dylib`; the UI build runs it and copies the library beside the app. |
@@ -67,9 +67,9 @@ and nullable/warnings-as-errors gate.
 | `scripts/android-ndk.sh` | Installs the pinned Android NDK under `.tools/android-ndk` and prints its path; `build-android.sh` in `src/Ghostty.Avalonia` and `src/SharpRail.Scintilla` build the Android terminal and editor libraries with it. |
 | `.bench` | Ignored disposable fixtures, verification logs and own-window captures. Its name does not authorize benchmarks. |
 
-The nightly workflow builds macOS DMG, Android APK and Windows x64 ZIP packages at
-03:00 UTC or by manual dispatch. Windows packaging requires the packaged ReadyToRun
-`--windows` gate before the three assets publish together. Verify the actual workflow
+The nightly workflow builds macOS DMG, Android APK and Windows x64 and ARM64 ZIP packages at
+03:00 UTC or by manual dispatch. Each Windows job (x64 on `windows-2025`, ARM64 on `windows-11-arm`) requires the packaged ReadyToRun
+`--windows` gate before the four assets publish together. Verify the actual workflow
 run and release assets before reporting a nightly deployed or runtime-verified.
 
 ## Scratch files
@@ -372,7 +372,7 @@ blocked; do not describe unrun checks as passed.
 Generated packages live under `artifacts/`; keep one latest canonical app package.
 `artifacts/ui`, `artifacts/host` and `artifacts/checks` contain published executables;
 `artifacts/SharpRail.app` is the macOS bundle. Windows publishes to
-`artifacts/windows/{client,host,checks}` and `artifacts/SharpRail-win-x64.zip`;
+`artifacts/windows/{client,host,checks}` and `artifacts/SharpRail-win-x64.zip` (ARM64: `artifacts/windows-arm64` and `artifacts/SharpRail-win-arm64.zip`);
 browser publishing writes `artifacts/browser` and Android packaging writes
 `artifacts/android/SharpRail.apk`. `.tools`, `bin` and `obj` are local
 tooling/build output, not source. `licenses/` and `THIRD-PARTY-NOTICES.md` document

@@ -130,6 +130,11 @@ to the checks executable, and cleans the staging directory on exit. For example:
 sh scripts/check-packaged.sh --terminals
 ```
 
+`publish-windows.ps1 [-RuntimeIdentifier win-x64|win-arm64]` (PowerShell, on Windows) publishes the
+self-contained client, host and checks to `artifacts/windows` (x64, default) or `artifacts/windows-arm64`
+and packages `artifacts/SharpRail-<rid>.zip`. Build the ARM64 package on a Windows ARM64 machine: the
+bootstrap SDK, Zig compiler and native cache (`obj/native/<rid>`) follow the host and runtime identifier.
+
 `dmg.sh [output-path]` requires macOS and the existing app bundle. It creates a
 compressed disk image with an Applications shortcut, defaulting to
 `artifacts/SharpRail.dmg`; it replaces an existing image at the chosen path.

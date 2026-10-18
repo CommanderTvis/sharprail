@@ -38,7 +38,7 @@ built-in AI chat.
 
 ## Clients
 
-The macOS and Windows x64 desktop app can work directly with local projects or connect to a remote
+The macOS and Windows (x64, ARM64) desktop app can work directly with local projects or connect to a remote
 host. It can also share its existing projects and shells with another client:
 turn on the listener in Settings › Host. Each desktop window keeps its own layout.
 
@@ -51,7 +51,7 @@ stay on the host, so disconnecting the device leaves the work running there.
 Android 7.0 or later is required, on arm64 or x86-64. Editing and live terminals
 have been exercised in emulators; physical-device validation is still limited.
 
-macOS, Windows x64 and Android are the current client targets. Windows uses Skia
+macOS, Windows (x64, ARM64) and Android are the current client targets. Windows uses Skia
 terminals; [Windows setup and validation limits](WINDOWS.md) cover its host and client.
 Linux and iOS clients are not yet supported end to end. There is no browser client. See the
 [desktop run instructions](#run), [remote setup](#remote-projects) and

@@ -1,19 +1,19 @@
 # Windows host and desktop client
 
 The [nightly prerelease](https://github.com/CommanderTvis/sharprail/releases/tag/nightly)
-includes `SharpRail-nightly-win-x64.zip`, built on Windows and gated by the packaged
+includes `SharpRail-nightly-win-x64.zip` and `SharpRail-nightly-win-arm64.zip`, each built on a Windows runner of its architecture and gated by the packaged
 `--windows` checks. Extract the ZIP and launch `client/SharpRail.UI.exe`; the
 standalone host is `host/SharpRail.Host.Remote.exe`. The package is unsigned.
-The nightly workflow publishes Windows, macOS and Android together only after all
-three builds pass, so a failed Windows gate leaves the previous nightly available.
+The nightly workflow publishes Windows (x64 and ARM64), macOS and Android together only after all
+four builds pass, so a failed Windows gate leaves the previous nightly available.
 
-The Windows target is Windows 10 (1809 or later) / Windows 11, x64. Install Git for
+The Windows target is Windows 10 (1809 or later) / Windows 11, x64 or ARM64. Install Git for
 Windows and keep `git.exe` on PATH. The package includes .NET; source builds use
 the SDK pinned in `global.json`.
 
 ## Run a package
 
-Extract `SharpRail-win-x64.zip`. Run `client/SharpRail.UI.exe` to use local projects
+Extract `SharpRail-win-x64.zip` (or `SharpRail-win-arm64.zip` on ARM64 devices). Run `client/SharpRail.UI.exe` to use local projects
 and the embedded host. Windows terminals always use Skia, including when a profile
 has a saved Metal preference.
 
@@ -64,7 +64,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/publish-windows.ps1
 ```
 
 The package is `artifacts/SharpRail-win-x64.zip`; unpacked client, host and checks
-are under `artifacts/windows`. Stop executables running from that directory before
+are under `artifacts/windows`. On a Windows ARM64 machine run
+`scripts/publish-windows.ps1 -RuntimeIdentifier win-arm64` for `artifacts/SharpRail-win-arm64.zip` and
+`artifacts/windows-arm64`; the bootstrap SDK and Zig compiler match the host, and native caches are per RID.
+The ARM64 package has not been exercised by a CI run yet. Stop executables running from that directory before
 publishing again. CI builds the package on Windows and runs its `--windows` checks.
 The check mode covers local/remote terminals, Unicode, resize, reconnect, watching,
 descendant cleanup, file saving and recycling, Git/worktrees, native Skia rendering,

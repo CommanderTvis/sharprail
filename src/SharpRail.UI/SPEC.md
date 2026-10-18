@@ -11,7 +11,7 @@ The workbench is where you navigate projects, read documents, review changes and
 Every window has its own arrangement and location. Windows share the host's projects, settings
 and shells, whether that host runs inside the app or on another machine.
 
-The Windows x64 desktop client supports embedded hosting and remote connections.
+The Windows x64 and ARM64 desktop client supports embedded hosting and remote connections.
 Its native editor uses Ctrl-based editing shortcuts and its terminals always use
 Skia. Metal, the macOS notification bridge and native Mermaid build targets are
 not loaded or built on Windows; the existing unavailable-Mermaid view still applies.

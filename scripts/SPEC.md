@@ -42,9 +42,9 @@ versions, and editing sources are forbidden.
 
 ## Invariants
 
-Windows x64 uses `bootstrap.ps1` for the checkout-local SDK and
+Windows x64 and ARM64 use `bootstrap.ps1` for the checkout-local SDK (matching the host's architecture) and
 `publish-windows.ps1` for self-contained ReadyToRun client/host output and
-`artifacts/SharpRail-win-x64.zip`. Published checks are staged alongside the
+`artifacts/SharpRail-win-x64.zip` or `artifacts/SharpRail-win-arm64.zip` (ARM64 output is `artifacts/windows-arm64`; it is built on an ARM64 host, with natives cached per RID). Published checks are staged alongside the
 unpacked package and excluded from the distribution zip. Publishing refuses to
 replace executables running from its output directory. `windows-native.ps1`
 provides checksummed downloads and exclusive file locks for the Windows native

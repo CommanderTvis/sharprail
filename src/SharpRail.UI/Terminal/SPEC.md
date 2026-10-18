@@ -239,7 +239,7 @@ changed rows into retained Skia pixels and owns focus, clipboard, selection and 
 Option–Left/Right send ESC b/f for word navigation, matching Ghostty's bindings. The
 adapter attaches directly to `ITerminalService`, queues input in order, uses the
 arranged grid size and propagates exit/takeover to `TerminalView`. No relay child
-is needed. Windows x64 also builds the VT library and always selects Skia, for
+is needed. Windows x64 and ARM64 also build the VT library and always selects Skia, for
 both local and remote hosts, even with a saved Metal preference. Its local host
 owns ConPTY sessions. Native Metal libraries remain macOS-only.
 

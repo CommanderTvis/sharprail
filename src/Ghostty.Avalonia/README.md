@@ -11,7 +11,7 @@ and Ghostty license. It references no SharpRail project.
 | `GhosttySkiaView` | libghostty-vt cells and cursor recorded into Skia pictures, composed by Avalonia | The caller supplies output, consumes input and resizes its PTY |
 
 Both native libraries build on macOS, on the target architecture; the VT library
-behind the Skia control also builds for Windows x64 and cross-builds for Android.
+behind the Skia control also builds for Windows x64 and ARM64 and cross-builds for Android.
 The Skia control uses Avalonia input, selection and clipboard APIs and participates
 in normal Avalonia clipping and overlays. The native view draws above Avalonia
 content. Skia rendering uses Avalonia's chosen Skia backend.
