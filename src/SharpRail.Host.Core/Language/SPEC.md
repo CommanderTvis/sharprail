@@ -71,11 +71,12 @@ Partial downloads are removed and successful installs have a completion marker.
 | Swift | SourceKit-LSP | Swift/Xcode SDK includes the server |
 | Dart | Dart language server | Dart/Flutter SDK includes the server |
 
-The catalog pins managed server versions. Existing commands on the host PATH take precedence;
-Swift and Dart follow the selected SDK. The app does not install global SDKs or change project
-package manifests. Missing prerequisites and unsupported platform archives remain actionable errors.
+The catalog pins managed server versions. A PATH executable is used only by per-server opt-in
+(see below); Swift and Dart follow the selected SDK. The app does not install global SDKs or change
+project package manifests. Missing prerequisites and unsupported platform archives remain
+actionable errors.
 
-Storage is `<stateDir>/language`: `servers/<id>/<version>` for installations, `cache` for reusable
+Storage is `<stateDir>/language`: `servers/<id>/<version>-<hash>` for installations, `cache` for reusable
 data, and `workspaces/<root-hash>` for exclusive server state. gopls uses its supported `GOPLSCACHE`
 for content-addressed semantic-index reuse. Dart can use an explicitly supplied shared analysis cache.
 clangd only shares semantic data through an explicitly mounted external index; its ordinary background
@@ -88,9 +89,66 @@ rewriting branch paths would give incorrect results. The opt-in integration inve
 catalog provider and records the exact native probes; package downloads and compiler artifacts never
 count as semantic reuse.
 
+### Managed by default, PATH by opt-in
+
+The managed installation is the default for every server that has one. A PATH executable is
+unpinned and unverified, and a workspace can influence what PATH finds (an activated virtualenv,
+`node_modules/.bin`, relative entries, repository-planted binaries), so PATH is never a default
+and never a silent fallback. Running one is a per-server opt-in in host state
+(`LanguageServerOptions.AllowPath`, Settings > Code Intelligence "Use the executable on PATH instead
+of the managed installation"), shown with an "unverified binary" warning. There is no global switch.
+Swift and Dart have no managed installation (the SDK ships the server), so they report
+`needs an installation: ... allow PATH for this server` until the user opts in. R, PowerShell and
+IntelliJ are not PATH-capable: their PATH executable is only a runtime or has its own distribution.
+`LanguageServerOptions` replaced the former `Managed` flag without migration; a stored `managed`
+property is ignored.
+
+Whenever PATH is used (opt-in, or to find the tools installers need such as `npm`, `go`, `gem`,
+`dotnet`) the search ignores empty and relative entries and never uses the workspace as working
+directory. A candidate must be a regular executable file and, with every symbolic link resolved, must
+not lie inside the workspace, its Git root (unless that root contains the home directory), its
+project or that project's worktrees. The same check refuses an explicit executable override from host
+state that resolves inside the workspace; any other explicit override is the user's own choice and is
+used as given. The `resolution` operation (workspace plus server id; `Configuration` carries JSON with
+`state`, `source` of `managed`, `path` or `override`, `path`, `version`, `warning`, pinning text) reports
+what a server would run without starting or installing anything; for PATH and override executables
+it asks `--version` with a three-second limit. Settings reads it off the UI thread.
+
+Project files cannot choose executables. `.sharprail/language.toml` copies only the portable keys
+(`autoStart`, `arguments`, `buildTool`, `compilationDatabasePath`, `compilerFlags`, `includePaths`,
+`initializationOptions`, `settings`); host-specific keys and anything named like a command,
+executable, path, `allowPath` or `managed` is ignored with a diagnostic. `arguments` from any source
+replace the default arguments of a server that is the program itself, but are appended to the
+launcher arguments of runtime-hosted servers (node packages, JDT, PowerShell, R) so that they can
+never name the script, jar or program to run.
+
+### Pinning
+
+Every managed installation is pinned by exact version. How completely differs, and the Settings page
+and `ManagedArtifacts.Describe` say exactly which:
+
+| Providers | Acquisition | Pinning |
+| --- | --- | --- |
+| TypeScript, Python, PHP, CSS, Shell | `npm ci --ignore-scripts` from an embedded `package-lock.json` (`Language/Locks/<id>`) | Version and sha512 integrity of the whole dependency graph, registry URLs only |
+| clangd, JDT, Kotlin, PowerShell, rust-analyzer | Release archive from the artifact table in `ManagedArtifacts.cs` | Version and SHA-256 per platform, source of the hash recorded beside it, verified before extraction |
+| IntelliJ | `IntelliJDistribution` | Version and SHA-256 per platform, plus acceptance of its terms |
+| C#, Go, Ruby, Scala, R | Package manager (`dotnet tool`, `go install`, `gem`, Coursier, CRAN) | Managed, partially pinned: exact version, but integrity is the package manager's own (NuGet signatures, Go checksum database) or not verified, and dependencies are resolved at install; no hash is stored |
+| Swift, Dart | Host SDK | Not managed |
+
+Downloads are HTTPS only. Redirects are followed manually and each hop must stay on the artifact's
+allow-listed hosts. The archive is hashed before anything is extracted, a missing or mismatching hash
+fails closed with nothing installed and the partial download removed, and extraction refuses absolute
+or `..` paths, backslashes, hard links and symbolic links that leave the installation, and bounds
+size and entry count. Installation directories are `servers/<id>/<version>-<hash prefix>` (npm: the
+lockfile's hash), so a bump never reuses a directory; installed archive files are made read-only. The
+`--managed-artifacts` check lists every provider with its version and hash presence and fails when a
+managed one lacks a version, a SHA-256 or an integrity hash, or when a partially pinned provider is not
+declared as such; fixtures prove the tamper, redirect, traversal and symbolic-link refusals without any
+download.
+
 Host administrators may set `<stateDir>/language/servers.json`, keyed by catalog id, with
-`command` and an `arguments` array to override a launcher, `managed: true` to prefer the pinned
-installation over PATH, or `disabled: true`. This file is host-owned, never read from a repository.
+`command` and an `arguments` array to override a launcher, `allowPath: true` to allow PATH for that
+server, or `disabled: true`. This file is host-owned, never read from a repository.
 `SHARPRAIL_LSP_DISABLE=1` disables language startup, including in ordinary check fixtures.
 
 Idle sessions without drafts expire after ten minutes. Workspace removal and host shutdown end
@@ -142,7 +200,7 @@ coverage means LSP document analysis, not compiler/build validation or whole-pro
 Settings > LSP writes per-server launcher choices through host state. A server-specific change
 merges with other servers’ settings under the state gate. UI-configured choices override that
 server’s legacy `language/servers.json` entry; untouched servers retain the file-based fallback.
-Enablement, managed-install preference, command and arguments apply on next start/retry, without
+Enablement, PATH opt-in, command and arguments apply on next start/retry, without
 restarting active servers. Arguments require an executable override. A null argument list uses server defaults; an empty list passes none.
 The host-wide `catalog` request exposes supported ids, versions and storage without a workspace
 or process startup, including when language execution is disabled.
@@ -152,9 +210,9 @@ Disabling it prevents new starts and stops all active sessions before the settin
 Dirty drafts survive suspension; closing a document while disabled removes its saved draft.
 Re-enabling permits lazy startup with the existing per-server configuration.
 
-Automatic TypeScript selection checks for a compiler in the workspace ancestry or beside the
+When PATH is allowed for TypeScript, selection checks for a compiler in the workspace ancestry or beside the
 resolved PATH launcher. A standalone language-server executable falls back to the managed pair
-of TypeScript and its language server. Explicit executable overrides remain authoritative.
+of TypeScript and its language server. Explicit executable overrides remain authoritative unless they resolve inside the workspace.
 
 The workspace-free catalog identifies the default implementation/provider in each server detail. Agent MCP exposes catalog and workspace inventories plus explicit server-id startup/status, allowing multiple language sessions concurrently without UI interaction. Mixed-language file scans route each file separately and never implicitly install servers.
 

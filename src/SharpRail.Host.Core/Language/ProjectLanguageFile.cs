@@ -19,6 +19,8 @@ internal static class ProjectLanguageFile
     internal const int MaximumBytes = ProjectToml.MaximumBytes;
     internal static readonly string[] Portable = ["autoStart", "arguments", "buildTool", "compilationDatabasePath", "compilerFlags", "includePaths", "initializationOptions", "settings"];
     internal static readonly string[] Local = ["installationPath", "projectJdk", "useForJavaAndKotlin"];
+    /// <summary>Keys that would choose or enable an executable. A project file can never carry them; they stay in host state and are reported when found.</summary>
+    internal static readonly string[] HostOnly = ["command", "executable", "program", "path", "allowPath", "usePath", "managed", "preferManaged", "disabled"];
 
     /// <summary>The validated portable keys of every usable server entry, plus what could not be used.</summary>
     internal sealed record Snapshot(string Path, bool Exists, string Stamp, IReadOnlyDictionary<string, JsonObject> Servers, IReadOnlyList<string> Diagnostics)
@@ -89,6 +91,9 @@ internal static class ProjectLanguageFile
                 if (entry is JsonObject supplied)
                     foreach (var key in Local.Where(supplied.ContainsKey))
                         diagnostics.Add($"servers.{id}.{key} is host-specific and ignored here; set it in Settings > Code Intelligence.");
+                if (entry is JsonObject chosen)
+                    foreach (var key in chosen.Select(pair => pair.Key).Where(key => HostOnly.Contains(key, StringComparer.OrdinalIgnoreCase)))
+                        diagnostics.Add($"servers.{id}.{key} would choose which executable runs; projects cannot do that and the key is ignored. The host user sets executables and PATH use in Settings > Code Intelligence.");
             }
         return new(path, true, stamp, servers, diagnostics);
     }

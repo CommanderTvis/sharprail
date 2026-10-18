@@ -47,6 +47,8 @@ internal static class Program
         // Enabling Codex installs its skills under CODEX_HOME; no check may reach the developer's own.
         Environment.SetEnvironmentVariable("CODEX_HOME", Path.Combine(root, "codex-home"));
         Directory.CreateDirectory(root);
+        // The checks binary is the fake language server and lives in the repository, which executables are otherwise never taken from.
+        SharpRail.Host.Core.Language.LanguageExecutables.CheckExemptions.Add(SharpRail.Host.Core.Language.LanguageExecutables.Real(Environment.ProcessPath!));
         Directory.CreateDirectory(Path.Combine(root, "src"));
         Environment.SetEnvironmentVariable("GIT_CEILING_DIRECTORIES", Directory.GetCurrentDirectory());
         File.WriteAllText(Path.Combine(root, "hello.txt"), "hello");
@@ -126,6 +128,11 @@ internal static class Program
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
             SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
             AirContextChecks.Ui(root);
+            return;
+        }
+        if (args.SequenceEqual(["--managed-artifacts"]))
+        {
+            ManagedLanguageChecks.Run(root).GetAwaiter().GetResult();
             return;
         }
         if (args.SequenceEqual(["--project-language-file"]))
@@ -903,6 +910,7 @@ internal static class Program
         Gate.Case("air-context-migration", () => AirContextChecks.Migration(root).GetAwaiter().GetResult());
         Gate.Case("global-jvm-provider", () => GlobalJvmProviderChecks.Run(root).GetAwaiter().GetResult());
 
+        Gate.Case("managed-language-servers", () => ManagedLanguageChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("project-language-file", () => ProjectLanguageFileChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("project-language-autostart", () => ProjectLanguageAutostartChecks.Run(root).GetAwaiter().GetResult());
         Gate.Case("language-services", () => LanguageChecks.Run(root).GetAwaiter().GetResult());

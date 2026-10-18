@@ -981,6 +981,11 @@ internal static class LanguageChecks
             }
             rail.SelectedItem = "java";
             Require(Find<TextBlock>("LspImplementation").Text!.Contains("Eclipse JDT Language Server", StringComparison.Ordinal), "Java implementation is unclear.");
+            Require(!settings.GetLogicalDescendants().OfType<CheckBox>().Any(control => control.Content?.ToString()?.StartsWith("Prefer the managed", StringComparison.Ordinal) == true), "The global prefer-managed switch still exists.");
+            E2E.E2eWorkspace.Until(() => Find<TextBlock>("LspResolved").Text!.StartsWith("Managed: ", StringComparison.Ordinal) && !Find<TextBlock>("LspPathWarning").IsVisible);
+            Require(Find<CheckBox>("LspAllowPath").IsChecked == false, "PATH use is not off by default.");
+            rail.SelectedItem = "swift";
+            E2E.E2eWorkspace.Until(() => Find<TextBlock>("LspResolved").Text!.Contains("needs an installation", StringComparison.Ordinal));
             rail.SelectedItem = "typescript";
             var feature = Find<CheckBox>("LspFeatureEnabled");
             feature.IsChecked = false;

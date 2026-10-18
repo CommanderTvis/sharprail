@@ -45,8 +45,12 @@ public partial interface IProjectServices
     ValueTask<LanguageResult> LanguageAsync(LanguageRequest request, CancellationToken cancellationToken = default)
         => ValueTask.FromResult(new LanguageResult("unavailable", "This host does not provide language services."));
 }
-/// <summary>Host-wide launcher choices applied on the next language-server start.</summary>
-public sealed record LanguageServerOptions(bool Disabled = false, bool Managed = false, string Command = "", string[]? Arguments = null);
+/// <summary>
+/// Host-wide launcher choices applied on the next language-server start. The managed installation is the default; <paramref name="AllowPath"/>
+/// is the host user's per-server opt-in to run an unverified executable found on PATH instead, and <paramref name="Command"/> an explicit override.
+/// Neither is ever read from a project file.
+/// </summary>
+public sealed record LanguageServerOptions(bool Disabled = false, bool AllowPath = false, string Command = "", string[]? Arguments = null);
 
 /// <summary>User-interface-only terms review/acceptance; acceptance is never a language-agent operation.</summary>
 public sealed record IntelliJTermsRequest(string Workspace, bool Accept = false, string ArtifactId = "", string EulaSha256 = "");

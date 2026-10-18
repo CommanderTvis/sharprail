@@ -1,8 +1,5 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Formats.Tar;
-using System.IO.Compression;
-using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -37,7 +34,7 @@ internal sealed record LanguageServer(string Id, string Version, string Executab
     };
 }
 
-internal sealed class LanguageServers(string directory, Func<string>? configuration = null)
+internal sealed partial class LanguageServers(string directory, Func<string>? configuration = null, HttpClient? managedDownloads = null)
 {
     internal string DirectoryPath => directory;
 
@@ -71,6 +68,7 @@ internal sealed class LanguageServers(string directory, Func<string>? configurat
     ];
     internal static readonly HttpClient Http = new() { Timeout = TimeSpan.FromMinutes(10) };
     private readonly ConcurrentDictionary<string, SemaphoreSlim> installations = new();
+    private readonly HttpClient managedHttp = managedDownloads ?? ArtifactInstaller.CreateClient();
 
     internal static LanguageServer? Detect(string path) => Catalog.FirstOrDefault(server => server.Extensions.Contains(Path.GetExtension(path)))
         ?? (Path.GetFileName(path) is "Gemfile" or "Rakefile" ? Catalog.First(server => server.Id == "ruby")
@@ -136,102 +134,89 @@ internal sealed class LanguageServers(string directory, Func<string>? configurat
 
     private async Task<ProcessStartInfo> ProvisionCoreAsync(LanguageServer server, string workspace, CancellationToken token)
     {
-        var root = Path.Combine(directory, "servers", server.Id, server.Version);
+        var platform = ManagedArtifacts.Platform();
+        var root = Path.Combine(directory, "servers", server.Id, ManagedArtifacts.Directory(server, platform));
         var cache = Path.Combine(directory, "cache");
         var local = Path.Combine(directory, "workspaces", Key(workspace), server.Id);
         Directory.CreateDirectory(local);
         Directory.CreateDirectory(cache);
-        var config = Path.Combine(directory, "servers.json");
-        var managed = false;
-        var custom = Options(server.Id);
-        if (custom is null && File.Exists(config))
+        var custom = CustomOptions(server.Id);
+        if (custom?.Disabled == true) throw new IOException($"{server.Id} is disabled. Enable it in Settings > Code Intelligence, then Retry.");
+        if (!string.IsNullOrWhiteSpace(custom?.Command))
         {
-            using var json = JsonDocument.Parse(await File.ReadAllTextAsync(config, token));
-            if (json.RootElement.TryGetProperty(server.Id, out var entry))
-                custom = entry.Deserialize<LanguageServerOptions>(JsonSerializerOptions.Web);
+            var explicitPath = ExplicitExecutable(custom.Command, workspace);
+            return Start(explicitPath, custom.Arguments ?? server.Arguments);
         }
-        if (custom is not null)
+        if (server.Id is "swift" or "dart" || custom?.AllowPath == true && LanguageExecutables.PathCapable(server.Id))
         {
-            managed = custom.Managed;
-            if (custom.Disabled) throw new IOException($"{server.Id} is disabled. Enable it in Settings > LSP, then Retry.");
-            if (!string.IsNullOrWhiteSpace(custom.Command)) return Start(custom.Command, custom.Arguments ?? server.Arguments);
-        }
-        var installed = managed ? null : Find(server.Executable);
-        if (installed is not null && server.Id == "typescript" && !HasTypeScript(installed, workspace)) installed = null;
-        if (server.Id is "swift" or "dart")
-        {
+            if (custom?.AllowPath != true)
+                throw new IOException($"{server.Id} needs an installation: SharpRail has no managed installation for it. Install the {server.Id} SDK and allow PATH for this server in Settings > Code Intelligence, then Retry.");
+            var rejected = new List<string>();
+            var installed = LanguageExecutables.FindOnPath(server.Executable, workspace, rejected);
+            if (installed is not null && server.Id == "typescript" && !HasTypeScript(installed, workspace)) installed = null;
             if (installed is null && server.Id == "swift" && OperatingSystem.IsMacOS())
             {
-                var found = await RunAsync(Start("/usr/bin/xcrun", ["--find", "sourcekit-lsp"]), workspace, token);
-                installed = found.Trim();
+                var found = (await RunAsync(Start("/usr/bin/xcrun", ["--find", "sourcekit-lsp"]), Path.GetTempPath(), token)).Trim();
+                if (LanguageExecutables.Reject(found, workspace) is null) installed = found;
             }
-            return Start(installed ?? throw new IOException($"Install the {server.Id} SDK on this host; it includes {server.Executable}."), server.Arguments);
+            return Start(installed ?? throw new IOException($"PATH is allowed for {server.Id} but no usable {server.Executable} was found on it." + (rejected.Count > 0 ? " " + rejected[0] : "")), server.Arguments);
         }
-        if (installed is not null && server.Id is not ("r" or "powershell")) return Start(installed, server.Arguments);
         var gate = installations.GetOrAdd(root, _ => new(1));
         await gate.WaitAsync(token);
         try
         {
-            Directory.CreateDirectory(root);
+            Directory.CreateDirectory(Path.GetDirectoryName(root)!);
             // File sharing also serializes provisioning by separate host processes.
             await using var lease = await InstallationLock(root + ".lock", token);
-            if (!File.Exists(Path.Combine(root, ".ready")) ||
-                (server.Id == "r" && !File.Exists(Path.Combine(root, "languageserver", "DESCRIPTION"))))
+            if (ManagedArtifacts.ArchiveServers.Contains(server.Id))
             {
-                if (server.Package.Length > 0)
-                    await RunAsync(Start(Require("npm"), ["install", "--prefix", root, "--no-audit", "--no-fund", "--ignore-scripts", .. server.Package.Split(' ')]), root, token);
-                else switch (server.Id)
+                var artifact = ManagedArtifacts.Find(server.Id, platform)
+                    ?? throw new IOException($"{server.Id} needs an installation: there is no verified managed artifact for {platform}. Allow PATH for this server in Settings > Code Intelligence, or configure an executable.");
+                await ArtifactInstaller.InstallAsync(artifact, root, managedHttp, token);
+            }
+            else
+            {
+                Directory.CreateDirectory(root);
+                if (!File.Exists(Path.Combine(root, ".ready")) ||
+                    (server.Id == "r" && !File.Exists(Path.Combine(root, "languageserver", "DESCRIPTION"))))
+                {
+                    if (server.Package.Length > 0)
                     {
-                        case "csharp":
-                            await RunAsync(Start(FindDotnet(workspace) ?? throw new IOException("Install a .NET SDK on this host, or configure DOTNET_ROOT, then Retry."), ["tool", "install", "roslyn-language-server", "--version", server.Version, "--tool-path", root]), root, token);
-                            break;
-                        case "go":
-                            var go = Start(Require("go"), ["install", "golang.org/x/tools/gopls@" + server.Version]);
-                            go.Environment["GOBIN"] = root;
-                            go.Environment["GOMODCACHE"] = Path.Combine(cache, "go-modules");
-                            await RunAsync(go, root, token);
-                            break;
-                        case "ruby":
-                            await RunAsync(Start(Require("gem"), ["install", "ruby-lsp", "--version", server.Version, "--install-dir", root, "--bindir", Path.Combine(root, "bin"), "--no-document"]), root, token);
-                            break;
-                        case "scala":
-                            await RunAsync(Start(Require("cs"), ["bootstrap", "org.scalameta:metals_2.13:" + server.Version, "--main", "scala.meta.metals.Main", "-o", Path.Combine(root, "metals"), "--force"]), root, token);
-                            break;
-                        case "r":
-                            var r = Start(Require("Rscript"), ["--vanilla", "-e", $"install.packages('remotes', repos='https://cloud.r-project.org', lib=Sys.getenv('R_LIBS_USER')); remotes::install_version('languageserver', version='{server.Version}', repos='https://cloud.r-project.org', lib=Sys.getenv('R_LIBS_USER'), upgrade='never'); stopifnot(requireNamespace('languageserver', quietly=TRUE), as.character(packageVersion('languageserver')) == '{server.Version}')"]);
-                            r.Environment["R_LIBS_USER"] = root;
-                            await RunAsync(r, root, token);
-                            break;
-                        case "java":
-                            await ArchiveAsync($"https://download.eclipse.org/jdtls/snapshots/jdt-language-server-{server.Version}-202609031315.tar.gz", root, true, token);
-                            break;
-                        case "powershell":
-                            await ArchiveAsync($"https://github.com/PowerShell/PowerShellEditorServices/releases/download/v{server.Version}/PowerShellEditorServices.zip", root, false, token);
-                            break;
-                        case "clangd":
-                            var os = OperatingSystem.IsMacOS() ? "mac" : OperatingSystem.IsWindows() ? "windows" : "linux";
-                            await ArchiveAsync($"https://github.com/clangd/clangd/releases/download/{server.Version}/clangd-{os}-{server.Version}.zip", root, false, token);
-                            break;
-                        case "kotlin":
-                            var suffix = RuntimeInformation.ProcessArchitecture == Architecture.Arm64 ? "-aarch64" : "";
-                            var extension = OperatingSystem.IsMacOS() ? ".sit" : OperatingSystem.IsWindows() ? ".win.zip" : ".tar.gz";
-                            await ArchiveAsync($"https://download.jetbrains.com/language-server/kotlin-server/{server.Version}/kotlin-server-{server.Version}{suffix}{extension}", root, extension == ".tar.gz", token);
-                            break;
-                        case "rust":
-                            var arch = RuntimeInformation.ProcessArchitecture == Architecture.Arm64 ? "aarch64" : "x86_64";
-                            var target = OperatingSystem.IsMacOS() ? "apple-darwin" : OperatingSystem.IsWindows() ? "pc-windows-msvc" : "unknown-linux-gnu";
-                            var url = $"https://github.com/rust-lang/rust-analyzer/releases/download/{server.Version}/rust-analyzer-{arch}-{target}";
-                            if (OperatingSystem.IsWindows()) await ArchiveAsync(url + ".zip", root, false, token);
-                            else
-                            {
-                                await using var source = await Http.GetStreamAsync(url + ".gz", token);
-                                await using var gzip = new GZipStream(source, CompressionMode.Decompress);
-                                await using var output = File.Create(Path.Combine(root, "rust-analyzer"));
-                                await gzip.CopyToAsync(output, token);
-                            }
-                            break;
+                        // The embedded lockfile pins every package by version and integrity hash; npm ci refuses anything else.
+                        var lockfile = ManagedArtifacts.Lock(server.Id) ?? throw new IOException($"{server.Id} has no embedded package-lock.json; it will not be installed.");
+                        await File.WriteAllTextAsync(Path.Combine(root, "package.json"), ManagedArtifacts.Lock(server.Id, "package.json")!, token);
+                        await File.WriteAllTextAsync(Path.Combine(root, "package-lock.json"), lockfile, token);
+                        await RunAsync(Start(Require("npm", workspace), ["ci", "--prefix", root, "--no-audit", "--no-fund", "--ignore-scripts", "--registry", "https://registry.npmjs.org/"]), root, token);
                     }
-                await File.WriteAllTextAsync(Path.Combine(root, ".ready"), server.Version, token);
+                    else switch (server.Id)
+                        {
+                            case "csharp":
+                                await RunAsync(Start(FindDotnet(workspace) ?? throw new IOException("Install a .NET SDK on this host, or configure DOTNET_ROOT, then Retry."), ["tool", "install", "roslyn-language-server", "--version", server.Version, "--tool-path", root]), root, token);
+                                break;
+                            case "go":
+                                var go = Start(Require("go", workspace), ["install", "golang.org/x/tools/gopls@" + server.Version]);
+                                go.Environment["GOBIN"] = root;
+                                go.Environment["GOMODCACHE"] = Path.Combine(cache, "go-modules");
+                                go.Environment["GOFLAGS"] = "-mod=readonly";
+                                go.Environment["GOSUMDB"] = "sum.golang.org";
+                                go.Environment["GOPROXY"] = "https://proxy.golang.org";
+                                go.Environment["GOTOOLCHAIN"] = "local";
+                                await RunAsync(go, root, token);
+                                break;
+                            case "ruby":
+                                await RunAsync(Start(Require("gem", workspace), ["install", "ruby-lsp", "--version", server.Version, "--install-dir", root, "--bindir", Path.Combine(root, "bin"), "--no-document"]), root, token);
+                                break;
+                            case "scala":
+                                await RunAsync(Start(Require("cs", workspace), ["bootstrap", "org.scalameta:metals_2.13:" + server.Version, "--main", "scala.meta.metals.Main", "-o", Path.Combine(root, "metals"), "--force"]), root, token);
+                                break;
+                            case "r":
+                                var r = Start(Require("Rscript", workspace), ["--vanilla", "-e", $"install.packages('remotes', repos='https://cloud.r-project.org', lib=Sys.getenv('R_LIBS_USER')); remotes::install_version('languageserver', version='{server.Version}', repos='https://cloud.r-project.org', lib=Sys.getenv('R_LIBS_USER'), upgrade='never'); stopifnot(requireNamespace('languageserver', quietly=TRUE), as.character(packageVersion('languageserver')) == '{server.Version}')"]);
+                                r.Environment["R_LIBS_USER"] = root;
+                                await RunAsync(r, root, token);
+                                break;
+                        }
+                    await File.WriteAllTextAsync(Path.Combine(root, ".ready"), server.Version, token);
+                }
             }
         }
         finally { gate.Release(); }
@@ -243,7 +228,7 @@ internal sealed class LanguageServers(string directory, Func<string>? configurat
             using var manifest = JsonDocument.Parse(await File.ReadAllTextAsync(Path.Combine(packageRoot, package, "package.json"), token));
             var bin = manifest.RootElement.GetProperty("bin");
             var file = bin.ValueKind == JsonValueKind.String ? bin.GetString()! : bin.GetProperty(server.Executable).GetString()!;
-            return Start(Require("node"), [Path.Combine(packageRoot, package, file), .. server.Arguments]);
+            return Start(Require("node", workspace), [Path.Combine(packageRoot, package, file), .. server.Arguments]);
         }
         if (server.Id == "java")
         {
@@ -263,11 +248,11 @@ internal sealed class LanguageServers(string directory, Func<string>? configurat
             return Start(Path.Combine(java, "bin", "java" + (OperatingSystem.IsWindows() ? ".exe" : "")),
                 ["-Declipse.application=org.eclipse.jdt.ls.core.id1", "-Dosgi.bundles.defaultStartLevel=4", "-Declipse.product=org.eclipse.jdt.ls.core.product", "-Xmx1G", "--add-modules=ALL-SYSTEM", "--add-opens", "java.base/java.util=ALL-UNNAMED", "--add-opens", "java.base/java.lang=ALL-UNNAMED", "-jar", launcher, "-configuration", configuration, "-data", local]);
         }
-        if (server.Id == "powershell") return Start(Require("pwsh"), ["-NoLogo", "-NoProfile", "-File",
+        if (server.Id == "powershell") return Start(Require("pwsh", workspace), ["-NoLogo", "-NoProfile", "-File",
             Directory.GetFiles(root, "Start-EditorServices.ps1", SearchOption.AllDirectories).Single(), "-Stdio", "-HostName", "SharpRail", "-HostProfileId", "SharpRail", "-HostVersion", "1.0.0", "-LogLevel", "Normal", "-LogPath", Path.Combine(local, "server.log"), "-SessionDetailsPath", Path.Combine(local, "session.json")]);
         if (server.Id == "r")
         {
-            var r = Start(Require("Rscript"), server.Arguments); r.Environment["R_LIBS_USER"] = root; return r;
+            var r = Start(Require("Rscript", workspace), server.Arguments); r.Environment["R_LIBS_USER"] = root; return r;
         }
         var name = server.Id == "kotlin" ? "intellij-server" : server.Executable;
         var executable = Directory.GetFiles(root, name + (OperatingSystem.IsWindows() ? ".exe" : ""), SearchOption.AllDirectories).FirstOrDefault()
@@ -277,6 +262,9 @@ internal sealed class LanguageServers(string directory, Func<string>? configurat
         if (server.Id == "ruby") { start.Environment["GEM_HOME"] = root; start.Environment["GEM_PATH"] = root; }
         return start;
     }
+
+    /// <summary>Whether the process is a general runtime whose first arguments choose the program, so configured arguments must never replace them.</summary>
+    internal static bool HostsRuntime(LanguageServer server) => server.Package.Length > 0 || server.Id is "java" or "powershell" or "r";
 
     internal static string Key(string value) => Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(value)))[..24];
     internal static ProcessStartInfo Start(string executable, string[] args)
@@ -299,27 +287,34 @@ internal sealed class LanguageServers(string directory, Func<string>? configurat
         return false;
     }
 
-    private static string Require(string executable) => Find(executable) ?? throw new IOException($"Install {executable} on the host or configure language/servers.json, then Retry.");
+    /// <summary>A tool the installers need (npm, go, gem...). Found with the hardened PATH search, never inside the workspace.</summary>
+    private static string Require(string executable, string workspace) => LanguageExecutables.FindOnPath(executable, workspace)
+        ?? throw new IOException($"Install {executable} on the host (outside the workspace), then Retry.");
     private static string? FindDotnet(string workspace)
     {
         var executable = OperatingSystem.IsWindows() ? "dotnet.exe" : "dotnet";
-        var project = ProjectServices.KnownCheckout(workspace)?.ProjectRoot ?? workspace;
         return new[]
         {
-            Path.Combine(Environment.GetEnvironmentVariable("DOTNET_ROOT") ?? "", executable),
-            Path.Combine(workspace, ".tools", "dotnet", executable), Path.Combine(project, ".tools", "dotnet", executable), Find("dotnet")
-        }.FirstOrDefault(path => path is not null && Path.IsPathFullyQualified(path) && File.Exists(path));
+            Path.Combine(Environment.GetEnvironmentVariable("DOTNET_ROOT") ?? "", executable), LanguageExecutables.FindOnPath("dotnet", workspace)
+        }.FirstOrDefault(path => path is not null && Path.IsPathFullyQualified(path) && LanguageExecutables.Reject(path, workspace) is null);
     }
-    private static string? Find(string executable)
+
+    /// <summary>The user's own executable override from host state: a bare name is searched on the hardened PATH, a path is used as given; both are refused inside the workspace.</summary>
+    internal static string ExplicitExecutable(string command, string workspace)
     {
-        var extensions = OperatingSystem.IsWindows() ? new[] { ".exe", ".cmd", ".bat", "" } : [""];
-        foreach (var path in (Environment.GetEnvironmentVariable("PATH") ?? "").Split(Path.PathSeparator))
-            foreach (var extension in extensions)
-            {
-                var candidate = Path.Combine(path, executable + extension);
-                if (File.Exists(candidate)) return candidate;
-            }
-        return null;
+        var resolved = command.IndexOfAny(['/', '\\']) < 0 ? LanguageExecutables.FindOnPath(command, workspace) : command;
+        if (resolved is null) throw new IOException($"The executable override '{command}' was not found on PATH (empty, relative and workspace entries are ignored).");
+        return LanguageExecutables.Reject(resolved, workspace) is { } problem ? throw new IOException("Executable override refused: " + problem) : resolved;
+    }
+
+    /// <summary>The host's choices for one server: host state, or the legacy <c>servers.json</c> file beside the installations.</summary>
+    internal LanguageServerOptions? CustomOptions(string id)
+    {
+        if (Options(id) is { } stored) return stored;
+        var config = Path.Combine(directory, "servers.json");
+        if (!File.Exists(config)) return null;
+        using var json = JsonDocument.Parse(File.ReadAllText(config));
+        return json.RootElement.TryGetProperty(id, out var entry) ? entry.Deserialize<LanguageServerOptions>(JsonSerializerOptions.Web) : null;
     }
 
     private static async Task<FileStream> InstallationLock(string path, CancellationToken token)
@@ -330,37 +325,6 @@ internal sealed class LanguageServers(string directory, Func<string>? configurat
             try { return new FileStream(path, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None); }
             catch (IOException) { await Task.Delay(100, token); }
         }
-    }
-
-    private static async Task ArchiveAsync(string url, string root, bool tar, CancellationToken token)
-    {
-        var archive = Path.Combine(root, ".download");
-        try
-        {
-            await using (var source = await Http.GetStreamAsync(url, token))
-            await using (var output = File.Create(archive)) await source.CopyToAsync(output, token);
-            if (tar)
-            {
-                await using var input = File.OpenRead(archive);
-                await using var gzip = new GZipStream(input, CompressionMode.Decompress);
-                await TarFile.ExtractToDirectoryAsync(gzip, root, overwriteFiles: true, cancellationToken: token);
-            }
-            else
-            {
-                ZipFile.ExtractToDirectory(archive, root, true);
-                if (!OperatingSystem.IsWindows())
-                {
-                    using var zip = ZipFile.OpenRead(archive);
-                    foreach (var entry in zip.Entries)
-                    {
-                        var mode = (UnixFileMode)((entry.ExternalAttributes >> 16) & 0x1ff);
-                        var path = Path.GetFullPath(Path.Combine(root, entry.FullName));
-                        if (File.Exists(path) && mode != 0) File.SetUnixFileMode(path, mode);
-                    }
-                }
-            }
-        }
-        finally { if (File.Exists(archive)) File.Delete(archive); }
     }
 
     private static async Task<string> RunAsync(ProcessStartInfo start, string root, CancellationToken token)

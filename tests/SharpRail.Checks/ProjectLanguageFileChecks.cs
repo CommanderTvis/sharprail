@@ -93,6 +93,25 @@ internal static class ProjectLanguageFileChecks
         var untouched = await File.ReadAllTextAsync(file);
         Require(untouched.Contains("keep me"), "A host-state save changed the file.");
 
+        // A project file can never choose an executable or turn PATH use on, whatever the key is called.
+        await File.WriteAllTextAsync(file, """
+            version = 1
+            [servers.python]
+            command = "/tmp/planted"
+            executable = "planted"
+            allowPath = true
+            managed = false
+            autoStart = true
+            arguments = ["--stdio"]
+            """);
+        await Until(async () => (await Status())["diagnostics"]!.AsArray().Count >= 4, "Executable keys in the file produced no diagnostics.");
+        var executableDiagnostics = string.Join("\n", (await Status())["diagnostics"]!.AsArray().Select(item => item!.GetValue<string>()));
+        Require(executableDiagnostics.Contains("servers.python.command") && executableDiagnostics.Contains("servers.python.allowPath") && executableDiagnostics.Contains("cannot do that"), "The executable keys were not diagnosed: " + executableDiagnostics);
+        var planted = (await Config(project, "python")).ToJsonString();
+        Require(!planted.Contains("planted") && !planted.Contains("allowPath") && planted.Contains("--stdio"), "An executable key reached the effective configuration: " + planted);
+        var resolution = JsonNode.Parse((await host.LanguageAsync(new(project, Operation: "resolution", Server: "python"))).Configuration)!;
+        Require(resolution["source"]!.GetValue<string>() == "managed" && !resolution["allowPath"]!.GetValue<bool>(), "A project file changed which executable would run: " + resolution);
+
         // Watching: an external edit applies without restart; a malformed file is a diagnostic, not a failure.
         await File.WriteAllTextAsync(file, "= not toml [");
         await Until(async () => (await Status())["diagnostics"]!.AsArray().Count == 1, "Malformed file produced no diagnostic.");

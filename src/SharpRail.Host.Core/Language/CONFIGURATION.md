@@ -39,7 +39,7 @@ The common launch argument arrays remain arrays of individual arguments, not she
 strings. Advanced initialization/settings values remain JSON objects. Unknown keys, custom
 choice strings and structured alternatives are not rewritten by merely opening or saving the
 form. Native browsing is optional; it cannot represent globs, future files, remote paths or
-commands resolved through the host's PATH, so manual input remains available.
+commands resolved through the host's PATH, so manual input remains available. Servers run from the pinned managed installation unless the host user allows PATH for that server; project files never choose executables.
 
 This is a type/semantics review, not a new all-provider runtime acceptance claim. Tagged
 sources above are used where available; SDK versions, PATH/custom executables, dependency

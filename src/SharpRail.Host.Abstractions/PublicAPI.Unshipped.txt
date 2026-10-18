@@ -1505,13 +1505,13 @@ SharpRail.Host.Abstractions.LanguageServerOptions.Arguments.get -> string![]?
 SharpRail.Host.Abstractions.LanguageServerOptions.Arguments.init -> void
 SharpRail.Host.Abstractions.LanguageServerOptions.Command.get -> string!
 SharpRail.Host.Abstractions.LanguageServerOptions.Command.init -> void
-SharpRail.Host.Abstractions.LanguageServerOptions.Deconstruct(out bool Disabled, out bool Managed, out string! Command, out string![]? Arguments) -> void
+SharpRail.Host.Abstractions.LanguageServerOptions.Deconstruct(out bool Disabled, out bool AllowPath, out string! Command, out string![]? Arguments) -> void
 SharpRail.Host.Abstractions.LanguageServerOptions.Disabled.get -> bool
 SharpRail.Host.Abstractions.LanguageServerOptions.Disabled.init -> void
 SharpRail.Host.Abstractions.LanguageServerOptions.Equals(SharpRail.Host.Abstractions.LanguageServerOptions? other) -> bool
-SharpRail.Host.Abstractions.LanguageServerOptions.LanguageServerOptions(bool Disabled = false, bool Managed = false, string! Command = "", string![]? Arguments = null) -> void
-SharpRail.Host.Abstractions.LanguageServerOptions.Managed.get -> bool
-SharpRail.Host.Abstractions.LanguageServerOptions.Managed.init -> void
+SharpRail.Host.Abstractions.LanguageServerOptions.LanguageServerOptions(bool Disabled = false, bool AllowPath = false, string! Command = "", string![]? Arguments = null) -> void
+SharpRail.Host.Abstractions.LanguageServerOptions.AllowPath.get -> bool
+SharpRail.Host.Abstractions.LanguageServerOptions.AllowPath.init -> void
 SharpRail.Host.Abstractions.LanguageServerState
 SharpRail.Host.Abstractions.LanguageServerState.<Clone>$() -> SharpRail.Host.Abstractions.LanguageServerState!
 SharpRail.Host.Abstractions.LanguageServerState.ActiveConfiguration.get -> string!

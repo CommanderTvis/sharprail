@@ -55,6 +55,13 @@ public sealed partial class LanguageService : IAsyncDisposable
         {
             Servers = LanguageServers.Catalog.Select(server => new LanguageServerState(server.Id, "", "available", server.Implementation, server.Version)).ToArray()
         };
+        if (request.Operation == "resolution")
+        {
+            var chosen = LanguageServers.Catalog.FirstOrDefault(server => server.Id == request.Server) ?? throw new ArgumentException("Unknown language server.");
+            if (!Path.IsPathFullyQualified(request.Workspace) || !Directory.Exists(request.Workspace)) throw new ArgumentException("Language requests require an existing absolute workspace directory.");
+            var resolution = await servers.ResolveAsync(chosen, Path.TrimEndingDirectorySeparator(Path.GetFullPath(request.Workspace)), token);
+            return new(resolution.State, resolution.Message, chosen.Id) { Configuration = resolution.ToJson() };
+        }
         if (!enabled() && request.Operation is not ("configurationSchema" or "configuration" or "configure" or "servers" or "logs"))
         {
             if (request.Operation == "close")
@@ -235,7 +242,8 @@ public sealed partial class LanguageService : IAsyncDisposable
                 var start = await servers.ProvisionAsync(server, workspace, deadline.Token, options);
                 if (options.Arguments is not null && server.Id != "intellij")
                 {
-                    start.ArgumentList.Clear();
+                    // A runtime-hosted server (node, java, pwsh, Rscript) keeps the launcher arguments that name its program; configured ones are appended.
+                    if (!LanguageServers.HostsRuntime(server)) start.ArgumentList.Clear();
                     foreach (var argument in options.Arguments) start.ArgumentList.Add(WorkspaceLanguageConfiguration.Expand(argument, workspace));
                     servers.ConfigureCaches(start, server, workspace);
                 }

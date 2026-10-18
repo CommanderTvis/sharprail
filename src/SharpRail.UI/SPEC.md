@@ -506,13 +506,13 @@ shows Start or Retry beside its status. For other states, activation expands or 
 and managed version, with a disclosure arrow. Right-click retains Start/Retry and Stop. Errors and
 installation progress always wrap inside their own row, even when unselected. There is no detached selected-server detail block below the list.
 Settings > LSP uses a server navigation rail beside the configuration form for each server’s
-enablement, managed-install preference, executable and argument overrides. A host-wide Enable LSP
+enablement, per-server PATH opt-in (off by default; the managed installation is the default), executable and argument overrides, and shows the exact executable path and version a server would run (managed, PATH or override, resolved off the UI thread) with a one-line unverified-binary warning for PATH. A host-wide Enable LSP
 checkbox immediately stops running servers and blocks editor and agent language requests while off;
 server configuration remains available and preserved. Settings are host-wide and update from host broadcasts. Per-server changes take effect
 on the next start/retry; saving never installs or starts a server. The page shows host storage
 and the catalog version and remains available without an active workspace.
 
-LSP Settings names the default implementation and its provider for every catalog entry. Pinned managed versions are distinguished from SDK versions and are not presented as detected running versions; executable overrides may use another implementation.
+LSP Settings names the default implementation and its provider for every catalog entry. Pinned managed versions are distinguished from SDK versions; the resolved-executable line, not the catalog version, states what will run, and states how completely the managed installation is pinned (see the Language SPEC).
 
 Language result popups display the host's total count and indicate when only the first page
 is displayed, including navigation responses truncated before they reach the UI.

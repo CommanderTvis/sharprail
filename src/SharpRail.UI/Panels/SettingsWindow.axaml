@@ -45,8 +45,10 @@
               <Button x:Name="LspProviderRepository" Content="Source repository ↗" Classes="link" />
             </WrapPanel>
             <CheckBox x:Name="LspEnabled" Content="Allow this server to start" />
-            <CheckBox x:Name="LspManaged" Content="Prefer the managed installation over PATH" />
-            <TextBlock Text="The default implementation is shown above. PATH installations and executable overrides can differ; pinned versions describe managed installations, not running processes." Classes="settings-description" />
+            <CheckBox x:Name="LspAllowPath" Content="Use the executable on PATH instead of the managed installation" />
+            <TextBlock x:Name="LspResolved" TextWrapping="Wrap" />
+            <TextBlock x:Name="LspPathWarning" TextWrapping="Wrap" IsVisible="False" />
+            <TextBlock Text="The pinned managed installation is the default and is verified before it runs. A PATH executable is an unverified binary that a project could influence, so it is used only when you allow it for this server, and never from inside the workspace. Servers without a managed installation need PATH allowed. Executable overrides are your own explicit choice and are also refused inside the workspace. Project files cannot choose executables." Classes="settings-description" />
             <TextBlock Text="Executable override" Classes="settings-label" />
             <TextBox x:Name="LspCommand" PlaceholderText="Automatic" />
             <CheckBox x:Name="LspDefaultArguments" Content="Use default arguments" />

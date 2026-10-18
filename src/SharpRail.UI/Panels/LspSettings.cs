@@ -16,7 +16,9 @@ public sealed partial class SettingsWindow
         PageControl<ContentControl>(panel, "JvmProviderSettings").Content = provider;
         var selector = PageControl<ListBox>(panel, "LspServer");
         var enabled = PageControl<CheckBox>(panel, "LspEnabled");
-        var managed = PageControl<CheckBox>(panel, "LspManaged");
+        var allowPath = PageControl<CheckBox>(panel, "LspAllowPath");
+        var resolved = PageControl<TextBlock>(panel, "LspResolved");
+        var pathWarning = PageControl<TextBlock>(panel, "LspPathWarning");
         var command = PageControl<TextBox>(panel, "LspCommand");
         var defaultArguments = PageControl<CheckBox>(panel, "LspDefaultArguments");
         var arguments = PageControl<TextBox>(panel, "LspArguments");
@@ -49,7 +51,7 @@ public sealed partial class SettingsWindow
             var json = state.Current.Settings.LanguageServers;
             var options = string.IsNullOrWhiteSpace(json) ? new() :
                 JsonSerializer.Deserialize<Dictionary<string, LanguageServerOptions>>(json, JsonSerializerOptions.Web)?.GetValueOrDefault(id) ?? new LanguageServerOptions();
-            enabled.IsChecked = !options.Disabled; managed.IsChecked = options.Managed;
+            enabled.IsChecked = !options.Disabled; allowPath.IsChecked = options.AllowPath;
             defaultArguments.IsChecked = options.Arguments is null;
             arguments.IsEnabled = options.Arguments is not null;
             command.Text = options.Command; arguments.Text = string.Join('\n', options.Arguments ?? []);
@@ -60,6 +62,7 @@ public sealed partial class SettingsWindow
             message.Text = "";
             links.IsVisible = false;
             _ = LoadLinks(id);
+            _ = LoadResolution(id);
         }
         async Task LoadLinks(string id)
         {
@@ -78,6 +81,27 @@ public sealed partial class SettingsWindow
             catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { }
             catch (Exception failure) { if (!lifetime.IsCancellationRequested && selector.SelectedItem is string selected && selected == id) message.Text = "Provider links unavailable: " + failure.Message; }
         }
+        async Task LoadResolution(string id)
+        {
+            resolved.Text = "Resolving the executable…"; resolved.Foreground = Ui.Muted; pathWarning.IsVisible = false;
+            try
+            {
+                var workspace = window.WorkspaceRoot;
+                var result = await Task.Run(async () => await window.Host.LanguageAsync(new(workspace, Operation: "resolution", Server: id), lifetime.Token), lifetime.Token);
+                if (lifetime.IsCancellationRequested || selector.SelectedItem is not string selected || selected != id) return;
+                var facts = JsonNode.Parse(result.Configuration)!;
+                var path = facts["path"]?.GetValue<string>() ?? "";
+                var version = facts["version"]?.GetValue<string>() ?? "";
+                var warning = facts["warning"]?.GetValue<string>() ?? "";
+                var source = facts["source"]?.GetValue<string>() switch { "managed" => "Managed", "path" => "PATH", "override" => "Executable override", _ => "None" };
+                resolved.Foreground = result.State == "ready" ? Ui.Muted : Ui.Danger;
+                resolved.Text = $"{source}: {(path.Length > 0 ? path : "no executable")}" + (version.Length > 0 ? $"\nVersion: {version}" : "") + $"\n{result.Detail}\n{facts["pinning"]?.GetValue<string>()}";
+                allowPath.IsEnabled = facts["pathCapable"]?.GetValue<bool>() == true;
+                pathWarning.Foreground = Ui.Danger; pathWarning.Text = warning; pathWarning.IsVisible = warning.Length > 0;
+            }
+            catch (OperationCanceledException) { }
+            catch (Exception failure) when (!lifetime.IsCancellationRequested) { resolved.Foreground = Ui.Danger; resolved.Text = "Executable unavailable: " + failure.Message; }
+        }
         void ArgumentControls()
         {
             defaultArguments.IsEnabled = !string.IsNullOrWhiteSpace(command.Text);
@@ -92,7 +116,7 @@ public sealed partial class SettingsWindow
         {
             if (selector.SelectedItem is not string id) return;
             var args = (arguments.Text ?? "").Replace("\r", "").Split('\n', StringSplitOptions.RemoveEmptyEntries);
-            var options = new LanguageServerOptions(enabled.IsChecked != true, managed.IsChecked == true, (command.Text ?? "").Trim(), string.IsNullOrWhiteSpace(command.Text) || defaultArguments.IsChecked == true ? null : args);
+            var options = new LanguageServerOptions(enabled.IsChecked != true, allowPath.IsChecked == true, (command.Text ?? "").Trim(), string.IsNullOrWhiteSpace(command.Text) || defaultArguments.IsChecked == true ? null : args);
             save.IsEnabled = false;
             try
             {
@@ -100,6 +124,7 @@ public sealed partial class SettingsWindow
                 await Task.Run(async () => await state.ChangeAsync(HostStateChange.Setting("language-server:" + id, json)), lifetime.Token);
                 if (lifetime.IsCancellationRequested) return;
                 message.Foreground = Ui.Muted; message.Text = "Saved. Applies on the next Start / Retry.";
+                _ = LoadResolution(id);
             }
             catch (Exception failure) when (!lifetime.IsCancellationRequested) { message.Foreground = Ui.Danger; message.Text = failure.Message; }
             catch (OperationCanceledException) { }
