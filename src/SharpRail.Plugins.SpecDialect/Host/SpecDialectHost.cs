@@ -10,8 +10,12 @@ public sealed class SpecDialectHost : PluginHostModule
 {
     public override PluginContract Contract => SpecDialectContract.Contract;
 
+    /// <summary>The list item about the <c>spec_*</c> tools in the instructions agent plugins give sessions (H20).</summary>
+    internal const string Guidance = "If this project uses a spec graph and the `spec_*` tools are available, use them to read and maintain affected specs. Projects without specs need no spec workflow; do not create specs unless asked.";
+
     public override ValueTask<PluginDisposer?> ActivateAsync(IPluginHostContext context)
     {
+        context.Prompt(new PromptContribution { Id = "spec-tools", Text = Guidance, Order = 20 });
         // A workspace id is its worktree root; once resolved, its index is reused until the workspace goes away.
         var indexes = new ConcurrentDictionary<string, SpecIndex>(StringComparer.Ordinal);
 

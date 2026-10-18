@@ -70,6 +70,8 @@ Three projects under `Contract`, `Host` and `UI`: `SharpRail.Plugins.Visualize` 
   (`Visualization`) and Avalonia in the UI half.
 - Forbidden: any other plugin, any `SharpRail.Host.*` or `SharpRail.UI` project.
 
+The host half contributes the `visualize` item to the agent instructions (H20, order 10) on activation, so a disabled plugin leaves it out.
+
 ## Not ported
 
 - ThinkRail's chat renders the same visualize call inline through the kit card for pi's own visualize tool;

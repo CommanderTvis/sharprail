@@ -84,6 +84,8 @@ all dangling edges, duplicate ids and parent cycles.
 Schemas come from the typed parameter records; malformed arguments fail before the tool runs.
 Tools return text and structured details, and error outcomes carry `IsError`.
 
+The host half contributes the `spec_*` item to the agent instructions (H20, order 20) on activation, so a disabled plugin leaves it out.
+
 ## Browsing and live refresh
 
 ```mermaid

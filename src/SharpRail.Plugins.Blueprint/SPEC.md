@@ -80,6 +80,8 @@ contributes `submit: true`, composed with the first text offered by another plug
 calls Spec Dialect's graph through its declared dependency and warns if `BLUEPRINT.md`
 has not been indexed with id/type/title metadata. It changes nothing.
 
+The host half contributes the `blueprint_check` item to the agent instructions (H20, order 30) on activation, so a disabled plugin leaves it out.
+
 ## UI
 
 Two start actions open one dialog: a workspace action resolves its project, and a

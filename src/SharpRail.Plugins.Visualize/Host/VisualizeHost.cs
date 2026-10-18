@@ -7,10 +7,14 @@ public sealed class VisualizeHost : PluginHostModule
 {
     internal VisualizationStore Store { get; } = new();
 
+    /// <summary>The list item about <c>visualize</c> in the instructions agent plugins give sessions (H20).</summary>
+    internal const string Guidance = "`visualize`: Mermaid diagrams or option comparisons instead of ASCII art/tables when clearer. Each call replaces the live view.";
+
     public override PluginContract Contract => VisualizeContract.Contract;
 
     public override ValueTask<PluginDisposer?> ActivateAsync(IPluginHostContext context)
     {
+        context.Prompt(new PromptContribution { Id = "visualize", Text = Guidance, Order = 10 });
         Store.Connect(
             payload => context.Publish(VisualizeContract.Changed, payload),
             (workspaceId, tabKey) => context.AgentRecord(new TerminalRef(workspaceId, tabKey))?.SessionId,
