@@ -77,6 +77,22 @@ internal static class LanguageChecks
             Require(formatted["tokens"] is null && formatted["locations"] is null, "Diagnostics emitted irrelevant empty fields.");
             var styles = EditorFrame.SemanticStyles("😀 target\nnext", [new(0, 3, 6, "variable"), new(50, 0, 4, "type")]);
             Require(styles.Take(5).All(value => value == byte.MaxValue) && styles.Skip(5).Take(6).All(value => value == Array.IndexOf(TextMateHighlighter.Roles, "variable")), "Semantic UTF-16 to UTF-8 mapping corrupted an astral character.");
+            var roleOf = new Dictionary<string, string>
+            {
+                ["class"] = "type",
+                ["struct"] = "type",
+                ["interface"] = "type",
+                ["enum"] = "type",
+                ["typeParameter"] = "type",
+                ["delegate"] = "type",
+                ["parameter"] = "variable",
+                ["variable"] = "variable",
+                ["field"] = "property",
+                ["property"] = "property",
+                ["method"] = "function"
+            };
+            foreach (var (kind, role) in roleOf)
+                Require(EditorFrame.SemanticStyles("x", [new(0, 0, 1, kind)])[0] == Array.IndexOf(TextMateHighlighter.Roles, role), $"Semantic token '{kind}' did not map to the {role} role.");
             Console.WriteLine("PASS language local/remote parity, drafts, routing, diagnostics freshness, semantic tokens, navigation, cancellation, lifecycle and failure recovery");
         }
         finally
@@ -892,6 +908,9 @@ internal static class LanguageChecks
 
     internal static void ProviderIconsUi()
     {
+        foreach (var theme in SharpRail.UI.Rendering.Themes.All)
+            foreach (var other in new[] { "variable", "property", "function" })
+                Require(theme.Syntax["type"] != theme.Syntax[other], $"Theme '{theme.Id}' paints types and {other} identically.");
         using (var png = Avalonia.Platform.AssetLoader.Open(new Uri("avares://SharpRail.UI/Assets/LanguageIcons/csharp-provider.png")))
         using (var bitmap = SkiaSharp.SKBitmap.Decode(png))
             Require(bitmap.GetPixel(0, 0).Alpha == 0 && bitmap.GetPixel(bitmap.Width - 1, bitmap.Height - 1).Alpha == 0,

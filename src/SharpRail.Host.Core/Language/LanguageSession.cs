@@ -111,7 +111,7 @@ internal sealed partial class LanguageSession : IAsyncDisposable
                         {
                             requests = new { full = true },
                             formats = new[] { "relative" },
-                            tokenTypes = new[] { "namespace", "type", "class", "enum", "interface", "struct", "typeParameter", "parameter", "variable", "property", "enumMember", "event", "function", "method", "macro", "keyword", "modifier", "comment", "string", "number", "regexp", "operator", "decorator" },
+                            tokenTypes = new[] { "namespace", "type", "class", "enum", "interface", "struct", "typeParameter", "parameter", "variable", "property", "field", "delegate", "enumMember", "event", "function", "method", "macro", "keyword", "modifier", "comment", "string", "number", "regexp", "operator", "decorator" },
                             tokenModifiers = new[] { "declaration", "definition", "readonly", "static", "deprecated", "abstract", "async", "modification", "documentation", "defaultLibrary" },
                             augmentsSyntaxTokens = false,
                             overlappingTokenSupport = false,

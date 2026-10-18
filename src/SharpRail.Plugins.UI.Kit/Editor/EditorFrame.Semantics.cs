@@ -52,11 +52,11 @@ public sealed partial class EditorFrame
             if (start < starts[token.Line] || start > lineEnd || token.Length > lineEnd - start) continue;
             var role = token.Type switch
             {
-                "namespace" or "type" or "class" or "enum" or "interface" or "struct" or "typeParameter" => "type",
+                "namespace" or "type" or "class" or "enum" or "interface" or "struct" or "typeParameter" or "delegate" or "record" or "recordStruct" => "type",
                 "parameter" or "variable" => "variable",
                 "function" or "method" or "macro" or "extensionMethod" or "extensionFunction" => "function",
                 "enumMember" => "constant",
-                "event" or "property" => "property",
+                "event" or "property" or "field" => "property",
                 "modifier" => "keyword",
                 "decorator" => "annotation",
                 _ => token.Type

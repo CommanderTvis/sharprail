@@ -361,6 +361,12 @@ reported spans. Uncovered spans retain syntax colors, including keywords, commen
 sparse server responses must not erase lexical highlighting. Empty/unsupported tokens, edits and stopped
 servers retain or restore TextMate fallback. Subsequent syntax refreshes cannot overwrite semantics.
 
+Token types map to palette roles: namespace, class, struct, interface, enum, typeParameter, delegate and
+record to `type`; parameter and variable to `variable`; property, field and event to `property`;
+function and method to `function`. Every bundled theme gives `type` a colour different from `variable`,
+`property` and `function` (guarded in the language checks), so a type name never reads like a parameter,
+local or member; the TextMate fallback uses the same roles.
+
 
 Initial syntax highlighting exposes a completion signal and keeps the editor body hidden until
 its first pass finishes or reports a failure. Attached editors reuse completed syntax styles
