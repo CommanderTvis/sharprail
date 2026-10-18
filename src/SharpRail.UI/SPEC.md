@@ -560,7 +560,7 @@ They use the same workspace persistence, live updates and restart actions as raw
 JSON configuration; schemas are not bundled into remote clients. Custom servers
 and SDK-dependent versions are visibly distinguished from catalog guarantees.
 
-The Code Intelligence pane offers JetBrains Context terms review in a separate owned, resizable window. It displays the pinned artifact, all three current legal documents and a cloud-processing notice. Consent starts unchecked; Cancel/close downloads nothing. Accept and download persists the host acknowledgement and shows verified completion in the same window, with Done as its closing action, without starting the CLI or enabling indexing. The pane reads local installation status without fetching terms: a verified binary changes its action to View installation; an invalid binary offers repair. Status digest caching is for display only. Reopening a verified, acknowledged installation shows Done and hides Download; a missing/damaged binary retains the explicit download/repair flow. Changed terms clear consent for a fresh review. Reload recovers from fetch/download failures.
+The Air Context plugin's account section in Settings › Code Intelligence offers JetBrains Context terms review in a separate owned, resizable window. It displays the pinned artifact, all three current legal documents and a cloud-processing notice. Consent starts unchecked; Cancel/close downloads nothing. Accept and download persists the host acknowledgement and shows verified completion in the same window, with Done as its closing action, without starting the CLI or enabling indexing. The pane reads local installation status without fetching terms: a verified binary changes its action to View installation; an invalid binary offers repair. Status digest caching is for display only. Reopening a verified, acknowledged installation shows Done and hides Download; a missing/damaged binary retains the explicit download/repair flow. Changed terms clear consent for a fresh review. Reload recovers from fetch/download failures.
 
 
 ## Language project folders
@@ -581,10 +581,10 @@ the detected build definitions as editable documents. These actions do not autom
 rewrite Gradle/Maven/MSBuild models or claim native module configuration/import controls.
 
 
-Code Intelligence also provides workspace-scoped Context enablement, sign-in, Index now,
-Stop and Logs. Cloud enablement uses an explicit confirmation describing source upload,
+The Air Context plugin's workspace section in the language servers pane provides workspace-scoped enablement, Index now,
+Stop and Logs; sign-in is global and lives in Settings › Code Intelligence. Both sections are plugin slot contributions (W23) hosted by `PluginSlot` and absent while the plugin is disabled. Cloud enablement uses an explicit confirmation describing source upload,
 automatic SharpRail agent-launch indexing and reuse of the CLI's JetBrains login/cache.
-New workspaces stay disabled. Login opens a named SharpRail-owned host terminal; no
+New workspaces stay disabled. Sign in opens a SharpRail-owned host terminal; no
 credentials pass through UI configuration. Context controls are compact when disabled.
 Host state broadcasts/polling reconcile enablement and runtime state; errors and login
 requirements remain inline. Logs use the owned log window and remain workspace-scoped.

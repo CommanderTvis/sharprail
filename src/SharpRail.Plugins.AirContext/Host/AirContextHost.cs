@@ -158,11 +158,19 @@ public sealed class AirContextHost : PluginHostModule
 
         private async ValueTask<ContextOutcome> WorkspaceAsync(ContextCall call, CancellationToken token)
         {
-            if (call.Operation is not ("status" or "enable" or "disable" or "login" or "index" or "stop" or "logs"))
+            if (call.Operation is not ("status" or "check" or "enable" or "disable" or "login" or "logout" or "index" or "stop" or "logs"))
                 throw new ArgumentException("Unknown Context operation.");
             var result = await ExecuteAsync(new(call.WorkspaceId, call.Operation), token);
             var outcome = result.For(Path.TrimEndingDirectorySeparator(Path.GetFullPath(call.WorkspaceId)));
             if (call.Operation is "enable" or "disable" or "stop") context.Publish(AirContextContract.Changed, outcome);
+            // The login is shared: every enabled workspace's pane learns of a change, in this window or another client.
+            else if (call.Operation is "logout" or "check")
+            {
+                string[] others;
+                lock (gate) others = [.. enabled];
+                foreach (var other in others.Append(outcome.WorkspaceId).Distinct())
+                    context.Publish(AirContextContract.Changed, (await ExecuteAsync(new(other, "status"), token)).For(other));
+            }
             return outcome;
         }
 

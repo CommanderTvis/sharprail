@@ -6,9 +6,9 @@ namespace SharpRail.Plugins.AirContext.Host;
 internal sealed record ContextRequest(string Workspace, string Operation = "status", string Query = "", string Path = "", int Limit = 20);
 
 /// <summary>Context lifecycle or bounded search output. No credentials are exposed.</summary>
-internal sealed record ContextResult(string State, string Detail = "", bool Enabled = false, string Data = "", string Command = "")
+internal sealed record ContextResult(string State, string Detail = "", bool Enabled = false, string Data = "", string Command = "", bool? SignedIn = null)
 {
-    internal ContextOutcome For(string workspace) => new(workspace, State, Detail, Enabled, Data, Command);
+    internal ContextOutcome For(string workspace) => new(workspace, State, Detail, Enabled, Data, Command, SignedIn);
 }
 
 /// <summary>A bounded in-memory log; the oldest output is dropped first.</summary>

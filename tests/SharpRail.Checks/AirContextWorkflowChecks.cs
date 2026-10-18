@@ -26,6 +26,8 @@ internal static partial class AirContextChecks
         internal int Indexes;
         internal bool Disposed;
         internal bool SignedIn;
+        // Set by the UI flow, where the fixture CLI answers a status probe like the real one: with a login request when signed out.
+        internal bool GateStatus;
         internal readonly TaskCompletionSource SearchEntered = new(TaskCreationOptions.RunContinuationsAsynchronously);
         internal readonly TaskCompletionSource Indexed = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public Task<string> PrepareLoginAsync(CancellationToken token) => Task.FromResult("fixture-context-login");
@@ -43,7 +45,9 @@ internal static partial class AirContextChecks
             if (query == "wait") { SearchEntered.TrySetResult(); await Task.Delay(Timeout.Infinite, token); }
             return JsonSerializer.Serialize(new { workspace, query, path, limit, file = "src/example.cs", line = 4 });
         }
-        public Task<string> StatusAsync(CancellationToken token) => Task.FromResult("{\"indexed\":true}");
+        public Task<string> StatusAsync(CancellationToken token) =>
+            GateStatus && !SignedIn ? Task.FromException<string>(new ContextLoginRequiredException()) : Task.FromResult("{\"indexed\":true}");
+        public Task LogoutAsync(CancellationToken token) { SignedIn = false; return Task.CompletedTask; }
         public ValueTask DisposeAsync() { Disposed = true; return ValueTask.CompletedTask; }
     }
 
@@ -141,13 +145,14 @@ internal static partial class AirContextChecks
 
     private static void WorkflowUi(string root)
     {
+        SharpRail.Plugins.AirContext.UI.AirContextPane.SignInPollInterval = TimeSpan.FromMilliseconds(200);
         var storage = Path.Combine(root, "context-workflow-ui"); Directory.CreateDirectory(storage);
         using var handler = new Handler(_ => Task.FromResult("fixture"u8.ToArray())); using var http = new HttpClient(handler);
         var bundle = new ContextBundle("workflow", "fixture", new("https://download.jetbrains.com/fixture"), Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData("fixture"u8)));
         using var fixtures = new Fixtures();
         fixtures.Value.Consent = directory => new(directory, http, bundle);
         WorkflowRuntime? runtime = null;
-        fixtures.Value.Runtime = (workspace, log, _) => Task.FromResult<IContextRuntime>(runtime = new(workspace, log));
+        fixtures.Value.Runtime = (workspace, log, _) => Task.FromResult<IContextRuntime>(runtime = new(workspace, log) { GateStatus = true });
         using var app = new E2E.E2eWorkspace(storage);
         var window = app.Window;
         void Await(Task task) { E2E.E2eWorkspace.Until(() => task.IsCompleted); task.GetAwaiter().GetResult(); }
@@ -191,9 +196,37 @@ internal static partial class AirContextChecks
             confirmation = Dialogs().Single(); Button(confirmation, "EnableContextConfirm");
             E2E.E2eWorkspace.Until(() => EnabledNow().Contains(workspace) && Find<Button>(window, "ContextIndex").IsEnabled);
             Require(runtime is null, "Enabling started an index before a launch or explicit Index now.");
-            var terminals = app.Window.Layout.Tabs(app.Center).Count(tab => tab.Kind == "terminal");
-            Button(window, "ContextLogin"); E2E.E2eWorkspace.Until(() => app.Window.Layout.Tabs(app.Center).Count(tab => tab.Kind == "terminal") == terminals + 1);
-            E2E.E2eWorkspace.Until(() => Find<Button>(window, "ContextIndex").IsEnabled);
+            // The sign-in lives in Settings › Code Intelligence; the workspace section only follows it.
+            Require(!window.GetLogicalDescendants().OfType<Button>().Any(control => control.Name is "ContextLogin" or "ContextSetup" && control.IsEffectivelyVisible), "The workspace section offers its own sign-in.");
+            var settings = new SharpRail.UI.Panels.SettingsWindow(window, () => { }, section: "Code Intelligence");
+            settings.Show(window);
+            try
+            {
+                E2E.E2eWorkspace.Until(() => settings.GetLogicalDescendants().OfType<Button>().Any(control => control.Name == "ContextRefresh"));
+                Button(settings, "ContextRefresh");
+                E2E.E2eWorkspace.Until(() => Find<TextBlock>(settings, "AccountState").Text!.StartsWith("Not signed in", StringComparison.Ordinal));
+                Require(Find<Button>(settings, "ContextLogin").IsVisible && !Find<Button>(settings, "ContextLogout").IsVisible, "A signed-out account offered no Sign in.");
+                // The workspace section follows the global state without being reopened.
+                E2E.E2eWorkspace.Until(() => Find<StackPanel>(window, "SignInNotice").IsVisible && !Find<Button>(window, "ContextIndex").IsEnabled);
+                Require(Find<Button>(window, "ContextOpenSettings").IsVisible, "The sign-in notice has no way to Settings.");
+                // A sign-in that has not completed leaves everything as it was.
+                var terminals = app.Window.Layout.Tabs(app.Center).Count(tab => tab.Kind == "terminal");
+                Button(settings, "ContextLogin"); E2E.E2eWorkspace.Until(() => app.Window.Layout.Tabs(app.Center).Count(tab => tab.Kind == "terminal") == terminals + 1);
+                Button(settings, "ContextRefresh"); E2E.E2eWorkspace.Settle(300);
+                Require(Find<TextBlock>(settings, "AccountState").Text!.StartsWith("Not signed in", StringComparison.Ordinal) && Find<StackPanel>(window, "SignInNotice").IsVisible && !Find<Button>(window, "ContextIndex").IsEnabled,
+                    "An unfinished sign-in changed the account state.");
+                // The terminal's login succeeds; the account section notices on its own, the workspace section follows.
+                runtime!.SignedIn = true;
+                E2E.E2eWorkspace.Until(() => Find<TextBlock>(settings, "AccountState").Text!.StartsWith("Signed in", StringComparison.Ordinal));
+                Require(Find<Button>(settings, "ContextLogout").IsVisible && !Find<Button>(settings, "ContextLogin").IsVisible, "A signed-in account kept offering Sign in.");
+                E2E.E2eWorkspace.Until(() => !Find<StackPanel>(window, "SignInNotice").IsVisible && Find<Button>(window, "ContextIndex").IsEnabled);
+                // Signing out from the global section reaches the workspace section too.
+                Button(settings, "ContextLogout");
+                E2E.E2eWorkspace.Until(() => Find<StackPanel>(window, "SignInNotice").IsVisible && !Find<Button>(window, "ContextIndex").IsEnabled);
+                runtime.SignedIn = true; Button(settings, "ContextRefresh");
+                E2E.E2eWorkspace.Until(() => Find<Button>(window, "ContextIndex").IsEnabled);
+            }
+            finally { settings.Close(); }
             Button(window, "ContextIndex"); E2E.E2eWorkspace.Until(() => runtime?.Indexes == 1);
             Button(window, "ContextLogs"); E2E.E2eWorkspace.Until(() => window.OwnedWindows.OfType<SharpRail.Plugins.AirContext.UI.LogsWindow>().Any());
             var logs = window.OwnedWindows.OfType<SharpRail.Plugins.AirContext.UI.LogsWindow>().Single();

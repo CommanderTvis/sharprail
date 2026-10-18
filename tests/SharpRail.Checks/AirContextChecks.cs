@@ -232,9 +232,14 @@ internal static partial class AirContextChecks
         using var fixtures = new Fixtures();
         fixtures.Value.Consent = directory => new(directory, http, bundle);
         using var app = new E2E.E2eWorkspace(storage);
+        E2E.E2eWorkspace.Until(() => app.Window.WorkspaceMounted);
+        var before = OpenSettings(app);
+        try { Require(!HasAir(before), "A disabled Air Context left a section in Settings › Code Intelligence."); } finally { before.Close(); }
         TurnOn(app);
         Reveal(app);
-        var owner = app.Window;
+        var owner = OpenSettings(app);
+        E2E.E2eWorkspace.Until(() => HasAir(owner));
+        Require(owner.GetLogicalDescendants().OfType<Control>().All(control => control.Name != "ContextEnabled" || !control.IsEffectivelyVisible), "The workspace controls appeared in the global Settings section.");
         T Find<T>(Window window, string name) where T : Control => window.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
         void Click(Button button) => button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
         E2E.E2eWorkspace.Until(() => owner.GetLogicalDescendants().OfType<Button>().Any(control => control.Name == "ContextSetup"));
@@ -287,12 +292,13 @@ internal static partial class AirContextChecks
                 E2E.E2eWorkspace.Until(() => change.IsCompleted); change.GetAwaiter().GetResult();
             }
             Switch(false);
-            E2E.E2eWorkspace.Until(() => app.Window.Layout.Tools.All(tool => tool.Id != Tool) && !owner.GetLogicalDescendants().OfType<Control>().Any(control => control.Name is "ContextSetup" or "ContextEnabled" or "AirContextPane"));
+            E2E.E2eWorkspace.Until(() => !HasAir(owner) && !HasAir(app.Window, "AirContextPane") && !owner.GetLogicalDescendants().OfType<Control>().Any(control => control.Name is "ContextSetup" or "ContextEnabled"));
+            Require(app.Window.Layout.Tools.All(tool => !tool.Id.StartsWith("plugin:air-context:", StringComparison.Ordinal)), "A side tool appeared.");
             Require(owner.OwnedWindows.Count == 0, "A disabled plugin left a window open.");
             Switch(true);
-            E2E.E2eWorkspace.Until(() => app.Window.Layout.Tools.Any(tool => tool.Id == Tool));
+            E2E.E2eWorkspace.Until(() => HasAir(owner) && HasAir(app.Window, "AirContextPane"));
         }
-        finally { dialog.Close(); }
+        finally { dialog.Close(); owner.Close(); }
         Console.WriteLine("PASS Context consent window: unchecked default, cancel without download, explicit accept/download and visible completion");
     }
 
@@ -300,20 +306,31 @@ internal static partial class AirContextChecks
     private static void TurnOn(E2E.E2eWorkspace app)
     {
         E2E.E2eWorkspace.Until(() => app.Window.WorkspaceMounted);
-        Require(!app.Workbench.PluginLoader.Registry.Active.Contains(AirContextContract.Id) && app.Window.Layout.Tools.All(tool => tool.Id != Tool), "Air Context was on in a fresh profile.");
+        Require(!app.Workbench.PluginLoader.Registry.Active.Contains(AirContextContract.Id) && app.Window.Layout.Tools.All(tool => !tool.Id.StartsWith("plugin:air-context:", StringComparison.Ordinal)), "Air Context was on in a fresh profile.");
         var change = Task.Run(async () => { await app.State!.ChangeAsync([HostStateChange.PluginEnabled(AirContextContract.Id, true)]); await app.PluginRuntime!.Schedule(); });
         E2E.E2eWorkspace.Until(() => change.IsCompleted); change.GetAwaiter().GetResult();
         E2E.E2eWorkspace.Until(() => app.Workbench.PluginLoader.Registry.Active.Contains(AirContextContract.Id));
     }
 
-    private const string Tool = "plugin:air-context:context";
-
+    /// <summary>Air Context has no tool of its own: its workspace section sits in the language servers pane.</summary>
     private static void Reveal(E2E.E2eWorkspace app)
     {
-        E2E.E2eWorkspace.Until(() => app.Window.Layout.Tools.Any(tool => tool.Id == Tool));
-        app.Window.Layout.RestoreTool(Tool);
+        Require(app.Window.Layout.Tools.All(tool => !tool.Id.StartsWith("plugin:air-context:", StringComparison.Ordinal)), "Air Context contributed a side tool.");
+        E2E.E2eWorkspace.Until(() => app.Window.Layout.Tools.Any(tool => tool.Id == "lsp"));
+        app.Window.Layout.RestoreTool("lsp");
         E2E.E2eWorkspace.Until(() => app.Window.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == "AirContextPane"));
     }
+
+    /// <summary>Settings › Code Intelligence, where the account section lives.</summary>
+    private static SharpRail.UI.Panels.SettingsWindow OpenSettings(E2E.E2eWorkspace app)
+    {
+        var settings = new SharpRail.UI.Panels.SettingsWindow(app.Window, () => { }, section: "Code Intelligence");
+        settings.Show(app.Window);
+        return settings;
+    }
+
+    private static bool HasAir(Control root, string name = "AirContextAccount") =>
+        root.GetLogicalDescendants().OfType<Control>().Any(control => control.Name == name || control.Name == "PluginSlotSection_" + AirContextContract.Id);
 
 
     private static async Task<PluginCallException> Fails(Func<Task> call)

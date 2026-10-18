@@ -36,6 +36,16 @@ internal sealed class ContextRuntime(string executable, string workspace, Action
         return "'" + executable.Replace("'", "'\\''", StringComparison.Ordinal) + "' login";
     }
 
+    public async Task LogoutAsync(CancellationToken token)
+    {
+        await authorize(token);
+        // A live MCP session holds the old login; the next search starts a fresh one.
+        await search.WaitAsync(token);
+        try { if (mcp is { } connection) { mcp = null; searchSchema = null; await connection.DisposeAsync(); } }
+        finally { search.Release(); }
+        await RunAsync(["logout"], TimeSpan.FromMinutes(1), token);
+    }
+
     public async Task IndexAsync(CancellationToken token)
     {
         await authorize(token);

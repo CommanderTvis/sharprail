@@ -9,12 +9,22 @@ using SharpRail.Plugins.UI.Kit;
 
 namespace SharpRail.Plugins.AirContext.UI;
 
-/// <summary>One workspace's Air Context controls: the CLI's terms and download, cloud enablement, sign-in, indexing and logs.</summary>
+/// <summary>
+/// Air Context's two sections of the Code Intelligence pages. The account section (Settings) holds what is global to
+/// the JetBrains login: terms and download, sign-in and sign-out. The workspace section (the language servers pane)
+/// holds what belongs to one workspace: enablement, indexing and logs.
+/// </summary>
 internal sealed partial class AirContextPane : UserControl
 {
+    /// <summary>How often a pane waiting for a sign-in terminal probes the CLI; the checks shorten it.</summary>
+    internal static TimeSpan SignInPollInterval { get; set; } = TimeSpan.FromSeconds(5);
+
     private readonly IPluginUIContext context;
+    private readonly bool account;
+    private bool checking;
+    private DateTime lastProbe;
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(3) };
-    private string workspace;
+    private readonly string workspace;
     private CancellationTokenSource? lifetime;
     private IDisposable? subscription;
     private ConsentWindow? consentWindow;
@@ -23,21 +33,26 @@ internal sealed partial class AirContextPane : UserControl
     private bool contextBusy;
     private ContextOutcome? contextFailure;
 
-    internal AirContextPane(IPluginUIContext context, string workspace)
+    internal AirContextPane(IPluginUIContext context, string workspace, bool account)
     {
-        this.context = context; this.workspace = workspace;
+        this.context = context; this.workspace = workspace; this.account = account;
         AvaloniaXamlLoader.Load(this);
-        Name = "AirContextPane";
-        this.FindControl<TextBlock>("Workspace")!.Text = workspace;
+        Name = account ? "AirContextAccount" : "AirContextPane";
+        this.FindControl<StackPanel>("AccountPart")!.IsVisible = account;
+        this.FindControl<StackPanel>("WorkspacePart")!.IsVisible = !account;
+        this.FindControl<TextBlock>("ContextBlurb")!.Text = account
+            ? "Semantic code discovery through the JetBrains Context CLI. The CLI and its JetBrains login are shared by every workspace."
+            : "Semantic code discovery for this workspace. Cloud indexing requires explicit enablement.";
         BrandIcon();
-        timer.Tick += async (_, _) => { if (IsEffectivelyVisible) { await RefreshConsentAsync(); await RefreshWorkspaceAsync(); } };
+        timer.Tick += async (_, _) => { if (IsEffectivelyVisible) await RefreshAsync(false); };
         AttachedToVisualTree += (_, _) =>
         {
             lifetime = new();
             Subscribe();
             timer.Start();
-            _ = RefreshConsentAsync(); _ = RefreshWorkspaceAsync();
+            _ = RefreshAsync(true);
         };
+        GotFocus += (_, _) => { if (account && DateTime.UtcNow - lastProbe > TimeSpan.FromSeconds(15)) _ = CheckAccountAsync(); };
         DetachedFromVisualTree += (_, _) =>
         {
             timer.Stop(); subscription?.Dispose(); subscription = null;
@@ -46,16 +61,58 @@ internal sealed partial class AirContextPane : UserControl
         };
     }
 
-    internal bool Retarget(string next)
+    // The account section probes the CLI only when asked, on opening and on focus; the workspace section reads the host's cached state.
+    private async Task RefreshAsync(bool probe)
     {
-        workspace = next;
-        this.FindControl<TextBlock>("Workspace")!.Text = next;
-        contextFailure = null;
-        if (lifetime is null) return true;
-        subscription?.Dispose(); Subscribe();
-        _ = RefreshWorkspaceAsync();
-        return true;
+        if (account) { await RefreshConsentAsync(); if (probe) await CheckAccountAsync(); }
+        else await RefreshWorkspaceAsync();
     }
+
+    private void ContextRefreshClicked(object? sender, RoutedEventArgs e) => _ = RefreshAsync(true);
+    private void ContextOpenSettingsClicked(object? sender, RoutedEventArgs e) => context.OpenSettings(UiPages.CodeIntelligence);
+
+    private void ApplyAccount(ContextOutcome result)
+    {
+        var state = this.FindControl<TextBlock>("AccountState")!;
+        state.Text = result.SignedIn switch { true => "Signed in to JetBrains.", false => "Not signed in. Sign in to index and search.", _ => result.State is "requiresAcceptance" ? "Review the terms and download the CLI first." : "Sign-in status not checked yet." };
+        state.Foreground = result.SignedIn == false ? Ui.Warning : Ui.Muted;
+        this.FindControl<Button>("ContextLogin")!.IsVisible = result.SignedIn != true;
+        this.FindControl<Button>("ContextLogin")!.IsEnabled = !contextBusy;
+        this.FindControl<Button>("ContextLogout")!.IsVisible = result.SignedIn == true;
+        this.FindControl<Button>("ContextLogout")!.IsEnabled = !contextBusy;
+    }
+
+    private async Task CheckAccountAsync()
+    {
+        if (checking || contextBusy || lifetime is not { } current) return;
+        checking = true; lastProbe = DateTime.UtcNow;
+        try
+        {
+            var result = await context.RequestAsync(AirContextContract.Workspace, new(workspace, "check"), current.Token);
+            if (lifetime == current && !current.IsCancellationRequested) ApplyAccount(result);
+        }
+        catch (OperationCanceledException) when (current.IsCancellationRequested) { }
+        catch (Exception error) { if (lifetime == current) this.FindControl<TextBlock>("AccountState")!.Text = error.Message; }
+        finally { checking = false; }
+    }
+
+    // After the sign-in terminal opens: probe at a modest rate until the CLI accepts the login or the tab closes.
+    private async Task WatchSignInAsync(string tabKey, CancellationToken token)
+    {
+        try
+        {
+            for (var attempt = 0; attempt < 60 && !token.IsCancellationRequested; attempt++)
+            {
+                await Task.Delay(SignInPollInterval, token);
+                await CheckAccountAsync();
+                if (this.FindControl<Button>("ContextLogout")!.IsVisible) return;
+                if (context.Host().Terminals.GetValueOrDefault(workspace)?.All(tab => tab.TabKey != tabKey) != false) { await CheckAccountAsync(); return; }
+            }
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    private async void ContextLogoutClicked(object? sender, RoutedEventArgs e) => await RunAsync("logout");
 
     // Enabling in another window or client reaches this pane through the plugin's channel.
     private void Subscribe() =>
@@ -118,7 +175,9 @@ internal sealed partial class AirContextPane : UserControl
 
     private void ApplyWorkspace(ContextOutcome result)
     {
+        if (account) { ApplyAccount(result); return; }
         this.FindControl<CheckBox>("ContextEnabled")!.IsChecked = result.Enabled;
+        this.FindControl<StackPanel>("SignInNotice")!.IsVisible = result.Enabled && (result.SignedIn == false || result.State == "requiresLogin");
         var label = result.State switch
         {
             "requiresLogin" => "Sign in required",
@@ -137,8 +196,7 @@ internal sealed partial class AirContextPane : UserControl
         state.Foreground = result.State is "error" or "requiresAcceptance" ? Ui.Danger : result.State == "requiresLogin" ? Ui.Warning : Ui.Muted;
         state.IsVisible = result.Enabled || result.State is not "disabled";
         this.FindControl<WrapPanel>("ContextControls")!.IsVisible = result.Enabled;
-        this.FindControl<Button>("ContextLogin")!.IsEnabled = result.Enabled && !contextBusy;
-        this.FindControl<Button>("ContextIndex")!.IsEnabled = result.Enabled && !contextBusy && result.State != "indexing";
+        this.FindControl<Button>("ContextIndex")!.IsEnabled = result.Enabled && !contextBusy && result.State != "indexing" && result.SignedIn != false;
         this.FindControl<Button>("ContextStop")!.IsEnabled = result.Enabled && !contextBusy;
         this.FindControl<CheckBox>("ContextEnabled")!.IsEnabled = !contextBusy;
     }
@@ -155,7 +213,7 @@ internal sealed partial class AirContextPane : UserControl
                     ? failure with { Enabled = result.Enabled } : result);
         }
         catch (OperationCanceledException) when (current.IsCancellationRequested) { }
-        catch (Exception error) { if (lifetime == current) this.FindControl<TextBlock>("ContextState")!.Text = error.Message; }
+        catch (Exception error) { if (lifetime == current) this.FindControl<TextBlock>(account ? "AccountState" : "ContextState")!.Text = error.Message; }
     }
 
     private async void ContextEnableClicked(object? sender, RoutedEventArgs e)
@@ -174,7 +232,7 @@ internal sealed partial class AirContextPane : UserControl
             if (result.State == "requiresAcceptance") ContextSetupClicked(sender, e);
         }
         catch (OperationCanceledException) when (current.IsCancellationRequested) { }
-        catch (Exception error) { if (lifetime == current) this.FindControl<TextBlock>("ContextState")!.Text = error.Message; }
+        catch (Exception error) { if (lifetime == current) this.FindControl<TextBlock>(account ? "AccountState" : "ContextState")!.Text = error.Message; }
         finally { contextBusy = false; if (lifetime == current) await RefreshWorkspaceAsync(); }
     }
 
@@ -206,12 +264,16 @@ internal sealed partial class AirContextPane : UserControl
             var result = await context.RequestAsync(AirContextContract.Workspace, new(workspace, operation), current.Token);
             if (lifetime != current || current.IsCancellationRequested) return;
             contextFailure = result.State is "error" or "requiresAcceptance" or "unavailable" ? result : null;
-            ApplyWorkspace(result);
+            if (account) { if (operation != "login") ApplyAccount(result); }
+            else ApplyWorkspace(result);
             if (operation == "login" && result.State == "login" && result.Command.Length > 0)
-                await context.OpenTerminalAsync(workspace, new TerminalOpenOptions { Command = result.Command, TabKey = "air-context-sign-in" });
+            {
+                var tab = await context.OpenTerminalAsync(workspace, new TerminalOpenOptions { Command = result.Command, TabKey = "air-context-sign-in" });
+                _ = WatchSignInAsync(tab, current.Token);
+            }
         }
         catch (OperationCanceledException) when (current.IsCancellationRequested) { }
-        catch (Exception error) { if (lifetime == current) this.FindControl<TextBlock>("ContextState")!.Text = error.Message; }
+        catch (Exception error) { if (lifetime == current) this.FindControl<TextBlock>(account ? "AccountState" : "ContextState")!.Text = error.Message; }
         finally { contextBusy = false; if (lifetime == current) await RefreshWorkspaceAsync(); }
     }
 

@@ -8,12 +8,12 @@ public sealed record ContextConsentRequest(string Operation = "review", string A
 /// <summary>Host-selected Context artifact, reviewed terms and persisted user acknowledgement.</summary>
 public sealed record ContextConsentResult(string State, string Detail = "", string Version = "", string ArtifactId = "", string TermsSha256 = "", string Text = "", string AcceptedAtUtc = "", string Installation = "");
 
-/// <summary>A workspace-scoped control from the user interface: status, enable, disable, login, index, stop or logs. Search, status and index for agents are tools.</summary>
+/// <summary>A workspace-scoped control from the user interface: status, check, enable, disable, login, logout, index, stop or logs. Search, status and index for agents are tools.</summary>
 public sealed record ContextCall(string WorkspaceId, string Operation = "status");
 
 // The snapshot method (workspace) and the channel it feeds share this shape: the channel is keyed by workspaceId.
-/// <summary>A workspace's Context lifecycle state or bounded log output. No credentials are exposed.</summary>
-public sealed record ContextOutcome(string WorkspaceId, string State, string Detail = "", bool Enabled = false, string Data = "", string Command = "");
+/// <summary>A workspace's Context lifecycle state or bounded log output. <c>SignedIn</c> is whether the CLI accepted its stored login at the last probe, or <see langword="null"/> when unknown. No credentials are exposed.</summary>
+public sealed record ContextOutcome(string WorkspaceId, string State, string Detail = "", bool Enabled = false, string Data = "", string Command = "", bool? SignedIn = null);
 
 /// <summary>The persisted list of workspaces whose source the user allowed to be indexed.</summary>
 public sealed record ContextWorkspaces(IReadOnlyList<string> Paths);
@@ -21,7 +21,6 @@ public sealed record ContextWorkspaces(IReadOnlyList<string> Paths);
 public static class AirContextContract
 {
     public const string Id = "air-context";
-    public const string Tool = "context";
     /// <summary>The state file naming the enabled workspaces.</summary>
     public const string WorkspacesState = "workspaces";
 
@@ -37,10 +36,6 @@ public static class AirContextContract
         EnabledByDefault = false,
         Assets = "assets",
         Host = "SharpRail.Plugins.AirContext.Host.dll",
-        Ui = "SharpRail.Plugins.AirContext.UI.dll",
-        Contributes = new()
-        {
-            SideTools = [new(Tool, "Air Context", "asset:air.svg", PluginToolSide.Right)]
-        }
+        Ui = "SharpRail.Plugins.AirContext.UI.dll"
     };
 }

@@ -17,14 +17,26 @@ Code Intelligence page.
 ## Plugin shape
 
 The plugin id is `air-context`. It ships disabled, like Air Governance. Enabled, it still does nothing by itself: the CLI is not downloaded, no terms are read from the
-network and no workspace is indexed until the user acts in the plugin's pane. Settings › Plugins is the only switch for the plugin as a
-whole. Disabled, the plugin serves no tools, contributes no instructions to agent sessions, shows no pane, accepts no consent calls,
+network and no workspace is indexed until the user acts in the plugin's sections of the Code Intelligence pages. Settings › Plugins is the only switch for the plugin as a
+whole. Disabled, the plugin serves no tools, contributes no instructions to agent sessions, shows no section anywhere, accepts no consent calls,
 makes no network requests and starts no process; disabling stops running indexing and searches through the activation's disposer, and
 the user's workspace enablement and consent survive for when it is enabled again.
 
 The host half (`Host/`) registers three methods and a channel (`consent`, `workspace`, `changed`), the agent tools, one tool-guidance
-item (H20) and observers of terminal agent changes and workspace removal. The UI half (`UI/`) is one side tool, `context`, holding the
-per-workspace controls, the consent window and the logs window. Wire types are in `Contract/`.
+item (H20) and observers of terminal agent changes and workspace removal. The UI half (`UI/`) contributes no side tool; it uses the slot seam (W23) for two sections of core's Code Intelligence pages,
+present exactly while the plugin is enabled. The account section, in Settings › Code Intelligence, holds what is global to the JetBrains
+login: terms review and download, Refresh, Sign in and Sign out, and the signed-in state. The workspace section, in the workspace's
+language servers pane, holds Enable for this workspace, indexing state, Index now, Stop and Logs; when the login is missing it shows a
+one-line notice and an Open Settings button (`OpenSettings`) instead of a sign-in button of its own. The consent window and the logs
+window belong to those sections.
+
+The login is the CLI's, so the host keeps one signed-in fact for all workspaces (`ContextOutcome.SignedIn`: true, false, or null when not
+yet probed). The workspace operation `check` probes the CLI's `status` (off the UI thread, no indexing, no source sent) and, like `login`
+and `logout`, needs no workspace enablement; a change is published on `changed` to every enabled workspace, so another window or client
+follows without reopening. Before this, `status` only reported a state cached from earlier index and search attempts and never asked
+the CLI, so a completed sign-in was never noticed. The account section probes on opening, on focus (at most every 15 seconds), on
+Refresh, and, after the sign-in terminal opens, every few seconds for at most five minutes, stopping when the tab closes or the login
+is accepted. The CLI offers no account query, so no account name is shown and no credential is read. Wire types are in `Contract/`.
 
 State lives in the plugin's own files (H14, H19): the enabled workspaces in `plugin-state/air-context/workspaces.json` and the CLI
 storage (agreement receipts and the downloaded executable) in `plugin-state/air-context/files`. The user's consent cannot be inferred
@@ -111,7 +123,7 @@ processes. Direct and remote clients use the same host-owned implementation thro
 Focused fixtures (`--context`, `--context-ui`, the `context-consent`, `air-context-lifecycle` and `air-context-migration` gate cases)
 exercise consent persistence, direct and WebSocket plugin calls, launch-triggered indexing, restored launches, deduplication,
 tool scoping, path rejection, controlled login recovery, in-flight cancellation, progress/redaction, command arguments, schema
-adaptation, reconnect and teardown; that disabling the plugin removes its tools, its instructions and its pane, stops indexing and
+adaptation, reconnect and teardown; that disabling the plugin removes its tools, its instructions and both its sections (and that no side tool exists), stops indexing and
 makes agent launches a no-op with no network or process activity; and the migration of consent, enablement and the hidden flag.
 Node/fake executables never accept JetBrains terms, authenticate or index real source. Expensive real-provider corpora remain opt-in
 and are not added to the full gate.
@@ -122,4 +134,4 @@ receipt and publisher checksum. The signed-out MCP startup requires login. No re
 login, cloud upload, indexing or authenticated search has been executed by the agent.
 A signed-in smoke test and opaque vendor cache/watcher behavior remain unverified;
 fixture results do not establish those guarantees or completely private credentials.
-The sign-in terminal tab opens under the plugin's tab key without the "Air Context sign-in" title the core pane used to set.
+The sign-in terminal tab opens under the plugin's tab key (the plugin cannot see when the typed command ends, hence the probe) without the "Air Context sign-in" title the core pane used to set.
