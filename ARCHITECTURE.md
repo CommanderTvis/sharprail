@@ -81,6 +81,17 @@ is hidden; there is no bottom zone or alternate editor strip. Static layouts and
 Avalonia XAML; dynamic docking and interaction use C#. Filesystem, Git and network work stays off the UI thread, and startup shows the
 routed workspace before filling deferred panels.
 
+## The project's `.sharprail` directory
+
+A project may carry a `.sharprail/` directory in its root. It holds only configuration that is worth
+sharing with the team and editing by hand or by an agent: which ignored paths new workspaces copy, the
+project's language-server choices and the like. It never holds state: which panes or documents are
+open, selections, locations, caches, logs and per-machine values (host paths, consent, tokens) belong
+to the client profile or the host state, not to the project. Files in it are small, versioned,
+tolerant of unknown keys and written atomically; a malformed file is reported and never blocks
+startup. The directory carries no `.gitignore` of its own: a project that does not want to commit it
+excludes it locally through `.git/info/exclude`, which SharpRail offers to do.
+
 ## Shell lifetime
 
 The host owns each shell; a window only attaches a view to it. The stable session identity comes
