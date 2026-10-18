@@ -2,7 +2,7 @@ namespace SharpRail.Plugins.Api.Host;
 
 /// <summary>
 /// The context passed to <see cref="PluginHostModule.ActivateAsync"/>: the closed set of host capabilities
-/// (H1–H10, H12–H15, H17 and external files in the module spec). Every registration made through it belongs to
+/// (H1–H10, H12–H15, H17–H19 and external files in the module spec). Every registration made through it belongs to
 /// one activation, is recorded by the runtime and is torn down on dispose, so a plugin keeps no cleanup
 /// bookkeeping of its own. A context outlives its activation only as a dead handle: once the activation is
 /// disposed, registrations and publishes made through it are dropped.
@@ -186,6 +186,29 @@ public interface IPluginHostContext
     /// <param name="name">The state file name.</param>
     /// <param name="value">The value, serialized with <see cref="PluginJson.Options"/>.</param>
     void WriteState<T>(string name, T value);
+
+    /// <summary>
+    /// The absolute path of this plugin's own directory for files under the host state directory (H18),
+    /// <c>plugin-state/&lt;id&gt;/files</c>, or <see langword="null"/> when the host keeps no state directory. It
+    /// holds what JSON state cannot, such as a downloaded executable, and survives the plugin being disabled or
+    /// replaced. The directory is not created until the plugin does so.
+    /// </summary>
+    string? StateDirectory { get; }
+
+    /// <summary>
+    /// Contributes one list item to the guidance on SharpRail's MCP tools that agent plugins put in the
+    /// instructions of sessions they launch (H19). It is offered only while the plugin is enabled, so a disabled
+    /// plugin leaves no trace in the instructions.
+    /// </summary>
+    /// <param name="text">The item's text, without a leading list marker. It describes the plugin's tools and when to use them.</param>
+    void ToolGuidance(string text);
+
+    /// <summary>
+    /// Lists the guidance every enabled plugin contributed with <see cref="ToolGuidance"/> (H19), in activation
+    /// order. An agent plugin reads it when it composes the instructions of a session.
+    /// </summary>
+    /// <returns>The items, without list markers.</returns>
+    IReadOnlyList<string> ToolGuidanceSections();
 
     /// <summary>
     /// Runs Git through the host's bounded runner (H17), which disables terminal prompts, runs without a

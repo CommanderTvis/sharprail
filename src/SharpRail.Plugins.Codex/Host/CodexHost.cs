@@ -110,7 +110,7 @@ public sealed class CodexHost : PluginHostModule
         context.Method(CodexContract.SystemPromptGet, (_, _, _) =>
             ValueTask.FromResult(new CodexSystemPromptFile(CodexSystemPrompt.FilePath(), CodexSystemPrompt.Edited())));
         context.Method(CodexContract.SystemPromptReset, (_, _, _) =>
-            ValueTask.FromResult(new CodexSystemPromptFile(CodexSystemPrompt.Write(reset: true), false)));
+            ValueTask.FromResult(new CodexSystemPromptFile(CodexSystemPrompt.Write(context.ToolGuidanceSections(), reset: true), false)));
         context.Method(CodexContract.StatusSnapshot, (parameters, _, _) => ValueTask.FromResult(statuses.Snapshot(parameters.WorkspaceId)));
 
         context.Route((request, _) =>
@@ -161,12 +161,18 @@ public sealed class CodexHost : PluginHostModule
             return Text(200, "ok");
         });
 
-        try { CodexSystemPrompt.Write(); }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
+        void WritePrompt()
+        {
+            try { CodexSystemPrompt.Write(context.ToolGuidanceSections()); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { }
+        }
+        WritePrompt();
         try { CodexSkills.Install(CodexSkills.ShippedRoot(context.AssetsDirectory)); }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException) { context.Log.Warn("Codex skills were not installed: " + error.Message); }
         context.TerminalEnvironment(terminal =>
         {
+            // Plugins enabled or disabled since the last session change what the file says.
+            WritePrompt();
             var environment = new Dictionary<string, string>
             {
                 [CodexLaunch.PromptJsonVariable] = CodexSystemPrompt.Json(),

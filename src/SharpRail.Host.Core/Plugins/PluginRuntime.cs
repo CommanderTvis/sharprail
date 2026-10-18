@@ -756,6 +756,9 @@ public sealed partial class PluginRuntime : IPluginService, IAsyncDisposable
 
     // Tools
 
+    /// <summary>The tool guidance every active plugin contributed, in activation order.</summary>
+    internal IReadOnlyList<string> ToolGuidanceSections() => [.. Active().SelectMany(active => active.Tables.Guidance)];
+
     internal string? ToolClash(string name, ActivationTables self)
     {
         if (self.Tools.Any(tool => tool.Name == name)) return "this plugin";

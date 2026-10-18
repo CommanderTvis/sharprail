@@ -159,11 +159,12 @@ internal static class PluginHostChecks
         await Dispatch(Path.Combine(directory, "dispatch"));
         await Settings(Path.Combine(directory, "settings"));
         await Tools(Path.Combine(directory, "tools"));
+        await Guidance(Path.Combine(directory, "guidance"));
         await Shutdown(Path.Combine(directory, "shutdown"));
         await External(Path.Combine(directory, "external"));
         await ExternalFiles(Path.Combine(directory, "external-files"));
         await Terminals(Path.Combine(directory, "terminals"));
-        Console.WriteLine("PASS plugin host: generation pin, manifests, discovery, registry, activation ids, drain, reconciler, dispatch, settings, tools, terminals and the external fixture locally and over WebSocket RPC");
+        Console.WriteLine("PASS plugin host: generation pin, manifests, discovery, registry, activation ids, drain, reconciler, dispatch, settings, tools, tool guidance, terminals and the external fixture locally and over WebSocket RPC");
     }
 
     private static string FixtureSource()
@@ -550,6 +551,34 @@ internal static class PluginHostChecks
         var (_, called) = await McpServer.HandleAsync(JsonNode.Parse("""{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"extra_tool","arguments":{}}}"""), table);
         Require(called!["result"]!["content"]![0]!["text"]!.GetValue<string>() == "ran", "A handed tool is dispatched.");
         Console.WriteLine("PASS plugin tools: schema from the record, arguments validated first, name clash refused, a running call drains before dispose");
+    }
+
+    private static async Task Guidance(string directory)
+    {
+        string? files = null;
+        IReadOnlyList<string> seen = [];
+        var guiding = new Module(Contract("guiding", Say), context =>
+        {
+            files = context.StateDirectory;
+            context.ToolGuidance("`guided_tool` does a thing.");
+            return ValueTask.FromResult<PluginDisposer?>(null);
+        });
+        var reading = new Module(Contract("reading", Other), context =>
+        {
+            seen = context.ToolGuidanceSections();
+            return ValueTask.FromResult<PluginDisposer?>(null);
+        });
+        await using var composed = await Compose(directory, [(Manifest("guiding"), guiding), (Manifest("reading"), reading)]);
+        await composed.Enable("guiding");
+        Require(files == Path.Combine(directory, "plugin-state", "guiding", "files"), "A plugin's own file directory sits beside its JSON state: " + files);
+        Require(composed.Runtime.ToolGuidanceSections().SequenceEqual(["`guided_tool` does a thing."]), "An enabled plugin's guidance is offered to agent plugins.");
+        await composed.Enable("reading");
+        Require(seen.SequenceEqual(["`guided_tool` does a thing."]), "A plugin reads every enabled plugin's guidance through its context.");
+        await composed.Enable("guiding", false);
+        Require(composed.Runtime.ToolGuidanceSections().Count == 0, "A disabled plugin leaves no guidance behind.");
+        await composed.Enable("guiding");
+        Require(composed.Runtime.ToolGuidanceSections().Count == 1, "Enabling it again restores the guidance without duplicating it.");
+        Console.WriteLine("PASS plugin tool guidance: contributed while enabled, absent when disabled, read across plugins; own file directory under the state directory");
     }
 
     private static async Task Shutdown(string directory)

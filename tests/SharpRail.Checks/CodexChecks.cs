@@ -877,6 +877,9 @@ internal static class CodexChecks
         public void OnSettings<T>(Action<T> handler) where T : class { }
         public T ReadState<T>(string name, T fallback) => fallback;
         public void WriteState<T>(string name, T value) { }
+        public string? StateDirectory => null;
+        public void ToolGuidance(string text) { }
+        public IReadOnlyList<string> ToolGuidanceSections() => [];
         public ValueTask<GitRunResult> GitAsync(string cwd, IReadOnlyList<string> args, GitRunOptions? options = null, CancellationToken cancellationToken = default) =>
             ValueTask.FromResult(new GitRunResult(true, "", ""));
         public IPluginDependencyHandle Dependency(PluginContract contract) => throw new InvalidOperationException("unused");
@@ -923,15 +926,15 @@ internal static class CodexChecks
         Equal(File.ReadAllText(instructions), "my own instructions\n", "reactivating keeps the user's edited instructions");
         await again!();
         Require(!File.Exists(skill), "disabling removes the workflow skills");
-        CodexSystemPrompt.Write(reset: true);
+        CodexSystemPrompt.Write([], reset: true);
         Require(!CodexSystemPrompt.Edited() && File.ReadAllText(instructions) == CodexSystemPrompt.Text, "reset puts SharpRail's text back");
         // An edited file from before the agent-named file moves over with its edits.
         var legacy = Path.Combine(home, "codex", "developer-instructions.md");
         File.Move(instructions, legacy); File.Move(instructions + ".sharprail-default", legacy + ".sharprail-default");
         File.WriteAllText(legacy, "older edits\n");
-        CodexSystemPrompt.Write();
+        CodexSystemPrompt.Write([]);
         Require(!File.Exists(legacy) && File.ReadAllText(instructions) == "older edits\n" && CodexSystemPrompt.Edited(), "the old instructions file moves to its agent name, edits kept");
-        CodexSystemPrompt.Write(reset: true);
+        CodexSystemPrompt.Write([], reset: true);
         // Only a launch that tags its hook URL records SharpRail's instructions as the session's source.
         await tagged.Report(new { });
         Require(!CodexLaunch.HasSharpRailPrompt(tagged.Record?.Command ?? ""), "an untagged report records no instructions");

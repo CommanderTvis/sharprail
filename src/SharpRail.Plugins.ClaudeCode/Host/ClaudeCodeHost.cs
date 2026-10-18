@@ -97,7 +97,7 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
         });
         context.Method(ClaudeCodeContract.Account, async (p, _, _) => await ClaudeAccountReader.ReadAsync(Command(), p.Refresh == true));
         context.Method(ClaudeCodeContract.SystemPromptGet, (_, _, _) => Done(new SystemPromptFile(SystemPrompt.FilePath(), SystemPrompt.Edited())));
-        context.Method(ClaudeCodeContract.SystemPromptReset, (_, _, _) => Done(new SystemPromptFile(SystemPrompt.Write(reset: true), false)));
+        context.Method(ClaudeCodeContract.SystemPromptReset, (_, _, _) => Done(new SystemPromptFile(SystemPrompt.Write(context.ToolGuidanceSections(), reset: true), false)));
         context.Method(ClaudeCodeContract.PluginUninstallPlan, (p, _, _) => Done(new CommandPlan(ClaudeCommands.PluginUninstall(Command(), p.Name, p.Scope))));
         context.Method(ClaudeCodeContract.PluginUninstall, async (p, _, ct) =>
             await ClaudeCommands.UninstallAsync(Command(), p.Name, p.Scope, (await KnownScopeAsync(p.WorkspaceId, p.TabKey, ct)).Root));
@@ -181,14 +181,20 @@ internal sealed class ClaudeCodeActivation(IPluginHostContext context)
 
         context.Route(Route);
 
-        try { SystemPrompt.Write(); }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+        void WritePrompt()
         {
-            context.Log.Warn("could not write the system prompt: " + error.Message);
+            try { SystemPrompt.Write(context.ToolGuidanceSections()); }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+            {
+                context.Log.Warn("could not write the system prompt: " + error.Message);
+            }
         }
+        WritePrompt();
 
         context.TerminalEnvironment(terminal =>
         {
+            // Plugins enabled or disabled since the last session change what the file says.
+            WritePrompt();
             var environment = new Dictionary<string, string>
             {
                 [ClaudeCodeContract.PromptFileVariable] = SystemPrompt.FilePath(),

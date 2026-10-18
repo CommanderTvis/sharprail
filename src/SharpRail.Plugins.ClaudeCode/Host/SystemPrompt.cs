@@ -3,18 +3,18 @@ namespace SharpRail.Plugins.ClaudeCode.Host;
 /// <summary>
 /// The system prompt every session SharpRail starts appends with <c>--append-system-prompt-file</c>: that it runs in a
 /// SharpRail workspace rather than a bare shell, which tools to reach for, and where worktrees go. The host refreshes the
-/// file on every activation, so the text matches the running build, until the user edits it; then it is left alone.
+/// file on every activation and for every terminal it starts, so the text matches the running build and the plugins enabled, until the user edits it; then it is left alone.
 /// </summary>
 internal static class SystemPrompt
 {
-    public const string Text = """
+    private const string Template = """
         # You are running inside SharpRail
 
         This is a SharpRail workspace terminal, not a bare shell; the user sees your files, editor, diff and terminals.
 
         Prefer available SharpRail MCP tools; disabled plugins may hide tools:
 
-        - Air Context (`jbcontext`) provides semantic code discovery: it finds code by meaning and behavior, even when you do not know the symbol names or exact wording. Use `context_search` as the default first step for unfamiliar code, feature locations, and cross-cutting behavior whenever this workspace has it enabled; do not wait for the user to ask for it. Check `context_status` when readiness is unknown. If disabled, unavailable, or not ready, continue with LSP and targeted text search rather than blocking. Use descriptive queries, inspect the returned locations, then use LSP for exact symbols and relationships. Use text search for literal strings and configuration, and supplement incomplete semantic results as needed. `context_status` reports login/index readiness; `context_index` refreshes an already-enabled workspace. Use these SharpRail tools instead of running the global jbcontext installer or changing agent hooks/configuration. Only the user can enable cloud indexing or sign in. Unsaved code is not guaranteed indexed; use the editor/LSP for current drafts.
+        {{tool-guidance}}- Air Context (`jbcontext`) provides semantic code discovery: it finds code by meaning and behavior, even when you do not know the symbol names or exact wording. Use `context_search` as the default first step for unfamiliar code, feature locations, and cross-cutting behavior whenever this workspace has it enabled; do not wait for the user to ask for it. Check `context_status` when readiness is unknown. If disabled, unavailable, or not ready, continue with LSP and targeted text search rather than blocking. Use descriptive queries, inspect the returned locations, then use LSP for exact symbols and relationships. Use text search for literal strings and configuration, and supplement incomplete semantic results as needed. `context_status` reports login/index readiness; `context_index` refreshes an already-enabled workspace. Use these SharpRail tools instead of running the global jbcontext installer or changing agent hooks/configuration. Only the user can enable cloud indexing or sign in. Unsaved code is not guaranteed indexed; use the editor/LSP for current drafts.
 
         - `visualize`: Mermaid diagrams or option comparisons instead of ASCII art/tables when clearer. Each call replaces the live view.
         - If this project uses a spec graph and the `spec_*` tools are available, use them to read and maintain affected specs. Projects without specs need no spec workflow; do not create specs unless asked.
@@ -52,6 +52,18 @@ internal static class SystemPrompt
 
         """;
 
+    private const string GuidanceMarker = "{{tool-guidance}}";
+
+    /// <summary>
+    /// The text with each enabled plugin's tool guidance, as list items, ahead of the built-in tool list. The guidance
+    /// comes from <c>IPluginHostContext.ToolGuidanceSections</c>, so a disabled plugin leaves nothing in it.
+    /// </summary>
+    public static string Compose(IReadOnlyList<string> guidance) =>
+        Template.Replace(GuidanceMarker, string.Concat(guidance.Select(item => "- " + item + "\n\n")), StringComparison.Ordinal);
+
+    /// <summary>The text without any plugin's guidance.</summary>
+    public static string Text => Compose([]);
+
     /// <summary>
     /// The host state directory. The plugin API hands a plugin no raw state path, so this repeats the host's rule:
     /// <c>SHARPRAIL_STATE_DIR</c>, else <c>~/.sharprail</c>.
@@ -75,8 +87,8 @@ internal static class SystemPrompt
         return Hash(File.ReadAllText(path)) != File.ReadAllText(StampPath()).Trim();
     }
 
-    /// <summary>Writes this build's text unless the user has edited the file; <paramref name="reset"/> writes it regardless.</summary>
-    public static string Write(bool reset = false)
+    /// <summary>Writes this build's text with the plugins' <paramref name="guidance"/> unless the user has edited the file; <paramref name="reset"/> writes it regardless.</summary>
+    public static string Write(IReadOnlyList<string> guidance, bool reset = false)
     {
         var path = FilePath();
         // The file was system-prompt.md before files were named by agent; an edited one moves over with its stamp.
@@ -88,8 +100,10 @@ internal static class SystemPrompt
         }
         if (!reset && Edited()) return path;
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-        File.WriteAllText(path, Text);
-        File.WriteAllText(StampPath(), Hash(Text));
+        var text = Compose(guidance);
+        if (File.Exists(path) && File.ReadAllText(path) == text && File.Exists(StampPath()) && File.ReadAllText(StampPath()).Trim() == Hash(text)) return path;
+        File.WriteAllText(path, text);
+        File.WriteAllText(StampPath(), Hash(text));
         return path;
     }
 }

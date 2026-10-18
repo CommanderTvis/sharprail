@@ -114,11 +114,14 @@ SharpRail.Plugins.Api.Host.IPluginHostContext.RevivePrefill(System.Func<SharpRai
 SharpRail.Plugins.Api.Host.IPluginHostContext.Route(System.Func<SharpRail.Plugins.Api.Host.PluginHttpRequest!, System.Threading.CancellationToken, System.Threading.Tasks.ValueTask<SharpRail.Plugins.Api.Host.PluginHttpResponse!>>! handler) -> void
 SharpRail.Plugins.Api.Host.IPluginHostContext.SetAgentRecord(SharpRail.Plugins.Api.TerminalRef! terminal, SharpRail.Plugins.Api.TerminalAgentRecord? record) -> void
 SharpRail.Plugins.Api.Host.IPluginHostContext.Settings<T>() -> T!
+SharpRail.Plugins.Api.Host.IPluginHostContext.StateDirectory.get -> string?
 SharpRail.Plugins.Api.Host.IPluginHostContext.TerminalEnvironment(System.Func<SharpRail.Plugins.Api.TerminalRef!, System.Collections.Generic.IReadOnlyDictionary<string!, string!>!>! contributor) -> void
 SharpRail.Plugins.Api.Host.IPluginHostContext.TerminalForToken(string! token) -> SharpRail.Plugins.Api.TerminalRef?
 SharpRail.Plugins.Api.Host.IPluginHostContext.Terminals() -> System.Collections.Generic.IReadOnlyList<SharpRail.Plugins.Api.Host.TerminalProcess!>!
 SharpRail.Plugins.Api.Host.IPluginHostContext.TerminalToken(SharpRail.Plugins.Api.TerminalRef! terminal) -> string!
 SharpRail.Plugins.Api.Host.IPluginHostContext.Tool(SharpRail.Plugins.Api.PluginToolDefinition! definition) -> void
+SharpRail.Plugins.Api.Host.IPluginHostContext.ToolGuidance(string! text) -> void
+SharpRail.Plugins.Api.Host.IPluginHostContext.ToolGuidanceSections() -> System.Collections.Generic.IReadOnlyList<string!>!
 SharpRail.Plugins.Api.Host.IPluginHostContext.WatchWorkspaceAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
 SharpRail.Plugins.Api.Host.IPluginHostContext.WorkspaceAsync(string! id, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<SharpRail.Plugins.Api.HostWorkspace?>
 SharpRail.Plugins.Api.Host.IPluginHostContext.WorkspaceForProcess(int pid) -> string?

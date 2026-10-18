@@ -666,6 +666,8 @@ set is closed.
 | H15 | a logger, its own assets directory, activation and a disposer awaited on a toggle (`Log`, `AssetsDirectory`) | none |
 | H17 | run Git in a project or workspace through the host's bounded runner (`GitAsync`) | `GitRepository`'s runner is internal to `Host.Core` |
 | H18 | contribute to another plugin's agent launch on the host, and read the active plugins' contributions: a wrapper or replacement command, variables and extra arguments, applied with `AgentLaunchComposition.Apply` (`AgentLaunch`, `AgentLaunchContributions`) | the agent plugins build their revive commands from the recorded process command alone |
+| H19 | its own directory for files under the state directory (`StateDirectory`) | none; JSON state cannot hold a downloaded executable |
+| H20 | contribute a list item about its tools to the instructions agent plugins give sessions, and read every enabled plugin's items (`ToolGuidance`, `ToolGuidanceSections`) | the agent plugins' instruction texts named the tools of other plugins |
 | — | expose exact absolute files outside the worktree for core text editing (`ExternalFiles`) | file reads and saves are confined to the workspace |
 
 H11 (send text to an agent session) and H16 (contribute agent extensions and skills) are not ported: SharpRail
@@ -681,7 +683,8 @@ re-deriving those would reintroduce the loop that rule prevents.
 
 Several things are deliberately absent. There is no whole-host-state read, since no feature reads core's or a
 sibling's namespace once settings are namespaced, and reading a sibling's namespace directly would bypass the
-declared-dependency rule. There is no raw state-directory path, since H14 covers persistence. There are no
+declared-dependency rule. There is no raw host state-directory path, since H14 covers persistence and H18 is a plugin's own
+file directory. There are no
 dialog, process, or filesystem wrappers, no generic event bus, and no core agent-kind framework.
 
 Per-client addressing in H1 and H2 exists for one case: a bridge that reports per-client editor facts and has to

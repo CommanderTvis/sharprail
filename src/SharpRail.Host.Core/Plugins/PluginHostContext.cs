@@ -165,6 +165,12 @@ internal sealed class PluginHostContext(PluginRuntime runtime, PluginEntry entry
         File.Move(temporary, path, overwrite: true);
     }
 
+    public string? StateDirectory => runtime.Seams.StateDirectory is { } directory ? Path.Combine(directory, "plugin-state", Id, "files") : null;
+
+    public void ToolGuidance(string text) => Register(table => table.Guidance = table.Guidance.Add(text));
+
+    public IReadOnlyList<string> ToolGuidanceSections() => runtime.ToolGuidanceSections();
+
     public async ValueTask<GitRunResult> GitAsync(string cwd, IReadOnlyList<string> args, GitRunOptions? options = null, CancellationToken cancellationToken = default) =>
         await runtime.Seams.Git(cwd, args, options, cancellationToken);
 
