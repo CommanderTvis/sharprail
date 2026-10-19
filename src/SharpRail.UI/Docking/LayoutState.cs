@@ -70,8 +70,12 @@ public sealed class ProjectPaneState
     public bool HomeProjectsVisible { get; set; } = true;
     public ProjectPaneState Copy() => new()
     {
-        OpenTools = [.. OpenTools], FoldedGroups = [.. FoldedGroups], SelectedTools = new(SelectedTools),
-        LeftVisible = LeftVisible, RightVisible = RightVisible, HomeProjectsVisible = HomeProjectsVisible
+        OpenTools = [.. OpenTools],
+        FoldedGroups = [.. FoldedGroups],
+        SelectedTools = new(SelectedTools),
+        LeftVisible = LeftVisible,
+        RightVisible = RightVisible,
+        HomeProjectsVisible = HomeProjectsVisible
     };
 }
 

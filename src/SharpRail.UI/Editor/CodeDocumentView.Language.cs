@@ -2,11 +2,11 @@ using System.Text;
 
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
-using Avalonia.Controls.Documents;
-using Avalonia.VisualTree;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 
 using SharpRail.Host.Abstractions;
 using SharpRail.Plugins.UI.Kit.Editor;
