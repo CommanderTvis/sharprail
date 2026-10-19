@@ -67,7 +67,7 @@ fail closed. No agent operation records consent or enables a workspace.
 
 Context enablement is a persisted list of absolute workspace paths owned by the plugin's host half, changed only by the plugin's
 user-interface methods and published on its `changed` channel to every client. The UI explicitly explains
-cloud processing and automatic indexing on SharpRail agent launch. New workspaces do
+cloud processing and automatic indexing on SharpRail agent launch. Both sections and the consent window carry a "What is Air Context?" link to `AirContextContract.AboutUrl` (https://www.jetbrains.com/air/context/), opened through the platform launcher off the UI thread; the workspace section keeps Index now, Stop and Logs… in one wrapping row (`--context-ui` checks the link and the shared row). New workspaces do
 not inherit this permission. Disabling cancels owned requests/indexing and disposes the
 workspace runtime. Removing a workspace also drops its retained in-memory logs.
 

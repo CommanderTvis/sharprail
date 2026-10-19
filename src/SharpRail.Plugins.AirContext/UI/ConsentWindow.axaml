@@ -18,6 +18,7 @@
         <TextBlock Text="I have read and accept the Context CLI EAP agreement and the AI terms applicable to me, for the artifact shown above." TextWrapping="Wrap" />
       </CheckBox>
       <TextBlock Grid.Row="5" x:Name="ConsentStatus" TextWrapping="Wrap" Foreground="{x:Static kit:Ui.Muted}" Margin="0,0,0,8" />
+      <Button Grid.Row="6" x:Name="ConsentAbout" Classes="link" Content="What is Air Context? ↗" HorizontalAlignment="Left" VerticalAlignment="Center" />
       <StackPanel Grid.Row="6" Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
         <Button x:Name="ConsentReload" Content="Reload terms" />
         <Button x:Name="ConsentDownload" Content="Accept and download" IsEnabled="False" />

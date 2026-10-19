@@ -27,6 +27,7 @@ internal sealed partial class ConsentWindow : Window
             if (result?.AcceptedAtUtc.Length > 0) await RunAsync("download");
             else if (Find<CheckBox>("ConsentCheck").IsChecked == true) await RunAsync("acceptAndDownload");
         };
+        Find<Button>("ConsentAbout").Click += async (_, _) => await AirContextPane.OpenAboutAsync(this);
         Find<Button>("ConsentClose").Click += (_, _) => Close();
         KeyDown += (_, e) => { if (e.Key == Key.Escape) { e.Handled = true; Close(); } };
         Opened += async (_, _) => await RunAsync("review");

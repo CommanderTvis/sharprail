@@ -185,6 +185,8 @@ internal static partial class AirContextChecks
             E2E.E2eWorkspace.Until(() => Find<CheckBox>(terms, "ConsentCheck").IsEnabled);
             Require(!EnabledNow().Contains(workspace) && runtime is null && Find<CheckBox>(terms, "ConsentCheck").IsChecked == false,
                 "Missing vendor consent enabled or executed Context instead of opening review.");
+            Require(Equals(Find<Button>(terms, "ConsentAbout").Content, "What is Air Context? ↗") && AirContextContract.AboutUrl == "https://www.jetbrains.com/air/context/",
+                "The consent window lacks the What is Air Context? link to the exact URL.");
             terms.Close();
             Await(Task.Run(async () =>
             {
@@ -196,6 +198,10 @@ internal static partial class AirContextChecks
             confirmation = Dialogs().Single(); Button(confirmation, "EnableContextConfirm");
             E2E.E2eWorkspace.Until(() => EnabledNow().Contains(workspace) && Find<Button>(window, "ContextIndex").IsEnabled);
             Require(runtime is null, "Enabling started an index before a launch or explicit Index now.");
+            Require(Equals(Find<Button>(window, "ContextAbout").Content, "What is Air Context? ↗"), "The workspace section lacks the What is Air Context? link.");
+            window.UpdateLayout();
+            var rows = new[] { "ContextIndex", "ContextStop", "ContextLogs" }.Select(name => Find<Button>(window, name)).Select(button => (button.IsEffectivelyVisible, Y: button.TranslatePoint(default, window)?.Y)).ToArray();
+            Require(rows.All(row => row.IsEffectivelyVisible && row.Y is not null && Math.Abs(row.Y.Value - rows[0].Y!.Value) < 1), $"Index now, Stop and Logs… do not share one row: {string.Join(", ", rows.Select(row => row.Y))}.");
             // The sign-in lives in Settings › Code Intelligence; the workspace section only follows it.
             Require(!window.GetLogicalDescendants().OfType<Button>().Any(control => control.Name is "ContextLogin" or "ContextSetup" && control.IsEffectivelyVisible), "The workspace section offers its own sign-in.");
             var settings = new SharpRail.UI.Panels.SettingsWindow(window, () => { }, section: "Code Intelligence");

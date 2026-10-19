@@ -68,6 +68,14 @@ internal sealed partial class AirContextPane : UserControl
         else await RefreshWorkspaceAsync();
     }
 
+    /// <summary>Opens the "What is Air Context?" page in the platform's browser; the launcher call is asynchronous and never blocks the UI thread.</summary>
+    internal static async Task OpenAboutAsync(Control from)
+    {
+        if (TopLevel.GetTopLevel(from) is { } top)
+            try { await top.Launcher.LaunchUriAsync(new Uri(AirContextContract.AboutUrl)); } catch (Exception) { }
+    }
+
+    private async void ContextAboutClicked(object? sender, RoutedEventArgs e) => await OpenAboutAsync(this);
     private void ContextRefreshClicked(object? sender, RoutedEventArgs e) => _ = RefreshAsync(true);
     private void ContextOpenSettingsClicked(object? sender, RoutedEventArgs e) => context.OpenSettings(UiPages.CodeIntelligence);
 
@@ -195,7 +203,8 @@ internal sealed partial class AirContextPane : UserControl
         state.Text = result.Detail.Length > 0 ? label + " · " + result.Detail : label;
         state.Foreground = result.State is "error" or "requiresAcceptance" ? Ui.Danger : result.State == "requiresLogin" ? Ui.Warning : Ui.Muted;
         state.IsVisible = result.Enabled || result.State is not "disabled";
-        this.FindControl<WrapPanel>("ContextControls")!.IsVisible = result.Enabled;
+        this.FindControl<Button>("ContextIndex")!.IsVisible = result.Enabled;
+        this.FindControl<Button>("ContextStop")!.IsVisible = result.Enabled;
         this.FindControl<Button>("ContextIndex")!.IsEnabled = result.Enabled && !contextBusy && result.State != "indexing" && result.SignedIn != false;
         this.FindControl<Button>("ContextStop")!.IsEnabled = result.Enabled && !contextBusy;
         this.FindControl<CheckBox>("ContextEnabled")!.IsEnabled = !contextBusy;

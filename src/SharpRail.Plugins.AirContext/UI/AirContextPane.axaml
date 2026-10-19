@@ -8,6 +8,7 @@
       <TextBlock Text="Air Context" FontSize="16" FontWeight="SemiBold" VerticalAlignment="Center" />
     </StackPanel>
     <TextBlock x:Name="ContextBlurb" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" TextWrapping="Wrap" />
+    <Button x:Name="ContextAbout" Classes="link" Content="What is Air Context? ↗" HorizontalAlignment="Left" Click="ContextAboutClicked" />
     <StackPanel x:Name="AccountPart" Spacing="8">
       <WrapPanel Orientation="Horizontal">
         <Button x:Name="ContextSetup" Content="Review terms and download…" HorizontalAlignment="Left" Click="ContextSetupClicked" Margin="0,0,8,8" />
@@ -26,11 +27,11 @@
         <TextBlock Text="Sign in from Settings › Code Intelligence." FontSize="12" Foreground="{x:Static kit:Ui.Warning}" VerticalAlignment="Center" />
         <Button x:Name="ContextOpenSettings" Content="Open Settings" Click="ContextOpenSettingsClicked" />
       </StackPanel>
-      <WrapPanel x:Name="ContextControls" Orientation="Horizontal" IsVisible="False">
-        <Button x:Name="ContextIndex" Content="Index now" Click="ContextIndexClicked" Margin="0,0,8,8" />
-        <Button x:Name="ContextStop" Content="Stop" Click="ContextStopClicked" Margin="0,0,8,8" />
+      <WrapPanel x:Name="ContextControls" Orientation="Horizontal">
+        <Button x:Name="ContextIndex" Content="Index now" Click="ContextIndexClicked" Margin="0,0,8,8" IsVisible="False" />
+        <Button x:Name="ContextStop" Content="Stop" Click="ContextStopClicked" Margin="0,0,8,8" IsVisible="False" />
+        <Button x:Name="ContextLogs" Content="Logs…" Click="ContextLogsClicked" Margin="0,0,8,8" />
       </WrapPanel>
-      <Button x:Name="ContextLogs" Content="Logs…" HorizontalAlignment="Left" Click="ContextLogsClicked" />
     </StackPanel>
   </StackPanel>
 </UserControl>

@@ -22,6 +22,9 @@ public static class AirContextContract
 {
     public const string Id = "air-context";
     /// <summary>The state file naming the enabled workspaces.</summary>
+    /// <summary>The "What is Air Context?" page the UI links to.</summary>
+    public const string AboutUrl = "https://www.jetbrains.com/air/context/";
+
     public const string WorkspacesState = "workspaces";
 
     public static readonly PluginMethod<ContextConsentRequest, ContextConsentResult> Consent = new("consent");
