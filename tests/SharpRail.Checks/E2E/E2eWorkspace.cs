@@ -272,16 +272,26 @@ internal sealed class E2eWorkspace : IDisposable
         var hit = input.InputHitTest(point) as Control;
         Require(hit is not null && (ReferenceEquals(hit, control) || hit.GetVisualAncestors().Contains(control)),
             $"E2E target {control.Name ?? control.GetType().Name} ({control.Bounds}) is occluded at {point} by {hit?.GetType().Name}/{hit?.Name}; ancestors: {string.Join(",", hit?.GetVisualAncestors().OfType<Control>().Select(item => item.GetType().Name + "/" + item.Name) ?? [])}.");
-        var gesture = System.Diagnostics.Stopwatch.StartNew();
-        input.MouseDown(point, mouseButton); input.MouseUp(point, mouseButton);
         if (twice)
         {
-            // Avalonia may count a double click from the injected events' own timestamps, so a slow first release would separate the
-            // presses past the double-tap time and no DoubleTapped would follow; a slow gap is logged to rule that in or out from CI output.
-            var gap = gesture.ElapsedMilliseconds;
-            if (gap > 250) Console.Error.WriteLine($"E2E double click on {control.Name ?? control.GetType().Name}: {gap} ms between its presses (double-tap time {Application.Current!.PlatformSettings!.GetDoubleTapTime(PointerType.Mouse).TotalMilliseconds:0} ms).");
+            // Avalonia counts a double click from the presses' wall-clock times, and the first release runs the tab or row's whole open on
+            // the UI thread, which a loaded runner can stretch past the double-tap time: the second press would then be a lone click and no
+            // DoubleTapped would follow. A first release that long cannot be part of a double click, so it is repeated (a click is
+            // idempotent for the controls this drives) until the presses are close enough, and the slow gap is logged.
+            var doubleTapTime = Application.Current!.PlatformSettings!.GetDoubleTapTime(PointerType.Mouse);
+            for (var attempt = 1; ; attempt++)
+            {
+                var gesture = System.Diagnostics.Stopwatch.StartNew();
+                input.MouseDown(point, mouseButton); input.MouseUp(point, mouseButton);
+                var gap = gesture.Elapsed;
+                if (gap > TimeSpan.FromMilliseconds(250)) Console.Error.WriteLine($"E2E double click on {control.Name ?? control.GetType().Name}: {gap.TotalMilliseconds:0} ms between its presses (double-tap time {doubleTapTime.TotalMilliseconds:0} ms), attempt {attempt}.");
+                if (gap < doubleTapTime * 0.8 || attempt == 5) break;
+                Dispatcher.UIThread.RunJobs();
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            }
             input.MouseDown(point, mouseButton); input.MouseUp(point, mouseButton);
         }
+        else { input.MouseDown(point, mouseButton); input.MouseUp(point, mouseButton); }
         Dispatcher.UIThread.RunJobs();
         return control;
     }
