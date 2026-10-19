@@ -39,7 +39,14 @@ public sealed record AirCentral(string State, string Auth, string Proxy, string 
 public sealed record AirAgent(string Id, string Label, bool Enabled, string? Launch = null);
 
 /// <param name="Source">The source in effect for new launches: the chosen one.</param>
-public sealed record AirStatus(AirCentral Central, string Source, IReadOnlyList<AirAgent> Agents, bool Busy = false, string? Detail = null);
+/// <param name="Remaining">Credits left of the chosen central AI source's recurring quota.</param>
+/// <param name="Total">The recurring quota.</param>
+/// <param name="TopUp">Credits left of the top-up quota; zero when there is none.</param>
+/// <param name="RefillNext">When the quota refills, Unix milliseconds, or <see langword="null"/> when Central did not say.</param>
+public sealed record AirCredits(double Remaining, double Total, double TopUp = 0, long? RefillNext = null);
+
+/// <param name="Credits">Only with Central chosen and signed in, and only when the last check could read them; otherwise <see langword="null"/>.</param>
+public sealed record AirStatus(AirCentral Central, string Source, IReadOnlyList<AirAgent> Agents, bool Busy = false, string? Detail = null, AirCredits? Credits = null);
 
 public sealed record AirOutcome(bool Ok, string Message, AirStatus Status);
 

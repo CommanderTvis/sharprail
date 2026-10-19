@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace SharpRail.Plugins.AirGovernance.Host;
@@ -191,6 +192,50 @@ internal sealed partial class AirCentralCli(AirEnvironment environment)
     {
         var result = await RunAsync(path, ["status"], StatusTimeout, true, cancellationToken);
         return result is { Outcome: "exited", ExitCode: 0 } ? ParseStatus(result.Stdout) : ("unknown", "unknown");
+    }
+
+    /// <summary>
+    /// The numbers of <c>central limit --json</c>: <c>tariffQuota.available</c> and <c>maximum</c> (numeric strings or numbers),
+    /// else <c>maxDollars</c> less <c>usedDollars</c>; <c>topUpQuota.available</c> and <c>refillNext</c> when well-formed.
+    /// Anything else in the output, such as the account's email, is dropped. Malformed or non-finite values give <see langword="null"/>.
+    /// </summary>
+    public static AirCredits? ParseLimit(string output)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(output);
+            if (document.RootElement.ValueKind != JsonValueKind.Object) return null;
+            var root = document.RootElement;
+            double? remaining = null, total = null;
+            if (root.TryGetProperty("tariffQuota", out var tariff) && tariff.ValueKind == JsonValueKind.Object)
+            { remaining = Amount(tariff, "available"); total = Amount(tariff, "maximum"); }
+            else if (Amount(root, "maxDollars") is { } max && Amount(root, "usedDollars") is { } used)
+            { total = max; remaining = Math.Max(0, max - used); }
+            if (remaining is not { } left || total is not { } size || size <= 0 || left > size) return null;
+            var topUp = root.TryGetProperty("topUpQuota", out var top) && top.ValueKind == JsonValueKind.Object ? Amount(top, "available") ?? 0 : 0;
+            long? refill = root.TryGetProperty("refillNext", out var next) && next.ValueKind == JsonValueKind.Number && next.TryGetInt64(out var millis) && millis > 0 ? millis : null;
+            return new(left, size, topUp, refill);
+        }
+        catch (JsonException) { return null; }
+    }
+
+    private static double? Amount(JsonElement parent, string name)
+    {
+        if (!parent.TryGetProperty(name, out var value)) return null;
+        double number;
+        var ok = value.ValueKind switch
+        {
+            JsonValueKind.Number => value.TryGetDouble(out number),
+            JsonValueKind.String => double.TryParse(value.GetString(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out number),
+            _ => (number = 0) != 0
+        };
+        return ok && double.IsFinite(number) && number >= 0 ? number : null;
+    }
+
+    public async Task<AirCredits?> LimitAsync(string path, CancellationToken cancellationToken)
+    {
+        var result = await RunAsync(path, ["limit", "--json"], StatusTimeout, true, cancellationToken);
+        return result is { Outcome: "exited", ExitCode: 0 } ? ParseLimit(result.Stdout) : null;
     }
 
     [GeneratedRegex(@"\b((?:workspace|license):[A-Za-z0-9-]+(?::[A-Za-z0-9-]+)?)\b")]

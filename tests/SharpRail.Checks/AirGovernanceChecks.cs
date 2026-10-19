@@ -52,6 +52,11 @@ internal static class AirGovernanceChecks
           if has needs-login; then printf '\033[1mAuth      \033[m \033[31mnot connected\033[m\n'; else printf '\033[1mAuth      \033[m E2E Synthetic Access\n'; fi
           if has proxy-stopped; then printf '\033[1mProxy     \033[m stopped\n'; else printf '\033[1mProxy     \033[m running on port 19516\n'; fi
           echo E2E_CENTRAL_CHILD_SENTINEL_status ;;
+        limit)
+          has limit-error && exit 18
+          if has limit-malformed; then echo '{"tariffQuota":{"available":"lots","maximum":"20.00"}}'
+          elif has limit-topup; then printf '{"email":"E2E_CENTRAL_CHILD_SENTINEL_email","tariffQuota":{"current":"3.73","maximum":"20.00","available":"16.27"},"topUpQuota":{"available":"5.50"},"refillNext":1800000000000}\n'
+          else printf '{"email":"E2E_CENTRAL_CHILD_SENTINEL_email","licenseName":"E2E_CENTRAL_CHILD_SENTINEL_plan","usedDollars":3.73,"maxDollars":20,"tariffQuota":{"current":"3.73","maximum":"20.00","available":"16.27"},"topUpQuota":{"available":"0"},"refillNext":1800000000000}\n'; fi ;;
         access)
           has access-error && exit 17
           if [ -n "${2:-}" ]; then
@@ -204,8 +209,28 @@ internal static class AirGovernanceChecks
         fixture.Tokens("");
         var flipped = await runtime.StatusAsync(true, default);
         Require(flipped.Central.Auth == "connected", "After the fixture signs in, the next check reports signed in.");
-        Require(fixture.Log.All(line => line is "--version" or "status") && !JsonSerializer.Serialize(first.Concat([flipped])).Contains(Sentinel, StringComparison.Ordinal),
-            "The automatic check runs only --version and status (never login, export or access) and leaks nothing: " + string.Join("|", fixture.Log));
+        Require(fixture.Log.All(line => line is "--version" or "status" or "limit --json") && !JsonSerializer.Serialize(first.Concat([flipped])).Contains(Sentinel, StringComparison.Ordinal),
+            "The automatic check runs only --version, status and limit (never login, export or access) and leaks nothing: " + string.Join("|", fixture.Log));
+        Require(flipped.Credits is { Remaining: 16.27, Total: 20, TopUp: 0, RefillNext: 1800000000000 }, "Chosen Central and signed in shows the remaining credits.");
+        Require(AirSettingsView.CreditsLine(flipped).StartsWith("16.27 of 20.00 credits remaining, refills 2027-", StringComparison.Ordinal) && !AirSettingsView.CreditsLine(flipped).Contains("top-up", StringComparison.Ordinal),
+            "The credits line reads: " + AirSettingsView.CreditsLine(flipped));
+        fixture.Tokens("limit-topup");
+        var topUp = await runtime.StatusAsync(true, default);
+        Require(topUp.Credits is { TopUp: 5.5 } && AirSettingsView.CreditsLine(topUp).Contains("plus 5.50 top-up", StringComparison.Ordinal), "A nonzero top-up is shown.");
+        foreach (var tokens in new[] { "limit-error", "limit-malformed" })
+        {
+            fixture.Tokens(tokens);
+            Require((await runtime.StatusAsync(true, default)).Credits is null, $"{tokens} shows no credits.");
+        }
+        fixture.Tokens("limit-topup needs-login");
+        Require((await runtime.StatusAsync(true, default)).Credits is null, "Signed out shows no credits.");
+        fixture.Tokens("");
+        using (var direct = Runtime(fixture, new()))
+            Require((await direct.StatusAsync(true, default)).Credits is null, "With the direct source Central's limit is never read.");
+        Require(AirCentralCli.ParseLimit("{\"usedDollars\":3.73,\"maxDollars\":20}") is { Remaining: > 16.26 and < 16.28, Total: 20 } &&
+            AirCentralCli.ParseLimit("null") is null && AirCentralCli.ParseLimit("not json") is null && AirCentralCli.ParseLimit("{\"tariffQuota\":{\"available\":\"-1\",\"maximum\":\"20\"}}") is null &&
+            AirCentralCli.ParseLimit("{\"tariffQuota\":{\"available\":\"30\",\"maximum\":\"20\"}}") is null && AirCentralCli.ParseLimit("{\"tariffQuota\":{\"available\":\"Infinity\",\"maximum\":\"20\"}}") is null,
+            "Limit parsing is defensive.");
     }
 
     private static async Task Untouched(string directory)
@@ -508,7 +533,7 @@ internal static class AirGovernanceChecks
             var settings = window.OwnedWindows.OfType<SettingsWindow>().Single();
             T Find<T>(string name) where T : Control => settings.GetLogicalDescendants().OfType<T>().Single(control => control.Name == name);
             E2eWorkspace.Until(() => fake.Subscriptions > 1 && Find<TextBlock>("AirCentralLine").Text?.Contains("not installed", StringComparison.Ordinal) == true);
-            Require(Find<StackPanel>("AirInstall").IsVisible && Find<TextBox>("AirInstallCommand").Text!.Contains("install.sh", StringComparison.Ordinal) && !Find<Button>("AirCheck").IsEnabled,
+            Require(Find<StackPanel>("AirInstall").IsVisible && Find<TextBox>("AirInstallCommand").Text!.Contains("install.sh", StringComparison.Ordinal) && !Find<Button>("AirSignIn").IsEnabled,
                 "A missing CLI shows the install command and offers no action.");
 
             fake.Push("air-governance", "status", Status("supported", "unknown", AirSources.Direct));
@@ -565,10 +590,13 @@ internal static class AirGovernanceChecks
             finally { AirSettingsView.Throttle = throttle; AirSettingsView.PollInterval = interval; }
 
             fake.Replies["status"] = Status("supported", "signed-out", AirSources.Central);
-            Find<Button>("AirCheck").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
-            E2eWorkspace.Until(() => Find<TextBlock>("AirCentralLine").Text!.Contains("signed out", StringComparison.Ordinal));
-            Require(Find<Button>("AirSignIn").IsEnabled && !Find<Button>("AirSignOut").IsEnabled && fake.Calls.Last(call => call.Method == "status").Params is AirStatusParams { Probe: true },
-                "Only the Check button asks for the sign-in state, and signed out offers Sign in.");
+            Require(!settings.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "AirCheck"), "There is no manual sign-in check button.");
+            Find<RadioButton>("AirSourceDirect").IsChecked = true;
+            E2eWorkspace.Until(() => fake.Calls.Last(call => call.Method == "status").Params is AirStatusParams { Probe: true });
+            Require(Find<Button>("AirSignIn").IsEnabled && !Find<Button>("AirSignOut").IsEnabled && !Find<TextBlock>("AirCredits").IsVisible,
+                "Choosing a source rechecks the sign-in state on its own; signed out offers Sign in and shows no credits.");
+            fake.Push("air-governance", "status", Status("supported", "connected", AirSources.Central) with { Credits = new(16.27, 20, 5.5, 1800000000000) });
+            E2eWorkspace.Until(() => Find<TextBlock>("AirCredits").IsVisible && Find<TextBlock>("AirCredits").Text!.StartsWith("16.27 of 20.00 credits remaining", StringComparison.Ordinal));
             settings.Close();
             E2eWorkspace.Until(() => fake.Subscriptions == 1);
             _ = workbench.State.ChangeAsync(HostStateChange.PluginEnabled("air-governance", false));

@@ -7,7 +7,7 @@ namespace SharpRail.Plugins.AirGovernance.Host;
 /// The plugin's behaviour apart from the host context: detecting Central and the actions the user triggers on it
 /// (sign in and out, start the proxy, update, list and switch the AI access source). The plugin never edits an
 /// agent's configuration: governed launches are `central run` in the command line, built by the agent's own plugin.
-/// Central runs only from a status check (the read-only `central status`, which the pane repeats automatically) or a method the user triggered, and no Central output is stored or forwarded.
+/// Central runs only from a status check (the read-only `central status` and, with Central chosen and signed in, `central limit --json`, which the pane repeats automatically) or a method the user triggered, and no Central output is stored or forwarded.
 /// </summary>
 internal sealed class AirGovernanceRuntime : IDisposable
 {
@@ -20,6 +20,7 @@ internal sealed class AirGovernanceRuntime : IDisposable
     private readonly List<Process> logins = [];
     private (string Auth, string Proxy) observed = ("unknown", "unknown");
     private string? detail;
+    private AirCredits? credits;
     private int busy;
 
     public AirGovernanceRuntime(AirEnvironment environment, Func<AirSettings> settings, Action<AirStatus> publish)
@@ -41,10 +42,18 @@ internal sealed class AirGovernanceRuntime : IDisposable
             {
                 observed = await cli.ProbeAsync(central.Path, cancellationToken);
                 detail = null;
+                await RefreshCreditsAsync(central, cancellationToken);
             }
             finally { probeGate.Release(); }
         }
         return Build(central);
+    }
+
+    /// <summary>Reads the chosen source's remaining credits (read-only <c>central limit --json</c>) only with Central chosen and signed in; otherwise forgets them.</summary>
+    private async Task RefreshCreditsAsync(AirCentral central, CancellationToken cancellationToken)
+    {
+        credits = settings().Source == AirSources.Central && observed.Auth == "connected" && central is { State: "supported", Path: not null }
+            ? await cli.LimitAsync(central.Path, cancellationToken) : null;
     }
 
     private AirStatus Build(AirCentral central)
@@ -52,7 +61,7 @@ internal sealed class AirGovernanceRuntime : IDisposable
         var current = settings();
         var agents = new[] { ("claude", "Claude Code", current.ClaudeCode), ("codex", "Codex", current.Codex) }
             .Select(agent => new AirAgent(agent.Item1, agent.Item2, agent.Item3, AirLaunch.Shape(current, agent.Item1, central.Path))).ToArray();
-        return new(central with { Auth = observed.Auth, Proxy = observed.Proxy }, current.Source, agents, Volatile.Read(ref busy) > 0, detail);
+        return new(central with { Auth = observed.Auth, Proxy = observed.Proxy }, current.Source, agents, Volatile.Read(ref busy) > 0, detail, settings().Source == AirSources.Central && observed.Auth == "connected" ? credits : null);
     }
 
     private async Task<AirOutcome> ExclusiveAsync(Func<CancellationToken, Task<(bool Ok, string Message)>> work)
@@ -89,7 +98,7 @@ internal sealed class AirGovernanceRuntime : IDisposable
         var central = await cli.InspectAsync(cancellationToken);
         if (central.State != "supported" && central.State != "outdated") return (false, "Central is not available to sign in.");
         var (outcome, code, running) = await cli.LaunchAsync(central.Path!, ["login"], TimeSpan.FromMilliseconds(1500), cancellationToken);
-        if (running is not null) { lock (logins) logins.Add(running); observed = ("unknown", observed.Proxy); return (true, "Complete sign-in in the browser, then check the sign-in state."); }
+        if (running is not null) { lock (logins) logins.Add(running); observed = ("unknown", observed.Proxy); return (true, "Complete sign-in in the browser, it is detected automatically."); }
         if (outcome == "exited" && code == 0) { observed = await cli.ProbeAsync(central.Path!, cancellationToken); return (true, "Signed in."); }
         return (false, outcome == "exited" ? $"Sign-in failed (central exited {code})." : "Sign-in could not be started.");
     });
@@ -99,7 +108,7 @@ internal sealed class AirGovernanceRuntime : IDisposable
         var central = await cli.InspectAsync(cancellationToken);
         if (central.Path is null) return (false, "Central is not installed.");
         var (ok, message) = await RunAsync(central, "Sign-out", ["logout"], AirCentralCli.ActionTimeout, cancellationToken);
-        if (ok) observed = ("signed-out", "unknown");
+        if (ok) { observed = ("signed-out", "unknown"); credits = null; }
         return (ok, ok ? "Signed out of Central." : message);
     });
 
@@ -165,6 +174,7 @@ internal sealed class AirGovernanceRuntime : IDisposable
         var (ok, message) = await RunAsync(central, "Switching the AI access source", ["access", id], AirCentralCli.ActionTimeout, cancellationToken);
         if (!ok) return (false, message);
         var (restarted, _) = await RunAsync(central, "Restarting the proxy", ["proxy", "restart"], AirCentralCli.ActionTimeout, cancellationToken);
+        if (observed.Auth == "connected") await RefreshCreditsAsync(central, cancellationToken);
         return (true, restarted ? "Switched. The proxy was restarted." : "Switched, but the proxy could not be restarted. Run `central proxy restart` in a terminal.");
     });
 

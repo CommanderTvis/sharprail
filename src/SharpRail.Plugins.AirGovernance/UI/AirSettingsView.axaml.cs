@@ -18,12 +18,12 @@ namespace SharpRail.Plugins.AirGovernance.UI;
 internal sealed partial class AirSettingsView : UserControl
 {
     private readonly IPluginUIContext context;
-    private readonly TextBlock centralLine, launches, launchNote, result, accessNote;
+    private readonly TextBlock centralLine, credits, launches, launchNote, result, accessNote;
     private readonly StackPanel install, access;
     private readonly TextBox installCommand;
     private readonly RadioButton direct, central;
     private readonly CheckBox claudeCode, codex;
-    private readonly Button check, signIn, signOut, startProxy, update, listAccess;
+    private readonly Button signIn, signOut, startProxy, update, listAccess;
     private readonly List<IDisposable> observers = [];
     private AirStatus? status;
     private bool applying;
@@ -47,19 +47,18 @@ internal sealed partial class AirSettingsView : UserControl
         this.context = context;
         AvaloniaXamlLoader.Load(this);
         T Get<T>(string name) where T : Control => this.FindControl<T>(name)!;
-        centralLine = Get<TextBlock>("AirCentralLine"); launches = Get<TextBlock>("AirLaunches"); launchNote = Get<TextBlock>("AirLaunchNote");
+        centralLine = Get<TextBlock>("AirCentralLine"); credits = Get<TextBlock>("AirCredits"); launches = Get<TextBlock>("AirLaunches"); launchNote = Get<TextBlock>("AirLaunchNote");
         result = Get<TextBlock>("AirResult"); accessNote = Get<TextBlock>("AirAccessNote");
         install = Get<StackPanel>("AirInstall"); access = Get<StackPanel>("AirAccessSources");
         installCommand = Get<TextBox>("AirInstallCommand");
         direct = Get<RadioButton>("AirSourceDirect"); central = Get<RadioButton>("AirSourceCentral");
         claudeCode = Get<CheckBox>("AirAgentClaudeCode"); codex = Get<CheckBox>("AirAgentCodex");
-        check = Get<Button>("AirCheck"); signIn = Get<Button>("AirSignIn"); signOut = Get<Button>("AirSignOut");
+        signIn = Get<Button>("AirSignIn"); signOut = Get<Button>("AirSignOut");
         startProxy = Get<Button>("AirStartProxy"); update = Get<Button>("AirUpdate"); listAccess = Get<Button>("AirListAccess");
         direct.IsCheckedChanged += (_, _) => { if (!applying && direct.IsChecked == true) Save(Settings with { Source = AirSources.Direct }); };
         central.IsCheckedChanged += (_, _) => { if (!applying && central.IsChecked == true) Save(Settings with { Source = AirSources.Central }); };
         claudeCode.IsCheckedChanged += (_, _) => { if (!applying) Save(Settings with { ClaudeCode = claudeCode.IsChecked == true }); };
         codex.IsCheckedChanged += (_, _) => { if (!applying) Save(Settings with { Codex = codex.IsChecked == true }); };
-        check.Click += (_, _) => _ = CheckAsync(true);
         signIn.Click += (_, _) => _ = RunAsync(AirGovernanceContract.SignIn);
         signOut.Click += (_, _) => _ = RunAsync(AirGovernanceContract.SignOut);
         startProxy.Click += (_, _) => _ = RunAsync(AirGovernanceContract.StartProxy);
@@ -74,7 +73,7 @@ internal sealed partial class AirSettingsView : UserControl
             hostWindow = TopLevel.GetTopLevel(this) as Window;
             if (hostWindow is not null) hostWindow.Activated += Activated;
             _ = CheckAsync(true);
-            observers.Add(context.OnSettings<AirSettings>(next => { ApplySettings(next); _ = RefreshAsync(false); }));
+            observers.Add(context.OnSettings<AirSettings>(next => { ApplySettings(next); _ = RefreshAsync(true); }));
             observers.Add(context.Subscribe(AirGovernanceContract.Changed, next => { status = next; Render(); }, new AirStatusParams()));
         };
         DetachedFromVisualTree += (_, _) =>
@@ -234,12 +233,25 @@ internal sealed partial class AirSettingsView : UserControl
         } + (central.Proxy == "stopped" ? " · proxy stopped" : "")
     };
 
+    /// <summary>The credits line, or empty when they are unknown; nothing is shown rather than a guess.</summary>
+    internal static string CreditsLine(AirStatus status)
+    {
+        if (status.Credits is not { } credits) return "";
+        var text = string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{credits.Remaining:0.00} of {credits.Total:0.00} credits remaining");
+        if (credits.RefillNext is { } millis && millis > 0 && millis < 253_402_300_799_000)
+            text += ", refills " + DateTimeOffset.FromUnixTimeMilliseconds(millis).ToLocalTime().ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+        if (credits.TopUp > 0) text += string.Create(System.Globalization.CultureInfo.InvariantCulture, $" (plus {credits.TopUp:0.00} top-up credits)");
+        return text;
+    }
+
     private void Render()
     {
         var current = status;
         var working = busy || current?.Busy == true;
         if (current is null) { Toggle(false, working); return; }
         centralLine.Text = CentralLine(current.Central, checking);
+        credits.Text = CreditsLine(current);
+        credits.IsVisible = credits.Text.Length > 0;
         install.IsVisible = current.Central.State == "absent";
         installCommand.Text = current.Central.InstallCommand;
         startProxy.IsVisible = current.Central.Proxy == "stopped";
@@ -257,7 +269,6 @@ internal sealed partial class AirSettingsView : UserControl
     {
         var idle = !working;
         var central = status?.Central;
-        check.IsEnabled = idle && !checking && central is { State: "supported" or "outdated" };
         signIn.IsEnabled = idle && central is { State: "supported" or "outdated" } && central.Auth != "connected";
         signOut.IsEnabled = idle && central is { State: "supported" or "outdated" } && central.Auth != "signed-out";
         startProxy.IsEnabled = update.IsEnabled = idle;

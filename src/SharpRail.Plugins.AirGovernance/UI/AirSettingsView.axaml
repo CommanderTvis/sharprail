@@ -15,12 +15,12 @@
     <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.Muted}"
                Text="Choose where Codex and Claude Code get their AI: their own accounts, or JetBrains AI governed through your Central CLI. The choice changes only the command that starts each new agent terminal; no agent configuration file is touched, and only Central's local sign-in status is checked automatically (when this page opens, when the window regains focus, and while a sign-in is awaited); signing in or out, listing sources, switching, starting the proxy and updating run only when you press their button." />
     <TextBlock x:Name="AirCentralLine" TextWrapping="Wrap" Text="Checking Central…" />
+    <TextBlock x:Name="AirCredits" TextWrapping="Wrap" IsVisible="False" Foreground="{x:Static kit:Ui.TextBrush}" />
     <StackPanel x:Name="AirInstall" Spacing="4" IsVisible="False">
       <TextBlock TextWrapping="Wrap" FontSize="12" Foreground="{x:Static kit:Ui.Muted}" Text="Install the JetBrains Central CLI (central) yourself, then recheck:" />
       <TextBox x:Name="AirInstallCommand" IsReadOnly="True" FontFamily="{x:Static kit:Ui.CodeFont}" />
     </StackPanel>
     <WrapPanel Orientation="Horizontal">
-      <Button x:Name="AirCheck" Content="Check sign-in" Margin="0,0,8,8" />
       <Button x:Name="AirSignIn" Content="Sign in" Margin="0,0,8,8" />
       <Button x:Name="AirSignOut" Content="Sign out" Margin="0,0,8,8" />
       <Button x:Name="AirStartProxy" Content="Start proxy" Margin="0,0,8,8" IsVisible="False" />
