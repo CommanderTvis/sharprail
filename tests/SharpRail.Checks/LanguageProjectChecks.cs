@@ -115,7 +115,7 @@ internal static class LanguageProjectChecks
                     app.Click(configure);
                     E2eWorkspace.Until(() => app.Window.OwnedWindows.OfType<LanguageSettingsWindow>().Any());
                     var settings = app.Window.OwnedWindows.OfType<LanguageSettingsWindow>().Single();
-                    Require(settings.Title!.StartsWith("C# (Roslyn) · Workspace", StringComparison.Ordinal) && settings.FindControl<TextBlock>("SettingsWorkspace")!.Text == root, "Folder settings target the wrong provider/workspace or misrepresent their scope.");
+                    Require(settings.Title == "C# (Roslyn)" && settings.FindControl<TextBlock>("SettingsWorkspace")!.Text == root, "Folder settings target the wrong provider/workspace or misrepresent their scope.");
                     settings.Close();
                     var rust = (DrawnTreeLabel)app.FileRow("rust"); rust.OpenMenu();
                     var open = rust.ContextMenu!.Items.OfType<MenuItem>().Single(item => item.Name == "FileNodeBuildDefinition");
