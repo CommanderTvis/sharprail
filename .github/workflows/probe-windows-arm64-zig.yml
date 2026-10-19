@@ -106,3 +106,83 @@ jobs:
           Write-Host '===== WER reports ====='
           Get-ChildItem "$env:ProgramData\Microsoft\Windows\WER\ReportArchive", "$env:ProgramData\Microsoft\Windows\WER\ReportQueue" -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName }
           exit 0
+
+  # The pinned libghostty-vt source needs Zig 0.16.0 (minimum_zig_version), whose linking crashes on this runner. This
+  # builds it the way build-windows.ps1 does and in variants, then tries to link the DLL with each Zig that works.
+  ghostty:
+    runs-on: windows-11-arm
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - uses: actions/checkout@v7
+      - name: Ghostty libghostty-vt repros
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $root = Join-Path $env:RUNNER_TEMP 'ghostty-probe'
+          New-Item -ItemType Directory $root -Force | Out-Null
+          $zigs = @{}
+          foreach ($entry in @(
+              @('0.16.0', 'aee38316ee4111717900f45dd3130145c39289e105541d737eb8c5ed653c78ef'),
+              @('0.15.2', 'b926465f8872bf983422257cd9ec248bb2b270996fbe8d57872cca13b56fc370'),
+              @('0.14.1', 'b5aac0ccc40dd91e8311b1f257717d8e3903b5fefb8f659de6d65a840ad1d0e7'))) {
+              $version, $sha = $entry
+              $dir = Join-Path $root "zig-$version"
+              New-Item -ItemType Directory $dir -Force | Out-Null
+              $zip = Join-Path $dir 'zig.zip'
+              Invoke-WebRequest "https://ziglang.org/download/$version/zig-aarch64-windows-$version.zip" -OutFile $zip
+              if ((Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant() -ne $sha) { throw "Checksum mismatch for Zig $version" }
+              Expand-Archive $zip -DestinationPath $dir
+              $zigs[$version] = (Get-ChildItem $dir -Recurse -Filter zig.exe | Select-Object -First 1).FullName
+          }
+          $commit = ((Get-Content mise.toml | Select-String '^GHOSTTY_VT_COMMIT = "([0-9a-f]{40})"').Matches[0].Groups[1].Value)
+          $source = Join-Path $root 'source'
+          git init -q $source
+          git -C $source fetch -q --depth 1 https://github.com/ghostty-org/ghostty.git $commit
+          git -C $source checkout -q FETCH_HEAD
+          "ghostty $commit"
+          Get-Content (Join-Path $source 'build.zig.zon') | Select-String 'minimum_zig_version'
+          $script:n = 0
+          function Run-Case([string] $Name, [string] $Zig, [string] $WorkDir, [string[]] $Arguments) {
+              $script:n++
+              Write-Host "::group::[$script:n] $Name"
+              Push-Location $WorkDir
+              $started = Get-Date
+              Write-Host "> $Zig $($Arguments -join ' ')"
+              & $Zig @Arguments 2>&1 | ForEach-Object { Write-Host "$_" }
+              $code = $LASTEXITCODE
+              Pop-Location
+              $hex = '0x{0:X8}' -f [int] $code
+              $verdict = if ($code -eq 0) { 'OK' } else { 'FAIL' }
+              Write-Host "RESULT [$script:n] $verdict exit $code ($hex) :: $Name"
+              if ($code -ne 0) {
+                  Get-WinEvent -LogName Application -MaxEvents 5 -ProviderName 'Application Error' -ErrorAction SilentlyContinue | Where-Object { $_.TimeCreated -ge $started } | ForEach-Object { Write-Host $_.Message }
+              }
+              Write-Host '::endgroup::'
+              "$verdict $hex $Name" | Out-File (Join-Path $root 'summary.txt') -Append
+          }
+          $target = 'aarch64-windows-gnu'
+          $common = @('-Demit-lib-vt', '-Doptimize=ReleaseFast', "-Dtarget=$target", '-Dcpu=baseline')
+          foreach ($version in '0.16.0', '0.15.2', '0.14.1') {
+              Run-Case "zig $version build --help (compiles the build runner)" $zigs[$version] $source @('build', '--help', '--cache-dir', (Join-Path $root "cache-help-$version"))
+          }
+          Run-Case 'zig 0.16.0 build, as build-windows.ps1' $zigs['0.16.0'] $source (@('build', '--cache-dir', (Join-Path $root 'cache-a'), '--prefix', (Join-Path $root 'vt-a')) + $common)
+          Run-Case 'zig 0.16.0 build, Debug' $zigs['0.16.0'] $source @('build', '--cache-dir', (Join-Path $root 'cache-b'), '--prefix', (Join-Path $root 'vt-b'), '-Demit-lib-vt', '-Doptimize=Debug', "-Dtarget=$target", '-Dcpu=baseline')
+          Run-Case 'zig 0.16.0 build, -fno-llvm' $zigs['0.16.0'] $source (@('build', '-fno-llvm', '--cache-dir', (Join-Path $root 'cache-c'), '--prefix', (Join-Path $root 'vt-c')) + $common)
+          Run-Case 'zig 0.16.0 build, native target' $zigs['0.16.0'] $source @('build', '--cache-dir', (Join-Path $root 'cache-d'), '--prefix', (Join-Path $root 'vt-d'), '-Demit-lib-vt', '-Doptimize=ReleaseFast')
+          Run-Case 'zig 0.16.0 build, -Dtarget=aarch64-windows-msvc' $zigs['0.16.0'] $source @('build', '--cache-dir', (Join-Path $root 'cache-e'), '--prefix', (Join-Path $root 'vt-e'), '-Demit-lib-vt', '-Doptimize=ReleaseFast', '-Dtarget=aarch64-windows-msvc', '-Dcpu=baseline')
+          foreach ($version in '0.15.2', '0.14.1') {
+              Run-Case "zig $version build, as build-windows.ps1 (source needs 0.16.0)" $zigs[$version] $source (@('build', '--cache-dir', (Join-Path $root "cache-f-$version"), '--prefix', (Join-Path $root "vt-f-$version")) + $common)
+          }
+          # Link the DLL from whichever prefix was produced, with each working Zig.
+          foreach ($prefix in Get-ChildItem $root -Directory -Filter 'vt-*' | Where-Object { Test-Path (Join-Path $_.FullName 'lib/ghostty-vt-static.lib') }) {
+              foreach ($version in '0.15.2', '0.14.1', '0.16.0') {
+                  Run-Case "link GhosttyAvaloniaVt.dll from $($prefix.Name) with zig $version" $zigs[$version] $root @('cc', '-target', $target, '-mcpu=baseline', '-shared', '-O2', '-DGHOSTTY_STATIC',
+                      '-I', (Join-Path $prefix.FullName 'include'), (Join-Path $env:GITHUB_WORKSPACE 'src/Ghostty.Avalonia/Native/GhosttyVt.c'), (Join-Path $env:GITHUB_WORKSPACE 'src/Ghostty.Avalonia/Native/GhosttyClipboardStub.c'),
+                      (Join-Path $prefix.FullName 'lib/ghostty-vt-static.lib'), '-o', (Join-Path $root "$($prefix.Name)-$version.dll"))
+              }
+          }
+          Write-Host '===== SUMMARY ====='
+          Get-Content (Join-Path $root 'summary.txt') | ForEach-Object { Write-Host $_ }
+          exit 0

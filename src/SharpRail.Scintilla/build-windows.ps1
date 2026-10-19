@@ -13,7 +13,7 @@ try {
     $stamp = Join-Path $out 'fingerprint'
     $library = Join-Path $out 'SharpRailScintillaNative.dll'
     if ((Test-Path $library) -and (Test-Path $stamp) -and (Get-Content $stamp -Raw).Trim() -eq $fingerprint) { return }
-    $zig = Get-WindowsZig
+    $zig = Get-WindowsCZig $RuntimeIdentifier
     # Pinned and checksummed in mise.toml; scripts\mise run bootstrap links them into .tools.
     $scintilla = Join-Path $PSScriptRoot '../../.tools/scintilla'
     $bidi = Join-Path $PSScriptRoot '../../.tools/sheenbidi'

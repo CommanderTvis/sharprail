@@ -122,8 +122,8 @@ run = [
   'sh scripts/link-tools.sh "{{mise_bin}}" dotnet=http:dotnet zig-0.14.1=zig@0.14.1 zig-0.16.0=zig@0.16.0 merman=http:merman scintilla=http:scintilla sheenbidi=http:sheenbidi',
 ]
 run_windows = [
-  '"{{mise_bin}}" install http:dotnet http:zig-windows http:scintilla http:sheenbidi',
-  'powershell -NoProfile -ExecutionPolicy Bypass -File scripts/link-tools.ps1 "{{mise_bin}}" dotnet=http:dotnet zig-windows=http:zig-windows scintilla=http:scintilla sheenbidi=http:sheenbidi',
+  '"{{mise_bin}}" install http:dotnet http:zig-windows zig@0.14.1 http:scintilla http:sheenbidi',
+  'powershell -NoProfile -ExecutionPolicy Bypass -File scripts/link-tools.ps1 "{{mise_bin}}" dotnet=http:dotnet zig-windows=http:zig-windows zig-0.14.1=zig@0.14.1 scintilla=http:scintilla sheenbidi=http:sheenbidi',
 ]
 
 [tasks."bootstrap:linux"]
