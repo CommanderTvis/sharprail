@@ -291,10 +291,26 @@ internal sealed class E2eWorkspace : IDisposable
             }
             input.MouseDown(point, mouseButton); input.MouseUp(point, mouseButton);
         }
-        else { input.MouseDown(point, mouseButton); input.MouseUp(point, mouseButton); }
+        else
+        {
+            // A RepeatButton (stepper, scrollbar arrow, slider track) clicks on press and keeps clicking from a wall-clock timer while it
+            // stays pressed, so a slow runner between the press and release would step it more than once. The repeat is switched off for
+            // the gesture (only the press's own click remains) and restored after.
+            var repeats = RepeatButtonsAt(hit!, control).Select(button => (button, button.Delay)).ToArray();
+            foreach (var (button, _) in repeats) button.Delay = int.MaxValue;
+            try
+            {
+                input.MouseDown(point, mouseButton);
+                input.MouseUp(point, mouseButton);
+            }
+            finally { foreach (var (button, delay) in repeats) button.Delay = delay; }
+        }
         Dispatcher.UIThread.RunJobs();
         return control;
     }
+
+    static IEnumerable<RepeatButton> RepeatButtonsAt(Control hit, Control target) =>
+        hit.GetSelfAndVisualAncestors().Concat(target.GetSelfAndVisualAncestors()).OfType<RepeatButton>().Distinct();
 
     internal void ContextAction(Control control, string title)
     {
