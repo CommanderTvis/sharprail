@@ -24,20 +24,35 @@ public sealed class TailscaleHost(TailscaleServing? serving = null) : PluginHost
         context.Method(TailscaleContract.Status, (_, _, _) => ValueTask.FromResult(Status()));
         context.Method(TailscaleContract.Decide, (request, _, _) => { registry.Decide(request.Id, request.Allow); Publish(); return ValueTask.FromResult(Status()); });
         context.Method(TailscaleContract.Revoke, (request, _, _) => { registry.Revoke(request.Id); Publish(); return ValueTask.FromResult(Status()); });
+        var refresh = System.Threading.Channels.Channel.CreateBounded<bool>(new System.Threading.Channels.BoundedChannelOptions(1) { FullMode = System.Threading.Channels.BoundedChannelFullMode.DropWrite });
+        context.Method(TailscaleContract.Refresh, (_, _, _) => { refresh.Writer.TryWrite(true); return ValueTask.FromResult(Status()); });
         if (serving is not null) serving.Authenticate = registry.Authenticate;
         var run = Task.Run(async () =>
         {
             if (serving?.EnsureListening is null) { detail = "This host does not expose Tailscale pairing."; Publish(); return; }
+            // Detection runs again on every refresh request while unavailable, so connecting Tailscale later is seen without a restart.
+            while (!lifetime.IsCancellationRequested)
+            {
+                refresh.Reader.TryRead(out _);
+                if (await ServeAsync()) return;
+                try { await refresh.Reader.WaitToReadAsync(lifetime.Token); }
+                catch (OperationCanceledException) { return; }
+                Volatile.Write(ref detail, "Checking Tailscale…");
+                Publish();
+            }
+        });
+        async Task<bool> ServeAsync()
+        {
             try
             {
                 var self = await Network.SelfAsync(lifetime.Token);
                 var ip = self.Address;
-                hostName = self.Name;
+                Volatile.Write(ref hostName, self.Name);
                 using var listener = new HttpListener();
                 listener.Prefixes.Add($"http://{ip}:{PairingPort}/");
                 listener.Start();
                 using var stop = lifetime.Token.Register(listener.Close);
-                detail = "Ready to pair. Approve new devices below.";
+                Volatile.Write(ref detail, "Ready to pair. Approve new devices below.");
                 Publish();
                 using var slots = new SemaphoreSlim(8);
                 var requests = new List<Task>();
@@ -61,12 +76,14 @@ public sealed class TailscaleHost(TailscaleServing? serving = null) : PluginHost
                     }
                 }
                 finally { listener.Close(); await Task.WhenAll(requests); }
+                return true;
             }
             catch (Exception error) when (error is IOException or HttpListenerException or OperationCanceledException or JsonException or InvalidOperationException or System.ComponentModel.Win32Exception or KeyNotFoundException or FormatException or ObjectDisposedException)
             {
-                if (!lifetime.IsCancellationRequested) { detail = "Pairing unavailable: " + error.Message; Publish(); }
+                if (!lifetime.IsCancellationRequested) { Volatile.Write(ref detail, "Pairing unavailable: " + error.Message); Publish(); }
+                return lifetime.IsCancellationRequested;
             }
-        });
+        }
         return ValueTask.FromResult<PluginDisposer?>(async () =>
         {
             if (serving is not null) serving.Authenticate = null;

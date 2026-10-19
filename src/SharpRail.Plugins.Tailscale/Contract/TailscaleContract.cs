@@ -21,8 +21,11 @@ public static class TailscaleContract
     public static readonly PluginMethod<TailscaleStatusParams, TailscaleStatus> Status = new("status");
     public static readonly PluginMethod<TailscaleDecision, TailscaleStatus> Decide = new("decide");
     public static readonly PluginMethod<TailscaleRevoke, TailscaleStatus> Revoke = new("revoke");
+    /// <summary>Re-detects Tailscale when pairing is unavailable; the result arrives on <see cref="Changed"/>.</summary>
+    public static readonly PluginMethod<TailscaleStatusParams, TailscaleStatus> Refresh = new("refresh");
+    public static bool IsUnavailable(TailscaleStatus status) => status.Detail.StartsWith("Pairing unavailable", StringComparison.Ordinal);
     public static readonly PluginChannel<TailscaleStatus> Changed = PluginChannel<TailscaleStatus>.State("status", Status);
-    public static readonly PluginContract Contract = PluginContract.Create<TailscaleSettings>(Id, 1, [Status, Decide, Revoke], [Changed]);
+    public static readonly PluginContract Contract = PluginContract.Create<TailscaleSettings>(Id, 1, [Status, Decide, Revoke, Refresh], [Changed]);
     public static readonly PluginManifest Manifest = new(Id, "Tailscale", "asset:tailscale.svg", "0.1.0", PluginApi.Generation, 1)
     {
         Description = "Pairs clients on your tailnet without copying IP addresses, ports or session tokens.",

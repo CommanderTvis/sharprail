@@ -37,6 +37,7 @@ internal static class TailscaleChecks
         await BootstrapValidation();
         await ClientPolling();
         await Transport(Path.Combine(root, "tailscale"));
+        await LateConnection(Path.Combine(root, "tailscale-late"));
         Console.WriteLine("PASS Tailscale pairing: identity, approval, expiry, bounds, persistence, revocation and local/remote authentication");
     }
 
@@ -288,6 +289,54 @@ internal static class TailscaleChecks
         internal override Task<TailscaleLocal> SelfAsync(CancellationToken cancellationToken) => Task.FromResult(new TailscaleLocal(IPAddress.Loopback, "fixture.tailnet.ts.net"));
         internal override Task<TailscaleIdentity?> PeerAsync(IPAddress address, CancellationToken cancellationToken) =>
             Task.FromResult(Allow ? new TailscaleIdentity(NodeId, "phone.tailnet.ts.net", "fixture@example.test") : null);
+    }
+
+    private sealed class FlippingNetwork : TailscaleNetwork
+    {
+        public volatile bool Connected;
+        public int Detections;
+        internal override Task<TailscaleLocal> SelfAsync(CancellationToken cancellationToken)
+        {
+            Interlocked.Increment(ref Detections);
+            return Connected ? Task.FromResult(new TailscaleLocal(IPAddress.Loopback, "late.tailnet.ts.net")) : throw new IOException("Connect this host to Tailscale first.");
+        }
+    }
+
+    private static async Task LateConnection(string directory)
+    {
+        Directory.CreateDirectory(directory);
+        using var reserved = new TcpListener(IPAddress.Loopback, 0);
+        reserved.Start();
+        var port = ((IPEndPoint)reserved.LocalEndpoint).Port;
+        reserved.Stop();
+        var state = new HostStateStore(Path.Combine(directory, "state"));
+        var bridge = new TailscaleServing();
+        var network = new FlippingNetwork();
+        await using var runtime = new PluginRuntime(new()
+        {
+            StateDirectory = Path.Combine(directory, "state"),
+            State = state,
+            Builtins = [(TailscaleContract.Manifest with { EnabledByDefault = true }, new TailscaleHost(bridge) { Network = network, PairingPort = port })]
+        });
+        await using var listener = new HostListener(directory, state, null, runtime);
+        listener.ConfigureTailscale(bridge);
+        await runtime.Start();
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+        async Task<TailscaleStatus> Call(PluginMethod<TailscaleStatusParams, TailscaleStatus> method) =>
+            PluginJson.Convert<TailscaleStatus>(await runtime.CallAsync(new("tailscale", method.Name, new TailscaleStatusParams(), "fixture"), timeout.Token));
+        async Task Until(Func<TailscaleStatus, bool> done, PluginMethod<TailscaleStatusParams, TailscaleStatus> method)
+        {
+            while (!done(await Call(method))) await Task.Delay(20, timeout.Token);
+        }
+        await Until(TailscaleContract.IsUnavailable, TailscaleContract.Status);
+        var detections = network.Detections;
+        await Task.Delay(200, timeout.Token);
+        Require(network.Detections == detections, "An unavailable host does not poll Tailscale by itself.");
+        await Until(TailscaleContract.IsUnavailable, TailscaleContract.Refresh);
+        Require((await Call(TailscaleContract.Status)).HostName is null, "Refreshing while still disconnected stays unavailable.");
+        network.Connected = true;
+        await Until(status => status.Detail.StartsWith("Ready", StringComparison.Ordinal), TailscaleContract.Refresh);
+        Require((await Call(TailscaleContract.Status)).HostName == "late.tailnet.ts.net", "Connecting after launch makes pairing available after a refresh.");
     }
 
     private static async Task Transport(string directory)

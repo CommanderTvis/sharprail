@@ -93,6 +93,14 @@ bootstrap again on client launch, so host port changes need no manual editing. D
 connections keep their current behavior. A live workbench keeps the existing reconnect behavior; after
 a host restart changes its listening port, reopening the picker refreshes the endpoint.
 
+Tailscale state is detected again without restarting the app. The host detects once on activation and then
+only when asked: the `refresh` plugin method wakes its supervisor, which retries detection and the
+bootstrap listener while pairing is unavailable (a ready host ignores it) and republishes the status.
+Settings › Tailscale asks on opening, on window activation (throttled to three seconds), after an
+approval or revocation while unavailable, and every five seconds while it is visible and unavailable.
+The poll stops when the page detaches and a newer request cancels the previous one. A hidden page
+causes no detection.
+
 All CLI, DNS, filesystem, identity and HTTP work runs off the dispatcher. Discovery and pairing are
 cancellable and bounded by timeouts. The plugin's disposer cancels requests, closes bootstrap, clears its
 authentication callback and stops any listener it owns before returning.
@@ -101,7 +109,8 @@ authentication callback and stops any listener it owns before returning.
 
 `--tailscale` exercises registry expiry and limits, node binding, credential secrecy and persistence,
 actual HTTP discovery and approval against a fake Tailscale identity provider, embedded WebSocket RPC startup,
-local/remote status parity, authenticated calls, revocation and plugin teardown. Fixtures never call the
+local/remote status parity, authenticated calls, revocation and plugin teardown, and a fake CLI that
+flips from disconnected to connected: no detection without a request, and a refresh then makes pairing ready. Fixtures never call the
 user's Tailscale daemon. `--android` also checks embedded state reuse, netmap validation and real
 authenticated SOCKS5 HTTP probing against a local fake proxy; `--transport` checks endpoint-scoped
 WebSocket handler routing, reconnect and disposal. The native bridge has isolated Go tests for its
