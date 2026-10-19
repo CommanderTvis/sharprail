@@ -27,9 +27,9 @@ try {
     if ((& git -C $source rev-parse HEAD).Trim() -ne $commit) { throw 'Unexpected Ghostty source revision' }
     $prefix = Join-Path $out 'vt'
     Push-Location $source
-    try { Invoke-Native $zig @('build', '--cache-dir', (Join-Path $out 'zig-cache'), '--prefix', $prefix, '-Demit-lib-vt', '-Doptimize=ReleaseFast', "-Dtarget=$target", "-Dcpu=$ZigWindowsCpu") }
+    try { Invoke-Zig $zig $RuntimeIdentifier $out @('build', '--cache-dir', (Join-Path $out 'zig-cache'), '--prefix', $prefix, '-Demit-lib-vt', '-Doptimize=ReleaseFast', "-Dtarget=$target", "-Dcpu=$ZigWindowsCpu") }
     finally { Pop-Location }
-    Invoke-Native $zig @('cc', '-target', $target, "-mcpu=$ZigWindowsCpu", '-shared', '-O2', '-Wall', '-Wextra', '-Werror', '-DGHOSTTY_STATIC',
+    Invoke-Zig $zig $RuntimeIdentifier $out @('cc', '-target', $target, "-mcpu=$ZigWindowsCpu", '-shared', '-O2', '-Wall', '-Wextra', '-Werror', '-DGHOSTTY_STATIC',
         '-I', (Join-Path $prefix 'include'), "$PSScriptRoot/Native/GhosttyVt.c", "$PSScriptRoot/Native/GhosttyClipboardStub.c",
         (Join-Path $prefix 'lib/ghostty-vt-static.lib'), '-o', $library)
     Set-Content $stamp $fingerprint

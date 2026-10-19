@@ -34,6 +34,58 @@ function Get-WindowsZig {
     return [IO.Path]::GetFullPath($zig)
 }
 
+# Runs Zig for one native build: its own global and local caches under $Out (never shared with a parallel build), the
+# build's output and Zig's own diagnostics in the log, and one retry with the caches wiped after an access violation
+# (0xC0000005), which Zig 0.16 raised on the Windows ARM64 runner. On win-arm64 the Zig runs of all native builds take a
+# machine-wide mutex, so the Scintilla and Ghostty builds MSBuild starts in parallel do not run Zig at the same time.
+$script:ZigDiagnosed = $false
+function Invoke-Zig([string] $Zig, [string] $RuntimeIdentifier, [string] $Out, [string[]] $Arguments) {
+    $globalCache = Join-Path $Out 'zig-global-cache'
+    $localCache = Join-Path $Out 'zig-local-cache'
+    $mutex = $null
+    if ($RuntimeIdentifier -eq 'win-arm64') {
+        $mutex = New-Object Threading.Mutex($false, 'Global\SharpRailWindowsZig')
+        try { [void] $mutex.WaitOne() } catch [Threading.AbandonedMutexException] { }
+    }
+    $savedGlobal = $env:ZIG_GLOBAL_CACHE_DIR
+    $savedLocal = $env:ZIG_LOCAL_CACHE_DIR
+    try {
+        New-Item -ItemType Directory $globalCache, $localCache -Force | Out-Null
+        $env:ZIG_GLOBAL_CACHE_DIR = $globalCache
+        $env:ZIG_LOCAL_CACHE_DIR = $localCache
+        if (!$script:ZigDiagnosed) {
+            $script:ZigDiagnosed = $true
+            Write-Host "Zig host: OS $([Runtime.InteropServices.RuntimeInformation]::OSArchitecture), process $([Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture), target $RuntimeIdentifier"
+            foreach ($diagnostic in @(@('version'), @('env'))) {
+                Write-Host "> $Zig $($diagnostic -join ' ')"
+                $saved = $ErrorActionPreference
+                $ErrorActionPreference = 'Continue'
+                try { & $Zig @diagnostic 2>&1 | ForEach-Object { Write-Host "$_" } } finally { $ErrorActionPreference = $saved }
+            }
+        }
+        for ($attempt = 1; $true; $attempt++) {
+            Write-Host "> $Zig $($Arguments -join ' ')"
+            $saved = $ErrorActionPreference
+            $ErrorActionPreference = 'Continue'
+            try { & $Zig @Arguments 2>&1 | ForEach-Object { Write-Host "$_" } } finally { $ErrorActionPreference = $saved }
+            $code = $LASTEXITCODE
+            if ($code -eq 0) { return }
+            if ($code -eq -1073741819 -and $attempt -eq 1) {
+                Write-Host "Zig crashed with an access violation (exit code $code); wiping its caches and retrying once."
+                foreach ($dir in @($globalCache, $localCache, (Join-Path $Out 'zig-cache'))) { if (Test-Path $dir) { Remove-Item $dir -Recurse -Force -ErrorAction SilentlyContinue } }
+                New-Item -ItemType Directory $globalCache, $localCache -Force | Out-Null
+                continue
+            }
+            throw "$Zig $($Arguments -join ' ') failed with exit code $code"
+        }
+    }
+    finally {
+        $env:ZIG_GLOBAL_CACHE_DIR = $savedGlobal
+        $env:ZIG_LOCAL_CACHE_DIR = $savedLocal
+        if ($mutex) { $mutex.ReleaseMutex(); $mutex.Dispose() }
+    }
+}
+
 function Enter-NativeBuild([string] $Cache) {
     New-Item -ItemType Directory $Cache -Force | Out-Null
     while ($true) {

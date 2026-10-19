@@ -28,16 +28,16 @@ try {
     finally { Pop-Location }
     $flags = @('-target', $target, "-mcpu=$ZigWindowsCpu", '-O2', '-DNDEBUG', '-fvisibility=hidden')
     $objects = @((Join-Path $out 'SheenBidi.o'))
-    Invoke-Native $zig (@('cc', '-std=c99') + $flags + @('-DSB_CONFIG_UNITY', '-I', "$bidi/Headers", '-I', "$bidi/Source", '-c', "$bidi/Source/SheenBidi.c", '-o', $objects[0]))
+    Invoke-Zig $zig $RuntimeIdentifier $out (@('cc', '-std=c99') + $flags + @('-DSB_CONFIG_UNITY', '-I', "$bidi/Headers", '-I', "$bidi/Source", '-c', "$bidi/Source/SheenBidi.c", '-o', $objects[0]))
     $files = @(Get-ChildItem "$source/src/*.cxx" | Where-Object { $_.Name -notin @('AutoComplete.cxx', 'CallTip.cxx', 'ScintillaBase.cxx') }) + @(Get-ChildItem "$PSScriptRoot/Native/*.cxx")
     foreach ($file in $files) {
         $name = $file.BaseName
         if ($file.DirectoryName -eq (Join-Path $PSScriptRoot 'Native')) { $name = "Bridge$name" }
         $object = Join-Path $out "$name.o"
-        Invoke-Native $zig (@('c++', '-std=c++17') + $flags + @('-I', "$source/include", '-I', "$source/src", '-I', "$bidi/Headers", '-c', $file.FullName, '-o', $object))
+        Invoke-Zig $zig $RuntimeIdentifier $out (@('c++', '-std=c++17') + $flags + @('-I', "$source/include", '-I', "$source/src", '-I', "$bidi/Headers", '-c', $file.FullName, '-o', $object))
         $objects += $object
     }
-    Invoke-Native $zig (@('c++', '-target', $target, "-mcpu=$ZigWindowsCpu", '-shared', '-static-libstdc++') + $objects + @('-o', $library))
+    Invoke-Zig $zig $RuntimeIdentifier $out (@('c++', '-target', $target, "-mcpu=$ZigWindowsCpu", '-shared', '-static-libstdc++') + $objects + @('-o', $library))
     Set-Content $stamp $fingerprint
 }
 finally { $buildLock.Dispose() }
