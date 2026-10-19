@@ -12,6 +12,10 @@ internal enum Pinning
     Archive,
     /// <summary>Exact versions of the whole npm graph with the registry integrity hashes of the embedded package-lock.json, installed with <c>npm ci</c>.</summary>
     Lockfile,
+    /// <summary>Exact version and a SHA-512 stored in this repository for every NuGet package of the tool (the pointer package and the runtime pack), downloaded and verified by SharpRail before <c>dotnet tool install</c> reads them from a local feed.</summary>
+    NuGet,
+    /// <summary>Exact version and an embedded <c>go.mod</c>/<c>go.sum</c> whose <c>h1:</c> hashes cover the whole module graph, built with <c>-mod=readonly</c>; Go's checksum database is not bypassed.</summary>
+    GoModule,
     /// <summary>Exact version, but integrity is verified only by the package manager's own mechanism, not by a hash stored here.</summary>
     Partial,
     /// <summary>Nothing is installed by SharpRail: the server comes from the host's SDK toolchain.</summary>
@@ -19,6 +23,9 @@ internal enum Pinning
 }
 
 /// <summary>One downloadable platform artifact of a managed server. <see cref="Source"/> records where the hash was obtained.</summary>
+/// <summary>One NuGet package of a managed tool with its SHA-512 (hex), taken from the package's NuGet catalog entry (<c>packageHash</c>).</summary>
+internal sealed record ManagedNuGetPackage(string Id, string Version, string Platform, string Sha512);
+
 internal sealed record ManagedArtifact(string Server, string Version, string Platform, string Url, string Sha256, string Format, string Source, string[] Hosts);
 
 internal static class ManagedArtifacts
@@ -26,6 +33,7 @@ internal static class ManagedArtifacts
     private static readonly string[] GitHub = ["github.com", "objects.githubusercontent.com", "release-assets.githubusercontent.com"];
     private static readonly string[] Eclipse = ["download.eclipse.org"];
     private static readonly string[] JetBrains = ["download.jetbrains.com", "download-cdn.jetbrains.com"];
+    internal static readonly string[] NuGetHosts = ["api.nuget.org", "globalcdn.nuget.org"];
     private static readonly string[] Platforms = ["macos-aarch64", "macos-x86_64", "linux-aarch64", "linux-x86_64", "windows-aarch64", "windows-x86_64"];
 
     internal static string Platform() => (OperatingSystem.IsMacOS() ? "macos" : OperatingSystem.IsWindows() ? "windows" : "linux") + "-" +
@@ -38,16 +46,17 @@ internal static class ManagedArtifacts
     internal static readonly string[] LockfileServers = ["typescript", "python", "php", "css", "shell"];
 
     internal static Pinning PinningOf(string id) => ArchiveServers.Contains(id) ? Pinning.Archive : LockfileServers.Contains(id) ? Pinning.Lockfile :
+        id == "csharp" ? Pinning.NuGet : id == "go" ? Pinning.GoModule :
         id is "swift" or "dart" or "intellij" ? Pinning.None : Pinning.Partial;
 
     /// <summary>The honest one-line description of what pinning a provider has; shown in Settings and the specs.</summary>
     internal static string Describe(string id) => id switch
     {
-        "go" => "Managed, partially pinned: exact gopls version; Go's module checksum database verifies it and its dependencies, no hash is stored here.",
+        "go" => "Managed and pinned: exact gopls version with an embedded go.mod/go.sum (h1 hashes of the whole module graph), built read-only; Go's checksum database stays on.",
         "ruby" => "Managed, partially pinned: exact gem version; RubyGems does not verify a stored hash and dependencies are resolved at install.",
         "scala" => "Managed, partially pinned: exact Metals version; Coursier resolves dependencies at install without a stored hash.",
         "r" => "Managed, partially pinned: exact CRAN package version; CRAN publishes no verified hash and dependencies are resolved at install.",
-        "csharp" => "Managed, partially pinned: exact NuGet package version with NuGet's package signature verification; no hash is stored here.",
+        "csharp" => "Managed and pinned: exact version and a SHA-512 per NuGet package (tool and runtime pack) verified before a local-feed install; NuGet signature verification also applies.",
         "swift" or "dart" => "No managed installation: runs the host SDK's executable only when allowed for this server.",
         "intellij" => "Managed and fully pinned: exact build, SHA-256 per platform, verified before extraction; acceptance of its terms is required.",
         _ when LockfileServers.Contains(id) => "Managed and pinned: exact versions and npm integrity hashes for the whole dependency graph (package-lock.json), install scripts disabled.",
@@ -76,8 +85,8 @@ internal static class ManagedArtifacts
             "https://api.github.com/repos/rust-lang/rust-analyzer/releases/tags/2026-10-12 (asset digest)", GitHub)),
         new("powershell", "4.7.0", "any", "https://github.com/PowerShell/PowerShellEditorServices/releases/download/v4.7.0/PowerShellEditorServices.zip",
             "5084f0326cc88539e9d880b08f6c52ce5be4672bb8ecee8921e35f8895a6b9d7", "zip", "https://api.github.com/repos/PowerShell/PowerShellEditorServices/releases/tags/v4.7.0 (asset digest)", GitHub),
-        new("java", "1.61.0", "any", "https://download.eclipse.org/jdtls/snapshots/jdt-language-server-1.61.0-202609031315.tar.gz",
-            "338e7e73d61836651ba2453919a0d34fa763eb4e7c03342092309bffb8934c64", "tar.gz", "https://download.eclipse.org/jdtls/snapshots/jdt-language-server-1.61.0-202609031315.tar.gz.sha256", Eclipse),
+        new("java", "1.61.0", "any", "https://download.eclipse.org/jdtls/milestones/1.61.0/jdt-language-server-1.61.0-202609031315.tar.gz",
+            "338e7e73d61836651ba2453919a0d34fa763eb4e7c03342092309bffb8934c64", "tar.gz", "https://download.eclipse.org/jdtls/milestones/1.61.0/jdt-language-server-1.61.0-202609031315.tar.gz.sha256", Eclipse),
         .. new[]
         {
             ("macos-x86_64", "", ".sit", "zip", "e69e0c9d27b915b2db9ee692ec08d097df1a394d9f21190457ef199f2905f77e"),
@@ -90,6 +99,24 @@ internal static class ManagedArtifacts
             $"https://download.jetbrains.com/language-server/kotlin-server/263.6379.0/kotlin-server-263.6379.0{item.Item2}{item.Item3}", item.Item5, item.Item4,
             $"https://download.jetbrains.com/language-server/kotlin-server/263.6379.0/kotlin-server-263.6379.0{item.Item2}{item.Item3}.sha256", JetBrains))
     ];
+
+    private const string RoslynVersion = "5.13.0-1.26507.4";
+
+    /// <summary>The roslyn-language-server packages: the pointer package for every platform, then the platform's runtime pack. SHA-512 values are the NuGet catalog <c>packageHash</c> of each package.</summary>
+    internal static readonly ManagedNuGetPackage[] NuGetPackages =
+    [
+        new("roslyn-language-server", RoslynVersion, "any", "2a8d6137b84bacd70c1ac7aedfcd07d824fd6c9b534a6df11205561cd09233516d1506caa50d61c01bbbcb8d86b951af1464b6a3ce8c33bea68e007f4c8b14a2"),
+        new("roslyn-language-server.osx-arm64", RoslynVersion, "macos-aarch64", "bce48bacb85855e5514f08264e8d0fa80fc70b4ae5ad032ab5528982f3c7ac24185e65935d44cba55e16918ae5927257b9afa3eead752f8f849d5f7c9c4151c8"),
+        new("roslyn-language-server.osx-x64", RoslynVersion, "macos-x86_64", "c42e3763f10a410bb8010a46a18815fcc08adf1c654dbb5d208bf1ea133bb2331b05fafadb86aa477b0b479e6c036530b099288646840607079bf19e3c4ff787"),
+        new("roslyn-language-server.linux-x64", RoslynVersion, "linux-x86_64", "3254f932367167bf4c523e33a86b1430d68c6defce2a8643c5ffd30d642a3268167a9d58619bfe8ff2b01be3c6d2def1c98d007fddb5b8e25fc61db7ccd21d59"),
+        new("roslyn-language-server.linux-arm64", RoslynVersion, "linux-aarch64", "3c12c729d46b8edfa8ff0f07a2fc0714633c61b3bce44fc34b371ae64c753bbda01312468816524ad6172331f53b31ea3b0a43dcccd74935200b00b94499587a"),
+        new("roslyn-language-server.win-x64", RoslynVersion, "windows-x86_64", "78c65815370a89cf0fa5c2293f45b16e9523e1debf0a9ad6963d7baf4a1711867c5e6d4e38d9d58a973bfcd386d3742dddd636f569bf542da2881f5609e8e3ad"),
+        new("roslyn-language-server.win-arm64", RoslynVersion, "windows-aarch64", "2c4693fba6baa715ab7295a5c7400b283a320fbb9cbcd9f1c2b3181eb965e91a4c9dc30c60bc5cfda5e5a94f2d2b5ca18bc5ee86a81a467bb7d2a10ac4953b1d")
+    ];
+
+    /// <summary>The verified packages to install on a platform, or null when no runtime pack is pinned for it.</summary>
+    internal static ManagedNuGetPackage[]? NuGetFor(string platform) =>
+        NuGetPackages.Any(item => item.Platform == platform) ? [.. NuGetPackages.Where(item => item.Platform is "any" || item.Platform == platform)] : null;
 
     internal static ManagedArtifact? Find(string server, string platform) =>
         Artifacts.FirstOrDefault(item => item.Server == server && (item.Platform == platform || item.Platform == "any"));
@@ -110,6 +137,8 @@ internal static class ManagedArtifacts
     {
         if (LockfileServers.Contains(server.Id))
             return server.Version + "-" + Short(Convert.ToHexStringLower(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(Lock(server.Id) ?? ""))));
+        if (server.Id == "csharp" && NuGetFor(platform) is { } packages) return server.Version + "-" + Short(packages[^1].Sha512);
+        if (server.Id == "go") return server.Version + "-" + Short(Convert.ToHexStringLower(SHA256.HashData(System.Text.Encoding.UTF8.GetBytes((Lock("go", "go.mod") ?? "") + (Lock("go", "go.sum") ?? "")))));
         if (ArchiveServers.Contains(server.Id) && Find(server.Id, platform) is { } artifact) return server.Version + "-" + Short(artifact.Sha256);
         return server.Version;
     }
@@ -159,6 +188,29 @@ internal static class ManagedArtifacts
                     detail = $"{packages.Length} locked package(s), integrity {packages.Length - unhashed}/{packages.Length}";
                 }
             }
+            else if (kind == Pinning.NuGet)
+            {
+                foreach (var platform in Platforms)
+                {
+                    var packages = NuGetFor(platform);
+                    if (packages is null || packages.Length != 2) { problems.Add($"{server.Id} {platform}: no pinned NuGet runtime pack."); continue; }
+                    foreach (var item in packages)
+                        if (item.Sha512.Length != 128 || !item.Sha512.All(char.IsAsciiHexDigitLower) || item.Version != server.Version) problems.Add($"{server.Id} {platform}: {item.Id} has a missing or malformed SHA-512 or the wrong version.");
+                }
+                detail = $"{NuGetPackages.Length} package(s), SHA-512 {NuGetPackages.Count(item => item.Sha512.Length == 128)}/{NuGetPackages.Length}";
+            }
+            else if (kind == Pinning.GoModule)
+            {
+                var module = Lock(server.Id, "go.mod");
+                var sums = Lock(server.Id, "go.sum");
+                if (module is null || sums is null) problems.Add($"{server.Id}: embedded go.mod or go.sum is missing.");
+                else
+                {
+                    var hashes = sums.Split('\n', StringSplitOptions.RemoveEmptyEntries).Count(line => line.Contains(" h1:", StringComparison.Ordinal));
+                    if (!sums.Contains($"golang.org/x/tools/gopls {version} h1:", StringComparison.Ordinal) || !module.Contains($"golang.org/x/tools/gopls {version}", StringComparison.Ordinal)) problems.Add($"{server.Id}: go.mod/go.sum do not pin gopls {version}.");
+                    detail = $"{hashes} go.sum hash(es)";
+                }
+            }
             rows.Add($"{server.Id,-11} {version,-20} {kind,-9} {detail}");
         }
         table = rows;
@@ -198,7 +250,7 @@ internal static class ArtifactInstaller
         var archive = staging + ".download";
         try
         {
-            await DownloadAsync(http, artifact, archive, token);
+            await DownloadAsync(http, artifact.Server, new Uri(artifact.Url), artifact.Hosts, archive, token);
             if (ManagedArtifacts.Hash(archive) != artifact.Sha256)
                 throw new IOException($"{artifact.Server} download failed verification: SHA-256 does not match the pinned value. Nothing was installed.");
             Directory.CreateDirectory(staging);
@@ -225,26 +277,43 @@ internal static class ArtifactInstaller
             if (new FileInfo(file).LinkTarget is null) File.SetUnixFileMode(file, File.GetUnixFileMode(file) | UnixFileMode.UserWrite);
     }
 
-    private static async Task DownloadAsync(HttpClient http, ManagedArtifact artifact, string destination, CancellationToken token)
+    /// <summary>Downloads one NuGet package from the flat container into <paramref name="feed"/> and keeps it only when its SHA-512 matches the pinned value.</summary>
+    internal static async Task FetchNuGetAsync(HttpClient http, ManagedNuGetPackage package, string feed, CancellationToken token)
     {
-        var url = new Uri(artifact.Url);
+        if (package.Sha512.Length != 128 || !package.Sha512.All(char.IsAsciiHexDigitLower))
+            throw new IOException($"{package.Id} has no pinned SHA-512; it will not be installed.");
+        var id = package.Id.ToLowerInvariant();
+        var destination = Path.Combine(feed, $"{package.Id}.{package.Version}.nupkg");
+        await DownloadAsync(http, package.Id, new Uri($"https://api.nuget.org/v3-flatcontainer/{id}/{package.Version.ToLowerInvariant()}/{id}.{package.Version.ToLowerInvariant()}.nupkg"), ManagedArtifacts.NuGetHosts, destination, token);
+        await using var input = File.OpenRead(destination);
+        if (Convert.ToHexStringLower(await SHA512.HashDataAsync(input, token)) != package.Sha512)
+        {
+            input.Close();
+            File.Delete(destination);
+            throw new IOException($"{package.Id} download failed verification: SHA-512 does not match the pinned value. Nothing was installed.");
+        }
+    }
+
+    private static async Task DownloadAsync(HttpClient http, string name, Uri start, string[] hosts, string destination, CancellationToken token)
+    {
+        var url = start;
         for (var hop = 0; hop < 6; hop++)
         {
-            if (url.Scheme != "https" || !artifact.Hosts.Contains(url.Host, StringComparer.OrdinalIgnoreCase))
-                throw new IOException($"{artifact.Server} download refused: {url.Scheme}://{url.Host} is not an allowed HTTPS host.");
+            if (url.Scheme != "https" || !hosts.Contains(url.Host, StringComparer.OrdinalIgnoreCase))
+                throw new IOException($"{name} download refused: {url.Scheme}://{url.Host} is not an allowed HTTPS host.");
             using var request = new HttpRequestMessage(HttpMethod.Get, url);
             using var response = await http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token);
             if ((int)response.StatusCode is >= 300 and < 400 && response.Headers.Location is { } location) { url = location.IsAbsoluteUri ? location : new Uri(url, location); continue; }
             response.EnsureSuccessStatusCode();
             var final = response.RequestMessage?.RequestUri ?? url;
-            if (final.Scheme != "https" || !artifact.Hosts.Contains(final.Host, StringComparer.OrdinalIgnoreCase))
-                throw new IOException($"{artifact.Server} download refused: redirected to {final.Host}.");
+            if (final.Scheme != "https" || !hosts.Contains(final.Host, StringComparer.OrdinalIgnoreCase))
+                throw new IOException($"{name} download refused: redirected to {final.Host}.");
             await using var input = await response.Content.ReadAsStreamAsync(token);
             await using var output = new FileStream(destination, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, true);
             await CopyBoundedAsync(input, output, DownloadLimit, token);
             return;
         }
-        throw new IOException($"{artifact.Server} download refused: too many redirects.");
+        throw new IOException($"{name} download refused: too many redirects.");
     }
 
     private static async Task ExtractAsync(string archive, string root, ManagedArtifact artifact, CancellationToken token)

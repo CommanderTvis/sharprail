@@ -130,9 +130,11 @@ and `ManagedArtifacts.Describe` say exactly which:
 | Providers | Acquisition | Pinning |
 | --- | --- | --- |
 | TypeScript, Python, PHP, CSS, Shell | `npm ci --ignore-scripts` from an embedded `package-lock.json` (`Language/Locks/<id>`) | Version and sha512 integrity of the whole dependency graph, registry URLs only |
-| clangd, JDT, Kotlin, PowerShell, rust-analyzer | Release archive from the artifact table in `ManagedArtifacts.cs` | Version and SHA-256 per platform, source of the hash recorded beside it, verified before extraction |
+| clangd, JDT, Kotlin, PowerShell, rust-analyzer | Release archive from the artifact table in `ManagedArtifacts.cs` (JDT from `jdtls/milestones/<version>`, not the rolling snapshots) | Version and SHA-256 per platform, source of the hash recorded beside it, verified before extraction |
 | IntelliJ | `IntelliJDistribution` | Version and SHA-256 per platform, plus acceptance of its terms |
-| C#, Go, Ruby, Scala, R | Package manager (`dotnet tool`, `go install`, `gem`, Coursier, CRAN) | Managed, partially pinned: exact version, but integrity is the package manager's own (NuGet signatures, Go checksum database) or not verified, and dependencies are resolved at install; no hash is stored |
+| C# | The pointer package and the platform's runtime pack of `roslyn-language-server`, fetched by SharpRail from `api.nuget.org` and installed by `dotnet tool install --source <local feed>` with a private package cache | Version and SHA-512 (NuGet catalog `packageHash`) of every package, verified before dotnet reads it; no Linux musl pack is pinned |
+| Go | `go install golang.org/x/tools/gopls` in a module made from the embedded `Locks/go/go.mod` and `go.sum`, `-mod=readonly`, `GOSUMDB=sum.golang.org`, `GOTOOLCHAIN=local`, and `GONOSUMDB`, `GONOSUMCHECK`, `GOPRIVATE`, `GOINSECURE`, `GONOPROXY`, `GOENV` and `GOWORK` neutralised | Version and `h1:` hashes of the whole module graph; the Go toolchain itself is the host's |
+| Ruby, Scala, R | Package manager (`gem`, Coursier, CRAN) | Managed, partially pinned: exact version only. Ruby: RubyGems resolves ruby-lsp's dependencies at install and checks no stored hash (a frozen `Gemfile.lock` with checksums needs Bundler 2.6+ and Ruby 3.x to generate and verify). Scala: Coursier checks Maven Central's own published checksums but no jar hash is stored here (a lock would need `cs fetch` output pinned per platform). R: `remotes` is installed unpinned to reach `install_version`, and CRAN dependencies float. Not verified on the 2026-10-19 pass because the host had no Ruby 3 or R |
 | Swift, Dart | Host SDK | Not managed |
 
 Downloads are HTTPS only. Redirects are followed manually and each hop must stay on the artifact's
@@ -142,7 +144,7 @@ or `..` paths, backslashes, hard links and symbolic links that leave the install
 size and entry count. Installation directories are `servers/<id>/<version>-<hash prefix>` (npm: the
 lockfile's hash), so a bump never reuses a directory; installed archive files are made read-only. The
 `--managed-artifacts` check lists every provider with its version and hash presence and fails when a
-managed one lacks a version, a SHA-256 or an integrity hash, or when a partially pinned provider is not
+managed one lacks a version, a SHA-256 or an integrity hash, or when a NuGet or Go module pin is incomplete, or when a partially pinned provider is not
 declared as such; fixtures prove the tamper, redirect, traversal and symbolic-link refusals without any
 download.
 

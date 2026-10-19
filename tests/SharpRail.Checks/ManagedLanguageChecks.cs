@@ -119,6 +119,16 @@ internal static class ManagedLanguageChecks
         try { await ArtifactInstaller.InstallAsync(Artifact(good), installed, Serve(good), default); }
         catch (IOException) { stale = true; }
         Require(stale, "A tampered installation was reused.");
+
+        // A NuGet package is kept only when its SHA-512 matches; a mismatch leaves nothing in the feed.
+        var feed = Path.Combine(root, "feed");
+        Directory.CreateDirectory(feed);
+        await ArtifactInstaller.FetchNuGetAsync(Serve(good), new("fixture.tool", "1.0.0", "any", Convert.ToHexStringLower(SHA512.HashData(good))), feed, default);
+        Require(File.Exists(Path.Combine(feed, "fixture.tool.1.0.0.nupkg")), "A verified NuGet package was not kept.");
+        var rejected = false;
+        try { await ArtifactInstaller.FetchNuGetAsync(Serve(good), new("fixture.bad", "1.0.0", "any", new string('0', 128)), feed, default); }
+        catch (IOException error) { rejected = error.Message.Contains("failed verification") && !File.Exists(Path.Combine(feed, "fixture.bad.1.0.0.nupkg")); }
+        Require(rejected, "A NuGet package with the wrong SHA-512 was kept.");
     }
 
     private static string Script(string path)

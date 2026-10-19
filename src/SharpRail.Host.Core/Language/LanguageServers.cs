@@ -191,17 +191,40 @@ internal sealed partial class LanguageServers(string directory, Func<string>? co
                     else switch (server.Id)
                         {
                             case "csharp":
-                                await RunAsync(Start(FindDotnet(workspace) ?? throw new IOException("Install a .NET SDK on this host, or configure DOTNET_ROOT, then Retry."), ["tool", "install", "roslyn-language-server", "--version", server.Version, "--tool-path", root]), root, token);
+                                var dotnet = FindDotnet(workspace) ?? throw new IOException("Install a .NET SDK on this host, or configure DOTNET_ROOT, then Retry.");
+                                var packages = ManagedArtifacts.NuGetFor(platform)
+                                    ?? throw new IOException($"csharp needs an installation: there is no verified NuGet runtime pack for {platform}. Allow PATH for this server in Settings > Code Intelligence, or configure an executable.");
+                                // Only packages whose SHA-512 matches the pinned value reach dotnet: it reads a local feed and a private package cache, never nuget.org.
+                                var feed = root + ".feed";
+                                try
+                                {
+                                    if (Directory.Exists(feed)) Directory.Delete(feed, true);
+                                    Directory.CreateDirectory(feed);
+                                    foreach (var package in packages) await ArtifactInstaller.FetchNuGetAsync(managedHttp, package, feed, token);
+                                    var install = Start(dotnet, ["tool", "install", "roslyn-language-server", "--version", server.Version, "--tool-path", root, "--source", feed]);
+                                    install.Environment["NUGET_PACKAGES"] = Path.Combine(feed, "packages");
+                                    await RunAsync(install, root, token);
+                                }
+                                finally { if (Directory.Exists(feed)) Directory.Delete(feed, true); }
                                 break;
                             case "go":
-                                var go = Start(Require("go", workspace), ["install", "golang.org/x/tools/gopls@" + server.Version]);
+                                // The embedded go.mod/go.sum pin gopls and its whole module graph by h1 hash; -mod=readonly refuses anything not in go.sum.
+                                var module = Path.Combine(root, "module");
+                                Directory.CreateDirectory(module);
+                                await File.WriteAllTextAsync(Path.Combine(module, "go.mod"), ManagedArtifacts.Lock("go", "go.mod") ?? throw new IOException("go has no embedded go.mod; it will not be installed."), token);
+                                await File.WriteAllTextAsync(Path.Combine(module, "go.sum"), ManagedArtifacts.Lock("go", "go.sum") ?? throw new IOException("go has no embedded go.sum; it will not be installed."), token);
+                                var go = Start(Require("go", workspace), ["install", "golang.org/x/tools/gopls"]);
                                 go.Environment["GOBIN"] = root;
                                 go.Environment["GOMODCACHE"] = Path.Combine(cache, "go-modules");
                                 go.Environment["GOFLAGS"] = "-mod=readonly";
                                 go.Environment["GOSUMDB"] = "sum.golang.org";
                                 go.Environment["GOPROXY"] = "https://proxy.golang.org";
                                 go.Environment["GOTOOLCHAIN"] = "local";
-                                await RunAsync(go, root, token);
+                                // The user's own Go environment must not switch verification off (GONOSUMDB, GOPRIVATE, GOINSECURE, go.env files, workspaces).
+                                foreach (var variable in new[] { "GONOSUMDB", "GONOSUMCHECK", "GOPRIVATE", "GOINSECURE", "GONOPROXY" }) go.Environment[variable] = "";
+                                go.Environment["GOENV"] = "off";
+                                go.Environment["GOWORK"] = "off";
+                                await RunAsync(go, module, token);
                                 break;
                             case "ruby":
                                 await RunAsync(Start(Require("gem", workspace), ["install", "ruby-lsp", "--version", server.Version, "--install-dir", root, "--bindir", Path.Combine(root, "bin"), "--no-document"]), root, token);
