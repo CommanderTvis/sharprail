@@ -9,7 +9,7 @@ public sealed class BlueprintHost : PluginHostModule
     public override PluginContract Contract => BlueprintContract.Contract;
 
     /// <summary>The list item about <c>blueprint_check</c> in the instructions agent plugins give sessions (H20).</summary>
-    internal const string Guidance = "`blueprint_check`: verify SharpRail's rendered view after writing or rewriting BLUEPRINT.md.";
+    internal const string Guidance = "`blueprint_check`: you MUST call it to verify SharpRail's rendered view after writing or rewriting BLUEPRINT.md.";
 
     public override ValueTask<PluginDisposer?> ActivateAsync(IPluginHostContext context)
     {

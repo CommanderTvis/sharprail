@@ -45,6 +45,8 @@ internal static partial class AirContextChecks
             "The enabled plugin's paragraph did not reach the agent instructions.");
         Require(Claude(guidance).Contains("Prefer available SharpRail MCP tools; disabled plugins may hide tools:\n\n- Air Context (`jbcontext`) provides", StringComparison.Ordinal),
             "The paragraph moved out of its place in the instructions.");
+        Require(Claude(guidance).Contains("You MUST call `context_search` first", StringComparison.Ordinal) && Codex(guidance).Contains("its final report MUST state how many `context_search` calls", StringComparison.Ordinal),
+            "The enabled plugin's paragraph is not strict.");
         var index = rig.Tools(workspace).Single(tool => tool.Name == "context_index");
         await index.Call(new(), default);
         await rig.UntilAsync(() => Task.FromResult(latest?.Indexes == 1), "indexing to start");

@@ -1,5 +1,6 @@
 using SharpRail.Host.Abstractions;
 using SharpRail.Host.Core;
+using SharpRail.Host.Core.Language;
 using SharpRail.Host.Core.Plugins;
 using SharpRail.Plugins.AirContext;
 using SharpRail.Plugins.Api;
@@ -62,8 +63,8 @@ internal static class PromptChecks
         // Each plugin alone adds exactly its own text.
         var texts = new Dictionary<string, string>
         {
-            [SpecDialectManifest.Manifest.Id] = "If this project uses a spec graph and the `spec_*` tools are available, use them to read and maintain affected specs. Projects without specs need no spec workflow; do not create specs unless asked.",
-            [BlueprintContract.Manifest.Id] = "`blueprint_check`: verify SharpRail's rendered view after writing or rewriting BLUEPRINT.md.",
+            [SpecDialectManifest.Manifest.Id] = "If this project uses a spec graph and the `spec_*` tools are available, you MUST use them (`spec_graph`, `spec_get`, `spec_grep`) to read the affected specs before changing governed behavior, and maintain and validate (`spec_validate`) them in the same change. Projects without specs need no spec workflow; do not create specs unless asked.",
+            [BlueprintContract.Manifest.Id] = "`blueprint_check`: you MUST call it to verify SharpRail's rendered view after writing or rewriting BLUEPRINT.md.",
             [VisualizeContract.Manifest.Id] = "`visualize`: Mermaid diagrams or option comparisons instead of ASCII art/tables when clearer. Each call replaces the live view.",
         };
         foreach (var (id, text) in texts)
@@ -86,7 +87,24 @@ internal static class PromptChecks
         Require(runtime.PromptTexts(ClaudeCodeContract.Id, PromptPlacement.ToolList).SequenceEqual(expected), "The order hints did not keep the old order.");
         Require(all.Claude.Contains("Prefer available SharpRail MCP tools; disabled plugins may hide tools:\n\n- " + string.Join("\n- ", expected) + "\n\nCall `set_title`", StringComparison.Ordinal),
             "The list is not the old wording.");
-        Require(all.Claude.EndsWith("\n" + CorePrompt.LanguageServices.TrimEnd('\n') + "\n", StringComparison.Ordinal) && all.Claude == Prompts(runtime).Claude, "The Code Intelligence text moved or is unstable.");
+        Require(all.Claude.EndsWith("\n" + CorePrompt.Text(state.Current.Settings.LanguageServers) + "\n", StringComparison.Ordinal) && all.Claude == Prompts(runtime).Claude, "The Code Intelligence text moved or is unstable.");
+
+        // The strict Code Intelligence, server-start and delegation rules ride on the feature, in both agents.
+        foreach (var prompt in new[] { all.Claude, all.Codex })
+            foreach (var rule in new[] { "You MUST use `lsp_navigate`", "ONLY for literals", "MUST run `lsp_diagnostics` with `paths`", "is NOT a substitute", "You CAN and MUST enable any missing or stopped language server yourself", "without asking the user", "`operation: \"catalog\"`", "NEVER fall back silently to grep", "is NEVER a reason to skip LSP", "Only a setting the user disabled", "to EVERY `lsp_*` call", "the brief MUST contain", "until the state is ready", "NEVER treat empty results from an initializing server", "the ids of the language servers its task needs", "NEVER abandon LSP because of a malformed call", "its final report MUST state how many `lsp_navigate` and `lsp_diagnostics` calls", "reject a report with none", "NEVER push unless the user asks", "NEVER bypass or disable commit signing" })
+                Require(prompt.Contains(rule, StringComparison.Ordinal), $"The instructions lack the rule \"{rule}\".");
+        Require(!bare.Claude.Contains("context_search", StringComparison.Ordinal) && !all.Claude.Contains("You MUST call `context_search` first", StringComparison.Ordinal), "Air Context rules appear without the plugin.");
+
+        // The list of servers is the catalog's: every id with its file types, and a server the user disabled is marked, not dropped.
+        foreach (var server in LanguageServers.Catalog)
+            Require(all.Claude.Contains($"- `{server.Id}`:", StringComparison.Ordinal) && all.Codex.Contains($"- `{server.Id}`:", StringComparison.Ordinal) && all.Claude.Contains(string.Join(" ", server.Extensions), StringComparison.Ordinal), $"The instructions do not list {server.Id}.");
+        Require(!all.Claude.Contains("DISABLED by the user", StringComparison.Ordinal) && all.Claude.Contains("\"operation\": \"retry\", \"server\": \"<id>\", \"workspace\"", StringComparison.Ordinal), "The server list or the call example is wrong.");
+        await state.ChangeAsync([HostStateChange.Setting("language-server:csharp", "{\"disabled\":true}")]);
+        var marked = Prompts(runtime).Codex;
+        Require(marked.Contains("`csharp`:", StringComparison.Ordinal) && marked.Split('\n').Single(line => line.StartsWith("- `csharp`:", StringComparison.Ordinal)).Contains("DISABLED by the user", StringComparison.Ordinal)
+            && !marked.Split('\n').Single(line => line.StartsWith("- `go`:", StringComparison.Ordinal)).Contains("DISABLED", StringComparison.Ordinal), "A disabled server is not marked in the list.");
+        await state.ChangeAsync([HostStateChange.Setting("language-server:csharp", "{}")]);
+        Require(Prompts(runtime).Claude == all.Claude, "Enabling the server again did not restore the list.");
 
         // Language services off: no LSP guidance, and no trace of the tools.
         await state.ChangeAsync([HostStateChange.Setting("lsp-enabled", "false")]);

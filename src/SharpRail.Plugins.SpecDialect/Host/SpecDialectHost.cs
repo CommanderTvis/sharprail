@@ -11,7 +11,7 @@ public sealed class SpecDialectHost : PluginHostModule
     public override PluginContract Contract => SpecDialectContract.Contract;
 
     /// <summary>The list item about the <c>spec_*</c> tools in the instructions agent plugins give sessions (H20).</summary>
-    internal const string Guidance = "If this project uses a spec graph and the `spec_*` tools are available, use them to read and maintain affected specs. Projects without specs need no spec workflow; do not create specs unless asked.";
+    internal const string Guidance = "If this project uses a spec graph and the `spec_*` tools are available, you MUST use them (`spec_graph`, `spec_get`, `spec_grep`) to read the affected specs before changing governed behavior, and maintain and validate (`spec_validate`) them in the same change. Projects without specs need no spec workflow; do not create specs unless asked.";
 
     public override ValueTask<PluginDisposer?> ActivateAsync(IPluginHostContext context)
     {

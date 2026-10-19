@@ -314,3 +314,11 @@ launcher, its start action and right-click flags, the Create-workspace and Proje
 offer all pass the executable word of the command through `AgentLaunchComposition.Apply` for agent id `claude`, so a
 contribution reaches every new or revived terminal. A custom command that is not the `claude` executable is never
 rewritten, and a disabled contributor changes nothing.
+
+The appendix is strict: it says an agent MUST use `lsp_navigate` for symbol questions before grep or whole-file reads, MUST run
+`lsp_diagnostics` with `paths` on every edited file before declaring done (a build is no substitute), and CAN and MUST start any
+missing or stopped server itself through `lsp_status` catalog/retry without asking the user, waiting while it initializes; only
+user-disabled settings are respected and reported. A delegating parent MUST put the workspace path, the `workspace` rule, these
+rules and a requirement to report its `lsp_navigate`/`lsp_diagnostics` call counts into the brief, and MUST reject a report with
+none for code work. Air Context's paragraph (only while enabled) adds MUST `context_search` first. `PromptChecks` asserts these
+phrases in both agents and their absence with the feature or plugin off.
