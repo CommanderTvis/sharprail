@@ -28,6 +28,16 @@
     <!-- The shared sources keep their desktop-only paths (the terminal relay child), which Android never reaches. -->
     <NoWarn>$(NoWarn);CA1416</NoWarn>
   </PropertyGroup>
+  <!--
+    The libraries are built once for the desktop RIDs they are locked for, not per Android RID. They set RuntimeIdentifiers, so the SDK
+    does not treat them as RID-agnostic and would pass this project's RuntimeIdentifier (and the inner builds' SkipCompilerExecution) down to
+    them: each then compiled nothing into obj/.../android-<arch>/ and failed copying it (MSB3030), or needed android entries in every lock.
+  -->
+  <ItemDefinitionGroup>
+    <ProjectReference>
+      <GlobalPropertiesToRemove>RuntimeIdentifier;SelfContained;AppendRuntimeIdentifierToOutputPath;SkipCompilerExecution;_OuterIntermediateAssembly;_OuterOutputPath;_OuterIntermediateOutputPath</GlobalPropertiesToRemove>
+    </ProjectReference>
+  </ItemDefinitionGroup>
   <ItemGroup>
     <ProjectReference Include="../SharpRail.Plugins.Tailscale/UI/SharpRail.Plugins.Tailscale.UI.csproj" />
     <!-- Android's implicit usings collide with Avalonia's control names throughout the shared sources. -->
@@ -82,8 +92,9 @@
   <ItemGroup>
     <NativeAbi Include="arm64-v8a;x86_64" />
     <AndroidNativeSource Include="../Ghostty.Avalonia/Native/GhosttyVt.c;../Ghostty.Avalonia/build-android.sh;../SharpRail.Scintilla/Native/*;../SharpRail.Scintilla/build-android.sh;../../mise.lock;../../mise.android.lock" />
-    <AndroidNativeLibrary Include="$(GhosttyNativeCache)/android/%(NativeAbi.Identity)/libGhosttyAvaloniaVt.so" Abi="%(NativeAbi.Identity)" />
-    <AndroidNativeLibrary Include="$(MSBuildProjectDirectory)/../SharpRail.Scintilla/obj/native/android/%(NativeAbi.Identity)/libSharpRail.Scintilla.so" Abi="%(NativeAbi.Identity)" />
+    <!-- Outside a target, %(NativeAbi.Identity) is not batched: it stays literal text and the ABI cannot be read from the path (XA4301). -->
+    <AndroidNativeLibrary Include="@(NativeAbi->'$(GhosttyNativeCache)/android/%(Identity)/libGhosttyAvaloniaVt.so')" />
+    <AndroidNativeLibrary Include="@(NativeAbi->'$(MSBuildProjectDirectory)/../SharpRail.Scintilla/obj/native/android/%(Identity)/libSharpRail.Scintilla.so')" />
   </ItemGroup>
   <Target Name="BuildNativeLibraries" BeforeTargets="BeforeBuild"
           Inputs="@(AndroidNativeSource)" Outputs="@(AndroidNativeLibrary)">

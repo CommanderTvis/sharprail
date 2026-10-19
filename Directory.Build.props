@@ -35,7 +35,7 @@
       SharpRail.Android and SharpRail.Browser, whose restores resolve workload packs and per-RID runtime packs.
     -->
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
-    <RuntimeIdentifiers Condition="'$(RuntimeIdentifiers)' == ''">osx-arm64;osx-x64;win-x64;win-arm64;linux-x64;android-arm64;android-x64</RuntimeIdentifiers>
+    <RuntimeIdentifiers Condition="'$(RuntimeIdentifiers)' == ''">osx-arm64;osx-x64;win-x64;win-arm64;linux-x64</RuntimeIdentifiers>
     <!--
       Audit: advisories are always reported (all packages, moderate and above) but stay warnings, so a new advisory
       cannot break a nightly build that did not change; CI treats them as errors only through the dedicated
