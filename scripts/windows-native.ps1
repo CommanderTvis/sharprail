@@ -4,7 +4,7 @@ Set-StrictMode -Version Latest
 
 function Invoke-Native([string] $Executable, [string[]] $Arguments) {
     & $Executable @Arguments
-    if ($LASTEXITCODE -ne 0) { throw "$Executable failed with exit code $LASTEXITCODE" }
+    if ($LASTEXITCODE -ne 0) { throw "$Executable $($Arguments -join ' ') failed with exit code $LASTEXITCODE" }
 }
 
 # The Windows runtime identifier of a native build: the requested one, or the host's architecture when none is given.
