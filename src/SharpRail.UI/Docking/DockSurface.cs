@@ -212,6 +212,8 @@ public sealed partial class DockSurface : Grid
     {
         var structure = Session.State.Copy();
         structure.Workspaces = []; structure.ActiveWorkspace = "";
+        // Per-project pane bookkeeping: what it changes on screen is already in the groups and visibility above.
+        structure.ActiveProject = ""; structure.DefaultProjectPanes = null; structure.ProjectPanes = [];
         return (Home ? "home:" : "") + JsonSerializer.Serialize(structure);
     }
 
