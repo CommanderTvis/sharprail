@@ -80,7 +80,7 @@ internal sealed class E2eWorkspace : IDisposable
         Workbench = new(profile, new SharedState(service, profile.Data.Preferences), Terminals.Factory, true,
             () => { if (!first) return new E2eHost(new RemoteProjectAdapter(endpoint, token)); first = false; return Host; }, remotePlugins, Terminals.Catalog)
         { Endpoint = endpoint.ToString(), Compact = compact };
-        Window = Workbench.Open(profile.Data.Windows[0], startPath);
+        Window = latest = Workbench.Open(profile.Data.Windows[0], startPath);
         Window.Width = 1352; Window.Height = 848;
         Window.Show();
     }
@@ -128,7 +128,7 @@ internal sealed class E2eWorkspace : IDisposable
             Notifier = notifier,
             NotificationWindow = TimeSpan.FromMilliseconds(150)
         };
-        Window = Workbench.Open(profile.Data.Windows[0], startPath ?? root);
+        Window = latest = Workbench.Open(profile.Data.Windows[0], startPath ?? root);
         Window.Width = 1352; Window.Height = 848;
         Window.Show();
         if (startPath is not null) return;
@@ -141,12 +141,34 @@ internal sealed class E2eWorkspace : IDisposable
         if (!value) throw new InvalidOperationException(message);
     }
 
-    internal static void Until(Func<bool> condition)
+    private static WorkbenchWindow? latest;
+
+    internal static void Until(Func<bool> condition, [System.Runtime.CompilerServices.CallerArgumentExpression(nameof(condition))] string? waitingFor = null)
     {
         // A liveness bound, not an assertion: workspace flows start a dozen Git processes, which a loaded machine stretches past ten seconds.
         var deadline = Awake.Now.AddSeconds(30);
         while (!condition() && Awake.Now < deadline) Pump();
-        Dispatcher.UIThread.RunJobs(); Require(condition(), "E2E condition timed out.");
+        Dispatcher.UIThread.RunJobs();
+        if (!condition()) throw new InvalidOperationException($"E2E condition timed out waiting for: {waitingFor}\n{Describe()}");
+    }
+
+    /// <summary>What a timed-out wait leaves behind: the focused tabs and the visible named controls of the latest window, for CI logs.</summary>
+    private static string Describe()
+    {
+        try
+        {
+            var window = latest;
+            if (window is null) return "(no window)";
+            var lines = new List<string> { $"window {window.Bounds.Width:0}x{window.Bounds.Height:0}, center {window.Layout.View.FocusedCenter}" };
+            foreach (var tab in window.Layout.Tabs(window.Layout.View.FocusedCenter)) lines.Add($"tab {tab.Kind} {tab.Path}");
+            var selected = window.Layout.Selected(window.Layout.View.FocusedCenter);
+            lines.Add($"selected {selected?.Kind} {selected?.Path}");
+            lines.Add("diff tabs " + string.Join(", ", window.Layout.State.Workspaces[window.WorkspaceRoot].Documents.Values.SelectMany(tabs => tabs).Where(tab => tab.Kind == "diff").Select(tab => tab.Path)));
+            foreach (var control in window.GetLogicalDescendants().OfType<Control>().Where(item => !string.IsNullOrEmpty(item.Name)))
+                lines.Add($"control {control.GetType().Name} {control.Name} visible={control.IsEffectivelyVisible} size={control.Bounds.Width:0}x{control.Bounds.Height:0}");
+            return string.Join('\n', lines);
+        }
+        catch (Exception error) { return "(describe failed: " + error.Message + ")"; }
     }
 
     internal static void Settle(int milliseconds = 300)
@@ -250,8 +272,16 @@ internal sealed class E2eWorkspace : IDisposable
         var hit = input.InputHitTest(point) as Control;
         Require(hit is not null && (ReferenceEquals(hit, control) || hit.GetVisualAncestors().Contains(control)),
             $"E2E target {control.Name ?? control.GetType().Name} ({control.Bounds}) is occluded at {point} by {hit?.GetType().Name}/{hit?.Name}; ancestors: {string.Join(",", hit?.GetVisualAncestors().OfType<Control>().Select(item => item.GetType().Name + "/" + item.Name) ?? [])}.");
+        var gesture = System.Diagnostics.Stopwatch.StartNew();
         input.MouseDown(point, mouseButton); input.MouseUp(point, mouseButton);
-        if (twice) { input.MouseDown(point, mouseButton); input.MouseUp(point, mouseButton); }
+        if (twice)
+        {
+            // Avalonia may count a double click from the injected events' own timestamps, so a slow first release would separate the
+            // presses past the double-tap time and no DoubleTapped would follow; a slow gap is logged to rule that in or out from CI output.
+            var gap = gesture.ElapsedMilliseconds;
+            if (gap > 250) Console.Error.WriteLine($"E2E double click on {control.Name ?? control.GetType().Name}: {gap} ms between its presses (double-tap time {Application.Current!.PlatformSettings!.GetDoubleTapTime(PointerType.Mouse).TotalMilliseconds:0} ms).");
+            input.MouseDown(point, mouseButton); input.MouseUp(point, mouseButton);
+        }
         Dispatcher.UIThread.RunJobs();
         return control;
     }
