@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Avalonia.Input.Raw;
 using Avalonia.LogicalTree;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -285,22 +286,16 @@ internal sealed class E2eWorkspace : IDisposable
             $"E2E target {control.Name ?? control.GetType().Name} ({control.Bounds}) is occluded at {point} by {hit?.GetType().Name}/{hit?.Name}; ancestors: {string.Join(",", hit?.GetVisualAncestors().OfType<Control>().Select(item => item.GetType().Name + "/" + item.Name) ?? [])}.");
         if (twice)
         {
-            // Avalonia counts a double click from the presses' wall-clock times, and the first release runs the tab or row's whole open on
-            // the UI thread, which a loaded runner can stretch past the double-tap time: the second press would then be a lone click and no
-            // DoubleTapped would follow. A first release that long cannot be part of a double click, so it is repeated (a click is
-            // idempotent for the controls this drives) until the presses are close enough, and the slow gap is logged.
-            var doubleTapTime = Application.Current!.PlatformSettings!.GetDoubleTapTime(PointerType.Mouse);
-            for (var attempt = 1; ; attempt++)
+            // Avalonia counts a double click from the timestamps of the raw presses, and the first release runs the tab or row's whole open
+            // on the UI thread, which a loaded runner can stretch past the double-tap time. The headless helpers stamp each event from the
+            // wall clock, so the four raw events are stamped here instead, one millisecond apart: a double click is then one by construction,
+            // whatever the first click's handlers cost, and the product's DoubleTapped path runs as for a real double click.
+            var first = HeadlessTimestamp(input);
+            for (var click = 0; click < 2; click++)
             {
-                var gesture = System.Diagnostics.Stopwatch.StartNew();
-                input.MouseDown(point, mouseButton); input.MouseUp(point, mouseButton);
-                var gap = gesture.Elapsed;
-                if (gap > TimeSpan.FromMilliseconds(250)) Console.Error.WriteLine($"E2E double click on {control.Name ?? control.GetType().Name}: {gap.TotalMilliseconds:0} ms between its presses (double-tap time {doubleTapTime.TotalMilliseconds:0} ms), attempt {attempt}.");
-                if (gap < doubleTapTime * 0.8 || attempt == 5) break;
-                Dispatcher.UIThread.RunJobs();
-                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                RawPointer(input, point, mouseButton, press: true, first + (ulong)(click * 2));
+                RawPointer(input, point, mouseButton, press: false, first + (ulong)(click * 2 + 1));
             }
-            input.MouseDown(point, mouseButton); input.MouseUp(point, mouseButton);
         }
         else
         {
@@ -318,6 +313,28 @@ internal sealed class E2eWorkspace : IDisposable
         }
         Dispatcher.UIThread.RunJobs();
         return control;
+    }
+
+    static ulong HeadlessTimestamp(TopLevel input) => (ulong)HeadlessMember(input.PlatformImpl!, "Timestamp")!;
+
+    static object? HeadlessMember(object impl, string name) =>
+        impl.GetType().GetProperty(name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic)!.GetValue(impl);
+
+    /// <summary>Sends one raw mouse button event as the headless window's own helpers do, but with an explicit timestamp.</summary>
+    static void RawPointer(TopLevel input, Point point, MouseButton button, bool press, ulong timestamp)
+    {
+        var impl = input.PlatformImpl!;
+        var device = (IInputDevice)HeadlessMember(impl, "MouseDevice")!;
+        var raiseInput = (Action<RawInputEventArgs>)HeadlessMember(impl, "Input")!;
+        var (down, up, flag) = button switch
+        {
+            MouseButton.Right => (RawPointerEventType.RightButtonDown, RawPointerEventType.RightButtonUp, RawInputModifiers.RightMouseButton),
+            MouseButton.Middle => (RawPointerEventType.MiddleButtonDown, RawPointerEventType.MiddleButtonUp, RawInputModifiers.MiddleMouseButton),
+            _ => (RawPointerEventType.LeftButtonDown, RawPointerEventType.LeftButtonUp, RawInputModifiers.LeftMouseButton),
+        };
+        // The constructor is private API, absent from Avalonia's reference assembly: it is reached by reflection.
+        raiseInput((RawInputEventArgs)Activator.CreateInstance(typeof(RawInputEventArgs).Assembly.GetType("Avalonia.Input.Raw.RawPointerEventArgs")!,
+            device, timestamp, HeadlessMember(impl, "InputRoot"), press ? down : up, point, press ? flag : RawInputModifiers.None)!);
     }
 
     static IEnumerable<RepeatButton> RepeatButtonsAt(Control hit, Control target) =>
