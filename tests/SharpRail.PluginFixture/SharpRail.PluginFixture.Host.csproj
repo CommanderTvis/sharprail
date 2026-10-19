@@ -11,6 +11,9 @@
   </ItemGroup>
   <!-- A deliberate copy of a shared assembly, which the plugin load context must ignore in favour of the host's. -->
   <Target Name="CopySharedApi" AfterTargets="Build">
-    <Copy SourceFiles="$(MSBuildThisFileDirectory)../../src/SharpRail.Plugins.Api/bin/$(Configuration)/$(TargetFramework)/SharpRail.Plugins.Api.dll" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+    <ItemGroup>
+      <SharedApi Include="@(ReferencePath)" Condition="'%(Filename)' == 'SharpRail.Plugins.Api'" />
+    </ItemGroup>
+    <Copy SourceFiles="@(SharedApi)" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
   </Target>
 </Project>

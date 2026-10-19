@@ -15,7 +15,9 @@
   </ItemGroup>
   <!-- A copy of a shared assembly shipped anyway, which the app must ignore rather than load a second time. -->
   <Target Name="ShipSharedCopy" AfterTargets="Build">
-    <Copy SourceFiles="$(MSBuildThisFileDirectory)../../src/SharpRail.Plugins.Api/bin/$(Configuration)/$(TargetFramework)/SharpRail.Plugins.Api.dll"
-          DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+    <ItemGroup>
+      <SharedApi Include="@(ReferencePath)" Condition="'%(Filename)' == 'SharpRail.Plugins.Api'" />
+    </ItemGroup>
+    <Copy SourceFiles="@(SharedApi)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
   </Target>
 </Project>
