@@ -427,8 +427,7 @@ internal static class MarkdownDocumentE2E
         Move("var final");
         Require(Visible("var final"), "Following must reveal a fenced code block.");
         editor.Focus();
-        app.Window.KeyPress(Key.Up, RawInputModifiers.Meta | RawInputModifiers.Shift, PhysicalKey.None, null);
-        app.Window.KeyRelease(Key.Up, RawInputModifiers.Meta | RawInputModifiers.Shift, PhysicalKey.None, null);
+        SelectToDocumentStart(app.Window);
         Settle(100);
         Require(editor.CaretLine == 1 && editor.Selection.EndLine > 100 && view.Preview.Offset.Y < 100,
             "A backwards keyboard selection must follow its active caret, not its lower selection endpoint.");

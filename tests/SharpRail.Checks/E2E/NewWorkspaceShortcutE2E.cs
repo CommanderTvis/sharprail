@@ -10,7 +10,7 @@ namespace SharpRail.Checks.E2E;
 
 internal static class NewWorkspaceShortcutE2E
 {
-    private const RawInputModifiers Mod = RawInputModifiers.Meta;
+    private static RawInputModifiers Mod => E2eWorkspace.Command;
 
     internal static void Run(string root)
     {

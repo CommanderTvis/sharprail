@@ -38,10 +38,11 @@ internal static class EditorWorkbenchChecks
             .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
         Pump(() => !dialog.IsVisible);
     }
-    private static void Save(Window window, RawInputModifiers command = RawInputModifiers.Meta)
+    private static void Save(Window window, RawInputModifiers? command = null)
     {
-        window.KeyPress(Key.S, command, PhysicalKey.S, "s");
-        window.KeyRelease(Key.S, command, PhysicalKey.S, "s");
+        var chord = command ?? E2E.E2eWorkspace.Command;
+        window.KeyPress(Key.S, chord, PhysicalKey.S, "s");
+        window.KeyRelease(Key.S, chord, PhysicalKey.S, "s");
     }
     internal static void FileLinkPosition(string fixture)
     {
@@ -80,8 +81,8 @@ internal static class EditorWorkbenchChecks
         {
             Await(window.OpenDocumentAsync("first.cs")); window.UpdateLayout();
             var editor = Editor(window); editor.Focus();
-            window.KeyPress(Key.F, RawInputModifiers.Meta, PhysicalKey.F, "f");
-            window.KeyRelease(Key.F, RawInputModifiers.Meta, PhysicalKey.F, "f");
+            window.KeyPress(Key.F, E2E.E2eWorkspace.Command, PhysicalKey.F, "f");
+            window.KeyRelease(Key.F, E2E.E2eWorkspace.Command, PhysicalKey.F, "f");
             var findInput = window.GetLogicalDescendants().OfType<TextBox>().Single(box => box.Name == "FindInput");
             Require(findInput.IsFocused, "Command+F in a file editor must focus Find.");
             findInput.Text = "First";

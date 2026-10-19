@@ -98,7 +98,7 @@ internal static class EditorTextChecks
         Require(editor.Document.Text(true) == Family + "b", "Shift+Left must extend the selection by grapheme.");
         Press(window, Key.End); Press(window, Key.Left); Press(window, Key.Back);
         Require(editor.Text == "ab", $"Backspace must delete a whole emoji sequence ({editor.Text}).");
-        Press(window, Key.Z, RawInputModifiers.Meta);
+        Press(window, Key.Z, E2E.E2eWorkspace.Command);
         Require(editor.Text == $"a{Family}b", "Undoing a grapheme deletion must restore it in one step.");
 
         editor.Text = "a🇺🇦b";
@@ -154,7 +154,7 @@ internal static class EditorTextChecks
         Require(editor.Text == "שלום world", "Typing mixed-direction text must keep logical order.");
         var copy = window.Clipboard!.SetTextAsync("émigré שלום");
         while (!copy.IsCompleted) Pump();
-        editor.SelectAll(); Press(window, Key.V, RawInputModifiers.Meta);
+        editor.SelectAll(); Press(window, Key.V, E2E.E2eWorkspace.Command);
         for (var i = 0; i < 20 && editor.Text != "émigré שלום"; i++) Pump();
         Require(editor.Text == "émigré שלום", $"Pasting text that starts with a non-ASCII character failed ({editor.Text}).");
         Console.WriteLine("PASS Scintilla bidirectional caret positions, hit testing, base directions and editing");

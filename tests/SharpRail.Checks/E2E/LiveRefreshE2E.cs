@@ -177,8 +177,8 @@ internal static class LiveRefreshE2E
         Settle(500);
         Require(editor.Text == edited && editor.IsModified, "An editor with unsaved edits must keep them when the file changes on disk.");
         editor.Focus();
-        app.Window.KeyPress(Key.S, RawInputModifiers.Meta, PhysicalKey.S, "s");
-        app.Window.KeyRelease(Key.S, RawInputModifiers.Meta, PhysicalKey.S, "s");
+        app.Window.KeyPress(Key.S, Command, PhysicalKey.S, "s");
+        app.Window.KeyRelease(Key.S, Command, PhysicalKey.S, "s");
         Until(() => app.Window.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Name == "WorkspaceError" && text.IsVisible &&
             (text.Text?.Contains("changed on disk", StringComparison.Ordinal) ?? false)));
         Require(editor.IsModified && File.ReadAllText(path) == "external version\n", "Saving over an external change must report the conflict and keep both versions.");

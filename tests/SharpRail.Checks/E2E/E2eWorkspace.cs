@@ -25,6 +25,17 @@ internal sealed class E2eWorkspace : IDisposable
         : string.Join('\n', source.GetLogicalDescendants().OfType<SelectableTextBlock>().Select(block =>
             string.Concat(block.Inlines?.OfType<Avalonia.Controls.Documents.Run>().Select(run => run.Text) ?? [])));
 
+    /// <summary>The platform command modifier, as the product's <c>CommandKeys.Modifier</c>: Meta on macOS, Control elsewhere.</summary>
+    internal static RawInputModifiers Command => OperatingSystem.IsMacOS() ? RawInputModifiers.Meta : RawInputModifiers.Control;
+
+    /// <summary>Selects to the document start (Cmd+Shift+Up on macOS, Ctrl+Shift+Home elsewhere).</summary>
+    internal static void SelectToDocumentStart(Window window)
+    {
+        var (key, physical) = OperatingSystem.IsMacOS() ? (Key.Up, PhysicalKey.ArrowUp) : (Key.Home, PhysicalKey.Home);
+        window.KeyPress(key, Command | RawInputModifiers.Shift, physical, null);
+        window.KeyRelease(key, Command | RawInputModifiers.Shift, physical, null);
+    }
+
     internal WorkbenchWindow Window { get; }
     internal E2eHost Host { get; }
     internal E2eTerminals Terminals { get; }
