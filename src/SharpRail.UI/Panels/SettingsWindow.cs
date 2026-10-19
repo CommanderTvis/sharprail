@@ -39,6 +39,11 @@ public sealed partial class SettingsWindow : Window
     private readonly List<Action> refreshers = [];
     private readonly TextBlock error = new() { Name = "SettingsError", IsVisible = false, TextWrapping = TextWrapping.Wrap, Foreground = Ui.Danger };
 
+    // Compiled XAML never uses the runtime loader; this public constructor only makes Avalonia register the view (AVLN3001).
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    [System.Obsolete("Construct SettingsWindow with its arguments.", true)]
+    public SettingsWindow() => throw new System.NotSupportedException("SettingsWindow needs its constructor arguments.");
+
     /// <summary>
     /// Settings for <paramref name="window"/>. Shared settings round-trip through the host and every
     /// open Settings view re-renders when the snapshot arrives; <paramref name="apply"/> follows local changes.

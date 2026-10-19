@@ -39,6 +39,11 @@ public sealed partial class MarkdownDocumentView : UserControl, IDisposable
     private bool findSource;
     private Mode mode;
 
+    // Compiled XAML never uses the runtime loader; this public constructor only makes Avalonia register the view (AVLN3001).
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    [System.Obsolete("Construct MarkdownDocumentView with its arguments.", true)]
+    public MarkdownDocumentView() => throw new System.NotSupportedException("MarkdownDocumentView needs its constructor arguments.");
+
     public MarkdownDocumentView(string text, string path, MarkdownContext context) : this(text, path, context, null) { }
 
     /// <summary>Creates a Markdown view with an optional, lazily created source control supplied by its owner.</summary>

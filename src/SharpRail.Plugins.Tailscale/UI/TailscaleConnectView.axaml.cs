@@ -20,6 +20,11 @@ public sealed partial class TailscaleConnectView : UserControl
     private readonly bool scannedHost;
     public event Action<TailscaleConnection>? Connected;
 
+    // Compiled XAML never uses the runtime loader; this public constructor only makes Avalonia register the view (AVLN3001).
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    [System.Obsolete("Construct TailscaleConnectView with its arguments.", true)]
+    public TailscaleConnectView() => throw new System.NotSupportedException("TailscaleConnectView needs its constructor arguments.");
+
     public TailscaleConnectView(string statePath, string? initialHost = null)
     {
         this.statePath = statePath;

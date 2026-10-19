@@ -562,3 +562,6 @@ SharpRail.Plugins.UI.Kit.Editor.EditorFrame.DeferSyntaxColors.set -> void
 
 SharpRail.Plugins.UI.Kit.Editor.SemanticToken.Italic.get -> bool
 SharpRail.Plugins.UI.Kit.Editor.SemanticToken.Italic.init -> void
+SharpRail.Plugins.UI.Kit.Editor.EditorFrame.EditorFrame() -> void
+SharpRail.Plugins.UI.Kit.Markdown.MarkdownDocumentView.MarkdownDocumentView() -> void
+SharpRail.Plugins.UI.Kit.Visualization.MermaidView.MermaidView() -> void

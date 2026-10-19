@@ -15,6 +15,11 @@ public sealed partial class MermaidView : ContentControl
     private SvgSource? shown;
     private PanZoomView? view;
 
+    // Compiled XAML never uses the runtime loader; this public constructor only makes Avalonia register the view (AVLN3001).
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    [System.Obsolete("Construct MermaidView with its arguments.", true)]
+    public MermaidView() => throw new System.NotSupportedException("MermaidView needs its constructor arguments.");
+
     /// <summary>Creates a diagram from raw Mermaid source; the callback receives null on success or its parse error.</summary>
     public MermaidView(string source, bool interactive = false, Action<string?>? onRender = null)
     {

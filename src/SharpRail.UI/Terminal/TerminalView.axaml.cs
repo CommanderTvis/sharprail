@@ -35,6 +35,11 @@ public sealed partial class TerminalView : UserControl, IDisposable
     // This view held the terminal until another client took it.
     private bool displaced;
 
+    // Compiled XAML never uses the runtime loader; this public constructor only makes Avalonia register the view (AVLN3001).
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    [System.Obsolete("Construct TerminalView with its arguments.", true)]
+    public TerminalView() => throw new System.NotSupportedException("TerminalView needs its constructor arguments.");
+
     public TerminalView(TerminalFactory factory, TerminalLaunch launch)
     {
         this.factory = factory; this.launch = launch;

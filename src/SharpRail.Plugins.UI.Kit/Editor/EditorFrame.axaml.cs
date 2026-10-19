@@ -31,6 +31,11 @@ public sealed partial class EditorFrame : UserControl
     private readonly SolidColorBrush canvas;
     private readonly bool currentLine;
 
+    // Compiled XAML never uses the runtime loader; this public constructor only makes Avalonia register the view (AVLN3001).
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    [System.Obsolete("Construct EditorFrame with its arguments.", true)]
+    public EditorFrame() => throw new System.NotSupportedException("EditorFrame needs its constructor arguments.");
+
     /// <summary>An opened document sits on the workspace canvas; a diff passes the recessed surface it reads on.</summary>
     public EditorFrame(string text, string name, SolidColorBrush? canvas = null)
     {

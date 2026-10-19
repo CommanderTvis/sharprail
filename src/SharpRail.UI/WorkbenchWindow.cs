@@ -81,6 +81,11 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         { OwnedHost = plugins, Compact = compact, Touch = compact };
     }
 
+    // Compiled XAML never uses the runtime loader; this public constructor only makes Avalonia register the view (AVLN3001).
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
+    [System.Obsolete("Construct WorkbenchWindow with its arguments.", true)]
+    public WorkbenchWindow() => throw new System.NotSupportedException("WorkbenchWindow needs its constructor arguments.");
+
     internal WorkbenchWindow(Workbench workbench, IProjectServices host, WindowProfile slot, string rootPath)
     {
         StartupPhases.Mark("window-constructor-entered");
