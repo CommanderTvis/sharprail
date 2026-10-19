@@ -48,10 +48,11 @@ os = ["linux"]
 url = "https://github.com/AppImage/type2-runtime/releases/download/20251108/runtime-x86_64"
 checksum = "sha256:2fca8b443c92510f1483a883f60061ad09b46b978b2631c807cd873a47ec260d"
 
-# Sources of the editor bridge (desktop, Android and WASM builds).
+# Sources of the editor bridge (desktop, Android and WASM builds). The tarball comes from SourceForge's download
+# mirror, byte-identical to www.scintilla.org's (same checksum), which answers GitHub-hosted runners with 403.
 [tools."http:scintilla"]
 version = "5.6.7"
-url = "https://www.scintilla.org/scintilla567.tgz"
+url = "https://downloads.sourceforge.net/project/scintilla/scintilla/5.6.7/scintilla567.tgz"
 checksum = "sha256:19e4476706750056f86ca70974810e4a5b08e73477e13f7d9fae78243606f6a7"
 [tools."http:sheenbidi"]
 version = "3.0.0"
