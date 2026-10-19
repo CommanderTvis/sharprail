@@ -1,410 +1,76 @@
 # SharpRail instructions
 
-## Working in the checkout
+.NET 10 C# solution (`SharpRail.slnx`): Avalonia workbench over a transport-independent host, with builtin plugins. Detail on demand: `docs/agent-reference.md` (project map, host-change layers, workbench partials, state and terminal details, check modes, artifact paths), `scripts/README.md`, module `SPEC.md` files, `SPEC.md`, `STATUS.md`, `context-log.md` (latest entries for continuation state), `gotchas.md` if present.
 
-Reuse the workspace prepared for the task. When isolation is needed, use the
-available SharpRail `workspace_create` tool and work in its returned path; it does
-not switch the terminal. Use `workspace_delete` for finished workspaces you
-created, after preserving their work and leaving the checkout. Keep Default,
-workspaces you did not create and workspaces with active agents.
+## Hard rules
 
-New workspaces clone the git-ignored paths listed in the committed `.sharprail/workspace.toml`
-(schema in `src/SharpRail.Host.Core/Workspaces.SPEC.md`); add an entry for a dependency or
-build-cache directory worth sharing.
+- Never push unless the user asks. Preserve the commit-signing presence check; do not change Git configuration to work around a concurrent operation.
+- CI babysitting. Every agent that pushes, or causes pushes or workflow dispatches (`ci.yml`, nightly, any workflow), MUST watch every run they trigger until all jobs finish. A push is not done until CI is green.
+  - Poll with `gh run list` / `gh run view --json`, sleeping at least 60s between polls (Monitor or ScheduleWakeup, never a busy loop).
+  - Read failures with `gh run view --job <id> --log-failed`, filtered by grep; never dump whole logs.
+  - Diagnose, fix, and re-push or re-dispatch, but only where the user's push permission covers it. Fixes land in the commit chain per "Commit organization".
+  - If still red, report exactly what and why (flaky/infra versus regression).
+  - Report final run URLs and job conclusions.
+  - Dependabot runs are excluded unless the push changed dependency locks.
+- Inspect Git status before editing; leave other tasks' changes alone.
+- Reuse the prepared workspace. For isolation use the SharpRail `workspace_create` tool and work in its path (it does not switch the terminal). `workspace_delete` only workspaces you created, after preserving their work; keep Default, others' workspaces and workspaces with active agents. New workspaces clone the git-ignored paths in `.sharprail/workspace.toml` (schema: `src/SharpRail.Host.Core/Workspaces.SPEC.md`); add an entry for a dependency or build-cache directory worth sharing.
+- The UI thread never waits and does no Git, process, network or filesystem work, at startup or after (status, diffs, branches, worktrees, fetch, clone, spec indexing, plugin requests, profile reads). The embedded host is in-process, so awaiting a local adapter runs Core on the caller's thread until its first real async step: wrap such calls in `Task.Run` or make the adapter hop. No `.Result`, `.Wait()`, `GetAwaiter().GetResult()`, `Thread.Sleep`, `WaitForExit`, or a `lock` held across I/O. Return to the dispatcher only to apply results, after checking they still belong to the current workspace and were not superseded or cancelled. Long operations show progress and are cancellable. Handlers, constructors and `Build*`/render methods read in-memory state only.
+- Do not run `scripts/tasks/*` directly; use `scripts/mise run <task>` (`scripts/mise tasks` lists them).
+- Update the owning spec when changing its module. Keep the host independent of the UI; remoteness is an adapter choice, never a mandatory local daemon. No UI dependency in host projects.
+- Keep user state in `~/.sharprail`, not project directories. Shareable project config is the exception: the project's `.sharprail/` as TOML (`language.toml`: `src/SharpRail.Host.Core/Language/SPEC.md`).
+- Keep settings, presets, workspace labels, project list/recents and workspace lifecycle in host state (`IHostStateService`): change them through the host and update the UI on broadcast (`HostSync.cs`), never by writing a local copy.
+- Static UI layouts, styles and templates go in compiled `.axaml`; dynamic docking and host/interaction wiring go in C#. Edit authored design sources (`src/SharpRail.UI/Rendering/Design`), not generated C#.
+- Shared UI sources must compile for Android and Browser: desktop-only code goes under `#if !ANDROID && !BROWSER` or in files those projects exclude (see `docs/agent-reference.md`).
+- pi and an embedded AI chat UI are out of scope; Codex and Claude Code terminal integrations are in scope.
 
-Inspect Git status before editing and leave other tasks' changes alone. Do not
-change Git configuration to work around a concurrent operation. Never push unless
-the user asks; preserve the configured commit-signing presence check.
+## Build, format, check
 
-## Project structure
-
-`SharpRail.slnx` contains the .NET 10 C# solution. `Directory.Build.props` enables
-nullable checking, warnings as errors, optimizations and tiered PGO while keeping
-NativeAOT and trimming disabled. `Directory.Packages.props` pins shared package
-versions and each project's committed `packages.lock.json` pins the resolved graph (nuget.org only, locked restore
-through mise; change packages with `scripts/mise run restore:update`; the Android and Browser projects are not locked); `global.json` selects the SDK and must name the version `mise.toml` pins. Toolchains are
-managed by mise (`mise.toml`, `mise.lock`): run `scripts/mise run bootstrap` once; it installs the pins into
-the store shared by all checkouts (`~/.sharprail/tools`, or `SHARPRAIL_TOOLS`) and links them into `.tools`
-(`.tools/dotnet` is the SDK, so `.tools/dotnet/dotnet` still works). Every entry point is a task
-(`scripts/mise tasks`). Build with `scripts/mise run build` (`.tools/dotnet/dotnet build SharpRail.slnx -c Release`);
-this is also the compiler and nullable/warnings-as-errors gate, and it builds every native library whose
-inputs changed, none otherwise. Store installs other than the SDK are read-only; `scripts/mise.cmd` is the Windows entry.
-
-| Path | Responsibility |
-| --- | --- |
-| `src/SharpRail.Host.Abstractions` | Transport-independent host interfaces and domain records consumed by the UI. |
-| `src/SharpRail.Host.Core` | Filesystem, project/spec discovery, Git, worktree and PTY terminal implementations (`Posix.cs` holds the libc interop). No Avalonia, Pi or AI dependency. |
-| `src/SharpRail.Host.Core/Plugins` | The host's plugin runtime (`PluginRuntime` implements `IPluginService`): discovery of `<stateDir>/plugins` and `PluginPaths`, manifest intake, load contexts, registry, reconciler, dispatch, settings namespaces and MCP tools, composed from `PluginHostSeams`. |
-| `src/SharpRail.Host.Protocol` | Typed service contracts, protobuf wire DTOs and reconnectable WebSocket RPC peers; generated client services come from `scripts/generate-rpc.py`. |
-| `src/SharpRail.Host.Remote` | Kestrel HTTP/WebSocket host, authentication and RPC adapters delegating to Core; `WebSocketRpc.cs` and generated dispatch route typed host calls. |
-| `src/SharpRail.Host.Client` | Direct local adapters and WebSocket RPC remote proxies implementing the same host abstractions. Embedded mode uses no sockets or serialization. |
-| `src/SharpRail.Plugins.Api` | The plugin contract, types and identity helpers only: manifest, contract vocabulary, roster, `PluginJson`. `SharpRail.Plugins.Api.Host` and `SharpRail.Plugins.Api.UI` carry the host and UI contexts and never reference each other. Every public symbol is documented and listed in `PublicAPI.Unshipped.txt`; `PluginApi.Generation` is pinned by the checks. |
-| `src/SharpRail.Plugins.UI.Kit` | Controls shared by the app and plugin UI halves: `Ui` brushes, fonts and primitives, `DialogWindow`, Markdown, the Scintilla editor frame and Mermaid diagrams. References no `SharpRail.Host.*` project, `SharpRail.UI` or plugin API. |
-| `src/SharpRail.Plugins.Agent.Skills` | The workflow skills both agent plugins ship, adapted from the fork's `packages/pi-thinkrail-workflow/skills`: one folder per skill, text only, no project. The Claude Code and Codex host projects each stage these files as their own assets. |
-| `src/SharpRail.Plugins.Agent.UI` | Shared account, usage, terminal facts, manual-launch notices and attention wording for Codex and Claude Code. Depends on the UI kit and Avalonia, not a host, provider or plugin API. |
-| `src/SharpRail.Plugins.*` builtin folders | SpecDialect, Blueprint, ClaudeCode, Discord, BranchGraph, Visualize, Codex, Air Governance, Air Context and Tailscale. Each owns its contract, applicable Host/UI halves, assets, license and `SPEC.md`. |
-| `src/SharpRail.Scintilla` | Self-contained Avalonia editor control: Scintilla with a Skia surface, HarfBuzz shaping and SheenBidi layout. Its `README.md` documents the API, native build and limits. It references no SharpRail project. |
-| `src/SharpRail.UI` | Avalonia application entry point and workbench. `WorkbenchWindow` partial files coordinate navigation, projects and Git panels. |
-| `src/SharpRail.UI/Docking` | Persisted frame/workspace layout model, transitions, geometry, pointer/keyboard gestures, tab chrome and search popover. |
-| `src/SharpRail.UI/Panels` | Settings and shared dialogs, including compiled XAML frames and page templates. |
-| `src/SharpRail.UI/Rendering` | The theme catalogue, diffs and the bindings of the kit's Markdown views to a workspace's host (`MarkdownContexts`). |
-| `src/SharpRail.UI/Resources` | Resource-renderer registry, the file pane with its view toggle, and the format views (image, SVG, table, JSON, notebook, LFS and byte cards). |
-| `src/SharpRail.UI/State` | Profile persistence and migration (`ProfileStore`: app preferences and one entry per window) and the app's shared-state subscription (`SharedState`). Default user state belongs in `~/.sharprail`, not project directories. Shareable project configuration is the exception and lives in the project's `.sharprail/` as TOML (`language.toml`: see `src/SharpRail.Host.Core/Language/SPEC.md`). |
-| `src/SharpRail.UI/Plugins` | The app's plugin runtime: the contribution registry the workbench reads, the builtin UI array, external UI assembly loading through the host, `IPluginUIContext` and the roster reconciler. Settings › Plugins is `Panels/PluginsSettings.cs`. |
-| `src/SharpRail.UI/Terminal` | Terminal tab body (`TerminalView`: start failure/retry, exit notice), the Ghostty native-control bridge for local and relayed remote sessions, and the `--terminal-relay` mode. |
-| `src/SharpRail.UI/Notifications` | Away notifications for terminals whose agent needs the user: the collection window and gates (`AttentionNotifications`), the injected `IDesktopNotifier` and the macOS channel over `Native/Notifications.m`. |
-| `src/SharpRail.UI/Assets` | The bundled theme manifests; the icons and fonts, with their licenses, live in the kit's `Assets`. |
-| `src/SharpRail.Android` | The Android client: the UI's sources compiled for Android as a client of a remote host, with the windowing layer (`Windowing/`), the connect screen and the remembered endpoint. Not in `SharpRail.slnx`; its `SPEC.md` holds the composition rules and limits. |
-| `src/SharpRail.Browser` | Browser WASM client compiling the shared workbench sources with `BROWSER`, browser windowing, connection handling and Restty terminals; its `SPEC.md` and `README.md` describe the client and serving requirements. Built separately from `SharpRail.slnx`. |
-| `src/Ghostty.Avalonia` | Independent Ghostty controls: hosted AppKit/Metal, Metal textures composed by Avalonia, and libghostty-vt drawn by Skia; native bridges, build script and licenses. Its README documents reuse and limits. |
-| `tests/SharpRail.Checks` | Executable checks for host transports, runtime extensibility, layout, UI and Git/worktree integration. `E2E/` translates upstream scenarios using real headless Avalonia input. |
-| `mise.toml`, `mise.android.toml`, `mise.browser.toml` and their `.lock` files | The single toolchain manifest: the .NET SDK, Zig, Merman, the Scintilla and SheenBidi sources, the Android NDK, Binaryen, Node, pnpm and uv with per-platform archive checksums (`mise lock`), the pinned Ghostty commits and every task. The artifact matrix (target, native libraries, terminal renderer, publish task, package) is its header comment; `scripts/mise run targets` prints it. |
-| `scripts/mise`, `scripts/mise.cmd`, `scripts/mise-pinned`, `scripts/mise-pinned.cmd` | The entry point for every toolchain command (`scripts/mise run <task>`). It runs the checksum-pinned mise against the tool store shared by all checkouts and ignores the user's own mise configuration. |
-| `scripts/tasks` | What the mise tasks run: `dev`, `host`, `package-macos`, `dmg`, `package-windows`, `package-linux`, `android`, `browser`, `check-packaged`, `check-terminal`, `check-fsevents`, `workload`. Do not run them directly. |
-| `scripts/link-tools.sh` / `.ps1`, `scripts/fetch-git.sh` | Link the store's installs into `.tools` (the `bootstrap` tasks run them); fetch a source pinned by Git commit. |
-| `scripts/README.md` | Script invocations, prerequisites, environment variables and output locations. |
-| `src/Ghostty.Avalonia/build-native.sh` | Builds pinned libghostty and libghostty-vt bridges on the target macOS architecture, using checkout-local tools and caches. |
-| `scripts/build-merman.sh` | Links the xcframework mise installs (`.tools/merman`) into `src/SharpRail.UI/obj/native/libSharpRailMermaid.dylib`. The kit's `Visualization/MermaidRenderer.cs` renders SVG through it off the UI thread; Svg.Skia displays it. Other platforms show the source with an unavailability message. |
-| `scripts/build-notifications.sh` | Compiles the User Notifications bridge into `src/SharpRail.UI/obj/native/libSharpRailNotifications.dylib`; the UI project's target runs it when `Native/Notifications.m` changes and copies the library beside the app. |
-| `.bench` | Ignored disposable fixtures, verification logs and own-window captures. Its name does not authorize benchmarks. |
-
-The nightly workflow builds macOS DMG, Linux x64 AppImage, Android APK and Windows x64 and ARM64 ZIP packages at
-03:00 UTC or by manual dispatch. Each Windows job (x64 on `windows-2025`, ARM64 on `windows-11-arm`) requires the packaged ReadyToRun
-`--windows` gate, and the Linux job the packaged `--linux` gate, before the five assets publish together. Verify the actual workflow
-run and release assets before reporting a nightly deployed or runtime-verified.
-
-## Scratch files
-
-Keep `.bench` disposable and small. Put temporary files in one task-specific
-subdirectory and remove it when the task finishes, including after failed checks.
-Do not accumulate historical logs, captures, copied source trees, build/publish
-outputs, dependency caches or archives there. Temporary packaged-check staging is
-allowed only for the duration of its run; `check-packaged.sh` cleans it on exit.
-Reuse or replace current evidence instead of creating numbered copies. Record durable verification
-facts and limits in owning module specs, and dated task outcomes in context-log.md. Retain scratch
-evidence only when the user explicitly asks,
-and remove it once it is no longer needed. Preserve files used by active tasks
-and `.bench/checks-last-run.txt` while it is needed for `--last-failed`. Check
-fixture directories also need cleanup after their processes exit; the runner does
-not remove every fixture automatically. Never delete another active task's files.
-
-## Implementation boundaries
-
-Static UI layouts/styles/templates belong in compiled `.axaml`; dynamic docking
-and host/interaction wiring belong in C#. Keep the host independent of the UI and
-make remoteness an adapter choice rather than a mandatory local daemon.
-
-For host changes, follow the operation through these files:
-
-| Layer | Files |
-| --- | --- |
-| Public API | `Host.Abstractions/IWorkspaceHost.cs`, `ProjectServices.cs`, `HostState.cs`, `TerminalServices.cs` and `PluginServices.cs`. |
-| Implementation | `Host.Core/WorkspaceHost.cs`, `ProjectServices.cs` and its operation-specific files, `HostStateStore.cs`, `HostStateStore.Workspaces.cs`, `GitRepository.cs` and `PtyTerminalService.cs`; plugin spec tools and the Specs panel belong to SpecDialect. |
-| Wire contracts | `Host.Protocol/WorkspaceContract.cs`, `ProjectContract.cs`, `StateContract.cs`, `TerminalContract.cs`, `PluginsContract.cs` and the operation-specific contracts. |
-| Client adapters | `Host.Client/HostAdapters.cs`, `ProjectAdapters.cs`, `StateAdapters.cs`, `TerminalAdapters.cs`, `PluginAdapters.cs` and the operation-specific adapters. |
-| Server adapters | `Host.Remote/WorkspaceRpc.cs`, `ProjectRpc.cs` (per-call workspace from `ProjectSessions.cs`), `StateRpc.cs`, `TerminalRpc.cs`, `PluginRpc.cs` and the operation-specific RPC files; `RemoteServer.cs` configures serving, `HostListener.cs` toggles the app's listener and `Program.cs` starts the standalone host. |
-
-Each `Host.*` prefix in this table denotes its `src/SharpRail.Host.*` project.
-Domain records belong in
-Abstractions; serialized DTOs belong in Protocol. Keep both adapters consistent
-with the public API and verify local/remote parity in the checks.
-
-The bundled theme manifests live in `src/SharpRail.UI/Assets/Themes`; `Rendering/Themes.cs`
-owns the catalogue and resolution, and `Ui.Apply` writes the shared brushes then raises
-`Ui.ThemeChanged` for surfaces that bake colours (Mermaid, Scintilla, Ghostty).
-
-The application starts in `src/SharpRail.UI/Program.cs` and `App.cs`, which compose
-one app-owned `Workbench`: the profile, the host's shared-state subscription
-(`SharedState`), the terminal factory and a factory for per-window project sessions.
-Every window of the app comes from it (New window, Mod+Shift+N). Embedded operation
-uses direct adapters. `Workbench.Listener` optionally serves the same host to
-remote clients; starting or stopping it never moves local adapters onto RPC.
-`LoopbackServer` supplies terminal-authenticated MCP routes and plugin routes,
-starts lazily on first use and must be accessed off the UI thread.
-`WorkbenchWindow` owns one window's workbench; `DockSurface` renders and handles docking,
-while `LayoutSession` applies transitions to `LayoutState`. Center document and
-terminal tabs live in Projects on desktop, Android and browser; left/right tool
-strips remain. The bottom docking zone and alternate center tab strips are removed.
-Legacy profile and preset migration drops bottom terminal/tool placements and moves
-nonterminal bottom documents into a surviving center group. Old tab-mode settings
-remain readable for compatibility but no longer choose placement. New workspaces
-do not create terminals implicitly; launch them explicitly.
-Android tab labels leave touch gestures to the Projects scroller; each tab's explicit
-Open button selects it and reveals its content. Keep those actions separate from scrolling.
-`ProfileStore` owns on-disk app state. Keep these responsibilities separate when adding interactions.
-Settings, custom presets, workspace labels, the project list/recents and workspace
-lifecycle are host state (`IHostStateService`): change them through the host and
-update UI when the broadcast arrives (`HostSync.cs`), never by writing a local copy.
-Local host state is `~/.sharprail/state.json`, migrated once from older profiles; a
-remote host keeps its own in `SHARPRAIL_STATE_DIR`. The default profile file is
-`~/.sharprail/profile.json`; it contains app preferences (interface size, page zoom,
-hidden files and terminal renderer), one `Windows` entry per window (frame, default
-preset, last location and plugin companions), rail expansion, endpoint-qualified
-plugin UI preferences and per-workspace Git selections. The comparison target itself is host state
-(`HostState.DiffBase`); the profile's copy only serves a workspace the host has none for. Persist target,
-scope and selected commit; reload commit catalogs from Git rather than saving
-derived snapshots. Tests use isolated profile directories.
-Commit listing is a separate host operation; do not fetch a full working-tree
-snapshot merely to populate or restore the commit catalog.
-Settings selects Metal texture (default) or Skia (fallback) terminal rendering. Local Metal tabs
-use Ghostty's external-I/O backend with direct calls to the app-owned PTY service: no relay child,
-socket, serialization or RPC in the terminal data path, including fallback to Skia.
-The separate loopback serves MCP and plugin routes. Remote Metal tabs run the
-`--terminal-relay` child attached to their remote host. Shells outlive their windows while the host runs.
-Skia tabs attach directly to the same host service and draw through `GhosttySkiaView`.
-Read-only Skia views apply the holder's grid before initial replay. Android watched
-fonts fit between 10 and 13 DIP without resizing or taking ownership of that terminal.
-Metal requires macOS. Windows, Linux and Android use native libghostty-vt with Skia (the Settings renderer choice is shown only on macOS; Linux defaults to Skia, and the Linux libraries cross-compile with Zig against glibc 2.31 from `build-linux.sh` beside Ghostty and Scintilla);
-browser terminals use Restty. Windows builds use the pinned native toolchain from
-`scripts/windows-native.ps1` and the terminal/editor projects' `build-windows.ps1`
-scripts. `WorkbenchWindow`
-takes its terminal factory from the composition root; headless checks pass one that
-runs host PTY sessions as plain text. Disposing a renderer detaches its client;
-closing a terminal tab ends its host session. The host owns shell lifetime and
-recorded screens under the profile's `terminals` directory. Clipboard images are
-stored under the active profile's `clipboard` directory. macOS text files open in
-Scintilla; Markdown source uses the same dirty/save/conflict lifecycle. Codex and
-Claude Code terminal integrations are in scope; pi and an embedded AI chat UI are
-excluded.
-
-The workbench is split into partial files rather than separate window classes:
-
-| File in `src/SharpRail.UI` | Responsibility |
-| --- | --- |
-| `WorkbenchWindow.axaml` / `WorkbenchWindow.cs` | Static window frame, startup, workspace switching and workbench composition. |
-| `DocumentNavigation.cs` / `DocumentCache.cs` | Opening/restoring documents, navigation and cached document-control lifetime. |
-| `CodeDocuments.cs` / `Editor/CodeDocumentView.axaml.cs` | Editable code and Markdown source documents, save/conflict handling and editor wiring. |
-| `ResourceDocuments.cs` / `RenderedDiffs.cs` | File and diff bodies from the resource registry, per-tab renderer choice and view state, and the window's code and Markdown renderers. |
-| `ProjectPanels.cs` | Files, Specs and Projects panel construction and project actions. |
-| `ProjectHome.cs` | Startup routing, Welcome/Project Home, project context actions, the Create workspace flow and workspace row actions. |
-| `ProjectRail.cs` / `CenterTabsInProjects.cs` | Project/workspace rail reconciliation and its center-tab projection. |
-| `FileTree.cs` / `WorkspaceWatcher.cs` | File-tree reconciliation and workspace file-change subscriptions. |
-| `GitPanels.cs` / `ChangesTree.cs` / `WorkspaceGit.cs` | Git panel controls, compact change-tree projection and cancellable, workspace-scoped snapshot refreshes. |
-| `GitPanelReconciliation.cs` / `ChangeReverts.cs` / `ReviewPull.cs` | Updating Git controls, revert/undo actions and pull-request actions in Review. |
-| `LocationBar.cs` | The header's captioned Project, Workspace and Branch segments, their switchers and the branch card. |
-| `WindowNavigation.cs` | Window locations, their serialized links and the Back/Forward list. |
-| `ApplicationMenu.cs` / `WindowChrome.cs` | The macOS menu bar (Edit, Window) over the app's commands; the title-bar double-click preference and pinch zoom. |
-| `AppCommands.cs` / `QuitConfirmation.cs` | App-wide commands and confirmation for busy terminals before quitting. |
-| `PluginSurfaces.cs` / `ToolLifetime.cs` | Plugin contributions in the workbench and their control lifetime. |
-| `GestureNotification.cs` | Feedback when layout transitions cancel an active gesture. |
-| `HostSync.cs` | Applying shared-state broadcasts and reconnects to the window. |
-| `Workbench.cs` | App-owned composition shared by windows and the per-window profile entries. |
-| `TerminalTabs.cs` | Confirmation before closing terminals that run a foreground process, and keeping the window's terminal tabs those of the host's catalog. |
-| `Drawers.cs` | The phone-sized workbench: one page at a time from a bar at the bottom (Projects, the current tab, Tools, Settings). |
-| `BranchList.cs` | The title bar branch's popover: local branches with their worktrees, deletion and Fetch. |
-
-Host dependencies flow toward abstractions: Abstractions references only the plugin API's root;
-Core references Abstractions and the plugin API's host entry; Client
-references Abstractions and Protocol; Remote references Core and Protocol. The UI
-references Core and Client to compose either direct local calls or remote proxies,
-the Scintilla editor control, which it supplies with theme colours and fonts, and
-Ghostty.Avalonia. The UI also references Remote for its MCP/plugin loopback and
-optional WebSocket RPC listener; embedded workspace operations still use direct adapters.
-Checks reference the UI and Remote to exercise both paths. Do not introduce a UI
-dependency into the host projects. Plugins (`src/SharpRail.Plugins.Api/SPEC.md`) reference only the API assemblies, the
-kit and their dependencies' contracts; external plugins install under `<stateDir>/plugins/<id>/` with a
-`sharprail-plugin.json` manifest.
-
-The Android client (`src/SharpRail.Android`) is a client only: no embedded host, PTY or relay, just the
-remote adapters against a host's authenticated WebSocket RPC endpoint. It compiles the sources of `src/SharpRail.UI` under the same
-assembly name instead of referencing the project, because the UI's host-serving half needs Remote and
-ASP.NET Core. Every shared UI source must therefore stay compilable for Android: desktop-only host-serving
-code goes under `#if !ANDROID` or into a file the Android project excludes (`Program.cs`,
-`Terminal/LoopbackTerminals.cs`, `Panels/HostSettings.cs`). Windows are real `Window`s there too, supplied
-by the project's `Windowing/` over Avalonia 12.1.3 internals: a window sized to its content shows as a
-bottom sheet and any other owned window as a full-screen page. Shared code keeps opening windows as on
-desktop; only their Android look (the kit's sheet card, Settings without its card frame) is special-cased.
-Recheck that layer on any Avalonia version change.
-
-The browser client also compiles the shared UI sources under `SharpRail.UI`, with
-`BROWSER` and its own windowing, serving/settings and terminal adapters. It uses
-WebSocket RPC without an embedded host or PTY. Shared desktop-only code must also
-exclude browser builds; use `#if !ANDROID && !BROWSER` where appropriate. Browser
-WASM compilation and browser acceptance are separate from the desktop solution
-build and checks. `scripts/mise run browser` provisions the threaded WASM workload and
-stages the required native WASM libraries and browser assets.
-
-`SPEC.md` defines the product contract; `STATUS.md` records completion criteria, upstream
-provenance, the upstream E2E translation inventory and the current implementation/acceptance
-backlog; owning module specs record durable verification facts and their scope. Read the relevant module specs and the latest relevant entries in
-`context-log.md` for continuation state; read `gotchas.md` if it is present.
-SharpRail tracks two upstreams, one per branch, both in the checkout at
-`/Users/commandertvis/IdeaProjects/thinkrail`. `main` ports CommanderTvis's fork
-(remote `origin`, branch `claude-code-integration-plugin-api`): JetBrains plus the Plugin
-API, its builtin plugins and the fork's general improvements. The `upstream` branch ports
-JetBrains ThinkRail (remote `upstream`, branch `main`) and is maintained separately in its
-own worktree; do not carry changes between the two lines by hand. On `main`, port the
-fork's Plugin API and plugin UI almost verbatim, changing only what the typed host
-transport and the framework (Avalonia/.NET instead of React/Bun) force;
-provider-specific IDE, hook and MCP protocols remain plugin-owned. pi and embedded
-AI chat stay out of scope. Commits follow the fork's shape; see "Commit organization".
-Module `SPEC.md`/`*.SPEC.md` files and `ARCHITECTURE.md` are adapted from upstream specs;
-`STATUS.md` (Upstream tracking) records each branch's synced commit, the spec mapping and the fork port log,
-and `.claude/skills/sync-upstream-specs/SKILL.md` documents later syncs for the current
-branch. Use only skills and tools available in the current session. Update the
-owning spec when changing its module.
-
-## Commit organization
-
-`main` is a chain on top of the shared history, in the fork's order, so each part can be
-reviewed, ported or extracted on its own:
-
-1. General improvements: changes that do not need the plugin API.
-2. The Plugin API: the contract assemblies, the host plugin runtime, the UI registry and the kit,
-   with no plugins. Where general and API changes reference each other too closely to build
-   apart, they share one commit and its message says so.
-3. One commit per builtin plugin, in the fork's order: spec dialect, Blueprint, Claude Code,
-   Discord, Branch Graph, Visualize, Codex, then SharpRail's own Air Context. File-type icons are core UI kit assets with a shared Appearance setting; PDF preview is a core resource renderer. A plugin's commit carries
-   its project folder, its checks, its license and package entries, and its own lines in shared
-   registration files (`SharpRail.slnx`, project references, both `BuiltinPlugins.cs`, the
-   check runner).
-
-Status records (`STATUS.md`, `context-log.md`,
-notices) sit in one commit at the tip.
-
-- Amend, don't append. A fix to something that already exists goes into the commit that owns
-  it: `git commit --fixup=<sha>`, then
-  `GIT_SEQUENCE_EDITOR=true git rebase -i --autosquash <base>`. A change touching two parts is
-  two fixups. Rewrite only commits not yet on `origin/main` unless the user asks for a
-  force-push.
-- New commits only for new things: a new general improvement (inserted into part 1, never
-  appended at the tip), a new plugin (part 3), or a core API capability the API commit would be
-  incomplete without. A capability a plugin introduced stays in that plugin's commit until it
-  is generalised. A feature and its follow-up fixes end as one commit.
-- Tests land with the code they test, never ahead of it. Verify the final tip rather than
-  building each intermediate commit, and compare the final tree with the pre-rebase tree
-  before replacing the branch.
+- Toolchains come from mise. Run `scripts/mise run bootstrap` once. `.tools/dotnet/dotnet` is the SDK; `global.json` must name the version `mise.toml` pins.
+- Build (compiler and warnings-as-errors gate; also builds native libraries whose inputs changed): `scripts/mise run build`.
+- Packages: nuget.org only, locked restore; each project's `packages.lock.json` is committed (Android and Browser are not locked). Change packages with `scripts/mise run restore:update`; versions are pinned in `Directory.Packages.props`.
+- Format touched files: `.tools/dotnet/dotnet format SharpRail.slnx --no-restore --include <files>`. CI verifies with `--verify-no-changes --no-restore`. Style comes from the checked-in `.editorconfig`.
+- Checks: `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release [-- <mode>]`. Mode list: `docs/agent-reference.md`; add a mode in `tests/SharpRail.Checks/Program.cs` when a change has none.
+- Browser WASM and Android build separately from `SharpRail.slnx` (`scripts/mise run browser`, `scripts/mise run android`).
+- Documentation-only edits need whitespace and path verification, not a build or the gate.
+- Report only checks actually run; name anything blocked.
 
 ## Verification budget
 
-Do not rerun tests on the same codebase slice, including after a rebase that
-leaves the workspace byte-identical. Reuse the existing verification results.
+- Iterating: run only the focused mode for what changed, and format-check touched files.
+- Run the full suite (argument-free) once per batch of related changes, after focused modes pass; never after each small fix or "to see what breaks". Never rerun tests on a byte-identical slice, including after a rebase.
+- The suite runs from build output: never build, format, check out or rebase in a tree whose suite is running. Run long suites from a separate workspace; check `pgrep -fl SharpRail.Checks` first and identify each process's checkout.
+- A failure ends the run: fix the cause, rerun its focused mode, then do one full run.
+- After rewriting commits, verify the final tip only (Release build plus full suite).
+- Fixture Git repos run unsigned under `IsolatedGit.ForProcess`; a signing prompt during checks is a harness bug, not a reason to wait.
 
-The full suite is expensive; duration and case counts vary with the branch and
-lane count. It executes from build output, which must stay unchanged while it
-runs. Spend it deliberately:
+## Scratch files
 
-- While iterating, run only the focused mode for what changed (`--plugins`, `--codex`, `--specs`,
-  `--claude-code`, `--branch-graph`, `--vertical-tabs`, `--terminals`, `--notifications`,
-  `--sync`, `--welcome`, `--workspaces`, `--scratch`, `--startup`, `--ui-smoke`);
-  choose modes from `tests/SharpRail.Checks/Program.cs` and add one when a change has
-  none. Format-check the touched files.
-- Run the full suite once per batch of related changes, after the focused modes pass — never after each
-  small fix, and never to "see what breaks".
-- Never build, format, check out or rebase in a tree whose suite is running. Run long suites from a
-  separate SharpRail workspace (or wait for them), so the working tree stays free;
-  check `pgrep -fl SharpRail.Checks` before building and identify which checkout
-  each process uses. Never mutate that checkout's build output during its run.
-- A failure ends a run early: fix the cause, rerun the focused mode that covers it, then resume with one
-  full run — not a full run per attempt.
-- Rewriting commits needs verification of the final tip only, including its Release build and
-  the full suite; intermediate commits do not need separate builds or suites.
-- Fixture git repositories run unsigned under a private configuration (`IsolatedGit.ForProcess`); a
-  signing prompt during checks is a harness bug, not a reason to wait for the developer.
+- Put temporary files in one task-specific subdirectory of `.bench` (git-ignored, disposable, small) and remove it when the task ends, including after failed checks. Keep no historical logs, captures, copied trees, build outputs, caches or archives; reuse or replace evidence instead of numbering copies.
+- Keep `.bench/checks-last-run.txt` while `--last-failed` needs it. Never delete another active task's files.
+- Record durable verification facts in owning module specs and dated task outcomes in `context-log.md`. Keep scratch evidence only if the user asks.
 
-Run checks with `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release`;
-`-- --terminals` runs host terminals, terminal translations and Skia renderer checks.
-`-- --vertical-tabs` covers the Projects-only tab projection and interactions;
-`-- --rail` covers retained Projects controls and geometry; `-- --state` covers
-host state and profile/preset migration. `-- --file-drop` covers workspace file
-drag representations, transfers and attachment gestures.
-`-- --connection-errors` checks connection failure details and retry.
-`-- --windows` runs the Windows host, desktop and native renderer checks on Windows.
-`-- --linux` runs the Linux PTY, clone, native editor and Skia terminal checks on Linux (the portable part anywhere); `check:packaged -- --linux` runs it from the AppImage payload.
-Browser acceptance runs separately with `scripts/mise run browser check`; its
-Playwright tests are in `tests/SharpRail.Browser.Checks`.
-`node tests/SharpRail.Browser.Checks/restty-lifecycle.mjs --require-hardware --require-memory-return`
-checks repeated Restty teardown and Chromium-reported GPU allocations against a warmed
-baseline. It needs built browser vendor assets; this is not a physical GPU residency measurement.
-`-- --ghostty-skia` runs focused Skia input, pixel, PTY and renderer Settings checks.
-`-- --native-texture` checks GPU texture composition, input and local/remote renderer switching in a real macOS window.
-`-- --sync` runs the multi-window and multi-client translations.
-`-- --shared-terminals` runs the two-client terminal sharing, watching and take-over checks alone.
-`-- --notifications` runs the away-notification checks with a recording notifier; no check posts a real one.
-`-- --registry` runs the workspace registry host parity checks and the external-workspace rail checks.
-`-- --syntax` checks TextMate language coverage, incremental edits, Unicode, theme changes,
-attachment/disposal and inline/split diff syntax styling.
-`-- --documents` runs the resource-renderer checks and the translations that open file and diff bodies.
-`-- --editor` runs editor integration and source editing checks; `-- --markdown`
-and `-- --markdown-find` cover Markdown rendering and search.
-`-- --agent-marks` covers agent decorations through workspace switches;
-`-- --agent-launches` covers host and UI launch behavior; `-- --codex-terminals`
-covers Codex terminal integration; `-- --claude-code` covers Claude Code.
-`-- --terminal-replay` checks filtering of terminal queries in recorded screens.
-`-- --workspace-tools` covers the host MCP workspace tools and UI integration;
-`-- --serving` covers embedded-host serving; `-- --project-close` covers teardown.
-`-- --pane-retention` checks retained controls; `-- --startup` checks progressive startup;
-`-- --live-diffs` checks refreshing open rendered diffs.
-`-- --change-actions` runs the toast and diff revert/undo checks; `-- --review` runs the Review panel checks.
-`-- --shell` runs the window shell checks (header location bar, application menu, window chrome, region errors,
-arrangement isolation, locations and links, the workspace dialog's project picker, commit menus and inert links).
-`-- --ui` runs the headless UI checks and upstream translations without the host suites.
-`-- --design` runs the design-system guards over the UI sources and the theme
-translations; `-- --design --write` regenerates `src/SharpRail.Plugins.UI.Kit/Generated`
-from `src/SharpRail.UI/Rendering/Design`. Edit the authored design sources, not
-generated C#.
-`-- --conformance` runs dependency-boundary checks; public API analyzers validate declarations during
-compilation against `PublicAPI.*.txt` baselines, never declaration lists in specs.
-`-- --runner` checks the runner itself.
-`-- --android` checks the Android client's host address parsing and remembered endpoint; the client itself needs a device (`scripts/mise run android run`).
-`-- --lanes N` (or `auto`) splits the argument-free gate across processes, `-- --last-failed` reruns what the last
-run left unfinished, `-- --list-cases` lists the gate and `-- --case A,B` runs named
-cases. Lane/shard options apply to the argument-free gate (optionally narrowed by
-named cases), not focused modes; `--last-failed` is serial.
-`tests/SharpRail.Checks/Runner.cs` owns these, the
-idle-sleep assertion and interrupt cleanup. A suite joins the gate through `Gate.Case` in `Program.cs` or `UiChecks.cs`.
-Set `SHARPRAIL_TEST_GIT_SOURCE` to an existing upstream clone to include Git fixtures.
-`tests/SharpRail.Checks/Program.cs` is the check runner, not an xUnit test project.
-`ProjectChecks.cs` covers project/Git host parity; `LayoutChecks.cs` covers layout
-transitions; `UiChecks.cs` runs the headless UI checks and upstream translations.
-Use `E2E/E2eWorkspace.cs` for shared input/fixture helpers; its `NewWindow()` opens a second
-window of the same app, and `E2E/CutProxy.cs` drops and restores one remote client's connection. Keep translated upstream
-coverage in `STATUS.md` separate from additional SharpRail regression checks.
-For published checks, run `artifacts/checks/SharpRail.Checks` with
-`SHARPRAIL_REQUIRE_R2R=1` to require ReadyToRun output as well as open-world checks.
-C# formatting follows the checked-in `.editorconfig`, generated by the pinned SDK's
-`dotnet new editorconfig` template with its default rule severities. Apply formatting
-with `.tools/dotnet/dotnet format SharpRail.slnx --no-restore`; use `--include`
-with touched C# files to keep changes surgical. Verify with
-`.tools/dotnet/dotnet format SharpRail.slnx --verify-no-changes --no-restore`, as CI
-does. Documentation-only edits need whitespace/path verification rather than a
-solution build or the executable gate. Report checks actually run and anything
-blocked; do not describe unrun checks as passed.
-Generated packages live under `artifacts/`; keep one latest canonical app package.
-`artifacts/ui`, `artifacts/host` and `artifacts/checks` contain published executables;
-`artifacts/SharpRail.app` is the macOS bundle. Windows publishes to
-`artifacts/windows/{client,host,checks}` and `artifacts/SharpRail-win-x64.zip` (ARM64: `artifacts/windows-arm64` and `artifacts/SharpRail-win-arm64.zip`); Linux publishes to
-`artifacts/linux/{client,checks,AppDir}` and `artifacts/SharpRail-linux-x64.AppImage`;
-browser publishing writes `artifacts/browser` and Android packaging writes
-`artifacts/android/SharpRail.apk`. `.tools`, `bin` and `obj` are local
-tooling/build output, not source. `licenses/` and `THIRD-PARTY-NOTICES.md` document
-redistributed dependencies and assets.
-
-## UI thread hygiene
-
-The dispatcher thread only builds controls, applies results and handles input. It never waits.
-
-- No Git, process, network or filesystem work on the UI thread, at startup or after: status, diffs,
-  branches, worktrees, fetch, clone, spec indexing, plugin requests and profile reads all run off it.
-  The embedded host is in-process, so an `await` on a local adapter runs Core on the caller's thread
-  until its first real asynchronous step; wrap such calls in `Task.Run` (or make the adapter hop) rather
-  than awaiting Core directly from a handler.
-- Never block on asynchronous work from the UI thread: no `.Result`, `.Wait()`, `GetAwaiter().GetResult()`,
-  `Thread.Sleep`, `WaitForExit`, or a `lock` held across I/O.
-- Return to the dispatcher only to apply results; check the result still belongs to the current
-  workspace and was not superseded or cancelled before applying it.
-- Long operations show progress and stay cancellable; the window stays responsive throughout (typing,
-  resizing, switching tabs).
-- Event handlers, constructors and `Build*`/render methods may read in-memory state only.
-
-## Startup performance sanity
+## Startup performance
 
 Minimize launch-to-interactive-workspace time. Resolve only the identity needed for routing before mounting and restoring documents; load independent panel data progressively.
 
-- Defer full Git snapshots (status, diffs, line counts, untracked reads, branches, worktrees), recursive scans, spec indexing, network requests, nonessential profile writes, hidden panels, and inactive documents. Enumerate only files needed by visible UI.
-- Run blocking I/O and substantial parsing in the background; update controls/layout on the dispatcher. Async alone does not move work off the UI thread, and awaiting it before mounting still blocks startup.
-- Keep project-switch synchronization, but release its gate before optional Git/indexing refreshes. Cancel superseded work and reject stale workspace results.
-- Reuse the initial control tree, restore visible documents first, and update only affected panel contents. Preserve dock chrome, tab instances, focus, and pointer targets during deferred refreshes.
-- Measure window creation, first presented frame, and usable content separately; layout callbacks/readiness logs do not prove presentation or restored-content readiness. Verify rendering backend and publish settings before tuning Skia/JIT/GC; tie improvements to measured stages. Benchmark only when requested.
+- Defer full Git snapshots, recursive scans, spec indexing, network requests, nonessential profile writes, hidden panels and inactive documents. Enumerate only files visible UI needs.
+- Run blocking I/O and substantial parsing in the background. Async alone does not move work off the UI thread, and awaiting it before mounting still blocks startup.
+- Release the project-switch gate before optional Git/indexing refreshes. Cancel superseded work; reject stale workspace results.
+- Reuse the initial control tree, restore visible documents first, update only affected panel contents, and preserve dock chrome, tab instances, focus and pointer targets during deferred refreshes.
+- Git or indexing failures must not block opening accessible files.
+- Measure window creation, first presented frame and usable content separately; readiness logs do not prove presentation. Check the rendering backend and publish settings before tuning Skia/JIT/GC. Benchmark only when asked.
+- Verify fresh and restored profiles, project-switch races, and usability during deferred loading.
 
-Verify fresh/restored profiles, project-switch races, and usability during deferred loading. Git/indexing failures must not block opening accessible workspace files.
+## Commit organization
+
+`main` is a chain on the shared history in the fork's order, so each part can be reviewed, ported or extracted alone:
+
+1. General improvements that do not need the plugin API.
+2. The Plugin API: contract assemblies, host plugin runtime, UI registry and kit, no plugins. If general and API changes cannot build apart, share one commit and say so in its message.
+3. One commit per builtin plugin in order: spec dialect, Blueprint, Claude Code, Discord, Branch Graph, Visualize, Codex, then Air Context. A plugin commit carries its project folder, checks, license, package entries and its lines in shared registration files (`SharpRail.slnx`, project references, both `BuiltinPlugins.cs`, the check runner). File-type icons are core UI kit assets with a shared Appearance setting; PDF preview is a core resource renderer.
+
+Status records (`STATUS.md`, `context-log.md`, notices) sit in one commit at the tip.
+
+- Amend, do not append: fix an existing thing in the commit that owns it with `git commit --fixup=<sha>`, then `GIT_SEQUENCE_EDITOR=true git rebase -i --autosquash <base>`. A change touching two parts is two fixups. Rewrite only commits not yet on `origin/main` unless the user asks for a force-push.
+- New commits only for a new general improvement (inserted into part 1, never appended at the tip), a new plugin (part 3), or a core API capability the API commit would be incomplete without. A capability a plugin introduced stays in that plugin's commit until generalised. A feature and its follow-up fixes end as one commit.
+- Tests land with the code they test. Compare the final tree with the pre-rebase tree before replacing the branch.
