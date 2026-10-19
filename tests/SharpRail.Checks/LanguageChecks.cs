@@ -848,7 +848,9 @@ internal static class LanguageChecks
         view.FindControl<Avalonia.Controls.Primitives.Popup>("LanguagePopup")!.IsOpen = false;
         unavailable = true;
         view.Editor.RaiseEvent(new Avalonia.Input.KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Avalonia.Input.Key.F12 });
-        E2E.E2eWorkspace.Until(() => view.FindControl<TextBlock>("LanguageStatus")!.Text!.Contains("Fixture server unavailable", StringComparison.Ordinal));
+        // The status text is written before the result list and heading; the popup reopening marks the finished search.
+        E2E.E2eWorkspace.Until(() => view.FindControl<TextBlock>("LanguageStatus")!.Text!.Contains("Fixture server unavailable", StringComparison.Ordinal) &&
+            view.FindControl<Avalonia.Controls.Primitives.Popup>("LanguagePopup")!.IsOpen);
         Require(view.FindControl<TextBlock>("LanguageStatus")!.IsVisible && view.FindControl<TextBlock>("LanguageHeading")!.Text != "No declaration found",
             "Unavailable analysis was misreported as a completed empty declaration search.");
         Console.WriteLine("PASS empty declaration chooser: compact message, no filter, list or keyboard footer");
