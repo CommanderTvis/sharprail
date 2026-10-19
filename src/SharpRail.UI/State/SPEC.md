@@ -58,6 +58,11 @@ Git target/scope/selected commit, and one entry per open window: its frame (incl
 views), its default preset and its last location. Frame, default preset and group limits are window-local
 and never shared through the host; the host carries only the shared custom preset definitions.
 
+A save serializes the profile on the caller's thread and hands the text to a background writer that keeps only the
+latest pending document, so a layout change on the dispatcher never waits for the disk. A write failure is reported
+by the next save. A store opened on a path first waits for this process's pending write of it, and the process
+flushes pending writes on exit; stores with a persistence callback (the browser) still call it directly.
+
 The terminal renderer accepts `texture` and `skia` and defaults to Metal texture; legacy `native` and unknown values normalize to that
 default. It is app-local because rendering is a client capability, not host state.
 

@@ -101,6 +101,7 @@ internal static class UiChecks
         Gate.Case("SpecsPanelE2E", () => E2E.SpecsPanelE2E.Run(root));
         Gate.Case("DefaultWorkspaceE2E", () => E2E.DefaultWorkspaceE2E.Run(root));
         Gate.Case("WorkspaceLifecycleE2E", () => E2E.WorkspaceLifecycleE2E.Run(root));
+        Gate.Case("WorkspaceResponsivenessE2E", () => E2E.WorkspaceResponsivenessE2E.Run(root));
         Gate.Case("ExternalWorkspaceE2E", () => E2E.ExternalWorkspaceE2E.Run(root));
         Gate.Case("NewWorkspaceE2E", () => E2E.NewWorkspaceE2E.Run(root));
         Gate.Case("ReloadNavigationE2E", () => E2E.ReloadNavigationE2E.Run(root));

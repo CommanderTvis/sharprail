@@ -25,7 +25,8 @@ public sealed class LocalStateAdapter(IHostStateService host) : IHostStateServic
 {
     public ValueTask<HostHandshake> GetHandshakeAsync(CancellationToken cancellationToken = default) => host.GetHandshakeAsync(cancellationToken);
     public ValueTask<HostState> GetStateAsync(CancellationToken cancellationToken = default) => host.GetStateAsync(cancellationToken);
-    public ValueTask<HostState> ChangeAsync(IReadOnlyList<HostStateChange> changes, CancellationToken cancellationToken = default) => host.ChangeAsync(changes, cancellationToken);
+    // A change persists state.json and closes terminals of a closed project, so it runs on the thread pool, never the caller's dispatcher.
+    public ValueTask<HostState> ChangeAsync(IReadOnlyList<HostStateChange> changes, CancellationToken cancellationToken = default) => OffDispatcher.Run(() => host.ChangeAsync(changes, cancellationToken));
     public IAsyncEnumerable<HostState> WatchAsync(CancellationToken cancellationToken = default) => host.WatchAsync(cancellationToken);
     public IAsyncEnumerable<LifecycleEvent> WatchLifecycleAsync(CancellationToken cancellationToken = default) => host.WatchLifecycleAsync(cancellationToken);
 }
@@ -74,7 +75,7 @@ public sealed class RemoteStateAdapter : IHostStateService, IDisposable
     /// <summary>Ends with an exception when the transport drops; the caller resubscribes and receives a fresh snapshot.</summary>
     public async IAsyncEnumerable<HostState> WatchAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        await foreach (var reply in service.WatchAsync(new(), Context(cancellationToken, stream: true)).WithCancellation(cancellationToken))
+        await foreach (var reply in service.WatchAsync(new(), Context(cancellationToken, stream: true)).WithCancellation(cancellationToken).ConfigureAwait(false))
             yield return Map(reply);
     }
 

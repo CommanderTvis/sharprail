@@ -117,12 +117,25 @@ public sealed class ProfileStore
     private readonly JsonSerializerOptions writing;
     public string DirectoryPath => Path.GetDirectoryName(path)!;
     public Profile Data { get; }
-    public string? LastError { get; private set; }
+    /// <summary>The last write failure; a file write runs behind <see cref="Save"/>, so it is reported by the save after the one that failed.</summary>
+    public string? LastError { get => Volatile.Read(ref lastError); private set => Volatile.Write(ref lastError, value); }
+    private string? lastError;
     private readonly Action<string>? persist;
+    // Writes of files this process has pending, so a store opened on the same path reads them and the process leaves with them written.
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, ProfileStore> Unwritten = new(StringComparer.Ordinal);
+    private readonly Lock writeGate = new();
+    private string? pendingJson;
+    private Task? writer;
+
+    static ProfileStore() => AppDomain.CurrentDomain.ProcessExit += (_, _) =>
+    {
+        foreach (var store in Unwritten.Values) store.Flush();
+    };
     public ProfileStore(string directory, Func<string?>? read = null, Action<string>? persist = null)
     {
         this.persist = persist;
         path = Path.Combine(directory, "profile.json");
+        if (read is null && Unwritten.TryGetValue(path, out var unwritten)) unwritten.Flush();
         writing = new JsonSerializerOptions
         {
             WriteIndented = true,
@@ -267,17 +280,55 @@ public sealed class ProfileStore
             property.ShouldSerialize = (_, _) => !Data.StateMigrated;
     }
 
+    /// <summary>
+    /// Persists the profile as it is now. The JSON is taken here, on the caller's thread, and written by a background
+    /// writer that keeps only the latest pending document: a layout change on the dispatcher never waits for the disk
+    /// (a rename on a busy volume took over 100 ms). A store with a <c>persist</c> callback calls it directly.
+    /// </summary>
     public void Save()
     {
         try
         {
-            if (persist is not null) { persist(JsonSerializer.Serialize(Data, writing)); LastError = null; return; }
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            var temporary = path + ".tmp";
-            File.WriteAllText(temporary, JsonSerializer.Serialize(Data, writing));
-            File.Move(temporary, path, overwrite: true);
-            LastError = null;
+            var json = JsonSerializer.Serialize(Data, writing);
+            if (persist is not null) { persist(json); LastError = null; return; }
+            lock (writeGate)
+            {
+                pendingJson = json;
+                if (writer is not null) return;
+                Unwritten[path] = this;
+                writer = Task.Run(WritePending);
+            }
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException) { LastError = error.Message; }
+    }
+
+    /// <summary>Waits until every document handed to <see cref="Save"/> is on disk. Never call it from the dispatcher.</summary>
+    public void Flush()
+    {
+        Task? running;
+        lock (writeGate) running = writer;
+        running?.Wait();
+    }
+
+    private void WritePending()
+    {
+        while (true)
+        {
+            string json;
+            lock (writeGate)
+            {
+                if (pendingJson is null) { writer = null; Unwritten.TryRemove(new KeyValuePair<string, ProfileStore>(path, this)); return; }
+                json = pendingJson; pendingJson = null;
+            }
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                var temporary = path + ".tmp";
+                File.WriteAllText(temporary, json);
+                File.Move(temporary, path, overwrite: true);
+                LastError = null;
+            }
+            catch (Exception error) when (error is IOException or UnauthorizedAccessException) { LastError = error.Message; }
+        }
     }
 }

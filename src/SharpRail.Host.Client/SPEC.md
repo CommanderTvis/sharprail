@@ -94,6 +94,9 @@ what makes remoteness an adapter choice rather than a mandatory daemon.
 
 ## Decisions
 
+- The local adapters run Core on the thread pool (project operations and shared-state changes), because
+  Core awaits without leaving the caller's context and a call made from the dispatcher would otherwise persist
+  state, start processes and parse their output there.
 - Same interface, two adapters, rather than a local loopback server: embedded
   mode pays no socket or serialization cost, and local/remote parity is checked
   against one contract.

@@ -87,7 +87,7 @@ internal sealed class E2eWorkspace : IDisposable
 
     internal E2eWorkspace(string root, bool openFiles = true, string? profileRoot = null, E2eTerminals? terminals = null, string? startPath = null,
         Action<E2eHost>? prepare = null, Func<IHostStateService, IHostStateService>? state = null,
-        Func<IPluginService, IPluginService>? plugins = null, bool serving = false, SharpRail.UI.Notifications.IDesktopNotifier? notifier = null)
+        Func<IPluginService, IPluginService>? plugins = null, bool serving = false, SharpRail.UI.Notifications.IDesktopNotifier? notifier = null, bool embedded = false)
     {
         Root = root;
         Directory.CreateDirectory(root);
@@ -111,7 +111,9 @@ internal sealed class E2eWorkspace : IDisposable
         loopback.Plugins = pluginRuntime;
         pluginRuntime.Start();
         var allowsExternalFile = (Func<string, string, bool>)pluginRuntime.AllowsExternalFile;
-        Host = new(new ProjectServices(root, State, allowsExternalFile));
+        // The app's embedded host is reached through its local adapter, which keeps Core off the dispatcher; checks of that opt in.
+        IProjectServices Services() => embedded ? new LocalProjectAdapter(new ProjectServices(root, State, allowsExternalFile)) : new ProjectServices(root, State, allowsExternalFile);
+        Host = new(Services());
         prepare?.Invoke(Host);
         ownsTerminals = terminals is null;
         Terminals = terminals ?? E2eTerminals.ForProfile(profile.DirectoryPath);
@@ -119,7 +121,7 @@ internal sealed class E2eWorkspace : IDisposable
         IHostStateService service = new LocalStateAdapter(State);
         var first = true;
         Workbench = new(profile, new SharedState(state?.Invoke(service) ?? service, profile.Data.Preferences, State.Current), Terminals.Factory, false,
-            () => { if (!first) return new E2eHost(new ProjectServices(root, State, allowsExternalFile)); first = false; return Host; },
+            () => { if (!first) return new E2eHost(Services()); first = false; return Host; },
             plugins?.Invoke(new LocalPluginAdapter(pluginRuntime)) ?? new LocalPluginAdapter(pluginRuntime), Terminals.Catalog)
         {
             Listener = serving ? new HostListener(root, State, Terminals.HostService, pluginRuntime) : null,
