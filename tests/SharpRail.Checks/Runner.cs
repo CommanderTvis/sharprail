@@ -78,6 +78,7 @@ internal static class Runner
             IdleSleep.Hold();
             ProcessTree.Own();
         }
+        CiReport.Enable();
         if (options.Lanes > 1) return RunLanes(options);
 
         IReadOnlyList<Unfinished>? repair = null;
@@ -95,6 +96,7 @@ internal static class Runner
         catch (Exception error)
         {
             Console.Error.WriteLine(error);
+            CiReport.Failed(Gate.Running ?? (options.Rest.Length > 0 ? "checks " + string.Join(' ', options.Rest) : "(setup)"), error, Gate.Passed.Count, Gate.Skipped);
             if (gate) Record(Gate.Remaining, options.Cases is null);
             Environment.Exit(1);
         }
@@ -140,7 +142,8 @@ internal static class Runner
             var process = Process.Start(start)!;
             void Relay(object sender, DataReceivedEventArgs line)
             {
-                if (line.Data is not null) lock (output) Console.WriteLine($"[lane {index}] {line.Data}");
+                // Workflow commands count only at the start of a line.
+                if (line.Data is not null) lock (output) Console.WriteLine(line.Data.StartsWith("::", StringComparison.Ordinal) ? line.Data : $"[lane {index}] {line.Data}");
             }
             process.OutputDataReceived += Relay; process.ErrorDataReceived += Relay;
             process.BeginOutputReadLine(); process.BeginErrorReadLine();

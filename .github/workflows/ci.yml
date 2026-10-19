@@ -24,11 +24,15 @@ jobs:
         with:
           path: ~/.sharprail/tools
           key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock') }}
-      - run: sh scripts/mise run restore
-      - run: sh scripts/mise run audit
-      - run: sh scripts/mise run format
-      - run: sh scripts/mise run build
-      - run: sh scripts/mise run perf -- self-test
+      - run: sh scripts/ci-run.sh "Restore" sh scripts/mise run restore
+      - run: sh scripts/ci-run.sh "Audit" sh scripts/mise run audit
+      - run: sh scripts/ci-run.sh "Format" sh scripts/mise run format
+      - run: sh scripts/ci-run.sh "Build" sh scripts/mise run build
+      - run: sh scripts/ci-run.sh "Perf self-test" sh scripts/mise run perf -- self-test
+      - if: failure()
+        uses: ./.github/actions/diagnostics
+        with:
+          name: build
 
   smoke:
     needs: build
@@ -54,7 +58,11 @@ jobs:
           git config --global init.defaultBranch main
       - env:
           SHARPRAIL_CHECKS_JOB_SHARD: ${{ matrix.shard }}
-        run: sh scripts/mise run check ${{ matrix.mode != 'full' && format('-- --{0}', matrix.mode) || '' }}
+        run: sh scripts/ci-run.sh "Checks ${{ matrix.mode }} ${{ matrix.shard }}" sh scripts/mise run check ${{ matrix.mode != 'full' && format('-- --{0}', matrix.mode) || '' }}
+      - if: failure()
+        uses: ./.github/actions/diagnostics
+        with:
+          name: smoke-${{ strategy.job-index }}
 
   windows:
     runs-on: windows-2025
@@ -68,14 +76,18 @@ jobs:
         with:
           path: ~\.sharprail\tools
           key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock') }}
-      - run: ./scripts/mise.cmd run package:windows -- -RuntimeIdentifier win-x64
-      - run: ./scripts/mise.cmd run format
-      - run: ./scripts/mise.cmd run check:packaged -- -RuntimeIdentifier win-x64 --windows
+      - run: ./scripts/ci-run.ps1 "Package Windows" -- ./scripts/mise.cmd run package:windows -- -RuntimeIdentifier win-x64
+      - run: ./scripts/ci-run.ps1 "Format" -- ./scripts/mise.cmd run format
+      - run: ./scripts/ci-run.ps1 "Packaged check Windows" -- ./scripts/mise.cmd run check:packaged -- -RuntimeIdentifier win-x64 --windows
       - uses: actions/upload-artifact@v4
         with:
           name: SharpRail-win-x64
           path: artifacts/SharpRail-win-x64.zip
           if-no-files-found: error
+      - if: failure()
+        uses: ./.github/actions/diagnostics
+        with:
+          name: windows
 
   linux:
     runs-on: ubuntu-24.04
@@ -86,11 +98,15 @@ jobs:
         with:
           path: ~/.sharprail/tools
           key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock') }}
-      - run: sh scripts/mise run package:linux
-      - run: sh scripts/mise run check:packaged -- --linux
+      - run: sh scripts/ci-run.sh "Package Linux" sh scripts/mise run package:linux
+      - run: sh scripts/ci-run.sh "Packaged check Linux" sh scripts/mise run check:packaged -- --linux
       - uses: actions/upload-artifact@v4
         with:
           name: SharpRail-linux-x64
           path: artifacts/SharpRail-linux-x64.AppImage
           if-no-files-found: error
           compression-level: 0
+      - if: failure()
+        uses: ./.github/actions/diagnostics
+        with:
+          name: linux

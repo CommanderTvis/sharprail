@@ -34,17 +34,21 @@ jobs:
       # what it has fetched stays cached, so another attempt carries on from there.
       - run: |
           for attempt in 1 2 3; do
-            sh scripts/mise run package:macos osx-arm64 && exit 0
+            SHARPRAIL_CI_QUIET=$([ $attempt = 3 ] || echo 1) sh scripts/ci-run.sh "Package macOS" sh scripts/mise run package:macos osx-arm64 && exit 0
             sleep 30
           done
           exit 1
-      - run: sh scripts/mise run dmg "artifacts/${{ steps.stamp.outputs.name }}.dmg"
+      - run: sh scripts/ci-run.sh "Disk image" sh scripts/mise run dmg "artifacts/${{ steps.stamp.outputs.name }}.dmg"
       - uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.stamp.outputs.name }}-macos-arm64
           path: artifacts/${{ steps.stamp.outputs.name }}.dmg
           if-no-files-found: error
           compression-level: 0
+      - if: failure()
+        uses: ./.github/actions/diagnostics
+        with:
+          name: dmg
 
   apk:
     runs-on: ubuntu-24.04
@@ -71,7 +75,7 @@ jobs:
           SHARPRAIL_ANDROID_KEYSTORE: ${{ runner.temp }}/nightly.keystore
           SHARPRAIL_ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           SHARPRAIL_ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: sh scripts/mise run package:android
+        run: sh scripts/ci-run.sh "Package Android" sh scripts/mise run package:android
       - run: mv artifacts/android/SharpRail.apk "artifacts/android/${{ steps.stamp.outputs.name }}.apk"
       - uses: actions/upload-artifact@v4
         with:
@@ -79,6 +83,10 @@ jobs:
           path: artifacts/android/${{ steps.stamp.outputs.name }}.apk
           if-no-files-found: error
           compression-level: 0
+      - if: failure()
+        uses: ./.github/actions/diagnostics
+        with:
+          name: apk
 
   appimage:
     runs-on: ubuntu-24.04
@@ -93,17 +101,21 @@ jobs:
       # what it has fetched stays cached, so another attempt carries on from there.
       - run: |
           for attempt in 1 2 3; do
-            sh scripts/mise run package:linux && exit 0
+            SHARPRAIL_CI_QUIET=$([ $attempt = 3 ] || echo 1) sh scripts/ci-run.sh "Package Linux" sh scripts/mise run package:linux && exit 0
             sleep 30
           done
           exit 1
-      - run: sh scripts/mise run check:packaged -- --linux
+      - run: sh scripts/ci-run.sh "Packaged check Linux" sh scripts/mise run check:packaged -- --linux
       - uses: actions/upload-artifact@v4
         with:
           name: SharpRail-nightly-linux-x64
           path: artifacts/SharpRail-linux-x64.AppImage
           if-no-files-found: error
           compression-level: 0
+      - if: failure()
+        uses: ./.github/actions/diagnostics
+        with:
+          name: appimage
 
   windows:
     runs-on: windows-2025
@@ -128,7 +140,7 @@ jobs:
             src/SharpRail.Scintilla/obj/native/win-x64/SharpRailScintillaNative.dll
             src/SharpRail.Scintilla/obj/native/win-x64/fingerprint
           key: windows-native-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.gitattributes', 'global.json', 'Directory.Build.props', 'Directory.Packages.props', 'mise.lock', 'scripts/windows-native.ps1', 'src/Ghostty.Avalonia/build-windows.ps1', 'src/Ghostty.Avalonia/Native/GhosttyVt.c', 'src/Ghostty.Avalonia/Native/GhosttyClipboardStub.c', 'src/SharpRail.Scintilla/build-windows.ps1', 'src/SharpRail.Scintilla/Native/*.h', 'src/SharpRail.Scintilla/Native/*.cxx', 'src/SharpRail.Scintilla/Native/*.patch') }}
-      - run: ./scripts/mise.cmd run package:windows -- -RuntimeIdentifier win-x64
+      - run: ./scripts/ci-run.ps1 "Package Windows x64" -- ./scripts/mise.cmd run package:windows -- -RuntimeIdentifier win-x64
       # Save validated native outputs even when the subsequent packaged runtime gate fails.
       - uses: actions/cache/save@v4
         if: steps.windows-native.outputs.cache-hit != 'true'
@@ -139,13 +151,17 @@ jobs:
             src/SharpRail.Scintilla/obj/native/win-x64/SharpRailScintillaNative.dll
             src/SharpRail.Scintilla/obj/native/win-x64/fingerprint
           key: ${{ steps.windows-native.outputs.cache-primary-key }}
-      - run: ./scripts/mise.cmd run check:packaged -- -RuntimeIdentifier win-x64 --windows
+      - run: ./scripts/ci-run.ps1 "Packaged check Windows x64" -- ./scripts/mise.cmd run check:packaged -- -RuntimeIdentifier win-x64 --windows
       - uses: actions/upload-artifact@v4
         with:
           name: SharpRail-nightly-windows-x64
           path: artifacts/SharpRail-win-x64.zip
           if-no-files-found: error
           compression-level: 0
+      - if: failure()
+        uses: ./.github/actions/diagnostics
+        with:
+          name: windows
 
   windows-arm64:
     runs-on: windows-11-arm
@@ -170,7 +186,7 @@ jobs:
             src/SharpRail.Scintilla/obj/native/win-arm64/SharpRailScintillaNative.dll
             src/SharpRail.Scintilla/obj/native/win-arm64/fingerprint
           key: windows-native-arm64-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.gitattributes', 'global.json', 'Directory.Build.props', 'Directory.Packages.props', 'mise.lock', 'scripts/windows-native.ps1', 'src/Ghostty.Avalonia/build-windows.ps1', 'src/Ghostty.Avalonia/Native/GhosttyVt.c', 'src/Ghostty.Avalonia/Native/GhosttyClipboardStub.c', 'src/SharpRail.Scintilla/build-windows.ps1', 'src/SharpRail.Scintilla/Native/*.h', 'src/SharpRail.Scintilla/Native/*.cxx', 'src/SharpRail.Scintilla/Native/*.patch') }}
-      - run: ./scripts/mise.cmd run package:windows -- -RuntimeIdentifier win-arm64
+      - run: ./scripts/ci-run.ps1 "Package Windows ARM64" -- ./scripts/mise.cmd run package:windows -- -RuntimeIdentifier win-arm64
       # Save validated native outputs even when the subsequent packaged runtime gate fails.
       - uses: actions/cache/save@v4
         if: steps.windows-native.outputs.cache-hit != 'true'
@@ -181,13 +197,17 @@ jobs:
             src/SharpRail.Scintilla/obj/native/win-arm64/SharpRailScintillaNative.dll
             src/SharpRail.Scintilla/obj/native/win-arm64/fingerprint
           key: ${{ steps.windows-native.outputs.cache-primary-key }}
-      - run: ./scripts/mise.cmd run check:packaged -- -RuntimeIdentifier win-arm64 --windows
+      - run: ./scripts/ci-run.ps1 "Packaged check Windows ARM64" -- ./scripts/mise.cmd run check:packaged -- -RuntimeIdentifier win-arm64 --windows
       - uses: actions/upload-artifact@v4
         with:
           name: SharpRail-nightly-windows-arm64
           path: artifacts/SharpRail-win-arm64.zip
           if-no-files-found: error
           compression-level: 0
+      - if: failure()
+        uses: ./.github/actions/diagnostics
+        with:
+          name: windows-arm64
 
   release:
     needs: [dmg, apk, appimage, windows, windows-arm64]
@@ -214,3 +234,4 @@ jobs:
           gh release create nightly SharpRail-nightly.dmg SharpRail-nightly.apk SharpRail-nightly-x86_64.AppImage SharpRail-nightly-win-x64.zip SharpRail-nightly-win-arm64.zip --prerelease --target "$GITHUB_SHA" \
             --title "Nightly $(date -u +%Y-%m-%d)" \
             --notes "Built from ${GITHUB_SHA} on $(date -u +%Y-%m-%d). The disk image is for Apple silicon and is not notarized; the Android package is a client for a SharpRail host; the Linux AppImage is for x86-64 distributions with glibc 2.31 or newer (run it with --appimage-extract-and-run when FUSE is unavailable); the unsigned Windows x64 and ARM64 ZIPs each contain the desktop client and standalone host."
+

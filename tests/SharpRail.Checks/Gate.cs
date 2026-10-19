@@ -69,8 +69,11 @@ internal static class Gate
     private static bool listing;
     private static int ordinal;
     private static (int Ordinal, string Name)? running;
+    private static int skipped;
 
     internal static IReadOnlyList<string> Passed => passed;
+    internal static int Skipped => skipped;
+    internal static string? Running => running?.Name;
     internal static IReadOnlyList<Unfinished> Remaining => selection.Remaining(running);
 
     internal static void Configure(Selection cases, bool list)
@@ -84,10 +87,12 @@ internal static class Gate
         var index = ordinal++;
         if (selection.Repair?.FirstOrDefault(entry => entry.Ordinal == index) is { Name: { } expected } && expected != Unfinished.Setup && expected != name)
             throw new InvalidOperationException($"The case list changed since the failed run ({expected} is now {name}); run the whole gate.");
-        if (!selection.Selects(name, index)) return;
+        if (!selection.Selects(name, index)) { skipped++; return; }
         if (listing) { Console.WriteLine("CASE " + name); return; }
         running = (index, name);
+        CiReport.BeginCase(name);
         body();
+        CiReport.EndCase();
         running = null;
         passed.Add(name);
     }

@@ -1,0 +1,28 @@
+name: Diagnostics
+description: Uploads a failed job's step logs and check records as the diagnostics-<name> artifact and points the run summary at it.
+inputs:
+  name:
+    description: Job name, unique within the run (matrix legs included).
+    required: true
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        NAME: ${{ inputs.name }}
+      run: |
+        {
+          echo "### Job \`$NAME\` failed"
+          echo
+          echo "The failing step's errors are annotated above and summarised in its own section. The full step logs and check records are in the \`diagnostics-$NAME\` artifact (kept 7 days)."
+          echo
+        } >> "$GITHUB_STEP_SUMMARY"
+    - uses: actions/upload-artifact@v4
+      with:
+        name: diagnostics-${{ inputs.name }}
+        path: |
+          ${{ runner.temp }}/sharprail-ci
+          .bench/checks-last-run.txt
+          **/*.binlog
+        if-no-files-found: ignore
+        retention-days: 7
