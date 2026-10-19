@@ -94,7 +94,10 @@ internal static class NewWorkspaceE2E
         Until(() => launches.Count == 1);
         Until(() => app.Terminals.Views.Any(terminal => terminal.Text.Contains("edited-agent-command", StringComparison.Ordinal)));
         Require(launches[0].Images.Count == 1 && File.ReadAllBytes(launches[0].Images[0]).SequenceEqual(png), "The launched agent receives host-stored images.");
-        Require(launches[0].InitialPrompt == expected, "The selected agent must receive the trimmed multiline prompt.");
+        // A generated workspace's opening prompt also asks the agent to title it; a project-folder launch passes the prompt as typed.
+        Require(inFolder ? launches[0].InitialPrompt == expected
+            : launches[0].InitialPrompt is { } opening && opening.StartsWith(expected + "\n\n", StringComparison.Ordinal) && opening.Contains("`set_title`", StringComparison.Ordinal),
+            "The selected agent must receive the trimmed multiline prompt.");
         Require(inFolder ? app.Window.WorkspaceRoot == app.Window.ProjectRoot : app.Window.WorkspaceRoot != app.Window.ProjectRoot,
             "The agent must start in the selected workspace target.");
         if (!inFolder)
