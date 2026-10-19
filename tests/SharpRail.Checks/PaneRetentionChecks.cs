@@ -37,8 +37,11 @@ internal static class PaneRetentionChecks
         var actionBuilds = 0;
         void Register()
         {
-            registry.RegisterManifest(new("retained", "Retained", "puzzle", "1", PluginApi.Generation, 1)
-            { Contributes = new() { SideTools = [new("panel", "Panel", "puzzle", PluginToolSide.Right)] } });
+            var manifest = new PluginManifest("retained", "Retained", "puzzle", "1", PluginApi.Generation, 1)
+            { Contributes = new() { SideTools = [new("panel", "Panel", "puzzle", PluginToolSide.Right)] } };
+            registry.RegisterManifest(manifest);
+            // A plugin outside the roster is dormant, so its tool stays hidden from the layout.
+            registry.SetRoster([.. registry.Roster, new PluginRosterEntry("retained", "Retained", "puzzle", "1", PluginApi.Generation, PluginOrigin.Builtin, PluginStatus.Active) { Contributes = manifest.Contributes }]);
             registry.AddSideTool("retained", new("panel", workspace =>
             {
                 builds[workspace] = builds.GetValueOrDefault(workspace) + 1;
@@ -52,6 +55,8 @@ internal static class PaneRetentionChecks
             registry.SetActive("retained", true);
         }
         Register();
+        // A tool is restorable once the workbench has composed the activated plugin into the layout catalog.
+        Until(() => window.Layout.IsToolAvailable("plugin:retained:panel"));
         window.Layout.RestoreTool("plugin:retained:panel");
         var pane = app.Find<Border>("RetainedPane");
         var input = app.Find<TextBox>("RetainedInput");
