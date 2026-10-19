@@ -217,6 +217,8 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         settings.Click += (_, _) => ShowSettings();
         if (!OperatingSystem.IsMacOS()) { ToolTip.SetTip(settings, "Settings"); AutomationProperties.SetName(settings, "Settings"); }
         if (OperatingSystem.IsWindows() && settings.Parent is Panel captionHost) AddCaptionButtons(captionHost);
+        // Linux window managers differ on client-side decorations, so the system title bar stays and the header sits below it.
+        if (OperatingSystem.IsLinux() && !OperatingSystem.IsAndroid()) ExtendClientAreaToDecorationsHint = false;
         var frame = this.FindControl<Border>("WindowTitleBar")!;
         frame.PointerPressed += (_, e) =>
         {

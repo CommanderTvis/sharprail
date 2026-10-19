@@ -32,7 +32,7 @@ public sealed partial class ScintillaEditor : Control, IDisposable
     // System fonts are shared process-wide and never disposed.
     private static readonly SKTypeface DefaultTypeface = SKTypeface.FromFamilyName(OperatingSystem.IsAndroid() ? "monospace" : OperatingSystem.IsWindows() ? "Cascadia Mono" : "Menlo");
     /// <summary>Whether this platform has the native editor library; elsewhere creating an editor throws.</summary>
-    public static bool IsSupported { get; } = OperatingSystem.IsMacOS() || OperatingSystem.IsWindows() || OperatingSystem.IsAndroid() || OperatingSystem.IsBrowser();
+    public static bool IsSupported { get; } = OperatingSystem.IsMacOS() || OperatingSystem.IsWindows() || OperatingSystem.IsLinux() || OperatingSystem.IsAndroid() || OperatingSystem.IsBrowser();
     private readonly ScintillaDocument document;
     private readonly DispatcherTimer timer;
     private readonly DispatcherTimer idle;

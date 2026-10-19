@@ -54,7 +54,7 @@ browser, so the choice is between macOS's PDFKit and a managed binding to a cros
 PDFium is not thread-safe: every call runs under one lock, on a background thread. A document is opened from the
 file's bytes for each read or rasterization and closed in the same call, so no native handle outlives it and a
 closed tab retains no native PDF document handle; the bytes stay in the viewer for the next zoom. Where the native library is absent
-(Windows), the viewer says rendering is not available on this platform.
+(Windows; Linux ships bblanchon.PDFium.Linux), the viewer says rendering is not available on this platform.
 The viewer releases replaced raster bitmaps, cancels reads on detach and reloads when mounted again.
 Text and character boxes are indexed together from PDFium's Unicode values so omitted characters do
 not shift the selection geometry.

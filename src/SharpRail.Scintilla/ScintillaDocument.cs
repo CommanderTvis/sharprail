@@ -15,7 +15,7 @@ internal sealed class ScintillaDocument : IDisposable
     {
         surface = new(typeface);
         if (!ScintillaEditor.IsSupported)
-            throw new PlatformNotSupportedException("The Scintilla editor supports macOS, Android and browsers.");
+            throw new PlatformNotSupportedException("The Scintilla editor supports macOS, Windows, Linux, Android and browsers.");
 
         Dispatcher.UIThread.VerifyAccess();
 

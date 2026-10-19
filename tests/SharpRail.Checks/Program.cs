@@ -84,6 +84,19 @@ internal static class Program
             finally { E2E.IsolatedGit.DeleteFixture(root); }
             return;
         }
+        if (args.SequenceEqual(["--linux"]))
+        {
+            try
+            {
+                CheckOpenWorld();
+                LinuxChecks.RunHost(root).GetAwaiter().GetResult();
+                AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+                SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+                LinuxChecks.RunUi(root);
+            }
+            finally { E2E.IsolatedGit.DeleteFixture(root); }
+            return;
+        }
         if (args.SequenceEqual(["--browser"]) || args.SequenceEqual(["--transport"]))
         {
             BrowserTransportChecks.Run(root).GetAwaiter().GetResult();

@@ -13,7 +13,7 @@
   <ItemGroup>
     <ScintillaNativeSource Include="$(MSBuildProjectDirectory)/Native/*" />
   </ItemGroup>
-  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('OSX'))">
+  <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('OSX')) and '$(SharpRailLinuxRid)' == ''">
     <ScintillaArch Condition="'$(NETCoreSdkRuntimeIdentifier)' == 'osx-x64'">x86_64</ScintillaArch>
     <ScintillaArch Condition="'$(ScintillaArch)' == '' or '$(RuntimeIdentifier)' == 'osx-arm64'">arm64</ScintillaArch>
     <ScintillaArch Condition="'$(RuntimeIdentifier)' == 'osx-x64'">x86_64</ScintillaArch>
@@ -25,6 +25,14 @@
           Inputs="@(ScintillaNativeSource);$(MSBuildProjectDirectory)/build-native.sh;$(MSBuildThisFileDirectory)../../mise.lock"
           Outputs="$(ScintillaNativeCache)/$(ScintillaArch)/libSharpRail.Scintilla.dylib">
     <Exec Command="$(MiseRun) sh &quot;$(MSBuildProjectDirectory)/build-native.sh&quot; $(ScintillaArch) &quot;$(ScintillaNativeCache)&quot;" />
+  </Target>
+  <ItemGroup Condition="'$(SharpRailLinuxRid)' != ''">
+    <Content Include="$(ScintillaNativeCache)/$(SharpRailLinuxRid)/libSharpRail.Scintilla.so" Link="libSharpRail.Scintilla.so" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
+  </ItemGroup>
+  <Target Name="BuildScintillaLinux" BeforeTargets="PrepareForBuild;GetCopyToOutputDirectoryItems;GetCopyToPublishDirectoryItems" Condition="'$(SharpRailLinuxRid)' != ''"
+          Inputs="@(ScintillaNativeSource);$(MSBuildProjectDirectory)/build-linux.sh;$(MSBuildThisFileDirectory)../../mise.toml;$(MSBuildThisFileDirectory)../../mise.lock"
+          Outputs="$(ScintillaNativeCache)/$(SharpRailLinuxRid)/libSharpRail.Scintilla.so">
+    <Exec Command="$(MiseRun) sh &quot;$(MSBuildProjectDirectory)/build-linux.sh&quot; $(SharpRailLinuxRid) &quot;$(ScintillaNativeCache)&quot;" />
   </Target>
   <PropertyGroup Condition="$([MSBuild]::IsOSPlatform('Windows'))">
     <ScintillaWindowsRid Condition="$(RuntimeIdentifier.StartsWith('win-'))">$(RuntimeIdentifier)</ScintillaWindowsRid>

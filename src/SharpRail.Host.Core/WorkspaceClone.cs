@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json.Nodes;
@@ -19,8 +20,8 @@ internal static class WorkspaceClone
     [DllImport("libc", EntryPoint = "clonefile", SetLastError = true)]
     private static extern int CloneFile([MarshalAs(UnmanagedType.LPUTF8Str)] string source, [MarshalAs(UnmanagedType.LPUTF8Str)] string destination, uint flags);
 
-    /// <summary>Whether this platform can clone at all; only APFS on macOS does, and the call itself reports the rest.</summary>
-    internal static bool Supported => OperatingSystem.IsMacOS();
+    /// <summary>Whether this platform can clone at all: APFS on macOS, and <c>cp --reflink=auto</c> on Linux, which shares extents where the filesystem can and copies otherwise.</summary>
+    internal static bool Supported => OperatingSystem.IsMacOS() || OperatingSystem.IsLinux() && !OperatingSystem.IsAndroid();
 
     /// <summary>
     /// Clones one path (a directory clones its whole tree, symlinks stay symlinks) to a destination that must not exist.
@@ -29,8 +30,26 @@ internal static class WorkspaceClone
     internal static bool TryClone(string source, string destination)
     {
         if (!Supported) return false;
+        if (OperatingSystem.IsLinux()) return CopyLinux(source, destination);
         try { return CloneFile(source, destination, NoFollow) == 0; }
         catch (Exception error) when (error is DllNotFoundException or EntryPointNotFoundException) { return false; }
+    }
+
+    // GNU cp keeps symlinks as links (-a) and shares extents on btrfs and XFS; elsewhere it is a plain copy. A failed copy leaves nothing behind.
+    private static bool CopyLinux(string source, string destination)
+    {
+        try
+        {
+            var start = new ProcessStartInfo("cp") { UseShellExecute = false, RedirectStandardError = true, ArgumentList = { "-a", "--reflink=auto", "--", source, destination } };
+            using var process = Process.Start(start);
+            if (process is null) return false;
+            process.StandardError.ReadToEnd();
+            process.WaitForExit();
+            if (process.ExitCode == 0) return true;
+        }
+        catch (Exception error) when (error is IOException or System.ComponentModel.Win32Exception) { return false; }
+        try { if (Directory.Exists(destination)) Directory.Delete(destination, true); else File.Delete(destination); } catch (IOException) { }
+        return false;
     }
 
     /// <summary>Where a project states what its created workspaces start with, relative to the project root.</summary>

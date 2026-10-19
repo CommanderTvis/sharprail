@@ -54,7 +54,7 @@ public delegate ITerminalBackend TerminalFactory(TerminalLaunch launch);
 
 public sealed class TerminalStartException(string message) : IOException(message);
 
-// Ghostty's texture composed by Avalonia, or libghostty-vt cells drawn with Skia. Windows and Android have only Skia, and
+// Ghostty's texture composed by Avalonia, or libghostty-vt cells drawn with Skia. Every platform but macOS has only Skia, and
 // only Skia watches: the Metal renderers size the shell to their own surface.
 public static class TerminalRenderers
 {
@@ -67,7 +67,7 @@ public static class TerminalBackends
     public static ITerminalBackend Unavailable(string reason) => throw new TerminalStartException(reason);
 
     private static bool Skia(Func<string>? renderer, TerminalLaunch launch) =>
-        launch is { Yield: true, Watch: true } || OperatingSystem.IsWindows() || OperatingSystem.IsAndroid() || OperatingSystem.IsBrowser() || renderer?.Invoke() == TerminalRenderers.Skia;
+        launch is { Yield: true, Watch: true } || !OperatingSystem.IsMacOS() || renderer?.Invoke() == TerminalRenderers.Skia;
 
     // This overload has no endpoint or relay factory: both renderers call the supplied host directly.
     public static TerminalFactory Ghostty(ITerminalService terminals, Func<string>? renderer = null) => launch =>

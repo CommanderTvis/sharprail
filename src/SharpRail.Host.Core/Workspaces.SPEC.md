@@ -150,8 +150,9 @@ forgetting removes its row while leaving the checkout in place. The Default work
   `ls-files --others --ignored --directory` call, so only entirely ignored, untracked directories and
   ignored files qualify (`node_modules` is one entry, never walked, and a directory holding tracked
   files never appears). Matches are copied with macOS `clonefile(2)` (`CLONE_NOFOLLOW`, symlinks stay
-  links; APFS copy-on-write, one syscall per tree). Existing target paths are never replaced and every
-  refusal (non-APFS, another volume, other platforms, Git errors) is silent: creation never waits on or
+  links; APFS copy-on-write, one syscall per tree) or, on Linux, `cp -a --reflink=auto` (symlinks stay links;
+  extents are shared on btrfs and XFS and the tree is copied elsewhere, still in the background). Existing target paths are never replaced and every
+  refusal (non-APFS, another volume, other platforms, a failed `cp`, Git errors) is silent: creation never waits on or
   fails because of it. Savings exist only at creation; edits to the file affect later workspaces only.
   The SharpRail repo lists `.tools`, `**/obj` and `**/bin`. Check mode `--workspace-clone`.
 

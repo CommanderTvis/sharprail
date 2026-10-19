@@ -16,6 +16,12 @@ Its native editor uses Ctrl-based editing shortcuts and its terminals always use
 Skia. Metal, the macOS notification bridge and native Mermaid build targets are
 not loaded or built on Windows; the existing unavailable-Mermaid view still applies.
 
+The Linux x64 desktop client (X11 or XWayland, glibc 2.31 or newer, shipped as an AppImage: [LINUX.md](../../LINUX.md)) has the same
+shape: Ctrl-based editor shortcuts, terminals always on Skia (the saved Metal preference is ignored), the system title bar
+instead of the extended client area, no Mermaid library (the unavailable view applies) and `LinuxNotifier`. Its native libraries
+are cross-compiled with Zig by `build-linux.sh` beside Ghostty and Scintilla; Linux execution is covered by the `--linux` gate
+and is otherwise unverified (see STATUS.md V13).
+
 
 ## Responsibilities and boundaries
 
@@ -342,13 +348,14 @@ adding only what a client alone knows: focus, a collection window, the system ch
   fork opens its session switcher there, which SharpRail does not have.
 - Delivery is behind `IDesktopNotifier`, which the composition root supplies (`Workbench.Notifier`) the way
   it supplies the terminal factory; a workbench without one, as in every headless check that does not
-  pass a recording one, raises nothing. `MacNotifier` is the only channel. Inside the app bundle it posts
+  pass a recording one, raises nothing. `MacNotifier` and `LinuxNotifier` are the channels. Inside the app bundle it posts
   through User Notifications (`Native/Notifications.m`, built by `scripts/build-notifications.sh` (run by the UI project's `BuildNotifications` target) into
   `libSharpRailNotifications.dylib`): the system attributes it to SharpRail, asks for permission on the
   first notification or when the Settings toggle is turned on, and reports the click. The system refuses
   that API to a process without a bundle identifier, so a run from source (`scripts/mise run dev`) falls back to
   AppleScript's `display notification`: the banner appears under Script Editor's name, needs no permission
-  and its click cannot return to the app. Other platforms compose no notifier.
+  and its click cannot return to the app. `LinuxNotifier` runs `notify-send` (no linked library; nothing is shown without it or a notification
+  service) and its click cannot return to the app either. Windows and Android compose no notifier.
 - Nothing waits on the UI thread: requests and gates read in-memory state there, and each system call runs
   on the thread pool; a click is posted back to the dispatcher.
 - Multi-client is accepted, as in the fork: focus is client-local, so one event may notify in several

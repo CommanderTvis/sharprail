@@ -27,7 +27,7 @@ public sealed class Preferences
     public double Zoom { get; set; } = 1;
     public bool ChangesSingle { get; set; }
     /// <summary>The local terminal renderer: composited Metal texture or Skia cells.</summary>
-    public string TerminalRenderer { get; set; } = OperatingSystem.IsWindows() ? Terminal.TerminalRenderers.Skia : Terminal.TerminalRenderers.Texture;
+    public string TerminalRenderer { get; set; } = OperatingSystem.IsMacOS() ? Terminal.TerminalRenderers.Texture : Terminal.TerminalRenderers.Skia;
     /// <summary>A single click previews into the group's reusable slot; off, every open keeps its tab.</summary>
     public bool PreviewTabs { get; set; } = true;
     /// <summary>Legacy tab-mode value retained for host/profile compatibility; placement is always in Projects.</summary>

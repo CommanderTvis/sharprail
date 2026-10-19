@@ -160,7 +160,7 @@ public sealed partial class App : Application
         {
             Endpoint = remote ? endpoint! : "local",
             Listener = listener,
-            Notifier = OperatingSystem.IsMacOS() ? Notifications.MacNotifier.Create() : null
+            Notifier = OperatingSystem.IsMacOS() ? Notifications.MacNotifier.Create() : OperatingSystem.IsLinux() && !OperatingSystem.IsAndroid() ? new Notifications.LinuxNotifier() : null
         };
         StartupPhases.Mark("app-services-created");
         if (OperatingSystem.IsMacOS()) ApplicationMenu.Install(this, workbench.Commands);

@@ -41,7 +41,9 @@ internal static class PackagedApp
     internal static void Run()
     {
         if (Environment.GetEnvironmentVariable(Variable) is not { Length: > 0 } bundle) return;
-        var (count, superseded) = Verify(Path.Combine(bundle, "Contents", "MacOS"), AppContext.BaseDirectory,
+        // A macOS bundle keeps its files in Contents/MacOS; the variable names the Linux AppImage payload directly.
+        var shipped = Path.Combine(bundle, "Contents", "MacOS");
+        var (count, superseded) = Verify(Directory.Exists(shipped) ? shipped : bundle, AppContext.BaseDirectory,
             [typeof(WorkbenchWindow).Assembly.Location, typeof(ProjectServices).Assembly.Location, typeof(LocalHostAdapter).Assembly.Location,
                 typeof(WorkspaceInfo).Assembly.Location, typeof(SharpRail.Scintilla.ScintillaEditor).Assembly.Location, typeof(Ghostty.Avalonia.GhosttySkiaView).Assembly.Location],
             file => { try { return AssemblyName.GetAssemblyName(file); } catch (BadImageFormatException) { return null; } });

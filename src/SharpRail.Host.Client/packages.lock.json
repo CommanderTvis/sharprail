@@ -48,6 +48,16 @@
         }
       }
     },
+    "net10.0/linux-x64": {
+      "System.Private.ServiceModel": {
+        "type": "Transitive",
+        "resolved": "4.5.3",
+        "contentHash": "ancrQgJagx+yC4SZbuE+eShiEAUIF0E1d21TRSoy1C/rTwafAVcBr/fKibkq5TQzyy9uNil2tx2/iaUxsy0S9g==",
+        "dependencies": {
+          "Microsoft.NETCore.Platforms": "2.1.0"
+        }
+      }
+    },
     "net10.0/osx-arm64": {
       "System.Private.ServiceModel": {
         "type": "Transitive",

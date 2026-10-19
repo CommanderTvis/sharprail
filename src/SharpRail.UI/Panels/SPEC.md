@@ -16,8 +16,8 @@ Fluent template controls fit the compact height instead of clipping at the defau
 
 ## Boundary
 
-The terminal renderer chooser is visible only on macOS. Windows terminals use
-Skia, so Settings never offers an unavailable Metal renderer there.
+The terminal renderer chooser is visible only on macOS. Windows and Linux terminals use
+Skia, so Settings never offers an unavailable Metal renderer there, and a profile defaults to Skia off macOS.
 
 Settings › Highlighting imports a TextMate JSON grammar from a file or pasted text,
 with comma-separated filename patterns, and lists custom entries with Remove actions.
