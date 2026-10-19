@@ -8,7 +8,7 @@ internal static class LanguageSourceIcon
     {
         var asset = source.Split('·', 2)[0].Trim() switch
         {
-            "npm registry" => "npm",
+            "npm" => "npm",
             "NuGet" => "nuget",
             "Go modules" => "go",
             "RubyGems" => "ruby",

@@ -32,7 +32,7 @@ internal static class LanguageConfigurationCatalog
             "dart" => [Init("Analyze only projects with open files", "onlyAnalyzeProjectsWithOpenFiles", "boolean"), Setting("Excluded analysis folders", "dart.analysisExcludedFolders", "lines", pathKind: "folder"), Setting("Include dependencies in symbol searches", "dart.includeDependenciesInWorkspaceSymbols", "boolean"), Setting("Report TODO comments", "dart.showTodos", "boolean")],
             _ => []
         };
-        var source = server.Package.Length > 0 ? "npm registry · " + server.Package : id switch
+        var source = server.Package.Length > 0 ? "npm · " + server.Package : id switch
         {
             "csharp" => "NuGet · roslyn-language-server (.NET tool)",
             "go" => "Go modules · golang.org/x/tools/gopls",

@@ -1150,7 +1150,7 @@ internal static class LanguageChecks
             E2E.E2eWorkspace.Until(() => settingsWindow.IsVisible);
             Require(firstRow.Bounds.Height <= compactHeight + 2, "Settings popup expanded the server row.");
             E2E.E2eWorkspace.Until(() => Config<ItemsControl>("ProviderFields").ItemsSource is SharpRail.UI.Panels.LanguageOptionField[] { Length: > 0 });
-            Require(Config<TextBlock>("ProviderSource").Text!.StartsWith("Source: npm registry", StringComparison.Ordinal), "Provider source label must be concise and preserve registry details.");
+            Require(Config<TextBlock>("ProviderSource").Text!.StartsWith("Source: npm", StringComparison.Ordinal), "Provider source label must be concise and preserve registry details.");
             Require(Config<ContentControl>("ProviderSourceIcon").Content is Control { Tag: "file-type:npm" }, "npm source must use its bundled Material icon.");
             Require(serverTitle.Text == SharpRail.UI.Panels.LanguageServerNameConverter.Display("typescript"), "Server title must omit inline runtime status.");
             var statusMark = firstRow.GetLogicalDescendants().OfType<ContentControl>().Single(control => control.Name == "ServerStatusIcon");
