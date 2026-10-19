@@ -77,7 +77,7 @@ jobs:
               $verdict = if ($code -eq 0) { 'OK' } else { 'FAIL' }
               Write-Host "RESULT [$script:n] $verdict exit $code ($hex) :: $Name"
               if ($code -ne 0) {
-                  Get-WinEvent -LogName Application -MaxEvents 5 -ProviderName 'Application Error' -ErrorAction SilentlyContinue | Where-Object { $_.TimeCreated -ge $started } | ForEach-Object { Write-Host $_.Message }
+                  Get-WinEvent -FilterHashtable @{ LogName = 'Application'; ProviderName = 'Application Error' } -MaxEvents 5 -ErrorAction SilentlyContinue | Where-Object { $_.TimeCreated -ge $started } | ForEach-Object { Write-Host $_.Message }
               }
               Write-Host '::endgroup::'
               "$verdict $hex $Name" | Out-File (Join-Path $root 'summary.txt') -Append
@@ -157,7 +157,7 @@ jobs:
               $verdict = if ($code -eq 0) { 'OK' } else { 'FAIL' }
               Write-Host "RESULT [$script:n] $verdict exit $code ($hex) :: $Name"
               if ($code -ne 0) {
-                  Get-WinEvent -LogName Application -MaxEvents 5 -ProviderName 'Application Error' -ErrorAction SilentlyContinue | Where-Object { $_.TimeCreated -ge $started } | ForEach-Object { Write-Host $_.Message }
+                  Get-WinEvent -FilterHashtable @{ LogName = 'Application'; ProviderName = 'Application Error' } -MaxEvents 5 -ErrorAction SilentlyContinue | Where-Object { $_.TimeCreated -ge $started } | ForEach-Object { Write-Host $_.Message }
               }
               Write-Host '::endgroup::'
               "$verdict $hex $Name" | Out-File (Join-Path $root 'summary.txt') -Append

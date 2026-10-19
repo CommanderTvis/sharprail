@@ -163,7 +163,38 @@ jobs:
         with:
           name: windows
 
+  # Zig 0.16.0 cannot link its own build runner on the windows-11-arm runner (every `zig build` crashes with 0xC0000005,
+  # see probe-windows-arm64-zig.yml), so libghostty-vt for win-arm64 is cross-compiled on an x64 host. The packaging job
+  # restores the DLL and its fingerprint into .tools, where build-windows.ps1 verifies the fingerprint (target, CPU,
+  # Ghostty commit, scripts and sources) and skips Zig when it matches, so a stale DLL is rebuilt, never shipped.
+  ghostty-windows-arm64:
+    runs-on: windows-2025
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/cache@v4
+        with:
+          path: ~\.sharprail\tools
+          key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock', 'mise.android.toml', 'mise.android.lock') }}
+      - run: ./scripts/ci-run.ps1 "Bootstrap" -- ./scripts/mise.cmd run bootstrap
+      - run: ./scripts/ci-run.ps1 "Cross-build Ghostty for Windows ARM64" -- ./scripts/mise.cmd x -- powershell -NoProfile -ExecutionPolicy Bypass -File src/Ghostty.Avalonia/build-windows.ps1 -RuntimeIdentifier win-arm64 -Cache .tools/ghostty-avalonia
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ghostty-vt-windows-arm64
+          path: |
+            .tools/ghostty-avalonia/win-arm64/GhosttyAvaloniaVt.dll
+            .tools/ghostty-avalonia/win-arm64/fingerprint
+          if-no-files-found: error
+      - if: failure()
+        uses: ./.github/actions/diagnostics
+        with:
+          name: ghostty-windows-arm64
+
   windows-arm64:
+    needs: ghostty-windows-arm64
     runs-on: windows-11-arm
     timeout-minutes: 90
     defaults:
@@ -186,6 +217,11 @@ jobs:
             src/SharpRail.Scintilla/obj/native/win-arm64/SharpRailScintillaNative.dll
             src/SharpRail.Scintilla/obj/native/win-arm64/fingerprint
           key: windows-native-arm64-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.gitattributes', 'global.json', 'Directory.Build.props', 'Directory.Packages.props', 'mise.lock', 'scripts/windows-native.ps1', 'src/Ghostty.Avalonia/build-windows.ps1', 'src/Ghostty.Avalonia/Native/GhosttyVt.c', 'src/Ghostty.Avalonia/Native/GhosttyClipboardStub.c', 'src/SharpRail.Scintilla/build-windows.ps1', 'src/SharpRail.Scintilla/Native/*.h', 'src/SharpRail.Scintilla/Native/*.cxx', 'src/SharpRail.Scintilla/Native/*.patch') }}
+      # The cross-built libghostty-vt replaces any cached one; build-windows.ps1 still checks its fingerprint.
+      - uses: actions/download-artifact@v4
+        with:
+          name: ghostty-vt-windows-arm64
+          path: .tools/ghostty-avalonia/win-arm64
       - run: ./scripts/ci-run.ps1 "Package Windows ARM64" -- ./scripts/mise.cmd run package:windows -- -RuntimeIdentifier win-arm64
       # Save validated native outputs even when the subsequent packaged runtime gate fails.
       - uses: actions/cache/save@v4

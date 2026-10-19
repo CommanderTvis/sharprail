@@ -59,7 +59,7 @@ function Invoke-Zig([string] $Zig, [string] $RuntimeIdentifier, [string] $Out, [
     $message = "$Zig $($Arguments -join ' ') failed with exit code $code ($hex)"
     Write-Host "::error title=Zig failed::$($message -replace '%', '%25' -replace "`r", '%0D' -replace "`n", '%0A')"
     Write-Host '--- Application Error events (newest 5) ---'
-    try { Get-WinEvent -LogName Application -MaxEvents 5 -ProviderName 'Application Error' -ErrorAction Stop | Format-List TimeCreated, Message | Out-String | Write-Host }
+    try { Get-WinEvent -FilterHashtable @{ LogName = 'Application'; ProviderName = 'Application Error' } -MaxEvents 5 -ErrorAction Stop | Format-List TimeCreated, Message | Out-String | Write-Host }
     catch { Write-Host "No Application Error events: $($_.Exception.Message)" }
     $cache = Join-Path $Out 'zig-cache'
     if (Test-Path $cache) {
