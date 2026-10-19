@@ -21,6 +21,11 @@ function Get-ZigWindowsTarget([string] $RuntimeIdentifier) {
     return 'x86_64-windows-gnu'
 }
 
+# The CPU of every Windows native build. Zig builds for the detected CPU when the target is the host's own architecture and OS,
+# which tied the shipped libraries to the build machine's features and, on the Windows ARM64 runner, made Zig 0.16 pass
+# a mangled feature list to Clang (unknown argument '-fuse-crypto-eor'). Baseline is the same everywhere.
+$ZigWindowsCpu = 'baseline'
+
 # The Zig that `scripts/mise run bootstrap` installs (http:zig-windows in mise.toml) and links as .tools\zig-windows.
 # Zig cross-compiles, so it matches the host and the target is chosen per build.
 function Get-WindowsZig {
