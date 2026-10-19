@@ -6747,3 +6747,15 @@ own pass. The E2E refresh listed the added and removed upstream cases and the su
 no scenario was ported because the relevant ones need unported behavior (Ctrl+, on Windows and Linux, the diff
 guard). No C# changed; no build or check ran, and the conformance gate does not read these documents.
 Fork titles from the 2026-10-01 pass that are no longer separate fork commits are listed in Upstream tracking.
+
+## 2026-10-19 — Linux desktop port and AppImage nightly
+
+SharpRail builds and runs on linux-x64. The Ghostty VT and Scintilla libraries cross-compile with the pinned Zig for
+`x86_64-linux-gnu.2.31` (`build-linux.sh` beside each, MSBuild targets keyed on `SharpRailLinuxRid`, `linux-x64` added to the
+locked RIDs); Linux terminals are Skia only, the editor is enabled with Ctrl shortcuts, workspace clones use `cp --reflink=auto`
+and notifications use `notify-send`. `package:linux` writes `artifacts/SharpRail-linux-x64.AppImage` (pinned appimagetool and
+type 2 runtime), `check:packaged -- --linux` runs the new `--linux` gate from the image's payload, and CI and nightly gained
+Linux jobs. Verified on macOS: Release build, `--conformance`, `--design`, `--plugins`, `--workspace-clone`, the cross publish, ELF
+checks of both libraries, and in an amd64 Ubuntu 22.04 container (Rosetta) the packaged `--linux` gate and a 40-second Xvfb launch of
+`AppRun` that showed the workbench. Not run: the AppImage runtime itself (it cannot execute under Rosetta), a real window manager,
+Wayland, arm64. See STATUS.md V13.

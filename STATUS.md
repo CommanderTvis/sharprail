@@ -1171,7 +1171,7 @@ Authorities: [UI](src/SharpRail.UI/SPEC.md), [terminal contract](src/SharpRail.U
 
 #### Outstanding acceptance work
 
-These eight tasks consolidate the remaining checks; they do not assert missing product features. Owning specs retain durable verification scope and measurements; [the checks contract](tests/SharpRail.Checks/SPEC.md#recorded-verification-scope) distinguishes source and packaged evidence. Original row IDs in parentheses identify merged entries. No unrun journey is treated as passed.
+These tasks consolidate the remaining checks; they do not assert missing product features. Owning specs retain durable verification scope and measurements; [the checks contract](tests/SharpRail.Checks/SPEC.md#recorded-verification-scope) distinguishes source and packaged evidence. Original row IDs in parentheses identify merged entries. No unrun journey is treated as passed.
 
 | ID | Latest result | Remaining work |
 | --- | --- | --- |
@@ -1183,6 +1183,7 @@ These eight tasks consolidate the remaining checks; they do not assert missing p
 | V10 | Emulator/fixture coverage only | Exercise physical Android, camera/QR and real two-device Tailscale pairing, approval, reconnect, revoke and remote UX, including packaged deployment. Emulator and fake-identity transport checks pass. |
 | V11 | 120 Hz presentation not measured | Measure physical 120 Hz browser presentation. Recorded restty GPU draw cadence is about 60/s and output throughput is 111 FPS; neither proves the presentation target. No new benchmark was run. |
 | V12 | Fixture coverage only | Exercise installed Codex/Claude during sustained streaming while typing/resizing/switching controls, interruptions, process replacement, auth/model changes, editor reload/remount/title changes, remote reconnect and physical drops (A36, P10–P11). Complete Claude pane-driven composers/account/usage/MCP health, nested source navigation after unsaved edits, uninstall/marketplace removal and overrides (P09); Blueprint live-model controls, frontmatter discard, outline, alerts and Mermaid (P12); and live Discord IPC/presence (P18). Generic host/UI tests do not establish these journeys. |
+| V13 | Linux: cross-built, headless gate and Xvfb launch only | Run the AppImage on real distributions (the 2026-10-19 pass ran its payload, not the image: the runtime could not execute under Rosetta here; `check:packaged -- --linux` unpacks it in CI). Cover a real window manager (title bar, resize, HiDPI), Wayland/XWayland, IME and clipboard, file drops, `notify-send` delivery, `xdg-open`/`gio trash`, a reflink filesystem for workspace clones, glibc 2.31 hosts and Git 2.36+. Mermaid has no Linux library and arm64 is not built. |
 
 #### Suggested implementation batches
 
