@@ -1,0 +1,108 @@
+name: Probe Windows ARM64 Zig
+
+# Minutes-long repros for the windows-arm64 nightly, where Zig 0.16.0 crashes on its first compile. Each Zig version
+# runs a matrix of minimal compiles and prints output, exit code in hex and the Windows crash records. It never fails
+# on a Zig crash; read the logs.
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: windows-11-arm
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - version: '0.16.0'
+            sha256: aee38316ee4111717900f45dd3130145c39289e105541d737eb8c5ed653c78ef
+          - version: '0.15.2'
+            sha256: b926465f8872bf983422257cd9ec248bb2b270996fbe8d57872cca13b56fc370
+          - version: '0.14.1'
+            sha256: b5aac0ccc40dd91e8311b1f257717d8e3903b5fefb8f659de6d65a840ad1d0e7
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - name: Runner toolchains
+        run: |
+          $ErrorActionPreference = 'Continue'
+          "OS $([Runtime.InteropServices.RuntimeInformation]::OSArchitecture), process $([Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture)"
+          [Environment]::OSVersion.VersionString
+          foreach ($name in 'clang', 'clang-cl', 'cl', 'link', 'lld-link') {
+              $found = Get-Command $name -ErrorAction SilentlyContinue
+              if ($found) { "$name -> $($found.Source)" } else { "$name not on PATH" }
+          }
+          clang --version 2>&1 | ForEach-Object { "$_" }
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          if (Test-Path $vswhere) {
+              & $vswhere -all -products * -format text 2>&1 | Select-String 'installationPath|displayName|installationVersion'
+              'ARM64 LLVM component:'; & $vswhere -all -products * -requires Microsoft.VisualStudio.Component.VC.Llvm.Clang -property installationPath
+              'ARM64 MSVC tools:'; & $vswhere -all -products * -requires Microsoft.VisualStudio.Component.VC.Tools.ARM64 -property installationPath
+          } else { 'No vswhere' }
+          foreach ($dir in "$env:ProgramFiles\LLVM\bin", "${env:ProgramFiles(x86)}\Microsoft Visual Studio\2022\Enterprise\VC\Tools\Llvm\ARM64\bin") { "$dir exists: $(Test-Path $dir)" }
+      - name: Zig ${{ matrix.version }} repros
+        env:
+          ZIG_VERSION: ${{ matrix.version }}
+          ZIG_SHA256: ${{ matrix.sha256 }}
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $root = Join-Path $env:RUNNER_TEMP "zig-probe-$env:ZIG_VERSION"
+          New-Item -ItemType Directory $root -Force | Out-Null
+          $zip = Join-Path $root 'zig.zip'
+          Invoke-WebRequest "https://ziglang.org/download/$env:ZIG_VERSION/zig-aarch64-windows-$env:ZIG_VERSION.zip" -OutFile $zip
+          $actual = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($actual -ne $env:ZIG_SHA256) { throw "Checksum mismatch for Zig ${env:ZIG_VERSION}: $actual" }
+          Expand-Archive $zip -DestinationPath $root
+          $zig = (Get-ChildItem $root -Recurse -Filter zig.exe | Select-Object -First 1).FullName
+          "zig: $zig"
+          Set-Content (Join-Path $root 'hello.c') "#include <stdio.h>`nint main(void) { puts(`"hi`"); return 0; }`n"
+          Set-Content (Join-Path $root 'hello.cpp') "#include <cstdio>`nint main() { std::puts(`"hi`"); return 0; }`n"
+          Set-Content (Join-Path $root 'tiny.zig') "export fn add(a: i32, b: i32) i32 { return a + b; }`n"
+          $originalCache = $env:ZIG_GLOBAL_CACHE_DIR
+          $script:n = 0
+          function Run-Case([string] $Name, [string[]] $Arguments, [bool] $FreshCache = $false) {
+              $script:n++
+              Write-Host "::group::[$script:n] $Name"
+              $out = Join-Path $root "out$script:n"
+              New-Item -ItemType Directory $out -Force | Out-Null
+              if ($FreshCache) { $env:ZIG_GLOBAL_CACHE_DIR = Join-Path $root "cache$script:n" } else { $env:ZIG_GLOBAL_CACHE_DIR = $originalCache }
+              Push-Location $out
+              $started = Get-Date
+              Write-Host "> zig $($Arguments -join ' ')"
+              & $zig @Arguments 2>&1 | ForEach-Object { Write-Host "$_" }
+              $code = $LASTEXITCODE
+              Pop-Location
+              $hex = '0x{0:X8}' -f [int] $code
+              $verdict = if ($code -eq 0) { 'OK' } else { 'FAIL' }
+              Write-Host "RESULT [$script:n] $verdict exit $code ($hex) :: $Name"
+              if ($code -ne 0) {
+                  Get-WinEvent -LogName Application -MaxEvents 5 -ProviderName 'Application Error' -ErrorAction SilentlyContinue | Where-Object { $_.TimeCreated -ge $started } | ForEach-Object { Write-Host $_.Message }
+              }
+              Write-Host '::endgroup::'
+              "$verdict $hex $Name" | Out-File (Join-Path $root 'summary.txt') -Append
+          }
+          $hello = Join-Path $root 'hello.c'
+          $hellocpp = Join-Path $root 'hello.cpp'
+          $tiny = Join-Path $root 'tiny.zig'
+          Run-Case 'version' @('version')
+          Run-Case 'env' @('env')
+          Run-Case 'cc native, default cache' @('cc', $hello, '-o', 'a.exe')
+          Run-Case 'cc -target native' @('cc', '-target', 'native', $hello, '-o', 'a.exe')
+          Run-Case 'cc -target aarch64-windows-gnu, link' @('cc', '-target', 'aarch64-windows-gnu', $hello, '-o', 'a.exe')
+          Run-Case 'cc -target aarch64-windows-gnu -c (no link)' @('cc', '-target', 'aarch64-windows-gnu', '-c', $hello, '-o', 'a.o')
+          Run-Case 'cc -target aarch64-windows-gnu -mcpu=baseline, link' @('cc', '-target', 'aarch64-windows-gnu', '-mcpu=baseline', $hello, '-o', 'a.exe')
+          Run-Case 'cc -target aarch64-windows-gnu -mcpu=baseline -c' @('cc', '-target', 'aarch64-windows-gnu', '-mcpu=baseline', '-c', $hello, '-o', 'a.o')
+          Run-Case 'cc -target aarch64-windows-gnu, fresh global cache' @('cc', '-target', 'aarch64-windows-gnu', $hello, '-o', 'a.exe') $true
+          Run-Case 'cc -target aarch64-windows-gnu -mcpu=baseline, fresh global cache' @('cc', '-target', 'aarch64-windows-gnu', '-mcpu=baseline', $hello, '-o', 'a.exe') $true
+          Run-Case 'c++ -target aarch64-windows-gnu -mcpu=baseline -c' @('c++', '-target', 'aarch64-windows-gnu', '-mcpu=baseline', '-std=c++17', '-c', $hellocpp, '-o', 'a.o')
+          Run-Case 'cc -target aarch64-windows-msvc -c' @('cc', '-target', 'aarch64-windows-msvc', '-c', $hello, '-o', 'a.obj')
+          Run-Case 'cc -target x86_64-windows-gnu -c (cross to x64)' @('cc', '-target', 'x86_64-windows-gnu', '-c', $hello, '-o', 'a.o')
+          Run-Case 'build-lib tiny.zig -target aarch64-windows' @('build-lib', $tiny, '-target', 'aarch64-windows', '-dynamic')
+          Run-Case 'build-lib tiny.zig -target aarch64-windows-gnu -mcpu=baseline' @('build-lib', $tiny, '-target', 'aarch64-windows-gnu', '-mcpu=baseline', '-dynamic')
+          Run-Case 'build-lib tiny.zig -fno-llvm -fno-lld' @('build-lib', $tiny, '-target', 'aarch64-windows', '-fno-llvm', '-fno-lld', '-dynamic')
+          Write-Host "===== SUMMARY Zig $env:ZIG_VERSION ====="
+          Get-Content (Join-Path $root 'summary.txt') | ForEach-Object { Write-Host $_ }
+          Write-Host '===== WER reports ====='
+          Get-ChildItem "$env:ProgramData\Microsoft\Windows\WER\ReportArchive", "$env:ProgramData\Microsoft\Windows\WER\ReportQueue" -ErrorAction SilentlyContinue | ForEach-Object { $_.FullName }
+          exit 0

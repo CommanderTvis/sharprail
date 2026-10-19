@@ -55,7 +55,7 @@ function Invoke-Zig([string] $Zig, [string] $RuntimeIdentifier, [string] $Out, [
     try { & $Zig @Arguments 2>&1 | ForEach-Object { Write-Host "$_" } } finally { $ErrorActionPreference = $saved }
     $code = $LASTEXITCODE
     if ($code -eq 0) { return }
-    $hex = '0x{0:X8}' -f ([uint32] ($code -band 0xFFFFFFFF))
+    $hex = '0x{0:X8}' -f [int] $code
     $message = "$Zig $($Arguments -join ' ') failed with exit code $code ($hex)"
     Write-Host "::error title=Zig failed::$($message -replace '%', '%25' -replace "`r", '%0D' -replace "`n", '%0A')"
     Write-Host '--- Application Error events (newest 5) ---'
