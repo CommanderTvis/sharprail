@@ -233,6 +233,17 @@ internal static class StartupChecks
             Require(tab.Bounds.Width > 0 && tab.GetLogicalAncestors().OfType<ContentControl>().Any(control => control.Name == "WorkspaceTabs") &&
                 window.GetLogicalDescendants().OfType<TextBlock>().Any(text => text.Text == "Loading workspace…"),
                 "The requested document tab and loading body must render while host routing is held.");
+            var loading = window.GetLogicalDescendants().OfType<TextBlock>().First(text => text.Name == "WorkspaceLoading" && text.Bounds.Width > 0);
+            foreach (var (width, height) in new[] { (1100d, 700d), (960d, 620d) })
+            {
+                window.Width = width; window.Height = height;
+                Pump(() => loading.Bounds.Width > 0);
+                var pane = loading.GetVisualAncestors().OfType<Control>().First(c => c.Bounds.Width > loading.Bounds.Width * 3 && c.Bounds.Height > loading.Bounds.Height * 3);
+                var center = loading.TranslatePoint(new Point(loading.Bounds.Width / 2, loading.Bounds.Height / 2), pane)!.Value;
+                Require(Math.Abs(center.X - pane.Bounds.Width / 2) < 2 && Math.Abs(center.Y - pane.Bounds.Height / 2) < 2,
+                    $"The loading placeholder must be centered in its pane at {width}x{height}.");
+                tab = window.GetLogicalDescendants().OfType<Button>().Single(button => button.Name == "Tab_markdown_README.md");
+            }
             host.OpenHold.SetResult();
             Pump(() => window.WorkspaceMounted && host.FilesStarted && host.Requests.Count == 1);
             Require(!host.FilesHold.Task.IsCompleted && window.GetLogicalDescendants().Contains(tab),

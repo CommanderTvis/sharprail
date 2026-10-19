@@ -434,10 +434,20 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         }
     }
 
+    // Centered, muted, and the same size in both loading branches so the swap to real content does not shift.
+    internal static Control LoadingPlaceholder()
+    {
+        var text = Ui.Text("Loading workspace…", Ui.Muted, 12);
+        text.Name = "WorkspaceLoading";
+        text.HorizontalAlignment = HorizontalAlignment.Center;
+        text.VerticalAlignment = VerticalAlignment.Center;
+        return text;
+    }
+
     private Control RenderContent(DockTab? tab)
     {
         if (switchingWorkspace && tab is { IsTool: true } && toolContent.TryGetValue(tab.Id, out var retained)) return retained;
-        if (switchingWorkspace) return Ui.Text("Loading workspace…");
+        if (switchingWorkspace) return LoadingPlaceholder();
         if (tab is null)
         {
             if (atHome || cleanWelcome) return Welcome();
@@ -466,7 +476,7 @@ public sealed partial class WorkbenchWindow : Window, IDialogOwner
         if (tab.IsTool)
         {
             // Projects is useful while routing; other panes would be discarded as soon as the workspace mounts.
-            if (!WorkspaceMounted && tab.Id != "projects") return Ui.Text("Loading workspace…");
+            if (!WorkspaceMounted && tab.Id != "projects") return LoadingPlaceholder();
             if (!toolContent.TryGetValue(tab.Id, out var content))
             {
                 content = tab.Id switch
