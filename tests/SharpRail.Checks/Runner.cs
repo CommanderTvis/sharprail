@@ -57,6 +57,9 @@ internal static class Runner
     internal const string JobShardVariable = "SHARPRAIL_CHECKS_JOB_SHARD";
     internal const string ResultVariable = "SHARPRAIL_CHECKS_RESULT";
 
+    /// <summary>Set to <c>1</c> to run every selected case and report all failures instead of stopping at the first.</summary>
+    internal const string KeepGoingVariable = "SHARPRAIL_CHECKS_KEEP_GOING";
+
     internal static string LastRun => Path.Combine(Directory.GetCurrentDirectory(), ".bench", "checks-last-run.txt");
 
     [STAThread]
@@ -87,7 +90,8 @@ internal static class Runner
             repair = File.Exists(LastRun) ? [.. File.ReadAllLines(LastRun).Where(line => line.Length > 0).Select(Unfinished.Parse)] : [];
             if (repair.Count == 0) { Console.WriteLine("The last run left nothing unfinished."); return 0; }
         }
-        Gate.Configure(new(options.Shard ?? options.Job ?? Shard.Whole, repair, options.Cases), options.List);
+        Gate.Configure(new(options.Shard ?? options.Job ?? Shard.Whole, repair, options.Cases), options.List,
+            Environment.GetEnvironmentVariable(KeepGoingVariable) == "1" && options.Rest.Length == 0);
         var gate = options.Rest.Length == 0 && !options.List;
         try
         {
@@ -96,13 +100,18 @@ internal static class Runner
         catch (Exception error)
         {
             Console.Error.WriteLine(error);
+            if (Gate.KeepGoing) CiReport.Publish(Gate.Failures, Gate.Timings, Gate.Passed.Count, Gate.Skipped, ShardLabel(), true);
             CiReport.Failed(Gate.Running ?? (options.Rest.Length > 0 ? "checks " + string.Join(' ', options.Rest) : "(setup)"), error, Gate.Passed.Count, Gate.Skipped);
             if (gate) Record(Gate.Remaining, options.Cases is null);
             Environment.Exit(1);
         }
-        if (gate) Record([], options.Cases is null);
-        return 0;
+        if (gate && Gate.KeepGoing && !options.List)
+            CiReport.Publish(Gate.Failures, Gate.Timings, Gate.Passed.Count, Gate.Skipped, ShardLabel(), true);
+        if (gate) Record(Gate.Failed, options.Cases is null);
+        return Gate.Failures.Count > 0 ? 1 : 0;
     }
+
+    private static string? ShardLabel() => Gate.Shard.Total > 1 ? Gate.Shard.ToString() : null;
 
     // A lane reports to its owner; a run that named its cases says nothing about the rest of the gate.
     private static void Record(IReadOnlyList<Unfinished> unfinished, bool whole)

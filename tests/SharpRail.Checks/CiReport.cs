@@ -8,8 +8,16 @@ namespace SharpRail.Checks;
 /// What a failed run says on the GitHub Actions run page: a workflow annotation per failed case and a section of
 /// the step summary, so the cause is readable without opening the log. Inactive outside GitHub Actions.
 /// </summary>
+internal sealed record CaseFailure(string Name, int Ordinal, string Message, string? File, int Line, TimeSpan Duration, string Tail);
+
+internal sealed record CaseTiming(string Name, TimeSpan Duration, bool Failed);
+
 internal static partial class CiReport
 {
+    private const int SlowestShown = 15;
+
+    private static bool capturing;
+
     private const int TailLines = 30, BufferLimit = 64 * 1024;
 
     private static readonly object gate = new();
@@ -22,15 +30,17 @@ internal static partial class CiReport
 
     internal static void Enable()
     {
-        if (Environment.GetEnvironmentVariable("GITHUB_ACTIONS") != "true" || Active) return;
-        Active = true;
+        var github = Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true";
+        if (capturing || !github && Environment.GetEnvironmentVariable(Runner.KeepGoingVariable) != "1") return;
+        capturing = true;
+        Active = github;
         Console.SetOut(new Tee(Console.Out));
         Console.SetError(new Tee(Console.Error));
     }
 
     internal static void BeginCase(string name)
     {
-        if (!Active) return;
+        if (!capturing) return;
         lock (gate) recent.Clear();
         if (Grouping) Console.WriteLine("::group::" + name);
     }
@@ -40,36 +50,77 @@ internal static partial class CiReport
         if (Grouping) Console.WriteLine("::endgroup::");
     }
 
+    /// <summary>Describes a failed case, taking the tail of the output it alone produced.</summary>
+    internal static CaseFailure Describe(string name, int ordinal, Exception error, TimeSpan duration)
+    {
+        string tail;
+        lock (gate) tail = string.Join('\n', recent.ToString().Split('\n').TakeLast(TailLines)).Trim('\r', '\n');
+        var (file, line) = Location(error.ToString());
+        return new(name, ordinal, FirstLine(error.Message), file, line, duration, tail);
+    }
+
     /// <summary>Annotates the failure and appends it to the step summary.</summary>
     internal static void Failed(string name, Exception error, int passed, int skipped)
     {
         if (!Active) return;
-        string tail;
-        lock (gate) tail = string.Join('\n', recent.ToString().Split('\n').TakeLast(TailLines)).Trim('\r', '\n');
-        var message = FirstLine(error.Message);
-        var (file, line) = Location(error.ToString());
-        // A group left open would swallow the annotation's context in the log.
+        Publish([Describe(name, -1, error, TimeSpan.Zero)], [], passed, skipped, null, keepGoing: false);
+    }
+
+    /// <summary>
+    /// The end of a run: with keep-going, a console table of every failure and the slowest cases; under Actions an
+    /// annotation per failed case and a step summary with the failures, each one's own output tail and the timings.
+    /// </summary>
+    internal static void Publish(IReadOnlyList<CaseFailure> failures, IReadOnlyList<CaseTiming> timings, int passed, int skipped, string? shard, bool keepGoing)
+    {
+        if (keepGoing)
+        {
+            Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"CHECKS {(failures.Count == 0 ? "PASS" : "FAIL")}: passed {passed}, failed {failures.Count}, skipped {skipped}"));
+            foreach (var failure in failures)
+                Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"FAIL {failure.Name} ({failure.Duration.TotalSeconds:F1}s) {failure.Message} {(failure.File is null ? "" : $"[{failure.File}:{failure.Line}]")}"));
+            foreach (var timing in timings.OrderByDescending(timing => timing.Duration).Take(SlowestShown))
+                Console.WriteLine(string.Create(CultureInfo.InvariantCulture, $"TIME {timing.Duration.TotalSeconds,7:F1}s {timing.Name}{(timing.Failed ? " (failed)" : "")}"));
+        }
+        if (!Active) return;
+        // A group left open would swallow the annotations' context in the log.
         EndCase();
-        var where = file is null ? "" : $"file={Property(file)},line={line},";
-        Console.WriteLine($"::error {where}title={Property(name)}::{Data(message)}");
+        foreach (var failure in failures)
+        {
+            var where = failure.File is null ? "" : $"file={Property(failure.File)},line={failure.Line},";
+            Console.WriteLine($"::error {where}title={Property(failure.Name)}::{Data(failure.Message)}");
+        }
         if (Environment.GetEnvironmentVariable("GITHUB_STEP_SUMMARY") is not { Length: > 0 } summary) return;
-        var location = file is null ? "" : $"{file}:{line}";
-        var text = new StringBuilder()
-            .AppendLine(CultureInfo.InvariantCulture, $"### Failed check: `{name}`")
-            .AppendLine()
-            .AppendLine(CultureInfo.InvariantCulture, $"Passed {passed}, failed 1, skipped {skipped} (outside this process's selection); the gate stops at the first failure.")
-            .AppendLine()
-            .AppendLine("| Case | Message | Location |")
-            .AppendLine("| --- | --- | --- |")
-            .AppendLine(CultureInfo.InvariantCulture, $"| `{Cell(name)}` | {Cell(message)} | {(location.Length == 0 ? "" : $"`{Cell(location)}`")} |")
-            .AppendLine()
-            .AppendLine(CultureInfo.InvariantCulture, $"<details><summary>Last {TailLines} lines of output</summary>")
-            .AppendLine()
-            .AppendLine("```")
-            .AppendLine(tail.Replace("```", "'''", StringComparison.Ordinal))
-            .AppendLine("```")
-            .AppendLine("</details>")
-            .AppendLine();
+        var text = new StringBuilder();
+        var slice = shard is null ? "" : $" (shard {shard})";
+        if (failures.Count > 0)
+        {
+            text.AppendLine(CultureInfo.InvariantCulture, $"### Failed checks{slice}: {failures.Count}")
+                .AppendLine()
+                .AppendLine(CultureInfo.InvariantCulture, $"Passed {passed}, failed {failures.Count}, skipped {skipped} (outside this process's selection); {(keepGoing ? "keep-going: every selected case ran." : "the gate stops at the first failure.")}")
+                .AppendLine()
+                .AppendLine("| Case | Seconds | Message | Location |")
+                .AppendLine("| --- | --- | --- | --- |");
+            foreach (var failure in failures)
+                text.AppendLine(CultureInfo.InvariantCulture, $"| `{Cell(failure.Name)}` | {failure.Duration.TotalSeconds:F1} | {Cell(failure.Message)} | {(failure.File is null ? "" : $"`{Cell($"{failure.File}:{failure.Line}")}`")} |");
+            text.AppendLine();
+            foreach (var failure in failures)
+                text.AppendLine(CultureInfo.InvariantCulture, $"<details><summary>`{Cell(failure.Name)}`: last {TailLines} lines of its output</summary>")
+                    .AppendLine()
+                    .AppendLine("```")
+                    .AppendLine(failure.Tail.Replace("```", new string('\'', 3), StringComparison.Ordinal))
+                    .AppendLine("```")
+                    .AppendLine("</details>")
+                    .AppendLine();
+        }
+        if (timings.Count > 0)
+        {
+            text.AppendLine(CultureInfo.InvariantCulture, $"<details><summary>Slowest {Math.Min(SlowestShown, timings.Count)} of {timings.Count} cases{slice}</summary>")
+                .AppendLine()
+                .AppendLine("| Case | Seconds |")
+                .AppendLine("| --- | --- |");
+            foreach (var timing in timings.OrderByDescending(timing => timing.Duration).Take(SlowestShown))
+                text.AppendLine(CultureInfo.InvariantCulture, $"| `{Cell(timing.Name)}`{(timing.Failed ? " (failed)" : "")} | {timing.Duration.TotalSeconds:F1} |");
+            text.AppendLine().AppendLine("</details>").AppendLine();
+        }
         try { File.AppendAllText(summary, text.ToString()); }
         catch (IOException) { }
     }

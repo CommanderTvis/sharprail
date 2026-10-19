@@ -182,6 +182,13 @@ no listing pass and is identical in every process of one build.
   its shard, in `.bench/checks-last-run.txt`; lanes merge their records. `--last-failed` is a serial run of
   exactly those cases. A repair that fails again narrows the record to what is still owed, a passing one
   clears it, and a record whose case no longer sits at its ordinal is refused in favour of the whole gate.
+- `SHARPRAIL_CHECKS_KEEP_GOING=1` makes the gate continue after a failed case (CI sets it). A case that throws is
+  recorded with its message, location, duration and the tail of its own output; the working directory and
+  environment are restored before the next case. The run then prints the failures and the slowest cases, writes
+  them to the step summary with one `::error` per case, records each failed case alone (`!ordinal shard name`) so
+  `--last-failed` reruns only those, and exits 1. Cases do not depend on each other, so none is skipped. Lanes
+  and shards keep going independently. Focused modes ignore it. `-- --runner` proves it with a fixture of
+  failing, throwing and passing cases.
 - `--case a,b` runs named cases alone and `--list-cases` prints the selection; neither touches the record.
 - These options apply to the argument-free gate only. A focused mode runs whole, in one lane, and is
   rejected with them.

@@ -58,6 +58,7 @@ jobs:
           git config --global init.defaultBranch main
       - env:
           SHARPRAIL_CHECKS_JOB_SHARD: ${{ matrix.shard }}
+          SHARPRAIL_CHECKS_KEEP_GOING: "1"
         run: sh scripts/ci-run.sh "Checks ${{ matrix.mode }} ${{ matrix.shard }}" sh scripts/mise run check ${{ matrix.mode != 'full' && format('-- --{0}', matrix.mode) || '' }}
       - if: failure()
         uses: ./.github/actions/diagnostics
@@ -78,7 +79,9 @@ jobs:
           key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock') }}
       - run: ./scripts/ci-run.ps1 "Package Windows" -- ./scripts/mise.cmd run package:windows -- -RuntimeIdentifier win-x64
       - run: ./scripts/ci-run.ps1 "Format" -- ./scripts/mise.cmd run format
-      - run: ./scripts/ci-run.ps1 "Packaged check Windows" -- ./scripts/mise.cmd run check:packaged -- -RuntimeIdentifier win-x64 --windows
+      - env:
+          SHARPRAIL_CHECKS_KEEP_GOING: "1"
+        run: ./scripts/ci-run.ps1 "Packaged check Windows" -- ./scripts/mise.cmd run check:packaged -- -RuntimeIdentifier win-x64 --windows
       - uses: actions/upload-artifact@v4
         with:
           name: SharpRail-win-x64
@@ -99,7 +102,9 @@ jobs:
           path: ~/.sharprail/tools
           key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock') }}
       - run: sh scripts/ci-run.sh "Package Linux" sh scripts/mise run package:linux
-      - run: sh scripts/ci-run.sh "Packaged check Linux" sh scripts/mise run check:packaged -- --linux
+      - env:
+          SHARPRAIL_CHECKS_KEEP_GOING: "1"
+        run: sh scripts/ci-run.sh "Packaged check Linux" sh scripts/mise run check:packaged -- --linux
       - uses: actions/upload-artifact@v4
         with:
           name: SharpRail-linux-x64

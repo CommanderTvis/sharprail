@@ -105,7 +105,9 @@ jobs:
             sleep 30
           done
           exit 1
-      - run: sh scripts/ci-run.sh "Packaged check Linux" sh scripts/mise run check:packaged -- --linux
+      - env:
+          SHARPRAIL_CHECKS_KEEP_GOING: "1"
+        run: sh scripts/ci-run.sh "Packaged check Linux" sh scripts/mise run check:packaged -- --linux
       - uses: actions/upload-artifact@v4
         with:
           name: SharpRail-nightly-linux-x64
@@ -151,7 +153,9 @@ jobs:
             src/SharpRail.Scintilla/obj/native/win-x64/SharpRailScintillaNative.dll
             src/SharpRail.Scintilla/obj/native/win-x64/fingerprint
           key: ${{ steps.windows-native.outputs.cache-primary-key }}
-      - run: ./scripts/ci-run.ps1 "Packaged check Windows x64" -- ./scripts/mise.cmd run check:packaged -- -RuntimeIdentifier win-x64 --windows
+      - env:
+          SHARPRAIL_CHECKS_KEEP_GOING: "1"
+        run: ./scripts/ci-run.ps1 "Packaged check Windows x64" -- ./scripts/mise.cmd run check:packaged -- -RuntimeIdentifier win-x64 --windows
       - uses: actions/upload-artifact@v4
         with:
           name: SharpRail-nightly-windows-x64
@@ -233,7 +237,9 @@ jobs:
             src/SharpRail.Scintilla/obj/native/win-arm64/SharpRailScintillaNative.dll
             src/SharpRail.Scintilla/obj/native/win-arm64/fingerprint
           key: ${{ steps.windows-native.outputs.cache-primary-key }}
-      - run: ./scripts/ci-run.ps1 "Packaged check Windows ARM64" -- ./scripts/mise.cmd run check:packaged -- -RuntimeIdentifier win-arm64 --windows
+      - env:
+          SHARPRAIL_CHECKS_KEEP_GOING: "1"
+        run: ./scripts/ci-run.ps1 "Packaged check Windows ARM64" -- ./scripts/mise.cmd run check:packaged -- -RuntimeIdentifier win-arm64 --windows
       - uses: actions/upload-artifact@v4
         with:
           name: SharpRail-nightly-windows-arm64

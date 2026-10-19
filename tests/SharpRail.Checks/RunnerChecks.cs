@@ -20,13 +20,25 @@ internal static class RunnerChecks
         ? () =>
         {
             var failing = Environment.GetEnvironmentVariable(FixtureFailure);
+            string[] failures = failing?.Split(',') ?? [];
             if (failing == Unfinished.Setup) throw new InvalidOperationException("Fixture setup failed.");
             for (var index = 0; index < count; index++)
             {
                 var name = "c" + index.ToString(CultureInfo.InvariantCulture);
                 Gate.Case(name, () =>
                 {
-                    if (name == failing) throw new InvalidOperationException("Fixture case failed: " + name);
+                    // A failed case leaves state behind, as a real one does; keep-going must not let it reach the next.
+                    if (Environment.GetEnvironmentVariable("FIXTURE_LEAK") is not null) Console.WriteLine("LEAKED into " + name);
+                    if (failures.Contains(name))
+                    {
+                        if (Environment.GetEnvironmentVariable(Runner.KeepGoingVariable) == "1")
+                        {
+                            Environment.SetEnvironmentVariable("FIXTURE_LEAK", "1");
+                            Directory.CreateDirectory("leak"); Directory.SetCurrentDirectory("leak");
+                        }
+                        if (name == failures[^1]) throw new NotSupportedException("Fixture case threw: " + name);
+                        throw new InvalidOperationException("Fixture case failed: " + name);
+                    }
                     Console.WriteLine("RAN " + name);
                 });
             }
@@ -159,12 +171,15 @@ internal static class RunnerChecks
         Require(RunnerOptions.Parse(["--last-failed", "--lanes", "1"], null).LastFailed, "A serial repair run must be accepted.");
     }
 
+    private static bool keepGoing;
+
     private static (int Code, string[] Ran, string Output) RunGate(string directory, string? failing, string? job, params string[] args)
     {
         var start = Self(args);
         start.WorkingDirectory = directory;
         start.RedirectStandardOutput = true; start.RedirectStandardError = true;
         start.Environment[FixtureCases] = "10";
+        if (keepGoing) start.Environment[Runner.KeepGoingVariable] = "1"; else start.Environment.Remove(Runner.KeepGoingVariable);
         if (failing is null) start.Environment.Remove(FixtureFailure); else start.Environment[FixtureFailure] = failing;
         if (job is null) start.Environment.Remove(Runner.JobShardVariable); else start.Environment[Runner.JobShardVariable] = job;
         start.Environment.Remove(Runner.OwnerVariable);
@@ -215,6 +230,21 @@ internal static class RunnerChecks
 
         Expect(RunGate(directory, "c5", null), 1, Names(0, 1, 2, 3, 4), "The serial gate must stop at its first failure.");
         Expect(RunGate(directory, null, null, "--last-failed"), 0, Names(5, 6, 7, 8, 9), "A serial failure leaves the failing case and everything after it.");
+        keepGoing = true;
+        try
+        {
+            var all = RunGate(directory, "c1,c3,c6", null);
+            Expect(all, 1, Names(0, 2, 4, 5, 7, 8, 9), "Keep-going must run the cases behind a failure and exit nonzero.");
+            Require(all.Output.Contains("FAIL c1 ", StringComparison.Ordinal) && all.Output.Contains("FAIL c3 ", StringComparison.Ordinal) && all.Output.Contains("FAIL c6 ", StringComparison.Ordinal) &&
+                all.Output.Contains("passed 7, failed 3", StringComparison.Ordinal), "Keep-going must report every failure, the thrown one included.");
+            Require(!all.Output.Contains("LEAKED", StringComparison.Ordinal), "A failed case must not leak its environment into the next.");
+            Require(File.ReadAllLines(lastRun).SequenceEqual(["!1 1/1 c1", "!3 1/1 c3", "!6 1/1 c6"]), "Keep-going must record each failed case alone.");
+            Expect(RunGate(directory, null, null, "--last-failed"), 0, Names(1, 3, 6), "A repair run after keep-going must run only the failed cases.");
+            Expect(RunGate(directory, "c4,c7", null, "--lanes", "3"), 1, Names(0, 1, 2, 3, 5, 6, 8, 9), "Keep-going must run on in every lane and fail the merge.");
+            Require(File.ReadAllLines(lastRun).Order().SequenceEqual(["!4 2/3 c4", "!7 2/3 c7"]), "Lanes must merge their keep-going failures.");
+            Expect(RunGate(directory, null, "2/2"), 0, Names(1, 3, 5, 7, 9), "Keep-going must leave a passing shard passing.");
+        }
+        finally { keepGoing = false; }
         Expect(RunGate(directory, Unfinished.Setup, null, "--lanes", "2"), 1, [], "A setup failure must fail every lane.");
         Expect(RunGate(directory, null, null, "--last-failed"), 0, Names(0, 1, 2, 3, 4, 5, 6, 7, 8, 9), "Lanes that failed in setup owe their whole shards.");
 
