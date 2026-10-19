@@ -88,8 +88,12 @@ public sealed partial class RemoteProjectAdapter : IProjectServices, IDisposable
 
     public async ValueTask<IReadOnlyList<ProjectFile>> ListFilesAsync(string relativePath, CancellationToken cancellationToken = default)
     {
-        var reply = await service.ListFilesAsync(new() { Path = relativePath }, Context(cancellationToken));
-        return reply.Files.Select(file => new ProjectFile(file.Path, file.Name, file.IsDirectory, file.GitIgnored)).ToArray();
+        try
+        {
+            var reply = await service.ListFilesAsync(new() { Path = relativePath }, Context(cancellationToken));
+            return reply.Files.Select(file => new ProjectFile(file.Path, file.Name, file.IsDirectory, file.GitIgnored)).ToArray();
+        }
+        catch (RpcException error) when (error.StatusCode == StatusCode.NotFound) { throw new DirectoryNotFoundException(error.Status.Detail); }
     }
 
     public async IAsyncEnumerable<WorkspaceFileChanges> WatchFilesAsync([EnumeratorCancellation] CancellationToken cancellationToken = default)

@@ -163,6 +163,30 @@ internal static class FilesE2E
         Require(Node("single", true)!.Expanded, "External changes must preserve expanded folders.");
         Console.WriteLine("PASS files tree folders toggle on a single click of their name");
 
+        // Deleting expanded folders, nested or replaced by a file, removes them and keeps expanded siblings open.
+        Directory.CreateDirectory(Path.Combine(workspace, "gone", "inner", "deep"));
+        File.WriteAllText(Path.Combine(workspace, "gone", "keep.txt"), "k\n");
+        File.WriteAllText(Path.Combine(workspace, "gone", "inner", "deep", "x.txt"), "x\n");
+        Directory.CreateDirectory(Path.Combine(workspace, "swap", "sub"));
+        File.WriteAllText(Path.Combine(workspace, "swap", "a.txt"), "a\n");
+        Until(() => Node("gone", true) is not null && Node("swap", true) is not null);
+        app.Click(app.FileRow("gone"));
+        Until(() => Node("keep.txt", false) is not null);
+        app.ExpandFolder(Path.Combine("gone", "inner", "deep"));
+        Until(() => Node("x.txt", false) is not null);
+        app.Click(app.FileRow("swap"));
+        Until(() => Node("a.txt", false) is not null);
+        Directory.Delete(Path.Combine(workspace, "gone", "inner"), true);
+        Until(() => Node("x.txt", false) is null && Node("deep", true) is null);
+        Require(Node("keep.txt", false) is not null && Node("single", true)!.Expanded, "Deleting a nested folder keeps its expanded siblings.");
+        Directory.Delete(Path.Combine(workspace, "gone"), true);
+        Until(() => Node("gone", true) is null && Node("keep.txt", false) is null);
+        Directory.Delete(Path.Combine(workspace, "swap"), true);
+        File.WriteAllText(Path.Combine(workspace, "swap"), "now a file\n");
+        Until(() => Node("swap", true) is null && Node("swap", false) is not null && Node("a.txt", false) is null);
+        Require(Node("single", true)!.Expanded, "Removing folders keeps unrelated expanded folders open.");
+        Console.WriteLine("PASS files tree drops deleted and replaced folders");
+
         File.WriteAllBytes(Path.Combine(workspace, "blob.bin"), [0xFF, 0xFE, 0x00, 0x01]);
         Until(() => Node("blob.bin", false) is not null);
         app.Click(app.FileRow("blob.bin"));

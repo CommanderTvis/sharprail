@@ -83,6 +83,8 @@ internal static class ProjectChecks
             using var remote = new RemoteProjectAdapter(new Uri(address), "project-test");
             Require(await remote.OpenProjectAsync(fixture) == info, "Remote project differs.");
             Require((await remote.ListFilesAsync("")).SequenceEqual(files), "Remote files differ.");
+            try { await remote.ListFilesAsync("no-such-folder"); throw new InvalidOperationException("Missing folder listed."); }
+            catch (DirectoryNotFoundException) { }
             await CheckIgnoredFiles(local, remote, fixture);
             await CheckWatching(local, remote, fixture);
             Require(await remote.ReadFileAsync("README.md") == markdown, "Remote text differs.");

@@ -27,7 +27,10 @@ public sealed partial class ProjectRpc(ProjectSessions sessions, IHostApplicatio
 
     public ValueTask<ProjectFilesReply> ListFilesAsync(ProjectRequest request, CallContext context = default) => Execute(async () =>
     {
-        var result = await Host(context).ListFilesAsync(request.Path, context.CancellationToken);
+        IReadOnlyList<ProjectFile> result;
+        try { result = await Host(context).ListFilesAsync(request.Path, context.CancellationToken); }
+        // A vanished folder is how a client learns to drop it from a cached tree.
+        catch (DirectoryNotFoundException error) { throw new RpcException(new Status(StatusCode.NotFound, error.Message)); }
         return new ProjectFilesReply { Files = result.Select(file => new ProjectFileReply { Path = file.Path, Name = file.Name, IsDirectory = file.IsDirectory, GitIgnored = file.GitIgnored }).ToList() };
     });
 

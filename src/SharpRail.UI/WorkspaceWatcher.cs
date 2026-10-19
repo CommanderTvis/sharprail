@@ -126,7 +126,7 @@ public sealed partial class WorkbenchWindow
             if (request != projectRequest || !WorkspaceMounted) return;
             try { listed[folder] = await Task.Run(async () => await host.ListFilesAsync(folder, lifetime.Token), lifetime.Token); }
             catch (OperationCanceledException) { return; }
-            catch (Exception error) when (folder.Length > 0 && error is IOException or UnauthorizedAccessException) { }
+            catch (Exception error) when (folder.Length > 0 && (error is IOException or UnauthorizedAccessException || RemoteErrors.IsFailedPrecondition(error))) { }
             catch (Exception error)
             {
                 if (request == projectRequest)
