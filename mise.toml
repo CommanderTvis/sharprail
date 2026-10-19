@@ -10,9 +10,32 @@ min_version = "2026.10.13"
 lockfile = true
 
 [tools]
-dotnet = "10.0.401"
 # libghostty (the macOS view) builds with 0.14.1, libghostty-vt with 0.16.0.
 zig = ["0.14.1", "0.16.0"]
+
+# The .NET SDK (global.json must name the same version). mise's core dotnet backend records no URL or checksum, so the
+# archives come from Microsoft's release metadata (builds.dotnet.microsoft.com/dotnet/release-metadata/10.0/releases.json,
+# which lists SHA-512; the SHA-256 below was computed from archives matching it).
+[tools."http:dotnet"]
+version = "10.0.401"
+[tools."http:dotnet".platforms.macos-arm64]
+url = "https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.401/dotnet-sdk-10.0.401-osx-arm64.tar.gz"
+checksum = "sha256:d143ccec4474dce17d7b778854598137a2599b81828bce51e809897fe8bdf035"
+[tools."http:dotnet".platforms.macos-x64]
+url = "https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.401/dotnet-sdk-10.0.401-osx-x64.tar.gz"
+checksum = "sha256:0616332aa0b5edfa19443a9d217d14d086d2e9605d7c72979cf8ebbb494ac792"
+[tools."http:dotnet".platforms.linux-x64]
+url = "https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.401/dotnet-sdk-10.0.401-linux-x64.tar.gz"
+checksum = "sha256:137268c8ad939c064ff1ee2a6fdf0899d8725377114ea012fbd1ad5fa2550418"
+[tools."http:dotnet".platforms.linux-arm64]
+url = "https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.401/dotnet-sdk-10.0.401-linux-arm64.tar.gz"
+checksum = "sha256:91d3d67f2ed065909bd2e1ba50a37192aff6df15178304939d5b55634d72da6a"
+[tools."http:dotnet".platforms.windows-x64]
+url = "https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.401/dotnet-sdk-10.0.401-win-x64.zip"
+checksum = "sha256:c1b96dea223e1ab2af8a51187e0cc96338d14c68834be1656136be18953cea09"
+[tools."http:dotnet".platforms.windows-arm64]
+url = "https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.401/dotnet-sdk-10.0.401-win-arm64.zip"
+checksum = "sha256:adfcd206adaa407d45d97a8678b9c36bb83089ba520eda6a97ab5a707c9af583"
 
 # mise's core Zig has no Windows ARM64 build, so the Windows natives use this archive on both architectures.
 [tools."http:zig-windows"]
@@ -95,12 +118,12 @@ run_windows = "powershell -NoProfile -Command \"Get-Content mise.toml | Select-S
 quiet = true
 description = "Install the pinned toolchain into the shared store and link it into .tools"
 run = [
-  '"{{mise_bin}}" install dotnet zig http:merman http:scintilla http:sheenbidi',
-  'sh scripts/link-tools.sh "{{mise_bin}}" dotnet=dotnet zig-0.14.1=zig@0.14.1 zig-0.16.0=zig@0.16.0 merman=http:merman scintilla=http:scintilla sheenbidi=http:sheenbidi',
+  '"{{mise_bin}}" install http:dotnet zig http:merman http:scintilla http:sheenbidi',
+  'sh scripts/link-tools.sh "{{mise_bin}}" dotnet=http:dotnet zig-0.14.1=zig@0.14.1 zig-0.16.0=zig@0.16.0 merman=http:merman scintilla=http:scintilla sheenbidi=http:sheenbidi',
 ]
 run_windows = [
-  '"{{mise_bin}}" install dotnet http:zig-windows http:scintilla http:sheenbidi',
-  'powershell -NoProfile -ExecutionPolicy Bypass -File scripts/link-tools.ps1 "{{mise_bin}}" dotnet=dotnet zig-windows=http:zig-windows scintilla=http:scintilla sheenbidi=http:sheenbidi',
+  '"{{mise_bin}}" install http:dotnet http:zig-windows http:scintilla http:sheenbidi',
+  'powershell -NoProfile -ExecutionPolicy Bypass -File scripts/link-tools.ps1 "{{mise_bin}}" dotnet=http:dotnet zig-windows=http:zig-windows scintilla=http:scintilla sheenbidi=http:sheenbidi',
 ]
 
 [tasks."bootstrap:linux"]

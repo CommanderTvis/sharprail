@@ -55,11 +55,10 @@ Shared store. Tools install into `~/.sharprail/tools` (`SHARPRAIL_TOOLS`), one d
 copy; a version bump is a new directory, so older checkouts keep working. mise downloads and extracts
 into a temporary location and renames, under its own lock, so concurrent bootstraps are safe. Everything
 except the SDK is made read-only after linking (the SDK takes workload packs; `workload.sh` serialises those
-installs). A real directory in a link's place is renamed aside, never deleted. mise's dotnet tool keeps all
-SDK versions side by side in one root, so a bump adds an SDK beside the old one. Store paths are versioned
+installs). A real directory in a link's place is renamed aside, never deleted. The SDK is an `http:dotnet` tool (Microsoft's archives with per-platform SHA-256), so each version has its own
+directory like the other tools. Store paths are versioned
 by version only: a re-published archive with the same version string and a different checksum is rejected
-by the lock rather than getting a new directory. `scripts/mise` clears `DOTNET_ROOT`, which mise's dotnet
-tool would otherwise adopt as an existing install.
+by the lock rather than getting a new directory. `scripts/mise` clears `DOTNET_ROOT` so a foreign SDK is never mistaken for the pin.
 
 Caches. Zig's global package cache is shared in the store (it is content-addressed and locks per entry);
 per-build caches, patched source trees and objects stay in the checkout because they embed absolute paths.

@@ -80,8 +80,9 @@ Merman, the Scintilla and SheenBidi sources, and the pinned Ghostty commits; `mi
 NDK and `mise.browser.toml` Node, pnpm, uv and Binaryen. `mise.lock`, `mise.android.lock` and
 `mise.browser.lock` record the resolved version and SHA-256 of every archive for every platform and are
 committed (`scripts/mise lock` refreshes them; CI sets `MISE_LOCKED=1`, which refuses anything not in them).
-The .NET SDK is the one tool the lock cannot checksum (mise's dotnet tool installs it with Microsoft's
-installer); `global.json` pins its version.
+The .NET SDK is an `http:dotnet` tool for the same reason: mise's core dotnet tool records no URL or checksum, so
+`mise.toml` names Microsoft's per-platform archives (from the 10.0 `releases.json`, whose SHA-512 the pinned SHA-256s
+were checked against) and `global.json` pins the same version with `rollForward` disabled.
 
 Tools install into a store shared by every checkout, `~/.sharprail/tools` (`%USERPROFILE%\.sharprail\tools`;
 set `SHARPRAIL_TOOLS` to move it), one directory per version, so checkouts at the same pin share one copy and
