@@ -76,3 +76,21 @@ jobs:
           name: SharpRail-win-x64
           path: artifacts/SharpRail-win-x64.zip
           if-no-files-found: error
+
+  linux:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/cache@v4
+        with:
+          path: ~/.sharprail/tools
+          key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock') }}
+      - run: sh scripts/mise run package:linux
+      - run: sh scripts/mise run check:packaged -- --linux
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SharpRail-linux-x64
+          path: artifacts/SharpRail-linux-x64.AppImage
+          if-no-files-found: error
+          compression-level: 0

@@ -60,7 +60,7 @@ inputs changed, none otherwise. Store installs other than the SDK are read-only;
 | `tests/SharpRail.Checks` | Executable checks for host transports, runtime extensibility, layout, UI and Git/worktree integration. `E2E/` translates upstream scenarios using real headless Avalonia input. |
 | `mise.toml`, `mise.android.toml`, `mise.browser.toml` and their `.lock` files | The single toolchain manifest: the .NET SDK, Zig, Merman, the Scintilla and SheenBidi sources, the Android NDK, Binaryen, Node, pnpm and uv with per-platform archive checksums (`mise lock`), the pinned Ghostty commits and every task. The artifact matrix (target, native libraries, terminal renderer, publish task, package) is its header comment; `scripts/mise run targets` prints it. |
 | `scripts/mise`, `scripts/mise.cmd`, `scripts/mise-pinned`, `scripts/mise-pinned.cmd` | The entry point for every toolchain command (`scripts/mise run <task>`). It runs the checksum-pinned mise against the tool store shared by all checkouts and ignores the user's own mise configuration. |
-| `scripts/tasks` | What the mise tasks run: `dev`, `host`, `package-macos`, `dmg`, `package-windows`, `android`, `browser`, `check-packaged`, `check-terminal`, `check-fsevents`, `workload`. Do not run them directly. |
+| `scripts/tasks` | What the mise tasks run: `dev`, `host`, `package-macos`, `dmg`, `package-windows`, `package-linux`, `android`, `browser`, `check-packaged`, `check-terminal`, `check-fsevents`, `workload`. Do not run them directly. |
 | `scripts/link-tools.sh` / `.ps1`, `scripts/fetch-git.sh` | Link the store's installs into `.tools` (the `bootstrap` tasks run them); fetch a source pinned by Git commit. |
 | `scripts/README.md` | Script invocations, prerequisites, environment variables and output locations. |
 | `src/Ghostty.Avalonia/build-native.sh` | Builds pinned libghostty and libghostty-vt bridges on the target macOS architecture, using checkout-local tools and caches. |
@@ -68,9 +68,9 @@ inputs changed, none otherwise. Store installs other than the SDK are read-only;
 | `scripts/build-notifications.sh` | Compiles the User Notifications bridge into `src/SharpRail.UI/obj/native/libSharpRailNotifications.dylib`; the UI project's target runs it when `Native/Notifications.m` changes and copies the library beside the app. |
 | `.bench` | Ignored disposable fixtures, verification logs and own-window captures. Its name does not authorize benchmarks. |
 
-The nightly workflow builds macOS DMG, Android APK and Windows x64 and ARM64 ZIP packages at
+The nightly workflow builds macOS DMG, Linux x64 AppImage, Android APK and Windows x64 and ARM64 ZIP packages at
 03:00 UTC or by manual dispatch. Each Windows job (x64 on `windows-2025`, ARM64 on `windows-11-arm`) requires the packaged ReadyToRun
-`--windows` gate before the four assets publish together. Verify the actual workflow
+`--windows` gate, and the Linux job the packaged `--linux` gate, before the five assets publish together. Verify the actual workflow
 run and release assets before reporting a nightly deployed or runtime-verified.
 
 ## Scratch files
@@ -154,7 +154,7 @@ The separate loopback serves MCP and plugin routes. Remote Metal tabs run the
 Skia tabs attach directly to the same host service and draw through `GhosttySkiaView`.
 Read-only Skia views apply the holder's grid before initial replay. Android watched
 fonts fit between 10 and 13 DIP without resizing or taking ownership of that terminal.
-Metal requires macOS. Windows and Android use native libghostty-vt with Skia;
+Metal requires macOS. Windows, Linux and Android use native libghostty-vt with Skia (the Settings renderer choice is shown only on macOS; Linux defaults to Skia, and the Linux libraries cross-compile with Zig against glibc 2.31 from `build-linux.sh` beside Ghostty and Scintilla);
 browser terminals use Restty. Windows builds use the pinned native toolchain from
 `scripts/windows-native.ps1` and the terminal/editor projects' `build-windows.ps1`
 scripts. `WorkbenchWindow`
@@ -310,6 +310,7 @@ host state and profile/preset migration. `-- --file-drop` covers workspace file
 drag representations, transfers and attachment gestures.
 `-- --connection-errors` checks connection failure details and retry.
 `-- --windows` runs the Windows host, desktop and native renderer checks on Windows.
+`-- --linux` runs the Linux PTY, clone, native editor and Skia terminal checks on Linux (the portable part anywhere); `check:packaged -- --linux` runs it from the AppImage payload.
 Browser acceptance runs separately with `scripts/mise run browser check`; its
 Playwright tests are in `tests/SharpRail.Browser.Checks`.
 `node tests/SharpRail.Browser.Checks/restty-lifecycle.mjs --require-hardware --require-memory-return`
@@ -372,7 +373,8 @@ blocked; do not describe unrun checks as passed.
 Generated packages live under `artifacts/`; keep one latest canonical app package.
 `artifacts/ui`, `artifacts/host` and `artifacts/checks` contain published executables;
 `artifacts/SharpRail.app` is the macOS bundle. Windows publishes to
-`artifacts/windows/{client,host,checks}` and `artifacts/SharpRail-win-x64.zip` (ARM64: `artifacts/windows-arm64` and `artifacts/SharpRail-win-arm64.zip`);
+`artifacts/windows/{client,host,checks}` and `artifacts/SharpRail-win-x64.zip` (ARM64: `artifacts/windows-arm64` and `artifacts/SharpRail-win-arm64.zip`); Linux publishes to
+`artifacts/linux/{client,checks,AppDir}` and `artifacts/SharpRail-linux-x64.AppImage`;
 browser publishing writes `artifacts/browser` and Android packaging writes
 `artifacts/android/SharpRail.apk`. `.tools`, `bin` and `obj` are local
 tooling/build output, not source. `licenses/` and `THIRD-PARTY-NOTICES.md` document

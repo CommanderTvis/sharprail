@@ -32,6 +32,22 @@ os = ["macos"]
 url = "https://github.com/Latias94/merman/releases/download/v0.7.0/Merman.xcframework-v0.7.0.zip"
 checksum = "sha256:29a46ea5da99bad60888581073e88345ce370366a4855b4e2996355a7d0e880b"
 
+# The Linux AppImage is a pinned type 2 runtime followed by a squashfs image, which appimagetool writes. Both are
+# single files from tagged releases (the install keeps them as .tools/appimagetool/appimagetool.AppImage and
+# .tools/appimage-runtime/runtime); appimagetool is itself an AppImage and runs with APPIMAGE_EXTRACT_AND_RUN=1.
+[tools."http:appimagetool"]
+version = "1.9.1"
+os = ["linux"]
+[tools."http:appimagetool".platforms.linux-x64]
+url = "https://github.com/AppImage/appimagetool/releases/download/1.9.1/appimagetool-x86_64.AppImage"
+checksum = "sha256:ed4ce84f0d9caff66f50bcca6ff6f35aae54ce8135408b3fa33abfc3cb384eb0"
+[tools."http:appimage-runtime"]
+version = "20251108"
+os = ["linux"]
+[tools."http:appimage-runtime".platforms.linux-x64]
+url = "https://github.com/AppImage/type2-runtime/releases/download/20251108/runtime-x86_64"
+checksum = "sha256:2fca8b443c92510f1483a883f60061ad09b46b978b2631c807cd873a47ec260d"
+
 # Sources of the editor bridge (desktop, Android and WASM builds).
 [tools."http:scintilla"]
 version = "5.6.7"
@@ -62,6 +78,7 @@ ZIG_GLOBAL_CACHE_DIR = "{{ env.SHARPRAIL_TOOLS }}/zig-cache"
 # macos-arm64    macOS arm64       libGhosttyAvaloniaView, libGhosttyAvaloniaVt, libSharpRail.Scintilla,       Ghostty Metal texture       package:macos osx-arm64      artifacts/SharpRail.app, dmg task -> .dmg
 #                                  libSharpRailMermaid, libSharpRailNotifications                              (Skia fallback)
 # macos-x64      macOS x64         as macos-arm64 for x86_64                                                   as macos-arm64              package:macos osx-x64        artifacts/SharpRail.app
+# linux-x64      Linux x64         libGhosttyAvaloniaVt.so, libSharpRail.Scintilla.so (Zig, glibc 2.31)       libghostty-vt on Skia       package:linux                artifacts/SharpRail-linux-x64.AppImage
 # windows-x64    Windows x64       GhosttyAvaloniaVt.dll, SharpRailScintillaNative.dll                          libghostty-vt on Skia       package:windows win-x64      artifacts/SharpRail-win-x64.zip
 # windows-arm64  Windows ARM64     as windows-x64 for win-arm64 (builds natively on an ARM64 host)              libghostty-vt on Skia       package:windows win-arm64    artifacts/SharpRail-win-arm64.zip
 # android        macOS or Linux    libGhosttyAvaloniaVt.so, libSharpRail.Scintilla.so (arm64-v8a, x86_64)      libghostty-vt on Skia       package:android              artifacts/android/SharpRail.apk
@@ -83,6 +100,13 @@ run = [
 run_windows = [
   '"{{mise_bin}}" install dotnet http:zig-windows http:scintilla http:sheenbidi',
   'powershell -NoProfile -ExecutionPolicy Bypass -File scripts/link-tools.ps1 "{{mise_bin}}" dotnet=dotnet zig-windows=http:zig-windows scintilla=http:scintilla sheenbidi=http:sheenbidi',
+]
+
+[tasks."bootstrap:linux"]
+description = "Install the AppImage runtime and appimagetool into the shared store and link them into .tools (Linux)"
+run = [
+  '"{{mise_bin}}" install http:appimagetool http:appimage-runtime',
+  'sh scripts/link-tools.sh "{{mise_bin}}" appimagetool=http:appimagetool appimage-runtime=http:appimage-runtime',
 ]
 
 [tasks."bootstrap:android"]
@@ -174,6 +198,11 @@ depends = ["bootstrap"]
 run_windows = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/tasks/package-windows.ps1"
 run = "echo 'Windows packages are built on Windows.' >&2; exit 1"
 
+[tasks."package:linux"]
+description = "Publish the Linux client and checks and build artifacts/SharpRail-linux-x64.AppImage (linux-x64; builds on Linux)"
+depends = ["bootstrap"]
+run = "sh scripts/tasks/package-linux.sh"
+
 [tasks."package:android"]
 description = "Build the signed Release Android package into artifacts/android/SharpRail.apk"
 depends = ["bootstrap"]
@@ -196,7 +225,7 @@ run = "sh scripts/tasks/browser.sh"
 run_windows = "scripts\\tasks\\browser.bat"
 
 [tasks."check:packaged"]
-description = "Run the check gate from the published package (macOS bundle, or -RuntimeIdentifier on Windows)"
+description = "Run the check gate from the published package (macOS bundle, the Linux AppImage payload, or -RuntimeIdentifier on Windows)"
 run = "sh scripts/tasks/check-packaged.sh"
 run_windows = "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/tasks/check-packaged.ps1"
 

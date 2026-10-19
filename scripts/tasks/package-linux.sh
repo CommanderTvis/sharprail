@@ -1,0 +1,76 @@
+#!/bin/sh
+set -eu
+# `scripts/mise run package:linux`: publishes the Linux client and checks (self-contained, ReadyToRun) and packs the client into
+# artifacts/SharpRail-linux-x64.AppImage with the pinned appimagetool and type 2 runtime. The native libraries cross-compile with Zig
+# during the build, so the managed publish also works on macOS; appimagetool runs on Linux only. Set SHARPRAIL_APPDIR_ONLY=1
+# elsewhere to stop after assembling artifacts/linux/AppDir.
+cd "$(dirname "$0")/../.."
+dotnet_cmd="${DOTNET:-.tools/dotnet/dotnet}"
+rid=linux-x64
+output=artifacts/linux
+image=artifacts/SharpRail-linux-x64.AppImage
+if [ "$(uname -s)" != Linux ] && [ "${SHARPRAIL_APPDIR_ONLY:-}" != 1 ]; then
+  echo 'appimagetool runs on Linux; set SHARPRAIL_APPDIR_ONLY=1 to assemble artifacts/linux/AppDir here.' >&2
+  exit 1
+fi
+# Publish copies only newer files; stale outputs would otherwise survive into the package.
+rm -rf "$output" "$image"
+# The compiler gate, the natives and the fixture plugin the checks install.
+"$dotnet_cmd" build SharpRail.slnx -c Release
+# One locked restore (packages.lock.json lists every shipped RID) that also fetches the runtime and Crossgen packs;
+# the publishes below reuse it, since a `-r` restore would not match the lock's RuntimeIdentifiers.
+"$dotnet_cmd" restore SharpRail.slnx -p:SelfContained=true -p:PublishReadyToRun=true
+"$dotnet_cmd" publish src/SharpRail.UI -c Release -r "$rid" --self-contained true --no-restore \
+  -p:PublishReadyToRun=true -p:PublishReadyToRunComposite=true -o "$output/client"
+# The packaged gate combines checks with the client's shipped components, so the checks publish apart and non-composite.
+"$dotnet_cmd" publish tests/SharpRail.Checks -c Release -r "$rid" --self-contained true --no-restore \
+  -p:PublishReadyToRun=true -p:PublishReadyToRunComposite=false -o "$output/checks"
+cp -R tests/SharpRail.Checks/bin/Release/net10.0/plugin-fixture "$output/checks/"
+
+app="$output/AppDir"
+payload="$app/usr/lib/sharprail"
+mkdir -p "$payload" "$app/usr/share/doc/sharprail" "$app/usr/share/icons/hicolor/96x96/apps"
+cp -R "$output/client/." "$payload/"
+# Debug symbols and API documentation do not belong in an image users download.
+find "$payload" \( -name '*.pdb' -o -name '*.xml' \) -type f -delete
+chmod +x "$payload/SharpRail.UI"
+cp THIRD-PARTY-NOTICES.md "$app/usr/share/doc/sharprail/"
+cp src/SharpRail.Plugins.UI.Kit/Assets/Icons/brand.png "$app/sharprail.png"
+cp "$app/sharprail.png" "$app/.DirIcon"
+cp "$app/sharprail.png" "$app/usr/share/icons/hicolor/96x96/apps/sharprail.png"
+cat > "$app/sharprail.desktop" <<'DESKTOP'
+[Desktop Entry]
+Type=Application
+Name=SharpRail
+Comment=Workbench for projects, Git worktrees, specs and agent terminals
+Exec=SharpRail.UI
+Icon=sharprail
+Terminal=false
+Categories=Development;IDE;
+StartupWMClass=SharpRail.UI
+DESKTOP
+cat > "$app/AppRun" <<'APPRUN'
+#!/bin/sh
+here="$(dirname "$(readlink -f "$0")")"
+# .NET aborts at startup without ICU unless globalization is invariant; minimal images lack it, so fall back to invariant mode.
+if [ -z "${DOTNET_SYSTEM_GLOBALIZATION_INVARIANT:-}" ] && ! PATH="$PATH:/sbin:/usr/sbin" ldconfig -p 2>/dev/null | grep -q 'libicuuc\.so'; then
+  export DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=1
+fi
+exec "$here/usr/lib/sharprail/SharpRail.UI" "$@"
+APPRUN
+chmod +x "$app/AppRun"
+
+if [ "$(uname -s)" != Linux ]; then
+  echo "Assembled $app; run this task on Linux to build the AppImage."
+  exit 0
+fi
+# These tools exist for Linux only, so the task installs them here rather than depending on their bootstrap.
+sh scripts/mise run bootstrap:linux
+tool=.tools/appimagetool/appimagetool.AppImage
+runtime=.tools/appimage-runtime/runtime
+[ -f "$tool" ] && [ -f "$runtime" ] || { echo 'bootstrap:linux did not install appimagetool.' >&2; exit 1; }
+# The store is read-only and appimagetool needs neither FUSE nor a writable home: it unpacks itself and writes only the image.
+ARCH=x86_64 APPIMAGE_EXTRACT_AND_RUN=1 "$tool" --no-appstream --runtime-file "$runtime" --comp zstd \
+  --mksquashfs-opt -Xcompression-level --mksquashfs-opt 19 "$app" "$image"
+chmod +x "$image"
+echo "Built $image"

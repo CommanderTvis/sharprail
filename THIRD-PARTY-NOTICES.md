@@ -78,6 +78,9 @@ see licenses/YamlDotNet.txt.
 
 PDF Preview renders through PDFium 156.0.8076 from bblanchon.PDFium.macOS/Linux, and from
 bblanchon.PDFium.Android in the Android client.
+The Linux AppImage starts with the AppImage type 2 runtime 20251108 (https://github.com/AppImage/type2-runtime, MIT License,
+Copyright (c) 2004-23 probonopd), which links its own libraries statically; appimagetool 1.9.1 (MIT License) writes the image
+and is not part of it. Both are fetched at the pinned checksums in mise.toml.
 The browser client uses the same chromium/8076 release's official PDFium WASM distribution and
 Merman 0.7.0's WASM package. Their licenses and the project's dependency notices are included in the
 browser bundle under `vendor/`; native terminal/editor dependencies retain the licenses listed here.
