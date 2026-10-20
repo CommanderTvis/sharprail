@@ -28,11 +28,13 @@ fi
 rm -rf "$output" "$image"
 # The compiler gate, the natives and the fixture plugin the checks install.
 "$dotnet_cmd" build SharpRail.slnx -c Release
+# The About screen's version stamp, as the nightly names its builds: UTC date and short commit.
+stamp="$(date -u +%Y%m%d)-$(git rev-parse --short HEAD)"
 # One locked restore (packages.lock.json lists every shipped RID) that also fetches the runtime and Crossgen packs;
 # the publishes below reuse it, since a `-r` restore would not match the lock's RuntimeIdentifiers.
 "$dotnet_cmd" restore SharpRail.slnx -p:SelfContained=true -p:PublishReadyToRun=true
 "$dotnet_cmd" publish src/SharpRail.UI -c Release -r "$rid" --self-contained true --no-restore \
-  -p:PublishReadyToRun=true -p:PublishReadyToRunComposite=true -o "$output/client"
+  -p:PublishReadyToRun=true -p:PublishReadyToRunComposite=true -p:SharpRailBuildStamp="$stamp" -o "$output/client"
 # The packaged gate combines checks with the client's shipped components, so the checks publish apart and non-composite.
 "$dotnet_cmd" publish tests/SharpRail.Checks -c Release -r "$rid" --self-contained true --no-restore \
   -p:PublishReadyToRun=true -p:PublishReadyToRunComposite=false -o "$output/checks"

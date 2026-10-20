@@ -7,11 +7,13 @@ rid="${1:-osx-arm64}"
 # Publish copies only newer files; stale outputs (for example a native library from a
 # downgraded timestamp) would otherwise survive into the package.
 rm -rf artifacts/ui artifacts/host artifacts/checks artifacts/SharpRail.app
+# The About screen's version stamp, as the nightly names its builds: UTC date and short commit.
+stamp="$(date -u +%Y%m%d)-$(git rev-parse --short HEAD)"
 # One locked restore (packages.lock.json lists every shipped RID) that also fetches the runtime and Crossgen packs;
 # the publishes below reuse it, since a `-r` restore would not match the lock's RuntimeIdentifiers.
 "$dotnet_cmd" restore SharpRail.slnx -p:SelfContained=true -p:PublishReadyToRun=true
 "$dotnet_cmd" publish src/SharpRail.UI -c Release -r "$rid" --self-contained true --no-restore \
-  -p:PublishReadyToRun=true -p:PublishReadyToRunComposite=true -o artifacts/ui
+  -p:PublishReadyToRun=true -p:PublishReadyToRunComposite=true -p:SharpRailBuildStamp="$stamp" -o artifacts/ui
 "$dotnet_cmd" publish src/SharpRail.Host.Remote -c Release -r "$rid" --self-contained true --no-restore \
   -p:PublishReadyToRun=true -p:PublishReadyToRunComposite=true -o artifacts/host
 # The packaged gate combines checks with the UI's shipped components. A separate
