@@ -180,6 +180,10 @@ Themes that replace the selected foreground keep Avalonia's existing styled-sele
   Paragraphs reserve the full height of wrapped link labels, including inline HTML links, so long
   URLs cannot overlap following unchanged, inserted or deleted prose. Labels stay readable, clickable
   and selectable at narrow widths and larger font sizes.
+- Markdown images in SVG draw: the app's image reader answers an SVG as the inert drawing (`VectorPictures`, off the UI
+  thread) rendered to PNG, since the host serves SVG as text. An image that cannot load (unreadable, malformed, unsupported
+  scheme) is replaced by a visible `MarkdownImageError` line naming the source and the reason, never a blank gap. The
+  drawing is light-themed; a stylesheet's dark media rule is not applied.
 - Paragraphs containing Markdown images or inline HTML images reserve the full image height,
   including inside table cells, rather than clipping pictures to a fixed text line height.
 - Rendered Markdown diffs align pipe tables as complete blocks, then compare their rows and cell text.

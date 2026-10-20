@@ -359,6 +359,10 @@ round-trip quoted Unicode values, punctuation and empty shapes; unsupported YAML
 Platforms without the native source editor assert read-only values, chips, folding and file
 immutability; supported platforms retain the full editing, undo and save checks.
 
+`MarkdownImageChecks.cs` (`-- --markdown-images`, also in the default gate) renders Markdown SVG images from a viewBox-only
+and a styled (custom properties, class rules, text) document through the app's image reader, asserting painted pixels, and
+asserts that malformed or missing images show a visible `MarkdownImageError` naming the path.
+
 `MarkdownTableDiffChecks.cs` (`-- --markdown-tables`, also in the default gate) checks added and removed
 Markdown tables, cell/header edits, row changes and differing column counts. It asserts both parsed table
 structure and native preview grids with marked cell text, including quoted tables, escaped pipes, empty

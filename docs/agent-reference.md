@@ -120,7 +120,7 @@ Run: `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release -- <m
 | `--registry` | Workspace registry host parity and external-workspace rail. |
 | `--syntax` | TextMate coverage, incremental edits, Unicode, theme changes, attachment/disposal, diff syntax styling. |
 | `--documents` | Resource renderers and file/diff body translations. |
-| `--editor`, `--markdown`, `--markdown-find` | Editor integration, source editing, Markdown rendering and search. |
+| `--editor`, `--markdown`, `--markdown-find`, `--markdown-images` | Editor integration, source editing, Markdown rendering and search. |
 | `--agent-marks`, `--agent-launches` | Agent decorations through workspace switches; host and UI launch behavior. |
 | `--terminal-replay` | Filtering of terminal queries in recorded screens. |
 | `--workspace-tools` | Host MCP workspace tools and UI integration. |

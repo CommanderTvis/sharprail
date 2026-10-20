@@ -70,16 +70,22 @@ internal static class VectorPictures
 
     internal static Bitmap? Raster(string svg)
     {
+        if (RasterBytes(svg, 2) is not { } png) return null;
+        using var stream = new MemoryStream(png);
+        return new Bitmap(stream);
+    }
+
+    /// <summary>The inert document drawn at <paramref name="maxScale"/> (less for a very large picture) as PNG; null when it cannot be drawn.</summary>
+    internal static byte[]? RasterBytes(string svg, float maxScale)
+    {
         if (Sanitise(svg) is not { } inert) return null;
         try
         {
             using var picture = new SKSvg();
             if (picture.FromSvg(inert) is not { CullRect: { Width: > 0, Height: > 0 } bounds }) return null;
-            var scale = Math.Min(2, MaxSide / Math.Max(bounds.Width, bounds.Height));
+            var scale = Math.Min(maxScale, MaxSide / Math.Max(bounds.Width, bounds.Height));
             using var stream = new MemoryStream();
-            if (!picture.Save(stream, SKColors.Transparent, SKEncodedImageFormat.Png, 100, scale, scale)) return null;
-            stream.Position = 0;
-            return new Bitmap(stream);
+            return picture.Save(stream, SKColors.Transparent, SKEncodedImageFormat.Png, 100, scale, scale) ? stream.ToArray() : null;
         }
         catch (Exception error) when (error is not OutOfMemoryException) { return null; }
     }

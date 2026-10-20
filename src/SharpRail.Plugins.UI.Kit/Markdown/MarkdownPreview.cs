@@ -572,7 +572,7 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
             byte[] data;
             if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
             {
-                if (uri.Scheme is not ("https" or "http")) return;
+                if (uri.Scheme is not ("https" or "http")) throw new IOException($"Images load from http(s) or workspace files, not {uri.Scheme}:.");
                 using var response = await Images.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, lifetime.Token);
                 response.EnsureSuccessStatusCode();
                 if (response.Content.Headers.ContentLength > 8 * 1024 * 1024) throw new IOException("Image too large.");
@@ -596,15 +596,20 @@ public sealed partial class MarkdownPreview : ScrollViewer, IDisposable
             using var bytes = new MemoryStream(data);
             var bitmap = new Bitmap(bytes);
             loadedImages.Add(bitmap);
-            var image = new Image { Source = bitmap, Stretch = Stretch.Uniform, MaxHeight = 800 };
+            var image = new Image { Name = "MarkdownImage", Source = bitmap, Stretch = Stretch.Uniform, MaxHeight = 800 };
             image.Bind(Image.MaxWidthProperty, new Binding("Bounds.Width")
             { RelativeSource = new RelativeSource(RelativeSourceMode.FindAncestor) { AncestorType = typeof(SelectableTextBlock) } });
             holder.Child = image;
             (Content as MarkdownBlockList)?.ContentChanged();
         }
-        catch (Exception error) when (error is IOException or HttpRequestException or OperationCanceledException or ArgumentException)
+        catch (Exception error) when (error is IOException or HttpRequestException or OperationCanceledException or ArgumentException or InvalidOperationException or NotSupportedException)
         {
-            if (!lifetime.IsCancellationRequested) ToolTip.SetTip(holder, error.Message);
+            if (lifetime.IsCancellationRequested) return;
+            // Never a silent gap: say which image failed and why.
+            var message = Ui.Text($"Image not shown: {url} ({error.Message})", Ui.Danger, 12);
+            message.Name = "MarkdownImageError";
+            holder.Child = message;
+            (Content as MarkdownBlockList)?.ContentChanged();
         }
     }
 
