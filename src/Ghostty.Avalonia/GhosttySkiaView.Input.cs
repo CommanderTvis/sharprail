@@ -14,8 +14,8 @@ namespace Ghostty.Avalonia;
 
 public sealed partial class GhosttySkiaView
 {
-    private bool MacKeyboard => OperatingSystem.IsMacOS() || OperatingSystem.IsBrowser() &&
-        (Application.Current?.TryGetFeature(typeof(IPlatformSettings)) as IPlatformSettings)?.HotkeyConfiguration.CommandModifiers == KeyModifiers.Meta;
+    private bool MacKeyboard => (Application.Current?.PlatformSettings?.HotkeyConfiguration.CommandModifiers
+        ?? (OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control)) == KeyModifiers.Meta;
     private const int Press = 1, Release = 0, Motion = 2;
     private const double TapSlop = 8;
     private InputClient? inputMethod;

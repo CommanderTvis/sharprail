@@ -6,9 +6,7 @@ namespace SharpRail.Plugins.UI.Kit;
 public static class CommandKeys
 {
     /// <summary>The command modifier for this client's platform, including its browser keyboard.</summary>
-    public static KeyModifiers Modifier => OperatingSystem.IsBrowser()
-        ? (Avalonia.Application.Current?.TryGetFeature(typeof(Avalonia.Platform.IPlatformSettings)) as Avalonia.Platform.IPlatformSettings)?.HotkeyConfiguration.CommandModifiers ?? KeyModifiers.Control
-        : OperatingSystem.IsMacOS() ? KeyModifiers.Meta : KeyModifiers.Control;
+    public static KeyModifiers Modifier => SharpRail.Scintilla.PlatformCommand.Modifier;
 
     /// <summary>Matches a command letter by typed Latin symbol, with a physical-key fallback for other layouts.</summary>
     public static bool Matches(KeyEventArgs e, char letter)

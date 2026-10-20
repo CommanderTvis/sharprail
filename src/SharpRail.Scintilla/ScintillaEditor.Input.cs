@@ -28,7 +28,7 @@ public sealed partial class ScintillaEditor
     {
         base.OnKeyDown(e);
         if (disposed) return;
-        var commandModifier = OperatingSystem.IsBrowser() ? (Application.Current?.TryGetFeature(typeof(Avalonia.Platform.IPlatformSettings)) as Avalonia.Platform.IPlatformSettings)?.HotkeyConfiguration.CommandModifiers ?? KeyModifiers.Control : OperatingSystem.IsWindows() || OperatingSystem.IsLinux() ? KeyModifiers.Control : KeyModifiers.Meta;
+        var commandModifier = PlatformCommand.Modifier;
         bool command = e.KeyModifiers.HasFlag(commandModifier);
         bool macCommands = commandModifier == KeyModifiers.Meta;
         bool shift = e.KeyModifiers.HasFlag(KeyModifiers.Shift);

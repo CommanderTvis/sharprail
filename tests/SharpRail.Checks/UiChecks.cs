@@ -118,7 +118,7 @@ internal static class UiChecks
 
     public static void Run(string root, bool translations = true)
     {
-        AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+        AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();
         SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
         Gate.Case("CreateProjectChecks", () => CreateProjectChecks.Run(root));
         Gate.Case("SyntaxHighlightChecks", () => SyntaxHighlightChecks.Run());
