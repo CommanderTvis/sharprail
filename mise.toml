@@ -219,6 +219,10 @@ description = "Publish the app, host and checks and build artifacts/SharpRail.ap
 depends = ["bootstrap"]
 run = "sh scripts/tasks/package-macos.sh"
 
+[tasks."zig-deps:mirror"]
+description = "Rebuild scripts/zig-deps.lock and the Zig dependency mirror archive after a Ghostty pin change (uploads nothing)"
+run = "sh scripts/tasks/zig-deps-mirror.sh"
+
 [tasks.dmg]
 description = "Pack artifacts/SharpRail.app into a disk image (path argument optional)"
 run = "sh scripts/tasks/dmg.sh"

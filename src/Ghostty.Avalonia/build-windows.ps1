@@ -26,6 +26,7 @@ try {
     }
     if ((& git -C $source rev-parse HEAD).Trim() -ne $commit) { throw 'Unexpected Ghostty source revision' }
     $prefix = Join-Path $out 'vt'
+    Restore-ZigDeps
     Push-Location $source
     try { Invoke-Zig $zig $RuntimeIdentifier $out @('build', '--cache-dir', (Join-Path $out 'zig-cache'), '--prefix', $prefix, '-Demit-lib-vt', '-Doptimize=ReleaseFast', "-Dtarget=$target", "-Dcpu=$ZigWindowsCpu") }
     finally { Pop-Location }

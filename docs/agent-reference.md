@@ -131,6 +131,7 @@ Run: `.tools/dotnet/dotnet run --project tests/SharpRail.Checks -c Release -- <m
 | `--shell` | Window shell: location bar, application menu, chrome, region errors, arrangement isolation, locations and links, workspace dialog project picker, commit menus, inert links. |
 | `--ui` | Headless UI checks and upstream translations without host suites. |
 | `--design` | Design-system guards and theme translations; `--design --write` regenerates `src/SharpRail.Plugins.UI.Kit/Generated` from `src/SharpRail.UI/Rendering/Design`. Edit the authored sources, not generated C#. |
+| `--zig-deps` | `scripts/zig-deps.lock` matches the Ghostty pins in `mise.toml` and every native build path restores the mirror. |
 | `--conformance` | Dependency-boundary checks; public API analyzers validate against `PublicAPI.*.txt` baselines. |
 | `--runner` | The runner itself. |
 | `--android` | Android host address parsing and remembered endpoint (the client needs a device: `scripts/mise run android run`). |

@@ -40,6 +40,11 @@ writer at `/opt/homebrew/opt/llvm/bin/llvm-ar`. The script downloads pinned Ghos
 sources and Zig toolchains, and caches native output under `obj/native` by default.
 `GhosttyNativeCache` can point to a persistent cache. Libraries and shell resources
 are copied to the consuming application's output and publish directory.
+
+Every native build (macOS, Linux, Windows, Android, WASM) first restores the Zig packages hosted outside
+github.com into Zig's global cache with `scripts/zig-deps.sh` (`Restore-ZigDeps` on Windows) from a mirror archive
+pinned by SHA-256 in `scripts/zig-deps.lock`, so CI does not depend on codeberg.org.
+It restores only absent packages and falls back to the upstream URLs; see `scripts/README.md`.
 The native view uses Ghostty 1.2.3; the VT library uses unreleased Ghostty commit
 `59c2dc032aba42aa5064bf206cc27286add3e9d8`. See `licenses/Ghostty-MIT.txt`.
 

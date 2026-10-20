@@ -89,6 +89,55 @@ function Enter-NativeBuild([string] $Cache) {
     }
 }
 
+# Restores the Zig packages hosted outside GitHub and deps.files.ghostty.org from the mirror pinned in scripts/zig-deps.lock (see zig-deps.sh,
+# which does the same for the sh builds) so the build needs not codeberg.org. Only absent
+# packages are restored; a missing or corrupt mirror falls back to the upstream URLs and fails naming an unreachable one.
+function Restore-ZigDeps {
+    if ($env:ZIG_DEPS_NO_RESTORE) { return }
+    $lock = @{ pkg = @() }
+    foreach ($line in Get-Content (Join-Path $PSScriptRoot 'zig-deps.lock')) {
+        $f = $line -split ' '
+        if ($f[0] -eq 'pkg') { $lock.pkg += , $f } elseif ($f[0] -ne '#' -and $f.Count -ge 2 -and !$line.StartsWith('#')) { $lock[$f[0]] = $f[1] }
+    }
+    $cache = if ($env:ZIG_GLOBAL_CACHE_DIR) { $env:ZIG_GLOBAL_CACHE_DIR } else { Join-Path $env:LOCALAPPDATA 'zig' }
+    $p = Join-Path $cache 'p'
+    New-Item -ItemType Directory $p -Force | Out-Null
+    $missing = @($lock.pkg | Where-Object { $_[2].Contains('tgz') -and !(Test-Path (Join-Path $p "$($_[1]).tar.gz")) })
+    if (!$missing) { return }
+    $archive = Join-Path $cache $lock.asset
+    $ok = (Test-Path $archive) -and (Get-FileHash $archive -Algorithm SHA256).Hash -eq $lock.sha256
+    if (!$ok) {
+        try {
+            for ($attempt = 1; !$ok -and $attempt -le 4; $attempt++) {
+                try { Invoke-WebRequest "https://github.com/$($lock.repo)/releases/download/$($lock.tag)/$($lock.asset)" -OutFile "$archive.partial" -TimeoutSec 120 } catch { Start-Sleep -Seconds (2 * $attempt); continue }
+                $ok = (Get-FileHash "$archive.partial" -Algorithm SHA256).Hash -eq $lock.sha256
+            }
+        } finally { if ($ok) { Move-Item "$archive.partial" $archive -Force } elseif (Test-Path "$archive.partial") { Remove-Item "$archive.partial" -Force } }
+    }
+    if ($ok) {
+        $tmp = Join-Path $cache "zig-deps-extract.$PID"
+        New-Item -ItemType Directory $tmp -Force | Out-Null
+        try {
+            Invoke-Native tar @('-xzf', $archive, '-C', $tmp)
+            foreach ($m in $missing) {
+                $name = "$($m[1]).tar.gz"
+                if (!(Test-Path (Join-Path $p $name))) { Move-Item (Join-Path $tmp "p/$name") (Join-Path $p $name) -ErrorAction SilentlyContinue }
+            }
+        } finally { Remove-Item $tmp -Recurse -Force -ErrorAction SilentlyContinue }
+        Write-Host "Restored Zig packages from $($lock.asset) into $p."
+        return
+    }
+    Write-Host "::warning title=Zig dependency mirror unavailable::$($lock.asset) (release $($lock.tag) of $($lock.repo)) could not be downloaded or failed its SHA-256 check; Zig will fetch the packages from their upstream URLs."
+    $failed = $false
+    foreach ($m in $missing) {
+        $url = $m[3]
+        $probe = if ($url.StartsWith('git+')) { ($url.Substring(4) -split '#')[0] + '/info/refs?service=git-upload-pack' } else { $url }
+        try { Invoke-WebRequest $probe -Headers @{ Range = 'bytes=0-0' } -UseBasicParsing -TimeoutSec 30 | Out-Null }
+        catch { Write-Host "::error title=Zig dependency unreachable::Package $($m[1]) is not mirrored and its upstream $url is unreachable. Publish the mirror (scripts/mise run zig-deps:mirror) or retry when the host is back."; $failed = $true }
+    }
+    if ($failed) { throw 'Zig dependencies are unavailable.' }
+}
+
 function Get-NativeFingerprint([string[]] $Paths) {
     return (($Paths | Sort-Object | ForEach-Object { (Get-FileHash $_ -Algorithm SHA256).Hash }) -join '')
 }

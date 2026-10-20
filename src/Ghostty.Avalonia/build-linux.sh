@@ -37,6 +37,7 @@ if [ "$(git -C "$source" rev-parse HEAD 2>/dev/null)" != "$vt_commit" ]; then
 fi
 
 mkdir -p "$out"
+sh "$project/../../scripts/zig-deps.sh" tgz
 (cd "$source" && "$zig/zig" build --cache-dir "$cache/vt-cache" --prefix "$out/vt-out" -Demit-lib-vt -Doptimize=ReleaseFast "-Dtarget=$target")
 # The version script exports the bridge alone, so Ghostty's own symbols stay private to the library.
 echo '{ global: gav_*; local: *; };' > "$out/exports.map"

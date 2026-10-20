@@ -540,6 +540,11 @@ internal static class Program
             BoundaryChecks.Run(root);
             return;
         }
+        if (args.SequenceEqual(["--zig-deps"]))
+        {
+            ZigDepsChecks.Run();
+            return;
+        }
         if (args.SequenceEqual(["--android"]))
         {
             AndroidClientChecks.Run(root);
@@ -932,6 +937,7 @@ internal static class Program
         }
         Gate.Case("packaged-app", PackagedApp.Run);
         Gate.Case("boundaries", () => BoundaryChecks.Run(root));
+        Gate.Case("zig-deps", () => ZigDepsChecks.Run());
         Gate.Case("runner", () => RunnerChecks.Run(root));
         Gate.Case("layout", LayoutChecks.Run);
         Gate.Case("quit-confirmation", QuitConfirmationChecks.Run);

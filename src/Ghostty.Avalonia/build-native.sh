@@ -105,6 +105,7 @@ ARCHIVER
     chmod +x "$cache/bin/libtool"
     export PATH="$cache/bin:$PATH"
     cd "$cache/view-source"
+    sh "$project/../../scripts/zig-deps.sh" dir
     "$view_zig_path" build --cache-dir "$cache/view-cache" \
       -Doptimize=ReleaseFast -Drenderer=metal -Dapp-runtime=none \
       -Demit-macos-app=false -Demit-docs=false -Demit-themes=false -Di18n=false -Dxcframework-target=native
@@ -126,6 +127,7 @@ vt_fingerprint="$arch $(cat Native/GhosttyVt.c Native/GhosttyClipboard.m build-n
 if ! fresh vt libGhosttyAvaloniaVt.dylib "$vt_fingerprint"; then
   checkout vt-source "$vt_commit"
   vt_zig_path="$(zig_path "$vt_zig")"
+  sh "$project/../../scripts/zig-deps.sh" tgz
   (cd "$cache/vt-source" && "$vt_zig_path" build --cache-dir "$cache/vt-cache" --prefix "$cache/vt-out" -Demit-lib-vt -Doptimize=ReleaseFast)
   clang -dynamiclib -fobjc-arc -mmacosx-version-min=13.0 -O2 -Wall -Wextra -Werror -DGHOSTTY_STATIC \
     -I "$cache/vt-out/include" Native/GhosttyVt.c Native/GhosttyClipboard.m "$cache/vt-out/lib/libghostty-vt.a" -framework AppKit \

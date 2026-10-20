@@ -40,6 +40,7 @@ if [ "$(git -C "$source" rev-parse HEAD 2>/dev/null)" != "$vt_commit" ]; then
 fi
 
 mkdir -p "$out"
+sh "$project/../../scripts/zig-deps.sh" tgz
 # Ghostty's build takes bionic's headers and startup objects from the NDK and aligns segments to 16 KB pages.
 (cd "$source" && ANDROID_NDK_HOME="$ndk" "$zig/zig" build --cache-dir "$cache/vt-cache" --prefix "$out/vt-out" \
   -Demit-lib-vt -Doptimize=ReleaseFast "-Dtarget=$triple.$api")

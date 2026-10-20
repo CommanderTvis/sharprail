@@ -129,6 +129,14 @@ NU1904) are warnings in builds, so a new advisory cannot break an unrelated buil
 job runs `scripts/mise run audit`, which restores with them as errors. To resolve one, bump the package and run
 `restore:update`.
 
+`zig-deps.sh` (and `Restore-ZigDeps` in `windows-native.ps1`) restores the Zig packages that Ghostty fetches from hosts other than
+github.com and deps.files.ghostty.org (the three Codeberg ones: zg, zig-wayland, translate-c) into Zig's global cache before every native Ghostty build, from a mirror archive
+pinned by SHA-256 in `zig-deps.lock`. The archive is a release asset of this repository (tag `zig-deps-<hash of the package list>`).
+Only absent packages are restored, so a warm cache needs no network; a missing or corrupt mirror falls back to the upstream URLs
+and fails with the package and URL named if one is unreachable. After changing a Ghostty pin run `scripts/mise run zig-deps:mirror`
+on macOS (measures the packages from a real build into `.bench/zig-deps`), then publish the asset it prints a command for
+and commit the lock. the `--zig-deps` check mode fails when the lock is stale.
+
 `fetch-git.sh` checks out a source pinned by commit; archives are pinned by checksum in `mise.toml`.
 `browser-assets.mjs` (the browser project's `StageBrowserAssets` target, rerun when `pnpm-lock.yaml`, the PDFium pin or a licence changes) stages the browser renderer assets, fonts and licenses into
 `src/SharpRail.Browser/wwwroot/vendor`.
