@@ -1,8 +1,8 @@
 # Linux desktop
 
 The [nightly prerelease](https://github.com/CommanderTvis/sharprail/releases/tag/nightly) includes
-`SharpRail-nightly-x86_64.AppImage`, built on an Ubuntu runner and gated by the packaged `--linux` checks, and
-`SharpRail-nightly-aarch64.AppImage`, built and checked the same way on a native arm64 runner. The arm64 image does not gate the
+`SharpRail-nightly-linux-x64.AppImage`, built on an Ubuntu runner and gated by the packaged `--linux` checks, and
+`SharpRail-nightly-linux-arm64.AppImage`, built and checked the same way on a native arm64 runner. The arm64 image does not gate the
 nightly yet: when its job fails, the release goes out without it. Both are signed (embedded GPG signature).
 The target is x86-64 or arm64 (aarch64) Linux with glibc 2.31 or newer (Ubuntu 20.04, Debian 11, Fedora 32 and later) and an X11 or XWayland
 session. Each image bundles .NET; it needs Git 2.36 or newer on `PATH` (older Git lacks `worktree list -z`, so Ubuntu 22.04's 2.34 shows a Git error in Changes) and, from the system, the X11 client libraries
@@ -11,16 +11,16 @@ session. Each image bundles .NET; it needs Git 2.36 or newer on `PATH` (older Gi
 ## Run it
 
 ```sh
-chmod +x SharpRail-nightly-x86_64.AppImage
-./SharpRail-nightly-x86_64.AppImage
+chmod +x SharpRail-nightly-linux-x64.AppImage
+./SharpRail-nightly-linux-x64.AppImage
 ```
 
 Without FUSE (containers, some minimal installs), let the runtime unpack the image itself:
 
 ```sh
-./SharpRail-nightly-x86_64.AppImage --appimage-extract-and-run
+./SharpRail-nightly-linux-x64.AppImage --appimage-extract-and-run
 # or unpack once and run from disk
-./SharpRail-nightly-x86_64.AppImage --appimage-extract && squashfs-root/AppRun
+./SharpRail-nightly-linux-x64.AppImage --appimage-extract && squashfs-root/AppRun
 ```
 
 Without ICU installed, `AppRun` starts .NET in invariant-globalization mode instead of failing.

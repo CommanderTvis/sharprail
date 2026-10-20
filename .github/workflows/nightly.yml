@@ -324,18 +324,18 @@ jobs:
         run: |
           mv packages/*.dmg SharpRail-nightly.dmg
           mv packages/*.apk SharpRail-nightly.apk
-          mv packages/SharpRail-linux-x64.AppImage SharpRail-nightly-x86_64.AppImage
+          mv packages/SharpRail-linux-x64.AppImage SharpRail-nightly-linux-x64.AppImage
           assets=""
           if [ -f packages/SharpRail-linux-arm64.AppImage ]; then
-            mv packages/SharpRail-linux-arm64.AppImage SharpRail-nightly-aarch64.AppImage
-            assets="SharpRail-nightly-aarch64.AppImage"
+            mv packages/SharpRail-linux-arm64.AppImage SharpRail-nightly-linux-arm64.AppImage
+            assets="SharpRail-nightly-linux-arm64.AppImage"
           else
             echo "::warning::appimage-arm64 produced no package (job result: ${{ needs.appimage-arm64.result }}); releasing without it"
           fi
           mv packages/SharpRail-win-x64.zip SharpRail-nightly-win-x64.zip
           mv packages/SharpRail-win-arm64.zip SharpRail-nightly-win-arm64.zip
           gh release delete nightly --cleanup-tag --yes || true
-          gh release create nightly SharpRail-nightly.dmg SharpRail-nightly.apk SharpRail-nightly-x86_64.AppImage SharpRail-nightly-win-x64.zip SharpRail-nightly-win-arm64.zip $assets --prerelease --target "$GITHUB_SHA" \
+          gh release create nightly SharpRail-nightly.dmg SharpRail-nightly.apk SharpRail-nightly-linux-x64.AppImage SharpRail-nightly-win-x64.zip SharpRail-nightly-win-arm64.zip $assets --prerelease --target "$GITHUB_SHA" \
             --title "Nightly $(date -u +%Y-%m-%d)" \
-            --notes "Built from ${GITHUB_SHA} on $(date -u +%Y-%m-%d). The disk image is for Apple silicon and is not notarized; the Android package is a client for a SharpRail host; the Linux AppImages (x86-64 and, when present, aarch64) are for distributions with glibc 2.31 or newer (run it with --appimage-extract-and-run when FUSE is unavailable); the unsigned Windows x64 and ARM64 ZIPs each contain the desktop client and standalone host."
+            --notes "Built from ${GITHUB_SHA} on $(date -u +%Y-%m-%d). The disk image is for Apple silicon and is not notarized; the Android package is a client for a SharpRail host; the Linux AppImages (x64 and, when present, ARM64) are for distributions with glibc 2.31 or newer (run it with --appimage-extract-and-run when FUSE is unavailable); the unsigned Windows x64 and ARM64 ZIPs each contain the desktop client and standalone host."
 
