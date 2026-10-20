@@ -116,7 +116,7 @@ Invariants:
 - One window fills the activity at a time. `ClientSession` closes the connect screen before it creates the
   workbench and the reverse on disconnect.
 
-The layer depends on Avalonia internals and is pinned to Avalonia 12.1.3. Any Avalonia version change must
+The layer depends on Avalonia internals and is pinned to Avalonia 12.1.4. Any Avalonia version change must
 recheck it:
 
 - Krafs.Publicizer exposes `TopLevelImpl`, its `InternalView`, `InvalidationAwareSurfaceView`, and

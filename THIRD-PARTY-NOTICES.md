@@ -118,7 +118,7 @@ See licenses/Tomlyn-BSD-2-Clause.txt. Its Codex SVG derives from LobeHub Icons
 (MIT; Copyright 2023 LobeHub); see licenses/LobeHub-Icons-MIT.txt. The fallback
 OpenAI glyph is covered by the existing Remix Icon notice.
 
-The Android client uses Avalonia.Android 12.1.3 (MIT, as Avalonia). Through it the package
+The Android client uses Avalonia.Android 12.1.4 (MIT, as Avalonia). Through it the package
 includes the .NET bindings Xamarin.AndroidX.AppCompat 1.7.1.3, Xamarin.AndroidX.DocumentFile
 1.1.0.3 and Xamarin.AndroidX.Window 1.5.1.2 with their AndroidX, Kotlin, kotlinx, Guava
 ListenableFuture, JetBrains Annotations and JSpecify dependencies: the bindings are MIT

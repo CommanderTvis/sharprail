@@ -1,4 +1,4 @@
-AndroidX, Kotlin and annotation libraries bound for .NET, as resolved for the Android client through Avalonia.Android 12.1.3.
+AndroidX, Kotlin and annotation libraries bound for .NET, as resolved for the Android client through Avalonia.Android 12.1.4.
 License files from the Xamarin.AndroidX.AppCompat 1.7.1.3 NuGet package; every Xamarin.AndroidX.*, Xamarin.Kotlin.*,
 Xamarin.KotlinX.*, Xamarin.Google.Guava.ListenableFuture, Xamarin.Jetbrains.Annotations and Xamarin.JSpecify package in
 that closure carries the same LICENSE.md and the same Apache License 2.0 text in its THIRD-PARTY-NOTICES.txt.

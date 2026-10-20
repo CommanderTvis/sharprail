@@ -32,7 +32,7 @@ any macOS or Linux host and links `libGhosttyAvaloniaVt.so` (stripped, exporting
 Copy this directory into an Avalonia application and add a project reference to
 `Ghostty.Avalonia.csproj`. It supplies .NET 10 settings and default dependency
 versions when the application does not use central package management. With
-central package management, add Avalonia 12.1.3, Avalonia.Skia 12.1.3,
+central package management, add Avalonia 12.1.4, Avalonia.Skia 12.1.4,
 SkiaSharp 4.148.0 and HarfBuzzSharp 14.2.1.301 to the application's package versions.
 
 Build on macOS with Xcode command line tools, Git, curl and LLVM's Darwin archive
