@@ -22,11 +22,22 @@ public sealed partial class WorkbenchWindow
         var view = new DiffView(document.Text, tab.Path, LineWidths.File(Preferences.FileLineWidth, Preferences.FileLineWidthBounded),
             described ? null : DiffChoices(tab, key, new(workspaceRoot, tab.Path, ResourceRegistry.InferredMime(tab.Path), true, null), null),
             tabViews.GetValueOrDefault(key)?.RendererId, id => WriteTabView(key, new(id)), pending: described,
-            revert: DiffRevert(tab, key), canRevert: state.Supports(HostProtocol.ChangeWritePath), triage: triage, naturalHeight: naturalHeight, embedded: embedded);
+            revert: DiffRevert(tab, key), canRevert: state.Supports(HostProtocol.ChangeWritePath), triage: triage, naturalHeight: naturalHeight, embedded: embedded,
+            guard: DiffGuard(tab, key));
         var workspace = workspaceRoot;
         view.SelectionChanged += (path, selection) => ReportDiffSelection(workspace, tab, path, selection);
         if (described) _ = DescribeDiffAsync(view, tab, key);
         return view;
+    }
+
+    // Show diff anyway is remembered per diff tab and per review section, for this window's session.
+    private readonly Dictionary<string, DiffGuardMemory> diffGuards = [];
+
+    private DiffGuardMemory DiffGuard(DockTab tab, string key)
+    {
+        if (diffGuards.TryGetValue(key, out var memory)) return memory;
+        var path = tab.Path;
+        return diffGuards[key] = new DiffGuardMemory(DiffRevert(tab, key) is null ? null : () => _ = OpenDocumentAsync(path, keep: true));
     }
 
     private IReadOnlyList<DiffChoice> DiffChoices(DockTab tab, string key, ResourceDescriptor resource, DiffSides? known) =>

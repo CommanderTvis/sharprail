@@ -513,6 +513,14 @@ internal static class Program
             ChangesReviewChecks.Presentation();
             return;
         }
+        if (args.SequenceEqual(["--diff-virtualization"]))
+        {
+            AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().SetupWithoutStarting();
+            SynchronizationContext.SetSynchronizationContext(new AvaloniaSynchronizationContext(Dispatcher.UIThread, DispatcherPriority.Normal));
+            DiffVirtualizationChecks.Run();
+            ChangesReviewChecks.Run(Path.Combine(root, "diff-virtualization"));
+            return;
+        }
         if (args.SequenceEqual(["--review-retention"]))
         {
             AppBuilder.Configure<App>().UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false }).UseSkia().AfterSetup(HostHotkeys.Apply).SetupWithoutStarting();

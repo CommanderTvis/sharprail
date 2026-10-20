@@ -186,6 +186,20 @@ runs as top-level blocks, whole-document selection/search and offscreen anchor r
   The gutter shows file line numbers (old and new columns inline, one per side when split). Split sides hold
   the same line count (blank fillers pad unequal runs) and follow each other's pixel offset. Other platforms
   show the raw diff text without view modes.
+- Expensive source diffs wait behind a notice, as in the fork. Above 2000 changed (added plus removed) lines,
+  or when the counting parse cannot finish within 250 ms, the Source view shows "too expensive to show
+  automatically" with Show diff anyway and, where the modified side is the worktree, Open file. One-sided
+  (added or deleted) diffs are never guarded. Show diff anyway is remembered per diff tab and per review
+  section for the window's session. Diffs up to 64 Ki characters are parsed where they are drawn; longer ones
+  are parsed and counted on the thread pool, and a newer render, text change or disposal drops the stale
+  result. The fork's order-sensitive check is not ported: SharpRail's budget covers its own counting parse.
+- A stacked review section over 1000 source lines, unchanged context included, gets a bounded 640 px viewport
+  (the fork's `boundedDiff: "large"`): its editor scrolls on its own and draws only visible lines, and wheel
+  input over it stays inside it. Smaller stacked sections with more than one hunk realize per hunk: each hunk
+  is a slot that holds editors only within one outer viewport of the visible area and releases them beyond
+  two. A slot is estimated at 18 px per row before it is first drawn and keeps its measured height after
+  release; the review's scroll anchor absorbs the corrections. Selections, Keep and Revert work per realized
+  hunk with the same original/modified line mapping.
 - `ViewerLimits` bounds viewers by character count. A Rendered Markdown diff whose two sides together exceed
   1 Mi characters falls back to the source diff and disables Rendered; Markdown files past it open in
   Scintilla. Files and diffs past 32 Mi characters show a notice instead of an editor.
@@ -269,12 +283,6 @@ commit rows in the scope menu append it to the short SHA and author.
   secondary line or can wrap, a content row over a right-aligned action row; toasts always use the latter.
   Actions are small outline buttons, a secondary one ghost, never filled or coloured. SharpRail's toasts still
   draw a coloured variant stripe, and its inline error text is not a notice.
-- A guard for expensive source diffs and a natural-versus-bounded height contract. The fork waits behind a
-  "too expensive to show automatically" notice with Show diff anyway (and Open file where an editable side
-  exists) above 2000 changed lines or when its order-sensitive check cannot finish in time, never guards a
-  one-sided diff, and gives a stacked section over 1000 source lines (counting unchanged context) a bounded
-  viewport and a virtualized body (`boundedDiff: "large"`, next to `"always"`). SharpRail has no changed-line
-  guard; whether its native diff needs one is a measurement to take.
 - Swipe-to-dismiss on toasts, and pausing a toast's timer while the pointer or focus is on it.
 - Full typography adoption. [TYPOGRAPHY.md](TYPOGRAPHY.md) is the one vocabulary and the design gate holds
   literal sizes, weights and line heights to it, but most controls still write a size on the scale

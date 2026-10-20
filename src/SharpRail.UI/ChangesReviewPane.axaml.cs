@@ -37,15 +37,26 @@ internal sealed class ChangesReviewState
 
 internal sealed partial class ChangesReviewPane : UserControl, IDisposable
 {
-    private sealed class Section(GitChange change, Border frame, Grid container, Grid header, Grid body, TextBlock progress, CheckBox viewed)
+    // A file card's chrome. Cards near the viewport hold one; offscreen cards return theirs to the pool and keep only
+    // their frame at its last measured (or estimated) height. Handlers read the card's current owner.
+    private sealed class Card(Grid container, Grid header, Grid body, TextBlock title, Button titleButton, TextBlock progress, CheckBox viewed)
     {
-        internal GitChange Change = change;
-        internal readonly Border Frame = frame;
         internal readonly Grid Container = container;
         internal readonly Grid Header = header;
         internal readonly Grid Body = body;
+        internal readonly TextBlock Title = title;
+        internal readonly Button TitleButton = titleButton;
         internal readonly TextBlock Progress = progress;
         internal readonly CheckBox Viewed = viewed;
+        internal Section? Owner;
+    }
+
+    private sealed class Section(GitChange change, Border frame, bool collapsed)
+    {
+        internal GitChange Change = change;
+        internal readonly Border Frame = frame;
+        internal readonly bool BuiltCollapsed = collapsed;
+        internal Card? Card;
         internal DiffView? View;
         internal bool Loading;
         internal bool Stale;
@@ -72,6 +83,9 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
     private ScrollViewer? scroll;
     private readonly Grid sticky = new() { Name = "ReviewStickyHeader", VerticalAlignment = VerticalAlignment.Top, IsVisible = false };
     private Section? pinned;
+    private StackPanel? rows;
+    private readonly Stack<Card> pool = new();
+    private (Control Target, double Y)? scrollAnchor;
     private CancellationTokenSource? reading;
     private long generation;
     private bool disposed;
@@ -123,6 +137,7 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
         KeyDown += OnKey;
         LayoutUpdated += (_, _) =>
         {
+            KeepAnchor();
             if (!awaitingLayout || !IsArrangeValid) return;
             awaitingLayout = false;
             QueueVisible();
@@ -224,47 +239,15 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
     {
         if (scroll is not null) state.Offset = scroll.Offset.Y;
         ClearSections(); body.Children.Clear();
-        var rows = new StackPanel { Classes = { "review-sections" } };
+        scrollAnchor = null;
+        var rows = this.rows = new StackPanel { Classes = { "review-sections" } };
         foreach (var file in files.Values.Where(file => !single() || file.Path == state.ActivePath))
         {
-            var header = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto,Auto"), MinHeight = 32, Classes = { "review-header" } };
-            var title = Ui.Button(file.Path + $"   +{file.Added} −{file.Removed}", () =>
-            {
-                state.ActivePath = file.Path;
-                state.Collapsed[file.Path] = !IsCollapsed(file);
-                Build(); changed();
-            });
-            title.Name = "ReviewFile"; title.Tag = file.Path;
-            title.Classes.Add("review-file");
-            title.ClearValue(PaddingProperty);
-            title.ClearValue(BorderThicknessProperty);
-            title.Content = new TextBlock { Text = file.Path + $"   +{file.Added} −{file.Removed}", TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis, FontSize = 12 };
-            title.ClipToBounds = true;
-            ToolTip.SetTip(title, file.Path);
-            title.HorizontalAlignment = HorizontalAlignment.Stretch;
-            title.HorizontalContentAlignment = HorizontalAlignment.Left;
-            var kept = Ui.Text("", Ui.Hint, 12); kept.Tag = file.Path;
-            var open = new Button { Name = "ReviewOpenFile", Content = "Open as tab" };
-            open.Classes.Add("review-action");
-            open.Click += (_, _) => openFile(file);
-            var viewed = new CheckBox { Name = "ReviewViewed", Tag = file.Path, Content = "Viewed", IsChecked = state.Viewed.Contains(file.Path), Margin = new Thickness(8, 0), FontSize = 12, MinHeight = 0, VerticalAlignment = VerticalAlignment.Center };
-            AutomationProperties.SetName(viewed, "Viewed " + file.Path);
-            viewed.IsCheckedChanged += (_, _) =>
-            {
-                if (updating) return;
-                if (viewed.IsChecked == true) state.Viewed.Add(file.Path); else state.Viewed.Remove(file.Path);
-                ProgressChanged();
-            };
-            Ui.Place(header, title); Ui.Place(header, kept, 0, 1); Ui.Place(header, open, 0, 2); Ui.Place(header, viewed, 0, 3);
-            var content = new Grid();
-            var container = new Grid { RowDefinitions = new RowDefinitions("32,*") };
-            Ui.Place(container, header); Ui.Place(container, content, 1);
-            var frame = new Border { Name = "ReviewSection", Tag = file.Path, Child = container, BorderBrush = Ui.BorderBrush, Classes = { "review-section" } };
-            var section = new Section(file, frame, container, header, content, kept, viewed);
-            if (single()) frame.VerticalAlignment = VerticalAlignment.Stretch;
-            else if (!IsCollapsed(file)) content.MinHeight = Math.Min(20000, 232 + 40 * (file.Added + file.Removed));
+            var frame = new Border { Name = "ReviewSection", Tag = file.Path, BorderBrush = Ui.BorderBrush, Classes = { "review-section" } };
+            var section = new Section(file, frame, IsCollapsed(file));
             sections[file.Path] = section;
-            if (!single()) rows.Children.Add(frame);
+            if (single()) { frame.VerticalAlignment = VerticalAlignment.Stretch; Realize(section); }
+            else { frame.Height = Estimate(section); rows.Children.Add(frame); }
         }
         if (single())
         {
@@ -279,6 +262,8 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
             scroll.AddHandler(PointerWheelChangedEvent, (_, e) =>
             {
                 if (e.KeyModifiers.HasFlag(KeyModifiers.Shift) || e.Delta.Y == 0) return;
+                // A bounded section scrolls its own viewport.
+                if (e.Source is Visual source && source.FindAncestorOfType<DiffView>(includeSelf: true) is { IsBounded: true }) return;
                 scroll.Offset = new Vector(scroll.Offset.X, scroll.Offset.Y - e.Delta.Y * 50);
                 e.Handled = true;
             }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
@@ -289,7 +274,13 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
                 e.Handled = true;
             }, Avalonia.Interactivity.RoutingStrategies.Tunnel);
             var offset = state.Offset;
-            scroll.ScrollChanged += (_, _) => { state.Offset = scroll.Offset.Y; QueueVisible(); };
+            scroll.ScrollChanged += (_, e) =>
+            {
+                state.Offset = scroll.Offset.Y;
+                // A moved offset re-anchors at once, before deferred realization changes heights above it.
+                if (e.OffsetDelta.Y != 0) RecordAnchor();
+                QueueVisible();
+            };
             scroll.SizeChanged += (_, _) => QueueVisible();
             rows.SizeChanged += (_, _) => QueueVisible();
             body.Children.Add(scroll);
@@ -328,13 +319,18 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
             var top = scroll is null ? 0 : section.Frame.TranslatePoint(default, scroll)?.Y ?? double.MaxValue;
             if (top <= 32) active = section.Change.Path;
             if (scroll is not null && top < 0 && top + section.Frame.Bounds.Height > 32) pin = section;
+            var height = section.Frame.Bounds.Height;
             var visible = !IsCollapsed(section.Change) && (scroll is null ||
-                top < scroll.Bounds.Height * 2 && top + section.Frame.Bounds.Height > -scroll.Bounds.Height);
+                top < scroll.Bounds.Height * 2 && top + height > -scroll.Bounds.Height);
+            var near = scroll is null || top < scroll.Bounds.Height * 3 && top + height > -scroll.Bounds.Height * 2;
+            if (near && section.Card is null) Realize(section);
             if (visible && (section.View is null || section.Stale) && !section.Loading && !section.Failed) _ = LoadAsync(section, generation, reading.Token);
             else if (!visible && section.View is not null) Unmount(section);
+            if (!near && section.Card is not null && section.View is null && !ReferenceEquals(section, pin) && !ReferenceEquals(section, pinned)) Release(section);
         }
         Pin(pin);
         PlaceReveal();
+        RecordAnchor();
         if (!revealing && anchored is null && active is not null && active != state.ActivePath) { state.ActivePath = active; changed(); }
     }
 
@@ -342,10 +338,10 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
     {
         section.Loading = true;
         var retained = section.View;
-        if (retained is null)
+        if (retained is null && section.Card is { } loading)
         {
-            section.Body.Children.Clear();
-            section.Body.Children.Add(Ui.Text("Loading diff…", Ui.Hint));
+            loading.Body.Children.Clear();
+            loading.Body.Children.Add(Ui.Text("Loading diff…", Ui.Hint));
         }
         try
         {
@@ -359,7 +355,8 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
                 UpdateProgress();
             }) : null;
             var view = await load(section.Change, !single(), triage, token);
-            if (disposed || token.IsCancellationRequested || stamp != generation || !ReferenceEquals(sections.GetValueOrDefault(section.Change.Path), section))
+            if (disposed || token.IsCancellationRequested || stamp != generation || !ReferenceEquals(sections.GetValueOrDefault(section.Change.Path), section) ||
+                section.Card is not { } card)
             {
                 if (!ReferenceEquals(view, retained)) view.Dispose();
                 return;
@@ -377,8 +374,8 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
             if (!ReferenceEquals(view, retained))
             {
                 retained?.Dispose();
-                section.Body.MinHeight = 0;
-                section.Body.Children.Clear(); section.Body.Children.Add(view);
+                card.Body.MinHeight = 0;
+                card.Body.Children.Clear(); card.Body.Children.Add(view);
             }
             QueueVisible();
         }
@@ -388,11 +385,12 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
             if (disposed || token.IsCancellationRequested || stamp != generation) return;
             section.Failed = true;
             section.View?.Dispose(); section.View = null;
-            section.Body.MinHeight = 80;
+            if (section.Card is not { } failed) return;
+            failed.Body.MinHeight = 80;
             var notice = new StackPanel { Spacing = 4, Margin = new Thickness(12) };
             notice.Children.Add(Ui.Text("Could not read diff: " + error.Message, Ui.Danger));
             notice.Children.Add(Ui.Button("Retry", () => { section.Failed = false; _ = LoadAsync(section, generation, reading!.Token); }));
-            section.Body.Children.Clear(); section.Body.Children.Add(notice);
+            failed.Body.Children.Clear(); failed.Body.Children.Add(notice);
         }
         finally { section.Loading = false; if (token.IsCancellationRequested) QueueVisible(); }
     }
@@ -407,32 +405,149 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
     internal void UpdateMode() { Build(); Reveal(state.ActivePath ?? ""); }
     private void Unmount(Section section)
     {
-        section.Height = section.Body.Bounds.Height;
-        section.View?.Dispose(); section.View = null; section.Body.Children.Clear();
-        section.Body.MinHeight = IsCollapsed(section.Change) ? 0 : section.Height;
+        section.View?.Dispose(); section.View = null;
+        if (section.Card is not { } card) return;
+        section.Height = card.Body.Bounds.Height;
+        card.Body.Children.Clear();
+        card.Body.MinHeight = IsCollapsed(section.Change) ? 0 : section.Height;
     }
     private void ClearSections()
     {
         Pin(null);
-        foreach (var section in sections.Values) section.View?.Dispose();
+        foreach (var section in sections.Values)
+        {
+            section.View?.Dispose(); section.View = null;
+            if (section.Card is not null) Release(section);
+        }
         sections.Clear();
+    }
+
+    // Until a card's body is measured, its height is estimated from the file's changed lines.
+    private double Estimate(Section section) => 2 + 32 + (section.BuiltCollapsed ? 0
+        : section.Height > 0 ? section.Height : Math.Min(20000, 232 + 40 * (section.Change.Added + section.Change.Removed)));
+
+    private Card NewCard()
+    {
+        Card? card = null;
+        var header = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto,Auto,Auto"), MinHeight = 32, Classes = { "review-header" } };
+        var text = new TextBlock { TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis, FontSize = 12 };
+        var title = Ui.Button("", () =>
+        {
+            if (card?.Owner is not { } owner) return;
+            state.ActivePath = owner.Change.Path;
+            state.Collapsed[owner.Change.Path] = !IsCollapsed(owner.Change);
+            Build(); changed();
+        });
+        title.Name = "ReviewFile";
+        title.Classes.Add("review-file");
+        title.ClearValue(PaddingProperty);
+        title.ClearValue(BorderThicknessProperty);
+        title.Content = text;
+        title.ClipToBounds = true;
+        title.HorizontalAlignment = HorizontalAlignment.Stretch;
+        title.HorizontalContentAlignment = HorizontalAlignment.Left;
+        var kept = Ui.Text("", Ui.Hint, 12);
+        var open = new Button { Name = "ReviewOpenFile", Content = "Open as tab" };
+        open.Classes.Add("review-action");
+        open.Click += (_, _) => { if (card?.Owner is { } owner) openFile(owner.Change); };
+        var viewed = new CheckBox { Name = "ReviewViewed", Content = "Viewed", Margin = new Thickness(8, 0), FontSize = 12, MinHeight = 0, VerticalAlignment = VerticalAlignment.Center };
+        viewed.IsCheckedChanged += (_, _) =>
+        {
+            if (updating || card?.Owner is not { } owner) return;
+            if (viewed.IsChecked == true) state.Viewed.Add(owner.Change.Path); else state.Viewed.Remove(owner.Change.Path);
+            ProgressChanged();
+        };
+        Ui.Place(header, title); Ui.Place(header, kept, 0, 1); Ui.Place(header, open, 0, 2); Ui.Place(header, viewed, 0, 3);
+        var content = new Grid();
+        var container = new Grid { RowDefinitions = new RowDefinitions("32,*") };
+        Ui.Place(container, header); Ui.Place(container, content, 1);
+        return card = new Card(container, header, content, text, title, kept, viewed);
+    }
+
+    // Binds a pooled (or new) card to the section and puts it in the frame.
+    private void Realize(Section section)
+    {
+        var card = pool.TryPop(out var pooled) ? pooled : NewCard();
+        var file = section.Change;
+        card.Owner = section; section.Card = card;
+        card.Title.Text = file.Path + $"   +{file.Added} −{file.Removed}";
+        card.TitleButton.Tag = file.Path;
+        ToolTip.SetTip(card.TitleButton, file.Path);
+        card.Progress.Tag = file.Path;
+        card.Viewed.Tag = file.Path;
+        AutomationProperties.SetName(card.Viewed, "Viewed " + file.Path);
+        updating = true;
+        try
+        {
+            card.Viewed.IsChecked = state.Viewed.Contains(file.Path);
+            var keys = state.Keys.GetValueOrDefault(file.Path) ?? [];
+            card.Progress.Text = mutable && keys.Count > 0 ? $"{keys.Count(key => state.IsKept(file.Path, key))}/{keys.Count} kept" : "";
+        }
+        finally { updating = false; }
+        card.Body.Children.Clear();
+        card.Body.MinHeight = single() || section.BuiltCollapsed ? 0 : section.Height > 0 ? section.Height : Estimate(section) - 34;
+        section.Frame.Child = card.Container;
+        section.Frame.Height = double.NaN;
+    }
+
+    // Returns the card's chrome to the pool; the frame keeps the height the card had.
+    private void Release(Section section)
+    {
+        if (section.Card is not { } card) return;
+        if (ReferenceEquals(section, pinned)) Pin(null);
+        var height = section.Frame.Bounds.Height;
+        if (!section.BuiltCollapsed && card.Body.Bounds.Height > 0) section.Height = card.Body.Bounds.Height;
+        section.Frame.Child = null;
+        section.Frame.Height = height > 0 ? height : Estimate(section);
+        card.Body.Children.Clear();
+        card.Owner = null; section.Card = null;
+        pool.Push(card);
+    }
+
+    // The scroll anchor is the topmost section, or hunk inside it, that crosses the viewport's top edge. When a card or
+    // hunk above it realizes or releases with a different height, the offset moves by the same amount.
+    private void RecordAnchor()
+    {
+        scrollAnchor = null;
+        if (scroll is null || rows is null || reveal is not null || scroll.Offset.Y <= 0) return;
+        var top = scroll.Offset.Y;
+        foreach (var section in sections.Values)
+        {
+            if (section.Frame.TranslatePoint(default, rows) is not { } point) continue;
+            if (point.Y > top || point.Y + section.Frame.Bounds.Height <= top) continue;
+            Control target = section.Frame;
+            foreach (var candidate in section.View?.AnchorCandidates ?? [])
+                if (candidate.TranslatePoint(default, rows) is { } inner && inner.Y <= top && inner.Y + candidate.Bounds.Height > top) { target = candidate; break; }
+            if (target.TranslatePoint(default, rows) is { } anchor) scrollAnchor = (target, anchor.Y);
+            return;
+        }
+    }
+
+    private void KeepAnchor()
+    {
+        if (scrollAnchor is not var (target, y) || scroll is null || rows is null || reveal is not null) return;
+        if (target.TranslatePoint(default, rows) is not { } point) { scrollAnchor = null; return; }
+        var delta = point.Y - y;
+        if (Math.Abs(delta) <= .5) return;
+        scrollAnchor = (target, point.Y);
+        scroll.Offset = new Vector(scroll.Offset.X, Math.Max(0, scroll.Offset.Y + delta));
     }
 
     private void Pin(Section? section)
     {
         if (ReferenceEquals(section, pinned)) return;
-        if (pinned is not null)
+        if (pinned?.Card is { } previous)
         {
-            sticky.Children.Remove(pinned.Header);
-            pinned.Container.Children.Add(pinned.Header);
+            sticky.Children.Remove(previous.Header);
+            previous.Container.Children.Add(previous.Header);
         }
-        pinned = section;
-        if (section is not null)
+        pinned = section?.Card is null ? null : section;
+        if (pinned?.Card is { } card)
         {
-            section.Container.Children.Remove(section.Header);
-            sticky.Children.Add(section.Header);
+            card.Container.Children.Remove(card.Header);
+            sticky.Children.Add(card.Header);
         }
-        sticky.IsVisible = section is not null;
+        sticky.IsVisible = pinned is not null;
     }
 
     internal void Reveal(string path)
@@ -440,7 +555,7 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
         reveal = anchored = path;
         if (!files.ContainsKey(path)) return;
         state.ActivePath = path; state.Collapsed[path] = false;
-        if (single() || !sections.TryGetValue(path, out var section) || section.Body.MinHeight == 0 && section.View is null) Build();
+        if (single() || !sections.TryGetValue(path, out var section) || section.BuiltCollapsed) Build();
         Dispatcher.UIThread.Post(() =>
         {
             if (disposed || reveal != path) return;
@@ -462,7 +577,7 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
             }
         }
         if (target.View is null || target.View.Bounds.Height <= 0) return;
-        target.Header.GetLogicalDescendants().OfType<Button>().FirstOrDefault()?.Focus();
+        target.Card?.Header.GetLogicalDescendants().OfType<Button>().FirstOrDefault()?.Focus();
         reveal = null;
     }
 
@@ -475,9 +590,10 @@ internal sealed partial class ChangesReviewPane : UserControl, IDisposable
             progress.Text = $"{files.Keys.Count(state.Viewed.Contains)} of {files.Count} reviewed";
             foreach (var section in sections.Values)
             {
-                section.Viewed.IsChecked = state.Viewed.Contains(section.Change.Path);
+                if (section.Card is not { } card) continue;
+                card.Viewed.IsChecked = state.Viewed.Contains(section.Change.Path);
                 var keys = state.Keys.GetValueOrDefault(section.Change.Path) ?? [];
-                section.Progress.Text = mutable && keys.Count > 0 ? $"{keys.Count(key => state.IsKept(section.Change.Path, key))}/{keys.Count} kept" : "";
+                card.Progress.Text = mutable && keys.Count > 0 ? $"{keys.Count(key => state.IsKept(section.Change.Path, key))}/{keys.Count} kept" : "";
             }
             this.FindControl<Button>("ReviewPrevious")!.IsVisible = single();
             this.FindControl<Button>("ReviewNext")!.IsVisible = single();

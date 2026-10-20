@@ -104,7 +104,9 @@ internal static class ChangesReviewChecks
             .Any(button => Equals(button.Tag, "a.txt")));
         scroller.Offset = default;
         Until(() => Parts<Grid>("ReviewStickyHeader").Single().Children.Count == 0);
-        var editor = Review()!.DiffFor("a.txt")!.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>().Last();
+        // Stacked sections realize per hunk; the long line lives in the first hunk's editor.
+        var editor = Review()!.DiffFor("a.txt")!.GetLogicalDescendants().OfType<SharpRail.Scintilla.ScintillaEditor>()
+            .Last(editor => editor.Text.Contains(new string('x', 200), StringComparison.Ordinal));
         Until(() => editor.VerticalScroll.Maximum == 0);
         Require(double.IsPositiveInfinity(editor.WrapWidth), "Stacked code must stay unwrapped.");
         var wheelPoint = editor.TranslatePoint(new Point(120, 30), app.Window)!.Value;

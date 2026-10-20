@@ -109,8 +109,9 @@ internal sealed partial class DiffView : Grid, IDisposable
     /// </summary>
     internal DiffView(string text, string path, double wrapWidth,
         IReadOnlyList<DiffChoice>? choices = null, string? selected = null, Action<string>? selectedChanged = null, bool pending = false,
-        Func<RevertTarget, Task>? revert = null, bool canRevert = true, DiffTriage? triage = null, bool naturalHeight = false, bool embedded = false, Control? pathIcon = null)
+        Func<RevertTarget, Task>? revert = null, bool canRevert = true, DiffTriage? triage = null, bool naturalHeight = false, bool embedded = false, Control? pathIcon = null, DiffGuardMemory? guard = null)
     {
+        this.guard = guard ?? new DiffGuardMemory();
         this.triage = triage;
         this.naturalHeight = naturalHeight;
         this.embedded = embedded;
@@ -189,6 +190,7 @@ internal sealed partial class DiffView : Grid, IDisposable
             if (!IsRendered) Render();
         };
         whitespace.Click += (_, _) => Render();
+        EffectiveViewportChanged += OnEffectiveViewport;
         BuildSegments();
         Render();
     }
@@ -455,9 +457,12 @@ internal sealed partial class DiffView : Grid, IDisposable
     private void DropMerged()
     {
         if (frames.Count > 0 || merged is not null) SelectionChanged?.Invoke(syntaxPath, null);
+        preparing?.Cancel(); preparing?.Dispose(); preparing = null;
         body.Children.Clear();
         foreach (var frame in frames) frame.Editor.Dispose();
         frames.Clear();
+        ClearHunks();
+        IsGuarded = IsBounded = false;
         (merged as IDisposable)?.Dispose();
         merged = null;
     }
@@ -516,23 +521,7 @@ internal sealed partial class DiffView : Grid, IDisposable
         DropMerged();
         if (naturalHeight) body.Height = double.NaN;
         if (text.Length > ViewerLimits.Scintilla) { Ui.Place(body, ViewerLimits.TooLarge("diff", text.Length)); return; }
-        var (preamble, hunks) = Parse(text);
-        contentKeys = triage is null ? new Dictionary<RevertTarget, string>() : ContentKeys(text);
-        triage?.ReportKeys(contentKeys.Values.ToArray());
-        if (whitespace.IsChecked == true) foreach (var hunk in hunks) IgnoreWhitespace(hunk);
-        if (hunks.Count == 0 && string.IsNullOrWhiteSpace(text))
-        {
-            var empty = Ui.Text("No differences between the two sides.", Ui.Hint, 12);
-            empty.Name = "DiffEmpty"; empty.Margin = new Thickness(24); empty.HorizontalAlignment = HorizontalAlignment.Left;
-            Ui.Place(body, empty); return;
-        }
-        if (!ScintillaEditor.IsSupported)
-        {
-            Ui.Place(body, new ScrollViewer { Content = MarkdownPreview.Code(text), Margin = new Thickness(24, 8), HorizontalScrollBarVisibility = ScrollBarVisibility.Auto });
-            return;
-        }
-        if (hunks.Count == 0 || split.IsChecked != true) RenderInline(preamble, hunks);
-        else RenderSplit(hunks);
+        RenderSource();
     }
 
     private enum LineKind { Context, Added, Removed, Header, Meta, Gap, Filler }
@@ -578,12 +567,11 @@ internal sealed partial class DiffView : Grid, IDisposable
         new(Ui.Muted.Color)
     ];
 
-    private void RenderInline(List<string> preamble, List<Hunk> hunks)
+    private Control InlineBody(List<string> preamble, List<Hunk> hunks, Hunk? previous)
     {
         var side = new Side();
         var blocks = new List<(int Row, RevertTarget Target)>();
         foreach (var line in preamble) side.Add(line, LineKind.Meta);
-        var previous = (Hunk?)null;
         foreach (var hunk in hunks)
         {
             side.AddGap(Gap(previous, hunk));
@@ -601,15 +589,14 @@ internal sealed partial class DiffView : Grid, IDisposable
             }
             previous = hunk;
         }
-        Ui.Place(body, WithBlockActions(Code("DiffInlineText", side, side.Labels(true, true)), blocks));
+        return WithBlockActions(Code("DiffInlineText", side, side.Labels(true, true)), blocks);
     }
 
-    private void RenderSplit(List<Hunk> hunks)
+    private Grid SplitBody(List<Hunk> hunks, Hunk? previous)
     {
         var oldSide = new Side();
         var newSide = new Side();
         var blocks = new List<(int Row, RevertTarget Target)>();
-        var previous = (Hunk?)null;
         foreach (var hunk in hunks)
         {
             var gap = Gap(previous, hunk);
@@ -655,7 +642,7 @@ internal sealed partial class DiffView : Grid, IDisposable
         Ui.Place(columns, oldFrame);
         Ui.Place(columns, new Border { Width = 1, Background = Ui.BorderBrush }, 0, 1);
         Ui.Place(columns, WithBlockActions(newFrame, blocks, oldFrame.Editor), 0, 2);
-        Ui.Place(body, columns);
+        return columns;
 
         // Rows wrap differently on each side, so the side being scrolled places the same document line at the other's
         // top. Only the scrolled side drives: the follower's own clamping never pulls it back.
@@ -685,7 +672,8 @@ internal sealed partial class DiffView : Grid, IDisposable
         frame.Highlight(syntaxPath, side.Syntax, side.Styles);
         frame.ThemeApplied += () => editor.LineStyles = LineStyles();
         frames.Add(frame);
-        if (naturalHeight)
+        if (IsBounded) frame.Height = BoundedViewportHeight;
+        else if (naturalHeight)
         {
             frame.MinHeight = 40;
             void Resize()

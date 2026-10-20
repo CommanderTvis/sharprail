@@ -191,6 +191,9 @@ internal static class EditorWorkbenchChecks
         var clock = System.Diagnostics.Stopwatch.StartNew();
         app.Click(Row(), twice: true);
         ScintillaEditor Side(string name) => app.Window.GetLogicalDescendants().OfType<ScintillaEditor>().Single(editor => editor.Name == name);
+        // Over 2000 changed lines the diff waits behind the expensive-diff notice until Show diff anyway.
+        Pump(() => app.Window.GetLogicalDescendants().OfType<Button>().Any(button => button.Name == "DiffShowAnyway" && button.IsEffectivelyVisible));
+        app.Click(app.Window.GetLogicalDescendants().OfType<Button>().First(button => button.Name == "DiffShowAnyway" && button.IsEffectivelyVisible));
         Pump(() => app.Window.GetLogicalDescendants().OfType<ScintillaEditor>().Any(editor => editor.Name == "DiffNewText" && editor.IsEffectivelyVisible));
         app.Window.UpdateLayout(); Dispatcher.UIThread.RunJobs();
         Require(clock.Elapsed < TimeSpan.FromSeconds(5), $"A {lines}-line diff took {clock.Elapsed.TotalSeconds:0.0}s to show.");

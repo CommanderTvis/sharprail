@@ -25,6 +25,7 @@ internal static class RenderingBenchmarks
     internal static void Run(string surface, string root)
     {
         if (surface == "markdown-selection") { MarkdownSelectionBenchmark.Run(); return; }
+        if (surface == "changes-review") { ChangesReviewBenchmark.Run(); return; }
         Directory.CreateDirectory(Path.Combine(".bench", "rendering"));
         const int count = 2000;
         var context = DispatchProxy.Create<IPluginUIContext, RenderingBenchmarkContext>();

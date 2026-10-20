@@ -50,7 +50,7 @@ accepted read cannot observe the change that the fixture intends to reject.
 Double-clicking a change row waits for its standalone diff tab before querying its content;
 the first click can already mount the review's embedded diffs while that tab is loading.
 
-`--rendering-bench markdown|markdown-large|markdown-diff|markdown-selection|graph|files|files-mixed|specs` is an opt-in measurement
+`--rendering-bench markdown|markdown-large|markdown-diff|markdown-selection|graph|files|files-mixed|specs|changes-review` is an opt-in measurement
 fixture, excluded from the gate and run only when measurement is requested. Each
 scrolling process mounts 2,000 blocks or rows, captures actual headless Skia frames and
 scrolls 120 steps. It reports mount time/allocations, retained managed-memory delta
@@ -59,6 +59,8 @@ frame median/p95/allocations. Screenshots go to disposable `.bench/rendering`.
 `markdown-large` adds a 5,000-row table and a 20,000-line code block to the 2,000 paragraphs,
 reports construction separately and scrolls through the whole extent.
 `files` uses C# files; `files-mixed` alternates five file types with every seventh entry ignored.
+`changes-review` mounts a stacked review of 200 files led by a 20,000-line diff and reports open to first
+drawn frame, 120 scroll steps of 300 px and allocations of both phases.
 These synthetic results are not native presentation latency or whole-app RAM savings;
 timing requires attention to concurrent workloads. Blank or non-scrolling surfaces fail.
 
@@ -416,6 +418,11 @@ Review regression coverage also checks compact end-marker sizing, bordered file 
 `--review-retention` runs the watcher-independent retention subset: delayed hidden and visible refreshes
 keep existing content, source selection and scroll offset until fresh content arrives, while changed
 diffs still replace the body. Markdown coverage includes natural height, resizing and returning to a tab.
+`--diff-virtualization` covers the expensive-diff thresholds (2000 changed lines inclusive, one-sided
+exemption, budget timeout), the background count and stale-result drop, Show diff anyway memory and Open
+file, bounded sections over 1000 source lines with their own wheel scrolling, per-hunk realization with
+estimated/measured heights, release, scroll anchoring, selection mapping and hunk Revert, and file-card
+recycling across 200 files; it then runs the continuous Changes review E2E. The first part also runs in the gate.
 
 Dock input startup pumps the headless main loop and layout while awaiting the Git
 workspace, because startup crosses animation frames before its Git probe. The same

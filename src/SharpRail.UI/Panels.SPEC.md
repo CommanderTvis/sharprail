@@ -320,7 +320,12 @@ scroll position and expansion. A loaded snapshot stays visible while its replace
 
 A review tab owns one scope's ordered file list. Stacked mode supplies one outer scroll, sticky file
 headers, bordered file cards separated by a 16 px gap, a compact end row, collapsible sections and lazy bodies; offscreen editors detach while their measured height,
-renderer choice and content remain cached. Generated and large files start collapsed. One file mode
+renderer choice and content remain cached. File cards are virtualized: only cards within about two viewports
+hold header and body chrome, taken from a pool and rebound to their file (title, Viewed, kept progress);
+others keep just their bordered frame at the last measured or estimated height. The scroll anchor is the
+topmost card, or hunk slot inside it, crossing the viewport top; when content above it realizes or releases
+at a different height the offset moves by the same amount, except during explicit navigation. Large and
+multi-hunk sections follow the bounded and per-hunk contract in [Rendering/SPEC.md](Rendering/SPEC.md#diffs). Generated and large files start collapsed. One file mode
 fills the pane with the active file and offers Previous/Next; switching modes retains viewed marks,
 kept keys, active path and collapse overrides. The layout preference belongs to the app profile and is
 shared by its windows. Scope snapshots and diff reads run in the background and reject superseded
@@ -343,6 +348,15 @@ size and original position, so removing a twin cannot transfer its decision. Kee
 marks the file viewed in the same update; explicitly unviewing it survives remounts. Historical and
 staged scopes have no Keep or Revert. Progress is session-local and clears when the tab closes.
 AI turn receipts, review guides and agent send actions are excluded from this port.
+
+User-requested 2026-10-20 headless Skia measurement (`--rendering-bench changes-review`): a stacked review of
+200 files whose first is a 20,000-line diff (1,500 changed lines, the rest context), 1000×700 window, Split
+layout, three interleaved fresh processes per build against the parent commit. Open to first frame with the
+large file's source drawn fell from 5.95–7.10 s to 0.74–1.29 s, and its allocations from 1.08 GB to
+106–126 MB. Scroll steps of 300 px over 120 steps went from a 481–607 ms median and 856–1,053 ms p95 to
+114–162 ms and 380–493 ms. Scroll allocations rose from 54–56 MB to 1.92–1.93 GB: the parent never leaves the
+naturally tall large file in 36,000 px, while the bounded file lets the run pass about a hundred small files
+whose diffs load and unload editors. These are synthetic results, not native presentation latency.
 
 ## File and diff views
 
